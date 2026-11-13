@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
-import { PlayerBadge } from "@/components/duel/PlayerBadge";
+import { RoomPlayerName } from "@/components/duel/RoomPlayer";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { finishedThisRound } from "@/lib/duel/finishedPings";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
@@ -146,14 +146,12 @@ export function RoomPanel({
                 data-room-player={row.slot}
                 data-me={row.slot === mySlot || undefined}
                 data-state={state || undefined}
-                className="dk-rp-player"
+                className="dk-rp-player room-row"
               >
                 <span className="dk-rp-place">{status === "waiting" ? "" : row.position}</span>
-                <PlayerBadge look={looks.get(row.slot)} name={row.name} size={26} />
+                {/* One identity everywhere (13 Nov 2026): the shared nameplate strip; a tap opens the full card. */}
                 <span className="dk-rp-name-wrap">
-                  <span data-ellipsis className="dk-rp-name">
-                    {row.name || "Player"}
-                  </span>
+                  <RoomPlayerName slot={row.slot} name={row.name || "Player"} look={looks.get(row.slot)} />
                   {word ? <span className="dk-rp-status">{word}</span> : null}
                 </span>
                 {status === "waiting" ? null : <span className="dk-rp-score">{row.total}</span>}

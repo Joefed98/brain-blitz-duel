@@ -8,7 +8,7 @@ import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 import { MetaChips } from "@/components/app/MetaChips";
 import { Medal } from "./Medal";
-import { PlayerBadge } from "./PlayerBadge";
+import { RoomPlayerName } from "./RoomPlayer";
 import { Arrow, NextRoundCard, RoundWinnerCard, youStyle, type StandingsExtras } from "./Standings";
 
 interface DuelOverallProps {
@@ -62,21 +62,25 @@ export function DuelOverall({
               data-you={isMe ? "" : undefined}
               style={isMe ? youStyle(look) : undefined}
               data-left={row.status === "inactive" ? "" : undefined}
-              className="rs-row min-h-[60px]" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
+              className="rs-row room-row min-h-[60px]" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
             >
               <div className="grid w-full grid-cols-[1.5rem_1.375rem_minmax(0,1fr)_auto_3.75rem] items-center gap-x-2">
                 <Medal place={row.position} shared={mark?.shared} />
                 <Arrow standing={row} />
-                <span className="flex min-w-0 items-center gap-2">
-                  <PlayerBadge look={look} name={row.name} size={30} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="flex min-w-0 items-baseline gap-1">
-                      <span className="rs-name th-name">{row.name}</span>
-                      {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
-                      {row.status === "inactive" ? <LeftTag /> : null}
-                    </span>
-                  </span>
-                </span>
+                {/* One identity everywhere (13 Nov 2026): the shared nameplate strip; a tap on the row opens the full card. */}
+                <RoomPlayerName
+                  slot={row.slot}
+                  name={row.name}
+                  look={look}
+                  after={
+                    isMe || row.status === "inactive" ? (
+                      <span className="flex shrink-0 items-center gap-1">
+                        {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                        {row.status === "inactive" ? <LeftTag /> : null}
+                      </span>
+                    ) : undefined
+                  }
+                />
                 {placings ? (
                   <span data-round-gain className="rs-gain">
                     {shownGain(row)}

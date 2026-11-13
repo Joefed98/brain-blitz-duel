@@ -673,7 +673,8 @@
     gap: 5px;
     padding: 0 var(--jz-space-8);
     background: var(--jz-red);
-    color: var(--jz-text);
+    /* Dark text on the LIVE red: white on it is 3.1:1, --jz-bg on it about 6:1 (theme-check). */
+    color: var(--jz-bg);
     font-family: var(--jz-font);
     font-size: 11px;
     font-weight: var(--jz-weight-bold);

@@ -1,6 +1,6 @@
 /** The player card and the avatars (wave 2). Import from `@/design/identity`. */
 export { PlayerCard, MiniCard, CardPiece, CardStrip, NamePiece, DEFAULT_LOOK, DEFAULT_CARD_ART, DEFAULT_FRAME, knownLook, playerNumberLabel, type CardLook } from "./PlayerCard";
-export { NameplateStrip, NameplateSheet, useNameplateSheet } from "./NameplateStrip";
+export { NameplateStrip, NameplateSheet, NameplateFullCard, useNameplateSheet } from "./NameplateStrip";
 export {
   nameplateLook,
   nameplateName,

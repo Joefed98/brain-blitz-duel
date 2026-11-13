@@ -16,6 +16,7 @@ import { PlaySlot } from "@/components/app/PlaySlot";
 import { RatedHome } from "@/components/rated/RatedHome";
 import { IntroCard } from "@/components/app/IntroCard";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
+import { MyMiniCard } from "@/components/identity/MyMiniCard";
 import { PUBLIC_GAMES } from "@/config/publicGames";
 import { termsAgreed } from "@/lib/beta/terms";
 import { readPlayCards, releaseSlot, writePlayCards } from "@/lib/playCards";
@@ -347,7 +348,7 @@ function Home() {
             />
           ) : (
             <p className="flex h-11 items-center justify-between gap-2.5 text-muted-foreground jz-body">
-              <PlayerBadge look={look} name={accountName ?? name} size={28} />
+              <MyMiniCard guestLook={look} guestName={accountName ?? name} size={28} />
               <span className="min-w-0 flex-1 truncate">
                 Playing as <span className="th-name font-semibold jz-em-name">{accountName ?? name}</span>
               </span>

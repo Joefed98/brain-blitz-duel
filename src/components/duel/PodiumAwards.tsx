@@ -6,7 +6,7 @@ import { prefersReducedMotion } from "@/lib/motion";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { PodiumAward } from "@/lib/duel/podiumAwards";
 
-import { PlayerBadge } from "./PlayerBadge";
+import { RoomMiniCard } from "./RoomPlayer";
 
 /** The first card appears once the podium totals have counted up (Podium's COUNT_UP_MS). */
 const FIRST_MS = 1300;
@@ -58,7 +58,10 @@ export function PodiumAwards({
               }`}
               style={calm.current ? undefined : { animationDelay: `${FIRST_MS + index * STAGGER_MS}ms` }}
             >
-              <PlayerBadge look={looks.get(award.slot)} name={name} size={28} className="mt-0.5" />
+              {/* One identity everywhere (13 Nov 2026): the player's mini card (a guest's colour and initial). */}
+              <span className="mt-0.5 shrink-0">
+                <RoomMiniCard slot={award.slot} look={looks.get(award.slot)} name={name} size={28} />
+              </span>
               <span className="min-w-0 flex-1 text-left">
                 <span className="block truncate font-display text-[11px] font-bold uppercase tracking-wide text-primary">
                   {award.title}

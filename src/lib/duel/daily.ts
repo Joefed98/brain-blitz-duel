@@ -135,6 +135,15 @@ export interface DailyBoardView {
   } | null;
 }
 
+/**
+ * What the phone is sent of a daily's old board (13 Nov 2026, one identity everywhere): the caller's own line and own
+ * row only. The Daily top 100 (/daily-board) is the one board of other players; no other player's name, colour or icon
+ * (a hidden under-18 included) leaves the server through the old call.
+ */
+export function ownDailyLine(board: DailyBoardView): DailyBoardView {
+  return { ...board, rows: board.rows.filter((row) => row.isMe) };
+}
+
 /** One daily's state for the Play card and /daily. */
 export type DailyState =
   | { state: "play" }

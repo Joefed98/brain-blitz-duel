@@ -39,7 +39,12 @@ const SCREENS = ONLY.length
   ? THEME_SCREENS.filter((s) => ONLY.some((o) => s.name.includes(o)))
   : THEME_SCREENS;
 const DRAWS = partOf(
-  VIEWPORTS.flatMap((viewport) => SCREENS.map((screen) => ({ viewport, screen }))),
+  [
+    ...VIEWPORTS.flatMap((viewport) => SCREENS.map((screen) => ({ viewport, screen }))),
+    // One identity everywhere (13 Nov 2026): a screen's extra sizes (extraViewports), after every other draw, so the
+    // draws each part held before keep their place.
+    ...SCREENS.flatMap((screen) => (screen.extraViewports ?? []).map((viewport) => ({ viewport, screen }))),
+  ],
   args,
 );
 

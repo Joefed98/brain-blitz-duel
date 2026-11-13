@@ -6,7 +6,7 @@ import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
 import { AsyncRun } from "@/components/async/AsyncRun";
-import { DailyBoard } from "@/components/daily/DailyBoard";
+import { DailyYou } from "@/components/daily/DailyYou";
 import { DailyShareButton } from "@/components/daily/DailyShareButton";
 import { DAILY_REF } from "@/lib/share/dailyShare";
 import { noteLinkArrival } from "@/lib/share/shareRef";
@@ -137,7 +137,8 @@ function DailyScreen() {
   const router = useRouter();
   const search = Route.useSearch() as { kind?: DailyKind };
   const [kind, setKind] = useState<DailyKind>(search.kind ?? "puzzle");
-  const [day, setDay] = useState<Day>("today");
+  // Your own line is today's; earlier days are on the Daily top 100.
+  const day: Day = "today";
   const [status, setStatus] = useState<DailyStatus | null>(null);
   const [board, setBoard] = useState<DailyBoardView | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: "board" });
@@ -195,6 +196,9 @@ function DailyScreen() {
       live = false;
     };
   }, [kind, day, status, mode.kind]);
+
+  // Every way to the Daily board opens the Daily top 100 (13 Nov 2026: the old public board is retired).
+  const openTop100 = () => void router.navigate({ to: "/daily-board", search: { kind } as never });
 
   const back = () => {
     const state = (router.history?.location?.state ?? {}) as { fromPlayTab?: boolean };
@@ -306,10 +310,7 @@ function DailyScreen() {
         placeLine={
           me && board ? (me.rank === null ? null : rankLine(me.rank, board.count, ordinal)) : null
         }
-        onBoard={() => {
-          setDay("today");
-          setMode({ kind: "board" });
-        }}
+        onBoard={openTop100}
         boardLabel="Leaderboard"
         share={mode.view.finished ? <DailyShareButton kind={kind} total={mode.view.total} /> : undefined}
         footer={<FeedbackLink small />}
@@ -466,36 +467,17 @@ function DailyScreen() {
         ) : null}
 
         <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="ap-section-title">Leaderboard</h2>
-            {/* Wave 4 W4a: the accounts' top 100 with earlier days (docs/leaderboards.md). */}
-            <button
-              type="button"
-              data-open-daily-board
-              onClick={() => void router.navigate({ to: "/daily-board", search: { kind } as never })}
-              className="press tap-target lb-link"
-            >
-              Top 100
-            </button>
-          </div>
-          <DailySegmented
-            label="Day"
-            value={day}
-            options={[
-              { value: "today", label: "Today" },
-              { value: "yesterday", label: "Yesterday" },
-            ]}
-            onChange={setDay}
-          />
+          <h2 className="ap-section-title">Leaderboard</h2>
+          {/* One board (13 Nov 2026): the Daily top 100 (docs/leaderboards.md); here only your own line and the way in. */}
           {board ? (
-            <DailyBoard
+            <DailyYou
               board={board}
               lockedNote={lockedNote}
-              look={look}
-              share={day === "today" && board.me ? <DailyShareButton kind={kind} total={board.me.total} /> : undefined}
+              share={board.me ? <DailyShareButton kind={kind} total={board.me.total} /> : undefined}
+              onTop100={openTop100}
             />
           ) : (
-            <SkeletonPage label="Loading the board" rows={6} />
+            <SkeletonPage label="Loading the board" rows={2} />
           )}
         </div>
       </div>

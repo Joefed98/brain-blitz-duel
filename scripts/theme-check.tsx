@@ -413,11 +413,12 @@ const familiesUsed = new Set<string>();
 let measured = 0;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 try {
-  for (const screen of SCREENS) {
-    const where = `${screen.name} (${VIEWPORT.name})`;
+  // One identity everywhere (13 Nov 2026): a screen may ask for more sizes (extraViewports), each judged the same way.
+  for (const [screen, viewport] of SCREENS.flatMap((s) => [VIEWPORT, ...(s.extraViewports ?? [])].map((v) => [s, v] as const))) {
+    const where = `${screen.name} (${viewport.name})`;
     const problems: string[] = [];
     try {
-      const { context, page } = await openThemeScreen(browser, server.origin, screen, VIEWPORT);
+      const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport);
       try {
         // Let a font in use finish loading (font-display: swap paints the fallback first).
         await page.waitForTimeout(300);
@@ -457,7 +458,7 @@ try {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0);
         const { data, width, height } = ctx.getImageData(0, 0, img.width, img.height);
-        const k = img.width / VIEWPORT.w;
+        const k = img.width / viewport.w;
         for (const t of probe.texts) {
           const [r, g, b, a] = parseColor(t.color);
           const ratios: number[] = [];

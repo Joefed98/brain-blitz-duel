@@ -19,6 +19,7 @@ import { JoulesLine } from "@/components/pass/JoulesLine";
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
 import { PlayerBadge } from "./PlayerBadge";
+import { PodiumCards } from "./RoomPlayer";
 import { PodiumAwards } from "./PodiumAwards";
 import { RoomFooter } from "./RoomFooter";
 import { Button } from "@/design/components";
@@ -60,6 +61,8 @@ interface FinalResultProps {
   celebrations?: ReactNode;
   /** Where this game's Joules start (the Season pass's results line, wave 2 D2; null: none). */
   joulesSinceMs?: number | null;
+  /** The opponent's slot, for their card (rooms). */
+  opponentSlot?: number;
 }
 
 export function FinalResult({
@@ -73,6 +76,7 @@ export function FinalResult({
   looks = new Map(),
   names = new Map(),
   mySlot = 0,
+  opponentSlot,
   myTotal,
   opponentTotal,
   breakdown,
@@ -117,7 +121,8 @@ export function FinalResult({
 
   const side = (name: string, look: PlayerLook | undefined, colour: string, total: number, from: number | undefined, you: boolean) => (
     <div className="flex min-w-0 flex-1 flex-col items-center text-center">
-      <PlayerBadge look={look} name={name} size={30} className="mb-1" />
+      {/* With the cards above (rooms), the side names its total; elsewhere it keeps the colour and initial. */}
+      {opponentSlot === undefined ? <PlayerBadge look={look} name={name} size={30} className="mb-1" /> : null}
       <p className="flex min-w-0 max-w-full items-baseline justify-center gap-1 text-sm">
         <span className="th-name truncate font-semibold">{name}</span>
         {you ? <span className="rs-you shrink-0">(you)</span> : null}
@@ -142,6 +147,16 @@ export function FinalResult({
         </p>
       )}
 
+      {/* One identity everywhere (13 Nov 2026): both players' full cards (rooms only; nothing elsewhere). */}
+      {opponentSlot !== undefined ? (
+        <PodiumCards
+          pair
+          top={[
+            { slot: mySlot, name: myName, position: 1, look: myLook },
+            { slot: opponentSlot, name: opponentName, position: 2, look: opponentLook },
+          ]}
+        />
+      ) : null}
       <div className="flex items-start justify-center gap-3">
         {placings ? (
           <>

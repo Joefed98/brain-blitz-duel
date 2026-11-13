@@ -27,6 +27,8 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { RoomFooter, RoomMenu } from "./RoomFooter";
 import { RoomSettingsSheet } from "./RoomSettingsSheet";
 import { ReportSheet } from "./ReportSheet";
+import { useRoomNameplate } from "./RoomPlayer";
+import { NameplateStrip } from "@/design/identity";
 import type { ReportReason } from "@/lib/safety/reports";
 import { scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
 import { Button } from "@/design/components";
@@ -230,6 +232,7 @@ export function RoomLobby({
   onReport,
 }: RoomLobbyProps) {
   const [reporting, setReporting] = useState<DuelPlayerRow | null>(null);
+  const plateOf = useRoomNameplate();
   const canStart = players.length >= MIN_PLAYERS;
   const celebrate = useCelebrationsOn();
   const playersNeeded = MIN_PLAYERS - players.length;
@@ -342,11 +345,15 @@ export function RoomLobby({
                 : isHostRow
                   ? "Host"
                   : null;
+            // One identity everywhere (13 Nov 2026): the player's shared nameplate strip (their card, or a guest's
+            // colour and initial), in the name's place; the chip's tap is unchanged (my look, or another player's
+            // card with the report reasons under it).
             const nameLine = (
               <>
-                <PlayerBadge look={look} name={player.display_name} size={28} />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="rs-name th-name text-[14px] leading-tight">{player.display_name}</span>
+                  <span className="rs-name rs-plate">
+                    <NameplateStrip player={plateOf(player.player_slot, player.display_name, look)} />
+                  </span>
                   {sub ? (
                     <span className="rs-sub truncate text-[12px] leading-tight" data-host-label={isHostRow && !isMe ? "" : undefined}>
                       {isMe && isHostRow ? "You, host" : sub}
@@ -475,6 +482,7 @@ export function RoomLobby({
       {reporting && onReport ? (
         <ReportSheet
           name={reporting.display_name}
+          player={plateOf(reporting.player_slot, reporting.display_name, lookFor(reporting.player_slot))}
           onReport={(reason) => onReport(reporting.player_slot, reason)}
           onClose={() => setReporting(null)}
         />

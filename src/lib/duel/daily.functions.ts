@@ -90,7 +90,12 @@ export const dailyStartFn = createServerFn({ method: "POST" })
     return { ok: true as const, roomId: room.id, created: started.created };
   });
 
-/** A daily's board for today or yesterday, with the caller's own line pinned. */
+/**
+ * The caller's own line on a daily (today or yesterday). The old public board of everyone's names is retired
+ * (13 Nov 2026, one identity everywhere): the Daily top 100 (leaderboards.functions.ts) is the one board, so this
+ * answers only the caller's own row and line, never another player's name (a hidden under-18 included). The count
+ * and the caller's place are unchanged; stored attempts are untouched.
+ */
 export const dailyBoardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { kind: string; day: "today" | "yesterday" }) => input)
@@ -100,5 +105,6 @@ export const dailyBoardFn = createServerFn({ method: "POST" })
     const today = ukDayKey(nowMs);
     const day = data.day === "yesterday" ? shiftDayKey(today, -1) : today;
     const { dailyBoard } = await import("./daily.server");
-    return dailyBoard(await db(), data.kind, day, context.userId, nowMs);
+    const { ownDailyLine } = await import("./daily");
+    return ownDailyLine(await dailyBoard(await db(), data.kind, day, context.userId, nowMs));
   });

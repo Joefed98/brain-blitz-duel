@@ -510,3 +510,123 @@ button.cz-gem {
   font-weight: var(--jz-weight-bold);
   text-align: center;
 }
+
+/*
+ * A room's players (13 Nov 2026, one identity everywhere; RoomPlayer.tsx): the shared nameplate strip in the row's name
+ * area, a button opening the full card when the player has one. Places, scores and times stay outside on the plain
+ * row. In a `.room-row` the strip's button covers the whole row, so a tap anywhere on it opens the card.
+ */
+.room-player {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.room-player > .nameplate,
+.room-player-open {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.room-player-open {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.room-row {
+  position: relative;
+}
+.room-row .room-player-open::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+/* The strip in a room row: the card art band a little shorter than on the boards, so a room of 16 still fits. */
+.room-player .pcard.pcard-strip {
+  height: 40px;
+}
+.room-player .nameplate {
+  gap: var(--jz-space-8);
+}
+.room-player .nameplate-name {
+  font-size: 15px;
+}
+/* The lobby's name chips (RoomLobby): the strip in the name's place, in its half of the two columns. */
+.rs-plate {
+  display: block;
+  white-space: normal;
+}
+.rs-plate .pcard.pcard-strip {
+  height: 40px;
+}
+.rs-plate .nameplate-name {
+  font-size: 14px;
+}
+.rs-plate .nameplate-disc,
+.rs-plate [data-player-badge] {
+  width: 30px !important;
+  height: 30px !important;
+  flex-basis: 30px;
+}
+/* The room podium's full cards (RoomPlayer PodiumCards): 1st across the width, 2nd and 3rd side by side. */
+.room-podium-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jz-space-8);
+  margin: 0;
+  padding: 0 var(--jz-space-4);
+  list-style: none;
+}
+.room-podium-card {
+  min-width: 0;
+}
+.room-podium-card[data-podium-card="1"] {
+  grid-column: 1 / -1;
+  justify-self: center;
+  /* A card's own proportions at most twice its natural width, so a wide screen never draws it huge. */
+  width: min(100%, 360px);
+}
+.room-podium-cards:not([data-pair]) .room-podium-card:not([data-podium-card="1"]) {
+  justify-self: center;
+  width: min(100%, 260px);
+}
+.room-podium-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+.room-podium-plain {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  padding: var(--jz-space-8) var(--jz-space-12);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+}
+.room-podium-cards[data-pair] .room-podium-card[data-podium-card="1"] {
+  grid-column: auto;
+}
+/* A chat message's sender: their mini card inline before the name (RoomChat). */
+.room-chat-card {
+  display: inline-flex;
+  margin-right: 6px;
+  vertical-align: -5px;
+}
+/* Profile: where "Your look" went (13 Nov 2026). */
+.profile-look-moved {
+  margin: 0;
+  padding: var(--jz-space-12) var(--jz-space-16) 0;
+  color: var(--jz-text-2);
+  font-size: 13px;
+  line-height: 1.4;
+}

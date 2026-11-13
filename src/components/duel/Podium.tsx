@@ -37,6 +37,8 @@ import { Dots } from "./Dots";
 import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { PodiumAwards } from "./PodiumAwards";
+import { PodiumCards, useInRoom, useOpenRoomCard, useRoomNameplate } from "./RoomPlayer";
+import { NameplateStrip, nameplateOpens } from "@/design/identity";
 import { RoomFooter } from "./RoomFooter";
 import { isCompactRoom, youStyle } from "./Standings";
 import { Button, Icon } from "@/design/components";
@@ -64,6 +66,7 @@ function Plinth({
   skip: boolean;
   shared: boolean;
 }) {
+  const inRoom = useInRoom();
   if (!standing) return <div className="flex-1" />;
   const height = STEP_HEIGHT[place - 1];
   if (!height) return null;
@@ -78,10 +81,16 @@ function Plinth({
       )}
       {/* The winner's name and total keep to the step's left part, so the hero on its right end is clear. */}
       <div className={`flex w-full min-w-0 flex-col items-center gap-0.5 ${place === 1 && celebrate ? "pr-9" : ""}`}>
-        <PlayerBadge look={looks.get(standing.slot)} name={standing.name} size={place === 1 ? 30 : 26} />
-        <span className="th-name max-w-full truncate text-[13px] font-semibold text-foreground">
-          {standing.name}
-        </span>
+        {/* In a room the top three are drawn as full cards above the plinths (PodiumCards); elsewhere (a friend
+            challenge's podium) the plinth keeps the player's colour, initial and name. */}
+        {inRoom ? null : (
+          <>
+            <PlayerBadge look={looks.get(standing.slot)} name={standing.name} size={place === 1 ? 30 : 26} />
+            <span className="th-name max-w-full truncate text-[13px] font-semibold text-foreground">
+              {standing.name}
+            </span>
+          </>
+        )}
         <AnimatedScore
           value={shownTotal(standing)}
           from={celebrate ? shownCountFrom(standing) : 0}
@@ -149,6 +158,8 @@ export function Podium({
   celebrations,
 }: PodiumProps) {
   const [open, setOpen] = useState<number | null>(null);
+  const plateOf = useRoomNameplate();
+  const openCard = useOpenRoomCard();
   const [showAll, setShowAll] = useState(false);
   const mine = rows.find((r) => r.slot === mySlot);
   const won = mine?.position === 1;
@@ -227,6 +238,14 @@ export function Podium({
       )}
 
       {celebrations}
+      {/* One identity everywhere (13 Nov 2026): the top three's full cards (rooms only; nothing elsewhere). */}
+      <PodiumCards
+        top={[...rows]
+          .filter((r) => r.position <= 3)
+          .sort((a, b) => a.position - b.position || a.slot - b.slot)
+          .slice(0, 3)
+          .map((r) => ({ slot: r.slot, name: r.name, position: r.position, look: looks.get(r.slot) }))}
+      />
       {/* The plinths repeat the list under them (and are in the order 2, 1, 3): hidden from screen readers. */}
       <div className="flex items-end gap-2 px-1" aria-hidden="true">
         <Plinth standing={rows.find((r) => r.position === 2)} place={2} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(2)} />
@@ -260,10 +279,12 @@ export function Podium({
                 className="flex min-h-12 w-full items-center gap-2.5 py-1 pl-3.5 pr-2 text-left"
               >
                 <Medal place={row.position} shared={mark?.shared} />
-                <PlayerBadge look={look} name={row.name} size={28} />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="flex min-w-0 items-baseline gap-1">
-                    <span className="rs-name th-name">{row.name}</span>
+                  <span className="flex min-w-0 items-center gap-1">
+                    {/* One identity everywhere (13 Nov 2026): the shared nameplate strip in the name's place. */}
+                    <span className="room-player">
+                      <NameplateStrip player={plateOf(row.slot, row.name, look)} />
+                    </span>
                     {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
                     {row.status === "inactive" ? <LeftTag /> : null}
                   </span>
@@ -282,6 +303,13 @@ export function Podium({
               </button>
               {open === row.slot && (
                 <div className="border-t border-border px-3.5 py-1.5">
+                  {nameplateOpens(plateOf(row.slot, row.name, look)) ? (
+                    <div className="flex justify-end">
+                      <Button variant="quiet" size={44} data-open-card onClick={() => openCard(plateOf(row.slot, row.name, look))}>
+                        Open {row.name}’s card
+                      </Button>
+                    </div>
+                  ) : null}
                   {playerBreakdown(results, row.slot, roundOrder.length || undefined).map((entry) => {
                     const type = roundOrder[entry.round - 1] ?? "wordsmith";
                     const placing = placings ? roundPlaces(entry.round).get(row.slot) : undefined;

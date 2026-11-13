@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 import { AppWordmark } from "@/components/brand/AppWordmark";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { MuteToggle } from "@/components/duel/MuteToggle";
-import { PlayerBadge } from "@/components/duel/PlayerBadge";
+import { MyMiniCard } from "@/components/identity/MyMiniCard";
 import { SettingsSheet } from "@/components/app/SettingsSheet";
 import { CoinCounter } from "@/components/app/CoinCounter";
 import { goToTab, TAB_PATHS, type AppTab } from "@/components/app/AppTabBar";
@@ -97,7 +97,7 @@ export function AppRail({
           title={compact ? "Your profile" : undefined}
           className="dk-rail-account press"
         >
-          <PlayerBadge look={look} name={name || "You"} size={compact ? 32 : 30} />
+          <MyMiniCard guestLook={look} guestName={name || "You"} size={compact ? 32 : 30} />
           {compact ? null : (
             <span data-ellipsis className="dk-rail-name">
               {name || "Your profile"}

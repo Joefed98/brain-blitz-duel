@@ -166,6 +166,8 @@ import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { Button, SkeletonPage } from "@/design/components";
 import { PodiumCelebrations, type CelebrationEntry } from "@/components/duel/PodiumCelebrations";
 import { useCosmetics } from "@/lib/cosmetics/cosmeticsStore";
+import { useRoomCards } from "@/lib/identity/useRoomCards";
+import { RoomCardsHost, usePublishRoomCards } from "@/components/duel/RoomPlayer";
 import { NO_COSMETICS } from "@/lib/cosmetics/types";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
@@ -205,7 +207,10 @@ export const Route = createFileRoute("/duel/$code")({
 function OfflineDuel() {
   return (
     <OnlineOnly body="Rooms need a connection. Practice games are saved on this phone, so they still work.">
-      <DuelScreen />
+      {/* One identity everywhere (13 Nov 2026): every room screen draws its players from the room's cards. */}
+      <RoomCardsHost>
+        <DuelScreen />
+      </RoomCardsHost>
     </OnlineOnly>
   );
 }
@@ -473,6 +478,9 @@ function DuelScreen() {
   const looks = useMemo(() => resolvePlayerLooks(players), [players]);
   // Wave 2 E2: each player's equipped cosmetics (their win celebration and podium entrance on the final screen).
   const roomCosmetics = useCosmetics(players.map((p) => p.user_id));
+  // One identity everywhere (13 Nov 2026): every seat's card in one batched read, again only when someone joins.
+  const roomCards = useRoomCards(duel?.id, players.map((p) => p.id));
+  usePublishRoomCards(roomCards, players);
   const celebrationEntries = (rows: readonly Standing[]): CelebrationEntry[] =>
     rows
       .filter((r) => r.position <= 3)
@@ -1127,6 +1135,7 @@ function DuelScreen() {
             looks={looks}
             names={new Map(players.map((p) => [p.player_slot, p.display_name]))}
             mySlot={mySlot}
+            opponentSlot={opponentSlot}
             myTotal={totalScore(results, mySlot)}
             opponentTotal={totalScore(results, opponentSlot)}
             breakdown={roundBreakdown(results, mySlot, opponentSlot, duel.round_count ?? TOTAL_ROUNDS)}
@@ -1296,6 +1305,8 @@ function DuelScreen() {
           opponentName={opponent?.display_name ?? "Opponent"}
           myLook={looks.get(mySlot)}
           opponentLook={looks.get(opponentSlot)}
+          mySlot={mySlot}
+          opponentSlot={opponentSlot}
           myRoundScore={myResult?.score ?? 0}
           myVerdict={roundVerdict({ roundCorrect: myResult ? myResult.is_correct : null, roundScore: myResult?.score ?? 0 }, scoreOnlyVerdict(puzzle?.type))}
           mySummary={myStanding?.summary ?? "No answer"}

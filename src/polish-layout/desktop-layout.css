@@ -583,7 +583,8 @@
   .dk-rp-player {
     display: flex;
     min-width: 0;
-    height: 34px;
+    /* The shared nameplate strip (13 Nov 2026, one identity everywhere): 44 px rows, was 34. */
+    height: 44px;
     flex: none;
     align-items: center;
     gap: 10px;
@@ -606,7 +607,7 @@
     display: flex;
     min-width: 0;
     flex: 1;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
   }
   .dk-rp-name {

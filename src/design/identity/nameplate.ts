@@ -4,6 +4,8 @@
  * no server. The server builds these with `nameplatesFor` (src/lib/identity/nameplates.server.ts) in the list's own
  * call; the phone draws them with `NameplateStrip` (docs/nameplate.md).
  */
+import type { PlayerIconId } from "@/lib/duel/playerLook";
+
 import type { CardLook } from "./PlayerCard";
 
 /** A player's card as a row draws it: A1's public card plus C2's badges and title. */
@@ -23,13 +25,14 @@ export interface NameplateCard {
 /**
  * Who a row shows:
  * - `card`: a visible account with its card (the strip; a tap may open the full card);
- * - `plain`: a visible player with no card (a guest, or a card that failed to load): colour and initial;
+ * - `plain`: a visible player with no card (a guest, or a card that failed to load): colour and initial (in a room,
+ *   their room icon in the initial's place when they chose one);
  * - `hidden`: a hidden player (an under-18 by default, an adult who opted out, an account waiting for deletion) or a
  *   deleted account: a plain neutral disc, no initial or colour, "Hidden player" (or "Deleted player"), nothing to open.
  */
 export type NameplatePlayer =
   | { kind: "card"; name: string; card: NameplateCard; playerNumber?: number | null; tier?: string | null }
-  | { kind: "plain"; name: string; colour: number | null }
+  | { kind: "plain"; name: string; colour: number | null; icon?: PlayerIconId | null }
   | { kind: "hidden"; deleted?: boolean };
 
 export const HIDDEN_PLAYER_NAME = "Hidden player";

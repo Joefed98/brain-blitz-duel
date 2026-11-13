@@ -14,7 +14,7 @@ import {
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
-import { PlayerBadge } from "./PlayerBadge";
+import { RoomMiniCard } from "./RoomPlayer";
 import { youStyle } from "./Standings";
 
 /** A player's own colour (their bar); neutral without one. */
@@ -40,6 +40,9 @@ interface RoundResultProps {
   myName: string;
   opponentName: string;
   myLook?: PlayerLook | undefined;
+  /** The two players' slots, for their mini cards (one identity everywhere, 13 Nov 2026). */
+  mySlot?: number;
+  opponentSlot?: number;
   opponentLook?: PlayerLook | undefined;
   myRoundScore: number;
   myVerdict: RoundVerdict;
@@ -64,6 +67,8 @@ export function RoundResult({
   myName,
   opponentName,
   myLook,
+  mySlot,
+  opponentSlot,
   opponentLook,
   myRoundScore,
   myVerdict,
@@ -116,7 +121,7 @@ export function RoundResult({
             className="th-card min-w-0 flex-1 rounded-[18px] border p-4" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
           >
             <p className="flex min-w-0 items-center gap-1.5 text-sm">
-              <PlayerBadge look={myLook} name={myName} size={24} />
+              <RoomMiniCard slot={mySlot} look={myLook} name={myName} size={24} />
               <span className="th-name truncate font-semibold">{myName}</span>
               <span className="rs-you shrink-0">(you)</span>
             </p>
@@ -142,7 +147,7 @@ export function RoundResult({
           >
             <p className="flex min-w-0 items-center justify-end gap-1.5 text-sm">
               <span className="th-name truncate font-semibold">{opponentName}</span>
-              <PlayerBadge look={opponentLook} name={opponentName} size={24} />
+              <RoomMiniCard slot={opponentSlot} look={opponentLook} name={opponentName} size={24} />
             </p>
             <p className="whitespace-nowrap text-[12.5px] tabular-nums text-muted-foreground">{opponentTime}</p>
             <p className="th-score mt-2 text-4xl tabular-nums text-foreground">
