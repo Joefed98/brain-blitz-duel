@@ -1,0 +1,218 @@
+{
+ "pool": [
+  {
+   "look": "default",
+   "phone": "pool--default--phone.png",
+   "desktop": "pool--default--desktop.png",
+   "scene": "pool--default--scene.png"
+  },
+  {
+   "look": "game-skin.cue-ball.pixel-pool",
+   "phone": "pool--game-skin.cue-ball.pixel-pool--phone.png",
+   "desktop": "pool--game-skin.cue-ball.pixel-pool--desktop.png",
+   "scene": "pool--game-skin.cue-ball.pixel-pool--scene.png"
+  },
+  {
+   "look": "game-skin.cue-ball.galaxy-set",
+   "phone": "pool--game-skin.cue-ball.galaxy-set--phone.png",
+   "desktop": "pool--game-skin.cue-ball.galaxy-set--desktop.png",
+   "scene": "pool--game-skin.cue-ball.galaxy-set--scene.png"
+  },
+  {
+   "look": "game-skin.cue-ball.neon-8-ball",
+   "phone": "pool--game-skin.cue-ball.neon-8-ball--phone.png",
+   "desktop": "pool--game-skin.cue-ball.neon-8-ball--desktop.png",
+   "scene": "pool--game-skin.cue-ball.neon-8-ball--scene.png"
+  },
+  {
+   "look": "game-skin.cue-ball.neon-ball-set",
+   "phone": "pool--game-skin.cue-ball.neon-ball-set--phone.png",
+   "desktop": "pool--game-skin.cue-ball.neon-ball-set--desktop.png",
+   "scene": "pool--game-skin.cue-ball.neon-ball-set--scene.png"
+  },
+  {
+   "look": "world-theme.cue-ball.neon-table",
+   "phone": "pool--world-theme.cue-ball.neon-table--phone.png",
+   "desktop": "pool--world-theme.cue-ball.neon-table--desktop.png",
+   "scene": "pool--world-theme.cue-ball.neon-table--scene.png"
+  },
+  {
+   "look": "game-skin.cue-ball.pixel-pool+world-theme.cue-ball.neon-table",
+   "phone": "pool--game-skin.cue-ball.pixel-pool+world-theme.cue-ball.neon-table--phone.png",
+   "desktop": "pool--game-skin.cue-ball.pixel-pool+world-theme.cue-ball.neon-table--desktop.png",
+   "scene": "pool--game-skin.cue-ball.pixel-pool+world-theme.cue-ball.neon-table--scene.png"
+  }
+ ],
+ "minigolf": [
+  {
+   "look": "default",
+   "phone": "minigolf--default--phone.png",
+   "desktop": "minigolf--default--desktop.png",
+   "scene": "minigolf--default--scene.png"
+  },
+  {
+   "look": "game-skin.crazy-golf.watermelon",
+   "phone": "minigolf--game-skin.crazy-golf.watermelon--phone.png",
+   "desktop": "minigolf--game-skin.crazy-golf.watermelon--desktop.png",
+   "scene": "minigolf--game-skin.crazy-golf.watermelon--scene.png"
+  },
+  {
+   "look": "game-skin.crazy-golf.disco",
+   "phone": "minigolf--game-skin.crazy-golf.disco--phone.png",
+   "desktop": "minigolf--game-skin.crazy-golf.disco--desktop.png",
+   "scene": "minigolf--game-skin.crazy-golf.disco--scene.png"
+  },
+  {
+   "look": "game-skin.crazy-golf.neon-glow",
+   "phone": "minigolf--game-skin.crazy-golf.neon-glow--phone.png",
+   "desktop": "minigolf--game-skin.crazy-golf.neon-glow--desktop.png",
+   "scene": "minigolf--game-skin.crazy-golf.neon-glow--scene.png"
+  },
+  {
+   "look": "game-skin.crazy-golf.plasma",
+   "phone": "minigolf--game-skin.crazy-golf.plasma--phone.png",
+   "desktop": "minigolf--game-skin.crazy-golf.plasma--desktop.png",
+   "scene": "minigolf--game-skin.crazy-golf.plasma--scene.png"
+  },
+  {
+   "look": "world-theme.crazy-golf.neon-course",
+   "phone": "minigolf--world-theme.crazy-golf.neon-course--phone.png",
+   "desktop": "minigolf--world-theme.crazy-golf.neon-course--desktop.png",
+   "scene": "minigolf--world-theme.crazy-golf.neon-course--scene.png"
+  },
+  {
+   "look": "game-skin.crazy-golf.watermelon+world-theme.crazy-golf.neon-course",
+   "phone": "minigolf--game-skin.crazy-golf.watermelon+world-theme.crazy-golf.neon-course--phone.png",
+   "desktop": "minigolf--game-skin.crazy-golf.watermelon+world-theme.crazy-golf.neon-course--desktop.png",
+   "scene": "minigolf--game-skin.crazy-golf.watermelon+world-theme.crazy-golf.neon-course--scene.png"
+  }
+ ],
+ "curling": [
+  {
+   "look": "default",
+   "phone": "curling--default--phone.png",
+   "desktop": "curling--default--desktop.png",
+   "scene": "curling--default--scene.png"
+  },
+  {
+   "look": "game-skin.curl-champ.glacier",
+   "phone": "curling--game-skin.curl-champ.glacier--phone.png",
+   "desktop": "curling--game-skin.curl-champ.glacier--desktop.png",
+   "scene": "curling--game-skin.curl-champ.glacier--scene.png"
+  },
+  {
+   "look": "game-skin.curl-champ.aurora",
+   "phone": "curling--game-skin.curl-champ.aurora--phone.png",
+   "desktop": "curling--game-skin.curl-champ.aurora--desktop.png",
+   "scene": "curling--game-skin.curl-champ.aurora--scene.png"
+  },
+  {
+   "look": "game-skin.curl-champ.neon-stones",
+   "phone": "curling--game-skin.curl-champ.neon-stones--phone.png",
+   "desktop": "curling--game-skin.curl-champ.neon-stones--desktop.png",
+   "scene": "curling--game-skin.curl-champ.neon-stones--scene.png"
+  },
+  {
+   "look": "world-theme.curl-champ.neon-rink",
+   "phone": "curling--world-theme.curl-champ.neon-rink--phone.png",
+   "desktop": "curling--world-theme.curl-champ.neon-rink--desktop.png",
+   "scene": "curling--world-theme.curl-champ.neon-rink--scene.png"
+  },
+  {
+   "look": "game-skin.curl-champ.glacier+world-theme.curl-champ.neon-rink",
+   "phone": "curling--game-skin.curl-champ.glacier+world-theme.curl-champ.neon-rink--phone.png",
+   "desktop": "curling--game-skin.curl-champ.glacier+world-theme.curl-champ.neon-rink--desktop.png",
+   "scene": "curling--game-skin.curl-champ.glacier+world-theme.curl-champ.neon-rink--scene.png"
+  }
+ ],
+ "racing": [
+  {
+   "look": "default",
+   "phone": "racing--default--phone.png",
+   "desktop": "racing--default--desktop.png",
+   "scene": "racing--default--scene.png"
+  },
+  {
+   "look": "game-skin.apex.racing-stripes",
+   "phone": "racing--game-skin.apex.racing-stripes--phone.png",
+   "desktop": "racing--game-skin.apex.racing-stripes--desktop.png",
+   "scene": "racing--game-skin.apex.racing-stripes--scene.png"
+  },
+  {
+   "look": "game-skin.apex.molten-gold",
+   "phone": "racing--game-skin.apex.molten-gold--phone.png",
+   "desktop": "racing--game-skin.apex.molten-gold--desktop.png",
+   "scene": "racing--game-skin.apex.molten-gold--scene.png"
+  },
+  {
+   "look": "game-skin.apex.neon-paint",
+   "phone": "racing--game-skin.apex.neon-paint--phone.png",
+   "desktop": "racing--game-skin.apex.neon-paint--desktop.png",
+   "scene": "racing--game-skin.apex.neon-paint--scene.png"
+  },
+  {
+   "look": "world-theme.apex.neon-night",
+   "phone": "racing--world-theme.apex.neon-night--phone.png",
+   "desktop": "racing--world-theme.apex.neon-night--desktop.png",
+   "scene": "racing--world-theme.apex.neon-night--scene.png"
+  },
+  {
+   "look": "game-skin.apex.racing-stripes+world-theme.apex.neon-night",
+   "phone": "racing--game-skin.apex.racing-stripes+world-theme.apex.neon-night--phone.png",
+   "desktop": "racing--game-skin.apex.racing-stripes+world-theme.apex.neon-night--desktop.png",
+   "scene": "racing--game-skin.apex.racing-stripes+world-theme.apex.neon-night--scene.png"
+  }
+ ],
+ "freekick": [
+  {
+   "look": "default",
+   "phone": "freekick--default--phone.png",
+   "desktop": "freekick--default--desktop.png",
+   "scene": "freekick--default--scene.png"
+  },
+  {
+   "look": "game-skin.top-bins.comet",
+   "phone": "freekick--game-skin.top-bins.comet--phone.png",
+   "desktop": "freekick--game-skin.top-bins.comet--desktop.png",
+   "scene": "freekick--game-skin.top-bins.comet--scene.png"
+  },
+  {
+   "look": "game-skin.top-bins.retro-leather",
+   "phone": "freekick--game-skin.top-bins.retro-leather--phone.png",
+   "desktop": "freekick--game-skin.top-bins.retro-leather--desktop.png",
+   "scene": "freekick--game-skin.top-bins.retro-leather--scene.png"
+  },
+  {
+   "look": "game-skin.top-bins.neon-football",
+   "phone": "freekick--game-skin.top-bins.neon-football--phone.png",
+   "desktop": "freekick--game-skin.top-bins.neon-football--desktop.png",
+   "scene": "freekick--game-skin.top-bins.neon-football--scene.png"
+  }
+ ],
+ "pokersquares": [
+  {
+   "look": "default",
+   "phone": "pokersquares--default--phone.png",
+   "desktop": "pokersquares--default--desktop.png",
+   "scene": "pokersquares--default--scene.png"
+  },
+  {
+   "look": "game-skin.full-house.midnight-felt",
+   "phone": "pokersquares--game-skin.full-house.midnight-felt--phone.png",
+   "desktop": "pokersquares--game-skin.full-house.midnight-felt--desktop.png",
+   "scene": "pokersquares--game-skin.full-house.midnight-felt--scene.png"
+  },
+  {
+   "look": "game-skin.full-house.crimson-velvet",
+   "phone": "pokersquares--game-skin.full-house.crimson-velvet--phone.png",
+   "desktop": "pokersquares--game-skin.full-house.crimson-velvet--desktop.png",
+   "scene": "pokersquares--game-skin.full-house.crimson-velvet--scene.png"
+  },
+  {
+   "look": "game-skin.full-house.neon-felt",
+   "phone": "pokersquares--game-skin.full-house.neon-felt--phone.png",
+   "desktop": "pokersquares--game-skin.full-house.neon-felt--desktop.png",
+   "scene": "pokersquares--game-skin.full-house.neon-felt--scene.png"
+  }
+ ]
+}
