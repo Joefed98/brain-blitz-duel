@@ -13,7 +13,7 @@ import { isRatedFormat, type RatedFormat } from "@/lib/rated/matchmaking";
 import { backendNow, refreshRated, useRatedStatus } from "@/lib/rated/ratedApi";
 import { recordRatedEvent } from "@/lib/rated/ratedEvents";
 import { noteRatedRoom } from "@/lib/rated/ratedRoom";
-import { abortLine, bestOfLabel, pickLabel, shownPicks } from "@/lib/rated/rules";
+import { ABORT_WAIT_LINE, abortLine, bestOfLabel, pickLabel, shownPicks } from "@/lib/rated/rules";
 import { shareResult } from "@/lib/share/shareResult";
 
 /**
@@ -271,7 +271,14 @@ function RatedScreen() {
         action={a.youLeft ? { label: "Back to Play", onClick: () => void navigate({ to: "/" }) } : { label: "Search now", onClick: () => again(a.pick, a.format) }}
         data-rated-screen="aborted"
         data-rated-abort={a.youLeft ? "you-left" : "they-left"}
-      />
+      >
+        {/* The wait after set-up leaves applies to the leaver, so only they are told (Joe, 13 Nov 2026). */}
+        {a.youLeft ? (
+          <p className="jz-empty-body" data-rated-abort-wait data-wrap-ok>
+            {ABORT_WAIT_LINE}
+          </p>
+        ) : null}
+      </EmptyState>
     );
   } else if (phase.kind === "error") {
     body = (

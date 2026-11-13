@@ -5,6 +5,7 @@
  */
 import {
   DISCONNECT_MS,
+  FINISH_NOW_AWAY_MS,
   NEXT_ROUND_AUTO_MS,
   STANDINGS_MS,
   type DuelPhase,
@@ -93,33 +94,76 @@ export function betweenScreenDue(
   );
 }
 
+/** Unseen by the server for more than `awayMs`. */
+function awayFor(player: DuelPlayerRow, now: number, awayMs: number): boolean {
+  const seen = Date.parse(player.last_seen_at);
+  return !(Number.isFinite(seen) && now - seen <= awayMs);
+}
+
 /**
  * The players other than `userId` who are gone: tapped Leave, or stopped
- * sending heartbeats.
+ * sending heartbeats (unseen for more than `awayMs`, DISCONNECT_MS unless a
+ * rated room asks for its earlier banner).
  */
 export function absentRivals(
   players: readonly DuelPlayerRow[],
   userId: string,
   now: number,
+  awayMs: number = DISCONNECT_MS,
 ): DuelPlayerRow[] {
   return players.filter(
-    (p) => p.user_id !== userId && (p.status === "left" || !isConnected(p, now)),
+    (p) => p.user_id !== userId && (p.status === "left" || awayFor(p, now, awayMs)),
   );
 }
 
 /**
+ * Whether the dropout banner shows: the caller is still here and every other
+ * player has left or been unseen for more than `awayMs` (DISCONNECT_MS in an
+ * ordinary room, RATED_AWAY_MS in a rated one).
+ */
+export function everyoneElseAway(
+  players: readonly DuelPlayerRow[],
+  userId: string,
+  now: number,
+  awayMs: number = DISCONNECT_MS,
+): boolean {
+  const me = players.find((p) => p.user_id === userId);
+  if (!me || me.status === "left") return false;
+  const others = players.filter((p) => p.user_id !== userId);
+  return others.length > 0 && others.every((p) => p.status === "left" || awayFor(p, now, awayMs));
+}
+
+/**
  * "Finish now": allowed once the caller is the only player still here. The
- * caller must not have left, and everyone else must have left or dropped out.
+ * caller must not have left, and everyone else must have left or been unseen
+ * for FINISH_NOW_AWAY_MS (45 s). The server also refuses it in rated and
+ * tournament rooms (finishGame's `matchRoom`).
  */
 export function canFinishNow(
   players: readonly DuelPlayerRow[],
   userId: string,
   now: number,
 ): boolean {
-  const me = players.find((p) => p.user_id === userId);
-  if (!me || me.status === "left") return false;
-  const others = players.filter((p) => p.user_id !== userId);
-  return others.length > 0 && others.every((p) => p.status === "left" || !isConnected(p, now));
+  return everyoneElseAway(players, userId, now, FINISH_NOW_AWAY_MS);
+}
+
+/**
+ * Whole seconds until Finish now is offered (0 once it is): the latest-seen
+ * absent player's last sign of life plus FINISH_NOW_AWAY_MS. Players who
+ * tapped Leave don't hold it back.
+ */
+export function finishNowInSeconds(
+  players: readonly DuelPlayerRow[],
+  userId: string,
+  now: number,
+): number {
+  if (canFinishNow(players, userId, now)) return 0;
+  const seen = players
+    .filter((p) => p.user_id !== userId && p.status !== "left")
+    .map((p) => Date.parse(p.last_seen_at))
+    .filter(Number.isFinite);
+  if (seen.length === 0) return 0;
+  return Math.max(0, Math.ceil((Math.max(...seen) + FINISH_NOW_AWAY_MS - now) / 1000));
 }
 
 /**

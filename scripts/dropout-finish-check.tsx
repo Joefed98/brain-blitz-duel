@@ -14,12 +14,14 @@ import {
   forfeitOutcome,
 } from "../src/lib/duel/roomFlow";
 import {
+  FINISH_NOW_MATCH_MESSAGE,
   finishGame,
+  finishNowRefusal,
   forfeitRecord,
   recordForfeitInHistory,
 } from "../src/lib/duel/roomPhase.server";
 import { duelOutcome, totalScore, totalScoreThrough } from "../src/lib/duel/scoring";
-import { DISCONNECT_MS, type DuelPlayerRow, type RoundResultRow } from "../src/lib/duel/types";
+import { DISCONNECT_MS, FINISH_NOW_AWAY_MS, type DuelPlayerRow, type RoundResultRow } from "../src/lib/duel/types";
 import { memoryDb } from "./fixtures/memoryDb";
 
 const NOW = Date.parse("2026-10-12T12:00:00Z");
@@ -46,9 +48,15 @@ const gone = seen(DISCONNECT_MS + 1);
 // Who may finish.
 assert.equal(canFinishNow([player(1), player(2)], "u1", NOW), false, "both here");
 assert.equal(
-  canFinishNow([player(1), player(2, { last_seen_at: gone })], "u1", NOW),
+  // Changed with Joe's approval, 13 Nov 2026: Finish now waits for a rival unseen for FINISH_NOW_AWAY_MS (45 s) in ordinary rooms, no longer DISCONNECT_MS (15 s).
+  canFinishNow([player(1), player(2, { last_seen_at: seen(FINISH_NOW_AWAY_MS + 1) })], "u1", NOW),
   true,
   "rival dropped out",
+);
+assert.equal(
+  canFinishNow([player(1), player(2, { last_seen_at: gone })], "u1", NOW),
+  false,
+  "a rival unseen past DISCONNECT_MS but under 45 s: no Finish now yet",
 );
 assert.equal(
   canFinishNow([player(1), player(2, { status: "left" })], "u1", NOW),
@@ -137,7 +145,8 @@ const roomRow = {
   assert.equal(db.writes.length, 0);
 }
 {
-  const players = [player(1), player(2, { last_seen_at: gone })];
+  // Changed with Joe's approval, 13 Nov 2026: "everyone else has gone" is now a rival unseen for FINISH_NOW_AWAY_MS (45 s), Finish now's new threshold in ordinary rooms.
+  const players = [player(1), player(2, { last_seen_at: seen(FINISH_NOW_AWAY_MS + 1) })];
   const db = store("puzzle", players);
   const before = JSON.stringify(db.tables["round_results"]);
   const outcomes = await Promise.all(
@@ -161,7 +170,8 @@ const roomRow = {
 // writes. Ben leads on points, but Ana stayed, so Ana wins.
 const bigLead = [result(1, 1, 60), result(2, 1, 300), result(1, 2, 90), result(1, 3, 70)];
 {
-  const players = [player(1), player(2, { last_seen_at: gone })];
+  // Changed with Joe's approval, 13 Nov 2026: "everyone else has gone" is now a rival unseen for FINISH_NOW_AWAY_MS (45 s), Finish now's new threshold in ordinary rooms.
+  const players = [player(1), player(2, { last_seen_at: seen(FINISH_NOW_AWAY_MS + 1) })];
   const earlier = { winner: "Cleo", date: seen(86_400_000), score: 410, round_order: [] };
   const db = memoryDb({
     duels: [
@@ -277,6 +287,35 @@ const server = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
 const finishFn = server.slice(server.indexOf("export const finishNowFn"));
 assert.match(finishFn, /finishGame\(client, room, players, context\.userId, Date\.now\(\)\)/);
 assert.doesNotMatch(finishFn.slice(0, finishFn.indexOf("});")), /round_results/);
+
+// Added with Joe's approval, 13 Nov 2026: in an ordinary room the server refuses Finish now at DISCONNECT_MS + 1 and
+// allows it at FINISH_NOW_AWAY_MS + 1.
+{
+  const early = [player(1), player(2, { last_seen_at: seen(DISCONNECT_MS + 1) })];
+  const db1 = store("result", early);
+  const refused = await finishGame(db1.client, { ...roomRow, phase: "result" }, early, "u1", NOW);
+  assert.equal(refused.ok, false, "a rival unseen for DISCONNECT_MS + 1: the server refuses Finish now");
+  assert.equal(db1.writes.length, 0, "and writes nothing");
+  const late = [player(1), player(2, { last_seen_at: seen(FINISH_NOW_AWAY_MS + 1) })];
+  const db2 = store("result", late);
+  const allowed = await finishGame(db2.client, { ...roomRow, phase: "result" }, late, "u1", NOW);
+  assert.deepEqual(allowed, { ok: true, finished: true }, "a rival unseen for FINISH_NOW_AWAY_MS + 1: the server finishes the game");
+}
+
+// Added with Joe's approval, 13 Nov 2026: Finish now is refused in rated and tournament rooms (Arena duels included),
+// which play on to their own end; ordinary rooms are not refused. The server asks before finishGame.
+{
+  const yes = async () => true;
+  const no = async () => false;
+  assert.equal(await finishNowRefusal("room", { rated: yes, tournament: no }), FINISH_NOW_MATCH_MESSAGE, "refused in a rated room");
+  assert.equal(await finishNowRefusal("room", { rated: no, tournament: yes }), FINISH_NOW_MATCH_MESSAGE, "refused in a tournament room (an Arena duel included)");
+  assert.equal(await finishNowRefusal("room", { rated: no, tournament: no }), null, "an ordinary room: no refusal");
+  assert.match(
+    finishFn.slice(0, finishFn.indexOf("export const heartbeatFn")),
+    /finishNowRefusal\(room\.id, \{[\s\S]*?isRatedRoom\(client, id\)[\s\S]*?isTournamentRoom\(client, id\)[\s\S]*?if \(refusal\) return \{ ok: false as const, message: refusal \};[\s\S]*?finishGame\(/,
+    "finishNowFn refuses rated and tournament rooms before finishGame",
+  );
+}
 
 console.log(
   "PASS: Finish now only for the last player here, finishes once, marks absent players left, never writes round results; absent rounds score 0; the player who stayed is the recorded winner on the final screen and in the previous-games history (even when behind on points), earlier entries and round scores untouched; banner shows names, scores and Finish now; no dead-end screen. No device test.",

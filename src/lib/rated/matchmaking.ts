@@ -469,6 +469,32 @@ export function typesOf(games: readonly { type: string }[]): PuzzleType[] {
   return games.map((g) => g.type as PuzzleType);
 }
 
+/* ------------------------------------------------------------------ the wait after set-up leaves (13 Nov 2026) */
+
+export interface AbortCooldown {
+  /** When the player may search again (server ms). */
+  untilMs: number;
+  /** Set-up leaves counted in the window. */
+  aborts: number;
+}
+
+/**
+ * The wait a player's set-up leaves add (pure): `abortTimesMs` are the leaves' times, any order. Null when there is no
+ * wait now (none counted, the first is free, or the wait has passed).
+ */
+export function abortCooldown(
+  abortTimesMs: readonly number[],
+  nowMs: number,
+  ladder: { periodMs: number; waitsMs: readonly number[] },
+): AbortCooldown | null {
+  const counted = abortTimesMs.filter((t) => Number.isFinite(t) && t <= nowMs && nowMs - t < ladder.periodMs);
+  if (counted.length === 0) return null;
+  const wait = ladder.waitsMs[Math.min(counted.length, ladder.waitsMs.length) - 1] ?? 0;
+  if (wait <= 0) return null;
+  const untilMs = Math.max(...counted) + wait;
+  return untilMs > nowMs ? { untilMs, aborts: counted.length } : null;
+}
+
 /* ------------------------------------------------------------------ leaving a match (Joe, 12 Nov 2026) */
 
 /** A dropped player's grace once the first game's intro has appeared: back within it, play carries on. */
