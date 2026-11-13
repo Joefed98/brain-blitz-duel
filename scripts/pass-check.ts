@@ -211,8 +211,13 @@ async function pureChecks(): Promise<void> {
   check(rw.levelFor(999) === 0 && rw.levelFor(1000) === 1 && rw.levelFor(12_430) === 12 && rw.levelFor(60_000) === 60 && rw.levelFor(99_000) === 60, "levels from Joules");
   const lp = rw.levelProgress(12_430);
   check(lp.level === 12 && lp.into === 430 && lp.of === 1000, "level 12, 430 / 1,000 (the mockup)");
-  check(jl.JOULES.daily_puzzle === 150 && jl.JOULES.daily_arcade === 150 && jl.JOULES.room_round === 20 && jl.JOULES.room_finish === 50 && jl.JOULES.challenge === 100 && jl.JOULES.practice === 20 && jl.JOULES.practice_challenge === 100, "the economy doc's amounts");
-  check(jl.WEEKLY_JOULES.easy === 500 && jl.WEEKLY_JOULES.medium === 750 && jl.WEEKLY_JOULES.hard === 1250, "weekly 500, 750, 1,250");
+  // Changed with Joe's approval, 13 Nov 2026: the Joules rework (Dailies 150 → 200; rooms and Practice games no longer pay, their old amounts kept as
+  // LEGACY_JOULES for the rows already stored; a Classic star 150).
+  check(jl.JOULES.daily_puzzle === 200 && jl.JOULES.daily_arcade === 200 && jl.LEGACY_JOULES.room_round === 20 && jl.LEGACY_JOULES.room_finish === 50 && jl.JOULES.challenge === 100 && jl.LEGACY_JOULES.practice === 20 && jl.JOULES.practice_challenge === 100 && jl.STAR_JOULES_CLASSIC === 150, "the economy doc's amounts");
+  // Changed with Joe's approval, 13 Nov 2026: the Joules rework (weekly 500 / 750 / 1,250 → 750 / 1,000 / 1,500).
+  check(jl.WEEKLY_JOULES.easy === 750 && jl.WEEKLY_JOULES.medium === 1000 && jl.WEEKLY_JOULES.hard === 1500, "weekly 750, 1,000, 1,500");
+  check(!("room_round" in jl.JOULES) && !("room_finish" in jl.JOULES) && !("practice" in jl.JOULES), "rooms and Practice games have no live amount");
+  check(jl.STAR_JOULES_EASY_PROVISIONAL === 50 && jl.STAR_JOULES_HARD_PROVISIONAL === 250 && jl.starJoules("star:gridlock:classic") === 150 && jl.starJoules("star:gridlock:easy") === 0 && jl.starJoules("star:gridlock:hard") === 0 && jl.starJoules("star:gridlock:expert") === 0, "a Classic star pays 150; Easy and Hard (to confirm in phase 3) and Expert pay nothing yet");
   check(jl.softCapped(3990, 20) === 15 && jl.softCapped(4000, 150) === 75 && jl.softCapped(0, 150) === 150 && jl.softCapped(3900, 100) === 100, "the soft cap halves past 4,000 (straddling too)");
   const twelve = jl.settleDay(Array.from({ length: 12 }, () => ({ kind: "practice" as const, base: 20 })));
   check(twelve.reduce((a, b) => a + b, 0) === 200 && twelve[10] === 0, "Practice: 20 a game up to 200 a day");
@@ -222,7 +227,8 @@ async function pureChecks(): Promise<void> {
 
   /* ------------------------------------------------------------- the weekly pool and a year of Mondays */
   const docPool: { tier: string; text: string; rated: boolean }[] = [];
-  for (const [tier, heading] of [["easy", "**Easy, 500 Joules**"], ["medium", "**Medium, 750 Joules**"], ["hard", "**Hard, 1,250 Joules**"]] as const) {
+  // Changed with Joe's approval, 13 Nov 2026: the doc's headings carry the reworked weekly amounts.
+  for (const [tier, heading] of [["easy", "**Easy, 750 Joules**"], ["medium", "**Medium, 1,000 Joules**"], ["hard", "**Hard, 1,500 Joules**"]] as const) {
     const start = DOC.indexOf(heading);
     const block = DOC.slice(start, DOC.indexOf("\n**", start + heading.length + 1) > 0 ? DOC.indexOf("\n**", start + heading.length + 1) : DOC.indexOf("\n## ", start));
     for (const line of block.split("\n")) {
@@ -328,6 +334,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   const rw = await import("../src/lib/pass/rewards");
   const wk = await import("../src/lib/pass/weekly");
   const { ukDayWindow, ukDayKey, shiftDayKey } = await import("../src/lib/duel/daily");
+  const { PUZZLE_CATALOGUE, RETIRED_TYPES } = await import("../src/lib/duel/catalogue");
+  // Active games (the catalogue less its retired list), in a fixed order.
+  const ACTIVE_GAMES = Object.keys(PUZZLE_CATALOGUE).filter((t) => !RETIRED_TYPES.has(t as never)).sort();
   const { flushAnalytics } = await import("../src/lib/data/events.server");
   const { adminDb } = await import("../src/lib/data/db.server");
   const { createClient } = await import("@supabase/supabase-js");
@@ -464,26 +473,30 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
 
     const view = await call(fns.getPassFn, undefined, tok.joe);
     check(view?.open === true && view.season.id === "s1" && view.season.name === "Neon Circuit", "Joe (tester) sees Season 1 once it has started");
-    // Independently: Tuesday 3 rounds + finish, Daily Puzzle, 6 challenges (5 pay), 12 practice (10 pay), a Practice
-    // challenge; Wednesday the Daily Arcade; Saturday a Practice challenge; the week's three weekly challenges.
+    // Changed with Joe's approval, 13 Nov 2026: the Joules rework. Independently: Tuesday's room (3 rounds and its finish) and 12 Practice
+    // runs pay nothing; the Daily Puzzle 200, 6 challenges (5 pay), a Practice challenge; Wednesday the Daily Arcade
+    // (200); Saturday a Practice challenge and two Classic stars (150 each); the week's three weekly challenges
+    // (750 + 1,000 + 1,500).
     const tue = jl.settleDay([
-      ...[1, 2, 3].map(() => ({ kind: "room_round" as const, base: 20 })),
-      { kind: "room_finish", base: 50 },
-      { kind: "daily_puzzle", base: 150 },
+      { kind: "daily_puzzle", base: 200 },
       ...Array.from({ length: 6 }, () => ({ kind: "challenge" as const, base: 100 })),
-      ...Array.from({ length: 12 }, () => ({ kind: "practice" as const, base: 20 })),
       { kind: "practice_challenge", base: 100 },
     ]).reduce((a, b) => a + b, 0);
-    const expected = tue + 150 + 100 + 500 + 750 + 1250;
+    const expected = tue + 200 + 100 + 150 + 150 + 750 + 1000 + 1500;
     check(view?.open === true && view.joules === expected, `every source paid once: ${view?.open ? view.joules : "?"} Joules (expected ${expected})`);
     const byKind = (kind: string) => Number(q(`SELECT coalesce(sum(amount), 0) FROM pass_joules WHERE user_id = '${JOE}' AND season_id = 's1' AND kind = '${kind}'`));
-    check(byKind("room_round") === 60 && byKind("room_finish") === 50, "a room: 20 a round played, 50 for finishing");
-    check(byKind("daily_puzzle") === 150 && byKind("daily_arcade") === 150, "the Daily Puzzle and Daily Arcade: 150 each");
+    // Changed with Joe's approval, 13 Nov 2026: rooms no longer pay Joules (no row is written for a round or a finish).
+    check(byKind("room_round") === 0 && byKind("room_finish") === 0 && Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${JOE}' AND kind IN ('room_round', 'room_finish')`)) === 0, "a room: its rounds and its finish credit nothing");
+    check(byKind("daily_puzzle") === 200 && byKind("daily_arcade") === 200, "the Daily Puzzle and Daily Arcade: 200 each"); // Changed with Joe's approval, 13 Nov 2026: the Joules rework raised each Daily from 150 to 200.
     check(byKind("challenge") === 500, "friend challenges: the first five a day (the copied room attempt pays nothing)");
-    check(byKind("practice") === 200, "Practice: 20 a game up to 200; nothing before the fresh start, no example or uncounted run");
-    check(Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${JOE}' AND kind = 'practice'`)) === 12, "Practice runs before the fresh start aren't even recorded");
+    // Changed with Joe's approval, 13 Nov 2026: Practice games no longer pay Joules.
+    check(byKind("practice") === 0, "Practice: counted runs credit nothing");
+    // Changed with Joe's approval, 13 Nov 2026: no row at all is written for a Practice run now (was: 12, every counted run after the fresh start).
+    check(Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${JOE}' AND kind = 'practice'`)) === 0, "Practice runs aren't even recorded");
+    check(byKind("star") === 300 && q(`SELECT string_agg(source_key, ',' ORDER BY source_key) FROM pass_joules WHERE user_id = '${JOE}' AND kind = 'star'`) === `star:${games.puzzle}:classic,star:${games.logic}:classic`.split(",").sort().join(","), "a Classic star: 150 each, keyed by game and level");
     check(byKind("practice_challenge") === 200, "a Practice challenge's first completion: 100 each");
-    check(byKind("weekly") === 2500, "last week's three weekly challenges: 500 + 750 + 1,250");
+    // Changed with Joe's approval, 13 Nov 2026: the reworked weekly amounts.
+    check(byKind("weekly") === 3250, "last week's three weekly challenges: 750 + 1,000 + 1,500");
     check(await events("weekly_challenge_completed", JOE) === 3, "weekly_challenge_completed recorded for each");
     check(q(`SELECT string_agg(props->>'tier' || ':' || (props->>'challenge'), ',' ORDER BY props->>'tier') FROM analytics.events WHERE event = 'weekly_challenge_completed'`) === "easy:e13,hard:h2,medium:m7", "with the tier and challenge id");
 
@@ -499,7 +512,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const set = wk.weeklySetFor(thisMonday);
     const rec = q(`SELECT easy || ',' || medium || ',' || hard FROM pass_weeks WHERE week_start = '${thisMonday}'`);
     check(rec === `${set.easy},${set.medium},${set.hard}`, `this week's picks recorded as drawn (${rec})`);
-    check(after?.open === true && after.weekly?.weekStart === thisMonday && after.weekly.challenges.map((c) => c.id).join(",") === rec && after.weekly.challenges.map((c) => c.joules).join() === "500,750,1250", "the pass shows this week's three with their Joules");
+    check(after?.open === true && after.weekly?.weekStart === thisMonday && after.weekly.challenges.map((c) => c.id).join(",") === rec && after.weekly.challenges.map((c) => c.joules).join() === "750,1000,1500", "the pass shows this week's three with their Joules"); // Changed with Joe's approval, 13 Nov 2026: the reworked weekly amounts.
     const weekLog = q(`SELECT pass.week('${shiftDayKey(lastMonday, 3)}')::text`);
     check(weekLog.includes('"easy": "e13"'), "Joe can check any week's picks (pass.week)");
   });
@@ -548,8 +561,13 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   /* ------------------------------------------------------------- the UK day the play happened, not the day it's credited */
   await section("UK day of play", async () => {
     const D3 = shiftDayKey(lastMonday, 3);
-    // Kim (pass on for everyone) plays late on Wednesday: 18 rooms of 12 rounds (5,220 Joules before the cap), then 12
-    // Practice runs from 23:50; two more just after midnight. She doesn't open the pass until Thursday morning.
+    // Changed with Joe's approval, 13 Nov 2026 (the Joules rework: rooms and Practice games no longer pay, so this proof
+    // is rebuilt on the sources that do, at least as strong: play either side of UK midnight, a day limit, the soft
+    // cap crossed mid-event and past it, credited the next morning). Kim (pass on for everyone) plays late on
+    // Wednesday: 18 rooms of 12 rounds and 12 Practice runs (which credit nothing), 7 friend challenges (5 pay), both
+    // Dailies, 10 Practice challenges and 21 Classic stars (5,050 Joules before the cap, crossing 4,000 inside the
+    // stars); then just after midnight 2 friend challenges, a star and 2 Practice runs. She doesn't open the pass until
+    // Thursday morning.
     q(`DO $$
       DECLARE d uuid;
       BEGIN
@@ -568,21 +586,150 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
       q(`INSERT INTO practice_plays (user_id, game_id, score, is_correct, created_at, progress_counted_at) VALUES ('${KIM}', '${games.puzzle}', 120, true, '${iso(at(D2, "23:48") + i * 60_000)}', '${iso(at(D2, "23:48") + i * 60_000)}')`);
     for (let i = 0; i < 2; i++)
       q(`INSERT INTO practice_plays (user_id, game_id, score, is_correct, created_at, progress_counted_at) VALUES ('${KIM}', '${games.puzzle}', 120, true, '${iso(at(D3, "00:01") + i * 60_000)}', '${iso(at(D3, "00:01") + i * 60_000)}')`);
+    // Friend challenges Joe made, finished by Kim (each a room of its own).
+    const friendChallenge = (code: string, finishedAt: number) => {
+      const id = q(`INSERT INTO async_rooms (kind, room_key, seed, round_order, round_count, opens_at, closes_at) VALUES
+        ('challenge', 'challenge:${code}', 1, '${JSON.stringify([games.logic])}'::jsonb, 1, '${iso(at(D2, "20:00"))}', '${iso(at(D2, "20:00", 7))}') RETURNING id`).split("\n")[0]!.trim();
+      q(`INSERT INTO challenges (room_id, code, created_by, source, round_count, created_at, expires_at) VALUES
+        ('${id}', '${code}', '${JOE}', 'play', 1, '${iso(at(D2, "20:00"))}', '${iso(at(D2, "20:00", 7))}')`);
+      q(`INSERT INTO async_attempts (room_id, user_id, display_name, started_at, finished_at, rounds_done, total_score) VALUES
+        ('${id}', '${KIM}', 'Kim', '${iso(finishedAt - 60_000)}', '${iso(finishedAt)}', 1, 140)`);
+    };
+    for (let i = 0; i < 7; i++) friendChallenge(`UKDAY${"ABCDEFG"[i]}`, at(D2, "21:30") + i * 60_000);
+    for (let i = 0; i < 2; i++) friendChallenge(`UKDAY${"HJ"[i]}`, at(D3, "00:01") + i * 30_000);
+    // Both Dailies on Wednesday (the Daily Arcade's room is the one Joe played).
+    for (const [kind, hhmm] of [["daily_puzzle", "21:40"], ["daily_arcade", "21:41"]] as const) {
+      let id = q(`SELECT id FROM async_rooms WHERE room_key = '${kind}:${D2}'`);
+      if (!id)
+        id = q(`INSERT INTO async_rooms (kind, room_key, day, seed, round_order, round_count, opens_at, closes_at) VALUES
+          ('${kind}', '${kind}:${D2}', DATE '${D2}', 1, '${JSON.stringify([games.puzzle])}'::jsonb, 1, '${iso(at(D2, "00:00"))}', '${iso(at(D2, "00:00", 1))}') RETURNING id`).split("\n")[0]!.trim();
+      q(`INSERT INTO async_attempts (room_id, user_id, display_name, started_at, finished_at, rounds_done, total_score) VALUES
+        ('${id}', '${KIM}', 'Kim', '${iso(at(D2, hhmm) - 60_000)}', '${iso(at(D2, hhmm))}', 1, 150)`);
+    }
+    // Ten Practice challenges, then 21 stars (the last at 23:55), and one star just after midnight.
+    const kimGames = ACTIVE_GAMES.slice(0, 22);
+    for (let i = 0; i < 10; i++)
+      q(`INSERT INTO practice_challenge_progress (user_id, challenge_id, game_id, best, completed_at) VALUES ('${KIM}', '${kimGames[i]}.ukday-${i}', '${kimGames[i]}', 1, '${iso(at(D2, "22:00") + i * 60_000)}')`);
+    for (let i = 0; i < 22; i++) {
+      const when = i < 20 ? at(D2, "23:00") + i * 60_000 : i === 20 ? at(D2, "23:55") : at(D3, "00:03");
+      q(`INSERT INTO practice_progress (user_id, game_id, level, best_score, star_at, star_score) VALUES ('${KIM}', '${kimGames[i]}', 'classic', 180, '${iso(when)}', 180)`);
+    }
     const nextMorning = at(D3, "09:00");
     const view = await pass.passViewFor(admin, KIM, nextMorning, true);
     check(view.open === true, "Kim opens the pass the next morning");
     // Joules from play on a UK day (a weekly challenge's whole reward is outside the day's cap).
     const day = (d: string) => Number(q(`SELECT coalesce(sum(amount), 0) FROM pass_joules WHERE user_id = '${KIM}' AND season_id = 's1' AND uk_day = '${d}' AND kind <> 'weekly'`));
-    const wedRooms = 216 * 20 + 18 * 50;
-    const wedPractice = jl.settleDay(Array.from({ length: 12 }, () => ({ kind: "practice" as const, base: 20 }))).reduce((a, b) => a + b, 0);
-    const wedTotal = wedRooms + wedPractice;
-    check(day(D2) === 4000 + (wedTotal - 4000) / 2, `Wednesday's play counts on Wednesday: 4,000 then half (${day(D2)} of ${wedTotal})`);
-    check(Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND kind = 'practice' AND uk_day = '${D2}' AND base > 0`)) === 10, "Wednesday's Practice limit: ten runs paid, though credited on Thursday");
-    check(Number(q(`SELECT sum(amount) FROM pass_joules WHERE user_id = '${KIM}' AND kind = 'practice' AND uk_day = '${D2}'`)) === 100, "and those ten fall after Wednesday's 4,000, so earn half");
-    check(day(D3) === 40 && q(`SELECT string_agg(amount::text, ',') FROM pass_joules WHERE user_id = '${KIM}' AND uk_day = '${D3}' AND kind <> 'weekly'`) === "20,20", "the two runs after midnight start Thursday afresh: full pay, their own limit");
+    const wedEvents = [
+      ...Array.from({ length: 7 }, () => ({ kind: "challenge" as const, base: 100 })),
+      { kind: "daily_puzzle" as const, base: 200 },
+      { kind: "daily_arcade" as const, base: 200 },
+      ...Array.from({ length: 10 }, () => ({ kind: "practice_challenge" as const, base: 100 })),
+      ...Array.from({ length: 21 }, () => ({ kind: "star" as const, base: 150 })),
+    ];
+    const wedPaid = jl.settleDay(wedEvents);
+    const wedTotal = 5 * 100 + 400 + 1000 + 21 * 150;
+    check(wedTotal === 5050 && wedPaid.reduce((a, b) => a + b, 0) === 4000 + (wedTotal - 4000) / 2 && day(D2) === 4525, `Wednesday's play counts on Wednesday: 4,000 then half (${day(D2)} of ${wedTotal})`);
+    check(Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND kind = 'challenge' AND uk_day = '${D2}' AND base > 0`)) === 5 && Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND kind = 'challenge' AND uk_day = '${D2}' AND base = 0`)) === 2, "Wednesday's friend challenge limit: five paid, two at the limit, though credited on Thursday");
+    check(q(`SELECT string_agg(amount::text, ',' ORDER BY at) FROM pass_joules WHERE user_id = '${KIM}' AND kind = 'star' AND uk_day = '${D2}'`) === [...Array(14).fill("150"), ...Array(7).fill("75")].join(), "the soft cap is crossed inside the stars: fourteen at 150, then 75 each (the 23:55 star too)");
+    check(day(D3) === 350 && q(`SELECT string_agg(amount::text, ',' ORDER BY at) FROM pass_joules WHERE user_id = '${KIM}' AND uk_day = '${D3}' AND kind <> 'weekly'`) === "100,100,150", "the play after midnight starts Thursday afresh: full pay, its own limit");
+    check(Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND kind IN ('room_round', 'room_finish', 'practice')`)) === 0, "Kim's rooms and Practice runs, either side of midnight, credit nothing");
     check(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND created_at::date <> uk_day AND uk_day = '${D2}'`) !== "0", "credited days later, still counted on the day of play");
     const later = await pass.passViewFor(admin, KIM, Date.now(), true);
-    check(later.open === true && day(D2) === 4000 + (wedTotal - 4000) / 2 && day(D3) === 40, "opening it again later changes nothing");
+    check(later.open === true && day(D2) === 4525 && day(D3) === 350, "opening it again later changes nothing"); // Changed with Joe's approval, 13 Nov 2026: the rebuilt UK-day proof's exact figures (Wednesday 4,525, Thursday 350; rooms and Practice no longer pay).
+  });
+
+  /* ------------------------------------------------------------- the Joules rework, end to end (13 Nov 2026) */
+  await section("Joules rework end to end", async () => {
+    // Leo (pass on for everyone) in Season 1. Each read is the server's own (passViewFor → syncPass → pass_activity →
+    // pass_credit_joules).
+    const read = async () => {
+      const v = await pass.passViewFor(admin, LEO, Date.now(), true);
+      if (v.open !== true) throw new Error("Leo's pass isn't open");
+      return v;
+    };
+    const row = (key: string) => q(`SELECT coalesce(string_agg(amount::text || '@' || uk_day::text, ','), '') FROM pass_joules WHERE user_id = '${LEO}' AND season_id = 's1' AND source_key = '${key}'`);
+    const [starGame, flaggedGame] = [ACTIVE_GAMES[0]!, ACTIVE_GAMES[1]!];
+
+    // 1. A counted Practice run that earns a star (C1a's own counting, public.practice_record_play) pays 150, once.
+    const playId = q(`INSERT INTO practice_plays (user_id, game_id, score, is_correct, created_at) VALUES ('${LEO}', '${starGame}', 181, true, now()) RETURNING id`).split("\n")[0]!.trim();
+    const counted = JSON.parse(q(`SELECT public.practice_record_play(${playId})::text`)) as { counted: boolean; star?: boolean };
+    check(counted.counted === true && q(`SELECT count(*) FROM practice_progress WHERE user_id = '${LEO}' AND game_id = '${starGame}' AND star_at IS NOT NULL`) === "1", "C1a counts the run and stores its star");
+    const first = await read();
+    check(row(`star:${starGame}:classic`).startsWith("150@") && row(`practice:${playId}`) === "", "the star pays 150; the run itself credits nothing");
+    const second = await read();
+    check(second.joules === first.joules && row(`star:${starGame}:classic`).split(",").length === 1, "read again: the star is paid once");
+    const better = q(`INSERT INTO practice_plays (user_id, game_id, score, is_correct, created_at) VALUES ('${LEO}', '${starGame}', 196, true, now()) RETURNING id`).split("\n")[0]!.trim();
+    q(`SELECT public.practice_record_play(${better})`);
+    check((await read()).joules === first.joules, "a better run on a game already starred pays nothing more");
+
+    // 2. A flagged run pays nothing: C1a never counts it (so no star), and a flagged friend-challenge run earns its
+    //    attempt nothing.
+    const flaggedPlay = q(`INSERT INTO practice_plays (user_id, game_id, score, is_correct, flagged, created_at) VALUES ('${LEO}', '${flaggedGame}', 199, true, true, now()) RETURNING id`).split("\n")[0]!.trim();
+    const refusedRun = JSON.parse(q(`SELECT public.practice_record_play(${flaggedPlay})::text`)) as { counted: boolean; reason?: string };
+    check(refusedRun.counted === false && refusedRun.reason === "flagged", "C1a refuses to count a flagged run");
+    const challengeRoom = (code: string, creator: string, when: number) => {
+      const id = q(`INSERT INTO async_rooms (kind, room_key, seed, round_order, round_count, opens_at, closes_at) VALUES
+        ('challenge', 'challenge:${code}', 1, '${JSON.stringify([games.logic])}'::jsonb, 1, '${iso(when)}', '${iso(when + 7 * 86_400_000)}') RETURNING id`).split("\n")[0]!.trim();
+      q(`INSERT INTO challenges (room_id, code, created_by, source, round_count, created_at, expires_at) VALUES
+        ('${id}', '${code}', '${creator}', 'play', 1, '${iso(when)}', '${iso(when + 7 * 86_400_000)}')`);
+      return id;
+    };
+    const attempt = (room: string, user: string, name: string, finishedAt: number, flagged = false) => {
+      const att = q(`INSERT INTO async_attempts (room_id, user_id, display_name, started_at, finished_at, rounds_done, total_score) VALUES
+        ('${room}', '${user}', '${name}', '${iso(finishedAt - 60_000)}', '${iso(finishedAt)}', 1, 140) RETURNING id`).split("\n")[0]!.trim();
+      q(`INSERT INTO async_results (room_id, attempt_id, user_id, round_number, started_at, answered, answered_at, is_correct, ms_remaining, score, extra) VALUES
+        ('${room}', '${att}', '${user}', 1, '${iso(finishedAt - 60_000)}', true, '${iso(finishedAt - 1000)}', true, 0, 140, '${JSON.stringify(flagged ? { flagged: true } : {})}'::jsonb)`);
+      return att;
+    };
+    const kimsRoom = challengeRoom("REWKA2", KIM, at(SAT, "08:00"));
+    const leoFlagged = attempt(kimsRoom, LEO, "Leo", at(SAT, "09:00"), true);
+    await read();
+    check(row(`star:${flaggedGame}:classic`) === "" && row(`challenge:${leoFlagged}`) === "", "a flagged run pays nothing (no star, and no friend challenge Joules)");
+
+    // 3. A Daily archive replay (Joulz Plus) pays nothing.
+    const archive = q(`INSERT INTO async_rooms (kind, room_key, day, seed, round_order, round_count, opens_at, closes_at) VALUES
+      ('daily_archive', 'daily_archive:${LEO}:puzzle:${D1}', DATE '${D1}', 1, '${JSON.stringify([games.puzzle])}'::jsonb, 1, '${iso(at(SAT, "00:00"))}', '${iso(at(SAT, "00:00", 30))}') RETURNING id`).split("\n")[0]!.trim();
+    const archived = attempt(archive, LEO, "Leo", at(SAT, "10:00"));
+    await read();
+    check(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${LEO}' AND (source_key LIKE '%${archived}%' OR source_key LIKE 'daily_%')`) === "0", "a Daily archive replay pays nothing");
+
+    // 4. A solo creator earns nothing until another player finishes the challenge (and a flagged finish doesn't count).
+    const leosRoom = challengeRoom("REWKB3", LEO, at(SAT, "11:00"));
+    const leoOwn = attempt(leosRoom, LEO, "Leo", at(SAT, "11:05"));
+    await read();
+    check(row(`challenge:${leoOwn}`) === "", "Leo plays his own challenge alone: nothing");
+    attempt(leosRoom, MIA, "Mia", at(SAT, "12:00"), true);
+    await read();
+    check(row(`challenge:${leoOwn}`) === "", "a friend's flagged finish doesn't unlock it");
+    const kimFinish = at(shiftDayKey(lastMonday, 6), "13:00");
+    attempt(leosRoom, KIM, "Kim", kimFinish);
+    await read();
+    check(row(`challenge:${leoOwn}`) === `100@${shiftDayKey(lastMonday, 6)}`, "once Kim finishes it, Leo's own attempt pays 100, counted on the day she finished");
+    const pre = Number(q(`SELECT coalesce(sum(amount), 0) FROM pass_joules WHERE user_id = '${LEO}' AND season_id = 's1'`));
+    await read();
+    check(Number(q(`SELECT coalesce(sum(amount), 0) FROM pass_joules WHERE user_id = '${LEO}' AND season_id = 's1'`)) === pre, "and only once");
+
+    // 5. Retired games count towards nothing (Joe, 13 Nov 2026), from the catalogue's retired list alone.
+    const retired = [...RETIRED_TYPES].sort()[0]!;
+    q(`INSERT INTO practice_progress (user_id, game_id, level, best_score, star_at, star_score) VALUES ('${LEO}', '${retired}', 'classic', 190, '${iso(at(SAT, "14:00"))}', 190)`);
+    q(`INSERT INTO practice_challenge_progress (user_id, challenge_id, game_id, best, completed_at) VALUES ('${LEO}', '${retired}.rework-check', '${retired}', 1, '${iso(at(SAT, "14:05"))}')`);
+    await read();
+    check(row(`star:${retired}:classic`) === "" && row(`practice_challenge:${retired}.rework-check`) === "", `a retired game's star or Practice challenge (${retired}) credits nothing`);
+    const sample = [
+      { k: "practice", key: "practice:1", at: iso(at(SAT, "15:00")), game: retired, score: 190, day: null },
+      { k: "practice", key: "practice:2", at: iso(at(SAT, "15:01")), game: starGame, score: 190, day: null },
+      { k: "room_finish", key: "room_finish:x:0", at: iso(at(SAT, "15:02")), game: null, score: null, day: null },
+    ];
+    const kept = pass.countableActivity(sample as never);
+    check(kept.map((a) => a.key).join() === "practice:2,room_finish:x:0" && pass.playedGames(kept as never).every((g) => g.game !== retired), "a retired game's plays count towards no weekly challenge (events with no game are kept)");
+    // Brought back: off the retired list, the same stored star and challenge pay on the next read.
+    RETIRED_TYPES.delete(retired as never);
+    try {
+      await read();
+      check(row(`star:${retired}:classic`).startsWith("150@") && row(`practice_challenge:${retired}.rework-check`).startsWith("100@"), "a game brought back pays again automatically");
+    } finally {
+      RETIRED_TYPES.add(retired as never);
+    }
   });
 
   /* ------------------------------------------------------------- claiming */

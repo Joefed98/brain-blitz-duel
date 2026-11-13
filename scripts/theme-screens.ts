@@ -22,6 +22,7 @@ import { practiceBestKey } from "../src/lib/duel/practiceBest";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { dailyFixture, type HarnessDaily } from "./daily-fixture";
 import { boardsFixture } from "./leaderboards-fixture";
+import { passFixture } from "./pass-fixture";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
@@ -170,7 +171,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -192,6 +193,11 @@ export interface ThemeScreen {
   query?: string;
   /** A screen with no card of its own (link join, the answer reveal). */
   plain?: boolean;
+  /**
+   * More sizes to draw it at, after every screen's VIEWPORTS draws (so the parts of earlier draws keep their places):
+   * a screen changed from 13 Nov 2026 is drawn at every size (ALL_SIZES).
+   */
+  sizes?: ThemeViewport[];
 }
 
 /** Opens the challenge's run from its link: round 1 started `startOffsetMs` ago on the page's clock. */
@@ -582,6 +588,21 @@ export const RATED_SCREENS = (): ThemeScreen[] =>
     ] as const
   ).map((screen) => ({ name: `rated, ${screen.replaceAll("-", " ")}`, mode: "rated" as const, plain: true, globals: { __harnessRated: { screen } } }));
 
+/** The other sizes every screen changed from 13 Nov 2026 is drawn at (ThemeScreen.sizes): with VIEWPORTS, all six. */
+export const ALL_SIZES: ThemeViewport[] = [
+  { name: "390x844", w: 390, h: 844 },
+  { name: "tablet 820x1180", w: 820, h: 1180 },
+  { name: "desktop 1366x768", w: 1366, h: 768, desktop: true },
+  { name: "desktop 1920x1080", w: 1920, h: 1080, desktop: true },
+];
+/**
+ * The Pass (the Shop tab's Pass part; Joules rework, 13 Nov 2026: its "where Joules come from" line changed), a
+ * tester's pass at level 12 from scripts/pass-fixture.ts, with and without the premium track, at every size.
+ * Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const PASS_SCREENS = (): ThemeScreen[] => [
+  { name: "pass, a tester at level 12", mode: "pass", plain: true, globals: { __harnessPass: passFixture() }, waitMs: 800, sizes: ALL_SIZES },
+  { name: "pass, premium", mode: "pass", plain: true, globals: { __harnessPass: passFixture({ premium: true }) }, waitMs: 800, sizes: ALL_SIZES },
 /**
  * Security A (13 Nov 2026): the rated Play card and picker with the wait after set-up leaves, the abort notice's wait
  * line, and the dropout banner's countdowns (Finish now at 45 s in an ordinary room; a rated room's grace), from
@@ -593,6 +614,7 @@ export const SECURITY_A_SCREENS = (): ThemeScreen[] => [
     mode: "rated" as const,
     plain: true,
     globals: { __harnessRated: { screen } },
+    sizes: ALL_SIZES,
   })),
   {
     // The picker opened from the Play card, as a player taps it.
@@ -605,6 +627,7 @@ export const SECURITY_A_SCREENS = (): ThemeScreen[] => [
       await page.locator("[data-rated-picker] [data-rated-cooldown]").waitFor({ timeout: 10_000 });
       await page.waitForTimeout(500);
     },
+    sizes: ALL_SIZES,
   },
 ];
 
@@ -771,6 +794,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...CUSTOMISE_SCREENS(),
   ...RATED_SCREENS(),
   ...LEADERBOARD_SCREENS(),
+  ...PASS_SCREENS(),
   ...SECURITY_A_SCREENS(),
 ];
 
@@ -790,6 +814,13 @@ export const VIEWPORTS: ThemeViewport[] = [
   { name: "375x667", w: 375, h: 667 },
   { name: "desktop 1440x900", w: 1440, h: 900, desktop: true },
 ];
+/** Every draw of these screens: each at VIEWPORTS[index], then each screen's extra sizes after all of them. */
+export function themeDraws(screens: ThemeScreen[], viewports: ThemeViewport[]): { viewport: ThemeViewport; screen: ThemeScreen }[] {
+  return [
+    ...viewports.flatMap((viewport) => screens.map((screen) => ({ viewport, screen }))),
+    ...screens.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ viewport, screen }))),
+  ];
+}
 
 /** The device's own records: a public game today, room history and practice bests. */
 function deviceInit(seed: { records: boolean; onboarding: string; bests: [string, number][] }) {
