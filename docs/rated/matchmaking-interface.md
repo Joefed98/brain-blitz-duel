@@ -64,7 +64,7 @@ is the phone's (W3c: `FinishedGameCounter` / `takePendingPrompt`, as rooms and t
 |---|---|---|
 | `ratedStatusFn` | — | `RatedStatus`: `account`, `open` (testers / everyone), `options` (what is on, empty when closed), `searching` (the caller's queue entry), `activeMatchId`. |
 | `ratedQueueJoinFn` | `{ format, choice }` | `{ ok: true, joinedAtMs }` or `{ ok: false, reason, message }`, `reason` one of `account`, `closed`, `option`, `banned`, `rate_limit` (`RATED_QUEUE_LIMIT`, 30 in 10 min), `no_rating` (W3a not bound), `in_match`. Settles the caller's finished matches first. Records `queue_joined`. |
-| `ratedQueuePollFn` | — | `QueuePoll`: `{ state: "idle" }`, `{ state: "searching", waitedMs, band }` or `{ state: "found", match }` (or `{ busy: true }` past `RATED_POLL_LIMIT`). Call about once a second while searching. Each poll tries to pair the caller (section 4) and, from 8 s (placement: at once), makes a recorded match. Records `match_found`. |
+| `ratedQueuePollFn` | — | `QueuePoll`: `{ state: "idle" }`, `{ state: "searching", waitedMs, band }` or `{ state: "found", match }` (or `{ busy: true }` past `RATED_POLL_LIMIT`). Call about once a second while searching. Each poll tries to pair the caller (section 4) and, from 8 s, makes a recorded match (a beginner's run for a placement player). Records `match_found`. |
 | `ratedQueueLeaveFn` | — | `{ ok: true }` (a searcher already claimed by a match stays in it; the next poll finds it). |
 | `ratedMatchFn` | `{ matchId }` | `RatedMatchView` (section 5), for the match's players only (null otherwise). |
 | `ratedOpponentScoreFn` | `{ matchId }` | `OpponentScore` for the room's current game: `{ round, score, finished, hidden }`. `score` is null before the game starts, while hidden (the final 20 %), and for a recorded game without a timeline until the game's result; from the reveal on it is the stored score. Poll about once a second during a game. |
@@ -82,8 +82,10 @@ is the phone's (W3c: `FinishedGameCounter` / `takePendingPrompt`, as rooms and t
 - The rating is the one the match will move (`matchRatingFrom` on W3a's `getMyRatings`): All puzzles the puzzles pool,
   All arcade the arcade pool, Mixed the Joulz Rating (else the two pools' mean), a single category half its own rating
   and half its pool's; an unrated pool counts as W3a's starting rating.
-- Placement players (`placement.done` false) never enter the live queue: their first poll makes a recorded match
-  against a beginner's run (owner rating at most `beginnerMax`, or unrated).
+- Placement players (`placement.done` false; Joe, 11 Nov 2026): two placement players searching at the same time are
+  matched live with each other, within the same widening; a placed player is never matched live with a placement player
+  (`canPair`: both placement or both placed). A placement player with no placement partner by 8 s gets a recorded run
+  from a beginner (owner rating at most `beginnerMax`, or unrated).
 - Pairing is atomic: `public.mm_queue_claim(users, match, format, choice)` puts every listed searcher in one match or
   none. W3d passes 4 or 8 users (the 1v1 poll pairs only when `FORMAT_PLAYERS[format]` is 2).
 
@@ -118,16 +120,22 @@ is the phone's (W3c: `FinishedGameCounter` / `takePendingPrompt`, as rooms and t
 players, the run's stored scores for a recorded one; time used by `roundTimeUsedMs`), turns it into W3a's
 `RatedMatchResult` (`toRatingsResult`: `format` `{ kind: "duel", bestOf }`, `choice`, players `live` or `recorded`
 with `run: { runId: <run key>, ownerId, source }`, each game's `type`, `pool`, `category`, `version: "classic"`,
-`signature` and both scores, `rematchOf`, `finishedAt`) and calls W3a's `recordRatedMatch` once (claimed
+`signature`, both scores and **`gradeExtras`: each player's stored server grade `extra` for that game, exactly as
+stored** (a live player's `round_results.extra`; a recorded owner's from the run's source: the rated room's, room's
+or Daily's result row, or the Practice grade kept in `mm_practice_deals.extra`), `rematchOf`, `finishedAt`) and calls
+W3a's `finishRatedMatch` once (W3a's `recordRatedMatch`, then the Joules through D2's hook and C2's badges; claimed
 `playing → settling` with a guarded update; a `busy` / `error` answer puts it back to `playing` for a retry; W3a is
-idempotent on the match id). W3a's answer is kept on the settlement (`ratings`). Who moves, and by how much, is
-W3a's: a recorded rated run's owner at most half; room, Daily and Practice runs never; the 4th match between the same
-two players in a UK day frozen.
+idempotent on the match id). W3a's answer is kept on the settlement (`ratings`); the phone's `ratedSettleFn` answer
+leaves every stored grade out (`publicSettleOutcome`). Who moves, and by how much, is W3a's: a recorded rated run's
+owner at most half; room, Daily and Practice runs never; the 4th match between the same two players in a UK day frozen;
+**a flagged grade in any game (the server's own `extra.flagged`) moves nobody, is logged in `moderation.rated_flags`
+and earns the flagged player no Joules** (Joe's rule; rated-server-check plays it end to end on W3a's real engine).
 
-**Binding.** `ratingsReady()` binds W3a's `src/lib/rated/ratings.server.ts` (`getMyRatings`, `recordRatedMatch`) on
-the service-role client the first time rated play needs it, with W3a's `START_RATING` as the starting rating and the
+**Binding.** `ratingsReady()` binds W3a's `getMyRatings` (`src/lib/rated/ratings.server.ts`) and `finishRatedMatch`
+(`src/lib/rated/rewards.server.ts`) on the service-role client the first time rated play needs it, with W3a's `START_RATING` as the starting rating and the
 beginners' bound; a check's stand-in (`setRatingsBackend`) wins. Flagged runs never reach W3a: the flag comes only from
-the server's grading, and a flagged run is never stored or chosen (so W3a's `run.flagged` is never sent).
+the server's grading, and a flagged run is never stored or chosen as a recorded run (so W3a's `run.flagged` backstop
+is never needed); a flag in a live player's game reaches W3a through `gradeExtras`.
 
 ## 7. Recorded runs
 

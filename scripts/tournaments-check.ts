@@ -446,6 +446,7 @@ async function runDb(db: LocalDb): Promise<void> {
     let rng = 7;
     const rand = () => ((rng = (rng * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
     const tsPlayers = new Map([BULK[0]!, BULK[1]!, BULK[2]!].map((u) => [u, rules.freshArenaPlayer(u)]));
+    const tsGames = new Map([BULK[0]!, BULK[1]!, BULK[2]!].map((u) => [u, { gameStreak: 0, bestGameStreak: 0 }]));
     let mismatch = 0;
     for (let i = 0; i < 400; i++) {
       const pair = [BULK[0]!, BULK[1]!, BULK[2]!].sort(() => rand() - 0.5).slice(0, 2) as [string, string];
@@ -453,7 +454,14 @@ async function runDb(db: LocalDb): Promise<void> {
       const winner = r < 0.45 ? "a" : r < 0.9 ? "b" : "draw";
       const duelId = crypto.randomUUID();
       q(`INSERT INTO public.tournament_arena_duels (id, event_id, a_user, b_user) VALUES ('${duelId}', '${id}', '${pair[0]}', '${pair[1]}')`.replace("INSERT", "SET session_replication_role = origin; INSERT"));
-      const out = JSON.parse(q(`SELECT public.tournament_arena_settle('${duelId}', '${winner}', 100, 90, '[]'::jsonb)`));
+      // 2 or 3 played games, scores and times drawn so ties on score (and on both) happen.
+      const games = Array.from({ length: rand() < 0.5 ? 2 : 3 }, () => ({ a: Math.floor(rand() * 4) * 50, b: Math.floor(rand() * 4) * 50, aTimeMs: Math.floor(rand() * 3) * 1000, bTimeMs: Math.floor(rand() * 3) * 1000 }));
+      const out = JSON.parse(q(`SELECT public.tournament_arena_settle('${duelId}', '${winner}', 100, 90, '${JSON.stringify(games)}'::jsonb)`));
+      const ga = rules.applyArenaGames(tsGames.get(pair[0])!, games, "a");
+      const gb = rules.applyArenaGames(tsGames.get(pair[1])!, games, "b");
+      tsGames.set(pair[0], ga);
+      tsGames.set(pair[1], gb);
+      if (out.a_best_game_streak !== ga.bestGameStreak || out.b_best_game_streak !== gb.bestGameStreak) mismatch++;
       const [pa, pb] = pair.map((u) => tsPlayers.get(u)!);
       const ra = rules.applyArenaResult(pa!, winner === "a" ? "win" : winner === "b" ? "loss" : "draw", 100, i);
       const rb = rules.applyArenaResult(pb!, winner === "b" ? "win" : winner === "a" ? "loss" : "draw", 90, i);
@@ -466,6 +474,9 @@ async function runDb(db: LocalDb): Promise<void> {
     const dbRows = q(`SELECT string_agg(user_id::text || ':' || points || ':' || wins || ':' || streak || ':' || best_streak || ':' || played, ',' ORDER BY user_id) FROM public.tournament_arena_players WHERE event_id = '${id}'`);
     const tsRows = [...tsPlayers.values()].sort((a, b) => (a.userId < b.userId ? -1 : 1)).map((p) => `${p.userId}:${p.points}:${p.wins}:${p.streak}:${p.bestStreak}:${p.played}`).join(",");
     check(mismatch === 0 && dbRows === tsRows, `400 random duel results: the database's points and streaks equal rules.ts, and a duel settles once (${mismatch} differ)`);
+    const dbGames = q(`SELECT string_agg(user_id::text || ':' || game_streak || ':' || best_game_streak, ',' ORDER BY user_id) FROM public.tournament_arena_players WHERE event_id = '${id}'`);
+    const tsGameRows = [...tsGames.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([u, g]) => `${u}:${g.gameStreak}:${g.bestGameStreak}`).join(",");
+    check(dbGames === tsGameRows, `the same 400 duels' games: the database's runs of games won in a row equal rules.ts (${dbGames === tsGameRows ? "equal" : `${dbGames} vs ${tsGameRows}`})`);
   });
 
   await section("the Arena finishes and pays once", async () => {
@@ -563,8 +574,67 @@ async function runDb(db: LocalDb): Promise<void> {
     check(q(`SELECT count(*) FROM public.tournament_trophies WHERE user_id = '${champ}' AND medal = 'gold'`) === "10", "ten wins, ten gold trophies");
     check(q(`SELECT count(*) FROM public.player_badges WHERE user_id = '${champ}' AND badge = 'serial-winner'`) === "1", "Serial Winner after 10 tournament wins");
     check(q(`SELECT count(*) FROM public.player_badges WHERE badge = 'serial-winner'`) === "1", "nobody else");
-    const aceSrc = readFileSync("src/lib/tournaments/tournaments.server.ts", "utf8");
-    check(/\(streak \?\? 0\) >= ARENA_ACE_STREAK && !everFlagged\.has\(user\)\) await award\(client, user, "arena-ace"/.test(aceSrc) && rules.ARENA_ACE_STREAK === 8, "Arena Ace is awarded when a duel win makes 8 in a row");
+  });
+
+  await section("Arena Ace: 8 games won in a row in one Arena (Joe, 11 Nov 2026)", async () => {
+    check(rules.ARENA_ACE_STREAK === 8, "Arena Ace's run is 8 games");
+    const g = (a: number, b: number) => ({ a, b, aTimeMs: 1000, bTimeMs: 1000 });
+    const four20 = [[g(150, 50), g(150, 50)], [g(150, 50), g(150, 50)], [g(150, 50), g(150, 50)], [g(150, 50), g(150, 50)]];
+    let run = { gameStreak: 0, bestGameStreak: 0 };
+    for (const d of four20) run = rules.applyArenaGames(run, d, "a");
+    check(run.bestGameStreak === 8, "four straight 2–0 duels are 8 games in a row");
+    run = { gameStreak: 0, bestGameStreak: 0 };
+    for (const d of [[g(150, 50), g(150, 50)], [g(150, 50), g(50, 150), g(150, 50)], [g(150, 50), g(150, 50)], [g(150, 50), g(150, 50)]]) run = rules.applyArenaGames(run, d, "a");
+    check(run.bestGameStreak === 5 && run.gameStreak === 5, "four duel wins with a game lost inside one are not 8 in a row (the lost game breaks the run)");
+    run = rules.applyArenaGames({ gameStreak: 7, bestGameStreak: 7 }, [g(100, 100)], "a");
+    check(run.gameStreak === 0 && run.bestGameStreak === 7, "a drawn game breaks the run");
+    check(rules.applyArenaGames({ gameStreak: 0, bestGameStreak: 0 }, [{ a: 100, b: 100, aTimeMs: 900, bTimeMs: 1000 }], "a").gameStreak === 1, "level scores: the faster game is won (W3b's gameWinner)");
+
+    // Through the real settle: rooms from W3b's engine, stored results, settleArenaDuel.
+    const { createDealtMatchRoom } = await import("../src/lib/rated/rated.server");
+    const playDuels = async (id: string, ace: string, foe: string, duels: { a: number; b: number }[][]) => {
+      for (const games of duels) {
+        const room = await createDealtMatchRoom(client, { format: "bo3", choice: "mixed", userIds: [ace, foe] }, Date.now());
+        const duelId = crypto.randomUUID();
+        q(`SET session_replication_role = origin; INSERT INTO public.tournament_arena_duels (id, event_id, a_user, b_user, duel_id) VALUES ('${duelId}', '${id}', '${ace}', '${foe}', '${room.id}')`);
+        const rows = games.flatMap((x, i) => [`('${room.id}', 1, ${i + 1}, ${x.a}, 1000, true, 'x')`, `('${room.id}', 2, ${i + 1}, ${x.b}, 1000, true, 'x')`]);
+        q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ${rows.join(", ")}`);
+        q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = ${games.length}, phase_started_at = now() WHERE id = '${room.id}'`);
+        const duel = (await data.readArenaDuel(client, duelId)).data!;
+        await server.settleArenaDuel(client, duel, Date.now());
+      }
+    };
+    const twoNil = [{ a: 150, b: 50 }, { a: 150, b: 50 }];
+    const setUp = async (id: string, users: string[]) => {
+      await data.ensureEventRow(client, rules.scheduledEvent(id)!);
+      q(`SET session_replication_role = origin; UPDATE public.tournament_events SET status = 'live' WHERE id = '${id}'; INSERT INTO public.tournament_entries (event_id, user_id, entry) SELECT '${id}', u, 'free' FROM unnest(ARRAY[${users.map((u) => `'${u}'`).join(",")}]::uuid[]) u`);
+    };
+    const aceBadge = (u: string) => q(`SELECT count(*) FROM public.player_badges WHERE user_id = '${u}' AND badge = 'arena-ace'`);
+    const earnId = "arena:2026-12-10:1300";
+    await setUp(earnId, [BULK[45]!, BULK[46]!]);
+    await playDuels(earnId, BULK[45]!, BULK[46]!, [twoNil, twoNil, twoNil]);
+    check(aceBadge(BULK[45]!) === "0", "6 games won in a row (three 2–0 duels): no Arena Ace yet");
+    await playDuels(earnId, BULK[45]!, BULK[46]!, [twoNil]);
+    check(aceBadge(BULK[45]!) === "1" && aceBadge(BULK[46]!) === "0", "the fourth straight 2–0 duel (8 games in a row) earns Arena Ace, once");
+    const missId = "arena:2026-12-10:2000";
+    await setUp(missId, [BULK[47]!, BULK[48]!]);
+    await playDuels(missId, BULK[47]!, BULK[48]!, [twoNil, [{ a: 150, b: 50 }, { a: 50, b: 150 }, { a: 150, b: 50 }], twoNil, twoNil, twoNil]);
+    const best = q(`SELECT best_game_streak FROM public.tournament_arena_players WHERE event_id = '${missId}' AND user_id = '${BULK[47]}'`);
+    check(aceBadge(BULK[47]!) === "0" && best === "7", `five duel wins with one game lost: the best run is 7, no Arena Ace (${best})`);
+
+    // A duel stops once won (2–0), as W3b's rated best of 3 does; ordinary rooms never stop early.
+    const room = await createDealtMatchRoom(client, { format: "bo3", choice: "mixed", userIds: [BULK[45]!, BULK[46]!] }, Date.now());
+    const plain = await createDealtMatchRoom(client, { format: "bo3", choice: "mixed", userIds: [BULK[45]!, BULK[46]!] }, Date.now());
+    q(`SET session_replication_role = origin; INSERT INTO public.tournament_arena_duels (id, event_id, a_user, b_user, duel_id) VALUES ('${crypto.randomUUID()}', '${earnId}', '${BULK[45]}', '${BULK[46]}', '${room.id}')`);
+    const readRoomRow = async (id: string) => (await (await import("../src/lib/data/rooms.server")).readRoom(client, id)).data!;
+    q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ('${room.id}', 1, 1, 150, 1000, true, 'x'), ('${room.id}', 2, 1, 50, 1000, true, 'x'), ('${plain.id}', 1, 1, 150, 1000, true, 'x'), ('${plain.id}', 2, 1, 50, 1000, true, 'x')`);
+    const after1 = await server.arenaDuelClinched(client, await readRoomRow(room.id), 1);
+    q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ('${room.id}', 1, 2, 150, 1000, true, 'x'), ('${room.id}', 2, 2, 50, 1000, true, 'x'), ('${plain.id}', 1, 2, 150, 1000, true, 'x'), ('${plain.id}', 2, 2, 50, 1000, true, 'x')`);
+    const after2 = await server.arenaDuelClinched(client, await readRoomRow(room.id), 2);
+    const plainAfter2 = await server.arenaDuelClinched(client, await readRoomRow(plain.id), 2);
+    check(!after1 && after2 && !plainAfter2, "an Arena duel stops at 2–0 (not after one game); a room that isn't an Arena duel never does");
+    const src = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
+    check(/arenaDuelClinched\(client, room, round\)\) \{\s*await leaveBetweenRoundScreen\(client, \{ \.\.\.room, round_count: round \}, round\);/.test(src), "the room flow ends an Arena duel the way it ends a won rated match");
   });
 
   await section("flagged runs: no points, no score, no place; logged for review", async () => {
@@ -639,6 +709,70 @@ async function runDb(db: LocalDb): Promise<void> {
     check(q(`SELECT count(*) FROM public.tournament_results WHERE event_id = '${said}' AND user_id = '${six[0]}'`) === "0", "no place for the flagged Score Attack");
     check(q(`SELECT user_id || ':' || coins FROM public.tournament_prizes WHERE event_id = '${said}' AND place = 1`) === `${six[1]}:300`, "the next player is 1st and paid 300");
     check(q(`SELECT string_agg(source || ':' || game_idx, ',') FROM moderation.tournament_flags WHERE event_id = '${said}'`) === "score_attack:0", "the Score Attack flag is logged for Joe's review");
+  });
+
+  await section("pairing on W3a's real ratings engine, never recording a rated match", async () => {
+    // Back to the real binding: ratingsReady() binds W3a's getMyRatings and finishRatedMatch (ratingsAdapter.server.ts).
+    const adapter = await import("../src/lib/rated/ratingsAdapter.server");
+    adapter.setRatingsBackend(null);
+    const real = await adapter.ratingsReady();
+    let recorded = 0;
+    adapter.setRatingsBackend({
+      ...real,
+      matchRating: real.matchRating.bind(real),
+      recordRatedMatch: async (result) => {
+        recorded++;
+        return real.recordRatedMatch(result);
+      },
+    });
+    const w = BULK[20]!, x = BULK[21]!, y = BULK[22]!, z = BULK[23]!;
+    // Placed players with real ratings in W3a's tables (Joulz Rating: the Mixed rating the Arena pairs by).
+    const rate = (u: string, joulz: number) =>
+      q(`INSERT INTO public.rated_profiles (player_id, placement_played, matches, joulz) VALUES ('${u}', 5, 5, ${joulz});
+         INSERT INTO public.rated_ratings (player_id, key, rating, rd, volatility, matches, last_at) VALUES
+           ('${u}', 'puzzles', ${joulz}, 60, 0.06, 5, now()), ('${u}', 'arcade', ${joulz}, 60, 0.06, 5, now())`);
+    rate(w, 1100); rate(x, 1140); rate(y, 1900); rate(z, 1930);
+    const realW = await real.matchRating(w, { format: "bo3", choice: "mixed" });
+    check(realW !== null && Math.round(realW.rating) === 1100 && realW.placement === false, `W3a's engine answers the stored rating (${JSON.stringify(realW)})`);
+    const id = "arena:2026-12-11:1300";
+    const ev = rules.scheduledEvent(id)!;
+    for (const u of [w, x, y, z]) await server.enterEvent(client, u, { eventId: id, entry: "free" }, ev.startsAt - 60_000);
+    await server.advanceEvent(client, (await data.readEvent(client, id)).data!, ev.startsAt + 1000);
+    const ratedBefore = q(`SELECT (SELECT count(*) FROM public.rated_matches) || ':' || (SELECT count(*) FROM public.rated_match_players) || ':' || (SELECT string_agg(player_id::text || rating::text, ',' ORDER BY player_id, key) FROM public.rated_ratings) || ':' || (SELECT string_agg(player_id::text || coalesce(joulz::text, '-') || matches, ',' ORDER BY player_id) FROM public.rated_profiles)`);
+    const t = Date.now();
+    await server.arenaReady(client, w, id, t);
+    await server.arenaReady(client, y, id, t + 10);
+    const queued = q(`SELECT string_agg(user_id::text || ':' || rating, ',' ORDER BY user_id) FROM public.tournament_arena_queue WHERE event_id = '${id}'`);
+    check(queued === [`${w}:1100`, `${y}:1900`].sort().join(","), `the queue holds W3a's ratings (${queued})`);
+    const px = await server.arenaReady(client, x, id, t + 20);
+    const pz = await server.arenaReady(client, z, id, t + 30);
+    check(px.state === "duel" && px.duel.opponent.userId === w && pz.state === "duel" && pz.duel.opponent.userId === y, "paired by W3a's real ratings: 1100 with 1140, 1900 with 1930");
+    if (px.state !== "duel" || pz.state !== "duel") return;
+    for (const duel of [px.duel, pz.duel]) {
+      const row = (await data.readArenaDuel(client, duel.duelId)).data!;
+      q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES
+        ('${row.duel_id}', 1, 1, 150, 1000, true, 'x'), ('${row.duel_id}', 2, 1, 60, 1000, true, 'x'),
+        ('${row.duel_id}', 1, 2, 150, 1000, true, 'x'), ('${row.duel_id}', 2, 2, 60, 1000, true, 'x')`);
+      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = 2, phase_started_at = now() WHERE id = '${row.duel_id}'`);
+    }
+    for (const u of [w, x, y, z]) await server.arenaPoll(client, u, id, Date.now());
+    await server.advanceEvent(client, (await data.readEvent(client, id)).data!, ev.endsAt + 31 * 60_000);
+    const settled = q(`SELECT count(*) FROM public.tournament_arena_duels WHERE event_id = '${id}' AND status = 'settled'`);
+    const ratedAfter = q(`SELECT (SELECT count(*) FROM public.rated_matches) || ':' || (SELECT count(*) FROM public.rated_match_players) || ':' || (SELECT string_agg(player_id::text || rating::text, ',' ORDER BY player_id, key) FROM public.rated_ratings) || ':' || (SELECT string_agg(player_id::text || coalesce(joulz::text, '-') || matches, ',' ORDER BY player_id) FROM public.rated_profiles)`);
+    check(settled === "2" && recorded === 0, `both duels settled and the event finished, recordRatedMatch (W3a's finishRatedMatch) never called (${recorded})`);
+    check(ratedAfter === ratedBefore && q(`SELECT count(*) FROM public.mm_matches`) === "0", "W3a's tables (rated matches, players, ratings, profiles) and W3b's mm_matches unchanged: no rating moved");
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const f of readdirSync(dir)) {
+        const p = join(dir, f);
+        if (statSync(p).isDirectory()) walk(p);
+        else if (/\.(ts|tsx)$/.test(f)) files.push(p);
+      }
+    };
+    walk("src/lib/tournaments");
+    const src = files.map((f) => readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")).join("\n");
+    check(!/finishRatedMatch|recordRatedMatch|rewards\.server|ratings\.server"/.test(src), "nothing under src/lib/tournaments names finishRatedMatch, recordRatedMatch or W3a's ratings / rewards modules");
+    adapter.setRatingsBackend(null);
   });
 
   await section("reminders", async () => {

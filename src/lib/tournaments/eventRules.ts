@@ -66,8 +66,17 @@ export function swissRoundsFor(entrants: number): number {
 /* ------------------------------------------------------------------ the Joulz Championship (Knockout) */
 
 export const CHAMPIONSHIP_QUALIFIERS = 64;
-/** Below this many qualifiers there is no bracket: the Championship is called off. */
-export const CHAMPIONSHIP_MIN_QUALIFIERS = 2;
+/**
+ * Below this many qualifiers the Championship isn't held that month (Joe, 11 Nov 2026): nobody entered or paid, so
+ * there is nothing to refund, and the Tournaments tab says so (`CHAMPIONSHIP_NOT_HELD_LINE`).
+ */
+export const CHAMPIONSHIP_MIN_QUALIFIERS = 16;
+/** W4b's cancel reason for a Championship with too few qualifiers. */
+export const CHAMPIONSHIP_NOT_HELD = "not_held";
+/** What the Tournaments tab and the event page say about it. */
+export const CHAMPIONSHIP_NOT_HELD_LINE = "Not held this month: fewer than 16 players qualified from the Score Attacks.";
+/** Play again in a Category Cup or Championship room. */
+export const BIG_EVENT_PLAY_AGAIN_LINE = "Your next match opens when the round does.";
 /** The animated Championship frame (docs/art/wave-4/catalogue.json; placeholder art until drawn). */
 export const CHAMPIONSHIP_FRAME = "frame.championship";
 export const CHAMPIONSHIP_TITLE = "Joulz Championship";
@@ -163,7 +172,7 @@ export function bigHowItWorks(kind: BigKind, category: string): string[] {
       "It needs 16 players; with fewer it’s called off and every entry refunded. Doesn’t change your rating.",
     ];
   return [
-    "The month’s top 64 Score Attack players qualify, seeded by their place.",
+    "The month’s top 64 Score Attack players qualify (their best 10 daily totals that month), seeded by their place. It needs 16 qualifiers.",
     "A live bracket of best-of-3 duels: win and you go through. Top seeds get byes when fewer qualify.",
     "The semi-final losers play for 3rd. The final is live.",
     "Doesn’t change your rating.",
@@ -190,7 +199,8 @@ export const CUP_RULES: readonly string[] = [
 /** The Joulz Championship's full rules page, a sentence a row. */
 export const CHAMPIONSHIP_RULES: readonly string[] = [
   "The last Sunday of the month at 7 pm UK.",
-  "The month’s top 64 Score Attack players qualify (each player’s best 10 daily Score Attack totals that month, added up). Accounts only; there’s no entry fee.",
+  "The month’s top 64 Score Attack players qualify: each player’s best 10 daily Score Attack totals that month added up; a tie goes to more days played, then the better best daily place. Accounts only; there’s no entry fee.",
+  "It’s held only with at least 16 qualifiers. With fewer it isn’t held that month; nobody has paid, so there’s nothing to refund.",
   "A live bracket of best-of-3 duels, seeded by those standings: 1st plays the lowest seed.",
   "With fewer than 64 qualifiers the top seeds get byes into the next round.",
   "Win and you go through. A level match goes to the most games won, then the higher total, then less time, then the higher seed.",

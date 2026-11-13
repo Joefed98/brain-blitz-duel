@@ -116,6 +116,9 @@ CREATE TABLE IF NOT EXISTS public.tournament_arena_players (
   draws integer NOT NULL DEFAULT 0,
   streak integer NOT NULL DEFAULT 0,
   best_streak integer NOT NULL DEFAULT 0,
+  -- Games (not duels) won in a row across this Arena's duels, and the best such run (Arena Ace: 8; Joe, 11 Nov 2026).
+  game_streak integer NOT NULL DEFAULT 0,
+  best_game_streak integer NOT NULL DEFAULT 0,
   played integer NOT NULL DEFAULT 0,
   score_total integer NOT NULL DEFAULT 0,
   last_win_at timestamptz,
@@ -483,7 +486,10 @@ $$;
 
 -- Settles a finished duel once: a win adds 2 points, or 4 once the winner had already won 2 in a row, and extends the
 -- streak; a loss or a draw adds nothing and breaks it (src/lib/tournaments/rules.ts applyArenaResult, the same rule).
--- Answers {status: settled | already, a_points, b_points, a_streak, b_streak}.
+-- p_games holds the games played, in order ({a, b, aTimeMs, bTimeMs}); each game won (the higher score, then less time;
+-- level on both a drawn game, W3b's gameWinner) extends that player's game streak, a game lost or drawn breaks it
+-- (applyArenaGames, the same rule). Answers {status: settled | already, a_points, b_points, a_streak, b_streak,
+-- a_best_game_streak, b_best_game_streak}.
 CREATE OR REPLACE FUNCTION public.tournament_arena_settle(
   p_duel uuid, p_winner text, p_a_score integer, p_b_score integer, p_games jsonb)
 RETURNS jsonb
@@ -497,6 +503,12 @@ DECLARE
   v_b public.tournament_arena_players%ROWTYPE;
   v_ap integer := 0;
   v_bp integer := 0;
+  v_g jsonb;
+  v_side text;
+  v_ags integer;
+  v_abest integer;
+  v_bgs integer;
+  v_bbest integer;
 BEGIN
   IF p_winner NOT IN ('a', 'b', 'draw') THEN
     RAISE EXCEPTION 'tournament_arena_settle: bad winner %', p_winner;
@@ -512,6 +524,20 @@ BEGIN
    WHERE event_id = v_duel.event_id AND user_id IN (v_duel.a_user, v_duel.b_user) ORDER BY user_id FOR UPDATE;
   SELECT * INTO v_a FROM public.tournament_arena_players WHERE event_id = v_duel.event_id AND user_id = v_duel.a_user;
   SELECT * INTO v_b FROM public.tournament_arena_players WHERE event_id = v_duel.event_id AND user_id = v_duel.b_user;
+  v_ags := v_a.game_streak;
+  v_abest := v_a.best_game_streak;
+  v_bgs := v_b.game_streak;
+  v_bbest := v_b.best_game_streak;
+  FOR v_g IN SELECT value FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p_games) = 'array' THEN p_games ELSE '[]'::jsonb END) LOOP
+    v_side := CASE
+      WHEN (v_g ->> 'a')::numeric > (v_g ->> 'b')::numeric THEN 'a'
+      WHEN (v_g ->> 'a')::numeric < (v_g ->> 'b')::numeric THEN 'b'
+      WHEN (v_g ->> 'aTimeMs')::numeric < (v_g ->> 'bTimeMs')::numeric THEN 'a'
+      WHEN (v_g ->> 'aTimeMs')::numeric > (v_g ->> 'bTimeMs')::numeric THEN 'b'
+      ELSE 'draw' END;
+    IF v_side = 'a' THEN v_ags := v_ags + 1; v_abest := greatest(v_abest, v_ags); ELSE v_ags := 0; END IF;
+    IF v_side = 'b' THEN v_bgs := v_bgs + 1; v_bbest := greatest(v_bbest, v_bgs); ELSE v_bgs := 0; END IF;
+  END LOOP;
   IF p_winner = 'a' THEN
     v_ap := CASE WHEN v_a.streak >= 2 THEN 4 ELSE 2 END;
   ELSIF p_winner = 'b' THEN
@@ -526,7 +552,9 @@ BEGIN
     best_streak = greatest(best_streak, CASE WHEN p_winner = 'a' THEN streak + 1 ELSE 0 END),
     played = played + 1,
     score_total = score_total + greatest(p_a_score, 0),
-    last_win_at = CASE WHEN p_winner = 'a' THEN now() ELSE last_win_at END
+    last_win_at = CASE WHEN p_winner = 'a' THEN now() ELSE last_win_at END,
+    game_streak = v_ags,
+    best_game_streak = v_abest
   WHERE event_id = v_duel.event_id AND user_id = v_duel.a_user;
   UPDATE public.tournament_arena_players SET
     points = points + v_bp,
@@ -537,7 +565,9 @@ BEGIN
     best_streak = greatest(best_streak, CASE WHEN p_winner = 'b' THEN streak + 1 ELSE 0 END),
     played = played + 1,
     score_total = score_total + greatest(p_b_score, 0),
-    last_win_at = CASE WHEN p_winner = 'b' THEN now() ELSE last_win_at END
+    last_win_at = CASE WHEN p_winner = 'b' THEN now() ELSE last_win_at END,
+    game_streak = v_bgs,
+    best_game_streak = v_bbest
   WHERE event_id = v_duel.event_id AND user_id = v_duel.b_user;
   UPDATE public.tournament_arena_duels SET
     status = 'settled', winner = p_winner, a_points = v_ap, b_points = v_bp,
@@ -546,7 +576,8 @@ BEGIN
   RETURN jsonb_build_object(
     'status', 'settled', 'a_points', v_ap, 'b_points', v_bp,
     'a_streak', CASE WHEN p_winner = 'a' THEN v_a.streak + 1 ELSE 0 END,
-    'b_streak', CASE WHEN p_winner = 'b' THEN v_b.streak + 1 ELSE 0 END);
+    'b_streak', CASE WHEN p_winner = 'b' THEN v_b.streak + 1 ELSE 0 END,
+    'a_best_game_streak', v_abest, 'b_best_game_streak', v_bbest);
 END;
 $$;
 

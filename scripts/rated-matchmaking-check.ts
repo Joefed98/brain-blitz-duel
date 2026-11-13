@@ -5,7 +5,7 @@
  * - the switches: only bo3 with Mixed / All puzzles / All arcade at launch; anything else refused; testers only until
  *   RATED_PLAY_FOR_EVERYONE;
  * - the queue: ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s; pairing only within the same format and
- *   choice, never with oneself or a placement player, nearest rating first;
+ *   choice, never with oneself, placement only with placement and placed only with placed, nearest rating first;
  * - recorded-run choice: nearest rating, 14 days, same version, format and choice, never one's own, never the same
  *   owner twice in a row, 5 uses a day; the fallback only when no rated run is near enough; placement takes beginners;
  * - playback: never a point the run hadn't reached, nothing before the end without a timeline, hidden in the last 20 %;
@@ -125,7 +125,13 @@ function check(ok: boolean, label: string): void {
   check(!canPair(e("a", 1000, now), e("b", 1000, now, { format: "bo5" }), now), "pair: never another format");
   check(!canPair(e("a", 1000, now), e("b", 1000, now, { choice: "puzzles" }), now), "pair: never another choice");
   check(!canPair(e("a", 1000, now), e("a", 1000, now), now), "pair: never oneself");
-  check(!canPair(e("a", 1000, now), e("b", 1000, now, { placement: true }), now), "pair: never a placement player (they play recorded runs)");
+  // Placement (Joe, 11 Nov 2026): two placement players pair live with each other in the normal band; a placed player never
+  // pairs with a placement player, however close or long the wait.
+  const pl = (id: string, rating: number, at: number) => e(id, rating, at, { placement: true });
+  check(!canPair(e("a", 1000, now), pl("b", 1000, now), now) && !canPair(pl("a", 1000, now - 7_900), e("b", 1000, now - 7_900), now), "pair: a placed player never with a placement player");
+  check(canPair(pl("a", 1000, now), pl("b", 1040, now), now), "pair: two placement players pair live within ±50 at once");
+  check(!canPair(pl("a", 1000, now), pl("b", 1120, now), now) && canPair(pl("a", 1000, now - 4_000), pl("b", 1120, now), now), "pair: placement pairs widen as anyone's do (±150 from 4 s)");
+  check(bestPartner(pl("me", 1000, now), [e("placed", 1000, now - 5_000), pl("new", 1100, now - 4_000)], now)?.userId === "new", "pair: a placement searcher is offered only placement partners");
   const me = e("me", 1000, now - 3000);
   const best = bestPartner(me, [e("x", 1090, now - 100), e("y", 970, now - 50), e("z", 970, now - 900), e("w", 1300, now - 7000)], now);
   check(best?.userId === "z", `pair: the nearest rating, then the longest wait (${best?.userId})`);
