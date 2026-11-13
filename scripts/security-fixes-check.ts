@@ -163,6 +163,9 @@ function fnText(file: string, name: string): string {
   {
     const { ACTIVE_PUZZLE_TYPES } = await import("../src/lib/duel/registry");
     const { generatePuzzle, gradeAnswer } = await import("../src/lib/duel/generate.server");
+    // Changed with Joe's approval, 13 Nov 2026: the fixed seed for Chroma Lines' board in the sweep below.
+    const { withSeededRandom } = await import("../src/lib/duel/random");
+    const FLOW_SWEEP_SEED = 20261113;
     const named = (value: unknown, keys: Set<string>): string[] => {
       if (Array.isArray(value)) return value.flatMap((v) => named(v, keys));
       if (!value || typeof value !== "object") return [];
@@ -171,7 +174,11 @@ function fnText(file: string, name: string): string {
     let typesWithPriv = 0, before = 0;
     const left: string[] = [];
     for (const type of ACTIVE_PUZZLE_TYPES) {
-      const full = await quietly(async () => generatePuzzle(type as never));
+      // Changed with Joe's approval, 13 Nov 2026: Chroma Lines (flow) is dealt on a fixed seed (the same generatePuzzle
+      // call, every draw from withSeededRandom), so its random-restart generator can never fail to find a unique
+      // board mid-check; every other game, and every assertion, as before.
+      const full = await quietly(async () =>
+        type === "flow" ? withSeededRandom(FLOW_SWEEP_SEED, () => generatePuzzle(type as never)) : generatePuzzle(type as never));
       const { priv } = splitPuzzle(full);
       const keys = new Set(Object.keys(priv).filter((k) => k !== "type"));
       if (!keys.size) continue;
