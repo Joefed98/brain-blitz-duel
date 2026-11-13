@@ -102,7 +102,16 @@ Joe's admin log; nothing reads them to find an item (a refund goes by the line's
 item). `skins-db-check` sweeps every table for an old id after the move. The art moved to `docs/art/wave-2/items/card-back/`; catalogue.json and the art README say the same.
 Free Cell keeps no slot (`slots.ts`).
 
-**Other games with face-down cards** (for a later extension; not built): Five Hands (the deck behind Next card,
+**Card backs in more games (13 Nov 2026, Joe; docs/cosmetics-review):** the back now also draws on Summit's covered
+peak cards and stock, Thirteen's stock and Five Hands' deck (`CARD_BACK_GAMES`, `isCardBackGame`, `backLookFor` in
+`look.ts`; the three stages draw their art game inside `withCardsLook` with `useGameLookRef`; replays draw the
+player's stored back, `playback.renderer.ts`). These three have no skins or world themes, so they are not in
+`SKIN_GAME_NAMES`. Faces are never touched: skins-check section 7 proves all 52 faces pixel-identical with any back.
+A result in those games stores the back (`20261116800100_card_back_games.sql`). skins-default-check, skins-check and
+skins-replay-check cover them (their default digests and 12 runs appended to the fixtures, earlier entries
+byte-identical). Still not built: Golf Solitaire (retired) and Matchmaker (CSS backs).
+
+**Other games with face-down cards** (as first listed, 11 Nov 2026): Five Hands (the deck behind Next card,
 `fiveHands.renderer.ts:206`); Summit (the covered peak cards, `tripeaks.renderer.ts:127`, and the stock pile, `:149`);
 Thirteen (the stock pile, `pyramid.renderer.ts:139`); Golf Solitaire, retired to practice (the stock pile,
 `golfSol.renderer.ts:166`); Matchmaker, an Attention puzzle (all 30 cards face down until turned, CSS

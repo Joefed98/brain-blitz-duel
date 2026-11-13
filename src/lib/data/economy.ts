@@ -36,6 +36,11 @@ export interface CatalogueItem {
   /** Paths under docs/art/wave-2/ (the still and the drawn source). */
   png: string | null;
   html: string | null;
+  /**
+   * Withdrawn (13 Nov 2026, docs/cosmetics-review): not sold, not given as a reward or starter until redrawn and
+   * approved. Owners keep it, and it draws for them as before.
+   */
+  withdrawn: boolean;
 }
 
 export interface ConsumableCounts {

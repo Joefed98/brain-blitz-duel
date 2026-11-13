@@ -438,6 +438,22 @@ async function buildView(
     const reward = rewardAt(track, l);
     if (!reward) return null;
     const item = reward.kind === "item" ? items.get(reward.item) : undefined;
+    const isClaimedHere = claimed.has(`${track}:${l}`);
+    // A withdrawn item (13 Nov 2026, docs/cosmetics-review) is a gap until restored: not shown, not claimable. A level
+    // already claimed keeps its item (the owner has it).
+    if (item?.withdrawn && !isClaimedHere)
+      return {
+        track,
+        level: l,
+        kind: "item",
+        title: WITHDRAWN_TITLE,
+        detail: WITHDRAWN_DETAIL,
+        rarity: null,
+        itemId: null,
+        itemKind: null,
+        state: "withdrawn",
+        needsPremium: track === "premium" && !premium,
+      };
     const label = rewardLabel(reward, item?.name);
     const detail =
       reward.kind === "item" && item
@@ -499,6 +515,10 @@ async function buildView(
   };
 }
 
+/** A withdrawn level's words (the pass shows a gap there until the item is redrawn). */
+export const WITHDRAWN_TITLE = "Being redrawn";
+export const WITHDRAWN_DETAIL = "This reward returns once it’s redrawn";
+
 const KIND_WORDS: Record<string, string> = {
   "card-art": "Card art",
   frame: "Frame",
@@ -555,6 +575,7 @@ export async function claimReward(
   const premium = !!synced.state.premium;
   if (track === "premium" && !premium) return refuse("needs_premium");
   if (!reached(track, level, levelProgress(synced.state.joules).level, premium)) return refuse("not_reached");
+  if (reward.kind === "item" && (await catalogue(client)).find((i) => i.id === reward.item)?.withdrawn) return refuse("withdrawn");
   await payAndRecord(client, userId, opened.season, track, level, reward);
   return { ok: true, view: await buildView(client, userId, opened.season, opened.access, await syncPass(client, userId, opened.season, nowMs), nowMs) };
 }

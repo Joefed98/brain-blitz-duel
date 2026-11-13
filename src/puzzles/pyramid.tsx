@@ -4,6 +4,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { PY_CHECKPOINT_INTERVAL, PY_INPUT_TAP, PY_PAIR_FULL, PY_REV, pyApply, pyCheckpoint, pyDeal, type PyState } from "@/lib/arcade/cards/pyramid";
 import { drawPyramid, pyButtonHit, pyHit, pyNewView, pyramidArtGame, PY_BG, PY_WORLD_H, PY_WORLD_W } from "@/lib/arcade/cards/pyramid.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
+import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
+import { useGameLookRef } from "@/lib/skins/equipped";
 import { encodePyramidRun, replayPyramidRun } from "@/lib/duel/cards";
 import { PYRAMID_TIME_MS, type PyramidPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -30,10 +32,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<PyState | null>(null);
   const start = useRef<number>(-1);
   const rev = data?.pyramidRev ?? 1;
+  // The account's card back on the face-down cards only (13 Nov 2026, Joe; display only, src/lib/skins/equipped.ts).
+  const [, lookRef] = useGameLookRef("pyramid");
   const game = useMemo(() => {
     const art = pyramidArtGame(view, rev);
-    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PyState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view, rev]);
+    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PyState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
+  }, [view, rev, lookRef]);
 
   // A tap on a card or pile; Undo and Reset are a press and release on the same button.
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {

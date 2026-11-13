@@ -124,6 +124,43 @@ export async function runSpecs(): Promise<RunSpec[]> {
       draw: (ctx, s, look) => CardsR.withCardsLook(look, () => art.draw(ctx, s, { width: PsR.PS_WORLD_W, height: PsR.PS_WORLD_H })),
     });
   }
+  // Changed with Joe's approval, 13 Nov 2026: 12 runs appended to scripts/fixtures/skins-replay-runs.json (the 28 earlier
+  // runs byte-identical).
+  // Summit, Thirteen and Five Hands (13 Nov 2026, Joe): the account's card back on their face-down cards. Appended after
+  // the seven above, so the recorder's per-spec streams (prng by position) leave every earlier run as recorded.
+  const Tp = await import("../../src/lib/arcade/cards/tripeaks");
+  const TpR = await import("../../src/lib/arcade/cards/tripeaks.renderer");
+  const Py = await import("../../src/lib/arcade/cards/pyramid");
+  const PyR = await import("../../src/lib/arcade/cards/pyramid.renderer");
+  const Fh = await import("../../src/lib/arcade/cards/fiveHands");
+  const FhR = await import("../../src/lib/arcade/cards/fiveHands.renderer");
+  for (const rev of [1, Tp.TP_REV]) {
+    const art = TpR.tripeaksArtGame(undefined, rev);
+    specs.push({
+      game: "tripeaks", rev, sim: () => Tp.tripeaksGameFor(rev), seedFor: (n) => (n * 37) % 300, checkpoint: Tp.tpCheckpoint, interval: Tp.TP_CHECKPOINT_INTERVAL, rate: 120,
+      encode: CardsD.encodeTripeaksRun, replay: (seed, raw) => CardsD.replayTripeaksRun(seed, raw, rev),
+      w: TpR.TP_WORLD_W, h: TpR.TP_WORLD_H,
+      draw: (ctx, s, look) => CardsR.withCardsLook(look, () => art.draw(ctx, s, { width: TpR.TP_WORLD_W, height: TpR.TP_WORLD_H })),
+    });
+  }
+  for (const rev of [1, Py.PY_REV]) {
+    const art = PyR.pyramidArtGame(undefined, rev);
+    specs.push({
+      game: "pyramid", rev, sim: () => Py.pyramidGameFor(rev), seedFor: (n) => 1000 + n * 7919, checkpoint: Py.pyCheckpoint, interval: Py.PY_CHECKPOINT_INTERVAL, rate: 120,
+      encode: CardsD.encodePyramidRun, replay: (seed, raw) => CardsD.replayPyramidRun(seed, raw, rev),
+      w: PyR.PY_WORLD_W, h: PyR.PY_WORLD_H,
+      draw: (ctx, s, look) => CardsR.withCardsLook(look, () => art.draw(ctx, s, { width: PyR.PY_WORLD_W, height: PyR.PY_WORLD_H })),
+    });
+  }
+  for (const rev of [1, Fh.FH_REV]) {
+    const art = FhR.fiveHandsArtGame(undefined, rev);
+    specs.push({
+      game: "fivehands", rev, sim: () => Fh.fiveHandsGameFor(rev), seedFor: (n) => 1000 + n * 7919, checkpoint: Fh.fhCheckpoint, interval: Fh.FH_CHECKPOINT_INTERVAL, rate: 60,
+      encode: CardsD.encodeFiveHandsRun, replay: (seed, raw) => CardsD.replayFiveHandsRun(seed, raw, rev),
+      w: FhR.FH_WORLD_W, h: FhR.FH_WORLD_H,
+      draw: (ctx, s, look) => CardsR.withCardsLook(look, () => art.draw(ctx, s, { width: FhR.FH_WORLD_W, height: FhR.FH_WORLD_H })),
+    });
+  }
   return specs;
 }
 

@@ -9,7 +9,10 @@
  * and until then, for a guest, or when the read fails, every game shows its default.
  */
 import { useEffect, useState } from "react";
-import { isSkinnableGame, lookFor, NO_LOOK, type GameLook, type SkinnableGame } from "@/lib/arcade/skins/look";
+import { backLookFor, isCardBackGame, isSkinnableGame, lookFor, NO_LOOK, type GameLook, type SkinnableGame } from "@/lib/arcade/skins/look";
+
+/** A game that draws something from the account: a skinnable game, or a card game with face-down cards (its back). */
+export type LookedGame = SkinnableGame | "tripeaks" | "pyramid" | "fivehands";
 
 /** The account's look slots (`game-skin:<game>`, `world-theme:<game>`, `card-back` → an item id or null), or null (a guest). */
 export type GameLookSlots = Readonly<Record<string, string | null>>;
@@ -40,9 +43,10 @@ function readSlots(now = Date.now()): Promise<GameLookSlots | null> {
 }
 
 /** The look a game draws in for this player: its equipped skin and world theme, kept to items that game knows. */
-export async function gameLookOf(game: SkinnableGame): Promise<GameLook> {
+export async function gameLookOf(game: LookedGame): Promise<GameLook> {
   const slots = await readSlots();
   if (!slots) return NO_LOOK;
+  if (!isSkinnableGame(game)) return isCardBackGame(game) ? backLookFor(slots["card-back"]) : NO_LOOK;
   return lookFor(game, slots[`game-skin:${game}`], slots[`world-theme:${game}`], slots["card-back"]);
 }
 
@@ -50,12 +54,12 @@ export async function gameLookOf(game: SkinnableGame): Promise<GameLook> {
 export function useGameLookAny(type: string | null): GameLook {
   const [look, setLook] = useState<GameLook>(NO_LOOK);
   useEffect(() => {
-    if (!type || !isSkinnableGame(type)) {
+    if (!type || !(isSkinnableGame(type) || isCardBackGame(type))) {
       setLook(NO_LOOK);
       return;
     }
     let live = true;
-    void gameLookOf(type).then((l) => {
+    void gameLookOf(type as LookedGame).then((l) => {
       if (live) setLook(l);
     });
     return () => {
@@ -66,7 +70,7 @@ export function useGameLookAny(type: string | null): GameLook {
 }
 
 /** The live stage's look (the default until the read answers). */
-export function useGameLook(game: SkinnableGame): GameLook {
+export function useGameLook(game: LookedGame): GameLook {
   const [look, setLook] = useState<GameLook>(NO_LOOK);
   useEffect(() => {
     let live = true;
@@ -81,7 +85,7 @@ export function useGameLook(game: SkinnableGame): GameLook {
 }
 
 /** The live stage's look and a ref to it (game draws read the ref, so a look arriving never rebuilds the game). */
-export function useGameLookRef(game: SkinnableGame): readonly [GameLook, { readonly current: GameLook }] {
+export function useGameLookRef(game: LookedGame): readonly [GameLook, { readonly current: GameLook }] {
   const look = useGameLook(game);
   const [ref] = useState(() => ({ current: look }));
   ref.current = look;
