@@ -303,6 +303,97 @@ The Retirements session's list of nine isn't on main, so I can't name them.
   - Top Bins: 3 skins.
 - The pass levels and bundles that hold them would need refilling. Owners keep them working in Practice.
 
+### The Card Table bundle (week 2): replacing the two felts
+
+Joe's decision of 13 Nov 2026:
+- Full House is retired, so Midnight Felt and Crimson Velvet stop being sold. The Retirements session is adding the
+  shop rule.
+- Owned felts stay usable.
+- This section proposes what replaces them in week 2's **Card Table** bundle, held to the same premium bar.
+
+**Today's bundle** (`src/lib/shop/bundles.ts:58`):
+
+| Item | Rarity | Price |
+|---|---|---|
+| Holo Foil card back | Elite | 1,600 |
+| Royal Damask card back | Epic | 1,000 |
+| Midnight Felt | Epic | 1,000 |
+| Crimson Velvet | Epic | 1,000 |
+| Royal card art | Epic | 1,000 |
+| Crimson card art | Epic | 1,000 |
+| Emerald card art | Epic | 1,000 |
+| **Full price** | | **7,600** |
+| **Bundle price** (27.6 % off) | | **5,500** |
+
+**The rules shop-check holds every bundle to** (`shop-check.ts:233–246`):
+- shop items only;
+- no item in two bundles;
+- a medium bundle costs 5,000–6,000 coins, 20–30 % off, and mixes Epic and Elite.
+
+**Why something has to be added, not just removed.**
+- Taking the felts out leaves five items worth 5,600. At 20–30 % off that is 3,920–4,480 coins, which falls between
+  the small band (up to 3,600) and the medium band (from 5,000).
+- Only four shop items sit in no bundle today, all Legendary: Aurora, Diamond Plate, Molten Gold and Lightning Core.
+- So a replacement either comes from those four or is taken from another bundle.
+
+**Proposal A (recommended): add the Aurora card art, drop Royal.**
+
+| Item | Rarity | Price | Verdict |
+|---|---|---|---|
+| Holo Foil card back | Elite | 1,600 | Improve (visibility) |
+| Royal Damask card back | Epic | 1,000 | Improve (visibility) |
+| Crimson card art | Epic | 1,000 | Keep |
+| Emerald card art | Epic | 1,000 | Keep |
+| **Aurora card art** | Legendary, animated | 2,800 | Keep |
+| **Full price** | | **7,400** | |
+| **Bundle price** (25.7 % off) | | **5,500** | |
+
+- The price players see doesn't change, and the bundle meets every bundle rule.
+- **Aurora** is the best card art in the shop, it is in no other bundle, and it keeps the bundle about cards.
+- **Royal** comes out because its verdict is Improve (the crown reads as a smudge at phone size).
+- Every card art left is a Keep.
+- Suggested blurb: "Holo Foil (Elite) and Royal Damask (Epic) card backs, the animated Aurora card art (Legendary),
+  and the Crimson and Emerald card arts (Epic)."
+
+**Proposal A′: the same, keeping Royal once it is redrawn.**
+- The six items come to 8,400.
+- Within the medium band's top of 6,000, the price is **6,000** (28.6 % off).
+- Use this only if Royal's redraw lands before week 2 goes on sale.
+
+**The card backs themselves fall short today.**
+- Card backs draw only on Full House (`CARD_BACK_GAMES`), now practice-only.
+- So a player who buys week 2's bundle sees the backs in no room game.
+- Under Joe's rule they shouldn't be sold until they show somewhere that matters.
+- **Recommended:** land card backs in **Summit** at least (section 5). Its 18 covered peak cards make the back clearly
+  visible. Do it before week 2 opens, then sell Proposal A as it stands.
+- **If that can't land in time,** there is no all-Keep medium bundle without the backs. Every Elite in the shop
+  already sits in another bundle, and a medium bundle needs one. The fallbacks:
+  - Run Proposal A for the testers anyway, as the shop is still testers-only. Players see the backs in Full House
+    practice only.
+  - Or swap weeks 2 and 8 (Card Table and City Lights, both medium) to give the backs three more weeks. City Lights
+    then sells its Lava card art and Chrome finish, both Improve verdicts, in week 2. I wouldn't.
+
+**Timing.**
+- Week 2 starts **Monday 16 Nov** (`shop-check.ts:249` pins that date to `card-table`).
+- A week is recorded in `shop_weeks` the first time the shop is opened in it, and a recorded week never changes
+  (`shop.server.ts:134`: "a schedule edited mid-week never changes a week already on sale").
+- So the new list has to merge **before any tester opens the shop on 16 Nov**. Otherwise week 2 keeps the felts as
+  recorded.
+- Whether the Retirements session's shop rule also refuses the felts inside an already-recorded bundle week is theirs
+  to say. The bundle purchase refuses any id outside `catalogue_shop` (`20261112120000_shop.sql:183`, `:287`), so
+  their rule decides it.
+
+**What the change touches** (no existing assertion changes):
+- `src/lib/shop/bundles.ts`: Card Table's `items`, `price` (Proposal A keeps 5,500) and `blurb`.
+- `docs/economy/bundles-season-1.md:23`: the week 2 row.
+- `shop-check` checks the new list against the same rules and needs no change:
+  - :233–246, the rules every bundle is held to;
+  - :249, `card-table` on 16 Nov.
+- `scripts/theme-screens.ts:533` names `game-skin.full-house.crimson-velvet` in a screen's sample data. It still
+  draws, because owned felts stay valid, so nothing has to change there.
+- The two felts stay in `GAME_SKIN_IDS` (`look.ts:42`) and keep drawing for their owners. `skins-check.ts:81–82`
+  ("20 game skins … every catalogue skin is drawn") stays true.
+
 ### Existing check assertions and fixtures that would change
 
 Quoted exactly as they stand on main. None is changed by this PR.
@@ -416,7 +507,12 @@ Every one of these is a change to an existing check and needs Joe's approval in 
 **For Joe to decide:**
 
 1. The verdicts: which Improve items to fix, and which to withdraw instead.
-2. Whether to **withdraw the three Full House felts** now (recommended), and what fills **premium level 12**.
+2. **Premium level 12**, the Neon Felt: what fills it. Midnight Felt and Crimson Velvet already stop being sold
+   (Joe, 13 Nov). Is Neon Felt withdrawn from the pass the same way?
+2a. **The Card Table bundle** (section 6):
+    - **Proposal A** (Aurora replaces both felts and Royal; still 5,500) or **A′** (keep a redrawn Royal; 6,000);
+    - whether card backs reach **Summit** before week 2 opens on **16 Nov**;
+    - the new list must merge before any tester opens the shop that Monday.
 3. Whether withdrawing means a **`withdrawn_at` column** (recommended) or something else.
 4. Card fronts: **option A card stocks** first (recommended), B later, never C. Also whether a **four-colour deck**
    becomes a free setting.

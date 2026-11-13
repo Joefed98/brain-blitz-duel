@@ -89,8 +89,8 @@ export const REVIEWS: Record<string, Review> = {
   "card-back.holo-foil": I("Elite at 1,600: attractive, but seen only in Full House practice.", "As Royal Damask."),
   "card-back.neon": I("Premium level 4: seen only in Full House practice.", "As Royal Damask."),
   /* Game skins */
-  "game-skin.full-house.midnight-felt": W("Full House is retired from rooms (practice only); a 1,000-coin table for a practice-only game.", "Stop selling; keep it working for owners. If Five Hands takes table skins later, move the felt there."),
-  "game-skin.full-house.crimson-velvet": W("As Midnight Felt.", "As Midnight Felt."),
+  "game-skin.full-house.midnight-felt": W("Full House is retired from rooms (practice only); a 1,000-coin table for a practice-only game. Joe, 13 Nov: stops being sold; owned felts stay usable.", "Leaves the Card Table bundle (README section 6: Proposal A puts the Aurora card art in its place)."),
+  "game-skin.full-house.crimson-velvet": W("As Midnight Felt (Joe, 13 Nov: stops being sold; owned felts stay usable).", "As Midnight Felt."),
   "game-skin.full-house.neon-felt": W("Premium pass level 12 for a practice-only game.", "Replace the pass level with a Five Hands or Summit look, or coins."),
   "game-skin.crazy-golf.watermelon": I("The ball is about 8 px across on a phone; the skin is barely visible during play.", "Show it where it can be seen: a larger ball draw is not allowed (nothing bigger), so add a short trail and a bigger skinned ball on the hole-in and the reveal.", true),
   "game-skin.crazy-golf.disco": I("As Watermelon: invisible at play size.", "As Watermelon.", true),
