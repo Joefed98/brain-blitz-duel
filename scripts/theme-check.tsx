@@ -413,10 +413,11 @@ const familiesUsed = new Set<string>();
 let measured = 0;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 try {
-  // One identity everywhere (13 Nov 2026): a screen may ask for more sizes (extraViewports), each judged the same way.
+  // Each screen at the first viewport, then a screen's extra sizes (ThemeScreen.sizes, from 13 Nov 2026).
+  const draws = [...SCREENS.map((screen) => ({ screen, viewport: VIEWPORT })), ...SCREENS.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ screen, viewport })))];
   // --part=k/n (13 Nov 2026): every n-th draw from the k-th, as no-wrap-check splits its draws; together the parts judge
   // exactly what one whole run does (the intro colours run in part 1).
-  for (const [screen, viewport] of partOf(SCREENS.flatMap((s) => [VIEWPORT, ...(s.extraViewports ?? [])].map((v) => [s, v] as const)), args)) {
+  for (const { screen, viewport } of partOf(draws, args)) {
     const where = `${screen.name} (${viewport.name})`;
     const problems: string[] = [];
     try {

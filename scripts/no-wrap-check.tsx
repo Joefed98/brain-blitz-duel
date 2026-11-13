@@ -25,7 +25,7 @@
 import { existsSync } from "node:fs";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf } from "./theme-screens";
+import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, themeDraws } from "./theme-screens";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -38,15 +38,8 @@ if (!CHROMIUM) {
 const SCREENS = ONLY.length
   ? THEME_SCREENS.filter((s) => ONLY.some((o) => s.name.includes(o)))
   : THEME_SCREENS;
-const DRAWS = partOf(
-  [
-    ...VIEWPORTS.flatMap((viewport) => SCREENS.map((screen) => ({ viewport, screen }))),
-    // One identity everywhere (13 Nov 2026): a screen's extra sizes (extraViewports), after every other draw, so the
-    // draws each part held before keep their place.
-    ...SCREENS.flatMap((screen) => (screen.extraViewports ?? []).map((viewport) => ({ viewport, screen }))),
-  ],
-  args,
-);
+// Every screen at VIEWPORTS, then the extra sizes of the screens that have them (ThemeScreen.sizes) after them all.
+const DRAWS = partOf(themeDraws(SCREENS, VIEWPORTS), args);
 
 /** In-page: every single-line text that wraps or overflows. */
 function wrapProbe() {

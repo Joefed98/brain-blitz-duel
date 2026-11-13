@@ -40,11 +40,11 @@ import { readProfile } from "@/lib/data/profiles.server";
 import { readRatedWeekMatches } from "@/lib/data/ratings.server";
 import { readIsTester } from "@/lib/data/shop.server";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
-import { PUZZLE_CATALOGUE, type GameInfo } from "@/lib/duel/catalogue";
+import { PUZZLE_CATALOGUE, RETIRED_TYPES, type GameInfo } from "@/lib/duel/catalogue";
 import { catalogue, creditCoins, grantConsumable, grantItem } from "@/lib/economy/economy.server";
 
 import { shiftDay, ukDay, ukMidnight } from "./ukDays";
-import { JOULES, ratedMatchJoules, tournamentJoules, WEEKLY_JOULES, type JoulesKind } from "./joules";
+import { JOULES, ratedMatchJoules, starJoules, tournamentJoules, WEEKLY_JOULES, type JoulesKind } from "./joules";
 import {
   levelProgress,
   PASS_LEVELS,
@@ -164,22 +164,40 @@ export function categoryOf(game: string | null): GameCategory | null {
   return cat && cat !== "arcade" ? (cat as GameCategory) : null;
 }
 
-const JOULES_OF: Partial<Record<string, { kind: JoulesKind; base: number }>> = {
-  room_round: { kind: "room_round", base: JOULES.room_round },
-  room_finish: { kind: "room_finish", base: JOULES.room_finish },
-  daily_puzzle: { kind: "daily_puzzle", base: JOULES.daily_puzzle },
-  daily_arcade: { kind: "daily_arcade", base: JOULES.daily_arcade },
-  challenge: { kind: "challenge", base: JOULES.challenge },
-  practice: { kind: "practice", base: JOULES.practice },
-  practice_challenge: { kind: "practice_challenge", base: JOULES.practice_challenge },
+/**
+ * What each stored source event pays. Since the Joules rework (Joe, 13 Nov 2026) room rounds, room finishes and
+ * Practice runs are still read (the weekly challenges count them) but credit nothing: they are not sent at all, so no
+ * new pass_joules row is written for them. A star pays its level's live amount (Classic 150), once.
+ */
+const JOULES_OF: Partial<Record<string, { kind: JoulesKind; base: (key: string) => number }>> = {
+  daily_puzzle: { kind: "daily_puzzle", base: () => JOULES.daily_puzzle },
+  daily_arcade: { kind: "daily_arcade", base: () => JOULES.daily_arcade },
+  challenge: { kind: "challenge", base: () => JOULES.challenge },
+  practice_challenge: { kind: "practice_challenge", base: () => JOULES.practice_challenge },
+  star: { kind: "star", base: starJoules },
 };
 
-/** The Joules rows for stored source events (rounds of a Daily or a friend challenge, and stars, pay nothing alone). */
+/**
+ * Retired games count towards nothing (Joe, 13 Nov 2026): a stored event of a game in the catalogue's retired list
+ * (RETIRED_TYPES, the one source) is dropped before anything is paid or counted, so its star or Practice challenge
+ * pays no Joules and its plays count towards no weekly challenge. Nothing is written for it, so a game brought back
+ * later pays again automatically (for its events inside the season). Events with no game (a finish) are kept.
+ */
+export function countableActivity(activity: readonly ActivityRow[]): ActivityRow[] {
+  return activity.filter((a) => !a.game || !RETIRED_TYPES.has(a.game as never));
+}
+
+/**
+ * The Joules rows for stored source events (rounds of a Daily or a friend challenge, room rounds and finishes and
+ * Practice runs pay nothing). A source whose amount is 0 (a star on a level not live yet) is left out, never written.
+ */
 export function joulesRowsFor(activity: readonly ActivityRow[]): JoulesRow[] {
   const rows: JoulesRow[] = [];
   for (const a of activity) {
     const pay = JOULES_OF[a.k];
-    if (pay) rows.push({ key: a.key, kind: pay.kind, base: pay.base, at: a.at });
+    if (!pay) continue;
+    const base = pay.base(a.key);
+    if (base > 0) rows.push({ key: a.key, kind: pay.kind, base, at: a.at });
   }
   return rows;
 }
@@ -296,7 +314,8 @@ export async function syncPass(client: Db, userId: string, season: ActiveSeason,
       toIso: new Date(until).toISOString(),
     });
     if (activity.error) throw new Error(`pass: ${activity.error.message}`);
-    const rows = joulesRowsFor(activity.data);
+    const counted = countableActivity(activity.data);
+    const rows = joulesRowsFor(counted);
 
     // Weekly challenges: every week of the season so far (the latest WEEKLY_LOOKBACK), inside the season.
     const lastWeek = weekStartOf(ukDay(until - 1));
@@ -307,11 +326,11 @@ export async function syncPass(client: Db, userId: string, season: ActiveSeason,
       const w = weekWindow(week);
       const from = Math.max(w.from, season.epoch);
       const to = Math.min(w.to, until);
-      const result = await weekProgress(client, userId, week, activity.data, from, to);
+      const result = await weekProgress(client, userId, week, counted, from, to);
       if (week === lastWeek && season.live) current = result;
       for (const { c, done, need } of result.challenges) {
         if (done < need) continue;
-        const last = activity.data.filter((a) => {
+        const last = counted.filter((a) => {
           const t = Date.parse(a.at);
           return t >= from && t < to;
         });
@@ -629,7 +648,7 @@ export async function passTitlesFor(client: Db, userId: string): Promise<{ id: s
   return out.data.filter((t): t is keyof typeof PASS_TITLES => t in PASS_TITLES).map((id) => ({ id, name: PASS_TITLES[id] }));
 }
 
-/* ------------------------------------------------------------------ later hooks (named; nothing calls them yet) */
+/* ------------------------------------------------------------------ rated play and tournaments (called by W3a, W4b and W4c) */
 
 /**
  * Wave 3: credits a rated match's Joules (150 a win, 100 a loss; 1.5× for the longer formats) for the season the
@@ -644,7 +663,10 @@ export async function creditRatedMatchJoules(
   return creditHook(client, input.userId, input.key ?? `rated:${input.matchId}`, "rated", ratedMatchJoules(input), input.atMs);
 }
 
-/** Wave 4: credits a tournament's Joules (an Arena duel 100; finishing a Score Attack, Swiss or Knockout 150). Not called yet. */
+/**
+ * Wave 4: credits a tournament's Joules (an Arena duel 100; finishing a Score Attack, Swiss or Knockout 150). Called by
+ * W4b's Arena and Score Attack (src/lib/tournaments/tournaments.server.ts) and W4c's events (platform.server.ts).
+ */
 export async function creditTournamentJoules(
   client: Db,
   input: { userId: string; eventId: string; kind: "arena_duel" | "finished"; atMs: number },
