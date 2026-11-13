@@ -582,6 +582,32 @@ export const RATED_SCREENS = (): ThemeScreen[] =>
     ] as const
   ).map((screen) => ({ name: `rated, ${screen.replaceAll("-", " ")}`, mode: "rated" as const, plain: true, globals: { __harnessRated: { screen } } }));
 
+/**
+ * Security A (13 Nov 2026): the rated Play card and picker with the wait after set-up leaves, the abort notice's wait
+ * line, and the dropout banner's countdowns (Finish now at 45 s in an ordinary room; a rated room's grace), from
+ * scripts/rated-fixture.tsx. Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const SECURITY_A_SCREENS = (): ThemeScreen[] => [
+  ...(["home-cooldown", "aborted-you-left", "dropout-countdown", "dropout-rated"] as const).map((screen) => ({
+    name: `rated, ${screen.replaceAll("-", " ")}`,
+    mode: "rated" as const,
+    plain: true,
+    globals: { __harnessRated: { screen } },
+  })),
+  {
+    // The picker opened from the Play card, as a player taps it.
+    name: "rated, picker cooldown",
+    mode: "rated",
+    plain: true,
+    globals: { __harnessRated: { screen: "home-cooldown" } },
+    go: async (page) => {
+      await page.locator("[data-open-picker]").click();
+      await page.locator("[data-rated-picker] [data-rated-cooldown]").waitFor({ timeout: 10_000 });
+      await page.waitForTimeout(500);
+    },
+  },
+];
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -745,6 +771,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...CUSTOMISE_SCREENS(),
   ...RATED_SCREENS(),
   ...LEADERBOARD_SCREENS(),
+  ...SECURITY_A_SCREENS(),
 ];
 
 export interface ThemeViewport {

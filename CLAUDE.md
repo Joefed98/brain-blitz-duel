@@ -2387,6 +2387,29 @@ outside the repo.
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
   next_match_tapped, tier_ladder_viewed (`20261114300000_analytics_rated_screen_events.sql`). rated-screens-check
   (~5 s, happy-dom); shots `bun scripts/shots/rated-shots.tsx` (after `bun run build`).
+- **Rooms and rated play, Security A** (13 Nov 2026; no deal, stamp, grading or scoring change): a room's three
+  Realtime channels are private (`private: true`; RLS on `realtime.messages` through `public.room_topic_allowed`):
+  `room-chat-<room id>` read by players still in the room, `race-ghosts-<room id>:<round>` read and written by them,
+  `duel-<code>` read by the room's players; nobody writes the chat topic: reactions go through `sendReactionFn`
+  (chat.functions.ts: allowReactionFn's checks, then the server broadcasts with the sender from its own row,
+  `public.room_send_reaction` → `realtime.send`); `acceptReaction` still filters on receipt. Public Realtime access is
+  turned off by Joe in the dashboard about a week after this is live. Room chat is read only by players still in the
+  room (`public.can_read_room_chat`: a row whose status isn't 'left'); a lobby removal is recorded
+  (`public.duel_removed_players`, by game index) and the join refuses that player until Play again
+  (`ROOM_REMOVED_MESSAGE`). Finish now: ordinary rooms offer it once every rival has been away `FINISH_NOW_AWAY_MS`
+  (45 s; the banner shows from DISCONNECT_MS, still 15 s, and counts down, DropoutBanner `finishInSeconds`); the
+  server refuses it in rated and tournament rooms (`finishNowRefusal`, before finishGame). Rated rooms show the dropout
+  banner from `RATED_AWAY_MS` (8 s); the server's 20 s grace is unchanged. In a rated room Racing's ghosts are neither
+  sent nor shown for the game's final 20 % (`setRaceGhostQuietFrom`). The rated queue's wait after set-up leaves
+  (`RATED_ABORT_COOLDOWN` in `src/config/ratedConfig.ts`: over 24 h the first free, then 2, 10, 30 min from the latest;
+  read from `mm_matches` leavers through `public.mm_recent_aborts`): `joinQueue` refuses with reason `cooldown` and
+  `retryAtMs`, `ratedStatus` carries `cooldown`, Play and the picker count it down, the abort notice adds
+  `ABORT_WAIT_LINE`, event `rated_cooldown_applied`; a stayer re-queued by reviewDepartures never waits (`requeue`).
+  `src/lib/validate.ts` (uuid, text, whole, oneOf, listOf, optional, record) is the input check for server functions;
+  every function this work added or touched uses it. Migrations `20261116100000_room_channels_chat_removals.sql`,
+  `20261116100100_analytics_rated_cooldown.sql`. The server-fn harness's stub has Realtime's `realtime.messages`,
+  `realtime.topic()` and `realtime.send()`. security-rooms-check (~40 s, shard `e`, PostgreSQL). New screens are in
+  theme-check and no-wrap-check at every size (`SECURITY_A_SCREENS`, `sizes: ALL_SIZES`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

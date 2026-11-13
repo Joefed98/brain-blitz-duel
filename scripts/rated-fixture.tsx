@@ -8,6 +8,7 @@ import type { JSX } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { RatedHomeView } from "@/components/rated/RatedHome";
+import { DropoutBanner } from "@/components/duel/DropoutBanner";
 import { MatchResult, PlacementReveal, Searching, VsScreen } from "@/components/rated/RatedMatchScreens";
 import { RatedFrameScore } from "@/components/rated/RatedFrameScore";
 import { TierLadder } from "@/components/rated/TierLadder";
@@ -15,7 +16,7 @@ import { ProfileRating } from "@/components/rated/ProfileRating";
 import type { RatedMatch, RatedPlayer, RatedResult, RatedStatus } from "@/lib/rated/backend";
 import type { RankView } from "@/lib/rated/tierDisplay";
 import { tierFor, tierLadder } from "@/lib/rated/tiers";
-import { abortLine } from "@/lib/rated/rules";
+import { ABORT_WAIT_LINE, abortLine, graceLine } from "@/lib/rated/rules";
 import { EmptyState } from "@/design/components";
 
 export type RatedScreenKey =
@@ -34,7 +35,11 @@ export type RatedScreenKey =
   | "profile"
   | "result-forfeit-stayed"
   | "result-forfeit-left"
-  | "aborted";
+  | "aborted"
+  | "home-cooldown"
+  | "aborted-you-left"
+  | "dropout-countdown"
+  | "dropout-rated";
 
 const rankAt = (r: number): RankView => ({ ...tierFor(r, null), rating: r });
 const LOOK = { cardArt: "card-art.joulz-navy", frame: "frame.plain", nameColour: null, avatar: { id: "captain-joulz", colour: 4, gem: null } };
@@ -81,6 +86,9 @@ const PLACED: RatedStatus = {
   },
   activeMatchId: null,
 } as RatedStatus;
+/** Placed, with the wait after two set-up leaves running (9 min left). */
+const COOLDOWN = (): RatedStatus => ({ ...PLACED, cooldown: { untilMs: Date.now() + 9 * 60_000 - 10_000, aborts: 2 } });
+
 const PLACING: RatedStatus = {
   ...PLACED,
   me: { ...ME, rank: null },
@@ -205,6 +213,35 @@ const SCREENS: Record<RatedScreenKey, () => JSX.Element> = {
       action={{ label: "Search now", onClick: noop }}
       data-rated-screen="aborted"
     />
+  ),
+  // Security A (13 Nov 2026): the wait after set-up leaves on Play (theme-screens opens the picker from it), the abort notice's wait line, and
+  // the dropout banner's two countdowns (an ordinary room's Finish now at 45 s, a rated room's grace from 8 s).
+  "home-cooldown": () => <RatedHomeView status={COOLDOWN()} />,
+  "aborted-you-left": () => (
+    <EmptyState
+      layout="page"
+      tone="alert"
+      pose="ready"
+      heading={1}
+      title="Match cancelled"
+      body={abortLine([], true)}
+      action={{ label: "Back to Play", onClick: noop }}
+      data-rated-screen="aborted"
+    >
+      <p className="jz-empty-body" data-rated-abort-wait data-wrap-ok>
+        {ABORT_WAIT_LINE}
+      </p>
+    </EmptyState>
+  ),
+  "dropout-countdown": () => (
+    <div style={{ padding: 16 }}>
+      <DropoutBanner absentNames={[SAM.username]} myTotal={168} absentTotal={151} onFinish={async () => {}} finishInSeconds={28} />
+    </div>
+  ),
+  "dropout-rated": () => (
+    <div style={{ padding: 16 }}>
+      <DropoutBanner absentNames={[SAM.username]} myTotal={168} absentTotal={151} graceText={graceLine(12)} />
+    </div>
   ),
 };
 

@@ -180,6 +180,27 @@ export function forfeitLine(leaverNames: readonly string[], youLeft: boolean): s
   return youLeft ? "You left the match. It counts as a loss." : `${namesText(leaverNames)} left the match. You win.`;
 }
 
+/**
+ * A rated room's dropout banner shows once a rival is unseen this long (13 Nov 2026): two missed heartbeats (every
+ * 4 s), so the countdown to the server's 20 s grace has most of its time to run. Display only: DISCONNECT_MS and the
+ * server's departure rule are unchanged.
+ */
+export const RATED_AWAY_MS = 8_000;
+
+/** The line under the abort notice (13 Nov 2026): set-up leaves add a wait before the next search. */
+export const ABORT_WAIT_LINE = "Leaving before a match starts adds a short wait.";
+
+/** Whole minutes left of a cooldown (at least 1 while it runs). */
+export function cooldownMinutesLeft(untilMs: number, nowMs: number): number {
+  return Math.max(1, Math.ceil((untilMs - nowMs) / 60_000));
+}
+
+/** The cooldown's line on Play and the picker, e.g. "You left your last 2 matches before they started. You can search again in 9 min." */
+export function cooldownLine(aborts: number, untilMs: number, nowMs: number): string {
+  const matches = aborts === 1 ? "your last match" : `your last ${aborts} matches`;
+  return `You left ${matches} before they started. You can search again in ${cooldownMinutesLeft(untilMs, nowMs)} min.`;
+}
+
 /** Whole seconds of the 20 s grace left for a player away since `awaySinceMs` (never below 0). */
 export function graceSecondsLeft(awaySinceMs: number | null, nowMs: number, graceMs = DEPARTURE_GRACE_MS): number {
   if (awaySinceMs === null || !Number.isFinite(awaySinceMs)) return 0;

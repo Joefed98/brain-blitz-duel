@@ -117,3 +117,16 @@ export function missingFunction(error: { code?: unknown; message?: unknown } | n
   const code = String(error.code ?? "");
   return code === "PGRST202" || code === "42883" || /could not find the function/i.test(String(error.message ?? ""));
 }
+
+/**
+ * Broadcasts one room reaction on the room's private chat topic (room-chat-<room id>) through
+ * public.room_send_reaction (service role only). The payload is built by the server from the sender's own player row.
+ */
+export async function broadcastRoomReaction(
+  client: Db,
+  roomId: string,
+  payload: { emoji: string; userId: string; name: string; slot: number },
+): Promise<Result<null>> {
+  const { error } = await client.rpc("room_send_reaction", { p_duel_id: roomId, p_payload: payload });
+  return { data: null, error };
+}

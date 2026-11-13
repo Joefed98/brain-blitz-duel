@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { record, text } from "@/lib/validate";
 
 import type { HeadToHead, RatedRoomInfo, OpponentScore, QueuePoll, RatedMatchView, RatedStatus, RematchOutcome, JoinOutcome, PublicSettleOutcome } from "./rated.server";
 
@@ -32,7 +33,11 @@ export const ratedStatusFn = createServerFn({ method: "POST" })
 
 export const ratedQueueJoinFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { format: string; choice: string }) => input)
+  .inputValidator((input: { format: string; choice: string }) => {
+    const body = record(input);
+    // Any short string: joinQueue answers an unknown format or choice with its own refusal.
+    return { format: text(body["format"], 16, "format"), choice: text(body["choice"], 32, "choice") };
+  })
   .handler(async ({ data, context }): Promise<JoinOutcome> => {
     const { client, rated } = await setup(context.userId, false);
     // A guest never sends a name: rated play seats them under their generated energy name (guestName.server.ts).

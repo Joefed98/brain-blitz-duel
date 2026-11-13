@@ -7,6 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Db } from "@/lib/data/db.server";
+import { record, text, uuid } from "@/lib/validate";
 
 import {
   MESSAGE_MAX_LENGTH,
@@ -15,6 +16,9 @@ import {
   REACTION_MIN_GAP_MS,
   ROOM_EMOJI,
 } from "./chatConstants";
+
+/** The longest reaction code a phone may send (an emoji, or a reaction pack's emote code such as `reaction.banter#2`). */
+const REACTION_CODE_MAX = 64;
 
 interface Sender {
   id: string;
@@ -101,44 +105,88 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Checks the reaction is allowed before the client broadcasts it. */
+type ReactionSender = Sender & { player_slot: number };
+
+/**
+ * The checks every reaction passes (the room's emoji or an equipped emote, in the room, not muted by the host or by
+ * reports, not banned, one a second), then the reaction's time stored. Answers the sender's row, or the refusal.
+ */
+async function approveReaction(
+  client: Db,
+  roomId: string,
+  userId: string,
+  emoji: string,
+): Promise<{ ok: true; sender: ReactionSender } | { ok: false; message: string }> {
+  // The room's emoji, or (wave 2 E2) an emote from a reaction pack the caller has equipped in a reaction slot.
+  let pack: string | null = null;
+  if (!ROOM_EMOJI.includes(emoji as (typeof ROOM_EMOJI)[number])) {
+    const { emoteOf } = await import("@/design/identity/cosmetics");
+    const emote = emoteOf(emoji);
+    if (!emote) return { ok: false, message: "That reaction doesn’t exist." };
+    pack = emote.pack;
+  }
+  const sender = (await senderRow(client, roomId, userId)) as ReactionSender | null;
+  if (!sender || sender.status === "left") {
+    return { ok: false, message: "You’re not in this room." };
+  }
+  if (sender.muted_by_host) {
+    return { ok: false, message: "The host has muted you in this room." };
+  }
+  const { chatRefusal } = await import("@/lib/safety/moderation.server");
+  const refusedChat = await chatRefusal(await admin(), userId);
+  if (refusedChat) return { ok: false, message: refusedChat };
+  if (
+    sender.last_reaction_at &&
+    Date.now() - new Date(sender.last_reaction_at).getTime() < REACTION_MIN_GAP_MS
+  ) {
+    return { ok: false, message: "One reaction a second." };
+  }
+  if (pack) {
+    const { canSendPack } = await import("@/lib/cosmetics/cosmetics.server");
+    if (!(await canSendPack(await admin(), userId, pack).catch(() => false)))
+      return { ok: false, message: "Equip that reaction in Customise first." };
+  }
+
+  const { updatePlayer } = await import("@/lib/data/players.server");
+  await updatePlayer(await admin(), sender.id, { last_reaction_at: new Date().toISOString() });
+  return { ok: true, sender };
+}
+
+/** A reaction's input: the room and the reaction's code (an emoji or an emote code). */
+function reactionInput(input: unknown): { roomId: string; emoji: string } {
+  const body = record(input);
+  return { roomId: uuid(body["roomId"], "roomId"), emoji: text(body["emoji"], REACTION_CODE_MAX, "emoji") };
+}
+
+/** Checks a reaction against the room's rules (it sends nothing; sendReactionFn sends). */
 export const allowReactionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; emoji: string }) => input)
+  .inputValidator(reactionInput)
   .handler(async ({ data, context }) => {
-    // The room's emoji, or (wave 2 E2) an emote from a reaction pack the caller has equipped in a reaction slot.
-    let pack: string | null = null;
-    if (!ROOM_EMOJI.includes(data.emoji as (typeof ROOM_EMOJI)[number])) {
-      const { emoteOf } = await import("@/design/identity/cosmetics");
-      const emote = emoteOf(String(data.emoji ?? ""));
-      if (!emote) return { ok: false as const, message: "That reaction doesn’t exist." };
-      pack = emote.pack;
-    }
-    const sender = await senderRow(context.supabase, data.roomId, context.userId);
-    if (!sender || sender.status === "left") {
-      return { ok: false as const, message: "You’re not in this room." };
-    }
-    if (sender.muted_by_host) {
-      return { ok: false as const, message: "The host has muted you in this room." };
-    }
-    const { chatRefusal } = await import("@/lib/safety/moderation.server");
-    const refusedChat = await chatRefusal(await admin(), context.userId);
-    if (refusedChat) return { ok: false as const, message: refusedChat };
-    if (
-      sender.last_reaction_at &&
-      Date.now() - new Date(sender.last_reaction_at).getTime() < REACTION_MIN_GAP_MS
-    ) {
-      return { ok: false as const, message: "One reaction a second." };
-    }
-    if (pack) {
-      const { canSendPack } = await import("@/lib/cosmetics/cosmetics.server");
-      if (!(await canSendPack(await admin(), context.userId, pack).catch(() => false)))
-        return { ok: false as const, message: "Equip that reaction in Customise first." };
-    }
+    const approved = await approveReaction(context.supabase, data.roomId, context.userId, data.emoji);
+    if (!approved.ok) return approved;
+    return { ok: true as const, name: approved.sender.display_name };
+  });
 
-    const { updatePlayer } = await import("@/lib/data/players.server");
-    await updatePlayer(await admin(), sender.id, { last_reaction_at: new Date().toISOString() });
-    return { ok: true as const, name: sender.display_name };
+/**
+ * Sends a reaction to the room (13 Nov 2026): the same checks, then the server broadcasts it on the room's private
+ * chat topic with the sender's user id, slot and name from the server's own player row. The phone only listens.
+ */
+export const sendReactionFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(reactionInput)
+  .handler(async ({ data, context }) => {
+    const approved = await approveReaction(context.supabase, data.roomId, context.userId, data.emoji);
+    if (!approved.ok) return approved;
+    const { broadcastRoomReaction } = await import("@/lib/data/chat.server");
+    const { error } = await broadcastRoomReaction(await admin(), data.roomId, {
+      emoji: data.emoji,
+      userId: context.userId,
+      name: approved.sender.display_name,
+      slot: approved.sender.player_slot,
+    });
+    if (error) return { ok: false as const, message: "That reaction didn’t send." };
+    return { ok: true as const };
   });
 
 /**

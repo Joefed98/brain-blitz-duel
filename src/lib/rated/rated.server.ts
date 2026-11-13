@@ -40,6 +40,7 @@ import {
   readLastRecordedOwner,
   readMatchPlayers,
   readOpenMatchIds,
+  readRecentAborts,
   readProgress,
   readQueueEntry,
   readRatedMatch,
@@ -107,7 +108,11 @@ import {
   type RecordedCandidate,
   type RecordedGame,
   type RecordedSource,
+  abortCooldown,
+  type AbortCooldown,
 } from "./matchmaking";
+import { RATED_ABORT_COOLDOWN } from "@/config/ratedConfig";
+import { cooldownLine } from "./rules";
 import { ratingsReady, toRatingsResult, type RatedSettlement, type SettledPlayer } from "./ratingsAdapter.server";
 import { scoreTimeline } from "./timeline.server";
 import { gradeFlagged } from "./practiceDeals.server";
@@ -115,7 +120,7 @@ import { guestEnergyName, ratedNameOf } from "./guestName.server";
 
 /* ------------------------------------------------------------------ shapes the phone gets */
 
-export type RatedRefusalReason = "account" | "closed" | "option" | "banned" | "rate_limit" | "no_rating" | "in_match";
+export type RatedRefusalReason = "account" | "closed" | "option" | "banned" | "rate_limit" | "no_rating" | "in_match" | "cooldown";
 
 export interface RatedStatus {
   account: boolean;
@@ -123,6 +128,8 @@ export interface RatedStatus {
   options: { formats: RatedFormat[]; choices: RatedChoice[] };
   searching: { format: RatedFormat; choice: RatedChoice; joinedAtMs: number } | null;
   activeMatchId: string | null;
+  /** The wait after set-up leaves (13 Nov 2026), while it runs: when it lifts (server ms) and the leaves counted. */
+  cooldown: AbortCooldown | null;
 }
 
 export interface RatedMatchView {
@@ -260,11 +267,17 @@ function toRecordedGame(round: SourceRound, withTimeline: boolean): StoredRecord
 
 /* ------------------------------------------------------------------ status and the queue */
 
-export async function ratedStatus(client: Db, userId: string, switches: RatedSwitches = RATED_SWITCHES): Promise<RatedStatus> {
+export async function ratedStatus(
+  client: Db,
+  userId: string,
+  switches: RatedSwitches = RATED_SWITCHES,
+  nowMs: number = Date.now(),
+): Promise<RatedStatus> {
   const { account } = await hasAccount(client, userId);
   const open = await isOpenTo(client, userId, account, switches);
   const { data: entry } = await readQueueEntry(client, userId);
   const { data: openIds } = await readOpenMatchIds(client, userId);
+  const cooldown = open ? await cooldownFor(client, userId, nowMs) : null;
   return {
     account,
     open,
@@ -274,10 +287,25 @@ export async function ratedStatus(client: Db, userId: string, switches: RatedSwi
         ? { format: entry.format, choice: entry.choice, joinedAtMs: msOf(entry.joined_at) }
         : null,
     activeMatchId: openIds?.[0] ?? null,
+    cooldown,
   };
 }
 
-export type JoinOutcome = { ok: true; joinedAtMs: number } | { ok: false; reason: RatedRefusalReason; message: string };
+/** This player's cooldown after set-up leaves at `nowMs`, or null (none, or a database without the function). */
+export async function cooldownFor(client: Db, userId: string, nowMs: number): Promise<AbortCooldown | null> {
+  try {
+    const since = nowIso(nowMs - RATED_ABORT_COOLDOWN.periodMs);
+    const { data, error } = await readRecentAborts(client, userId, since);
+    if (error) return null;
+    return abortCooldown(data, nowMs, RATED_ABORT_COOLDOWN);
+  } catch {
+    return null;
+  }
+}
+
+export type JoinOutcome =
+  | { ok: true; joinedAtMs: number }
+  | { ok: false; reason: RatedRefusalReason; message: string; retryAtMs?: number };
 
 export async function joinQueue(
   client: Db,
@@ -285,6 +313,8 @@ export async function joinQueue(
   input: { format: unknown; choice: unknown },
   nowMs: number,
   switches: RatedSwitches = RATED_SWITCHES,
+  /** `requeue`: put back in the queue because another player left during set-up (reviewDepartures); never waits. */
+  { requeue = false }: { requeue?: boolean } = {},
 ): Promise<JoinOutcome> {
   const { account } = await hasAccount(client, userId);
   if (!(await isOpenTo(client, userId, account, switches))) {
@@ -299,6 +329,18 @@ export async function joinQueue(
   const { roomRefusal } = await import("@/lib/safety/moderation.server");
   const banned = await roomRefusal(client, userId);
   if (banned) return { ok: false, reason: "banned", message: banned };
+  // The wait after leaving matches during set-up (13 Nov 2026; RATED_ABORT_COOLDOWN).
+  if (!requeue) {
+    const cooldown = await cooldownFor(client, userId, nowMs);
+    if (cooldown) {
+      recordEvents({
+        event: "rated_cooldown_applied",
+        playerId: userId,
+        props: { aborts: cooldown.aborts, wait_s: Math.ceil((cooldown.untilMs - nowMs) / 1000), format, choice },
+      });
+      return { ok: false, reason: "cooldown", message: cooldownLine(cooldown.aborts, cooldown.untilMs, nowMs), retryAtMs: cooldown.untilMs };
+    }
+  }
   const { withinRateLimit } = await import("@/lib/duel/rateLimit.server");
   const { RATED_QUEUE_LIMIT } = await import("./matchmaking");
   if (!(await withinRateLimit(client, userId, RATED_QUEUE_LIMIT)))
@@ -1378,7 +1420,7 @@ export async function reviewDepartures(client: Db, matchId: string, nowMs: numbe
     for (const p of roster) {
       if (gone.has(p.user_id)) continue;
       try {
-        await joinQueue(client, p.user_id, { format: match.format, choice: match.choice }, nowMs);
+        await joinQueue(client, p.user_id, { format: match.format, choice: match.choice }, nowMs, RATED_SWITCHES, { requeue: true });
       } catch {
         // A refused or failed search leaves them on the abort notice; they can search again from it.
       }

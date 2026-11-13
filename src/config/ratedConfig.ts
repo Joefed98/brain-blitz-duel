@@ -26,3 +26,13 @@ export function ratedChallengesDrawable(): boolean {
 export function guestsMayPlayRated(): boolean {
   return RATED_PLAY_FOR_EVERYONE;
 }
+
+/**
+ * The wait after leaving rated matches during set-up (13 Nov 2026, Joe): leaves counted over the last `periodMs`; the
+ * first is free, the second waits 2 min, the third 10 min, the fourth and later 30 min, each counted from the latest
+ * leave. A player put back in the queue because the other player left (reviewDepartures) never waits.
+ */
+export const RATED_ABORT_COOLDOWN = {
+  periodMs: 24 * 60 * 60 * 1000,
+  waitsMs: [0, 2 * 60 * 1000, 10 * 60 * 1000, 30 * 60 * 1000],
+} as const;
