@@ -1,5 +1,5 @@
 /**
- * Security fix M2 (Nov 2026 audit): one cleaner for every name a player sets (rooms' create and join, the daily and
+ * One cleaner for every name a player sets (rooms' create and join, the daily and
  * challenge starts, a room's names copied onto a challenge board) and the same character strip for chat.
  *
  * - NFKC, so full-width and styled letters read as their plain forms;

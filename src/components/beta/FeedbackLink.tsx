@@ -1,30 +1,31 @@
 import { useEffect, useState } from "react";
 
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
-import { currentUserId } from "@/lib/duel/session";
 import { Icon } from "@/design/components";
 
 /**
- * SEND FEEDBACK: opens the beta's Tally form in a new tab with this device's anonymous id and the app
- * version (lib/beta/feedback.ts). Renders nothing while TALLY_URL is empty. `small`: the quiet link
+ * SEND FEEDBACK: opens the beta's Tally form in a new tab with the server's keyed reference for this
+ * device and the app version (lib/beta/feedback.ts, feedback.functions.ts). Renders nothing while TALLY_URL is empty. `small`: the quiet link
  * under the podium and the daily results; otherwise Profile's link on the right of its
  * footer line (Prompt R, polish-layout/app-pages.css).
  */
 export function FeedbackLink({ small = false, row = false }: { small?: boolean; row?: boolean }) {
   const base = feedbackBase();
-  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [deviceRef, setDeviceRef] = useState<string | null>(null);
   useEffect(() => {
     if (!base) return;
     let live = true;
-    currentUserId().then(
-      (id) => live && setDeviceId(typeof id === "string" ? id : null),
-      () => undefined,
-    );
+    void import("@/lib/beta/feedback.functions")
+      .then(({ feedbackRefFn }) => feedbackRefFn())
+      .then(
+        (answer) => live && setDeviceRef(typeof answer?.ref === "string" ? answer.ref : null),
+        () => undefined,
+      );
     return () => {
       live = false;
     };
   }, [base]);
-  const href = feedbackUrl(base, deviceId);
+  const href = feedbackUrl(base, deviceRef);
   if (!href) return null;
   // The settings sheet's row (Polish batch R).
   if (row)

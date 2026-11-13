@@ -698,7 +698,7 @@ export async function submitAsyncAnswer(
 }
 
 /**
- * H2 (asyncRoom.ts SolutionLock): the lock on a round's solution while the room's window is open, or null once it has
+ * The lock on a round's solution (asyncRoom.ts SolutionLock) while the room's window is open, or null once it has
  * closed or when the round has nothing private (arcade runs, the games whose answers are all on screen).
  */
 export function solutionLockFor(
@@ -738,7 +738,7 @@ export function lockedExtra(
 /**
  * The reveal of one of the caller's rounds: their stored result and its summary, only once that result is stored
  * (graded or missed), never another player's answer. The full puzzle and the correct answer only once the room's window
- * has closed (H2); before that the public half, the summary worked out from it alone, and `solutionLock`.
+ * has closed (SolutionLock); before that the public half, the summary worked out from it alone, and `solutionLock`.
  */
 export async function asyncRoundReveal(
   client: Db,

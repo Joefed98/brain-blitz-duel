@@ -19,6 +19,14 @@ export const SW_URL = "/sw.js";
 /** The worker whose install waits for the page's FILL (sw.template.js fillDeferred). */
 export const SW_LATER_URL = "/sw.js?fill=later";
 
+/**
+ * The runbook switch (13 Nov 2026, docs/runbook/service-worker-off.md): true stops the page registering /sw.js, so a
+ * worker that has unregistered itself (the runbook's docs/runbook/unregister-sw.js, deployed as /sw.js) stays gone.
+ * Offline practice, its packs and the app cache then stop; the app works online as before. false (the default): the
+ * worker is registered as it always was.
+ */
+export const STOP_WORKER_REGISTRATION = false;
+
 /** Whether a worker's script address is ours (either form). */
 export function isOfflineWorkerUrl(scriptURL: string | null | undefined): boolean {
   if (!scriptURL) return false;
@@ -127,7 +135,7 @@ async function reloadForStalledHandover(waiting: ServiceWorker): Promise<boolean
  */
 export function installOfflineWorker(fillNow: () => boolean = () => true): () => void {
   const api = workerApi();
-  if (!api || !import.meta.env.PROD) return () => {};
+  if (!api || !import.meta.env.PROD || STOP_WORKER_REGISTRATION) return () => {};
   let stopped = false;
   let reloadWanted = false;
   // A controller change whose worker hasn't told us its build yet (it can be slow to answer while it activates):

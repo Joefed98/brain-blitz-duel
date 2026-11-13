@@ -26,6 +26,7 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { useLiveScore } from "@/components/puzzles/useLiveScore";
 import { liveScoreWanted, publishLiveScore } from "@/lib/rated/liveScore";
+import { arcadeRunTiming } from "@/lib/arcade/runTiming";
 
 /**
  * Checks only (desktop-fairness-check): when a page sets `window.__duelzWorldPoints` to an array, every
@@ -232,6 +233,33 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     const sounds = propsRef.current.sounds?.();
     const tickOf = () => (state.current as { tick: number }).tick;
 
+    // The arcade wall-clock trial (13 Nov 2026, log only; lib/arcade/runTiming.ts): the run's time on this phone's
+    // clock from its first tick to its end, the time hidden in between, sent once as `arcade_run_timed`.
+    let runStartedAt: number | null = null;
+    let hiddenSince: number | null = null;
+    let hiddenMs = 0;
+    let timed = false;
+    const onVisibility = () => {
+      if (runStartedAt === null || timed) return;
+      if (document.visibilityState === "hidden") hiddenSince ??= performance.now();
+      else if (hiddenSince !== null) {
+        hiddenMs += performance.now() - hiddenSince;
+        hiddenSince = null;
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    const sendTiming = () => {
+      if (timed || runStartedAt === null) return;
+      timed = true;
+      const now = performance.now();
+      if (hiddenSince !== null) hiddenMs += now - hiddenSince;
+      const timing = arcadeRunTiming({ wallMs: now - runStartedAt, hiddenMs, runTicks: tickOf() });
+      const game = propsRef.current.diagKey;
+      void import("@/lib/analytics/clientEvents").then(({ trackClientEvent }) =>
+        trackClientEvent("arcade_run_timed", { game, props: { ...timing } }),
+      );
+    };
+
     // An end hold (endHoldMs): the run's answer is fixed when it ends and sent once the hold is over (or at once
     // if the stage goes away first).
     let held: { answer: string; timer: ReturnType<typeof setTimeout> } | null = null;
@@ -245,6 +273,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     const finish = () => {
       if (submitted.current) return;
       submitted.current = true;
+      sendTiming();
       const answer = encode();
       const hold = propsRef.current.endHoldMs?.(state.current) ?? 0;
       if (hold <= 0) {
@@ -262,6 +291,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       const delta = time - last;
       last = time;
       if (!game.isOver(state.current) && !propsRef.current.locked) {
+        if (runStartedAt === null) runStartedAt = time;
         accumulator += delta;
         let ticks = Math.floor(accumulator / TICK_MS);
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
@@ -361,6 +391,9 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     return () => {
       cancelArenaFrame(loop, frame);
       send();
+      // A run cut short (the round's time-out took its draft, or the stage went away) is timed to here.
+      sendTiming();
+      document.removeEventListener("visibilitychange", onVisibility);
       sounds?.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

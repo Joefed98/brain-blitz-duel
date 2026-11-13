@@ -336,6 +336,9 @@ export const SHARDS: Record<string, string[]> = {
     // security-rooms-check (13 Nov 2026, ~40 s): private room channels, server-sent reactions, chat for players still
     // in the room, removals, Finish now (an Arena duel played to its end) and the rated cooldown on a local PostgreSQL.
     "security-rooms-check.ts",
+    // security-trials-check (13 Nov 2026, ~10 s): the report-only content security policy and its /csp-report table,
+    // the arcade wall-clock log, Tally's keyed reference and the runbook worker, beside the other SQL checks.
+    "security-trials-check.ts",
     // economy-check (wave 2 A1, 10 Nov 2026, ~8 s): coins and items (the catalogue against catalogue.json, the coin
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.

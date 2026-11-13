@@ -1,7 +1,6 @@
 /**
- * Security fix L1 (Nov 2026 audit): a database error is logged here in full and the caller gets a plain message,
- * never Postgres' text (column and constraint names, "invalid input syntax for type uuid"), which TanStack serialises
- * to the phone with a thrown error.
+ * A database error is logged here in full and the caller gets one plain message (DB_ERROR_MESSAGE) in its place, so
+ * the phone shows the same friendly line for every database error.
  */
 export const DB_ERROR_MESSAGE = "Something went wrong there. Give it another go.";
 

@@ -2432,6 +2432,20 @@ outside the repo.
   `20261117100100_analytics_rated_cooldown.sql`. The server-fn harness's stub has Realtime's `realtime.messages`,
   `realtime.topic()` and `realtime.send()`. security-rooms-check (~40 s, shard `e`, PostgreSQL). New screens are in
   theme-check and no-wrap-check at every size (`SECURITY_A_SCREENS`, `sizes: ALL_SIZES`).
+- **Trials and tidying, Security B** (13 Nov 2026; no deal, stamp, grading or scoring change): production responses
+  carry `Content-Security-Policy-Report-Only` (`src/lib/security/csp.ts`: the two inline boot scripts by SHA-256, the
+  Supabase project, Google Fonts, Turnstile, Sentry once set; the hydration scripts left for the trial to show) and
+  `Reporting-Endpoints`; `POST /csp-report` (answered in `src/server.ts` before the app, `cspReport.server.ts`) stores
+  only the directive and the blocked host in `public.csp_reports` (30 days, removed by the daily `analytics.purge_old_events()`), 120 a network every 10 minutes; the week's query is
+  in `docs/security/csp-trial.md`. The arcade wall-clock trial is log only: a new room or practice arcade run that
+  arrives past run length × 1.3 + 15 s (`src/lib/round/wallClock.ts`) is recorded as `arcade_run_slow`, never flagged;
+  the arcade stage sends `arcade_run_timed` once a run (wall, hidden and dropped ticks, run ticks; `runTiming.ts`);
+  `bun scripts/arcade-perf.ts` reports sim time against wall time (`simShare`). The Tally link carries
+  `feedbackRefFn`'s HMAC of the id (Worker secret `FEEDBACK_HMAC_KEY`; none set: no reference), never the id. The
+  runbook worker (`docs/runbook/unregister-sw.js`, steps in `service-worker-off.md`) is never built in;
+  `STOP_WORKER_REGISTRATION` in serviceWorker.ts (false) stops the page registering /sw.js. Migrations
+  `20261117200000_csp_reports.sql`, `20261117200100_analytics_arcade_timing.sql`. security-trials-check (~10 s, shard
+  `e`).
 - **Retired games out of the app** (13 Nov 2026, Joe's rule; Retirements session): `RETIRED_TYPES` (catalogue.ts) is the
   one switch, now 21 games (the nine of 13 Nov 2026: Mixed Signals, Gradient, Turntable, Blackout, Bang On, Slice, Ringer,
   Swish, Flightpath). A retired game is never offered, dealt, played or counted: `isPlayable(type)` is asked by Practice (no

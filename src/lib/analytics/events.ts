@@ -157,6 +157,13 @@ export const ANALYTICS_EVENTS = [
   // (src/lib/rated/rated.server.ts joinQueue), a search refused while the wait after set-up leaves runs; props.aborts
   // and props.wait_s.
   "rated_cooldown_applied",
+  // The arcade wall-clock trial (13 Nov 2026, log only; src/lib/round/wallClock.ts,
+  // 20261117200100_analytics_arcade_timing.sql). arcade_run_slow is the server's: a room or practice arcade run that
+  // arrived past run length × 1.3 + 15 s (game, mode, props.run_ms, props.over_ms, in practice props.token_age_s).
+  // arcade_run_timed is the phone's (CLIENT_EVENTS): one a played run (game, props.wall_ms, props.hidden_ms,
+  // props.dropped_ticks, props.run_ticks); never a score.
+  "arcade_run_slow",
+  "arcade_run_timed",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 
@@ -167,6 +174,7 @@ export const CLIENT_EVENTS = [
   "invite_opened",
   "error_shown",
   "offline_game_played",
+  "arcade_run_timed",
 ] as const;
 export type ClientEventName = (typeof CLIENT_EVENTS)[number];
 
