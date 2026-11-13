@@ -25,6 +25,9 @@ pass module.
 | The switch | `src/config/passConfig.ts` (`PASS_FOR_EVERYONE`, false) |
 | Screens | `src/components/pass/` (PassScreen in the Shop tab's Pass part, PassHomeCard on Play, JoulesLine on results, PassLevelNotice), `src/polish-layout/pass.css` |
 | Checks | `scripts/pass-check.ts` (shard `e`, ~25 s, PostgreSQL), `scripts/pass-screens-check.tsx` (happy-dom, ~3 s) |
+| The Joules rework (13 Nov 2026): `pass_joules.kind` gains `star`; `pass_activity`'s friend challenge creator rule | `supabase/migrations/20261116500000_joules_rework.sql` |
+| The pacing table (a tool): three profiles, day by day, before and after the rework | `scripts/joules-pacing.ts` |
+| The Pass screen in theme-check and no-wrap-check, at every size | `scripts/pass-fixture.ts`, `PASS_SCREENS` in `scripts/theme-screens.ts` |
 
 ## Who sees it
 
@@ -86,16 +89,23 @@ claim, the results line): `public.pass_activity` reads this account's stored pla
 `public.pass_credit_joules` credits each source event once (unique per season, start, account and source key), paying
 in the order the play happened, under a lock on the account, so two reads never pay twice or past a limit.
 
+The Joules rework (Joe, 13 Nov 2026; migration `20261116500000_joules_rework.sql`, amounts in `joules.ts`): rooms and
+Practice games no longer pay; stars do; the Dailies and the weekly challenges pay more. `pass_activity` still reads room
+rounds, room finishes and Practice runs (the weekly challenges count them), but `joulesRowsFor` sends no row for them, so
+nothing is written; rows credited before stay as they are. **Retired games count towards nothing** (Joe, 13 Nov 2026):
+`countableActivity` drops every stored event of a game in the catalogue's `RETIRED_TYPES` before anything is paid or
+counted, so a retired game's star or Practice challenge pays nothing and its plays count towards no weekly challenge; a
+game brought back pays again (nothing was written for it).
+
 | Source (stored) | Joules | Limit (per UK day) | Key |
 | --- | --- | --- | --- |
-| The Daily Puzzle finished | 150 | once a day (one Daily a day) | `daily_puzzle:<day>` |
-| The Daily Arcade finished | 150 | once a day | `daily_arcade:<day>` |
-| A room round played (live, or archived by Play again) | 20 | none | `room_round:<result id>` |
-| A room finished (the last round's result stored) | 50 | none | `room_finish:<room>:<game index>` |
-| A friend challenge finished (attempts copied in from a room left out) | 100 | the first 5 | `challenge:<attempt id>` |
-| A Practice run counted by C1a (graded, after its fresh start; no examples) | 20 | up to 200 | `practice:<play id>` |
-| A Practice challenge's first completion (C1b) | 100 | once per challenge | `practice_challenge:<id>` |
-| A weekly challenge completed | 500 / 750 / 1,250 | three a week | `weekly:<week>:<tier>:<id>` |
+| The Daily Puzzle finished | 200 | once a day (one Daily a day) | `daily_puzzle:<day>` |
+| The Daily Arcade finished | 200 | once a day | `daily_arcade:<day>` |
+| A friend challenge finished (attempts copied in from a room left out); a creator's own attempt only once another player has finished it (no flagged run), counted at that finish | 100 | the first 5 | `challenge:<attempt id>` |
+| A mastery star (C1a's `practice_progress.star_at`), Classic | 150 | once per star (Easy 50 and Hard 250 provisional, to confirm in phase 3: not credited until then) | `star:<game>:<level>` |
+| A Practice challenge's first completion (C1b), any level | 100 | once per challenge | `practice_challenge:<id>` |
+| A weekly challenge completed | 750 / 1,000 / 1,500 | three a week | `weekly:<week>:<tier>:<id>` |
+| A room round, a room finish, a Practice run | nothing since 13 Nov 2026 (20, 50, and 20 up to 200 a day before) | – | – |
 
 - **Soft cap**: after 4,000 Joules from play in a UK day, further play earns half (rounded down; an event straddling
   4,000 pays the part below in full). Weekly rewards are paid whole and don't count towards the day.
@@ -103,12 +113,15 @@ in the order the play happened, under a lock on the account, so two reads never 
   midnight in London, summer time included), never the day it is credited: `pass_joules.uk_day` comes from the source
   event's time, and the limits and cap sum that day's lines. Play late on Wednesday and open the pass on Thursday, and
   the Joules count on Wednesday (pass-check, "UK day of play"). Nobody is ever stopped from playing.
-- **Hooks for later** (named, nothing calls them yet): `creditRatedMatchJoules` (wave 3: 150 a win, 100 a loss, 1.5×
-  for the longer formats) and `creditTournamentJoules` (wave 4: an Arena duel 100, finishing an event 150), in
-  `pass.server.ts`, amounts in `joules.ts`.
+- **Rated play and tournaments**: `creditRatedMatchJoules` (150 a win, 100 a loss, 1.5× for the longer formats),
+  called by W3a's `finishRatedMatch` (`src/lib/rated/rewards.server.ts`) under its stored `ratedJoulesKey`, and
+  `creditTournamentJoules` (an Arena duel 100, finishing an event 150), called by W4b and W4c
+  (`src/lib/tournaments/tournaments.server.ts`, `platform.server.ts`); both in `pass.server.ts`, amounts in `joules.ts`.
 - 1,000 Joules a level, 60 levels.
-- **Results**: a small line in electric lime (`--jz-joules`) with the bolt mark, "+170 Joules", under the room's final
-  screen (podium and two-player), Practice's reveal and the Daily / challenge results, for what that game earned
+- **Results**: a small line in electric lime (`--jz-joules`) with the bolt mark, "+200 Joules", under the room's final
+  screen (podium and two-player), Practice's reveal and the Daily / challenge results, for what that game earned (drawn
+  only above 0: since the rework a room shows it only when something else in it paid, and Practice's reveal when the run
+  earned a star or completed a challenge)
   (`passJoulesSinceFn`: Joules from the game's first stored result, or, for Practice and the Daily, from just before
   the screen opened). Never next to a rating; nothing at all where the pass is off.
 
@@ -153,7 +166,8 @@ in the order the play happened, under a lock on the account, so two reads never 
 
 ## Weekly challenges (`weekly.ts`)
 
-- Three every Monday at midnight UK, the same for everyone: Easy 500, Medium 750, Hard 1,250 Joules; they expire the
+- Three every Monday at midnight UK, the same for everyone: Easy 750, Medium 1,000, Hard 1,500 Joules (500 / 750 /
+  1,250 until the Joules rework of 13 Nov 2026); they expire the
   next Monday. Drawn from the economy doc's pool of 45, leaving out those needing tournaments (Score Attack, Arena:
   wave 4) and, while rated play is off for everyone, every R challenge (wave 3 W3a, 11 Nov 2026, Joe's approval:
   `drawable` reads `RATED_PLAY_FOR_EVERYONE` through `ratedChallengesDrawable()`; `drawableWith(c, ratedOn)` for the
