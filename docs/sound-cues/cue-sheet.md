@@ -98,12 +98,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `equation.drop` | an operator drops into a slot [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `equation.drop` |
 | `equation.advance` | the next stage slides in [number.md] |  | 1–5 | silent | none | 240 | game event | `equation.advance` |
 
-### Tenfall
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tendrop.refused` | a ÷ or − tile is refused [number.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `tendrop.refused` |
-
 ### Pull!
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -111,6 +105,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `clayshoot.goldSparkle` | Pull!: 380 ms into the final burst: the fragments turn into gold sparkle across the sky [speed-attention.md] |  | 0–1 | silent | none | 700 | success sting | `clayshoot.goldSparkle` |
 | `clayshoot.shatter` | Pull!: An orange clay is hit (new shard shatter) [speed-attention.md] |  | 5–40 (per move) | silent | none | 433 | game event | `clayshoot.shatter` |
 | `clayshoot.goldShatter` | Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md] |  | 5–40 (per move) | silent | none | 433 | game event | `clayshoot.goldShatter` |
+
+### Tenfall
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `tendrop.refused` | a ÷ or − tile is refused [number.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `tendrop.refused` |
 
 ### Bomb Defusal
 
@@ -335,22 +335,22 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Integer Pyramid | number | yes | music_number_2 (shared) | `music_number_numpyramid` |
 | Kakuro | number | yes | music_number_2 (shared) | `music_number_kakuro` |
 | Operator | number | yes | music_number_1 (shared) | `music_number_equation` |
-| Tenfall | number | yes | music_number_3 (shared) | `music_number_tendrop` |
 | Ascend | speed | yes | music_speed_2 (shared) | `music_speed_numhunt` |
-| Bang On | speed | yes | music_speed_1 (shared) | `music_speed_stopwatch` |
+| Bang On | speed | practice only | music_speed_1 (shared) | `music_speed_stopwatch` |
 | Bonk | speed | yes | music_speed_3 (shared) | `music_speed_whack` |
 | Don’t Break the Chain | speed | yes | music_speed_2 (shared) | `music_speed_chain` |
 | Flash | speed | yes | music_speed_1 (shared) | `music_speed_reaction` |
 | Pull! | speed | yes | music_speed_3 (shared) | `music_speed_clayshoot` |
+| Tenfall | speed | yes | music_number_3 (shared) | `music_speed_tendrop` |
 | Bomb Defusal | attention | yes | music_logic_3 (shared) | `music_attention_bomb` |
 | Double Take | attention | yes | music_attention_1 (shared) | `music_attention_spotdiff` |
 | Eagle Eye | attention | yes | music_attention_2 (shared) | `music_attention_symscan` |
 | Labyrinth | attention | yes | music_attention_3 (shared) | `music_attention_maze` |
 | Matchmaker | attention | yes | music_attention_2 (shared) | `music_attention_pairmatch` |
-| Mixed Signals | attention | yes | music_attention_3 (shared) | `music_attention_stroop` |
+| Mixed Signals | attention | practice only | music_attention_3 (shared) | `music_attention_stroop` |
 | Tally | attention | yes | music_attention_1 (shared) | `music_attention_countup` |
 | Chroma Lines | pattern | yes | music_logic_2 (shared) | `music_pattern_flow` |
-| Gradient | pattern | yes | music_pattern_1 (shared) | `music_pattern_tiles` |
+| Gradient | pattern | practice only | music_pattern_1 (shared) | `music_pattern_tiles` |
 | Gridlock | pattern | yes | music_pattern_2 (shared) | `music_pattern_unblock` |
 | Heave | pattern | yes | music_logic_3 (shared) | `music_pattern_push` |
 | Lightbender | pattern | yes | music_pattern_3 (shared) | `music_pattern_laser` |
@@ -358,8 +358,8 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Skid | pattern | yes | music_pattern_2 (shared) | `music_pattern_iceslide` |
 | Tessellate | pattern | yes | music_pattern_1 (shared) | `music_pattern_blockparty` |
 | Topsy-Turvy | pattern | yes | music_pattern_3 (shared) | `music_pattern_gravity` |
-| Turntable | pattern | yes | music_pattern_1 (shared) | `music_pattern_rings` |
-| Blackout | logic | yes | music_logic_2 (shared) | `music_logic_lightsout` |
+| Turntable | pattern | practice only | music_pattern_1 (shared) | `music_pattern_rings` |
+| Blackout | logic | practice only | music_logic_2 (shared) | `music_logic_lightsout` |
 | Box Six | logic | yes | music_logic_1 (shared) | `music_logic_sudoku` |
 | Colour Flood | logic | yes | music_logic_2 (shared) | `music_logic_flood` |
 | Dig | logic | practice only | music_logic_1 (shared) | `music_logic_dig` |
@@ -367,6 +367,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Island Link | logic | yes | music_logic_3 (shared) | `music_logic_bridges` |
 | Lamplighter | logic | yes | music_logic_1 (shared) | `music_logic_lightup` |
 | Loopline | logic | yes | music_logic_2 (shared) | `music_logic_fences` |
+| Minefield | logic | yes | music_minesweeper (shared) | `music_logic_minesweeper` |
 | Mosaic | logic | yes | music_logic_1 (shared) | `music_logic_nonogram` |
 | Polypotions | logic | yes | music_logic_3 (shared) | `music_logic_tubes` |
 | Regions | logic | yes | music_logic_1 (shared) | `music_logic_fillomino` |
@@ -385,7 +386,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Dual | arcade | practice only | **none** | `music_dual` |
 | Fission | arcade | yes | music_burst | `music_burst` |
 | Five Hands | arcade | yes | music_fivehands | `music_fivehands` |
-| Flightpath | arcade | yes | music_bullseye | `music_bullseye` |
+| Flightpath | arcade | practice only | music_bullseye | `music_bullseye` |
 | Free Cell | arcade | yes | music_freecell | `music_freecell` |
 | Full House | arcade | practice only | music_pokersquares | `music_pokersquares` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
@@ -399,23 +400,22 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Junction | arcade | practice only | music_junction | `music_junction` |
 | Mahjong Solitaire | arcade | yes | music_mahjong | `music_mahjong` |
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
-| Minefield | arcade | yes | music_minesweeper | `music_minesweeper` |
 | Moon Climb | arcade | yes | music_ricochet | `music_ricochet` |
 | Muggins | arcade | practice only | music_muggins | `music_muggins` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
-| Ringer | arcade | yes | music_alleyroll | `music_alleyroll` |
+| Ringer | arcade | practice only | music_alleyroll | `music_alleyroll` |
 | Roofbound | arcade | yes | music_flip | `music_flip` |
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
-| Slice | arcade | yes | music_slice | `music_slice` |
+| Slice | arcade | practice only | music_slice | `music_slice` |
 | Spacewalk | arcade | yes | music_cross | `music_cross` |
 | Steady | arcade | practice only | **none** | `music_steady` |
 | Summit | arcade | yes | music_tripeaks | `music_tripeaks` |
 | Swerve | arcade | practice only | **none** | `music_swerve` |
-| Swish | arcade | yes | music_bintoss | `music_bintoss` |
+| Swish | arcade | practice only | music_bintoss | `music_bintoss` |
 | Tempo | arcade | yes | music_beat | `music_beat` |
 | Thirteen | arcade | yes | music_pyramid | `music_pyramid` |
 | Tilt | arcade | yes | music_tilt | `music_tilt` |
@@ -875,17 +875,6 @@ Grouped by game or screen.
 | `equation.solve` | all four right: equations tick green in turn [number.md] |  | 0–1 | recorded sound | `equation.solve` | 1200 | success sting | `equation.solve` |
 | `music.equation` | Operator round bed: music_number_1 (number bed shared with other games) |  | loop | recorded sound | `music_number_1` (shared) | 60000 | music | `music_number_equation` |
 
-### Tenfall
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tendrop.nextTarget` | The next target starts [arcade-effects.md] | The old lane's tiles fade out | 5–8 | recorded sound | `tendrop.nextTarget` | 300 | game event | `tendrop.nextTarget` |
-| `tendrop.apply` | a tap applies a tile without hitting the target [number.md] |  | 5–40 (per move) | recorded sound | `place` (shared) | 200 | game event | `tendrop.apply` |
-| `tendrop.clear` | a target is cleared [number.md] |  | 5–40 (per move) | recorded sound | `tendrop.clear` | 360 | game event | `tendrop.clear` |
-| `tendrop.reset` | the total overshoots and resets [number.md] |  | 5–40 (per move) | recorded sound | `tendrop.reset` | 360 | fail sting | `tendrop.reset` |
-| `tendrop.solve` | all ten targets cleared: last target bursts, remaining tiles shimmer [number.md] |  | 0–1 | recorded sound | `tendrop.solve` | 1200 | success sting | `tendrop.solve` |
-| `music.tendrop` | Tenfall round bed: music_number_3 (number bed shared with other games) |  | loop | recorded sound | `music_number_3` (shared) | 60000 | music | `music_number_tendrop` |
-
 ### Ascend
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -898,7 +887,7 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `stopwatch.goldFaces` | Bang On: End of run ("All ten done"), local scoreStopWatch ≥ 120: the watch faces flash gold in turn [speed-attention.md] |  | 0–1 | recorded sound | `stopwatch.goldFaces` | 1100 | success sting | `stopwatch.goldFaces` |
-| `music.stopwatch` | Bang On round bed: music_speed_1 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_1` (shared) | 60000 | music | `music_speed_stopwatch` |
+| `music.stopwatch` | Bang On round bed (retired, practice): music_speed_1 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_1` (shared) | 60000 | music | `music_speed_stopwatch` |
 
 ### Bonk
 
@@ -946,6 +935,17 @@ Grouped by game or screen.
 | `clayshoot.finalBurst` | Pull!: End of run, local clay score ≥ 120: final burst of clay fragments [speed-attention.md] |  | 0–1 | recorded sound | `clayshoot.finalBurst` | 1100 | success sting | `clayshoot.finalBurst` |
 | `clayshoot.birdStartle` | Pull!: A bird is shot (feathers drift) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `clayshoot.birdStartle` | 600 | game event | `clayshoot.birdStartle` |
 | `music.clayshoot` | Pull! round bed: music_speed_3 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_3` (shared) | 60000 | music | `music_speed_clayshoot` |
+
+### Tenfall
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `tendrop.nextTarget` | The next target starts [arcade-effects.md] | The old lane's tiles fade out | 5–8 | recorded sound | `tendrop.nextTarget` | 300 | game event | `tendrop.nextTarget` |
+| `tendrop.apply` | a tap applies a tile without hitting the target [number.md] |  | 5–40 (per move) | recorded sound | `place` (shared) | 200 | game event | `tendrop.apply` |
+| `tendrop.clear` | a target is cleared [number.md] |  | 5–40 (per move) | recorded sound | `tendrop.clear` | 360 | game event | `tendrop.clear` |
+| `tendrop.reset` | the total overshoots and resets [number.md] |  | 5–40 (per move) | recorded sound | `tendrop.reset` | 360 | fail sting | `tendrop.reset` |
+| `tendrop.solve` | all ten targets cleared: last target bursts, remaining tiles shimmer [number.md] |  | 0–1 | recorded sound | `tendrop.solve` | 1200 | success sting | `tendrop.solve` |
+| `music.tendrop` | Tenfall round bed: music_number_3 (speed bed shared with other games) |  | loop | recorded sound | `music_number_3` (shared) | 60000 | music | `music_speed_tendrop` |
 
 ### Bomb Defusal
 
@@ -1000,7 +1000,7 @@ Grouped by game or screen.
 | `stroop.right` | Mixed Signals: A word lands in the right gate [arcade.md] |  | 15–40 | recorded sound | `pz_clash_right` (shared) | 301 | game event | `stroop.right` |
 | `stroop.wrong` | Mixed Signals: A word lands in a wrong gate [arcade.md] |  | 0–10 | recorded sound | `pz_clash_wrong` (shared) | 250 | fail sting | `stroop.wrong` |
 | `stroop.gatesFlash` | Mixed Signals: Run finished (stage submit): every gate flashes in its own colour [speed-attention.md] |  | 0–1 | recorded sound | `stroop.gatesFlash` | 1100 | success sting | `stroop.gatesFlash` |
-| `music.stroop` | Mixed Signals round bed: music_attention_3 (attention bed shared with other games) |  | loop | recorded sound | `music_attention_3` (shared) | 60000 | music | `music_attention_stroop` |
+| `music.stroop` | Mixed Signals round bed (retired, practice): music_attention_3 (attention bed shared with other games) |  | loop | recorded sound | `music_attention_3` (shared) | 60000 | music | `music_attention_stroop` |
 
 ### Tally
 
@@ -1024,7 +1024,7 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tiles.solve` | The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Gradient (tiles))] |  | 0–1 | recorded sound | `tiles.solve` | 980 | success sting | `tiles.solve` |
-| `music.tiles` | Gradient round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_tiles` |
+| `music.tiles` | Gradient round bed (retired, practice): music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_tiles` |
 
 ### Gridlock
 
@@ -1094,14 +1094,14 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `rings.solve` | The record spins up through two turns with the spokes strobing [pattern.md (Turntable (rings))] |  | 0–1 | recorded sound | `rings.solve` | 1100 | success sting | `rings.solve` |
-| `music.rings` | Turntable round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_rings` |
+| `music.rings` | Turntable round bed (retired, practice): music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_rings` |
 
 ### Blackout
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `lightsout.solve` | Every light is off [logic.md] |  | 0–1 | recorded sound | `lightsout.solve` | 1000 | success sting | `lightsout.solve` |
-| `music.lightsout` | Blackout round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_lightsout` |
+| `music.lightsout` | Blackout round bed (retired, practice): music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_lightsout` |
 
 ### Box Six
 
@@ -1156,6 +1156,18 @@ Grouped by game or screen.
 | `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
 | `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
 | `music.fences` | Loopline round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
+
+### Minefield
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `minesweeper.reveal` | Minefield: A tap opens a square (or a few) [arcade.md] |  | 20–80 | recorded sound | `minesweeper.reveal` | 80 | game event | `minesweeper.reveal` |
+| `minesweeper.cascade` | Minefield: A tap opens six or more squares (an area opens) [arcade.md] |  | 2–10 | recorded sound | `minesweeper.cascade` | 604 | game event | `minesweeper.cascade` |
+| `minesweeper.flag` | Minefield: A flag is placed [arcade.md] |  | 5–25 | recorded sound | `minesweeper.flag` | 300 | game event | `minesweeper.flag` |
+| `minesweeper.hit` | Minefield: A mine is hit (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `minesweeper.hit` | 474 | game event | `minesweeper.hit` |
+| `minesweeper.clear` | Minefield: Every safe square open (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `minesweeper.clear` | 998 | game event | `minesweeper.clear` |
+| `minesweeper.unflag` | Minefield: A flag is lifted [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minesweeper.unflag` | 350 | game event | `minesweeper.unflag` |
+| `music.minesweeper` | Minefield round bed: music_minesweeper (logic bed shared with other games) |  | loop | recorded sound | `music_minesweeper` (shared) | 60000 | music | `music_logic_minesweeper` |
 
 ### Mosaic
 
@@ -1603,18 +1615,6 @@ Grouped by game or screen.
 | `snake.rockWarn` | Meteor: A rock's shadow appears [arcade.md] |  | 5–20 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `snake.rockWarn` |
 | `snake.showerAlarm` | Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md] |  | 1–3 | recorded sound | `arc_retro_note` (shared) | 180 | game event | `snake.showerAlarm` |
 | `music.snake` | Meteor: music_eatgrow |  | loop | recorded sound | `music_eatgrow` | loop | music | `music_eatgrow` |
-
-### Minefield
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `minesweeper.reveal` | Minefield: A tap opens a square (or a few) [arcade.md] |  | 20–80 | recorded sound | `minesweeper.reveal` | 80 | game event | `minesweeper.reveal` |
-| `minesweeper.cascade` | Minefield: A tap opens six or more squares (an area opens) [arcade.md] |  | 2–10 | recorded sound | `minesweeper.cascade` | 604 | game event | `minesweeper.cascade` |
-| `minesweeper.flag` | Minefield: A flag is placed [arcade.md] |  | 5–25 | recorded sound | `minesweeper.flag` | 300 | game event | `minesweeper.flag` |
-| `minesweeper.hit` | Minefield: A mine is hit (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `minesweeper.hit` | 474 | game event | `minesweeper.hit` |
-| `minesweeper.clear` | Minefield: Every safe square open (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `minesweeper.clear` | 998 | game event | `minesweeper.clear` |
-| `minesweeper.unflag` | Minefield: A flag is lifted [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minesweeper.unflag` | 350 | game event | `minesweeper.unflag` |
-| `music.minesweeper` | Minefield: music_minesweeper |  | loop | recorded sound | `music_minesweeper` | 55900 | music | `music_minesweeper` |
 
 ### Moon Climb
 
