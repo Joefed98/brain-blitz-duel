@@ -691,7 +691,8 @@ export const THEME_SCREENS: ThemeScreen[] = [
     // guest now picks their colour, the lobby (a 2-player room; the 16-player wheel is drawn above).
     name: "lobby, colour wheel",
     mode: "room",
-    room: room("waiting", "starting"),
+    // Stored colours (a database with the colour/icon columns): the lobby's picker shows only then.
+    room: room("waiting", "starting", { colours: (slot) => (slot - 1) * 5 }),
     go: async (page) => {
       await page.locator("[data-look-toggle]").click();
       await page.locator("[data-colour-wheel]").waitFor({ timeout: 10_000 });

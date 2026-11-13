@@ -36,7 +36,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, room } from "./theme-screens";
+import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, room } from "./theme-screens";
 import { APP_PAGE_FAMILY, THEME_FAMILIES, THEME_FONTS } from "../src/lib/theme";
 
 const args = process.argv.slice(2);
@@ -414,7 +414,9 @@ let measured = 0;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 try {
   // One identity everywhere (13 Nov 2026): a screen may ask for more sizes (extraViewports), each judged the same way.
-  for (const [screen, viewport] of SCREENS.flatMap((s) => [VIEWPORT, ...(s.extraViewports ?? [])].map((v) => [s, v] as const))) {
+  // --part=k/n (13 Nov 2026): every n-th draw from the k-th, as no-wrap-check splits its draws; together the parts judge
+  // exactly what one whole run does (the intro colours run in part 1).
+  for (const [screen, viewport] of partOf(SCREENS.flatMap((s) => [VIEWPORT, ...(s.extraViewports ?? [])].map((v) => [s, v] as const)), args)) {
     const where = `${screen.name} (${viewport.name})`;
     const problems: string[] = [];
     try {
@@ -495,7 +497,8 @@ try {
     );
     if (VERBOSE) for (const p of problems.slice(1)) console.log(`    ${p}`);
   }
-  if (!ONLY.length || ONLY.some((o) => "intro colours".includes(o))) await introColours();
+  const firstPart = !args.some((a) => a.startsWith("--part=")) || args.includes("--part=1/" + (args.find((a) => a.startsWith("--part="))?.split("/")[1] ?? ""));
+  if (firstPart && (!ONLY.length || ONLY.some((o) => "intro colours".includes(o)))) await introColours();
 } finally {
   await browser.close();
   await server.close();
