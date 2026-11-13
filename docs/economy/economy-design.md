@@ -12,7 +12,7 @@ The economy is fully designed, which finishes wave 2's design. Agreed with Joe o
 - **52 items at launch,** four a day in the daily shop, plus a themed bundle every Monday. Wishlist hearts instead of countdowns.
 - **Joules fill the pass:** 1,000 per level, 60 levels, with a soft cap of 4,000 a day.
 - **Season 1 "Neon Circuit" pass:** a free track of 30 rewards ending in two Legendaries, and a premium track of 60 rewards (£4.99 or Joulz Plus). 40 items, all exclusive forever.
-- **Three weekly challenges** every Monday: 500, 750 and 1,250 Joules.
+- **Three weekly challenges** every Monday: 750, 1,000 and 1,500 Joules (500, 750 and 1,250 until the Joules rework of 13 Nov 2026).
 
 **Changes from the master plan**
 
@@ -104,31 +104,37 @@ The shop opens with 52 items (the 51 below plus the Frost card art from the Froz
 
 ## Joules and pacing
 
-Every level takes a flat 1,000 Joules, so the 60-level pass needs 60,000. Every kind of play earns Joules, win or lose.
+Every level takes a flat 1,000 Joules, so the 60-level pass needs 60,000. Joules come from the Dailies, rated matches, tournaments, the weekly challenges, and stars and challenges in Practice, win or lose.
+
+**The Joules rework (Joe, 13 Nov 2026).** Practice games (20 each, up to 200 a day) and rooms (20 a round, 50 for finishing) no longer pay Joules. Mastery stars pay once each, the Dailies went from 150 to 200 each and the weekly challenges from 500 / 750 / 1,250 to 750 / 1,000 / 1,500, so a player keeps about the same pace through the season (table below). Joules already credited are never changed. Retired games count towards nothing: their stars and Practice challenges pay no Joules and their plays count towards no weekly challenge (the catalogue's retired list, so a game brought back pays again).
 
 | Activity | Joules | Limit |
 | --- | --- | --- |
 | Rated match, best of 3 | 150 for a win, 100 for a loss | None |
 | Rated match, best of 5 or 7, or 4 or 8 players | 1.5 times the above | None |
-| Daily Puzzle | 150 | Once a day |
-| Daily Arcade | 150 | Once a day |
-| Room | 20 per round played, plus 50 for finishing | None |
-| Friend challenge | 100 | First 5 a day |
+| Daily Puzzle | 200 | Once a day |
+| Daily Arcade | 200 | Once a day |
+| Friend challenge | 100 | First 5 a day. A challenge's creator is paid for their own attempt only once another player has finished it |
 | Tournament: an Arena duel | 100 | None |
 | Tournament: finishing a Score Attack, Swiss or Knockout | 150 | Per event |
-| Practice game | 20 | Up to 200 a day |
-| Practice challenge, first completion | 100 | Once per challenge |
-| Weekly challenges | 500, 750, 1,250 | Three a week (see below) |
+| Mastery star (Classic) | 150 | Once per star, ever. Easy 50 and Hard 250 are provisional, to confirm in phase 3: until then those stars pay nothing |
+| Practice challenge, first completion | 100 | Once per challenge, on every level |
+| Weekly challenges | 750, 1,000, 1,500 | Three a week (see below) |
+| Room, Practice game | Nothing (20 a round plus 50 for finishing, and 20 a game up to 200 a day, until 13 Nov 2026) | – |
+
+Stars and challenges earned before a season starts never pay (Joules count from the season's start for everyone). Nothing pays for a run the server flagged or for a Daily archive replay.
 
 **Soft cap:** after 4,000 Joules in a day, further play earns half. Nobody is ever stopped from playing.
 
-**Expected pace over the 8-week season**
+**Expected pace over the 8-week season** (the Joules rework, 13 Nov 2026; `bun scripts/joules-pacing.ts` plays each profile day by day on the pass's own arithmetic)
 
-| Player | Typical play | Where they get to |
-| --- | --- | --- |
-| Regular | Most days: both Dailies and about five rated matches (about 1,200 a day), plus weekly challenges | Finishes in about week 5–6 |
-| Casual | About three days a week | Level 35–40 |
-| Heavy | A couple of hours a day, hitting the soft cap | Finishes in about week 3–4 |
+| Player | Typical play | Season 1, before → now | Season 2 | Season 3 |
+| --- | --- | --- | --- | --- |
+| Light | 3 days a week: both Dailies, 5 Practice games a day, a room and 2 rated matches a week, the Easy weekly 6 weeks in 8; 12 challenges and 6 stars a season | Level 17 → 18 | 17 → 17 | 16 → 17 |
+| Regular | 5 days a week: both Dailies, 10 Practice games, 3 rated matches a day, 2 rooms and 2 friend challenges a week, Easy and Medium weekly every week and Hard 3 weeks; 40 challenges and 20 stars | 58 → 59 | 56 → 56 | 55 → 54 |
+| Keen | Every day: both Dailies, 10 Practice games, 8 rated matches, 4 rooms, 5 friend challenges, 4 Arena duels and 2 Score Attacks a week, every weekly; 100 challenges and 50 stars | 60 in week 4 → week 4 | week 4 → week 4 | week 4 → week 5 |
+
+Season 2 and 3 are a returning player with fewer stars and challenges left (Regular 10 and 25, then 6 and 15). Phase 3's Easy and Hard stars and Hard and Expert challenges refill that pot; Easy 50 and Hard 250 are set so a returning player's one-off Joules stay about Season 1's.
 
 Joules stay secondary: a small line on results in electric lime (#C6FF3D) with the bolt mark, never shown alongside ratings.
 
@@ -242,7 +248,7 @@ The premium track gives a reward at every level, 60 in all, for £4.99 or with J
 
 ## Weekly challenges
 
-Every Monday three challenges appear for everyone, one at each level, worth 2,500 Joules a week in total. They expire the next Monday, with no carry-over.
+Every Monday three challenges appear for everyone, one at each level, worth 3,250 Joules a week in total (2,500 until 13 Nov 2026). They expire the next Monday, with no carry-over.
 
 **Rules for each week's set**
 
@@ -252,7 +258,7 @@ Every Monday three challenges appear for everyone, one at each level, worth 2,50
 - The set spreads across categories, nudging players into games they haven't tried.
 - Season 1 uses 8 weeks from this pool of 45; the rest are spares for tuning.
 
-**Easy, 500 Joules**
+**Easy, 750 Joules**
 
 1. Play the Daily Puzzle on 3 different days
 2. Play the Daily Arcade on 3 different days
@@ -270,7 +276,7 @@ Every Monday three challenges appear for everyone, one at each level, worth 2,50
 14. Play 3 Retro games
 15. Play 3 Attention games
 
-**Medium, 750 Joules**
+**Medium, 1,000 Joules**
 
 1. Win 3 Sports games in rated matches (R)
 2. Earn a star in any game
@@ -288,7 +294,7 @@ Every Monday three challenges appear for everyone, one at each level, worth 2,50
 14. Finish a Score Attack tournament
 15. Score 150+ in 3 Pattern games
 
-**Hard, 1,250 Joules**
+**Hard, 1,500 Joules**
 
 1. Score 180+ in 3 different Logic games
 2. Earn stars in 2 different games
