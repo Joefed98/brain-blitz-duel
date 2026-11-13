@@ -104,7 +104,7 @@ export function RoomPlayerName({
   const cls = `room-player${className ? ` ${className}` : ""}`;
   if (ctx && nameplateOpens(player))
     return (
-      <span className={cls} data-room-player={slot}>
+      <span className={cls} data-room-plate={slot}>
         <button type="button" className="room-player-open press" data-open-card aria-label={`${name}. Open card`} onClick={() => ctx.open(player)}>
           {strip}
         </button>
@@ -112,7 +112,7 @@ export function RoomPlayerName({
       </span>
     );
   return (
-    <span className={cls} data-room-player={slot}>
+    <span className={cls} data-room-plate={slot}>
       {strip}
       {after}
     </span>

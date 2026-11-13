@@ -539,7 +539,8 @@ button.cz-gem {
   font: inherit;
   text-align: left;
 }
-.room-row {
+/* A pinned row (rooms of 11+) keeps its sticky position, which also holds the overlay. */
+.room-row:not([data-pinned]) {
   position: relative;
 }
 .room-row .room-player-open::after {

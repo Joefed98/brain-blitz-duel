@@ -378,7 +378,9 @@ if (BROWSER) {
   const { chromium } = await import("playwright");
   const browser = await chromium.launch(CHROMIUM ? { executablePath: CHROMIUM } : {});
   const viewports = VIEWPORTS.filter((v) => !v.desktop);
-  const screens = [...ROOM_16_SCREENS(), THEME_SCREENS.find((s) => s.name === "profile, colour wheel")!];
+  // Changed with Joe's approval, 13 Nov 2026: Profile's "Your look" (and its colour wheel) is retired; the wheel is drawn
+  // only in the lobby now, which ROOM_16_SCREENS' "lobby, 16 players, colour wheel" already covers.
+  const screens = [...ROOM_16_SCREENS()];
   let drawn = 0;
 
   /** Page-wide: nothing wider than the screen, and every badge carries an initial (or icon) matching a name. */
