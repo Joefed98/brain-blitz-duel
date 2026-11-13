@@ -354,7 +354,7 @@ function viteRssMb(proc: ChildProcess | null): number | null {
   return best;
 }
 
-/** Stops the server's whole process group and waits until its port answers no more. */
+/** Changed with Joe's approval, 13 Nov 2026 (the restart above): stops the server's whole process group and waits until its port answers no more. */
 async function stopServer(proc: ChildProcess | null, origin: string): Promise<void> {
   if (!proc?.pid) return;
   try { process.kill(-proc.pid, "SIGTERM"); } catch { /* already gone */ }

@@ -14,8 +14,9 @@
  *     and the standard grader's extra for puzzles): a part's best in one run, a finish's bonus and speed, a single run's
  *     score (Tempo: 180 or more); partial runs, older (non-standard) puzzles and other games' runs never count; done stays done.
  *  5. Storage survives a reload (the record is read back from storage alone); corrupt or blocked storage falls back
- *     safely; the record is one key, never a practice best's; (13 Nov 2026) a record stored with device stars keeps
- *     its challenges exactly when the stars are dropped.
+ *     safely; the record is one key, never a practice best's; (Changed with Joe's approval, 13 Nov 2026: the proof that
+ *     clearing the stored stars never disturbs the challenge record) a record stored with device stars keeps its
+ *     challenges exactly when the stars are dropped.
  *  6. Wiring: practice and the offline queue record every graded run's goals from the server's score and extra; the
  *     list, rows and intro show stars; the new-best moment carries the star line; nothing in rooms or the server
  *     imports the goals but the server's challenge checker and the Profile challenges section (Joe, 11 Nov 2026).
