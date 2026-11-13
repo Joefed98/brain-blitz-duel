@@ -104,6 +104,18 @@ answer nothing (`bigEventFn` goes through W4b's `eventFor`; `hallOfFameFn` reads
 - **Ratings**: never changed. A tournament room is never a rated match; nothing here calls the ratings.
 - **Rooms**: W4b's `isTournamentRoom` counts W4c's match rooms, so Play again is refused there ("Your next match opens when the round does.", `BIG_EVENT_PLAY_AGAIN_LINE`) and chat follows wave 1's
   stranger rules (guests and under-18s pick quick phrases).
+- **Players' strips** (Joe, 11 Nov 2026: a player's card, avatar and frame show wherever they appear): every
+  standings, bracket, your-match and hall-of-fame row draws the player as W4a's shared `NameplateStrip`
+  (`@/design/identity`, `docs/nameplate.md`: card art band, frame, avatar, name colour, tier emblem and badges, in the
+  name area only); places, records, points, ticks and games won sit outside it. A tap on an account's strip opens their
+  full card in `NameplateSheet`; guests (colour and initial) and hidden players open nothing. The plates come with the
+  page's one call (`bigEventFn`, `hallOfFameFn`), built on the server by W4b's `platesFor`
+  (`src/lib/identity/plates.server.ts`, on the shared `nameplatesFor`). Under-18s (Joe, 12 Nov 2026) are "Hidden
+  player" on a plain neutral disc, with no initial, colour or cosmetics, and nothing of the account is sent, on every
+  list other players can see: the Cup's standings, the Championship's bracket and the hall of fame. They are shown only
+  to their direct opponent in their own match (the your-match row, whose plate is read as that player sees their own,
+  and the match room, as in ordinary rooms) and to themselves. A failed profile read hides every other player.
+  player-strips-check (happy-dom, ~3 s); tournament-events-server-check proves the hiding on real data.
 - **Hall of fame**: every Championship winner by month, newest first, on the Tournaments tab while the Championship is
   on (a deleted account shows as "Deleted player").
 

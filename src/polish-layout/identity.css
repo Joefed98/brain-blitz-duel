@@ -400,6 +400,44 @@ button.cz-gem {
   font: inherit;
 }
 
+/*
+ * The nameplate strip (CardStrip, Joe's rule of 11 Nov 2026: a player's card shows wherever they appear): the card's art
+ * and frame in a list row's name area, 44 px tall; the card's own pieces at a fixed unit (the component's --pc-u).
+ */
+.pcard.pcard-strip {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  aspect-ratio: auto;
+  container-type: normal;
+}
+.pcard-strip .pcard-row {
+  gap: var(--jz-space-8);
+}
+.pcard-strip .pcard-av {
+  width: 30px;
+  height: 30px;
+}
+.pcard-strip .pcard-name {
+  min-width: 0;
+}
+.pcard-strip .pcard-strip-tier {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+.pcard-strip .pcard-strip-badges {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+  gap: var(--jz-space-4);
+}
+.pcard-strip .pcard-strip-badges img {
+  width: 22px;
+  height: 22px;
+}
+
 /* ------------------------------------------------------------------ the mini card (lists) */
 .pcard.pcard-mini {
   display: inline-block;
@@ -419,4 +457,56 @@ button.cz-gem {
   width: 100%;
   height: 100%;
   overflow: visible;
+}
+
+/*
+ * The shared nameplate (NameplateStrip, docs/nameplate.md): a row's name area. A hidden player is a plain neutral disc
+ * with no initial or colour and "Hidden player" in quiet text; a player with no card their colour and initial.
+ */
+.nameplate {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+.nameplate-disc {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--jz-surface-2);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  color: var(--jz-text-2);
+  font-weight: var(--jz-weight-bold);
+}
+.nameplate-name {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--jz-text);
+  font-size: 16px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nameplate[data-nameplate="hidden"] .nameplate-name {
+  color: var(--jz-text-3);
+  font-weight: var(--jz-weight-medium);
+}
+.nameplate-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding-bottom: var(--jz-space-16);
+}
+.nameplate-sheet-line {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  text-align: center;
 }

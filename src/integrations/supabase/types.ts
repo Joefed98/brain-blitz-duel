@@ -2707,17 +2707,6 @@ export type Database = {
       rated_recompute_standings: { Args: { p_now: string }; Returns: Json }
       rated_set_tiers: { Args: { p: Json }; Returns: number }
       rated_week_matches: { Args: { p_user_id: string; p_from: string; p_to: string }; Returns: Json }
-      result_look_for: {
-        Args: { p_game: string; p_user_id: string }
-        Returns: Json
-      }
-      room_game_looks: {
-        Args: { p_duel_id: string; p_game: string }
-        Returns: {
-          look: Json | null
-          player_slot: number
-        }[]
-      }
       badge_award: { Args: { p_badge: string; p_detail: Json; p_user_id: string }; Returns: Json }
       badge_set_card: { Args: { p_badges: string[]; p_user_id: string }; Returns: string }
       badge_set_title: { Args: { p_title: string | null; p_user_id: string }; Returns: string }
@@ -2902,6 +2891,23 @@ export type Database = {
       friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
       friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
       friends_waiting: { Args: { p_user: string }; Returns: number }
+      leaderboard_refresh: { Args: Record<PropertyKey, never>; Returns: Json }
+      leaderboard_refresh_ratings: { Args: Record<PropertyKey, never>; Returns: Json }
+      leaderboard_refresh_daily: { Args: { p_now?: string }; Returns: Json }
+      leaderboard_page: {
+        Args: { p_viewer: string; p_board: string; p_period: string; p_scope: string; p_offset: number; p_limit: number }
+        Returns: Json
+      }
+      daily_board_page: {
+        Args: { p_viewer: string; p_kind: string; p_day: string; p_scope: string; p_now?: string }
+        Returns: Json
+      }
+      daily_board_badge_facts: {
+        Args: { p_user: string; p_champion_field: number; p_top100_field: number }
+        Returns: Json
+      }
+      leaderboard_visibility: { Args: { p_user: string }; Returns: Json }
+      leaderboard_set_visibility: { Args: { p_user: string; p_show: boolean | null }; Returns: boolean }
       friends_profile: { Args: { p_viewer: string; p_target: string }; Returns: Json }
       moderation_status: { Args: { p_user_id: string }; Returns: Json }
       moderation_ack: { Args: { p_user_id: string; p_kind: string; p_detail?: Json | null }; Returns: boolean }
@@ -3002,6 +3008,17 @@ export type Database = {
       tournament_flag: { Args: { p_event: string; p_player: string; p_source: string; p_source_id: string; p_game_idx: number; p_game: string; p_reason: string }; Returns: boolean }
       tournament_flagged_players: { Args: { p_event: string }; Returns: string[] }
       tournament_pay_prize: { Args: { p_event: string; p_user_id: string; p_place: number; p_coins: number; p_medal: string | null; p_title: string | null }; Returns: Json }
+      result_look_for: {
+        Args: { p_game: string; p_user_id: string }
+        Returns: Json
+      }
+      room_game_looks: {
+        Args: { p_duel_id: string; p_game: string }
+        Returns: {
+          look: Json | null
+          player_slot: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

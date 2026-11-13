@@ -388,6 +388,23 @@ export const SHARDS: Record<string, string[]> = {
     // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
     "rated-server-check.ts",
     "rated-matchmaking-check.ts",
+    // rated-multi-server-check (wave 3 W3d, 11 Nov 2026, ~10 s): a 4-player rated match through W3b's queue, rooms and
+    // settling on a local PostgreSQL through the server-function harness; rated-multi-check (~2 s) the rules and screens.
+    "rated-multi-server-check.ts",
+    // friends-check (wave 2 B1, 11 Nov 2026, ~5 s): friends (search's age rules, invite links, requests, accept,
+    // decline, remove, block, status, invites, challenges, the limits and cap, RLS, B2's events) on a local PostgreSQL
+    // through the server-function harness, beside accounts-check; friends-ui-check (~3 s, happy-dom) the screens.
+    "friends-check.ts",
+    "friends-ui-check.tsx",
+    // leaderboards-check (wave 4 W4a, 11 Nov 2026, ~25 s): rating boards, the Daily top 100, privacy, the Daily badges'
+    // field sizes and read-only boards on a local PostgreSQL through the server-function harness, beside accounts-check;
+    // leaderboards-ui-check (~2 s, happy-dom) the screens.
+    "leaderboards-check.ts",
+    "leaderboards-ui-check.tsx",
+    // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
+    // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
+    // PostgreSQL through the server-function harness, beside accounts-check.
+    "practice-challenges-check.ts",
     // tournaments-check (wave 4 W4b, 11 Nov 2026, ~30 s): the schedule, the Arena's points, streak and pairing, Score
     // Attack, entry and refunds, prizes with the safeguard, trophies and badges once, never a rating, on a local
     // PostgreSQL through the server-function harness; tournaments-screens-check (~2 s) the hub's screens.
@@ -399,18 +416,7 @@ export const SHARDS: Record<string, string[]> = {
     // pure rules.
     "tournament-events-server-check.ts",
     "tournament-events-check.ts",
-    // rated-multi-server-check (wave 3 W3d, 11 Nov 2026, ~10 s): a 4-player rated match through W3b's queue, rooms and
-    // settling on a local PostgreSQL through the server-function harness; rated-multi-check (~2 s) the rules and screens.
-    "rated-multi-server-check.ts",
-    // friends-check (wave 2 B1, 11 Nov 2026, ~5 s): friends (search's age rules, invite links, requests, accept,
-    // decline, remove, block, status, invites, challenges, the limits and cap, RLS, B2's events) on a local PostgreSQL
-    // through the server-function harness, beside accounts-check; friends-ui-check (~3 s, happy-dom) the screens.
-    "friends-check.ts",
-    "friends-ui-check.tsx",
-    // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
-    // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
-    // PostgreSQL through the server-function harness, beside accounts-check.
-    "practice-challenges-check.ts",
+    "tournament-plates-check.tsx",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

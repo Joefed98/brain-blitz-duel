@@ -36,6 +36,7 @@ import { SeasonSection } from "@/components/seasons/SeasonSection";
 import { ProfileCard } from "@/components/identity/ProfileCard";
 import { TrophyCabinet } from "@/components/tournaments/TournamentHub";
 import { useMyTrophies } from "@/lib/tournaments/tournamentsApi";
+import { ProfileBoards } from "@/components/leaderboards/ProfileBoards";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -293,6 +294,11 @@ function ProfileScreen() {
             </div>
           </section>
         ) : null}
+
+        {/* Wave 4 W4a (docs/leaderboards.md): the boards, and an account's category boards ("Top Logic players"). */}
+        <ProfileBoards
+          onOpen={(to) => void router.navigate({ to, state: { fromPlayTab: true } as never } as never)}
+        />
 
         <YourChallenges
           onOpen={(code) =>

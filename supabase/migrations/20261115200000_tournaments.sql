@@ -31,11 +31,30 @@ ON CONFLICT (reason) DO NOTHING;
 
 /* ------------------------------------------------------------------ the Score Attack's async room */
 
--- The daily Score Attack is an async room of its own kind (the Daily's engine). Widened, never narrowed.
-ALTER TABLE public.async_rooms DROP CONSTRAINT IF EXISTS async_rooms_kind_check;
-ALTER TABLE public.async_rooms ADD CONSTRAINT async_rooms_kind_check
-  CHECK (kind IN ('daily_puzzle', 'daily_arcade', 'challenge', 'score_attack')) NOT VALID;
-ALTER TABLE public.async_rooms VALIDATE CONSTRAINT async_rooms_kind_check;
+-- The daily Score Attack is an async room of its own kind (the Daily's engine). Widened, never narrowed: the kinds
+-- are read from the constraint as it stands and score_attack is added to them (not written out in full), so a kind
+-- another migration added before this one (E2's daily_archive, any later one) is kept whatever the order, as the
+-- analytics migrations do with their lists.
+DO $kinds$
+DECLARE
+  existing text[];
+  wanted text[];
+BEGIN
+  SELECT coalesce(array_agg(DISTINCT m[1]), ARRAY[]::text[])
+    INTO existing
+    FROM pg_constraint c,
+         LATERAL regexp_matches(pg_get_constraintdef(c.oid), '''([a-z_]+)''', 'g') AS m
+   WHERE c.conrelid = 'public.async_rooms'::regclass AND c.conname = 'async_rooms_kind_check';
+  SELECT array_agg(k ORDER BY k) INTO wanted
+    FROM (SELECT unnest(existing) AS k UNION SELECT 'score_attack') AS u;
+  ALTER TABLE public.async_rooms DROP CONSTRAINT IF EXISTS async_rooms_kind_check;
+  EXECUTE format(
+    'ALTER TABLE public.async_rooms ADD CONSTRAINT async_rooms_kind_check CHECK (kind IN (%s)) NOT VALID',
+    (SELECT string_agg(quote_literal(k), ', ') FROM unnest(wanted) AS k)
+  );
+  ALTER TABLE public.async_rooms VALIDATE CONSTRAINT async_rooms_kind_check;
+END
+$kinds$;
 
 /* ------------------------------------------------------------------ tables */
 

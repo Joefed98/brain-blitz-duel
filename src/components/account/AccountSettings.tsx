@@ -8,6 +8,7 @@
 import { useMemo, useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { BoardVisibilitySetting } from "@/components/leaderboards/LeaderboardScreens";
 import { Captain } from "@/design/art";
 import { Button, Icon, Input, Panel, Row, SectionHeader } from "@/design/components";
 import type { AccountView } from "@/lib/account/account.server";
@@ -207,6 +208,12 @@ export function AccountSettings({ account, onBack }: { account: AccountView & { 
               </option>
             ))}
           </select>
+        </section>
+
+        {/* Wave 4 W4a (docs/leaderboards.md): adults shown by default, under-18s hidden by default. */}
+        <section className="acct-field" data-account-boards>
+          <SectionHeader title="Leaderboards" />
+          <BoardVisibilitySetting />
         </section>
 
         {error && !editing ? <p className="acct-error" role="alert">{error}</p> : null}

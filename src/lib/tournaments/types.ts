@@ -2,6 +2,7 @@
  * The shapes the phone gets from the tournaments server functions (wave 4, W4b; docs/tournaments/interface.md
  * section 4). Phone and server; no logic.
  */
+import type { PlateView } from "@/lib/identity/plates";
 import type { EntryType, Medal, PrizeLine, TournamentKind } from "./rules";
 
 export type EventStatus = "scheduled" | "live" | "finished" | "cancelled";
@@ -100,7 +101,8 @@ export type EnterOutcome = { ok: true; entry: EntryView } | { ok: false; reason:
 export interface ArenaDuelView {
   duelId: string;
   roomCode: string | null;
-  opponent: { userId: string; name: string };
+  /** `name` is the plate's name ("Hidden player" for a hidden under-18). */
+  opponent: { userId: string; name: string; plate: PlateView };
   status: "playing" | "settled" | "void";
 }
 
@@ -113,7 +115,9 @@ export type ArenaPoll =
 export interface ArenaBoardRow {
   place: number;
   userId: string;
+  /** The plate's name ("Hidden player" for a hidden under-18); the row draws `plate`. */
   name: string;
+  plate: PlateView;
   points: number;
   wins: number;
   streak: number;
@@ -134,7 +138,9 @@ export interface ArenaBoard {
 
 export interface ScoreAttackBoardRow {
   place: number;
+  /** The plate's name ("Hidden player" for a hidden under-18); the row draws `plate`. */
   name: string;
+  plate: PlateView;
   total: number;
   isMe: boolean;
 }

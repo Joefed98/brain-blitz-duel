@@ -79,6 +79,11 @@ export const ANALYTICS_EVENTS = [
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
   "challenge_completed",
+  // Leaderboards (wave 4, session W4a; docs/leaderboards.md): recorded by the server only
+  // (src/lib/leaderboards/leaderboards.server.ts), once per board opened. leaderboard_viewed carries props.board,
+  // props.scope and props.period; daily_board_viewed props.kind and props.day. Never a name or another player's id.
+  "leaderboard_viewed",
+  "daily_board_viewed",
   // The shop (wave 2, session D1; docs/economy/shop.md): recorded by the server only (src/lib/shop/shop.server.ts).
   // shop_viewed props.section, item_bought props.coins, props.item and props.rarity, bundle_bought props.bundle,
   // props.coins and props.items, pack_bought props.pack, props.coins and props.test, wishlist_added props.item.
@@ -112,6 +117,12 @@ export const ANALYTICS_EVENTS = [
   // props.tier and props.season.
   "season_ended",
   "season_reward_granted",
+  // Tournaments (wave 4, W4b; docs/tournaments/interface.md section 8): recorded by the server only
+  // (src/lib/tournaments/tournaments.server.ts). tournament_entered props.kind and props.entry; tournament_finished
+  // props.kind and props.place; prize_paid props.kind, props.place and props.coins.
+  "tournament_entered",
+  "tournament_finished",
+  "prize_paid",
   // Rated 4- and 8-player matches (wave 3, session W3d; docs/rated/multiplayer.md): recorded by the server only
   // (src/lib/rated/multi/multi.server.ts). multiplayer_match_started carries props.size, props.live_seats and
   // props.recorded_seats (once a match, no player); multiplayer_match_finished props.size and props.placing (one a live
@@ -126,17 +137,6 @@ export const ANALYTICS_EVENTS = [
   "match_found",
   "rematch_requested",
   "rematch_accepted",
-  // Tournaments (wave 4, W4b; docs/tournaments/interface.md section 8): recorded by the server only
-  // (src/lib/tournaments/tournaments.server.ts). tournament_entered props.kind and props.entry; tournament_finished
-  // props.kind and props.place; prize_paid props.kind, props.place and props.coins.
-  "tournament_entered",
-  "tournament_finished",
-  "prize_paid",
-  // The Category Cup and the Joulz Championship (wave 4, W4c; docs/tournaments/events.md): recorded by the server only
-  // (src/lib/tournaments/eventsFlow.server.ts). swiss_round_paired carries props.round and props.players (the round's
-  // players, byes included); knockout_match_played props.round (played matches only, never a walkover).
-  "swiss_round_paired",
-  "knockout_match_played",
   // The rated match screens (wave 3, session W3c): recorded by the server only, through recordRatedEventFn
   // (src/lib/rated/ratedEvents.functions.ts), which accepts these five with fixed-word props and nothing else.
   "play_card_tapped",
@@ -148,6 +148,11 @@ export const ANALYTICS_EVENTS = [
   // left in) and props.format; rated_match_forfeited props.format and props.games_played.
   "rated_match_aborted",
   "rated_match_forfeited",
+  // The Category Cup and the Joulz Championship (wave 4, W4c; docs/tournaments/events.md): recorded by the server only
+  // (src/lib/tournaments/eventsFlow.server.ts). swiss_round_paired carries props.round and props.players (the round's
+  // players, byes included); knockout_match_played props.round (played matches only, never a walkover).
+  "swiss_round_paired",
+  "knockout_match_played",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

@@ -57,7 +57,8 @@ import {
 } from "@/lib/data/tournamentEvents.server";
 import { readRoom, readPrivatePuzzles } from "@/lib/data/rooms.server";
 import { readRoomResults } from "@/lib/data/results.server";
-import { readPublicProfiles } from "@/lib/data/profiles.server";
+import { platesFor } from "@/lib/identity/plates.server";
+import { HIDDEN_PLATE, plateName, type PlateView } from "@/lib/identity/plates";
 import { mergePuzzle } from "@/lib/duel/secrets";
 import { tieRoundFor } from "@/lib/duel/tieBreak";
 import { roundTimeUsedMs } from "@/lib/duel/scoring";
@@ -537,6 +538,8 @@ async function awardExtras(client: Db, event: TournamentEventRow, nowMs: number)
 export interface BigStandingRow {
   place: number;
   name: string;
+  /** The shared nameplate (NameplateStrip, docs/nameplate.md); the place and points are drawn outside it. */
+  plate: PlateView;
   me: boolean;
   /** "3–1" (wins–losses), "3–1–1" with draws. */
   record: string;
@@ -549,6 +552,8 @@ export interface BigBracketMatch {
   slot: number;
   nameA: string | null;
   nameB: string | null;
+  plateA: PlateView | null;
+  plateB: PlateView | null;
   gamesA: number | null;
   gamesB: number | null;
   winner: "a" | "b" | null;
@@ -560,6 +565,7 @@ export interface BigBracketMatch {
 export interface BigMyMatch {
   roundLabel: string;
   opponent: string | null;
+  opponentPlate: PlateView | null;
   opponentRecord: string | null;
   myRecord: string | null;
   bye: boolean;
@@ -584,20 +590,23 @@ export interface BigEventView {
   bracket: BigBracketMatch[];
 }
 
-const DELETED = "Deleted player";
+/**
+ * Every player on the page as the shared nameplate (Joe, 11 Nov 2026), read once a page through W4b's `platesFor`
+ * (the shared `nameplatesFor`). Under-18s are "Hidden player" on every list other players can see (standings, the
+ * bracket, the hall of fame) and shown only to their direct opponent in their own match (the your-match row, and the
+ * match room as in ordinary rooms) and to themselves (Joe, 12 Nov 2026): `platesFor` hides every under-18 but the
+ * viewer, and the direct opponent's plate is read as that player sees their own.
+ */
+async function listPlates(client: Db, viewerId: string, ids: readonly string[], nowMs: number): Promise<Map<string, PlateView>> {
+  return platesFor(client, viewerId, [...new Set(ids)].map((userId) => ({ userId, name: "" })), nowMs);
+}
 
-async function namesOf(client: Db, ids: readonly string[]): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  const list = [...new Set(ids)];
-  for (let i = 0; i < list.length; i += 100) {
-    const { data } = await readPublicProfiles(client, list.slice(i, i + 100));
-    for (const p of data ?? []) out.set(p.user_id, p.username);
-  }
-  return out;
+async function directPlate(client: Db, userId: string, nowMs: number): Promise<PlateView> {
+  return (await platesFor(client, userId, [{ userId, name: "" }], nowMs)).get(userId) ?? HIDDEN_PLATE;
 }
 
 /** The round, the caller's match, the standings or the bracket (null before the start, or not one of W4c's events). */
-export async function bigEventView(client: Db, eventId: string, userId: string): Promise<BigEventView | null> {
+export async function bigEventView(client: Db, eventId: string, userId: string, nowMs = Date.now()): Promise<BigEventView | null> {
   const parsed = parseBigEventId(eventId);
   if (!parsed) return null;
   const kind = parsed.kind;
@@ -605,8 +614,12 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
   if (!rounds) return null;
   const { data: seeds } = await readSeeds(client, eventId);
   const { data: matches } = await readMatches(client, eventId);
-  const names = await namesOf(client, seeds.map((s) => s.user_id));
-  const nameOf = (id: string | null) => (id ? (names.get(id) ?? DELETED) : null);
+  const plates = await listPlates(client, userId, seeds.map((s) => s.user_id), nowMs);
+  const plateOf = (id: string | null): PlateView | null => (id ? (plates.get(id) ?? HIDDEN_PLATE) : null);
+  const nameOf = (id: string | null) => {
+    const p = plateOf(id);
+    return p ? plateName(p) : null;
+  };
   const flagged = flaggedPlayers(matches);
 
   const recordOf = new Map<string, string>();
@@ -616,7 +629,7 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
     for (const r of table) recordOf.set(r.id, r.draws ? `${r.wins + r.byes}–${r.losses}–${r.draws}` : `${r.wins + r.byes}–${r.losses}`);
     standings = table
       .filter((r) => !flagged.has(r.id))
-      .map((r, i) => ({ place: i + 1, name: nameOf(r.id)!, me: r.id === userId, record: recordOf.get(r.id)!, points: pointsText(r.points2) }));
+      .map((r, i) => ({ place: i + 1, name: nameOf(r.id)!, plate: plateOf(r.id)!, me: r.id === userId, record: recordOf.get(r.id)!, points: pointsText(r.points2) }));
   }
   const bracket: BigBracketMatch[] =
     kind === "championship"
@@ -626,6 +639,8 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
           slot: m.slot,
           nameA: nameOf(m.player_a),
           nameB: nameOf(m.player_b),
+          plateA: plateOf(m.player_a),
+          plateB: plateOf(m.player_b),
           gamesA: m.games_a,
           gamesB: m.games_b,
           winner: m.status === "settled" && m.winner ? (m.winner === m.player_a ? "a" : "b") : null,
@@ -641,6 +656,8 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
   let myMatch: BigMyMatch | null = null;
   if (mine) {
     const opp = mine.player_a === userId ? mine.player_b : mine.player_a;
+    // The direct opponent in the viewer's own match: shown, as in the match room.
+    const oppPlate = opp ? await directPlate(client, opp, nowMs) : null;
     const code = mine.duel_id ? ((await readRoom(client, mine.duel_id)).data?.room_code ?? null) : null;
     myMatch = {
       roundLabel:
@@ -649,7 +666,8 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
             ? "Third-place match"
             : roundName(rounds.bracket_size ?? 2, mine.round)
           : `Round ${mine.round} of ${rounds.rounds_total}`,
-      opponent: nameOf(opp),
+      opponent: oppPlate ? plateName(oppPlate) : null,
+      opponentPlate: oppPlate,
       opponentRecord: opp ? (recordOf.get(opp) ?? null) : null,
       myRecord: recordOf.get(userId) ?? null,
       bye: !opp,
@@ -685,13 +703,17 @@ export interface HallOfFameEntry {
   month: string;
   label: string;
   name: string;
+  plate: PlateView;
 }
 
 /** Every Championship winner, newest month first. */
-export async function hallOfFame(client: Db): Promise<HallOfFameEntry[]> {
+export async function hallOfFame(client: Db, nowMs = Date.now(), viewerId = ""): Promise<HallOfFameEntry[]> {
   const { data } = await readHallOfFame(client);
-  const names = await namesOf(client, data.map((r) => r.user_id));
-  return data.map((r) => ({ month: r.month, label: monthLabel(r.month), name: names.get(r.user_id) ?? DELETED }));
+  const plates = await listPlates(client, viewerId, data.map((r) => r.user_id), nowMs);
+  return data.map((r) => {
+    const plate = plates.get(r.user_id) ?? HIDDEN_PLATE;
+    return { month: r.month, label: monthLabel(r.month), name: plateName(plate), plate };
+  });
 }
 
 /** Whether a room is a Category Cup or Championship match (W4b's isTournamentRoom asks this too). */

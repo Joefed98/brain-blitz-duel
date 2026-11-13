@@ -203,3 +203,40 @@ ul.tn-how {
   font-weight: var(--jz-weight-medium);
   color: var(--jz-text-2);
 }
+
+/* A player on a board row: the shared nameplate strip (NameplateStrip, docs/nameplate.md) in the name area, then the
+   value on the plain row; the row opens the player's card when it has one. */
+.tn-row-in {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.tn-row-in {
+  cursor: pointer;
+}
+.tn-who {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* A bracket match (W4c): each side its nameplate strip, the tick and games won outside it, never on its cosmetics. */
+.tn-side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.tn-side-score {
+  flex: none;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}

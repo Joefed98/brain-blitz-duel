@@ -29,12 +29,14 @@ import {
 } from "@/lib/data/badges.server";
 import type { Db } from "@/lib/data/db.server";
 import { recordEvents } from "@/lib/data/events.server";
+import { readDailyBoardBadgeFacts } from "@/lib/data/leaderboards.server";
 import { readProfile } from "@/lib/data/profiles.server";
 import { readRatedBadgeFacts, type RatedBadgeFactsRow } from "@/lib/data/ratings.server";
 import { ACTIVE_PUZZLE_TYPES, ARCADE_CATEGORY, PUZZLE_TYPES, puzzleInfo, typeTimeLimitMs } from "@/lib/duel/catalogue";
 import { longestDailyStreak } from "@/lib/duel/dailyStreak";
 import { dailyRecordFor } from "@/lib/duel/dailyStreak.server";
 import { creditCoins, grantItem } from "@/lib/economy/economy.server";
+import { DAILY_CHAMPION_FIELD, DAILY_TOP100_FIELD } from "@/lib/leaderboards/boards";
 
 import { readPassTitles } from "@/lib/data/pass.server";
 import { readSeasonTitles } from "@/lib/data/seasons.server";
@@ -138,13 +140,16 @@ export async function factsFor(client: Db, userId: string, nowMs: number = Date.
   const { data: profile, error } = await readProfile(client, userId);
   if (error) throw new Error(`badges: ${error.message}`);
   if (!profile) return null;
-  const [{ data: stored, error: fErr }, daily, { data: rated, error: rErr }] = await Promise.all([
+  const [{ data: stored, error: fErr }, daily, { data: rated, error: rErr }, { data: boards, error: bErr }] = await Promise.all([
     readBadgeFacts(client, { userId, puzzleLimits: puzzleLimits() }),
     dailyRecordFor(client, userId, nowMs),
     readRatedBadgeFacts(client, userId),
+    readDailyBoardBadgeFacts(client, { userId, championField: DAILY_CHAMPION_FIELD, top100Field: DAILY_TOP100_FIELD }),
   ]);
   if (fErr || !stored) throw new Error(`badges: ${fErr?.message ?? "no facts"}`);
   if (rErr) throw new Error(`badges: ${rErr.message}`);
+  // The Daily boards (wave 4 W4a): a failure here counts no board badges this time (retried on the next sync).
+  if (bErr) console.warn(`[badges] daily boards: ${bErr.message}`);
   return {
     founding: profile.founding,
     playerNumber: profile.player_number,
@@ -159,6 +164,8 @@ export async function factsFor(client: Db, userId: string, nowMs: number = Date.
     starredGames: (Array.isArray(stored.starGames) ? stored.starGames : []).filter((g) => ACTIVE_GAMES.has(g)).length,
     gems: Number(stored.gems) || 0,
     rated: ratedFactsOf(rated),
+    dailyBoardWins: Number(boards?.wins) || 0,
+    dailyBoardTop100s: Number(boards?.top100) || 0,
   };
 }
 
