@@ -142,7 +142,7 @@ const SERVER_BUILD = Object.assign(
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
   // Every set of Cron Triggers (B2's push tasks, W3a's rated standings, W3b's practice-deal purge, W4b's tournaments
   // tick), merged so none replaces another.
-  withTasks(nitroTasks(RATED_TASKS, PUSH_TASKS), MATCHMAKING_TASKS, TOURNAMENT_TASKS),
+  withTasks(withTasks(nitroTasks(PUSH_TASKS, RATED_TASKS), MATCHMAKING_TASKS), TOURNAMENT_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

@@ -12,6 +12,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
+import { checkOverride } from "@/lib/checkOverride";
+
 import type { ArenaBoard, ArenaPoll, EnterOutcome, ScoreAttackBoard, TournamentEventView, TournamentHub, TrophyView } from "./types";
 
 export interface TournamentsBackend {
@@ -40,7 +42,8 @@ export function tournamentsAutomated(): boolean {
   if (typeof window === "undefined") return true;
   if (typeof navigator === "undefined" || navigator.webdriver !== true) return false;
   if (import.meta.env.PROD) return true;
-  return (window as { __DUELZ_ALLOW_TOURNAMENTS__?: boolean }).__DUELZ_ALLOW_TOURNAMENTS__ !== true;
+  // window.__DUELZ_ALLOW_TOURNAMENTS__, read through checkOverride, which a production build turns off (main's hardening, 13 Nov 2026).
+  return checkOverride<boolean>("__DUELZ_ALLOW_TOURNAMENTS__") !== true;
 }
 
 const unbusy = <T>(value: T | { busy: true } | null | undefined): T | null =>

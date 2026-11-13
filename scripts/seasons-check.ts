@@ -212,7 +212,7 @@ async function pureChecks(): Promise<void> {
   await section("the switch and neutrality", async () => {
     const api = readFileSync("src/lib/seasons/seasonsApi.ts", "utf8");
     check(
-      /if \(import\.meta\.env\.PROD\) return true;\s*return \(window as \{ __DUELZ_ALLOW_SEASONS__\?: boolean \}\)\.__DUELZ_ALLOW_SEASONS__ !== true;/.test(api),
+      /if \(import\.meta\.env\.PROD\) return true;\s*\/\/[^\n]*\n\s*return checkOverride<boolean>\("__DUELZ_ALLOW_SEASONS__"\) !== true;/.test(api),
       "the check-only window.__DUELZ_ALLOW_SEASONS__ is never read in a production build",
     );
     // Nothing in scoring, grading, replay, matchmaking or timing reaches a seasons module.

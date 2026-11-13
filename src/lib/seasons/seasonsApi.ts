@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 
 import { useAccount } from "@/lib/account/accountApi";
+import { checkOverride } from "@/lib/checkOverride";
 
 import type { MySeasons, SeasonHistoryEntry } from "./types";
 
@@ -35,7 +36,8 @@ export function seasonsAutomated(): boolean {
   if (typeof window === "undefined") return true;
   if (typeof navigator === "undefined" || navigator.webdriver !== true) return false;
   if (import.meta.env.PROD) return true;
-  return (window as { __DUELZ_ALLOW_SEASONS__?: boolean }).__DUELZ_ALLOW_SEASONS__ !== true;
+  // window.__DUELZ_ALLOW_SEASONS__, read through checkOverride, which a production build turns off (main's hardening, 13 Nov 2026).
+  return checkOverride<boolean>("__DUELZ_ALLOW_SEASONS__") !== true;
 }
 
 async function backend(): Promise<SeasonsBackend | null> {

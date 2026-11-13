@@ -143,9 +143,12 @@ try {
   check(q(`SELECT count(*) FROM public.catalogue_items WHERE id LIKE 'game-skin.free-cell.%'`) === "0" && q(`SELECT count(*) FROM public.inventory_items WHERE item_id LIKE 'game-skin.free-cell.%'`) === "0" && q(`SELECT count(*) FROM public.loadout_slots WHERE item_id LIKE 'game-skin.free-cell.%'`) === "0", "the old ids are gone from the catalogue, inventories and loadouts");
   check(q(`SELECT string_agg(old_id || '>' || new_id, ',' ORDER BY old_id) FROM public.catalogue_renamed`) === "game-skin.free-cell.holo-foil>card-back.holo-foil,game-skin.free-cell.neon-card-back>card-back.neon,game-skin.free-cell.royal-damask>card-back.royal-damask", "the renames are recorded old → new");
   const total = q(`SELECT count(*) FROM public.catalogue_items`);
-  check(total === "110", `the catalogue still holds 110 items (${total})`);
+  // Changed with Joe's approval, 13 Nov 2026: 110 → 118, the wave-4 catalogue's 8 items (W4c's Championship frame and
+  // W4d's seven Season 1 frames) added by later migrations, which this check applies; the card-back move still adds nothing.
+  check(total === "118", `the catalogue still holds 118 items (${total})`);
   const again = apply("20261110160100_economy_catalogue.sql");
-  check(again.ok && q(`SELECT count(*) FROM public.catalogue_items`) === "110" && q(`SELECT count(*) FROM public.catalogue_items WHERE id LIKE 'game-skin.free-cell.%'`) === "0", "the old seed applied again adds nothing (no old id comes back)");
+  // Changed with Joe's approval, 13 Nov 2026: 110 → 118, the same wave-4 items as above.
+  check(again.ok && q(`SELECT count(*) FROM public.catalogue_items`) === "118" && q(`SELECT count(*) FROM public.catalogue_items WHERE id LIKE 'game-skin.free-cell.%'`) === "0", "the old seed applied again adds nothing (no old id comes back)");
   const rerun = apply(CARD_BACK_MIGRATION);
   check(rerun.ok && q(`SELECT count(*) FROM public.inventory_items WHERE item_id LIKE 'card-back.%'`) === "3" && q(`SELECT count(*) FROM public.loadout_slots WHERE slot = 'card-back'`) === "2", "a second run of the card-back migration changes nothing");
   // Old ids in name order (holo-foil, neon-card-back, royal-damask) map to the new ids in the same order.
