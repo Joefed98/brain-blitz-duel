@@ -2408,7 +2408,7 @@ outside the repo.
   `feedbackRefFn`'s HMAC of the id (Worker secret `FEEDBACK_HMAC_KEY`; none set: no reference), never the id. The
   runbook worker (`docs/runbook/unregister-sw.js`, steps in `service-worker-off.md`) is never built in;
   `STOP_WORKER_REGISTRATION` in serviceWorker.ts (false) stops the page registering /sw.js. Migrations
-  `20261116200000_csp_reports.sql`, `20261116200100_analytics_arcade_timing.sql`. security-trials-check (~10 s, shard
+  `20261116700000_csp_reports.sql`, `20261116700100_analytics_arcade_timing.sql`. security-trials-check (~10 s, shard
   `e`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
