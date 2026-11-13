@@ -226,16 +226,8 @@ button.tn-row-in {
 .tn-who {
   flex: 1 1 auto;
   min-width: 0;
-/* Rows with nameplate strips (W4c): the place, ticks and games sit outside the strip, never on its cosmetics. */
-.tn-place {
-  flex: none;
-  min-width: 28px;
-  font-size: 16px;
-  font-weight: var(--jz-weight-medium);
-  font-variant-numeric: tabular-nums;
-  color: var(--jz-text);
-  text-align: center;
 }
+/* A bracket match (W4c): each side its nameplate strip, the tick and games won outside it, never on its cosmetics. */
 .tn-side {
   display: flex;
   min-width: 0;

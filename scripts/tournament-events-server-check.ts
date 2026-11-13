@@ -333,8 +333,9 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`SELECT public.economy_equip('${at(1)}', 'frame', 'frame.gold'), public.economy_equip('${at(1)}', 'name-colour', 'name-colour.chrome')`);
     const dressed = await flow.bigEventView(client, CUP1, at(1));
     const top = dressed?.standings[0];
-    check(top?.player.kind === "account" && top.player.frame === "frame.gold" && top.player.nameColour === "name-colour.chrome" && top.player.name === top.name && !!top.player.avatar, `standings rows carry the player's strip with their own frame and name colour (${JSON.stringify(top?.player).slice(0, 120)})`);
-    check(!!dressed && dressed.standings.every((r) => r.player.kind === "account" && r.player.name === r.name && r.player.colour >= 0), "every standings row is an account's strip (avatar, colour, username)");
+    const topCard = top?.plate.kind === "card" ? top.plate : null;
+    check(!!topCard && topCard.card.frame === "frame.gold" && topCard.card.nameColour === "name-colour.chrome" && topCard.name === top!.name && topCard.card.avatarId.length > 0, `standings rows carry the player's shared nameplate with their own frame and name colour (${JSON.stringify(top?.plate).slice(0, 160)})`);
+    check(!!dressed && dressed.standings.every((r) => r.plate.kind === "card" && r.plate.name === r.name && r.plate.card.colour >= 0), "every standings row is an account's nameplate (avatar, colour, username)");
     const flaggedView = await flow.bigEventView(client, CUP1, flaggedUser);
     check(typeof flaggedView?.underReview === "string" && /under review/.test(flaggedView.underReview), "the flagged player sees that their result is under review");
     await flushAnalytics();
@@ -435,10 +436,10 @@ async function runAll(db: LocalDb): Promise<void> {
     check(v?.bracket.length === 32 && v.bracket.some((b) => b.stage === "third_place"), `the live part draws the bracket and the third-place match (${v?.bracket.length})`);
     q(`SELECT public.economy_equip('${A[1]}', 'frame', 'frame.championship')`);
     const won = (await flow.bigEventView(client, id, A[0]!))?.bracket.find((b) => b.stage === "knockout" && b.round === 5);
-    const champ = won?.winner === "a" ? won.playerA : won?.playerB;
-    check(champ?.kind === "account" && champ.frame === "frame.championship" && !!won && [won.playerA, won.playerB].every((p) => p?.kind === "account"), `bracket rows carry both players' strips, the champion in the Championship frame (${champ?.frame})`);
+    const champ = won?.winner === "a" ? won.plateA : won?.plateB;
+    check(champ?.kind === "card" && champ.card.frame === "frame.championship" && !!won && [won.plateA, won.plateB].every((p) => p?.kind === "card"), `bracket rows carry both players' nameplates, the champion in the Championship frame (${champ?.kind === "card" ? champ.card.frame : champ?.kind})`);
     const byeRows = (await flow.bigEventView(client, id, A[0]!))?.bracket.filter((b) => b.walkover && b.round === 1) ?? [];
-    check(byeRows.length === 15 && byeRows.every((b) => (b.playerA === null) !== (b.playerB === null)), "a bye's empty side has no strip");
+    check(byeRows.length === 15 && byeRows.every((b) => (b.plateA === null) !== (b.plateB === null)), "a bye's empty side has no nameplate");
   });
 
   await section("qualification", async () => {
@@ -511,13 +512,13 @@ async function runAll(db: LocalDb): Promise<void> {
     // Joe, 12 Nov 2026: an under-18 is "Hidden player" on every list other players can see, shown only to their direct
     // opponent in their own match (the your-match row, and the room) and to themself.
     const named = (v: Awaited<ReturnType<typeof flow.bigEventView>>) =>
-      (v?.bracket ?? []).flatMap((b) => [b.playerA, b.playerB]).filter((p) => p?.name === "Kiddo_K").length;
+      (v?.bracket ?? []).flatMap((b) => [b.plateA, b.plateB]).filter((p) => !!p && p.kind !== "hidden" && p.name === "Kiddo_K").length;
     const hiddenIn = (v: Awaited<ReturnType<typeof flow.bigEventView>>) =>
-      (v?.bracket ?? []).flatMap((b) => [b.playerA, b.playerB]).filter((p) => p?.kind === "hidden").length;
+      (v?.bracket ?? []).flatMap((b) => [b.plateA, b.plateB]).filter((p) => p?.kind === "hidden").length;
     const xView = await flow.bigEventView(client, id, x);
     const finalX = xView?.bracket.find((b) => b.stage === "knockout" && b.round === 4);
-    check(named(xView) === 0 && hiddenIn(xView) >= 4 && [finalX?.playerA, finalX?.playerB].some((p) => p?.kind === "hidden" && p.avatar === null && p.frame === null && p.colour === -1), `the bracket hides the under-18 from other entrants, the final included (${named(xView)} named, ${hiddenIn(xView)} hidden)`);
-    check(xView?.myMatch?.opponent === "Kiddo_K" && xView.myMatch.opponentPlayer?.kind === "account", `the direct opponent in their own match sees them (${xView?.myMatch?.opponent})`);
+    check(named(xView) === 0 && hiddenIn(xView) >= 4 && [finalX?.plateA, finalX?.plateB].some((p) => p?.kind === "hidden" && Object.keys(p).join() === "kind"), `the bracket hides the under-18 from other entrants, the final included, sending nothing of them (${named(xView)} named, ${hiddenIn(xView)} hidden)`);
+    check(xView?.myMatch?.opponent === "Kiddo_K" && xView.myMatch.opponentPlate?.kind === "card", `the direct opponent in their own match sees them (${xView?.myMatch?.opponent})`);
     const otherView = await flow.bigEventView(client, id, rest[0]!);
     check(named(otherView) === 0 && otherView?.myMatch?.opponent !== "Kiddo_K", "an entrant who never played them sees only Hidden player");
     const kidView = await flow.bigEventView(client, id, kid);
@@ -529,8 +530,10 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`INSERT INTO tournament_hall_of_fame (month, event_id, user_id) VALUES ('2027-09', 'championship:2027-09', '${kid}')`);
     const hall2 = await flow.hallOfFame(client);
     const hid = hall2.find((h) => h.month === "2027-09");
-    check(hid?.name === "Hidden player" && hid.player.kind === "hidden" && hid.player.avatar === null && hid.player.frame === null && hid.player.colour === -1, `the hall of fame hides an under-18 winner (${JSON.stringify(hid?.player)})`);
-    check(hall2.find((h) => h.month === "2027-06")?.player.kind === "account", "an adult winner keeps their strip in the hall of fame");
+    check(hid?.name === "Hidden player" && hid.plate.kind === "hidden" && Object.keys(hid.plate).join() === "kind", `the hall of fame hides an under-18 winner, sending nothing of them (${JSON.stringify(hid?.plate)})`);
+    check(hall2.find((h) => h.month === "2027-06")?.plate.kind === "card", "an adult winner keeps their nameplate in the hall of fame");
+    const ownHall = await flow.hallOfFame(client, Date.now(), kid);
+    check(ownHall.find((h) => h.month === "2027-09")?.plate.kind === "card", "the under-18 winner sees their own nameplate in the hall of fame");
     q(`DELETE FROM tournament_hall_of_fame WHERE month = '2027-09'`);
     check(q(`SELECT count(*) FROM rated_matches`) === "0" && q(`SELECT count(*) FROM mm_matches`) === "0", "no rated match ever made (W3a's ratings and W3b's matches both empty)");
   });

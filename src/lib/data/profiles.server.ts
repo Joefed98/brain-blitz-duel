@@ -117,17 +117,6 @@ export async function readDateOfBirth(client: Db, userId: string): Promise<Resul
   return { data: (data as { date_of_birth: string } | null)?.date_of_birth ?? null, error };
 }
 
-/** Dates of birth for up to 100 users (server-side age rules only, such as hiding under-18s on open pages). */
-export async function readDatesOfBirth(
-  client: Db,
-  userIds: readonly string[],
-): Promise<Result<{ user_id: string; date_of_birth: string | null }[]>> {
-  const ids = [...userIds].slice(0, 100);
-  if (!ids.length) return { data: [], error: null };
-  const { data, error } = await client.from("profiles").select("user_id, date_of_birth").in("user_id", ids);
-  return { data: (data as { user_id: string; date_of_birth: string | null }[] | null) ?? [], error };
-}
-
 /* ------------------------------------------------------------------ Supabase Auth (admin API) */
 
 /** The auth user's own record (is it anonymous, which identities): the server's truth, never the token's claims. */

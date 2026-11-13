@@ -11,7 +11,6 @@ export {
   type NameplatePlayer,
 } from "./nameplate";
 export { Avatar } from "./Avatar";
-export { PlayerStrip } from "./PlayerStrip";
 export { AVATARS, GEMS, DEFAULT_AVATAR, DEFAULT_AVATAR_ID, avatarMarkup, avatarStops, shade, type AvatarLook } from "./avatars";
 export { avatarKey } from "./avatars";
 export {

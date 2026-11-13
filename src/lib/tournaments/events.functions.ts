@@ -32,10 +32,10 @@ export const bigEventFn = createServerFn({ method: "POST" })
 
 export const hallOfFameFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async (): Promise<HallOfFameEntry[]> => {
+  .handler(async ({ context }): Promise<HallOfFameEntry[]> => {
     const { TOURNAMENT_SWITCHES } = await import("./rules");
     if (!TOURNAMENT_SWITCHES.kinds.championship) return [];
     const { adminDb } = await import("@/lib/data/db.server");
     const { hallOfFame } = await import("./eventsFlow.server");
-    return hallOfFame(await adminDb());
+    return hallOfFame(await adminDb(), Date.now(), context.userId);
   });

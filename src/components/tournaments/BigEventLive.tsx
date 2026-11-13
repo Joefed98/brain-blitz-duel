@@ -12,7 +12,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
 import { Button, LiveTag, Panel, Row, SectionHeader } from "@/design/components";
-import { PlayerStrip } from "@/design/identity/PlayerStrip";
+import { NameplateSheet, NameplateStrip, nameplateOpens, useNameplateSheet } from "@/design/identity";
+import { plateName, type PlateView } from "@/lib/identity/plates";
 import { roundName } from "@/lib/tournaments/knockout";
 import { tournamentsAutomated } from "@/lib/tournaments/tournamentsApi";
 import type { BigBracketMatch, BigEventView, HallOfFameEntry } from "@/lib/tournaments/eventsFlow.server";
@@ -96,10 +97,43 @@ export function BigEventLive({ eventId }: { eventId: string }) {
   );
 }
 
+/** A card the player tapped open, with the one line under it. */
+interface OpenPlate {
+  plate: PlateView;
+  line: string;
+}
+
+/**
+ * A player in a row: the shared nameplate strip (docs/nameplate.md; the name area only), as a button opening their
+ * full card when they have one. Guests and hidden players open nothing. Places, scores and ticks stay outside it.
+ */
+function Plate({ plate, you = false, line, onOpen }: { plate: PlateView; you?: boolean; line: string; onOpen: (o: OpenPlate) => void }) {
+  const name = plateName(plate);
+  const label = you && plate.kind !== "hidden" ? `${name} (you)` : name;
+  return nameplateOpens(plate) ? (
+    <button type="button" className="tn-row-in press" onClick={() => onOpen({ plate, line })} aria-label={`${label}. Open card`} data-open-card>
+      <NameplateStrip player={plate} label={label} />
+    </button>
+  ) : (
+    <span className="tn-row-in" aria-label={label}>
+      <NameplateStrip player={plate} label={label} />
+    </span>
+  );
+}
+
+function PlateSheet({ open, onClose }: { open: OpenPlate | null; onClose: () => void }) {
+  return (
+    <NameplateSheet player={open?.plate ?? null} onClose={onClose}>
+      {open?.line}
+    </NameplateSheet>
+  );
+}
+
 function MyMatch({ view, now }: { view: BigEventView; now: number }) {
   const navigate = useNavigate();
   const m = view.myMatch!;
   const startsIn = (view.roundStartsAtMs ?? 0) - now;
+  const [open, openPlate, close] = useNameplateSheet<OpenPlate>();
   return (
     <section aria-label="Your match" className="ap-section" data-big-my-match={m.state}>
       <SectionHeader title={m.roundLabel} right={m.state === "waiting" && startsIn > 0 ? <span className="tn-meta">{`Starts in ${countdown(startsIn)}`}</span> : undefined} />
@@ -108,7 +142,7 @@ function MyMatch({ view, now }: { view: BigEventView; now: number }) {
           <Row title="A bye this round" sub="It counts as a win. Back next round." />
         ) : (
           <Row
-            title={m.opponentPlayer ? <PlayerStrip player={m.opponentPlayer} /> : `v ${m.opponent ?? "?"}`}
+            title={m.opponentPlate ? <Plate plate={m.opponentPlate} line={`Your opponent · ${m.roundLabel}`} onOpen={openPlate} /> : `v ${m.opponent ?? "?"}`}
             sub={`${m.myRecord ? `You ${m.myRecord}` : "You"}${m.opponentRecord ? ` v ${m.opponentRecord}` : ""} · ${m.state === "done" ? (m.result === "won" ? "You won" : m.result === "lost" ? "You lost" : "Drawn") : "Best of 3"}`}
           />
         )}
@@ -118,11 +152,13 @@ function MyMatch({ view, now }: { view: BigEventView; now: number }) {
           Play
         </Button>
       ) : null}
+      <PlateSheet open={open} onClose={close} />
     </section>
   );
 }
 
 function Standings({ view }: { view: BigEventView }) {
+  const [open, openPlate, close] = useNameplateSheet<OpenPlate>();
   return (
     <section aria-label="Standings" className="ap-section" data-big-standings>
       <SectionHeader title="Standings" right={<span className="tn-meta">{`${view.field} players`}</span>} />
@@ -134,23 +170,25 @@ function Standings({ view }: { view: BigEventView }) {
             data-me={s.me ? "" : undefined}
             className={s.me ? "tn-me" : undefined}
             leading={<span className="tn-place" data-place="">{s.place}</span>}
-            title={<PlayerStrip player={s.player} you={s.me} />}
+            data-hidden-player={s.plate.kind === "hidden" ? "" : undefined}
+            title={<Plate plate={s.plate} you={s.me} line={`${s.record} · ${s.points} pts`} onOpen={openPlate} />}
             sub={`${s.record} · ${s.points} pts`}
           />
         ))}
       </Panel>
+      <PlateSheet open={open} onClose={close} />
     </section>
   );
 }
 
 /** One side of a bracket match: its strip, then the tick and the games won outside it. */
-function Side({ m, side }: { m: BigBracketMatch; side: "a" | "b" }) {
-  const player = side === "a" ? m.playerA : m.playerB;
+function Side({ m, side, onOpen }: { m: BigBracketMatch; side: "a" | "b"; onOpen: (o: OpenPlate) => void }) {
+  const plate = side === "a" ? m.plateA : m.plateB;
   const games = side === "a" ? m.gamesA : m.gamesB;
   const won = m.winner === side;
   return (
     <span className="tn-side" data-side={side}>
-      {player ? <PlayerStrip player={player} /> : <span className="tn-meta">{m.walkover ? "Bye" : "–"}</span>}
+      {plate ? <Plate plate={plate} line={`${games ?? 0} ${games === 1 ? "game" : "games"} won`} onOpen={onOpen} /> : <span className="tn-meta">{m.walkover ? "Bye" : "–"}</span>}
       <span className="tn-side-score" data-side-score="">{`${won ? "✓ " : ""}${games ?? ""}`.trim()}</span>
     </span>
   );
@@ -159,6 +197,7 @@ function Side({ m, side }: { m: BigBracketMatch; side: "a" | "b" }) {
 function Bracket({ view }: { view: BigEventView }) {
   const size = view.bracketSize ?? 2;
   const rounds = [...new Set(view.bracket.map((m) => m.round))].sort((a, b) => a - b);
+  const [open, openPlate, close] = useNameplateSheet<OpenPlate>();
   return (
     <section aria-label="Bracket" className="ap-section" data-big-bracket>
       {rounds.map((r) => (
@@ -174,11 +213,11 @@ function Bracket({ view }: { view: BigEventView }) {
                   data-bracket-match={`${m.stage}-${m.round}-${m.slot}`}
                   data-me={m.me ? "" : undefined}
                   className={m.me ? "tn-me" : undefined}
-                  title={<Side m={m} side="a" />}
+                  title={<Side m={m} side="a" onOpen={openPlate} />}
                   sub={
                     <>
                       {m.stage === "third_place" ? <span className="tn-meta">Third place</span> : null}
-                      <Side m={m} side="b" />
+                      <Side m={m} side="b" onOpen={openPlate} />
                     </>
                   }
                 >
@@ -188,6 +227,7 @@ function Bracket({ view }: { view: BigEventView }) {
           </Panel>
         </div>
       ))}
+      <PlateSheet open={open} onClose={close} />
     </section>
   );
 }
@@ -215,15 +255,23 @@ function HallOfFameOn() {
       live = false;
     };
   }, []);
+  const [open, openPlate, close] = useNameplateSheet<OpenPlate>();
   if (!rows.length) return null;
   return (
     <section aria-label="Hall of fame" className="ap-section" data-hall-of-fame>
       <SectionHeader title="Hall of fame" />
       <Panel>
         {rows.map((r) => (
-          <Row key={r.month} data-hall-row={r.month} title={<PlayerStrip player={r.player} />} sub={`Joulz Champion, ${r.label}`} />
+          <Row
+            key={r.month}
+            data-hall-row={r.month}
+            data-hidden-player={r.plate.kind === "hidden" ? "" : undefined}
+            title={<Plate plate={r.plate} line={`Joulz Champion, ${r.label}`} onOpen={openPlate} />}
+            sub={`Joulz Champion, ${r.label}`}
+          />
         ))}
       </Panel>
+      <PlateSheet open={open} onClose={close} />
     </section>
   );
 }
