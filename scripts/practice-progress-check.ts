@@ -172,7 +172,7 @@ async function pureChecks(): Promise<void> {
     // Changed with Joe's approval, 13 Nov 2026: the first migration's thresholds match with Diamond's old 250 left out; the retirement migration's Diamond
     // reads the mirror's live star total.
     check(values === [...NEEDS.slice(0, -1).map(([g, n]) => `${g}:${n}`), "diamond:250"].join(), `the first migration's thresholds are the same but Diamond (${values})`);
-    const retired = readFileSync("supabase/migrations/20261116800000_retired_games.sql", "utf8");
+    const retired = readFileSync("supabase/migrations/20261117300000_retired_games.sql", "utf8");
     check(/\('diamond', coalesce\(\(SELECT star_total FROM public\.game_retirement WHERE id\), 250\)\)/.test(retired), "the retirement migration's Diamond is the mirror's live star total");
     check(/score >= 175/.test(sql) && /v_level IN \('easy', 'classic', 'hard'\)/.test(sql), "the migration's star rule is the same");
     const progress = await import("../src/lib/practice/progress");
