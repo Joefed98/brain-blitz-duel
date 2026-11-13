@@ -2387,6 +2387,20 @@ outside the repo.
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
   next_match_tapped, tier_ladder_viewed (`20261114300000_analytics_rated_screen_events.sql`). rated-screens-check
   (~5 s, happy-dom); shots `bun scripts/shots/rated-shots.tsx` (after `bun run build`).
+- **Trials and tidying, Security B** (13 Nov 2026; no deal, stamp, grading or scoring change): production responses
+  carry `Content-Security-Policy-Report-Only` (`src/lib/security/csp.ts`: the two inline boot scripts by SHA-256, the
+  Supabase project, Google Fonts, Turnstile, Sentry once set; the hydration scripts left for the trial to show) and
+  `Reporting-Endpoints`; `POST /csp-report` (answered in `src/server.ts` before the app, `cspReport.server.ts`) stores
+  only the directive and the blocked host in `public.csp_reports`, 120 a network every 10 minutes; the week's query is
+  in `docs/security/csp-trial.md`. The arcade wall-clock trial is log only: a new room or practice arcade run that
+  arrives past run length × 1.3 + 15 s (`src/lib/round/wallClock.ts`) is recorded as `arcade_run_slow`, never flagged;
+  the arcade stage sends `arcade_run_timed` once a run (wall, hidden and dropped ticks, run ticks; `runTiming.ts`);
+  `bun scripts/arcade-perf.ts` reports sim time against wall time (`simShare`). The Tally link carries
+  `feedbackRefFn`'s HMAC of the id (Worker secret `FEEDBACK_HMAC_KEY`; none set: no reference), never the id. The
+  runbook worker (`docs/runbook/unregister-sw.js`, steps in `service-worker-off.md`) is never built in;
+  `STOP_WORKER_REGISTRATION` in serviceWorker.ts (false) stops the page registering /sw.js. Migrations
+  `20261116200000_csp_reports.sql`, `20261116200100_analytics_arcade_timing.sql`. security-trials-check (~10 s, shard
+  `e`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

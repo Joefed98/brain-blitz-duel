@@ -126,7 +126,7 @@ async function accountNameOf(client: Db, userId: string): Promise<string | null>
   return lookup(client, userId);
 }
 
-/** M2: the shared name cleaner (displayName.server.ts): NFKC, no control / bidi / zero-width characters, 16 code points. */
+/** The shared name cleaner (displayName.server.ts): NFKC, no control / bidi / zero-width characters, 16 code points. */
 async function cleanName(name: unknown): Promise<string> {
   const { cleanDisplayName } = await import("./displayName.server");
   const cleaned = cleanDisplayName(name);
@@ -157,7 +157,7 @@ function nowIso(): string {
 }
 
 async function getRoom(client: Db, roomId: string): Promise<DuelRow> {
-  // L1: an id that can't be a room never reaches the database (whose error text would name the column type).
+  // An id that can't be a room is answered here, before any database read.
   if (!isUuid(roomId)) throw new Error("That room no longer exists.");
   const { data, error } = await readRoom(client, roomId);
   if (error) throw dbError(error, "duel");
@@ -202,8 +202,8 @@ async function requireParticipant(
 }
 
 /**
- * Security fix M6 (Nov 2026 audit): the paths that play or change a room (answers, READY, word and move checks, the
- * lobby look) refuse a player who left or was removed. Rejoining a room still waiting stays joinRoomFn's job; a
+ * The paths that play or change a room (answers, READY, word and move checks, the lobby look) are for players still
+ * in it: a player who left or was removed is answered with LEFT_PLAYER_MESSAGE. Rejoining a room still waiting stays joinRoomFn's job; a
  * player who only went quiet ("inactive") keeps being brought back by answering.
  */
 export const LEFT_PLAYER_MESSAGE = "You left this game.";
@@ -948,13 +948,19 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
 
     // The same grade practice gives, timed by the server's receipt (roomGrade.server.ts).
     const { gradeRoomAnswer } = await import("./roomGrade.server");
+    const receivedAt = Date.now();
     const { graded, clamped, serverMs, msLeft } = gradeRoomAnswer(
       puzzle,
-      { phase: room.phase, phaseStartedAt: room.phase_started_at ?? room.round_started_at, nowMs: Date.now() },
+      { phase: room.phase, phaseStartedAt: room.phase_started_at ?? room.round_started_at, nowMs: receivedAt },
       data.answer,
       data.msRemaining,
       data.extra,
     );
+    // The arcade wall-clock trial (log only, src/lib/round/wallClock.ts): an answer in the puzzle phase, timed from it.
+    if (room.phase === "puzzle") {
+      const { noteSlowArcadeRun } = await import("@/lib/round/wallClock.server");
+      noteSlowArcadeRun({ mode: "room", puzzle, startMs: room.phase_started_at ? Date.parse(room.phase_started_at) : null, nowMs: receivedAt, roomId: room.id, playerId: context.userId });
+    }
     if (clamped) {
       console.warn(
         `submit_answer: time claim ${data.msRemaining}ms beyond server ${Math.round(serverMs)}ms (room ${room.id}, round ${data.roundNumber})`,

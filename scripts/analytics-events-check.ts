@@ -549,7 +549,8 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
       q(`SELECT count(*) FROM public.rate_limit_hits WHERE bucket = '${ANALYTICS_CLIENT_LIMIT.bucket}'`) !== "0",
       "client: the limit is counted through take_rate_limit",
     );
-    check(CLIENT_EVENTS.length === 5, "client: five phone-side events in the list");
+    // Changed with Joe's approval, 13 Nov 2026: arcade_run_timed (the arcade wall-clock trial's phone-side timing) is a sixth.
+    check(CLIENT_EVENTS.length === 6, "client: six phone-side events in the list");
   });
 
   /* ----------------------------------------------- a failing write changes nothing */

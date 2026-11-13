@@ -21,7 +21,7 @@ import type { PuzzleData, PuzzleType } from "./types";
 
 type Loose = Record<string, unknown>;
 
-/* The seal and the deal digest live in practiceSeal.server.ts (security fixes H1 and L8); loaded inside handlers only. */
+/* The seal and the deal digest live in practiceSeal.server.ts; loaded inside handlers only. */
 const sealing = () => import("./practiceSeal.server");
 async function sealDeal(pub: PuzzleData, priv: Loose, tags: Loose = {}): Promise<string> {
   return (await sealing()).sealDeal(pub, priv, tags);
@@ -36,7 +36,7 @@ async function unsealRaw(sealed: string): Promise<Loose> {
   return (await sealing()).unsealRaw(sealed);
 }
 
-/** M4: practice needs no sign-in, so it is limited per network address (rateLimit.server.ts). */
+/** Practice needs no sign-in, so it is limited per network address (rateLimit.server.ts). */
 const PRACTICE_BUSY = "Practice is busy right now. Try again in a few minutes.";
 async function practiceLimit(kind: "deal" | "pack" | "grade" | "check"): Promise<boolean> {
   const limits = await import("./rateLimit.server");
@@ -205,6 +205,10 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     const startAt = await (await sealing()).startAtFor(data.start, String(data.sealed ?? ""));
     const received = practiceReceiptMsRemaining(puzzle, { dealtAt, startAt, nowMs });
     const result = await gradePracticeRun(data, puzzle, example !== undefined, received);
+    // The arcade wall-clock trial (log only, src/lib/round/wallClock.ts): timed from the server's start for the round.
+    const { practiceStartMs } = await import("./practiceReceipt");
+    const { noteSlowArcadeRun } = await import("@/lib/round/wallClock.server");
+    noteSlowArcadeRun({ mode: "practice", puzzle, startMs: practiceStartMs({ dealtAt, startAt, nowMs }), nowMs, dealtAtMs: dealtAt });
     await recordPracticeEvent("game_finished", data.sealed, async () => {
       const { playedMs } = await import("@/lib/data/events.server");
       const { puzzleTimeLimitMs } = await import("./catalogue");
@@ -428,8 +432,8 @@ export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
       return { status: "rejected" as const, reason: "seal" };
     }
     if (!data.puzzle || raw["type"] !== data.puzzle.type) return { status: "rejected" as const, reason: "type" };
-    // Every deal, pack or live, must match the digest it was sealed with (H1): a token from before the digest, or a
-    // changed deal, is rejected, never graded.
+    // Every deal, pack or live, must match the digest it was sealed with (practiceSeal.server.ts openDeal); a token
+    // without the digest, or a deal that differs, is answered "rejected".
     const opened = await openDeal(data.sealed, data.puzzle);
     if (!opened) return { status: "rejected" as const, reason: "deal" };
     const graded = await gradePracticeRun(data, mergePuzzle(opened.pub, opened.priv), opened.example !== undefined);
@@ -505,9 +509,8 @@ async function demoKeyOk(key: unknown): Promise<boolean> {
 }
 
 /**
- * Security fix M7 (Nov 2026 audit): demo saves are refused by the server itself in a production build unless the
- * server sets INTRO_DEMO_SAVES=1 (the client's `dev` flag alone no longer opens them), and guesses at the key are
- * limited per network address.
+ * Demo saves in a production build are taken only when the server sets INTRO_DEMO_SAVES=1 (demoSaves.server.ts),
+ * whatever the client's `dev` flag says, and tries at the key are limited per network address.
  */
 async function demoSavesAllowed(): Promise<boolean> {
   const { demoSavesOpen } = await import("./demoSaves.server");

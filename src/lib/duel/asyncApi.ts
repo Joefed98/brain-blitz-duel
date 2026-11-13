@@ -97,7 +97,7 @@ export interface AsyncReveal {
   summary: string;
   detail: string[];
   correctAnswer: string | null;
-  /** H2: the solution's lock while the room is open (the puzzle is then its public half only). */
+  /** The solution's lock while the room is open (the puzzle is then its public half only; asyncRoom.ts SolutionLock). */
   solutionLock?: SolutionLock | null;
   /** The look the round was played in (async_results.look: skin, world, card back; display only). */
   look?: unknown;
@@ -140,7 +140,7 @@ export async function asyncCheckMoves(
   return (await asyncCheckMovesFn({ data: { roomId, roundNumber, moves } })) as MovesView | null;
 }
 
-/** The reveal's locked-solution line for an async reveal, or null when the solution is open (H2). */
+/** The reveal's locked-solution line for an async reveal, or null when the solution is open (SolutionLock). */
 export function revealLockLine(reveal: Pick<AsyncReveal, "solutionLock"> | null | undefined): string | null {
   return reveal?.solutionLock ? solutionLockText(reveal.solutionLock) : null;
 }

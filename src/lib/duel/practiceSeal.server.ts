@@ -1,6 +1,6 @@
 /**
  * Practice tokens (server-only): the sealed private half of a practice deal, with a digest of the public half it was
- * dealt with. Moved out of practice.functions.ts (Nov 2026 security fixes) so security-fixes-check can prove it.
+ * dealt with. Kept apart from practice.functions.ts (Nov 2026) so security-fixes-check can prove it.
  */
 import { splitPuzzle } from "./secrets";
 import { PUZZLE_TYPES } from "./catalogue";
@@ -9,9 +9,8 @@ import type { PuzzleData } from "./types";
 type Loose = Record<string, unknown>;
 
 /**
- * Security fix L8 (Nov 2026 audit): practice tokens are sealed with their own key, PRACTICE_SEAL_KEY, when the server
- * has one, and say so with a key id (`k2.` before the token), so rotating the service-role key no longer breaks every
- * offline pack. Tokens without the id (every token before this, or a server without PRACTICE_SEAL_KEY) open with the
+ * Practice tokens are sealed with their own key, PRACTICE_SEAL_KEY, when the server has one, and say so with a key id
+ * (`k2.` before the token), so the service-role key can be rotated without touching offline packs. Tokens without the id (every token before this, or a server without PRACTICE_SEAL_KEY) open with the
  * key derived from the service-role key as before.
  */
 const SEAL_KEY_ID = "k2";
@@ -62,11 +61,9 @@ export async function seal(payload: unknown): Promise<string> {
 }
 
 /**
- * Security fix H1 (Nov 2026 audit): every practice token seals a digest of the public half it was dealt with
- * (`__pub`), and every function that merges a client's public half with a sealed half opens it through `openDeal`,
- * which refuses a token without the digest or a public half that differs from the one dealt. So a signed-out caller
- * can't grade, check or save a board (Hanoi's disc count, a link pattern, a seed, a stamp, a clock) the server never
- * dealt. The digest is taken over the public fields of whatever the phone sends (`publicHalf`), so a phone that sends
+ * Every practice token seals a digest of the public half it was dealt with (`__pub`), and every function that merges
+ * a client's public half with a sealed half opens it through `openDeal`, which answers only for a token with the digest
+ * and the public half dealt with it. Every board graded, checked or saved in practice is one the server dealt. The digest is taken over the public fields of whatever the phone sends (`publicHalf`), so a phone that sends
  * the full puzzle back (the reveal's demo save) still matches, and secret fields it sends are never merged.
  */
 export interface OpenedDeal {

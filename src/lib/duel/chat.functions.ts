@@ -54,7 +54,7 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     const refusedChat = await chatRefusal(await admin(), context.userId);
     if (refusedChat) return { ok: false as const, message: refusedChat, muted: true as const };
 
-    // M2: the names' character strip (no control, bidi or zero-width characters), cut by code point.
+    // The names' character strip (no control, bidi or zero-width characters), cut by code point.
     const { cleanChatText, censorChat } = await import("./displayName.server");
     let text = cleanChatText(data.text, MESSAGE_MAX_LENGTH);
     if (!text) return { ok: false as const, message: "Type a message first." };
@@ -83,7 +83,7 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     }
 
     const supabaseAdmin = await admin();
-    // L3: the gap and cap above are read-then-insert, so parallel sends got past both; this bucket is atomic.
+    // The gap and cap above, counted again in atomic buckets (rateLimit.server.ts).
     const { chatGapLimit, chatRoomLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(supabaseAdmin, context.userId, chatGapLimit(MESSAGE_MIN_GAP_MS)))) {
       return { ok: false as const, message: "Slow down a moment." };
