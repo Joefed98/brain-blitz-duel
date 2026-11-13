@@ -744,8 +744,9 @@ async function fullPass(browser: Browser): Promise<void> {
   check(waited && navigations === navsAtStart, "no reload while the run plays");
   check((await controllerVersion(page)) === before, "the old worker stays in control during the run");
   check((await page.locator("[data-arcade-play]").count()) === 1, "the run is still on screen");
-  await playPokerSquares(page);
-  await page.getByRole("button", { name: "Back", exact: true }).first().waitFor({ timeout: 30_000 });
+  // Changed with Joe's approval, 13 Nov 2026: Summit plays to its buzzer; the Full House taps ended a Full House run (was `await playPokerSquares(page);`).
+  // Changed with Joe's approval, 13 Nov 2026: Summit plays to its buzzer; the Full House taps ended a Full House run (was a 30 s timeout).
+  await page.getByRole("button", { name: "Back", exact: true }).first().waitFor({ timeout: 90_000 });
   const loadsBeforeBack = loads;
   await page.getByRole("button", { name: "Back", exact: true }).first().click();
   const tookOver = await until("the new worker takes over on the list", async () => (await controllerVersion(page)) === `${before}${NEXT_SUFFIX}`, 30_000);
