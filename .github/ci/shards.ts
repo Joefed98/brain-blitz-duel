@@ -98,10 +98,12 @@ export const SHARDS: Record<string, string[]> = {
   // The page skin (19 Oct 2026): theme-check and no-wrap-check's draws (the daily screens joined 21 Oct 2026: locally
   // theme-check ~2 min, no-wrap-check ~4 min whole). no-wrap-check in sixths since 4 Nov 2026: its thirds reached 281–300 s
   // on CI against the 300 s limit per check (#261's play17); two sixths here, four on play17, the same two jobs.
-  play16: ["theme-check.tsx", "no-wrap-check.tsx@1/6", "no-wrap-check.tsx@2/6"],
+  // Changed with Joe's approval, 13 Nov 2026: theme-check in halves (one identity everywhere: the room screens drawn at
+  // every size took it past its 600 s limit locally); part 1 here, part 2 on play17.
+  play16: ["theme-check.tsx@1/2", "no-wrap-check.tsx@1/6", "no-wrap-check.tsx@2/6"],
   // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
   // harness, ~1 min with its dev server) rides with no-wrap's other four sixths.
-  play17: ["no-wrap-check.tsx@3/6", "no-wrap-check.tsx@4/6", "no-wrap-check.tsx@5/6", "no-wrap-check.tsx@6/6", "share-check.ts"],
+  play17: ["theme-check.tsx@2/2", "no-wrap-check.tsx@3/6", "no-wrap-check.tsx@4/6", "no-wrap-check.tsx@5/6", "no-wrap-check.tsx@6/6", "share-check.ts"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
   // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
@@ -367,6 +369,10 @@ export const SHARDS: Record<string, string[]> = {
     // packs and the £ line, then buying, bundles, test packs, the wishlist and the tester list on a local PostgreSQL
     // through the server-function harness, beside economy-check.
     "shop-check.ts",
+    // cosmetics-withdrawn-check (13 Nov 2026, ~10 s): withdrawn cosmetics offered nowhere, owners keep them, Joe's
+    // one-line restore, the Top 500 frame's grant and card backs on Summit, Thirteen and Five Hands, on a local PostgreSQL
+    // through the server-function harness, beside shop-check.
+    "cosmetics-withdrawn-check.ts",
     // plus-check (wave 2 E2, 13 Nov 2026, ~20 s): Joulz Plus (test purchases, the monthly perks across month
     // boundaries, the premium pass binding, the PLUS chip), early access, the Daily archive kept off boards, streaks
     // and badges, and the public cosmetics, on a local PostgreSQL through the server-function harness.

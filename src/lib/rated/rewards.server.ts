@@ -32,9 +32,31 @@ export async function awardRatedBadges(client: Db, userId: string, nowMs: number
   try {
     const { evaluateBadges } = await import("@/lib/badges/badges.server");
     const { awarded } = await evaluateBadges(client, userId, nowMs);
+    await grantTop500Frame(client, userId);
     return awarded.filter((s) => RATED_BADGES.includes(s));
   } catch {
     return [];
+  }
+}
+
+/** The Top 500 frame (Joe, 13 Nov 2026; docs/cosmetics-review): kept forever, given with the Top 500 badge. */
+export const TOP_500_FRAME = "frame.top-500";
+
+/**
+ * Gives the Top 500 frame to a player who holds the Top 500 badge (their shown tier became Top 500), at the moment the
+ * badge is awarded and on every later check (idempotent: an owner answers owned). Dormant while the frame is withdrawn:
+ * the grant answers withdrawn and gives nothing, and economy.restore_item gives it to every badge holder once Joe
+ * restores the frame. Never fails the match.
+ */
+export async function grantTop500Frame(client: Db, userId: string): Promise<string> {
+  try {
+    const { readPlayerBadges } = await import("@/lib/data/badges.server");
+    const badges = await readPlayerBadges(client, userId);
+    if (badges.error || !badges.data.some((b) => b.badge === "top-500")) return "no_badge";
+    const { grantItem } = await import("@/lib/economy/economy.server");
+    return await grantItem(client, { userId, itemId: TOP_500_FRAME, how: "earned" });
+  } catch {
+    return "error";
   }
 }
 

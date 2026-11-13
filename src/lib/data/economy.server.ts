@@ -44,7 +44,7 @@ export interface ConsumableOutcome {
   amount?: number;
 }
 
-export type GrantItemStatus = "granted" | "owned" | "no_account" | "unknown_item" | "bad_how";
+export type GrantItemStatus = "granted" | "owned" | "withdrawn" | "no_account" | "unknown_item" | "bad_how";
 export type EquipStatus = "equipped" | "unequipped" | "no_account" | "unknown_item" | "wrong_slot" | "not_owned";
 export type SetAvatarStatus = "set" | "no_account" | "bad_avatar" | "bad_colour" | "bad_option" | "gem_locked";
 export type AvatarOptionRow = Tables<"avatar_options">;
