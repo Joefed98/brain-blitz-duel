@@ -59,17 +59,11 @@ export const BUNDLES: readonly BundleDef[] = [
     id: "card-table",
     name: "Card Table",
     size: "medium",
-    items: [
-      "card-back.holo-foil",
-      "card-back.royal-damask",
-      "game-skin.full-house.midnight-felt",
-      "game-skin.full-house.crimson-velvet",
-      "card-art.royal",
-      "card-art.crimson",
-      "card-art.emerald",
-    ],
+    // Joe, 13 Nov 2026 (docs/cosmetics-review, Proposal A): Full House is retired, so its two felts left; the Aurora
+    // card art (Legendary) takes their place and the Royal card art's (withdrawn until redrawn). 7,400 for 5,500.
+    items: ["card-back.holo-foil", "card-back.royal-damask", "card-art.aurora", "card-art.crimson", "card-art.emerald"],
     price: 5_500,
-    blurb: "Holo Foil (Elite) and Royal Damask (Epic) card backs, Full House felts and three jewel card arts (Epic).",
+    blurb: "Holo Foil (Elite) and Royal Damask (Epic) card backs, the animated Aurora card art (Legendary), and the Crimson and Emerald card arts (Epic).",
   },
   {
     id: "black-and-gold",

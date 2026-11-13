@@ -276,6 +276,7 @@ export async function bindW3(): Promise<RatedBackend> {
         season: null,
         standing,
         activeMatchId: s.activeMatchId,
+        cooldown: s.cooldown ?? null,
       } satisfies RatedStatus;
     },
 

@@ -470,3 +470,16 @@ export async function markRoomPlayersLeft(client: Db, roomId: string, userIds: s
   const { error } = await client.from("duel_players").update({ status: "left" }).eq("duel_id", roomId).in("user_id", userIds);
   return { data: null, error };
 }
+
+/**
+ * When this player was among an aborted live match's leavers (left during set-up) since `sinceIso`, newest first
+ * (public.mm_recent_aborts, service role; the queue's cooldown). Empty on a database without the function.
+ */
+export async function readRecentAborts(client: Db, userId: string, sinceIso: string): Promise<Result<number[]>> {
+  const { data, error } = await client.rpc("mm_recent_aborts", { p_user: userId, p_since: sinceIso });
+  const rows = (Array.isArray(data) ? data : []) as unknown[];
+  const times = rows
+    .map((r) => Date.parse(typeof r === "string" ? r : String((r as Record<string, unknown>)?.["mm_recent_aborts"] ?? "")))
+    .filter(Number.isFinite);
+  return { data: times, error };
+}

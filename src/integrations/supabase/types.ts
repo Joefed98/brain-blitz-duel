@@ -181,6 +181,8 @@ export type Database = {
           rarity: string | null
           slot: string
           sort_order: number
+          withdrawn_at: string | null
+          withdrawn_note: string | null
           source: string
         }
         Insert: {
@@ -202,6 +204,8 @@ export type Database = {
           rarity?: string | null
           slot: string
           sort_order?: number
+          withdrawn_at?: string | null
+          withdrawn_note?: string | null
           source: string
         }
         Update: {
@@ -223,6 +227,8 @@ export type Database = {
           rarity?: string | null
           slot?: string
           sort_order?: number
+          withdrawn_at?: string | null
+          withdrawn_note?: string | null
           source?: string
         }
         Relationships: []
@@ -951,6 +957,35 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "duel_players"
             referencedColumns: ["duel_id", "user_id"]
+          },
+        ]
+      }
+      duel_removed_players: {
+        Row: {
+          duel_id: string
+          game_index: number
+          removed_at: string
+          user_id: string
+        }
+        Insert: {
+          duel_id: string
+          game_index: number
+          removed_at?: string
+          user_id: string
+        }
+        Update: {
+          duel_id?: string
+          game_index?: number
+          removed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_removed_players_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "duels"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2683,6 +2718,8 @@ export type Database = {
           rarity: string | null
           slot: string | null
           sort_order: number | null
+          withdrawn_at: string | null
+          withdrawn_note: string | null
           source: string | null
         }
         Relationships: []
@@ -2862,6 +2899,10 @@ export type Database = {
         Returns: string
       }
       guest_progress: { Args: { p_user_id: string }; Returns: Json }
+      can_read_room_chat: { Args: { _duel_id: string }; Returns: boolean }
+      mm_recent_aborts: { Args: { p_user: string; p_since: string }; Returns: string[] }
+      room_send_reaction: { Args: { p_duel_id: string; p_payload: Json }; Returns: undefined }
+      room_topic_allowed: { Args: { p_topic: string; p_write: boolean }; Returns: boolean }
       file_room_report: {
         Args: {
           p_duel_id: string | null

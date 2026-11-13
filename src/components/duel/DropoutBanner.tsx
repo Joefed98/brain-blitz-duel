@@ -14,6 +14,7 @@ export function DropoutBanner({
   absentTotal,
   onFinish,
   graceText,
+  finishInSeconds,
 }: {
   absentNames: string[];
   myTotal: number;
@@ -26,7 +27,13 @@ export function DropoutBanner({
    * ends."), in place of the rounds line and Finish now.
    */
   graceText?: string | undefined;
+  /**
+   * An ordinary room (13 Nov 2026): the seconds until Finish now is offered (a rival away for 45 s); while above 0 the
+   * line counts down and the button waits.
+   */
+  finishInSeconds?: number | undefined;
 }) {
+  const waiting = graceText === undefined && finishInSeconds !== undefined && finishInSeconds > 0;
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,11 +66,11 @@ export function DropoutBanner({
         </p>
         <p className="text-xs text-foreground/80" data-dropout-line={graceText !== undefined ? "grace" : "rounds"}>
           You {myTotal}
-          {absentTotal !== null ? `, ${who} ${absentTotal}` : ""}. {graceText ?? "Rounds carry on; they score 0."}
+          {absentTotal !== null ? `, ${who} ${absentTotal}` : ""}. {graceText ?? (waiting ? `Rounds carry on; they score 0. Finish now in ${finishInSeconds} s.` : "Rounds carry on; they score 0.")}
         </p>
         {error && <p className="text-xs text-warn">{error}</p>}
       </div>
-      {onFinish && graceText === undefined ? (
+      {onFinish && graceText === undefined && !waiting ? (
       <button
         type="button"
         disabled={busy}

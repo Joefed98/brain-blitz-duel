@@ -38,6 +38,8 @@ export interface CatalogueItem {
   passLevel: number | null;
   shopPrice: number | null;
   animated: boolean;
+  /** Withdrawn (13 Nov 2026, docs/cosmetics-review): not offered anywhere; an owner still has it. */
+  withdrawn?: boolean;
 }
 
 /** The slots Customise equips (A1's `equip(slot, …)`). */
@@ -181,6 +183,7 @@ export function normaliseItem(raw: unknown): CatalogueItem | null {
     passLevel: num(r["passLevel"] ?? r["pass_level"]),
     shopPrice: num(r["priceCoins"] ?? r["shopPrice"] ?? r["shop_price_coins"]),
     animated: r["animated"] === true,
+    withdrawn: r["withdrawn"] === true,
   };
 }
 

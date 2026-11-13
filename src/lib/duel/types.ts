@@ -624,6 +624,11 @@ export const STANDINGS_MS = 10_000;
 /** Missing this many rounds in a row marks a player inactive. */
 export const INACTIVE_AFTER_MISSED = 2;
 export const DISCONNECT_MS = 15_000;
+/**
+ * Finish now (ordinary rooms, 13 Nov 2026): offered once every other player has left or been unseen this long. The
+ * dropout banner shows from DISCONNECT_MS and counts down to it. Rated and tournament rooms never offer it.
+ */
+export const FINISH_NOW_AWAY_MS = 45_000;
 
 /** Reaction Time: 5–8 stored gold flashes on one shared 60-second timeline. */
 export const REACTION_ROUND_MS = 60_000;

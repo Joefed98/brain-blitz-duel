@@ -603,6 +603,44 @@ export const ALL_SIZES: ThemeViewport[] = [
 export const PASS_SCREENS = (): ThemeScreen[] => [
   { name: "pass, a tester at level 12", mode: "pass", plain: true, globals: { __harnessPass: passFixture() }, waitMs: 800, sizes: ALL_SIZES },
   { name: "pass, premium", mode: "pass", plain: true, globals: { __harnessPass: passFixture({ premium: true }) }, waitMs: 800, sizes: ALL_SIZES },
+  // 13 Nov 2026 (docs/cosmetics-review): the review's withdrawn items as gaps ("Being redrawn"), level 30 with the
+  // premium track, at every size. Appended last, so every earlier screen keeps its place in the parts.
+  { name: "pass, withdrawn rewards as gaps", mode: "pass", plain: true, globals: { __harnessPass: passFixture({ level: 30, premium: true, withdrawn: withdrawnItems() }) }, waitMs: 800, sizes: ALL_SIZES },
+];
+
+/** The catalogue items withdrawn today: the review's items not marked Keep (docs/cosmetics-review/verdicts.json), less those Joe restored. */
+function withdrawnItems(): ReadonlySet<string> {
+  const verdicts = JSON.parse(readFileSync("docs/cosmetics-review/verdicts.json", "utf8")) as Record<string, string>;
+  const restored = new Set(["card-back.royal-damask", "card-back.holo-foil", "card-back.neon"]);
+  return new Set(Object.keys(verdicts).filter((id) => verdicts[id] !== "Keep" && !restored.has(id)));
+}
+
+/**
+ * Security A (13 Nov 2026): the rated Play card and picker with the wait after set-up leaves, the abort notice's wait
+ * line, and the dropout banner's countdowns (Finish now at 45 s in an ordinary room; a rated room's grace), from
+ * scripts/rated-fixture.tsx. Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const SECURITY_A_SCREENS = (): ThemeScreen[] => [
+  ...(["home-cooldown", "aborted-you-left", "dropout-countdown", "dropout-rated"] as const).map((screen) => ({
+    name: `rated, ${screen.replaceAll("-", " ")}`,
+    mode: "rated" as const,
+    plain: true,
+    globals: { __harnessRated: { screen } },
+    sizes: ALL_SIZES,
+  })),
+  {
+    // The picker opened from the Play card, as a player taps it.
+    name: "rated, picker cooldown",
+    mode: "rated",
+    plain: true,
+    globals: { __harnessRated: { screen: "home-cooldown" } },
+    go: async (page) => {
+      await page.locator("[data-open-picker]").click();
+      await page.locator("[data-rated-picker] [data-rated-cooldown]").waitFor({ timeout: 10_000 });
+      await page.waitForTimeout(500);
+    },
+    sizes: ALL_SIZES,
+  },
 ];
 
 /**
@@ -837,6 +875,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...RATED_SCREENS(),
   ...LEADERBOARD_SCREENS(),
   ...PASS_SCREENS(),
+  ...SECURITY_A_SCREENS(),
   ...ROOM_IDENTITY_SCREENS(),
 ];
 

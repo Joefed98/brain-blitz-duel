@@ -38,7 +38,7 @@ import { WinnerReveal } from "@/components/duel/WinnerReveal";
 import { RatedRoomHandOff } from "@/components/rated/RatedRoomHandOff";
 import { betweenFor, RatedBetween } from "@/components/rated/RatedBetween";
 import { isBetweenPhase } from "@/lib/rated/between";
-import { graceLine, graceSecondsLeft, latestSeenMs } from "@/lib/rated/rules";
+import { graceLine, graceSecondsLeft, latestSeenMs, RATED_AWAY_MS } from "@/lib/rated/rules";
 import { RatedRoomScore } from "@/components/rated/RatedFrameScore";
 import { useRatedRoom, useRatedRoomFormat } from "@/lib/rated/ratedRoom";
 import { animateFx } from "@/lib/fx/motion";
@@ -106,6 +106,8 @@ import { roomPuzzleCloseMs, roomTimeoutMs } from "@/lib/duel/roomClose";
 import { elapsedMs, formatElapsed, roundVerdict, scoreOnlyVerdict } from "@/lib/duel/resultPresentation";
 import {
   absentRivals,
+  everyoneElseAway,
+  finishNowInSeconds,
   allContinued,
   allIntroReady,
   canFinishNow,
@@ -146,6 +148,7 @@ import {
   NEXT_ROUND_AUTO_MS,
   STANDINGS_MS,
   TOTAL_ROUNDS,
+  DISCONNECT_MS,
   type PuzzleData,
   type PuzzleType,
   type RoundRevealData,
@@ -153,7 +156,7 @@ import {
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { lookColumnsPresent, PLAYER_COLOURS, resolvePlayerLooks } from "@/lib/duel/playerLook";
-import { setRaceGhostSkins, startRaceGhosts } from "@/lib/duel/raceGhosts";
+import { ghostQuietFrom, setRaceGhostQuietFrom, setRaceGhostSkins, startRaceGhosts } from "@/lib/duel/raceGhosts";
 import { podiumAwards } from "@/lib/duel/podiumAwards";
 import { awardRoundsFor } from "@/lib/duel/awardRounds";
 import { roomInvite } from "@/lib/duel/roomLink";
@@ -508,6 +511,9 @@ function DuelScreen() {
     return startRaceGhosts(duel.id, ghostRound, { key: String(mySlot), name: me.display_name, colour });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ghostRound, duel?.id, mySlot]);
+  // A rated room's ghosts go quiet for the game's final 20 %, while the opponent's score is hidden (13 Nov 2026).
+  const ghostQuietAt = ghostRound !== null && ratedMatchId && phase === "puzzle" && phaseStart !== null && puzzle ? ghostQuietFrom(phaseStart, puzzleTimeLimitMs(puzzle)) : null;
+  useEffect(() => setRaceGhostQuietFrom(ghostQuietAt), [ghostQuietAt]);
   // Each ghost wears its own player's car paint (wave 2 skins, display only): read once a round from the server, which
   // reads each owner's loadout (src/lib/identity/roomLooks.functions.ts); a failure leaves the default paint.
   useEffect(() => {
@@ -958,19 +964,21 @@ function DuelScreen() {
 
   // Everyone else has left or dropped out: no dead end. The rounds carry on
   // on their timers (absent players score 0) and the player can finish now.
-  const absent = absentRivals(players, me.user_id, now);
+  const awayMs = ratedMatchId ? RATED_AWAY_MS : DISCONNECT_MS;
+  const absent = absentRivals(players, me.user_id, now, awayMs);
   // A rated match (W3b's leaving rules, Joe 12 Nov 2026): no Finish now; the banner counts down the 20 s grace from
   // the absent player's last sign of life, after which the server ends the match (an abort before the first intro, else
   // a forfeit).
   const ratedGrace = ratedMatchId ? graceLine(graceSecondsLeft(latestSeenMs(absent), now)) : undefined;
   const dropout =
-    duel.status === "in_progress" && canFinishNow(players, me.user_id, now) ? (
+    duel.status === "in_progress" && everyoneElseAway(players, me.user_id, now, awayMs) ? (
       <DropoutBanner
         absentNames={absent.map((p) => p.display_name)}
         myTotal={myTotal}
         absentTotal={absent.length === 1 ? totalScoreThrough(results, absent[0]!.player_slot, scoredThrough) : null}
         onFinish={ratedMatchId ? undefined : handleFinishNow}
         graceText={ratedGrace}
+        finishInSeconds={ratedMatchId || canFinishNow(players, me.user_id, now) ? undefined : finishNowInSeconds(players, me.user_id, now)}
       />
     ) : null;
   // Guests can leave a game between rounds (the host's leave would close the room).

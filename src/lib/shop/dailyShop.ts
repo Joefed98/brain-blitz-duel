@@ -66,11 +66,12 @@ export function slotRarities(day: ShopDate): [ShopRarity, ShopRarity, ShopRarity
 }
 
 /**
- * Whether a catalogue item may ever be sold in the daily shop or a bundle: the shop query's rule (source shop, not
- * exclusive, priced) and a sellable rarity. Pass, free and earned items never pass.
+ * Whether a catalogue item may be sold in the daily shop or a bundle: the shop query's rule (source shop, not
+ * exclusive, priced, not withdrawn) and a sellable rarity. Pass, free and earned items never pass; a withdrawn item
+ * (13 Nov 2026, docs/cosmetics-review) passes again once Joe restores it.
  */
-export function sellable(item: { source: string; exclusive: boolean; priceCoins: number | null; rarity: string | null }): boolean {
-  return item.source === "shop" && !item.exclusive && item.priceCoins !== null && SHOP_RARITIES.includes(item.rarity as ShopRarity);
+export function sellable(item: { source: string; exclusive: boolean; priceCoins: number | null; rarity: string | null; withdrawn?: boolean }): boolean {
+  return item.source === "shop" && !item.exclusive && item.priceCoins !== null && !item.withdrawn && SHOP_RARITIES.includes(item.rarity as ShopRarity);
 }
 
 /** The pool in a fixed order (by id), only the three sellable rarities. */
