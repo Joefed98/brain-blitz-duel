@@ -2406,7 +2406,7 @@ outside the repo.
   holding one reads as closed, `retiredClosed`), the shop's daily pool and Customise (`forRetiredGame`, a retired game's
   skins and themes; owned ones stay owned; bundles are the Cosmetics session's), the star total (`STAR_TOTAL_MAX` = live
   games × 3, 249; `starCounts`), the gems (Diamond is every live star) and the badge facts. In SQL the server keeps a
-  mirror, `public.game_retirement` (`20261116600000_retired_games.sql`, synced by `syncRetirement` in
+  mirror, `public.game_retirement` (`20261116800000_retired_games.sql`, synced by `syncRetirement` in
   `src/lib/data/retirement.server.ts`), read by `practice_star_total`, `practice_gems_for` and `badge_facts`. Nothing is
   deleted: stars, bests, completions, owned items, results and history stay, and history still names the game (display
   only). retirement-check (~30 s, PostgreSQL) proves it all and the bring-back. Same day: Minefield moved to Logic on

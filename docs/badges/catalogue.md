@@ -7,7 +7,7 @@ badges-check fails if the table below and the code disagree. How the rules are c
 
 **Retired games (13 Nov 2026, Joe's rule).** Every badge counts active games only: a retired game
 (`RETIRED_TYPES`, `src/lib/duel/catalogue.ts`) counts towards nothing, so its stars, completed challenges, 200s and
-finishes no longer move any badge's progress (`badge_facts`, `20261116600000_retired_games.sql`), and every game count
+finishes no longer move any badge's progress (`badge_facts`, `20261116800000_retired_games.sql`), and every game count
 is the active games' (All-Rounder 83 games; the category masters, Category Clear and Completionist, when their rules
 arrive, count the active games of the category, so every category stays completable). A badge already earned stays.
 

@@ -116,7 +116,7 @@ check(GEM_THRESHOLDS.every((g, i) => i === 0 || g.stars > GEM_THRESHOLDS[i - 1]!
 check(GEM_THRESHOLDS.at(-1)!.gem === "diamond" && GEM_THRESHOLDS.at(-1)!.stars === STAR_TOTAL_MAX, "Diamond is every live star");
 const mirror = retirementMirror();
 check(mirror.starTotal === STAR_TOTAL_MAX && mirror.retired.join() === [...retired].sort().join(), "the server's mirror is RETIRED_TYPES and the star total");
-const migration = readFileSync("supabase/migrations/20261116600000_retired_games.sql", "utf8");
+const migration = readFileSync("supabase/migrations/20261116800000_retired_games.sql", "utf8");
 const seed = /VALUES \(true, ARRAY\[([^\]]*)\]::text\[\], (\d+)\)/.exec(migration);
 const seeded = seed ? [...seed[1]!.matchAll(/'([a-z]+)'/g)].map((m) => m[1]!).sort() : [];
 check(seed !== null && seeded.join() === [...retired].sort().join() && Number(seed[2]) === STAR_TOTAL_MAX, "the migration seeds the mirror with today's list and total");

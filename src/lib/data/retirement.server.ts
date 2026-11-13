@@ -1,5 +1,5 @@
 /**
- * The database's mirror of the retired games (supabase/migrations/20261116600000_retired_games.sql): RETIRED_TYPES
+ * The database's mirror of the retired games (supabase/migrations/20261116800000_retired_games.sql): RETIRED_TYPES
  * (src/lib/duel/catalogue.ts, the one switch) and the live star total (STAR_TOTAL_MAX), which the star total, the gems
  * and the badge facts read in SQL. Written through public.game_retirement_sync, once per server process before the first
  * counting call and only when it differs, so removing a game from RETIRED_TYPES restores it on the next server call.
