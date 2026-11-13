@@ -517,10 +517,11 @@ export function BoardVisibilitySetting() {
         aria-label="Show me on leaderboards"
         data-board-visibility={state.show ? "on" : "off"}
         onClick={() => void toggle()}
+        className="lb-setting-row"
       >
         <span className="jz-row-text items-start text-left">
           <span className="jz-row-title">Show me on leaderboards</span>
-          <span className="jz-row-sub">
+          <span className="jz-row-sub" data-wrap-ok>
             {state.adult
               ? "Off: you show as “Hidden player” on global and country boards. Friends always see you."
               : "Under-18s are hidden by default. Friends always see you."}

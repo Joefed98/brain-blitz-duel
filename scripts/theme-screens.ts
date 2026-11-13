@@ -366,6 +366,24 @@ export const LEADERBOARD_SCREENS = (): ThemeScreen[] => [
   { name: "daily board, today", mode: "dailyboard", plain: true, globals: { __harnessBoards: boardsFixture() }, waitMs: 1200 },
   { name: "daily board, a guest", mode: "dailyboard", plain: true, globals: { __harnessBoards: boardsFixture({ dailyReason: "guest" }), __harnessBoardsGuest: true }, waitMs: 1200 },
   { name: "daily board, an earlier day", mode: "dailyboard", plain: true, globals: { __harnessBoards: boardsFixture({ dailyFinal: true }) }, query: "day=2026-10-25", waitMs: 1200 },
+  // Settings → Account with "Show me on leaderboards" drawn (13 Nov 2026: its description once widened the page past
+  // 390 px; it wraps left of its switch, as Friends' setting rows do), for an adult and an under-18.
+  ...([
+    ["an adult", { show: false, setting: false, adult: true }],
+    ["an under-18", { show: false, setting: null, adult: false }],
+  ] as const).map(([who, visibility]): ThemeScreen => ({
+    name: `account settings, show me on leaderboards, ${who}`,
+    mode: "account",
+    plain: true,
+    globals: { __harnessAccount: ACCOUNT_FIXTURE, __harnessBoards: { ...boardsFixture(), visibility } },
+    waitMs: 800,
+    go: async (page) => {
+      const row = page.locator("[data-board-visibility]");
+      await row.waitFor({ timeout: 10_000 });
+      await row.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+    },
+  })),
 ];
 
 export const WAVE1_SCREENS = (): ThemeScreen[] => [
