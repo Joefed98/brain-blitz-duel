@@ -51,6 +51,11 @@ export const QUICK_ROUNDS = [3, 6, 9, 12] as const;
 export interface RoomSettings {
   picks: RoomPick[];
   rounds: number;
+  /**
+   * Rated play only (never stored): deal only games of this pool, so a game listed also in a pick of the other pool
+   * (Pull!, a Speed puzzle also in Sports) never joins an "All arcade" match. Rooms leave it out and deal as before.
+   */
+  pool?: "puzzles" | "arcade";
 }
 
 export type PresetId = "mixed" | "puzzles" | "arcade";

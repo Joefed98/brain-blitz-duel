@@ -11,6 +11,7 @@
  *     the host's last three rooms' games are weighted down and the last room's skipped while a pick has
  *     enough others (selection.ts' rule).
  */
+import { PUZZLE_REGISTRY } from "./catalogue";
 import { shuffled, weightedPick, withSeededRandom } from "./random";
 import {
   clampRounds,
@@ -112,7 +113,11 @@ export function dealRoomRounds(
   settings: RoomSettings,
   options: { seed: number; recent?: RecentRounds },
 ): RoomDeal {
-  const picks = orderPicks(settings.picks).filter((p) => pickTypes(p, settings.picks).length > 0);
+  // A rated pool (roomSettings.ts `pool`) keeps a pick's games to that pool; without one, every game as before.
+  const pool = settings.pool;
+  const inPool = (t: PuzzleType) => !pool || (PUZZLE_REGISTRY[t].category === "arcade") === (pool === "arcade");
+  const typesOf = (p: RoomPick, ps: readonly RoomPick[]) => (pool ? pickTypes(p, ps).filter(inPool) : pickTypes(p, ps));
+  const picks = orderPicks(settings.picks).filter((p) => typesOf(p, settings.picks).length > 0);
   if (!picks.length) return { picks: [], types: [] };
   const rounds = clampRounds(settings.rounds, picks);
   const recent = (options.recent ?? []).slice(0, RECENT_WEIGHTS.length);
@@ -122,7 +127,7 @@ export function dealRoomRounds(
     const used = new Map<RoomPick, PuzzleType[]>();
     const out: PuzzleType[] = [];
     for (const pick of order) {
-      const all = pickTypes(pick, picks);
+      const all = typesOf(pick, picks);
       let taken = used.get(pick) ?? [];
       // Every game of the pick played: it starts over (not with its last game, when it has others).
       if (taken.length >= all.length) taken = all.length > 1 ? taken.slice(-1) : [];
