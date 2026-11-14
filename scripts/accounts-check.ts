@@ -399,8 +399,11 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(attempt.ok === true, "keep: her Daily attempt opens with the account's token");
     const mine = await call(challenge.myChallengesFn, { codes: [challengeCode] }, giaToken);
     check(JSON.stringify(mine).includes(challengeCode), "keep: her challenge lists as hers");
-    const players = await deviceDb(giaToken).from("duel_players").select("user_id").eq("duel_id", roomId);
-    check((players.data ?? []).some((p) => p.user_id === GIA), "keep: her room's players read as hers through RLS");
+    // Changed with Joe's approval, 14 Nov 2026 (consequence of C1b's public ids): phones read seats by public id, so her
+    // seat is found by the public id her own token answers (my_public_id()).
+    const players = await deviceDb(giaToken).from("duel_players").select("public_id").eq("duel_id", roomId);
+    const herId = (await deviceDb(giaToken).rpc("my_public_id")).data;
+    check(!!herId && (players.data ?? []).some((p) => p.public_id === herId), "keep: her room's players read as hers through RLS");
     const msg = await call(chat.sendRoomMessageFn, { roomId, text: "still me" }, giaToken);
     check(msg.ok === true || /wait|slow|second/i.test(JSON.stringify(msg)), "keep: she is still a member of her room");
   });
