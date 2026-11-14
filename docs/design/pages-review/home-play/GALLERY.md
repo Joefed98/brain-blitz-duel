@@ -10,8 +10,9 @@ picture they sit over the middle), drawn by `bun scripts/shots/home-play-shots.t
 |---|---|---|
 | ![](home-guest-before.png) | ![](home-guest-after.png) | ![](home-account-after.png) |
 
-- Header: the avatar; the Daily streak beside it; on the right the coin counter (where the Shop is on) and the bell
-  (where phone notifications are on: today the testers; it opens Settings, where Notifications are).
+- Header: the avatar; the Daily streak beside it; on the right the coin counter (where the Shop is on). The
+  notifications bell is hidden until a notifications inbox exists (Joe, 14 Nov 2026; `HOME_BELL` in
+  `src/config/homeConfig.ts`).
 - The Daily hero: Daily Puzzle in Joulz navy with the cut corners (navy in both themes), how many have played today
   (from 20 players, the Daily's own rule) and Play; Daily Arcade peeks beside it, and sits beside it on wider screens.
 - Your next match: rated play's quick match for players with rated play; else the account's most recently active

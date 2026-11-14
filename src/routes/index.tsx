@@ -17,6 +17,7 @@ import { DailyHero, FriendsRow, NextMatch, RatingTiles, RecentlyPlayed, WeeklyCa
 import { Icon } from "@/design/components";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { pushForPlayer, pushPublicKey } from "@/config/pushConfig";
+import { HOME_BELL } from "@/config/homeConfig";
 import { releaseSlot } from "@/lib/playCards";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
 import { isShareRef } from "@/lib/share/shareRef";
@@ -89,7 +90,7 @@ function lastPick(): RatedPick | null {
 
 /**
  * Home (phase 2 step 3, 14 Nov 2026; docs/design/style-guide/phone/home.png, home-scrolled.png, desktop/home.png):
- * the avatar, the Daily streak, coins and notifications in the header; the Daily hero; Your next match; Ratings (rated
+ * the avatar, the Daily streak and coins in the header (the notifications bell waits for the inbox, HOME_BELL); the Daily hero; Your next match; Ratings (rated
  * play only); Recently played; This week (the pass); Friends. Rooms (create, join, rejoin, public games, Challenge a
  * friend) live on the Rooms page, reached from Play; the gold Play bar opens Play. The first-time intro card, the share
  * welcome and the Add to Home Screen hint keep their PlaySlots (playCards.ts), reserved before the first paint.
@@ -148,7 +149,8 @@ function Home() {
   const now = useClock(games.flatMap((g) => [g.lobbyAt, g.startsAt]));
   const nextGame = upcomingGames(now, games)[0] ?? null;
   const streakNow = dailyView?.source === "server" ? dailyView.streak : streak;
-  const bell = !!pushPublicKey() && account.kind === "account" && pushForPlayer(account.playerNumber);
+  // Off until the notifications inbox exists (src/config/homeConfig.ts); then only where notifications are on.
+  const bell = HOME_BELL && !!pushPublicKey() && account.kind === "account" && pushForPlayer(account.playerNumber);
   const warmUp = warm[0] ?? null;
 
   if (intro) return <Onboarding onDone={() => setIntro(false)} />;
