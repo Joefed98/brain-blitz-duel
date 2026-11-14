@@ -21,6 +21,10 @@ export interface HarnessPass {
  * redrawn", no item named), unless already claimed.
  */
 export function passFixture(opts: { level?: number; premium?: boolean; withdrawn?: ReadonlySet<string> } = {}): HarnessPass {
+  // Changed with Joe's approval, 14 Nov 2026 (the Shop pages session): withdrawn items are gaps by default, as the live
+  // server sends them (pass.server.ts); was no withdrawn items unless asked, so the stand-in showed e.g. the Full House
+  // Neon felt (a retired game, withdrawn) as an ordinary reward.
+  opts = { ...opts, withdrawn: opts.withdrawn ?? reviewWithdrawn() };
   const level = opts.level ?? 12;
   const premium = opts.premium ?? false;
   // The catalogue's names, games, kinds and rarities, as the server's pass view carries them (pass.server.ts).
@@ -83,4 +87,14 @@ export function passFixture(opts: { level?: number; premium?: boolean; withdrawn
       levelNotice: null,
     },
   };
+}
+
+/**
+ * The items the cosmetics review withdrew (docs/cosmetics-review/verdicts.json: every verdict but Keep), less the three
+ * card backs restored on 13 Nov 2026 (docs/economy/withdrawn.md): what catalogue_items.withdrawn_at marks live.
+ */
+export function reviewWithdrawn(): ReadonlySet<string> {
+  const verdicts = JSON.parse(readFileSync("docs/cosmetics-review/verdicts.json", "utf8")) as Record<string, string>;
+  const restored = new Set(["card-back.royal-damask", "card-back.holo-foil", "card-back.neon"]);
+  return new Set(Object.keys(verdicts).filter((id) => verdicts[id] !== "Keep" && !restored.has(id)));
 }

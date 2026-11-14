@@ -146,7 +146,9 @@ server = status({ open: true, tester: true });
 plusApi.setPlusFns({ ...(await currentFns()) });
 view = await mount(() => React.createElement(PlusPart, { soon: SOON }));
 check(!!$("[data-plus-offer]"), "a tester sees the Joulz Plus offer");
-check(/£3\.99/.test($('[data-plus-plan="monthly"]')?.textContent ?? "") && /£34\.99/.test($('[data-plus-plan="yearly"]')?.textContent ?? "") && /Save 27%/.test($('[data-plus-plan="yearly"]')?.textContent ?? ""), "monthly £3.99 and yearly £34.99 (save 27%)");
+// Changed with Joe's approval, 14 Nov 2026 (the Shop pages: no "% more" or savings labels, Joe's no-pressure rule):
+// was … && /Save 27%/.test(yearly), "monthly £3.99 and yearly £34.99 (save 27%)".
+check(/£3\.99/.test($('[data-plus-plan="monthly"]')?.textContent ?? "") && /£34\.99/.test($('[data-plus-plan="yearly"]')?.textContent ?? "") && !/save|%/i.test($("[data-plus-offer]")?.textContent ?? ""), "monthly £3.99 and yearly £34.99, with no savings label");
 const perks = $$("[data-plus-perks] li");
 check(perks.length === 5, `the five perks Plus gives now (${perks.length})`);
 check(!/stats|rating history|weekly report|drills|replay|ghost/i.test($("[data-plus-offer]")?.textContent ?? ""), "no later perk on the offer (stats, report and drills, replay review, ghost races)");
