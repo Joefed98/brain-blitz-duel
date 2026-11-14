@@ -146,6 +146,69 @@ function recentFrom(rows: RatedStateRows, id: string): Record<RatedPool, number>
 
 const formatLabel = (m: RatedMatchResult) => (m.format.kind === "duel" ? `bo${m.format.bestOf}` : `${m.format.players}p`);
 
+/**
+ * Every player's state before a match, as the engine reads it (one read): what recordRatedMatch applies the match to,
+ * and what previewRatedMatch works the stakes out from, so the two can never differ.
+ */
+async function loadMatchState(client: Db, match: RatedMatchResult, finishedMs: number, nowMs: number) {
+  const ids = match.players.map((p) => p.playerId);
+  const runIds = match.players.flatMap((p) => (p.side === "recorded" ? [p.run.runId] : []));
+  const { data: rows, error } = await readRatedState(client, {
+    matchId: match.matchId,
+    players: ids,
+    day: ukDayKey(finishedMs),
+    since: new Date(finishedMs - JOULZ_WINDOW_MS).toISOString(),
+    runIds,
+    rematchOf: match.rematchOf ?? null,
+  });
+  if (error || !rows) return null;
+  const pre: Record<string, PlayerPre> = {};
+  const profileVersions: Record<string, number> = {};
+  const ratingVersions: Record<string, Partial<Record<RatingKey, number>>> = {};
+  for (const id of ids) {
+    const prof = profileFrom(rows, id);
+    const rat = ratingsFrom(rows, id);
+    profileVersions[id] = prof.version;
+    ratingVersions[id] = rat.versions;
+    pre[id] = {
+      profile: prof.state,
+      ratings: rat.ratings,
+      recentGames: recentFrom(rows, id),
+      standing: standingFrom(rows, id),
+      placementResults: placementsFrom(rows, id),
+    };
+  }
+  const pairCounts: Record<string, number> = {};
+  for (const p of rows.pairs) pairCounts[pairKey(p.a, p.b)] = p.matches;
+  const runUsesToday: Record<string, number> = Object.fromEntries(rows.runs.map((r) => [r.run_id, r.uses]));
+  const rematchLosses: Record<string, string[]> = {};
+  for (const r of rows.rematch)
+    if (r.result === "loss") rematchLosses[r.player_id] = rows.rematch.filter((o) => o.player_id !== r.player_id && o.result === "win").map((o) => o.player_id);
+  const ctx: MatchContext = { nowMs, pairCounts, runUsesToday, rematchLosses };
+  return { rows, pre, profileVersions, ratingVersions, pairCounts, ctx };
+}
+
+/**
+ * The stakes' engine (phase 2 step 3, Joe 14 Nov 2026; src/lib/rated/stakes.server.ts): every player's change if this
+ * match finished now, worked out exactly as recordRatedMatch would apply it (the same read, checkMatch and applyMatch),
+ * written nowhere. `mirror` stands a player who isn't stored in for another's state (the estimate against an equally
+ * rated opponent). Null when the match can't be rated.
+ */
+export async function previewRatedMatch(
+  client: Db,
+  input: unknown,
+  nowMs: number = Date.now(),
+  mirror?: { id: string; as: string },
+): Promise<RatedPlayerChange[] | null> {
+  const checked = checkMatch(input, nowMs);
+  if (!checked.ok) return null;
+  const { match, finishedMs } = checked;
+  const loaded = await loadMatchState(client, match, finishedMs, nowMs);
+  if (!loaded) return null;
+  if (mirror && loaded.pre[mirror.as]) loaded.pre[mirror.id] = structuredClone(loaded.pre[mirror.as]!);
+  return applyMatch(match, finishedMs, loaded.pre, loaded.ctx).players.map((p) => p.change);
+}
+
 /* ------------------------------------------------------------------ recordRatedMatch */
 
 /**
@@ -157,44 +220,12 @@ export async function recordRatedMatch(client: Db, input: unknown, nowMs: number
   if (!checked.ok) return refuse(checked.reason);
   const { match, finishedMs } = checked;
   const ids = match.players.map((p) => p.playerId);
-  const runIds = match.players.flatMap((p) => (p.side === "recorded" ? [p.run.runId] : []));
-  const day = ukDayKey(finishedMs);
 
   for (let attempt = 0; attempt < APPLY_TRIES; attempt++) {
-    const { data: rows, error } = await readRatedState(client, {
-      matchId: match.matchId,
-      players: ids,
-      day,
-      since: new Date(finishedMs - JOULZ_WINDOW_MS).toISOString(),
-      runIds,
-      rematchOf: match.rematchOf ?? null,
-    });
-    if (error || !rows) return refuse("error");
+    const loaded = await loadMatchState(client, match, finishedMs, nowMs);
+    if (!loaded) return refuse("error");
+    const { rows, pre, profileVersions, ratingVersions, pairCounts, ctx } = loaded;
     if (rows.outcome) return storedOutcome(match.matchId, rows.outcome);
-
-    const pre: Record<string, PlayerPre> = {};
-    const profileVersions: Record<string, number> = {};
-    const ratingVersions: Record<string, Partial<Record<RatingKey, number>>> = {};
-    for (const id of ids) {
-      const prof = profileFrom(rows, id);
-      const rat = ratingsFrom(rows, id);
-      profileVersions[id] = prof.version;
-      ratingVersions[id] = rat.versions;
-      pre[id] = {
-        profile: prof.state,
-        ratings: rat.ratings,
-        recentGames: recentFrom(rows, id),
-        standing: standingFrom(rows, id),
-        placementResults: placementsFrom(rows, id),
-      };
-    }
-    const pairCounts: Record<string, number> = {};
-    for (const p of rows.pairs) pairCounts[pairKey(p.a, p.b)] = p.matches;
-    const runUsesToday: Record<string, number> = Object.fromEntries(rows.runs.map((r) => [r.run_id, r.uses]));
-    const rematchLosses: Record<string, string[]> = {};
-    for (const r of rows.rematch)
-      if (r.result === "loss") rematchLosses[r.player_id] = rows.rematch.filter((o) => o.player_id !== r.player_id && o.result === "win").map((o) => o.player_id);
-    const ctx: MatchContext = { nowMs, pairCounts, runUsesToday, rematchLosses };
 
     const after = applyMatch(match, finishedMs, pre, ctx);
     const outcomePlayers = after.players.map((p) => p.change);

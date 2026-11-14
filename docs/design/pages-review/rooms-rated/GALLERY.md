@@ -32,12 +32,12 @@ countdown and Finish now flow are exactly as before.
 
 ![Searching](searching.png)
 
-**VS**: both full PlayerCards, now centred on the screen.
+**VS**: both full PlayerCards, now centred on the screen, with the stakes above the cards: "Rated · Win +8 · Lose −8" (the server's `ratedStakesFn`; hidden in placement).
 
 ![VS](vs.png)
 
 **Match header (new).** Both players as mini cards, with their rating, Placement or Guest. In the middle, Game N of M
-over the games won, then one line: "Rated · Mixed · Best of 3". It shows over a rated 1v1's round result and
+over the games won, then one line: "Rated · Win +8 · Lose −8" with the server's stakes, or "Rated · Mixed · Best of 3" when there are none (placement). It shows over a rated 1v1's round result and
 standings in the room, as in the style guide's arcade.png and puzzle.png.
 
 ![Match header](match-header.png)

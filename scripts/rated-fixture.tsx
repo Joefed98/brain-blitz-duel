@@ -163,7 +163,7 @@ const SCREENS: Record<RatedScreenKey, () => JSX.Element> = {
   home: () => <RatedHomeView status={PLACED} />,
   "home-placement": () => <RatedHomeView status={PLACING} />,
   searching: () => <Searching me={ME} pickText="Mixed, best of 3" progress={{ elapsedMs: 4000, range: 60, recordedAfterMs: 8000 }} onCancel={noop} />,
-  "vs-live": () => <VsScreen match={MATCH} nowMs={Date.now()} />,
+  "vs-live": () => <VsScreen match={{ ...MATCH, stakes: { win: 8, loss: -8 } }} nowMs={Date.now()} />,
   "vs-recorded": () => <VsScreen match={{ ...MATCH, headToHead: null, source: { kind: "recorded", label: "Recorded run · 2 h ago" } }} nowMs={Date.now()} />,
   header: () => (
     <div className="game-frame-header" style={{ display: "flex", flexDirection: "column", gap: 24, padding: 20 }}>
@@ -275,6 +275,7 @@ const SCREENS: Record<RatedScreenKey, () => JSX.Element> = {
       myWins={1}
       theirWins={0}
       line={matchLine(MATCH)}
+      stakes={{ win: 8, loss: -8 }}
     />
   ),
   "match-header-placement": () => (

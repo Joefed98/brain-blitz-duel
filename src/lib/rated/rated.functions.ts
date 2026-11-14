@@ -6,8 +6,10 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { num, record, text } from "@/lib/validate";
+import { num, oneOf, record, text, uuid } from "@/lib/validate";
 
+import type { Stakes } from "./stakes.server";
+import { RATED_CHOICES_ON, RATED_FORMATS_ON } from "@/config/matchmakingConfig";
 import type { HeadToHead, RatedRoomInfo, OpponentScore, QueuePoll, RatedMatchView, RatedStatus, RematchOutcome, JoinOutcome, PublicSettleOutcome } from "./rated.server";
 
 async function setup(userId: string, poll: boolean) {
@@ -149,4 +151,36 @@ export const ratedRoomFn = createServerFn({ method: "POST" })
     if (!id) return null;
     const { client, rated } = await setup(context.userId, false);
     return rated.ratedRoomInfo(client, id, context.userId);
+  });
+
+/**
+ * The stakes of a matched rated 1v1 for the caller, "Win +N · Lose −N" (phase 2 step 3, Joe 14 Nov 2026; VS and the
+ * match header): exact for this opponent and format, worked out by the ratings engine (stakes.server.ts). Read-only;
+ * the answer holds no ids. Null for a player in placement (the line is hidden), or not in the match.
+ */
+export const ratedStakesFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { matchId: string }) => ({ matchId: uuid(record(input)["matchId"], "matchId") }))
+  .handler(async ({ data, context }): Promise<Stakes | null> => {
+    const { client } = await setup(context.userId, false);
+    const { matchStakes } = await import("./stakes.server");
+    return matchStakes(client, data.matchId, context.userId, Date.now());
+  });
+
+/**
+ * Before matching (the Play page): the caller's stakes against an opponent rated exactly as they are, for a format
+ * and choice. Read-only, no ids. Null for a player in placement, a format or choice the ratings don't take, or anyone
+ * rated play isn't open to.
+ */
+export const ratedStakesEstimateFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { format: string; choice: string }) => {
+    const body = record(input);
+    return { format: oneOf(body["format"], Object.keys(RATED_FORMATS_ON) as (keyof typeof RATED_FORMATS_ON)[], "format"), choice: oneOf(body["choice"], Object.keys(RATED_CHOICES_ON) as (keyof typeof RATED_CHOICES_ON)[], "choice") };
+  })
+  .handler(async ({ data, context }): Promise<Stakes | null> => {
+    const { client, rated } = await setup(context.userId, false);
+    if (!(await rated.ratedStatus(client, context.userId)).open) return null;
+    const { estimateStakes } = await import("./stakes.server");
+    return estimateStakes(client, context.userId, data.format, data.choice, Date.now());
   });

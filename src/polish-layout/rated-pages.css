@@ -195,3 +195,36 @@
     flex: 1;
   }
 }
+
+/* The stakes (Joe, 14 Nov 2026): "Rated · Win +8 · Lose −8", the server's figures, win and loss in their colours. */
+.rt-stakes-text b {
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.rt-stakes-win {
+  color: var(--jz-win);
+}
+.rt-stakes-loss {
+  color: var(--jz-loss-text);
+}
+.rt-vs > .rt-stakes {
+  justify-self: center;
+}
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"] .rt-vs {
+    grid-template-areas:
+      "top top top"
+      "stakes stakes stakes"
+      "me rail them"
+      "rec rec rec";
+  }
+  [data-layout="desktop"] .rt-vs > .rt-stakes {
+    grid-area: stakes;
+  }
+}
+.rt-vs > .rt-stakes {
+  margin-top: auto;
+}
+.rt-vs > .rt-stakes + .rt-vs-them {
+  margin-top: 0;
+}

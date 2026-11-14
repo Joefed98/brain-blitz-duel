@@ -10,10 +10,10 @@
 import { useEffect, useState } from "react";
 
 import { MiniCard, type CardLook } from "@/design/identity";
-import type { RatedMatch, RatedPlayer } from "@/lib/rated/backend";
+import type { RatedMatch, RatedPlayer, RatedStakes } from "@/lib/rated/backend";
 import { backendNow } from "@/lib/rated/ratedApi";
 import { bestOfLabel, pickLabel } from "@/lib/rated/rules";
-import { ratingText } from "@/lib/rated/tierDisplay";
+import { changeText, ratingText } from "@/lib/rated/tierDisplay";
 
 export interface HeaderSide {
   name: string;
@@ -37,6 +37,7 @@ export function RatedMatchHeader({
   myWins,
   theirWins,
   line,
+  stakes,
 }: {
   me: HeaderSide;
   them: HeaderSide;
@@ -47,6 +48,8 @@ export function RatedMatchHeader({
   theirWins: number;
   /** "Rated · Mixed · Best of 3". */
   line?: string;
+  /** The server's stakes: "Rated · Win +8 · Lose −8" in the line's place (none in placement). */
+  stakes?: RatedStakes | null;
 }) {
   return (
     <div className="rt-mh" data-rated-match-header>
@@ -62,7 +65,11 @@ export function RatedMatchHeader({
         </div>
         <Side side={them} />
       </div>
-      {line ? (
+      {stakes ? (
+        <p className="rt-mh-line" data-one-line data-mh-line="stakes">
+          Rated · <StakesText stakes={stakes} />
+        </p>
+      ) : line ? (
         <p className="rt-mh-line" data-one-line data-mh-line>
           {line}
         </p>
@@ -82,6 +89,29 @@ function Side({ side, you = false }: { side: HeaderSide; you?: boolean }) {
         {side.sub ? <span className="rt-mh-sub">{side.sub}</span> : null}
       </span>
     </div>
+  );
+}
+
+/** "Win +8 · Lose −8": the server's figures as they are (the phone never works a rating out). */
+export function stakesText(stakes: RatedStakes): string {
+  return `Win ${changeText(stakes.win)} · Lose ${changeText(stakes.loss)}`;
+}
+
+function StakesText({ stakes }: { stakes: RatedStakes }) {
+  return (
+    <span className="rt-stakes-text" data-stakes={`${stakes.win},${stakes.loss}`}>
+      Win <b className="rt-stakes-win">{changeText(stakes.win)}</b> · Lose <b className="rt-stakes-loss">{changeText(stakes.loss)}</b>
+    </span>
+  );
+}
+
+/** The stakes on their own line (VS): "Rated · Win +8 · Lose −8", or nothing without stakes. */
+export function StakesLine({ stakes }: { stakes: RatedStakes | null | undefined }) {
+  if (!stakes) return null;
+  return (
+    <p className="rt-mh-line rt-stakes" data-one-line data-stakes-line aria-label={`Rated. ${stakesText(stakes)}`}>
+      Rated · <StakesText stakes={stakes} />
+    </p>
   );
 }
 
@@ -123,6 +153,7 @@ export function RatedRoomMatchHeader({
       myWins={myWins}
       theirWins={theirWins}
       line={matchLine(match)}
+      stakes={match.stakes ?? null}
     />
   );
 }
