@@ -277,7 +277,8 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
     // The light theme (2b, Joe 14 Nov 2026): a screen drawn under <html data-theme="light"> is held to the light
     // tokens' values (the guide's: --jz-bg #F3F4F8, --jz-text #0B1020, gold as text --jz-gold-ink #7A5C1C); the dark
     // values below are unchanged for every other draw.
-    const light = document.documentElement.getAttribute("data-theme") === "light";
+    // A skinned piece inside a game screen (the answer reveal's chrome) stays dark in every theme (Joe, 14 Nov 2026).
+    const light = document.documentElement.getAttribute("data-theme") === "light" && !root.closest(".game-screen");
     const want: [string, string][] = light
       ? room
         ? [

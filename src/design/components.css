@@ -1102,7 +1102,7 @@
     color: var(--jz-text-3);
   }
   .jz-tab[aria-current="page"] {
-    color: var(--jz-gold);
+    color: var(--jz-gold-ink);
   }
   .jz-tab[aria-current="page"] > span {
     color: var(--jz-text);
@@ -1204,7 +1204,7 @@
   color: var(--jz-text-3);
 }
 .jz-icon[data-tone="gold"] {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .jz-icon[data-tone="red"] {
   color: var(--jz-red);

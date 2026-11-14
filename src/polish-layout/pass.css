@@ -98,7 +98,7 @@
 }
 .pass-premium-on {
   margin: 0;
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
   font-size: 14px;
   font-weight: var(--jz-weight-medium);
 }
@@ -122,7 +122,7 @@
   font-weight: var(--jz-weight-medium);
 }
 .pass-premium-word {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .pass-levels {
   display: flex;
@@ -271,7 +271,7 @@
   font-size: 12px;
 }
 .pass-big-item[data-track="premium"] .pass-big-where {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .pass-big-name {
   color: var(--jz-text);

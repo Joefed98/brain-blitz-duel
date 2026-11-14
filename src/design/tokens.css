@@ -321,17 +321,21 @@
   --jz-rarity-legendary: #0D6478;
   /* The page edge (html, body and the strip under the home bar) on a page. */
   --screen-edge: #F3F4F8;
+  /* Result colours as text on a light page (polish-layout/light.css): a good result, a partial one, a warning. */
+  --jz-light-good: #0B6F33;
+  --jz-light-partial: #8A4A00;
+  --jz-light-warn: #B81C33;
 }
 /*
  * Game screens stay dark in every theme until step 4 restyles them (Joe, 14 Nov 2026): a game screen (PhoneShell's
- * .game-screen: intros, live rounds, reveals) and a game's own art inside a page ([data-skin-off]: reveal boards,
- * replays) take the dark values again, with the aliases rebuilt on them; while one is up the page edge is the dark
+ * .game-screen: intros, live rounds, reveals), a game's own art inside a page ([data-skin-off]: reveal boards,
+ * replays) and the player card (.pcard: its approved art is drawn for a dark card) take the dark values again, with the aliases rebuilt on them; while one is up the page edge is the dark
  * edge too.
  */
 :root[data-theme="light"]:has(.game-screen) {
   --screen-edge: #070709;
 }
-:root[data-theme="light"] :is(.game-screen, [data-skin-off]) {
+:root[data-theme="light"] :is(.game-screen, [data-skin-off], .pcard) {
   --jz-bg: #06080F;
   --jz-bg-raised: #0B0F1C;
   --jz-raised: #0B0F1C;

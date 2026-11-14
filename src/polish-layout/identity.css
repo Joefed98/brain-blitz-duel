@@ -330,7 +330,7 @@
 }
 .cz-rarity[data-rarity="epic"] {
   border-color: var(--jz-gold);
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .cz-rarity[data-rarity="elite"] {
   border-color: var(--jz-metal-obsidian-4);
