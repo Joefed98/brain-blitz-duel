@@ -395,9 +395,17 @@ export const LEADERBOARD_SCREENS = (): ThemeScreen[] => [
   })),
 ];
 
+/** A player with tournaments on the screen harness (scripts/safe-area-harness.tsx): the hub open with nothing in it. */
+export const TOURNAMENTS_OPEN = {
+  __DUELZ_ALLOW_TOURNAMENTS__: true,
+  __harnessTournamentHub: { open: true, account: true, now: 0, live: [], next: null, week: [], entries: [], trophies: [] },
+};
+
 export const WAVE1_SCREENS = (): ThemeScreen[] => [
   { name: "profile, new player, empty states", mode: "profile", records: false },
-  { name: "tournaments, nothing played, empty states", mode: "tournaments", records: false },
+  // Changed with Joe's approval, 14 Nov 2026: drawn as a player with tournaments (the navigation step: everyone else gets
+  // the coming-soon page, NAV_SCREENS' "nav: tournaments, coming soon"), where both empty-state cards still live.
+  { name: "tournaments, nothing played, empty states", mode: "tournaments", records: false, globals: TOURNAMENTS_OPEN },
   { name: "not found", mode: "notfound" },
   {
     name: "room not found",
