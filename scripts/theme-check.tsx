@@ -400,6 +400,16 @@ const parseColor = (c: string) => {
   return [m[0]!, m[1]!, m[2]!, m[3] ?? 1] as const;
 };
 
+// Changed with Joe's approval, 14 Nov 2026 (theme-check in thirds): --list prints the draws this run (or part) would make,
+// without a browser, so the thirds can be proved to draw exactly what the halves did. Nothing is judged.
+if (args.includes("--list")) {
+  const all = [...SCREENS.map((screen) => ({ screen, viewport: VIEWPORT })), ...SCREENS.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ screen, viewport })))];
+  for (const { screen, viewport } of partOf(all, args)) console.log(`DRAW ${screen.name} (${viewport.name})`);
+  const part = args.find((a) => a.startsWith("--part="));
+  if (!part || part.startsWith("--part=1/")) console.log("DRAW intro colours");
+  process.exit(0);
+}
+
 const server = await startSafeAreaServer({
   cacheDir: "node_modules/.vite-theme",
   buildId: "theme-check",
@@ -415,6 +425,8 @@ if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 try {
   // Each screen at the first viewport, then a screen's extra sizes (ThemeScreen.sizes, from 13 Nov 2026).
   const draws = [...SCREENS.map((screen) => ({ screen, viewport: VIEWPORT })), ...SCREENS.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ screen, viewport })))];
+  // Changed with Joe's approval, 14 Nov 2026: theme-check runs in thirds (play16 part 1, play17 part 2, play15 part 3;
+  // its halves reached 463 s and 411 s against 480 s); the parts take every third draw, as below.
   // Changed with Joe's approval, 13 Nov 2026: theme-check runs in halves (play16 part 1, play17 part 2); with the room
   // screens drawn at every size the whole run passed its 600 s limit. --part=k/n takes every n-th draw from the k-th,
   // as no-wrap-check splits its draws; together the parts judge exactly what one whole run does (the intro colours

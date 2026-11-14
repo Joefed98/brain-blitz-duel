@@ -16,6 +16,7 @@ import { isScoringMode, readScoringMode, type ScoringMode } from "./scoringMode"
 import { dbError } from "./dbError";
 import type { Db } from "@/lib/data/db.server";
 import { readHostLastScoring, readRoomForSettings, writeRoomSettings } from "@/lib/data/rooms.server";
+import { DEALING_MESSAGE, dealClaimFresh } from "./dealClaim";
 
 export type SettingsChange = { ok: true; settings: RoomSettings } | { ok: false; message: string };
 
@@ -33,6 +34,8 @@ export async function changeRoomSettings(
     return { ok: false, message: "Only the host can change the room settings." };
   if (room.status !== "waiting" || room.disbanded_at)
     return { ok: false, message: "This game’s already started." };
+  // Not while the rounds are being dealt (Security C1a): the deal reads the settings as they stood at its claim.
+  if (dealClaimFresh(room.start_claimed_at, Date.now())) return { ok: false, message: DEALING_MESSAGE };
   if (!roomSettingsUnlocked())
     return { ok: false, message: "Room settings are part of Joulz Plus." };
   const valid = validateRoomSettings(input);
@@ -53,7 +56,11 @@ export async function changeRoomSettings(
     ({ data: written, error: writeError } = await write(false));
   }
   if (writeError) throw dbError(writeError, "roomSettings");
-  if (!written) return { ok: false, message: "This game’s already started." };
+  if (!written) {
+    // A claim taken since the read holds the room; otherwise it has started.
+    const { data: now } = await readRoomForSettings(client, roomId);
+    return { ok: false, message: now?.status === "waiting" && !now.disbanded_at ? DEALING_MESSAGE : "This game’s already started." };
+  }
   console.log(
     `[room-settings] room=${room.room_code} ${encodeRoomSettings(valid.settings).join(",")}${scoring ? ` scoring=${scoring}` : ""}`,
   );

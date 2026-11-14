@@ -57,3 +57,19 @@ export async function readOwnAnswers(
   const { data, error } = await abortable(client.from("round_results").select("id, answer").in("id", ids), signal);
   return { data, error };
 }
+
+/**
+ * The room's released rounds (Security C1a; supabase/migrations/20261117500100_round_puzzle_release.sql): a round's public
+ * half lands here when its intro begins. Row level security gives this device only its own room's current game.
+ */
+export async function readReleasedRounds(
+  client: Db,
+  duelId: string,
+  signal: AbortSignal,
+): Promise<Read<{ round_number: number; puzzle: unknown }[] | null>> {
+  const { data, error } = await abortable(
+    client.from("duel_round_puzzles").select("round_number, puzzle").eq("duel_id", duelId).order("round_number"),
+    signal,
+  );
+  return { data: data as { round_number: number; puzzle: unknown }[] | null, error };
+}

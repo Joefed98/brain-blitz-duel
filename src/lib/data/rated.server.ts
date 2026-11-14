@@ -277,6 +277,24 @@ function lookOf(row: object): Json | null {
   return "look" in row ? ((row as { look: Json | null }).look ?? null) : null;
 }
 
+/**
+ * The deal origins of every room the player has sat in (supabase/migrations/20261117500200_recorded_run_origins.sql):
+ * their joins, their seats and seats archived by Play again. A recorded run from any of these deals is never theirs.
+ */
+export async function readSeenDealOrigins(client: Db, userId: string): Promise<Result<Set<string>>> {
+  const { data, error } = await client.rpc("mm_seen_deal_origins", { p_user_id: userId });
+  // A set of uuids comes back as plain values (an object per row is read too).
+  const ids = ((data ?? []) as unknown[]).map((r) => (typeof r === "string" ? r : (r as { mm_seen_deal_origins?: string } | null)?.mm_seen_deal_origins));
+  return { data: new Set(ids.filter((id): id is string => typeof id === "string" && id.length > 0)), error };
+}
+
+/** Which of these async rooms (Dailies) the player has an attempt in. */
+export async function readOwnAsyncRooms(client: Db, userId: string, roomIds: string[]): Promise<Result<Set<string>>> {
+  if (!roomIds.length) return { data: new Set(), error: null };
+  const { data, error } = await client.from("async_attempts").select("room_id").eq("user_id", userId).in("room_id", roomIds);
+  return { data: new Set((data ?? []).map((r) => r.room_id)), error };
+}
+
 /** Finished, not disbanded rooms that ended since `sinceIso`, newest first (rated rooms left out by the caller). */
 export async function readFinishedRoomIds(client: Db, sinceIso: string, limit: number): Promise<Result<string[]>> {
   const { data, error } = await client
@@ -301,15 +319,18 @@ export async function readFinishedRoomSource(client: Db, roomId: string): Promis
   const { data: room, error } = await client.from("duels").select("id, puzzles_public, phase_started_at").eq("id", roomId).maybeSingle();
   if (error || !room) return { data: null, error };
   const [{ data: secrets, error: e1 }, { data: players, error: e2 }, { data: results, error: e3 }] = await Promise.all([
-    client.from("duel_secrets").select("puzzles_private").eq("duel_id", roomId).maybeSingle(),
+    client.from("duel_secrets").select("puzzles_private, puzzles_public").eq("duel_id", roomId).maybeSingle(),
     client.from("duel_players").select("player_slot, user_id, display_name").eq("duel_id", roomId),
     // "*" so E1's `look` comes with each row once its migration is applied (and nothing breaks before).
     client.from("round_results").select("*").eq("duel_id", roomId),
   ]);
   const priv = Array.isArray(secrets?.puzzles_private) ? (secrets.puzzles_private as Record<string, unknown>[]) : [];
+  // A room that never finished keeps its public halves held on the server (rooms.server.ts withHeldPuzzles).
+  const held = Array.isArray(secrets?.puzzles_public) && secrets.puzzles_public.length > 0 ? secrets.puzzles_public : null;
+  const empty = !Array.isArray(room.puzzles_public) || room.puzzles_public.length === 0;
   return {
     data: {
-      room,
+      room: held && empty ? { ...room, puzzles_public: held } : room,
       privatePuzzles: priv,
       players: players ?? [],
       results: (results ?? []).map((r) => ({

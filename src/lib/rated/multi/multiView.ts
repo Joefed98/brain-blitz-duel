@@ -243,7 +243,8 @@ async function bindMultiView(): Promise<MultiViewPort> {
       const data = multiStandingsFrom({
         format: view.format,
         players: view.players,
-        gameTypes: (room.data.puzzles_public ?? []).map((p) => p.type),
+        // The game types from the stored round order (Security C1a: a new room's puzzles arrive round by round).
+        gameTypes: (room.data.round_order ?? []) as readonly string[],
         results: (results.data ?? []) as unknown as { player_slot: number; round_number: number; score: number | null }[],
         meId,
         leftUserIds: (roomPlayers.data ?? []).filter((p) => p.status === "left").map((p) => p.user_id),

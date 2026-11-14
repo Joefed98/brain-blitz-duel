@@ -4,12 +4,12 @@ import { batched, usePageHidden } from "@/lib/battery";
 import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
 import { supabase } from "@/integrations/supabase/client";
 
-import { checkHostPresence, fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
+import { checkHostPresence, fetchDuelByCode, fetchPlayers, fetchReleasedRounds, fetchResults, heartbeat } from "./api";
 import { calibrateServerClock, initServerClock, serverNow } from "./clock";
 import { roomTickMs } from "./roomTick";
 import { applyPlayerUpdate, noteSeen, withSeen, type SeenMap } from "./roomSeen";
 import { ensureSession } from "./session";
-import { type DuelPlayerRow, type DuelRow, type RoundResultRow } from "./types";
+import { type DuelPlayerRow, type DuelRow, type PuzzleData, type RoundResultRow } from "./types";
 
 export interface DuelState {
   loading: boolean;
@@ -41,10 +41,34 @@ export function useNow(intervalMs = 100): number {
   return now;
 }
 
+/** Whether a room's puzzles come round by round (a new room playing: its stored list is empty until it finishes). */
+function needsReleased(room: DuelRow | null): boolean {
+  return !!room && room.status === "in_progress" && (!Array.isArray(room.puzzles_public) || room.puzzles_public.length === 0);
+}
+
+/** The game a room is on (Play again's count): released rounds belong to it alone. */
+function gameKey(room: DuelRow | null): string {
+  return room ? `${room.id}:${room.tournament_history?.length ?? 0}` : "";
+}
+
 export function useDuel(roomCode: string): DuelState {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [duel, setDuel] = useState<DuelRow | null>(null);
+  const [row, setDuel] = useState<DuelRow | null>(null);
+  // Security C1a: a new room's rounds are readable one at a time, from each round's intro (duel_round_puzzles). They
+  // stand in for the room's stored list while it plays, so every screen reads `duel.puzzles_public` as before; a room
+  // started earlier, or a finished one, carries its full list itself.
+  const [released, setReleased] = useState<{ key: string; list: PuzzleData[] }>({ key: "", list: [] });
+  const noteReleased = useCallback((room: DuelRow | null, list: PuzzleData[]) => {
+    const key = gameKey(room);
+    setReleased((prev) => (prev.key === key && prev.list.length >= list.length ? prev : { key, list }));
+  }, []);
+  const duel = useMemo(() => {
+    if (!row || !needsReleased(row) || released.key !== gameKey(row) || released.list.length === 0) return row;
+    return { ...row, puzzles_public: released.list };
+  }, [row, released]);
+  const duelRef = useRef<DuelRow | null>(null);
+  duelRef.current = row;
   const [rows, setPlayers] = useState<DuelPlayerRow[]>([]);
   // Speed fix 3 (9 Nov 2026): when each player was last seen, from this phone's heartbeat replies (and, on a database
   // without duel_presence, the player rows' realtime updates); laid over the rows below (roomSeen.ts).
@@ -95,12 +119,13 @@ export function useDuel(roomCode: string): DuelState {
       nextResults = await fetchResults(found.id, mySlotRef.current);
     }
     noteRoomSeen(await beat);
+    if (needsReleased(found)) noteReleased(found, await fetchReleasedRounds(found.id));
     setDuel(found);
     setPlayers(nextPlayers);
     setResults(nextResults);
     setNotFound(false);
     setLoading(false);
-  }, [roomCode, notePlayers, noteRoomSeen]);
+  }, [roomCode, notePlayers, noteRoomSeen, noteReleased]);
 
   // This device's anonymous identity has to exist before anything is readable.
   useEffect(() => {
@@ -175,6 +200,15 @@ export function useDuel(roomCode: string): DuelState {
       )
       .on(
         "postgres_changes",
+        { event: "INSERT", schema: "public", table: "duel_round_puzzles", filter: `duel_id=eq.${roomId}` },
+        () => {
+          // A round released: read the room's released rounds (row level security decides which).
+          const room = duelRef.current;
+          if (room && needsReleased(room)) void fetchReleasedRounds(room.id).then((list) => noteReleased(room, list));
+        },
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "round_results", filter: `duel_id=eq.${roomId}` },
         (payload) => {
           const row = (payload.new ?? payload.old) as RoundResultRow | undefined;
@@ -206,10 +240,16 @@ export function useDuel(roomCode: string): DuelState {
     void fetchResults(duelId, mySlotRef.current).then((rows) => {
       if (!cancelled) setResults(rows);
     });
+    // The round's puzzle is released as its intro begins (Security C1a): ask for it with each phase change.
+    const room = duelRef.current;
+    if (room && needsReleased(room) && room.phase !== "starting" && room.phase !== "round_title")
+      void fetchReleasedRounds(room.id).then((list) => {
+        if (!cancelled) noteReleased(room, list);
+      });
     return () => {
       cancelled = true;
     };
-  }, [userId, duel?.status, duel?.current_round, duel?.phase]);
+  }, [userId, duel?.status, duel?.current_round, duel?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-measure the shared clock the moment the room starts playing, and again at every round, so a
   // device clock that moved since (lib/duel/clock.ts) never carries into a round's taps.
