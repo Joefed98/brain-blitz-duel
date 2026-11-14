@@ -125,7 +125,7 @@ export function missingFunction(error: { code?: unknown; message?: unknown } | n
 export async function broadcastRoomReaction(
   client: Db,
   roomId: string,
-  payload: { emoji: string; userId: string; name: string; slot: number },
+  payload: { emoji: string; playerId: string | null; name: string; slot: number },
 ): Promise<Result<null>> {
   const { error } = await client.rpc("room_send_reaction", { p_duel_id: roomId, p_payload: payload });
   return { data: null, error };

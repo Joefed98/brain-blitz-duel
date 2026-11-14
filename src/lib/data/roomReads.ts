@@ -10,18 +10,27 @@ import type { RoomResultRow } from "@/lib/duel/roomResults";
 
 import type { Db } from "./db";
 
+/**
+ * The columns a phone reads (Security C1b, 20261117500300_public_player_ids.sql: every column but the account ids,
+ * which phones can't read). public-ids-check proves these are exactly the columns granted to phones.
+ */
+export const PHONE_DUEL_COLUMNS =
+  "id, room_code, status, round_order, current_round, round_started_at, next_duel_id, created_at, phase, phase_started_at, puzzles_public, max_players, round_count, no_maths, add_maths, add_arcade, selected_categories, tournament_history, disbanded_at, scoring_mode, start_claimed_at, deal_origin_id, host_public_id";
+export const PHONE_PLAYER_COLUMNS =
+  "id, duel_id, player_slot, display_name, ready_round, last_seen_at, created_at, status, joined_at, intro_ready_round, muted_by_host, last_reaction_at, colour, icon, submitted_round, public_id";
+
 interface Read<T> {
   data: T;
   error: { code?: string; message: string } | null;
 }
 
 export async function readRoomByCode(client: Db, roomCode: string, signal: AbortSignal): Promise<Read<DuelRow | null>> {
-  const { data, error } = await abortable(client.from("duels").select("*").eq("room_code", roomCode), signal).maybeSingle();
+  const { data, error } = await abortable(client.from("duels").select(PHONE_DUEL_COLUMNS).eq("room_code", roomCode), signal).maybeSingle();
   return { data: data as unknown as DuelRow | null, error };
 }
 
 export async function readRoomById(client: Db, duelId: string, signal: AbortSignal): Promise<Read<DuelRow | null>> {
-  const { data, error } = await abortable(client.from("duels").select("*").eq("id", duelId), signal).maybeSingle();
+  const { data, error } = await abortable(client.from("duels").select(PHONE_DUEL_COLUMNS).eq("id", duelId), signal).maybeSingle();
   return { data: data as unknown as DuelRow | null, error };
 }
 
@@ -31,10 +40,10 @@ export async function readRoomPlayers(
   signal: AbortSignal,
 ): Promise<Read<DuelPlayerRow[] | null>> {
   const { data, error } = await abortable(
-    client.from("duel_players").select("*").eq("duel_id", duelId).order("player_slot"),
+    client.from("duel_players").select(PHONE_PLAYER_COLUMNS).eq("duel_id", duelId).order("player_slot"),
     signal,
   );
-  return { data: data as DuelPlayerRow[] | null, error };
+  return { data: data as unknown as DuelPlayerRow[] | null, error };
 }
 
 /** The room's results in the named columns (no stored answers; roomResults.ts). */

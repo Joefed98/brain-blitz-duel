@@ -25,6 +25,7 @@ import { useClock } from "@/components/app/useClock";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
 import { isShareRef } from "@/lib/share/shareRef";
 import { createRoom, fetchDuelByCode, fetchPlayers, joinRoomByCode } from "@/lib/duel/api";
+import { isSeat, myKeyAmong, myPublicId } from "@/lib/duel/seatKey";
 import { MAX_PLAYERS } from "@/lib/duel/types";
 import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session";
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
@@ -119,7 +120,10 @@ function useLastOpenRoom(): { shown: OpenRoom | null; settled: boolean; open: bo
         const duel = await fetchDuelByCode(last.code);
         if (!duel || duel.disbanded_at || duel.status === "finished") return done(null);
         const [players, uid] = await Promise.all([fetchPlayers(duel.id), currentUserId()]);
-        const mine = players.find((p) => p.user_id === uid);
+        // This device's seat by its public id (Security C1b: phones read no account ids).
+        const carries = players.some((p) => !!p.public_id);
+        const key = uid ? myKeyAmong(players, { publicId: carries ? await myPublicId(uid) : null, userId: uid }) : null;
+        const mine = players.find((p) => isSeat(p, key));
         if (!mine || mine.status === "left") return done(null);
         done({
           code: duel.room_code,

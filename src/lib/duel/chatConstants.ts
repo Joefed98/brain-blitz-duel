@@ -21,7 +21,10 @@ export const CHAT_BAR_HEIGHT = 56;
 export interface RoomMessageRow {
   id: string;
   duel_id: string;
-  sender_user_id: string;
+  /** Server reads only (Security C1b): phones read `sender_public_id` (seatKey.ts senderKey). */
+  sender_user_id?: string;
+  /** The sender's public id (Security C1b). */
+  sender_public_id?: string | null;
   sender_name: string;
   text: string;
   created_at: string;
@@ -31,6 +34,7 @@ export interface FloatingReaction {
   id: string;
   emoji: string;
   name: string;
+  /** The sender's key (seatKey.ts: their public id, Security C1b). */
   userId: string;
   at: number;
 }

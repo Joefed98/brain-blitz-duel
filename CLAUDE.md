@@ -2486,6 +2486,28 @@ outside the repo.
   room-start-check and round-release-check (~10 s each, shard `e`), rated-server-check's last section, room-e2e-check
   (headless Chromium, two phones on the real app, `play18`); the dealing lobby is in theme-check and no-wrap-check at every
   size (`SECURITY_C1A_SCREENS`). The check-only `__DUELZ_FAIL_ROOM_DEAL__` makes a deal fail part-way (never read in production).
+- **Public player ids, Security C1b** (14 Nov 2026; rooms only, no deal, stamp, grading, scoring or timing change):
+  room-mates know each other by a public id, never an account id. `public.player_public_ids` (server only) holds one
+  per account for life (`public_id_of(account)`, made on first use; an id with no account behind it, such as a deleted
+  player's stand-in, gets a fresh one kept nowhere; the mapping goes with the account, ON DELETE CASCADE). Triggers fill
+  `duel_players.public_id`, `duels.host_public_id` and `room_messages.sender_public_id` whenever the account id is
+  written (existing rows backfilled by the migration). Phones (anon, authenticated) read every column of those three
+  tables but `user_id`, `host_user_id` and `sender_user_id` (column grants; Realtime's postgres_changes check column
+  privileges per column, so live changes leave them out too), so the phone reads name their columns
+  (`PHONE_DUEL_COLUMNS`, `PHONE_PLAYER_COLUMNS` in roomReads.ts, `PHONE_MESSAGE_COLUMNS` in chatReads.ts). **A column
+  added to these tables later must be granted to phones in its migration and added to those lists** (public-ids-check
+  fails until both are). The phone tells players apart through `src/lib/duel/seatKey.ts` (`seatKey`, `hostKey`,
+  `senderKey`, `isSeat`: a row's public id, or its account id on a check's stand-in row) and finds its own seat with
+  `public.my_public_id()` (`myPublicId`, asked for only when the rows carry public ids; `useDuel`'s `myKey`). The
+  heartbeat's reply is keyed by public id (`seenForPhone`); the reaction broadcast names its sender `playerId` (the
+  public id; `acceptReaction` answers `playerId`); `getPublicCosmeticsFn` takes `playerIds` (public ids; an account id
+  names nobody; `publicCosmeticsFor` on the server is unchanged); chat's own reads moved to the service role with the
+  same membership rules. Shared rules (`roomFlow.ts`) match either id (`isSeat`), so the server is unchanged. Rated
+  views, friends, leaderboards and tournaments still carry account ids until C3. Migration
+  `20261117500300_public_player_ids.sql`. public-ids-check (~15 s, shard `e`: grants, device reads, the ids, the
+  backfill, a deleted account, and a whole room's answers, rows and broadcasts swept for account ids) and room-e2e-check's
+  last part (no response to either phone holds the other player's account id); seat-key-check (~2 s, shard `c`, happy-dom: me, host, chat
+  "mine", muting, reactions, absent rivals, and the account-id fallback for stand-in rows).
 - **Retired games out of the app** (13 Nov 2026, Joe's rule; Retirements session): `RETIRED_TYPES` (catalogue.ts) is the
   one switch, now 21 games (the nine of 13 Nov 2026: Mixed Signals, Gradient, Turntable, Blackout, Bang On, Slice, Ringer,
   Swish, Flightpath). A retired game is never offered, dealt, played or counted: `isPlayable(type)` is asked by Practice (no

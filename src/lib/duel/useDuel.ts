@@ -8,6 +8,7 @@ import { checkHostPresence, fetchDuelByCode, fetchPlayers, fetchReleasedRounds, 
 import { calibrateServerClock, initServerClock, serverNow } from "./clock";
 import { roomTickMs } from "./roomTick";
 import { applyPlayerUpdate, noteSeen, withSeen, type SeenMap } from "./roomSeen";
+import { isSeat, hostKey, myKeyAmong, myPublicId, seatKey } from "./seatKey";
 import { ensureSession } from "./session";
 import { type DuelPlayerRow, type DuelRow, type PuzzleData, type RoundResultRow } from "./types";
 
@@ -18,6 +19,11 @@ export interface DuelState {
   players: DuelPlayerRow[];
   results: RoundResultRow[];
   me: DuelPlayerRow | null;
+  /**
+   * This phone's key among the room's players (Security C1b, seatKey.ts): its public id, compared with seatKey(row),
+   * hostKey(duel) and senderKey(message). Null until known.
+   */
+  myKey: string | null;
   /** Only meaningful in a two-player room. */
   opponent: DuelPlayerRow | null;
   /** Everyone who has not tapped Leave, in slot order. */
@@ -88,11 +94,24 @@ export function useDuel(roomCode: string): DuelState {
   const duelIdRef = useRef<string | null>(null);
   // This device's id and slot: the results refetch fetches only this slot's stored answers (roomResults.ts).
   const userIdRef = useRef<string | null>(null);
+  // Its public id (Security C1b): how it finds its own seat among rows that carry no account ids.
+  const publicIdRef = useRef<string | null>(null);
+  const keyAmong = useCallback(
+    (list: readonly DuelPlayerRow[]) => myKeyAmong(list, { publicId: publicIdRef.current, userId: userIdRef.current }),
+    [],
+  );
   const mySlotRef = useRef<number | null>(null);
-  const notePlayers = useCallback((list: DuelPlayerRow[]) => {
-    mySlotRef.current = list.find((p) => p.user_id === userIdRef.current)?.player_slot ?? null;
-    return list;
+  // Rows that carry public ids need this device's own to find its seat (asked for once; a stand-in's rows carry none).
+  const learnPublicId = useCallback(async (list: readonly DuelPlayerRow[]) => {
+    const id = userIdRef.current;
+    if (publicIdRef.current || !id || !list.some((p) => !!p.public_id)) return;
+    publicIdRef.current = await myPublicId(id);
   }, []);
+  const notePlayers = useCallback((list: DuelPlayerRow[]) => {
+    const key = keyAmong(list);
+    mySlotRef.current = key ? (list.find((p) => isSeat(p, key))?.player_slot ?? null) : null;
+    return list;
+  }, [keyAmong]);
   // Battery (31 Oct 2026): 10 a second during a round's phases, 4 between rounds (roomTick.ts).
   const now = useNow(roomTickMs(duel));
 
@@ -115,7 +134,9 @@ export function useDuel(roomCode: string): DuelState {
       [nextPlayers, nextResults] = await Promise.all([fetchPlayers(found.id), fetchResults(found.id, mySlotRef.current)]);
       notePlayers(nextPlayers);
     } else {
-      nextPlayers = notePlayers(await fetchPlayers(found.id));
+      const list = await fetchPlayers(found.id);
+      await learnPublicId(list);
+      nextPlayers = notePlayers(list);
       nextResults = await fetchResults(found.id, mySlotRef.current);
     }
     noteRoomSeen(await beat);
@@ -125,7 +146,7 @@ export function useDuel(roomCode: string): DuelState {
     setResults(nextResults);
     setNotFound(false);
     setLoading(false);
-  }, [roomCode, notePlayers, noteRoomSeen, noteReleased]);
+  }, [roomCode, notePlayers, noteRoomSeen, noteReleased, learnPublicId]);
 
   // This device's anonymous identity has to exist before anything is readable.
   useEffect(() => {
@@ -186,7 +207,8 @@ export function useDuel(roomCode: string): DuelState {
           if (payload.eventType === "UPDATE") {
             const next = applyPlayerUpdate(playersRef.current, payload.new as Partial<DuelPlayerRow>);
             if (next === "seen") {
-              noteRoomSeen({ [row.user_id]: row.last_seen_at });
+              const key = seatKey(row);
+              if (key) noteRoomSeen({ [key]: row.last_seen_at });
               return;
             }
             if (next !== "refetch") {
@@ -269,11 +291,12 @@ export function useDuel(roomCode: string): DuelState {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [load]);
 
-  const me = userId ? (players.find((p) => p.user_id === userId) ?? null) : null;
+  const myKey = userId ? keyAmong(players) : null;
+  const me = myKey ? (players.find((p) => isSeat(p, myKey)) ?? null) : null;
   const roomPlayers = players.filter((p) => p.status !== "left");
   const opponent = me ? (roomPlayers.find((p) => p.player_slot !== me.player_slot) ?? null) : null;
   const isMulti = roomPlayers.length > 2;
-  const isHost = !!me && !!duel && duel.host_user_id === me.user_id;
+  const isHost = !!me && !!duel && !!myKey && hostKey(duel) === myKey;
 
   // Battery (31 Oct 2026): nothing below runs while the app is hidden (an iPhone freezes a hidden app
   // anyway); each starts again, at once, on return.
@@ -311,6 +334,7 @@ export function useDuel(roomCode: string): DuelState {
     players,
     results,
     me,
+    myKey,
     opponent,
     roomPlayers,
     isHost,

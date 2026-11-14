@@ -237,6 +237,9 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
+    // seat-key-check (14 Nov 2026, Security C1b, ~2 s, happy-dom): room-mates told apart by public id (me, host, chat,
+    // muting, reactions, absent rivals) and stand-in rows by account id.
+    "seat-key-check.tsx",
     // B4's deal identity (9 Nov 2026, docs/audit-nov-2026/architecture.md): every game's deal and each pin against main, ~6 min whole, in quarters.
     "deal-identity-check.ts@2/4",
     // 7 Nov 2026 rebalance (~191 s on run 42372376743): orbit-camera-check from e (e ran 641 s, c 334), the rest
@@ -358,6 +361,8 @@ export const SHARDS: Record<string, string[]> = {
     // start; rounds released one at a time from each intro; on a local PostgreSQL, beside the other SQL checks.
     "room-start-check.ts",
     "round-release-check.ts",
+    // public-ids-check (14 Nov 2026, Security C1b, ~10 s): room-mates by public id only (grants, device reads, the sweep).
+    "public-ids-check.ts",
     // economy-check (wave 2 A1, 10 Nov 2026, ~8 s): coins and items (the catalogue against catalogue.json, the coin
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.

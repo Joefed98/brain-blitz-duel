@@ -1187,7 +1187,10 @@ export const heartbeatFn = createServerFn({ method: "POST" })
     // A rated match's leavers are found on every heartbeat (W3b, Joe 12 Nov 2026); ordinary rooms: nothing.
     const { reviewRatedRoom } = await import("@/lib/rated/rated.server");
     await reviewRatedRoom(client, data.roomId, Date.now());
-    return seen ? { ok: true as const, seen } : { ok: true as const };
+    if (!seen) return { ok: true as const };
+    // Keyed by each player's public id for the phone (Security C1b): never an account id.
+    const { seenForPhone } = await import("./presence.server");
+    return { ok: true as const, seen: await seenForPhone(client, data.roomId, seen) };
   });
 
 /**

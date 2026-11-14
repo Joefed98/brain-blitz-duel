@@ -247,7 +247,10 @@ async function bindMultiView(): Promise<MultiViewPort> {
         gameTypes: (room.data.round_order ?? []) as readonly string[],
         results: (results.data ?? []) as unknown as { player_slot: number; round_number: number; score: number | null }[],
         meId,
-        leftUserIds: (roomPlayers.data ?? []).filter((p) => p.status === "left").map((p) => p.user_id),
+        // The seats that left, matched to the view's players by slot (a phone reads no account ids, Security C1b).
+        leftUserIds: view.players
+          .filter((v) => (roomPlayers.data ?? []).some((p) => p.status === "left" && p.player_slot === v.slot))
+          .map((v) => v.userId),
       });
       return data ? { ...data, seats: await withCards(data.seats) } : null;
     },

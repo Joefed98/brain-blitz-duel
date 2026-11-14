@@ -10,6 +10,7 @@ import {
   type RoomMessageRow,
 } from "@/lib/duel/chatConstants";
 import { CHAT_TOAST_MS, chatToastText, shouldToast } from "@/lib/duel/chatNotice";
+import { isSeat, seatKey, senderKey } from "@/lib/duel/seatKey";
 import { chatToastBottom } from "@/lib/duel/chatToastPlace";
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
 import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
@@ -26,7 +27,7 @@ import { cosmeticsOf, useCosmetics } from "@/lib/cosmetics/cosmeticsStore";
 
 interface RoomChatProps {
   chat: RoomChatState;
-  myUserId: string;
+  myUserId: string | null;
   /** The room's players and their colours: each message's sender gets their badge. */
   players?: DuelPlayerRow[];
   looks?: PlayerLooks;
@@ -158,13 +159,13 @@ export function RoomChat({
   screenLabel = "Lobby",
   bar = true,
 }: RoomChatProps) {
-  const slotOf = (userId: string) => players.find((p) => p.user_id === userId)?.player_slot;
+  const slotOf = (key: string) => players.find((p) => isSeat(p, key))?.player_slot;
   const lookOf = (userId: string) => {
     const slot = slotOf(userId);
     return slot === undefined ? undefined : looks?.get(slot);
   };
   // Wave 2 E2: every player's equipped reactions (so their emotes show), and this player's own to send.
-  useCosmetics(players.map((p) => p.user_id));
+  useCosmetics(players.map((p) => seatKey(p)));
   const myEmotes = cosmeticsOf(myUserId).reactions.flatMap((pack) =>
     reactionEmotes(pack).map((e, i) => ({ code: emoteCode(pack, i), label: e.label })),
   );
@@ -416,9 +417,9 @@ export function RoomChat({
               <MessageRow
                 key={message.id}
                 message={message}
-                mine={message.sender_user_id === myUserId}
-                look={lookOf(message.sender_user_id)}
-                slot={slotOf(message.sender_user_id)}
+                mine={(senderKey(message) ?? "") === myUserId}
+                look={lookOf(senderKey(message) ?? "")}
+                slot={slotOf(senderKey(message) ?? "")}
                 onLongPress={() => openMenu(message)}
               />
             ))}
@@ -460,12 +461,12 @@ export function RoomChat({
           variant="quiet"
           block
           onClick={() => {
-            chat.toggleLocalMute(menuFor.sender_user_id);
+            chat.toggleLocalMute(senderKey(menuFor) ?? "");
             openMenu(null);
           }}
           className="justify-start text-foreground"
         >
-          {chat.mutedUserIds.includes(menuFor.sender_user_id)
+          {chat.mutedUserIds.includes(senderKey(menuFor) ?? "")
             ? `Unmute ${menuFor.sender_name}`
             : `Mute ${menuFor.sender_name}`}
         </JzButton>
@@ -475,7 +476,7 @@ export function RoomChat({
           <p role="status" data-report-thanks className="px-3 py-3 text-center text-sm text-foreground">
             {reported}
           </p>
-        ) : menuFor.sender_user_id !== myUserId ? (
+        ) : (senderKey(menuFor) ?? "") !== myUserId ? (
           <ReportReasons
             onPick={(reason) => {
               setReported(REPORT_THANKS);
@@ -516,10 +517,10 @@ export function RoomChat({
       style={{
         bottom: toastBottom === null ? "calc(env(safe-area-inset-bottom, 0px) + 8px)" : `${toastBottom}px`,
         visibility: toastBottom === null ? "hidden" : undefined,
-        borderLeftColor: playerColourHex(lookOf(toast.sender_user_id)),
+        borderLeftColor: playerColourHex(lookOf(senderKey(toast) ?? "")),
       }}
     >
-      <RoomMiniCard slot={slotOf(toast.sender_user_id)} look={lookOf(toast.sender_user_id)} name={toast.sender_name} size={24} />
+      <RoomMiniCard slot={slotOf(senderKey(toast) ?? "")} look={lookOf(senderKey(toast) ?? "")} name={toast.sender_name} size={24} />
       <span className="min-w-0 flex-1 truncate text-sm leading-tight">
         <span className="font-display font-semibold text-foreground">{toast.sender_name}</span>{" "}
         <span className="text-muted-foreground">{chatToastText(toast.text)}</span>

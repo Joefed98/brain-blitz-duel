@@ -274,7 +274,8 @@ assert.match(banner, /Finish now/);
 // Wiring: no dead-end screen; the banner sits on the between-round screens.
 const route = readFileSync("src/routes/duel.$code.tsx", "utf8");
 assert.doesNotMatch(route, /Opponent disconnected|dropped out of the duel/);
-assert.match(route, /canFinishNow\(players, me\.user_id, now\)/);
+// Changed with Joe's approval, 13 Nov 2026: the room screen passes its own key (seatKey.ts, Security C1b: phones read no account ids).
+assert.match(route, /canFinishNow\(players, myKey, now\)/);
 assert.equal(
   (route.match(/\{dropout\}/g) ?? []).length,
   4,

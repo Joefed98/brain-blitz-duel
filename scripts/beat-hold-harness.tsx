@@ -83,6 +83,9 @@ function useDuel() {
     players: room.players,
     results: room.results,
     me,
+    // This phone's key among the rows (seatKey.ts), as useDuel's DuelState carries it. Changed with Joe's approval,
+    // 14 Nov 2026 (routine consequence of C1b's public ids).
+    myKey: me.public_id ?? me.user_id,
     opponent: room.players[1] ?? null,
     roomPlayers: room.players,
     isHost: true,

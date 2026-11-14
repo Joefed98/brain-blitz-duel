@@ -7,9 +7,12 @@
 import { ROOM_EMOJI, type RoomEmoji } from "./chatConstants";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { isRoomReaction } from "./roomReactions";
+import { isSeat } from "./seatKey";
 
+/** A room player as the phone holds it: told apart by public id (Security C1b), or its account id on a stand-in row. */
 export interface ReactionRosterRow {
-  user_id: string;
+  public_id?: string | null;
+  user_id?: string;
   display_name: string;
   status: string;
   muted_by_host?: boolean | null;
@@ -18,20 +21,22 @@ export interface ReactionRosterRow {
 export interface AcceptedReaction {
   /** A room emoji, or (wave 2 E2) the code of an emote from a reaction pack the sender has equipped. */
   emoji: RoomEmoji | string;
-  userId: string;
+  /** The sender's public id (Security C1b). */
+  playerId: string;
   name: string;
 }
 
 export function acceptReaction(payload: unknown, roster: readonly ReactionRosterRow[] | null | undefined): AcceptedReaction | null {
-  const data = payload as { emoji?: unknown; name?: unknown; userId?: unknown } | null | undefined;
-  if (!data || typeof data.emoji !== "string" || typeof data.userId !== "string" || !data.userId) return null;
+  const data = payload as { emoji?: unknown; name?: unknown; playerId?: unknown } | null | undefined;
+  if (!data || typeof data.emoji !== "string" || typeof data.playerId !== "string" || !data.playerId) return null;
   // The fixed emoji set, or an emote of a pack this sender is known to have equipped (roomReactions.ts).
-  if (!ROOM_EMOJI.includes(data.emoji as RoomEmoji) && !isRoomReaction(data.emoji, data.userId)) return null;
+  if (!ROOM_EMOJI.includes(data.emoji as RoomEmoji) && !isRoomReaction(data.emoji, data.playerId)) return null;
   const emoji = data.emoji;
   if (roster && roster.length) {
-    const player = roster.find((p) => p.user_id === data.userId);
+    const key = data.playerId;
+    const player = roster.find((p) => isSeat(p, key));
     if (!player || player.status === "left" || player.muted_by_host) return null;
-    return { emoji, userId: data.userId, name: String(player.display_name ?? "Player").slice(0, GUEST_NAME_MAX) };
+    return { emoji, playerId: data.playerId, name: String(player.display_name ?? "Player").slice(0, GUEST_NAME_MAX) };
   }
-  return { emoji, userId: data.userId, name: String(data.name ?? "Player").slice(0, GUEST_NAME_MAX) };
+  return { emoji, playerId: data.playerId, name: String(data.name ?? "Player").slice(0, GUEST_NAME_MAX) };
 }

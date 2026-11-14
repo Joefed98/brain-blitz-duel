@@ -8,7 +8,9 @@
  * - before round 1's intro begins, no response to either phone holds any round's puzzle (its seed);
  * - from round 1's intro, the phones hold round 1's puzzle and show its intro (RoundIntro draws only with its puzzle),
  *   while rounds 2 and 3 never reach them;
- * - once the room finishes, the phones read every round (a finished room reads in full).
+ * - once the room finishes, the phones read every round (a finished room reads in full);
+ * - (Security C1b) no response either phone receives, from the lobby to the finish, holds the other player's account
+ *   id (a phone's own sign-in carries its own).
  *
  * Needs Chromium and the PostgreSQL 16 binaries (preinstalled on GitHub's runners); without PostgreSQL it fails on CI
  * and prints a NOTE locally.
@@ -78,7 +80,7 @@ if (failures.length) {
   console.log("FAIL");
   process.exit(1);
 }
-console.log("PASS: two phones on the real app get each round's puzzle only from its intro, never a later round's, and the whole list once the room finishes.");
+console.log("PASS: two phones on the real app get each round's puzzle only from its intro, never a later round's, the whole list once the room finishes, and never the other player's account id.");
 process.exit(0);
 
 async function startDevServer(restUrl: string): Promise<string> {
@@ -206,4 +208,12 @@ async function flow(browser: Browser, origin: string, db: LocalDb): Promise<void
   await bo.reload({ waitUntil: "load" });
   const all = await waitFor(() => holds(finishedAt, Date.now() + 1, 2) && holds(finishedAt, Date.now() + 1, 3), 60_000);
   check(all, "once the room finishes, the phones read every round");
+
+  // Security C1b: room-mates know each other by public id only.
+  const idOf = (name: string) => q(`SELECT user_id FROM public.duel_players WHERE duel_id = '${roomId}' AND display_name = '${name}'`);
+  const aliId = idOf("Ali");
+  const boId = idOf("Bo");
+  check(aliId.length === 36 && boId.length === 36, "both players' account ids are known to the check");
+  const leaked = seen.filter((r) => (r.who === "ali" && r.body.includes(boId)) || (r.who === "bo" && r.body.includes(aliId)));
+  check(seen.length > 20 && leaked.length === 0, `no response to either phone holds the other player's account id (${seen.length} responses, ${leaked.length} with one)`);
 }

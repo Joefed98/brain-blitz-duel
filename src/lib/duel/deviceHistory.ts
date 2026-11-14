@@ -118,7 +118,7 @@ export function gameRecord(
     roomScoringMode(duel),
   );
   const place = forfeit
-    ? forfeit.winner.user_id === me.user_id
+    ? forfeit.winner.player_slot === me.player_slot
       ? 1
       : null
     : me.status === "left"

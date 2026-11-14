@@ -1,5 +1,6 @@
 /** What everyone may see of a player's equipped cosmetics (wave 2 E2; src/lib/cosmetics/cosmetics.server.ts). */
 export interface PublicCosmetics {
+  /** The id the player was asked for by: their public id from a phone (Security C1b), the account id on the server. */
   userId: string;
   /** The avatar as the player's card draws it (null: none known). */
   avatar: { id: string; colour: number; gem: string | null } | null;

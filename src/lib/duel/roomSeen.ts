@@ -6,9 +6,10 @@
  * realtime updates applied in place. `withSeen` lays them over the player rows, so `isConnected` and every rule built
  * on it (roomFlow.ts) read the later of the two, exactly as they read `last_seen_at` before.
  */
+import { seatKey } from "./seatKey";
 import type { DuelPlayerRow } from "./types";
 
-/** Last seen by user id, epoch ms. */
+/** Last seen by player key (seatKey.ts: the public id), epoch ms. */
 export type SeenMap = Map<string, number>;
 
 /** Takes each time that is later than the one held. True if any changed. */
@@ -30,7 +31,8 @@ export function noteSeen(seen: SeenMap, record: Record<string, string> | null | 
 export function withSeen(players: DuelPlayerRow[], seen: SeenMap): DuelPlayerRow[] {
   let changed = false;
   const out = players.map((p) => {
-    const ms = seen.get(p.user_id);
+    const key = seatKey(p);
+    const ms = key ? seen.get(key) : undefined;
     if (ms === undefined) return p;
     const own = Date.parse(p.last_seen_at);
     if (Number.isFinite(own) && own >= ms) return p;
