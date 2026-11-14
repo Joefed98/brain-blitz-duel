@@ -105,7 +105,8 @@ for (const [f, { parts, ceiling }] of Object.entries(PAGE_CHECK_SPLITS)) {
     `${f}: every part at most ${ceiling} draws (today ${Math.min(...sizes)}–${Math.max(...sizes)} of ${all.length}). ` +
       (over.length
         ? `Over: ${over.map(([k, n]) => `part ${k}/${parts} ${n}`).join(", ")}. The screens have grown near the parts' time limit: raise ` +
-          `PAGE_CHECK_SPLITS["${f}"].parts (and jobs if needed) in .github/ci/shards.ts, with Joe's approval.`
+          `PAGE_CHECK_SPLITS["${f}"].parts (and jobs if needed) in .github/ci/shards.ts. Pre-approved routine consequence (any ` +
+          `session or the captain): mark it "Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth)".`
         : "ok"),
   );
   console.log(`  ${f}: ${all.length} draws in ${parts} parts of ${Math.min(...sizes)}–${Math.max(...sizes)} (ceiling ${ceiling})`);

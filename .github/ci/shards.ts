@@ -31,12 +31,13 @@
  * and `--part=k/n` takes every n-th draw from the k-th, so each part is within one draw of total ÷ n whatever the screens
  * are: adding screens never needs an edit here. `parts` is fixed with headroom (about 30 draws a part on 14 Nov 2026, so
  * each can roughly double before it nears its time limit); ci-shards-check fails once any part passes `ceiling` draws,
- * long before a timeout, and only then are the parts raised here (with Joe's approval). Each job runs `parts ÷ jobs`
+ * long before a timeout, and only then are the parts raised here: a pre-approved routine consequence for any session
+ * or the captain, marked "Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth)". Each job runs `parts ÷ jobs`
  * parts one after another, each its own check run with its own time limit.
  */
 export const PAGE_CHECK_SPLITS: Record<string, { parts: number; jobs: number; prefix: string; ceiling: number }> = {
-  "theme-check.tsx": { parts: 24, jobs: 4, prefix: "play-theme", ceiling: 50 },
-  "no-wrap-check.tsx": { parts: 30, jobs: 6, prefix: "play-nowrap", ceiling: 50 },
+  "theme-check.tsx": { parts: 24, jobs: 4, prefix: "play-theme", ceiling: 40 },
+  "no-wrap-check.tsx": { parts: 30, jobs: 6, prefix: "play-nowrap", ceiling: 40 },
 };
 
 /** The jobs PAGE_CHECK_SPLITS gives: `<prefix>-<j>` runs parts j, j + jobs, j + 2 × jobs… of its check. */

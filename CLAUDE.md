@@ -2633,7 +2633,9 @@ outside the repo.
       theme-check and no-wrap-check draw them after the core list. **Never edit `THEME_SCREENS`** (closed at
       `APPEARANCE_SCREENS`) **or the theme / no-wrap parts in `.github/ci/shards.ts`**: their jobs (`play-theme-*`,
       `play-nowrap-*`) and fixed part counts come from `PAGE_CHECK_SPLITS`, parts are split by draw count at run time, and
-      ci-shards-check fails once any part passes its draw ceiling (only then raise the parts, with Joe's approval).
+      ci-shards-check fails once any part passes its draw ceiling (40). Then raise that check's `parts` (and `jobs` if
+      needed) in `PAGE_CHECK_SPLITS`: a pre-approved routine consequence for any session or the captain, marked "Changed with
+      Joe's approval, 14 Nov 2026 (routine: page-check growth)".
     - Run every new or changed check 10 times before opening the PR: `bun scripts/repeat-check.ts <check>[@k/n] [times=10]`.
     - Write assertions about what matters (presence, relations, behaviour), never exact positions in shared lists or
       counts other areas will change.
