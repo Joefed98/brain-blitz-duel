@@ -19,8 +19,9 @@ button); the week as list rows with the art kit's icons, the time on the right a
 
 ## Event pages
 
-A cut hero card with the event's icon; the board's top three as full cards above the nameplate rows; prizes with
-medals; the full rules as a row. The live Arena and a finished Score Attack:
+A cut hero card with the event's icon; the board's top three as compact cards side by side (2nd · 1st · 3rd, 1st
+raised, each with its medal and points; a hidden player on a plain disc), then the nameplate rows from 4th; prizes
+with medals; the full rules as a row. The live Arena and a finished Score Attack:
 
 | Arena, live | Score Attack |
 |---|---|

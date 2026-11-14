@@ -2556,8 +2556,10 @@ outside the repo.
   list rows: the event's art-kit icon, name, pick · entry · players, the time on the right, the bell for accounts) and
   Your results (entries, then public-game results); both views are in the markup, the other `hidden`. The Category Cup
   and the Championship stay hidden while their switches are off (`kindShown`). Event pages: a cut hero card, the
-  boards' top three as full cards (`PlatePodium`, as the leaderboards' `lb-podium`) over the NameplateStrip rows,
-  prizes with medals, the rules as a row. Leaderboards: a board picker (`BoardPickerButton`: a sheet on phones and
+  boards' top three as compact cards side by side at every size (`PlatePodium`: 2nd · 1st · 3rd, 1st raised, the mini
+  card, name, medal and points; a hidden player a plain disc that opens nothing; Joe, 14 Nov 2026), then the
+  NameplateStrip rows from 4th (`splitPodium`, nobody twice), prizes with medals, the rules as a row; the main
+  Leaderboards page keeps its full-card podium. Leaderboards: a board picker (`BoardPickerButton`: a sheet on phones and
   tablets, the `data-board-side` list beside the board on a computer) holding the Joulz Rating, Puzzles, Arcade, the
   Daily top 100 and the eleven category boards (`/leaderboards?board=<category>`); Profile's `CategoryBoards` is
   unchanged. The Daily page: a cut hero card per kind and your line (`DailyYou`); the Daily archive's rows one

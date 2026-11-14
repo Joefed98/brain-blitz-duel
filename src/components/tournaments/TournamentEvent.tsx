@@ -9,7 +9,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { AccountHead } from "@/components/account/AccountParts";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { Button, EmptyState, Icon, LiveTag, Medal, Panel, Row, SectionHeader, SkeletonPage } from "@/design/components";
-import { NameplateFullCard, NameplateSheet, NameplateStrip, nameplateOpens, useNameplateSheet } from "@/design/identity";
+import { MiniCard, NameplateSheet, NameplateStrip, nameplateLook, nameplateOpens, useNameplateSheet } from "@/design/identity";
+import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { plateName, type PlateView } from "@/lib/identity/plates";
 import { ukTime } from "@/lib/publicSchedule";
 import { KIND_LABEL, placeLabel, UNDER_REVIEW_LINE } from "@/lib/tournaments/rules";
@@ -208,8 +209,9 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
           rows={(board?.rows ?? []).map((r) => ({ place: r.place, plate: r.plate, isMe: r.isMe, value: `${r.points}`, valueLabel: `${r.points} points` }))}
           onOpen={openRow}
         />
+        {splitPodium(board?.rows ?? []).below.length > 0 ? (
         <Panel as="ol">
-          {(board?.rows ?? []).map((r) => (
+          {splitPodium(board?.rows ?? []).below.map((r) => (
             <PlateRow
               key={r.playerId}
               place={r.place}
@@ -223,6 +225,7 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
             />
           ))}
         </Panel>
+        ) : null}
       </section>
       <NameplateSheet player={openCard?.plate ?? null} onClose={closeCard}>
         {openCard?.line}
@@ -280,8 +283,9 @@ function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () =
             rows={board.rows.map((r) => ({ place: r.place, plate: r.plate, isMe: r.isMe, value: r.total.toLocaleString("en-GB"), valueLabel: r.total.toLocaleString("en-GB") }))}
             onOpen={openRow}
           />
+          {splitPodium(board.rows).below.length > 0 ? (
           <Panel as="ol">
-            {board.rows.map((r) => (
+            {splitPodium(board.rows).below.map((r) => (
               <PlateRow
                 key={`${r.place}`}
                 place={r.place}
@@ -293,6 +297,7 @@ function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () =
               />
             ))}
           </Panel>
+          ) : null}
         </section>
       ) : null}
       <NameplateSheet player={openCard?.plate ?? null} onClose={closeCard}>
@@ -565,49 +570,76 @@ interface PodiumRow {
   valueLabel: string;
 }
 
+/** The podium's rows (the first three placed 1st to 3rd) and the rows below it, so nobody is drawn twice. */
+export function splitPodium<T extends { place: number }>(rows: readonly T[]): { podium: T[]; below: T[] } {
+  const podium = rows.slice(0, 3).filter((r) => r.place <= 3);
+  return { podium, below: rows.slice(podium.length) };
+}
+
+/** A podium slot's picture: the player's mini card, a guest's colour and initial, or a hidden player's plain disc. */
+function PodiumFace({ player: plate }: { player: PlateView }) {
+  if (plate.kind === "card") return <MiniCard look={nameplateLook(plate.card)} size={56} />;
+  if (plate.kind === "plain" && plate.colour !== null)
+    return <PlayerBadge look={{ colour: plate.colour, icon: plate.icon ?? null }} name={plate.name} size={56} />;
+  return (
+    <span className="tn-pod-disc" aria-hidden="true" data-hidden-disc={plate.kind === "hidden" ? "" : undefined}>
+      {plate.kind === "plain" ? plate.name.slice(0, 1).toUpperCase() : null}
+    </span>
+  );
+}
+
 /**
- * The top three of a tournament board as full cards (as the leaderboards draw theirs, `lb-podium`): stacked on phones,
- * 1st in the middle from 700 px. A hidden player or a guest keeps their plain strip ("Hidden player" on a plain disc),
- * never a card, and opens nothing. Places and scores sit under each card, never on it.
+ * The top three of a tournament board (Joe, 14 Nov 2026): three compact cards side by side at every size, 2nd · 1st ·
+ * 3rd with 1st raised, each the player's mini card, name, medal and points (places and scores under the card, never on
+ * it). A hidden player keeps "Hidden player" on a plain disc and opens nothing; a guest keeps colour and initial. With
+ * fewer than three on the board, only those show. The rows below start after them (`splitPodium`).
  */
 export function PlatePodium({ rows, onOpen }: { rows: readonly PodiumRow[]; onOpen: (row: OpenRow) => void }) {
-  const top = rows.filter((r) => r.place <= 3).slice(0, 3);
+  const top = splitPodium(rows).podium;
   if (top.length === 0) return null;
   return (
-    <ol className="lb-podium tn-podium" aria-label="Top 3" data-board-podium={top.length}>
+    <ol className="tn-podium" aria-label="Top 3" data-board-podium={top.length}>
       {top.map((r, i) => {
         const name = plateName(r.plate);
+        const shown = r.isMe && r.plate.kind !== "hidden" ? `${name} (you)` : name;
         const opens = nameplateOpens(r.plate);
-        const card = opens ? (
-          <NameplateFullCard player={r.plate} />
-        ) : (
-          <span className="lb-podium-plain" data-hidden-player={r.plate.kind === "hidden" ? "" : undefined}>
-            <NameplateStrip player={r.plate} label={name} />
-          </span>
+        const inner = (
+          <>
+            <PodiumFace player={r.plate} />
+            {/* The name alone (your own card is ringed in gold; "(you)" stays in its accessible name). */}
+            <span className="tn-pod-name" data-ellipsis="">
+              {name}
+            </span>
+            <span className="tn-pod-foot">
+              <Medal place={r.place} />
+              <span className="tn-pod-value">{r.value}</span>
+            </span>
+          </>
         );
         return (
-          <li key={`${r.place}-${i}`} className="lb-podium-step" data-podium-place={i + 1} data-me={r.isMe ? "" : undefined}>
+          <li
+            key={`${r.place}-${i}`}
+            className="tn-pod-step"
+            data-podium-place={i + 1}
+            data-me={r.isMe ? "" : undefined}
+            data-hidden-player={r.plate.kind === "hidden" ? "" : undefined}
+          >
             {opens ? (
               <button
                 type="button"
-                className="lb-podium-card press"
+                className="tn-pod-card press"
                 data-names=""
-                data-skin-off=""
                 onClick={() => onOpen({ plate: r.plate, line: `${ordinal(r.place)} · ${r.valueLabel}` })}
-                aria-label={`${ordinal(r.place)}, ${name}. Open card`}
+                aria-label={`${ordinal(r.place)}, ${shown}, ${r.valueLabel}. Open card`}
                 data-open-card
               >
-                {card}
+                {inner}
               </button>
             ) : (
-              <span className="lb-podium-card" data-names="" data-skin-off="">
-                {card}
+              <span className="tn-pod-card" aria-label={`${ordinal(r.place)}, ${shown}, ${r.valueLabel}`} role="group">
+                {inner}
               </span>
             )}
-            <span className="lb-podium-foot">
-              <Medal place={r.place} />
-              <span className="lb-value">{r.value}</span>
-            </span>
           </li>
         );
       })}
