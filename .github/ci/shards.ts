@@ -348,6 +348,8 @@ export const SHARDS: Record<string, string[]> = {
     // start; rounds released one at a time from each intro; on a local PostgreSQL, beside the other SQL checks.
     "room-start-check.ts",
     "round-release-check.ts",
+    // public-ids-check (14 Nov 2026, Security C1b, ~10 s): room-mates by public id only (grants, device reads, the sweep).
+    "public-ids-check.ts",
     // economy-check (wave 2 A1, 10 Nov 2026, ~8 s): coins and items (the catalogue against catalogue.json, the coin
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.

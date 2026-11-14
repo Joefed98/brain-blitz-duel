@@ -121,7 +121,8 @@ function useLastOpenRoom(): { shown: OpenRoom | null; settled: boolean; open: bo
         if (!duel || duel.disbanded_at || duel.status === "finished") return done(null);
         const [players, uid] = await Promise.all([fetchPlayers(duel.id), currentUserId()]);
         // This device's seat by its public id (Security C1b: phones read no account ids).
-        const key = uid ? myKeyAmong(players, { publicId: await myPublicId(uid), userId: uid }) : null;
+        const carries = players.some((p) => !!p.public_id);
+        const key = uid ? myKeyAmong(players, { publicId: carries ? await myPublicId(uid) : null, userId: uid }) : null;
         const mine = players.find((p) => isSeat(p, key));
         if (!mine || mine.status === "left") return done(null);
         done({
