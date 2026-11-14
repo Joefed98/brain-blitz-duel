@@ -792,6 +792,18 @@ export const COMPONENT_SCREENS = (): ThemeScreen[] => [
   },
 ];
 
+/**
+ * The light theme (phase 2 step 2b, 14 Nov 2026): every theme screen again under <html data-theme="light"> (Settings →
+ * Appearance), drawn by theme-check at its one size after every other draw (so the earlier draws keep their places in
+ * its parts): every page readable at 4.5:1 in light. Screens that already set a theme are left out (they are drawn as
+ * they are), and the extra sizes are dropped (the light tokens don't depend on the size).
+ */
+export const LIGHT_SCREENS = (): ThemeScreen[] =>
+  THEME_SCREENS.filter((s) => !(s.globals && "__harnessTheme" in s.globals)).map((s) => {
+    const { sizes: _sizes, ...rest } = s;
+    return { ...rest, name: `light: ${s.name}`, globals: { ...(s.globals ?? {}), __harnessTheme: "light" } };
+  });
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },

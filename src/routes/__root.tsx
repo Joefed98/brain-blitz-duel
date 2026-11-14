@@ -34,6 +34,7 @@ import { GOOGLE_FONTS_CSS } from "../lib/offline/assets";
 import { installOfflinePractice } from "../lib/offline/install";
 import { pushPublicKey } from "../config/pushConfig";
 import { OFFLINE_BOOT } from "../lib/offline/online";
+import { APPEARANCE_BOOT, installAppearance } from "../lib/appearance";
 import { decideFirstOpen } from "../lib/firstOpen";
 
 /** The first-open onboarding (lib/firstOpen.ts), loaded only on the open that shows it. */
@@ -139,6 +140,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+/** One { __html } object for the appearance boot script (CLAUDE.md working rule 6). */
+const APPEARANCE_BOOT_HTML = { __html: APPEARANCE_BOOT };
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -148,6 +152,8 @@ function RootShell({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: PLAY_CARDS_BOOT }} />
         {/* Before the first paint: the offline banner and Practice's install card (lib/offline/online.ts). */}
         <script dangerouslySetInnerHTML={{ __html: OFFLINE_BOOT }} />
+        {/* Before the first paint: the theme the player chose (Settings → Appearance; lib/appearance.ts). */}
+        <script dangerouslySetInnerHTML={APPEARANCE_BOOT_HTML} />
       </head>
       <body>
         {children}
@@ -175,6 +181,11 @@ function RootComponent() {
   // Crash reporting (lib/crashReporting.ts): only when SENTRY_DSN is set in src/config/betaConfig.ts.
   useEffect(() => {
     startCrashReporting();
+  }, []);
+
+  // Appearance (lib/appearance.ts): the stored theme, and the device's own while it is "Match my device".
+  useEffect(() => {
+    installAppearance();
   }, []);
 
   // Every device signs in anonymously so it has a real identity of its own.

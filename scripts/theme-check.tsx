@@ -36,7 +36,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, room } from "./theme-screens";
+import { CHROMIUM_PATHS, LIGHT_SCREENS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, room } from "./theme-screens";
 import { APP_PAGE_FAMILY, THEME_FAMILIES, THEME_FONTS } from "../src/lib/theme";
 
 const args = process.argv.slice(2);
@@ -133,10 +133,22 @@ if (!CHROMIUM) {
   console.log("FAIL: environment: no Chromium (set PLAYWRIGHT_CHROMIUM)");
   process.exit(1);
 }
+// The light theme (2b, 14 Nov 2026): every screen again in light (LIGHT_SCREENS, one size each), after all the others.
+const ALL_SCREENS = [...THEME_SCREENS, ...LIGHT_SCREENS()];
 const SCREENS = ONLY.length
-  ? THEME_SCREENS.filter((s) => ONLY.some((o) => s.name.includes(o)))
-  : THEME_SCREENS;
+  ? ALL_SCREENS.filter((s) => ONLY.some((o) => s.name.includes(o)))
+  : ALL_SCREENS;
 const VIEWPORT = VIEWPORTS[0]!;
+/** Every draw: the dark screens at VIEWPORT, then their extra sizes (as before 2b), then the light screens at VIEWPORT. */
+function themeCheckDraws(screens: typeof ALL_SCREENS, viewport: typeof VIEWPORT) {
+  const dark = screens.filter((s) => !s.name.startsWith("light: "));
+  const light = screens.filter((s) => s.name.startsWith("light: "));
+  return [
+    ...dark.map((screen) => ({ screen, viewport })),
+    ...dark.flatMap((screen) => (screen.sizes ?? []).map((v) => ({ screen, viewport: v }))),
+    ...light.map((screen) => ({ screen, viewport })),
+  ];
+}
 
 /** In-page: fonts, tokens, text to measure and controls. */
 function themeProbe(families: { head: string; body: string; mono: string; app: string }) {
@@ -262,7 +274,23 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
     const skin = getComputedStyle(root);
     // The room look (Polish batch R): the tab pages' palette, --primary neutral (gold only on play actions).
     const room = !root.hasAttribute("data-tab-screen");
-    const want: [string, string][] = room
+    // The light theme (2b, Joe 14 Nov 2026): a screen drawn under <html data-theme="light"> is held to the light
+    // tokens' values (the guide's: --jz-bg #F3F4F8, --jz-text #0B1020, gold as text --jz-gold-ink #7A5C1C); the dark
+    // values below are unchanged for every other draw.
+    const light = document.documentElement.getAttribute("data-theme") === "light";
+    const want: [string, string][] = light
+      ? room
+        ? [
+            ["--background", "#F3F4F8"],
+            ["--foreground", "#0B1020"],
+            ["--primary", "#0B1020"],
+          ]
+        : [
+            ["--background", "#F3F4F8"],
+            ["--foreground", "#0B1020"],
+            ["--primary", "#7A5C1C"],
+          ]
+      : room
       ? [
           // The design tokens (F1): --jz-bg, --jz-text; --primary neutral.
           ["--background", "#06080F"],
@@ -403,7 +431,7 @@ const parseColor = (c: string) => {
 // Changed with Joe's approval, 14 Nov 2026 (theme-check in thirds): --list prints the draws this run (or part) would make,
 // without a browser, so the thirds can be proved to draw exactly what the halves did. Nothing is judged.
 if (args.includes("--list")) {
-  const all = [...SCREENS.map((screen) => ({ screen, viewport: VIEWPORT })), ...SCREENS.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ screen, viewport })))];
+  const all = themeCheckDraws(SCREENS, VIEWPORT);
   for (const { screen, viewport } of partOf(all, args)) console.log(`DRAW ${screen.name} (${viewport.name})`);
   const part = args.find((a) => a.startsWith("--part="));
   if (!part || part.startsWith("--part=1/")) console.log("DRAW intro colours");
@@ -424,7 +452,7 @@ let measured = 0;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 try {
   // Each screen at the first viewport, then a screen's extra sizes (ThemeScreen.sizes, from 13 Nov 2026).
-  const draws = [...SCREENS.map((screen) => ({ screen, viewport: VIEWPORT })), ...SCREENS.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ screen, viewport })))];
+  const draws = themeCheckDraws(SCREENS, VIEWPORT);
   // Changed with Joe's approval, 14 Nov 2026: theme-check runs in thirds (play16 part 1, play17 part 2, play15 part 3;
   // its halves reached 463 s and 411 s against 480 s); the parts take every third draw, as below.
   // Changed with Joe's approval, 13 Nov 2026: theme-check runs in halves (play16 part 1, play17 part 2); with the room
