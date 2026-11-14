@@ -14,6 +14,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { optional, record, text } from "@/lib/validate";
 import type { PlacementStatus, PlayerRatings, TierLadderRung } from "@/lib/data/ratings";
 
 async function setup(userId: string) {
@@ -34,7 +35,10 @@ export const getMyRatingsFn = createServerFn({ method: "POST" })
 
 export const getRatingsForFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId?: unknown }) => ({ playerId: input?.playerId }))
+  // Type and size only (Security C2): getRatingsFor answers an unknown or malformed id with null itself.
+  .inputValidator((input: { playerId?: unknown }) => ({
+    playerId: optional(record(input)["playerId"], (v) => text(v, 64, "playerId")),
+  }))
   .handler(async ({ context, data }): Promise<PlayerRatings | null | { busy: true }> => {
     const { client, allowed, ratings } = await setup(context.userId);
     if (!allowed) return { busy: true };

@@ -8,12 +8,14 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { record, text } from "@/lib/validate";
 
 import type { BigEventView, HallOfFameEntry } from "./eventsFlow.server";
 
 export const bigEventFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { eventId: string }) => input)
+  // Type and size only (Security C2): parseBigEventId answers a malformed id with null itself.
+  .inputValidator((input: { eventId: string }) => ({ eventId: text(record(input)["eventId"], 128, "eventId") }))
   .handler(async ({ data, context }): Promise<BigEventView | null | { busy: true }> => {
     const { adminDb } = await import("@/lib/data/db.server");
     const client = await adminDb();
