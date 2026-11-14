@@ -26,12 +26,17 @@ interface Sender {
   status: string;
   muted_by_host: boolean;
   last_reaction_at: string | null;
+  public_id?: string | null;
 }
 
-/** The caller's player row, or null when they are not in the room. */
-async function senderRow(client: Db, roomId: string, userId: string): Promise<Sender | null> {
+/**
+ * The caller's player row, or null when they are not in the room. Read with the service role (Security C1b: phones,
+ * and so the caller's own client, can't read or filter on account ids); it is the caller's own row, the one their row
+ * level security read answered.
+ */
+async function senderRow(_client: Db, roomId: string, userId: string): Promise<Sender | null> {
   const { readChatSender } = await import("@/lib/data/players.server");
-  const { data } = await readChatSender(client, roomId, userId);
+  const { data } = await readChatSender(await admin(), roomId, userId);
   return data ?? null;
 }
 
@@ -75,7 +80,8 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     if (tournament) text = tournament.text;
 
     const { insertRoomMessage, readOwnRecentMessages } = await import("@/lib/data/chat.server");
-    const { data: mine } = await readOwnRecentMessages(client, data.roomId, context.userId, MESSAGE_MAX_PER_PLAYER);
+    // The caller's own messages (the service role, as senderRow; a player still in the room reads their room's chat).
+    const { data: mine } = await readOwnRecentMessages(await admin(), data.roomId, context.userId, MESSAGE_MAX_PER_PLAYER);
     const sent = mine ?? [];
 
     if (sent.length >= MESSAGE_MAX_PER_PLAYER) {
@@ -170,7 +176,8 @@ export const allowReactionFn = createServerFn({ method: "POST" })
 
 /**
  * Sends a reaction to the room (13 Nov 2026): the same checks, then the server broadcasts it on the room's private
- * chat topic with the sender's user id, slot and name from the server's own player row. The phone only listens.
+ * chat topic with the sender's public id (`playerId`, Security C1b: never the account id), slot and name from the
+ * server's own player row. The phone only listens.
  */
 export const sendReactionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -181,7 +188,7 @@ export const sendReactionFn = createServerFn({ method: "POST" })
     const { broadcastRoomReaction } = await import("@/lib/data/chat.server");
     const { error } = await broadcastRoomReaction(await admin(), data.roomId, {
       emoji: data.emoji,
-      userId: context.userId,
+      playerId: approved.sender.public_id ?? null,
       name: approved.sender.display_name,
       slot: approved.sender.player_slot,
     });
@@ -205,8 +212,10 @@ export const reportMessageFn = createServerFn({ method: "POST" })
     if (!isReportReason(reason)) return { ok: false as const, message: "Pick a reason." };
     const supabaseAdmin = await admin();
     const { insertRoomReport, readRoomMessageForReport } = await import("@/lib/data/chat.server");
-    // The reported message must be one of this room's (read through the caller's RLS).
-    const { data: message } = await readRoomMessageForReport(context.supabase, data.roomId, String(data.messageId ?? ""));
+    // The reported message must be one of this room's, readable by the caller: a player still in the room reads its
+    // chat (public.can_read_room_chat). Read with the service role (Security C1b), the caller's reading rule checked here.
+    const { data: message } =
+      sender.status === "left" ? { data: null } : await readRoomMessageForReport(supabaseAdmin, data.roomId, String(data.messageId ?? ""));
     if (!message) return { ok: false as const, message: "That message isn’t in this room." };
     const { REPORT_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(supabaseAdmin, context.userId, REPORT_LIMIT)))
@@ -270,9 +279,10 @@ export const setPlayerMutedFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string; slot: number; muted: boolean }) => input)
   .handler(async ({ data, context }) => {
-    const client = context.supabase;
+    // A room's players read its row (public.is_duel_participant: any seat); read with the service role (Security C1b).
+    const seat = await senderRow(context.supabase, data.roomId, context.userId);
     const { readRoomHost } = await import("@/lib/data/rooms.server");
-    const { data: room } = await readRoomHost(client, data.roomId);
+    const { data: room } = seat ? await readRoomHost(await admin(), data.roomId) : { data: null };
     if (!room) return { ok: false as const, message: "Room not found." };
     if (room.host_user_id !== context.userId) {
       return { ok: false as const, message: "Only the host can do that." };

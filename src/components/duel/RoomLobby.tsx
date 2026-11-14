@@ -14,6 +14,7 @@ import {
 } from "@/lib/duel/playerLook";
 
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
+import { isSeat } from "@/lib/duel/seatKey";
 import { roomRoundCount } from "@/lib/duel/selection";
 import { readRoomSettings, roomSettingsUnlocked, settingsFacts, type RoomSettings } from "@/lib/duel/roomSettings";
 
@@ -46,7 +47,7 @@ interface RoomLobbyProps {
 
   players: DuelPlayerRow[];
   hostUserId: string | null;
-  meUserId: string;
+  meUserId: string | null;
   isHost: boolean;
   starting: boolean;
   /** The rounds are being dealt (a fresh deal claim, dealClaim.ts): Start reads "Dealing", settings wait. */
@@ -239,7 +240,7 @@ export function RoomLobby({
   const canStart = players.length >= MIN_PLAYERS;
   const celebrate = useCelebrationsOn();
   const playersNeeded = MIN_PLAYERS - players.length;
-  const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
+  const hostName = players.find((player) => isSeat(player, hostUserId))?.display_name;
   const [settingsOpen, setSettingsOpen] = useState(false);
   /** Settings just saved, shown until the room's own row carries them (or a few seconds pass). */
   const [savedSettings, setSavedSettings] = useState<{ settings: RoomSettings; stored: unknown; scoring: ScoringMode; scoringBefore: ScoringMode } | null>(null);
@@ -266,7 +267,7 @@ export function RoomLobby({
   /** My choice while it is on its way to the server (shown at once). */
   const [pending, setPending] = useState<Partial<PlayerLook> | null>(null);
   const [lookError, setLookError] = useState<string | null>(null);
-  const me = players.find((player) => player.user_id === meUserId);
+  const me = players.find((player) => isSeat(player, meUserId));
   const storedLook = me ? looks.get(me.player_slot) : undefined;
   const myLook = storedLook ? { ...storedLook, ...pending } : undefined;
   const lookFor = (slot: number) => (me && slot === me.player_slot ? myLook : looks.get(slot));
@@ -338,10 +339,10 @@ export function RoomLobby({
             own chip opens the colour wheel for this room, under the grid. */}
         <ul className="rs-grid" data-lobby-grid>
           {players.map((player) => {
-            const isMe = player.user_id === meUserId;
+            const isMe = isSeat(player, meUserId);
             const look = lookFor(player.player_slot);
             const you = look ? PLAYER_COLOURS[look.colour]?.hex : undefined;
-            const isHostRow = player.user_id === hostUserId;
+            const isHostRow = isSeat(player, hostUserId);
             const sub = isMe
               ? "You"
               : player.muted_by_host

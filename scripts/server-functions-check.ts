@@ -933,6 +933,8 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
   await section("heartbeat presence", async () => {
     const seenOf = (user: string) =>
       q(`SELECT last_seen_at FROM public.duel_players WHERE duel_id = '${roomId}' AND user_id = '${user}'`);
+    // Security C1b: a player's public id, how the heartbeat's reply keys its times for a phone.
+    const seatOf = (user: string) => q(`SELECT public_id FROM public.duel_players WHERE duel_id = '${roomId}' AND user_id = '${user}'`);
     check(
       q(`SELECT count(*) FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'duel_presence'`) === "0" &&
         q(`SELECT count(*) FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'duel_players'`) === "1",
@@ -941,7 +943,8 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
     const rowBefore = seenOf(BO);
     const beat = (await call(duel.heartbeatFn, { roomId }, tok.bo)) as { ok: boolean; seen?: Record<string, string> };
     check(
-      beat.ok === true && !!beat.seen?.[BO] && !!beat.seen?.[ALI] &&
+      // Changed with Joe's approval, 13 Nov 2026: the reply is keyed by public id (Security C1b: no account id reaches a phone).
+      beat.ok === true && !!beat.seen?.[seatOf(BO)] && !!beat.seen?.[seatOf(ALI)] &&
         q(`SELECT count(*) FROM public.duel_presence WHERE duel_id = '${roomId}' AND user_id = '${BO}'`) === "1",
       "heartbeat: stored in duel_presence; the reply carries the room's last-seen times",
     );
@@ -969,7 +972,8 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
     try {
       const old = (await call(duel.heartbeatFn, { roomId }, tok.bo)) as { ok: boolean; seen?: Record<string, string> };
       check(
-        old.ok === true && !!old.seen?.[BO] && seenOf(BO) !== rowBefore,
+        // Changed with Joe's approval, 13 Nov 2026: the reply is keyed by public id (Security C1b: no account id reaches a phone).
+        old.ok === true && !!old.seen?.[seatOf(BO)] && seenOf(BO) !== rowBefore,
         "heartbeat without duel_presence: the player row is written and the reply carries its times",
       );
       const out = (await call(duel.heartbeatFn, { roomId }, tok.dee)) as { ok: boolean; seen?: unknown };

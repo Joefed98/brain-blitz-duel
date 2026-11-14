@@ -216,7 +216,8 @@ function postgresBin(): string | null {
   check(!!early && early.name.length <= 16, "3: before the list loads, the message's name is cut to a guest name's length");
   const chat = src("src/lib/duel/useRoomChat.ts");
   check(/acceptReaction\(payload, rosterRef\.current\)/.test(chat) && !/payload as \{ emoji\?: string; name\?: string; userId\?: string \}/.test(chat), "3: the room chat hook runs every received reaction through acceptReaction");
-  check(/useRoomChat\(duel\?\.id \?\? null, me\?\.user_id \?\? null, chatActive, players\)/.test(src("src/routes/duel.$code.tsx")), "3: the room screen hands the chat hook its player list");
+  // Changed with Joe's approval, 13 Nov 2026: the room screen passes its own key (seatKey.ts, Security C1b: phones read no account ids).
+  check(/useRoomChat\(duel\?\.id \?\? null, myKey, chatActive, players\)/.test(src("src/routes/duel.$code.tsx")), "3: the room screen hands the chat hook its player list");
 
   const ghosts = await import("../src/lib/duel/raceGhosts");
   const { MAX_PLAYERS } = await import("../src/lib/duel/types");

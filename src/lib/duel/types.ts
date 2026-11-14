@@ -473,8 +473,13 @@ export interface DuelRow {
   selected_categories: PuzzleCategory[];
   tournament_history: TournamentEntry[];
   disbanded_at: string | null;
-  /** The player who created the room; only they can start it or remove players. */
+  /**
+   * The player who created the room; only they can start it or remove players. Server reads only: phones can't read
+   * it (Security C1b) and use `host_public_id` (seatKey.ts hostKey).
+   */
   host_user_id: string | null;
+  /** The host's public id (Security C1b, 20261117500300_public_player_ids.sql): what phones read in its place. */
+  host_public_id?: string | null;
   max_players: number;
   round_count: number;
   round_order: StoredPuzzleType[];
@@ -513,8 +518,13 @@ export interface DuelPlayerRow {
   duel_id: string;
   player_slot: number;
   display_name: string;
-  /** The device's anonymous auth identity. */
+  /**
+   * The device's anonymous auth identity. Server reads only: phones can't read it (Security C1b) and tell players apart
+   * by `public_id` (seatKey.ts).
+   */
   user_id: string;
+  /** The player's public id, one per player for life (Security C1b, 20261117500300_public_player_ids.sql). */
+  public_id?: string | null;
   ready_round: number;
   /** The round this player has tapped READY on the intro screen for. */
   intro_ready_round: number;

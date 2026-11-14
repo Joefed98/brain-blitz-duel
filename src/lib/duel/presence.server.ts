@@ -47,8 +47,24 @@ export function resetPresenceCache(): void {
   missingUntil = 0;
 }
 
-/** Each player's last seen in this room (ISO times), by user id. */
+/** Each player's last seen in this room (ISO times), by user id (server side) or public id (the reply to a phone). */
 export type RoomSeen = Record<string, string>;
+
+/**
+ * The heartbeat's reply as a phone gets it (Security C1b): the same times keyed by each player's public id, never an
+ * account id. A time whose player has no public id (none yet) is left out.
+ */
+export async function seenForPhone(client: Db, roomId: string, seen: RoomSeen): Promise<RoomSeen> {
+  const { readPlayerPublicIds } = await import("@/lib/data/players.server");
+  const { data } = await readPlayerPublicIds(client, roomId);
+  const byUser = new Map((data ?? []).map((r) => [r.user_id, r.public_id]));
+  const out: RoomSeen = {};
+  for (const [userId, iso] of Object.entries(seen)) {
+    const key = byUser.get(userId);
+    if (key) out[key] = iso;
+  }
+  return out;
+}
 
 function laterIso(a: string | null | undefined, b: string | null | undefined): string | null {
   const ta = a ? Date.parse(a) : NaN;

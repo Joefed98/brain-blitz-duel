@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { RoomPlayerName } from "@/components/duel/RoomPlayer";
+import { isSeat, senderKey } from "@/lib/duel/seatKey";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { finishedThisRound } from "@/lib/duel/finishedPings";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
@@ -56,7 +57,7 @@ export function RoomPanel({
   looks: PlayerLooks;
   chat: RoomChatState;
   chatAvailable: boolean;
-  myUserId: string;
+  myUserId: string | null;
 }) {
   const finished = new Set(finishedThisRound(players, round, mySlot).map((p) => p.slot));
   if (myAnswered) finished.add(mySlot);
@@ -122,7 +123,7 @@ export function RoomPanel({
               p?.status === "left"
                 ? "left"
                 : status === "waiting"
-                  ? p?.user_id === myUserId
+                  ? isSeat(p, myUserId)
                     ? "you"
                     : "ready"
                   : inRound
@@ -179,7 +180,7 @@ export function RoomPanel({
   );
 }
 
-function PanelChat({ chat, myUserId }: { chat: RoomChatState; myUserId: string }) {
+function PanelChat({ chat, myUserId }: { chat: RoomChatState; myUserId: string | null }) {
   const [text, setText] = useState("");
   const list = useRef<HTMLUListElement | null>(null);
   useEffect(() => {
@@ -199,7 +200,7 @@ function PanelChat({ chat, myUserId }: { chat: RoomChatState; myUserId: string }
         {chat.messages.slice(-40).map((m) => (
           <li
             key={m.id}
-            data-mine={m.sender_user_id === myUserId || undefined}
+            data-mine={senderKey(m) === myUserId || undefined}
             className="dk-rp-msg"
           >
             <span className="dk-rp-msg-name">{m.sender_name}</span> {m.text}

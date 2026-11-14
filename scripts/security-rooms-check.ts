@@ -240,6 +240,8 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
     check(joined.ok === true, `${n} joins the lobby`);
   }
   const slotOf = (u: string) => Number(q(`SELECT player_slot FROM public.duel_players WHERE duel_id = '${roomId}' AND user_id = '${u}'`));
+  // Security C1b: a player's public id, what the reaction payload carries in place of the account id.
+  const publicIdOf = (u: string) => q(`SELECT public_id FROM public.duel_players WHERE duel_id = '${roomId}' AND user_id = '${u}'`);
 
   /* ---------------------------------------------------------- 3. reactions sent by the server */
   {
@@ -249,9 +251,12 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
     const [topic, event, priv, payloadText] = row.split("|");
     const payload = JSON.parse(payloadText ?? "{}") as Record<string, unknown>;
     check(topic === `room-chat-${roomId}` && event === "reaction" && priv === "true", `the server broadcasts on the room's private chat topic (${topic}, ${event}, private ${priv})`);
-    check(payload["userId"] === BO && payload["name"] === "Bo" && payload["slot"] === slotOf(BO) && payload["emoji"] === ROOM_EMOJI[0], `the sender comes from the server's own row (${payloadText})`);
-    const roster = q(`SELECT json_agg(json_build_object('user_id', user_id, 'display_name', display_name, 'status', status, 'muted_by_host', muted_by_host)) FROM public.duel_players WHERE duel_id = '${roomId}'`);
-    check(acceptReaction(payload, JSON.parse(roster))?.userId === BO, "the receiving filter (acceptReaction) takes the server's payload");
+    // Changed with Joe's approval, 13 Nov 2026: the payload carries the public id as playerId, never the account id (Security C1b).
+    check(payload["playerId"] === publicIdOf(BO) && !("userId" in payload) && payload["name"] === "Bo" && payload["slot"] === slotOf(BO) && payload["emoji"] === ROOM_EMOJI[0], `the sender comes from the server's own row (${payloadText})`);
+    // Changed with Joe's approval, 13 Nov 2026: the roster carries the public id, as a phone holds it (Security C1b).
+    const roster = q(`SELECT json_agg(json_build_object('user_id', user_id, 'public_id', public_id, 'display_name', display_name, 'status', status, 'muted_by_host', muted_by_host)) FROM public.duel_players WHERE duel_id = '${roomId}'`);
+    // Changed with Joe's approval, 13 Nov 2026: the accepted reaction names its sender by public id (Security C1b).
+    check(acceptReaction(payload, JSON.parse(roster))?.playerId === publicIdOf(BO), "the receiving filter (acceptReaction) takes the server's payload");
     const soon = await call(chat.sendReactionFn, { roomId, emoji: ROOM_EMOJI[0] }, tok(BO));
     check(soon.ok === false && /One reaction a second/.test(soon.message), "sendReactionFn: one a second");
     const outsider = await call(chat.sendReactionFn, { roomId, emoji: ROOM_EMOJI[0] }, tok(OUT));

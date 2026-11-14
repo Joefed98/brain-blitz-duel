@@ -20,6 +20,7 @@ import { unreadCount } from "./chatNotice";
 import type { ReportReason } from "@/lib/safety/reports";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { acceptReaction, type ReactionRosterRow } from "./reactionRoster";
+import { senderKey } from "./seatKey";
 
 const MUTED_KEY = "duelz_muted_players";
 
@@ -134,7 +135,7 @@ export function useRoomChat(
           knownIds.current.add(row.id);
           setMessages((prev) => [...prev, row]);
           // The toast, sound and haptic are RoomChat's (never during a round); here only the row.
-          if (row.sender_user_id !== myUserId && !sheetOpenRef.current) setIncoming(row);
+          if (senderKey(row) !== myUserId && !sheetOpenRef.current) setIncoming(row);
         },
       )
       .on("broadcast", { event: "reaction" }, ({ payload }) => {
@@ -142,15 +143,15 @@ export function useRoomChat(
         const data = acceptReaction(payload, rosterRef.current);
         if (!data) return;
         // Every phone enforces the one-a-second limit, whoever sent it.
-        const previous = lastReactionAt.current.get(data.userId) ?? 0;
+        const previous = lastReactionAt.current.get(data.playerId) ?? 0;
         const now = Date.now();
         if (now - previous < REACTION_MIN_GAP_MS) return;
-        lastReactionAt.current.set(data.userId, now);
+        lastReactionAt.current.set(data.playerId, now);
         const bubble: FloatingReaction = {
-          id: `${data.userId}-${now}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `${data.playerId}-${now}-${Math.random().toString(36).slice(2, 7)}`,
           emoji: data.emoji,
           name: data.name.slice(0, GUEST_NAME_MAX),
-          userId: data.userId,
+          userId: data.playerId,
           at: now,
         };
         setReactions((prev) => [...prev.slice(-11), bubble]);
@@ -182,7 +183,7 @@ export function useRoomChat(
   }, [messages, sheetOpen]);
 
   const visibleMessages = useMemo(
-    () => messages.filter((m) => !mutedUserIds.includes(m.sender_user_id)),
+    () => messages.filter((m) => !mutedUserIds.includes(senderKey(m) ?? "")),
     [messages, mutedUserIds],
   );
 
@@ -255,7 +256,7 @@ export function useRoomChat(
     messages: visibleMessages,
     reactions: visibleReactions,
     unread,
-    incoming: incoming && !mutedUserIds.includes(incoming.sender_user_id) ? incoming : null,
+    incoming: incoming && !mutedUserIds.includes(senderKey(incoming) ?? "") ? incoming : null,
     sheetOpen,
     setSheetOpen,
     sending,

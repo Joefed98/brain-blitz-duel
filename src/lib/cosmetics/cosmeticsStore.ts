@@ -30,7 +30,8 @@ export function resetCosmetics(): void {
 async function fetchCosmetics(userIds: string[]): Promise<PublicCosmetics[]> {
   if (fetcher) return fetcher(userIds);
   const { getPublicCosmeticsFn } = await import("./cosmetics.functions");
-  return getPublicCosmeticsFn({ data: { userIds } });
+  // Asked for by public id (Security C1b): the room's players' keys (seatKey.ts).
+  return getPublicCosmeticsFn({ data: { playerIds: userIds } });
 }
 
 function publish(): void {

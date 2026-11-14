@@ -43,12 +43,12 @@ export async function readPlayer(
 }
 
 /** What chat needs of its sender. */
-export type ChatSender = Pick<DuelPlayerRow, "id" | "display_name" | "status" | "muted_by_host" | "last_reaction_at" | "player_slot">;
+export type ChatSender = Pick<DuelPlayerRow, "id" | "display_name" | "status" | "muted_by_host" | "last_reaction_at" | "player_slot" | "public_id">;
 
 export async function readChatSender(client: Db, roomId: string, userId: string): Promise<Result<ChatSender | null>> {
   const { data, error } = await client
     .from("duel_players")
-    .select("id, display_name, status, muted_by_host, last_reaction_at, player_slot")
+    .select("id, display_name, status, muted_by_host, last_reaction_at, player_slot, public_id")
     .eq("duel_id", roomId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -64,6 +64,20 @@ export async function probeLookColumns(client: Db): Promise<Result<null>> {
 /** Every player row's last seen in the room (the heartbeat's fallback reply). */
 export async function readPlayersSeen(client: Db, roomId: string): Promise<Result<SeenRow[] | null>> {
   const { data, error } = await client.from("duel_players").select("user_id, last_seen_at").eq("duel_id", roomId);
+  return { data, error };
+}
+
+/** Each seat's account id and public id (Security C1b): how the server answers a phone by public id. */
+export async function readPlayerPublicIds(client: Db, roomId: string): Promise<Result<{ user_id: string; public_id: string | null }[] | null>> {
+  const { data, error } = await client.from("duel_players").select("user_id, public_id").eq("duel_id", roomId);
+  return { data, error };
+}
+
+/** The accounts behind these public ids (Security C1b; unknown ids are left out). */
+export async function readUsersOfPublicIds(client: Db, publicIds: readonly string[]): Promise<Result<{ user_id: string; public_id: string }[] | null>> {
+  const ids = [...new Set(publicIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id)))];
+  if (!ids.length) return { data: [], error: null };
+  const { data, error } = await client.from("player_public_ids").select("user_id, public_id").in("public_id", ids);
   return { data, error };
 }
 

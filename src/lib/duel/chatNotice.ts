@@ -11,6 +11,7 @@
  * Your own messages never count as unread and never toast. scripts/chat-notice-check.ts proves it.
  */
 import type { RoomMessageRow } from "./chatConstants";
+import { senderKey } from "./seatKey";
 
 /** How long a toast stays up, ms. */
 export const CHAT_TOAST_MS = 3500;
@@ -35,11 +36,11 @@ export function chatToastText(text: string): string {
 
 /** Messages from other players that the viewer has not seen in the open sheet. */
 export function unreadCount(
-  messages: readonly Pick<RoomMessageRow, "id" | "sender_user_id">[],
+  messages: readonly Pick<RoomMessageRow, "id" | "sender_user_id" | "sender_public_id">[],
   myUserId: string | null,
   seen: ReadonlySet<string>,
 ): number {
-  return messages.filter((m) => m.sender_user_id !== myUserId && !seen.has(m.id)).length;
+  return messages.filter((m) => senderKey(m) !== myUserId && !seen.has(m.id)).length;
 }
 
 /**
@@ -47,10 +48,10 @@ export function unreadCount(
  * (`chatAvailable`), with the sheet closed, and never for your own message.
  */
 export function shouldToast(
-  message: Pick<RoomMessageRow, "sender_user_id">,
-  { myUserId, chatAvailable, sheetOpen }: { myUserId: string; chatAvailable: boolean; sheetOpen: boolean },
+  message: Pick<RoomMessageRow, "sender_user_id" | "sender_public_id">,
+  { myUserId, chatAvailable, sheetOpen }: { myUserId: string | null; chatAvailable: boolean; sheetOpen: boolean },
 ): boolean {
-  return chatAvailable && !sheetOpen && message.sender_user_id !== myUserId;
+  return chatAvailable && !sheetOpen && senderKey(message) !== myUserId;
 }
 
 /** The in-round unread dot: shown only during a round, and only while something is unread. */

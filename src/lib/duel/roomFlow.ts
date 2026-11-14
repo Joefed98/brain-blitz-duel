@@ -3,6 +3,7 @@
  * show the same counts). Presentation pacing only: nothing here touches
  * grading, scoring or what a round contains.
  */
+import { isSeat } from "./seatKey";
 import {
   DISCONNECT_MS,
   FINISH_NOW_AWAY_MS,
@@ -107,12 +108,12 @@ function awayFor(player: DuelPlayerRow, now: number, awayMs: number): boolean {
  */
 export function absentRivals(
   players: readonly DuelPlayerRow[],
-  userId: string,
+  userId: string | null,
   now: number,
   awayMs: number = DISCONNECT_MS,
 ): DuelPlayerRow[] {
   return players.filter(
-    (p) => p.user_id !== userId && (p.status === "left" || awayFor(p, now, awayMs)),
+    (p) => !isSeat(p, userId) && (p.status === "left" || awayFor(p, now, awayMs)),
   );
 }
 
@@ -123,13 +124,13 @@ export function absentRivals(
  */
 export function everyoneElseAway(
   players: readonly DuelPlayerRow[],
-  userId: string,
+  userId: string | null,
   now: number,
   awayMs: number = DISCONNECT_MS,
 ): boolean {
-  const me = players.find((p) => p.user_id === userId);
+  const me = players.find((p) => isSeat(p, userId));
   if (!me || me.status === "left") return false;
-  const others = players.filter((p) => p.user_id !== userId);
+  const others = players.filter((p) => !isSeat(p, userId));
   return others.length > 0 && others.every((p) => p.status === "left" || awayFor(p, now, awayMs));
 }
 
@@ -141,7 +142,7 @@ export function everyoneElseAway(
  */
 export function canFinishNow(
   players: readonly DuelPlayerRow[],
-  userId: string,
+  userId: string | null,
   now: number,
 ): boolean {
   return everyoneElseAway(players, userId, now, FINISH_NOW_AWAY_MS);
@@ -154,12 +155,12 @@ export function canFinishNow(
  */
 export function finishNowInSeconds(
   players: readonly DuelPlayerRow[],
-  userId: string,
+  userId: string | null,
   now: number,
 ): number {
   if (canFinishNow(players, userId, now)) return 0;
   const seen = players
-    .filter((p) => p.user_id !== userId && p.status !== "left")
+    .filter((p) => !isSeat(p, userId) && p.status !== "left")
     .map((p) => Date.parse(p.last_seen_at))
     .filter(Number.isFinite);
   if (seen.length === 0) return 0;

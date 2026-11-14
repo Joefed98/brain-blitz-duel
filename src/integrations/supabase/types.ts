@@ -829,6 +829,7 @@ export type Database = {
           last_seen_at: string
           muted_by_host: boolean
           player_slot: number
+          public_id: string | null
           ready_round: number
           status: string
           submitted_round: number
@@ -847,6 +848,7 @@ export type Database = {
           last_seen_at?: string
           muted_by_host?: boolean
           player_slot: number
+          public_id?: string | null
           ready_round?: number
           status?: string
           submitted_round?: number
@@ -865,6 +867,7 @@ export type Database = {
           last_seen_at?: string
           muted_by_host?: boolean
           player_slot?: number
+          public_id?: string | null
           ready_round?: number
           status?: string
           submitted_round?: number
@@ -1082,6 +1085,7 @@ export type Database = {
           current_round: number
           deal_origin_id: string | null
           disbanded_at: string | null
+          host_public_id: string | null
           host_user_id: string | null
           id: string
           max_players: number
@@ -1107,6 +1111,7 @@ export type Database = {
           current_round?: number
           deal_origin_id?: string | null
           disbanded_at?: string | null
+          host_public_id?: string | null
           host_user_id?: string | null
           id?: string
           max_players?: number
@@ -1132,6 +1137,7 @@ export type Database = {
           current_round?: number
           deal_origin_id?: string | null
           disbanded_at?: string | null
+          host_public_id?: string | null
           host_user_id?: string | null
           id?: string
           max_players?: number
@@ -1183,6 +1189,12 @@ export type Database = {
           seed?: number
           start_tick?: number
         }
+        Relationships: []
+      }
+      player_public_ids: {
+        Row: { created_at: string; public_id: string; user_id: string }
+        Insert: { created_at?: string; public_id?: string; user_id: string }
+        Update: { created_at?: string; public_id?: string; user_id?: string }
         Relationships: []
       }
       practice_challenge_deals: {
@@ -1878,6 +1890,7 @@ export type Database = {
           duel_id: string
           id: string
           sender_name: string
+          sender_public_id: string | null
           sender_user_id: string
           text: string
         }
@@ -1886,6 +1899,7 @@ export type Database = {
           duel_id: string
           id?: string
           sender_name: string
+          sender_public_id?: string | null
           sender_user_id: string
           text: string
         }
@@ -1894,6 +1908,7 @@ export type Database = {
           duel_id?: string
           id?: string
           sender_name?: string
+          sender_public_id?: string | null
           sender_user_id?: string
           text?: string
         }
@@ -2995,6 +3010,8 @@ export type Database = {
       }
       room_game_index: { Args: { _duel_id: string }; Returns: number }
       mm_seen_deal_origins: { Args: { p_user_id: string }; Returns: string[] }
+      my_public_id: { Args: Record<PropertyKey, never>; Returns: string }
+      public_id_of: { Args: { p_user_id: string }; Returns: string }
       file_room_report: {
         Args: {
           p_duel_id: string | null

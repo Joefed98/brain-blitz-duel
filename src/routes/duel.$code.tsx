@@ -20,6 +20,7 @@ import { RoomPanel } from "@/components/duel/RoomPanel";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { GameStage } from "@/components/duel/GameParts";
 import { preloadGame } from "@/lib/duel/gameLoader";
+import { hostKey, seatKey } from "@/lib/duel/seatKey";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
@@ -296,7 +297,7 @@ function DuelScreen() {
   const navigate = useNavigate();
   const roomCode = code.toUpperCase();
   const state = useDuel(roomCode);
-  const { duel, players, results, me, opponent, roomPlayers, isMulti, isHost, now } = state;
+  const { duel, players, results, me, myKey, opponent, roomPlayers, isMulti, isHost, now } = state;
   // A rated match (wave 3, W3b's room; W3c's screens): null for every ordinary room, which is then exactly as before.
   const ratedMatchId = useRatedRoom(roomCode, duel?.id ?? null);
   // Its W3b format: a 4- or 8-player match draws the format slot's Between screen between games.
@@ -430,7 +431,7 @@ function DuelScreen() {
         duel.phase === "reveal" ||
         duel.phase === "winner_reveal")
     );
-  const chat = useRoomChat(duel?.id ?? null, me?.user_id ?? null, chatActive, players);
+  const chat = useRoomChat(duel?.id ?? null, myKey, chatActive, players);
   useEffect(() => {
     if (!chatActive) chat.setSheetOpen(false);
   }, [chatActive]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -485,7 +486,7 @@ function DuelScreen() {
   // Everyone's colour and icon, the same on every phone (every row, left players included).
   const looks = useMemo(() => resolvePlayerLooks(players), [players]);
   // Wave 2 E2: each player's equipped cosmetics (their win celebration and podium entrance on the final screen).
-  const roomCosmetics = useCosmetics(players.map((p) => p.user_id));
+  const roomCosmetics = useCosmetics(players.map((p) => seatKey(p)));
   // One identity everywhere (13 Nov 2026): every seat's card in one batched read, again only when someone joins.
   const roomCards = useRoomCards(duel?.id, players.map((p) => p.id));
   usePublishRoomCards(roomCards, players);
@@ -493,8 +494,8 @@ function DuelScreen() {
     rows
       .filter((r) => r.position <= 3)
       .map((r) => {
-        const userId = players.find((p) => p.player_slot === r.slot)?.user_id;
-        return { slot: r.slot, place: r.position, name: r.name, cosmetics: (userId && roomCosmetics.get(userId)) || NO_COSMETICS };
+        const key = seatKey(players.find((p) => p.player_slot === r.slot));
+        return { slot: r.slot, place: r.position, name: r.name, cosmetics: (key && roomCosmetics.get(key)) || NO_COSMETICS };
       });
   // Who else has finished this round (never how they did); the live round only, never practice or replays.
   // Beta: a device's first room played after finishing a friend's challenge (challengeRecord.ts).
@@ -977,20 +978,20 @@ function DuelScreen() {
   // Everyone else has left or dropped out: no dead end. The rounds carry on
   // on their timers (absent players score 0) and the player can finish now.
   const awayMs = ratedMatchId ? RATED_AWAY_MS : DISCONNECT_MS;
-  const absent = absentRivals(players, me.user_id, now, awayMs);
+  const absent = absentRivals(players, myKey, now, awayMs);
   // A rated match (W3b's leaving rules, Joe 12 Nov 2026): no Finish now; the banner counts down the 20 s grace from
   // the absent player's last sign of life, after which the server ends the match (an abort before the first intro, else
   // a forfeit).
   const ratedGrace = ratedMatchId ? graceLine(graceSecondsLeft(latestSeenMs(absent), now)) : undefined;
   const dropout =
-    duel.status === "in_progress" && everyoneElseAway(players, me.user_id, now, awayMs) ? (
+    duel.status === "in_progress" && everyoneElseAway(players, myKey, now, awayMs) ? (
       <DropoutBanner
         absentNames={absent.map((p) => p.display_name)}
         myTotal={myTotal}
         absentTotal={absent.length === 1 ? totalScoreThrough(results, absent[0]!.player_slot, scoredThrough) : null}
         onFinish={ratedMatchId ? undefined : handleFinishNow}
         graceText={ratedGrace}
-        finishInSeconds={ratedMatchId || canFinishNow(players, me.user_id, now) ? undefined : finishNowInSeconds(players, me.user_id, now)}
+        finishInSeconds={ratedMatchId || canFinishNow(players, myKey, now) ? undefined : finishNowInSeconds(players, myKey, now)}
       />
     ) : null;
   // Guests can leave a game between rounds (the host's leave would close the room).
@@ -1019,7 +1020,7 @@ function DuelScreen() {
       looks={looks}
       chat={chat}
       chatAvailable={chatAvailable}
-      myUserId={me.user_id}
+      myUserId={myKey}
     />
   );
   const withPanel = (node: React.ReactNode) => <RoomPanelSlot.Provider value={roomPanel}>{node}</RoomPanelSlot.Provider>;
@@ -1043,8 +1044,8 @@ function DuelScreen() {
 
           <RoomLobby
             players={roomPlayers}
-            hostUserId={duel.host_user_id}
-            meUserId={me.user_id}
+            hostUserId={hostKey(duel)}
+            meUserId={myKey}
             isHost={isHost}
             starting={starting}
             dealing={dealClaimFresh(duel.start_claimed_at, now)}
@@ -1084,7 +1085,7 @@ function DuelScreen() {
           )}
         </div>
         </RoomChatSlot.Provider>
-        <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
+        <RoomChat chat={chat} myUserId={myKey} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
       </PhoneShell>
     );
   }
@@ -1097,7 +1098,7 @@ function DuelScreen() {
   if (duel.status === "finished") {
     // A "Finish now" ending: the same recorded outcome the room's history keeps.
     const forfeit = forfeitOutcome(duel, players);
-    const iWonForfeit = forfeit?.winner.user_id === me.user_id;
+    const iWonForfeit = forfeit?.winner.player_slot === me.player_slot;
     // A host who left can't restart the room (the reset removes left players).
     const canPlayAgain = isHost && me.status !== "left";
     // The other player in a two-player game, even after they left.
@@ -1127,7 +1128,7 @@ function DuelScreen() {
               celebrations={forfeit ? null : <PodiumCelebrations entries={celebrationEntries(standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds, scoringMode))} />}
             />
             </RoomChatSlot.Provider>
-            <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
+            <RoomChat chat={chat} myUserId={myKey} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
             <FinishedGameCounter gameKey={roomGameKey(duel)} from="room" />
           </PhoneShell>
         </div>
@@ -1173,7 +1174,7 @@ function DuelScreen() {
             celebrations={forfeit ? null : <PodiumCelebrations entries={celebrationEntries(standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds, scoringMode)).filter((e) => e.place === 1).map((e) => ({ ...e, cosmetics: { ...e.cosmetics, entrance: null } }))} />}
           />
           </RoomChatSlot.Provider>
-          <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
+          <RoomChat chat={chat} myUserId={myKey} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
           <FinishedGameCounter gameKey={roomGameKey(duel)} from="room" />
         </PhoneShell>
       </div>
@@ -1210,7 +1211,7 @@ function DuelScreen() {
           }}
         />
         </RoomChatSlot.Provider>
-        <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
+        <RoomChat chat={chat} myUserId={myKey} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
       </PhoneShell>
     );
   }
@@ -1309,7 +1310,7 @@ function DuelScreen() {
             }
           />}
           </RoomChatSlot.Provider>
-          <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
+          <RoomChat chat={chat} myUserId={myKey} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
         </PhoneShell>
       );
     }
@@ -1353,7 +1354,7 @@ function DuelScreen() {
           }
         />
         </RoomChatSlot.Provider>
-        <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
+        <RoomChat chat={chat} myUserId={myKey} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
       </PhoneShell>
     );
   }
@@ -1398,7 +1399,7 @@ function DuelScreen() {
           />
         ))}
         </RoomChatSlot.Provider>
-        <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
+        <RoomChat chat={chat} myUserId={myKey} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
       </PhoneShell>
     );
   }

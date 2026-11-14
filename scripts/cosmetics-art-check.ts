@@ -161,15 +161,16 @@ check(!isRoomReaction(cos.emoteCode("reaction.live-wire", 0), "owner"), "nor a p
     { user_id: "owner", display_name: "Owner", status: "joined" },
     { user_id: "other", display_name: "Other", status: "joined" },
   ];
-  const got = acceptReaction({ emoji: code, userId: "owner", name: "Owner" }, roster);
+  // Changed with Joe's approval, 13 Nov 2026: the reaction payload's sender is playerId (Security C1b, Joe's decision 3); lines 164 and 167–172.
+  const got = acceptReaction({ emoji: code, playerId: "owner", name: "Owner" }, roster);
   check(got?.emoji === code && got.name === "Owner", "room reactions: the owner's emote is accepted");
   const refused = ["reaction.nope#0", "reaction.banter#9", "reaction.banter#x", "https://example.com/a.png", "<img src=x onerror=alert(1)>", "reaction.banter#2 ", "data:image/png;base64,AAAA"];
-  check(refused.every((emoji) => acceptReaction({ emoji, userId: "owner" }, roster) === null), "room reactions: an unknown emote id, a URL, an image or markup is refused");
-  check(acceptReaction({ emoji: cos.emoteCode("reaction.live-wire", 0), userId: "owner" }, roster) === null, "room reactions: an emote of a pack the sender didn't equip is refused");
-  check(acceptReaction({ emoji: code, userId: "other" }, roster) === null, "room reactions: an emote from a player who owns none is refused");
-  check(acceptReaction({ emoji: code, userId: "owner" }, [{ user_id: "owner", display_name: "Owner", status: "left" }]) === null, "room reactions: never from a player who left");
-  check(acceptReaction({ emoji: code, userId: "owner", reactions: ["reaction.live-wire"] } as never, roster)?.emoji === code &&
-    acceptReaction({ emoji: cos.emoteCode("reaction.live-wire", 0), userId: "owner", reactions: ["reaction.live-wire"] } as never, roster) === null,
+  check(refused.every((emoji) => acceptReaction({ emoji, playerId: "owner" }, roster) === null), "room reactions: an unknown emote id, a URL, an image or markup is refused");
+  check(acceptReaction({ emoji: cos.emoteCode("reaction.live-wire", 0), playerId: "owner" }, roster) === null, "room reactions: an emote of a pack the sender didn't equip is refused");
+  check(acceptReaction({ emoji: code, playerId: "other" }, roster) === null, "room reactions: an emote from a player who owns none is refused");
+  check(acceptReaction({ emoji: code, playerId: "owner" }, [{ user_id: "owner", display_name: "Owner", status: "left" }]) === null, "room reactions: never from a player who left");
+  check(acceptReaction({ emoji: code, playerId: "owner", reactions: ["reaction.live-wire"] } as never, roster)?.emoji === code &&
+    acceptReaction({ emoji: cos.emoteCode("reaction.live-wire", 0), playerId: "owner", reactions: ["reaction.live-wire"] } as never, roster) === null,
     "room reactions: what the sender's message claims to own is ignored (the server's record decides)");
 }
 store.setCosmeticsFetcher(null);
