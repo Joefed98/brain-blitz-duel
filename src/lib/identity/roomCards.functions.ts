@@ -4,6 +4,8 @@
  * someone joins (useRoomCards); never one call per player. Display only: nothing here is read by a sim, a grader, a
  * deal, a ranking or a timer.
  */
+import { record, text } from "@/lib/validate";
+import { ID_MAX } from "@/lib/duel/inputLimits";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -13,7 +15,7 @@ import { NO_ROOM_CARDS, type RoomCardsAnswer } from "./roomCards";
 
 export const roomCardsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => ({ roomId: String(input?.roomId ?? "") }))
+  .inputValidator((input: { roomId: string }) => ({ roomId: text(record(input)["roomId"], ID_MAX, "roomId") }))
   .handler(async ({ data, context }): Promise<RoomCardsAnswer> => {
     if (!isUuid(data.roomId)) return NO_ROOM_CARDS;
     const { adminDb } = await import("@/lib/data/db.server");

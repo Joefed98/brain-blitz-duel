@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
+import { ANSWER_MAX, CODE_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, ID_MAX, LIST_MAX, LOOK_MAX, NAME_MAX, NUMBER_MAX, PATH_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { staleSubmissionNote } from "@/lib/appVersion";
 
@@ -72,7 +73,7 @@ import {
 import { dbError, isUuid } from "./dbError";
 import { DEAL_CLAIM_MS, DEALING_MESSAGE, dealClaimFresh } from "./dealClaim";
 import { checkOverride } from "@/lib/checkOverride";
-import { listOf, oneOf, optional, record, text, uuid, whole } from "@/lib/validate";
+import { bool, compact, listOf, nullable, num, oneOf, optional, record, sizedRecord, text, uuid, whole } from "@/lib/validate";
 import { adminDb, asJson, UNIQUE_VIOLATION, type Db } from "@/lib/data/db.server";
 import { playedMs, recordEvents } from "@/lib/data/events.server";
 import {
@@ -381,7 +382,9 @@ async function recentBankKeys(client: Db, hostUserId: string | null): Promise<Se
 
 export const createRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { displayName: string; look?: LookPreference }) => input)
+  .inputValidator((input: { displayName: string; look?: LookPreference }) => {
+    const b = record(input);
+    return compact({ displayName: text(b["displayName"], NAME_MAX, "displayName"), look: nullable(b["look"], (x) => sizedRecord(x, LOOK_MAX, "look")) as LookPreference | undefined });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     // A signed-in player's rooms show their username (insertPlayer); only a guest's typed name is checked.
@@ -422,7 +425,10 @@ export const createRoomFn = createServerFn({ method: "POST" })
  */
 export const roomPreviewFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomCode: string }) => input)
+  .inputValidator((input: { roomCode: string }) => {
+    const b = record(input);
+    return { roomCode: text(b["roomCode"], CODE_MAX, "roomCode") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
@@ -461,7 +467,8 @@ export const joinRoomFn = createServerFn({ method: "POST" })
         roomCode: text(body["roomCode"], 32, "roomCode"),
         displayName: text(body["displayName"] ?? "", 200, "displayName"),
         via: optional(body["via"], (v) => text(v, 16, "via")) as "code" | "link" | undefined,
-        look: body["look"] == null ? undefined : (record(body["look"], "look") as LookPreference),
+        // Validation batch 1 (14 Nov 2026): the look is sized like every other (inputLimits.ts).
+        look: body["look"] == null ? undefined : (sizedRecord(body["look"], LOOK_MAX, "look") as LookPreference),
       };
     },
   )
@@ -539,7 +546,10 @@ export const joinRoomFn = createServerFn({ method: "POST" })
 /** Host only: generates the rounds and opens the shared, unskippable start screen. */
 export const startRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -667,7 +677,10 @@ export const startRoomFn = createServerFn({ method: "POST" })
 /** Host only, in the lobby: chooses the round categories. */
 export const setRoomModesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; categories: PuzzleCategory[] }) => input)
+  .inputValidator((input: { roomId: string; categories: PuzzleCategory[] }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), categories: listOf(b["categories"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "categories") as PuzzleCategory[] };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -705,7 +718,9 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
  */
 export const setRoomSettingsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; picks: string[]; rounds: number; scoring?: string }) => input)
+  .inputValidator((input: { roomId: string; picks: string[]; rounds: number; scoring?: string }) => {
+    const b = record(input);
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), picks: listOf(b["picks"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "picks"), rounds: num(b["rounds"], -NUMBER_MAX, NUMBER_MAX, "rounds"), scoring: optional(b["scoring"], (x) => text(x, SHORT_MAX, "scoring")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -725,7 +740,9 @@ export const setRoomSettingsFn = createServerFn({ method: "POST" })
  */
 export const setPlayerLookFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; colour?: number; icon?: string | null }) => input)
+  .inputValidator((input: { roomId: string; colour?: number; icon?: string | null }) => {
+    const b = record(input);
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), colour: optional(b["colour"], (x) => num(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: nullable(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);
@@ -768,7 +785,10 @@ export const removePlayerFn = createServerFn({ method: "POST" })
 /** Leaving the room. A departing host closes the room. */
 export const leaveRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const room = await getRoom(client, data.roomId);
@@ -797,7 +817,10 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
 
 export const disbandRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const room = await getRoom(client, data.roomId);
@@ -818,7 +841,10 @@ export const disbandRoomFn = createServerFn({ method: "POST" })
 
 export const checkHostPresenceFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -833,7 +859,9 @@ export const checkHostPresenceFn = createServerFn({ method: "POST" })
  */
 export const advancePhaseFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; hostNext?: boolean }) => input)
+  .inputValidator((input: { roomId: string; hostNext?: boolean }) => {
+    const b = record(input);
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), hostNext: optional(b["hostNext"], (x) => bool(x, "hostNext")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -973,19 +1001,9 @@ export type { SubmitExtra };
  */
 export const submitAnswerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: {
-      roomId: string;
-      roundNumber: number;
-      answer: string;
-      msRemaining: number;
-      extra?: SubmitExtra;
-      /** The phone's build id (appVersion.ts); missing from copies older than it. */
-      clientVersion?: string;
-      /** How the round was played (lib/inputType.ts); stored beside the result, never graded. */
-      inputType?: string;
-    }) => input,
-  )
+  .inputValidator((input: { roomId: string; roundNumber: number; answer: string; msRemaining: number; extra?: SubmitExtra; clientVersion?: string; inputType?: string }) => {
+    const b = record(input);
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: num(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: nullable(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const player = await requireParticipant(client, data.roomId, context.userId);
@@ -1100,7 +1118,10 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
  */
 export const readyUpFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const player = await requireParticipant(client, data.roomId, context.userId);
@@ -1126,7 +1147,10 @@ export const readyUpFn = createServerFn({ method: "POST" })
  */
 export const continueFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number; phase: string }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number; phase: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), phase: text(b["phase"], SHORT_MAX, "phase") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const player = await requireParticipant(client, data.roomId, context.userId);
@@ -1177,7 +1201,10 @@ export const finishNowFn = createServerFn({ method: "POST" })
 
 export const heartbeatFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     // Speed fix 3: the heartbeat no longer reaches every phone through realtime; its reply carries the room's
     // last-seen times instead (presence.server.ts), and only to a player of the room.
@@ -1199,7 +1226,10 @@ export const heartbeatFn = createServerFn({ method: "POST" })
  */
 export const revealAnswerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);
@@ -1212,7 +1242,10 @@ export const revealAnswerFn = createServerFn({ method: "POST" })
  */
 export const rematchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);
@@ -1262,15 +1295,9 @@ export const rematchFn = createServerFn({ method: "POST" })
  */
 export const checkWordFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: {
-      roomId: string;
-      roundNumber: number;
-      word: string;
-      found: string[];
-      path?: number[];
-    }) => input,
-  )
+  .inputValidator((input: { roomId: string; roundNumber: number; word: string; found: string[]; path?: number[] }) => {
+    const b = record(input);
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), word: text(b["word"], WORD_MAX, "word"), found: listOf(b["found"], FOUND_MAX, (x, f) => text(x, WORD_MAX, f), "found"), path: optional(b["path"], (x) => listOf(x, PATH_MAX, (y, f) => whole(y, -COUNT_MAX, COUNT_MAX, f), "path")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);
@@ -1339,7 +1366,10 @@ export const checkWordFn = createServerFn({ method: "POST" })
  */
 export const checkMovesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number; moves: string }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number; moves: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), moves: text(b["moves"], ANSWER_MAX, "moves") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);

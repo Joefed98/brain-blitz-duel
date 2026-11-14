@@ -1,4 +1,6 @@
 import type { Db } from "@/lib/data/db.server";
+import { CODE_MAX, COUNT_MAX, ID_MAX, LIST_MAX, NAME_MAX, NUMBER_MAX, SHORT_MAX } from "./inputLimits";
+import { bool, compact, listOf, nullable, num, optional, record, text, whole } from "@/lib/validate";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -67,15 +69,9 @@ export const challengeStatusFn = createServerFn({ method: "POST" }).handler(asyn
 /** Makes a challenge from the Play tab and starts the creator's own attempt. Rate limited. */
 export const createChallengeFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: {
-      categories: string[];
-      rounds: number;
-      displayName: string;
-      colour?: number | null;
-      icon?: string | null;
-    }) => input,
-  )
+  .inputValidator((input: { categories: string[]; rounds: number; displayName: string; colour?: number | null; icon?: string | null }) => {
+    const b = record(input);
+    return compact({ categories: listOf(b["categories"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "categories"), rounds: num(b["rounds"], -NUMBER_MAX, NUMBER_MAX, "rounds"), displayName: text(b["displayName"], NAME_MAX, "displayName"), colour: nullable(b["colour"], (x) => num(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: nullable(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
   .handler(async ({ data, context }) => {
     const player = await playerFrom(data, context.userId);
     if ("error" in player)
@@ -98,7 +94,10 @@ export const createChallengeFn = createServerFn({ method: "POST" })
 /** Makes (or finds) the challenge for a finished room's game; any player of that room may ask. Rate limited. */
 export const challengeFromRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { duelId: string }) => input)
+  .inputValidator((input: { duelId: string }) => {
+    const b = record(input);
+    return { duelId: text(b["duelId"], ID_MAX, "duelId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const { CHALLENGE_CREATE_LIMIT, IP_CHALLENGE_CREATE_LIMIT, withinIpRateLimit, withinRateLimit } = await import("./rateLimit.server");
@@ -113,7 +112,9 @@ export const challengeFromRoomFn = createServerFn({ method: "POST" })
 /** What a challenge link shows this device; `opened` counts the link's first opening (beta). */
 export const challengeInfoFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { code: string; opened?: boolean }) => input)
+  .inputValidator((input: { code: string; opened?: boolean }) => {
+    const b = record(input);
+    return compact({ code: text(b["code"], CODE_MAX, "code"), opened: optional(b["opened"], (x) => bool(x, "opened")) });  })
   .handler(async ({ data, context }) => {
     const code = challengeCodeFrom(data.code);
     if (!code) return { found: false as const };
@@ -138,10 +139,9 @@ export const challengeInfoFn = createServerFn({ method: "POST" })
 /** Starts (or continues) this device's one attempt on a challenge. */
 export const startChallengeFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: { code: string; displayName: string; colour?: number | null; icon?: string | null }) =>
-      input,
-  )
+  .inputValidator((input: { code: string; displayName: string; colour?: number | null; icon?: string | null }) => {
+    const b = record(input);
+    return compact({ code: text(b["code"], CODE_MAX, "code"), displayName: text(b["displayName"], NAME_MAX, "displayName"), colour: nullable(b["colour"], (x) => num(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: nullable(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
   .handler(async ({ data, context }) => {
     const code = challengeCodeFrom(data.code);
     if (!code) return { ok: false as const, message: "That challenge doesn’t exist." };
@@ -164,7 +164,10 @@ export const startChallengeFn = createServerFn({ method: "POST" })
 /** The earlier players this run plays against, and this device's slot. */
 export const challengeRosterFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const found = await mine(client, data.roomId, context.userId);
@@ -176,7 +179,10 @@ export const challengeRosterFn = createServerFn({ method: "POST" })
 /** Which earlier players had finished this round by now on the caller's own clock (slots only). */
 export const challengePingsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const found = await mine(client, data.roomId, context.userId);
@@ -188,7 +194,10 @@ export const challengePingsFn = createServerFn({ method: "POST" })
 /** A round's results for the caller, once their own is stored. */
 export const challengeRoundBoardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const found = await mine(client, data.roomId, context.userId);
@@ -208,7 +217,10 @@ export const challengeRoundBoardFn = createServerFn({ method: "POST" })
 /** The final podium for a caller who has finished. */
 export const challengeFinalFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const found = await mine(client, data.roomId, context.userId);
@@ -221,7 +233,10 @@ export const challengeFinalFn = createServerFn({ method: "POST" })
 /** Profile's "Your challenges": those this device made, plus the codes it remembers. */
 export const myChallengesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { codes: string[] }) => input)
+  .inputValidator((input: { codes: string[] }) => {
+    const b = record(input);
+    return { codes: listOf(b["codes"], LIST_MAX, (x, f) => text(x, CODE_MAX, f), "codes") };
+  })
   .handler(async ({ data, context }) => {
     const codes = (Array.isArray(data.codes) ? data.codes : [])
       .map(challengeCodeFrom)
@@ -236,7 +251,9 @@ export const myChallengesFn = createServerFn({ method: "POST" })
 /** A friend's first room or daily after finishing a challenge (beta, once per device and kind). */
 export const challengeFollowupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { kind: "room" | "daily"; code?: string | null }) => input)
+  .inputValidator((input: { kind: "room" | "daily"; code?: string | null }) => {
+    const b = record(input);
+    return compact({ kind: text(b["kind"], SHORT_MAX, "kind") as "room" | "daily", code: nullable(b["code"], (x) => text(x, CODE_MAX, "code")) });  })
   .handler(async ({ data, context }) => {
     if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return { ok: true };
     if (data.kind !== "room" && data.kind !== "daily") return { ok: false };
