@@ -1,4 +1,6 @@
 import type { Db } from "@/lib/data/db.server";
+import { NAME_MAX, NUMBER_MAX, SHORT_MAX } from "./inputLimits";
+import { compact, maybe, numIn, record, text } from "@/lib/validate";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -51,10 +53,9 @@ export const dailyStatusFn = createServerFn({ method: "POST" }).handler(
  */
 export const dailyStartFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: { kind: string; displayName: string; colour?: number | null; icon?: string | null }) =>
-      input,
-  )
+  .inputValidator((input: { kind: string; displayName: string; colour?: number | null; icon?: string | null }) => {
+    const b = record(input);
+    return compact({ kind: text(b["kind"], SHORT_MAX, "kind"), displayName: text(b["displayName"], NAME_MAX, "displayName"), colour: maybe(b["colour"], (x) => numIn(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: maybe(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
   .handler(async ({ data, context }) => {
     if (!isDailyKind(data.kind)) return { ok: false as const, message: "That daily doesn’t exist." };
     const nowMs = Date.now();
@@ -98,7 +99,10 @@ export const dailyStartFn = createServerFn({ method: "POST" })
  */
 export const dailyBoardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { kind: string; day: "today" | "yesterday" }) => input)
+  .inputValidator((input: { kind: string; day: "today" | "yesterday" }) => {
+    const b = record(input);
+    return { kind: text(b["kind"], SHORT_MAX, "kind"), day: text(b["day"], SHORT_MAX, "day") as "today" | "yesterday" };
+  })
   .handler(async ({ data, context }) => {
     if (!isDailyKind(data.kind)) throw new Error("That daily doesn’t exist.");
     const nowMs = Date.now();

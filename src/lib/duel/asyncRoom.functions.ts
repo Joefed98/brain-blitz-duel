@@ -1,4 +1,6 @@
 import type { Db } from "@/lib/data/db.server";
+import { ANSWER_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, ID_MAX, NUMBER_MAX, PATH_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
+import { compact, listOf, maybe, numIn, optional, record, sizedRecord, text, whole } from "@/lib/validate";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -32,7 +34,10 @@ async function mine(client: Db, roomId: string, userId: string) {
 /** The caller's attempt: each round's start, stored score and whether it was missed (their own only). */
 export const asyncAttemptFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const found = await mine(client, data.roomId, context.userId);
@@ -48,7 +53,10 @@ export const asyncAttemptFn = createServerFn({ method: "POST" })
  */
 export const asyncRoundStartFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const found = await mine(client, data.roomId, context.userId);
@@ -60,18 +68,9 @@ export const asyncRoundStartFn = createServerFn({ method: "POST" })
 /** Grades the caller's answer exactly as a room does, timed from their own round start. */
 export const asyncSubmitFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: {
-      roomId: string;
-      roundNumber: number;
-      answer: string;
-      msRemaining: number;
-      extra?: SubmitExtra;
-      clientVersion?: string;
-      /** How the round was played (lib/inputType.ts); stored beside the result, never graded. */
-      inputType?: string;
-    }) => input,
-  )
+  .inputValidator((input: { roomId: string; roundNumber: number; answer: string; msRemaining: number; extra?: SubmitExtra; clientVersion?: string; inputType?: string }) => {
+    const b = record(input);
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: numIn(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: maybe(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")) });  })
   .handler(async ({ data, context }) => {
     const nowMs = Date.now();
     const client = await db();
@@ -107,7 +106,10 @@ export const asyncSubmitFn = createServerFn({ method: "POST" })
 /** One of the caller's finished rounds in full (the reveal and the results screen); never anyone else's. */
 export const asyncRevealFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const found = await mine(client, data.roomId, context.userId);
@@ -128,15 +130,9 @@ export const asyncRevealFn = createServerFn({ method: "POST" })
 /** Word puzzles in the caller's live round: the verdict only (the room's checkWordFn, per player). */
 export const asyncCheckWordFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: {
-      roomId: string;
-      roundNumber: number;
-      word: string;
-      found: string[];
-      path?: number[];
-    }) => input,
-  )
+  .inputValidator((input: { roomId: string; roundNumber: number; word: string; found: string[]; path?: number[] }) => {
+    const b = record(input);
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), word: text(b["word"], WORD_MAX, "word"), found: listOf(b["found"], FOUND_MAX, (x, f) => text(x, WORD_MAX, f), "found"), path: optional(b["path"], (x) => listOf(x, PATH_MAX, (y, f) => whole(y, -COUNT_MAX, COUNT_MAX, f), "path")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const over = { valid: false as const, points: 0, word: "", reason: "That round is over." };
@@ -158,7 +154,10 @@ export const asyncCheckWordFn = createServerFn({ method: "POST" })
 /** Strikeout, Cryptogrid and Swapword in the caller's live round: only what the board may show next. */
 export const asyncCheckMovesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number; moves: string }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number; moves: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), moves: text(b["moves"], ANSWER_MAX, "moves") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const found = await mine(client, data.roomId, context.userId);

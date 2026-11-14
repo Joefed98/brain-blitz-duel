@@ -3,11 +3,12 @@
  * their room's messages but never insert them.
  */
 
+import { CHAT_MAX, COUNT_MAX, ID_MAX, SHORT_MAX } from "./inputLimits";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Db } from "@/lib/data/db.server";
-import { record, text, uuid } from "@/lib/validate";
+import { bool, compact, optional, record, text, uuid, whole } from "@/lib/validate";
 
 import {
   MESSAGE_MAX_LENGTH,
@@ -48,7 +49,10 @@ async function admin(): Promise<Db> {
 
 export const sendRoomMessageFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; text: string }) => input)
+  .inputValidator((input: { roomId: string; text: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), text: text(b["text"], CHAT_MAX, "text") };
+  })
   .handler(async ({ data, context }) => {
     const client = context.supabase;
     const sender = await senderRow(client, data.roomId, context.userId);
@@ -167,7 +171,7 @@ function reactionInput(input: unknown): { roomId: string; emoji: string } {
 /** Checks a reaction against the room's rules (it sends nothing; sendReactionFn sends). */
 export const allowReactionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(reactionInput)
+  .inputValidator((input: unknown) => reactionInput(input))
   .handler(async ({ data, context }) => {
     const approved = await approveReaction(context.supabase, data.roomId, context.userId, data.emoji);
     if (!approved.ok) return approved;
@@ -181,7 +185,7 @@ export const allowReactionFn = createServerFn({ method: "POST" })
  */
 export const sendReactionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(reactionInput)
+  .inputValidator((input: unknown) => reactionInput(input))
   .handler(async ({ data, context }) => {
     const approved = await approveReaction(context.supabase, data.roomId, context.userId, data.emoji);
     if (!approved.ok) return approved;
@@ -203,7 +207,9 @@ export const sendReactionFn = createServerFn({ method: "POST" })
  */
 export const reportMessageFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; messageId: string; reason?: string }) => input)
+  .inputValidator((input: { roomId: string; messageId: string; reason?: string }) => {
+    const b = record(input);
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), messageId: text(b["messageId"], ID_MAX, "messageId"), reason: optional(b["reason"], (x) => text(x, SHORT_MAX, "reason")) });  })
   .handler(async ({ data, context }) => {
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender) return { ok: false as const, message: "You’re not in this room." };
@@ -239,7 +245,10 @@ export const reportMessageFn = createServerFn({ method: "POST" })
  */
 export const reportPlayerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; slot: number; reason: string }) => input)
+  .inputValidator((input: { roomId: string; slot: number; reason: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), slot: whole(b["slot"], -COUNT_MAX, COUNT_MAX, "slot"), reason: text(b["reason"], SHORT_MAX, "reason") };
+  })
   .handler(async ({ data, context }) => {
     const reporter = await senderRow(context.supabase, data.roomId, context.userId);
     if (!reporter) return { ok: false as const, message: "You’re not in this room." };
@@ -277,7 +286,10 @@ async function noteReport(roomId: string, reporterId: string, reportedId: string
 /** Host only: mutes or unmutes one player's chat and reactions for everyone. */
 export const setPlayerMutedFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; slot: number; muted: boolean }) => input)
+  .inputValidator((input: { roomId: string; slot: number; muted: boolean }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), slot: whole(b["slot"], -COUNT_MAX, COUNT_MAX, "slot"), muted: bool(b["muted"], "muted") };
+  })
   .handler(async ({ data, context }) => {
     // A room's players read its row (public.is_duel_participant: any seat); read with the service role (Security C1b).
     const seat = await senderRow(context.supabase, data.roomId, context.userId);

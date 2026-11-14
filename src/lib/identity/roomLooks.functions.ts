@@ -3,6 +3,8 @@
  * draw each player's own car paint. Only a player in the room may ask, and each look is read from its owner's
  * loadout by the database (only owned items can be equipped). Nothing here is read by a sim, a grader or a deal.
  */
+import { record, text } from "@/lib/validate";
+import { ID_MAX, SHORT_MAX } from "@/lib/duel/inputLimits";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -11,7 +13,10 @@ import { isUuid } from "@/lib/duel/dbError";
 
 export const roomGameLooksFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; game: string }) => ({ roomId: String(input?.roomId ?? ""), game: String(input?.game ?? "") }))
+  .inputValidator((input: { roomId: string; game: string }) => {
+    const b = record(input);
+    return { roomId: text(b["roomId"], ID_MAX, "roomId"), game: text(b["game"], SHORT_MAX, "game") };
+  })
   .handler(async ({ data, context }): Promise<Record<string, GameLook>> => {
     if (!isUuid(data.roomId) || !isSkinnableGame(data.game)) return {};
     const { adminDb } = await import("@/lib/data/db.server");

@@ -3,8 +3,8 @@
  * input's type, shape and size before its handler runs, through the shared helpers in src/lib/validate.ts. Grown batch
  * by batch (batch 2: accounts, safety, friends, push, analytics, beta and identity; batch 3: economy, shop, pass, Plus,
  * cosmetics, badges, seasons and leaderboards; batch 4: rated play, tournaments, practice progress and challenges; one
- * list each in BATCHES and SPECS); the Security session adds batch 1
- * (rooms and chat) later.
+ * list each in BATCHES and SPECS); batch 1 (rooms, chat, async rooms, the Daily, friend challenges, practice, share,
+ * replays and room cards and looks) was added by the Security session.
  *
  *   1. Static: in every file of the batches, each `createServerFn` that takes an input builds it through validate.ts
  *      (or one of the named normalisers in NORMALISERS, which are themselves built on it), no `(input: T) => input`
@@ -65,6 +65,20 @@ const restore = () => {
 
 /** Every server-function file of each batch (all of its functions are covered, input-taking or not). */
 const BATCHES: Record<string, string[]> = {
+  "batch 1": [
+    "src/lib/duel/duel.functions.ts",
+    "src/lib/duel/chat.functions.ts",
+    "src/lib/duel/asyncRoom.functions.ts",
+    "src/lib/duel/daily.functions.ts",
+    "src/lib/duel/challenge.functions.ts",
+    "src/lib/duel/practice.functions.ts",
+    "src/lib/duel/introDemo.functions.ts",
+    "src/lib/duel/share.functions.ts",
+    "src/lib/duel/time.functions.ts",
+    "src/lib/replay/replay.functions.ts",
+    "src/lib/identity/roomCards.functions.ts",
+    "src/lib/identity/roomLooks.functions.ts",
+  ],
   "batch 2": [
     "src/lib/account/account.functions.ts",
     "src/lib/account/saveProgress.functions.ts",
@@ -100,12 +114,13 @@ const BATCHES: Record<string, string[]> = {
 };
 
 /** Named normalisers a validator may call besides validate.ts's helpers (each built on validate.ts in its file). */
-const NORMALISERS = ["usernameInput", "idText", "slugList", "eventIdText"];
+const NORMALISERS = ["usernameInput", "idText", "slugList", "eventIdText", "reactionInput"];
 
 /** validate.ts's helpers (read from the file, so a new one counts). */
 const HELPERS = [...readFileSync("src/lib/validate.ts", "utf8").matchAll(/^export function (\w+)/gm)].map((m) => m[1]!);
 
-type Kind = "text" | "bool" | "num" | "object" | "list" | "soft";
+/** `numList`: a list of numbers (batch 1: a traced word's cells). */
+type Kind = "text" | "bool" | "num" | "object" | "list" | "numList" | "soft";
 interface Spec {
   file: string;
   name: string;
@@ -135,7 +150,176 @@ const RA = "src/lib/rated/rated.functions.ts";
 const TO = "src/lib/tournaments/tournaments.functions.ts";
 const EV = "arena:2026-11-14:1300";
 
+const DU = "src/lib/duel/duel.functions.ts";
+const CH = "src/lib/duel/chat.functions.ts";
+const AS = "src/lib/duel/asyncRoom.functions.ts";
+const CL = "src/lib/duel/challenge.functions.ts";
+const DA = "src/lib/duel/daily.functions.ts";
+const PR = "src/lib/duel/practice.functions.ts";
+const ROOM = "00000000-0000-4000-8000-00000000b001";
+const MSG = "00000000-0000-4000-8000-00000000b002";
+/** A room id and round, the fields most batch-1 functions take. */
+const RR = { roomId: ROOM, roundNumber: 1 };
+const RRF = { roomId: "text", roundNumber: "num" } as const;
+const ANSWER = { answer: "a", msRemaining: 1000, extra: { k: 1 }, clientVersion: "v1", inputType: "touch" };
+const ANSWER_F = { answer: "text", msRemaining: "num", extra: "object", clientVersion: "text", inputType: "text" } as const;
+const WORD = { word: "cat", found: ["dog"], path: [0, 1, 2] };
+const WORD_F = { word: "text", found: "list", path: "numList" } as const;
+const PUZZLE = { type: "reaction" };
+
+/** Batch 1: rooms, chat, async rooms, the Daily, friend challenges, practice, share, replays, room cards and looks. */
+const BATCH_1: Spec[] = [
+  /* batch 1: rooms */
+  { file: DU, name: "createRoomFn", good: { displayName: "Gia", look: { colour: 3 } }, fields: { displayName: "text", look: "object" } },
+  { file: DU, name: "roomPreviewFn", good: { roomCode: "ABCD" }, fields: { roomCode: "text" } },
+  {
+    file: DU,
+    name: "joinRoomFn",
+    good: { roomCode: "ABCD", displayName: "Gia", via: "code", look: { colour: 3 } },
+    fields: { roomCode: "text", displayName: "text", via: "text", look: "object" },
+  },
+  { file: DU, name: "startRoomFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: DU, name: "setRoomModesFn", good: { roomId: ROOM, categories: ["word"] }, fields: { roomId: "text", categories: "list" } },
+  {
+    file: DU,
+    name: "setRoomSettingsFn",
+    good: { roomId: ROOM, picks: ["word"], rounds: 6, scoring: "total" },
+    fields: { roomId: "text", picks: "list", rounds: "num", scoring: "text" },
+  },
+  { file: DU, name: "setPlayerLookFn", good: { roomId: ROOM, colour: 3, icon: "bolt" }, fields: { roomId: "text", colour: "num", icon: "text" } },
+  { file: DU, name: "removePlayerFn", good: { roomId: ROOM, slot: 2 }, fields: { roomId: "text", slot: "num" } },
+  { file: DU, name: "leaveRoomFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: DU, name: "disbandRoomFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: DU, name: "checkHostPresenceFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: DU, name: "advancePhaseFn", good: { roomId: ROOM, hostNext: false }, fields: { roomId: "text", hostNext: "bool" } },
+  { file: DU, name: "submitAnswerFn", good: { ...RR, ...ANSWER }, fields: { ...RRF, ...ANSWER_F } },
+  { file: DU, name: "readyUpFn", good: RR, fields: RRF },
+  { file: DU, name: "continueFn", good: { ...RR, phase: "reveal" }, fields: { ...RRF, phase: "text" } },
+  { file: DU, name: "finishNowFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: DU, name: "heartbeatFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: DU, name: "revealAnswerFn", good: RR, fields: RRF },
+  { file: DU, name: "rematchFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: DU, name: "checkWordFn", good: { ...RR, ...WORD }, fields: { ...RRF, ...WORD_F } },
+  { file: DU, name: "checkMovesFn", good: { ...RR, moves: "a" }, fields: { ...RRF, moves: "text" } },
+  /* batch 1: chat */
+  { file: CH, name: "sendRoomMessageFn", good: { roomId: ROOM, text: "hi" }, fields: { roomId: "text", text: "text" } },
+  { file: CH, name: "allowReactionFn", good: { roomId: ROOM, emoji: "👍" }, fields: { roomId: "text", emoji: "text" } },
+  { file: CH, name: "sendReactionFn", good: { roomId: ROOM, emoji: "👍" }, fields: { roomId: "text", emoji: "text" } },
+  {
+    file: CH,
+    name: "reportMessageFn",
+    good: { roomId: ROOM, messageId: MSG, reason: "abuse" },
+    fields: { roomId: "text", messageId: "text", reason: "text" },
+  },
+  { file: CH, name: "reportPlayerFn", good: { roomId: ROOM, slot: 2, reason: "abuse" }, fields: { roomId: "text", slot: "num", reason: "text" } },
+  { file: CH, name: "setPlayerMutedFn", good: { roomId: ROOM, slot: 2, muted: true }, fields: { roomId: "text", slot: "num", muted: "bool" } },
+  /* batch 1: async rooms */
+  { file: AS, name: "asyncAttemptFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: AS, name: "asyncRoundStartFn", good: RR, fields: RRF },
+  { file: AS, name: "asyncSubmitFn", good: { ...RR, ...ANSWER }, fields: { ...RRF, ...ANSWER_F } },
+  { file: AS, name: "asyncRevealFn", good: RR, fields: RRF },
+  { file: AS, name: "asyncCheckWordFn", good: { ...RR, ...WORD }, fields: { ...RRF, ...WORD_F } },
+  { file: AS, name: "asyncCheckMovesFn", good: { ...RR, moves: "a" }, fields: { ...RRF, moves: "text" } },
+  /* batch 1: friend challenges */
+  {
+    file: CL,
+    name: "createChallengeFn",
+    good: { categories: ["word"], rounds: 3, displayName: "Gia", colour: 3, icon: "bolt" },
+    fields: { categories: "list", rounds: "num", displayName: "text", colour: "num", icon: "text" },
+  },
+  { file: CL, name: "challengeFromRoomFn", good: { duelId: ROOM }, fields: { duelId: "text" } },
+  { file: CL, name: "challengeInfoFn", good: { code: "ABCDEF", opened: false }, fields: { code: "text", opened: "bool" } },
+  {
+    file: CL,
+    name: "startChallengeFn",
+    good: { code: "ABCDEF", displayName: "Gia", colour: 3, icon: "bolt" },
+    fields: { code: "text", displayName: "text", colour: "num", icon: "text" },
+  },
+  { file: CL, name: "challengeRosterFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: CL, name: "challengePingsFn", good: RR, fields: RRF },
+  { file: CL, name: "challengeRoundBoardFn", good: RR, fields: RRF },
+  { file: CL, name: "challengeFinalFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: CL, name: "myChallengesFn", good: { codes: ["ABCDEF"] }, fields: { codes: "list" } },
+  { file: CL, name: "challengeFollowupFn", good: { kind: "room", code: "ABCDEF" }, fields: { kind: "text", code: "text" } },
+  /* batch 1: the Daily */
+  {
+    file: DA,
+    name: "dailyStartFn",
+    good: { kind: "puzzle", displayName: "Gia", colour: 3, icon: "bolt" },
+    fields: { kind: "text", displayName: "text", colour: "num", icon: "text" },
+  },
+  { file: DA, name: "dailyBoardFn", good: { kind: "puzzle", day: "today" }, fields: { kind: "text", day: "text" } },
+  /* batch 1: practice and intro demos */
+  { file: "src/lib/duel/introDemo.functions.ts", name: "getIntroDemoFn", good: { type: "reaction" }, fields: { type: "text" } },
+  { file: PR, name: "practiceGenerateFn", good: { type: "reaction", example: false }, fields: { type: "text", example: "bool" } },
+  { file: PR, name: "practiceStartFn", good: { sealed: "x" }, fields: { sealed: "text" } },
+  {
+    file: PR,
+    name: "practiceGradeFn",
+    good: { puzzle: PUZZLE, sealed: "x", ...ANSWER, start: "x" },
+    fields: { puzzle: "object", sealed: "text", ...ANSWER_F, start: "text" },
+  },
+  { file: PR, name: "practicePackFn", good: { types: ["reaction"], count: 3 }, fields: { types: "list", count: "num" } },
+  {
+    file: PR,
+    name: "practiceGradeQueuedFn",
+    good: { puzzle: PUZZLE, sealed: "x", answer: "a", msRemaining: 1000, extra: { k: 1 }, clientVersion: "v1" },
+    fields: { puzzle: "object", sealed: "text", answer: "text", msRemaining: "num", extra: "object", clientVersion: "text" },
+  },
+  {
+    file: PR,
+    name: "practiceCheckWordFn",
+    good: { puzzle: PUZZLE, sealed: "x", ...WORD },
+    fields: { puzzle: "object", sealed: "text", ...WORD_F },
+  },
+  {
+    file: PR,
+    name: "practiceCheckMovesFn",
+    good: { puzzle: PUZZLE, sealed: "x", moves: "a" },
+    fields: { puzzle: "object", sealed: "text", moves: "text" },
+  },
+  { file: PR, name: "checkDemoKeyFn", good: { key: "k" }, fields: { key: "text" } },
+  {
+    file: PR,
+    name: "saveIntroDemoFn",
+    good: { puzzle: PUZZLE, sealed: "x", answer: "a", dev: false, key: "k" },
+    fields: { puzzle: "object", sealed: "text", answer: "text", dev: "bool", key: "text" },
+  },
+  {
+    file: PR,
+    name: "savePuzzleDemoFn",
+    good: { puzzle: PUZZLE, sealed: "x", log: { actions: [] }, dev: false, key: "k" },
+    fields: { puzzle: "object", sealed: "text", log: "object", dev: "bool", key: "text" },
+  },
+  /* batch 1: share, replays, room cards and looks */
+  {
+    file: "src/lib/duel/share.functions.ts",
+    name: "recordShareEventFn",
+    good: { event: "share_tap", duelId: ROOM, gameIndex: 0, roomCode: "ABCD", place: 1, players: 2, rounds: 6, method: "share", landing: "lobby", welcome: "shown", source: "room", challengeCode: "ABCDEF", dailyKind: "puzzle" },
+    fields: {
+      event: "text",
+      duelId: "text",
+      gameIndex: "num",
+      roomCode: "text",
+      place: "num",
+      players: "num",
+      rounds: "num",
+      method: "text",
+      landing: "text",
+      welcome: "text",
+      source: "text",
+      challengeCode: "text",
+      dailyKind: "text",
+    },
+  },
+  { file: "src/lib/replay/replay.functions.ts", name: "roundReplayFn", good: RR, fields: RRF },
+  { file: "src/lib/replay/replay.functions.ts", name: "gameReplaysFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: "src/lib/identity/roomCards.functions.ts", name: "roomCardsFn", good: { roomId: ROOM }, fields: { roomId: "text" } },
+  { file: "src/lib/identity/roomLooks.functions.ts", name: "roomGameLooksFn", good: { roomId: ROOM, game: "racing" }, fields: { roomId: "text", game: "text" } },
+];
+
 const SPECS: Spec[] = [
+  ...BATCH_1,
   /* batch 2: accounts */
   { file: AC, name: "checkUsernameFn", good: { username: "Gia_One" }, fields: { username: "text" } },
   {
@@ -434,6 +618,7 @@ const WRONG: Record<Exclude<Kind, "soft">, unknown[]> = {
   num: ["5", true, {}],
   object: ["x", 5, []],
   list: ["x", 5, {}],
+  numList: ["x", 5, {}],
 };
 
 /** Every refused case of a spec: a label, the input and the field the refusal must name. */
@@ -460,6 +645,10 @@ function badCases(spec: Spec): { label: string; data: unknown; field: string }[]
     if (kind !== "soft")
       for (const wrong of WRONG[kind]) out.push({ label: `${path} = ${JSON.stringify(wrong)}`, data: withField(spec.good, path, wrong), field: path });
     out.push({ label: `${path} a 1 MB string`, data: withField(spec.good, path, MB), field: path });
+    if (kind === "numList") {
+      out.push({ label: `${path}[0] wrong-typed`, data: withField(spec.good, path, ["x"]), field: `${path}[0]` });
+      out.push({ label: `${path}[0] a 1 MB string`, data: withField(spec.good, path, [MB]), field: `${path}[0]` });
+    }
     if (kind === "list") {
       out.push({ label: `${path}[0] wrong-typed`, data: withField(spec.good, path, [5]), field: `${path}[0]` });
       out.push({ label: `${path}[0] a 1 MB string`, data: withField(spec.good, path, [MB]), field: `${path}[0]` });

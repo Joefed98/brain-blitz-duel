@@ -112,3 +112,31 @@ export function sized(value: unknown, maxChars: number, field: string, { maxItem
   if (json !== undefined && json.length > maxChars) throw new InvalidInput(field);
   return value;
 }
+
+/** A finite number from `min` to `max` (fractions allowed). */
+export function numIn(value: unknown, min: number, max: number, field: string): number {
+  const n = num(value, field);
+  if (n < min || n > max) throw new InvalidInput(field);
+  return n;
+}
+
+/** A value that may be left out or null: both stay as sent, anything else goes through `check`. */
+export function maybe<T>(value: unknown, check: (v: unknown) => T): T | null | undefined {
+  return value === undefined || value === null ? value : check(value);
+}
+
+/** An object (never null or an array) whose JSON text is at most `maxChars` characters. */
+export function sizedRecord(value: unknown, maxChars: number, field: string): Record<string, unknown> {
+  return sized(record(value, field), maxChars, field) as Record<string, unknown>;
+}
+
+type Compact<T> = { [K in keyof T as undefined extends T[K] ? never : K]: T[K] } & {
+  [K in keyof T as undefined extends T[K] ? K : never]?: Exclude<T[K], undefined>;
+};
+
+/** The object without its undefined fields, so a left-out field stays left out (exactOptionalPropertyTypes). */
+export function compact<T extends Record<string, unknown>>(value: T): Compact<T> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) if (v !== undefined) out[k] = v;
+  return out as Compact<T>;
+}
