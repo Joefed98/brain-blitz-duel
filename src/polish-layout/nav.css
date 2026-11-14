@@ -491,3 +491,7 @@ html:has([data-tab-screen="play"], [data-tab-screen="practice"]):not(:has([data-
   background-image: none;
   box-shadow: var(--jz-elev-0);
 }
+.jz-nav-soon.th-card::before,
+.jz-nav-soon.th-card::after {
+  content: none;
+}
