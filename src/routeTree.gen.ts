@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as ChallengeRouteImport } from './routes/challenge'
+import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as CustomiseRouteImport } from './routes/customise'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DailyArchiveRouteImport } from './routes/daily-archive'
@@ -46,6 +47,11 @@ const AccountRoute = AccountRouteImport.update({
 const ChallengeRoute = ChallengeRouteImport.update({
   id: '/challenge',
   path: '/challenge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChallengesRoute = ChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomiseRoute = CustomiseRouteImport.update({
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/challenges': typeof ChallengesRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/challenges': typeof ChallengesRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/challenges': typeof ChallengesRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/challenges'
     | '/customise'
     | '/daily'
     | '/daily-archive'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/challenges'
     | '/customise'
     | '/daily'
     | '/daily-archive'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/challenges'
     | '/customise'
     | '/daily'
     | '/daily-archive'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   ChallengeRoute: typeof ChallengeRoute
+  ChallengesRoute: typeof ChallengesRoute
   CustomiseRoute: typeof CustomiseRoute
   DailyRoute: typeof DailyRoute
   DailyArchiveRoute: typeof DailyArchiveRoute
@@ -350,6 +363,13 @@ declare module '@tanstack/react-router' {
       path: '/challenge'
       fullPath: '/challenge'
       preLoaderRoute: typeof ChallengeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/challenges': {
+      id: '/challenges'
+      path: '/challenges'
+      fullPath: '/challenges'
+      preLoaderRoute: typeof ChallengesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customise': {
@@ -499,6 +519,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   ChallengeRoute: ChallengeRoute,
+  ChallengesRoute: ChallengesRoute,
   CustomiseRoute: CustomiseRoute,
   DailyRoute: DailyRoute,
   DailyArchiveRoute: DailyArchiveRoute,

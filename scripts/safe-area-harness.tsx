@@ -25,6 +25,7 @@ import { TERMS_KEY, TERMS_VERSION, termsAgreed } from "@/lib/beta/terms";
 import { Route as DuelRoute } from "@/routes/duel.$code";
 import { Route as HomeRoute } from "@/routes/index";
 import { Route as PracticeRoute } from "@/routes/practice";
+import { Route as ChallengesRoute } from "@/routes/challenges";
 import { Route as TournamentsRoute } from "@/routes/tournaments";
 import { Route as ProfileRoute } from "@/routes/profile";
 import { Route as DailyRoute } from "@/routes/daily";
@@ -513,6 +514,9 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   submitAnswer,
   practiceGenerateFn,
   practiceGradeFn,
+  // The Games session (14 Nov 2026): the account's practice progress for the catalogue and a game's page
+  // (window.__harnessProgress; none: the server's "no answer", as before).
+  getMyPracticeProgressFn: async () => (window as unknown as { __harnessProgress?: unknown }).__harnessProgress ?? null,
   supabase: SUPABASE,
   fetchDuelByCode,
   fetchPlayers,
@@ -580,7 +584,8 @@ if (mode === "customise") {
 }
 // The Pass (the Shop tab's Pass part; Joules rework, 13 Nov 2026): window.__harnessPass's account and its pass view,
 // set before the first render (no server call: the pass's own reads stay off under automation).
-if (mode === "pass") {
+// The Games session (14 Nov 2026): the same stand-in on the catalogue, a game's page and Challenges (their Joules).
+if (mode === "pass" || mode === "practice" || mode === "challenges") {
   const fixture = (window as unknown as { __harnessPass?: HarnessPass }).__harnessPass;
   if (fixture) {
     setAccount(fixture.account as never, null);
@@ -596,6 +601,11 @@ if (mode === "pass") {
 }
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
+  // The Games session (14 Nov 2026): the full challenges page (src/routes/challenges.tsx).
+  challenges: () => {
+    const Challenges = ChallengesRoute.options.component as () => JSX.Element;
+    return <Challenges />;
+  },
   notfound: () => <NotFoundPage />,
   error: () => <RouteErrorScreen error={new Error("harness")} onRefresh={() => undefined} />,
   // The components sheet (the components step, 14 Nov 2026): every shared component in every state.

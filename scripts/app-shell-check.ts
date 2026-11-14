@@ -188,7 +188,8 @@ try {
   });
   // Every other tab page the check visits, warmed the same way (unmeasured; nothing judged): a cold dev server
   // compiles each route's own modules on its first request (/practice, every game's tile, takes ~18 s cold here). The waits and assertions below are unchanged.
-  for (const [path, heading] of [["/practice", "Practice"], ["/tournaments", "Tournaments"], ["/profile", "Profile"]] as const) {
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: its page is titled "Games").
+  for (const [path, heading] of [["/practice", "Games"], ["/tournaments", "Tournaments"], ["/profile", "Profile"]] as const) {
     await warmUp(browser, `${origin}${path}`, async (page) => {
       await page.getByRole("heading", { level: 1, name: heading }).waitFor({ timeout: 180_000 });
     }, {
@@ -262,8 +263,9 @@ try {
       // Tabs: Play → Practice (pushed) → Tournaments → More (replaced), then Back returns to Play.
       // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: More takes the Profile
       // tab's place and Profile opens from More's first row, pushed, so Back first returns to More, then to Play).
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: titled "Games").
       for (const [label, path, tab] of [
-        ["Practice", "/practice", "practice"],
+        ["Games", "/practice", "practice"],
         ["Tournaments", "/tournaments", "tournaments"],
         ["More", "/more", "more"],
       ] as const) {
@@ -332,9 +334,13 @@ try {
   {
     const { page, context } = await openApp("/practice");
     try {
-      await page.getByRole("heading", { level: 1, name: "Practice" }).waitFor({ timeout: 60_000 });
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): the page is
+      // titled "Games"; its chips (All, each category and arcade group) replace the Puzzles | Arcade switch, so every
+      // game is on the one page; the search opens from the header's search button and is named "Search games"; a game's
+      // tile opens its page, whose Play opens the round's intro already counting down (no Ready to press).
+      await page.getByRole("heading", { level: 1, name: "Games" }).waitFor({ timeout: 60_000 });
       await page.waitForTimeout(800);
-      // The list has two sides (Puzzles | Arcade, 30 Oct 2026): every active game is on one of them.
+      // Every active, playable game is on the catalogue's one page.
       const sideRows = async () => page.locator("[data-practice-game]").evaluateAll((els) =>
         els.map((el) => {
           const icon = el.querySelector("[data-game-icon]");
@@ -364,12 +370,6 @@ try {
       };
       const rows = await sideRows();
       const named = await sideNames();
-      await page.locator("[data-practice-side='arcade']").click();
-      await page.waitForTimeout(400);
-      rows.push(...(await sideRows()));
-      named.push(...(await sideNames()));
-      await page.locator("[data-practice-side='puzzles']").click();
-      await page.waitForTimeout(300);
       const byType = new Map(rows.map((r) => [r.type, r]));
       const missing: string[] = [];
       for (const type of ACTIVE_PUZZLE_TYPES) {
@@ -381,19 +381,22 @@ try {
       check(missing.length === 0, `every active game (${ACTIVE_PUZZLE_TYPES.length}) has its own icon, drawn, with no text${missing.length ? `: ${missing.join(", ")}` : ""}`);
       const names = ACTIVE_PUZZLE_TYPES.map((type) => PUZZLE_REGISTRY[type].name).filter((name) => !named.includes(name));
       check(names.length === 0, `every practice button is named exactly its game${names.length ? `: ${names.join(", ")}` : ""}`);
-      check((await page.locator("[data-practice-filter]").first().textContent()) === "All games", "the filter chips start with All games");
+      check((await page.locator("[data-practice-filter]").first().textContent()) === "All", "the filter chips start with All");
       await page.locator("[data-practice-filter='logic']").click();
       const logic = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
       check(logic.length > 0 && logic.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "logic"), "the Logic chip shows only logic games");
       await page.locator("[data-practice-filter='all']").click();
-      await page.getByRole("searchbox", { name: "Search puzzles" }).fill("grid");
+      await page.locator("[data-games-search-toggle]").click();
+      await page.getByRole("searchbox", { name: "Search games" }).fill("grid");
       const found = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
       check(found.includes("unblock") && found.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.name.toLowerCase().includes("grid")), `search "grid" finds Gridlock and only names with "grid" (${found.join(",")})`);
-      await page.getByRole("searchbox", { name: "Search puzzles" }).fill("");
+      await page.getByRole("searchbox", { name: "Search games" }).fill("");
       await page.getByRole("button", { name: "Gridlock", exact: true }).click();
-      await page.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 60_000 });
+      await page.locator("[data-game-page-play]").waitFor({ timeout: 60_000 });
+      check((await tabBar(page)) === 0, "a game's page has no tab bar");
+      await page.locator("[data-game-page-play]").click();
+      await page.locator(".round-intro").first().waitFor({ timeout: 60_000 });
       check((await tabBar(page)) === 0, "a practice round's intro has no tab bar");
-      await page.getByRole("button", { name: /^Ready/ }).first().click();
       await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
       check((await tabBar(page)) === 0, "a practice round's live game has no tab bar");
     } finally {
