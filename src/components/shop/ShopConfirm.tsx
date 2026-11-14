@@ -1,17 +1,37 @@
 import { useState } from "react";
 
 import { Button, Sheet } from "@/design/components";
-import { confirmLine } from "@/lib/shop/packs";
+import { Coin } from "@/components/app/CoinCounter";
+import { confirmLine, formatCoins } from "@/lib/shop/packs";
+import type { ShopRarity } from "@/lib/shop/dailyShop";
+
+import { RARITY_NAMES, ShopArt } from "./ShopArt";
 
 /**
- * The purchase confirmation: the ONE place an item's or bundle's real-money value is shown, once, at the Starter
- * pack's rate ("Buy for 2,800 coins (≈ £5.54)?", packs.ts confirmLine). Buy and Cancel; the answer (bought, or the
- * server's refusal) is the caller's to show.
+ * The purchase confirmation: the item's picture, its name, rarity and kind, its price in coins, and the ONE place an
+ * item's or bundle's real-money value is shown, once, at the Starter pack's rate ("Buy for 2,800 coins (≈ £5.54)?",
+ * packs.ts confirmLine). Buy and Cancel; the answer (bought, or the server's refusal) is the caller's to show.
  */
-export function ShopConfirmBody({ coins, what }: { coins: number; what: string }) {
+export function ShopConfirmBody({ coins, what, art, rarity }: { coins: number; what: string; art?: string | undefined; rarity?: ShopRarity | undefined }) {
   return (
     <div className="shop-confirm" data-shop-confirm>
-      <p className="shop-confirm-what">{what}</p>
+      {art ? (
+        <span className="shop-confirm-art" data-skin-off="">
+          <ShopArt id={art} />
+        </span>
+      ) : null}
+      <p className="shop-confirm-what">
+        {rarity ? (
+          <span className="shop-rarity-word" data-rarity={rarity}>
+            {RARITY_NAMES[rarity]} ·{" "}
+          </span>
+        ) : null}
+        {what}
+      </p>
+      <p className="shop-confirm-price" data-shop-confirm-price={coins}>
+        <Coin size={22} />
+        {formatCoins(coins)}
+      </p>
       <p className="shop-confirm-line" data-shop-confirm-line>
         {confirmLine(coins)}
       </p>
@@ -23,12 +43,17 @@ export function ShopConfirm({
   coins,
   what,
   title,
+  art,
+  rarity,
   onBuy,
   onClose,
 }: {
   coins: number;
   what: string;
   title: string;
+  /** The item's id: its approved still at the top of the sheet. */
+  art?: string;
+  rarity?: ShopRarity;
   /** Resolves to an error message, or null when bought (the sheet closes). */
   onBuy: () => Promise<string | null>;
   onClose: () => void;
@@ -62,7 +87,7 @@ export function ShopConfirm({
         </div>
       }
     >
-      <ShopConfirmBody coins={coins} what={what} />
+      <ShopConfirmBody coins={coins} what={what} art={art} rarity={rarity} />
       {error ? (
         <p className="shop-confirm-error" role="alert" data-shop-error>
           {error}

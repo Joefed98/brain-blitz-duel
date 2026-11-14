@@ -14,7 +14,14 @@ export function newRequestId(): string {
 
 const FAILED: BuyResult = { ok: false, reason: "error", message: "Something went wrong. Try again." };
 
+/** The screen harness only (scripts/shop-fixture.ts): the view loadShop answers instead of the server. */
+let standIn: ShopView | ShopClosed | null = null;
+export function standInShop(view: ShopView | ShopClosed | null): void {
+  standIn = view;
+}
+
 export async function loadShop(section?: string): Promise<ShopView | ShopClosed | null> {
+  if (standIn) return standIn;
   try {
     const { getShopFn } = await import("./shop.functions");
     return (await getShopFn({ data: section ? { section } : {} })) as ShopView | ShopClosed;

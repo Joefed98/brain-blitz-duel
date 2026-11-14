@@ -1,13 +1,17 @@
-import { Button, Sheet } from "@/design/components";
+import { useState } from "react";
+
+import { Button, Icon, Sheet } from "@/design/components";
 import { Coin } from "@/components/app/CoinCounter";
 import { formatCoins } from "@/lib/shop/packs";
 import type { ShopBundleView, ShopCard } from "@/lib/shop/types";
 
-import { RarityTag, ShopArt } from "./ShopArt";
+import { RARITY_NAMES, ShopArt } from "./ShopArt";
+import { ShopConfirmBody } from "./ShopConfirm";
 
 /**
- * The bundle's items: buy the bundle (the unowned part at the same share off), or any item on its own at full price
- * this week. Coins only here; tapping a price opens the confirmation (the £ value, once).
+ * The bundle's confirm sheet: its items (each can also be bought on its own this week, at full price, through its own
+ * confirmation), then the bundle's price and the £ value once (ShopConfirmBody) with Buy bundle. Too few coins: Get
+ * coins in Buy's place. Every item owned: says so, nothing to buy.
  */
 export function BundleSheet({
   bundle,
@@ -19,12 +23,24 @@ export function BundleSheet({
 }: {
   bundle: ShopBundleView;
   balance: number;
-  onBuyBundle: () => void;
+  /** Resolves to an error message, or null when bought (the sheet closes). */
+  onBuyBundle: () => Promise<string | null>;
   onBuyItem: (item: ShopCard) => void;
   onGetCoins: () => void;
   onClose: () => void;
 }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const short = bundle.price !== null && balance < bundle.price;
+  const unowned = bundle.items.filter((i) => !i.owned).length;
+  const buy = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    const message = await onBuyBundle();
+    setBusy(false);
+    if (message) setError(message);
+  };
   return (
     <Sheet
       title={bundle.name}
@@ -39,45 +55,55 @@ export function BundleSheet({
           </p>
         ) : (
           <div className="shop-confirm-actions">
-            <span className="shop-bundle-price">
-              <Coin size={18} />
-              <span className="shop-bundle-now">{formatCoins(bundle.price)}</span>
-              {bundle.full > bundle.price ? <s className="shop-bundle-was">{formatCoins(bundle.full)}</s> : null}
-            </span>
+            <Button variant="secondary" size={52} onClick={onClose}>
+              Cancel
+            </Button>
             {short ? (
               <Button variant="secondary" size={52} onClick={onGetCoins} data-shop-get-coins>
                 Get coins
               </Button>
             ) : (
-              <Button variant="gold" size={52} onClick={onBuyBundle} data-shop-buy-bundle>
-                Buy bundle
+              <Button variant="gold" size={52} onClick={() => void buy()} disabled={busy} data-shop-buy-bundle>
+                {busy ? "Buying…" : "Buy bundle"}
               </Button>
             )}
           </div>
         )
       }
     >
-      <p className="shop-bundle-blurb">{bundle.blurb}</p>
       <ul className="shop-bundle-list">
         {bundle.items.map((item) => (
           <li key={item.id} className="shop-bundle-row" data-shop-bundle-item={item.id}>
             <ShopArt id={item.id} className="shop-bundle-thumb" />
             <span className="shop-bundle-row-text">
-              <span className="shop-item-name">{item.name}</span>
-              <span className="shop-item-kind">
-                <RarityTag rarity={item.rarity} /> {item.label}
+              <span className="shop-bundle-row-name">{item.name}</span>
+              <span className="shop-bundle-row-kind">
+                <span className="shop-rarity-word" data-rarity={item.rarity}>
+                  {RARITY_NAMES[item.rarity]}
+                </span>{" "}
+                · {item.label}
               </span>
             </span>
             {item.owned ? (
-              <span className="shop-owned">Owned</span>
+              <span className="shop-owned">
+                <Icon name="check" size={18} />
+                Owned
+              </span>
             ) : (
               <Button variant="secondary" size={44} onClick={() => onBuyItem(item)} aria-label={`Buy ${item.name} on its own for ${formatCoins(item.price)} coins`}>
-                <Coin size={14} /> {formatCoins(item.price)}
+                <Coin size={16} />
+                {formatCoins(item.price)}
               </Button>
             )}
           </li>
         ))}
       </ul>
+      {bundle.price !== null ? <ShopConfirmBody coins={bundle.price} what={`${unowned} ${unowned === 1 ? "item" : "items"}, together`} /> : null}
+      {error ? (
+        <p className="shop-confirm-error" role="alert" data-shop-error>
+          {error}
+        </p>
+      ) : null}
     </Sheet>
   );
 }

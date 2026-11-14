@@ -144,28 +144,24 @@ async function shots(browser: Browser, origin: string, db: LocalDb): Promise<voi
         console.log(`  no shop at ${page.url()}: ${(await page.evaluate(() => document.body.innerText)).slice(0, 300)}`);
         throw err;
       }
+      // The Shop pages session (14 Nov 2026): one page (bundle, Today, coins); the Featured / Daily / Coins switch is gone.
       if (who === "teen") {
-        await page.click("[data-shop-section='coins']");
+        await page.locator("[data-shop-packs]").scrollIntoViewIfNeeded();
         await page.waitForSelector("[data-shop-pack-age]");
         await snap("shop-coins-under18");
         await context.close();
         continue;
       }
       await snap("shop-featured");
-      await page.click("[data-shop-section='daily']");
-      await page.waitForSelector("[data-shop-front='daily'] [data-shop-today]");
-      await snap("shop-daily");
-      await page.click("[data-shop-section='coins']");
-      await page.waitForSelector("[data-shop-packs]");
+      await page.locator("[data-shop-packs]").scrollIntoViewIfNeeded();
       await snap("shop-coins");
-      await page.click("[data-shop-section='featured']");
-      await page.waitForSelector("[data-shop-view-bundle]");
-      await page.click("[data-shop-view-bundle]");
+      await page.waitForSelector("[data-shop-bundle-buy]");
+      await page.click("[data-shop-bundle-buy]");
       await page.waitForSelector("[data-shop-bundle-sheet]");
       await snap("sheet-bundle");
       await page.keyboard.press("Escape");
       await page.waitForTimeout(500);
-      const first = page.locator("[data-shop-item] .shop-item-face").first();
+      const first = page.locator("[data-shop-item-buy]").first();
       await first.click();
       await page.waitForSelector("[data-shop-confirm-line]");
       await snap("sheet-confirm");

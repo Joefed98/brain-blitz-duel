@@ -5,7 +5,7 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { PassScreen } from "@/components/pass/PassScreen";
 import { ShopFront } from "@/components/shop/ShopFront";
 import { PlusPart } from "@/components/plus/PlusPart";
-import { EmptyState, Segmented } from "@/design/components";
+import { Segmented } from "@/design/components";
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_NAME } from "@/lib/brand";
 import { useShopOn } from "@/lib/identity/shopSwitch";
@@ -13,10 +13,10 @@ import { shopStatusSettled, useShopStatus } from "@/lib/shop/shopStatus";
 import { useHomeBed } from "@/lib/useScreenMusic";
 
 /**
- * The Shop tab (wave 2, session A2; mockup docs/art/wave-2/screens/shop.png): a Shop · Pass · Plus switch at the
- * top; the Shop part keeps Featured, Daily and Coins. Session D1 fills the Shop part (ShopFront: this week's bundle,
- * today's four, the coin packs); session D2 the Pass part (PassScreen: the Season pass and this week's challenges);
- * session E2 the Plus part (PlusPart: the Joulz Plus offer, or a member's Plus).
+ * The Shop tab (wave 2, session A2; phase 2 step 3, the Shop pages session, 14 Nov 2026: docs/design/style-guide
+ * phone/ and desktop/shop.png): the header's title "Shop" and coin counter (the rail's, where the rail is drawn), then a Shop · Pass · Plus switch. The Shop
+ * part is one page (ShopFront: this week's bundle, Today, the coin packs; ?section=coins opens it at the packs); the
+ * Pass part the Season pass and this week's challenges (PassScreen); the Plus part Joulz Plus (PlusPart).
  *
  * Behind the Shop switch (src/config/shopConfig.ts): a device the switch is off for is sent to Play.
  */
@@ -66,9 +66,8 @@ function ShopScreen() {
     if (known && !shopOn) void router.navigate({ to: "/", replace: true });
   }, [known, shopOn, router]);
 
-  const go = (next: { part?: Part; section?: Section }) => {
-    const to = next.part ?? part;
-    void router.navigate({ to: "/shop", search: to === "shop" ? { part: to, section: next.section ?? section } : { part: to }, replace: true });
+  const go = (to: Part) => {
+    void router.navigate({ to: "/shop", search: { part: to }, replace: true });
   };
 
   const soon = part === "shop" ? SOON[section] : SOON[part];
@@ -79,9 +78,8 @@ function ShopScreen() {
           <Segmented<Part>
             label="Shop, pass or Plus"
             radio
-            tone="gold"
             value={part}
-            onChange={(value) => go({ part: value })}
+            onChange={go}
             options={[
               { value: "shop", label: "Shop", data: { "data-shop-part": "shop" } },
               { value: "pass", label: "Pass", data: { "data-shop-part": "pass" } },
@@ -89,24 +87,16 @@ function ShopScreen() {
             ]}
           />
           {part === "shop" ? (
-            <ShopFront
-              section={section}
-              onSection={(value) => go({ part: "shop", section: value })}
-              onGetCoins={() => go({ part: "shop", section: "coins" })}
-            />
+            <ShopFront section={section} />
           ) : part === "pass" ? (
             <PassScreen />
           ) : (
-            <>
-              <div className="shop-head">
-                <h2 className="ap-title">Plus</h2>
-              </div>
-              {/* Wave 2 E2: Joulz Plus (the offer, or a member's Plus), where Plus is open; else its calm card. */}
-              <PlusPart soon={soon} />
-            </>
+            // Wave 2 E2: Joulz Plus (the offer, or a member's Plus), where Plus is open; else its calm card.
+            <PlusPart soon={soon} />
           )}
         </div>
       ) : null}
     </PhoneShell>
   );
 }
+
