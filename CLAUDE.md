@@ -2508,6 +2508,21 @@ outside the repo.
   backfill, a deleted account, and a whole room's answers, rows and broadcasts swept for account ids) and room-e2e-check's
   last part (no response to either phone holds the other player's account id); seat-key-check (~2 s, shard `c`, happy-dom: me, host, chat
   "mine", muting, reactions, absent rivals, and the account-id fallback for stand-in rows).
+- **The navigation frame** (phase 2 step 1, 14 Nov 2026; `docs/design/style-guide/`, review `docs/design/nav-review/`;
+  presentation only, page contents unchanged): `TABS` (`src/design/components/TabBar.tsx`) is Home · Games ·
+  Tournaments · Shop (its switch) · More, the art kit's 3D icons (`src/components/nav/NavArt.tsx`, WebP 1x/2x/3x in
+  `public/nav/` from `bun scripts/nav-art.ts [--check]`, ~100 KB); the ids keep their old names (`play` is Home `/`,
+  `practice` is Games). No Play or Profile tab: the gold Play bar (`PlayBar`, Home and Games only, opens Home's play
+  section) and the avatar top left (`AvatarButton`: Profile for an account, the save-your-progress sheet for a guest).
+  More (`/more`): Profile, Friends, Leaderboards · Challenges (Games, scrolled to the list), Daily · Joulz Plus (Shop
+  on), Settings, Support. Tournaments is always a tab: players without tournaments (the hub's `open`) get a
+  coming-soon page that lists scheduled public games where any exist. The rail (`AppRail`) on computers and sideways
+  tablets (`useNavPlacement`), compact in rooms and games on a computer; tab bar on phones and upright tablets. Back:
+  one screen at a time, and from a main tab to Home before leaving (`useHomeBeneath` puts Home under a tab opened
+  directly). The launch screen (`LaunchSplash`) shows only until hydration. New `--jz-*` tokens sit beside today's
+  (none changed); the light theme (`<html data-theme="light">`, no setting yet) reaches only `.jz-nav`. nav-check
+  (headless Chromium) proves it; the screens are `NAV_SCREENS` in theme-check and no-wrap-check at every size and the
+  sideways tablet (`NAV_SIZES`).
 - **Retired games out of the app** (13 Nov 2026, Joe's rule; Retirements session): `RETIRED_TYPES` (catalogue.ts) is the
   one switch, now 21 games (the nine of 13 Nov 2026: Mixed Signals, Gradient, Turntable, Blackout, Bang On, Slice, Ringer,
   Swish, Flightpath). A retired game is never offered, dealt, played or counted: `isPlayable(type)` is asked by Practice (no

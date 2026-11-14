@@ -461,7 +461,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   return (
     <div
       ref={surfaceRef}
-      className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""} ${tabPage && tabs === "more" ? "jz-nav" : ""} ${
+      className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""}${tabPage && tabs === "more" ? " jz-nav" : ""} ${
         constrained ? "no-overscroll game-viewport overflow-hidden" : "min-h-[100dvh]"
       }`}
       data-category={theme?.accent}
