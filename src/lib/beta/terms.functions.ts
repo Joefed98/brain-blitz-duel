@@ -6,10 +6,15 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { num, record, text } from "@/lib/validate";
 
 export const recordTermsAgreedFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { version: number; agreedAt: string }) => input)
+  // Type and size only (Security C2); termsEventRow judges the version, and the stored date is the server's.
+  .inputValidator((input: { version: number; agreedAt: string }) => {
+    const body = record(input);
+    return { version: num(body["version"], "version"), agreedAt: text(body["agreedAt"], 64, "agreedAt") };
+  })
   .handler(async ({ data, context }) => {
     // Skipped where there is no database (local dev servers in checks).
     if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return { ok: true };
