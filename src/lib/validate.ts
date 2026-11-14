@@ -59,3 +59,56 @@ export function record(value: unknown, field = "input"): Record<string, unknown>
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new InvalidInput(field);
   return value as Record<string, unknown>;
 }
+
+/** true or false. */
+export function bool(value: unknown, field: string): boolean {
+  if (typeof value !== "boolean") throw new InvalidInput(field);
+  return value;
+}
+
+/** A finite number (any size or fraction; a handler that wants a range judges it, so its own answer stays). */
+export function num(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new InvalidInput(field);
+  return value;
+}
+
+/** A value that may be null: null stays null, anything else goes through `check`. */
+export function nullable<T>(value: unknown, check: (v: unknown) => T): T | null {
+  return value === null ? null : check(value);
+}
+
+/**
+ * An object of at most `maxKeys` keys, each a string of at most `keyMax` characters, every value checked by `item`
+ * (which names its field as `field.key`). The keys stay as sent, so a handler that judges which keys it knows (and
+ * answers an unknown one softly) still sees them; the result is built with own properties only (a `__proto__` key
+ * stays a plain key).
+ */
+export function recordOf<T>(
+  value: unknown,
+  maxKeys: number,
+  keyMax: number,
+  item: (v: unknown, field: string) => T,
+  field = "input",
+): Record<string, T> {
+  const body = record(value, field);
+  const keys = Object.keys(body);
+  if (keys.length > maxKeys || keys.some((k) => k.length > keyMax)) throw new InvalidInput(field);
+  return Object.fromEntries(keys.map((k) => [k, item(body[k], `${field}.${k}`)]));
+}
+
+/**
+ * Any JSON value whose JSON text is at most `maxChars` characters (and, if it is a list, at most `maxItems` long),
+ * passed on as it is: for a field whose shape the handler judges itself (and answers softly), so only its size is
+ * checked here.
+ */
+export function sized(value: unknown, maxChars: number, field: string, { maxItems }: { maxItems?: number } = {}): unknown {
+  if (maxItems !== undefined && Array.isArray(value) && value.length > maxItems) throw new InvalidInput(field);
+  let json: string | undefined;
+  try {
+    json = JSON.stringify(value);
+  } catch {
+    throw new InvalidInput(field);
+  }
+  if (json !== undefined && json.length > maxChars) throw new InvalidInput(field);
+  return value;
+}

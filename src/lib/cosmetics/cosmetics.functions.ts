@@ -6,12 +6,18 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { listOf, record, text } from "@/lib/validate";
+
+const ID_LIST_MAX = 200;
 
 import type { PublicCosmetics } from "./types";
 
 export const getPublicCosmeticsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { userIds: string[] }) => input)
+  // Type and size only (Security C2): publicCosmeticsFor keeps the first 100 real ids and drops the rest.
+  .inputValidator((input: { userIds: string[] }) => ({
+    userIds: listOf(record(input)["userIds"], ID_LIST_MAX, (v, field) => text(v, 64, field), "userIds"),
+  }))
   .handler(async ({ data, context }): Promise<PublicCosmetics[]> => {
     const { adminDb } = await import("@/lib/data/db.server");
     const client = await adminDb();

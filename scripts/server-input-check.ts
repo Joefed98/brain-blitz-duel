@@ -1,0 +1,431 @@
+/**
+ * server-input-check (Security C2, 14 Nov 2026): every server function outside the room and chat area checks its
+ * input's type, shape and size before its handler runs, through the shared helpers in src/lib/validate.ts. Grown batch
+ * by batch (batch 2: accounts, safety, friends, push, analytics, beta and identity; batch 3: economy, shop, pass, Plus,
+ * cosmetics, badges, seasons and leaderboards; one list each in BATCHES and SPECS); the Security session adds batch 1
+ * (rooms and chat) later.
+ *
+ *   1. Static: in every file of the batches, each `createServerFn` that takes an input builds it through validate.ts
+ *      (or one of the named normalisers in NORMALISERS, which are themselves built on it), no `(input: T) => input`
+ *      pass-through remains, and a function without an input validator never reads `data`. Every input-taking
+ *      function in those files has an entry in SPECS, so a new one can't go unchecked.
+ *   2. Live (the real server functions through scripts/server-fn-harness.ts on a local PostgreSQL with every
+ *      migration applied): each function is called with a non-object, each field wrong-typed, each field as a 1 MB
+ *      string and as a 100,000-item list, and every call is refused as InvalidInput (naming the field) before the
+ *      handler runs: no row anywhere in the database changes. Then each is called once with a good input, which the
+ *      validator lets through (whatever the handler answers). The good-input flows themselves are proved by each
+ *      area's own checks (accounts-check, friends-check, push-notifications-check, analytics-events-check…).
+ *
+ * Fields marked `soft` are ones whose shape the handler judges itself and answers softly (analytics' `events`: a value
+ * that isn't a list of at most 20 is "bad_batch", proved by analytics-events-check), so only their size is refused here.
+ */
+import { readFileSync } from "node:fs";
+
+import {
+  accountToken,
+  ANON_KEY,
+  callServerFn,
+  installServerFnPlugin,
+  postgresBin,
+  SERVICE_KEY,
+  startLocalDb,
+  startRestServer,
+  userToken,
+  type LocalDb,
+  type RestServer,
+} from "./server-fn-harness";
+
+let passes = 0;
+const failures: string[] = [];
+function check(ok: boolean, label: string): void {
+  if (ok) passes++;
+  else {
+    failures.push(label);
+    quietLog(`  FAIL ${label}`);
+  }
+}
+
+const quietLog = console.log;
+const quietWarn = console.warn;
+const quietError = console.error;
+console.log = (...args: unknown[]) => {
+  const line = args.map(String).join(" ");
+  if (/^\s*(FAIL|NOTE)|^server-input-check|^PASS/.test(line)) quietLog(...args);
+};
+console.warn = () => {};
+console.error = () => {};
+const restore = () => {
+  console.log = quietLog;
+  console.warn = quietWarn;
+  console.error = quietError;
+};
+
+/* ------------------------------------------------------------------ the batches */
+
+/** Every server-function file of each batch (all of its functions are covered, input-taking or not). */
+const BATCHES: Record<string, string[]> = {
+  "batch 3": [
+    "src/lib/economy/economy.functions.ts",
+    "src/lib/shop/shop.functions.ts",
+    "src/lib/pass/pass.functions.ts",
+    "src/lib/plus/plus.functions.ts",
+    "src/lib/cosmetics/cosmetics.functions.ts",
+    "src/lib/badges/badges.functions.ts",
+    "src/lib/seasons/seasons.functions.ts",
+    "src/lib/leaderboards/leaderboards.functions.ts",
+  ],
+};
+
+/** Named normalisers a validator may call besides validate.ts's helpers (each built on validate.ts in its file). */
+const NORMALISERS = ["slugList"];
+
+/** validate.ts's helpers (read from the file, so a new one counts). */
+const HELPERS = [...readFileSync("src/lib/validate.ts", "utf8").matchAll(/^export function (\w+)/gm)].map((m) => m[1]!);
+
+type Kind = "text" | "bool" | "num" | "object" | "list" | "soft";
+interface Spec {
+  file: string;
+  name: string;
+  /** A good input: the validator lets it through. */
+  good: unknown;
+  /** Each field (a dotted path for a nested one) and what it must be. Leave out for a `whole` input. */
+  fields?: Record<string, Kind>;
+  /** An input that is a flat object of short strings or booleans, its keys kept as sent (validate.ts recordOf). */
+  whole?: "strings" | "flags";
+  /** Nothing sent (undefined) is a good input too (an all-optional input the phone may leave out). */
+  allowsNothing?: boolean;
+  /** "account": the caller is signed up; "guest" (default): an anonymous guest. */
+  as?: "account" | "guest";
+}
+
+const EC = "src/lib/economy/economy.functions.ts";
+const SH = "src/lib/shop/shop.functions.ts";
+const PA = "src/lib/pass/pass.functions.ts";
+const PL = "src/lib/plus/plus.functions.ts";
+const BA = "src/lib/badges/badges.functions.ts";
+const LB = "src/lib/leaderboards/leaderboards.functions.ts";
+const P1 = "00000000-0000-4000-8000-000000000101";
+
+const SPECS: Spec[] = [
+  /* batch 3: economy */
+  { file: EC, name: "equip", good: { slot: "frame", itemId: null }, fields: { slot: "text", itemId: "text" }, as: "account" },
+  {
+    file: EC,
+    name: "setAvatar",
+    good: { avatarId: "orbit", colour: 12, gem: null },
+    fields: { avatarId: "text", colour: "num", accent: "text", feature: "text", accessory: "text", background: "text", gem: "text" },
+    as: "account",
+  },
+  { file: EC, name: "getPublicCard", good: { playerId: P1 }, fields: { playerId: "text" } },
+  /* batch 3: shop */
+  { file: SH, name: "getShopFn", good: { section: "daily" }, fields: { section: "text" }, allowsNothing: true, as: "account" },
+  { file: SH, name: "buyItemFn", good: { itemId: "card-art.crimson", requestId: "req-1" }, fields: { itemId: "text", requestId: "text" }, as: "account" },
+  { file: SH, name: "buyBundleFn", good: { requestId: "req-2" }, fields: { requestId: "text" }, as: "account" },
+  { file: SH, name: "testPackFn", good: { pack: "starter", requestId: "req-3" }, fields: { pack: "text", requestId: "text" }, as: "account" },
+  { file: SH, name: "wishlistFn", good: { itemId: "card-art.crimson", on: true }, fields: { itemId: "text", on: "bool" }, as: "account" },
+  /* batch 3: pass */
+  { file: PA, name: "claimPassRewardFn", good: { track: "free", level: 2 }, fields: { track: "text", level: "num" }, as: "account" },
+  { file: PA, name: "passLevelSeenFn", good: { level: 1 }, fields: { level: "num" }, as: "account" },
+  { file: PA, name: "passJoulesSinceFn", good: { sinceMs: 1_700_000_000_000 }, fields: { sinceMs: "num" }, as: "account" },
+  /* batch 3: plus */
+  { file: PL, name: "plusTestPurchaseFn", good: { plan: "monthly" }, fields: { plan: "text" }, as: "account" },
+  { file: PL, name: "plusSetMarkFn", good: { on: true }, fields: { on: "bool" }, as: "account" },
+  { file: PL, name: "dailyArchiveStartFn", good: { kind: "puzzle", day: "2026-11-01" }, fields: { kind: "text", day: "text" }, as: "account" },
+  /* batch 3: cosmetics */
+  { file: "src/lib/cosmetics/cosmetics.functions.ts", name: "getPublicCosmeticsFn", good: { userIds: [P1] }, fields: { userIds: "list" } },
+  /* batch 3: badges */
+  { file: BA, name: "setMyCardBadges", good: { badges: ["founding-player"] }, fields: { badges: "list" }, as: "account" },
+  { file: BA, name: "setMyTitle", good: { title: "rookie" }, fields: { title: "text" }, as: "account" },
+  { file: BA, name: "markBadgesSeen", good: { badges: ["founding-player"] }, fields: { badges: "list" }, as: "account" },
+  { file: BA, name: "getCardBadges", good: { playerIds: [P1] }, fields: { playerIds: "list" } },
+  /* batch 3: seasons */
+  { file: "src/lib/seasons/seasons.functions.ts", name: "seasonRewardSeenFn", good: { season: "s1" }, fields: { season: "text" }, as: "account" },
+  /* batch 3: leaderboards */
+  {
+    file: LB,
+    name: "ratingBoardFn",
+    good: { board: "joulz", scope: "global", period: "season", offset: 0 },
+    fields: { board: "text", scope: "text", period: "text", offset: "num" },
+  },
+  {
+    file: LB,
+    name: "dailyTopBoardFn",
+    good: { kind: "puzzle", day: "2026-11-01", scope: "top100" },
+    fields: { kind: "text", day: "text", scope: "text" },
+  },
+  { file: LB, name: "setBoardVisibilityFn", good: { show: null }, fields: { show: "soft" }, as: "account" },
+];
+
+/* ------------------------------------------------------------------ 1. static */
+
+/** The text from an opening bracket at `start` to its match (quotes, templates and comments skipped). */
+function balanced(src: string, start: number): string {
+  const open = src[start]!;
+  const close = open === "(" ? ")" : open === "{" ? "}" : "]";
+  let depth = 0;
+  for (let i = start; i < src.length; i++) {
+    const c = src[i]!;
+    if (c === "/" && src[i + 1] === "/") {
+      i = src.indexOf("\n", i);
+      if (i < 0) break;
+      continue;
+    }
+    if (c === "/" && src[i + 1] === "*") {
+      i = src.indexOf("*/", i + 2) + 1;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      for (i++; i < src.length && src[i] !== c; i++) if (src[i] === "\\") i++;
+      continue;
+    }
+    if (c === open) depth++;
+    else if (c === close && --depth === 0) return src.slice(start, i + 1);
+  }
+  throw new Error(`unbalanced ${open} at ${start}`);
+}
+
+interface ServerFn {
+  file: string;
+  name: string;
+  validator: string | null;
+  handler: string;
+}
+
+function serverFns(file: string): ServerFn[] {
+  const src = readFileSync(file, "utf8");
+  const out: ServerFn[] = [];
+  const starts = [...src.matchAll(/export const (\w+) = createServerFn\(/g)];
+  for (let k = 0; k < starts.length; k++) {
+    const m = starts[k]!;
+    const end = k + 1 < starts.length ? starts[k + 1]!.index! : src.length;
+    const block = src.slice(m.index!, end);
+    const v = block.indexOf(".inputValidator(");
+    const h = block.indexOf(".handler(");
+    out.push({
+      file,
+      name: m[1]!,
+      validator: v < 0 ? null : balanced(block, v + ".inputValidator".length),
+      handler: h < 0 ? "" : balanced(block, h + ".handler".length),
+    });
+  }
+  return out;
+}
+
+const PASS_THROUGH = /\(\s*input\s*(?::[^)]*)?\)\s*=>\s*input\s*[,)]/;
+const SPEC_KEYS = new Set(SPECS.map((s) => `${s.file}#${s.name}`));
+const covered = new Set<string>();
+
+for (const [batch, files] of Object.entries(BATCHES)) {
+  let withInput = 0;
+  let without = 0;
+  for (const file of files) {
+    const src = readFileSync(file, "utf8");
+    const fns = serverFns(file);
+    check(fns.length > 0, `${file}: has server functions`);
+    const usesValidate = /from "@\/lib\/validate"/.test(src);
+    for (const fn of fns) {
+      const label = `${batch}: ${fn.name} (${file})`;
+      if (fn.validator === null) {
+        without++;
+        // The handler's own parameter (`async ({ data, context })`), not a local `data` it reads from a query.
+        const param = /^\(\s*async\s*\(([^)]*)\)/.exec(fn.handler)?.[1] ?? "";
+        check(!/\bdata\b/.test(param), `${label}: takes no input and never reads data`);
+        continue;
+      }
+      withInput++;
+      check(!PASS_THROUGH.test(fn.validator), `${label}: no (input: T) => input pass-through`);
+      const calls = [...fn.validator.matchAll(/\b(\w+)\(/g)].map((c) => c[1]!);
+      const viaHelper = calls.some((c) => HELPERS.includes(c));
+      const viaNormaliser = calls.some((c) => NORMALISERS.includes(c));
+      check(viaHelper || viaNormaliser, `${label}: builds its input through validate.ts or a named normaliser`);
+      if (viaHelper) check(usesValidate, `${label}: its file imports src/lib/validate.ts`);
+      if (viaNormaliser) {
+        for (const n of calls.filter((c) => NORMALISERS.includes(c))) {
+          const def = new RegExp(`function ${n}\\([^)]*\\)[^{]*\\{([\\s\\S]*?)\\n\\}`).exec(src);
+          check(
+            !!def && [...def[1]!.matchAll(/\b(\w+)\(/g)].some((c) => HELPERS.includes(c[1]!)),
+            `${label}: normaliser ${n} is defined in its file on validate.ts`,
+          );
+        }
+      }
+      const key = `${file}#${fn.name}`;
+      check(SPEC_KEYS.has(key), `${label}: has a live entry in SPECS`);
+      covered.add(key);
+    }
+  }
+  check(withInput > 0, `${batch}: ${withInput} input-taking functions checked, ${without} without input`);
+  quietLog(`  ${batch}: ${withInput} functions with an input, ${without} without`);
+}
+for (const s of SPECS) check(covered.has(`${s.file}#${s.name}`), `SPECS ${s.name}: names an input-taking function in a batch file`);
+check(NORMALISERS.every((n) => !HELPERS.includes(n)), "normalisers are not validate.ts helpers");
+
+/* ------------------------------------------------------------------ 2. the bad inputs */
+
+const MB = "a".repeat(1024 * 1024);
+const HUGE_LIST = Array.from({ length: 100_000 }, () => "a");
+
+function withField(good: unknown, path: string, value: unknown): unknown {
+  const copy = structuredClone(good) as Record<string, unknown>;
+  const parts = path.split(".");
+  let at = copy;
+  for (const p of parts.slice(0, -1)) at = at[p] as Record<string, unknown>;
+  at[parts.at(-1)!] = value;
+  return copy;
+}
+
+const WRONG: Record<Exclude<Kind, "soft">, unknown[]> = {
+  text: [12345, true, {}],
+  bool: ["yes", 1, {}],
+  num: ["5", true, {}],
+  object: ["x", 5, []],
+  list: ["x", 5, {}],
+};
+
+/** Every refused case of a spec: a label, the input and the field the refusal must name. */
+function badCases(spec: Spec): { label: string; data: unknown; field: string }[] {
+  const out: { label: string; data: unknown; field: string }[] = [
+    { label: "a string", data: "x", field: "input" },
+    { label: "a number", data: 5, field: "input" },
+    { label: "null", data: null, field: "input" },
+    { label: "a list", data: [spec.good], field: "input" },
+    ...(spec.allowsNothing ? [] : [{ label: "nothing", data: undefined, field: "input" }]),
+  ];
+  if (spec.whole) {
+    const key = Object.keys(spec.good as object)[0]!;
+    out.push(
+      { label: "10,000 keys", data: Object.fromEntries(Array.from({ length: 10_000 }, (_, i) => [`k${i}`, false])), field: "input" },
+      { label: "a 1 MB key", data: { ...(spec.good as object), [MB]: false }, field: "input" },
+      { label: `${key} wrong-typed`, data: withField(spec.good, key, spec.whole === "strings" ? 5 : "yes"), field: `input.${key}` },
+      { label: `${key} a 1 MB string`, data: withField(spec.good, key, MB), field: `input.${key}` },
+      { label: `${key} a 100,000-item list`, data: withField(spec.good, key, HUGE_LIST), field: `input.${key}` },
+    );
+    return out;
+  }
+  for (const [path, kind] of Object.entries(spec.fields ?? {})) {
+    if (kind !== "soft")
+      for (const wrong of WRONG[kind]) out.push({ label: `${path} = ${JSON.stringify(wrong)}`, data: withField(spec.good, path, wrong), field: path });
+    out.push({ label: `${path} a 1 MB string`, data: withField(spec.good, path, MB), field: path });
+    if (kind === "list") {
+      out.push({ label: `${path}[0] wrong-typed`, data: withField(spec.good, path, [5]), field: `${path}[0]` });
+      out.push({ label: `${path}[0] a 1 MB string`, data: withField(spec.good, path, [MB]), field: `${path}[0]` });
+    }
+    out.push({ label: `${path} a 100,000-item list`, data: withField(spec.good, path, HUGE_LIST), field: path });
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ 3. live */
+
+let db: LocalDb | null = null;
+let rest: RestServer | null = null;
+
+if (!postgresBin()) {
+  restore();
+  if (process.env["CI"]) {
+    console.log(`server-input-check: ${passes} passed, 1 failed\n  FAIL no PostgreSQL binaries on the CI runner\nFAIL`);
+    process.exit(1);
+  }
+  console.log("  NOTE no PostgreSQL binaries found: the live part didn't run (CI runs it)");
+} else {
+  try {
+    db = startLocalDb("server-input-check-");
+    check(db.failed === null, `all migrations apply in order${db.failed ? ` (${db.failed.file}: ${db.failed.error})` : ""}`);
+    rest = await startRestServer(db.socketDir);
+    process.env["SUPABASE_URL"] = rest.url;
+    process.env["SUPABASE_PUBLISHABLE_KEY"] = ANON_KEY;
+    process.env["SUPABASE_SERVICE_ROLE_KEY"] = SERVICE_KEY;
+    await installServerFnPlugin();
+    await live(db);
+  } catch (err) {
+    check(false, `harness: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
+  } finally {
+    await rest?.stop();
+    db?.stop();
+  }
+}
+
+async function live(db: LocalDb): Promise<void> {
+  const q = (sql: string) => {
+    const out = db.psql(sql);
+    if (!out.ok) throw new Error(`psql: ${out.err}`);
+    return out.out.trim();
+  };
+  const GUEST = "00000000-0000-4000-8000-000000000001";
+  const ACCOUNT = "00000000-0000-4000-8000-000000000002";
+  q(`INSERT INTO auth.users (id, is_anonymous, email) VALUES ('${GUEST}', true, NULL), ('${ACCOUNT}', false, 'acc@example.com'), ('${P1}', false, 'p1@example.com')`);
+  const token = { guest: userToken(GUEST), account: accountToken(ACCOUNT) };
+
+  /** Every row of every table (a crafted input that reached a handler would leave a rate-limit bucket at least). */
+  const snapshot = () =>
+    q(`SELECT string_agg(table_schema || '.' || table_name || '=' ||
+         (xpath('/row/c/text()', query_to_xml(format('SELECT count(*) AS c FROM %I.%I', table_schema, table_name), false, true, '')))[1]::text, ',' ORDER BY 1)
+       FROM information_schema.tables
+       WHERE table_type = 'BASE TABLE' AND table_schema NOT IN ('pg_catalog', 'information_schema')`);
+
+  const modules = new Map<string, Record<string, unknown>>();
+  for (const s of SPECS) if (!modules.has(s.file)) modules.set(s.file, await import(`../${s.file}`));
+
+  const before = snapshot();
+  let refused = 0;
+  for (const spec of SPECS) {
+    const fn = modules.get(spec.file)![spec.name];
+    const tok = spec.as === "account" ? token.account : token.guest;
+    const wrong: string[] = [];
+    const cases = badCases(spec);
+    for (const c of cases) {
+      try {
+        await callServerFn(fn, c.data, tok);
+        wrong.push(`${c.label}: accepted`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const name = err instanceof Error ? err.name : "";
+        if (name !== "InvalidInput" || message !== `Invalid input: ${c.field}`) wrong.push(`${c.label}: ${name} ${message.slice(0, 80)}`);
+        else refused++;
+      }
+    }
+    check(wrong.length === 0, `${spec.name}: all ${cases.length} bad inputs refused as InvalidInput naming the field${wrong.length ? ` (${wrong.join("; ")})` : ""}`);
+  }
+  const after = snapshot();
+  const changed = diffSnapshots(before, after);
+  check(changed.length === 0, `${refused} refused calls changed no row in any table${changed.length ? ` (${changed.join(", ")})` : ""}`);
+
+  // The good inputs pass the validator (the handler's own answer, whatever it is, is the area checks' business).
+  for (const spec of SPECS) {
+    const fn = modules.get(spec.file)![spec.name];
+    const tok = spec.as === "account" ? token.account : token.guest;
+    let outcome = "answered";
+    try {
+      await callServerFn(fn, spec.good, tok);
+    } catch (err) {
+      outcome = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    }
+    check(!/InvalidInput|Invalid input/.test(outcome), `${spec.name}: its good input passes the validator (${outcome.slice(0, 100)})`);
+    if (spec.allowsNothing) {
+      let nothing = "answered";
+      try {
+        await callServerFn(fn, undefined, tok);
+      } catch (err) {
+        nothing = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      }
+      check(!/InvalidInput|Invalid input/.test(nothing), `${spec.name}: nothing sent passes the validator (${nothing.slice(0, 100)})`);
+    }
+  }
+}
+
+function diffSnapshots(a: string, b: string): string[] {
+  const left = new Map(a.split(",").map((p) => p.split("=") as [string, string]));
+  return b
+    .split(",")
+    .map((p) => p.split("=") as [string, string])
+    .filter(([t, n]) => left.get(t) !== n)
+    .map(([t, n]) => `${t} ${left.get(t)} → ${n}`);
+}
+
+restore();
+console.log(`server-input-check: ${passes} passed, ${failures.length} failed`);
+if (failures.length) {
+  console.log("FAIL");
+  process.exit(1);
+}
+console.log("PASS: every server function in the batches builds its input through validate.ts and refuses bad inputs before its handler runs.");
+process.exit(0);
