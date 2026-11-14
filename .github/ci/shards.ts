@@ -339,6 +339,9 @@ export const SHARDS: Record<string, string[]> = {
     // security-trials-check (13 Nov 2026, ~10 s): the report-only content security policy and its /csp-report table,
     // the arcade wall-clock log, Tally's keyed reference and the runbook worker, beside the other SQL checks.
     "security-trials-check.ts",
+    // server-input-check (14 Nov 2026, Security C2, ~5 s): every server function outside rooms and chat builds its
+    // input through src/lib/validate.ts and refuses a crafted one before its handler runs, on a local PostgreSQL.
+    "server-input-check.ts",
     // economy-check (wave 2 A1, 10 Nov 2026, ~8 s): coins and items (the catalogue against catalogue.json, the coin
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.
