@@ -995,8 +995,9 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...NAV_SCREENS(),
   ...COMPONENT_SCREENS(),
   ...APPEARANCE_SCREENS(),
-  ...SHOP_SCREENS(),
+  // The Profile session's screens before the Shop's (shop-pages-check keeps SHOP_SCREENS last).
   ...PROFILE_SCREENS(),
+  ...SHOP_SCREENS(),
 ];
 
 export interface ThemeViewport {
