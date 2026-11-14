@@ -306,7 +306,7 @@ function ProfileScreen() {
             right (nothing while TALLY_URL is empty). None for an account. */}
         {accountName ? null : (
           <div data-profile-footer className="flex min-h-11 items-center justify-between gap-3">
-            <p className="ap-faint min-w-0 text-[13px] leading-snug">Saved on this phone. Create an account to keep it everywhere.</p>
+            <p className="pf-footer-note min-w-0">Saved on this phone. Create an account to keep it everywhere.</p>
             <FeedbackLink />
           </div>
         )}

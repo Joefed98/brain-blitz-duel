@@ -516,3 +516,10 @@
     margin-inline: auto;
   }
 }
+
+/* A guest's footer line (where their progress lives). */
+.pf-footer-note {
+  margin: 0;
+  color: var(--jz-text-3);
+  font: var(--jz-type-caption);
+}
