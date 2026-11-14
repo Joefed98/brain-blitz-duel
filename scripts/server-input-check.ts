@@ -2,7 +2,8 @@
  * server-input-check (Security C2, 14 Nov 2026): every server function outside the room and chat area checks its
  * input's type, shape and size before its handler runs, through the shared helpers in src/lib/validate.ts. Grown batch
  * by batch (batch 2: accounts, safety, friends, push, analytics, beta and identity; batch 3: economy, shop, pass, Plus,
- * cosmetics, badges, seasons and leaderboards; one list each in BATCHES and SPECS); the Security session adds batch 1
+ * cosmetics, badges, seasons and leaderboards; batch 4: rated play, tournaments, practice progress and challenges; one
+ * list each in BATCHES and SPECS); the Security session adds batch 1
  * (rooms and chat) later.
  *
  *   1. Static: in every file of the batches, each `createServerFn` that takes an input builds it through validate.ts
@@ -64,6 +65,18 @@ const restore = () => {
 
 /** Every server-function file of each batch (all of its functions are covered, input-taking or not). */
 const BATCHES: Record<string, string[]> = {
+  "batch 2": [
+    "src/lib/account/account.functions.ts",
+    "src/lib/account/saveProgress.functions.ts",
+    "src/lib/safety/safety.functions.ts",
+    "src/lib/friends/friends.functions.ts",
+    "src/lib/push/push.functions.ts",
+    "src/lib/analytics/analytics.functions.ts",
+    "src/lib/beta/terms.functions.ts",
+    "src/lib/beta/feedback.functions.ts",
+    "src/lib/identity/identityEvents.functions.ts",
+    "src/lib/appVersion.functions.ts",
+  ],
   "batch 3": [
     "src/lib/economy/economy.functions.ts",
     "src/lib/shop/shop.functions.ts",
@@ -74,10 +87,20 @@ const BATCHES: Record<string, string[]> = {
     "src/lib/seasons/seasons.functions.ts",
     "src/lib/leaderboards/leaderboards.functions.ts",
   ],
+  "batch 4": [
+    "src/lib/rated/rated.functions.ts",
+    "src/lib/rated/multi/multi.functions.ts",
+    "src/lib/rated/ratedEvents.functions.ts",
+    "src/lib/rated/ratings.functions.ts",
+    "src/lib/tournaments/tournaments.functions.ts",
+    "src/lib/tournaments/events.functions.ts",
+    "src/lib/challenges/challenges.functions.ts",
+    "src/lib/practice/progress.functions.ts",
+  ],
 };
 
 /** Named normalisers a validator may call besides validate.ts's helpers (each built on validate.ts in its file). */
-const NORMALISERS = ["slugList"];
+const NORMALISERS = ["usernameInput", "idText", "slugList", "eventIdText"];
 
 /** validate.ts's helpers (read from the file, so a new one counts). */
 const HELPERS = [...readFileSync("src/lib/validate.ts", "utf8").matchAll(/^export function (\w+)/gm)].map((m) => m[1]!);
@@ -98,15 +121,123 @@ interface Spec {
   as?: "account" | "guest";
 }
 
+const AC = "src/lib/account/account.functions.ts";
+const FR = "src/lib/friends/friends.functions.ts";
+const PU = "src/lib/push/push.functions.ts";
+const P1 = "00000000-0000-4000-8000-000000000101";
 const EC = "src/lib/economy/economy.functions.ts";
 const SH = "src/lib/shop/shop.functions.ts";
 const PA = "src/lib/pass/pass.functions.ts";
 const PL = "src/lib/plus/plus.functions.ts";
 const BA = "src/lib/badges/badges.functions.ts";
 const LB = "src/lib/leaderboards/leaderboards.functions.ts";
-const P1 = "00000000-0000-4000-8000-000000000101";
+const RA = "src/lib/rated/rated.functions.ts";
+const TO = "src/lib/tournaments/tournaments.functions.ts";
+const EV = "arena:2026-11-14:1300";
 
 const SPECS: Spec[] = [
+  /* batch 2: accounts */
+  { file: AC, name: "checkUsernameFn", good: { username: "Gia_One" }, fields: { username: "text" } },
+  {
+    file: AC,
+    name: "startSignUpFn",
+    good: { method: "email", dateOfBirth: "1990-05-01", username: "Gia_One" },
+    fields: { method: "text", dateOfBirth: "text", username: "text" },
+  },
+  {
+    file: AC,
+    name: "completeSignUpFn",
+    good: { username: "Gia_One", dateOfBirth: "1990-05-01", colour: 3, country: "GB", turnstileToken: null },
+    fields: { username: "text", dateOfBirth: "text", colour: "num", country: "text", turnstileToken: "text" },
+  },
+  { file: AC, name: "changeUsernameFn", good: { username: "Gia_Two" }, fields: { username: "text" }, as: "account" },
+  { file: AC, name: "noteSignInFn", good: { method: "email" }, fields: { method: "text" } },
+  {
+    file: AC,
+    name: "requestSignInEmailFn",
+    good: { email: "gia@example.com", captchaToken: null },
+    fields: { email: "text", captchaToken: "text" },
+  },
+  { file: AC, name: "requestSignUpEmailFn", good: { email: "gia@example.com" }, fields: { email: "text" } },
+  {
+    file: "src/lib/account/saveProgress.functions.ts",
+    name: "recordSaveProgressFn",
+    good: { event: "save_progress_shown", prompt: "sheet", from: "room" },
+    whole: "strings",
+  },
+  /* batch 2: safety */
+  { file: "src/lib/safety/safety.functions.ts", name: "pickForcedNameFn", good: { name: "Volt" }, fields: { name: "text" } },
+  /* batch 2: friends */
+  { file: FR, name: "friendProfileFn", good: { playerId: P1 }, fields: { playerId: "text" }, as: "account" },
+  { file: FR, name: "friendSearchFn", good: { query: "gia" }, fields: { query: "text" }, as: "account" },
+  { file: FR, name: "friendRequestFn", good: { playerId: P1 }, fields: { playerId: "text" }, as: "account" },
+  { file: FR, name: "friendLinkRequestFn", good: { token: "abcdefghjkmn" }, fields: { token: "text" }, as: "account" },
+  {
+    file: FR,
+    name: "friendRespondFn",
+    good: { requestId: P1, accept: true },
+    fields: { requestId: "text", accept: "bool" },
+    as: "account",
+  },
+  { file: FR, name: "friendRemoveFn", good: { playerId: P1 }, fields: { playerId: "text" }, as: "account" },
+  { file: FR, name: "friendBlockFn", good: { playerId: P1 }, fields: { playerId: "text" }, as: "account" },
+  { file: FR, name: "friendUnblockFn", good: { playerId: P1 }, fields: { playerId: "text" }, as: "account" },
+  {
+    file: FR,
+    name: "friendReportFn",
+    good: { playerId: P1, reason: "abusive_chat" },
+    fields: { playerId: "text", reason: "text" },
+    as: "account",
+  },
+  { file: FR, name: "friendInviteFn", good: { playerId: P1 }, fields: { playerId: "text" }, as: "account" },
+  {
+    file: FR,
+    name: "friendChallengeFn",
+    good: { playerId: P1, code: "ABC234" },
+    fields: { playerId: "text", code: "text" },
+    as: "account",
+  },
+  { file: FR, name: "friendLinkFn", good: { reset: false }, fields: { reset: "bool" }, as: "account" },
+  { file: FR, name: "friendLinkOwnerFn", good: { token: "abcdefghjkmn" }, fields: { token: "text" }, as: "account" },
+  { file: FR, name: "friendShowOnlineFn", good: { show: null }, fields: { show: "bool" }, as: "account" },
+  { file: FR, name: "friendBeatFn", good: { activity: "app" }, fields: { activity: "text" }, as: "account" },
+  /* batch 2: push */
+  {
+    file: PU,
+    name: "savePushSubscriptionFn",
+    good: { endpoint: "https://fcm.googleapis.com/fcm/send/abc", keys: { p256dh: "BAbc", auth: "xyz" }, timeZone: "Europe/London" },
+    fields: { endpoint: "text", keys: "object", "keys.p256dh": "text", "keys.auth": "text", timeZone: "text" },
+    as: "account",
+  },
+  { file: PU, name: "removePushSubscriptionFn", good: { endpoint: "https://fcm.googleapis.com/fcm/send/abc" }, fields: { endpoint: "text" }, as: "account" },
+  { file: PU, name: "setPushSettingsFn", good: { enabled: true, bogus: false }, whole: "flags", as: "account" },
+  {
+    file: PU,
+    name: "notePushAnswerFn",
+    good: { answer: "declined", moment: "friend_request_sent" },
+    fields: { answer: "text", moment: "text" },
+    as: "account",
+  },
+  { file: PU, name: "notePushOpenedFn", good: { event: "room_invite" }, fields: { event: "text" }, as: "account" },
+  /* batch 2: analytics, beta, identity */
+  {
+    file: "src/lib/analytics/analytics.functions.ts",
+    name: "recordClientEventsFn",
+    good: { events: [{ event: "app_opened" }] },
+    fields: { events: "soft" },
+  },
+  {
+    file: "src/lib/beta/terms.functions.ts",
+    name: "recordTermsAgreedFn",
+    good: { version: 1, agreedAt: "2026-11-14T12:00:00.000Z" },
+    fields: { version: "num", agreedAt: "text" },
+  },
+  {
+    file: "src/lib/identity/identityEvents.functions.ts",
+    name: "recordIdentityEventFn",
+    good: { event: "customise_opened" },
+    whole: "strings",
+  },
   /* batch 3: economy */
   { file: EC, name: "equip", good: { slot: "frame", itemId: null }, fields: { slot: "text", itemId: "text" }, as: "account" },
   {
@@ -154,6 +285,29 @@ const SPECS: Spec[] = [
     fields: { kind: "text", day: "text", scope: "text" },
   },
   { file: LB, name: "setBoardVisibilityFn", good: { show: null }, fields: { show: "soft" }, as: "account" },
+  /* batch 4: rated */
+  { file: RA, name: "ratedQueueJoinFn", good: { format: "bo3", choice: "mixed" }, fields: { format: "text", choice: "text" } },
+  { file: RA, name: "ratedMatchFn", good: { matchId: P1 }, fields: { matchId: "text" } },
+  { file: RA, name: "ratedOpponentScoreFn", good: { matchId: P1 }, fields: { matchId: "text" } },
+  { file: RA, name: "ratedProgressFn", good: { matchId: P1, round: 1, score: 77 }, fields: { matchId: "text", round: "num", score: "num" } },
+  { file: RA, name: "ratedSettleFn", good: { matchId: P1 }, fields: { matchId: "text" } },
+  { file: RA, name: "ratedRematchFn", good: { matchId: P1 }, fields: { matchId: "text" } },
+  { file: RA, name: "ratedHeadToHeadFn", good: { opponentId: P1 }, fields: { opponentId: "text" } },
+  { file: RA, name: "ratedRoomFn", good: { roomId: P1 }, fields: { roomId: "text" } },
+  { file: "src/lib/rated/multi/multi.functions.ts", name: "joinRatedMultiQueueFn", good: { size: 4, choice: "mixed" }, fields: { size: "num", choice: "text" } },
+  { file: "src/lib/rated/ratedEvents.functions.ts", name: "recordRatedEventFn", good: { event: "vs_shown", source: "live" }, whole: "strings" },
+  { file: "src/lib/rated/ratings.functions.ts", name: "getRatingsForFn", good: { playerId: P1 }, fields: { playerId: "text" } },
+  /* batch 4: tournaments */
+  { file: TO, name: "tournamentEventFn", good: { eventId: EV }, fields: { eventId: "text" } },
+  { file: TO, name: "tournamentEnterFn", good: { eventId: EV, entry: "coins" }, fields: { eventId: "text", entry: "text" } },
+  { file: TO, name: "tournamentRemindFn", good: { eventId: EV, on: true }, fields: { eventId: "text", on: "bool" } },
+  { file: TO, name: "arenaReadyFn", good: { eventId: EV }, fields: { eventId: "text" } },
+  { file: TO, name: "arenaPollFn", good: { eventId: EV }, fields: { eventId: "text" } },
+  { file: TO, name: "arenaLeaveFn", good: { eventId: EV }, fields: { eventId: "text" } },
+  { file: TO, name: "arenaBoardFn", good: { eventId: EV }, fields: { eventId: "text" } },
+  { file: TO, name: "scoreAttackStartFn", good: { eventId: "score_attack:2026-11-14" }, fields: { eventId: "text" } },
+  { file: TO, name: "scoreAttackBoardFn", good: { eventId: "score_attack:2026-11-14" }, fields: { eventId: "text" } },
+  { file: "src/lib/tournaments/events.functions.ts", name: "bigEventFn", good: { eventId: "category_cup:2026-11-14:1900" }, fields: { eventId: "text" } },
 ];
 
 /* ------------------------------------------------------------------ 1. static */

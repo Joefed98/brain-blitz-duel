@@ -8,10 +8,18 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { record, sized } from "@/lib/validate";
+
+/** A batch is at most 20 small events (clientEvents.server.ts); 64 KB is far above any the phone sends. */
+const CLIENT_BATCH_BYTES = 64 * 1024;
+/** A list this long is refused here; 21 to 200 still get acceptClientBatch's own "bad_batch". */
+const CLIENT_BATCH_ITEMS = 200;
 
 export const recordClientEventsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { events: unknown }) => input)
+  // Size only (Security C2): acceptClientBatch answers a batch that isn't a list of at most 20 ("bad_batch") and
+  // refuses each bad event itself, so only an oversized value is refused here.
+  .inputValidator((input: { events: unknown }) => ({ events: sized(record(input)["events"], CLIENT_BATCH_BYTES, "events", { maxItems: CLIENT_BATCH_ITEMS }) }))
   .handler(async ({ data, context }) => {
     const nowMs = Date.now();
     const { acceptClientBatch } = await import("./clientEvents.server");
