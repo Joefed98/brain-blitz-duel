@@ -11,8 +11,9 @@
  *  5. The Badges page: the badges on the card with Choose (Customise's Badges and title tab) and every badge grouped
  *     with per-group counts; a guest is sent to Profile.
  *  6. The card page: the account's card large and Customise one tap away; a guest is sent to Profile.
- *  7. Profile's order (the style guide's profile.png): card, Ratings, Mastery, Recent matches, Badges, Friends; the
- *     card opens the card page; the guest keeps the Display name box.
+ *  7. Profile's order (the style guide's profile.png; trimmed by Joe, 14 Nov 2026): card, Ratings, Mastery, Recent
+ *     matches, Badges, Friends, Season peak and the trophy cabinet, Get started (until done); no Leaderboards links,
+ *     challenges, Practice bests or Daily; a footer for guests only; the card opens the card page.
  *
  *   bun scripts/profile-pages-check.tsx
  */
@@ -280,6 +281,12 @@ async function mount(ui: () => React.ReactElement, path = "/profile") {
   const order = ["{wide ? null : cardColumn}", "<ProfileRatings />", 'aria-label="Mastery stars"', 'aria-label="Recent matches"', "<ProfileBadges />", "<ProfileFriends />"];
   check(order.every((n) => at(n) > 0) && order.every((n, i) => i === 0 || at(order[i - 1]!) < at(n)), "Profile's order: card, Ratings, Mastery, Recent matches, Badges, Friends");
   check(/data-profile-guest-name/.test(src) && /maxLength=\{GUEST_NAME_MAX\}/.test(src), "a guest keeps the Display name box");
+  // Joe, 14 Nov 2026: Profile is only about the player; the rest have their own homes.
+  const tail = ["<ProfileFriends />", "<SeasonSection />", "<TrophyCabinet trophies={trophies} />", "data-get-started", "data-profile-footer"];
+  check(tail.every((n, i) => i === 0 || at(tail[i - 1]!) < at(n)), "then Season peak, the trophy cabinet and Get started, last");
+  check(!/ProfileBoards|YourChallenges|ProfileChallenges|aria-label="Practice bests"|data-profile-daily/.test(src), "no Leaderboards links, Your challenges, Practice challenges, Practice bests or Daily on Profile");
+  check(/doneCount < steps\.length/.test(src), "Get started only until all three steps are done");
+  check(/\{accountName \? null : \(\s*<div data-profile-footer/.test(src) && /Saved on this phone\. Create an account to keep it everywhere\./.test(src), "a footer for guests only");
   check(/data-open-settings/.test(src), "the settings gear stays in the header");
   const card = readFileSync("src/components/identity/ProfileCard.tsx", "utf8");
   check(/to: "\/card"/.test(card) && /data-customise-open/.test(card), "the card opens the card page; Customise card beside it");

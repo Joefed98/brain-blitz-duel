@@ -6,15 +6,10 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { useHomeBed } from "@/lib/useScreenMusic";
 import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
-import { GameIcon } from "@/components/app/GameIcon";
 import { PlaceDisc } from "@/components/app/TabIcons";
 import { SettingsSheet } from "@/components/app/SettingsSheet";
-import { YourChallenges } from "@/components/challenge/YourChallenges";
-import { ProfileChallenges } from "@/components/app/ProfileChallenges";
 import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHistory";
-import { useDailyRecord } from "@/lib/badges/badgesApi";
-import { dailyStreak, readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
-import { ukDayKey } from "@/lib/duel/daily";
+import { readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { bestOf, starTotalLine } from "@/lib/practice/progress";
 import { GEM_THRESHOLDS, STAR_TOTAL_MAX, gemsFor, nextGem } from "@/lib/practice/progressRules";
@@ -36,7 +31,6 @@ import { ProfileFriends } from "@/components/profile/ProfileFriends";
 import { useLayoutMode } from "@/lib/layoutMode";
 import { TrophyCabinet } from "@/components/tournaments/TournamentHub";
 import { useMyTrophies } from "@/lib/tournaments/tournamentsApi";
-import { ProfileBoards } from "@/components/leaderboards/ProfileBoards";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -45,7 +39,7 @@ export const Route = createFileRoute("/profile")({
       { title: `${APP_NAME} profile` },
       {
         name: "description",
-        content: `Your ${APP_NAME} card, rooms, practice stars and bests.`,
+        content: `Your ${APP_NAME} card, ratings, stars, matches, badges and friends.`,
       },
       { name: "robots", content: "noindex" },
     ],
@@ -70,13 +64,6 @@ function ProfileScreen() {
   const [history, setHistory] = useState<RoomRecord[]>([]);
   const [daily, setDaily] = useState<DailyRecord | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const dailyView = useDailyRecord();
-  const dailyShown =
-    dailyView?.source === "server"
-      ? dailyView
-      : daily
-        ? { days: daily.days, best: daily.best, streak: dailyStreak(daily.days, ukDayKey(Date.now())) }
-        : null;
 
   useEffect(() => {
     setName(getStoredName());
@@ -121,6 +108,8 @@ function ProfileScreen() {
     else void router.navigate({ to: "/daily", search: { kind: "puzzle" }, state: { fromPlayTab: true } as never } as never);
   };
   const openGames = () => goToTab(router, "profile", "practice");
+  // An account's Customise card opens Customise (a guest's opens the save-your-progress sheet, in ProfileCard).
+  const openCustomise = () => void router.navigate({ to: "/customise", state: { fromPlayTab: true } as never } as never);
   // The gem the star total has unlocked (the latest), and the next one.
   const gem = progress ? GEM_THRESHOLDS.find((g) => g.gem === gemsFor(progress.stars).at(-1)) ?? null : null;
 
@@ -128,7 +117,7 @@ function ProfileScreen() {
   // page's side column (PhoneShell's aside, drawn on the left: polish-layout/profile.css), sticky while the page scrolls.
   const cardColumn = (
     <>
-      <ProfileCard guestName={shownName} guestColour={loaded ? look.colour : null} />
+      <ProfileCard guestName={shownName} guestColour={loaded ? look.colour : null} onCustomise={openCustomise} />
       {/* A guest's display name for new rooms, the Daily and challenges; an account's name is its username, changed in
           Settings → Account. "Your look" is retired (13 Nov 2026): a guest picks their colour in each lobby. */}
       {accountName ? null : (
@@ -173,38 +162,6 @@ function ProfileScreen() {
     >
       <div className="ap-stack pf-page" data-profile-page>
         {wide ? null : cardColumn}
-
-        {/* Get started (T-ProfileNew): three steps that tick off from this device's own records. */}
-        {loaded && doneCount < steps.length ? (
-          <section aria-label="Get started" data-get-started className="pf-section">
-            <SectionHeader title="Get started" right={<span className="ap-meta">{doneCount} of {steps.length}</span>} />
-            <div className="jz-panel">
-              {steps.map((step) => (
-                <button
-                  key={step.id}
-                  type="button"
-                  data-step={step.id}
-                  data-done={step.done || undefined}
-                  aria-label={step.done ? `${step.title}, done` : step.title}
-                  data-icon="check"
-                  onClick={() => openStep(step.id)}
-                  className="jz-row press"
-                >
-                  <span aria-hidden="true" data-done={step.done || undefined} className="ap-check">
-                    {step.done ? <Icon name="check" size={18} /> : null}
-                  </span>
-                  <span className="jz-row-text">
-                    <span className="jz-row-title">{step.title}</span>
-                    <span data-ellipsis className="jz-row-sub">
-                      {step.sub}
-                    </span>
-                  </span>
-                  <Icon name="chevron-right" size={20} className="ap-chevron" />
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
 
         {/* Ratings: the Joulz Rating, Puzzles and Arcade, only where rated play is open (W3c's figures). */}
         <ProfileRatings />
@@ -308,78 +265,51 @@ function ProfileScreen() {
         {/* Friends (wave 2 B1): a strip of friends' cards; See all opens Friends. */}
         <ProfileFriends />
 
-        {/* The daily challenge (badgesApi.ts useDailyRecord): the streak of UK days played and best totals, worked
-            out on the server from the Dailies it stores (the same on every device); this device's record until it answers. */}
-        {dailyShown && dailyShown.days.length > 0 ? (
-          <section aria-label="Daily" data-profile-daily className="pf-section">
-            <SectionHeader title="Daily" />
-            <div className="pf-stats">
-              {[
-                { label: "Day streak", value: dailyShown.streak },
-                { label: "Best puzzle", value: dailyShown.best.puzzle ?? null },
-                { label: "Best arcade", value: dailyShown.best.arcade ?? null },
-              ].map((stat) => (
-                <span key={stat.label} data-profile-daily-stat={stat.label} className="pf-stat">
-                  <span className="pf-stat-value">{stat.value === null ? "–" : stat.value.toLocaleString("en-GB")}</span>
-                  <span className="pf-stat-label" data-one-line>
-                    {stat.label}
+        {/* Wave 4 W4d: the season peak and history with the season emblems (accounts, real data only). */}
+        <SeasonSection />
+        <TrophyCabinet trophies={trophies} />
+
+        {/* Get started (T-ProfileNew): three steps that tick off from this device's own records, last on the page and
+            shown only until all three are done. */}
+        {loaded && doneCount < steps.length ? (
+          <section aria-label="Get started" data-get-started className="pf-section">
+            <SectionHeader title="Get started" right={<span className="ap-meta">{doneCount} of {steps.length}</span>} />
+            <div className="jz-panel">
+              {steps.map((step) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  data-step={step.id}
+                  data-done={step.done || undefined}
+                  aria-label={step.done ? `${step.title}, done` : step.title}
+                  data-icon="check"
+                  onClick={() => openStep(step.id)}
+                  className="jz-row press"
+                >
+                  <span aria-hidden="true" data-done={step.done || undefined} className="ap-check">
+                    {step.done ? <Icon name="check" size={18} /> : null}
                   </span>
-                </span>
+                  <span className="jz-row-text">
+                    <span className="jz-row-title">{step.title}</span>
+                    <span data-ellipsis className="jz-row-sub">
+                      {step.sub}
+                    </span>
+                  </span>
+                  <Icon name="chevron-right" size={20} className="ap-chevron" />
+                </button>
               ))}
             </div>
           </section>
         ) : null}
 
-        {/* Wave 4 W4d: the season peak and history with the season emblems (accounts, real data only). */}
-        <SeasonSection />
-        <TrophyCabinet trophies={trophies} />
-
-        {/* Wave 4 W4a (docs/leaderboards.md): the boards, and an account's category boards ("Top Logic players"). */}
-        <ProfileBoards
-          onOpen={(to) => void router.navigate({ to, state: { fromPlayTab: true } as never } as never)}
-        />
-
-        <YourChallenges
-          onOpen={(code) =>
-            void router.navigate({ to: "/challenge", search: { code }, state: { fromPlayTab: true } as never } as never)
-          }
-          onNew={() => void router.navigate({ to: "/challenge", search: {}, state: { fromPlayTab: true } as never } as never)}
-        />
-
-        {bests.length > 0 ? (
-          <section aria-label="Practice bests" className="pf-section">
-            <SectionHeader
-              title="Practice bests"
-              right={
-                <button type="button" onClick={openGames} className="pf-see press">
-                  All {bests.length}
-                </button>
-              }
-            />
-            <ul className="jz-panel">
-              {bests.slice(0, 3).map(({ type, best }) => (
-                <li key={type} data-icon="game" className="jz-row">
-                  <GameIcon type={type} size={40} />
-                  <span data-ellipsis className="jz-row-title min-w-0 flex-1">
-                    {PUZZLE_REGISTRY[type].name}
-                  </span>
-                  <span className="pf-row-figure">{best}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {/* Practice challenges (wave 2 C1b): the count done and the next few closest. */}
-        <ProfileChallenges onOpen={openGames} />
-
-        {/* The note, and the beta's Send feedback link on its right (nothing while TALLY_URL is empty). */}
-        <div data-profile-footer className="flex min-h-11 items-center justify-between gap-3">
-          <p className="ap-faint min-w-0 text-[13px] leading-snug">
-            Saved on this phone. Sign-in after the beta will keep it all.
-          </p>
-          <FeedbackLink />
-        </div>
+        {/* A guest's footer (Joe, 14 Nov 2026): where their progress lives, and the beta's Send feedback link on its
+            right (nothing while TALLY_URL is empty). None for an account. */}
+        {accountName ? null : (
+          <div data-profile-footer className="flex min-h-11 items-center justify-between gap-3">
+            <p className="ap-faint min-w-0 text-[13px] leading-snug">Saved on this phone. Create an account to keep it everywhere.</p>
+            <FeedbackLink />
+          </div>
+        )}
       </div>
       {settings ? (
         <SettingsSheet

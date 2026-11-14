@@ -35,7 +35,16 @@ import { usePlusStatus } from "@/lib/plus/plusApi";
 export { lookFromLoadout, withAvatarItems } from "@/lib/identity/cardLook";
 import { lookFromLoadout } from "@/lib/identity/cardLook";
 
-export function ProfileCard({ guestName, guestColour }: { guestName: string; guestColour: number | null }) {
+export function ProfileCard({
+  guestName,
+  guestColour,
+  onCustomise,
+}: {
+  guestName: string;
+  guestColour: number | null;
+  /** Profile's own Customise navigation (an account's); Customise by default. */
+  onCustomise?: () => void;
+}) {
   const router = useRouter();
   const account = useAccount();
   const identity = useMyIdentity();
@@ -69,8 +78,9 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
   const plusMark = usePlusStatus(!!signedIn)?.member?.showMark === true;
 
   const customise = () => {
-    if (isAccount) void router.navigate({ to: "/customise", state: { fromPlayTab: true } as never } as never);
-    else setOffer(true);
+    if (!isAccount) setOffer(true);
+    else if (onCustomise) onCustomise();
+    else void router.navigate({ to: "/customise", state: { fromPlayTab: true } as never } as never);
   };
   // The card page (/card): the card shown large; an account's only (a guest's card is their colour and initial).
   const openCard = () => {
