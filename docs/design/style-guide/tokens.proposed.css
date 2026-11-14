@@ -1,0 +1,77 @@
+/* Joulz tokens, round 2 proposal (docs/design/style-guide). Not imported by the app: approval first. */
+:root {
+  --jz-bg: #06080F;
+  --jz-raised: #0B0F1C;
+  --jz-surface: #0F1424;
+  --jz-surface-2: #1E2640;
+  --jz-surface-3: #28335A;
+  --jz-line: #1E2640;
+  --jz-ledge-2: #03050A;
+  --jz-text: #EEF2FF;
+  --jz-text-2: #B5C6DD;
+  --jz-text-3: #8F9BBF;
+  --jz-gold: #E2C07A;
+  --jz-gold-ink: #E2C07A;
+  --jz-gold-ledge: #A8843E;
+  --jz-on-gold: #06080F;
+  --jz-live: #22E4FF;
+  --jz-win: #16C35B;
+  --jz-loss: #FF5A6E;
+  --jz-joules: #C6FF3D;
+  --jz-scrim: rgba(3,4,8,.72);
+}
+:root[data-theme="light"] {
+  --jz-bg: #F3F4F8;
+  --jz-raised: #FFFFFF;
+  --jz-surface: #FFFFFF;
+  --jz-surface-2: #E4E7F0;
+  --jz-surface-3: #D6DBE8;
+  --jz-line: #DCE0EA;
+  --jz-ledge-2: #BFC6D6;
+  --jz-text: #0B1020;
+  --jz-text-2: #39425F;
+  --jz-text-3: #59617F;
+  --jz-gold: #E2C07A;
+  --jz-gold-ink: #7A5C1C;
+  --jz-gold-ledge: #A8843E;
+  --jz-on-gold: #06080F;
+  --jz-live: #006A7A;
+  --jz-win: #0B6F33;
+  --jz-loss: #B81C33;
+  --jz-joules: #456B00;
+  --jz-scrim: rgba(11,16,32,.45);
+}
+:root {
+  --jz-gold-metal: linear-gradient(165deg,#FBEDC4 0%,#E6C67E 34%,#D2AC5E 68%,#EED79C 100%);
+  --jz-type-display: 800 32px/38px Archivo, sans-serif;
+  --jz-type-title: 800 24px/30px Archivo, sans-serif;
+  --jz-type-heading: 800 20px/26px Archivo, sans-serif;
+  --jz-type-body: 700 17px/22px Archivo, sans-serif;
+  --jz-type-label: 600 15px/20px Archivo, sans-serif;
+  --jz-type-caption: 600 13px/18px Archivo, sans-serif;
+  --jz-space-4: 4px;
+  --jz-space-8: 8px;
+  --jz-space-12: 12px;
+  --jz-space-16: 16px;
+  --jz-space-24: 24px;
+  --jz-space-32: 32px;
+  --jz-space-40: 40px;
+  --jz-radius-sm: 8px;
+  --jz-radius-md: 12px;
+  --jz-radius-lg: 16px;
+  --jz-radius-btn: 12px;
+  --jz-radius-pill: 999px;
+  --jz-ledge: 4px;
+  --jz-elev-1: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 4px 0 var(--jz-ledge-2);
+  --jz-elev-2: 0 -8px 32px rgb(0 0 0 / 0.5), 0 16px 48px rgb(0 0 0 / 0.6);
+  --jz-dur-press: 70ms;
+  --jz-dur-release: 160ms;
+  --jz-dur-select: 120ms;
+  --jz-dur-sheet-in: 280ms;
+  --jz-dur-sheet-out: 200ms;
+  --jz-dur-page: 220ms;
+  --jz-dur-reward: 420ms;
+  --jz-dur-count: 600ms;
+  --jz-dur-win: 900ms;
+  --jz-ease-out: cubic-bezier(.2, .9, .25, 1);
+}

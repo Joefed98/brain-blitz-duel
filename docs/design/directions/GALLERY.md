@@ -1,5 +1,7 @@
 # Joulz style guide · round 1: three directions
 
+> **Round 2 is ready:** [the style guide and its mockups](../style-guide/GALLERY.md) on the chosen direction.
+
 Three ways for Joulz to look built by a professional team, all inside the brief: chess.com's warm dark charcoal
 and chunky raised buttons, one Joulz accent as the primary button, colourful 3D icons, dark first. Each direction
 shows its palette and type, Home, the Play page and one game screen (Cue Ball, a rated match) on a phone
