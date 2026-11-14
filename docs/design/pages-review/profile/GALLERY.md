@@ -12,8 +12,10 @@ Drawn by `bun scripts/shots/profile-pages-shots.ts --tag=before|after` from the 
 | ![](01-profile-rated-before.png) | ![](01-profile-rated-after.png) |
 | ![](02-profile-rated-scrolled-before.png) | ![](02-profile-rated-scrolled-after.png) |
 
-Card, Customise card, Ratings (Joulz Rating, Puzzles, Arcade tiles), strongest categories, Mastery (stars, bar, gem),
-Recent matches, the Badges row and the Friends strip, then the sections Profile already had.
+Trimmed to the player (Joe, 14 Nov 2026): card and Customise card, Ratings (Joulz Rating, Puzzles, Arcade tiles, then
+strongest categories; rated players only), Mastery, Recent matches, Badges, Friends, Season peak and the trophy cabinet,
+then Get started until its three steps are done. Leaderboards links, Your challenges, Practice challenges, Practice
+bests and the Daily section live in their own homes now. Guests get a footer; accounts none.
 
 ## An account without rated play · a guest
 
