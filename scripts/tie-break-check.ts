@@ -146,6 +146,21 @@ check(totalAnswerMs(results, 1, tie) === truth1 && totalAnswerMs(results, 2, tie
 check(duelOutcome(results, 1, 2, tie) === (truth1 < truth2 ? "win" : "loss"), "mixed room: the quicker total wins the tie");
 const table = standings([player(1), player(2)], results, 7, undefined, tie);
 check(table[0]!.slot === (truth1 < truth2 ? 1 : 2) && table[0]!.position === 1 && table[1]!.position === 2, "mixed room: standings rank the quicker total first");
+// Mid-game (Security C1a): a new room's phones hold only the rounds released so far (round 1 to the current round).
+// After each round, the standings from those rounds' tie rounds equal the full list's, round by round: level scores
+// broken on time, and unequal ones too.
+for (const scoresNow of [scores, [100, 90, 100, 110, 100, 95, 100]]) {
+  const both = [...rowsFor(1, p1Used, scoresNow), ...rowsFor(2, p2Used, scores)];
+  for (let k = 1; k <= roomPuzzles.length; k++) {
+    const sofar = both.filter((r) => r.round_number <= k);
+    const released = roomTieRounds(roomPuzzles.slice(0, k));
+    const fromReleased = standings([player(1), player(2)], sofar, k, undefined, released);
+    const fromFull = standings([player(1), player(2)], sofar, k, undefined, tie);
+    check(released !== null && JSON.stringify(fromReleased) === JSON.stringify(fromFull) &&
+      duelOutcome(sofar, 1, 2, released) === duelOutcome(sofar, 1, 2, tie),
+      `mid-game: after round ${k}, standings from the released rounds equal the full list's (${scoresNow === scores ? "level" : "unequal"} scores)`);
+  }
+}
 
 // Every round adds its time used: a 120 s round with 100 s left adds 20 s, not -70 s.
 check(roundTimeUsedMs(row(1, 4, 0, 100_000), tie[3]!) === 20_000, "120 s round: 100 s left adds 20 s used");
