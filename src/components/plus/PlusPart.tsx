@@ -1,6 +1,7 @@
 /**
- * The Plus part of the Shop tab (wave 2, session E2; docs/art/wave-2/boards/joulz-plus-screens.png, screen 1 "The
- * Joulz Plus offer"): the offer (monthly or yearly, the perks) and, for a member, what Plus gives them now.
+ * The Plus part of the Shop tab (wave 2, session E2; phase 2 step 3, the Shop pages session, 14 Nov 2026): Joulz Plus
+ * with the player's status, then (not a member) the plan and the purchase, or (a member) the PLUS chip and the Daily
+ * archive, then what Plus includes as plain rows. No pressure (Joe's rule): no savings badge, no countdown.
  *
  * Until real payments exist the only way in is a tester's "Test purchase" (no payment, marked as a test, removable by
  * Joe). Plus shows only where it is open (the shop's testers until PLUS_FOR_EVERYONE is on); anyone else keeps the
@@ -10,7 +11,8 @@
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { Button, EmptyState, Icon, Row, Skeleton, SwitchKnob } from "@/design/components";
+import { KitArt } from "@/components/shop/KitArt";
+import { Button, EmptyState, Icon, Row, SectionHeader, Skeleton, SwitchKnob } from "@/design/components";
 import { useAccount } from "@/lib/account/accountApi";
 import { PLUS_FOR_EVERYONE, PLUS_MONTHLY_COINS, PLUS_MONTHLY_FREEZES, PLUS_PRICES } from "@/config/plusConfig";
 import { setPlusMark, testPurchasePlus, usePlusStatus, type PlusStatus } from "@/lib/plus/plusApi";
@@ -33,19 +35,37 @@ export const PLUS_PERKS: readonly { icon: IconName; title: string; sub: string }
 
 function Perks() {
   return (
-    <ul className="plus-perks" data-plus-perks>
-      {PLUS_PERKS.map((perk) => (
-        <li key={perk.title} className="plus-perk">
-          <span className="plus-perk-icon">
-            <Icon name={perk.icon} size={20} />
-          </span>
-          <span className="plus-perk-text">
-            <span className="plus-perk-title">{perk.title}</span>
-            <span className="plus-perk-sub">{perk.sub}</span>
-          </span>
-        </li>
-      ))}
-    </ul>
+    <section className="plus-section" aria-labelledby="plus-perks-title">
+      <SectionHeader id="plus-perks-title" title="What’s included" />
+      <ul className="plus-incl" data-plus-perks>
+        {PLUS_PERKS.map((perk) => (
+          <li key={perk.title} className="plus-incl-row">
+            <span className="plus-incl-icon" aria-hidden="true">
+              <Icon name={perk.icon} size={22} />
+            </span>
+            <span className="plus-incl-text">
+              <span className="plus-incl-title">{perk.title}</span>
+              <span className="plus-incl-sub">{perk.sub}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The page's head: the art kit's Plus, the name, and where the player stands. */
+function PlusHead({ status }: { status: string }) {
+  return (
+    <header className="plus-head">
+      <KitArt name="plus" size={56} />
+      <span className="plus-head-text">
+        <h2 className="plus-head-title">Joulz Plus</h2>
+        <span className="plus-status" data-plus-status>
+          {status}
+        </span>
+      </span>
+    </header>
   );
 }
 
@@ -62,50 +82,45 @@ function Offer({ status }: { status: PlusStatus }) {
     if (!answer.ok) setMessage(answer.message);
   };
   return (
-    <div className="plus-offer" data-plus-offer>
-      <div className="plus-hero">
-        <span className="plus-hero-mark" aria-hidden="true">
-          <Icon name="streak" size={24} />
-        </span>
-        <h2>Joulz Plus</h2>
-        <p>Get better, faster. Look the part.</p>
-      </div>
-      <div role="radiogroup" aria-label="Plan" className="plus-plans">
-        <button type="button" role="radio" aria-checked={plan === "monthly"} onClick={() => setPlan("monthly")} className="plus-plan press" data-plus-plan="monthly">
-          <span className="plus-plan-label">Monthly</span>
-          <span className="plus-plan-price">
-            {PLUS_PRICES.monthly} <small>/month</small>
-          </span>
-        </button>
-        <button type="button" role="radio" aria-checked={plan === "yearly"} onClick={() => setPlan("yearly")} className="plus-plan press" data-plus-plan="yearly">
-          <span className="plus-plan-save">Save 27%</span>
-          <span className="plus-plan-label">Yearly</span>
-          <span className="plus-plan-price">
-            {PLUS_PRICES.yearly} <small>/year</small>
-          </span>
-        </button>
-      </div>
-      <Perks />
-      {message ? (
-        <p role="alert" className="cz-message" data-plus-message>
-          {message}
-        </p>
-      ) : null}
-      {status.tester ? (
-        <>
-          <Button variant="gold" size={52} block disabled={busy} onClick={() => void buy()} data-plus-test-purchase={plan}>
-            {busy ? "Starting…" : "Test purchase"}
-          </Button>
-          <p className="plus-test-note" data-plus-test-note>
-            A test purchase for testers: no payment is taken, and it’s marked as a test.
+    <div className="plus-page" data-plus-offer>
+      <PlusHead status="You’re not a member" />
+      <section className="plus-section" aria-labelledby="plus-plan-title">
+        <SectionHeader id="plus-plan-title" title="Choose a plan" />
+        <div role="radiogroup" aria-labelledby="plus-plan-title" className="plus-choices">
+          {(["monthly", "yearly"] as const).map((p) => (
+            <button key={p} type="button" role="radio" aria-checked={plan === p} onClick={() => setPlan(p)} className="plus-choice press" data-plus-plan={p}>
+              <span className="plus-choice-dot" aria-hidden="true">
+                {plan === p ? <Icon name="check" size={18} /> : null}
+              </span>
+              <span className="plus-choice-label">{p === "monthly" ? "Monthly" : "Yearly"}</span>
+              <span className="plus-choice-price">
+                {PLUS_PRICES[p]} <small>{p === "monthly" ? "a month" : "a year"}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+        {message ? (
+          <p role="alert" className="cz-message" data-plus-message>
+            {message}
           </p>
-        </>
-      ) : (
-        <Button variant="secondary" size={52} block disabled data-plus-coming>
-          Coming soon
-        </Button>
-      )}
-      <p className="plus-small-print">
+        ) : null}
+        {status.tester ? (
+          <>
+            <Button variant="gold" size={52} block disabled={busy} onClick={() => void buy()} data-plus-test-purchase={plan}>
+              {busy ? "Starting…" : "Test purchase"}
+            </Button>
+            <p className="plus-note" data-plus-test-note>
+              A test purchase for testers: no payment is taken, and it’s marked as a test.
+            </p>
+          </>
+        ) : (
+          <Button variant="secondary" size={52} block disabled data-plus-coming>
+            Coming soon
+          </Button>
+        )}
+      </section>
+      <Perks />
+      <p className="plus-note">
         Cancel any time. Plus never helps you win: ratings, scores and matchmaking are the same for everyone, and rooms
         are always free.
       </p>
@@ -123,42 +138,36 @@ function Member({ status }: { status: PlusStatus }) {
     if (!answer.ok) setMessage(answer.message);
   };
   return (
-    <div className="plus-offer" data-plus-member={member.plan}>
-      <div className="plus-hero">
-        <span className="plus-hero-mark" aria-hidden="true">
-          <Icon name="check" size={24} />
-        </span>
-        <h2>You have Joulz Plus</h2>
-        <p>
-          {member.plan === "yearly" ? "Yearly" : "Monthly"}
-          {member.test ? " · test purchase" : ""}
+    <div className="plus-page" data-plus-member={member.plan}>
+      <PlusHead status={`You have Plus · ${member.plan === "yearly" ? "Yearly" : "Monthly"}${member.test ? " · test purchase" : ""}`} />
+      <section className="plus-section" aria-labelledby="plus-yours-title">
+        <SectionHeader id="plus-yours-title" title="Your Plus" />
+        <div className="jz-panel plus-member">
+          <Row as="button" onClick={() => void router.navigate({ to: "/daily-archive" })} data-plus-archive-open>
+            <span className="jz-row-text items-start text-left">
+              <span className="jz-row-title">Daily archive</span>
+              <span className="jz-row-sub">Play any past Daily, unrated</span>
+            </span>
+            <Icon name="chevron-right" size={20} tone="text-3" />
+          </Row>
+          <Row as="button" role="switch" aria-checked={member.showMark} aria-label="Show the PLUS chip on my profile" onClick={() => void toggleMark()} data-plus-mark-toggle>
+            <span className="jz-row-text items-start text-left">
+              <span className="jz-row-title">PLUS chip on my profile</span>
+              <span className="jz-row-sub">Off unless you turn it on</span>
+            </span>
+            <SwitchKnob on={member.showMark} />
+          </Row>
+        </div>
+        {message ? (
+          <p role="alert" className="cz-message">
+            {message}
+          </p>
+        ) : null}
+        <p className="plus-note" data-plus-perks-paid={status.monthsPaid}>
+          {PLUS_MONTHLY_COINS} coins and {PLUS_MONTHLY_FREEZES} streak freezes arrive at the start of each Plus month.
+          {status.premiumPass ? " Your premium pass is on." : " Your premium pass arrives with Season 1."}
         </p>
-      </div>
-      <div className="jz-panel plus-member">
-        <Row as="button" role="switch" aria-checked={member.showMark} aria-label="Show the PLUS chip on my profile" onClick={() => void toggleMark()} data-plus-mark-toggle>
-          <span className="jz-row-text items-start text-left">
-            <span className="jz-row-title">PLUS chip on my profile</span>
-            <span className="jz-row-sub">Off unless you turn it on</span>
-          </span>
-          <SwitchKnob on={member.showMark} />
-        </Row>
-        <Row as="button" onClick={() => void router.navigate({ to: "/daily-archive" })} data-plus-archive-open>
-          <span className="jz-row-text items-start text-left">
-            <span className="jz-row-title">Daily archive</span>
-            <span className="jz-row-sub">Play any past Daily, unrated</span>
-          </span>
-          <Icon name="chevron-right" size={20} tone="text-3" />
-        </Row>
-      </div>
-      {message ? (
-        <p role="alert" className="cz-message">
-          {message}
-        </p>
-      ) : null}
-      <p className="plus-small-print" data-plus-perks-paid={status.monthsPaid}>
-        {PLUS_MONTHLY_COINS} coins and {PLUS_MONTHLY_FREEZES} streak freezes arrive at the start of each Plus month.
-        {status.premiumPass ? " Your premium pass is on." : " Your premium pass arrives with Season 1."}
-      </p>
+      </section>
       <Perks />
     </div>
   );

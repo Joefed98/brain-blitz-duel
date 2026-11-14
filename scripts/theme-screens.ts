@@ -23,6 +23,7 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { dailyFixture, type HarnessDaily } from "./daily-fixture";
 import { boardsFixture } from "./leaderboards-fixture";
 import { passFixture } from "./pass-fixture";
+import { SHOP_SCREENS } from "./screens/shop";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
 import { HOME_PLAY_SCREENS } from "./screens/home-play";
 
@@ -175,7 +176,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "play" | "rooms";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "play" | "rooms";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -994,6 +995,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...NAV_SCREENS(),
   ...COMPONENT_SCREENS(),
   ...APPEARANCE_SCREENS(),
+  ...SHOP_SCREENS(),
   ...HOME_PLAY_SCREENS(ALL_SIZES),
 ];
 
