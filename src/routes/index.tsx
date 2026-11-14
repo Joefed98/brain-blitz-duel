@@ -11,6 +11,7 @@ import { IntroCard } from "@/components/app/IntroCard";
 import { SettingsSheet } from "@/components/app/SettingsSheet";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { WeekPanel } from "@/components/app/PageAside";
+import { HeaderLead } from "@/components/app/AppHeader";
 import { useClock } from "@/components/app/useClock";
 import { useNavPlacement } from "@/components/nav/navigation";
 import { DailyHero, FriendsRow, NextMatch, RatingTiles, RecentlyPlayed, WeeklyCard, openFromHome } from "@/components/home/HomeSections";
@@ -174,9 +175,9 @@ function Home() {
   ) : null;
 
   return (
+    <HeaderLead.Provider value={placement === "bar" ? streakChip : null}>
     <PhoneShell
       tabs="play"
-      headerLead={placement === "bar" ? streakChip : undefined}
       headerAction={placement === "bar" ? bellButton : undefined}
       aside={
         <aside aria-label="More" data-page-aside className="dk-aside hp-aside">
@@ -260,5 +261,6 @@ function Home() {
         />
       ) : null}
     </PhoneShell>
+    </HeaderLead.Provider>
   );
 }
