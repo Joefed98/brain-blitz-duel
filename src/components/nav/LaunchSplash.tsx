@@ -8,6 +8,10 @@ import { NavArt } from "./NavArt";
  * The launch screen (phase 2 step 1, 14 Nov 2026): the Joulz bolt from the art kit on navy over the wordmark, drawn with the
  * server-rendered page and gone the moment the app has started in the browser (hydrated), never held for a fixed
  * time. Under Reduce motion the bolt doesn't scale in. It covers the page only while its buttons can't yet answer.
+ *
+ * The logo's charge-in (celebrations; Joe, 14 Nov 2026, when the wordmark left the page headers): the wordmark's gold
+ * mark charges in here, once per app open, while the app loads. It never holds the screen: the moment the app has
+ * started the screen goes, charged or not. Under Reduce motion the mark is drawn finished (LogoMark).
  */
 export function LaunchSplash({ hold = false }: { hold?: boolean }) {
   const [started, setStarted] = useState(false);
@@ -17,7 +21,7 @@ export function LaunchSplash({ hold = false }: { hold?: boolean }) {
     <div className="jz-nav jz-launch" data-launch data-skin="play" data-done={started ? "" : undefined} role="status" aria-label="Joulz is starting" aria-hidden={started ? true : undefined}>
       <NavArt name="bolt" size={96} />
       <span data-one-line className="jz-launch-name">
-        <AppWordmark still />
+        <AppWordmark />
       </span>
     </div>
   );

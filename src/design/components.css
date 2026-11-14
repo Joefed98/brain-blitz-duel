@@ -34,7 +34,7 @@
     transform: translateY(var(--jz-ledge));
     transition-duration: var(--jz-dur-press);
   }
-  :is(.jz-btn[data-variant="quiet"], .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
+  :is(.jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
     transform: scale(0.97);
     transition-duration: var(--jz-dur-press);
   }
@@ -112,8 +112,19 @@
   }
   /* Heights: 60 the one big action, 48 and 36 the guide's others; 44–58 kept for today's screens (step 3 moves them).
      A 36 px button keeps a 44 px target through an invisible hit area. */
-  .jz-btn[data-size="36"] { height: 36px; min-height: 36px; font-size: 15px; }
-  .jz-btn[data-size="36"]::after { content: ""; position: absolute; inset: -4px 0; }
+  /* 36: the guide's small button. The face is 36 px; the element is 44 px tall (4 px of transparent target above and
+     below), so every target stays at least 44 × 44. */
+  .jz-btn[data-size="36"] { height: 44px; font-size: 15px; }
+  .jz-btn[data-variant="secondary"][data-size="36"] {
+    border-block: 4px solid transparent;
+    background-clip: padding-box;
+  }
+  .jz-btn[data-variant="gold"][data-size="36"]::before {
+    inset: 4px 0;
+  }
+  .jz-btn[data-variant="gold"][data-size="36"]::after {
+    inset: -2px -6px;
+  }
   .jz-btn[data-size="44"] { height: 44px; font-size: 15px; }
   .jz-btn[data-size="46"] { height: 46px; font-size: 15px; }
   .jz-btn[data-size="48"] { height: 48px; font-size: 16px; }
@@ -211,6 +222,11 @@
     padding: 0 var(--jz-space-8);
     border-radius: var(--jz-radius-md);
     color: var(--jz-text-2);
+  }
+  /* Pressed: the text brightens (no movement: a text-only button has no face to sink). */
+  .jz-btn[data-variant="quiet"]:is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
+    color: var(--jz-text);
+    background-color: var(--jz-press-tint);
   }
   .jz-btn[data-variant="quiet"]:is(:disabled, [aria-disabled="true"]) {
     color: var(--jz-text-3);
