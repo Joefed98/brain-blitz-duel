@@ -5,7 +5,7 @@ import { isOnline, useOnline } from "@/lib/offline/online";
 
 import { OfflineState } from "./OfflineState";
 
-type Tab = "play" | "practice" | "tournaments" | "profile";
+type Tab = "play" | "practice" | "tournaments" | "profile" | "more";
 
 /**
  * An online-only screen (offline practice, 31 Oct 2026). With no connection it shows the offline state, with a

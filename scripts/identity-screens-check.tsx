@@ -254,7 +254,8 @@ check(
     await signIn(2);
     const { root } = await mount(() => React.createElement(AppTabBar, { current: "play" }), "/");
     await settle(40);
-    const want = on ? "Play,Practice,Tournaments,Shop,Profile" : "Play,Practice,Tournaments,Profile";
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: the tabs are Home, Games, Tournaments, Shop, More; Profile is the avatar's).
+    const want = on ? "Home,Games,Tournaments,Shop,More" : "Home,Games,Tournaments,More";
     check(tabLabels() === want, `#0002 ${step} on shop.testers: tabs ${want} (got ${tabLabels()})`);
     act(() => root.unmount());
   }
@@ -263,10 +264,11 @@ check(
   shopSwitch.shopOnFor(null, { enabled: true, preview: [] }) && shopSwitch.shopOnFor(7, { enabled: true, preview: [] }),
   "on: on for every account and guest",
 );
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: the tabs are Home, Games, Tournaments, Shop, More; Profile is the avatar's).
 for (const [who, n, want] of [
-  ["a guest", null, "Play,Practice,Tournaments,Profile"],
-  ["account #0002", 2, "Play,Practice,Tournaments,Profile"],
-  ["Joe’s account #0001", 1, "Play,Practice,Tournaments,Shop,Profile"],
+  ["a guest", null, "Home,Games,Tournaments,More"],
+  ["account #0002", 2, "Home,Games,Tournaments,More"],
+  ["Joe’s account #0001", 1, "Home,Games,Tournaments,Shop,More"],
 ] as const) {
   await signIn(n);
   const { root, went } = await mount(() => React.createElement(AppTabBar, { current: "play" }), "/");
@@ -284,7 +286,8 @@ for (const [who, n, want] of [
   document.body.innerHTML = "<nav data-app-tabbar></nav>";
   const root = createRoot(document.querySelector("[data-app-tabbar]") as unknown as Element);
   await act(async () => root.render(React.createElement(TabBar, { variant: "bar", current: "shop", shop: true, onOpen: () => () => {} })));
-  check(tabLabels() === "Play,Practice,Tournaments,Shop,Profile", "switch on: five tabs, Shop before Profile");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: the tabs are Home, Games, Tournaments, Shop, More; Profile is the avatar's).
+  check(tabLabels() === "Home,Games,Tournaments,Shop,More", "switch on: five tabs, Shop before More");
   check($("[data-tab='shop']")?.getAttribute("aria-current") === "page", "switch on: the Shop tab shows as current on /shop");
   act(() => root.unmount());
 }
@@ -295,9 +298,10 @@ for (const [who, n, want] of [
   const { PhoneShell } = await import("../src/components/duel/PhoneShell");
   const { AppRail } = await import("../src/components/app/AppRail");
   const setForced = (v: boolean | undefined) => ((window as unknown as { __DUELZ_SHOP_TAB__?: boolean }).__DUELZ_SHOP_TAB__ = v);
-  const FOUR = "Play,Practice,Tournaments,Profile";
-  const FIVE = "Play,Practice,Tournaments,Shop,Profile";
-  const pages = ["play", "practice", "tournaments", "profile", "shop"] as const;
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: the tabs are Home, Games, Tournaments, Shop, More; Profile is the avatar's).
+  const FOUR = "Home,Games,Tournaments,More";
+  const FIVE = "Home,Games,Tournaments,Shop,More";
+  const pages = ["play", "practice", "tournaments", "more", "shop"] as const;
   const states = [
     { name: "switch off, a guest", n: null, forced: undefined, want: FOUR },
     { name: "switch off, account #0002", n: 2, forced: undefined, want: FOUR },
@@ -318,8 +322,9 @@ for (const [who, n, want] of [
       act(() => root.unmount());
     }
     const { root } = await mount(() => React.createElement(AppRail, { current: "play" }), "/");
-    const rail = $$("[data-rail-tab]").map((a) => a.getAttribute("data-rail-tab")).join(",");
-    check(rail === state.want.toLowerCase(), `${state.name}: the desktop rail has the same tabs (${rail})`);
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: the rail's ids stay play, practice…, so its labels are compared).
+    const rail = $$("[data-rail-tab]").map((a) => (a.textContent ?? "").trim()).join(",");
+    check(rail === state.want, `${state.name}: the desktop rail has the same tabs (${rail})`);
     act(() => root.unmount());
   }
   setForced(undefined);

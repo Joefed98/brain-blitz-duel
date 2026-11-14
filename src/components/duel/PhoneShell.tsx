@@ -25,6 +25,8 @@ import { AppRail } from "@/components/app/AppRail";
 import { DesktopControlsHint } from "./DesktopControlsHint";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
+import { PlayBar } from "@/components/nav/PlayBar";
+import { useHomeBeneath, useNavPlacement, useNavScroll } from "@/components/nav/navigation";
 import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
 import { DesktopPresentation, type DesktopPresentationValue } from "@/lib/desktopPresentation";
 
@@ -426,6 +428,12 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   const wider = layout !== "phone";
   const roomPanel = useContext(RoomPanelSlot);
   const tabPage = Boolean(tabs && !gameScreen);
+  // The navigation step (14 Nov 2026): the rail on a computer (every screen; compact on rooms and games) and on a
+  // sideways tablet's main screens; the bottom tab bar everywhere else a main screen is drawn.
+  const placement = useNavPlacement();
+  const railHere = desktop || (placement === "rail" && tabPage);
+  useHomeBeneath(tabPage ? tabs : undefined);
+  useNavScroll(tabPage);
   const panel = desktop && !tabPage && roomPanel ? roomPanel : null;
   const modeInfo = gameType ? DESKTOP_MODES[gameType] : undefined;
   const presentation: DesktopPresentationValue = {
@@ -453,7 +461,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   return (
     <div
       ref={surfaceRef}
-      className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""} ${
+      className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""} ${tabPage && tabs === "more" ? "jz-nav" : ""} ${
         constrained ? "no-overscroll game-viewport overflow-hidden" : "min-h-[100dvh]"
       }`}
       data-category={theme?.accent}
@@ -468,6 +476,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       data-tab-screen={tabs && !gameScreen ? tabs : undefined}
       data-skin={gameScreen ? undefined : (skin ?? tabs)}
       data-layout={wider ? layout : undefined}
+      data-nav-rail={railHere && !desktop ? "" : undefined}
       data-desktop-mode={presentation.mode ?? undefined}
       data-room-panel={panel ? "" : undefined}
       data-desktop-cap={desktop && gameScreen && modeInfo?.maxWorldWidth ? "" : undefined}
@@ -481,7 +490,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
           : undefined
       }
     >
-      {desktop ? <AppRail current={tabPage ? tabs : undefined} compact={!tabPage} /> : null}
+      {railHere ? <AppRail current={tabPage ? tabs : undefined} compact={!tabPage} /> : null}
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>
       {/* Desktop arcade play (31 Oct 2026): the game's scenery fades out at the edges of the centre (one static layer over it). */}
       {desktop && arcadePlay ? <div aria-hidden="true" data-dk-fade="" /> : null}
@@ -511,7 +520,9 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       </div>
       {panel}
       {desktop && framePlay && gameType ? <DesktopControlsHint type={gameType} /> : null}
-      {tabs && !gameScreen && !desktop ? <AppTabBar current={tabs} /> : null}
+      {/* The gold Play bar: Home and Games only, just above the tab bar (the rail has its own Play button). */}
+      {tabPage && !railHere && (tabs === "play" || tabs === "practice") ? <PlayBar from={tabs} /> : null}
+      {tabPage && !railHere ? <AppTabBar current={tabs!} /> : null}
       {/* "Save your progress" shows only here, on the tab pages (src/components/account/SaveProgressSlot.tsx). */}
       {tabs && !gameScreen ? <SaveProgressSlot /> : null}
       {/* The notification ask (B2): the tab pages only, accounts only, nothing while the switch is off. */}

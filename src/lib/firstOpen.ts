@@ -22,7 +22,7 @@ import { checkOverride } from "@/lib/checkOverride";
 export const FIRST_OPEN_KEY = "duelz-first-open:v1";
 
 /** The tab pages a first open can land on to see it. */
-const TAB_PATHS = new Set(["/", "/practice", "/tournaments", "/profile"]);
+const TAB_PATHS = new Set(["/", "/practice", "/tournaments", "/profile", "/more"]);
 
 let seenInMemory = false;
 

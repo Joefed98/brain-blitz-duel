@@ -20,6 +20,7 @@ import { Route as DevCrashRouteImport } from './routes/dev-crash'
 import { Route as DevDesignRouteImport } from './routes/dev-design'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
+import { Route as MoreRouteImport } from './routes/more'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RatedRouteImport } from './routes/rated'
@@ -85,6 +86,11 @@ const FriendsRoute = FriendsRouteImport.update({
 const LeaderboardsRoute = LeaderboardsRouteImport.update({
   id: '/leaderboards',
   path: '/leaderboards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MoreRoute = MoreRouteImport.update({
+  id: '/more',
+  path: '/more',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PracticeRoute = PracticeRouteImport.update({
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/more': typeof MoreRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/more': typeof MoreRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/more': typeof MoreRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/dev-design'
     | '/friends'
     | '/leaderboards'
+    | '/more'
     | '/practice'
     | '/profile'
     | '/rated'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/dev-design'
     | '/friends'
     | '/leaderboards'
+    | '/more'
     | '/practice'
     | '/profile'
     | '/rated'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/dev-design'
     | '/friends'
     | '/leaderboards'
+    | '/more'
     | '/practice'
     | '/profile'
     | '/rated'
@@ -303,6 +315,7 @@ export interface RootRouteChildren {
   DevDesignRoute: typeof DevDesignRoute
   FriendsRoute: typeof FriendsRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
+  MoreRoute: typeof MoreRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
   RatedRoute: typeof RatedRoute
@@ -393,6 +406,13 @@ declare module '@tanstack/react-router' {
       path: '/leaderboards'
       fullPath: '/leaderboards'
       preLoaderRoute: typeof LeaderboardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/more': {
+      id: '/more'
+      path: '/more'
+      fullPath: '/more'
+      preLoaderRoute: typeof MoreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/practice': {
@@ -487,6 +507,7 @@ const rootRouteChildren: RootRouteChildren = {
   DevDesignRoute: DevDesignRoute,
   FriendsRoute: FriendsRoute,
   LeaderboardsRoute: LeaderboardsRoute,
+  MoreRoute: MoreRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
   RatedRoute: RatedRoute,

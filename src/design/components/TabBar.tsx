@@ -1,46 +1,45 @@
 import type { MouseEvent } from "react";
 
-import { Icon } from "./Icon";
+import { NavArt } from "@/components/nav/NavArt";
+import type { NavArtName } from "@/components/nav/navArt.data";
 
 /**
- * The app's tabs, from one list (DESIGN.md section 5): the phone's bottom bar (AppTabBar) and the
- * desktop rail (AppRail) both draw TabBar, so a tab is added, renamed or re-iconed in one place.
- * - `bar`: icon over label, the current tab gold;
+ * The app's main destinations, from one list (DESIGN.md section 5; the navigation rebuild, phase 2 step 1, 14 Nov 2026,
+ * docs/design/style-guide): the phone's and portrait tablet's bottom bar (AppTabBar) and the rail (AppRail: computers
+ * and landscape tablets) both draw TabBar, so a destination is added, renamed or re-iconed in one place.
+ * - `bar`: the 3D art-kit icon over its label, the current one in champagne gold with a bold label;
  * - `rail`: icon and label in a row (`compact`: the icon alone, its name as the tooltip and label).
- * Navigation (the back behaviour) is the caller's `onOpen`.
- * Icons (docs/icons/README.md): the tab's outline icon in --jz-text-3, its filled `-on` icon in --jz-gold when current
- * (the Shop has one drawing: its outline, gold when current).
  *
- * Shop (wave 2): Play · Practice · Tournaments · Shop · Profile, but only where the Shop switch is on for this device
- * (src/config/shopConfig.ts, useShopOn); everywhere else the four tabs exactly as before. The caller passes `shop`.
+ * Home · Games · Tournaments · Shop · More. There is no Play tab (the gold Play bar on Home and Games) and no Profile
+ * tab (the avatar top left, and More). The ids keep their old names so stored back-state and links carry on: `play`
+ * is Home ("/"), `practice` is Games ("/practice"). The Shop is drawn only where its switch is on for this device
+ * (src/config/shopConfig.ts, useShopOn); Tournaments is always drawn (a coming-soon page for players without them).
  */
-export type AppTab = "play" | "practice" | "tournaments" | "shop" | "profile";
+export type AppTab = "play" | "practice" | "tournaments" | "shop" | "more" | "profile";
 
-export const TAB_PATHS: Record<AppTab, "/" | "/practice" | "/tournaments" | "/shop" | "/profile"> = {
+export type TabPath = "/" | "/practice" | "/tournaments" | "/shop" | "/more" | "/profile";
+
+export const TAB_PATHS: Record<AppTab, TabPath> = {
   play: "/",
   practice: "/practice",
   tournaments: "/tournaments",
   shop: "/shop",
+  more: "/more",
   profile: "/profile",
 };
 
-/** Every tab in order; the Shop is drawn only with the switch on (`tabsFor`). */
-export const TABS: readonly { tab: AppTab; label: string }[] = [
-  { tab: "play", label: "Play" },
-  { tab: "practice", label: "Practice" },
-  { tab: "tournaments", label: "Tournaments" },
-  { tab: "shop", label: "Shop" },
-  { tab: "profile", label: "Profile" },
+/** The main destinations in order (Profile is reached from the avatar and More, so it is not one). */
+export const TABS: readonly { tab: AppTab; label: string; art: NavArtName }[] = [
+  { tab: "play", label: "Home", art: "home" },
+  { tab: "practice", label: "Games", art: "games" },
+  { tab: "tournaments", label: "Tournaments", art: "tournaments" },
+  { tab: "shop", label: "Shop", art: "shop" },
+  { tab: "more", label: "More", art: "more" },
 ];
 
-/** The tabs a device sees: five with the Shop switch on, today's four with it off. */
-export function tabsFor(shop: boolean): readonly { tab: AppTab; label: string }[] {
+/** The destinations a device sees: five with the Shop switch on, four with it off. */
+export function tabsFor(shop: boolean): readonly { tab: AppTab; label: string; art: NavArtName }[] {
   return shop ? TABS : TABS.filter((t) => t.tab !== "shop");
-}
-
-function TabIcon({ tab, here }: { tab: AppTab; here: boolean }) {
-  const name = tab === "shop" ? "shop" : here ? (`${tab}-on` as const) : tab;
-  return <Icon name={name} size={24} tone={here ? "gold" : "text-3"} />;
 }
 
 export function TabBar({
@@ -62,7 +61,7 @@ export function TabBar({
 }) {
   return (
     <>
-      {tabsFor(shop).map(({ tab, label }) => {
+      {tabsFor(shop).map(({ tab, label, art }) => {
         const here = tab === current;
         const dot = shopDot && tab === "shop" ? <span className="jz-tab-dot" data-shop-dot aria-hidden="true" /> : null;
         const named = dot ? `${label}, an item you wanted is back` : undefined;
@@ -76,9 +75,9 @@ export function TabBar({
               aria-label={named}
               data-tab={tab}
               data-jz="tab"
-              className="jz-tab min-w-0"
+              className="jz-tab jz-nav-tab min-w-0"
             >
-              <TabIcon tab={tab} here={here} />
+              <NavArt name={art} size={28} />
               <span>{label}</span>
               {dot}
             </a>
@@ -93,9 +92,9 @@ export function TabBar({
             title={compact ? label : undefined}
             data-rail-tab={tab}
             data-jz="tab"
-            className="dk-rail-tab"
+            className="dk-rail-tab jz-nav-rail-tab"
           >
-            <TabIcon tab={tab} here={here} />
+            <NavArt name={art} size={28} />
             {compact ? null : <span>{label}</span>}
             {dot}
           </a>

@@ -1,0 +1,493 @@
+/*
+ * The navigation frame (phase 2 step 1, 14 Nov 2026; docs/design/style-guide): the bottom tab bar, the avatar header,
+ * the gold Play bar, the rail, More and the Tournaments coming-soon page. Tokens only (the style guide's round 2 set,
+ * src/design/tokens.css); every element here carries .jz-nav, so <html data-theme="light"> draws it in the light theme.
+ * Page contents keep their own look until their steps.
+ */
+
+/* The cut shape: top-left and bottom-right corners at 45° (--cut: the leg). */
+.jz-nav {
+  --nav-tabbar: 56px;
+  --nav-playbar: 56px;
+}
+
+/* ------------------------------------------------------------------ the tab bar */
+[data-tab-screen] .app-tabbar.jz-nav-bar {
+  background: var(--jz-raised);
+  border-top: 1px solid var(--jz-line);
+  box-shadow: none;
+  font-family: var(--jz-font);
+  /* Above the home bar and Android's gesture bar: the inset is padding, painted the bar's own colour. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.jz-nav-bar .app-tabbar-row {
+  height: var(--nav-tabbar);
+  padding-inline: 4px;
+}
+[data-tab-screen] .jz-nav-bar .app-tabbar-row > a.jz-nav-tab {
+  position: relative;
+  gap: 2px;
+  color: var(--jz-text-3);
+  font-family: var(--jz-font);
+  border-radius: var(--jz-radius-md);
+  transition: color var(--jz-dur-select) var(--jz-ease-out);
+}
+[data-tab-screen] .jz-nav-bar .app-tabbar-row > a.jz-nav-tab > span {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 600;
+  font-stretch: 86%;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.jz-nav-tab > .jz-nav-art,
+.jz-nav-rail-tab > .jz-nav-art {
+  flex: none;
+  opacity: 0.62;
+  filter: saturate(0.3);
+  transition:
+    opacity var(--jz-dur-select) var(--jz-ease-out),
+    filter var(--jz-dur-select) var(--jz-ease-out);
+}
+[data-tab-screen] .jz-nav-bar .app-tabbar-row > a.jz-nav-tab[aria-current="page"] {
+  color: var(--jz-gold-ink);
+}
+[data-tab-screen] .jz-nav-bar .app-tabbar-row > a.jz-nav-tab[aria-current="page"] > span {
+  font-weight: 800;
+}
+:is(.jz-nav-tab, .jz-nav-rail-tab)[aria-current="page"] > .jz-nav-art {
+  opacity: 1;
+  filter: none;
+}
+.jz-nav :is(a, button):focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
+}
+.jz-nav-tab .jz-tab-dot {
+  top: 6px;
+  right: calc(50% - 20px);
+}
+
+/* The page leaves room for the tab bar and, on Home and Games, the Play bar above it. */
+[data-tab-screen]:is([data-tab-screen="play"], [data-tab-screen="practice"]):not([data-nav-rail], [data-layout="desktop"]) > [data-shell-column="page"] {
+  padding-bottom: calc(var(--nav-playbar, 56px) + 12px + 56px + env(safe-area-inset-bottom, 0px) + 24px);
+}
+html:has([data-tab-screen="play"], [data-tab-screen="practice"]):not(:has([data-nav-rail], [data-layout="desktop"])) {
+  scroll-padding-bottom: calc(56px + 12px + 56px + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* ------------------------------------------------------------------ the header's avatar */
+.jz-nav-header-left {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+.jz-nav-avatar {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--jz-radius-sm);
+  color: var(--jz-text);
+  text-decoration: none;
+}
+.jz-nav-header .jz-nav-avatar {
+  margin-left: -4px;
+}
+
+/* ------------------------------------------------------------------ the gold Play bar and the rail's Play */
+.jz-nav-playbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--nav-tabbar) + env(safe-area-inset-bottom, 0px) + 12px);
+  z-index: 29;
+  display: flex;
+  justify-content: center;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.jz-nav-playbar > .jz-nav-play {
+  width: 100%;
+  max-width: 398px;
+  pointer-events: auto;
+}
+[data-layout="tablet"] .jz-nav-playbar > .jz-nav-play {
+  max-width: 608px;
+}
+.jz-nav-play {
+  --cut: var(--jz-cut-lg);
+  position: relative;
+  isolation: isolate;
+  display: block;
+  height: var(--nav-playbar, 56px);
+  min-width: 44px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--jz-on-gold);
+  font: var(--jz-weight-bold) 20px/1 var(--jz-font);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* The focus ring: a cut frame behind the button (live colour, 3 px out), so the cut never clips it. */
+.jz-nav-play::before,
+.jz-nav-play::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  opacity: 0;
+  clip-path: polygon(calc(var(--cut) + 2px) 0, 100% 0, 100% calc(100% - var(--cut) - 2px), calc(100% - var(--cut) - 2px) 100%, 0 100%, 0 calc(var(--cut) + 2px));
+}
+.jz-nav-play::before {
+  inset: -6px;
+  background: var(--jz-focus-ring);
+}
+.jz-nav-play::after {
+  inset: -3px;
+  background: var(--jz-bg);
+}
+.jz-nav-play:focus-visible {
+  outline: none !important;
+}
+.jz-nav-play:focus-visible::before,
+.jz-nav-play:focus-visible::after {
+  opacity: 1;
+}
+/* The face: flat champagne over its 4 px ledge, drawn inside the cut. */
+.jz-nav-play-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: var(--jz-ledge);
+  background: linear-gradient(to bottom, var(--jz-button-gold-face) calc(100% - var(--jz-ledge)), var(--jz-gold-ledge) calc(100% - var(--jz-ledge)));
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  transition: inset var(--jz-dur-release) var(--jz-ease-out), padding var(--jz-dur-release) var(--jz-ease-out);
+}
+.jz-nav-play:active .jz-nav-play-face {
+  inset: var(--jz-ledge) 0 0 0;
+  padding-bottom: 0;
+  background: var(--jz-button-gold-face);
+  transition-duration: var(--jz-dur-press);
+}
+@media (hover: hover) and (pointer: fine) {
+  .jz-nav-play:hover .jz-nav-play-face {
+    filter: brightness(1.05);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jz-nav-play-face {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the rail */
+.dk-rail.jz-nav-rail {
+  gap: 14px;
+  background: var(--jz-raised);
+  border-right: 1px solid var(--jz-line);
+  color: var(--jz-text-2);
+  font-family: var(--jz-font);
+}
+.jz-nav-rail .dk-rail-account {
+  justify-content: flex-start;
+  color: var(--jz-text);
+}
+.jz-nav-rail[data-app-rail="compact"] .dk-rail-account {
+  justify-content: center;
+}
+.jz-nav-rail .jz-nav-play-rail {
+  --nav-playbar: 48px;
+  width: 100%;
+  font-size: 17px;
+}
+.jz-nav-rail[data-app-rail="compact"] .jz-nav-play-rail {
+  --cut: var(--jz-cut-sm);
+  width: 56px;
+}
+.jz-nav-rail .dk-rail-tab.jz-nav-rail-tab {
+  color: var(--jz-text-2);
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: var(--jz-radius-md);
+}
+.jz-nav-rail .dk-rail-tab.jz-nav-rail-tab:hover {
+  background: var(--jz-surface);
+  color: var(--jz-text);
+}
+.jz-nav-rail .dk-rail-tab.jz-nav-rail-tab[aria-current="page"] {
+  background: var(--jz-surface-3);
+  color: var(--jz-gold-ink);
+}
+/* Light: gold ink is 4.5:1 on surface 2, not quite on surface 3. */
+:root[data-theme="light"] .jz-nav-rail .dk-rail-tab.jz-nav-rail-tab[aria-current="page"] {
+  background: var(--jz-surface-2);
+}
+.jz-nav-rail .dk-rail-tab.jz-nav-rail-tab .jz-tab-dot {
+  position: static;
+  margin-left: auto;
+}
+.jz-nav-rail .dk-rail-search .jz-input {
+  background: var(--jz-bg);
+}
+.jz-nav-rail .dk-rail-icon {
+  color: var(--jz-text-2);
+}
+
+/* A tablet turned sideways: its main screens take the rail (Joe, 14 Nov 2026); rooms and games stay the phone's. */
+@media (min-width: 700px) and (min-height: 500px) {
+  [data-layout="tablet"][data-nav-rail][data-tab-screen] {
+    padding-left: 240px;
+  }
+  [data-layout="tablet"][data-nav-rail][data-tab-screen] > [data-shell-column="page"] {
+    padding-top: 20px;
+    padding-bottom: 40px;
+  }
+}
+
+/* ------------------------------------------------------------------ More */
+.jz-nav-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-24);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.jz-nav-title {
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font: var(--jz-weight-bold) 24px/30px var(--jz-font);
+  color: var(--jz-text);
+}
+.jz-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.jz-nav-group-title {
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  padding-inline: 4px;
+  font: 600 15px/20px var(--jz-font);
+  color: var(--jz-text-3);
+}
+.jz-nav-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.jz-nav-list > li + li {
+  border-top: 1px solid var(--jz-line);
+}
+.jz-nav-row {
+  display: flex;
+  width: 100%;
+  min-height: 64px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  border: 0;
+  padding: 10px 14px 10px 12px;
+  background: none;
+  color: var(--jz-text);
+  font: 700 17px/22px var(--jz-font);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--jz-dur-select) var(--jz-ease-out);
+}
+.jz-nav-row:active {
+  background: var(--jz-surface-3);
+}
+@media (hover: hover) and (pointer: fine) {
+  .jz-nav-row:hover {
+    background: var(--jz-surface-2);
+  }
+}
+.jz-nav-row:focus-visible {
+  outline-offset: -3px !important;
+}
+.jz-nav-row-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jz-nav-row-detail {
+  flex: none;
+  font: 600 15px/20px var(--jz-font);
+  color: var(--jz-text-3);
+  font-variant-numeric: tabular-nums;
+}
+.jz-nav-row-badge {
+  display: inline-flex;
+  min-width: 28px;
+  height: 24px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--jz-radius-sm);
+  padding-inline: 8px;
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+  font: 800 15px/1 var(--jz-font);
+}
+.jz-nav-chevron {
+  flex: none;
+  color: var(--jz-text-3);
+}
+
+/* ------------------------------------------------------------------ Tournaments, coming soon */
+.jz-nav-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: 28px 20px 24px;
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+  text-align: center;
+}
+.jz-nav-soon-tag {
+  display: inline-flex;
+  height: 26px;
+  align-items: center;
+  border-radius: var(--jz-radius-sm);
+  padding-inline: 10px;
+  background: var(--jz-surface-2);
+  color: var(--jz-gold-ink);
+  font: 700 13px/18px var(--jz-font);
+}
+.jz-nav-soon-title {
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font: var(--jz-weight-bold) 24px/30px var(--jz-font);
+  color: var(--jz-text);
+}
+.jz-nav-soon-body {
+  margin: 0;
+  max-width: 34ch;
+  font: 600 15px/20px var(--jz-font);
+  color: var(--jz-text-2);
+}
+.jz-nav-soon-list {
+  display: grid;
+  width: 100%;
+  gap: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.jz-nav-soon-list > li {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--jz-line);
+  font: 600 15px/20px var(--jz-font);
+  color: var(--jz-text-2);
+}
+.jz-nav-soon-list > li > b {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--jz-text);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ the launch screen */
+.jz-launch {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--jz-surface);
+}
+.jz-launch {
+  flex-direction: column;
+  gap: 20px;
+}
+.jz-launch-name {
+  display: inline-flex;
+  white-space: nowrap;
+}
+:root[data-theme="light"] .jz-launch .ap-wordmark-text {
+  color: var(--jz-text);
+}
+.jz-launch > img {
+  animation: jz-launch-in var(--jz-dur-win) var(--jz-ease-out) both;
+}
+/* Gone the moment the app has started (never a fixed delay). */
+.jz-launch[data-done] {
+  display: none;
+}
+@keyframes jz-launch-in {
+  from {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jz-launch > img {
+    animation: none;
+  }
+}
+/* No script, no app to wait for: never show it. */
+@media (scripting: none) {
+  .jz-launch {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the light theme's whole screens */
+/* More is the navigation's own page, so it is light all through (the other pages follow in their steps). */
+:root[data-theme="light"] .jz-nav[data-tab-screen="more"] {
+  background: var(--jz-bg);
+}
+:root[data-theme="light"] .jz-nav[data-tab-screen="more"] > .screen-background {
+  display: none;
+}
+:root[data-theme="light"] .jz-nav[data-tab-screen="more"] .ap-wordmark-text {
+  color: var(--jz-text);
+}
+:root[data-theme="light"] .jz-nav[data-tab-screen="more"] .ap-header [data-sound-channel],
+:root[data-theme="light"] .jz-nav[data-tab-screen="more"] .ap-header [data-sound-channel] > span {
+  color: var(--jz-text-2) !important;
+}
+:root[data-theme="light"] .jz-nav[data-tab-screen="more"] .dk-rail-search .jz-input {
+  color: var(--jz-text);
+}
+:root[data-theme="light"] .jz-nav-rail .ap-wordmark-text {
+  color: var(--jz-text);
+}
+/* The coming-soon card is a skin card (theme-check reads .th-card) drawn as the guide's flat panel: elevation 0. */
+.jz-nav-soon.th-card {
+  border: 0;
+  background-color: var(--jz-surface);
+  background-image: none;
+  box-shadow: var(--jz-elev-0);
+}
