@@ -6,8 +6,10 @@ import type { ShopBundleView } from "@/lib/shop/types";
 import { ShopArt } from "./ShopArt";
 
 /**
- * This week's bundle (mockup: "This week’s bundle · 5 items"): the title, up to three item pictures, the line, and
- * the price in coins with the separate price struck through. Coins only: the £ value is on the confirmation.
+ * This week's bundle as the Shop's hero card (the style guide's Shop mockup; angled cuts, Joulz's key-element shape):
+ * the kicker, the name, how many items and what they'd cost one by one, the price button, and up to three of its items'
+ * approved stills. Coins only: the £ value is on the confirmation. The price button opens the bundle's sheet (its items
+ * and the purchase). Drawn only while a bundle is on sale.
  */
 export function BundleCard({
   bundle,
@@ -22,42 +24,43 @@ export function BundleCard({
   const owned = bundle.price === null;
   return (
     <section
-      className="shop-bundle jz-cut-lg"
+      className="shop-hero jz-cut-lg"
       data-shop-bundle={bundle.id}
       data-shop-short={!owned && balance < bundle.price! ? "" : undefined}
       aria-labelledby="shop-bundle-title"
     >
-      <p className="shop-bundle-kicker">
-        This week’s bundle · {count} {count === 1 ? "item" : "items"}
-      </p>
-      <h2 id="shop-bundle-title" className="shop-bundle-title">
-        {bundle.name}
-      </h2>
-      <div className="shop-bundle-art" aria-hidden="true">
+      <div className="shop-hero-text">
+        <span className="shop-hero-kicker">This week’s bundle</span>
+        <h2 id="shop-bundle-title" className="shop-hero-title">
+          {bundle.name}
+        </h2>
+        <p className="shop-hero-line" data-shop-bundle-full={bundle.full}>
+          {count} {count === 1 ? "item" : "items"}
+          {!owned && bundle.full > bundle.price! ? ` · ${formatCoins(bundle.full)} separately` : ""}
+        </p>
+        {owned ? (
+          <Button variant="secondary" size={48} className="shop-price" onClick={onView} data-shop-bundle-buy data-shop-owned>
+            Owned · See items
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            size={48}
+            className="shop-price"
+            onClick={onView}
+            aria-label={`${bundle.name}, ${count} items, ${formatCoins(bundle.price!)} coins`}
+            data-shop-bundle-buy
+            data-shop-bundle-price={bundle.price}
+          >
+            <Coin size={20} />
+            {formatCoins(bundle.price!)}
+          </Button>
+        )}
+      </div>
+      <div className="shop-hero-art" aria-hidden="true" data-count={Math.min(3, count)}>
         {bundle.items.slice(0, 3).map((item) => (
           <ShopArt key={item.id} id={item.id} />
         ))}
-      </div>
-      <p className="shop-bundle-blurb">{bundle.blurb} Each can also be bought on its own this week.</p>
-      <div className="shop-bundle-foot">
-        {owned ? (
-          <span className="shop-owned" data-shop-owned>
-            Owned
-          </span>
-        ) : (
-          <span className="shop-bundle-price" data-shop-bundle-price={bundle.price}>
-            <Coin size={18} />
-            <span className="shop-bundle-now">{formatCoins(bundle.price!)}</span>
-            {bundle.full > bundle.price! ? (
-              <s className="shop-bundle-was" aria-label={`was ${formatCoins(bundle.full)}`}>
-                {formatCoins(bundle.full)}
-              </s>
-            ) : null}
-          </span>
-        )}
-        <Button variant="secondary" size={48} onClick={onView} data-shop-view-bundle>
-          View bundle
-        </Button>
       </div>
     </section>
   );

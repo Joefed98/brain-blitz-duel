@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Coin } from "@/components/app/CoinCounter";
-import { EmptyState, Segmented, Skeleton } from "@/design/components";
+import { EmptyState, SectionHeader, Skeleton } from "@/design/components";
 import { buyBundle, buyItem, loadShop, newRequestId, setWish, testPack } from "@/lib/shop/shopApi";
 import { markShopOpened } from "@/lib/shop/shopStatus";
 import { formatCoins, type CoinPack } from "@/lib/shop/packs";
@@ -15,28 +14,26 @@ import { ShopConfirm } from "./ShopConfirm";
 
 type Section = "featured" | "daily" | "coins";
 
-type Pending = { kind: "item"; item: ShopCard; requestId: string } | { kind: "bundle"; requestId: string };
+type Pending = { item: ShopCard; requestId: string };
 
 /**
- * The Shop part (wave 2, session D1; mockup docs/art/wave-2/screens/shop.png): the title with the balance, Featured ·
- * Daily · Coins, this week's bundle, today's four ("New items at midnight": no countdown, no "only 3 left", no random
- * boxes) and the coin packs. Prices are coins only; the confirmation shows the £ value once. The server decides
- * everything (what is on sale, prices, ownership); this draws its answer.
+ * The Shop part (phase 2 step 3, the Shop pages session, 14 Nov 2026; docs/design/style-guide phone/ and desktop/
+ * shop.png): this week's bundle as the hero card (only while one is on sale), Today (the day's items as tiles, "Changes
+ * daily": no countdown, no "only 3 left", no random boxes) and the coin packs, one page. The title and the coin counter
+ * are the page header's. Prices are coins only; the confirm sheet shows the £ value once. The server decides
+ * everything (what is on sale, prices, ownership, withdrawn items never offered); this draws its answer.
+ *
+ * `section` (the route's ?section=) is where the page was opened: "coins" (the coin counter, Get coins) scrolls to
+ * the packs. shop_viewed is recorded once for it.
  */
-export function ShopFront({
-  section,
-  onSection,
-  onGetCoins,
-}: {
-  section: Section;
-  onSection: (section: Section) => void;
-  onGetCoins: () => void;
-}) {
+export function ShopFront({ section }: { section: Section }) {
   const [view, setView] = useState<ShopView | ShopClosed | null | "loading">("loading");
   const [pending, setPending] = useState<Pending | null>(null);
   const [bundleOpen, setBundleOpen] = useState(false);
+  const [bundleRequest, setBundleRequest] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const lastSection = useRef<Section | null>(null);
+  const coinsRef = useRef<HTMLDivElement | null>(null);
 
   const reload = useCallback(async (record?: Section) => {
     const next = await loadShop(record);
@@ -45,7 +42,7 @@ export function ShopFront({
   }, []);
 
   useEffect(() => {
-    // shop_viewed once per section shown.
+    // shop_viewed once per section the page is opened at.
     const record = lastSection.current === section ? undefined : section;
     lastSection.current = section;
     void reload(record);
@@ -53,6 +50,14 @@ export function ShopFront({
 
   const open = view !== "loading" && view !== null && view.open ? view : null;
   const closed = view !== "loading" && view !== null && !view.open ? view.reason : null;
+
+  const toCoins = useCallback(() => {
+    coinsRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, []);
+  // Opened at Coins (the coin counter): the packs, once the page has drawn.
+  useEffect(() => {
+    if (open && section === "coins") coinsRef.current?.scrollIntoView({ block: "start" });
+  }, [open !== null, section]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const wish = async (item: ShopCard) => {
     if (!open) return;
@@ -68,14 +73,26 @@ export function ShopFront({
     if (saved === null) void reload();
   };
 
-  const confirmBuy = async (): Promise<string | null> => {
+  const confirmItem = async (): Promise<string | null> => {
     if (!pending) return null;
-    const result = pending.kind === "item" ? await buyItem(pending.item.id, pending.requestId) : await buyBundle(pending.requestId);
+    const result = await buyItem(pending.item.id, pending.requestId);
     if (!result.ok) {
       void reload();
       return result.message;
     }
-    setSaid(pending.kind === "item" ? `${pending.item.name} is yours.` : `${open?.bundle?.name ?? "The bundle"} is yours.`);
+    setSaid(`${pending.item.name} is yours.`);
+    await reload();
+    return null;
+  };
+
+  const confirmBundle = async (): Promise<string | null> => {
+    const requestId = bundleRequest ?? newRequestId();
+    const result = await buyBundle(requestId);
+    if (!result.ok) {
+      void reload();
+      return result.message;
+    }
+    setSaid(`${open?.bundle?.name ?? "The bundle"} is yours.`);
     setBundleOpen(false);
     await reload();
     return null;
@@ -91,26 +108,6 @@ export function ShopFront({
 
   return (
     <div className="shop-front" data-shop-front={section}>
-      <div className="shop-head">
-        <h1 className="ap-title">Shop</h1>
-        {open ? (
-          <span className="shop-balance" data-shop-balance={open.balance} aria-label={`${formatCoins(open.balance)} coins`}>
-            <Coin size={26} />
-            {formatCoins(open.balance)}
-          </span>
-        ) : null}
-      </div>
-      <Segmented<Section>
-        label="Shop sections"
-        radio
-        value={section}
-        onChange={onSection}
-        options={[
-          { value: "featured", label: "Featured", data: { "data-shop-section": "featured" } },
-          { value: "daily", label: "Daily", data: { "data-shop-section": "daily" } },
-          { value: "coins", label: "Coins", data: { "data-shop-section": "coins" } },
-        ]}
-      />
       {said ? (
         <p className="shop-said" role="status" data-shop-said>
           {said}
@@ -139,61 +136,58 @@ export function ShopFront({
         </div>
       ) : (
         <>
-          {section === "featured" && open.bundle ? (
-            <BundleCard bundle={open.bundle} balance={open.balance} onView={() => setBundleOpen(true)} />
+          {open.bundle ? (
+            <BundleCard
+              bundle={open.bundle}
+              balance={open.balance}
+              onView={() => {
+                setBundleRequest(newRequestId());
+                setBundleOpen(true);
+              }}
+            />
           ) : null}
-          {section !== "coins" ? (
-            <section className="shop-section" aria-labelledby="shop-today-title" data-shop-today>
-              <div className="shop-section-head">
-                <h2 id="shop-today-title" className="shop-section-title">
-                  Today
-                </h2>
-                <span className="shop-section-rule" aria-hidden="true" />
-                <span className="shop-note">New items at midnight</span>
-              </div>
-              <div className="shop-grid">
-                {open.today.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    balance={open.balance}
-                    onBuy={(it) => setPending({ kind: "item", item: it, requestId: newRequestId() })}
-                    onWish={(it) => void wish(it)}
-                    onGetCoins={onGetCoins}
-                  />
-                ))}
-              </div>
-              <p className="shop-note">Tap the heart to get a notice when an item comes back.</p>
-            </section>
-          ) : null}
-          {section !== "daily" ? (
+          <section className="shop-section" aria-labelledby="shop-today-title" data-shop-today>
+            <SectionHeader id="shop-today-title" title="Today" right={<span className="shop-note">Changes daily</span>} />
+            <div className="shop-grid">
+              {open.today.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  balance={open.balance}
+                  onBuy={(it) => setPending({ item: it, requestId: newRequestId() })}
+                  onWish={(it) => void wish(it)}
+                  onGetCoins={toCoins}
+                />
+              ))}
+            </div>
+          </section>
+          <div ref={coinsRef} className="shop-coins-anchor">
             <CoinPacks tester={open.tester} allowed={open.packsAllowed} onTestPurchase={packBuy} />
-          ) : null}
+          </div>
           {bundleOpen && open.bundle ? (
             <BundleSheet
               bundle={open.bundle}
               balance={open.balance}
-              onBuyBundle={() => {
-                setBundleOpen(false);
-                setPending({ kind: "bundle", requestId: newRequestId() });
-              }}
+              onBuyBundle={confirmBundle}
               onBuyItem={(it) => {
                 setBundleOpen(false);
-                setPending({ kind: "item", item: it, requestId: newRequestId() });
+                setPending({ item: it, requestId: newRequestId() });
               }}
               onGetCoins={() => {
                 setBundleOpen(false);
-                onGetCoins();
+                toCoins();
               }}
               onClose={() => setBundleOpen(false)}
             />
           ) : null}
           {pending ? (
             <ShopConfirm
-              title={pending.kind === "item" ? pending.item.name : (open.bundle?.name ?? "Bundle")}
-              what={pending.kind === "item" ? pending.item.label : `${open.bundle?.items.filter((i) => !i.owned).length ?? 0} items`}
-              coins={pending.kind === "item" ? pending.item.price : (open.bundle?.price ?? 0)}
-              onBuy={confirmBuy}
+              title={pending.item.name}
+              what={pending.item.label}
+              art={pending.item.id}
+              rarity={pending.item.rarity}
+              coins={pending.item.price}
+              onBuy={confirmItem}
               onClose={() => setPending(null)}
             />
           ) : null}
