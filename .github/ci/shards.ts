@@ -237,6 +237,9 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
+    // seat-key-check (14 Nov 2026, Security C1b, ~2 s, happy-dom): room-mates told apart by public id (me, host, chat,
+    // muting, reactions, absent rivals) and stand-in rows by account id.
+    "seat-key-check.tsx",
     // B4's deal identity (9 Nov 2026, docs/audit-nov-2026/architecture.md): every game's deal and each pin against main, ~6 min whole, in quarters.
     "deal-identity-check.ts@2/4",
     // 7 Nov 2026 rebalance (~191 s on run 42372376743): orbit-camera-check from e (e ran 641 s, c 334), the rest
