@@ -204,15 +204,16 @@ function postgresBin(): string | null {
     { user_id: "u3", display_name: "Cy", status: "active", muted_by_host: true },
     { user_id: "u4", display_name: "Dee", status: "inactive", muted_by_host: false },
   ];
-  const ok = acceptReaction({ emoji: "🔥", userId: "u1", name: "Host" }, roster);
-  check(!!ok && ok.name === "Ali" && ok.userId === "u1", "3: a player's reaction is named from the room's list, not the message");
-  check(acceptReaction({ emoji: "🔥", userId: "zz", name: "Ali" }, roster) === null, "3: a reaction from someone not in the room is dropped");
-  check(acceptReaction({ emoji: "🔥", userId: "u2", name: "Bo" }, roster) === null, "3: a reaction from a player who left is dropped");
-  check(acceptReaction({ emoji: "🔥", userId: "u3", name: "Cy" }, roster) === null, "3: a reaction from a player the host muted is dropped");
-  check(acceptReaction({ emoji: "🔥", userId: "u4" }, roster)?.name === "Dee", "3: a player who only went quiet still reacts");
-  check(acceptReaction({ emoji: "hello <b>", userId: "u1" }, roster) === null && acceptReaction({ emoji: 5, userId: "u1" }, roster) === null, "3: only the fixed emoji set");
-  check(acceptReaction({ emoji: "🔥", userId: 7 }, roster) === null && acceptReaction(null, roster) === null, "3: a malformed reaction is dropped, not thrown");
-  const early = acceptReaction({ emoji: "🔥", userId: "u9", name: "x".repeat(40) }, null);
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the approved playerId rename): lines 207–215.
+  const ok = acceptReaction({ emoji: "🔥", playerId: "u1", name: "Host" }, roster);
+  check(!!ok && ok.name === "Ali" && ok.playerId === "u1", "3: a player's reaction is named from the room's list, not the message");
+  check(acceptReaction({ emoji: "🔥", playerId: "zz", name: "Ali" }, roster) === null, "3: a reaction from someone not in the room is dropped");
+  check(acceptReaction({ emoji: "🔥", playerId: "u2", name: "Bo" }, roster) === null, "3: a reaction from a player who left is dropped");
+  check(acceptReaction({ emoji: "🔥", playerId: "u3", name: "Cy" }, roster) === null, "3: a reaction from a player the host muted is dropped");
+  check(acceptReaction({ emoji: "🔥", playerId: "u4" }, roster)?.name === "Dee", "3: a player who only went quiet still reacts");
+  check(acceptReaction({ emoji: "hello <b>", playerId: "u1" }, roster) === null && acceptReaction({ emoji: 5, playerId: "u1" }, roster) === null, "3: only the fixed emoji set");
+  check(acceptReaction({ emoji: "🔥", playerId: 7 }, roster) === null && acceptReaction(null, roster) === null, "3: a malformed reaction is dropped, not thrown");
+  const early = acceptReaction({ emoji: "🔥", playerId: "u9", name: "x".repeat(40) }, null);
   check(!!early && early.name.length <= 16, "3: before the list loads, the message's name is cut to a guest name's length");
   const chat = src("src/lib/duel/useRoomChat.ts");
   check(/acceptReaction\(payload, rosterRef\.current\)/.test(chat) && !/payload as \{ emoji\?: string; name\?: string; userId\?: string \}/.test(chat), "3: the room chat hook runs every received reaction through acceptReaction");
