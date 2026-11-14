@@ -37,6 +37,7 @@ export type BadgeChangeResult = { ok: true; badges: MyBadges } | { ok: false; re
 
 /** Another player's badges and title for their card. */
 export interface CardBadges {
+  /** The player's public id in a phone's answer (Security C3); the server's own reads keep the account id. */
   playerId: string;
   badges: string[];
   /** The title's id (Rookie: "rookie"). */

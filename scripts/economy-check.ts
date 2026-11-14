@@ -208,6 +208,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     if (!out.ok) throw new Error(`psql: ${out.err}`);
     return out.out.trim();
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: player ids sent to and read from a phone's server functions are public ids).
+  const pub = (account: string): string => q(`SELECT public.public_id_of('${account}')`);
   /** Runs SQL that must fail; answers the error text ("" if it succeeded). */
   const refused = (sql: string) => {
     const out = db.psql(`BEGIN; ${sql}; ROLLBACK;`);
@@ -603,15 +605,15 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   /* ------------------------------------------------------------- public cards */
   await section("public cards", async () => {
     await call(fns.equip, { slot: "card-art", itemId: "card-art.grid" }, tok.ana);
-    const card = await call(fns.getPublicCard, { playerId: ANA }, tok.eli);
+    const card = await call(fns.getPublicCard, { playerId: pub(ANA) }, tok.eli);
     check(card.account === true && card.username === "Ana_Econ" && card.avatarId === "orbit" && card.avatar?.background === "scene" && card.colour === 12 && card.gem === "amber" && card.cardArt === "card-art.grid" && card.frame === "frame.plain" && card.nameColour === null && typeof card.playerNumber === "number" && card.founding === true, `getPublicCard: an account's card (${JSON.stringify(card).slice(0, 200)})`);
     check(!("balance" in card) && !("dateOfBirth" in card) && !("country" in card), "getPublicCard: no balance, date of birth or country");
-    const guest = await call(fns.getPublicCard, { playerId: CAT }, tok.eli);
+    const guest = await call(fns.getPublicCard, { playerId: pub(CAT) }, tok.eli);
     check(guest.account === false && guest.username === null && guest.cardArt === "card-art.joulz-navy" && guest.frame === "frame.plain" && guest.avatarId === null && guest.colour === null, "getPublicCard: a guest gets the default card (no avatar: colour plus initial)");
     const bad = await call(fns.getPublicCard, { playerId: "not-an-id" }, tok.eli);
     check(bad === null, "getPublicCard: a bad id gets null");
     q(`UPDATE profiles SET deletion_requested_at = now() WHERE user_id = '${ELI}'`);
-    const leaving = await call(fns.getPublicCard, { playerId: ELI }, tok.ana);
+    const leaving = await call(fns.getPublicCard, { playerId: pub(ELI) }, tok.ana);
     const leavingEquip = await data.equipRpc(admin, { userId: ELI, slot: "card-art", itemId: "card-art.grid" });
     const leavingSpend = await economy.spendCoins(admin, { userId: ELI, amount: 1, reason: "shop_purchase", key: "leaving" });
     check(leaving.account === false && leavingEquip.data === "no_account" && leavingSpend.status === "no_account", "an account waiting for deletion: the default card, no equipping or spending");

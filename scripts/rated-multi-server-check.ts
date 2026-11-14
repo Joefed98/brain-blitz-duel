@@ -112,6 +112,10 @@ console.log("PASS: 4- and 8-player rated matches through W3b's queue, rooms and 
 process.exit(0);
 
 async function runAll(db: LocalDb): Promise<void> {
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3, an addition): the phone-facing answers read below (the
+  // 4-player match view and the settle answers) are swept for every fixture account id at the end.
+  const phoneAnswers: { label: string; value: unknown }[] = [];
+  const phoneSeen = (label: string, value: unknown) => void phoneAnswers.push({ label, value });
   const q = (sql: string) => {
     const out = db.psql(sql);
     if (!out.ok) throw new Error(`psql: ${out.err}`);
@@ -176,10 +180,12 @@ async function runAll(db: LocalDb): Promise<void> {
     const narrow = await rated.pollQueue(client, A, T0 + 500);
     check(narrow.state === "found" && narrow.match.kind === "live", "four players within ±50 make one live match");
     if (narrow.state !== "found") return;
+    phoneSeen("4 players: the match view", narrow.match);
     matchId = narrow.match.matchId;
     roomId = narrow.match.roomId!;
     for (const u of [B, C, D]) {
       const p = await rated.pollQueue(client, u, T0 + 600);
+      phoneSeen("4 players: another seat's view", p);
       check(p.state === "found" && p.match.matchId === matchId, `player ${u.slice(-2)} finds the same match`);
     }
     check(q(`SELECT count(*) FROM public.mm_matches`) === "1" && q(`SELECT count(*) FROM public.mm_queue`) === "0", "one match; every search cleared");
@@ -204,6 +210,7 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ${rows.join(", ")}`);
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${roomId}'`);
     const settles = await Promise.all([1, 2, 3, 4].map(() => rated.settleMatch(client, matchId, Date.now())));
+    phoneSeen("4 players: the settle answer", await rated.publicSettleOutcome(client, settles[0]!));
     check(sent.length === 1, `W3a's recordRatedMatch sent once (${sent.length})`);
     const r = sent[0];
     check(!!r && r.format.kind === "placings" && r.format.kind === "placings" && r.format.players === 4, "a placings match of 4");
@@ -248,6 +255,7 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ${rows.join(", ")}`);
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${room}'`);
     const out = await rated.settleMatch(client, id, Date.now());
+    phoneSeen("4 players (W3a): the settle answer", await rated.publicSettleOutcome(client, out));
     const outcome = out.state === "settled" ? out.result.ratings : null;
     check(out.state === "settled" && outcome?.ok === true && outcome.status === "recorded", `W3a records the placings match (${outcome && !outcome.ok ? outcome.reason + ": " + outcome.message : out.state})`);
     if (!outcome?.ok) return;
@@ -326,6 +334,7 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES ${rows.join(", ")}`);
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${room}'`);
     const out = await rated.settleMatch(client, id, Date.now());
+    phoneSeen("8 players: the settle answer", await rated.publicSettleOutcome(client, out));
     const outcome = out.state === "settled" ? out.result.ratings : null;
     check(out.state === "settled" && outcome?.ok === true && outcome.status === "recorded", `${label}: W3a records the match (${outcome && !outcome.ok ? outcome.reason : out.state})`);
     if (!outcome?.ok) return;
@@ -405,6 +414,7 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`UPDATE public.duel_players SET status = 'left' WHERE duel_id = '${room}' AND user_id = '${leaver}'`);
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${room}'`);
     const out = await rated.settleMatch(client, id, Date.now());
+    phoneSeen(`${label}: the settle answer`, await rated.publicSettleOutcome(client, out));
     check(out.state === "settled", `${label}: settles (${out.state})`);
     if (out.state !== "settled") return;
     const placesBySlot = slotUser.map((u) => out.result.placings?.[u]);
@@ -442,4 +452,12 @@ async function runAll(db: LocalDb): Promise<void> {
     await leaverMatch(LEAVE_FLAG, 3);
   });
 
+  await section("phone answers carry no account id (Security C3)", async () => {
+    check(phoneAnswers.length >= 6, `the sweep reads every answer kept (${phoneAnswers.length})`);
+    for (const s of phoneAnswers) {
+      const text = JSON.stringify(s.value ?? null);
+      const found = ALL.filter((a) => text.includes(a));
+      check(found.length === 0, `${s.label}: no account id (${found.length ? `found ${found.join(", ")} in ${text.slice(0, 160)}` : "none"})`);
+    }
+  });
 }

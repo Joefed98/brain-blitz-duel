@@ -141,11 +141,19 @@ console.log("PASS: rated queue, live and recorded matches, the hidden finish, se
 process.exit(0);
 
 async function runAll(db: LocalDb): Promise<void> {
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3, an addition): the phone-facing answers read below (match
+  // views and settle answers for a live 1v1, a recorded run, a flagged run, an abort and forfeits) are swept for every
+  // fixture account id at the end.
+  const phoneAnswers: { label: string; value: unknown }[] = [];
+  const phoneSeen = (label: string, value: unknown) => void phoneAnswers.push({ label, value });
   const q = (sql: string) => {
     const out = db.psql(sql);
     if (!out.ok) throw new Error(`psql: ${out.err}`);
     return out.out.trim();
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: a phone's rated answers name players by public id; the
+  // server's own settlement and W3a's engine keep account ids).
+  const pub = (account: string): string => q(`SELECT public.public_id_of('${account}')`);
   const fns = await import("../src/lib/rated/rated.functions");
   const rated = await import("../src/lib/rated/rated.server");
   const { setRatingsBackend } = await import("../src/lib/rated/ratingsAdapter.server");
@@ -226,9 +234,11 @@ async function runAll(db: LocalDb): Promise<void> {
     const p4 = await rated.pollQueue(client, ALI, T0 + 4_100);
     check(p4.state === "found" && p4.match.kind === "live", "paired once the band reached ±150 (4 s)");
     if (p4.state !== "found") return;
+    phoneSeen("live 1v1: the match view (found)", p4.match);
     liveMatchId = p4.match.matchId;
     liveRoomId = p4.match.roomId!;
     const pBo = await rated.pollQueue(client, BO, T0 + 4_200);
+    phoneSeen("live 1v1: the other player's poll", pBo);
     check(pBo.state === "found" && pBo.match.matchId === liveMatchId, "the partner finds the same match");
     check(q(`SELECT count(*) FROM public.mm_matches`) === "1" && q(`SELECT count(*) FROM public.mm_queue`) === "0", "one match; both searches cleared");
     // Changed with Joe's approval, 13 Nov 2026: the dealt games counted in the server's held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
@@ -280,6 +290,8 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${liveRoomId}'`);
     const results = await Promise.all([1, 2, 3, 4, 5].map(() => rated.settleMatch(client, liveMatchId, Date.now())));
     const viaFn = await call(fns.ratedSettleFn, { matchId: liveMatchId }, userToken(BO));
+    phoneSeen("live 1v1: the settle answer", viaFn);
+    phoneSeen("live 1v1: the match view (ratedMatchFn)", await call(fns.ratedMatchFn, { matchId: liveMatchId }, userToken(ALI)));
     check(callFor(liveMatchId).length === 1, `recordRatedMatch called exactly once (${recordedCalls.length})`);
     const sent = callFor(liveMatchId)[0];
     const { poolAndCategory } = await import("../src/lib/rated/ratingsAdapter.server");
@@ -341,10 +353,11 @@ async function runAll(db: LocalDb): Promise<void> {
     const early = await rated.pollQueue(client, CY, t + 7_900);
     check(early.state === "searching", "no recorded run before 8 s");
     const found = await rated.pollQueue(client, CY, t + 8_000);
+    phoneSeen("recorded run: the match view", found);
     check(found.state === "found" && found.match.kind === "recorded", "a recorded run at 8 s");
     if (found.state !== "found") return;
     const m = found.match;
-    check(m.recorded !== null && m.recorded.ownerId !== CY && /^Recorded run · /.test(m.recorded.label), `labelled with its real age, never one's own (${m.recorded?.label})`);
+    check(m.recorded !== null && m.recorded.ownerId !== pub(CY) && /^Recorded run · /.test(m.recorded.label), `labelled with its real age, never one's own (${m.recorded?.label})`);
     const key = q(`SELECT recorded_key FROM public.mm_matches WHERE id = '${m.matchId}'`);
     const src = q(`SELECT duel_id FROM public.mm_runs WHERE key = '${key}'`);
     // Changed with Joe's approval, 13 Nov 2026: the new match room's public halves from its held copy (the finished source room's are on its row): a new room's public halves are held in duel_secrets until each round is released (Security C1a).
@@ -362,6 +375,8 @@ async function runAll(db: LocalDb): Promise<void> {
     // Finish it; the owner of the last recorded opponent is skipped next time.
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${m.roomId}'`);
     const s = await rated.settleMatch(client, m.matchId, Date.now());
+    phoneSeen("recorded run: the settle answer", await rated.publicSettleOutcome(client, s));
+    phoneSeen("recorded run: the match view (ratedMatchFn)", await call(fns.ratedMatchFn, { matchId: m.matchId }, userToken(CY)));
     const rec = callFor(m.matchId)[0]?.players[1];
     check(s.state === "settled" && s.result.kind === "recorded" && rec?.side === "recorded" && rec.run.source === "rated" && rec.run.runId === key && rec.run.ownerId === rec.playerId,
       "a recorded match settles; W3a gets the run (rated source: its owner moves at most half, W3a's rule)");
@@ -420,7 +435,7 @@ async function runAll(db: LocalDb): Promise<void> {
     const found = await rated.pollQueue(client, VIE, t + 8_000);
     check(found.state === "found" && found.match.kind === "recorded" && found.match.recorded?.fallback === true, "a Practice run is played against as the fallback");
     if (found.state !== "found") return;
-    check(q(`SELECT recorded_source FROM public.mm_matches WHERE id = '${found.match.matchId}'`) === "practice" && found.match.recorded?.ownerId === PRA, "its source is practice and its owner the player who played it");
+    check(q(`SELECT recorded_source FROM public.mm_matches WHERE id = '${found.match.matchId}'`) === "practice" && found.match.recorded?.ownerId === pub(PRA), "its source is practice and its owner the player who played it");
     const { splitPuzzle } = await import("../src/lib/duel/secrets");
     const dealsByType = new Map((JSON.parse(q(`SELECT jsonb_agg(puzzle) FROM public.mm_practice_deals WHERE user_id = '${PRA}'`)) as { type: string }[]).map((p) => [p.type, p]));
     // Changed with Joe's approval, 13 Nov 2026: the match room's public halves from its held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
@@ -580,7 +595,7 @@ async function runAll(db: LocalDb): Promise<void> {
       const seated = q(`SELECT display_name FROM public.duel_players WHERE duel_id = '${found.match.roomId}' AND user_id = '${GUEST}'`);
       check(seated === guestEnergyName(GUEST) && /^[A-Z][a-z]+ [A-Z][a-z]+ \d{1,2}$/.test(seated) && seated !== "Gus",
         `seated under their generated energy name, never the typed one (${seated})`);
-      const me = found.match.players.find((p) => p.userId === GUEST);
+      const me = found.match.players.find((p) => p.playerId === pub(GUEST));
       check(me?.guest === true && me.displayName === seated, "the match view tags them Guest");
       const typed = await call(chat.sendRoomMessageFn, { roomId: found.match.roomId, text: "hi there" }, userToken(GUEST));
       check(typed.ok === false, "a guest sends quick phrases only in a rated room");
@@ -599,7 +614,7 @@ async function runAll(db: LocalDb): Promise<void> {
       await rated.settleOpenMatches(client, VIE, t2);
       await rated.joinQueue(client, VIE, { format: "bo3", choice: "puzzles" }, t2);
       const vs = await rated.pollQueue(client, VIE, t2 + 8_000);
-      check(vs.state === "found" && vs.match.recorded?.ownerId === GUEST && vs.match.recorded.ownerGuest === true && vs.match.recorded.ownerName === guestEnergyName(GUEST),
+      check(vs.state === "found" && vs.match.recorded?.ownerId === pub(GUEST) && vs.match.recorded.ownerGuest === true && vs.match.recorded.ownerName === guestEnergyName(GUEST),
         `a guest's recorded run shows their energy name with a Guest tag (${vs.state === "found" ? vs.match.recorded?.ownerName : vs.state})`);
       if (vs.state === "found") {
         const ageH = (Date.now() - (vs.match.recorded?.recordedAtMs ?? 0)) / 3_600_000;
@@ -700,6 +715,7 @@ async function runAll(db: LocalDb): Promise<void> {
     check((fa?.joules ?? 0) > 0, `Fairy, not flagged, still earns the match's Joules (${fa?.joules})`);
     // The phone's settle answer never carries the stored grades.
     const phone = await call(fns.ratedSettleFn, { matchId: p.match.matchId }, userToken(F2));
+    phoneSeen("a flagged live run: the settle answer", phone);
     check(phone.state === "settled" && !JSON.stringify(phone).includes('"extras"') && !JSON.stringify(phone).includes("score did not match"),
       "the phone's settle answer leaves the stored grades out");
   });
@@ -734,7 +750,7 @@ async function runAll(db: LocalDb): Promise<void> {
     check(JSON.stringify(mine) === JSON.stringify({ wins: 2, losses: 1, draws: 1, played: 4 }), `H1 against H2: 2 wins, 1 loss, 1 draw (${JSON.stringify(mine)})`);
     check(JSON.stringify(theirs) === JSON.stringify({ wins: 1, losses: 2, draws: 1, played: 4 }), `H2 against H1 is the mirror (${JSON.stringify(theirs)})`);
     check((await rated.headToHead(client, H1, H1)).played === 0, "a player against themselves: nothing");
-    const viaFn = await call(fns.ratedHeadToHeadFn, { opponentId: H2 }, userToken(H1));
+    const viaFn = await call(fns.ratedHeadToHeadFn, { opponentId: pub(H2) }, userToken(H1));
     check(JSON.stringify(viaFn) === JSON.stringify(mine), "ratedHeadToHeadFn answers the caller's side");
     const junk = await call(fns.ratedHeadToHeadFn, { opponentId: "not-an-id" }, userToken(H1));
     check(junk.played === 0, "a malformed opponent id: an empty record");
@@ -812,6 +828,8 @@ async function runAll(db: LocalDb): Promise<void> {
         "an abort never reaches W3a: no rating change, not a placement match");
       check(q(`SELECT count(*) FROM public.pass_joules WHERE user_id IN ('${A}', '${B}')`) === "0", "an abort pays nobody Joules");
       const phone = await call(fns.ratedSettleFn, { matchId: m.matchId }, userToken(A));
+      phoneSeen("abort: the settle answer", phone);
+      phoneSeen("abort: the match view", await call(fns.ratedMatchFn, { matchId: m.matchId }, userToken(A)));
       check(phone.state === "aborted", "the phone's settle answer says aborted");
       const room = await call(fns.ratedRoomFn, { roomId: m.room }, userToken(A));
       check(room?.ended === "abort", "the room's lookup says aborted (W3c)");
@@ -854,6 +872,8 @@ async function runAll(db: LocalDb): Promise<void> {
       check(o.state === "forfeit" && ended(m.matchId) === "forfeit,playing", `${label}: away 21 s is a forfeit (${ended(m.matchId)})`);
       check(q(`SELECT status FROM public.duels WHERE id = '${m.room}'`) === "finished", `${label}: the room ends now`);
       const s = await rated.settleMatch(client, m.matchId, goneAt + 22_000);
+      phoneSeen(`forfeit (${label}): the settle answer`, await rated.publicSettleOutcome(client, s));
+      phoneSeen(`forfeit (${label}): the match view`, await rated.matchView(client, m.matchId, A, goneAt + 22_000));
       if (s.state !== "settled") return check(false, `${label}: settles (${s.state})`);
       const r = s.result;
       const stay = r.players.find((p) => p.userId === A)!;
@@ -898,6 +918,7 @@ async function runAll(db: LocalDb): Promise<void> {
       results(m.room, [[1, 2, 100], [2, 2, 100], [3, 2, 100], [1, 3, 100], [2, 3, 100], [3, 3, 200]]);
       q(`UPDATE public.duels SET status = 'finished', current_round = 3, phase = 'winner_reveal', phase_started_at = ${ts(m.introAt + 200_000)} WHERE id = '${m.room}'`);
       const s = await rated.settleMatch(client, m.matchId, m.introAt + 201_000);
+      phoneSeen("4-player forfeit: the settle answer", await rated.publicSettleOutcome(client, s));
       if (s.state !== "settled") check(false, `4 players settles (${s.state})`);
       else {
         const pl = s.result.placings ?? {};
@@ -1087,5 +1108,14 @@ async function runAll(db: LocalDb): Promise<void> {
     if (early.matchId) await finishMatch(early, 1);
     const lateControl = await served(DAY3);
     check(lateControl.key.startsWith(`room:${rp.roomId}:`), `control: a player who never sat in Rp is served its later run (${lateControl.key})`);
+  });
+  await section("phone answers carry no account id (Security C3)", async () => {
+    const accounts = [ALI, BO, CY, DEE, KID, GUEST, NOTEST, PAL, EVE, PRA, VIE, X1, X2, Z1, Z2, F1, F2, H1, H2, SEEN1, SEEN2, FRESH1, FRESH2, PA1, PA2, PA3, DAY1, DAY2, DAY3, ...LV];
+    check(phoneAnswers.length >= 12, `the sweep reads every answer kept (${phoneAnswers.length})`);
+    for (const s of phoneAnswers) {
+      const text = JSON.stringify(s.value ?? null);
+      const found = accounts.filter((a) => text.includes(a));
+      check(found.length === 0, `${s.label}: no account id (${found.length ? `found ${found.join(", ")} in ${text.slice(0, 160)}` : "none"})`);
+    }
   });
 }

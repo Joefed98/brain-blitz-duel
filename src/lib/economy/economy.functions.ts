@@ -134,12 +134,18 @@ export const setAvatar = createServerFn({ method: "POST" })
     return economy.setAvatar(client, context.userId, data ?? {});
   });
 
-/** Any player's public card, read-only. A guest (or an unknown id) gets the default card; a bad id null. */
+/** Any player's public card by public id, read-only. A guest (or an id naming nobody) gets the default card; a bad id null. */
 export const getPublicCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { playerId: string }) => ({ playerId: text(record(input)["playerId"], WORD_MAX, "playerId") }))
   .handler(async ({ data, context }): Promise<PublicCard | null | { busy: true }> => {
     const { client, allowed, economy } = await setup(context.userId, "card");
     if (!allowed) return { busy: true };
-    return economy.publicCardFor(client, data?.playerId);
+    // Security C3: `playerId` is a public id; one that names nobody (an account id among them) reads as an unknown
+    // player's default card. The answer names the player by the public id it was asked for.
+    const asked = data?.playerId;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asked ?? "")) return null;
+    const { accountOf } = await import("@/lib/identity/publicIds.server");
+    const card = await economy.publicCardFor(client, (await accountOf(client, asked)) ?? "00000000-0000-0000-0000-000000000000");
+    return card ? { ...card, playerId: asked } : null;
   });

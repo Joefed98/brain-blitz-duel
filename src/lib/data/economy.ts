@@ -125,6 +125,7 @@ export type LoadoutResult = { ok: true; loadout: Loadout } | { ok: false; reason
  * no name of their own (the screen keeps today's room colour plus initial).
  */
 export interface PublicCard {
+  /** The player's public id in a phone's answer (Security C3); the server's own reads keep the account id. */
   playerId: string;
   account: boolean;
   /** Null for a guest (the screen shows the room's own name). */

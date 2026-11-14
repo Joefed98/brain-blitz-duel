@@ -348,6 +348,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     if (!out.ok) throw new Error(`psql: ${out.err}`);
     return out.out.trim();
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: player ids sent to and read from a phone's server functions are public ids).
+  const pub = (account: string): string => q(`SELECT public.public_id_of('${account}')`);
   const refused = (sql: string) => {
     const out = db.psql(`BEGIN; ${sql}; ROLLBACK;`);
     return out.ok && !/ERROR/.test(out.err) ? "" : out.err;
@@ -809,8 +811,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT title FROM card_titles WHERE user_id = '${JOE}'`) === "neon-rider", "and shown on the card (card_titles)");
     const kimTitle = await call(badgeFns.setMyTitle, { title: "circuit-breaker" }, tok.kim);
     check(kimTitle?.ok === false && kimTitle.reason === "not_earned", "a pass title not unlocked is refused");
-    const cards = (await call(badgeFns.getCardBadges, { playerIds: [JOE] }, tok.kim)) as { playerId: string; title: string }[] | undefined;
-    check(cards?.find((c) => c.playerId === JOE)?.title === "neon-rider", "other players read the pass title on Joe's card");
+    const cards = (await call(badgeFns.getCardBadges, { playerIds: [pub(JOE)] }, tok.kim)) as { playerId: string; title: string }[] | undefined;
+    check(cards?.find((c) => c.playerId === pub(JOE))?.title === "neon-rider", "other players read the pass title on Joe's card");
 
     // Joe removes the test purchase: the track goes, what was claimed stays owned.
     check(q(`SELECT count(*) FROM pass.test_purchases('Joe_Pass') WHERE removed_at IS NULL`) === "1", "pass.test_purchases lists it");

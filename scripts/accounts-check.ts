@@ -555,7 +555,12 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(!other.error && (other.data ?? []).length === 0, "rls: another player can't read Gia's row (date of birth, country)");
     const own = await hal.from("profiles").select("date_of_birth, country").eq("user_id", HAL).maybeSingle();
     check(own.data?.country === "FR", "rls: a player reads their own row");
-    const pub = await hal.rpc("public_profiles", { p_user_ids: [GIA, HAL] });
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of Security C3's revoke: public_profiles takes and
+    // answers account ids, so only the server calls it): the public view is read as the server reads it, and a phone
+    // can't call it.
+    const halPub = await hal.rpc("public_profiles", { p_user_ids: [GIA, HAL] });
+    check(!!halPub.error, "rls: a signed-in phone can't list public profiles (account ids stay on the server)");
+    const pub = await (await adminDb()).rpc("public_profiles", { p_user_ids: [GIA, HAL] });
     const row = (pub.data ?? []).find((r: { user_id: string }) => r.user_id === GIA) as Record<string, unknown> | undefined;
     check(!!row && row["username"] === "Gia_One" && row["player_number"] === 1 && row["founding"] === true && Object.keys(row).sort().join() === "colour,founding,player_number,user_id,username", `public: only username, colour, player number and founding (${JSON.stringify(row)})`);
     const anon = createClient(rest.url, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, storage: undefined } });
@@ -604,7 +609,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const asked = await call(account.requestAccountDeletionFn, undefined, giaToken);
     check(asked.ok === true && Date.parse(asked.purgeAt) - Date.now() > 29 * DAY, "delete: asked for, removal in 30 days");
     check(await events("account_deletion_requested", GIA) === 1, "events: account_deletion_requested");
-    const pub = await deviceDb(halToken).rpc("public_profiles", { p_user_ids: [GIA] });
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of Security C3's revoke): read as the server reads it.
+    const pub = await (await adminDb()).rpc("public_profiles", { p_user_ids: [GIA] });
     const row = (pub.data ?? [])[0] as Record<string, unknown> | undefined;
     check(row?.["username"] === "Deleted player" && row?.["player_number"] === null && row?.["colour"] === null, "delete: hidden from other players at once (Deleted player)");
     const out = await rejects(call(account.accountStatusFn, undefined, giaToken), /Invalid token|Unauthorized/);
@@ -619,7 +625,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(pending.kind === "account" && !!pending.deletion, "delete: signing back in shows the pending deletion (to offer cancelling)");
     const cancelled = await call(account.cancelAccountDeletionFn, undefined, token);
     check(cancelled.kind === "account" && cancelled.deletion === null, "delete: cancelled within the 30 days");
-    const back = await deviceDb(halToken).rpc("public_profiles", { p_user_ids: [GIA] });
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of Security C3's revoke): read as the server reads it.
+    const back = await (await adminDb()).rpc("public_profiles", { p_user_ids: [GIA] });
     check(((back.data ?? [])[0] as Record<string, unknown> | undefined)?.["username"] === "Gia_One", "delete: after cancelling she shows again");
     q(`SELECT accounts.run_daily_cleanup()`);
     check(q(`SELECT count(*) FROM public.profiles WHERE user_id = '${GIA}'`) === "1", "clean-up: a cancelled deletion is kept");

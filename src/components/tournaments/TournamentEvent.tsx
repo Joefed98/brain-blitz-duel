@@ -206,7 +206,7 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
         <Panel as="ol">
           {(board?.rows ?? []).map((r) => (
             <PlateRow
-              key={r.userId}
+              key={r.playerId}
               place={r.place}
               plate={r.plate}
               isMe={r.isMe}

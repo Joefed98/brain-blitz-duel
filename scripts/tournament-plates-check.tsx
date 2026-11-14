@@ -97,6 +97,8 @@ async function runDb(db: LocalDb): Promise<void> {
     if (!out.ok) throw new Error(`psql: ${out.err}`);
     return out.out.trim();
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: tournament rows and the Arena opponent name players by public id).
+  const pub = (account: string): string => q(`SELECT public.public_id_of('${account}')`);
   const { platesFor } = await import("../src/lib/identity/plates.server");
   const server = await import("../src/lib/tournaments/tournaments.server");
   const fns = await import("../src/lib/tournaments/tournaments.functions");
@@ -190,7 +192,7 @@ async function runDb(db: LocalDb): Promise<void> {
     const at = ev.startsAt + 60_000;
     const board = await server.arenaBoard(client, VIEW, arenaId, at);
     check(!!board && board.rows.length === 3 && board.rows.every((r) => r.plate && r.name === plates.plateName(r.plate)), "every Arena row carries its plate in the board's own answer");
-    const kidRow = board?.rows.find((r) => r.userId === KID);
+    const kidRow = board?.rows.find((r) => r.playerId === pub(KID));
     check(kidRow?.plate.kind === "hidden" && kidRow.name === HIDDEN_PLAYER_NAME && !JSON.stringify(board).includes("Kiddo"), "the Arena board never sends a hidden player's username");
     check(JSON.stringify(kidRow?.plate) === JSON.stringify(plates.HIDDEN_PLATE), "the Arena board's hidden row carries no initial or colour");
     check(board?.me?.plate.kind === "card" && board.me.plate.name === "Viewer", "the pinned row is the viewer's own card");

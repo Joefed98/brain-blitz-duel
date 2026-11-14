@@ -8,6 +8,7 @@
  * rated_matches, and nothing here calls W3a's recordRatedMatch (tournaments-check proves both). Nothing here deals
  * differently, grades, scores or stamps: every round is the rooms' (or the Daily's async rooms') own grading.
  */
+import { publicIdOf, toPublic } from "@/lib/identity/publicIds.server";
 import { ARENA_MIN_ENTRANTS, SCORE_ATTACK_ROUNDS } from "@/config/tournamentConfig";
 import { asJson, type Db } from "@/lib/data/db.server";
 import { recordEvents } from "@/lib/data/events.server";
@@ -508,7 +509,8 @@ export async function arenaPartner(me: Searcher, waiting: readonly Searcher[], n
 async function opponentOf(client: Db, viewerId: string, other: string): Promise<ArenaDuelView["opponent"]> {
   const name = (await accountName(client, other)) ?? "Player";
   const plate = (await platesFor(client, viewerId, [{ userId: other, name }], Date.now())).get(other)!;
-  return { userId: other, name: plateName(plate), plate };
+  // The opponent by public id, never their account id (Security C3).
+  return { playerId: (await publicIdOf(client, other)) ?? "", name: plateName(plate), plate };
 }
 
 async function duelView(client: Db, duel: ArenaDuelRow, userId: string): Promise<ArenaDuelView> {
@@ -732,11 +734,13 @@ export async function arenaBoard(client: Db, userId: string, eventId: unknown, n
     [...shown, ...(mine ? [mine] : [])].map((p) => ({ userId: p.userId, name: "Player" })),
     nowMs,
   );
+  // Each row's player by public id, never their account id (Security C3).
+  const publicIds = await toPublic(client, [...shown, ...(mine ? [mine] : [])].map((p) => p.userId));
   const rowOf = (p: ArenaPlayer & { place: number }): ArenaBoardRow => {
     const plate = plates.get(p.userId) ?? UNKNOWN_PLATE;
     return {
       place: p.place,
-      userId: p.userId,
+      playerId: publicIds.get(p.userId) ?? "",
       name: plateName(plate),
       plate,
       points: p.points,
