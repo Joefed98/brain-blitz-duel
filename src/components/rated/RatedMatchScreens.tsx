@@ -40,6 +40,7 @@ import { FROZEN_LINES, forfeitLine } from "@/lib/rated/rules";
 import { usePass } from "@/lib/pass/passApi";
 import type { PuzzleType } from "@/lib/duel/types";
 
+import { StakesLine } from "./RatedMatchHeader";
 import { DivisionBarView, GameRow, JoulesLine, MatchChips, PlacementBoxes, RankEmblem, SideTile, UnplacedEmblem } from "./RatedParts";
 
 /** A player's card as the rated screens draw it: their look, title and, once placed, tier and rating in the pill. */
@@ -145,6 +146,7 @@ export function VsScreen({ match, nowMs }: { match: RatedMatch; nowMs: number })
           </span>
         )}
       </div>
+      <StakesLine stakes={match.stakes} />
       <VsSide player={match.them} side="them" />
       <div className="rt-vs-rail" aria-hidden="true">
         <span className="rt-vs-line" />

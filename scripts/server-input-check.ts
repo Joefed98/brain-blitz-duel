@@ -479,6 +479,9 @@ const SPECS: Spec[] = [
   { file: RA, name: "ratedRematchFn", good: { matchId: P1 }, fields: { matchId: "text" } },
   { file: RA, name: "ratedHeadToHeadFn", good: { opponentId: P1 }, fields: { opponentId: "text" } },
   { file: RA, name: "ratedRoomFn", good: { roomId: P1 }, fields: { roomId: "text" } },
+  // Phase 2 step 3 (Joe, 14 Nov 2026): the stakes, read-only.
+  { file: RA, name: "ratedStakesFn", good: { matchId: P1 }, fields: { matchId: "text" } },
+  { file: RA, name: "ratedStakesEstimateFn", good: { format: "bo3", choice: "mixed" }, fields: { format: "text", choice: "text" } },
   { file: "src/lib/rated/multi/multi.functions.ts", name: "joinRatedMultiQueueFn", good: { size: 4, choice: "mixed" }, fields: { size: "num", choice: "text" } },
   { file: "src/lib/rated/ratedEvents.functions.ts", name: "recordRatedEventFn", good: { event: "vs_shown", source: "live" }, whole: "strings" },
   { file: "src/lib/rated/ratings.functions.ts", name: "getRatingsForFn", good: { playerId: P1 }, fields: { playerId: "text" } },

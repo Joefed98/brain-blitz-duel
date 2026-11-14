@@ -1,5 +1,5 @@
 /**
- * Profile's badge collection (wave 2, train C, session C2): all 54 badges in their six groups, earned ones lit with
+ * The Badges page's collection (/badges since the Profile session, phase 2 step 3, 14 Nov 2026; was on Profile). Profile's badge collection (wave 2, train C, session C2): all 54 badges in their six groups, earned ones lit with
  * their rarity (and the Founding Player's number), locked ones dimmed with their rule and, for a counted badge the
  * server checks, progress ("4 of 7 days"). No hidden badges.
  * Accounts only, once the server has answered (a guest has no badges; nothing is drawn until there is data).
@@ -21,9 +21,9 @@ export function BadgeCollection() {
   if (!live || !badges?.account) return null;
   const earned = new Map(badges.earned.map((b) => [b.slug, b]));
   return (
-    <section aria-label="Badges" data-profile-badges className="ap-section">
+    <section aria-label="All badges" data-profile-badges className="pf-section bd-collection">
       <SectionHeader
-        title="Badges"
+        title="All badges"
         right={
           <>
             <span className="ap-meta" data-badge-count>
@@ -34,7 +34,12 @@ export function BadgeCollection() {
       />
       {BADGE_GROUPS.map((group) => (
         <div key={group} className="bd-group" data-badge-group={group}>
-          <h3 className="bd-group-title">{BADGE_GROUP_LABEL[group]}</h3>
+          <h3 className="bd-group-title">
+            <span data-ellipsis>{BADGE_GROUP_LABEL[group]}</span>
+            <span className="bd-group-count">
+              {BADGES.filter((b) => b.group === group && earned.has(b.slug)).length} of {BADGES.filter((b) => b.group === group).length}
+            </span>
+          </h3>
           <ul className="bd-grid">
             {BADGES.filter((b) => b.group === group).map((b) => {
               const mine = earned.get(b.slug);

@@ -5,7 +5,7 @@
 .fr-page {
   display: flex;
   flex-direction: column;
-  gap: var(--jz-space-20);
+  gap: var(--jz-section-gap);
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 .fr-head {
@@ -25,9 +25,9 @@
   margin: 0;
   overflow: hidden;
   color: var(--jz-text);
-  font-size: 22px;
-  font-weight: var(--jz-weight-bold);
-  line-height: 24px;
+  font: var(--jz-type-title);
+  letter-spacing: 0;
+  text-transform: none;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -50,9 +50,8 @@
   border-color: var(--jz-gold);
 }
 .fr-count {
-  color: var(--jz-text-3);
-  font-size: 13px;
-  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
   font-variant-numeric: tabular-nums;
 }
 .fr-requests {
@@ -60,14 +59,20 @@
   flex-direction: column;
   gap: var(--jz-space-8);
 }
+/* A request (the Profile session, 14 Nov 2026): who on the first line, Decline and Accept under it, so a long name
+   is never cut short beside the buttons. */
 .fr-request {
   display: flex;
-  min-height: 72px;
-  align-items: center;
+  flex-direction: column;
   gap: var(--jz-space-12);
-  padding: var(--jz-space-12) var(--jz-space-16);
-  border-radius: var(--jz-radius);
-  background: var(--jz-cyan-panel);
+  padding: var(--jz-space-12) var(--jz-space-16) var(--jz-space-16);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.fr-request-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--jz-space-12);
 }
 .fr-request-who,
 .fr-row-open {
@@ -83,11 +88,6 @@
   color: inherit;
   text-align: left;
 }
-.fr-decline {
-  width: 48px;
-  flex: none;
-  padding: 0;
-}
 .fr-who-text {
   display: flex;
   min-width: 0;
@@ -96,17 +96,14 @@
 .fr-name {
   overflow: hidden;
   color: var(--jz-text);
-  font-size: 17px;
-  font-weight: var(--jz-weight-bold);
-  line-height: 22px;
+  font: var(--jz-type-body);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .fr-sub {
   overflow: hidden;
   color: var(--jz-text-2);
-  font-size: 14px;
-  line-height: 20px;
+  font: var(--jz-type-label);
   text-overflow: ellipsis;
 }
 .fr-sub[data-tone="cyan"],
@@ -168,8 +165,9 @@
 .fr-invite-title {
   margin: 0;
   color: var(--jz-text);
-  font-size: 18px;
-  font-weight: var(--jz-weight-bold);
+  font: var(--jz-type-heading);
+  letter-spacing: 0;
+  text-transform: none;
 }
 .fr-link {
   margin: 0;
@@ -194,8 +192,7 @@
 .fr-status {
   margin: 0;
   color: var(--jz-text-2);
-  font-size: 15px;
-  font-weight: var(--jz-weight-medium);
+  font: var(--jz-type-label);
 }
 .fr-actions {
   display: grid;
@@ -220,8 +217,9 @@
   margin: 0;
   overflow: hidden;
   color: var(--jz-text);
-  font-size: 18px;
-  font-weight: var(--jz-weight-bold);
+  font: var(--jz-type-heading);
+  letter-spacing: 0;
+  text-transform: none;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -366,4 +364,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The computer and tablet (the Profile session, 14 Nov 2026): Friends in a centred 720 px column, not a stretched phone. */
+@media (min-width: 700px) {
+  .fr-page {
+    width: 100%;
+    max-width: 720px;
+    margin-inline: auto;
+  }
 }

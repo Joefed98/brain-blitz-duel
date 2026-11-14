@@ -55,6 +55,9 @@ import { standInShop } from "@/lib/shop/shopApi";
 import { setPlusFns, type PlusStatus } from "@/lib/plus/plusApi";
 import type { HarnessShop } from "./shop-fixture";
 import { setIdentityBackend } from "@/lib/identity/backend";
+import { setBadgesBackend } from "@/lib/badges/badgesApi";
+import { Route as BadgesRoute } from "@/routes/badges";
+import { Route as CardRoute } from "@/routes/card";
 
 interface Verdict {
   isCorrect: boolean;
@@ -431,6 +434,9 @@ async function boardVisibilityFn() {
  */
 type HarnessFriends = { account: unknown; overview: unknown; profile: unknown };
 const friendsFixture = () => (window as unknown as { __harnessFriends?: HarnessFriends }).__harnessFriends;
+/** Profile (phase 2 step 3): the badges, practice progress and rated status Profile, Badges and the card page draw. */
+type HarnessProfile = { badges?: unknown; progress?: unknown; rated?: unknown };
+const profileFixture = () => (window as unknown as { __harnessProfile?: HarnessProfile }).__harnessProfile;
 async function friendsOverviewFn() {
   return { ok: true, overview: friendsFixture()?.overview };
 }
@@ -526,6 +532,8 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   fetchDuelByCode,
   fetchPlayers,
   DuelError: class DuelError extends Error {},
+  // Profile (phase 2 step 3): window.__harnessProfile's practice progress (the star total and the gem); null otherwise.
+  getMyPracticeProgressFn: async () => profileFixture()?.progress ?? null,
 };
 
 H.chat = (message) => {
@@ -629,6 +637,36 @@ if (mode === "shop") {
   if (nav.__harnessNavAccount) setAccount(nav.__harnessNavAccount, null);
   if (nav.__harnessTheme) document.documentElement.setAttribute("data-theme", nav.__harnessTheme);
 }
+// Profile (phase 2 step 3, scripts/screens/profile.ts): window.__harnessProfile's badges (the server's answer) and rated
+// status (a page stand-in, as rated-fixture's), set before the first render.
+{
+  const p = profileFixture();
+  if (p?.badges) {
+    const badges = p.badges;
+    setBadgesBackend({
+      sync: async () => badges as never,
+      setCard: async () => ({ ok: true, badges }) as never,
+      setTitle: async () => ({ ok: true, badges }) as never,
+      markSeen: async () => ({ ok: true }),
+      dailyRecord: async () => ({ busy: true }),
+    });
+  }
+  if (p?.rated) {
+    const rated = p.rated;
+    (window as unknown as { __DUELZ_RATED_BACKEND__?: unknown }).__DUELZ_RATED_BACKEND__ = {
+      status: async () => rated,
+      search: async () => null,
+      match: async () => null,
+      result: async () => null,
+      rematch: async () => ({ state: "closed" }),
+      challenge: async () => ({ ok: false, message: "" }),
+      ladder: async () => null,
+      roomMatch: async () => null,
+      opponentScore: async () => null,
+      progress: async () => {},
+    };
+  }
+}
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   // The Games session (14 Nov 2026): the full challenges page (src/routes/challenges.tsx).
@@ -695,6 +733,15 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   saveprogress: () => {
     const Profile = ProfileRoute.options.component as () => JSX.Element;
     return <Profile />;
+  },
+  // Profile's own pages (phase 2 step 3): every badge (/badges) and the player card page (/card).
+  badges: () => {
+    const Badges = BadgesRoute.options.component as () => JSX.Element;
+    return <Badges />;
+  },
+  card: () => {
+    const Card = CardRoute.options.component as () => JSX.Element;
+    return <Card />;
   },
 };
 const Screen = ROOT_SCREENS[mode ?? ""] ?? (
