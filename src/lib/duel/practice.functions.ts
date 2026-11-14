@@ -1,4 +1,6 @@
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION } from "@/lib/arcade/orbit";
+import { ANSWER_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, KEY_MAX, LIST_MAX, NUMBER_MAX, PATH_MAX, PUZZLE_MAX, SEALED_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
+import { bool, compact, listOf, maybe, numIn, optional, record, sizedRecord, text, whole } from "@/lib/validate";
 import { createServerFn } from "@tanstack/react-start";
 
 import { staleSubmissionNote } from "@/lib/appVersion";
@@ -98,7 +100,9 @@ async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pu
 
 /** Generates one puzzle of the requested type with the same code rooms use. */
 export const practiceGenerateFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { type: string; example?: boolean }) => input)
+  .inputValidator((input: { type: string; example?: boolean }) => {
+    const b = record(input);
+    return compact({ type: text(b["type"], SHORT_MAX, "type"), example: optional(b["example"], (x) => bool(x, "example")) });  })
   .handler(async ({ data }) => {
     const type = playableType(data.type);
     if (!(await practiceLimit("deal"))) throw new Error(PRACTICE_BUSY);
@@ -146,7 +150,10 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
  * with the answer. Best effort on the phone; the grade bounds the claim without it too.
  */
 export const practiceStartFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { sealed: string }) => input)
+  .inputValidator((input: { sealed: string }) => {
+    const b = record(input);
+    return { sealed: text(b["sealed"], SEALED_MAX, "sealed") };
+  })
   .handler(async ({ data }) => {
     const start = await (await sealing()).sealStart(String(data.sealed ?? ""));
     await recordPracticeEvent("game_started", data.sealed);
@@ -187,21 +194,9 @@ async function recordPracticeEvent(
 
 /** Checks and scores a practice answer, then hands back the full puzzle. */
 export const practiceGradeFn = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: {
-      puzzle: PuzzleData;
-      sealed: string;
-      answer: string;
-      msRemaining: number;
-      extra?: SubmitExtra;
-      /** The phone's build id (appVersion.ts); missing from copies older than it. */
-      clientVersion?: string;
-      /** How the round was played (lib/inputType.ts); stored with the practice play, never graded. */
-      inputType?: string;
-      /** The start token from practiceStartFn, when the phone got one. */
-      start?: string;
-    }) => input,
-  )
+  .inputValidator((input: { puzzle: PuzzleData; sealed: string; answer: string; msRemaining: number; extra?: SubmitExtra; clientVersion?: string; inputType?: string; start?: string }) => {
+    const b = record(input);
+    return compact({ puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: numIn(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: maybe(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")), start: optional(b["start"], (x) => text(x, SEALED_MAX, "start")) });  })
   .handler(async ({ data }) => {
     const nowMs = Date.now();
     // Log only: grading never depends on the client's version.
@@ -379,7 +374,9 @@ async function practiceChallengesFor(
 
 /** Up to PACK_MAX_DEALS fresh deals for each of up to PACK_MAX_TYPES games (games that fail to deal are left out). */
 export const practicePackFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { types: string[]; count?: number }) => input)
+  .inputValidator((input: { types: string[]; count?: number }) => {
+    const b = record(input);
+    return compact({ types: listOf(b["types"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "types"), count: optional(b["count"], (x) => numIn(x, -NUMBER_MAX, NUMBER_MAX, "count")) });  })
   .handler(async ({ data }) => {
     // Over the limit: no packs this time (the phone tops up again on a later visit).
     if (!(await practiceLimit("pack"))) return { packs: [] };
@@ -423,16 +420,9 @@ export const practicePackFn = createServerFn({ method: "POST" })
  * so the phone knows to stop sending it; any other failure is thrown and the phone tries again later.
  */
 export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: {
-      puzzle: PuzzleData;
-      sealed: string;
-      answer: string;
-      msRemaining: number;
-      extra?: SubmitExtra;
-      clientVersion?: string;
-    }) => input,
-  )
+  .inputValidator((input: { puzzle: PuzzleData; sealed: string; answer: string; msRemaining: number; extra?: SubmitExtra; clientVersion?: string }) => {
+    const b = record(input);
+    return compact({ puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: numIn(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: maybe(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")) });  })
   .handler(async ({ data }) => {
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle?.type);
     if (staleNote) console.warn(staleNote);
@@ -457,9 +447,9 @@ export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
 
 /** Word puzzles: checks one word using server-only vocabulary. */
 export const practiceCheckWordFn = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: { puzzle: PuzzleData; word: string; found: string[]; path?: number[]; sealed?: string }) => input,
-  )
+  .inputValidator((input: { puzzle: PuzzleData; word: string; found: string[]; path?: number[]; sealed?: string }) => {
+    const b = record(input);
+    return compact({ puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, word: text(b["word"], WORD_MAX, "word"), found: listOf(b["found"], FOUND_MAX, (x, f) => text(x, WORD_MAX, f), "found"), path: optional(b["path"], (x) => listOf(x, PATH_MAX, (y, f) => whole(y, -COUNT_MAX, COUNT_MAX, f), "path")), sealed: optional(b["sealed"], (x) => text(x, SEALED_MAX, "sealed")) });  })
   .handler(async ({ data }) => {
     if (!(await practiceLimit("check"))) return { valid: false as const, points: 0, word: "", reason: PRACTICE_BUSY };
     const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
@@ -504,7 +494,10 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
 
 /** Strikeout, Cryptogrid and Swapword practice: replays the moves against the sealed answer half. */
 export const practiceCheckMovesFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { puzzle: PuzzleData; sealed: string; moves: string }) => input)
+  .inputValidator((input: { puzzle: PuzzleData; sealed: string; moves: string }) => {
+    const b = record(input);
+    return { puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), moves: text(b["moves"], ANSWER_MAX, "moves") };
+  })
   .handler(async ({ data }) => {
     const type = data.puzzle?.type;
     if (type !== "strikeout" && type !== "codeword" && type !== "swapword") return null;
@@ -535,7 +528,10 @@ const DEMO_SAVES_CLOSED = "Demo saving is only available in dev practice.";
 
 /** Whether the ?key= on the URL is the private intro-demo key. */
 export const checkDemoKeyFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { key: string }) => input)
+  .inputValidator((input: { key: string }) => {
+    const b = record(input);
+    return { key: text(b["key"], KEY_MAX, "key") };
+  })
   .handler(async ({ data }) => {
     const { IP_DEMO_KEY_LIMIT, withinIpRateLimit } = await import("./rateLimit.server");
     if (!(await withinIpRateLimit(IP_DEMO_KEY_LIMIT))) return { ok: false };
@@ -548,10 +544,10 @@ export const checkDemoKeyFn = createServerFn({ method: "POST" })
  * sealed practice half), and only the public half is kept.
  */
 export const saveIntroDemoFn = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: { puzzle: PuzzleData; sealed: string; answer: string; dev: boolean; key: string }) =>
-      input,
-  )
+  .inputValidator((input: { puzzle: PuzzleData; sealed: string; answer: string; dev: boolean; key: string }) => {
+    const b = record(input);
+    return { puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), answer: text(b["answer"], ANSWER_MAX, "answer"), dev: bool(b["dev"], "dev"), key: text(b["key"], KEY_MAX, "key") };
+  })
   .handler(async ({ data }) => {
     if (data.dev !== true || !(await demoSavesAllowed())) throw new Error(DEMO_SAVES_CLOSED);
     if (!(await demoKeyOk(data.key))) throw new Error("Forbidden");
@@ -585,9 +581,10 @@ export const saveIntroDemoFn = createServerFn({ method: "POST" })
  * must carry the intro-example tag, so only fixed examples can be saved.
  */
 export const savePuzzleDemoFn = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: { puzzle: PuzzleData; sealed: string; log: unknown; dev: boolean; key: string }) => input,
-  )
+  .inputValidator((input: { puzzle: PuzzleData; sealed: string; log: unknown; dev: boolean; key: string }) => {
+    const b = record(input);
+    return { puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), log: sizedRecord(b["log"], ANSWER_MAX, "log"), dev: bool(b["dev"], "dev"), key: text(b["key"], KEY_MAX, "key") };
+  })
   .handler(async ({ data }) => {
     if (data.dev !== true || !(await demoSavesAllowed())) throw new Error(DEMO_SAVES_CLOSED);
     if (!(await demoKeyOk(data.key))) throw new Error("Forbidden");

@@ -1,4 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
+import { record, text } from "@/lib/validate";
+import { SHORT_MAX } from "./inputLimits";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_SLIDE } from "@/lib/arcade/swing";
@@ -51,7 +53,7 @@ export interface IntroDemoRow {
 
 /** Public read: the saved demo for one game, or null. */
 export const getIntroDemoFn = createServerFn({ method: "GET" })
-  .inputValidator((input: { type: string }) => ({ type: String(input?.type ?? "").slice(0, 40) }))
+  .inputValidator((input: { type: string }) => ({ type: text(record(input)["type"], SHORT_MAX, "type") }))
   .handler(async ({ data }): Promise<IntroDemoRow | null> => {
     const { createClient } = await import("@supabase/supabase-js");
     const key = process.env["SUPABASE_PUBLISHABLE_KEY"] ?? process.env["SUPABASE_ANON_KEY"] ?? "";
