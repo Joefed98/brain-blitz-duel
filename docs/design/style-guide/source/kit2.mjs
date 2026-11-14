@@ -28,6 +28,8 @@ export const TYPE = [
 ];
 export const SPACE = [4, 8, 12, 16, 24, 32, 40];
 export const RADIUS = { sm: 8, md: 12, lg: 16, btn: 12, pill: 999 };
+// Angled corner cuts (today's --jz-cut-lg / --jz-cut-sm): top-left and bottom-right corners cut at 45°.
+export const CUT = { lg: 14, sm: 8 };
 export const MOTION = [
   ['press', '70 ms', 'ease-out', 'Button sinks onto its ledge (translateY 4 px, ledge to 0)'],
   ['release', '160 ms', 'spring (stiffness 500, damping 30)', 'Button rises back; the action fires on release'],
@@ -68,19 +70,25 @@ export function css(theme = 'dark') {
   return `
 @font-face{font-family:Archivo;src:url(${F('public/fonts/archivo-var-latin.woff2')}) format('woff2');font-weight:100 900;font-stretch:62% 125%}
 :root{${Object.entries(c).map(([k, v]) => `--${k}:${v}`).join(';')};--metal:${GOLD_METAL};
---r-sm:${RADIUS.sm}px;--r-md:${RADIUS.md}px;--r-lg:${RADIUS.lg}px;--r-btn:${RADIUS.btn}px;--lh:4px}
+--cut-lg:14px;--cut-sm:8px;--r-sm:${RADIUS.sm}px;--r-md:${RADIUS.md}px;--r-lg:${RADIUS.lg}px;--r-btn:${RADIUS.btn}px;--lh:4px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#000;font-family:Archivo,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
 ${TYPE.map(([n, s, l, w]) => `.t-${n}{font-size:${s}px;line-height:${l}px;font-weight:${w}}`).join('\n')}
 .t-label{color:var(--text2)}.t-caption{color:var(--text3)}
 .num{font-variant-numeric:tabular-nums}
 .btn{display:flex;align-items:center;justify-content:center;gap:10px;border-radius:var(--r-btn);font-weight:800;font-size:17px;white-space:nowrap;position:relative;color:var(--text)}
-.btn-gold{background:var(--metal);color:var(--onGold);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 var(--lh) 0 var(--goldLedge),0 10px 16px rgba(0,0,0,.32)}
+.cut-lg{clip-path:polygon(var(--cut-lg) 0,100% 0,100% calc(100% - var(--cut-lg)),calc(100% - var(--cut-lg)) 100%,0 100%,0 var(--cut-lg));border-radius:0!important}
+.cut-sm{clip-path:polygon(var(--cut-sm) 0,100% 0,100% calc(100% - var(--cut-sm)),calc(100% - var(--cut-sm)) 100%,0 100%,0 var(--cut-sm));border-radius:0!important}
+.btn-gold{color:var(--onGold);border-radius:0;padding-bottom:var(--lh);box-shadow:inset 0 1px 0 rgba(255,255,255,.3);
+ background:linear-gradient(var(--gold),var(--gold)) top/100% calc(100% - var(--lh)) no-repeat,var(--goldLedge);
+ clip-path:polygon(var(--cut-lg) 0,100% 0,100% calc(100% - var(--cut-lg)),calc(100% - var(--cut-lg)) 100%,0 100%,0 var(--cut-lg))}
+.btn-gold.btn-sm{clip-path:polygon(var(--cut-sm) 0,100% 0,100% calc(100% - var(--cut-sm)),calc(100% - var(--cut-sm)) 100%,0 100%,0 var(--cut-sm))}
+.ring{display:block;padding:3px;background:var(--live);clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px)}
 .btn-2{background:var(--surface2);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 var(--lh) 0 var(--ledge2)}
 .btn-q{background:transparent;color:var(--text2)}
 .btn-lg{height:60px;font-size:20px}.btn-md{height:48px}.btn-sm{height:36px;font-size:15px;padding:0 16px}
 .pressed{transform:translateY(var(--lh))!important}
-.btn-gold.pressed{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 0 0 var(--goldLedge)}
+.btn-gold.pressed{transform:none!important;background:var(--gold);padding-bottom:0;padding-top:var(--lh);box-shadow:inset 0 2px 3px rgba(0,0,0,.18)}
 .btn-2.pressed{box-shadow:0 0 0 var(--ledge2);background:var(--surface3)}
 .focus{outline:3px solid var(--live);outline-offset:3px}
 .disabled{background:var(--surface2)!important;color:var(--text3)!important;box-shadow:none!important}

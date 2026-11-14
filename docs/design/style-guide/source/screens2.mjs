@@ -1,5 +1,5 @@
 // Round 2 phone screens. Every value from kit2.mjs; every picture from the art kit or the approved avatars.
-import { phone, topBar, icon, art, key, avatar, bolt, PEOPLE, CATEGORY, GROUP, RARITY, AV } from './kit2.mjs';
+import { phone, topBar, icon, art, key, avatar, bolt, PEOPLE, CATEGORY, GROUP, RARITY, AV, F } from './kit2.mjs';
 
 // ---------------------------------------------------------------- shared sections
 export const STARS = (n, s = 14) => `<span style="display:inline-flex;gap:2px">${[0, 1, 2].map((i) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.6.7-5 4.5 1.4 6.6L12 17.2l-5.9 3.3 1.4-6.6-5-4.5 6.6-.7z" fill="${i < n ? 'var(--gold)' : 'rgba(255,255,255,.22)'}" stroke="rgba(0,0,0,.35)" stroke-width="1"/></svg>`).join('')}</span>`;
@@ -16,7 +16,7 @@ export function header() {
 }
 
 export function dailyHero(w = 290, pw = 150, h = 184) {
-  const main = `<div style="flex:none;width:${w}px;height:${h}px;border-radius:var(--r-lg);position:relative;overflow:hidden;background:radial-gradient(120% 130% at 80% 20%,#25306A 0%,#141B3D 55%,#0F1424 100%)">
+  const main = `<div class="cut-lg" style="flex:none;width:${w}px;height:${h}px;position:relative;overflow:hidden;background:radial-gradient(120% 130% at 80% 20%,#25306A 0%,#141B3D 55%,#0F1424 100%)">
       <img src="${key('board')}" style="position:absolute;right:${-w * 0.2}px;top:${h * 0.1}px;width:${Math.round(w * 0.85)}px">
       <div style="position:absolute;left:18px;top:18px;color:#EEF2FF" class="t-title">Daily Puzzle</div>
       <div style="position:absolute;left:18px;top:52px;color:#B5C6DD" class="t-caption num">12,431 played today</div>
@@ -292,7 +292,7 @@ export function challengesList(theme = 'dark') {
   const body = `${topBar('Challenges', { back: true })}
    <div style="padding:4px 16px 0">
     <div class="panel" style="padding:16px;display:flex;align-items:center;gap:14px"><img src="${art('challenges')}" width="56" height="56">
-     <div style="flex:1"><div class="t-heading num">61 of 217 done</div><div class="bar" style="margin-top:8px"><i style="width:28%"></i></div>
+     <div style="flex:1"><div class="t-heading num">61 of 195 done</div><div class="bar" style="margin-top:8px"><i style="width:31%"></i></div>
      <div class="t-caption" style="margin-top:6px">Every challenge counts towards your Challenger badges.</div></div></div>
     <div class="seg" style="margin-top:16px"><span class="on">In progress</span><span>New</span><span>Done</span></div>
     ${CH_ALL.map(([g, rows]) => `<div style="display:flex;align-items:center;gap:10px;margin:20px 0 8px">
@@ -305,7 +305,7 @@ export function challengesList(theme = 'dark') {
 
 // ---------------------------------------------------------------- 9 Profile
 export function playerCard(w = 358) {
-  return `<div style="width:${w}px;border-radius:var(--r-lg);overflow:hidden;background:var(--surface);position:relative">
+  return `<div class="cut-lg" style="width:${w}px;overflow:hidden;background:var(--surface);position:relative">
    <div style="height:86px;background:linear-gradient(120deg,#1B2350,#2A3558 50%,#121830);position:relative">
     <svg width="100%" height="86" style="position:absolute;inset:0;opacity:.35"><defs><pattern id="pc" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M14 2 6 13h5l-2 9 9-12h-5l1-8z" fill="none" stroke="#E2C07A" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#pc)"/></svg></div>
    <div style="position:absolute;left:16px;top:42px;border-radius:14px;box-shadow:0 0 0 4px var(--surface)">${avatar(PEOPLE.me, 84)}</div>
@@ -332,32 +332,32 @@ export function profile(theme = 'dark') {
 }
 
 // ---------------------------------------------------------------- 10 Shop
-export function item(kind, name, rarity, price, w = 173) {
-  const col = RARITY[rarity];
-  const previews = {
-    card: `<div style="width:120px;height:72px;border-radius:10px;background:linear-gradient(130deg,#3A1E5C,#7A3FB0 55%,#2A1747);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18);position:relative"><span class="av" style="position:absolute;left:10px;top:14px;width:40px;height:40px;background:#C084FC;border-radius:8px"><img src="${AV('blackout')}"></span><span style="position:absolute;left:58px;top:22px;width:50px;height:8px;border-radius:4px;background:rgba(255,255,255,.75)"></span><span style="position:absolute;left:58px;top:36px;width:34px;height:6px;border-radius:3px;background:rgba(255,255,255,.4)"></span></div>`,
-    frame: `<div style="width:84px;height:84px;border-radius:14px;padding:6px;background:conic-gradient(from 200deg,#FBEDC4,#D2AC5E,#EED79C,#A8843E,#FBEDC4)"><span class="av" style="width:72px;height:72px;background:#4FA3FF;border-radius:10px"><img src="${AV('apex')}"></span></div>`,
-    avatar: `<span class="av" style="width:84px;height:84px;background:#FF6B8B;border-radius:42px"><img src="${AV('blockzone')}"></span>`,
-    name: `<div style="font-weight:900;font-size:26px;background:linear-gradient(90deg,#22E4FF,#AEEAF7,#FFFFFF);-webkit-background-clip:text;color:transparent">Nova</div>`,
-  };
+const ITEM = (p) => F(`docs/art/wave-2/items/${p}.png`);
+// Real catalogue items the cosmetics review kept (docs/cosmetics-review/verdicts.json): nothing withdrawn, nothing neon.
+export function item(png, name, rarity, price, w = 173) {
   return `<div class="panel" style="width:${w}px;padding:12px;display:flex;flex-direction:column;align-items:center">
-   <div style="height:96px;display:grid;place-items:center">${previews[kind]}</div>
-   <div class="t-body" style="font-size:15px;margin-top:6px;text-align:center">${name}</div>
-   <div class="t-caption" style="color:${col};font-weight:800">${rarity[0].toUpperCase() + rarity.slice(1)}</div>
+   <div style="height:96px;width:100%;border-radius:10px;overflow:hidden;display:grid;place-items:center"><img src="${ITEM(png)}" style="width:118%;margin:-4%"></div>
+   <div class="t-body" style="font-size:15px;margin-top:8px;text-align:center">${name}</div>
+   <div class="t-caption" style="color:${RARITY[rarity]};font-weight:800">${rarity[0].toUpperCase() + rarity.slice(1)}</div>
    <div class="btn btn-2 btn-sm" style="margin-top:10px;width:100%"><img src="${art('coins')}" width="22" height="22" style="margin:-4px 0 -4px -6px">${price}</div></div>`;
+}
+export const DAILY_ITEMS = [['frame/gold', 'Gold frame', 'epic', '1,000'], ['name-colour/sapphire', 'Sapphire name', 'epic', '1,000'], ['card-art/galaxy', 'Galaxy card art', 'epic', '1,000'], ['avatar-finish/wireframe', 'Wireframe finish', 'elite', '1,600']];
+// The week's bundle: Card Table (Proposal A), the one bundle that sells while items are withdrawn (docs/economy/withdrawn.md).
+export function bundleHero(h = 168) {
+  return `<div class="cut-lg" style="position:relative;overflow:hidden;height:${h}px;background:radial-gradient(120% 130% at 80% 20%,#1E2A55,#121830 70%)">
+     <img src="${ITEM('card-art/aurora')}" style="position:absolute;right:-30px;top:${h * 0.12}px;width:230px;transform:rotate(-5deg)">
+     <img src="${ITEM('card-back/royal-damask')}" style="position:absolute;right:96px;top:${h * 0.34}px;width:120px;transform:rotate(6deg)">
+     <div style="position:absolute;left:16px;top:16px"><div class="tag" style="background:rgba(174,234,247,.14);color:${RARITY.legendary}">This week’s bundle</div>
+      <div class="t-heading" style="margin-top:8px;width:150px">Card Table</div><div class="t-caption" style="width:150px">Two card backs, three card arts</div></div>
+     <div class="btn btn-2 btn-sm" style="position:absolute;left:16px;bottom:16px;width:130px"><img src="${art('coins')}" width="22" height="22" style="margin:-4px 0 -4px -6px">5,500</div></div>`;
 }
 export function shop(theme = 'dark') {
   const body = `<div style="height:52px;display:flex;align-items:center;padding:0 16px"><span class="t-title" style="flex:1">Shop</span><span class="chip num"><img src="${art('coins')}" width="26" height="26" style="margin-left:-6px">1,250</span></div>
    <div style="padding:4px 16px 0">
     <div class="seg"><span class="on">Shop</span><span>Pass</span><span>Plus</span></div>
-    <div style="margin-top:16px;border-radius:var(--r-lg);overflow:hidden;position:relative;height:168px;background:radial-gradient(120% 130% at 80% 20%,#2A1F4D,#121830 70%)">
-     <div style="position:absolute;right:18px;top:24px;transform:rotate(-6deg)">${item('card', '', 'elite', '').match(/<div style="width:120px[\s\S]*?<\/span><\/div>/)[0]}</div>
-     <div style="position:absolute;right:96px;top:70px;transform:rotate(5deg)"><div style="width:76px;height:76px;border-radius:12px;padding:5px;background:conic-gradient(from 200deg,#C084FC,#7A3FB0,#E9D5FF,#7A3FB0,#C084FC)"><span class="av" style="width:66px;height:66px;background:#C084FC;border-radius:9px"><img src="${AV('blackout')}"></span></div></div>
-     <div style="position:absolute;left:16px;top:16px"><div class="tag" style="background:rgba(169,155,255,.18);color:${RARITY.elite}">This week’s bundle</div>
-      <div class="t-heading" style="margin-top:8px;width:150px">Neon Night</div><div class="t-caption">Card art, frame, avatar</div></div>
-     <div class="btn btn-2 btn-sm" style="position:absolute;left:16px;bottom:16px;width:130px"><img src="${art('coins')}" width="22" height="22" style="margin:-4px 0 -4px -6px">2,400</div></div>
+    <div style="margin-top:16px">${bundleHero()}</div>
     <div class="sec" style="margin-top:24px"><span class="t-heading">Today</span><span class="t-caption">Changes daily</span></div>
-    <div style="display:grid;grid-template-columns:173px 173px;gap:12px">${item('frame', 'Champagne frame', 'epic', '800')}${item('avatar', 'Pixel Kira', 'epic', '600')}</div>
+    <div style="display:grid;grid-template-columns:173px 173px;gap:12px">${DAILY_ITEMS.slice(0, 2).map((i) => item(...i)).join('')}</div>
    </div>`;
   return phone(theme, body, { tab: 'shop' });
 }
@@ -365,7 +365,7 @@ export function shop(theme = 'dark') {
 // ---------------------------------------------------------------- 11 More
 export const MORE = [
   ['Friends and rivals', [['friends', 'Friends', '<span class="tag" style="background:var(--gold);color:var(--onGold)">2</span>'], ['leaderboards', 'Leaderboards', '']]],
-  ['Compete', [['arena', 'Arena and tournaments', '<span class="t-caption">Next 20:00</span>'], ['challenges', 'Challenges', '<span class="t-caption num">61 / 217</span>']]],
+  ['Compete', [['arena', 'Arena and tournaments', '<span class="t-caption">Next 20:00</span>'], ['challenges', 'Challenges', '<span class="t-caption num">61 / 195</span>']]],
   ['Joulz', [['plus', 'Joulz Plus', ''], ['settings', 'Settings', ''], ['support', 'Support', '']]],
 ];
 export const moreRow = ([a, l, meta]) => `<div class="row" style="min-height:62px"><img src="${art(a)}" width="40" height="40"><span class="t-body" style="flex:1">${l}</span>${meta}<span class="chev">${icon('chevron-right', 20)}</span></div>`;

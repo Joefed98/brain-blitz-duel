@@ -4,7 +4,10 @@ Your round-1 pick: A · Forge’s layout, type, radii, buttons and Play bar, in 
 gold, with B · Volt’s glossy 3D art and its Daily Puzzle card. The guiding rule: Joulz’s own look, chess.com’s use of
 space. Each mockup has one line on what it improves in flow or use of space compared with the app’s screen today.
 
-The rules and exact values are in [STYLE-GUIDE.md](STYLE-GUIDE.md). Nothing in the app changes until you approve.
+Approved 14 Nov 2026 with Joe’s last changes: angled cuts on key elements (the Play bar, Find a match, Play, hero
+cards, the player card), flat champagne gold buttons (the richer gold only for 3D metal in the art kit), 195
+challenges, and only items that aren’t withdrawn in the Shop. The rules and exact values are in
+[STYLE-GUIDE.md](STYLE-GUIDE.md).
 
 ## The style guide
 
@@ -114,8 +117,8 @@ now four sections, card, ratings, mastery and recent matches, with settings move
 <img src="desktop/shop.png" width="900">
 
 **Better than today:** two levels of tabs (Shop · Pass · Plus, then Featured · Daily · Coins) become one switch;
-the week’s bundle and today’s items share one screen with the price on each button, real item pictures and no
-timers or value labels.
+the week’s bundle (Card Table) and today’s items share one screen with the price on each button, real catalogue
+items that aren’t withdrawn and no timers or value labels.
 
 ## More
 

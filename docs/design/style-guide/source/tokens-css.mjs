@@ -13,7 +13,10 @@ o += `:root {\n  --jz-gold-metal: ${k.GOLD_METAL};\n`;
 for (const [n, s, l, w] of k.TYPE) o += `  --jz-type-${n}: ${w} ${s}px/${l}px Archivo, sans-serif;\n`;
 for (const s of k.SPACE) o += `  --jz-space-${s}: ${s}px;\n`;
 for (const [n, r] of Object.entries(k.RADIUS)) o += `  --jz-radius-${n}: ${r}px;\n`;
-o += `  --jz-ledge: 4px;
+o += `  --jz-cut-lg: ${k.CUT.lg}px; /* angled corners, top-left and bottom-right: the Play bar, Find a match, Play, hero cards, the player card */
+  --jz-cut-sm: ${k.CUT.sm}px; /* small gold buttons */
+  --jz-button-gold-face: var(--jz-gold); /* flat champagne; the metal is for medals and emblems */
+  --jz-ledge: 4px;
   --jz-elev-1: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 4px 0 var(--jz-ledge-2);
   --jz-elev-2: 0 -8px 32px rgb(0 0 0 / 0.5), 0 16px 48px rgb(0 0 0 / 0.6);
   --jz-dur-press: 70ms;

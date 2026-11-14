@@ -99,7 +99,7 @@ function challenges() {
   return page('challenges', `<div style="flex:1;padding:28px 40px;display:flex;gap:32px;overflow:hidden">
    <div style="width:340px;flex:none">${title('Challenges')}
     <div class="panel" style="padding:20px;text-align:center"><img src="${art('challenges')}" width="96" height="96">
-     <div class="t-title num" style="margin-top:8px">61 of 217</div><div class="bar" style="margin-top:12px"><i style="width:28%"></i></div>
+     <div class="t-title num" style="margin-top:8px">61 of 195</div><div class="bar" style="margin-top:12px"><i style="width:31%"></i></div>
      <div class="t-caption" style="margin-top:10px">Every challenge counts towards your Challenger badges.</div></div>
     <div class="seg" style="margin-top:20px"><span class="on">In progress</span><span>New</span><span>Done</span></div></div>
    <div style="flex:1;columns:2;column-gap:24px;padding-top:58px">${P.CH_ALL.concat([['hanoi', [['Finish in the fewest moves', '17 best', 15, 17, '100']]], ['blockzone', [['Clear 4 lines at once', 'Not yet', 0, 1, '100']]]]).map(([g, rows]) => `<div style="break-inside:avoid;margin-bottom:22px">
@@ -123,9 +123,9 @@ function shop() {
    ${title('Shop', coins)}
    <div class="seg" style="width:420px"><span class="on">Shop</span><span>Pass</span><span>Plus</span></div>
    <div style="display:flex;gap:24px;margin-top:22px">
-    <div style="flex:1">${P.shop().match(/<div style="margin-top:16px;border-radius:var\(--r-lg\)[\s\S]*?2,400<\/div><\/div>/)[0].replace('margin-top:16px;', '').replace('height:168px', 'height:250px')}</div>
+    <div style="flex:1">${P.bundleHero(250)}</div>
     <div style="width:420px"><div class="sec"><span class="t-heading">Today</span><span class="t-caption">Changes daily</span></div>
-     <div style="display:flex;gap:16px">${P.item('frame', 'Champagne frame', 'epic', '800', 202)}${P.item('avatar', 'Pixel Kira', 'epic', '600', 202)}</div></div></div>
+     <div style="display:flex;gap:16px">${P.DAILY_ITEMS.slice(0, 2).map((i) => P.item(...i, 202)).join('')}</div></div></div>
    <div class="sec" style="margin-top:28px"><span class="t-heading">Coins</span></div>
    <div style="display:flex;gap:16px">${pack('500', 1, '£0.99')}${pack('1,200', 2, '£1.99')}${pack('3,000', 3, '£4.99')}${pack('6,500', 4, '£9.99')}</div></div>`);
 }

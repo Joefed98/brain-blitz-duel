@@ -61,6 +61,9 @@
   --jz-radius-lg: 16px;
   --jz-radius-btn: 12px;
   --jz-radius-pill: 999px;
+  --jz-cut-lg: 14px; /* angled corners, top-left and bottom-right: the Play bar, Find a match, Play, hero cards, the player card */
+  --jz-cut-sm: 8px; /* small gold buttons */
+  --jz-button-gold-face: var(--jz-gold); /* flat champagne; the metal is for medals and emblems */
   --jz-ledge: 4px;
   --jz-elev-1: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 4px 0 var(--jz-ledge-2);
   --jz-elev-2: 0 -8px 32px rgb(0 0 0 / 0.5), 0 16px 48px rgb(0 0 0 / 0.6);

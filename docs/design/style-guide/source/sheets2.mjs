@@ -22,7 +22,7 @@ function tokens() {
     const c = THEMES[t];
     const onWhat = (k) => (['text', 'text2', 'text3', 'goldInk', 'live', 'win', 'loss', 'joules'].includes(k) ? 'surface' : null);
     for (const f of ['text', 'text2', 'text3', 'goldInk', 'live', 'win', 'loss', 'joules']) for (const b of ['bg', 'surface', 'surface2']) pairs.push([t, f, b, c[f], c[b]]);
-    pairs.push([t, 'onGold', 'gold metal (darkest stop)', c.onGold, '#D2AC5E']);
+    pairs.push([t, 'onGold', 'gold (button face)', c.onGold, c.gold]);
     return `<div style="flex:1;background:${c.bg};color:${c.text};border-radius:14px;padding:14px">
      <div style="font-weight:800;font-size:15px;margin-bottom:8px">${t === 'dark' ? 'Dark (leads)' : 'Light'}</div>
      ${COLOUR_ROWS.map(([k, l]) => `<div style="display:flex;align-items:center;gap:10px;height:28px"><span style="width:40px;height:20px;border-radius:5px;background:${c[k]};box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)"></span>
@@ -32,9 +32,9 @@ function tokens() {
   const body = `
   <h2>Colour · Joulz black, navy and champagne gold</h2>
   <div style="display:flex;gap:14px">${swatch('dark')}${swatch('light')}</div>
-  <div class="t-caption" style="margin-top:10px">The figure on the right is the colour’s contrast on that theme’s surface. Every text colour (text, text 2, captions, gold ink, live, win, loss, Joules) is at least 4.5 : 1 on the background, surface and surface 2 in both themes, and the button text is at least 4.5 : 1 on the gold metal’s darkest stop, all 50 pairs checked by the renderer.</div>
+  <div class="t-caption" style="margin-top:10px">The figure on the right is the colour’s contrast on that theme’s surface. Every text colour (text, text 2, captions, gold ink, live, win, loss, Joules) is at least 4.5 : 1 on the background, surface and surface 2 in both themes, and the button text is at least 4.5 : 1 on the champagne button face, all 50 pairs checked by the renderer.</div>
   <div style="display:flex;gap:14px;margin-top:16px;align-items:stretch">
-   <div style="flex:1;height:64px;border-radius:12px;background:${GOLD_METAL};display:grid;place-items:center;color:#06080F;font-weight:800">Gold metal · buttons, medals, emblems only</div>
+   <div style="flex:1;height:64px;border-radius:12px;background:${GOLD_METAL};display:grid;place-items:center;color:#06080F;font-weight:800">Gold metal · medals and emblems only (buttons are flat champagne)</div>
    <div style="width:260px;border-radius:12px;background:var(--surface);padding:10px 14px"><div class="t-caption" style="font-weight:800">Categories and groups (unchanged)</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${[...Object.values(CATEGORY), ...Object.values(GROUP)].map((h) => `<span style="width:20px;height:20px;border-radius:5px;background:${h}"></span>`).join('')}</div></div></div>
   <div class="t-caption" style="margin-top:8px">Changed from today’s tokens: <b>loss</b> text is <code>#FF5A6E</code> (today’s <code>#E5243F</code> is 4.2 : 1 on the surface), a new <b>surface 3</b> <code>#28335A</code> for pressed and selected, and the light theme is new.</div>
@@ -47,7 +47,11 @@ function tokens() {
    <div style="flex:1"><h2>Spacing</h2>${SPACE.map((s) => `<div style="display:flex;align-items:center;gap:12px;height:24px"><span style="width:${s * 4}px;height:12px;background:var(--gold);border-radius:3px"></span><code>${s}</code></div>`).join('')}
     <div class="t-caption" style="margin-top:8px">16 phone gutter · 24 between sections on a phone · 32 on a computer · 12 between cards.</div></div>
    <div style="flex:1"><h2>Radii</h2><div style="display:flex;gap:12px">${[['sm', RADIUS.sm, 'avatars, tags'], ['md', RADIUS.md, 'rows, mode buttons'], ['lg', RADIUS.lg, 'panels, tiles'], ['btn', RADIUS.btn, 'buttons']].map(([n, r, u]) => `<div style="text-align:center"><span style="display:block;width:64px;height:64px;border-radius:${r}px;background:var(--surface2)"></span><div class="t-caption" style="margin-top:6px">${n} ${r}</div><div class="t-caption" style="font-size:13px">${u}</div></div>`).join('')}</div>
-    <div class="t-caption" style="margin-top:8px">Sheets 20 on their top corners.</div></div></div>
+    <div class="t-caption" style="margin-top:8px">Sheets 20 on their top corners.</div>
+    <h2>Angled cuts · key elements only</h2><div style="display:flex;gap:16px;align-items:flex-end">
+     <div style="text-align:center"><span class="cut-lg" style="display:block;width:120px;height:64px;background:var(--gold)"></span><div class="t-caption" style="margin-top:6px">cut lg 14</div></div>
+     <div style="text-align:center"><span class="cut-sm" style="display:block;width:90px;height:36px;background:var(--gold)"></span><div class="t-caption" style="margin-top:6px">cut sm 8</div></div></div>
+    <div class="t-caption" style="margin-top:8px">Top-left and bottom-right corners cut at 45°. Lg: the Play bar, Find a match, Play, hero cards, the player card. Sm: small gold buttons. Everything else is rounded.</div></div></div>
 
   <h2>Elevation · three levels, no glows</h2>
   <div style="display:flex;gap:16px;padding:14px;background:var(--bg)">
@@ -61,13 +65,16 @@ function tokens() {
 function components() {
   const st = ['Default', 'Pressed', 'Focus', 'Disabled'];
   const cls = { Default: '', Pressed: 'pressed', Focus: 'focus', Disabled: 'disabled' };
-  const btnRow = (name, base, label) => `<tr><td class="t-label" style="width:110px">${name}</td>${st.map((s) => `<td style="padding:14px 8px"><div class="btn ${base} btn-md ${cls[s]}">${label}</div></td>`).join('')}</tr>`;
+  const btnRow = (name, base, label) => `<tr><td class="t-label" style="width:110px">${name}</td>${st.map((s) => {
+    const b = `<div class="btn ${base} btn-md ${base === 'btn-gold' && s === 'Focus' ? '' : cls[s]}">${label}</div>`;
+    return `<td style="padding:14px 8px">${base === 'btn-gold' && s === 'Focus' ? `<span class="ring">${b}</span>` : b}</td>`;
+  }).join('')}</tr>`;
   const body = `
   <h2>Buttons · one style, every state</h2>
   <table style="border-collapse:collapse;width:100%"><tr><th></th>${st.map((s) => `<th>${s}</th>`).join('')}</tr>
-   ${btnRow('Gold (one a screen)', 'btn-gold', 'Find a match')}${btnRow('Secondary', 'btn-2', 'Rematch')}${btnRow('Quiet', 'btn-q', 'See all')}
+   ${btnRow('Gold (one a screen, cut lg)', 'btn-gold', 'Find a match')}${btnRow('Secondary', 'btn-2', 'Rematch')}${btnRow('Quiet', 'btn-q', 'See all')}
    <tr><td class="t-label">Icon</td>${st.map((s) => `<td style="padding:14px 8px"><div class="btn btn-2 ${cls[s]}" style="width:52px;height:48px">${icon('challenge', 24)}</div></td>`).join('')}</tr></table>
-  <div class="t-caption">Pressed: the face sinks 4 px onto its ledge (70 ms) and the action fires on release. Focus: a 3 px live ring 3 px outside. Disabled: no ledge, captions colour. Sizes: 60 (the one big action), 48, 36. Every target at least 44 × 44.</div>
+  <div class="t-caption">Pressed: the face sinks 4 px onto its ledge (70 ms) and the action fires on release. Focus: a 3 px live ring 3 px outside (on a cut button the ring is a cut frame behind it, so the cut never clips it). Disabled: no ledge, captions colour. Sizes: 60 (the one big action), 48, 36. Every target at least 44 × 44.</div>
 
   <div style="display:flex;gap:24px">
   <div style="flex:1"><h2>Mode button</h2>
