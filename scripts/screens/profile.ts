@@ -3,7 +3,7 @@
  * desktop/profile.png): your own Profile (an account placed in rated play with badges, stars, friends and rooms; an
  * account without rated play; a guest; a brand-new guest), Badges (/badges), the player card page (/card), Friends (the
  * list, a friend's profile, Add a friend) and Customise, in the dark theme and the light, at every size (ALL_SIZES).
- * theme-check and no-wrap-check draw them through THEME_SCREENS (scripts/theme-screens.ts, appended last).
+ * theme-check and no-wrap-check draw them after the core list (scripts/area-screens.ts finds this file, 14 Nov 2026).
  *
  * Every figure is a fixture stood in through the screen harness (scripts/safe-area-harness.tsx): window.__harnessProfile
  * (the badges answer, the practice progress, the rated status), __harnessNavAccount (the signed-in account) and
@@ -59,3 +59,6 @@ export const PROFILE_SCREENS = (): ThemeScreen[] => {
     { name: "profile page light: friends list", mode: "friends", plain: true, globals: { ...friendsGlobals(), ...light }, sizes: ALL_SIZES },
   ];
 };
+
+/** This area's screens for theme-check and no-wrap-check (the area-file shape, scripts/area-screens.ts). */
+export default PROFILE_SCREENS;

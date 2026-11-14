@@ -1,10 +1,10 @@
 /**
  * Phase 2 step 3, rooms and rated (14 Nov 2026): the screens this area redesigned, drawn by theme-check and
  * no-wrap-check at every size (VIEWPORTS, then ALL_SIZES); LIGHT_SCREENS draws each again in the light theme. Kept in
- * its own file so the page sessions' screen lists merge without touching each other (theme-screens.ts imports it once
- * and appends it last). Type-only imports from theme-screens.ts, so there is no import cycle: the helpers are handed in.
+ * its own file so the page sessions' screen lists merge without touching each other (scripts/area-screens.ts finds it
+ * and draws it after the core list, 14 Nov 2026).
  */
-import type { ThemeScreen, ThemeViewport } from "../theme-screens";
+import { ALL_SIZES, room, type ThemeScreen, type ThemeViewport } from "../theme-screens";
 
 type RoomFn = (status: "waiting" | "in_progress" | "finished", phase: string, opts?: Record<string, unknown>) => ThemeScreen["room"];
 
@@ -33,3 +33,6 @@ export function roomsRatedScreens({ room, sizes }: { room: RoomFn; sizes: ThemeV
   ).map((screen): ThemeScreen => ({ name: `rated: ${screen.replaceAll("-", " ")}`, mode: "rated", plain: true, globals: { __harnessRated: { screen } } }));
   return [...rooms, ...rated].map((s) => ({ ...s, sizes }));
 }
+
+/** This area's screens for theme-check and no-wrap-check (the area-file shape, scripts/area-screens.ts). */
+export default (): ThemeScreen[] => roomsRatedScreens({ room, sizes: ALL_SIZES });

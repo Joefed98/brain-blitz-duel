@@ -23,10 +23,7 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { dailyFixture, type HarnessDaily } from "./daily-fixture";
 import { boardsFixture } from "./leaderboards-fixture";
 import { passFixture } from "./pass-fixture";
-import { SHOP_SCREENS } from "./screens/shop";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
-import { roomsRatedScreens } from "./screens/rooms-rated";
-import { PROFILE_SCREENS } from "./screens/profile";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
   .pub as PuzzleData;
@@ -811,17 +808,10 @@ export const COMPONENT_SCREENS = (): ThemeScreen[] => [
 ];
 
 /**
- * The light theme (phase 2 step 2b, 14 Nov 2026): every theme screen again under <html data-theme="light"> (Settings →
- * Appearance), drawn by theme-check at its one size after every other draw (so the earlier draws keep their places in
- * its parts): every page readable at 4.5:1 in light. Screens that already set a theme are left out (they are drawn as
- * they are), and the extra sizes are dropped (the light tokens don't depend on the size).
+ * The core screens (everything up to APPEARANCE_SCREENS). Closed since 14 Nov 2026 (check plumbing, approved by Joe):
+ * never add to this list. A page area's screens go in their own scripts/screens/<area>.ts (the shape is in
+ * scripts/area-screens.ts); theme-check and no-wrap-check draw this list, then every area file in name order.
  */
-export const LIGHT_SCREENS = (): ThemeScreen[] =>
-  THEME_SCREENS.filter((s) => !(s.globals && "__harnessTheme" in s.globals)).map((s) => {
-    const { sizes: _sizes, ...rest } = s;
-    return { ...rest, name: `light: ${s.name}`, globals: { ...(s.globals ?? {}), __harnessTheme: "light" } };
-  });
-
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -996,9 +986,8 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...NAV_SCREENS(),
   ...COMPONENT_SCREENS(),
   ...APPEARANCE_SCREENS(),
-  ...SHOP_SCREENS(),
-  ...roomsRatedScreens({ room, sizes: ALL_SIZES }),
-  ...PROFILE_SCREENS(),
+  // The core list ends here and never grows again (check plumbing, 14 Nov 2026, approved by Joe): a page area's
+  // screens go in their own scripts/screens/<area>.ts, found by scripts/area-screens.ts and drawn after these.
 ];
 
 export interface ThemeViewport {

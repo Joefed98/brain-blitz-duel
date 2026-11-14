@@ -14,6 +14,9 @@
  *  - The checks split for full depth (FULL_DEPTH_SPLITS in shards.ts, 10 Nov 2026) are listed as exactly their parts.
  *  - checks-full-weekly.yml (10 Nov 2026) runs the fast shards at full depth (CHECKS_FULL=1) on a schedule, never on a
  *    pull request and with no browser, and its report job (full-depth-report.ts) runs whatever the shards did.
+ *  - theme-check and no-wrap-check (PAGE_CHECK_SPLITS, 14 Nov 2026) run only on their own jobs, as exactly their parts;
+ *    the parts of today's draws together are exactly the whole run, none twice; no part passes its draw ceiling; and
+ *    every area screen file in scripts/screens/ loads in the agreed shape.
  *
  *   bun scripts/ci-shards-check.ts
  */
@@ -21,7 +24,9 @@ import { readFileSync } from "node:fs";
 
 import { allCheckFiles, isBrowserCheck } from "../.github/ci/browser";
 import { base, shardPlan } from "../.github/ci/plan";
-import { BROWSER_CATCH_ALL, CATCH_ALL, CI_SKIP, FULL_DEPTH_SPLITS, OPTIONAL, SHARDS, isBrowserShard } from "../.github/ci/shards";
+import { BROWSER_CATCH_ALL, CATCH_ALL, CI_SKIP, FULL_DEPTH_SPLITS, OPTIONAL, PAGE_CHECK_SPLITS, SHARDS, isBrowserShard, pageCheckJobs } from "../.github/ci/shards";
+import { allNoWrapDraws, allThemeCheckDraws, areaFiles, areaScreens } from "./area-screens";
+import { THEME_SCREENS, partOf } from "./theme-screens";
 import { readFileSync as readSource } from "node:fs";
 
 const failures: string[] = [];
@@ -62,6 +67,48 @@ for (const [f, n] of Object.entries(FULL_DEPTH_SPLITS)) {
   const mine = listed.filter((e) => base(e) === f);
   check(mine.length === n && Array.from({ length: n }, (_, i) => `${f}@${i + 1}/${n}`).every((e) => mine.includes(e)), `full-depth split ${f}: listed as its ${n} parts (${mine.join(", ") || "not listed"})`);
   check(/--part=/.test(readSource(`scripts/${f}`, "utf8")), `full-depth split ${f} takes --part`);
+}
+
+/* 1c. theme-check and no-wrap-check on their own jobs, split by draw count at run time.
+ * Changed with Joe's approval, 14 Nov 2026 (check plumbing): these proofs moved with the two checks onto their own jobs
+ * (PAGE_CHECK_SPLITS in shards.ts); the guarantees above (every part once, nothing skipped, nothing twice) still hold. */
+const jobs = pageCheckJobs();
+for (const [f, { parts, jobs: jobCount, prefix }] of Object.entries(PAGE_CHECK_SPLITS)) {
+  check(routine.includes(f) && isBrowserCheck(f), `page check ${f} is a routine browser check`);
+  const mine = Object.entries(SHARDS).flatMap(([shard, list]) => list.filter((e) => base(e) === f).map((e) => [shard, e] as const));
+  check(mine.length === parts && Array.from({ length: parts }, (_, i) => `${f}@${i + 1}/${parts}`).every((e) => mine.some(([, x]) => x === e)), `${f}: listed as exactly its ${parts} parts`);
+  check(mine.every(([shard]) => shard.startsWith(`${prefix}-`) && shard in jobs), `${f}: every part on its own ${prefix}-* jobs, never on a shared play job (${mine.filter(([sh]) => !sh.startsWith(`${prefix}-`)).map(([sh, e]) => `${e} on ${sh}`).join(", ") || "ok"})`);
+  check(Object.keys(jobs).filter((j) => j.startsWith(`${prefix}-`)).length === jobCount, `${f}: ${jobCount} jobs`);
+  check(Object.keys(SHARDS).filter((sh) => sh.startsWith(`${prefix}-`)).every((sh) => SHARDS[sh]!.every((e) => base(e) === f)), `${prefix}-* jobs run only ${f}`);
+}
+// The draws as the checks work them out (core list, then every area file): the parts cover the whole run exactly once,
+// and none is near its time limit.
+const areas = await areaScreens();
+check(areas.length === areaFiles().length && areas.every((a) => a.screens.length > 0), `every scripts/screens/ area file loads in the agreed shape (${areas.map((a) => `${a.file} ${a.screens.length}`).join(", ")})`);
+const names = [...THEME_SCREENS, ...areas.flatMap((a) => a.screens)].map((sc) => sc.name);
+const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+check(dupes.length === 0, `screen names are unique across the core list and the area files (${[...new Set(dupes)].join(", ") || "none"})`);
+const drawsOf: Record<string, Awaited<ReturnType<typeof allThemeCheckDraws>>> = {
+  "theme-check.tsx": await allThemeCheckDraws(),
+  "no-wrap-check.tsx": await allNoWrapDraws(),
+};
+for (const [f, { parts, ceiling }] of Object.entries(PAGE_CHECK_SPLITS)) {
+  const all = drawsOf[f]!;
+  check(all.length > 0, `${f} has draws`);
+  const index = all.map((_, i) => i);
+  const seen = Array.from({ length: parts }, (_, k) => partOf(index, [`--part=${k + 1}/${parts}`])).flat();
+  check(seen.length === all.length && new Set(seen).size === all.length, `${f}: its ${parts} parts draw every one of its ${all.length} draws exactly once`);
+  const sizes = Array.from({ length: parts }, (_, k) => partOf(all, [`--part=${k + 1}/${parts}`]).length);
+  const over = sizes.map((n, k) => [k + 1, n] as const).filter(([, n]) => n > ceiling);
+  check(
+    over.length === 0,
+    `${f}: every part at most ${ceiling} draws (today ${Math.min(...sizes)}–${Math.max(...sizes)} of ${all.length}). ` +
+      (over.length
+        ? `Over: ${over.map(([k, n]) => `part ${k}/${parts} ${n}`).join(", ")}. The screens have grown near the parts' time limit: raise ` +
+          `PAGE_CHECK_SPLITS["${f}"].parts (and jobs if needed) in .github/ci/shards.ts, with Joe's approval.`
+        : "ok"),
+  );
+  console.log(`  ${f}: ${all.length} draws in ${parts} parts of ${Math.min(...sizes)}–${Math.max(...sizes)} (ceiling ${ceiling})`);
 }
 
 /* 2. Browser checks only in the full suite, and only browser checks there. */
