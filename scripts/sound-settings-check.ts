@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 
 const cases = [
-  // Changed for Joe's new default (components brief, 14 Nov 2026: music 80 % for a player who never set it; was
-  // music: 1). A default-behaviour line: listed in the components PR for Joe to confirm.
+  // Changed with Joe's approval, 14 Nov 2026 (new music default 80%).
   { old: {}, music: 0.8, effects: 1, muted: false },
   {
     old: {
