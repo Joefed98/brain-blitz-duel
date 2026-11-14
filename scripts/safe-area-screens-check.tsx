@@ -182,10 +182,12 @@ const ALL_SCREENS: Screen[] = [
   { name: "profile", mode: "profile" },
   {
     name: "sound settings",
-    mode: "practice",
+    // Changed with Joe's approval, 14 Nov 2026 (the components step: no page header has sound controls; sound
+    // settings are reached through Profile's gear → Settings). The assertions on the screen are unchanged.
+    mode: "profile",
     overlay: true,
     go: async (page) => {
-      await page.locator("[data-sound-channel=effects]").first().click();
+      await page.locator("[data-open-settings]").first().click();
       await page.getByRole("dialog").first().waitFor({ timeout: 10_000 });
     },
   },

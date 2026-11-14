@@ -644,15 +644,14 @@
     white-space: nowrap;
     cursor: pointer;
   }
+  /* Selected: a raised panel (surface 3 inside a 1.5 px text-3 edge, at least 3:1 against the other segments) with
+     bright text. Never gold (Joe, 14 Nov 2026: gold is for main actions only), so `tone="gold"` (Practice's Puzzles |
+     Arcade, the Shop's parts) draws the same. */
   .jz-seg > button:is([aria-pressed="true"], [aria-checked="true"]) {
     background: var(--jz-surface-3);
+    box-shadow: inset 0 0 0 1.5px var(--jz-text-3);
     color: var(--jz-text);
     font-weight: var(--jz-weight-bold);
-  }
-  /* The gold segmented switch (Practice's Puzzles | Arcade, Joe's call: the way into play on that tab). */
-  .jz-seg[data-tone="gold"] > button:is([aria-pressed="true"], [aria-checked="true"]) {
-    background: var(--jz-button-gold-face);
-    color: var(--jz-on-gold);
   }
   .jz-seg > button:disabled {
     color: var(--jz-text-3);

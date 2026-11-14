@@ -12,7 +12,8 @@ import { CoinCounter, useCoinCount } from "./CoinCounter";
  * More) and no sound or music controls (they live in Settings and each game's own menu). An account's coin counter
  * (CoinCounter) stays on the right where the Shop switch is on, and a page may add one control there (`action`,
  * Profile's settings). Drawn by PhoneShell on every screen with `tabs`. Where the rail is drawn (a computer, a
- * sideways tablet) the rail carries the avatar, so the header is the title alone (no data-app-header).
+ * sideways tablet) the rail carries the avatar, so the header is the title alone (no data-app-header). The header
+ * takes no theme scope of its own (no .jz-nav), so the title is always the page's own text colour.
  */
 export function AppHeader({ title, action }: { title?: string | undefined; action?: ReactNode }) {
   const placement = useNavPlacement();
@@ -34,7 +35,7 @@ export function AppHeader({ title, action }: { title?: string | undefined; actio
     );
   }
   return (
-    <header data-app-header className="ap-header jz-nav jz-nav-header">
+    <header data-app-header className="ap-header jz-nav-header">
       <span className="jz-nav-header-left">
         <AvatarButton size={36} />
         {title ? (

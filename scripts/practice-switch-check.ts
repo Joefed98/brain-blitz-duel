@@ -137,8 +137,42 @@ try {
         JSON.stringify(shownCounts) === JSON.stringify([["puzzles", `Puzzles ${counts.puzzles}`], ["arcade", `Arcade ${counts.arcade}`]]),
         `${at}: the switch reads "Puzzles ${counts.puzzles}" | "Arcade ${counts.arcade}" (${shownCounts.map((c) => c[1]).join(" | ")})`,
       );
-      const gold = await page.locator("[data-practice-side]").evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundImage.includes("gradient")));
-      check(gold[0] === true && gold[1] === false, `${at}: the active half has the gold shine, the other is plain`);
+      // Changed with Joe's approval, 14 Nov 2026 (the components step: the switch is the style guide's segmented control,
+      // the selected half a raised panel with bright text and no gold; was "the active half has the gold shine"). It
+      // still proves the active half is clearly distinct: its edge at least 3:1 against the other half, its text 4.5:1.
+      const look = await page.locator("[data-practice-side]").evaluateAll((els) =>
+        els.map((el) => {
+          const cs = getComputedStyle(el);
+          const edge = /rgba?\([^)]*\)/.exec(cs.boxShadow)?.[0] ?? "";
+          const parent = getComputedStyle(el.parentElement!).backgroundColor;
+          return { bg: cs.backgroundColor, image: cs.backgroundImage, text: cs.color, edge, parent };
+        }),
+      );
+      const channels = (c: string) => (c.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+      const segLum = (c: string) => {
+        const [r, g, b] = channels(c).map((v) => {
+          const x = v / 255;
+          return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+      };
+      const segRatio = (x: string, y: string) => {
+        const [hi, lo] = [segLum(x), segLum(y)].sort((m, n) => n - m);
+        return (hi! + 0.05) / (lo! + 0.05);
+      };
+      const [on, off] = look;
+      // The other half is unfilled: what shows behind it is the control's track.
+      const offFill = off && !/rgba\(0, 0, 0, 0\)/.test(off.bg) ? off.bg : (off?.parent ?? "");
+      const edgeRatio = on && on.edge ? segRatio(on.edge, offFill) : 0;
+      const textRatio = on ? segRatio(on.text, on.bg) : 0;
+      const goldish = (c: string) => {
+        const [r, g, b] = channels(c);
+        return r! > 200 && g! > 170 && b! < 150;
+      };
+      check(
+        !!on && !!off && !on.image.includes("gradient") && !goldish(on.bg) && on.bg !== off.bg && edgeRatio >= 3 && textRatio >= 4.5,
+        `${at}: the active half is the guide's selected segment, no gold, its edge ${edgeRatio.toFixed(2)}:1 against the other half, its text ${textRatio.toFixed(2)}:1 (${JSON.stringify(look)})`,
+      );
       const puzzleRows = await listed(page);
       check(puzzleRows.length > 0 && puzzleRows.every((t) => !isArcade(t)), `${at}: Puzzles lists no arcade game (${puzzleRows.length} rows)`);
       check(puzzleActive.every((t) => puzzleRows.includes(t)), `${at}: Puzzles lists every active puzzle`);
