@@ -7,10 +7,15 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { optional, recordOf, text } from "@/lib/validate";
 
 export const recordRatedEventFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: Record<string, unknown>) => input)
+  // Type and size only (Security C2): a flat object of short strings and true / false, the keys kept as sent, since
+  // acceptRatedEvent refuses an unknown key or word itself ("refused").
+  .inputValidator((input: Record<string, unknown>) =>
+    recordOf(input, 8, 32, (v, field) => (typeof v === "boolean" ? v : optional(v, (x) => text(x, 64, field)))),
+  )
   .handler(async ({ data, context }) => {
     const { acceptRatedEvent } = await import("./ratedEvents");
     const accepted = acceptRatedEvent(data);

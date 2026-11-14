@@ -2506,7 +2506,8 @@ outside the repo.
   views, friends, leaderboards and tournaments still carry account ids until C3. Migration
   `20261117500300_public_player_ids.sql`. public-ids-check (~15 s, shard `e`: grants, device reads, the ids, the
   backfill, a deleted account, and a whole room's answers, rows and broadcasts swept for account ids) and room-e2e-check's
-  last part (no response to either phone holds the other player's account id).
+  last part (no response to either phone holds the other player's account id); seat-key-check (~2 s, shard `c`, happy-dom: me, host, chat
+  "mine", muting, reactions, absent rivals, and the account-id fallback for stand-in rows).
 - **Retired games out of the app** (13 Nov 2026, Joe's rule; Retirements session): `RETIRED_TYPES` (catalogue.ts) is the
   one switch, now 21 games (the nine of 13 Nov 2026: Mixed Signals, Gradient, Turntable, Blackout, Bang On, Slice, Ringer,
   Swish, Flightpath). A retired game is never offered, dealt, played or counted: `isPlayable(type)` is asked by Practice (no

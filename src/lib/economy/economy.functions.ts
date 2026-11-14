@@ -16,6 +16,13 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { nullable, num, optional, record, text } from "@/lib/validate";
+
+/*
+ * Input checks (Security C2, 14 Nov 2026; src/lib/validate.ts): type and size only. economy.server.ts still judges
+ * every slot, item, avatar, colour, choice and id (a bad one gets its own refusal, a bad card id null).
+ */
+const WORD_MAX = 96;
 import type {
   AvatarOptions,
   CatalogueItem,
@@ -78,7 +85,13 @@ export const getMyLoadout = createServerFn({ method: "POST" })
 /** Equips an owned item in a slot (src/lib/economy/slots.ts LOADOUT_SLOTS), or with itemId null returns it to its default. */
 export const equip = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { slot: string; itemId: string | null }) => input)
+  .inputValidator((input: { slot: string; itemId: string | null }) => {
+    const body = record(input);
+    return {
+      slot: text(body["slot"], WORD_MAX, "slot"),
+      itemId: optional(body["itemId"], (v) => nullable(v, (id) => text(id, WORD_MAX, "itemId"))),
+    };
+  })
   .handler(async ({ data, context }): Promise<LoadoutResult> => {
     const { client, allowed, economy } = await setup(context.userId, "economy");
     if (!allowed) return economy.refusal("busy");
@@ -101,7 +114,19 @@ export const setAvatar = createServerFn({ method: "POST" })
       accessory?: string | null;
       background?: string | null;
       gem: string | null;
-    }) => input,
+    }) => {
+      const body = record(input);
+      const choice = (field: string) => optional(body[field], (v) => nullable(v, (c) => text(c, WORD_MAX, field)));
+      return {
+        avatarId: text(body["avatarId"], WORD_MAX, "avatarId"),
+        colour: num(body["colour"], "colour"),
+        accent: choice("accent"),
+        feature: choice("feature"),
+        accessory: choice("accessory"),
+        background: choice("background"),
+        gem: choice("gem"),
+      };
+    },
   )
   .handler(async ({ data, context }): Promise<LoadoutResult> => {
     const { client, allowed, economy } = await setup(context.userId, "economy");
@@ -112,7 +137,7 @@ export const setAvatar = createServerFn({ method: "POST" })
 /** Any player's public card, read-only. A guest (or an unknown id) gets the default card; a bad id null. */
 export const getPublicCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string }) => input)
+  .inputValidator((input: { playerId: string }) => ({ playerId: text(record(input)["playerId"], WORD_MAX, "playerId") }))
   .handler(async ({ data, context }): Promise<PublicCard | null | { busy: true }> => {
     const { client, allowed, economy } = await setup(context.userId, "card");
     if (!allowed) return { busy: true };

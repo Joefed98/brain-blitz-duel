@@ -6,7 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { record, text } from "@/lib/validate";
+import { num, record, text } from "@/lib/validate";
 
 import type { HeadToHead, RatedRoomInfo, OpponentScore, QueuePoll, RatedMatchView, RatedStatus, RematchOutcome, JoinOutcome, PublicSettleOutcome } from "./rated.server";
 
@@ -23,6 +23,14 @@ const idOf = (value: unknown): string => {
   const id = String(value ?? "");
   return /^[0-9a-f-]{36}$/i.test(id) ? id : "";
 };
+
+/**
+ * An id as short text (Security C2, 14 Nov 2026): the handler's own idOf still answers a malformed one softly (null,
+ * "missing", "closed", an empty record), so only the type and size are refused here.
+ */
+function idText(value: unknown, field: string): string {
+  return text(value, 64, field);
+}
 
 export const ratedStatusFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -62,7 +70,7 @@ export const ratedQueueLeaveFn = createServerFn({ method: "POST" })
 
 export const ratedMatchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { matchId: string }) => input)
+  .inputValidator((input: { matchId: string }) => ({ matchId: idText(record(input)["matchId"], "matchId") }))
   .handler(async ({ data, context }): Promise<RatedMatchView | null> => {
     const id = idOf(data.matchId);
     if (!id) return null;
@@ -72,7 +80,7 @@ export const ratedMatchFn = createServerFn({ method: "POST" })
 
 export const ratedOpponentScoreFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { matchId: string }) => input)
+  .inputValidator((input: { matchId: string }) => ({ matchId: idText(record(input)["matchId"], "matchId") }))
   .handler(async ({ data, context }): Promise<OpponentScore | null | { busy: true }> => {
     const id = idOf(data.matchId);
     if (!id) return null;
@@ -83,7 +91,10 @@ export const ratedOpponentScoreFn = createServerFn({ method: "POST" })
 
 export const ratedProgressFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { matchId: string; round: number; score: number }) => input)
+  .inputValidator((input: { matchId: string; round: number; score: number }) => {
+    const body = record(input);
+    return { matchId: idText(body["matchId"], "matchId"), round: num(body["round"], "round"), score: num(body["score"], "score") };
+  })
   .handler(async ({ data, context }): Promise<{ ok: boolean }> => {
     const id = idOf(data.matchId);
     if (!id) return { ok: false };
@@ -94,7 +105,7 @@ export const ratedProgressFn = createServerFn({ method: "POST" })
 
 export const ratedSettleFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { matchId: string }) => input)
+  .inputValidator((input: { matchId: string }) => ({ matchId: idText(record(input)["matchId"], "matchId") }))
   .handler(async ({ data, context }): Promise<PublicSettleOutcome> => {
     const id = idOf(data.matchId);
     if (!id) return { state: "missing" };
@@ -107,7 +118,7 @@ export const ratedSettleFn = createServerFn({ method: "POST" })
 
 export const ratedRematchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { matchId: string }) => input)
+  .inputValidator((input: { matchId: string }) => ({ matchId: idText(record(input)["matchId"], "matchId") }))
   .handler(async ({ data, context }): Promise<RematchOutcome> => {
     const id = idOf(data.matchId);
     if (!id) return { state: "closed" };
@@ -118,7 +129,7 @@ export const ratedRematchFn = createServerFn({ method: "POST" })
 /** W3c's VS screen: the caller's rated record against an opponent (live rated matches only, recorded runs excluded). */
 export const ratedHeadToHeadFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { opponentId: string }) => input)
+  .inputValidator((input: { opponentId: string }) => ({ opponentId: idText(record(input)["opponentId"], "opponentId") }))
   .handler(async ({ data, context }): Promise<HeadToHead> => {
     const id = idOf(data.opponentId);
     if (!id) return { wins: 0, losses: 0, draws: 0, played: 0 };
@@ -129,7 +140,7 @@ export const ratedHeadToHeadFn = createServerFn({ method: "POST" })
 /** W3c's room screen: is this room a rated match (for one of its players)? null when not, or not the caller's. */
 export const ratedRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => ({ roomId: idText(record(input)["roomId"], "roomId") }))
   .handler(async ({ data, context }): Promise<RatedRoomInfo | null> => {
     const id = idOf(data.roomId);
     if (!id) return null;

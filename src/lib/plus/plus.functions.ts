@@ -13,6 +13,10 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { bool, record, text } from "@/lib/validate";
+
+/* Input checks (Security C2, 14 Nov 2026): type and size only; plus.server.ts and archive.server.ts judge the words. */
+const WORD_MAX = 32;
 import type { Db } from "@/lib/data/db.server";
 
 async function db(): Promise<Db> {
@@ -29,7 +33,7 @@ export const plusStatusFn = createServerFn({ method: "POST" })
 
 export const plusTestPurchaseFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { plan: string }) => input)
+  .inputValidator((input: { plan: string }) => ({ plan: text(record(input)["plan"], WORD_MAX, "plan") }))
   .handler(async ({ data, context }) => {
     const client = await db();
     const { PLUS_LIMIT, withinRateLimit } = await import("@/lib/duel/rateLimit.server");
@@ -43,7 +47,7 @@ export const plusTestPurchaseFn = createServerFn({ method: "POST" })
 
 export const plusSetMarkFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { on: boolean }) => input)
+  .inputValidator((input: { on: boolean }) => ({ on: bool(record(input)["on"], "on") }))
   .handler(async ({ data, context }) => {
     const { setPlusMark } = await import("./plus.server");
     return setPlusMark(await db(), context.userId, data?.on === true);
@@ -58,7 +62,10 @@ export const dailyArchiveFn = createServerFn({ method: "POST" })
 
 export const dailyArchiveStartFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { kind: string; day: string }) => input)
+  .inputValidator((input: { kind: string; day: string }) => {
+    const body = record(input);
+    return { kind: text(body["kind"], WORD_MAX, "kind"), day: text(body["day"], WORD_MAX, "day") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const { DAILY_START_LIMIT, withinRateLimit } = await import("@/lib/duel/rateLimit.server");
