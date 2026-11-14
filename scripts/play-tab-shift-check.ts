@@ -22,6 +22,12 @@
  *  7. The boot script's keys are the ones the app writes, and the inline script agrees with
  *     playCardTokens on every storage case.
  *
+ * Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Quick play,
+ * Rejoin, Next public game and Challenge a friend moved from Home to the Rooms page (/rooms), and Warm up became Home's
+ * Recently played. Each scenario now measures Home's slots (the intro and welcome cards, the Daily hero, the home-screen
+ * hint, under the header) on Home and the moved slots (under Quick play) on the Rooms page, with the same rules: from
+ * the first frame every card is where it ends up, refused cards collapse smoothly, nothing pops in, nothing moves down.
+ *
  *   bun scripts/play-tab-shift-check.ts
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -51,17 +57,24 @@ function check(ok: boolean, message: string) {
 const pageClock = fixClock();
 
 const SLOW_MS = 1500;
-const ITEMS: Record<string, string> = {
-  quickPlay: '[aria-label="Quick play"]',
-  welcome: "[data-share-welcome]",
-  rejoin: "[data-rejoin-room]",
-  daily: "[data-daily-card]",
-  challenge: "[data-challenge-card]",
-  publicGame: "[data-public-game]",
-  homeHint: "[data-home-hint]",
-  warmUp: '[aria-label="Warm up"]',
-  intro: "[data-intro-card]",
+type Where = "home" | "rooms";
+/** Each page's cards; `anchor` is the part above them that must never move (Home's header, the Rooms page's Quick play). */
+const PAGE_ITEMS: Record<Where, Record<string, string>> = {
+  home: {
+    anchor: "[data-app-header]",
+    welcome: "[data-share-welcome]",
+    daily: "[data-daily-card]",
+    homeHint: "[data-home-hint]",
+    intro: "[data-intro-card]",
+  },
+  rooms: {
+    anchor: '[aria-label="Quick play"]',
+    rejoin: "[data-rejoin-room]",
+    challenge: "[data-challenge-card]",
+    publicGame: "[data-public-game]",
+  },
 };
+let ITEMS: Record<string, string> = PAGE_ITEMS.home;
 const day = ukDayKey(Date.now());
 const status = (available: boolean, done = false): DailyStatus => ({
   available,
@@ -86,9 +99,12 @@ interface Scenario {
   /** A device that hasn't seen the first-time intro (every other scenario has). */
   firstVisit?: boolean;
   expect: "stable" | "collapse";
+  /** The page drawn (Home unless set). */
+  where?: Where;
 }
 
 async function run(browser: Browser, origin: string, s: Scenario): Promise<{ frames: Frame[]; storage: Record<string, string>; nameRow: { natural: number; reserved: number } }> {
+  ITEMS = PAGE_ITEMS[s.where ?? "home"];
   const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, hasTouch: true, isMobile: true, ...(s.userAgent ? { userAgent: s.userAgent } : {}) });
   await context.addInitScript(pageClock.script, pageClock.arg);
   await context.addInitScript(DEVICE_INIT);
@@ -133,14 +149,15 @@ async function run(browser: Browser, origin: string, s: Scenario): Promise<{ fra
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
   await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: IPHONE11_APP.top, bottom: IPHONE11_APP.bottom, left: 0, right: 0 } } as never);
-  await page.goto(`${origin}/safe-area.html?mode=home${s.query ? `&${s.query}` : ""}`, { timeout: 180_000 });
-  await page.waitForSelector('[aria-label="Quick play"]', { timeout: 60_000 });
+  await page.goto(`${origin}/safe-area.html?mode=${s.where ?? "home"}${s.query ? `&${s.query}` : ""}`, { timeout: 180_000 });
+  await page.waitForSelector(ITEMS["anchor"]!, { timeout: 60_000 });
   await page.waitForTimeout(SLOW_MS + 1500);
   const frames = (await page.evaluate(() => (window as unknown as { __frames: Frame[] }).__frames)) as Frame[];
   const storage = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k) ?? ""])));
   // The name row's height before the page is up (what a server-rendered first paint shows) against its own.
   const nameRow = await page.evaluate(() => {
-    const row = document.querySelector("[data-name-row]") as HTMLElement;
+    const row = document.querySelector("[data-name-row]") as HTMLElement | null;
+    if (!row) return { natural: 0, reserved: 0 };
     const natural = row.getBoundingClientRect().height;
     const editing = row.getAttribute("data-editing");
     row.removeAttribute("data-editing");
@@ -153,15 +170,16 @@ async function run(browser: Browser, origin: string, s: Scenario): Promise<{ fra
 }
 
 function judge(s: Scenario, frames: Frame[]) {
-  const from = frames.findIndex((f) => f.items["quickPlay"] !== null);
+  ITEMS = PAGE_ITEMS[s.where ?? "home"];
+  const from = frames.findIndex((f) => f.items["anchor"] !== null);
   const seen = frames.slice(from);
   const final = seen[seen.length - 1]!;
   const where = s.name;
-  if (from < 0 || !seen.length) return check(false, `${where}: the Play tab never drew`);
+  if (from < 0 || !seen.length) return check(false, `${where}: the page never drew`);
   const present = Object.keys(ITEMS).filter((k) => final.items[k] !== null);
   console.log(`  ${where}: ${seen.length} frames from the first; at the end ${present.join(", ")}`);
-  const qp = seen.map((f) => f.items["quickPlay"]!);
-  check(Math.max(...qp) - Math.min(...qp) <= 2, `${where}: Quick play moved ${Math.max(...qp) - Math.min(...qp)} px`);
+  const qp = seen.map((f) => f.items["anchor"]!);
+  check(Math.max(...qp) - Math.min(...qp) <= 2, `${where}: ${s.where === "rooms" ? "Quick play" : "Home's header"} moved ${Math.max(...qp) - Math.min(...qp)} px`);
   if (s.expect === "stable") {
     for (const key of Object.keys(ITEMS)) {
       const bad = seen.find((f) => (f.items[key] === null) !== (final.items[key] === null) || (f.items[key] !== null && Math.abs(f.items[key]! - final.items[key]!) > 2));
@@ -193,9 +211,14 @@ try {
   const all = { daily: true, challenges: true, rejoin: "open" as const };
 
   const fresh = await run(browser, server.origin, { name: "fresh device", storage: lastRoom, server: all, expect: "stable" });
-  check(Math.abs(fresh.nameRow.natural - fresh.nameRow.reserved) <= 0.5, `no stored name: the name row reserved ${fresh.nameRow.reserved} px before the page is up, ${fresh.nameRow.natural} px after`);
   const freshSeen = judge({ name: "fresh device", storage: {}, server: all, expect: "stable" }, fresh.frames);
-  check(!!freshSeen && ["rejoin", "daily", "challenge", "publicGame"].every((k) => freshSeen[freshSeen.length - 1]!.items[k] !== null), "fresh device: Rejoin, Daily, Challenge and Next public game all show");
+  const freshRooms = await run(browser, server.origin, { name: "fresh device, Rooms", storage: lastRoom, server: all, expect: "stable", where: "rooms" });
+  check(Math.abs(freshRooms.nameRow.natural - freshRooms.nameRow.reserved) <= 0.5, `no stored name: the name row reserved ${freshRooms.nameRow.reserved} px before the page is up, ${freshRooms.nameRow.natural} px after`);
+  const freshRoomsSeen = judge({ name: "fresh device, Rooms", storage: {}, server: all, expect: "stable", where: "rooms" }, freshRooms.frames);
+  check(
+    !!freshSeen && !!freshRoomsSeen && freshSeen[freshSeen.length - 1]!.items["daily"] !== null && ["rejoin", "challenge", "publicGame"].every((k) => freshRoomsSeen[freshRoomsSeen.length - 1]!.items[k] !== null),
+    "fresh device: Daily (Home), Rejoin, Challenge and Next public game (Rooms) all show",
+  );
 
   const returning: Scenario = {
     name: "returning device",
@@ -208,7 +231,9 @@ try {
     expect: "stable",
   };
   const back = await run(browser, server.origin, returning);
-  check(Math.abs(back.nameRow.natural - back.nameRow.reserved) <= 0.5, `a stored name: the name row reserved ${back.nameRow.reserved} px before the page is up, ${back.nameRow.natural} px after`);
+  const backRooms = await run(browser, server.origin, { ...returning, name: "returning device, Rooms", where: "rooms" });
+  check(Math.abs(backRooms.nameRow.natural - backRooms.nameRow.reserved) <= 0.5, `a stored name: the name row reserved ${backRooms.nameRow.reserved} px before the page is up, ${backRooms.nameRow.natural} px after`);
+  judge({ ...returning, name: "returning device, Rooms", where: "rooms" }, backRooms.frames);
   const backSeen = judge(returning, back.frames);
   const firstDaily = backSeen?.find((f) => f.items["daily"] !== null)?.daily ?? "";
   // The follow-up to #129: a played daily's row shows its score ("6 rounds · 694") and a grey Done pill, no place.
@@ -227,24 +252,37 @@ try {
 
   // The public game card: a cached height (the last visit's) holds it from the first frame as the boot
   // script's default does on a fresh device (above), and the Add to Home Screen hint on iPhone Safari.
-  const cached: Scenario = { name: "cached public card height", storage: { ...lastRoom, [PLAY_CARDS_KEY]: JSON.stringify({ publicH: PUBLIC_CARD_H.titled }) }, server: all, expect: "stable" };
+  const cached: Scenario = { name: "cached public card height", storage: { ...lastRoom, [PLAY_CARDS_KEY]: JSON.stringify({ publicH: PUBLIC_CARD_H.titled }) }, server: all, expect: "stable", where: "rooms" };
   const cachedSeen = judge(cached, (await run(browser, server.origin, cached)).frames);
   check(!!cachedSeen && cachedSeen[0]!.items["publicGame"] !== null, "cached height: the public game card is there from the first frame");
   const hint: Scenario = { name: "iPhone Safari with the home-screen hint", storage: lastRoom, userAgent: IPHONE_SAFARI_UA, server: all, expect: "stable" };
   const hintSeen = judge(hint, (await run(browser, server.origin, hint)).frames);
-  check(!!hintSeen && hintSeen[0]!.items["homeHint"] !== null && hintSeen[0]!.items["publicGame"] !== null, "iPhone Safari: the hint and the public game card are there from the first frame");
+  const hintRooms: Scenario = { ...hint, name: "iPhone Safari, Rooms", where: "rooms" };
+  const hintRoomsSeen = judge(hintRooms, (await run(browser, server.origin, hintRooms)).frames);
+  check(!!hintSeen && !!hintRoomsSeen && hintSeen[0]!.items["homeHint"] !== null && hintRoomsSeen[0]!.items["publicGame"] !== null, "iPhone Safari: the hint (Home) and the public game card (Rooms) are there from the first frame");
 
   const no: Scenario = { name: "server says no", storage: lastRoom, server: { daily: false, challenges: false, rejoin: "closed" }, expect: "collapse" };
   const said = await run(browser, server.origin, no);
   const saidSeen = judge(no, said.frames);
+  const noRooms: Scenario = { ...no, name: "server says no, Rooms", where: "rooms" };
+  const saidRooms = await run(browser, server.origin, noRooms);
+  const saidRoomsSeen = judge(noRooms, saidRooms.frames);
   const end = saidSeen?.[saidSeen.length - 1];
-  check(!!end && end.items["daily"] === null && end.items["challenge"] === null && end.items["rejoin"] === null, "server says no: the three cards collapse away");
+  const endRooms = saidRoomsSeen?.[saidRoomsSeen.length - 1];
+  check(!!end && !!endRooms && end.items["daily"] === null && endRooms.items["challenge"] === null && endRooms.items["rejoin"] === null, "server says no: the three cards collapse away");
   check(!!saidSeen && saidSeen[0]!.items["daily"] !== null, "server says no: the daily card was reserved at first (then collapsed)");
 
-  const next: Scenario = { name: "next visit after a no", storage: said.storage, server: no.server, expect: "stable" };
+  // The Rooms page's visit stored its own no's (the challenge and the room) on top of Home's (the daily).
+  const nextStorage = { ...said.storage, ...saidRooms.storage, [PLAY_CARDS_KEY]: JSON.stringify({ ...JSON.parse(said.storage[PLAY_CARDS_KEY] ?? "{}"), ...JSON.parse(saidRooms.storage[PLAY_CARDS_KEY] ?? "{}") }) };
+  const next: Scenario = { name: "next visit after a no", storage: nextStorage, server: no.server, expect: "stable" };
   const nextVisit = await run(browser, server.origin, next);
   const nextSeen = judge(next, nextVisit.frames);
-  check(!!nextSeen && nextSeen.every((f) => f.items["daily"] === null && f.items["challenge"] === null && f.items["rejoin"] === null), "next visit: nothing reserved, nothing pops in");
+  const nextRooms: Scenario = { ...next, name: "next visit after a no, Rooms", where: "rooms" };
+  const nextRoomsSeen = judge(nextRooms, (await run(browser, server.origin, nextRooms)).frames);
+  check(
+    !!nextSeen && !!nextRoomsSeen && nextSeen.every((f) => f.items["daily"] === null) && nextRoomsSeen.every((f) => f.items["challenge"] === null && f.items["rejoin"] === null),
+    "next visit: nothing reserved, nothing pops in",
+  );
   // 6: the real app, server-rendered.
   const { spawn } = await import("node:child_process");
   const port = 5393;
@@ -263,12 +301,20 @@ try {
     if (!up) check(false, "the real app's dev server did not start");
     else {
       const html = await (await fetch(`${origin}/`)).text();
-      check(html.includes('data-play-slot="daily"') && html.includes("data-name-row") && html.includes('data-play-cards",t.join'), "the server-rendered Play tab carries the slots and the boot script");
+      const roomsHtml = await (await fetch(`${origin}/rooms`)).text();
+      check(
+        html.includes('data-play-slot="daily"') && html.includes('data-play-cards",t.join') && roomsHtml.includes("data-name-row") && roomsHtml.includes('data-play-slot="rejoin"') && roomsHtml.includes('data-play-cards",t.join'),
+        "the server-rendered Home and Rooms carry the slots and the boot script",
+      );
       // Warm the dev server once (its first page load compiles everything), unmeasured.
       const warm = await browser.newPage();
       await warm.goto(`${origin}/`, { timeout: 240_000 }).catch(() => undefined);
       await warm.waitForTimeout(4000);
+      await warm.goto(`${origin}/rooms`, { timeout: 240_000 }).catch(() => undefined);
+      await warm.waitForTimeout(4000);
       await warm.close();
+      for (const where of ["home", "rooms"] as const) {
+      ITEMS = PAGE_ITEMS[where];
       const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, hasTouch: true, isMobile: true });
       await context.addInitScript(pageClock.script, pageClock.arg);
   await context.addInitScript(DEVICE_INIT);
@@ -305,14 +351,18 @@ try {
       page.on("pageerror", (e) => {
         if (/hydrat/i.test(e.message)) errors.push(e.message.split("\n")[0]!);
       });
-      await page.goto(`${origin}/`, { timeout: 180_000 });
+      await page.goto(`${origin}${where === "home" ? "/" : "/rooms"}`, { timeout: 180_000 });
       await page.waitForTimeout(6000);
       const frames = (await page.evaluate(() => (window as unknown as { __frames: Frame[] }).__frames)) as Frame[];
       await context.close();
-      judge({ name: "the real app (server-rendered)", storage: {}, server: { daily: false, challenges: false, rejoin: "closed" }, expect: "collapse" }, frames);
-      const firstPaint = frames.find((f) => f.items["quickPlay"] !== null);
-      check(!!firstPaint && firstPaint.items["daily"] !== null && firstPaint.items["challenge"] !== null && firstPaint.items["rejoin"] !== null, "the real app: the reserved cards are in its first paint");
-      check(errors.length === 0, `the real app hydrates without a mismatch (${errors.join("; ")})`);
+      judge({ name: `the real app (server-rendered), ${where}`, storage: {}, server: { daily: false, challenges: false, rejoin: "closed" }, expect: "collapse", where }, frames);
+      const firstPaint = frames.find((f) => f.items["anchor"] !== null);
+      check(
+        !!firstPaint && (where === "home" ? firstPaint.items["daily"] !== null : firstPaint.items["challenge"] !== null && firstPaint.items["rejoin"] !== null),
+        `the real app (${where}): the reserved cards are in its first paint`,
+      );
+      check(errors.length === 0, `the real app (${where}) hydrates without a mismatch (${errors.join("; ")})`);
+      }
     }
   } finally {
     try {
