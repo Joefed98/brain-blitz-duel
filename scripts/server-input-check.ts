@@ -263,7 +263,8 @@ const SPECS: Spec[] = [
   { file: PL, name: "plusSetMarkFn", good: { on: true }, fields: { on: "bool" }, as: "account" },
   { file: PL, name: "dailyArchiveStartFn", good: { kind: "puzzle", day: "2026-11-01" }, fields: { kind: "text", day: "text" }, as: "account" },
   /* batch 3: cosmetics */
-  { file: "src/lib/cosmetics/cosmetics.functions.ts", name: "getPublicCosmeticsFn", good: { userIds: [P1] }, fields: { userIds: "list" } },
+  // Changed with Joe's approval, 14 Nov 2026 (consequence of C1b's playerIds input).
+  { file: "src/lib/cosmetics/cosmetics.functions.ts", name: "getPublicCosmeticsFn", good: { playerIds: [P1] }, fields: { playerIds: "list" } },
   /* batch 3: badges */
   { file: BA, name: "setMyCardBadges", good: { badges: ["founding-player"] }, fields: { badges: "list" }, as: "account" },
   { file: BA, name: "setMyTitle", good: { title: "rookie" }, fields: { title: "text" }, as: "account" },
