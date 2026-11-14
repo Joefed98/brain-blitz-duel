@@ -2,7 +2,7 @@
  * Review screenshots of the Games session's screens (phase 2 step 3, 14 Nov 2026): every screen of scripts/screens/
  * games.ts at the sizes asked, from the screen harness. A tool, not a check.
  *
- *   bun scripts/shots/games-shots.ts [--out=<dir>] [--sizes=390x844,1366x768] [name filter…]
+ *   bun scripts/shots/games-shots.ts [--out=<dir>] [--sizes=390x844,1366x768] [--full-page] [name filter…]
  */
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -14,6 +14,7 @@ const args = process.argv.slice(2);
 const OUT = args.find((a) => a.startsWith("--out="))?.slice(6) ?? ".shots/games";
 const SIZES = args.find((a) => a.startsWith("--sizes="))?.slice(8);
 const ONLY = args.filter((a) => !a.startsWith("--"));
+const FULL = args.includes("--full-page");
 mkdirSync(OUT, { recursive: true });
 const known = [...ALL_SIZES, ...NAV_SIZES, { name: "375x667", w: 375, h: 667 }];
 const sizes: ThemeViewport[] = SIZES
@@ -33,7 +34,7 @@ try {
     for (const viewport of sizes) {
       const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport);
       const file = join(OUT, `${screen.name.replace(/\W+/g, "-")}-${viewport.w}x${viewport.h}.png`);
-      await page.screenshot({ path: file, fullPage: true });
+      await page.screenshot({ path: file, fullPage: FULL });
       console.log(file);
       await context.close();
     }

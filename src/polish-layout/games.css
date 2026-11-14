@@ -49,18 +49,24 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--jz-space-12);
 }
-@container (min-width: 560px) {
+@container (min-width: 400px) {
   .gm-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-@container (min-width: 760px) {
-  .gm-grid {
+/* A tablet or a computer (PhoneShell's data-layout): never fewer than three across. */
+[data-layout] .gm-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@container (min-width: 640px) {
+  .gm-grid,
+  [data-layout] .gm-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
-@container (min-width: 1040px) {
-  .gm-grid {
+@container (min-width: 900px) {
+  .gm-grid,
+  [data-layout] .gm-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
@@ -189,14 +195,11 @@
 }
 @container (min-width: 760px) {
   .gm-hero {
-    grid-column: span 2;
-    grid-row: span 2;
-    flex-direction: column-reverse;
-    justify-content: space-between;
+    min-height: 220px;
+    padding: var(--jz-space-24) var(--jz-space-32);
   }
   .gm-hero-art {
-    width: min(100%, 260px);
-    align-self: center;
+    width: 200px;
   }
 }
 

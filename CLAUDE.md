@@ -2550,6 +2550,23 @@ outside the repo.
   only). retirement-check (~30 s, PostgreSQL) proves it all and the bring-back. Same day: Minefield moved to Logic on
   `minesRev 2` (20 mines, `arcadeRun`, Speed full by 37 s; docs/arcade-standard/minesweeper.md; minefield-logic-check) and
   Tenfall to Speed (category only).
+- **The Games pages** (phase 2 step 3, 14 Nov 2026; presentation and routing only, no stamps, scoring, stars, bests or
+  offline packs changed; review `docs/design/pages-review/games/GALLERY.md`): the Games tab (`/practice`,
+  `src/components/games/GamesCatalogue.tsx`) is the catalogue: "Games" with the star total and a search button (names
+  only) in the header, chips (All, each live puzzle category, each live arcade group, `gameMeta.ts` `catalogueShelves`)
+  in place of the Puzzles | Arcade switch, a hero (the game of the day, `src/lib/duel/gameOfTheDay.ts`: worked out on the
+  phone from the UK date, the same for everyone; the Daily Puzzle's own games can't be read by a phone), and a grid of
+  `GameTile size="card"` tiles (2 columns on a phone, up to 5 wider) each in a `[data-practice-game]` wrapper with its
+  offline mark or pending clock and its best for screen readers. No challenges on the catalogue. **A game's page** is
+  `/practice?page=<id>` (`gamePageHref(id)` / `gamePageLink(id)` in `src/lib/nav/gamePage.ts`, the one helper every link
+  to a game uses; `GamePage.tsx`): art, name, tag, time limit, best, stars, the intro's goal and how-to lines, that
+  game's challenges (`ChallengeRows.tsx`, Joules only where the pass is on) and Play, which deals and opens RoundIntro
+  already in its 3-2-1 (`load(type, true)`; Play again does the same; Joe, 14 Nov 2026; RoundIntro unchanged). A
+  `/practice?game=<id>` link still opens the full intro with Ready (checks that judge the intro use it,
+  `practiceGameUrl` in `scripts/practice-side-lib.ts`; `playFromCatalogue` goes tile → page → Play). **Challenges**
+  (`src/routes/challenges.tsx`, More → Challenges): done count and bar, In progress | New | Done, grouped by game, each
+  game's name opening its page. PhoneShell `railTab` draws the full rail on these pushed pages. Screens:
+  `scripts/screens/games.ts` (theme-check in sixths, no-wrap-check in elevenths); shots `bun scripts/shots/games-shots.ts`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
