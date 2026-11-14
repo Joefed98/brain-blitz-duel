@@ -375,12 +375,15 @@ for (const [who, n, shows] of [
   await settle(80);
   const header = $("[data-app-header]");
   const children = header ? [...header.children].map((c) => (c as unknown as HTMLElement).className || c.tagName) : [];
-  if (shows) check(!!header?.querySelector(".ap-header-tools [data-coin-counter]"), `header, ${who}: the counter beside the sound button`);
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step: page headers show only the
+  // avatar and the title, the wordmark and the sound controls gone; the counter keeps its place on the right).
+  if (shows) check(!!header?.querySelector(".ap-header-tools [data-coin-counter]"), `header, ${who}: the counter on the header's right`);
   else
     check(
-      !!header && header.children.length === 2 && !header.querySelector(".ap-header-tools, [data-coin-counter]"),
-      `header, ${who}: the old markup, the wordmark and the sound button only (${children.join(" | ")})`,
+      !!header && header.children.length === 1 && !header.querySelector(".ap-header-tools, [data-coin-counter]"),
+      `header, ${who}: the avatar and title only, no counter (${children.join(" | ")})`,
     );
+  check(!!header && !header.querySelector("[data-sound-controls], .ap-wordmark-text"), `header, ${who}: no wordmark or sound controls`);
   act(() => root.unmount());
 }
 

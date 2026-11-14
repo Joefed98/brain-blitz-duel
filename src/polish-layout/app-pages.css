@@ -223,13 +223,11 @@
   justify-content: space-between;
   gap: 12px;
 }
+/* The section titles not yet in a SectionHeader (they share a line with a page's own control) take its Heading role. */
 .ap-section-title {
   text-transform: none;
-  letter-spacing: -0.01em;
-  font-size: 18px;
-  font-weight: 750;
-  font-stretch: 110%;
-  line-height: 1.2;
+  letter-spacing: 0;
+  font: var(--jz-type-heading);
   color: var(--ap-text);
   white-space: nowrap;
 }

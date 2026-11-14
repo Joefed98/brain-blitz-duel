@@ -13,6 +13,7 @@ import type { TierId } from "@/lib/data/ratings";
 import { SEASON_TIER_NAMES } from "@/lib/seasons/rules";
 import { useMySeasons } from "@/lib/seasons/seasonsApi";
 import type { SeasonHistoryEntry } from "@/lib/seasons/types";
+import { SectionHeader } from "@/design/components";
 
 type EmblemTier = "spark" | "charge" | "volt" | "surge" | "storm" | "lightning";
 
@@ -53,9 +54,7 @@ export function SeasonSection() {
     <section aria-label="Seasons" data-profile-seasons className="ap-section">
       {peak ? (
         <>
-          <div className="ap-section-head">
-            <h2 className="ap-section-title">Season peak</h2>
-          </div>
+          <SectionHeader title="Season peak" />
           <div className="jz-panel jz-row" data-icon="none" data-season-peak={peak.peak ?? ""}>
             <SeasonEmblem tier={peak.peak!} mark={peak.mark} size={36} />
             <span data-ellipsis className="jz-row-title min-w-0 flex-1">
@@ -69,9 +68,7 @@ export function SeasonSection() {
       ) : null}
       {history.length ? (
         <>
-          <div className="ap-section-head">
-            <h2 className="ap-section-title">Season history</h2>
-          </div>
+          <SectionHeader title="Season history" />
           <ul className="jz-panel" data-season-history={history.length}>
             {history.map((h, i) => (
               <li key={`${h.season}:${h.grantedAt}:${i}`} className="jz-row" data-icon="none" data-season-entry={h.season}>

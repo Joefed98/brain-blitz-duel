@@ -10,7 +10,7 @@ import {
   type PublicGame,
 } from "@/lib/publicSchedule";
 import { pageHidden } from "@/lib/battery";
-import { Button, Icon, LiveTag } from "@/design/components";
+import { Button, Icon, LiveTag, SectionHeader } from "@/design/components";
 
 /** "Sat 24 Oct, 7:00 pm UK" (UK time). */
 export function publicGameWhen(game: PublicGame): string {
@@ -204,10 +204,14 @@ export function PublicGameCard({
 }) {
   return (
     <section aria-label={heading} className="ap-section">
-      <div className="ap-section-head">
-        <h2 className="ap-section-title">{heading}</h2>
-        {link}
-      </div>
+      <SectionHeader
+        title={<>{heading}</>}
+        right={
+          <>
+            {link}
+          </>
+        }
+      />
       <div className="jz-panel overflow-hidden">
         <PublicGameNext game={game} now={now} onJoin={onJoin} />
       </div>
