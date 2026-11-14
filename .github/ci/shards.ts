@@ -94,22 +94,27 @@ export const SHARDS: Record<string, string[]> = {
   // on CI, and every expansion makes the arcade games heavier. @1/3 here, @2/3 on play7, @3/3 on play8.
   // app-shell-check (18 Oct 2026: the four tabs, icons and the public-games card in the real app plus room screens
   // in the harness, ~2 min with its dev server) rides here too.
-  play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts", "demo-intro-check.ts@6/6"],
+  // Changed with Joe's approval, 14 Nov 2026: theme-check's third part (see play16).
+  play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts", "demo-intro-check.ts@6/6", "theme-check.tsx@3/3"],
   // The page skin (19 Oct 2026): theme-check and no-wrap-check's draws (the daily screens joined 21 Oct 2026: locally
   // theme-check ~2 min, no-wrap-check ~4 min whole). no-wrap-check in sixths since 4 Nov 2026: its thirds reached 281–300 s
   // on CI against the 300 s limit per check (#261's play17); two sixths here, four on play17, the same two jobs.
   // Changed with Joe's approval, 13 Nov 2026: theme-check in halves (one identity everywhere: the room screens drawn at
   // every size took it past its 600 s limit locally); part 1 here, part 2 on play17.
-  play16: ["theme-check.tsx@1/2", "no-wrap-check.tsx@1/6", "no-wrap-check.tsx@2/6"],
+  // Changed with Joe's approval, 14 Nov 2026: theme-check in thirds (its halves reached 463 s and 411 s against 480 s on
+  // CI): part 1 here, part 2 on play17, part 3 on play15 (the lightest browser job, 277 s on the 13 Nov Full suite).
+  play16: ["theme-check.tsx@1/3", "no-wrap-check.tsx@1/6", "no-wrap-check.tsx@2/6"],
   // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
   // harness, ~1 min with its dev server) rides with no-wrap's other four sixths.
-  play17: ["theme-check.tsx@2/2", "no-wrap-check.tsx@3/6", "no-wrap-check.tsx@4/6", "no-wrap-check.tsx@5/6", "no-wrap-check.tsx@6/6", "share-check.ts"],
+  play17: ["theme-check.tsx@2/3", "no-wrap-check.tsx@3/6", "no-wrap-check.tsx@4/6", "no-wrap-check.tsx@5/6", "no-wrap-check.tsx@6/6", "share-check.ts"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
   // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
   // against the 300 s limit per check and timed out often; four sixths here, the fifth on play19 in the third's place,
   // the sixth on play15 (the lightest play job, ~7 min).
-  play18: ["demo-intro-check.ts@1/6", "demo-intro-check.ts@2/6", "demo-intro-check.ts@3/6", "demo-intro-check.ts@4/6"],
+  // room-e2e-check (14 Nov 2026, Security C1a, ~3 min with its dev server): two phones on the real app get each round's
+  // puzzle only from its intro; here beside demo-intro's four sixths (286 s on the 13 Nov Full suite).
+  play18: ["demo-intro-check.ts@1/6", "demo-intro-check.ts@2/6", "demo-intro-check.ts@3/6", "demo-intro-check.ts@4/6", "room-e2e-check.ts"],
   play19: ["demo-intro-check.ts@5/6", "replay-board-check.ts", "arcade-device-bottom-check.ts@4/8"],
   // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
   // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
@@ -339,6 +344,10 @@ export const SHARDS: Record<string, string[]> = {
     // security-trials-check (13 Nov 2026, ~10 s): the report-only content security policy and its /csp-report table,
     // the arcade wall-clock log, Tally's keyed reference and the runbook worker, beside the other SQL checks.
     "security-trials-check.ts",
+    // room-start-check and round-release-check (14 Nov 2026, Security C1a, ~10 s each): the deal claim and the one-transaction
+    // start; rounds released one at a time from each intro; on a local PostgreSQL, beside the other SQL checks.
+    "room-start-check.ts",
+    "round-release-check.ts",
     // economy-check (wave 2 A1, 10 Nov 2026, ~8 s): coins and items (the catalogue against catalogue.json, the coin
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.

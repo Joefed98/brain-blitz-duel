@@ -281,22 +281,27 @@ check(
 );
 const start = slice("export const startRoomFn", "export const setRoomModesFn");
 check(
-  /if \(claimed\) \{[\s\S]*writePrivatePuzzles\([\s\S]*recordRoomEvent\(client, \{[\s\S]*event: "game_started",\s*at: startedAt,/.test(
+  // Changed with Joe's approval, 13 Nov 2026: the start is one transaction now (startDealtRoom, Security C1a's room claiming), so the private halves are written inside it.
+  /startDealtRoom\([\s\S]*if \(dealt\) \{[\s\S]*recordRoomEvent\(client, \{[\s\S]*event: "game_started",\s*at: startedAt,/.test(
     start,
   ),
   "wiring: the host's claimed start records game_started at the stored start stamp",
 );
 check(
-  /if \(claimed\) \{[\s\S]*writePrivatePuzzles\([\s\S]*if \(error\) throw[\s\S]*await recordRoundRecords\(\s*client,\s*room\.id,\s*roundRecords\(puzzles[\s\S]*puzzleTimeLimitMs\(/.test(
+  // Changed with Joe's approval, 13 Nov 2026: the start is one transaction now (startDealtRoom, Security C1a's room claiming), so the private halves are written inside it.
+  /startDealtRoom\([\s\S]*if \(dealt\) \{[\s\S]*await recordRoundRecords\(\s*client,\s*room\.id,\s*roundRecords\(puzzles[\s\S]*puzzleTimeLimitMs\(/.test(
     start,
   ),
-  "wiring: the claimed start stores every dealt round's record (puzzleTimeLimitMs, as practice) after the secrets",
+  // Changed with Joe's approval, 13 Nov 2026: the label names the one-transaction start (same reason).
+  "wiring: the claimed start stores every dealt round's record (puzzleTimeLimitMs, as practice) after the one-transaction start",
 );
 check(
-  /export async function writePrivatePuzzles\([\s\S]*?client\.from\("duel_secrets"\)\.upsert\(/.test(
+  // Changed with Joe's approval, 13 Nov 2026: writePrivatePuzzles has no callers left; the private halves are written by the start RPC (Security C1a).
+  /export async function startDealtRoom\([\s\S]*?client\.rpc\("start_dealt_room"/.test(
     readFileSync("src/lib/data/rooms.server.ts", "utf8"),
   ),
-  "wiring: writePrivatePuzzles is the duel_secrets upsert (src/lib/data/rooms.server.ts)",
+  // Changed with Joe's approval, 13 Nov 2026: the label names the one-transaction start (same reason).
+  "wiring: startDealtRoom is the one-transaction start (src/lib/data/rooms.server.ts)",
 );
 const leave = slice("export const leaveRoomFn", "export const disbandRoomFn");
 const disband = slice("export const disbandRoomFn", "export const checkHostPresenceFn");

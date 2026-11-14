@@ -19,7 +19,7 @@ import { ukDayKey, ukDayWindow } from "@/lib/duel/daily";
 import type { PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { asJson, UNIQUE_VIOLATION, type Db, type Json } from "@/lib/data/db.server";
 import { recordEvents } from "@/lib/data/events.server";
-import { claimRoomStart, insertRoom, readRoom, writePrivatePuzzles } from "@/lib/data/rooms.server";
+import { insertRoom, readDealOrigins, readRoom, startDealtRoom } from "@/lib/data/rooms.server";
 import { readPlayers } from "@/lib/data/players.server";
 import { readRoomResults } from "@/lib/data/results.server";
 import {
@@ -63,6 +63,8 @@ import {
   writeProgress,
   writeQueueEntry,
   writeRematchAccept,
+  readOwnAsyncRooms,
+  readSeenDealOrigins,
   type RatedMatchPlayerRow,
   type RatedMatchRow,
   type RatedQueueRow,
@@ -211,6 +213,10 @@ interface SourceRun {
   candidate: RecordedCandidate;
   ownerName: string;
   rounds: SourceRound[];
+  /** The room whose deal the run played (rated and room runs); its deal origin is never one the viewer has played. */
+  dealRoom?: string;
+  /** The Daily the run played (Daily runs); never one the viewer has an attempt in. */
+  dailyRoom?: string;
 }
 
 /* ------------------------------------------------------------------ helpers */
@@ -440,7 +446,7 @@ interface NewRoomPlayer {
 /** An ordinary room, already started, holding exactly these puzzles and players (the rooms engine runs it from here). */
 async function createStartedRoom(
   client: Db,
-  input: { players: NewRoomPlayer[]; puzzles: PuzzleData[]; picks: readonly RoomPick[] },
+  input: { players: NewRoomPlayer[]; puzzles: PuzzleData[]; picks: readonly RoomPick[]; dealOrigin?: string | null },
   nowMs: number,
 ): Promise<{ id: string; code: string }> {
   const startedAt = nowIso(nowMs);
@@ -457,6 +463,8 @@ async function createStartedRoom(
       selected_categories: encodeRoomSettings({ picks: [...input.picks], rounds: roundOrder.length }),
       puzzles_public: [],
       current_round: 0,
+      // Claimed from the start (no host taps Start): start_dealt_room below takes this exact claim.
+      start_claimed_at: startedAt,
     });
     if (error) {
       if (error.code === UNIQUE_VIOLATION) continue;
@@ -475,18 +483,18 @@ async function createStartedRoom(
         status: "active",
       });
     }
-    await claimRoomStart(client, room.id, {
-      round_order: roundOrder,
-      round_count: roundOrder.length,
-      puzzles_public: asJson(split.map((s) => s.pub)),
-      status: "in_progress",
-      current_round: 1,
-      phase: "starting",
-      phase_started_at: startedAt,
-      round_started_at: startedAt,
+    // One transaction (Security C1a): the room, the private halves and the held public halves, released round by round.
+    const { data: outcome, error: startError } = await startDealtRoom(client, {
+      roomId: room.id,
+      claim: startedAt,
+      roundOrder,
+      puzzlesPublic: asJson(split.map((s) => s.pub)),
+      puzzlesPrivate: asJson(split.map((s) => s.priv)),
+      startedAt,
+      minPlayers: input.players.length,
+      dealOrigin: input.dealOrigin ?? null,
     });
-    const { error: privError } = await writePrivatePuzzles(client, room.id, asJson(split.map((s) => s.priv)));
-    if (privError) throw new Error("Couldn’t set up the match. Give it another go.");
+    if (startError || outcome !== "started") throw new Error("Couldn’t set up the match. Give it another go.");
     const { recordRoundRecords, roundRecords } = await import("@/lib/duel/betaRecord.server");
     await recordRoundRecords(
       client,
@@ -576,6 +584,7 @@ async function ratedRunCandidates(client: Db, me: QueueEntry, sinceIso: string):
       ownerName: "",
       // The rounds (the deals) are read only for the chosen run (sourceRounds).
       rounds: [],
+      dealRoom: run.duel_id,
     });
   }
   return out;
@@ -635,7 +644,7 @@ async function fallbackCandidates(client: Db, me: QueueEntry, sinceIso: string):
         rounds,
         me,
       );
-      if (run) out.push(run);
+      if (run) out.push({ ...run, dealRoom: roomId });
     }
   }
   const { data: attemptIds } = await readFinishedDailyAttemptIds(client, sinceIso, FALLBACK_SCAN);
@@ -663,7 +672,7 @@ async function fallbackCandidates(client: Db, me: QueueEntry, sinceIso: string):
       rounds,
       me,
     );
-    if (run) out.push(run);
+    if (run) out.push({ ...run, dailyRoom: src.room.id });
   }
   out.push(...(await practiceCandidates(client, me, sinceIso)));
   return out;
@@ -743,6 +752,26 @@ async function ratedRunRounds(client: Db, key: string, me: QueueEntry): Promise<
   return { rounds, ownerName };
 }
 
+/**
+ * Which of `pool` the viewer may be served: a rated or room run only when its room's deal origin is none the viewer has
+ * played (mm_seen_deal_origins: every room they sat in, Play again's games included), a Daily run only when the viewer
+ * has no attempt in that Daily. Practice runs are only ever their owner's own deals.
+ */
+async function unseenDeals(client: Db, viewerId: string, pool: readonly SourceRun[]): Promise<(run: SourceRun) => boolean> {
+  const rooms = [...new Set(pool.map((r) => r.dealRoom).filter((id): id is string => !!id))];
+  const dailies = [...new Set(pool.map((r) => r.dailyRoom).filter((id): id is string => !!id))];
+  const [{ data: seen }, { data: origins }, { data: myDailies }] = await Promise.all([
+    readSeenDealOrigins(client, viewerId),
+    readDealOrigins(client, rooms),
+    readOwnAsyncRooms(client, viewerId, dailies),
+  ]);
+  return (run) => {
+    if (run.dealRoom && seen.has(origins.get(run.dealRoom) ?? run.dealRoom)) return false;
+    if (run.dailyRoom && myDailies.has(run.dailyRoom)) return false;
+    return true;
+  };
+}
+
 /** A recorded match for `me`: the chosen run's deals copied into a new room. False: nothing fits yet. */
 export async function makeRecordedMatch(client: Db, me: QueueEntry, nowMs: number): Promise<boolean> {
   const sinceIso = nowIso(nowMs - RECORDED_WINDOW_MS);
@@ -765,8 +794,11 @@ export async function makeRecordedMatch(client: Db, me: QueueEntry, nowMs: numbe
   // Never a run of an account whose deletion was asked for (hidden at once; accounts.forget_user removes its stored
   // runs after 30 days, the mm_forget_removed_user trigger), nor a room or Daily row already forgotten.
   const { data: deleting } = await readDeletionRequested(client, [...new Set(pool.map((r) => r.candidate.ownerId))]);
+  // Never a run from a deal the viewer has played (Joe, 13 Nov 2026): a room they sat in, any room copied from one, or
+  // a Daily they have an attempt in.
+  const unseen = await unseenDeals(client, me.userId, pool);
   const candidates = pool
-    .filter((r) => !deleting?.has(r.candidate.ownerId) && !DELETED_NAMES.has(r.ownerName))
+    .filter((r) => !deleting?.has(r.candidate.ownerId) && !DELETED_NAMES.has(r.ownerName) && unseen(r))
     .map((r) => r.candidate);
   const picked = chooseRecordedRun(candidates, ctx, backend.startingRating);
   if (!picked) return false;
@@ -795,7 +827,13 @@ export async function makeRecordedMatch(client: Db, me: QueueEntry, nowMs: numbe
       ? (run.candidate.games as StoredRecordedGame[])
       : rounds.map((r) => toRecordedGame(r, true));
   const stored: StoredRecorded = { ownerName: owner.name, ownerGuest: owner.guest, games, looks: rounds.map((r) => r.look) };
-  const room = await createStartedRoom(client, { players: [{ userId: me.userId, slot: 1 }], puzzles: rounds.map((r) => r.puzzle), picks: matchSettings(me.format, me.choice).picks }, nowMs);
+  // The copy plays its source room's deal: it carries that room's origin, so nobody who played the deal meets it again.
+  const origin = run.dealRoom ? ((await readDealOrigins(client, [run.dealRoom])).data.get(run.dealRoom) ?? run.dealRoom) : null;
+  const room = await createStartedRoom(
+    client,
+    { players: [{ userId: me.userId, slot: 1 }], puzzles: rounds.map((r) => r.puzzle), picks: matchSettings(me.format, me.choice).picks, dealOrigin: origin },
+    nowMs,
+  );
   const { error } = await insertRatedMatch(client, {
     id: matchId,
     format: me.format,

@@ -497,6 +497,13 @@ export interface DuelRow {
    * 20261106120000_room_scoring_mode.sql is applied; read through roomScoringMode (missing = 'total').
    */
   scoring_mode?: string | null;
+  /**
+   * The host's deal claim (Security C1a, 20261117500000_room_start_claim.sql): set while the rounds are being dealt;
+   * fresh for DEAL_CLAIM_MS (dealClaim.ts). Missing on a database without the migration.
+   */
+  start_claimed_at?: string | null;
+  /** The room whose deal this room plays (itself, or a recorded match's source room); server reads only. */
+  deal_origin_id?: string | null;
 }
 
 export type PlayerStatus = "active" | "inactive" | "left";

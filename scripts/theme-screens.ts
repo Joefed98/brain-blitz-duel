@@ -85,6 +85,8 @@ interface RoomOpts {
   scoring?: "total" | "placings";
   /** Each stored round score (unset: the default spread). */
   scores?: (slot: number, round: number) => number;
+  /** The host's Start has claimed the room: its rounds are being dealt (Security C1a, dealClaim.ts). */
+  dealing?: boolean;
 }
 
 function roomNow(status: Status, phase: string, opts: RoomOpts) {
@@ -152,6 +154,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
       round_started_at: iso(now + 500),
       next_duel_id: null,
       created_at: iso(now - 60_000),
+      ...(opts.dealing ? { start_claimed_at: iso(now) } : {}),
     },
     players,
     results: scored
@@ -620,6 +623,15 @@ function withdrawnItems(): ReadonlySet<string> {
  * line, and the dropout banner's countdowns (Finish now at 45 s in an ordinary room; a rated room's grace), from
  * scripts/rated-fixture.tsx. Appended last, so every earlier screen keeps its place in the parts.
  */
+/**
+ * Security C1a (14 Nov 2026): the lobby while the host's Start deals the rounds ("Dealing", Start and Room settings
+ * waiting), as the host and as a guest sees it. Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const SECURITY_C1A_SCREENS = (): ThemeScreen[] => [
+  { name: "lobby, dealing the rounds (host)", mode: "room", room: room("waiting", "starting", { players: 3, dealing: true }), sizes: ALL_SIZES },
+  { name: "lobby, dealing the rounds (guest)", mode: "room", room: room("waiting", "starting", { host: "u2", players: 3, dealing: true }), sizes: ALL_SIZES },
+];
+
 export const SECURITY_A_SCREENS = (): ThemeScreen[] => [
   ...(["home-cooldown", "aborted-you-left", "dropout-countdown", "dropout-rated"] as const).map((screen) => ({
     name: `rated, ${screen.replaceAll("-", " ")}`,
@@ -889,6 +901,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...PASS_SCREENS(),
   ...SECURITY_A_SCREENS(),
   ...ROOM_IDENTITY_SCREENS(),
+  ...SECURITY_C1A_SCREENS(),
 ];
 
 export interface ThemeViewport {

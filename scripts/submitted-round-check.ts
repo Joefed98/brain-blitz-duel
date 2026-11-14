@@ -184,7 +184,8 @@ try {
   check(started.ok === true, `the host starts the room (${JSON.stringify(started)})`);
   check(
     q(`SELECT round_count FROM public.duels WHERE id = '${roomId}'`) === String(MAX_ROUNDS) &&
-      q(`SELECT jsonb_array_length(puzzles_public) FROM public.duels WHERE id = '${roomId}'`) ===
+      // Changed with Joe's approval, 13 Nov 2026: the dealt rounds counted in the server's held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+      q(`SELECT jsonb_array_length(puzzles_public) FROM public.duel_secrets WHERE duel_id = '${roomId}'`) ===
         String(MAX_ROUNDS),
     `the room is dealt ${MAX_ROUNDS} rounds`,
   );

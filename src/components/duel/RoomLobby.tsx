@@ -49,6 +49,8 @@ interface RoomLobbyProps {
   meUserId: string;
   isHost: boolean;
   starting: boolean;
+  /** The rounds are being dealt (a fresh deal claim, dealClaim.ts): Start reads "Dealing", settings wait. */
+  dealing?: boolean;
   onStart: () => void;
   onRemove: (slot: number) => void;
   /** Host only: mute or unmute a player's chat and reactions for everyone. */
@@ -221,6 +223,7 @@ export function RoomLobby({
   meUserId,
   isHost,
   starting,
+  dealing = false,
   onStart,
   onRemove,
   onMuteForEveryone,
@@ -308,6 +311,7 @@ export function RoomLobby({
           <Button
             variant="secondary"
             data-room-settings
+            disabled={dealing}
             onClick={() => setSettingsOpen(true)}
           >
             Room settings
@@ -492,13 +496,19 @@ export function RoomLobby({
           are in the header's "⋯" menu. */}
       <RoomFooter className="mt-auto">
         {isHost ? (
-          canStart || starting ? (
+          canStart || starting || dealing ? (
             <Button
               variant="gold"
               onClick={onStart}
-              disabled={starting}
+              disabled={starting || dealing}
+              data-lobby-dealing={dealing || undefined}
             >
-              {starting ? (
+              {dealing ? (
+                <>
+                  <span>Dealing</span>
+                  <Dots className="bg-primary-foreground" />
+                </>
+              ) : starting ? (
                 <>
                   <span>Starting</span>
                   <Dots className="bg-primary-foreground" />
@@ -516,7 +526,7 @@ export function RoomLobby({
         ) : (
           <WaitingLine
             className="rs-status"
-            label={hostName ? `Waiting for ${hostName} (host) to start` : "Waiting for the host to start"}
+            label={dealing ? "Dealing" : hostName ? `Waiting for ${hostName} (host) to start` : "Waiting for the host to start"}
           />
         )}
       </RoomFooter>

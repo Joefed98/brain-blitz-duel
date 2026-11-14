@@ -86,6 +86,18 @@ const F1 = uid(16); // flagged by the server's replay
 const F2 = uid(17);
 const H1 = uid(18); // head to head
 const H2 = uid(19);
+// Recorded runs never from a deal the player has played (Joe, 13 Nov 2026; Security C1a): Rm's players, a copy's viewer,
+// a player from before Play again, two Daily players, and controls who never played those deals.
+const SEEN1 = uid(140); // hosts room Rm
+const SEEN2 = uid(141); // sat in Rm
+const FRESH1 = uid(142); // never in Rm: a control, then the copy's player
+const FRESH2 = uid(143); // never in Rm or its copy: a control
+const PA1 = uid(144); // hosts room Rp through Play again
+const PA2 = uid(145); // in Rp's first game only (left before Play again)
+const PA3 = uid(146); // in Rp's second game
+const DAY1 = uid(147); // a Daily attempt, the run
+const DAY2 = uid(148); // a Daily attempt in the same Daily
+const DAY3 = uid(149); // no attempt: a control
 // Leaving a match (Joe, 12 Nov 2026): fresh pairs, so W3a's same-opponent rule never freezes them.
 const LV = Array.from({ length: 18 }, (_, i) => uid(40 + i));
 
@@ -217,7 +229,8 @@ async function runAll(db: LocalDb): Promise<void> {
     const pBo = await rated.pollQueue(client, BO, T0 + 4_200);
     check(pBo.state === "found" && pBo.match.matchId === liveMatchId, "the partner finds the same match");
     check(q(`SELECT count(*) FROM public.mm_matches`) === "1" && q(`SELECT count(*) FROM public.mm_queue`) === "0", "one match; both searches cleared");
-    const room = q(`SELECT status || ',' || phase || ',' || round_count || ',' || jsonb_array_length(puzzles_public) FROM public.duels WHERE id = '${liveRoomId}'`);
+    // Changed with Joe's approval, 13 Nov 2026: the dealt games counted in the server's held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+    const room = q(`SELECT d.status || ',' || d.phase || ',' || d.round_count || ',' || jsonb_array_length(s.puzzles_public) FROM public.duels d JOIN public.duel_secrets s ON s.duel_id = d.id WHERE d.id = '${liveRoomId}'`);
     check(room === "in_progress,starting,3,3", `an ordinary room, already started, three games (${room})`);
     const seated = q(`SELECT string_agg(user_id::text || ':' || player_slot, ',' ORDER BY player_slot) FROM public.duel_players WHERE duel_id = '${liveRoomId}'`);
     check(seated === `${ALI}:1,${BO}:2`, "both players seated in the one room (the same deals)");
@@ -233,7 +246,8 @@ async function runAll(db: LocalDb): Promise<void> {
 
   await section("live score and the hidden finish", async () => {
     if (!liveRoomId) return;
-    const pub = JSON.parse(q(`SELECT puzzles_public->0 FROM public.duels WHERE id = '${liveRoomId}'`));
+    // Changed with Joe's approval, 13 Nov 2026: game 1's public half from the server's held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+    const pub = JSON.parse(q(`SELECT puzzles_public->0 FROM public.duel_secrets WHERE duel_id = '${liveRoomId}'`));
     const limit = puzzleTimeLimitMs(pub);
     const at = (ms: number) => new Date(Date.now() - ms).toISOString();
     q(`UPDATE public.duels SET phase = 'puzzle', phase_started_at = '${at(5_000)}' WHERE id = '${liveRoomId}'`);
@@ -325,7 +339,8 @@ async function runAll(db: LocalDb): Promise<void> {
     check(m.recorded !== null && m.recorded.ownerId !== CY && /^Recorded run · /.test(m.recorded.label), `labelled with its real age, never one's own (${m.recorded?.label})`);
     const key = q(`SELECT recorded_key FROM public.mm_matches WHERE id = '${m.matchId}'`);
     const src = q(`SELECT duel_id FROM public.mm_runs WHERE key = '${key}'`);
-    const same = q(`SELECT (a.puzzles_public = b.puzzles_public)::text || ',' || (sa.puzzles_private = sb.puzzles_private)::text FROM public.duels a, public.duels b, public.duel_secrets sa, public.duel_secrets sb
+    // Changed with Joe's approval, 13 Nov 2026: the new match room's public halves from its held copy (the finished source room's are on its row): a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+    const same = q(`SELECT (sa.puzzles_public = b.puzzles_public)::text || ',' || (sa.puzzles_private = sb.puzzles_private)::text FROM public.duels a, public.duels b, public.duel_secrets sa, public.duel_secrets sb
        WHERE a.id = '${m.roomId}' AND b.id = '${src}' AND sa.duel_id = a.id AND sb.duel_id = b.id`);
     check(same === "true,true", "the live player is dealt exactly the recorded run's games and deals");
     check(q(`SELECT count(*) FROM public.mm_run_uses WHERE run_key = '${key}'`) === "1", "the use is counted");
@@ -385,7 +400,8 @@ async function runAll(db: LocalDb): Promise<void> {
     check(q(`SELECT recorded_source FROM public.mm_matches WHERE id = '${found.match.matchId}'`) === "practice" && found.match.recorded?.ownerId === PRA, "its source is practice and its owner the player who played it");
     const { splitPuzzle } = await import("../src/lib/duel/secrets");
     const dealsByType = new Map((JSON.parse(q(`SELECT jsonb_agg(puzzle) FROM public.mm_practice_deals WHERE user_id = '${PRA}'`)) as { type: string }[]).map((p) => [p.type, p]));
-    const roomPubs = JSON.parse(q(`SELECT puzzles_public FROM public.duels WHERE id = '${found.match.roomId}'`)) as { type: string }[];
+    // Changed with Joe's approval, 13 Nov 2026: the match room's public halves from its held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+    const roomPubs = JSON.parse(q(`SELECT puzzles_public FROM public.duel_secrets WHERE duel_id = '${found.match.roomId}'`)) as { type: string }[];
     check(roomPubs.length === 3 && roomPubs.every((p) => JSON.stringify(p) === JSON.stringify(splitPuzzle(dealsByType.get(p.type) as never).pub)), "the live player is dealt exactly the practice plays' puzzles");
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${found.match.roomId}'`);
     const s = await rated.settleMatch(client, found.match.matchId, Date.now());
@@ -410,8 +426,9 @@ async function runAll(db: LocalDb): Promise<void> {
     if (fb.state === "found") {
       const fbKey = q(`SELECT recorded_key FROM public.mm_matches WHERE id = '${fb.match.matchId}'`);
       check(/^room:/.test(fbKey), `the fallback is a room run (${fbKey})`);
+      // Changed with Joe's approval, 13 Nov 2026: the fallback match room's public halves from its held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a). (line 2 of this query)
       const firstThree = q(`SELECT (a.puzzles_public = (SELECT jsonb_agg(e ORDER BY i) FROM jsonb_array_elements(b.puzzles_public) WITH ORDINALITY AS x(e, i) WHERE i <= 3))::text
-         FROM public.duels a, public.duels b WHERE a.id = '${fb.match.roomId}' AND b.id = '${made.roomId}'`);
+         FROM public.duel_secrets a, public.duels b WHERE a.duel_id = '${fb.match.roomId}' AND b.id = '${made.roomId}'`);
       check(firstThree === "true", "the fallback deals exactly the room's first three games");
       // Chat in a rated room: an under-18 picks quick phrases only.
       const free = await call(chat.sendRoomMessageFn, { roomId: fb.match.roomId, text: "add me on insta" }, userToken(KID));
@@ -923,5 +940,129 @@ async function runAll(db: LocalDb): Promise<void> {
     check(count("queue_joined", ` AND props->>'format' = 'bo3' AND props->>'choice' = 'mixed'`) >= 2, "queue_joined (format, choice)");
     check(count("match_found", ` AND props->>'kind' = 'live' AND (props->>'waited_s')::numeric >= 4`) >= 1 && count("match_found", ` AND props->>'kind' = 'recorded'`) >= 1, "match_found (live or recorded, seconds waited)");
     check(count("rematch_requested") === 2 && count("rematch_accepted") === 1, "rematch_requested twice, rematch_accepted once");
+  });
+
+  // Joe, 13 Nov 2026 (Security C1a): a player is never served a recorded run from a deal they have played: a room they sat
+  // in (any game of it, Play again included), any room copied from one, or a Daily they have an attempt in. All arcade,
+  // a choice no run above fits, so each queue sees only the runs made here.
+  await section("recorded runs never from a deal the player played", async () => {
+    const people = [SEEN1, SEEN2, FRESH1, FRESH2, PA1, PA2, PA3, DAY1, DAY2, DAY3];
+    q(`INSERT INTO auth.users (id) VALUES ${people.map((u) => `('${u}')`).join(", ")}`);
+    q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
+      ${people.map((u, i) => profile(u, `Seen_${i}`, 40 + i, "1990-01-01")).join(", ")}`);
+    q(`INSERT INTO shop.testers (user_id, note) SELECT u, 'rated-server-check' FROM unnest(ARRAY[${people.map((u) => `'${u}'`).join(",")}]::uuid[]) AS u ON CONFLICT DO NOTHING`);
+    for (const u of people) RATING[u] = 1000;
+    q(`DELETE FROM public.mm_run_uses`);
+    q(`DELETE FROM public.mm_queue`);
+    /** One poll at 8 s for `viewer` (All arcade): the recorded key served, or "none". */
+    const served = async (viewer: string): Promise<{ key: string; roomId: string | null; matchId: string | null }> => {
+      const t = Date.now();
+      await rated.settleOpenMatches(client, viewer, t);
+      await rated.joinQueue(client, viewer, { format: "bo3", choice: "arcade" }, t);
+      const found = await rated.pollQueue(client, viewer, t + 8_000);
+      if (found.state !== "found") {
+        await rated.leaveQueue(client, viewer);
+        return { key: "none", roomId: null, matchId: null };
+      }
+      return { key: q(`SELECT coalesce(recorded_key, 'live') FROM public.mm_matches WHERE id = '${found.match.matchId}'`), roomId: found.match.roomId, matchId: found.match.matchId };
+    };
+    /** Finishes a match's room with `slot`'s results and settles it (its run joins the pool). */
+    const finishMatch = async (m: { roomId: string | null; matchId: string | null }, slot: number) => {
+      q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer)
+         SELECT '${m.roomId}', ${slot}, r, 90 + r, 1500, true, 'x' FROM generate_series(1, 3) r`);
+      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${m.roomId}'`);
+      await rated.settleMatch(client, m.matchId!, Date.now());
+    };
+    /** An ordinary room of `host` and `guest`, Retro only, 3 rounds, both seats' results stored, finished. */
+    const finishedRoom = async (host: string, guest: string) => {
+      const made = await call(duel.createRoomFn, { displayName: "Host" }, userToken(host));
+      await call(duel.joinRoomFn, { roomCode: made.roomCode, displayName: "Guest" }, userToken(guest));
+      await call(duel.setRoomSettingsFn, { roomId: made.roomId, picks: ["retro"], rounds: 3 }, userToken(host));
+      const started = await call(duel.startRoomFn, { roomId: made.roomId }, userToken(host));
+      q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer)
+         SELECT '${made.roomId}', s, r, 100 + r, 1500, true, 'x' FROM generate_series(1, 2) s, generate_series(1, 3) r`);
+      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${made.roomId}'`);
+      return { roomId: made.roomId as string, roomCode: made.roomCode as string, started: started.ok === true };
+    };
+
+    // A Daily (three arcade rounds from a dealt room's puzzles) with DAY1's and DAY2's finished attempts.
+    const donor = await finishedRoom(PA1, PA3);
+    q(`DELETE FROM public.round_results WHERE duel_id = '${donor.roomId}'`);
+    const DAILY = "00000000-0000-4000-9000-000000000001";
+    q(`INSERT INTO public.async_rooms (id, kind, room_key, day, seed, round_order, round_count, puzzles_public, opens_at, closes_at)
+       SELECT '${DAILY}', 'daily_arcade', 'daily_arcade:check', current_date, 1, d.round_order, 3, d.puzzles_public, now() - interval '2 hours', now() - interval '1 hour'
+         FROM public.duels d WHERE d.id = '${donor.roomId}'`);
+    q(`INSERT INTO public.async_room_secrets (room_id, puzzles_private) SELECT '${DAILY}', s.puzzles_private FROM public.duel_secrets s WHERE s.duel_id = '${donor.roomId}'`);
+    for (const [who, n] of [[DAY1, 1], [DAY2, 2]] as const) {
+      const attempt = `00000000-0000-4000-9000-00000000010${n}`;
+      q(`INSERT INTO public.async_attempts (id, room_id, user_id, display_name, started_at, finished_at, rounds_done, total_score)
+         VALUES ('${attempt}', '${DAILY}', '${who}', 'Day${n}', now() - interval '90 minutes', now() - interval '80 minutes', 3, 300)`);
+      q(`INSERT INTO public.async_results (attempt_id, room_id, user_id, round_number, score, answered, ms_remaining, started_at)
+         SELECT '${attempt}', '${DAILY}', '${who}', r, 100, true, 1500, now() - interval '85 minutes' FROM generate_series(1, 3) r`);
+    }
+    // The donor room's seats (PA1, PA3) played the same deal; Rp below is a different room. Clear the donor's results so
+    // only the Daily's attempts are runs for this first step.
+    const day2 = await served(DAY2);
+    check(day2.key !== "daily:00000000-0000-4000-9000-000000000101", `a player with an attempt in a Daily is never served another attempt at it (${day2.key})`);
+    if (day2.matchId) await finishMatch(day2, 1);
+    q(`DELETE FROM public.mm_run_uses`);
+    const day3 = await served(DAY3);
+    check(/^daily:/.test(day3.key), `control: a player with no attempt in that Daily is served it (${day3.key})`);
+    if (day3.matchId) await finishMatch(day3, 1);
+    q(`DELETE FROM public.async_attempts WHERE room_id = '${DAILY}'`);
+    q(`DELETE FROM public.mm_runs WHERE match_id IN (SELECT id FROM public.mm_matches WHERE recorded_key LIKE 'daily:%')`);
+    q(`DELETE FROM public.mm_run_uses`);
+
+    // Room Rm: SEEN1 and SEEN2 sat in it. Neither is served either seat's run; a control who never sat in it is.
+    const rm = await finishedRoom(SEEN1, SEEN2);
+    check(rm.started && q(`SELECT deal_origin_id::text FROM public.duels WHERE id = '${rm.roomId}'`) === rm.roomId, "a room started by its host plays its own deal (deal_origin_id is itself)");
+    for (const viewer of [SEEN1, SEEN2]) {
+      const got = await served(viewer);
+      check(!got.key.startsWith(`room:${rm.roomId}:`), `a player who sat in a room is never served its runs, their own seat or another's (${got.key})`);
+      if (got.matchId) await finishMatch(got, 1);
+    }
+    q(`DELETE FROM public.mm_run_uses`);
+    const control = await served(FRESH1);
+    check(control.key.startsWith(`room:${rm.roomId}:`), `control: a player who never sat in the room is served its run (${control.key})`);
+    // The copy carries Rm's origin, and its live player's run joins the pool when the match settles.
+    check(!!control.roomId && q(`SELECT deal_origin_id::text FROM public.duels WHERE id = '${control.roomId}'`) === rm.roomId, "a recorded match's room carries its source room's deal origin");
+    if (control.matchId) await finishMatch(control, 1);
+    const copyRun = control.matchId ? q(`SELECT count(*) FROM public.mm_runs WHERE match_id = '${control.matchId}'`) : "0";
+    check(copyRun === "1", `the copy's live run is a stored rated run (${copyRun})`);
+    // Every Rm run used up today, so only the copy's run is left to serve: SEEN2 never gets it (two copies removed).
+    q(`DELETE FROM public.mm_run_uses`);
+    q(`INSERT INTO public.mm_run_uses (run_key, viewer_id, match_id, used_at)
+       SELECT 'room:${rm.roomId}:' || s, '${FRESH2}', gen_random_uuid(), now() FROM generate_series(1, 2) s, generate_series(1, 5)`);
+    const copied = await served(SEEN2);
+    check(!copied.key.startsWith(`rated:${control.matchId}:`) && !copied.key.startsWith(`room:${rm.roomId}:`), `a player who sat in a room is never served a run copied from it (${copied.key})`);
+    if (copied.matchId) await finishMatch(copied, 1);
+    const copyControl = await served(FRESH2);
+    check(copyControl.key.startsWith(`rated:${control.matchId}:`), `control: a player who never played the deal is served the copy's run (${copyControl.key})`);
+    if (copyControl.matchId) await finishMatch(copyControl, 1);
+    q(`DELETE FROM public.mm_run_uses`);
+
+    // Room Rp through Play again: PA2 sat in its first game and left; its second game (PA1, PA3) has the runs.
+    const rp = await call(duel.createRoomFn, { displayName: "Host" }, userToken(PA1));
+    await call(duel.joinRoomFn, { roomCode: rp.roomCode, displayName: "Early" }, userToken(PA2));
+    await call(duel.setRoomSettingsFn, { roomId: rp.roomId, picks: ["retro"], rounds: 3 }, userToken(PA1));
+    await call(duel.startRoomFn, { roomId: rp.roomId }, userToken(PA1));
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${rp.roomId}'`);
+    q(`UPDATE public.duel_players SET status = 'left' WHERE duel_id = '${rp.roomId}' AND user_id = '${PA2}'`);
+    const again = await call(duel.rematchFn, { roomId: rp.roomId }, userToken(PA1));
+    await call(duel.joinRoomFn, { roomCode: rp.roomCode, displayName: "Late" }, userToken(PA3));
+    await call(duel.setRoomSettingsFn, { roomId: rp.roomId, picks: ["retro"], rounds: 3 }, userToken(PA1));
+    const second = await call(duel.startRoomFn, { roomId: rp.roomId }, userToken(PA1));
+    q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer)
+       SELECT '${rp.roomId}', p.player_slot, r, 100 + r, 1500, true, 'x' FROM public.duel_players p, generate_series(1, 3) r WHERE p.duel_id = '${rp.roomId}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${rp.roomId}'`);
+    check(again.ok !== false && second.ok === true && q(`SELECT count(*) FROM public.duel_players WHERE duel_id = '${rp.roomId}' AND user_id = '${PA2}'`) === "0",
+      `Play again: the second game is played without the player who left (${JSON.stringify(again)})`);
+    q(`INSERT INTO public.mm_run_uses (run_key, viewer_id, match_id, used_at)
+       SELECT k, '${FRESH2}', gen_random_uuid(), now() FROM (SELECT key AS k FROM public.mm_runs UNION SELECT 'room:${rm.roomId}:' || s FROM generate_series(1, 2) s) x, generate_series(1, 5)`);
+    const early = await served(PA2);
+    check(!early.key.startsWith(`room:${rp.roomId}:`), `a player from a room's game before Play again is never served its later runs (${early.key})`);
+    if (early.matchId) await finishMatch(early, 1);
+    const lateControl = await served(DAY3);
+    check(lateControl.key.startsWith(`room:${rp.roomId}:`), `control: a player who never sat in Rp is served its later run (${lateControl.key})`);
   });
 }

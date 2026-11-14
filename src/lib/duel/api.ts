@@ -7,6 +7,7 @@ import {
   readOwnAnswers,
   readRoomById,
   readRoomByCode,
+  readReleasedRounds,
   readRoomPlayers,
   readRoomResultRows,
 } from "@/lib/data/roomReads";
@@ -40,7 +41,7 @@ import { OwnAnswers, ROOM_RESULT_COLUMNS, type RoomResultRow } from "./roomResul
 import type { LinkRoomState } from "./roomLink";
 import { ensureSession } from "./session";
 import { rememberLook, rememberedLook, type PlayerLook } from "./playerLook";
-import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
+import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow, RoundRevealData } from "./types";
 import type { PuzzleCategory } from "./types";
 import type { RoomSettings } from "./roomSettings";
 import type { ScoringMode } from "./scoringMode";
@@ -63,6 +64,25 @@ export async function fetchDuelById(duelId: string): Promise<DuelRow | null> {
   const { data, error } = await supabaseRead((signal) => readRoomById(supabase, duelId, signal));
   if (error) throw new DuelError(error.message);
   return data ?? null;
+}
+
+/**
+ * The room's released rounds, in order, as far as they run unbroken from round 1 (Security C1a: a new room's rounds are
+ * readable one at a time, from each round's intro). [] when none are, or the read fails (the next phase change asks again).
+ */
+export async function fetchReleasedRounds(duelId: string): Promise<PuzzleData[]> {
+  try {
+    const { data, error } = await supabaseRead((signal) => readReleasedRounds(supabase, duelId, signal));
+    if (error || !data) return [];
+    const out: PuzzleData[] = [];
+    for (const row of [...data].sort((a, b) => a.round_number - b.round_number)) {
+      if (row.round_number !== out.length + 1 || !row.puzzle || typeof row.puzzle !== "object") break;
+      out.push(row.puzzle as PuzzleData);
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchPlayers(duelId: string): Promise<DuelPlayerRow[]> {

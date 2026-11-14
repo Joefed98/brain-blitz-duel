@@ -70,11 +70,13 @@ import {
   type RoundResultRow,
 } from "./types";
 import { dbError, isUuid } from "./dbError";
+import { DEAL_CLAIM_MS, DEALING_MESSAGE, dealClaimFresh } from "./dealClaim";
+import { checkOverride } from "@/lib/checkOverride";
 import { listOf, oneOf, optional, record, text, uuid, whole } from "@/lib/validate";
 import { adminDb, asJson, UNIQUE_VIOLATION, type Db } from "@/lib/data/db.server";
 import { playedMs, recordEvents } from "@/lib/data/events.server";
 import {
-  claimRoomStart,
+  claimRoomDeal,
   disbandRoom,
   disbandStaleRoom,
   finishAfterWinnerReveal,
@@ -88,8 +90,9 @@ import {
   readRoom,
   readRoomByCode,
   readRoomPreview,
+  releaseRoomDeal,
   restartRoom,
-  writePrivatePuzzles,
+  startDealtRoom,
   writeRoomCategories,
 } from "@/lib/data/rooms.server";
 import {
@@ -540,7 +543,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
-    const room = await getRoom(client, data.roomId);
+    let room = await getRoom(client, data.roomId);
     if (room.host_user_id !== context.userId) {
       return { ok: false as const, message: "Only the host can start the game." };
     }
@@ -555,56 +558,84 @@ export const startRoomFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "You need at least two players. Rope someone in." };
     }
 
-    const { buildRoomPuzzles } = await import("./generate.server");
-    const { drawUnblockRow } = await import("./unblock.server");
-    const unblockRow = await drawUnblockRow(client);
-    const recent = await recentRoundOrders(client, room, room.host_user_id);
-    const recentBanked = await recentBankKeys(client, room.host_user_id);
-    // A room saved with settings (roomSettings.ts) deals from them (roomDeal.ts); an older room keeps its
-    // category rule exactly (roomRoundCount rounds shared between the selected categories).
-    const stored = readRoomSettings(room.selected_categories);
-    const categories = stored.legacy ? normaliseCategories(room.selected_categories) : stored.categories;
-    if (!categories.some((category) => typesInCategory(category).length > 0))
-      return {
-        ok: false as const,
-        message: "Pick at least one category with games in it.",
-      };
-    const { newRoomSeed } = await import("./selection");
-    const roomSeed = newRoomSeed();
-    const dealt = stored.legacy ? undefined : dealRoomRounds(stored.settings, { seed: roomSeed, recent }).types;
-    const { roundOrder, puzzles } = buildRoomPuzzles({
-      seed: roomSeed,
-      recent,
-      categories,
-      unblockRow,
-      recentBankKeys: recentBanked,
-      roundOrder: dealt,
-    });
-    console.log(
-      `[room-selection] room=${room.room_code} ${stored.legacy ? `categories=${categories.join(",")}` : `settings=${encodeRoomSettings(stored.settings).join(",")}`} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
-    );
+    // Claimed before anything is built (Security C1a): a second Start while the rounds are being dealt builds nothing,
+    // and the deal reads the settings as they stood when the claim was taken (settings can't change while it holds).
+    const { data: claim, error: claimError } = await claimRoomDeal(client, room.id, nowIso(), DEAL_CLAIM_MS);
+    if (claimError) throw dbError(claimError, "duel");
+    if (!claim) return { ok: true as const };
+    // The deal reads the room's settings as the claim saw them.
+    room = { ...room, selected_categories: claim.selected_categories as unknown as DuelRow["selected_categories"] };
+
+    let roundOrder: StoredPuzzleType[];
+    let puzzles: PuzzleData[];
+    try {
+      const { buildRoomPuzzles } = await import("./generate.server");
+      const { drawUnblockRow } = await import("./unblock.server");
+      const unblockRow = await drawUnblockRow(client);
+      const recent = await recentRoundOrders(client, room, room.host_user_id);
+      const recentBanked = await recentBankKeys(client, room.host_user_id);
+      // A room saved with settings (roomSettings.ts) deals from them (roomDeal.ts); an older room keeps its
+      // category rule exactly (roomRoundCount rounds shared between the selected categories).
+      const stored = readRoomSettings(room.selected_categories);
+      const categories = stored.legacy ? normaliseCategories(room.selected_categories) : stored.categories;
+      if (!categories.some((category) => typesInCategory(category).length > 0)) {
+        await releaseRoomDeal(client, room.id, claim.claimed_at);
+        return {
+          ok: false as const,
+          message: "Pick at least one category with games in it.",
+        };
+      }
+      // Check-only: a deal that fails part-way (room-start-check); a production build never reads it.
+      if (checkOverride<boolean>("__DUELZ_FAIL_ROOM_DEAL__") === true) throw new Error("the deal failed");
+      const { newRoomSeed } = await import("./selection");
+      const roomSeed = newRoomSeed();
+      const dealt = stored.legacy ? undefined : dealRoomRounds(stored.settings, { seed: roomSeed, recent }).types;
+      ({ roundOrder, puzzles } = buildRoomPuzzles({
+        seed: roomSeed,
+        recent,
+        categories,
+        unblockRow,
+        recentBankKeys: recentBanked,
+        roundOrder: dealt,
+      }));
+      console.log(
+        `[room-selection] room=${room.room_code} ${stored.legacy ? `categories=${categories.join(",")}` : `settings=${encodeRoomSettings(stored.settings).join(",")}`} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
+      );
+    } catch (e) {
+      // The claim is given back, so the host can start again at once.
+      await releaseRoomDeal(client, room.id, claim.claimed_at);
+      console.warn(`[room-deal] room=${room.room_code} the deal failed: ${e instanceof Error ? e.message : "unknown"}`);
+      return { ok: false as const, message: "Couldn’t deal the rounds. Give it another go." };
+    }
 
     const split = puzzles.map(splitPuzzle);
     const startedAt = nowIso();
-
-    const { data: claimed } = await claimRoomStart(client, room.id, {
-      round_order: roundOrder,
-      round_count: roundOrder.length,
-      puzzles_public: JSON.parse(JSON.stringify(split.map((s) => s.pub))),
-      status: "in_progress",
-      current_round: 1,
-      phase: "starting",
-      phase_started_at: startedAt,
-      round_started_at: startedAt,
+    // One transaction: the room, and in duel_secrets the private halves and the held public halves (released round
+    // by round).
+    const { data: outcome, error: startError } = await startDealtRoom(client, {
+      roomId: room.id,
+      claim: claim.claimed_at,
+      roundOrder,
+      puzzlesPublic: JSON.parse(JSON.stringify(split.map((s) => s.pub))),
+      puzzlesPrivate: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
+      startedAt,
+      minPlayers: MIN_PLAYERS,
+      selectedCategories: claim.selected_categories,
     });
+    if (startError) {
+      await releaseRoomDeal(client, room.id, claim.claimed_at);
+      throw dbError(startError, "duel");
+    }
+    if (outcome === "too_few") {
+      return { ok: false as const, message: "You need at least two players. Rope someone in." };
+    }
+    if (outcome === "lost" && (await getRoom(client, room.id)).status === "waiting") {
+      // The settings changed between the claim and the start (the claim was given back): deal again from them.
+      return { ok: false as const, message: "The room settings changed. Start again." };
+    }
+    const dealt = outcome === "started";
 
-    if (claimed) {
-      const { error } = await writePrivatePuzzles(
-        client,
-        room.id,
-        JSON.parse(JSON.stringify(split.map((s) => s.priv))),
-      );
-      if (error) throw dbError(error, "duel");
+    if (dealt) {
       // Beta recording (G1 archive): each round's effective limit and stamps, best-effort.
       const { puzzleTimeLimitMs } = await import("./catalogue");
       await recordRoundRecords(
@@ -652,8 +683,15 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
       normaliseCategories(data.categories).length !== new Set(data.categories).size
     )
       return { ok: false as const, message: "Pick at least one category." };
+    // Not while the rounds are being dealt (Security C1a): the deal reads the picks as they stood at its claim.
+    if (dealClaimFresh(room.start_claimed_at, Date.now())) return { ok: false as const, message: DEALING_MESSAGE };
     const categories = normaliseCategories(data.categories);
-    await writeRoomCategories(client, room.id, categories);
+    const { data: written, error } = await writeRoomCategories(client, room.id, categories);
+    if (error) throw dbError(error, "duel");
+    if (!written) {
+      const now = await getRoom(client, room.id);
+      return { ok: false as const, message: now.status === "waiting" ? DEALING_MESSAGE : "This game’s already started." };
+    }
     console.log(`[room-selection] room=${room.room_code} categories=${categories.join(",")}`);
 
     return { ok: true as const };
