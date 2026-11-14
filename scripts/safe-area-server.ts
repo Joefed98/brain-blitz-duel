@@ -23,7 +23,7 @@ export const createFileRoute = () => (options) => ({
   useSearch: () => (window.__harness && window.__harness.search) || {},
 });
 export const useNavigate = () => (opts) => { const h = window.__harness; if (h) (h.navigations ??= []).push(opts); };
-export const useRouter = () => ({ navigate: () => undefined, invalidate: () => undefined });
+export const useRouter = () => ({ navigate: (opts) => { const h = window.__harness; if (h) (h.routerNavigations ??= []).push(opts); }, invalidate: () => undefined });
 export const Link = ({ children }) => children;
 `;
 const START_STUB = `

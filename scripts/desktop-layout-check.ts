@@ -343,8 +343,11 @@ try {
         const problems: string[] = [];
         const m = await page.evaluate(probe);
         if (m.layout !== "tablet") problems.push(`layout ${m.layout}, want tablet`);
-        if (m.rail || m.panel || m.banners || m.mode || m.hint) problems.push("a touch screen shows the desktop rail, panel, banner, mode or hint");
-        if (screen.mode !== "room" && (!m.aside || !m.tabbar)) problems.push("the tablet page lacks its side column or tab bar");
+        // Changed with Joe's approval, 14 Nov 2026 (his decision that day: a tablet held sideways takes the rail on its
+        // main screens; rooms and games stay the phone's): a page here has the rail and no tab bar, a room neither rail
+        // nor panel.
+        if ((screen.mode === "room" && m.rail) || m.panel || m.banners || m.mode || m.hint) problems.push("a touch screen shows the desktop panel, banner, mode or hint, or a rail in a room");
+        if (screen.mode !== "room" && (!m.aside || !m.rail || m.tabbar)) problems.push("the sideways tablet page lacks its side column or rail, or still has the tab bar");
         if (screen.mode === "room" && m.arena && m.arena.turned) problems.push("a touch screen turned the world");
         await report(`tablet ${screen.name} ${viewport.name}`, problems, page);
         await context.close();

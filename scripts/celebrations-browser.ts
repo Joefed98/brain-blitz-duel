@@ -17,6 +17,8 @@
  *  - Switched off: no layer, no meter, no requests, and each screen's markup the same as today's
  *    (scripts/fixtures/celebrations-off.json, recorded on main with --record-off). Changed with Joe's approval, 13 Nov
  *    2026: only its "home" entry re-recorded, since nine games retired ("All 83 games"; Warm up's third tile Box Six).
+ *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step): only its "home" entry
+ *    re-recorded, for the new frame (the avatar in the header, the Play bar, the Home · Games · Tournaments · More bar).
  *
  * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
  * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.

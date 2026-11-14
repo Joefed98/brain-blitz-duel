@@ -25,6 +25,8 @@ import { TournamentHubSections } from "@/components/tournaments/TournamentHub";
 import { tournamentsBackend, useTournamentHub } from "@/lib/tournaments/tournamentsApi";
 import { HallOfFame } from "@/components/tournaments/BigEventLive";
 import { TOURNAMENT_KINDS_ON } from "@/config/tournamentConfig";
+import { NavArt } from "@/components/nav/NavArt";
+import { useTournamentsAccess } from "@/components/nav/navigation";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -47,7 +49,7 @@ function OfflineTournaments() {
   useHomeBed();
   return (
     <OnlineOnly tabs="tournaments" live body="Tournaments need a connection. Practice games are saved on this phone, so they still work.">
-      <TournamentsScreen />
+      <TournamentsTab />
     </OnlineOnly>
   );
 }
@@ -64,7 +66,32 @@ function gameForResult(record: RoomRecord, games: readonly PublicGame[]): Public
   );
 }
 
-function TournamentsScreen() {
+/**
+ * The Tournaments tab (the navigation step, 14 Nov 2026): always in the navigation. A player who has tournaments
+ * (today's switch: TOURNAMENTS_FOR_EVERYONE or the tester list, answered by the server's hub) gets the tournaments
+ * screens exactly as before; everyone else the coming-soon page, which lists the upcoming public games where any are
+ * scheduled and shows no list where none are.
+ */
+function TournamentsTab() {
+  const access = useTournamentsAccess();
+  return <TournamentsScreen soon={!access.open} />;
+}
+
+/** The coming-soon page's top: the trophy, a quiet tag and two lines (the navigation's own look, nav.css). */
+function ComingSoon() {
+  return (
+    <section aria-label="Tournaments are coming" data-tournaments-soon className="th-card jz-nav jz-nav-soon">
+      <NavArt name="trophyHero" size={96} />
+      <span className="jz-nav-soon-tag">Coming soon</span>
+      <h2 className="jz-nav-soon-title">Compete for trophies</h2>
+      <p className="jz-nav-soon-body">
+        Arenas, daily Score Attacks and cups, with trophies for your Profile. They open here soon.
+      </p>
+    </section>
+  );
+}
+
+function TournamentsScreen({ soon }: { soon: boolean }) {
   const navigate = useNavigate();
   const router = useRouter();
   const games = useMemo(() => scheduledGames(), []);
@@ -79,7 +106,9 @@ function TournamentsScreen() {
   const discord = betaValue("DISCORD_URL");
   // Wave 4 (W4b): the Arena and the daily Score Attack, once the server answers with tournaments open; until then
   // (and for anyone they aren't open to) the tab is exactly the public games below.
-  const { hub, refresh } = useTournamentHub();
+  const { hub: liveHub, refresh } = useTournamentHub();
+  // The coming-soon page never draws the hub (a player it shows to has no tournaments).
+  const hub = soon ? null : liveHub;
   const openEvent = (id: string) => void navigate({ to: "/tournament", search: { id } });
   const remind = async (id: string, on: boolean) => {
     const b = await tournamentsBackend();
@@ -90,6 +119,9 @@ function TournamentsScreen() {
   return (
     <PhoneShell tabs="tournaments" aside={<PageAside panels={["daily", "week"]} />}>
       <div className="ap-stack">
+        {soon ? (
+          <h1 className="ap-title">Tournaments</h1>
+        ) : (
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="ap-title">Tournaments</h1>
@@ -99,6 +131,8 @@ function TournamentsScreen() {
             Public games on set dates. Join when the lobby opens, and everyone plays the same rounds.
           </p>
         </div>
+        )}
+        {soon ? <ComingSoon /> : null}
 
         {hub ? <TournamentHubSections hub={hub} onOpen={openEvent} onRemind={(id, on) => void remind(id, on)} /> : null}
         {/* The Joulz Championship's hall of fame (W4c): nothing while the Championship is off or nobody has won. */}
@@ -117,7 +151,7 @@ function TournamentsScreen() {
               />
             </div>
           </section>
-        ) : (
+        ) : soon ? null : (
           // Nothing scheduled (T-TournamentsEmpty; wave 1's empty-state card, E2): what to do meanwhile; the
           // Discord button only with its link.
           <section aria-label="No public games" className="ap-section">
@@ -151,6 +185,8 @@ function TournamentsScreen() {
           </section>
         ) : null}
 
+        {/* Coming soon: the results only where public games are scheduled or this device has played one. */}
+        {soon && !next && results.length === 0 ? null : (
         <section aria-label="Your results" className="ap-section">
           <div className="ap-section-head">
             <h2 className="ap-section-title">Your results</h2>
@@ -200,6 +236,7 @@ function TournamentsScreen() {
             </ul>
           )}
         </section>
+        )}
       </div>
     </PhoneShell>
   );

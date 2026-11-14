@@ -31,6 +31,8 @@ import { Route as ChallengeRoute } from "@/routes/challenge";
 import { Route as TermsRoute } from "@/routes/terms";
 import { Route as FriendsRoute } from "@/routes/friends";
 import { Route as CustomiseRoute } from "@/routes/customise";
+import { Route as MoreRoute } from "@/routes/more";
+import { LaunchSplash } from "@/components/nav/LaunchSplash";
 import { setAccount } from "@/lib/account/accountApi";
 import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
 import { NotFoundPage, RouteErrorScreen } from "@/components/app/AppErrorScreen";
@@ -468,6 +470,9 @@ async function roomCardsFn() {
 }
 
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  // The navigation step's checks: a player with tournaments (window.__harnessTournamentHub, with
+  // __DUELZ_ALLOW_TOURNAMENTS__ so the tab asks); null otherwise, as for everyone else.
+  tournamentHubFn: async () => (window as unknown as { __harnessTournamentHub?: unknown }).__harnessTournamentHub ?? null,
   ...ECONOMY,
   roomCardsFn,
   friendsOverviewFn,
@@ -581,10 +586,19 @@ if (mode === "pass") {
     standInPass(fixture.account["userId"] as string, { state: "open", view: fixture.view });
   }
 }
+// The navigation step (14 Nov 2026): a signed-in account for the avatar header and the rail (no server call), and the
+// light theme on <html> (only the navigation frame takes it until the components step).
+{
+  const nav = window as unknown as { __harnessNavAccount?: Parameters<typeof setAccount>[0]; __harnessTheme?: string };
+  if (nav.__harnessNavAccount) setAccount(nav.__harnessNavAccount, null);
+  if (nav.__harnessTheme) document.documentElement.setAttribute("data-theme", nav.__harnessTheme);
+}
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   notfound: () => <NotFoundPage />,
   error: () => <RouteErrorScreen error={new Error("harness")} onRefresh={() => undefined} />,
+  // The launch screen held up (it goes the moment the app starts; here the app never "starts").
+  launch: () => <LaunchSplash hold />,
   firstopen: () => <FirstOpen onDone={() => undefined} onPlay={() => undefined} onFriends={() => undefined} />,
   // The account screens (wave 1 sign-up screens): a step of the sign-up through window.__DUELZ_ACCOUNT_FIXTURE__,
   // Settings → Account from window.__harnessAccount, or the save-your-progress sheet / pop-up over Profile.
@@ -650,7 +664,9 @@ const Screen = ROOT_SCREENS[mode ?? ""] ?? (
                   ? FriendsRoute
                   : mode === "customise"
                     ? CustomiseRoute
-                    : PracticeRoute
+                    : mode === "more"
+                      ? MoreRoute
+                      : PracticeRoute
 ).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>

@@ -204,7 +204,8 @@ try {
       await hydrated(page, "[data-app-tabbar] a");
       check((await tabBar(page)) === 1 && (await currentTab(page)) === "play", "Play: the tab bar is up with Play current");
       const tabs = await page.locator("[data-app-tabbar] a").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
-      check(tabs.join(",") === "Play,Practice,Tournaments,Profile", `four tabs with labels (${tabs.join(",")})`);
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: the tabs are Home, Games, Tournaments, More, with the Shop's switch off).
+      check(tabs.join(",") === "Home,Games,Tournaments,More", `four tabs with labels (${tabs.join(",")})`);
       const gold = await page.locator("[data-app-tabbar] [aria-current='page']").evaluate((el) => getComputedStyle(el).color);
       // The tab screens' gold: --jz-gold #E2C07A (src/design/tokens.css, design foundation F1, 6 Nov 2026).
       check(gold === "rgb(226, 192, 122)", `the current tab is gold (${gold})`);
@@ -258,17 +259,22 @@ try {
       // Since the follow-up to #129 Join now is always on the card, off until lobby time: judge it enabled here.
       check((await page.getByRole("button", { name: "Join now" }).isVisible()) && (await page.getByRole("button", { name: "Join now" }).isEnabled()), 'Next public game: "Join now"');
 
-      // Tabs: Play → Practice (pushed) → Tournaments → Profile (replaced), then Back returns to Play.
+      // Tabs: Play → Practice (pushed) → Tournaments → More (replaced), then Back returns to Play.
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: More takes the Profile
+      // tab's place and Profile opens from More's first row, pushed, so Back first returns to More, then to Play).
       for (const [label, path, tab] of [
         ["Practice", "/practice", "practice"],
         ["Tournaments", "/tournaments", "tournaments"],
-        ["Profile", "/profile", "profile"],
+        ["More", "/more", "more"],
       ] as const) {
         await page.locator(`[data-app-tabbar] [data-tab='${tab}']`).click();
         await page.getByRole("heading", { level: 1, name: label }).waitFor({ timeout: 30_000 });
         check(new URL(page.url()).pathname === path, `${label}: the URL is ${path} (${new URL(page.url()).pathname})`);
         check((await tabBar(page)) === 1 && (await currentTab(page)) === tab, `${label}: the tab bar is up with ${label} current`);
       }
+      await page.locator("[data-more-row='profile']").click();
+      await page.getByRole("heading", { level: 1, name: "Profile" }).waitFor({ timeout: 30_000 });
+      check(new URL(page.url()).pathname === "/profile", `Profile (from More): the URL is /profile (${new URL(page.url()).pathname})`);
       check((await page.locator("[data-public-game='join']").count()) === 0, "Profile has no schedule card");
       await page.locator("[data-open-settings]").click();
       check(await page.getByRole("dialog", { name: "Settings" }).isVisible(), "Profile: the gear opens the settings");
@@ -282,6 +288,8 @@ try {
       check((await page.locator("[data-look-picker]").count()) === 0, "Profile: no look picker (retired for Customise)");
       check(/Customise/.test((await page.locator("[data-look-moved]").textContent()) ?? "") && (await page.locator("[data-customise-open]").count()) === 1, "Profile: points to Customise (the card's Customise button)");
       check(/Saved on this phone\. Sign-in after the beta will keep it all/.test((await page.textContent("body")) ?? ""), "Profile: the saved-on-this-phone note");
+      await page.goBack();
+      await page.locator("[data-more-row='profile']").waitFor({ timeout: 30_000 });
       await page.goBack();
       await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 30_000 });
       check(new URL(page.url()).pathname === "/", "Back from the tabs returns to Play");

@@ -1,4 +1,5 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
+import { LaunchSplash } from "@/components/nav/LaunchSplash";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -245,6 +246,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      {/* The launch screen: only until the app has started here (src/components/nav/LaunchSplash.tsx). */}
+      <LaunchSplash />
       <AppUpdateOverlay />
       {celebrate ? <CelebrationLayer /> : null}
       {/* Safety (10 Nov 2026, docs/moderation.md): a warning, ban or forced rename on open; nothing otherwise. */}

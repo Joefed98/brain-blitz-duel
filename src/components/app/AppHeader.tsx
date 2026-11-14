@@ -1,36 +1,36 @@
 import { AppWordmark } from "@/components/brand/AppWordmark";
 import { MuteToggle } from "@/components/duel/MuteToggle";
-import { useLayoutMode } from "@/lib/layoutMode";
+import { AvatarButton } from "@/components/nav/AvatarButton";
+import { useNavPlacement } from "@/components/nav/navigation";
 
 import { CoinCounter, useCoinCount } from "./CoinCounter";
 
 /**
- * The four tab screens' header (Prompt R, 23 Oct 2026): the wordmark on the left, the sound and music
- * controls (their menus unchanged) on the right in the secondary text colour. Drawn by PhoneShell on
- * every screen with `tabs`; game, room and results screens keep their own top bar.
- * Wave 2: an account's coin counter (CoinCounter) sits before the sound button where the Shop switch is on; without
- * it the header's markup is exactly the old one (no wrapper).
+ * The main screens' header (Prompt R, 23 Oct 2026; the navigation step, 14 Nov 2026): the player's avatar top left
+ * (AvatarButton: Profile for an account, the save-your-progress sheet for a guest), the wordmark beside it, and the
+ * sound and music controls (their menus unchanged) on the right; an account's coin counter (CoinCounter) sits before
+ * the sound button where the Shop switch is on. Drawn by PhoneShell on every screen with `tabs`; game, room and
+ * results screens keep their own top bar. Where the rail is drawn (a computer, a sideways tablet) the rail carries
+ * the avatar, logo and sound instead, so no header there.
  */
 export function AppHeader() {
-  // The computer layout (31 Oct 2026): the left rail (AppRail) carries the logo and sound instead, so no header there.
-  const desktop = useLayoutMode() === "desktop";
+  const placement = useNavPlacement();
   const coins = useCoinCount();
-  if (desktop) return null;
-  // Without the counter the header is exactly as before (celebrations-off.json pins the home screen's markup).
-  if (coins === null)
-    return (
-      <header data-app-header className="ap-header">
-        <AppWordmark />
-        <MuteToggle />
-      </header>
-    );
+  if (placement === "rail") return null;
   return (
-    <header data-app-header className="ap-header">
-      <AppWordmark />
-      <span className="ap-header-tools">
-        <CoinCounter />
-        <MuteToggle />
+    <header data-app-header className="ap-header jz-nav jz-nav-header">
+      <span className="jz-nav-header-left">
+        <AvatarButton size={36} />
+        <AppWordmark />
       </span>
+      {coins === null ? (
+        <MuteToggle />
+      ) : (
+        <span className="ap-header-tools">
+          <CoinCounter />
+          <MuteToggle />
+        </span>
+      )}
     </header>
   );
 }

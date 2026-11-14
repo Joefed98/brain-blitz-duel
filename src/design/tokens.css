@@ -177,6 +177,35 @@
   --jz-slow: 320ms;
   --jz-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
+  /* ------------------------------------------------ style guide round 2 (docs/design/style-guide, 14 Nov 2026) */
+  /* Added alongside today's tokens for the navigation frame (phase 2 step 1); no existing token's value changes
+     here (that is the components step). The angled cuts above (--jz-cut-lg 14px, --jz-cut-sm 8px) already match. */
+  --jz-raised: #0B0F1C; /* tab bar, rail, sheets (the same colour as --jz-bg-raised) */
+  --jz-surface-3: #28335A; /* pressed and selected */
+  --jz-ledge-2: #03050A; /* a secondary button's ledge */
+  --jz-gold-ink: #E2C07A; /* gold as text or an icon (darker in the light theme) */
+  --jz-loss-text: #FF5A6E; /* losses and rating down as text (the guide's loss; --jz-loss stays until the components step) */
+  --jz-button-gold-face: var(--jz-gold); /* flat champagne: the metal is for medals and emblems */
+  --jz-ledge: 4px;
+  --jz-elev-0: none;
+  --jz-elev-1: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 4px 0 var(--jz-ledge-2);
+  --jz-elev-2: 0 -8px 32px rgb(0 0 0 / 0.5), 0 16px 48px rgb(0 0 0 / 0.6);
+  --jz-focus-ring: #22E4FF; /* the guide's "live": focus rings */
+  --jz-radius-sm: 8px;
+  --jz-radius-md: 12px;
+  --jz-radius-lg: 16px;
+  --jz-dur-press: 70ms;
+  --jz-dur-release: 160ms;
+  --jz-dur-select: 120ms;
+  --jz-dur-sheet-in: 280ms;
+  --jz-dur-sheet-out: 200ms;
+  --jz-dur-page: 220ms;
+  --jz-dur-reward: 420ms;
+  --jz-dur-count: 600ms;
+  --jz-dur-win: 900ms;
+  --jz-dur-reduced: 120ms;
+  --jz-ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
+
   /* ------------------------------------------------ category accents (moved from styles.css, unchanged) */
   --category-word: #4D8CFF;
   --category-number: #3DDC84;
@@ -225,4 +254,27 @@
   --jz-player-29: #97F700;
   --jz-player-30: #A76F6F;
   --jz-player-31: #9F7F5F;
+}
+
+/*
+ * The light theme (style guide round 2). Until the components step brings it to every screen, only the navigation
+ * frame (.jz-nav: the tab bar, the avatar header, the Play bar, the rail, More and the Tournaments coming-soon page)
+ * takes it, under <html data-theme="light">. Nothing sets data-theme yet (no setting), so every screen draws as before.
+ */
+:root[data-theme="light"] .jz-nav {
+  --jz-bg: #F3F4F8;
+  --jz-raised: #FFFFFF;
+  --jz-surface: #FFFFFF;
+  --jz-surface-2: #E4E7F0;
+  --jz-surface-3: #D6DBE8;
+  --jz-line: #DCE0EA;
+  --jz-ledge-2: #BFC6D6;
+  --jz-text: #0B1020;
+  --jz-text-2: #39425F;
+  --jz-text-3: #59617F;
+  --jz-gold-ink: #7A5C1C;
+  --jz-loss-text: #B81C33;
+  --jz-focus-ring: #006A7A;
+  --jz-scrim: rgb(11 16 32 / 0.45);
+  --jz-elev-1: inset 0 1px 0 rgb(255 255 255 / 0.6), 0 4px 0 var(--jz-ledge-2);
 }

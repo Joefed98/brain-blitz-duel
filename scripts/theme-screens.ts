@@ -174,7 +174,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -395,9 +395,17 @@ export const LEADERBOARD_SCREENS = (): ThemeScreen[] => [
   })),
 ];
 
+/** A player with tournaments on the screen harness (scripts/safe-area-harness.tsx): the hub open with nothing in it. */
+export const TOURNAMENTS_OPEN = {
+  __DUELZ_ALLOW_TOURNAMENTS__: true,
+  __harnessTournamentHub: { open: true, account: true, now: 0, live: [], next: null, week: [], entries: [], trophies: [] },
+};
+
 export const WAVE1_SCREENS = (): ThemeScreen[] => [
   { name: "profile, new player, empty states", mode: "profile", records: false },
-  { name: "tournaments, nothing played, empty states", mode: "tournaments", records: false },
+  // Changed with Joe's approval, 14 Nov 2026: drawn as a player with tournaments (the navigation step: everyone else gets
+  // the coming-soon page, NAV_SCREENS' "nav: tournaments, coming soon"), where both empty-state cards still live.
+  { name: "tournaments, nothing played, empty states", mode: "tournaments", records: false, globals: TOURNAMENTS_OPEN },
   { name: "not found", mode: "notfound" },
   {
     name: "room not found",
@@ -731,6 +739,38 @@ export const ROOM_IDENTITY_SCREENS = (): ThemeScreen[] => {
   ];
 };
 
+/** A tablet turned sideways (Joe, 14 Nov 2026): the rail on the main screens, rooms and games as on a phone. */
+export const TABLET_LANDSCAPE: ThemeViewport = { name: "tablet 1180x820 landscape", w: 1180, h: 820 };
+/** Every size, the sideways tablet included: the navigation's screens (NAV_SCREENS). */
+export const NAV_SIZES: ThemeViewport[] = [...ALL_SIZES, TABLET_LANDSCAPE];
+
+/**
+ * The navigation frame (phase 2 step 1, 14 Nov 2026; docs/design/style-guide): the tab bar with each destination
+ * current, the avatar header (a guest and an account), the gold Play bar (Home and Games), More, the Tournaments
+ * coming-soon page, the rail (expanded on the main screens, collapsed in a room) and the launch screen, in the dark
+ * and light themes, at every size and the sideways tablet. Appended last, so every earlier screen keeps its place.
+ */
+export const NAV_SCREENS = (): ThemeScreen[] => {
+  const account = { __harnessNavAccount: ACCOUNT_FIXTURE };
+  const light = { __harnessTheme: "light" };
+  const shop = { __DUELZ_SHOP_TAB__: true };
+  return [
+    { name: "nav: home, a guest", mode: "home", sizes: NAV_SIZES },
+    { name: "nav: home, an account with the Shop", mode: "home", globals: { ...account, ...shop }, sizes: NAV_SIZES },
+    { name: "nav: games", mode: "practice", sizes: NAV_SIZES },
+    { name: "nav: tournaments, coming soon", mode: "tournaments", records: false, sizes: NAV_SIZES },
+    { name: "nav: shop", mode: "pass", plain: true, globals: { __harnessPass: passFixture(), ...shop }, waitMs: 800, sizes: NAV_SIZES },
+    { name: "nav: more", mode: "more", plain: true, sizes: NAV_SIZES },
+    { name: "nav: more, an account with the Shop", mode: "more", plain: true, globals: { ...account, ...shop }, sizes: NAV_SIZES },
+    { name: "nav: room lobby, the rail collapsed", mode: "room", room: room("waiting", "starting", { players: 3 }), sizes: NAV_SIZES },
+    { name: "nav: launch screen", mode: "launch", plain: true, sizes: NAV_SIZES },
+    { name: "nav light: home", mode: "home", globals: light, sizes: NAV_SIZES },
+    { name: "nav light: tournaments, coming soon", mode: "tournaments", records: false, globals: light, sizes: NAV_SIZES },
+    { name: "nav light: more", mode: "more", plain: true, globals: { ...light, ...shop }, sizes: NAV_SIZES },
+    { name: "nav light: launch screen", mode: "launch", plain: true, globals: light, sizes: NAV_SIZES },
+  ];
+};
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -902,6 +942,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...SECURITY_A_SCREENS(),
   ...ROOM_IDENTITY_SCREENS(),
   ...SECURITY_C1A_SCREENS(),
+  ...NAV_SCREENS(),
 ];
 
 export interface ThemeViewport {

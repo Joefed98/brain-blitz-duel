@@ -16,7 +16,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, VIEWPORTS, WAVE1_SCREENS, fixThemeClock, openThemeScreen, type ThemeViewport } from "./theme-screens";
+import { CHROMIUM_PATHS, NAV_SCREENS, VIEWPORTS, WAVE1_SCREENS, fixThemeClock, openThemeScreen, type ThemeViewport } from "./theme-screens";
 
 const args = process.argv.slice(2);
 const ONLY = args.filter((a) => !a.startsWith("--"));
@@ -42,6 +42,9 @@ const EXPECT: Record<string, { selectors: string[]; whole: boolean; captains: nu
   "first open, screen 1": { selectors: ["[data-first-open-screen='1']", "[data-first-open-next]"], whole: true, captains: 1 },
   "first open, screen 2": { selectors: ["[data-first-open-screen='2']", "[data-first-open-next]"], whole: true, captains: 0 },
   "first open, screen 3": { selectors: ["[data-first-open-screen='3']", "[data-first-open-play]", "[data-first-open-friends]"], whole: true, captains: 1 },
+  // Changed with Joe's approval, 14 Nov 2026: the Tournaments tab for a player without tournaments is its own screen
+  // (the navigation step's coming-soon page, drawn with the trophy, no Captain).
+  "nav: tournaments, coming soon": { selectors: ["[data-tournaments-soon]"], whole: false, captains: 0 },
 };
 
 const failures: string[] = [];
@@ -54,9 +57,10 @@ const check = (ok: boolean, message: string) => {
   }
 };
 
-const screens = WAVE1_SCREENS().filter((s) => !ONLY.length || ONLY.some((o) => s.name.includes(o)));
+const COMING_SOON = NAV_SCREENS().filter((s) => s.name === "nav: tournaments, coming soon");
+const screens = [...WAVE1_SCREENS(), ...COMING_SOON].filter((s) => !ONLY.length || ONLY.some((o) => s.name.includes(o)));
 check(
-  WAVE1_SCREENS().every((s) => EXPECT[s.name]),
+  [...WAVE1_SCREENS(), ...COMING_SOON].every((s) => EXPECT[s.name]) && COMING_SOON.length === 1,
   "every wave 1 screen in the harness has its expectations here",
 );
 
