@@ -171,7 +171,7 @@ function reactionInput(input: unknown): { roomId: string; emoji: string } {
 /** Checks a reaction against the room's rules (it sends nothing; sendReactionFn sends). */
 export const allowReactionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(reactionInput)
+  .inputValidator((input: unknown) => reactionInput(input))
   .handler(async ({ data, context }) => {
     const approved = await approveReaction(context.supabase, data.roomId, context.userId, data.emoji);
     if (!approved.ok) return approved;
@@ -185,7 +185,7 @@ export const allowReactionFn = createServerFn({ method: "POST" })
  */
 export const sendReactionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(reactionInput)
+  .inputValidator((input: unknown) => reactionInput(input))
   .handler(async ({ data, context }) => {
     const approved = await approveReaction(context.supabase, data.roomId, context.userId, data.emoji);
     if (!approved.ok) return approved;

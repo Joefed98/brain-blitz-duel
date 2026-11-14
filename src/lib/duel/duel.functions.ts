@@ -73,7 +73,7 @@ import {
 import { dbError, isUuid } from "./dbError";
 import { DEAL_CLAIM_MS, DEALING_MESSAGE, dealClaimFresh } from "./dealClaim";
 import { checkOverride } from "@/lib/checkOverride";
-import { bool, compact, listOf, nullable, num, oneOf, optional, record, sizedRecord, text, uuid, whole } from "@/lib/validate";
+import { bool, compact, listOf, maybe, numIn, oneOf, optional, record, sizedRecord, text, uuid, whole } from "@/lib/validate";
 import { adminDb, asJson, UNIQUE_VIOLATION, type Db } from "@/lib/data/db.server";
 import { playedMs, recordEvents } from "@/lib/data/events.server";
 import {
@@ -384,7 +384,7 @@ export const createRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { displayName: string; look?: LookPreference }) => {
     const b = record(input);
-    return compact({ displayName: text(b["displayName"], NAME_MAX, "displayName"), look: nullable(b["look"], (x) => sizedRecord(x, LOOK_MAX, "look")) as LookPreference | undefined });  })
+    return compact({ displayName: text(b["displayName"], NAME_MAX, "displayName"), look: maybe(b["look"], (x) => sizedRecord(x, LOOK_MAX, "look")) as LookPreference | undefined });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     // A signed-in player's rooms show their username (insertPlayer); only a guest's typed name is checked.
@@ -720,7 +720,7 @@ export const setRoomSettingsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string; picks: string[]; rounds: number; scoring?: string }) => {
     const b = record(input);
-    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), picks: listOf(b["picks"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "picks"), rounds: num(b["rounds"], -NUMBER_MAX, NUMBER_MAX, "rounds"), scoring: optional(b["scoring"], (x) => text(x, SHORT_MAX, "scoring")) });  })
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), picks: listOf(b["picks"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "picks"), rounds: numIn(b["rounds"], -NUMBER_MAX, NUMBER_MAX, "rounds"), scoring: optional(b["scoring"], (x) => text(x, SHORT_MAX, "scoring")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -742,7 +742,7 @@ export const setPlayerLookFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string; colour?: number; icon?: string | null }) => {
     const b = record(input);
-    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), colour: optional(b["colour"], (x) => num(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: nullable(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), colour: optional(b["colour"], (x) => numIn(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: maybe(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);
@@ -1003,7 +1003,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string; roundNumber: number; answer: string; msRemaining: number; extra?: SubmitExtra; clientVersion?: string; inputType?: string }) => {
     const b = record(input);
-    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: num(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: nullable(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")) });  })
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: numIn(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: maybe(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const player = await requireParticipant(client, data.roomId, context.userId);

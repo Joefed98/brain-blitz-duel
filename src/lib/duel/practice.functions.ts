@@ -1,6 +1,6 @@
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION } from "@/lib/arcade/orbit";
 import { ANSWER_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, KEY_MAX, LIST_MAX, NUMBER_MAX, PATH_MAX, PUZZLE_MAX, SEALED_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
-import { bool, compact, json, listOf, nullable, num, optional, record, sizedRecord, text, whole } from "@/lib/validate";
+import { bool, compact, listOf, maybe, numIn, optional, record, sizedRecord, text, whole } from "@/lib/validate";
 import { createServerFn } from "@tanstack/react-start";
 
 import { staleSubmissionNote } from "@/lib/appVersion";
@@ -196,7 +196,7 @@ async function recordPracticeEvent(
 export const practiceGradeFn = createServerFn({ method: "POST" })
   .inputValidator((input: { puzzle: PuzzleData; sealed: string; answer: string; msRemaining: number; extra?: SubmitExtra; clientVersion?: string; inputType?: string; start?: string }) => {
     const b = record(input);
-    return compact({ puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: num(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: nullable(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")), start: optional(b["start"], (x) => text(x, SEALED_MAX, "start")) });  })
+    return compact({ puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: numIn(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: maybe(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")), start: optional(b["start"], (x) => text(x, SEALED_MAX, "start")) });  })
   .handler(async ({ data }) => {
     const nowMs = Date.now();
     // Log only: grading never depends on the client's version.
@@ -376,7 +376,7 @@ async function practiceChallengesFor(
 export const practicePackFn = createServerFn({ method: "POST" })
   .inputValidator((input: { types: string[]; count?: number }) => {
     const b = record(input);
-    return compact({ types: listOf(b["types"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "types"), count: optional(b["count"], (x) => num(x, -NUMBER_MAX, NUMBER_MAX, "count")) });  })
+    return compact({ types: listOf(b["types"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "types"), count: optional(b["count"], (x) => numIn(x, -NUMBER_MAX, NUMBER_MAX, "count")) });  })
   .handler(async ({ data }) => {
     // Over the limit: no packs this time (the phone tops up again on a later visit).
     if (!(await practiceLimit("pack"))) return { packs: [] };
@@ -422,7 +422,7 @@ export const practicePackFn = createServerFn({ method: "POST" })
 export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
   .inputValidator((input: { puzzle: PuzzleData; sealed: string; answer: string; msRemaining: number; extra?: SubmitExtra; clientVersion?: string }) => {
     const b = record(input);
-    return compact({ puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: num(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: nullable(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")) });  })
+    return compact({ puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: numIn(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: maybe(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")) });  })
   .handler(async ({ data }) => {
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle?.type);
     if (staleNote) console.warn(staleNote);
@@ -583,7 +583,7 @@ export const saveIntroDemoFn = createServerFn({ method: "POST" })
 export const savePuzzleDemoFn = createServerFn({ method: "POST" })
   .inputValidator((input: { puzzle: PuzzleData; sealed: string; log: unknown; dev: boolean; key: string }) => {
     const b = record(input);
-    return { puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), log: json(b["log"], ANSWER_MAX, "log"), dev: bool(b["dev"], "dev"), key: text(b["key"], KEY_MAX, "key") };
+    return { puzzle: sizedRecord(b["puzzle"], PUZZLE_MAX, "puzzle") as unknown as PuzzleData, sealed: text(b["sealed"], SEALED_MAX, "sealed"), log: sizedRecord(b["log"], ANSWER_MAX, "log"), dev: bool(b["dev"], "dev"), key: text(b["key"], KEY_MAX, "key") };
   })
   .handler(async ({ data }) => {
     if (data.dev !== true || !(await demoSavesAllowed())) throw new Error(DEMO_SAVES_CLOSED);

@@ -4,7 +4,7 @@
  * only, best-effort and never part of play: until the migration is applied every write fails
  * quietly (betaRecord.server.ts) and the phone carries on.
  */
-import { compact, nullable, num, record, text } from "@/lib/validate";
+import { compact, maybe, numIn, record, text } from "@/lib/validate";
 import { CODE_MAX, ID_MAX, NUMBER_MAX, SHORT_MAX } from "./inputLimits";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -31,13 +31,13 @@ export const recordShareEventFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: ShareEventInput): ShareEventInput => {
     const b = record(input);
-    const word = (k: string) => nullable(b[k], (x) => text(x, SHORT_MAX, k));
-    const count = (k: string) => nullable(b[k], (x) => num(x, -NUMBER_MAX, NUMBER_MAX, k));
+    const word = (k: string) => maybe(b[k], (x) => text(x, SHORT_MAX, k));
+    const count = (k: string) => maybe(b[k], (x) => numIn(x, -NUMBER_MAX, NUMBER_MAX, k));
     return compact({
       event: text(b["event"], SHORT_MAX, "event") as ShareEventInput["event"],
-      duelId: nullable(b["duelId"], (x) => text(x, ID_MAX, "duelId")),
+      duelId: maybe(b["duelId"], (x) => text(x, ID_MAX, "duelId")),
       gameIndex: count("gameIndex"),
-      roomCode: nullable(b["roomCode"], (x) => text(x, CODE_MAX, "roomCode")),
+      roomCode: maybe(b["roomCode"], (x) => text(x, CODE_MAX, "roomCode")),
       place: count("place"),
       players: count("players"),
       rounds: count("rounds"),
@@ -45,7 +45,7 @@ export const recordShareEventFn = createServerFn({ method: "POST" })
       landing: word("landing") as ShareEventInput["landing"],
       welcome: word("welcome") as ShareEventInput["welcome"],
       source: word("source") as ShareEventInput["source"],
-      challengeCode: nullable(b["challengeCode"], (x) => text(x, CODE_MAX, "challengeCode")),
+      challengeCode: maybe(b["challengeCode"], (x) => text(x, CODE_MAX, "challengeCode")),
       dailyKind: word("dailyKind") as ShareEventInput["dailyKind"],
     }) as ShareEventInput;
   })

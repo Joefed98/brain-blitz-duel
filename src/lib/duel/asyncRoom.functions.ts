@@ -1,6 +1,6 @@
 import type { Db } from "@/lib/data/db.server";
 import { ANSWER_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, ID_MAX, NUMBER_MAX, PATH_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
-import { compact, listOf, nullable, num, optional, record, sizedRecord, text, whole } from "@/lib/validate";
+import { compact, listOf, maybe, numIn, optional, record, sizedRecord, text, whole } from "@/lib/validate";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -70,7 +70,7 @@ export const asyncSubmitFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string; roundNumber: number; answer: string; msRemaining: number; extra?: SubmitExtra; clientVersion?: string; inputType?: string }) => {
     const b = record(input);
-    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: num(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: nullable(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")) });  })
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), roundNumber: whole(b["roundNumber"], 0, COUNT_MAX, "roundNumber"), answer: text(b["answer"], ANSWER_MAX, "answer"), msRemaining: numIn(b["msRemaining"], -NUMBER_MAX, NUMBER_MAX, "msRemaining"), extra: maybe(b["extra"], (x) => sizedRecord(x, EXTRA_MAX, "extra")) as SubmitExtra | undefined, clientVersion: optional(b["clientVersion"], (x) => text(x, SHORT_MAX, "clientVersion")), inputType: optional(b["inputType"], (x) => text(x, SHORT_MAX, "inputType")) });  })
   .handler(async ({ data, context }) => {
     const nowMs = Date.now();
     const client = await db();

@@ -2,7 +2,7 @@
  * Replay server functions (display only). Both refuse until the round (or the
  * whole game) has closed for every player; see access.ts and replay.server.ts.
  */
-import { num, record, text } from "@/lib/validate";
+import { numIn, record, text } from "@/lib/validate";
 import { COUNT_MAX, ID_MAX } from "@/lib/duel/inputLimits";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -21,7 +21,7 @@ export const roundReplayFn = createServerFn({ method: "POST" })
     const b = record(input);
     return {
       roomId: text(b["roomId"], ID_MAX, "roomId"),
-      roundNumber: Math.trunc(num(b["roundNumber"], -COUNT_MAX, COUNT_MAX, "roundNumber")),
+      roundNumber: Math.trunc(numIn(b["roundNumber"], -COUNT_MAX, COUNT_MAX, "roundNumber")),
     };
   })
   .handler(async ({ data, context }): Promise<ReplayResponse<ReplayRound | null>> => {

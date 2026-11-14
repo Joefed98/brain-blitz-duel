@@ -1,6 +1,6 @@
 import type { Db } from "@/lib/data/db.server";
 import { CODE_MAX, COUNT_MAX, ID_MAX, LIST_MAX, NAME_MAX, NUMBER_MAX, SHORT_MAX } from "./inputLimits";
-import { bool, compact, listOf, nullable, num, optional, record, text, whole } from "@/lib/validate";
+import { bool, compact, listOf, maybe, numIn, optional, record, text, whole } from "@/lib/validate";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -71,7 +71,7 @@ export const createChallengeFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { categories: string[]; rounds: number; displayName: string; colour?: number | null; icon?: string | null }) => {
     const b = record(input);
-    return compact({ categories: listOf(b["categories"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "categories"), rounds: num(b["rounds"], -NUMBER_MAX, NUMBER_MAX, "rounds"), displayName: text(b["displayName"], NAME_MAX, "displayName"), colour: nullable(b["colour"], (x) => num(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: nullable(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
+    return compact({ categories: listOf(b["categories"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "categories"), rounds: numIn(b["rounds"], -NUMBER_MAX, NUMBER_MAX, "rounds"), displayName: text(b["displayName"], NAME_MAX, "displayName"), colour: maybe(b["colour"], (x) => numIn(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: maybe(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
   .handler(async ({ data, context }) => {
     const player = await playerFrom(data, context.userId);
     if ("error" in player)
@@ -141,7 +141,7 @@ export const startChallengeFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { code: string; displayName: string; colour?: number | null; icon?: string | null }) => {
     const b = record(input);
-    return compact({ code: text(b["code"], CODE_MAX, "code"), displayName: text(b["displayName"], NAME_MAX, "displayName"), colour: nullable(b["colour"], (x) => num(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: nullable(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
+    return compact({ code: text(b["code"], CODE_MAX, "code"), displayName: text(b["displayName"], NAME_MAX, "displayName"), colour: maybe(b["colour"], (x) => numIn(x, -NUMBER_MAX, NUMBER_MAX, "colour")), icon: maybe(b["icon"], (x) => text(x, SHORT_MAX, "icon")) });  })
   .handler(async ({ data, context }) => {
     const code = challengeCodeFrom(data.code);
     if (!code) return { ok: false as const, message: "That challenge doesn’t exist." };
@@ -253,7 +253,7 @@ export const challengeFollowupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { kind: "room" | "daily"; code?: string | null }) => {
     const b = record(input);
-    return compact({ kind: text(b["kind"], SHORT_MAX, "kind") as "room" | "daily", code: nullable(b["code"], (x) => text(x, CODE_MAX, "code")) });  })
+    return compact({ kind: text(b["kind"], SHORT_MAX, "kind") as "room" | "daily", code: maybe(b["code"], (x) => text(x, CODE_MAX, "code")) });  })
   .handler(async ({ data, context }) => {
     if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return { ok: true };
     if (data.kind !== "room" && data.kind !== "daily") return { ok: false };
