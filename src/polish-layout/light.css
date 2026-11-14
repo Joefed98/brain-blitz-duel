@@ -1,0 +1,54 @@
+/*
+ * The light theme's page fixes (phase 2 step 2b, 14 Nov 2026; Settings → Appearance, src/lib/appearance.ts): the
+ * few page styles that drew a fixed dark colour or a light-on-dark tint, given their light form under
+ * <html data-theme="light">. Game screens (.game-screen) and game art ([data-skin-off]) are never reached: they stay
+ * dark in every theme. Colours come from tokens.css only. theme-check draws every page in light (LIGHT_SCREENS).
+ */
+
+/* Result colours as text on a page (the round leaderboard's verdicts, the daily and challenge results). */
+:root[data-theme="light"] [data-skin]:not(.game-screen) {
+  --timer-green: var(--jz-light-good);
+  --timer-orange: var(--jz-light-partial);
+  --warn: var(--jz-light-warn);
+}
+:root[data-theme="light"] [data-skin] :is(.game-screen, [data-skin-off]) {
+  --timer-green: oklch(0.72 0.17 145);
+  --timer-orange: oklch(0.75 0.17 55);
+  --warn: oklch(0.68 0.21 25);
+}
+
+/* Tinted chips and pills: on light, the category shows as the dot and a soft wash; the words are the text colour. */
+:root[data-theme="light"] .jz-chip[data-tint][aria-pressed="true"] {
+  background: color-mix(in oklab, var(--cat) 16%, var(--jz-surface));
+  color: var(--jz-text);
+}
+:root[data-theme="light"] .th-pill {
+  background: color-mix(in oklab, var(--cat) 14%, var(--jz-surface));
+  color: var(--jz-text);
+}
+
+/* Fixed dark fills on pages: the quiet date tile and my pinned row in a long list. */
+:root[data-theme="light"] .ap-date[data-quiet] {
+  background: var(--jz-surface-2);
+}
+:root[data-theme="light"] .rs-scroll > [data-pinned] {
+  background: var(--jz-surface-2);
+}
+
+/* The beta terms' body text (a fixed light grey in TermsScreen). */
+:root[data-theme="light"] .text-\[\#D6D3DC\] { /* design-lint-ignore: a class name, not a colour */
+  color: var(--jz-text-2);
+}
+
+/* The player card's approved art is drawn for a dark card (it stays dark in light, tokens.css): a dark backing under
+   the art, so the card never shows the light page through its art's gaps. */
+:root[data-theme="light"] .pcard {
+  border-radius: 6px;
+  background-color: var(--jz-bg-raised);
+}
+
+/* Text drawn white inside a coloured icon tile (Challenge a friend's "VS"): its colour is the white it draws, in
+   every theme (the tile is art, not the page). */
+.tab-icon-ink {
+  color: var(--jz-art-sheen);
+}

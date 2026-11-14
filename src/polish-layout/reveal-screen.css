@@ -124,7 +124,7 @@
 }
 .reveal-breakdown-row[data-breakdown-kind="total"] .reveal-breakdown-name,
 .reveal-breakdown-row[data-breakdown-kind="total"] .reveal-breakdown-points {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .reveal-breakdown-bar {
   position: absolute;

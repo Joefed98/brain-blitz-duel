@@ -110,7 +110,7 @@
   border-top: 1px solid var(--jz-line);
 }
 .bd-title[aria-checked="true"] .bd-title-name {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .bd-title[data-locked] {
   color: var(--jz-text-3);
@@ -167,7 +167,7 @@
   flex-direction: column;
 }
 .bd-moment-kicker {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
   font-size: 12px;
   font-weight: var(--jz-weight-medium);
   line-height: 16px;

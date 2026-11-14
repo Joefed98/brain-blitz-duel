@@ -29,7 +29,7 @@
   --ap-text: var(--jz-text);
   --ap-text-2: var(--jz-text-3);
   --ap-faint: var(--jz-text-3);
-  --ap-gold: var(--jz-gold);
+  --ap-gold: var(--jz-gold-ink); /* gold as text and the page --primary: the same value in dark, darker in light (2b) */
   --ap-gold-tint: color-mix(in srgb, var(--jz-gold) 16%, var(--jz-bg));
   /* Gold only means "tap to play" (follow-up to #129): links and secondary buttons are neutral. */
   --ap-link: var(--jz-text-2);

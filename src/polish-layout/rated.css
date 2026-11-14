@@ -115,7 +115,7 @@
 .rt-box[data-box="next"] {
   border: 2px solid var(--jz-gold);
   background: transparent;
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 
 /* The bar to the next division. */
@@ -148,7 +148,7 @@
   color: var(--jz-text-2);
 }
 .rt-bar-next {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
   font-weight: var(--jz-weight-medium);
   text-align: right;
 }
@@ -470,7 +470,7 @@
   text-align: right;
 }
 .rt-frame-mine {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .rt-frame-hidden {
   color: var(--jz-text-3);
@@ -700,7 +700,7 @@
   font-stretch: 118%;
   font-variant-numeric: tabular-nums;
   line-height: 64px;
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .rt-result[data-outcome="lost"] .rt-result-score {
   color: var(--jz-text);
@@ -822,7 +822,7 @@
   color: var(--jz-text);
 }
 .rt-score-won {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .rt-score-them {
   font-size: 18px;
@@ -883,7 +883,7 @@
 }
 .rt-near-miss-line {
   font-weight: var(--jz-weight-bold);
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .rt-challenge {
   display: block;
@@ -998,7 +998,7 @@
   color: var(--jz-text);
 }
 .rt-tier[data-you] .rt-tier-name {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .rt-tier-you {
   font-size: 14px;

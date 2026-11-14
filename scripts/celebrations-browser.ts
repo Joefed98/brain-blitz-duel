@@ -24,6 +24,9 @@
  *    header's title); reveal150 unchanged.
  *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the header title fix): only "home" re-recorded
  *    (the header no longer carries .jz-nav); every other entry byte-identical.
+ *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the light theme): only "home" (the Challenge
+ *    tile's VS text carries class="tab-icon-ink") and "reveal150" (two attributes in a new order, from the status-bar
+ *    effect) re-recorded; every other entry byte-identical.
  *
  * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
  * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.

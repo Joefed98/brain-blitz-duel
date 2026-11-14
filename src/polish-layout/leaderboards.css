@@ -108,7 +108,7 @@ button.lb-row-in {
   font-variant-numeric: tabular-nums;
 }
 .lb-place-me {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .lb-who {
   display: flex;

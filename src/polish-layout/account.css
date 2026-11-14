@@ -188,7 +188,7 @@
   white-space: nowrap;
 }
 .acct-card-sub {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
   font-size: 14px;
   line-height: 18px;
   font-weight: var(--jz-weight-medium);
@@ -282,7 +282,7 @@
   flex: none;
   border-radius: var(--jz-radius);
   background: var(--jz-surface);
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .acct-sheet-body {
   display: flex;

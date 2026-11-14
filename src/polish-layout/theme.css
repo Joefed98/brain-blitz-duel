@@ -30,7 +30,7 @@
   --th-bg: var(--jz-bg);
   --th-text: var(--jz-text);
   --th-text-2: var(--jz-text-2);
-  --th-gold-text: var(--jz-gold);
+  --th-gold-text: var(--jz-gold-ink); /* gold as text: the same value in the dark theme, darker in light (2b) */
   --th-teal-text: var(--jz-cyan);
   --th-green-text: var(--jz-cyan);
   --th-orange-text: var(--jz-bronze);

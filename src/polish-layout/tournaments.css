@@ -124,7 +124,7 @@
   font-size: 18px;
   line-height: 22px;
   font-weight: var(--jz-weight-bold);
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
   font-variant-numeric: tabular-nums;
 }
 
@@ -168,7 +168,7 @@
   border-radius: var(--jz-radius);
 }
 .tn-me .tn-points {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 
 .tn-how {

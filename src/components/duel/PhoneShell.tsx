@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, type Rea
 import { GameMenu } from "./GameMenu";
 import { BOARD_FILL, CATEGORY_NAMES, FrameName, GoalLine, useBoardTray } from "./GameFrame";
 import { AppHeader } from "@/components/app/AppHeader";
+import { holdDarkStatusBar } from "@/lib/appearance";
 import { FxLayer } from "./FxLayer";
 import type { PuzzleType } from "@/lib/duel/types";
 import { revealPaletteStyle } from "@/lib/duel/revealPalette";
@@ -460,6 +461,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
   usePuzzleRejections(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"), gameType);
   usePuzzleHaptics(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"));
+  // Game screens stay dark in every theme (2b): the status bar over one stays dark too.
+  useEffect(() => (gameScreen ? holdDarkStatusBar() : undefined), [gameScreen]);
   return (
     <div
       ref={surfaceRef}
