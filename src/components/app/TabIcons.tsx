@@ -77,6 +77,7 @@ export function ChallengeTile() {
           fontSize="8.5"
           letterSpacing=".06em"
           fill="#FFFFFF"
+          className="tab-icon-ink"
         >
           VS
         </text>

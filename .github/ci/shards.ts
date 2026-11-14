@@ -97,7 +97,7 @@ export const SHARDS: Record<string, string[]> = {
   // app-shell-check (18 Oct 2026: the four tabs, icons and the public-games card in the real app plus room screens
   // in the harness, ~2 min with its dev server) rides here too.
   // Changed with Joe's approval, 14 Nov 2026: theme-check's third part (see play16).
-  play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts", "demo-intro-check.ts@6/6", "theme-check.tsx@3/3"],
+  play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts", "demo-intro-check.ts@6/6", "theme-check.tsx@3/5"],
   // The page skin (19 Oct 2026): theme-check and no-wrap-check's draws (the daily screens joined 21 Oct 2026: locally
   // theme-check ~2 min, no-wrap-check ~4 min whole). no-wrap-check in sixths since 4 Nov 2026: its thirds reached 281–300 s
   // on CI against the 300 s limit per check (#261's play17); two sixths here, four on play17, the same two jobs.
@@ -108,11 +108,11 @@ export const SHARDS: Record<string, string[]> = {
   // Changed with Joe's approval, 14 Nov 2026: no-wrap-check in eighths (its sixths 1 and 2 timed out at 300 s on play16 once
   // the dealing lobby joined; ~275 s before): parts 1–2 on play16, 3–5 on play17, and one each on the lightest browser jobs
   // of the 14 Nov Full suite: 6 on play23 (374 s), 7 on play6 (390 s), 8 on play10 (391 s).
-  play16: ["theme-check.tsx@1/3", "no-wrap-check.tsx@1/8", "no-wrap-check.tsx@2/8"],
+  play16: ["theme-check.tsx@1/5", "no-wrap-check.tsx@1/8", "no-wrap-check.tsx@2/8"],
   // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
   // harness, ~1 min with its dev server) rides with no-wrap's other four sixths.
   // Changed with Joe's approval, 14 Nov 2026: no-wrap-check's eighths 3–5 (see play16).
-  play17: ["theme-check.tsx@2/3", "no-wrap-check.tsx@3/8", "no-wrap-check.tsx@4/8", "no-wrap-check.tsx@5/8", "share-check.ts"],
+  play17: ["theme-check.tsx@2/5", "no-wrap-check.tsx@3/8", "no-wrap-check.tsx@4/8", "no-wrap-check.tsx@5/8", "share-check.ts"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
   // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
@@ -138,8 +138,11 @@ export const SHARDS: Record<string, string[]> = {
   play22: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts"],
   // Changed with Joe's approval, 14 Nov 2026: no-wrap-check's eighth part 6 (see play16).
   play23: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3", "no-wrap-check.tsx@6/8"],
-  play24: ["arcade-play-desktop-check.ts@1/2"],
-  play25: ["arcade-play-desktop-check.ts@2/2"],
+  // Changed with Joe's approval, 14 Nov 2026 (2b, the light theme: theme-check draws every screen again in light, 407
+  // draws in all, so its thirds become fifths; parts 4 and 5 here, as partOf takes every fifth draw, the five together
+  // exactly the whole run).
+  play24: ["arcade-play-desktop-check.ts@1/2", "theme-check.tsx@4/5"],
+  play25: ["arcade-play-desktop-check.ts@2/2", "theme-check.tsx@5/5"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.

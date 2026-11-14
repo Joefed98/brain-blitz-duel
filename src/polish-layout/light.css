@@ -36,6 +36,19 @@
 }
 
 /* The beta terms' body text (a fixed light grey in TermsScreen). */
-:root[data-theme="light"] .text-\[\#D6D3DC\] {
+:root[data-theme="light"] .text-\[\#D6D3DC\] { /* design-lint-ignore: a class name, not a colour */
   color: var(--jz-text-2);
+}
+
+/* The player card's approved art is drawn for a dark card (it stays dark in light, tokens.css): a dark backing under
+   the art, so the card never shows the light page through its art's gaps. */
+:root[data-theme="light"] .pcard {
+  border-radius: 6px;
+  background-color: var(--jz-bg-raised);
+}
+
+/* Text drawn white inside a coloured icon tile (Challenge a friend's "VS"): its colour is the white it draws, in
+   every theme (the tile is art, not the page). */
+.tab-icon-ink {
+  color: var(--jz-art-sheen);
 }

@@ -776,6 +776,21 @@ export const NAV_SCREENS = (): ThemeScreen[] => {
  * src/design/ComponentsGallery.tsx) in the dark tokens and the light, and Settings' sound switches and volume sliders,
  * at every size. Appended last, so every earlier screen keeps its place in the parts.
  */
+/** 2b (14 Nov 2026): Settings → Appearance (Dark, Light, Match my device), at every size; appended last. */
+export const APPEARANCE_SCREENS = (): ThemeScreen[] => [
+  {
+    name: "settings, appearance",
+    mode: "profile",
+    sizes: ALL_SIZES,
+    go: async (page) => {
+      await page.locator("[data-open-settings]").first().click();
+      await page.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-settings-sheet] [data-appearance-setting]").scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+    },
+  },
+];
+
 export const COMPONENT_SCREENS = (): ThemeScreen[] => [
   { name: "components", mode: "components", plain: true, sizes: ALL_SIZES },
   { name: "components, light", mode: "components", plain: true, globals: { __harnessTheme: "light" }, sizes: ALL_SIZES },
@@ -977,6 +992,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...SECURITY_C1A_SCREENS(),
   ...NAV_SCREENS(),
   ...COMPONENT_SCREENS(),
+  ...APPEARANCE_SCREENS(),
 ];
 
 export interface ThemeViewport {

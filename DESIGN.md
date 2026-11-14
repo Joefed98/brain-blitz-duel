@@ -96,6 +96,16 @@ round a game tile, the diamond marker beside a category name, and the game scree
 
 ---
 
+### The light theme (phase 2 step 2b, 14 Nov 2026)
+
+Settings → Appearance: Dark (the default), Light, Match my device, kept on the device (`src/lib/appearance.ts`),
+applied before the first paint by an inline boot script hashed in the content security policy. Light puts the
+guide's light values on `:root` under `<html data-theme="light">` (`tokens.css`), so every alias built on the tokens
+follows; gold stays the champagne face for buttons and fills, and gold as text uses `--jz-gold-ink`. Game screens
+(`.game-screen`), game art inside a page (`[data-skin-off]`) and the player card (`.pcard`) stay dark in every theme
+until step 4. The status bar (theme-color) follows the page and stays dark over a game screen. Page styles that drew
+fixed dark colours have their light form in `polish-layout/light.css`. theme-check draws every screen again in light.
+
 ## 3. Type
 
 Archivo variable font, self-hosted (weights 400–900, widths 62–125 %).

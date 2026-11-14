@@ -87,7 +87,12 @@ const check = (ok: boolean, what: string) => {
     const first = new RegExp(`\\n\\s*${token}:\\s*([^;]+);`).exec(tokens);
     check(first?.[1]?.trim() === value, `existing token ${token} still ${value} (${first?.[1]})`);
   }
-  check(/:root\[data-theme="light"\] \.jz-nav \{/.test(tokens), "the light theme reaches only the navigation frame");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of 2b, the light theme on every page, Joe's brief:
+  // was "the light theme reaches only the navigation frame"): light on the whole page, game screens kept dark.
+  check(
+    /:root\[data-theme="light"\] \{/.test(tokens) && /:root\[data-theme="light"\] :is\(\.game-screen, \[data-skin-off\], \.pcard\) \{/.test(tokens),
+    "the light theme reaches every page, game screens and game art kept dark",
+  );
 
   // The route list: every route file, and how a player reaches it (docs/design/nav-review/GALLERY.md lists the same).
   const ROUTES: Record<string, string> = {
