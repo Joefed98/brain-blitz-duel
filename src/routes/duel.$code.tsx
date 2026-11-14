@@ -170,6 +170,7 @@ import { Button, SkeletonPage } from "@/design/components";
 import { PodiumCelebrations, type CelebrationEntry } from "@/components/duel/PodiumCelebrations";
 import { useCosmetics } from "@/lib/cosmetics/cosmeticsStore";
 import { useRoomCards } from "@/lib/identity/useRoomCards";
+import { dealClaimFresh } from "@/lib/duel/dealClaim";
 import { RoomCardsHost, usePublishRoomCards } from "@/components/duel/RoomPlayer";
 import { NO_COSMETICS } from "@/lib/cosmetics/types";
 
@@ -395,8 +396,12 @@ function DuelScreen() {
     key: "",
     value: undefined,
   });
-  if (heldPuzzle.current.key !== stateKey) heldPuzzle.current = { key: stateKey, value: incoming };
+  // A new room's round arrives with its intro (Security C1a), so a round's hold also takes the puzzle once it lands.
+  if (heldPuzzle.current.key !== stateKey || (heldPuzzle.current.value === undefined && incoming !== undefined))
+    heldPuzzle.current = { key: stateKey, value: incoming };
   const puzzle = heldPuzzle.current.value;
+  // The round's game before its puzzle is released (the start and title screens): from the stored round order.
+  const roundType = (puzzle?.type ?? (duel && round > 0 ? duel.round_order?.[round - 1] : undefined)) as PuzzleType | undefined;
   // The live puzzle round's stage inputs are kept on the device too (stageState.ts), so a reload continues
   // the same board. Never an arcade run (its sim replays its input log); practice never marks a round.
   persistStageState(puzzle && !isArcadeScreenType(puzzle.type) ? stateKey : "");
@@ -935,7 +940,7 @@ function DuelScreen() {
     phaseStart !== null &&
     now < phaseStart + DUEL_START_MS
   ) {
-    return <DuelStart startedAt={phaseStart} type={puzzle?.type} />;
+    return <DuelStart startedAt={phaseStart} type={roundType} />;
   }
 
   // While the guarded server write catches up, render the next shared frame,
@@ -943,8 +948,15 @@ function DuelScreen() {
   const titleStart = phaseStart === null ? null :
     phase === "starting" ? phaseStart + DUEL_START_MS :
     phase === "round_title" ? phaseStart : null;
-  if (duel.status === "in_progress" && puzzle && titleStart !== null && now < titleStart + ROUND_TITLE_MS) {
-    return <RoundTitle key={`${stateKey}-${titleStart}`} startedAt={titleStart} round={round} totalRounds={duel.round_count ?? TOTAL_ROUNDS} type={puzzle.type} />;
+  if (duel.status === "in_progress" && roundType && titleStart !== null && now < titleStart + ROUND_TITLE_MS) {
+    return <RoundTitle key={`${stateKey}-${titleStart}`} startedAt={titleStart} round={round} totalRounds={duel.round_count ?? TOTAL_ROUNDS} type={roundType} />;
+  }
+  // Security C1a: the title stays on its last frame until the round's puzzle has arrived (a moment after the intro
+  // begins), so the intro opens complete, never without its puzzle's own lines.
+  const heldTitleStart =
+    titleStart ?? (phase === "intro" && phaseStart !== null ? phaseStart - ROUND_TITLE_MS : null);
+  if (duel.status === "in_progress" && !puzzle && roundType && heldTitleStart !== null && (phase === "starting" || phase === "round_title" || phase === "intro")) {
+    return <RoundTitle key={`${stateKey}-${heldTitleStart}`} startedAt={heldTitleStart} round={round} totalRounds={duel.round_count ?? TOTAL_ROUNDS} type={roundType} />;
   }
 
   if (duel.status === "in_progress" && phase === "winner_reveal" && phaseStart !== null) {
@@ -1035,6 +1047,7 @@ function DuelScreen() {
             meUserId={me.user_id}
             isHost={isHost}
             starting={starting}
+            dealing={dealClaimFresh(duel.start_claimed_at, now)}
             onStart={() => void handleStart()}
             storedSettings={duel.selected_categories}
             tournamentHistory={duel.tournament_history ?? []}

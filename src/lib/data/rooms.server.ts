@@ -26,16 +26,40 @@ function asRoom(row: Tables<"duels">): DuelRow {
 
 /* ------------------------------------------------------------------ reads */
 
+/**
+ * A room's public halves as the server reads them. A room dealt by start_dealt_room keeps them in
+ * duel_secrets.puzzles_public while it plays (its duels.puzzles_public is [] until it finishes;
+ * supabase/migrations/20261117500100_round_puzzle_release.sql), so every server reader gets the full list from there;
+ * a room started before that, a waiting room and a finished one read as stored.
+ */
+async function withHeldPuzzles(client: Db, room: DuelRow): Promise<DuelRow> {
+  if (room.status === "waiting" || (Array.isArray(room.puzzles_public) && room.puzzles_public.length > 0)) return room;
+  const held = await readHeldPublicPuzzles(client, [room.id]);
+  const list = held.get(room.id);
+  return list ? { ...room, puzzles_public: list as unknown as DuelRow["puzzles_public"] } : room;
+}
+
+/** The held public halves of these rooms (a room with none held is missing from the map). */
+export async function readHeldPublicPuzzles(client: Db, roomIds: string[]): Promise<Map<string, Json[]>> {
+  const out = new Map<string, Json[]>();
+  if (!roomIds.length) return out;
+  const { data } = await client.from("duel_secrets").select("duel_id, puzzles_public").in("duel_id", roomIds);
+  for (const row of data ?? []) {
+    if (Array.isArray(row.puzzles_public) && row.puzzles_public.length > 0) out.set(row.duel_id, row.puzzles_public);
+  }
+  return out;
+}
+
 /** The whole room by id. */
 export async function readRoom(client: Db, roomId: string): Promise<Result<DuelRow | null>> {
   const { data, error } = await client.from("duels").select("*").eq("id", roomId).maybeSingle();
-  return { data: data ? asRoom(data) : null, error };
+  return { data: data ? await withHeldPuzzles(client, asRoom(data)) : null, error };
 }
 
 /** The whole room by its code. */
 export async function readRoomByCode(client: Db, code: string): Promise<Result<DuelRow | null>> {
   const { data, error } = await client.from("duels").select("*").eq("room_code", code).maybeSingle();
-  return { data: data ? asRoom(data) : null, error };
+  return { data: data ? await withHeldPuzzles(client, asRoom(data)) : null, error };
 }
 
 /** What a room link may tell a visitor: whether it can be joined. */
@@ -55,13 +79,13 @@ export async function readRoomPreview(
 export async function readRoomForSettings(
   client: Db,
   roomId: string,
-): Promise<Result<Pick<DuelRow, "id" | "room_code" | "host_user_id" | "status" | "disbanded_at"> | null>> {
+): Promise<Result<Pick<DuelRow, "id" | "room_code" | "host_user_id" | "status" | "disbanded_at" | "start_claimed_at"> | null>> {
   const { data, error } = await client
     .from("duels")
-    .select("id, room_code, host_user_id, status, disbanded_at")
+    .select("id, room_code, host_user_id, status, disbanded_at, start_claimed_at")
     .eq("id", roomId)
     .maybeSingle();
-  return { data: data as Pick<DuelRow, "id" | "room_code" | "host_user_id" | "status" | "disbanded_at"> | null, error };
+  return { data: data as Pick<DuelRow, "id" | "room_code" | "host_user_id" | "status" | "disbanded_at" | "start_claimed_at"> | null, error };
 }
 
 /** The room's host (chat's mute). */
@@ -99,11 +123,16 @@ export async function readHostRecentPuzzles(
 ): Promise<Result<{ puzzles_public: Json }[] | null>> {
   const { data, error } = await client
     .from("duels")
-    .select("puzzles_public")
+    .select("id, puzzles_public")
     .eq("host_user_id", hostUserId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  return { data, error };
+  if (error || !data) return { data: null, error };
+  // A room still playing holds its public halves on the server (withHeldPuzzles): read them, so the deal skips the
+  // same banked boards it always did.
+  const empty = data.filter((r) => !Array.isArray(r.puzzles_public) || r.puzzles_public.length === 0).map((r) => r.id);
+  const held = await readHeldPublicPuzzles(client, empty);
+  return { data: data.map((r) => ({ puzzles_public: held.get(r.id) ?? r.puzzles_public })), error };
 }
 
 /** The host's last room's stored settings. */
@@ -167,29 +196,73 @@ export async function insertRoom(
   return { data: data ? asRoom(data) : null, error };
 }
 
-/** The host's start: the dealt rounds, guarded on the room still waiting. The claimed row's id, or null. */
-export async function claimRoomStart(
+/** What a deal claim answers: its stamp, and the settings the deal reads as they stood when it was taken. */
+export interface DealClaim {
+  claimed_at: string;
+  selected_categories: Json;
+  host_user_id: string | null;
+}
+
+/**
+ * Claims a waiting room for dealing (supabase/migrations/20261117500000_room_start_claim.sql): only when no fresh claim
+ * stands. The claim, or null when the room isn't waiting or is already being dealt.
+ */
+export async function claimRoomDeal(client: Db, roomId: string, nowIso: string, staleMs: number): Promise<Result<DealClaim | null>> {
+  const { data, error } = await client.rpc("claim_room_deal", { p_room_id: roomId, p_now: nowIso, p_stale_ms: staleMs });
+  const row = Array.isArray(data) ? (data[0] as DealClaim | undefined) : undefined;
+  return { data: row ?? null, error };
+}
+
+/** Gives a claim back (only that exact claim). */
+export async function releaseRoomDeal(client: Db, roomId: string, claim: string): Promise<Result<boolean | null>> {
+  const { data, error } = await client.rpc("release_room_deal", { p_room_id: roomId, p_claim: claim });
+  return { data: data as boolean | null, error };
+}
+
+/**
+ * The start, in one transaction (start_dealt_room): the dealt rounds on the room, the private halves and the held public
+ * halves in duel_secrets, the claim cleared and the deal's origin stamped. "started", "lost" (the room moved on or the
+ * claim isn't this one) or "too_few" (too few players stayed; the claim is given back).
+ */
+export async function startDealtRoom(
   client: Db,
-  roomId: string,
-  values: {
-    round_order: StoredPuzzleType[];
-    round_count: number;
-    puzzles_public: Json;
-    status: "in_progress";
-    current_round: number;
-    phase: DuelPhase;
-    phase_started_at: string;
-    round_started_at: string;
+  input: {
+    roomId: string;
+    claim: string;
+    roundOrder: StoredPuzzleType[];
+    puzzlesPublic: Json;
+    puzzlesPrivate: Json;
+    startedAt: string;
+    minPlayers: number;
+    /** The phase the room starts in: Prepare to Duel. */
+    phase: "starting";
+    dealOrigin?: string | null;
+    /** The settings the deal read at its claim: a room whose settings changed since gives its claim back ("lost"). */
+    selectedCategories?: Json;
   },
-): Promise<Result<{ id: string } | null>> {
-  const { data, error } = await client
-    .from("duels")
-    .update({ ...values, round_order: asJson(values.round_order) })
-    .eq("id", roomId)
-    .eq("status", "waiting")
-    .select("id")
-    .maybeSingle();
-  return { data, error };
+): Promise<Result<"started" | "lost" | "too_few" | null>> {
+  const { data, error } = await client.rpc("start_dealt_room", {
+    p_room_id: input.roomId,
+    p_claim: input.claim,
+    p_round_order: asJson(input.roundOrder),
+    p_puzzles_public: input.puzzlesPublic,
+    p_puzzles_private: input.puzzlesPrivate,
+    p_started_at: input.startedAt,
+    p_min_players: input.minPlayers,
+    p_phase: input.phase,
+    ...(input.dealOrigin ? { p_deal_origin: input.dealOrigin } : {}),
+    ...(input.selectedCategories !== undefined ? { p_selected_categories: input.selectedCategories } : {}),
+  });
+  return { data: (data as "started" | "lost" | "too_few" | null) ?? null, error };
+}
+
+/** Each room's deal origin (the room whose deal it plays; itself unless it copied a recorded run's room). */
+export async function readDealOrigins(client: Db, roomIds: string[]): Promise<Result<Map<string, string>>> {
+  const out = new Map<string, string>();
+  if (!roomIds.length) return { data: out, error: null };
+  const { data, error } = await client.from("duels").select("id, deal_origin_id").in("id", roomIds);
+  for (const row of data ?? []) out.set(row.id, row.deal_origin_id ?? row.id);
+  return { data: out, error };
 }
 
 /** The host's category picks, guarded on the room still waiting. */
@@ -197,13 +270,15 @@ export async function writeRoomCategories(
   client: Db,
   roomId: string,
   categories: readonly string[],
-): Promise<Result<null>> {
-  const { error } = await client
+): Promise<Result<{ id: string } | null>> {
+  const { data, error } = await client
     .from("duels")
     .update({ selected_categories: asJson(categories) })
     .eq("id", roomId)
-    .eq("status", "waiting");
-  return { data: null, error };
+    .eq("status", "waiting")
+    .select("id")
+    .maybeSingle();
+  return { data, error };
 }
 
 /** The room settings sheet's write, guarded on the room still waiting; `scoring` only when the sheet sent it. */
@@ -415,15 +490,6 @@ export async function readPrivatePuzzles(client: Db, roomId: string): Promise<Re
     .eq("duel_id", roomId)
     .maybeSingle();
   return { data: (data?.puzzles_private ?? []) as Record<string, unknown>[], error };
-}
-
-/** Stores the room's private halves at the start. */
-export async function writePrivatePuzzles(client: Db, roomId: string, puzzlesPrivate: Json): Promise<Result<null>> {
-  const { error } = await client.from("duel_secrets").upsert({
-    duel_id: roomId,
-    puzzles_private: puzzlesPrivate,
-  });
-  return { data: null, error };
 }
 
 /** The beta recording's per-round records (betaRecord.server.ts). */

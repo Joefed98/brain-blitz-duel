@@ -433,12 +433,14 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
     );
     check(
       q(
-        `SELECT jsonb_array_length(puzzles_public)::text || ',' || (SELECT jsonb_array_length(puzzles_private) FROM public.duel_secrets WHERE duel_id = '${roomId}') FROM public.duels WHERE id = '${roomId}'`,
+        // Changed with Joe's approval, 13 Nov 2026: read from the server's held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+        `SELECT jsonb_array_length(puzzles_public)::text || ',' || jsonb_array_length(puzzles_private) FROM public.duel_secrets WHERE duel_id = '${roomId}'`,
       ) === "3,3",
       "start: 3 public puzzles and 3 private halves stored, dealt once",
     );
     const types = q(
-      `SELECT string_agg(p ->> 'type', ',') FROM public.duels, jsonb_array_elements(puzzles_public) p WHERE id = '${roomId}'`,
+      // Changed with Joe's approval, 13 Nov 2026: the types from the server's held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+      `SELECT string_agg(p ->> 'type', ',') FROM public.duel_secrets, jsonb_array_elements(puzzles_public) p WHERE duel_id = '${roomId}'`,
     ).split(",");
     const { puzzleDef } = await import("../src/lib/duel/registry");
     check(
@@ -513,7 +515,8 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
 
     // Ali's phone sends the same answer (a good player's real input log) twice at once: a retried send racing the first.
     const pub = JSON.parse(
-      q(`SELECT (puzzles_public -> ${round - 1})::text FROM public.duels WHERE id = '${roomId}'`),
+      // Changed with Joe's approval, 13 Nov 2026: the round's public half from the server's held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+      q(`SELECT (puzzles_public -> ${round - 1})::text FROM public.duel_secrets WHERE duel_id = '${roomId}'`),
     );
     const priv = JSON.parse(
       q(

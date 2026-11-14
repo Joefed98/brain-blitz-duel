@@ -428,7 +428,8 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
       const [, roundText, phase] = phaseOf().split(":");
       const round = Number(roundText);
       if (phase === "puzzle" && q(`SELECT count(*) FROM public.round_results WHERE duel_id = '${room.id}' AND round_number = ${round} AND player_slot = 1`) === "0") {
-        const pub = JSON.parse(q(`SELECT (puzzles_public -> ${round - 1})::text FROM public.duels WHERE id = '${room.id}'`));
+        // Changed with Joe's approval, 13 Nov 2026: the round's public half from the server's held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
+        const pub = JSON.parse(q(`SELECT (puzzles_public -> ${round - 1})::text FROM public.duel_secrets WHERE duel_id = '${room.id}'`));
         const priv = JSON.parse(q(`SELECT (puzzles_private -> ${round - 1})::text FROM public.duel_secrets WHERE duel_id = '${room.id}'`));
         const answer = await botAnswer(mergePuzzle(pub, priv) as unknown as Record<string, unknown>);
         await call(duel.submitAnswerFn, { roomId: room.id, roundNumber: round, answer, msRemaining: 1000, inputType: "touch" }, tok(A1));

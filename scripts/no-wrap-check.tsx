@@ -20,7 +20,7 @@
  * description under the switch): every piece of the row's text, wrapping or not, must end at least 8 px left of the
  * switch (or sit wholly above or below it) and must not be cut off by any box inside the row.
  *
- *   bun scripts/no-wrap-check.tsx [screen name filter…] [--part=k/n] [--verbose]
+ *   bun scripts/no-wrap-check.tsx [screen name filter…] [--part=k/n] [--verbose] [--list]
  */
 import { existsSync } from "node:fs";
 
@@ -40,6 +40,13 @@ const SCREENS = ONLY.length
   : THEME_SCREENS;
 // Every screen at VIEWPORTS, then the extra sizes of the screens that have them (ThemeScreen.sizes) after them all.
 const DRAWS = partOf(themeDraws(SCREENS, VIEWPORTS), args);
+
+// Changed with Joe's approval, 14 Nov 2026 (no-wrap-check in eighths): --list prints the draws this run (or part) would
+// make, without a browser, so the eighths can be proved to draw exactly what the sixths did. Nothing is judged.
+if (args.includes("--list")) {
+  for (const d of DRAWS) console.log(`DRAW ${JSON.stringify(d, (k, v) => (typeof v === "function" ? undefined : k === "screen" ? (v as { name: string }).name : v))}`);
+  process.exit(0);
+}
 
 /** In-page: every single-line text that wraps or overflows. */
 function wrapProbe() {

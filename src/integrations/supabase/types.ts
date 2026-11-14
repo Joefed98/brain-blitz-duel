@@ -1010,23 +1010,58 @@ export type Database = {
           },
         ]
       }
+      duel_round_puzzles: {
+        Row: {
+          duel_id: string
+          game_index: number
+          puzzle: Json
+          released_at: string
+          round_number: number
+        }
+        Insert: {
+          duel_id: string
+          game_index: number
+          puzzle: Json
+          released_at?: string
+          round_number: number
+        }
+        Update: {
+          duel_id?: string
+          game_index?: number
+          puzzle?: Json
+          released_at?: string
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_round_puzzles_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "duels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       duel_secrets: {
         Row: {
           created_at: string
           duel_id: string
           puzzles_private: Json
+          puzzles_public: Json | null
           round_records: Json | null
         }
         Insert: {
           created_at?: string
           duel_id: string
           puzzles_private: Json
+          puzzles_public?: Json | null
           round_records?: Json | null
         }
         Update: {
           created_at?: string
           duel_id?: string
           puzzles_private?: Json
+          puzzles_public?: Json | null
           round_records?: Json | null
         }
         Relationships: [
@@ -1045,6 +1080,7 @@ export type Database = {
           add_maths: boolean
           created_at: string
           current_round: number
+          deal_origin_id: string | null
           disbanded_at: string | null
           host_user_id: string | null
           id: string
@@ -1060,6 +1096,7 @@ export type Database = {
           round_started_at: string | null
           scoring_mode: string
           selected_categories: Json
+          start_claimed_at: string | null
           status: string
           tournament_history: Json
         }
@@ -1068,6 +1105,7 @@ export type Database = {
           add_maths?: boolean
           created_at?: string
           current_round?: number
+          deal_origin_id?: string | null
           disbanded_at?: string | null
           host_user_id?: string | null
           id?: string
@@ -1083,6 +1121,7 @@ export type Database = {
           round_started_at?: string | null
           scoring_mode?: string
           selected_categories?: Json
+          start_claimed_at?: string | null
           status?: string
           tournament_history?: Json
         }
@@ -1091,6 +1130,7 @@ export type Database = {
           add_maths?: boolean
           created_at?: string
           current_round?: number
+          deal_origin_id?: string | null
           disbanded_at?: string | null
           host_user_id?: string | null
           id?: string
@@ -1106,6 +1146,7 @@ export type Database = {
           round_started_at?: string | null
           scoring_mode?: string
           selected_categories?: Json
+          start_claimed_at?: string | null
           status?: string
           tournament_history?: Json
         }
@@ -2932,6 +2973,28 @@ export type Database = {
       mm_recent_aborts: { Args: { p_user: string; p_since: string }; Returns: string[] }
       room_send_reaction: { Args: { p_duel_id: string; p_payload: Json }; Returns: undefined }
       room_topic_allowed: { Args: { p_topic: string; p_write: boolean }; Returns: boolean }
+      claim_room_deal: {
+        Args: { p_now: string; p_room_id: string; p_stale_ms: number }
+        Returns: { claimed_at: string; host_user_id: string | null; selected_categories: Json }[]
+      }
+      release_room_deal: { Args: { p_claim: string; p_room_id: string }; Returns: boolean }
+      start_dealt_room: {
+        Args: {
+          p_claim: string
+          p_deal_origin?: string
+          p_min_players: number
+          p_phase: string
+          p_puzzles_private: Json
+          p_puzzles_public: Json
+          p_room_id: string
+          p_round_order: Json
+          p_selected_categories?: Json
+          p_started_at: string
+        }
+        Returns: string
+      }
+      room_game_index: { Args: { _duel_id: string }; Returns: number }
+      mm_seen_deal_origins: { Args: { p_user_id: string }; Returns: string[] }
       file_room_report: {
         Args: {
           p_duel_id: string | null

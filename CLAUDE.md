@@ -372,8 +372,8 @@ outside the repo.
   now an alias of a `--jz-*` token). Game screens, round intros and room moments are not skinned. Game
   icon tiles are black with their category's colour as the border (27 Oct 2026). Round leaderboard rows keep time · verdict · summary
   on one line under the name (ellipsis; a tap opens the detail). theme-check (fonts, tokens, contrast ≥ 4.5:1,
-  targets ≥ 44 px, `play16`) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
-  375×667 and desktop; sixths since 4 Nov 2026, two on `play16` and four on `play17`) prove it; run both after changing a skinned screen.
+  targets ≥ 44 px; in thirds since 14 Nov 2026, on `play16`, `play17` and `play15`, `--list` printing a part's draws) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
+  375×667 and desktop; eighths since 14 Nov 2026, two on `play16`, three on `play17` and one each on `play23`, `play6` and `play10`, `--list` printing a part's draws) prove it; run both after changing a skinned screen.
 - **Daily challenge and async rooms** (21 Oct 2026, the beta's daily; no game's rules, scoring or grading changed, no
   version stamps): an *async room* (`src/lib/duel/asyncRoom.ts` timings, `asyncRoom.server.ts` engine,
   `asyncRoom.functions.ts` calls, `src/components/async/AsyncRun.tsx` / `AsyncResults.tsx`) is a set of rounds dealt once
@@ -2460,6 +2460,32 @@ outside the repo.
   `STOP_WORKER_REGISTRATION` in serviceWorker.ts (false) stops the page registering /sw.js. Migrations
   `20261117200000_csp_reports.sql`, `20261117200100_analytics_arcade_timing.sql`. security-trials-check (~10 s, shard
   `e`).
+- **Rooms claimed, rounds released, recorded runs, Security C1a** (14 Nov 2026; no deal, stamp, grading, scoring or timing
+  change). *Claiming*: the host's Start first claims the room (`claim_room_deal`, `duels.start_claimed_at`; fresh for
+  `DEAL_CLAIM_MS`, 60 s, `src/lib/duel/dealClaim.ts`), then builds the rounds from the settings as the claim saw them, then
+  starts in one transaction (`start_dealt_room`, `startDealtRoom` in rooms.server.ts: the room row, the private halves and
+  the held public halves, all or nothing); a second Start while it holds builds nothing; a failed build gives the claim back
+  (`release_room_deal`); settings changed since the claim make the start give it back ("The room settings changed. Start
+  again."). While a fresh claim holds the lobby shows "Dealing" (Start and Room settings wait) and the settings and
+  categories are refused (`DEALING_MESSAGE`); joins, leaves and looks carry on; a claim older than 60 s is abandoned. Rated,
+  recorded and Arena match rooms start through the same RPC (`createStartedRoom`). *Rounds released*: a room started this way
+  keeps its public halves in `duel_secrets.puzzles_public` and its row's `puzzles_public` is `[]` while it plays; a trigger on
+  `duels` (`release_round_puzzles`) copies each round into `duel_round_puzzles` as its intro begins (any later phase too),
+  readable by the room's players for the current game only (`room_game_index`, so Play again starts hidden again; in the
+  realtime publication), and at the finish (not a disband) every round lands and the row takes the full list, so a finished
+  room reads as before. The phone reads released rounds in `useDuel` (load, each phase change, the realtime insert) and fills
+  `duel.puzzles_public` from them; the start and title screens take the round's game from `round_order`, the title holds on
+  its last frame until the puzzle arrives. The server's own reads (`readRoom`, `readRoomByCode`, `readHostRecentPuzzles`,
+  `readFinishedRoomSource`) fill a playing room's list from the held copy, so every grade, reveal, replay, tie-break and
+  recorded copy reads what it always did. Rooms started before this (nothing held) are untouched. *Recorded runs*: a player
+  is never served a recorded run from a deal they have played (Joe, 13 Nov 2026): `duels.deal_origin_id` (the room whose deal
+  a room plays: itself, or a recorded match's source room's origin; existing rooms filled with their own id) and
+  `mm_seen_deal_origins` (every room a player sat in: joins, seats, Play again's archive) exclude rated and room runs, and a
+  Daily attempt is excluded for a player with an attempt in that Daily (`unseenDeals` in rated.server.ts). Migrations
+  `20261117500000_room_start_claim.sql`, `20261117500100_round_puzzle_release.sql`, `20261117500200_recorded_run_origins.sql`.
+  room-start-check and round-release-check (~10 s each, shard `e`), rated-server-check's last section, room-e2e-check
+  (headless Chromium, two phones on the real app, `play18`); the dealing lobby is in theme-check and no-wrap-check at every
+  size (`SECURITY_C1A_SCREENS`). The check-only `__DUELZ_FAIL_ROOM_DEAL__` makes a deal fail part-way (never read in production).
 - **Retired games out of the app** (13 Nov 2026, Joe's rule; Retirements session): `RETIRED_TYPES` (catalogue.ts) is the
   one switch, now 21 games (the nine of 13 Nov 2026: Mixed Signals, Gradient, Turntable, Blackout, Bang On, Slice, Ringer,
   Swish, Flightpath). A retired game is never offered, dealt, played or counted: `isPlayable(type)` is asked by Practice (no

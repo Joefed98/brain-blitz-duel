@@ -35,7 +35,7 @@ async function shoot(html, file, { w, h, dpr = 1 }) {
 
 if (!args.includes('--no-art')) {
   const page = await browser.newPage();
-  await page.goto('file://' + path.join(REPO, 'docs/design/directions/source/art.html'));
+  await page.goto('file://' + path.join(REPO, 'docs/design/style-guide/source/art.html'));
   await page.waitForFunction(() => window.ready);
   fs.mkdirSync(path.join(OUT, 'art'), { recursive: true });
   const jobs = [...Object.entries(ICONS).map(([n, s]) => [n, s, 192, 192]), ...Object.entries(KEYART).map(([n, s]) => ['key-' + n, s, n === 'hero' ? 960 : 640, n === 'hero' ? 600 : 400])];
