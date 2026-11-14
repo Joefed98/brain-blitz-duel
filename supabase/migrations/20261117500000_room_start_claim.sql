@@ -46,7 +46,8 @@ $$;
 
 -- The start, in one transaction: 'started', 'lost' (the room moved on, the claim isn't this one, or the settings the
 -- deal read, p_selected_categories, have changed since the claim; the claim is given back for those) or 'too_few'
--- (fewer than p_min_players still in the room; the claim is given back).
+-- (fewer than p_min_players still in the room; the claim is given back). The room starts in p_phase, its Prepare to
+-- Duel phase 'starting' (the caller names it; nothing else is accepted).
 CREATE OR REPLACE FUNCTION public.start_dealt_room(
   p_room_id uuid,
   p_claim timestamptz,
@@ -55,6 +56,7 @@ CREATE OR REPLACE FUNCTION public.start_dealt_room(
   p_puzzles_private jsonb,
   p_started_at timestamptz,
   p_min_players integer,
+  p_phase text,
   p_deal_origin uuid DEFAULT NULL,
   p_selected_categories jsonb DEFAULT NULL
 )
@@ -63,6 +65,9 @@ DECLARE
   v_room public.duels%ROWTYPE;
   v_present integer;
 BEGIN
+  IF p_phase IS DISTINCT FROM 'starting' THEN
+    RAISE EXCEPTION 'a room starts in its starting phase';
+  END IF;
   SELECT * INTO v_room FROM public.duels WHERE id = p_room_id FOR UPDATE;
   IF NOT FOUND OR v_room.status <> 'waiting' OR v_room.disbanded_at IS NOT NULL
      OR v_room.start_claimed_at IS DISTINCT FROM p_claim THEN
@@ -83,7 +88,7 @@ BEGIN
          puzzles_public = '[]'::jsonb,
          status = 'in_progress',
          current_round = 1,
-         phase = 'starting',
+         phase = p_phase,
          phase_started_at = p_started_at,
          round_started_at = p_started_at,
          start_claimed_at = NULL,
@@ -99,9 +104,9 @@ $$;
 
 REVOKE ALL ON FUNCTION public.claim_room_deal(uuid, timestamptz, integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.release_room_deal(uuid, timestamptz) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.start_dealt_room(uuid, timestamptz, jsonb, jsonb, jsonb, timestamptz, integer, uuid, jsonb)
+REVOKE ALL ON FUNCTION public.start_dealt_room(uuid, timestamptz, jsonb, jsonb, jsonb, timestamptz, integer, text, uuid, jsonb)
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_room_deal(uuid, timestamptz, integer) TO service_role;
 GRANT EXECUTE ON FUNCTION public.release_room_deal(uuid, timestamptz) TO service_role;
-GRANT EXECUTE ON FUNCTION public.start_dealt_room(uuid, timestamptz, jsonb, jsonb, jsonb, timestamptz, integer, uuid, jsonb)
+GRANT EXECUTE ON FUNCTION public.start_dealt_room(uuid, timestamptz, jsonb, jsonb, jsonb, timestamptz, integer, text, uuid, jsonb)
   TO service_role;

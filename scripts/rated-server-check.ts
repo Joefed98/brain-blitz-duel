@@ -193,6 +193,8 @@ async function runAll(db: LocalDb): Promise<void> {
   const T0 = Date.now();
   let liveMatchId = "";
   let liveRoomId = "";
+  // Changed with Joe's approval, 14 Nov 2026: the rematch's match id, kept for the recorded-runs section (the recorded-run exclusion correctly refuses Cy a run from a deal Cy played).
+  let rematchMatchId = "";
 
   await section("gating", async () => {
     const guest = await call(fns.ratedQueueJoinFn, { format: "bo3", choice: "mixed" }, userToken(GUEST));
@@ -319,6 +321,12 @@ async function runAll(db: LocalDb): Promise<void> {
     if (both.state !== "agreed") return;
     // Finish the rematch at once and settle it: it is a rated match like any other (W3a counts it).
     const rid = both.match.roomId!;
+    rematchMatchId = both.match.matchId;
+    // Changed with Joe's approval, 14 Nov 2026: the rematch stores its players' results before it settles, so its runs join
+    // the pool on a deal Cy hasn't played (the recorded-run exclusion correctly refuses Cy a run from a deal Cy played).
+    q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES
+       ('${rid}', 1, 1, 120, 1000, true, 'x'), ('${rid}', 2, 1, 100, 1000, true, 'x'), ('${rid}', 1, 2, 90, 2000, true, 'x'),
+       ('${rid}', 2, 2, 130, 2000, true, 'x'), ('${rid}', 1, 3, 140, 3000, true, 'x'), ('${rid}', 2, 3, 110, 3000, true, 'x')`);
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() - interval '20 seconds' WHERE id = '${rid}'`);
     const s = await rated.settleMatch(client, both.match.matchId, Date.now());
     check(s.state === "settled" && s.result.rematchOf === liveMatchId && callFor(both.match.matchId)[0]?.rematchOf === liveMatchId,
@@ -363,6 +371,21 @@ async function runAll(db: LocalDb): Promise<void> {
       JSON.stringify(g.gradeExtras[rec.playerId]) === JSON.stringify(runGames[i]?.extra ?? null)),
       "W3a gets each game's stored server grade for the live player and for the recorded run's owner (gradeExtras)");
     const firstOwner = m.recorded!.ownerId;
+    // Changed with Joe's approval, 14 Nov 2026 (the recorded-run exclusion correctly refuses Cy a run from a deal Cy played):
+    // with only runs from the deal Cy has just played left in the pool, Cy is offered none.
+    const firstOrigin = q(`SELECT coalesce(deal_origin_id, id) FROM public.duels WHERE id = '${src}'`);
+    const otherKeys = q(`SELECT coalesce(string_agg(quote_literal(r.key), ','), '') FROM public.mm_runs r JOIN public.duels d ON d.id = r.duel_id WHERE coalesce(d.deal_origin_id, d.id) <> '${firstOrigin}'`);
+    const playedLeft = q(`SELECT count(*) FROM public.mm_runs r JOIN public.duels d ON d.id = r.duel_id WHERE coalesce(d.deal_origin_id, d.id) = '${firstOrigin}' AND r.owner_id <> '${firstOwner}'`);
+    const hide = (on: boolean) => {
+      if (otherKeys) q(`UPDATE public.mm_runs SET recorded_at = recorded_at ${on ? "-" : "+"} interval '30 days' WHERE key IN (${otherKeys})`);
+    };
+    check(!!rematchMatchId && q(`SELECT count(*) FROM public.mm_runs WHERE match_id = '${rematchMatchId}'`) === "2", "the rematch's two runs join the pool");
+    hide(true);
+    await rated.joinQueue(client, CY, { format: "bo3", choice: "mixed" }, t + 10_000);
+    const none = await rated.pollQueue(client, CY, t + 18_500);
+    check(none.state === "searching" && Number(playedLeft) >= 1, `with only runs from the deal Cy played left (${playedLeft} by another owner), Cy is offered none (${none.state})`);
+    await rated.leaveQueue(client, CY);
+    hide(false);
     await rated.joinQueue(client, CY, { format: "bo3", choice: "mixed" }, t + 20_000);
     const second = await rated.pollQueue(client, CY, t + 28_500);
     check(second.state === "found" && second.match.kind === "recorded" && second.match.recorded!.ownerId !== firstOwner, "never the same player twice in a row");

@@ -124,6 +124,7 @@ await withRoomHarness(t, "room-start-check", [ALI, BO, CY, DEE], async (h) => {
       p_puzzles_private: [{}],
       p_started_at: new Date().toISOString(),
       p_min_players: 2,
+      p_phase: "starting",
     };
     const changed = await admin.rpc("start_dealt_room", { ...args, p_selected_categories: JSON.parse(before) });
     check(changed.data === "lost" && claimOf(room.roomId) === "" && statusOf(room.roomId) === "waiting", `settings changed since the claim: nothing starts, the claim is given back (${changed.data})`);
@@ -131,6 +132,8 @@ await withRoomHarness(t, "room-start-check", [ALI, BO, CY, DEE], async (h) => {
     const stamp2 = (retaken.data as { claimed_at: string }[] | null)?.[0]?.claimed_at ?? "";
     const few = await admin.rpc("start_dealt_room", { ...args, p_claim: stamp2, p_min_players: 3 });
     check(few.data === "too_few" && claimOf(room.roomId) === "" && statusOf(room.roomId) === "waiting", `too few players: nothing starts, the claim is given back (${few.data})`);
+    const otherPhase = await admin.rpc("start_dealt_room", { ...args, p_claim: stamp2, p_phase: "puzzle" });
+    check(!!otherPhase.error && statusOf(room.roomId) === "waiting", "a room starts only in its Prepare to Duel phase ('starting')");
     const wrong = await admin.rpc("start_dealt_room", { ...args, p_claim: "2026-01-01T00:00:00Z" });
     check(wrong.data === "lost" && statusOf(room.roomId) === "waiting", "a start with someone else's claim is refused");
     const device = h.device(ALI);

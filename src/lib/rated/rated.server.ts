@@ -492,6 +492,7 @@ async function createStartedRoom(
       puzzlesPrivate: asJson(split.map((s) => s.priv)),
       startedAt,
       minPlayers: input.players.length,
+      phase: "starting",
       dealOrigin: input.dealOrigin ?? null,
     });
     if (startError || outcome !== "started") throw new Error("Couldn’t set up the match. Give it another go.");

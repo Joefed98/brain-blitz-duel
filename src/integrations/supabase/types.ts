@@ -2983,6 +2983,7 @@ export type Database = {
           p_claim: string
           p_deal_origin?: string
           p_min_players: number
+          p_phase: string
           p_puzzles_private: Json
           p_puzzles_public: Json
           p_room_id: string

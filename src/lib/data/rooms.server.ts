@@ -234,6 +234,8 @@ export async function startDealtRoom(
     puzzlesPrivate: Json;
     startedAt: string;
     minPlayers: number;
+    /** The phase the room starts in: Prepare to Duel. */
+    phase: "starting";
     dealOrigin?: string | null;
     /** The settings the deal read at its claim: a room whose settings changed since gives its claim back ("lost"). */
     selectedCategories?: Json;
@@ -247,6 +249,7 @@ export async function startDealtRoom(
     p_puzzles_private: input.puzzlesPrivate,
     p_started_at: input.startedAt,
     p_min_players: input.minPlayers,
+    p_phase: input.phase,
     ...(input.dealOrigin ? { p_deal_origin: input.dealOrigin } : {}),
     ...(input.selectedCategories !== undefined ? { p_selected_categories: input.selectedCategories } : {}),
   });

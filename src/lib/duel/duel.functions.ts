@@ -620,6 +620,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       puzzlesPrivate: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
       startedAt,
       minPlayers: MIN_PLAYERS,
+      phase: "starting",
       selectedCategories: claim.selected_categories,
     });
     if (startError) {
