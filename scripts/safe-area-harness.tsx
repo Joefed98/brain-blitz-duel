@@ -632,10 +632,12 @@ if (mode === "shop") {
 // Home and Play (phase 2 step 3): a player with rated play, from window.__harnessRatedStatus (a RatedStatus), served by
 // a stand-in rated backend; unset, rated play is closed as for everyone else.
 {
-  const w2 = window as unknown as { __harnessRatedStatus?: unknown; __DUELZ_RATED_BACKEND__?: unknown };
+  const w2 = window as unknown as { __harnessRatedStatus?: unknown; __harnessRatedStakes?: unknown; __DUELZ_RATED_BACKEND__?: unknown };
   if (w2.__harnessRatedStatus) {
     const status = w2.__harnessRatedStatus;
-    w2.__DUELZ_RATED_BACKEND__ = { status: async () => status };
+    // The Play page's stakes (stakesEstimate, #411) from window.__harnessRatedStakes; none when unset.
+    const stakes = w2.__harnessRatedStakes ?? null;
+    w2.__DUELZ_RATED_BACKEND__ = { status: async () => status, stakesEstimate: async () => stakes };
   }
   // The pass's account and its weekly challenges on Home and Play (the Pass screen's own block is above).
   const pass = (window as unknown as { __harnessPass?: HarnessPass }).__harnessPass;

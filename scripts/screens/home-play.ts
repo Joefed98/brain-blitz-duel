@@ -73,6 +73,8 @@ export const HOME_PLAY_SCREENS = (ALL_SIZES: ThemeViewport[]): ThemeScreen[] => 
     __harnessPass: pass,
     __DUELZ_SHOP_TAB__: true,
     __harnessRatedStatus: HOME_RATED_STATUS,
+    // The Play page's stakes line (the rated server's stakesEstimate, #411).
+    __harnessRatedStakes: { win: 12, loss: -12 },
     __harnessFriends: { account: pass.account, overview: OVERVIEW, profile: null },
     __harnessDailyCounts: { day: "2026-10-26", puzzle: 12431, arcade: 8902 },
     __harnessWallet: true,

@@ -475,6 +475,14 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
+.hp-win {
+  color: var(--jz-win);
+  font-weight: 800;
+}
+.hp-loss {
+  color: var(--jz-loss-text);
+  font-weight: 800;
+}
 .hp-error {
   color: var(--jz-loss-text);
 }

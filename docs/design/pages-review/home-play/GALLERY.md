@@ -34,9 +34,9 @@ picture they sit over the middle), drawn by `bun scripts/shots/home-play-shots.t
 | ![](play-rated-after.png) | ![](play-sheet-after.png) | ![](play-room-after.png) |
 
 - The format selector opens the sheet with the formats and game picks switched on today (W3b's switches).
-- Find a match. No Win +N · Lose −N line yet (Joe, 14 Nov 2026): it comes from the Rooms and rated session's server
-  function once that is on main (a follow-up), never from a number worked out on the phone. During placement the line
-  says the rating shows after 5 matches.
+- Find a match, with Win +N · Lose −N under it from the rated server's own estimate (`stakesEstimate`, #411), never a
+  number worked out on the phone; no line when it answers nothing (placement, a format or pick with no estimate).
+  During placement the line says the rating shows after 5 matches.
 - Everyone else: Create a room (today's quick play; the Rooms page asks for a name first if none is stored).
 - Arena (the Tournaments tab), Rooms, Practice (Games), Daily.
 

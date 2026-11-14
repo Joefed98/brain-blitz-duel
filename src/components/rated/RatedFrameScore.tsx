@@ -12,13 +12,12 @@
 import { useEffect, useRef, useState } from "react";
 
 import { AnimatedScore } from "@/components/duel/AnimatedScore";
-import type { CardLook } from "@/design/identity";
+import { MiniCard, type CardLook } from "@/design/identity";
 import { backendNow } from "@/lib/rated/ratedApi";
 import { readLiveScore, wantLiveScore } from "@/lib/rated/liveScore";
 import type { RatedMatch } from "@/lib/rated/backend";
 import { opponentScoreHidden } from "@/lib/rated/rules";
 
-import { PlayerDot } from "./RatedParts";
 
 export function RatedFrameScore({
   me,
@@ -46,7 +45,7 @@ export function RatedFrameScore({
   return (
     <div data-frame-score data-rated-score={hidden ? "hidden" : "live"} className="game-frame-score rt-frame-score">
       <span className="rt-frame-row" data-score-row="me">
-        <PlayerDot look={me.look} />
+        <MiniCard look={me.look} size={20} />
         <span className="rt-frame-who th-name" data-one-line>
           You
         </span>
@@ -57,7 +56,7 @@ export function RatedFrameScore({
         )}
       </span>
       <span className="rt-frame-row" data-score-row="them">
-        <PlayerDot look={them.look} />
+        <MiniCard look={them.look} size={20} />
         <span className="rt-frame-who th-name" data-one-line>
           {them.name}
         </span>

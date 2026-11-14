@@ -15,9 +15,9 @@ import { gameCounts } from "@/lib/duel/catalogue";
 import { getStoredName } from "@/lib/duel/session";
 import { useAccountName } from "@/lib/account/accountApi";
 import { useRoomStart } from "@/lib/home/useRoomStart";
-import type { RatedPick, RatedStatus } from "@/lib/rated/backend";
+import type { RatedPick, RatedStakes, RatedStatus } from "@/lib/rated/backend";
 import type { RatedFormat } from "@/lib/rated/matchmaking";
-import { useRatedStatus } from "@/lib/rated/ratedApi";
+import { backendNow, useRatedStatus } from "@/lib/rated/ratedApi";
 import { pickProp, recordRatedEvent } from "@/lib/rated/ratedEvents";
 import { defaultPick } from "@/lib/rated/rules";
 import { PLACEMENT_MATCHES } from "@/lib/rated/tierDisplay";
@@ -30,9 +30,8 @@ import { useHomeBed } from "@/lib/useScreenMusic";
 /**
  * Play (phase 2 step 3, 14 Nov 2026; mockups phone/play.png, phone/sheet.png, desktop/play.png): the page the gold
  * Play bar and the rail's Play open. The art-kit hero, then for players with rated play (W3b's status: testers until
- * RATED_PLAY_FOR_EVERYONE) the format selector (a sheet of the formats switched on today) and Find a match (its
- * Win +N · Lose −N line waits for the rated session's server function: Joe, 14 Nov 2026, never a number made on the
- * phone); for everyone else the one gold button is Create a room (today's quick play). Then the modes: Arena (the
+ * RATED_PLAY_FOR_EVERYONE) the format selector (a sheet of the formats switched on today) and Find a match with the
+ * server's Win +N · Lose −N under it (stakesEstimate; no line when it answers null); for everyone else the one gold button is Create a room (today's quick play). Then the modes: Arena (the
  * Tournaments tab), Rooms, Practice (Games) and Daily.
  */
 export const Route = createFileRoute("/play")({
@@ -171,6 +170,26 @@ function RatedPlay({ status }: { status: RatedStatus }) {
   }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
   const placing = status.standing.state === "placement";
   const cooldown = useCooldownLine(status);
+  // The stakes: the rated server's own estimate (W3b's stakesEstimate, #411), never worked out on the phone; null
+  // (placement, a format or pick with no estimate, rated play not open) means no line.
+  const [stakes, setStakes] = useState<RatedStakes | null>(null);
+  useEffect(() => {
+    setStakes(null);
+    if (!format || !pick || placing) return;
+    let live = true;
+    void (async () => {
+      try {
+        const backend = await backendNow();
+        const answer = backend?.stakesEstimate ? await backend.stakesEstimate(format, pick) : null;
+        if (live) setStakes(answer ?? null);
+      } catch {
+        /* no line */
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [format, pick, placing]);
   if (!format || !pick) return null;
   const played = status.standing.state === "placement" ? status.standing.results.length : 0;
   const play = () => {
@@ -203,6 +222,10 @@ function RatedPlay({ status }: { status: RatedStatus }) {
       {cooldown ? (
         <p className="hp-stakes" role="status" data-rated-cooldown data-wrap-ok>
           {cooldown}
+        </p>
+      ) : stakes ? (
+        <p className="hp-stakes" data-play-stakes>
+          Win <b className="hp-win">+{Math.max(0, stakes.win)}</b> · Lose <b className="hp-loss">{"\u2212"}{Math.abs(Math.min(0, stakes.loss))}</b>
         </p>
       ) : placing ? (
         <p className="hp-stakes">Your rating shows after {PLACEMENT_MATCHES} matches</p>
