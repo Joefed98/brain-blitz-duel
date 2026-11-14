@@ -278,7 +278,9 @@ for (const [batch, files] of Object.entries(BATCHES)) {
       const label = `${batch}: ${fn.name} (${file})`;
       if (fn.validator === null) {
         without++;
-        check(!/\bdata\b/.test(fn.handler), `${label}: takes no input and never reads data`);
+        // The handler's own parameter (`async ({ data, context })`), not a local `data` it reads from a query.
+        const param = /^\(\s*async\s*\(([^)]*)\)/.exec(fn.handler)?.[1] ?? "";
+        check(!/\bdata\b/.test(param), `${label}: takes no input and never reads data`);
         continue;
       }
       withInput++;
@@ -462,5 +464,5 @@ if (failures.length) {
   console.log("FAIL");
   process.exit(1);
 }
-console.log("PASS: every server function in batch 2 builds its input through validate.ts and refuses bad inputs before its handler runs.");
+console.log("PASS: every server function in the batches builds its input through validate.ts and refuses bad inputs before its handler runs.");
 process.exit(0);
