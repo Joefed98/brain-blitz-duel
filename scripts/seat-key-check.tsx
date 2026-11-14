@@ -12,6 +12,9 @@
  *     is not, and the mute in its menu names the sender by public id; unread counts and toasts skip my own.
  *  5. Reactions: acceptReaction names a sender by public id from the room's rows.
  *  6. Lobby (the real RoomLobby in happy-dom): my row reads "You" and the host's row its host label, by public id.
+ *  7. Rated (Security C3): W3b's answers name players by public id, and both bindings (w3Binding, multiView) take "me"
+ *     from myPublicId (the account id only where a stand-in can't answer it); abort and forfeit lines, the 4-player
+ *     seats and standings find "you" by public id.
  *
  *   bun scripts/seat-key-check.tsx
  */
@@ -158,6 +161,39 @@ const hostLabel = document.querySelector("[data-host-label]");
 check(!!hostLabel && /host/i.test(hostLabel.textContent ?? ""), `6: the host's row carries its host label by public id (${hostLabel?.textContent})`);
 check(document.querySelectorAll("[data-you]").length === 1, "6: exactly one row is mine");
 await act(async () => root.unmount());
+
+
+// 7. Rated (Security C3).
+{
+  const { readFileSync } = await import("node:fs");
+  for (const f of ["src/lib/rated/w3Binding.ts", "src/lib/rated/multi/multiView.ts"]) {
+    const src = readFileSync(f, "utf8");
+    check(/myPublicId\(userId\)\)\s*\?\?\s*userId/.test(src), `7: ${f.split("/").pop()} takes "me" from myPublicId, the account id only as a stand-in's fallback`);
+  }
+  const w3 = await import("../src/lib/rated/w3Binding");
+  const them = { them: { userId: PUB.bo, username: "Bo" } } as never;
+  const match = { id: "m", pick: "mixed", format: "bo3", ...(them as object) } as never;
+  const stay = w3.abortedOf([PUB.bo], match, PUB.ali);
+  const left = w3.abortedOf([PUB.ali], match, PUB.ali);
+  check(stay.leaverNames.join() === "Bo" && !stay.youLeft && left.youLeft && left.leaverNames.length === 0, "7: an abort names the leaver for the stayer and tells the leaver it was them, by public id");
+  const end = w3.endingOf([PUB.bo], them, PUB.ali);
+  check(end?.kind === "forfeit" && end.leaverNames.join() === "Bo" && !end.youLeft && w3.endingOf([PUB.ali], them, PUB.ali)?.youLeft === true, "7: a forfeit, by public id");
+  const mv = await import("../src/lib/rated/multi/multiView");
+  const players = [PUB.ali, PUB.bo, PUB.cy, "pub-dee"].map((id, i) => ({ userId: id, slot: i + 1, displayName: ["Ali", "Bo", "Cy", "Dee"][i]!, guest: false }));
+  const settled = {
+    format: "ffa4",
+    players: players.map((p) => ({ userId: p.userId, slot: p.slot, scores: [100 - p.slot] })),
+    games: [{ type: "sudoku" }],
+    placings: { [PUB.ali]: 1, [PUB.bo]: 2, [PUB.cy]: 3, "pub-dee": 4 },
+    ending: { kind: "forfeit" as const, leavers: ["pub-dee"] },
+    ratings: null,
+  };
+  const fin = mv.multiFinalFrom(settled, players, PUB.bo)!;
+  check(fin.seats.filter((x) => x.you).map((x) => x.name).join() === "Bo" && fin.seats.find((x) => x.name === "Dee")?.left === true && fin.rows[0]?.seatId === "slot:1",
+    "7: the 4-player final finds you, the leaver and the stored places by public id");
+  const st = mv.multiStandingsFrom({ format: "ffa4", players, gameTypes: ["sudoku", "flow"], results: players.map((p) => ({ player_slot: p.slot, round_number: 1, score: 100 - p.slot })), meId: PUB.cy })!;
+  check(st.seats.filter((x) => x.you).map((x) => x.name).join() === "Cy" && st.headline.yourPlace === 3, "7: the 4-player standings find you by public id");
+}
 
 console.log(`seat-key-check: ${passes} passed, ${failures.length} failed`);
 if (failures.length) {

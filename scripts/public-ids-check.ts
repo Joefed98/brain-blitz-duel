@@ -15,6 +15,11 @@
  *   cards, looks and cosmetics, finish and Play again: no answer a phone gets, no row it reads and no broadcast it
  *   receives holds an account id of anyone in the room;
  * - functions that take a room-mate's id take the public id (cosmetics); an account id names nobody.
+ * - beyond rooms (Security C3, supabase/migrations/20261117600000_public_ids_beyond_rooms.sql): friends lists, player
+ *   cards and badges, ratings, head-to-head and the rated settle answer name players by public id; every id-taking
+ *   function finds the right player by public id and nobody by account id; public_ids_of is server only; phones can't
+ *   call public_profiles, economy_public_cards or badge_public_cards, nor read friendships, friend_requests or
+ *   player_blocks; tournament rows and the Arena opponent, and the rated match view, convert through publicIds.server.
  *
  * Needs the PostgreSQL 16 binaries (preinstalled on GitHub's ubuntu runners). No browser.
  */
@@ -187,6 +192,112 @@ await withRoomHarness(t, "public-ids-check", [ALI, BO, CY, OUT, GONE], async (h)
     if (process.env["PUBLIC_IDS_DEBUG"]) for (const s of sweep) process.stdout.write(`  ${s.label}: ${JSON.stringify(s.value ?? null).slice(0, 110)}\n`);
     for (const s of sweep) leaks(s.label, s.value);
     check(sweep.length >= 25, `the sweep reads every step (${sweep.length})`);
+  });
+
+  await section("beyond rooms (Security C3)", async () => {
+    const { adminDb } = await import("../src/lib/data/db.server");
+    const admin = await adminDb();
+    // Bo is an adult account too, so the friends functions answer (Ali's account is made in the sweep above).
+    q(`UPDATE auth.users SET is_anonymous = false, email = 'bo@example.invalid' WHERE id = '${BO}'`);
+    check(q(`SELECT public.create_profile('${BO}', 'Bo_Friend', 5::smallint, DATE '1990-01-01', NULL)`) === "created", "Bo's account is made");
+    const pubOf = (u: string) => q(`SELECT public.public_id_of('${u}')`);
+    const [aliPub, boPub] = [pubOf(ALI), pubOf(BO)];
+    const c3: { label: string; value: unknown }[] = [];
+    const seen = (label: string, value: unknown) => {
+      c3.push({ label, value });
+      return value as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
+
+    // Grants.
+    check(q(`SELECT has_function_privilege('authenticated', 'public.public_ids_of(uuid[])', 'EXECUTE')::text || has_function_privilege('anon', 'public.public_ids_of(uuid[])', 'EXECUTE')::text`) === "falsefalse", "phones can't call public_ids_of");
+    for (const fn of ["public_profiles", "economy_public_cards", "badge_public_cards"])
+      check(q(`SELECT has_function_privilege('authenticated', 'public.${fn}(uuid[])', 'EXECUTE')::text || has_function_privilege('anon', 'public.${fn}(uuid[])', 'EXECUTE')::text`) === "falsefalse", `phones can't call ${fn} (it takes and answers account ids)`);
+    for (const table of ["friendships", "friend_requests", "player_blocks"])
+      check(q(`SELECT (has_table_privilege('authenticated', 'public.${table}', 'SELECT') OR has_any_column_privilege('authenticated', 'public.${table}', 'SELECT') OR has_any_column_privilege('anon', 'public.${table}', 'SELECT'))::text`) === "false", `phones can't read ${table}`);
+    const many = (await admin.rpc("public_ids_of" as never, { p_user_ids: [ALI, BO, ALI, GONE] } as never)).data as unknown as { user_id: string; public_id: string }[];
+    check(many.length === 3 && many.find((r) => r.user_id === ALI)?.public_id === aliPub && many.find((r) => r.user_id === BO)?.public_id === boPub, "public_ids_of answers each account's public id once, in one call");
+    const goneId = many.find((r) => r.user_id === GONE)?.public_id;
+    check(!!goneId && q(`SELECT count(*) FROM public.player_public_ids WHERE public_id = '${goneId}'`) === "0", "an id with no account behind it gets a fresh id that is kept nowhere");
+
+    // Friends: Bo finds Ali, asks by public id, Ali accepts; every answer names them by public id.
+    const friends = await import("../src/lib/friends/friends.functions");
+    const found = seen("a search", await call(friends.friendSearchFn, { query: "ali" }, token(BO)));
+    check(found.ok === true && found.results?.[0]?.id === aliPub, "search names the player by public id");
+    check(seen("a request by account id", await call(friends.friendRequestFn, { playerId: ALI }, token(BO))).ok === false, "an account id names nobody (a friend request)");
+    check(q(`SELECT count(*) FROM public.friend_requests WHERE from_user_id = '${BO}'`) === "0", "and nothing was asked of anyone");
+    check(seen("a request by public id", await call(friends.friendRequestFn, { playerId: aliPub }, token(BO))).outcome === "sent", "a request by public id reaches Ali");
+    const aliView = seen("Ali's list", await call(friends.friendsOverviewFn, undefined, token(ALI)));
+    const incoming = aliView.overview?.incoming?.[0];
+    check(incoming?.id === boPub, "the request is listed by the sender's public id");
+    const boView = seen("Bo's list", await call(friends.friendsOverviewFn, undefined, token(BO)));
+    check(JSON.stringify(boView.overview?.outgoing) === JSON.stringify([aliPub]), "the sent request is listed by the recipient's public id");
+    seen("the accept", await call(friends.friendRespondFn, { requestId: incoming?.requestId, accept: true }, token(ALI)));
+    const both = seen("Bo's list after", await call(friends.friendsOverviewFn, undefined, token(BO)));
+    check(both.overview?.friends?.[0]?.id === aliPub, "friends are listed by public id");
+    const prof = seen("a profile", await call(friends.friendProfileFn, { playerId: aliPub }, token(BO)));
+    check(prof.ok === true && prof.profile?.card?.id === aliPub && prof.profile?.relation === "friends", "a profile asked for by public id names the player by it");
+    check(seen("a profile by account id", await call(friends.friendProfileFn, { playerId: ALI }, token(BO))).reason === "not_found", "an account id names nobody (a profile)");
+    seen("a block", await call(friends.friendBlockFn, { playerId: aliPub }, token(BO)));
+    const blocked = seen("Bo's blocked list", await call(friends.friendsOverviewFn, undefined, token(BO)));
+    check(blocked.overview?.blocked?.[0]?.id === aliPub, "a blocked player is listed by public id");
+    seen("an unblock", await call(friends.friendUnblockFn, { playerId: aliPub }, token(BO)));
+    const link = seen("Ali's link", await call(friends.friendLinkFn, { reset: false }, token(ALI)));
+    const owner = seen("the link's owner", await call(friends.friendLinkOwnerFn, { token: link.token }, token(OUT)));
+    check(owner.owner?.id === aliPub, "an invite link's owner is named by public id");
+
+    // Cards and badges.
+    const { getPublicCard } = await import("../src/lib/economy/economy.functions");
+    const card = seen("Ali's card", await call(getPublicCard, { playerId: aliPub }, token(BO)));
+    check(card.account === true && card.username === "Ali_Card" && card.playerId === aliPub, "a card asked for by public id is the player's, named by it");
+    // (Not swept: the answer names the player by the id it was asked for, which the caller sent.)
+    const byAccount = (await call(getPublicCard, { playerId: ALI }, token(BO))) as Record<string, unknown>;
+    check(byAccount.account === false && byAccount.username === null, "an account id names nobody (the default card)");
+    const { getCardBadges } = await import("../src/lib/badges/badges.functions");
+    const badges = seen("badges", await call(getCardBadges, { playerIds: [aliPub, ALI] }, token(BO))) as unknown as { playerId: string }[];
+    check(Array.isArray(badges) && badges.length === 1 && badges[0]!.playerId === aliPub, "card badges answer by public id; an account id names nobody");
+
+    // Ratings and head-to-head.
+    const ratings = await import("../src/lib/rated/ratings.functions");
+    const mine = seen("my ratings", await call(ratings.getMyRatingsFn, undefined, token(ALI)));
+    check(mine.playerId === aliPub, "a player's own ratings name them by public id");
+    const theirs = seen("another's ratings", await call(ratings.getRatingsForFn, { playerId: aliPub }, token(BO)));
+    check(theirs?.playerId === aliPub, "another player's ratings are asked for and named by public id");
+    const rated = await import("../src/lib/rated/rated.functions");
+    seen("a head-to-head", await call(rated.ratedHeadToHeadFn, { opponentId: aliPub }, token(BO)));
+    check(seen("a head-to-head by account id", await call(rated.ratedHeadToHeadFn, { opponentId: ALI }, token(BO))).played === 0, "an account id names nobody (head-to-head)");
+
+    // The rated settle answer: a stored settlement (account ids, as the server keeps it) reaches a phone by public id.
+    const ratedServer = await import("../src/lib/rated/rated.server");
+    const stored = {
+      matchId: "m", format: "ffa4", choice: "mixed", gameMode: "classic", kind: "recorded", rematchOf: null, finishedAt: "now",
+      players: [ALI, BO].map((u, i) => ({ userId: u, slot: i + 1, ratingBefore: 1000, placement: false, scores: [1], timesMs: [1], extras: [null], gamesWon: 0, total: 1 })),
+      games: [{ type: "sudoku", signature: "x", winner: "a" }], winner: "a",
+      recorded: { ownerId: CY, key: `rated:m:${CY}`, source: "rated", fallback: false, scores: [1], timesMs: [1], extras: [null] },
+      placings: { [ALI]: 1, [BO]: 2 },
+      ending: { kind: "forfeit", leavers: [BO] },
+      ratings: { ok: true, status: "recorded", matchId: "m", players: [{ playerId: ALI }, { playerId: BO }] },
+    };
+    const phone = seen("a settled match", await ratedServer.publicSettleOutcome(admin, { state: "settled", result: stored } as never));
+    const r = phone.result;
+    check(r.players.map((p: { playerId: string }) => p.playerId).join() === `${aliPub},${boPub}` && r.placings[aliPub] === 1 && r.placings[boPub] === 2 &&
+      r.ending.leavers.join() === boPub && r.recorded.ownerId === pubOf(CY) && !("key" in r.recorded) && r.ratings.players.map((p: { playerId: string }) => p.playerId).join() === `${aliPub},${boPub}`,
+      "the settle answer names its players, placings, leavers, recorded owner and rating changes by public id, without the run's key");
+    const aborted = seen("an aborted match", await ratedServer.publicSettleOutcome(admin, { state: "aborted", leavers: [{ userId: BO, at: "now", step: "vs" }] } as never));
+    check(aborted.leavers?.[0]?.playerId === boPub && !("userId" in aborted.leavers[0]), "an abort names its leavers by public id");
+
+    // The tournament rows, the Arena opponent and the rated match view convert through the same module.
+    const src = (f: string) => readFileSync(f, "utf8");
+    const tourney = src("src/lib/tournaments/tournaments.server.ts");
+    check(/playerId: \(await publicIdOf\(client, other\)\)/.test(tourney) && /toPublic\(client, \[\.\.\.shown/.test(tourney) && /playerId: publicIds\.get\(p\.userId\)/.test(tourney), "the Arena board and duel opponent name players by public id");
+    const view = src("src/lib/rated/rated.server.ts");
+    check(/playerId: ids\.get\(p\.user_id\)/.test(view) && /ownerId: ids\.get\(match\.recorded_owner\)/.test(view) && !/\buserId: p\.user_id,\n\s+slot: p\.slot,\n\s+displayName/.test(view), "the rated match view names players and the run's owner by public id");
+
+    for (const s of c3) {
+      const text = JSON.stringify(s.value ?? null);
+      const found = [ALI, BO, CY].filter((a) => text.includes(a));
+      check(found.length === 0, `${s.label}: no account id (${found.length ? `found ${found.join(", ")} in ${text.slice(0, 160)}` : "none"})`);
+    }
+    check(c3.length >= 20, `the C3 sweep reads every step (${c3.length})`);
   });
 });
 

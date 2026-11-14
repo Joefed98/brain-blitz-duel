@@ -102,7 +102,8 @@ export interface ArenaDuelView {
   duelId: string;
   roomCode: string | null;
   /** `name` is the plate's name ("Hidden player" for a hidden under-18). */
-  opponent: { userId: string; name: string; plate: PlateView };
+  /** `playerId` is the opponent's public id (Security C3), never their account id. */
+  opponent: { playerId: string; name: string; plate: PlateView };
   status: "playing" | "settled" | "void";
 }
 
@@ -114,7 +115,8 @@ export type ArenaPoll =
 
 export interface ArenaBoardRow {
   place: number;
-  userId: string;
+  /** The player's public id (Security C3), never their account id. */
+  playerId: string;
   /** The plate's name ("Hidden player" for a hidden under-18); the row draws `plate`. */
   name: string;
   plate: PlateView;

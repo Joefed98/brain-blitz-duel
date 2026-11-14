@@ -49,6 +49,7 @@ import { isReportReason, REPORT_THANKS } from "@/lib/safety/reports";
 import { awardBadge, cardBadgesFor } from "@/lib/badges/badges.server";
 import { STARTER_TITLE } from "@/lib/badges/catalogue";
 import { publicCardsFor } from "@/lib/economy/economy.server";
+import { accountOf, toPublic } from "@/lib/identity/publicIds.server";
 
 import {
   FRIENDS_CAP,
@@ -168,6 +169,24 @@ function withLook<T extends FriendCard>(card: T, looks: Map<string, FriendLook>)
   return look ? { ...card, look } : card;
 }
 
+/* ------------------------------------------------------------------ public ids */
+
+/**
+ * Security C3: phones know players by public id only. Every card, search hit and blocked row this module answers names
+ * its player by public id; every player id a phone sends is a public id, converted back here. One that names nobody (an
+ * account id, or a public id no one has) becomes NOBODY, so the SQL answers it as it answers an unknown player.
+ */
+const NOBODY = "00000000-0000-0000-0000-000000000000";
+
+async function accountFor(client: Db, target: unknown): Promise<string> {
+  return (playerIdOk(target) && (await accountOf(client, target))) || NOBODY;
+}
+
+async function shownAs<T extends { id: string }>(client: Db, rows: readonly T[]): Promise<T[]> {
+  const ids = await toPublic(client, rows.map((r) => r.id));
+  return rows.map((r) => ({ ...r, id: ids.get(r.id) ?? "" }));
+}
+
 /* ------------------------------------------------------------------ reads */
 
 /** The Friends list (friends with status, requests, invites, challenges, blocked, the setting). */
@@ -184,14 +203,17 @@ export async function overview(client: Db, userId: string): Promise<Answer<{ ove
     ...data.invites.map((f) => f.id),
     ...data.challenges.map((f) => f.id),
   ]);
+  const outgoing = await toPublic(client, data.outgoing);
   return {
     ok: true,
     overview: {
       ...data,
-      friends: data.friends.map((f) => withLook(f, looks)),
-      incoming: data.incoming.map((f) => withLook(f, looks)),
-      invites: data.invites.map((f) => withLook(f, looks)),
-      challenges: data.challenges.map((f) => withLook(f, looks)),
+      friends: await shownAs(client, data.friends.map((f) => withLook(f, looks))),
+      incoming: await shownAs(client, data.incoming.map((f) => withLook(f, looks))),
+      outgoing: data.outgoing.map((id) => outgoing.get(id) ?? ""),
+      invites: await shownAs(client, data.invites.map((f) => withLook(f, looks))),
+      challenges: await shownAs(client, data.challenges.map((f) => withLook(f, looks))),
+      blocked: await shownAs(client, data.blocked),
     },
   };
 }
@@ -209,13 +231,15 @@ export async function profile(client: Db, userId: string, target: unknown): Prom
   const who = await caller(client, userId);
   if ("ok" in who) return who;
   if (!(await limited(client, userId, FRIEND_READ_LIMIT))) return refusal("busy");
-  const { data, error } = await readFriendProfile(client, userId, target);
+  const account = await accountFor(client, target);
+  if (account === NOBODY) return refusal("not_found");
+  const { data, error } = await readFriendProfile(client, userId, account);
   if (error) return refusal("error");
   if (!data) return refusal("not_found");
   // A blocked player's profile shows no card (their name and Unblock only).
-  if (data.relation === "blocked") return { ok: true, profile: data };
+  if (data.relation === "blocked") return { ok: true, profile: { ...data, card: (await shownAs(client, [data.card]))[0]! } };
   const looks = await cardLooksFor(client, [data.card.id]);
-  return { ok: true, profile: { ...data, card: withLook(data.card, looks) } };
+  return { ok: true, profile: { ...data, card: (await shownAs(client, [withLook(data.card, looks)]))[0]! } };
 }
 
 /** Search by username: adults only, and never an under-18 account. */
@@ -228,7 +252,7 @@ export async function search(client: Db, userId: string, query: unknown): Promis
   const { data, error } = await searchPlayers(client, userId, query, SEARCH_RESULTS);
   if (error) return refusal("error");
   const looks = await cardLooksFor(client, data.map((h) => h.id));
-  return { ok: true, results: data.map((h) => withLook(h, looks)) };
+  return { ok: true, results: await shownAs(client, data.map((h) => withLook(h, looks))) };
 }
 
 /** Whose invite link a token is (open to guests: the link's landing says who asked). */
@@ -239,7 +263,7 @@ export async function linkOwner(client: Db, userId: string, token: unknown): Pro
   const { data, error } = await readLinkOwner(client, clean);
   if (error) return refusal("error");
   if (!data) return { ok: true, owner: null };
-  return { ok: true, owner: withLook(data, await cardLooksFor(client, [data.id])) };
+  return { ok: true, owner: (await shownAs(client, [withLook(data, await cardLooksFor(client, [data.id]))]))[0]! };
 }
 
 function newToken(): string {
@@ -302,7 +326,7 @@ export async function requestById(client: Db, userId: string, target: unknown): 
   if ("ok" in who) return who;
   if (who.isUnder18) return refusal("under18");
   if (!playerIdOk(target)) return refusal("not_found");
-  return send(client, userId, target, "search");
+  return send(client, userId, await accountFor(client, target), "search");
 }
 
 /** A request through someone's invite link (works for everyone, under-18s included). */
@@ -320,7 +344,7 @@ export async function requestByLink(
   if (!owner) return refusal("not_found");
   if (owner.id === userId) return refusal("self");
   const sent = await send(client, userId, owner.id, "link");
-  return sent.ok ? { ok: true, outcome: sent.outcome, owner } : sent;
+  return sent.ok ? { ok: true, outcome: sent.outcome, owner: (await shownAs(client, [owner]))[0]! } : sent;
 }
 
 /** Accepts or declines a request sent to the caller. A decline tells nobody. */
@@ -352,7 +376,7 @@ export async function remove(client: Db, userId: string, friendId: unknown): Pro
   if ("ok" in who) return who;
   if (!playerIdOk(friendId)) return refusal("not_found");
   if (!(await limited(client, userId, FRIEND_ACTION_LIMIT))) return refusal("busy");
-  const { data, error } = await removeFriendship(client, userId, friendId);
+  const { data, error } = await removeFriendship(client, userId, await accountFor(client, friendId));
   if (error) return refusal("error");
   if (data) recordEvents({ event: "friend_removed", playerId: userId });
   return { ok: true, removed: data };
@@ -364,7 +388,7 @@ export async function block(client: Db, userId: string, target: unknown): Promis
   if ("ok" in who) return who;
   if (!playerIdOk(target)) return refusal("not_found");
   if (!(await limited(client, userId, FRIEND_ACTION_LIMIT))) return refusal("busy");
-  const { data, error } = await blockPlayer(client, userId, target);
+  const { data, error } = await blockPlayer(client, userId, await accountFor(client, target));
   if (error || !data) return refusal("error");
   if (data.result !== "blocked") return refusal(data.result);
   if (data.created) recordEvents({ event: "friend_blocked", playerId: userId });
@@ -376,7 +400,7 @@ export async function unblock(client: Db, userId: string, target: unknown): Prom
   if ("ok" in who) return who;
   if (!playerIdOk(target)) return refusal("not_found");
   if (!(await limited(client, userId, FRIEND_ACTION_LIMIT))) return refusal("busy");
-  const { data, error } = await unblockPlayer(client, userId, target);
+  const { data, error } = await unblockPlayer(client, userId, await accountFor(client, target));
   if (error) return refusal("error");
   return { ok: true, unblocked: data };
 }
@@ -385,13 +409,15 @@ export async function unblock(client: Db, userId: string, target: unknown): Prom
 export async function report(client: Db, userId: string, target: unknown, reason: unknown): Promise<Answer<{ message: string }>> {
   const who = await caller(client, userId);
   if ("ok" in who) return who;
-  if (!playerIdOk(target) || target === userId || !isReportReason(reason)) return refusal("not_found");
+  if (!playerIdOk(target) || !isReportReason(reason)) return refusal("not_found");
+  const reported = await accountFor(client, target);
+  if (reported === NOBODY || reported === userId) return refusal("not_found");
   if (!(await withinRateLimit(client, userId, REPORT_LIMIT))) return refusal("busy");
-  const shown = await readFriendProfile(client, userId, target);
+  const shown = await readFriendProfile(client, userId, reported);
   if (shown.error) return refusal("error");
   const { error } = await insertPlayerReport(client, {
     reporterId: userId,
-    reportedId: target,
+    reportedId: reported,
     reason,
     reportedName: shown.data?.card.username ?? null,
   });
@@ -408,7 +434,7 @@ export async function inviteFriendToRoom(client: Db, userId: string, friendId: u
   if ("ok" in who) return who;
   if (!playerIdOk(friendId)) return refusal("not_friends");
   if (!(await limited(client, userId, FRIEND_INVITE_LIMIT))) return refusal("busy");
-  const { data, error } = await inviteToRoom(client, userId, friendId);
+  const { data, error } = await inviteToRoom(client, userId, await accountFor(client, friendId));
   if (error || !data) return refusal("error");
   if (data.result !== "sent") return refusal(data.result);
   notifySoon(client);
@@ -427,7 +453,7 @@ export async function sendChallenge(
   if (!playerIdOk(friendId)) return refusal("not_friends");
   if (typeof code !== "string" || !/^[A-Za-z0-9]{6}$/.test(code)) return refusal("not_found");
   if (!(await limited(client, userId, FRIEND_INVITE_LIMIT))) return refusal("busy");
-  const { data, error } = await sendChallengeData(client, userId, friendId, code.toUpperCase());
+  const { data, error } = await sendChallengeData(client, userId, await accountFor(client, friendId), code.toUpperCase());
   if (error || !data) return refusal("error");
   if (data.result !== "sent") return refusal(data.result);
   notifySoon(client);

@@ -30,7 +30,10 @@ export const getMyRatingsFn = createServerFn({ method: "POST" })
   .handler(async ({ context }): Promise<PlayerRatings | { busy: true }> => {
     const { client, allowed, ratings } = await setup(context.userId);
     if (!allowed) return { busy: true };
-    return ratings.getMyRatings(client, context.userId);
+    const mine = await ratings.getMyRatings(client, context.userId);
+    // Security C3: the answer names the caller by their public id, never their account id.
+    const { publicIdOf } = await import("@/lib/identity/publicIds.server");
+    return { ...mine, playerId: (await publicIdOf(client, context.userId)) ?? "" };
   });
 
 export const getRatingsForFn = createServerFn({ method: "POST" })
@@ -42,7 +45,13 @@ export const getRatingsForFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<PlayerRatings | null | { busy: true }> => {
     const { client, allowed, ratings } = await setup(context.userId);
     if (!allowed) return { busy: true };
-    return ratings.getRatingsFor(client, data.playerId);
+    // Security C3: `playerId` is a public id; one that names nobody (an account id among them) reads as a player who
+    // hasn't played. The answer names the player by the public id it was asked for.
+    const asked = data.playerId;
+    if (!asked || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asked)) return null;
+    const { accountOf } = await import("@/lib/identity/publicIds.server");
+    const view = await ratings.getRatingsFor(client, (await accountOf(client, asked)) ?? "00000000-0000-0000-0000-000000000000");
+    return view ? { ...view, playerId: asked } : null;
   });
 
 export const placementStatusFn = createServerFn({ method: "POST" })

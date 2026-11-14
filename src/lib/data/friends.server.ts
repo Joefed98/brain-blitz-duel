@@ -13,6 +13,7 @@ import type { ReportReason } from "@/lib/safety/reports";
 
 /** A player's public fields as the friends functions return them. */
 export interface FriendCard {
+  /** The account id as the SQL reads it; src/lib/friends/friends.server.ts answers a phone with the public id here (Security C3). */
   id: string;
   username: string;
   colour: number;
@@ -82,6 +83,7 @@ export interface OverviewFriend extends FriendCard {
 export interface Overview {
   friends: OverviewFriend[];
   incoming: (FriendCard & { requestId: string; via: RequestVia; at: string })[];
+  /** The players the caller's requests are waiting on (public ids in a phone's answer, Security C3). */
   outgoing: string[];
   invites: (FriendCard & { code: string; at: string })[];
   challenges: (FriendCard & { code: string; at: string; expiresAt: string })[];

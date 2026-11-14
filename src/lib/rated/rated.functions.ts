@@ -113,7 +113,7 @@ export const ratedSettleFn = createServerFn({ method: "POST" })
     const view = await rated.matchView(client, id, context.userId, Date.now());
     if (!view) return { state: "missing" };
     // The phone never gets the stored grades the ratings engine was handed.
-    return rated.publicSettleOutcome(await rated.settleMatch(client, id, Date.now()));
+    return rated.publicSettleOutcome(client, await rated.settleMatch(client, id, Date.now()));
   });
 
 export const ratedRematchFn = createServerFn({ method: "POST" })
@@ -126,7 +126,7 @@ export const ratedRematchFn = createServerFn({ method: "POST" })
     return rated.requestRematch(client, context.userId, id, Date.now());
   });
 
-/** W3c's VS screen: the caller's rated record against an opponent (live rated matches only, recorded runs excluded). */
+/** W3c's VS screen: the caller's rated record against an opponent, by public id (live rated matches only, recorded runs excluded). */
 export const ratedHeadToHeadFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { opponentId: string }) => ({ opponentId: idText(record(input)["opponentId"], "opponentId") }))
@@ -134,7 +134,10 @@ export const ratedHeadToHeadFn = createServerFn({ method: "POST" })
     const id = idOf(data.opponentId);
     if (!id) return { wins: 0, losses: 0, draws: 0, played: 0 };
     const { client, rated } = await setup(context.userId, false);
-    return rated.headToHead(client, context.userId, id);
+    // Security C3: `opponentId` is a public id; one that names nobody (an account id among them) has no record.
+    const { accountOf } = await import("@/lib/identity/publicIds.server");
+    const opponent = await accountOf(client, id);
+    return opponent ? rated.headToHead(client, context.userId, opponent) : { wins: 0, losses: 0, draws: 0, played: 0 };
   });
 
 /** W3c's room screen: is this room a rated match (for one of its players)? null when not, or not the caller's. */

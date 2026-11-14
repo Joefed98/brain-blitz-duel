@@ -230,16 +230,23 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     cap: accountToken(CAP),
     rat: accountToken(RAT),
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: phones know players by public id): every player id sent to
+  // a friends function, and every player id read from one's answer, is that player's public id, `pub(X)`.
+  const publicIds = new Map<string, string>();
+  const pub = (account: string): string => {
+    if (!publicIds.has(account)) publicIds.set(account, q(`SELECT public.public_id_of('${account}')`));
+    return publicIds.get(account)!;
+  };
 
   /* ------------------------------------------------------------- search */
   await section("search", async () => {
     const ada = await call(fns.friendSearchFn, { query: "bob" }, tok.ada);
-    check(ada.ok && ada.results.length === 1 && ada.results[0].id === BOB && ada.results[0].relation === "none", `an adult finds an adult by prefix (${JSON.stringify(ada).slice(0, 160)})`);
+    check(ada.ok && ada.results.length === 1 && ada.results[0].id === pub(BOB) && ada.results[0].relation === "none", `an adult finds an adult by prefix (${JSON.stringify(ada).slice(0, 160)})`);
     const ignoringCase = await call(fns.friendSearchFn, { query: "BOB_ADULT" }, tok.ada);
-    check(ignoringCase.ok && ignoringCase.results[0]?.id === BOB, "search ignores capitals");
+    check(ignoringCase.ok && ignoringCase.results[0]?.id === pub(BOB), "search ignores capitals");
     for (const query of ["tee", "Tee_Teen", "tom_t", "t"]) {
       const r = await call(fns.friendSearchFn, { query }, tok.ada);
-      check(!r.ok || r.results.every((h: { id: string }) => h.id !== TEE && h.id !== TOM), `search never returns an under-18 account ("${query}")`);
+      check(!r.ok || r.results.every((h: { id: string }) => h.id !== pub(TEE) && h.id !== pub(TOM)), `search never returns an under-18 account ("${query}")`);
     }
     const sqlTeen = JSON.parse(q(`SELECT public.friends_search('${ADA}', 'te', 20)`)) as { id: string }[];
     check(sqlTeen.every((h) => h.id !== TEE), "SQL: search never returns an under-18 account");
@@ -258,35 +265,35 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
 
   /* ------------------------------------------------------------- requests by search, accept */
   await section("request and accept", async () => {
-    const sent = await call(fns.friendRequestFn, { playerId: BOB }, tok.ada);
+    const sent = await call(fns.friendRequestFn, { playerId: pub(BOB) }, tok.ada);
     check(sent.ok && sent.outcome === "sent" && requestRows(ADA, BOB) === 1, "a request by search is stored");
     check(friendEvents("friend_request_received", BOB) === 1, "B2: friend_request_received for the recipient");
     check((await events("friend_request_sent", ADA)) === 1, "analytics: friend_request_sent");
     check(q(`SELECT props ->> 'via' FROM analytics.events WHERE event = 'friend_request_sent' AND player_id = '${ADA}'`) === "search", "analytics: friend_request_sent says via search");
-    const again = await call(fns.friendRequestFn, { playerId: BOB }, tok.ada);
+    const again = await call(fns.friendRequestFn, { playerId: pub(BOB) }, tok.ada);
     check(again.ok && requestRows(ADA, BOB) === 1 && friendEvents("friend_request_received", BOB) === 1, "a repeat request stores nothing new");
 
-    const toTeen = await call(fns.friendRequestFn, { playerId: TEE }, tok.ada);
+    const toTeen = await call(fns.friendRequestFn, { playerId: pub(TEE) }, tok.ada);
     check(!toTeen.ok && toTeen.reason === "not_found" && requestRows(ADA, TEE) === 0, "a request 'by search' to an under-18 is refused");
     const sqlTeen = JSON.parse(q(`SELECT public.friends_send_request('${ADA}', '${TEE}', 'search', 200)`)) as { result: string };
     check(sqlTeen.result === "not_found" && requestRows(ADA, TEE) === 0, "SQL: a request 'by search' to an under-18 is refused");
-    const fromTeen = await call(fns.friendRequestFn, { playerId: ADA }, tok.tee);
+    const fromTeen = await call(fns.friendRequestFn, { playerId: pub(ADA) }, tok.tee);
     check(!fromTeen.ok && fromTeen.reason === "under18", "an under-18 can't request by search");
-    const fromGuest = await call(fns.friendRequestFn, { playerId: ADA }, tok.gus);
+    const fromGuest = await call(fns.friendRequestFn, { playerId: pub(ADA) }, tok.gus);
     check(!fromGuest.ok && fromGuest.reason === "account", "a guest can't request");
 
     const waiting = await call(fns.friendsWaitingFn, undefined, tok.bob);
     check(waiting === 1, `the badge counts one waiting request (${waiting})`);
     const bobView = await call(fns.friendsOverviewFn, undefined, tok.bob);
     const incoming = bobView.ok ? bobView.overview.incoming : [];
-    check(incoming.length === 1 && incoming[0].id === ADA && incoming[0].via === "search", "Requests list the sender with how they found you");
+    check(incoming.length === 1 && incoming[0].id === pub(ADA) && incoming[0].via === "search", "Requests list the sender with how they found you");
     const accepted = await call(fns.friendRespondFn, { requestId: incoming[0].requestId, accept: true }, tok.bob);
     check(accepted.ok && accepted.outcome === "accepted" && areFriends(ADA, BOB), "accept: friends");
     check(friendEvents("friend_request_accepted", ADA) === 1, "B2: friend_request_accepted for the sender");
     check((await events("friend_added", BOB)) === 1, "analytics: friend_added");
     check((await call(fns.friendsWaitingFn, undefined, tok.bob)) === 0, "the badge clears");
     const both = [await call(fns.friendsOverviewFn, undefined, tok.ada), await call(fns.friendsOverviewFn, undefined, tok.bob)];
-    check(both.every((o) => o.ok && o.overview.friends.length === 1) && both[0].overview.friends[0].id === BOB && both[1].overview.friends[0].id === ADA, "accept: both lists show the friendship");
+    check(both.every((o) => o.ok && o.overview.friends.length === 1) && both[0].overview.friends[0].id === pub(BOB) && both[1].overview.friends[0].id === pub(ADA), "accept: both lists show the friendship");
     const twice = await call(fns.friendRespondFn, { requestId: incoming[0].requestId, accept: true }, tok.bob);
     check(twice.ok && twice.outcome === "gone", "answering twice changes nothing");
     const stranger = await call(fns.friendRespondFn, { requestId: incoming[0].requestId, accept: false }, tok.tom);
@@ -304,9 +311,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const hub = pal(0);
     const has = (id: string) => Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${id}' AND badge = 'friendly'`));
     const befriend = async (i: number) => {
-      const sent = await call(fns.friendRequestFn, { playerId: pal(i) }, tokOf(0));
+      const sent = await call(fns.friendRequestFn, { playerId: pub(pal(i)) }, tokOf(0));
       const view = await call(fns.friendsOverviewFn, undefined, tokOf(i));
-      const req = view.ok ? view.overview.incoming.find((r: { id: string }) => r.id === hub) : null;
+      const req = view.ok ? view.overview.incoming.find((r: { id: string }) => r.id === pub(hub)) : null;
       const acc = await call(fns.friendRespondFn, { requestId: req?.requestId, accept: true }, tokOf(i));
       return sent.ok && acc.ok && acc.outcome === "accepted";
     };
@@ -322,26 +329,26 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT detail ->> 'friends' FROM player_badges WHERE user_id = '${hub}' AND badge = 'friendly'`) === "5", "Friendly: stored with the count it was earned at");
     check((await events("badge_earned", hub)) === 1 && q(`SELECT props ->> 'badge' FROM analytics.events WHERE event = 'badge_earned' AND player_id = '${hub}'`) === "friendly", "Friendly: badge_earned recorded once");
     // Idempotent: a sixth friend (through a mutual request), opening the list, removing and re-adding.
-    await call(fns.friendRequestFn, { playerId: hub }, tokOf(6));
-    const mutual = await call(fns.friendRequestFn, { playerId: pal(6) }, tokOf(0));
+    await call(fns.friendRequestFn, { playerId: pub(hub) }, tokOf(6));
+    const mutual = await call(fns.friendRequestFn, { playerId: pub(pal(6)) }, tokOf(0));
     check(mutual.ok && mutual.outcome === "accepted", "Friendly: a sixth friend through a mutual request");
     await call(fns.friendsOverviewFn, undefined, tokOf(0));
-    await call(fns.friendRemoveFn, { playerId: pal(6) }, tokOf(0));
-    await call(fns.friendRemoveFn, { playerId: pal(5) }, tokOf(0));
+    await call(fns.friendRemoveFn, { playerId: pub(pal(6)) }, tokOf(0));
+    await call(fns.friendRemoveFn, { playerId: pub(pal(5)) }, tokOf(0));
     check(await befriend(5), "Friendly: back to five after removing and re-adding");
     check(has(hub) === 1 && (await events("badge_earned", hub)) === 1, "Friendly: never awarded twice (sixth friend, list opened, removed and re-added)");
     check(Number(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${hub}' AND reason = 'badge_reward'`)) === 0, "Friendly: no coins (Common)");
     // The accepting side earns it too: Pal_7 reaches five by accepting.
     for (const i of [1, 2, 3, 4]) {
-      await call(fns.friendRequestFn, { playerId: pal(7) }, tokOf(i));
+      await call(fns.friendRequestFn, { playerId: pub(pal(7)) }, tokOf(i));
       const view = await call(fns.friendsOverviewFn, undefined, tokOf(7));
-      const req = view.ok ? view.overview.incoming.find((r: { id: string }) => r.id === pal(i)) : null;
+      const req = view.ok ? view.overview.incoming.find((r: { id: string }) => r.id === pub(pal(i))) : null;
       await call(fns.friendRespondFn, { requestId: req?.requestId, accept: true }, tokOf(7));
     }
     check(has(pal(7)) === 0 && q(`SELECT friends.friend_count('${pal(7)}')`) === "4", "Friendly: the accepting side at 4, not yet");
-    await call(fns.friendRequestFn, { playerId: pal(7) }, tokOf(0));
+    await call(fns.friendRequestFn, { playerId: pub(pal(7)) }, tokOf(0));
     const v7 = await call(fns.friendsOverviewFn, undefined, tokOf(7));
-    const r7 = v7.ok ? v7.overview.incoming.find((r: { id: string }) => r.id === hub) : null;
+    const r7 = v7.ok ? v7.overview.incoming.find((r: { id: string }) => r.id === pub(hub)) : null;
     await call(fns.friendRespondFn, { requestId: r7?.requestId, accept: true }, tokOf(7));
     check(has(pal(7)) === 1, "Friendly: the player who accepts their fifth friend earns it too");
   });
@@ -354,10 +361,10 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const same = await call(fns.friendLinkFn, {}, tok.tee);
     check(same.ok && same.token === teeLink.token, "the link stays the same until reset");
     const adaToTee = await call(fns.friendLinkRequestFn, { token: teeLink.token }, tok.ada);
-    check(adaToTee.ok && adaToTee.outcome === "sent" && adaToTee.owner.id === TEE && requestRows(ADA, TEE) === 1, "an adult adds an under-18 through their link");
+    check(adaToTee.ok && adaToTee.outcome === "sent" && adaToTee.owner.id === pub(TEE) && requestRows(ADA, TEE) === 1, "an adult adds an under-18 through their link");
     check(q(`SELECT via FROM friend_requests WHERE from_user_id = '${ADA}' AND to_user_id = '${TEE}'`) === "link", "stored as via link");
     const teeView = await call(fns.friendsOverviewFn, undefined, tok.tee);
-    const req = teeView.ok ? teeView.overview.incoming.find((r: { id: string }) => r.id === ADA) : null;
+    const req = teeView.ok ? teeView.overview.incoming.find((r: { id: string }) => r.id === pub(ADA)) : null;
     const ok = await call(fns.friendRespondFn, { requestId: req?.requestId, accept: true }, tok.tee);
     check(ok.ok && ok.outcome === "accepted" && areFriends(ADA, TEE), "the under-18 accepts");
     await flushAnalytics();
@@ -372,7 +379,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
 
     // A guest: sees whose link it is, can't send until they have an account, then the same link works.
     const owner = await call(fns.friendLinkOwnerFn, { token: bobToken }, tok.gus);
-    check(owner.ok && owner.owner?.username === "Bob_Adult" && owner.owner?.id === BOB, "a guest sees whose link it is");
+    check(owner.ok && owner.owner?.username === "Bob_Adult" && owner.owner?.id === pub(BOB), "a guest sees whose link it is");
     const guestSend = await call(fns.friendLinkRequestFn, { token: bobToken }, tok.gus);
     check(!guestSend.ok && guestSend.reason === "account" && requestRows(GUS, BOB) === 0, "a guest's request waits for an account");
     q(`UPDATE auth.users SET is_anonymous = false, email = 'gus@example.com' WHERE id = '${GUS}'`);
@@ -399,71 +406,71 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   await section("decline", async () => {
     const before = q(`SELECT count(*) FROM friend_events`);
     const bobView = await call(fns.friendsOverviewFn, undefined, tok.bob);
-    const fromTom = bobView.ok ? bobView.overview.incoming.find((r: { id: string }) => r.id === TOM) : null;
+    const fromTom = bobView.ok ? bobView.overview.incoming.find((r: { id: string }) => r.id === pub(TOM)) : null;
     const declined = await call(fns.friendRespondFn, { requestId: fromTom?.requestId, accept: false }, tok.bob);
     check(declined.ok && declined.outcome === "declined" && !areFriends(TOM, BOB), "decline: not friends");
     check(q(`SELECT count(*) FROM friend_events`) === before, "decline: no event for anyone (the sender isn't told)");
     const tomView = await call(fns.friendsOverviewFn, undefined, tok.tom);
-    check(tomView.ok && tomView.overview.outgoing.includes(BOB), "decline: the sender's list still shows the request as sent");
-    const tomProfile = await call(fns.friendProfileFn, { playerId: BOB }, tok.tom);
+    check(tomView.ok && tomView.overview.outgoing.includes(pub(BOB)), "decline: the sender's list still shows the request as sent");
+    const tomProfile = await call(fns.friendProfileFn, { playerId: pub(BOB) }, tok.tom);
     check(tomProfile.ok && tomProfile.profile.relation === "requested", "decline: the sender's view of the profile still says requested");
     const repeat = await call(fns.friendLinkRequestFn, { token: bobToken }, tok.tom);
     check(repeat.ok && repeat.outcome === "sent" && requestRows(TOM, BOB) === 1 && q(`SELECT count(*) FROM friend_events`) === before, "decline: a repeat within 30 days answers sent and stores nothing");
     const bobAfter = await call(fns.friendsOverviewFn, undefined, tok.bob);
-    check(bobAfter.ok && !bobAfter.overview.incoming.some((r: { id: string }) => r.id === TOM), "decline: gone from the recipient's Requests");
+    check(bobAfter.ok && !bobAfter.overview.incoming.some((r: { id: string }) => r.id === pub(TOM)), "decline: gone from the recipient's Requests");
     check(q(`SELECT count(*) FROM information_schema.column_privileges WHERE table_name = 'friend_requests' AND grantee = 'authenticated' AND column_name IN ('status', 'responded_at')`) === "0", "a request's status is never readable by a phone");
   });
 
   /* ------------------------------------------------------------- remove */
   await section("remove", async () => {
     const before = q(`SELECT count(*) FROM friend_events`);
-    const removed = await call(fns.friendRemoveFn, { playerId: BOB }, tok.ada);
+    const removed = await call(fns.friendRemoveFn, { playerId: pub(BOB) }, tok.ada);
     check(removed.ok && removed.removed && !areFriends(ADA, BOB), "remove: not friends");
     const lists = [await call(fns.friendsOverviewFn, undefined, tok.ada), await call(fns.friendsOverviewFn, undefined, tok.bob)];
-    check(lists.every((o) => o.ok && !o.overview.friends.some((f: { id: string }) => f.id === ADA || f.id === BOB)), "remove: gone from both lists");
+    check(lists.every((o) => o.ok && !o.overview.friends.some((f: { id: string }) => f.id === pub(ADA) || f.id === pub(BOB))), "remove: gone from both lists");
     check(q(`SELECT count(*) FROM friend_events`) === before, "remove: silent (no event)");
     check((await events("friend_removed", ADA)) === 1, "analytics: friend_removed");
-    const again = await call(fns.friendRemoveFn, { playerId: BOB }, tok.ada);
+    const again = await call(fns.friendRemoveFn, { playerId: pub(BOB) }, tok.ada);
     check(again.ok && !again.removed && (await events("friend_removed", ADA)) === 1, "removing a non-friend changes nothing");
   });
 
   /* ------------------------------------------------------------- block */
   await section("block", async () => {
     // Friends again (BOB asks, ADA accepts), then ADA blocks BOB.
-    await call(fns.friendRequestFn, { playerId: ADA }, tok.bob);
+    await call(fns.friendRequestFn, { playerId: pub(ADA) }, tok.bob);
     const adaView = await call(fns.friendsOverviewFn, undefined, tok.ada);
-    const req = adaView.ok ? adaView.overview.incoming.find((r: { id: string }) => r.id === BOB) : null;
+    const req = adaView.ok ? adaView.overview.incoming.find((r: { id: string }) => r.id === pub(BOB)) : null;
     await call(fns.friendRespondFn, { requestId: req?.requestId, accept: true }, tok.ada);
     check(areFriends(ADA, BOB), "block: friends first");
     const adaLink = await call(fns.friendLinkFn, {}, tok.ada);
-    const blocked = await call(fns.friendBlockFn, { playerId: BOB }, tok.ada);
+    const blocked = await call(fns.friendBlockFn, { playerId: pub(BOB) }, tok.ada);
     check(blocked.ok && blocked.removed && !areFriends(ADA, BOB), "block: the friendship goes");
     check((await events("friend_blocked", ADA)) === 1, "analytics: friend_blocked");
     const eventsBefore = q(`SELECT count(*) FROM friend_events`);
-    const bobAsks = await call(fns.friendRequestFn, { playerId: ADA }, tok.bob);
+    const bobAsks = await call(fns.friendRequestFn, { playerId: pub(ADA) }, tok.bob);
     const bobLinks = await call(fns.friendLinkRequestFn, { token: adaLink.token }, tok.bob);
     check(bobAsks.ok && bobAsks.outcome === "sent" && bobLinks.ok && bobLinks.outcome === "sent", "block: the blocked player is told 'sent' (never that they're blocked)");
     check(Number(q(`SELECT count(*) FROM friend_requests WHERE from_user_id = '${BOB}' AND to_user_id = '${ADA}' AND status = 'pending'`)) === 0 && q(`SELECT count(*) FROM friend_events`) === eventsBefore, "block: the blocked player's requests store nothing and reach nobody");
-    const adaAsks = await call(fns.friendRequestFn, { playerId: BOB }, tok.ada);
+    const adaAsks = await call(fns.friendRequestFn, { playerId: pub(BOB) }, tok.ada);
     check(!adaAsks.ok && adaAsks.reason === "blocked", "block: the blocker can't request until they unblock");
-    const bobSeesAda = await call(fns.friendProfileFn, { playerId: ADA }, tok.bob);
+    const bobSeesAda = await call(fns.friendProfileFn, { playerId: pub(ADA) }, tok.bob);
     check(!bobSeesAda.ok && bobSeesAda.reason === "not_found", "block: the blocked player can't open the blocker's profile");
-    const adaSeesBob = await call(fns.friendProfileFn, { playerId: BOB }, tok.ada);
+    const adaSeesBob = await call(fns.friendProfileFn, { playerId: pub(BOB) }, tok.ada);
     check(adaSeesBob.ok && adaSeesBob.profile.relation === "blocked" && adaSeesBob.profile.status === null && adaSeesBob.profile.headToHead === null, "block: the blocker sees no status, only Unblock");
     const s1 = await call(fns.friendSearchFn, { query: "bob" }, tok.ada);
     const s2 = await call(fns.friendSearchFn, { query: "ada" }, tok.bob);
     check(s1.ok && s1.results.length === 0 && s2.ok && s2.results.length === 0, "block: hidden from each other's search");
-    const invite = await call(fns.friendInviteFn, { playerId: ADA }, tok.bob);
+    const invite = await call(fns.friendInviteFn, { playerId: pub(ADA) }, tok.bob);
     check(!invite.ok && invite.reason === "not_friends", "block: no room invites");
     const status = JSON.parse(q(`SELECT public.friends_overview('${BOB}', 200)`)) as { friends: { id: string }[] };
     check(!status.friends.some((f) => f.id === ADA), "block: no status either way");
     const adaList = await call(fns.friendsOverviewFn, undefined, tok.ada);
-    check(adaList.ok && adaList.overview.blocked.some((b: { id: string }) => b.id === BOB), "block: listed under the blocker's blocked players");
+    check(adaList.ok && adaList.overview.blocked.some((b: { id: string }) => b.id === pub(BOB)), "block: listed under the blocker's blocked players");
     const bobList = await call(fns.friendsOverviewFn, undefined, tok.bob);
     check(bobList.ok && bobList.overview.blocked.length === 0, "block: the blocked player sees no block");
-    const unblocked = await call(fns.friendUnblockFn, { playerId: BOB }, tok.ada);
+    const unblocked = await call(fns.friendUnblockFn, { playerId: pub(BOB) }, tok.ada);
     check(unblocked.ok && unblocked.unblocked && !areFriends(ADA, BOB), "unblock: lifted, not friends again");
-    const after = await call(fns.friendProfileFn, { playerId: ADA }, tok.bob);
+    const after = await call(fns.friendProfileFn, { playerId: pub(ADA) }, tok.bob);
     check(after.ok && after.profile.relation === "none", "unblock: the profile shows again");
   });
 
@@ -473,7 +480,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     q(`SELECT public.friends_presence_beat('${TEE}', 'app')`);
     const seen = async (viewer: string, token: string, friend: string) => {
       const o = await call(fns.friendsOverviewFn, undefined, token);
-      return (o.ok ? o.overview.friends.find((f: { id: string }) => f.id === friend)?.status : null) as { kind: string; code?: string; players?: number; maxPlayers?: number; lastSeen?: string } | null;
+      return (o.ok ? o.overview.friends.find((f: { id: string }) => f.id === pub(friend))?.status : null) as { kind: string; code?: string; players?: number; maxPlayers?: number; lastSeen?: string } | null;
     };
     check((await seen(ADA, tok.ada, TEE))?.kind === "hidden", "status: an under-18 is hidden by default");
     const teeOwn = await call(fns.friendsOverviewFn, undefined, tok.tee);
@@ -518,23 +525,23 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
 
   /* ------------------------------------------------------------- invite to room, challenge */
   await section("invite to room", async () => {
-    const profile = await call(fns.friendProfileFn, { playerId: TEE }, tok.ada);
+    const profile = await call(fns.friendProfileFn, { playerId: pub(TEE) }, tok.ada);
     check(profile.ok && profile.profile.relation === "friends" && profile.profile.myRoom?.code === "FRND", "Invite to room shows when the viewer is in a lobby");
-    const sent = await call(fns.friendInviteFn, { playerId: TEE }, tok.ada);
+    const sent = await call(fns.friendInviteFn, { playerId: pub(TEE) }, tok.ada);
     check(sent.ok && sent.code === "FRND" && friendEvents("room_invite_received", TEE) === 1, "B2: room_invite_received, for the server's own lobby");
     check(JSON.parse(q(`SELECT payload FROM friend_events WHERE kind = 'room_invite_received'`)).code === "FRND", "the event carries the room code");
-    const twice = await call(fns.friendInviteFn, { playerId: TEE }, tok.ada);
+    const twice = await call(fns.friendInviteFn, { playerId: pub(TEE) }, tok.ada);
     check(twice.ok && friendEvents("room_invite_received", TEE) === 1, "the same invite within two minutes is recorded once");
     const teeView = await call(fns.friendsOverviewFn, undefined, tok.tee);
-    check(teeView.ok && teeView.overview.invites.length === 1 && teeView.overview.invites[0].code === "FRND" && teeView.overview.invites[0].id === ADA, "the invite shows in the friend's list");
-    const stranger = await call(fns.friendInviteFn, { playerId: TOM }, tok.ada);
+    check(teeView.ok && teeView.overview.invites.length === 1 && teeView.overview.invites[0].code === "FRND" && teeView.overview.invites[0].id === pub(ADA), "the invite shows in the friend's list");
+    const stranger = await call(fns.friendInviteFn, { playerId: pub(TOM) }, tok.ada);
     check(!stranger.ok && stranger.reason === "not_friends" && friendEvents("room_invite_received", TOM) === 0, "only friends can be invited");
-    const noRoom = await call(fns.friendInviteFn, { playerId: ADA }, tok.tee);
+    const noRoom = await call(fns.friendInviteFn, { playerId: pub(ADA) }, tok.tee);
     check(!noRoom.ok && noRoom.reason === "no_room", "no lobby, no invite");
-    const teeProfile = await call(fns.friendProfileFn, { playerId: ADA }, tok.tee);
+    const teeProfile = await call(fns.friendProfileFn, { playerId: pub(ADA) }, tok.tee);
     check(teeProfile.ok && teeProfile.profile.myRoom === null, "Invite to room is hidden outside a lobby");
     q(`UPDATE duels SET status = 'playing' WHERE id = '${uid(500)}'`);
-    const playing = await call(fns.friendInviteFn, { playerId: TEE }, tok.ada);
+    const playing = await call(fns.friendInviteFn, { playerId: pub(TEE) }, tok.ada);
     check(!playing.ok && playing.reason === "no_room", "no invites once the game has started");
     const teeLater = await call(fns.friendsOverviewFn, undefined, tok.tee);
     check(teeLater.ok && teeLater.overview.invites.length === 0, "an invite to a room that started no longer shows");
@@ -543,15 +550,15 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   await section("challenge a friend", async () => {
     q(`INSERT INTO async_rooms (id, kind, room_key, seed, round_count, opens_at, closes_at) VALUES ('${uid(600)}', 'challenge', 'challenge:FRENDS', 1, 3, now(), now() + interval '7 days')`);
     q(`INSERT INTO challenges (room_id, code, created_by, source, round_count, expires_at) VALUES ('${uid(600)}', 'FRENDS', '${ADA}', 'play', 3, now() + interval '7 days')`);
-    const sent = await call(fns.friendChallengeFn, { playerId: TEE, code: "frends" }, tok.ada);
+    const sent = await call(fns.friendChallengeFn, { playerId: pub(TEE), code: "frends" }, tok.ada);
     check(sent.ok && friendEvents("friend_challenge_received", TEE) === 1, "B2: friend_challenge_received");
     const teeView = await call(fns.friendsOverviewFn, undefined, tok.tee);
     check(teeView.ok && teeView.overview.challenges.length === 1 && teeView.overview.challenges[0].code === "FRENDS", "the challenge shows in the friend's list");
-    const twice = await call(fns.friendChallengeFn, { playerId: TEE, code: "FRENDS" }, tok.ada);
+    const twice = await call(fns.friendChallengeFn, { playerId: pub(TEE), code: "FRENDS" }, tok.ada);
     check(twice.ok && friendEvents("friend_challenge_received", TEE) === 1, "the same challenge is sent once");
-    const notMine = await call(fns.friendChallengeFn, { playerId: ADA, code: "FRENDS" }, tok.tee);
+    const notMine = await call(fns.friendChallengeFn, { playerId: pub(ADA), code: "FRENDS" }, tok.tee);
     check(!notMine.ok && notMine.reason === "not_found", "only your own challenge");
-    const notFriend = await call(fns.friendChallengeFn, { playerId: TOM, code: "FRENDS" }, tok.ada);
+    const notFriend = await call(fns.friendChallengeFn, { playerId: pub(TOM), code: "FRENDS" }, tok.ada);
     check(!notFriend.ok && notFriend.reason === "not_friends", "only to a friend");
     q(`INSERT INTO async_attempts (room_id, user_id, display_name) VALUES ('${uid(600)}', '${TEE}', 'Tee_Teen')`);
     const played = await call(fns.friendsOverviewFn, undefined, tok.tee);
@@ -573,7 +580,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     // A finished friend challenge both played: level (a draw).
     q(`UPDATE async_attempts SET finished_at = now() - interval '5 minutes', total_score = 300 WHERE room_id = '${uid(600)}' AND user_id = '${TEE}'`);
     q(`INSERT INTO async_attempts (room_id, user_id, display_name, finished_at, total_score) VALUES ('${uid(600)}', '${ADA}', 'Ada_Adult', now() - interval '10 minutes', 300)`);
-    const view = await call(fns.friendProfileFn, { playerId: TEE }, tok.ada);
+    const view = await call(fns.friendProfileFn, { playerId: pub(TEE) }, tok.ada);
     const h = view.ok ? view.profile.headToHead : null;
     check(!!h && h.matches === 3 && h.wins === 1 && h.losses === 1 && h.draws === 1, `three matches: a win, a loss, a draw (${JSON.stringify(h)})`);
     check(!!h && JSON.stringify(h.last) === '["draw","win","loss"]', "last results newest first");
@@ -586,15 +593,15 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
 
   /* ------------------------------------------------------------- report */
   await section("report", async () => {
-    const reported = await call(fns.friendReportFn, { playerId: ADA, reason: "offensive_name" }, tok.tee);
+    const reported = await call(fns.friendReportFn, { playerId: pub(ADA), reason: "offensive_name" }, tok.tee);
     check(reported.ok && /Thanks/.test(reported.message), "report: the same thank-you");
     const row = q(`SELECT concat_ws('|', duel_id IS NULL, reported_user_id, reason, reported_name, counts) FROM room_reports WHERE reporter_user_id = '${TEE}'`);
     check(row === `t|${ADA}|offensive_name|Ada_Adult|t`, `report: through wave 1's flow, with no room (${row})`);
     const queue = q(`SELECT concat_ws('|', name, array_to_string(reasons, ','), array_to_string(sources, ','), from_profile) FROM moderation.report_queue WHERE user_id = '${ADA}'`);
     check(queue === "Ada_Adult|offensive_name|profile|1", `report: Joe's review list shows who, why and that it came from a profile (${queue})`);
-    const bad = await call(fns.friendReportFn, { playerId: ADA, reason: "made_up" }, tok.tee);
+    const bad = await call(fns.friendReportFn, { playerId: pub(ADA), reason: "made_up" }, tok.tee);
     check(!bad.ok, "report: an unknown reason is refused");
-    const self = await call(fns.friendReportFn, { playerId: TEE, reason: "cheating" }, tok.tee);
+    const self = await call(fns.friendReportFn, { playerId: pub(TEE), reason: "cheating" }, tok.tee);
     check(!self.ok, "report: not yourself");
   });
 
@@ -602,7 +609,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   await section("rate limit", async () => {
     let refusedAt = 0;
     for (let i = 1; i <= 21; i++) {
-      const r = await call(fns.friendRequestFn, { playerId: FILL(10 + i) }, tok.rat);
+      const r = await call(fns.friendRequestFn, { playerId: pub(FILL(10 + i)) }, tok.rat);
       if (!r.ok && refusedAt === 0) refusedAt = i;
       if (!r.ok) check(r.reason === "busy", "rate limit: refused as busy");
     }
@@ -615,12 +622,12 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
       q(`INSERT INTO friendships (user_low, user_high) SELECT least('${who}'::uuid, u), greatest('${who}'::uuid, u) FROM (SELECT ('00000000-0000-4000-8000-' || lpad((1000 + i)::text, 12, '0'))::uuid AS u FROM generate_series(${from}, ${to}) i WHERE i <> ${skip}) f ON CONFLICT DO NOTHING`);
     fillFriends(CAP, 0, 199, -1);
     check(q(`SELECT friends.friend_count('${CAP}')`) === "200", "cap: 200 friends");
-    const capAsks = await call(fns.friendRequestFn, { playerId: FILL(204) }, tok.cap);
+    const capAsks = await call(fns.friendRequestFn, { playerId: pub(FILL(204)) }, tok.cap);
     check(!capAsks.ok && capAsks.reason === "cap" && requestRows(CAP, FILL(204)) === 0, "cap: a full list can't send a request (refused, nothing stored)");
     const asked = JSON.parse(q(`SELECT public.friends_send_request('${FILL(203)}', '${CAP}', 'search', 200)`)) as { result: string };
     check(asked.result === "sent", "cap: anyone may still ask a full player");
     const capView = await call(fns.friendsOverviewFn, undefined, tok.cap);
-    const req = capView.ok ? capView.overview.incoming.find((r: { id: string }) => r.id === FILL(203)) : null;
+    const req = capView.ok ? capView.overview.incoming.find((r: { id: string }) => r.id === pub(FILL(203))) : null;
     const capAccepts = await call(fns.friendRespondFn, { requestId: req?.requestId, accept: true }, tok.cap);
     check(!capAccepts.ok && capAccepts.reason === "cap" && !areFriends(CAP, FILL(203)), "cap: a full list can't accept");
     // The other side full: FILL(201) asks FILL(202), then fills up to 200; FILL(202)'s accept is refused.
@@ -637,16 +644,16 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const guest = userToken(uid(97));
     const calls: [unknown, unknown][] = [
       [fns.friendsOverviewFn, undefined],
-      [fns.friendProfileFn, { playerId: ADA }],
+      [fns.friendProfileFn, { playerId: pub(ADA) }],
       [fns.friendRespondFn, { requestId: uid(1), accept: true }],
-      [fns.friendRemoveFn, { playerId: ADA }],
-      [fns.friendBlockFn, { playerId: ADA }],
-      [fns.friendUnblockFn, { playerId: ADA }],
-      [fns.friendReportFn, { playerId: ADA, reason: "cheating" }],
-      [fns.friendInviteFn, { playerId: ADA }],
-      [fns.friendChallengeFn, { playerId: ADA, code: "FRENDS" }],
+      [fns.friendRemoveFn, { playerId: pub(ADA) }],
+      [fns.friendBlockFn, { playerId: pub(ADA) }],
+      [fns.friendUnblockFn, { playerId: pub(ADA) }],
+      [fns.friendReportFn, { playerId: pub(ADA), reason: "cheating" }],
+      [fns.friendInviteFn, { playerId: pub(ADA) }],
+      [fns.friendChallengeFn, { playerId: pub(ADA), code: "FRENDS" }],
       [fns.friendShowOnlineFn, { show: true }],
-      [fns.friendRequestFn, { playerId: ADA }],
+      [fns.friendRequestFn, { playerId: pub(ADA) }],
     ];
     const answers = await Promise.all(calls.map(([fn, data]) => call(fn, data, guest)));
     check(answers.every((a) => a && a.ok === false && a.reason === "account"), `a guest can't reach any friends call (${answers.map((a) => a?.reason).join(",")})`);
@@ -669,20 +676,20 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(fnLeaks === "", `the friends functions are server-only (${fnLeaks})`);
 
     const tee = deviceDb(tok.tee);
+    // Changed with Joe's approval, 14 Nov 2026 (Security C3's revokes: phones read no friendships, requests or blocks,
+    // which carry account ids; the friends functions answer by public id): each read is now refused outright.
     const own = await tee.from("friendships").select("user_low, user_high");
-    const ownRows = (own.data ?? []) as { user_low: string; user_high: string }[];
-    check(!own.error && ownRows.length > 0 && ownRows.every((r) => r.user_low === TEE || r.user_high === TEE), "authenticated: only their own friendships");
+    check(!!own.error && !own.data, "authenticated: friendships can't be read");
     const reqs = await tee.from("friend_requests").select("id, from_user_id, to_user_id, via, created_at");
-    const reqRows = (reqs.data ?? []) as { from_user_id: string; to_user_id: string }[];
-    check(!reqs.error && reqRows.length > 0 && reqRows.every((r) => r.from_user_id === TEE || r.to_user_id === TEE), "authenticated: only their own requests");
+    check(!!reqs.error && !reqs.data, "authenticated: friend requests can't be read");
     const status = await tee.from("friend_requests").select("status");
     check(!!status.error, "authenticated: a request's status can't be read");
     const tom = deviceDb(tok.tom);
     const tomReqs = await tom.from("friend_requests").select("id, from_user_id, to_user_id");
-    check(!tomReqs.error && ((tomReqs.data ?? []) as { from_user_id: string; to_user_id: string }[]).every((r) => r.from_user_id === TOM || r.to_user_id === TOM), "authenticated: another player's requests are invisible");
+    check(!!tomReqs.error && !tomReqs.data, "authenticated: another player's requests are invisible");
     const ada = deviceDb(tok.ada);
     const blocks = await deviceDb(tok.bob).from("player_blocks").select("blocker_id, blocked_id");
-    check(!blocks.error && ((blocks.data ?? []) as unknown[]).length === 0, "authenticated: a block made against you is invisible");
+    check(!!blocks.error && !blocks.data, "authenticated: blocks can't be read");
     const links = await ada.from("friend_invite_links").select("user_id, token");
     check(!links.error && ((links.data ?? []) as { user_id: string }[]).every((r) => r.user_id === ADA), "authenticated: only their own link");
     const writes = await Promise.all([
@@ -743,27 +750,27 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const batches = Math.ceil(listed / 100);
     check(listed > 200 && cardReads === batches && badgeReads === batches, `cards: ${listed} listed players' cards in ${batches} + ${batches} batched reads, not one a player (${cardReads} + ${badgeReads})`);
     check(friends.length === 200 && friends.every((f) => !!f.look), `cards: every friend on the list carries their card (${friends.filter((f) => f.look).length} of ${friends.length})`);
-    const dressed = friends.find((f) => f.id === FILL(0))?.look;
+    const dressed = friends.find((f) => f.id === pub(FILL(0)))?.look;
     check(
       !!dressed && dressed.frame === "frame.gold" && dressed.cardArt === "card-art.bolt-stripes" && dressed.avatar.id === "pinball" && dressed.avatar.colour === 7 && JSON.stringify(dressed.badges) === '["friendly"]' && dressed.title === "rookie",
       `cards: a friend's row has their own frame, card art, avatar and colour (${JSON.stringify(dressed)})`,
     );
-    const plain = friends.find((f) => f.id === FILL(1))?.look;
+    const plain = friends.find((f) => f.id === pub(FILL(1)))?.look;
     check(!!plain && plain.frame === "frame.plain" && plain.avatar.id === "captain-joulz" && plain.badges.length === 0, `cards: an undressed friend has the starter card (${JSON.stringify(plain)})`);
 
     // A friend's profile: the full card (look, title, badges, player number).
-    const prof = await call(fns.friendProfileFn, { playerId: FILL(0) }, tok.cap);
+    const prof = await call(fns.friendProfileFn, { playerId: pub(FILL(0)) }, tok.cap);
     const pc = prof.ok ? prof.profile.card : null;
     check(!!pc && pc.look?.frame === "frame.gold" && pc.look.avatar.id === "pinball" && pc.look.avatar.colour === 7 && pc.look.badges[0] === "friendly" && pc.look.title === "rookie" && pc.playerNumber > 0, `cards: a friend's profile carries the full card (${JSON.stringify(pc)})`);
 
     // Blocked players show no card: neither on the blocked list nor on their profile.
-    await call(fns.friendBlockFn, { playerId: FILL(1) }, tok.cap);
-    const blockedProf = await call(fns.friendProfileFn, { playerId: FILL(1) }, tok.cap);
+    await call(fns.friendBlockFn, { playerId: pub(FILL(1)) }, tok.cap);
+    const blockedProf = await call(fns.friendProfileFn, { playerId: pub(FILL(1)) }, tok.cap);
     check(blockedProf.ok && blockedProf.profile.relation === "blocked" && !blockedProf.profile.card.look, "cards: a blocked player's profile has no card");
     const after = await call(fns.friendsOverviewFn, undefined, tok.cap);
-    const blockedRow = after.ok ? (after.overview.blocked.find((b) => b.id === FILL(1)) as Record<string, unknown> | undefined) : undefined;
+    const blockedRow = after.ok ? (after.overview.blocked.find((b) => b.id === pub(FILL(1))) as Record<string, unknown> | undefined) : undefined;
     check(!!blockedRow && !("look" in blockedRow), "cards: the blocked list carries no card");
-    const theirSide = await call(fns.friendProfileFn, { playerId: CAP }, accountToken(FILL(1)));
+    const theirSide = await call(fns.friendProfileFn, { playerId: pub(CAP) }, accountToken(FILL(1)));
     check(!theirSide.ok, "cards: the blocked player can't open the blocker's profile (no card)");
 
     // Guests: the friends calls refuse them, so no card is ever sent to or for a guest.

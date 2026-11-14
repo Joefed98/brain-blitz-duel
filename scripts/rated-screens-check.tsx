@@ -1002,7 +1002,8 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   check(endThem?.kind === "forfeit" && endThem.leaverNames.join() === "Sam" && !endThem.youLeft && endMe?.youLeft === true && bind.endingOf([], view, "u-5") === null, "a forfeit: the leaver named for the stayer, 'you' for the leaver; none for a match played out");
   check(!backendMod.isAborted(null) && !backendMod.isAborted(result()), "a settled result or nothing is never an abort");
   const bindSrc = readFileSync("src/lib/rated/w3Binding.ts", "utf8");
-  check(/settled\.state === "aborted"[\s\S]*?abortedOf\(settled\.leavers\.map\(\(l\) => l\.userId\), match, me\)/.test(bindSrc) && bindSrc.includes('endingOf(s.ending?.kind === "forfeit" ? s.ending.leavers : [], match, me)'), "the binding reads W3b's abort and the forfeit's leavers");
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: W3b's abort names its leavers by public id, `playerId`).
+  check(/settled\.state === "aborted"[\s\S]*?abortedOf\(settled\.leavers\.map\(\(l\) => l\.playerId\), match, me\)/.test(bindSrc) && bindSrc.includes('endingOf(s.ending?.kind === "forfeit" ? s.ending.leavers : [], match, me)'), "the binding reads W3b's abort and the forfeit's leavers");
   check(bindSrc.includes('rematchUntil: s.kind === "live" && !ending &&'), "a forfeit offers no rematch (W3b answers closed)");
 
   // The result screen: the forfeit said plainly, for each side, and no Rematch.

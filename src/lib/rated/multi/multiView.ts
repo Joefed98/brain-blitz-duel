@@ -49,7 +49,7 @@ export interface MultiStandingsData {
   next: { gameType: string } | null;
 }
 
-/** The match's players as W3b's match view names them. */
+/** The match's players as W3b's match view names them (`userId` holds the player's public id, Security C3). */
 export interface ViewPlayer {
   userId: string;
   slot: number;
@@ -203,7 +203,17 @@ async function bindMultiView(): Promise<MultiViewPort> {
   const { lookOf } = await import("@/lib/rated/w3Binding");
   const { supabase } = await import("@/integrations/supabase/client");
   const { readRoomById, readRoomResultRows } = await import("@/lib/data/roomReads");
-  const me = async () => (await currentUserId()) ?? "";
+  // This phone's public id (Security C3): W3b's answers name every player by public id. A server that can't answer it
+  // (a check's stand-in) leaves the account id, which its own answers carry.
+  const me = async () => {
+    const userId = await currentUserId();
+    if (!userId) return "";
+    const { myPublicId } = await import("@/lib/duel/seatKey");
+    return (await myPublicId(userId)) ?? userId;
+  };
+  type Answered = { playerId: string; slot: number; displayName: string; guest: boolean };
+  const viewPlayers = (players: readonly Answered[]): ViewPlayer[] =>
+    players.map(({ playerId, slot, displayName, guest }) => ({ userId: playerId, slot, displayName, guest }));
 
   async function withCards(seats: MultiSeatInfo[]): Promise<MultiSeatInfo[]> {
     const id = await identityBackend();
@@ -226,7 +236,9 @@ async function bindMultiView(): Promise<MultiViewPort> {
         me(),
       ]);
       if (settled.state !== "settled" || !view) return null;
-      const data = multiFinalFrom(settled.result, view.players, meId);
+      const result = settled.result;
+      const asView: SettledView = { ...result, players: result.players.map((p) => ({ userId: p.playerId, slot: p.slot, scores: p.scores })) };
+      const data = multiFinalFrom(asView, viewPlayers(view.players), meId);
       return data ? { ...data, seats: await withCards(data.seats) } : null;
     },
     async standings(matchId) {
@@ -242,7 +254,7 @@ async function bindMultiView(): Promise<MultiViewPort> {
       if (!room.data) return null;
       const data = multiStandingsFrom({
         format: view.format,
-        players: view.players,
+        players: viewPlayers(view.players),
         // The game types from the stored round order (Security C1a: a new room's puzzles arrive round by round).
         gameTypes: (room.data.round_order ?? []) as readonly string[],
         results: (results.data ?? []) as unknown as { player_slot: number; round_number: number; score: number | null }[],
@@ -250,7 +262,7 @@ async function bindMultiView(): Promise<MultiViewPort> {
         // The seats that left, matched to the view's players by slot (a phone reads no account ids, Security C1b).
         leftUserIds: view.players
           .filter((v) => (roomPlayers.data ?? []).some((p) => p.status === "left" && p.player_slot === v.slot))
-          .map((v) => v.userId),
+          .map((v) => v.playerId),
       });
       return data ? { ...data, seats: await withCards(data.seats) } : null;
     },
