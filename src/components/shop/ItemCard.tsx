@@ -1,14 +1,15 @@
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 import { Coin } from "@/components/app/CoinCounter";
 import { formatCoins } from "@/lib/shop/packs";
 import type { ShopCard } from "@/lib/shop/types";
 
-import { Heart, RarityTag, ShopArt } from "./ShopArt";
+import { Heart, RARITY_NAMES, ShopArt } from "./ShopArt";
 
 /**
- * One shop item (mockup docs/art/wave-2/screens/shop.png, "Today"): the rarity tag and the heart over the item's
- * picture, its name and kind, and its price in coins only (the £ value is shown once, on the confirmation). Too few
- * coins: a plain "Get coins" button beside the price, no pop-up. Owned: "Owned" in place of the price.
+ * One of today's items (the style guide's Shop mockup, "Today"): the item's approved still with the wishlist heart,
+ * its name, its rarity and kind, and its price button in coins (the £ value is shown once, on the confirmation). The
+ * price button opens the confirm sheet. Too few coins: the price with a plain "Get coins" button beside it, no pop-up.
+ * Owned: a quiet "Owned" in place of the price.
  */
 export function ItemCard({
   item,
@@ -25,48 +26,57 @@ export function ItemCard({
 }) {
   const short = !item.owned && balance < item.price;
   return (
-    <article className="shop-item" data-rarity={item.rarity} data-shop-item={item.id} data-owned={item.owned ? "" : undefined}>
-      <button
-        type="button"
-        className="shop-item-face press"
-        onClick={() => onBuy(item)}
-        disabled={item.owned}
-        aria-label={item.owned ? `${item.name}, owned` : `${item.name}, ${item.label}, ${formatCoins(item.price)} coins`}
-      >
-        <span className="shop-item-art">
-          <ShopArt id={item.id} />
-          <RarityTag rarity={item.rarity} />
+    <article className="shop-tile" data-rarity={item.rarity} data-shop-item={item.id} data-owned={item.owned ? "" : undefined}>
+      <div className="shop-tile-art" data-skin-off="">
+        <ShopArt id={item.id} />
+        <button
+          type="button"
+          className="shop-heart press"
+          aria-pressed={item.wished}
+          aria-label={item.wished ? `Remove ${item.name} from your wishlist` : `Add ${item.name} to your wishlist`}
+          onClick={() => onWish(item)}
+          data-shop-heart={item.id}
+        >
+          <Heart on={item.wished} />
+        </button>
+      </div>
+      <h3 className="shop-tile-name">{item.name}</h3>
+      <p className="shop-tile-meta">
+        <span className="shop-rarity-word" data-rarity={item.rarity}>
+          {RARITY_NAMES[item.rarity]}
         </span>
-        <span className="shop-item-name">{item.name}</span>
-        <span className="shop-item-kind">{item.label}</span>
-      </button>
-      <button
-        type="button"
-        className="shop-heart press"
-        aria-pressed={item.wished}
-        aria-label={item.wished ? `Remove ${item.name} from your wishlist` : `Add ${item.name} to your wishlist`}
-        onClick={() => onWish(item)}
-        data-shop-heart={item.id}
-      >
-        <Heart on={item.wished} />
-      </button>
-      <div className="shop-item-price">
-        {item.owned ? (
-          <span className="shop-owned" data-shop-owned>
-            Owned
-          </span>
-        ) : (
+        <span className="shop-tile-kind"> · {item.label}</span>
+      </p>
+      {item.owned ? (
+        <span className="shop-owned" data-shop-owned>
+          <Icon name="check" size={18} />
+          Owned
+        </span>
+      ) : short ? (
+        <div className="shop-short" data-shop-short={item.id}>
           <span className="shop-coins" data-shop-price={item.price}>
-            <Coin size={16} />
+            <Coin size={18} />
             {formatCoins(item.price)}
           </span>
-        )}
-        {short ? (
           <Button variant="secondary" size={44} onClick={onGetCoins} data-shop-get-coins>
             Get coins
           </Button>
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <Button
+          variant="secondary"
+          size={48}
+          block
+          className="shop-price"
+          onClick={() => onBuy(item)}
+          aria-label={`${item.name}, ${item.label}, ${formatCoins(item.price)} coins`}
+          data-shop-item-buy={item.id}
+          data-shop-price={item.price}
+        >
+          <Coin size={20} />
+          {formatCoins(item.price)}
+        </Button>
+      )}
     </article>
   );
 }

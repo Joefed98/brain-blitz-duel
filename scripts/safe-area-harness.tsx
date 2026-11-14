@@ -49,6 +49,11 @@ import { RatedHarnessScreen } from "./rated-fixture";
 import { PassScreen } from "@/components/pass/PassScreen";
 import { standInPass } from "@/lib/pass/passApi";
 import type { HarnessPass } from "./pass-fixture";
+import { Route as ShopRoute } from "@/routes/shop";
+import { standInShop } from "@/lib/shop/shopApi";
+import { setPlusFns, type PlusStatus } from "@/lib/plus/plusApi";
+import type { HarnessShop } from "./shop-fixture";
+import { setIdentityBackend } from "@/lib/identity/backend";
 import { setBadgesBackend } from "@/lib/badges/badgesApi";
 import { Route as BadgesRoute } from "@/routes/badges";
 import { Route as CardRoute } from "@/routes/card";
@@ -595,6 +600,31 @@ if (mode === "pass") {
     standInPass(fixture.account["userId"] as string, { state: "open", view: fixture.view });
   }
 }
+// The Shop pages (14 Nov 2026, scripts/screens/shop.ts): the /shop route as the app draws it, its Shop part from
+// window.__harnessShop, its Pass part from window.__harnessPass and its Plus part from window.__harnessPlus (no server
+// call), the part from the screen's search (?part=).
+if (mode === "shop") {
+  const g = window as unknown as { __harnessShop?: HarnessShop; __harnessPass?: HarnessPass; __harnessPlus?: PlusStatus };
+  if (g.__harnessShop) {
+    setAccount(g.__harnessShop.account as never, null);
+    standInShop(g.__harnessShop.view);
+    // The header's coin counter: the same balance, through A1's interface.
+    const coins = g.__harnessShop.view.balance;
+    setIdentityBackend({
+      getCatalogue: async () => [],
+      getMyWallet: async () => ({ coins }),
+      getMyInventory: async () => [],
+      getMyLoadout: async () => null,
+      getAvatarOptions: async () => ({}),
+    } as never);
+  }
+  if (g.__harnessPass) {
+    setAccount(g.__harnessPass.account as never, null);
+    standInPass(g.__harnessPass.account["userId"] as string, { state: "open", view: g.__harnessPass.view });
+  }
+  const plus = g.__harnessPlus;
+  if (plus) setPlusFns({ plusStatusFn: (async () => plus) as never, plusSetMarkFn: (async () => ({ ok: true })) as never });
+}
 // The navigation step (14 Nov 2026): a signed-in account for the avatar header and the rail (no server call), and the
 // light theme on <html> (only the navigation frame takes it until the components step).
 {
@@ -684,6 +714,11 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
       </div>
     </PhoneShell>
   ),
+  // The Shop pages (scripts/screens/shop.ts): the /shop route itself.
+  shop: () => {
+    const Shop = ShopRoute.options.component as () => JSX.Element;
+    return <Shop />;
+  },
   // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
   saveprogress: () => {
     const Profile = ProfileRoute.options.component as () => JSX.Element;

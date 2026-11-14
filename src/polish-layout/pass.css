@@ -1,12 +1,12 @@
 /*
- * Wave 2, session D2: the Season pass (mockup docs/art/wave-2/screens/battle-pass.png), its Home card and the results
- * Joules line. Tokens only (DESIGN.md). Joules are electric lime (--jz-joules) with the bolt mark, always secondary.
+ * The Season pass (wave 2, session D2; phase 2 step 3, the Shop pages session, 14 Nov 2026: the style guide). Tokens
+ * only. Joules are electric lime (--jz-joules) with the bolt; the premium track's word is gold ink. The two tracks are
+ * rows of reward tiles, one column a level, scrolled sideways, with the track names held on the left.
  */
-
 .pass-screen {
   display: flex;
   flex-direction: column;
-  gap: var(--jz-space-16);
+  gap: var(--jz-space-24);
 }
 .pass-loading {
   display: flex;
@@ -15,51 +15,60 @@
 }
 .pass-head {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--jz-space-12);
+  flex-direction: column;
+  gap: var(--jz-space-4);
 }
-.pass-title {
+/* Doubled class: beats the page skin's uppercase heading rule ([data-skin] :is(h1, h2, h3)); sentence case. */
+.pass-season-name.pass-season-name {
   margin: 0;
-}
-.pass-season-name {
-  margin: 0;
-  color: var(--jz-cyan);
-  font-size: 15px;
-  font-weight: var(--jz-weight-black);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.pass-days {
-  color: var(--jz-text-2);
-  font-size: 14px;
+  overflow: hidden;
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: var(--jz-weight-bold);
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
   white-space: nowrap;
+}
+.pass-kicker {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: var(--jz-weight-medium);
 }
 .pass-note {
   margin: 0;
   color: var(--jz-text-3);
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
 }
 
-/* The level card and its Joules bar. */
+/* The level panel and its Joules bar. */
 .pass-level-card {
   display: flex;
   flex-direction: column;
-  gap: var(--jz-space-8);
+  gap: var(--jz-space-12);
   padding: var(--jz-space-16);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-lg);
   background: var(--jz-surface);
 }
 .pass-level-line {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--jz-space-8);
+  gap: var(--jz-space-12);
+}
+.pass-level-art {
+  flex: none;
 }
 .pass-level-now {
+  flex: 1;
   color: var(--jz-text);
   font-size: 20px;
+  line-height: 26px;
   font-weight: var(--jz-weight-bold);
 }
 .pass-joules {
@@ -92,34 +101,34 @@
 .pass-unlock {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: var(--jz-space-8);
-  text-align: center;
 }
 .pass-premium-on {
   margin: 0;
   color: var(--jz-gold-ink);
-  font-size: 14px;
-  font-weight: var(--jz-weight-medium);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: var(--jz-weight-bold);
 }
 
-/* The two tracks, level by level. */
+/* The two tracks: one row a level, the free and premium tiles side by side under their names. */
 .pass-tracks {
+  --pass-disc: 32px;
   display: flex;
   flex-direction: column;
-  gap: var(--jz-space-8);
+  gap: var(--jz-space-12);
 }
 .pass-track-heads,
 .pass-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: var(--pass-disc) minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--jz-space-8);
 }
 .pass-track-heads {
   color: var(--jz-text-2);
   font-size: 13px;
-  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+  font-weight: var(--jz-weight-bold);
 }
 .pass-premium-word {
   color: var(--jz-gold-ink);
@@ -132,59 +141,64 @@
   padding: 0;
   list-style: none;
 }
+.pass-row {
+  align-items: stretch;
+}
 .pass-level-disc {
   display: grid;
+  align-self: center;
+  width: var(--pass-disc);
+  height: var(--pass-disc);
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  border-radius: var(--jz-round);
   background: var(--jz-surface-2);
-  color: var(--jz-text);
-  font-size: 16px;
+  color: var(--jz-text-2);
+  font-size: 13px;
   font-weight: var(--jz-weight-bold);
   font-variant-numeric: tabular-nums;
 }
+.pass-row[data-reached] .pass-level-disc {
+  color: var(--jz-text);
+}
 .pass-row[data-current] .pass-level-disc {
-  background: var(--jz-gold-metal);
+  background: var(--jz-gold);
   color: var(--jz-on-gold);
 }
 .pass-cell {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  min-width: 0;
+  flex-direction: column;
   gap: var(--jz-space-8);
-  min-height: 64px;
   padding: var(--jz-space-8);
-  border: 1px solid var(--jz-line);
-  border-radius: var(--jz-radius);
+  border: 1.5px solid transparent;
+  border-radius: var(--jz-radius-lg);
   background: var(--jz-surface);
 }
 .pass-cell[data-state="claimable"] {
   border-color: var(--jz-gold);
 }
-.pass-cell[data-state="locked"] {
-  opacity: 0.72;
-}
 .pass-cell-empty {
-  min-height: 64px;
   border: 1px dashed var(--jz-line);
-  border-radius: var(--jz-radius);
+  background: none;
 }
 .pass-cell-glyph {
   display: grid;
+  height: 48px;
   flex: none;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--jz-radius);
-  background: var(--jz-bg-raised);
+  border-radius: var(--jz-radius-sm);
+  background: var(--jz-surface-2);
   color: var(--jz-text-2);
 }
-/* A reward's picture: the card's own art at the cell's width, or the approved still. */
+/* A reward's picture: the card's own art at the tile's width, or the approved still. */
 .pass-cell-art {
-  display: block;
-  flex: 1 0 100%;
-  min-width: 0;
+  display: grid;
+  height: 48px;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--jz-radius-sm);
 }
 .pass-cell-art[data-pass-art="card"] .pcard {
   display: block;
@@ -193,32 +207,37 @@
 .pass-cell-still {
   display: block;
   width: 100%;
-  height: 64px;
+  height: 48px;
   object-fit: contain;
 }
 .pass-cell-text {
   display: flex;
+  min-width: 0;
   flex: 1;
   flex-direction: column;
-  min-width: 0;
+  gap: 2px;
 }
 .pass-cell-title {
   overflow: hidden;
   color: var(--jz-text);
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 20px;
   font-weight: var(--jz-weight-bold);
-  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.pass-cell-detail {
+.pass-cell-meta {
   overflow: hidden;
   color: var(--jz-text-3);
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pass-cell-rarity {
   color: var(--jz-text-2);
-  font-size: 12px;
-  font-weight: var(--jz-weight-medium);
+  font-weight: var(--jz-weight-bold);
 }
 .pass-cell[data-rarity="epic"] .pass-cell-rarity {
   color: var(--jz-rarity-epic);
@@ -229,105 +248,141 @@
 .pass-cell[data-rarity="legendary"] .pass-cell-rarity {
   color: var(--jz-rarity-legendary);
 }
-.pass-cell[data-rarity="common"] .pass-cell-rarity {
-  color: var(--jz-bronze);
+.pass-cell > .jz-btn,
+.pass-cell > [data-variant] {
+  width: 100%;
 }
-.pass-cell[data-rarity="rare"] .pass-cell-rarity {
-  color: var(--jz-silver);
-}
+/* A tile's state (claimed, locked, being redrawn) sits in its top corner, over the art's well. */
 .pass-cell-mark {
+  position: absolute;
+  top: var(--jz-space-12);
+  right: var(--jz-space-12);
   display: grid;
-  flex: none;
+  width: 24px;
+  height: 24px;
   place-items: center;
-  width: 28px;
+  border-radius: var(--jz-round);
+  background: var(--jz-surface);
   color: var(--jz-text-3);
 }
 .pass-cell[data-state="claimed"] .pass-cell-mark {
-  color: var(--jz-cyan);
+  color: var(--jz-win);
+}
+.pass-cell[data-state="withdrawn"] {
+  border: 1px dashed var(--jz-line);
+  background: none;
 }
 
-/* The big rewards. */
-.pass-big {
-  display: flex;
-  flex-direction: column;
-  gap: var(--jz-space-12);
-  padding: var(--jz-space-16);
-  border-radius: var(--jz-radius);
-  background: var(--jz-surface);
-}
-.pass-big-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--jz-space-12);
-}
-.pass-big-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--jz-space-4);
-  min-width: 0;
-}
-.pass-big-where {
-  color: var(--jz-text-2);
-  font-size: 12px;
-}
-.pass-big-item[data-track="premium"] .pass-big-where {
-  color: var(--jz-gold-ink);
-}
-.pass-big-name {
-  color: var(--jz-text);
-  font-size: 14px;
-  font-weight: var(--jz-weight-bold);
-}
-.pass-big-kind {
-  color: var(--jz-cyan);
-  font-size: 12px;
-}
-
-/* This week's challenges. */
+/* This week's challenges: a tick or ring, the goal, a thin progress bar, the Joules on the right. */
 .pass-week {
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 0;
-  overflow: hidden;
-  border-radius: var(--jz-radius);
+  padding: 0 var(--jz-space-16);
+  border-radius: var(--jz-radius-lg);
   background: var(--jz-surface);
   list-style: none;
 }
 .pass-week-row {
   display: flex;
+  min-height: 72px;
   align-items: center;
   gap: var(--jz-space-12);
-  min-height: 64px;
-  padding: var(--jz-space-12) var(--jz-space-16);
+  padding: var(--jz-space-12) 0;
 }
 .pass-week-row + .pass-week-row {
   border-top: 1px solid var(--jz-line);
 }
+.pass-week-mark {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  border: 2px solid var(--jz-surface-3);
+  border-radius: var(--jz-round);
+  color: var(--jz-on-gold);
+}
+.pass-week-row[data-done] .pass-week-mark {
+  border-color: var(--jz-win);
+  background: var(--jz-win);
+  color: var(--jz-bg);
+}
 .pass-week-text {
   display: flex;
+  min-width: 0;
   flex: 1;
   flex-direction: column;
-  min-width: 0;
+  gap: 2px;
 }
 .pass-week-title {
   color: var(--jz-text);
   font-size: 15px;
-  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+  font-weight: var(--jz-weight-bold);
 }
 .pass-week-detail {
   color: var(--jz-text-3);
   font-size: 13px;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+.pass-week-bar {
+  display: block;
+  height: 4px;
+  margin-top: var(--jz-space-4);
+  overflow: hidden;
+  border-radius: var(--jz-radius-sm);
+  background: var(--jz-surface-2);
+}
+.pass-week-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--jz-joules);
 }
 .pass-week-joules {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: var(--jz-space-4);
   color: var(--jz-joules);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: var(--jz-weight-bold);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+}
+
+/* Wider pages: each tile lays its art, words and action out in a line. */
+@media (min-width: 700px) {
+  .pass-track-heads,
+  .pass-row {
+    gap: var(--jz-space-12);
+  }
+  .pass-cell {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--jz-space-12);
+    min-height: 88px;
+    padding: var(--jz-space-12);
+  }
+  .pass-cell-art,
+  .pass-cell-glyph,
+  .pass-cell-still {
+    width: 72px;
+    height: 56px;
+  }
+  .pass-cell > .jz-btn,
+  .pass-cell > [data-variant] {
+    width: auto;
+    flex: none;
+  }
+  .pass-cell-mark {
+    position: static;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    background: none;
+  }
 }
 
 /* The Home card (the Play tab). */

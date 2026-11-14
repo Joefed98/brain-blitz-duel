@@ -25,7 +25,7 @@ export function Heart({ on }: { on: boolean }) {
   );
 }
 
-const RARITY_NAMES = { epic: "Epic", elite: "Elite", legendary: "Legendary" } as const;
+export const RARITY_NAMES = { epic: "Epic", elite: "Elite", legendary: "Legendary" } as const;
 
 export function RarityTag({ rarity }: { rarity: keyof typeof RARITY_NAMES }) {
   return (
