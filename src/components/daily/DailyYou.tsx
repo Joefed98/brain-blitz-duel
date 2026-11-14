@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import type { DailyBoardView } from "@/lib/duel/daily";
 import { dailyTopPlaceLine, type DailyTopPlace } from "@/lib/leaderboards/dailyPlace";
-import { Icon } from "@/design/components";
+import { Icon, Panel } from "@/design/components";
 
 /**
  * Your own Daily line (13 Nov 2026, one identity everywhere): the old public board of everyone's names is retired for
@@ -34,7 +34,7 @@ export function DailyYou({
   return (
     <div data-daily-you={board.open ? "open" : "locked"} className="flex flex-col gap-2">
       {me ? (
-        <section aria-label="You" data-daily-me className="th-card flex flex-col gap-2 rounded-[18px] border px-3.5 py-3" /* design-lint-ignore: moved unchanged from the old DailyBoard */>
+        <Panel as="section" aria-label="You" data-daily-me className="th-card flex flex-col gap-2 px-3.5 py-3" /* design-lint-ignore: moved unchanged from the old DailyBoard */>
           <div className="flex items-center gap-2">
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="th-name truncate text-[15px] font-semibold leading-tight text-foreground" /* design-lint-ignore: moved unchanged from the old DailyBoard */ data-ellipsis="">
@@ -60,7 +60,7 @@ export function DailyYou({
             </p>
           ) : null}
           {me.finished && share ? <div className="flex">{share}</div> : null}
-        </section>
+        </Panel>
       ) : !board.open ? (
         <p className="jz-panel flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground" data-daily-locked>
           <Icon name="lock" size={18} className="-m-px" />

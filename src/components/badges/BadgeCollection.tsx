@@ -14,6 +14,7 @@ import {
   badgeProgressLine,
 } from "@/lib/badges/catalogue";
 import { useMyBadges } from "@/lib/badges/badgesApi";
+import { SectionHeader } from "@/design/components";
 
 export function BadgeCollection() {
   const { live, badges } = useMyBadges();
@@ -21,12 +22,16 @@ export function BadgeCollection() {
   const earned = new Map(badges.earned.map((b) => [b.slug, b]));
   return (
     <section aria-label="Badges" data-profile-badges className="ap-section">
-      <div className="ap-section-head">
-        <h2 className="ap-section-title">Badges</h2>
-        <span className="ap-meta" data-badge-count>
-          {earned.size} of {BADGES.length}
-        </span>
-      </div>
+      <SectionHeader
+        title="Badges"
+        right={
+          <>
+            <span className="ap-meta" data-badge-count>
+              {earned.size} of {BADGES.length}
+            </span>
+          </>
+        }
+      />
       {BADGE_GROUPS.map((group) => (
         <div key={group} className="bd-group" data-badge-group={group}>
           <h3 className="bd-group-title">{BADGE_GROUP_LABEL[group]}</h3>

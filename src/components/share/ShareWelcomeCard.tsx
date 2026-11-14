@@ -10,7 +10,7 @@ import {
   type ShareRecorder,
   type WelcomeOutcome,
 } from "@/lib/share/shareRef";
-import { Button, Icon } from "@/design/components";
+import { Button, Icon, Panel } from "@/design/components";
 
 /**
  * The Play tab's one-time welcome for a device that arrived from a shared link and landed on the
@@ -60,11 +60,11 @@ export function ShareWelcomeCard({
   };
 
   return (
-    <section
+    <Panel as="section"
       data-share-welcome
       data-tint="gold"
       aria-label="Welcome"
-      className="th-card relative flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
+      className="th-card relative flex flex-col gap-3 p-4"
     >
       <button
         type="button"
@@ -110,6 +110,6 @@ export function ShareWelcomeCard({
           </Button>
         ) : null}
       </div>
-    </section>
+    </Panel>
   );
 }

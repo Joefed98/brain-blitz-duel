@@ -199,37 +199,23 @@
 
 /* ------------------------------------------------------------------ surfaces */
 /* A card: dark gradient, 1px light edge, inset top highlight, deep soft shadow and a glossy sheen. */
+/* The skin card is the guide's flat panel since the components step (14 Nov 2026; style guide round 2: elevation 0,
+   no shadow, no border, no glow): the cards it marks are Panels (jz-panel, 16 px corners) that keep this class for the
+   tint and for theme-check's card count. The gold and teal washes and their glows are gone ("no decorative glows"). */
 .th-card {
   position: relative;
   isolation: isolate;
-  background-color: #111119;
-  background-image: var(--th-card);
-  border-color: var(--th-card-edge);
-  box-shadow: var(--th-card-top), var(--th-card-shadow);
+  background-color: var(--jz-surface);
+  background-image: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 .th-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: var(--th-sheen);
-  pointer-events: none;
+  display: none;
 }
-.th-card[data-tint="gold"] {
-  background-image: linear-gradient(160deg, rgb(242 199 92 / 0.16), rgb(242 199 92 / 0.03) 55%, transparent), var(--th-card);
-  border-color: rgb(242 199 92 / 0.36);
-  box-shadow: var(--th-card-top), var(--th-card-shadow), 0 0 26px -12px rgb(242 199 92 / 0.45);
-}
-.th-card[data-tint="teal"] {
-  background-image: linear-gradient(160deg, rgb(46 211 183 / 0.15), rgb(46 211 183 / 0.03) 55%, transparent), var(--th-card);
-  border-color: rgb(46 211 183 / 0.36);
-  box-shadow: var(--th-card-top), var(--th-card-shadow), 0 0 26px -12px rgb(46 211 183 / 0.4);
-}
-/* The player's own row (lobby, leaderboards): a gold edge on the card. */
+/* The player's own card: a 3 px bar on the left in the gold ink ("you"). */
 .th-card[data-tint="me"] {
-  background-image: linear-gradient(90deg, rgb(242 199 92 / 0.12), rgb(242 199 92 / 0.02) 70%), var(--th-card);
-  border-color: rgb(242 199 92 / 0.55);
+  box-shadow: inset 3px 0 0 var(--jz-gold-ink);
 }
 /* A dashed empty state stays a quiet outline. */
 .th-empty {

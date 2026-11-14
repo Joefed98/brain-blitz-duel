@@ -30,8 +30,10 @@ export function AnimatedScore({
   skip?: boolean;
   countSound?: boolean;
 }) {
-  const [display, setDisplay] = useState(start ?? value);
-  const fromRef = useRef(start ?? value);
+  // Reduce motion: the final number from the very first frame (never one frame of the starting number before the
+  // effect below jumps it; the components step, 14 Nov 2026, found that frame on the podium).
+  const [display, setDisplay] = useState(() => (prefersReducedMotion() ? value : (start ?? value)));
+  const fromRef = useRef(display);
   const skipRef = useRef(skip);
   skipRef.current = skip;
 

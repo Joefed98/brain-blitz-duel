@@ -32,7 +32,7 @@ import { useRoomNameplate } from "./RoomPlayer";
 import { NameplateStrip } from "@/design/identity";
 import type { ReportReason } from "@/lib/safety/reports";
 import { scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
-import { Button } from "@/design/components";
+import { Button, Panel } from "@/design/components";
 import { MetaChips } from "@/components/app/MetaChips";
 
 interface RoomLobbyProps {
@@ -167,7 +167,7 @@ export function LookPicker({
   onChange: (look: Partial<PlayerLook>) => void;
 }) {
   return (
-    <div data-look-picker className="th-card flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left">
+    <Panel data-look-picker className="th-card flex flex-col gap-2 px-3 py-3 text-left">
       <p className="font-display text-xs font-semibold jz-em-name">Your colour</p>
       <ColourWheel selected={look.colour} taken={taken} takenBy={takenBy} onPick={(colour) => onChange({ colour })} />
       <p className="mt-1 font-display text-xs font-semibold jz-em-name">Your icon</p>
@@ -199,7 +199,7 @@ export function LookPicker({
           );
         })}
       </div>
-    </div>
+    </Panel>
   );
 }
 

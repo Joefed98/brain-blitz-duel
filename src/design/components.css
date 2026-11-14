@@ -11,39 +11,66 @@
  */
 
 @layer components {
-  /* ------------------------------------------------------------------ shared states */
+  /* ------------------------------------------------------------------ shared states (style guide round 2, 14 Nov 2026) */
+  /* Press and release (motion.png): a raised control sinks onto its 4 px ledge in --jz-dur-press and rises back in
+     --jz-dur-release; chips, segments and tabs change in --jz-dur-select. The action fires on release (the browser's
+     click). Focus: a 3 px --jz-focus-ring 3 px outside; an angled-cut button draws it as a cut frame (::after). */
   .jz-btn,
   .jz-chip,
   .jz-seg > button,
   .jz-row[data-interactive],
   .jz-tab,
-  .jz-tile[data-interactive] {
+  .jz-tile[data-interactive],
+  .jz-mode {
     -webkit-tap-highlight-color: transparent;
     transition:
-      transform var(--jz-fast) var(--jz-ease),
-      filter var(--jz-fast) var(--jz-ease),
-      background-color var(--jz-fast) var(--jz-ease),
-      color var(--jz-fast) var(--jz-ease);
+      transform var(--jz-dur-release) var(--jz-ease-out),
+      filter var(--jz-dur-select) var(--jz-ease-out),
+      background-color var(--jz-dur-select) var(--jz-ease-out),
+      box-shadow var(--jz-dur-release) var(--jz-ease-out),
+      color var(--jz-dur-select) var(--jz-ease-out);
   }
-  :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):active:not(:disabled, [aria-disabled="true"]) {
+  :is(.jz-btn[data-variant="gold"], .jz-btn[data-variant="secondary"], .jz-btn[data-variant="icon"][data-raised], .jz-mode):is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
+    transform: translateY(var(--jz-ledge));
+    transition-duration: var(--jz-dur-press);
+  }
+  :is(.jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
     transform: scale(0.97);
+    transition-duration: var(--jz-dur-press);
   }
-  :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-row, .jz-tab, .jz-tile, .jz-input, .jz-code):focus-visible,
+  :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-row, .jz-tab, .jz-tile, .jz-code, .jz-mode):is(:focus-visible, [data-jz-state="focus"]),
   .jz-code:has(input:focus-visible) {
-    outline: 2px solid var(--jz-gold);
-    outline-offset: 2px;
+    outline: 3px solid var(--jz-focus-ring);
+    outline-offset: 3px;
+  }
+  /* The cut buttons: no rectangular outline; the cut frame below. */
+  .jz-btn[data-variant="gold"]:is(:focus-visible, [data-jz-state="focus"]) {
+    outline: none;
   }
   @media (hover: hover) and (pointer: fine) {
-    :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):hover:not(:disabled, [aria-disabled="true"]) {
+    :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive], .jz-mode):hover:not(:disabled, [aria-disabled="true"]) {
       filter: brightness(1.08);
     }
     .jz-row[data-interactive]:hover {
       background-color: var(--jz-press-tint);
     }
   }
+  [data-jz-state="hover"] {
+    filter: brightness(1.08);
+  }
   @media (prefers-reduced-motion: reduce) {
-    :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):active:not(:disabled, [aria-disabled="true"]) {
+    /* Reduce motion: no movement; the press shows as the ledge going (a 120 ms change), nothing slides. */
+    :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive], .jz-mode):is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
       transform: none;
+    }
+    .jz-btn,
+    .jz-chip,
+    .jz-seg > button,
+    .jz-row[data-interactive],
+    .jz-tab,
+    .jz-tile[data-interactive],
+    .jz-mode {
+      transition-duration: var(--jz-dur-reduced);
     }
   }
 
@@ -63,7 +90,7 @@
     color: var(--jz-text);
     font-family: var(--jz-font);
     font-size: 15px;
-    font-weight: var(--jz-weight-medium);
+    font-weight: 700;
     line-height: 1;
     letter-spacing: 0;
     text-transform: none;
@@ -83,19 +110,45 @@
     display: flex;
     width: 100%;
   }
+  /* Heights: 60 the one big action, 48 and 36 the guide's others; 44–58 kept for today's screens (step 3 moves them).
+     A 36 px button keeps a 44 px target through an invisible hit area. */
+  /* 36: the guide's small button. The face is 36 px; the element is 44 px tall (4 px of transparent target above and
+     below), so every target stays at least 44 × 44. */
+  .jz-btn[data-size="36"] { height: 44px; font-size: 15px; }
+  .jz-btn[data-variant="secondary"][data-size="36"] {
+    border-block: 4px solid transparent;
+    background-clip: padding-box;
+  }
+  .jz-btn[data-variant="gold"][data-size="36"]::before {
+    inset: 4px 0;
+  }
+  .jz-btn[data-variant="gold"][data-size="36"]::after {
+    inset: -2px -6px;
+  }
   .jz-btn[data-size="44"] { height: 44px; font-size: 15px; }
   .jz-btn[data-size="46"] { height: 46px; font-size: 15px; }
-  .jz-btn[data-size="48"] { height: 48px; font-size: 15px; }
+  .jz-btn[data-size="48"] { height: 48px; font-size: 16px; }
   .jz-btn[data-size="50"] { height: 50px; font-size: 16px; }
   .jz-btn[data-size="52"] { height: 52px; font-size: 17px; }
-  .jz-btn[data-size="58"] { height: 58px; font-size: 18px; }
+  .jz-btn[data-size="58"] { height: 58px; font-size: 17px; }
+  .jz-btn[data-size="60"] { height: 60px; font-size: 17px; }
 
-  /* Gold: the metal face over a solid 4 px ledge, both inside the angled cut. Nothing else: no glow,
-     haze or sheen (F1 review). The cut is on ::before so the button's own focus ring shows. */
+  /* The ledge: every raised button is its face plus a 4 px solid band below (the face's height less 4). Pressed, the
+     whole button sinks 4 px and the band goes, so the face lands where the ledge was. */
+  .jz-btn[data-variant="gold"],
+  .jz-btn[data-variant="secondary"] {
+    padding-bottom: var(--jz-ledge);
+  }
+
+  /* Gold: the flat champagne face on its gold ledge, inside the angled cut (cut lg; `small` cut sm). The cut is on
+     ::before so the focus frame (::after) draws outside it. */
   .jz-btn[data-variant="gold"] {
-    padding-bottom: 4px;
+    --cut: var(--jz-cut-lg);
     color: var(--jz-on-gold);
     font-weight: var(--jz-weight-bold);
+  }
+  .jz-btn[data-variant="gold"][data-small] {
+    --cut: var(--jz-cut-sm);
   }
   .jz-btn[data-variant="gold"]::before {
     content: "";
@@ -103,70 +156,216 @@
     inset: 0;
     z-index: -1;
     background:
-      var(--jz-gold-metal) top / 100% calc(100% - 4px) no-repeat,
+      linear-gradient(var(--jz-button-gold-face), var(--jz-button-gold-face)) top / 100% calc(100% - var(--jz-ledge)) no-repeat,
       var(--jz-gold-ledge);
+    clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+    pointer-events: none;
+  }
+  .jz-btn[data-variant="gold"]:is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"])::before {
+    background: linear-gradient(var(--jz-button-gold-face), var(--jz-button-gold-face)) top / 100% calc(100% - var(--jz-ledge)) no-repeat;
+  }
+  /* The cut focus frame: a 3 px ring 3 px out, the same cut, behind the button. */
+  .jz-btn[data-variant="gold"]::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    z-index: -2;
+    display: none;
+    background: var(--jz-focus-ring);
     clip-path: polygon(
-      var(--jz-cut-lg) 0,
+      evenodd,
+      calc(var(--cut) + 2.5px) 0,
       100% 0,
-      100% calc(100% - var(--jz-cut-lg)),
-      calc(100% - var(--jz-cut-lg)) 100%,
+      100% calc(100% - var(--cut) - 2.5px),
+      calc(100% - var(--cut) - 2.5px) 100%,
       0 100%,
-      0 var(--jz-cut-lg)
+      0 calc(var(--cut) + 2.5px),
+      calc(var(--cut) + 2.5px) 0,
+      calc(var(--cut) + 4.25px) 3px,
+      3px calc(var(--cut) + 4.25px),
+      3px calc(100% - 3px),
+      calc(100% - var(--cut) - 4.25px) calc(100% - 3px),
+      calc(100% - 3px) calc(100% - var(--cut) - 4.25px),
+      calc(100% - 3px) 3px,
+      calc(var(--cut) + 4.25px) 3px
     );
     pointer-events: none;
   }
-  .jz-btn[data-variant="gold"][data-small]::before {
-    clip-path: polygon(
-      var(--jz-cut-sm) 0,
-      100% 0,
-      100% calc(100% - var(--jz-cut-sm)),
-      calc(100% - var(--jz-cut-sm)) 100%,
-      0 100%,
-      0 var(--jz-cut-sm)
-    );
+  .jz-btn[data-variant="gold"]:is(:focus-visible, [data-jz-state="focus"])::after {
+    display: block;
   }
+  /* Disabled: no ledge, the face surface 2, the label in the caption colour. */
   .jz-btn[data-variant="gold"]:is(:disabled, [aria-disabled="true"]) {
-    filter: saturate(0.6) brightness(0.82);
+    color: var(--jz-text-3);
+  }
+  .jz-btn[data-variant="gold"]:is(:disabled, [aria-disabled="true"])::before {
+    background: linear-gradient(var(--jz-surface-2), var(--jz-surface-2)) top / 100% calc(100% - var(--jz-ledge)) no-repeat;
   }
 
-  /* Secondary: a visible 1.5 px --jz-surface-2 edge on the surface (F1 review). */
+  /* Secondary: surface 2 on its dark ledge (--jz-ledge-2), 12 px corners. */
   .jz-btn[data-variant="secondary"] {
-    border: 1.5px solid var(--jz-surface-2);
-    border-radius: var(--jz-radius);
-    background-color: var(--jz-surface);
+    border-radius: var(--jz-radius-md);
+    background:
+      linear-gradient(var(--jz-surface-2), var(--jz-surface-2)) top / 100% calc(100% - var(--jz-ledge)) no-repeat,
+      var(--jz-ledge-2);
+  }
+  .jz-btn[data-variant="secondary"]:is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
+    background: linear-gradient(var(--jz-surface-3), var(--jz-surface-3)) top / 100% calc(100% - var(--jz-ledge)) no-repeat;
   }
   .jz-btn[data-variant="secondary"]:is(:disabled, [aria-disabled="true"]) {
+    background: linear-gradient(var(--jz-surface), var(--jz-surface)) top / 100% calc(100% - var(--jz-ledge)) no-repeat;
     color: var(--jz-text-3);
   }
 
-  /* Quiet: text only. */
+  /* Quiet: text only, no ledge. */
   .jz-btn[data-variant="quiet"] {
     padding: 0 var(--jz-space-8);
-    border-radius: var(--jz-radius);
+    border-radius: var(--jz-radius-md);
     color: var(--jz-text-2);
+  }
+  /* Pressed: the text brightens (no movement: a text-only button has no face to sink). */
+  .jz-btn[data-variant="quiet"]:is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
+    color: var(--jz-text);
+    background-color: var(--jz-press-tint);
   }
   .jz-btn[data-variant="quiet"]:is(:disabled, [aria-disabled="true"]) {
     color: var(--jz-text-3);
   }
 
-  /* Icon: a 44 × 44 square, the icon at 20 px. */
+  /* Icon: a 44 × 44 target, the icon at 20 px, drawn alone (headers, a sheet's ✕). `raised` makes it the guide's
+     icon button: a secondary square on its ledge (48 tall with the ledge). */
   .jz-btn[data-variant="icon"] {
     width: 44px;
     height: 44px;
     flex: none;
     padding: 0;
-    border-radius: var(--jz-radius);
+    border-radius: var(--jz-radius-md);
     color: var(--jz-text-2);
   }
   .jz-btn[data-variant="icon"] > svg {
     width: 20px;
     height: 20px;
   }
+  .jz-btn[data-variant="icon"]:is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]):not([data-raised]) {
+    transform: scale(0.97);
+  }
+  .jz-btn[data-variant="icon"][data-raised] {
+    height: 48px;
+    padding-bottom: var(--jz-ledge);
+    background:
+      linear-gradient(var(--jz-surface-2), var(--jz-surface-2)) top / 100% calc(100% - var(--jz-ledge)) no-repeat,
+      var(--jz-ledge-2);
+  }
+  .jz-btn[data-variant="icon"][data-raised]:is(:active, [data-jz-state="pressed"]):not(:disabled, [aria-disabled="true"]) {
+    background: linear-gradient(var(--jz-surface-3), var(--jz-surface-3)) top / 100% calc(100% - var(--jz-ledge)) no-repeat;
+  }
+  .jz-btn[data-variant="icon"]:is(:disabled, [aria-disabled="true"]) {
+    color: var(--jz-text-3);
+  }
+
+  /* Loading: a quiet ring turning before the label (Reduce motion: still). */
+  .jz-btn-spinner {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: var(--jz-round);
+    animation: jz-spin 0.8s linear infinite;
+  }
+
+  /* ------------------------------------------------------------------ ModeButton (style guide: secondary, 64 px) */
+  .jz-mode {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: 68px;
+    align-items: center;
+    gap: var(--jz-space-12);
+    padding: 0 var(--jz-space-16) var(--jz-ledge);
+    border: 0;
+    border-radius: var(--jz-radius-md);
+    background:
+      linear-gradient(var(--jz-surface-2), var(--jz-surface-2)) top / 100% calc(100% - var(--jz-ledge)) no-repeat,
+      var(--jz-ledge-2);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    text-align: left;
+    cursor: pointer;
+  }
+  .jz-mode:is(:active, [data-jz-state="pressed"]) {
+    background: linear-gradient(var(--jz-surface-3), var(--jz-surface-3)) top / 100% calc(100% - var(--jz-ledge)) no-repeat;
+  }
+  .jz-mode:disabled {
+    color: var(--jz-text-3);
+    cursor: default;
+  }
+  .jz-mode-art {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .jz-mode-label {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    font: var(--jz-type-body);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .jz-mode-detail {
+    flex: none;
+    color: var(--jz-text-2);
+    font: var(--jz-type-caption);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .jz-mode > .jz-chevron {
+    flex: none;
+    color: var(--jz-text-3);
+  }
+
+  /* ------------------------------------------------------------------ StatTile (the rating tile) */
+  .jz-stat {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--jz-space-4);
+    padding: var(--jz-space-16) var(--jz-space-8);
+    border-radius: var(--jz-radius-lg);
+    background: var(--jz-surface);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    text-align: center;
+  }
+  .jz-stat-art {
+    display: inline-flex;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+  .jz-stat-value {
+    font: var(--jz-type-title);
+    font-variant-numeric: tabular-nums;
+  }
+  .jz-stat-label {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--jz-text-2);
+    font: var(--jz-type-caption);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   /* ------------------------------------------------------------------ Panel and Row */
   .jz-panel {
     position: relative;
-    border-radius: var(--jz-radius);
+    border-radius: var(--jz-radius-lg);
     background-color: var(--jz-surface);
   }
   .jz-panel[data-striped] {
@@ -183,7 +382,7 @@
     position: relative;
     display: flex;
     width: 100%;
-    min-height: 62px;
+    min-height: 62px; /* at least the guide's 60 */
     align-items: center;
     gap: var(--jz-space-12);
     padding: 9px var(--jz-space-16);
@@ -198,13 +397,13 @@
   .jz-row[data-icon="date"] { --row-inset: 76px; }
   .jz-panel > .jz-row:first-child,
   .jz-panel > :first-child > .jz-row {
-    border-top-left-radius: var(--jz-radius);
-    border-top-right-radius: var(--jz-radius);
+    border-top-left-radius: var(--jz-radius-lg);
+    border-top-right-radius: var(--jz-radius-lg);
   }
   .jz-panel > .jz-row:last-child,
   .jz-panel > :last-child > .jz-row {
-    border-bottom-left-radius: var(--jz-radius);
-    border-bottom-right-radius: var(--jz-radius);
+    border-bottom-left-radius: var(--jz-radius-lg);
+    border-bottom-right-radius: var(--jz-radius-lg);
   }
   /* The divider above every row but the first, starting after the row's icon. */
   .jz-panel > * + * > .jz-row:first-child::before,
@@ -218,8 +417,9 @@
     background: var(--jz-line);
     pointer-events: none;
   }
-  .jz-row[data-interactive]:active {
-    background-color: var(--jz-press-tint);
+  /* Pressed: surface 3 (style guide round 2). */
+  .jz-row[data-interactive]:is(:active, [data-jz-state="pressed"]) {
+    background-color: var(--jz-surface-3);
   }
   .jz-row-text {
     display: flex;
@@ -233,7 +433,7 @@
     overflow: hidden;
     color: var(--jz-text-2);
     font-size: 16px;
-    font-weight: var(--jz-weight-medium);
+    font-weight: 700;
     line-height: 20px;
     letter-spacing: normal;
     text-overflow: ellipsis;
@@ -244,7 +444,7 @@
     overflow: hidden;
     color: var(--jz-text-3);
     font-size: 14px;
-    font-weight: var(--jz-weight-regular);
+    font-weight: var(--jz-weight-medium);
     line-height: 18px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -257,8 +457,7 @@
     align-items: baseline;
     justify-content: space-between;
     gap: var(--jz-space-12);
-    padding-bottom: 6px;
-    border-bottom: 2px solid var(--jz-line);
+    padding-bottom: 2px;
   }
   /* Doubled class: beats the page skin's uppercase heading rule ([data-skin] :is(h1, h2, h3)). */
   .jz-section-head.jz-section-head > h2,
@@ -266,17 +465,22 @@
     margin: 0;
     color: var(--jz-text);
     font-family: var(--jz-font);
-    font-size: 18px;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 20px;
     font-weight: var(--jz-weight-bold);
-    font-stretch: 110%;
-    line-height: 22px;
+    line-height: 26px;
     letter-spacing: 0;
+    text-overflow: ellipsis;
     text-transform: none;
+    white-space: nowrap;
   }
+  /* The "See all" side: a quiet link in text 2. */
   .jz-section-head > :not(h2, h3) {
-    color: var(--jz-text-3);
-    font-size: 14px;
-    line-height: 18px;
+    color: var(--jz-text-2);
+    font-size: 15px;
+    font-weight: var(--jz-weight-medium);
+    line-height: 20px;
     white-space: nowrap;
   }
 
@@ -289,14 +493,14 @@
     align-items: center;
     justify-content: center;
     gap: 7px;
-    padding: 0 var(--jz-space-12);
-    border: 1px solid var(--jz-surface-2);
-    border-radius: var(--jz-radius);
-    background: transparent;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: var(--jz-round);
+    background: var(--jz-surface-2);
     color: var(--jz-text-2);
     font-family: var(--jz-font);
-    font-size: 14px;
-    font-weight: var(--jz-weight-medium);
+    font-size: 15px;
+    font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
   }
@@ -313,13 +517,13 @@
     color: var(--jz-bg);
     font-weight: var(--jz-weight-bold);
   }
-  /* The category diamond: the one place a category colour marks a name (DESIGN.md section 2). */
+  /* The category dot (style guide round 2; the diamond before): the one place a category colour marks a name. */
   .jz-diamond {
     display: inline-block;
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     flex: none;
-    rotate: 45deg;
+    border-radius: var(--jz-round);
     background: var(--cat, var(--jz-text-3));
   }
   /* A status chip (Chip variant="status", F3): a live count, not a control. Its own class, so none of the shared
@@ -380,7 +584,7 @@
   }
   /* A tinted chip (room settings' picks): on, it takes its category's colour; off, grey. */
   .jz-chip[data-tint] {
-    color: var(--jz-text-3);
+    color: var(--jz-text-2);
   }
   .jz-chip[data-tint] > .jz-diamond {
     background: var(--jz-surface-2);
@@ -395,7 +599,8 @@
     background: var(--cat);
   }
   .jz-chip:disabled {
-    opacity: 0.6;
+    color: var(--jz-text-3);
+    cursor: default;
   }
   .jz-chip-quiet {
     display: inline-flex;
@@ -416,10 +621,9 @@
     grid-auto-columns: minmax(0, 1fr);
     grid-auto-flow: column;
     gap: 2px;
-    padding: 3px;
-    border-radius: var(--jz-radius);
-    background: var(--jz-well);
-    box-shadow: var(--jz-well-shadow);
+    padding: 4px;
+    border-radius: var(--jz-radius-md);
+    background: var(--jz-surface);
   }
   .jz-seg > button {
     position: relative;
@@ -431,28 +635,26 @@
     gap: var(--jz-space-8);
     padding: 0 var(--jz-space-8);
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--jz-radius-sm);
     background: transparent;
-    color: var(--jz-text-3);
+    color: var(--jz-text-2);
     font-family: var(--jz-font);
-    font-size: 14px;
-    font-weight: var(--jz-weight-medium);
+    font-size: 15px;
+    font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
   }
+  /* Selected: a raised panel (surface 3 inside a 1.5 px text-3 edge, at least 3:1 against the other segments) with
+     bright text. Never gold (Joe, 14 Nov 2026: gold is for main actions only), so `tone="gold"` (Practice's Puzzles |
+     Arcade, the Shop's parts) draws the same. */
   .jz-seg > button:is([aria-pressed="true"], [aria-checked="true"]) {
-    background: var(--jz-text);
-    color: var(--jz-bg);
+    background: var(--jz-surface-3);
+    box-shadow: inset 0 0 0 1.5px var(--jz-text-3);
+    color: var(--jz-text);
     font-weight: var(--jz-weight-bold);
-  }
-  /* The gold segmented switch (Practice's Puzzles | Arcade, Joe's call: the way into play on that tab). */
-  .jz-seg[data-tone="gold"] > button:is([aria-pressed="true"], [aria-checked="true"]) {
-    background: var(--jz-gold-metal);
-    color: var(--jz-on-gold);
   }
   .jz-seg > button:disabled {
     color: var(--jz-text-3);
-    opacity: 0.5;
     cursor: default;
   }
   .jz-seg-count {
@@ -495,8 +697,8 @@
     min-width: 0;
     height: 50px;
     padding: 0 var(--jz-space-16);
-    border: 1.5px solid transparent;
-    border-radius: var(--jz-radius);
+    border: 2px solid transparent;
+    border-radius: var(--jz-radius-md);
     background: var(--jz-well);
     box-shadow: var(--jz-well-shadow);
     color: var(--jz-text);
@@ -505,6 +707,9 @@
     font-weight: var(--jz-weight-regular);
     outline: none;
   }
+  .jz-input[aria-invalid="true"] {
+    border-color: var(--jz-loss);
+  }
   .jz-input[data-size="44"] {
     height: 44px;
   }
@@ -512,8 +717,9 @@
     color: var(--jz-text-3);
     opacity: 1;
   }
-  .jz-input:focus {
-    border-color: var(--jz-text-3);
+  .jz-input:is(:focus, :focus-visible, [data-jz-state="focus"]) {
+    border-color: var(--jz-focus-ring);
+    outline: none;
   }
   .jz-input[data-search] {
     padding-left: 42px;
@@ -535,8 +741,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1.5px solid transparent;
-    border-radius: var(--jz-radius);
+    border: 2px solid transparent;
+    border-radius: var(--jz-radius-md);
     background: var(--jz-well);
     box-shadow: var(--jz-well-shadow);
     color: var(--jz-text);
@@ -551,7 +757,7 @@
     font-weight: var(--jz-weight-regular);
   }
   .jz-code > span[data-current] {
-    border-color: var(--jz-text-3);
+    border-color: var(--jz-focus-ring);
   }
   .jz-code > input {
     position: absolute;
@@ -588,8 +794,8 @@
     flex-direction: column;
     border-top-left-radius: var(--jz-radius-sheet);
     border-top-right-radius: var(--jz-radius-sheet);
-    background: var(--jz-bg-raised);
-    box-shadow: var(--jz-shadow-sheet);
+    background: var(--jz-raised);
+    box-shadow: var(--jz-elev-2);
     color: var(--jz-text);
     font-family: var(--jz-font);
     outline: none;
@@ -602,20 +808,24 @@
     border-radius: var(--jz-round);
     background: var(--jz-surface-2);
   }
+  /* The ✕ first, then the title (components.png's sheet header); the DOM keeps the title first. */
   .jz-sheet-head {
     display: flex;
     flex: none;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--jz-space-4) var(--jz-space-12) 0 var(--jz-space-20);
+    justify-content: flex-start;
+    gap: var(--jz-space-4);
+    padding: var(--jz-space-4) var(--jz-space-16) 0 var(--jz-space-8);
+  }
+  .jz-sheet-head > .jz-btn {
+    order: -1;
   }
   .jz-sheet-head > h2 {
     margin: 0;
     font-family: var(--jz-font);
     font-size: 20px;
     font-weight: var(--jz-weight-bold);
-    font-stretch: 110%;
-    line-height: 24px;
+    line-height: 26px;
     letter-spacing: 0;
     text-transform: none;
   }
@@ -627,17 +837,18 @@
     align-items: center;
     gap: var(--jz-space-12);
     padding: var(--jz-space-8) var(--jz-space-16);
-    border-radius: var(--jz-radius);
+    border-radius: var(--jz-radius-md);
     border-left: 3px solid var(--jz-text-3);
     background: var(--jz-surface);
-    box-shadow: var(--jz-shadow-sheet);
+    box-shadow: var(--jz-elev-2);
+    animation: jz-toast-in var(--jz-dur-toast-in) var(--jz-ease-out) both;
     color: var(--jz-text);
     font-family: var(--jz-font);
     font-size: 15px;
     line-height: 20px;
   }
   .jz-toast[data-tone="live"] { border-left-color: var(--jz-cyan); }
-  .jz-toast[data-tone="error"] { border-left-color: var(--jz-red); }
+  .jz-toast[data-tone="error"] { border-left-color: var(--jz-loss); }
 
   /* ------------------------------------------------------------------ Skeleton */
   .jz-skel {
@@ -705,6 +916,39 @@
     flex-direction: row;
     align-items: center;
     gap: var(--jz-space-12);
+  }
+  /* The card: the art fills the tile; a dark foot band carries the name (left) and the stars (right). */
+  .jz-tile[data-size="card"] {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: var(--jz-radius-lg);
+    background: var(--jz-surface);
+  }
+  .jz-tile[data-size="card"] > :first-child {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+  }
+  .jz-tile-card-foot {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    min-height: 36px;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--jz-space-8);
+    padding: var(--jz-space-16) var(--jz-space-16) var(--jz-space-12);
+    /* The art is always dark (key art on the game's colour), so the band and name don't follow the theme. */
+    background: linear-gradient(transparent, color-mix(in srgb, var(--jz-art-edge) 78%, transparent));
+  }
+  .jz-tile[data-size="card"] .jz-tile-name {
+    color: var(--jz-white);
+    font: var(--jz-type-label);
+    font-weight: 700;
   }
   .jz-tile-name {
     overflow: hidden;
@@ -859,6 +1103,10 @@
   .jz-tab[aria-current="page"] {
     color: var(--jz-gold);
   }
+  .jz-tab[aria-current="page"] > span {
+    color: var(--jz-text);
+    font-weight: var(--jz-weight-bold);
+  }
   .jz-tab > span {
     max-width: 100%;
     overflow: hidden;
@@ -874,6 +1122,18 @@
   }
 }
 
+@keyframes jz-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+/* The toast arrives (motion.png: 240 ms in, ease-out); it leaves by unmounting (its owner's 3 s). */
+@keyframes jz-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
 @keyframes jz-skel-sheen {
   to {
     transform: translateX(100%);
@@ -889,6 +1149,33 @@
   .jz-switch > span {
     transition: none;
   }
+  .jz-btn-spinner {
+    animation: none;
+  }
+  /* The toast fades in over 120 ms, no movement. */
+  .jz-toast {
+    animation-name: jz-fade-in;
+    animation-duration: var(--jz-dur-reduced);
+  }
+}
+@keyframes jz-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Sheet motion (motion.png): in 280 ms on the guide's ease-out, out 200 ms ease-in, the scrim fading with it. Outside
+   the components layer, so it beats vaul's own unlayered 0.5 s. Reduce motion: the global rule (styles.css) jumps it
+   to its end. */
+.jz-sheet[data-vaul-drawer][data-state="open"],
+.jz-sheet-scrim[data-vaul-overlay][data-state="open"] {
+  animation-duration: var(--jz-dur-sheet-in);
+  animation-timing-function: var(--jz-ease-out);
+}
+.jz-sheet[data-vaul-drawer][data-state="closed"],
+.jz-sheet-scrim[data-vaul-overlay][data-state="closed"] {
+  animation-duration: var(--jz-dur-sheet-out);
+  animation-timing-function: ease-in;
 }
 
 /* A visually hidden label (sheet titles for screen readers). */
@@ -941,8 +1228,8 @@
    component's own focus style wins. */
 @layer base {
   :focus-visible {
-    outline: 2px solid var(--jz-gold);
-    outline-offset: 2px;
+    outline: 3px solid var(--jz-focus-ring);
+    outline-offset: 3px;
   }
 }
 
@@ -992,9 +1279,8 @@
 
 /* The component gallery (/dev-design, development only) shows each state still: hover, pressed and
    focus-visible forced on a copy of the component. */
-[data-jz-state="hover"] { filter: brightness(1.08); }
-[data-jz-state="pressed"] { transform: scale(0.97); }
-[data-jz-state="focus"] { outline: 2px solid var(--jz-gold); outline-offset: 2px; }
+/* (The forced states live with the components' own rules above: hover brightens, pressed sinks onto the ledge or
+   scales to 0.97, focus draws the 3 px --jz-focus-ring 3 px out or the cut frame.) */
 .jz-gallery-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1185,4 +1471,78 @@
     gap: var(--jz-space-8);
     margin-top: var(--jz-space-8);
   }
+}
+
+/* ------------------------------------------------------------------ the components sheet (ComponentsGallery) */
+.jz-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-24);
+  padding: var(--jz-space-16) 0 var(--jz-space-40);
+  background: var(--jz-bg);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.jz-gallery-title {
+  margin: 0;
+  color: var(--jz-text);
+  font: var(--jz-type-title);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.jz-gallery-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.jz-gallery-kicker {
+  margin: 0;
+  color: var(--jz-text-2);
+  font: var(--jz-type-heading);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.jz-gallery-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--jz-space-12);
+}
+.jz-gallery-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--jz-space-4);
+  padding: var(--jz-space-4);
+}
+.jz-gallery-cell > .jz-gallery-label {
+  color: var(--jz-text-3);
+  font: var(--jz-type-caption);
+  white-space: nowrap;
+}
+.jz-gallery-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.jz-gallery-sub {
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+}
+.jz-gallery-error {
+  margin: 0;
+  color: var(--jz-loss);
+  font: var(--jz-type-caption);
+}
+.jz-gallery-sheet.jz-sheet {
+  position: static;
+  max-width: none;
+  padding-bottom: var(--jz-space-16);
+}
+.jz-gallery [data-gallery-tabbar],
+.jz-gallery .jz-gallery-tabs {
+  display: flex;
+}
+.jz-gallery-card {
+  max-width: 360px;
 }

@@ -1,34 +1,53 @@
-import { AppWordmark } from "@/components/brand/AppWordmark";
-import { MuteToggle } from "@/components/duel/MuteToggle";
+import type { ReactNode } from "react";
+
 import { AvatarButton } from "@/components/nav/AvatarButton";
 import { useNavPlacement } from "@/components/nav/navigation";
 
 import { CoinCounter, useCoinCount } from "./CoinCounter";
 
 /**
- * The main screens' header (Prompt R, 23 Oct 2026; the navigation step, 14 Nov 2026): the player's avatar top left
- * (AvatarButton: Profile for an account, the save-your-progress sheet for a guest), the wordmark beside it, and the
- * sound and music controls (their menus unchanged) on the right; an account's coin counter (CoinCounter) sits before
- * the sound button where the Shop switch is on. Drawn by PhoneShell on every screen with `tabs`; game, room and
- * results screens keep their own top bar. Where the rail is drawn (a computer, a sideways tablet) the rail carries
- * the avatar, logo and sound instead, so no header there.
+ * The main screens' header (Prompt R, 23 Oct 2026; the navigation step and the components step, 14 Nov 2026): the
+ * player's avatar top left (AvatarButton: Profile for an account, the save-your-progress sheet for a guest) and the
+ * page's title (`title`, the page's one h1). Joe, 14 Nov 2026: no wordmark (the brand stays on the launch screen and in
+ * More) and no sound or music controls (they live in Settings and each game's own menu). An account's coin counter
+ * (CoinCounter) stays on the right where the Shop switch is on, and a page may add one control there (`action`,
+ * Profile's settings). Drawn by PhoneShell on every screen with `tabs`. Where the rail is drawn (a computer, a
+ * sideways tablet) the rail carries the avatar, so the header is the title alone (no data-app-header). The header
+ * takes no theme scope of its own (no .jz-nav), so the title is always the page's own text colour.
  */
-export function AppHeader() {
+export function AppHeader({ title, action }: { title?: string | undefined; action?: ReactNode }) {
   const placement = useNavPlacement();
   const coins = useCoinCount();
-  if (placement === "rail") return null;
+  if (placement === "rail") {
+    if (!title) return action ?? null;
+    const heading = (
+      <h1 data-page-title className="ap-title">
+        {title}
+      </h1>
+    );
+    return action ? (
+      <div className="flex items-center justify-between gap-2">
+        {heading}
+        {action}
+      </div>
+    ) : (
+      heading
+    );
+  }
   return (
-    <header data-app-header className="ap-header jz-nav jz-nav-header">
+    <header data-app-header className="ap-header jz-nav-header">
       <span className="jz-nav-header-left">
         <AvatarButton size={36} />
-        <AppWordmark />
+        {title ? (
+          <h1 data-page-title className="jz-page-title">
+            {title}
+          </h1>
+        ) : null}
       </span>
-      {coins === null ? (
-        <MuteToggle />
-      ) : (
+      {coins === null && !action ? null : (
         <span className="ap-header-tools">
-          <CoinCounter />
-          <MuteToggle />
+          {coins === null ? null : <CoinCounter />}
+          {action}
         </span>
       )}
     </header>

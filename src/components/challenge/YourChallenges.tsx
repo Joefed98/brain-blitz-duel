@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { challengeEndsIn, challengeResultLine, type ChallengeSummary } from "@/lib/duel/challenge";
 import { myChallenges } from "@/lib/duel/challengeApi";
 import { readChallengeRecord } from "@/lib/duel/challengeRecord";
-import { EmptyState, Icon } from "@/design/components";
+import { EmptyState, Icon, SectionHeader } from "@/design/components";
 
 /** Friends shown on a challenge's card before "and N more". */
 const SHOWN = 4;
@@ -37,9 +37,7 @@ export function YourChallenges({ onOpen, onNew }: { onOpen: (code: string) => vo
   if (none && onNew)
     return (
       <section aria-label="Your challenges" className="ap-section">
-        <div className="ap-section-head">
-          <h2 className="ap-section-title">Your challenges</h2>
-        </div>
+        <SectionHeader title="Your challenges" />
         <EmptyState
           data-your-challenges-empty
           layout="card"
@@ -53,9 +51,7 @@ export function YourChallenges({ onOpen, onNew }: { onOpen: (code: string) => vo
   const now = Date.now();
   return (
     <section aria-label="Your challenges" data-your-challenges className="ap-section">
-      <div className="ap-section-head">
-        <h2 className="ap-section-title">Your challenges</h2>
-      </div>
+      <SectionHeader title="Your challenges" />
       <ul className="jz-panel">
         {list.map((c) => (
           <li key={c.code}>
