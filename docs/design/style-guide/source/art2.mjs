@@ -1,5 +1,5 @@
 // The Joulz art kit for round 2: every scene, its camera and its colours. One material (gloss), one key light
-// from the top left. Scenes are defined in ../../directions/source/art.html.
+// from the top left. Scenes are defined in art.html (this folder).
 // Art gold is a richer metal than the UI's champagne so it reads as gold under the gloss.
 const GOLD = '#EDB43E', GOLD_HI = '#F3DDA6', INK = '#121218', CREAM = '#F4EFE6', NAVY = '#2A3558', BLUE = '#4D8CFF',
   RED = '#E8473F', GREEN = '#3DDC84', ORANGE = '#FF8A3D', VIOLET = '#8E80FF', PINK = '#FF6BD6', TEAL = '#2ED3B7', SILVER = '#C9D3EA', BRONZE = '#D9A066';

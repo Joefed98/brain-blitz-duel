@@ -138,7 +138,7 @@ and starts as soon as the flask is back.
 ## Art kit
 
 The [art kit sheet](artkit.png) shows every icon and the key art. Every icon and piece of key art is a small 3D
-scene rendered in code (`../directions/source/art.html`; cameras and colours in `source/art2.mjs`): rounded shapes,
+scene rendered in code (`source/art.html`; cameras and colours in `source/art2.mjs`): rounded shapes,
 **one gloss material**, **one key light from the top left**, a soft contact shadow. Colours come from the categories’
 and groups’ hues plus cream, navy, ink and an art gold (`#EDB43E`, richer than the interface’s champagne so metal reads
 as gold under the gloss: 3D metal in the art kit only, never buttons, text or interface). The Joulz coin keeps its black bolt. Icons render at 192 px, key art at 640 × 400 on the game’s own colour.

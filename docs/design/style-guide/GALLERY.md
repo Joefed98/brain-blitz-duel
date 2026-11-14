@@ -9,6 +9,8 @@ cards, the player card), flat champagne gold buttons (the richer gold only for 3
 challenges, and only items that aren’t withdrawn in the Shop. The rules and exact values are in
 [STYLE-GUIDE.md](STYLE-GUIDE.md).
 
+Round 1’s three directions (Forge, Volt, Studio) are viewable in the history of [PR #398](https://github.com/Joefed98/brain-blitz-duel/pull/398) (commit 31b6c75).
+
 ## The style guide
 
 <img src="tokens.png" width="700" alt="Tokens: colour, type, spacing, radii, elevation">
