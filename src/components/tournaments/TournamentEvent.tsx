@@ -74,7 +74,7 @@ function EntryButtons({ ev, busy, onEnter }: { ev: TournamentEventView; busy: bo
   );
 }
 
-function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
+export function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
   const navigate = useNavigate();
   const [board, setBoard] = useState<ArenaBoard | null>(null);
   const [state, setState] = useState<"idle" | "searching" | "closed">("idle");
@@ -238,7 +238,7 @@ function ordinal(n: number): string {
   return placeLabel(n, n);
 }
 
-function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () => void }) {
+export function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () => void }) {
   const [board, setBoard] = useState<ScoreAttackBoard | null>(null);
   useEffect(() => {
     void tournamentsBackend().then(async (b) => {
