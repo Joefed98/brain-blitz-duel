@@ -333,6 +333,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     if (!out.ok) throw new Error(`psql: ${out.err}`);
     return out.out.trim();
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: player ids sent to and read from a phone's server functions are public ids).
+  const pub = (account: string): string => q(`SELECT public.public_id_of('${account}')`);
   const deviceDb = (token: string | null) =>
     createClient(rest.url, ANON_KEY, {
       global: token ? { headers: { Authorization: `Bearer ${token}` } } : {},
@@ -470,10 +472,10 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const guest = await call(fns.setMyTitle, { title: "rookie" }, tok.cat);
     const guestSync = await call(fns.syncMyBadges, undefined, tok.cat);
     check(guest?.ok === false && guest.reason === "guest" && guestSync?.account === false && balance(CAT) === -1, "a guest has no badges, title or rewards");
-    const others = await call(fns.getCardBadges, { playerIds: [ANA, CAT, EVE] }, tok.ben);
-    const anaCard = (others as { playerId: string; badges: string[]; title: string; foundingNumber: number | null }[]).find((c) => c.playerId === ANA);
+    const others = await call(fns.getCardBadges, { playerIds: [pub(ANA), pub(CAT), pub(EVE)] }, tok.ben);
+    const anaCard = (others as { playerId: string; badges: string[]; title: string; foundingNumber: number | null }[]).find((c) => c.playerId === pub(ANA));
     check(anaCard?.badges.join() === "founding-player" && anaCard.title === "founding-player" && typeof anaCard.foundingNumber === "number", "another player reads Ana's card badges, title and number");
-    check(!(others as { playerId: string }[]).some((c) => c.playerId === CAT), "a guest has no public card badges");
+    check(!(others as { playerId: string }[]).some((c) => c.playerId === pub(CAT)), "a guest has no public card badges");
   });
 
   await section("grants and RLS", async () => {

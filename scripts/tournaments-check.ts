@@ -246,6 +246,8 @@ async function runDb(db: LocalDb): Promise<void> {
     if (!out.ok) throw new Error(`psql: ${out.err}`);
     return out.out.trim();
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: tournament rows and the Arena opponent name players by public id).
+  const pub = (account: string): string => q(`SELECT public.public_id_of('${account}')`);
   const tryQ = (sql: string) => db.psql(sql);
   // The kind check is widened, never narrowed (13 Nov 2026: this branch's first copy wrote the list out in full from
   // before E2 and dropped daily_archive, which would have broken the Plus Daily archive live; found by W4d on a merged
@@ -416,7 +418,7 @@ async function runDb(db: LocalDb): Promise<void> {
     const r2 = await server.arenaReady(client, C, arenaId, now);
     check(r1.state === "searching" && r2.state === "searching", "A (1000) and C (1600) don't pair: too far apart");
     const r3 = await server.arenaReady(client, B, arenaId, now + 100);
-    check(r3.state === "duel" && r3.duel.opponent.userId === A, "B (1030) pairs with A (1000): the nearest rating within the band");
+    check(r3.state === "duel" && r3.duel.opponent.playerId === pub(A), "B (1030) pairs with A (1000): the nearest rating within the band");
     const pc = await server.arenaPoll(client, C, arenaId, now + 200);
     check(pc.state === "searching", "C keeps searching");
     const pFar = await server.arenaPoll(client, C, arenaId, now + 13_000);
@@ -450,7 +452,7 @@ async function runDb(db: LocalDb): Promise<void> {
     const t2 = Date.now();
     await server.arenaReady(client, other, arenaId, t2);
     const next = await server.arenaReady(client, slotA, arenaId, t2 + 50);
-    check(next.state === "searching" || (next.state === "duel" && next.duel.opponent.userId === C), "the opponent just played isn't met again at once while someone else waits");
+    check(next.state === "searching" || (next.state === "duel" && next.duel.opponent.playerId === pub(C)), "the opponent just played isn't met again at once while someone else waits");
     // Chat: an under-18 in a tournament room picks quick phrases.
     const kidRoom = await server.arenaReady(client, KID, arenaId, Date.now());
     void kidRoom;
@@ -693,9 +695,9 @@ async function runDb(db: LocalDb): Promise<void> {
     await server.arenaPoll(client, cheat, id, Date.now());
     check(q(`SELECT count(*) FROM moderation.tournament_flags WHERE event_id = '${id}'`) === "1", "logged once whatever reads it again");
     const board = await server.arenaBoard(client, cheat, id, Date.now());
-    check(board?.underReview === true && !board.rows.some((r) => r.userId === cheat), "the flagged player is off the board and sees their result is under review");
+    check(board?.underReview === true && !board.rows.some((r) => r.playerId === pub(cheat)), "the flagged player is off the board and sees their result is under review");
     const honestBoard = await server.arenaBoard(client, honest, id, Date.now());
-    check(honestBoard?.underReview === false && honestBoard.rows[0]?.userId === honest, "the opponent sees no flag");
+    check(honestBoard?.underReview === false && honestBoard.rows[0]?.playerId === pub(honest), "the opponent sees no flag");
     const view = await server.eventFor(client, cheat, id, Date.now());
     check(view?.underReview === true, "the event page says the flagged player's result is under review");
     await server.advanceEvent(client, (await data.readEvent(client, id)).data!, ev.endsAt + 31 * 60_000);
@@ -772,7 +774,7 @@ async function runDb(db: LocalDb): Promise<void> {
     check(queued === [`${w}:1100`, `${y}:1900`].sort().join(","), `the queue holds W3a's ratings (${queued})`);
     const px = await server.arenaReady(client, x, id, t + 20);
     const pz = await server.arenaReady(client, z, id, t + 30);
-    check(px.state === "duel" && px.duel.opponent.userId === w && pz.state === "duel" && pz.duel.opponent.userId === y, "paired by W3a's real ratings: 1100 with 1140, 1900 with 1930");
+    check(px.state === "duel" && px.duel.opponent.playerId === pub(w) && pz.state === "duel" && pz.duel.opponent.playerId === pub(y), "paired by W3a's real ratings: 1100 with 1140, 1900 with 1930");
     if (px.state !== "duel" || pz.state !== "duel") return;
     for (const duel of [px.duel, pz.duel]) {
       const row = (await data.readArenaDuel(client, duel.duelId)).data!;

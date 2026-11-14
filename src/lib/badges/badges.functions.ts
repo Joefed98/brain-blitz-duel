@@ -96,7 +96,12 @@ export const getCardBadges = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<CardBadges[] | { busy: true }> => {
     const { client, allowed, badges } = await setup(context.userId, "card");
     if (!allowed) return { busy: true };
-    return badges.cardBadgesFor(client, data?.playerIds);
+    // Security C3: `playerIds` are public ids (one naming nobody is left out); each row names its player by the same.
+    const { fromPublic } = await import("@/lib/identity/publicIds.server");
+    const accounts = await fromPublic(client, data?.playerIds ?? []);
+    const publicOf = new Map([...accounts].map(([pub, account]) => [account, pub]));
+    const rows = await badges.cardBadgesFor(client, [...accounts.values()]);
+    return rows.flatMap((r) => (publicOf.has(r.playerId) ? [{ ...r, playerId: publicOf.get(r.playerId)! }] : []));
   });
 
 /** The Daily streak, days and best totals worked out on the server (the same on every device). */

@@ -97,7 +97,7 @@ export interface RatedStatus {
 /* ------------------------------------------------------------------ a match */
 
 export interface RatedPlayer {
-  /** The auth user id (null for a run's owner whose account is gone). */
+  /** The player's public id (Security C3; never the account id); null for a run's owner whose account is gone. */
   userId: string | null;
   /** The username, a guest's energy name, or "Deleted player". */
   username: string;

@@ -146,6 +146,9 @@ async function runAll(db: LocalDb): Promise<void> {
     if (!out.ok) throw new Error(`psql: ${out.err}`);
     return out.out.trim();
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: a phone's rated answers name players by public id; the
+  // server's own settlement and W3a's engine keep account ids).
+  const pub = (account: string): string => q(`SELECT public.public_id_of('${account}')`);
   const fns = await import("../src/lib/rated/rated.functions");
   const rated = await import("../src/lib/rated/rated.server");
   const { setRatingsBackend } = await import("../src/lib/rated/ratingsAdapter.server");
@@ -344,7 +347,7 @@ async function runAll(db: LocalDb): Promise<void> {
     check(found.state === "found" && found.match.kind === "recorded", "a recorded run at 8 s");
     if (found.state !== "found") return;
     const m = found.match;
-    check(m.recorded !== null && m.recorded.ownerId !== CY && /^Recorded run · /.test(m.recorded.label), `labelled with its real age, never one's own (${m.recorded?.label})`);
+    check(m.recorded !== null && m.recorded.ownerId !== pub(CY) && /^Recorded run · /.test(m.recorded.label), `labelled with its real age, never one's own (${m.recorded?.label})`);
     const key = q(`SELECT recorded_key FROM public.mm_matches WHERE id = '${m.matchId}'`);
     const src = q(`SELECT duel_id FROM public.mm_runs WHERE key = '${key}'`);
     // Changed with Joe's approval, 13 Nov 2026: the new match room's public halves from its held copy (the finished source room's are on its row): a new room's public halves are held in duel_secrets until each round is released (Security C1a).
@@ -420,7 +423,7 @@ async function runAll(db: LocalDb): Promise<void> {
     const found = await rated.pollQueue(client, VIE, t + 8_000);
     check(found.state === "found" && found.match.kind === "recorded" && found.match.recorded?.fallback === true, "a Practice run is played against as the fallback");
     if (found.state !== "found") return;
-    check(q(`SELECT recorded_source FROM public.mm_matches WHERE id = '${found.match.matchId}'`) === "practice" && found.match.recorded?.ownerId === PRA, "its source is practice and its owner the player who played it");
+    check(q(`SELECT recorded_source FROM public.mm_matches WHERE id = '${found.match.matchId}'`) === "practice" && found.match.recorded?.ownerId === pub(PRA), "its source is practice and its owner the player who played it");
     const { splitPuzzle } = await import("../src/lib/duel/secrets");
     const dealsByType = new Map((JSON.parse(q(`SELECT jsonb_agg(puzzle) FROM public.mm_practice_deals WHERE user_id = '${PRA}'`)) as { type: string }[]).map((p) => [p.type, p]));
     // Changed with Joe's approval, 13 Nov 2026: the match room's public halves from its held copy: a new room's public halves are held in duel_secrets until each round is released (Security C1a).
@@ -580,7 +583,7 @@ async function runAll(db: LocalDb): Promise<void> {
       const seated = q(`SELECT display_name FROM public.duel_players WHERE duel_id = '${found.match.roomId}' AND user_id = '${GUEST}'`);
       check(seated === guestEnergyName(GUEST) && /^[A-Z][a-z]+ [A-Z][a-z]+ \d{1,2}$/.test(seated) && seated !== "Gus",
         `seated under their generated energy name, never the typed one (${seated})`);
-      const me = found.match.players.find((p) => p.userId === GUEST);
+      const me = found.match.players.find((p) => p.playerId === pub(GUEST));
       check(me?.guest === true && me.displayName === seated, "the match view tags them Guest");
       const typed = await call(chat.sendRoomMessageFn, { roomId: found.match.roomId, text: "hi there" }, userToken(GUEST));
       check(typed.ok === false, "a guest sends quick phrases only in a rated room");
@@ -599,7 +602,7 @@ async function runAll(db: LocalDb): Promise<void> {
       await rated.settleOpenMatches(client, VIE, t2);
       await rated.joinQueue(client, VIE, { format: "bo3", choice: "puzzles" }, t2);
       const vs = await rated.pollQueue(client, VIE, t2 + 8_000);
-      check(vs.state === "found" && vs.match.recorded?.ownerId === GUEST && vs.match.recorded.ownerGuest === true && vs.match.recorded.ownerName === guestEnergyName(GUEST),
+      check(vs.state === "found" && vs.match.recorded?.ownerId === pub(GUEST) && vs.match.recorded.ownerGuest === true && vs.match.recorded.ownerName === guestEnergyName(GUEST),
         `a guest's recorded run shows their energy name with a Guest tag (${vs.state === "found" ? vs.match.recorded?.ownerName : vs.state})`);
       if (vs.state === "found") {
         const ageH = (Date.now() - (vs.match.recorded?.recordedAtMs ?? 0)) / 3_600_000;
@@ -734,7 +737,7 @@ async function runAll(db: LocalDb): Promise<void> {
     check(JSON.stringify(mine) === JSON.stringify({ wins: 2, losses: 1, draws: 1, played: 4 }), `H1 against H2: 2 wins, 1 loss, 1 draw (${JSON.stringify(mine)})`);
     check(JSON.stringify(theirs) === JSON.stringify({ wins: 1, losses: 2, draws: 1, played: 4 }), `H2 against H1 is the mirror (${JSON.stringify(theirs)})`);
     check((await rated.headToHead(client, H1, H1)).played === 0, "a player against themselves: nothing");
-    const viaFn = await call(fns.ratedHeadToHeadFn, { opponentId: H2 }, userToken(H1));
+    const viaFn = await call(fns.ratedHeadToHeadFn, { opponentId: pub(H2) }, userToken(H1));
     check(JSON.stringify(viaFn) === JSON.stringify(mine), "ratedHeadToHeadFn answers the caller's side");
     const junk = await call(fns.ratedHeadToHeadFn, { opponentId: "not-an-id" }, userToken(H1));
     check(junk.played === 0, "a malformed opponent id: an empty record");

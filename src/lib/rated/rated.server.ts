@@ -7,6 +7,8 @@
  * buildRoomPuzzles exactly as a settings room's do (Classic: today's live deal), a recorded match's are the stored run's
  * own puzzles, copied, and every score is the room's grading (submitAnswerFn) or the stored score of the run.
  */
+import type { RatedMatchOutcome } from "@/lib/data/ratings";
+import { toPublic } from "@/lib/identity/publicIds.server";
 import { categoriesOfPicks, encodeRoomSettings, type RoomPick } from "@/lib/duel/roomSettings";
 import { dealRoomRounds } from "@/lib/duel/roomDeal";
 import { mergePuzzle, splitPuzzle } from "@/lib/duel/secrets";
@@ -143,11 +145,15 @@ export interface RatedMatchView {
   roomId: string | null;
   roomCode: string | null;
   status: string;
-  /** `guest`: no account; `displayName` is then their generated energy name ("Swift Volt 48"), shown with a Guest tag. */
-  players: { userId: string; slot: number; displayName: string; guest: boolean; ratingBefore: number; placement: boolean }[];
+  /**
+   * `guest`: no account; `displayName` is then their generated energy name ("Swift Volt 48"), shown with a Guest tag.
+   * `playerId` is the player's public id (Security C3), never their account id.
+   */
+  players: { playerId: string; slot: number; displayName: string; guest: boolean; ratingBefore: number; placement: boolean }[];
   recorded: {
     label: string;
     recordedAtMs: number;
+    /** The run's owner's public id (Security C3). */
     ownerId: string;
     ownerName: string;
     /** The owner has no account: `ownerName` is their generated energy name, shown with a Guest tag. */
@@ -162,7 +168,18 @@ export interface RatedMatchView {
    * players who stayed are searching again) or `forfeit` (away for more than 20 s: a loss for each leaver). Null while it
    * plays on or when it ends normally.
    */
-  ending: { kind: "abort" | "forfeit"; leavers: MatchLeaver[] } | null;
+  ending: { kind: "abort" | "forfeit"; leavers: PhoneLeaver[] } | null;
+}
+
+/** A leaver as a phone sees it: by public id (Security C3). */
+export interface PhoneLeaver {
+  playerId: string;
+  at: string;
+  step: string;
+}
+
+function phoneLeavers(leavers: readonly MatchLeaver[], ids: Map<string, string>): PhoneLeaver[] {
+  return leavers.map(({ userId, ...l }) => ({ ...l, playerId: ids.get(userId) ?? "" }));
 }
 
 export type QueuePoll =
@@ -874,6 +891,9 @@ export async function matchView(client: Db, matchId: string, userId: string, now
   const stored = storedRecorded(match);
   const accounts = new Set<string>();
   for (const p of players) if (!(await ratedNameOf(client, p.user_id)).guest) accounts.add(p.user_id);
+  const leavers = storedLeavers(match);
+  // Every player named by public id, never their account id (Security C3).
+  const ids = await toPublic(client, [...players.map((p) => p.user_id), match.recorded_owner, ...leavers.map((l) => l.userId)]);
   return {
     matchId,
     format: match.format,
@@ -884,7 +904,7 @@ export async function matchView(client: Db, matchId: string, userId: string, now
     roomCode: room?.room_code ?? null,
     status: match.status,
     players: players.map((p) => ({
-      userId: p.user_id,
+      playerId: ids.get(p.user_id) ?? "",
       slot: p.slot,
       displayName: roomPlayers.find((rp) => rp.user_id === p.user_id)?.display_name ?? guestEnergyName(p.user_id),
       guest: !accounts.has(p.user_id),
@@ -896,7 +916,7 @@ export async function matchView(client: Db, matchId: string, userId: string, now
         ? {
             label: recordedAgeLabel(msOf(match.recorded_at), nowMs),
             recordedAtMs: msOf(match.recorded_at),
-            ownerId: match.recorded_owner,
+            ownerId: ids.get(match.recorded_owner) ?? "",
             ownerName: stored.ownerName,
             ownerGuest: stored.ownerGuest === true,
             look: stored.looks,
@@ -904,7 +924,7 @@ export async function matchView(client: Db, matchId: string, userId: string, now
           }
         : null,
     rematchOf: match.rematch_of,
-    ending: match.ended === "abort" || match.ended === "forfeit" ? { kind: match.ended, leavers: storedLeavers(match) } : null,
+    ending: match.ended === "abort" || match.ended === "forfeit" ? { kind: match.ended, leavers: phoneLeavers(leavers, ids) } : null,
   };
 }
 
@@ -1078,26 +1098,47 @@ export type SettleOutcome =
   /** Left during set-up (Joe, 12 Nov 2026): no result, no rating, no Joules; the players who stayed are searching again. */
   | { state: "aborted"; leavers: MatchLeaver[] };
 
-/** A settlement as the phone gets it: every stored grade (`extras`) left out; they are for the ratings engine only. */
-export type PublicSettlement = Omit<RatedSettlement, "players" | "recorded"> & {
-  players: Omit<SettledPlayer, "extras">[];
-  recorded: Omit<NonNullable<RatedSettlement["recorded"]>, "extras"> | null;
+/**
+ * A settlement as the phone gets it: every stored grade (`extras`) left out (they are for the ratings engine only), and
+ * every player named by public id, never their account id (Security C3): the players, the placings' keys, the leavers,
+ * the recorded run's owner and W3a's per-player changes. The recorded run's `key` stays on the server (it can hold the
+ * owner's account id).
+ */
+export type PublicSettlement = Omit<RatedSettlement, "players" | "recorded" | "ratings"> & {
+  players: (Omit<SettledPlayer, "extras" | "userId"> & { playerId: string })[];
+  recorded: Omit<NonNullable<RatedSettlement["recorded"]>, "extras" | "key"> | null;
+  ratings: RatedMatchOutcome | null;
 };
 export type PublicSettleOutcome =
   | { state: "playing" }
   | { state: "settled"; result: PublicSettlement }
   | { state: "missing" }
-  | { state: "aborted"; leavers: MatchLeaver[] };
+  | { state: "aborted"; leavers: PhoneLeaver[] };
 
-export function publicSettleOutcome(outcome: SettleOutcome): PublicSettleOutcome {
+export async function publicSettleOutcome(client: Db, outcome: SettleOutcome): Promise<PublicSettleOutcome> {
+  if (outcome.state === "aborted") {
+    const ids = await toPublic(client, outcome.leavers.map((l) => l.userId));
+    return { state: "aborted", leavers: phoneLeavers(outcome.leavers, ids) };
+  }
   if (outcome.state !== "settled") return outcome;
-  const { players, recorded, ...rest } = outcome.result;
+  const { players, recorded, placings, ending, ratings, ...rest } = outcome.result;
+  const ids = await toPublic(client, [
+    ...players.map((p) => p.userId),
+    recorded?.ownerId,
+    ...Object.keys(placings ?? {}),
+    ...(ending?.leavers ?? []),
+    ...(ratings?.ok ? ratings.players.map((p) => p.playerId) : []),
+  ]);
+  const pub = (id: string) => ids.get(id) ?? "";
   return {
     state: "settled",
     result: {
       ...rest,
-      players: players.map(({ extras: _extras, ...p }) => p),
-      recorded: recorded ? (({ extras: _extras, ...r }) => r)(recorded) : null,
+      players: players.map(({ extras: _extras, userId, ...p }) => ({ ...p, playerId: pub(userId) })),
+      recorded: recorded ? (({ extras: _extras, key: _key, ownerId, ...r }) => ({ ...r, ownerId: pub(ownerId) }))(recorded) : null,
+      ...(placings !== undefined ? { placings: placings ? Object.fromEntries(Object.entries(placings).map(([id, place]) => [pub(id), place])) : null } : {}),
+      ...(ending !== undefined ? { ending: ending ? { ...ending, leavers: ending.leavers.map(pub) } : null } : {}),
+      ratings: ratings?.ok ? { ...ratings, players: ratings.players.map((p) => ({ ...p, playerId: pub(p.playerId) })) } : ratings,
     },
   };
 }

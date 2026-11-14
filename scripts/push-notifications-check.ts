@@ -451,6 +451,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     if (!out.ok) throw new Error(`psql: ${out.err}`);
     return out.out.trim();
   };
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3: player ids sent to and read from a phone's server functions are public ids).
+  const pub = (account: string): string => q(`SELECT public.public_id_of('${account}')`);
   const refused = (sql: string) => {
     const out = db.psql(`BEGIN; ${sql}; ROLLBACK;`);
     return out.ok && !/ERROR/.test(out.err) ? "" : out.err;
@@ -711,7 +713,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     };
     const count = (endpoint: string, event: string) => service.delivered.filter((d) => d.endpoint === endpoint && d.payload?.event === event).length;
 
-    const sent = await call(friends.friendRequestFn, { playerId: KIM }, tok["LEO"]!);
+    const sent = await call(friends.friendRequestFn, { playerId: pub(KIM) }, tok["LEO"]!);
     check(sent?.ok === true && sent.outcome === "sent", `B1: Leo sends Kim a real friend request (${JSON.stringify(sent).slice(0, 80)})`);
     check(q(`SELECT count(*) FROM friend_events WHERE recipient_id = '${KIM}' AND kind = 'friend_request_received'`) === "1", "B1 recorded friend_request_received");
     const req = await waitFor((d) => d.endpoint === kim.endpoint && d.payload?.event === "friend_request");
@@ -742,7 +744,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
 
     await call(fns.setPushSettingsFn, { friend_request: false }, tok["KIM"]!);
     const before = count(kim.endpoint, "friend_request");
-    const fromEli = await call(friends.friendRequestFn, { playerId: KIM }, tok["ELI"]!);
+    const fromEli = await call(friends.friendRequestFn, { playerId: pub(KIM) }, tok["ELI"]!);
     await new Promise((r) => setTimeout(r, 400));
     const late = await notify.dispatchFriendEvents(admin, { fetchImpl: service.fetchImpl });
     check(fromEli?.ok === true && count(kim.endpoint, "friend_request") === before && late.claimed === 0, "Kim's friend-request switch off: Eli's real request sends nothing (claimed, not sent)");

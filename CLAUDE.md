@@ -2508,6 +2508,17 @@ outside the repo.
   backfill, a deleted account, and a whole room's answers, rows and broadcasts swept for account ids) and room-e2e-check's
   last part (no response to either phone holds the other player's account id); seat-key-check (~2 s, shard `c`, happy-dom: me, host, chat
   "mine", muting, reactions, absent rivals, and the account-id fallback for stand-in rows).
+- **Public ids beyond rooms, Security C3** (14 Nov 2026; no deal, stamp, grading, scoring or timing change): friends lists,
+  player cards and badges, tournament rows and the Arena opponent, and rated views (the match view, the settle answer,
+  ratings, head-to-head) name players by public id (C1b's `player_public_ids`), never by account id. The server converts at
+  its edge through `src/lib/identity/publicIds.server.ts` (`toPublic` / `publicIdOf` out, `fromPublic` / `accountOf` in, on
+  the new server-only `public.public_ids_of(uuid[])`); tables and stored rows (settlements, leavers, recorded keys) keep
+  account ids, and the server's own settle result and W3a's engine are unchanged. Every id a phone sends to these functions
+  is a public id; an account id names nobody (the function's unknown-player answer). The rated settle answer leaves out the
+  recorded run's `key`. The phone's rated "me" is `myPublicId()` (w3Binding, multiView; the account id only on a stand-in).
+  Phones may no longer call `public_profiles`, `economy_public_cards` or `badge_public_cards`, nor read `friendships`,
+  `friend_requests` or `player_blocks`. Migration `20261117600000_public_ids_beyond_rooms.sql`. public-ids-check's "beyond
+  rooms" section and seat-key-check section 7 prove it.
 - **Retired games out of the app** (13 Nov 2026, Joe's rule; Retirements session): `RETIRED_TYPES` (catalogue.ts) is the
   one switch, now 21 games (the nine of 13 Nov 2026: Mixed Signals, Gradient, Turntable, Blackout, Bang On, Slice, Ringer,
   Swish, Flightpath). A retired game is never offered, dealt, played or counted: `isPlayable(type)` is asked by Practice (no

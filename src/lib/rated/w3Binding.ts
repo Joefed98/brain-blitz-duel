@@ -172,7 +172,14 @@ export async function bindW3(): Promise<RatedBackend> {
   const { identityBackend } = await import("@/lib/identity/backend");
   const { titleName } = await import("@/lib/badges/catalogue");
 
-  const myId = async () => (await currentUserId()) ?? "";
+  // This phone's public id (Security C3): the rated answers name every player by public id. A server that can't
+  // answer it (a check's stand-in) leaves the account id, which its own answers carry.
+  const myId = async () => {
+    const userId = await currentUserId();
+    if (!userId) return "";
+    const { myPublicId } = await import("@/lib/duel/seatKey");
+    return (await myPublicId(userId)) ?? userId;
+  };
 
   /** One player's card: look (A2), badges and title (C2), standing (W3a); a forgotten account as "Deleted player". */
   async function cardFor(
@@ -219,15 +226,15 @@ export async function bindW3(): Promise<RatedBackend> {
 
   async function toMatch(view: View): Promise<RatedMatch> {
     const me = await myId();
-    const mine = view.players.find((p) => p.userId === me) ?? view.players[0];
-    const other = view.players.find((p) => p.userId !== mine?.userId) ?? null;
+    const mine = view.players.find((p) => p.playerId === me) ?? view.players[0];
+    const other = view.players.find((p) => p.playerId !== mine?.playerId) ?? null;
     const mineR = await myRatings();
     const myRank = mineR && mineR.placement.done && mineR.tier && mineR.joulz !== null ? { ...mineR.tier, rating: mineR.joulz } : null;
     const [meCard, themCard] = await Promise.all([
       cardFor(me, mine?.displayName ?? "", mine?.guest ?? false, myRank),
       view.kind === "recorded" && view.recorded
         ? cardFor(view.recorded.ownerId, view.recorded.ownerName, view.recorded.ownerGuest, "ask")
-        : cardFor(other?.userId ?? null, other?.displayName ?? DELETED_PLAYER, other?.guest ?? false, "ask"),
+        : cardFor(other?.playerId || null, other?.displayName ?? DELETED_PLAYER, other?.guest ?? false, "ask"),
     ]);
     return {
       id: view.matchId,
@@ -317,7 +324,7 @@ export async function bindW3(): Promise<RatedBackend> {
         if (!view) return null;
         const me = await myId();
         const match = await toMatch(view);
-        return abortedOf(settled.leavers.map((l) => l.userId), match, me);
+        return abortedOf(settled.leavers.map((l) => l.playerId), match, me);
       }
       if (settled.state !== "settled") return null;
       const s = settled.result;
@@ -327,8 +334,8 @@ export async function bindW3(): Promise<RatedBackend> {
       const match = await toMatch(view);
       // W3b's forfeit (a player away past the 20 s grace once the games began): the leavers by name, and whether it was you.
       const ending = endingOf(s.ending?.kind === "forfeit" ? s.ending.leavers : [], match, me);
-      const mine = s.players.find((p) => p.userId === me) ?? s.players[0]!;
-      const other = s.players.find((p) => p.userId !== mine.userId) ?? null;
+      const mine = s.players.find((p) => p.playerId === me) ?? s.players[0]!;
+      const other = s.players.find((p) => p.playerId !== mine.playerId) ?? null;
       const mySide = mine.slot === 1 ? "a" : "b";
       const theirScores = other?.scores ?? s.recorded?.scores ?? [];
       const games: RatedGame[] = s.games.map((g, i) => ({ type: g.type, myScore: mine.scores[i] ?? 0, theirScore: theirScores[i] ?? 0 }));
