@@ -79,7 +79,7 @@ const { RatedHome } = await import("../src/components/rated/RatedHome");
 const { Searching, VsScreen, MatchResult, PlacementReveal } = await import("../src/components/rated/RatedMatchScreens");
 const { RatedFrameScore } = await import("../src/components/rated/RatedFrameScore");
 const { TierLadder } = await import("../src/components/rated/TierLadder");
-const { ProfileCard } = await import("../src/components/identity/ProfileCard");
+const { ProfileCard, ProfileRatings } = await import("../src/components/identity/ProfileCard");
 const { PlayerCard } = await import("../src/design/identity");
 
 type RatedStatus = import("../src/lib/rated/backend").RatedStatus;
@@ -631,7 +631,10 @@ const resultEl = (r: RatedResult, extra: Record<string, unknown> = {}) =>
   check(["spark", "charge", "volt", "surge", "storm", "lightning"].every((t) => new RegExp(`--jz-tier-${t}:`).test(tokens)), "every tier has its colour token");
   root.unmount();
 }
-const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 });
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Profile redesign, phase 2 step 3: Profile's
+// Ratings moved out of ProfileCard into its own section, ProfileRatings): Profile's top is the card and the Ratings.
+const profileUi = () =>
+  React.createElement("div", null, React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), React.createElement(ProfileRatings));
 {
   status = placedStatus();
   await signIn(5);
@@ -673,7 +676,9 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   await signIn(5);
   const { root } = await mount(profileUi, "/profile");
   await settle(60);
-  check(!!$("[data-rating-note]") && !$("[data-profile-rating]"), "Profile without rated play: A2's note, nothing rated");
+  // Changed per the Profile brief (Joe, 14 Nov 2026: "Ratings … for players with rated play only; hidden for everyone
+  // else (the same rule as Home)"): A2's note is gone; nothing rated is drawn, and no section in its place.
+  check(!$("[data-rating-note]") && !$("[data-profile-rating]") && !/Joulz Rating/.test(document.body.textContent ?? ""), "Profile without rated play: no Ratings section at all (hidden, as Home)");
   check(text("[data-profile-card] [data-card-pill]") === "#0005", "Profile without rated play: the player number");
   root.unmount();
 }

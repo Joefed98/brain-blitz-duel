@@ -92,7 +92,7 @@ const { AppHeader } = await import("../src/components/app/AppHeader");
 const { TabBar } = await import("../src/design/components/TabBar");
 const { PlayerCard } = await import("../src/design/identity");
 const art = await import("../src/design/identity/playerCardArt.data");
-const { ProfileCard } = await import("../src/components/identity/ProfileCard");
+const { ProfileCard, ProfileRatings } = await import("../src/components/identity/ProfileCard");
 const { Route: CustomiseRoute } = await import("../src/routes/customise");
 const customiseRules = await import("../src/lib/identity/customise");
 
@@ -735,7 +735,9 @@ for (const [who, n, shows] of [
     );
   }
   await signIn(1);
-  const { root } = await mount(() => React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), "/profile");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Profile redesign: the Ratings moved out of
+  // ProfileCard into ProfileRatings, drawn after it): the card and the Ratings, as Profile draws them.
+  const { root } = await mount(() => React.createElement("div", null, React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), React.createElement(ProfileRatings)), "/profile");
   await settle(60);
   const text = $("[data-profile-card]")?.textContent ?? "";
   // Joe's approval, 11 Nov 2026 (wave 3, W3c): A2's "Your Joulz Rating arrives with rated play" assertion is replaced by
@@ -779,7 +781,8 @@ for (const [who, n, shows] of [
     progress: async () => {},
   });
   ratedApi.resetRated();
-  const placed = await mount(() => React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), "/profile");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Profile redesign): the card and ProfileRatings.
+  const placed = await mount(() => React.createElement("div", null, React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), React.createElement(ProfileRatings)), "/profile");
   await settle(80);
   const shown = (sel: string) => ($(sel)?.textContent ?? "").replace(/\s+/g, " ").trim();
   check(shown("[data-profile-rating] [data-joulz-rating]") === "1,278", "placed: the Joulz Rating is the server's");

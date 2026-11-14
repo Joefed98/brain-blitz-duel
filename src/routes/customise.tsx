@@ -49,6 +49,9 @@ import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, PASS_TITLE_DEFS, SEASON_TITLE_DEFS, TI
  */
 export const Route = createFileRoute("/customise")({
   ssr: false,
+  // `?tab=` opens a tab (the Badges page's Choose: `badges`); anything else opens Avatar.
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
+    TABS.includes(search["tab"] as Tab) ? { tab: search["tab"] as Tab } : {},
   head: () => ({
     meta: [{ title: `${APP_NAME} customise` }, { name: "robots", content: "noindex" }],
   }),
@@ -56,6 +59,7 @@ export const Route = createFileRoute("/customise")({
 });
 
 type Tab = "avatar" | "card" | "games" | "badges";
+const TABS: readonly Tab[] = ["avatar", "card", "games", "badges"];
 type CardSlot = "card-art" | "frame" | "name-colour";
 const CARD_SLOTS: readonly CardSlot[] = ["card-art", "frame", "name-colour"];
 const AVATAR_SLOTS: readonly { kind: LoadoutSlot; label: string; empty: string }[] = [
@@ -99,7 +103,12 @@ function CustomiseScreen() {
   const account = useAccount();
   const identity = useMyIdentity();
   const shopOn = useShopOn();
-  const [tab, setTab] = useState<Tab>("avatar");
+  // The tab asked for in the address (`?tab=badges` from the Badges page's Choose), read once; Avatar otherwise.
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === "undefined") return "avatar";
+    const asked = new URLSearchParams(window.location.search).get("tab") as Tab | null;
+    return asked && TABS.includes(asked) ? asked : "avatar";
+  });
   const [allAvatars, setAllAvatars] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

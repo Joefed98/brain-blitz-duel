@@ -120,6 +120,9 @@ const check = (ok: boolean, what: string) => {
     "dev-crash.tsx": "development only",
     "dev-design.tsx": "development only",
     "replay-lab.tsx": "development only",
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Profile session's two new pages).
+    "badges.tsx": "Profile: the Badges row's See all",
+    "card.tsx": "Profile: a tap on your card",
   };
   for (const file of readdirSync("src/routes").filter((f) => f.endsWith(".tsx")))
     check(file in ROUTES, `route ${file} has an entry point (${ROUTES[file] ?? "none"})`);

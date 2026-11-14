@@ -1,0 +1,503 @@
+/*
+ * Profile and its own pages (the Profile session, phase 2 step 3, 14 Nov 2026; docs/design/style-guide/phone/profile.png
+ * and desktop/profile.png): the card column, the rating tiles, Mastery, Recent matches, the Badges row, the Friends
+ * strip; the Badges page and the player card page; Friends and Customise restyled. Tokens only (--jz-*), so the light
+ * theme follows the tokens. Rounded everywhere but the player card and its gold button (the cut, as the guide says).
+ */
+
+/* ------------------------------------------------------------------ sections */
+.pf-section {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.pf-page {
+  gap: var(--jz-section-gap);
+}
+/* A section heading's quiet link ("See all", "Games", "Tiers"): text 2, a 44 px target round a 20 px line. */
+.pf-see {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--jz-space-8);
+  margin: -12px -4px -12px 0;
+  padding: 0 4px;
+  border-radius: var(--jz-radius-sm);
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  white-space: nowrap;
+}
+.pf-see:focus-visible,
+.pf-tile:focus-visible,
+.pf-mastery:focus-visible,
+.pf-badges:focus-visible,
+.pf-friend:focus-visible,
+.pf-card-open:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pf-see:hover {
+    color: var(--jz-text);
+  }
+  :is(.pf-tile, .pf-mastery, .pf-badges)[type="button"]:hover {
+    background-color: var(--jz-surface-2);
+  }
+}
+.pf-count {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+  font: var(--jz-type-caption);
+  font-variant-numeric: tabular-nums;
+}
+.pf-row-figure {
+  flex: none;
+  color: var(--jz-text);
+  font: var(--jz-type-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ the card column */
+.pf-card-block {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.pf-card-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: inherit;
+}
+.pf-name {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-16);
+}
+.pf-name-label {
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+}
+.pf-name-note {
+  margin: 0;
+  color: var(--jz-text-3);
+  font: var(--jz-type-caption);
+}
+
+/* ------------------------------------------------------------------ ratings */
+.pf-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-section-gap);
+}
+.pf-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.pf-tile {
+  display: flex;
+  min-width: 0;
+  min-height: 132px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--jz-space-16) var(--jz-space-8);
+  border: 0;
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  text-align: center;
+}
+.pf-tile .pf-art {
+  margin-bottom: var(--jz-space-4);
+}
+.pf-tile-value {
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--jz-type-title);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* "Not played yet": no figure; it may take two lines in a narrow tile. */
+.pf-tile-word {
+  min-height: 30px;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  white-space: normal;
+}
+.pf-tile-label,
+.pf-tile-sub {
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--jz-type-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-tile-label {
+  color: var(--jz-text-2);
+}
+.pf-tile-sub {
+  color: var(--jz-text-3);
+}
+.pf-placement {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.pf-placement-title {
+  margin: 0;
+  color: var(--jz-text);
+  font: var(--jz-type-body);
+}
+.pf-placement-line {
+  margin: 0;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+}
+
+/* ------------------------------------------------------------------ Mastery */
+.pf-mastery {
+  display: flex;
+  width: 100%;
+  min-height: 72px;
+  align-items: center;
+  gap: var(--jz-space-16);
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border: 0;
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  text-align: left;
+}
+.pf-mastery-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+.pf-mastery-line {
+  font: var(--jz-type-body);
+  font-variant-numeric: tabular-nums;
+}
+.pf-mastery-text .jz-progress > span {
+  background: var(--jz-gold);
+}
+.pf-mastery-sub {
+  overflow: hidden;
+  color: var(--jz-text-3);
+  font: var(--jz-type-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-gem {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.pf-gem-name {
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ stat tiles (rooms, the Daily) */
+.pf-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.pf-stat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--jz-space-12) var(--jz-space-8);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+  text-align: center;
+}
+.pf-stat-value {
+  color: var(--jz-text);
+  font: var(--jz-type-heading);
+  font-variant-numeric: tabular-nums;
+}
+.pf-stat-label {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ the Badges row */
+.pf-badges {
+  display: flex;
+  width: 100%;
+  min-height: 72px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border: 0;
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.pf-badges-row {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  gap: var(--jz-space-8);
+  overflow: hidden;
+}
+.pf-badges-row > img {
+  flex: none;
+}
+.pf-badges-count {
+  flex: none;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ the Friends strip */
+.pf-friends {
+  display: flex;
+  gap: var(--jz-space-12);
+  margin: 0 calc(-1 * var(--jz-gutter));
+  padding: 0 var(--jz-gutter) 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  list-style: none;
+}
+.pf-friends::-webkit-scrollbar {
+  display: none;
+}
+.pf-friend {
+  display: flex;
+  width: 76px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--jz-space-4) 0;
+  border: 0;
+  border-radius: var(--jz-radius-md);
+  background: none;
+  color: var(--jz-text);
+}
+.pf-friend-card {
+  position: relative;
+  display: inline-flex;
+}
+.pf-friend-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--jz-bg);
+  border-radius: 50%;
+  background: var(--jz-win);
+}
+.pf-friend-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-friends-wait {
+  height: 90px;
+}
+
+/* ------------------------------------------------------------------ the tablet and computer page */
+.pf-aside {
+  display: none;
+}
+@media (min-width: 700px) and (min-height: 500px) {
+  /* The card column is the page's side column, drawn on the left as the mockup has it; the page on the right. */
+  [data-layout][data-tab-screen] > [data-shell-column="page"]:has(> .pf-aside) {
+    grid-template-columns: var(--pf-side, 280px) minmax(0, 1fr);
+  }
+  [data-layout][data-tab-screen] > [data-shell-column="page"]:has(> .pf-aside) > * {
+    grid-column: 2;
+  }
+  /* The header (the tablet's app header, the computer's title row) runs over both columns. */
+  [data-layout][data-tab-screen] > [data-shell-column="page"]:has(> .pf-aside) > :first-child {
+    grid-column: 1 / -1;
+    margin-bottom: var(--jz-space-16);
+  }
+  [data-layout][data-tab-screen] > [data-shell-column="page"] > .pf-aside {
+    position: sticky;
+    top: var(--jz-space-24);
+    display: flex;
+    grid-column: 1;
+    grid-row: 2 / span 40;
+    gap: var(--jz-space-16);
+  }
+  .pf-friends {
+    margin: 0;
+    padding: 0 0 4px;
+  }
+}
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"][data-tab-screen] > [data-shell-column="page"]:has(> .pf-aside) {
+    --pf-side: var(--dk-aside);
+  }
+  .pf-page .pf-tiles {
+    gap: var(--jz-space-16);
+  }
+}
+
+/* ------------------------------------------------------------------ Profile's own pages */
+.pf-subpage {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-section-gap);
+  padding-bottom: var(--jz-space-24);
+}
+.pf-head {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+}
+.pf-head-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-4);
+}
+.pf-head h1 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--jz-text);
+  font: var(--jz-type-title);
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.pf-head-meta {
+  flex: none;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
+}
+.pf-oncard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-8);
+  margin: 0;
+  padding: var(--jz-space-16) var(--jz-space-12);
+  list-style: none;
+}
+.pf-oncard-slot {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.pf-oncard-empty {
+  width: 44px;
+  height: 44px;
+  border: 2px dashed var(--jz-surface-3);
+  border-radius: 50%;
+}
+.pf-oncard-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-card-large {
+  display: flex;
+  width: 100%;
+  max-width: 560px;
+  flex-direction: column;
+  gap: var(--jz-space-24);
+  margin: 0 auto;
+}
+
+/* The Badges page's collection (BadgeCollection; Customise's picker keeps badges.css's tiles). */
+.bd-collection .bd-group + .bd-group {
+  margin-top: var(--jz-space-12);
+}
+.bd-collection .bd-group-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  margin: 0 0 var(--jz-space-12);
+  color: var(--jz-text);
+  font: var(--jz-type-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.bd-collection .bd-group-title > [data-ellipsis] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bd-group-count {
+  flex: none;
+  color: var(--jz-text-3);
+  font: var(--jz-type-caption);
+  font-variant-numeric: tabular-nums;
+}
+.bd-collection .bd-tile {
+  justify-content: flex-start;
+  padding: var(--jz-space-16) var(--jz-space-12);
+  border: 0;
+  border-radius: var(--jz-radius-lg);
+}
+.bd-collection .bd-tile:not([data-locked]) .bd-how {
+  color: var(--jz-gold-ink);
+}
+.bd-collection .bd-progress {
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 600px) {
+  .bd-collection .bd-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .bd-collection .bd-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .pf-subpage {
+    width: 100%;
+    max-width: 960px;
+    margin-inline: auto;
+  }
+}
