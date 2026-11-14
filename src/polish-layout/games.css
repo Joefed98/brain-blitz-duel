@@ -36,13 +36,35 @@
   gap: var(--jz-space-16);
   padding-bottom: var(--jz-space-24);
 }
+/*
+ * The chips: on a phone one row that scrolls sideways inside itself (the page never does), its right edge fading
+ * out, so the hero shows on the first screen; a tablet or a computer (PhoneShell's data-layout) wraps them.
+ */
 .gm-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--jz-space-8);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  margin: 0 calc(-1 * var(--jz-space-4));
+  padding: var(--jz-space-4) var(--jz-space-32) var(--jz-space-4) var(--jz-space-4);
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - var(--jz-space-32)), transparent);
+  mask-image: linear-gradient(to right, black calc(100% - var(--jz-space-32)), transparent);
+}
+.gm-chips::-webkit-scrollbar {
+  display: none;
 }
 .gm-chips > .jz-chip {
   flex: 0 0 auto;
+}
+[data-layout] .gm-chips {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  margin: 0;
+  padding: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 .gm-grid {
   display: grid;

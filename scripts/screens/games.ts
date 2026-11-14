@@ -7,6 +7,7 @@
  */
 import type { Page } from "playwright";
 
+import { challengeFixture } from "../challenge-fixture";
 import { passFixture } from "../pass-fixture";
 import { PRACTICE_CHALLENGES, challengeLive } from "../../src/lib/duel/practiceChallenges";
 import type { ServerChallenges } from "../../src/lib/challenges/challengesClient";
@@ -46,6 +47,12 @@ export function gamesChallengesFixture(): ServerChallenges {
 
 const pageOf = (type: string) => ({ page: type });
 
+/** The Challenges page's Friends tab chosen. */
+const friendsTab = async (page: Page) => {
+  await page.locator("[data-challenge-filter='friends']").click();
+  await page.locator("[data-your-challenges], [data-your-challenges-empty]").first().waitFor({ timeout: 15_000 });
+};
+
 export const GAMES_SCREENS = (sizes: ThemeViewport[], allSizes: ThemeViewport[]): ThemeScreen[] => {
   const data = { __harnessProgress: gamesProgressFixture(), __DUELZ_CHALLENGES__: gamesChallengesFixture() };
   const pass = passFixture();
@@ -80,5 +87,8 @@ export const GAMES_SCREENS = (sizes: ThemeViewport[], allSizes: ThemeViewport[])
     { name: "games light: catalogue", mode: "practice", globals: { ...data, ...light }, sizes: allSizes },
     { name: "games light: game page", mode: "practice", plain: true, search: pageOf("tubes"), globals: { ...withPass, ...light }, sizes: allSizes, waitMs: 900 },
     { name: "games light: challenges", mode: "challenges", plain: true, globals: { ...withPass, ...light }, sizes: allSizes, waitMs: 900 },
+    // The Friends tab (Joe, 14 Nov 2026): this device's friend challenges (Profile's former "Your challenges"), and none.
+    { name: "games: challenges, friends", mode: "challenges", plain: true, globals: data, challenge: () => challengeFixture("create"), sizes, waitMs: 600, go: friendsTab },
+    { name: "games: challenges, friends, none", mode: "challenges", plain: true, records: false, globals: data, sizes, waitMs: 600, go: friendsTab },
   ];
 };

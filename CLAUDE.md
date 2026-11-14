@@ -2564,8 +2564,11 @@ outside the repo.
   already in its 3-2-1 (`load(type, true)`; Play again does the same; Joe, 14 Nov 2026; RoundIntro unchanged). A
   `/practice?game=<id>` link still opens the full intro with Ready (checks that judge the intro use it,
   `practiceGameUrl` in `scripts/practice-side-lib.ts`; `playFromCatalogue` goes tile → page → Play). **Challenges**
-  (`src/routes/challenges.tsx`, More → Challenges): done count and bar, In progress | New | Done, grouped by game, each
-  game's name opening its page. PhoneShell `railTab` draws the full rail on these pushed pages. Screens:
+  (`src/routes/challenges.tsx`, More → Challenges): done count and bar, In progress | New | Done | Friends (no counts on
+  the tabs), grouped by game, each game's name opening its page; Friends is `YourChallenges variant="tab"` (Profile's
+  former list; with none, one line and a Challenge a friend link, `CHALLENGE_A_FRIEND`, today `/challenge` until `/rooms`
+  exists). On a phone the catalogue's chips are one sideways-scrolling row (`data-scroll-x`, edge faded); tablets and
+  computers wrap them. PhoneShell `railTab` draws the full rail on these pushed pages. Screens:
   `scripts/screens/games.ts` (theme-check in sixths, no-wrap-check in elevenths); shots `bun scripts/shots/games-shots.ts`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle

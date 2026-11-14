@@ -132,7 +132,13 @@ export function GamesCatalogue({
           />
         </div>
       ) : null}
-      <div role="group" aria-label="Game categories" className="gm-chips" data-games-chips>
+      <div
+        role="group"
+        aria-label="Game categories"
+        className="gm-chips"
+        data-games-chips
+        data-scroll-x=""
+      >
         <Chip
           selected={filter === "all"}
           data-practice-filter="all"
@@ -221,7 +227,9 @@ function HeroTile({
     >
       <span className="gm-hero-text">
         <span className="gm-hero-kicker">Game of the day</span>
-        <span className="gm-hero-name" data-wrap-ok="">{name}</span>
+        <span className="gm-hero-name" data-wrap-ok="">
+          {name}
+        </span>
         <span className="gm-hero-tag">
           <span aria-hidden="true" data-cat={tag.id} className="gm-dot" />
           {tag.label}

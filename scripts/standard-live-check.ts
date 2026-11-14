@@ -463,3 +463,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`PASS standard-live-check: ${games.length} practice rounds (through the app) and ${roomCount} room rounds (the built room deal and grader) on the production build score the standard's 150 + speed + bonus`);
+// Changed with Joe's approval, 14 Nov 2026 (routine: the check's shutdown): the production server child can outlive its
+// kill() and hold the process open after the summary, so the check ends here (the failure path already exits).
+process.exit(0);

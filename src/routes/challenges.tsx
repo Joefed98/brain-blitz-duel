@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
+import { YourChallenges } from "@/components/challenge/YourChallenges";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import {
   ChallengeRows,
@@ -33,13 +34,21 @@ export const Route = createFileRoute("/challenges")({
   component: ChallengesScreen,
 });
 
-type Filter = ChallengeState["status"];
+type Filter = ChallengeState["status"] | "friends";
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "progress", label: "In progress" },
   { value: "new", label: "New" },
   { value: "done", label: "Done" },
+  // The friend challenges this device made or sent (Profile's former "Your challenges", 14 Nov 2026).
+  { value: "friends", label: "Friends" },
 ];
+
+/**
+ * Where the Friends tab's empty state sends a player to challenge a friend: today's Challenge a friend screen (the
+ * create form). The brief named /rooms, which isn't on main yet; point this there once that route lands.
+ */
+const CHALLENGE_A_FRIEND = { to: "/challenge", search: {} } as const;
 
 function ChallengesScreen() {
   useHomeBed();
@@ -48,7 +57,7 @@ function ChallengesScreen() {
   const server = useServerChallenges(true);
   const states = useChallengeStates(server);
   const joules = useChallengeJoules();
-  const counts: Record<Filter, number> = { progress: 0, new: 0, done: 0 };
+  const counts: Record<ChallengeState["status"], number> = { progress: 0, new: 0, done: 0 };
   for (const s of states) counts[s.status] += 1;
   const [chosen, setChosen] = useState<Filter | null>(null);
   const filter: Filter = chosen ?? (counts.progress > 0 ? "progress" : "new");
@@ -123,11 +132,29 @@ function ChallengesScreen() {
           options={FILTERS.map((f) => ({
             value: f.value,
             label: f.label,
-            count: counts[f.value],
+            // No counts on the tabs (the mockup's; four tabs fit a 375 px phone): the done count is in the summary.
             data: { "data-challenge-filter": f.value },
           }))}
         />
-        {groups.length === 0 ? (
+        {filter === "friends" ? (
+          // Each row opens the challenge as it did on Profile.
+          <YourChallenges
+            variant="tab"
+            onOpen={(code) =>
+              void router.navigate({
+                to: "/challenge",
+                search: { code },
+                state: { fromPlayTab: true } as never,
+              } as never)
+            }
+            onNew={() =>
+              void router.navigate({
+                ...CHALLENGE_A_FRIEND,
+                state: { fromPlayTab: true } as never,
+              } as never)
+            }
+          />
+        ) : groups.length === 0 ? (
           <p data-challenges-empty className="gm-empty">
             {filter === "done"
               ? "None done yet"
@@ -152,7 +179,9 @@ function ChallengesScreen() {
                   className="gm-ch-game press"
                 >
                   <GameIcon type={type} size={44} />
-                  <span className="gm-ch-game-name" data-wrap-ok="">{name}</span>
+                  <span className="gm-ch-game-name" data-wrap-ok="">
+                    {name}
+                  </span>
                   <Icon name="chevron-right" size={20} className="gm-ch-game-chevron" />
                 </button>
                 <ChallengeRows
