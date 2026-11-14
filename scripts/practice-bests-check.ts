@@ -196,18 +196,36 @@ const localStorage = {
   check(/bestOf\(practiceProgressNow\(\), next, levelOf\(\(made\.puzzle/.test(practice), "the intro reads the account's best on the dealt puzzle's level");
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): was /function RowBest[\s\S]*?readPracticeBest\(type, currentPracticeStamp\(type\)\)/,
   // "the list's rows read the current stamps".
-  check(/function RowBest[\s\S]*?bestOf\(useContext\(ProgressOnList\), type\)/.test(practice), "the list's rows read the account's bests");
+  // Changed with Joe's approval, 14 Nov 2026 (Games catalogue replaces the Practice list): was
+  // /function RowBest[\s\S]*?bestOf\(useContext\(ProgressOnList\), type\)/ on practice.tsx, "the list's rows read the
+  // account's bests". The best now lives on each game's page.
+  const gamePage = readFileSync("src/components/games/GamePage.tsx", "utf8");
+  check(/const best = bestOf\(progress, type\)/.test(gamePage) && /<GamePage[\s\S]*?progress=\{progressView\}/.test(practice), "the game page reads the account's best");
   // Category lists (tab pages refresh, 26 Oct 2026): every list draws one row (row(key…)), which carries the best in
   // the BEST column and its description.
   // Changed with Joe's approval, 13 Nov 2026: the Practice list has no Retired section any more (retired games are out of the app).
-  check((practice.match(/<RowBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => row\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => row\(key\)\)/.test(practice), "every practice row shows its best (category lists, preview)");
-  check(/\{best \?\? "–"\}/.test(practice) && /data-none=\{best === null \|\| undefined\}/.test(practice), 'a row with no best shows a quiet "–"');
-  check(/className="ap-best"/.test(practice) && /\.ap-best \{[^}]*width: 56px;[^}]*text-align: right;/.test(readFileSync("src/polish-layout/app-pages.css", "utf8")), "the best sits in one fixed-width right-aligned BEST column");
+  // Changed with Joe's approval, 14 Nov 2026 (Games catalogue replaces the Practice list): was
+  // (practice.match(/<RowBest type=\{key\} \/>/g) ?? []).length === 1 plus the category lists' and preview's row(key),
+  // "every practice row shows its best (category lists, preview)". Every game has one page, which shows its best.
+  check(/<li data-game-best=\{best \?\? undefined\} data-none=\{best === null \|\| undefined\} className="gm-tag">\s*Best \{best \?\? "–"\}\s*<\/li>/.test(gamePage), "the game page shows the account's best");
+  // Changed with Joe's approval, 14 Nov 2026 (Games catalogue replaces the Practice list): was /\{best \?\? "–"\}/ and data-none on practice.tsx's rows, 'a row with no best shows a quiet "–"'; now the game page's
+  // best, drawn quieter (its text-2 colour) when there is none.
+  check(/Best \{best \?\? "–"\}/.test(gamePage) && !/No best yet/.test(gamePage) && /\.gm-tag\[data-none\] \{\s*color: var\(--jz-text-2\);/.test(readFileSync("src/polish-layout/games.css", "utf8")), 'a game with no best shows a quiet "–"');
+  // Changed with Joe's approval, 14 Nov 2026 (Games catalogue replaces the Practice list): retired /className="ap-best"/ with app-pages.css's
+  // .ap-best width 56px / text-align right, "the best sits in one fixed-width right-aligned BEST column": the catalogue has
+  // no BEST column by design (tiles show stars, the best is on the game's page).
   // 17 Oct 2026 (CI on #108): the best inside the button changed its accessible name ("Grappler Best 45"), so
   // arcade-play-check and arcade-lowend-check, which reopen the list and find each game's button by its exact
   // name, lost multi-segment games after their first run. The best is now only the button's description.
-  check(/id=\{cardBestId\(type\)\}\s*aria-hidden="true"/.test(practice), "the card's best is left out of the button's name");
-  check((practice.match(/aria-describedby=\{cardBestId\(key\)\}/g) ?? []).length === 1 && /aria-label=\{PUZZLE_REGISTRY\[key\]\.name\}/.test(practice), "every card's button is named its game and described by its best");
+  // Changed with Joe's approval, 14 Nov 2026 (Games catalogue replaces the Practice list): was /id=\{cardBestId\(type\)\}\s*aria-hidden="true"/ on
+  // practice.tsx, "the card's best is left out of the button's name". The tile's description sits outside the tile's
+  // button (TileBest in practice.tsx, after the tile in its wrapper), so it never joins the name.
+  const catalogue = readFileSync("src/components/games/GamesCatalogue.tsx", "utf8");
+  check(/function TileBest[\s\S]*?id=\{tileDescriptionId\(type\)\}[\s\S]*?className="sr-only"/.test(practice) && /\/>\s*\{tileExtra \? tileExtra\(type\) : null\}/.test(catalogue) && /<TileBest type=\{key\}/.test(practice), "the tile's description is left out of the button's name");
+  // Changed with Joe's approval, 14 Nov 2026 (Games catalogue replaces the Practice list): was (practice.match(/aria-describedby=\{cardBestId\(key\)\}/g) ?? []).length === 1
+  // and /aria-label=\{PUZZLE_REGISTRY\[key\]\.name\}/, "every card's button is named its game and described by its best".
+  const tileBest = /function TileBest[\s\S]*?\n\}\n/.exec(practice)?.[0] ?? "";
+  check((catalogue.match(/aria-describedby=\{tileDescriptionId\(type\)\}/g) ?? []).length === 1 && /aria-label=\{nameOf\(type\)\}/.test(catalogue) && /PUZZLE_REGISTRY\[type\]\.name/.test(catalogue) && /\{`\$\{starCountOf\(progress, type\)\} of 3 stars`\}/.test(tileBest) && !/Best /.test(tileBest.replace(/\/\*\*[\s\S]*?\*\//g, "")), "every tile's button is named its game and described by its stars");
 
   const reveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");
   // Practice goals (6 Nov 2026, Joe's decision): a run that earns a mastery star plays the same moment with its star line.

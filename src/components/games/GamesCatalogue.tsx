@@ -89,7 +89,12 @@ export function GamesCatalogue({
    */
   tileExtra?: (type: PuzzleType) => ReactNode;
 }) {
-  const shelves = useMemo(() => catalogueShelves(), []);
+  // A chip only for a shelf with a game this player can play: held-back games (Plus early access) are left out of the
+  // grid, every chip, the search and the hero alike.
+  const shelves = useMemo(
+    () => catalogueShelves().filter((shelf) => shelf.games.some((t) => !hidden.includes(t))),
+    [hidden],
+  );
   const all = useMemo(() => catalogueGames(), []);
   const nameOf = (type: PuzzleType) => gameName(type);
   const q = query.trim().toLowerCase();

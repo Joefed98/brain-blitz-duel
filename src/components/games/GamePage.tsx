@@ -85,8 +85,9 @@ export function GamePage({
           <li data-game-seconds={gameSeconds(type)} className="gm-tag">
             {gameSeconds(type)} s
           </li>
-          <li data-game-best={best ?? undefined} className="gm-tag">
-            {best === null ? "No best yet" : `Best ${best}`}
+          {/* The account's best; none yet shows a quiet "–". */}
+          <li data-game-best={best ?? undefined} data-none={best === null || undefined} className="gm-tag">
+            Best {best ?? "–"}
           </li>
           {mark ? <li className="gm-tag gm-tag-mark">{mark}</li> : null}
           <li className="sr-only">{`${starCountOf(progress, type)} of 3 stars`}</li>

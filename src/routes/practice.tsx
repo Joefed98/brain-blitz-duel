@@ -206,9 +206,9 @@ function PracticeFooter() {
 
 
 /**
- * A tile's best under the game's current stamps and its stars, read as the tile's description (the tile is named
- * exactly its game); not drawn (Joe: a tile shows its name and stars only; the best is on the game's page).
- * `data-card-best` / `data-none` / `data-pending` as the old list's BEST column carried them.
+ * A tile's description: its stars (the tile is named exactly its game; Joe, 14 Nov 2026: the catalogue shows stars and
+ * the best lives on the game's page). Not drawn. `data-card-best` / `data-none` / `data-pending` still carry the
+ * account's best and a queued run's clock for the checks that read them.
  */
 function TileBest({ type, pending, progress }: { type: PuzzleType; pending: boolean; progress: PracticeProgressView | null }) {
   const best = bestOf(progress, type);
@@ -221,8 +221,7 @@ function TileBest({ type, pending, progress }: { type: PuzzleType; pending: bool
       className="sr-only"
     >
       {pending ? <PendingClock /> : null}
-      {best === null ? "No best yet" : `Best ${best}`}
-      {`, ${starCountOf(progress, type)} of 3 stars`}
+      {`${starCountOf(progress, type)} of 3 stars`}
     </span>
   );
 }
