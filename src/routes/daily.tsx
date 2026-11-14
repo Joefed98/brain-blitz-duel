@@ -46,7 +46,8 @@ import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { Button, Icon, Input, Segmented, SkeletonPage, Panel } from "@/design/components";
+import { Button, Icon, Input, Segmented, SectionHeader, SkeletonPage, Panel } from "@/design/components";
+import { TournamentArt } from "@/components/tournaments/TournamentArt";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { NameSuggestions } from "@/components/account/AccountParts";
 import { useAccount, useAccountName } from "@/lib/account/accountApi";
@@ -367,13 +368,11 @@ function DailyScreen() {
   const lockedNote = `Finish today’s ${DAILY_ROUNDS[kind]} rounds to see the board.`;
   return (
     <PhoneShell skin="play">
-      <div data-daily-screen className="flex flex-1 flex-col gap-4">
+      <div data-daily-screen className="dl-page">
         {header}
-        <div>
-          <h1 className="ap-title whitespace-nowrap text-[28px]">Daily challenge</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Same games for everyone. One go each. New at midnight UK time.
-          </p>
+        <div className="dl-head">
+          <h1 className="dl-title">Daily challenge</h1>
+          <p className="dl-sub">Same games for everyone. One go each. New at midnight UK time.</p>
         </div>
 
         <DailySegmented
@@ -390,13 +389,16 @@ function DailyScreen() {
           <Panel as="section"
             aria-label={`Today’s ${DAILY_TITLE[kind]}`}
             data-daily-state={state.state}
-            className="th-card flex flex-col gap-3 p-4"
+            pad
+            className="dl-hero jz-cut-lg"
           >
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="th-kicker text-primary">Today, {DAILY_TITLE[kind]}</p>
-              <p className="whitespace-nowrap text-[13px] text-muted-foreground">
-                {stateLine(kind, state, topPlace)}
-              </p>
+            <div className="dl-hero-head">
+              <TournamentArt name={kind === "puzzle" ? "puzzles" : "arcade"} size={56} />
+              <div className="dl-hero-text">
+                <p className="dl-hero-kicker">Today</p>
+                <h2 className="dl-hero-title">{DAILY_TITLE[kind]}</h2>
+                <p className="dl-hero-line">{stateLine(kind, state, topPlace)}</p>
+              </div>
             </div>
             {state.state === "play" && editingName && !accountName ? (
               <div className="flex flex-col gap-1.5">
@@ -473,8 +475,8 @@ function DailyScreen() {
           </Panel>
         ) : null}
 
-        <div className="flex flex-col gap-2">
-          <h2 className="ap-section-title">Leaderboard</h2>
+        <section aria-label="Leaderboard" className="dl-section">
+          <SectionHeader title="Leaderboard" />
           {/* One board (13 Nov 2026): the Daily top 100 (docs/leaderboards.md); here only your own line and the way in. */}
           {board ? (
             <DailyYou
@@ -487,7 +489,7 @@ function DailyScreen() {
           ) : (
             <SkeletonPage label="Loading the board" rows={2} />
           )}
-        </div>
+        </section>
       </div>
     </PhoneShell>
   );

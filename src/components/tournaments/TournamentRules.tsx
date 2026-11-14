@@ -15,6 +15,7 @@ import {
 } from "@/config/tournamentConfig";
 import { KIND_LABEL, placeLabel, prizeLines, type TournamentKind } from "@/lib/tournaments/rules";
 import { CHAMPIONSHIP_RULES, CUP_RULES } from "@/lib/tournaments/eventRules";
+import { KIND_ART, TournamentArt } from "./TournamentArt";
 
 const time12 = (t: string) => {
   const [h, m] = t.split(":").map(Number) as [number, number];
@@ -68,20 +69,24 @@ export function rulesFor(kind: TournamentKind): { title: string; lines: string[]
   ];
 }
 
+/** The full rules (restyled in phase 2 step 3: the event's art, one title, a panel a section). */
 export function TournamentRulesScreen({ kind, onBack }: { kind: TournamentKind; onBack: () => void }) {
   return (
     <PhoneShell bare skin="tournaments">
       <div className="tn-page" data-tournament-rules-page={kind}>
-        <AccountHead title={`${KIND_LABEL[kind]} rules`} onBack={onBack} />
-        <h1 className="tn-title">{`${KIND_LABEL[kind]} rules`}</h1>
+        <AccountHead title="Rules" onBack={onBack} />
+        <header className="tn-rules-head">
+          <TournamentArt name={KIND_ART[kind]} size={56} />
+          <h1 className="tn-event-title">{`${KIND_LABEL[kind]} rules`}</h1>
+        </header>
         <p className="tn-draft" data-rules-draft>
           Draft: these rules may change before tournaments open to everyone.
         </p>
         {rulesFor(kind).map((s) => (
           <section key={s.title} aria-label={s.title} className="ap-section">
             <SectionHeader title={s.title} />
-            <Panel pad>
-              <ul className="tn-how">
+            <Panel>
+              <ul className="tn-how tn-how-pad">
                 {s.lines.map((l) => (
                   <li key={l}>{l}</li>
                 ))}

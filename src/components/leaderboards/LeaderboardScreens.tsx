@@ -9,9 +9,12 @@ import {
   Row,
   SectionHeader,
   Segmented,
+  Sheet,
   SkeletonPage,
   SwitchKnob,
 } from "@/design/components";
+import { TournamentArt } from "@/components/tournaments/TournamentArt";
+import type { TournamentArtName } from "@/components/tournaments/tournamentArt.data";
 import { RATED_CATEGORIES, type RatedCategory } from "@/lib/data/ratings";
 import {
   CATEGORY_BOARD_LABEL,
@@ -33,6 +36,7 @@ import {
   type MainBoard,
   type RatingBoard,
   type RatingBoardPage,
+  boardLabel,
 } from "@/lib/leaderboards/boards";
 import { leaderboardsApi } from "@/lib/leaderboards/leaderboardsApi";
 
@@ -69,6 +73,92 @@ function Notice({ text }: { text: string }) {
   );
 }
 
+/* ------------------------------------------------------------------ the board picker (phase 2 step 3) */
+
+/** Each main board's art-kit icon; the categories take their colour dot. */
+const BOARD_ART: Record<MainBoard, TournamentArtName> = { joulz: "rating", puzzles: "puzzles", arcade: "arcade" };
+
+/** What the picker can choose: a rating board, or the Daily top 100 (its own page). */
+export type BoardChoice = RatingBoard | "daily";
+
+function ChoiceMark({ choice }: { choice: BoardChoice }) {
+  if (choice === "daily") return <TournamentArt name="daily" size={32} />;
+  if ((MAIN_BOARDS as readonly string[]).includes(choice)) return <TournamentArt name={BOARD_ART[choice as MainBoard]} size={32} />;
+  return (
+    <span className="lb-cat-mark" aria-hidden="true">
+      <span data-cat={choice} className="lb-cat-dot" />
+    </span>
+  );
+}
+
+/**
+ * The boards in groups (the boards that exist today): Ratings (the Joulz Rating, Puzzles, Arcade), the Daily top 100,
+ * then the eleven category boards. `attr` names each option for checks (`data-board` on the computer's list,
+ * `data-board-option` in the phone's sheet).
+ */
+function BoardOptions({ board, onPick, attr }: { board: RatingBoard; onPick: (choice: BoardChoice) => void; attr: "data-board" | "data-board-option" }) {
+  const option = (choice: BoardChoice, label: string) => (
+    <Row
+      key={choice}
+      as="button"
+      icon="44"
+      role="radio"
+      aria-checked={choice === board}
+      data-on={choice === board ? "" : undefined}
+      className="lb-option"
+      onClick={() => onPick(choice)}
+      leading={<ChoiceMark choice={choice} />}
+      title={label}
+      {...{ [attr]: choice }}
+    >
+      {choice === board ? <Icon name="check" size={20} tone="gold" /> : choice === "daily" ? <Icon name="chevron-right" size={20} tone="text-3" /> : null}
+    </Row>
+  );
+  return (
+    <div className="lb-options">
+      <p className="lb-options-head">Ratings</p>
+      <Panel role="radiogroup" aria-label="Ratings">
+        {MAIN_BOARDS.map((b) => option(b, MAIN_BOARD_LABEL[b]))}
+      </Panel>
+      <p className="lb-options-head">Daily</p>
+      <Panel>{option("daily", "Daily top 100")}</Panel>
+      <p className="lb-options-head">Categories</p>
+      <Panel role="radiogroup" aria-label="Categories">
+        {RATED_CATEGORIES.map((c) => option(c, CATEGORY_BOARD_LABEL[c]))}
+      </Panel>
+    </div>
+  );
+}
+
+/** The phone's picker: one button naming the board, opening the boards in a sheet. */
+function BoardPickerButton({ board, onPick }: { board: RatingBoard; onPick: (choice: BoardChoice) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="lb-picker press" data-board-picker={board} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        <ChoiceMark choice={board} />
+        <span className="lb-picker-text">
+          <span className="lb-picker-label">Board</span>
+          <span className="lb-picker-name">{boardLabel(board)}</span>
+        </span>
+        <Icon name="chevron-down" size={20} tone="text-2" />
+      </button>
+      {open ? (
+        <Sheet title="Boards" closeLabel="Close boards" onClose={() => setOpen(false)} data={{ "data-board-sheet": "" }}>
+          <BoardOptions
+            board={board}
+            attr="data-board-option"
+            onPick={(choice) => {
+              setOpen(false);
+              onPick(choice);
+            }}
+          />
+        </Sheet>
+      ) : null}
+    </>
+  );
+}
+
 /* ------------------------------------------------------------------ the rating boards (mockup 01) */
 
 /**
@@ -79,12 +169,16 @@ export function RatingBoardsScreen({
   onBack,
   isAccount,
   initial,
+  onDaily,
 }: {
   onBack: () => void;
   isAccount: boolean;
-  initial?: { board?: MainBoard; scope?: BoardScope; period?: BoardPeriod };
+  initial?: { board?: RatingBoard; scope?: BoardScope; period?: BoardPeriod };
+  /** The picker's Daily top 100 (its own page, /daily-board). */
+  onDaily?: () => void;
 }) {
-  const [board, setBoard] = useState<MainBoard>(initial?.board ?? "joulz");
+  const [board, setBoard] = useState<RatingBoard>(initial?.board ?? "joulz");
+  const pick = (choice: BoardChoice) => (choice === "daily" ? onDaily?.() : setBoard(choice));
   const [scope, setScope] = useState<BoardScope>(initial?.scope ?? "global");
   const [period, setPeriod] = useState<BoardPeriod>(initial?.period ?? "season");
   const [page, setPage] = useState<RatingBoardPage | null>(null);
@@ -123,17 +217,11 @@ export function RatingBoardsScreen({
   return (
     <div className="lb-page" data-leaderboards-screen="ratings">
       <Head title="Leaderboards" onBack={onBack} />
-      <Segmented
-        label="Board"
-        radio
-        value={board}
-        onChange={setBoard}
-        options={MAIN_BOARDS.map((b) => ({
-          value: b,
-          label: MAIN_BOARD_LABEL[b],
-          data: { "data-board": b },
-        }))}
-      />
+      {/* The boards: a list beside the board on a computer (CSS shows it from 1024 px), a sheet behind one button elsewhere. */}
+      <nav aria-label="Boards" className="lb-side" data-board-side>
+        <BoardOptions board={board} attr="data-board" onPick={pick} />
+      </nav>
+      <BoardPickerButton board={board} onPick={pick} />
       <div className="lb-filters">
         <div className="lb-chips" role="group" aria-label="Who">
           {(["global", "country", "friends"] as const).map((s) => (
@@ -191,7 +279,7 @@ export function RatingBoardsScreen({
           <BoardPodium rows={rows} onOpen={openRow} />
           <BoardList
             onOpen={openRow}
-            label={`${MAIN_BOARD_LABEL[board]}, ${period === "season" ? "this season" : "all-time peak"}`}
+            label={`${boardLabel(board)}, ${period === "season" ? "this season" : "all-time peak"}`}
             rows={rows}
             me={page.me}
             meSub={page.me ? meSubLine(page.me, page.total) : undefined}
@@ -216,11 +304,6 @@ export function RatingBoardsScreen({
       <p className="lb-foot">
         Updated every few minutes. Under-18s are hidden unless they choose to show.
       </p>
-
-      <section className="lb-section" aria-label="Top players by category">
-        <SectionHeader title="Top players by category" />
-        <CategoryBoards isAccount={isAccount} />
-      </section>
     </div>
   );
 }

@@ -8,8 +8,9 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { AccountHead } from "@/components/account/AccountParts";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { Button, EmptyState, Icon, LiveTag, Panel, Row, SectionHeader, SkeletonPage } from "@/design/components";
-import { NameplateSheet, NameplateStrip, nameplateOpens, useNameplateSheet } from "@/design/identity";
+import { Button, EmptyState, Icon, LiveTag, Medal, Panel, Row, SectionHeader, SkeletonPage } from "@/design/components";
+import { MiniCard, NameplateSheet, NameplateStrip, nameplateLook, nameplateOpens, useNameplateSheet } from "@/design/identity";
+import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { plateName, type PlateView } from "@/lib/identity/plates";
 import { ukTime } from "@/lib/publicSchedule";
 import { KIND_LABEL, placeLabel, UNDER_REVIEW_LINE } from "@/lib/tournaments/rules";
@@ -17,6 +18,7 @@ import { countdown, entryLabel, tournamentsBackend, useTournamentEvent } from "@
 import type { ArenaBoard, ArenaPoll, EntryOption, ScoreAttackBoard, TournamentEventView } from "@/lib/tournaments/types";
 
 import { dayLabel, inMinutes } from "./TournamentHub";
+import { KIND_ART, TournamentArt } from "./TournamentArt";
 import { BigEventLive } from "./BigEventLive";
 import { bigHowItWorks, CHAMPIONSHIP_NOT_HELD, CHAMPIONSHIP_NOT_HELD_LINE, CUP_MIN_ENTRANTS, isBigKind } from "@/lib/tournaments/eventRules";
 
@@ -42,10 +44,10 @@ function prizeText(coins: number, trophy: string | null): string {
   return `${coins.toLocaleString("en-GB")} coins${trophy ? `, ${trophy} trophy` : ""}`;
 }
 
-function When({ ev, now }: { ev: TournamentEventView; now: number }) {
-  if (ev.kind === "score_attack") return <p className="tn-meta">{`${dayLabel(ev.startsAt, now)}, all day (UK time)`}</p>;
-  if (isBigKind(ev.kind)) return <p className="tn-meta">{`${dayLabel(ev.startsAt, now)}, ${ukTime(ev.startsAt)} UK, about 90 min`}</p>;
-  return <p className="tn-meta">{`${dayLabel(ev.startsAt, now)}, ${ukTime(ev.startsAt)} UK, about 45 min`}</p>;
+function whenText(ev: TournamentEventView, now: number): string {
+  if (ev.kind === "score_attack") return `${dayLabel(ev.startsAt, now)}, all day (UK time)`;
+  if (isBigKind(ev.kind)) return `${dayLabel(ev.startsAt, now)}, ${ukTime(ev.startsAt)} UK, about 90 min`;
+  return `${dayLabel(ev.startsAt, now)}, ${ukTime(ev.startsAt)} UK, about 45 min`;
 }
 
 function EntryButtons({ ev, busy, onEnter }: { ev: TournamentEventView; busy: boolean; onEnter: (o: EntryOption) => void }) {
@@ -72,7 +74,7 @@ function EntryButtons({ ev, busy, onEnter }: { ev: TournamentEventView; busy: bo
   );
 }
 
-function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
+export function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
   const navigate = useNavigate();
   const [board, setBoard] = useState<ArenaBoard | null>(null);
   const [state, setState] = useState<"idle" | "searching" | "closed">("idle");
@@ -203,8 +205,13 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
       </Panel>
       <section aria-label="Leaderboard" className="ap-section">
         <SectionHeader title="Points" right={board ? <span className="ap-meta">{`${board.players} playing`}</span> : undefined} />
+        <PlatePodium
+          rows={(board?.rows ?? []).map((r) => ({ place: r.place, plate: r.plate, isMe: r.isMe, value: `${r.points}`, valueLabel: `${r.points} points` }))}
+          onOpen={openRow}
+        />
+        {splitPodium(board?.rows ?? []).below.length > 0 ? (
         <Panel as="ol">
-          {(board?.rows ?? []).map((r) => (
+          {splitPodium(board?.rows ?? []).below.map((r) => (
             <PlateRow
               key={r.playerId}
               place={r.place}
@@ -218,6 +225,7 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
             />
           ))}
         </Panel>
+        ) : null}
       </section>
       <NameplateSheet player={openCard?.plate ?? null} onClose={closeCard}>
         {openCard?.line}
@@ -230,7 +238,7 @@ function ordinal(n: number): string {
   return placeLabel(n, n);
 }
 
-function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () => void }) {
+export function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () => void }) {
   const [board, setBoard] = useState<ScoreAttackBoard | null>(null);
   useEffect(() => {
     void tournamentsBackend().then(async (b) => {
@@ -271,8 +279,13 @@ function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () =
       {board?.open && board.rows.length ? (
         <section aria-label="Leaderboard" className="ap-section">
           <SectionHeader title="Leaderboard" right={<span className="ap-meta">{`${board.count} played`}</span>} />
+          <PlatePodium
+            rows={board.rows.map((r) => ({ place: r.place, plate: r.plate, isMe: r.isMe, value: r.total.toLocaleString("en-GB"), valueLabel: r.total.toLocaleString("en-GB") }))}
+            onOpen={openRow}
+          />
+          {splitPodium(board.rows).below.length > 0 ? (
           <Panel as="ol">
-            {board.rows.map((r) => (
+            {splitPodium(board.rows).below.map((r) => (
               <PlateRow
                 key={`${r.place}`}
                 place={r.place}
@@ -284,6 +297,7 @@ function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () =
               />
             ))}
           </Panel>
+          ) : null}
         </section>
       ) : null}
       <NameplateSheet player={openCard?.plate ?? null} onClose={closeCard}>
@@ -369,15 +383,20 @@ export function TournamentEventScreen({
     <PhoneShell bare skin="tournaments">
       <div className="tn-page" data-tournament-event={ev.id} data-kind={ev.kind}>
         <AccountHead title="Tournament" onBack={onBack} />
-        <div>
-          <div className="tn-live-head">
-            {ev.status === "live" ? <LiveTag /> : null}
-            <span className="tn-kind">{`${KIND_LABEL[ev.kind]}, ${ev.pickLabel}`}</span>
+        <div className="tn-event-grid">
+        <div className="tn-event-main">
+        <header className="jz-panel tn-event-hero jz-cut-lg" data-tournament-hero>
+          <TournamentArt name={KIND_ART[ev.kind]} size={64} />
+          <div className="tn-hero-text">
+            <span className="tn-live-head">
+              {ev.status === "live" ? <LiveTag /> : null}
+              <span className="tn-kind">{`${KIND_LABEL[ev.kind]} · ${ev.pickLabel}`}</span>
+            </span>
+            <h1 className="tn-event-title">{ev.title}</h1>
+            <p className="tn-meta">{whenText(ev, now)}</p>
+            <p className="tn-meta">{`${ev.entrants} entered`}</p>
           </div>
-          <h1 className="tn-title">{ev.title}</h1>
-          <When ev={ev} now={now} />
-          <p className="tn-meta">{`${ev.entrants} entered`}</p>
-        </div>
+        </header>
 
         {ev.status === "cancelled" ? (
           <Panel pad data-tournament-cancelled>
@@ -432,28 +451,39 @@ export function TournamentEventScreen({
           </Button>
         ) : null}
 
+        </div>
+        <div className="tn-event-side">
         <section aria-label="Prizes" className="ap-section">
           <SectionHeader title="Prizes" />
           <Panel>
             {ev.prizes.map((p) => (
-              <Row key={p.from} title={placeLabel(p.from, p.to)} sub={p.minEntrants > 1 ? `Pays with ${p.minEntrants} or more entrants` : undefined}>
-                <span className="tn-entry-value">{prizeText(p.coins, p.trophy)}</span>
-              </Row>
+              <Row
+                key={p.from}
+                icon="44"
+                leading={<span className="tn-prize-place">{p.from <= 3 ? <Medal place={p.from} /> : <span aria-hidden="true">{p.from}</span>}</span>}
+                title={prizeText(p.coins, p.trophy)}
+                sub={p.minEntrants > 1 ? `${placeLabel(p.from, p.to)} · with ${p.minEntrants}+ entrants` : placeLabel(p.from, p.to)}
+              />
             ))}
           </Panel>
           <p className="tn-meta">Prizes are fixed by Joulz. Entry fees never go into a prize pot.</p>
         </section>
 
         <section aria-label="How it works" className="ap-section">
-          <SectionHeader title="How it works" right={<Button variant="quiet" size={44} onClick={() => onRules(ev.kind)} data-tournament-rules>Full rules</Button>} />
-          <Panel pad>
-            <ol className="tn-how">
+          <SectionHeader title="How it works" />
+          <Panel>
+            <ol className="tn-how tn-how-pad">
               {howItWorks(ev).map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ol>
+            <Row as="button" onClick={() => onRules(ev.kind)} data-tournament-rules title="Full rules">
+              <Icon name="chevron-right" size={20} tone="text-3" />
+            </Row>
           </Panel>
         </section>
+        </div>
+        </div>
       </div>
     </PhoneShell>
   );
@@ -528,5 +558,91 @@ export function PlateRow({
         </span>
       )}
     </Row>
+  );
+}
+
+/** A board row's essentials for the podium. */
+interface PodiumRow {
+  place: number;
+  plate: PlateView;
+  isMe: boolean;
+  value: string;
+  valueLabel: string;
+}
+
+/** The podium's rows (the first three placed 1st to 3rd) and the rows below it, so nobody is drawn twice. */
+export function splitPodium<T extends { place: number }>(rows: readonly T[]): { podium: T[]; below: T[] } {
+  const podium = rows.slice(0, 3).filter((r) => r.place <= 3);
+  return { podium, below: rows.slice(podium.length) };
+}
+
+/** A podium slot's picture: the player's mini card, a guest's colour and initial, or a hidden player's plain disc. */
+function PodiumFace({ player: plate }: { player: PlateView }) {
+  if (plate.kind === "card") return <MiniCard look={nameplateLook(plate.card)} size={56} />;
+  if (plate.kind === "plain" && plate.colour !== null)
+    return <PlayerBadge look={{ colour: plate.colour, icon: plate.icon ?? null }} name={plate.name} size={56} />;
+  return (
+    <span className="tn-pod-disc" aria-hidden="true" data-hidden-disc={plate.kind === "hidden" ? "" : undefined}>
+      {plate.kind === "plain" ? plate.name.slice(0, 1).toUpperCase() : null}
+    </span>
+  );
+}
+
+/**
+ * The top three of a tournament board (Joe, 14 Nov 2026): three compact cards side by side at every size, 2nd · 1st ·
+ * 3rd with 1st raised, each the player's mini card, name, medal and points (places and scores under the card, never on
+ * it). A hidden player keeps "Hidden player" on a plain disc and opens nothing; a guest keeps colour and initial. With
+ * fewer than three on the board, only those show. The rows below start after them (`splitPodium`).
+ */
+export function PlatePodium({ rows, onOpen }: { rows: readonly PodiumRow[]; onOpen: (row: OpenRow) => void }) {
+  const top = splitPodium(rows).podium;
+  if (top.length === 0) return null;
+  return (
+    <ol className="tn-podium" aria-label="Top 3" data-board-podium={top.length}>
+      {top.map((r, i) => {
+        const name = plateName(r.plate);
+        const shown = r.isMe && r.plate.kind !== "hidden" ? `${name} (you)` : name;
+        const opens = nameplateOpens(r.plate);
+        const inner = (
+          <>
+            <PodiumFace player={r.plate} />
+            {/* The name alone (your own card is ringed in gold; "(you)" stays in its accessible name). */}
+            <span className="tn-pod-name" data-ellipsis="">
+              {name}
+            </span>
+            <span className="tn-pod-foot">
+              <Medal place={r.place} />
+              <span className="tn-pod-value">{r.value}</span>
+            </span>
+          </>
+        );
+        return (
+          <li
+            key={`${r.place}-${i}`}
+            className="tn-pod-step"
+            data-podium-place={i + 1}
+            data-me={r.isMe ? "" : undefined}
+            data-hidden-player={r.plate.kind === "hidden" ? "" : undefined}
+          >
+            {opens ? (
+              <button
+                type="button"
+                className="tn-pod-card press"
+                data-names=""
+                onClick={() => onOpen({ plate: r.plate, line: `${ordinal(r.place)} · ${r.valueLabel}` })}
+                aria-label={`${ordinal(r.place)}, ${shown}, ${r.valueLabel}. Open card`}
+                data-open-card
+              >
+                {inner}
+              </button>
+            ) : (
+              <span className="tn-pod-card" aria-label={`${ordinal(r.place)}, ${shown}, ${r.valueLabel}`} role="group">
+                {inner}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

@@ -2570,6 +2570,23 @@ outside the repo.
   exists). On a phone the catalogue's chips are one sideways-scrolling row (`data-scroll-x`, edge faded); tablets and
   computers wrap them. PhoneShell `railTab` draws the full rail on these pushed pages. Screens:
   `scripts/screens/games.ts` (theme-check in sixths, no-wrap-check in elevenths); shots `bun scripts/shots/games-shots.ts`.
+- **Tournaments, Leaderboards and Daily pages** (phase 2 step 3, 14 Nov 2026; `docs/design/style-guide/` list mockups,
+  review `docs/design/pages-review/tournaments/GALLERY.md`; presentation only, no server, scoring or stamp change): the
+  hub (`TournamentHubSections`) is two views on a segmented control, Upcoming (live events as hero cards, the week as
+  list rows: the event's art-kit icon, name, pick · entry · players, the time on the right, the bell for accounts) and
+  Your results (entries, then public-game results); both views are in the markup, the other `hidden`. The Category Cup
+  and the Championship stay hidden while their switches are off (`kindShown`). Event pages: a cut hero card, the
+  boards' top three as compact cards side by side at every size (`PlatePodium`: 2nd · 1st · 3rd, 1st raised, the mini
+  card, name, medal and points; a hidden player a plain disc that opens nothing; Joe, 14 Nov 2026), then the
+  NameplateStrip rows from 4th (`splitPodium`, nobody twice), prizes with medals, the rules as a row; the main
+  Leaderboards page keeps its full-card podium. Leaderboards: a board picker (`BoardPickerButton`: a sheet on phones and
+  tablets, the `data-board-side` list beside the board on a computer) holding the Joulz Rating, Puzzles, Arcade, the
+  Daily top 100 and the eleven category boards (`/leaderboards?board=<category>`); Profile's `CategoryBoards` is
+  unchanged. The Daily page: a cut hero card per kind and your line (`DailyYou`); the Daily archive's rows one
+  secondary button each. Art: `bun scripts/tournament-art.ts [--check]` (tournament-art-check) cuts the art kit to
+  `public/tournaments-art/` (`TournamentArt`, `KIND_ART`). Styles `src/polish-layout/tournaments-pages.css`. Screens:
+  `scripts/screens/tournaments.ts` (`TOURNAMENT_PAGES_SCREENS`, dark and light at every size; harness modes
+  `tournament`, `tournamentrules`, `dailyarchive`); theme-check in sixths and no-wrap-check in elevenths.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

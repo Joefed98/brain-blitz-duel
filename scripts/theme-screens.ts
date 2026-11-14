@@ -28,6 +28,7 @@ import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./ch
 import { roomsRatedScreens } from "./screens/rooms-rated";
 import { PROFILE_SCREENS } from "./screens/profile";
 import { GAMES_SCREENS } from "./screens/games";
+import { TOURNAMENT_PAGES_SCREENS } from "./screens/tournaments";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
   .pub as PuzzleData;
@@ -178,7 +179,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "badges" | "card" | "challenges";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "badges" | "card" | "challenges" | "tournament" | "tournamentrules" | "dailyarchive";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -1002,6 +1003,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...roomsRatedScreens({ room, sizes: ALL_SIZES }),
   ...PROFILE_SCREENS(),
   ...GAMES_SCREENS(NAV_SIZES, ALL_SIZES),
+  ...TOURNAMENT_PAGES_SCREENS(ALL_SIZES),
 ];
 
 export interface ThemeViewport {
