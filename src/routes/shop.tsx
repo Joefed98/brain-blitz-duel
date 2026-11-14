@@ -73,7 +73,7 @@ function ShopScreen() {
 
   const soon = part === "shop" ? SOON[section] : SOON[part];
   return (
-    <PhoneShell tabs="shop">
+    <PhoneShell tabs="shop" title="Shop">
       {shopOn ? (
         <div className="ap-stack" data-shop-page={part}>
           <Segmented<Part>
@@ -99,7 +99,7 @@ function ShopScreen() {
           ) : (
             <>
               <div className="shop-head">
-                <h1 className="ap-title">Plus</h1>
+                <h2 className="ap-title">Plus</h2>
               </div>
               {/* Wave 2 E2: Joulz Plus (the offer, or a member's Plus), where Plus is open; else its calm card. */}
               <PlusPart soon={soon} />

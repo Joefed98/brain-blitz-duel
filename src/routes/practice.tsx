@@ -835,13 +835,12 @@ function PracticeScreen() {
     const stars = { earned: progressView?.stars ?? 0, total: STAR_TOTAL_MAX };
     const sideTypes = new Set(ACTIVE_PUZZLE_TYPES.filter((key) => practiceSideOf(key) === side));
     return (
-      <PhoneShell tabs="practice" aside={<PageAside panels={["public", "daily", "week"]} />}>
+      <PhoneShell tabs="practice" title="Practice" aside={<PageAside panels={["public", "daily", "week"]} />}>
         <ProgressOnList.Provider value={progressView}>
         <GoalsOnList.Provider value={goalsRecord}>
         <PendingTypes.Provider value={pendingTypes}>
           <div className="ap-stack">
             <div className="flex flex-col gap-3">
-              <h1 className="ap-title">Practice</h1>
               <p data-practice-stars={stars.earned} className="pg-total">
                 <Stars levels={{ easy: true, classic: true, hard: true }} label={false} />
                 <span>

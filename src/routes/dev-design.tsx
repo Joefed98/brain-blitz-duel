@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { ComponentsGallery } from "@/design/ComponentsGallery";
 import {
   Button,
   Chip,
@@ -83,7 +84,8 @@ function DevDesign() {
   return (
     <PhoneShell skin="profile">
       <div data-dev-design className="flex flex-col gap-6 pb-12">
-        <h1 className="jz-title">Components</h1>
+        <ComponentsGallery />
+        <h2 className="jz-title">More pieces</h2>
 
         <Block title="Button">
           {(["gold", "secondary", "quiet"] as const).map((variant) => (

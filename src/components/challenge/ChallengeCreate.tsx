@@ -5,7 +5,7 @@ import { challengeRoundChoices } from "@/lib/duel/challenge";
 import { typesInCategory } from "@/lib/duel/catalogue";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { Dots } from "@/components/duel/Dots";
-import { Button, Chip, Input, Segmented } from "@/design/components";
+import { Button, Chip, Input, Segmented, Panel } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 
 /** The lobby's presets (RoomLobby), each with its line. */
@@ -52,9 +52,9 @@ export function ChallengeCreate({
   const choices = useMemo(() => challengeRoundChoices(categories), [categories]);
   return (
     <div data-challenge-create className="flex flex-col gap-4">
-      <section
+      <Panel as="section"
         data-tint="gold"
-        className="th-card flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
+        className="th-card flex flex-col gap-3 p-4"
       >
         {editingName ? (
           <div className="flex flex-col gap-1.5">
@@ -152,7 +152,7 @@ export function ChallengeCreate({
             {error}
           </p>
         ) : null}
-      </section>
+      </Panel>
     </div>
   );
 }

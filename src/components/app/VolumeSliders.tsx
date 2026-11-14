@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Slider } from "@/components/ui/slider";
 import { effectsVolume, musicVolume, onSoundSettingsChange, setEffectsVolume, setMusicVolume } from "@/lib/sound";
-import type { SoundChannel } from "@/lib/soundSettings";
+import { DEFAULT_VOLUME, type SoundChannel } from "@/lib/soundSettings";
 
 const CHANNELS: { channel: SoundChannel; label: string }[] = [
   { channel: "effects", label: "Sound effects" },
@@ -47,7 +47,7 @@ export function VolumeSliders() {
 
 /** Both channels' volumes, kept current from the sound settings. */
 function useChannelVolumes(): Record<SoundChannel, number> {
-  const [volumes, setVolumes] = useState<Record<SoundChannel, number>>({ effects: 1, music: 1 });
+  const [volumes, setVolumes] = useState<Record<SoundChannel, number>>({ ...DEFAULT_VOLUME });
   useEffect(() => {
     const read = () => setVolumes({ effects: effectsVolume(), music: musicVolume() });
     read();

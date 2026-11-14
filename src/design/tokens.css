@@ -70,7 +70,7 @@
   /* Results, Joules and places (DESIGN.md section 2 "Results, Joules and places"; 7 Nov 2026). */
   /* Wins: a tick on green. Losses: a cross on red. Never the colour alone. */
   --jz-win: #16C35B;
-  --jz-loss: #E5243F;
+  --jz-loss: #FF5A6E; /* style guide round 2 (14 Nov 2026; was #E5243F, 4.2 : 1 on the page) */
   /* Joules: electric lime, always with the small bolt mark; never gold. */
   --jz-joules: #C6FF3D;
   /* Shop rarities (wave 2, D1; docs/art/wave-2/README.md's ladder): Epic gold, Elite violet edge, Legendary diamond. */
@@ -144,6 +144,13 @@
   --jz-weight-medium: 600;
   --jz-weight-bold: 800;
   --jz-weight-black: 900;
+  /* The type scale (style guide round 2): six roles, Archivo, never under 13 px. */
+  --jz-type-display: 800 32px/38px var(--jz-font);
+  --jz-type-title: 800 24px/30px var(--jz-font);
+  --jz-type-heading: 800 20px/26px var(--jz-font);
+  --jz-type-body: 700 17px/22px var(--jz-font);
+  --jz-type-label: 600 15px/20px var(--jz-font);
+  --jz-type-caption: 600 13px/18px var(--jz-font);
 
   /* ------------------------------------------------ space (section 4) */
   --jz-space-4: 4px;
@@ -153,8 +160,10 @@
   --jz-space-20: 20px;
   --jz-space-24: 24px;
   --jz-space-32: 32px;
+  --jz-space-40: 40px;
   --jz-space-48: 48px;
   --jz-page-pad: 20px;
+  --jz-gutter: 16px; /* the style guide's phone gutter (round 2); page layouts take it in step 3 */
   --jz-section-gap: 24px;
 
   /* ------------------------------------------------ shape (section 4) */
@@ -166,7 +175,7 @@
   --jz-radius-tile: 16px;
   --jz-radius-sheet: 20px;
   /* The one shadow (sheets only). DESIGN.md names it without a value: this one is F1's pick. */
-  --jz-shadow-sheet: 0 -12px 32px rgb(0 0 0 / 0.55);
+  --jz-shadow-sheet: var(--jz-elev-2); /* style guide round 2's overlay level (was 0 -12px 32px rgb(0 0 0 / 0.55)) */
   /* The stripe texture (.jz-stripes): faint text-coloured diagonals. DESIGN.md gives no value: F1's pick. */
   --jz-stripe-ink: rgb(238 242 255 / 0.035);
   --jz-stripes: repeating-linear-gradient(135deg, var(--jz-stripe-ink) 0 2px, transparent 2px 10px);
@@ -178,13 +187,13 @@
   --jz-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* ------------------------------------------------ style guide round 2 (docs/design/style-guide, 14 Nov 2026) */
-  /* Added alongside today's tokens for the navigation frame (phase 2 step 1); no existing token's value changes
-     here (that is the components step). The angled cuts above (--jz-cut-lg 14px, --jz-cut-sm 8px) already match. */
+  /* Added for the navigation frame (phase 2 step 1); the components step (phase 2 step 2) moved today's tokens onto
+     the guide's values (--jz-loss, --jz-shadow-sheet) and added the type scale. */
   --jz-raised: #0B0F1C; /* tab bar, rail, sheets (the same colour as --jz-bg-raised) */
   --jz-surface-3: #28335A; /* pressed and selected */
   --jz-ledge-2: #03050A; /* a secondary button's ledge */
   --jz-gold-ink: #E2C07A; /* gold as text or an icon (darker in the light theme) */
-  --jz-loss-text: #FF5A6E; /* losses and rating down as text (the guide's loss; --jz-loss stays until the components step) */
+  --jz-loss-text: #FF5A6E; /* losses and rating down as text (the same value as --jz-loss since the components step) */
   --jz-button-gold-face: var(--jz-gold); /* flat champagne: the metal is for medals and emblems */
   --jz-ledge: 4px;
   --jz-elev-0: none;
@@ -204,6 +213,9 @@
   --jz-dur-count: 600ms;
   --jz-dur-win: 900ms;
   --jz-dur-reduced: 120ms;
+  --jz-dur-toast-in: 240ms;
+  --jz-dur-toast-out: 200ms;
+  --jz-dur-toast-hold: 3s;
   --jz-ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
 
   /* ------------------------------------------------ category accents (moved from styles.css, unchanged) */
@@ -274,6 +286,13 @@
   --jz-text-3: #59617F;
   --jz-gold-ink: #7A5C1C;
   --jz-loss-text: #B81C33;
+  --jz-loss: #B81C33;
+  --jz-win: #0B6F33;
+  --jz-joules: #456B00;
+  --jz-cyan: #006A7A; /* the guide's "live" in light (switches, live tags) */
+  --jz-well: #E4E7F0;
+  --jz-well-shadow: inset 0 2px 3px rgb(11 16 32 / 0.12);
+  --jz-press-tint: rgb(11 16 32 / 0.04);
   --jz-focus-ring: #006A7A;
   --jz-scrim: rgb(11 16 32 / 0.45);
   --jz-elev-1: inset 0 1px 0 rgb(255 255 255 / 0.6), 0 4px 0 var(--jz-ledge-2);

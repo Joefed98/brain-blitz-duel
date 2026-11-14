@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, Chip, Panel } from "@/design/components";
 import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
 import { GameReveal } from "@/components/duel/GameParts";
 import { useGameDef } from "@/lib/duel/gameLoader";
@@ -39,9 +39,9 @@ export function ReplayFrame({
   testId: string;
 }) {
   return (
-    <section
+    <Panel as="section"
       data-replay-panel={testId}
-      className="th-card relative flex w-full shrink-0 flex-col items-center gap-1 rounded-lg border border-border bg-card/60 p-1.5 animate-phase-in"
+      className="th-card relative flex w-full shrink-0 flex-col items-center gap-1 p-1.5 animate-phase-in"
     >
       <header className="flex w-full items-center gap-2 px-1">
         <span className="min-w-0 flex-1 truncate text-left font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
@@ -74,7 +74,7 @@ export function ReplayFrame({
         </p>
       ) : null}
       {footer}
-    </section>
+    </Panel>
   );
 }
 
@@ -230,8 +230,7 @@ export function FullRunViewer({
       />
       <div className="flex w-full max-w-md items-center gap-2">
         <Button
-          size="sm"
-          className="press font-mono text-xs uppercase"
+          size={36}
           onClick={() => {
             if (ended) {
               setSeek((s) => ({ to: 0, id: s.id + 1 }));
@@ -244,16 +243,9 @@ export function FullRunViewer({
           {ended ? "Again" : playing ? "Pause" : "Play"}
         </Button>
         {[0.5, 1, 2].map((value) => (
-          <Button
-            key={value}
-            size="sm"
-            variant={speed === value ? "default" : "outline"}
-            className="press font-mono text-xs"
-            onClick={() => setRate(value)}
-            data-replay-speed={value}
-          >
+          <Chip key={value} selected={speed === value} onClick={() => setRate(value)} data-replay-speed={value}>
             {value === 0.5 ? "Slow" : `${value}x`}
-          </Button>
+          </Chip>
         ))}
         <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
           {seconds(tick)}

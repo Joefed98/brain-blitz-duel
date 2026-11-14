@@ -26,8 +26,8 @@ function readArrows(): "arrows" | "joystick" {
 
 /**
  * Profile's settings (the gear): the existing device settings in one sheet, nothing new. Sound: a
- * switch each for effects and music and a volume slider each (VolumeSliders; the same settings as every
- * screen's header MuteToggle); the battery saver (lib/battery.ts); haptics (lib/haptics.ts); direction controls are the arrows/joystick choice the grid games offer in play
+ * switch each for effects and music and a volume slider each (VolumeSliders; the same settings as each game's menu;
+ * since the components step, 14 Nov 2026, the only place outside a game, no page header has them); the battery saver (lib/battery.ts); haptics (lib/haptics.ts); direction controls are the arrows/joystick choice the grid games offer in play
  * (GridDrag's own key); "How it works" reopens the first-time intro.
  */
 export function SettingsSheet({

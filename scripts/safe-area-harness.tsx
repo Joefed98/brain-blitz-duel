@@ -8,6 +8,7 @@
  * state (status, phase, results) each screen is drawn from.
  */
 // First: a check may pin games' maximums before any app module reads one (round-max-pin.ts).
+import { ComponentsGallery } from "../src/design/ComponentsGallery";
 import "./round-max-pin";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -597,6 +598,12 @@ if (mode === "pass") {
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   notfound: () => <NotFoundPage />,
   error: () => <RouteErrorScreen error={new Error("harness")} onRefresh={() => undefined} />,
+  // The components sheet (the components step, 14 Nov 2026): every shared component in every state.
+  components: () => (
+    <PhoneShell skin="profile">
+      <ComponentsGallery />
+    </PhoneShell>
+  ),
   // The launch screen held up (it goes the moment the app starts; here the app never "starts").
   launch: () => <LaunchSplash hold />,
   firstopen: () => <FirstOpen onDone={() => undefined} onPlay={() => undefined} onFriends={() => undefined} />,
@@ -633,7 +640,7 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   rated: () => <RatedHarnessScreen />,
   // The Pass part as the /shop route draws it (src/routes/shop.tsx), from window.__harnessPass.
   pass: () => (
-    <PhoneShell tabs="shop">
+    <PhoneShell tabs="shop" title="Shop">
       <div className="ap-stack" data-shop-page="pass">
         <PassScreen />
       </div>

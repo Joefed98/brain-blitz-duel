@@ -495,3 +495,26 @@ html:has([data-tab-screen="play"], [data-tab-screen="practice"]):not(:has([data-
 .jz-nav-soon.th-card::after {
   content: none;
 }
+
+/* ------------------------------------------------------------------ page titles and More's brand (the components step) */
+/* A tab page's title (AppHeader): the Title role (24 / 30, 800), beside the avatar on a phone, the page's first line by
+   the rail. */
+.jz-page-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--jz-text);
+  font: var(--jz-type-title);
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.jz-nav-header .jz-page-title {
+  margin-left: var(--jz-space-4);
+}
+.jz-more-brand {
+  display: flex;
+  justify-content: center;
+  padding: var(--jz-space-24) 0 var(--jz-space-8);
+}

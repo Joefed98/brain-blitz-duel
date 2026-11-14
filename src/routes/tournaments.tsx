@@ -20,7 +20,7 @@ import {
 } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { EmptyState } from "@/design/components";
+import { EmptyState, SectionHeader } from "@/design/components";
 import { TournamentHubSections } from "@/components/tournaments/TournamentHub";
 import { tournamentsBackend, useTournamentHub } from "@/lib/tournaments/tournamentsApi";
 import { HallOfFame } from "@/components/tournaments/BigEventLive";
@@ -117,16 +117,11 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
   };
 
   return (
-    <PhoneShell tabs="tournaments" aside={<PageAside panels={["daily", "week"]} />}>
+    <PhoneShell tabs="tournaments" title="Tournaments" aside={<PageAside panels={["daily", "week"]} />}>
       <div className="ap-stack">
-        {soon ? (
-          <h1 className="ap-title">Tournaments</h1>
-        ) : (
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="ap-title">Tournaments</h1>
-            <span className="ap-beta">Beta</span>
-          </div>
+        {soon ? null : (
+        <div className="flex items-start gap-2.5">
+          <span className="ap-beta">Beta</span>
           <p className="ap-sub">
             Public games on set dates. Join when the lobby opens, and everyone plays the same rounds.
           </p>
@@ -140,9 +135,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
 
         {next ? (
           <section aria-label="Next up" className="ap-section">
-            <div className="ap-section-head">
-              <h2 className="ap-section-title">Next up</h2>
-            </div>
+            <SectionHeader title="Next up" />
             <div className="jz-panel overflow-hidden">
               <PublicGameNext
                 game={next}
@@ -172,9 +165,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
 
         {later.length > 0 ? (
           <section aria-label="Coming up" className="ap-section">
-            <div className="ap-section-head">
-              <h2 className="ap-section-title">Coming up</h2>
-            </div>
+            <SectionHeader title="Coming up" />
             <div className="jz-panel">
               {later.map((game) => (
                 <div key={`${game.roomCode}-${game.startsAt}`} data-public-later>
@@ -188,14 +179,18 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
         {/* Coming soon: the results only where public games are scheduled or this device has played one. */}
         {soon && !next && results.length === 0 ? null : (
         <section aria-label="Your results" className="ap-section">
-          <div className="ap-section-head">
-            <h2 className="ap-section-title">Your results</h2>
-            {results.length > 0 ? (
-              <span className="ap-meta">
-                {results.length} {results.length === 1 ? "game" : "games"}
-              </span>
-            ) : null}
-          </div>
+          <SectionHeader
+            title="Your results"
+            right={
+              <>
+                {results.length > 0 ? (
+                  <span className="ap-meta">
+                    {results.length} {results.length === 1 ? "game" : "games"}
+                  </span>
+                ) : null}
+              </>
+            }
+          />
           {results.length === 0 ? (
             // Wave 1's empty-state card (E3's words for a results list): the button goes to playing.
             <EmptyState

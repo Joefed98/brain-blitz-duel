@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 /**
- * A section heading (DESIGN.md sections 3 and 5): the title (18/22, 800) over a 2 px rule, with an
- * optional meta line or link on the right.
+ * A section heading (DESIGN.md sections 3 and 5; style guide round 2): the title in the Heading role (20 / 26,
+ * 800), no rule, with an optional quiet "See all" link or meta line on the right in text 2.
  */
 export function SectionHeader({
   title,

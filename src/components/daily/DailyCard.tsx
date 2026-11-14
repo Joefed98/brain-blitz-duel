@@ -14,7 +14,7 @@ import {
   type DailyStatus,
 } from "@/lib/duel/daily";
 import { readPlayCards, writePlayCards } from "@/lib/playCards";
-import { Icon } from "@/design/components";
+import { Icon, SectionHeader } from "@/design/components";
 
 /**
  * A daily's row (tab pages refresh, 26 Oct 2026): its size and, once played today, "Done" (with this
@@ -88,10 +88,14 @@ export function DailyCard({
   if (!status?.available) return null;
   return (
     <section aria-label="Daily challenge" data-daily-card className="ap-section">
-      <div className="ap-section-head">
-        <h2 className="ap-section-title">Today</h2>
-        <span className="ap-meta">New at midnight</span>
-      </div>
+      <SectionHeader
+        title="Today"
+        right={
+          <>
+            <span className="ap-meta">New at midnight</span>
+          </>
+        }
+      />
       <div className="jz-panel">
         {DAILY_KINDS.map((kind) => {
           const { sub, action, done } = rowState(kind, status[kind], streak);

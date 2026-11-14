@@ -47,7 +47,7 @@ import type { PuzzleCategory } from "@/lib/duel/types";
 import { noteLinkArrival } from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { Button, Icon, Input, SkeletonPage } from "@/design/components";
+import { Button, Icon, Input, SkeletonPage, Panel } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { NameSuggestions } from "@/components/account/AccountParts";
 import { useAccountName } from "@/lib/account/accountApi";
@@ -449,10 +449,10 @@ function ChallengeScreen() {
                 round.
               </p>
             </div>
-            <section
+            <Panel as="section"
               data-tint="gold"
               data-challenge-state={info.state}
-              className="th-card flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
+              className="th-card flex flex-col gap-3 p-4"
             >
               <div className="flex items-baseline justify-between gap-2">
                 <p className="th-kicker text-primary">{info.roundCount} rounds</p>
@@ -529,7 +529,7 @@ function ChallengeScreen() {
                 </p>
               ) : null}
               <NameSuggestions names={suggestions} onPick={pickSuggestion} />
-            </section>
+            </Panel>
             {info.state === "full" ? (
               <NewChallengeButton onClick={() => setCode(null)} />
             ) : null}

@@ -174,7 +174,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -771,6 +771,27 @@ export const NAV_SCREENS = (): ThemeScreen[] => {
   ];
 };
 
+/**
+ * The components step (phase 2 step 2, 14 Nov 2026): the components sheet (every shared component in every state;
+ * src/design/ComponentsGallery.tsx) in the dark tokens and the light, and Settings' sound switches and volume sliders,
+ * at every size. Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const COMPONENT_SCREENS = (): ThemeScreen[] => [
+  { name: "components", mode: "components", plain: true, sizes: ALL_SIZES },
+  { name: "components, light", mode: "components", plain: true, globals: { __harnessTheme: "light" }, sizes: ALL_SIZES },
+  {
+    name: "settings, sound and volume",
+    mode: "profile",
+    sizes: ALL_SIZES,
+    go: async (page) => {
+      await page.locator("[data-open-settings]").first().click();
+      await page.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-settings-sheet] [data-volume-slider='music']").scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+    },
+  },
+];
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -943,6 +964,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...ROOM_IDENTITY_SCREENS(),
   ...SECURITY_C1A_SCREENS(),
   ...NAV_SCREENS(),
+  ...COMPONENT_SCREENS(),
 ];
 
 export interface ThemeViewport {

@@ -46,7 +46,7 @@ import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { Button, Icon, Input, Segmented, SkeletonPage } from "@/design/components";
+import { Button, Icon, Input, Segmented, SkeletonPage, Panel } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { NameSuggestions } from "@/components/account/AccountParts";
 import { useAccount, useAccountName } from "@/lib/account/accountApi";
@@ -387,10 +387,10 @@ function DailyScreen() {
         />
 
         {day === "today" ? (
-          <section
+          <Panel as="section"
             aria-label={`Today’s ${DAILY_TITLE[kind]}`}
             data-daily-state={state.state}
-            className="th-card flex flex-col gap-3 rounded-[18px] border p-4"
+            className="th-card flex flex-col gap-3 p-4"
           >
             <div className="flex items-baseline justify-between gap-2">
               <p className="th-kicker text-primary">Today, {DAILY_TITLE[kind]}</p>
@@ -470,7 +470,7 @@ function DailyScreen() {
                 setSuggestions([]);
               }}
             />
-          </section>
+          </Panel>
         ) : null}
 
         <div className="flex flex-col gap-2">

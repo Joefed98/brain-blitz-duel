@@ -263,7 +263,8 @@ assert.match(shell, /data-arcade-header=\{arcade \? "" : undefined\}/, "arcade p
 // Prompt R (23 Oct 2026): the four tab screens (never a game screen) draw AppHeader instead; every other screen
 // keeps the old top bar, which gives way on every live round (the frame's header replaces it) and, since the reveal
 // became its own screen (3 Nov 2026, #251), on a game's answer-reveal screen too.
-assert.match(shell, /\{tabs && !gameScreen \? <AppHeader \/> : !bare && !framePlay && !\(reveal && gameScreen\) && \(/, "the shell's own top bar gives way on live rounds and the reveal screen");
+// Changed with Joe's approval, 14 Nov 2026 (the components step: AppHeader takes the page's title and action).
+assert.match(shell, /\{tabs && !gameScreen \? <AppHeader title=\{title\} action=\{headerAction\} \/> : !bare && !framePlay && !\(reveal && gameScreen\) && /, "the shell's own top bar gives way on live rounds and the reveal screen");
 // The live "finished" ping (17 Oct 2026) is laid over the header's left half (relative, the ping absolute), never in its flow.
 assert.match(shell, /<div data-header-left className="game-frame-left">[\s\S]*?\{ping\}\s*<\/div>/, "the ping lies over the left half");
 assert.match(frameCss, /\.game-frame-left \{\s*position: relative;/, "the left half holds the ping");

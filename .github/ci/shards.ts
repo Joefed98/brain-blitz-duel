@@ -61,7 +61,7 @@ export const SHARDS: Record<string, string[]> = {
   // touch-highlight-check (18 Oct 2026: no tap highlight, touch focus ring or selection on game and room screens,
   // ~1 min with its dev server) rides beside screen-bottom-check, through the same harness.
   // Changed with Joe's approval, 14 Nov 2026: no-wrap-check's eighth part 7 (see play16).
-  play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx", "touch-highlight-check.tsx", "no-wrap-check.tsx@7/8"],
+  play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx", "touch-highlight-check.tsx", "no-wrap-check.tsx@7/10"],
   // arcade-room-practice-check's other two thirds (25 Oct 2026, see play15) ride on the two lightest of these jobs.
   play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@6/8", "arcade-room-practice-check.ts@2/3"],
   play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@7/8", "arcade-room-practice-check.ts@3/3"],
@@ -69,7 +69,7 @@ export const SHARDS: Record<string, string[]> = {
   // in Chromium, ~4 min) needs Chromium, so it rides on one of the lightest play jobs.
   play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@8/8", "standard-live-check.ts"],
   // Changed with Joe's approval, 14 Nov 2026: no-wrap-check's eighth part 8 (see play16).
-  play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/8", "no-wrap-check.tsx@8/8"],
+  play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/8", "no-wrap-check.tsx@8/10"],
   // arcade-fill-check (17 Oct 2026, the screen fill-ins: every active arcade game at 390x844 and as an iPhone 11
   // home-screen app, ~15-20 s a game with one page load each) in thirds alongside the lighter bottom-clearance parts.
   // beta-extras-check (22 Oct 2026: the beta terms, the Add to Home Screen hint, Send feedback and crash reporting
@@ -108,11 +108,11 @@ export const SHARDS: Record<string, string[]> = {
   // Changed with Joe's approval, 14 Nov 2026: no-wrap-check in eighths (its sixths 1 and 2 timed out at 300 s on play16 once
   // the dealing lobby joined; ~275 s before): parts 1–2 on play16, 3–5 on play17, and one each on the lightest browser jobs
   // of the 14 Nov Full suite: 6 on play23 (374 s), 7 on play6 (390 s), 8 on play10 (391 s).
-  play16: ["theme-check.tsx@1/3", "no-wrap-check.tsx@1/8", "no-wrap-check.tsx@2/8"],
+  play16: ["theme-check.tsx@1/3", "no-wrap-check.tsx@1/10", "no-wrap-check.tsx@2/10"],
   // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
   // harness, ~1 min with its dev server) rides with no-wrap's other four sixths.
   // Changed with Joe's approval, 14 Nov 2026: no-wrap-check's eighths 3–5 (see play16).
-  play17: ["theme-check.tsx@2/3", "no-wrap-check.tsx@3/8", "no-wrap-check.tsx@4/8", "no-wrap-check.tsx@5/8", "share-check.ts"],
+  play17: ["theme-check.tsx@2/3", "no-wrap-check.tsx@3/10", "no-wrap-check.tsx@4/10", "no-wrap-check.tsx@5/10", "share-check.ts"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
   // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
@@ -129,15 +129,18 @@ export const SHARDS: Record<string, string[]> = {
   // Browser checks that used to ride in the fast shards (1 Nov 2026): help-scroll-check (Chromium on a static page,
   // ~110 s, from g), battery-check (~190 s) and practice-switch-check (~60 s), both unlisted in the catch-all
   // before. BROWSER_CATCH_ALL: any browser check no shard lists runs here too.
-  play21: ["help-scroll-check.tsx", "battery-check.ts", "practice-switch-check.ts"],
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step's screens: no-wrap-check's
+  // eighth part 8 timed out at 300 s on play10, so it runs in tenths; parts 1–8 keep their shards, 9 here and 10 on
+  // play22; the ten parts together draw exactly what the whole run does).
+  play21: ["help-scroll-check.tsx", "battery-check.ts", "practice-switch-check.ts", "no-wrap-check.tsx@9/10"],
   // The computer layout (31 Oct 2026, docs/desktop-layout.md): desktop-layout-check in thirds (part 1 also the tab
   // pages, rooms of 16, phones and a touch screen at three desktop sizes; each part a third of the active games'
   // desktop modes at 1440x900, ~3-4 min each with its dev server), desktop-fairness-check (~2 min), and
   // arcade-play-check's desktop pass in halves (arcade-play-desktop-check: every arcade game at 1440x900 and
   // 1920x1080, ~6 min each).
-  play22: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts"],
+  play22: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts", "no-wrap-check.tsx@10/10"],
   // Changed with Joe's approval, 14 Nov 2026: no-wrap-check's eighth part 6 (see play16).
-  play23: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3", "no-wrap-check.tsx@6/8"],
+  play23: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3", "no-wrap-check.tsx@6/10"],
   play24: ["arcade-play-desktop-check.ts@1/2"],
   play25: ["arcade-play-desktop-check.ts@2/2"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and

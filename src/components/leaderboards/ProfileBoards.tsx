@@ -1,4 +1,4 @@
-import { Icon, Panel, Row } from "@/design/components";
+import { Icon, Panel, Row, SectionHeader } from "@/design/components";
 import { useAccount } from "@/lib/account/accountApi";
 
 import { CategoryBoards } from "./LeaderboardScreens";
@@ -15,9 +15,7 @@ export function ProfileBoards({
   const account = useAccount();
   return (
     <section aria-label="Leaderboards" data-profile-boards className="ap-section">
-      <div className="ap-section-head">
-        <h2 className="ap-section-title">Leaderboards</h2>
-      </div>
+      <SectionHeader title="Leaderboards" />
       <Panel>
         <Row
           as="button"

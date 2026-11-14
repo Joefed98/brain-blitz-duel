@@ -26,7 +26,7 @@ import { ordinal } from "@/lib/duel/ordinal";
 import type { PuzzleType } from "@/lib/duel/types";
 import { ukDay } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
-import { Button, EmptyState, Icon, Input } from "@/design/components";
+import { Button, EmptyState, Icon, Input, SectionHeader } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { useAccountName } from "@/lib/account/accountApi";
 import { BadgeCollection } from "@/components/badges/BadgeCollection";
@@ -118,14 +118,17 @@ function ProfileScreen() {
   };
 
   return (
-    <PhoneShell tabs="profile" aside={<PageAside panels={["public", "daily", "week"]} />}>
+    <PhoneShell
+      tabs="profile"
+      title="Profile"
+      headerAction={
+        <Button variant="icon" aria-label="Settings" data-open-settings onClick={() => setSettings(true)} className="-mr-2.5">
+          <Icon name="settings" size={20} />
+        </Button>
+      }
+      aside={<PageAside panels={["public", "daily", "week"]} />}
+    >
       <div className="ap-stack">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="ap-title">Profile</h1>
-          <Button variant="icon" aria-label="Settings" data-open-settings onClick={() => setSettings(true)} className="-mr-2.5">
-            <Icon name="settings" size={20} />
-          </Button>
-        </div>
 
         {/* Wave 2: the player card, Customise and the Joulz Rating's line (src/components/identity/ProfileCard.tsx). */}
         <ProfileCard guestName={shownName} guestColour={loaded ? look.colour : null} />
@@ -196,12 +199,16 @@ function ProfileScreen() {
         {/* Get started (T-ProfileNew): three steps that tick off from this device's own records. */}
         {loaded && doneCount < steps.length ? (
           <section aria-label="Get started" data-get-started className="ap-section">
-            <div className="ap-section-head">
-              <h2 className="ap-section-title">Get started</h2>
-              <span className="ap-meta">
-                {doneCount} of {steps.length}
-              </span>
-            </div>
+            <SectionHeader
+              title="Get started"
+              right={
+                <>
+                  <span className="ap-meta">
+                    {doneCount} of {steps.length}
+                  </span>
+                </>
+              }
+            />
             <div className="jz-panel">
               {steps.map((step) => (
                 <button
@@ -234,9 +241,7 @@ function ProfileScreen() {
             out on the server from the Dailies it stores (the same on every device); this device's record until it answers. */}
         {dailyShown && dailyShown.days.length > 0 ? (
           <section aria-label="Daily" data-profile-daily className="ap-section">
-            <div className="ap-section-head">
-              <h2 className="ap-section-title">Daily</h2>
-            </div>
+            <SectionHeader title="Daily" />
             <div className="jz-panel ap-stats">
               {[
                 { label: "Day streak", value: dailyShown.streak },
@@ -267,9 +272,7 @@ function ProfileScreen() {
         {/* Mastery (wave 2 C1a): the account's star total out of 276 and the next gem colour it unlocks. */}
         {progress ? (
           <section aria-label="Mastery stars" data-profile-mastery={progress.stars} className="ap-section">
-            <div className="ap-section-head">
-              <h2 className="ap-section-title">Mastery stars</h2>
-            </div>
+            <SectionHeader title="Mastery stars" />
             <div className="jz-panel jz-row" data-icon="none">
               <span data-ellipsis className="jz-row-title min-w-0 flex-1">
                 {starTotalLine(progress)}
@@ -285,16 +288,20 @@ function ProfileScreen() {
 
         {bests.length > 0 ? (
           <section aria-label="Practice bests" className="ap-section">
-            <div className="ap-section-head">
-              <h2 className="ap-section-title">Practice bests</h2>
-              <button
-                type="button"
-                onClick={() => goToTab(router, "profile", "practice")}
-                className="ap-link press -my-2.5 -mr-1 h-11 min-w-11 px-1"
-              >
-                All {bests.length}
-              </button>
-            </div>
+            <SectionHeader
+              title="Practice bests"
+              right={
+                <>
+                  <button
+                    type="button"
+                    onClick={() => goToTab(router, "profile", "practice")}
+                    className="ap-link press -my-2.5 -mr-1 h-11 min-w-11 px-1"
+                  >
+                    All {bests.length}
+                  </button>
+                </>
+              }
+            />
             <ul className="jz-panel">
               {bests.slice(0, 3).map(({ type, best }) => (
                 <li key={type} data-icon="game" className="jz-row">
@@ -315,9 +322,7 @@ function ProfileScreen() {
         {loaded && history.length === 0 ? (
           // Nothing played in a room yet (wave 1's empty state, E3): where games and results will show.
           <section aria-label="Recent rooms" className="ap-section">
-            <div className="ap-section-head">
-              <h2 className="ap-section-title">Recent rooms</h2>
-            </div>
+            <SectionHeader title="Recent rooms" />
             <EmptyState
               data-recent-rooms-empty
               layout="card"
@@ -331,9 +336,7 @@ function ProfileScreen() {
 
         {history.length > 0 ? (
           <section aria-label="Recent rooms" className="ap-section">
-            <div className="ap-section-head">
-              <h2 className="ap-section-title">Recent rooms</h2>
-            </div>
+            <SectionHeader title="Recent rooms" />
             <ul className="jz-panel">
               {history.slice(0, 5).map((r) => (
                 <li key={r.key} data-recent-room={r.code} data-icon="place" className="jz-row">
