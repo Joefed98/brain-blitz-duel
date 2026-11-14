@@ -643,3 +643,22 @@ button.cz-gem {
   outline: 3px solid var(--jz-focus-ring);
   outline-offset: 3px;
 }
+/* Long names and where a locked item comes from ("Season 1 premium pass, level 14") wrap rather than being cut off. */
+.cz-avatar > span[data-wrap-ok]:last-child {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.cz-item-sub[data-wrap-ok] {
+  align-items: flex-start;
+  white-space: normal;
+}
+.cz-item-sub[data-wrap-ok] > span {
+  overflow: visible;
+  text-overflow: clip;
+}
+/* The player's name in a name-colour preview: a name line (it may end in an ellipsis on a narrow tile). */
+.cz-name-line {
+  display: contents;
+}

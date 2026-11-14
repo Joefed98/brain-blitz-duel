@@ -743,7 +743,7 @@ function HeadToHeadPanel({ name, h2h }: { name: string; h2h: NonNullable<FriendP
   return (
     <Panel pad className="fr-h2h" data-head-to-head={`${h2h.wins}-${h2h.losses}-${h2h.draws}`}>
       <div className="fr-h2h-head">
-        <h2>You v {name}</h2>
+        <h2 data-names>You v {name}</h2>
         <span className="fr-sub">{h2h.matches === 1 ? "1 match" : `${h2h.matches} matches`}</span>
       </div>
       {h2h.matches === 0 ? (

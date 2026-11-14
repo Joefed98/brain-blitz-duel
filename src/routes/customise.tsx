@@ -75,7 +75,7 @@ function LookChoice({ id, name, game, on, onPick }: { id: string | null; name: s
     <button type="button" role="radio" aria-checked={on} data-look-choice={id ?? "default"} onClick={onPick} className="cz-item press">
       <LookPreview id={id} game={game} />
       <span className="cz-item-name">{name}</span>
-      <span className="cz-item-sub">
+      <span className="cz-item-sub" data-wrap-ok>
         <span>{on ? "Equipped" : id ? "Owned" : "Always yours"}</span>
       </span>
     </button>
@@ -285,7 +285,7 @@ function CustomiseScreen() {
                         className="cz-avatar press"
                       >
                         <Avatar look={{ id: a.id, colour: avatar.colour, gem: avatar.gem }} size={52} />
-                        <span>{a.name}</span>
+                        <span data-wrap-ok>{a.name}</span>
                       </button>
                     ))}
                     {allAvatars ? null : (
@@ -433,9 +433,9 @@ function CustomiseScreen() {
                           onClick={() => pick(slot, null)}
                           className="cz-item press"
                         >
-                          <NamePiece id={null} name={name} />
+                          <span data-names className="cz-name-line"><NamePiece id={null} name={name} /></span>
                           <span className="cz-item-name">Plain</span>
-                          <span className="cz-item-sub">
+                          <span className="cz-item-sub" data-wrap-ok>
                             <span>{slotValue(slot) === null ? "Equipped" : "Owned"}</span>
                           </span>
                         </button>
@@ -459,9 +459,9 @@ function CustomiseScreen() {
                                 {RARITY_LABEL[item.rarity]}
                               </span>
                             ) : null}
-                            {slot === "name-colour" ? <NamePiece id={item.id} name={name} /> : <CardPiece id={item.id} />}
+                            {slot === "name-colour" ? <span data-names className="cz-name-line"><NamePiece id={item.id} name={name} /></span> : <CardPiece id={item.id} />}
                             <span className="cz-item-name">{item.name}</span>
-                            <span className="cz-item-sub">
+                            <span className="cz-item-sub" data-wrap-ok>
                               {owned ? (
                                 <span>{on ? "Equipped" : "Owned"}</span>
                               ) : (
