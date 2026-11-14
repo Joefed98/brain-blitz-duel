@@ -248,6 +248,8 @@ export async function bindW3(): Promise<RatedBackend> {
       // W3b's record against a live opponent (recorded runs never count: their owner never played you).
       headToHead: view.kind === "live" && themCard.userId ? await headToHeadWith(themCard.userId) : null,
       placement: mine?.placement && mineR ? Math.min(5, mineR.placement.played + 1) : null,
+      // Phase 2 step 3 (Joe, 14 Nov 2026): the server's stakes for this match; none in placement.
+      stakes: mine?.placement ? null : await rated.ratedStakesFn({ data: { matchId: view.matchId } }).catch(() => null),
     };
   }
 
@@ -427,6 +429,10 @@ export async function bindW3(): Promise<RatedBackend> {
     },
 
     ladder,
+
+    async stakesEstimate(format, pick) {
+      return rated.ratedStakesEstimateFn({ data: { format, choice: pick } }).catch(() => null);
+    },
 
     async roomMatch(roomId) {
       const info = await rated.ratedRoomFn({ data: { roomId } }).catch(() => null);

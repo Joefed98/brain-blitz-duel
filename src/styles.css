@@ -48,6 +48,8 @@
 @import "./polish-layout/puzzle-shared.css";
 @import "./polish-layout/nav.css";
 @import "./polish-layout/light.css";
+@import "./polish-layout/room-pages.css";
+@import "./polish-layout/rated-pages.css";
 @import "./polish-layout/profile.css";
 
 /*

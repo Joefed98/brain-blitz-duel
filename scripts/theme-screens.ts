@@ -25,6 +25,7 @@ import { boardsFixture } from "./leaderboards-fixture";
 import { passFixture } from "./pass-fixture";
 import { SHOP_SCREENS } from "./screens/shop";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
+import { roomsRatedScreens } from "./screens/rooms-rated";
 import { PROFILE_SCREENS } from "./screens/profile";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
@@ -995,9 +996,9 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...NAV_SCREENS(),
   ...COMPONENT_SCREENS(),
   ...APPEARANCE_SCREENS(),
-  // The Profile session's screens before the Shop's (shop-pages-check keeps SHOP_SCREENS last).
-  ...PROFILE_SCREENS(),
   ...SHOP_SCREENS(),
+  ...roomsRatedScreens({ room, sizes: ALL_SIZES }),
+  ...PROFILE_SCREENS(),
 ];
 
 export interface ThemeViewport {

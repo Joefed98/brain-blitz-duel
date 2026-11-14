@@ -47,7 +47,9 @@ check(!/<s\b|line-through/.test(files.map((f) => readFileSync(f, "utf8")).join("
 const screens = readFileSync(join("scripts", "screens", "shop.ts"), "utf8");
 const themeScreens = readFileSync(join("scripts", "theme-screens.ts"), "utf8");
 const entries = [...screens.matchAll(/\{ name: "shop page[^\n]*|name: "shop page[^"]*",[\s\S]*?sizes: [A-Z_]+/g)].map((m) => m[0]);
-check(/\.\.\.SHOP_SCREENS\(\),\n\];/.test(themeScreens), "SHOP_SCREENS is appended last to THEME_SCREENS (theme-check, no-wrap-check)");
+// Changed with Joe's approval, 14 Nov 2026 (later areas append after the Shop): SHOP_SCREENS is in THEME_SCREENS straight
+// after APPEARANCE_SCREENS, the last pre-step-3 entry, so no earlier screen changes its place; later areas may follow it.
+check(/\.\.\.APPEARANCE_SCREENS\(\),\n {2}\.\.\.SHOP_SCREENS\(\),\n/.test(themeScreens), "SHOP_SCREENS is in THEME_SCREENS straight after APPEARANCE_SCREENS (theme-check, no-wrap-check)");
 check(entries.length === 11, `eleven Shop page screens (${entries.length})`);
 check(entries.every((e) => /sizes: (ALL_SIZES|NAV_SIZES)/.test(e)), "each drawn at every size");
 check(entries.filter((e) => /NAV_SIZES/.test(e)).length >= 3, "the main parts also on the sideways tablet");
