@@ -188,8 +188,9 @@ try {
   });
   // Every other tab page the check visits, warmed the same way (unmeasured; nothing judged): a cold dev server
   // compiles each route's own modules on its first request (/practice, every game's tile, takes ~18 s cold here). The waits and assertions below are unchanged.
-  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: its page is titled "Games").
-  for (const [path, heading] of [["/practice", "Games"], ["/tournaments", "Tournaments"], ["/profile", "Profile"]] as const) {
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequences of the Home and Play pages, /play and /rooms
+  // warmed too, and of the Games catalogue, its page titled "Games").
+  for (const [path, heading] of [["/practice", "Games"], ["/tournaments", "Tournaments"], ["/profile", "Profile"], ["/play", "Play"], ["/rooms", "Rooms"]] as const) {
     await warmUp(browser, `${origin}${path}`, async (page) => {
       await page.getByRole("heading", { level: 1, name: heading }).waitFor({ timeout: 180_000 });
     }, {
@@ -201,7 +202,9 @@ try {
   {
     const { page, context, errors } = await openApp("/", { clock: BEFORE_LOBBY });
     try {
-      await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 60_000 });
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Home
+      // is waited for by its own marker; Create a room, Join and the public game card moved to the Rooms page.
+      await page.locator("[data-home]").waitFor({ timeout: 60_000 });
       await hydrated(page, "[data-app-tabbar] a");
       check((await tabBar(page)) === 1 && (await currentTab(page)) === "play", "Play: the tab bar is up with Play current");
       const tabs = await page.locator("[data-app-tabbar] a").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
@@ -238,27 +241,14 @@ try {
         return { bottom: r.bottom, rowBottom: row.bottom, h: innerHeight };
       });
       check(Math.abs(bar.bottom - bar.h) < 0.5 && bar.h - bar.rowBottom >= 33.5, `the tab bar sits on the bottom, its tabs above the 34px home bar (${JSON.stringify(bar)})`);
-      check(await page.getByRole("textbox", { name: "Room code" }).isVisible(), "Quick play: the join code field");
-      check(await page.getByRole("button", { name: "Join", exact: true }).isVisible(), "Quick play: Join");
-      check((await page.locator("[data-warm-up]").count()) === 3, "Warm up: three game tiles");
-      check((await page.locator("[data-warm-up] [data-game-icon]").count()) === 3, "Warm up: each tile has its game's icon");
-
-      const card = page.locator("[data-public-game]").first();
-      check((await card.getAttribute("data-public-game")) === "calendar", "Next public game: before lobby time it offers a calendar");
-      check(await page.getByRole("button", { name: "Add to calendar" }).isVisible(), 'Next public game: "Add to calendar"');
-      check(await page.getByRole("button", { name: "Join now" }).isDisabled(), 'Next public game: "Join now" is off before lobby time');
-      // Tab pages refresh (26 Oct 2026): the quiet button says when the lobby opens, the line how long until then.
-      check(/Opens 6:45 pm/.test((await card.textContent()) ?? ""), "Next public game: the lobby time in UK time");
-      check(/Lobby opens in under a minute/.test((await card.textContent()) ?? ""), "Next public game: how long until the lobby opens");
-      const download = page.waitForEvent("download", { timeout: 10_000 }).catch(() => null);
-      await page.getByRole("button", { name: "Add to calendar" }).click();
-      const file = await download;
-      check(!!file && /\.ics$/.test(file.suggestedFilename()), `"Add to calendar" downloads an .ics file (${file?.suggestedFilename() ?? "none"})`);
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages): Warm up's three tiles
+      // became Your next match's Practice suggestion (a device with no rated play or friends), with its game's icon.
+      check((await page.locator("[data-next-match='practice']").count()) === 1, "Your next match: a Practice suggestion");
+      check((await page.locator("[data-next-match='practice'] [data-game-icon]").count()) === 1, "Your next match: the game's icon");
+      // The public game card moved to the Rooms page (checked on its own page below); the clock moves on to lobby
+      // time here too, for Tournaments' Join now further down.
       await page.clock.fastForward(45_000);
       await page.waitForTimeout(300);
-      check((await card.getAttribute("data-public-game")) === "join", "Next public game: at lobby time it switches to Join now");
-      // Since the follow-up to #129 Join now is always on the card, off until lobby time: judge it enabled here.
-      check((await page.getByRole("button", { name: "Join now" }).isVisible()) && (await page.getByRole("button", { name: "Join now" }).isEnabled()), 'Next public game: "Join now"');
 
       // Tabs: Play → Practice (pushed) → Tournaments → More (replaced), then Back returns to Play.
       // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: More takes the Profile
@@ -294,7 +284,7 @@ try {
       await page.goBack();
       await page.locator("[data-more-row='profile']").waitFor({ timeout: 30_000 });
       await page.goBack();
-      await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 30_000 });
+      await page.locator("[data-home]").waitFor({ timeout: 30_000 });
       check(new URL(page.url()).pathname === "/", "Back from the tabs returns to Play");
 
       // Tournaments: Next up (Join now, it is lobby time) and Coming up; Join now opens the public room.
@@ -404,18 +394,57 @@ try {
       await context.close();
     }
   }
+  /* The Rooms page (phase 2 step 3): Quick play and the schedule card switching at lobby time. */
+  {
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages): Create a room, Join and
+    // the Next public game card moved from Home to the Rooms page; the same checks, on its own page and clock.
+    const { page, context } = await openApp("/rooms", { clock: BEFORE_LOBBY });
+    try {
+      await page.getByRole("heading", { level: 1, name: "Rooms" }).waitFor({ timeout: 60_000 });
+      await hydrated(page, "[data-rooms-page] button");
+      check(await page.getByRole("button", { name: "Create a room" }).isVisible(), "Rooms: Create a room");
+      check(await page.getByRole("textbox", { name: "Room code" }).isVisible(), "Quick play: the join code field");
+      check(await page.getByRole("button", { name: "Join", exact: true }).isVisible(), "Quick play: Join");
+      check((await tabBar(page)) === 0, "Rooms (a page inside Play) has no tab bar");
+
+      const card = page.locator("[data-public-game]").first();
+      check((await card.getAttribute("data-public-game")) === "calendar", "Next public game: before lobby time it offers a calendar");
+      check(await page.getByRole("button", { name: "Add to calendar" }).isVisible(), 'Next public game: "Add to calendar"');
+      check(await page.getByRole("button", { name: "Join now" }).isDisabled(), 'Next public game: "Join now" is off before lobby time');
+      // Tab pages refresh (26 Oct 2026): the quiet button says when the lobby opens, the line how long until then.
+      check(/Opens 6:45 pm/.test((await card.textContent()) ?? ""), "Next public game: the lobby time in UK time");
+      check(/Lobby opens in under a minute/.test((await card.textContent()) ?? ""), "Next public game: how long until the lobby opens");
+      const download = page.waitForEvent("download", { timeout: 10_000 }).catch(() => null);
+      await page.getByRole("button", { name: "Add to calendar" }).click();
+      const file = await download;
+      check(!!file && /\.ics$/.test(file.suggestedFilename()), `"Add to calendar" downloads an .ics file (${file?.suggestedFilename() ?? "none"})`);
+      await page.clock.fastForward(45_000);
+      await page.waitForTimeout(300);
+      check((await card.getAttribute("data-public-game")) === "join", "Next public game: at lobby time it switches to Join now");
+      // Since the follow-up to #129 Join now is always on the card, off until lobby time: judge it enabled here.
+      check((await page.getByRole("button", { name: "Join now" }).isVisible()) && (await page.getByRole("button", { name: "Join now" }).isEnabled()), 'Next public game: "Join now"');
+    } finally {
+      await context.close();
+    }
+  }
   {
     // On the schedule's clock, as the Play tab tests above: the page draws the same cards on any day.
     const { page, context } = await openApp("/", { clock: BEFORE_LOBBY });
     try {
-      const tile = page.locator("[data-warm-up]").first();
-      await tile.waitFor({ timeout: 60_000 });
-      await hydrated(page, "[data-warm-up]");
-      const type = await tile.getAttribute("data-warm-up");
-      await tile.click();
-      await page.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 60_000 });
-      check(new URL(page.url()).pathname === "/practice", `a Warm up tile (${type}) opens its game's round in practice`);
-      check((await tabBar(page)) === 0, "the Warm up round has no tab bar");
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages): the Warm up tile became
+      // Your next match's Practice suggestion, which opens the game's page (gamePageHref: today's Practice round).
+      const card = page.locator("[data-next-match='practice']");
+      await card.waitFor({ timeout: 60_000 });
+      await hydrated(page, "[data-next-match='practice'] button");
+      const type = await card.getAttribute("data-next-game");
+      await card.locator("button").click();
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the combined step-3 train: gamePageHref is the
+      // Games session's game page, whose Play opens the round's intro counting down, no Ready to press).
+      await page.locator("[data-game-page-play]").first().waitFor({ timeout: 60_000 });
+      check(new URL(page.url()).pathname === "/practice" && new URL(page.url()).searchParams.get("page") === type, `Your next match's Practice game (${type}) opens its game's page in practice`);
+      await page.locator("[data-game-page-play]").first().click();
+      await page.locator(".round-intro").first().waitFor({ timeout: 60_000 });
+      check((await tabBar(page)) === 0, "the Practice round has no tab bar");
     } finally {
       await context.close();
     }

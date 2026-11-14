@@ -27,6 +27,9 @@
  *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the light theme): only "home" (the Challenge
  *    tile's VS text carries class="tab-icon-ink") and "reveal150" (two attributes in a new order, from the status-bar
  *    effect) re-recorded; every other entry byte-identical.
+ *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): only
+ *    "home" re-recorded (Home redesigned: the Daily hero, Your next match, Recently played); every other entry
+ *    byte-identical.
  *
  * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
  * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.
@@ -114,6 +117,8 @@ const SCREENS: Record<string, Screen> = {
   // so Home is ready on its header; the logo's charge-in moved to the launch screen, Joe's decision of 14 Nov 2026).
   home: { name: "play", mode: "home", ready: "[data-app-header]", waitMs: 400 },
   launch: { name: "launch screen", mode: "launch", ready: "[data-launch] [data-app-wordmark]", waitMs: 400, plain: true },
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create a room moved from Home to the Rooms page.
+  rooms: { name: "rooms", mode: "rooms", ready: "[data-rooms-page]", waitMs: 400, plain: true },
 };
 
 /** Before the page: the log, the switch, and a sampler of every element's layout box from the screen's first frame. */
@@ -333,16 +338,17 @@ try {
 
   // Switched off: no layer, meter, charge or request, and today's markup.
   const offFinal: Record<string, string[]> = {};
-  for (const key of ["podium", "standings", "final2", "lobby3", "reveal150", "home"]) {
+  for (const key of ["podium", "standings", "final2", "lobby3", "reveal150", "home", "rooms"]) {
     const o = await open(browser, server.origin, key, false);
     check(!(await o.page.$("[data-celebration-layer]")), `off, ${key}: the layer is mounted`);
     check(!(await o.page.$("[data-charge-meter], [data-logo-charge]")), `off, ${key}: a meter or logo charge`);
-    if (key === "home") {
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create a room is clicked on the Rooms page.
+    if (key === "rooms") {
       await o.page.getByRole("button", { name: "Create a room" }).click();
       await o.page.waitForTimeout(300);
     }
     check((await o.log()).length === 0, `off, ${key}: celebration requests ${(await o.log()).map((e) => e.kind).join(",")}`);
-    if (before && key !== "home") await sameMarkup(o.page, before[key], `off, ${key}`);
+    if (before && key !== "home" && key !== "rooms") await sameMarkup(o.page, before[key], `off, ${key}`);
     if (before && key === "home") check(true, "home markup is compared before Create");
     offFinal[key] = await o.page.evaluate(() => [
       ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
@@ -569,7 +575,7 @@ try {
     check(await l.page.evaluate(() => (window as unknown as { __celLogoCharged: boolean }).__celLogoCharged), "launch screen: the first logo does not charge in");
     check(!(await l.page.$("[data-logo-charge]")) && (await l.page.$$("[data-app-wordmark] svg g, [data-app-wordmark] svg clipPath")).length === 0, "launch screen: the mark is not the plain mark once the charge-in ends");
     await l.close();
-    const o = await open(browser, server.origin, "home", true);
+    const o = await open(browser, server.origin, "rooms", true);
     await o.page.getByRole("button", { name: "Create a room" }).click();
     await o.page.waitForTimeout(300);
     check((await o.log()).some((e) => e.kind === "sound:zap"), "Create a room: no zap");

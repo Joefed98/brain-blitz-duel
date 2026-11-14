@@ -354,11 +354,12 @@ check(
     /withinRateLimit\(client, context\.userId, CREATE_ROOM_LIMIT\)/.test(createFn),
   "wiring: the #86 rate limits on room creation and code lookups are still in place",
 );
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Join moved to the Rooms page, through the shared useRoomStart.
 check(
   /await joinRoomByCode\(code\.trim\(\)\.toUpperCase\(\), trimmed, "code"\)/.test(
-    readFileSync("src/routes/index.tsx", "utf8"),
+    readFileSync("src/lib/home/useRoomStart.ts", "utf8"),
   ),
-  "wiring: the home screen's code boxes join with via 'code'",
+  "wiring: the Rooms page's code boxes join with via 'code'",
 );
 check(
   /await joinRoomByCode\(roomCode, trimmed, "link"\)/.test(

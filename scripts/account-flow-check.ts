@@ -212,7 +212,8 @@ async function flows(browser: Browser, origin: string, db: LocalDb, rest: RestSe
   let accountId = "";
 
   await section("1. sign-up", async () => {
-    const page = await open(390, 844, "/");
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create a room is on the Rooms page.
+    const page = await open(390, 844, "/rooms");
     await ready(page, "#name");
     await page.fill("#name", "Guesty");
     await page.getByRole("button", { name: "Create a room" }).click();
@@ -292,8 +293,10 @@ async function flows(browser: Browser, origin: string, db: LocalDb, rest: RestSe
 
     await page.click("[data-account-done]");
     await page.waitForURL((u) => u.pathname === "/", { timeout: 60_000 });
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): "Playing as" is on the Rooms page.
+    await page.goto(`${origin}/rooms`, { waitUntil: "load" });
     await page.waitForFunction(() => /Playing as\s*Flow_Player/.test(document.body.innerText), undefined, { timeout: 60_000 });
-    check((await page.locator("#name").count()) === 0, "Play shows Playing as the username, with no name box to type in");
+    check((await page.locator("#name").count()) === 0, "Rooms shows Playing as the username, with no name box to type in");
     await page.getByRole("button", { name: "Create a room" }).click();
     await page.waitForURL(/\/duel\//, { timeout: 120_000 });
     await page.waitForFunction(() => document.body.innerText.includes("Flow_Player"), undefined, { timeout: 60_000 });
@@ -351,7 +354,7 @@ async function flows(browser: Browser, origin: string, db: LocalDb, rest: RestSe
   });
 
   await section("3. signing in on another phone", async () => {
-    const page = await open(390, 844, "/");
+    const page = await open(390, 844, "/rooms");
     await ready(page, "#name");
     await page.fill("#name", "Second");
     await page.getByRole("button", { name: "Create a room" }).click();

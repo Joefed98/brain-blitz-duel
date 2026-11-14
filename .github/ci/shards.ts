@@ -104,7 +104,10 @@ export const SHARDS: Record<string, string[]> = {
   // desktop-geometry-check (17 Oct 2026: PC and laptop browsers at four sizes and while resizing, ~2-3 min with its
   // dev server) rides here, and room-16-check (31 Oct 2026: rooms of 16 and the colour wheel, ~1.5 min with its
   // dev server).
-  play14: ["room-extras-check.ts", "desktop-geometry-check.tsx", "room-16-check.ts"],
+  // Changed with Joe's approval, 14 Nov 2026 (pre-approved, the Home and Play pages, phase 2 step 3: 45 theme-check and 56
+  // no-wrap-check draws added on top of main's sevenths and twelfths): theme-check in eighths and no-wrap-check in
+  // thirteenths; the two new parts here.
+  play14: ["room-extras-check.ts", "desktop-geometry-check.tsx", "room-16-check.ts", "theme-check.tsx@8/8", "no-wrap-check.tsx@13/13"],
   // arcade-room-practice-check (18 Oct 2026: every arcade play screen in a room and in practice as an iPhone 11
   // home-screen app, at three layout viewports, ~2 min with its dev server) and fission-repeat-check (Fission
   // four times in a row in practice, ~2 min) on their own job: play14 is already near its limit.

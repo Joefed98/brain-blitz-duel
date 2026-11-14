@@ -806,9 +806,10 @@ for (const nav of ["none", "refused"] as const) {
   const root = readFileSync("src/routes/__root.tsx", "utf8");
   check(/noteShareArrival\(window\.location\)/.test(root), "the root route doesn't count arrivals");
   const home = readFileSync("src/routes/index.tsx", "utf8");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Home's first section is the Daily hero.
   check(
     home.indexOf("<ShareWelcomeCard") > 0 &&
-      home.indexOf("<ShareWelcomeCard") < home.indexOf("Play live with friends"),
+      home.indexOf("<ShareWelcomeCard") < home.indexOf("<DailyHero"),
     "the Play tab doesn't show the welcome card at its top",
   );
   check(
@@ -1064,9 +1065,9 @@ else {
       page.evaluate(() => {
         const card = document.querySelector("[data-share-welcome]") as HTMLElement | null;
         if (!card) return null;
-        const h1 = [...document.querySelectorAll("h1")].find((h) =>
-          /play live with friends/i.test(h.textContent ?? ""),
-        );
+        // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Home's
+        // first section is the Daily hero (the "Play live with friends" heading went with Quick play to the Rooms page).
+        const h1 = document.querySelector("[data-daily-card]");
         const lines = (el: Element) => {
           const range = document.createRange();
           range.selectNodeContents(el);

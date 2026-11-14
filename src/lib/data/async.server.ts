@@ -159,3 +159,16 @@ export async function updateOpenAsyncResult(
     .maybeSingle();
   return { data: data as unknown as AsyncResultRow | null, error };
 }
+
+/**
+ * How many attempts in a room have finished (Home's "12,431 played today", phase 2 step 3): a head-only exact count,
+ * no rows read. Null when the count can't be read.
+ */
+export async function countFinishedAttempts(client: Db, roomId: string): Promise<Result<number | null>> {
+  const { count, error } = await client
+    .from("async_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("room_id", roomId)
+    .not("finished_at", "is", null);
+  return { data: typeof count === "number" ? count : null, error };
+}

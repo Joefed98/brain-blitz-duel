@@ -61,6 +61,8 @@ import { setIdentityBackend } from "@/lib/identity/backend";
 import { setBadgesBackend } from "@/lib/badges/badgesApi";
 import { Route as BadgesRoute } from "@/routes/badges";
 import { Route as CardRoute } from "@/routes/card";
+import { Route as PlayRoute } from "@/routes/play";
+import { Route as RoomsRoute } from "@/routes/rooms";
 
 interface Verdict {
   isCorrect: boolean;
@@ -474,7 +476,8 @@ const ECONOMY: Record<string, (...args: never[]) => Promise<unknown>> = {
     const r = i as Record<string, unknown>;
     return { ...r, priceCoins: r["shop_price_coins"] ?? null };
   }) ?? null,
-  getMyWallet: async () => (customiseFixture() ? { account: true, balance: 1240 } : null),
+  // Home's header (phase 2 step 3): window.__harnessWallet stands in a balance too.
+  getMyWallet: async () => (customiseFixture() || (window as unknown as { __harnessWallet?: boolean }).__harnessWallet ? { account: true, balance: 1240 } : null),
   getMyInventory: async () => customiseFixture()?.owned.map((id) => ({ id })) ?? null,
   getMyLoadout: async () => (customiseFixture() ? customiseLoadout() : null),
   getAvatarOptions: async () => (customiseFixture() ? {} : null),
@@ -486,6 +489,8 @@ async function roomCardsFn() {
 }
 
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  // Home and Play (phase 2 step 3): today's Daily play counts (window.__harnessDailyCounts); null when unset.
+  dailyPlayedTodayFn: async () => (window as unknown as { __harnessDailyCounts?: unknown }).__harnessDailyCounts ?? null,
   // The navigation step's checks: a player with tournaments (window.__harnessTournamentHub, with
   // __DUELZ_ALLOW_TOURNAMENTS__ so the tab asks); null otherwise, as for everyone else.
   tournamentHubFn: async () => (window as unknown as { __harnessTournamentHub?: unknown }).__harnessTournamentHub ?? null,
@@ -675,6 +680,23 @@ if (mode === "shop") {
     };
   }
 }
+// Home and Play (phase 2 step 3): a player with rated play, from window.__harnessRatedStatus (a RatedStatus), served by
+// a stand-in rated backend; unset, rated play is closed as for everyone else.
+{
+  const w2 = window as unknown as { __harnessRatedStatus?: unknown; __harnessRatedStakes?: unknown; __DUELZ_RATED_BACKEND__?: unknown };
+  if (w2.__harnessRatedStatus) {
+    const status = w2.__harnessRatedStatus;
+    // The Play page's stakes (stakesEstimate, #411) from window.__harnessRatedStakes; none when unset.
+    const stakes = w2.__harnessRatedStakes ?? null;
+    w2.__DUELZ_RATED_BACKEND__ = { status: async () => status, stakesEstimate: async () => stakes };
+  }
+  // The pass's account and its weekly challenges on Home and Play (the Pass screen's own block is above).
+  const pass = (window as unknown as { __harnessPass?: HarnessPass }).__harnessPass;
+  if (pass && (mode === "home" || mode === "play")) {
+    setAccount(pass.account as never, null);
+    standInPass(pass.account["userId"] as string, { state: "open", view: pass.view });
+  }
+}
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   // The Games session (14 Nov 2026): the full challenges page (src/routes/challenges.tsx).
@@ -761,6 +783,15 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   card: () => {
     const Card = CardRoute.options.component as () => JSX.Element;
     return <Card />;
+  },
+  // Home and Play (phase 2 step 3): the Play page and the Rooms page as their routes draw them.
+  play: () => {
+    const Play = PlayRoute.options.component as () => JSX.Element;
+    return <Play />;
+  },
+  rooms: () => {
+    const Rooms = RoomsRoute.options.component as () => JSX.Element;
+    return <Rooms />;
   },
 };
 const Screen = ROOT_SCREENS[mode ?? ""] ?? (

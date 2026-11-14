@@ -24,10 +24,12 @@ import { Route as DevDesignRouteImport } from './routes/dev-design'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as MoreRouteImport } from './routes/more'
+import { Route as PlayRouteImport } from './routes/play'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RatedRouteImport } from './routes/rated'
 import { Route as ReplayLabRouteImport } from './routes/replay-lab'
+import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TiersRouteImport } from './routes/tiers'
@@ -111,6 +113,11 @@ const MoreRoute = MoreRouteImport.update({
   path: '/more',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeRoute = PracticeRouteImport.update({
   id: '/practice',
   path: '/practice',
@@ -129,6 +136,11 @@ const RatedRoute = RatedRouteImport.update({
 const ReplayLabRoute = ReplayLabRouteImport.update({
   id: '/replay-lab',
   path: '/replay-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoomsRoute = RoomsRouteImport.update({
+  id: '/rooms',
+  path: '/rooms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShopRoute = ShopRouteImport.update({
@@ -183,10 +195,12 @@ export interface FileRoutesByFullPath {
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/more': typeof MoreRoute
+  '/play': typeof PlayRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/rooms': typeof RoomsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
@@ -211,10 +225,12 @@ export interface FileRoutesByTo {
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/more': typeof MoreRoute
+  '/play': typeof PlayRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/rooms': typeof RoomsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
@@ -240,10 +256,12 @@ export interface FileRoutesById {
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/more': typeof MoreRoute
+  '/play': typeof PlayRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/rooms': typeof RoomsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
@@ -270,10 +288,12 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboards'
     | '/more'
+    | '/play'
     | '/practice'
     | '/profile'
     | '/rated'
     | '/replay-lab'
+    | '/rooms'
     | '/shop'
     | '/terms'
     | '/tiers'
@@ -298,10 +318,12 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboards'
     | '/more'
+    | '/play'
     | '/practice'
     | '/profile'
     | '/rated'
     | '/replay-lab'
+    | '/rooms'
     | '/shop'
     | '/terms'
     | '/tiers'
@@ -326,10 +348,12 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboards'
     | '/more'
+    | '/play'
     | '/practice'
     | '/profile'
     | '/rated'
     | '/replay-lab'
+    | '/rooms'
     | '/shop'
     | '/terms'
     | '/tiers'
@@ -355,10 +379,12 @@ export interface RootRouteChildren {
   FriendsRoute: typeof FriendsRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
   MoreRoute: typeof MoreRoute
+  PlayRoute: typeof PlayRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
   RatedRoute: typeof RatedRoute
   ReplayLabRoute: typeof ReplayLabRoute
+  RoomsRoute: typeof RoomsRoute
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
   TiersRoute: typeof TiersRoute
@@ -475,6 +501,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MoreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice': {
       id: '/practice'
       path: '/practice'
@@ -501,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/replay-lab'
       fullPath: '/replay-lab'
       preLoaderRoute: typeof ReplayLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rooms': {
+      id: '/rooms'
+      path: '/rooms'
+      fullPath: '/rooms'
+      preLoaderRoute: typeof RoomsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shop': {
@@ -571,10 +611,12 @@ const rootRouteChildren: RootRouteChildren = {
   FriendsRoute: FriendsRoute,
   LeaderboardsRoute: LeaderboardsRoute,
   MoreRoute: MoreRoute,
+  PlayRoute: PlayRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
   RatedRoute: RatedRoute,
   ReplayLabRoute: ReplayLabRoute,
+  RoomsRoute: RoomsRoute,
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
   TiersRoute: TiersRoute,

@@ -731,8 +731,15 @@ const profileUi = () =>
   const first = body.slice(body.indexOf("{") + 1).split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("//"));
   check(first === "if (import.meta.env.PROD) return null;", `the check-only page override returns null in a production build before reading anything (${first})`);
   check(ratedApi.ratedOverride() === null, "the override is off unless a check's page sets it");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): rated play's Play card moved to the Play page
+  // (Find a match), and Home's rated parts (the quick match card, Ratings) draw only from useRatedStatus, which is null
+  // for anyone rated play isn't open to.
   const home = readFileSync("src/routes/index.tsx", "utf8");
-  check(/<RatedHome \/>/.test(home) && /if \(!status\) return null;/.test(readFileSync("src/components/rated/RatedHome.tsx", "utf8")), "Home draws RatedHome, which is nothing for anyone rated play isn't open to");
+  const play = readFileSync("src/routes/play.tsx", "utf8");
+  check(
+    /const rated = useRatedStatus\(\);/.test(home) && /\{rated \? <RatingTiles status=\{rated\} \/> : null\}/.test(home) && /const status = useRatedStatus\(\);/.test(play) && /\{status \? \(\s*<RatedPlay status=\{status\} \/>/.test(play) && /if \(!status\) return null;/.test(readFileSync("src/components/rated/RatedHome.tsx", "utf8")),
+    "Home and Play draw rated play only for players it is open to",
+  );
 }
 
 /* ------------------------------------------------------------------ 8. the binding's screens (11 Nov 2026) */
