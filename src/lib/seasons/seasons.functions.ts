@@ -9,6 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { record, text } from "@/lib/validate";
 
 import type { MySeasons } from "./types";
 
@@ -30,7 +31,8 @@ export const getMySeasonsFn = createServerFn({ method: "POST" })
 
 export const seasonRewardSeenFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { season: string }) => input)
+  // Type and size only (Security C2); seasonRewardSeen judges the season id.
+  .inputValidator((input: { season: string }) => ({ season: text(record(input)["season"], 32, "season") }))
   .handler(async ({ data, context }): Promise<{ ok: boolean }> => {
     const { client, allowed, seasons } = await setup(context.userId);
     if (!allowed) return { ok: false };

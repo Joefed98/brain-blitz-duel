@@ -13,6 +13,13 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { bool, optional, record, text } from "@/lib/validate";
+
+/*
+ * Input checks (Security C2, 14 Nov 2026; src/lib/validate.ts): type and size only. shop.server.ts still judges each
+ * section, item, pack and request id (an unknown or short one gets its own answer).
+ */
+const WORD_MAX = 96;
 import type { RateLimit } from "@/lib/duel/rateLimit.server";
 
 import type { BuyResult, ShopClosed, ShopStatus, ShopView } from "./types";
@@ -32,7 +39,10 @@ const BUSY: BuyResult = { ok: false, reason: "busy", message: "That’s a lot of
 
 export const getShopFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { section?: string } | undefined) => input ?? {})
+  // Nothing sent is an empty input (the whole shop).
+  .inputValidator((input: { section?: string } | undefined) =>
+    input === undefined ? {} : { section: optional(record(input)["section"], (v) => text(v, WORD_MAX, "section")) },
+  )
   .handler(async ({ data, context }): Promise<ShopView | ShopClosed> => {
     const { client, allowed, shop } = await setup(context.userId);
     if (!allowed) return { open: false, reason: "busy" };
@@ -49,7 +59,10 @@ export const shopStatusFn = createServerFn({ method: "POST" })
 
 export const buyItemFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { itemId: string; requestId: string }) => input)
+  .inputValidator((input: { itemId: string; requestId: string }) => {
+    const body = record(input);
+    return { itemId: text(body["itemId"], WORD_MAX, "itemId"), requestId: text(body["requestId"], WORD_MAX, "requestId") };
+  })
   .handler(async ({ data, context }): Promise<BuyResult> => {
     const { client, allowed, shop } = await setup(context.userId);
     if (!allowed) return BUSY;
@@ -58,7 +71,7 @@ export const buyItemFn = createServerFn({ method: "POST" })
 
 export const buyBundleFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { requestId: string }) => input)
+  .inputValidator((input: { requestId: string }) => ({ requestId: text(record(input)["requestId"], WORD_MAX, "requestId") }))
   .handler(async ({ data, context }): Promise<BuyResult> => {
     const { client, allowed, shop } = await setup(context.userId);
     if (!allowed) return BUSY;
@@ -67,7 +80,10 @@ export const buyBundleFn = createServerFn({ method: "POST" })
 
 export const testPackFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { pack: string; requestId: string }) => input)
+  .inputValidator((input: { pack: string; requestId: string }) => {
+    const body = record(input);
+    return { pack: text(body["pack"], WORD_MAX, "pack"), requestId: text(body["requestId"], WORD_MAX, "requestId") };
+  })
   .handler(async ({ data, context }): Promise<BuyResult> => {
     const { client, allowed, shop } = await setup(context.userId);
     if (!allowed) return BUSY;
@@ -76,7 +92,10 @@ export const testPackFn = createServerFn({ method: "POST" })
 
 export const wishlistFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { itemId: string; on: boolean }) => input)
+  .inputValidator((input: { itemId: string; on: boolean }) => {
+    const body = record(input);
+    return { itemId: text(body["itemId"], WORD_MAX, "itemId"), on: bool(body["on"], "on") };
+  })
   .handler(async ({ data, context }): Promise<{ ok: boolean; wished: boolean }> => {
     const { client, allowed, shop } = await setup(context.userId);
     if (!allowed) return { ok: false, wished: false };

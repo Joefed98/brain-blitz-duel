@@ -23,6 +23,22 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { bool, nullable, optional, record, text } from "@/lib/validate";
+
+/*
+ * Input checks (Security C2, 14 Nov 2026; src/lib/validate.ts): type and size only. friends.server.ts still judges
+ * every id, token, query and reason itself (a malformed one is "not found", never told apart), so its answers stay.
+ */
+const ID_MAX = 64;
+const QUERY_MAX = 64;
+const TOKEN_MAX = 128;
+const REASON_MAX = 64;
+const CODE_MAX = 32;
+
+/** A player's or request's id as text (the handler checks it is a uuid and answers a bad one softly). */
+function idText(value: unknown, field: string): string {
+  return text(value, ID_MAX, field);
+}
 
 async function setup() {
   const { adminDb } = await import("@/lib/data/db.server");
@@ -45,7 +61,7 @@ export const friendsWaitingFn = createServerFn({ method: "POST" })
 
 export const friendProfileFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string }) => input)
+  .inputValidator((input: { playerId: string }) => ({ playerId: idText(record(input)["playerId"], "playerId") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.profile(client, context.userId, data?.playerId);
@@ -53,7 +69,7 @@ export const friendProfileFn = createServerFn({ method: "POST" })
 
 export const friendSearchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { query: string }) => input)
+  .inputValidator((input: { query: string }) => ({ query: text(record(input)["query"], QUERY_MAX, "query") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.search(client, context.userId, data?.query);
@@ -61,7 +77,7 @@ export const friendSearchFn = createServerFn({ method: "POST" })
 
 export const friendRequestFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string }) => input)
+  .inputValidator((input: { playerId: string }) => ({ playerId: idText(record(input)["playerId"], "playerId") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.requestById(client, context.userId, data?.playerId);
@@ -69,7 +85,7 @@ export const friendRequestFn = createServerFn({ method: "POST" })
 
 export const friendLinkRequestFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { token: string }) => input)
+  .inputValidator((input: { token: string }) => ({ token: text(record(input)["token"], TOKEN_MAX, "token") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.requestByLink(client, context.userId, data?.token);
@@ -77,7 +93,10 @@ export const friendLinkRequestFn = createServerFn({ method: "POST" })
 
 export const friendRespondFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { requestId: string; accept: boolean }) => input)
+  .inputValidator((input: { requestId: string; accept: boolean }) => {
+    const body = record(input);
+    return { requestId: idText(body["requestId"], "requestId"), accept: bool(body["accept"], "accept") };
+  })
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.respond(client, context.userId, data?.requestId, data?.accept);
@@ -85,7 +104,7 @@ export const friendRespondFn = createServerFn({ method: "POST" })
 
 export const friendRemoveFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string }) => input)
+  .inputValidator((input: { playerId: string }) => ({ playerId: idText(record(input)["playerId"], "playerId") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.remove(client, context.userId, data?.playerId);
@@ -93,7 +112,7 @@ export const friendRemoveFn = createServerFn({ method: "POST" })
 
 export const friendBlockFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string }) => input)
+  .inputValidator((input: { playerId: string }) => ({ playerId: idText(record(input)["playerId"], "playerId") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.block(client, context.userId, data?.playerId);
@@ -101,7 +120,7 @@ export const friendBlockFn = createServerFn({ method: "POST" })
 
 export const friendUnblockFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string }) => input)
+  .inputValidator((input: { playerId: string }) => ({ playerId: idText(record(input)["playerId"], "playerId") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.unblock(client, context.userId, data?.playerId);
@@ -109,7 +128,10 @@ export const friendUnblockFn = createServerFn({ method: "POST" })
 
 export const friendReportFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string; reason: string }) => input)
+  .inputValidator((input: { playerId: string; reason: string }) => {
+    const body = record(input);
+    return { playerId: idText(body["playerId"], "playerId"), reason: text(body["reason"], REASON_MAX, "reason") };
+  })
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.report(client, context.userId, data?.playerId, data?.reason);
@@ -117,7 +139,7 @@ export const friendReportFn = createServerFn({ method: "POST" })
 
 export const friendInviteFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string }) => input)
+  .inputValidator((input: { playerId: string }) => ({ playerId: idText(record(input)["playerId"], "playerId") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.inviteFriendToRoom(client, context.userId, data?.playerId);
@@ -125,7 +147,10 @@ export const friendInviteFn = createServerFn({ method: "POST" })
 
 export const friendChallengeFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerId: string; code: string }) => input)
+  .inputValidator((input: { playerId: string; code: string }) => {
+    const body = record(input);
+    return { playerId: idText(body["playerId"], "playerId"), code: text(body["code"], CODE_MAX, "code") };
+  })
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.sendChallenge(client, context.userId, data?.playerId, data?.code);
@@ -133,7 +158,7 @@ export const friendChallengeFn = createServerFn({ method: "POST" })
 
 export const friendLinkFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { reset?: boolean }) => input)
+  .inputValidator((input: { reset?: boolean }) => ({ reset: optional(record(input)["reset"], (v) => bool(v, "reset")) }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.myLink(client, context.userId, data?.reset === true);
@@ -141,7 +166,7 @@ export const friendLinkFn = createServerFn({ method: "POST" })
 
 export const friendLinkOwnerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { token: string }) => input)
+  .inputValidator((input: { token: string }) => ({ token: text(record(input)["token"], TOKEN_MAX, "token") }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.linkOwner(client, context.userId, data?.token);
@@ -149,7 +174,9 @@ export const friendLinkOwnerFn = createServerFn({ method: "POST" })
 
 export const friendShowOnlineFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { show: boolean | null }) => input)
+  .inputValidator((input: { show: boolean | null }) => ({
+    show: optional(record(input)["show"], (v) => nullable(v, (b) => bool(b, "show"))),
+  }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.setShowOnline(client, context.userId, data?.show ?? null);
@@ -157,7 +184,10 @@ export const friendShowOnlineFn = createServerFn({ method: "POST" })
 
 export const friendBeatFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { activity: "app" | "practice" }) => input)
+  .inputValidator((input: { activity: "app" | "practice" }) => ({
+    // Any short string: beat() reads anything but "practice" as "app".
+    activity: optional(record(input)["activity"], (v) => text(v, 16, "activity")),
+  }))
   .handler(async ({ data, context }) => {
     const { client, friends } = await setup();
     return friends.beat(client, context.userId, data?.activity);

@@ -8,10 +8,15 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { optional, recordOf, text } from "@/lib/validate";
 
 export const recordSaveProgressFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { event: string; prompt: string; from?: string; method?: string }) => input)
+  // Type and size only (Security C2): every field a short string, the keys kept as sent, since
+  // acceptSaveProgressEvent refuses an unknown field ("refused") itself.
+  .inputValidator((input: { event: string; prompt: string; from?: string; method?: string }) =>
+    recordOf(input, 8, 32, (v, field) => optional(v, (x) => text(x, 64, field))),
+  )
   .handler(async ({ data, context }) => {
     const { acceptSaveProgressEvent } = await import("./saveProgress");
     const accepted = acceptSaveProgressEvent(data);

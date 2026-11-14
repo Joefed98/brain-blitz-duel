@@ -17,6 +17,19 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { listOf, nullable, optional, record, text } from "@/lib/validate";
+
+/*
+ * Input checks (Security C2, 14 Nov 2026; src/lib/validate.ts): type and size only. badges.server.ts still judges each
+ * slug, title and id (too many card badges is "too_many", an unknown one "not_earned", an unknown id dropped).
+ */
+const WORD_MAX = 64;
+const LIST_MAX = 200;
+
+/** A list of badge slugs, each short text. */
+function slugList(input: unknown): { badges: string[] } {
+  return { badges: listOf(record(input)["badges"], LIST_MAX, (v, field) => text(v, WORD_MAX, field), "badges") };
+}
 
 import type { BadgeChangeResult, CardBadges, DailyAccountRecord, MyBadges } from "./types";
 
@@ -48,7 +61,7 @@ export const getMyBadges = createServerFn({ method: "POST" })
 
 export const setMyCardBadges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { badges: string[] }) => input)
+  .inputValidator((input: { badges: string[] }) => slugList(input))
   .handler(async ({ data, context }): Promise<BadgeChangeResult> => {
     const { client, allowed, badges } = await setup(context.userId, "economy");
     if (!allowed) return badges.badgeRefusal("busy");
@@ -57,7 +70,9 @@ export const setMyCardBadges = createServerFn({ method: "POST" })
 
 export const setMyTitle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { title: string | null }) => input)
+  .inputValidator((input: { title: string | null }) => ({
+    title: optional(record(input)["title"], (v) => nullable(v, (t) => text(t, WORD_MAX, "title"))),
+  }))
   .handler(async ({ data, context }): Promise<BadgeChangeResult> => {
     const { client, allowed, badges } = await setup(context.userId, "economy");
     if (!allowed) return badges.badgeRefusal("busy");
@@ -66,7 +81,7 @@ export const setMyTitle = createServerFn({ method: "POST" })
 
 export const markBadgesSeen = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { badges: string[] }) => input)
+  .inputValidator((input: { badges: string[] }) => slugList(input))
   .handler(async ({ data, context }): Promise<{ ok: boolean }> => {
     const { client, allowed, badges } = await setup(context.userId, "economy");
     if (!allowed) return { ok: false };
@@ -75,7 +90,9 @@ export const markBadgesSeen = createServerFn({ method: "POST" })
 
 export const getCardBadges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { playerIds: string[] }) => input)
+  .inputValidator((input: { playerIds: string[] }) => ({
+    playerIds: listOf(record(input)["playerIds"], LIST_MAX, (v, field) => text(v, 64, field), "playerIds"),
+  }))
   .handler(async ({ data, context }): Promise<CardBadges[] | { busy: true }> => {
     const { client, allowed, badges } = await setup(context.userId, "card");
     if (!allowed) return { busy: true };

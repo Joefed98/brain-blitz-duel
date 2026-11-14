@@ -351,6 +351,9 @@ export const SHARDS: Record<string, string[]> = {
     // security-trials-check (13 Nov 2026, ~10 s): the report-only content security policy and its /csp-report table,
     // the arcade wall-clock log, Tally's keyed reference and the runbook worker, beside the other SQL checks.
     "security-trials-check.ts",
+    // server-input-check (14 Nov 2026, Security C2, ~5 s): every server function outside rooms and chat builds its
+    // input through src/lib/validate.ts and refuses a crafted one before its handler runs, on a local PostgreSQL.
+    "server-input-check.ts",
     // room-start-check and round-release-check (14 Nov 2026, Security C1a, ~10 s each): the deal claim and the one-transaction
     // start; rounds released one at a time from each intro; on a local PostgreSQL, beside the other SQL checks.
     "room-start-check.ts",
