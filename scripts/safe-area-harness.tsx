@@ -33,6 +33,9 @@ import { Route as TermsRoute } from "@/routes/terms";
 import { Route as FriendsRoute } from "@/routes/friends";
 import { Route as CustomiseRoute } from "@/routes/customise";
 import { Route as MoreRoute } from "@/routes/more";
+import { Route as DailyArchiveRoute } from "@/routes/daily-archive";
+import { TournamentEventScreen } from "@/components/tournaments/TournamentEvent";
+import { TournamentRulesScreen } from "@/components/tournaments/TournamentRules";
 import { LaunchSplash } from "@/components/nav/LaunchSplash";
 import { setAccount } from "@/lib/account/accountApi";
 import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
@@ -474,6 +477,11 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   // The navigation step's checks: a player with tournaments (window.__harnessTournamentHub, with
   // __DUELZ_ALLOW_TOURNAMENTS__ so the tab asks); null otherwise, as for everyone else.
   tournamentHubFn: async () => (window as unknown as { __harnessTournamentHub?: unknown }).__harnessTournamentHub ?? null,
+  // The Tournaments pages (phase 2 step 3, scripts/screens/tournaments.ts): an event, its boards and the Daily archive.
+  tournamentEventFn: async () => (window as unknown as { __harnessTournamentEvent?: unknown }).__harnessTournamentEvent ?? null,
+  arenaBoardFn: async () => (window as unknown as { __harnessArenaBoard?: unknown }).__harnessArenaBoard ?? null,
+  scoreAttackBoardFn: async () => (window as unknown as { __harnessScoreAttackBoard?: unknown }).__harnessScoreAttackBoard ?? null,
+  dailyArchiveFn: async () => (window as unknown as { __harnessArchive?: unknown }).__harnessArchive ?? { ok: false, message: "The Daily archive is part of Joulz Plus." },
   ...ECONOMY,
   roomCardsFn,
   friendsOverviewFn,
@@ -646,6 +654,17 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
       </div>
     </PhoneShell>
   ),
+  // The Tournaments pages (phase 2 step 3): an event page from window.__harnessTournamentEvent, the Arena's rules and the
+  // Daily archive (src/routes/daily-archive.tsx).
+  tournament: () => {
+    const ev = (window as unknown as { __harnessTournamentEvent?: { id: string } }).__harnessTournamentEvent;
+    return <TournamentEventScreen eventId={ev?.id ?? "arena:2026-10-26:2000"} onBack={() => undefined} onRules={() => undefined} onPlayScoreAttack={() => undefined} />;
+  },
+  tournamentrules: () => <TournamentRulesScreen kind="arena" onBack={() => undefined} />,
+  dailyarchive: () => {
+    const Archive = DailyArchiveRoute.options.component as () => JSX.Element;
+    return <Archive />;
+  },
   // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
   saveprogress: () => {
     const Profile = ProfileRoute.options.component as () => JSX.Element;

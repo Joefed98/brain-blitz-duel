@@ -1,0 +1,429 @@
+/*
+ * Tournaments, Leaderboards and the Daily pages (phase 2 step 3, 14 Nov 2026; docs/design/style-guide/, the list
+ * mockups phone/list.png and desktop/list.png): list rows with the art kit's icons, segmented views, hero cards with
+ * the angled cut, and the boards' podium of full cards. Tokens only; dark and light come from the tokens.
+ */
+
+.tn-art {
+  flex: none;
+  object-fit: contain;
+}
+
+/* ------------------------------------------------------------------ the hub */
+.tn-tab {
+  gap: var(--jz-section-gap);
+}
+.tn-hub,
+.tn-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-section-gap);
+}
+.tn-view[hidden] {
+  display: none;
+}
+.tn-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.tn-section > .tn-day:not(:first-child) {
+  margin-top: var(--jz-space-16);
+}
+.tn-day {
+  padding: 0 var(--jz-space-4);
+  font: var(--jz-type-caption);
+  color: var(--jz-text-3);
+}
+.tn-list-row {
+  display: flex;
+  align-items: center;
+}
+.tn-list-row > [data-jz="row"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tn-list-row > .jz-btn,
+.tn-list-row > .tn-in {
+  margin-right: var(--jz-space-4);
+}
+.tn-list-row:has(> .jz-btn, > .tn-in) > .jz-row {
+  padding-right: var(--jz-space-4);
+}
+.tn-panel-rows > .tn-list-row + .tn-list-row,
+.jz-panel > .tn-list-row + .tn-list-row {
+  border-top: 1px solid var(--jz-line);
+}
+.jz-panel > .tn-list-row:first-child > .jz-row {
+  border-top-left-radius: var(--jz-radius-lg);
+}
+.jz-panel > .tn-list-row:last-child > .jz-row {
+  border-bottom-left-radius: var(--jz-radius-lg);
+}
+.tn-list-row[data-status="cancelled"] .tn-art {
+  opacity: 0.55;
+}
+.tn-when {
+  flex: none;
+  font: var(--jz-type-label);
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tn-when[data-tone="live"] {
+  color: var(--jz-cyan);
+}
+
+/* A hero card (style guide: hero cards and the one big action take the cut). */
+.tn-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.tn-hero-head {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+.tn-hero-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.tn-hero-title {
+  font: var(--jz-type-heading);
+  color: var(--jz-text);
+}
+.tn-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+}
+.tn-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  font: var(--jz-type-caption);
+}
+.tn-facts dt {
+  color: var(--jz-text-3);
+}
+.tn-facts dd {
+  min-width: 0;
+  color: var(--jz-text);
+  text-align: right;
+}
+
+/* The coming-soon page. */
+.tn-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-24) var(--jz-space-16);
+  text-align: center;
+}
+.tn-soon-tag {
+  padding: 2px var(--jz-space-8);
+  border-radius: var(--jz-radius-sm);
+  background: var(--jz-surface-2);
+  font: var(--jz-type-caption);
+  color: var(--jz-text-2);
+}
+.tn-soon-title {
+  font: var(--jz-type-heading);
+  color: var(--jz-text);
+}
+.tn-soon-body {
+  max-width: 32ch;
+  font: var(--jz-type-label);
+  color: var(--jz-text-2);
+}
+
+/* ------------------------------------------------------------------ an event page */
+.tn-event-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--jz-space-16);
+  padding: var(--jz-space-16);
+}
+.tn-event-title {
+  font: var(--jz-type-title);
+  color: var(--jz-text);
+}
+.tn-event-grid,
+.tn-event-main,
+.tn-event-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-section-gap);
+}
+.tn-how-pad {
+  padding: var(--jz-space-16) var(--jz-space-16) var(--jz-space-12);
+}
+.tn-prize-place {
+  display: inline-flex;
+  width: 44px;
+  justify-content: center;
+  font: var(--jz-type-body);
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.tn-podium {
+  margin-bottom: var(--jz-space-12);
+}
+/* A computer: the event and its board side by side (the extra width used, never a stretched phone column). */
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"] .tn-event-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: start;
+    column-gap: var(--jz-space-32);
+  }
+  [data-layout="desktop"]:not([data-tab-screen]) > [data-shell-column="page"]:has(.tn-event-grid) {
+    max-width: 1120px;
+  }
+}
+.tn-rules-head {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+
+/* ------------------------------------------------------------------ the leaderboards' board picker */
+.lb-picker {
+  display: flex;
+  width: 100%;
+  min-height: 64px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-8) var(--jz-space-16);
+  border: 0;
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  text-align: left;
+  cursor: pointer;
+}
+.lb-picker:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
+}
+.lb-picker-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.lb-picker-label {
+  font: var(--jz-type-caption);
+  color: var(--jz-text-3);
+}
+.lb-picker-name {
+  overflow: hidden;
+  font: var(--jz-type-body);
+  color: var(--jz-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-cat-mark {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+.lb-cat-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--cat, var(--jz-text-3));
+  transform: rotate(45deg);
+}
+.lb-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding-bottom: var(--jz-space-16);
+}
+.lb-options-head {
+  margin-top: var(--jz-space-8);
+  padding: 0 var(--jz-space-4);
+  font: var(--jz-type-caption);
+  color: var(--jz-text-3);
+}
+.lb-option[data-on] .jz-row-title {
+  color: var(--jz-text);
+}
+.lb-side {
+  display: none;
+}
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"]:not([data-tab-screen]) > [data-shell-column="page"]:has(.lb-side) {
+    max-width: 1120px;
+  }
+  [data-layout="desktop"] .lb-page:has(> .lb-side) {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    align-content: start;
+    column-gap: var(--jz-space-32);
+  }
+  [data-layout="desktop"] .lb-page > * {
+    grid-column: 2;
+  }
+  [data-layout="desktop"] .lb-page > .lb-head {
+    grid-column: 1 / -1;
+  }
+  [data-layout="desktop"] .lb-page > .lb-side {
+    display: block;
+    grid-column: 1;
+    grid-row: 2 / span 40;
+    align-self: start;
+    position: sticky;
+    top: var(--jz-space-16);
+  }
+  [data-layout="desktop"] .lb-page > .lb-picker {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the Daily pages */
+.dl-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--jz-section-gap);
+}
+.dl-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+}
+.dl-title {
+  font: var(--jz-type-title);
+  color: var(--jz-text);
+  white-space: nowrap;
+}
+.dl-sub {
+  font: var(--jz-type-label);
+  color: var(--jz-text-2);
+}
+.dl-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.dl-hero-head {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+.dl-hero-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.dl-hero-kicker {
+  font: var(--jz-type-caption);
+  color: var(--jz-gold-ink);
+}
+.dl-hero-title {
+  font: var(--jz-type-heading);
+  color: var(--jz-text);
+  white-space: nowrap;
+}
+.dl-hero-line {
+  font: var(--jz-type-caption);
+  color: var(--jz-text-2);
+  white-space: nowrap;
+}
+.dl-section,
+.dl-you {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.dl-me {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.dl-me-head {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+.dl-me-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.dl-me-name {
+  overflow: hidden;
+  font: var(--jz-type-body);
+  color: var(--jz-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dl-me-rank {
+  font: var(--jz-type-caption);
+  color: var(--jz-text-2);
+  white-space: nowrap;
+}
+.dl-me-total {
+  flex: none;
+  font: var(--jz-type-display);
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+.dl-rounds {
+  display: grid;
+  grid-auto-flow: column;
+  gap: var(--jz-space-4);
+}
+.dl-round {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--jz-space-4) 0;
+  border-radius: var(--jz-radius-sm);
+  background: var(--jz-surface-2);
+}
+.dl-round-label {
+  font: var(--jz-type-caption);
+  color: var(--jz-text-3);
+}
+.dl-round-score {
+  font: var(--jz-type-label);
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+.dl-locked {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-16);
+  font: var(--jz-type-label);
+  color: var(--jz-text-2);
+}
+.jz-row:not([data-available]) > .dl-archive-art {
+  opacity: 0.55;
+}
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"]:not([data-tab-screen]) > [data-shell-column="page"]:has([data-leaderboards-screen="daily"]) {
+    max-width: 960px;
+  }
+}
+
+/* Sentence case (the style guide): the page skin's capitals for headings don't reach these pages' own headings. */
+:is(.tn-hero-title, .tn-day, .tn-event-title, .tn-soon-title, .dl-title, .dl-hero-title) {
+  text-transform: none;
+  letter-spacing: normal;
+}

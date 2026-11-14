@@ -166,7 +166,12 @@ async function mount(ui: React.ReactElement) {
   await click($('[data-scope="friends"]'));
   await settle();
   check($$("[data-leaderboards-screen] > [data-board-list] li").length === 2 && !$("[data-board-pinned]"), "the friends board, no pin when you're in the list");
-  check(!!$('[data-category-boards="logic"]'), "Top players by category on the leaderboards page");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the board picker: the category boards moved from a section under the board into the picker).
+  check(!!$('[data-board="logic"]'), "the category boards are on the leaderboards page (in the board picker)");
+  await click($('[data-board="logic"]'));
+  await settle();
+  check(calls.some((c) => c.fn === "rating" && c.data["board"] === "logic"), "a category in the picker opens its board");
+  check(!!$("[data-board-picker]") && $$("[data-board-side] [data-board]").length === 15, "the picker: the three ratings, the Daily top 100 and the eleven categories");
   root.unmount();
 }
 
@@ -275,7 +280,8 @@ async function mount(ui: React.ReactElement) {
   await click(podium[2]?.querySelector("[data-open-card]") as HTMLElement);
   await settle();
   check(!!$('[data-card-sheet] [data-player-card][data-frame="frame.silver"]'), "tapping a podium card opens it too");
-  check(cardCalls.filter((c) => c === "rating:joulz").length === 1 && cardCalls.length === 2, `one call per board, cards included (${cardCalls.join(", ")})`);
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the board picker: the page draws one board, so one call; the category board below it, the second call, moved into the picker).
+  check(cardCalls.filter((c) => c === "rating:joulz").length === 1 && cardCalls.length === 1, `one call per board, cards included (${cardCalls.join(", ")})`);
   root.unmount();
   const fs = await import("node:fs");
   const css = fs.readFileSync("src/polish-layout/leaderboards.css", "utf8");
