@@ -8,7 +8,6 @@ import type { ReactNode } from "react";
 import { GameIcon } from "@/components/app/GameIcon";
 import { Emblem } from "@/design/art";
 import { Icon } from "@/design/components";
-import { Avatar, DEFAULT_AVATAR, type CardLook } from "@/design/identity";
 import { JoulesBolt as PassJoulesBolt } from "@/components/pass/JoulesBolt";
 import { puzzleName } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
@@ -207,11 +206,6 @@ export function JoulesLine({ amount, passLevel, tile = false }: { amount: number
       {passLevel !== null ? <span className="rt-joules-level">, pass level {passLevel}</span> : null}
     </p>
   );
-}
-
-/** A small avatar for a player (the header's You / opponent rows), from their card look. */
-export function PlayerDot({ look, size = 18 }: { look: CardLook; size?: number }) {
-  return <Avatar look={look.avatar ?? DEFAULT_AVATAR} size={size} />;
 }
 
 /** The chips over a result or VS: "Mixed", "Best of 3", "v Sam". */

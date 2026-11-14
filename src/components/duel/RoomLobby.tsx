@@ -32,7 +32,7 @@ import { useRoomNameplate } from "./RoomPlayer";
 import { NameplateStrip } from "@/design/identity";
 import type { ReportReason } from "@/lib/safety/reports";
 import { scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
-import { Button, Panel } from "@/design/components";
+import { Button, Icon, Panel } from "@/design/components";
 import { MetaChips } from "@/components/app/MetaChips";
 
 interface RoomLobbyProps {
@@ -385,8 +385,10 @@ export function RoomLobby({
                     className="press flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
                   >
                     {nameLine}
-                    <span aria-hidden="true" className="shrink-0 text-[12px] text-[var(--ap-text-2)]">
-                      {picking ? "▴" : "▾"}
+                    {/* Phase 2 step 3: a plain "Change" with a chevron in place of the ▾ glyph. */}
+                    <span aria-hidden="true" className="rs-change" data-look-change>
+                      Change
+                      <Icon name="chevron-down" size={18} className={picking ? "rotate-180" : ""} />
                     </span>
                   </button>
                 ) : !isMe && onReport ? (

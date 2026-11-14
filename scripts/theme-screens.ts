@@ -25,6 +25,7 @@ import { boardsFixture } from "./leaderboards-fixture";
 import { passFixture } from "./pass-fixture";
 import { SHOP_SCREENS } from "./screens/shop";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
+import { roomsRatedScreens } from "./screens/rooms-rated";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
   .pub as PuzzleData;
@@ -995,6 +996,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...COMPONENT_SCREENS(),
   ...APPEARANCE_SCREENS(),
   ...SHOP_SCREENS(),
+  ...roomsRatedScreens({ room, sizes: ALL_SIZES }),
 ];
 
 export interface ThemeViewport {

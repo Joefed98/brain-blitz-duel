@@ -1,0 +1,60 @@
+/*
+ * Phase 2 step 3, rooms and rated (14 Nov 2026; docs/design/style-guide/): the room's lobby and between-round
+ * screens on the round 2 tokens. Loaded after room-screens.css; presentation only (no timing, wording or flow), and
+ * no animation of its own.
+ */
+
+/* The lobby: my own row first and across the grid, marked by my colour, with Change for my look. */
+.rs-grid > .rs-cell[data-you] {
+  order: -1;
+  grid-column: 1 / -1;
+}
+/* On a computer the lobby is four across (desktop-layout.css): my row is one of the four, still first. */
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"] .rs-grid > .rs-cell[data-you] {
+    grid-column: auto;
+  }
+}
+.rs-change {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--jz-space-4);
+  min-height: 32px;
+  padding: 0 var(--jz-space-8) 0 var(--jz-space-12);
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface-2);
+  color: var(--jz-text);
+  font: var(--jz-type-caption);
+}
+.rs-change svg {
+  transition: transform var(--jz-fast, 120ms) ease-out;
+}
+
+/* The dropout and Finish now banner: a surface panel with a loss-coloured edge (its words and timings unchanged). */
+[data-skin] [data-dropout-banner],
+[data-dropout-banner] {
+  gap: var(--jz-space-12);
+  margin-bottom: var(--jz-space-12);
+  padding: var(--jz-space-12) var(--jz-space-12) var(--jz-space-12) var(--jz-space-16);
+  border: 0;
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface);
+  box-shadow: inset 4px 0 0 var(--jz-loss);
+}
+[data-dropout-banner] > div > p:first-child {
+  color: var(--jz-text);
+}
+[data-dropout-banner] [data-dropout-line] {
+  font: var(--jz-type-caption);
+  color: var(--jz-text-2);
+}
+[data-dropout-banner] > button {
+  min-height: 44px;
+  padding: 0 var(--jz-space-16);
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface-2);
+  color: var(--jz-text);
+  font: var(--jz-type-label);
+  font-weight: var(--jz-weight-bold);
+}

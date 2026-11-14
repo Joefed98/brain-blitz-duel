@@ -130,6 +130,17 @@ export interface RatedMatch {
   headToHead: { won: number; lost: number; drawn?: number } | null;
   /** The placement match this is (1 to 5), else null. */
   placement: number | null;
+  /**
+   * What a win and a loss move my Joulz Rating by, "Win +8 · Lose −8" (the server's ratedStakesFn, worked out by the
+   * ratings engine; never on the phone). Null or missing: no line (placement, or no stakes to show).
+   */
+  stakes?: RatedStakes | null;
+}
+
+/** The server's stakes (stakes.server.ts): the change for a win (0 or more) and for a loss (0 or less). */
+export interface RatedStakes {
+  win: number;
+  loss: number;
 }
 
 /** Where a search has got to (mockup 03: the clock and the range, "±60"). */
@@ -242,6 +253,11 @@ export interface RatedBackend {
   opponentScore(matchId: string): Promise<OpponentScoreView | null>;
   /** Display only: this player's live score in the current game, shown to a live opponent. */
   progress(matchId: string, round: number, score: number): Promise<void>;
+  /**
+   * Before matching (the Play page): my stakes against an equally rated opponent for a format and pick (the server's
+   * ratedStakesEstimateFn); null in placement, for a pick the ratings don't take, or when rated play isn't open.
+   */
+  stakesEstimate?(format: RatedFormat, pick: RatedPick): Promise<RatedStakes | null>;
 }
 
 let override: RatedBackend | null | undefined;
