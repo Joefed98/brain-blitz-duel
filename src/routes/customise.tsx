@@ -49,6 +49,9 @@ import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, PASS_TITLE_DEFS, SEASON_TITLE_DEFS, TI
  */
 export const Route = createFileRoute("/customise")({
   ssr: false,
+  // `?tab=` opens a tab (the Badges page's Choose: `badges`); anything else opens Avatar.
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
+    TABS.includes(search["tab"] as Tab) ? { tab: search["tab"] as Tab } : {},
   head: () => ({
     meta: [{ title: `${APP_NAME} customise` }, { name: "robots", content: "noindex" }],
   }),
@@ -56,6 +59,7 @@ export const Route = createFileRoute("/customise")({
 });
 
 type Tab = "avatar" | "card" | "games" | "badges";
+const TABS: readonly Tab[] = ["avatar", "card", "games", "badges"];
 type CardSlot = "card-art" | "frame" | "name-colour";
 const CARD_SLOTS: readonly CardSlot[] = ["card-art", "frame", "name-colour"];
 const AVATAR_SLOTS: readonly { kind: LoadoutSlot; label: string; empty: string }[] = [
@@ -71,7 +75,7 @@ function LookChoice({ id, name, game, on, onPick }: { id: string | null; name: s
     <button type="button" role="radio" aria-checked={on} data-look-choice={id ?? "default"} onClick={onPick} className="cz-item press">
       <LookPreview id={id} game={game} />
       <span className="cz-item-name">{name}</span>
-      <span className="cz-item-sub">
+      <span className="cz-item-sub" data-wrap-ok>
         <span>{on ? "Equipped" : id ? "Owned" : "Always yours"}</span>
       </span>
     </button>
@@ -99,7 +103,12 @@ function CustomiseScreen() {
   const account = useAccount();
   const identity = useMyIdentity();
   const shopOn = useShopOn();
-  const [tab, setTab] = useState<Tab>("avatar");
+  // The tab asked for in the address (`?tab=badges` from the Badges page's Choose), read once; Avatar otherwise.
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === "undefined") return "avatar";
+    const asked = new URLSearchParams(window.location.search).get("tab") as Tab | null;
+    return asked && TABS.includes(asked) ? asked : "avatar";
+  });
   const [allAvatars, setAllAvatars] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -276,7 +285,7 @@ function CustomiseScreen() {
                         className="cz-avatar press"
                       >
                         <Avatar look={{ id: a.id, colour: avatar.colour, gem: avatar.gem }} size={52} />
-                        <span>{a.name}</span>
+                        <span data-wrap-ok>{a.name}</span>
                       </button>
                     ))}
                     {allAvatars ? null : (
@@ -424,9 +433,9 @@ function CustomiseScreen() {
                           onClick={() => pick(slot, null)}
                           className="cz-item press"
                         >
-                          <NamePiece id={null} name={name} />
+                          <span data-names className="cz-name-line"><NamePiece id={null} name={name} /></span>
                           <span className="cz-item-name">Plain</span>
-                          <span className="cz-item-sub">
+                          <span className="cz-item-sub" data-wrap-ok>
                             <span>{slotValue(slot) === null ? "Equipped" : "Owned"}</span>
                           </span>
                         </button>
@@ -450,9 +459,9 @@ function CustomiseScreen() {
                                 {RARITY_LABEL[item.rarity]}
                               </span>
                             ) : null}
-                            {slot === "name-colour" ? <NamePiece id={item.id} name={name} /> : <CardPiece id={item.id} />}
+                            {slot === "name-colour" ? <span data-names className="cz-name-line"><NamePiece id={item.id} name={name} /></span> : <CardPiece id={item.id} />}
                             <span className="cz-item-name">{item.name}</span>
-                            <span className="cz-item-sub">
+                            <span className="cz-item-sub" data-wrap-ok>
                               {owned ? (
                                 <span>{on ? "Equipped" : "Owned"}</span>
                               ) : (

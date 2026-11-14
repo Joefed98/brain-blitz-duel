@@ -287,7 +287,8 @@ try {
       // Changed with Joe's approval, 13 Nov 2026: Profile has no look picker; it points to Customise and the lobby.
       check((await page.locator("[data-look-picker]").count()) === 0, "Profile: no look picker (retired for Customise)");
       check(/Customise/.test((await page.locator("[data-look-moved]").textContent()) ?? "") && (await page.locator("[data-customise-open]").count()) === 1, "Profile: points to Customise (the card's Customise button)");
-      check(/Saved on this phone\. Sign-in after the beta will keep it all/.test((await page.textContent("body")) ?? ""), "Profile: the saved-on-this-phone note");
+      // Changed with Joe's approval, 14 Nov 2026: a guest's footer reads "Saved on this phone. Create an account to keep it everywhere." (none for an account).
+      check(/Saved on this phone\. Create an account to keep it everywhere\./.test((await page.textContent("body")) ?? ""), "Profile: the saved-on-this-phone note");
       await page.goBack();
       await page.locator("[data-more-row='profile']").waitFor({ timeout: 30_000 });
       await page.goBack();

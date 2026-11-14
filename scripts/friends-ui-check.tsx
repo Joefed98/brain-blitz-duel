@@ -49,7 +49,9 @@ const { createMemoryHistory, createRootRoute, createRoute, createRouter, Outlet,
 const { setAccount } = await import("../src/lib/account/accountApi");
 const { setFriendsFunctionsForChecks } = await import("../src/lib/friends/friendsApi");
 const { setIdentityBackend } = await import("../src/lib/identity/backend");
-const { ProfileCard } = await import("../src/components/identity/ProfileCard");
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Profile redesign, phase 2 step 3): Profile's
+// Friends button moved from the card block (ProfileCard) to the Friends strip's See all (ProfileFriends).
+const { ProfileFriends } = await import("../src/components/profile/ProfileFriends");
 const screens = await import("../src/components/friends/FriendsScreens");
 
 setIdentityBackend(null);
@@ -164,7 +166,7 @@ const ACCOUNT = {
 {
   const mod = await import("../src/lib/account/accountApi");
   await act(async () => void (await mod.refreshAccount()));
-  const { root, went } = await mount(() => React.createElement(ProfileCard, { guestName: "Sam", guestColour: 3 }), "/profile");
+  const { root, went } = await mount(() => React.createElement(ProfileFriends), "/profile");
   check(!!$("[data-friends-open]"), "Profile has a Friends button");
   check(!$("[data-friends-waiting]") && !calls.some((c) => c.fn === "waiting"), "a guest's Friends has no badge and asks nothing");
   await click($("[data-friends-open]"));
@@ -177,7 +179,7 @@ const ACCOUNT = {
 /* ------------------------------------------------------------------ 2. the badge */
 {
   setAccount(ACCOUNT as never, null);
-  const { root, went } = await mount(() => React.createElement(ProfileCard, { guestName: "Me", guestColour: 4 }), "/profile");
+  const { root, went } = await mount(() => React.createElement(ProfileFriends), "/profile");
   await settle(60);
   check($("[data-friends-waiting]")?.textContent === "2", `an account's Friends shows the waiting requests (${$("[data-friends-waiting]")?.textContent})`);
   await click($("[data-friends-open]"));

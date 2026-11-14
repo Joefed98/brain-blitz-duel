@@ -103,11 +103,11 @@ const check = (ok: boolean, what: string) => {
     "more.tsx": "tab: More",
     "profile.tsx": "avatar (an account); More: Profile",
     "friends.tsx": "More: Friends; Profile's Friends",
-    "leaderboards.tsx": "More: Leaderboards; Profile's boards",
+    "leaderboards.tsx": "More: Leaderboards",
     "daily.tsx": "More: Daily; Home's Daily cards",
     "account.tsx": "the save-your-progress sheet (avatar, More: Friends); Settings → Account",
     "customise.tsx": "Profile: Customise card",
-    "challenge.tsx": "Home: Challenge a friend; Profile: Your challenges; a challenge link",
+    "challenge.tsx": "Home: Challenge a friend; a challenge link",
     "duel.$code.tsx": "Home: Create a room, Join, Rejoin; a room link",
     "rated.tsx": "Home: rated play's Play card (where rated play is open)",
     "tiers.tsx": "Home: rated play's rank panel",
@@ -120,6 +120,9 @@ const check = (ok: boolean, what: string) => {
     "dev-crash.tsx": "development only",
     "dev-design.tsx": "development only",
     "replay-lab.tsx": "development only",
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Profile session's two new pages).
+    "badges.tsx": "Profile: the Badges row's See all",
+    "card.tsx": "Profile: a tap on your card",
   };
   for (const file of readdirSync("src/routes").filter((f) => f.endsWith(".tsx")))
     check(file in ROUTES, `route ${file} has an entry point (${ROUTES[file] ?? "none"})`);

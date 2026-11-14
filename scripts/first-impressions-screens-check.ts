@@ -31,7 +31,9 @@ const SIZES: ThemeViewport[] = [{ name: "390x844", w: 390, h: 844 }, ...VIEWPORT
 
 /** What each screen must draw, and whether it is a whole-screen state. */
 const EXPECT: Record<string, { selectors: string[]; whole: boolean; captains: number }> = {
-  "profile, new player, empty states": { selectors: ["[data-recent-rooms-empty]", "[data-your-challenges-empty]"], whole: false, captains: 2 },
+  // Changed with Joe's approval, 14 Nov 2026 (Profile trimmed to the player: Your challenges moved off Profile, so its
+  // empty state and its Captain are no longer drawn there; Recent matches' empty state stays).
+  "profile, new player, empty states": { selectors: ["[data-recent-rooms-empty]"], whole: false, captains: 1 },
   "tournaments, nothing played, empty states": { selectors: ["[data-public-results-empty]", "[data-public-none]"], whole: false, captains: 2 },
   "not found": { selectors: ["[data-error-screen]"], whole: true, captains: 1 },
   "room not found": { selectors: ["[data-error-screen]", "[data-error-screen] input"], whole: true, captains: 1 },

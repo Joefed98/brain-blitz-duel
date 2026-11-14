@@ -85,7 +85,7 @@
 .cz-page {
   display: flex;
   flex-direction: column;
-  gap: var(--jz-space-20);
+  gap: var(--jz-section-gap);
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 .cz-head {
@@ -104,9 +104,9 @@
 .cz-head h1 {
   margin: 0;
   color: var(--jz-text);
-  font-size: 22px;
-  font-weight: var(--jz-weight-bold);
-  line-height: 24px;
+  font: var(--jz-type-title);
+  letter-spacing: 0;
+  text-transform: none;
 }
 .cz-section {
   display: flex;
@@ -120,22 +120,18 @@
   gap: var(--jz-space-12);
 }
 .cz-label {
-  color: var(--jz-text-2);
-  font-size: 14px;
-  font-weight: var(--jz-weight-medium);
-  line-height: 18px;
+  color: var(--jz-text);
+  font: var(--jz-type-body);
 }
 .cz-meta {
   color: var(--jz-text-3);
-  font-size: 13px;
-  line-height: 16px;
+  font: var(--jz-type-caption);
   text-align: right;
 }
 .cz-empty {
   margin: 0;
   color: var(--jz-text-3);
-  font-size: 14px;
-  line-height: 18px;
+  font: var(--jz-type-label);
 }
 .cz-avatars {
   display: grid;
@@ -149,14 +145,11 @@
   align-items: center;
   gap: var(--jz-space-4);
   padding: var(--jz-space-8) var(--jz-space-4);
-  border: 1.5px solid transparent;
-  border-radius: var(--jz-radius);
+  border: 2px solid transparent;
+  border-radius: var(--jz-radius-md);
   background: none;
   color: var(--jz-text-2);
-  font-family: var(--jz-font);
-  font-size: 12px;
-  font-weight: var(--jz-weight-medium);
-  line-height: 16px;
+  font: var(--jz-type-caption);
 }
 .cz-avatar > span:last-child {
   max-width: 100%;
@@ -171,7 +164,8 @@
 }
 .cz-swatches {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  /* At least 44 px a swatch (the guide's touch target): eight across where they fit, fewer on a narrow phone. */
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: var(--jz-space-8);
 }
 .cz-swatch {
@@ -206,8 +200,8 @@
   align-items: center;
   gap: var(--jz-space-4);
   color: var(--jz-text-3);
-  font-size: 12px;
-  line-height: 16px;
+  font: var(--jz-type-caption);
+  text-align: center;
 }
 .cz-gem > span:first-child {
   display: flex;
@@ -231,8 +225,8 @@
   flex-direction: column;
   gap: var(--jz-space-8);
   padding: var(--jz-space-12);
-  border: 1.5px solid var(--jz-surface-2);
-  border-radius: var(--jz-radius);
+  border: 2px solid transparent;
+  border-radius: var(--jz-radius-lg);
   background: var(--jz-surface);
   color: var(--jz-text-2);
   font-family: var(--jz-font);
@@ -247,9 +241,7 @@
 .cz-item-name {
   overflow: hidden;
   color: var(--jz-text);
-  font-size: 15px;
-  font-weight: var(--jz-weight-medium);
-  line-height: 20px;
+  font: var(--jz-type-label);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -260,8 +252,7 @@
   gap: var(--jz-space-4);
   overflow: hidden;
   color: var(--jz-text-3);
-  font-size: 13px;
-  line-height: 16px;
+  font: var(--jz-type-caption);
   white-space: nowrap;
 }
 .cz-item-sub > span {
@@ -316,8 +307,7 @@
   border: 1px solid var(--jz-surface-2);
   border-radius: var(--jz-radius);
   color: var(--jz-text-2);
-  font-size: 12px;
-  font-weight: var(--jz-weight-medium);
+  font: var(--jz-type-caption);
   line-height: 20px;
 }
 .cz-rarity[data-rarity="common"] {
@@ -630,4 +620,45 @@ button.cz-gem {
   color: var(--jz-text-2);
   font-size: 13px;
   line-height: 1.4;
+}
+
+/* Customise on a tablet or computer (the Profile session, 14 Nov 2026): a centred 720 px column, never a stretched
+   phone; the avatar grid takes more columns. */
+@media (min-width: 700px) {
+  .cz-page {
+    width: 100%;
+    max-width: 720px;
+    margin-inline: auto;
+  }
+  .cz-avatars {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .cz-items {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.cz-avatar:focus-visible,
+.cz-swatch:focus-visible,
+.cz-item:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
+}
+/* Long names and where a locked item comes from ("Season 1 premium pass, level 14") wrap rather than being cut off. */
+.cz-avatar > span[data-wrap-ok]:last-child {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.cz-item-sub[data-wrap-ok] {
+  align-items: flex-start;
+  white-space: normal;
+}
+.cz-item-sub[data-wrap-ok] > span {
+  overflow: visible;
+  text-overflow: clip;
+}
+/* The player's name in a name-colour preview: a name line (it may end in an ellipsis on a narrow tile). */
+.cz-name-line {
+  display: contents;
 }

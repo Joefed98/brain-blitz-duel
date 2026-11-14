@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as BadgesRouteImport } from './routes/badges'
+import { Route as CardRouteImport } from './routes/card'
 import { Route as ChallengeRouteImport } from './routes/challenge'
 import { Route as CustomiseRouteImport } from './routes/customise'
 import { Route as DailyRouteImport } from './routes/daily'
@@ -41,6 +43,16 @@ const IndexRoute = IndexRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BadgesRoute = BadgesRouteImport.update({
+  id: '/badges',
+  path: '/badges',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CardRoute = CardRouteImport.update({
+  id: '/card',
+  path: '/card',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChallengeRoute = ChallengeRouteImport.update({
@@ -152,6 +164,8 @@ const DuelCodeRoute = DuelCodeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/badges': typeof BadgesRoute
+  '/card': typeof CardRoute
   '/challenge': typeof ChallengeRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
@@ -177,6 +191,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/badges': typeof BadgesRoute
+  '/card': typeof CardRoute
   '/challenge': typeof ChallengeRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
@@ -203,6 +219,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/badges': typeof BadgesRoute
+  '/card': typeof CardRoute
   '/challenge': typeof ChallengeRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
@@ -230,6 +248,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/account'
+    | '/badges'
+    | '/card'
     | '/challenge'
     | '/customise'
     | '/daily'
@@ -255,6 +275,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/account'
+    | '/badges'
+    | '/card'
     | '/challenge'
     | '/customise'
     | '/daily'
@@ -280,6 +302,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/account'
+    | '/badges'
+    | '/card'
     | '/challenge'
     | '/customise'
     | '/daily'
@@ -306,6 +330,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
+  BadgesRoute: typeof BadgesRoute
+  CardRoute: typeof CardRoute
   ChallengeRoute: typeof ChallengeRoute
   CustomiseRoute: typeof CustomiseRoute
   DailyRoute: typeof DailyRoute
@@ -343,6 +369,20 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/badges': {
+      id: '/badges'
+      path: '/badges'
+      fullPath: '/badges'
+      preLoaderRoute: typeof BadgesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/card': {
+      id: '/card'
+      path: '/card'
+      fullPath: '/card'
+      preLoaderRoute: typeof CardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/challenge': {
@@ -498,6 +538,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
+  BadgesRoute: BadgesRoute,
+  CardRoute: CardRoute,
   ChallengeRoute: ChallengeRoute,
   CustomiseRoute: CustomiseRoute,
   DailyRoute: DailyRoute,

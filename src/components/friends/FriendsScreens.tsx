@@ -71,7 +71,7 @@ function cardLookOf(look: FriendLook): CardLook {
  * A listed player: their mini card (card art, frame, avatar in its colour) whenever the server sent their look; the
  * colour and initial only when it couldn't be read.
  */
-function Badge({ card, size = 44 }: { card: Pick<FriendCard, "username" | "colour" | "look">; size?: number }) {
+export function FriendBadge({ card, size = 44 }: { card: Pick<FriendCard, "username" | "colour" | "look">; size?: number }) {
   if (card.look) return <MiniCard look={cardLookOf(card.look)} size={size} />;
   return <PlayerBadge look={{ colour: card.colour, icon: null }} name={card.username} size={size} className="fr-badge" />;
 }
@@ -222,32 +222,34 @@ export function FriendsList({
                 {overview.incoming.map((r) => (
                   <div key={r.requestId} className="fr-request" data-friend-request={r.requestId}>
                     <button type="button" className="fr-request-who press" onClick={() => onOpen(r.id)}>
-                      <Badge card={r} />
+                      <FriendBadge card={r} />
                       <span className="fr-who-text">
                         <span className="fr-name" data-ellipsis>{r.username}</span>
                         <span className="fr-sub fr-sub-wrap" data-wrap-ok>{r.via === "link" ? "Used your invite link" : "Found you by username"}</span>
                       </span>
                     </button>
-                    <Button
-                      variant="secondary"
-                      size={48}
-                      aria-label={`Decline ${r.username}`}
-                      className="fr-decline"
-                      disabled={busy === r.requestId}
-                      onClick={() => void respond(r.requestId, false, r.username)}
-                      data-friend-decline
-                    >
-                      <Icon name="close" size={20} tone="red" />
-                    </Button>
-                    <Button
-                      variant="gold"
-                      size={48}
-                      disabled={busy === r.requestId}
-                      onClick={() => void respond(r.requestId, true, r.username)}
-                      data-friend-accept
-                    >
-                      Accept
-                    </Button>
+                    <span className="fr-request-actions">
+                      <Button
+                        variant="secondary"
+                        size={44}
+                        aria-label={`Decline ${r.username}`}
+                        className="fr-decline"
+                        disabled={busy === r.requestId}
+                        onClick={() => void respond(r.requestId, false, r.username)}
+                        data-friend-decline
+                      >
+                        Decline
+                      </Button>
+                      <Button
+                        variant="gold"
+                        size={44}
+                        disabled={busy === r.requestId}
+                        onClick={() => void respond(r.requestId, true, r.username)}
+                        data-friend-accept
+                      >
+                        Accept
+                      </Button>
+                    </span>
                   </div>
                 ))}
               </div>
@@ -259,14 +261,14 @@ export function FriendsList({
               <SectionHeader title="Invites" />
               <Panel>
                 {overview.invites.map((i) => (
-                  <Row key={`room-${i.id}`} icon="44" leading={<Badge card={i} />} title={i.username} sub={`Invited you to room ${i.code}`} data-friend-invite={i.code}>
+                  <Row key={`room-${i.id}`} icon="44" leading={<FriendBadge card={i} />} title={i.username} sub={`Invited you to room ${i.code}`} data-friend-invite={i.code}>
                     <Button variant="secondary" size={44} onClick={() => void navigate({ to: "/duel/$code", params: { code: i.code } })}>
                       Join
                     </Button>
                   </Row>
                 ))}
                 {overview.challenges.map((c) => (
-                  <Row key={`ch-${c.code}`} icon="44" leading={<Badge card={c} />} title={c.username} sub="Challenged you" data-friend-challenge={c.code}>
+                  <Row key={`ch-${c.code}`} icon="44" leading={<FriendBadge card={c} />} title={c.username} sub="Challenged you" data-friend-challenge={c.code}>
                     <Button variant="secondary" size={44} onClick={() => void navigate({ to: "/challenge", search: { code: c.code } as never })}>
                       Play
                     </Button>
@@ -373,7 +375,7 @@ function FriendRow({
     <Row icon="44" data-friend={friend.id} data-friend-status={kind}>
       <button type="button" className="fr-row-open press" onClick={() => onOpen(friend.id)} aria-label={`${friend.username}’s profile`}>
         <span className="fr-badge-wrap">
-          <Badge card={friend} />
+          <FriendBadge card={friend} />
           {isOnline(status) ? <span className="fr-dot" data-tone={kind === "playing" ? "red" : "cyan"} aria-hidden="true" /> : null}
         </span>
         <span className="fr-who-text">
@@ -517,7 +519,7 @@ export function AddFriend({ onBack, onOpen, adult }: { onBack: () => void; onOpe
               {results.map((hit) => (
                 <Row key={hit.id} icon="44" data-friend-result={hit.id} data-relation={hit.relation}>
                   <button type="button" className="fr-row-open press" onClick={() => onOpen(hit.id)}>
-                    <Badge card={hit} />
+                    <FriendBadge card={hit} />
                     <span className="fr-who-text">
                       <span className="fr-name" data-ellipsis>{hit.username}</span>
                       <span className="fr-sub" data-tone={hit.relation === "requested" ? "cyan" : undefined}>
@@ -741,7 +743,7 @@ function HeadToHeadPanel({ name, h2h }: { name: string; h2h: NonNullable<FriendP
   return (
     <Panel pad className="fr-h2h" data-head-to-head={`${h2h.wins}-${h2h.losses}-${h2h.draws}`}>
       <div className="fr-h2h-head">
-        <h2>You v {name}</h2>
+        <h2 data-names>You v {name}</h2>
         <span className="fr-sub">{h2h.matches === 1 ? "1 match" : `${h2h.matches} matches`}</span>
       </div>
       {h2h.matches === 0 ? (
