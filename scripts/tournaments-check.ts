@@ -241,6 +241,10 @@ console.log("PASS: the schedule, Arena points and pairing, Score Attack, entry a
 process.exit(0);
 
 async function runDb(db: LocalDb): Promise<void> {
+  // Changed with Joe's approval, 14 Nov 2026 (Security C3, an addition): the phone-facing answers read below (Arena
+  // board rows, Arena duel views, Score Attack boards) are swept for every fixture account id at the end.
+  const phoneAnswers: { label: string; value: unknown }[] = [];
+  const phoneSeen = (label: string, value: unknown) => void phoneAnswers.push({ label, value });
   const q = (sql: string) => {
     const out = db.psql(sql);
     if (!out.ok) throw new Error(`psql: ${out.err}`);
@@ -416,8 +420,11 @@ async function runDb(db: LocalDb): Promise<void> {
     const now = Date.now();
     const r1 = await server.arenaReady(client, A, arenaId, now);
     const r2 = await server.arenaReady(client, C, arenaId, now);
+    phoneSeen("the Arena duel view (A)", r1);
+    phoneSeen("the Arena duel view (C)", r2);
     check(r1.state === "searching" && r2.state === "searching", "A (1000) and C (1600) don't pair: too far apart");
     const r3 = await server.arenaReady(client, B, arenaId, now + 100);
+    phoneSeen("the Arena duel view (B)", r3);
     check(r3.state === "duel" && r3.duel.opponent.playerId === pub(A), "B (1030) pairs with A (1000): the nearest rating within the band");
     const pc = await server.arenaPoll(client, C, arenaId, now + 200);
     check(pc.state === "searching", "C keeps searching");
@@ -452,6 +459,7 @@ async function runDb(db: LocalDb): Promise<void> {
     const t2 = Date.now();
     await server.arenaReady(client, other, arenaId, t2);
     const next = await server.arenaReady(client, slotA, arenaId, t2 + 50);
+    phoneSeen("the Arena duel view (next)", next);
     check(next.state === "searching" || (next.state === "duel" && next.duel.opponent.playerId === pub(C)), "the opponent just played isn't met again at once while someone else waits");
     // Chat: an under-18 in a tournament room picks quick phrases.
     const kidRoom = await server.arenaReady(client, KID, arenaId, Date.now());
@@ -553,6 +561,7 @@ async function runDb(db: LocalDb): Promise<void> {
          rounds_done = round_count_of, finished_at = now()
        FROM (SELECT ${config.SCORE_ATTACK_ROUNDS} AS round_count_of) x WHERE room_id = '${sa.roomId}'`);
     const board = await server.scoreAttackBoard(client, A, saId, open + 1000);
+    phoneSeen("the Score Attack board", board);
     check(board?.open === true && board.rows.map((r) => r.total).join() === "700,700,650" && board.rows[0]?.isMe === false && board.rows[1]?.isMe === true, "highest total wins; level on total, the faster total time is ahead");
     const done = await server.advanceEvent(client, (await data.readEvent(client, saId)).data!, saEv.endsAt + 1000);
     check(done.status === "finished", "the Score Attack finishes when its day ends");
@@ -695,8 +704,10 @@ async function runDb(db: LocalDb): Promise<void> {
     await server.arenaPoll(client, cheat, id, Date.now());
     check(q(`SELECT count(*) FROM moderation.tournament_flags WHERE event_id = '${id}'`) === "1", "logged once whatever reads it again");
     const board = await server.arenaBoard(client, cheat, id, Date.now());
+    phoneSeen("the Arena board (flagged player)", board);
     check(board?.underReview === true && !board.rows.some((r) => r.playerId === pub(cheat)), "the flagged player is off the board and sees their result is under review");
     const honestBoard = await server.arenaBoard(client, honest, id, Date.now());
+    phoneSeen("the Arena board (opponent)", honestBoard);
     check(honestBoard?.underReview === false && honestBoard.rows[0]?.playerId === pub(honest), "the opponent sees no flag");
     const view = await server.eventFor(client, cheat, id, Date.now());
     check(view?.underReview === true, "the event page says the flagged player's result is under review");
@@ -732,6 +743,7 @@ async function runDb(db: LocalDb): Promise<void> {
          SELECT room_id, id, user_id, 1, now(), true, 100, ${i === 0 ? `'{"flagged": true}'` : `'{"flagged": false}'`}::jsonb FROM public.async_attempts WHERE room_id = '${room2.id}' AND user_id = '${u}'`);
     }
     const b = await server.scoreAttackBoard(client, six[0]!, said, sev.startsAt + 5000);
+    phoneSeen("the Score Attack board (flagged)", b);
     check(b?.underReview === true && b.me?.total === 0 && b.rows.every((r) => !r.isMe) && b.rows[0]?.total === 890, "a flagged Score Attack scores nothing: off the board, under review");
     await server.advanceEvent(client, (await data.readEvent(client, said)).data!, sev.endsAt + 1000);
     check(q(`SELECT count(*) FROM public.tournament_results WHERE event_id = '${said}' AND user_id = '${six[0]}'`) === "0", "no place for the flagged Score Attack");
@@ -774,6 +786,8 @@ async function runDb(db: LocalDb): Promise<void> {
     check(queued === [`${w}:1100`, `${y}:1900`].sort().join(","), `the queue holds W3a's ratings (${queued})`);
     const px = await server.arenaReady(client, x, id, t + 20);
     const pz = await server.arenaReady(client, z, id, t + 30);
+    phoneSeen("the Arena duel view (rated pairing)", px);
+    phoneSeen("the Arena duel view (rated pairing, other)", pz);
     check(px.state === "duel" && px.duel.opponent.playerId === pub(w) && pz.state === "duel" && pz.duel.opponent.playerId === pub(y), "paired by W3a's real ratings: 1100 with 1140, 1900 with 1930");
     if (px.state !== "duel" || pz.state !== "duel") return;
     for (const duel of [px.duel, pz.duel]) {
@@ -815,5 +829,14 @@ async function runDb(db: LocalDb): Promise<void> {
     const due = await server.runTournamentTick(client, ev.startsAt - 5 * 60_000);
     const twice = await server.runTournamentTick(client, ev.startsAt - 4 * 60_000);
     check(early.reminded === 0 && due.reminded === 2 && twice.reminded === 0, `reminders go once, 10 minutes before (${early.reminded}, ${due.reminded}, ${twice.reminded})`);
+  });
+  await section("phone answers carry no account id (Security C3)", async () => {
+    const accounts = [A, B, C, D, KID, GUEST, NOTEST, POOR, E, ...BULK];
+    check(phoneAnswers.length >= 10, `the sweep reads every answer kept (${phoneAnswers.length})`);
+    for (const s of phoneAnswers) {
+      const text = JSON.stringify(s.value ?? null);
+      const found = accounts.filter((a) => text.includes(a));
+      check(found.length === 0, `${s.label}: no account id (${found.length ? `found ${found.join(", ")} in ${text.slice(0, 160)}` : "none"})`);
+    }
   });
 }
