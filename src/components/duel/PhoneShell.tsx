@@ -1,10 +1,9 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { GameMenu } from "./GameMenu";
-import { MuteToggle } from "./MuteToggle";
 import { BOARD_FILL, CATEGORY_NAMES, FrameName, GoalLine, useBoardTray } from "./GameFrame";
 import { AppHeader } from "@/components/app/AppHeader";
-import { AppWordmark } from "@/components/brand/AppWordmark";
+import { holdDarkStatusBar } from "@/lib/appearance";
 import { FxLayer } from "./FxLayer";
 import type { PuzzleType } from "@/lib/duel/types";
 import { revealPaletteStyle } from "@/lib/duel/revealPalette";
@@ -46,8 +45,12 @@ interface PhoneShellProps {
   gameType?: PuzzleType | undefined;
   /** Room score summary that replaces the wordmark (screens other than a live round; the frame has its own score). */
   gameHeader?: ReactNode;
-  /** A small control beside the mute toggle (a guest's Leave between rounds). */
+  /** A small control on the right of the top bar (a guest's Leave between rounds, the room's ⋯ menu). */
   topAction?: ReactNode;
+  /** A tab page's title, drawn in its header beside the avatar (the components step, 14 Nov 2026). */
+  title?: string;
+  /** One control on the right of a tab page's header (Profile's settings). */
+  headerAction?: ReactNode;
   /**
    * The live round (GameLayout's play screen), as opposed to its intro or reveal. Its top bar
    * gives way to GameLayout's frame header (Polish 2); an arcade play screen (isArcadeScreenType)
@@ -418,7 +421,7 @@ function useGeometryHold(ref: { current: HTMLElement | null }, active: boolean) 
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, reveal = false, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false, tabs, skin, aside }: PhoneShellProps) {
+export function PhoneShell({ children, reveal = false, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, title, headerAction, play = false, tabs, skin, aside }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
   // The computer layout (31 Oct 2026, presentation only): every slot below is null on a phone, so a
   // phone's markup is exactly as before; children keep their place in the tree on every layout, so
@@ -458,6 +461,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
   usePuzzleRejections(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"), gameType);
   usePuzzleHaptics(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"));
+  // Game screens stay dark in every theme (2b): the status bar over one stays dark too.
+  useEffect(() => (gameScreen ? holdDarkStatusBar() : undefined), [gameScreen]);
   return (
     <div
       ref={surfaceRef}
@@ -504,12 +509,13 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       >
         {/* The four tab screens: their own header (Prompt R; none on the computer layout, where the rail has the logo and sound); every other screen keeps the top bar. */}
         {/* The reveal's own screen (3 Nov 2026) has no top bar: its header row carries the game and the sound button. */}
-        {tabs && !gameScreen ? <AppHeader /> : !bare && !framePlay && !(reveal && gameScreen) && (
+        {/* Joe, 14 Nov 2026: no wordmark and no sound controls in any page header (Settings and each game's menu have them). */}
+        {tabs && !gameScreen ? <AppHeader title={title} action={headerAction} /> : !bare && !framePlay && !(reveal && gameScreen) && (gameHeader || topAction) ? (
           <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
-            <div className="min-w-0">{gameHeader ?? <AppWordmark />}</div>
-            <div className="flex shrink-0 items-center">{topAction}<MuteToggle /></div>
+            <div className="min-w-0">{gameHeader}</div>
+            <div className="flex shrink-0 items-center">{topAction}</div>
           </div>
-        )}
+        ) : null}
         {/* Offline practice: the slim banner, drawn only while <html data-offline> is set (never on a game screen). */}
         {gameScreen ? null : <OfflineBanner />}
         {desktop && tabPage && tabs !== "profile" && tabs !== "shop" ? <BannerSlot page={tabs as "play" | "practice" | "tournaments"} /> : null}

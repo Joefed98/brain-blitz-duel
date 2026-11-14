@@ -12,7 +12,7 @@ import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { readRoomHistory } from "@/lib/duel/deviceHistory";
 import { practiceThisWeek } from "@/lib/duel/practiceRecent";
 import { scheduledGames, upcomingGames } from "@/lib/publicSchedule";
-import { Button, Icon } from "@/design/components";
+import { Button, Icon, SectionHeader } from "@/design/components";
 
 /**
  * The computer layout's page extras (31 Oct 2026, presentation only; docs/desktop-layout.md): the banner
@@ -136,10 +136,14 @@ function WeekPanel() {
   ];
   return (
     <section aria-label="Your week" data-aside-panel="week" className="ap-section">
-      <div className="ap-section-head">
-        <h2 className="ap-section-title">Your week</h2>
-        <span className="ap-meta">Last 7 days</span>
-      </div>
+      <SectionHeader
+        title="Your week"
+        right={
+          <>
+            <span className="ap-meta">Last 7 days</span>
+          </>
+        }
+      />
       <div className="jz-panel dk-week">
         {cells.map(([label, value]) => (
           <div key={label} className="dk-week-cell">

@@ -136,7 +136,7 @@
   justify-content: center;
   border: 2px solid var(--jz-gold);
   border-radius: 999px;
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .plus-hero h2 {
   margin: var(--jz-space-4) 0 0;
@@ -216,7 +216,7 @@
   justify-content: center;
   border: 1px solid var(--jz-line);
   border-radius: var(--jz-radius);
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .plus-perk-text {
   display: flex;

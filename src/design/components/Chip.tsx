@@ -1,8 +1,8 @@
 import { forwardRef, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode, type Ref } from "react";
 
 /**
- * A filter chip (DESIGN.md section 5): 36 px on an 8 px radius with a 44 px hit area; selected is the
- * light fill with dark text (never gold). `cat` adds the category diamond in that category's colour
+ * A filter chip (DESIGN.md section 5; style guide round 2): a 36 px pill on surface 2 with a 44 px hit area;
+ * selected is the white fill with dark text (never gold). `cat` adds the category dot in that category's colour
  * (`data-cat`, theme.css); `tint` colours the whole chip in its category when selected (room settings).
  * `selected` sets aria-pressed (or aria-checked with role="radio").
  *

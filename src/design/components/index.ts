@@ -1,6 +1,8 @@
 /** The shared components (DESIGN.md section 5). Import from here: `@/design/components`. */
 export { Button, ButtonLink, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button";
 export { Panel, type PanelProps } from "./Panel";
+export { ModeButton, type ModeButtonProps } from "./ModeButton";
+export { StatTile } from "./StatTile";
 export { Row, RowText, type RowProps } from "./Row";
 export { SectionHeader } from "./SectionHeader";
 export { Chip, type ChipProps, type ChipTone, type FilterChipProps, type StatusChipProps } from "./Chip";

@@ -4,12 +4,13 @@
  * browsers report what the policy would refuse and refuse nothing. The enforced header stays frame-ancestors only
  * (securityHeaders.ts).
  *
- * The two inline boot scripts in the root's <head> (PLAY_CARDS_BOOT, OFFLINE_BOOT) are allowed by their SHA-256
+ * The three inline boot scripts in the root's <head> (PLAY_CARDS_BOOT, OFFLINE_BOOT, APPEARANCE_BOOT) are allowed by their SHA-256
  * hashes. The per-request hydration scripts TanStack Start writes are left out on purpose: the trial's reports show
  * what they need (a nonce, or 'unsafe-inline') before anything is enforced.
  */
 import { OFFLINE_BOOT } from "@/lib/offline/online";
 import { PLAY_CARDS_BOOT } from "@/lib/playCards";
+import { APPEARANCE_BOOT } from "@/lib/appearance";
 
 /** The path browsers send reports to (src/server.ts answers it). */
 export const CSP_REPORT_PATH = "/csp-report";
@@ -22,7 +23,7 @@ const FONT_CSS = "https://fonts.googleapis.com";
 const FONT_FILES = "https://fonts.gstatic.com";
 
 /** The inline scripts the policy allows by hash, in the order the root writes them. */
-export const INLINE_BOOT_SCRIPTS: readonly string[] = [PLAY_CARDS_BOOT, OFFLINE_BOOT];
+export const INLINE_BOOT_SCRIPTS: readonly string[] = [PLAY_CARDS_BOOT, OFFLINE_BOOT, APPEARANCE_BOOT];
 
 /** CSP's hash source for one inline script: 'sha256-<base64 of the SHA-256 of its text>'. */
 export async function scriptHash(text: string): Promise<string> {

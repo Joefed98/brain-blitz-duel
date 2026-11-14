@@ -3,7 +3,6 @@ import { useState, type FormEvent, type MouseEvent } from "react";
 
 import { AppWordmark } from "@/components/brand/AppWordmark";
 import { LogoMark } from "@/components/brand/LogoMark";
-import { MuteToggle } from "@/components/duel/MuteToggle";
 import { AvatarButton } from "@/components/nav/AvatarButton";
 import { PlayBar } from "@/components/nav/PlayBar";
 import { SettingsSheet } from "@/components/app/SettingsSheet";
@@ -21,8 +20,8 @@ import { Icon, Input, TabBar } from "@/design/components";
  *
  * - `full` (240 px, the main screens): the Joulz logo, the player's avatar and name (Profile, or the save-your-progress
  *   sheet for a guest), the gold Play button, then Home, Games, Tournaments, Shop (with its switch) and More with their
- *   3D icons and labels; at the bottom a search (it opens Games with the words typed), the coin counter, settings and
- *   sound. It replaces the bottom tab bar.
+ *   3D icons and labels; at the bottom a search (it opens Games with the words typed), the coin counter and settings
+ *   (sound and music live there since the components step, 14 Nov 2026). It replaces the bottom tab bar.
  * - `compact` (76 px, rooms and games on a computer): the logo mark, the avatar, Play and the icons with their names
  *   as tooltips. Every item is a link or button in order, so it works by keyboard, with a visible focus ring (the gold
  *   Play button's is a cut frame, polish-layout/nav.css).
@@ -99,7 +98,6 @@ export function AppRail({
           >
             <Icon name="settings" size={20} />
           </button>
-          {compact ? null : <MuteToggle />}
         </div>
       </div>
       {settings ? (

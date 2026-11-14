@@ -11,6 +11,7 @@ import { Icon } from "@/design/components";
 import { useAccount } from "@/lib/account/accountApi";
 import { betaValue } from "@/lib/beta/betaValues";
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
+import { AppWordmark } from "@/components/brand/AppWordmark";
 import { APP_NAME } from "@/lib/brand";
 import { useWaitingRequests } from "@/lib/friends/friendsApi";
 import { useShopOn } from "@/lib/identity/shopSwitch";
@@ -63,9 +64,8 @@ function MoreScreen() {
   if (intro) return <Onboarding onDone={() => setIntro(false)} />;
 
   return (
-    <PhoneShell tabs="more">
+    <PhoneShell tabs="more" title="More">
       <div className="jz-nav jz-nav-page" data-more-page>
-        <h1 className="jz-nav-title">More</h1>
 
         <Group title="Friends and rivals">
           <Row art="profile" title="Profile" data="profile" onClick={push("/profile")} />
@@ -93,6 +93,10 @@ function MoreScreen() {
           <Row art="settings" title="Settings" data="settings" onClick={() => setSettings(true)} />
           {support ? <Row art="support" title="Support" data="support" href={support} external={!contact} /> : null}
         </Group>
+        {/* The brand (Joe, 14 Nov 2026): out of every page header; it stays here and on the launch screen. */}
+        <div data-more-brand className="jz-more-brand">
+          <AppWordmark still />
+        </div>
       </div>
       {offer ? <SaveProgressOffer onClose={() => setOffer(false)} /> : null}
       {settings ? (

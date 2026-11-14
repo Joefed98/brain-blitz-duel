@@ -247,7 +247,7 @@
   line-height: 52px;
 }
 .fr-h2h-score strong[data-tone="gold"] {
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .fr-h2h-score small {
   max-width: 100%;

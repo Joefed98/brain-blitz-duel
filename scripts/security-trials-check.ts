@@ -38,16 +38,23 @@ console.warn = () => {};
   const csp = await import("../src/lib/security/csp");
   const { PLAY_CARDS_BOOT } = await import("../src/lib/playCards");
   const { OFFLINE_BOOT } = await import("../src/lib/offline/online");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of 2b: the appearance boot script, Settings →
+  // Appearance, joins the root's inline scripts; the list grows from two to three, every rule unchanged).
+  const { APPEARANCE_BOOT } = await import("../src/lib/appearance");
   const nodeHash = (text: string) => `'sha256-${createHash("sha256").update(text, "utf8").digest("base64")}'`;
-  check((await csp.scriptHash(PLAY_CARDS_BOOT)) === nodeHash(PLAY_CARDS_BOOT) && (await csp.scriptHash(OFFLINE_BOOT)) === nodeHash(OFFLINE_BOOT), "the boot scripts' hashes match node's SHA-256 of their text");
-  check(csp.INLINE_BOOT_SCRIPTS.length === 2 && csp.INLINE_BOOT_SCRIPTS[0] === PLAY_CARDS_BOOT && csp.INLINE_BOOT_SCRIPTS[1] === OFFLINE_BOOT, "both inline boot scripts are hashed, in the root's order");
+  check((await csp.scriptHash(PLAY_CARDS_BOOT)) === nodeHash(PLAY_CARDS_BOOT) && (await csp.scriptHash(OFFLINE_BOOT)) === nodeHash(OFFLINE_BOOT) && (await csp.scriptHash(APPEARANCE_BOOT)) === nodeHash(APPEARANCE_BOOT), "the boot scripts' hashes match node's SHA-256 of their text");
+  check(csp.INLINE_BOOT_SCRIPTS.length === 3 && csp.INLINE_BOOT_SCRIPTS[0] === PLAY_CARDS_BOOT && csp.INLINE_BOOT_SCRIPTS[1] === OFFLINE_BOOT && csp.INLINE_BOOT_SCRIPTS[2] === APPEARANCE_BOOT, "all three inline boot scripts are hashed, in the root's order");
   const root = src("src/routes/__root.tsx");
-  const inline = [...root.matchAll(/<script dangerouslySetInnerHTML=\{\{ __html: (\w+) \}\} \/>/g)].map((m) => m[1]);
-  check(inline.join() === "PLAY_CARDS_BOOT,OFFLINE_BOOT", `the root writes exactly those two inline scripts (${inline.join(", ")})`);
+  // The appearance script's { __html } object is one constant (APPEARANCE_BOOT_HTML, CLAUDE.md working rule 6).
+  const inline = [...root.matchAll(/<script dangerouslySetInnerHTML=\{(?:\{ __html: (\w+) \}|(APPEARANCE_BOOT)_HTML)\} \/>/g)].map((m) => m[1] ?? m[2]);
+  check(
+    inline.join() === "PLAY_CARDS_BOOT,OFFLINE_BOOT,APPEARANCE_BOOT" && /const APPEARANCE_BOOT_HTML = \{ __html: APPEARANCE_BOOT \};/.test(root),
+    `the root writes exactly those three inline scripts (${inline.join(", ")})`,
+  );
   const policy = await csp.serverCspPolicy({ supabaseUrl: "https://abcd.supabase.co", sentryDsn: "https://k@o1.ingest.de.sentry.io/2" });
   const dir = (name: string) => policy.split("; ").find((d) => d.startsWith(`${name} `)) ?? "";
   check(dir("default-src") === "default-src 'self'" && dir("object-src") === "object-src 'none'" && dir("base-uri") === "base-uri 'self'", "default 'self', no objects, base 'self'");
-  check(dir("script-src").includes(nodeHash(PLAY_CARDS_BOOT)) && dir("script-src").includes(nodeHash(OFFLINE_BOOT)) && !/unsafe-inline|unsafe-eval/.test(dir("script-src")), "scripts: 'self', the two hashes and Turnstile; no unsafe-inline or eval (the trial shows what hydration needs)");
+  check(dir("script-src").includes(nodeHash(PLAY_CARDS_BOOT)) && dir("script-src").includes(nodeHash(OFFLINE_BOOT)) && dir("script-src").includes(nodeHash(APPEARANCE_BOOT)) && !/unsafe-inline|unsafe-eval/.test(dir("script-src")), "scripts: 'self', the three hashes and Turnstile; no unsafe-inline or eval (the trial shows what hydration needs)");
   check(/https:\/\/abcd\.supabase\.co/.test(dir("connect-src")) && /wss:\/\/abcd\.supabase\.co/.test(dir("connect-src")) && /https:\/\/o1\.ingest\.de\.sentry\.io/.test(dir("connect-src")), "connect: Supabase (https and wss) and Sentry once set");
   check(dir("report-uri") === "report-uri /csp-report" && dir("report-to") === "report-to csp", "reports go to /csp-report (report-uri and report-to)");
   check(csp.supabaseSources(undefined).length === 0 && csp.supabaseSources("not a url").length === 0 && csp.sentrySources("").length === 0, "no Supabase or Sentry source without a value");

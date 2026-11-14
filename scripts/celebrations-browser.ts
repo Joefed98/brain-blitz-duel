@@ -19,6 +19,11 @@
  *    2026: only its "home" entry re-recorded, since nine games retired ("All 83 games"; Warm up's third tile Box Six).
  *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step): only its "home" entry
  *    re-recorded, for the new frame (the avatar in the header, the Play bar, the Home · Games · Tournaments · More bar).
+ *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step): podium, standings, final2,
+ *    lobby3 and home re-recorded on the branch (the room top bar without the wordmark and sound, cards as Panels, the
+ *    header's title); reveal150 unchanged.
+ *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the header title fix): only "home" re-recorded
+ *    (the header no longer carries .jz-nav); every other entry byte-identical.
  *
  * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
  * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.
@@ -102,7 +107,10 @@ const SCREENS: Record<string, Screen> = {
   reveal199: { name: "answer reveal, 199", mode: "room", room: revealWith(199), ready: "[data-reveal-score]", waitMs: 1200, plain: true },
   reveal200: { name: "answer reveal, 200", mode: "room", room: revealWith(200), ready: "[data-reveal-score]", waitMs: 1400, plain: true },
   prepare: { name: "prepare to duel", mode: "room", room: room("in_progress", "starting"), ready: "#root *", waitMs: 2500, plain: true },
-  home: { name: "play", mode: "home", ready: "[data-app-wordmark]", waitMs: 400 },
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step: Home's header has no wordmark,
+  // so Home is ready on its header; the logo's charge-in moved to the launch screen, Joe's decision of 14 Nov 2026).
+  home: { name: "play", mode: "home", ready: "[data-app-header]", waitMs: 400 },
+  launch: { name: "launch screen", mode: "launch", ready: "[data-launch] [data-app-wordmark]", waitMs: 400, plain: true },
 };
 
 /** Before the page: the log, the switch, and a sampler of every element's layout box from the screen's first frame. */
@@ -550,17 +558,22 @@ try {
   }
 
   // On: Create a room's zap; the logo's charge-in.
+  // Changed with Joe's approval, 14 Nov 2026: the charge-in (once per app open) moved from Home's header wordmark to
+  // the launch screen's, so these two lines open the launch screen; their meaning is unchanged.
   {
+    const l = await open(browser, server.origin, "launch", true);
+    await l.page.waitForTimeout(1000);
+    check(await l.page.evaluate(() => (window as unknown as { __celLogoCharged: boolean }).__celLogoCharged), "launch screen: the first logo does not charge in");
+    check(!(await l.page.$("[data-logo-charge]")) && (await l.page.$$("[data-app-wordmark] svg g, [data-app-wordmark] svg clipPath")).length === 0, "launch screen: the mark is not the plain mark once the charge-in ends");
+    await l.close();
     const o = await open(browser, server.origin, "home", true);
-    check(await o.page.evaluate(() => (window as unknown as { __celLogoCharged: boolean }).__celLogoCharged), "home: the first logo does not charge in");
-    check(!(await o.page.$("[data-logo-charge]")) && (await o.page.$$("[data-app-wordmark] svg g, [data-app-wordmark] svg clipPath")).length === 0, "home: the mark is not the plain mark once the charge-in ends");
     await o.page.getByRole("button", { name: "Create a room" }).click();
     await o.page.waitForTimeout(300);
     check((await o.log()).some((e) => e.kind === "sound:zap"), "Create a room: no zap");
     await o.close();
     if (SHOTS) {
       // The charge-in part-way: the logo's SMIL clock paused at 0.3 s.
-      const c = await open(browser, server.origin, "home", true);
+      const c = await open(browser, server.origin, "launch", true);
       // A reopen charges the header in again; its clock is paused at 0.3 s for the picture.
       await fire(c.page, `C.appReopened();`);
       await c.page.waitForSelector("[data-logo-charge]");

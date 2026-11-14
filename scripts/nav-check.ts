@@ -80,13 +80,19 @@ const check = (ok: boolean, what: string) => {
     ["--jz-dur-sheet-in", "280ms"],
   ] as const)
     check(new RegExp(`${token}:\\s*${value}`).test(tokens), `token ${token}: ${value}`);
-  // Today's values, unchanged (the components step changes them).
-  for (const [token, value] of [["--jz-loss", "#E5243F"], ["--jz-bg", "#06080F"], ["--jz-gold", "#E2C07A"], ["--jz-surface", "#0F1424"]] as const) {
+  // Today's values. Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step: --jz-loss
+  // takes the guide's #FF5A6E; was #E5243F).
+  for (const [token, value] of [["--jz-loss", "#FF5A6E"], ["--jz-bg", "#06080F"], ["--jz-gold", "#E2C07A"], ["--jz-surface", "#0F1424"]] as const) {
     // Its first definition (the dark :root block; the light one comes after it, scoped to the navigation).
     const first = new RegExp(`\\n\\s*${token}:\\s*([^;]+);`).exec(tokens);
     check(first?.[1]?.trim() === value, `existing token ${token} still ${value} (${first?.[1]})`);
   }
-  check(/:root\[data-theme="light"\] \.jz-nav \{/.test(tokens), "the light theme reaches only the navigation frame");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of 2b, the light theme on every page, Joe's brief:
+  // was "the light theme reaches only the navigation frame"): light on the whole page, game screens kept dark.
+  check(
+    /:root\[data-theme="light"\] \{/.test(tokens) && /:root\[data-theme="light"\] :is\(\.game-screen, \[data-skin-off\], \.pcard\) \{/.test(tokens),
+    "the light theme reaches every page, game screens and game art kept dark",
+  );
 
   // The route list: every route file, and how a player reaches it (docs/design/nav-review/GALLERY.md lists the same).
   const ROUTES: Record<string, string> = {

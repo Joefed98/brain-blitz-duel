@@ -70,7 +70,7 @@
   /* Results, Joules and places (DESIGN.md section 2 "Results, Joules and places"; 7 Nov 2026). */
   /* Wins: a tick on green. Losses: a cross on red. Never the colour alone. */
   --jz-win: #16C35B;
-  --jz-loss: #E5243F;
+  --jz-loss: #FF5A6E; /* style guide round 2 (14 Nov 2026; was #E5243F, 4.2 : 1 on the page) */
   /* Joules: electric lime, always with the small bolt mark; never gold. */
   --jz-joules: #C6FF3D;
   /* Shop rarities (wave 2, D1; docs/art/wave-2/README.md's ladder): Epic gold, Elite violet edge, Legendary diamond. */
@@ -144,6 +144,13 @@
   --jz-weight-medium: 600;
   --jz-weight-bold: 800;
   --jz-weight-black: 900;
+  /* The type scale (style guide round 2): six roles, Archivo, never under 13 px. */
+  --jz-type-display: 800 32px/38px var(--jz-font);
+  --jz-type-title: 800 24px/30px var(--jz-font);
+  --jz-type-heading: 800 20px/26px var(--jz-font);
+  --jz-type-body: 700 17px/22px var(--jz-font);
+  --jz-type-label: 600 15px/20px var(--jz-font);
+  --jz-type-caption: 600 13px/18px var(--jz-font);
 
   /* ------------------------------------------------ space (section 4) */
   --jz-space-4: 4px;
@@ -153,8 +160,10 @@
   --jz-space-20: 20px;
   --jz-space-24: 24px;
   --jz-space-32: 32px;
+  --jz-space-40: 40px;
   --jz-space-48: 48px;
   --jz-page-pad: 20px;
+  --jz-gutter: 16px; /* the style guide's phone gutter (round 2); page layouts take it in step 3 */
   --jz-section-gap: 24px;
 
   /* ------------------------------------------------ shape (section 4) */
@@ -166,7 +175,7 @@
   --jz-radius-tile: 16px;
   --jz-radius-sheet: 20px;
   /* The one shadow (sheets only). DESIGN.md names it without a value: this one is F1's pick. */
-  --jz-shadow-sheet: 0 -12px 32px rgb(0 0 0 / 0.55);
+  --jz-shadow-sheet: var(--jz-elev-2); /* style guide round 2's overlay level (was 0 -12px 32px rgb(0 0 0 / 0.55)) */
   /* The stripe texture (.jz-stripes): faint text-coloured diagonals. DESIGN.md gives no value: F1's pick. */
   --jz-stripe-ink: rgb(238 242 255 / 0.035);
   --jz-stripes: repeating-linear-gradient(135deg, var(--jz-stripe-ink) 0 2px, transparent 2px 10px);
@@ -178,13 +187,13 @@
   --jz-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* ------------------------------------------------ style guide round 2 (docs/design/style-guide, 14 Nov 2026) */
-  /* Added alongside today's tokens for the navigation frame (phase 2 step 1); no existing token's value changes
-     here (that is the components step). The angled cuts above (--jz-cut-lg 14px, --jz-cut-sm 8px) already match. */
+  /* Added for the navigation frame (phase 2 step 1); the components step (phase 2 step 2) moved today's tokens onto
+     the guide's values (--jz-loss, --jz-shadow-sheet) and added the type scale. */
   --jz-raised: #0B0F1C; /* tab bar, rail, sheets (the same colour as --jz-bg-raised) */
   --jz-surface-3: #28335A; /* pressed and selected */
   --jz-ledge-2: #03050A; /* a secondary button's ledge */
   --jz-gold-ink: #E2C07A; /* gold as text or an icon (darker in the light theme) */
-  --jz-loss-text: #FF5A6E; /* losses and rating down as text (the guide's loss; --jz-loss stays until the components step) */
+  --jz-loss-text: #FF5A6E; /* losses and rating down as text (the same value as --jz-loss since the components step) */
   --jz-button-gold-face: var(--jz-gold); /* flat champagne: the metal is for medals and emblems */
   --jz-ledge: 4px;
   --jz-elev-0: none;
@@ -204,6 +213,9 @@
   --jz-dur-count: 600ms;
   --jz-dur-win: 900ms;
   --jz-dur-reduced: 120ms;
+  --jz-dur-toast-in: 240ms;
+  --jz-dur-toast-out: 200ms;
+  --jz-dur-toast-hold: 3s;
   --jz-ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
 
   /* ------------------------------------------------ category accents (moved from styles.css, unchanged) */
@@ -257,12 +269,16 @@
 }
 
 /*
- * The light theme (style guide round 2). Until the components step brings it to every screen, only the navigation
- * frame (.jz-nav: the tab bar, the avatar header, the Play bar, the rail, More and the Tournaments coming-soon page)
- * takes it, under <html data-theme="light">. Nothing sets data-theme yet (no setting), so every screen draws as before.
+ * The light theme (style guide round 2; phase 2 step 2b, 14 Nov 2026): every page under <html data-theme="light">,
+ * set by Settings → Appearance (src/lib/appearance.ts; dark, the default, is the attribute's absence, so nothing
+ * changes for anyone who never chooses). The values sit on :root itself, so every alias built on them (--th-* in
+ * theme.css, --ap-* in app-pages.css) resolves light too. Text colours are the guide's light values, each at least
+ * 4.5 : 1 on bg, surface and surface 2 (theme-check). Gold stays the champagne face for buttons and fills; gold as text
+ * or an icon takes --jz-gold-ink.
  */
-:root[data-theme="light"] .jz-nav {
+:root[data-theme="light"] {
   --jz-bg: #F3F4F8;
+  --jz-bg-raised: #FFFFFF;
   --jz-raised: #FFFFFF;
   --jz-surface: #FFFFFF;
   --jz-surface-2: #E4E7F0;
@@ -274,7 +290,114 @@
   --jz-text-3: #59617F;
   --jz-gold-ink: #7A5C1C;
   --jz-loss-text: #B81C33;
+  --jz-loss: #B81C33;
+  --jz-red: #B81C33;
+  --jz-win: #0B6F33;
+  --jz-joules: #456B00;
+  --jz-cyan: #006A7A; /* the guide's "live" in light (switches, live tags, done ticks) */
+  --jz-cyan-panel: #DDF1F4;
+  --jz-well: #E4E7F0;
+  --jz-well-shadow: inset 0 2px 3px rgb(11 16 32 / 0.12);
+  --jz-press-tint: rgb(11 16 32 / 0.04);
+  --jz-sheen: rgb(11 16 32 / 0.05);
+  --jz-stripe-ink: rgb(11 16 32 / 0.035);
   --jz-focus-ring: #006A7A;
   --jz-scrim: rgb(11 16 32 / 0.45);
   --jz-elev-1: inset 0 1px 0 rgb(255 255 255 / 0.6), 0 4px 0 var(--jz-ledge-2);
+  --jz-elev-2: 0 -4px 20px rgb(11 16 32 / 0.08), 0 8px 28px rgb(11 16 32 / 0.1);
+  /* Text on the page that was white in the dark theme (the wordmark's letters) and the place colours as text. */
+  --jz-white: #0B1020;
+  --jz-place-1: #7A5C1C;
+  --jz-place-2: #4A5470;
+  --jz-place-3: #8A4F1C;
+  --jz-tier-spark: #8A4F1C;
+  --jz-tier-charge: #4A5470;
+  --jz-tier-volt: #7A5C1C;
+  --jz-tier-surge: #0D6478;
+  --jz-tier-storm: #6A3FB8;
+  --jz-tier-lightning: #7A5C1C;
+  --jz-rarity-epic: #7A5C1C;
+  --jz-rarity-elite: #5B47C9;
+  --jz-rarity-legendary: #0D6478;
+  /* The page edge (html, body and the strip under the home bar) on a page. */
+  --screen-edge: #F3F4F8;
+  /* Result colours as text on a light page (polish-layout/light.css): a good result, a partial one, a warning. */
+  --jz-light-good: #0B6F33;
+  --jz-light-partial: #8A4A00;
+  --jz-light-warn: #B81C33;
+}
+/*
+ * Game screens stay dark in every theme until step 4 restyles them (Joe, 14 Nov 2026): a game screen (PhoneShell's
+ * .game-screen: intros, live rounds, reveals), a game's own art inside a page ([data-skin-off]: reveal boards,
+ * replays) and the player card (.pcard: its approved art is drawn for a dark card) take the dark values again, with the aliases rebuilt on them; while one is up the page edge is the dark
+ * edge too.
+ */
+:root[data-theme="light"]:has(.game-screen) {
+  --screen-edge: #070709;
+}
+:root[data-theme="light"] :is(.game-screen, [data-skin-off], .pcard) {
+  --jz-bg: #06080F;
+  --jz-bg-raised: #0B0F1C;
+  --jz-raised: #0B0F1C;
+  --jz-surface: #0F1424;
+  --jz-surface-2: #1E2640;
+  --jz-surface-3: #28335A;
+  --jz-line: #1E2640;
+  --jz-ledge-2: #03050A;
+  --jz-text: #EEF2FF;
+  --jz-text-2: #B5C6DD;
+  --jz-text-3: #8F9BBF;
+  --jz-gold-ink: #E2C07A;
+  --jz-loss-text: #FF5A6E;
+  --jz-loss: #FF5A6E;
+  --jz-red: #FF3B5C;
+  --jz-win: #16C35B;
+  --jz-joules: #C6FF3D;
+  --jz-cyan: #22E4FF;
+  --jz-cyan-panel: #112A3A;
+  --jz-well: #06080F;
+  --jz-well-shadow: inset 0 2px 3px rgb(0 0 0 / 0.55);
+  --jz-press-tint: rgb(238 242 255 / 0.04);
+  --jz-sheen: rgb(238 242 255 / 0.06);
+  --jz-stripe-ink: rgb(238 242 255 / 0.035);
+  --jz-focus-ring: #22E4FF;
+  --jz-scrim: rgb(3 4 8 / 0.72);
+  --jz-elev-1: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 4px 0 var(--jz-ledge-2);
+  --jz-elev-2: 0 -8px 32px rgb(0 0 0 / 0.5), 0 16px 48px rgb(0 0 0 / 0.6);
+  --jz-white: #FFFFFF;
+  --jz-place-1: #E2C07A;
+  --jz-place-2: #D3DCEF;
+  --jz-place-3: #E2AB76;
+  --jz-tier-spark: var(--jz-metal-bronze-4);
+  --jz-tier-charge: var(--jz-metal-silver-2);
+  --jz-tier-volt: var(--jz-gold);
+  --jz-tier-surge: var(--jz-metal-platinum-2);
+  --jz-tier-storm: #C79BFF;
+  --jz-tier-lightning: var(--jz-metal-gold-1);
+  --jz-rarity-epic: #E2C07A;
+  --jz-rarity-elite: #A99BFF;
+  --jz-rarity-legendary: #AEEAF7;
+  --screen-edge: #070709;
+  /* The page aliases, rebuilt on the dark values above (they resolve where declared). */
+  --th-bg: var(--jz-bg);
+  --th-text: var(--jz-text);
+  --th-text-2: var(--jz-text-2);
+  --th-gold-text: var(--jz-gold);
+  --th-teal-text: var(--jz-cyan);
+  --th-green-text: var(--jz-cyan);
+  --th-card: linear-gradient(var(--jz-surface), var(--jz-surface));
+  --th-card-edge: var(--jz-line);
+  --ap-bg: var(--jz-bg);
+  --ap-panel: var(--jz-surface);
+  --ap-input: var(--jz-surface);
+  --ap-divider: var(--jz-line);
+  --ap-outline: var(--jz-surface-2);
+  --ap-text: var(--jz-text);
+  --ap-text-2: var(--jz-text-3);
+  --ap-faint: var(--jz-text-3);
+  --ap-gold: var(--jz-gold);
+  --ap-gold-tint: color-mix(in srgb, var(--jz-gold) 16%, var(--jz-bg));
+  --ap-link: var(--jz-text-2);
+  --ap-line: var(--jz-surface-2);
+  --ap-done: var(--jz-surface-2);
 }

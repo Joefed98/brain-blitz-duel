@@ -9,6 +9,7 @@ import { NotificationSettings } from "@/components/push/NotificationSettings";
 import { VolumeSliders } from "@/components/app/VolumeSliders";
 import { Icon, Panel, Row, Segmented, Sheet, SwitchKnob } from "@/design/components";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
+import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "@/lib/appearance";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
@@ -26,8 +27,8 @@ function readArrows(): "arrows" | "joystick" {
 
 /**
  * Profile's settings (the gear): the existing device settings in one sheet, nothing new. Sound: a
- * switch each for effects and music and a volume slider each (VolumeSliders; the same settings as every
- * screen's header MuteToggle); the battery saver (lib/battery.ts); haptics (lib/haptics.ts); direction controls are the arrows/joystick choice the grid games offer in play
+ * switch each for effects and music and a volume slider each (VolumeSliders; the same settings as each game's menu;
+ * since the components step, 14 Nov 2026, the only place outside a game, no page header has them); the battery saver (lib/battery.ts); haptics (lib/haptics.ts); direction controls are the arrows/joystick choice the grid games offer in play
  * (GridDrag's own key); "How it works" reopens the first-time intro.
  */
 export function SettingsSheet({
@@ -51,6 +52,7 @@ export function SettingsSheet({
     }
   };
   const sound = useSoundSettings();
+  const appearance = useAppearance();
   const saver = useBatterySaver();
   const haptics = useHapticsOn();
   const hapticsSupported = useHapticsSupported();
@@ -78,6 +80,17 @@ export function SettingsSheet({
           <SwitchRow label="Music" on={!sound.musicMuted} onChange={(on) => setMusicMuted(!on)} />
           <VolumeSliders />
         </Panel>
+        {/* Appearance (2b, Joe 14 Nov 2026): Dark (the default), Light, Match my device; kept on this device. */}
+        <div className="flex flex-col gap-2" data-appearance-setting={appearance}>
+          <span className="ap-group-title">Appearance</span>
+          <Segmented
+            label="Appearance"
+            radio
+            value={appearance}
+            onChange={setAppearance}
+            options={APPEARANCE_OPTIONS.map(({ value, label }) => ({ value, label, data: { "data-appearance-option": value } }))}
+          />
+        </div>
         <div className="flex flex-col gap-2">
           <span className="ap-group-title">Direction controls</span>
           <Segmented

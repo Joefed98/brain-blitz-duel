@@ -126,7 +126,7 @@
 }
 .pc-moment-icon {
   flex: none;
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .pc-moment-text {
   display: flex;
@@ -153,7 +153,7 @@
   flex: none;
   align-items: center;
   gap: var(--jz-space-4);
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
   font-size: 14px;
   font-weight: var(--jz-weight-bold);
   line-height: 18px;

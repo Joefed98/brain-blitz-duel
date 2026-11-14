@@ -29,7 +29,7 @@
   --ap-text: var(--jz-text);
   --ap-text-2: var(--jz-text-3);
   --ap-faint: var(--jz-text-3);
-  --ap-gold: var(--jz-gold);
+  --ap-gold: var(--jz-gold-ink); /* gold as text and the page --primary: the same value in dark, darker in light (2b) */
   --ap-gold-tint: color-mix(in srgb, var(--jz-gold) 16%, var(--jz-bg));
   /* Gold only means "tap to play" (follow-up to #129): links and secondary buttons are neutral. */
   --ap-link: var(--jz-text-2);
@@ -199,7 +199,9 @@
   font-stretch: 112%;
   letter-spacing: -0.02em !important;
   line-height: 1.08;
-  color: var(--ap-text);
+  /* The text colour where the title is drawn (the components step, 14 Nov 2026): a page in the light theme's scope
+     takes its dark text, every other page the light text (the same value --ap-text gives there). */
+  color: var(--jz-text);
 }
 .ap-title > span {
   display: block;
@@ -223,13 +225,11 @@
   justify-content: space-between;
   gap: 12px;
 }
+/* The section titles not yet in a SectionHeader (they share a line with a page's own control) take its Heading role. */
 .ap-section-title {
   text-transform: none;
-  letter-spacing: -0.01em;
-  font-size: 18px;
-  font-weight: 750;
-  font-stretch: 110%;
-  line-height: 1.2;
+  letter-spacing: 0;
+  font: var(--jz-type-heading);
   color: var(--ap-text);
   white-space: nowrap;
 }

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
 import { withServer } from "@/components/app/PracticeChallenges";
-import { Progress } from "@/design/components";
+import { Progress, SectionHeader } from "@/design/components";
 import { useServerChallenges } from "@/lib/challenges/challengesClient";
 import { PUZZLE_REGISTRY } from "@/lib/duel/catalogue";
 import { PRACTICE_CHALLENGES, challengeLive } from "@/lib/duel/practiceChallenges";
@@ -30,12 +30,16 @@ export function ProfileChallenges({ onOpen }: { onOpen: () => void }) {
   if (done === 0 && closest.length === 0) return null;
   return (
     <section aria-label="Challenges" data-profile-challenges className="ap-section">
-      <div className="ap-section-head">
-        <h2 className="ap-section-title">Challenges</h2>
-        <button type="button" onClick={onOpen} data-profile-challenges-done={done} className="ap-link press -my-2.5 -mr-1 h-11 min-w-11 px-1">
-          {done} of {states.length} done
-        </button>
-      </div>
+      <SectionHeader
+        title="Challenges"
+        right={
+          <>
+            <button type="button" onClick={onOpen} data-profile-challenges-done={done} className="ap-link press -my-2.5 -mr-1 h-11 min-w-11 px-1">
+              {done} of {states.length} done
+            </button>
+          </>
+        }
+      />
       {closest.length > 0 ? (
         <ul className="jz-panel">
           {closest.map((s) => (

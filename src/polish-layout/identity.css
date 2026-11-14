@@ -330,7 +330,7 @@
 }
 .cz-rarity[data-rarity="epic"] {
   border-color: var(--jz-gold);
-  color: var(--jz-gold);
+  color: var(--jz-gold-ink);
 }
 .cz-rarity[data-rarity="elite"] {
   border-color: var(--jz-metal-obsidian-4);
@@ -483,12 +483,13 @@ button.cz-gem {
   color: var(--jz-text-2);
   font-weight: var(--jz-weight-bold);
 }
+/* The name in the guide's Body role (700); 16 / 20 so a 44 px strip keeps its size (the components step). */
 .nameplate-name {
   overflow: hidden;
   min-width: 0;
   color: var(--jz-text);
   font-size: 16px;
-  font-weight: var(--jz-weight-bold);
+  font-weight: 700;
   line-height: 20px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -506,8 +507,7 @@ button.cz-gem {
 .nameplate-sheet-line {
   margin: 0;
   color: var(--jz-text-2);
-  font-size: 15px;
-  font-weight: var(--jz-weight-bold);
+  font: var(--jz-type-label);
   text-align: center;
 }
 

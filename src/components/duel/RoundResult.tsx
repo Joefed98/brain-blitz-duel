@@ -1,5 +1,6 @@
 import { VerdictLabel } from "./VerdictLabel";
 import { MetaChips } from "@/components/app/MetaChips";
+import { Panel } from "@/design/components";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { PLAYER_COLOURS, type PlayerLook } from "@/lib/duel/playerLook";
@@ -114,11 +115,11 @@ export function RoundResult({
         {highlight}
 
         <div className="flex gap-3">
-          <div
+          <Panel
             data-you=""
             style={youStyle(myLook)}
             data-round-dim={theyWon ? "" : undefined}
-            className="th-card min-w-0 flex-1 rounded-[18px] border p-4" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
+            className="th-card min-w-0 flex-1 p-4" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
           >
             <p className="flex min-w-0 items-center gap-1.5 text-sm">
               <RoomMiniCard slot={mySlot} look={myLook} name={myName} size={24} />
@@ -140,10 +141,10 @@ export function RoundResult({
             {iWon && (
               <span className="rs-pill mt-3 animate-tag-slam">Round won</span>
             )}
-          </div>
-          <div
+          </Panel>
+          <Panel
             data-round-dim={iWon ? "" : undefined}
-            className="th-card min-w-0 flex-1 rounded-[18px] border p-4 text-right" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
+            className="th-card min-w-0 flex-1 p-4 text-right" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
           >
             <p className="flex min-w-0 items-center justify-end gap-1.5 text-sm">
               <span className="th-name truncate font-semibold">{opponentName}</span>
@@ -163,7 +164,7 @@ export function RoundResult({
             {theyWon && (
               <span className="rs-pill mt-3 animate-tag-slam">Round won</span>
             )}
-          </div>
+          </Panel>
         </div>
       </div>
 
