@@ -9,6 +9,12 @@
   order: -1;
   grid-column: 1 / -1;
 }
+/* On a computer the lobby is four across (desktop-layout.css): my row is one of the four, still first. */
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"] .rs-grid > .rs-cell[data-you] {
+    grid-column: auto;
+  }
+}
 .rs-change {
   display: inline-flex;
   flex: none;
