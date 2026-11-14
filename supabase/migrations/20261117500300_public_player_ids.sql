@@ -8,6 +8,8 @@
 --    kept nowhere.
 -- 2. New columns duel_players.public_id, duels.host_public_id and room_messages.sender_public_id, filled by triggers
 --    whenever the account id is written, and for every existing row here (new columns only; no existing value changes).
+--    Play again's archive of the seats (duel_players_archive) keeps each seat's public id the same way, so the archive
+--    holds every column of the seat it archived (server only, as before).
 -- 3. Column grants: phones (anon, authenticated) may read every column of the three tables except the account ids
 --    (duel_players.user_id, duels.host_user_id, room_messages.sender_user_id). Realtime's postgres_changes check column
 --    privileges per column (realtime.apply_rls), so live changes leave the account ids out too.
@@ -58,6 +60,7 @@ GRANT EXECUTE ON FUNCTION public.my_public_id() TO authenticated, service_role;
 
 -- 2. The columns and their triggers.
 ALTER TABLE public.duel_players ADD COLUMN IF NOT EXISTS public_id uuid;
+ALTER TABLE public.duel_players_archive ADD COLUMN IF NOT EXISTS public_id uuid;
 ALTER TABLE public.duels ADD COLUMN IF NOT EXISTS host_public_id uuid;
 ALTER TABLE public.room_messages ADD COLUMN IF NOT EXISTS sender_public_id uuid;
 CREATE INDEX IF NOT EXISTS duel_players_public_id_idx ON public.duel_players (public_id);
@@ -65,7 +68,7 @@ CREATE INDEX IF NOT EXISTS duel_players_public_id_idx ON public.duel_players (pu
 CREATE OR REPLACE FUNCTION public.fill_player_public_id()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF TG_TABLE_NAME = 'duel_players' THEN
+  IF TG_TABLE_NAME IN ('duel_players', 'duel_players_archive') THEN
     IF TG_OP = 'INSERT' OR NEW.user_id IS DISTINCT FROM OLD.user_id OR NEW.public_id IS NULL THEN
       NEW.public_id := public.public_id_of(NEW.user_id);
     END IF;
@@ -86,6 +89,9 @@ REVOKE ALL ON FUNCTION public.fill_player_public_id() FROM PUBLIC, anon, authent
 DROP TRIGGER IF EXISTS duel_players_public_id ON public.duel_players;
 CREATE TRIGGER duel_players_public_id BEFORE INSERT OR UPDATE ON public.duel_players
   FOR EACH ROW EXECUTE FUNCTION public.fill_player_public_id();
+DROP TRIGGER IF EXISTS duel_players_archive_public_id ON public.duel_players_archive;
+CREATE TRIGGER duel_players_archive_public_id BEFORE INSERT OR UPDATE ON public.duel_players_archive
+  FOR EACH ROW EXECUTE FUNCTION public.fill_player_public_id();
 DROP TRIGGER IF EXISTS duels_host_public_id ON public.duels;
 CREATE TRIGGER duels_host_public_id BEFORE INSERT OR UPDATE ON public.duels
   FOR EACH ROW EXECUTE FUNCTION public.fill_player_public_id();
@@ -95,6 +101,7 @@ CREATE TRIGGER room_messages_sender_public_id BEFORE INSERT OR UPDATE ON public.
 
 -- Existing rows (Joe's approval, 13 Nov 2026: new columns only, no existing value changes).
 UPDATE public.duel_players SET public_id = public.public_id_of(user_id) WHERE public_id IS NULL;
+UPDATE public.duel_players_archive SET public_id = public.public_id_of(user_id) WHERE public_id IS NULL;
 UPDATE public.duels SET host_public_id = public.public_id_of(host_user_id) WHERE host_public_id IS NULL AND host_user_id IS NOT NULL;
 UPDATE public.room_messages SET sender_public_id = public.public_id_of(sender_user_id) WHERE sender_public_id IS NULL;
 
