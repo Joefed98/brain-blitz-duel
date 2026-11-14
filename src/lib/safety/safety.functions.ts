@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { record, text } from "@/lib/validate";
 
 async function setup(userId: string) {
   const { adminDb } = await import("@/lib/data/db.server");
@@ -37,7 +38,8 @@ export const ackWarningFn = createServerFn({ method: "POST" })
 /** The player's new name after a forced rename (an account's username, or a guest's room name). */
 export const pickForcedNameFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { name: string }) => input)
+  // Type and size only (Security C2); pickForcedName judges the name itself.
+  .inputValidator((input: { name: string }) => ({ name: text(record(input)["name"], 64, "name") }))
   .handler(async ({ data, context }) => {
     const { client, allowed, safety } = await setup(context.userId);
     if (!allowed) return BUSY;

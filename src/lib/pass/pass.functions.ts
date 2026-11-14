@@ -12,6 +12,10 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { num, record, text } from "@/lib/validate";
+
+/* Input checks (Security C2, 14 Nov 2026): type and size only; pass.server.ts judges each track, level and time. */
+const WORD_MAX = 32;
 import type { RateLimit } from "@/lib/duel/rateLimit.server";
 
 import { PASS_MESSAGES, type PassActionResult, type PassClosed, type PassView } from "./types";
@@ -39,7 +43,10 @@ export const getPassFn = createServerFn({ method: "POST" })
 
 export const claimPassRewardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { track: string; level: number }) => input)
+  .inputValidator((input: { track: string; level: number }) => {
+    const body = record(input);
+    return { track: text(body["track"], WORD_MAX, "track"), level: num(body["level"], "level") };
+  })
   .handler(async ({ data, context }): Promise<PassActionResult> => {
     const { client, allowed, pass } = await setup(context.userId);
     if (!allowed) return BUSY;
@@ -56,7 +63,7 @@ export const testPremiumFn = createServerFn({ method: "POST" })
 
 export const passLevelSeenFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { level: number }) => input)
+  .inputValidator((input: { level: number }) => ({ level: num(record(input)["level"], "level") }))
   .handler(async ({ data, context }): Promise<{ ok: boolean }> => {
     const { client, allowed, pass } = await setup(context.userId);
     if (!allowed) return { ok: false };
@@ -65,7 +72,7 @@ export const passLevelSeenFn = createServerFn({ method: "POST" })
 
 export const passJoulesSinceFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { sinceMs: number }) => input)
+  .inputValidator((input: { sinceMs: number }) => ({ sinceMs: num(record(input)["sinceMs"], "sinceMs") }))
   .handler(async ({ data, context }): Promise<{ joules: number } | null> => {
     const { client, allowed, pass } = await setup(context.userId);
     if (!allowed) return null;

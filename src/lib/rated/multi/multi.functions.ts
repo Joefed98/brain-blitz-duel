@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { num, optional, record, text } from "@/lib/validate";
 
 export const ratedMultiSizesFn = createServerFn({ method: "GET" }).handler(async () => {
   const { multiSizesOn } = await import("./multi.server");
@@ -14,7 +15,11 @@ export const ratedMultiSizesFn = createServerFn({ method: "GET" }).handler(async
 
 export const joinRatedMultiQueueFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { size: number; choice?: string }) => input)
+  // Type and size only (Security C2): joinMultiQueue judges the size and the choice ("bad_size", "bad_choice").
+  .inputValidator((input: { size: number; choice?: string }) => {
+    const body = record(input);
+    return { size: num(body["size"], "size"), choice: optional(body["choice"], (v) => text(v, 32, "choice")) };
+  })
   .handler(async ({ data, context }) => {
     const { joinMultiQueue } = await import("./multi.server");
     return joinMultiQueue({ playerId: context.userId, size: data?.size, choice: data?.choice });
