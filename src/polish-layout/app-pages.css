@@ -199,7 +199,9 @@
   font-stretch: 112%;
   letter-spacing: -0.02em !important;
   line-height: 1.08;
-  color: var(--ap-text);
+  /* The text colour where the title is drawn (the components step, 14 Nov 2026): a page in the light theme's scope
+     takes its dark text, every other page the light text (the same value --ap-text gives there). */
+  color: var(--jz-text);
 }
 .ap-title > span {
   display: block;
