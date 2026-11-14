@@ -1,0 +1,197 @@
+/*
+ * Phase 2 step 3, rooms and rated (14 Nov 2026; docs/design/style-guide/): the rated screens' page layout on the
+ * round 2 tokens. Loaded after rated.css and adds no animation (rated.css keeps every motion and its Reduce Motion
+ * rule). Phone: one column, the content centred where a screen is short (searching, VS). Computer: VS side by side,
+ * the result and the tier ladder in two columns, never a stretched phone column.
+ */
+
+/* ------------------------------------------------------------------ the match header (arcade.png, puzzle.png) */
+.rt-mh {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  margin-bottom: var(--jz-space-8);
+}
+.rt-mh-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.rt-mh-side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.rt-mh-side[data-mh-side="them"] {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+.rt-mh-side .pcard-mini {
+  flex: none;
+  border-radius: var(--jz-radius-md);
+}
+.rt-mh-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.rt-mh-name {
+  overflow: hidden;
+  font: var(--jz-type-body);
+  color: var(--jz-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rt-mh-sub {
+  font: var(--jz-type-caption);
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.rt-mh-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rt-mh-game {
+  font: var(--jz-type-caption);
+  color: var(--jz-text-2);
+  white-space: nowrap;
+}
+.rt-mh-score {
+  font: var(--jz-type-title);
+  font-stretch: 118%;
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rt-mh-line {
+  align-self: center;
+  margin: 0;
+  padding: var(--jz-space-4) var(--jz-space-12);
+  border-radius: var(--jz-round);
+  background: var(--jz-surface);
+  font: var(--jz-type-caption);
+  color: var(--jz-text-2);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ searching: Cancel at the foot */
+.rt-search .rt-foot {
+  padding-top: var(--jz-space-16);
+}
+
+/* ------------------------------------------------------------------ VS: the two cards centred on the screen */
+.rt-vs .rt-vs-them {
+  margin-top: auto;
+}
+.rt-vs > :last-child {
+  margin-bottom: auto;
+}
+.rt-vs .rt-vs-top {
+  padding-bottom: var(--jz-space-8);
+}
+
+/* ------------------------------------------------------------------ the result: panels on the surface, no stripes */
+.rt-result .rt-result-head.jz-stripes {
+  background-image: none;
+}
+.rt-result :is(.rt-rating, .rt-placement, .rt-games, .rt-earned-tile),
+.rt-ladder :is(.rt-ladder-you, .rt-ladder-table) {
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+
+/* ------------------------------------------------------------------ computer: use the width */
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  /* VS: their card right, yours left, VS between (the order is the grid's; the markup stays theirs, VS, yours). */
+  [data-layout="desktop"] .rt-vs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas:
+      "top top top"
+      "me rail them"
+      "rec rec rec";
+    align-content: center;
+    column-gap: var(--jz-space-24);
+    row-gap: var(--jz-space-32);
+  }
+  [data-layout="desktop"] .rt-vs .rt-vs-top {
+    grid-area: top;
+  }
+  [data-layout="desktop"] .rt-vs .rt-vs-me {
+    grid-area: me;
+    flex-direction: column-reverse;
+    margin: 0;
+    padding: 0;
+  }
+  [data-layout="desktop"] .rt-vs .rt-vs-them {
+    grid-area: them;
+    flex-direction: column-reverse;
+    margin: 0;
+    padding: 0;
+  }
+  [data-layout="desktop"] .rt-vs .rt-vs-card {
+    width: 100%;
+  }
+  [data-layout="desktop"] .rt-vs .rt-vs-rail {
+    grid-area: rail;
+    flex-direction: column;
+    align-self: stretch;
+  }
+  [data-layout="desktop"] .rt-vs .rt-vs-line {
+    width: 2px;
+    height: auto;
+  }
+  [data-layout="desktop"] .rt-vs .rt-vs-record {
+    grid-area: rec;
+    margin: 0;
+  }
+
+  /* The result: the headline across, the rating and earnings left, the games and actions right. */
+  [data-layout="desktop"] .rt-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-content: start;
+    gap: var(--jz-space-24);
+  }
+  [data-layout="desktop"] .rt-result > .rt-result-head,
+  [data-layout="desktop"] .rt-result > .rt-frozen,
+  [data-layout="desktop"] .rt-result > .rt-near-miss {
+    grid-column: 1 / -1;
+  }
+  [data-layout="desktop"] .rt-result > :is(.rt-rating, .rt-placement, .rt-earned, .joules-line) {
+    grid-column: 1;
+  }
+  [data-layout="desktop"] .rt-result > :is(.rt-games, .rt-actions) {
+    grid-column: 2;
+  }
+  [data-layout="desktop"] .rt-result > .rt-games {
+    grid-row: 2 / span 2;
+  }
+  [data-layout="desktop"] .rt-result > .rt-actions {
+    margin-top: 0;
+  }
+
+  /* The tier ladder: your rating and the rules left (sticky), the ladder right. */
+  [data-layout="desktop"] .rt-ladder {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: start;
+    gap: var(--jz-space-24);
+  }
+  [data-layout="desktop"] .rt-ladder > .rt-ladder-you,
+  [data-layout="desktop"] .rt-ladder > .rt-ladder-rules {
+    grid-column: 1;
+  }
+  [data-layout="desktop"] .rt-ladder > .rt-ladder-table {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+  }
+}
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"] .rt-result .rt-earned > * {
+    flex: 1;
+  }
+}

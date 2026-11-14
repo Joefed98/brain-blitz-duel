@@ -41,6 +41,7 @@ import { betweenFor, RatedBetween } from "@/components/rated/RatedBetween";
 import { isBetweenPhase } from "@/lib/rated/between";
 import { graceLine, graceSecondsLeft, latestSeenMs, RATED_AWAY_MS } from "@/lib/rated/rules";
 import { RatedRoomScore } from "@/components/rated/RatedFrameScore";
+import { RatedRoomMatchHeader } from "@/components/rated/RatedMatchHeader";
 import { useRatedRoom, useRatedRoomFormat } from "@/lib/rated/ratedRoom";
 import { animateFx } from "@/lib/fx/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
@@ -1276,6 +1277,18 @@ function DuelScreen() {
       />
     ) : null;
 
+  // A rated 1v1 between games (phase 2 step 3): the match header over the room's own round result and standings,
+  // both players' cards, "Game N of M" and the games won from the room's own round outcomes (display only).
+  const ratedHeader =
+    ratedMatchId && !isMulti && !ratedBetween && isBetweenPhase(phase) ? (
+      <RatedRoomMatchHeader
+        matchId={ratedMatchId}
+        game={round}
+        myWins={outcomes.filter((o) => o === "win").length}
+        theirWins={outcomes.filter((o) => o === "loss").length}
+      />
+    ) : null;
+
   if (phase === "result") {
     const autoSeconds = Math.max(
       0,
@@ -1317,6 +1330,7 @@ function DuelScreen() {
     return withPanel(
       <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
+        {ratedHeader}
         {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
         <RoomChatSlot.Provider value={chatButton}>
         <RoundResult
@@ -1373,6 +1387,7 @@ function DuelScreen() {
     return withPanel(
       <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
+        {ratedHeader}
         {puzzle && !ratedBetween ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
         <RoomChatSlot.Provider value={chatButton}>
         {ratedBetween ?? (isMulti ? (

@@ -16,10 +16,10 @@
 import { useMemo, type ReactNode } from "react";
 
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
-import { JoulesLine as RatedJoulesLine, MatchChips, PlayerDot, RankEmblem } from "@/components/rated/RatedParts";
+import { JoulesLine as RatedJoulesLine, MatchChips, RankEmblem } from "@/components/rated/RatedParts";
 import { RatedCard } from "@/components/rated/RatedMatchScreens";
 import { Button, Icon, Medal, Panel } from "@/design/components";
-import type { CardLook } from "@/design/identity";
+import { MiniCard, type CardLook } from "@/design/identity";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 import type { RatedPlayer } from "@/lib/rated/backend";
 import { forfeitLine, namesText } from "@/lib/rated/rules";
@@ -38,7 +38,7 @@ import {
 export interface SeatView {
   seatId: string;
   name: string;
-  /** The player's card look (A2's loadout, W3c's `RatedPlayer.look`), drawn with W3c's PlayerDot; a guest look (colour and initial) otherwise. */
+  /** The player's card look (A2's loadout, W3c's `RatedPlayer.look`), drawn as their mini card (the shared identity piece); a guest look (colour and initial) otherwise. */
   card?: CardLook | null;
   look?: PlayerLook;
   you?: boolean;
@@ -50,7 +50,7 @@ export interface SeatView {
 }
 
 function SeatDisc({ seat, size }: { seat: SeatView; size: number }) {
-  if (seat.card) return <PlayerDot look={seat.card} size={size} />;
+  if (seat.card) return <MiniCard look={seat.card} size={size} />;
   return <PlayerBadge look={seat.look ?? { colour: 0, icon: null }} name={seat.name} size={size} />;
 }
 

@@ -18,6 +18,9 @@ import type { RankView } from "@/lib/rated/tierDisplay";
 import { tierFor, tierLadder } from "@/lib/rated/tiers";
 import { ABORT_WAIT_LINE, abortLine, graceLine } from "@/lib/rated/rules";
 import { EmptyState } from "@/design/components";
+import { RatedMatchHeader, headerSub, matchLine } from "@/components/rated/RatedMatchHeader";
+import { MultiFilling, MultiFinal, MultiStandings, type SeatView } from "@/components/rated/multi/MultiScreens";
+import { finalPlacings, standingsAfter, type GameScore } from "@/lib/rated/multi/rules";
 
 export type RatedScreenKey =
   | "home"
@@ -39,7 +42,13 @@ export type RatedScreenKey =
   | "home-cooldown"
   | "aborted-you-left"
   | "dropout-countdown"
-  | "dropout-rated";
+  | "dropout-rated"
+  // Phase 2 step 3 (rooms and rated, 14 Nov 2026): the match header between games, and the 4- and 8-player views.
+  | "match-header"
+  | "match-header-placement"
+  | "multi-filling"
+  | "multi-standings"
+  | "multi-final";
 
 const rankAt = (r: number): RankView => ({ ...tierFor(r, null), rating: r });
 const LOOK = { cardArt: "card-art.joulz-navy", frame: "frame.plain", nameColour: null, avatar: { id: "captain-joulz", colour: 4, gem: null } };
@@ -135,6 +144,20 @@ const challenge = async () => ({ ok: true as const, code: "ABC234" });
 const result = (r: RatedResult) => (
   <MatchResult result={r} nowMs={Date.now()} onNext={noop} onRematch={noop} onTiers={noop} onChallenge={challenge} onReveal={noop} />
 );
+
+/** The 4- and 8-player views' seats: cards for accounts, a recorded run, long names on purpose. */
+const SEATS: SeatView[] = [
+  { seatId: "t", name: ME.username, card: ME.look, you: true, rank: ME.rank },
+  { seatId: "s", name: SAM.username, card: SAM.look, rank: SAM.rank },
+  { seatId: "p", name: "Priya", look: { colour: 3, icon: null } },
+  { seatId: "a", name: "Alex_the_Great01", card: LOOK, rank: rankAt(1190) },
+  { seatId: "j", name: "Jordan", look: { colour: 5, icon: null } },
+  { seatId: "m", name: "Morgan", card: LOOK, recorded: true },
+  { seatId: "r", name: "Robin", look: { colour: 7, icon: null } },
+  { seatId: "k", name: "Kai", look: { colour: 8, icon: null } },
+];
+const SEAT_IDS = SEATS.map((x) => x.seatId);
+const MULTI_GAMES: GameScore[][] = [SEAT_IDS.map((seatId, i) => ({ seatId, score: 200 - i * 20 })), SEAT_IDS.map((seatId, i) => ({ seatId, score: i * 20 }))];
 
 const SCREENS: Record<RatedScreenKey, () => JSX.Element> = {
   home: () => <RatedHomeView status={PLACED} />,
@@ -242,6 +265,52 @@ const SCREENS: Record<RatedScreenKey, () => JSX.Element> = {
     <div style={{ padding: 16 }}>
       <DropoutBanner absentNames={[SAM.username]} myTotal={168} absentTotal={151} graceText={graceLine(12)} />
     </div>
+  ),
+  "match-header": () => (
+    <RatedMatchHeader
+      me={{ name: ME.username, look: ME.look, sub: headerSub(ME) }}
+      them={{ name: SAM.username, look: SAM.look, sub: headerSub(SAM) }}
+      game={2}
+      games={3}
+      myWins={1}
+      theirWins={0}
+      line={matchLine(MATCH)}
+    />
+  ),
+  "match-header-placement": () => (
+    <RatedMatchHeader
+      me={{ name: ME.username, look: ME.look, sub: headerSub({ ...ME, rank: null }) }}
+      them={{ name: SAM.username, look: SAM.look, sub: headerSub({ ...SAM, guest: true }) }}
+      game={3}
+      games={3}
+      myWins={1}
+      theirWins={1}
+      line={matchLine(MATCH)}
+    />
+  ),
+  "multi-filling": () => <MultiFilling size={8} picks="Mixed" games={3} seats={SEATS.slice(0, 6)} elapsedMs={6000} onLeave={noop} />,
+  "multi-standings": () => (
+    <MultiStandings
+      size={8}
+      game={2}
+      games={3}
+      rows={standingsAfter(8, SEAT_IDS, MULTI_GAMES)}
+      seats={SEATS}
+      headline={{ gameName: "Apex", winnerName: SEATS[7]!.name, yourPlace: 8, yourPoints: 0 }}
+      next={{ gameName: "Breaker", msLeft: 5000 }}
+    />
+  ),
+  "multi-final": () => (
+    <MultiFinal
+      size={8}
+      picks="Mixed"
+      rows={finalPlacings(8, SEAT_IDS, [...MULTI_GAMES, SEAT_IDS.map((seatId, i) => ({ seatId, score: (i * 37) % 200 }))])}
+      seats={SEATS}
+      changes={new Map(SEATS.filter((x) => !x.recorded).map((x, i) => [x.seatId, 8 - i * 2]))}
+      yourRating={{ rating: 1284, change: 6, parts: [{ label: "Puzzles", rating: 1302, change: 6 }] }}
+      joules={225}
+      onNext={noop}
+    />
   ),
 };
 
