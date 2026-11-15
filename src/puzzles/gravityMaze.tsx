@@ -6,7 +6,7 @@ import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { ArrowPad, useGridMetrics } from "@/components/puzzles/GridDrag";
 import { GravityBoard, type GravityBoardProps } from "@/components/puzzles/pattern/gravityBoard";
 import { TopsyIntroExample, TopsyReveal, TopsyStage } from "@/components/puzzles/pattern/topsyBoard";
-import { isTopsy } from "@/lib/duel/topsy";
+import { TOPSY_TIME_MS, isTopsy } from "@/lib/duel/topsy";
 import { Button } from "@/components/ui/button";
 import {
   decodeGravityTilts,
@@ -16,7 +16,7 @@ import {
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { gravityTiltLimit, limitText } from "@/lib/duel/moveLimits";
-import { GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
+import { type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playLock, playSound } from "@/lib/sound";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
@@ -223,8 +223,9 @@ export const gravityMazePuzzle: PuzzleDefinition = {
   key: "gravity",
   name: gameDisplayName("gravity"),
   category: "pattern",
-  // gravityRev 3 stores its own 120 s clock on the puzzle; this is stored older rounds' clock.
-  timeLimitMs: GRAV_TIME_MS,
+  // The 120 s every deal since gravityRev 3 stores on the puzzle (the Pattern overhaul, 15 Nov 2026: the catalogue said
+  // 90 s). Stored four-ball rounds without a clock of their own keep 90 s (catalogue.ts STORED_CLOCK_MS).
+  timeLimitMs: TOPSY_TIME_MS,
   revealMs: 8_000,
   generate: () =>
     ({ type: "gravity", walls: [], starts: [0, 8, 72, 80], targets: [40, 41, 39, 31] }) satisfies GravityPuzzleData,

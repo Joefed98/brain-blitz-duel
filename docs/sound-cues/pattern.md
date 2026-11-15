@@ -58,9 +58,13 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 
 | Cue | Trigger | Length |
 |---|---|---|
-| `gravity.tilt` | An arrow press tilts the tray and the balls roll | 200 ms tilt + 260 ms roll |
-| `gravity.lock` | A ball locks onto its target (not on the solving tilt) | 460 ms ring after a 200 ms delay |
-| `gravity.solve` | The solving tilt: the four balls light up on their targets one after another | ~1,150 ms |
+| `gravity.tilt` | A tilt that moves a ball: the balls' rolling rumble, looped for exactly as long as any ball moves (since the Pattern overhaul, 15 Nov 2026; `arc_marble_roll.mp3` until its own file). A tilt that moves nothing is silent (a small lean only) | the roll (45 ms a square) |
+| `gravity.stop` | A ball comes to rest at the end of its roll (one each; since 15 Nov 2026, `arc_marble_clink.mp3` until its own file) | 120 ms |
+| `gravity.lock` | A ball drops into its own hole, as it reaches it (not on the solving tilt's last board sound) | 201 ms pip |
+| `gravity.combo` | Two or more balls drop home in one tilt, after their pips (since 15 Nov 2026, `combo.mp3` until its own file) | 486 ms |
+| `gravity.boardClear` | A board cleared, short of the round's solve: the next board comes (since 15 Nov 2026, in place of the generic `correct`; `ui.counterLock.mp3` until its own file) | 486 ms |
+| `gravity.outOfTilts` | The tilt that used the board's last one: a closing clunk (since 15 Nov 2026, silent before; `checkout.thud.mp3` until its own file) | 606 ms |
+| `gravity.solve` | The solving tilt: the balls light up on their holes one after another | ~1,150 ms |
 
 ## Gradient (`tiles`)
 
@@ -84,7 +88,9 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 | `laser.turn` | A placed mirror is flipped | 180 ms |
 | `laser.fire` | The beam starts | As long as the shot travels (about 2 s on the intro example) |
 | `laser.gem` | One or more gems light during a shot | 260 ms |
-| `laser.bomb` | The beam hits a bomb | 420 ms |
+| `laser.bomb` | The beam hits a bomb (the miss's one sound) | 420 ms |
+| `laser.nearMiss` | A shot ends with every gem but one lit and no bomb ("1 gem dark", in place of `wrong`) | 600 ms |
+| `laser.outOfShots` | laserRev 4: the third shot fades without a solve; the board locks and says "Out of shots" | 528 ms |
 | `laser.solve` | The beam flares to full and the gems burst with light in beam order | 1,150 ms |
 
 ## Chroma Lines (`flow`)

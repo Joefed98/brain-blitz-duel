@@ -128,8 +128,54 @@ close, dry and indoors: never a factory alarm, a forklift or a cartoon "boing".
 
 <!-- lightbender:start -->
 ## Lightbender
+
+Silvered glass mirrors, a violet glass prism, cut crystal gems, terracotta brick walls and a gunmetal emitter firing a
+golden beam. Glass and crystal, clean and precise; never a sci-fi blaster or a cartoon zap.
+
+- `laser.place` — a mirror (or the splitter) set down on a square: a small, bright glass click, a thick pane touching
+  down on stone, a hint of ring cut short; tidy and light; 80–120 ms. (Today the November placeholder `laser.place.mp3`,
+  behind `NEW_GAME_SOUNDS`; also plays when a piece is moved, or put back by Undo.)
+- `laser.turn` — a placed mirror turned to its other diagonal: a crisp, dry ratchet, two quick clicks of a small
+  geared mount, glass faintly chiming on the second; 90–130 ms. (Placeholder `laser.turn.mp3`; Undo of a turn plays it.)
+- `laser.fire` — the beam leaves the emitter and draws across the board: a clean rising "vwmm" that settles into a soft,
+  steady electric hum, warm and golden, no pew; fades out by itself; 1.2–2.0 s (the beam takes about that long).
+  (Placeholder `laser.fire.mp3`, 0.4 s.)
+- `laser.gem` / `pz_laser_gem` — **keep** (each gem the beam lights rings a rising note; the game raises the pitch gem
+  by gem: today's best moment).
+- `pz_laser_split` — **keep** if wanted, else replace: the splitter forks the beam: a soft glassy chord, two notes a
+  fifth apart opening outwards, bright and airy; 400–600 ms.
+- `laser.bomb` — the beam hits a bomb: a loud but very short blast, a dry crack with a quick low thump and a brief
+  crackle tail, no long rumble or debris; 300–400 ms. (Today's file is 0.49 s and a little soft; replace.)
+- `laser.nearMiss` — a shot lights every gem but one ("1 gem dark"): a gentle, slightly hopeful two-note glass hint, the
+  second note left hanging, quiet, clearly "so close", never a buzzer; 500–700 ms. (Placeholder: the library's
+  `arc_retro_blip.mp3`.)
+- `laser.outOfShots` — the third shot fades without a solve and the board locks: the emitter powering down, a soft
+  falling electric whine ending in a small mechanical clunk of a shutter closing; calm, final, not harsh; 500–700 ms.
+  (Placeholder: the library's `retro.powerDown.mp3`.)
+- `laser.solve` — **keep** for now (`laser.solve.mp3`); if replaced: every gem lit, the beam flares: a bright crystal
+  shimmer rising into a warm golden chord that blooms and fades, like light pouring through cut glass; 1.0–1.2 s.
+- Undo and Reset: no new sound; Undo plays the sound of the change it takes back (`laser.place` or `laser.turn`).
 <!-- lightbender:end -->
 
 <!-- topsy:start -->
 ## Topsy-Turvy
+
+Look A: glossy glass marbles rolling across a grey stone-and-slate tray, each dropping into a cup rimmed in its own
+colour. Every sound is small glass marbles on a hard stone tray: never a pinball, a bowling alley or a casino.
+
+- `gravity.tilt` — the balls rolling after a tilt: a low, even rumble of several glass marbles rolling across a smooth
+  stone tray, no start or end accents (it is looped and faded for exactly as long as the balls move, 0.1–0.5 s), seamless
+  loop; 1.5–3 s file. (Today the library's `arc_marble_roll.mp3`; the tray's lean itself needs no sound.)
+- `gravity.stop` — one marble coming to rest against a stone block or another marble: a tiny, dry glass-on-stone click,
+  bright but soft, no ring-out (several may sound a few ms apart, so it must stay light); 60–100 ms.
+- `gravity.lock` — **keep** (`gravity.lock.mp3`, the bright pip as a ball drops home); replace only if the new one is a
+  marble dropping into a small cup: a short hollow "plip" with a bright top, 150–220 ms.
+- `gravity.combo` — two or more balls home in one tilt: a quick rising pair of glassy pips with a soft sparkle on top,
+  playful, not a fanfare; 350–500 ms.
+- `gravity.boardClear` — a board cleared, the next one coming: the tray settling, a light wooden-stone knock and a short
+  rising three-note glass chime; satisfying, smaller than the solve; 400–600 ms.
+- `gravity.outOfTilts` — the board's last tilt used without clearing it: a closing clunk, a heavy stone lid sliding shut
+  with a dull low thud at the end; clearly "that's it", never a buzzer; 400–600 ms.
+- `gravity.solve` — **keep** (`done.rising.mp3`, every ball lighting in its cup in turn).
+- A tilt that moves nothing has no sound (a small lean only). Undo and Reset add no sound of their own.
 <!-- topsy:end -->

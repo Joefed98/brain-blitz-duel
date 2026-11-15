@@ -71,7 +71,8 @@ const EFFECTS: Record<string, string> = {
   "ice-frost-over": "Skid solve frost sweep",
   "ice-shatter-glint": "Skid ice shatter glint",
   "ice-solve-ring": "Skid solve ring",
-  "ice-twinkle": "Skid ice twinkle",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Skid's ice twinkle was
+  // removed with the CSS sheet's glints (the rendered ice), so its allowance goes too.
   "laser-burst": "Lightbender gem burst",
   "laser-flare": "Lightbender solve flare",
   "pipe-surge-fade": "Pipeline solve surge",
