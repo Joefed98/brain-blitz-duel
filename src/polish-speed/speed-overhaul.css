@@ -50,11 +50,14 @@
 [data-ascend-art] .ascend-disc[data-disc="wrong"] { background-image: var(--ascend-disc-art); color: #fffaf0; box-shadow: 0 0 0 3px var(--warn), 0 3px 6px rgba(0, 0, 0, 0.55); }
 
 /* ------------------------------------------------------------ Don't Break the Chain */
-[data-polish="chain"][data-chain-art] [data-game-arena] {
+/* Above batch-s's category-lit board (same selector, one more attribute): the darker wood, no edge glow. */
+.game-column [data-polish="chain"][data-chain-art] > [data-play-area][data-play-area],
+[data-puzzle-play] [data-polish="chain"][data-chain-art] > [data-play-area][data-play-area] {
   background: var(--chain-board-art) center / cover no-repeat, #120903;
   border-radius: 14px;
-  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
 }
+[data-puzzle-play] [data-polish="chain"][data-chain-art] svg.chain-links { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6)); }
 .chain-charm-art { display: block; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.55)); user-select: none; -webkit-user-drag: none; }
 
 /* ------------------------------------------------------------ Pull! */
