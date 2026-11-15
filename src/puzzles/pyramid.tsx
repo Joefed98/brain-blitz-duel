@@ -1,7 +1,8 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { PY_CHECKPOINT_INTERVAL, PY_INPUT_TAP, PY_PAIR_FULL, PY_REV, pyApply, pyCheckpoint, pyDeal, type PyState } from "@/lib/arcade/cards/pyramid";
+import { confirmHit } from "@/lib/arcade/cards/cardButtons.renderer";
+import { PY_CHECKPOINT_INTERVAL, PY_INPUT_RESET, PY_INPUT_TAP, PY_PAIR_FULL, PY_REV, pyApply, pyCheckpoint, pyDeal, type PyState } from "@/lib/arcade/cards/pyramid";
 import { drawPyramid, pyButtonHit, pyHit, pyNewView, pyramidArtGame, PY_BG, PY_WORLD_H, PY_WORLD_W } from "@/lib/arcade/cards/pyramid.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
@@ -10,9 +11,13 @@ import { encodePyramidRun, replayPyramidRun } from "@/lib/duel/cards";
 import { PYRAMID_TIME_MS, type PyramidPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
-import { pyramidSounds } from "@/lib/fx/gameSounds";
+import { cardConfirmCue, pyramidSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+
+// The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
+if (typeof window !== "undefined") preloadRealArt(["cards", "felt"]);
 
 /** The intro still: seed 0's deal a few removals into its witness line, a card selected. */
 function introState(): PyState {
@@ -43,6 +48,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const state = latest.current;
     if (!state) return null;
+    // Reset's confirmation (the overhaul): while it is open a tap answers it and nothing else is touched.
+    if (view.confirm) {
+      const hit = confirmHit(PY_WORLD_W, PY_WORLD_H, x, y);
+      if (kind === "down") view.confirmHeld = hit;
+      else if (kind === "up") {
+        const was = view.confirmHeld;
+        view.confirmHeld = null;
+        if (was && was === hit) {
+          view.confirm = false;
+          if (hit === "ok") return { k: PY_INPUT_RESET, a: 0, b: 0, c: 0 };
+        }
+      }
+      return null;
+    }
     if (kind === "down") {
       const button = pyButtonHit(x, y);
       view.button = button;
@@ -56,7 +75,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     view.button = 0;
     view.pressed = -1;
     start.current = -1;
-    if (held) return pyButtonHit(x, y) === held ? { k: held, a: 0, b: 0, c: 0 } : null;
+    if (held) {
+      if (pyButtonHit(x, y) !== held) return null;
+      if (held === PY_INPUT_RESET) {
+        view.confirm = true;
+          cardConfirmCue();
+        return null;
+      }
+      return { k: held, a: 0, b: 0, c: 0 };
+    }
     if (hit < 0 || pyHit(state, x, y) !== hit) return null;
     return { k: PY_INPUT_TAP, a: hit, b: 0, c: 0 };
   };

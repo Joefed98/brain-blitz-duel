@@ -13,6 +13,10 @@ import { CardStill } from "@/components/puzzles/CardStill";
 import { fiveHandsSounds } from "@/lib/fx/cardSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+
+// The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
+if (typeof window !== "undefined") preloadRealArt(["cards", "felt"]);
 
 /** The intro still: seed 0's deal seven turns in, placed as its witness places them. */
 function introState(): FhState {

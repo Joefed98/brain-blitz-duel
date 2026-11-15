@@ -7,11 +7,17 @@
  * fiveHandsRev 3's bonus column: once the rows are complete the five columns light up as tappable (fhHitColumn) over a
  * short prompt in the card's place, with no column's points shown; after the pick the chosen column stays lit and its
  * hand and points show there.
+ * The Cards & Board overhaul (15 Nov 2026, display only): real cards (realArt.renderer.ts); the POINTS chip shows the
+ * score itself on fiveHandsRev 3 (hand points × 1.4, as the reveal scores it; it showed the raw hand points until
+ * then); on the live stage your card slides from the next spot into its row and the turned card flips onto the
+ * discards (CardMotion).
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
-import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
+import { CARD_FONT, drawChip, drawSlot, roundRect } from "./cards.renderer";
+import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
 import {
+  fhScoreV3,
   fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhPickedHand, fhPicking, fhTotalV3, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
 } from "./fiveHands";
 
@@ -27,12 +33,12 @@ export const FH_ROW_Y = 44;
 const BADGE_X = ROW_X + FH_SLOTS * (FH_CELL_W + GAP) + 2;
 const BADGE_W = FH_WORLD_W - BADGE_X - 8;
 export const FH_NEXT_W = 74;
-export const FH_NEXT_H = 104;
+export const FH_NEXT_H = 108;
 export const FH_NEXT_Y = 512;
 /** The discards (3 Nov 2026: one compact row of up to twenty, each overlapping the last so its index shows; until then
  *  two rows of ten 44 × 62 cards, about 15 % of the screen). */
 export const FH_DISCARD_W = 34;
-export const FH_DISCARD_H = 48;
+export const FH_DISCARD_H = 50;
 export const FH_DISCARD_Y = 678;
 const DISCARD_X = 12;
 const DISCARD_STEP = (FH_WORLD_W - 2 * DISCARD_X - FH_DISCARD_W) / (FH_TURNS - 1);
@@ -79,10 +85,17 @@ export interface FhView {
   drag: { x: number; y: number } | null;
   /** Rev 3's pick: the column under the finger (−1 none). */
   pressedCol?: number;
+  /** The live stage's card motion; none on reveals and replays. */
+  motion?: CardMotion;
 }
 
 export function fhNewView(): FhView {
-  return { pressed: -1, drag: null, pressedCol: -1 };
+  return { pressed: -1, drag: null, pressedCol: -1, motion: new CardMotion() };
+}
+
+/** The POINTS chip's figure: rev 3's score (hand points × 1.4, capped at 200), earlier revisions' hand points. */
+export function fhPointsShown(state: FhState): number {
+  return (state.rev ?? 1) >= 3 ? fhScoreV3(fhTotalV3(state)) : fhTotals(state.rows, state.rev).total;
 }
 
 const SHORT: Record<string, string> = {
@@ -156,11 +169,12 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   const H = FH_WORLD_H;
   ctx.save();
   ctx.scale(size.width / W, size.height / H);
-  drawFelt(ctx, W, H);
+  drawRealFelt(ctx, W, H);
+  const cards = new CardLayer(ctx, view?.motion ?? null);
 
   const { made } = fhTotals(state.rows, state.rev);
   const total = (state.rev ?? 1) >= 3 ? fhTotalV3(state) : fhTotals(state.rows, state.rev).total;
-  drawChip(ctx, 10, 9, "POINTS", `${total}`, { gold: total >= fhCoreFullFor(state.rev) });
+  drawChip(ctx, 10, 9, "POINTS", `${fhPointsShown(state)}`, { gold: total >= fhCoreFullFor(state.rev) });
   drawChip(ctx, W / 2, 9, "TURN", `${Math.min(FH_TURNS, state.turn + (state.turn < FH_TURNS ? 1 : 0))}/${FH_TURNS}`, { align: "center" });
   drawChip(ctx, W - 10, 9, "HANDS", `${made}/${FH_ROWS}`, { align: "right", gold: made === FH_ROWS });
 
@@ -184,7 +198,7 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
           ctx.lineWidth = hot ? 2.5 : 1.5;
           ctx.stroke();
         }
-      } else drawCard(ctx, card, b.x, b.y, FH_CELL_W, FH_CELL_H, { glow: state.lastRow === r && k === row.length - 1 ? fresh : 0 });
+      } else cards.card(card, card, b.x, b.y, FH_CELL_W, FH_CELL_H, { glow: state.lastRow === r && k === row.length - 1 ? fresh : 0 });
     }
     const hand = fhRowHand(row, state.rev);
     badge(ctx, BADGE_X, fhSlotBox(r, 0).y, BADGE_W, FH_CELL_H, hand.name, hand.points);
@@ -203,8 +217,9 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   const picking = fhPicking(state);
   const picked = fhPickedHand(state);
   if (running) {
-    drawCard(ctx, 0, nx + 5, FH_NEXT_Y + 4, FH_NEXT_W, FH_NEXT_H, { down: true });
-    if (!view?.drag) drawCard(ctx, fhYours(state.deck, state.turn), nx, FH_NEXT_Y, FH_NEXT_W, FH_NEXT_H, { glow: 0.6 });
+    cards.card(-100, -1, nx + 5, FH_NEXT_Y + 4, FH_NEXT_W, FH_NEXT_H, { down: true });
+    const yours = fhYours(state.deck, state.turn);
+    if (!view?.drag) cards.card(yours, yours, nx, FH_NEXT_Y, FH_NEXT_W, FH_NEXT_H, { glow: 0.6 });
     drawChip(ctx, nx + FH_NEXT_W + 24, FH_NEXT_Y + FH_NEXT_H / 2 - 13, "DECK", `${deckLeft}`);
   } else if (picking || picked.column >= 0) {
     // Rev 3's bonus column: the prompt while picking (no column's points shown), then the chosen column's hand.
@@ -225,10 +240,17 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   for (let i = 0; i < shown; i++) {
     const b = fhDiscardBox(i);
     const newest = running && i === shown - 1;
-    drawCard(ctx, fhDiscard(state.deck, i), b.x, b.y, FH_DISCARD_W, FH_DISCARD_H, { glow: newest ? 0.45 : 0 });
+    const card = fhDiscard(state.deck, i);
+    // The turned card starts face down at the deck's spot, so it slides down and flips onto the discards.
+    if (newest) view?.motion?.seed(card, nx + 5, FH_NEXT_Y + 4, true);
+    cards.card(card, card, b.x, b.y, FH_DISCARD_W, FH_DISCARD_H, { glow: newest ? 0.45 : 0 });
   }
+  cards.flush();
 
-  if (view?.drag && running) drawCard(ctx, fhYours(state.deck, state.turn), view.drag.x - FH_CELL_W / 2, view.drag.y - FH_CELL_H / 2, FH_CELL_W, FH_CELL_H, { glow: 1 });
+  if (view?.drag && running) {
+    const yours = fhYours(state.deck, state.turn);
+    new CardLayer(ctx, view.motion ?? null).card(yours, yours, view.drag.x - FH_CELL_W / 2, view.drag.y - FH_CELL_H / 2 - 4, FH_CELL_W, FH_CELL_H, { glow: 1, lift: 1 }, true);
+  }
   ctx.restore();
 }
 

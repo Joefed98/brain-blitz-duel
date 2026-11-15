@@ -4,11 +4,16 @@
  * right) and the eight columns of large cards spreading down the rest of the table (3 Nov 2026). The phone's hit tests (fcHit, fcDropPile) read the same layout.
  * freecellRev 2 adds two small buttons in the HUD row's gaps (Undo left of HOME, Reset right of it; fcButtonHit) and
  * the refused move's toast under the free cells ("Need a free cell to move 2 cards", fcNoteText, 1.6 s).
+ * The Cards & Board overhaul (15 Nov 2026, display and input mapping only): real cards (realArt.renderer.ts) 50 × 74,
+ * as wide as eight columns allow on the 414-wide table, the columns down to a thumb row of labelled Undo and Reset
+ * buttons (Reset asks first, confirmBoxes); on the live stage every card slides to its new place (CardMotion).
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { NO_CARD } from "./cards";
-import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
+import { CARD_FONT, drawChip, drawSlot, roundRect } from "./cards.renderer";
+import { drawCardButton, drawResetConfirm, inButton, type CardButtonBox } from "./cardButtons.renderer";
+import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
 import {
   FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcCardsFor, fcHomeCount, fcNoMovesText, fcNoteText, freecellGameFor, type FcState } from "./freecell";
 import { cardOf, rankOf, suitOf } from "./cards";
@@ -22,18 +27,21 @@ export const FC_BG = "#0E2A57";
    the eight columns of larger cards spreading down the whole table, compressing only when one would reach the bottom.
    (Until 3 Nov 2026 the free cells sat alone over a faint "FREE CELL", the home piles along the bottom, the cards 48 × 68
    stepping at most 40 down, so the cards used the top 40 % and the middle was empty felt.) ---- */
-export const FC_COL_W = 48;
-export const FC_COL_H = 76;
+export const FC_COL_W = 50;
+export const FC_COL_H = 74;
 export const FC_BIG_W = FC_COL_W;
 export const FC_BIG_H = FC_COL_H;
 export const FC_CELL_Y = 44;
 /** The home piles share the top row with the free cells. */
 export const FC_HOME_Y = FC_CELL_Y;
 export const FC_COL_Y = FC_CELL_Y + FC_BIG_H + 14;
-export const FC_COL_BOTTOM = FC_WORLD_H - 10;
+/** The thumb row: Undo left, Reset right (the overhaul; the HUD row's small round icons until then). */
+export const FC_BTN_ROW_Y = FC_WORLD_H - 56;
+export const FC_BTN_ROW_H = 46;
+export const FC_COL_BOTTOM = FC_BTN_ROW_Y - 10;
 const COL_GAP = (FC_WORLD_W - FC_COLS * FC_COL_W) / (FC_COLS + 1);
 /** The most a column's cards step down: nearly the whole card shows (its index, its suit and most of its body). */
-const STEP_MAX = 70;
+const STEP_MAX = 62;
 
 /** Free cell `i`'s x: the top row's first four places, over columns 0–3. */
 export function fcBigX(i: number): number {
@@ -92,23 +100,18 @@ export function fcDropPile(x: number, y: number): number {
   return -1;
 }
 
-/* ---- freecellRev 2's buttons: small, in the HUD row's gaps either side of the HOME chip ---- */
-export const FC_BTN_W = 38;
-export const FC_BTN_H = 26;
-export const FC_BTN_Y = 9;
-/** Each button's centre x: Undo then Reset. */
-export const FC_BTN_X = [FC_WORLD_W / 2 - 78, FC_WORLD_W / 2 + 84] as const;
-/** The buttons' input kinds, in the same order. */
-const FC_BTN_KIND = [FC_INPUT_UNDO, FC_INPUT_RESET] as const;
+/* ---- freecellRev 2's Undo and Reset: labelled buttons in a thumb row under the columns (the overhaul) ---- */
+/** The buttons' boxes and input kinds: Undo then Reset. */
+export const FC_BUTTONS: readonly { kind: number; box: CardButtonBox }[] = [
+  { kind: FC_INPUT_UNDO, box: { x: 16, y: FC_BTN_ROW_Y, w: 150, h: FC_BTN_ROW_H } },
+  { kind: FC_INPUT_RESET, box: { x: FC_WORLD_W - 16 - 150, y: FC_BTN_ROW_Y, w: 150, h: FC_BTN_ROW_H } },
+];
 /** How long a refused move's toast shows, ticks. */
 const NOTE_TICKS = 96;
 
 /** The button under a point (its input kind), with a few world units of slop round each; 0 for none. */
 export function fcButtonHit(x: number, y: number): number {
-  for (let i = 0; i < 2; i++) {
-    const cx = FC_BTN_X[i]!;
-    if (Math.abs(x - cx) <= FC_BTN_W / 2 + 6 && y >= 0 && y <= FC_BTN_Y + FC_BTN_H + 8) return FC_BTN_KIND[i]!;
-  }
+  for (const b of FC_BUTTONS) if (inButton(b.box, x, y)) return b.kind;
   return 0;
 }
 
@@ -118,60 +121,22 @@ export interface FcView {
   drag: { pile: number; index: number; x: number; y: number; ox: number; oy: number } | null;
   /** The button held down (its input kind), 0 for none. */
   button?: number;
+  /** Reset's confirmation is open (and which of its buttons is held). */
+  confirm?: boolean;
+  confirmHeld?: "ok" | "cancel" | null;
+  /** The live stage's card motion (slides and flips); none on reveals and replays. */
+  motion?: CardMotion;
 }
 
 export function fcNewView(): FcView {
-  return { pressed: null, drag: null, button: 0 };
-}
-
-/** An undo (a curved arrow back) or reset (a full circle arrow) icon centred at (x, y). */
-function buttonIcon(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, colour: string): void {
-  ctx.save();
-  ctx.strokeStyle = colour;
-  ctx.fillStyle = colour;
-  ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  if (kind === FC_INPUT_UNDO) {
-    // A hook from the right curving over to the left, the arrowhead pointing left.
-    ctx.arc(x + 1, y + 2, 6, Math.PI * 1.05, Math.PI * 2.35, false);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x - 9, y + 1);
-    ctx.lineTo(x - 4, y - 3.5);
-    ctx.lineTo(x - 3, y + 3.5);
-    ctx.closePath();
-    ctx.fill();
-  } else {
-    ctx.arc(x, y, 6.5, Math.PI * 0.3, Math.PI * 1.85, false);
-    ctx.stroke();
-    const a = Math.PI * 1.85;
-    const ex = x + 6.5 * Math.cos(a);
-    const ey = y + 6.5 * Math.sin(a);
-    ctx.beginPath();
-    ctx.moveTo(ex + 4, ey + 1);
-    ctx.lineTo(ex - 2.5, ey - 3);
-    ctx.lineTo(ex - 1, ey + 4);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.restore();
+  return { pressed: null, drag: null, button: 0, confirm: false, confirmHeld: null, motion: new CardMotion() };
 }
 
 function drawButtons(ctx: CanvasRenderingContext2D, state: FcState, view?: FcView): void {
-  for (let i = 0; i < 2; i++) {
-    const kind = FC_BTN_KIND[i]!;
-    const cx = FC_BTN_X[i]!;
-    const left = cx - FC_BTN_W / 2;
-    const live = kind === FC_INPUT_UNDO ? (state.hist?.length ?? 0) > 0 : state.moves > 0;
-    const held = view?.button === kind;
-    roundRect(ctx, left, FC_BTN_Y, FC_BTN_W, FC_BTN_H, FC_BTN_H / 2);
-    ctx.fillStyle = held ? "rgba(233,196,106,0.95)" : "rgba(5,12,30,0.62)";
-    ctx.fill();
-    ctx.strokeStyle = held ? "#FFE7A3" : `rgba(233,196,106,${live ? 0.45 : 0.18})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    buttonIcon(ctx, kind, cx, FC_BTN_Y + FC_BTN_H / 2, held ? "#231503" : live ? "#F6EBD0" : "rgba(246,235,208,0.35)");
+  for (const b of FC_BUTTONS) {
+    const isUndo = b.kind === FC_INPUT_UNDO;
+    const live = state.ended === 0 && (isUndo ? (state.hist?.length ?? 0) > 0 : state.moves > 0);
+    drawCardButton(ctx, b.box, isUndo ? "undo" : "reset", isUndo ? "Undo" : "Reset", { live, held: view?.button === b.kind });
   }
 }
 
@@ -184,7 +149,7 @@ function drawNoMoves(ctx: CanvasRenderingContext2D, state: FcState): void {
   const w = Math.ceil(ctx.measureText(text).width + 30);
   const h = 30;
   const x = FC_WORLD_W / 2 - w / 2;
-  const y = FC_CELL_Y + FC_BIG_H + 24;
+  const y = FC_BTN_ROW_Y - h - 12;
   roundRect(ctx, x, y, w, h, h / 2);
   ctx.fillStyle = "rgba(6,10,24,0.92)";
   ctx.fill();
@@ -306,7 +271,8 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   const H = FC_WORLD_H;
   ctx.save();
   ctx.scale(size.width / W, size.height / H);
-  drawFelt(ctx, W, H);
+  drawRealFelt(ctx, W, H);
+  const cards = new CardLayer(ctx, view?.motion ?? null);
 
   // HUD chips.
   const home = fcHomeCount(state);
@@ -319,17 +285,34 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   // The top row: the four free cells, then the four home piles, every place outlined.
   const dragging = view?.drag ?? null;
   const pressed = view?.pressed ?? null;
-  const lit = (pile: number, index: number) =>
-    (pressed && pressed.pile === pile && index >= pressed.index) || (dragging && dragging.pile === pile && index >= dragging.index) ? 1 : 0;
+  const held = (pile: number, index: number) => (pressed && pressed.pile === pile && index >= pressed.index) || (dragging && dragging.pile === pile && index >= dragging.index);
   const fresh = state.lastTick > 0 && state.tick - state.lastTick < 18 ? 1 - (state.tick - state.lastTick) / 18 : 0;
   for (let i = 0; i < FC_CELLS; i++) {
     const x = fcBigX(i);
-    const card = state.cells[i]!;
     placeOutline(ctx, x, FC_CELL_Y, "cell");
+    const card = state.cells[i]!;
     if (card === NO_CARD || (dragging && dragging.pile === FC_PILE_CELL + i)) drawSlot(ctx, x, FC_CELL_Y, FC_BIG_W, FC_BIG_H, -1, "FREE");
-    if (card !== NO_CARD && !(dragging && dragging.pile === FC_PILE_CELL + i)) {
-      drawCard(ctx, card, x, FC_CELL_Y, FC_BIG_W, FC_BIG_H, { glow: lit(FC_PILE_CELL + i, 0) || (state.lastTo === FC_PILE_CELL + i ? fresh * 0.8 : 0) });
+  }
+  // Home piles with faint suit symbols (rev 3: the top as drawn waits for the cards still flying there). The whole pile
+  // is drawn, bottom up, so a card arriving or undone out of it has a place to slide from.
+  const { flights, homeShown } = fcFlights(state);
+  for (let s = 0; s < 4; s++) {
+    const x = fcHomeX(s);
+    placeOutline(ctx, x, FC_HOME_Y, "home");
+    if (homeShown[s]! === 0) drawSlot(ctx, x, FC_HOME_Y, FC_BIG_W, FC_BIG_H, s);
+  }
+  for (let s = 0; s < 4; s++) {
+    const top = homeShown[s]!;
+    for (let r = 1; r <= top; r++) {
+      const card = cardOf(s, r);
+      cards.card(card, card, fcHomeX(s), FC_HOME_Y, FC_BIG_W, FC_BIG_H, { glow: r === top && state.lastTo === FC_PILE_HOME && fresh > 0 ? fresh * 0.6 : 0 });
     }
+  }
+  for (let i = 0; i < FC_CELLS; i++) {
+    const card = state.cells[i]!;
+    if (card === NO_CARD || (dragging && dragging.pile === FC_PILE_CELL + i)) continue;
+    const up = held(FC_PILE_CELL + i, 0);
+    cards.card(card, card, fcBigX(i), FC_CELL_Y - (up ? 3 : 0), FC_BIG_W, FC_BIG_H, { lift: up ? 1 : 0, glow: up ? 0.8 : state.lastTo === FC_PILE_CELL + i ? fresh * 0.8 : 0 });
   }
 
   // The columns.
@@ -340,36 +323,29 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     const step = fcColStep(col.length);
     for (let i = 0; i < col.length; i++) {
       if (dragging && dragging.pile === c && i >= dragging.index) break;
-      const glow = lit(c, i) || (state.lastTo === c && i >= col.length - state.lastCount ? fresh * 0.8 : 0);
-      drawCard(ctx, col[i]!, x, FC_COL_Y + i * step, FC_COL_W, FC_COL_H, { glow });
+      const up = held(c, i);
+      const glow = up ? 0.8 : state.lastTo === c && i >= col.length - state.lastCount ? fresh * 0.8 : 0;
+      cards.card(col[i]!, col[i]!, x, FC_COL_Y + i * step - (up ? 3 : 0), FC_COL_W, FC_COL_H, { glow, lift: up ? 1 : 0 });
     }
   }
 
-  // Home piles with faint suit symbols (rev 3: the top as drawn waits for the cards still flying there).
-  const { flights, homeShown } = fcFlights(state);
-  for (let s = 0; s < 4; s++) {
-    const x = fcHomeX(s);
-    const top = homeShown[s]!;
-    placeOutline(ctx, x, FC_HOME_Y, "home");
-    if (top === 0) drawSlot(ctx, x, FC_HOME_Y, FC_BIG_W, FC_BIG_H, s);
-    else drawCard(ctx, cardOf(s, top), x, FC_HOME_Y, FC_BIG_W, FC_BIG_H, { glow: state.lastTo === FC_PILE_HOME && fresh > 0 ? fresh * 0.6 : 0 });
-  }
-
-  // Auto moves on their way home (the first to land drawn last, on top).
+  // Auto moves on their way home (the first to land drawn last, on top), placed exactly where the flight has them.
   for (let k = flights.length - 1; k >= 0; k--) {
     const f = flights[k]!;
-    drawCard(ctx, f.card, f.x, f.y, FC_BIG_W, FC_BIG_H, { glow: 0.5 });
+    cards.card(f.card, f.card, f.x, f.y, FC_BIG_W, FC_BIG_H, { glow: 0.5, lift: 0.6 }, true);
   }
+  cards.flush();
 
-  // The dragged run follows the finger.
+  // The dragged run follows the finger, lifted off the table.
   if (dragging) {
-    const cards = dragging.pile < FC_COLS ? state.cols[dragging.pile]!.slice(dragging.index) : [state.cells[dragging.pile - FC_PILE_CELL]!];
+    const run = dragging.pile < FC_COLS ? state.cols[dragging.pile]!.slice(dragging.index) : [state.cells[dragging.pile - FC_PILE_CELL]!];
     const big = dragging.pile >= FC_PILE_CELL;
     const w = big ? FC_BIG_W : FC_COL_W;
     const h = big ? FC_BIG_H : FC_COL_H;
-    cards.forEach((card, k) => {
+    const lifted = new CardLayer(ctx, view?.motion ?? null);
+    run.forEach((card, k) => {
       if (card === NO_CARD) return;
-      drawCard(ctx, card, dragging.x - dragging.ox, dragging.y - dragging.oy + k * 30, w, h, { glow: k === 0 ? 1 : 0 });
+      lifted.card(card, card, dragging.x - dragging.ox, dragging.y - dragging.oy - 4 + k * 30, w, h, { glow: k === 0 ? 1 : 0, lift: 1 }, true);
     });
   }
 
@@ -379,6 +355,7 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   }
   if (state.ended === 0) drawNote(ctx, state);
   drawNoMoves(ctx, state);
+  if (view?.confirm && state.ended === 0) drawResetConfirm(ctx, W, H, "Every card goes back. It counts as a move.", view.confirmHeld ?? null);
   ctx.restore();
 }
 

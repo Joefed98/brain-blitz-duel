@@ -46,7 +46,7 @@ import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/
 import type { MinesState } from "@/lib/arcade/minesweeper";
 import type { MahjongState } from "@/lib/arcade/mahjong";
 import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
-import type { TpState } from "@/lib/arcade/cards/tripeaks";
+import { tpFree, type TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
 import { MODE_CLING, MODE_FLIGHT, MODE_RIDE, MOON_REV, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
@@ -75,6 +75,18 @@ function sfx(cue: SoundId, fallback: SoundId, volume = 1, rate = 1, overlap = fa
  */
 function feel(pattern: HapticPattern): void {
   haptic(pattern, { inGame: true });
+}
+
+/**
+ * The Cards & Board overhaul's light touch (15 Nov 2026): one short tick when a card or tile is picked up, placed or
+ * matched in Free Cell, Mahjong, Summit, Five Hands and Thirteen (at most one a frame; in-game only, like every moment).
+ */
+let cardFeltAt = -1;
+export function cardFeel(): void {
+  const now = typeof performance !== "undefined" ? performance.now() : 0;
+  if (now - cardFeltAt < 40) return;
+  cardFeltAt = now;
+  feel("tick");
 }
 
 /** A renderer effect's named cue (liveCue), unless a success cue with a file replaces it this frame. */
@@ -1445,14 +1457,14 @@ export function mahjongSounds(): GameSounds<MahjongState> {
     frame(state) {
       beginFrame("mahjong", state);
       if (prev && state.tick > prev.tick) {
-        if (state.pairs > prev.pairs) ownCue("mahjong.match", "shared.celebrate.countDing", 0.7);
+        if (state.pairs > prev.pairs) { ownCue("mahjong.match", "shared.celebrate.countDing", 0.7); cardFeel(); }
         else if (state.misses > prev.misses) effectCue("mahjong.invalid");
-        else if (state.sel >= 0 && state.sel !== prev.sel) effectCue("mahjong.select");
+        else if (state.sel >= 0 && state.sel !== prev.sel) { effectCue("mahjong.select"); cardFeel(); }
         if (state.blocked > prev.blocked) sfx("mahjong.blocked", "tick", 0.4);
         if (state.shuffles > prev.shuffles) ownCue("mahjong.shuffle", "shared.celebrate.zap");
-        // mahjongRev 2's Undo and Reset: no recordings of their own, the sounds they had (expansionSounds' tick and zap).
-        if ((state.undos ?? 0) > (prev.undos ?? 0)) playCueSlot("tick", 0.6);
-        if ((state.resets ?? 0) > (prev.resets ?? 0)) playCueSlot("shared.celebrate.zap", 0.6);
+        // mahjongRev 2's Undo and Reset: their own slots (the overhaul), the sounds they had (tick and zap) until set.
+        if ((state.undos ?? 0) > (prev.undos ?? 0)) ownCue("mahjong.undo", "tick", 0.6);
+        if ((state.resets ?? 0) > (prev.resets ?? 0)) ownCue("mahjong.reset", "shared.celebrate.zap", 0.6);
         if (state.clearedTick > 0 && prev.clearedTick === 0) ownCue("mahjong.clear", "shared.celebrate.chime");
       }
       prev = state;
@@ -1472,7 +1484,13 @@ export function freecellSounds(): GameSounds<FcState> {
       beginFrame("freecell", state);
       if (prev && state.tick > prev.tick) {
         if (prev.tick === 0) effectCue("freecell.shuffle");
-        if (state.moves > prev.moves) sfx("freecell.place", "place", 0.8);
+        // Undo and Reset count as moves; each has its own slot (the overhaul), the place sound until set.
+        const undid = (state.undos ?? 0) > (prev.undos ?? 0);
+        const reset = (state.resets ?? 0) > (prev.resets ?? 0);
+        if (undid) ownCue("freecell.undo", "place", 0.8);
+        else if (reset) ownCue("freecell.reset", "place", 0.8);
+        else if (state.moves > prev.moves) sfx("freecell.place", "place", 0.8);
+        if (state.moves > prev.moves) cardFeel();
         const home = fcHomeCount(state) - fcHomeCount(prev);
         if (state.autos - prev.autos >= 2) sfx("freecell.cascade", "correct", 0.55, 1 + Math.min(0.5, fcHomeCount(state) / 104));
         else if (home > 0) sfx("freecell.home", "correct", 0.55, 1 + Math.min(0.5, fcHomeCount(state) / 104));
@@ -1487,9 +1505,22 @@ export function freecellSounds(): GameSounds<FcState> {
   };
 }
 
+/** Reset's question opening (Free Cell, Mahjong, Thirteen; the stage calls it; silent until its file is set). */
+export function cardConfirmCue(): void {
+  liveCue("cards.confirm", 200);
+}
+
+/** Summit's peak cards turned face up so far (played ones included: a play only ever adds to it). */
+function tpFaceUpCount(state: TpState): number {
+  let n = 0;
+  for (let i = 0; i < state.tab.length; i++) if (state.cleared[i] || tpFree(state, i)) n++;
+  return n;
+}
+
 /** Free Cell's card lift as a drag starts (the stage calls it; the sim never sees it). */
 export function freecellPick(): void {
   liveCue("freecell.pick", 60);
+  cardFeel();
 }
 
 /** Summit (TriPeaks): each run card a semitone higher than the last (up to an octave), the stock's next card, peaks, a refused tap and the clear. */
@@ -1501,10 +1532,13 @@ export function tripeaksSounds(): GameSounds<TpState> {
       if (prev && state.tick > prev.tick) {
         if (prev.tick === 0) effectCue("tripeaks.shuffle");
         if (state.plays > prev.plays) {
+          cardFeel();
           if (cueHasFile("tripeaks.run")) sfx("tripeaks.run", "place", 0.8, 2 ** (Math.min(12, Math.max(0, state.run - 1)) / 12), false, true);
           else sfx("tripeaks.run", state.run >= 3 ? "combo" : "place", 0.8, 1 + Math.min(0.6, state.run * 0.05));
         }
         if (state.turns > prev.turns) sfx("tripeaks.deal", "move", 0.8);
+        // A peak card turned face up by the play (the overhaul's flip; silent until its file is set).
+        if (tpFaceUpCount(state) > tpFaceUpCount(prev)) effectCue("tripeaks.flip");
         if (state.peaks > prev.peaks) sfx("tripeaks.peak", "correct", 0.7);
         if (state.rejects > prev.rejects) sfx("tripeaks.invalid", "wrong", 0.5);
         if (state.ended === 1 && prev.ended === 0) sfx("tripeaks.clear", "complete");
@@ -1561,6 +1595,7 @@ export function fiveHandsSounds(): GameSounds<FhState> {
       if (prev && state.tick > prev.tick) {
         if (prev.tick === 0) effectCue("fivehands.shuffle");
         if (state.turn > prev.turn) {
+          cardFeel();
           let best = 0;
           state.rows.forEach((row, r) => {
             const after = psHand(row).points;
@@ -1704,15 +1739,15 @@ export function pyramidSounds(): GameSounds<PyState> {
       beginFrame("pyramid", state);
       if (prev && state.tick > prev.tick) {
         if (prev.tick === 0) effectCue("pyramid.shuffle");
-        if (state.pairs > prev.pairs) sfx("pyramid.pair", "correct", 0.8);
-        else if (state.kings > prev.kings) sfx("pyramid.king", "place", 0.8);
+        if (state.pairs > prev.pairs) { sfx("pyramid.pair", "correct", 0.8); cardFeel(); }
+        else if (state.kings > prev.kings) { sfx("pyramid.king", "place", 0.8); cardFeel(); }
         // A refused pair moves the selection too; it plays only its refusal (one sound, 15 Nov 2026).
-        else if (state.sel >= 0 && state.sel !== prev.sel && state.rejects === prev.rejects) effectCue("pyramid.select");
+        else if (state.sel >= 0 && state.sel !== prev.sel && state.rejects === prev.rejects) { effectCue("pyramid.select"); cardFeel(); }
         if (state.draws > prev.draws) sfx("pyramid.deal", "move", 0.8);
         if (state.pass > prev.pass) effectCue("pyramid.turn");
         if (state.rejects > prev.rejects) sfx("pyramid.invalid", "wrong", 0.5);
-        if (state.undos > prev.undos) playCueSlot("tick", 0.6);
-        if (state.resets > prev.resets) playCueSlot("shared.celebrate.zap", 0.6);
+        if (state.undos > prev.undos) ownCue("pyramid.undo", "tick", 0.6);
+        if (state.resets > prev.resets) ownCue("pyramid.reset", "shared.celebrate.zap", 0.6);
         if (state.ended === 1 && prev.ended === 0) sfx("pyramid.clear", "complete");
       }
       prev = state;

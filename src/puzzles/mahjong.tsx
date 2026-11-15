@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
@@ -28,8 +28,13 @@ import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { MahjongPuzzleData } from "@/lib/duel/types";
 import { mahjongSounds as mahjongObserver } from "@/lib/fx/cardSounds";
+import { cardConfirmCue } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+
+// The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
+if (typeof window !== "undefined") preloadRealArt(["tiles", "mahjongTable"]);
 import { canvasRatio } from "@/lib/battery";
 
 /** Fixed intro still: two stacked tiles and a free matching pair, one of them selected. */
@@ -87,6 +92,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** The board the player is looking at (the last drawn frame), so a tap picks the tile they saw on top. */
   const shown = useRef<MahjongState | null>(null);
   const sounds = useRef(mahjongSounds((s) => (shown.current = s)));
+  /** Reset's confirmation (the Cards & Board overhaul): the footer asks before the board goes back to the deal. */
+  const [confirming, setConfirming] = useState(false);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     if (kind !== "down") return null;
@@ -128,12 +135,51 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             return true;
           }
           if (undo && (key === "r" || key === "R")) {
-            if (kind === "down") send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_RESET, b: 0, c: 0 });
+            // R asks first, like the button; Enter then resets, Escape keeps the board.
+            if (kind === "down") {
+              setConfirming(true);
+              cardConfirmCue();
+            }
+            return true;
+          }
+          if (confirming && (key === "Enter" || key === "Escape")) {
+            if (kind === "down") {
+              setConfirming(false);
+              if (key === "Enter") send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_RESET, b: 0, c: 0 });
+            }
             return true;
           }
           return false;
         }}
-        footer={(send) => (
+        footer={(send) =>
+          confirming && undo ? (
+            // Reset asks first (the overhaul): the thumb row becomes the question; Reset fires on release over it.
+            <div data-home-bar-clear="8" data-game-controls="confirm-reset" role="group" aria-label="Reset to the deal?" className="flex h-[52px] shrink-0 items-center justify-end gap-2">
+              <span className="mr-auto text-[14px] font-bold text-foreground">Reset to the deal?</span>
+              <ArcadeControlButton
+                type="button"
+                aria-label="Cancel"
+                disabled={locked}
+                className="h-[44px] rounded-xl border-2 border-foreground/30 bg-background/40 px-3.5 text-[14px] font-bold text-foreground hover:bg-background/40 active:bg-foreground/15"
+                onPressEnd={() => setConfirming(false)}
+              >
+                Cancel
+              </ArcadeControlButton>
+              <ArcadeControlButton
+                type="button"
+                aria-label="Reset"
+                data-home-bar-fill=""
+                disabled={locked}
+                className="h-[52px] rounded-xl border-2 border-primary/70 bg-background/40 px-5 text-[15px] font-extrabold text-primary hover:bg-background/40 active:bg-primary/25"
+                onPressEnd={(event) => {
+                  if (mahjongReleaseInside(event)) send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_RESET, b: 0, c: 0 });
+                  setConfirming(false);
+                }}
+              >
+                ⤺ Reset
+              </ArcadeControlButton>
+            </div>
+          ) : (
           // The Shuffle button in the bottom corner, within thumb reach (rev 2: Undo and Reset, smaller, beside it); its row
           // ends 16 px above the bottom like every arcade control row.
           <div data-home-bar-clear="8" data-game-controls="shuffle" className="flex h-[52px] shrink-0 items-center justify-end gap-2">
@@ -153,10 +199,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                   aria-label="Reset"
                   disabled={locked}
                   className="h-[44px] rounded-xl border-2 border-foreground/30 bg-background/40 px-3.5 text-[14px] font-bold text-foreground hover:bg-background/40 active:bg-foreground/15"
-                  // Reset throws the board back to the deal: it fires on release over the button (15 Nov 2026), so a
-                  // touch that slides off it resets nothing.
+                  // Reset asks first (the overhaul); the question's own Reset fires on release over it.
                   onPressEnd={(event) => {
-                    if (mahjongReleaseInside(event)) send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_RESET, b: 0, c: 0 });
+                    if (mahjongReleaseInside(event)) {
+                      setConfirming(true);
+                      cardConfirmCue();
+                    }
                   }}
                 >
                   ⤺ Reset
@@ -174,7 +222,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               {`⟳ Shuffle −${MAHJONG_SHUFFLE_COST}`}
             </ArcadeControlButton>
           </div>
-        )}
+          )
+        }
         onSubmit={(answer) => onSubmit(answer)}
         onDraftAnswer={onDraftAnswer}
       />

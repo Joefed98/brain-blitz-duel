@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 40 | 0 | 488 | 528 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 37 | 41 |
+| fail sting | 7 | 0 | 37 | 44 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 69 | 1 | 984 | 1054 |
 
 ## Silent and placeholder cues
 
@@ -254,11 +254,25 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
 
+### Free Cell
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `freecell.undo` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.undo` |
+| `freecell.reset` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `freecell.reset` |
+
 ### Hot Floor
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
+
+### Mahjong Solitaire
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `mahjong.undo` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.undo` |
+| `mahjong.reset` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `mahjong.reset` |
 
 ### Rooftop Run
 
@@ -271,6 +285,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.steady` | Steady (retired, practice): none |  | loop | silent | none | 60000 | music | `music_steady` |
+
+### Summit
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `tripeaks.flip` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.flip` |
 
 ### Swerve
 
@@ -289,6 +309,19 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `beat.backing` | Tempo: The synthesised 120 BPM backing beat, one step per eighth note (no slot); since sound batch 4 only until music_beat has decoded, or if it fails [core.md] |  | loop | synthesised placeholder | none | loop | ambience | none |
+
+### Thirteen
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pyramid.undo` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.undo` |
+| `pyramid.reset` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `pyramid.reset` |
+
+### cards
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `cards.confirm` | Free Cell, Mahjong, Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `cards.confirm` |
 
 ## Music by screen and game
 

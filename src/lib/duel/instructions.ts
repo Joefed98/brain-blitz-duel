@@ -1223,7 +1223,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a card", detail: "to move it (and the run on it) to its best spot." },
         { action: "Drag a card", detail: "to put it on a particular pile.", helpOnly: true },
         { action: "Build down", detail: "in alternating colours; home piles build up by suit from the Ace." },
-        { action: "Undo and Reset", detail: "are the small buttons at the top: Undo takes back the last move (as often as you like), Reset deals the cards back out. Each counts as a move; the clock runs on." },
+        { action: "Undo and Reset", detail: "are the buttons under the columns: Undo takes back the last move (as often as you like), Reset deals the cards back out (it asks first). Each counts as a move; the clock runs on." },
         { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true },
         { action: "Safe cards fly home by themselves:", detail: "aces and twos, and a card whose lower cards of the other colour are home. They are not counted as moves.", helpOnly: true },
         { action: "Par", detail: "is the fewest moves our solver found for this deal.", helpOnly: true },

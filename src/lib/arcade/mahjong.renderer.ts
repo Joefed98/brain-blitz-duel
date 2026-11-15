@@ -5,8 +5,12 @@
  * characters 1–9, the four winds and three dragons (the characters as stroke glyphs, so no font is loaded). Blocked
  * tiles are dimmed (well down since 3 Nov 2026, so the free ones stand out); the selected tile glows gold. The board is painted into a device layer keyed on the faces
  * and the selection, so a frame is one blit plus the moving effects.
+ * The Cards & Board overhaul (15 Nov 2026, display only): real ivory tiles over jade backs and the green mat in a
+ * wooden table edge, Blender renders of these faces (realArt.renderer.ts; the code tiles and table until they load);
+ * the HUD's free-pair count reads "Free pairs" (it read "Moves", which looked like a move counter).
  */
 import { deviceLayer } from "./cache.renderer";
+import { drawRealTile, mahjongTableImage, realArtReady } from "./cards/realArt.renderer";
 import { drawHudPillRow } from "./hudPill.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { MAHJONG_FX } from "./arcadeFxGames.renderer";
@@ -332,13 +336,21 @@ const ORDER: readonly number[] = MAHJONG_SLOTS.map((_, i) => i).sort((a, b) => {
 });
 
 function paintBoard(ctx: CanvasRenderingContext2D, s: MahjongState): void {
-  paintMahjongTable(ctx, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
+  const table = mahjongTableImage();
+  if (table) ctx.drawImage(table, 0, 0, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
+  else paintMahjongTable(ctx, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
   for (const slot of ORDER) {
     const face = s.face[slot]!;
     if (face < 0) continue;
     const r = mahjongSlotRect(slot);
-    paintMahjongTile(ctx, r.x, r.y, r.w, r.h);
-    paintMahjongFace(ctx, face, r.x, r.y, r.w, r.h);
+    // The tile's shadow on the layer (or mat) below, then the rendered tile, or the code tile until it loads.
+    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+    roundRect(ctx, r.x + 8, r.y + 10, r.w, r.h, Math.max(3, r.w * 0.1));
+    ctx.fill();
+    if (!drawRealTile(ctx, face, r.x, r.y, r.w, r.h)) {
+      paintMahjongTile(ctx, r.x, r.y, r.w, r.h);
+      paintMahjongFace(ctx, face, r.x, r.y, r.w, r.h);
+    }
     if (!mahjongFree(s.face, slot)) {
       // Blocked tiles dimmed well down (3 Nov 2026; 0.24 until then), so the free ones read at a glance.
       ctx.fillStyle = "rgba(22, 18, 10, 0.46)";
@@ -364,7 +376,7 @@ function paintHud(ctx: CanvasRenderingContext2D, s: MahjongState): void {
   // Pill chips (3 Nov 2026): the main count top left; "Shuffles" spelled out (it read "SHUF" until then).
   drawHudPillRow(ctx, 12, 8, [
     { label: "Pairs", value: `${s.pairs}/${MAHJONG_PAIRS}`, opts: { gold: mahjongCleared(s) } },
-    { label: "Moves", value: String(moves), opts: { gold: moves === 0 && !mahjongCleared(s) } },
+    { label: "Free pairs", value: String(moves), opts: { gold: moves === 0 && !mahjongCleared(s) } },
     { label: "Shuffles", value: String(s.shuffles), opts: { alert: s.shuffles > 0 } },
   ]);
 }
@@ -375,7 +387,8 @@ export function drawMahjong(ctx: CanvasRenderingContext2D, s: MahjongState, size
 }
 
 function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState): void {
-  deviceLayer(ctx, `mahjong|${s.seed}|${s.face.join(",")}`, (c) => paintBoard(c, s));
+  const art = (realArtReady("tiles") ? 1 : 0) + (realArtReady("mahjongTable") ? 2 : 0);
+  deviceLayer(ctx, `mahjong|${art}|${s.seed}|${s.face.join(",")}`, (c) => paintBoard(c, s));
   paintHud(ctx, s);
   const still = reducedMotion();
   // The selected tile glows gold.

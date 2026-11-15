@@ -1,7 +1,8 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { FC_CHECKPOINT_INTERVAL, FC_INPUT_MOVE, FC_INPUT_TAP, FC_REV, fcCardsFor, fcCheckpoint, type FcState } from "@/lib/arcade/cards/freecell";
+import { FC_CHECKPOINT_INTERVAL, FC_INPUT_MOVE, FC_INPUT_RESET, FC_INPUT_TAP, FC_REV, fcCardsFor, fcCheckpoint, type FcState } from "@/lib/arcade/cards/freecell";
+import { confirmHit } from "@/lib/arcade/cards/cardButtons.renderer";
 import {
   drawFreecell, fcButtonHit, fcCardBox, fcDropPile, fcHit, fcNewView, FC_BG, FC_WORLD_H, FC_WORLD_W, freecellArtGame,
 } from "@/lib/arcade/cards/freecell.renderer";
@@ -11,12 +12,17 @@ import { FREECELL_TIME_MS, type FreecellPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
 import { freecellPick, freecellSounds } from "@/lib/fx/cardSounds";
+import { cardConfirmCue } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+
+// The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
+if (typeof window !== "undefined") preloadRealArt(["cards", "felt"]);
 
 /** Fixed intro still: a deal on the felt (drawn by the game's own renderer). */
 function IntroExample() {
-  return <CardStill width={FC_WORLD_W} height={FC_WORLD_H} draw={(ctx, size) => drawFreecell(ctx, freecellArtGame(undefined, FC_REV).init(0), size)} caption="Tap a card to send it to its best spot; drag for a particular one. Undo and Reset sit at the top." />;
+  return <CardStill width={FC_WORLD_W} height={FC_WORLD_H} draw={(ctx, size) => drawFreecell(ctx, freecellArtGame(undefined, FC_REV).init(0), size)} caption="Tap a card to send it to its best spot; drag for a particular one. Undo and Reset sit under the columns." />;
 }
 
 /** Drags shorter than this many world pixels are taps. */
@@ -36,7 +42,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const state = latest.current;
     if (!state) return null;
-    // freecellRev 2's Undo and Reset: a press and release on the same button.
+    // Reset's confirmation (the overhaul): while it is open a tap answers it and nothing else is touched.
+    if (view.confirm) {
+      const hit = confirmHit(FC_WORLD_W, FC_WORLD_H, x, y);
+      if (kind === "down") view.confirmHeld = hit;
+      else if (kind === "up") {
+        const held = view.confirmHeld;
+        view.confirmHeld = null;
+        if (held && held === hit) {
+          view.confirm = false;
+          if (hit === "ok") return { k: FC_INPUT_RESET, a: 0, b: 0, c: 0 };
+        }
+      }
+      return null;
+    }
+    // freecellRev 2's Undo and Reset: a press and release on the same button (Reset then asks first).
     if (state.hist && (view.button || kind === "down")) {
       const button = fcButtonHit(x, y);
       if (kind === "down" && button) {
@@ -48,7 +68,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (kind === "move") return null;
         const held = view.button;
         view.button = 0;
-        return button === held ? { k: held, a: 0, b: 0, c: 0 } : null;
+        if (button !== held) return null;
+        if (held === FC_INPUT_RESET) {
+          view.confirm = true;
+          cardConfirmCue();
+          return null;
+        }
+        return { k: held, a: 0, b: 0, c: 0 };
       }
     }
     if (kind === "down") {
@@ -84,7 +110,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="freecell"
-      label={`${gameDisplayName("freecell")}: tap a card to move it, or drag it to a pile${rev >= 2 ? "; Undo and Reset at the top" : ""}`}
+      label={`${gameDisplayName("freecell")}: tap a card to move it, or drag it to a pile${rev >= 2 ? "; Undo and Reset under the columns" : ""}`}
       background={FC_BG}
       fitWorld
       scene={cardsFill}

@@ -4,12 +4,16 @@
  * overlapping the one above so every index shows), then a dark panel within thumb reach
  * holding the stock and waste piles (between them, "Need 4" while a card is selected) and the Undo / Reset buttons. The selected card glows gold; its partners (cards
  * adding to 13) and free Kings glow softly. pyHit reads the same layout.
+ * The Cards & Board overhaul (15 Nov 2026, display and input mapping only): real cards (realArt.renderer.ts), 56 × 82
+ * in the pyramid, covered cards dimmed until their last cover goes; Reset asks first (confirmBoxes); on the live stage
+ * a turned stock card slides to the waste and flips, and an undone card slides back (CardMotion).
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { rankOf } from "./cards";
-import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
-import { drawCardButton, inButton, type CardButtonBox } from "./cardButtons.renderer";
+import { CARD_FONT, drawChip, drawSlot, roundRect } from "./cards.renderer";
+import { drawCardButton, drawResetConfirm, inButton, type CardButtonBox } from "./cardButtons.renderer";
+import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
 import {
   PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyDeadEnd, pyFree, pyramidGameFor, pyRowOf, pyWasteTop, type PyState,
 } from "./pyramid";
@@ -18,15 +22,15 @@ export const PY_WORLD_W = 414;
 export const PY_WORLD_H = 772;
 export const PY_BG = "#0E2A57";
 
-export const PY_CARD_W = 54;
-export const PY_CARD_H = 78;
-const STEP_X = 57;
+export const PY_CARD_W = 56;
+export const PY_CARD_H = 82;
+const STEP_X = 58;
 const ROW_Y0 = 46;
-const ROW_STEP = 50;
+const ROW_STEP = 52;
 export const PY_INFO_Y = ROW_Y0 + 6 * ROW_STEP + PY_CARD_H + 12;
-export const PY_PANEL_Y = 486;
-export const PY_PILE_W = 84;
-export const PY_PILE_H = 120;
+export const PY_PANEL_Y = 474;
+export const PY_PILE_W = 92;
+export const PY_PILE_H = 134;
 export const PY_PILE_Y = PY_PANEL_Y + 34;
 export const PY_STOCK_X = 64;
 export const PY_WASTE_X = PY_WORLD_W - 64 - PY_PILE_W;
@@ -66,10 +70,15 @@ export function pyButtonHit(x: number, y: number): number {
 export interface PyView {
   pressed: number;
   button: number;
+  /** Reset's confirmation is open (and which of its buttons is held). */
+  confirm?: boolean;
+  confirmHeld?: "ok" | "cancel" | null;
+  /** The live stage's card motion; none on reveals and replays. */
+  motion?: CardMotion;
 }
 
 export function pyNewView(): PyView {
-  return { pressed: -1, button: 0 };
+  return { pressed: -1, button: 0, confirm: false, confirmHeld: null, motion: new CardMotion() };
 }
 
 const wasteAt = () => ({ x: PY_WASTE_X + PY_PILE_W / 2, y: PY_PILE_Y + PY_PILE_H / 2 });
@@ -104,7 +113,8 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   const H = PY_WORLD_H;
   ctx.save();
   ctx.scale(size.width / W, size.height / H);
-  drawFelt(ctx, W, H);
+  drawRealFelt(ctx, W, H);
+  const cards = new CardLayer(ctx, view?.motion ?? null);
 
   drawChip(ctx, 10, 9, "REMOVED", `${state.removed}/${PY_CARDS}`, { gold: state.removed === PY_CARDS });
   drawChip(ctx, W - 10, 9, "PAIRS", `${Math.min(state.ppPairs, PY_PAIR_FULL)}/${PY_PAIR_FULL}`, { align: "right", gold: state.ppPairs >= PY_PAIR_FULL });
@@ -117,8 +127,9 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
     const b = pyCardBox(i);
     const free = pyFree(state, i);
     const card = state.tab[i]!;
-    const glow = state.sel === i || view?.pressed === i ? 1 : free && (partner(card) || (live && rankOf(card) === 13)) ? 0.55 : 0;
-    drawCard(ctx, card, b.x, b.y, PY_CARD_W, PY_CARD_H, { glow, dim: free ? 0 : 0.32 });
+    const up = state.sel === i || view?.pressed === i;
+    const glow = up ? 1 : free && (partner(card) || (live && rankOf(card) === 13)) ? 0.55 : 0;
+    cards.card(card, card, b.x, b.y - (up ? 3 : 0), PY_CARD_W, PY_CARD_H, { glow, dim: free ? 0 : 0.36, lift: up ? 1 : 0 });
   }
 
   // (The rules line "ONE PASS · PAIRS ADD TO 13 · K ALONE" lived here until 3 Nov 2026; it is in How to play.)
@@ -136,14 +147,18 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   ctx.fillText(`STOCK ${left}`, PY_STOCK_X + PY_PILE_W / 2, PY_PANEL_Y + 18);
   ctx.fillText(`WASTE ${state.pos}`, PY_WASTE_X + PY_PILE_W / 2, PY_PANEL_Y + 18);
   if (left > 0) {
-    for (let k = Math.min(3, left) - 1; k >= 0; k--) drawCard(ctx, 0, PY_STOCK_X + k * 3, PY_PILE_Y - k * 3, PY_PILE_W, PY_PILE_H, { down: true, glow: k === 0 && view?.pressed === PY_STOCK_PILE ? 1 : 0 });
+    for (let k = Math.min(3, left) - 1; k >= 0; k--) cards.card(-100 - k, -1, PY_STOCK_X + k * 3, PY_PILE_Y - k * 3, PY_PILE_W, PY_PILE_H, { down: true, glow: k === 0 && view?.pressed === PY_STOCK_PILE ? 1 : 0 });
+    // The next stock card is noted at the stock, so a turn slides it from there and flips it.
+    view?.motion?.seed(state.pile[state.pos]!, PY_STOCK_X, PY_PILE_Y, true);
   } else drawSlot(ctx, PY_STOCK_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, -1, "EMPTY");
   const top = pyWasteTop(state);
   if (top >= 0) {
-    if (state.pos > 1) drawCard(ctx, state.pile[state.pos - 2]!, PY_WASTE_X - 4, PY_PILE_Y + 3, PY_PILE_W, PY_PILE_H, { dim: 0.4 });
-    const glow = state.sel === PY_WASTE_PILE || view?.pressed === PY_WASTE_PILE ? 1 : partner(top) || (live && rankOf(top) === 13) ? 0.55 : 0;
-    drawCard(ctx, top, PY_WASTE_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, { glow });
+    if (state.pos > 1) cards.card(state.pile[state.pos - 2]!, state.pile[state.pos - 2]!, PY_WASTE_X - 4, PY_PILE_Y + 3, PY_PILE_W, PY_PILE_H, { dim: 0.4 });
+    const up = state.sel === PY_WASTE_PILE || view?.pressed === PY_WASTE_PILE;
+    const glow = up ? 1 : partner(top) || (live && rankOf(top) === 13) ? 0.55 : 0;
+    cards.card(top, top, PY_WASTE_X, PY_PILE_Y - (up ? 3 : 0), PY_PILE_W, PY_PILE_H, { glow, lift: up ? 1 : 0 });
   } else drawSlot(ctx, PY_WASTE_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, -1, "WASTE");
+  cards.flush();
 
   // Between the piles, only while a card is selected: the rank its partner needs (3 Nov 2026; until then a large "13"
   // over "TAP TWO" whenever nothing was selected).
@@ -168,8 +183,9 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   for (const b of PY_BUTTONS) {
     const isUndo = b.kind === PY_INPUT_UNDO;
     const liveBtn = live && (isUndo ? state.hist.length > 0 : state.hist.length > 0 || state.resets > 0);
-    drawCardButton(ctx, b.box, isUndo ? "undo" : "reset", isUndo ? "UNDO" : "RESET", { live: liveBtn, held: view?.button === b.kind });
+    drawCardButton(ctx, b.box, isUndo ? "undo" : "reset", isUndo ? "Undo" : "Reset", { live: liveBtn, held: view?.button === b.kind });
   }
+  if (view?.confirm && live) drawResetConfirm(ctx, W, H, "Every pair goes back to the deal.", view.confirmHeld ?? null);
   ctx.restore();
 }
 

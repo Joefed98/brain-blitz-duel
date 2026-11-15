@@ -2,10 +2,15 @@
  * TriPeaks' art and layout (display only; the sim is tripeaks.ts). The world is 414 × 772: HUD chips across the top,
  * three tall peaks of large cards, the run readout ("Run 3 (best 5)"; a row of ten flames until 3 Nov 2026), and the stock and discard on a dark panel
  * at the bottom, within thumb reach. Playable cards glow gold. tpHit reads the same layout.
+ * The Cards & Board overhaul (15 Nov 2026, display only): real cards (realArt.renderer.ts), 54 × 80, the bottom row's
+ * ten overlapping a little (each card's index shows), the peaks' rows overlapping like a real deal, and the stock and
+ * discard as a large pair just under them; on the live stage a played card slides to the discard, the card it uncovers
+ * flips, and a turned stock card slides off and flips (CardMotion).
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
-import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
+import { CARD_FONT, drawChip, drawSlot } from "./cards.renderer";
+import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
 import { TP_CARDS, TP_STOCK, TP_STOCK_PILE, tpFree, tpPlayable, tripeaksGameFor, type TpState } from "./tripeaks";
 
 export const TP_WORLD_W = 414;
@@ -17,19 +22,19 @@ export const TP_BG = "#0E2A57";
  * is as wide as a tenth of the world allows), the peaks taller (taller cards, more space between rows), and a smaller
  * stock and discard panel at the bottom, within thumb reach.
  */
-export const TP_CARD_W = 39;
-export const TP_CARD_H = 70;
+export const TP_CARD_W = 54;
+export const TP_CARD_H = 80;
 const MARGIN = 4;
 const UNIT = (TP_WORLD_W - 2 * MARGIN - TP_CARD_W) / 9;
-const ROW_Y0 = 58;
-const ROW_STEP = 96;
-export const TP_FLAME_Y = 486;
-export const TP_PANEL_Y = 598;
-export const TP_PILE_W = 74;
-export const TP_PILE_H = 104;
-export const TP_PILE_Y = 636;
-export const TP_STOCK_X = 84;
-export const TP_DISCARD_X = TP_WORLD_W - 84 - TP_PILE_W;
+const ROW_Y0 = 54;
+const ROW_STEP = 66;
+export const TP_FLAME_Y = ROW_Y0 + 3 * ROW_STEP + TP_CARD_H + 30;
+export const TP_PANEL_Y = TP_FLAME_Y + 30;
+export const TP_PILE_W = 96;
+export const TP_PILE_H = 142;
+export const TP_PILE_Y = TP_PANEL_Y + 30;
+export const TP_STOCK_X = TP_WORLD_W / 2 - 20 - TP_PILE_W;
+export const TP_DISCARD_X = TP_WORLD_W / 2 + 20;
 
 /** A peak card's box. */
 export function tpCardBox(i: number): { x: number; y: number } {
@@ -71,10 +76,14 @@ export function tpOverDiscard(x: number, y: number): boolean {
 export interface TpView {
   pressed: number;
   drag: { index: number; x: number; y: number; ox: number; oy: number } | null;
+  /** The live stage's card motion; none on reveals and replays. */
+  motion?: CardMotion;
+  /** The discard as last drawn (its top, and the card under it while a new top slides in). */
+  discard?: { top: number; under: number };
 }
 
 export function tpNewView(): TpView {
-  return { pressed: -1, drag: null };
+  return { pressed: -1, drag: null, motion: new CardMotion(), discard: { top: -1, under: -1 } };
 }
 
 
@@ -106,62 +115,72 @@ export function drawTripeaks(ctx: CanvasRenderingContext2D, state: TpState, size
 
 function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: CanvasSize, view?: TpView): void {
   const W = TP_WORLD_W;
-  const H = TP_WORLD_H;
   ctx.save();
-  ctx.scale(size.width / W, size.height / H);
-  drawFelt(ctx, W, H);
+  ctx.scale(size.width / W, size.height / TP_WORLD_H);
+  drawRealFelt(ctx, W, TP_WORLD_H);
+  const cards = new CardLayer(ctx, view?.motion ?? null);
 
   drawChip(ctx, 10, 9, "CLEARED", `${state.clearedCount}/${TP_CARDS}`, { gold: state.clearedCount === TP_CARDS });
   drawChip(ctx, W - 10, 9, "PEAKS", `${state.peaks}/3`, { align: "right", gold: state.peaks === 3 });
-  // tripeaksRev 2: the stock par readout, stock cards turned against the deal's par (gold while within it).
-  if (state.stockPar !== undefined) drawChip(ctx, W / 2, 9, "STOCK PAR", `${state.turns}/${state.stockPar}`, { align: "center", gold: state.turns <= state.stockPar });
+  // tripeaksRev 2: stock cards turned against the deal's par ("Stock 20 · par 20", the overhaul; "STOCK PAR 20/20" until then).
+  if (state.stockPar !== undefined) drawChip(ctx, W / 2, 9, "", `Stock ${state.turns} · par ${state.stockPar}`, { align: "center", gold: state.turns <= state.stockPar });
+
+  // Labels over the pair.
+  const left = TP_STOCK - state.stockPos;
+  ctx.fillStyle = "rgba(246,235,208,0.75)";
+  ctx.font = `700 12px ${CARD_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`STOCK ${left}`, TP_STOCK_X + TP_PILE_W / 2, TP_PILE_Y - 14);
+  ctx.fillText("DISCARD", TP_DISCARD_X + TP_PILE_W / 2, TP_PILE_Y - 14);
+
+  // The stock: up to three backs; the next card is noted at the stock so a turn slides it from there.
+  if (left > 0) {
+    for (let k = Math.min(3, left) - 1; k >= 0; k--) cards.card(-100 - k, -1, TP_STOCK_X + k * 3, TP_PILE_Y - k * 3, TP_PILE_W, TP_PILE_H, { down: true, glow: k === 0 && view?.pressed === TP_STOCK_PILE ? 1 : 0, lift: k === 0 && view?.pressed === TP_STOCK_PILE ? 0.6 : 0 });
+    view?.motion?.seed(state.stock[state.stockPos]!, TP_STOCK_X, TP_PILE_Y, true);
+  } else drawSlot(ctx, TP_STOCK_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H, -1, "EMPTY");
+
+  // The discard: the card under the top stays drawn while the new top slides in.
+  const d = view?.discard;
+  if (d && d.top !== state.top) {
+    d.under = d.top;
+    d.top = state.top;
+  }
+  if (d && d.under >= 0 && d.under !== state.top) cards.card(d.under, d.under, TP_DISCARD_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H);
+  const fresh = state.lastTick > 0 ? Math.max(0, 1 - (state.tick - state.lastTick) / 16) : 0;
 
   const drag = view?.drag ?? null;
-  const fresh = state.lastTick > 0 ? Math.max(0, 1 - (state.tick - state.lastTick) / 16) : 0;
   for (let i = 0; i < TP_CARDS; i++) {
     if (state.cleared[i] || (drag && drag.index === i)) continue;
     const b = tpCardBox(i);
     const free = tpFree(state, i);
     const playable = state.ended === 0 && tpPlayable(state, i);
-    drawCard(ctx, state.tab[i]!, b.x, b.y, TP_CARD_W, TP_CARD_H, {
+    const up = view?.pressed === i;
+    cards.card(state.tab[i]!, state.tab[i]!, b.x, b.y - (up ? 3 : 0), TP_CARD_W, TP_CARD_H, {
       down: !free,
-      glow: view?.pressed === i ? 1 : playable ? 0.7 : 0,
+      glow: up ? 1 : playable ? 0.7 : 0,
+      lift: up ? 1 : 0,
     });
   }
+  cards.card(state.top, state.top, TP_DISCARD_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H, { glow: fresh * 0.9 });
+  cards.flush();
 
-  // The run readout (3 Nov 2026: one chip, "Run 3 (best 5)", gold from a run of five; until then a row of ten flames,
-  // mostly faint dots, over "RUN 0 · BEST 2").
-  drawChip(ctx, W / 2, TP_FLAME_Y - 4, "Run", `${state.run} (best ${state.bestRun})`, { align: "center", gold: state.run >= 5 });
+  // The run readout (3 Nov 2026: one chip, "Run 3 (best 5)", gold from a run of five).
+  drawChip(ctx, W / 2, TP_FLAME_Y - 13, "Run", `${state.run} (best ${state.bestRun})`, { align: "center", gold: state.run >= 5 });
 
-  // The dark panel: stock and discard.
-  roundRect(ctx, 14, TP_PANEL_Y, W - 28, H - TP_PANEL_Y - 14, 22);
-  ctx.fillStyle = "rgba(3,8,22,0.62)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(233,196,106,0.3)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  const left = TP_STOCK - state.stockPos;
-  ctx.fillStyle = "rgba(246,235,208,0.75)";
-  ctx.font = `700 12px ${CARD_FONT}`;
-  ctx.fillText(`STOCK ${left}`, TP_STOCK_X + TP_PILE_W / 2, TP_PANEL_Y + 12);
-  ctx.fillText("DISCARD", TP_DISCARD_X + TP_PILE_W / 2, TP_PANEL_Y + 12);
-  if (left > 0) {
-    for (let k = Math.min(3, left) - 1; k >= 0; k--) drawCard(ctx, 0, TP_STOCK_X + k * 3, TP_PILE_Y - k * 3, TP_PILE_W, TP_PILE_H, { down: true, glow: k === 0 && view?.pressed === TP_STOCK_PILE ? 1 : 0 });
-  } else drawSlot(ctx, TP_STOCK_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H, -1, "EMPTY");
-  drawCard(ctx, state.top, TP_DISCARD_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H, { glow: fresh * 0.9 });
-  // A run that ended stuck (stock gone, nothing playable) says why, between the piles (15 Nov 2026, display only).
+  // A run that ended stuck (stock gone, nothing playable) says why, under the pair (15 Nov 2026, display only).
   const stuck = tpStuckLines(state);
   if (stuck) {
-    ctx.font = `800 13px ${CARD_FONT}`;
-    ctx.fillStyle = "rgba(246,235,208,0.92)";
+    ctx.font = `800 15px ${CARD_FONT}`;
+    ctx.fillStyle = "rgba(246,235,208,0.95)";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(stuck[0], W / 2, TP_PILE_Y + TP_PILE_H / 2 - 9);
-    ctx.fillText(stuck[1], W / 2, TP_PILE_Y + TP_PILE_H / 2 + 9);
+    ctx.fillText(`${stuck[0]} ${stuck[1]}`, W / 2, TP_PILE_Y + TP_PILE_H + 26);
   }
 
   if (drag) {
-    drawCard(ctx, state.tab[drag.index]!, drag.x - drag.ox, drag.y - drag.oy, TP_CARD_W, TP_CARD_H, { glow: 1 });
+    const lifted = new CardLayer(ctx, view?.motion ?? null);
+    lifted.card(state.tab[drag.index]!, state.tab[drag.index]!, drag.x - drag.ox, drag.y - drag.oy - 4, TP_CARD_W, TP_CARD_H, { glow: 1, lift: 1 }, true);
   }
   ctx.restore();
 }

@@ -1132,6 +1132,16 @@ const ENTRIES = {
   "pyramid.invalid": { channel: "effects", frequency: 0, ms: 434, url: "/sounds/cards_invalid.mp3" },
   "pyramid.clear": { channel: "effects", frequency: 0, ms: 1666, url: "/sounds/tripeaks_clear.mp3" },
   "pyramid.shuffle": { channel: "effects", frequency: 0, ms: 1093, url: "/sounds/cards_shuffle.mp3" },
+  // The Cards & Board overhaul (15 Nov 2026): slots for Joe's ElevenLabs files (docs/sound-cues/cards-board-elevenlabs.md);
+  // until a file is set Undo and Reset keep the sounds they had (tick and zap) and the flip and the question are silent.
+  "freecell.undo": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "freecell.reset": { channel: "effects", frequency: 0, ms: 600, url: null },
+  "mahjong.undo": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "mahjong.reset": { channel: "effects", frequency: 0, ms: 600, url: null },
+  "pyramid.undo": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "pyramid.reset": { channel: "effects", frequency: 0, ms: 600, url: null },
+  "tripeaks.flip": { channel: "effects", frequency: 0, ms: 200, url: null },
+  "cards.confirm": { channel: "effects", frequency: 0, ms: 250, url: null },
   "golfsol.play": { channel: "effects", frequency: 0, ms: 329, url: "/sounds/tripeaks_run.mp3" },
   "golfsol.deal": { channel: "effects", frequency: 0, ms: 220, url: "/sounds/cards_deal.mp3" },
   "golfsol.run": { channel: "effects", frequency: 0, ms: 998, url: "/sounds/tripeaks_peak.mp3" },

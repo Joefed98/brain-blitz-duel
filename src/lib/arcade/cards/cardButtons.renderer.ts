@@ -93,3 +93,54 @@ export function drawCardButton(
   ctx.textBaseline = "middle";
   ctx.fillText(label, left + iconW, cy + 0.5);
 }
+
+/* ---- Reset's confirmation (Cards & Board overhaul, 15 Nov 2026; display and input mapping only: the phone sends
+   Reset only after "Reset" here is tapped, so a stray tap never throws the board back) ---- */
+
+/** The confirmation panel's buttons in a w × h world (centred, a little above the middle). */
+export function confirmBoxes(w: number, h: number): { panel: CardButtonBox; cancel: CardButtonBox; ok: CardButtonBox } {
+  const pw = Math.min(330, w - 40);
+  const ph = 150;
+  const px = (w - pw) / 2;
+  const py = Math.round(h * 0.4 - ph / 2);
+  const bw = (pw - 48) / 2;
+  return {
+    panel: { x: px, y: py, w: pw, h: ph },
+    cancel: { x: px + 16, y: py + ph - 62, w: bw, h: 46 },
+    ok: { x: px + 32 + bw, y: py + ph - 62, w: bw, h: 46 },
+  };
+}
+
+/** What a tap on the open confirmation hits: "ok", "cancel" (also anywhere off the panel) or null (the panel). */
+export function confirmHit(w: number, h: number, x: number, y: number): "ok" | "cancel" | null {
+  const b = confirmBoxes(w, h);
+  if (inButton(b.ok, x, y, 2)) return "ok";
+  if (inButton(b.cancel, x, y, 2)) return "cancel";
+  if (inButton(b.panel, x, y, 0)) return null;
+  return "cancel";
+}
+
+/** Draws the confirmation over a dimmed table: "Reset to the deal?", a second line, Cancel and Reset. */
+export function drawResetConfirm(ctx: CanvasRenderingContext2D, w: number, h: number, line: string, held: "ok" | "cancel" | null = null): void {
+  const b = confirmBoxes(w, h);
+  ctx.save();
+  ctx.fillStyle = "rgba(2,6,16,0.55)";
+  ctx.fillRect(0, 0, w, h);
+  roundRect(ctx, b.panel.x, b.panel.y, b.panel.w, b.panel.h, 18);
+  ctx.fillStyle = "rgba(10,18,40,0.97)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(233,196,106,0.7)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = "#F6EBD0";
+  ctx.font = `800 19px ${CARD_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Reset to the deal?", w / 2, b.panel.y + 30);
+  ctx.fillStyle = "rgba(246,235,208,0.72)";
+  ctx.font = `600 13px ${CARD_FONT}`;
+  ctx.fillText(line, w / 2, b.panel.y + 56);
+  ctx.restore();
+  drawCardButton(ctx, b.cancel, "none", "Cancel", { held: held === "cancel" });
+  drawCardButton(ctx, b.ok, "reset", "Reset", { primary: true, held: held === "ok" });
+}

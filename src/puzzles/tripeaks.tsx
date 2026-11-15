@@ -13,6 +13,10 @@ import { CardStill } from "@/components/puzzles/CardStill";
 import { tripeaksSounds } from "@/lib/fx/cardSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+
+// The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
+if (typeof window !== "undefined") preloadRealArt(["cards", "felt"]);
 
 function IntroExample() {
   return <CardStill width={TP_WORLD_W} height={TP_WORLD_H} draw={(ctx, size) => drawTripeaks(ctx, tripeaksArtGame(undefined, TP_REV).init(0), size)} caption="Play a card one higher or lower than the discard; tap the stock when stuck." />;
