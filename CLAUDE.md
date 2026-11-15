@@ -2607,6 +2607,10 @@ outside the repo.
   Cryptogrid `codewordRev 6` (only letters shown wrong cost the clean crack; the selection jumps on). Display: Interlock
   live red runs and drag back to the tray, Forage's miss pill, Roundabout's miss vs repeat, Swapword's intro swap.
   ElevenLabs list: `docs/sound-cues/word-elevenlabs.md`. Checks: word-overhaul-check; screens `scripts/screens/word.ts`.
+  Reveals (Joe's reveal brief): on the new stamps only (`overhaulReveal(puzzle)`, `REVEAL_FROM` in wordOverhaul.ts; older
+  stamps draw their reveal exactly as before) each game's reveal is built from `src/components/puzzles/WordReveal.tsx`
+  (the score's numbers as tiles, the board large, Solution / Yours through the shared switch, words as chips; styles
+  `src/polish-word/word-reveal.css`).
   Stages 2 (effects, on #422's kit) and 3 (levels) follow.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle

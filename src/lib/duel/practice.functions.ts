@@ -132,6 +132,9 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     const { withSeededRandom } = await import("./random");
     const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } = await import("./puzzleDemo");
     const { generateWordsmithExample } = await import("./wordsmith.server");
+    // The Word overhaul (15 Nov 2026): Nucleus's example takes today's stamp too (its letters unchanged), as every other
+    // game's example does through generatePuzzle's layers.
+    const { dealWordOverhaul } = await import("./wordOverhaul.server");
     // The six banked types store their example, so it needs no live solve.
     const { bankedIntroExample } = await import("./puzzleBank.server");
     // Skid, Chroma Lines and Tessellate (puzzle polish, 3 Nov 2026): their live boards come from the depth banks, which
@@ -140,7 +143,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     const liveFromBank = type === "iceslide" || type === "flow" || type === "blockparty";
     const made = liveFromBank
       ? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED }))
-      : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
+      : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? dealWordOverhaul(generateWordsmithExample()) : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
     return { puzzle: pub as PuzzleData, sealed: await sealDeal(pub as PuzzleData, priv as Loose, { __example: INTRO_EXAMPLE_ID, __dealtAt: Date.now() }) };
   });

@@ -14,7 +14,8 @@ import { useGoalProgress } from "@/components/duel/GameFrame";
 import "@/polish-word/word-look.css";
 import "@/polish-word/lookout.css";
 import { Button } from "@/components/ui/button";
-import { usesWordOverhaul } from "@/lib/duel/wordOverhaul";
+import { overhaulReveal, usesWordOverhaul } from "@/lib/duel/wordOverhaul";
+import { RevealChips, RevealNumbers, type RevealChip } from "@/components/puzzles/WordReveal";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -29,7 +30,10 @@ export function Grid({
   pointer,
   small = false,
   foundPaths = [],
+  missedPaths = [],
 }: {
+  /** The overhaul's reveal: loops round the words not found (red). */
+  missedPaths?: readonly (readonly number[])[];
   grid: string;
   size: number;
   gold: ReadonlySet<number>;
@@ -84,6 +88,11 @@ export function Grid({
           if (a === undefined || b === undefined) return null;
           // The Word overhaul: a found word is circled by a gold capsule loop (the letters stay readable inside it).
           return <path key={i} data-ws-line="" className="lookout-loop" d={capsule(a % size + 0.5, Math.floor(a / size) + 0.5, b % size + 0.5, Math.floor(b / size) + 0.5, 0.42)} />;
+        })}
+        {missedPaths.map((path, i) => {
+          const a = path[0], b = path.at(-1);
+          if (a === undefined || b === undefined) return null;
+          return <path key={`m${i}`} data-ws-missed-line="" className="lookout-loop lookout-loop-missed" d={capsule(a % size + 0.5, Math.floor(a / size) + 0.5, b % size + 0.5, Math.floor(b / size) + 0.5, 0.42)} />;
         })}
       </svg>
     </div>
@@ -298,7 +307,48 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (wordSearchRev 6+): the grid large, your found words gold in their loops and the words you
+ * missed in red loops; every hidden word as a chip (found, missed, the bonus); the numbers the score is made of: words
+ * found, the bonus word and wrong drags.
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "wordsearch") return null;
+  const placements = puzzle.placements ?? [];
+  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size));
+  const verdict = wsGrade(placements, split.rest);
+  const foundSet = new Set(verdict.found);
+  const bonusCells = puzzle.bonus?.cells ?? [];
+  const gold = new Set([...verdict.found.flatMap((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? bonusCells : [])]);
+  const missedPaths = placements.filter((_, i) => !foundSet.has(i)).map((p) => p.cells);
+  const wrong = typeof myExtra?.["wrong"] === "number" ? (myExtra["wrong"] as number) : null;
+  const chips: RevealChip[] = [
+    ...placements.map((p, i): RevealChip => ({ text: p.word, kind: foundSet.has(i) ? "found" : "missed" })),
+    ...(puzzle.bonus ? [{ text: `★ ${puzzle.bonus.word}`, kind: split.bonusFound ? ("longest" as const) : ("missed" as const) }] : []),
+  ];
+  return (
+    <div data-word-reveal="wordsearch" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        items={[
+          { id: "found", label: "Words found", value: `${verdict.found.length}/${placements.length}`, tone: verdict.found.length === placements.length ? "gold" : undefined },
+          puzzle.bonus ? { id: "bonus", label: "Bonus word", value: split.bonusFound ? "Found" : "Missed", tone: split.bonusFound ? "gold" : undefined } : null,
+          wrong !== null ? { id: "wrong", label: "Wrong drags", value: wrong, tone: wrong > 0 ? "warn" : undefined } : null,
+        ]}
+      />
+      <div style={{ width: "min(84vw, 340px)", containerType: "inline-size" }}>
+        <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPaths={missedPaths} />
+      </div>
+      <RevealChips id="words" items={chips} />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
   if (puzzle.type !== "wordsearch") return null;

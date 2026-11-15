@@ -26,6 +26,10 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "numpyramid",
   "bomb",
   "trail",
+  // The Word overhaul's reveals (15 Nov 2026, WordReveal.tsx BoardPair): Slider, Cryptogrid and Swapword (live stamps).
+  "wordslide",
+  "codeword",
+  "swapword",
 ]);
 
 const SOLUTION_LABEL = /^(solution|solved|one solution|the solution|answer|one valid plan)$/i;

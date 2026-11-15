@@ -52,3 +52,5 @@
 .lookout-bonus-text { font-size: 13px; font-weight: 800; line-height: 1; white-space: nowrap; }
 .lookout-bonus-chip[data-found] { border: 0; color: var(--jz-on-gold); background: var(--jz-gold); }
 .lookout-bonus-chip[data-found] .lookout-bonus-star { opacity: 1; }
+/* The reveal's loops round the words not found. */
+.lookout-loop.lookout-loop-missed { stroke: color-mix(in srgb, var(--jz-red) 80%, white); stroke-dasharray: 0.18 0.12; }

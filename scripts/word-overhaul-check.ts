@@ -23,6 +23,9 @@
  *     words; Roundabout's miss and repeat look different; Strikeout's delete key keeps one label; Swapword's intro
  *     shows the swap.
  *  9. Texts: the help states each new rule while it is dealt, and the old text with the era pinned.
+ * 10. Reveals (Joe's reveal brief): on the live stamps each game's reveal is the overhaul's (numbers that explain the
+ *     score, large boards with the Solution / Yours switch where there are two, chips, no stray "×" or counts); on the
+ *     stamps before, the reveal is exactly the older one.
  *
  *   bun scripts/word-overhaul-check.ts
  */
@@ -321,6 +324,68 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
   pinPreWordOverhaul(true);
   ok(!/bonus word/.test(help("wordsmith")) && /scrambled the board/.test(help("wordslide")) && /the sixth ends the round/.test(help("wordsearch")) && !/trial letters/.test(help("codeword")), "help: pinned, the old texts");
   pinPreWordOverhaul(false);
+}
+
+/* ------------------------------------------------------------------------------------------------ 10. Reveals */
+{
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { SOLUTION_SWITCH_TYPES } = await import("../src/components/duel/SolutionSwitch");
+  const { overhaulReveal } = await import("../src/lib/duel/wordOverhaul");
+  const defs = {
+    wordsmith: (await import("../src/puzzles/wordsmith")).wordsmithPuzzle,
+    tilegrid: (await import("../src/puzzles/tileGrid")).tileGridPuzzle,
+    wordslide: (await import("../src/puzzles/wordSlide")).wordSlidePuzzle,
+    wordhunt: (await import("../src/puzzles/wordHunt")).wordHuntPuzzle,
+    wordsearch: (await import("../src/puzzles/wordSearch")).wordSearchPuzzle,
+    letterwheel: (await import("../src/puzzles/letterWheel")).letterWheelPuzzle,
+    strikeout: (await import("../src/puzzles/strikeout")).strikeoutPuzzle,
+    codeword: (await import("../src/puzzles/codeword")).codewordPuzzle,
+    swapword: (await import("../src/puzzles/swapword")).swapwordPuzzle,
+  } as const;
+  const NUMBERS: Record<string, string[]> = {
+    wordsmith: ["points", "counted", "pangram"],
+    tilegrid: ["placed"],
+    wordslide: ["rows", "moves", "par"],
+    wordhunt: ["points"],
+    wordsearch: ["found", "bonus"],
+    letterwheel: ["words", "bonus", "misses"],
+    strikeout: ["solved", "strikes"],
+    codeword: ["decoded", "wrong"],
+    swapword: ["in-place", "swaps", "fewest"],
+  };
+  const PAIRS = new Set(["tilegrid", "wordslide", "codeword", "swapword"]);
+  const render = (type: string, puzzle: PuzzleData, answer: string) =>
+    renderToStaticMarkup(createElement(defs[type as keyof typeof defs].Reveal, { puzzle, myAnswer: answer, myCorrect: false, myReactionAvgMs: null, myMsRemaining: 0, timeLimitMs: 100_000, myExtra: {} } as never));
+  for (const type of Object.keys(defs)) {
+    const live = deal(type, 41);
+    const old = deal(type, 41, true);
+    const words = (live as { words?: unknown[] }).words;
+    const answer = type === "wordsmith" || type === "wordhunt" ? (words ?? []).slice(0, 2).map((w) => (typeof w === "string" ? w : (w as { word: string }).word)).join(",") : "";
+    const html = render(type, live, answer);
+    ok(overhaulReveal(live), `${type}: the live stamp takes the overhaul's reveal`);
+    ok(html.includes('data-wr-version="overhaul"'), `${type}: the reveal is the overhaul's`);
+    for (const id of NUMBERS[type]!) ok(html.includes(`data-wr-number="${id}"`), `${type}: the reveal shows the number ${id}`);
+    ok(!/×/.test(html.replace(/<[^>]+>/g, "")), `${type}: no stray "×" in the reveal's text`);
+    ok(!/align-super/.test(html), `${type}: no superscript counts beside words`);
+    ok(PAIRS.has(type) === html.includes("data-wr-pair"), `${type}: ${PAIRS.has(type) ? "one board at a time (Solution / Yours)" : "one board, no pair"}`);
+    if (PAIRS.has(type)) ok(SOLUTION_SWITCH_TYPES.has(type), `${type}: the shared Solution / Yours switch is on`);
+    // Older stamps keep the older reveal exactly (their markup is proved against main by the games' legacy checks).
+    const oldHtml = render(type, old, answer);
+    if (!overhaulReveal(old)) ok(!oldHtml.includes("data-wr-version"), `${type}: an older stamp keeps its reveal`);
+  }
+  // Strikeout draws the five words as tile rows; Nucleus and Forage keep "1 word" / "2 words".
+  const so = render("strikeout", deal("strikeout", 41), "");
+  ok((so.match(/data-wr-tiles="word-/g) ?? []).length === 5, "strikeout: the five words as tile rows");
+  const ws = deal("wordsmith", 41) as Extract<PuzzleData, { type: "wordsmith" }>;
+  ok(/>2 words</.test(render("wordsmith", ws, (ws.words ?? []).slice(0, 2).map((w) => w.word).join(","))), "nucleus: \"2 words\" in the headline");
+  ok(/>1 word</.test(render("wordsmith", ws, ws.words?.[0]?.word ?? "")), "nucleus: \"1 word\" for one");
+  // Forage traces the best word on its board.
+  const { wordHuntPathOf } = await import("../src/puzzles/wordHunt");
+  const wh = deal("wordhunt", 41) as Extract<PuzzleData, { type: "wordhunt" }>;
+  const w0 = wh.words?.[0]?.word ?? "";
+  const path = wordHuntPathOf(wh.grid, w0);
+  ok(path.length > 0 && path.map((c) => wh.grid[c]).join("").toUpperCase() === w0, `forage: the best word's path is found on the board (${w0})`);
 }
 
 console.log(`word-overhaul-check: ${passes} passed, ${failures.length} failed`);

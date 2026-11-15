@@ -65,3 +65,24 @@ the next unsolved number is picked; only letters shown wrong cost the clean crac
 Gold, teal and grey glazes (the game's clues), bigger tiles; the intro shows one swap turning two tiles gold.
 
 <img src="img/swapword-play.webp" width="400"> <img src="img/swapword-intro.webp" width="400">
+
+## Reveals
+
+Joe's reveal brief (15 Nov 2026): each game's answer reveal redesigned inside the shared reveal layout, on the new
+stamps only (older stamps draw their reveal exactly as before). Kit `src/components/puzzles/WordReveal.tsx`: the
+numbers that explain the score as big tiles with short plain labels, the solution drawn large, one board at a time
+with the shared Solution / Yours switch where there are two, misses and mistakes marked, and words as chips (the
+longest gold, missed outlined) in place of dense lists. Before (main) on the left, after on the right, at 390 × 844
+shown two-thirds size: a timed-out round, then the capture tool's driven run (a full solve where it has a driver).
+
+| Game | Timed out | Played |
+| --- | --- | --- |
+| Nucleus | <img src="img/wordsmith-answer-timeout.webp" width="400"> | <img src="img/wordsmith-answer-full.webp" width="400"> |
+| Interlock | <img src="img/tilegrid-answer-timeout.webp" width="400"> | <img src="img/tilegrid-answer-full.webp" width="400"> |
+| Slider | <img src="img/wordslide-answer-timeout.webp" width="400"> | <img src="img/wordslide-answer-full.webp" width="400"> |
+| Forage | <img src="img/wordhunt-answer-timeout.webp" width="400"> | <img src="img/wordhunt-answer-full.webp" width="400"> |
+| Lookout | <img src="img/wordsearch-answer-timeout.webp" width="400"> | <img src="img/wordsearch-answer-full.webp" width="400"> |
+| Roundabout | <img src="img/letterwheel-answer-timeout.webp" width="400"> | <img src="img/letterwheel-answer-full.webp" width="400"> |
+| Strikeout | <img src="img/strikeout-answer-timeout.webp" width="400"> | <img src="img/strikeout-answer-full.webp" width="400"> |
+| Cryptogrid | <img src="img/codeword-answer-timeout.webp" width="400"> | <img src="img/codeword-answer-full.webp" width="400"> |
+| Swapword | <img src="img/swapword-answer-timeout.webp" width="400"> | <img src="img/swapword-answer-full.webp" width="400"> |

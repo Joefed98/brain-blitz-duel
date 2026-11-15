@@ -25,6 +25,8 @@ import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/swapword.css";
+import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -373,7 +375,42 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   );
 }
 
-function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (swapwordRev 7+): the solved figure-eight and your final board, one at a time and large
+ * (the shared Solution / Yours switch), your board in the clue colours (gold in place, teal in its word, grey neither),
+ * and the numbers the score is made of: tiles in place, swaps used and the fewest that solve it.
+ */
+function RevealOverhaul({ puzzle, myAnswer }: PuzzleRevealProps) {
+  if (puzzle.type !== "swapword") return null;
+  const solution = puzzle.solution ?? "";
+  const run = replaySwapword(puzzle.start, decodeSwapword(myAnswer ?? ""), puzzle.maxSwaps, solution);
+  const marks = swapwordMarks(run.board, solution);
+  const inPlace = marks.filter((m) => m === 2).length;
+  const side = "min(84vw, 340px)";
+  return (
+    <div data-word-reveal="swapword" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        items={[
+          { id: "in-place", label: "Tiles in place", value: `${inPlace}/${SW_TILES}`, tone: run.solved ? "gold" : undefined },
+          { id: "swaps", label: run.swaps === 1 ? "Swap used" : "Swaps used", value: run.swaps },
+          { id: "fewest", label: "Fewest possible", value: puzzle.minSwaps },
+        ]}
+      />
+      <BoardPair
+        solution={<Board letters={solution} looks={marks.map(() => 2)} side={side} />}
+        yours={<Board letters={run.board} looks={marks} side={side} />}
+      />
+      <RevealKey items={[{ tone: "gold", label: "In place" }, { tone: "teal", label: "In its word" }, { tone: "grey", label: "Neither" }]} />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
   if (puzzle.type !== "swapword") return null;
   const solution = puzzle.solution ?? "";
   const run = replaySwapword(puzzle.start, decodeSwapword(myAnswer ?? ""), puzzle.maxSwaps, solution);

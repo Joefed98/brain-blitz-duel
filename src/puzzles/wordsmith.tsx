@@ -9,6 +9,7 @@ import { WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { WORDSMITH_REV_EVERYDAY } from "@/lib/duel/wordOverhaul";
 import { WordDropList } from "@/components/puzzles/WordDropList";
+import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, TileRow, type RevealChip } from "@/components/puzzles/WordReveal";
 
 /** Fixed intro example — never randomised. Centre letter is index 4. */
 const EXAMPLE_TILES = ["C", "A", "R", "E", "P", "N", "T", "E", "R"];
@@ -54,7 +55,69 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   );
 }
 
-function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (wordsmithRev 5+): the every-tile word drawn large in gold tiles, your words as chips (the
+ * longest gold, obscure ones marked bonus), the best words you missed, and the numbers the score is made of: word
+ * points, the board's everyday words you found and the every-tile word.
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "wordsmith") return null;
+  const mine = (myAnswer ?? "")
+    .split(",")
+    .map((word) => word.trim().toUpperCase())
+    .filter((word) => word.length > 0);
+  const everyday = new Set((puzzle.words ?? []).map((entry) => entry.word));
+  const pangram = puzzle.source ?? (puzzle.words ?? []).find((entry) => entry.word.length === puzzle.letters.length)?.word ?? "";
+  const pangramFound = mine.some((w) => w.length >= puzzle.letters.length);
+  const points = typeof myExtra?.["points"] === "number" ? (myExtra["points"] as number) : mine.reduce((sum, w) => sum + wordsmithPoints(w), 0);
+  const counted = mine.filter((w) => everyday.has(w)).length;
+  const longest = mine.reduce((best, w) => (w.length > best.length ? w : best), "");
+  const yours: RevealChip[] = [...mine]
+    .sort((a, b) => b.length - a.length || a.localeCompare(b))
+    .map((w) => ({ text: w, sub: wordsmithPoints(w), kind: w === longest && mine.length > 1 ? "longest" : everyday.has(w) ? "found" : "bonus" }));
+  const missed = (puzzle.words ?? [])
+    .filter((entry) => !mine.includes(entry.word))
+    .sort((a, b) => b.word.length - a.word.length || b.points - a.points)
+    .slice(0, 8);
+  const size = Math.max(28, Math.min(40, Math.floor((330 - (pangram.length - 1) * 4) / Math.max(1, pangram.length))));
+  return (
+    <div data-word-reveal="wordsmith" data-wr-version="overhaul" className="wr">
+      <RevealHeadline>{mine.length} {mine.length === 1 ? "word" : "words"}</RevealHeadline>
+      <RevealNumbers
+        items={[
+          { id: "points", label: "Word points", value: points, tone: "gold" },
+          { id: "counted", label: "Board words found", value: `${counted}/${puzzle.wordCount ?? everyday.size}` },
+          { id: "pangram", label: "Every-tile word", value: pangramFound ? "Found" : "Missed", tone: pangramFound ? "gold" : undefined },
+        ]}
+      />
+      {pangram ? (
+        <div className="flex flex-col items-center gap-1">
+          <RevealLabel>The every-tile word</RevealLabel>
+          <TileRow id="pangram" letters={[...pangram]} tones={[...pangram].map(() => (pangramFound ? "gold" : "black"))} size={size} />
+        </div>
+      ) : null}
+      {yours.length > 0 ? (
+        <div className="flex w-full flex-col items-center gap-1.5">
+          <RevealLabel>Your words</RevealLabel>
+          <RevealChips id="yours" items={yours} />
+        </div>
+      ) : null}
+      {missed.length > 0 ? (
+        <div className="flex w-full flex-col items-center gap-1.5">
+          <RevealLabel>Best words you missed</RevealLabel>
+          <RevealChips id="missed" items={missed.map((entry) => ({ text: entry.word, sub: entry.points, kind: "missed" as const }))} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (props.puzzle.type === "wordsmith" && (props.puzzle.wordsmithRev ?? 0) >= WORDSMITH_REV_EVERYDAY) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "wordsmith") return null;
   const mine = (myAnswer ?? "")
     .split(",")

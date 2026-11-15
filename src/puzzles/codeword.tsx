@@ -21,6 +21,8 @@ import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-word/word-look.css";
 import "@/polish-word/cryptogrid.css";
+import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -342,7 +344,58 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   );
 }
 
-function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (codewordRev 6+): the cracked grid and your grid, one at a time and large (the shared
+ * Solution / Yours switch). On yours the given letters are gold, right letters dark tiles, wrong letters red and the
+ * numbers you never decoded empty; the numbers: letters decoded, wrong letters left standing, and (from the stored
+ * grade) the letters the grid showed you were wrong, which cost the clean crack.
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "codeword") return null;
+  const solution = puzzle.solution ?? "";
+  const mine = replayCodeword(puzzle.numbers, puzzle.givens, decodeCodeword(myAnswer ?? "", puzzle.numbers));
+  const tally = codewordTally(mine, solution, puzzle.givens);
+  const given = new Set(puzzle.givens.map((g) => g.n));
+  const shown = typeof myExtra?.["wrongEntered"] === "number" ? (myExtra["wrongEntered"] as number) : null;
+  const box = { width: "min(84vw, 340px)", height: "min(84vw, 340px)" };
+  return (
+    <div data-word-reveal="codeword" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        items={[
+          { id: "decoded", label: "Letters decoded", value: `${tally.correct}/${tally.hidden}`, tone: tally.solved ? "gold" : undefined },
+          { id: "wrong", label: "Wrong at the end", value: tally.wrong ?? 0, tone: (tally.wrong ?? 0) > 0 ? "warn" : undefined },
+          shown !== null ? { id: "shown", label: "Shown wrong", value: shown, tone: shown > 0 ? "warn" : undefined } : null,
+        ]}
+      />
+      <BoardPair
+        solution={
+          <div style={box}>
+            <Grid size={puzzle.size} cells={puzzle.cells} numbers={false} letters={[...solution]} look={(n) => (given.has(n) ? "given" : "right")} />
+          </div>
+        }
+        yours={
+          <div style={box}>
+            <Grid
+              size={puzzle.size}
+              cells={puzzle.cells}
+              numbers={false}
+              letters={mine}
+              look={(n) => (given.has(n) ? "given" : !mine[n - 1] ? "plain" : mine[n - 1] === solution[n - 1] ? "right" : "wrong")}
+            />
+          </div>
+        }
+      />
+      <RevealKey items={[{ tone: "gold", label: "Given" }, { tone: "black", label: "Right" }, { tone: "red", label: "Wrong" }, { tone: "well", label: "Not decoded" }]} />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
   if (puzzle.type !== "codeword") return null;
   const solution = puzzle.solution ?? "";
   const mine = replayCodeword(puzzle.numbers, puzzle.givens, decodeCodeword(myAnswer ?? "", puzzle.numbers));

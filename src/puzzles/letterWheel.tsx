@@ -16,7 +16,8 @@ import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-letterwheel.css";
 import "@/polish-word/word-look.css";
 import "@/polish-word/roundabout.css";
-import { usesWordOverhaul } from "@/lib/duel/wordOverhaul";
+import { overhaulReveal, usesWordOverhaul } from "@/lib/duel/wordOverhaul";
+import { RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
 import "@/polish-layout/polish-nov3-word.css";
 import { HudPills } from "@/components/puzzles/HudPills";
 
@@ -552,7 +553,49 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (wheelRev 5+): the crossword large, the words you found gold and the letters of the words
+ * you missed dimmed in red; the bonus jar as it filled; the numbers the score is made of: words found, bonus words and
+ * misses (the first five free).
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "letterwheel") return null;
+  const words = puzzle.words ?? [];
+  const v = lwGrade(words, puzzle.slots, puzzle.cols, lwDecodeLog(myAnswer ?? "").filter((t) => words.includes(t)));
+  const got = new Set(v.slots);
+  const mine = letterMap(puzzle.cols, puzzle.slots, words.map((w, i) => (got.has(i) ? w : undefined)));
+  const all = letterMap(puzzle.cols, puzzle.slots, words);
+  const missed = new Map([...all].filter(([c]) => !mine.has(c)));
+  const num = (k: string) => (typeof myExtra?.[k] === "number" ? (myExtra[k] as number) : Number(myExtra?.[k] ?? 0));
+  const misses = num("misses");
+  const bonusWords = num("bonusWords");
+  const px = Math.floor(Math.min(340 / puzzle.cols, 300 / puzzle.rows, 40));
+  return (
+    <div data-word-reveal="letterwheel" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        items={[
+          { id: "words", label: "Words found", value: `${v.slots.length}/${words.length}`, tone: v.slots.length === words.length ? "gold" : undefined },
+          { id: "bonus", label: "Bonus words", value: bonusWords, tone: bonusWords > 0 ? "gold" : undefined },
+          { id: "misses", label: `Misses (${LW_FREE_MISSES} free)`, value: misses, tone: misses > LW_FREE_MISSES ? "warn" : undefined },
+        ]}
+      />
+      <div style={{ width: px * puzzle.cols, height: px * puzzle.rows }}>
+        <Crossword cols={puzzle.cols} rows={puzzle.rows} slots={puzzle.slots} letters={mine} missed={missed} cellPx={px} art />
+      </div>
+      <div className="flex items-center gap-3">
+        <BonusJar drops={Math.min(num("jarDrops"), num("jarSize") || 1)} size={num("jarSize") || 1} words={bonusWords} />
+        <RevealKey items={[{ tone: "gold", label: "Found" }, { tone: "dim", label: "Missed" }]} />
+      </div>
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "letterwheel") return null;
   const words = puzzle.words ?? [];
   // wheelRev 1: the answer is the attempt log; its slot words are the ones the server counted.

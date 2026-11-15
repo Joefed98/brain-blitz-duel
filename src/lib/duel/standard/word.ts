@@ -107,6 +107,16 @@ export const CODEWORD_OVERHAUL_HELP = puzzleScoreList({
   total: TOTAL,
 });
 
+/** Lookout `wordSearchRev 6` (the Word overhaul): the round goes on after the sixth word; speed is measured at it. */
+export const LOOKOUT_OVERHAUL_HELP = puzzleScoreList({
+  finish: "find all six listed words",
+  speed: { max: STD_LOOKOUT.speed, fullByS: STD_LOOKOUT.fullByS },
+  bonuses: [{ label: "Bonus word", how: "find the hidden bonus word, before or after the sixth word (the round goes on until you tap Done), finished or not", fixed: STD_LOOKOUT.bonus }],
+  unfinished: `${STD_LOOKOUT.word} for each word found, more for finding it early`,
+  penalties: [`When not finished, the first ${STD_LOOKOUT.freeWrong} wrong drags are free, then each costs ${STD_LOOKOUT.wrongCost}, taken from the words and the bonus word together`],
+  total: TOTAL,
+});
+
 export const WORD_STANDARD_HELP = {
   tilegrid: puzzleScoreList({
     finish: "place all 15 tiles in one connected grid, every run a real word",

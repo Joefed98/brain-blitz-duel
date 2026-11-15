@@ -118,3 +118,28 @@ export function cryptogridVisibleWrong(
   }
   return counted.size;
 }
+
+/**
+ * The overhaul's answer reveals (Joe's reveal brief, 15 Nov 2026) are drawn for the stamps the Word games deal today and
+ * later; stored rounds on older stamps keep the reveal they were shown (their markup is proved against main by the
+ * games' legacy checks). Display only.
+ */
+const REVEAL_FROM: Partial<Record<PuzzleType, { key: string; from: number }>> = {
+  wordsmith: { key: "wordsmithRev", from: WORDSMITH_REV_EVERYDAY },
+  tilegrid: { key: "tileGridRev", from: 4 },
+  wordslide: { key: "wordSlideRev", from: SLIDER_REV_PROVEN },
+  wordhunt: { key: "wordHuntRev", from: 4 },
+  wordsearch: { key: "wordSearchRev", from: LOOKOUT_REV_DONE },
+  letterwheel: { key: "wheelRev", from: WHEEL_REV_COMMON },
+  strikeout: { key: "strikeoutRev", from: 7 },
+  codeword: { key: "codewordRev", from: CODEWORD_REV_VISIBLE },
+  swapword: { key: "swapwordRev", from: 7 },
+};
+
+export function overhaulReveal(puzzle: unknown): boolean {
+  const p = puzzle as { type?: PuzzleType } | null;
+  const r = p?.type ? REVEAL_FROM[p.type] : undefined;
+  if (!r) return false;
+  const v = stampOf(p, r.key);
+  return v !== null && v >= r.from;
+}

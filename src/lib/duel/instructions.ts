@@ -8,7 +8,7 @@ import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHe
 import { parBonusHelp } from "./parBonusText";
 import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
-import { CODEWORD_OVERHAUL_HELP, STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
+import { CODEWORD_OVERHAUL_HELP, LOOKOUT_OVERHAUL_HELP, STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
 import { wordOverhaulDealt } from "./wordOverhaul";
 import { wordNov7Dealt } from "./wordNov7";
 import { preStandardPinned } from "./standard/stamps";
@@ -555,6 +555,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Long words:", detail: "6 letters ×1.5, 7 or more ×2. A word through the glowing gold tile scores double (both can stack).", helpOnly: true },
         { action: "Diagonals count.", detail: "Don’t reuse a tile in one word.", helpOnly: true },
         { action: "Tapping the last letter again", detail: "takes it off the word.", helpOnly: true },
+        { action: "The Misses pill", detail: "counts traces that were not words against your free ones; it turns red once they cost points.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
       // wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): base points on their curve, the features' extras on theirs.
@@ -1941,7 +1942,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "The bonus word", detail: "fills the gold star chip. After the sixth word the round goes on: find the bonus, or tap Done.", helpOnly: true }
           : { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
-      score: preStandardPinned() ? wordSearchBonusHelp() : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
+      score: preStandardPinned() ? wordSearchBonusHelp() : wordOverhaulDealt("wordsearch") ? LOOKOUT_OVERHAUL_HELP : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
     },
     letterwheel: {
       goal: "Fill the crossword from the letter wheel.",
@@ -1954,6 +1955,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The bonus jar", detail: preStandardPinned() ? "fills by word length; a full jar adds the top 50 points. Misses after the first 5 spill a drop each." : `fills by word length; the fuller it is, the more it adds (up to ${STD_ROUNDABOUT.jar}). Misses after the first 5 spill a drop each.`, helpOnly: true },
         { action: "A trace that is not a word", detail: "is a miss: the first 5 are free, then each costs 3.", helpOnly: true },
         { action: "Shuffle", detail: "rearranges the wheel without changing the crossword.", helpOnly: true },
+        ...(wordOverhaulDealt("letterwheel")
+          ? [
+              { action: "A word you already have", detail: "is a repeat: the wheel shakes quietly and it costs nothing. A miss tints the letters red.", helpOnly: true },
+              { action: "Crossword answers", detail: "are everyday words, with few three-letter ones.", helpOnly: true },
+            ]
+          : []),
       ],
       score: preStandardPinned() ? letterWheelJarHelp() : WORD_STANDARD_HELP.letterwheel,
     },

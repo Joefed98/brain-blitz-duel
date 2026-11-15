@@ -29,6 +29,8 @@ import { useGameKeys } from "@/lib/desktop";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/interlock.css";
+import { BoardPair, RevealChips, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import { HudPills } from "@/components/puzzles/HudPills";
 
 const GAP = 2;
@@ -36,7 +38,7 @@ const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
 /** Reveal: two 7×7 grids side by side in 343px (375 phone), letters 14px. */
 const REVEAL_CELL = 22;
 
-function MiniGrid({ cells, cell = 20, font }: { cells: string[]; cell?: number; font?: number }) {
+function MiniGrid({ cells, cell = 20, font, gold }: { cells: string[]; cell?: number; font?: number; /** Cells drawn gold (the overhaul's reveal). */ gold?: ReadonlySet<number> }) {
   return (
     <div
       className="grid rounded-md border border-border bg-card p-0.5"
@@ -45,7 +47,8 @@ function MiniGrid({ cells, cell = 20, font }: { cells: string[]; cell?: number; 
       {cells.map((letter, i) => (
         <span
           key={i}
-          data-wa={letter ? "tile" : undefined}
+          data-wa={letter ? "tile" : gold ? "well" : undefined}
+          data-wa-tone={letter && gold?.has(i) ? "gold" : undefined}
           className={`word-letter-tile flex items-center justify-center rounded-[3px] font-display font-bold ${letter ? "bg-primary text-primary-foreground" : "bg-background/40"}`}
           style={{ height: cell, fontSize: font ?? Math.round(cell * 0.6) }}
         >
@@ -415,7 +418,44 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (tileGridRev 4+): the dealt crossword (gold) and your grid, one at a time and large (the
+ * shared Solution / Yours switch), your big words gold on it; the numbers the score is made of: tiles placed, tiles in
+ * real words and the big-word points, and the big words themselves as chips.
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "tilegrid") return null;
+  const mine = decodeTileGrid(myAnswer ?? "");
+  const num = (k: string) => (typeof myExtra?.[k] === "number" ? (myExtra[k] as number) : null);
+  const bigWords = Array.isArray(myExtra?.["bigWords"]) ? (myExtra["bigWords"] as unknown[]).map(String) : [];
+  const bigCells = new Set(tileGridRuns(mine).filter((r) => bigWords.includes(r.word)).flatMap((r) => r.cells));
+  const inWords = num("countedTiles") ?? num("wordTiles");
+  const cell = 40;
+  const solution = puzzle.solution ?? [];
+  return (
+    <div data-word-reveal="tilegrid" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        items={[
+          { id: "placed", label: "Tiles placed", value: `${placedCount(mine)}/${TG_TILES}` },
+          inWords !== null ? { id: "in-words", label: "Tiles in words", value: inWords, tone: inWords === TG_TILES ? "gold" : undefined } : null,
+          num("bigWordPoints") !== null ? { id: "big", label: "Big-word points", value: num("bigWordPoints"), tone: (num("bigWordPoints") ?? 0) > 0 ? "gold" : undefined } : null,
+        ]}
+      />
+      <BoardPair
+        solution={<MiniGrid cells={solution} cell={cell} gold={new Set(solution.map((l, i) => (l ? i : -1)).filter((i) => i >= 0))} />}
+        yours={<MiniGrid cells={mine} cell={cell} gold={bigCells} />}
+      />
+      {bigWords.length > 0 ? <RevealChips id="big-words" items={bigWords.map((w) => ({ text: w, kind: "longest" as const }))} /> : null}
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "tilegrid") return null;
   const mine = decodeTileGrid(myAnswer ?? "");
   const count = placedCount(mine);

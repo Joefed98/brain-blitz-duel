@@ -39,6 +39,8 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/slider.css";
+import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 import { HudPills } from "@/components/puzzles/HudPills";
 
@@ -447,7 +449,41 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (wordSlideRev 6+): the five dealt words as a solved grid (gold) and your final grid, one at
+ * a time and large (the shared Solution / Yours switch), your rows that read as words in teal; the numbers the score is
+ * made of: rows made, moves used and par (the proven fewest).
+ */
+function RevealOverhaul({ puzzle, myAnswer, myCorrect, validRows }: PuzzleRevealProps) {
+  if (puzzle.type !== "wordslide") return null;
+  const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""), { swaps: slideSwapsOn(puzzle) });
+  const words = puzzle.words ?? [];
+  const good = new Set<number>(WS_MARKED_ROWS.filter((r) => myCorrect || validRows?.includes(r)));
+  const cell = 52;
+  return (
+    <div data-word-reveal="wordslide" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        items={[
+          { id: "rows", label: "Rows made", value: `${good.size}/${WS_MARKED_ROWS.length}`, tone: myCorrect ? "gold" : undefined },
+          { id: "moves", label: "Moves used", value: replay.moves, tone: myCorrect && replay.moves <= puzzle.par ? "gold" : undefined },
+          { id: "par", label: "Par (fewest)", value: puzzle.par },
+        ]}
+      />
+      <BoardPair
+        solution={<Board grid={[...words.join("")]} cell={cell} good={new Set()} shut />}
+        yours={<Board grid={replay.grid} cell={cell} good={good} />}
+      />
+      <RevealKey items={[{ tone: "teal", label: "A real word" }, { tone: "black", label: "Not a word" }]} />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: PuzzleRevealProps) {
   if (puzzle.type !== "wordslide") return null;
   const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""), { swaps: slideSwapsOn(puzzle) });
   const words = puzzle.words ?? [];

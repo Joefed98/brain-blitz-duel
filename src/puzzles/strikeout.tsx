@@ -41,6 +41,8 @@ import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-strikeout.css";
 import "@/polish-word/word-look.css";
 import "@/polish-word/strikeout.css";
+import { RevealNumbers, TileRow, type TileTone } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -808,7 +810,42 @@ function Stage(props: PuzzleStageProps) {
   return props.puzzle.type === "strikeout" && strikeoutRevOf(props.puzzle) >= STRIKEOUT_REV2 ? <Stage2 {...props} /> : <StageRev1 {...props} />;
 }
 
+/**
+ * The Word overhaul's reveal (strikeoutRev 7+): the five words as big tile rows, solved ones gold, an unsolved word's
+ * letters you revealed on dark tiles and the ones never found dimmed in red; the strike pips; and the numbers the score
+ * is made of: words solved, strikes used and the early-solve points.
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "strikeout") return null;
+  const words = (puzzle.words ?? []).map((w) => w.toUpperCase());
+  const rules = so2Rules(strikeoutRevOf(puzzle));
+  const state = replayStrikeout2(words, puzzle.givens ?? [], decodeStrikeout2(myAnswer ?? ""), () => true, rules);
+  const early = typeof myExtra?.["earlySolvePoints"] === "number" ? (myExtra["earlySolvePoints"] as number) : null;
+  const longest = Math.max(1, ...words.map((w) => w.length));
+  const size = Math.max(26, Math.min(40, Math.floor((330 - (longest - 1) * 4) / longest)));
+  return (
+    <div data-word-reveal="strikeout" data-strikeout-rev={strikeoutRevOf(puzzle)} data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        items={[
+          { id: "solved", label: "Words solved", value: `${state.solvedWords}/${words.length}`, tone: state.solvedWords === words.length ? "gold" : undefined },
+          { id: "strikes", label: "Strikes used", value: `${state.strikes}/${rules.maxStrikes}`, tone: state.strikes >= rules.maxStrikes ? "warn" : undefined },
+          early !== null ? { id: "early", label: "Early-solve points", value: early, tone: early > 0 ? "gold" : undefined } : null,
+        ]}
+      />
+      <Strikes used={state.strikes} max={rules.maxStrikes} art />
+      <div className="flex flex-col items-center gap-1.5">
+        {words.map((w, wi) => {
+          const solved = wi < state.solvedWords;
+          const tones: TileTone[] = [...w].map((_, i) => (solved ? "gold" : wi === state.word && state.revealed[wi]?.[i] ? "black" : "dim"));
+          return <TileRow key={wi} id={`word-${wi}`} letters={[...w]} tones={tones} size={size} />;
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
   return props.puzzle.type === "strikeout" && strikeoutRevOf(props.puzzle) >= STRIKEOUT_REV2 ? <Reveal2 {...props} /> : <RevealRev1 {...props} />;
 }
 
