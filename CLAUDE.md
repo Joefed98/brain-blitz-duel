@@ -2630,6 +2630,17 @@ outside the repo.
   draws a game's `PuzzleDefinition.RunPicture` (`GameRunPicture`) in place of the stat tiles: each Action game's run replayed
   from the stored log through the real sim (`replaySwingRun` / `replayOrbitRun` take a no-op `observe`) and drawn as one
   picture with big numbers.
+- **The Action overhaul, stage 3: Orbit's bigger planets** (15 Nov 2026; `docs/arcade-standard/orbit.md` "orbitRev 16"):
+  `orbitRev 16` (`ORBIT_REV_BIG`, `initBigFrom`, the state's `big` outside the checksum) is orbitRev 15's play exactly on
+  the same fuel bank; each body (`r`, collided with by nothing: a catch is the orbit ring) is 140 % where its own path
+  leaves the rocket 13 px (`orbitBigPlanets`, `orbitPathClearance`), never smaller, the sun 140 %. All 96 witnesses
+  re-proved at 200 (`bun scripts/orbit-fuel-bank.ts --rev=16`); orbitRev 12–15 replay exactly
+  (`scripts/fixtures/orbit-big-legacy.json`, recorded on 329286de by `scripts/orbit-big-record.ts`). `pinOrbitPreBig(true)`
+  deals 15 (deal pin `orbitPreBig`); `SPHERE_MAX_PX` 224. A finished run on orbitRev 12+ holds its submit
+  `ORBIT_SUN_HOLD_MS` (1.5 s) for the sun moment (`orbitEndHoldMs`). Orbit's own Reveal on orbitRev 12+ is the run
+  picture. Intro demos for the six Action games: `scripts/fixtures/action-demos.json` (`action-demos-record.ts`, proved by
+  action-demos-check, saved by `bun scripts/action-demos-save.ts [--dry]` from `DEMOS_URL` / `INTRO_DEMO_KEY` against a dev
+  server, never from a session), stop rules `ACTION_DEMO_REVS` in introDemo.functions.ts.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
