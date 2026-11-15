@@ -54,23 +54,40 @@ clips of the hero effects. Images are in this folder.
 <!-- pipeline:start -->
 ## Pipeline
 
+**Play: today · concept A · now** (the richness pass, 15 Nov 2026)
+
+| Today (main) | Concept A | Now |
+|---|---|---|
+| <img src="../../game-reviews/img/pattern/pipes-2-mid.webp" width="180"> | <img src="pipes-concept-A.webp" width="180"> | <img src="pipes-after-play.webp" width="180"> |
+
+**Intro**
+
+| Before (main) | After |
+|---|---|
+| <img src="../../game-reviews/img/pattern/pipes-1-start.webp" width="180"> | <img src="pipes-after-intro.webp" width="180"> |
+
+**Answer reveal** (390 × 844, practice)
+
 | | Before (main) | After |
 |---|---|---|
-| Start / intro | <img src="../../game-reviews/img/pattern/pipes-1-start.webp" width="180"> | <img src="pipes-after-intro.webp" width="180"> |
-| Mid-play | <img src="../../game-reviews/img/pattern/pipes-2-mid.webp" width="180"> | <img src="pipes-after-play.webp" width="180"> |
-| Reveal | <img src="../../game-reviews/img/pattern/pipes-3-end.webp" width="180"> | <img src="pipes-after-reveal.webp" width="180"> |
+| Solved, Yours | <img src="pipes-reveal-before-solved.webp" width="180"> | <img src="pipes-reveal-after-solved.webp" width="180"> |
+| Solved, Solution | | <img src="pipes-reveal-after-solved-solution.webp" width="180"> |
+| Unfinished | <img src="../../game-reviews/img/pattern/pipes-3-end.webp" width="180"> | <img src="pipes-reveal-after-unfinished.webp" width="180"> |
 
-- **Look**: Blender sprites (`docs/design/game-art/pattern/source/pipes.py`, `public/pattern-art/pipes/`, 13 files,
-  55 KB): chrome pipes on dark tiles, each shape (end, straight, corner, tee, cross) rendered dry (plain chrome) and wet
-  (blue water in sight-glass runs), turned by a CSS transform under even overhead light; the red source valve; no glow
-  round the network (batch P's blue tile rims and drop shadows removed).
+- **Look**: Blender sprites (`docs/design/game-art/pattern/source/pipes.py`, `public/pattern-art/pipes/`, 33 files,
+  166 KB) under sprite.py's rich studio light: polished steel pipes with crisp highlights, chrome couplings, glossy blue
+  water behind clear sight glass, a deep red lacquered valve, dark lacquered tiles. Each shape is rendered in each of its
+  turns, so the key light stays top left on every tile; the turn only animates with a transform. No glow round the network.
 - **Leaks live** (pipesRev 5): water spills from every open end the water reaches, in play, the intro and the reveal.
 - **Turns both ways** (pipesRev 5): a tap turns clockwise, a long press (380 ms), a swipe (14 px) or a right click
   anticlockwise; the log carries `-cell`; par is the fewest turns either way.
 - **Turns / Par** sit directly under the board (were at the screen's bottom with a gap).
-- **Reveal**: the player's line is Yours-only ("You: 12 / 49 connected"), no "×".
+- **Reveal**: Solution and Yours one large board at a time; Yours is the board the server graded (the log cut at the
+  stored turns) with tiles turned but not as in the solution outlined red, tiles still to turn dimmed and spray at open
+  ends; "You: …" and the pills (Turns, Par, Joined, Time left, from the stored grade) only under Yours; a turns-against-par
+  bar on a solve; a short key; no "×".
 - **Sounds**: `pipes.combo` (6+ joined), `pipes.drain` (a turn that cuts pipes off), `pipes.bubble` (the source on the
-  solve) added on library placeholders; `pipes.rotate` fires for both directions.
+  solve) on library placeholders; `pipes.rotate` for both directions.
 <!-- pipeline:end -->
 
 <!-- chroma:start -->

@@ -164,7 +164,7 @@ for (const seed of SEEDS) {
     check(buf.length <= 25_000, `sprite: ${url} is ${buf.length} bytes`);
   }
   check(total <= 400_000, `sprites: ${total} bytes for the game`);
-  check(pipeArtUrls().length === 13, "sprites: expected 13");
+  check(pipeArtUrls().length === 33, `sprites: expected 33, ${pipeArtUrls().length}`);
   // Every side-set maps to a sprite and its turn.
   for (let mask = 1; mask < 16; mask++) {
     const s = pipeSprite(mask);
@@ -186,11 +186,11 @@ for (const seed of SEEDS) {
   const leaks = networkLeakArms(tiles, connected, 3);
   check(leaks[3] === PIPE_S && leaks[0] === 0 && leaks[1] === 0 && leaks[2] === 0 && leaks[4] === 0, `leaks: ${JSON.stringify(leaks)}`);
   const html = renderToStaticMarkup(React.createElement(PipesBoard, { tiles, source: 0, cols: 3, connected, showLeaks: true }));
-  check(html.includes('/pattern-art/pipes/corner-dry.webp') && html.includes('/pattern-art/pipes/corner-wet.webp'), "art: the board doesn't draw the corner sprites");
+  check(html.includes('/pattern-art/pipes/corner-1-dry.webp') && html.includes('/pattern-art/pipes/corner-1-wet.webp'), "art: the board doesn't draw the turned corner's sprites");
   check((html.match(/data-wet="true"/g) ?? []).length === 4, "art: the wet set isn't shown on exactly the connected pipes");
-  check(html.includes("/pattern-art/pipes/source.webp"), "art: no source valve");
+  check(html.includes("/pattern-art/pipes/valve.webp"), "art: no source valve");
   check((html.match(/data-pipe-leak=/g) ?? []).length === 1, "art: spills aren't drawn at the network's open ends only");
-  check(/rotate\(90deg\)/.test(html), "art: the sprites aren't turned by a transform");
+  check(/data-pipe-turns="1"/.test(html) && !/rotate\(\d+deg\)/.test(html.split("pipe-spill")[0]!), "art: a turned pipe doesn't draw its own turn's sprite");
   check(!/<svg[^>]*class="pipe-art/.test(html) && !html.includes("pipe-channel"), "art: the old SVG pipework is still drawn");
   check(src("src/polish-pattern/pipes.css").includes('/pattern-art/pipes/tile.webp'), "art: the tile sprite isn't the tile's background");
   check(!/drop-shadow/.test(src("src/polish-layout/polish-nov3-pattern.css").split("Pipeline (pipes)")[1]!.split("Turntable")[0]!), "art: the network still glows");
