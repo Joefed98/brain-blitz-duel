@@ -1,25 +1,14 @@
 /**
- * Heave art (Pattern polish, 13 Oct 2026). Presentation only: a warehouse
- * board (concrete floor, brick walls, hatched floor markings, lamps), wooden
- * crates and the worker, moved with CSS transforms between the cells the
- * shared push rules already decided. Nothing here reads or changes moves,
- * pushes or the solved verdict.
+ * Heave art (Pattern polish, 13 Oct 2026; the Pattern overhaul, 15 Nov 2026: Blender-rendered sprites, look A).
+ * Presentation only: a brick warehouse (stone floor, brick walls, dark taped marks, the gold mark, lamps), wooden
+ * crates, the gold crate and the worker, each image drawn inside its own cell and moved with CSS transforms between
+ * the cells the shared push rules already decided. Nothing here reads or changes moves, pushes or the solved verdict.
  */
 import { useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import type { SlideDir } from "@/lib/duel/types";
 
 const U = 20; // one cell in SVG units
-
-const FACING: Partial<Record<SlideDir, number>> = { U: 0, R: 90, D: 180, L: 270 };
-
-/** Small deterministic hash for per-cell texture variation (never gameplay). */
-function hash(n: number): number {
-  let x = (n + 1) * 2654435761;
-  x ^= x >>> 13;
-  x = Math.imul(x, 1274126177);
-  return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
-}
 
 function reducedMotion(): boolean {
   try {
@@ -29,23 +18,53 @@ function reducedMotion(): boolean {
   }
 }
 
-/** The fixed warehouse: floor, walls, markings and unlit lamps. Rendered once per layout. */
+/** Heave's rendered sprites (docs/design/game-art/pattern/source/push.py; the Pattern overhaul, 15 Nov 2026). */
+export const PUSH_ART_BASE = "/pattern-art/push";
+const art = (name: string) => `${PUSH_ART_BASE}/${name}.webp`;
+export const PUSH_SPRITES = {
+  floor: art("floor"),
+  wall: art("wall"),
+  mark: art("mark"),
+  goldMark: art("gold-mark"),
+  crate: art("crate"),
+  goldCrate: art("gold-crate"),
+  worker: { U: art("worker-u"), R: art("worker-r"), D: art("worker-d"), L: art("worker-l") } as Record<SlideDir, string>,
+} as const;
+/** Every sprite file name (the check proves each exists). */
+export const PUSH_SPRITE_NAMES = ["floor", "wall", "mark", "gold-mark", "crate", "gold-crate", "worker-u", "worker-r", "worker-d", "worker-l"] as const;
+
+/** The fixed warehouse: stone floor, brick walls, the marks (the gold one gold) and unlit lamps. Rendered once per layout. */
 function WarehouseFloor({
   id,
   walls,
   targets,
+  goldTarget,
   cols,
   rows,
 }: {
   id: string;
   walls: number[];
   targets: number[];
+  goldTarget: number | undefined;
   cols: number;
   rows: number;
 }) {
   const wall = new Set(walls);
   const cells = Array.from({ length: cols * rows }, (_, cell) => cell);
   const lamps = pushLampXs(cols);
+  // Floor and wall tiles are drawn a hair larger than their cell, so no seam shows between neighbours at any scale.
+  const tile = (href: string, cell: number, key: string, inset = -0.15, className?: string) => (
+    <image
+      key={key}
+      href={href}
+      x={(cell % cols) * U + inset}
+      y={Math.floor(cell / cols) * U + inset}
+      width={U - 2 * inset}
+      height={U - 2 * inset}
+      preserveAspectRatio="none"
+      {...(className ? { className } : {})}
+    />
+  );
   return (
     <svg
       viewBox={`0 0 ${cols * U} ${rows * U}`}
@@ -54,87 +73,23 @@ function WarehouseFloor({
       preserveAspectRatio="none"
     >
       <defs>
-        <pattern id={`${id}-speckle`} width="7" height="7" patternUnits="userSpaceOnUse">
-          <circle cx="1.2" cy="2" r="0.35" fill="rgba(40,32,24,.35)" />
-          <circle cx="4.6" cy="5.1" r="0.3" fill="rgba(255,250,240,.28)" />
-          <circle cx="5.8" cy="1.1" r="0.25" fill="rgba(40,32,24,.28)" />
-        </pattern>
-        <pattern id={`${id}-brick`} width="20" height="10" patternUnits="userSpaceOnUse">
-          <rect width="20" height="10" fill="#2a1d19" />
-          <rect x="0.5" y="0.5" width="9" height="4" rx="0.4" fill="#743628" />
-          <rect x="10.5" y="0.5" width="9" height="4" rx="0.4" fill="#682f23" />
-          <rect x="-4.5" y="5.5" width="9" height="4" rx="0.4" fill="#612b20" />
-          <rect x="5.5" y="5.5" width="9" height="4" rx="0.4" fill="#7b3b2b" />
-          <rect x="15.5" y="5.5" width="9" height="4" rx="0.4" fill="#612b20" />
-          <path d="M0.5 0.9h9M10.5 0.9h9M5.5 5.9h9" stroke="rgba(255,210,180,.16)" strokeWidth="0.5" />
-        </pattern>
-        <linearGradient id={`${id}-wallshade`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="rgba(255,235,220,.22)" className="push-wall-top" />
-          <stop offset="0.18" stopColor="rgba(255,235,220,0)" />
-          <stop offset="1" stopColor="rgba(0,0,0,.38)" className="push-wall-bottom" />
-        </linearGradient>
         <linearGradient id={`${id}-cast`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="rgba(0,0,0,.42)" />
+          <stop offset="0" stopColor="rgba(0,0,0,.4)" />
           <stop offset="1" stopColor="rgba(0,0,0,0)" />
         </linearGradient>
-        <pattern id={`${id}-hazard`} width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect width="4" height="4" fill="#17191c" />
-          <rect width="2" height="4" fill="#f5c518" />
-        </pattern>
       </defs>
-      {cells.map((cell) => {
-        const x = (cell % cols) * U;
-        const y = Math.floor(cell / cols) * U;
-        if (wall.has(cell)) return null;
-        const tone = 0.06 * (hash(cell) - 0.5);
-        return (
-          <g key={cell}>
-            <rect x={x} y={y} width={U} height={U} fill="#8e877c" />
-            {tone !== 0 && (
-              <rect x={x} y={y} width={U} height={U} fill={tone > 0 ? "#fff" : "#000"} opacity={Math.abs(tone)} />
-            )}
-            <rect x={x} y={y} width={U} height={U} fill={`url(#${id}-speckle)`} />
-            <path d={`M${x} ${y + 0.3}h${U}M${x + 0.3} ${y}v${U}`} stroke="rgba(45,35,25,.28)" strokeWidth="0.6" />
-            {wall.has(cell - cols) && cell >= cols && (
-              <rect x={x} y={y} width={U} height="5" fill={`url(#${id}-cast)`} />
-            )}
-          </g>
-        );
-      })}
-      {targets.map((cell) => {
-        const x = (cell % cols) * U;
-        const y = Math.floor(cell / cols) * U;
-        return (
-          <g key={`t${cell}`} className="push-marking">
-            <rect x={x + 2} y={y + 2} width={U - 4} height={U - 4} fill="rgba(245,197,24,.16)" />
-            <rect
-              x={x + 2.4}
-              y={y + 2.4}
-              width={U - 4.8}
-              height={U - 4.8}
-              fill="none"
-              stroke={`url(#${id}-hazard)`}
-              strokeWidth="2.6"
-            />
-            <path
-              d={`M${x + 7} ${y + 10}h6M${x + 10} ${y + 7}v6`}
-              stroke="rgba(245,197,24,.55)"
-              strokeWidth="1"
-              strokeLinecap="round"
-            />
-          </g>
-        );
-      })}
-      {walls.map((cell) => {
-        const x = (cell % cols) * U;
-        const y = Math.floor(cell / cols) * U;
-        return (
-          <g key={`w${cell}`}>
-            <rect x={x} y={y} width={U} height={U} fill={`url(#${id}-brick)`} />
-            <rect x={x} y={y} width={U} height={U} fill={`url(#${id}-wallshade)`} />
-          </g>
-        );
-      })}
+      <rect width={cols * U} height={rows * U} fill="#3a2a22" />
+      {cells.map((cell) => (wall.has(cell) ? null : tile(PUSH_SPRITES.floor, cell, `f${cell}`)))}
+      {/* The walls' soft shadow on the floor below them (the light comes from the top left). */}
+      {cells.map((cell) =>
+        !wall.has(cell) && cell >= cols && wall.has(cell - cols) ? (
+          <rect key={`c${cell}`} x={(cell % cols) * U} y={Math.floor(cell / cols) * U} width={U} height="4.5" fill={`url(#${id}-cast)`} />
+        ) : null,
+      )}
+      {targets.map((cell) =>
+        tile(cell === goldTarget ? PUSH_SPRITES.goldMark : PUSH_SPRITES.mark, cell, `t${cell}`, 0, cell === goldTarget ? "push-marking push-marking-gold" : "push-marking"),
+      )}
+      {walls.map((cell) => tile(PUSH_SPRITES.wall, cell, `w${cell}`))}
       {lamps.map((x, index) => (
         <g key={`l${index}`}>
           <rect x={x - 5} y="0.8" width="10" height="3.4" rx="1.2" fill="#2a2d33" stroke="#0e0f12" strokeWidth="0.5" />
@@ -159,69 +114,24 @@ function pushLampXs(cols: number): number[] {
   return Array.from({ length: count }, (_, index) => ((index + 0.5) * cols * U) / count);
 }
 
-/** Wooden crate: planks, frame, cross brace and nails; a green light when home. */
-export function CrateArt({ home }: { home: boolean }) {
+/** A wooden crate (gold for the gold crate) inside its cell; a crate on a mark carries a green tick. */
+export function CrateArt({ home, gold = false }: { home: boolean; gold?: boolean }) {
   return (
-    <svg viewBox="0 0 20 20" className="push-crate block h-[88%] w-[88%]" aria-label={home ? "Crate home" : "Crate"}>
-      <rect x="1.4" y="2.2" width="18" height="17.4" rx="1.4" fill="rgba(0,0,0,.32)" />
-      <rect x="0.6" y="0.6" width="18.2" height="18.2" rx="1.2" className="push-crate-body" />
-      <path d="M1.4 6.7h16.6M1.4 12.7h16.6" stroke="var(--crate-dark)" strokeWidth="0.7" />
-      <path d="M4 3.6h5M11 9.6h5M5 15.6h6" stroke="rgba(80,45,20,.35)" strokeWidth="0.45" strokeLinecap="round" />
-      <rect x="1.5" y="1.5" width="16.4" height="16.4" rx="0.8" fill="none" stroke="var(--crate-dark)" strokeWidth="2" />
-      <path d="M3.2 16.2 16.2 3.2" stroke="var(--crate-dark)" strokeWidth="3" strokeLinecap="round" />
-      <path d="M3.2 15.6 15.6 3.2" stroke="var(--crate-light)" strokeWidth="0.9" strokeLinecap="round" opacity="0.8" />
-      <path d="M1.2 1.2h17" stroke="var(--crate-light)" strokeWidth="0.6" opacity="0.9" />
-      {/* Batch P (live round only, batch-p.css): light from above across the whole crate. */}
-      <defs>
-        <linearGradient id="push-crate-lit" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity="0.34" />
-          <stop offset="0.35" stopColor="#fff" stopOpacity="0.04" />
-          <stop offset="1" stopColor="#000" stopOpacity="0.34" />
-        </linearGradient>
-      </defs>
-      <rect x="0.6" y="0.6" width="18.2" height="18.2" rx="1.2" fill="url(#push-crate-lit)" className="push-crate-lit" />
-      {[
-        [2.6, 2.6],
-        [16.8, 2.6],
-        [2.6, 16.8],
-        [16.8, 16.8],
-        [9.7, 9.7],
-      ].map(([cx, cy]) => (
-        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="0.75" className="push-nail" />
-      ))}
+    <span className="push-crate relative block h-full w-full" role="img" aria-label={home ? "Crate home" : "Crate"}>
+      <img className="push-sprite" src={gold ? PUSH_SPRITES.goldCrate : PUSH_SPRITES.crate} alt="" draggable={false} decoding="async" />
       {home && (
-        <>
-          <circle cx="15" cy="5" r="3.6" fill="var(--home-light)" stroke="var(--hazard-dark)" strokeWidth="0.8" />
-          <path
-            d="M13.3 5l1.2 1.2 2.2-2.4"
-            fill="none"
-            stroke="var(--hazard-dark)"
-            strokeWidth="1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </>
+        <svg viewBox="0 0 20 20" className="push-home-tick" aria-hidden="true">
+          <circle cx="10" cy="10" r="8.6" fill="#1f8a4c" stroke="#0d2a18" strokeWidth="1.4" />
+          <path d="M6 10.3l2.7 2.7 5.3-5.6" fill="none" stroke="#f4fff8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       )}
-    </svg>
+    </span>
   );
 }
 
-/** Top-down warehouse worker facing up: hard hat, hi-vis vest, arms out to push. */
-export function WorkerArt() {
-  return (
-    <svg viewBox="0 0 20 20" className="push-worker block h-[86%] w-[86%]" aria-label="You">
-      <ellipse cx="10.4" cy="12.4" rx="7.4" ry="5.2" fill="rgba(0,0,0,.3)" />
-      <rect x="4.6" y="3.2" width="2.6" height="7" rx="1.3" fill="var(--worker-body)" stroke="var(--hazard-dark)" strokeWidth="0.6" />
-      <rect x="12.8" y="3.2" width="2.6" height="7" rx="1.3" fill="var(--worker-body)" stroke="var(--hazard-dark)" strokeWidth="0.6" />
-      <circle cx="5.9" cy="3.4" r="1.3" fill="#e7b48f" stroke="var(--hazard-dark)" strokeWidth="0.5" />
-      <circle cx="14.1" cy="3.4" r="1.3" fill="#e7b48f" stroke="var(--hazard-dark)" strokeWidth="0.5" />
-      <ellipse cx="10" cy="11.6" rx="7.2" ry="4.8" fill="var(--worker-vest)" stroke="var(--hazard-dark)" strokeWidth="0.8" />
-      <path d="M4.2 10.4h11.6M4.6 13h10.8" stroke="#eef3f6" strokeWidth="0.9" opacity="0.9" />
-      <circle cx="10" cy="11" r="4.3" fill="var(--worker-hat)" stroke="var(--hazard-dark)" strokeWidth="0.8" />
-      <path d="M10 6.9v8.2" stroke="rgba(120,90,0,.55)" strokeWidth="0.9" />
-      <circle cx="8.6" cy="9.4" r="1.3" fill="rgba(255,255,255,.55)" />
-    </svg>
-  );
+/** The warehouse worker seen from above, facing the last step (its own render per facing, so the light never turns). */
+export function WorkerArt({ facing = "U" }: { facing?: SlideDir | undefined }) {
+  return <img className="push-worker push-sprite" src={PUSH_SPRITES.worker[facing] ?? PUSH_SPRITES.worker.U} alt="You" draggable={false} decoding="async" />;
 }
 
 /** The warehouse board: static floor plus crates and the worker sliding between cells. */
@@ -250,16 +160,10 @@ export function WarehouseBoard({
   const id = useId().replace(/:/g, "");
   const rows = Math.ceil(cells / cols);
   const floor = useMemo(
-    () => <WarehouseFloor id={id} walls={walls} targets={targets} cols={cols} rows={rows} />,
-    [id, walls, targets, cols, rows],
+    () => <WarehouseFloor id={id} walls={walls} targets={targets} goldTarget={gold?.target} cols={cols} rows={rows} />,
+    [id, walls, targets, gold?.target, cols, rows],
   );
   const lamps = useMemo(() => pushLampXs(cols), [cols]);
-
-  // Turn the worker the short way round to face the last step.
-  const angle = useRef(FACING[facing ?? "U"] ?? 0);
-  const target = FACING[facing ?? "U"] ?? angle.current;
-  const delta = ((((target - angle.current) % 360) + 540) % 360) - 180;
-  angle.current += delta;
 
   // A playback jump of more than one cell (the reveal's push-to-push steps) snaps
   // instead of sliding, so the worker never glides through walls.
@@ -303,11 +207,6 @@ export function WarehouseBoard({
       data-solve-fx={solveFx ? "true" : undefined}
     >
       {floor}
-      {gold ? (
-        <div className="push-piece d4-gold-mark-cell" style={pieceStyle(gold.target, cols, rows)} aria-hidden="true">
-          <span className="d4-gold-mark" data-filled={crates[gold.crate] === gold.target ? "" : undefined} />
-        </div>
-      ) : null}
       {crates.map((cell, index) => (
         <div
           key={index}
@@ -316,7 +215,7 @@ export function WarehouseBoard({
           style={pieceStyle(cell, cols, rows)}
         >
           <div ref={(node) => void (crateNodes.current[index] = node)} className="push-piece-inner">
-            <CrateArt home={targets.includes(cell)} />
+            <CrateArt home={targets.includes(cell)} gold={gold?.crate === index} />
             {(puffs[index] ?? 0) > 0 && <DustPuff key={puffs[index]} />}
           </div>
         </div>
@@ -326,8 +225,8 @@ export function WarehouseBoard({
           className="push-piece push-piece-worker"
           style={{ ...pieceStyle(pusher, cols, rows), ...(workerJumps ? { transition: "none" } : {}) }}
         >
-          <div className="push-piece-inner push-worker-turn" style={{ transform: `rotate(${angle.current}deg)` }}>
-            <WorkerArt />
+          <div className="push-piece-inner">
+            <WorkerArt facing={facing} />
           </div>
         </div>
       )}

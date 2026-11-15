@@ -103,39 +103,5 @@
 }
 
 /* ---------------------------------------------------------------- Heave: the gold crate and its mark */
-.d4-gold-crate {
-  --crate: #e2a92c;
-  --crate-dark: #8a5a0e;
-  --crate-light: #ffe08a;
-}
-.d4-gold-crate .push-crate {
-  filter: drop-shadow(0 0 4px rgba(247, 191, 47, 0.55));
-}
-.d4-gold-crate[data-gold-home] .push-crate {
-  filter: drop-shadow(0 0 10px rgba(247, 191, 47, 0.95));
-}
-.d4-gold-mark-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-/* A gold diamond inset in the hatched marking: the gold crate's own spot. */
-.d4-gold-mark {
-  display: block;
-  width: 42%;
-  height: 42%;
-  transform: rotate(45deg);
-  border: 2px solid #f7bf2f;
-  border-radius: 3px;
-  background: radial-gradient(circle at 35% 35%, rgba(255, 224, 138, 0.55), rgba(201, 138, 14, 0.25));
-  box-shadow: 0 0 8px rgba(247, 191, 47, 0.6);
-}
-.d4-gold-mark[data-filled] {
-  box-shadow: none;
-}
-:root[data-reduced-effects] .d4-gold-crate .push-crate,
-:root[data-reduced-effects] .d4-gold-mark {
-  filter: none;
-  box-shadow: none;
-}
+/* The Pattern overhaul (15 Nov 2026): the gold crate and the gold mark are rendered sprites (pushArt PUSH_SPRITES), gold
+   by their material alone; no glow. */

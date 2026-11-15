@@ -1,4 +1,6 @@
-/* Pattern polish: push (Heave). Warehouse board, sliding crates and worker, solve lights; presentation only. */
+/* Pattern polish: push (Heave). Warehouse board, sliding crates and worker, solve lights; presentation only.
+   The Pattern overhaul (15 Nov 2026): every piece is a rendered sprite (pushArt PUSH_SPRITES), drawn inside its cell;
+   no glow on any piece. */
 
 /* Arena: the board fills the space between the counter and the arrow pad, centred,
    with the arrows and Undo/Reset kept below it. */
@@ -10,7 +12,7 @@
 .game-column [data-polish="push"] .push-board { width: min(100cqw, 100cqh); height: auto; max-height: none; }
 
 .push-board {
-  background: #24201c;
+  background: #3a2a22;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
 }
 .push-floor { display: block; }
@@ -31,11 +33,25 @@
   align-items: center;
   justify-content: center;
 }
-.push-worker-turn { transition: transform 120ms ease-out; }
-.push-crate { overflow: visible; }
-.push-crate-body { fill: var(--crate); }
-.push-crate[aria-label="Crate home"] .push-crate-body { fill: color-mix(in oklab, var(--crate) 88%, var(--home-light)); }
-.push-nail { fill: #d9d2c4; stroke: #4a3220; stroke-width: 0.35; }
+/* Sprites fill their cell exactly (each render is one cell, its shadow inside it). */
+.push-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* A crate on a mark: a bold green tick in its top-right corner, inside the cell. */
+.push-home-tick {
+  position: absolute;
+  right: 3%;
+  top: 3%;
+  width: 34%;
+  height: 34%;
+  pointer-events: none;
+}
 
 /* Lamp bulbs along the top wall: dark until the solve. */
 .push-lamp-bulb { fill: #5d6168; }
@@ -105,7 +121,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .push-piece, .push-worker-turn { transition: none; }
+  .push-piece { transition: none; }
   .push-dust { display: none; }
   /* Lights: a plain glow for the moment, no switching sequence. */
   .push-light-pool { animation: none; opacity: 0.8; }
@@ -116,3 +132,19 @@
 /* Reveal: the board takes the room left above the two result lines. */
 .push-reveal-space { container-type: size; }
 .push-reveal-board { width: min(100cqw, calc(100cqh - 84px), 380px); aspect-ratio: 1; flex-shrink: 0; }
+
+/* ---- The Pattern overhaul (15 Nov 2026): Undo and Reset in champagne gold on navy ------------------------ */
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  box-shadow: inset 0 0 0 1px var(--jz-gold);
+}
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-gold-ink);
+}
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-action]:disabled {
+  box-shadow: inset 0 0 0 1px var(--jz-surface-3);
+}
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-action]:disabled [data-puzzle-icon]::before,
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-action][data-puzzle-icon]:disabled::before {
+  -webkit-text-fill-color: var(--jz-text-3);
+}

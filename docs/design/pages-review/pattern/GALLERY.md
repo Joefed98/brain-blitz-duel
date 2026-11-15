@@ -62,6 +62,26 @@ clips of the hero effects. Images are in this folder.
 
 <!-- heave:start -->
 ## Heave
+
+| Before (main) | After |
+|---|---|
+| <img src="../../game-reviews/img/pattern/push-1-start.webp" width="180" alt="Heave before, start"> | <img src="push-after-intro.webp" width="180" alt="Heave after, intro"> |
+| <img src="../../game-reviews/img/pattern/push-2-mid.webp" width="180" alt="Heave before, mid-play"> | <img src="push-after-play.webp" width="180" alt="Heave after, mid-play"> |
+| <img src="../../game-reviews/img/pattern/push-3-end.webp" width="180" alt="Heave before, end"> | <img src="push-after-reveal.webp" width="180" alt="Heave after, reveal"> |
+
+- **Look (A):** every tile and piece is a Blender render, one cell each (`docs/design/game-art/pattern/source/push.py`,
+  `public/pattern-art/push/`, 10 WebPs, 35 KB): brick wall tops whose courses run on from cell to cell, worn stone
+  flags, dark painted marks with light tape corners, wooden crates, and the gold crate and gold mark in real gold. The
+  worker (white hard hat, orange hi-vis vest, navy arms reaching to push) is rendered once per facing, so the light
+  stays top left as it turns. A crate on a mark carries a bold green tick; no glows anywhere.
+- **Pushes and Par** are the pills during play (Pushes red once over par); par is the fewest pushes, looked up on the
+  phone from the dealt layout (`pushPar.ts`, a count only, never the route). The Moves pill made way for it.
+- **Undo** always gave the push back; the help now says so, and where the arrows / swipe choice lives.
+- **Controls:** Undo and Reset in champagne gold on navy.
+- **Reveal:** under the minimum solution playing back, the player's own count reads "You: 0 / 5 home".
+- **Sound:** the gold crate pushed off its mark (`push.goldOff`), a slot for the deadlock creak (`push.stuck`), and
+  lines for the footstep, the crate's scrape and the lights coming on at the solve.
+- No stamp: nothing Heave deals or grades changed.
 <!-- heave:end -->
 
 <!-- lightbender:start -->

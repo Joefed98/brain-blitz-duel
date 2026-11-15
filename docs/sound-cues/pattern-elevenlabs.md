@@ -55,6 +55,28 @@ floor: never a real engine, horn or tyre squeal.
 
 <!-- heave:start -->
 ## Heave
+
+A brick warehouse with a stone floor, wooden crates and one gold crate; the worker in work boots. Every sound is
+close, dry and indoors: never a factory alarm, a forklift or a cartoon "boing".
+
+- `push.step` — the worker takes one step: a light, soft work-boot footstep on a dusty stone floor, a faint grit
+  scuff, no echo; quick, it repeats often, so keep it quiet and neutral; 80–110 ms. (Today silent; the November
+  placeholder `push.step.mp3` plays behind `NEW_GAME_SOUNDS`.)
+- `push.push` — a step that shoves a crate one square: a heavy wooden crate dragged across stone, a short gritty
+  scrape with weight behind it, a beat after the footstep, ending in a dull settle; satisfying, not loud; 150–220 ms.
+  (Today silent; the November placeholder `push.push.mp3` plays behind `NEW_GAME_SOUNDS`.)
+- `push.home` — **keep** (the crate thumps down on its mark with a puff of dust).
+- `push.goldOff` — the gold crate pushed off its gold mark: a soft metallic "un-clink" falling a few notes, like a
+  brass plate lifting off and losing its ring; a gentle "oh no", never a buzzer; 300–400 ms. (Today
+  `retro.powerDown.mp3` stands in.)
+- `push.stuck` — a crate pushed where it can never leave (a corner, or against a wall with no mark on it): a low
+  warning creak of strained timber, slow and short, as if the crate groans in place; a hint, not an error; 350–500 ms.
+  (Slot only for now: the deadlock hint comes with the levels; `swing.vineCreak.mp3` stands in.)
+- `push.solve` — every crate home, the warehouse lights come on: three or four big industrial light switches clunking
+  on one after another left to right, each with a short electric hum swelling under it, ending on a warm, settled hum
+  that fades; 1.1–1.3 s. (Replaces today's `push.solve.mp3`, which has the crates' thumps but no lights.)
+- The gold crate onto its gold mark: no new sound; it keeps the shared `correct`.
+- Undo and Reset: no new sound (the worker steps back silently, as today).
 <!-- heave:end -->
 
 <!-- lightbender:start -->
