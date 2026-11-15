@@ -2587,6 +2587,22 @@ outside the repo.
   `public/tournaments-art/` (`TournamentArt`, `KIND_ART`). Styles `src/polish-layout/tournaments-pages.css`. Screens:
   `scripts/screens/tournaments.ts` (`TOURNAMENT_PAGES_SCREENS`, dark and light at every size; harness modes
   `tournament`, `tournamentrules`, `dailyarchive`); theme-check in sixths and no-wrap-check in elevenths.
+- **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
+  `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
+  `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
+  nearMiss, win, newBest, stars; transform and opacity only, shared sounds through playSound, haptics only through its
+  one call site; reduced / lite / calm variants), React pieces in `src/components/fx/GameFx.tsx`; **family sessions use
+  these, never a second kit**; fx-check. *Game timer*: the player's choice, Settings → Appearance → Game timer (Bar, the
+  default: a gold bar with no seconds until the last 10 s, red then; Ring; Chip; `gameFrameConfig.ts`, `useGameTimer`;
+  every look keeps the 60 px header and the timer's accessible label; game-controls-check).
+  *The arena* (`src/lib/gameFrame/arena.ts`): a computer's or a sideways tablet's (≥ 1024 px) live round has no header;
+  its timer, score, best, stars, the board's progress and status pills (hidden on the board, so each number shows once),
+  goal, practice's next challenges, menu and Controls tab are portalled once into the side panel (`ArenaGamePanel`; the
+  top of the room panel in a room); on a phone a puzzle's board and controls sit together at the bottom
+  (phone-gap-check); the identical world at the largest uniform scale (arena-world-check). *Controls*:
+  `src/lib/gameControls.ts` (schemes per game, chosen from the game menu, the Controls tab and Settings; input mapping
+  only; game-controls-check). The reveal's verdict row is the shared result card (`reveal-result`) with practice's
+  stars and new best (`RevealPayoff`).
 - **Home Run and Top Bins overhaul** (phase 2 step 4, 15 Nov 2026; `docs/arcade-standard/homerun.md` "homerunRev 5",
   `freekick.md` "freekickRev 5", gallery `docs/design/pages-review/home-run-top-bins/`): **Home Run** `homerunRev 5`
   (`src/lib/arcade/homerunInnings.ts`, its state `inn` on HomerunState): one innings, 117 s, three outs; read the pitch

@@ -529,13 +529,24 @@ function playScreen() {
   };
   const stage = document.querySelector("[data-game-stage]");
   const slot = stage?.querySelector("[data-arena-slot]") ?? null;
-  const arena = slot?.querySelector(":scope > [data-game-arena]") ?? null;
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): in the arena a rotate
+  // game's world (Cue Ball, desktopModes.ts) is turned 90° inside the slot's rotor (lib/gameFrame/arena.ts), so the
+  // world is the slot's own or its rotor's; `turned` says which.
+  const arena = slot?.querySelector(":scope > [data-game-arena], :scope > [data-arena-rotor] [data-game-arena]") ?? null;
+  const turned = Boolean(arena?.closest("[data-arena-rotor]"));
+  // A turned world's upright score strip (ArcadeCanvasStage's `hud`) sits above its box.
+  const hudStrip = stage?.querySelector("[data-arena-hud]") ?? null;
+  // …then the column's own gap between its children, when the strip and the box are siblings (else none).
+  const hudGap = hudStrip && slot && hudStrip.parentElement === slot.parentElement ? Number.parseFloat(getComputedStyle(slot.parentElement!).rowGap) || 0 : 0;
+  const hudBottom = hudStrip ? hudStrip.getBoundingClientRect().bottom + hudGap : null;
   const canvas = arena ? (arena instanceof HTMLCanvasElement ? arena : arena.querySelector("canvas")) : null;
   const below = slot ? [...(stage?.querySelectorAll("button, [data-game-controls]") ?? [])].filter((b) => slot.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING && !slot.contains(b) && b.getBoundingClientRect().height > 0) : [];
   const column = document.querySelector("[data-game-column]");
   const pad = column ? Number.parseFloat(getComputedStyle(column).paddingBottom) : 0;
   const header = document.querySelector("[data-arcade-header]");
-  const timer = header?.querySelector("[role='timer']") ?? null;
+  // The arena (15 Nov 2026, lib/gameFrame/arena.ts): no header; the one timer is in the side panel.
+  const arenaPanelEl = document.querySelector("[data-arena-panel], .dk-room-panel");
+  const timer = (header ?? arenaPanelEl)?.querySelector("[role='timer']") ?? null;
   const texts = header ? [...header.querySelectorAll("*")].filter((el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim())) : [];
   // The score block's label ("Score" / "Best") is the only header text allowed under 12 px (Polish 2: 11 px).
   const scoreLabels = texts.filter((el) => el.matches(".game-frame-score-label"));
@@ -551,7 +562,12 @@ function playScreen() {
   const sceneEl = shell?.querySelector(":scope > [data-arena-scene]") ?? null;
   if (sceneEl) clips.push({ what: "scene canvas", bottom: sceneEl.getBoundingClientRect().bottom, clip: clipBottom(sceneEl) });
   for (const b of below) clips.push({ what: `control "${b.getAttribute("aria-label") ?? b.getAttribute("data-game-controls") ?? (b.textContent ?? "").trim().slice(0, 24)}"`, bottom: b.getBoundingClientRect().bottom, clip: clipBottom(b) });
+  const arenaBox = arenaPanelEl ? arenaPanelEl.getBoundingClientRect() : null;
   return {
+    arenaPanel: arenaBox ? { x: arenaBox.x, y: arenaBox.y, w: arenaBox.width, h: arenaBox.height } : null,
+    timers: document.querySelectorAll("[role='timer']").length,
+    turned,
+    hudBottom,
     clips,
     scrolled: doc.scrollTop,
     standalone: (navigator as Navigator & { standalone?: boolean }).standalone === true,
@@ -616,7 +632,19 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
   for (const [w, h] of LAYOUT_VIEWPORTS) {
     await layoutSize(page, w, h);
     await nextFrames(page);
-    const m = await page.evaluate(playScreen);
+    let m = await page.evaluate(playScreen);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): the 1280×800 touch window
+    // switches the whole layout to the arena (a re-render, the side panel portalled in, then the draw loop sizing the
+    // canvas), which a slow runner doesn't finish in one settle. It settles until two reads agree (at most 8 more
+    // passes, 40 ms of the frozen clock each, this window only, so Hover still stays on its play screen); every assertion
+    // below is judged on that settled layout, as before.
+    for (let pass = 0; w >= 1024 && pass < 8; pass++) {
+      await nextFrames(page);
+      const again = await page.evaluate(playScreen);
+      const same = JSON.stringify([again.slot, again.arena, again.canvas, again.arenaPanel]) === JSON.stringify([m.slot, m.arena, m.canvas, m.arenaPanel]);
+      m = again;
+      if (same) break;
+    }
     const at = `layout ${w}x${h}`;
     if (m.slots !== 1 || !m.slot || !m.arena) {
       problems.push(`${at}: expected one arena slot holding the arena (slots ${m.slots})`);
@@ -624,18 +652,34 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     }
     const { slot, arena } = m;
     if (m.scroll > 0) problems.push(`${at}: page scrolls by ${m.scroll} px`);
+    // Changed with Joe's approval, 15 Nov 2026 (sideways tablets get the arena): the 1280×800 touch laptop is the arena
+    // (lib/gameFrame/arena.ts): no header, the one timer in the side panel, the box from the top and left of the panel.
+    const inArena = Boolean(m.arenaPanel) && w >= 1024 && w > h;
+    if (inArena) {
+      if (m.header) problems.push(`${at}: a header in the arena (the panel carries it)`);
+      if (!m.timer || m.timers !== 1 || m.timer.x < m.arenaPanel!.x - 0.5) problems.push(`${at}: the arena's timer is not the one timer, in the panel`);
+    } else {
     if (!m.header || Math.abs(m.header.y - HEADER_TOP_PX) > 0.5 || Math.abs(m.header.h - HEADER_ROW_PX) > 0.5) problems.push(`${at}: header ${m.header ? `${m.header.h.toFixed(1)} px tall at ${m.header.y.toFixed(1)}` : "missing"}, want one ${HEADER_ROW_PX} px row ${HEADER_TOP_PX} px down`);
     if (!m.timer || Math.abs(m.timer.x + m.timer.w / 2 - w / 2) > 1) problems.push(`${at}: header timer not centred`);
+    }
     if (!(m.smallestText >= HEADER_MIN_TEXT_PX)) problems.push(`${at}: header text ${m.smallestText} px, want ${HEADER_MIN_TEXT_PX} px or more`);
     if (m.scoreLabel !== null && !(m.scoreLabel >= SCORE_LABEL_MIN_PX)) problems.push(`${at}: the score label ${m.scoreLabel} px, want ${SCORE_LABEL_MIN_PX} px or more`);
-    const boxTop = HEADER_TOP_PX + HEADER_ROW_PX + (ABOVE_PX[game] ?? 0);
-    if (Math.abs(slot.y - boxTop) > 0.5) problems.push(`${at}: box starts at ${slot.y.toFixed(1)} px, want ${boxTop.toFixed(1)} (4 px under the header${ABOVE_PX[game] ? " and the game's HUD" : ""})`);
-    if (Math.abs(slot.x) > 0.5 || Math.abs(slot.w - w) > 0.5) problems.push(`${at}: box ${slot.x.toFixed(1)}..${(slot.x + slot.w).toFixed(1)} px, want the full ${w} px width`);
+    // Changed with Joe's approval, 15 Nov 2026 (turned worlds judged turned): a turned world's box starts under its
+    // upright score strip (and the column's gap); it is centred in its box rather than top-anchored, its shape held to arena-world-check's
+    // 2.5 px (the rotor's whole-pixel rounding) and its black fill measured on the turned box. Upright worlds as before.
+    const boxTop = m.turned && m.hudBottom !== null ? m.hudBottom : (inArena ? 0 : HEADER_TOP_PX + HEADER_ROW_PX) + (ABOVE_PX[game] ?? 0);
+    if (Math.abs(slot.y - boxTop) > 0.5) problems.push(`${at}: box starts at ${slot.y.toFixed(1)} px, want ${boxTop.toFixed(1)} (${m.turned ? "under the turned world's score strip" : inArena ? "the top, no header in the arena" : "4 px under the header"}${!m.turned && ABOVE_PX[game] ? " and the game's HUD" : ""})`);
+    if (inArena) {
+      if (slot.x < -0.5 || slot.x + slot.w > m.arenaPanel!.x + 0.5) problems.push(`${at}: box ${slot.x.toFixed(1)}..${(slot.x + slot.w).toFixed(1)} px runs under the arena panel (from ${m.arenaPanel!.x.toFixed(1)})`);
+    } else if (Math.abs(slot.x) > 0.5 || Math.abs(slot.w - w) > 0.5) problems.push(`${at}: box ${slot.x.toFixed(1)}..${(slot.x + slot.w).toFixed(1)} px, want the full ${w} px width`);
     if (engine && m.touch.some((t) => t !== "none")) problems.push(`${at}: arena canvas / play area touch-action ${m.touch.join(" / ")}, want none`);
-    if (Math.abs(arena.h - (arena.w * spec.height) / spec.width) > 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the ${spec.width}:${spec.height} world aspect`);
+    if (m.turned && !inArena) problems.push(`${at}: the world is turned outside the arena`);
+    // A turned world's on-screen box has the world's aspect swapped (the rotor's 90°).
+    const [aw, ah] = m.turned ? [spec.height, spec.width] : [spec.width, spec.height];
+    if (Math.abs(arena.h - (arena.w * ah) / aw) > (m.turned ? 2.5 : 1)) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the ${aw}:${ah} world aspect${m.turned ? " (turned)" : ""}`);
     if (arena.w > slot.w + 0.5 || arena.h > slot.h + 0.5) problems.push(`${at}: arena overflows its slot`);
     if (arena.w < slot.w - 1 && arena.h < slot.h - 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the largest fit in ${slot.w.toFixed(1)}x${slot.h.toFixed(1)}`);
-    if (centred) {
+    if (centred || m.turned) {
       // The play-centred fill-in games round their offset down to a whole pixel (17 Oct 2026): within 1 px.
       if (Math.abs(arena.y - slot.y - (slot.h - arena.h) / 2) > (game === "tilt" ? 0.5 : 1)) problems.push(`${at}: arena not centred vertically in its slot`);
     } else if (Math.abs(arena.y - slot.y) > 0.5) problems.push(`${at}: arena not top-anchored in its slot`);
@@ -666,7 +710,8 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
       if (Math.min(c.w, c.h) < 44) problems.push(`${at}: control ${c.w.toFixed(0)}x${c.h.toFixed(0)} under 44 px`);
       if (c.y < slot.y + slot.h - 0.5 || c.y + c.h > h + 0.5) problems.push(`${at}: control not between the arena and the bottom edge`);
     }
-    if (!centred) tops.push(arena.y);
+    // The arena has no header above its world, so only the phone sizes share one arena top.
+    if (!centred && !inArena) tops.push(arena.y);
   }
   if (tops.length && Math.max(...tops) - Math.min(...tops) > 0.5) problems.push(`layout: arena top moves between sizes (${tops.map((t) => t.toFixed(1)).join(", ")})`);
   // A 34 px home bar (CDP safe-area emulation) must not shrink the arena or move the column's end;

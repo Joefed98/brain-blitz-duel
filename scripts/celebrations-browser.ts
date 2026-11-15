@@ -30,6 +30,9 @@
  *    Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): only
  *    "home" re-recorded (Home redesigned: the Daily hero, Your next match, Recently played); every other entry
  *    byte-identical.
+ *    Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): only "reveal150"
+ *    re-recorded (the reveal's verdict row is the shared result card, `reveal-result`); every other entry
+ *    byte-identical.
  *
  * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
  * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.

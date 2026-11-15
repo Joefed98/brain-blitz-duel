@@ -36,6 +36,7 @@
  *
  * Drivers live in scripts/shots/drivers/ (registered in drivers/index.ts; see driver.ts).
  */
+import { practiceGameUrl } from "../practice-side-lib";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -342,26 +343,12 @@ async function newRun(
     }
     return route.continue();
   });
-  // Since the Games pages (14 Nov 2026) the catalogue has no Puzzles | Arcade switch: `/practice?game=<id>` opens the
-  // round's intro with Ready directly (scripts/practice-side-lib.ts practiceGameUrl), unless stage state is seeded first.
-  if (!opts.seed) {
-    await page.goto(`${origin}/practice?game=${game}`, { waitUntil: "domcontentloaded" });
-    await page
-      .getByRole("button", { name: /^Ready/ })
-      .first()
-      .waitFor({ timeout: 90_000 });
-    return run;
-  }
-  await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
-  // The Practice tab's Puzzles | Arcade switch (30 Oct 2026): an arcade game's button is on the Arcade side.
-  const { puzzleDef } = await import("../../src/lib/duel/registry");
-  const side = page.locator(`[data-practice-side='${puzzleDef(game).category === "arcade" ? "arcade" : "puzzles"}']`);
-  await side.waitFor({ timeout: 90_000 });
+  // Current practice routing (the Games pages, 14 Nov 2026): `/practice?game=<id>` opens the game's full intro with
+  // Ready (practiceGameUrl); the catalogue's tiles open the game's page instead, whose Play skips to the 3-2-1.
+  await page.goto(practiceGameUrl(origin, game), { waitUntil: "domcontentloaded" });
+  const readyButton = page.getByRole("button", { name: /^Ready/ }).first();
+  await readyButton.waitFor({ timeout: 90_000 });
   await page.waitForTimeout(1200); // hydration
-  await side.click();
-  const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
-  await button.waitFor({ timeout: 90_000 });
-  await page.waitForTimeout(1500); // hydration
   if (opts.seed) {
     await page.evaluate(async (values) => {
       const seed = (await import(/* @vite-ignore */ "/scripts/shots/seed.tsx")) as {
@@ -370,11 +357,6 @@ async function newRun(
       seed.seedStageState(["practice-1", "practice-2", "practice-3"], values);
     }, opts.seed);
   }
-  await button.click();
-  await page
-    .getByRole("button", { name: /^Ready/ })
-    .first()
-    .waitFor({ timeout: 90_000 });
   return run;
 }
 

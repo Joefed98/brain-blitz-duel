@@ -17,6 +17,7 @@ import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { JoulesLine } from "@/components/pass/JoulesLine";
 
 import { AnimatedScore } from "./AnimatedScore";
+import { useGameFxOnce } from "@/components/fx/GameFx";
 import { Dots } from "./Dots";
 import { PlayerBadge } from "./PlayerBadge";
 import { PodiumCards } from "./RoomPlayer";
@@ -96,6 +97,10 @@ export function FinalResult({
   const myColour = colourOf(myLook);
   const theirColour = colourOf(opponentLook);
   const cued = useRef(false);
+  // The kit's round-end payoff on the headline for the winner (silent: the screen's own sounds already play).
+  const screenRef = useRef<HTMLDivElement>(null);
+  const headline$ = { get current() { return screenRef.current?.querySelector("[data-names]") ?? null; } };
+  useGameFxOnce("win", headline$, outcome === "win", { silent: true, noHaptic: true });
   // Celebrations (src/lib/fx/celebrations.ts): both totals count up from the round before; a tap skips.
   const celebrate = useCelebrationsOn();
   const skipped = useTapToSkip(celebrate);
@@ -136,7 +141,7 @@ export function FinalResult({
   );
 
   return (
-    <div className="relative flex flex-1 flex-col gap-5 pt-4 text-left animate-phase-in">
+    <div ref={screenRef} className="relative flex flex-1 flex-col gap-5 pt-4 text-left animate-phase-in">
       <h1 data-names className="relative truncate text-center text-[40px] font-extrabold leading-tight text-foreground animate-word-scale-in">
         {headline}
       </h1>

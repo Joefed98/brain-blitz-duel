@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { fx } from "@/lib/fx";
+import { BAR_SECONDS_FROM_MS, clockText, useTimerLook } from "@/lib/gameFrame/headerStyle";
 import { stopWarning10, playVoice, playWarningTick } from "@/lib/sound";
 
 interface TimerBarProps {
@@ -66,12 +67,44 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
     }
   }, [active, seconds, remaining]);
   useEffect(() => () => stopWarning10(), []);
-  // The game frame's ring (Polish 2, 24 Oct 2026, display only): 48px, a #26262C track and the
-  // category-colour arc with a round cap, the seconds inside (polish-layout/game-frame.css).
+  // The look is the player's game timer (Settings → Appearance; lib/gameFrame/headerStyle.ts), in the header or larger
+  // in the arena's side panel (TimerLookContext). The sounds, warnings, role and spoken label are the same in every look.
+  const look = useTimerLook();
+  const fill = { transform: `scaleX(${progress})` };
+  const classes = `game-timer ${finalTen && !reduced ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`;
+  const label = `${seconds} seconds remaining`;
+  if (look.kind === "bar") {
+    // The bar alone; its seconds appear in the last ten, as it turns red. The label carries the time throughout.
+    const showSeconds = remaining > 0 && remaining <= BAR_SECONDS_FROM_MS;
+    return (
+      <div ref={root} data-timer-look="bar" data-timer-place={look.place} className={showSeconds && !critical ? `${classes} fx-timer-critical` : classes} aria-label={label} role="timer">
+        <span aria-hidden="true" className="game-timer-bar">
+          <span className={`game-timer-bar-fill${reduced || !smooth ? "" : " is-smooth"}`} style={fill} />
+        </span>
+        {showSeconds ? (
+          <span aria-hidden="true" className="game-timer-seconds">
+            {seconds}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+  if (look.kind === "chip") {
+    return (
+      <div ref={root} data-timer-look="chip" data-timer-place={look.place} className={classes} aria-label={label} role="timer">
+        <span aria-hidden="true" className={`game-timer-chip-fill${reduced || !smooth ? "" : " is-smooth"}`} style={fill} />
+        <span aria-hidden="true" className="game-timer-seconds">
+          {clockText(seconds)}
+        </span>
+      </div>
+    );
+  }
   return (
     <div
       ref={root}
-      className={`game-timer ${finalTen && !reduced ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`}
+      data-timer-look="ring"
+      data-timer-place={look.place}
+      className={classes}
       aria-label={`${seconds} seconds remaining`}
       role="timer"
     >

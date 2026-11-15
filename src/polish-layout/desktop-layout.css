@@ -512,7 +512,9 @@
 
 /* ------------------------------------------------------------------ the room panel (desktop only) */
 
-@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+/* The room panel's look: every 1024 px screen, a sideways tablet's arena included (the panel is drawn only on a computer
+   or in the arena, PhoneShell `panel`; phase 2 step 4 pass 2). */
+@media (min-width: 1024px) and (min-height: 500px) {
   /* The lobby uses the extra width: four players across, the settings line on one row. */
   [data-layout="desktop"] .rs-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
