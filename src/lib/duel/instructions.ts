@@ -21,7 +21,6 @@ import { operatorGapsDealt } from "./operatorGaps";
 import { prePatternNov15Pinned } from "./patternNov15";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
-import { prePatternNov15Pinned } from "./patternNov15";
 import { blockPatternHelp } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { standardNumberHelp } from "./standard/numberText";
 import {
@@ -673,6 +672,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Crates can’t be pulled,", detail: "so plan ahead." },
         { action: "The gold crate", detail: "on the gold mark scores a bonus." },
         { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, display only): Pushes and Par shown in play; Undo was always a real undo.
+        { action: "Par", detail: "is the fewest pushes, shown beside your pushes.", helpOnly: true },
+        { action: "Undo and Reset", detail: "give the push back: only the pushes left on the board count.", helpOnly: true },
+        { action: "Arrows or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
       ],
       score: PATTERN_STD_HELP.push,
     },

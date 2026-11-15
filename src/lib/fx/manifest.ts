@@ -508,6 +508,11 @@ const ENTRIES = {
   "push.push": { channel: "effects", frequency: 0, ms: 120, url: null },
   "push.home": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/push.home.mp3", volume: 0.88 },
   "push.solve": { channel: "effects", frequency: 0, ms: 1147, url: "/sounds/push.solve.mp3" },
+  // The Pattern overhaul (15 Nov 2026, docs/sound-cues/pattern-elevenlabs.md): library stand-ins until Joe's
+  // recordings (push.goldOff.mp3, push.stuck.mp3) replace them. push.stuck has no trigger yet (the deadlock hint
+  // comes with the levels).
+  "push.goldOff": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/retro.powerDown.mp3", volume: 0.5 },
+  "push.stuck": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/swing.vineCreak.mp3", volume: 0.6 },
   "tiles.slide": { channel: "effects", frequency: 0, ms: 160, url: null },
   "tiles.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "laser.place": { channel: "effects", frequency: 0, ms: 180, url: null },

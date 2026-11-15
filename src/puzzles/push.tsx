@@ -1,6 +1,6 @@
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
-import { FramePills } from "@/components/puzzles/pattern/framePills";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -16,6 +16,7 @@ import {
   pushSolutionFrames,
   replayPush,
 } from "@/lib/duel/push";
+import { pushParFor } from "@/lib/duel/pushPar";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -71,8 +72,8 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Push every crate onto a hatched floor marking. You can only push – never pull – and only one crate at a
-        time.
+        Push every crate onto a marked square. You can only push – never pull – and only one crate at a time.
+        Undo gives the push back.
       </p>
       <div className="flex items-center gap-2">
         <div style={{ width: 116 }}>
@@ -88,7 +89,7 @@ function IntroExample() {
         <span className="text-lg text-primary">▶</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer pushes earn a bonus. You have 120 seconds.
+        The fewest pushes (par, shown as you play) earn a bonus. You have 120 seconds.
       </p>
     </div>
   );
@@ -112,6 +113,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   const gold = puzzle.type === "push" && (puzzle.pushRev ?? 0) >= 1 ? puzzle.gold : undefined;
   const goldHome = gold ? replay.state.crates[gold.crate] === gold.target : false;
   const inFrame = useFrameProgress(replay.cratesOnTargets, targets.length, "home");
+  // The Pattern overhaul (15 Nov 2026, display only): par, the fewest pushes, looked up from the dealt layout.
+  const par = useMemo(() => (puzzle.type === "push" ? pushParFor(puzzle) : null), [puzzle]);
 
   useEffect(() => {
     onDraftAnswer?.(encodePushMoves(moves));
@@ -132,6 +135,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     soundCue(result.pushed ? "push.push" : "push.step");
     if (home > replay.cratesOnTargets && home < targets.length) soundCue("push.home");
     if (gold && !goldHome && result.state.crates[gold.crate] === gold.target) playCorrect();
+    // The Pattern overhaul (15 Nov 2026, sound only): the gold crate pushed off its gold mark.
+    if (gold && goldHome && result.state.crates[gold.crate] !== gold.target) soundCue("push.goldOff");
     setMoves((current) => [...current, dir]);
   };
 
@@ -156,8 +161,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     <div data-stage-column="2" data-polish="push" className="flex min-h-0 flex-1 flex-col gap-2">
       {inFrame ? null : (
         <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          pushes <span className="text-primary">{replay.pushes}</span> · moves {replay.moves} ·{" "}
-          {replay.cratesOnTargets} / {targets.length} home
+          pushes <span className="text-primary">{replay.pushes}</span>
+          {par ? ` · par ${par}` : ""} · moves {replay.moves} · {replay.cratesOnTargets} / {targets.length} home
         </p>
       )}
       <div
@@ -178,8 +183,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
       <FramePills
         testId="push"
         items={[
-          { id: "pushes", label: "Pushes", value: replay.pushes },
-          { id: "moves", label: "Moves", value: replay.moves },
+          // The Pattern overhaul (15 Nov 2026): Pushes and Par (red once over par), as the other Pattern games show.
+          ...(par ? parPills("Pushes", replay.pushes, par, "pushes") : [{ id: "pushes", label: "Pushes", value: replay.pushes }]),
           gold ? { id: "gold", label: "Gold crate", value: goldHome ? "on its mark" : "not yet", ...(goldHome ? { tone: "good" as const } : {}) } : null,
         ]}
       />
@@ -245,11 +250,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         <div className="push-reveal-board">
         <Board walls={puzzle.walls} targets={puzzle.targets} crates={myCorrect ? mine.state.crates : crates} pusher={myCorrect ? mine.state.pusher : pusherCell} gold={(puzzle.pushRev ?? 0) >= 1 ? puzzle.gold : undefined} />
         </div>
-      {/* One line (6 Nov 2026: "Minimum · 27 pushes" over "✓ 27 pushes" said the pushes twice; the verdict row has the time). */}
+      {/* One line (6 Nov 2026: "Minimum · 27 pushes" over "✓ 27 pushes" said the pushes twice; the verdict row has the time).
+          The Pattern overhaul (15 Nov 2026): under the solution playing back, the player's own count reads "You: …". */}
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ ${mine.pushes} push${mine.pushes === 1 ? "" : "es"}${mine.pushes === min ? " · the minimum" : ` · minimum ${min}`}`
-          : `${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} crates home · minimum ${min} push${min === 1 ? "" : "es"}`}
+          : `Minimum ${min} push${min === 1 ? "" : "es"} · You: ${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} home`}
       </p>
       </div>
     </div>
