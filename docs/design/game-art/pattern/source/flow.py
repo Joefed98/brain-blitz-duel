@@ -56,7 +56,7 @@ def bead(colour):
     def make():
         sc = begin(100, 128, pad=4, light=0.75)
         sc.view_settings.look = "AgX - Punchy"
-        shadow_catcher(100, 4)
+        # No shadow catcher: its ground darkens the whole square behind the bead on the board.
         sphere(50, 50, 44, marble_bead(f"bead{colour}", colour), z=44)
     return make
 
@@ -82,9 +82,9 @@ def wall():
 
 def cell():
     """A dark recessed slot: a satin black tray floor inside a slightly lighter rim."""
-    begin(100, 96, pad=0, light=0.45)
-    rim = mat("cellrim", "#1a1b22", 0.6)
-    floor = mat("cellfloor", "#0b0c10", 0.75)
+    begin(100, 96, pad=0, light=0.3)
+    rim = mat("cellrim", "#15161c", 0.6)
+    floor = mat("cellfloor", "#08090c", 0.75)
     box(1, 1, 98, 98, 2, floor, r=6)
     for x, y, w, h in ((1, 1, 98, 6), (1, 93, 98, 6), (1, 1, 6, 98), (93, 1, 6, 98)):
         box(x, y, w, h, 4, rim, r=2.5)

@@ -40,6 +40,8 @@
   height: 108%;
   pointer-events: none;
   user-select: none;
+  /* A small contact shadow under the bead (not a glow). */
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.55));
 }
 .flow-dot > .flow-symbol {
   position: absolute;
