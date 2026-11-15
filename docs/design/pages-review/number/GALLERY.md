@@ -48,9 +48,25 @@ game review's round-end frame); after: a part-played practice round at 390 × 84
 | Ballpark | <img src="img/numline-reveal-before.webp" width="200" alt="Ballpark reveal before"> | <img src="img/numline-reveal-after.webp" width="200" alt="Ballpark reveal after"> |
 | Kakuro | <img src="img/kakuro-reveal-before.webp" width="200" alt="Kakuro reveal before"> | <img src="img/kakuro-reveal-after.webp" width="200" alt="Kakuro reveal after"> |
 
-## Stage 2: effects
+## Stage 2: effects and the layout pass
 
-To come once the effects kit is on main.
+Built with the effects kit (#422; docs/design/game-fx/README.md). Clips (MP4 or animated WebP, 1.8 MB in all):
+
+- [Counterweight: a kettlebell lifted, hung and the beam settling](clips/balance-hang.mp4)
+- [Exact: two tiles sliding together into the result](clips/target-merge.mp4)
+- [Integer Pyramid: the last stone and the gold sweep, a rising note a row](clips/numpyramid-complete.mp4)
+- [Brimful: the pour, lifting, tipping and the water settling (hero effect)](clips/measure-pour.mp4)
+- [Checkout: the dart's flight, thud and the score counting down (hero effect)](clips/checkout-dart.webp)
+- [Ballpark: the payoff, each true spot flying in from your marker](clips/numline-payoff.mp4)
+- [Kakuro: a run completing](clips/kakuro-run.webp)
+
+The layout pass (Joe, 15 Nov 2026) is in the "New" column above: Counterweight's instrument fills its wall, Operator's
+panel runs from the goal line to Next, Ballpark's ruler is the big element under a compact card, Integer Pyramid's
+tray in balanced rows. Operator's and Integer Pyramid's live effects:
+
+| Operator: the running total and the try pips | Integer Pyramid: seams and cracks |
+|---|---|
+| <img src="img/equation-fx-after.webp" width="200" alt="Operator effects"> | <img src="img/numpyramid-fx-after.webp" width="200" alt="Integer Pyramid effects"> |
 
 ## Stage 3: levels
 

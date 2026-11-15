@@ -55,9 +55,35 @@ chips. Pictures in place of lists: Brimful's moves as jugs, Exact's route as til
 rendered board, Ballpark's markers joined to their true spots, Counterweight's scale on its wall with the balance.
 Every older stamp's stored answer still reveals; a room's public half (no solutions) shows yours alone. Display only.
 
-## Stage 2: effects (with the effects kit)
+## Stage 2: effects (with the effects kit) and the layout pass
 
-To come.
+Every effect goes through the kit (`gameFx`, #422), `silent` where the game plays its own cue, on the pieces' own
+elements only; nothing reads or writes a grade, clock or hit area (each game pair's check proves the graders import
+none of it). The display helpers: `balanceTiltDeg` (Counterweight's tilt, proportional and capped), `exactCombineRate`
+(the merge's pitch), `gapRunningTotal` and `operatorAllFirstTime` (numberOverhaulFx.ts), `npRowsRight`,
+`measureNearJugs` and `measureFillPlays` (measureFx.ts), `numlineTenthsCrossed` (numlineFx.ts), checkoutFx.ts (the
+dart's flight, landing exactly on its drawn spot) and kakuroFx.ts (`kakuroSolveOrder`, across then down).
+
+- Counterweight: lift and hang (pickUp, drop), the tilt by how far off, the pointer trembling one unit off (nearMiss),
+  locking level (win); out of hangs greys and slides away with its own thunk.
+- Exact: the operator click (tap), the merge sliding together pitched by size (slide), the plate pulsing within 10
+  (nearMiss), the hit (win), Undo sliding back.
+- Operator: the tile drop, "So far n" under the line, the red flash and cracked pip, the gold "=", a combo on four
+  first-time solves; Skip's swish.
+- Integer Pyramid: the stone thunk, seams popping gold or cracking, a combo per full row, a rising note a row on
+  completion.
+- Brimful: lift, tip and settle on a pour; the fill sized to the amount; the empty splash; the target line's flash
+  and plink; the one-move hint.
+- Checkout: the dart's arc, thud and count-down; Bust with the darts dropping out; the ring on a finish and the crowd
+  on a big one; Undo's tug.
+- Ballpark: a tick each tenth while dragging, the pin stamping in, the payoff in the reveal (each true spot flying in,
+  bullseyes sparkling, the count climbing).
+- Kakuro: the digit tap, a broken run's red pulse, a complete run's gold clue and two-note pitched by length, the
+  combo, the solve lighting across then down.
+
+The layout pass: Counterweight's instrument fills its wall (bigger kettlebells, staggered drops), Operator's panel
+spans goal line to Next, Ballpark's line is the big element (a rendered three-slice ruler with tenths, a compact
+card), Integer Pyramid's tray in balanced rows (`npTrayRows`).
 
 ## Stage 3: levels (with the level registry)
 

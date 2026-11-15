@@ -81,8 +81,6 @@ const NP_CSS = `
 .pyramid-tray-tile.np-loose.np-picked, [data-puzzle-surface] [data-polish] .pyramid-tray-tile.np-loose.np-picked { transform: translateY(-3px); box-shadow: 0 0 0 2px #1c1a17, 0 0 0 4px var(--primary), 0 6px 8px rgba(0,0,0,.5) !important; }
 .np-ghost { box-shadow: 0 10px 18px rgba(0,0,0,.55), inset 2px 2px 0 rgba(255,250,235,.55) !important; }
 .game-column [data-polish="numpyramid"] > .np-spacer { flex: 1 1 0 !important; min-height: 0; margin: 0 !important; }
-/* Stage 2 (a live round): the board is sized to its own area, so that area takes the spare height, not the spacers. */
-.game-column [data-polish="numpyramid"][data-bw-live] > .np-spacer { flex: 0 0 0 !important; }
 .np-reveal-label { color: #d9d2c4; }
 /* Polish batch W (25 Oct 2026, display only; live round only, [data-bw-live]): the same stone and sand, lit. A
    light top bevel, a body about a fifth lighter at the top than the bottom, a shadow under each brick; sockets
