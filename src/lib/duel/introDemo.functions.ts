@@ -109,6 +109,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The Pattern overhaul (15 Nov 2026): gravityRev 8 gives undone tilts back and limits each board to par + 8 (and
     // older demos may show stars), so only a demo recorded on gravityRev 8 plays; until then the intro shows its still.
     if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 8) return null;
+    // The Pattern overhaul (15 Nov 2026): pipesRev 5 turns tiles both ways and shows leaks live, so a demo recorded
+    // before it (clockwise taps, no spills) stays stopped until one is recorded on pipesRev 5; the intro shows its still.
+    if (data.type === "pipes" && demo?.puzzle.type === "pipes" && (demo.puzzle.pipesRev ?? 0) < 5) return null;
     if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 4) return null;
     // Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1): number and mixed gaps on a new screen, so a signs-only demo
     // stays stopped (the intro shows its still) until one is recorded on gapsRev 1.

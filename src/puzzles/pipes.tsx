@@ -3,11 +3,11 @@ import { PIPE_ARMS, PipeArt, PipeSurge } from "@/components/puzzles/pattern/pipe
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
+import { HudPills } from "@/components/puzzles/HudPills";
 import {
   decodePipesTurns,
   encodePipesTapAnswer,
   encodePipesTurnAnswer,
-  pipesAfterTaps,
   pipesAfterTurns,
   type PipesTurn,
 } from "@/lib/duel/depth4/pipesTaps";
@@ -61,6 +61,8 @@ const PipeTileView = memo(function PipeTileView({
   lit,
   source,
   leakArms = 0,
+  wrong = false,
+  untouched = false,
   onTurnCell,
   twoWay = false,
   label,
@@ -73,6 +75,10 @@ const PipeTileView = memo(function PipeTileView({
   lit: boolean;
   source: boolean;
   leakArms?: number;
+  /** The reveal's highlight: the tile is not turned as in the solution. */
+  wrong?: boolean;
+  /** The reveal: left as dealt and still to turn (dimmed). */
+  untouched?: boolean;
   onTurnCell?: ((cell: number, dir: TurnDir) => void) | undefined;
   /** pipesRev 5: long press, swipe and right click turn anticlockwise. */
   twoWay?: boolean;
@@ -149,6 +155,8 @@ const PipeTileView = memo(function PipeTileView({
       }
       className="pipe-tile relative rounded-[6px]"
       data-lit={lit ? "true" : undefined}
+      data-wrong={wrong ? "true" : undefined}
+      data-untouched={untouched ? "true" : undefined}
       data-two-way={twoWay && onTurnCell ? "true" : undefined}
       data-pipe-cell={onTurnCell ? cell : undefined}
       aria-label={label ?? "Pipe tile"}
@@ -186,6 +194,8 @@ export const PipesBoard = memo(function PipesBoard({
   source,
   connected,
   showLeaks = false,
+  wrong,
+  untouched,
   onTurn,
   twoWay = false,
   gap = 6,
@@ -197,6 +207,10 @@ export const PipesBoard = memo(function PipesBoard({
   connected: Set<number>;
   /** Draws the water spilling from every open end of the network. */
   showLeaks?: boolean;
+  /** Tiles to outline red (the reveal: not as in the solution). */
+  wrong?: ReadonlySet<number> | undefined;
+  /** Tiles to dim (the reveal: left as dealt, still to turn). */
+  untouched?: ReadonlySet<number> | undefined;
   onTurn?: ((cell: number, dir: TurnDir) => void) | undefined;
   twoWay?: boolean;
   gap?: number | undefined;
@@ -227,6 +241,8 @@ export const PipesBoard = memo(function PipesBoard({
           lit={connected.has(cell)}
           source={cell === source}
           leakArms={leakArms?.[cell] ?? 0}
+          wrong={wrong?.has(cell) ?? false}
+          untouched={untouched?.has(cell) ?? false}
           inflow={inflows[cell] ?? 0}
           surgeDelay={solvedFlow && depths.has(cell) ? (depths.get(cell) ?? 0) * stepMs : undefined}
           surgeStep={stepMs}
@@ -407,62 +423,137 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * What the reveal shows of the player's own board (the Pattern overhaul's reveal, 15 Nov 2026), read the way the server
+ * graded it: from pipesRev 1 the tap log cut at the stored `turns` (the grader stops counting at the solve; pipesRev 5
+ * reads "-cell" as anticlockwise), before that the side-sets sent.
+ */
+export function pipesRevealView(
+  puzzle: PipesPuzzleData,
+  myAnswer: string | null,
+  myExtra?: Record<string, unknown> | null,
+): {
+  mine: PipeTile[];
+  connected: Set<number>;
+  solved: boolean;
+  /** Tiles the player turned that are not as in the solution (only on an unfinished board: any solved layout counts). */
+  wrong: Set<number>;
+  /** Tiles left as dealt that still needed turning (unfinished boards only). */
+  untouched: Set<number>;
+  /** The open ends of the water's network (spills). */
+  leaks: number;
+  /** Turns the grader counted (stored), or null on stamps that log none. */
+  turns: number | null;
+} {
+  const logged = (puzzle.pipesRev ?? 0) >= 1;
+  const twoWay = usesPatternNov15(puzzle, "pipes");
+  let mine: PipeTile[];
+  let turns: number | null = null;
+  let turned: Set<number>;
+  if (logged) {
+    const log = decodePipesTurns(myAnswer ?? "", puzzle.tiles.length, twoWay);
+    const stored = typeof myExtra?.["turns"] === "number" ? (myExtra["turns"] as number) : null;
+    turns = stored ?? log.length;
+    const used = log.slice(0, Math.min(log.length, turns));
+    mine = pipesAfterTurns(puzzle.tiles, used);
+    turned = new Set(used.map((t) => t.cell));
+  } else {
+    mine = decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
+    turned = new Set(mine.flatMap((tile, cell) => (tileOpenings(tile) !== tileOpenings(puzzle.tiles[cell]!) ? [cell] : [])));
+  }
+  const state = pipesState(mine, puzzle.source);
+  const wrong = new Set<number>();
+  const untouched = new Set<number>();
+  if (!state.solved && puzzle.solution?.length === puzzle.tiles.length) {
+    mine.forEach((tile, cell) => {
+      if (tileOpenings(tile) === ((puzzle.solution![cell] ?? 0) & 15)) return;
+      if (turned.has(cell)) wrong.add(cell);
+      else untouched.add(cell);
+    });
+  }
+  const leaks = networkLeakArms(mine, state.connected, PIPES_COLS).reduce((sum, arms) => sum + PIPE_ARMS.filter((a) => arms & a.bit).length, 0);
+  return { mine, connected: state.connected, solved: state.solved, wrong, untouched, leaks, turns };
+}
+
+/** Turns against par as a bar (the visual summary): the par mark in gold, the player's turns over it. */
+function TurnsBar({ turns, par }: { turns: number; par: number }) {
+  const span = Math.max(par * 2, turns, 1);
+  return (
+    <span className="pipes-turns-bar" data-pipes-turns-bar="" role="img" aria-label={`${turns} turns against a par of ${par}`}>
+      <span className="pipes-turns-fill" data-over={turns > par ? "true" : undefined} style={{ width: `${(100 * Math.min(turns, span)) / span}%` }} />
+      <span className="pipes-turns-par" style={{ left: `${(100 * par) / span}%` }} />
+    </span>
+  );
+}
+
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   // Kept per puzzle and answer, so the reveal clock's ticks leave both memoised boards alone.
   const boards = useMemo(() => {
     if (puzzle.type !== "pipes") return null;
     const solved: PipeTile[] = puzzle.tiles.map((tile, index) => ({
       sides: puzzle.solution?.[index] ?? tileOpenings(tile),
     }));
-    // pipesRev 1: the board is the tap log's, as the server graded it (pipesRev 5: both ways).
-    const mine = (puzzle.pipesRev ?? 0) >= 1
-      ? usesPatternNov15(puzzle, "pipes")
-        ? pipesAfterTurns(puzzle.tiles, decodePipesTurns(myAnswer ?? "", puzzle.tiles.length, true))
-        : pipesAfterTaps(puzzle.tiles, decodePipesTurns(myAnswer ?? "", puzzle.tiles.length, false).map((t) => t.cell))
-      : decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
-    return { solved, all: new Set(solved.map((_, index) => index)), mine, mineState: pipesState(mine, puzzle.source) };
-  }, [puzzle, myAnswer]);
+    return { solved, all: new Set(solved.map((_, index) => index)), view: pipesRevealView(puzzle, myAnswer, myExtra) };
+  }, [puzzle, myAnswer, myExtra]);
   if (puzzle.type !== "pipes" || !boards) return null;
-  const { solved, all, mine, mineState } = boards;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
+  const { solved, all, view } = boards;
+  void timeLimitMs;
+  // The numbers come from the stored grade: connected and turns from its extra, time left from the stored time.
+  const connected = typeof myExtra?.["connected"] === "number" ? (myExtra["connected"] as number) : view.connected.size;
+  const par = (puzzle.pipesRev ?? 0) >= 1 ? (puzzle.par ?? 0) : 0;
+  const timeLeft = myCorrect && myMsRemaining !== undefined ? Math.round(myMsRemaining / 1000) : null;
+  const twoWay = usesPatternNov15(puzzle, "pipes");
+  const result = myCorrect
+    ? `You: every pipe joined${timeLeft === null ? "" : `, ${timeLeft} s left`}`
+    : myAnswer === null || myAnswer === ""
+      ? "You: no turns"
+      : `You: ${connected} of ${PIPES_CELLS} joined to the source`;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3">
-      <div className="pipes-reveal-space flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3">
-      <div className="flex items-start justify-center gap-3">
-        <div className="pipes-reveal-board flex flex-col items-center gap-1">
-          <PipesBoard
-            tiles={solved}
-            source={puzzle.source}
-            connected={all}
-            solvedFlow
-            gap={4}
-          />
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            solved
-          </span>
+    <div className="pipes-reveal flex w-full min-h-0 flex-col items-center gap-2" data-pipes-reveal="">
+      <div className="pipes-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
+        <div className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-solution="">
+          <div className="pipes-reveal-board aspect-square">
+            <PipesBoard tiles={solved} source={puzzle.source} connected={all} solvedFlow gap={4} />
+          </div>
+          <span className="pipes-reveal-label">Solution</span>
+          <span className="pipes-reveal-caption">Every pipe joined to the source, no leaks</span>
         </div>
-        <div className="pipes-reveal-board flex flex-col items-center gap-1">
-          <PipesBoard
-            tiles={mine}
-            source={puzzle.source}
-            connected={mineState.connected}
-            showLeaks
-            solvedFlow={mineState.solved}
-            gap={4}
+        <div className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-yours="">
+          <div className="pipes-reveal-board aspect-square">
+            <PipesBoard
+              tiles={view.mine}
+              source={puzzle.source}
+              connected={view.connected}
+              showLeaks
+              wrong={view.wrong}
+              untouched={view.untouched}
+              solvedFlow={view.solved}
+              gap={4}
+            />
+          </div>
+          <span className="pipes-reveal-label">Yours</span>
+          <span className="pipes-reveal-caption" data-pipes-result="">{result}</span>
+          {/* The numbers that explain the score, from the stored grade (the player's own, so under Yours). */}
+          <HudPills
+            testId="pipes-reveal"
+            className="pipes-reveal-pills"
+            items={[
+              view.turns !== null ? { id: "turns", label: twoWay ? "Turns" : "Taps", value: view.turns, tone: myCorrect && par > 0 && view.turns > par ? "warn" : undefined } : null,
+              par > 0 ? { id: "par", label: "Par", value: par, tone: "gold" } : null,
+              { id: "connected", label: "Joined", value: `${connected}/${PIPES_CELLS}`, tone: myCorrect ? "good" : undefined },
+              timeLeft !== null ? { id: "time", label: "Time left", value: `${timeLeft} s` } : null,
+            ]}
           />
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            yours
-          </span>
+          {myCorrect && par > 0 && view.turns !== null ? <TurnsBar turns={view.turns} par={par} /> : null}
+          {view.wrong.size || view.untouched.size || view.leaks ? (
+            <span className="pipes-reveal-key" data-pipes-key="">
+              {view.wrong.size ? <span data-key="wrong">Red outline: turned, not as in the solution ({view.wrong.size})</span> : null}
+              {view.untouched.size ? <span data-key="untouched">Dimmed: still to turn ({view.untouched.size})</span> : null}
+              {view.leaks ? <span data-key="leak">Spray: an open end ({view.leaks})</span> : null}
+            </span>
+          ) : null}
         </div>
-      </div>
-      {/* The player's own line: shown only under Yours (SolutionSwitch's data-yours-only). */}
-      <p data-yours-only="" className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {myCorrect
-          ? `You: solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
-          : `You: ${mineState.connected.size} / ${PIPES_CELLS} connected`}
-      </p>
       </div>
     </div>
   );
