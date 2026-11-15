@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 38 | 0 | 488 | 526 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 64 | 1 | 984 | 1049 |
 
 ## Silent and placeholder cues
 
@@ -259,6 +259,14 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
+
+### Moon Climb
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `ricochet.fallWhistle` |  [arcade-effects.md] | The ninja stunned and falling, a red wash | 5–40 (per move) | silent | none | 900 | game event | `ricochet.fallWhistle` |
+| `ricochet.flowBreak` |  [arcade-effects.md] | FLOW ×n drops to ×0 in the HUD | 5–40 (per move) | silent | none | 350 | game event | `ricochet.flowBreak` |
+| `ricochet.scuff` |  [arcade-effects.md] | The ninja sliding down a green or icy patch | 5–40 (per move) | silent | none | loop | game event | `ricochet.scuff` |
 
 ### Rooftop Run
 

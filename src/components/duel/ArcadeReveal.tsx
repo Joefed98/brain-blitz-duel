@@ -14,6 +14,7 @@ import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
 import { RevealBreakdown } from "./RevealBreakdown";
+import { moonHitsLine } from "@/lib/duel/moonRevealHits";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
 
@@ -295,10 +296,12 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   const summary = shown ? revealSummary(shown.lines, myScore) : null;
   // The stats card keeps only what the breakdown doesn't already say (4 Nov 2026): no part repeated as "n / max".
   const partLabels = standardPartLabels(puzzle as unknown as { type: string } & Record<string, unknown>);
-  const tiles = shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label)).slice(0, 4), ...costRows] : [];
+  // Moon Climb's hits read as a line of the breakdown, not a stat (the Action overhaul, 15 Nov 2026; moonRevealHits.ts).
+  const hitsLine = myReveal ? moonHitsLine(puzzle as unknown as { type: string; ricoRev?: unknown }, myReveal.tiles) : null;
+  const tiles = shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label) && !(hitsLine && t.label === "Hits")).slice(0, 4), ...costRows] : [];
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
-  const breakdownLines = shown ? shown.lines : [];
+  const breakdownLines = shown ? (hitsLine ? [...shown.lines, hitsLine] : shown.lines) : [];
   // The reveal is its own screen (3 Nov 2026): no frozen world behind it; PhoneShell's `reveal` paints the game's colours.
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">

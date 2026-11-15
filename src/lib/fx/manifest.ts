@@ -767,7 +767,7 @@ const ENTRIES = {
   "ricochet.doubleJump": { channel: "effects", frequency: 0, ms: 473, url: "/sounds/ricochet.doubleJump.mp3" },
   "ricochet.hit": { channel: "effects", frequency: 0, ms: 476, url: "/sounds/ricochet.hit.mp3" },
   "ricochet.scroll": { channel: "effects", frequency: 0, ms: 592, url: "/sounds/ricochet.scroll.mp3" },
-  // Moon Climb (ricoRev 3, 3 Nov 2026): Joe's recordings to come; each plays a library sound until its file is set.
+  // Moon Climb (ricoRev 3, 3 Nov 2026): Joe's recordings since 3 Nov 2026 (docs/sound-cues/mapping-nov-2026.csv).
   "ricochet.lanternGrab": { channel: "effects", frequency: 0, ms: 429, url: "/sounds/ricochet.lanternGrab.mp3" },
   "ricochet.lanternRide": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/ricochet.lanternRide.mp3", loop: true, volume: 0.6 },
   "ricochet.ledge": { channel: "effects", frequency: 0, ms: 479, url: "/sounds/ricochet.ledge.mp3", gapMs: 80 },
@@ -776,6 +776,10 @@ const ENTRIES = {
   "ricochet.slip": { channel: "effects", frequency: 0, ms: 593, url: "/sounds/ricochet.slip.mp3" },
   "ricochet.heightStreak": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/banner.streak.mp3", volume: 0.8 },
   "ricochet.fullHeight": { channel: "effects", frequency: 0, ms: 840, url: "/sounds/banner.fullClear.mp3" },
+  // The Action overhaul (15 Nov 2026, docs/sound-cues/action-elevenlabs.md): silent until Joe's files are set.
+  "ricochet.fallWhistle": { channel: "effects", frequency: 0, ms: 900, url: null },
+  "ricochet.flowBreak": { channel: "effects", frequency: 0, ms: 350, url: null },
+  "ricochet.scuff": { channel: "effects", frequency: 0, ms: 2000, url: null, loop: true },
   "snip.cut": { channel: "effects", frequency: 0, ms: 230, url: null },
   "snip.springBounce": { channel: "effects", frequency: 0, ms: 80, url: null },
   "snip.hook": { channel: "effects", frequency: 0, ms: 110, url: null },

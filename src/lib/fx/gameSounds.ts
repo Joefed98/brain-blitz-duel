@@ -1596,10 +1596,20 @@ export function ninjaSounds(): GameSounds<NinjaState> {
       beginFrame("ricochet", state);
       const moon = state.rev === MOON_REV ? (state as MoonState) : null;
       loopCue("ricochet.lanternRide", running && moon !== null && moon.mode === MODE_RIDE && moon.ended === 0);
+      // The Action overhaul (15 Nov 2026): a scuff loop while sliding on moss or ice (silent until its file is set).
+      const sliding =
+        running && moon !== null && prev !== null && moon.ended === 0 && moon.mode === MODE_CLING && moon.ledge < 0 && state.y < prev.y &&
+        ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE;
+      loopCue("ricochet.scuff", sliding);
       if (prev && state.tick > prev.tick) {
         const was = prev as MoonState;
-        if (state.hits > prev.hits) { sfx("ricochet.hit", "arc_crash"); feel("impact"); }
-        else {
+        if (state.hits > prev.hits) {
+          sfx("ricochet.hit", "arc_crash");
+          feel("impact");
+          if (moon) effectCue("ricochet.fallWhistle");
+        } else {
+          // A Flow streak of 3 or more broken by a slide (silent until its file is set).
+          if (moon && (was.streak ?? 0) >= 3 && moon.streak === 0) effectCue("ricochet.flowBreak", 300);
           if (state.leaps > prev.leaps) sfx("ricochet.leap", "arc_gravity_flip", 0.5);
           if (state.djs > prev.djs) sfx("ricochet.doubleJump", "arc_gravity_flip", 0.6, 1.25);
           if (prev.mode === MODE_FLIGHT && state.mode === MODE_CLING) {
@@ -1616,7 +1626,10 @@ export function ninjaSounds(): GameSounds<NinjaState> {
       }
       prev = state;
     },
-    stop: () => loopCue("ricochet.lanternRide", false),
+    stop: () => {
+      loopCue("ricochet.lanternRide", false);
+      loopCue("ricochet.scuff", false);
+    },
   };
 }
 

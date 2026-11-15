@@ -1,3 +1,46 @@
+# Moon Climb: the Action overhaul (15 Nov 2026)
+
+Phase 2, step 4 (`docs/design/game-reviews/action.md`, gallery `docs/design/pages-review/action/GALLERY.md`). Stage 1
+is display only: no stamp, the sim, deal and scoring untouched (ricochet-overhaul-check replays 24 ricoRev 3 runs
+recorded before it and the 12 ricoRev 2 runs recorded on main to the same scores and states).
+
+- **The night** (`ricochetNinja.renderer.ts`): a deep blue moonlit sky that changes as the climb goes on. The moon rises
+  from just over the far ridge (large, warm, behind the pagoda) to high above the shaft (smaller, pale) and the sky
+  deepens with more stars, both from the run's best height (`moonNight`: 0 at the foot, 1 at the core's full 245 m,
+  smoothstepped, never going back), so every player at the same height sees the same sky. Three layers: the sky
+  (painted once per size), the deepening, extra stars and moon (a few fills each frame), the ridges, pagoda and mist
+  (painted once per size, over the moon).
+- **Crisper walls**: moonlit slate, every block bevelled (a lit top edge, a shadowed bottom, now and then a crack), a
+  moonlit rim on the inner face; moss has dark damp clumps (never read as ice); katanas a dark outline, a white cutting
+  edge and a long sharp tip; shurikens sharper points and a faint red ring at their touch radius. All inside their sim
+  boxes (+2 px).
+- **The ninja**: bolder (limbs 5.2 px, was 4.6) with a brighter moonlit glow and gold rim. The figure already fills its
+  26 × 52 body box, so it is drawn heavier, not larger (art-check holds every pose to main's extent + 0.5 px).
+- **HUD**: a second row of the Action HUD: lantern RIDES n/6 and SCROLLS n/3 (with small icons, gold once complete,
+  flashing as one is taken), under HEIGHT and FLOW (`moonHudRows`).
+- **Hits on the reveal**: one plain line in the breakdown, "Hits: 11 · knocked down 3 m each" (or "Hits: none"),
+  read from the stored Hits stat (`src/lib/duel/moonRevealHits.ts`), so older rounds show it too; the score unchanged.
+- **Edge to edge**: the world's floor is the temple's slate (`MOON_FLOOR`) and the play screen's fill below carries it
+  on to the screen's bottom; beside the world (wide screens) the slate wall continues, shaded as the world's walls are
+  at their outer edge (`ricochetNinjaScene.renderer.ts`).
+- **Sounds**: new silent-until-recorded slots `ricochet.fallWhistle` (a hit), `ricochet.flowBreak` (a streak of 3+
+  broken by a slide) and the loop `ricochet.scuff` (sliding on moss or ice); briefs in
+  `docs/sound-cues/action-elevenlabs.md`. Every earlier slot keeps Joe's recording.
+
+## Levels (stage 3, documented now; Normal is today's game)
+
+| Lever | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Katanas and shurikens | about half | today | about 1.3× | 1.6×, faster shurikens |
+| Moss / ice share of the walls | 30 / 10 % | 60 / 40 % | more ice | mostly ice |
+| Sky lanterns | 6, slower | 6 | 6 | 4, faster |
+| Knock-down on a hit (`NINJA_KNOCK`) | 2 m | 3 m | 3 m | 4 m |
+| Height full at (`MOON_CORE_FULL_M`) | 200 m | 245 m | 245 m | 260 m |
+
+The tower is dealt in the sim with its witness, so each level needs only its own witness-proved build (no bank). Every
+level keeps the grace (no game over: a hit knocks you down and stuns you), the minute's run, and 200 for the witness.
+"Moonwalker" (245 m on Hard) must stay possible. Hit scoring is unchanged until Joe's scoring review.
+
 # Moon Climb: ricoRev 3 (3 Nov 2026)
 
 Ricochet is shown as **Moon Climb** since 3 Nov 2026 (`gameNames.ts`; the id stays `ricochet`). Rooms and practice deal

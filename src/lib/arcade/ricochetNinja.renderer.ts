@@ -8,7 +8,7 @@
  * arcade bounds rule). The sky is painted once per canvas size (deviceLayer); only the walls, the objects in view and
  * the HUD are drawn each frame.
  */
-import { drawActionHud } from "./actionHud.renderer";
+import { drawActionHud, type ActionHudRow } from "./actionHud.renderer";
 import { deviceLayer } from "./cache.renderer";
 import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
 import { artHash } from "./art.renderer";
@@ -33,6 +33,7 @@ import {
   NINJA_WORLD_W,
   ninjaGame,
   moonGame,
+  ninjaClimbedPx,
   ninjaMetres,
   SCROLL_R,
   COIN_R,
@@ -47,6 +48,8 @@ import {
   MOON_LEDGE_HW,
   MOON_REV,
   MOON_RIDE_HANG,
+  MOON_SKY,
+  MOON_SCROLLS,
   MOON_SKY_R,
   moonSkyAt,
   type MoonState,
@@ -56,11 +59,12 @@ import {
 export const NINJA_BG = "#0A0D1C";
 export const NINJA_RED = "#E0283A";
 export const NINJA_GOLD = "#F2C75C";
-const STONE = "#2B2C38";
-const STONE_LIT = "#363746";
-const STONE_DARK = "#1C1D27";
-const MORTAR = "#14151D";
-const MOSS = "#4E8A3A";
+// Moonlit slate (the Action overhaul, 15 Nov 2026): a cool blue-grey stone, each block bevelled.
+const STONE = "#2F3548";
+const STONE_LIT = "#3A4259";
+const STONE_DARK = "#232839";
+const MORTAR = "#10131F";
+const MOSS = "#3F7F2F";
 const ICE = "#BFE6F5";
 const STEEL = "#D8DEE8";
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
@@ -129,53 +133,130 @@ function paintSky(ctx: CanvasRenderingContext2D): void {
   ctx.fillRect(0, H * 0.8, W, H * 0.2);
 }
 
-/** Moon Climb's sky (ricoRev 3): the same night with a larger moon high in the middle and the pagoda under it. */
+/*
+ * Moon Climb's night (ricoRev 3; the Action overhaul, 15 Nov 2026, display only): a deep blue moonlit sky that
+ * changes as the climb goes on. The moon rises from just over the far ridge (large, warm) to high above the shaft
+ * (smaller, pale), and the sky deepens and fills with stars, both from the run's best height (moonNight), so every
+ * player at the same height sees the same sky. Three layers: the sky (gradient, stars, cloud wisps; painted once per
+ * size), the night's deepening, the extra stars and the moon (drawn each frame, a few fills), then the ridge, the
+ * pagoda and the mist (painted once per size, over the moon so it rises from behind them).
+ */
+/** The night's progress, 0 at the foot of the tower to 1 at the core's full height: smooth, never going back. */
+export function moonNight(state: Pick<NinjaState, "best">): number {
+  const p = Math.max(0, Math.min(1, ninjaClimbedPx(state) / (MOON_CORE_FULL_M * NINJA_PX_PER_M)));
+  return p * p * (3 - 2 * p);
+}
+/** The moon's centre and radius for a night's progress (world px). */
+export function moonPlace(p: number): { x: number; y: number; r: number } {
+  return { x: NINJA_WORLD_W / 2, y: Math.round(610 - 440 * p), r: Math.round(66 - 16 * p) };
+}
+
 function paintMoonSky(ctx: CanvasRenderingContext2D): void {
   const W = NINJA_WORLD_W;
   const H = NINJA_WORLD_H;
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "#080B1E");
-  g.addColorStop(0.5, "#141B3E");
-  g.addColorStop(1, "#212650");
+  g.addColorStop(0, "#0A1435");
+  g.addColorStop(0.45, "#16295E");
+  g.addColorStop(0.8, "#26407F");
+  g.addColorStop(1, "#33508F");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-  for (let i = 0; i < 80; i++) {
+  // Stars, brighter higher up.
+  for (let i = 0; i < 90; i++) {
     const h = artHash(i, 43);
-    ctx.globalAlpha = 0.22 + ((h >>> 9) % 6) * 0.1;
+    const y = (h >>> 12) % Math.round(H * 0.72);
+    ctx.globalAlpha = (0.2 + ((h >>> 9) % 6) * 0.1) * (1 - (0.5 * y) / H);
     ctx.fillStyle = "#E8ECFF";
-    ctx.fillRect(NINJA_WALL_L + (h % (NINJA_WALL_R - NINJA_WALL_L)), (h >>> 12) % Math.round(H * 0.75), (h >>> 28) % 5 === 0 ? 2 : 1, 1);
+    ctx.fillRect(NINJA_WALL_L + (h % (NINJA_WALL_R - NINJA_WALL_L)), y, (h >>> 28) % 5 === 0 ? 2 : 1, (h >>> 28) % 5 === 0 ? 2 : 1);
   }
   ctx.globalAlpha = 1;
-  const mx = W / 2;
-  const my = 230;
-  const halo = ctx.createRadialGradient(mx, my, 40, mx, my, 128);
-  halo.addColorStop(0, "rgba(255,240,205,0.26)");
-  halo.addColorStop(1, "rgba(255,240,205,0)");
-  ctx.fillStyle = halo;
-  ctx.fillRect(mx - 130, my - 130, 260, 260);
-  ctx.fillStyle = "#F8EDCB";
-  ctx.beginPath();
-  ctx.arc(mx, my, 56, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "rgba(205,190,160,0.30)";
-  for (const [x, y, r] of [[-18, -10, 11], [16, 14, 8], [8, -24, 6], [-10, 24, 5], [26, -8, 4]] as const) {
+  // Thin cloud wisps, lit from below by the moon.
+  for (let i = 0; i < 6; i++) {
+    const h = artHash(i, 91);
+    const cy = 200 + (h % 360);
+    const cx = NINJA_WALL_L + ((h >>> 9) % (NINJA_WALL_R - NINJA_WALL_L));
+    const w = 70 + ((h >>> 17) % 70);
+    const c = ctx.createLinearGradient(0, cy - 5, 0, cy + 5);
+    c.addColorStop(0, "rgba(150,170,230,0)");
+    c.addColorStop(1, "rgba(170,190,245,0.16)");
+    ctx.fillStyle = c;
     ctx.beginPath();
-    ctx.arc(mx + x, my + y, r, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, w / 2, 4 + ((h >>> 25) % 4), 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillStyle = "#151A33";
+}
+
+/** The far ridge, the pagoda and the mist (transparent elsewhere): drawn over the moon. */
+function paintMoonRidge(ctx: CanvasRenderingContext2D): void {
+  const W = NINJA_WORLD_W;
+  const H = NINJA_WORLD_H;
+  // Two ridges, the far one paler.
+  ctx.fillStyle = "#1B2A5C";
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.86);
+  for (let x = 0; x <= W; x += 15) ctx.lineTo(x, H * 0.85 + 16 * Math.sin(x / 37 + 1) + 7 * Math.sin(x / 9));
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.fill();
+  ctx.fillStyle = "#101A3E";
   ctx.beginPath();
   ctx.moveTo(0, H * 0.9);
-  for (let x = 0; x <= W; x += 30) ctx.lineTo(x, H * 0.88 + 12 * Math.sin(x / 41) + 6 * Math.sin(x / 11));
+  for (let x = 0; x <= W; x += 15) ctx.lineTo(x, H * 0.89 + 11 * Math.sin(x / 41) + 5 * Math.sin(x / 11));
   ctx.lineTo(W, H);
   ctx.lineTo(0, H);
   ctx.fill();
   drawPagoda(ctx, W / 2, Math.round(H * 0.9), 1.2);
   const mist = ctx.createLinearGradient(0, H * 0.78, 0, H);
-  mist.addColorStop(0, "rgba(120,130,190,0)");
-  mist.addColorStop(1, "rgba(120,130,190,0.18)");
+  mist.addColorStop(0, "rgba(130,150,215,0)");
+  mist.addColorStop(1, "rgba(130,150,215,0.2)");
   ctx.fillStyle = mist;
   ctx.fillRect(0, H * 0.78, W, H * 0.22);
+}
+
+/** The night's deepening, the extra stars and the moon for this progress (each frame). */
+function drawMoonNight(ctx: CanvasRenderingContext2D, p: number, tick: number): void {
+  const W = NINJA_WORLD_W;
+  const H = NINJA_WORLD_H;
+  if (p > 0.01) {
+    const d = ctx.createLinearGradient(0, 0, 0, H * 0.85);
+    d.addColorStop(0, `rgba(2,4,18,${(0.62 * p).toFixed(3)})`);
+    d.addColorStop(1, `rgba(2,4,18,${(0.3 * p).toFixed(3)})`);
+    ctx.fillStyle = d;
+    ctx.fillRect(0, 0, W, H);
+    // More stars come out as the night deepens; a few twinkle.
+    ctx.fillStyle = "#F2F4FF";
+    for (let i = 0; i < 40; i++) {
+      const h = artHash(i, 57);
+      const tw = (h >>> 3) % 7 === 0 ? 0.6 + 0.4 * Math.sin((tick + (h % 97)) / 11) : 1;
+      ctx.globalAlpha = Math.min(1, p * 1.4 * (0.45 + ((h >>> 9) % 6) * 0.1)) * tw;
+      const sz = (h >>> 28) % 4 === 0 ? 2 : 1.4;
+      ctx.fillRect(NINJA_WALL_L + 4 + (h % (NINJA_WALL_R - NINJA_WALL_L - 8)), (h >>> 12) % Math.round(H * 0.6), sz, sz);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // The moon: warm and large on the ridge, pale and higher as it rises.
+  const m = moonPlace(p);
+  const warm = 1 - p;
+  const halo = ctx.createRadialGradient(m.x, m.y, m.r * 0.8, m.x, m.y, m.r * 2.3);
+  halo.addColorStop(0, `rgba(255,${Math.round(225 + 15 * p)},${Math.round(170 + 50 * p)},0.26)`);
+  halo.addColorStop(1, "rgba(255,235,200,0)");
+  ctx.fillStyle = halo;
+  ctx.fillRect(m.x - m.r * 2.3, m.y - m.r * 2.3, m.r * 4.6, m.r * 4.6);
+  const face = ctx.createRadialGradient(m.x - m.r * 0.35, m.y - m.r * 0.35, m.r * 0.1, m.x, m.y, m.r);
+  face.addColorStop(0, `rgb(255,${Math.round(246 - 6 * warm)},${Math.round(226 - 50 * warm)})`);
+  face.addColorStop(1, `rgb(${Math.round(232 + 10 * warm)},${Math.round(218 - 22 * warm)},${Math.round(186 - 66 * warm)})`);
+  ctx.fillStyle = face;
+  ctx.beginPath();
+  ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+  ctx.fill();
+  // Maria and craters, scaled to the moon.
+  ctx.fillStyle = `rgba(${Math.round(170 + 20 * warm)},${Math.round(160 - 10 * warm)},${Math.round(140 - 30 * warm)},0.33)`;
+  const k = m.r / 56;
+  for (const [x, y, r] of [[-18, -10, 11], [16, 14, 8], [8, -24, 6], [-10, 24, 5], [26, -8, 4], [-28, 10, 3.5]] as const) {
+    ctx.beginPath();
+    ctx.arc(m.x + x * k, m.y + y * k, r * k, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 /** A five-roof pagoda silhouette, its base at (x, base), with a few lit windows. */
@@ -224,26 +305,56 @@ function drawWall(ctx: CanvasRenderingContext2D, wall: number, cam: number): voi
     const off = r % 2 === 0 ? 0 : 22;
     for (let bx = x0 - off; bx < x1; bx += 44) {
       const h = artHash(r * 7 + wall, Math.round(bx));
-      ctx.fillStyle = h % 5 === 0 ? STONE_LIT : h % 7 === 0 ? STONE_DARK : STONE;
       const a = Math.max(x0, bx + 1);
       const b = Math.min(x1, bx + 43);
-      if (b > a) ctx.fillRect(a, sy + 1, b - a, ROW - 2);
+      if (b <= a) continue;
+      // Each block bevelled (the Action overhaul): a moonlit top edge, a shadowed bottom, now and then a crack.
+      ctx.fillStyle = h % 5 === 0 ? STONE_LIT : h % 7 === 0 ? STONE_DARK : STONE;
+      ctx.fillRect(a, sy + 1, b - a, ROW - 2);
+      ctx.fillStyle = "rgba(190,205,255,0.16)";
+      ctx.fillRect(a, sy + 1, b - a, 1.5);
+      ctx.fillStyle = "rgba(0,0,0,0.32)";
+      ctx.fillRect(a, sy + ROW - 3, b - a, 2);
+      if (h % 9 === 0 && b - a > 20) {
+        ctx.strokeStyle = "rgba(8,10,20,0.55)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const cx = a + 6 + ((h >>> 5) % (b - a - 12));
+        ctx.moveTo(cx, sy + 3);
+        ctx.lineTo(cx + 3, sy + 11);
+        ctx.lineTo(cx - 1, sy + 19);
+        ctx.stroke();
+      }
     }
   }
-  // The inner face: a lit edge on the stone towards the gap and a shadow.
-  const edge = wall === 0 ? NINJA_WALL_L - 3 : NINJA_WALL_R;
-  ctx.fillStyle = "rgba(160,170,220,0.16)";
-  ctx.fillRect(edge, 0, 3, NINJA_WORLD_H);
+  // The inner face: a moonlit rim on the stone towards the gap, and the wall's own shade further out.
+  const edge = wall === 0 ? NINJA_WALL_L - 4 : NINJA_WALL_R;
+  const rim = ctx.createLinearGradient(edge, 0, edge + 4, 0);
+  rim.addColorStop(0, wall === 0 ? "rgba(150,170,235,0.06)" : "rgba(170,190,250,0.38)");
+  rim.addColorStop(1, wall === 0 ? "rgba(170,190,250,0.38)" : "rgba(150,170,235,0.06)");
+  ctx.fillStyle = rim;
+  ctx.fillRect(edge, 0, 4, NINJA_WORLD_H);
+  const shade = ctx.createLinearGradient(x0, 0, x1, 0);
+  shade.addColorStop(wall === 0 ? 0 : 1, "rgba(0,0,10,0.35)");
+  shade.addColorStop(wall === 0 ? 1 : 0, "rgba(0,0,10,0)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(x0, 0, w, NINJA_WORLD_H);
 }
 
 function drawFloor(ctx: CanvasRenderingContext2D, cam: number): void {
   const sy = ninjaScreenY(cam, (NINJA_START >> 8) - NINJA_HH);
   if (sy > NINJA_WORLD_H) return;
-  ctx.fillStyle = "#3A2E22";
+  // The temple's slate floor (the Action overhaul): the play screen's fill below the world carries on in the same
+  // colour (MOON_FLOOR, ricochetNinjaScene.renderer.ts), so there is no step at the world's bottom edge.
+  ctx.fillStyle = MOON_FLOOR;
   ctx.fillRect(0, sy, NINJA_WORLD_W, NINJA_WORLD_H - sy + 2);
-  ctx.fillStyle = "#5A4630";
+  ctx.fillStyle = "#3A4466";
   ctx.fillRect(0, sy, NINJA_WORLD_W, 3);
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  for (let x = 30; x < NINJA_WORLD_W; x += 60) ctx.fillRect(x, sy + 3, 1.5, NINJA_WORLD_H - sy);
 }
+/** The floor's slate, shared with the play screen's fill below the world. */
+export const MOON_FLOOR = "#1E2540";
 
 /* ================================ Objects ================================ */
 
@@ -261,6 +372,14 @@ export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: num
   if (kind === SURF_MOSS) {
     ctx.fillStyle = MOSS;
     ctx.fillRect(x, top, depth, h);
+    // Damp, dark clumps in the moss (the Action overhaul): moss reads soft and green, never like ice.
+    ctx.fillStyle = "#2B5C20";
+    for (let i = 0; i * 11 < h; i++) {
+      const hh = artHash(i, Math.round(top) * 5 + wall);
+      ctx.beginPath();
+      ctx.ellipse(x + 3 + (hh % (depth - 6)), top + 5 + i * 11, 3, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.fillStyle = "#6FB04E";
     for (let y = top + 4; y < bottom - 2; y += 9) ctx.fillRect(wall === 0 ? face - 4 : face + 1, y, 3, 4);
     ctx.fillStyle = "#86C861";
@@ -311,17 +430,24 @@ export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: num
 export function drawKatana(ctx: CanvasRenderingContext2D, wall: number, sy: number, tick: number, seed: number): void {
   const dir = wall === 0 ? 1 : -1;
   const face = wall === 0 ? NINJA_WALL_L : NINJA_WALL_R;
-  // The blade: steel, edge-lit, the tip angled.
-  ctx.fillStyle = STEEL;
+  // The blade: steel with a dark outline (so it reads on any stone), a bright cutting edge and a long sharp tip
+  // (the Action overhaul, 15 Nov 2026); inside the sim's KATANA_LEN × 2·KATANA_HALF box.
   ctx.beginPath();
-  ctx.moveTo(face + dir * 6, sy - KATANA_HALF + 1);
-  ctx.lineTo(face + dir * (KATANA_LEN - 6), sy - KATANA_HALF + 1);
-  ctx.lineTo(face + dir * KATANA_LEN, sy + KATANA_HALF - 1);
-  ctx.lineTo(face + dir * 6, sy + KATANA_HALF - 1);
+  ctx.moveTo(face + dir * 6, sy - KATANA_HALF + 0.5);
+  ctx.lineTo(face + dir * (KATANA_LEN - 12), sy - KATANA_HALF + 0.5);
+  ctx.lineTo(face + dir * (KATANA_LEN - 0.5), sy + KATANA_HALF - 1);
+  ctx.lineTo(face + dir * 6, sy + KATANA_HALF - 0.5);
   ctx.closePath();
+  ctx.fillStyle = STEEL;
   ctx.fill();
+  ctx.lineJoin = "miter";
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#0B0D16";
+  ctx.stroke();
   ctx.fillStyle = "#8D97A8";
-  ctx.fillRect(Math.min(face + dir * 6, face + dir * (KATANA_LEN - 6)), sy + 1, KATANA_LEN - 12, KATANA_HALF - 2);
+  ctx.fillRect(Math.min(face + dir * 6, face + dir * (KATANA_LEN - 14)), sy - KATANA_HALF + 1.5, KATANA_LEN - 20, 2);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(Math.min(face + dir * 7, face + dir * (KATANA_LEN - 4)), sy + KATANA_HALF - 2, KATANA_LEN - 11, 1);
   // A glint running along it every couple of seconds.
   const p = (tick + (seed % 97)) % 130;
   if (p < 24) {
@@ -342,17 +468,23 @@ export function drawShuriken(ctx: CanvasRenderingContext2D, x: number, y: number
   ctx.translate(x, y);
   ctx.rotate((tick % 20) * ((Math.PI * 2) / 20));
   const r = SHURIKEN_R - 0.5;
+  // A faint red danger ring at the touch radius (the Action overhaul: a hazard reads at a glance).
+  ctx.strokeStyle = "rgba(255,80,90,0.28)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, SHURIKEN_R - 0.5, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.beginPath();
   for (let i = 0; i < 4; i++) {
     const a = (i * Math.PI) / 2;
     ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-    ctx.lineTo(Math.cos(a + Math.PI / 4) * 3.6, Math.sin(a + Math.PI / 4) * 3.6);
+    ctx.lineTo(Math.cos(a + Math.PI / 4) * 2.9, Math.sin(a + Math.PI / 4) * 2.9);
   }
   ctx.closePath();
-  ctx.fillStyle = "#8E97A6";
+  ctx.fillStyle = "#A3ACBB";
   ctx.fill();
   ctx.lineJoin = "round";
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 1.4;
   ctx.strokeStyle = "#14161E";
   ctx.stroke();
   // A bright bevel on one side of each point, so the turning reads.
@@ -525,7 +657,9 @@ function setPose(p: HeroPose, pose: number, face: number, tick: number): void {
   };
   // Bolder since 3 Nov 2026 (Joe's audit: the hero read small at play size): thicker limbs and a bigger head, still
   // inside the 26 × 52 body box (the hood's edge at most 11 px out, the box's half-width 13).
-  p.stick = 4.6;
+  // Bolder again in the Action overhaul (15 Nov 2026): the figure already fills its body box, so it reads bigger by
+  // weight (thicker limbs), not by reaching past the box the blades hit.
+  p.stick = 5.2;
   p.headR = 8;
   p.scale = 1;
   p.detailScale = NaN;
@@ -534,7 +668,7 @@ function setPose(p: HeroPose, pose: number, face: number, tick: number): void {
   p.face = 0.7 * f;
   if (pose === 0) {
     // Clinging: crouched to the wall behind, hands up on the stone, feet braced.
-    const wall = -f * 11;
+    const wall = -f * 10.2;
     at("headX", f * 1); at("headY", -18);
     at("neckX", 0); at("neckY", -11);
     at("shoulderX", 0); at("shoulderY", -8);
@@ -600,12 +734,13 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
   ctx.translate(x, y);
   if (scale !== 1) ctx.scale(scale, scale);
   const f = face;
-  // A soft moonlit glow behind the figure (inside its body box), so it reads on the night sky.
-  ctx.fillStyle = "rgba(170,190,255,0.3)";
+  // A soft moonlit glow behind the figure (inside its body box), so it reads on the night sky; brighter since the
+  // Action overhaul (15 Nov 2026), with a firmer gold rim: the ninja is the first thing the eye finds.
+  ctx.fillStyle = "rgba(175,195,255,0.38)";
   ctx.beginPath();
   ctx.ellipse(0, 0, NINJA_HW + 1, NINJA_HH + 1, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(242,199,92,0.35)";
+  ctx.strokeStyle = "rgba(242,199,92,0.55)";
   ctx.lineWidth = 1.5;
   ctx.stroke();
   if (pose === 2) ctx.rotate(spin * face);
@@ -688,16 +823,52 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
 
 /* ================================ The frame ================================ */
 
-/** Moon Climb's HUD (the Action HUD since 3 Nov 2026): HEIGHT N m (the main count) left, FLOW ×N right (gold while a streak runs). */
-function drawMoonHud(ctx: CanvasRenderingContext2D, s: MoonState): void {
+/**
+ * Moon Climb's HUD lines (the Action overhaul, 15 Nov 2026): the first row HEIGHT N m (the main count) left and
+ * FLOW ×N right (gold while a streak runs); the second row the two other scored parts, lantern RIDES n/6 left and
+ * SCROLLS n/3 right, each gold once complete and flashing as one is taken. Exported for the check.
+ */
+export function moonHudRows(s: MoonState): ActionHudRow[] {
   const m = ninjaMetres(s);
   const lit = s.tick - s.flowTick < 30;
-  drawActionHud(ctx, NINJA_WORLD_W, [
+  const grab = s.tick - s.grabTick < 30 ? 1 - (s.tick - s.grabTick) / 30 : 0;
+  const scroll = s.tick - s.pickTick < 30 ? 1 - (s.tick - s.pickTick) / 30 : 0;
+  return [
     {
       left: [{ label: "HEIGHT", value: `${m} m`, tone: m >= MOON_CORE_FULL_M ? "gold" : "plain", pulse: { id: "ricochet", tick: s.tick } }],
       right: [{ label: "FLOW", value: `×${s.streak}`, tone: s.streak > 0 ? "gold" : "dim", flash: lit ? 1 - (s.tick - s.flowTick) / 30 : 0 }],
     },
-  ]);
+    {
+      left: [{ label: "RIDES", value: `${s.rides}/${MOON_SKY}`, tone: s.rides >= MOON_SKY ? "gold" : "plain", flash: grab, icon: (c, x, y) => drawSkyLanternIcon(c, x, y) }],
+      right: [{ label: "SCROLLS", value: `${s.scrolls}/${MOON_SCROLLS}`, tone: s.scrolls >= MOON_SCROLLS ? "gold" : "plain", flash: scroll, icon: (c, x, y) => drawScrollIcon(c, x, y) }],
+    },
+  ];
+}
+
+/** A small sky lantern for the HUD chip (14 px). */
+function drawSkyLanternIcon(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.fillStyle = "#FF9C45";
+  ctx.beginPath();
+  ctx.ellipse(x, y, 4.5, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#3A2210";
+  ctx.fillRect(x - 3.5, y - 7, 7, 2);
+  ctx.fillRect(x - 3, y + 5, 6, 2);
+}
+
+/** A small scroll for the HUD chip (14 px). */
+function drawScrollIcon(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.fillStyle = "#F3E6C4";
+  ctx.fillRect(x - 5, y - 3.5, 10, 7);
+  ctx.fillStyle = "#7A4B22";
+  ctx.fillRect(x - 6.5, y - 4.5, 2, 9);
+  ctx.fillRect(x + 4.5, y - 4.5, 2, 9);
+  ctx.fillStyle = NINJA_RED;
+  ctx.fillRect(x - 0.75, y - 3.5, 1.5, 7);
+}
+
+function drawMoonHud(ctx: CanvasRenderingContext2D, s: MoonState): void {
+  drawActionHud(ctx, NINJA_WORLD_W, moonHudRows(s));
 }
 
 /** The HUD: "Height N m" top left, the items top right. */
@@ -746,8 +917,11 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
   const cam = ninjaCamera(s);
   const t = s.tick;
   const moon = s.rev === MOON_REV ? (s as MoonState) : null;
-  if (moon) deviceLayer(ctx, "moon-sky", paintMoonSky);
-  else deviceLayer(ctx, "ninja-sky", paintSky);
+  if (moon) {
+    deviceLayer(ctx, "moon-sky-v2", paintMoonSky);
+    drawMoonNight(ctx, moonNight(s), t);
+    deviceLayer(ctx, "moon-ridge-v2", paintMoonRidge);
+  } else deviceLayer(ctx, "ninja-sky", paintSky);
   drawWall(ctx, 0, cam);
   drawWall(ctx, 1, cam);
   drawFloor(ctx, cam);
