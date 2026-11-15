@@ -1,0 +1,125 @@
+<!doctype html>
+<!-- Joulz game key art renderer (phase 2 step 4). The art kit's raymarcher (docs/design/style-guide/source/art.html)
+     made general: each game is a list of rounded primitives (scene.mjs turns it into GLSL), one gloss material, one
+     key light from the top left (fixed relative to the camera), a soft contact shadow on an invisible floor. Glyphs
+     and small pictures on faces come from a texture atlas drawn here in Archivo. render.mjs drives it; not app code. -->
+<meta charset="utf-8">
+<style>@font-face{font-family:Archivo;src:url(../../../../public/fonts/archivo-var-latin.woff2) format('woff2');font-weight:100 900}</style>
+<canvas id="c"></canvas>
+<script id="fs" type="x-shader">#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2 uRes; uniform vec3 uRo, uTa, uL; uniform float uFocal, uGround; uniform sampler2D uAtlas; uniform float uGrid;
+float smin(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
+vec2 U(vec2 a,vec2 b){return a.x<b.x?a:b;}
+float sdSphere(vec3 p,float r){return length(p)-r;}
+float sdEll(vec3 p,vec3 r){float k0=length(p/r),k1=length(p/(r*r));return k0*(k0-1.)/max(k1,1e-5);}
+float sdRBox(vec3 p,vec3 b,float r){vec3 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-r;}
+float sdCap(vec3 p,vec3 a,vec3 b,float r){vec3 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h)-r;}
+float sdRCyl(vec3 p,float r,float h,float rr){vec2 d=vec2(length(p.xz)-r+rr,abs(p.y)-h+rr);return min(max(d.x,d.y),0.)+length(max(d,0.))-rr;}
+float sdTorus(vec3 p,float R,float r){vec2 q=vec2(length(p.xz)-R,p.y);return length(q)-r;}
+float sdCone(vec3 p,float h,float r1,float r2,float rr){h-=rr;r1-=rr;r2-=rr;vec2 q=vec2(length(p.xz),p.y);vec2 k1=vec2(r2,h),k2=vec2(r2-r1,2.*h);
+ vec2 ca=vec2(q.x-min(q.x,(q.y<0.)?r1:r2),abs(q.y)-h);vec2 cb=q-k1+k2*clamp(dot(k1-q,k2)/dot(k2,k2),0.,1.);
+ float s=(cb.x<0.&&ca.y<0.)?-1.:1.;return s*sqrt(min(dot(ca,ca),dot(cb,cb)))-rr;}
+float extrude(float d2,float z,float h,float r){vec2 w=vec2(d2+r,abs(z)-h+r);return min(max(w.x,w.y),0.)+length(max(w,0.))-r;}
+/*POLYS*/
+vec2 scene(vec3 p){vec2 r=vec2(1e9,-1.);
+/*SCENE*/
+ return r;}
+vec2 map(vec3 p){return scene(p);}
+vec3 nrm(vec3 p){vec2 e=vec2(.0012,-.0012);return normalize(e.xyy*map(p+e.xyy).x+e.yyx*map(p+e.yyx).x+e.yxy*map(p+e.yxy).x+e.xxx*map(p+e.xxx).x);}
+float shadow(vec3 ro,vec3 rd){float res=1.,t=.02;for(int i=0;i<36;i++){float h=map(ro+rd*t).x;res=min(res,9.*h/t);t+=clamp(h,.03,.3);if(res<.002||t>8.)break;}return clamp(res,0.,1.);}
+float ao(vec3 p,vec3 n){float o=0.,s=1.;for(int i=1;i<5;i++){float h=.05*float(i)*1.6;o+=(h-map(p+n*h).x)*s;s*=.7;}return clamp(1.-1.5*o,0.,1.);}
+vec3 lin(vec3 c){return pow(c,vec3(2.2));}
+vec4 decal(float cell,vec2 uv){if(uv.x<0.||uv.y<0.||uv.x>1.||uv.y>1.)return vec4(0.);
+ float cx=mod(cell,uGrid),cy=floor(cell/uGrid);return texture(uAtlas,(vec2(cx,cy)+vec2(uv.x,1.-uv.y))/uGrid);}
+vec4 matCol(int id,vec3 p,vec3 n){vec3 c=vec3(.5);float emit=0.;
+/*MATS*/
+ return vec4(c,emit);}
+vec4 shade(vec2 frag){
+ vec2 uv=(2.*frag-uRes)/uRes.y;
+ vec3 ro=uRo,ta=uTa;
+ vec3 ww=normalize(ta-ro),uu=normalize(cross(ww,vec3(0,1,0))),vv=cross(uu,ww);
+ vec3 rd=normalize(uv.x*uu+uv.y*vv+uFocal*ww);
+ vec3 L=uL;
+ float t=0.;vec2 h;bool hit=false;
+ for(int i=0;i<160;i++){h=map(ro+rd*t);if(h.x<.0007*t){hit=true;break;}t+=h.x*.92;if(t>40.)break;}
+ if(!hit){
+  float tp=(uGround-ro.y)/rd.y;
+  if(tp>0.){vec3 p=ro+rd*tp;float s=shadow(p,L);float a=(1.-s)*.40;
+   float occ=0.;for(int k=0;k<3;k++){occ+=max(0.,.22-map(p+vec3(0,.1*float(k+1),0)).x);} a=max(a,clamp(occ*.8,0.,.42));
+   return vec4(vec3(0.),a);}
+  return vec4(0.);}
+ vec3 p=ro+rd*t,n=nrm(p);vec4 mc=matCol(int(h.y+.5),p,n);vec3 b=lin(mc.rgb);
+ float dif=clamp(dot(n,L),0.,1.),sh=shadow(p+n*.004,L),oc=ao(p,n);
+ vec3 H=normalize(L-rd);float sp=clamp(dot(n,H),0.,1.);float fr=pow(1.-clamp(dot(n,-rd),0.,1.),3.);
+ vec3 rr=reflect(rd,n);
+ vec3 c=b*(.26*oc*(.6+.4*n.y)+.95*dif*mix(.35,1.,sh))+vec3(1.)*.9*pow(sp,80.)*sh+.2*fr*oc+.09*smoothstep(.1,.9,rr.y)*oc;
+ c=mix(c,b*1.05,mc.a);
+ c=c/(1.+.15*c);c=pow(c,vec3(1./2.2));return vec4(c,1.);}
+void main(){vec4 acc=vec4(0.);
+ for(int i=0;i<2;i++)for(int j=0;j<2;j++){vec4 s=shade(gl_FragCoord.xy+vec2(float(i),float(j))*.5-.25);acc+=vec4(s.rgb*s.a,s.a);}
+ o=acc/4.;}
+</script>
+<script>
+const cv=document.getElementById('c');
+const gl=cv.getContext('webgl2',{preserveDrawingBuffer:true,premultipliedAlpha:true,alpha:true});
+const VS='#version 300 es\nin vec2 a;void main(){gl_Position=vec4(a,0,1);}';
+const FS=document.getElementById('fs').textContent.trim();
+function sh(t,s){const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(x));return x;}
+const bf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+// Glyph atlas: GRID × GRID cells of CELL px. Each cell is one decal: text or a named painter.
+const GRID=16,CELL=128;const atlas=document.createElement('canvas');atlas.width=atlas.height=GRID*CELL;
+const tex=gl.createTexture();
+function paintAtlas(cells){const x=atlas.getContext('2d');x.clearRect(0,0,atlas.width,atlas.height);
+ cells.forEach((d,k)=>{const ox=(k%GRID)*CELL,oy=Math.floor(k/GRID)*CELL;x.save();x.translate(ox,oy);x.beginPath();x.rect(0,0,CELL,CELL);x.clip();
+  if(d.bg){x.fillStyle=d.bg;x.fillRect(0,0,CELL,CELL);}
+  if(d.paint)PAINTERS[d.paint](x,CELL,d);
+  if(d.text!=null){x.fillStyle=d.col||'#121218';x.textAlign='center';x.textBaseline='middle';
+   const lines=String(d.text).split('\n');const fs=(d.size||0.7)*CELL/(lines.length>1?1.05*lines.length:1);
+   x.font=`${d.weight||800} ${fs}px Archivo, "DejaVu Sans", sans-serif`;
+   lines.forEach((l,i)=>x.fillText(l,CELL/2+(d.dx||0)*CELL,CELL/2+(d.dy||0)*CELL+(i-(lines.length-1)/2)*fs*1.02));}
+  x.restore();});
+ gl.bindTexture(gl.TEXTURE_2D,tex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,atlas);gl.generateMipmap(gl.TEXTURE_2D);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);}
+const PAINTERS={
+ // A card face: rank top-left, a large suit in the middle.
+ card(x,S,d){x.fillStyle=d.ink;x.textAlign='center';x.textBaseline='middle';x.font=`800 ${S*.26}px Archivo, "DejaVu Sans"`;x.fillText(d.rank,S*.2,S*.17);
+  x.font=`${S*.2}px "DejaVu Sans"`;x.fillText(d.suit,S*.2,S*.37);x.font=`${S*.5}px "DejaVu Sans"`;x.fillText(d.suit,S*.58,S*.64);},
+ multi(x,S,d){x.textAlign='center';x.textBaseline='middle';for(const t of d.items){x.fillStyle=t.col||'#121218';x.font=`${t.weight||800} ${(t.size||.7)*S}px Archivo, "DejaVu Sans", sans-serif`;x.fillText(t.text,S/2+(t.dx||0)*S,S/2+(t.dy||0)*S);}},
+ ring(x,S,d){x.strokeStyle=d.col;x.lineWidth=(d.w||.06)*S;x.beginPath();x.arc(S/2,S/2,(d.r||.4)*S,0,7);x.stroke();},
+ kakuro(x,S,d){x.fillStyle=d.bg;x.fillRect(0,0,S,S);x.strokeStyle=d.col;x.lineWidth=S*.05;x.beginPath();x.moveTo(0,0);x.lineTo(S,S);x.stroke();
+  x.fillStyle=d.col;x.textAlign='center';x.textBaseline='middle';x.font=`800 ${S*.34}px Archivo`;if(d.a)x.fillText(d.a,S*.7,S*.3);if(d.b)x.fillText(d.b,S*.3,S*.72);},
+ ticks(x,S,d){x.fillStyle=d.col;for(let i=0;i<=d.n;i++){const u=(i/d.n)*(S*.9)+S*.05;const big=i%d.big===0;x.fillRect(u-S*.008,big?S*.25:S*.4,S*.016,big?S*.5:S*.2);}},
+ dartboard(x,S,d){const c=S/2,R=S*.5;const ring=(r0,r1,a,col)=>{x.beginPath();x.arc(c,c,r1,a,a+Math.PI/10);x.arc(c,c,r0,a+Math.PI/10,a,true);x.closePath();x.fillStyle=col;x.fill();};
+  x.fillStyle='#16161C';x.beginPath();x.arc(c,c,R,0,7);x.fill();
+  for(let i=0;i<20;i++){const a=i*Math.PI/10-Math.PI/20,o=i%2;ring(R*.1,R*.8,a,o?'#16161C':'#F1E6CF');ring(R*.8,R*.88,a,o?'#3DDC84':'#E8473F');ring(R*.46,R*.53,a,o?'#3DDC84':'#E8473F');}
+  x.fillStyle='#3DDC84';x.beginPath();x.arc(c,c,R*.1,0,7);x.fill();x.fillStyle='#E8473F';x.beginPath();x.arc(c,c,R*.045,0,7);x.fill();
+  x.strokeStyle='#B9B4A6';x.lineWidth=S*.006;for(const r of [.1,.46,.53,.8,.88]){x.beginPath();x.arc(c,c,R*r,0,7);x.stroke();}},
+ grid(x,S,d){x.strokeStyle=d.col;x.lineWidth=d.w||3;const n=d.n;for(let i=0;i<=n;i++){const v=i*S/n;x.beginPath();x.moveTo(v,0);x.lineTo(v,S);x.moveTo(0,v);x.lineTo(S,v);x.stroke();}},
+ dots(x,S,d){x.fillStyle=d.col;for(const [u,v,r] of d.pts){x.beginPath();x.arc(u*S,v*S,r*S,0,7);x.fill();}},
+ lines(x,S,d){x.strokeStyle=d.col;x.lineWidth=(d.w||.04)*S;x.lineCap='round';x.lineJoin='round';for(const pl of d.paths){x.beginPath();pl.forEach(([u,v],i)=>i?x.lineTo(u*S,v*S):x.moveTo(u*S,v*S));x.stroke();}},
+ polys(x,S,d){for(const [col,pts] of d.shapes){x.fillStyle=col;x.beginPath();pts.forEach(([u,v],i)=>i?x.lineTo(u*S,v*S):x.moveTo(u*S,v*S));x.closePath();x.fill();}},
+};
+let prog=null;
+window.compile=(glsl)=>{let fs=FS.replace('/*POLYS*/',glsl.polys).replace('/*SCENE*/',glsl.scene).replace('/*MATS*/',glsl.mats);
+ if(prog)gl.deleteProgram(prog);prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));
+ gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(prog));gl.useProgram(prog);
+ const al=gl.getAttribLocation(prog,'a');gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);paintAtlas(glsl.cells);return true;};
+window.renderArt=({w,h,ro,ta,L,focal,ground})=>{const u=n=>gl.getUniformLocation(prog,n);
+ cv.width=w;cv.height=h;gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.uniform2f(u('uRes'),w,h);gl.uniform3f(u('uRo'),...ro);gl.uniform3f(u('uTa'),...ta);gl.uniform3f(u('uL'),...L);
+ gl.uniform1f(u('uFocal'),focal);gl.uniform1f(u('uGround'),ground);gl.uniform1f(u('uGrid'),GRID);
+ gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(u('uAtlas'),0);
+ gl.drawArrays(gl.TRIANGLES,0,3);gl.finish();return cv.toDataURL('image/png');};
+// Composite on the game's own colour and encode: the art kit's tint (style guide screens2.mjs `tint`).
+window.composite=async({png,w,h,hue,a,type,q})=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');
+ x.fillStyle='#0F1424';x.fillRect(0,0,w,h);const R=Math.hypot(w,h);
+ const g=x.createRadialGradient(w*.65,h*.25,0,w*.65,h*.25,R*.72*1.1);g.addColorStop(0,hue+Math.round(a*255).toString(16).padStart(2,'0'));g.addColorStop(1,'#0F1424');
+ x.fillStyle=g;x.fillRect(0,0,w,h);
+ if(png){const im=new Image();im.src=png;await im.decode();x.imageSmoothingQuality='high';x.drawImage(im,0,0,w,h);}
+ return c.toDataURL(type||'image/webp',q??0.82);};
+window.ready=true;
+</script>
