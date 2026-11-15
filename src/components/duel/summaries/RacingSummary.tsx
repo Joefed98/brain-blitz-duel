@@ -17,9 +17,20 @@ const SIZE = 300;
 const secs = (ticks: number) => `${(ticks / 60).toFixed(1)} s`;
 
 function Stat({ label, value }: { label: string; value: string }) {
+  const unit = /^(\S+) (s|km\/h)$/.exec(value);
   return (
     <div data-run-stat={label} className="flex min-w-0 flex-col items-center">
-      <span className="text-2xl font-extrabold tabular-nums text-foreground">{value}</span>
+      {/* The number big and its unit smaller on the same line ("54.0 km/h" never wraps in three columns). */}
+      <span className="whitespace-nowrap text-2xl font-extrabold tabular-nums text-foreground">
+        {unit ? (
+          <>
+            {unit[1]}
+            <span className="ml-1 text-base font-bold">{unit[2]}</span>
+          </>
+        ) : (
+          value
+        )}
+      </span>
       <span className="reveal-meta">{label}</span>
     </div>
   );
