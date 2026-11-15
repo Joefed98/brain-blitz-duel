@@ -533,6 +533,12 @@ const ENTRIES = {
   "iceslide.crack": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.crack.mp3" },
   "iceslide.fall": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.fall.mp3", volume: 0.78 },
   "iceslide.solve": { channel: "effects", frequency: 0, ms: 1200, url: "/sounds/iceslide.solve.mp3" },
+  // The Pattern overhaul (15 Nov 2026, docs/sound-cues/pattern-elevenlabs.md): library stand-ins until Joe's
+  // recordings (iceslide.slideLong.mp3, iceslide.stop.mp3, iceslide.bump.mp3, iceslide.nearExit.mp3) replace them.
+  "iceslide.slideLong": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3", volume: 0.5 },
+  "iceslide.stop": { channel: "effects", frequency: 0, ms: 160, url: "/sounds/arc_fair_thud.mp3", volume: 0.55 },
+  "iceslide.bump": { channel: "effects", frequency: 0, ms: 90, url: "/sounds/arc_wood_knock.mp3", volume: 0.45 },
+  "iceslide.nearExit": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/gem.glint.mp3", volume: 0.5 },
   "blockparty.place": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/block.place.mp3" },
   "blockparty.turn": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "blockparty.flip": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
