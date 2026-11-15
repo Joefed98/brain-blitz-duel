@@ -20,6 +20,7 @@
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { RACING_FX } from "./sportsFx.renderer";
+import { drawRacingCarSprite } from "./racingCar.renderer";
 import { lookKey, NO_LOOK, type GameLook } from "./skins/look";
 import { skinReducedMotion, skinTime } from "./skins/motion.renderer";
 import {
@@ -45,6 +46,7 @@ import type { ArenaAmbient, ArenaSceneView } from "./arenaScene.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
   racingGame,
+  racingGameFor,
   racingGoTick,
   racingKmh,
   racingLap,
@@ -59,6 +61,9 @@ import {
   RACING_LAPS,
   RACING_REV_2,
   RACING_REV_3,
+  RACING_REV_4,
+  RACING_CIRCUITS,
+  racingCircuitOf,
   RACING_ROAD_X,
   RACING_RUN_TICKS,
   RACING_SEC_CHICANE,
@@ -94,8 +99,15 @@ const F = 300;
  * instead of about 40 %: more road shows ahead, and corners are seen earlier. The sim, the stick and its mapping are
  * unchanged.
  */
-const CH = 2200;
-const ZC = 1714;
+/**
+ * 15 Nov 2026 (the Sports overhaul, display only): the chase camera moved closer and lower (ZC 1714 → 1270, CH 2200 →
+ * 1600), so the car is drawn 1.35 times as large and its contact line sits a little higher (row 563, was 570). The sim,
+ * the stick and its mapping are unchanged.
+ */
+const CH = 1600;
+const ZC = 1270;
+/** The sun's lens flare (off: the overhaul's look has no glare). */
+const LENS_FLARE = false;
 const HORIZON = 185;
 /** Where the haze under the road reaches the near grass colour (COL.grassA), which it keeps below. */
 const HAZE_END = HORIZON + 40;
@@ -110,7 +122,8 @@ export function setRacingGrassSkip(on: boolean): void {
 export const RACING_CAR_Y = HORIZON + (CH * F) / ZC;
 const DRAW_SEGS = 150;
 const K_CURVE = 1.4;
-const HILL_K = 0.5;
+/** Hills on screen, scaled with the camera height (0.5 at CH 2200; the overhaul's lower camera, 15 Nov 2026). */
+const HILL_K = 0.36;
 /** Heading: radians per unit of curvature × segment; the sun's bearing. */
 const K_ANG = Math.PI / 300;
 const SUN_BEARING = 0.18;
@@ -564,6 +577,28 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
   ctx.restore();
 }
 
+/** The asphalt grain's tile (world px). */
+const GRAIN = 48;
+let grainTile: { pattern: CanvasPattern; ctx: Ctx2D } | null = null;
+/** A fine aggregate grain (light and dark specks, hashed, so every frame and device draws the same), as a pattern. */
+function asphaltGrain(ctx: Ctx2D): CanvasPattern | null {
+  if (grainTile && grainTile.ctx === ctx) return grainTile.pattern;
+  const s = makeSurface(GRAIN, GRAIN);
+  if (!s) return null;
+  const g = s.getContext("2d") as unknown as Ctx2D;
+  for (let i = 0; i < 260; i++) {
+    const x = hash(i * 3 + 1) * GRAIN;
+    const y = hash(i * 3 + 2) * GRAIN;
+    const light = hash(i * 3 + 3) > 0.55;
+    g.fillStyle = light ? "rgba(255,240,225,0.10)" : "rgba(0,0,0,0.16)";
+    g.fillRect(x, y, light ? 1 : 1.5, light ? 1 : 1);
+  }
+  const pattern = ctx.createPattern(s as unknown as CanvasImageSource, "repeat");
+  if (!pattern) return null;
+  grainTile = { pattern, ctx };
+  return pattern;
+}
+
 /* ================================ The track's look ================================ */
 
 interface Look {
@@ -691,13 +726,15 @@ function quad(path: Path2D, x1: number, y1: number, w1: number, x2: number, y2: 
   path.closePath();
 }
 
+/** The HUD chip's height and type (the Sports overhaul, 15 Nov 2026: 30 px at 16 px, was 24 at 12). */
+const CHIP_H = 30;
 function chip(ctx: Ctx2D, x: number, y: number, text: string, align: "left" | "center" | "right" = "left", accent = false): number {
-  ctx.font = `700 12px ${MONO}`;
-  const w = Math.ceil(ctx.measureText(text).width) + 18;
+  ctx.font = `800 16px ${MONO}`;
+  const w = Math.ceil(ctx.measureText(text).width) + 22;
   const left = align === "left" ? x : align === "right" ? x - w : x - w / 2;
-  ctx.fillStyle = "rgba(10,10,14,0.62)";
+  ctx.fillStyle = "rgba(10,10,14,0.7)";
   ctx.beginPath();
-  ctx.roundRect(left, y, w, 24, 12);
+  ctx.roundRect(left, y, w, CHIP_H, CHIP_H / 2);
   ctx.fill();
   ctx.strokeStyle = accent ? "rgba(242,199,92,0.8)" : "rgba(255,255,255,0.14)";
   ctx.lineWidth = 1;
@@ -705,7 +742,7 @@ function chip(ctx: Ctx2D, x: number, y: number, text: string, align: "left" | "c
   ctx.fillStyle = accent ? "#F2C75C" : "#F3F1EC";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, left + w / 2, y + 12.5);
+  ctx.fillText(text, left + w / 2, y + CHIP_H / 2 + 1);
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   return w;
@@ -831,7 +868,6 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     const scale = F / z;
     proj.push({ x: W / 2 + (px - carOffset - camX) * scale, y: HORIZON + (camY - py) * scale, w: RW * scale, scale });
   }
-
   // Road surfaces, front to back with the crest clip, one path per colour.
   const P = {
     grassA: new Path2D(), grassB: new Path2D(), gravelA: new Path2D(), gravelB: new Path2D(), runoff: new Path2D(),
@@ -927,6 +963,30 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   fill(P.edge, COL.edge);
   fill(P.start, "#18181C");
   fill(P.startW, "#F1EEE8");
+  if (!SK.world) {
+    // The Sports overhaul (15 Nov 2026, display only): the asphalt's grain, flowing past with the car (its offset follows
+    // the distance), and the low sun's warm light across the ground from its side of the sky (no glare: under the
+    // roadside, the car and every number).
+    const grain = asphaltGrain(ctx);
+    if (grain) {
+      const off = ((state.s / RACING_SEG) * 9) % GRAIN;
+      for (const road of [P.roadA, P.roadB, P.runoff]) {
+        ctx.save();
+        ctx.clip(road);
+        ctx.translate(0, off);
+        ctx.fillStyle = grain;
+        ctx.fillRect(B.x0, HORIZON - GRAIN, B.x1 - B.x0, B.y1 - HORIZON + 2 * GRAIN);
+        ctx.restore();
+      }
+    }
+    const lx = Math.max(-W, Math.min(2 * W, sunX));
+    const warm = ctx.createRadialGradient(lx, HORIZON, 0, lx, HORIZON, W * 1.5);
+    warm.addColorStop(0, "rgba(255,150,80,0.26)");
+    warm.addColorStop(0.45, "rgba(255,120,70,0.1)");
+    warm.addColorStop(1, "rgba(255,120,70,0)");
+    ctx.fillStyle = warm;
+    ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, B.y1 - HORIZON - 3);
+  }
 
   // Roadside, back to front: per segment its sprites, then its tyre walls (the trees stand behind them).
   const ghostAt = new Map<number, RacingGhostView[]>();
@@ -1039,7 +1099,10 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
       const gw = CAR_HALF_W * 2 * sc;
       ctx.save();
       ctx.globalAlpha = 0.42;
-      paintRacingCar(ctx, gx, gy, gw, false, g.colour, g.skin);
+      // The rendered car in the ghost's colour (or its owner's paint); the painted one until the images arrive.
+      const gPaint = racingCarPaint({ skin: g.skin ?? null, world: null });
+      if (!drawRacingCarSprite(ctx, { cx: gx, contactY: gy, width: gw, yawDeg: 0, braking: false, paint: gPaint, ghost: gPaint ? null : g.colour }))
+        paintRacingCar(ctx, gx, gy, gw, false, g.colour, g.skin);
       ctx.restore();
       if (gw > 14) {
         ctx.font = `700 ${Math.max(8, Math.min(12, gw * 0.18))}px ${ARCADE_FX_DISPLAY_FONT}`;
@@ -1095,6 +1158,17 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   // the body: more with speed, a little even at a crawl so the wheels read on the grid.
   const steerShare = (state.rev >= RACING_REV_2 ? state.wheel : state.steer) / RACING_STICK_MAX;
   const yaw = Math.max(-1, Math.min(1, steerShare * (0.35 + 0.65 * Math.min(1, speedShare * 1.6))));
+  // The rendered car (the Sports overhaul, 15 Nov 2026): the yaw's own frame, exactly the collision width, its lowest
+  // pixel on the contact line; the painted car below until its images arrive (and in checks without images).
+  const rendered = drawRacingCarSprite(ctx, {
+    cx: W / 2,
+    contactY: RACING_CAR_Y + bounce,
+    width: carW,
+    yawDeg: (yaw * RACING_CAR_TURN_MAX * 180) / Math.PI,
+    braking,
+    paint: racingCarPaint(SK),
+  });
+  if (!rendered) {
   ctx.save();
   // Yaw (3 Nov 2026, every revision): the car is one shape turned slightly into the turn about its centre, never
   // reshaped, so it stays symmetrical; scaled so the turned body's width stays the collision width (rule 3) and lifted
@@ -1112,8 +1186,10 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     ctx.drawImage(sprite, -CAR_SPRITE_W * s / 2, -(CAR_SPRITE_H - 2) * s, CAR_SPRITE_W * s, CAR_SPRITE_H * s);
   } else paintRacingCar(ctx, 0, 0, carW, braking);
   ctx.restore();
-  // Brake-light bloom (drawn here, not in the sprite, so it has no edge).
-  if (braking) {
+  }
+  // Brake-light bloom on the painted car only (drawn here, not in the sprite, so it has no edge); the rendered car's
+  // lights are its own.
+  if (braking && !rendered) {
     const by = RACING_CAR_Y + bounce - carW * 0.6 * 0.44;
     const glow = ctx.createRadialGradient(W / 2, by, 0, W / 2, by, carW * 0.62);
     glow.addColorStop(0, "rgba(255,70,60,0.32)");
@@ -1122,14 +1198,14 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     ctx.fillRect(W / 2 - carW * 0.62, by - carW * 0.62, carW * 1.24, carW * 1.24);
   }
   // Rain light blinking on the grass.
-  if (state.off && Math.floor(state.tick / 8) % 2 === 0) {
+  if (!rendered && state.off && Math.floor(state.tick / 8) % 2 === 0) {
     ctx.fillStyle = "rgba(255,80,80,0.9)";
     const h = carW * 0.6;
     ctx.fillRect(W / 2 - carW * 0.025, RACING_CAR_Y - h * 0.34 + bounce, carW * 0.05, h * 0.06);
   }
 
-  // A light lens flare when facing the sun.
-  if (sunOn) {
+  // A light lens flare when facing the sun (off since the Sports overhaul, 15 Nov 2026: no glare).
+  if (sunOn && LENS_FLARE) {
     const k = 1 - Math.abs(rel) / 1.1;
     const cx = W / 2;
     const cy = RACING_WORLD_H * 0.45;
@@ -1332,20 +1408,22 @@ function drawHud(ctx: Ctx2D, state: RacingState): void {
   // The race clock (from lights out on racingRev 2).
   const go = racingGoTick(state.rev);
   chip(ctx, W - 12, 10, done ? timeText(state.finishTick - go) : timeText(Math.min(racingRaceTicks(state), RACING_RUN_TICKS)), "right", done);
+  // racingRev 4: the circuit's name on the grid and for two seconds after lights out.
+  if (state.rev >= RACING_REV_4 && state.tick < go + 120) chip(ctx, W / 2, 48, RACING_CIRCUITS[racingCircuitOf(state.seed)]!.name.toUpperCase(), "center", true);
 
   // Speed, bottom left.
   const y = RACING_STICK_Y;
-  ctx.fillStyle = "rgba(10,10,14,0.5)";
+  ctx.fillStyle = "rgba(10,10,14,0.62)";
   ctx.beginPath();
   ctx.roundRect(12, y - 30, 92, 54, 12);
   ctx.fill();
   ctx.fillStyle = "#F3F1EC";
-  ctx.font = `700 28px ${MONO}`;
+  ctx.font = `800 34px ${MONO}`;
   ctx.textAlign = "right";
-  ctx.fillText(String(racingKmh(state.v)), 84, y + 4);
-  ctx.font = `700 10px ${MONO}`;
-  ctx.fillStyle = "rgba(243,241,236,0.7)";
-  ctx.fillText("KM/H", 92, y + 18);
+  ctx.fillText(String(racingKmh(state.v)), 94, y + 6);
+  ctx.font = `800 11px ${MONO}`;
+  ctx.fillStyle = "rgba(243,241,236,0.78)";
+  ctx.fillText("KM/H", 94, y + 20);
   ctx.textAlign = "left";
 
   // Clean-sector bars, bottom right: gold when clean, dim red when touched, outline ahead.
@@ -1614,6 +1692,22 @@ export function paintRacingTile(ctx: CanvasRenderingContext2D, size: number): vo
   ctx.scale(s, s);
   ctx.translate(-(RACING_WORLD_W - crop) / 2, -(RACING_CAR_Y + 16 - crop));
   const state = { ...racingGame.init(11), s: RACING_SEG * 40, v: 2600, tick: 300 };
+  const L = layersFor(Math.max(1, s * 2));
+  drawWorld(ctx, state, L);
+  ctx.restore();
+}
+
+/**
+ * The intro's still (the Sports overhaul, 15 Nov 2026): racingRev 4's chase view on Sunset Park with the rendered car
+ * (the painted one until its images arrive; the stage repaints it once they have).
+ */
+export function paintRacingIntro(ctx: CanvasRenderingContext2D, size: number): void {
+  ctx.save();
+  const crop = 360;
+  const s = size / crop;
+  ctx.scale(s, s);
+  ctx.translate(-(RACING_WORLD_W - crop) / 2, -(RACING_CAR_Y + 16 - crop));
+  const state = { ...racingGameFor(RACING_REV_4).init(RACING_CIRCUITS.length * 7), s: RACING_SEG * 40, v: 2600, tick: 600 };
   const L = layersFor(Math.max(1, s * 2));
   drawWorld(ctx, state, L);
   ctx.restore();

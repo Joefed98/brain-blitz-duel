@@ -167,18 +167,44 @@ def render_curling():
 
 
 # ---------------------------------------------------------------- Apex
+# Premium materials (Joe, 15 Nov 2026: light on real materials, not flat): a deep lacquered crimson under a mirror clear
+# coat, glossy carbon, matt rubber and polished gold; coat_rough is the clear coat's roughness.
 CAR = {
-    "paint": {"base": (0.16, 0.16, 0.19), "metallic": 0.7, "roughness": 0.3, "coat": 1.0},
-    "carbon": {"base": (0.012, 0.012, 0.014), "metallic": 0.2, "roughness": 0.35, "coat": 0.4},
-    "tyre": {"base": (0.018, 0.018, 0.02), "metallic": 0.0, "roughness": 0.75},
-    "rim": {"base": (1.0, 0.72, 0.32), "metallic": 1.0, "roughness": 0.25},
-    "gold": {"base": (1.0, 0.74, 0.34), "metallic": 1.0, "roughness": 0.2},
+    "paint": {"base": (0.20, 0.012, 0.022), "metallic": 0.45, "roughness": 0.22, "coat": 1.0, "coat_rough": 0.02},
+    "carbon": {"base": (0.014, 0.014, 0.017), "metallic": 0.25, "roughness": 0.2, "coat": 0.9, "coat_rough": 0.05},
+    "tyre": {"base": (0.03, 0.03, 0.032), "metallic": 0.0, "roughness": 0.62},
+    "rim": {"base": (1.0, 0.74, 0.34), "metallic": 1.0, "roughness": 0.14},
+    "gold": {"base": (1.0, 0.76, 0.36), "metallic": 1.0, "roughness": 0.1},
 }
 
 
 def mat(name, spec, emission=None, strength=0.0):
-    return lib.material(name, base=spec["base"], metallic=spec.get("metallic", 0), roughness=spec.get("roughness", 0.4),
-                        coat=spec.get("coat", 0), emission=emission, strength=strength)
+    m = lib.material(name, base=spec["base"], metallic=spec.get("metallic", 0), roughness=spec.get("roughness", 0.4),
+                     coat=spec.get("coat", 0), emission=emission, strength=strength)
+    if "coat_rough" in spec:
+        m.node_tree.nodes["Principled BSDF"].inputs["Coat Roughness"].default_value = spec["coat_rough"]
+    return m
+
+
+def sunset_world():
+    """An environment for the reflections: dark ground, a hot orange-pink horizon, a dusky violet sky overhead."""
+    w = lib.world((0, 0, 0), 1.0)
+    nt = w.node_tree
+    bg = nt.nodes["Background"]
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    nt.links.new(coord.outputs["Generated"], sep.inputs[0])
+    nt.links.new(sep.outputs["Z"], ramp.inputs[0])
+    nt.links.new(ramp.outputs[0], bg.inputs[0])
+    el = ramp.color_ramp.elements
+    el[0].position, el[0].color = 0.0, (0.02, 0.018, 0.02, 1)
+    el[1].position, el[1].color = 1.0, (0.12, 0.08, 0.25, 1)
+    el.new(0.47).color = (0.06, 0.05, 0.05, 1)
+    el.new(0.5).color = (1.6, 0.55, 0.22, 1)
+    el.new(0.56).color = (0.9, 0.3, 0.35, 1)
+    el.new(0.7).color = (0.25, 0.14, 0.35, 1)
+    bg.inputs[1].default_value = 0.9
 
 
 def box(name, loc, size, m, bevel=0.06, segs=3):
@@ -216,18 +242,18 @@ def build_car(braking, paint_spec=None):
     mats = {k: mat(f"car.{k}", v) for k, v in CAR.items()}
     if paint_spec:
         mats["paint"] = mat("car.paint", paint_spec)
-    light = lib.emission_material("car.light", (1.0, 0.08, 0.06), 9.0 if braking else 2.2)
+    light = lib.emission_material("car.light", (1.0, 0.08, 0.06), 7.0 if braking else 1.3)
     parts = []
     # Floor and tub.
     parts.append(box("floor", (0, 0, 0.16), (1.9, 4.5, 0.1), mats["carbon"], 0.03))
-    parts.append(box("tub", (0, 0.2, 0.42), (1.12, 3.9, 0.46), mats["paint"], 0.1, 3))
+    parts.append(box("tub", (0, 0.2, 0.42), (1.12, 3.9, 0.46), mats["paint"], 0.16, 6))
     # Sidepods sweeping up into the rear fenders.
     for sx in (-1, 1):
-        parts.append(box(f"pod{sx}", (sx * 0.72, -0.25, 0.42), (0.5, 2.9, 0.42), mats["paint"], 0.1, 3))
-        parts.append(box(f"fender{sx}", (sx * 0.82, -1.55, 0.58), (0.4, 1.05, 0.5), mats["paint"], 0.1, 3))
+        parts.append(box(f"pod{sx}", (sx * 0.72, -0.25, 0.42), (0.5, 2.9, 0.42), mats["paint"], 0.17, 6))
+        parts.append(box(f"fender{sx}", (sx * 0.82, -1.55, 0.58), (0.4, 1.05, 0.5), mats["paint"], 0.18, 6))
         parts.append(box(f"ffender{sx}", (sx * 0.8, 1.6, 0.52), (0.4, 0.95, 0.42), mats["paint"], 0.18, 4))
     # Engine cover (a fin up the middle) behind the cockpit.
-    parts.append(box("cover", (0, -1.0, 0.72), (0.62, 1.9, 0.36), mats["paint"], 0.1, 3))
+    parts.append(box("cover", (0, -1.0, 0.72), (0.62, 1.9, 0.36), mats["paint"], 0.17, 6))
     parts.append(box("fin", (0, -1.0, 0.95), (0.04, 1.5, 0.24), mats["paint"], 0.02))
     parts.append(box("stripe", (0, -1.0, 0.905), (0.16, 1.9, 0.02), mats["gold"], 0.005))
     # Rear wing on two gold-edged endplates.
@@ -238,9 +264,9 @@ def build_car(braking, paint_spec=None):
         parts.append(box(f"pylon{sx}", (sx * 0.25, -2.0, 0.84), (0.05, 0.12, 0.25), mats["carbon"], 0.01))
     # Diffuser, tail-light bar and the rain light.
     parts.append(box("diffuser", (0, -2.2, 0.26), (1.3, 0.2, 0.26), mats["carbon"], 0.02))
-    parts.append(box("lightbar", (0, -2.13, 0.66), (1.5, 0.04, 0.06), light, 0.01))
+    parts.append(box("lightbar", (0, -2.13, 0.66), (1.4, 0.04, 0.035), light, 0.008))
     for sx in (-1, 1):
-        parts.append(box(f"tail{sx}", (sx * 0.78, -2.12, 0.66), (0.24, 0.05, 0.12), light, 0.02))
+        parts.append(box(f"tail{sx}", (sx * 0.74, -2.12, 0.66), (0.22, 0.05, 0.08), light, 0.02))
     parts.append(box("rain", (0, -2.24, 0.42), (0.12, 0.03, 0.08), light, 0.01))
     # Wheels: wide rears, fronts mostly hidden.
     for sx in (-1, 1):
@@ -264,12 +290,13 @@ def render_racing():
     for variant in variants:
         for i, yaw in enumerate(yaws):
             lib.reset(W, H, samples=SAMPLES if variant != "mask" else max(16, SAMPLES // 2), transparent=True)
-            # Warm low sun from ahead-left, a cool sky fill, the road's bounce.
-            lib.world((0.35, 0.22, 0.2), 0.7)
-            lib.area_light((-6, 12, 3.0), (0, 0, 0.6), 3200, 6, (1.0, 0.62, 0.36))
-            lib.area_light((3, -5, 6), (0, 0, 0.5), 600, 5, (0.6, 0.7, 1.0))
-            lib.area_light((0, -4, 0.2), (0, 0, 0.6), 120, 6, (0.9, 0.55, 0.45))
-            spec = {"base": (0.9, 0.9, 0.9), "metallic": 0.0, "roughness": 0.5} if variant == "mask" else None
+            # The sunset: the environment for reflections, the low sun ahead-left raking the edges (rim light), a long soft
+            # strip above and behind for a crisp highlight along the curves, a faint cool fill from the camera's side.
+            sunset_world()
+            lib.area_light((-7, 14, 2.2), (0, 0, 0.6), 5200, 4, (1.0, 0.55, 0.28))
+            lib.area_light((0, -2.5, 5.5), (0, -0.5, 0.6), 520, 1.2, (1.0, 0.9, 0.82))
+            lib.area_light((4, -7, 2.5), (0, 0, 0.5), 160, 6, (0.55, 0.65, 1.0))
+            spec = {"base": (0.85, 0.85, 0.85), "metallic": 0.2, "roughness": 0.3, "coat": 1.0, "coat_rough": 0.02} if variant == "mask" else None
             build_car(variant == "brake", spec)
             if variant == "mask":
                 # Everything but the paint is held out: what remains is the paint's own shading, to tint for skins.
@@ -284,20 +311,39 @@ def render_racing():
                     x, y = o.location.x, o.location.y
                     c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
                     o.location.x, o.location.y = x * c - y * s, x * s + y * c
-            cam = lib.camera((0, -9.5, 3.1), (0, 0.6, 0.55), lens=58)
-            png = os.path.join(TMP, f"car-{variant}-{i}.png")
-            lib.render(png)
-            # Every variant is cropped to the same full frame, so they overlay exactly.
-            m = save(png, f"{variant}-{i}", "racing", crop=False)
-            if variant == "car":
-                l, r = project(cam, (-0.95 - 0.21, -2.2, 0.0), W, H), project(cam, (0.95 + 0.21, -2.2, 0.0), W, H)
-                frames.append({"yaw": yaw, **m, "contactY": round((l[1] + r[1]) / 2, 1)})
-    # The body's width at the rear wheels (outer tyre walls) for the bounds rule.
-    lib.reset(W, H, samples=8, transparent=True)
-    cam = lib.camera((0, -9.5, 3.1), (0, 0.6, 0.55), lens=58)
-    l = project(cam, (-1.07, -1.55, 0.36), W, H)
-    r = project(cam, (1.07, -1.55, 0.36), W, H)
-    META["racing"] = {"frames": frames, "bodyLeft": round(l[0], 1), "bodyRight": round(r[0], 1)}
+            lib.camera((0, -9.5, 3.1), (0, 0.6, 0.55), lens=58)
+            lib.render(os.path.join(TMP, f"car-{variant}-{i}.png"))
+    pack_racing(yaws)
+
+
+def pack_racing(yaws):
+    """Crops every variant to one shared box (so they overlay exactly) and records each yaw's car (alpha) bounds in it.
+
+    python render_sports.py racing-pack   repacks the last renders in RENDER_TMP without rendering again.
+    """
+    names = [f"{v}-{i}" for v in ("car", "brake", "mask") for i in range(len(yaws))]
+    imgs = {n: Image.open(os.path.join(TMP, f"car-{n}.png")).convert("RGBA") for n in names}
+    alpha = lambda im: im.getchannel("A").point(lambda a: 255 if a > 24 else 0)
+    box = None
+    for n in names:
+        b = alpha(imgs[n]).getbbox()
+        box = b if box is None else (min(box[0], b[0]), min(box[1], b[1]), max(box[2], b[2]), max(box[3], b[3]))
+    box = (box[0] - 2, box[1] - 2, box[2] + 2, box[3] + 2)
+    frames = []
+    d = os.path.join(PUBLIC, "racing")
+    os.makedirs(d, exist_ok=True)
+    total = 0
+    for n in names:
+        im = imgs[n].crop(box)
+        path = os.path.join(d, f"{n}.webp")
+        im.save(path, "WEBP", quality=82, method=6, alpha_quality=80)
+        total += os.path.getsize(path)
+    for i, yaw in enumerate(yaws):
+        # The car's own extent (body, wheels and wing, alpha over 24) in the shared box: the bounds rule's width.
+        b = alpha(imgs[f"car-{i}"].crop(box)).getbbox()
+        frames.append({"yaw": yaw, "left": b[0], "top": b[1], "right": b[2], "bottom": b[3]})
+    META["racing"] = {"w": box[2] - box[0], "h": box[3] - box[1], "frames": frames}
+    print(f"  racing: {len(names)} sprites {box[2] - box[0]}x{box[3] - box[1]}, {total / 1024:.0f} KB")
 
 
 def write_data():
@@ -317,6 +363,6 @@ def write_data():
 
 
 for g in ARGS or ["pool", "curling", "racing"]:
-    {"pool": render_pool, "curling": render_curling, "racing": render_racing}[g]()
+    {"pool": render_pool, "curling": render_curling, "racing": render_racing, "racing-pack": lambda: pack_racing([-5.0, -3.3, -1.7, 0.0, 1.7, 3.3, 5.0])}[g]()
 if not PREVIEW:
     write_data()

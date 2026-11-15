@@ -1385,17 +1385,27 @@ export function racingSounds(): GameSounds<RacingState> {
         if (!started && (go > 0 ? state.tick >= go && prev.tick < go : state.pedal > 0)) {
           started = true;
           sfx("racing.go", "arc_horn", 0.5);
+          feel("go");
         }
         if (state.wallHits > prev.wallHits) { sfx("racing.wall", "arc_crash", 0.8); feel("impact"); }
-        else if (state.off && !prev.off && !cueHasFile("racing.grassLoop")) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
+        else if (state.off && !prev.off) {
+          if (!cueHasFile("racing.grassLoop")) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
+          feel("error");
+        }
+        // The kerb's rumble under the thumb (the Sports overhaul, 15 Nov 2026): a tick every 10 ticks while on it.
+        if (onKerb && driving && state.v > 0 && state.tick % 10 === 0) feel("tick");
         const c = racingTrackOf(state).curve[racingSegAt(state.s)] ?? 0;
         const limit = racingBalanceSpeed(c);
         const hard = c !== 0 && !state.off && state.v * 1000 >= limit * SQUEAL_AT;
         if (hard && !squealing) effectCue("racing.squeal", 1500);
         squealing = hard;
-        if (state.clean > prev.clean) sfx("racing.sector", "arc_retro_coin", 0.6);
+        if (state.clean > prev.clean) {
+          sfx("racing.sector", "arc_retro_coin", 0.6);
+          feel("success");
+        }
         if (state.finishTick > 0 && prev.finishTick === 0) {
           sfx("racing.finish", "arc_fair_sting", 0.9);
+          feel("celebrate");
           effectCue("racing.roar");
         } else if (Math.floor(state.s / RACING_LAP) > Math.floor(prev.s / RACING_LAP)) sfx("racing.lap", "arc_fair_bell", 0.8);
       } else if (prev && state.tick < prev.tick) started = false;
