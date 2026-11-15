@@ -2,8 +2,8 @@
  * The Shop, Pass and Plus pages (phase 2 step 3, the Shop pages session, 14 Nov 2026; docs/design/style-guide phone/
  * and desktop/shop.png): the /shop route as the app draws it (harness mode "shop"), each part from its stand-in
  * (scripts/shop-fixture.ts, scripts/pass-fixture.ts), at every size and the sideways tablet, dark and light, with the
- * confirm and bundle sheets open. Appended last to THEME_SCREENS (theme-check, no-wrap-check), so every earlier draw
- * keeps its place in the parts.
+ * confirm and bundle sheets open. Drawn by theme-check and no-wrap-check after the core list (scripts/area-screens.ts
+ * finds this file by its default export, 14 Nov 2026).
  */
 import type { Page } from "playwright";
 
@@ -53,3 +53,6 @@ export const SHOP_SCREENS = (): ThemeScreen[] => {
     { name: "shop page light: plus", mode: "shop", plain: true, globals: { ...shop, ...light, __harnessPlus: plusFixture() }, search: { part: "plus" }, waitMs: 800, sizes: NAV_SIZES },
   ];
 };
+
+/** This area's screens for theme-check and no-wrap-check (the area-file shape, scripts/area-screens.ts). */
+export default SHOP_SCREENS;

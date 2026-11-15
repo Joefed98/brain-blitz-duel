@@ -8,6 +8,7 @@
  *    with the confirm and bundle sheets open.
  */
 import { readFileSync, readdirSync } from "node:fs";
+import { areaFiles } from "./area-screens";
 import { join } from "node:path";
 
 
@@ -45,11 +46,12 @@ check(!/<s\b|line-through/.test(files.map((f) => readFileSync(f, "utf8")).join("
 /* 3. the screens (read as text, so this stays a fast check) */
 // Joined paths: the screen files mention Playwright, and a spawning check naming them would count as a browser check.
 const screens = readFileSync(join("scripts", "screens", "shop.ts"), "utf8");
-const themeScreens = readFileSync(join("scripts", "theme-screens.ts"), "utf8");
 const entries = [...screens.matchAll(/\{ name: "shop page[^\n]*|name: "shop page[^"]*",[\s\S]*?sizes: [A-Z_]+/g)].map((m) => m[0]);
-// Changed with Joe's approval, 14 Nov 2026 (later areas append after the Shop): SHOP_SCREENS is in THEME_SCREENS straight
-// after APPEARANCE_SCREENS, the last pre-step-3 entry, so no earlier screen changes its place; later areas may follow it.
-check(/\.\.\.APPEARANCE_SCREENS\(\),\n {2}\.\.\.SHOP_SCREENS\(\),\n/.test(themeScreens), "SHOP_SCREENS is in THEME_SCREENS straight after APPEARANCE_SCREENS (theme-check, no-wrap-check)");
+// Changed with Joe's approval, 14 Nov 2026 (check plumbing): the area files are found automatically (scripts/area-screens.ts),
+// so the Shop's screens are proved by presence, not by a position in the shared list: scripts/screens/shop.ts exports
+// SHOP_SCREENS as its default and is found as an area file, so theme-check and no-wrap-check draw it.
+check(/^export default SHOP_SCREENS;$/m.test(screens), "scripts/screens/shop.ts default-exports SHOP_SCREENS (the area-file shape)");
+check(areaFiles().includes("shop.ts"), "scripts/screens/shop.ts is found as an area file (theme-check, no-wrap-check draw it)");
 check(entries.length === 11, `eleven Shop page screens (${entries.length})`);
 check(entries.every((e) => /sizes: (ALL_SIZES|NAV_SIZES)/.test(e)), "each drawn at every size");
 check(entries.filter((e) => /NAV_SIZES/.test(e)).length >= 3, "the main parts also on the sideways tablet");

@@ -23,14 +23,7 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { dailyFixture, type HarnessDaily } from "./daily-fixture";
 import { boardsFixture } from "./leaderboards-fixture";
 import { passFixture } from "./pass-fixture";
-import { SHOP_SCREENS } from "./screens/shop";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
-import { roomsRatedScreens } from "./screens/rooms-rated";
-import { PROFILE_SCREENS } from "./screens/profile";
-import { GAMES_SCREENS } from "./screens/games";
-import { TOURNAMENT_PAGES_SCREENS } from "./screens/tournaments";
-import { HOME_PLAY_SCREENS } from "./screens/home-play";
-import { SETTINGS_ACCOUNT_SCREENS } from "./screens/settings-account";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
   .pub as PuzzleData;
@@ -181,7 +174,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "badges" | "card" | "challenges" | "tournament" | "tournamentrules" | "dailyarchive" | "play" | "rooms" | "settings" | "onboarding";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "badges" | "card" | "challenges" | "tournament" | "tournamentrules" | "dailyarchive" | "play" | "rooms";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -786,13 +779,13 @@ export const NAV_SCREENS = (): ThemeScreen[] => {
 /** 2b (14 Nov 2026): Settings → Appearance (Dark, Light, Match my device), at every size; appended last. */
 export const APPEARANCE_SCREENS = (): ThemeScreen[] => [
   {
-    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings).
     name: "settings, appearance",
-    mode: "settings",
+    mode: "profile",
     sizes: ALL_SIZES,
     go: async (page) => {
-      await page.locator("[data-settings-page]").waitFor({ timeout: 10_000 });
-      await page.locator("[data-settings-page] [data-appearance-setting]").scrollIntoViewIfNeeded();
+      await page.locator("[data-open-settings]").first().click();
+      await page.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-settings-sheet] [data-appearance-setting]").scrollIntoViewIfNeeded();
       await page.waitForTimeout(300);
     },
   },
@@ -802,30 +795,23 @@ export const COMPONENT_SCREENS = (): ThemeScreen[] => [
   { name: "components", mode: "components", plain: true, sizes: ALL_SIZES },
   { name: "components, light", mode: "components", plain: true, globals: { __harnessTheme: "light" }, sizes: ALL_SIZES },
   {
-    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings).
     name: "settings, sound and volume",
-    mode: "settings",
+    mode: "profile",
     sizes: ALL_SIZES,
     go: async (page) => {
-      await page.locator("[data-settings-page]").waitFor({ timeout: 10_000 });
-      await page.locator("[data-settings-page] [data-volume-slider='music']").scrollIntoViewIfNeeded();
+      await page.locator("[data-open-settings]").first().click();
+      await page.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-settings-sheet] [data-volume-slider='music']").scrollIntoViewIfNeeded();
       await page.waitForTimeout(300);
     },
   },
 ];
 
 /**
- * The light theme (phase 2 step 2b, 14 Nov 2026): every theme screen again under <html data-theme="light"> (Settings →
- * Appearance), drawn by theme-check at its one size after every other draw (so the earlier draws keep their places in
- * its parts): every page readable at 4.5:1 in light. Screens that already set a theme are left out (they are drawn as
- * they are), and the extra sizes are dropped (the light tokens don't depend on the size).
+ * The core screens (everything up to APPEARANCE_SCREENS). Closed since 14 Nov 2026 (check plumbing, approved by Joe):
+ * never add to this list. A page area's screens go in their own scripts/screens/<area>.ts (the shape is in
+ * scripts/area-screens.ts); theme-check and no-wrap-check draw this list, then every area file in name order.
  */
-export const LIGHT_SCREENS = (): ThemeScreen[] =>
-  THEME_SCREENS.filter((s) => !(s.globals && "__harnessTheme" in s.globals)).map((s) => {
-    const { sizes: _sizes, ...rest } = s;
-    return { ...rest, name: `light: ${s.name}`, globals: { ...(s.globals ?? {}), __harnessTheme: "light" } };
-  });
-
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -872,12 +858,12 @@ export const THEME_SCREENS: ThemeScreen[] = [
       await page.waitForTimeout(300);
     },
   },
-  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): the page.
   {
     name: "settings sheet",
-    mode: "settings",
+    mode: "profile",
     go: async (page) => {
-      await page.locator("[data-settings-page]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-open-settings]").click();
+      await page.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 });
     },
   },
   { name: "lobby, 2 players", mode: "room", room: room("waiting", "starting") },
@@ -1001,13 +987,8 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...NAV_SCREENS(),
   ...COMPONENT_SCREENS(),
   ...APPEARANCE_SCREENS(),
-  ...SHOP_SCREENS(),
-  ...roomsRatedScreens({ room, sizes: ALL_SIZES }),
-  ...PROFILE_SCREENS(),
-  ...GAMES_SCREENS(NAV_SIZES, ALL_SIZES),
-  ...TOURNAMENT_PAGES_SCREENS(ALL_SIZES),
-  ...HOME_PLAY_SCREENS(ALL_SIZES),
-  ...SETTINGS_ACCOUNT_SCREENS(),
+  // The core list ends here and never grows again (check plumbing, 14 Nov 2026, approved by Joe): a page area's
+  // screens go in their own scripts/screens/<area>.ts, found by scripts/area-screens.ts and drawn after these.
 ];
 
 export interface ThemeViewport {

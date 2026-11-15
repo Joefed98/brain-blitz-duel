@@ -3,11 +3,11 @@
  * Settings page (/settings) for a guest and an account, every step of sign in and sign up (S2–S6, through the
  * check-only window.__DUELZ_ACCOUNT_FIXTURE__), Settings → Account on /account, the first-time intro's three panels
  * and the terms, in the dark theme and the light, at every size (ALL_SIZES). theme-check and no-wrap-check draw them
- * through THEME_SCREENS (scripts/theme-screens.ts, appended last).
+ * as an area file found by scripts/area-screens.ts.
  */
 import type { Page } from "playwright";
 
-// Imported after theme-screens has loaded (theme-screens imports this file): only read inside SETTINGS_ACCOUNT_SCREENS().
+// Only read inside SETTINGS_ACCOUNT_SCREENS() (the area loader imports this file after theme-screens).
 import { ACCOUNT_FIXTURE, ALL_SIZES, type ThemeScreen } from "../theme-screens";
 
 const scrollTo = (selector: string) => async (page: Page) => {
@@ -64,3 +64,5 @@ export const SETTINGS_ACCOUNT_SCREENS = (): ThemeScreen[] => {
     { name: "settings page light: terms", mode: "terms", plain: true, query: "terms=0", globals: light, sizes: ALL_SIZES },
   ];
 };
+
+export default SETTINGS_ACCOUNT_SCREENS;

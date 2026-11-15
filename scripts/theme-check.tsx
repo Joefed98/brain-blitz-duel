@@ -36,7 +36,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, LIGHT_SCREENS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, room } from "./theme-screens";
+import { CHROMIUM_PATHS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, room } from "./theme-screens";
+import { allThemeScreens, lightScreens, themeCheckDraws } from "./area-screens";
 import { APP_PAGE_FAMILY, THEME_FAMILIES, THEME_FONTS } from "../src/lib/theme";
 
 const args = process.argv.slice(2);
@@ -133,22 +134,16 @@ if (!CHROMIUM) {
   console.log("FAIL: environment: no Chromium (set PLAYWRIGHT_CHROMIUM)");
   process.exit(1);
 }
-// The light theme (2b, 14 Nov 2026): every screen again in light (LIGHT_SCREENS, one size each), after all the others.
-const ALL_SCREENS = [...THEME_SCREENS, ...LIGHT_SCREENS()];
+// The core screens, then every area file's in scripts/screens/ (scripts/area-screens.ts, 14 Nov 2026).
+const THEME_SCREENS = await allThemeScreens();
+// The light theme (2b, 14 Nov 2026): every screen again in light (lightScreens, one size each), after all the others.
+const ALL_SCREENS = [...THEME_SCREENS, ...lightScreens(THEME_SCREENS)];
 const SCREENS = ONLY.length
   ? ALL_SCREENS.filter((s) => ONLY.some((o) => s.name.includes(o)))
   : ALL_SCREENS;
 const VIEWPORT = VIEWPORTS[0]!;
-/** Every draw: the dark screens at VIEWPORT, then their extra sizes (as before 2b), then the light screens at VIEWPORT. */
-function themeCheckDraws(screens: typeof ALL_SCREENS, viewport: typeof VIEWPORT) {
-  const dark = screens.filter((s) => !s.name.startsWith("light: "));
-  const light = screens.filter((s) => s.name.startsWith("light: "));
-  return [
-    ...dark.map((screen) => ({ screen, viewport })),
-    ...dark.flatMap((screen) => (screen.sizes ?? []).map((v) => ({ screen, viewport: v }))),
-    ...light.map((screen) => ({ screen, viewport })),
-  ];
-}
+// Every draw (themeCheckDraws, scripts/area-screens.ts): the dark screens at VIEWPORT, then their extra sizes (as
+// before 2b), then the light screens at VIEWPORT.
 
 /** In-page: fonts, tokens, text to measure and controls. */
 function themeProbe(families: { head: string; body: string; mono: string; app: string }) {
