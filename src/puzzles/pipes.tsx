@@ -334,7 +334,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
-          : `✗ ${mineState.connected.size} / ${PIPES_CELLS} connected`}
+          : `${mineState.connected.size} / ${PIPES_CELLS} connected`}
       </p>
       </div>
     </div>

@@ -149,11 +149,26 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
     for (let k = Math.min(3, left) - 1; k >= 0; k--) drawCard(ctx, 0, TP_STOCK_X + k * 3, TP_PILE_Y - k * 3, TP_PILE_W, TP_PILE_H, { down: true, glow: k === 0 && view?.pressed === TP_STOCK_PILE ? 1 : 0 });
   } else drawSlot(ctx, TP_STOCK_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H, -1, "EMPTY");
   drawCard(ctx, state.top, TP_DISCARD_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H, { glow: fresh * 0.9 });
+  // A run that ended stuck (stock gone, nothing playable) says why, between the piles (15 Nov 2026, display only).
+  const stuck = tpStuckLines(state);
+  if (stuck) {
+    ctx.font = `800 13px ${CARD_FONT}`;
+    ctx.fillStyle = "rgba(246,235,208,0.92)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(stuck[0], W / 2, TP_PILE_Y + TP_PILE_H / 2 - 9);
+    ctx.fillText(stuck[1], W / 2, TP_PILE_Y + TP_PILE_H / 2 + 9);
+  }
 
   if (drag) {
     drawCard(ctx, state.tab[drag.index]!, drag.x - drag.ox, drag.y - drag.oy, TP_CARD_W, TP_CARD_H, { glow: 1 });
   }
   ctx.restore();
+}
+
+/** The note for a run that ended stuck (`ended` 3: the stock is gone and no card plays), or null. Display only. */
+export function tpStuckLines(state: Pick<TpState, "ended">): readonly [string, string] | null {
+  return state.ended === 3 ? ["NO PLAYS", "LEFT"] : null;
 }
 
 /** The art game for a stage: the revision's sim with this draw (no stamp: tripeaksRev 1). */

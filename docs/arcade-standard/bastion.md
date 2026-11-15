@@ -51,7 +51,7 @@ lanes, spawn moments, speed changes and vent phases from the seed) and changes, 
 
   No input scores 0; any input at least 1. **Core target:** all 63 hit points (every tank). Rev 3's checksum adds the
   drones (rev 2's is unchanged).
-- Display (every revision): the crosshair floats **100 px** above the thumb (was 60; input mapping only), scenery along
+- Display (every revision): the crosshair floats **120 px** above the thumb (100 on 3 Nov 2026, 120 since the shared screens batch; was 60; input mapping only), scenery along
   the lane edges and the horizon (rocks, broken walls, scrub, steel tank traps, two burnt-out wrecks, ruins on the
   skyline; all at least 200 px out from the centre at scale 1, outside the road's 192 px edge, so nothing covers a lane
   or a shot; `BT_SCENERY`); a Drones pill between Wave and Base on rev 3; flak puffs for sky misses; the drone's fall.
@@ -116,7 +116,7 @@ same game; the stamp decides which sim plays.
 
 ## Controls (one thumb)
 
-- **Drag anywhere to aim.** The crosshair floats 100 world px above the finger (60 until 3 Nov 2026). Slow, small drags move it less than the
+- **Drag anywhere to aim.** The crosshair floats 120 world px above the finger (60 until 3 Nov 2026, then 100, 120 since the shared screens batch). Slow, small drags move it less than the
   finger (a gain from 0.45 to 1 by finger speed) for fine aim. Recorded as `k = 7` aim events.
 - **Lift to fire** (`k = 1`, carrying the crosshair's point). A shell lands 18–30 ticks later (0.3–0.5 s, longer the
   higher on the screen it is aimed), on the front-most tank whose hull or turret covers the point at landing; so a

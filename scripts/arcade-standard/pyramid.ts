@@ -2,7 +2,9 @@
  * arcade-standard-check's entry for `pyramid` (Thirteen pyramidRev 2, Cards & Board; docs/arcade-standard/pyramid.md):
  * born on the standard at rev 1 (core 120, cleared 10, speed 50, pyramid pairs 20); rev 2 (7 Nov 2026) moves half the
  * speed onto the cards: core 140, cleared 15, speed 25 (whole-number maths), pyramid pairs 20. Perfect runs are each
- * deal's witness (a clear with ten pyramid pairs) through the server's replay on rev 2.
+ * deal's witness (a clear with ten pyramid pairs) through the server's replay on rev 2. Rooms deal pyramidRev 3 since
+ * 15 Nov 2026 (rev 2's deals and parts; a dead end waits for Undo): the entry follows the dealt stamp.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of pyramidRev 3).
  */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
 import { PY_CARDS, PY_CLEAR_MAX, PY_CORE_MAX, PY_RUN_TICKS, PY_SPEED_FULL_S, PY_SPEED_MAX, PY_V2_CLEAR_MAX, PY_V2_CORE_MAX, PY_V2_SPEED_MAX, pyramidGame, pyramidGameFor, pyramidStdParts, type PyState } from "../../src/lib/arcade/cards/pyramid";
@@ -13,7 +15,7 @@ import type { StdEntry } from "./entry";
 const spec = ARCADE_STANDARD.pyramid!.spec!;
 const rec = (s: PyState) => Object.fromEntries((pyramidStdParts(s) ?? []).map((p) => [p.key, p.points]));
 const maxes = (s: PyState) => Object.fromEntries((pyramidStdParts(s) ?? []).map((p) => [p.key, p.max]));
-const game = pyramidGameFor(2);
+const game = pyramidGameFor(3);
 /** A rev-1 state (stored rounds): its own parts. */
 const at1 = (over: Partial<PyState>): PyState => ({ ...pyramidGame.init(5), acted: 1, ...over });
 const removed1 = (v: number): PyState => at1({ removed: v, gone: Array.from({ length: PY_CARDS }, (_, i) => (i >= PY_CARDS - v ? 1 : 0)) });
@@ -23,15 +25,15 @@ const removed = (v: number): PyState => at({ removed: v, gone: Array.from({ leng
 export const entry: StdEntry = {
   type: "pyramid",
   field: "pyramidRev",
-  rev: 2,
-  before: 1,
+  rev: 3,
+  before: 2,
   parts: spec.parts,
   spec,
   liveSpec: true,
   perfect: () =>
     [0, 1, 2, 77, 10000, 123456789].map((seed) => {
-      const { raw } = pyramidFlawless(seed, 15, 2);
-      const r = replayPyramidRun(seed, raw, 2);
+      const { raw } = pyramidFlawless(seed, 15, 3);
+      const r = replayPyramidRun(seed, raw, 3);
       return { label: `seed ${seed}'s witness through the server replay`, score: r.score, parts: rec(r.state), partMaxes: maxes(r.state) };
     }),
   played: () => [{ label: "a tap on a covered card", score: game.score(at({})), want: 1 }],

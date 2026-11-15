@@ -196,10 +196,19 @@ const allAudio = repoFiles.map((f) => relative(".", f)).filter((f) => AUDIO.test
 const archived = allAudio.filter((f) => f.startsWith(ARCHIVE_DIR));
 const audioFiles = allAudio.filter((f) => !f.startsWith(ARCHIVE_DIR));
 const urls = new Set(ids.map((id) => manifest[id]!.url).filter((u): u is string => !!u));
+// The new game sounds (15 Nov 2026, src/lib/fx/newGameSounds.ts): each is a manifest slot's file behind the
+// NEW_GAME_SOUNDS switch (src/config/soundConfig.ts), so it counts as used whether the switch is on or off;
+// sound-review-fixes-check proves every one names a real slot and plays there with the switch on.
+const { NEW_GAME_SOUND_FILES } = await import("../src/lib/fx/newGameSounds");
+const switchUrls = new Set(
+  Object.entries(NEW_GAME_SOUND_FILES)
+    .filter(([slot]) => !!manifest[slot])
+    .map(([, f]) => f.url),
+);
 for (const file of audioFiles) {
   const url = file.startsWith("public/") ? `/${file.slice("public/".length)}` : null;
   check(
-    !!url && urls.has(url),
+    !!url && (urls.has(url) || switchUrls.has(url)),
     `${file}: audio file not used by any manifest slot${url ? "" : " (only public/ is served)"}`,
   );
 }

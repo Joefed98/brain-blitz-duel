@@ -249,7 +249,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ ${mine.pushes} push${mine.pushes === 1 ? "" : "es"}${mine.pushes === min ? " · the minimum" : ` · minimum ${min}`}`
-          : `✗ ${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} crates home · minimum ${min} push${min === 1 ? "" : "es"}`}
+          : `${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} crates home · minimum ${min} push${min === 1 ? "" : "es"}`}
       </p>
       </div>
     </div>

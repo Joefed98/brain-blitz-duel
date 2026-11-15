@@ -1471,13 +1471,21 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
     { kind: "combo", count: (s) => s.jackpotsFired ?? 0, at: matchupClearPoint, label: () => "JACKPOT!", textOnly: true },
     {
       kind: "final",
-      count: (s) => (s.raw >= matchupParRaw(s) ? 1 : 0),
+      count: (s) => (matchupParSmashed(s) ? 1 : 0),
       label: () => "PAR SMASHED!",
     },
   ],
   // An invalid swap (no match): a puff between the two gems as they slide back.
   misses: [{ count: (s) => s.lastInvalidTick, when: (s) => s.lastInvalidA >= 0 && s.lastInvalidB >= 0, at: matchupInvalidPoint }],
 };
+
+/**
+ * PAR SMASHED (display only): on the standard (matchupRev 11+, `std`) the par is the gems that fill the core, so it is
+ * compared with the gems cleared; older revisions compare match points as before.
+ */
+export function matchupParSmashed(s: MatchupState): boolean {
+  return (s.std ? (s.gemsCleared ?? 0) : s.raw) >= matchupParRaw(s);
+}
 
 /* ============================ Cards & Board ============================ */
 
@@ -1505,7 +1513,16 @@ const mahjongPoint = (s: MahjongState) => {
   return { x: (a.x + b.x + a.w) / 2, y: (a.y + b.y + a.h) / 2 };
 };
 
-/** Mahjong Solitaire: a pop per pair, a streak every 6 pairs, the clear; a tap on a blocked tile is the miss. */
+const mahjongSlotCentre = (slot: number): { x: number; y: number } | null => {
+  if (slot < 0) return null;
+  const r = mahjongSlotRect(slot);
+  return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+};
+
+/**
+ * Mahjong Solitaire: a pop per pair, a streak every 6 pairs, the clear; a tap on a blocked tile is a miss, and so (15 Nov
+ * 2026, display only) is a second tile that doesn't match (the sim's `misses`; the wrong tile becomes the selection).
+ */
 export const MAHJONG_FX: ArcadeFxSpec<MahjongState> = {
   game: "mahjong",
   world: "cards",
@@ -1517,7 +1534,10 @@ export const MAHJONG_FX: ArcadeFxSpec<MahjongState> = {
     { kind: "streak", count: (s) => s.pairs, every: 6, at: mahjongPoint, label: (_s, n) => `${n} PAIRS`, textOnly: true },
     { kind: "final", count: (s) => (mahjongCleared(s) ? 1 : 0), label: () => "CLEARED!" },
   ],
-  misses: [{ count: (s) => s.blocked, at: (s) => (s.lastBlocked >= 0 ? { x: mahjongSlotRect(s.lastBlocked).x + mahjongSlotRect(s.lastBlocked).w / 2, y: mahjongSlotRect(s.lastBlocked).y + mahjongSlotRect(s.lastBlocked).h / 2 } : null) }],
+  misses: [
+    { count: (s) => s.blocked, at: (s) => mahjongSlotCentre(s.lastBlocked) },
+    { count: (s) => s.misses, at: (s) => mahjongSlotCentre(s.sel) },
+  ],
 };
 
 /** All 22 arcade game specs: the 21 active games and practice-only Junction (Orbit counts once; rev 3 has its own view-sized spec). */

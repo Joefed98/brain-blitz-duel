@@ -351,7 +351,7 @@ Already sounded: the drone shot down (`bastion.droneDown`, arcade.md), every she
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
 | `balltrack.homeStreak` | Every 5th marble home | n HOME banner | `banner.streak.mp3` · own file `balltrack.homeStreak.mp3` (sound batch 4, volume 0.8) | 1–6 | 479 ms |
-| `balltrack.allHome` | All 30 marbles home | ALL 30 HOME! banner, confetti | `banner.fullClear.mp3` | 0–1 | 1200 ms |
+| `balltrack.allHome` | All the marbles home (36 on btRev 7+, 30 before) | ALL 36 HOME! banner (ALL 30 HOME! before btRev 7), confetti | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `balltrack.turnedHome` | A marble home off a turned tube | TURNED HOME! pop | `pop.perfect.mp3` | 0–10 | 300 ms |
 | `balltrack.switchedHome` | A marble home past a switch | SWITCHED HOME! pop | `pop.perfect.mp3` | 0–10 | 300 ms |
 | `balltrack.release` | A marble leaves the hopper | A marble drops in at the top | `marble.release.mp3` | 30 | 120 ms |

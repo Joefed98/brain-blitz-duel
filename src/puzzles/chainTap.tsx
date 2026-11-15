@@ -16,6 +16,8 @@ import {
   chainReversedAt,
   chainTapVerdict,
   chainWindowMs,
+  chainWindowShrinksAfter,
+  chainWindowTier,
   decodeChainAnswer,
   encodeChainAnswer,
   replayChain,
@@ -376,7 +378,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const lastSlot = replay.used[chainBoardIndex(Math.max(0, links - 1), data)]?.at(-1) ?? null;
   const windowMs = chainWindowMs(links + 1, data);
   const left = replay.lastT === null ? 1 : (windowMs - (clock - replay.lastT)) / windowMs;
-  const tier = links >= (rules.fasterAt[1] ?? Infinity) ? 2 : links >= (rules.fasterAt[0] ?? Infinity) ? 1 : 0;
+  // Speed review fixes (15 Nov 2026, display only): the tier is the momentum band the next link is in.
+  const tier = chainWindowTier(links, data);
   const depth = chainUsesDepth(data);
   const milestones = depth ? chainMilestones(taps, links, chainDepthRevOf(data)) : [];
   previewRef.current = {
@@ -404,16 +407,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     setTimeout(() => setPulse((current) => (current === nodeId ? null : current)), 180);
     const made = links + 1;
     const reverseNow = chainLongCycles(data ?? undefined) && made === CHAIN_REVERSE_AT;
-    if (rules.fasterAt.includes(made)) {
+    // Speed review fixes (15 Nov 2026, display only): FASTER shows when the next link's window actually shrinks
+    // (links 13 and 26 on today's bands), and a milestone's line shows at its own link (10, 20, 30).
+    if (chainWindowShrinksAfter(made, data)) {
       setFaster(true);
       setTimeout(() => setFaster(false), 900);
-      if (depth) {
-        const reachedNow = chainMilestones(nextTaps, made, chainDepthRevOf(data)).find((m) => m.at === made) ?? null;
-        setMilestoneFlash(reachedNow);
-        setTimeout(() => setMilestoneFlash((current) => (current === reachedNow ? null : current)), 900);
-      }
       // The FASTER banner (hidden under the REVERSE flash when both land on one link).
       if (!reverseNow) soundCue("chain.faster");
+    }
+    if (depth && (CHAIN_MILESTONES as readonly number[]).includes(made)) {
+      const reachedNow = chainMilestones(nextTaps, made, chainDepthRevOf(data)).find((m) => m.at === made) ?? null;
+      setMilestoneFlash(reachedNow);
+      setTimeout(() => setMilestoneFlash((current) => (current === reachedNow ? null : current)), 900);
     }
     if (reverseNow) {
       setReverseFlash(true);
@@ -508,9 +513,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
             ) : null}
           </div>
         )}
-        {faster && !over && !reverseFlash && (
-          <div className="pointer-events-none absolute inset-x-0 top-1/3 text-center font-display text-4xl font-black tracking-widest text-primary animate-scale-in">
-            FASTER
+        {(faster || milestoneFlash) && !over && !reverseFlash && (
+          <div data-chain-faster={faster ? "" : undefined} className="pointer-events-none absolute inset-x-0 top-1/3 text-center font-display text-4xl font-black tracking-widest text-primary animate-scale-in">
+            {faster ? "FASTER" : null}
             {milestoneFlash ? (
               <span data-chain-milestone-flash="" className="chain-milestone-flash block text-base tracking-[0.2em]">
                 {milestoneFlash.points > 0 ? `${milestoneFlash.at} in a row · +${milestoneFlash.points}` : `${milestoneFlash.at} in a row`}

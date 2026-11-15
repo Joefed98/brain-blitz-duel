@@ -1,4 +1,15 @@
-# Minesweeper on the arcade scoring standard (minesRev 1, 30 Oct 2026)
+# Minefield (minesweeper) on the arcade scoring standard
+
+Live: **minesRev 2**, a **Logic** game with **20 mines** (13 Nov 2026, the next section). Everything from "Arcade, Cards &
+Board group" down describes **minesRev 1** (30 Oct 2026, 25 mines, an Arcade game), which older rounds still replay and
+score as; its parts and inputs are rev 2's unless the next section says otherwise.
+
+**Phone fixes (15 Nov 2026, Logic game reviews; display and input only, no stamp):** the HUD's Safe chip counts the safe
+squares beyond the free opening, as the reveal does ("33/87", `minesHudFigures` in `minesweeper.renderer.ts`), and its
+Mines chip is the mines less the flags placed (a mine hit no longer lowers it). Flag mode and a long press only flag:
+the phone sends no flag tap on a square that isn't hidden or flagged (`minesSendsTap` in `src/puzzles/minesweeper.tsx`),
+so a flag tap on a number no longer chords. The sim still chords a tap on an open number in either mode (stored runs
+replay unchanged); a reveal tap on a number chords as before.
 
 ## minesRev 2: Minefield in Logic with 20 mines (13 Nov 2026, Joe's decision)
 
@@ -26,12 +37,14 @@ checks written for it.
 
 Shown as **Minefield** since 31 Oct 2026 (`gameNames.ts`; the id `minesweeper` and every stamp unchanged).
 
-Arcade, **Cards & Board** group (`src/lib/duel/arcadeGroups.ts`; its tiles take the group's `--group-cards` border). Dealt in rooms from the start. A 90 s run on a
+### minesRev 1 (30 Oct 2026, the original)
+
+Arcade, **Cards & Board** group until 13 Nov 2026 (`src/lib/duel/arcadeGroups.ts`; its tiles took the group's `--group-cards` border). Dealt in rooms from the start. A 90 s run on a
 93 s clock.
 
 ## The game
 
-- A 10 × 16 board with 25 mines (135 safe squares). The board is dealt **in the sim** from the room seed
+- A 10 × 16 board with 25 mines (135 safe squares; rev 2: 20 mines, 140 safe squares). The board is dealt **in the sim** from the room seed
   (`minesBoard` in `src/lib/arcade/minesweeper.ts`): a seeded start square in the middle six rows and columns, no mine
   on it or its eight neighbours (so the opening is a cascade, revealed for you), and 25 mines placed from the seed, try
   after try, until the logic solver (`minesSolve`) clears every safe square from the opening. The solver never guesses:

@@ -26,6 +26,7 @@ const runFor = (rev: number) =>
     checkpoint: freekickCheckpoint,
     keys: FREEKICK_CHECKPOINT_KEYS,
     interval: FREEKICK_CHECKPOINT_INTERVAL,
+    emptyIsZero: true,
   });
 const run = runFor(FREEKICK_REV_STD);
 const runV2 = runFor(FREEKICK_REV_2);

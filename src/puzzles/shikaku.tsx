@@ -28,7 +28,56 @@ import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const FILLS = ["var(--primary)", "var(--me)"];
+/**
+ * Four gold-family fills (Logic review, 15 Nov 2026; display only). Two fills by placement order let touching
+ * rectangles share one (and both were the same gold), so each rectangle takes the first fill no earlier touching
+ * rectangle holds (`shikakuFills`).
+ */
+const FILLS = [
+  "var(--primary)",
+  "color-mix(in oklab, var(--primary) 55%, var(--jz-white))",
+  "var(--jz-bronze)",
+  "color-mix(in oklab, var(--primary) 55%, var(--jz-bg))",
+];
+
+/** True when two rectangles share part of a side. */
+export function shikakuRectsTouch(a: ShikakuRect, b: ShikakuRect): boolean {
+  const rows = a.r0 <= b.r1 && b.r0 <= a.r1;
+  const cols = a.c0 <= b.c1 && b.c0 <= a.c1;
+  return (rows && (a.c1 + 1 === b.c0 || b.c1 + 1 === a.c0)) || (cols && (a.r1 + 1 === b.r0 || b.r1 + 1 === a.r0));
+}
+
+/**
+ * A fill index (0–3) for each rectangle, touching rectangles never alike: the first such colouring in placement order
+ * (each rectangle the lowest fill that still lets every later one be coloured), so a placed rectangle keeps its colour
+ * unless a new neighbour leaves no other way (always possible in four for rectangles tiling a grid).
+ */
+export function shikakuFills(rects: readonly ShikakuRect[], colours = FILLS.length): number[] {
+  const near = rects.map((r, i) => rects.flatMap((q, j) => (j < i && shikakuRectsTouch(r, q) ? [j] : [])));
+  const fill = new Array<number>(rects.length).fill(-1);
+  let budget = 200_000;
+  const place = (i: number): boolean => {
+    if (i === rects.length) return true;
+    for (let c = 0; c < colours; c++) {
+      if (--budget < 0) return false;
+      if (near[i]!.some((j) => fill[j] === c)) continue;
+      fill[i] = c;
+      if (place(i + 1)) return true;
+    }
+    fill[i] = -1;
+    return false;
+  };
+  if (place(0)) return fill;
+  // Never expected: the plain lowest-free fill, wrapped.
+  const out: number[] = [];
+  rects.forEach((_, i) => {
+    const used = new Set(near[i]!.map((j) => out[j]!));
+    let c = 0;
+    while (used.has(c)) c++;
+    out.push(c % colours);
+  });
+  return out;
+}
 
 export function Board({
   size,
@@ -48,6 +97,7 @@ export function Board({
   pointer?: ReturnType<typeof useGridPointer>;
 }) {
   const clueAt = new Map(clues.map((clue) => [clue.cell, clue.n]));
+  const fills = shikakuFills(rects);
   const place = (r: ShikakuRect) => ({
     gridRow: `${r.r0 + 1} / ${r.r1 + 2}`,
     gridColumn: `${r.c0 + 1} / ${r.c1 + 2}`,
@@ -77,11 +127,12 @@ export function Board({
         <div
           key={`r${r.r0}-${r.c0}-${r.r1}-${r.c1}`}
           className="logic-pane pointer-events-none rounded-md"
+          data-fill={fills[i]}
           style={{
             ...place(r),
             zIndex: 1,
-            border: `2px solid ${FILLS[i % 2]}`,
-            background: `color-mix(in oklab, ${FILLS[i % 2]} 35%, transparent)`,
+            border: `2px solid ${FILLS[fills[i]!]}`,
+            background: `color-mix(in oklab, ${FILLS[fills[i]!]} 35%, transparent)`,
             "--logic-i": Math.min(i, 17),
             "--logic-hue": Math.round((i * 137.5 + 20) % 360),
           } as CSSProperties}

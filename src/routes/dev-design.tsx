@@ -5,6 +5,7 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { ComponentsGallery } from "@/design/ComponentsGallery";
 import { GameFxShowcase } from "@/design/GameFxShowcase";
 import { HeaderStylesShowcase } from "@/design/HeaderStylesShowcase";
+import { SoundsGallery } from "@/design/SoundsGallery";
 import {
   Button,
   Chip,
@@ -455,6 +456,8 @@ function DevDesign() {
             <EmptyState layout="card" title="No games yet" body="Your games and results show up here." action={{ label: "Start playing" }} />
           </Labelled>
         </Block>
+
+        <SoundsGallery />
 
         <Block title="TabBar">
           <nav aria-label="Gallery tabs" className="flex">

@@ -278,7 +278,9 @@ export function WordHuntPuzzle({
       cells.forEach((cell) => rightMoveFlash(gridRef.current?.querySelector(`[data-cell="${cell}"]`)));
     } else {
       setFlash("bad");
-      puzzleReject(gridRef.current);
+      // Game review fix (15 Nov 2026): one error sound for one invalid word. The check already plays `wrong`
+      // (FeedbackStage), so the shake here is silent.
+      puzzleReject(gridRef.current, false);
       setMessage(verdict.reason ?? "Not a word");
       if (sendsMisses) setMisses((current) => (current.length >= WORDHUNT_MAX_MISSES ? current : [...current, cells]));
     }

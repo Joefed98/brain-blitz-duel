@@ -201,7 +201,8 @@ function ClassicReveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining
       ) : null}
       <p className="font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {mine.tilts} {myCorrect ? "✓" : "✗"}
+          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
+          {mine.tilts}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
           {tiltLimit !== null ? `of ${tiltLimit} tilts` : "tilts"}{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}

@@ -22,7 +22,7 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 | Cue | Trigger | Length |
 |---|---|---|
 | `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) | 170 ms (undo / reset 210 ms) |
-| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks | ~1,160 ms (the drive itself is 760 ms) |
+| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks | `pz_car_escape.mp3` (2.47 s, since 15 Nov 2026); placeholder `unblock.solve.mp3` with NEW_GAME_SOUNDS on |
 
 ## Tessellate (`blockparty`)
 

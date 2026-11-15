@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { playSound } from "@/lib/sound";
 import { useGameKeys } from "@/lib/desktop";
 
 import {
@@ -210,7 +209,8 @@ export function UnblockPuzzle({
       soundCue("unblock.slide");
       if (isSolved(next)) {
         setEscaping(true);
-        playSound("pz_car_escape");
+        // The drive-out's one sound is `unblock.solve` (useSolveMoment, the next render): its slot plays pz_car_escape
+        // and stands in for the generic sounds of that moment (15 Nov 2026, Joe).
         setTimeout(() => lockIn(nextMoves), 420);
       }
       return true;
