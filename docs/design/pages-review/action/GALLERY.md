@@ -119,6 +119,33 @@ no step at the world's edge (ricochet-overhaul-check measures it at 414 × 896, 
 
 <img src="ricochet/edge-390x844.webp" width="360">
 
+### Stage 2 look pass (15 Nov 2026)
+
+Today (main e0aa53f2) | Concept A | New: the witness climb on seed 11 at the same ticks (ricoRev 3 on main, ricoRev 4 on
+this branch, its own tower), the 390 × 730 world at 2×, shrunk. Riding the first lantern at 33 m with the moon rising
+over the ridge; about 110 m with the moon behind the shaft; riding a lantern at 240 m under a high moon.
+
+<img src="ricochet/compare-s2-1.webp" width="720">
+<img src="ricochet/compare-s2-2.webp" width="720">
+<img src="ricochet/compare-s2-3.webp" width="720">
+
+Clip (7 s, the whole minute at 8×): the moon rising and shrinking, wisps drifting across it, far lanterns rising behind
+the walls, the raking moonlight moving up the stone with the moon, each lantern lighting the walls near it.
+<img src="ricochet/clip-s2-climb.webp" width="180">
+
+- **Sky**: a deeper five-stop night, a slanting band of star dust, 170 stars of every kind (pinpoints, cool and warm,
+  bright ones with a four-point glint), drifting cloud wisps lit where they pass the moon, a moonlit mist band.
+- **Moon**: larger (84 → 66 px as it rises, was 66 → 50), a lit sphere with maria and 28 craters (shadowed floors, lit
+  far rims, central peaks), amber low down, warm cream high; far paper lanterns rise behind the walls and across it.
+- **Pagoda in mist**: three ranges with moonlit crests, two far pagodas, the temple's with warm paper windows.
+- **Walls**: blocks stand proud of a lighter mortar bed and cast short shadows on it, faces rounded by the light, crisp
+  lit edges; the moon rakes across the stone at its own height every frame; moss and ice catch it along their lips;
+  the mid-ledges are the same carved slate with iron bands.
+- **Sky lanterns**: translucent paper lit from the flame low in the base, bamboo ribs dark against the light, a crisp
+  sheen on the curve, lacquered rim; the warm light falls on the walls and ledges near it, never as a glow round it.
+- **The bigger ninja** (ricoRev 4): the body box 34 × 68 (was 26 × 52) and the figure drawn at 17/13 to fill it, the
+  hits following exactly what is drawn; no gold rim round it.
+
 
 ## Iron Wall
 

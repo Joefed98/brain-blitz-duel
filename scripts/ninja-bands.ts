@@ -3,10 +3,11 @@
  * tapper, plays room seeds n = FROM… (scripts/arcade-skill-bands/games.ts roomSeed) through the server's own encode +
  * replay path; prints each level's median score, parts and metres. `--from=10000` plays fresh seeds. The core's full
  * figure (NINJA_CORE_FULL_M; MOON_CORE_FULL_M on ricoRev 3, Moon Climb) is the near-perfect level's median metres.
+ * `--rev=4` plays Moon Climb's bigger ninja (its own towers, dealt and proved with the bigger body).
  *
- *   bun scripts/ninja-bands.ts [--rev=3] [--seeds=40] [--from=0] [--levels=weak,near]
+ *   bun scripts/ninja-bands.ts [--rev=3|4] [--seeds=40] [--from=0] [--levels=weak,near]
  */
-import { moonCheckpoint, moonGame, ninjaCheckpoint, ninjaGame, ricochetStdParts, NINJA_CHECKPOINT_INTERVAL, NINJA_INPUT_TAP, type MoonState, type NinjaState } from "../src/lib/arcade/ricochetNinja";
+import { moonCheckpoint, moonGameFor, ninjaCheckpoint, ninjaGame, ricochetStdParts, NINJA_CHECKPOINT_INTERVAL, NINJA_INPUT_TAP, type MoonState, type NinjaState } from "../src/lib/arcade/ricochetNinja";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { encodeMoonRun, encodeNinjaRun, replayMoonRun, replayNinjaRun } from "../src/lib/duel/ricochet";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -47,7 +48,7 @@ function randomEvents(seed: number): ArcadeInputEvent[] {
 export function playLevel(level: SkillLevel | "random", n: number) {
   const seed = roomSeed(n);
   const moon = REV >= 3;
-  const game = (moon ? moonGame : ninjaGame) as typeof ninjaGame;
+  const game = (moon ? moonGameFor(REV) : ninjaGame) as typeof ninjaGame;
   const events = level === "random" ? randomEvents(seed) : (bot({ game, seed, rev: REV, human: new Human("ricochet", seed, level), fixes: true }).events ?? []);
   const at = new Map(events.map((e) => [e.t, e]));
   let s: NinjaState = game.init(seed);
@@ -57,7 +58,7 @@ export function playLevel(level: SkillLevel | "random", n: number) {
     if (s.tick % NINJA_CHECKPOINT_INTERVAL === 0) cps.push(moon ? moonCheckpoint(s as MoonState) : ninjaCheckpoint(s));
   }
   const run = { seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints: cps };
-  const r = moon ? replayMoonRun(seed, encodeMoonRun(run)) : replayNinjaRun(seed, encodeNinjaRun(run));
+  const r = moon ? replayMoonRun(seed, encodeMoonRun(run), REV) : replayNinjaRun(seed, encodeNinjaRun(run));
   if (r.flagged) throw new Error(`flagged replay at ${level} n=${n}: ${r.reason}`);
   const st = r.state as MoonState;
   return { score: r.score, parts: Object.fromEntries((ricochetStdParts(r.state) ?? []).map((p) => [p.key, p.points])), metres: r.metres, hits: r.hits, coins: st.coins, lanterns: st.lanterns, scrolls: st.scrolls, rides: st.rides ?? 0, flow: st.flow ?? 0, best: st.bestStreak ?? 0 };
