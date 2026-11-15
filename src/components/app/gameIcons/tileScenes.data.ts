@@ -32,7 +32,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   fences: "4d31dd5762",
   fillomino: "98762c8bc5",
   fivehands: "1f3b2ded7c",
-  flip: "10e7e106f2",
+  flip: "7cca6e555a",
   flood: "635a8130c9",
   flow: "701a3d1d47",
   freecell: "14e58ca1a5",
