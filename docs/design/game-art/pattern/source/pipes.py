@@ -1,10 +1,15 @@
 """Pipeline (pipes) sprites, the Pattern overhaul stage 1 (look A: chrome pipes on dark tiles, water in the network).
 
 Richness pass (Joe, 15 Nov 2026): sprite.py's rich studio light (HDRI reflections, a crisp key from the top left, fill
-and rim, AgX Punchy) on concept A's materials: brushed steel that shines, polished chrome couplings, glossy blue water
-behind clear sight glass. So that the key light stays top left on every tile, each shape is rendered in each of its
-distinct turns (`<shape>-<turns>-dry|wet`: end, corner and tee 4, straight 2, cross 1); the game picks the file and
-only animates the turn with a transform. The tile, the source valve and the leak spill are separate sprites.
+and rim, AgX Punchy) on concept A's materials. So that the key light stays top left on every tile, each shape is
+rendered in each of its distinct turns (`<shape>-<turns>-dry|wet`: end, corner and tee 4, straight 2, cross 1); the game
+picks the file and only animates the turn with a transform. The tile, the source valve and the leak spill are separate.
+
+Continuous pass (15 Nov 2026, the captain's review: the first set read as knobbly chains and the water as dashes):
+every pipe is one smooth polished-chrome tube (a corner one bend, a run straight across, no collars, beads or rings),
+the same radius on the same centre line in every shape and turn. Each sprite runs BLEED points past every tile edge; the
+game crops it at half the board gap, so a tube meets its neighbour's tube in the middle of the gap with no seam. Wet:
+the same tube in clear glass, full of glossy blue water along its whole length.
 
 Canonical shapes (tile 100 points; arms from the centre to the tile edge, x right, y down):
   end      N            straight  N S          corner  N E
@@ -18,10 +23,10 @@ from sprite import *  # noqa: F401,F403
 import bpy, jzlib, math
 
 SIZE = 100
-PX = 128
-R = 12.5          # the tube's radius (a quarter of the tile across)
-COLLAR_R = 15.5   # the coupling at the tile edge
-HUB_R = 17.0
+PX = 144
+R = 15.0          # the tube's radius (three tenths of the tile across)
+BLEED = 12.0      # the sprite runs this far past each tile edge (pipesArt.tsx PIPE_BLEED); the game crops it
+BEND = 24.0       # a corner's bend radius (centre line)
 
 SHAPES = {
     "end": ("N",),
@@ -31,34 +36,65 @@ SHAPES = {
     "cross": ("N", "E", "S", "W"),
 }
 
+#: The unit step out from the centre towards each side (x right, y down).
+STEP = {"N": (0, -1), "E": (1, 0), "S": (0, 1), "W": (-1, 0)}
+
 
 def chrome():
-    return mat("pipeSteel", "#c8ced6", 0.24, metal=1.0, coat=0.4, coat_rough=0.05)
+    # Polished chrome: a mirror with a whisper of roughness, so the studio light reads as one long crisp highlight.
+    return mat("pipeChrome", "#e4e8ee", 0.24, metal=1.0, coat=0.7, coat_rough=0.03)
 
 
-def chrome_dark():
-    return mat("flange", "#d8dce0", 0.2, metal=1.0)
+def chrome_cap():
+    return mat("pipeCap", "#bfc5cd", 0.18, metal=1.0, coat=0.4, coat_rough=0.05)
 
 
 def water():
-    # Saturated, readable blue; a touch of self-light only so it stays blue under the glass (no glow).
-    return mat("water", "#0a56c8", 0.08, coat=1.0, coat_rough=0.03, emit="#1a6fe0", emit_strength=0.3)
+    # Deep, saturated blue liquid; glossy, a touch of self-light only so it stays blue under the glass (no glow).
+    return mat("water", "#1466ea", 0.08, coat=1.0, coat_rough=0.02, emit="#0e54d0", emit_strength=0.08)
 
 
-def sight_glass():
-    return thin_glass("sightGlass", "#f4fbff", rough=0.04, strength=0.6)
+def tube_glass():
+    return thin_glass("tubeGlass", "#f2f9ff", rough=0.02, strength=0.75)
 
 
-def arm(d, m, r, z, a=0.0, b=50.0):
-    """A cylinder from `a` to `b` points out from the centre towards side d (N, E, S, W)."""
+def edge(d):
+    """The point past side d where the sprite ends (the game crops it at half the board gap)."""
+    dx, dy = STEP[d]
     c = SIZE / 2
-    if d == "N":
-        return ycyl(c, c - b, b - a, r, m, z=z, bevel=0.4)
-    if d == "S":
-        return ycyl(c, c + a, b - a, r, m, z=z, bevel=0.4)
-    if d == "W":
-        return xcyl(c - b, c, b - a, r, m, z=z, bevel=0.4)
-    return xcyl(c + a, c, b - a, r, m, z=z, bevel=0.4)
+    return (c + dx * (c + BLEED), c + dy * (c + BLEED))
+
+
+def paths(arms):
+    """The tube's centre lines: straight runs across the tile, a corner as one smooth bend, other arms from the centre."""
+    c = SIZE / 2
+    out = []
+    left = set(arms)
+    for a, b in (("N", "S"), ("E", "W")):
+        if a in left and b in left:
+            out.append([edge(a), edge(b)])
+            left -= {a, b}
+    if len(arms) == 2 and len(left) == 2:
+        a, b = sorted(left, key="NESW".index)
+        (ax, ay), (bx, by) = STEP[a], STEP[b]
+        # The bend's centre sits BEND in from the tile centre towards both open sides.
+        ox, oy = c + (ax + bx) * BEND, c + (ay + by) * BEND
+        # start lies on a's centre line (x = c for N/S), stop on b's.
+        start = (c, oy) if ax == 0 else (ox, c)
+        stop = (ox, c) if ax == 0 else (c, oy)
+        a0 = math.atan2(start[1] - oy, start[0] - ox)
+        a1 = math.atan2(stop[1] - oy, stop[0] - ox)
+        da = (a1 - a0 + math.pi) % (2 * math.pi) - math.pi
+        pts = [edge(a), start]
+        for i in range(1, 24):
+            t = a0 + da * i / 24
+            pts.append((ox + BEND * math.cos(t), oy + BEND * math.sin(t)))
+        pts += [stop, edge(b)]
+        out.append(pts)
+        left = set()
+    for d in sorted(left, key="NESW".index):
+        out.append([(c, c), edge(d)])
+    return out
 
 
 TURN = {"N": "E", "E": "S", "S": "W", "W": "N"}
@@ -71,35 +107,49 @@ def turned(arms, turns):
     return tuple(out)
 
 
+def sun(dx, dy, dz, strength, angle, color="#ffffff"):
+    """A distant light from screen direction (dx, dy) (y down) and height dz: the same on every point of the sprite."""
+    from mathutils import Vector
+    d = bpy.data.lights.new("sun", "SUN")
+    d.energy = strength
+    d.angle = math.radians(angle)
+    d.color = jzlib.hexc(color)[:3]
+    ob = bpy.data.objects.new("sun", d)
+    bpy.context.scene.collection.objects.link(ob)
+    ob.rotation_euler = Vector((-dx, dy, -dz)).to_track_quat("-Z", "Y").to_euler()
+    return ob
+
+
+def even_light():
+    """sprite.py's rich studio (HDRI reflections, a crisp top-left key, cool fill, soft top, rim) as distant lights.
+
+    begin()'s area lights sit close to the tile, so a tube's shade drifts along its length and two tiles' ends would not
+    match; distant lights (and the HDRI at infinity) light every point alike, so tubes join across tiles seamlessly.
+    """
+    for ob in [o for o in bpy.context.scene.objects if o.type == "LIGHT"]:
+        bpy.data.objects.remove(ob, do_unlink=True)
+    sun(-0.8, -0.8, 1.1, 3.2, 5, "#fff3e0")
+    sun(1.0, 0.9, 0.9, 0.9, 30, "#dfe8ff")
+    sun(0.0, 0.0, 1.0, 0.5, 45)
+    sun(0.9, -0.9, 0.35, 0.9, 8)
+
+
 def pipework(arms, wet):
-    begin(SIZE, PX, pad=0, reflect=0.3)
-    shadow_catcher(SIZE, 0)
-    z = R + 2  # the tube's axis height above the tile
-    ch, dk = chrome(), chrome_dark()
-    for d in arms:
-        # Coupling at the tile edge (half of it; the neighbour's tile draws the other half).
-        arm(d, ch, COLLAR_R, z, 44.0, 50.0)
-        # Coupling where the arm leaves the hub.
-        arm(d, dk if not wet else ch, R + 1.6, z, HUB_R - 2.0, HUB_R + 3.0)
+    begin(SIZE, PX, pad=BLEED, reflect=0.9)
+    even_light()
+    shadow_catcher(SIZE, BLEED)
+    z = R + 0.5  # the tube's axis, resting just above the tile
+    c = SIZE / 2
+    for pts in paths(arms):
         if wet:
-            arm(d, water(), R - 2.2, z, HUB_R, 44.5)
-            arm(d, sight_glass(), R, z, HUB_R + 2.5, 44.5)
+            tube([(x, y, z) for x, y in pts], R - 1.1, water(), round_caps=False)
+            tube([(x, y, z) for x, y in pts], R, tube_glass(), round_caps=False)
         else:
-            arm(d, ch, R, z, HUB_R, 44.5)
+            tube([(x, y, z) for x, y in pts], R, chrome(), round_caps=False)
     if len(arms) == 1:
-        # An end: a capped stub, the cap a domed boss with a hex nut.
-        cyl(SIZE / 2, SIZE / 2, HUB_R - 1, z, dk, z=0, bevel=1.5)
-        sphere(SIZE / 2, SIZE / 2, HUB_R - 2, ch, z=z)
-        cyl(SIZE / 2, SIZE / 2, 5.5, 4, dk, z=z + HUB_R - 4, verts=6, bevel=0.6)
-    else:
-        # The junction: a chrome body; in the wet set a glass dome over the water in the middle.
-        if wet:
-            sphere(SIZE / 2, SIZE / 2, HUB_R, ch, z=z - 3)
-            sphere(SIZE / 2, SIZE / 2, HUB_R - 4.5, water(), z=z + 3.2)
-            sphere(SIZE / 2, SIZE / 2, HUB_R - 3.6, sight_glass(), z=z + 3.4)
-        else:
-            sphere(SIZE / 2, SIZE / 2, HUB_R, ch, z=z)
-            cyl(SIZE / 2, SIZE / 2, 5.0, 3, dk, z=z + HUB_R - 2.4, verts=6, bevel=0.5)
+        # An end: a domed chrome cap closing the tube.
+        cyl(c, c, R + 2.0, z, chrome_cap(), z=0, bevel=1.2)
+        sphere(c, c, R + 2.0, chrome(), z=z)
 
 
 def make_pipe(shape, turns, wet):
@@ -111,13 +161,11 @@ TURNS = {"end": 4, "straight": 2, "corner": 4, "tee": 4, "cross": 1}
 
 
 def tile():
-    """The dark tile: a satin graphite plate with softly rounded edges (fills its box; the board gap shows round it)."""
-    begin(SIZE, PX, pad=0, light=0.8)
-    plate = mat("tilePlate", "#221e2a", 0.4, coat=0.7, coat_rough=0.22)
-    add_bump(plate, scale=120, strength=0.04, detail=3, distance=0.002)
+    """The dark tile: a glossy graphite plate with a soft bevel (fills its box; the board gap shows round it)."""
+    begin(SIZE, PX, pad=0, light=0.7)
+    plate = mat("tilePlate", "#121016", 0.32, coat=0.8, coat_rough=0.16)
+    add_bump(plate, scale=120, strength=0.03, detail=3, distance=0.002)
     box(1.0, 1.0, SIZE - 2.0, SIZE - 2.0, 6, plate, r=8, z=0)
-    # A shallow recess for the pipes to sit in.
-    box(9, 9, SIZE - 18, SIZE - 18, 0.6, mat("tileWell", "#0f0e13", 0.6), r=10, z=6)
 
 
 def source():
@@ -125,7 +173,7 @@ def source():
     begin(SIZE, PX, pad=0, reflect=0.3)
     shadow_catcher(SIZE, 0)
     red = mat("valveRed", "#a8141a", 0.3, coat=1.0, coat_rough=0.06)
-    ch, dk = chrome(), chrome_dark()
+    ch, dk = chrome(), chrome_cap()
     z = R + 2
     cyl(SIZE / 2, SIZE / 2, 9, z + 10, dk, z=0, bevel=1.0)
     torus(SIZE / 2, SIZE / 2, 22, 3.6, red, z=z + 13)
