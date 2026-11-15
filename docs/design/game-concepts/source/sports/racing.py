@@ -190,6 +190,8 @@ def build(look):
 
 def hud(im, look):
     from PIL import ImageDraw
+    if look == "B":
+        im = vignette(0.4, 1.8)(im)
     k = im.size[1] / H
     d = ImageDraw.Draw(im, "RGBA")
     d.rounded_rectangle([12 * k, 690 * k, 100 * k, 742 * k], radius=12 * k, fill=(10, 12, 20, 220), outline=(70, 76, 96, 255), width=max(1, int(k)))
@@ -201,8 +203,6 @@ def hud(im, look):
     cols = [(240, 200, 60), (240, 200, 60), (250, 150, 50), (250, 100, 40), (230, 60, 50), (80, 80, 90), (80, 80, 90), (80, 80, 90)]
     for i, c in enumerate(cols):
         d.rounded_rectangle([(300 + i * 9.5) * k, 702 * k, (306 + i * 9.5) * k, 730 * k], radius=2 * k, fill=c)
-    if look == "B":
-        im = vignette(0.5, 1.8)(im)
     return im
 
 

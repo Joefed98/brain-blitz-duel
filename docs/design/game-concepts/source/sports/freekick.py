@@ -130,6 +130,8 @@ def build(look):
 
 def ui(im, look):
     from PIL import ImageDraw
+    if look == "B":
+        im = vignette(0.5, 1.8)(im)
     w, h = im.size
     k = h / H
     d = ImageDraw.Draw(im, "RGBA")
@@ -137,8 +139,6 @@ def ui(im, look):
     d.rounded_rectangle([46 * k, 712 * k, 344 * k, 734 * k], radius=11 * k, fill=(8, 11, 22, 210), outline=(80, 96, 80, 255), width=max(1, int(k)))
     d.rounded_rectangle([248 * k, 715 * k, 272 * k, 731 * k], radius=6 * k, fill=(226, 192, 122, 255))
     d.text((60 * k, 723 * k), "HOLD", font=font(800, int(10 * k)), fill=(200, 210, 200), anchor="lm")
-    if look == "B":
-        im = vignette(0.5, 1.8)(im)
     return im
 
 

@@ -168,7 +168,7 @@ def main():
         ins = os.path.join(TEX, f"curling-inset-{look}.png")
         render_to(ins)
         finish(png, "sports", "curling", look,
-               post=lambda im, l=look, i=ins: (vignette(0.6, 1.8)(ui(im, l, i)) if l == "B" else ui(im, l, i)))
+               post=lambda im, l=look, i=ins: (ui(vignette(0.6, 1.8)(im), l, i) if l == "B" else ui(im, l, i)))
 
 
 main()
