@@ -172,13 +172,25 @@ for (const view of [2, 4]) {
   for (const run of v4Runs.slice(0, view === 4 ? v4Runs.length : 18)) {
     const fs = frames(run.seed, run.raw, CURLING_REV, run.plan);
     let bad = "";
+    // Aiming frames repeat exactly (the same place, the same path ahead): each distinct one is judged once.
+    const judged = new Set<string>();
     for (const f of fs) {
       const place = curlCaptainPlace(f.s, f.startX, v, f.broomX);
       const shouldShow = (f.s.phase === CURL_AIM && f.s.thrown < CURLING_STONES) || (f.s.phase === CURL_TRAVEL && f.s.travelTicks < 48);
       if (!!place !== shouldShow) bad ||= `tick ${f.s.tick}: drawn ${!!place}, expected ${shouldShow}`;
       if (!place || place.alpha <= 0) continue;
       captainFrames++;
+      const key = `${place.pose}:${place.x.toFixed(3)}:${place.y.toFixed(3)}:${place.w.toFixed(3)}:${place.flip}:${f.ahead.length}:${f.ahead[0]?.y ?? 0}`;
+      if (judged.has(key)) continue;
+      judged.add(key);
       const px = captainPixels(place);
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const p of px) {
+        if (p.x < x0) x0 = p.x;
+        if (p.x > x1) x1 = p.x;
+        if (p.y < y0) y0 = p.y;
+        if (p.y > y1) y1 = p.y;
+      }
       for (const z of zones) if (px.some((p) => inRect(p, z))) bad ||= `tick ${f.s.tick}: over ${z.name}`;
       // The path ahead: the stone's disc at every later position (its own width plus 2 px).
       for (const a of f.ahead) {
@@ -193,6 +205,7 @@ for (const view of [2, 4]) {
         const lo = q.sy - lift - rx * 0.5;
         const hi = Math.min(q.sy + rx * 0.3, heldTop);
         if (hi <= lo) continue;
+        if (q.sx + rx < x0 || q.sx - rx > x1 || hi < y0 || lo > y1) continue; // nowhere near him
         if (px.some((p) => Math.abs(p.x - q.sx) <= rx && p.y >= lo && p.y <= hi)) {
           bad ||= `tick ${f.s.tick}: over the stone's path ahead at (${a.x.toFixed(0)}, ${a.y.toFixed(0)}) cm`;
           break;
