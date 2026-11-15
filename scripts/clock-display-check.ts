@@ -20,6 +20,7 @@ import {
   usesArcadeClock,
 } from "../src/lib/duel/catalogue";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
+import { withSeededRandom } from "../src/lib/duel/random";
 
 const failures: string[] = [];
 let passes = 0;
@@ -30,7 +31,9 @@ const check = (ok: boolean, message: string) => {
 
 for (const type of ACTIVE_PUZZLE_TYPES) {
   const dealt = new Set<number>();
-  for (let s = 0; s < 4; s++) dealt.add(puzzleTimeLimitMs(generatePuzzle(type, { seed: `clock-display-${s}` })));
+  // Changed with Joe's approval, 15 Nov 2026 (seed deals like the app): each deal seeded as rooms and practice deal it
+  // (a bank seed and seeded randomness); the old `{ seed }` setting was no GenerateContext field and was ignored.
+  for (let s = 0; s < 4; s++) dealt.add(puzzleTimeLimitMs(withSeededRandom(7100 + s, () => generatePuzzle(type, { bankSeed: 7100 + s }))));
   check(dealt.size === 1, `${type}: the live deal carries more than one clock (${[...dealt].join(", ")})`);
   const clock = [...dealt][0]!;
   check(shownTimeLimitMs(type) === clock, `${type}: shown ${shownTimeLimitMs(type)} ms but dealt ${clock} ms`);
