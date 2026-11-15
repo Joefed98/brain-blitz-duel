@@ -1,4 +1,62 @@
-# Grappler: the swinging course (swingRev 15)
+# Grappler: the swinging course (swingRev 15; swingRev 18 rooms deal since 15 Nov 2026)
+
+## Stage 2: the bigger hero (swingRev 18) and the look pass (15 Nov 2026)
+
+Joe's ask (15 Nov 2026), concept A: the hero and rope bigger on a new stamp with re-proved courses, better water, clearer
+hooks, a calmer background. Gallery: `docs/design/pages-review/action/GALLERY.md` (Grappler, "Stage 2 look pass").
+
+### swingRev 18 (`SWING_REV_BIG`, the state's `big`)
+
+- **The rule.** swingRev 17's game exactly (sliding hooks, dark ledge runs, the streak, the four parts and their 200, 90 s
+  on a 93 s clock, 51 stretches) with the hero's body **14 px** in radius (`SWING_V18_RADIUS`; 10 on every earlier
+  revision). The sim reads the body through one module variable, `RADIUS`, set by `withBody` only for the length of a
+  rev-18 build or step (synchronous, always restored), so every older revision steps exactly as before.
+- **What the larger body changes.** The roof and the river are touched 4 px sooner (the river is a miss); a squeeze's
+  rock is touched 4 px sooner (each rev-18 course is built on the larger body, so the squeezes keep their 14 px of
+  clearance round it); a landing stands the body 14 px above the platform (4 px higher); the pterodactyl's catch line
+  reaches the body 4 px sooner. **Grabs are by reach** (220 px, unchanged, a level lever not touched here) and **gates by
+  the body's centre line**, so neither changes. Pickups (gems, stars) are not dealt on rev 17 or 18.
+- **Re-proved.** Each course is built and proved on the 14 px body from its own salt (`V18_SHAPE`); rooms deal
+  `SWING_BIG_DEAL` (`src/lib/duel/swingBigDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18 [--check]`): 120
+  courses whose flawless oracle run replays to exactly 200 through `replaySwingRun` (witnesses
+  `scripts/fixtures/swing-big-deal-witness.json.gz`); 168 of the first 288 candidates dropped (rev 17: 114 of 234).
+  `pinSwingPreBig(true)` deals swingRev 17 from its own deal for the checks written for it. "King of the swingers" (the
+  Course part full) holds on every witness sampled.
+- **Bands** (room seeds 0–11 on each revision's deal, `bun scripts/swing-rework-bands.ts --rev=17|18`, through the
+  server replay), medians weak → flawless:
+
+  | | Weak | Average | Good | Great | Near-perfect | Elite | Flawless | Random |
+  |---|---|---|---|---|---|---|---|---|
+  | swingRev 17 | 63 | 97 | 123 | 166 | 191 | 198 | 200 | 6 |
+  | swingRev 18 | 67 | 97 | 121 | 164 | 188 | 197 | 200 | 7 |
+
+  flawless > great > good on 12 of 12 courses on both. The larger body costs the better levels a few points (an
+  occasional extra river touch); the deal keeps only courses its flawless line clears.
+
+### The look (display only; every jungle revision unless noted)
+
+- **The hero** (swingRev 18): Captain Joulz drawn **1.4×** about the body's centre (`GRAPPLER_V18_SCALE`, the radius
+  ratio), filling the 14 px circle as the rev-17 figure fills its 10 px one; the dark pool and warm light round him scale
+  with him. art-check holds every pose to main's jungle figure plus the Grappler allowance, × 1.4 (its own entry, Joe's
+  approval of 15 Nov 2026; main's recorded bounds unchanged).
+- **The held vine** (swingRev 18) 1.85× (`SWING_V18_ROPE_W`, was 1.35); every hanging vine 1.2× with two leaf tufts
+  instead of five, so the line from the canopy to the ring reads at speed.
+- **The hooks**: concept A's target ring at **14 px** (`JUNGLE_LOOP_R`, was 12): a soft dark pad behind it whatever is
+  behind (contrast, not a glow), a heavy dark rim, a thick band of enamelled cream metal with a crisp specular arc, a dark
+  well with a small cream bullseye ring, a lime binding where the vine ties on; gold enamel just after a grab. The cream
+  band stands at least 7:1 against its pad.
+- **The water**: glossy liquid with real movement: a brighter sky band under the surface, the near trunks reflected as
+  unbroken wavering columns that fade with depth, low-hanging rings reflected as a broken cream streak, a broad sheen of
+  light drifting across, ripple rings opening and fading at seeded spots, the current's ripple lines and streaks, glints
+  twinkling along the crests, a dark meniscus under the crisp lit edge, lily pads with a lit rim. The surface stays
+  within 1.45 px of the sim's floor line; with reduced motion every motion holds still.
+- **A calmer background**: a darker, quieter haze; faint light shafts only; far trunks and crowns closer to the haze; mid
+  trunks low in contrast and well into the mist; near trunks dark columns with half the bark detail, one dim leaf cluster
+  each and a shade at their top and foot; more mist low down. Measured on the backdrop alone (camera 3000 px): luminance
+  spread 11.1 (stage 1 20.1), edge energy 2.94 (5.44), mean 47 (64). The deepening jungle and the screen fill beside the
+  world use the same layers, so edge to edge and the depth veil hold.
+- Frames: `bun scripts/shots/swing-overhaul-frames.ts --rev=18 [--course=0] [--tag=after] [--clip]`.
+- The intro still is swingRev 18's first dealt course; **the intro demo stays stopped until recorded on swingRev 18**.
 
 ## The Action overhaul (15 Nov 2026, phase 2 step 4; display only, swingRev 17)
 

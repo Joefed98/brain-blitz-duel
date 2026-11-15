@@ -43,10 +43,11 @@ function leaf(ctx: Ctx, x: number, y: number, len: number, a: number, light: num
   const g = ctx.createLinearGradient(0, -w, 0, w);
   g.addColorStop(0, lit);
   g.addColorStop(1, dark);
-  ctx.globalAlpha = 0.55 + 0.45 * light;
+  const base = ctx.globalAlpha;
+  ctx.globalAlpha = base * (0.55 + 0.45 * light);
   ctx.fillStyle = g;
   ctx.fill();
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = base;
   // Midrib and a short sheen along the upper half.
   ctx.strokeStyle = "rgba(10,30,12,0.45)";
   ctx.lineWidth = Math.max(0.6, len * 0.035);
@@ -207,17 +208,26 @@ function paintTrunkTile(ctx: Ctx, layer: TrunkLayer, H: number): void {
       const x = t.x + shift;
       if (x + t.w < 0 || x > layer.tileW) continue;
       if (layer.id === "mid") {
-        paintTrunk(ctx, x, 0, H, t.w, t.seed, "#244634", "#3A6248", "#14281D", 0.6);
-        // Into the haze.
-        ctx.fillStyle = "rgba(52,104,84,0.42)";
+        // Stage 2 (calmer, 15 Nov 2026): the mid trunks low in contrast and well into the haze.
+        paintTrunk(ctx, x, 0, H, t.w, t.seed, "#1C3628", "#264634", "#132619", 0.2);
+        ctx.fillStyle = "rgba(36,76,60,0.55)";
         ctx.fillRect(x, 0, t.w, H);
       } else {
-        paintTrunk(ctx, x, 0, H, t.w, t.seed, "#1C3222", "#355238", "#0B1810", 1);
-        // Lit leaf clusters part way up (concept A's mid-height foliage).
+        // Stage 2: the near trunks dark and quiet (concept A's dark columns), their bark detail half as strong, one
+        // dim leaf cluster each part way up, so the vines, rings and hero in front read first.
+        paintTrunk(ctx, x, 0, H, t.w, t.seed, "#182E20", "#243E2E", "#0E1A13", 0.3);
         const h = t.seed;
         const cy = H * (0.26 + ((h >>> 5) % 18) / 100);
-        paintLeafCluster(ctx, x + t.w / 2 - 22, cy, 34 + (h % 12), h, 0);
-        paintLeafCluster(ctx, x + t.w / 2 + 26, cy + 26, 28 + ((h >>> 3) % 10), h + 5, 0);
+        ctx.globalAlpha = 0.55;
+        paintLeafCluster(ctx, x + t.w / 2 - 14, cy, 30 + (h % 10), h, 1);
+        ctx.globalAlpha = 1;
+        // A shade down the whole trunk so its top and foot sink into the haze.
+        const fade = ctx.createLinearGradient(0, 0, 0, H);
+        fade.addColorStop(0, "rgba(8,20,14,0.35)");
+        fade.addColorStop(0.45, "rgba(8,20,14,0)");
+        fade.addColorStop(1, "rgba(16,40,34,0.45)");
+        ctx.fillStyle = fade;
+        ctx.fillRect(x - 40, 0, t.w + 80, H);
       }
     }
 }
@@ -305,65 +315,86 @@ export function strokeVineRope(ctx: Ctx, trace: () => void, w = 1, gold = false)
 /* ---------------- Grab rings ---------------- */
 
 const ringCache = new Map<string, { canvas: ArtCanvas; size: number } | null>();
-/** Paints a grab ring of radius R centred at (x, y): enamelled cream metal (gold when `gold`), a dark centre, a bead. */
+/**
+ * Paints a grab ring of radius R centred at (x, y) (stage 2 of the Action overhaul, 15 Nov 2026: concept A's target
+ * ring, made to read at a glance at speed): a soft dark pad under it (contrast, not a glow), a heavy dark rim, a thick
+ * band of enamelled cream metal lit from the top left with a crisp specular arc, a dark well and a small cream inner
+ * ring at its centre (the bullseye), and a lime binding where the vine ties on. Gold enamel once grabbed.
+ */
 export function paintGrabRing(ctx: Ctx, x: number, y: number, R: number, gold: boolean): void {
-  // A soft contact shadow below (depth, not a glow).
-  ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  ctx.lineWidth = 6;
+  // The dark pad: the ring always sits on a calm dark disc, whatever is behind it (leaves, trunks, light).
+  const pad = ctx.createRadialGradient(x, y, R * 0.6, x, y, R + 7);
+  pad.addColorStop(0, "rgba(2,10,6,0.62)");
+  pad.addColorStop(0.7, "rgba(2,10,6,0.42)");
+  pad.addColorStop(1, "rgba(2,10,6,0)");
+  ctx.fillStyle = pad;
   ctx.beginPath();
-  ctx.arc(x + 0.6, y + 1.6, R, 0, Math.PI * 2);
+  ctx.arc(x, y, R + 7, 0, Math.PI * 2);
+  ctx.fill();
+  // A contact shadow below (depth).
+  ctx.strokeStyle = "rgba(0,0,0,0.4)";
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.arc(x + 0.6, y + 1.8, R, 0, Math.PI * 2);
   ctx.stroke();
-  // The dark centre.
+  // The dark well.
   const hole = ctx.createRadialGradient(x, y - 2, 1, x, y, R);
-  hole.addColorStop(0, "rgba(4,14,8,0.55)");
-  hole.addColorStop(1, "rgba(4,14,8,0.82)");
+  hole.addColorStop(0, "rgba(6,18,10,0.82)");
+  hole.addColorStop(1, "rgba(3,10,6,0.94)");
   ctx.fillStyle = hole;
   ctx.beginPath();
   ctx.arc(x, y, R - 2, 0, Math.PI * 2);
   ctx.fill();
-  // Rim, then the enamel lit from the top left.
-  ctx.strokeStyle = gold ? "#4A3410" : "#25301A";
-  ctx.lineWidth = 7;
+  // The heavy rim, then the enamel band lit from the top left.
+  ctx.strokeStyle = gold ? "#3E2A08" : "#16200E";
+  ctx.lineWidth = 8.6;
   ctx.beginPath();
   ctx.arc(x, y, R, 0, Math.PI * 2);
   ctx.stroke();
   const e = ctx.createLinearGradient(x - R, y - R, x + R, y + R);
   if (gold) {
-    e.addColorStop(0, "#FFF0B0");
+    e.addColorStop(0, "#FFF2B8");
     e.addColorStop(0.45, "#F2C75C");
-    e.addColorStop(1, "#9A6E1E");
+    e.addColorStop(1, "#A0721E");
   } else {
-    e.addColorStop(0, "#FFFBEA");
-    e.addColorStop(0.45, "#E4E8C8");
-    e.addColorStop(1, "#8E9670");
+    e.addColorStop(0, "#FFFDF0");
+    e.addColorStop(0.45, "#EEF0D4");
+    e.addColorStop(1, "#A3AB80");
   }
   ctx.strokeStyle = e;
-  ctx.lineWidth = 4.6;
+  ctx.lineWidth = 5.8;
   ctx.beginPath();
   ctx.arc(x, y, R, 0, Math.PI * 2);
   ctx.stroke();
-  // Inner edge line for the enamel's depth.
-  ctx.strokeStyle = "rgba(20,26,10,0.5)";
-  ctx.lineWidth = 0.8;
+  // The enamel's inner edge (depth).
+  ctx.strokeStyle = "rgba(20,26,10,0.55)";
+  ctx.lineWidth = 0.9;
   ctx.beginPath();
-  ctx.arc(x, y, R - 2.3, 0, Math.PI * 2);
+  ctx.arc(x, y, R - 2.9, 0, Math.PI * 2);
   ctx.stroke();
-  // The specular: a crisp short arc on the upper left.
+  // The bullseye: a small cream ring at the centre (concept A), a dark dot in it.
+  const ir = Math.max(2.6, R * 0.32);
+  ctx.strokeStyle = gold ? "#F7DA88" : "#E9EDCB";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, ir, 0, Math.PI * 2);
+  ctx.stroke();
+  // The specular: a crisp arc on the upper left of the band.
   ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = 1.4;
+  ctx.lineWidth = 1.6;
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.arc(x, y, R + 0.6, Math.PI * 1.08, Math.PI * 1.42);
+  ctx.arc(x, y, R + 0.9, Math.PI * 1.08, Math.PI * 1.46);
   ctx.stroke();
-  // The bead at the top, where the vine ties on.
-  const b = ctx.createRadialGradient(x - 1.4, y - R - 1.4, 0.4, x, y - R, 4.6);
-  b.addColorStop(0, "#FFF4C8");
-  b.addColorStop(0.5, "#F2C75C");
-  b.addColorStop(1, "#7A5414");
-  ctx.fillStyle = b;
-  ctx.beginPath();
-  ctx.arc(x, y - R, 4.4, 0, Math.PI * 2);
-  ctx.fill();
+  // The binding at the top where the vine ties on: three lime wraps over the band.
+  for (let k = -1; k <= 1; k++) {
+    ctx.strokeStyle = k === 0 ? "#BCE97C" : "#5FA03A";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(x + k * 2.2 - 1.2, y - R - 3.4);
+    ctx.lineTo(x + k * 2.2 + 1.2, y - R + 3.4);
+    ctx.stroke();
+  }
 }
 
 /** A cached grab-ring sprite (radius R, gold or cream) drawn centred at (x, y); painted direct where none. */

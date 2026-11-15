@@ -47,6 +47,7 @@ import {
   SWING_REV_REWORK,
   SWING_REV_DARK,
   SWING_REV_SLIDE,
+  SWING_REV_BIG,
   swingAnchorAt,
   swingStreakNow,
   SWING_V17_STREAK_BLOCK,
@@ -62,7 +63,7 @@ import {
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
-import { GRAPPLER_HERO_GROW, drawHero, heroGrow, heroPose } from "./hero.renderer";
+import { GRAPPLER_HERO_GROW, GRAPPLER_V18_SCALE, drawHero, heroGrow, heroPose } from "./hero.renderer";
 import { ANG_PER_RAD } from "./trig";
 import { drawActionHud, type ActionChip } from "./actionHud.renderer";
 import {
@@ -1051,7 +1052,10 @@ const assaultArtGameV14 = { ...swingGameFor(SWING_REV_ASSAULT), draw: drawSwingA
 const reworkArtGameV15 = { ...swingGameFor(SWING_REV_REWORK), draw: drawSwingArt };
 const darkArtGameV16 = { ...swingGameFor(SWING_REV_DARK), draw: drawSwingArt };
 const slideArtGameV17 = { ...swingGameFor(SWING_REV_SLIDE), draw: drawSwingArt };
+/** swingRev 18 (the bigger hero): the jungle with the hero and the held vine drawn 1.4× (display reads the state's `big`). */
+const bigArtGameV18 = { ...swingGameFor(SWING_REV_BIG), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_BIG) return bigArtGameV18;
   if (rev === SWING_REV_SLIDE) return slideArtGameV17;
   if (rev === SWING_REV_DARK) return darkArtGameV16;
   if (rev === SWING_REV_REWORK) return reworkArtGameV15;
@@ -1630,6 +1634,8 @@ export const SWING_PTERO_LABEL_PX = 15;
  * was about 8.7 px on a 390-wide phone; now about 11.3, the values about 17), the platform's PAR label 14 px (was 11).
  */
 export const SWING_JUNGLE_ROPE_W = 1.35;
+/** swingRev 18 (the bigger hero, 15 Nov 2026): the held vine 1.85× (the figure 1.4×), so the rope reads at speed. */
+export const SWING_V18_ROPE_W = 1.85;
 export const SWING_HUD_SCALE = 1.3;
 export const SWING_PAR_LABEL_PX = 14;
 
@@ -1737,13 +1743,16 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
 
   const fx = sx(state.x);
   const fy = state.y / FP;
+  // swingRev 18: the figure drawn 1.4× about the body's centre (its body is 14 px; 10 on every earlier revision).
+  const heroK = state.big ? GRAPPLER_V18_SCALE : 1;
   let armX = -0.6;
   let armY = 0.8;
   if (state.rope >= 0) {
     const a = swingAnchorAt(state, state.rope, state.tick);
     const ax = sx(a.x);
     const ay = a.y / FP;
-    drawJungleRope(ctx, ax, ay, fx, fy - 4, SWING_JUNGLE_ROPE_W);
+    // swingRev 18: the hands 1.4× further from the body's centre, the vine thicker.
+    drawJungleRope(ctx, ax, ay, fx, fy - 4 * heroK, state.big ? SWING_V18_ROPE_W : SWING_JUNGLE_ROPE_W);
     const d = Math.hypot(ax - fx, ay - fy) || 1;
     armX = (ax - fx) / d;
     armY = (ay - fy) / d;
@@ -1752,16 +1761,18 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
     armX = -state.vx / d;
     armY = -state.vy / d;
   }
-  // The hero, larger than the cave's: head at -7.5 (top -11.7), feet at +11, inside the 10 px radius plus 2 px.
+  // The hero, larger than the cave's: head at -7.5 (top -11.7), feet at +11, inside the 10 px radius plus 2 px; the
+  // joints are set about the body's centre and drawn under heroK (swingRev 18's larger body).
   const hero = jungleHero;
-  hero.headX = fx; hero.headY = fy - 7.5;
-  hero.neckX = fx; hero.neckY = fy - 3.2;
-  hero.hipX = fx; hero.hipY = fy + 3.6;
-  hero.shoulderX = fx; hero.shoulderY = fy - 3.2;
-  hero.handAX = fx + armX * 9.5; hero.handAY = fy - 3.2 + armY * 9.5;
-  hero.handBX = fx + armX * 8.5 + armY * 2.4; hero.handBY = fy - 3.2 + armY * 8.5 - armX * 2.4;
-  hero.footAX = fx - 3.6; hero.footAY = fy + 11;
-  hero.footBX = fx + 3.6; hero.footBY = fy + 11;
+  hero.headX = 0; hero.headY = -7.5;
+  hero.neckX = 0; hero.neckY = -3.2;
+  hero.hipX = 0; hero.hipY = 3.6;
+  hero.shoulderX = 0; hero.shoulderY = -3.2;
+  hero.handAX = armX * 9.5; hero.handAY = -3.2 + armY * 9.5;
+  hero.handBX = armX * 8.5 + armY * 2.4; hero.handBY = -3.2 + armY * 8.5 - armX * 2.4;
+  hero.footAX = -3.6; hero.footAY = 11;
+  hero.footBX = 3.6; hero.footBY = 11;
+  hero.detailScale = heroK;
   let vx = state.vx / FP;
   let vy = state.vy / FP;
   if (state.rope >= 0) {
@@ -1780,11 +1791,15 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   // A soft light round the hero so it reads against the leaves, then (the Action overhaul, 15 Nov 2026) a dark pool
   // under the figure itself, so its gold and black read at once against leaves, trunks, water or the deep shade: a
   // backlit silhouette. The figure is already as large as its 10 px hit circle allows (art-check's Grappler allowance).
-  if (!lite) drawJungleGlow(ctx, fx, fy, 30, "rgba(255,230,150,0.3)", "rgba(255,230,150,0.1)");
-  drawJungleGlow(ctx, fx, fy - 2, 20, "rgba(3,10,6,0.62)", "rgba(3,10,6,0.36)");
+  if (!lite) drawJungleGlow(ctx, fx, fy, 30 * heroK, "rgba(255,230,150,0.3)", "rgba(255,230,150,0.1)");
+  drawJungleGlow(ctx, fx, fy - 2 * heroK, 20 * heroK, "rgba(3,10,6,0.62)", "rgba(3,10,6,0.36)");
   const blink = (state.respawn ?? 0) > 0 && !still && Math.floor(state.tick / 4) % 2 === 1;
   if (blink) ctx.globalAlpha = 0.35;
+  ctx.save();
+  ctx.translate(fx, fy);
+  if (heroK !== 1) ctx.scale(heroK, heroK);
   drawHero(ctx, hero);
+  ctx.restore();
   ctx.globalAlpha = 1;
 
   ctx.restore();

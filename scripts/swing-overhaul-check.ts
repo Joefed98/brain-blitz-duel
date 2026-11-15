@@ -14,7 +14,10 @@
  *     finish, never falls along a clean run; a drawn frame is identical twice (no randomness), and a late frame is
  *     darker than an early one.
  *  7. The HUD reads: its chip label at least 11 px on a 390-wide phone; the PAR label 14 px; the grab loop 12 px.
- *  8. The intro is a still from the game's own renderer on swingRev 17.
+ *  8. The intro is a still from the game's own renderer on the live stamp (swingRev 18 since stage 2).
+ *  9. Edge to edge (below).
+ * 10. Stage 2 (15 Nov 2026): swingRev 18's bigger hero, re-proved deal and colliding body; the hooks, water and calmer
+ *     backdrop of the look pass (below).
  *
  *   bun scripts/swing-overhaul-check.ts
  */
@@ -202,13 +205,16 @@ for (const w of sample.slice(0, 3)) {
 {
   const shownLabel = 10 * SR.SWING_HUD_SCALE * (390 / S.swingWorldWFor(REV));
   ok(shownLabel >= 11, `the HUD's chip label is ${shownLabel.toFixed(1)} px on a 390-wide phone (at least 11)`);
-  ok(SR.SWING_PAR_LABEL_PX >= 14 && J.JUNGLE_LOOP_R === 12 && SR.SWING_JUNGLE_ROPE_W >= 1.3, "the PAR label is 14 px, the grab loop 12 px and the held vine at least 1.3× as thick");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): stage 2 redrew the loop at
+  // 14 px (section 10e); 12 was stage 1's.
+  ok(SR.SWING_PAR_LABEL_PX >= 14 && J.JUNGLE_LOOP_R >= 12 && SR.SWING_JUNGLE_ROPE_W >= 1.3, "the PAR label is 14 px, the grab loop at least 12 px and the held vine at least 1.3× as thick");
 }
 
 /* 8. The intro still. */
 {
   const src = readFileSync("src/puzzles/swing.tsx", "utf8");
-  ok(/<ArtStill\s+game=\{swingArtGameFor\(SWING_REV_SLIDE\)\}/.test(src), "the intro still is drawn by the game's own renderer on swingRev 17");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is now 18.
+  ok(/<ArtStill\s+game=\{swingArtGameFor\(SWING_REV_BIG\)\}/.test(src), "the intro still is drawn by the game's own renderer on swingRev 18");
 }
 
 /*
@@ -315,6 +321,188 @@ for (const w of sample.slice(0, 3)) {
   const scenes = states.map((x) => SR.swingJungleScene(x));
   ok(states.length >= 3 && scenes.some((x) => x.step === 0) && scenes.some((x) => x.step >= 15) && scenes.some((x) => x.dim && x.darkRight), `edge to edge proved at the start, deep in and on a dimmed platform run with the shade on the right: ${JSON.stringify(scenes)}`);
   console.log(`edge to edge: ${scenes.length} scenes (${scenes.map((x) => `depth ${x.step}${x.darkRight ? " shade" : ""}${x.dim ? " dim" : ""}`).join(", ")}) at 4 screen sizes`);
+}
+
+/*
+ * 10. Stage 2 (the look pass, 15 Nov 2026): swingRev 18, the bigger hero, and the jungle's look.
+ *  a. The stamp: swingRev 18 is swingRev 17's game on a 14 px body (10 before); 90 s; 51 stretches; rooms deal it from
+ *     its own proved deal, swingPreBig deals rev 17 from rev 17's.
+ *  b. Re-proved: every 12th dealt course's oracle witness replays to exactly 200 through the server's replay, with the
+ *     Course part full ("King of the swingers" still possible).
+ *  c. The larger body collides: the same falling body that clears the river on rev 17 lands in it on rev 18 (and the
+ *     body is back to 10 px for rev 17 after a rev-18 step); a landing stands 14 px above the platform.
+ *  d. The figure: drawn GRAPPLER_V18_SCALE (the radius ratio) about the body's centre, inside the approved extent × 1.4;
+ *     the held vine at least 1.8× (SWING_V18_ROPE_W).
+ *  e. The hooks: the grab loop 14 px; the cream band against its dark pad at least 7:1.
+ *  f. The water: moving (two moments differ), still under reduced motion (identical), glossy (the band just under the
+ *     surface brighter than the deep water).
+ *  g. A calmer backdrop: its luminance spread and its edge energy at most 60 % of stage 1's (measured on 14ce058d with
+ *     scratch/bgmeasure: sd 20.1, edge 5.44 at camera 3000 px) and its mean darker than stage 1's (63.7).
+ */
+{
+  const AS = await import("../src/lib/duel/arcade.server");
+  const { SWING_BIG_DEAL } = await import("../src/lib/duel/swingBigDeal.server");
+  const big = S.swingGameFor(S.SWING_REV_BIG);
+  // a.
+  ok(S.SWING_REV_BIG === 18 && S.SWING_V18_RADIUS === 14 * 256, "swingRev 18's body is 14 px");
+  ok(big.runTicks === S.SWING_V16_RUN_TICKS && big.runTicks <= 120 * 60, `swingRev 18 runs ${big.runTicks / 60} s (the 120 s rule)`);
+  for (const seed of SWING_BIG_DEAL.slice(0, 3)) {
+    const s0 = big.init(seed);
+    ok(s0.big === 1 && s0.slide === 1 && s0.dark === 1 && S.swingAssaultCounts(s0).sectionTotal === 51, `dealt rev-18 course ${seed}: the bigger body on rev 17's rules, 51 stretches`);
+    ok(S.swingBotKit.radiusOf(s0) === S.SWING_V18_RADIUS && S.swingBotKit.radiusOf({}) === 10 * 256, "the bots see each state's own body");
+  }
+  for (let i = 0; i < 6; i++) {
+    const p = AS.generateSwing();
+    ok(p.swingRev === S.SWING_REV_BIG && SWING_BIG_DEAL.includes(p.seed), `rooms deal swingRev 18 from its deal (${p.swingRev}, ${p.seed})`);
+  }
+  const was = AS.pinSwingPreBig(true);
+  try {
+    const { SWING_SLIDE_DEAL: slide } = await import("../src/lib/duel/swingSlideDeal.server");
+    const p = AS.generateSwing();
+    ok(p.swingRev === S.SWING_REV_SLIDE && slide.includes(p.seed), `swingPreBig deals swingRev 17 from its own deal (${p.swingRev})`);
+  } finally {
+    AS.pinSwingPreBig(was);
+  }
+  // b.
+  const bigW = (JSON.parse(gunzipSync(readFileSync("scripts/fixtures/swing-big-deal-witness.json.gz")).toString()) as { witnesses: { seed: number; events: Ev[] }[] }).witnesses;
+  ok(bigW.length === SWING_BIG_DEAL.length && bigW.every((w, i) => w.seed === SWING_BIG_DEAL[i]), `the rev-18 deal is exactly its ${bigW.length} witnessed seeds`);
+  for (const w of bigW.filter((_, i) => i % 12 === 0)) {
+    const v = swingSlideVerdict(w.seed, w.events as never, S.SWING_REV_BIG);
+    ok(v.score === 200 && !v.flagged && v.parts.core === S.SWING_V17_CORE, `rev-18 course ${w.seed}: its witness scores ${v.score} (200) through the server's replay, the Course part full`);
+  }
+  // c.
+  {
+    const s0 = big.init(SWING_BIG_DEAL[0]!);
+    // A free body falling straight down 13 px (centre) above the river: the 14 px body touches it, the 10 px one does not.
+    const x = s0.anchors[1]!.x;
+    const lerp = (arr: readonly number[], at: number) => {
+      const i = Math.trunc(at / (40 * 256));
+      return arr[i]! + Math.trunc(((arr[i + 1]! - arr[i]!) * (at - i * 40 * 256)) / (40 * 256));
+    };
+    const floor = lerp(s0.floor, x);
+    const falling = { ...s0, rope: -1, x, y: floor - 13 * 256 - 77, vx: 0, vy: 0, respawn: 0, ledgeOn: -1, chaseX: 0 };
+    const onBig = big.step(falling, null);
+    const onSlide = S.swingGameFor(S.SWING_REV_SLIDE).step({ ...falling, big: undefined }, null);
+    ok((onBig.restarts ?? 0) === (s0.restarts ?? 0) + 1, "rev 18: the 14 px body touching the river is a miss");
+    ok((onSlide.restarts ?? 0) === (s0.restarts ?? 0), "rev 17 (stepped after it): the 10 px body clears the same river");
+    // Landing: the hero stands with the body's bottom on the platform's top.
+    const l = s0.ledges![1]!;
+    const drop = { ...s0, rope: -1, x: l.x, y: l.top - 14 * 256 - 300, vx: 0, vy: 200, respawn: 0, ledgeOn: -1, chaseX: 0, sec: s0.ledges![1]!.section };
+    let st = drop;
+    for (let n = 0; n < 8 && (st.ledgeOn ?? -1) < 0; n++) st = big.step(st, null);
+    ok((st.ledgeOn ?? -1) >= 0 ? st.y === l.top - 14 * 256 : true, `rev 18: a landing stands the body's 14 px above the platform (${(l.top - st.y) / 256})`);
+  }
+  // d.
+  {
+    ok(H.GRAPPLER_V18_SCALE === S.SWING_V18_RADIUS / (10 * 256), `the figure's scale (${H.GRAPPLER_V18_SCALE}) is the radius ratio`);
+    ok(SR.SWING_V18_ROPE_W >= 1.8, `the held vine is ${SR.SWING_V18_ROPE_W}× on swingRev 18`);
+    const src = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
+    ok(/const heroK = state\.big \? GRAPPLER_V18_SCALE : 1;/.test(src) && /ctx\.translate\(fx, fy\);\s*if \(heroK !== 1\) ctx\.scale\(heroK, heroK\);\s*drawHero\(ctx, hero\);/.test(src), "the jungle hero is drawn ×1.4 about the body's centre on swingRev 18 only");
+    const Z = 4, C = 160;
+    let across = 0, up = 0, down = 0;
+    for (let a = 0; a < 8; a++) {
+      const ang = (a / 8) * Math.PI * 2;
+      const ax = Math.cos(ang), ay = Math.sin(ang);
+      const p = Object.assign(H.heroPose(), {
+        headR: 4.2, stick: 3, headX: 0, headY: -7.5, neckX: 0, neckY: -3.2, hipX: 0, hipY: 3.6, shoulderX: 0, shoulderY: -3.2,
+        handAX: ax * 9.5, handAY: -3.2 + ay * 9.5, handBX: ax * 8.5 + ay * 2.4, handBY: -3.2 + ay * 8.5 - ax * 2.4,
+        footAX: -3.6, footAY: 11, footBX: 3.6, footBY: 11, detailScale: H.GRAPPLER_V18_SCALE, gentle: true,
+      });
+      H.heroGrow(p, H.GRAPPLER_HERO_GROW);
+      const cv = createCanvas(C * Z, C * Z);
+      const x = cv.getContext("2d") as unknown as CanvasRenderingContext2D;
+      x.translate((C * Z) / 2, (C * Z) / 2);
+      x.scale(Z * H.GRAPPLER_V18_SCALE, Z * H.GRAPPLER_V18_SCALE);
+      H.drawHero(x, p);
+      const d = (x as unknown as { getImageData: (a: number, b: number, c: number, d: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, C * Z, C * Z).data;
+      for (let yy = 0; yy < C * Z; yy++)
+        for (let xx = 0; xx < C * Z; xx++)
+          if (d[(yy * C * Z + xx) * 4 + 3]! > 40) {
+            const dx = Math.abs(xx + 0.5 - (C * Z) / 2) / Z;
+            const dy = (yy + 0.5 - (C * Z) / 2) / Z;
+            across = Math.max(across, dx);
+            if (dy < 0) up = Math.max(up, -dy);
+            else down = Math.max(down, dy);
+          }
+    }
+    const k = H.GRAPPLER_V18_SCALE;
+    ok(across <= 15.75 * k && up <= 19.75 * k && down <= 13.25 * k, `swingRev 18's figure stays inside the approved extent × ${k}: ±${across.toFixed(2)} across, ${up.toFixed(2)} up, ${down.toFixed(2)} down`);
+    ok(down >= 12.75 * k - 2 && down <= 14 + 2 + 2, `its feet fill the 14 px body (${down.toFixed(2)} px down, within 2 px of the body's scaled figure)`);
+  }
+  // e.
+  {
+    ok(J.JUNGLE_LOOP_R === 14, `the grab loop is ${J.JUNGLE_LOOP_R} px`);
+    const A = await import("../src/lib/arcade/swingJungleArt.renderer");
+    const cv = createCanvas(80, 80);
+    const x = cv.getContext("2d") as unknown as CanvasRenderingContext2D;
+    x.fillStyle = "#1F3528";
+    x.fillRect(0, 0, 80, 80);
+    A.paintGrabRing(x, 40, 40, 14, false);
+    const d = (x as unknown as { getImageData: (a: number, b: number, c: number, d: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, 80, 80).data;
+    const lumAt = (px: number, py: number) => {
+      const k = (py * 80 + px) * 4;
+      const c = [d[k]!, d[k + 1]!, d[k + 2]!].map((v) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
+    };
+    const band = lumAt(40 + 14, 40);
+    const pad = lumAt(40 + 14 + 6, 40);
+    const ratio = (band + 0.05) / (pad + 0.05);
+    ok(ratio >= 7, `the ring's cream band against its dark pad is ${ratio.toFixed(1)}:1 (at least 7:1)`);
+  }
+  // f.
+  {
+    const s0 = big.init(SWING_BIG_DEAL[0]!);
+    const W = S.swingWorldW(s0), WH = S.swingWorldH(s0);
+    const river = (t: number, still: boolean) => {
+      const cv = createCanvas(W, WH);
+      const x = cv.getContext("2d") as unknown as CanvasRenderingContext2D;
+      J.drawJungleRiver(x, s0, s0.camX / 256, W, WH, t, still, false, 0);
+      return (x as unknown as { getImageData: (a: number, b: number, c: number, d: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, W, WH).data;
+    };
+    ok(Buffer.compare(Buffer.from(river(3, false)), Buffer.from(river(3.5, false))) !== 0, "the water moves (two moments half a second apart differ)");
+    ok(Buffer.compare(Buffer.from(river(0, true)), Buffer.from(river(7, true))) === 0, "with reduced motion the water holds still");
+    const d = river(0, true);
+    // Column by column: the water 5 px under the surface (the sim's floor line under the camera) against the deepest row.
+    const lumAt = (x: number, y: number) => {
+      const k = (y * W + x) * 4;
+      return 0.2126 * d[k]! + 0.7152 * d[k + 1]! + 0.0722 * d[k + 2]!;
+    };
+    let under = 0, deepSum = 0;
+    for (let x = 0; x < W; x++) {
+      const at = s0.camX + x * 256;
+      const i = Math.trunc(at / (40 * 256));
+      const fy = (s0.floor[i]! + Math.trunc(((s0.floor[i + 1]! - s0.floor[i]!) * (at - i * 40 * 256)) / (40 * 256))) / 256;
+      under += lumAt(x, Math.round(fy) + 5);
+      deepSum += lumAt(x, WH - 4);
+    }
+    under /= W;
+    deepSum /= W;
+    ok(under > deepSum * 1.6, `glossy water: the band under the surface (${under.toFixed(0)}) is lit well above the deep (${deepSum.toFixed(0)})`);
+  }
+  // g.
+  {
+    const cv = createCanvas(450, 844);
+    const x = cv.getContext("2d") as unknown as CanvasRenderingContext2D;
+    J.drawJungleBackdrop(x, 3000, 450, 844, 0, false, 0);
+    const d = (x as unknown as { getImageData: (a: number, b: number, c: number, d: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, 450, 844).data;
+    const L: number[] = [];
+    for (let y = 100; y < 760; y++) for (let xx = 0; xx < 450; xx++) {
+      const k = (y * 450 + xx) * 4;
+      L.push(0.2126 * d[k]! + 0.7152 * d[k + 1]! + 0.0722 * d[k + 2]!);
+    }
+    const mean = L.reduce((a, b) => a + b, 0) / L.length;
+    const sd = Math.sqrt(L.reduce((a, b) => a + (b - mean) ** 2, 0) / L.length);
+    let edge = 0;
+    for (let y = 0; y < 659; y++) for (let xx = 0; xx < 449; xx++) {
+      const i = y * 450 + xx;
+      edge += Math.abs(L[i]! - L[i + 1]!) + Math.abs(L[i]! - L[i + 450]!);
+    }
+    edge /= L.length;
+    ok(sd <= 20.1 * 0.6 && edge <= 5.44 * 0.6 && mean < 63.7, `a calmer backdrop: spread ${sd.toFixed(1)} (stage 1 20.1), edges ${edge.toFixed(2)} (5.44), mean ${mean.toFixed(1)} (63.7)`);
+  }
 }
 
 console.log(`swing-overhaul-check: ${passes} passed, ${fails} failed`);

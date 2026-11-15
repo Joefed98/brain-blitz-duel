@@ -86,6 +86,29 @@ jungle runs on beside and below it at the world's depth, a platform run's shade 
 **Clip** (the setting deepening; four 1.5 s windows at the start, a third, two thirds and near the end):
 <img src="swing/swing-setting.webp" width="240">
 
+### Stage 2 look pass
+
+Today (main e0aa53f2, swingRev 17) | Concept A | New (swingRev 18 on its own dealt course 0, its oracle's witness;
+`bun scripts/shots/swing-overhaul-frames.ts --rev=18 --course=0`), at the start, two thirds and near the end:
+
+<img src="swing/compare-s2-1.webp" width="720">
+
+<img src="swing/compare-s2-2.webp" width="720">
+
+<img src="swing/compare-s2-3.webp" width="720">
+
+- **The hero and rope bigger** (swingRev 18, a new stamp with re-proved courses): the body 14 px (was 10), Captain Joulz
+  drawn 1.4× to fill it, the held vine 1.85×; 120 dealt courses whose flawless run replays to 200; bands within a few
+  points of rev 17 at every level (docs/arcade-standard/swing.md).
+- **Clearer hooks**: concept A's 14 px target ring, cream enamel on a dark pad with a bullseye, a lime binding; hanging
+  vines thicker and cleaner.
+- **Glossy water with real movement**: a bright sky band under the surface, wavering trunk and ring reflections, a
+  drifting sheen, ripple rings opening and fading, glints on the crests, a dark meniscus under the lit edge.
+- **A calmer background**: darker, quieter haze, faint shafts, low-contrast mid and near trunks with dim foliage and
+  mist; about half stage 1's luminance spread and edge energy.
+
+**Clip** (the water's movement, the bottom of the play screen over four 1.5 s windows): <img src="swing/water-s2.webp" width="390">
+
 
 ## Moon Climb
 

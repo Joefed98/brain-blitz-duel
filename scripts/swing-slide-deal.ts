@@ -13,18 +13,29 @@
  *   bun scripts/swing-slide-deal.ts            (writes the deal and the witnesses; 4 worker processes, ~15–25 min)
  *   bun scripts/swing-slide-deal.ts --check    (replays every stored witness through the server path: each exactly 200,
  *                                                and the deal is exactly the witnessed seeds in order; ~1 min)
+ *
+ * `--rev=18` does the same for swingRev 18 (the bigger hero, 15 Nov 2026): src/lib/duel/swingBigDeal.server.ts
+ * (SWING_BIG_DEAL) and scripts/fixtures/swing-big-deal-witness.json.gz, from the same candidate sequence (each course
+ * built on the larger body from its own salt), the same oracle and the same rule (exactly 200 through replaySwingRun).
  */
 import { readFileSync, writeFileSync, existsSync, unlinkSync, appendFileSync } from "node:fs";
 import { gzipSync, gunzipSync } from "node:zlib";
 import { spawn } from "node:child_process";
-import { swingGameFor, swingCheckpoint, swingSlideParts, SWING_REV_SLIDE, SWING_CHECKPOINT_INTERVAL, type SwingState } from "../src/lib/arcade/swing";
+import { swingGameFor, swingCheckpoint, swingSlideParts, SWING_REV_BIG, SWING_REV_SLIDE, SWING_CHECKPOINT_INTERVAL, type SwingState } from "../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
 export const SWING_SLIDE_DEAL_SIZE = 120;
 export const SWING_SLIDE_ORACLE_TRIES = 1;
-const OUT = new URL("../src/lib/duel/swingSlideDeal.server.ts", import.meta.url);
 export const SWING_SLIDE_WITNESS = new URL("./fixtures/swing-slide-deal-witness.json.gz", import.meta.url);
+/** swingRev 18's witnesses (`--rev=18`). */
+export const SWING_BIG_WITNESS = new URL("./fixtures/swing-big-deal-witness.json.gz", import.meta.url);
+/** The revision this run builds (17 unless `--rev=18`). */
+const REV = import.meta.main ? Number(process.argv.find((a) => a.startsWith("--rev="))?.slice(6) ?? SWING_REV_SLIDE) : SWING_REV_SLIDE;
+if (REV !== SWING_REV_SLIDE && REV !== SWING_REV_BIG) throw new Error(`--rev must be ${SWING_REV_SLIDE} or ${SWING_REV_BIG}`);
+const BIG = REV === SWING_REV_BIG;
+const OUT = new URL(BIG ? "../src/lib/duel/swingBigDeal.server.ts" : "../src/lib/duel/swingSlideDeal.server.ts", import.meta.url);
+const WITNESS = BIG ? SWING_BIG_WITNESS : SWING_SLIDE_WITNESS;
 const WORKERS = 4;
 const BATCH = 8;
 
@@ -41,8 +52,8 @@ type Ev = ArcadeInputEvent;
 export type SwingWitness = { seed: number; tries: number; events: Ev[] };
 
 /** The phone's submission for a log on swingRev 17: steps the sim, takes checkpoints, encodes. */
-export function swingSlideSubmission(seed: number, events: readonly Ev[]): string {
-  const game = swingGameFor(SWING_REV_SLIDE);
+export function swingSlideSubmission(seed: number, events: readonly Ev[], rev = SWING_REV_SLIDE): string {
+  const game = swingGameFor(rev);
   const byT = new Map(events.map((e) => [e.t, e]));
   let s = game.init(seed) as SwingState;
   const checkpoints: unknown[] = [];
@@ -54,8 +65,8 @@ export function swingSlideSubmission(seed: number, events: readonly Ev[]): strin
 }
 
 /** The server's verdict on a log: its stored score, whether flagged, and the parts. */
-export function swingSlideVerdict(seed: number, events: readonly Ev[]) {
-  const r = replaySwingRun(seed, swingSlideSubmission(seed, events), SWING_REV_SLIDE);
+export function swingSlideVerdict(seed: number, events: readonly Ev[], rev = SWING_REV_SLIDE) {
+  const r = replaySwingRun(seed, swingSlideSubmission(seed, events, rev), rev);
   return { score: r.score, flagged: Boolean(r.flagged), parts: swingSlideParts(r.state) };
 }
 
@@ -63,18 +74,18 @@ export function swingSlideVerdict(seed: number, events: readonly Ev[]) {
 async function oracle(seed: number): Promise<SwingWitness | null> {
   const { Human } = await import("./arcade-skill-bands/human");
   const { bot } = await import("./arcade-skill-bands/bots/swing");
-  const game = swingGameFor(SWING_REV_SLIDE);
+  const game = swingGameFor(REV);
   for (let v = 0; v < SWING_SLIDE_ORACLE_TRIES; v++) {
     const human = new Human("swing", (seed + v * 7919) | 0, "perfect" as never);
-    const events = (bot({ game, seed, rev: SWING_REV_SLIDE, human } as never).events ?? []) as Ev[];
-    const verdict = swingSlideVerdict(seed, events);
+    const events = (bot({ game, seed, rev: REV, human } as never).events ?? []) as Ev[];
+    const verdict = swingSlideVerdict(seed, events, REV);
     if (verdict.score === 200 && !verdict.flagged) return { seed, tries: v + 1, events };
   }
   return null;
 }
 
 function readWitnesses(): SwingWitness[] {
-  return (JSON.parse(gunzipSync(readFileSync(SWING_SLIDE_WITNESS)).toString()) as { witnesses: SwingWitness[] }).witnesses;
+  return (JSON.parse(gunzipSync(readFileSync(WITNESS)).toString()) as { witnesses: SwingWitness[] }).witnesses;
 }
 
 /** The written deal's seeds. */
@@ -108,7 +119,7 @@ if (import.meta.main) {
       bad++;
     }
     for (const w of witnesses) {
-      const v = swingSlideVerdict(w.seed, w.events);
+      const v = swingSlideVerdict(w.seed, w.events, REV);
       if (v.score !== 200 || v.flagged) {
         console.log(`FAIL: seed ${w.seed}: its witness scores ${v.score}${v.flagged ? " (flagged)" : ""}`);
         bad++;
@@ -133,11 +144,11 @@ if (import.meta.main) {
   while (kept().out.length < SWING_SLIDE_DEAL_SIZE) {
     const want = SWING_SLIDE_DEAL_SIZE - kept().out.length;
     const to = next + Math.max(BATCH, Math.ceil(want * 3.2));
-    const tmp = `/tmp/swing-slide-deal-${process.pid}.jsonl`;
+    const tmp = `/tmp/swing-slide-deal-${REV}-${process.pid}.jsonl`;
     if (existsSync(tmp)) unlinkSync(tmp);
     await Promise.all(
       Array.from({ length: WORKERS }, (_, k) => new Promise<void>((resolve, reject) => {
-        const child = spawn("bun", [new URL(import.meta.url).pathname, `--worker=${k}`, `--from=${next}`, `--to=${to}`, `--out=${tmp}`], { stdio: "inherit" });
+        const child = spawn("bun", [new URL(import.meta.url).pathname, `--rev=${REV}`, `--worker=${k}`, `--from=${next}`, `--to=${to}`, `--out=${tmp}`], { stdio: "inherit" });
         child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`worker ${k} exited ${code}`))));
       })),
     );
@@ -152,24 +163,26 @@ if (import.meta.main) {
   const { out, dropped } = kept();
   const tried = out.length + dropped;
   const byTries = [1, 2, 3].slice(0, SWING_SLIDE_ORACLE_TRIES).map((t) => out.filter((w) => w.tries === t).length);
+  const NAME = BIG ? "SWING_BIG_DEAL" : "SWING_SLIDE_DEAL";
+  const FN = BIG ? "swingBigDealSeed" : "swingSlideDealSeed";
   writeFileSync(
     OUT,
     `/**
- * Grappler's deal (swingRev 17; built by \`bun scripts/swing-slide-deal.ts\`, do not edit): ${SWING_SLIDE_DEAL_SIZE} course
- * seeds, each proved on swingRev 17: the oracle (the flawless-level skill-band bot, scripts/swing-slide-deal.ts) plays the
+ * Grappler's deal (swingRev ${REV}; built by \`bun scripts/swing-slide-deal.ts${BIG ? " --rev=18" : ""}\`, do not edit): ${SWING_SLIDE_DEAL_SIZE} course
+ * seeds, each proved on swingRev ${REV}: the oracle (the flawless-level skill-band bot, scripts/swing-slide-deal.ts) plays the
  * course built from the seed and its log replays through replaySwingRun to exactly 200 (witnesses in
- * scripts/fixtures/swing-slide-deal-witness.json.gz). ${dropped} candidate${dropped === 1 ? "" : "s"} of the first ${tried} dropped
+ * scripts/fixtures/${BIG ? "swing-big-deal-witness" : "swing-slide-deal-witness"}.json.gz). ${dropped} candidate${dropped === 1 ? "" : "s"} of the first ${tried} dropped
  * (${out.length} kept).
  */
-export const SWING_SLIDE_DEAL: readonly number[] = ${JSON.stringify(out.map((w) => w.seed))};
+export const ${NAME}: readonly number[] = ${JSON.stringify(out.map((w) => w.seed))};
 
-/** The course a room seed deals on swingRev 17. */
-export function swingSlideDealSeed(roomSeed: number): number {
-  const n = SWING_SLIDE_DEAL.length;
-  return SWING_SLIDE_DEAL[((Math.trunc(roomSeed) % n) + n) % n]!;
+/** The course a room seed deals on swingRev ${REV}. */
+export function ${FN}(roomSeed: number): number {
+  const n = ${NAME}.length;
+  return ${NAME}[((Math.trunc(roomSeed) % n) + n) % n]!;
 }
 `,
   );
-  writeFileSync(SWING_SLIDE_WITNESS, gzipSync(JSON.stringify({ note: "Grappler swingRev 17 deal witnesses (scripts/swing-slide-deal.ts): each seed's oracle log, exactly 200 through the server replay", witnesses: out })));
+  writeFileSync(WITNESS, gzipSync(JSON.stringify({ note: `Grappler swingRev ${REV} deal witnesses (scripts/swing-slide-deal.ts${BIG ? " --rev=18" : ""}): each seed's oracle log, exactly 200 through the server replay`, witnesses: out })));
   console.log(`wrote ${out.length} seeds; ${dropped} of the first ${tried} candidates dropped; oracle tries per kept course ${byTries.join(" / ")}`);
 }
