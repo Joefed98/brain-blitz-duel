@@ -248,6 +248,24 @@ const between = (text: string, from: string, to: string) => {
   }
 }
 
+/* ------------------------------------------------------------------ 8. Ballpark's proportions (the layout pass) */
+// Joe, 15 Nov 2026: the line is the big element (a tall ruler, bold end labels, a big pin), the card small and compact.
+{
+  const { numlineLiveSizes, NUMLINE_CARD_H } = await import("../src/puzzles/numline");
+  for (const arenaH of [430, 520, 600, 680]) {
+    const z = numlineLiveSizes(arenaH);
+    ok(z.t >= 72 && z.t > 40, `Ballpark ${arenaH}: the ruler is much thicker than the first pass's 40 px (${z.t})`);
+    ok(z.lineH >= 4 * z.cardH && z.cardH === NUMLINE_CARD_H && z.cardH <= 60, `Ballpark ${arenaH}: the line box is at least four times the compact card (${z.lineH} vs ${z.cardH})`);
+    ok(z.lineH + z.cardH + 56 <= Math.max(arenaH, 250 + z.cardH + 56), `Ballpark ${arenaH}: card and line fit the arena (${z.lineH + z.cardH + 56} in ${arenaH})`);
+    ok(z.label >= 34 && z.cardFont <= 40 && z.cardFont >= 32, `Ballpark ${arenaH}: bold end labels (${z.label} px) and a 32–40 px number (${z.cardFont} px)`);
+    ok(z.pinR >= 20 && z.pinRise >= 2 * z.pinR, `Ballpark ${arenaH}: a big pin (r ${z.pinR}) standing clear of the tape`);
+    ok(z.yShare > 0.5 && z.yShare < 1, `Ballpark ${arenaH}: the tape sits low in its box, room above for the pins`);
+  }
+  const src = readFileSync("src/puzzles/numline.tsx", "utf8");
+  ok(/minor=\{live \? 10 : 0\}/.test(src), "Ballpark: the live ruler has tick marks at the tenths");
+  ok(/height: 56px;/.test(readFileSync("src/polish-layout/batch-w-numline.css", "utf8")), "Ballpark: the card is compact (56 px)");
+}
+
 console.log(`number-overhaul-measure-numline-check: ${passes} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log(`FAIL summary: ${failures.length} failed`);

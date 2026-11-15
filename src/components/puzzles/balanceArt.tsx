@@ -207,13 +207,17 @@ export const BALANCE_CSS = `
   border: 0; box-shadow: 0 2px 3px rgba(0,0,0,.45);
 }
 [data-polish="balance"] .bal-big .bal-notch-label { height: 30px; margin-top: 17px; font-size: 20px; }
+[data-polish="balance"] [data-balance-fill] .bal-notch-label { height: 34px; margin-top: 13px; font-size: 22px; }
+[data-polish="balance"] [data-balance-fill] .bal-torque { font-size: 21px; line-height: 28px; padding: 4px 14px; }
+/* Beam fill (a live round): the rod a staggered kettlebell hangs from, brass. */
+[data-polish="balance"] .bal-rod { display: block; width: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--jz-gold-ledge), var(--jz-gold), var(--jz-gold-ledge)); box-shadow: 0 1px 2px rgba(0,0,0,.45); }
 [data-polish="balance"] .bal-notch-active {
   color: var(--jz-on-gold);
   background: url("/number/balance/tag.webp") center / 100% 100% no-repeat;
   box-shadow: 0 0 0 2px var(--jz-white), 0 3px 4px rgba(0,0,0,.5);
 }
 .bal-bell { position: relative; display: inline-block; flex: none; filter: drop-shadow(0 4px 3px rgba(0,0,0,.55)); }
-.bal-bell-art { position: absolute; left: 50%; bottom: 0; width: var(--bell-w); height: var(--bell-h); translate: -50% 0; pointer-events: none; user-select: none; }
+.bal-bell-art { position: absolute; left: 50%; bottom: 0; width: var(--bell-w); height: var(--bell-h); max-width: none; translate: -50% 0; pointer-events: none; user-select: none; }
 .bal-bell-num {
   position: absolute; left: 0; right: 0; bottom: calc(var(--bell-h) * 0.347); translate: 0 50%; text-align: center;
   font-family: var(--jz-font); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--jz-on-gold); pointer-events: none;

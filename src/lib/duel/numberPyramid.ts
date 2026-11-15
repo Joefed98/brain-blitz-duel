@@ -95,6 +95,24 @@ export function npTrayPerRow(count: number, max = 8): number {
   return Math.max(1, Math.min(max, Math.ceil(count / 2)));
 }
 
+/** The tray's narrowest tile (a 44 px target) and the gap between tiles. */
+export const NP_TRAY_MIN_W = 44;
+export const NP_TRAY_GAP = 6;
+
+/**
+ * The tray's rows for `count` tiles in `width` px (the Number overhaul's layout pass, Joe 15 Nov 2026): as few rows as
+ * fit at least a 44 px tile each (at most eight a row), the tiles shared out so rows differ by at most one tile, the
+ * longer rows first: never a single tile alone on a row (unless there is only one). Display only.
+ */
+export function npTrayRows(count: number, width: number, max = 8): number[] {
+  if (count <= 0) return [];
+  const fit = Math.max(1, Math.min(max, Math.floor((width + NP_TRAY_GAP) / (NP_TRAY_MIN_W + NP_TRAY_GAP))));
+  const rows = Math.ceil(count / fit);
+  const base = Math.floor(count / rows);
+  const extra = count - base * rows;
+  return Array.from({ length: rows }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
 export function npCountSolutions(givens: readonly (number | null)[], tray: readonly number[], rows: number, cap = 2): number {
   const empties: number[] = [];
   for (let r = rows - 1; r >= 0; r--) for (let c = 0; c <= r; c++) if (givens[npIndex(r, c)] == null) empties.push(npIndex(r, c));

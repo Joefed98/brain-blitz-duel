@@ -84,7 +84,7 @@ def card():
 
 def pin(name, color, rough):
     """A pin's head alone (32 x 32 points, its centre the sprite's centre); the app draws the needle."""
-    setup(32, 32, scale=4, samples=96)
+    setup(32, 32, scale=6, samples=96)
     world("#06080f", 0.0, hdri="studio.exr", hdri_strength=0.6)
     head = mat(f"head{name}", color, rough, metal=1.0)
     sphere(16, 16, 14, head, z=0)

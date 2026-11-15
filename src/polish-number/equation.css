@@ -332,3 +332,45 @@
 [data-operator-reveal] .opg-gap[data-mark="fix"]::after {
   border: 0.08em solid var(--jz-gold);
 }
+
+/*
+ * The live round fills its space (Joe, 15 Nov 2026): the board spans from the goal line to NEXT, its parts spread
+ * evenly, and everything is a size up (the equation starts at 56 px and still shrinks to fit one line; keys 72 px;
+ * the equation chips 48 px, every target at least 44 px). Intros and demos keep their sizes.
+ */
+[data-puzzle-play] [data-number-overhaul].opg-stage > .opg-spacer {
+  flex: 0 0 0;
+}
+[data-puzzle-play] [data-number-overhaul][data-polish="equation"][data-stage-column] .op-board.opg-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: space-evenly;
+  gap: 14px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-board > .nov-stage {
+  flex: 0 0 auto;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-caption {
+  font-size: 15px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-stage-chip {
+  width: 56px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 18px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-pad {
+  gap: 14px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-row {
+  height: 72px;
+  gap: 12px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-key {
+  height: 72px;
+  border-radius: 14px;
+  font-size: 34px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-key[data-kind="sign"] {
+  width: 72px;
+}

@@ -12,7 +12,9 @@ import {
   npBrokenCells,
   npIndex,
   npSeams,
-  npTrayPerRow,
+  NP_TRAY_GAP,
+  NP_TRAY_MIN_W,
+  npTrayRows,
   NP_SET_SIZE,
   type NpPlacements,
   type NpSeam,
@@ -346,10 +348,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   // The plinth runs 4px past each side of the bottom row.
   const widthFit = Math.floor((size.width - (board.rows - 1) * 4 - 12) / board.rows);
   const cellW = Math.max(44, widthFit);
-  // The Number overhaul: the tray in two neat rows (at most eight a row).
-  const trayPer = npTrayPerRow(board.tray.length);
-  const trayW = Math.max(36, Math.min(64, Math.floor((size.width - 16 - (trayPer - 1) * 6) / trayPer)));
-  const trayRows = Math.ceil(board.tray.length / trayPer);
+  // The Number overhaul's layout pass (Joe, 15 Nov 2026): the tray in balanced rows (npTrayRows), never a tile alone
+  // on a row. The board's size reserves the full tray's rows, so it never jumps as tiles are placed.
+  const trayWidth = size.width - 16;
+  const trayRows = Math.max(1, npTrayRows(board.tray.length, trayWidth).length);
+  const looseTray = board.tray.map((_, tray) => tray).filter((tray) => !placedTray.has(tray));
+  const looseRows = npTrayRows(looseTray.length, trayWidth);
+  const trayPer = Math.max(1, looseRows[0] ?? 1);
+  const trayW = Math.max(NP_TRAY_MIN_W, Math.min(64, Math.floor((trayWidth - (trayPer - 1) * NP_TRAY_GAP) / trayPer)));
   const heightFit = Math.floor((size.height - 132 - trayRows * 50 - (board.rows - 1) * 4) / board.rows);
   // Batch W: in a live round the width-limited bricks grow into the spare height (up to 1.15 × their width), never shorter than main's.
   const mainH = Math.max(44, Math.min(Math.round(cellW * 0.82), heightFit));
@@ -452,8 +458,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         </NumberStage>
       </div>
       {column && <div className="np-spacer" aria-hidden />}
-      <div data-np-tray data-game-controls="tray" className={`${column ? "" : "mt-auto "}np-quarry flex w-full shrink-0 flex-wrap content-start justify-center gap-1.5 p-2`} style={{ ...NO_TOUCH, minHeight: trayRows * 50 + 10 }}>
-        {board.tray.map((value, tray) => placedTray.has(tray) ? null : <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: trayW, height: 44, fontSize: 22 }} onPointerDown={(e) => start(e, tray, null)}>{value}</div>)}
+      <div data-np-tray data-game-controls="tray" className={`${column ? "" : "mt-auto "}np-quarry flex w-full shrink-0 flex-col items-center justify-start gap-1.5 p-2`} style={{ ...NO_TOUCH, minHeight: trayRows * 50 + 10 }}>
+        {looseRows.map((count, row) => {
+          const from = looseRows.slice(0, row).reduce((a, b) => a + b, 0);
+          return (
+            <div key={row} data-np-tray-row={count} className="flex justify-center gap-1.5">
+              {looseTray.slice(from, from + count).map((tray) => <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: trayW, height: 44, fontSize: 22 }} onPointerDown={(e) => start(e, tray, null)}>{board.tray[tray]}</div>)}
+            </div>
+          );
+        })}
       </div>
       {/* position is inline: .np-stone's position: relative (NP_CSS, injected after the utilities) beat the fixed class, so the
           ghost joined the column, pushed the pyramid up mid-drag and drops landed between cells. */}

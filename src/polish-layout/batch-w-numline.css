@@ -12,8 +12,14 @@
    numline.py), a deep navy face under a clear coat inside a polished steel rim that takes the light; drawn 9-slice
    (corners 24 points of the 360 x 100 sprite, at 3 px a point). The face stays dark and clean for the number. */
 [data-puzzle-play] [data-polish="numline"] .numline-card {
-  height: clamp(72px, 12cqh, 100px);
-  font-size: clamp(40px, 8cqh, 60px);
+  /* The layout pass (Joe, 15 Nov 2026): small and compact, one line just above the ruler (numlineLiveSizes). */
+  height: 56px;
+  font-size: 36px;
+  width: auto;
+  min-width: 46%;
+  max-width: 100%;
+  padding: 0 28px;
+  margin: 0 auto;
   border: 0;
   border-radius: 0;
   border-image: url("/number/numline/card.webp") 72 fill / 18px stretch;

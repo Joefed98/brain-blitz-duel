@@ -32,7 +32,7 @@ import { joinStages } from "../src/lib/duel/stagedRounds";
 import { gapSlots, gapStageCorrect, joinGapSegment, splitGapSegment } from "../src/lib/duel/operatorGaps";
 import { GAPS_REV_FAIR_TRIES, GAPS_REV_FIRST, operatorFairTries, pinPreNumberOverhaul } from "../src/lib/duel/numberOverhaul";
 import { countTry, nextOpenStage, operatorNextLabel, targetGap } from "../src/lib/duel/operatorFairTries";
-import { NP_SET_SIZE, npBuild, npIndex, npSeams, npSkipLabel, npSumState, npTrayPerRow } from "../src/lib/duel/numberPyramid";
+import { NP_SET_SIZE, NP_TRAY_GAP, NP_TRAY_MIN_W, npBuild, npIndex, npSeams, npSkipLabel, npSumState, npTrayPerRow, npTrayRows } from "../src/lib/duel/numberPyramid";
 import type { EquationPuzzleData, PuzzleData } from "../src/lib/duel/types";
 
 const FIXTURE = "scripts/fixtures/number-overhaul-equation-legacy.json";
@@ -172,6 +172,18 @@ if (RECORD) {
   ok(npSeams(givens, solution, rows5).every((x) => x.state === "right"), "a right pyramid shows only gold seams");
   ok(npSkipLabel(0) === "Skip" && npSkipLabel(NP_SET_SIZE - 2) === "Skip" && npSkipLabel(NP_SET_SIZE - 1) === "Finish", "Skip reads Finish on the last pyramid");
   for (const n of [3, 6, 9, 12, 15]) ok(Math.ceil(n / npTrayPerRow(n)) <= 2, `a tray of ${n} fits two rows`);
+  // The layout pass (Joe, 15 Nov 2026): balanced rows, never a single tile alone on a row, every tile at least 44 px.
+  for (const width of [343, 359, 374, 520]) {
+    for (let n = 1; n <= 15; n++) {
+      const rows = npTrayRows(n, width);
+      const fits = rows.every((k) => k * NP_TRAY_MIN_W + (k - 1) * NP_TRAY_GAP <= width);
+      ok(rows.reduce((a, b) => a + b, 0) === n && fits, `tray ${n} at ${width}px: every tile placed, each at least 44 px (${rows.join("+")})`);
+      ok(Math.max(...rows) - Math.min(...rows) <= 1, `tray ${n} at ${width}px: rows differ by at most one tile (${rows.join("+")})`);
+      ok(n === 1 || rows.every((k) => k >= 2), `tray ${n} at ${width}px: never a single tile alone on a row (${rows.join("+")})`);
+    }
+  }
+  ok(npTrayRows(6, 359).join() === "6" && npTrayRows(7, 300).join() === "4,3" && npTrayRows(9, 300).join() === "5,4", "tray rows: 6 in one row, 7 as 4+3, 9 as 5+4 where one row can't hold them");
+  ok(/data-np-tray-row/.test(readFileSync("src/puzzles/numberPyramid.tsx", "utf8")), "Integer Pyramid: the tray draws its balanced rows");
 }
 
 /* ------------------------------------------------------------------ 3b. The live screen (happy-dom) */

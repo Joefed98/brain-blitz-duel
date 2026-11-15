@@ -34,7 +34,7 @@ import "@/polish-layout/number-overhaul.css";
 
 const SIGN_KEYS: readonly Operator[] = ["+", "-", "×", "÷"];
 const EQ_PX = 32;
-const EQ_FRAME_PX = 44;
+const EQ_FRAME_PX = 56;
 const EQ_MIN_PX = 13;
 
 export function signText(op: string): string {

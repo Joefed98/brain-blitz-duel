@@ -232,6 +232,32 @@ interface TapeGeom {
  * A horizontal steel tape with its labelled notches; children draw markers in 0–1 shares
  * via `x`. `t` is the tape thickness; `label` the end-label size.
  */
+/**
+ * A live round's sizes (the Number overhaul's layout pass, Joe 15 Nov 2026): the line is the big element, a tall,
+ * clear ruler with bold end labels and a big pin, and the number card above it small and compact. `arenaH` is the
+ * arena's height; the card, the caption over it and the gaps take `NUMLINE_CARD_H` + 56 of it, the line box the rest (within
+ * 250–380; the group is centred in the arena). Intros and demos keep their older sizes (140 high, a 24 px tape), so recorded touches still land.
+ */
+export const NUMLINE_CARD_H = 56;
+export function numlineLiveSizes(arenaH: number) {
+  const lineH = Math.max(250, Math.min(380, Math.round(arenaH - NUMLINE_CARD_H - 56)));
+  // The tape thickens with the room it has (72 to 92 px), the end labels with it.
+  const t = Math.max(72, Math.min(92, Math.round(lineH * 0.24)));
+  const label = t >= 84 ? 40 : 36;
+  return {
+    lineH,
+    t,
+    label,
+    /** The tape's centre, a share of the box: under it the end labels, above it the pins and their labels. */
+    yShare: (lineH - (t / 2 + 8 + label + 12)) / lineH,
+    pinR: 24,
+    pinRise: 88,
+    placedR: 13,
+    cardH: NUMLINE_CARD_H,
+    cardFont: 36,
+  };
+}
+
 export function Line({
   stage,
   width,
@@ -239,6 +265,7 @@ export function Line({
   t = 14,
   label = 16,
   yShare = 0.55,
+  minor = 0,
   svgStyle,
   children,
 }: {
@@ -248,6 +275,8 @@ export function Line({
   t?: number;
   label?: number;
   yShare?: number;
+  /** Unlabelled ticks across the tape at each 1/minor of the line (a live round's tenths); 0 for none. */
+  minor?: number;
   svgStyle?: CSSProperties;
   children?: (x: (share: number) => number, y: number, geom: TapeGeom) => ReactNode;
 }) {
@@ -274,6 +303,21 @@ export function Line({
         height={(36 * t) / 24}
         preserveAspectRatio="none"
       />
+      {minor > 0
+        ? Array.from({ length: minor - 1 }, (_, i) => (i + 1) / minor).map((share) => (
+            <line
+              key={`m${share}`}
+              data-numline-minor
+              x1={x(share)}
+              y1={y - t / 2 + t * (share === 0.5 ? 0.18 : 0.3)}
+              x2={x(share)}
+              y2={y + t / 2 - t * (share === 0.5 ? 0.18 : 0.3)}
+              stroke="#14151a"
+              strokeOpacity={0.9}
+              strokeWidth={share === 0.5 ? 4 : 3}
+            />
+          ))
+        : null}
       {tickLabels(stage).map((tick) => (
         <g key={tick.share}>
           {/* A crisp notch across the tape, continued below it to the label. */}
@@ -564,10 +608,12 @@ function Stage({
   );
   // The overhaul: in a live round the line gets the space (taller box, a thicker rule, bigger end labels); intros
   // and demos keep 140.
-  const lineH = framed ? Math.max(176, Math.min(250, size.height - 200)) : 140;
+  // The layout pass (Joe, 15 Nov 2026): a live round's line is the big element (numlineLiveSizes).
+  const live = framed ? numlineLiveSizes(size.height) : null;
+  const lineH = live ? live.lineH : 140;
   /* The tape sits low in its box: markers and labels above, end labels just below (the live round's bigger labels
      take more room under it). */
-  const lineY = (lineH - (framed ? 58 : 40)) / lineH;
+  const lineY = live ? live.yShare : (lineH - 40) / lineH;
   const levels = labelLevels(
     placedHere.map((p) => SIDE + (p / NUMLINE_SCALE) * span),
     stage.items,
@@ -619,7 +665,7 @@ function Stage({
           <div ref={lineBox} key={shownStage} className="numline-line-in relative w-full" data-edge-bump={edge?.side}>
             {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged.
                 The overhaul: 32 and bold 22 px end labels in a live round. */}
-            <Line stage={stage} width={size.width} height={lineH} t={framed ? 40 : 24} label={framed ? 26 : 18} yShare={lineY}>
+            <Line stage={stage} width={size.width} height={lineH} t={live ? live.t : 24} label={live ? live.label : 18} yShare={lineY} minor={live ? 10 : 0}>
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (
@@ -627,8 +673,8 @@ function Stage({
                       <Pin
                         cx={x(p / NUMLINE_SCALE)}
                         geom={geom}
-                        r={framed ? 9.5 : 7.5}
-                        rise={12 + levels[i]! * 28}
+                        r={live ? live.placedR : 7.5}
+                        rise={(live ? 16 : 12) + levels[i]! * 28}
                         fill={`url(#${geom.id}-placed)`}
                         needle="#c9cbd6"
                       />
@@ -659,8 +705,8 @@ function Stage({
                       <Pin
                         cx={x(share)}
                         geom={geom}
-                        r={framed ? 17 : 14}
-                        rise={framed ? 56 : 40}
+                        r={live ? live.pinR : 14}
+                        rise={live ? live.pinRise : 40}
                         fill={`url(#${geom.id}-pin)`}
                         needle="var(--jz-gold)"
                       />

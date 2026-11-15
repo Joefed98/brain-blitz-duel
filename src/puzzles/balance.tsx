@@ -46,6 +46,13 @@ const PEG_GAP = 0;
 const MIN_PEG_WIDTH = 44;
 /** A live round's widest notch (3 Nov 2026): the scale fills the panel on a 414 px phone. */
 const LIVE_PEG_WIDTH = 50;
+/** A live round's kettlebells (Beam `fill`): drawn this many notch widths wide, every other one this many bells lower. */
+const FILL_SPILL = 1.9;
+const FILL_STAGGER = 0.9;
+/** The kettlebell art's body is this share of its width (the rest is transparent margin). */
+const BELL_BODY = 0.775;
+/** Beam fill: every bell's rod below the hook, so the top row hangs clear of the tags too. */
+const FILL_ROD = 18;
 /** balanceRev 2's 10-notch scale: ten notches must fit a 375 px phone, so each may narrow to this. */
 const MIN_WIDE_PEG_WIDTH = 32;
 
@@ -82,7 +89,14 @@ const NUDGE_MS = 1400;
 
 const TILT_EASE = "transform 260ms cubic-bezier(.34,1.4,.55,1)";
 
-export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyNotch, torque, marks, selected, showControls = false, height, compact = false, solving = false }: {
+export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyNotch, torque, marks, selected, showControls = false, height, compact = false, solving = false, fill = false }: {
+  /**
+   * A live round's beam fills its wall (Joe, 15 Nov 2026): the kettlebells grow past their notch (1.6 times its width),
+   * every other notch's hanging a bell's height lower on a brass rod so neighbours never touch, and the whole
+   * instrument (tags, beam, bells, the balance) is centred in the wall's height. Display only: the notches' places,
+   * widths and tap targets are unchanged.
+   */
+  fill?: boolean;
   /** The reveal: tray weights ringed in gold (hung somewhere other than in your arrangement). */
   marks?: ReadonlySet<number> | undefined;
   scale: BalanceScale; placement: Placement; spacing: number;
@@ -109,10 +123,17 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
   const bellW = big ? spacing : weight;
   // A wider live notch (3 Nov 2026) grows the hung kettlebell with it, keeping its 44 × 52 shape.
   // The Number overhaul: a live beam's bells half as big again, spilling a little past their notch (the button is the notch).
-  const bellH = big ? Math.max(72, Math.round(spacing * 52 / 44 * 1.4)) : showControls ? weight : Math.round(weight * 52 / 44);
-  const spill = big ? 1.3 : 1;
+  const spill = fill ? FILL_SPILL : big ? 1.3 : 1;
+  const bellH = fill ? Math.round(spacing * FILL_SPILL * 72 / 60) : big ? Math.max(72, Math.round(spacing * 52 / 44 * 1.4)) : showControls ? weight : Math.round(weight * 52 / 44);
+  // Every other notch hangs lower (fill), so two neighbours' bells never meet.
+  const stagger = fill ? Math.round(bellH * FILL_STAGGER) : 0;
+  // fill: the block (tags 32 above the beam, hook, the staggered bells, the balance plaque) centred above the bench.
+  const rod = fill ? FILL_ROD : 0;
+  // The end notches' bells step inward just enough to stay inside the beam's width (their rod still under the tag).
+  const edgeNudge = fill ? Math.max(0, Math.round((BELL_BODY * FILL_SPILL * spacing) / 2 - spacing / 2 - 2)) : 0;
+  const fillBlock = 34 + 20 + rod + stagger + bellH + 18 + 38;
   // The Number overhaul: a live beam sits a little lower on its column, so the wall below it isn't left empty.
-  const beamY = height !== undefined ? Math.max(32, Math.round(height * 0.42)) : compact ? 24 : 32;
+  const beamY = height !== undefined ? (fill ? Math.max(40, Math.round((height - 30 - fillBlock) / 2) + 32) : Math.max(32, Math.round(height * 0.42))) : compact ? 24 : 32;
   const H = height ?? (compact ? beamY + 12 + 8 + bellH + 6 : showControls ? 144 : 126);
   // The Number overhaul (15 Nov 2026): a live round's instrument half as big again where the width allows: a thicker
   // beam, column and foot, wider notch tags (the notches' places and widths are unchanged).
@@ -138,7 +159,7 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
   // Less the room the box already has: 3px above a label's top, 6px under a hanging weight.
   const rise = compact ? Math.max(0, Math.ceil(Math.max(0, ...offsets.map((o) => -o))) - 3) : 0;
   const drop = compact ? Math.max(0, Math.ceil(Math.max(0, ...[...onPeg.keys()].map(offset))) - 6) : 0;
-  return <div className={`balance-instrument relative${fx}${big ? " bal-big" : ""}`} style={{ width, height: H, marginTop: rise || undefined, marginBottom: drop || undefined }}>
+  return <div data-balance-fill={fill ? "" : undefined} className={`balance-instrument relative${fx}${big ? " bal-big" : ""}`} style={{ width, height: H, marginTop: rise || undefined, marginBottom: drop || undefined }}>
     <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
       <ellipse cx={cx} cy={H - 1.5} rx={baseW + 8} ry={big ? 4 : 2.5} fill="#000" opacity="0.4"/>
       {/* The Number overhaul's rendered pieces (public/number/balance): the iron column, the brass foot on its plinth. */}
@@ -172,7 +193,9 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
           className="balance-notch h-11 w-full min-w-0 px-0 font-mono text-sm">
           <span className={available ? 'bal-notch-label bal-notch-active' : 'bal-notch-label'} style={{ width: labelW }}>{pegDistance(peg, pegs)}</span>
         </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm"><span className="bal-notch-label" style={{ width: labelW }}>{pegDistance(peg, pegs)}</span></div>}
-        {item && <div key={item.fixed ? 'f' : `t${item.tray}`} data-reveal-mark={!item.fixed && item.tray !== undefined && marks?.has(item.tray) ? "moved" : undefined} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}>
+        {item && <div key={item.fixed ? 'f' : `t${item.tray}`} data-reveal-mark={!item.fixed && item.tray !== undefined && marks?.has(item.tray) ? "moved" : undefined} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}
+          style={edgeNudge && (peg === 0 || peg === pegs - 1) ? { translate: `${peg === 0 ? edgeNudge : -edgeNudge}px 0` } : undefined}>
+          {rod > 0 ? <span className="bal-rod" aria-hidden="true" style={{ height: rod + (peg % 2 === 1 ? stagger : 0) }} /> : null}
           <svg className="bal-hook" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0V3.2a2.1 2.1 0 1 1-2.1 2.1" fill="none" stroke="#D9A940" strokeWidth="1.6" strokeLinecap="round"/></svg>
           {item.fixed ? <Disc value={item.w} fixed width={bellW} height={bellH} spill={spill} /> : <Button variant="ghost" style={big ? { height: bellH } : undefined} className={`min-w-0 p-0 ${big ? '' : 'h-11'} w-full hover:bg-transparent ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} width={bellW} height={bellH} spill={spill}/></Button>}
         </div>}
@@ -180,7 +203,7 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
     })}
     {torque !== undefined && (
       <div data-balance-torque="" className="bal-torque" aria-label={`Left ${torque.split(" | ")[0]}, right ${torque.split(" | ")[1]}`}
-        style={{ left: cx, top: beamY + 12 + 8 + bellH + (big ? 18 : 10) }}>
+        style={{ left: cx, top: beamY + 12 + 8 + rod + stagger + bellH + (big ? 18 : 10) }}>
         <span>{torque.split(" | ")[0]}</span><i aria-hidden="true">|</i><span>{torque.split(" | ")[1]}</span>
       </div>
     )}
@@ -421,19 +444,20 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   };
   const exit: StageExit = failing === current ? "fail" : holding ? "clear" : null;
   const torque = freeMoves ? balanceTorqueText(scale, placement) : undefined;
-  const beamHeight = beamHeightFor(arenaHeight, inFrame ? 400 : 300);
+  // A live round's instrument fills the wall (Beam `fill`, Joe 15 Nov 2026): as tall as the panel, its parts centred.
+  const beamHeight = inFrame ? Math.max(146, arenaHeight - 24) : beamHeightFor(arenaHeight, 300);
   // The instrument stands on the bench: centred in the panel, with the desk from its base down.
-  const beamTop = Math.max(26, Math.round((arenaHeight - beamHeight) / 2) + 8);
+  const beamTop = inFrame ? 12 : Math.max(26, Math.round((arenaHeight - beamHeight) / 2) + 8);
   const trayButtons = trayLeft.map((i) => (
     <Button variant="ghost"
       key={i}
       aria-label={`Select weight ${scale.tray[i] ?? 0}`}
       data-selected={selected === i}
       onClick={(event) => { event.stopPropagation(); tapWeight(i); }}
-      className={`bal-tray-cup ${inFrame ? "h-[72px] w-[72px]" : "h-14 w-14"} p-0`}
+      className={`bal-tray-cup ${inFrame ? "h-[88px] w-[80px]" : "h-14 w-14"} p-0`}
     >
       {/* A live round's cups are a size up (polish batch W, again 3 Nov 2026); intros and demos keep main's. */}
-      <Disc value={scale.tray[i] ?? 0} fixed={false} width={inFrame ? 60 : 44} height={inFrame ? 72 : 52} />
+      <Disc value={scale.tray[i] ?? 0} fixed={false} width={inFrame ? 70 : 44} height={inFrame ? 84 : 52} />
     </Button>
   ));
 
@@ -489,6 +513,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
                   showControls
                   solving={solveFx}
                   height={beamHeight}
+                  fill={inFrame}
                   torque={torque}
                   onWeightTap={tapWeight}
                   onEmptyNotch={emptyNotch}
