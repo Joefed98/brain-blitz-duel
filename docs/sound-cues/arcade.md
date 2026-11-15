@@ -66,6 +66,10 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `hover.scrape` | Hover | The saucer's edge passes within 3 px of a gap's edge: sparks off the barrier (the Retro overhaul; `hoverScrape` in retroMoments.ts) | `arc_retro_blip` (0.45) | 0–20 | 150 ms |
 | `hover.deadCentre` | Hover | A tight gate threaded dead centre: its rims flash gold (hoverRev 9+, the Retro overhaul) | `arc_retro_coin` (0.6) | 0–10 | 250 ms |
 | `hover.shieldShatter` | Hover | A shield shatters in place of a crash: glass shards round the saucer (hoverRev 9+, the Retro overhaul; was `hover.crash`) | `arc_retro_hit` (0.9) | 0–3 | 450 ms |
+| `breaker.goldTang` | Breaker | Each hit on a gold brick that doesn't break it: a metallic tang, the brick's crack deepening (the Retro overhaul) | `arc_retro_coin` (0.6, ×1.6) | 0–12 | 200 ms |
+| `breaker.capsuleIcon` | Breaker | A caught power-up: its icon rises over the paddle (the Retro overhaul) | `arc_retro_blip` (0.45, ×1.5) | 0–8 | 120 ms |
+| `rally.fwip` | Rally | A swiped return starts a curl: a white swirl leaves the ball (the Retro overhaul) | `arc_retro_blip` (0.4, ×1.8) | 0–20 | 150 ms |
+| `rally.edgeSave` | Rally | A return on the paddle's last 4 px: sparks off that end (`rallyEdgeSave` in retroMoments.ts) | `arc_retro_hit` (0.45, ×1.7) | 0–15 | 100 ms |
 | `snake.start` | Meteor | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `snake.dead` | Meteor | The snake dies | `arc_retro_explode` | 0–1 | 260 ms |
 | `snake.eat` | Meteor | A star is eaten | `arc_retro_blip` | 10–40 | 50 ms |

@@ -1,3 +1,5 @@
+import { fxPuff, fxRing, fxSparks, retroFx } from "./retroFx.renderer";
+import { snakeRockGraze } from "./retroMoments";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { snakeFxFor } from "./arcadeFxGames.renderer";
@@ -422,6 +424,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
       ctx.globalAlpha = 1;
     }
     if (motion) sparks(ctx, state, now, deathAge);
+    snakeEffects(ctx, state, head);
     if (state.exp) v9Pops(key, state, head);
   }
   // snakeRev 12: the HUD counts the core's stars (a gold star 2); every earlier round shows the stars eaten, as before.
@@ -884,4 +887,34 @@ function drawFeatures(ctx: CanvasRenderingContext2D, state: SnakeState, motion: 
     }
     ctx.globalAlpha = 1;
   }
+}
+
+/**
+ * Meteor's in-world moments (the Retro overhaul, stage 2; display only, read from the state, aged by the sim tick): a
+ * turn flares a few sparks off the head, a gold star rings out where it was eaten, the head coming in through an edge
+ * (snakeRev 13's wrap) blinks a ring where it arrives, and the head grazing a rock beside it puffs dust off the rock.
+ */
+function snakeEffects(ctx: CanvasRenderingContext2D, state: SnakeState, head: { x: number; y: number }): void {
+  if (state.dead) return;
+  const fx = retroFx(ctx, "snake", state.tick);
+  const lastDir = fx.get("dir", state.dir);
+  const lastHead = fx.get("head", state.body[0] ?? -1);
+  fx.set("dir", state.dir);
+  fx.set("head", state.body[0] ?? -1);
+  if (lastDir !== state.dir) fx.log("turn", { x: head.x, y: head.y, n: 0 });
+  fx.each("turn", 10, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, "#FFE6A0", { n: 4, spread: 8, seed: e.tick }));
+  fx.rise("gold", state.goldsEaten ?? 0, () => ({ x: head.x, y: head.y, n: 0 }));
+  fx.each("gold", 24, (e, age) => fxRing(fx, ctx, e.x, e.y, 6, 26, age, GOLD, 2));
+  if (state.wrap && lastHead >= 0 && state.body[0] !== undefined && lastHead !== state.body[0]) {
+    const a = point(lastHead);
+    if (Math.abs(a.x - head.x) > SNAKE_CELL * 1.5 || Math.abs(a.y - head.y) > SNAKE_CELL * 1.5) fx.log("wrap", { x: head.x, y: head.y, n: 0 });
+  }
+  fx.each("wrap", 16, (e, age) => fxRing(fx, ctx, e.x, e.y, 4, 16, age, "#7CF3FF", 2));
+  const graze = snakeRockGraze(state);
+  if (graze >= 0 && fx.get("graze", -1) !== graze) {
+    fx.set("graze", graze);
+    const p = point(graze);
+    fx.log("graze", { x: (p.x + head.x) / 2, y: (p.y + head.y) / 2, n: 0 });
+  } else if (graze < 0) fx.set("graze", -1);
+  fx.each("graze", 16, (e, age) => fxPuff(fx, ctx, e.x, e.y, age, "#B9A58C", 5));
 }

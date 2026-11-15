@@ -1,4 +1,5 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { fxCrack, fxFlash, fxSparks, retroFx, type RetroFx } from "./retroFx.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
@@ -339,13 +340,16 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const taken = (state.maxHp[index] ?? 1) - left;
     const b = power >= 0 ? bloom : (left === 1 ? bloom * 0.6 : 0);
     if (brkIsGold(state, index)) {
-      drawGoldBrick(ctx, x, y, glint, bloom, state.phone ? taken : 0);
+      // Stage 2 of the Retro overhaul: every revision's gold brick shows its cracks deepening hit by hit.
+      drawGoldBrick(ctx, x, y, glint, bloom, taken);
       return;
     }
     const sprite = getBrickSprite(colour, power, taken, b, true);
     if (sprite) {
       ctx.drawImage(sprite, x, y);
     }
+    // Stage 2: a tough brick hit but not broken shows a crack, deeper for each hit taken (its state at a glance).
+    if (taken > 0 && power < 0) fxCrack(ctx, x + 2, y + 2, BRK_BRICK_W - 4, BRK_BRICK_H - 4, taken, index * 7 + 3, "rgba(0,0,0,0.55)");
   });
   ctx.restore();
 
@@ -390,7 +394,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   // Polish A1: the paddle's gold light.
   glow(ctx, PADDLE, state.paddleX, BRK_PADDLE_Y + BRK_PADDLE_H / 2, BRK_PADDLE_W / 2 + 18, 16, 0.42);
   // Art pilot (Retro): the paddle sprite fills the collision rectangle; code art when absent.
-  if (!drawArtSprite(ctx, "retro", "paddle", state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H)) retroPaddle(ctx, state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
+  // Stage 2: the paddle dips 2 px as a ball comes off it (breakerEffects logs the hit), back over 6 ticks.
+  const fx = breakerEffects(ctx, state, m.bricks, BRK_PADDLE_Y);
+  const dipped = fx.latest("paddle", 6);
+  const dip = dipped && !fx.still ? Math.round(2 * (1 - dipped.age)) : 0;
+  if (!drawArtSprite(ctx, "retro", "paddle", state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y + dip, BRK_PADDLE_W, BRK_PADDLE_H)) retroPaddle(ctx, state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y + dip, BRK_PADDLE_W, BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
+  drawBreakerEffects(ctx, fx, state, BRK_PADDLE_Y);
 
   state.balls.forEach((ball, i) => {
     const bx = px(ball.x);
@@ -427,7 +436,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     [state.deep ? brkDeepHudItem(state) : null, fire > 0 ? { text: `FIREBALL ${Math.ceil(fire / 60)}`, colour: FIRE } : null],
     { wrapMain: (draw) => successHud(ctx, "breaker", state.tick, 12, 8, draw) },
   );
-  if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
+  // Stage 2: the relaunch counts down on the paddle (3, 2, 1).
+  if (state.pause > 0) {
+    retroText(ctx, "RELAUNCH", BRK_WORLD_W / 2, BRK_PADDLE_Y - 64, 14, PADDLE, "center");
+    retroText(ctx, String(Math.max(1, Math.ceil(state.pause / 60))), state.paddleX, BRK_PADDLE_Y - 36, 24, RETRO_WHITE, "center", 4);
+  }
   if (state.deep) drawDeepHud(ctx, state, key);
 }
 
@@ -588,4 +601,58 @@ export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, Arc
   if (rev === BRK_REV_TUNED) return breakerArtGameTuned;
   if (rev === BRK_REV_BAND) return breakerArtGameBand;
   return rev === BRK_REV ? breakerArtGameV2 : breakerArtGame;
+}
+
+/**
+ * Breaker's in-world moments (the Retro overhaul, stage 2; display only, retroFx.renderer.ts): logs a paddle hit (a ball
+ * near the paddle turning from falling to rising), each brick hit that didn't break it, and a caught power-up (with the
+ * kind of the capsule that was lowest a frame before). Read before the frame's brick memory moves on.
+ */
+function breakerEffects(ctx: CanvasRenderingContext2D, state: BrkState, before: readonly number[], paddleY: number) {
+  const fx = retroFx(ctx, "breaker", state.tick);
+  state.balls.forEach((ball, i) => {
+    const vy = fx.get(`vy${i}`, ball.vy);
+    if (vy > 0 && ball.vy < 0 && ball.y > (paddleY - 40) * 256) fx.log("paddle", { x: ball.x / 256, y: paddleY, n: i });
+    fx.set(`vy${i}`, ball.vy);
+  });
+  for (let i = 0; i < state.bricks.length; i++) {
+    const was = before[i] ?? 0;
+    const now = state.bricks[i] ?? 0;
+    if (now > 0 && now < was) {
+      const { x, y } = brickXY(i, state);
+      fx.log(brkIsGold(state, i) ? "gold" : "hit", { x, y, n: i });
+    }
+  }
+  fx.rise("caught", state.powerUps, () => ({ x: state.paddleX, y: paddleY, n: fx.get("lowKind", BRK_POWER_MULTI) }));
+  let lowest = -1;
+  let lowY = -Infinity;
+  for (const c of state.capsules) if (c.y > lowY) { lowY = c.y; lowest = c.kind; }
+  if (lowest >= 0) fx.set("lowKind", lowest);
+  return fx;
+}
+
+function drawBreakerEffects(ctx: CanvasRenderingContext2D, fx: RetroFx, state: BrkState, paddleY: number): void {
+  // A tough brick's white flash and a gold brick's brighter one with sparks.
+  fx.each("hit", 8, (e, age) => {
+    const { x, y } = brickXY(e.n, state);
+    fxFlash(ctx, x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H, age, "#FFFFFF", 0.7);
+  });
+  fx.each("gold", 14, (e, age) => {
+    const { x, y } = brickXY(e.n, state);
+    fxFlash(ctx, x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H, age, "#FFF4C2", 0.8);
+    fxSparks(fx, ctx, x + BRK_BRICK_W / 2, y + BRK_BRICK_H, age, GOLD, { n: 6, spread: 12, seed: e.n });
+  });
+  // A paddle hit: a short spark where the ball struck.
+  fx.each("paddle", 10, (e, age) => fxSparks(fx, ctx, e.x, paddleY, age, PADDLE, { n: 5, spread: 9, seed: e.tick, up: true }));
+  // A caught power-up pops up over the paddle as its icon, twice size, rising and fading.
+  fx.each("caught", 40, (e, age) => {
+    const lift = fx.still ? 20 : 14 + 26 * age;
+    ctx.save();
+    ctx.globalAlpha = age < 0.7 ? 1 : 1 - (age - 0.7) / 0.3;
+    ctx.translate(Math.round(state.paddleX), Math.round(paddleY - lift));
+    ctx.scale(2, 2);
+    pixelRect(ctx, -BRK_CAPSULE_W / 2, -BRK_CAPSULE_H / 2, BRK_CAPSULE_W, BRK_CAPSULE_H, powerColour(e.n));
+    drawCapsuleIcon(ctx, e.n, 0, 0);
+    ctx.restore();
+  });
 }

@@ -40,6 +40,9 @@ const CEIL_STEP = 40;
 const CEIL_MAX = BURST_FLOOR_Y - Math.trunc((ARENA_H * 60) / 100);
 const PLAYER_HALF_W = 12;
 const PLAYER_H = 36;
+/** The player's box (display reads only: the Retro overhaul's near-miss, retroMoments.ts). */
+export const BURST_PLAYER_HALF_W = PLAYER_HALF_W;
+export const BURST_PLAYER_H = PLAYER_H;
 const PLAYER_SPEED = 4 * FP;
 const SHOT_SPEED = 9 * FP;
 export const BURST_LIVES = 3;

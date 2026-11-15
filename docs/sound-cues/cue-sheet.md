@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 37 | 0 | 491 | 528 |
+| game event | 59 | 0 | 495 | 554 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 39 | 43 |
+| fail sting | 5 | 0 | 39 | 44 |
 | success sting | 1 | 0 | 75 | 76 |
-| ambience | 0 | 1 | 22 | 23 |
+| ambience | 1 | 1 | 22 | 24 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 63 | 1 | 989 | 1053 |
+| **all** | 87 | 1 | 993 | 1081 |
 
 ## Silent and placeholder cues
 
@@ -248,17 +248,53 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
 
+### Blockzone
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `blockfall.turnRefused` | A move or turn refused (the state's rejects; at most one per 120 ms) [arcade-effects.md] | The piece outlined red | 0–30 | silent | none | 120 | game event | `blockfall.turnRefused` |
+| `blockfall.hardDrop` | A piece locks after a drop of three rows or more (bfHardDropped) [arcade-effects.md] | A streak down each of the piece's columns | 10–60 | silent | none | 250 | game event | `blockfall.hardDrop` |
+| `blockfall.sweep` | A line clear (beside blockfall.clear / blockfall.bigClear) [arcade-effects.md] | Sparks off both walls along the rows | 5–30 | silent | none | 300 | game event | `blockfall.sweep` |
+| `blockfall.heartbeat` | The stack within four rows of the top (bfNearTop; a loop while it stays) [arcade-effects.md] | The well's rim beats red | loop | silent | none | loop | ambience | `blockfall.heartbeat` |
+
 ### Dual
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
 
+### Fission
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `burst.fizzle` | A wasted beam reaches the ceiling with no hit (burstRev 11's whiffs; at most one per 120 ms) [arcade-effects.md] | A grey puff and sparks at the ceiling | 0–30 | silent | none | 160 | game event | `burst.fizzle` |
+| `burst.overheadHum` | An atom skims within 6 px over the ship (burstOverhead; at most one per 400 ms) [arcade-effects.md] | A white ring shimmers over the ship | 0–20 | silent | none | 300 | game event | `burst.overheadHum` |
+| `burst.lifeIconBreak` | A life is lost (beside burst.lifeLost) [arcade-effects.md] | The ship breaks into red shards | 0–3 | silent | none | 200 | game event | `burst.lifeIconBreak` |
+
 ### Hot Floor
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
+
+### Meteor
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `snake.turn` | The comet turns (at most one per 60 ms) [arcade-effects.md] | A few sparks flare off the head | 20–80 | silent | none | 60 | game event | `snake.turn` |
+| `snake.wrap` | The head comes in through an edge (snakeRev 13; at most one per 150 ms) [arcade-effects.md] | A cyan ring where it arrives | 0–20 | silent | none | 250 | game event | `snake.wrap` |
+| `snake.rockGraze` | The head passes a rock square beside it (snakeRockGraze; at most one per 200 ms) [arcade-effects.md] | Dust puffs off the rock | 0–20 | silent | none | 180 | game event | `snake.rockGraze` |
+| `snake.goldStar` | A gold star eaten (snakeRev 9+) [arcade-effects.md] | A gold ring where it was eaten | 0–8 | silent | none | 300 | game event | `snake.goldStar` |
+| `snake.warp` | Through a wormhole (snakeRev 9+; at most one per 150 ms) [arcade-effects.md] | The wormhole's own flash | 0–10 | silent | none | 300 | game event | `snake.warp` |
+| `snake.laneWhoosh` | A speed-lane ride counted (snakeRev 11+) [arcade-effects.md] | The lane's own glow | 0–10 | silent | none | 400 | game event | `snake.laneWhoosh` |
+
+### Pinball
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pinball.ballLocked` | A ball locked (pinRev 4+) [arcade-effects.md] | The lock flares gold, "BALL n LOCKED" over it | 0–6 | silent | none | 500 | game event | `pinball.ballLocked` |
+| `pinball.multiballStart` | Multiball starts (pinRev 4+) [arcade-effects.md] | Bright sparks from the lock | 0–3 | silent | none | 1200 | game event | `pinball.multiballStart` |
+| `pinball.multiballEnd` | Multiball ends: the last extra ball drains with the main ball still in play (pinRev 4+) [arcade-effects.md] | The lock's lights settle | 0–3 | silent | none | 600 | game event | `pinball.multiballEnd` |
 
 ### Rally
 
@@ -272,6 +308,13 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.rooftop` | Rooftop Run (retired, practice): none |  | loop | silent | none | 60000 | music | `music_rooftop` |
+
+### Spacewalk
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `cross.jetPuff` | Each hop starts (at most one per 60 ms) [arcade-effects.md] | A jet puff under the astronaut | every hop | silent | none | 80 | game event | `cross.jetPuff` |
+| `cross.land` | A hop lands with no hit (at most one per 80 ms) [arcade-effects.md] | A dust ring at the astronaut's feet | every hop | silent | none | 90 | game event | `cross.land` |
 
 ### Steady
 
@@ -295,7 +338,18 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `beat.feverRiser` | Fever starts (beatRev 9+) [arcade-effects.md] | The fever bar's own flash | 0–4 | silent | none | 700 | game event | `beat.feverRiser` |
+| `beat.holdCrackle` | A hold note released cleanly (at most one per 80 ms) [arcade-effects.md] | Sparks crackle at its button while it is held | 0–20 | silent | none | 200 | game event | `beat.holdCrackle` |
+| `beat.missThud` | A note missed (beside beat.miss) [arcade-effects.md] | A grey block drops out of its lane | 0–40 | silent | none | 120 | fail sting | `beat.missThud` |
 | `beat.backing` | Tempo: The synthesised 120 BPM backing beat, one step per eighth note (no slot); since sound batch 4 only until music_beat has decoded, or if it fails [core.md] |  | loop | synthesised placeholder | none | loop | ambience | none |
+
+### Wavefront
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `wavefront.powerChirp` | A power-up caught (the Retro overhaul) [arcade-effects.md] | A ring opens round the fighter | 0–8 | silent | none | 220 | game event | `wavefront.powerChirp` |
+| `wavefront.boltZip` | An enemy bolt passes within 4 px of the fighter (wavBoltNearMiss; at most one per 330 ms) [arcade-effects.md] | A white streak beside the fighter | 0–20 | silent | none | 140 | game event | `wavefront.boltZip` |
+| `wavefront.plateOff` | An armoured ship loses a plate without dying (beside wavefront.armourHit) [arcade-effects.md] | The warship flashes white | 0–12 | silent | none | 200 | game event | `wavefront.plateOff` |
 
 ## Music by screen and game
 
@@ -1286,6 +1340,8 @@ Grouped by game or screen.
 | `breaker.relaunch` | The ball relaunches after a pause [arcade-effects.md] | RELAUNCHING disappears and the ball leaves the paddle | 1–3 | recorded sound | `arc_retro_blip` (shared) | 200 | game event | `breaker.relaunch` |
 | `breaker.wallBounce` | A ball turns back off a side wall or the ceiling (no brick hit, no paddle return; at most one per 120 ms, volume 0.4) [arcade-effects.md] | The ball changes direction at the frame | 60–150 | recorded sound | `breaker.wallBounce` | 60 | game event | `breaker.wallBounce` |
 | `breaker.rowsSlide` | Rows 3 and 7 start sliding (brkRev 2+, at 30 s and 60 s) [arcade-effects.md] | The row begins to glide side to side | 0–2 | recorded sound | `breaker.rowsSlide` | 600 | game event | `breaker.rowsSlide` |
+| `breaker.goldTang` | Breaker: Each hit on a gold brick that doesn't break it: a metallic tang, the brick's crack deepening (the Retro overhaul) [arcade.md] |  | 0–12 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `breaker.goldTang` |
+| `breaker.capsuleIcon` | Breaker: A caught power-up: its icon rises over the paddle (the Retro overhaul) [arcade.md] |  | 0–8 | recorded sound | `arc_retro_blip` (shared) | 120 | game event | `breaker.capsuleIcon` |
 | `breaker.start` | Breaker: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `breaker.start` |
 | `breaker.ballLost` | Breaker: A ball is lost [arcade.md] |  | 0–3 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `breaker.ballLost` |
 | `breaker.powerUp` | Breaker: A power-up is caught [arcade.md] |  | 2–6 | recorded sound | `arc_retro_pickup` (shared) | 100 | game event | `breaker.powerUp` |
@@ -1718,6 +1774,8 @@ Grouped by game or screen.
 | `rally.bumperWarn` | 2 s before a bumper appears (rallyRev 2+, again for rev 5's second) [arcade-effects.md] | BUMPER blinks where the post will stand | 1–2 | recorded sound | `rally.bumperWarn` | 500 | game event | `rally.bumperWarn` |
 | `rally.bumperIn` | A bumper appears (30 s; rev 5's second at 45 s) [arcade-effects.md] | The round post appears in the court | 1–2 | recorded sound | `rally.bumperIn` | 300 | game event | `rally.bumperIn` |
 | `rally.wallBounce` | A ball turns back off a side or the far wall (no return, bumper or pad; at most one per 120 ms, volume 0.4) [arcade-effects.md] | The ball changes direction at the wall | 60–150 | recorded sound | `rally.wallBounce` | 60 | game event | `rally.wallBounce` |
+| `rally.fwip` | Rally: A swiped return starts a curl: a white swirl leaves the ball (the Retro overhaul) [arcade.md] |  | 0–20 | recorded sound | `arc_retro_blip` (shared) | 150 | game event | `rally.fwip` |
+| `rally.edgeSave` | Rally: A return on the paddle's last 4 px: sparks off that end (rallyEdgeSave in retroMoments.ts) [arcade.md] |  | 0–15 | recorded sound | `arc_retro_hit` (shared) | 100 | game event | `rally.edgeSave` |
 | `rally.start` | Rally: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `rally.start` |
 | `rally.dead` | Rally: The rally ends [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `rally.dead` |
 | `rally.goldHit` | Rally: The gold ball is returned [arcade.md] |  | 3–10 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `rally.goldHit` |
@@ -1966,10 +2024,10 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
-| `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `hover.thrust`, `hover.scrape`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `hover.deadCentre`, `snake.start`, `rally.start`, `beat.start` | 120 |
+| `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.capsuleIcon`, `breaker.paddle`, `burst.shot`, `hover.thrust`, `hover.scrape`, `snake.eat`, `rally.fwip`, `rally.hit`, `wavefront.dive` | 50 |
+| `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.goldTang`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `hover.deadCentre`, `snake.start`, `rally.start`, `beat.start` | 120 |
 | `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead`, `rally.lifeLost` | 260 |
-| `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `hover.shieldShatter`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
+| `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `hover.shieldShatter`, `snake.rockLand`, `rally.edgeSave`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
 | `arc_fair_thud` | effects | `bullseye.thud` | 160 |
 | `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `bintoss.basket` | 200 |

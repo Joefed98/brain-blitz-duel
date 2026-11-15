@@ -49,6 +49,8 @@ import {
 
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { reducedMotion } from "./art.renderer";
+import { fxPuff, fxRing, fxShards, fxSparks, retroFx } from "./retroFx.renderer";
+import { burstOverhead } from "./retroMoments";
 import { FX_PARTICLE_LIMIT } from "@/lib/fx/limits";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { addPop, addShatter, backdrop, blob, drawPops, glow, linear, pixelStars, radial, rise } from "./polishA1.renderer";
@@ -315,6 +317,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   successFrame(ctx,{id:'burst',tick:state.tick,count:0,eventTick:state.popSize===3?state.popTick:0,colour:SHIP,width:BURST_WORLD_W,height:BURST_FLOOR_Y,point:{x:state.popX/FP,y:state.popY/FP,shape:'spark'},enabled:state.balls.length<=BURST_FX_ENEMY_THRESHOLD&&state.shots.length<=BURST_FX_SHOT_THRESHOLD});
   particles(ctx, state);
   splitPop(ctx, state, key);
+  burstEffects(ctx, state, ceil, BURST_FLOOR_Y);
 
   // Ship in the exact player box; flashes while invulnerable or just hit.
   const hide = state.invuln > 0 && Math.trunc(tick / 5) % 2 === 1;
@@ -592,4 +595,28 @@ function drawV9(ctx: CanvasRenderingContext2D, state: BurstState, key: object): 
   if (now.freezes > memo.freezes) addPop(key, state.x / FP, floor - 50, "FREEZE!", ICE, 10, 4);
   if (now.bursts > memo.bursts) addPop(key, state.x / FP, floor - 50, "BURST!", SHIP, 10, 4);
   v9Memos.set(key, now);
+}
+
+/**
+ * Fission's in-world moments (the Retro overhaul, stage 2; display only, read from the state): a wasted beam (one that
+ * reaches the ceiling with no hit, burstRev 11's whiffs) fizzles there in a grey puff; an atom skimming within 6 px over
+ * the ship (burstOverhead, shared with its hum) shimmers a ring over it; a life lost breaks the ship's colour into shards.
+ */
+function burstEffects(ctx: CanvasRenderingContext2D, state: BurstState, ceil: number, floor: number): void {
+  const fx = retroFx(ctx, "burst", state.tick);
+  // The beam nearest the ceiling this frame, so a whiff counted on the next one knows where it ended.
+  const lastX = fx.get("beamX", state.x / FP);
+  let topShot: { x: number; top: number } | null = null;
+  for (const shot of state.shots) if (!topShot || shot.top < topShot.top) topShot = { x: shot.x / FP, top: shot.top };
+  fx.rise("fizzle", state.whiffs ?? 0, () => ({ x: lastX, y: ceil + 2, n: 0 }));
+  if (topShot) fx.set("beamX", topShot.x);
+  fx.each("fizzle", 18, (e, age) => {
+    fxPuff(fx, ctx, e.x, e.y, age, "#9AA3B2", 7);
+    fxSparks(fx, ctx, e.x, e.y, age, "#C9CED6", { n: 4, spread: 8, seed: e.tick });
+  });
+  const near = burstOverhead(state);
+  if (near && !fx.latest("near", 24)) fx.log("near", { x: near.x, y: near.y, n: 0 });
+  fx.each("near", 18, (e, age) => fxRing(fx, ctx, state.x / FP, e.y + 2, 8, 22, age, "#FFFFFF", 1));
+  fx.rise("lives", -state.lives, () => ({ x: state.x / FP, y: floor - 18, n: 0 }));
+  fx.each("lives", 30, (e, age) => fxShards(fx, ctx, e.x, e.y, age, RETRO_RED, { n: 12, r: 8, seed: e.tick }));
 }

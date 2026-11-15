@@ -1,6 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawStarLayers } from "./retroSpace.renderer";
-import { withRetroTextFloor } from "./retro.renderer";
+import { retroTextFloor, withRetroTextFloor } from "./retro.renderer";
+import { fxFlash, fxPuff, fxStreak, retroFx } from "./retroFx.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { crossFxFor } from "./arcadeFxGames.renderer";
@@ -1160,6 +1161,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     drawAstronaut(ctx, memory.hitX, memory.hitY, crossPlayerR(state), memory.facing, 0, still ? 0 : Math.min(1, p * 1.5) * Math.PI * 1.5, false);
     ctx.globalAlpha = 1;
   }
+  crossEffects(ctx, state, cx, cy, g.goalH);
   if (!state.dead) {
     // Stride: legs swap on each step, swing mid-hop.
     const parity = memory.steps % 2 ? 1 : -1;
@@ -1237,4 +1239,35 @@ export function crossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneV
   ctx.fillStyle = "rgba(61,255,224,0.35)";
   ctx.fillRect(CROSS_BOARD_X - 1, below.y, 1, below.h);
   ctx.fillRect(CROSS_BOARD_X + CROSS_BOARD_W, below.y, 1, below.h);
+}
+
+/**
+ * Spacewalk's in-world moments (the Retro overhaul, stage 2; display only, read from the state, aged by the sim tick): a
+ * hop's jet puff under the astronaut, a landing's dust ring, a close call's white streak beside them, the docking deck
+ * lighting up gold on a crossing, and the streak's count rising above the astronaut as it grows.
+ */
+function crossEffects(ctx: CanvasRenderingContext2D, state: CrossState, cx: number, cy: number, goalH: number): void {
+  const fx = retroFx(ctx, "cross", state.tick);
+  const r = crossPlayerR(state);
+  const wasHop = fx.get("hop", 0);
+  fx.set("hop", state.hop);
+  if (state.hop > 0 && (wasHop === 0 || state.hop > wasHop)) fx.log("jet", { x: cx, y: cy + r, n: 0 });
+  else if (state.hop === 0 && wasHop > 0 && !state.dead) fx.log("land", { x: cx, y: cy + r, n: 0 });
+  fx.each("jet", 12, (e, age) => fxPuff(fx, ctx, e.x, e.y, age, "#9FE8FF", 5));
+  fx.each("land", 12, (e, age) => fxPuff(fx, ctx, e.x, e.y, age, "#C9CED6", 8));
+  fx.rise("close", state.closeCalls ?? 0, () => ({ x: cx, y: cy, n: 0 }));
+  fx.each("close", 16, (e, age) => {
+    fxStreak(fx, ctx, e.x - r - 22, e.y, e.x - r - 2, e.y, age, "#FFFFFF", 2);
+    fxStreak(fx, ctx, e.x + r + 22, e.y, e.x + r + 2, e.y, age, "#FFFFFF", 2);
+  });
+  fx.rise("dock", state.crossings, () => ({ x: CROSS_BOARD_X, y: CROSS_HUD_H, n: 0 }));
+  fx.each("dock", 30, (e, age) => fxFlash(ctx, e.x, e.y, CROSS_BOARD_W, goalH, age, "#FFD84A", 0.32));
+  fx.rise("streak", state.streak ?? 0, (_d, before) => (before >= 0 ? { x: cx, y: cy - r - 10, n: state.streak ?? 0 } : null));
+  const shown = fx.latest("streak", 40);
+  if (shown && shown.e.n >= 2 && !state.dead) {
+    ctx.save();
+    ctx.globalAlpha = 1 - shown.age * shown.age;
+    retroText(ctx, `x${shown.e.n}`, cx, cy - r - 10 - (fx.still ? 0 : 8 * shown.age), retroTextFloor(), "#FFD84A", "center", 4);
+    ctx.restore();
+  }
 }

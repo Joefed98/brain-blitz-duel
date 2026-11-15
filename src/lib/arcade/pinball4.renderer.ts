@@ -98,6 +98,9 @@ import {
 } from "./pinball4";
 import { retroBloom, retroClock, retroHud, retroScreen, retroText, retroTrail, type RetroHudItem } from "./retro.renderer";
 import { reducedMotion } from "./art.renderer";
+import { fxRing, fxSparks, retroFx } from "./retroFx.renderer";
+import { flipperPath } from "./pinball.renderer";
+import { PIN_FLIP_LEN, PIN_FLIP_PIVOTS, PIN_FLIP_R, pinFlipAngle } from "./pinball";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 
 type Ctx = CanvasRenderingContext2D;
@@ -769,8 +772,10 @@ function drawWorld(ctx: Ctx, s: Pin4State, key: Ctx): void {
   drawSpinner(ctx, s, key, t);
   drawBumperFlash(ctx, s);
   drawFlippers(ctx, s);
+  pinballFlipperFlash(ctx, s);
   drawBumperPoints(ctx, s);
   ctx.restore();
+  pinballEffects(ctx, s);
 
   // The balls (the ramps are in the table layer, under them); then the balls held in the lock.
   const balls: { b: P4Ball; id: string }[] = [];
@@ -934,3 +939,63 @@ export function pinball4GlowFill(ctx: CanvasRenderingContext2D, view: ArenaScene
 
 /** Every static segment, for checks that hold the art to the collision shapes. */
 export const P4_ART_SEGS: readonly PinSegDef[] = P4_SEGS;
+
+/**
+ * The Retro overhaul, stage 2 (display only, read from the state, aged by the sim tick): a flipper raised flashes its
+ * face white for 80 ms (5 ticks). Drawn in the table's translated space, over the flipper's own shape.
+ */
+function pinballFlipperFlash(ctx: Ctx, s: Pin4State): void {
+  const fx = retroFx(ctx, "pinball-flip", s.tick);
+  for (let side = 0; side < 2; side++) {
+    const down = (s.held >> side) & 1;
+    if (down && !fx.get(`was${side}`, 0)) fx.log(`flip${side}`, { x: 0, y: 0, n: side });
+    fx.set(`was${side}`, down);
+    const flash = fx.latest(`flip${side}`, 5);
+    if (!flash) continue;
+    const [pxp, pyp] = PIN_FLIP_PIVOTS[side]!;
+    const a = (pinFlipAngle(side, s.flips[side] ?? 0) / 65536) * Math.PI * 2;
+    ctx.save();
+    ctx.globalAlpha = 0.6 * (1 - flash.age);
+    flipperPath(ctx, pxp, pyp, pxp + Math.cos(a) * PIN_FLIP_LEN, pyp + Math.sin(a) * PIN_FLIP_LEN, PIN_FLIP_R, PIN_FLIP_R - 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+/**
+ * Pinball's other in-world moments (the Retro overhaul, stage 2; display only): a ball locked flares gold round the lock
+ * with "BALL n LOCKED" over it, and multiball starting rings the lock with bright sparks.
+ */
+function pinballEffects(ctx: Ctx, s: Pin4State): void {
+  const fx = retroFx(ctx, "pinball", s.tick);
+  fx.rise("lock", s.locksMade ?? 0, () => ({ x: P4_LOCK_X, y: P4_LOCK_Y, n: s.locked }));
+  fx.each("lock", 30, (e, age) => fxRing(fx, ctx, e.x, e.y, 10, 30, age, LOCK_GOLD, 2));
+  const lock = fx.latest("lock", 60);
+  if (lock && lock.e.n > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, 3 * (1 - lock.age));
+    retroText(ctx, `BALL ${lock.e.n} LOCKED`, P4_WORLD_W / 2 - 12, P4_LOCK_Y - 44, 12, LOCK_GOLD, "center", 4);
+    ctx.restore();
+  }
+  // A ball riding a ramp: three gold lamps chase ahead of it up the tube.
+  const riders: P4Ball[] = [...(s.live ? [s as unknown as P4Ball] : []), ...s.extras];
+  for (const b of riders) {
+    if (!b.ride || b.ride === P4_RAIL || b.ride > P4_RIDE_LOCK) continue;
+    const pts = RIDE_PATHS[b.ride - 1];
+    if (!pts) continue;
+    const k = Math.min(1, b.rideT / P4_RAMP_TICKS);
+    for (let i = 1; i <= 3; i++) {
+      const at = k + i * 0.07;
+      if (at > 1) break;
+      const p = along(pts, at);
+      ctx.save();
+      ctx.globalAlpha = fx.still ? 0.7 : 0.9 - i * 0.2;
+      ctx.fillStyle = LOCK_GOLD;
+      ctx.fillRect(Math.round(p.x) - 2, Math.round(p.y) - 2, 4, 4);
+      ctx.restore();
+    }
+  }
+  fx.rise("multi", s.multiballs ?? 0, () => ({ x: P4_LOCK_X, y: P4_LOCK_Y, n: 0 }));
+  fx.each("multi", 30, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, "#FFFFFF", { n: 12, spread: 30, seed: e.tick }));
+}

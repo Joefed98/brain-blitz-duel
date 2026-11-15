@@ -84,6 +84,106 @@ Every new stamp is dealt by rooms and practice; checks written for the stamps be
 the same, the server replay, the 120 s rule) and the HUD floor; `scripts/screens/retro.ts` draws each Retro game's page
 for theme-check and no-wrap-check.
 
+## Every agreed item and where it stands (stage 2, 15 Nov 2026)
+
+Every item Joe agreed in the Retro review (docs/design/game-reviews/retro.md), marked **done** (on this branch),
+**stage 2** (still to come in this stage) or **stage 3** (with the levels). "Joe's file" means the slot is wired and
+plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by name (docs/sound-cues/retro-elevenlabs.md).
+
+| Game | Item | Status |
+|---|---|---|
+| All ten | Intro stills from a real frame of today's game | done (stage 1, `ArtStill`) |
+| All ten | Intro demos recorded on the new stamps, none left as a still | stage 2 (the recorder; see "For Joe") |
+| All ten | The core moments recorded (the most-heard sounds) | Joe's files (prompts in retro-elevenlabs.md) |
+| All ten | No text below 11 px on a 390 × 844 phone, counters and labels | done (measured on screen by retro-overhaul-check) |
+| All ten | "Physical" feedback on the thing that moved (squash, puff, flash) | done (`retroFx.renderer.ts`, every game below) |
+| All ten | Retro, but visibly premium: lit pixel materials, no glare | done (looks in the gallery; Joe to approve) |
+| All ten | Each game's own answer reveal with a visual run summary | stage 2 |
+| All ten | Round-end payoffs (fly-off, WALL CLEARED!, tallies, counter roll) | stage 2 (with the reveal) |
+| All ten | Easy, Normal, Hard, Expert | stage 3 |
+| Hover | Tap: thrust flame, puff, tilt | done |
+| Hover | Gate chime rising along a run of clean gates | done |
+| Hover | DEAD CENTRE! flashes the gate's rim | done |
+| Hover | Near-miss scrape (3 px): sparks and a zing | done |
+| Hover | Shield shatters visibly | done |
+| Hover | The HUD names the reveal's count ("GOLD STARS n/m") | done |
+| Hover | A crash no longer ends the run on Normal (shields) | stage 3 |
+| Hover | A richer nebula, close to concept B, dark space between clouds | done (stage 2) |
+| Breaker | The wall fits the clock (9 rows, quicker ball) | done (brkRev 12) |
+| Breaker | Special bricks each with their own icon, the Fireball its own | done (stage 1) |
+| Breaker | Paddle thock pitched by where it struck, a 2 px dip | done |
+| Breaker | A brick hit but not broken flashes and cracks | done |
+| Breaker | Break pitch steps up within a volley | done |
+| Breaker | Gold bricks: a deeper crack each hit and a tang | done |
+| Breaker | A caught power-up shows its icon over the paddle | done |
+| Breaker | Ball lost: the relaunch countdown on the paddle | done |
+| Rally | Lives (2 on Normal), the lost ball serving again | done (rallyRev 13) |
+| Rally | Spin pays (spin shots) and the intro teaches the swipe | done (rallyRev 13) |
+| Rally | Return pitch rising with the rally count, a paddle flash in the ball's colour | done |
+| Rally | Spin swipe: a curl swirl and a fwip | done |
+| Rally | Edge save (last 4 px): sparks | done |
+| Rally | The court richer as a whole, no box (grain, lines, floodlight) | done (stage 2) |
+| Rally | PADS and TARGETS counts at 11 px or more | done |
+| Wavefront | The charged shot (hold and lift) | done (wavRev 14) |
+| Wavefront | Borders: no pink, cyan edge lights | done (stage 1) |
+| Wavefront | Armour hit: the warship flashes white, a plate off | done |
+| Wavefront | Kills pitch-stepped within a volley | done |
+| Wavefront | Weak points: gold sparks | done |
+| Wavefront | Power-up: a ring round the fighter and a chirp | done |
+| Wavefront | Enemy bolt near-miss (4 px): a streak and a zip | done |
+| Wavefront | A richer space scene with depth (nebula, planet, moon, drifting stars) | done (stage 2) |
+| Wavefront | Larger hit cells, a wider formation | stage 3 (a stamp, bands and a re-proved 200) |
+| Fission | Bigger atoms | done (burstRev 13) |
+| Fission | Kinder wave clears | done (burstRev 12) |
+| Fission | Split pop pitched by the atom's size | done |
+| Fission | Wasted beam: a fizzle at the ceiling and a tsk | done |
+| Fission | Overhead near-miss: a shimmer and a hum | done |
+| Fission | Life lost: the ship breaks, the icon's own sound | done |
+| Fission | One-thumb controls | stage 3 (a decision with the levels) |
+| Tempo | A missed note scores 0, not less | done (beatRev 12) |
+| Tempo | Lane buttons, the taller FEVER bar | done (stage 1) |
+| Tempo | Hit burst sized by the judgement | done (Perfect's rays, a Good's smaller sparks) |
+| Tempo | Hold: sparks while held, a crackle on a clean release | done |
+| Tempo | Swipe: a streak along the line in its direction | done |
+| Tempo | Miss: the note drops grey with a thud | done |
+| Tempo | Fever: a riser | done (the warm lanes were there) |
+| Tempo | Computer keys (D F J K) | stage 3 (an open decision for Joe) |
+| Meteor | The wrap (Easy and Normal) | done (snakeRev 13; Hard and Expert walls in stage 3) |
+| Meteor | Rocks in three sizes | done (snakeRev 14) |
+| Meteor | The glowing tail | done (stage 1) |
+| Meteor | The background and wormholes towards concept A | done (stage 2) |
+| Meteor | Turn: a flare and a tick | done |
+| Meteor | Eat: a crunch rising inside the combo window | done |
+| Meteor | Gold star: a ring and its own chime | done |
+| Meteor | Lane ride: a whoosh; warp: a vwoop | done (the warp's blink was there) |
+| Meteor | Rock near-miss: dust and a scrape | done |
+| Meteor | Its own music bed | Joe's file (`music_snake`) |
+| Spacewalk | Hop: a jet puff; landing: a dust squash | done |
+| Spacewalk | Close call: streaks beside the astronaut | done |
+| Spacewalk | Crossing: the deck lights gold | done |
+| Spacewalk | The streak's count above the astronaut | done |
+| Spacewalk | A clear lift: lit station decks, shaded hulls, drifting stars | done (stage 2) |
+| Spacewalk | Normal lighter than today | stage 3 |
+| Pinball | One J-O-U-L-Z set fills its part | done (pinRev 7) |
+| Pinball | Flipper face flashes white for 80 ms | done |
+| Pinball | Bumper cap swells 2 px | done |
+| Pinball | Lock: a gold flare and "BALL n LOCKED" | done |
+| Pinball | Multiball sounds (start and end) | done (wired; Joe's files) |
+| Pinball | The help says any press plunges | done |
+| Pinball | A clear lift: sunburst rays, pools, a gold pinstripe | done (stage 2) |
+| Pinball | Ramp light chase (gold lamps ahead of a riding ball) | done |
+| Pinball | Outlane save spark | stage 3 (no stored moment tells a save from a bounce; a sim counter needs a stamp) |
+| Blockzone | The glow emphasised (a neon halo round the stack) | done (stage 2) |
+| Blockzone | A clear lift: glass well, chrome bevel, cabinet scene | done (stage 2) |
+| Blockzone | Turn outline flash; a refused move outlined red | done |
+| Blockzone | Hard drop streak; lock flash | done |
+| Blockzone | Clear: sparks along the rows and a sweep sound | done |
+| Blockzone | Near the top (3 rows): the rim beats red, a heartbeat | done |
+| Blockzone | Top-out haptic; the opening sound | done (stage 1) |
+| Blockzone | Rows above dropping visibly after a clear | done |
+| All ten | Grace (no run ends on the first miss at Normal) | stage 3 (Rally done in rallyRev 13) |
+| All ten | Settings that evolve through a run at each level | stage 3 |
+
 ## Levers for the levels (stage 3)
 
 What each level will turn, from the brief (Normal is today's game unless the brief says otherwise; every level's
@@ -130,17 +230,18 @@ spin, so no bot run here earns a spin shot. The level tuning (stage 3) re-measur
 - **Fission's wave clears**: Normal's quick time stays 0.6 s an atom (the level table keeps it), so the tuning is the
   tail: the bonus now runs out at three times the quick time instead of twice.
 - **Tempo's misses** score 0 (the review's "never under 0 per note"); taps on no note still cost nothing.
-- **Table and lane labels** on Pinball's inserts, Tempo's FEVER bar and Blockzone's NEXT are labels, not counters, and
-  stay at their sizes (8–10 px) where the art leaves no room; every counter is at least 11 px.
 - **Intro demos**: Tempo's demos recorded on beatRev 11 still play (the same play); Fission's and Meteor's stay stopped
   until recorded on burstRev 13 and snakeRev 14 (the atoms and rocks change the play); Rally's rule still plays rallyRev
   12 demos until one is recorded on rallyRev 13 (it plays the same until the first miss).
-- **The 11 px floor** is in the renderer's world pixels, as the HUD floor was: on Joe's 390 × 844 review phone a 390-wide
-  world draws 1:1; on a 375 × 667 phone the taller worlds draw at about 0.82, so the smallest text is about 9 screen px
-  there. A floor in screen pixels at that size would need about 13–14 world px. Joe to choose.
+- **The 11 px floor** is measured on screen (Joe, 15 Nov 2026): every world draws its text big enough to be at least 11 px
+  on a 390 × 844 phone (`retroScale.ts`: Breaker and Rally need 12 world px, Wavefront 12, Meteor 14), and
+  retro-overhaul-check renders each game at that phone's scale and measures it. Smaller phones go slightly under.
+
 - **Fission's bigger atoms** are 38, 26, 17 and 10 px (+19 % to +25 %, the smallest most). The level table's Easy "+25 %"
   would come on top in stage 3.
 - **Meteor's middle rocks**: four of the single-square slots grow into 2 × 1 or 1 × 2 rocks (every seed tried gets four);
   the rock count and timing are unchanged.
-- **Hover's in-world effects** (the scrape sparks, the shield's shards, the dead-centre rims, the tilt and the rising gate
-  chime) are stage 2's, begun after #422 reached main; the other nine games' effects follow.
+- **In-world effects** for all ten (stage 2) are drawn in sim ticks from the state only (`retroFx.renderer.ts`, the
+  near-miss reads shared with the sounds in `retroMoments.ts`), so a replay shows them exactly as the live run did;
+  under reduced motion each is a still version that fades. 32 new sound slots are wired (manifest, arcade.md or
+  arcade-effects.md, retro-elevenlabs.md), each silent or on its old stand-in until Joe's file arrives.

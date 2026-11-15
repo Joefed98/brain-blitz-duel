@@ -1,3 +1,4 @@
+import { fxShards, fxSparks, fxStreak, retroFx } from "./retroFx.renderer";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
@@ -165,6 +166,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
     }
     ctx.restore();
   }
+
+  beatEffects(ctx, state, laneX, laneW, BEAT_HIT_LINE_Y, LANES);
 
   // Judgement word pops at the hit line.
   if (state.lastJudge !== BEAT_JUDGE_NONE && state.lastJudge !== BEAT_JUDGE_PENDING && state.judgeAge < 24) {
@@ -500,5 +503,36 @@ function drawLaneButton(ctx: CanvasRenderingContext2D, cx: number, cy: number, r
       pixelRect(ctx, cx + Math.cos(a) * d - 1, cy + Math.sin(a) * d - 1, 2, i % 2 ? 2 : 4, i % 3 === 0 ? RETRO_WHITE : colour);
     }
     ctx.restore();
+  }
+}
+
+/**
+ * Tempo's in-world moments (the Retro overhaul, stage 2; display only, read from the state): a missed note drops a grey
+ * block out of its lane, a held note crackles small sparks at its button for as long as it is held, and a Good throws a
+ * smaller spark burst than a Perfect's (which keeps its own rays above).
+ */
+function beatEffects(ctx: CanvasRenderingContext2D, state: BeatState, laneX: (lane: number) => number, laneW: number, hitY: number, lanes: number): void {
+  const fx = retroFx(ctx, "beat", state.tick);
+  const lane = Math.max(0, state.lastLane);
+  fx.rise("miss", state.misses, () => ({ x: laneX(lane), y: hitY, n: lane }));
+  fx.each("miss", 26, (e, age) => fxShards(fx, ctx, e.x, e.y, age, "#6B7080", { n: 6, r: 4, seed: e.tick, size: 4 }));
+  fx.rise("good", state.good, () => ({ x: laneX(lane), y: hitY, n: lane }));
+  // A swipe struck: an arrow streak along the hit line in the swipe's direction.
+  fx.rise("swipe", state.swipesHit ?? 0, () => {
+    const swipes = state.chart.swipes ?? [];
+    let dir = 0;
+    for (let i = state.chart.ticks.length - 1; i >= 0; i--) {
+      if (swipes[i] && state.chart.ticks[i]! <= state.tick + 12) { dir = swipes[i]!; break; }
+    }
+    return dir ? { x: laneX(lane), y: hitY, n: dir } : null;
+  });
+  fx.each("swipe", 14, (e, age) => fxStreak(fx, ctx, e.x - e.n * laneW * 0.6, e.y, e.x + e.n * laneW * 0.6, e.y, age, "#FFFFFF", 3));
+  fx.each("good", 12, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, NEON[e.n % NEON.length]!, { n: 5, spread: Math.min(14, laneW * 0.2), seed: e.tick, up: true }));
+  if (fx.still) return;
+  for (let l = 0; l < lanes; l++) {
+    const held = state.holding[l];
+    if (held === undefined || held < 0) continue;
+    const phase = state.tick % 8;
+    fxSparks(fx, ctx, laneX(l), hitY, phase / 8, "#FFFFFF", { n: 3, spread: 9, seed: Math.floor(state.tick / 8) * 7 + l, size: 2, up: true });
   }
 }

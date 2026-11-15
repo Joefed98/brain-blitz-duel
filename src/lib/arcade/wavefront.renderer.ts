@@ -1,6 +1,8 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawStarLayers, paintPixelNebula, paintPixelPlanet } from "./retroSpace.renderer";
 import { retroText, retroTextFloor, withRetroTextFloor } from "./retro.renderer";
+import { fxFlash, fxRing, fxSparks, fxStreak, retroFx } from "./retroFx.renderer";
+import { wavBoltNearMiss } from "./retroMoments";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { wavefrontFxFor } from "./arcadeFxGames.renderer";
@@ -1168,6 +1170,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
 
   drawBursts(ctx, state, [...WAV_COLOURS, WAV_PURPLE, "#9AA3B2"], still);
   drawHitSparkles(ctx, state, still);
+  wavefrontEffects(ctx, state, WAV_SHIP_Y);
 
   if (state.tick < motion.tick) motion.movedTick = -100;
   if (state.tick !== motion.tick && state.shipX !== motion.shipX) motion.movedTick = state.tick;
@@ -1294,3 +1297,31 @@ export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGam
 
 /** The UFO's painter, for wavefront-ships-check (its art inside the saucer's hit box). */
 export { drawSaucer as drawWavefrontSaucer };
+
+/**
+ * Wavefront's in-world moments (the Retro overhaul, stage 2; display only, read from the state): an armour plate
+ * knocked off flashes the warship white, a cannon or core hit throws gold sparks, a power-up caught rings the fighter,
+ * and an enemy bolt passing within 4 px of it (wavBoltNearMiss, shared with the "zip") leaves a white streak beside it.
+ */
+function wavefrontEffects(ctx: CanvasRenderingContext2D, state: WavState, shipY: number): void {
+  const fx = retroFx(ctx, "wavefront", state.tick);
+  const armour = state.armour;
+  fx.rise("plate", state.armourHits, () => {
+    if (!armour) return null;
+    const box = wavShapeBox(state, armour.row * WAV_COLS + armour.col);
+    return { x: box.x, y: box.y, n: 0, x2: (armour.w - 1) * PITCH_X + WAV_CELL, y2: (armour.h - 1) * PITCH_Y + WAV_CELL };
+  });
+  fx.each("plate", 8, (e, age) => fxFlash(ctx, e.x, e.y, e.x2 ?? 0, e.y2 ?? 0, age, "#FFFFFF", 0.55));
+  const boss = state.boss;
+  fx.rise("weak", state.bossHits ?? 0, () => {
+    if (!boss) return null;
+    const w = state.x10 ? wavBossW(boss) : WAV_BOSS_W;
+    return { x: boss.x + w / 2, y: WAV_BOSS_Y + WAV_BOSS_H, n: 0 };
+  });
+  fx.each("weak", 14, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, WAV_GOLD, { n: 8, spread: 16, seed: e.tick }));
+  fx.rise("power", state.x10 ? (state.powerups ?? 0) : state.pierce, () => ({ x: state.shipX, y: shipY, n: 0 }));
+  fx.each("power", 24, (e, age) => fxRing(fx, ctx, state.shipX, shipY, 10, 34, age, "#7CF3FF", 2));
+  const near = wavBoltNearMiss(state);
+  if (near && !fx.latest("near", 20)) fx.log("near", { x: near.x, y: near.y, n: 0 });
+  fx.each("near", 14, (e, age) => fxStreak(fx, ctx, e.x, e.y - 18, e.x, e.y + 14, age, "#FFFFFF", 2));
+}

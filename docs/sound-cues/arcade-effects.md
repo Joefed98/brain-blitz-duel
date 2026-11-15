@@ -74,6 +74,9 @@ Already sounded: power-up caught (`breaker.powerUp`), Fireball lit (`breaker.fir
 | `pinball.lastBall` | The last ball is launched | BALL 3/3 in the HUD | `pinball.lastBall.mp3` | 0–1 | 800 ms |
 | `pinball.gameOver` | Every ball drained before time (its file stands in for `pinball.ballLost` on that drain) | GAME OVER, the table lights go out | `pinball.gameOver.mp3` | 0–1 | 1500 ms |
 | `pinball.joulz` | J-O-U-L-Z completed (pinRev 4+; its file stands in for `pinball.bankComplete` on that frame; 1 Nov 2026) | JOULZ in gold, large and centred, and the border flashing gold three times (0.15 s on, 0.15 s off) | `sfx_streak_flourish.mp3` (the celebrations library's streak flourish) | 0–4 | 1200 ms |
+| `pinball.ballLocked` | A ball locked (pinRev 4+) | The lock flares gold, "BALL n LOCKED" over it | `sfx_count_ding.mp3` (`shared.celebrate.countDing`) until Joe's file (retro-elevenlabs.md), then only the file | 0–6 | 500 ms |
+| `pinball.multiballStart` | Multiball starts (pinRev 4+) | Bright sparks from the lock | `sfx_joulz_zap.mp3` (`shared.celebrate.zap`) until Joe's file (retro-elevenlabs.md), then only the file | 0–3 | 1.2 s |
+| `pinball.multiballEnd` | Multiball ends: the last extra ball drains with the main ball still in play (pinRev 4+) | The lock's lights settle | silent until Joe's file (retro-elevenlabs.md) | 0–3 | 600 ms |
 
 Already sounded: bumper glow and ripple (`pinball.bumperHit`), drop target (`pinball.dropTarget`), bank down and the multiplier lanes (`pinball.bankComplete`; J-O-U-L-Z has `pinball.joulz` on pinRev 4+), lane lit (`pinball.laneLight`), spinner turn (`pinball.spinner`), flippers and lane rotation (`pinball.flipper`), sling (`pinball.sling`), drain and lights out (`pinball.ballLost`).
 
@@ -103,6 +106,9 @@ Already sounded: paddle light-up (`rally.hit`), gold ball returned (`rally.goldH
 | `beat.fullCombo` | Every note hit (full combo) | FULL CLEAR banner and confetti pixels | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `beat.comboLost` | A combo of 10 or more broken (its file stands in for `beat.miss` on that note) | The combo glow bands vanish | `combo.lost.mp3` | 0–6 | 500 ms |
 | `beat.swipeArrive` | The first swipe notes come into the lanes (beatRev 2+, about 30 s) | Swipe arrows appear at the top of the lanes | `alert.newHazard.mp3` | 0–1 | 600 ms |
+| `beat.feverRiser` | Fever starts (beatRev 9+) | The fever bar's own flash | silent until Joe's file (retro-elevenlabs.md) | 0–4 | 700 ms |
+| `beat.holdCrackle` | A hold note released cleanly (at most one per 80 ms) | Sparks crackle at its button while it is held | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 200 ms |
+| `beat.missThud` | A note missed (beside `beat.miss`) | A grey block drops out of its lane | silent until Joe's file (retro-elevenlabs.md) | 0–40 | 120 ms |
 
 Already sounded: lane flash, judgement word and perfect ring (`beat.note` / `beat.miss`). The combo glow's 10 and 50 tiers start with `beat.comboTen`.
 
@@ -119,6 +125,12 @@ first, a Perfect or a Good) is left out. The combo pop, the PERFECT word and bur
 | `snake.allEaten` | Every star on the course eaten | FULL CLEAR banner, confetti pixels | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `snake.rockFalling` | A rock (or a meteor shower) enters its last 0.8 s before impact (at most one per 300 ms) | The rock sprite drops in, growing, and the crosshair blinks faster | `snake.rockFalling.mp3` | 5–20 | 800 ms |
 | `snake.speedUp` | A speed step on the 5th, 15th and 25th star (the 10th and 20th have the STREAK banner) | The snake steps faster | `speed.up.mp3` · own file `snake.cometRush.mp3` (sound batch 4, volume 0.7) | 0–3 | 400 ms |
+| `snake.turn` | The comet turns (at most one per 60 ms) | A few sparks flare off the head | silent until Joe's file (retro-elevenlabs.md) | 20–80 | 60 ms |
+| `snake.wrap` | The head comes in through an edge (snakeRev 13; at most one per 150 ms) | A cyan ring where it arrives | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 250 ms |
+| `snake.rockGraze` | The head passes a rock square beside it (`snakeRockGraze`; at most one per 200 ms) | Dust puffs off the rock | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 180 ms |
+| `snake.goldStar` | A gold star eaten (snakeRev 9+) | A gold ring where it was eaten | silent until Joe's file (retro-elevenlabs.md) | 0–8 | 300 ms |
+| `snake.warp` | Through a wormhole (snakeRev 9+; at most one per 150 ms) | The wormhole's own flash | silent until Joe's file (retro-elevenlabs.md) | 0–10 | 300 ms |
+| `snake.laneWhoosh` | A speed-lane ride counted (snakeRev 11+) | The lane's own glow | silent until Joe's file (retro-elevenlabs.md) | 0–10 | 400 ms |
 
 Already sounded: star eaten (`snake.eat`), rock shadow (`snake.rockWarn`), rock lands clear, the replays' "rock dodged" pop (`snake.rockLand`), shower alarm and the "meteor shower incoming" banner (`snake.showerAlarm`), death (`snake.dead`). The falling rock's sprite and the crosshair blink are the rest of the warning `snake.rockWarn` starts.
 
@@ -139,6 +151,9 @@ No cue, by design: the board border's colour step and glow pulse every 4 s (16 O
 | `burst.ceilingTouch` | An atom touches the ceiling (at most one per 120 ms, volume 0.4) | The ceiling flashes white | `retro.wallBounce.mp3` | 5–30 | 60 ms |
 | `burst.atomBounce` | An atom bounces off the floor, pitched by its size, the biggest that bounced (at most one per 100 ms, volume 0.35) | The atom rebounds off the floor | `retro.atomBounce.mp3` | hundreds | 120 ms |
 | `burst.lastLife` | Down to the last life | The two spare ship icons dim | `ui.warn.mp3` | 0–1 | 500 ms |
+| `burst.fizzle` | A wasted beam reaches the ceiling with no hit (burstRev 11's whiffs; at most one per 120 ms) | A grey puff and sparks at the ceiling | silent until Joe's file (retro-elevenlabs.md) | 0–30 | 160 ms |
+| `burst.overheadHum` | An atom skims within 6 px over the ship (`burstOverhead`; at most one per 400 ms) | A white ring shimmers over the ship | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 300 ms |
+| `burst.lifeIconBreak` | A life is lost (beside `burst.lifeLost`) | The ship breaks into red shards | silent until Joe's file (retro-elevenlabs.md) | 0–3 | 200 ms |
 
 Already sounded: atom split (`burst.hit`), shield / burst power-up (`burst.powerUp`), freeze glaze (`burst.freezeCaught`), shots (`burst.shot`), life lost (`burst.lifeLost`). The ceiling's white flash is worked out in the renderer from atom positions, not from a sim event, so it has no cue.
 
@@ -158,6 +173,9 @@ Already sounded: atom split (`burst.hit`), shield / burst power-up (`burst.power
 | `wavefront.march` | The formation marches a step (at most one per 100 ms, volume 0.3) | The ships shuffle one step sideways | `wavefront.march.mp3` | 150–400 | 120 ms |
 | `wavefront.rowDrop` | The formation drops a row at a wall (at most one per 100 ms) | The ships step down a row | `wavefront.march.mp3` | 5–20 | 120 ms |
 | `wavefront.danger` | While the formation's lowest ship is within two drops of the ship line (it ends the run on reaching it) | The formation closes on the ship | `wavefront.danger.mp3` | loop | loop |
+| `wavefront.powerChirp` | A power-up caught (the Retro overhaul) | A ring opens round the fighter | silent until Joe's file (retro-elevenlabs.md) | 0–8 | 220 ms |
+| `wavefront.boltZip` | An enemy bolt passes within 4 px of the fighter (`wavBoltNearMiss`; at most one per 330 ms) | A white streak beside the fighter | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 140 ms |
+| `wavefront.plateOff` | An armoured ship loses a plate without dying (beside `wavefront.armourHit`) | The warship flashes white | silent until Joe's file (retro-elevenlabs.md) | 0–12 | 200 ms |
 
 Already sounded: shots (`wavefront.fire`), pierce pickup (`wavefront.pierce`), ship bursts (`wavefront.bigExplode` / `wavefront.shapePop`), boss hit (`wavefront.bossHit`), formation arriving (`wavefront.formation`), dive (`wavefront.dive`), life lost (`wavefront.lifeLost`).
 
@@ -217,6 +235,8 @@ Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.sta
 | `cross.freighter` | A freighter lane crossed (crossRev 9+; at most one per 600 ms) | The long cargo freighter going by | `cross.freighter.mp3` (Joe's, 6 Nov 2026) | 0–15 | 1350 ms |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ | Cyclists, cones or a chicane on the road ahead | `alert.newHazard.mp3` | 0–3 | 600 ms |
 | `cross.traffic` | While the run is live | Space traffic streaming both ways (Spacewalk) | `bastion.drone.mp3` from the library since 3 Nov 2026 (was `cross.traffic.mp3`) | loop | loop |
+| `cross.jetPuff` | Each hop starts (at most one per 60 ms) | A jet puff under the astronaut | silent until Joe's file (retro-elevenlabs.md) | every hop | 80 ms |
+| `cross.land` | A hop lands with no hit (at most one per 80 ms) | A dust ring at the astronaut's feet | silent until Joe's file (retro-elevenlabs.md) | every hop | 90 ms |
 
 Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), hit and tumble (`cross.lifeLost`).
 
@@ -388,6 +408,18 @@ Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (
 | `matchup.select` | A gem is picked | The gem is highlighted | `ui.select.mp3` · own file `gem.pick.mp3` (sound batch 4, volume 0.6) | 20–60 | 80 ms |
 
 Already sounded: gem shatters (`arc_gem_match`, pitched by depth, `gem.shatter.mp3` since sound batch 4), specials (`arc_gem_bomb`, `arc_gem_star`, `arc_gem_zap`), jackpot set off (`matchup.jackpotBlast`, `gem.jackpot.mp3`; `arc_rainbow` until sound batch 4). Since sound batch 4 the generic combo is left out (`arcadeFeedback({ combo: false })`): the chime climbs with the cascade on its own. Gems falling into place follow the shatter chimes, step by step, and have no cue of their own.
+
+## Blockzone
+
+The Retro overhaul, stage 2 (15 Nov 2026): Blockzone's in-world moments, each silent until Joe's recording drops in
+by name (retro-elevenlabs.md).
+
+| Cue | Trigger | Looks like | Plays today | Per round | Length |
+|---|---|---|---|---|---|
+| `blockfall.turnRefused` | A move or turn refused (the state's `rejects`; at most one per 120 ms) | The piece outlined red | silent until Joe's file (retro-elevenlabs.md) | 0–30 | 120 ms |
+| `blockfall.hardDrop` | A piece locks after a drop of three rows or more (`bfHardDropped`) | A streak down each of the piece's columns | silent until Joe's file (retro-elevenlabs.md) | 10–60 | 250 ms |
+| `blockfall.sweep` | A line clear (beside `blockfall.clear` / `blockfall.bigClear`) | Sparks off both walls along the rows | silent until Joe's file (retro-elevenlabs.md) | 5–30 | 300 ms |
+| `blockfall.heartbeat` | The stack within three rows of the top (`bfNearTop`; a loop while it stays) | The well's rim beats red | silent until Joe's file (retro-elevenlabs.md) | loop | loop |
 
 ## Letterfall
 

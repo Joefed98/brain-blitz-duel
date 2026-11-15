@@ -12,6 +12,9 @@
  * `blockfallScene` carries the cabinet's dark glow out to the screen's edges (painted per size, never per frame).
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
+import { fxFlash, fxSparks, fxStreak, retroFx } from "./retroFx.renderer";
+import { reducedMotion } from "./art.renderer";
+import { bfNearTop } from "./retroMoments";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
@@ -373,11 +376,18 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
       }
     ctx.globalAlpha = 1;
   }
-  // Settled squares (visible rows only).
+  // Settled squares (visible rows only). The Retro overhaul, stage 2: for 6 ticks after a clear the rows that were
+  // above it slide down the last of the way into their new places, so the drop reads (display only; the board is
+  // already compacted, and nothing is drawn outside the well).
+  const dropAge = state.tick - state.clearTick;
+  const dropRows = state.cleared.length;
+  const dropBelow = dropRows ? state.cleared[dropRows - 1]! : -1;
+  const dropping = dropRows > 0 && dropAge >= 0 && dropAge < 6 && !reducedMotion();
   for (let y = BF_HIDDEN; y < BF_HIDDEN + BF_H; y++) {
+    const lift = dropping && y <= dropBelow ? Math.round(dropRows * cell * (1 - dropAge / 6) * 0.5) : 0;
     for (let x = 0; x < BF_W; x++) {
       const v = state.board[y * BF_W + x]!;
-      if (v) drawBfSquare(ctx, v - 1, bx + x * cell, by + (y - BF_HIDDEN) * cell, cell);
+      if (v) drawBfSquare(ctx, v - 1, bx + x * cell, Math.max(by, by + (y - BF_HIDDEN) * cell - lift), cell);
     }
   }
 
@@ -411,6 +421,8 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
     ctx.fillStyle = g;
     ctx.fillRect(bx, y0, L.bw, rows * cell);
   }
+
+  blockzoneEffects(ctx, state, bx, by, cell, L.bw);
 
   // The well's rim: a neon cyan line with a soft glow.
   ctx.strokeStyle = "rgba(54,226,245,0.25)";
@@ -516,4 +528,74 @@ function paintBlockzoneCabinet(ctx: CanvasRenderingContext2D, W: number, H: numb
   ctx.fillStyle = glow;
   ctx.fillRect(0, horizon - 40, W, 50);
   ctx.restore();
+}
+
+/**
+ * Blockzone's in-world moments (the Retro overhaul, stage 2; display only, read from the state, aged by the sim tick): a
+ * turn outlines the piece in white, a refused move or turn outlines it red, a hard drop leaves a streak down each of its
+ * columns, a lock flashes the squares white, a clear throws sparks off both walls, and a stack within four rows of the
+ * top makes the well's rim beat red (bfNearTop, shared with its sound; steady under reduced motion).
+ */
+function blockzoneEffects(ctx: CanvasRenderingContext2D, state: BfState, bx: number, by: number, cell: number, bw: number): void {
+  const fx = retroFx(ctx, "blockfall", state.tick);
+  const p = state.piece;
+  const outline = (shape: number, turn: number, x: number, y: number, colour: string, age: number) => {
+    ctx.save();
+    ctx.globalAlpha = 1 - age;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 2;
+    for (const [cx, cy] of bfCells(shape, turn)) {
+      const row = y + cy - BF_HIDDEN;
+      if (row >= 0) ctx.strokeRect(bx + (x + cx) * cell + 1, by + row * cell + 1, cell - 2, cell - 2);
+    }
+    ctx.restore();
+  };
+  // The piece last frame (its place and its landing row), so the moment it locks can be drawn where it was.
+  const last = { pieces: fx.get("pieces", state.pieces), x: fx.get("x", p.x), y: fx.get("y", p.y), shape: fx.get("shape", p.shape), turn: fx.get("turn", p.turn), ghost: fx.get("ghost", p.y) };
+  if (state.pieces > last.pieces) {
+    fx.log("lock", { x: last.x, y: last.ghost, n: last.shape, x2: last.turn });
+    if (last.ghost - last.y >= 3) fx.log("drop", { x: last.x, y: last.y, n: last.shape, x2: last.turn, y2: last.ghost });
+  } else if (state.ended === 0 && p.turn !== last.turn) fx.log("turn", { x: 0, y: 0, n: 0 });
+  fx.set("pieces", state.pieces);
+  fx.set("x", p.x);
+  fx.set("y", p.y);
+  fx.set("shape", p.shape);
+  fx.set("turn", p.turn);
+  fx.set("ghost", state.ended === 0 ? bfGhostY(state.board, p) : p.y);
+  fx.rise("reject", state.rejects, () => ({ x: 0, y: 0, n: 0 }));
+  if (state.ended === 0) {
+    const turn = fx.latest("turn", 6);
+    if (turn) outline(p.shape, p.turn, p.x, p.y, "#FFFFFF", turn.age);
+    const reject = fx.latest("reject", 8);
+    if (reject) outline(p.shape, p.turn, p.x, p.y, "#FF4D6D", reject.age);
+  }
+  fx.each("drop", 10, (e, age) => {
+    const cols = new Set(bfCells(e.n, e.x2 ?? 0).map(([cx]) => e.x + cx));
+    for (const col of cols) {
+      const x = bx + col * cell + cell / 2;
+      fxStreak(fx, ctx, x, by + Math.max(0, e.y - BF_HIDDEN) * cell, x, by + Math.max(0, (e.y2 ?? e.y) - BF_HIDDEN) * cell, age, "#E8FDFF", Math.max(2, cell * 0.3));
+    }
+  });
+  fx.each("lock", 6, (e, age) => {
+    for (const [cx, cy] of bfCells(e.n, e.x2 ?? 0)) {
+      const row = e.y + cy - BF_HIDDEN;
+      if (row >= 0) fxFlash(ctx, bx + (e.x + cx) * cell, by + row * cell, cell, cell, age, "#FFFFFF", 0.5);
+    }
+  });
+  fx.rise("clear", state.lines, () => {
+    const lowest = (state.cleared[state.cleared.length - 1] ?? BF_HIDDEN) - BF_HIDDEN;
+    return { x: 0, y: by + (lowest + 0.5) * cell, n: state.cleared.length };
+  });
+  fx.each("clear", 16, (e, age) => {
+    fxSparks(fx, ctx, bx + 2, e.y, age, "#A0F0FF", { n: 4 + e.n * 2, spread: 18, seed: e.tick });
+    fxSparks(fx, ctx, bx + bw - 2, e.y, age, "#A0F0FF", { n: 4 + e.n * 2, spread: 18, seed: e.tick + 5 });
+  });
+  if (bfNearTop(state)) {
+    const beat = fx.still ? 0.5 : Math.max(0, Math.sin((state.tick % 50) / 50 * Math.PI * 2)) ** 2;
+    ctx.save();
+    ctx.strokeStyle = `rgba(255,77,109,${(0.25 + 0.55 * beat).toFixed(3)})`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(bx - 1, by - 1, bw + 2, BF_H * cell + 2);
+    ctx.restore();
+  }
 }

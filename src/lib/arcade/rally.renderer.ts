@@ -1,4 +1,6 @@
 import { reducedMotion } from "./art.renderer";
+import { fxFlash, fxRing, fxSparks, retroFx } from "./retroFx.renderer";
+import { rallyEdgeSave } from "./retroMoments";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
 import { rallyFxFor } from "./arcadeFxGames.renderer";
@@ -352,6 +354,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   // Polish A1: the paddle's own teal light.
   glow(ctx, PADDLE, state.paddleX, RALLY_PADDLE_Y + RALLY_PADDLE_H / 2, width / 2 + 16, 16, 0.4);
   retroPaddle(ctx, state.paddleX - width / 2, RALLY_PADDLE_Y, width, RALLY_PADDLE_H, PADDLE, "#0E4A44", bloom);
+  rallyEffects(ctx, state, width, RALLY_PADDLE_Y);
 
   state.golds.forEach((ball, i) => {
     const x = px(ball.x);
@@ -519,3 +522,22 @@ function drawTracked(ctx: CanvasRenderingContext2D, state: RallyState, size: Can
 
 export const rallyArtGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = { ...rallyGame, draw: drawTracked };
 export const rallyRevealGame = { draw: drawReveal };
+
+/**
+ * Rally's in-world moments (the Retro overhaul, stage 2; display only): a return on the paddle's last 4 px throws sparks
+ * off that end (an edge save), and a curling return draws a short white swirl behind the ball as it leaves.
+ */
+function rallyEffects(ctx: CanvasRenderingContext2D, state: RallyState, width: number, paddleY: number): void {
+  const fx = retroFx(ctx, "rally", state.tick);
+  // Each return flashes the paddle's face in the ball's colour (blue, or gold for a gold ball).
+  fx.rise("blueRet", state.hits, () => ({ x: state.paddleX - width / 2, y: paddleY, n: 0, c: "#7FD3FF" }));
+  fx.rise("goldRet", state.goldHits, () => ({ x: state.paddleX - width / 2, y: paddleY, n: 0, c: "#FFD84A" }));
+  for (const kind of ["blueRet", "goldRet"]) fx.each(kind, 8, (e, age) => fxFlash(ctx, state.paddleX - width / 2, paddleY, width, RALLY_PADDLE_H, age, e.c ?? "#FFFFFF", 0.55));
+  fx.rise("returns", state.hits + state.goldHits, () => {
+    const edge = rallyEdgeSave(state, width);
+    return edge ? { x: edge.x, y: paddleY, n: edge.side } : null;
+  });
+  fx.each("returns", 16, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, "#FFF4C2", { n: 8, spread: 12, seed: e.tick, up: true }));
+  fx.rise("spin", state.spun ?? 0, () => ({ x: state.x / 256, y: state.y / 256, n: state.spin ?? 0 }));
+  fx.each("spin", 20, (e, age) => fxRing(fx, ctx, e.x, e.y, 4, 16, age, "#FFFFFF", 1));
+}
