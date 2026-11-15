@@ -252,6 +252,19 @@ inside 0.88 r (`drawPlanetRing`). Nothing is drawn past the collision circle + 2
 (orbit-overhaul-check). The planets' size is the sim's: radius 19–28 world px, so 17–26 CSS px on a phone and up to 40 on
 the desktop column; drawing them larger would need a new stamp (the collision circle).
 
+### Stage 2: effects and the answer reveal (15 Nov 2026, display only, no stamp)
+
+`orbitEffects.renderer.ts` (drawn by Orbit's renderer on the expansion's view): the launch puff, low fuel (the gauge
+pulsing red, the flame stuttering, the beep every 30 ticks from `ORBIT_LOW_FUEL` 40), a lock ring on every catch, the
+hold's draining arc and GO, the sun's bloom with ALL 40 PLANETS! and the count-up; the out-of-fuel sputter now coughs,
+fizzles and drifts (`sputterPose`, still `ORBIT_SPUTTER_MS` 600). Orbit is edgeless: `ORBIT3_FX_XP.moment` draws a ring
+where a moment happened, and its final banner is the bloom's. Every effect observes the sim, ends within 900 ms and is
+still under reduced motion. The reveal's run picture (`PuzzleDefinition.RunPicture`, `OrbitRunPicture`):
+`traceOrbitRun` (src/lib/duel/orbitRunTrace.ts) replays the stored log through the server's own replay
+(`replayOrbitRun`'s new `observe`, which changes nothing) and `drawOrbitRunMap` (orbitReveal.renderer.ts) draws the
+course folded into four columns; the planets, stardust, slingshots and slips are big numbers above it. The planet maps
+load with the game's chunk (`preloadOrbitPlanetMaps`).
+
 ### Levels (stage 3 of the overhaul, not built yet)
 
 Joe's levers, for the difficulty framework (Normal is orbitRev 15 as above; every level a new stamp with its own proved

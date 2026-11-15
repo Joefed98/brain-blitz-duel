@@ -139,7 +139,9 @@ export function orbitSounds(): GameSounds<OrbitState> {
         // hiss runs in flight, its pitch falling with the fuel left (silent until its recording is set).
         if (fuelState.fuel !== undefined) {
           const flyingNow = state.flying > 0 && state.ended === 0;
-          if (flyingNow && fuelState.fuel <= ORBIT_LOW_FUEL && (fuelPrev.fuel ?? ORBIT_LOW_FUEL + 1) > ORBIT_LOW_FUEL) sfx("orbit.lowFuel", "warning_tick");
+          // Stage 2 (15 Nov 2026): the beep repeats every half second while the tank keeps falling (the gauge pulsing with it).
+          const lowStep = fuelState.fuel <= ORBIT_LOW_FUEL && fuelState.fuel !== fuelPrev.fuel && (ORBIT_LOW_FUEL - fuelState.fuel) % ORBIT_LOW_FUEL_BEEP === 0;
+          if (flyingNow && fuelState.fuel > 0 && lowStep) sfx("orbit.lowFuel", "warning_tick");
           loopCue("orbit.thrust", flyingNow);
           if (flyingNow) setCueLoopRate("orbit.thrust", 0.75 + 0.35 * Math.min(1, fuelState.fuel / ORBIT_LOW_FUEL / 4));
           // orbitRev 15 (grace): the respawn's hold ends with a ready blip.
@@ -184,6 +186,8 @@ export function orbitSounds(): GameSounds<OrbitState> {
 }
 /** Orbit's low-fuel line (sound only): a quarter of the 160-tick tank. */
 const ORBIT_LOW_FUEL = 40;
+/** Ticks between low-fuel beeps (stage 2: half a second). */
+const ORBIT_LOW_FUEL_BEEP = 30;
 
 /** swingRev 4+: the dragon is off the left edge and its arrow has turned red (under 4 m behind), as the renderer draws it. */
 function swingDragonNear(s: SwingState): boolean {

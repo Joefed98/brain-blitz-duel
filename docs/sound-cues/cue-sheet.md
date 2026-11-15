@@ -1719,7 +1719,7 @@ Grouped by game or screen.
 | `orbit.checkpoint` | Orbit: The first checkpoint is reached [arcade.md] |  | 1 | recorded sound | `arc_pickup` (shared) | 100 | game event | `orbit.checkpoint` |
 | `orbit.crash` | Orbit: A respawn (black hole, missed planet) or the run lost [arcade.md] |  | 1–5 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `orbit.crash` |
 | `orbit.outOfFuel` | Orbit: The tank runs dry (orbitRev 14+: the run lost, or on 15 a respawn) [arcade.md] |  | 0–5 | recorded sound | `arc_lose_life` (shared) | 900 | game event | `orbit.outOfFuel` |
-| `orbit.lowFuel` | Orbit: A flight's tank falls to a quarter (orbitRev 14+) [arcade.md] |  | 0–10 | recorded sound | `warning_tick` (shared) | 600 | game event | `orbit.lowFuel` |
+| `orbit.lowFuel` | Orbit: A flight's tank falls to a quarter, then every half second while it keeps falling (orbitRev 14+; the gauge pulses red with it) [arcade.md] |  | 0–40 | recorded sound | `warning_tick` (shared) | 600 | game event | `orbit.lowFuel` |
 | `orbit.respawnReady` | Orbit: An automatic respawn's hold ends (orbitRev 15) [arcade.md] |  | 0–5 | recorded sound | `countdown_step` (shared) | 250 | game event | `orbit.respawnReady` |
 | `music.orbit` | Orbit: music_orbit |  | loop | recorded sound | `music_orbit` | loop | music | `music_orbit` |
 

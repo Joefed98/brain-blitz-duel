@@ -24,6 +24,10 @@
  *  7. Edge to edge (Joe's rule, 15 Nov 2026): the sun's warmth is 0 along the world's sides and bottom at every point of
  *     the course, and the fill starts at the world's own black with no seam at 414×896 (app), 390×844, 375×667 and
  *     1440×900.
+ *  8. Stage 2 (effects and the reveal): the reveal's trace replays to the server's score and maps the witness to the
+ *     sun with no slip, and a dry release as one out-of-fuel slip; the course map's four columns; the run picture with
+ *     big numbers; the maps preloaded with the chunk; every effect within 900 ms, still under reduced motion and never
+ *     writing state; the catch lock on every catch; the sun's bloom; Orbit edgeless with its own moment ring.
  *
  *   bun scripts/orbit-overhaul-check.ts
  */
@@ -465,8 +469,134 @@ const planets = await import("../src/lib/arcade/orbitPlanets.renderer");
   }
 }
 
+/* 8. Stage 2: effects and the reveal (15 Nov 2026, display only). */
+const popcount = (n: number) => { let c = 0; for (let v = n >>> 0; v; v &= v - 1) c++; return c; };
+{
+  const fx = await import("../src/lib/arcade/orbitEffects.renderer");
+  const { traceOrbitRun } = await import("../src/lib/duel/orbitRunTrace");
+  const { drawOrbitRunMap, orbitMapLayout } = await import("../src/lib/arcade/orbitReveal.renderer");
+  const { ORBIT3_FX_XP } = await import("../src/lib/arcade/arcadeFxGames.renderer");
+  const { arcadeFxEdgeless, ARCADE_FX_MOMENT_MS } = await import("../src/lib/arcade/arcadeFx.renderer");
+  const puzzleOf = (e: OrbitFuelBankEntry) => ({ type: "orbit", seed: e.seed, orbitRev: ORBIT_REV_GRACE, planets: e.planets, holes: e.holes, extras: e.extras }) as never;
+
+  // The reveal's trace: the witness flies to the sun with no slip; the observer changes nothing in the server's replay.
+  const witness = serverRun(course, course.taps.map((t) => ev(t, ORBIT_INPUT_TAP)), ORBIT_REV_GRACE);
+  const trace = traceOrbitRun(puzzleOf(course), witness.raw)!;
+  ok(trace && trace.finished && trace.best === ORBIT_TOTAL && trace.slips.length === 0 && trace.flights.length > 0, `the reveal's trace of the witness run: the sun, no slips, ${trace?.flights.length} flights`);
+  ok(trace.result.score === witness.score && trace.result.flagged === witness.flagged, `tracing replays to the server's own score (${trace.result.score} = ${witness.score})`);
+  ok(trace.counts.dust === popcount(witness.state.dustGot ?? 0) && trace.dust.filter((d) => d.got).length === trace.counts.dust && trace.moons.filter((m) => m.got).length === trace.counts.slings, "the map's taken stardust and moons are the replay's own");
+  ok(trace.parts !== null && trace.parts.core === 130, "the parts are the standard's breakdown of the replayed run");
+  // A run that runs dry: the slip is placed on the map as out of fuel.
+  let miss = -1;
+  for (let d = 1; d < 400 && miss < 0; d++) {
+    let s = startOf(course, true);
+    for (let k = 1; k < d; k++) s = step(s, null);
+    s = step(s, ev(d, ORBIT_INPUT_TAP));
+    if (s.flying === 0) continue;
+    while (s.flying > 0 && !s.ended) s = step(s, null);
+    if (s.autoRespawns === 1 && s.dry === s.tick) miss = d;
+  }
+  const dryRun = serverRun(course, [ev(miss, ORBIT_INPUT_TAP)], ORBIT_REV_GRACE);
+  const dryTrace = traceOrbitRun(puzzleOf(course), dryRun.raw)!;
+  ok(dryTrace.slips.length === 1 && dryTrace.slips[0]!.kind === "fuel" && dryTrace.best === 0, `a release into empty space shows one out-of-fuel slip (${dryTrace.slips.map((s) => s.kind).join(",")})`);
+  // The map: four columns of ten planets at one scale, inside its box, and it draws something.
+  const lay = orbitMapLayout(trace, 360, 300);
+  ok(lay.columns.length === 4 && lay.columns.every((c) => c.x >= 0 && c.x + c.w <= 360 + 1e-6 && c.h <= 300), "the course map folds into four columns inside its box");
+  {
+    const cv = createCanvas(360, 300);
+    const ctx = cv.getContext("2d");
+    drawOrbitRunMap(ctx as never, trace, 360, 300);
+    const d = ctx.getImageData(0, 0, 360, 300).data;
+    let lit = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i]! > 0) lit++;
+    ok(lit > 360 * 300 * 0.3, `the course map draws (${lit} px)`);
+  }
+  const page = readFileSync("src/puzzles/orbit.tsx", "utf8");
+  ok(/RunPicture: OrbitRunPicture/.test(page) && /data-orbit-stat/.test(page) && /FxCountUp/.test(page), "Orbit's definition draws its run picture with big numbers (planets counting up)");
+  ok(/preloadOrbitPlanetMaps\(\);/.test(page), "the planet maps are preloaded with the game's chunk");
+
+  // Effects observe the sim and never write to it; each physical action within 900 ms; reduced motion is still.
+  ok([fx.ORBIT_LOCK_MS, fx.ORBIT_BLOOM_MS, (fx.ORBIT_PUFF_TICKS * 1000) / 60, (fx.ORBIT_GO_TICKS * 1000) / 60].every((ms) => ms <= 900), "every effect is over within 900 ms");
+  const flying = { fuel: 30, flying: 5, ended: 0 } as OrbitRev3State;
+  ok(fx.orbitLowFuel(flying) && !fx.orbitLowFuel({ ...flying, fuel: 41 }) && !fx.orbitLowFuel({ ...flying, flying: 0 }), "low fuel is a quarter of the tank or less, in flight");
+  const washes = new Set(Array.from({ length: 20 }, (_, t) => fx.orbitLowFuelWash(t, false).toFixed(3)));
+  ok(washes.size > 5 && fx.orbitLowFuelWash(3, true) === fx.orbitLowFuelWash(11, true), "low fuel pulses the gauge (steady under reduced motion)");
+  const flameOff = Array.from({ length: 120 }, (_, t) => fx.orbitFlameOn(t, true, false)).filter((on) => !on).length;
+  ok(flameOff > 10 && flameOff < 60 && Array.from({ length: 120 }, (_, t) => fx.orbitFlameOn(t, true, true) && fx.orbitFlameOn(t, false, false)).every(Boolean), `the flame stutters on low fuel only (${flameOff} of 120 ticks out), steady under reduced motion`);
+  // The catch lock and the sun's bloom, on the presentation clock, drawn by the renderer over the witness run.
+  {
+    let clock = 1000;
+    fx.setOrbitFxClock(() => clock);
+    const cv = createCanvas(450, 862);
+    const ctx = cv.getContext("2d") as never as CanvasRenderingContext2D;
+    let s = startOf(course, true);
+    const taps = new Set(course.taps);
+    let lockSeen = false, lockGone = false, frozen = "";
+    while (!s.ended) {
+      const next = step(s, taps.has(s.tick + 1) ? ev(s.tick + 1, ORBIT_INPUT_TAP) : null);
+      const caught = next.captured > s.captured && next.captured === 3;
+      s = next;
+      clock += 1000 / 60;
+      if (caught) {
+        frozen = JSON.stringify(s);
+        // (A planet's world y can be negative; draw relative to a camera at the planet.)
+        const p = s.planets[s.cur]!;
+        const cam = { x: p.x / 256 - 225, y: p.y / 256 - 431 };
+        const ring = (ms: number) => {
+          const cv2 = createCanvas(450, 862);
+          const c2 = cv2.getContext("2d") as never as CanvasRenderingContext2D;
+          const t0 = clock;
+          fx.drawCatchLock(c2, { ...s, captured: s.captured - 1 } as OrbitRev3State, cam, "#FF0000", false);
+          fx.drawCatchLock(c2, s, cam, "#FF0000", false);
+          c2.clearRect(0, 0, 450, 862);
+          clock = t0 + ms;
+          fx.drawCatchLock(c2, s, cam, "#FF0000", false);
+          clock = t0;
+          const d = c2.getImageData(225 - 60, 431 - 60, 120, 120).data;
+          let red = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i]! > 150 && d[i + 1]! < 60 && d[i + 3]! > 0) red++;
+          return red;
+        };
+        lockSeen = ring(100) > 20;
+        lockGone = ring(fx.ORBIT_LOCK_MS + 10) === 0;
+        ok(JSON.stringify(s) === frozen, "drawing the lock never writes to the state");
+      }
+      renderer.orbitRev3ArtGame.draw(ctx, s, { width: 450, height: 862 });
+    }
+    ok(lockSeen && lockGone, "every catch draws its lock ring, gone after ORBIT_LOCK_MS");
+    // The sun: the bloom's banner counts the planets up to 40 and holds; reduced motion shows 40 at once.
+    const end = s;
+    ok(end.finished === 1, "the witness reaches the sun");
+    clock += 2000;
+    const bloomCtx = createCanvas(450, 862).getContext("2d") as never as CanvasRenderingContext2D;
+    const before = JSON.stringify(end);
+    fx.drawSunBloom(bloomCtx, { ...end, finished: 0 } as OrbitRev3State, { x: 0, y: 0 }, 450, 862, false);
+    fx.drawSunBloom(bloomCtx, end, { x: 0, y: 0 }, 450, 862, false);
+    ok(fx.orbitBloomAge(bloomCtx, end) === 0, "the bloom starts on the frame the sun is reached");
+    ok(JSON.stringify(end) === before, "the bloom never writes to the state");
+    fx.setOrbitFxClock(null);
+  }
+  // The edge glow's replacement: Orbit's expansion spec is edgeless, draws its own moment ring, and leaves the
+  // "ALL 40 PLANETS!" banner to the sun's bloom.
+  ok(arcadeFxEdgeless(ORBIT3_FX_XP) && typeof ORBIT3_FX_XP.moment === "function" && !ORBIT3_FX_XP.events.some((e) => e.kind === "final"), "Orbit is edgeless with its own moment hook and no duplicate final banner");
+  {
+    const cv = createCanvas(450, 862);
+    const ctx = cv.getContext("2d");
+    ORBIT3_FX_XP.moment!(ctx as never, { kind: "streak", x: 225, y: 200, colour: "#F5B82E", ageMs: 120, p: 120 / ARCADE_FX_MOMENT_MS, still: false, lite: false });
+    const d = ctx.getImageData(0, 0, 450, 862).data;
+    let lit = 0, edge = 0;
+    for (let y = 0; y < 862; y++)
+      for (let x = 0; x < 450; x++) {
+        if (d[(y * 450 + x) * 4 + 3]! === 0) continue;
+        lit++;
+        if (x < 4 || x >= 446 || y < 4 || y >= 858) edge++;
+      }
+    ok(lit > 100 && edge === 0, `the moment ring draws on the moment, nothing on the screen's edge (${lit} px, ${edge} at the edge)`);
+  }
+}
+
 if (failures.length) {
   console.log(`FAIL orbit-overhaul-check: ${failures.length} failed, ${checks - failures.length} passed`);
   process.exit(1);
 }
-console.log(`PASS orbit-overhaul-check: ${checks} checks — legacy replays, grace, the bank at 200 on orbitRev 15, dealing, the checkpoint guard, the HUD, the planets and edge to edge`);
+console.log(`PASS orbit-overhaul-check: ${checks} checks — legacy replays, grace, the bank at 200 on orbitRev 15, dealing, the checkpoint guard, the HUD, the planets, edge to edge, and stage 2's effects and reveal`);

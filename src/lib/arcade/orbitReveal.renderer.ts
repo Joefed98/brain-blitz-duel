@@ -97,7 +97,7 @@ export function drawOrbitRunMap(ctx: CanvasRenderingContext2D, trace: OrbitRunTr
       const [x, y] = at(d.x, d.y);
       ctx.fillStyle = d.got ? ORBIT_MAP_COLOURS.dust : "rgba(255,255,255,0.2)";
       ctx.beginPath();
-      ctx.arc(x, y, d.got ? 2 : 1.3, 0, Math.PI * 2);
+      ctx.arc(x, y, d.got ? 2.6 : 1.4, 0, Math.PI * 2);
       ctx.fill();
     }
     // Slingshot moons: a small grey moon, ringed in teal where slung.
@@ -117,7 +117,7 @@ export function drawOrbitRunMap(ctx: CanvasRenderingContext2D, trace: OrbitRunTr
     }
     // The flights flown.
     ctx.strokeStyle = ORBIT_MAP_COLOURS.flight;
-    ctx.lineWidth = 1.6;
+    ctx.lineWidth = 2.4;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     for (const f of trace.flights) {
@@ -133,7 +133,7 @@ export function drawOrbitRunMap(ctx: CanvasRenderingContext2D, trace: OrbitRunTr
     for (let i = Math.max(0, col.from - 1); i <= Math.min(ps.length - 1, col.to + 1); i++) {
       const p = ps[i]!;
       const [x, y] = at(p.x / FP, p.y / FP);
-      const r = Math.max(i === ORBIT_TOTAL ? 6 : 3.4, (p.r / FP) * scale);
+      const r = Math.max(i === ORBIT_TOTAL ? 8 : 5, (p.r / FP) * scale);
       const reached = i <= trace.best;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -167,18 +167,18 @@ export function drawOrbitRunMap(ctx: CanvasRenderingContext2D, trace: OrbitRunTr
     for (const s of trace.slips) {
       const [x, y] = at(s.x, s.y);
       ctx.strokeStyle = "rgba(0,0,0,0.7)";
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 5;
       const mark = () => {
         ctx.beginPath();
         if (s.kind === "fuel") {
-          ctx.moveTo(x - 4, y - 4);
-          ctx.lineTo(x + 4, y + 4);
-          ctx.moveTo(x + 4, y - 4);
-          ctx.lineTo(x - 4, y + 4);
+          ctx.moveTo(x - 6, y - 6);
+          ctx.lineTo(x + 6, y + 6);
+          ctx.moveTo(x + 6, y - 6);
+          ctx.lineTo(x - 6, y + 6);
         } else {
           for (let k = 0; k < 4; k++) {
             const a = (k / 4) * Math.PI + Math.PI / 8;
-            ctx.moveTo(x - Math.cos(a) * 5, y - Math.sin(a) * 5);
+            ctx.moveTo(x - Math.cos(a) * 7, y - Math.sin(a) * 7);
             ctx.lineTo(x + Math.cos(a) * 5, y + Math.sin(a) * 5);
           }
         }
@@ -186,13 +186,13 @@ export function drawOrbitRunMap(ctx: CanvasRenderingContext2D, trace: OrbitRunTr
       };
       mark();
       ctx.strokeStyle = s.kind === "fuel" ? ORBIT_MAP_COLOURS.fuel : ORBIT_MAP_COLOURS.crash;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.6;
       mark();
     }
     ctx.restore();
     // The column's planets, under it.
     ctx.fillStyle = "rgba(245,245,247,0.78)";
-    ctx.font = "600 12px 'Archivo', system-ui, sans-serif";
+    ctx.font = "600 13px 'Archivo', system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     const last = col.to >= ORBIT_TOTAL ? "sun" : String(col.to);

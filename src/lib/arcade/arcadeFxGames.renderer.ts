@@ -11,7 +11,7 @@
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
 import { CURLING_FX_V4, MINIGOLF_FX, POOL_FX } from "./sportsFx.renderer";
-import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
+import type { ArcadeFxMiss, ArcadeFxMoment, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { minesCellX, minesCellY, minesCleared, MINES_CELL, MINES_WORLD_H, MINES_WORLD_W, type MinesState } from "./minesweeper";
 import { mahjongCleared, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
 import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
@@ -1759,7 +1759,28 @@ const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, he
  * orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view, drawn 862 tall since 27 Oct 2026
  * (ORBIT_XP_DRAW_H in orbit.renderer.ts, rows above the camera's frame: the world reaches the screen's bottom), so the layer maps as the world does.
  */
-export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: ORBIT_XP_DRAW_H_FX };
+export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = {
+  ...ORBIT3_FX,
+  width: 450,
+  height: ORBIT_XP_DRAW_H_FX,
+  // Stage 2 (the Action overhaul, 15 Nov 2026, display only): the sun's own bloom and banner (orbitEffects.renderer.ts
+  // drawSunBloom, with the planets counting up) say "ALL 40 PLANETS!", so the layer's final pop isn't said twice.
+  events: ORBIT3_FX.events.filter((e) => e.kind !== "final"),
+  // The edge glow's replacement (Orbit is edgeless): a crisp ring opening from where the moment happened (every tenth
+  // planet's banner, a black hole's jump), gold or violet, no glow; still under reduced motion.
+  moment: (ctx, m) => drawOrbitMomentRing(ctx, m),
+};
+function drawOrbitMomentRing(ctx: CanvasRenderingContext2D, m: ArcadeFxMoment): void {
+  const open = m.still ? 0.6 : 1 - (1 - m.p) * (1 - m.p);
+  ctx.save();
+  ctx.globalAlpha = (m.still ? 0.6 : 0.85) * (1 - m.p);
+  ctx.strokeStyle = m.kind === "clear" ? "#B98CFF" : "#F5B82E";
+  ctx.lineWidth = m.lite ? 1.5 : 2.5;
+  ctx.beginPath();
+  ctx.arc(m.x, m.y, 18 + 70 * open, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));

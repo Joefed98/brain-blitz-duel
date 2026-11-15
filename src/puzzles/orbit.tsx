@@ -27,13 +27,18 @@ import { ArtStill } from "@/components/puzzles/ArtStill";
 import { ORBIT_INTRO_COURSE } from "./orbitIntroCourse.data";
 import { ORBIT_REV_GRACE, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
+import { FxCountUp } from "@/components/fx/GameFx";
+import { preloadOrbitPlanetMaps } from "@/lib/arcade/orbitPlanets.renderer";
 import { canvasRatio } from "@/lib/battery";
 import { drawOrbitRunMap, ORBIT_MAP_COLOURS } from "@/lib/arcade/orbitReveal.renderer";
 import { traceOrbitRun, type OrbitRunTrace } from "@/lib/duel/orbitRunTrace";
 import { ORBIT_TOTAL } from "@/lib/arcade/orbit";
-import { ORBIT_STD } from "@/lib/arcade/orbitRev3";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunSummaryProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
+
+// Stage 2: the planet maps load with the game's chunk (rooms and practice preload it for the intro), so the first frame of
+// play draws the Blender planets rather than the fallback.
+preloadOrbitPlanetMaps();
 
 /**
  * The intro still (the Action overhaul, 15 Nov 2026): the live renderer on the dealt revision (orbitRev 15), on the fixed
@@ -262,11 +267,11 @@ function RunMap({ trace }: { trace: OrbitRunTrace }) {
 }
 
 /** A big number with its short label (the reveal's key numbers). */
-function BigStat({ label, value, of }: { label: string; value: string | number; of?: number }) {
+function BigStat({ label, value, of, countUp = false }: { label: string; value: number; of?: number; countUp?: boolean }) {
   return (
     <div data-orbit-stat={label} className="flex min-w-0 flex-col items-center rounded-xl bg-white/5 px-2 py-2">
       <span className="text-2xl font-extrabold leading-tight tabular-nums text-foreground">
-        {value}
+        {countUp ? <FxCountUp value={value} silent /> : value}
         {of !== undefined ? <span className="text-base font-bold text-muted-foreground">/{of}</span> : null}
       </span>
       <span className="text-sm font-semibold text-muted-foreground">{label}</span>
@@ -299,18 +304,21 @@ function LegendMark({ kind }: { kind: "flight" | "fuel" | "crash" | "dust" | "mo
 
 /**
  * Stage 2's reveal (15 Nov 2026): the run as a picture, a course map of the replayed run (folded into four columns, start
- * bottom left, the sun top right), then its key numbers big: planets, stardust, slingshots and slips, and the score's
- * parts as the standard stores them. Older stamps (no features) keep their lines.
+ * bottom left, the sun top right), with its key numbers big above it: planets (counting up), stardust, slingshots and
+ * slips. The score's parts are the reveal's breakdown just above. Older stamps (no features) draw nothing here.
  */
-function RunPicture({ trace }: { trace: OrbitRunTrace }) {
+function RunView({ trace }: { trace: OrbitRunTrace }) {
   const fuel = trace.slips.filter((s) => s.kind === "fuel").length;
   const crashes = trace.slips.length - fuel;
-  const parts = trace.parts;
-  const partRows = parts
-    ? ORBIT_STD.parts.map((p) => ({ key: p.key, label: p.key === "core" ? "Planets" : p.label, points: p.key === "core" ? parts.core : (parts.features[p.key] ?? 0), max: p.max }))
-    : [];
   return (
-    <div data-orbit-run-summary="" className="flex w-full flex-col items-center gap-3">
+    <div data-orbit-run-summary="" className="flex w-full shrink-0 flex-col items-center gap-3">
+      {trace.finished ? <p data-orbit-all-planets="" className="text-xl font-extrabold text-foreground">All {ORBIT_TOTAL} planets!</p> : null}
+      <div className="grid w-full max-w-sm grid-cols-4 gap-2">
+        <BigStat label="Planets" value={trace.best} of={ORBIT_TOTAL} countUp />
+        <BigStat label="Stardust" value={trace.counts.dust} of={trace.counts.dustTotal} />
+        <BigStat label="Slings" value={trace.counts.slings} of={trace.counts.slingsTotal} />
+        <BigStat label={trace.slips.length === 1 ? "Slip" : "Slips"} value={trace.slips.length} />
+      </div>
       <RunMap trace={trace} />
       <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs font-semibold text-muted-foreground">
         <LegendMark kind="flight" />
@@ -319,32 +327,14 @@ function RunPicture({ trace }: { trace: OrbitRunTrace }) {
         <LegendMark kind="dust" />
         <LegendMark kind="moon" />
       </div>
-      <div className="grid w-full max-w-sm grid-cols-4 gap-2">
-        <BigStat label={trace.finished ? "Sun!" : "Planets"} value={trace.best} of={ORBIT_TOTAL} />
-        <BigStat label="Stardust" value={trace.counts.dust} of={trace.counts.dustTotal} />
-        <BigStat label="Slings" value={trace.counts.slings} of={trace.counts.slingsTotal} />
-        <BigStat label={trace.slips.length === 1 ? "Slip" : "Slips"} value={trace.slips.length} />
-      </div>
-      {partRows.length ? (
-        <div data-orbit-parts="" className="grid w-full max-w-sm grid-cols-3 gap-2">
-          {partRows.map((p) => (
-            <div key={p.key} data-orbit-part={p.key} className="flex flex-col items-center rounded-xl border border-white/10 px-1 py-1.5">
-              <span className="text-xl font-extrabold leading-tight tabular-nums text-foreground">{p.points}</span>
-              <span className="text-xs font-semibold text-muted-foreground">
-                {p.label} <span className="tabular-nums">(of {p.max})</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
 
-/** The arcade reveal's run summary (PuzzleDefinition.RunSummary): the expansion's view only (orbitRev 12+). */
-export function OrbitRunSummary({ puzzle, myAnswer }: RunSummaryProps) {
+/** The arcade reveal's run picture (PuzzleDefinition.RunPicture): the expansion's view only (orbitRev 12+). */
+export function OrbitRunPicture({ puzzle, myAnswer }: RunPictureProps) {
   const trace = useMemo(() => (puzzle.type === "orbit" && orbitXpRev(puzzle.orbitRev) && myAnswer ? traceOrbitRun(puzzle, myAnswer) : null), [puzzle, myAnswer]);
-  return trace ? <RunPicture trace={trace} /> : null;
+  return trace ? <RunView trace={trace} /> : null;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
@@ -378,5 +368,5 @@ export const orbitPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
-  RunSummary: OrbitRunSummary,
+  RunPicture: OrbitRunPicture,
 };

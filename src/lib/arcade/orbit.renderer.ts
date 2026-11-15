@@ -1916,6 +1916,17 @@ function drawSputter(ctx: CanvasRenderingContext2D, sp: OrbitSputter, cam: { x: 
       ctx.closePath();
       ctx.fill();
     }
+    // Stage 2: the fizzle, a few dying sparks at the nozzle after the cough (a third to two thirds of the way).
+    if (p >= 0.33 && p < 0.7) {
+      ctx.fillStyle = "rgba(255,200,120,0.9)";
+      for (let k = 0; k < 3; k++) {
+        const flick = Math.floor(sp.age / 40 + k * 7) % 3;
+        if (flick === 0) continue;
+        ctx.beginPath();
+        ctx.arc(-9 - k * 2.5, (k - 1) * 2.2, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     drawRev3RocketBody(ctx, true);
   }
   ctx.restore();
@@ -1949,7 +1960,9 @@ function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, spu
     const low = !sputter && orbitLowFuel(state) ? orbitLowFuelWash(state.tick, still) : 0;
     drawGlassGauge(ctx, x, y, m.w, m.h, share, red ? (flashing ? 0.5 : 0.3) : low, draining, state.tick, still);
     ctx.restore();
-    if (sputter) drawSputterWords(ctx, sputter, W, H, still);
+    // Stage 2: during orbitRev 15's hold its card already says OUT OF FUEL, so the words show only when the run ended dry
+    // or a checkpoint caught it (no hold).
+    if (sputter && !((state.hold ?? 0) > 0)) drawSputterWords(ctx, sputter, W, H, still);
     return;
   }
   ctx.strokeStyle = red || sputter?.ended ? ORBIT_REV3_RED : draining ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)";
