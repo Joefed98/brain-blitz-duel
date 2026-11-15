@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 42 | 0 | 488 | 530 |
+| game event | 43 | 0 | 488 | 531 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
-| UI tap | 10 | 0 | 30 | 40 |
+| UI tap | 11 | 0 | 30 | 41 |
 | fail sting | 5 | 0 | 37 | 42 |
-| success sting | 1 | 0 | 75 | 76 |
+| success sting | 2 | 0 | 75 | 77 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 69 | 1 | 984 | 1054 |
+| **all** | 72 | 1 | 984 | 1057 |
 
 ## Silent and placeholder cues
 
@@ -217,6 +217,14 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `lightup.lamp` | A lamp is placed [logic.md] |  | 5–40 (per move) | silent | none | 40 | game event | `lightup.lamp` |
 | `lightup.dot` | A square is marked with a dot [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `lightup.dot` |
+
+### Minefield
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `minesweeper.cascadeTick` | Minefield: a cascade opens; up to 8 ticks, 45 ms apart, rising in pitch [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `minesweeper.cascadeTick` |
+| `minesweeper.defuse` | Minefield: each mine still hidden at the clear, one by one [logic.md] |  | 0–1 | silent | none | 1000 | success sting | `minesweeper.defuse` |
+| `minesweeper.tapNumber` | Minefield: a number tapped before its flags add up [logic.md] |  | 5–40 (per move) | silent | none | 80 | UI tap | `minesweeper.tapNumber` |
 
 ### Mosaic
 

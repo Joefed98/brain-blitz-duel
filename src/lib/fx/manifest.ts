@@ -1110,6 +1110,11 @@ const ENTRIES = {
   "racing.kerb": { channel: "effects", frequency: 0, ms: 672, url: "/sounds/racing_kerb_loop.mp3", loop: true },
   "racing.grassLoop": { channel: "effects", frequency: 0, ms: 726, url: "/sounds/racing_grass_loop.mp3", loop: true },
   "racing.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
+  // The Logic overhaul (15 Nov 2026, stage 3's sounds): the cascade's rising ticks, each mine defused at the clear, a
+  // number tapped before its flags add up. Placeholders until Joe's ElevenLabs files (docs/sound-cues/logic-elevenlabs.md).
+  "minesweeper.cascadeTick": { channel: "effects", frequency: 0, ms: 50, url: null },
+  "minesweeper.defuse": { channel: "effects", frequency: 0, ms: 150, url: null },
+  "minesweeper.tapNumber": { channel: "effects", frequency: 0, ms: 100, url: null, gapMs: 60 },
   "minesweeper.unflag": { channel: "effects", frequency: 0, ms: 350, url: "/sounds/mines_unflag.mp3" },
   "mahjong.select": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/mahjong_select.mp3" },
   "mahjong.invalid": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/mahjong_invalid.mp3" },

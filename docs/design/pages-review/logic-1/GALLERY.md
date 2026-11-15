@@ -4,6 +4,18 @@ Box Six, Polypotions, Hanoi, Safe Cracker, Mosaic, Colour Flood and Minefield (p
 practice rounds drawn by `bun scripts/shots/capture.ts`. Today: the game reviews' screenshots
 (`docs/design/game-reviews/img/logic/`); concept: the render Joe picked (PR #429, `docs/design/game-concepts/logic/`).
 
+## Stage 3 additions (in progress)
+
+**Polypotions' liquid, vivid** (Joe, 15 Nov 2026): concept B's palette rendered with a straight colour transform (the
+filmic one had washed strong colours to pastel), a deep body darkening towards the tube's side, a little light through
+it and one strip highlight down its curve. Today, concept B and the new frame:
+
+<img src="img/tubes-liquid-compare.webp" width="700" alt="Polypotions: today, concept B, new">
+
+**Minefield's sounds**: the cascade's rising ticks (up to 8, 45 ms apart, a step higher each), one soft click per mine
+defused at the clear (on the renderer's beat), and a number tapped before its flags add up gives a tiny shake and a dull
+knock (slots `minesweeper.cascadeTick`, `minesweeper.defuse`, `minesweeper.tapNumber`, placeholders until Joe's files).
+
 ## Stage 2: the effects (15 Nov 2026)
 
 Built on the effects kit (#422, `src/lib/fx/kit.ts`) and its rules (transform and opacity only, the piece itself moves,

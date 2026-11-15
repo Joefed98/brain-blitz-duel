@@ -349,6 +349,25 @@ def _(r):
     return room(struck(GLASS, 1480, 0, 0.3, n, r) * 0.6 + struck(STONE, 2960, 0, 0.08, n, r) * 0.15, r, 0.1, 0.12)
 
 
+@sound("minesweeper.cascadeTick", ["minesweeper.cascadeTick"], "placeholder: a dry stone tick, very short")
+def _(r):
+    n = n_of(0.05)
+    return struck(STONE, 2200, 0, 0.03, n, r) * 0.6 + click(n, r, 5000, 1.5) * 0.4
+
+
+@sound("minesweeper.defuse", ["minesweeper.defuse"], "placeholder: a soft spring-loaded pin locking, one mine defused")
+def _(r):
+    n = n_of(0.15)
+    x = struck(METAL, 1900, 0, 0.06, n, r) * 0.45 + click(n, r, 3800, 2.0) * 0.5 + thump(320, 220, 0.03, n) * 0.25
+    return room(x, r, 0.06, 0.08)
+
+
+@sound("minesweeper.tapNumber", ["minesweeper.tapNumber"], "placeholder: a tiny dull knock on stone")
+def _(r):
+    n = n_of(0.1)
+    return struck(STONE, 520, 0, 0.06, n, r) * 0.6 + thump(200, 140, 0.04, n) * 0.5
+
+
 @sound("nonogram.paint", ["nonogram.paint"], "placeholder: a tiny dry ceramic tick for each square a drag paints")
 def _(r):
     n = n_of(0.07)

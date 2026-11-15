@@ -150,6 +150,13 @@ POTION_COLOURS = {  # the app's eight (ShapeGlyph GLYPH_COLOURS order in sortTub
 }
 
 
+# Concept B's potion palette (kit.py PIECE, brown as the concept's colmap), for the app's eight liquid identities.
+POTION_B = {
+    "red": "#e8414a", "blue": "#3f7cf0", "green": "#3cc46a", "purple": "#9a5cf0",
+    "pink": "#f063b8", "orange": "#f08a2a", "brown": "#9a5a34", "yellow": "#f2cc2a",
+}
+
+
 def tube_glass():
     """The empty test tube, glass only (keyed), 2 x the tube's points wide plus a margin."""
     w, h = 2 * TUBE_R + 16, TUBE_LEN + 16
@@ -166,17 +173,22 @@ def liquid(colour, bottom):
     r = TUBE_R - 3.5
     w, h = 2 * r + 4, SEG + (r if bottom else 0) + 2
     yb = 500
-    frame(TUBE_X, yb - h / 2, w, h, 200, round(200 * h / w), key=0.35)
-    strip(TUBE_X, yb - h / 2, 1.4)
-    # B's richer liquid: deep, saturated colour with a little light coming through, a glossy coat.
-    lm = mat(f"pot{colour}", POTION_COLOURS[colour], 0.08, coat=1.0, coat_rough=0.08, trans=0.12, ior=1.33, sss=0.15,
-             emit=POTION_COLOURS[colour], emit_strength=0.3)
+    frame(TUBE_X, yb - h / 2, w, h, 200, round(200 * h / w), key=0.07)
+    # Stage 3 pass (Joe, 15 Nov 2026: vivid and saturated like concept B, glossy with depth): a straight colour
+    # transform (the filmic one washed strong colours to pastel), concept B's palette, a deep body that darkens towards
+    # the tube's sides, a little light through it, and the one strip highlight down its curve.
+    s = bpy.context.scene
+    s.view_settings.view_transform = "Standard"; s.view_settings.look = "None"
+    strip(TUBE_X, yb - h / 2, 0.45)
+    col = POTION_B[colour]
+    lm = mat(f"pot{colour}", col, 0.06, coat=1.0, coat_rough=0.06, trans=0.1, ior=1.33, sss=0.2,
+             emit=col, emit_strength=0.08)
     if bottom:
         ycyl(TUBE_X, yb - h + 1, SEG - 1, r, lm, z=TUBE_R + 6, bevel=0.5)
         sphere(TUBE_X, yb - r - 1, r, lm, z=TUBE_R + 6)
     else:
         ycyl(TUBE_X, yb - SEG - 1, SEG, r, lm, z=TUBE_R + 6, bevel=0.6)
-    write(f"potion-{colour}{'-bottom' if bottom else ''}", saturate=1.45)
+    write(f"potion-{colour}{'-bottom' if bottom else ''}", saturate=1.12)
 
 
 def meniscus():

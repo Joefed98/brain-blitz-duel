@@ -430,6 +430,17 @@ const press = (el: Element | null | undefined) =>
   }
 }
 
+/* ------------------------------------------------------------------ 8. Stage 3's sounds (Minefield) */
+{
+  const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
+  const { MINES_DEFUSE_TICKS } = await import("../src/lib/arcade/minesweeperFx");
+  const gs = await import("../src/lib/fx/gameSounds");
+  for (const slot of ["minesweeper.cascadeTick", "minesweeper.defuse", "minesweeper.tapNumber"])
+    ok(slot in SOUND_MANIFEST, `Minefield: the ${slot} slot exists`);
+  ok(MINES_DEFUSE_TICKS > 0 && MINES_DEFUSE_TICKS <= 10, "Minefield: the defuse beat is shared by the renderer and the sounds");
+  ok(typeof gs.minesTapNumberSound === "function", "Minefield: the early-number tap has its sound");
+}
+
 /* ------------------------------------------------------------------ 5. The art */
 const POTIONS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow"];
 const SPRITES = ["box-tile", "box-tile-given", "flask-glass", "potion-meniscus", "cork",

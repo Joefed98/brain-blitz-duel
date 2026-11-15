@@ -141,8 +141,15 @@ export function paintMinesFrame(ctx: CanvasRenderingContext2D): void {
   screw(ctx, x + w - s, y + h - s);
 }
 
-/** Ticks between two mines defused at the clear. */
-const MINES_DEFUSE_TICKS = 5;
+export { MINES_DEFUSE_TICKS } from "./minesweeperFx";
+import { MINES_DEFUSE_TICKS } from "./minesweeperFx";
+
+/** A tapped number whose flags don't add up yet gives a tiny shake (Logic overhaul 1; display only, set by the stage). */
+let nudge: { cell: number; at: number } = { cell: -1, at: 0 };
+const NUDGE_TICKS = 18;
+export function setMinesNudge(cell: number, tick: number): void {
+  nudge = { cell, at: tick };
+}
 
 /** The Logic overhaul's rendered pieces (Minefield A: raised silver stone, recessed slate, an iron mine, a cloth flag). */
 export const MINES_SPRITES = ["mine-raised", "mine-open", "mine-mine", "mine-flag"] as const;
@@ -372,6 +379,16 @@ function drawMinesWorld(ctx: CanvasRenderingContext2D, s: MinesState): void {
         ctx.stroke();
       }
       ctx.restore();
+    }
+  }
+  // A number tapped too early shakes (its square redrawn, the number swaying a couple of pixels and settling).
+  if (nudge.cell >= 0 && s.open[nudge.cell] === MINES_OPEN) {
+    const age = s.tick - nudge.at;
+    if (age >= 0 && age < NUDGE_TICKS) {
+      const x = minesCellX(nudge.cell), y = minesCellY(nudge.cell);
+      const dx = still ? 0 : Math.sin(age * 1.4) * 2.2 * (1 - age / NUDGE_TICKS);
+      paintMinesOpen(ctx, x, y);
+      paintMinesNumber(ctx, s.nums[nudge.cell]!, x + MINES_CELL / 2 + dx, y + MINES_CELL / 2);
     }
   }
   // The clear (Logic overhaul 1): the mines still hidden are defused one by one, out from the last square opened, each

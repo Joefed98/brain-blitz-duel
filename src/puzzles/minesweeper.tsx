@@ -5,6 +5,8 @@ import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import { minesweeperFill } from "@/lib/arcade/arenaFills.renderer";
 import {
   minesCellAt,
+  minesNeighbours,
+  MINES_OPEN,
   minesCheckpoint,
   MINES_CELL,
   MINES_CHECKPOINT_INTERVAL,
@@ -20,6 +22,8 @@ import {
   MINES_WORLD_W,
   type MinesState,
 } from "@/lib/arcade/minesweeper";
+import { setMinesNudge } from "@/lib/arcade/minesweeper.renderer";
+import { minesTapNumberSound } from "@/lib/fx/gameSounds";
 import { MINES_ART, minesweeperArtGameFor, paintMinesCover, paintMinesFlag, paintMinesNumber, paintMinesOpen } from "@/lib/arcade/minesweeper.renderer";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
@@ -87,11 +91,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MinesweeperPuzzleData | null = puzzle.type === "minesweeper" ? puzzle : null;
   /** The squares as last drawn (the sound observer sees every frame), for minesSendsTap. */
   const openRef = useRef<readonly number[] | null>(null);
+  const stateRef = useRef<MinesState | null>(null);
   const [sounds] = useState(() => () => {
     const inner = minesweeperSounds();
     return {
       frame: (s: MinesState, running: boolean) => {
         openRef.current = s.open;
+        stateRef.current = s;
         inner.frame(s, running);
       },
       stop: () => inner.stop(),
@@ -133,6 +139,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const held = press.current;
     clearPress();
     if (!held || held.flagged || minesCellAt(x, y) !== held.cell) return null;
+    // A number tapped before its flags add up: it shakes a little, with a dull knock (the tap is still sent; the
+    // sim opens nothing, as before).
+    const now = stateRef.current;
+    if (now && now.open[held.cell] === MINES_OPEN && (now.nums[held.cell] ?? 0) > 0) {
+      const flagged = minesNeighbours(held.cell).filter((n) => now.open[n] === MINES_FLAG).length;
+      if (flagged !== now.nums[held.cell]) {
+        setMinesNudge(held.cell, now.tick);
+        minesTapNumberSound();
+      }
+    }
     if (!minesSendsTap(openRef.current, held.cell, modeRef.current)) return null;
     return { k: MINES_INPUT_TAP, a: held.cell, b: modeRef.current, c: 0 };
   };
