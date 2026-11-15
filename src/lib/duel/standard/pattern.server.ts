@@ -260,6 +260,10 @@ const tessellate: StandardGame = {
 
 /* ------------------------------------------------------------------ Skid (iceslide) */
 
+// The Pattern overhaul (15 Nov 2026): Skid's slideRev 5 (imported here, beside its game, so per-game work stays apart).
+import { countedSlides } from "../slide";
+import { usesPatternNov15 as usesSkidOverhaul } from "../patternNov15";
+
 const SLIDE_BOARDS = new WeakMap<object, SlideBoard>();
 const SLIDE_DIST = new WeakMap<object, Map<number, number | null>>();
 
@@ -290,12 +294,15 @@ const skid: StandardGame = {
     const p = input.puzzle as Of<"iceslide">;
     // slideRev 3 (the puzzle batch of 3 Nov 2026, parMoves.ts): no gems; a finish is 150 + speed + par slides.
     if (usesParMoves(p)) {
+      // slideRev 5 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the slide back, so the par counts the
+      // slides still standing; the unfinished waste rule still counts every slide played (undoing never earns credit).
+      const overhaul = usesSkidOverhaul(p, "iceslide");
       if (input.graded.isCorrect) {
-        const slides = replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)).moves;
+        const slides = countedSlides(replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)), overhaul);
         return { finished: true, speed: parMovesSpeed("iceslide", input), bonus: parMovesPar(p, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
       }
       const { closed, total } = skidClosed(p, input.answer);
-      const w = waste(num(input.graded.extra, "moves"), p.minMoves);
+      const w = waste(num(input.graded.extra, overhaul ? "slidesPlayed" : "moves"), p.minMoves);
       return { finished: false, credit: shareCredit(ctx, closed, total) * w, facts: { routeClosed: closed, route: total, waste: w } };
     }
     const gems = p.gems ?? [];

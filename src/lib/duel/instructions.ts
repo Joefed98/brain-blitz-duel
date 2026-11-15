@@ -636,6 +636,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "Fewest slides", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, slideRev 5): Undo and Reset give the slide back; the arrow pad or swipe is
+        // chosen in the game menu (the pinned era keeps the lines before).
+        ...(prePatternNov15Pinned()
+          ? []
+          : [
+              { action: "Undo and Reset", detail: "give the slide back: only the slides left standing count.", helpOnly: true },
+              { action: "Arrow pad or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+            ]),
       ],
       score: parMovesDealt() ? parMovesPatternHelp("iceslide") : PATTERN_STD_HELP.iceslide,
     },

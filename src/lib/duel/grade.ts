@@ -25,7 +25,7 @@ import { gemMinMoves } from "./depth4/gems.server";
 import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { decodeFlowPaths, verifyFlow } from "./flow";
-import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
+import { countedSlides, decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
@@ -793,16 +793,22 @@ function gradeUnderRev(
         }
       }
       isCorrect = replay.solved;
-      correctCount = replay.moves;
+      // slideRev 5 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the slide back, so the slides counted
+      // (the par bonus, the stored figure) are the slides still standing; older stamps count every slide played.
+      const overhaul = usesPatternNov15(puzzle, "iceslide");
+      const counted = countedSlides(replay, overhaul);
+      correctCount = counted;
       // slideRev 1 (depth batch 4): the gems collected; the slides they need are not wasted moves, so a finish is
       // measured against the fewest slides that collect those gems (gemRouteLength), not the bare minimum.
       const gems = isDepth4(puzzle) ? (puzzle.gems ?? []) : [];
       const gemReplay = gems.length ? replayGems(board, gems, decodeSlideMoves(answer)) : null;
       const gemMin = gemReplay && replay.solved && gemReplay.collected > 0 ? gemMinMoves(puzzle, gems.filter((_g, i) => gemReplay.mask & (1 << i))) : null;
-      score = scoreIceSlide(replay.solved, replay.moves, gemMin ?? min, ms, progress, timeLimitMs);
+      score = scoreIceSlide(replay.solved, counted, gemMin ?? min, ms, progress, timeLimitMs);
       extraDetail = {
         solved: replay.solved,
-        moves: replay.moves,
+        moves: counted,
+        // slideRev 5: every slide played (undone ones included) stays on record for the unfinished waste rule.
+        ...(overhaul ? { slidesPlayed: replay.moves } : {}),
         minMoves: min,
         movesFromExit: away,
         falls: replay.falls,

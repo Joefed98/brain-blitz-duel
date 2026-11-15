@@ -101,8 +101,8 @@
 }
 
 /* ---------------------------------------------------------------- Skid (iceslide) */
-/* The ice joins the dark app: the same sheet, scratches, glints and rocks, in cool blue-grey ice
-   with pale highlights and dark stone. The board's size budget gains the summary (156 → 160px). */
+/* The board's size budget gains the summary (156 → 160px). The Pattern overhaul (15 Nov 2026): the ice, blocks, ball
+   and hazards are rendered sprites (iceslide.css), so batch P's dark repaint of the old CSS sheet is gone. */
 [data-puzzle-play][data-puzzle-play] .game-column [data-polish="iceslide"] > [data-game-arena="board"] {
   height: min(100cqw, calc(100cqh - 160px));
 }
@@ -110,54 +110,6 @@
   width: min(100cqw, calc(100cqh - 160px));
   height: min(100cqw, calc(100cqh - 160px));
 }
-[data-puzzle-play][data-puzzle-play] .ice-board.ice-rink {
-  background: #1d2a36;
-  box-shadow: 0 0 0 1px rgba(150, 196, 224, 0.28), 0 14px 30px rgba(0, 0, 0, 0.55);
-}
-[data-puzzle-play][data-puzzle-play] .ice-rink::after {
-  box-shadow: inset 0 1px 0 rgba(200, 232, 250, 0.28), inset 0 0 0 1px rgba(150, 196, 224, 0.16), inset 0 0 22px rgba(0, 0, 0, 0.45);
-}
-[data-puzzle-play][data-puzzle-play] .ice-base-0 { stop-color: #3a5063; }
-[data-puzzle-play][data-puzzle-play] .ice-base-1 { stop-color: #273848; }
-[data-puzzle-play][data-puzzle-play] .ice-base-2 { stop-color: #1a2733; }
-[data-puzzle-play][data-puzzle-play] .ice-sheen-0 { stop-color: #cfeaff; stop-opacity: 0.22; }
-[data-puzzle-play][data-puzzle-play] .ice-cool-0 { stop-color: #4f8db5; stop-opacity: 0.3; }
-[data-puzzle-play][data-puzzle-play] .ice-grain { opacity: 0.12; }
-[data-puzzle-play][data-puzzle-play] .ice-scratch path { stroke: #bfe0f5; opacity: 0.26; }
-[data-puzzle-play][data-puzzle-play] .ice-scratch-fine path { stroke: #7fb0cf; opacity: 0.3; }
-[data-puzzle-play][data-puzzle-play] .ice-glint { filter: brightness(0.9); }
-[data-puzzle-play][data-puzzle-play] .ice-tile {
-  box-shadow: inset 0 0 0 1px rgba(150, 196, 224, 0.09), inset 0 1px 0 rgba(200, 232, 250, 0.08);
-}
-/* Rocks: dark stone with a thin frost cap and a real drop shadow. */
-[data-puzzle-play][data-puzzle-play] .ice-rock {
-  background:
-    linear-gradient(180deg, #b8cddb 0, #8fa8b9 13%, transparent 14%),
-    linear-gradient(160deg, #3c4855 16%, #232c36 60%, #12171d);
-  box-shadow:
-    inset 0 -2px 0 rgba(0, 0, 0, 0.45),
-    inset 1px 0 0 rgba(255, 255, 255, 0.1),
-    0 2px 3px rgba(0, 0, 0, 0.6);
-}
-[data-puzzle-play][data-puzzle-play] .ice-hole {
-  box-shadow: 0 0 0 1.5px rgba(170, 210, 235, 0.55), 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 3px 5px rgba(0, 0, 0, 0.85);
-}
-[data-puzzle-play][data-puzzle-play] .ice-tile.ice-thin {
-  background: radial-gradient(circle at 48% 52%, rgba(150, 185, 210, 0.26), rgba(110, 145, 170, 0.14) 70%);
-  box-shadow: inset 0 0 0 1px rgba(150, 190, 215, 0.25), inset 0 0 6px rgba(0, 0, 0, 0.3);
-}
-[data-puzzle-play][data-puzzle-play] .ice-crack-line { stroke: #a9cfe6; }
-[data-puzzle-play][data-puzzle-play] .ice-crack-shine { opacity: 0.35; }
-[data-puzzle-play][data-puzzle-play] .ice-tile.ice-gone { background: rgba(5, 12, 20, 0.45); }
-[data-puzzle-play][data-puzzle-play] .ice-etch-light { stroke: #d6ecf8; opacity: 0.75; }
-[data-puzzle-play][data-puzzle-play] .ice-etch-groove { stroke: #0b151e; }
-[data-puzzle-play][data-puzzle-play] .ice-start { box-shadow: 0 0 0 1px rgba(170, 210, 235, 0.45), 0 0 6px rgba(170, 210, 235, 0.35); }
-/* The ball glows faintly so it reads on the darker ice; the trail is a soft light streak. */
-[data-puzzle-play][data-puzzle-play] .ice-ball {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.35), 0 0 10px rgba(95, 176, 236, 0.55);
-}
-[data-puzzle-play][data-puzzle-play] .ice-trail-haze { stroke: rgba(120, 185, 225, 0.35); }
-[data-puzzle-play][data-puzzle-play] .ice-trail-core { opacity: 0.7; }
 
 /* ---------------------------------------------------------------- Heave (push) */
 /* A crate on its mark glows warm gold; the warehouse sits deeper in the tray. */

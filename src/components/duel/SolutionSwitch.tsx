@@ -26,6 +26,8 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "numpyramid",
   "bomb",
   "trail",
+  // Skid (15 Nov 2026, the Pattern overhaul, slideRev 5): the shortest route, and the player's own final board.
+  "iceslide",
 ]);
 
 const SOLUTION_LABEL = /^(solution|solved|one solution|the solution|answer|one valid plan)$/i;

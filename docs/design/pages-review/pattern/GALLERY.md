@@ -42,6 +42,33 @@ clips of the hero effects. Images are in this folder.
 
 <!-- skid:start -->
 ## Skid
+
+| Before (main) | After |
+|---|---|
+| <img src="../../game-reviews/img/pattern/iceslide-1-start.webp" width="180"> | <img src="iceslide-after-intro.webp" width="180"> |
+| <img src="../../game-reviews/img/pattern/iceslide-2-mid.webp" width="180"> | <img src="iceslide-after-play.webp" width="180"> |
+| <img src="../../game-reviews/img/pattern/iceslide-3-end.webp" width="180"> | <img src="iceslide-after-reveal-solution.webp" width="180"> <img src="iceslide-after-reveal-yours.webp" width="180"> |
+
+- **Look (A):** every piece is a Blender render (`docs/design/game-art/pattern/source/iceslide.py`,
+  `public/pattern-art/iceslide/`, 13 images, 31 KB): a pale frosted ice sheet with faint frost lines between squares,
+  dark granite blocks, a glossy deep-blue ball (90 % of a square, was 92 % in CSS), round black holes with a crushed-ice
+  rim, a magenta and a teal portal pair (enamel rings round a dark well; the second pair was orange, too near the gold
+  exit), a bold navy chevron on a frosted plate per direction, grey thin ice with white cracks, a jagged broken hole,
+  and the gold exit plate with its door-and-arrow mark. Each image is exactly its cell. The old CSS sheet's glints,
+  sheen, scratches, the exit's pulsing glow and the ball's glow are gone.
+- **Controls:** the arrow pad, Undo and Reset in champagne gold on navy (`--jz-gold`, `--jz-surface-2`).
+- **Undo gives the slide back (slideRev 5):** the Slides pill, the par bonus and the stored figure count the slides
+  still standing; unfinished credit still counts every slide played (wandering and undoing never earns credit). The help
+  says so, and that the arrow pad or swipe is chosen in the game menu (⋮) or Settings → Game controls. Older stamps
+  grade as before.
+- **A slide into a wall** still does nothing and costs nothing; it now gives a tiny bump (`iceslide.bump`).
+- **Near the exit:** resting one slide from the exit with the finish still at par, the exit glows softly
+  (`iceslide.nearExit`).
+- **Reveal:** a Solution / Yours switch: "shortest route · n slides" under Solution; under Yours the player's own final
+  board (the ball where it stopped, the standing route, the ice it broke) and "your slides: n · par p" (the after shot:
+  three slides standing, then the clock ran out).
+- **Sound:** a short or long ice hiss by distance (`iceslide.slide`, `iceslide.slideLong`), a thump when the ball
+  stops (`iceslide.stop`), the bump and the near-exit shimmer; crack, portal, fall and the exit shatter kept.
 <!-- skid:end -->
 
 <!-- heave:start -->

@@ -40,7 +40,11 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 
 | Cue | Trigger | Length |
 |---|---|---|
-| `iceslide.slide` | A slide starts (the ball and its frost trail move) | ~100 ms per cell crossed |
+| `iceslide.slide` | A slide of up to four squares starts (the ball and its frost trail move) | ~100 ms per cell crossed |
+| `iceslide.slideLong` | A slide of five squares or more starts (since 15 Nov 2026, `move.slide.mp3` until its own file) | ~100 ms per cell crossed |
+| `iceslide.stop` | The ball comes to rest against what stopped it (not a fall or the exit; since 15 Nov 2026, `arc_fair_thud.mp3` until its own file) | 160 ms |
+| `iceslide.bump` | A slide straight into a wall or the edge: nothing moves and nothing counts (since 15 Nov 2026, `arc_wood_knock.mp3` until its own file) | 90 ms |
+| `iceslide.nearExit` | The ball rests one slide from the exit with the finish still at par: the exit glows softly (since 15 Nov 2026, `gem.glint.mp3` until its own file) | 300 ms |
 | `iceslide.portal` | The ball comes out of a portal; both cells of the pair flare | 450 ms |
 | `iceslide.crack` | Thin ice breaks as the ball leaves it (shards fly) | 520 ms |
 | `iceslide.fall` | The ball reaches a hole and spins down | 400 ms |

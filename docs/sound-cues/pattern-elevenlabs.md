@@ -45,6 +45,28 @@ floor: never a real engine, horn or tyre squeal.
 
 <!-- skid:start -->
 ## Skid
+
+A glossy steel-cored ball on a frosted ice sheet between dark granite blocks. Every sound is ice and stone: cold,
+crisp and clean, never a cartoon whoosh or a game-show chime.
+
+- `iceslide.slide` — a short slide (one to four squares): a smooth, glassy hiss of a hard ball gliding over frosted
+  ice, starting at once and fading at the end; light and quick; 0.4 s. (Today silent; `iceslide.slide.mp3`, a 0.17 s
+  swish, stands in only behind `NEW_GAME_SOUNDS`.)
+- `iceslide.slideLong` — a long slide (five squares or more): the same glassy ice hiss held longer with a faint
+  rising whistle of speed, fading at the end; 0.9 s. (Today the library's generic slide stands in.)
+- `iceslide.stop` — the ball comes to rest against a granite block or the rink's edge: a short, solid, muffled
+  thump of a heavy ball meeting stone, a tiny ice tick after it; firm, never booming; 0.15 s. (Today the library's
+  fair thud stands in.)
+- `iceslide.bump` — a slide straight into a wall (nothing moves, nothing counts): a tiny dull tap of the ball nudging
+  stone, barely a knock, no ring; clearly "can't go that way"; 0.08 s. (Today the library's wood knock stands in.)
+- `iceslide.nearExit` — the ball rests one slide from the gold exit with the finish still at par: a soft, airy
+  shimmer of frost catching light, one rising sparkle, quiet and short; 0.3 s. (Today the library's gem glint stands
+  in.)
+- `iceslide.crack` — **keep** (thin ice cracking and giving way as the ball leaves it).
+- `iceslide.portal` — **keep** (the ball flares through a portal).
+- `iceslide.fall` — **keep** (the ball spins down into a hole).
+- `iceslide.solve` — **keep** (the ice frosts over and shatters at the exit).
+- Undo and Reset: no new sound; they play the shared `move` tick as today.
 <!-- skid:end -->
 
 <!-- heave:start -->
