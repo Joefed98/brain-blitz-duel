@@ -58,7 +58,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
   { type: "pinball", field: "pinRev", rev: 6, batch: "B" },
-  { type: "rally", field: "rallyRev", rev: 12, batch: "B" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13, two lives and spin
+  // shots.
+  { type: "rally", field: "rallyRev", rev: 13, batch: "B" },
   { type: "bubble", field: "bubbleRev", rev: 11, batch: "B" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): beatRev 12, beatRev 11 with a
   // missed note scoring 0.

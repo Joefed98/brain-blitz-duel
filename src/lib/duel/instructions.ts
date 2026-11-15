@@ -216,7 +216,7 @@ import {
   BULLSEYE_V8_STREAK_STEP,
   BULLSEYE_V9_DEAD_CAP,
 } from "@/lib/arcade/bullseye";
-import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS } from "@/lib/arcade/rally";
+import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS } from "@/lib/arcade/rally";
 import {
   BURST_V9_CAPS,
   BURST_V9_CLEAR_MAX,
@@ -1343,21 +1343,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     rally: {
       goal: "Keep the rally going.",
       how: [
-        { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
+        { action: "Drag the paddle.", detail: `Miss the blue ball: a life (${RALLY_V13_LIVES} in all).` },
         { action: "Gold balls score:", detail: `each hit, +${RALLY_V12_PAD_PTS} a pink pad.` },
-        { action: "Gold target:", detail: `+${RALLY_V12_TARGET_PTS} before its ring runs out.` },
+        { action: "Swipe as you hit:", detail: `the ball curves; a curve that scores, +${RALLY_V13_SPIN_PTS}.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
         { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V12_PAD_PTS}, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.`, helpOnly: true },
         { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V12_TARGET_PTS}; a miss costs nothing.`, helpOnly: true },
-        { action: "Aim with the paddle:", detail: "where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. Spin scores nothing itself.", helpOnly: true },
+        { action: "Aim with the paddle:", detail: `where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. A curving ball that strikes a pink pad or a gold target is a spin shot: +${RALLY_V13_SPIN_PTS} each, up to ${RALLY_V13_SPIN_MAX}.`, helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
-        { action: "Miss the blue ball", detail: "and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.", helpOnly: true },
+        { action: "Miss the blue ball", detail: `and you lose a life: it serves again from mid-court after a second and a half. Lose all ${RALLY_V13_LIVES} and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.`, helpOnly: true },
       ],
       // rallyRev 12 (the arcade scoring standard, docs/arcade-standard/rally.md): gold-ball hits on a straight line, pads and gold targets fixed.
-      score: liveStdHelp("rally", "Losing the blue ball ends the run."),
+      // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives and spin shots.
+      score: liveStdHelp("rally", `The second miss ends the run.`),
     },
 
     steady: {

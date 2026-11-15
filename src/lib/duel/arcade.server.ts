@@ -28,7 +28,7 @@ import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
-import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
+import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
@@ -259,7 +259,9 @@ export function generateMahjong(): MahjongPuzzleData {
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_STD };
+  // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two blue-ball lives and spin scores (checks written for rallyRev 12
+  // pin preRetro).
+  return { type: "rally", seed: arcadeSeed(), rallyRev: dealPinned("preRetro") ? RALLY_REV_STD : RALLY_REV_LIVES };
 }
 
 export function generateSteady(): SteadyPuzzleData {

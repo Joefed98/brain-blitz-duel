@@ -11,6 +11,14 @@
  *   4. a miss-heavy run earns its hits (a third of the notes Perfect is 333 of 1,000, not 0);
  *   5. the server replay (replayBeatRun on beatRev 12) scores every bot run to its sim score, unflagged, 1–200, and a
  *      flawless run still reaches 200; the 120 s rule holds (the song is 75 s).
+ *  Rally rallyRev 13 (two blue-ball lives, spin shots):
+ *   1. wiring: rooms deal rallyRev 13 (preRetro rallyRev 12); its init is rallyRev 12's draws plus the lives fields; the
+ *      help and reveal read its four parts; the run is 60 s;
+ *   2. grace: the skill-band bots' logs play tick for tick as on rallyRev 12 up to the first miss; on rallyRev 13 the
+ *      first miss costs a life (never the run), the ball waits 1.5 s at the serve spot, then serves again; the run ends
+ *      on the second miss or at the buzzer; every room's world is the same (the serve's lean from the seeded stream);
+ *   3. spin shots: a curling ball striking a pink pad counts one (built ball), a straight one doesn't;
+ *   4. the server replay scores every bot run to its sim score, unflagged.
  *  The shared Retro HUD: every count it draws is at least 11 px (retroHudFloorPx).
  *
  *   bun scripts/retro-overhaul-check.ts
@@ -36,6 +44,21 @@ import {
   BEAT_STD_SPEC_V12,
   type BeatState,
 } from "../src/lib/arcade/beat";
+import { bot as rallyBot } from "./arcade-skill-bands/bots/rally";
+import { replayRallyRun } from "../src/lib/duel/rally";
+import {
+  rallyGameFor,
+  rallyTargetLeft,
+  RALLY_HUD_H,
+  RALLY_REV_LIVES,
+  RALLY_REV_STD,
+  RALLY_RUN_TICKS,
+  RALLY_STD_SPEC_V13,
+  RALLY_V13_EXP,
+  RALLY_V13_LIVES,
+  RALLY_V13_RELAUNCH,
+  type RallyState,
+} from "../src/lib/arcade/rally";
 import { RETRO_HUD_MIN_PX, retroHudFloorPx } from "../src/lib/arcade/retro.renderer";
 
 let checks = 0;
@@ -44,6 +67,9 @@ const ok = (cond: unknown, label: string) => {
   checks++;
   if (!cond && failures.length < 80) failures.push(label);
 };
+
+/** Key-order-free JSON, to compare states built in a different order. */
+const sorted = (v: unknown): string => JSON.stringify(v, (_k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([p], [q]) => (p < q ? -1 : 1))) : x));
 
 const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] as const;
 
@@ -128,6 +154,94 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   ok((beatStdParts(heavy)?.[0]?.points ?? 0) >= 40, "beat: its accuracy points are real (≥ 40 of 130)");
 }
 
+/* ============================ Rally rallyRev 13 ============================ */
+{
+  const g12 = rallyGameFor(RALLY_REV_STD);
+  const g13 = rallyGameFor(RALLY_REV_LIVES);
+  ok((generatePuzzle("rally") as any).rallyRev === RALLY_REV_LIVES && RALLY_REV_LIVES === RALLY_REV_STD + 1, "rally: rooms deal rallyRev 13");
+  pinPreRetro(true);
+  ok((generatePuzzle("rally") as any).rallyRev === RALLY_REV_STD, "rally: preRetro deals rallyRev 12");
+  pinPreRetro(false);
+  ok(LIVE_BANDS.rally.rev === RALLY_REV_LIVES && LIVE_BANDS.rally.std === RALLY_STD_SPEC_V13 && ARCADE_STANDARD.rally.spec === RALLY_STD_SPEC_V13, "rally: the help and the reveal read rallyRev 13's spec");
+  ok(ARCADE_STANDARD.rally.specFor?.(RALLY_REV_STD)?.parts.length === 3 && ARCADE_STANDARD.rally.specFor?.(RALLY_REV_LIVES)?.parts.length === 4, "rally: a rallyRev 12 round keeps its three part names");
+  ok(g13.runTicks <= 120 * TICKS_PER_SECOND, "rally: the run is at most 120 s");
+  ok(RALLY_V13_LIVES >= 2, "rally: Normal has a life to spare");
+  for (const seed of [1, 99, 123456, 2 ** 30 + 7]) {
+    const a = g12.init(seed) as RallyState;
+    const { lives, relaunch, spinScores, lostAt, spinAt, exp, ...rest } = g13.init(seed) as RallyState;
+    ok(lives === RALLY_V13_LIVES && relaunch === 0 && spinScores === 0 && lostAt === 0 && spinAt === 0 && exp === RALLY_V13_EXP && sorted({ ...rest, exp: a.exp }) === sorted(a), `rally seed ${seed}: rallyRev 13 starts from rallyRev 12's exact draws`);
+  }
+  const play = (rev: number, seed: number, events: any[]) => {
+    const game = rallyGameFor(rev);
+    const by = new Map(events.map((e: any) => [e.t, e]));
+    let s = game.init(seed) as RallyState;
+    const trace: string[] = [];
+    let firstLoss = 0;
+    let lost = 0;
+    let servedAfter = 0;
+    while (!game.isOver(s)) {
+      const before = s;
+      s = game.step(s, by.get(s.tick + 1) ?? null) as RallyState;
+      trace.push(`${s.x},${s.y},${s.paddleX},${s.goldHits},${s.targetHits},${s.golds.length},${s.rng}`);
+      if ((s.lives ?? 0) < (before.lives ?? 0) && !s.dead) {
+        lost++;
+        if (!firstLoss) firstLoss = s.tick;
+      }
+      if ((before.relaunch ?? 0) > 0 && (s.relaunch ?? 0) === 0 && !servedAfter) servedAfter = s.tick;
+    }
+    return { state: s, trace, firstLoss, lost, servedAfter, score: game.score(s) };
+  };
+  const spec = GAME_BY_TYPE.get("rally" as never)!;
+  let graced = 0;
+  for (const level of ["weak", "average", "good", "great", "near"] as const)
+    for (let n = 0; n < 6; n++) {
+      const seed = spec.seedFor(n);
+      const tag = `rally ${level} seed ${seed}`;
+      const out = rallyBot({ game: rallyGameFor(RALLY_REV_STD), seed, rev: RALLY_REV_STD, human: new Human("rally", seed, level as never), fixes: true });
+      const events = out.events ?? [];
+      const a = play(RALLY_REV_STD, seed, events);
+      const b = play(RALLY_REV_LIVES, seed, events);
+      const upTo = a.state.dead ? a.trace.length - 1 : a.trace.length;
+      ok(JSON.stringify(a.trace.slice(0, upTo)) === JSON.stringify(b.trace.slice(0, upTo)), `${tag}: rallyRev 13 plays tick for tick as rallyRev 12 until the first miss`);
+      if (a.state.dead && a.state.tick < RALLY_RUN_TICKS) {
+        graced++;
+        ok(b.firstLoss === a.state.tick, `${tag}: rallyRev 12's run-ending miss costs a life on rallyRev 13 (tick ${a.state.tick}, ${b.firstLoss})`);
+        ok(b.state.tick > a.state.tick, `${tag}: the run carries on past the first miss (${a.state.tick} → ${b.state.tick})`);
+        if (b.servedAfter) ok(b.servedAfter === b.firstLoss + RALLY_V13_RELAUNCH, `${tag}: the ball serves again ${RALLY_V13_RELAUNCH} ticks after the miss`);
+        ok(b.state.goldHits >= a.state.goldHits, `${tag}: no gold hit is lost by playing on`);
+      }
+      ok(b.state.tick >= RALLY_RUN_TICKS || (b.state.dead && b.state.lives === 0), `${tag}: the run ends at the buzzer or on the last life`);
+      // The server replay.
+      const checkpoints: unknown[] = [];
+      {
+        const game = rallyGameFor(RALLY_REV_LIVES);
+        const by = new Map(events.map((e: any) => [e.t, e]));
+        let s = game.init(seed);
+        while (!game.isOver(s)) {
+          s = game.step(s, by.get(s.tick + 1) ?? null);
+          if (s.tick % 300 === 0) checkpoints.push(spec.checkpoint(s));
+        }
+      }
+      const raw = spec.encode({ seed, claimedScore: b.score, events, endTick: b.state.tick, checkpoints }, RALLY_REV_LIVES, seed);
+      const res = replayRallyRun(seed, raw, RALLY_REV_LIVES);
+      ok(!res.flagged && res.score === b.score, `${tag}: replays through the server to ${b.score} (got ${res.score}${res.flagged ? ", flagged" : ""})`);
+      // Identical worlds: the same log twice gives the same final state.
+      ok(JSON.stringify(play(RALLY_REV_LIVES, seed, events).state) === JSON.stringify(b.state), `${tag}: the same log plays the same world`);
+    }
+  ok(graced >= 4, `rally: the first miss forgiven on ${graced} runs`);
+
+  // 3. Spin shots, on a built ball: a curling gold ball flying into a live pad counts; the same ball straight doesn't.
+  const s0 = g13.init(4242) as RallyState;
+  const left = rallyTargetLeft(s0.spots ?? [], (s0.live ?? [0])[0]!);
+  const cx = left + 22;
+  const topY = RALLY_HUD_H + 8 + 7 + 3;
+  const flying = (spun: number): RallyState => ({ ...s0, tick: 30, acted: 1, golds: [{ x: cx * 256, y: topY * 256, vx: 0, vy: -1024, spin: spun ? 40 : 0, spun }] } as RallyState);
+  const curled = g13.step(flying(1), null) as RallyState;
+  const straight = g13.step(flying(0), null) as RallyState;
+  ok((curled.targetHits ?? 0) === 1 && curled.spinScores === 1, `rally: a curling gold ball on a pink pad is a spin shot (${curled.targetHits}, ${curled.spinScores})`);
+  ok((straight.targetHits ?? 0) === 1 && straight.spinScores === 0, "rally: a straight one is a pad and no spin shot");
+}
+
 /* ============================ The shared Retro HUD ============================ */
 {
   ok(RETRO_HUD_MIN_PX === 11, `the Retro HUD's smallest count is 11 px (${RETRO_HUD_MIN_PX})`);
@@ -142,4 +256,4 @@ if (failures.length) {
   console.log(`FAIL retro-overhaul-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; the Retro HUD floor)`);
+console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; the Retro HUD floor)`);

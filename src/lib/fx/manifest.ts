@@ -761,6 +761,11 @@ const ENTRIES = {
   "rally.dead": { channel: "effects", frequency: 0, ms: 260, url: null },
   "rally.goldHit": { channel: "effects", frequency: 0, ms: 90, url: null },
   "rally.hit": { channel: "effects", frequency: 0, ms: 50, url: null },
+  // rallyRev 13 (the Retro overhaul, 15 Nov 2026): a life lost, the serve after it and a spin shot (Joe's ElevenLabs
+  // lines in docs/sound-cues/retro-elevenlabs.md; silent until their files are set).
+  "rally.lifeLost": { channel: "effects", frequency: 0, ms: 420, url: null },
+  "rally.serve": { channel: "effects", frequency: 0, ms: 160, url: null },
+  "rally.spinShot": { channel: "effects", frequency: 0, ms: 360, url: null },
   "flip.crash": { channel: "effects", frequency: 0, ms: 200, url: null },
   "flip.flip": { channel: "effects", frequency: 0, ms: 330, url: null },
   "ricochet.leap": { channel: "effects", frequency: 0, ms: 416, url: "/sounds/ricochet.leap.mp3" },

@@ -105,8 +105,12 @@ import {
   BURST_V4_BAND_CURVE,
   type BurstState,
 } from "../src/lib/arcade/burst";
-import { generateBreaker, generateBurst, generateRally, generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateBreaker, generateBurst, generateRally, generateWavefront, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal rallyRev 13 (lives,
+// retro-overhaul-check); this check was written for the deal before it, so it pins preRetro (rallyRev 12, beatRev 11).
+pinPreRetro(true);
 
 const failures: string[] = [];
 let checks = 0;

@@ -93,6 +93,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `rally.dead` | Rally | The rally ends | `arc_retro_explode` | 0–1 | 260 ms |
 | `rally.goldHit` | Rally | The gold ball is returned | `arc_retro_note` | 3–10 | 90 ms |
 | `rally.hit` | Rally | The ball is returned | `arc_retro_blip` | 30–80 | 50 ms |
+| `rally.lifeLost` | Rally | The blue ball is missed with a life to spare (rallyRev 13); the run goes on | `arc_retro_explode` (0.7) | 0–1 | 420 ms |
 | `burst.start` | Fission | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `burst.gameOver` | Fission | The run ends on the last life | `arc_retro_explode` | 0–1 | 260 ms |
 | `burst.lifeLost` | Fission | A life is lost | `arc_lose_life` | 0–3 | 220 ms |

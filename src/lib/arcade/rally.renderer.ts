@@ -28,6 +28,9 @@ import {
   rallyBonusPtsOf,
   RALLY_V10_BONUS_R,
   rallyBonusCount,
+  rallyLivesOf,
+  RALLY_V13_LIVES,
+  RALLY_V13_RELAUNCH,
   rallyBonusNow,
   rallyWorldW,
   RALLY_V11_EXP,
@@ -295,7 +298,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
 
   const bx = px(state.x);
   const by = px(state.y);
-  if (!state.dead) {
+  // rallyRev 13: a lost blue ball waits at the serve spot, blinking, with the serve countdown over it.
+  const serveLeft = (state.relaunch ?? 0) > state.tick ? (state.relaunch ?? 0) - state.tick : 0;
+  if (serveLeft > 0) {
+    if (Math.floor(serveLeft / 8) % 2 === 0) retroBall(ctx, bx, by, RALLY_BALL_R, "#7AAAFF");
+    retroText(ctx, String(Math.ceil((serveLeft * 3) / RALLY_V13_RELAUNCH)), bx, by - 30, 14, RETRO_WHITE, "center", 3);
+  } else if (!state.dead) {
     drawRetroTrail(ctx, retroTrail(key, state.tick, "main", bx, by, trailLen(state, state.spin)), RALLY_BALL_R, heat);
     glow(ctx, heat, bx, by, RALLY_BALL_R + 8, RALLY_BALL_R + 8, 0.45);
   }
@@ -318,6 +326,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
       { text: `PADS ${state.targetHits ?? 0}`, colour: PAD },
       { text: `TARGETS ${rallyBonusCount(state)}/${RALLY_V10_BONUS_COUNT}`, colour: GOLD },
     ], pulse);
+    // rallyRev 13: the blue-ball lives as small balls under the gold count (a spent one dim).
+    const lives = rallyLivesOf(state);
+    if (lives !== null) for (let i = 0; i < RALLY_V13_LIVES; i++) retroBall(ctx, 18 + i * 18, 34, 5, i < lives ? "#7AAAFF" : "rgba(122,170,255,0.22)");
   } else if ((state as RallyState & BandFields).band) {
     retroHud(ctx, RALLY_WORLD_W, { text: `RALLY ${state.hits}` }, [
       { text: `GOLD ${state.goldHits}`, colour: GOLD },

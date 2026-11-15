@@ -74,9 +74,13 @@ import {
   RALLY_WORLD_W,
   type RallyState,
 } from "../src/lib/arcade/rally";
-import { generateBreaker, generateBullseye, generateRally } from "../src/lib/duel/arcade.server";
+import { generateBreaker, generateBullseye, generateRally, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { BURST_INPUT_FIRE, BURST_INPUT_RANGES } from "../src/lib/arcade/burst";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal rallyRev 13 (lives,
+// retro-overhaul-check); this check was written for the deal before it, so it pins preRetro (rallyRev 12, beatRev 11).
+pinPreRetro(true);
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {

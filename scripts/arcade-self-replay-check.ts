@@ -156,7 +156,7 @@ import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { PIN_REV_STD } from "@/lib/arcade/pinball";
-import { RALLY_REV_STD } from "@/lib/arcade/rally";
+import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
@@ -1027,6 +1027,8 @@ const GAMES: Game[] = [
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
   // Tempo beatRev 12 (15 Nov 2026, the Retro overhaul: a missed note scores 0), appended so every earlier entry keeps its stream.
   { key: "beat/floor", game: beatGameFor(BEAT_REV_FLOOR), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_FLOOR) },
+  // Rally rallyRev 13 (15 Nov 2026, the Retro overhaul: two lives, spin shots), appended so every earlier entry keeps its stream.
+  { key: "rally/lives", game: rallyGameFor(RALLY_REV_LIVES), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_LIVES) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

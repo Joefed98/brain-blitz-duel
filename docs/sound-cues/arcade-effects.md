@@ -87,6 +87,8 @@ Already sounded: bumper glow and ripple (`pinball.bumperHit`), drop target (`pin
 | `rally.goldEnter` | A gold ball enters the court | The gold ball flies in with a trail | `retro.appear.mp3` · own file `rally.goldServe.mp3` (sound batch 4, volume 0.7) | 3–10 | 350 ms |
 | `rally.bumperWarn` | 2 s before a bumper appears (rallyRev 2+, again for rev 5's second) | BUMPER blinks where the post will stand | `ui.warn.mp3` | 1–2 | 500 ms |
 | `rally.bumperIn` | A bumper appears (30 s; rev 5's second at 45 s) | The round post appears in the court | `retro.appear.mp3` | 1–2 | 300 ms |
+| `rally.serve` | The lost blue ball serves again after its 1.5 s wait (rallyRev 13) | The waiting ball stops blinking and flies up | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 160 ms |
+| `rally.spinShot` | A ball still curving from a swiped return strikes a pink pad or a gold target (rallyRev 13) | The pad's or target's own burst | silent until Joe's file (retro-elevenlabs.md) | 0–8 | 360 ms |
 | `rally.wallBounce` | A ball turns back off a side or the far wall (no return, bumper or pad; at most one per 120 ms, volume 0.4) | The ball changes direction at the wall | `retro.wallBounce.mp3` · own file `arcade.wallThock.mp3` (sound batch 4, volume 0.4) | 60–150 | 60 ms |
 
 Already sounded: paddle light-up (`rally.hit`), gold ball returned (`rally.goldHit`), rally over (`rally.dead`).

@@ -588,6 +588,10 @@ export function rallySounds(): GameSounds<RallyState> {
       start(running);
       if (prev && state.tick > prev.tick) {
         if (state.dead && !prev.dead) { sfx("rally.dead", "arc_retro_explode"); feel("impact"); }
+        // rallyRev 13: a life lost (the run goes on), the serve after it and a spin shot.
+        if (!state.dead && (state.lostAt ?? 0) > (prev.lostAt ?? 0)) { sfx("rally.lifeLost", "arc_retro_explode", 0.7); feel("impact"); }
+        if ((prev.relaunch ?? 0) > 0 && (state.relaunch ?? 0) === 0 && !state.dead) effectCue("rally.serve");
+        if ((state.spinScores ?? 0) > (prev.spinScores ?? 0)) effectCue("rally.spinShot");
         if (state.goldHits > prev.goldHits) sfx("rally.goldHit", "arc_retro_note");
         if (state.hits > prev.hits) sfx("rally.hit", "arc_retro_blip");
         // The light row under the court (arenaFills.renderer.ts, display only): one lamp a return, two a

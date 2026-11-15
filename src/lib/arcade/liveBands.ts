@@ -19,7 +19,7 @@ import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } fro
 import { CROSS_REV_KEEP, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
 import { MINES_REV_LOGIC, MINES_STD_SPEC_V2, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
-import { RALLY_REV_STD, RALLY_REV_STRICT, RALLY_STD_SPEC, RALLY_V12_BAND_CURVE } from "./rally";
+import { RALLY_REV_LIVES, RALLY_REV_STRICT, RALLY_STD_SPEC_V13, RALLY_V13_BAND_CURVE } from "./rally";
 import { SNAKE_REV_12, SNAKE_REV_STRICT, SNAKE_V12_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
@@ -105,7 +105,8 @@ export const LIVE_BANDS = {
   // calls 10 (the help says so); a hit costs 15. crossRev 10: 150 at 92 units (CROSS_V10_BAND_CURVE), coins and a clean streak.
   cross: { field: "crossRev", rev: CROSS_REV_KEEP, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
   // rallyRev 12 (the arcade scoring standard): gold-ball hits on a straight line, pads and gold targets fixed.
-  rally: { field: "rallyRev", rev: RALLY_REV_STD, curve: RALLY_V12_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC },
+  // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives; gold hits 130 + pads 30 + targets 30 + spin shots 10.
+  rally: { field: "rallyRev", rev: RALLY_REV_LIVES, curve: RALLY_V13_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC_V13 },
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides
   // and warp stars pay up to 80 more (the help says so). snakeRev 11: 120 at 27 stars (SNAKE_V11_BAND_CURVE).
   snake: { field: "snakeRev", rev: SNAKE_REV_12, curve: SNAKE_V12_BAND_CURVE, strictRev: SNAKE_REV_STRICT },

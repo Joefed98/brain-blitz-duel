@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 37 | 0 | 488 | 525 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 37 | 41 |
+| fail sting | 4 | 0 | 38 | 42 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 63 | 1 | 985 | 1049 |
 
 ## Silent and placeholder cues
 
@@ -259,6 +259,13 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
+
+### Rally
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `rally.serve` | The lost blue ball serves again after its 1.5 s wait (rallyRev 13) [arcade-effects.md] | The waiting ball stops blinking and flies up | 0–1 | silent | none | 160 | game event | `rally.serve` |
+| `rally.spinShot` | A ball still curving from a swiped return strikes a pink pad or a gold target (rallyRev 13) [arcade-effects.md] | The pad's or target's own burst | 0–8 | silent | none | 360 | game event | `rally.spinShot` |
 
 ### Rooftop Run
 
@@ -1711,6 +1718,7 @@ Grouped by game or screen.
 | `rally.dead` | Rally: The rally ends [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `rally.dead` |
 | `rally.goldHit` | Rally: The gold ball is returned [arcade.md] |  | 3–10 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `rally.goldHit` |
 | `rally.hit` | Rally: The ball is returned [arcade.md] |  | 30–80 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `rally.hit` |
+| `rally.lifeLost` | Rally: The blue ball is missed with a life to spare (rallyRev 13); the run goes on [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 420 | fail sting | `rally.lifeLost` |
 | `music.rally` | Rally: music_rally |  | loop | recorded sound | `music_rally` | loop | music | `music_rally` |
 
 ### Ringer
@@ -1956,7 +1964,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
 | `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
-| `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
+| `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead`, `rally.lifeLost` | 260 |
 | `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
 | `arc_fair_thud` | effects | `bullseye.thud` | 160 |
 | `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |

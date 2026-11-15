@@ -282,5 +282,7 @@ export function standardPartLabels(puzzle: { type: string } & Record<string, unk
   const spec = ARCADE_STANDARD[puzzle.type]?.spec;
   if (!spec) return [];
   const rev = puzzle[spec.field];
+  const specFor = ARCADE_STANDARD[puzzle.type]?.specFor;
+  if (specFor) return typeof rev === "number" ? (specFor(rev)?.parts.map((p) => p.label) ?? []) : [];
   return typeof rev === "number" && rev >= (ARCADE_STANDARD[puzzle.type]?.from ?? spec.rev) ? spec.parts.map((p) => p.label) : [];
 }
