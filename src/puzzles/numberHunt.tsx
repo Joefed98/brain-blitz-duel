@@ -30,6 +30,7 @@ import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 import { HudPills } from "@/components/puzzles/HudPills";
+import { RevealCaption, RevealNumbers } from "@/components/puzzles/SpeedRevealKit";
 
 import { ascendFlow, liveFlowMultiplier, usesAscendDepth } from "@/lib/duel/depth/ascend";
 import { ascendBestRun, ascendStandard } from "@/lib/duel/standard/attention";
@@ -482,40 +483,39 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const { reached, errors, elapsedMs } = usesTapLog(puzzle) ? loggedRun(puzzle, myAnswer) : parseRun(myAnswer);
   const finished = reached >= puzzle.spots.length;
 
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): the board large, reached discs gold, the disc you needed
+  // next ringed, then the figures that explain the score.
+  const total = puzzle.spots.length;
+  const nextIndex = finished ? -1 : Math.max(reached, 0);
   return (
     <>
-      <div className="ascend-board relative h-64 w-full rounded-2xl border border-border bg-muted/10">
+      <div data-ascend-art="" style={ASCEND_ART_STYLE} className="ascend-board relative h-80 w-full rounded-2xl border border-border bg-muted/10">
         {puzzle.spots.map((spot, index) => (
           <span
             key={index}
-            className="absolute -translate-x-1/2 -translate-y-1/2"
+            data-ascend-missed={index === nextIndex ? "" : undefined}
+            className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full ${index === nextIndex ? "ring-4 ring-primary ring-offset-2 ring-offset-black" : ""}`}
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
             {/* Speed review fixes (15 Nov 2026): only the discs reached are gold; the rest stay grey. */}
-            <Circle n={spot.n} done={ascendRevealDone(index, reached)} size={38} />
+            <Circle n={spot.n} done={ascendRevealDone(index, reached)} size={44} />
           </span>
         ))}
       </div>
-      <div className="ascend-reveal-result flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-4">
-        <p className="text-center font-mono text-base font-bold text-primary">
-          {finished
-            ? `Finished with ${errors} ${errors === 1 ? "error" : "errors"} · ${(
-                elapsedMs / 1000
-              ).toFixed(1)}s`
-            : `Did not finish · reached ${Math.max(reached, 0)} of ${puzzle.spots.length}`}
-        </p>
-        {standard ? (
-          <p data-ascend-flow-reveal="" className="text-center font-mono text-sm text-muted-foreground">
-            Flow: best run {bestRun} of {puzzle.spots.length}
-            {flowPoints !== null ? ` · +${flowPoints}` : ""}
-          </p>
-        ) : null}
-        {flow ? (
-          <p data-ascend-flow-reveal="" className="text-center font-mono text-sm text-muted-foreground">
-            Flow bonus +{flow.flow} · best ×{flow.best}
-          </p>
-        ) : null}
-      </div>
+      <RevealCaption tone={finished ? "good" : undefined}>
+        {finished ? "All 24 in order" : `Next was ${puzzle.spots[nextIndex]?.n ?? "—"} (ringed)`}
+      </RevealCaption>
+      <RevealNumbers
+        testId="numhunt"
+        items={[
+          { id: "reached", label: "Reached", value: `${Math.max(reached, 0)}/${total}`, tone: "gold" },
+          { id: "wrong", label: "Wrong taps", value: errors, ...(errors > 0 ? { tone: "warn" as const } : { tone: "good" as const }) },
+          standard ? { id: "run", label: "Best run", value: bestRun } : null,
+          flow ? { id: "flow", label: "Flow bonus", value: `+${flow.flow}` } : null,
+          finished ? { id: "time", label: "Time", value: `${(elapsedMs / 1000).toFixed(1)} s` } : null,
+        ]}
+      />
+      {standard && flowPoints !== null ? <p data-ascend-flow-reveal="" className="text-center text-sm text-muted-foreground">Flow points +{flowPoints}</p> : null}
     </>
   );
 }

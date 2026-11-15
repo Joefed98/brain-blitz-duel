@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { speedArtCss, speedArtUrl, type SpeedArtName } from "@/lib/fx/speedArt";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
+import { RevealCaption, RevealNumbers, RevealPanel, RevealPips } from "@/components/puzzles/SpeedRevealKit";
 import { fireChainFinish } from "@/components/puzzles/chainFx";
 import { pointerElementIndex } from "@/components/puzzles/GridDrag";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -592,19 +593,55 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: Puzzl
           ? `Broken at link ${replay.links + 1}: too slow`
           : "Time ran out";
   const milestones = chainUsesDepth(puzzle) ? chainMilestones(answer.taps, replay.links, chainDepthRevOf(puzzle)) : null;
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): the chain as pips (made gold, the break red), what the
+  // chain needed beside what was tapped, and the figures that explain the score.
+  const needed = broken ? chainRequiredAt(puzzle, replay.links) : undefined;
+  const wrongTap = replay.reason === "wrong" ? answer.taps[replay.links] : undefined;
+  const tapped = wrongTap ? puzzle.boards[chainBoardIndex(replay.links, puzzle)]?.[wrongTap.node] : undefined;
   return (
     <div data-polish-reveal="chain" className="flex w-full flex-col items-center gap-3 pt-1">
       <ChainDefs />
-      <div className="w-full max-w-[320px]">
-        <ChainLinks links={replay.links} total={total} broken={broken} />
-      </div>
-      <p data-chain-reveal-links="" className="text-center text-[17px] font-bold tabular-nums text-foreground">
-        {replay.links} of {total} links
-      </p>
-      <p className={`whitespace-normal break-words text-center text-[14px] font-semibold ${broken ? "text-warn" : "text-[#D4D4DC]"}`}>
-        {ending}
-        {elapsed !== null && replay.reason !== "complete" ? ` · ${elapsed.toFixed(1)} s` : ""}
-      </p>
+      <RevealPanel title="Your chain" testId="chain">
+        <RevealPips
+          testId="chain"
+          label={`${replay.links} of ${total} links`}
+          pips={Array.from({ length: total }, (_, i) => (i < replay.links ? "gold" : i === replay.links && broken ? "break" : "empty"))}
+        />
+        <p data-chain-reveal-links="" className="sr-caption">
+          {replay.links} of {total} links
+        </p>
+      </RevealPanel>
+      {needed ? (
+        <RevealPanel title={replay.reason === "wrong" ? "Wrong charm" : "Too slow"} testId="chain-break">
+          <div data-chain-reveal-break="" className="flex items-center justify-center gap-6">
+            <span className="flex flex-col items-center gap-1">
+              <span className="rounded-full ring-4 ring-primary ring-offset-2 ring-offset-black">
+                <NodeGlyph shape={needed.shape} colour={GLYPH_COLOURS[needed.colour]} size={64} />
+              </span>
+              <span className="sr-caption">Needed</span>
+            </span>
+            {tapped ? (
+              <span className="flex flex-col items-center gap-1">
+                <span className="rounded-full ring-4 ring-warn ring-offset-2 ring-offset-black">
+                  <NodeGlyph shape={tapped.shape} colour={GLYPH_COLOURS[tapped.colour]} size={64} />
+                </span>
+                <span className="sr-caption" data-tone="warn">You tapped</span>
+              </span>
+            ) : null}
+          </div>
+          <RevealCaption tone="warn">{ending}</RevealCaption>
+        </RevealPanel>
+      ) : (
+        <RevealCaption tone={replay.reason === "complete" ? "good" : undefined}>{ending}</RevealCaption>
+      )}
+      <RevealNumbers
+        testId="chain"
+        items={[
+          { id: "links", label: "Links", value: `${replay.links}/${total}`, tone: "gold" },
+          elapsed !== null ? { id: "time", label: "Time", value: `${elapsed.toFixed(1)} s` } : null,
+          milestones ? { id: "streaks", label: "Milestones", value: milestones.length } : null,
+        ]}
+      />
       {milestones ? (
         <div data-chain-reveal-milestones="" className="flex flex-col items-center gap-1">
           <MilestonePips reached={milestones} compact />

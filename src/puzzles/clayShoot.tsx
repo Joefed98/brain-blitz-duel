@@ -1,3 +1,4 @@
+import { RevealCaption, RevealNumbers, RevealPanel, RevealPips } from "@/components/puzzles/SpeedRevealKit";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -419,11 +420,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "clayshoot") return null;
   const result = replayClayRun(puzzle.seed, myAnswer ?? "", puzzle.clayRev);
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): every clay in launch order (orange or gold filled when
+  // hit, hollow when it got away), then the figures that explain the score.
+  const s = result.state;
+  const pips = s.status.map((st, i) => (st === CLAY_HIT ? (s.schedule.kind[i] === CLAY_KIND_GOLD ? ("gold" as const) : ("hit" as const)) : ("miss" as const)));
+  const doubles = s.dp ? clayDoublesHit(s) : null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold · {result.birdHits} birds hit
-      </p>
+      <RevealPanel title="Every clay" testId="clayshoot">
+        <RevealPips testId="clayshoot" label={`${result.hits} of ${result.total} clays hit`} pips={pips} groups={CLAY_DOUBLES} />
+        <RevealCaption>Filled: hit · hollow: got away · the last 14 fly in pairs</RevealCaption>
+      </RevealPanel>
+      <RevealNumbers
+        testId="clayshoot"
+        items={[
+          // Only what the stored breakdown above doesn't already say.
+          s.dp ? { id: "streak", label: "Best streak", value: s.dp.best, tone: "gold" as const } : null,
+          doubles !== null ? { id: "doubles", label: "Doubles", value: `${doubles}/${CLAY_DOUBLES}` } : null,
+          { id: "birds", label: "Birds hit", value: result.birdHits, ...(result.birdHits ? { tone: "warn" as const } : { tone: "good" as const }) },
+        ]}
+      />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -382,11 +383,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tendrop") return null;
   const result = replayTenDropRun(puzzle.seed, myAnswer ?? "", puzzle.tenRev);
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): the ten targets as plaques, made ones in enamel, then the
+  // figures that explain the score.
+  const targets = result.state.plan.targets;
+  const finishS = result.cleared >= TD_TARGETS ? Math.round(result.state.clearTick / 6) / 10 : null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.cleared} / {TD_TARGETS} targets · {result.resets} reset{result.resets === 1 ? "" : "s"}
-      </p>
+      <RevealPanel title="Targets" testId="tendrop">
+        <div data-tendrop-reveal-targets="" className="sr-targets">
+          {targets.slice(0, TD_TARGETS).map((t, i) => (
+            <span key={i} className="sr-target" data-made={i < result.cleared ? "" : undefined}>
+              {t}
+              <span className="sr-target-mark">{i < result.cleared ? "made" : i === result.cleared ? "next" : ""}</span>
+            </span>
+          ))}
+        </div>
+      </RevealPanel>
+      <RevealNumbers
+        testId="tendrop"
+        items={[
+          // Only what the stored breakdown above doesn't already say.
+          finishS !== null ? { id: "time", label: "Finished at", value: `${finishS} s`, tone: "gold" as const } : null,
+        ]}
+      />
+      {result.resets > 4 ? <RevealCaption tone="warn">Each reset after the fourth cost 5</RevealCaption> : null}
     </div>
   );
 }

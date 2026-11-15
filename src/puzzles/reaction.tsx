@@ -38,7 +38,7 @@ import { knots } from "@/lib/duel/depth200";
 import { FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_TIGHT_MS, flashSpread, usesFlashDepth } from "@/lib/duel/depth/flash";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 
-import { SpeedRevealList } from "@/components/puzzles/SpeedRevealList";
+import { RevealBars, RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const DECOY_COLOURS = REACTION_PLAIN_DECOYS;
@@ -555,7 +555,10 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
   const depth = usesFlashDepth(puzzle) ? storedFlashDepth(myExtra) : null;
   const avg = storedAvg ?? (times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null);
 
-  // Puzzle polish (3 Nov 2026): the big average first, then the reactions in two tidy columns and the notes under them.
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): the average big, then one bar per flash (taller is faster,
+  // gold under 250 ms, red a miss) and the figures that explain the score; short notes only where they apply.
+  const hits = times.filter((ms) => ms < REACTION_MISS_MS);
+  const missed = times.length - hits.length;
   return (
     <>
       <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-3">
@@ -565,23 +568,30 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
       {times.length === 0 ? (
         <p className="font-display text-2xl font-bold text-warn">No attempts</p>
       ) : (
-        <SpeedRevealList
-          testId="reaction"
-          label="Your reactions"
-          items={times.map((ms, index) =>
-            ms >= REACTION_MISS_MS
-              ? { value: "Missed", missed: true, label: `Flash ${index + 1} - missed (1,200 ms)` }
-              : { value: `${ms} ms`, label: `Flash ${index + 1} - ${ms} ms` },
-          )}
-        />
+        <RevealPanel title="Each flash" testId="reaction">
+          <RevealBars
+            testId="reaction"
+            label="Your reactions"
+            bars={times.map((ms, index) =>
+              ms >= REACTION_MISS_MS
+                ? { share: 0.06, text: "Miss", tone: "miss" as const, label: `Flash ${index + 1} - missed` }
+                : { share: 1 - Math.min(ms, 800) / 900, text: `${ms}`, tone: ms < 250 ? ("gold" as const) : ms < 400 ? ("good" as const) : ("slow" as const), label: `Flash ${index + 1} - ${ms} ms` },
+            )}
+          />
+          <RevealCaption>Taller is faster · gold under 250 ms</RevealCaption>
+        </RevealPanel>
       )}
+      <RevealNumbers
+        testId="reaction"
+        items={[
+          { id: "best", label: "Fastest", value: hits.length ? `${Math.min(...hits)} ms` : "—", tone: "gold" },
+          { id: "missed", label: "Missed", value: missed, ...(missed > 0 ? { tone: "warn" as const } : {}) },
+          { id: "false", label: "False starts", value: falseStarts, ...(falseStarts > 0 ? { tone: "warn" as const } : { tone: "good" as const }) },
+        ]}
+      />
       <div className="speed-reveal-notes">
-        <p>
-          {/* The count alone (4 Nov 2026: "(−973 points)" was the cost before the curve, not points off the score). */}
-          False starts: {falseStarts}
-          {/* tapRev 7 (7 Nov 2026): each flash scores on its own, so a miss scores nothing rather than counting as 1,200 ms. */}
-          {times.some((ms) => ms >= REACTION_MISS_MS) ? (tapRevOf(puzzle) >= TAP_REV_PER_ITEM ? " · a missed flash scores 0" : ` · a miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms`) : ""}
-        </p>
+        {/* tapRev 7 (7 Nov 2026): each flash scores on its own, so a miss scores nothing rather than counting as 1,200 ms. */}
+        {missed > 0 ? <p>{tapRevOf(puzzle) >= TAP_REV_PER_ITEM ? "A missed flash scores 0" : `A miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms`}</p> : null}
         {depth ? (
           <p data-flash-steady-reveal="">
             {depth.steady > 0

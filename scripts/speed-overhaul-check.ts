@@ -248,6 +248,37 @@ const stamp = (type: "tendrop" | "clayshoot", field: string) => (generatePuzzle(
   check(Number(n) === rows.length, `the list's count (${n}) matches its rows (${rows.length})`);
 }
 
+/* ------------------------------------------------------------------ 8. The reveals (Joe, 15 Nov 2026) */
+{
+  const reveal = (file: string) => {
+    const src = read(`src/puzzles/${file}.tsx`);
+    const at = src.indexOf("function Reveal(");
+    return src.slice(at, src.indexOf("\n}\n", at));
+  };
+  const pictures: Record<string, RegExp> = {
+    reaction: /<RevealBars/,
+    numberHunt: /data-ascend-missed/,
+    chainTap: /<RevealPips[\s\S]*data-chain-reveal-break/,
+    whack: /data-whack-reveal-map/,
+    tenDrop: /data-tendrop-reveal-targets/,
+    clayShoot: /<RevealPips/,
+  };
+  for (const [file, picture] of Object.entries(pictures)) {
+    const r = reveal(file);
+    check(r.length > 200, `${file}: has its own reveal`);
+    check(picture.test(r), `${file}: the reveal draws a picture of the run`);
+    check(/<RevealNumbers|<RevealCaption/.test(r), `${file}: the reveal's key figures and captions are the shared big pieces`);
+    // Short plain labels: no stray "×" and no "n of m · …" text lists.
+    const labels = [...r.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]!);
+    for (const l of labels) check(!/×/.test(l) && l.length <= 16, `${file}: the label "${l}" is short and plain`);
+    check(!/ · .* · /.test(r.replace(/\/\/[^\n]*/g, "").replace(/<RevealCaption[^>]*>[^<]*<\/RevealCaption>/g, "")), `${file}: no dense dotted text list`);
+  }
+  check(/>Needed</.test(reveal("chainTap")) && />You tapped</.test(reveal("chainTap")), "Chain: the charm needed beside the one tapped");
+  check(/size=\{44\}/.test(reveal("numberHunt")) && /h-80/.test(reveal("numberHunt")), "Ascend: the board drawn large");
+  const answerReveal = read("src/components/duel/AnswerReveal.tsx");
+  check(/SPEED_VISUAL_REVEAL_TYPES[^\n]*\["tendrop", "whack", "clayshoot"\]/.test(answerReveal) && /!SPEED_VISUAL_REVEAL_TYPES\.has\(puzzle\.type\)/.test(answerReveal), "Tenfall, Bonk and Pull! show their picture beside the stored breakdown");
+}
+
 if (failures.length) {
   console.log(`speed-overhaul-check: FAIL (${failures.length} failed, ${passes} passed)`);
   for (const f of failures.slice(0, 40)) console.log(`  FAIL ${f}`);

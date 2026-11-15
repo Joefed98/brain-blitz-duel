@@ -1,3 +1,5 @@
+import { RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
+import { WHACK_STATUS_HIT, WHACK_STATUS_WRONG } from "@/lib/arcade/whack";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { BonkIcon } from "@/components/puzzles/BonkIcon";
 import { bonkArenaScene, drawBonkFinale, whackArtGame } from "@/lib/arcade/whack.renderer";
@@ -360,11 +362,38 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "whack") return null;
   const result = replayWhackRun(puzzle.seed, myAnswer ?? "", puzzle.whackRev);
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): the field as a map, each burrow its right hits (gold) and
+  // its mistakes (a red badge), then the figures that explain the score.
+  const s = result.state;
+  const hitsAt = Array.from({ length: 16 }, () => 0);
+  const wrongAt = Array.from({ length: 16 }, () => 0);
+  for (let i = 0; i < s.status.length; i++) {
+    const hole = s.schedule.hole[i];
+    if (hole === undefined) continue;
+    if (s.status[i] === WHACK_STATUS_HIT) hitsAt[hole]! += 1;
+    else if (s.status[i] === WHACK_STATUS_WRONG) wrongAt[hole]! += 1;
+  }
+  const best = s.dp?.best ?? null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <p className="text-center font-mono text-lg font-bold text-foreground">
-        Hits {result.hits} / {result.totalTargets} · Wrong {result.wrong}
-      </p>
+      <RevealPanel title="Your field" testId="whack">
+        <div data-whack-reveal-map="" className="sr-burrows" aria-label="Hits by burrow">
+          {hitsAt.map((n, hole) => (
+            <span key={hole} className="sr-burrow" data-hits={n} data-wrong={wrongAt[hole] ? `${wrongAt[hole]}` : undefined}>
+              {n}
+            </span>
+          ))}
+        </div>
+        <RevealCaption>Gold: right hits · red: mistakes</RevealCaption>
+      </RevealPanel>
+      <RevealNumbers
+        testId="whack"
+        items={[
+          // Only what the stored breakdown above doesn't already say.
+          best !== null ? { id: "combo", label: "Best combo", value: best, tone: "gold" as const } : null,
+          { id: "hedgehogs", label: "Hedgehogs", value: result.bombs, ...(result.bombs ? { tone: "warn" as const } : { tone: "good" as const }) },
+        ]}
+      />
     </div>
   );
 }

@@ -236,10 +236,11 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("whack", "Hedgehog friendly", "Bonk 30 or more without a wrong hat or a hedgehog.", "C", "clean", false, all(f("hits", "gte", 30), f("wrong", "eq", 0), f("bombs", "eq", 0))),
   ch("whack", "Diamond geezer", "Bonk every diamond.", "C", "fullset", false, all(f("depth.diamondHits", "gte", "@depth.diamondTotal"), f("depth.diamondTotal", "gte", 1))),
   ch("whack", "Combo king", "Bonk 47 in a row, each within 150 ms of rising.", "C", "combo", true, all(f("depth.combo", "gte", 44))),
-  // Pull! (clayshoot): clays 110 + quick hits 40 + doubles 14 + streak 36.
+  // Pull! (clayshoot): clays 110 + quick hits 40 + doubles 14 + streak 36. clayRev 10 (the Speed overhaul, 15 Nov 2026): a
+  // quick hit is full within 0.4 s (was a quarter second), so Dead eye says 400 ms; its condition is unchanged.
   ch("clayshoot", "Bird lover", "Hit 15 clays without hitting a bird.", "C", "clean", false, all(f("hits", "gte", 15), f("birdHits", "eq", 0))),
   ch("clayshoot", "Double trouble", "Hit both clays of every double.", "C", "fullset", false, all(f("depth.doublesHit", "gte", "@depth.doublesTotal"), f("depth.doublesTotal", "gte", 1))),
-  ch("clayshoot", "Dead eye", "Hit all 25 clays in a row, each within a quarter second.", "C", "streak", true, all(f("depth.streak", "gte", 36))),
+  ch("clayshoot", "Dead eye", "Hit all 25 clays in a row, each within 400 ms.", "C", "streak", true, all(f("depth.streak", "gte", 36))),
 
   /* ================================================================ Attention */
   // Mixed Signals (stroop): finish 150 + speed 15 + streak 20 + gold words 15.

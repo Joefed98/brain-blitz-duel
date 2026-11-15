@@ -25,7 +25,7 @@ import { SWING_V17_CORE, SWING_V17_FULL, SWING_V17_GATES, SWING_V17_STREAK_BLOCK
 import { MATCHUP_V12_GOALS, MATCHUP_V12_GOALS_MAX, MATCHUP_V12_ICE_MAX, MATCHUP_V12_TREASURES, MATCHUP_V12_TREASURE_MAX } from "../src/lib/arcade/matchup";
 import { TILT_P_CLEAN_POINTS, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_S_MAZES } from "../src/lib/arcade/tilt";
 import { CLASH_QUEUE, CLASH_STD_STREAK } from "../src/lib/arcade/colourClash";
-import { CLAY_CONFIG, CLAY_QUICK_FULL_TICKS, CLAY_STREAK_POINTS } from "../src/lib/arcade/clayShoot";
+import { CLAY_CONFIG, CLAY_QUICK_FULL_TICKS, CLAY_STREAK_POINTS, CLAY_WIDE_FULL_TICKS } from "../src/lib/arcade/clayShoot";
 import { WHACK_COMBO_FULL_PCT, WHACK_COMBO_POINTS, WHACK_QUICK_FULL_TICKS, whackComboMaxPips, whackComboMultiplier, whackGame } from "../src/lib/arcade/whack";
 import { SKYLINE_V9_FULL_AT } from "../src/lib/arcade/skyline";
 import { SLICE_V12_COMBO_FULL } from "../src/lib/arcade/slice";
@@ -146,7 +146,8 @@ function expectations(): Record<string, Expect> {
     "whack.combo-king": { say: [[47, whack42], [150, ms(WHACK_QUICK_FULL_TICKS)]], th: [[44, WHACK_COMBO_POINTS]] },
     "whack.diamond-geezer": { th: [[1, 1]] },
     "clayshoot.double-trouble": { th: [[1, 1]] },
-    "clayshoot.dead-eye": { say: [[25, CLAY_CONFIG.clays]], th: [[36, CLAY_STREAK_POINTS]] },
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): clayRev 10's 400 ms window.
+    "clayshoot.dead-eye": { say: [[25, CLAY_CONFIG.clays], [400, (CLAY_WIDE_FULL_TICKS * 1000) / 60]], th: [[36, CLAY_STREAK_POINTS]] },
     "stroop.sorted": { say: [[52, CLASH_QUEUE]], th: [[1, 1]] },
     "stroop.all-that-glitters": { th: [[1, 1]] },
     "stroop.colour-blind": { say: [[52, CLASH_QUEUE]], th: [[20, CLASH_STD_STREAK]] },

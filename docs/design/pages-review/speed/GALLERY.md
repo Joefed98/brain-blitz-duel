@@ -51,3 +51,56 @@ Dark oiled wood with four lanes, satin enamel tiles with flat bold labels (opera
 | <img src="../../game-reviews/img/speed/clayshoot-2-mid.webp" width="240"> | <img src="after-clayshoot.webp" width="240"> |
 
 A late-afternoon range with the sun toned right down; satin clays, brushed gold ones; white gulls. The HUD is two pills (clays, streak). clayRev 10: a wider quick-hit window (0.4 s full, 0.6 s none).
+
+## Answer reveals (Joe, 15 Nov 2026)
+
+Each game's own part of the reveal, inside the shared reveal layout: practice rounds with some scripted taps, the clock run out
+(the local dev server grades these at 0, so the score lines read 0; the pictures are what changed).
+
+### Flash
+
+| Before | After |
+|---|---|
+| <img src="reveal-before-reaction.webp" width="240"> | <img src="reveal-after-reaction.webp" width="240"> |
+
+The average stays big; the two-column text list becomes one bar per flash (taller is faster, gold under 250 ms, red a miss), with Fastest, Missed and False starts as big figures.
+
+### Ascend
+
+| Before | After |
+|---|---|
+| <img src="reveal-before-numhunt.webp" width="240"> | <img src="reveal-after-numhunt.webp" width="240"> |
+
+The board drawn large in the new art, reached discs gold and the disc you needed next ringed; "Finished with 0 errors · 14.7s" becomes Reached, Wrong taps, Best run and Time.
+
+### Don't Break the Chain
+
+| Before | After |
+|---|---|
+| <img src="reveal-before-chain.webp" width="240"> | <img src="reveal-after-chain.webp" width="240"> |
+
+The forty links as pips (made gold, the break red), then the charm the chain needed beside the one tapped, both large; Links and Time as big figures.
+
+### Bonk
+
+| Before | After |
+|---|---|
+| <img src="reveal-before-whack.webp" width="240"> | <img src="reveal-after-whack.webp" width="240"> |
+
+The field as a map: every burrow shows its right hits in gold and its mistakes as a red badge, with Best combo and Hedgehogs (the stored breakdown above already gives the rest).
+
+### Tenfall
+
+| Before | After |
+|---|---|
+| <img src="reveal-before-tendrop.webp" width="240"> | <img src="reveal-after-tendrop.webp" width="240"> |
+
+The ten targets as plaques, made ones in enamel and the next one marked; the finish time when there is one.
+
+### Pull!
+
+| Before | After |
+|---|---|
+| <img src="reveal-before-clayshoot.webp" width="240"> | <img src="reveal-after-clayshoot.webp" width="240"> |
+
+Every clay in launch order (orange or gold filled when hit, hollow when it got away), with Best streak, Doubles and Birds hit.
