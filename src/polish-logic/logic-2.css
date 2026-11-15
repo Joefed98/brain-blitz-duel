@@ -683,18 +683,66 @@
   pointer-events: none;
 }
 
-/* Lamplighter: light falling across the floor. A lit square keeps the dark floor and lays the warm light pool over it
-   at its brightness (--logic2-light, 1 beside the bulb fading down the row), so a lit corridor reads as one stretch of
-   light that dims away from its lamp. */
+/* Lamplighter: light falling across the floor (Joe, 15 Nov 2026: a soft glow that blends across squares, no hard
+   edge between lit squares, lit not painted). The light is one blurred warm layer under the squares (.logic2-glow, a
+   pool on each lit square at its --logic2-light falloff); a lit square is see-through over it, keeping only a faint
+   trace of its lacquer tile, while walls and dark squares stay opaque. */
+.logic2-lamps > .logic2-glow {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  pointer-events: none;
+  filter: blur(6px);
+}
+.logic2-lamps-small.logic2-lamps > .logic2-glow,
+.logic2-lamps.logic-lamps-small > .logic2-glow {
+  filter: blur(3px);
+}
+.logic2-lamps > .logic2-glow > i {
+  margin: -2px;
+  border-radius: 30%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 196, 110, 0.95) 0%, rgba(240, 150, 52, 0.85) 55%, rgba(200, 104, 24, 0.6) 100%);
+  opacity: calc(0.3 + 0.7 * var(--logic2-light, 1));
+}
 .logic2-lamps > .logic2-lamp-cell[data-lit],
 [data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell[data-lit] {
-  background-image: var(--la-logic-cell) !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 .logic2-lamps > .logic2-lamp-cell[data-lit]::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: var(--la-lightup-cell-lit) center / 100% 100% no-repeat;
-  opacity: calc(0.15 + 0.85 * var(--logic2-light, 1));
+  background: var(--la-logic-cell) center / 100% 100% no-repeat;
+  opacity: 0.12;
+}
+.logic2-lamps {
+  overflow: hidden;
+}
+/* Dark squares let a faint halo of a neighbour's light show at their edges (their lacquer drawn at 0.9), and the thin
+   beam lines go: the glow says where the light reaches (a clash's red beams stay). */
+.logic2-lamps > .logic2-lamp-cell:not([data-lit]),
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell:not([data-lit]) {
+  background: transparent !important;
+}
+.logic2-lamps > .logic2-lamp-cell:not([data-lit])::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--la-logic-cell) center / 100% 100% no-repeat;
+  opacity: 0.9;
+}
+.logic2-lamps .lightup-beam {
+  display: none;
+}
+.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
+  opacity: 0.06;
+}
+.logic2-lamps.logic2-lamps .lightup-beam {
+  display: none !important;
+}
+.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
+  content: none;
 }

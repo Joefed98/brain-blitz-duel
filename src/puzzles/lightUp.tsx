@@ -144,10 +144,25 @@ export function Board({
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
-      className={`logic-lamps logic2-lamps grid w-full select-none ${small ? "logic-lamps-small" : ""}`}
+      className={`logic-lamps logic2-lamps relative grid w-full select-none ${small ? "logic-lamps-small" : ""}`}
       data-logic2="lightup"
       style={{ ...LIGHTUP_ART, ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
+      {/*
+        The light (Joe, 15 Nov 2026): one softly blurred warm layer under the squares, a pool on every lit square at its
+        falloff brightness. Lit squares are see-through over it, walls and dark squares opaque, so neighbouring lit
+        squares (and the gaps between them) blend into one glow with no hard edge, and the light dims away from its lamp.
+        Display only; <i> elements, so the shared puzzle surfaces never treat it as a cell.
+      */}
+      <i
+        aria-hidden="true"
+        className="logic2-glow"
+        style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${height}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
+      >
+        {[...lightAt].map(([cell, v]) => (
+          <i key={cell} style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1, "--logic2-light": v } as CSSProperties} />
+        ))}
+      </i>
       {Array.from({ length: size * height }, (_, cell) => {
         const wi = wallIndex.get(cell);
         if (wi !== undefined) {

@@ -192,6 +192,11 @@ function trailRuns(p: TrailPuzzleData, undos: number) {
   const lit = html(createElement(LampBoard, { board, marks: [1, 0, 0, 0, 0, 0, 0, 0, 1] }));
   ok(/logic2-tick/.test(lit), "Lamplighter: a 0 is ticked once its neighbours are lit");
   ok(/data-lit/.test(lit) && /lightup-lamp/.test(lit), "Lamplighter: lit squares fill and lamps are the bulb sprite");
+  // The light is one soft glow layer under the squares (Joe, 15 Nov 2026): a pool for every lit square, at its falloff.
+  const glow = lit.match(/class="logic2-glow"[^>]*>(.*?)<\/i><\/i>/)?.[1] ?? "";
+  const pools = (glow.match(/<i /g) ?? []).length;
+  const litSquares = (lit.match(/data-lit=""/g) ?? []).length;
+  ok(pools > 0 && pools === litSquares && (glow.match(/--logic2-light/g) ?? []).length === pools, `Lamplighter: one glow pool for each lit square (${pools} of ${litSquares})`);
   // Loopline: a met number takes the met tone (drawn gold).
   const fences = html(createElement(FencesBoard, { size: 2, clues: [0, -1, -1, -1], states: new Array(12).fill(0) }));
   ok(/data-tone="met"/.test(fences) && /fences-slate/.test(fences) && /fences-peg/.test(fences), "Loopline: a met 0, the slate and the pegs");
