@@ -53,3 +53,10 @@ export function upCard(rank, suit, { pos = [0, 0, 0], rot = [0, 0, 0], s = 1, ba
 /** A rounded marble. */
 export const marble = (col, pos, r = 0.2) => sphere(r, { pos: [pos[0], (pos[1] ?? 0) + r, pos[2]], col });
 export { box, cyl, sphere, cap, prism, torus, star, group, cone };
+/** A board of n × m cells, its top at y = 0: returns the centre of cell (i, j) at height y. */
+export function board(n, m, { step = 0.5, col = C.NAVY, edge = null, pad = 0.12, h = 0.1 } = {}) {
+  const w = (n * step) / 2 + pad, d = (m * step) / 2 + pad;
+  box([w, h, d], { pos: [0, -h, 0], col, r: 0.06 });
+  if (edge) for (const [sx, sz, a] of [[0, -1, 0], [0, 1, 0], [-1, 0, 1], [1, 0, 1]]) box(a ? [0.04, 0.05, d] : [w, 0.05, 0.04], { pos: [sx * w, 0.02, sz * d], col: edge, r: 0.03 });
+  return (i, j, y = 0) => [(i - (n - 1) / 2) * step, y, (j - (m - 1) / 2) * step];
+}
