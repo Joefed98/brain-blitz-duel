@@ -13,12 +13,23 @@
  *   bun scripts/skins-default-check.ts            (~10 s, no browser; main's frames ~4 s of it, cached per base)
  *
  * One child process per game (@napi-rs/canvas returns its native memory only when the process exits).
+ *
+ * Overhauled games (changed with Joe's approval, 15 Nov 2026: routine consequence of the Sports overhaul, phase 2
+ * step 4): a game whose default look was redrawn on purpose (Cue Ball, Curl Champ, Apex) is listed in
+ * scripts/fixtures/skins-default-frames-overhaul.json with its new default digests. For it the check still proves the
+ * skin hook draws nothing of its own (no look argument and the default look identical, frame for frame) and pins the
+ * new default to that record wherever this machine draws the other games' stored digests exactly (the same
+ * rasteriser); main's live frames are its reference only once main draws the record itself. The original stored
+ * digests stay in skins-default-frames.json untouched. Every other game is checked exactly as before.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { SKIN_GAMES, drawFrames, digest, type SkinGame } from "./skins/frames";
 import { baseDigests, baseLine, type BaseDigests } from "./skins/base";
 
 const one = process.argv.find((a) => a.startsWith("--game="))?.slice(7) as SkinGame | undefined;
+// `--record-overhaul=pool,curling,racing`: writes those games' new default digests (drawn here, with no look) to the
+// overhaul record. Only for a game whose default was redrawn on purpose, with Joe's approval.
+const recordArg = process.argv.find((a) => a.startsWith("--record-overhaul="))?.slice(18);
 if (one) {
   const { NO_LOOK } = await import("../src/lib/arcade/skins/look");
   const plain = await drawFrames(one, undefined);
@@ -28,7 +39,24 @@ if (one) {
   process.exit(0);
 }
 
+if (recordArg) {
+  const path = "scripts/fixtures/skins-default-frames-overhaul.json";
+  const rec = (existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : { why: "", games: {} }) as { why: string; games: Record<string, Record<string, string>> };
+  rec.why = "Defaults redrawn on purpose (routine consequence of the Sports overhaul, phase 2 step 4, Joe's approval of 15 Nov 2026); drawn on this branch with no look argument.";
+  for (const g of recordArg.split(",") as SkinGame[]) {
+    const child = Bun.spawnSync(["bun", import.meta.path, `--game=${g}`], { stdout: "pipe", stderr: "inherit" });
+    const out = child.stdout.toString().split("\n").find((l) => l.startsWith("JSON "));
+    if (!out) throw new Error(`${g} did not draw`);
+    rec.games[g] = (JSON.parse(out.slice(5)) as { plain: Record<string, string> }).plain;
+    console.log(`  recorded ${g}: ${Object.keys(rec.games[g]!).length} frames`);
+  }
+  writeFileSync(path, JSON.stringify(rec, null, 1) + "\n");
+  process.exit(0);
+}
 const stored = JSON.parse(readFileSync("scripts/fixtures/skins-default-frames.json", "utf8")) as Record<string, Record<string, string>>;
+// Games redrawn on purpose and their new default digests (see the header).
+const overhaul = JSON.parse(readFileSync("scripts/fixtures/skins-default-frames-overhaul.json", "utf8")) as { games: Record<string, Record<string, string>> };
+const OVERHAULED = new Set(Object.keys(overhaul.games));
 let passes = 0;
 const failures: string[] = [];
 let base: BaseDigests | null = null;
@@ -39,7 +67,7 @@ try {
   failures.push(`main's renderers could not be drawn: ${e instanceof Error ? e.message : String(e)}`);
 }
 // The stored digests are this machine's record: asserted when main's live frames are exactly them (the same rasteriser).
-const storedHere = !!base && SKIN_GAMES.every((g) => Object.entries(stored[g] ?? {}).every(([n, d]) => base!.frames[g]?.[n] === d) && Object.keys(base!.frames[g] ?? {}).length === Object.keys(stored[g] ?? {}).length);
+const storedHere = !!base && SKIN_GAMES.filter((g) => !OVERHAULED.has(g)).every((g) => Object.entries(stored[g] ?? {}).every(([n, d]) => base!.frames[g]?.[n] === d) && Object.keys(base!.frames[g] ?? {}).length === Object.keys(stored[g] ?? {}).length);
 if (base) console.log(storedHere ? "  ok main's live frames are the stored digests exactly (this machine drew them): checked against both" : "  NOTE main draws differently on this machine than where the stored digests were recorded (CPU-dependent rasterising): checked against main live only");
 const want = base ? base.frames : stored;
 for (const g of SKIN_GAMES) {
@@ -51,6 +79,33 @@ for (const g of SKIN_GAMES) {
     continue;
   }
   const got = JSON.parse(line.slice(5)) as { plain: Record<string, string>; looked: Record<string, string> };
+  if (OVERHAULED.has(g)) {
+    // A redrawn default: the hook neutral frame for frame, and the new record where this machine is the recorder's.
+    const record = overhaul.games[g]!;
+    const mainDrawsRecord = !!base && Object.entries(record).every(([n, d]) => base!.frames[g]?.[n] === d);
+    let bad = 0;
+    const names = Object.keys(record);
+    if (names.length === 0 || Object.keys(got.plain).length !== names.length) {
+      bad++;
+      failures.push(`${g}: frame list changed (${Object.keys(got.plain).length} drawn, ${names.length} in the overhaul record)`);
+    }
+    for (const name of names) {
+      if (got.plain[name] !== got.looked[name]) {
+        bad++;
+        failures.push(`${g} ${name}: the default look draws differently from no look argument`);
+      }
+      if ((storedHere || mainDrawsRecord) && got.plain[name] !== record[name]) {
+        bad++;
+        failures.push(`${g} ${name} differs from the overhaul record (scripts/fixtures/skins-default-frames-overhaul.json)`);
+      }
+    }
+    if (bad) console.log(`  FAIL ${g}: ${bad} frame(s) differ`);
+    else {
+      passes++;
+      console.log(`  ok ${g} (redrawn default): ${names.length} frames identical with no look and the default look${storedHere || mainDrawsRecord ? ", and to the overhaul record" : " (NOTE: the record is another rasteriser's, not compared here)"}`);
+    }
+    continue;
+  }
   const names = Object.keys(want[g] ?? {});
   let bad = 0;
   for (const name of names) {
@@ -80,4 +135,4 @@ if (failures.length) {
   console.log(`FAIL skins-default-check: ${failures.length} failure(s)`);
   process.exit(1);
 }
-console.log(`PASS skins-default-check: ${passes} games draw exactly as on main with no skin equipped`);
+console.log(`PASS skins-default-check: ${passes} games draw exactly as on main (or, redrawn on purpose, as their overhaul record) with no skin equipped`);
