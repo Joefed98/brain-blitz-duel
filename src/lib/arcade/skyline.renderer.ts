@@ -24,24 +24,28 @@ import {
   SKYLINE_KIND_WIDE,
   SKYLINE_MILESTONE_EVERY,
   SKYLINE_SKY_H,
+  skylineLivesLeft,
+  SKYLINE_V11_LIVES,
 } from "./skyline";
 import { artHash, reducedMotion } from "./art.renderer";
 import { APP_FLAG_LOGO_URL } from "@/lib/brand";
 import { realMemo, realNow, REAL_GOLD, REAL_SHADOW, REAL_NIGHT_BG, REAL_NIGHT_TEXT, REAL_LAMP } from "./realworld.renderer";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
-import { fillBelow, fillGradient } from "./arenaFills.renderer";
+import { fillBelow, fillGradient, fillSides } from "./arenaFills.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 
 /** City glass tints, cycled per level. */
 const GLASS = ["#7FB3D5", "#9CC9C2", "#A9B8D8", "#8FBCE0", "#B5C7D3", "#7FA8C9", "#A4C4B4", "#98AEC8"];
 const STEEL = "#788DA4";
 export const STEEL_LIGHT = "#A9BED0";
-const TOWER_DARK = "#131D2C";
-const TOWER_NEAR = "#202C3D";
 const WINDOW_LIGHT = "#FFC966";
 const PANE_GLOW = "rgba(216,243,255,0.18)";
 const GROUND = "#424F60";
+/** The plaza under the tower (the Action overhaul, display only): the tower is drawn this far above the world's bottom. */
+const GROUND_LIFT = 22;
+/** The sim's world width in fixed point (the base block is centred in it). */
+const SKYLINE_WORLD_RIGHT_FP = SKYLINE_WORLD_W * 256;
 const JIB_Y = 30;
 const CHUNK_MS = 900;
 const SPARK_TICKS = 18;
@@ -49,13 +53,14 @@ const SPARK_TICKS = 18;
 const zoomMemo = new WeakMap<CanvasRenderingContext2D, number>();
 
 interface Chunk { x: number; w: number; top: number; dir: number; at: number; colour: number }
-interface Memory { tick: number; len: number; x: number; w: number; missed: boolean; chunks: Chunk[]; placementTicks: number[] }
+interface Memory { tick: number; len: number; x: number; w: number; missed: boolean; lost: number; chunks: Chunk[]; placementTicks: number[] }
 const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
 
 function remember(ctx: CanvasRenderingContext2D, s: SkylineState): Memory {
-  const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, chunks: [], placementTicks: new Array(s.blocks.length).fill(-1e9) }));
+  const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, lost: s.livesLost ?? 0, chunks: [], placementTicks: new Array(s.blocks.length).fill(-1e9) }));
   const blockH = px(SKYLINE_BLOCK_H);
-  const SKYLINE_WORLD_H = skylineWorldH(s);
+  // The tower stands on the plaza (GROUND_LIFT px above the world's bottom; display only).
+  const SKYLINE_WORLD_H = skylineWorldH(s) - GROUND_LIFT;
   const now = realNow();
   if (s.tick !== m.tick) {
     if (s.blocks.length > m.len) {
@@ -73,7 +78,12 @@ function remember(ctx: CanvasRenderingContext2D, s: SkylineState): Memory {
     if (s.missed && !m.missed) {
       const y = SKYLINE_WORLD_H - s.blocks.length * blockH - blockH;
       m.chunks.push({ x: m.x, w: m.w, top: y, dir: s.dir, at: now, colour: s.blocks.length });
+    } else if ((s.livesLost ?? 0) > m.lost && s.lostW) {
+      // skylineRev 11: a life lost; the missed block falls away from where it hung.
+      const y = SKYLINE_WORLD_H - s.blocks.length * blockH - blockH;
+      m.chunks.push({ x: s.lostX ?? m.x, w: s.lostW, top: y, dir: s.lostX !== undefined && s.lostX > 0 ? 1 : -1, at: now, colour: s.blocks.length });
     }
+    m.lost = s.livesLost ?? 0;
     m.tick = s.tick;
     m.len = s.blocks.length;
     m.x = s.x;
@@ -145,8 +155,81 @@ function paintNight(c: CanvasRenderingContext2D, w: number, h: number): void {
   c.fillStyle = glow;
   c.fillRect(0, h * 0.7, w, h * 0.3);
 }
-function drawNight(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+function drawNight(ctx: CanvasRenderingContext2D, w: number, h: number, night = 1): void {
   deviceLayer(ctx, `skyline-night-${w}x${h}`, (c) => paintNight(c, w, h));
+  if (night >= 1) return;
+  // The Action overhaul (15 Nov 2026): the round starts at dusk and turns to night as the tower climbs.
+  const dusk = sprite(`dusk-${w}x${h}`, w / 2, h / 2, (c) => paintDusk(c, w / 2, h / 2));
+  if (!dusk) return;
+  ctx.save();
+  ctx.globalAlpha = 1 - night;
+  ctx.drawImage(dusk as CanvasImageSource, 0, 0, w, h);
+  ctx.restore();
+}
+
+/**
+ * The dusk sky (the Action overhaul, display only): deep blue overhead warming through violet and rose to a low amber
+ * glow over the city, a pale early moon and the first few stars. Laid over the night and faded out as the tower climbs.
+ */
+function paintDusk(c: CanvasRenderingContext2D, w: number, h: number): void {
+  const g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "#152056");
+  g.addColorStop(0.38, "#3B3478");
+  g.addColorStop(0.62, "#7A4686");
+  g.addColorStop(0.82, "#C9657A");
+  g.addColorStop(1, "#F2A160");
+  c.fillStyle = g;
+  c.fillRect(0, 0, w, h);
+  // The sun just down, a warm bloom low on the left.
+  const sun = c.createRadialGradient(w * 0.22, h * 1.02, 0, w * 0.22, h * 1.02, h * 0.55);
+  sun.addColorStop(0, "rgba(255,214,140,0.55)");
+  sun.addColorStop(0.4, "rgba(255,170,110,0.18)");
+  sun.addColorStop(1, "rgba(255,170,110,0)");
+  c.fillStyle = sun;
+  c.fillRect(0, 0, w, h);
+  // A few long, soft clouds catching the light.
+  for (let i = 0; i < 6; i++) {
+    const r = artHash(i, 977);
+    const cy = h * (0.45 + ((r % 1000) / 1000) * 0.35);
+    const cx = ((r >>> 10) % 1000) / 1000 * w;
+    const len = w * (0.25 + ((r >>> 4) % 5) * 0.06);
+    const cg = c.createLinearGradient(cx - len / 2, 0, cx + len / 2, 0);
+    cg.addColorStop(0, "rgba(255,190,170,0)");
+    cg.addColorStop(0.5, `rgba(255,${190 + (r % 30)},170,0.16)`);
+    cg.addColorStop(1, "rgba(255,190,170,0)");
+    c.fillStyle = cg;
+    c.fillRect(cx - len / 2, cy, len, 1.5 + (r % 3));
+  }
+  // The first stars, high and faint.
+  c.fillStyle = "#FFF4E0";
+  for (let i = 0; i < 14; i++) {
+    const r = artHash(i, 431);
+    c.globalAlpha = 0.35 + (r % 4) * 0.12;
+    c.fillRect(((r % 997) / 997) * w, (((r >>> 12) % 997) / 997) * h * 0.3, 1, 1);
+  }
+  c.globalAlpha = 1;
+  // The early moon, pale, where the night's moon hangs.
+  const mx = w * 0.84;
+  const my = h * 0.15;
+  const mr = Math.min(w, h) * 0.035;
+  c.fillStyle = "rgba(255,246,228,0.7)";
+  c.beginPath();
+  c.arc(mx, my, mr, 0, Math.PI * 2);
+  c.fill();
+}
+
+/** The night is drawn in this many steps (the world and the screen's fill share each step, so they always match). */
+export const SKYLINE_NIGHT_STEPS = 24;
+
+/** The drawn night share: skylineNightShare rounded to a step (the world and the fill both use it). */
+export function skylineNightStep(placed: number): number {
+  return Math.round(skylineNightShare(placed) * SKYLINE_NIGHT_STEPS) / SKYLINE_NIGHT_STEPS;
+}
+
+/** How far the round has gone from dusk (0) to night (1): from the floors built (render only, the same for every player). */
+export function skylineNightShare(placed: number): number {
+  const t = Math.max(0, Math.min(1, (placed - 4) / 40));
+  return t * t * (3 - 2 * t);
 }
 
 /** A cached sprite (world units, painted at 2×). */
@@ -164,70 +247,110 @@ function sprite(key: string, w: number, h: number, paint: (c: CanvasRenderingCon
   return out;
 }
 
-const BACKDROP = [
-  [0, 34, 120], [30, 26, 180], [54, 40, 140], [92, 22, 210], [112, 36, 160], [146, 30, 240],
-  [174, 44, 130], [216, 26, 200], [240, 38, 170], [276, 30, 230], [304, 42, 150], [344, 24, 190], [366, 30, 140],
-] as const;
-
-/** The backdrop's height in world units (its tallest far tower, plus a little). */
-const BACKDROP_H = 260;
-/**
- * Polish A2: two layered skylines (the same towers as before): the far one a hazy indigo with sparse
- * cool windows, the near one darker with warm lit windows and a few roof lights. Painted once into a
- * sprite, drawn under the same parallax as before.
- */
-function paintSkylines(c: CanvasRenderingContext2D): void {
-  const H = BACKDROP_H;
-  c.globalAlpha = 0.9;
-  c.fillStyle = "#1E2150";
-  for (const [x, w, h] of BACKDROP) c.fillRect(x - 40, H - h, w - 2, h);
-  c.fillStyle = "#A9B8FF";
-  for (const [x, w, h] of BACKDROP) {
-    for (let wy = H - h + 8; wy < H - 6; wy += 12) {
-      for (let wx = x - 37; wx < x - 40 + w - 6; wx += 7) {
-        const r = artHash(wx * 3, wy);
-        if (r % 7 !== 0) continue;
-        c.globalAlpha = 0.18 + (r % 3) * 0.08;
-        c.fillRect(wx, wy, 2, 3);
-      }
-    }
-  }
-  c.globalAlpha = 1;
-  c.fillStyle = TOWER_DARK;
-  for (const [x, w, h] of BACKDROP) c.fillRect(x + 15, H - h * 0.6, w - 4, h * 0.6);
-  c.fillStyle = "rgba(255,255,255,0.05)";
-  for (const [x, , h] of BACKDROP) c.fillRect(x + 15, H - h * 0.6, 2, h * 0.6);
-  for (const [x, w, h] of BACKDROP) {
-    for (let wy = H - h * 0.6 + 8; wy < H - 6; wy += 14) {
-      for (let wx = x + 19; wx < x + 15 + w - 8; wx += 8) {
-        const r = artHash(wx, wy);
-        if (r % 3 === 0) continue;
-        c.globalAlpha = r % 5 === 0 ? 0.75 : 0.32;
-        c.fillStyle = r % 5 === 0 ? "#FFE3A3" : WINDOW_LIGHT;
-        c.fillRect(wx, wy, 3, 5);
-      }
-    }
-  }
-  c.globalAlpha = 1;
-  c.fillStyle = "#FF5A5A";
-  for (const [x, w, h] of BACKDROP) if (h * 0.6 > 110) c.fillRect(x + 15 + (w - 4) / 2 - 1, H - h * 0.6 - 2, 2, 2);
-}
-function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number, SKYLINE_WORLD_H: number): void {
+function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number, SKYLINE_WORLD_H: number, night = 1): void {
   const k = 1 - (1 - zoom) * 0.2;
   ctx.save();
   ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H + scroll * 0.2 * zoom);
   ctx.scale(k, k);
   ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H);
-  const art = sprite("skylines", SKYLINE_WORLD_W + 80, BACKDROP_H, (c) => {
-    c.translate(40, 0);
-    paintSkylines(c);
-  });
-  if (art) ctx.drawImage(art as CanvasImageSource, -40, SKYLINE_WORLD_H - BACKDROP_H, SKYLINE_WORLD_W + 80, BACKDROP_H);
-  else {
-    ctx.translate(0, SKYLINE_WORLD_H - BACKDROP_H);
-    paintSkylines(ctx);
+  // The Action overhaul (15 Nov 2026): the city from concept A, three layers deep; its windows light up as night falls.
+  const W = SKYLINE_WORLD_W + 2 * CITY_PAD;
+  const dim = sprite("city-dim", W, CITY_H, (c) => paintCity(c, 0));
+  const lit = night > 0 ? sprite("city-lit", W, CITY_H, (c) => paintCity(c, 1)) : null;
+  if (dim) {
+    ctx.drawImage(dim as CanvasImageSource, -CITY_PAD, SKYLINE_WORLD_H - CITY_H, W, CITY_H);
+    if (lit) {
+      ctx.globalAlpha = night;
+      ctx.drawImage(lit as CanvasImageSource, -CITY_PAD, SKYLINE_WORLD_H - CITY_H, W, CITY_H);
+      ctx.globalAlpha = 1;
+    }
+  } else {
+    ctx.translate(-CITY_PAD, SKYLINE_WORLD_H - CITY_H);
+    paintCity(ctx, night);
   }
   ctx.restore();
+}
+
+/** The city backdrop's size (world px) and how far it runs past each side of the world. */
+const CITY_H = 300;
+const CITY_PAD = 60;
+
+/**
+ * The city behind the tower (the Action overhaul, display only; concept A's lit skyline): a hazy far range of towers,
+ * a middle layer with setbacks and spires, and a dark near layer with roof lights; every window placed by artHash, so
+ * the city is the same on every device. `lights` 0 is dusk (a few windows on), 1 is night (most windows lit, warm and
+ * cool, with the far layer's sparkle).
+ */
+function paintCity(c: CanvasRenderingContext2D, lights: number): void {
+  const W = SKYLINE_WORLD_W + 2 * CITY_PAD;
+  const H = CITY_H;
+  const on = (seed: number, share: number) => (artHash(seed, 61) % 1000) / 1000 < share;
+  const layer = (n: number, seedBase: number, minH: number, maxH: number, minW: number, maxW: number, body: string, edge: string, windowShare: number, warm: number, roofLights: boolean) => {
+    let x = -10 - (artHash(seedBase, 3) % 20);
+    let i = 0;
+    while (x < W && i < n) {
+      const r = artHash(seedBase + i * 17, 5);
+      const bw = minW + (r % (maxW - minW));
+      const bh = minH + ((r >>> 8) % (maxH - minH));
+      const top = H - bh;
+      c.fillStyle = body;
+      c.fillRect(x, top, bw, bh);
+      // A setback crown on some towers, a spire on a few.
+      const kind = (r >>> 16) % 6;
+      if (kind === 0 && bw > 18) {
+        c.fillRect(x + bw * 0.2, top - 14, bw * 0.6, 14);
+        c.fillRect(x + bw * 0.35, top - 24, bw * 0.3, 10);
+      } else if (kind === 1) {
+        c.fillRect(x + bw / 2 - 1, top - 26, 2, 26);
+      } else if (kind === 2 && bw > 22) {
+        c.beginPath();
+        c.moveTo(x, top);
+        c.lineTo(x + bw / 2, top - bw * 0.35);
+        c.lineTo(x + bw, top);
+        c.closePath();
+        c.fill();
+      }
+      // The lit edge: a thin highlight down the side facing the old sunset.
+      c.fillStyle = edge;
+      c.fillRect(x, top, 1.5, bh);
+      // Windows in rows.
+      for (let wy = top + 6; wy < H - 4; wy += 7) {
+        for (let wx = x + 3; wx < x + bw - 4; wx += 5) {
+          const seed = (wx * 7919 + wy * 31 + seedBase) | 0;
+          if (!on(seed, windowShare * (lights > 0 ? 1 : 0.14))) continue;
+          const hue = artHash(seed, 9) % 100 < warm ? (artHash(seed, 11) % 4 === 0 ? "#FFE7B0" : "#FFC66B") : "#BFD6FF";
+          c.globalAlpha = 0.45 + (artHash(seed, 13) % 5) * 0.11;
+          c.fillStyle = hue;
+          c.fillRect(wx, wy, 2, 3);
+        }
+      }
+      c.globalAlpha = 1;
+      if (roofLights && bh > 120 && lights > 0) {
+        c.fillStyle = "#FF5A5A";
+        c.fillRect(x + bw / 2 - 1, top - (kind === 1 ? 27 : kind === 0 ? 25 : 2), 2, 2);
+      }
+      x += bw + 1 + ((r >>> 20) % 6);
+      i++;
+    }
+  };
+  // Far: hazy and blue, a sparse sparkle of windows.
+  layer(60, 101, 90, 230, 14, 34, "#2B3068", "rgba(190,170,255,0.18)", 0.18, 30, false);
+  // A soft haze between the far and middle layers.
+  const haze = c.createLinearGradient(0, H * 0.35, 0, H);
+  haze.addColorStop(0, "rgba(90,80,160,0)");
+  haze.addColorStop(1, "rgba(120,100,190,0.22)");
+  c.fillStyle = haze;
+  c.fillRect(0, 0, W, H);
+  // Middle: setbacks and spires.
+  layer(40, 211, 70, 190, 20, 46, "#1A1F45", "rgba(255,200,170,0.14)", 0.42, 70, true);
+  // Near: dark, low and wide, with the most windows.
+  layer(26, 307, 40, 120, 28, 62, "#0F1530", "rgba(255,210,170,0.12)", 0.55, 80, true);
+  // The near layer's foot fades into the plaza.
+  const foot = c.createLinearGradient(0, H - 26, 0, H);
+  foot.addColorStop(0, "rgba(14,18,40,0)");
+  foot.addColorStop(1, "rgba(14,18,40,0.75)");
+  c.fillStyle = foot;
+  c.fillRect(0, H - 26, W, 26);
 }
 
 export function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, h: number, index: number, age = Infinity): void {
@@ -475,9 +598,12 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   const offsetY = (size.height - SKYLINE_WORLD_H * scale) / 2;
   const blockH = px(SKYLINE_BLOCK_H);
   const mem = remember(ctx, state);
+  const night = skylineNightStep(state.placed);
+  // The tower stands on the plaza, GROUND_LIFT px above the world's bottom (display only: the sim has no heights).
+  const floorH = SKYLINE_WORLD_H - GROUND_LIFT;
 
   ctx.save();
-  drawNight(ctx, size.width, size.height);
+  drawNight(ctx, size.width, size.height, night);
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
@@ -493,21 +619,28 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   const zoom = prev === undefined || state.tick < 2 ? target : prev + (target - prev) * ease;
   zoomMemo.set(ctx, zoom);
   const visibleH = SKYLINE_WORLD_H / zoom;
-  const camScroll = Math.max(0, towerH + blockH - visibleH * (expand ? EXPAND_CLIMB : 0.5));
+  const camScroll = Math.max(0, towerH + blockH + GROUND_LIFT - visibleH * (expand ? EXPAND_CLIMB : 0.5));
 
-  drawBackdrop(ctx, zoom, camScroll, SKYLINE_WORLD_H);
+  drawBackdrop(ctx, zoom, camScroll, SKYLINE_WORLD_H, night);
 
   ctx.save();
   ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H);
   ctx.scale(zoom, zoom);
   ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H + camScroll);
 
-  // Ground slab under the base.
-  ctx.fillStyle = GROUND;
-  ctx.fillRect(-SKYLINE_WORLD_W, SKYLINE_WORLD_H, SKYLINE_WORLD_W * 3, 400);
+  // The plaza the tower stands on, and the ground under it (the Action overhaul: solid and clear).
+  drawPlaza(ctx, floorH, SKYLINE_WORLD_H, state.blocks[0]!);
+  // Edge to edge (15 Nov 2026): the world's side edges blend into the screen's fill, which is the same scene held still
+  // (the camera moves the city and the plaza here, never there), so the world's edge always matches what lies beside it.
+  ctx.save();
+  ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H - camScroll);
+  ctx.scale(1 / zoom, 1 / zoom);
+  ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H);
+  drawEdgeRamps(ctx, SKYLINE_WORLD_H, night);
+  ctx.restore();
 
   state.blocks.forEach((block, index) => {
-    const top = SKYLINE_WORLD_H - index * blockH - blockH;
+    const top = floorH - index * blockH - blockH;
     if (index > 0) {
       const below = state.blocks[index - 1]!;
       // Soft shadow on the block below, inside its own rectangle.
@@ -521,7 +654,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     if (expand && index > 0) drawKindMark(ctx, skylineKindAt(state, index - 1), px(block.x), top, px(block.w), blockH, state.tick, false);
   });
 
-  const hangTop = SKYLINE_WORLD_H - state.blocks.length * blockH - blockH;
+  const hangTop = floorH - state.blocks.length * blockH - blockH;
   // skylineRev 2: the flag flies from the top block once the wind can blow.
   if (state.rev && state.placed >= SKYLINE_WIND_FROM && !state.missed) {
     const top = state.blocks[state.blocks.length - 1]!;
@@ -553,7 +686,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   const age = state.tick - state.perfectTick;
   if (state.perfectTick > 0 && age < SPARK_TICKS && !reducedMotion()) {
     const top = state.blocks[state.blocks.length - 1]!;
-    const seamY = SKYLINE_WORLD_H - (state.blocks.length - 1) * blockH;
+    const seamY = floorH - (state.blocks.length - 1) * blockH;
     ctx.fillStyle = REAL_GOLD;
     for (const ex of [px(top.x), px(top.x + top.w)]) {
       for (let k = 0; k < 4; k++) {
@@ -564,7 +697,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
       }
     }
   } else if (state.perfectTick > 0 && age < SPARK_TICKS) {
-    const seamY = SKYLINE_WORLD_H - (state.blocks.length - 1) * blockH;
+    const seamY = floorH - (state.blocks.length - 1) * blockH;
     ctx.fillStyle = REAL_GOLD;
     ctx.fillRect(-SKYLINE_WORLD_W, seamY - 1, SKYLINE_WORLD_W * 3, 2);
   }
@@ -585,17 +718,22 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   }
   ctx.restore();
 
+  // The quay in the foreground: the world's bottom rows always settle to the quay's colour the fill below starts from.
+  drawQuayStrip(ctx, 0, SKYLINE_WORLD_W, SKYLINE_WORLD_H);
+
   if (state.rev && !state.missed) drawGustLines(ctx, skylineGustAt(state, state.tick), state.tick, SKYLINE_WORLD_H);
 
   const perfectTop=state.blocks.at(-1);
   const popX=perfectTop?(px(perfectTop.x+perfectTop.w/2)-SKYLINE_WORLD_W/2)*zoom+SKYLINE_WORLD_W/2:0;
-  const popY=SKYLINE_WORLD_H+(-(state.blocks.length-1)*blockH+camScroll)*zoom;
+  const popY=SKYLINE_WORLD_H+(-(state.blocks.length-1)*blockH-GROUND_LIFT+camScroll)*zoom;
   if(perfectTop)successFrame(ctx,{id:'skyline',tick:state.tick,count:state.perfects,eventTick:state.perfectTick,colour:REAL_GOLD,width:SKYLINE_WORLD_W,height:SKYLINE_WORLD_H,point:{x:popX,y:popY,shape:'spark'},hud:{x:12,y:12,text:`Blocks ${state.placed}`}});
   if(perfectTop)drawPerfectPop(ctx,state,popX,popY);
   if (expand && perfectTop) {
     drawGoldPop(ctx, state, popX, popY);
     drawMilestone(ctx, state, popX, popY);
   }
+  // skylineRev 11: a life lost shows "−1 LIFE" where the block was lost.
+  if (perfectTop) drawLifeLost(ctx, state, popY);
   // Crane jib at the top, trolley above the hook's screen x.
   drawCrane(ctx, (hookX - SKYLINE_WORLD_W / 2) * zoom + SKYLINE_WORLD_W / 2, state.tick);
 
@@ -624,6 +762,238 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     ctx.fillRect(0, 0, SKYLINE_WORLD_W, SKYLINE_WORLD_H);
   }
   ctx.restore();
+}
+
+/**
+ * The plaza the tower stands on (the Action overhaul, 15 Nov 2026; display only): a lit concrete kerb, paving with
+ * joints, and a darker footing slab under the base block, ending at the world's bottom in the quay's colour
+ * (skylineRiverFill's #3E4B5E), so the fill below runs on without a seam. Below the world the ground carries on dark.
+ */
+function drawPlaza(ctx: CanvasRenderingContext2D, floorH: number, worldH: number, base: { x: number; w: number }): void {
+  void GROUND;
+  const g = ctx.createLinearGradient(0, floorH, 0, worldH);
+  g.addColorStop(0, "#6F7C92");
+  g.addColorStop(0.2, "#58657C");
+  g.addColorStop(1, "#3E4B5E");
+  ctx.fillStyle = g;
+  ctx.fillRect(-SKYLINE_WORLD_W, floorH, SKYLINE_WORLD_W * 3, worldH - floorH);
+  ctx.fillStyle = "#3E4B5E";
+  ctx.fillRect(-SKYLINE_WORLD_W, worldH, SKYLINE_WORLD_W * 3, 400);
+  // The kerb's lit edge and its shadow line.
+  ctx.fillStyle = "#C9D3E2";
+  ctx.fillRect(-SKYLINE_WORLD_W, floorH, SKYLINE_WORLD_W * 3, 2);
+  ctx.fillStyle = "rgba(10,14,30,0.45)";
+  ctx.fillRect(-SKYLINE_WORLD_W, floorH + 6, SKYLINE_WORLD_W * 3, 1);
+  // Paving joints.
+  ctx.fillStyle = "rgba(20,26,44,0.35)";
+  for (let x = -SKYLINE_WORLD_W; x < SKYLINE_WORLD_W * 2; x += 26) ctx.fillRect(x, floorH + 7, 1, worldH - floorH - 7);
+  // The footing under the base: a darker slab a little wider than the base, with hazard stripes at its ends.
+  const fx = px(base.x) - 8;
+  const fw = px(base.w) + 16;
+  ctx.fillStyle = "#2B3447";
+  ctx.fillRect(fx, floorH + 2, fw, 8);
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  ctx.fillRect(fx, floorH + 2, fw, 1);
+  for (const sx of [fx, fx + fw - 8]) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(sx, floorH + 3, 8, 7);
+    ctx.clip();
+    ctx.fillStyle = REAL_GOLD;
+    ctx.fillRect(sx, floorH + 3, 8, 7);
+    ctx.fillStyle = "#1A1A1A";
+    for (let k = -8; k < 16; k += 4) {
+      ctx.beginPath();
+      ctx.moveTo(sx + k, floorH + 10);
+      ctx.lineTo(sx + k + 2, floorH + 10);
+      ctx.lineTo(sx + k + 9, floorH + 3);
+      ctx.lineTo(sx + k + 7, floorH + 3);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/** The quay strip's height (world px): it fades from clear to the quay colour at the world's bottom edge. */
+const QUAY_STRIP_H = 12;
+const QUAY = "#3E4B5E";
+function drawQuayStrip(ctx: CanvasRenderingContext2D, x: number, w: number, worldH: number): void {
+  const g = ctx.createLinearGradient(0, worldH - QUAY_STRIP_H, 0, worldH);
+  g.addColorStop(0, "rgba(62,75,94,0)");
+  g.addColorStop(0.5, "rgba(62,75,94,0.85)");
+  g.addColorStop(0.7, QUAY);
+  g.addColorStop(1, QUAY);
+  ctx.fillStyle = g;
+  ctx.fillRect(x, worldH - QUAY_STRIP_H, w, QUAY_STRIP_H);
+}
+
+/** The sky alone, in world units over [0, worldH]: the night's gradient and city glow, the dusk laid over it. */
+function paintSkyStatic(ctx: CanvasRenderingContext2D, x: number, w: number, worldH: number, night: number): void {
+  const g = ctx.createLinearGradient(0, 0, 0, worldH);
+  g.addColorStop(0, SKY_TOP);
+  g.addColorStop(0.55, SKY_MID);
+  g.addColorStop(1, SKY_LOW);
+  ctx.fillStyle = g;
+  ctx.fillRect(x, 0, w, worldH);
+  const glow = ctx.createLinearGradient(0, worldH * 0.7, 0, worldH);
+  glow.addColorStop(0, "rgba(120,90,200,0)");
+  glow.addColorStop(1, "rgba(150,110,210,0.22)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(x, worldH * 0.7, w, worldH * 0.3);
+  if (night >= 1) return;
+  ctx.save();
+  ctx.globalAlpha = 1 - night;
+  const d = ctx.createLinearGradient(0, 0, 0, worldH);
+  d.addColorStop(0, "#152056");
+  d.addColorStop(0.38, "#3B3478");
+  d.addColorStop(0.62, "#7A4686");
+  d.addColorStop(0.82, "#C9657A");
+  d.addColorStop(1, "#F2A160");
+  ctx.fillStyle = d;
+  ctx.fillRect(x, 0, w, worldH);
+  const sx = SKYLINE_WORLD_W * 0.22;
+  const sun = ctx.createRadialGradient(sx, worldH * 1.02, 0, sx, worldH * 1.02, worldH * 0.55);
+  sun.addColorStop(0, "rgba(255,214,140,0.55)");
+  sun.addColorStop(0.4, "rgba(255,170,110,0.18)");
+  sun.addColorStop(1, "rgba(255,170,110,0)");
+  ctx.fillStyle = sun;
+  ctx.fillRect(x, 0, w, worldH);
+  ctx.restore();
+}
+
+/**
+ * The scene held still (edge to edge, 15 Nov 2026): the sky as the world draws it (night with the dusk laid over it at the
+ * same step), a scatter of stars kept clear of the world and the quay settling the bottom rows, in world units over
+ * `rect`. The screen's fill paints it beside the world, and the world blends its side edges into it (drawEdgeRamps): the
+ * city and the plaza move with the camera, so they fade out at the world's edges into the still sky rather than meet a
+ * still copy of themselves, and no seam shows at any height of the tower.
+ */
+export function paintSkylineStatic(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }, worldH: number, night: number, strip = true): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.clip();
+  paintSkyStatic(ctx, rect.x, rect.w, worldH, night);
+  // Stars beside the world only (never within 4 px of it), fewer at dusk.
+  ctx.fillStyle = "#E5EDFF";
+  for (let i = 0; i < 160; i++) {
+    const r = artHash(i, 733);
+    const x = -SKYLINE_WORLD_W + ((r % 10007) / 10007) * SKYLINE_WORLD_W * 3;
+    if (x > -4 && x < SKYLINE_WORLD_W + 4) continue;
+    if (x < rect.x || x > rect.x + rect.w) continue;
+    const y = ((((r >>> 14) % 10009) / 10009) ** 1.6) * worldH * 0.7;
+    ctx.globalAlpha = (0.2 + ((r >>> 5) % 5) * 0.1) * (0.25 + 0.75 * night);
+    ctx.fillRect(x, y, i % 9 === 0 ? 1.6 : 1, i % 9 === 0 ? 1.6 : 1);
+  }
+  ctx.globalAlpha = 1;
+  // The far city's low skyline, held still (the world's own city fades into it at the edges): dark blocks up to 70 px,
+  // their windows lighting with the night. Placed in world units by artHash, so beside and at the world's edge agree.
+  const base = worldH - GROUND_LIFT;
+  for (let x = -1_800, i = 0; x < rect.x + rect.w; i++) {
+    const r = artHash(Math.round(x) + 7_000, 811);
+    const bw = 16 + (r % 22);
+    const bh = 34 + ((r >>> 8) % 40);
+    if (x + bw >= rect.x) {
+      ctx.fillStyle = "#141A3A";
+      ctx.fillRect(x, base - bh, bw, bh + GROUND_LIFT);
+      for (let wy = base - bh + 5; wy < base - 3; wy += 7)
+        for (let wx = x + 3; wx < x + bw - 3; wx += 5) {
+          const q = artHash(Math.round(wx * 31 + wy), 17);
+          if (q % 1000 > 120 + 380 * night) continue;
+          ctx.globalAlpha = 0.5 + (q % 4) * 0.12;
+          ctx.fillStyle = q % 3 === 0 ? "#BFD6FF" : "#FFC66B";
+          ctx.fillRect(wx, wy, 2, 3);
+        }
+      ctx.globalAlpha = 1;
+    }
+    x += bw + 1 + ((r >>> 20) % 4);
+  }
+  if (strip) drawQuayStrip(ctx, rect.x, rect.w, worldH);
+  ctx.restore();
+}
+
+/** How wide the world's edge blend is (world px). */
+const EDGE_RAMP = 14;
+/** The world's left and right EDGE_RAMP px blended into the still scene (cached per night step; never over the blocks). */
+export function drawEdgeRamps(ctx: CanvasRenderingContext2D, worldH: number, night: number): void {
+  for (const side of [0, 1] as const) {
+    const x0 = side === 0 ? 0 : SKYLINE_WORLD_W - EDGE_RAMP;
+    const art = sprite(`edge-${side}-${worldH}-${night}`, EDGE_RAMP, worldH, (c) => {
+      c.save();
+      c.translate(-x0, 0);
+      paintSkylineStatic(c, { x: x0, y: 0, w: EDGE_RAMP, h: worldH }, worldH, night, false);
+      c.restore();
+      // The fade, in the sprite's own coordinates: opaque at the world's edge, clear EDGE_RAMP px in.
+      c.globalCompositeOperation = "destination-in";
+      const g = c.createLinearGradient(0, 0, EDGE_RAMP, 0);
+      g.addColorStop(0, side === 0 ? "rgba(0,0,0,1)" : "rgba(0,0,0,0)");
+      // Solid for the outermost 3 px, so the edge pixel is the still scene at any scale.
+      g.addColorStop(side === 0 ? 3 / EDGE_RAMP : 1 - 3 / EDGE_RAMP, "rgba(0,0,0,1)");
+      g.addColorStop(1, side === 0 ? "rgba(0,0,0,0)" : "rgba(0,0,0,1)");
+      c.fillStyle = g;
+      c.fillRect(0, 0, EDGE_RAMP, worldH);
+      c.globalCompositeOperation = "source-over";
+    });
+    if (art) ctx.drawImage(art as CanvasImageSource, x0, 0, EDGE_RAMP, worldH);
+  }
+}
+
+/**
+ * The play screen's fill for the dealt night step (edge to edge, 15 Nov 2026): the still scene beside the world, then
+ * the quay and the river below it (skylineRiverFill), painted once per size and night step (the stage passes the step as
+ * its sceneKey).
+ */
+const sceneFills = new Map<number, (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void>();
+export function skylineSceneFill(night: number): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  let fill = sceneFills.get(night);
+  if (!fill) {
+    fill = (ctx, view) => {
+      for (const r of fillSides(view)) paintSkylineStatic(ctx, r, view.worldH, night);
+      skylineRiverFill(ctx, view);
+    };
+    sceneFills.set(night, fill);
+  }
+  return fill;
+}
+
+/** How long "−1 LIFE" shows after a life is lost, in sim ticks. */
+const LIFE_POP_TICKS = 60;
+/** skylineRev 11: "−1 LIFE" in red over the tower top for a second after a life is lost (display only). */
+function drawLifeLost(ctx: CanvasRenderingContext2D, state: SkylineState, topY: number): void {
+  const at = state.lostTick ?? 0;
+  const age = state.tick - at;
+  if (!at || age < 0 || age >= LIFE_POP_TICKS || skylineLivesLeft(state) === null) return;
+  const p = age / LIFE_POP_TICKS;
+  const still = reducedMotion();
+  ctx.save();
+  ctx.globalAlpha = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3;
+  ctx.font = `800 22px ${ARCADE_FX_DISPLAY_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 5;
+  const y = Math.max(110, topY - 70 - (still ? 0 : p * 16));
+  const word = state.missed ? "LAST LIFE LOST" : "−1 LIFE";
+  ctx.strokeStyle = "rgba(20,8,12,0.85)";
+  ctx.strokeText(word, SKYLINE_WORLD_W / 2, y);
+  ctx.fillStyle = "#FF6B74";
+  ctx.fillText(word, SKYLINE_WORLD_W / 2, y);
+  ctx.restore();
+}
+
+/** A small heart for the LIVES chip (14 px square). */
+function heartIcon(colour: string) {
+  return (ctx: CanvasRenderingContext2D, cx: number, cy: number) => {
+    ctx.save();
+    ctx.fillStyle = colour;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + 5);
+    ctx.bezierCurveTo(cx - 8, cy - 1, cx - 4, cy - 7, cx, cy - 3);
+    ctx.bezierCurveTo(cx + 4, cy - 7, cx + 8, cy - 1, cx, cy + 5);
+    ctx.fill();
+    ctx.restore();
+  };
 }
 
 /** How long the "PERFECT" pop shows, in sim ticks. */
@@ -803,9 +1173,16 @@ function drawKindMark(ctx: CanvasRenderingContext2D, kind: number, x: number, to
  */
 function drawSkylineActionHud(ctx: CanvasRenderingContext2D, state: SkylineState): void {
   const streak = state.streak ?? 0;
+  // skylineRev 11: the lives left, beside BLOCKS (red on the last one; a ring for a second after one is lost).
+  const lives = skylineLivesLeft(state);
+  const lostAge = state.tick - (state.lostTick ?? -1e9);
+  const livesChip =
+    lives === null
+      ? []
+      : [{ label: "LIVES", value: `${lives} / ${SKYLINE_V11_LIVES}`, tone: (lives <= 1 ? "bad" : "plain") as "bad" | "plain", icon: heartIcon(lives <= 1 ? "#FF5D6A" : "#FF8A93"), flash: lostAge >= 0 && lostAge < 60 ? 1 - lostAge / 60 : 0 }];
   drawActionHud(ctx, SKYLINE_WORLD_W, [
     {
-      left: [{ label: "BLOCKS", value: String(state.placed), pulse: { id: "skyline", tick: state.tick } }],
+      left: [{ label: "BLOCKS", value: String(state.placed), pulse: { id: "skyline", tick: state.tick } }, ...livesChip],
       right: [{ label: "STREAK", value: String(streak), tone: streak >= SKYLINE_V9_STREAK_MAX ? "gold" : streak > 0 ? "plain" : "dim" }],
     },
   ]);
@@ -1002,6 +1379,8 @@ function drawMilestone(ctx: CanvasRenderingContext2D, state: SkylineState, x: nu
 export const SKYLINE_FX_EXPAND: ArcadeFxSpec<SkylineState> = {
   ...SKYLINE_FX,
   height: SKYLINE_SKY_H,
+  // skylineRev 11 (lives): every lost life is a miss moment (the red edge pulse), not just the last.
+  misses: [{ count: (s) => s.livesLost ?? (s.missed ? 1 : 0) }],
   events: [
     { kind: "perfect", count: (s) => s.perfects, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.42 }), label: () => null },
     // The milestone's banner is the game's own; this adds the edge glow and burst only.

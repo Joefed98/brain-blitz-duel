@@ -25,7 +25,7 @@ import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SKYLINE_REV_COUNT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_COUNT, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { PIN_REV_STD } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
@@ -46,7 +46,8 @@ export const SAME_PLAY_DEMO_REVS = {
   wavefront: [WAV_REV_STD, WAV_REV_KEEP],
   burst: [BURST_REV_STD, BURST_REV_AIM],
   cross: [CROSS_REV_FLOW, CROSS_REV_KEEP],
-  skyline: [SKYLINE_REV_STD, SKYLINE_REV_COUNT],
+  // skylineRev 11 (15 Nov 2026, lives): skylineRev 10's play until a miss, so a demo recorded on 10 or 11 plays.
+  skyline: [SKYLINE_REV_COUNT, SKYLINE_REV_LIVES],
 } as const;
 
 export function demoRevAccepted(game: keyof typeof SAME_PLAY_DEMO_REVS, rev: number | null | undefined): boolean {

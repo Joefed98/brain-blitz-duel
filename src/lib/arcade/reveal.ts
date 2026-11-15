@@ -313,6 +313,8 @@ const BUILDERS: Record<string, Builder> = {
         : n(r, "skylineRev") >= 7
           ? [{ label: "Gold blocks", value: String(n(r, "golds")) }]
           : []),
+      // skylineRev 11 (15 Nov 2026, lives): the lives lost (the replay's state carries `lives`).
+      ...((r["state"] as { lives?: number } | undefined)?.lives !== undefined ? [{ label: "Lives lost", value: `${n(r, "livesLost")} / 3` }] : []),
     ],
     outcome: ended(r, false),
   }),

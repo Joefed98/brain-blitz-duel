@@ -1025,6 +1025,9 @@ const GAMES: Game[] = [
   // Minefield minesRev 2 (13 Nov 2026: a Logic game with 20 mines), appended so every earlier entry keeps its stream.
   { key: "minesweeper/v2", game: minesweeperGameFor(MINES_REV_LOGIC), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_LOGIC) },  // Thirteen pyramidRev 3 (15 Nov 2026: a dead end waits for Undo), appended so every earlier entry keeps its stream.
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
+  // High Rise skylineRev 11 (15 Nov 2026, the Action overhaul: lives and the wide-block rescue), appended so every earlier
+  // entry keeps its stream.
+  { key: "skyline/lives", game: skylineGameFor(11), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 11) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

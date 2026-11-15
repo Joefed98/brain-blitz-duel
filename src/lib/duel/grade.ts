@@ -45,7 +45,7 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_LIVES, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { snakeStdParts } from "@/lib/arcade/snake";
@@ -1245,7 +1245,9 @@ function gradeUnderRev(
         ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
         // skylineRev 9 (the arcade scoring standard): gold blocks landed perfectly (of 5) and height milestones (no multiplier).
         // skylineRev 10 (the scoring audit): the same fields (rev 9's play; perfect drops counted, not shared).
-        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT ? { golds: run.golds, milestones: run.milestones } : {}),
+        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT || puzzle.skylineRev === SKYLINE_REV_LIVES ? { golds: run.golds, milestones: run.milestones } : {}),
+        // skylineRev 11 (lives): lives lost (display only; the score never reads it).
+        ...(puzzle.skylineRev === SKYLINE_REV_LIVES ? { livesLost: run.livesLost } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

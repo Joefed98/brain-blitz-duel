@@ -25,7 +25,7 @@ import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
 import { HOVER_REV_STANDARD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
-import { SKYLINE_REV_COUNT, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V10, SKYLINE_V9_BAND_CURVE } from "./skyline";
+import { SKYLINE_REV_LIVES, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V11, SKYLINE_V9_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_STD, BRK_REV_STRICT, BRK_V11_BAND_CURVE } from "./breaker";
 import { TILT_REV_BIG, TILT_REV_STRICT, TILT_V12_BAND_CURVE } from "./tilt";
@@ -114,7 +114,8 @@ export const LIVE_BANDS = {
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).
   hover: { field: "hoverRev", rev: HOVER_REV_STANDARD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   // skylineRev 9 (the arcade scoring standard): floors on a straight line to 140, then perfect drops, the streak and gold.
-  skyline: { field: "skylineRev", rev: SKYLINE_REV_COUNT, curve: SKYLINE_V9_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V10 },
+  // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
+  skyline: { field: "skylineRev", rev: SKYLINE_REV_LIVES, curve: SKYLINE_V9_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V11 },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
   breaker: { field: "brkRev", rev: BRK_REV_STD, curve: BRK_V11_BAND_CURVE, strictRev: BRK_REV_STRICT },
