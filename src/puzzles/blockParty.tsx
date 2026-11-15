@@ -155,6 +155,11 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
             <div className="bp-reveal-col flex flex-col items-center gap-2" data-reveal-view="solution">
               <RevealBoard puzzle={puzzle} placements={puzzle.solution} />
               <span className="bp-reveal-label">Solution</span>
+              {/* A line under the solution (the switch hides the label): with only a board in the shown view the
+                  reveal's fit drew it at half size (the stage-1 finding), so the solution keeps a caption of its own. */}
+              <p className="bp-reveal-caption" data-solution-caption="">
+                One way to fill every square
+              </p>
             </div>
           ) : null}
           <div className="bp-reveal-col flex flex-col items-center gap-2" data-reveal-view="yours">

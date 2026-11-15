@@ -11,6 +11,10 @@ import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
 import { generateWordsmithExample } from "../../src/lib/duel/wordsmith.server";
 
 export function exampleFor(type: PuzzleType): PuzzleData {
+  // As practiceGenerateFn: Skid, Chroma Lines and Tessellate's example is the live deal at the example seed (puzzle
+  // polish, 3 Nov 2026), not the bank's stored first board (the driver solved a board the page never showed).
+  if (type === "iceslide" || type === "flow" || type === "blockparty")
+    return withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED })) as PuzzleData;
   return (bankedIntroExample(type) ??
     withSeededRandom(INTRO_EXAMPLE_SEED, () =>
       type === "wordsmith"

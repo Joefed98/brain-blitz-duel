@@ -114,8 +114,10 @@
 /* The Pattern overhaul's reveal (15 Nov 2026). Each board is the reveal fit's own target (data-reveal-board), so the
    fit scales the board itself, never a column whose size the switch's hidden labels decide (the half-size solution). */
 .bp-reveal-col { min-width: 0; }
+.bp-reveal-caption { font-size: 14px; color: var(--jz-text-2); }
 .bp-reveal-label { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--jz-text-2); }
-.bp-reveal-pills { justify-content: center; flex-wrap: wrap; height: auto; row-gap: 6px; }
+.hud-pills.bp-reveal-pills { justify-content: center; flex-wrap: wrap; height: auto; row-gap: 6px; overflow: visible; }
+.hud-pills.bp-reveal-pills .hud-pill { flex: 0 0 auto; }
 .bp-reveal-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: 13px; color: var(--jz-text-2); }
 .bp-key::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 3px; }
 .bp-key--wrong::before { border: 2px solid var(--jz-loss); }
