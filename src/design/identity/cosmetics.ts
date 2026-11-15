@@ -21,7 +21,7 @@ import {
   SPECIAL_EDITIONS,
   TILE_STYLES,
   type FinishArt,
-} from "./cosmeticsArt.data";
+} from "./liveArt";
 
 export { ACCESSORIES, CELEBRATIONS, FINISHES, REACTIONS, SPECIAL_EDITIONS, TILE_STYLES };
 
