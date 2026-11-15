@@ -6,6 +6,7 @@
  */
 import type { ContrastPair, GameLook } from "./look";
 import { skinRedrawn } from "./redrawPreview";
+import { sceneImage, sceneImagesVersion } from "./sceneImages";
 
 export type CardBack = "royal-damask" | "holo-foil" | "neon";
 export type Felt = "midnight" | "crimson" | "neon";
@@ -262,6 +263,21 @@ function star8(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): 
 /** The redrawn backs, in the same 84 × 118 frame stretched to w × h, with the same outline after. */
 function paintSkinBackV2(ctx: CanvasRenderingContext2D, back: CardBack, w: number, h: number): void {
   const r = Math.max(3, w * 0.09);
+  // The second pass: the back rendered in Blender (printed and foiled card stock, its frame and emblem modelled),
+  // drawn into the card's own rounded outline; the first pass's painting while the image loads.
+  const sprite = sceneImage(`card-back.${back}`);
+  if (sprite) {
+    ctx.save();
+    rr(ctx, 0, 0, w, h, r);
+    ctx.clip();
+    ctx.drawImage(sprite, 0, 0, w, h);
+    ctx.restore();
+    ctx.strokeStyle = "#06080F";
+    ctx.lineWidth = Math.max(1, w / 42);
+    rr(ctx, 0.5, 0.5, w - 1, h - 1, r);
+    ctx.stroke();
+    return;
+  }
   ctx.save();
   rr(ctx, 0, 0, w, h, r);
   ctx.clip();
@@ -490,18 +506,32 @@ function paintSkinFeltV2(c: CanvasRenderingContext2D, felt: Felt, w: number, h: 
   g.addColorStop(1, k.edge);
   c.fillStyle = g;
   c.fillRect(inset, inset, fw, fh);
+  // The second pass: the cloth rendered in Blender (a woven twill, or velvet's nap), laid over the cloth's colour with
+  // hard-light (its mid-grey leaves the colour as it is); the first pass's painted weave while the image loads.
+  const cloth = sceneImage(felt === "crimson" ? "cloth.velvet" : "cloth.weave");
+  if (cloth) {
+    const pattern = c.createPattern(cloth, "repeat");
+    if (pattern) {
+      c.save();
+      c.globalCompositeOperation = "hard-light";
+      c.scale(0.5, 0.5);
+      c.fillStyle = pattern;
+      c.fillRect(inset * 2, inset * 2, fw * 2, fh * 2);
+      c.restore();
+    }
+  }
   // The weave: a fine twill of light and dark threads.
-  for (let y = inset; y < h - inset; y += 2) {
+  for (let y = inset; !cloth && y < h - inset; y += 2) {
     c.fillStyle = (y / 2) % 2 ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.05)";
     c.fillRect(inset, y, fw, 1);
   }
-  for (let x = inset; x < w - inset; x += 3) {
+  for (let x = inset; !cloth && x < w - inset; x += 3) {
     c.fillStyle = "rgba(0,0,0,0.035)";
     c.fillRect(x, inset, 1, fh);
   }
   // The nap: fixed specks, light and dark.
   let n = 0x51ed;
-  for (let i = 0; i < (w * h) / 60; i++) {
+  for (let i = 0; !cloth && i < (w * h) / 60; i++) {
     n = (Math.imul(n, 1103515245) + 12345) >>> 0;
     const x = inset + (((n >>> 8) % 10000) / 10000) * fw;
     n = (Math.imul(n, 1103515245) + 12345) >>> 0;
@@ -554,3 +584,10 @@ const BACK_COLOURS_V2: Readonly<Record<CardBack, string[]>> = {
   "holo-foil": ["#FFFFFF", "#BFF4FF", "#FFC8EC"],
   neon: ["#22E4FF", "#E8FFFF", "#05040F"],
 };
+
+/**
+ * Extra cache-key text for a back or felt that draws its redraw: it changes when a scene image arrives, so a cached
+ * card back or felt is painted again once with its Blender image. "" with the switch off (today's keys exactly).
+ */
+export const backCacheTag = (back: CardBack): string => (backRedrawn(back) ? `:v${sceneImagesVersion()}` : "");
+export const feltCacheTag = (felt: Felt): string => (feltRedrawn(felt) ? `:v${sceneImagesVersion()}` : "");

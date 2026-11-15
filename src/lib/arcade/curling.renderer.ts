@@ -20,7 +20,7 @@
  */
 import type { CanvasSize } from "./engine";
 import { NO_LOOK, type GameLook } from "./skins/look";
-import { curlStoneSkin, DEFAULT_RINK, neonRinkArena, neonRinkPalette, neonStroke, paintSkinStone } from "./skins/curling.skins";
+import { curlStoneSkin, DEFAULT_RINK, neonRinkArena, neonRinkCacheTag, neonRinkIce, neonRinkPalette, neonStroke, paintSkinStone } from "./skins/curling.skins";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { artHash } from "./art.renderer";
 import {
@@ -165,6 +165,7 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
   ctx.fillStyle = g;
   ctx.fill();
   ctx.clip();
+  if (L.world) neonRinkIce(ctx, q[0]!.sy, v.w, v.h);
   // Both houses, their rings about this sheet's centre line.
   {
     for (const cy of [0, TEE_NEAR]) {
@@ -360,7 +361,7 @@ function staticLayer(ctx: CanvasRenderingContext2D, v: CurlView): HTMLCanvasElem
   const t = ctx.getTransform();
   const w = Math.max(1, Math.round(v.w * t.a));
   const h = Math.max(1, Math.round(v.h * t.d));
-  const key = L.world ?? "";
+  const key = (L.world ?? "") + (L.world ? neonRinkCacheTag() : "");
   if (cache && cache.w === w && cache.h === h && cache.rev === v.rev && cache.key === key) return cache.canvas;
   const canvas = document.createElement("canvas");
   canvas.width = w;
