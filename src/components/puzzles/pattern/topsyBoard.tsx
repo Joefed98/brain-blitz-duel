@@ -5,12 +5,13 @@
  * (topsy.css). The board animates what replayTopsy decided and never decides anything itself.
  */
 import { shownPar, usesParMoves } from "@/lib/duel/parMoves";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { ArrowPad, gridCellCentre, useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { TopsyCup, TopsyMarble } from "@/components/puzzles/pattern/topsyArt";
+import { useGameFxOnce } from "@/components/fx/GameFx";
 import { Button } from "@/components/ui/button";
 import { useGameKeys } from "@/lib/desktop";
 import { decodeGravityTilts, encodeGravityTilts } from "@/lib/duel/gravity";
@@ -33,6 +34,7 @@ import {
   type TopsyTilt,
 } from "@/lib/duel/topsy";
 import type { GravityDir, GravityPuzzleData } from "@/lib/duel/types";
+import { gameFx, gameFxVariant } from "@/lib/fx/kit";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { cueHasFile, ensureLoop, playSound, playTick, stopLoop } from "@/lib/sound";
 import type { PuzzleRevealProps, PuzzleStageProps } from "@/puzzles/types";
@@ -69,9 +71,8 @@ export interface TopsyBoardProps {
   board: TopsyBoardData;
   state: TopsyState;
   size?: number | undefined;
-  lean?: GravityDir | null;
-  /** The lean is a tilt that moves nothing: a smaller lean (topsy.css), the board otherwise unchanged. */
-  nudge?: boolean;
+  /** The playable board: a ball arriving home drops into its cup (the effects kit). Still boards (intro, reveal, tile) play nothing. */
+  live?: boolean;
   /** Reveal only: the balls not home and their holes are marked (a red ring), so what was missed shows at a glance. */
   missed?: boolean;
   /** The board was just cleared (or the round solved): the holes light in turn. */
@@ -102,76 +103,196 @@ function useRollDurations(board: TopsyBoardData, balls: readonly number[]): numb
   return ms;
 }
 
-export function TopsyBoardView({ board, state, size, lean, nudge = false, cleared = false, missed = false }: TopsyBoardProps) {
+/* ------------------------------------------------------------------ effects (stage 2, 15 Nov 2026) */
+
+/*
+ * The board's effects (presentation only; they observe what the stage's replay decided and never change it). Every
+ * one moves only transform and opacity, through the effects kit (gameFx) or, for the tray's own art layers, the same
+ * Web Animations call with the kit's variant (gameFxVariant): reduced motion is a 120 ms crossfade with no movement,
+ * reduced effects a smaller, shorter one. They animate the tray's art layers (`[data-topsy-tilt]`, `[data-topsy-flip]`)
+ * and the pieces (the sunk marble, the rings), never the board's measured grid (`[data-topsy-measure]`), the arena or
+ * the stage, so no square, roll or control ever moves.
+ */
+
+/** The tray's lean on a tilt, in degrees (a real tilt; a tilt that moves nothing leans a third as far). */
+export const TOPSY_LEAN_DEG = 6;
+export const TOPSY_NUDGE_DEG = 2;
+/** Longest a lean runs (the kit's cap for one physical action). */
+export const TOPSY_LEAN_MAX_MS = 900;
+/** The flip between boards: the cleared tray turns away, the next turns in. */
+export const TOPSY_FLIP_OUT_MS = 240;
+export const TOPSY_FLIP_IN_MS = 280;
+const FADE_MS = 120;
+
+const PERSPECTIVE = "perspective(700px)";
+function leanTransform(dir: GravityDir, deg: number): string {
+  const r = dir === "U" ? `rotateX(${deg}deg)` : dir === "D" ? `rotateX(${-deg}deg)` : dir === "L" ? `rotateY(${-deg}deg)` : `rotateY(${deg}deg)`;
+  return `${PERSPECTIVE} ${r}`;
+}
+
+const playing = new WeakMap<Element, Animation>();
+/** One Web Animation on a tray art layer or piece (transform and opacity frames only); a new one replaces it. */
+function play(el: Element | null | undefined, frames: Keyframe[], options: KeyframeAnimationOptions): Animation | undefined {
+  if (!el || typeof (el as HTMLElement).animate !== "function") return undefined;
+  playing.get(el)?.cancel();
+  try {
+    const anim = (el as HTMLElement).animate(frames, options);
+    playing.set(el, anim);
+    return anim;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A tilt leans the tray's art layer towards the tilt and holds it while the balls roll (`rollMs`, the longest roll),
+ * then settles back; a tilt that moves nothing (`small`) only nods a third as far and back. Reduced motion: a real
+ * tilt crossfades the tray (the balls jump), a dead one shows nothing (nothing changed). A new tilt replaces the lean.
+ */
+export function leanTopsyTray(el: Element | null | undefined, dir: GravityDir, { small = false, rollMs = 0 } = {}): Animation | undefined {
+  if (dir !== "U" && dir !== "D" && dir !== "L" && dir !== "R") return undefined;
+  const variant = gameFxVariant("slide");
+  if (variant === "reduced") return small ? undefined : play(el, [{ opacity: 0.55 }, { opacity: 1 }], { duration: FADE_MS, easing: "linear" });
+  const lite = variant === "lite";
+  const deg = (small ? TOPSY_NUDGE_DEG : TOPSY_LEAN_DEG) * (lite ? 0.5 : 1);
+  const rest = `${PERSPECTIVE} rotateX(0deg)`;
+  if (small) {
+    const ms = lite ? 120 : 180;
+    return play(el, [{ transform: rest }, { transform: leanTransform(dir, deg), offset: 0.4 }, { transform: rest }], { duration: ms, easing: "ease-out" });
+  }
+  const ms = Math.min(TOPSY_LEAN_MAX_MS, Math.max(lite ? 200 : 260, rollMs + (lite ? 120 : 200)));
+  const peak = Math.min(0.3, 90 / ms);
+  const hold = Math.max(peak, Math.min(0.8, rollMs / ms));
+  return play(
+    el,
+    [{ transform: rest }, { transform: leanTransform(dir, deg), offset: peak }, { transform: leanTransform(dir, deg), offset: hold }, { transform: rest }],
+    { duration: ms, easing: "ease-out" },
+  );
+}
+
+/** A cleared board's tray turns away (held hidden: the next board replaces it). Reduced motion: none (the next board fades in). */
+export function flipTopsyTrayAway(el: Element | null | undefined): Animation | undefined {
+  const variant = gameFxVariant("slide");
+  if (variant === "reduced") return undefined;
+  const ms = variant === "lite" ? 160 : TOPSY_FLIP_OUT_MS;
+  return play(el, [{ transform: "perspective(900px) rotateY(0deg) scale(1)", opacity: 1 }, { transform: "perspective(900px) rotateY(80deg) scale(0.92)", opacity: 0 }], { duration: ms, easing: "ease-in", fill: "forwards" });
+}
+
+/** The next board's tray turns in after a cleared one. Reduced motion: a 120 ms crossfade. */
+export function flipTopsyTrayIn(el: Element | null | undefined): Animation | undefined {
+  const variant = gameFxVariant("slide");
+  if (variant === "reduced") return play(el, [{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: "linear" });
+  const ms = variant === "lite" ? 180 : TOPSY_FLIP_IN_MS;
+  return play(el, [{ transform: "perspective(900px) rotateY(-80deg) scale(0.92)", opacity: 0 }, { transform: "perspective(900px) rotateY(0deg) scale(1)", opacity: 1 }], { duration: ms, easing: "ease-out", fill: "backwards" });
+}
+
+/**
+ * A ball home drops into its cup when its roll ends: the sunk marble shows (an opacity step on its wrapper) and lands
+ * with the kit's drop (silent: gravity.lock is the board's pip, timed by topsyTiltSounds). Reduced motion: it crossfades in.
+ */
+export function dropTopsyBallHome(wrap: Element | null | undefined, rollMs: number): void {
+  if (!wrap) return;
+  const reduced = gameFxVariant("drop") === "reduced";
+  const delay = reduced ? 0 : rollMs;
+  play(wrap, [{ opacity: 0 }, { opacity: 1 }], { duration: reduced ? FADE_MS : 90, delay, easing: "linear", fill: "backwards" });
+  gameFx("drop", wrap.firstElementChild, { delayMs: delay, silent: true });
+}
+
+/** The board's measured grid and its art grid share one template, so the art always sits on the measured squares. */
+const gridStyle = { gridTemplateColumns: `repeat(${TOPSY_SIZE}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${TOPSY_SIZE}, minmax(0, 1fr))` };
+
+export function TopsyBoardView({ board, state, size, live = false, cleared = false, missed = false }: TopsyBoardProps) {
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const rollMs = useRollDurations(board, state.balls);
   const metrics = useGridMetrics(gridRef, TOPSY_SIZE, TOPSY_SIZE);
   const walls = useMemo(() => new Set(board.walls), [board.walls]);
   const ballSize = metrics ? Math.max(6, Math.min(metrics.cellW, metrics.cellH) * 0.8) : 0;
-  const leanName = lean === "U" || lean === "D" || lean === "L" || lean === "R" ? lean : "none";
+
+  // A ball arriving home (live board only): it drops into its cup as its roll ends. A board that mounts with balls
+  // already home (a reload, the next board, a still board) plays nothing.
+  const seen = useRef(state.balls);
+  useLayoutEffect(() => {
+    const before = seen.current;
+    seen.current = state.balls;
+    if (!live || before === state.balls) return;
+    state.balls.forEach((cell, i) => {
+      if (cell !== TOPSY_HOME || before[i] === TOPSY_HOME) return;
+      dropTopsyBallHome(rootRef.current?.querySelector(`[data-topsy-hole="${i}"] [data-topsy-sunk]`), rollMs[i] ?? 0);
+    });
+  }, [state.balls, live]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
+      ref={rootRef}
       className={`gravity-board grav-tray topsy-tray relative shrink-0${cleared ? " is-solving" : ""}`}
-      data-lean={leanName}
-      data-nudge={nudge && leanName !== "none" ? "" : undefined}
       data-topsy-board=""
       style={{ width: size ?? "100%", height: size ?? "auto", aspectRatio: "1 / 1", ["--grav-cols" as string]: TOPSY_SIZE }}
     >
-      <div className="grav-well">
-        <div
-          ref={gridRef}
-          className="puzzle-board grav-grid topsy-grid grid h-full w-full"
-          style={{ gridTemplateColumns: `repeat(${TOPSY_SIZE}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${TOPSY_SIZE}, minmax(0, 1fr))` }}
-        >
-          {Array.from({ length: TOPSY_SIZE * TOPSY_SIZE }, (_, cell) => {
-            if (walls.has(cell)) return <div key={cell} className="grav-block" />;
-            const hole = board.holes.indexOf(cell);
-            const star = board.stars.indexOf(cell);
-            return (
-              <div key={cell} className="grav-floor">
-                {hole >= 0 ? (
-                  <span
-                    aria-label={state.balls[hole] === TOPSY_HOME ? "Ball home" : "Hole"}
-                    className={`grav-socket topsy-hole${state.balls[hole] === TOPSY_HOME ? " is-locked is-home" : missed ? " is-missed" : ""}`}
-                    data-missed={missed && state.balls[hole] !== TOPSY_HOME ? "" : undefined}
-                    style={{ ["--ball" as string]: TOPSY_COLOURS[hole], ["--order" as string]: hole }}
-                  >
-                    <TopsyCup index={hole} />
-                    {state.balls[hole] === TOPSY_HOME ? <TopsyMarble index={hole} className="topsy-marble topsy-sunk" /> : null}
-                    <BallMark index={hole} />
-                  </span>
-                ) : null}
-                {star >= 0 ? <span aria-label="Star" className={`topsy-star${state.starMask & (1 << star) ? " is-taken" : ""}`} /> : null}
-              </div>
-            );
-          })}
+      {/* The measure box: an empty grid in exactly the art grid's place. It never moves (the effects animate only the
+          art layers below), so the squares useGridMetrics measures, and every ball's place, never change with a lean. */}
+      <div className="topsy-measure" data-topsy-measure="" aria-hidden="true">
+        <div ref={gridRef} className="topsy-grid grid h-full w-full" style={gridStyle} />
+      </div>
+      <div className="topsy-flip" data-topsy-flip="">
+        <div className="topsy-tilt" data-topsy-tilt="">
+          <div className="grav-well">
+            <div className="puzzle-board grav-grid topsy-grid grid h-full w-full" style={gridStyle}>
+              {Array.from({ length: TOPSY_SIZE * TOPSY_SIZE }, (_, cell) => {
+                if (walls.has(cell)) return <div key={cell} className="grav-block" />;
+                const hole = board.holes.indexOf(cell);
+                const star = board.stars.indexOf(cell);
+                return (
+                  <div key={cell} className="grav-floor">
+                    {hole >= 0 ? (
+                      <span
+                        aria-label={state.balls[hole] === TOPSY_HOME ? "Ball home" : "Hole"}
+                        className={`grav-socket topsy-hole${state.balls[hole] === TOPSY_HOME ? " is-locked is-home" : missed ? " is-missed" : ""}`}
+                        data-topsy-hole={hole}
+                        data-missed={missed && state.balls[hole] !== TOPSY_HOME ? "" : undefined}
+                        style={{ ["--ball" as string]: TOPSY_COLOURS[hole], ["--order" as string]: hole }}
+                      >
+                        <TopsyCup index={hole} />
+                        {state.balls[hole] === TOPSY_HOME ? (
+                          <span className="topsy-sunk-wrap" data-topsy-sunk="">
+                            <TopsyMarble index={hole} className="topsy-marble topsy-sunk" />
+                          </span>
+                        ) : null}
+                        <BallMark index={hole} />
+                      </span>
+                    ) : null}
+                    {star >= 0 ? <span aria-label="Star" className={`topsy-star${state.starMask & (1 << star) ? " is-taken" : ""}`} /> : null}
+                  </div>
+                );
+              })}
+            </div>
+            {metrics
+              ? state.balls.map((cell, index) => {
+                  const home = cell === TOPSY_HOME;
+                  const centre = gridCellCentre(metrics, home ? board.holes[index]! : cell, TOPSY_SIZE);
+                  return (
+                    <span
+                      key={index}
+                      aria-hidden="true"
+                      className={`grav-ball topsy-ball${home ? " is-home" : missed ? " is-missed" : ""}`}
+                      data-ball={index}
+                      style={{
+                        width: ballSize,
+                        height: ballSize,
+                        transform: `translate(${centre.x - ballSize / 2}px, ${centre.y - ballSize / 2}px)`,
+                        ["--ball" as string]: TOPSY_COLOURS[index],
+                        ["--order" as string]: index,
+                        ["--roll-ms" as string]: `${rollMs[index]}ms`,
+                      }}
+                    >
+                      <TopsyMarble index={index} />
+                      <BallMark index={index} />
+                    </span>
+                  );
+                })
+              : null}
+          </div>
         </div>
-        {metrics
-          ? state.balls.map((cell, index) => {
-              const home = cell === TOPSY_HOME;
-              const centre = gridCellCentre(metrics, home ? board.holes[index]! : cell, TOPSY_SIZE);
-              return (
-                <span
-                  key={index}
-                  aria-hidden="true"
-                  className={`grav-ball topsy-ball${home ? " is-home" : missed ? " is-missed" : ""}`}
-                  data-ball={index}
-                  style={{
-                    width: ballSize,
-                    height: ballSize,
-                    transform: `translate(${centre.x - ballSize / 2}px, ${centre.y - ballSize / 2}px)`,
-                    ["--ball" as string]: TOPSY_COLOURS[index],
-                    ["--order" as string]: index,
-                    ["--roll-ms" as string]: `${rollMs[index]}ms`,
-                  }}
-                >
-                  <TopsyMarble index={index} />
-                  <BallMark index={index} />
-                </span>
-              );
-            })
-          : null}
       </div>
     </div>
   );
@@ -182,7 +303,7 @@ export function TopsyRings({ state, label }: { state: TopsyState; label?: string
   return (
     <div className="topsy-rings" data-topsy-rings="" aria-label={label ?? `${state.balls.filter((b) => b === TOPSY_HOME).length} of ${TOPSY_BALLS} balls home`}>
       {state.balls.map((cell, index) => (
-        <span key={index} className={`topsy-ring${cell === TOPSY_HOME ? " is-home" : ""}`} style={{ ["--ball" as string]: TOPSY_COLOURS[index] }}>
+        <span key={index} data-topsy-ring={index} className={`topsy-ring${cell === TOPSY_HOME ? " is-home" : ""}`} style={{ ["--ball" as string]: TOPSY_COLOURS[index] }}>
           <BallMark index={index} />
         </span>
       ))}
@@ -242,6 +363,17 @@ export function topsyTiltSounds(out: TopsyTilt, boardCleared: boolean, outOfTilt
 
 /* ------------------------------------------------------------------ the live stage */
 
+/** "Out of tilts" over the board while it holds: it lands with the kit's drop (silent: gravity.outOfTilts is the clunk). */
+function OutOfTiltsBanner() {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  useGameFxOnce("drop", ref, true, { silent: true, inGame: true });
+  return (
+    <span ref={ref} className="topsy-banner" data-topsy-banner="">
+      Out of tilts
+    </span>
+  );
+}
+
 /** The ring row's height and its gap to the board. */
 const TOPSY_HEAD_PX = 32;
 
@@ -257,8 +389,6 @@ function currentBoardState(puzzle: GravityPuzzleData & { boards: TopsyBoardData[
 export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, now, stateKey = "gravity" }: PuzzleStageProps) {
   const data = puzzle as GravityPuzzleData & { boards: TopsyBoardData[] };
   const [tilts, setTilts] = useStageState<GravityDir[]>(stateKey, "topsyTilts", () => []);
-  const [lean, setLean] = useState<GravityDir | null>(null);
-  const [nudge, setNudge] = useState(false);
   const submitted = useRef(false);
   const reduced = usePrefersReducedMotion();
   const boardSpaceRef = useRef<HTMLDivElement | null>(null);
@@ -271,12 +401,29 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   const [shown, setShown] = useState(() => Math.min(replay.current, TOPSY_BOARDS - 1));
   const holding = shown < Math.min(replay.current, TOPSY_BOARDS - 1);
   const current = replay.current;
+  // A cleared board's tray flips away at the end of its hold and the next one turns in (display only: the hold, and
+  // the input it blocks, are the same with or without the flip; flipTopsyTrayAway / flipTopsyTrayIn).
+  const flipIn = useRef(false);
+  const clearedShown = Boolean(replay.boards[shown]?.cleared);
   useEffect(() => {
     const target = Math.min(current, TOPSY_BOARDS - 1);
     if (shown >= target) return;
-    const timer = setTimeout(() => setShown(target), reduced ? BOARD_HOLD_REDUCED_MS : BOARD_HOLD_MS);
-    return () => clearTimeout(timer);
-  }, [current, shown, reduced]);
+    const hold = reduced ? BOARD_HOLD_REDUCED_MS : BOARD_HOLD_MS;
+    const away = clearedShown ? setTimeout(() => flipTopsyTrayAway(boardSpaceRef.current?.querySelector("[data-topsy-flip]")), hold - TOPSY_FLIP_OUT_MS) : null;
+    const timer = setTimeout(() => {
+      flipIn.current = clearedShown;
+      setShown(target);
+    }, hold);
+    return () => {
+      clearTimeout(timer);
+      if (away) clearTimeout(away);
+    };
+  }, [current, shown, reduced, clearedShown]);
+  useLayoutEffect(() => {
+    if (!flipIn.current) return;
+    flipIn.current = false;
+    flipTopsyTrayIn(boardSpaceRef.current?.querySelector("[data-topsy-flip]"));
+  }, [shown]);
 
   const board = data.boards[shown]!;
   const state = currentBoardState(data, replay, shown);
@@ -335,22 +482,27 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
     return true;
   });
 
-  const leanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (leanTimer.current) clearTimeout(leanTimer.current);
-  }, []);
   const press = (dir: GravityDir) => {
     if (blocked) return;
     const index = replay.current;
     const playing = data.boards[index];
     if (!playing) return;
     const out = topsyTilt(playing, new Set(playing.walls), currentBoardState(data, replay, index), dir);
-    if (leanTimer.current) clearTimeout(leanTimer.current);
-    setLean(dir);
+    const tray = boardSpaceRef.current?.querySelector("[data-topsy-tilt]");
     // A tilt that moves nothing: a small lean and nothing else (no sound, no draft; the server never counted it).
-    setNudge(!out.moved);
-    leanTimer.current = setTimeout(() => setLean(null), out.moved ? 200 : 140);
-    if (!out.moved) return;
+    if (!out.moved) {
+      leanTopsyTray(tray, dir, { small: true });
+      return;
+    }
+    // The tray leans while the balls roll (the board's own roll times); two or more home in one tilt pop their rings
+    // as a combo once the last has dropped (kit combo, silent: gravity.combo is topsyTiltSounds').
+    const longest = Math.max(0, ...out.paths.filter((path) => path.length > 1).map(rollTimeMs));
+    leanTopsyTray(tray, dir, { rollMs: longest });
+    if (out.dropped.length >= 2) {
+      const rings = boardSpaceRef.current?.querySelectorAll("[data-topsy-ring]");
+      const at = reduced ? 0 : Math.max(...out.dropped.map((b) => rollTimeMs(out.paths[b]!))) + 60;
+      for (const b of out.dropped) gameFx("combo", rings?.[b], { count: out.dropped.length, silent: true, delayMs: at });
+    }
     const next = [...tilts, dir];
     const nextReplay = replayTopsyPuzzle(data, next);
     const after = nextReplay.boards[index];
@@ -384,13 +536,12 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
             key={shown}
             board={board}
             state={state}
-            lean={lean}
-            nudge={nudge}
+            live
             cleared={solving || Boolean(boardResult?.cleared)}
             size={Math.max(0, Math.floor(Math.min(boardSpace.width, boardSpace.height - TOPSY_HEAD_PX)))}
           />
         ) : null}
-        {outOfTilts ? <span className="topsy-banner" data-topsy-banner="">Out of tilts</span> : null}
+        {outOfTilts ? <OutOfTiltsBanner /> : null}
       </div>
       {/* Puzzle polish (3 Nov 2026): the summary as pills. On a stamp that shows its par (parMoves.ts `shownPar`):
           "Moves n" (every tilt made on every board, as the server counts them), "Par p", the balls home and the
@@ -517,15 +668,19 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtr
   const index = Math.min(pick, boards.length - 1);
   const b = boards[index]!;
   const noStars = usesParMoves(data);
-  // The key numbers, from the stored grade where it has them (the replay otherwise, for stored rounds without them).
+  // The round's totals, from the stored grade where it has them (the replay otherwise, for stored rounds without them).
   const num = (k: string) => (typeof myExtra?.[k] === "number" ? (myExtra[k] as number) : null);
   const cleared = num("cleared") ?? boards.filter((x) => x.outcome === "cleared").length;
   const home = num("home") ?? boards.reduce((n, x) => n + x.home, 0);
   const tilts = num("tilts") ?? boards.reduce((n, x) => n + x.tilts, 0);
   const par = num("parTilts") ?? (data.boardMins ? data.boardMins.reduce((n, m) => n + m, 0) : null);
   const total = data.boards.reduce((n, x) => n + x.starts.length, 0);
+  const ballsHere = data.boards[index]!.starts.length;
   const secondsLeft = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
   const starsTaken = starCount(b.state.starMask);
+  // A solved round's result lands with the kit's win (silent: the round already played gravity.solve).
+  const result = useRef<HTMLDivElement | null>(null);
+  useGameFxOnce("win", result, Boolean(myCorrect), { silent: true });
   return (
     <div className="grav-reveal topsy-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-2" data-topsy-reveal="">
       {/* One board at a time, large, with a switcher (Joe's reveal rules, 15 Nov 2026). */}
@@ -544,28 +699,34 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtr
           </button>
         ))}
       </div>
-      <p className="topsy-board-line" data-own-count="">
-        <span data-outcome={b.outcome}>{OUTCOME_TEXT[b.outcome]}</span>
-        {" · "}
-        You {b.tilts} {b.tilts === 1 ? "tilt" : "tilts"}
-        {b.par !== null ? ` · Par ${b.par}` : ""}
-        {" · "}
-        {b.home} of {data.boards[index]!.starts.length} home
-        {noStars ? "" : ` · ${starsTaken} of ${data.boards[index]!.stars.length} stars`}
-      </p>
+      {/* Joe's fix (stage 2, 15 Nov 2026): the line and its pills are the board chosen above, all of them (its outcome,
+          your tilts on it, its par, its balls home), so they can never contradict; the round's totals sit apart under
+          "Round". Each board's tilts are the stored grade's `boardTilts`, its home count the grader's own replay. */}
+      <div ref={result} className="topsy-board-sum" data-topsy-board-sum="" data-board={index + 1}>
+        <p className="topsy-board-line">
+          Board {index + 1} · <span data-outcome={b.outcome}>{OUTCOME_TEXT[b.outcome]}</span>
+        </p>
+        <div className="topsy-key-pills" data-own-count="" data-topsy-board-pills="">
+          <span className="topsy-key" data-key="tilts"><span>Tilts</span> <b>{b.tilts}</b></span>
+          {b.par !== null ? <span className="topsy-key" data-key="par"><span>Par</span> <b>{b.par}</b></span> : null}
+          <span className="topsy-key" data-key="home"><span>Home</span> <b>{b.home} of {ballsHere}</b></span>
+          {noStars ? null : <span className="topsy-key" data-key="stars"><span>Stars</span> <b>{starsTaken} of {data.boards[index]!.stars.length}</b></span>}
+        </div>
+      </div>
       <div className="grav-reveal-space">
         <div className="grav-reveal-square" data-reveal-board="">
           <TopsyBoardView key={index} board={data.boards[index]!} state={b.state} missed={b.outcome !== "cleared"} />
         </div>
       </div>
       <TopsyRouteChips route={b.route} />
-      {/* The key numbers, the player's own (labelled "You"), from the stored grade. */}
-      <div className="topsy-key-pills" data-own-count="" data-topsy-keys="">
-        <span className="topsy-key"><span>Boards</span> <b>{cleared} of {data.boards.length}</b></span>
-        <span className="topsy-key"><span>Home</span> <b>{home} of {total}</b></span>
-        <span className="topsy-key"><span>You</span> <b>{tilts} {tilts === 1 ? "tilt" : "tilts"}</b></span>
-        {par !== null ? <span className="topsy-key"><span>Par</span> <b>{par}</b></span> : null}
-        {secondsLeft !== null ? <span className="topsy-key"><span>Time left</span> <b>{secondsLeft} s</b></span> : null}
+      {/* The round's totals, the player's own, from the stored grade: under their own "Round" label. */}
+      <div className="topsy-round" data-own-count="" data-topsy-keys="">
+        <span className="topsy-round-label">Round</span>
+        <span className="topsy-key" data-key="boards"><span>Boards</span> <b>{cleared} of {data.boards.length}</b></span>
+        <span className="topsy-key" data-key="home"><span>Home</span> <b>{home} of {total}</b></span>
+        <span className="topsy-key" data-key="tilts"><span>Tilts</span> <b>{tilts}</b></span>
+        {par !== null ? <span className="topsy-key" data-key="par"><span>Par</span> <b>{par}</b></span> : null}
+        {secondsLeft !== null ? <span className="topsy-key" data-key="time"><span>Time left</span> <b>{secondsLeft} s</b></span> : null}
       </div>
     </div>
   );

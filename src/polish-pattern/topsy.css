@@ -61,11 +61,13 @@
 
 /* "Out of tilts" over the board while it holds before the next one. */
 .topsy-arena { position: relative; }
+/* Centred without a transform, so the kit's drop (a transform) can land it in place. */
 .topsy-banner {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  margin: auto;
+  width: max-content;
+  height: max-content;
   padding: 8px 16px;
   border-radius: 999px;
   background: rgba(10, 12, 18, 0.86);
@@ -94,11 +96,39 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
    Grey stone blocks, a dark slate floor, glossy glass marbles and cups rimmed in each ball's colour, inside a gunmetal
    tray frame. Every image fills the box the board already gives its piece, so no square, roll or tilt changes.
    Minimal glow: no coloured halos round balls or holes. */
+/* Stage 2 (15 Nov 2026): the tray is three layers in one fixed box. The box itself (`[data-topsy-board]`, the size the
+   stage gives it) draws nothing and never moves; `.topsy-measure` is the empty grid useGridMetrics measures, in
+   exactly the art grid's place; `.topsy-flip` > `.topsy-tilt` carry the frame, the well, the squares and the balls and
+   are the only layers the effects move (the lean, the flip between boards), so no measured square or ball place ever
+   changes with an effect. */
 .grav-tray.topsy-tray[data-topsy-board] {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
+  transition: none;
+}
+.topsy-measure {
+  position: absolute;
+  inset: 1.6%;
+  visibility: hidden;
+  pointer-events: none;
+}
+.topsy-flip,
+.topsy-tilt {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+}
+.grav-tray.topsy-tray[data-topsy-board] .topsy-tilt {
   background: #0b0e16 url("/pattern-art/gravity/frame.webp") center / 100% 100% no-repeat;
   box-shadow: 0 8px 16px -6px rgba(0, 0, 0, 0.7);
 }
 .grav-tray.topsy-tray[data-topsy-board] .grav-well {
+  position: absolute;
+  inset: 1.6%;
+  width: auto;
+  height: auto;
   background: #0b0e16;
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
 }
@@ -135,11 +165,15 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
 }
 /* A ball home sits sunk in its cup (a little smaller, the rim round it); its mark white over the marble. */
 .grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home { background: none; box-shadow: none; }
-.grav-tray.topsy-tray[data-topsy-board] .topsy-hole > .topsy-sunk {
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole > .topsy-sunk-wrap {
   position: absolute;
   inset: 14%;
-  width: 72%;
-  height: 72%;
+  pointer-events: none;
+}
+.grav-tray.topsy-tray[data-topsy-board] .topsy-sunk-wrap > .topsy-sunk {
+  display: block;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
 }
 .grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home .topsy-mark {
@@ -188,17 +222,16 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
   box-shadow: none;
 }
 [data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-well {
+  position: absolute;
+  inset: 1.6%;
   background: #0b0e16;
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 .grav-tray.topsy-tray[data-topsy-board].is-solving .grav-ball-glow { display: none; }
 .topsy-ring.is-home { box-shadow: inset 0 0 0 2px var(--ball); }
 
-/* A tilt that moves nothing: a small lean only (a third of a real tilt's), back at once. */
-.grav-tray.topsy-tray[data-nudge][data-lean="U"] { transform: perspective(700px) rotateX(2deg); }
-.grav-tray.topsy-tray[data-nudge][data-lean="D"] { transform: perspective(700px) rotateX(-2deg); }
-.grav-tray.topsy-tray[data-nudge][data-lean="L"] { transform: perspective(700px) rotateY(-2deg); }
-.grav-tray.topsy-tray[data-nudge][data-lean="R"] { transform: perspective(700px) rotateY(2deg); }
+/* The lean on a tilt (a real one and the small one of a tilt that moves nothing) is leanTopsyTray's (topsyBoard.tsx),
+   on the tray's art layer `.topsy-tilt` only: transform through the Web Animations API, never on the measured box. */
 
 /* Undo and Reset in champagne gold on navy (the Pattern overhaul's controls). */
 [data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action] {
@@ -272,3 +305,18 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
   color: var(--jz-text-3);
 }
 .topsy-key b { color: var(--jz-text); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Joe's fix (stage 2, 15 Nov 2026): the board line and its pills are the chosen board's; the round's totals sit apart
+   in their own row under a "Round" label. */
+.topsy-board-sum { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 0 0 auto; }
+.topsy-round {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--jz-line);
+}
+.topsy-round-label { font: 700 12px/1 var(--jz-font, sans-serif); text-transform: uppercase; letter-spacing: 0.08em; color: var(--jz-text-3); margin-right: 2px; }

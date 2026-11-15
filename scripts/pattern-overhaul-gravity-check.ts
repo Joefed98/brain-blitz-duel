@@ -25,6 +25,14 @@
  * 10. Intro and demos (GOAL; demos before gravityRev 8 stopped); both practice challenges and the 175 star still met
  *     by the par routes on gravityRev 8; an undone tilt keeps par, a wasted one kept misses it.
  *
+ * 11. Stage 2 (15 Nov 2026): Joe's reveal fix (the board line and its pills are the chosen board's own: its outcome,
+ *     the stored grade's tilts on it, its par and the grader's replay's balls home; the round's totals under "Round")
+ *     and the effects on the live board in happy-dom: a tilt leans the tray's art layer through the roll (a dead tilt
+ *     a small lean, no sound, no draft), balls home drop into their cups as their rolls end (kit drop, silent), two in
+ *     one tilt pop their rings (kit combo, silent), a cleared tray flips away and the next turns in, "Out of tilts"
+ *     lands (kit drop) with the clunk, the solved reveal's result lands with the kit's win; the next tilt is taken at
+ *     once during every effect; transform and opacity only, never the measured grid; reduced motion a 120 ms fade.
+ *
  *   bun scripts/pattern-overhaul-gravity-check.ts
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -54,7 +62,7 @@ const { PUZZLE_INSTRUCTIONS } = await import("../src/lib/duel/instructions");
 const { verifyTopsyPuzzle } = await import("../src/lib/duel/topsy.server");
 const { replayTopsyPuzzle, topsyBoardPar, topsyStart, topsyTilt, TOPSY_V8_SPARE } = await import("../src/lib/duel/topsy");
 const { gravityMazePuzzle } = await import("../src/puzzles/gravityMaze");
-const { TopsyStage, topsyTiltSounds, stopTopsyRumble } = await import("../src/components/puzzles/pattern/topsyBoard");
+const { TopsyStage, TopsyBoardView, topsyTiltSounds, stopTopsyRumble } = await import("../src/components/puzzles/pattern/topsyBoard");
 const { TOPSY_SPRITES, TOPSY_BLOCK_URL, TOPSY_FLOOR_URL, TOPSY_FRAME_URL, topsyHoleUrl, topsyMarbleUrl } = await import("../src/components/puzzles/pattern/topsyArt");
 const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
 const { puzzleTimeLimitMs, typeTimeLimitMs, shownTimeLimitMs } = await import("../src/lib/duel/catalogue");
@@ -171,11 +179,13 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
   check(/const boardPar = topsyBoardPar\(data, shown\)/.test(stage), "the board's par isn't read for the board shown");
   // A tilt that moves nothing: no sound and no draft (the return comes before every sound and setTilts).
   const press = stage.slice(stage.indexOf("const press = (dir: GravityDir)"), stage.indexOf("const starsHere"));
-  const dead = press.indexOf("if (!out.moved) return;");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, stage 2): the dead tilt's
+  // small lean is now leanTopsyTray's (the tray's art layer), no longer a data-nudge CSS state on the measured box.
+  const dead = press.indexOf("if (!out.moved) {");
   check(dead > 0 && dead < press.indexOf("topsyTiltSounds(") && dead < press.indexOf("setTilts(next)"), "a tilt that moves nothing still sounds or adds a draft");
   check(!/playSound\("pz_gravity_pull"\)/.test(press) && !/soundCue\("gravity\.tilt"\)/.test(press), "the press still plays a sound before knowing the tilt moves anything");
-  check(/setNudge\(!out\.moved\)/.test(press), "a dead tilt doesn't get the small lean");
-  check(/data-nudge/.test(src("src/polish-pattern/topsy.css")), "topsy.css has no small lean");
+  check(/if \(!out\.moved\) \{\s*leanTopsyTray\(tray, dir, \{ small: true \}\);\s*return;/.test(press), "a dead tilt doesn't get the small lean");
+  check(!/data-nudge/.test(src("src/polish-pattern/topsy.css")), "topsy.css still leans the measured box (data-nudge)");
   // The stage renders (rev 8, first board).
   const p8 = asV8(fixture.puzzles[0]!.puzzle);
   const html = renderToStaticMarkup(React.createElement(TopsyStage, { puzzle: p8, phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => {} } as never));
@@ -208,9 +218,12 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
       check(r.html.includes("/pattern-art/gravity/hole-"), `${stamp} ${label}: the reveal doesn't draw the rendered cups`);
       // The par route as arrow chips (the board shown's stored route).
       check((r.html.match(/class="topsy-chip"/g) ?? []).length >= 4 && /Par route/.test(t), `${stamp} ${label}: the par route isn't drawn as arrow chips`);
-      // The key numbers come from the stored grade.
+      // The round's key numbers come from the stored grade, under their own "Round" label.
+      // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, stage 2: Joe's fix moved
+      // the round's totals under "Round" and the per-board pills follow the switcher; section 11 proves the board pills).
       const e = r.extra;
-      check(t.includes(`Boards ${e.cleared} of 3`) && t.includes(`Home ${e.home} of 18`) && t.includes(`You ${e.tilts} tilt`) && t.includes(`Par ${e.parTilts ?? (p.boardMins ?? []).reduce((n, m) => n + m, 0)}`), `${stamp} ${label}: the key numbers don't match the stored grade: ${t.slice(t.indexOf("Boards"))}`);
+      const round = text(r.html.slice(r.html.indexOf("data-topsy-keys")));
+      check(round.includes("Round") && round.includes(`Boards ${e.cleared} of 3`) && round.includes(`Home ${e.home} of 18`) && round.includes(`Tilts ${e.tilts}`) && round.includes(`Par ${e.parTilts ?? (p.boardMins ?? []).reduce((n, m) => n + m, 0)}`), `${stamp} ${label}: the round's numbers don't match the stored grade: ${round}`);
       check(!/[×✗]/.test(t), `${stamp} ${label}: a stray × or ✗ in the reveal`);
     }
     // Solved: board 1 opens, cleared, nothing marked missed; time left shown.
@@ -221,10 +234,12 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
     check((part.html.match(/data-missed=""/g) ?? []).length === 6 && /Not finished|Not reached/.test(text(part.html)), `${stamp}: the unfinished board's empty cups aren't marked (${(part.html.match(/data-missed=""/g) ?? []).length})`);
     check(!/Time left/.test(text(part.html)), `${stamp}: an unfinished reveal shows a time left`);
   }
-  // The per-board line: your tilts against the board's par.
+  // The per-board line and pills: the board shown's own tilts against its own par (section 11 proves every board).
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, stage 2: Joe's fix).
   const b8 = (p8.boardSolutions ?? [])[0]!;
   const one = render(p8, b8, 0);
-  check(/You \d+ tilts? · Par \d+/.test(text(one.html)), "the board line doesn't read \"You n tilts · Par p\"");
+  const sum = text(one.html.slice(one.html.indexOf("data-topsy-board-sum"), one.html.indexOf("data-reveal-board")));
+  check(/Board \d · .*Tilts \d+ Par \d+ Home \d of 6/.test(sum), `the board's line and pills don't read "Board n · … Tilts t Par p Home h of 6": ${sum}`);
 }
 
 /* ---------------------------------------------------------------- 6. help */
@@ -372,6 +387,220 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
       check(!evaluateChallenge(par, { score: g.score, isCorrect: g.isCorrect, extra: g.extra }).met, "Right way up: a wasted tilt still meets par");
     }
   }
+}
+
+/* ---------------------------------------------------------------- 11. stage 2: Joe's reveal fix and the effects */
+{
+  const { createRoot } = await import("react-dom/client");
+  const { flushSync } = await import("react-dom");
+  const K = await import("../src/lib/fx/kit");
+  const W = win as unknown as Record<string, any>;
+  const text = (el: Element | null | undefined) => (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // Reduced motion is switchable; every element is 390 × 560 (so the stage measures a board); pointer capture is a no-op.
+  let reduced = false;
+  const matchMedia = (query: string) => ({ matches: query.includes("prefers-reduced-motion") ? reduced : false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+  Object.defineProperty(win, "matchMedia", { configurable: true, writable: true, value: matchMedia });
+  const proto = W["HTMLElement"].prototype;
+  const box = { x: 0, y: 0, left: 0, top: 0, right: 390, bottom: 560, width: 390, height: 560, toJSON() {} };
+  Object.defineProperty(proto, "getBoundingClientRect", { configurable: true, value: () => box });
+  for (const [k, v] of [["clientWidth", 390], ["clientHeight", 560], ["offsetWidth", 390], ["offsetHeight", 560]] as const) Object.defineProperty(proto, k, { configurable: true, get: () => v });
+  for (const k of ["setPointerCapture", "releasePointerCapture"]) Object.defineProperty(W["Element"].prototype, k, { configurable: true, writable: true, value() {} });
+  Object.defineProperty(W["Element"].prototype, "hasPointerCapture", { configurable: true, writable: true, value: () => false });
+
+  // Every Web Animation is recorded (the kit's and the board's own), with the element it ran on.
+  type Rec = { el: Element; frames: Keyframe[]; options: KeyframeAnimationOptions };
+  let played: Rec[] = [];
+  Object.defineProperty(W["Element"].prototype, "animate", {
+    configurable: true,
+    writable: true,
+    value(this: Element, frames: Keyframe[], options: KeyframeAnimationOptions) {
+      played.push({ el: this, frames, options });
+      return { cancel() {}, finish() {}, onfinish: null, oncancel: null, finished: new Promise<void>(() => {}) };
+    },
+  });
+  let kit: { kind: string; variant: string; sound: unknown }[] = [];
+  K.setGameFxSink((r) => kit.push({ kind: r.kind, variant: r.variant, sound: r.sound }));
+  const cues: string[] = [];
+  const onCue = (e: Event) => cues.push((e as CustomEvent<{ cue: string }>).detail.cue);
+  window.addEventListener("duelz-sound", onCue);
+  const clear = () => {
+    played = [];
+    kit = [];
+    cues.length = 0;
+  };
+  const onlyTransformOpacity = (frames: Keyframe[]) => frames.every((f) => Object.keys(f).every((k) => ["transform", "opacity", "offset", "easing"].includes(k)));
+
+  /* -- Joe's fix: the reveal's pills follow the board switcher; the round's totals sit under "Round". -- */
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const root = createRoot(host as unknown as Element);
+  const p8r = asV8(fixture.puzzles[0]!.puzzle);
+  const routes = p8r.boardSolutions ?? [];
+  const b0 = p8r.boards![0]!;
+  const wrong = (["U", "D", "L", "R"] as GravityDir[]).find((d) => d !== routes[0]![0] && topsyTilt(b0, new Set(b0.walls), topsyStart(b0), d).moved)!;
+  // Board 1 solved with a wasted tilt kept, board 2 with an undone one, board 3 left part-way.
+  const answers: [string, string][] = [
+    ["solved", routes.join("")],
+    ["mixed", `${wrong}${routes[0]}${wrong}X${routes[1]}${routes[2]!.slice(0, 1)}`],
+    ["unfinished", routes[0]!],
+  ];
+  for (const [label, answer] of answers) {
+    const g = gradeAnswer(p8r, answer, label === "solved" ? 50_000 : 0);
+    const extra = (g.extra ?? {}) as Record<string, unknown>;
+    const replay = replayTopsyPuzzle(p8r, answer.split("") as GravityDir[]);
+    flushSync(() => root.render(React.createElement(gravityMazePuzzle.Reveal, { timeLimitMs: 120_000, puzzle: p8r, myAnswer: answer, myCorrect: g.isCorrect, myMsRemaining: label === "solved" ? 50_000 : 0, myExtra: extra } as never)));
+    const tabs = [...host.querySelectorAll('[role="tab"]')] as HTMLElement[];
+    for (let i = 0; i < 3; i++) {
+      flushSync(() => tabs[i]!.dispatchEvent(new W["MouseEvent"]("click", { bubbles: true })));
+      const sum = host.querySelector("[data-topsy-board-sum]");
+      const pill = (k: string) => text(sum?.querySelector(`[data-key="${k}"] b`));
+      const result = replay.boards[i];
+      const home = result ? result.state.balls.filter((x) => x === -1).length : 0;
+      const outcome = !result ? "Not reached" : result.cleared ? "Cleared" : result.outOfTilts ? "Out of tilts" : "Not finished";
+      check(sum?.getAttribute("data-board") === String(i + 1) && text(sum?.querySelector(".topsy-board-line")) === `Board ${i + 1} · ${outcome}`, `${label} board ${i + 1}: the line isn't the chosen board's ("${text(sum?.querySelector(".topsy-board-line"))}")`);
+      // A board never reached has no stored entry: 0 tilts.
+      const storedTilts = (extra["boardTilts"] as number[])[i] ?? 0;
+      check(pill("tilts") === String(storedTilts), `${label} board ${i + 1}: the Tilts pill ${pill("tilts")} isn't the stored grade's board tilts ${storedTilts}`);
+      check(pill("par") === String(p8r.boardMins![i]), `${label} board ${i + 1}: the Par pill ${pill("par")} isn't the board's stored par ${p8r.boardMins![i]}`);
+      check(pill("home") === `${home} of 6`, `${label} board ${i + 1}: the Home pill ${pill("home")} isn't the grader's replay's ${home} of 6`);
+      check(!/Boards|Round|Time left/.test(text(sum)), `${label} board ${i + 1}: a round total sits among the board's pills`);
+      const round = host.querySelector("[data-topsy-keys]");
+      check(text(round?.querySelector(".topsy-round-label")) === "Round" && text(round?.querySelector('[data-key="tilts"] b')) === String(extra["tilts"]) && text(round?.querySelector('[data-key="boards"] b')) === `${extra["cleared"]} of 3`, `${label} board ${i + 1}: the round's totals aren't under "Round" with the stored figures`);
+    }
+    const sums = new Set<string>();
+    for (const t of tabs) {
+      flushSync(() => t.dispatchEvent(new W["MouseEvent"]("click", { bubbles: true })));
+      sums.add(text(host.querySelector("[data-topsy-board-sum]")));
+    }
+    check(sums.size === 3, `${label}: switching boards doesn't change the board's line and pills`);
+    flushSync(() => root.render(React.createElement("div")));
+  }
+
+  /* -- The solve's win on the result (the reveal), silent; never on an unfinished round. -- */
+  clear();
+  const solvedG = gradeAnswer(p8r, routes.join(""), 50_000);
+  flushSync(() => root.render(React.createElement(gravityMazePuzzle.Reveal, { timeLimitMs: 120_000, puzzle: p8r, myAnswer: routes.join(""), myCorrect: true, myMsRemaining: 50_000, myExtra: solvedG.extra } as never)));
+  await sleep(0);
+  const wins = kit.filter((k) => k.kind === "win");
+  check(wins.length === 1 && wins[0]!.sound === null && played.some((p) => p.el.hasAttribute("data-topsy-board-sum")), "a solved reveal's result doesn't land with the kit's silent win");
+  flushSync(() => root.render(React.createElement("div")));
+  clear();
+  flushSync(() => root.render(React.createElement(gravityMazePuzzle.Reveal, { timeLimitMs: 120_000, puzzle: p8r, myAnswer: routes[0], myCorrect: false, myMsRemaining: 0, myExtra: gradeAnswer(p8r, routes[0]!, 0).extra } as never)));
+  await sleep(0);
+  check(!kit.some((k) => k.kind === "win") && played.length === 0, "an unfinished reveal plays a win (or any effect)");
+  flushSync(() => root.render(React.createElement("div")));
+
+  /* -- The live board's effects on a made-up round: tilt R rolls two balls home (5 squares each), tilt R again moves
+        nothing, tilt L clears the board; board 2 is tilted up and down until it runs out. -- */
+  const A = { walls: [], starts: [0, 10, 29, 39, 49, 59], holes: [5, 15, 20, 30, 40, 50], stars: [] };
+  const P = { type: "gravity", gravityRev: 8, boards: [A, A, A], tiltLimits: [10, 10, 10], boardMins: [2, 2, 2], boardSolutions: ["RL", "RL", "RL"], timeLimitMs: 120_000, minMoves: 6 } as unknown as GravityPuzzleData;
+  const rTilt = topsyTilt(A, new Set(A.walls), topsyStart(A), "R");
+  check(rTilt.dropped.length === 2 && rTilt.paths.filter((p) => p.length > 1).length === 2 && !topsyTilt(A, new Set(), rTilt.state, "R").moved, "the made-up board doesn't roll as planned");
+  const upDown = Array.from({ length: 10 }, (_, i) => (i % 2 ? "D" : "U")) as GravityDir[];
+  const planned = replayTopsyPuzzle(P as never, ["R", "L", ...upDown]);
+  check(planned.boards[0]!.cleared && planned.boards[1]!.outOfTilts && !planned.boards[1]!.cleared && planned.boards[1]!.tilts === 10, "the made-up round's second board doesn't run out of tilts as planned");
+
+  let stageN = 0;
+  const mountStage = () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const r = createRoot(el as unknown as Element);
+    const drafts: string[] = [];
+    flushSync(() => r.render(React.createElement(gravityMazePuzzle.Stage, { puzzle: P, locked: false, phaseStartedAt: Date.now(), now: Date.now(), onSubmit: () => {}, onDraftAnswer: (a: string) => drafts.push(a), stateKey: `topsy-fx-${++stageN}` } as never)));
+    const tilt = (label: "Up" | "Down" | "Left" | "Right") => {
+      const button = el.querySelector(`button[aria-label="${label}"]`) as HTMLElement | null;
+      flushSync(() => {
+        button?.dispatchEvent(new W["PointerEvent"]("pointerdown", { bubbles: true, pointerId: 1 }));
+        button?.dispatchEvent(new W["PointerEvent"]("pointerup", { bubbles: true, pointerId: 1 }));
+      });
+    };
+    return { el, r, drafts, tilt, last: () => drafts[drafts.length - 1] ?? "" };
+  };
+  const inLayer = (rec: Rec, sel: string) => rec.el.matches(sel);
+  const tray = (s: { el: Element }) => s.el.querySelector("[data-topsy-tilt]");
+
+  for (const motion of ["full", "reduced"] as const) {
+    reduced = motion === "reduced";
+    const tag = `(${motion})`;
+    const s = mountStage();
+    check(!!tray(s) && !!s.el.querySelector("[data-topsy-measure]") && !s.el.querySelector("[data-topsy-flip] [data-topsy-measure]"), `${tag} the board's measured grid sits outside the art layers the effects move`);
+    clear();
+    s.tilt("Right");
+    // The tilt: the tray's art layer leans and holds through the roll (the next frame's sunk marbles drop home).
+    const lean = played.filter((p) => inLayer(p, "[data-topsy-tilt]"));
+    check(lean.length === 1 && s.last() === "R", `${tag} a tilt that moves leans the tray once (${lean.length}) and is drawn at once`);
+    if (reduced) check(lean[0]?.frames.every((f) => f.transform === undefined) && Number(lean[0]?.options.duration) <= 120, `${tag} the lean is a 120 ms crossfade, no movement`);
+    else {
+      check(lean.some((p) => p.frames.some((f) => String(f.transform).includes("rotateY(6deg)"))) && Number(lean[0]?.options.duration) <= 900 && Number(lean[0]?.options.duration) >= 5 * 45, `${tag} the lean tips the tray 6° right for at least the roll (225 ms), at most 900 ms`);
+    }
+    // Two home: each drops into its cup as its roll ends (the kit's drop, silent), and their rings pop as a combo.
+    const wraps = played.filter((p) => inLayer(p, "[data-topsy-sunk]"));
+    const drops = kit.filter((k) => k.kind === "drop");
+    check(wraps.length === 2 && drops.length === 2 && drops.every((k) => k.sound === null && k.variant === motion), `${tag} the two balls home drop into their cups (${wraps.length} cups, ${drops.length} kit drops, silent)`);
+    check(wraps.every((w) => Number(w.options.delay) === (reduced ? 0 : 5 * 45)), `${tag} a ball drops home as its roll ends (${wraps.map((w) => w.options.delay).join(",")} ms)`);
+    const combos = kit.filter((k) => k.kind === "combo");
+    check(combos.length === 2 && combos.every((k) => k.sound === null) && played.filter((p) => inLayer(p, "[data-topsy-ring]")).length === 2, `${tag} two home in one tilt pop their rings as a kit combo (silent: gravity.combo)`);
+    // The next tilt is taken at once while the lean runs: a tilt that moves nothing nods (full) and sounds nothing.
+    const before = played.length;
+    cues.length = 0;
+    s.tilt("Right");
+    const nod = played.slice(before).filter((p) => inLayer(p, "[data-topsy-tilt]"));
+    if (reduced) check(nod.length === 0, `${tag} a tilt that moves nothing shows nothing (nothing changed)`);
+    else check(nod.length === 1 && nod[0]!.frames.some((f) => String(f.transform).includes("rotateY(2deg)")) && Number(nod[0]!.options.duration) <= 200, `${tag} a tilt that moves nothing gives a small lean only`);
+    check(s.last() === "R" && played.slice(before).filter((p) => !inLayer(p, "[data-topsy-tilt]")).length === 0 && kit.length === 4, `${tag} a tilt that moves nothing adds no draft and no other effect`);
+    s.tilt("Left");
+    check(s.last() === "RL", `${tag} the next tilt during the effects is taken at once`);
+    // The cleared board: the tray flips away at the end of its hold, the next one turns in.
+    await sleep(1100);
+    check(cues.includes("gravity.boardClear"), `${tag} the cleared board plays gravity.boardClear (${cues.join(",")})`);
+    const away = played.filter((p) => inLayer(p, "[data-topsy-flip]") && p.options.fill === "forwards");
+    const inn = played.filter((p) => inLayer(p, "[data-topsy-flip]") && p.options.fill !== "forwards");
+    if (reduced) check(away.length === 0 && inn.length === 1 && inn[0]!.frames.every((f) => f.transform === undefined) && Number(inn[0]!.options.duration) <= 120, `${tag} the next board crossfades in (no flip)`);
+    else {
+      check(away.length === 1 && String(away[0]!.frames[1]!.transform).includes("rotateY(80deg)") && away[0]!.frames[1]!.opacity === 0, `${tag} the cleared tray flips away (${away.length})`);
+      check(inn.length === 1 && String(inn[0]!.frames[0]!.transform).includes("rotateY(-80deg)") && inn[0]!.frames[1]!.opacity === 1, `${tag} the next tray turns in`);
+    }
+    check(/Board 2/.test(text(s.el.querySelector("[data-topsy-head]")) + text(document.body)) || !!s.el.querySelector("[data-topsy-board]"), `${tag} the next board shows`);
+    // Out of tilts on board 2: the banner lands (kit drop, silent) and the closing clunk sounds.
+    clear();
+    for (const d of upDown) s.tilt(d === "U" ? "Up" : "Down");
+    check(s.last() === `RL${upDown.join("")}`, `${tag} every tilt on board 2 is taken at once (${s.last()})`);
+    const banner = s.el.querySelector("[data-topsy-banner]");
+    check(!!banner && played.some((p) => p.el === banner) && kit.some((k) => k.kind === "drop" && k.sound === null), `${tag} "Out of tilts" lands with the kit's silent drop`);
+    await sleep(700);
+    check(cues.includes("gravity.outOfTilts") && !cues.includes("gravity.boardClear"), `${tag} running out plays the closing clunk, not the board-cleared sound`);
+    // Never the measured grid, the board box, the arena or the stage; only transform and opacity.
+    check(!played.some((p) => p.el.matches("[data-topsy-measure], [data-topsy-measure] *, [data-topsy-board], [data-game-arena], [data-stage-column]")), `${tag} an effect moved the measured grid, the board box, the arena or the stage`);
+    check(played.every((p) => onlyTransformOpacity(p.frames)), `${tag} an effect animates something other than transform and opacity`);
+    check(played.every((p) => Number(p.options.duration) <= 900), `${tag} an effect runs longer than 900 ms`);
+    flushSync(() => s.r.unmount());
+    await sleep(0);
+  }
+  reduced = false;
+
+  /* -- Still boards (intro, reveal, tile) play nothing; the board view's drop is the live board's only. -- */
+  clear();
+  const still = document.createElement("div");
+  document.body.appendChild(still);
+  const sr = createRoot(still as unknown as Element);
+  flushSync(() => sr.render(React.createElement(TopsyBoardView, { board: A, state: topsyStart(A) })));
+  flushSync(() => sr.render(React.createElement(TopsyBoardView, { board: A, state: rTilt.state })));
+  check(played.length === 0 && kit.length === 0, "a still board plays an effect when its state changes");
+  flushSync(() => sr.unmount());
+
+  /* -- Sources: one animate call (the board's play helper), no CSS lean on the measured box, the kit for the pieces. -- */
+  const board = src("src/components/puzzles/pattern/topsyBoard.tsx");
+  const css = src("src/polish-pattern/topsy.css");
+  check((board.match(/\.animate\(/g) ?? []).length === 1 && !/\.animate\(/.test(src("src/puzzles/gravityMaze.tsx")), "Topsy-Turvy animates outside its one play helper");
+  check(/gameFx\("drop", wrap\.firstElementChild, \{ delayMs: delay, silent: true \}\)/.test(board) && /gameFx\("combo", rings\?\.\[b\]/.test(board), "the drop home and the combo aren't the kit's");
+  check(!/data-lean|data-nudge/.test(css) && !/data-lean=/.test(board), "the measured box still carries a CSS lean");
+  check(/\.topsy-measure \{[^}]*visibility: hidden/.test(css) && /\.topsy-measure \{[^}]*inset: 1\.6%/.test(css) && /\.grav-tray\.topsy-tray\[data-topsy-board\] \.grav-well \{[^}]*inset: 1\.6%/.test(css), "the measured grid and the art grid don't share one place");
+  window.removeEventListener("duelz-sound", onCue);
+  K.setGameFxSink(null);
+  stopTopsyRumble();
+  root.unmount();
 }
 
 if (failures.length) {
