@@ -570,3 +570,19 @@ sparks, then the solve flare.
 - Every effect is transform and opacity only, at most 900 ms, and the next tilt is taken at once. Reduced motion: a
   120 ms crossfade for the tilt, the drop and the next board; no lean, nod or flip.
 <!-- topsy:end -->
+
+<!-- intro-demos:start -->
+## Intro demos (stage 2, fix 7)
+
+The five demos that were stopped for the new stamps, recorded again by real play on today's intro example and
+bundled with the app (`src/lib/duel/bundledDemos/`; a live demo saved on today's stamp still wins). Each still shows
+the demo mid-way and at its solved end. Gridlock's live demo was never stopped and plays as before.
+
+| Game | Demo |
+|---|---|
+| Tessellate (blockRev 4): turns, a flip, clean drops | <img src="intro-demos/blockparty.webp" width="360"> |
+| Pipeline (pipesRev 5): clockwise taps and anticlockwise long presses, water filling | <img src="intro-demos/pipes.webp" width="360"> |
+| Chroma Lines (flowRev 3): a line cut back by another, then redrawn | <img src="intro-demos/flow.webp" width="360"> |
+| Skid (slideRev 5): the par route with a wrong slide undone | <img src="intro-demos/iceslide.webp" width="360"> |
+| Topsy-Turvy (gravityRev 8): the shortest tilts on all three boards | <img src="intro-demos/gravity.webp" width="360"> |
+<!-- intro-demos:end -->
