@@ -38,7 +38,7 @@ export const FLOW_SYMBOL_PATH: Record<FlowColour, string> = {
   SILVER: "M10 3 A7 7 0 1 1 9.99 3 Z M10 6.6 A3.4 3.4 0 1 0 10.01 6.6 Z",
 };
 
-/** One bead: the rendered marble, its symbol on top; it fills its box (the dot's 64 % of a cell, as before). */
+/** One bead: the rendered marble, its symbol on top; it fills its box (the dot, 72 % of a cell). */
 export function FlowBead({ colour }: { colour: FlowColour }) {
   return (
     <>
@@ -98,10 +98,13 @@ export function FlowTubes({
         const end = tube.points[tube.points.length - 1]!;
         return (
           <g key={index} className="flow-tube">
-            <path d={d} stroke={shadeHex(tube.colour, -0.6)} strokeOpacity={0.9} strokeWidth={width + 3} />
-            <path d={d} stroke={shadeHex(tube.colour, -0.18)} strokeWidth={width} />
-            <path d={d} stroke={tube.colour} strokeWidth={width * 0.72} />
-            <path d={d} stroke={shadeHex(tube.colour, 0.55)} strokeOpacity={0.5} strokeWidth={Math.max(1, width * 0.2)} transform={`translate(${(-width * 0.12).toFixed(2)} ${(-width * 0.12).toFixed(2)})`} />
+            {/* A glossy tube (Joe's richness pass, 15 Nov 2026): a dark edge, the saturated body shaded darker at its sides,
+                a lighter core and a crisp highlight stripe towards the top-left light. No blur, no halo. */}
+            <path d={d} stroke={shadeHex(tube.colour, -0.65)} strokeOpacity={0.95} strokeWidth={width + 2.5} />
+            <path d={d} stroke={shadeHex(tube.colour, -0.28)} strokeWidth={width} />
+            <path d={d} stroke={tube.colour} strokeWidth={width * 0.74} />
+            <path d={d} stroke={shadeHex(tube.colour, 0.22)} strokeWidth={width * 0.4} />
+            <path d={d} stroke="#ffffff" strokeOpacity={0.78} strokeWidth={Math.max(1, width * 0.14)} transform={`translate(${(-width * 0.16).toFixed(2)} ${(-width * 0.16).toFixed(2)})`} />
             {!tube.joined ? (
               <circle cx={end.x} cy={end.y} r={width * 0.62} className="flow-loose-end" fill={tube.colour} stroke={shadeHex(tube.colour, -0.6)} strokeWidth={1.5} />
             ) : null}

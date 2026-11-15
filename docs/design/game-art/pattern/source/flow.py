@@ -27,7 +27,7 @@ def _shade(hexs, t):
 
 def marble_bead(name, colour):
     """A glass-hard marble: the colour with soft lighter swirls inside, under a clear coat (a soft, small highlight)."""
-    m = jzlib.mat(name, colour, 0.3, coat=1.0, coat_rough=0.06, spec=0.3)
+    m = jzlib.mat(name, colour, 0.28, coat=1.0, coat_rough=0.025, spec=0.5)
     n, l = jzlib._nodes(m)
     b = jzlib._bsdf(m)
     tc = n.new("ShaderNodeTexCoord")
@@ -39,8 +39,8 @@ def marble_bead(name, colour):
     wv.bands_direction = "DIAGONAL"
     l.new(tc.outputs["Object"], wv.inputs[0])
     cr = n.new("ShaderNodeValToRGB")
-    light = _shade(colour, 0.16) if colour.upper() != "#F2F2F2" else "#ffffff"
-    deep = _shade(colour, -0.14) if colour.upper() != "#F2F2F2" else "#c9ccd4"
+    light = _shade(colour, 0.07) if colour.upper() != "#F2F2F2" else "#ffffff"
+    deep = _shade(colour, -0.25) if colour.upper() != "#F2F2F2" else "#c9ccd4"
     cr.color_ramp.elements[0].color = jzlib.hexc(deep)
     cr.color_ramp.elements[1].color = jzlib.hexc(colour)
     cr.color_ramp.elements[0].position = 0.3
@@ -54,8 +54,7 @@ def marble_bead(name, colour):
 
 def bead(colour):
     def make():
-        sc = begin(100, 128, pad=4, light=0.75)
-        sc.view_settings.look = "AgX - Punchy"
+        begin(100, 128, pad=4, light=0.55, reflect=0.28)
         # No shadow catcher: its ground darkens the whole square behind the bead on the board.
         sphere(50, 50, 44, marble_bead(f"bead{colour}", colour), z=44)
     return make

@@ -67,7 +67,7 @@ export function FlowBoard({
     for (const cell of path) filled.set(cell, GLYPH_COLOURS[colour]);
   });
 
-  const stroke = metrics ? Math.max(3, metrics.cellW * 0.4) : 0;
+  const stroke = metrics ? Math.max(3, metrics.cellW * 0.44) : 0;
   // Presentation only: which pairs are joined end to end, for the tube caps,
   // the join pulse and the completion effect.
   const joined = pairs.map((pair, index) => {
@@ -123,8 +123,8 @@ export function FlowBoard({
                   data-flow-missed={marks?.missed.has(cell) ? "" : undefined}
                   data-flow-colour={dot.colour}
                   style={{
-                    width: "64%",
-                    height: "64%",
+                    width: "72%",
+                    height: "72%",
                     zIndex: 2,
                     ["--dot" as string]: GLYPH_COLOURS[dot.colour],
                     ["--dot-rim" as string]: shadeHex(GLYPH_COLOURS[dot.colour], -0.5),
