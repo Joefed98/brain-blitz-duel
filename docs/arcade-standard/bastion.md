@@ -67,14 +67,16 @@ to it; a replay draws and sounds it the same. Rules and timings in `bastionLook.
   (`bastion.wallHeld`) or BASE DOWN in red. The tally comes from the art's memory of the run (`observeRun`, a ledger of
   each tank's fate, `bastionLedgerStep`); a lone frame of a finished run shows its total only. Reduced motion: the whole
   card at once.
-- **The answer reveal** (`ownReveal.ts`, the game's own `Reveal`, drawn by ArcadeReveal under the score: open in practice,
-  with the breakdown in a room): four big numbers with plain labels (armour knocked out of 63, weak-spot hits, fast
+- **The answer reveal** (the shared `RunPicture` hook, drawn by ArcadeReveal under the score and breakdown in place of the stat tiles;
+  `Reveal` draws the same): four big numbers with plain labels (armour knocked out of 63, weak-spot hits, fast
   reloads, drones down), then the run in one picture (`paintBastionSummary`): each wave's tanks in the order they rolled
   on, drawn by the game's own art (in colour with their dents: destroyed; faded: not stopped; on a red plate: reached
   the wall), a gold dot under a tank for each weak-spot hit on it, the wave's kills big on the right; then the drones and
   the base's three blocks, cracked for each hit, and a two-line key. It comes from the stored log replayed tick by tick
   through the real sim (`bastionTankLedger`, `src/lib/duel/bastionLedger.ts`), whose end is the server replay's; the score
   shown is the stored one.
+- **No edge glow**: Iron Wall is on the shared edgeless list (`ACTION_EDGELESS_GAMES`); the effects above, drawn by its own
+  renderer from the sim's landings and reload fields, replace the success layer's edge frame (the red miss pulse stays).
 - Review frames: `bun scripts/shots/bastion-fx-shots.ts [--out=<dir>]`. bastion-overhaul-check sections 9 and 10.
 
 ### Levels (stage 3, with the difficulty framework; not built yet)

@@ -41,7 +41,7 @@ import { BASTION_TIME_MS, type BastionPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 
 /** The original Bastion's intro still (unstamped rounds): the turret, a circle, a square and the base bar. */
 export function LegacyIntroExample() {
@@ -345,6 +345,12 @@ function Reveal(props: PuzzleRevealProps) {
   return <TankReveal seed={puzzle.seed} answer={myAnswer ?? ""} rev={puzzle.bastionRev} />;
 }
 
+/** The arcade reveal's run picture (PuzzleDefinition.RunPicture): the tank shooter's only; the original turret has none. */
+function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
+  if (puzzle.type !== "bastion" || !isBastionTank(puzzle.bastionRev)) return null;
+  return <TankReveal seed={puzzle.seed} answer={myAnswer} rev={puzzle.bastionRev} />;
+}
+
 /** The reveal's picture data from a stored run (the real sim, tick by tick; display only). */
 export function bastionSummaryOf(seed: number, answer: string, rev?: number | null): { data: BtSummaryData; destroyedHp: number; weak: number; fast: number; drones: number } {
   const { ledger, state } = bastionTankLedger(seed, answer, rev);
@@ -428,4 +434,5 @@ export const bastionPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
+  RunPicture,
 };

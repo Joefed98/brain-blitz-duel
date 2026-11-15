@@ -221,7 +221,7 @@ holds the reveal 1.8 s for it. Clip (1.8 s):
 | <img src="bastion/s2-end.webp" width="420"> | <img src="bastion/s2-end-clip.webp" width="200"> |
 
 The answer reveal: today the arcade reveal shows the score and the part lines only; now Iron Wall adds its own picture
-under the score (open in practice, with the breakdown in a room): four big numbers, then each wave's tanks drawn by the
+under the score and breakdown (the shared `RunPicture` hook, in place of the stat tiles): four big numbers, then each wave's tanks drawn by the
 game's art (in colour: destroyed; faded: not stopped; red plate: reached the wall; a gold dot per weak-spot hit), the
 drones and the base. The picture is the real `paintBastionSummary`; the score row and the four numbers are drawn here to
 match the reveal's CSS (their markup is proved by bastion-overhaul-check section 10).

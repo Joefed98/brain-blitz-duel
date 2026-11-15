@@ -24,7 +24,7 @@
  *     (the hold, the rows 150 ms apart, WALL HELD or BASE DOWN, the rows adding up to the kills) and its sounds.
  * 10. Stage 2's reveal: on every recorded rev-2 and rev-3 run the picture's ledger ends where the server's replay ends
  *     and puts every kill, base hit, weak-spot hit and drone on its tank and wave; the rows, text sizes and big numbers;
- *     the arcade reveal shows it (tank revisions only), open in practice and with the breakdown in a room.
+ *     it is the arcade reveal's RunPicture (tank revisions only); Iron Wall is on the edgeless list.
  *
  *   bun scripts/bastion-overhaul-check.ts      # ~5 s
  */
@@ -101,7 +101,7 @@ import {
   setBastionEndClock,
 } from "../src/lib/arcade/bastionTank.renderer";
 import { btViewX, btViewY } from "../src/lib/arcade/bastionView";
-import { arcadeOwnReveal } from "../src/lib/arcade/ownReveal";
+import { edgelessGame } from "../src/lib/arcade/success.renderer";
 import { decodeBastionTankRun } from "../src/lib/duel/bastion";
 import { bastionTankLedger } from "../src/lib/duel/bastionLedger";
 import { bastionPuzzle, bastionSummaryOf } from "../src/puzzles/bastion";
@@ -724,12 +724,16 @@ const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0]! - 
   ok(fonts.length > 0 && fonts.every((f) => f >= 13) && fonts.includes(20), `the picture's text is 13 px and up, the counts 20 px (${[...new Set(fonts)].join(", ")})`);
   ok(bastionSummaryHeight(3) === bastionSummaryHeight(2) + 52, "rev 3 adds one row");
   // The component: big numbers with short plain labels, no "×", and the picture.
-  const html = renderToString(createElement(bastionPuzzle.Reveal, { puzzle: { type: "bastion", seed: r.seed, bastionRev: 3 } as never, myAnswer: r.raw, myCorrect: false, myReactionAvgMs: null, timeLimitMs: BASTION_TIME_MS }));
+  const Picture = bastionPuzzle.RunPicture!;
+  const html = renderToString(createElement(Picture, { puzzle: { type: "bastion", seed: r.seed, bastionRev: 3 } as never, myAnswer: r.raw }));
   ok(html.includes(`${sum.destroyedHp} / 63`) && html.includes("Armour knocked out") && html.includes("Drones down") && /Weak-spot hits?/.test(html) && /Fast reloads?/.test(html), "the reveal shows armour, weak spots, fast reloads and drones big");
   ok(!/×/.test(html) && /data-bastion-rows="WAVE 1/.test(html) && /role="img"/.test(html), "no stray ×, and the picture carries its rows for screen readers");
-  ok(arcadeOwnReveal({ type: "bastion", bastionRev: 3 }) && arcadeOwnReveal({ type: "bastion", bastionRev: 2 }) && !arcadeOwnReveal({ type: "bastion" }) && !arcadeOwnReveal({ type: "orbit", orbitRev: 15 }), "the arcade reveal draws Iron Wall's picture (tank revisions only)");
-  const arcadeReveal = readFileSync(new URL("../src/components/duel/ArcadeReveal.tsx", import.meta.url), "utf8");
-  ok(/hidden=\{!practice && !open\}[^\n]*\n\s*<GameReveal/.test(arcadeReveal), "open in practice, with the breakdown in a room");
+  // The shared hook (PuzzleDefinition.RunPicture, drawn by ArcadeReveal's GameRunPicture): tank revisions only.
+  ok(typeof bastionPuzzle.RunPicture === "function" && renderToString(createElement(Picture, { puzzle: { type: "bastion", seed: 5 } as never, myAnswer: "" })) === "", "Iron Wall's run picture is the reveal's RunPicture (the original turret draws none)");
+  const html2 = renderToString(createElement(Picture, { puzzle: { type: "bastion", seed: rev2.runs[0]!.seed, bastionRev: 2 } as never, myAnswer: rev2.runs[0]!.raw }));
+  ok(/data-bastion-rows="WAVE 1/.test(html2) && !html2.includes("Drones down"), "rev 2's run picture has no drones");
+  // No edge glow for Iron Wall: its own effects (gold flash, burst, green needle, end card) replace the shared edge frame.
+  ok(edgelessGame("bastion"), "Iron Wall is edgeless (the shared success edge frame is skipped)");
 }
 
 console.log(
