@@ -2619,10 +2619,11 @@ outside the repo.
   (`hasArcadeSummary`, `src/lib/duel/arcadeSummary.ts`). Sound slots wait for `docs/sound-cues/home-run-top-bins-elevenlabs.md`.
   Effects (stage 2, on #422's kit): in-game moments stay in the renderers and sound observers (the kit's rule for canvas
   games); the DOM pieces use the kit: Contact / Power presses `tap`, the reveals' marks land in turn (`useLandInTurn` in
-  `SportsRevealParts.tsx`, the kit's `drop`, silent) and their stats count up (`FxCountUp`, silent); sports-overhaul-fx-check. Intro demos: bot runs on the dealt stamps on Normal in
+  `SportsRevealParts.tsx`, the kit's `drop`, silent) and their stats count up (`FxCountUp`, silent); sports-overhaul-fx-check. Intro demos: bot runs on each game's intro example deal (dealt stamp, Normal) in
   `scripts/fixtures/home-run-top-bins-demos.json` (`bun scripts/home-run-top-bins-demos-record.ts`), saved by the manual
-  "Save intro demos" workflow after the final merge; only rev-5 Normal demos play (`sportsDemoRules.ts`);
-  home-run-top-bins-demos-check.
+  "Save intro demos" workflow after the final merge (`scripts/home-run-top-bins-demos-save.ts`: DEMOS_URL,
+  INTRO_DEMO_KEY, DEMOS_GAMES, DEMOS_DRY / --dry; the intro example deal, so the Save demo function takes it; exits 0 /
+  1 / 2); only rev-5 Normal demos play (`sportsDemoRules.ts`); home-run-top-bins-demos-check.
   Checks: homerun-innings-check, freekick-layered-check; frames `bun scripts/shots/homerun-innings-frames.ts`,
   `freekick-layered-frames.ts`. Rev 1–4 of both replay and score exactly as before.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,

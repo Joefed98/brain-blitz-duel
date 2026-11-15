@@ -18,7 +18,8 @@ export type DemoGame = (typeof DEMO_GAMES)[number];
 export interface DemoRow {
   game_type: DemoGame;
   seed: number;
-  puzzle: { type: DemoGame; seed: number; homerunRev?: number; freekickRev?: number };
+  /** The public half the server deals as the game's intro example (practiceGenerateFn with example: true). */
+  puzzle: { type: DemoGame; seed: number; homerunRev?: number; freekickRev?: number; [k: string]: unknown };
   input_log: { run: string };
   start_tick: number;
   length_ticks: number;
@@ -28,8 +29,19 @@ export interface DemoRow {
   score: number;
 }
 
-export function demoPuzzle(game: DemoGame, seed: number): DemoRow["puzzle"] {
-  return game === "homerun" ? { type: "homerun", seed, homerunRev: HOMERUN_REV_DEALT } : { type: "freekick", seed, freekickRev: FREEKICK_REV_DEALT };
+/**
+ * The game's intro example as the server deals it (practiceGenerateFn's example path: the bank's example, else the
+ * live deal under INTRO_EXAMPLE_SEED), public half only. The app's Save demo function accepts only a run on a deal the
+ * server sealed, and the example is the one deal with a fixed seed, so the demos are recorded on it.
+ */
+export async function exampleDeal(game: DemoGame): Promise<DemoRow["puzzle"]> {
+  const { withSeededRandom } = await import("../src/lib/duel/random");
+  const { INTRO_EXAMPLE_SEED } = await import("../src/lib/duel/puzzleDemo");
+  const { bankedIntroExample } = await import("../src/lib/duel/puzzleBank.server");
+  const { generatePuzzle } = await import("../src/lib/duel/generate.server");
+  const { splitPuzzle } = await import("../src/lib/duel/secrets");
+  const made = bankedIntroExample(game) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(game, { unblockRow: null } as never));
+  return splitPuzzle(made).pub as unknown as DemoRow["puzzle"];
 }
 
 /** The run string the phone sends for these inputs (the same path the deal scripts prove), on Normal. */
