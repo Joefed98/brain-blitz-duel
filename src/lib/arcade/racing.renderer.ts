@@ -52,7 +52,7 @@ import {
   racingLightsOn,
   racingRaceTicks,
   racingSegAt,
-  racingTrack,
+  racingTrackOf,
   RACING_CAR_HALF,
   RACING_KERB_X,
   RACING_LAP_SEGS,
@@ -737,7 +737,7 @@ const WORLD_BOUNDS: Bounds = { x0: 0, x1: RACING_WORLD_W, y1: RACING_WORLD_H, be
 /** The scene (sky, hills, road, roadside, ghosts, car) for a state, without the HUD. */
 function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_BOUNDS): void {
   const W = RACING_WORLD_W;
-  const track = racingTrack(state.seed);
+  const track = racingTrackOf(state);
   const lk = lookFor(track);
   const n = RACING_LAP_SEGS;
   const carZ = (state.s / RACING_SEG) * SL;

@@ -28,7 +28,7 @@ import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_
 import type { TiltState } from "@/lib/arcade/tilt";
 import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
-import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
+import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrackOf, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
@@ -1388,7 +1388,7 @@ export function racingSounds(): GameSounds<RacingState> {
         }
         if (state.wallHits > prev.wallHits) { sfx("racing.wall", "arc_crash", 0.8); feel("impact"); }
         else if (state.off && !prev.off && !cueHasFile("racing.grassLoop")) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
-        const c = racingTrack(state.seed).curve[racingSegAt(state.s)] ?? 0;
+        const c = racingTrackOf(state).curve[racingSegAt(state.s)] ?? 0;
         const limit = racingBalanceSpeed(c);
         const hard = c !== 0 && !state.off && state.v * 1000 >= limit * SQUEAL_AT;
         if (hard && !squealing) effectCue("racing.squeal", 1500);

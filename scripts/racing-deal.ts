@@ -2,16 +2,17 @@
  * Builds src/lib/duel/racingDeal.server.ts (racingRev 1: RACING_DEAL), with --rev=2
  * src/lib/duel/racingDealV2.server.ts (racingRev 2: RACING_DEAL_V2) or, with --rev=3,
  * src/lib/duel/racingDealV3.server.ts (racingRev 3: RACING_DEAL_V3; home at or above the full pace,
- * RACING_V3_PACE_FULL): 300 seeds whose oracle run
+ * RACING_V3_PACE_FULL) or, with --rev=4, src/lib/duel/racingDealV4.server.ts (racingRev 4: RACING_DEAL_V4, 100 seeds on
+ * each of the three named circuits, racingCircuitOf): 300 seeds whose oracle run
  * (scripts/racing-oracle.ts) replays through the server path (replayRacingRun) on that revision to exactly 200: both
  * laps, all 8 sectors clean, home by the revision's par. Candidates come from a fixed sequence (roomSeed-style hashing
  * of 0, 1, 2 …); a seed the oracle cannot take to 200 is dropped and counted.
  *
- *   bun scripts/racing-deal.ts [--rev=2|3]            (writes the file)
- *   bun scripts/racing-deal.ts [--rev=2|3] --check    (proves the written list without writing)
+ *   bun scripts/racing-deal.ts [--rev=2|3|4]            (writes the file)
+ *   bun scripts/racing-deal.ts [--rev=2|3|4] --check    (proves the written list without writing)
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL } from "../src/lib/arcade/racing";
+import { racingCheckpoint, racingCircuitOf, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_CIRCUITS } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { oracleRun } from "./racing-oracle";
@@ -19,7 +20,7 @@ import { oracleRun } from "./racing-oracle";
 export const RACING_DEAL_SIZE = 300;
 const revArg = process.argv.find((a) => a.startsWith("--rev="));
 const REV = revArg ? Number(revArg.slice(6)) : 1;
-const OUT = new URL(REV >= 3 ? "../src/lib/duel/racingDealV3.server.ts" : REV >= 2 ? "../src/lib/duel/racingDealV2.server.ts" : "../src/lib/duel/racingDeal.server.ts", import.meta.url);
+const OUT = new URL(REV >= 4 ? "../src/lib/duel/racingDealV4.server.ts" : REV >= 3 ? "../src/lib/duel/racingDealV3.server.ts" : REV >= 2 ? "../src/lib/duel/racingDealV2.server.ts" : "../src/lib/duel/racingDeal.server.ts", import.meta.url);
 
 /** The candidate sequence: a hash of 0, 1, 2 … into 1 … 2^31 − 2 (as roomSeed). */
 export function racingCandidate(n: number): number {
@@ -60,14 +61,34 @@ if (import.meta.main) {
   }
   const keep: number[] = [];
   const dropped: number[] = [];
+  const perCircuit = RACING_DEAL_SIZE / RACING_CIRCUITS.length;
+  const onCircuit = [0, 0, 0];
   for (let n = 0; keep.length < RACING_DEAL_SIZE; n++) {
     const seed = racingCandidate(n);
-    if (racingSeedProved(seed, REV)) keep.push(seed);
+    // racingRev 4: an equal share of the deal on each circuit (in candidate order).
+    if (REV >= 4 && onCircuit[racingCircuitOf(seed)]! >= perCircuit) continue;
+    if (racingSeedProved(seed, REV)) {
+      keep.push(seed);
+      if (REV >= 4) onCircuit[racingCircuitOf(seed)]! += 1;
+    }
     else dropped.push(seed);
   }
-  const name = REV >= 3 ? "RACING_DEAL_V3" : REV >= 2 ? "RACING_DEAL_V2" : "RACING_DEAL";
-  const fn = REV >= 3 ? "racingDealSeedV3" : REV >= 2 ? "racingDealSeedV2" : "racingDealSeed";
-  const body = REV >= 3 ? `/**
+  const name = REV >= 4 ? "RACING_DEAL_V4" : REV >= 3 ? "RACING_DEAL_V3" : REV >= 2 ? "RACING_DEAL_V2" : "RACING_DEAL";
+  const fn = REV >= 4 ? "racingDealSeedV4" : REV >= 3 ? "racingDealSeedV3" : REV >= 2 ? "racingDealSeedV2" : "racingDealSeed";
+  const body = REV >= 4 ? `/**
+ * Apex's deal (racingRev 4; built by \`bun scripts/racing-deal.ts --rev=4\`, do not edit): ${RACING_DEAL_SIZE} seeds, ${perCircuit} on each
+ * of the three named circuits (racingCircuitOf: Sunset Park, Harbour Run, Ridge Loop), each proved on racingRev 4: the
+ * oracle (scripts/racing-oracle.ts) replays through replayRacingRun to exactly 200 (both laps, all 8 sectors clean, an
+ * average speed at or above the circuit's par pace, RACING_V4_PACE). ${dropped.length} candidate${dropped.length === 1 ? "" : "s"} dropped.
+ */
+export const ${name}: readonly number[] = ${JSON.stringify(keep)};
+
+/** The seed a room seed deals on racingRev 4 (its circuit is racingCircuitOf of it). */
+export function ${fn}(roomSeed: number): number {
+  const n = ${name}.length;
+  return ${name}[((Math.trunc(roomSeed) % n) + n) % n]!;
+}
+` : REV >= 3 ? `/**
  * Apex's deal (racingRev 3; built by \`bun scripts/racing-deal.ts --rev=3\`, do not edit): ${RACING_DEAL_SIZE} circuit seeds,
  * each proved on racingRev 3 (the softer gravel, the pace score): the oracle (scripts/racing-oracle.ts) replays through
  * replayRacingRun to exactly 200 (both laps, all 8 sectors clean, an average speed at or above RACING_V3_PACE_FULL).

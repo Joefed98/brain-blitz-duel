@@ -25,7 +25,7 @@ import {
   racingV2SteerTarget,
   racingPush,
   racingSegAt,
-  racingTrack,
+  racingTrackFor,
   RACING_ACCEL,
   RACING_BRAKE,
   RACING_COAST,
@@ -86,7 +86,7 @@ export const ORACLE_TUNING: DriveTuning = { share: 0.995, brakeShare: 0.99, look
 
 /** One tick of the driver: the joystick for the state about to step (pedal, steer). */
 export function racingDriverInput(state: RacingState, profile: Int32Array, tune: DriveTuning, view?: { x: number; v: number; s: number }): { steer: number; pedal: number } {
-  const track = racingTrack(state.seed);
+  const track = racingTrackFor(state.seed, state.rev);
   const seen = view ?? state;
   // The profile is indexed by race segment modulo its length (a lap's, or the whole race's for the bots).
   const seg = Math.floor(seen.s / RACING_SEG);
@@ -131,7 +131,7 @@ export function racingStickFor(rev: number, steer: number): number {
 /** Plays a seed with the driver, recording the phone's log (one event a tick, only on a change). */
 export function racingDrive(seed: number, tune: DriveTuning, quant = 1, rev = 1): { events: ArcadeInputEvent[]; state: RacingState } {
   const game = racingGameFor(rev);
-  const profile = racingSpeedProfile(racingTrack(seed), tune.share, tune.brakeShare);
+  const profile = racingSpeedProfile(racingTrackFor(seed, rev), tune.share, tune.brakeShare);
   let state = game.init(seed);
   const events: ArcadeInputEvent[] = [];
   let last = "";
