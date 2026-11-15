@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { useArenaMount } from "@/lib/gameFrame/arena";
 import { RoomPlayerName } from "@/components/duel/RoomPlayer";
 import { isSeat, senderKey } from "@/lib/duel/seatKey";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
@@ -70,6 +71,7 @@ export function RoomPanel({
         ? "Game over"
         : `Round ${round} of ${totalRounds}`;
   const playerOf = new Map(players.map((p) => [p.player_slot, p]));
+  const arena = useArenaMount();
   return (
     <aside aria-label="Room" data-room-panel-body data-skin="room" className="dk-room-panel">
       <div className="dk-rp-head">
@@ -78,6 +80,8 @@ export function RoomPanel({
           {roomCode}
         </span>
       </div>
+      {/* The arena (phase 2 step 4 pass 2): a live round's game block (timer, score, menu, controls) goes here. */}
+      {arena.arena ? <div ref={arena.setMount} data-arena-mount className="dk-rp-game" /> : null}
 
       <section aria-label="Rounds" className="dk-rp-section">
         <div className="dk-rp-row">

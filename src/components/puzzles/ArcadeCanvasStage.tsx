@@ -1,5 +1,5 @@
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -27,6 +27,7 @@ import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { useLiveScore } from "@/components/puzzles/useLiveScore";
 import { liveScoreWanted, publishLiveScore } from "@/lib/rated/liveScore";
 import { arcadeRunTiming } from "@/lib/arcade/runTiming";
+import { ControlSchemeContext } from "@/lib/gameControls";
 
 /**
  * Checks only (desktop-fairness-check): when a page sets `window.__duelzWorldPoints` to an array, every
@@ -153,6 +154,8 @@ interface Props<S, C> {
  * drafts every 500 ms and an automatic submit when the sim says it is over.
  */
 export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
+  // Game controls (lib/gameControls.ts): "Click and drag" turns hover aiming off; input mapping only.
+  const hoverAims = useContext(ControlSchemeContext) !== "drag";
   const { game, seed, enabled } = props;
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -482,7 +485,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           if (payload) push(payload);
         }}
         onPointerMove={(event) => {
-          if (pointerId.current === null && props.hover && event.pointerType === "mouse" && !blocked()) {
+          if (pointerId.current === null && props.hover && hoverAims && event.pointerType === "mouse" && !blocked()) {
             const at = worldPoint(event.clientX, event.clientY, false);
             const payload = at ? props.hover(at.x, at.y) : null;
             if (payload) push(payload);

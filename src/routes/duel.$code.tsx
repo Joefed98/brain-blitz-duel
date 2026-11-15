@@ -173,7 +173,7 @@ import { PodiumCelebrations, type CelebrationEntry } from "@/components/duel/Pod
 import { useCosmetics } from "@/lib/cosmetics/cosmeticsStore";
 import { useRoomCards } from "@/lib/identity/useRoomCards";
 import { dealClaimFresh } from "@/lib/duel/dealClaim";
-import { RoomCardsHost, usePublishRoomCards } from "@/components/duel/RoomPlayer";
+import { RoomCardsHost, RoomMiniCard, usePublishRoomCards } from "@/components/duel/RoomPlayer";
 import { NO_COSMETICS } from "@/lib/cosmetics/types";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
@@ -1461,6 +1461,8 @@ function DuelScreen() {
         onHelp={() => setHelpOpen(true)}
         progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
         score={frameScore}
+        // The avatar header styles draw a one-on-one room's opponent beside the score.
+        opponent={!isMulti && opponent ? <RoomMiniCard slot={opponentSlot} name={opponent.display_name ?? "Opponent"} look={looks.get(opponentSlot)} size={36} /> : undefined}
         ping={pingStrip}
         timer={
           showTimer ? (
