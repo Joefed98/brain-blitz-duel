@@ -33,6 +33,18 @@ of dense text lists. Before and after reveal shots for every game go in the gall
 | Pinball | the J-O-U-L-Z letters lit, the ramps, locks and multiballs, each ball's points |
 | Blockzone | the final well, the clears by size (1, 2, 3, 4 lines), the best multi-line clear |
 
+## The look rule, clarified (Joe, 15 Nov 2026)
+
+"Minimal glow and no glare" means no glare washing across panels, tiles or numbers and no glowing edges. It does not
+mean matte and flat: premium materials need light on them. Glass has a crisp highlight on its curve, liquid is glossy,
+lacquer and enamel have depth, wood has grain, metal shines. For the Retro games that means today's 2D made genuinely
+richer (or the concept element each game adopts): lit pixel materials, shaded bevels, specular highlights on balls,
+ships, bricks, atoms and gems, layered parallax backgrounds, not a flatter version of today. The image budget (up to
+about 400 KB a game, compressed WebP sized for the largest display) is there to be used where a material needs it.
+
+The gallery (`docs/design/pages-review/retro/GALLERY.md`) shows each game's new frame beside its chosen concept and
+today's frame, three across, so the step up is visible, plus before and after reveal shots and short play clips.
+
 ## Joe's three additions (15 Nov 2026)
 
 1. **Intros and help** describe each changed game exactly. Done so far: Rally's intro HOW lines say a miss costs a life
