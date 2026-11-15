@@ -19,6 +19,7 @@
  * "Add arcade" was Arcade (the 23 Sep migration turned those toggles into category lists).
  */
 import { ROOM_SETTINGS_PLUS_ONLY } from "@/config/betaConfig";
+import { isLevel, LEVEL_LABEL, NORMAL, type Level } from "@/lib/levels/levels";
 
 import { typesAlsoIn } from "./alsoIn";
 import { arcadeGroupInfo, arcadeGroupOf, arcadeGroupTypes, type ArcadeGroup } from "./arcadeGroups";
@@ -56,6 +57,12 @@ export interface RoomSettings {
    * (Pull!, a Speed puzzle also in Sports) never joins an "All arcade" match. Rooms leave it out and deal as before.
    */
   pool?: "puzzles" | "arcade";
+  /**
+   * The room's level (phase 2 step 4, docs/design/difficulty/README.md): every player's rounds are dealt at it; a game
+   * that doesn't offer it plays Normal. Left out (and never stored) at Normal, so every room saved before levels reads
+   * as it did. Stored as a `level:<level>` token after the others.
+   */
+  level?: Level;
 }
 
 export type PresetId = "mixed" | "puzzles" | "arcade";
@@ -146,9 +153,34 @@ const ROUNDS_TOKEN = /^rounds:(\d{1,2})$/;
 /** Marks settings saved after the Strategy split (1 Nov 2026); see the header. */
 export const GROUPS_TOKEN = "groups:2";
 
-/** The stored form: picks, `rounds:N`, then `groups:2`. */
+/** The stored form: picks, `rounds:N`, then `groups:2`, then `level:<level>` when the level isn't Normal. */
 export function encodeRoomSettings(settings: RoomSettings): string[] {
-  return [...orderPicks(settings.picks), `rounds:${settings.rounds}`, GROUPS_TOKEN];
+  const level = settings.level && settings.level !== NORMAL ? [`${LEVEL_TOKEN}${settings.level}`] : [];
+  return [...orderPicks(settings.picks), `rounds:${settings.rounds}`, GROUPS_TOKEN, ...level];
+}
+
+const LEVEL_TOKEN = "level:";
+
+/** A room's stored level (no token, or one that isn't a level: Normal). */
+export function storedRoomLevel(values: readonly unknown[]): Level {
+  const token = values.find((v): v is string => typeof v === "string" && v.startsWith(LEVEL_TOKEN));
+  const level = token?.slice(LEVEL_TOKEN.length);
+  return isLevel(level) ? level : NORMAL;
+}
+
+/** Settings with their level: the same object at Normal (no field), else `level` set. */
+export function withRoomLevel(settings: RoomSettings, level: Level): RoomSettings {
+  if (level === NORMAL) {
+    if (!("level" in settings)) return settings;
+    const { level: _l, ...rest } = settings;
+    return rest;
+  }
+  return { ...settings, level };
+}
+
+/** The room's level (Normal unless the settings carry another). */
+export function roomLevelOf(settings: RoomSettings): Level {
+  return settings.level ?? NORMAL;
 }
 
 /**
@@ -196,7 +228,7 @@ export function readRoomSettings(stored: unknown): StoredSettings {
     const picks = storedPicks(values).filter((p) => pickTypes(p).length > 0);
     const settings = { picks: picks.length ? picks : [...DEFAULT_SETTINGS.picks], rounds };
     return {
-      settings: { ...settings, rounds: clampRounds(settings.rounds, settings.picks) },
+      settings: withRoomLevel({ ...settings, rounds: clampRounds(settings.rounds, settings.picks) }, storedRoomLevel(values)),
       legacy: false,
       categories: categoriesOfPicks(settings.picks),
     };
@@ -221,7 +253,7 @@ export function clampRounds(rounds: number, picks: readonly RoomPick[]): number 
 export function validateRoomSettings(
   input: unknown,
 ): { ok: true; settings: RoomSettings } | { ok: false; message: string } {
-  const value = input as { picks?: unknown; rounds?: unknown } | null;
+  const value = input as { picks?: unknown; rounds?: unknown; level?: unknown } | null;
   if (!value || !Array.isArray(value.picks) || value.picks.length === 0)
     return { ok: false, message: "Pick at least one category." };
   if (
@@ -243,7 +275,10 @@ export function validateRoomSettings(
     return { ok: false, message: `Choose ${MIN_ROUNDS} to ${MAX_ROUNDS} rounds.` };
   const cap = roundCap(picks);
   if (rounds > cap) return { ok: false, message: `Only ${cap} games in your picks.` };
-  return { ok: true, settings: { picks, rounds } };
+  // The level (optional: a phone that doesn't send it keeps Normal).
+  if (value.level !== undefined && !isLevel(value.level))
+    return { ok: false, message: "Choose Easy, Normal, Hard or Expert." };
+  return { ok: true, settings: withRoomLevel({ picks, rounds }, isLevel(value.level) ? value.level : NORMAL) };
 }
 
 /** The preset these picks match exactly, if any. */
@@ -294,6 +329,11 @@ export function picksLine(picks: readonly RoomPick[]): string {
 export function settingsFacts(settings: RoomSettings): [string, string, string] {
   const n = settings.rounds;
   return [`${n} ${n === 1 ? "round" : "rounds"}`, picksLine(settings.picks), `about ${estimateRoomMinutes(settings)} min`];
+}
+
+/** The room's level as the lobby says it: null at Normal (nothing extra shown), else "Hard". */
+export function levelFact(settings: RoomSettings): string | null {
+  return settings.level && settings.level !== NORMAL ? LEVEL_LABEL[settings.level] : null;
 }
 
 /** The same facts in one line with commas: "6 rounds, Mixed, about 11 min" (the chips' accessible name reads the same). */

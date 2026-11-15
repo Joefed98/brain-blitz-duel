@@ -113,18 +113,31 @@ if (!CHROMIUM) {
   process.exit(1);
 }
 // Changed with Joe's approval, 14 Nov 2026 (the Games catalogue, phase 2 step 3, Joe's brief: "category chips in place of
-// today's Puzzles | Arcade switch"): the switch, its counts, its remembered side and the per-side search, chips grid
-// and Recently played are gone, so this browser half proves the chips that replace them (the data half above is
-// unchanged). What it proves now: the chips are All, each live puzzle category, then each live arcade group, with
-// today's names and their colours; All lists every playable game once; each chip lists exactly its category's or
-// group's games (and the games listed also in it); arcade tiles keep their group's border and Retro's glow; the search
-// finds games by name only; no sideways page scrolling; and the chip chosen holds while browsing.
+// today's Puzzles | Arcade switch"): the switch was replaced by chips.
+// Changed with Joe's approval, 15 Nov 2026 (difficulty framework): the Games page's top is, in this order, the
+// Puzzles | Arcade switch restored, the switch's categories as colour tiles in one sideways-scrolling row (replacing
+// the All / category chips), then the difficulty switch. The browser half now proves: the switch (Puzzles first, the
+// counts from the registry, the side remembered across a reload); the tiles are exactly the switch's side's live
+// categories or groups, in order, each in its colour, in one row that scrolls inside itself; with no tile chosen the
+// side lists exactly its active games once; each tile lists exactly its category's or group's games (and the games
+// listed also in it), a second tap shows the side again; arcade tiles keep their group's border and Retro's glow; the
+// difficulty switch (Easy · Normal · Hard · Expert, Normal by default) sets every tile's level, a game without the
+// level is marked Normal, and the choice is remembered; the search finds games by name on both sides; no sideways page
+// scrolling. The data half above is unchanged.
 const listed = (page: Page) => page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")!));
 const settle = (page: Page) => page.waitForTimeout(350);
 const isArcade = (t: string) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "arcade";
 const CATEGORIES = ["word", "number", "speed", "attention", "pattern", "logic"].filter((c) => typesInCategory(c as never).length > 0);
 const GROUPS = ARCADE_GROUPS.filter((g) => groupRows(g.id).length > 0);
 const shelfOf = (id: string) => (CATEGORIES.includes(id) ? [...typesInCategory(id as never), ...typesAlsoIn(id as never)] : groupRows(id as never));
+const sideGames = (side: "puzzles" | "arcade") => ACTIVE_PUZZLE_TYPES.filter((t) => isArcade(t) === (side === "arcade"));
+const labelOf = (id: string) => ARCADE_GROUPS.find((g) => g.id === id)?.label ?? id.charAt(0).toUpperCase() + id.slice(1);
+const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
+const tiles = (page: Page) =>
+  page.locator("[data-games-category-tiles] [data-practice-filter]").evaluateAll((els) =>
+    els.map((el) => ({ id: el.getAttribute("data-practice-filter")!, name: (el.querySelector(".gm-cat-tile-name")?.textContent ?? "").trim(), pressed: el.getAttribute("aria-pressed"), cat: el.getAttribute("data-cat"), bg: getComputedStyle(el).borderTopColor })),
+  );
+const sidePressed = (page: Page, side: string) => page.locator(`[data-practice-side='${side}']`).getAttribute("aria-pressed");
 
 fixThemeClock();
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-practice-switch", buildId: "practice-switch-check" });
@@ -135,71 +148,96 @@ try {
     const at = viewport.name;
     const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport);
     try {
-      check((await page.locator("[data-practice-switch], [data-practice-side]").count()) === 0, `${at}: no Puzzles | Arcade switch`);
-      const chips = await page.locator("[data-practice-filter]").evaluateAll((els) =>
-        els.map((el) => ({ id: el.getAttribute("data-practice-filter")!, text: (el.textContent ?? "").trim(), pressed: el.getAttribute("aria-pressed") })),
-      );
-      const wantIds = ["all", ...CATEGORIES, ...GROUPS.map((g) => g.id)];
-      check(JSON.stringify(chips.map((c) => c.id)) === JSON.stringify(wantIds), `${at}: the chips are All, the live categories, then the live arcade groups (${chips.map((c) => c.id).join(",")})`);
-      const labelOf = (id: string) => (id === "all" ? "All" : (ARCADE_GROUPS.find((g) => g.id === id)?.label ?? id.charAt(0).toUpperCase() + id.slice(1)));
-      check(chips.every((c) => c.text === labelOf(c.id)), `${at}: each chip shows today's name (${chips.map((c) => c.text).join(", ")})`);
-      check(chips[0]?.pressed === "true" && chips.slice(1).every((c) => c.pressed === "false"), `${at}: a new visit opens on All`);
-      // Each chip's dot is its category's or group's colour.
-      const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
-      const dots = await page.locator("[data-practice-filter][data-cat]").evaluateAll((els) =>
-        els.map((el) => [el.getAttribute("data-cat"), getComputedStyle(el).getPropertyValue("--cat").trim()]),
-      );
-      const badGroupDot = dots.filter(([id, cat]) => {
-        const g = ARCADE_GROUPS.find((x) => x.id === id);
-        return g ? g.id !== "action" && !cat.toUpperCase().includes(g.colour.toUpperCase()) && !cat.includes("--group-") : !cat;
+      // The order of the top: switch, tiles, difficulty switch, then the grid.
+      const order = await page.evaluate(() => {
+        const at = (sel: string) => document.querySelector(sel)?.getBoundingClientRect().top ?? -1;
+        return [at("[data-practice-switch]"), at("[data-games-category-tiles]"), at("[data-catalogue-level]"), at("[data-games-grid]")];
       });
-      check(dots.length === wantIds.length - 1 && badGroupDot.length === 0, `${at}: every chip but All carries its colour (${dots.length} dots)`);
-      void rgb;
-      // All: every playable game once.
-      const allRows = await listed(page);
-      check(new Set(allRows).size === allRows.length, `${at}: All lists each game once (${allRows.length})`);
-      check(ACTIVE_PUZZLE_TYPES.every((t) => allRows.includes(t)) && allRows.every((t) => (ACTIVE_PUZZLE_TYPES as readonly string[]).includes(t)), `${at}: All lists every active game and nothing else`);
-      // Group-coloured tile borders.
-      const borders = await page.locator("[data-practice-game] [data-game-icon]").evaluateAll((els) =>
-        els.map((el) => [el.getAttribute("data-game-icon"), el.getAttribute("data-group"), getComputedStyle(el).borderTopColor]),
-      );
-      const badBorder = borders.filter(([t, g, colour]) => {
-        if (!isArcade(t!)) return g !== null;
-        const info = ARCADE_GROUPS.find((x) => x.id === g);
-        return !info || info.id !== arcadeGroupOf(t!) || colour !== rgb(info.colour);
-      });
-      check(badBorder.length === 0, `${at}: every arcade tile's border is its group's colour${badBorder.length ? `: ${badBorder.map((b) => b.join(" ")).join("; ")}` : ""}`);
-      const retroGlow = await page.locator("[data-group='retro']").first().evaluate((el) => getComputedStyle(el).boxShadow);
-      check(/54, 226, 245/.test(retroGlow), `${at}: Retro tiles carry the cyan glow`);
-      // Each chip lists exactly its shelf.
-      for (const id of wantIds.slice(1)) {
-        await page.locator(`[data-practice-filter='${id}']`).click();
-        await settle(page);
+      check(order.every((y) => y >= 0) && order[0]! < order[1]! && order[1]! < order[2]! && order[2]! < order[3]!, `${at}: the top is the switch, the category tiles, the difficulty switch, then the games (${order.map(Math.round).join(" < ")})`);
+      check((await page.locator("[data-practice-filter='all']").count()) === 0, `${at}: no All chip (the tiles replace the chips)`);
+      // The switch.
+      check((await sidePressed(page, "puzzles")) === "true" && (await sidePressed(page, "arcade")) === "false", `${at}: a new visit opens on Puzzles`);
+      const shownCounts = await page.locator("[data-practice-side] .jz-seg-count").allTextContents();
+      check(JSON.stringify(shownCounts.map(Number)) === JSON.stringify([counts.puzzles, counts.arcade]), `${at}: the switch's counts are the registry's (${shownCounts.join(" | ")})`);
+      for (const side of ["puzzles", "arcade"] as const) {
+        if (side === "arcade") {
+          await page.locator("[data-practice-side='arcade']").click();
+          await settle(page);
+          check((await sidePressed(page, "arcade")) === "true", `${at}: the switch flips to Arcade`);
+        }
+        const want = side === "puzzles" ? CATEGORIES : GROUPS.map((g) => g.id);
+        const row = await tiles(page);
+        check(JSON.stringify(row.map((t) => t.id)) === JSON.stringify(want), `${at} ${side}: the tiles are the side's live ${side === "puzzles" ? "categories" : "groups"} in order (${row.map((t) => t.id).join(",")})`);
+        check(row.every((t) => t.name === labelOf(t.id) && t.cat === t.id && t.pressed === "false"), `${at} ${side}: each tile shows today's name and its colour, none chosen`);
+        const groupBorders = row.filter((t) => ARCADE_GROUPS.some((g) => g.id === t.id && g.id !== "action"));
+        check(groupBorders.every((t) => t.bg === rgb(ARCADE_GROUPS.find((g) => g.id === t.id)!.colour)), `${at} ${side}: arcade group tiles are drawn in their group's colour`);
+        const oneRow = await page.locator("[data-games-category-tiles]").evaluate((el) => {
+          const tops = [...el.children].map((c) => Math.round(c.getBoundingClientRect().top));
+          return { rows: new Set(tops).size, scrolls: getComputedStyle(el).overflowX };
+        });
+        check(oneRow.rows === 1 && oneRow.scrolls === "auto", `${at} ${side}: the tiles are one row that scrolls sideways inside itself`);
         const rows = await listed(page);
-        const want = shelfOf(id);
-        check(JSON.stringify([...rows].sort()) === JSON.stringify([...new Set(want)].sort()), `${at}: the ${labelOf(id)} chip lists exactly its ${want.length} games`);
-        check((await page.locator(`[data-practice-filter='${id}']`).getAttribute("aria-pressed")) === "true", `${at}: the ${labelOf(id)} chip shows as chosen`);
-        if (id === "sports") check(rows.includes("clayshoot"), `${at}: Pull! is listed under Sports too`);
+        check(new Set(rows).size === rows.length && JSON.stringify([...rows].sort()) === JSON.stringify([...sideGames(side)].sort()), `${at} ${side}: with no tile chosen, the side lists exactly its ${sideGames(side).length} active games once (${rows.length})`);
+        for (const id of want) {
+          await page.locator(`[data-practice-filter='${id}']`).click();
+          await settle(page);
+          const shown = await listed(page);
+          const games = shelfOf(id);
+          check(JSON.stringify([...shown].sort()) === JSON.stringify([...new Set(games)].sort()), `${at}: the ${labelOf(id)} tile lists exactly its ${games.length} games`);
+          check((await page.locator(`[data-practice-filter='${id}']`).getAttribute("aria-pressed")) === "true", `${at}: the ${labelOf(id)} tile shows as chosen`);
+          if (id === "sports") check(shown.includes("clayshoot"), `${at}: Pull! is listed under Sports too`);
+        }
+        await page.locator(`[data-practice-filter='${want.at(-1)}']`).click();
+        await settle(page);
+        check((await listed(page)).length === sideGames(side).length, `${at} ${side}: a second tap on the chosen tile shows the whole side again`);
+        if (side === "arcade") {
+          const borders = await page.locator("[data-practice-game] [data-game-icon]").evaluateAll((els) =>
+            els.map((el) => [el.getAttribute("data-game-icon"), el.getAttribute("data-group"), getComputedStyle(el).borderTopColor]),
+          );
+          const badBorder = borders.filter(([t, g, colour]) => {
+            if (!isArcade(t!)) return false;
+            const info = ARCADE_GROUPS.find((x) => x.id === g);
+            return !info || info.id !== arcadeGroupOf(t!) || colour !== rgb(info.colour);
+          });
+          check(badBorder.length === 0, `${at}: every arcade tile's border is its group's colour${badBorder.length ? `: ${badBorder.map((b) => b.join(" ")).join("; ")}` : ""}`);
+          const retroGlow = await page.locator("[data-practice-game] [data-group='retro']").first().evaluate((el) => getComputedStyle(el).boxShadow);
+          check(/54, 226, 245/.test(retroGlow), `${at}: Retro tiles carry the cyan glow`);
+        }
       }
+      // The difficulty switch: four levels, Normal first chosen.
+      const levelOptions = await page.locator("[data-catalogue-level] [data-level-option]").evaluateAll((els) => els.map((el) => [el.getAttribute("data-level-option"), el.textContent?.trim(), el.getAttribute("aria-pressed")]));
+      check(JSON.stringify(levelOptions.map((o) => o[1])) === JSON.stringify(["Easy", "Normal", "Hard", "Expert"]) && levelOptions.find((o) => o[0] === "normal")?.[2] === "true", `${at}: the difficulty switch is Easy · Normal · Hard · Expert, on Normal`);
+      const atLevel = () => page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => [el.getAttribute("data-level"), el.querySelector("[data-tile-level]")?.hasAttribute("data-level-fallback")]));
+      check((await atLevel()).every(([l, f]) => l === "normal" && !f), `${at}: on Normal every tile plays Normal`);
+      await page.locator("[data-catalogue-level] [data-level-option='hard']").click();
+      await settle(page);
+      // No game has Hard yet (15 Nov 2026): every tile plays Normal and says so.
+      const hard = await atLevel();
+      check(hard.length > 0 && hard.every(([l, f]) => l === "normal" && f === true), `${at}: on Hard, a game without the level is marked Normal (${hard.length} tiles)`);
+      // The side and the level are remembered across a reload.
+      await page.reload();
+      await page.locator("[data-games-catalogue][data-hydrated]").waitFor({ timeout: 20_000 });
+      await settle(page);
+      check((await sidePressed(page, "arcade")) === "true", `${at}: the side is remembered on this device`);
+      check((await page.locator("[data-catalogue-level] [data-level-option='hard']").getAttribute("aria-pressed")) === "true", `${at}: the level is remembered on this device`);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       check(overflow <= 0, `${at}: no sideways page scrolling (${overflow})`);
-      await page.locator("[data-practice-filter='all']").click();
-      await settle(page);
-      // The search: by name only.
+      // The search: by name only, on both sides.
       await page.locator("[data-games-search-toggle]").click();
       const search = page.locator("#games-search");
       check((await search.getAttribute("placeholder")) === "Search games" && (await search.getAttribute("aria-label")) === "Search games", `${at}: the search is "Search games"`);
       await search.fill("ball");
       await settle(page);
       const ball = await listed(page);
-      check(ball.length > 0 && ball.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY].name.toLowerCase().includes("ball")), `${at}: "ball" finds only names with "ball" (${ball.join(",")})`);
+      const wantBall = ACTIVE_PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].name.toLowerCase().includes("ball"));
+      check(JSON.stringify([...ball].sort()) === JSON.stringify([...wantBall].sort()), `${at}: "ball" finds exactly the names with "ball", on both sides (${ball.join(",")})`);
       await search.fill("logic");
       await settle(page);
       const byCategory = await listed(page);
       check(byCategory.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY].name.toLowerCase().includes("logic")), `${at}: the search reads names only, not categories (${byCategory.length})`);
       await search.fill("");
       await settle(page);
-      check((await listed(page)).length === allRows.length, `${at}: an empty search lists every game again`);
+      check((await listed(page)).length === sideGames("arcade").length, `${at}: an empty search lists the side's games again`);
     } finally {
       await context.close();
     }

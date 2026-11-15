@@ -127,6 +127,8 @@ import { generateBridges } from "./bridges.server";
 import { generateKakuro } from "./kakuro.server";
 import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
+import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
+import { resolveLevel } from "@/lib/levels/gameLevels";
 
 /** Room-level context a generator may need beyond its own randomness. */
 export interface GenerateContext {
@@ -141,6 +143,12 @@ export interface GenerateContext {
   bankSeed?: number;
   /** Public identities (`bankKey`) of banked boards the host played recently. */
   recentBankKeys?: ReadonlySet<string> | undefined;
+  /**
+   * The level asked for (src/lib/levels/; Normal when left out). The deal resolves it against the game's own levels
+   * (gameLevels.ts `resolveLevel`: a level the game doesn't offer is Normal), hands the resolved level to the game's
+   * generator through this field, and stamps it on the puzzle (`level`, only when it isn't Normal).
+   */
+  level?: Level | undefined;
 }
 
 /**
@@ -178,7 +186,20 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}, 
   return withDealOptions(options, () => dealLive(type, context));
 }
 
-function dealLive(type: PuzzleType, context: GenerateContext): PuzzleData {
+function dealLive(type: PuzzleType, requested: GenerateContext): PuzzleData {
+  // Levels (phase 2 step 4): the level the game is played at; Normal deals exactly as before levels (no field).
+  const level = resolveLevel(type, requested.level);
+  const context: GenerateContext = level === NORMAL ? withoutLevel(requested) : { ...requested, level };
+  return stampLevel(dealAtLevel(type, context), level);
+}
+
+function withoutLevel(context: GenerateContext): GenerateContext {
+  if (!("level" in context)) return context;
+  const { level: _level, ...rest } = context;
+  return rest;
+}
+
+function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
   // The seven games with a 13 Oct 2026 limit or count-range revision carry their own stamp (moveLimits.ts).
   const made = stampMoveLimits(generateUnstamped(type, context));
   // Number puzzles to 200 (numberDepth.ts) carry depthRev 1 on puzzleScoreRev 3.
@@ -337,6 +358,7 @@ export function buildRoomPuzzles(
       seed,
       unblockRow: options.unblockRow ?? null,
       recentBankKeys: options.recentBankKeys,
+      ...(options.level && options.level !== NORMAL ? { level: options.level } : {}),
     }),
   };
 }
@@ -347,6 +369,8 @@ export interface RoundDealContext {
   seed: number;
   unblockRow?: UnblockBankRow | null | undefined;
   recentBankKeys?: ReadonlySet<string> | undefined;
+  /** The room's level (rooms and tournaments; the Daily, challenges and rated matches leave it out: Normal). */
+  level?: Level | undefined;
 }
 
 /**
@@ -362,6 +386,7 @@ export function dealRounds(order: readonly PuzzleType[], context: RoundDealConte
         unblockRow: context.unblockRow ?? null,
         bankSeed: context.seed,
         recentBankKeys: context.recentBankKeys,
+        ...(context.level && context.level !== NORMAL ? { level: context.level } : {}),
       }),
     ),
   );

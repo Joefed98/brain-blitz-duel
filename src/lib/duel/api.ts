@@ -158,7 +158,7 @@ export async function setRoomModes(
  */
 export async function setRoomSettings(roomId: string, settings: RoomSettings, scoring?: ScoringMode): Promise<void> {
   const result = await setRoomSettingsFn({
-    data: { roomId, picks: [...settings.picks], rounds: settings.rounds, ...(scoring ? { scoring } : {}) },
+    data: { roomId, picks: [...settings.picks], rounds: settings.rounds, level: settings.level ?? "normal", ...(scoring ? { scoring } : {}) },
   });
   if (!result.ok) throw new DuelError(result.message);
 }

@@ -1,6 +1,8 @@
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION } from "@/lib/arcade/orbit";
 import { ANSWER_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, KEY_MAX, LIST_MAX, NUMBER_MAX, PATH_MAX, PUZZLE_MAX, SEALED_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
-import { bool, compact, listOf, maybe, numIn, optional, record, sizedRecord, text, whole } from "@/lib/validate";
+import { bool, compact, listOf, maybe, numIn, oneOf, optional, record, sizedRecord, text, whole } from "@/lib/validate";
+import { LEVELS, NORMAL, levelOrNormal, type Level } from "@/lib/levels/levels";
+import { modeLevel } from "@/lib/levels/modes";
 import { createServerFn } from "@tanstack/react-start";
 
 import { staleSubmissionNote } from "@/lib/appVersion";
@@ -89,20 +91,26 @@ async function heldBack(type: string): Promise<boolean> {
 }
 
 /** One fresh practice deal of a type (the board picked by a new seed), split into its public and private halves. */
-async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
+async function dealPractice(type: PuzzleType, unblockRow: unknown, level: Level = NORMAL): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
   // The round engine's single deal (src/lib/round/deal.server.ts): no tie-break stamp, a fresh bank seed.
   const { dealOne } = await import("./generate.server");
   const { newRoomSeed } = await import("./selection");
   const seed = newRoomSeed();
-  const { pub, priv } = splitPuzzle(dealOne(type, { unblockRow: unblockRow as never, bankSeed: seed }));
+  const { pub, priv } = splitPuzzle(dealOne(type, { unblockRow: unblockRow as never, bankSeed: seed, ...(level !== NORMAL ? { level } : {}) }));
   return { pub: pub as PuzzleData, priv: priv as Loose, seed };
 }
 
 /** Generates one puzzle of the requested type with the same code rooms use. */
 export const practiceGenerateFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { type: string; example?: boolean }) => {
+  .inputValidator((input: { type: string; example?: boolean; level?: string }) => {
     const b = record(input);
-    return compact({ type: text(b["type"], SHORT_MAX, "type"), example: optional(b["example"], (x) => bool(x, "example")) });  })
+    return compact({
+      type: text(b["type"], SHORT_MAX, "type"),
+      example: optional(b["example"], (x) => bool(x, "example")),
+      // The level asked for (src/lib/levels/): any of the four; the deal plays a level the game doesn't offer as Normal.
+      level: optional(b["level"], (x) => oneOf(x, LEVELS, "level")),
+    });
+  })
   .handler(async ({ data }) => {
     const type = playableType(data.type);
     if (!(await practiceLimit("deal"))) throw new Error(PRACTICE_BUSY);
@@ -126,7 +134,8 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
       // Early access (Joulz Plus, wave 2 E2): a game marked for members is held back from everyone else until its day.
       if (await heldBack(type)) throw new Error(EARLY_ACCESS_HELD);
       // Slow types come from their precomputed bank; a fresh seed picks the board.
-      const { pub, priv } = await dealPractice(type, unblockRow);
+      // Practice offers every level the game has, all open from the start (src/lib/levels/modes.ts).
+      const { pub, priv } = await dealPractice(type, unblockRow, modeLevel("practice", data.level ?? null));
       return { puzzle: pub, sealed: await sealDeal(pub, priv, { __dealtAt: Date.now() }) };
     }
     const { withSeededRandom } = await import("./random");
@@ -185,7 +194,8 @@ async function recordPracticeEvent(
       completed: outcome ? outcome.isCorrect : null,
       durationMs: outcome?.durationMs ?? null,
       inputType: outcome?.inputType,
-      props: raw["__example"] !== undefined ? { example: true } : null,
+      // The level it was dealt at (difficulty framework; Normal when the deal carries none).
+      props: { ...(raw["__example"] !== undefined ? { example: true } : {}), level: levelOrNormal(raw["level"]) },
     });
   } catch {
     /* analytics never fails a practice call */
@@ -340,9 +350,9 @@ async function practiceChallengesFor(
       return [];
     }
     const row = stored.data;
-    // The catalogue has Classic, Hard and Expert challenges only: an Easy run (wave 3.5) completes none.
+    // Challenges stay on Normal (the difficulty framework, 15 Nov 2026): a run at any other level completes none.
     const level = levelOf(row.level);
-    if (level === "easy") return [];
+    if (level !== "classic") return [];
     const breakdown = row.breakdown && typeof row.breakdown === "object" && !Array.isArray(row.breakdown)
       ? (row.breakdown as Record<string, unknown>)
       : null;
