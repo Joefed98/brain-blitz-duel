@@ -106,7 +106,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // older demo stays stopped (the intro shows its still) until one is recorded on the new stamp.
     // Joe's phone notes (27 Oct 2026): Topsy-Turvy gravityRev 4 (a ball home blocks) and Gradient tilesRev 4 (tiles lock,
     // new colour schemes) play differently, so only demos recorded on those stamps play.
-    if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 4) return null;
+    // The Pattern overhaul (15 Nov 2026): gravityRev 8 gives undone tilts back and limits each board to par + 8 (and
+    // older demos may show stars), so only a demo recorded on gravityRev 8 plays; until then the intro shows its still.
+    if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 8) return null;
     if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 4) return null;
     // Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1): number and mixed gaps on a new screen, so a signs-only demo
     // stays stopped (the intro shows its still) until one is recorded on gapsRev 1.

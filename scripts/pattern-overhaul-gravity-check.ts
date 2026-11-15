@@ -12,7 +12,9 @@
  *     runs a board out); gravityRev 7 counts every tilt that moved a ball.
  *  4. The stage: the Tilts pill is the current board's (undone tilts given back) against that board's par, with the
  *     tilts left; a tilt that moves nothing adds no draft and no sound (a small lean only).
- *  5. The reveal: the player's own lines read "You: … of 3 boards cleared", no stray mark.
+ *  5. The reveal: one board at a time, large, with a switcher (opening where the player stopped); the cups of balls
+ *     not home ringed red; the board's par route as arrow chips; "You n tilts · Par p" for the board; the key numbers
+ *     (boards, home, tilts, par, time left) equal the stored grade's; no stray mark; on gravityRev 8, 7 and 6.
  *  6. Help: the live help says Undo gives the tilt back and the limit is par plus 8, and where the direction controls
  *     are; the pinned help keeps the old line.
  *  7. Art: every sprite exists as WebP with alpha within budget; the stage, the intro and the reveal draw the marbles
@@ -20,6 +22,8 @@
  *  8. Sound: gravity.tilt (looped rumble), gravity.stop, gravity.combo, gravity.boardClear and gravity.outOfTilts are
  *     manifest slots with a file, fired by a tilt's sounds at the right moments; listed in the ElevenLabs doc.
  *  9. Clock: the catalogue says the dealt 120 s; stored four-ball rounds without a clock keep 90 s.
+ * 10. Intro and demos (GOAL; demos before gravityRev 8 stopped); both practice challenges and the 175 star still met
+ *     by the par routes on gravityRev 8; an undone tilt keeps par, a wasted one kept misses it.
  *
  *   bun scripts/pattern-overhaul-gravity-check.ts
  */
@@ -180,16 +184,47 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
 
 /* ---------------------------------------------------------------- 5. the reveal */
 {
+  const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const render = (puzzle: GravityPuzzleData, answer: string, msLeft: number) => {
+    const g = gradeAnswer(puzzle, answer, msLeft);
+    const html = renderToStaticMarkup(
+      React.createElement(gravityMazePuzzle.Reveal, { timeLimitMs: 120_000, puzzle, myAnswer: answer, myCorrect: g.isCorrect, myMsRemaining: msLeft, myExtra: g.extra ?? null } as never),
+    );
+    return { html, g, extra: (g.extra ?? {}) as Record<string, number> };
+  };
   const p8 = asV8(fixture.puzzles[0]!.puzzle);
-  const reveal = (answer: string, correct: boolean) =>
-    renderToStaticMarkup(React.createElement(gravityMazePuzzle.Reveal, { timeLimitMs: 120_000, puzzle: p8, myAnswer: answer, myCorrect: correct, myMsRemaining: 20_000 } as never));
-  const line = (p8.boardSolutions ?? []).join("");
-  const solved = reveal(line, true);
-  check(/You:<\/span>\s*<span[^>]*>3 of 3<\/span>[^<]*<span[^>]*>boards cleared/.test(solved), `the reveal's own count doesn't read "You: 3 of 3 boards cleared": ${solved.match(/You:.{0,200}/)?.[0]}`);
-  check(/18 of 18 balls home/.test(solved), "the reveal's balls line doesn't read \"18 of 18 balls home\"");
-  const part = reveal((p8.boardSolutions ?? [])[0] ?? "", false);
-  check(/1 of 3<\/span>/.test(part), "an unfinished reveal doesn't read 1 of 3");
-  for (const html of [solved, part]) check(!/[×✗✓]/.test(html.replace(/<[^>]+>/g, "")), "a stray ×, ✓ or ✗ is in the reveal's text");
+  const p7 = fixture.puzzles.find((x) => x.era === "rev7")!.puzzle;
+  const p6 = fixture.puzzles.find((x) => x.era === "rev6")!.puzzle;
+  for (const [stamp, p] of [["gravityRev 8", p8], ["gravityRev 7", p7], ["gravityRev 6", p6]] as const) {
+    const routes = p.boardSolutions ?? [];
+    const line = routes.join("");
+    const solved = render(p, line, 50_000);
+    const part = render(p, routes[0] ?? "", 0);
+    for (const [label, r] of [["solved", solved], ["unfinished", part]] as const) {
+      const t = text(r.html);
+      // One board at a time, large, with a switcher of three.
+      check((r.html.match(/role="tab"/g) ?? []).length === 3 && (r.html.match(/data-topsy-board=""/g) ?? []).length === 1, `${stamp} ${label}: the reveal doesn't show one board with a switcher of three`);
+      check(/data-reveal-board=""/.test(r.html), `${stamp} ${label}: the board isn't marked for the reveal's fit`);
+      check(r.html.includes("/pattern-art/gravity/hole-"), `${stamp} ${label}: the reveal doesn't draw the rendered cups`);
+      // The par route as arrow chips (the board shown's stored route).
+      check((r.html.match(/class="topsy-chip"/g) ?? []).length >= 4 && /Par route/.test(t), `${stamp} ${label}: the par route isn't drawn as arrow chips`);
+      // The key numbers come from the stored grade.
+      const e = r.extra;
+      check(t.includes(`Boards ${e.cleared} of 3`) && t.includes(`Home ${e.home} of 18`) && t.includes(`You ${e.tilts} tilt`) && t.includes(`Par ${e.parTilts ?? (p.boardMins ?? []).reduce((n, m) => n + m, 0)}`), `${stamp} ${label}: the key numbers don't match the stored grade: ${t.slice(t.indexOf("Boards"))}`);
+      check(!/[×✗]/.test(t), `${stamp} ${label}: a stray × or ✗ in the reveal`);
+    }
+    // Solved: board 1 opens, cleared, nothing marked missed; time left shown.
+    check(/aria-selected="true"[^>]*>Board 1/.test(solved.html) && /Cleared/.test(text(solved.html)) && !/is-missed/.test(solved.html), `${stamp}: the solved reveal doesn't open on a cleared board 1 with nothing missed`);
+    check(/Time left 50 s/.test(text(solved.html)), `${stamp}: the solved reveal doesn't give the time left`);
+    // Unfinished: opens on board 2 (where the player stopped), every ball and cup there marked missed.
+    check(/aria-selected="true"[^>]*>Board 2/.test(part.html), `${stamp}: the unfinished reveal doesn't open where the player stopped`);
+    check((part.html.match(/data-missed=""/g) ?? []).length === 6 && /Not finished|Not reached/.test(text(part.html)), `${stamp}: the unfinished board's empty cups aren't marked (${(part.html.match(/data-missed=""/g) ?? []).length})`);
+    check(!/Time left/.test(text(part.html)), `${stamp}: an unfinished reveal shows a time left`);
+  }
+  // The per-board line: your tilts against the board's par.
+  const b8 = (p8.boardSolutions ?? [])[0]!;
+  const one = render(p8, b8, 0);
+  check(/You \d+ tilts? · Par \d+/.test(text(one.html)), "the board line doesn't read \"You n tilts · Par p\"");
 }
 
 /* ---------------------------------------------------------------- 6. help */
@@ -305,6 +340,38 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
   check(puzzleTimeLimitMs(live) === 120_000, "a live deal isn't 120 s");
   const classic = { type: "gravity", walls: [], starts: [0, 8, 72, 80], targets: [40, 41, 39, 31], minMoves: 5, solution: "UDLRU" } as unknown as GravityPuzzleData;
   check(puzzleTimeLimitMs(classic) === 90_000, `a stored four-ball round's clock is ${puzzleTimeLimitMs(classic)} ms, not 90 s`);
+}
+
+/* ---------------------------------------------------------------- 10. intro, demos, challenges and stars */
+{
+  // The intro's GOAL and the still (rendered art); demos recorded before gravityRev 8 stay stopped.
+  check(PUZZLE_INSTRUCTIONS.gravity.goal === "Tilt to roll every ball into its own hole, three boards in a row.", "the intro GOAL changed");
+  check(/\(demo\.puzzle\.gravityRev \?\? 0\) < 8\) return null;/.test(src("src/lib/duel/introDemo.functions.ts")), "a Topsy-Turvy demo recorded before gravityRev 8 would still play");
+  // Challenges ("Right way up": par tilts; "Head rush": full speed by 32 s) and the 175 star stay achievable on
+  // gravityRev 8, and par still asks for the shortest routes (one wasted tilt left on a board misses it).
+  const { PRACTICE_CHALLENGES, evaluateChallenge } = await import("../src/lib/duel/practiceChallenges");
+  const { STAR_SCORE } = await import("../src/lib/practice/progressRules");
+  const mine = PRACTICE_CHALLENGES.filter((c) => c.type === "gravity");
+  check(mine.length === 2, `Topsy-Turvy has ${mine.length} challenges, not 2`);
+  for (const { puzzle } of fixture.puzzles.filter((x) => x.era === "rev7")) {
+    const p8 = asV8(puzzle);
+    const routes = p8.boardSolutions ?? [];
+    const line = routes.join("");
+    const fast = gradeAnswer(p8, line, 120_000 - 25_000);
+    for (const c of mine) check(evaluateChallenge(c, { score: fast.score, isCorrect: fast.isCorrect, extra: fast.extra }).met, `${c.id}: the par routes in 25 s don't meet it on gravityRev 8`);
+    check(fast.score >= STAR_SCORE, `the par routes in 25 s score ${fast.score}, under the star's ${STAR_SCORE}`);
+    // A wasted tilt kept (not undone) misses par; undone, it meets par again.
+    const b0 = p8.boards![0]!;
+    const wrong = (["U", "D", "L", "R"] as GravityDir[]).find((d) => d !== line[0] && topsyTilt(b0, new Set(b0.walls), topsyStart(b0), d).moved)!;
+    const par = mine.find((c) => c.id === "gravity.right-way-up")!;
+    const undone = gradeAnswer(p8, `${wrong}X${line}`, 95_000);
+    check(evaluateChallenge(par, { score: undone.score, isCorrect: undone.isCorrect, extra: undone.extra }).met, "Right way up: an undone tilt now misses par on gravityRev 8");
+    const kept = replayTopsyPuzzle(p8, `${wrong}${line}`.split("") as GravityDir[]);
+    if (kept.solved) {
+      const g = gradeAnswer(p8, `${wrong}${line}`, 95_000);
+      check(!evaluateChallenge(par, { score: g.score, isCorrect: g.isCorrect, extra: g.extra }).met, "Right way up: a wasted tilt still meets par");
+    }
+  }
 }
 
 if (failures.length) {

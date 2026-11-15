@@ -209,3 +209,66 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
 [data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-icon]::before { -webkit-text-fill-color: var(--jz-gold); }
 [data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action]:disabled { box-shadow: inset 0 0 0 1px var(--jz-line); }
 [data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action]:disabled::before { -webkit-text-fill-color: var(--jz-text-3); }
+
+/* ---- The reveal (the Pattern overhaul, 15 Nov 2026): one board large with a switcher, what was missed marked, the
+   par route as arrow chips and the key numbers as pills. ---------------------------------------------------------- */
+.topsy-board-tabs { display: flex; gap: 6px; justify-content: center; flex: 0 0 auto; }
+.topsy-board-tab {
+  min-height: 36px;
+  min-width: 76px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font: 700 14px/1 var(--jz-font, sans-serif);
+  color: var(--jz-text-2);
+  background: var(--jz-surface-2);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+}
+.topsy-board-tab[aria-selected="true"] { color: var(--jz-gold); box-shadow: inset 0 0 0 1.5px var(--jz-gold); }
+.topsy-board-tab[data-outcome="cleared"]::after { content: " ✓"; color: var(--jz-gold); }
+.topsy-board-line { flex: 0 0 auto; text-align: center; font: 600 14px/1.3 var(--jz-font, sans-serif); color: var(--jz-text-2); }
+.topsy-board-line [data-outcome="cleared"] { color: var(--jz-gold); font-weight: 800; }
+.topsy-board-line [data-outcome="outOfTilts"],
+.topsy-board-line [data-outcome="unfinished"],
+.topsy-board-line [data-outcome="notReached"] { color: var(--jz-red); font-weight: 800; }
+
+/* What was missed: a ball not home and its empty cup ringed red (dashed on the cup), drawn inside each box. */
+.grav-tray.topsy-tray[data-topsy-board] .topsy-ball.is-missed::after {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  border: 2px solid var(--jz-red);
+  pointer-events: none;
+}
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-missed::after {
+  opacity: 1;
+  inset: -2%;
+  border: 2px dashed var(--jz-red);
+  animation: none;
+}
+
+.topsy-route-chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; align-items: center; flex: 0 0 auto; }
+.topsy-route-label { font: 700 12px/1 var(--jz-font, sans-serif); text-transform: uppercase; letter-spacing: 0.08em; color: var(--jz-text-3); margin-right: 4px; }
+.topsy-chip {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  font: 800 13px/1 var(--jz-font, sans-serif);
+  color: var(--jz-gold);
+  background: var(--jz-surface-2);
+  box-shadow: inset 0 0 0 1px var(--jz-gold-ledge);
+}
+.topsy-key-pills { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; flex: 0 0 auto; }
+.topsy-key {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--jz-surface-2);
+  font: 600 13px/1 var(--jz-font, sans-serif);
+  color: var(--jz-text-3);
+}
+.topsy-key b { color: var(--jz-text); font-weight: 800; font-variant-numeric: tabular-nums; }

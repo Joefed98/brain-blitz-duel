@@ -22,7 +22,9 @@ import {
   TOPSY_SIZE,
   TOPSY_STARS,
   replayTopsyPuzzle,
+  starCount,
   topsyBoardPar,
+  topsyHomeCount,
   topsyStart,
   topsyTilt,
   type TopsyBoard as TopsyBoardData,
@@ -70,6 +72,8 @@ export interface TopsyBoardProps {
   lean?: GravityDir | null;
   /** The lean is a tilt that moves nothing: a smaller lean (topsy.css), the board otherwise unchanged. */
   nudge?: boolean;
+  /** Reveal only: the balls not home and their holes are marked (a red ring), so what was missed shows at a glance. */
+  missed?: boolean;
   /** The board was just cleared (or the round solved): the holes light in turn. */
   cleared?: boolean;
 }
@@ -98,7 +102,7 @@ function useRollDurations(board: TopsyBoardData, balls: readonly number[]): numb
   return ms;
 }
 
-export function TopsyBoardView({ board, state, size, lean, nudge = false, cleared = false }: TopsyBoardProps) {
+export function TopsyBoardView({ board, state, size, lean, nudge = false, cleared = false, missed = false }: TopsyBoardProps) {
   const gridRef = useRef<HTMLDivElement | null>(null);
   const rollMs = useRollDurations(board, state.balls);
   const metrics = useGridMetrics(gridRef, TOPSY_SIZE, TOPSY_SIZE);
@@ -129,7 +133,8 @@ export function TopsyBoardView({ board, state, size, lean, nudge = false, cleare
                 {hole >= 0 ? (
                   <span
                     aria-label={state.balls[hole] === TOPSY_HOME ? "Ball home" : "Hole"}
-                    className={`grav-socket topsy-hole${state.balls[hole] === TOPSY_HOME ? " is-locked is-home" : ""}`}
+                    className={`grav-socket topsy-hole${state.balls[hole] === TOPSY_HOME ? " is-locked is-home" : missed ? " is-missed" : ""}`}
+                    data-missed={missed && state.balls[hole] !== TOPSY_HOME ? "" : undefined}
                     style={{ ["--ball" as string]: TOPSY_COLOURS[hole], ["--order" as string]: hole }}
                   >
                     <TopsyCup index={hole} />
@@ -150,7 +155,7 @@ export function TopsyBoardView({ board, state, size, lean, nudge = false, cleare
                 <span
                   key={index}
                   aria-hidden="true"
-                  className={`grav-ball topsy-ball${home ? " is-home" : ""}`}
+                  className={`grav-ball topsy-ball${home ? " is-home" : missed ? " is-missed" : ""}`}
                   data-ball={index}
                   style={{
                     width: ballSize,
@@ -441,43 +446,127 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
 
 /* ------------------------------------------------------------------ reveal */
 
-export function TopsyReveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
-  const data = puzzle as GravityPuzzleData & { boards: TopsyBoardData[] };
-  const replay = replayTopsyPuzzle(data, decodeGravityTilts(myAnswer ?? ""));
-  const last = Math.min(replay.current, TOPSY_BOARDS - 1);
-  const shownIndex = replay.solved ? TOPSY_BOARDS - 1 : last;
-  const state = currentBoardState(data, replay, shownIndex);
-  const routes = data.boardSolutions ?? [];
-  // The stored parts are the reveal's own score line at the top (6 Nov 2026: this board drew them again at the bottom).
+/** One board's line in the reveal: how the player left it. */
+export type TopsyBoardOutcome = "cleared" | "outOfTilts" | "unfinished" | "notReached";
+
+export interface TopsyRevealBoard {
+  /** The player's final state on the board (the start if never reached). */
+  state: TopsyState;
+  outcome: TopsyBoardOutcome;
+  /** The player's tilts on the board (the stored grade's `boardTilts` where it has them). */
+  tilts: number;
+  /** The board's fewest tilts (the stored minimum; null where the reveal doesn't know it). */
+  par: number | null;
+  /** The shortest route, letters U / D / L / R (the stored solution's; empty where none is stored). */
+  route: string;
+  home: number;
+}
+
+/**
+ * Each board as the reveal shows it (the Pattern overhaul's reveal, 15 Nov 2026): the player's own final board, how it
+ * ended, their tilts against the board's par, and the par route. Tilts come from the stored grade (`boardTilts`) where
+ * it holds them, so the figures shown are the server's; the replay supplies the boards themselves.
+ */
+export function topsyRevealBoards(data: GravityPuzzleData & { boards: TopsyBoardData[] }, answer: string, extra?: Record<string, unknown> | null): TopsyRevealBoard[] {
+  const replay = replayTopsyPuzzle(data, decodeGravityTilts(answer));
+  const stored = Array.isArray(extra?.["boardTilts"]) ? (extra!["boardTilts"] as unknown[]) : null;
+  return data.boards.map((board, i) => {
+    const result = replay.boards[i];
+    const state = result ? result.state : topsyStart(board);
+    const outcome: TopsyBoardOutcome = !result ? "notReached" : result.cleared ? "cleared" : result.outOfTilts ? "outOfTilts" : "unfinished";
+    const s = stored?.[i];
+    return {
+      state,
+      outcome,
+      tilts: typeof s === "number" && Number.isFinite(s) ? s : (result?.tilts ?? 0),
+      par: typeof data.boardMins?.[i] === "number" ? data.boardMins[i]! : null,
+      route: data.boardSolutions?.[i] ?? "",
+      home: topsyHomeCount(state),
+    };
+  });
+}
+
+const OUTCOME_TEXT: Record<TopsyBoardOutcome, string> = {
+  cleared: "Cleared",
+  outOfTilts: "Out of tilts",
+  unfinished: "Not finished",
+  notReached: "Not reached",
+};
+
+/** The par route as small arrow chips (one a tilt). */
+export function TopsyRouteChips({ route }: { route: string }) {
+  if (!route) return null;
   return (
-    <div className="grav-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3" data-topsy-reveal="">
-      <TopsyRings state={state} />
+    <div className="topsy-route-chips" data-topsy-route="" aria-label={`Par route: ${route.length} tilts`}>
+      <span className="topsy-route-label">Par route</span>
+      {route.split("").map((d, i) => (
+        <span key={i} className="topsy-chip" data-dir={d}>
+          {ARROWS[d as GravityDir] ?? d}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function TopsyReveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
+  const data = puzzle as GravityPuzzleData & { boards: TopsyBoardData[] };
+  const boards = useMemo(() => topsyRevealBoards(data, myAnswer ?? "", myExtra), [data, myAnswer, myExtra]);
+  // The board opened first: where the player stopped (the first not cleared), else the first.
+  const firstOpen = Math.max(0, boards.findIndex((b) => b.outcome !== "cleared"));
+  const [pick, setPick] = useState(firstOpen);
+  const index = Math.min(pick, boards.length - 1);
+  const b = boards[index]!;
+  const noStars = usesParMoves(data);
+  // The key numbers, from the stored grade where it has them (the replay otherwise, for stored rounds without them).
+  const num = (k: string) => (typeof myExtra?.[k] === "number" ? (myExtra[k] as number) : null);
+  const cleared = num("cleared") ?? boards.filter((x) => x.outcome === "cleared").length;
+  const home = num("home") ?? boards.reduce((n, x) => n + x.home, 0);
+  const tilts = num("tilts") ?? boards.reduce((n, x) => n + x.tilts, 0);
+  const par = num("parTilts") ?? (data.boardMins ? data.boardMins.reduce((n, m) => n + m, 0) : null);
+  const total = data.boards.reduce((n, x) => n + x.starts.length, 0);
+  const secondsLeft = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
+  const starsTaken = starCount(b.state.starMask);
+  return (
+    <div className="grav-reveal topsy-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-2" data-topsy-reveal="">
+      {/* One board at a time, large, with a switcher (Joe's reveal rules, 15 Nov 2026). */}
+      <div className="topsy-board-tabs" role="tablist" aria-label="Board shown">
+        {boards.map((x, i) => (
+          <button
+            key={i}
+            type="button"
+            role="tab"
+            aria-selected={i === index}
+            data-outcome={x.outcome}
+            className="topsy-board-tab"
+            onClick={() => setPick(i)}
+          >
+            Board {i + 1}
+          </button>
+        ))}
+      </div>
+      <p className="topsy-board-line" data-own-count="">
+        <span data-outcome={b.outcome}>{OUTCOME_TEXT[b.outcome]}</span>
+        {" · "}
+        You {b.tilts} {b.tilts === 1 ? "tilt" : "tilts"}
+        {b.par !== null ? ` · Par ${b.par}` : ""}
+        {" · "}
+        {b.home} of {data.boards[index]!.starts.length} home
+        {noStars ? "" : ` · ${starsTaken} of ${data.boards[index]!.stars.length} stars`}
+      </p>
       <div className="grav-reveal-space">
-        <div className="grav-reveal-square">
-          <TopsyBoardView board={data.boards[shownIndex]!} state={state} />
+        <div className="grav-reveal-square" data-reveal-board="">
+          <TopsyBoardView key={index} board={data.boards[index]!} state={b.state} missed={b.outcome !== "cleared"} />
         </div>
       </div>
-      {routes.length ? (
-        <p className="topsy-routes text-center font-display text-sm font-bold tracking-widest text-primary">
-          {routes.map((route, i) => (
-            <span key={i} className="topsy-route">
-              {i + 1}: {route.split("").map((d) => ARROWS[d as GravityDir] ?? d).join(" ")}
-            </span>
-          ))}
-        </p>
-      ) : null}
-      {/* The Pattern overhaul (15 Nov 2026): the routes above are the solution; these lines are the player's own, labelled
-          "You:" so they never read as the solution's (no stray mark between a count and its unit). */}
-      <p className="font-display text-2xl font-bold" data-own-count="">
-        <span className="mr-2 font-mono text-base uppercase tracking-widest text-muted-foreground">You:</span>
-        <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {replay.cleared} of {TOPSY_BOARDS}
-        </span>
-        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">boards cleared</span>
-      </p>
-      <p className="font-mono text-base text-muted-foreground" data-own-count="">
-        {replay.home} of {TOPSY_BALLS * TOPSY_BOARDS} balls home{usesParMoves(data) ? "" : ` · ${replay.stars} of ${TOPSY_BOARDS * TOPSY_STARS} stars`} · {replay.tilts} {replay.tilts === 1 ? "tilt" : "tilts"}
-      </p>
+      <TopsyRouteChips route={b.route} />
+      {/* The key numbers, the player's own (labelled "You"), from the stored grade. */}
+      <div className="topsy-key-pills" data-own-count="" data-topsy-keys="">
+        <span className="topsy-key"><span>Boards</span> <b>{cleared} of {data.boards.length}</b></span>
+        <span className="topsy-key"><span>Home</span> <b>{home} of {total}</b></span>
+        <span className="topsy-key"><span>You</span> <b>{tilts} {tilts === 1 ? "tilt" : "tilts"}</b></span>
+        {par !== null ? <span className="topsy-key"><span>Par</span> <b>{par}</b></span> : null}
+        {secondsLeft !== null ? <span className="topsy-key"><span>Time left</span> <b>{secondsLeft} s</b></span> : null}
+      </div>
     </div>
   );
 }

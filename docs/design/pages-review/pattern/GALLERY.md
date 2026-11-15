@@ -154,4 +154,26 @@ clips of the hero effects. Images are in this folder.
 
 <!-- topsy:start -->
 ## Topsy-Turvy
+
+| | Before (main) | After |
+|---|---|---|
+| Mid-play | <img src="../../game-reviews/img/pattern/gravity-2-mid.webp" width="180"> | <img src="gravity-after-play.webp" width="180"> |
+| Reveal, unfinished | <img src="../../game-reviews/img/pattern/gravity-3-end.webp" width="180"> | <img src="gravity-reveal-after-unfinished.webp" width="180"> |
+| Reveal, solved | (no solved shot on main: its dev server would not start here) | <img src="gravity-reveal-after-solved.webp" width="180"> |
+
+- **Look (A):** Blender sprites (`docs/design/game-art/pattern/source/gravity.py`, `public/pattern-art/gravity/`): grey
+  honed-stone blocks, a dark slate floor, a glossy glass marble per ball colour and a cup rimmed in each ball's own
+  colour (so every hole plainly belongs to one ball), inside a gunmetal tray frame. The marks stay drawn on the balls
+  and in the cups. A ball home sits sunk in its cup. No glows round balls or holes. Undo and Reset gold on navy.
+- **gravityRev 8:** each board's tilt limit is its fewest tilts + 8 (it was about twice what anyone needs); Undo and
+  Reset give the tilt back. The Tilts pill is the board's own count against that board's par; Left counts down.
+- **A tilt that moves nothing:** a small lean, no sound, no draft.
+- **Clock:** the catalogue says the dealt 120 s (stored four-ball rounds keep 90 s).
+- **Reveal:** one board at a time, large, with a Board 1 / 2 / 3 switcher (opening where you stopped, a tick on cleared
+  boards); the board as you left it, balls not home and their empty cups ringed red; "Cleared / Out of tilts · You n
+  tilts · Par p · n of 6 home"; the board's par route as gold arrow chips; key numbers from the stored grade (Boards,
+  Home, You, Par, Time left).
+- **Sound:** a looped marble rumble for exactly as long as the balls roll, a click as each stops, a pip as each drops
+  home (a combo for two or more), a board-cleared sound, a closing clunk when a board runs out of tilts (library
+  stand-ins until Joe's files).
 <!-- topsy:end -->
