@@ -20,7 +20,14 @@ For each line: generate it, trim it, level it as `docs/sound-cues/levels-nov-202
 
 ## Curl Champ (`curling`)
 
-CURLING_LINES
+| Slot | Moment | ElevenLabs prompt |
+|---|---|---|
+| `curling.powerNotch` | The power marker clicks into place | A short, crisp mechanical notch click, like a dial locking into a detent, dry, 80 ms. |
+| `curling.powerNotchHouse` | The marker set inside the gold HOUSE zone | The same detent click, slightly brighter and louder, with a tiny soft chime tail, 150 ms. |
+| `curling.clack` | Stone on stone | Two heavy polished granite curling stones colliding on ice, a sharp hollow clack with a short ringing body, close mic, 300 ms. |
+| `curling.ooh` | A takeout: the red slides off | An indoor arena crowd's rising impressed "oooh" as a stone is knocked away, a few hundred people, 1.2 s. |
+| `curling.aw` | A stone stops just outside counting | A small indoor crowd's soft sympathetic "aww", gentle and brief, 0.9 s. |
+| `curling.countTick` | The end of the run: counting stones light one by one | A light, warm wooden tick with a faint bell overtone, 100 ms. |
 
 ## Apex (`racing`)
 
