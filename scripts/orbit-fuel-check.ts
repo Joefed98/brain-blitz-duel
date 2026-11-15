@@ -21,7 +21,7 @@
  *     before), LIVE_BANDS and ORBIT_STD carry 14, the help describes the fuel, and the intro demo waits for one recorded
  *     on orbitRev 14.
  *  7. The sputter (display only): a run that ends dry animates for 0.6 s on the same ended state and the stage holds
- *     its submit that long; nothing else holds.
+ *     its submit that long; a finished run on the expansion's view holds 1.5 s for the sun moment (15 Nov 2026).
  *
  *   bun scripts/orbit-fuel-check.ts [--part=k/n]
  *
@@ -54,6 +54,7 @@ import {
 } from "../src/lib/arcade/orbitRev3";
 import { orbitCamera, orbitCameraResetCache, orbitViewH, orbitViewW } from "../src/lib/arcade/orbitCamera";
 import { createCanvas } from "@napi-rs/canvas";
+import { ORBIT_BLOOM_COUNT_MS, ORBIT_BLOOM_MS, ORBIT_SUN_HOLD_MS } from "../src/lib/arcade/orbitEffects.renderer";
 import { orbitEndHoldMs, orbitRev3ArtGame, ORBIT_SPUTTER_MS, setOrbitSputterClock } from "../src/lib/arcade/orbit.renderer";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
@@ -350,7 +351,17 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
   const taps = new Set(e.taps);
   while (!witnessEnd.ended) witnessEnd = step(witnessEnd, taps.has(witnessEnd.tick + 1) ? ev(witnessEnd.tick + 1, ORBIT_INPUT_TAP) : null);
   const stdEnd = { ...witnessEnd, fuel: undefined, dry: undefined } as OrbitRev3State;
-  ok(orbitEndHoldMs(witnessEnd) === 0 && orbitEndHoldMs(stdEnd) === 0 && orbitEndHoldMs(s0) === 0, "a finished run, an older revision's run and a live run hold nothing");
+  const preXpEnd = { ...stdEnd, xp: undefined } as OrbitRev3State;
+  // Changed with Joe's approval, 15 Nov 2026 (Orbit end hold for the sun moment): a finished run on the expansion's
+  // view (orbitRev 12+) now holds its submit ORBIT_SUN_HOLD_MS (about 1.5 s) so the sun's bloom, ALL 40 PLANETS! and
+  // the count-up show before the reveal; it used to hold nothing.
+  ok(witnessEnd.finished === 1 && orbitEndHoldMs(witnessEnd) === ORBIT_SUN_HOLD_MS && ORBIT_SUN_HOLD_MS >= 1300 && ORBIT_SUN_HOLD_MS <= 1700 && ORBIT_SUN_HOLD_MS >= ORBIT_BLOOM_MS && ORBIT_SUN_HOLD_MS >= ORBIT_BLOOM_COUNT_MS + 150, `a finished run holds its submit ${ORBIT_SUN_HOLD_MS} ms for the sun moment (the bloom and the count-up inside it)`);
+  ok(orbitEndHoldMs(stdEnd) === ORBIT_SUN_HOLD_MS, "a finished orbitRev 12–13 run (the sun's bloom drawn there too) holds for the sun moment");
+  ok(orbitEndHoldMs(preXpEnd) === 0 && orbitEndHoldMs(s0) === 0, "a finished run before the expansion's view (no sun moment) and a live run hold nothing");
+  const unfinished = { ...witnessEnd, finished: 0, ended: 1 } as OrbitRev3State;
+  ok(orbitEndHoldMs(unfinished) === 0, "a run that ended on the clock without the sun holds nothing");
+  const stage = readFileSync("src/puzzles/orbit.tsx", "utf8");
+  ok(/endHoldMs=\{\(state\) => orbitEndHoldMs\(/.test(stage), "the stage passes orbitEndHoldMs as its end hold (the finished run is the draft meanwhile)");
   if (dry) {
     const frozen = JSON.stringify(dry);
     const canvas = createCanvas(450, 862);

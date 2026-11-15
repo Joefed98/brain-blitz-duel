@@ -833,7 +833,7 @@ import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.render
 import { drawPlanetRing, drawRenderedPlanet, drawSunWarmth, orbitPlanetTurn } from "./orbitPlanets.renderer";
 import { drawHudPill, hudPillWidth, HUD_PILL_GAP } from "./hudPill.renderer";
 import { ORBIT_GRACE_HOLD_TICKS } from "./orbitRev3";
-import { drawCatchLock, drawHoldRing, drawLaunchPuff, drawSunBloom, orbitFlameOn, orbitLowFuel, orbitLowFuelWash } from "./orbitEffects.renderer";
+import { drawCatchLock, drawHoldRing, drawLaunchPuff, drawSunBloom, orbitFlameOn, orbitLowFuel, orbitLowFuelWash, ORBIT_SUN_HOLD_MS } from "./orbitEffects.renderer";
 
 /** The run's slips so far (display only): checkpoint respawns used plus orbitRev 15's automatic respawns; never falls. */
 export function orbitSlips(state: { respawns: number; autoRespawns?: number }): number {
@@ -1823,9 +1823,12 @@ export function setOrbitSputterClock(clock: (() => number) | null): void {
   sputterClock = clock ?? presentationNow;
 }
 const endedDry = (state: OrbitRev3State) => state.fuel !== undefined && state.ended === 2 && state.dry === state.endedTick;
-/** The stage's submit hold for a run that ended dry, so the sputter plays before the reveal (display only). */
+/** The stage's submit hold (display only): a run that ended dry holds for the sputter, a finished run on the expansion's
+ * view (orbitRev 12+, where the sun's bloom is drawn) for the sun moment (ORBIT_SUN_HOLD_MS), so each plays before the
+ * reveal; the finished run is the draft meanwhile. */
 export function orbitEndHoldMs(state: OrbitRev3State): number {
-  return endedDry(state) ? ORBIT_SPUTTER_MS : 0;
+  if (endedDry(state)) return ORBIT_SPUTTER_MS;
+  return state.xp && state.finished ? ORBIT_SUN_HOLD_MS : 0;
 }
 
 function observeSputter(ctx: object, state: OrbitRev3State): OrbitSputter | null {
