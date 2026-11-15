@@ -24,6 +24,7 @@ export const REDRAWN_ART_ON: Readonly<Record<string, boolean>> = {
   "card-art.tier.lightning": false,
   "card-art.tier.top-500": false,
   "card-art.crimson": false,
+  "card-art.galaxy": false,
   "card-art.royal": false,
   "card-art.emerald": false,
   "card-art.lava": false,
@@ -89,4 +90,17 @@ export const REDRAWN_ART_ON: Readonly<Record<string, boolean>> = {
 /** Whether this item draws its redrawn art (false for anything not listed). */
 export function redrawnArtOn(id: string | null | undefined): boolean {
   return !!id && REDRAWN_ART_ON[id] === true;
+}
+
+/**
+ * Redrawn default looks: what every player sees with nothing equipped (not cosmetics, so not in the catalogue). Off
+ * draws today's look exactly; on draws the redraw. One line per look, for Joe to approve.
+ */
+export const REDRAWN_DEFAULT_LOOKS: Readonly<Record<string, boolean>> = {
+  "default.crazy-golf.course": false,
+};
+
+/** Whether a default look draws its redraw (false for anything not listed). */
+export function redrawnDefaultOn(id: string): boolean {
+  return REDRAWN_DEFAULT_LOOKS[id] === true;
 }

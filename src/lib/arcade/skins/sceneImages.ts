@@ -1,0 +1,39 @@
+/**
+ * Pre-rendered scenery images for in-game looks (docs/design/cosmetics-redraws/ART-DIRECTION.md, "In-game looks"):
+ * Blender renders in public/cosmetics/redrawn/ that a renderer paints into its cached layers.
+ *
+ * Display only, and only behind a look's switch (src/config/cosmeticRedraws.ts). Nothing here is read by a sim, a
+ * grader or the server. An image is asked for the first time a layer wants it and drawn once it has arrived: until
+ * then `sceneImage` answers null and the renderer paints its own fallback, and `sceneImagesVersion()` changes when an
+ * image arrives, so a renderer that keys its layer cache on it repaints the layer once. Where there is no `Image` (a
+ * check in Bun, a worker) every image is null, so the fallback is always what is drawn there.
+ */
+
+const images = new Map<string, HTMLImageElement | null>();
+let version = 0;
+
+/** The image at `/cosmetics/redrawn/<name>.webp` once loaded, else null (and its load is started). */
+export function sceneImage(name: string): HTMLImageElement | null {
+  const known = images.get(name);
+  if (known !== undefined) return known && known.complete && known.naturalWidth > 0 ? known : null;
+  if (typeof Image === "undefined") {
+    images.set(name, null);
+    return null;
+  }
+  const img = new Image();
+  img.decoding = "async";
+  img.onload = () => {
+    version++;
+  };
+  img.onerror = () => {
+    images.set(name, null);
+  };
+  img.src = `/cosmetics/redrawn/${name}.webp`;
+  images.set(name, img);
+  return null;
+}
+
+/** Changes each time a scene image arrives (a layer cache keyed on it repaints once with the image). */
+export function sceneImagesVersion(): number {
+  return version;
+}
