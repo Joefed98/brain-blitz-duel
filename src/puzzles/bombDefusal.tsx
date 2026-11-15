@@ -173,7 +173,7 @@ export function Panel({
               style={{
                 width: compact ? 24 : 44,
                 height: compact ? 24 : 44,
-                backgroundColor: WIRE_HEX[button.colour],
+                backgroundColor: compact ? WIRE_HEX[button.colour] : "transparent",
                 // The Attention overhaul: a domed cap in a steel bezel, rendered in Blender; pressed, a gold ring.
                 backgroundImage: compact ? undefined : `url(${capSprite(button.colour)})`,
                 backgroundSize: "100% 100%",

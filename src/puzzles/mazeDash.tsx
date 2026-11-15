@@ -94,9 +94,12 @@ const MazeWalls = memo(function MazeWalls({ cells, cols, rows, k = 1 }: { cells:
       <image href={attentionArt("maze", "floor")} x={0} y={0} width={cols} height={rows * k} preserveAspectRatio="xMidYMid slice" data-maze-floor="" />
       {/* Polish batch S: a wide, faint ambient shadow under every wall for depth (display only). */}
       <path d={d} transform="translate(0.09 0.13)" stroke="rgba(0,0,0,0.28)" strokeWidth={0.3} strokeLinecap="round" fill="none" />
-      <path d={d} transform="translate(0.05 0.07)" stroke="var(--maze-wall-shadow)" strokeWidth={0.17} strokeLinecap="square" fill="none" />
-      <path d={d} stroke="var(--maze-wall)" strokeWidth={0.13} strokeLinecap="square" fill="none" />
-      <path d={d} transform="translate(-0.018 -0.025)" stroke="var(--maze-wall-top)" strokeWidth={0.04} strokeLinecap="square" fill="none" opacity={0.85} />
+      <path d={d} transform="translate(0.05 0.07)" stroke="var(--maze-wall-shadow)" strokeWidth={0.2} strokeLinecap="square" fill="none" />
+      {/* The Attention overhaul (15 Nov 2026, concept A): raised satin-metal walls: a darker metal body, a sheen down
+          its middle and a crisp lit edge on the top-left side (light, never a glow). */}
+      <path d={d} stroke="var(--maze-wall)" strokeWidth={0.17} strokeLinecap="square" fill="none" />
+      <path d={d} stroke="var(--maze-wall-sheen, var(--maze-wall))" strokeWidth={0.07} strokeLinecap="square" fill="none" />
+      <path d={d} transform="translate(-0.03 -0.035)" stroke="var(--maze-wall-top)" strokeWidth={0.035} strokeLinecap="square" fill="none" />
     </g>
   );
 });
@@ -206,14 +209,12 @@ export function MazeBoard({
           />
         )}
         {path.length > 1 && (
-          <polyline
-            points={path.map(centre).join(" ")}
-            fill="none"
-            stroke={GOLD}
-            strokeWidth={0.26}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          // The trail as a polished gold thread: a darker gold edge, the gold, and a bright core along its crown.
+          <g data-maze-trail="">
+            <polyline points={path.map(centre).join(" ")} fill="none" stroke="var(--maze-trail-edge, #7A5410)" strokeWidth={0.34} strokeLinecap="round" strokeLinejoin="round" />
+            <polyline points={path.map(centre).join(" ")} fill="none" stroke={GOLD} strokeWidth={0.26} strokeLinecap="round" strokeLinejoin="round" />
+            <polyline points={path.map(centre).join(" ")} fill="none" stroke="var(--maze-trail-core, #FFF0C2)" strokeWidth={0.07} strokeLinecap="round" strokeLinejoin="round" transform="translate(-0.025 -0.035)" opacity={0.85} />
+          </g>
         )}
         <circle
           cx={cx(start)}

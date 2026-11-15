@@ -14,7 +14,10 @@ with the effects kit (stage 2, after #422), the levels with the difficulty frame
    rounded edge in drawing order, each stroke a round tube, the palette's part in enamel; renders it on a transparent
    film through an orthographic camera in soft, even studio light, colour-true (a flat enamel face reads within about
    2 L* of its palette colour; `JZ_EXPOSURE` −3.35 on the Standard view). Output `public/attention/<game>/<name>.webp`
-   (~0.9 MB for all six games). Groups: `eagle tiles sweet reef shelves rockpool tally felt pair cards maze bomb`.
+   (about 650 KB for all six games). Light: a product-shot studio world seen only in reflections (dark straight
+   above so flat faces keep their colour and never glare, bright towards the horizon so every curve and bevel catches a
+   crisp highlight), the lights never seen in a reflection; enamel under a glossy clear coat on a softly domed body (a
+   blurred mask of the piece's own outline drives the bump), polished metals. Groups: `eagle tiles sweet reef shelves rockpool tally felt pair cards maze bomb`.
 3. `src/components/puzzles/attention/attentionArt.ts` names every file; `src/polish-attention/attention-overhaul.css` the
    surfaces and the champagne / navy controls (`--jz-navy`, `--jz-navy-edge` in tokens.css).
 
@@ -63,6 +66,6 @@ Labyrinth and Bomb Defusal play exactly as before in stage 1. The Classic star s
 
 ## Image budget
 
-Compressed WebP, sized for the largest display (3–5× the piece's box): Eagle Eye 71 KB, Double Take 257 KB, Tally
-71 KB, Labyrinth 3 KB, Bomb Defusal 36 KB, Matchmaker 89 KB; 530 KB in all. attention-overhaul-check fails any game over
+Compressed WebP, sized for the largest display (3–5× the piece's box): Eagle Eye 76 KB, Double Take 304 KB, Tally
+97 KB, Labyrinth 4 KB, Bomb Defusal 57 KB, Matchmaker 111 KB; 649 KB in all. attention-overhaul-check fails any game over
 400 KB.

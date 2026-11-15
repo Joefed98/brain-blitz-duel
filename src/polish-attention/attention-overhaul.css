@@ -459,3 +459,13 @@ html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="missed"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Labyrinth (concept A): satin-metal walls over the dark flagstone. */
+[data-polish="maze"],
+.maze-reveal-board,
+.maze-board {
+  --maze-wall: #5f6672;
+  --maze-wall-sheen: #9aa3b1;
+  --maze-wall-top: #e3e8ef;
+  --maze-wall-shadow: rgb(0 0 0 / 0.7);
+}
