@@ -15,7 +15,7 @@ import bmesh
 import jzlib
 
 GAME = "measure"
-# The jug sprite: 120 x 300 points at 2 px a point. Its 9-slice insets (points): lip 10, walls 9, base 24.
+# The jug sprite: 120 x 300 points at 3 px a point. Its 9-slice insets (points): lip 10, walls 9, base 24.
 JW, JH = 120, 300
 WALL, LIP, BASE = 9, 10, 24
 
@@ -50,12 +50,16 @@ def lathe(profile, m, segs=96):
 
 
 def jug_front():
-    setup(JW, JH, scale=2, samples=64)
-    s = bpy.context.scene
-    # A dark room for the glass to reflect, with two tall soft panels: the walls read as thin light edges, the
-    # middle stays clear (no glare across the water or the litre numbers).
-    world("#151b26", 1.0, hdri=None)
-    glass_m = thin_glass("jugglass", "#ffffff", rough=0.16, strength=0.9)
+    """A clear glass beaker lit as a product shot: crisp vertical highlights on its curved walls (narrow, in the
+    right-hand wall and a thin edge on the left, clear of the litre marks), a bright rolled lip and a glinting thick
+    base. The middle stays clear glass, so the water and the marks read through it."""
+    setup(JW, JH, scale=3, samples=96)
+    # A darker studio for the reflections: the glass shows the strips, not a grey haze.
+    world("#06080f", 0.0, hdri="studio.exr", hdri_strength=0.18)
+    for ob in list(bpy.data.objects):
+        if ob.type == "LIGHT":
+            bpy.data.objects.remove(ob)
+    glass_m = thin_glass("jugglass", "#ffffff", rough=0.015, strength=1.0)
     R = JW / 2 - 4          # outer radius at the walls
     t = 3.2                 # wall thickness
     top, bot = 6, JH - 6
@@ -63,13 +67,15 @@ def jug_front():
         (R - t, top + 3), (R - t * 0.4, top - 0.8), (R + 1.4, top), (R + 1.6, top + 3.2), (R, top + 6),  # rolled lip
         (R, bot - 14), (R - 2, bot - 4), (R - 7, bot - 0.4), (0.01, bot),                                   # outer base
     ]
-    # Inner wall back up, over a thick glass base.
     inner = [(0.01, bot - 11), (R - t - 6, bot - 12.5), (R - t - 1, bot - 18), (R - t, bot - 26), (R - t, top + 3)]
     lathe(prof + inner, glass_m)
-    # Tall panels well past the jug's ends, so the walls are lit evenly top to bottom (the app stretches the middle).
-    area(-60, JH / 2, 60, 40, 150, "#ffffff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
-    area(JW + 70, JH / 2, 60, 40, 90, "#dfe8ff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
-    area(JW / 2, -80, 40, 80, 90, "#ffffff", target=(JW / 2, 0, 0))
+    # Two tall, narrow strip lights well to the sides: on the curved wall each reflects as one crisp vertical line,
+    # the key's on the right a third of the way in from the edge, a thinner one in the left wall's edge (clear of the
+    # litre marks). Far past the ends, so the lines run the full height evenly (the app stretches the middle).
+    area(JW + 130, JH / 2, 70, 10, 2600, "#ffffff", target=(JW / 2, JH / 2, 0), sx=6, sy=JH * 6)
+    area(-210, JH / 2, 30, 10, 2600, "#e6eeff", target=(JW / 2, JH / 2, 0), sx=5, sy=JH * 6)
+    # A small key in front, above and to the right: a bright glint on the rolled lip and the thick base's rim.
+    area(JW * 0.8, -40, 120, 18, 420, "#fff6e8", target=(JW / 2, JH * 0.15, 0))
     write(GAME, "jug-front")
 
 

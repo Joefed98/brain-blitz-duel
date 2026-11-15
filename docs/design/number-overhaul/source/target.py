@@ -21,7 +21,9 @@ G = "target"
 
 
 def studio(w, h, scale=3):
-    setup(w, h, scale)
+    # The studio's reflection kept modest: a flat face looking at the camera would mirror the whole studio back
+    # (a wash across the number); the bevels still catch the key's crisp highlight.
+    setup(w, h, scale, reflect=0.35)
 
 
 def gold(name="gold", rough=0.2):
@@ -31,7 +33,7 @@ def gold(name="gold", rough=0.2):
 
 def slate(name, color):
     """Black lacquer: dark graphite under a glossy clear coat (depth, a crisp edge highlight)."""
-    m = mat(name, color, 0.32, coat=1.0, coat_rough=0.06)
+    m = mat(name, color, 0.38, coat=0.8, coat_rough=0.14)
     return add_bump(m, 120, 0.01, distance=0.0008)
 
 
@@ -47,20 +49,22 @@ def tile_base(name, face, edge=None):
 
 
 def tile():
-    tile_base("tile", lambda: slate("tileface", "#1f252b"))
+    tile_base("tile", lambda: slate("tileface", "#101418"))
 
 
 def tile_large():
-    tile_base("tile-large", lambda: slate("tilelg", "#1b1f24"), edge=lambda: gold("tileedge", 0.2))
+    tile_base("tile-large", lambda: slate("tilelg", "#0f1215"), edge=lambda: gold("tileedge", 0.2))
 
 
 def tile_picked():
-    tile_base("tile-picked", lambda: gold("tilegold", 0.24))
+    # Polished gold at the rim, a brushed face where the number sits.
+    tile_base("tile-picked", lambda: add_bump(mat("tilegoldface", "#c99d52", 0.36, metal=1.0), 60, 0.02, stretch=(1, 40, 1), distance=0.001),
+              edge=lambda: gold("tilegold", 0.16))
 
 
 def op():
     studio(90, 52, scale=3)
-    box(2, 2, 86, 48, 8, slate("opface", "#172040"), r=10)
+    box(2, 2, 86, 48, 8, slate("opface", "#141c38"), r=10)
     write(G, "op")
 
 
@@ -68,7 +72,7 @@ def target():
     studio(300, 150, scale=3)
     g = gold("plate", 0.16)
     box(2, 2, 296, 146, 6, g, r=22)                                  # the rim, polished
-    face = add_bump(mat("plateface", "#cfa75e", 0.38, metal=1.0), 60, 0.02, stretch=(1, 40, 1), distance=0.001)
+    face = add_bump(mat("plateface", "#b88c44", 0.42, metal=1.0), 60, 0.02, stretch=(1, 40, 1), distance=0.001)
     box(12, 12, 276, 126, 7, face, r=16, z=-0.5)                     # the face, brushed and set a touch lower
     write(G, "target")
 

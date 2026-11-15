@@ -1,4 +1,5 @@
-"""Checkout (the Number overhaul, 15 Nov 2026): a real bristle dartboard and a steel dart.
+"""Checkout (the Number overhaul; material pass 15 Nov 2026: concept A's lacquered walnut, sisal with fibre,
+red and blue rings, a polished steel spider under the product light, 15 Nov 2026): a real bristle dartboard and a steel dart.
 
 The board is drawn in the app's own 200-unit geometry (src/puzzles/checkout.tsx: C 100, doubles 70-78, trebles 43-50,
 the x4 ring 21-26, bull 14 and 6.5, the wooden number ring to 100), top down, so every wedge and ring of the render sits
@@ -31,27 +32,32 @@ def sector(r0, r1, w, m, depth=2.0, z=0.0, steps=10):
 
 
 def sisal(name, color):
-    """Pressed bristle: matte, with the fibre ends as a fine, deep grain."""
-    m = mat(name, color, 0.92, sheen=0.25)
-    return add_bump(m, 700, 0.6, detail=6, distance=0.006)
+    """Pressed sisal: the fibre ends as a fine, deep stipple, a soft sheen on top (concept A)."""
+    m = mat(name, color, 0.86, sheen=0.12)
+    add_bump(m, 520, 0.7, detail=8, distance=0.006)
+    return m
 
 
 def board(quad):
-    setup(200, 200, scale=4.5, samples=48).view_settings.exposure = -0.6
-    # The wooden surround: turned walnut, satin, its grain running round the ring (below the bristle's face).
-    walnut = wood("walnut", "#5a3519", "#2a160a", rough=0.5, coat=0.15, scale=6, stretch=(1, 1, 1))
-    cyl(C, C, R_NUM - 0.4, 6, walnut, z=-6.5, bevel=1.6, verts=180)
-    # A dark iron band where the bristle meets the wood.
-    cyl(C, C, R_DO + 1.2, 1.0, mat("band", "#1a1a1c", 0.45, metal=1.0), z=-1.2, bevel=0.3, verts=180)
-    black = sisal("sisal_black", "#141312")
-    cream = sisal("sisal_cream", "#d6c8a6")
-    red = sisal("sisal_red", "#8a141c")
-    green = sisal("sisal_green", "#0f4a28")
-    brass = add_bump(mat("x4brass", "#b9944c", 0.5, metal=1.0), 300, 0.05)
+    """Concept A's board under a product light: lacquered walnut, sisal with visible fibre, red and blue rings, a bright
+    steel spider that catches the key. Highlights sit on the wire and the wood's polished edge, never across a wedge."""
+    setup(200, 200, scale=4.5, samples=48).view_settings.exposure = -0.75
+    # The wooden surround: turned walnut under a deep lacquer, its grain running round the ring, a polished rolled edge.
+    walnut = wood("walnut", "#6a3c1c", "#2c1608", rough=0.3, coat=0.85, scale=5, stretch=(1, 1, 1))
+    # A satin lacquer: the key leaves a soft sheen along the rim, never a hard spot across the numbers.
+    walnut.node_tree.nodes["Principled BSDF"].inputs["Coat Roughness"].default_value = 0.22
+    cyl(C, C, R_NUM - 0.4, 6, walnut, z=-6.5, bevel=2.4, verts=200)
+    # A dark iron band where the sisal meets the wood.
+    cyl(C, C, R_DO + 1.2, 1.0, mat("band", "#202024", 0.3, metal=1.0), z=-1.2, bevel=0.3, verts=180)
+    black = sisal("sisal_black", "#171615")
+    cream = sisal("sisal_cream", "#d9ccae")
+    red = sisal("sisal_red", "#b31b26")
+    blue = sisal("sisal_blue", "#1f4fb8")
+    brass = add_bump(mat("x4brass", "#c9a256", 0.3, metal=1.0), 300, 0.04)
     for w in range(20):
         even = w % 2 == 0
         single = black if even else cream
-        ring = red if even else green
+        ring = red if even else blue
         sector(R_DI, R_DO, w, ring)
         sector(R_TO, R_DI, w, single)
         sector(R_TI, R_TO, w, ring)
@@ -61,28 +67,28 @@ def board(quad):
             sector(R_BULL, R_QI, w, single)
         else:
             sector(R_BULL, R_TI, w, single)
-    cyl(C, C, R_BULL, 2.0, green, z=0, bevel=0.15, verts=96)
+    cyl(C, C, R_BULL, 2.0, sisal("sisal_green", "#1d7a36"), z=0, bevel=0.15, verts=96)
     cyl(C, C, R_IB, 2.1, red, z=0, bevel=0.15, verts=96)
-    # The spider: thin round steel wire exactly on every edge.
-    wire = mat("wire", "#b8bcc2", 0.38, metal=1.0)
+    # The spider: polished round steel wire exactly on every edge, bright where the key catches it.
+    wire = mat("wire", "#dfe3e8", 0.16, metal=1.0)
     radii = [R_DO, R_DI, R_TO, R_TI, R_BULL, R_IB] + ([R_QO, R_QI] if quad else [])
     for r in radii:
-        torus(C, C, r, 0.42, wire, z=2.1)
+        torus(C, C, r, 0.5, wire, z=2.1)
     for w in range(20):
         a = ang(w, -9)
         x0, y0 = pt(R_BULL, a)
         x1, y1 = pt(R_DO, a)
-        tube([(x0, y0, 2.1), (x1, y1, 2.1)], 0.42, wire, round_caps=False)
-    write("checkout", "board-quad" if quad else "board", max_kb=160)
+        tube([(x0, y0, 2.1), (x1, y1, 2.1)], 0.5, wire, round_caps=False)
+    write("checkout", "board-quad" if quad else "board", max_kb=180)
 
 
 def dart():
     """A steel dart seen from the thrower's side: tip at the sprite's bottom-left (12, 108), flights up and right."""
     setup(64, 120, scale=4, samples=96)
-    steel = mat("steel", "#c6cad0", 0.32, metal=1.0)
-    barrel = add_bump(mat("tungsten", "#5a5f67", 0.42, metal=1.0), 120, 0.08, stretch=(1, 1, 8))
-    shaft = mat("shaft", "#1c1d21", 0.5)
-    flight = mat("flight", "#e2c07a", 0.55)
+    steel = mat("steel", "#dfe3e8", 0.14, metal=1.0)
+    barrel = add_bump(mat("tungsten", "#6a7078", 0.24, metal=1.0), 120, 0.08, stretch=(1, 1, 8))
+    shaft = mat("shaft", "#1c1d21", 0.2, coat=0.8)
+    flight = mat("flight", "#e2c07a", 0.3, coat=0.6)
     # The dart runs from the tip (12, 108) up to the right at 55 degrees.
     a = math.radians(-55)
     def along(d):
