@@ -1,0 +1,821 @@
+/*
+ * The games foundation (phase 2 step 4, 15 Nov 2026; presentation only; docs/design/game-fx/README.md):
+ *  1. the effects kit's particle layer (src/lib/fx/kit.ts) and the round-end payoff (ResultPayoff);
+ *  2. the shared game frame restyled to the style guide's round 2 (docs/design/style-guide/phone/puzzle.png,
+ *     arcade.png): the header's type on the six sizes, the score in the title weight, the status pills as solid
+ *     surface chips. Every box keeps its size and place (the header stays 60 px, the pills 22 px), so no board,
+ *     world, control or check geometry moves;
+ *  3. the arena (lib/gameFrame/arena.ts): computers and sideways tablets, the side panel instead of the header.
+ * Every animation here moves transform and opacity only; reduced motion ends each on its final state.
+ */
+
+/* ------------------------------------------------------------------ 1. the kit's layer */
+
+.fx-kit-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+.fx-kit-spark {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--jz-round);
+  background: var(--jz-gold);
+  will-change: transform, opacity;
+}
+.fx-kit-spark[data-tone="loss"] {
+  background: var(--jz-loss);
+}
+
+/* The round-end payoff (ResultPayoff): the score, the stars landing and the new-best badge. */
+.fx-payoff {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-8);
+  font-family: var(--jz-font);
+}
+.fx-payoff-score {
+  display: inline-block;
+  font-size: 48px;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 105%;
+  line-height: 52px;
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}
+.fx-payoff-label {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+  color: var(--jz-text-3);
+}
+.fx-stars {
+  display: flex;
+  gap: var(--jz-space-8);
+}
+.fx-star {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  color: var(--jz-surface-3);
+}
+.fx-star[data-earned] {
+  color: var(--jz-gold);
+}
+.fx-star svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fx-newbest {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: var(--jz-round);
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+  font-size: 13px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 28px;
+  white-space: nowrap;
+}
+/* The score bars on the result screens fill by scale, never by width (no layout animation). */
+.fx-bar {
+  display: block;
+  height: 100%;
+  border-radius: var(--jz-round);
+  transform: scaleX(var(--fx-bar, 0));
+  transform-origin: left center;
+  transition: transform var(--jz-dur-reward) var(--jz-ease);
+}
+.fx-bar[data-from-right] {
+  transform-origin: right center;
+}
+
+/* ------------------------------------------------------------------ 2. the frame, style guide round 2 */
+
+/* The header's secondary lines in text 2 (the guide's "Game 1 of 3" and ratings), not the caption grey; the names and
+   scores already sit on the Heading and Title weight (800). */
+.game-frame-context,
+.game-frame-score-label,
+.game-frame-score-note {
+  color: var(--jz-text-2);
+}
+.game-frame-score-value {
+  letter-spacing: -0.01em;
+}
+.game-timer .timer-ring-track {
+  stroke: var(--jz-surface-2);
+}
+
+/* Status pills: a solid surface chip (the guide's "Moves 7" "Par 9"), label and value both bold. */
+.hud-pill.jz-status {
+  background: var(--jz-surface-2);
+  box-shadow: none;
+}
+.hud-pill .hud-pill-label {
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text-2);
+}
+.hud-pill .hud-pill-value {
+  font-weight: var(--jz-weight-bold);
+}
+
+/* ------------------------------------------------------------------ 2b. header styles (config/gameFrameConfig.ts)
+ * The header keeps its 60 px and three columns in every style; the styles change what sits in them. Gold and navy:
+ * the timer's fill is the champagne gold on a navy track (no category-coloured ring), the critical last ten seconds
+ * the loss red. */
+
+.game-frame-header {
+  position: relative;
+}
+.game-frame-titles {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  /* The context's short form (game-frame.css @container 160px) measures the titles, beside the avatar. */
+  container-type: inline-size;
+}
+/* Beside the avatar, a narrow title column drops the category word (its dot keeps the colour), whatever the length. */
+@container (max-width: 160px) {
+  [data-header-style="mockup"] .game-frame-titles .game-frame-cat {
+    display: none;
+  }
+}
+/* A narrow half (360 and 375 px phones): the avatar steps aside so the name and "Round n of N" keep their room. */
+@container (max-width: 158px) {
+  .game-frame-avatar[data-frame-me] {
+    display: none;
+  }
+}
+.game-frame-header[data-header-style="mockup"] > .game-frame-left {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--jz-space-8);
+}
+.game-frame-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--jz-radius-md);
+}
+[data-frame-me] {
+  box-shadow: 0 0 0 2px var(--jz-gold);
+}
+[data-frame-opponent] {
+  width: 36px;
+  height: 44px;
+  margin-left: var(--jz-space-4);
+}
+[data-frame-opponent] > * {
+  box-shadow: 0 0 0 2px var(--jz-surface-3);
+  border-radius: var(--jz-radius-md);
+}
+
+/* Every look: gold on navy. */
+.game-timer .timer-ring-fill {
+  stroke: var(--jz-gold);
+}
+.game-timer.fx-timer-critical .timer-ring-fill {
+  stroke: var(--jz-loss);
+}
+
+/* The bar (the default): the bar along the header's whole bottom edge, no number; in the last ten seconds it turns red
+   and the seconds appear in the centre column (the timer's label carries the time to screen readers throughout). */
+.game-frame-header .game-timer[data-timer-look="bar"] {
+  position: static;
+}
+.game-timer-bar {
+  position: absolute;
+  left: var(--frame-bar-inset, 12px);
+  right: var(--frame-bar-inset, 12px);
+  bottom: 2px;
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--jz-round);
+  background: var(--jz-surface-2);
+}
+[data-frame="arcade"] > .game-frame-header {
+  --frame-bar-inset: 16px;
+}
+.game-timer-bar-fill,
+.game-timer-chip-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--jz-gold);
+  transform-origin: left center;
+}
+.game-timer-bar-fill.is-smooth,
+.game-timer-chip-fill.is-smooth {
+  transition: transform 100ms linear;
+}
+.fx-timer-critical :is(.game-timer-bar-fill, .game-timer-chip-fill) {
+  background: var(--jz-loss);
+}
+.game-timer[data-timer-look="bar"] > .game-timer-seconds {
+  font-size: 17px;
+  color: var(--jz-loss-text);
+}
+
+/* Chip: the seconds (0:52) in white on a navy pill, a gold stripe along its foot that shrinks with the time. */
+.game-timer[data-timer-look="chip"] {
+  width: 72px;
+  height: 30px;
+  overflow: hidden;
+  border-radius: var(--jz-round);
+  background: var(--jz-surface-2);
+}
+.game-timer-chip-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  border-radius: 0;
+}
+.game-timer[data-timer-look="chip"] > .game-timer-seconds {
+  position: relative;
+  font-size: 15px;
+  color: var(--jz-text);
+}
+
+/* The arena's side panel draws the same choice, larger. */
+.game-timer[data-timer-place="panel"][data-timer-look="bar"] {
+  display: flex;
+  width: 100%;
+  min-height: 12px;
+  height: auto;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: var(--jz-space-8);
+}
+.game-timer[data-timer-place="panel"][data-timer-look="bar"] > .game-timer-seconds {
+  font-size: 40px;
+  line-height: 44px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="bar"] > .game-timer-bar {
+  position: relative;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 8px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="ring"] {
+  width: 96px;
+  height: 96px;
+  margin-inline: auto;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="ring"] > .game-timer-ring {
+  width: 96px;
+  height: 96px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="ring"] > .game-timer-seconds {
+  font-size: 32px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="chip"] {
+  width: 100%;
+  height: 56px;
+  border-radius: var(--jz-radius-md);
+}
+.game-timer[data-timer-place="panel"][data-timer-look="chip"] > .game-timer-seconds {
+  font-size: 32px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="chip"] > .game-timer-chip-fill {
+  height: 6px;
+}
+
+/* The shared controls' outline buttons (Box Six's Pencil and Clear, and every "font-mono uppercase" outline action
+   in a puzzle's dock): the style guide's secondary button, navy on its ledge, sentence case; on, gold. */
+[data-puzzle-play][data-puzzle-play] [data-game-stage] button.font-mono.uppercase.border {
+  border-color: transparent !important;
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface-2) !important;
+  box-shadow: var(--jz-elev-1) !important;
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--jz-text) !important;
+}
+[data-puzzle-play][data-puzzle-play] [data-game-stage] button.font-mono.uppercase.border:is(.border-primary, [aria-pressed="true"]) {
+  background: var(--jz-gold) !important;
+  box-shadow: 0 4px 0 var(--jz-gold-ledge) !important;
+  color: var(--jz-on-gold) !important;
+}
+[data-puzzle-play][data-puzzle-play] [data-game-stage] button.font-mono.uppercase.border:disabled {
+  color: var(--jz-text-3) !important;
+}
+
+/* ------------------------------------------------------------------ 2c. phones: the space round the board
+ * A tall phone's puzzle has spare height above and below a board that is already as wide as the screen allows: the
+ * dock's buttons (not the letter keypads, which would take height from the board) grow to a thumb's 52 px. */
+@media (max-width: 699px) {
+  @container (min-height: 620px) {
+    [data-puzzle-play] [data-polish] [data-game-controls]:not([data-game-controls="keypad"]) button {
+      min-height: 52px;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ 3. the arena (computers, sideways tablets)
+ * lib/gameFrame/arena.ts: no header; one side panel (the game's block; in a room, the top of the room panel); the
+ * column fills the height between the rail and the panel, the world at the largest uniform scale that fits. */
+
+[data-arena].game-screen:not([data-room-panel]) {
+  padding-right: var(--arena-panel-w, 320px);
+}
+[data-arena][data-layout="tablet"][data-room-panel] {
+  padding-right: 380px;
+}
+[data-arena].game-screen > [data-shell-column="game"] {
+  height: 100%;
+  max-height: none;
+  margin-inline: auto;
+}
+/* Puzzles: wider than a computer's 760 px column where the screen is tall enough, since boards that size from their
+   width grow taller too (Mosaic): 85 % of the height, between the old 760 and 960 px. */
+[data-arena][data-desktop-mode="wide"]:not([data-arcade-play]) > [data-shell-column="game"] {
+  max-width: clamp(760px, 85dvh, 960px);
+}
+[data-arena][data-layout="tablet"][data-arcade-play] > [data-shell-column="game"] {
+  max-width: 640px;
+}
+[data-arena][data-layout="tablet"][data-arcade-play][data-desktop-mode="rotate"] > [data-shell-column="game"] {
+  max-width: 1000px;
+}
+/* The goal, the progress and the board's status pills are in the panel (ArenaGamePanel's BoardStatus), so each number
+   is on screen once; kept in the layout (visibility only), so no board, world or control moves. */
+[data-arena] .game-goal-text,
+[data-arena] [data-goal-progress],
+[data-arena] [data-game-stage] [data-hud-pills] {
+  visibility: hidden;
+}
+/* A sideways tablet's arcade play screen keeps the phone's 16 px foot; its world and fade as on a computer. */
+[data-arena][data-layout="tablet"][data-arcade-play] > [data-dk-fade] {
+  display: none;
+}
+
+.arena-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  width: var(--arena-panel-w, 320px);
+  flex-direction: column;
+  overflow-y: auto;
+  padding: max(20px, env(safe-area-inset-top, 0px)) 20px max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+  border-left: 1px solid var(--jz-line);
+  background: var(--jz-raised);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.arena-panel-mount,
+.dk-rp-game {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.arena-panel-mount {
+  flex: 1 1 auto;
+}
+.arena-game {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+}
+.arena-game[data-in-room] {
+  flex: none;
+  gap: var(--jz-space-12);
+}
+.arena-game-head {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+  container-type: inline-size;
+}
+.arena-game-head > .game-frame-avatar {
+  box-shadow: 0 0 0 2px var(--jz-gold);
+}
+.arena-game-titles {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+}
+.arena-game-menu {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+.arena-game-timer {
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.arena-game-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.arena-game-score > .game-frame-score {
+  align-items: flex-start;
+  margin-right: 0;
+}
+.arena-game-score .game-frame-score-value {
+  font-size: 32px;
+  line-height: 36px;
+}
+.arena-game-score .game-frame-score-note {
+  max-width: 200px;
+}
+.arena-game-goal {
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+  color: var(--jz-text-2);
+}
+.arena-game[data-in-room] .arena-game-goal {
+  display: none;
+}
+.arena-game-stars {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--jz-space-4);
+}
+.arena-game-best {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+/* The board's status: one row a figure, label left, value right. */
+.arena-game-status {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--jz-space-4) var(--jz-space-16);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.arena-status-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-8) 0;
+}
+.arena-status-row + .arena-status-row {
+  border-top: 1px solid var(--jz-line);
+}
+.arena-status-row dt {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  color: var(--jz-text-2);
+}
+.arena-status-row dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 20px;
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.arena-status-row[data-tone="warn"] dd {
+  color: var(--jz-red);
+}
+.arena-game-challenges {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.arena-game-caption {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  color: var(--jz-text-3);
+}
+
+/* The controls tab: pinned to the panel's foot, pulls up the keys and the control choice. */
+.arena-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  margin-top: auto;
+}
+.arena-controls-tab {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+  padding: 0 var(--jz-space-16);
+  border: 0;
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface-2);
+  color: var(--jz-text-2);
+  font-family: var(--jz-font);
+  font-size: 13px;
+  font-weight: var(--jz-weight-bold);
+}
+.arena-controls-caret {
+  display: inline-block;
+  transition: transform var(--jz-dur-select) ease-out;
+}
+.arena-controls-caret[data-open] {
+  transform: rotate(180deg);
+}
+.arena-controls-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12);
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface);
+  font-size: 13px;
+  color: var(--jz-text-2);
+}
+.arena-controls-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.arena-controls-keys kbd {
+  display: inline-block;
+  min-width: 22px;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--jz-surface-2);
+  box-shadow: 0 2px 0 var(--jz-bg);
+  font-family: var(--jz-font);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  color: var(--jz-text);
+}
+.arena-scheme {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.arena-scheme-note {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--jz-text-3);
+}
+
+/* A sideways tablet: the room panel as on a computer (its look is in desktop-layout.css from 1024 px). */
+[data-arena][data-layout="tablet"] .dk-room-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  width: 380px;
+  flex-direction: column;
+  gap: 18px;
+  overflow: hidden;
+  padding: 20px 20px 24px;
+  border-left: 1px solid var(--jz-line);
+  background: var(--screen-edge);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+
+/* The rotor for a sideways tablet (a computer's is in desktop-layout.css): Cue Ball's table turned, the same world. */
+[data-layout="tablet"] [data-arena-slot][data-arena-rotate] {
+  position: relative;
+}
+[data-layout="tablet"] [data-arena-rotor] {
+  --rw: round(down, min(100cqw * var(--arena-w) / var(--arena-h), 100cqh), 2px);
+  --rh: round(down, min(100cqw, 100cqh * var(--arena-h) / var(--arena-w)), 2px);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  width: var(--rw);
+  height: var(--rh);
+  flex-direction: column;
+  transform-origin: 0 0;
+  transform: translate(calc(round(down, (100cqw - var(--rh)) / 2, 1px) + var(--rh)), round(down, (100cqh - var(--rw)) / 2, 1px)) rotate(90deg);
+}
+[data-layout="tablet"] [data-arena-rotor] > [data-game-arena] {
+  width: 100%;
+  height: 100%;
+  flex: none;
+}
+/* A turned world's black fill spans its turned footprint (the rotor's on-screen width), not the upright world's. */
+[data-arena-slot][data-arena-rotate]::after {
+  width: round(down, min(100cqw, 100cqh * var(--arena-h) / var(--arena-w)), 2px);
+}
+
+/* ------------------------------------------------------------------ the showcase (/dev-design, development only) */
+
+.fx-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--jz-space-12);
+}
+.fx-demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-12);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.fx-demo-stage {
+  display: flex;
+  height: 96px;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+.fx-demo-track {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  padding-inline: var(--jz-space-12);
+}
+.fx-demo-track-left {
+  justify-content: flex-start;
+}
+.fx-demo-track-right {
+  justify-content: flex-end;
+}
+.fx-demo-piece {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--jz-radius-md);
+  background: var(--category-accent, var(--jz-gold));
+  color: var(--jz-on-gold);
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+}
+.fx-demo-piece[data-fx-piece="gold"] {
+  background: var(--jz-gold);
+}
+.fx-demo-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--jz-space-4);
+}
+.fx-demo-name {
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 20px;
+  color: var(--jz-text);
+}
+.fx-demo-what {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--jz-text-3);
+}
+.fx-header-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--jz-space-16);
+}
+.fx-header-option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.fx-header-preview {
+  max-width: 390px;
+  padding: 0 4px;
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-bg);
+}
+
+/* ------------------------------------------------------------------ 4. the shared reveal layout (AnswerReveal)
+ * One result card (the verdict mark, the verdict in the Heading size, the stored score), then practice's payoff row
+ * (the game's stars landing, "Star earned", the new-best badge), then the game's own drawing of the solution. */
+[data-answer-reveal] .reveal-result {
+  padding: var(--jz-space-12);
+  border-radius: var(--jz-radius-lg);
+  background: color-mix(in srgb, var(--jz-surface) 88%, transparent);
+}
+[data-answer-reveal] .reveal-result .reveal-verdict {
+  font-size: 17px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 22px;
+}
+.reveal-payoff {
+  display: flex;
+  min-height: 32px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--jz-space-8) var(--jz-space-12);
+}
+.reveal-payoff-note {
+  font-size: 13px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 18px;
+  color: var(--jz-gold-ink);
+}
+
+/* Settings → Appearance → Game timer: its label over the three choices, under the appearance switch. */
+.st-timer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  margin-top: var(--jz-space-16);
+}
+.st-timer-label {
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+  color: var(--jz-text-2);
+}
+
+/* ------------------------------------------------------------------ 2d. phones: no dead band (pass 3, 15 Nov 2026)
+ * A tall phone's puzzle used to centre its board between the goal line and the controls, so the spare height split
+ * into a band above the board and an equal dead band between the board and the controls (97–192 px on Box Six or
+ * Gridlock), and the word keypads floated above a band at the bottom (124–390 px). On a phone's live round the board
+ * and its controls now sit together at the bottom, in thumb reach: the controls end at the bottom as before, the
+ * board sits its usual 12 px above them, and the spare height is above the board, under the goal line. The board
+ * keeps its size (already as wide as the screen allows); arenas that grow and centre their board inside put it at
+ * their foot instead. Live rounds only: intro demos keep the layout they were recorded on. */
+@media (max-width: 699px) {
+  [data-puzzle-play] .game-column [data-stage-column][data-stage-column] {
+    justify-content: flex-end;
+  }
+  /* Whatever centred the board (layout 2's auto margins, a game's own) gives way: nothing under the board but the
+     stage's 12 px, and the word games' "controls first" margin no longer splits the spare height. */
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] {
+    margin-bottom: 0 !important;
+  }
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] ~ :is([data-word-controls-first], [data-game-controls]) {
+    margin-top: 0 !important;
+  }
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] + [data-game-controls] {
+    margin-top: calc(12px - var(--stage-gap, 0px)) !important;
+  }
+  /* Spacers a stage puts round its board (empty flex children) stop growing below it. */
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] ~ div:empty {
+    flex-grow: 0 !important;
+  }
+  /* …and the one straight under it keeps the board its 12 px clear of what follows (a 4 px gap either side). */
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] + div:empty {
+    min-height: 4px;
+  }
+  /* A grid board with no controls under it keeps clear of the screen's foot (boards that fill the height, Flash's or
+     Ascend's, keep theirs where it was). */
+  @media (min-height: 760px) {
+    [data-puzzle-play] .game-column [data-stage-column]:has(> [data-game-arena]:is([data-game-arena="logic"], [data-game-arena="board"])):not(:has(> [data-game-controls])) {
+      padding-bottom: 12px;
+    }
+  }
+  [data-puzzle-play] .game-column [data-logic-stage] > [data-game-arena="logic"][data-game-arena] {
+    justify-content: flex-end;
+  }
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena].flex-col.justify-center {
+    justify-content: flex-end;
+  }
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena].flex:not(.flex-col).items-center {
+    align-items: flex-end;
+  }
+}
