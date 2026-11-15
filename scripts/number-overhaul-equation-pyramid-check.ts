@@ -14,6 +14,10 @@
  *   5. Gaps: a chosen empty gap takes the next tile of its kind.
  *   6. Integer Pyramid: the sum check (right / wrong / unknown), the seams only where the player had a hand, the
  *      "Finish" label on the last pyramid, the tray in two rows.
+ *   7. The answer reveals (happy-dom): one board at a time with a tab per equation / pyramid, opening on the first not
+ *      right, a skipped one marked not reached; Yours against Solution where the reveal has the answers (none on the
+ *      public half), wrong pieces and empty gaps or stones highlighted on Yours, the pieces missed outlined on the
+ *      solution; the facts that explain the score; an older stamp's answer reveals too.
  *
  *   bun scripts/number-overhaul-equation-pyramid-check.ts [--record]
  */
@@ -220,6 +224,88 @@ if (RECORD) {
     await act(async () => root.unmount());
   }
   ok(screens === 2, `both stamps' screens were played (${screens})`);
+}
+
+/* ------------------------------------------------------------------ 7. The answer reveals (happy-dom) */
+{
+  const { createElement, act } = await import("react");
+  const { createRoot } = await import("react-dom/client");
+  const { GapsReveal } = await import("../src/puzzles/equationGaps");
+  const { numberPyramidPuzzle } = await import("../src/puzzles/numberPyramid");
+  const { NUMBER_REVEAL_ANSWERS } = await import("./screens/number-fixture");
+  const { splitPuzzle } = await import("../src/lib/duel/secrets");
+  const mount = async (component: unknown, props: Record<string, unknown>) => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host as unknown as Element);
+    await act(async () => root.render(createElement(component as never, { myCorrect: false, myReactionAvgMs: null, timeLimitMs: 90_000, myMsRemaining: 0, ...props } as never)));
+    return { host, unmount: () => act(async () => root.unmount()) };
+  };
+  const tabs = (host: { querySelectorAll: (s: string) => ArrayLike<Element> }) => [...(host.querySelectorAll("[role='tab']") as unknown as Element[])];
+  const pressView = async (host: { querySelectorAll: (s: string) => ArrayLike<Element> }, name: string) => {
+    const b = [...(host.querySelectorAll("[data-reveal-view] button") as unknown as HTMLButtonElement[])].find((x) => x.textContent?.trim() === name);
+    ok(!!b, `the "${name}" view button is drawn`);
+    await act(async () => b?.click());
+  };
+
+  // Operator: equations 1 and 3 right, 2 a wrong full fill, 4 skipped (the screens' fixture answer).
+  for (const pinned of [false, true]) {
+    const tag = pinned ? "gapsRev 1" : "gapsRev 2";
+    const full = deal(SEEDS[2]!, pinned);
+    const answer = NUMBER_REVEAL_ANSWERS.equation!(full);
+    const { host, unmount } = await mount(GapsReveal, { puzzle: full, myAnswer: answer });
+    const t = tabs(host);
+    ok(t.length === 4, `${tag} reveal: one tab per equation (${t.length})`);
+    ok(host.querySelectorAll("[data-reveal-board]").length === 1, `${tag} reveal: one equation shown at a time`);
+    ok(t[1]?.getAttribute("aria-selected") === "true", `${tag} reveal: opens on the first equation not right`);
+    ok(t.map((x) => x.getAttribute("data-mark")).join(",") === "right,wrong,right,open", `${tag} reveal: right, wrong, right, not reached (${t.map((x) => x.getAttribute("data-mark")).join(",")})`);
+    ok(!!host.querySelector("[data-reveal-view]"), `${tag} reveal: Yours against Solution where the answers are known`);
+    ok(host.querySelectorAll(".opg-gap[data-mark='fix']").length > 0, `${tag} reveal: the solution outlines the pieces the player didn't have`);
+    await pressView(host, "Yours");
+    ok(host.querySelectorAll(".opg-gap[data-mark='bad']").length > 0, `${tag} reveal: yours highlights the wrong pieces`);
+    ok(/^Makes \d+, not \d+$|^Doesn't make a whole number$/.test(host.querySelector("[data-operator-reveal-note]")?.textContent ?? ""), `${tag} reveal: says what the wrong line makes (${host.querySelector("[data-operator-reveal-note]")?.textContent})`);
+    const facts = host.querySelector("[data-number-reveal-facts]")?.textContent ?? "";
+    ok(/Right\s*2 of 4/.test(facts) && /Tries used\s*5/.test(facts) && /Time/.test(facts), `${tag} reveal: the facts (${facts})`);
+    await act(async () => (t[3] as HTMLButtonElement).click());
+    ok(host.querySelector("[data-operator-reveal-note]")?.textContent === "One way to make it true", `${tag} reveal: the skipped equation shows a true fill`);
+    await pressView(host, "Yours");
+    ok(host.querySelectorAll(".opg-gap[data-mark='miss']").length === gapSlots(full.stages[3]!).length, `${tag} reveal: the skipped equation's gaps are marked empty`);
+    ok(host.querySelector("[data-operator-reveal-note]")?.textContent === "Not reached", `${tag} reveal: the skipped equation reads "Not reached"`);
+    await act(async () => (t[0] as HTMLButtonElement).click());
+    ok(!host.querySelector("[data-reveal-view]"), `${tag} reveal: a right equation shows the player's own fill alone`);
+    await unmount();
+    // The public half (no answers): the player's fill alone, still one at a time.
+    const pub = await mount(GapsReveal, { puzzle: splitPuzzle(full).pub, myAnswer: answer });
+    ok(tabs(pub.host).length === 4 && !pub.host.querySelector("[data-reveal-view]"), `${tag} reveal: without the answers, yours alone`);
+    await pub.unmount();
+  }
+
+  // Integer Pyramid: pyramid 1 complete, 2 half placed with two swapped, 3 and 4 untouched.
+  {
+    const full = withSeededRandom(SEEDS[2]!, () => generatePuzzle("numpyramid"));
+    const answer = NUMBER_REVEAL_ANSWERS.numpyramid!(full);
+    const { host, unmount } = await mount(numberPyramidPuzzle.Reveal, { puzzle: full, myAnswer: answer });
+    const t = tabs(host);
+    ok(t.length === 4, `pyramid reveal: one tab per pyramid (${t.length})`);
+    ok(host.querySelectorAll("[data-reveal-board]").length === 1 && host.querySelectorAll(".np-art").length === 1, "pyramid reveal: one pyramid drawn at a time");
+    ok(t[1]?.getAttribute("aria-selected") === "true", "pyramid reveal: opens on the first pyramid not complete");
+    ok(t.map((x) => x.getAttribute("data-mark")).join(",") === "right,wrong,open,open", `pyramid reveal: complete, wrong, not reached ×2 (${t.map((x) => x.getAttribute("data-mark")).join(",")})`);
+    ok(host.querySelectorAll("[data-np-fix]").length > 0, "pyramid reveal: the solution outlines the stones the player didn't have");
+    await pressView(host, "Yours");
+    ok(host.querySelectorAll("[data-np-wrong]").length >= 2, "pyramid reveal: yours highlights the wrong stones");
+    ok(host.querySelectorAll("[data-np-missed]").length > 0, "pyramid reveal: yours marks the empty stones");
+    ok(/wrong/.test(host.querySelector("[data-np-reveal-note]")?.textContent ?? ""), `pyramid reveal: says how many are wrong (${host.querySelector("[data-np-reveal-note]")?.textContent})`);
+    const facts = host.querySelector("[data-number-reveal-facts]")?.textContent ?? "";
+    ok(/Complete\s*1 of 4/.test(facts) && /Wrong stones\s*[1-9]/.test(facts) && /Time/.test(facts), `pyramid reveal: the facts (${facts})`);
+    await act(async () => (t[0] as HTMLButtonElement).click());
+    ok(!host.querySelector("[data-reveal-view]") && host.querySelector("[data-np-reveal-note]")?.textContent === "Complete", "pyramid reveal: a complete pyramid shows the player's own");
+    await unmount();
+    const pub = await mount(numberPyramidPuzzle.Reveal, { puzzle: splitPuzzle(full).pub, myAnswer: answer });
+    ok(tabs(pub.host).length === 4 && !pub.host.querySelector("[data-reveal-view]"), "pyramid reveal: without the solutions, yours alone");
+    await act(async () => (tabs(pub.host)[1] as HTMLButtonElement).click());
+    ok(pub.host.querySelectorAll("[data-np-wrong]").length >= 1, "pyramid reveal: without the solutions, stones in a broken sum still read wrong");
+    await pub.unmount();
+  }
 }
 
 if (failures) {

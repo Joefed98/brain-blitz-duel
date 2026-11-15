@@ -87,8 +87,9 @@ NUMBER_REVEAL_ANSWERS.numline = () => encodeNumline([4100, 2600, 7400, 1300, 880
 NUMBER_REVEAL_ANSWERS.checkout = (full) => {
   if (full.type !== "checkout") return "";
   const third = full.routes?.[2] ?? "";
-  // One dart of board 3's route: a route's darts are fixed-width pairs, so its first two characters.
-  return [full.routes?.[0] ?? "", full.routes?.[1] ?? "", third.length > 2 ? third.slice(0, 2) : "", "", ""].join("|");
+  // One dart of board 3's route (darts are "wedge:ring", comma-separated): its first dart only, when it has more.
+  const darts = third.split(",");
+  return [full.routes?.[0] ?? "", full.routes?.[1] ?? "", darts.length > 1 ? darts[0]! : "", "", ""].join("|");
 };
 // Kakuro: every other white square of the solution filled, and one square with a digit that is not the solution's.
 NUMBER_REVEAL_ANSWERS.kakuro = (full) => {

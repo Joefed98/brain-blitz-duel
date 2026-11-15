@@ -812,7 +812,8 @@ export function measureRevealBoards(puzzle: MeasurePuzzleData, answer: string | 
       moves: reached ? (replay?.moves ?? 0) : null,
       solved: !!replay?.solved,
       outOfMoves: !!replay?.outOfMoves,
-      fewest: puzzle.minMoves?.[index] ?? null,
+      // The public par (depthRev 1) is the same fewest count, so a reveal without the private half still has it.
+      fewest: puzzle.minMoves?.[index] ?? puzzle.par?.[index] ?? null,
       best: puzzle.solutions?.[index] ?? null,
     };
   });

@@ -13,6 +13,10 @@
  *      last) clears through NumberStage before the next comes in.
  *   5. Neither game's deal changed: live deals equal the pre-overhaul era's (pinPreNumberOverhaul) on 30 seeds each.
  *   6. The art, the sound slots and their cue-sheet rows exist.
+ *   7. The reveals (happy-dom): one puzzle or line at a time with a tab per board, opening on the first not right;
+ *      Brimful shows your moves and the fewest as jug pictures with the numbers behind the score; Ballpark draws
+ *      every marker paired with its true spot, how far off each was in plain words, and the average, bullseyes and
+ *      worst miss; both reveal older stamps' answers too (measureRev 1, numlineRev 1).
  *
  *   bun scripts/number-overhaul-measure-numline-check.ts
  */
@@ -23,7 +27,7 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import { decodeMeasureActions, measureApply, measureLineStates, measureSolved } from "../src/lib/duel/measure";
 import { pinPreNumberOverhaul } from "../src/lib/duel/numberOverhaul";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
-import type { MeasurePuzzleData } from "../src/lib/duel/types";
+import type { MeasurePuzzleData, NumlinePuzzleData } from "../src/lib/duel/types";
 
 const failures: string[] = [];
 let passes = 0;
@@ -71,7 +75,9 @@ const between = (text: string, from: string, to: string) => {
   const board = { caps: [3, 5], start: [0, 0], tap: true, goal: "amount" as const, target: 4 };
   ok(measureLineStates(board, "E0").length === 1, "Brimful: a refused first move leaves only the start");
   const reveal = between(src("src/puzzles/measure.tsx"), "function Reveal(", "export const measurePuzzle");
-  ok(/<BestLine board=\{board\} raw=\{puzzle\.solutions\[index\]!\} \/>/.test(reveal), "Brimful: the reveal draws the best line as jug pictures");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul: the reveal redesign moved
+  // the best line into LinePictures, one puzzle at a time; section 7 renders it).
+  ok(/<LinePictures key=\{`best-\$\{index\}`\} board=\{b\.board\} raw=\{b\.best\} kind="best" solved \/>/.test(reveal), "Brimful: the reveal draws the best line as jug pictures");
   ok(!/StepChips|routeSteps/.test(src("src/puzzles/measure.tsx")), "Brimful: the reveal no longer lists the moves as chips");
 }
 
@@ -154,6 +160,85 @@ const between = (text: string, from: string, to: string) => {
   for (const slot of ["measure.stageClear", "measure.fail", "numline.stageClear", "numline.edge"]) {
     ok(Boolean((SOUND_MANIFEST as Record<string, unknown>)[slot]), `sound: ${slot} in the manifest`);
     ok(sheet.includes(slot), `sound: ${slot} on the cue sheet`);
+  }
+}
+
+/* ------------------------------------------------------------------ 7. The reveals (happy-dom) */
+{
+  const { Window } = await import("happy-dom");
+  const win = new Window({ url: "https://joulz.uk/practice" });
+  for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "CustomEvent", "localStorage", "sessionStorage", "location", "MutationObserver", "ResizeObserver", "getComputedStyle", "requestAnimationFrame", "cancelAnimationFrame", "matchMedia"] as const) {
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: (win as unknown as Record<string, unknown>)[key] });
+  }
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const { createElement, act } = await import("react");
+  const { createRoot } = await import("react-dom/client");
+  const { measurePuzzle, measureRevealBoards } = await import("../src/puzzles/measure");
+  const { numlinePuzzle, numlineRevealLines, numlineOffText } = await import("../src/puzzles/numline");
+  const { gradeNumlineItems, encodeNumline } = await import("../src/lib/duel/numline");
+  const render = async (Reveal: unknown, puzzle: unknown, answer: string) => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host as unknown as Element);
+    const props = { puzzle, myAnswer: answer, myCorrect: false, myReactionAvgMs: null, myMsRemaining: 0, timeLimitMs: 120_000 };
+    await act(async () => root.render(createElement(Reveal as never, props as never)));
+    return { host, done: async () => { await act(async () => root.unmount()); host.remove(); } };
+  };
+  const tabs = (host: Element) => [...host.querySelectorAll('[role="tab"]')];
+  const shown = (host: Element) => host.querySelectorAll('[role="tabpanel"]').length;
+
+  // Brimful: puzzle 1 solved on the fewest line, puzzle 2 two moves in, 3 and 4 not reached.
+  for (const [label, era] of [["live", false], ["measureRev 1", true]] as const) {
+    const full = withSeededRandom(7, () => generatePuzzle("measure", { bankSeed: 7 })) as MeasurePuzzleData;
+    const p: MeasurePuzzleData = era ? ({ ...full, measureRev: 1, minMoves: undefined, moveLimits: undefined } as MeasurePuzzleData) : full;
+    const best0 = p.solutions?.[0] ?? "";
+    const part1 = (p.solutions?.[1] ?? "").split(",").slice(0, 1).join(",");
+    const answer = [best0, part1].join("|");
+    const boards = measureRevealBoards(p, answer);
+    ok(boards.map((b) => b.mark).join() === "right,wrong,open,open", `Brimful ${label}: verdicts solved, not solved, not reached ×2 (${boards.map((b) => b.mark).join()})`);
+    const { host, done } = await render(measurePuzzle.Reveal, p, answer);
+    ok(tabs(host).length === 4 && shown(host) === 1, `Brimful ${label}: four tabs, one puzzle shown`);
+    ok(tabs(host)[1]?.getAttribute("aria-selected") === "true", `Brimful ${label}: opens on the first puzzle not solved`);
+    ok(/Solved/.test(host.textContent ?? "") && /1 of 4/.test(host.textContent ?? ""), `Brimful ${label}: the facts say 1 of 4 solved`);
+    ok(/Your moves/.test(host.textContent ?? ""), `Brimful ${label}: your moves are named`);
+    const fewestView = host.querySelector('[data-measure-line="best"]');
+    ok(!!fewestView, `Brimful ${label}: the fewest-moves line is shown first where the reveal has it`);
+    const yoursBtn = [...host.querySelectorAll("button")].find((b) => b.textContent === "Yours");
+    await act(async () => (yoursBtn as unknown as HTMLButtonElement | undefined)?.click());
+    const yours = host.querySelector('[data-measure-line="yours"]');
+    ok(!!yours && yours.querySelectorAll("li").length === 2, `Brimful ${label}: Yours draws the start and your one move`);
+    ok(!!yours?.querySelector("li[data-miss]"), `Brimful ${label}: an unsolved line's last picture is marked not solved`);
+    await act(async () => (tabs(host)[2] as unknown as HTMLButtonElement)?.click());
+    ok(/didn’t reach this puzzle/.test(host.textContent ?? ""), `Brimful ${label}: a puzzle not reached says so, no made-up moves`);
+    ok(!/×/.test(host.textContent ?? ""), `Brimful ${label}: no stray ×`);
+    await done();
+  }
+
+  // Ballpark: line 1 exact, line 2 every marker 3 % off, line 3 two placed.
+  for (const [label, era] of [["live", false], ["numlineRev 1", true]] as const) {
+    const full = withSeededRandom(11, () => generatePuzzle("numline")) as NumlinePuzzleData;
+    const p: NumlinePuzzleData = era ? ({ ...full, numlineRev: 1, depthRev: undefined, timeLimitMs: undefined } as NumlinePuzzleData) : full;
+    const truths = gradeNumlineItems(p.stages, p.values ?? [], encodeNumline(new Array(15).fill(0)), p.numlineRev).map((r) => r.truth);
+    const off = (t: number) => (t > 5000 ? t - 300 : t + 300);
+    const answer = encodeNumline([...truths.slice(0, 5), ...truths.slice(5, 10).map(off), ...truths.slice(10, 12)]);
+    const lines = numlineRevealLines(p, answer);
+    ok(lines.map((l) => l.mark).join() === "right,wrong,wrong", `Ballpark ${label}: verdicts all close, not, not (${lines.map((l) => l.mark).join()})`);
+    ok(numlineOffText({ placement: 10, error: 0.024, bull: false }) === "2.4% off" && numlineOffText({ placement: null, error: null, bull: false }) === "Not placed", "Ballpark: how far off, in plain words");
+    const { host, done } = await render(numlinePuzzle.Reveal, p, answer);
+    ok(tabs(host).length === 3 && shown(host) === 1, `Ballpark ${label}: three tabs, one line shown`);
+    ok(tabs(host)[1]?.getAttribute("aria-selected") === "true", `Ballpark ${label}: opens on the first line not all close`);
+    const pairs = [...host.querySelectorAll("[data-reveal-pair]")];
+    ok(pairs.length === 5 && pairs.every((g) => g.querySelectorAll("line").length === 2), `Ballpark ${label}: each of the five markers is joined to its true spot`);
+    const rows = [...host.querySelectorAll(".nl-reveal-row")];
+    ok(rows.length === 5 && rows.every((r) => /3\.0% off/.test(r.textContent ?? "")), `Ballpark ${label}: each number says how far off it was (${rows.map((r) => r.textContent).join(" | ")})`);
+    ok(/Average off/.test(host.textContent ?? "") && /Worst miss/.test(host.textContent ?? ""), `Ballpark ${label}: the average and the worst miss explain the score`);
+    ok(/Bullseyes/.test(host.textContent ?? "") === !era, `Ballpark ${label}: bullseyes counted where the stamp scores them`);
+    await act(async () => (tabs(host)[2] as unknown as HTMLButtonElement)?.click());
+    ok(host.querySelectorAll("[data-reveal-pair] circle").length >= 5 && [...host.querySelectorAll(".nl-reveal-row")].filter((r) => /Not placed/.test(r.textContent ?? "")).length === 3, `Ballpark ${label}: unplaced numbers say so and draw no marker`);
+    await act(async () => (tabs(host)[0] as unknown as HTMLButtonElement)?.click());
+    ok([...host.querySelectorAll(".nl-reveal-row")].every((r) => r.hasAttribute("data-close")), `Ballpark ${label}: exact markers read as close`);
+    ok(!/×/.test(host.textContent ?? ""), `Ballpark ${label}: no stray ×`);
+    await done();
   }
 }
 

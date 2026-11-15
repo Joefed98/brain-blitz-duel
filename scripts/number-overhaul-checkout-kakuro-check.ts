@@ -10,6 +10,9 @@
  *    the same score as a first-time one; every dealt board (200 seeds) still has a bust-free route in its fewest darts.
  * 4. Kakuro's rule mistakes: a digit unlike the solution that breaks no rule is no mistake on rev 2 (it is on rev 1); a
  *    repeat is a mistake on both; a run past or out of reach of its clue breaks; the next-empty-square helper.
+ * 5. The reveals (happy-dom): one board at a time with a tab per board opening on the first not right, Yours | Solution
+ *    with the full puzzle (none on a room's public half), wrong and missed items highlighted, the score's facts, no
+ *    double-sign dart text; every stamp (checkoutRev 1–3, kakuroRev 1–2) still draws.
  *
  *   bun scripts/number-overhaul-checkout-kakuro-check.ts
  */
@@ -204,6 +207,110 @@ for (const seed of [5, 6, 7, 8]) {
   const down = runs.find((r) => !r.across && r.cells.includes(across.cells[0]!))!;
   const wantDown = [...down.cells.slice(down.cells.indexOf(across.cells[0]!) + 1), ...down.cells.slice(0, down.cells.indexOf(across.cells[0]!))].find((c) => !v[c]) ?? null;
   ok(kakuroNextEmpty(p2, v, across.cells[0]!) === wantDown, `kakuro ${seed}: a full across run moves on down`);
+}
+
+/* ------------------------------------------------------------------ 5. The reveals (happy-dom) */
+// The Number overhaul's reveals (15 Nov 2026): one board at a time with a numbered switcher opening on the first board
+// not right, Yours | Solution where the solution is there, the wrong and missed items highlighted, the score's key
+// numbers as facts, and no double-sign dart text.
+{
+  const { Window } = await import("happy-dom");
+  const win = new Window({ url: "https://joulz.uk/practice" });
+  for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "CustomEvent", "localStorage", "sessionStorage", "location", "MutationObserver", "ResizeObserver", "getComputedStyle", "requestAnimationFrame", "cancelAnimationFrame", "matchMedia"] as const) {
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: (win as unknown as Record<string, unknown>)[key] });
+  }
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const { createElement, act } = await import("react");
+  const { createRoot } = await import("react-dom/client");
+  const { checkoutPuzzle, checkoutRevealBoards } = await import("../src/puzzles/checkout");
+  const { kakuroPuzzle, kakuroRevealBoard } = await import("../src/puzzles/kakuro");
+  const { splitPuzzle } = await import("../src/lib/duel/secrets");
+  const { NUMBER_REVEAL_ANSWERS } = await import("./screens/number-fixture");
+  const mount = async (Reveal: unknown, props: Record<string, unknown>) => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host as unknown as Element);
+    await act(async () => root.render(createElement(Reveal as never, { timeLimitMs: 90_000, myCorrect: false, myReactionAvgMs: null, ...props } as never)));
+    return { host, unmount: () => act(async () => root.unmount()) };
+  };
+  const tabs = (host: Element) => [...host.querySelectorAll('[role="tab"]')];
+  const viewButtons = (host: Element) => [...host.querySelectorAll("[data-reveal-view] button")];
+
+  // Checkout: every stamp the reveal draws.
+  for (const [label, pinned] of [["checkoutRev 3", false], ["checkoutRev 2", true]] as const) {
+    const p = deal<CheckoutPuzzleData>("checkout", 7, pinned);
+    const answer = NUMBER_REVEAL_ANSWERS.checkout!(p);
+    const boards = checkoutRevealBoards(p, answer);
+    ok(boards.map((b) => b.mark).join(",") === "right,right,wrong,open,open", `checkout ${label}: the fixture's marks (${boards.map((b) => b.mark).join(",")})`);
+    const { host, unmount } = await mount(checkoutPuzzle.Reveal, { puzzle: p, myAnswer: answer });
+    ok(tabs(host).length === p.stages.length, `checkout ${label}: one tab per board (${tabs(host).length})`);
+    ok(host.querySelectorAll("[data-reveal-board]").length === 1, `checkout ${label}: one board drawn at a time`);
+    ok(host.querySelector("[data-reveal-board]")?.getAttribute("data-reveal-board") === "2", `checkout ${label}: opens on the first board not right (board 3)`);
+    ok(host.querySelectorAll('svg[aria-label="Dartboard"]').length === 1, `checkout ${label}: one dartboard`);
+    ok(viewButtons(host).length === 2, `checkout ${label}: Yours | Solution with the full puzzle`);
+    ok(host.querySelector('[data-checkout-reveal-side="yours"]') !== null, `checkout ${label}: opens on yours`);
+    ok(host.querySelectorAll(".co-rv-dart").length === boards[2]!.mine.length, `checkout ${label}: board 3's darts as chips`);
+    ok(/Not checked out/.test(host.textContent ?? ""), `checkout ${label}: the wrong board says so`);
+    ok(/Checked out/.test(host.textContent ?? "") && /2 \/ 5/.test(host.textContent ?? ""), `checkout ${label}: the boards checked out as a fact`);
+    ok(!/− *[DTSQ]-|[−-] *[DTSQ]?-\d/.test(host.textContent ?? "") && !/×/.test(host.textContent ?? ""), `checkout ${label}: no double-sign or stray × text`);
+    // Solution: the fewest-darts route, its last dart the finish.
+    await act(async () => (viewButtons(host).find((b) => /Solution/.test(b.textContent ?? "")) as unknown as HTMLButtonElement).click());
+    ok(host.querySelector('[data-checkout-reveal-side="solution"]') !== null, `checkout ${label}: Solution draws the route`);
+    ok(host.querySelectorAll(".co-rv-dart").length === boards[2]!.best.length && host.querySelectorAll(".co-rv-dart[data-finish]").length === 1, `checkout ${label}: the route's darts, the finishing one marked`);
+    // The tabs move the one board.
+    await act(async () => (tabs(host)[0] as unknown as HTMLButtonElement).click());
+    ok(host.querySelector("[data-reveal-board]")?.getAttribute("data-reveal-board") === "0" && host.querySelectorAll("[data-reveal-board]").length === 1, `checkout ${label}: a tab shows its board alone`);
+    await unmount();
+  }
+  // Checkout without the private half (a room's public half): only yours, no switch.
+  {
+    const p = deal<CheckoutPuzzleData>("checkout", 7);
+    const pub = splitPuzzle(p).pub as CheckoutPuzzleData;
+    const { host, unmount } = await mount(checkoutPuzzle.Reveal, { puzzle: pub, myAnswer: NUMBER_REVEAL_ANSWERS.checkout!(p) });
+    ok(viewButtons(host).length === 0, "checkout public half: no Yours | Solution");
+    ok(host.querySelectorAll("[data-reveal-board]").length === 1, "checkout public half: one board");
+    await unmount();
+  }
+  // Checkout rev 1 (unstamped big finish): still reveals.
+  {
+    const p = { ...deal<CheckoutPuzzleData>("checkout", 9, true), checkoutRev: 1 };
+    const { host, unmount } = await mount(checkoutPuzzle.Reveal, { puzzle: p, myAnswer: p.routes?.join("|") ?? "", myCorrect: true, myMsRemaining: 30_000 });
+    ok(tabs(host).every((t) => t.getAttribute("data-mark") === "right"), "checkout rev 1: every board right");
+    ok(/Time/.test(host.textContent ?? "") && /60\.0 s/.test(host.textContent ?? ""), "checkout rev 1: a solved round shows its time");
+    await unmount();
+  }
+
+  // Kakuro: Yours | Solution, wrong digits and missed squares highlighted, the facts.
+  for (const [label, pinned] of [["kakuroRev 2", false], ["kakuroRev 1", true]] as const) {
+    const p = deal<KakuroPuzzleData>("kakuro", 11, pinned);
+    const answer = NUMBER_REVEAL_ANSWERS.kakuro!(p);
+    const mine = answer.split("").map(Number);
+    const model = kakuroRevealBoard(p, mine, "yours");
+    ok(model.wrong === 1 && model.missed > 0 && model.right + model.wrong + model.missed === p.white.length, `kakuro ${label}: the fixture's right / wrong / missed (${model.right}/${model.wrong}/${model.missed})`);
+    const { host, unmount } = await mount(kakuroPuzzle.Reveal, { puzzle: p, myAnswer: answer, myExtra: { right: model.right, wrong: 1, total: p.white.length } });
+    ok(viewButtons(host).length === 2, `kakuro ${label}: Yours | Solution`);
+    ok(host.querySelectorAll(".kakuro-board").length === 1, `kakuro ${label}: one grid`);
+    ok(host.querySelectorAll(".kakuro-tone-wrong").length === 1, `kakuro ${label}: the wrong digit highlighted`);
+    ok(host.querySelectorAll(".kakuro-tone-missed").length === model.missed, `kakuro ${label}: every empty square marked missed`);
+    const text = host.textContent ?? "";
+    ok(/Squares right/.test(text) && /Runs complete/.test(text) && /Mistakes/.test(text), `kakuro ${label}: the score's facts`);
+    await act(async () => (viewButtons(host).find((b) => /Solution/.test(b.textContent ?? "")) as unknown as HTMLButtonElement).click());
+    ok(host.querySelectorAll(".kakuro-tone-wrong, .kakuro-tone-missed").length === 0, `kakuro ${label}: Solution draws the solved grid plain`);
+    const digits = [...host.querySelectorAll(".kakuro-digit")].map((d) => Number(d.textContent));
+    ok(digits.length === p.white.length && p.white.every((c, i) => digits[i] === p.solution![c]), `kakuro ${label}: Solution's digits are the solution's`);
+    await unmount();
+  }
+  // Kakuro without the solution: only yours, a digit wrong only where its run breaks a rule.
+  {
+    const p = deal<KakuroPuzzleData>("kakuro", 11);
+    const pub = splitPuzzle(p).pub as KakuroPuzzleData;
+    ok(!pub.solution, "kakuro public half: no solution");
+    const { host, unmount } = await mount(kakuroPuzzle.Reveal, { puzzle: pub, myAnswer: NUMBER_REVEAL_ANSWERS.kakuro!(p) });
+    ok(viewButtons(host).length === 0, "kakuro public half: no Yours | Solution");
+    ok(host.querySelectorAll(".kakuro-board").length === 1, "kakuro public half: one grid");
+    await unmount();
+  }
+  console.log("reveals: Checkout (rev 1–3, public half) and Kakuro (rev 1–2, public half) drawn");
 }
 
 if (failures.length) {
