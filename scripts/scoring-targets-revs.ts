@@ -96,7 +96,18 @@ export const AUDIT_REVS: Partial<Record<LiveBandGame, readonly [rev: number, pla
   slice: [13, 12],
 };
 
+/**
+ * The Retro overhaul's score-only revisions (15 Nov 2026, docs/design/game-reviews/retro.md): type → [the revision, the
+ * revision whose play it keeps exactly]. Tempo beatRev 12 scores a missed note 0 rather than −2 (retro-overhaul-check
+ * proves the same play and checksums, and that no run scores less).
+ */
+export const RETRO_REVS: Partial<Record<LiveBandGame, readonly [rev: number, play: number]>> = {
+  beat: [12, 11],
+};
+
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {
+  const retro = RETRO_REVS[type as LiveBandGame];
+  if (retro && rev === retro[0]) return playRevOf(type, retro[1]);
   const audit = AUDIT_REVS[type as LiveBandGame];
   if (audit && rev === audit[0]) return playRevOf(type, audit[1]);
   const deal = DEAL_REVS[type as LiveBandGame];

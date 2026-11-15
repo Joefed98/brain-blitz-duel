@@ -29,7 +29,7 @@ import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
-import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
+import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
@@ -288,7 +288,14 @@ export function generateBubble(): BubblePuzzleData {
 export function generateBeat(): BeatPuzzleData {
   // beatRev 10 (phone notes, 27 Oct 2026): beatRev 9's song with wider windows and a lighter chart, easiest from the fifth lane.
   // beatRev 11 (the arcade scoring standard, 29 Oct 2026): beatRev 10's play scored on the standard (docs/arcade-standard/beat.md).
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_STD };
+  // beatRev 12 (the Retro overhaul, 15 Nov 2026): beatRev 11's play; a missed note scores 0 rather than −2. Checks
+  // written for beatRev 11 pin preRetro.
+  return { type: "beat", seed: arcadeSeed(), beatRev: dealPinned("preRetro") ? BEAT_REV_STD : BEAT_REV_FLOOR };
+}
+
+/** Checks written before the Retro overhaul (15 Nov 2026): deal Tempo beatRev 11 as rooms did before it. */
+export function pinPreRetro(on: boolean): boolean {
+  return setDealPin("preRetro", on);
 }
 
 export function generateTenDrop(): TenDropPuzzleData {

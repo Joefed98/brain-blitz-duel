@@ -23,7 +23,7 @@ import { Human } from "./arcade-skill-bands/human";
 import { bot as beatBot } from "./arcade-skill-bands/bots/beat";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { replayBeatRun } from "../src/lib/duel/beat";
-import { beatWorldH, beatWorldHFor, BEAT_REV_STD as STD_REV, BEAT_TALL_H, beatGameFor as gameForRev } from "../src/lib/arcade/beat";
+import { beatWorldH, beatWorldHFor, BEAT_REV_STD as STD_REV, BEAT_TALL_H, beatGameFor as gameForRev, BEAT_REV_FLOOR } from "../src/lib/arcade/beat";
 import { arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { stdScore } from "../src/lib/arcade/arcadeStandard";
 import {
@@ -61,7 +61,9 @@ for (const run of legacy.runs) {
 }
 
 /* 2. Wiring. */
-ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_STD && BEAT_REV_STD === BEAT_REV_EASE + 1, "rooms deal beatRev 11 (one above beatRev 10)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal beatRev 12, beatRev 11's play
+// with a missed note scoring 0 (retro-overhaul-check).
+ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_FLOOR && BEAT_REV_FLOOR === BEAT_REV_STD + 1 && BEAT_REV_STD === BEAT_REV_EASE + 1, "rooms deal beatRev 12 (beatRev 11, one above beatRev 10, before the Retro overhaul)");
 const v10 = beatGameFor(BEAT_REV_EASE);
 const v11 = beatGameFor(BEAT_REV_STD);
 ok(v11.runTicks === BEAT_V9_RUN_TICKS && v11.inputRanges === v10.inputRanges, "beatRev 11 keeps beatRev 10's 75 s song and inputs");

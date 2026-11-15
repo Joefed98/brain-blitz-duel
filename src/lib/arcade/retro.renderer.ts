@@ -350,9 +350,17 @@ export function retroEventAge(ctx: CanvasRenderingContext2D, name: string, trigg
 /**
  * One Retro HUD (3 Nov 2026, Joe's audit; display only): every Retro game's counts in the pixel arcade font,
  * the main count top left (14 px, glowing) and one or two secondary counts top right (10 px), at most two
- * rows, never a "·" chain and never a "1UP". Sizes step down (to 8 px on the right, then 10 px on the left)
- * until the left and right columns stay 10 px apart. `wrapMain` lets a game pulse its main count (successHud).
+ * rows, never a "·" chain and never a "1UP". Sizes step down until the left and right columns stay 10 px apart,
+ * never below RETRO_HUD_MIN_PX (the Retro overhaul, 15 Nov 2026: 11 px, was 8 on the right and 10 on the left);
+ * a row that still can't fit moves the side counts a row down, under the main count's row.
+ * `wrapMain` lets a game pulse its main count (successHud).
  */
+/** The smallest size any Retro HUD count is drawn at (the Retro overhaul, 15 Nov 2026). */
+export const RETRO_HUD_MIN_PX = 11;
+/** A requested HUD size held to the floor. */
+export function retroHudFloorPx(px: number): number {
+  return Math.max(RETRO_HUD_MIN_PX, Math.round(px));
+}
 export interface RetroHudItem {
   text: string;
   colour?: string;
@@ -383,22 +391,24 @@ export function retroHudLayout(
   main: RetroHudItem,
   side: readonly (RetroHudItem | null | undefined)[],
   opts: RetroHudOptions = {},
-): { mainPx: number; sidePx: number; mainW: number; sideW: number } {
+): { mainPx: number; sidePx: number; mainW: number; sideW: number; drop: boolean } {
   const inset = opts.inset ?? 12;
   const items = side.filter((s): s is RetroHudItem => Boolean(s && s.text)).slice(0, 2);
-  let mainPx = opts.mainPx ?? 14;
-  let sidePx = opts.sidePx ?? 10;
+  let mainPx = retroHudFloorPx(opts.mainPx ?? 14);
+  let sidePx = retroHudFloorPx(opts.sidePx ?? 11);
   const widths = () => ({
     mainW: measure(main.text, mainPx),
     sideW: Math.max(0, ...items.map((s) => measure(s.text, sidePx))),
   });
   let w = widths();
-  while (inset * 2 + w.mainW + w.sideW + 10 > worldW && (sidePx > 8 || mainPx > 10)) {
-    if (sidePx > 8) sidePx -= 1;
-    else mainPx -= 1;
+  const fits = () => inset * 2 + w.mainW + w.sideW + 10 <= worldW;
+  while (!fits() && (sidePx > RETRO_HUD_MIN_PX || mainPx > RETRO_HUD_MIN_PX)) {
+    if (sidePx > RETRO_HUD_MIN_PX && sidePx >= mainPx - 3) sidePx -= 1;
+    else if (mainPx > RETRO_HUD_MIN_PX) mainPx -= 1;
+    else sidePx -= 1;
     w = widths();
   }
-  return { mainPx, sidePx, ...w };
+  return { mainPx, sidePx, ...w, drop: !fits() };
 }
 
 export function retroHud(
@@ -424,7 +434,8 @@ export function retroHud(
   const items = side.filter((s): s is RetroHudItem => Boolean(s && s.text)).slice(0, 2);
   items.forEach((s, i) => {
     // Each side row sits on the main row's baseline band: the first level with it, the second a row below.
-    const y = top + Math.round((lay.mainPx - lay.sidePx) / 2) + i * pitch;
+    // A side column too wide to share the main count's row starts a row lower (never under 11 px).
+    const y = top + Math.round((lay.mainPx - lay.sidePx) / 2) + (i + (lay.drop ? 1 : 0)) * Math.max(pitch, lay.sidePx + 2);
     retroText(ctx, s.text, worldW - inset, y, lay.sidePx, s.colour ?? RETRO_WHITE, "right");
   });
 }

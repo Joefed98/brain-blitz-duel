@@ -60,7 +60,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pinball", field: "pinRev", rev: 6, batch: "B" },
   { type: "rally", field: "rallyRev", rev: 12, batch: "B" },
   { type: "bubble", field: "bubbleRev", rev: 11, batch: "B" },
-  { type: "beat", field: "beatRev", rev: 11, batch: "B" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): beatRev 12, beatRev 11 with a
+  // missed note scoring 0.
+  { type: "beat", field: "beatRev", rev: 12, batch: "B" },
   // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.
   { type: "cross", field: "crossRev", rev: 12, batch: "C" },

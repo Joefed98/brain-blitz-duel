@@ -221,6 +221,8 @@ export interface BeatState extends BandFields {
   ease?: number;
   /** beatRev 11 only (the arcade scoring standard, 29 Oct 2026): 1 = scored on BEAT_STD_SPEC (beatRev 10's play). */
   std?: number;
+  /** beatRev 12 only (the Retro overhaul, 15 Nov 2026): 1 = a missed note scores 0 rather than −2 (outside the checksum). */
+  floor?: number;
   /** Fever: the meter (half steps, to BEAT_FEVER_FULL), ticks of fever left, fevers had, quarters earned in fever. */
   meter?: number;
   fever?: number;
@@ -727,6 +729,7 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  if (rev === BEAT_REV_FLOOR) return beatV12Game;
   if (rev === BEAT_REV_STD) return beatV11Game;
   if (rev === BEAT_REV_EASE) return beatV10Game;
   if (rev === BEAT_REV_200) return beatV9Game;
@@ -890,7 +893,7 @@ export const beatTallGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's beatRev plays in. */
 export function beatWorldHFor(rev?: number | null): number {
-  return rev === BEAT_REV_STD || rev === BEAT_REV_EASE || rev === BEAT_REV_200 || rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
+  return rev === BEAT_REV_FLOOR || rev === BEAT_REV_STD || rev === BEAT_REV_EASE || rev === BEAT_REV_200 || rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
 }
 
 /* ================= Scoring targets (beatRev 7, 18 Oct 2026) ================= */
@@ -1279,9 +1282,10 @@ export const BEAT_STD_SPEC: StdSpec = {
   ],
 };
 
-/** The chart's per mille: Perfect 4, Good 3, OK 1, a miss −2 (floor 0), over 4 × notes. */
+/** The chart's per mille: Perfect 4, Good 3, OK 1, a miss −2 (floor 0; beatRev 12: a miss 0), over 4 × notes. */
 export function beatAccuracy(state: BeatState): number {
-  const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
+  const missCost = state.floor ? 0 : 2;
+  const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - missCost * state.misses);
   return Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
 }
 
@@ -1297,6 +1301,7 @@ export function beatFeatureCounts(state: BeatState): { golds: number; doubles: n
 /** beatRev 11's parts (core first), or null for a state not on the standard. */
 export function beatStdParts(state: BeatState): StdPart[] | null {
   if (!state.std) return null;
+  const spec = state.floor ? BEAT_STD_SPEC_V12 : BEAT_STD_SPEC;
   const acc = beatAccuracy(state);
   const { golds, doubles } = beatFeatureCounts(state);
   const notes = beatNoteCount(state);
@@ -1305,11 +1310,11 @@ export function beatStdParts(state: BeatState): StdPart[] | null {
   const done = state.doublesDone ?? 0;
   const streak = state.maxStreak ?? 0;
   return [
-    stdPart(BEAT_STD_SPEC, "core", stdLine(BEAT_V11_MAX.core, acc, BEAT_V11_ACC_FULL), `${acc} of 1,000`),
-    stdPart(BEAT_STD_SPEC, "fever", stdLine(BEAT_V11_MAX.fever, Math.min(fevers, BEAT_V11_FEVERS_FULL), BEAT_V11_FEVERS_FULL), `${fevers} fever${fevers === 1 ? "" : "s"}`),
-    stdPart(BEAT_STD_SPEC, "gold", stdLine(BEAT_V11_MAX.gold, goldsHit, golds), `${goldsHit} of ${golds}`),
-    stdPart(BEAT_STD_SPEC, "double", stdLine(BEAT_V11_MAX.double, done, doubles), `${done} of ${doubles}`),
-    stdPart(BEAT_STD_SPEC, "streak", stdLine(BEAT_V11_MAX.streak, streak, notes), `${streak} of ${notes} notes`),
+    stdPart(spec, "core", stdLine(BEAT_V11_MAX.core, acc, BEAT_V11_ACC_FULL), `${acc} of 1,000`),
+    stdPart(spec, "fever", stdLine(BEAT_V11_MAX.fever, Math.min(fevers, BEAT_V11_FEVERS_FULL), BEAT_V11_FEVERS_FULL), `${fevers} fever${fevers === 1 ? "" : "s"}`),
+    stdPart(spec, "gold", stdLine(BEAT_V11_MAX.gold, goldsHit, golds), `${goldsHit} of ${golds}`),
+    stdPart(spec, "double", stdLine(BEAT_V11_MAX.double, done, doubles), `${done} of ${doubles}`),
+    stdPart(spec, "streak", stdLine(BEAT_V11_MAX.streak, streak, notes), `${streak} of ${notes} notes`),
   ];
 }
 
@@ -1340,4 +1345,27 @@ export const beatV11Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
   ...beatV10Game,
   init: (seed) => ({ ...beatV10Game.init(seed), std: 1 }),
   score: (state) => stdScore(beatStdParts(state) ?? [], Boolean(state.acted)),
+};
+
+/* ================= The Retro overhaul: no note below 0 (beatRev 12, 15 Nov 2026) ================= */
+
+/**
+ * beatRev 12 (the Retro overhaul, docs/design/game-reviews/retro.md "Tempo", docs/arcade-standard/beat.md "beatRev
+ * 12"): beatRev 11's song, chart, windows, features and parts exactly, but a missed note scores 0 instead of −2, so a
+ * miss-heavy run still earns its hits (a third of the notes Perfect is 333 of 1,000, not 0). Every note Perfect is
+ * still 1,000 and 200 overall. States add `floor: 1`, outside the checkpoint checksum (playRevOf maps 12 to 11's play).
+ */
+export const BEAT_REV_FLOOR = 12;
+
+export const BEAT_STD_SPEC_V12: StdSpec = {
+  ...BEAT_STD_SPEC,
+  rev: BEAT_REV_FLOOR,
+  parts: BEAT_STD_SPEC.parts.map((p) =>
+    p.key === "core" ? { ...p, how: "every note scores by its timing (Perfect best, then Good, then OK; a missed note scores nothing), every note Perfect for all of it" } : p,
+  ),
+};
+
+export const beatV12Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
+  ...beatV11Game,
+  init: (seed) => ({ ...beatV11Game.init(seed), floor: 1 }),
 };

@@ -337,7 +337,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   // One Retro HUD (3 Nov 2026, Joe's audit): the wave top left ("WAVE 2 OF 5" on burstRev 10's five waves) and,
   // top right, the atoms left on screen (every piece their splits will make) over a live power-up, the wave-clear
   // bonus still to win (burstRev 9+) or the clean counter (burstRev 8), then the lives. No "1UP", no "·".
-  // burstRev 8+ keep the slim 24 px band above the higher ceiling, so their HUD is two 8 px rows there.
+  // burstRev 8+ keep the slim 24 px band above the higher ceiling, so their HUD is two 11 px rows there (the Retro
+  // overhaul, 15 Nov 2026: the floor for every Retro count; 10 and 8 px before).
   const atomsLeft = state.balls.reduce((n, b) => n + burstAtomsOf(b.size), 0);
   const waveText = state.std ? `WAVE ${Math.max(1, state.wave)} OF ${BURST_V10_WAVES}` : `WAVE ${Math.max(1, state.wave)}`;
   const double = state.double ?? 0;
@@ -358,11 +359,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   const atoms: RetroHudItem = { text: `ATOMS LEFT ${atomsLeft}`, colour: RETRO_WHITE };
   const slim = Boolean(state.exp || state.carry);
   // Left: the wave over the lives; right: the atoms over the extra count.
-  retroHud(ctx, BURST_WORLD_W, { text: waveText }, [atoms, extra], slim ? { top: 2, pitch: 11, mainPx: 10, sidePx: 8, glow: 0 } : { glow: 0 });
+  retroHud(ctx, BURST_WORLD_W, { text: waveText }, [atoms, extra], slim ? { top: 1, pitch: 12, mainPx: 11, sidePx: 11, glow: 0 } : { glow: 0 });
   // The lives: under the wave on the full HUD; in burstRev 8+'s slim band, on the wave's row just after its text.
-  ctx.font = `${slim ? 10 : 14}px ${RETRO_FONT}`;
+  ctx.font = `${slim ? 11 : 14}px ${RETRO_FONT}`;
   const waveW = typeof ctx.measureText === "function" ? ctx.measureText(waveText)?.width ?? 0 : 0;
-  const livesX = slim ? 12 + Math.ceil(Number.isFinite(waveW) && waveW > 0 ? waveW : waveText.length * 10) + 10 : 12;
+  const livesX = slim ? 12 + Math.ceil(Number.isFinite(waveW) && waveW > 0 ? waveW : waveText.length * 11) + 10 : 12;
   const livesY = slim ? 3 : 26;
   for (let i = 0; i < BURST_LIVES; i++) sprite(ctx, SHIP_ROWS, livesX + i * 14, livesY, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
 }
