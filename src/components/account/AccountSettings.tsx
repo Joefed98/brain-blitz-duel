@@ -10,7 +10,7 @@ import { useMemo, useState } from "react";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { BoardVisibilitySetting } from "@/components/leaderboards/LeaderboardScreens";
 import { Captain } from "@/design/art";
-import { Button, Icon, Input, Panel, Row, SectionHeader } from "@/design/components";
+import { Button, Icon, Input, Panel, Row } from "@/design/components";
 import type { AccountView } from "@/lib/account/account.server";
 import { setAccount, signOutAccount } from "@/lib/account/accountApi";
 import { COUNTRY_CODES } from "@/lib/account/country";
@@ -39,7 +39,22 @@ function countryOptions(): [string, string][] {
     .sort((a, b) => a[1].localeCompare(b[1], "en-GB"));
 }
 
-export function AccountSettings({ account, onBack }: { account: AccountView & { email: string | null }; onBack: () => void }) {
+/**
+ * The account's own settings as rows (the Settings session, phase 2 step 3, 14 Nov 2026): the player line, the
+ * username (with Change and when the next change is allowed), the email, the country, "Show me on leaderboards",
+ * then Sign out and Delete account (the two-step confirm). Drawn as Settings' Account section (/settings) and on
+ * /account for a signed-in player; every rule is the server's, as before. `onDeleted` takes the purge date once the
+ * deletion is requested (the player is signed out at once, so the caller shows the message).
+ */
+export function AccountSection({
+  account,
+  onSignedOut,
+  onDeleted,
+}: {
+  account: AccountView & { email: string | null };
+  onSignedOut: () => void;
+  onDeleted: (purgeAt: string) => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(account.username);
   const [busy, setBusy] = useState(false);
@@ -48,7 +63,6 @@ export function AccountSettings({ account, onBack }: { account: AccountView & { 
   const [country, setCountry] = useState(account.country ?? "");
   const [countrySaved, setCountrySaved] = useState(false);
   const [confirm, setConfirm] = useState<0 | 1 | 2>(0);
-  const [deleted, setDeleted] = useState<string | null>(null);
   const check = useUsernameCheck(draft, account.username);
   const countries = useMemo(countryOptions, []);
 
@@ -102,7 +116,7 @@ export function AccountSettings({ account, onBack }: { account: AccountView & { 
         return;
       }
       await signOutAccount();
-      setDeleted(res.purgeAt);
+      onDeleted(res.purgeAt);
     } catch {
       setError("Something went wrong. Try again.");
     } finally {
@@ -110,43 +124,23 @@ export function AccountSettings({ account, onBack }: { account: AccountView & { 
     }
   };
 
-  if (deleted)
-    return (
-      <PhoneShell bare skin="profile">
-        <div className="acct-page" data-account-screen="deleted">
-          <AccountHead onBack={onBack} />
-          <div className="acct-grow" />
-          <div className="acct-centre">
-            <Captain pose="ready" size={96} />
-            <h1 className="acct-h1" data-wrap-ok>Your account will be deleted</h1>
-            <p className="acct-lede">{`It’s removed on ${dayText(deleted)}. Sign back in before then to keep it. You’re playing as a guest now.`}</p>
-          </div>
-          <div className="acct-grow" />
-          <Button variant="gold" size={58} block onClick={onBack}>
-            Back to playing
-          </Button>
-        </div>
-      </PhoneShell>
-    );
-
   return (
-    <PhoneShell bare skin="profile">
-      <div className="acct-page" data-account-screen="settings">
-        <AccountHead title="Account" onBack={onBack} />
-        <Panel>
-          <Row
-            data-account-row="player"
-            leading={account.founding ? <img src={FOUNDING_BADGE_URL} alt="" aria-hidden="true" width={40} height={40} className="acct-founder" /> : <Icon name="profile" size={24} tone="gold" />}
-            title={account.founding ? "Founding Player" : "Player"}
-          >
-            <span className="acct-number">{playerNumberText(account.playerNumber)}</span>
-          </Row>
-        </Panel>
-
-        <section className="acct-field">
-          <SectionHeader title="Username" />
-          {editing ? (
-            <div className="acct-field" data-account-rename>
+    <div className="st-stack" data-account-section>
+      <Panel>
+        <Row
+          data-account-row="player"
+          leading={account.founding ? <img src={FOUNDING_BADGE_URL} alt="" aria-hidden="true" width={40} height={40} className="acct-founder" /> : <Icon name="profile" size={24} tone="gold" />}
+          title={account.founding ? "Founding Player" : "Player"}
+        >
+          <span className="acct-number">{playerNumberText(account.playerNumber)}</span>
+        </Row>
+        {editing ? (
+          <div className="jz-row st-edit" data-account-rename>
+            <div className="acct-field w-full">
+              <label htmlFor="account-rename" className="acct-label">
+                <span>New username</span>
+                <span />
+              </label>
               <div className="acct-input-wrap">
                 <Input
                   id="account-rename"
@@ -174,33 +168,31 @@ export function AccountSettings({ account, onBack }: { account: AccountView & { 
                 </Button>
               </div>
             </div>
-          ) : (
-            <Panel>
-              <Row title={<span className="acct-row-value">{account.username}</span>} sub={renameLine(account.rename)}>
-                {account.rename.kind !== "wait" ? (
-                  <Button variant="secondary" size={44} data-account-change-name onClick={() => setEditing(true)}>
-                    Change
-                  </Button>
-                ) : null}
-              </Row>
-            </Panel>
-          )}
-        </section>
-
-        <section className="acct-field">
-          <SectionHeader title="Email" />
-          <Panel>
-            <Row title={<span className="acct-row-value">{account.email ?? "Not set"}</span>} />
-          </Panel>
-        </section>
-
-        <section className="acct-field">
-          <SectionHeader title="Country" />
-          <label htmlFor="account-country" className="acct-label">
-            <span>Set from your phone’s region. Only you see it.</span>
-            <span>{countrySaved ? "Saved" : ""}</span>
-          </label>
-          <select id="account-country" className="acct-select" value={country} onChange={(e) => void saveCountry(e.target.value)}>
+          </div>
+        ) : (
+          <Row data-account-row="username">
+            <span className="jz-row-text">
+              <span className="jz-row-title acct-row-value">{account.username}</span>
+              <span className="jz-row-sub st-sub-wrap" data-wrap-ok>
+                {renameLine(account.rename)}
+              </span>
+            </span>
+            {account.rename.kind !== "wait" ? (
+              <Button variant="secondary" size={44} data-account-change-name onClick={() => setEditing(true)}>
+                Change
+              </Button>
+            ) : null}
+          </Row>
+        )}
+        <Row data-account-row="email" title="Email">
+          <span className="st-value" data-ellipsis>{account.email ?? "Not set"}</span>
+        </Row>
+        <label htmlFor="account-country" className="jz-row st-select-row" data-account-row="country">
+          <span className="jz-row-text">
+            <span className="jz-row-title">Country</span>
+            <span className="jz-row-sub" data-ellipsis>{countrySaved ? "Saved. Only you see it." : "Only you see it."}</span>
+          </span>
+          <select id="account-country" className="st-select" value={country} onChange={(e) => void saveCountry(e.target.value)}>
             <option value="">Not set</option>
             {countries.map(([code, name]) => (
               <option key={code} value={code}>
@@ -208,37 +200,33 @@ export function AccountSettings({ account, onBack }: { account: AccountView & { 
               </option>
             ))}
           </select>
-        </section>
+        </label>
+      </Panel>
 
-        {/* Wave 4 W4a (docs/leaderboards.md): adults shown by default, under-18s hidden by default. */}
-        <section className="acct-field" data-account-boards>
-          <SectionHeader title="Leaderboards" />
-          <BoardVisibilitySetting />
-        </section>
+      {/* Wave 4 W4a (docs/leaderboards.md): adults shown by default, under-18s hidden by default. */}
+      <div data-account-boards>
+        <BoardVisibilitySetting />
+      </div>
 
-        {error && !editing ? <p className="acct-error" role="alert">{error}</p> : null}
+      {error && !editing ? <p className="acct-error" role="alert">{error}</p> : null}
 
-        <div className="acct-actions">
-          <Button
-            variant="secondary"
-            size={50}
-            block
-            data-account-signout
-            onClick={async () => {
-              await signOutAccount();
-              onBack();
-            }}
-          >
-            Sign out
-          </Button>
-          {confirm === 0 ? (
-            <Button variant="quiet" size={48} block className="acct-danger" data-account-delete onClick={() => setConfirm(1)}>
-              Delete account
-            </Button>
-          ) : (
-            <div className="acct-confirm" data-account-delete-confirm={confirm}>
-              <p className="jz-card-title">{confirm === 1 ? "Delete your account?" : "Are you sure?"}</p>
-              <p className="acct-lede">
+      <Panel>
+        <Row
+          as="button"
+          data-account-signout
+          title="Sign out"
+          onClick={async () => {
+            await signOutAccount();
+            onSignedOut();
+          }}
+        />
+        {confirm === 0 ? (
+          <Row as="button" data-account-delete className="st-danger" title="Delete account" onClick={() => setConfirm(1)} />
+        ) : (
+          <div className="jz-row st-edit" data-account-delete-confirm={confirm}>
+            <div className="acct-field w-full">
+              <p className="jz-row-title">{confirm === 1 ? "Delete your account?" : "Are you sure?"}</p>
+              <p className="jz-row-sub" data-wrap-ok>
                 {confirm === 1
                   ? "Your account and its data are removed after 30 days. Sign back in within 30 days to cancel."
                   : `${account.username}, your games and your player number go for good after 30 days.`}
@@ -259,8 +247,43 @@ export function AccountSettings({ account, onBack }: { account: AccountView & { 
                 </Button>
               </div>
             </div>
-          )}
+          </div>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
+/** "Your account will be deleted": shown once the deletion is requested (the player is a guest again). */
+export function AccountDeleted({ purgeAt, onBack }: { purgeAt: string; onBack: () => void }) {
+  return (
+    <PhoneShell bare skin="profile">
+      <div className="acct-page" data-account-screen="deleted">
+        <AccountHead onBack={onBack} />
+        <div className="acct-grow" />
+        <div className="acct-centre">
+          <Captain pose="ready" size={96} />
+          <h1 className="acct-h1" data-wrap-ok>Your account will be deleted</h1>
+          <p className="acct-lede">{`It’s removed on ${dayText(purgeAt)}. Sign back in before then to keep it. You’re playing as a guest now.`}</p>
         </div>
+        <div className="acct-grow" />
+        <Button variant="gold" size={58} block onClick={onBack}>
+          Back to playing
+        </Button>
+      </div>
+    </PhoneShell>
+  );
+}
+
+/** /account for a signed-in player: the Account section on its own page (Settings draws the same section). */
+export function AccountSettings({ account, onBack }: { account: AccountView & { email: string | null }; onBack: () => void }) {
+  const [deleted, setDeleted] = useState<string | null>(null);
+  if (deleted) return <AccountDeleted purgeAt={deleted} onBack={onBack} />;
+  return (
+    <PhoneShell bare skin="profile">
+      <div className="acct-page" data-account-screen="settings">
+        <AccountHead title="Account" onBack={onBack} />
+        <AccountSection account={account} onSignedOut={onBack} onDeleted={setDeleted} />
       </div>
     </PhoneShell>
   );

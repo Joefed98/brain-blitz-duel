@@ -1,0 +1,358 @@
+/*
+ * Settings, account and onboarding (phase 2 step 3, 14 Nov 2026; docs/design/style-guide): the Settings page
+ * (/settings), the account screens (sign in and sign up, Settings → Account), the first-time intro and the terms.
+ * Grouped list rows on the style guide's surfaces; tokens only (src/design/tokens.css), so the light theme follows.
+ */
+
+/* ------------------------------------------------------------------ the Settings page */
+.st-page {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--jz-space-24));
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.st-head {
+  display: flex;
+  min-height: 48px;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-4);
+}
+.st-title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--jz-text);
+  font: var(--jz-type-title);
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.st-columns,
+.st-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-section-gap);
+}
+.st-group,
+.st-stack,
+.st-notify > [data-push-settings] {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.st-stack {
+  gap: var(--jz-space-12);
+}
+/* One heading style for every group, Notifications' own (its component's ap-group-title) included. */
+.st-group-title,
+.st-notify .ap-group-title {
+  margin: 0;
+  padding-inline: 4px;
+  color: var(--jz-text-3);
+  font: var(--jz-type-label);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.st-notify:empty {
+  display: none;
+}
+.st-chevron {
+  flex: none;
+  color: var(--jz-text-3);
+}
+.st-value {
+  min-width: 0;
+  max-width: 60%;
+  flex: none;
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-danger .jz-row-title {
+  color: var(--jz-loss-text);
+}
+/* A row holding a form (rename, the delete confirm): its controls under its words. */
+.st-edit {
+  align-items: stretch;
+  padding-block: var(--jz-space-16);
+}
+/* Direction controls: the words, then the two choices beside them (under them on a narrow phone). */
+.st-seg-row {
+  flex-wrap: wrap;
+  row-gap: var(--jz-space-12);
+  padding-block: var(--jz-space-12);
+}
+.st-seg-row > .jz-row-text {
+  flex: 1 1 160px;
+}
+.st-seg-row > .st-seg {
+  flex: 1 1 200px;
+}
+/* Country: the row's words and a native picker on its right. */
+.st-select-row {
+  cursor: pointer;
+}
+.st-select {
+  max-width: 50%;
+  min-height: 44px;
+  flex: none;
+  padding: 0 var(--jz-space-12);
+  border: 0;
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface-2);
+  color: var(--jz-text);
+  font: var(--jz-type-label);
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.st-select:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
+}
+
+/* A computer: the groups in two columns across a wider page. */
+@media (min-width: 1024px) {
+  .st-page {
+    width: 100%;
+    max-width: 1040px;
+    margin-inline: auto;
+    padding-top: var(--jz-space-16);
+  }
+  .st-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--jz-section-gap) 32px;
+  }
+}
+/* A tablet: one wider column, centred. */
+@media (min-width: 700px) and (max-width: 1023.98px) {
+  .st-page {
+    width: 100%;
+    max-width: 640px;
+    margin-inline: auto;
+  }
+}
+/* The computer's page column is 760 px on screens without tabs: Settings takes a wider one for its two columns. */
+@media (min-width: 1024px) {
+  [data-layout="desktop"]:not([data-tab-screen]) > [data-shell-column="page"]:has(> .st-page) {
+    max-width: 1088px;
+  }
+}
+/* A row's second line that may run to two lines (when the next username change is allowed). */
+.st-sub-wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ the first-time intro */
+.ob-page {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.ob-head {
+  display: flex;
+  height: 48px;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+}
+.ob-skip {
+  margin-right: -12px;
+}
+.ob-track {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+.ob-panel {
+  display: flex;
+  width: 100%;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding-inline: 4px;
+  text-align: center;
+}
+.ob-art {
+  display: grid;
+  height: 128px;
+  margin-bottom: var(--jz-space-12);
+  place-items: center;
+}
+.ob-title {
+  margin: 0;
+  color: var(--jz-text);
+  font: var(--jz-type-title);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ob-body {
+  max-width: 22rem;
+  margin: 0;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+}
+.ob-foot {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-24);
+  padding-block: var(--jz-space-16);
+}
+.ob-dots {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.ob-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--jz-round);
+  background: var(--jz-surface-2);
+  transition: width var(--jz-dur-select) var(--jz-ease-out), background-color var(--jz-dur-select) var(--jz-ease-out);
+}
+.ob-dot[data-onboarding-dot="current"] {
+  width: 24px;
+  background: var(--jz-text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ob-dot {
+    transition: none;
+  }
+}
+/* Tablets and computers: the intro is a centred panel. */
+@media (min-width: 700px) {
+  .ob-page {
+    width: 100%;
+    max-width: 480px;
+    min-height: min(640px, calc(100dvh - 48px));
+    flex: none;
+    margin: max(24px, 6vh) auto var(--jz-space-24);
+    padding: var(--jz-space-12) var(--jz-space-32) var(--jz-space-24);
+    border-radius: var(--jz-radius-lg);
+    background: var(--jz-surface);
+  }
+  .ob-dot {
+    background: var(--jz-surface-3);
+  }
+}
+
+/* ------------------------------------------------------------------ the beta terms */
+.tm-page {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.tm-lede {
+  margin: 0;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+}
+.tm-content {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.tm-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+  padding: var(--jz-space-16);
+}
+.tm-section + .tm-section {
+  border-top: 1px solid var(--jz-line);
+}
+.tm-section-title {
+  margin: 0;
+  color: var(--jz-text);
+  font: var(--jz-type-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.tm-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+}
+.tm-section-body p {
+  margin: 0;
+}
+.tm-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--jz-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tm-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  margin-top: auto;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding-top: var(--jz-space-12);
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  background: var(--jz-bg);
+}
+.tm-agreed {
+  margin: 0;
+  color: var(--jz-text-3);
+  font: var(--jz-type-caption);
+  text-align: center;
+  white-space: nowrap;
+}
+@media (min-width: 700px) {
+  .tm-page {
+    width: 100%;
+    max-width: 640px;
+    margin-inline: auto;
+    padding-top: var(--jz-space-16);
+  }
+}
+/* Only the current panel is drawn once a slide has ended (its neighbours wait off-screen, hidden); while a finger
+   drags, all three show so the next one slides in. */
+.ob-panel[aria-hidden="true"] {
+  visibility: hidden;
+  transition: visibility 0s linear 300ms;
+}
+.ob-track[data-dragging] .ob-panel {
+  visibility: visible;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ob-panel[aria-hidden="true"] {
+    transition: none;
+  }
+}

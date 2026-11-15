@@ -28,7 +28,8 @@ eq(buildLabel(DEV_BUILD_ID), "dev", "outside a build");
 eq(buildLabel(""), "dev", "an empty id");
 eq(buildLabel("81ed1b5af2"), "81ed1b5a", "an id with no build time");
 
-const sheet = readFileSync(new URL("../src/components/app/SettingsSheet.tsx", import.meta.url), "utf8");
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings).
+const sheet = readFileSync(new URL("../src/components/settings/SettingsPage.tsx", import.meta.url), "utf8");
 eq(sheet.includes("data-build-marker") && sheet.includes("buildLabel(APP_BUILD_ID)"), true, "the sheet shows the phone's build");
 eq(sheet.includes("data-server-build-marker") && sheet.includes("appVersionFn"), true, "the sheet shows a differing server build");
 

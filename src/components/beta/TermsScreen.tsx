@@ -5,7 +5,7 @@ import { betaValue } from "@/lib/beta/betaValues";
 import { agreeToTerms, termsAgreement } from "@/lib/beta/terms";
 import { APP_NAME } from "@/lib/brand";
 import { unlockAudio } from "@/lib/sound";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 /** "22 Oct 2026" in UK time. */
 function agreedDay(iso: string): string {
@@ -23,13 +23,9 @@ function agreedDay(iso: string): string {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-1">
-      <h2 className="whitespace-nowrap text-[17px] font-bold text-foreground">
-        {title}
-      </h2>
-      <div className="flex flex-col gap-1.5 text-[15px] leading-relaxed text-[#D6D3DC]">
-        {children}
-      </div>
+    <section className="tm-section">
+      <h2 className="tm-section-title">{title}</h2>
+      <div className="tm-section-body">{children}</div>
     </section>
   );
 }
@@ -45,7 +41,7 @@ const OPERATOR = "Joulz";
 export function TermsContent() {
   const contact = betaValue("CONTACT_EMAIL");
   return (
-    <div data-terms-content className="flex flex-col gap-5">
+    <div data-terms-content className="tm-content">
       <Section title="An early-access beta">
         <p>
           {`${OPERATOR} (“we”, “us”) runs this early-access beta of ${APP_NAME}. It’s free to play. Games, scores and features may change, break or be reset while we test.`}
@@ -78,7 +74,7 @@ export function TermsContent() {
             Contact:{" "}
             <a
               href={`mailto:${contact}`}
-              className="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-2"
+              className="tm-link"
             >
               {contact}
             </a>
@@ -96,37 +92,30 @@ export function TermsContent() {
 export function TermsScreen({ onAgree, onBack }: { onAgree?: () => void; onBack?: () => void }) {
   const [agreement, setAgreement] = useState(() => termsAgreement());
   return (
-    <PhoneShell skin="profile">
-      <div data-terms className="flex flex-1 flex-col gap-5">
-        <div>
-          <p className="th-kicker">Before you play</p>
-          <h1 className="ap-title mt-1 whitespace-nowrap text-[28px]">Beta terms</h1>
-          <p className="ap-sub mt-1">The short version, in plain English.</p>
-        </div>
-        {/* Readable text on the page itself (Polish batch R): no bordered card. */}
-        <div className="px-1">
-          <TermsContent />
-        </div>
-        <div
-          data-terms-actions
-          className="sticky bottom-0 z-10 mt-auto flex flex-col gap-2 bg-background pb-2 pt-3"
-          style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom, 0px))" }}
-        >
+    // The style guide's look (the Settings session, 14 Nov 2026): Back and the title, the sections in one panel, the
+    // action pinned at the bottom; a centred column on tablets and computers (polish-layout/settings.css).
+    <PhoneShell skin="profile" bare>
+      <div data-terms className="tm-page">
+        <header className="st-head">
+          {onBack ? (
+            <Button variant="icon" aria-label="Back" onClick={onBack} className="-ml-2.5">
+              <Icon name="back" size={22} />
+            </Button>
+          ) : null}
+          <div className="min-w-0">
+            <h1 className="st-title">Beta terms</h1>
+          </div>
+        </header>
+        <p className="tm-lede">Before you play: the short version, in plain English.</p>
+        <TermsContent />
+        <div data-terms-actions className="tm-actions">
           {agreement ? (
             <>
-              <p
-                data-terms-agreed
-                className="whitespace-nowrap text-center text-[13px] text-muted-foreground"
-              >
+              <p data-terms-agreed className="tm-agreed">
                 You agreed on {agreedDay(agreement.agreedAt)}
               </p>
               {onBack ? (
-                <Button
-                  variant="secondary"
-                  size={52}
-                  block
-                  onClick={onBack}
-                >
+                <Button variant="secondary" size={52} block onClick={onBack}>
                   Back
                 </Button>
               ) : null}

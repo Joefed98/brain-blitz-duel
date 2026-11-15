@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { PhoneShell } from "./PhoneShell";
-import { AppWordmark } from "@/components/brand/AppWordmark";
-import { LogoMark } from "@/components/brand/LogoMark";
+import { SETTINGS_ART, type SettingsArtName } from "@/components/settings/settingsArt.data";
 import { topRoundMax } from "@/lib/duel/roundMax";
 import { markOnboardingSeen } from "@/lib/onboarding";
 import { playLock, unlockAudio } from "@/lib/sound";
@@ -11,7 +10,7 @@ import { Button } from "@/design/components";
 /**
  * The first-time intro (16 Oct 2026, presentation only; src/lib/onboarding.ts): three
  * panels, swiped or stepped with Next, Skip on every one. Home shows it once per device
- * and from "How it works". The name comes only from the wordmark (AppWordmark, APP_NAME), never the copy.
+ * and from "How it works". The copy never spells the app's name. Art: the style guide's 3D art kit (scripts/settings-art.ts).
  */
 interface Panel {
   title: string;
@@ -23,18 +22,18 @@ const PANELS: Panel[] = [
   {
     title: "Quick games. Real rivals.",
     body: "Brain teasers and arcade games, about two minutes each, played against your friends.",
-    art: <RivalsArt />,
+    art: <KitArt name="games" />,
   },
   {
     title: "Same game, same time.",
     body: "Create a room and share the code, or join a friend’s. Everyone plays the same game at once.",
-    art: <RoomCodeArt />,
+    art: <KitArt name="rooms" />,
   },
   {
     title: "Score big, win the room.",
     // The top is the games' own maximums (roundMax.ts): "Every game" while they all share it.
     body: `${topRoundMax().shared ? "Every game scores" : "Games score"} up to ${topRoundMax().top}. Faster and sharper scores higher. Most points across the rounds wins.`,
-    art: <ScoreArt />,
+    art: <KitArt name="trophy" />,
   },
 ];
 
@@ -71,38 +70,40 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    // The room screens' look (Polish batch R): Archivo, sentence case, gold only for "Let's play".
+    // The style guide's look (the Settings session, 14 Nov 2026): plain page, art-kit art, Title and Label type, the
+    // gold button only for "Let's play"; a centred panel on tablets and computers (polish-layout/settings.css).
     <PhoneShell bare skin="room">
       <div
         data-onboarding
         role="dialog"
         aria-modal="true"
         aria-labelledby={`onboarding-title-${index}`}
-        className="flex min-h-0 flex-1 flex-col animate-phase-in"
+        className="ob-page animate-phase-in"
         onKeyDown={(e) => {
           if (e.key === "ArrowRight") go(index + 1);
           else if (e.key === "ArrowLeft") go(index - 1);
           else if (e.key === "Escape") onDone();
         }}
       >
-        <div className="flex h-12 shrink-0 items-center justify-between gap-2">
-          <AppWordmark />
-          <button
-            type="button"
+        <div className="ob-head">
+          <Button
+            variant="quiet"
+            size={44}
             data-onboarding-skip
             onClick={() => {
               unlockAudio();
               onDone();
             }}
-            className="press tap-target -mr-3 px-3 text-[15px] font-semibold text-[var(--ap-link)]"
+            className="ob-skip"
           >
             Skip
-          </button>
+          </Button>
         </div>
 
         <div
           data-onboarding-track
-          className="flex min-h-0 flex-1 select-none flex-col justify-center overflow-hidden"
+          data-dragging={drag !== 0 ? "" : undefined}
+          className="ob-track"
           style={{ touchAction: "pan-y" }}
           onPointerDown={(e) => {
             if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -132,35 +133,24 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 data-onboarding-panel={i + 1}
                 aria-hidden={i !== index}
                 inert={i !== index}
-                className="flex w-full shrink-0 flex-col items-center px-1 text-center"
+                className="ob-panel"
               >
-                <div className="flex h-28 items-center justify-center" aria-hidden="true">
+                <div className="ob-art" aria-hidden="true">
                   {panel.art}
                 </div>
-                <h2
-                  id={`onboarding-title-${i}`}
-                  className="mt-6 text-[1.75rem] font-extrabold leading-tight text-foreground"
-                >
+                <h2 id={`onboarding-title-${i}`} className="ob-title">
                   {panel.title}
                 </h2>
-                <p className="mt-3 max-w-[20rem] text-base leading-relaxed text-muted-foreground">
-                  {panel.body}
-                </p>
+                <p className="ob-body">{panel.body}</p>
               </section>
             ))}
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col items-center gap-5 pb-4 pt-4">
-          <div className="flex items-center gap-2" aria-hidden="true">
+        <div className="ob-foot">
+          <div className="ob-dots" aria-hidden="true">
             {PANELS.map((panel, i) => (
-              <span
-                key={panel.title}
-                data-onboarding-dot={i === index ? "current" : ""}
-                className={`h-2 rounded-full transition-all duration-200 motion-reduce:transition-none ${
-                  i === index ? "w-6 bg-[var(--ap-text)]" : "w-2 bg-[var(--ap-line)]"
-                }`}
-              />
+              <span key={panel.title} data-onboarding-dot={i === index ? "current" : ""} className="ob-dot" />
             ))}
           </div>
           <p className="sr-only" aria-live="polite">
@@ -175,50 +165,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   );
 }
 
-/** Two players, one bolt between them. */
-function RivalsArt() {
-  const avatar = (letter: string, tone: string) => (
-    <span
-      className={`flex h-16 w-16 items-center justify-center rounded-full border-2 font-display text-2xl font-bold ${tone}`}
-    >
-      {letter}
-    </span>
-  );
-  return (
-    <div className="flex items-center gap-4">
-      {avatar("A", "border-primary/70 bg-primary/10 text-primary")}
-      <LogoMark width={26} height={34} />
-      {avatar("B", "border-border bg-card text-foreground")}
-    </div>
-  );
+/** One of the art kit's 3D renders (scripts/settings-art.ts: 128 px, and the 192 px source for sharper screens). */
+function KitArt({ name }: { name: SettingsArtName }) {
+  const [one, more] = SETTINGS_ART[name];
+  return <img src={one} srcSet={`${one} 1x, ${more} 1.5x`} width={128} height={128} alt="" draggable={false} decoding="async" data-onboarding-art={name} />;
 }
 
-/** The four code boxes, as on the join screen. */
-function RoomCodeArt() {
-  return (
-    <div className="flex gap-2">
-      {["P", "L", "A", "Y"].map((letter, i) => (
-        <span
-          key={i}
-          className={`flex h-16 w-14 items-center justify-center rounded-xl border bg-card font-mono text-3xl font-bold ${
-            i === 0 ? "border-primary text-primary" : "border-border text-foreground"
-          }`}
-        >
-          {letter}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/** The top score. */
-function ScoreArt() {
-  return (
-    <div className="flex flex-col items-center leading-none">
-      <span className="font-mono text-6xl font-bold text-primary">{topRoundMax().top}</span>
-      <span className="mt-2 text-[13px] font-semibold text-muted-foreground">
-        top score
-      </span>
-    </div>
-  );
-}
