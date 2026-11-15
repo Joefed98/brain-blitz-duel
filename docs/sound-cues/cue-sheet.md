@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 40 | 0 | 488 | 528 |
+| game event | 42 | 0 | 488 | 530 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 67 | 1 | 984 | 1052 |
+| **all** | 69 | 1 | 984 | 1054 |
 
 ## Silent and placeholder cues
 
@@ -197,6 +197,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `sudoku.place` | A digit is entered in a cell (not pencil marks, not clearing) [logic.md] |  | 5–40 (per move) | silent | none | 170 | UI tap | `sudoku.place` |
 | `sudoku.clash` | A digit makes a row, column or box repeat (the clashing digits turn red) [logic.md] |  | 5–40 (per move) | silent | none | 360 | game event | `sudoku.clash` |
 | `sudoku.pencil` | A pencil mark is added or removed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `sudoku.pencil` |
+| `sudoku.line` | A digit completes a row, column or box (pitched up when it completes several) [logic.md] |  | 1–5 | silent | none | 420 | game event | `sudoku.line` |
 
 ### Colour Flood
 
@@ -224,6 +225,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `nonogram.fill` | A cell is filled [logic.md] |  | 5–40 (per move) | silent | none | 170 | game event | `nonogram.fill` |
 | `nonogram.mark` | A cell is marked empty (×) [logic.md] |  | 5–40 (per move) | silent | none | 140 | UI tap | `nonogram.mark` |
 | `nonogram.paint` | A drag paints one more square (fill) [logic.md] |  | 5–40 (per move) | silent | none | 90 | game event | `nonogram.paint` |
+| `nonogram.line` | A line now matches its numbers (pitched up for several at once) [logic.md] |  | 1–5 | silent | none | 420 | game event | `nonogram.line` |
 
 ### Polypotions
 

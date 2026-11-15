@@ -367,6 +367,69 @@ const press = (el: Element | null | undefined) =>
   }
 }
 
+/* ------------------------------------------------------------------ 7. Stage 2: the effects */
+{
+  const { POUR_MS, pourMsFor } = await import("../src/puzzles/logicMotion");
+  const { sudokuCompleteGroups } = await import("../src/lib/duel/logic");
+  ok(POUR_MS.lift === 120 && POUR_MS.tilt === 160 && POUR_MS.settle === 220 && POUR_MS.back === 180, "pour: the style guide's lift, tilt, settle and return");
+  ok(pourMsFor(1) >= 300 && pourMsFor(5) <= 500 && pourMsFor(4) > pourMsFor(1), "pour: 300 to 500 ms by the amount poured");
+  const full = [1, 2, 3, 4, 5, 6, 4, 5, 6, 1, 2, 3, ...new Array(24).fill(0)];
+  const groups = sudokuCompleteGroups(full);
+  ok(groups.has("r0") && groups.has("r1") && groups.has("b0") && !groups.has("c0"), `Box Six: completed rows and boxes found (${[...groups.keys()].join(" ")})`);
+  const clash = [1, 1, 3, 4, 5, 6, ...new Array(30).fill(0)];
+  ok(!sudokuCompleteGroups(clash).has("r0"), "Box Six: a full row with a repeat is not complete");
+
+  const cues: { cue: string; rate?: number }[] = [];
+  win.addEventListener("duelz-sound", (e) => cues.push((e as unknown as { detail: { cue: string; rate?: number } }).detail));
+  // Box Six: finishing a row plays the line's chime.
+  const sud = generatePuzzle("sudoku", { bankSeed: 7 });
+  if (sud.type === "sudoku" && sud.solution) {
+    const row = [0, 1, 2, 3, 4, 5].map((c) => c);
+    const empty = row.filter((c) => !sud.givens[c]);
+    const { host, unmount } = mount(React.createElement(miniSudokuPuzzle.Stage, { puzzle: sud, locked: false, onSubmit: () => {}, onDraftAnswer: () => {}, phaseStartedAt: 0, now: 0 } as never));
+    const keys = [...host.querySelectorAll(".logic-sudoku-key")];
+    cues.length = 0;
+    for (const c of empty) {
+      press(host.querySelectorAll(".logic-sudoku-cell")[c]);
+      press(keys[sud.solution[c]! - 1]);
+    }
+    ok(empty.length === 0 || cues.some((x) => x.cue === "sudoku.line"), `Box Six: completing row 1 plays sudoku.line (${cues.map((x) => x.cue).join(" ")})`);
+    unmount();
+  }
+  // Polypotions: the glug is pitched by the level reached.
+  const tb = generatePuzzle("tubes", { bankSeed: 11 });
+  if (tb.type === "tubes") {
+    const route = solveTubes(tb.tubes) ?? [];
+    const { host, unmount } = mount(React.createElement(sortTubesPuzzle.Stage, { puzzle: tb, locked: false, onSubmit: () => {}, onDraftAnswer: () => {}, phaseStartedAt: 0, now: 0, stateKey: "t-tubes2" } as never));
+    const flasks = [...host.querySelectorAll(".logic-potions > button")] as HTMLElement[];
+    cues.length = 0;
+    const step = route[0];
+    if (step) { press(flasks[step.from]); press(flasks[step.to]); }
+    const pourCue = cues.find((x) => x.cue === "tubes.pour");
+    ok(!!pourCue && typeof pourCue.rate === "number" && pourCue.rate > 0.8 && pourCue.rate < 1.3, `Polypotions: the pour's glug carries a pitch (${pourCue?.rate})`);
+    ok(host.querySelector("[data-flask]") !== null, "Polypotions: every flask is addressable for its pour");
+    unmount();
+  }
+  // Hanoi: a bigger ring lands lower.
+  const tw = generatePuzzle("tower", { bankSeed: 5 });
+  if (tw.type === "tower") {
+    const { host, unmount } = mount(React.createElement(towerPuzzle.Stage, { puzzle: tw, locked: false, onSubmit: () => {}, onDraftAnswer: () => {}, phaseStartedAt: 0, now: 0, stateKey: "t-hanoi2" } as never));
+    const posts = [...host.querySelectorAll("button")].filter((b) => b.closest("[data-logic-stage='tower']"));
+    const pegs = tw.start ?? [];
+    let from = -1, onto = -1;
+    for (let a = 0; a < pegs.length && from < 0; a++)
+      for (let b = 0; b < pegs.length; b++) {
+        const ta = pegs[a]?.[pegs[a]!.length - 1], tb2 = pegs[b]?.[pegs[b]!.length - 1];
+        if (a !== b && ta !== undefined && (tb2 === undefined || ta < tb2)) { from = a; onto = b; break; }
+      }
+    cues.length = 0;
+    if (from >= 0) { press(posts[from]); press(posts[onto]); }
+    const drop = cues.find((x) => x.cue === "tower.drop");
+    ok(!!drop && typeof drop.rate === "number", `Hanoi: the drop's clunk is pitched by the ring (${drop?.rate})`);
+    unmount();
+  }
+}
+
 /* ------------------------------------------------------------------ 5. The art */
 const POTIONS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow"];
 const SPRITES = ["box-tile", "box-tile-given", "flask-glass", "potion-meniscus", "cork",

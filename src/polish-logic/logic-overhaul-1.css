@@ -540,3 +540,96 @@
   height: auto;
   border-radius: 10px;
 }
+
+/* ------------------------------------------------------------------ Stage 2: the effects (logicMotion.ts, the kit) */
+/* Polypotions: the pour's stream (drawn in the board, under no control), the cork's ring, the fill timed to the pour. */
+:is(#logic-overhaul-1, html) .logic-pour-stream {
+  position: absolute;
+  width: 5px;
+  border-radius: 3px;
+  transform-origin: 50% 0;
+  pointer-events: none;
+  z-index: 25;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion-fill {
+  animation-duration: 320ms;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-flask[data-just-corked]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 140%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgb(255 236 180 / 0.9);
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  pointer-events: none;
+  animation: logic-cork-ring 560ms ease-out 1 both;
+}
+@keyframes logic-cork-ring {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+/* Box Six and Mosaic: a completed line's glow (one pass per cell, logicMotion.ts lightCells). */
+:is(#logic-overhaul-1, html) .logic-line-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgb(242 193 78 / 0.42), rgb(242 193 78 / 0.08) 70%);
+  pointer-events: none;
+}
+/* Box Six's solve: the silver lines turn gold, running out from the last cell placed. */
+:is(#logic-overhaul-1, html) [data-logic-solved] .logic-sudoku-cell::after {
+  background: none;
+  box-shadow: inset 0 0 0 2px rgb(242 193 78 / 0.95);
+  animation: logic-sudoku-gold 520ms ease-out calc(var(--logic-dist, 0) * 85ms) 1 both;
+}
+@keyframes logic-sudoku-gold {
+  0% { opacity: 0; }
+  40% { opacity: 1; }
+  100% { opacity: 0.85; }
+}
+/* Hanoi: a ring landing on the gold post in order glints. */
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring.logic-hanoi-glint {
+  animation: logic-hanoi-glint 520ms ease-out 1 both;
+}
+@keyframes logic-hanoi-glint {
+  0% { filter: brightness(1); }
+  35% { filter: brightness(1.6) saturate(1.2); }
+  100% { filter: brightness(1); }
+}
+/* Safe Cracker: three bolts on the door's opening edge slide back one by one before the door swings. */
+:is(#logic-overhaul-1, html) .logic-safe-bolts {
+  position: absolute;
+  right: 6px;
+  top: 18%;
+  bottom: 18%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+:is(#logic-overhaul-1, html) .logic-safe-bolts > i {
+  display: block;
+  width: 14px;
+  height: 7px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #e9ecef, #8d949c 55%, #5c626a);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+}
+:is(#logic-overhaul-1, html) [data-logic-solved] .logic-safe-bolts > i {
+  animation: logic-safe-bolt 180ms ease-in calc(var(--bolt, 0) * 110ms) 1 both;
+}
+:is(#logic-overhaul-1, html) .logic-safe-bolts > i:nth-child(2) { --bolt: 1; }
+:is(#logic-overhaul-1, html) .logic-safe-bolts > i:nth-child(3) { --bolt: 2; }
+@keyframes logic-safe-bolt {
+  from { transform: none; }
+  to { transform: translateX(-10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(#logic-overhaul-1, html) .logic-potions .logic-flask[data-just-corked]::after,
+  :is(#logic-overhaul-1, html) .logic-line-glow { display: none; }
+  :is(#logic-overhaul-1, html) [data-logic-solved] .logic-sudoku-cell::after { animation: none; opacity: 0.85; }
+}

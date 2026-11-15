@@ -251,6 +251,26 @@ export function sudokuClashes(grid: readonly number[]): Set<number> {
   return out;
 }
 
+/**
+ * Box Six's completed groups (Logic overhaul 1, display only): the rows, columns and boxes that are full with no
+ * repeat, as lists of their cells ("r0", "c3", "b5" keys).
+ */
+export function sudokuCompleteGroups(grid: readonly number[]): Map<string, number[]> {
+  const groups = new Map<string, number[]>();
+  for (let cell = 0; cell < SUDOKU_CELLS; cell++) {
+    for (const key of [`r${Math.floor(cell / SUDOKU_COLS)}`, `c${cell % SUDOKU_COLS}`, `b${sudokuBox(cell)}`]) {
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(cell);
+    }
+  }
+  const out = new Map<string, number[]>();
+  for (const [key, cells] of groups) {
+    const digits = cells.map((c) => grid[c] ?? 0);
+    if (digits.every(Boolean) && new Set(digits).size === digits.length) out.set(key, cells);
+  }
+  return out;
+}
+
 /** True when no row, column or box repeats a digit (empties ignored). */
 export function sudokuLegal(grid: number[]): boolean {
   const groups: Record<string, Set<number>> = {};

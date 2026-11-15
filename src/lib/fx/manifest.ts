@@ -560,6 +560,9 @@ const ENTRIES = {
   "tubes.outOfPours": { channel: "effects", frequency: 0, ms: 700, url: null },
   "safe.wrongTry": { channel: "effects", frequency: 0, ms: 400, url: null },
   "nonogram.paint": { channel: "effects", frequency: 0, ms: 90, url: null, gapMs: 40 },
+  // Stage 2 (the effects): a completed line's chime (pitched up for several at once).
+  "sudoku.line": { channel: "effects", frequency: 0, ms: 500, url: null },
+  "nonogram.line": { channel: "effects", frequency: 0, ms: 400, url: null },
   "shikaku.place": { channel: "effects", frequency: 0, ms: 180, url: null },
   "shikaku.remove": { channel: "effects", frequency: 0, ms: 200, url: null },
   "shikaku.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },

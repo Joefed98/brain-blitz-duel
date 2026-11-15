@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import {
   decodeTowerMoves,
@@ -17,6 +17,8 @@ import { TOWER_DISCS, TOWER_PEGS, TOWER_TIME_MS, type TowerPuzzleData } from "@/
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { animateArc } from "./logicMotion";
+import { gameFx } from "@/lib/fx/kit";
 import { MovePicture, MoveStrip, RevealFacts } from "./logicReveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { ParMeter } from "@/components/puzzles/depth/ParMeter";
@@ -56,8 +58,8 @@ export function Pegs({
   compact?: boolean;
   /** CSS length for one ring's thickness (live and reveal boards size it from their box). */
   discHeight?: string;
-  /** The post whose top ring just landed (it settles with a small bounce). */
-  dropped?: { peg: number; key: number } | null;
+  /** The post whose top ring just landed (it settles with a small bounce); `glint`: it landed on the gold post in order. */
+  dropped?: { peg: number; key: number; glint?: boolean } | null | undefined;
 }) {
   const liftedDisc =
     lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
@@ -114,7 +116,7 @@ export function Pegs({
                   return (
                     <div
                       key={landed ? `${size}-${dropped?.key}` : size}
-                      className={`hanoi-disc logic-hanoi-ring relative z-10 shrink-0 ${shake === peg ? "animate-shake" : ""} ${landed ? "logic-hanoi-drop" : ""}`}
+                      className={`hanoi-disc logic-hanoi-ring relative z-10 shrink-0 ${shake === peg ? "animate-shake" : ""} ${landed ? "logic-hanoi-drop" : ""} ${landed && dropped?.glint ? "logic-hanoi-glint" : ""}`}
                       data-shade={discShade(size, discs)}
                       style={{
                         height: "var(--hanoi-ring)",
@@ -167,7 +169,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   const [moves, setMoves] = useStageState<TowerMove[]>(stateKey, "towerMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "towerLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "towerShake", () => null);
-  const [dropped, setDropped] = useState<{ peg: number; key: number } | null>(null);
+  const [dropped, setDropped] = useState<{ peg: number; key: number; glint?: boolean } | null>(null);
+  // Hanoi's moves (logicMotion.ts): where the lifted ring hovered, so the landing can arc from there.
+  const liftedFrom = useRef<DOMRect | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!dropped) return;
+    animateArc(stageRef.current?.querySelector<HTMLElement>(".logic-hanoi-drop") ?? null, liftedFrom.current);
+    liftedFrom.current = null;
+  }, [dropped]);
   const submitted = useRef(false);
 
   const replay = useMemo(
@@ -188,10 +198,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     onSubmit(encodeTowerMoves(moves));
   }, [replay.solved, moves, locked, onSubmit]);
 
-  const reject = (peg: number) => {
-    setShake(peg);
+  const reject = (_peg: number) => {
+    // The lifted ring bounces back up (the kit's "wrong" on the ring itself) and stays lifted.
+    gameFx("wrong", stageRef.current?.querySelector(".hanoi-lifted"), { silent: true });
     playWrong();
-    setTimeout(() => setShake(null), 320);
   };
 
   const tapPeg = (peg: number) => {
@@ -211,8 +221,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
       reject(peg);
       return;
     }
-    soundCue("tower.drop");
-    setDropped({ peg, key: moves.length + 1 });
+    // The clunk is pitched by the ring's size: a big ring low, a small one high.
+    const ring = replay.pegs[lifted]?.[replay.pegs[lifted]!.length - 1] ?? 1;
+    soundCue("tower.drop", 1.25 - (ring / discs) * 0.45);
+    liftedFrom.current = stageRef.current?.querySelector(".hanoi-lifted")?.getBoundingClientRect() ?? null;
+    // On the gold post in final order (every ring below it the next size up, from the largest): it glints.
+    const target = [...(replay.pegs[peg] ?? []), ring];
+    const glint = peg === targetPeg && target.every((size, i) => size === discs - i);
+    setDropped({ peg, key: moves.length + 1, glint });
     setMoves((current) => [...current, { from: lifted, to: peg }]);
     setLifted(null);
   };
@@ -248,7 +264,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   if (!isTower) return null;
 
   return (
-    <div data-logic-stage="tower" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
+    <div ref={stageRef} data-logic-stage="tower" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic">
         {inFrame ? null : (

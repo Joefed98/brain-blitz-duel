@@ -25,6 +25,8 @@ import { TUBES_COLOURS, TUBES_COUNT, TUBES_TIME_MS, type TubesPuzzleData } from 
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { animatePour, animateRefusedPour, POUR_MS } from "./logicMotion";
+import { gameFx } from "@/lib/fx/kit";
 import { MovePicture, MoveStrip, RevealFacts } from "./logicReveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { ParMeter } from "@/components/puzzles/depth/ParMeter";
@@ -66,7 +68,10 @@ export function Tubes({
   compact,
   layerHeight,
   poured,
+  justCorked,
 }: {
+  /** Flasks corked by the pour just made (they ring once). */
+  justCorked?: readonly number[] | undefined;
   tubes: TubeState;
   lifted?: number | null;
   shake?: number | null;
@@ -97,7 +102,7 @@ export function Tubes({
             aria-label={flaskLabel(index, tube, sorted)}
             className={`flex h-full w-full min-w-0 items-end justify-center rounded-none border-0 p-0 hover:bg-transparent disabled:opacity-100 ${compact ? "" : "min-h-11 min-w-11"}`}
           >
-            <span className={`flask logic-flask relative flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
+            <span data-flask={index} data-just-corked={justCorked?.includes(index) ? "" : undefined} className={`flask logic-flask relative flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
               isLifted ? "border-primary" : sorted ? "border-primary/60" : ""
             }`}
               style={{ ...(compact ? { maxWidth: layerHeight ? 36 : 26 } : {}), "--logic-i": order, "--logic-wobble": `${(index * 0.53) % 2.4}s` } as CSSProperties}
@@ -129,7 +134,7 @@ export function Tubes({
                       transform: rising ? "translateY(-4px)" : "none",
                       transition: "transform 150ms ease",
                       boxShadow: rising ? "0 0 0 2px var(--primary)" : undefined,
-                      ...(arriving ? { animationDelay: `${(ball - (tube.length - (poured?.count ?? 0))) * 60}ms` } : {}),
+                      ...(arriving ? { animationDelay: `calc(var(--pour-delay, 0ms) + ${(ball - (tube.length - (poured?.count ?? 0))) * 90}ms)` } : {}),
                     }}
                   >
                     {!compact && <span aria-hidden="true" className="logic-potion-glyph">{POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
@@ -168,6 +173,9 @@ function IntroExample() {
   );
 }
 
+/** Two flasks corked within this long are a combo (the kit's "combo"). */
+const CORK_COMBO_MS = 4_000;
+
 /** How long the "Out of pours" moment shows before the unfinished board goes in. */
 export const OUT_OF_POURS_MS = 1_100;
 
@@ -185,6 +193,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   // tubesRev 3 (Logic overhaul 1): Undo gives its pour back, Reset gives them all back.
   const refund = isTubes && tubesRefundsUndo(puzzle);
   const [outShown, setOutShown] = useState(false);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const lastCork = useRef(0);
+  const [justCorked, setJustCorked] = useState<number[]>([]);
+  const [pourDelay, setPourDelay] = useState(0);
   const [moves, setMoves] = useStageState<TubeToken[]>(stateKey, "tubeMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "tubeLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "tubeShake", () => null);
@@ -234,16 +246,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
       return;
     }
     if (!canPour(replay.tubes, lifted, tube)) {
-      // An invalid destination shakes and keeps the lift.
-      setShake(tube);
+      // An invalid destination: the lifted flask tips toward it, nothing pours, it rights itself; the lift is kept.
+      animateRefusedPour(boardRef.current, lifted, tube);
       playWrong();
-      setTimeout(() => setShake(null), 320);
       return;
     }
     const after = play([...moves, { from: lifted, to: tube }]).tubes[tube] ?? [];
-    soundCue("tubes.pour");
-    if (tubeSorted(after)) soundCue("tubes.cork");
-    setPoured({ tube, count: after.length - (replay.tubes[tube] ?? []).length, key: moves.length + 1 });
+    const count = after.length - (replay.tubes[tube] ?? []).length;
+    const colour = ballColour(after[after.length - 1] ?? 0);
+    // The pour (logicMotion.ts): lift, fly over, tilt, the stream, the target rising, back. The glug's pitch rises with
+    // the level the liquid reaches.
+    const total = animatePour(boardRef.current, lifted, tube, colour, count);
+    soundCue("tubes.pour", 0.85 + after.length * 0.07);
+    if (tubeSorted(after)) {
+      // The cork pops in as the pour settles; two within a few seconds are a combo.
+      const now = Date.now();
+      const combo = now - lastCork.current < CORK_COMBO_MS;
+      lastCork.current = now;
+      window.setTimeout(() => {
+        soundCue("tubes.cork");
+        setJustCorked([tube]);
+        const flask = boardRef.current?.querySelector(`[data-flask="${tube}"]`);
+        if (combo) gameFx("combo", flask, { count: 2, silent: true });
+        window.setTimeout(() => setJustCorked([]), 700);
+      }, Math.max(0, total - POUR_MS.back - POUR_MS.settle));
+    }
+    // The target's layers rise while the stream falls (the fill's delay, logic-potion-fill).
+    setPourDelay(total ? POUR_MS.lift + POUR_MS.tilt : 0);
+    setPoured({ tube, count, key: moves.length + 1 });
     setMoves((current) => [...current, { from: lifted, to: tube }]);
     setLifted(null);
   };
@@ -289,8 +319,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
               : <>moves <span className="text-primary">{replay.moves}</span></>}
           </p>
         )}
-        <div className="relative">
-          <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} />
+        <div ref={boardRef} className="relative" style={{ "--pour-delay": `${pourDelay}ms` } as CSSProperties}>
+          <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} justCorked={justCorked} />
           {outShown ? (
             <div role="status" data-out-of-pours="" className="logic-out-banner">
               Out of pours

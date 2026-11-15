@@ -1,7 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { decodeSudoku, encodeSudoku, sudokuBox, sudokuClashes, sudokuSolved } from "@/lib/duel/logic";
+import { decodeSudoku, encodeSudoku, sudokuBox, sudokuClashes, sudokuCompleteGroups, sudokuSolved } from "@/lib/duel/logic";
 import {
   SUDOKU_BOX_COLS,
   SUDOKU_BOX_ROWS,
@@ -14,6 +14,8 @@ import { directionOf, useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { RevealFacts } from "./logicReveal";
+import { lightCells } from "./logicMotion";
+import { gameFx } from "@/lib/fx/kit";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -93,7 +95,14 @@ export function SudokuGrid({
                   ? "bg-muted/40"
                   : "bg-card"
             } ${tone === "given" ? "text-foreground" : tone === "wrong" ? "text-destructive" : "text-primary"}`}
-            style={{ fontSize: "max(15px, calc(100cqw / 6 * 0.52))", "--logic-row": row, "--logic-box": sudokuBox(cell) } as CSSProperties}
+            data-cell={cell}
+            style={{
+              fontSize: "max(15px, calc(100cqw / 6 * 0.52))",
+              "--logic-row": row,
+              "--logic-box": sudokuBox(cell),
+              // The solve's gold runs out from the last cell placed (Logic overhaul 1).
+              "--logic-dist": placed === null || placed === undefined ? row + col : Math.max(Math.abs(row - Math.floor(placed / cols)), Math.abs(col - (placed % cols))),
+            } as CSSProperties}
             // 7 Nov 2026 (accessibility audit #16): the label said only "Cell N" and replaced the digit.
             aria-label={`Row ${row + 1} column ${col + 1}, ${value ? value : marks.length ? `notes ${marks.join(" ")}` : "empty"}${tone === "given" ? ", given" : tone === "wrong" ? ", wrong" : tone === "missed" ? ", missed" : ""}${clash ? ", clashes" : ""}`}
           >
@@ -157,6 +166,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [pencilMode, setPencilMode] = useState(false);
   const [placed, setPlaced] = useState<number | null>(null);
   const submitted = useRef(false);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const grid = useMemo(
     () => givens.map((given, cell) => (given ? given : (entries[cell] ?? 0))),
@@ -238,6 +248,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (entries[selected] !== digit) {
       setPlaced(selected);
       soundCue("sudoku.place");
+      // A row, column or box this digit completes lights along it with a rising note; several at once are a combo.
+      const nextGrid = grid.map((value, cell) => (cell === selected ? digit : value));
+      const before = sudokuCompleteGroups(grid);
+      const fresh = [...sudokuCompleteGroups(nextGrid)].filter(([key]) => !before.has(key));
+      if (fresh.length && !sudokuSolved(nextGrid, givens)) {
+        const root = gridRef.current;
+        const at = selected;
+        for (const [, cells] of fresh) {
+          const ordered = [...cells].sort((a, b) => Math.abs(a - at) - Math.abs(b - at));
+          lightCells(ordered.map((c) => root?.querySelector<HTMLElement>(`[data-cell="${c}"]`)));
+        }
+        if (fresh.length > 1) gameFx("combo", root?.querySelector(`[data-cell="${at}"]`), { count: fresh.length, silent: true });
+        soundCue("sudoku.line", 1 + (fresh.length - 1) * 0.12);
+      }
+      if (sudokuClashes(nextGrid).has(selected)) {
+        gameFx("wrong", gridRef.current?.querySelector(`[data-cell="${selected}"] .logic-sudoku-digit`), { silent: true });
+      }
     }
     setEntries((current) =>
       current.map((value, cell) => (cell === selected ? (value === digit ? 0 : digit) : value)),
@@ -254,7 +281,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div data-logic-stage="sudoku" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic">
-        <div className="logic-square-bare logic-sudoku-frame">
+        <div ref={gridRef} className="logic-square-bare logic-sudoku-frame">
           <SudokuGrid
             values={grid}
             tones={tones}

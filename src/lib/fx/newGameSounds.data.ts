@@ -11,6 +11,8 @@ export const NEW_GAME_SOUND_RECORDINGS = [
   { file: "tubes.undo.mp3", slots: ["tubes.undo"], ms: 127, bytes: 2194, lufs: -22.6, target: -22.7, truePeak: -1.3, loop: false, what: "placeholder: a glass vial set back in a wooden rack, a light clink" },
   { file: "tubes.outOfPours.mp3", slots: ["tubes.outOfPours"], ms: 491, bytes: 6582, lufs: -17.6, target: -17.5, truePeak: -2.4, loop: false, what: "placeholder: an empty glass vial tapped twice, hollow and final" },
   { file: "safe.wrongTry.mp3", slots: ["safe.wrongTry"], ms: 174, bytes: 2821, lufs: -22.7, target: -22.7, truePeak: -2.5, loop: false, what: "placeholder: a safe handle jerked against a locked bolt, a dull clunk" },
+  { file: "sudoku.line.mp3", slots: ["sudoku.line"], ms: 402, bytes: 5642, lufs: -17.6, target: -17.5, truePeak: -2.2, loop: false, what: "placeholder: a gentle rising two-note glass chime, a line completed" },
+  { file: "nonogram.line.mp3", slots: ["nonogram.line"], ms: 299, bytes: 4388, lufs: -17.6, target: -17.5, truePeak: -2.3, loop: false, what: "placeholder: a small porcelain chime, one clear note" },
   { file: "nonogram.paint.mp3", slots: ["nonogram.paint"], ms: 44, bytes: 1253, lufs: -25.6, target: -22.7, truePeak: -2.7, loop: false, what: "placeholder: a tiny dry ceramic tick for each square a drag paints" },
   { file: "nonogram.fill.mp3", slots: ["nonogram.fill"], ms: 80, bytes: 1880, lufs: -24.0, target: -22.7, truePeak: -2.7, loop: false, what: "a felt stamp: a soft, dense press into the square" },
   { file: "nonogram.mark.mp3", slots: ["nonogram.mark"], ms: 69, bytes: 1567, lufs: -23.3, target: -22.7, truePeak: -1.3, loop: false, what: "a pencil tick: a light, dry scratch" },

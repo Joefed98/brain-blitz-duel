@@ -141,6 +141,9 @@ export function paintMinesFrame(ctx: CanvasRenderingContext2D): void {
   screw(ctx, x + w - s, y + h - s);
 }
 
+/** Ticks between two mines defused at the clear. */
+const MINES_DEFUSE_TICKS = 5;
+
 /** The Logic overhaul's rendered pieces (Minefield A: raised silver stone, recessed slate, an iron mine, a cloth flag). */
 export const MINES_SPRITES = ["mine-raised", "mine-open", "mine-mine", "mine-flag"] as const;
 
@@ -366,6 +369,35 @@ function drawMinesWorld(ctx: CanvasRenderingContext2D, s: MinesState): void {
         ctx.globalAlpha = (1 - k) * 0.5;
         ctx.beginPath();
         ctx.arc(cx, cy, MINES_CELL * (0.2 + k * 3.5), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+  // The clear (Logic overhaul 1): the mines still hidden are defused one by one, out from the last square opened, each
+  // shown under a fading gold ring (display only; the run is already decided).
+  if (minesCleared(s) && s.clearedTick > 0) {
+    const age = s.tick - s.clearedTick;
+    const at = s.lastOpen >= 0 ? s.lastOpen : 0;
+    const ax = minesCellX(at), ay = minesCellY(at);
+    const hidden: number[] = [];
+    for (let cell = 0; cell < MINES_CELLS; cell++) if (s.mines[cell] && s.open[cell] !== MINES_BOOM) hidden.push(cell);
+    hidden.sort((p, q) => Math.hypot(minesCellX(p) - ax, minesCellY(p) - ay) - Math.hypot(minesCellX(q) - ax, minesCellY(q) - ay));
+    const shown = still ? hidden.length : Math.min(hidden.length, Math.floor(age / MINES_DEFUSE_TICKS) + 1);
+    for (let i = 0; i < shown; i++) {
+      const cell = hidden[i]!;
+      const cx = minesCellX(cell) + MINES_CELL / 2;
+      const cy = minesCellY(cell) + MINES_CELL / 2;
+      const since = still ? 99 : age - i * MINES_DEFUSE_TICKS;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      paintMinesMine(ctx, cx, cy, MINES_CELL * 0.8);
+      if (since < 24) {
+        ctx.globalAlpha = (1 - since / 24) * 0.9;
+        ctx.strokeStyle = MINES_ART.gold;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, MINES_CELL * (0.3 + since / 60), 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();

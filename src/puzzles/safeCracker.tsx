@@ -12,6 +12,7 @@ import { playWrong } from "@/lib/sound";
 
 import { soundCue, usePrevious, useSolveFx } from "./logicFx";
 import { RevealFacts } from "./logicReveal";
+import { gameFx } from "@/lib/fx/kit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { usesDepth } from "@/lib/duel/logicDepth";
 import { usesStandard } from "@/lib/duel/standard/stamps";
@@ -132,6 +133,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
 
   // Logic overhaul 1: after a wrong try, the clues that try broke (only after a Try, never live while turning).
   const broken = new Set<number>(isSafe && !opened ? brokenClues(puzzle.clues, lastTry) : []);
+  const doorRef = useRef<HTMLDivElement>(null);
   // One mechanical tick per dial step, at most one per 60 ms, so a held arrow doesn't smear.
   const lastTick = useRef(0);
   const step = (dial: number, delta: number) => {
@@ -161,8 +163,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
     }
     playWrong();
     soundCue("safe.wrongTry");
-    setShake(true);
-    setTimeout(() => setShake(false), 320);
+    // The door jolts against its bolts (the kit's "wrong"); the broken clues flash on the card.
+    gameFx("wrong", doorRef.current, { silent: true });
     if (next.length >= SAFE_TRIES) {
       submitted.current = true;
       onSubmit(encodeSafeTries(next));
@@ -209,11 +211,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
         <div className="logic-safe-vault relative mx-auto w-4/5">
           <span aria-hidden="true" className="logic-safe-inside"><i /><i /><i /></span>
           <div
+            ref={doorRef}
             data-game-controls="dial" className={`safe-metal-panel logic-safe-door relative flex w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-border p-1 ${
               shake ? "animate-shake border-warn" : ""
             } ${opened ? "logic-safe-door-open" : ""}`}
           >
             <span aria-hidden="true" className="logic-safe-hinge" />
+            {/* The bolts: they slide back one by one when the right code opens the door (Logic overhaul 1). */}
+            <span aria-hidden="true" className="logic-safe-bolts"><i /><i /><i /></span>
             <span aria-hidden="true" className="logic-rivet" data-corner="tl" />
             <span aria-hidden="true" className="logic-rivet" data-corner="tr" />
             <span aria-hidden="true" className="logic-rivet" data-corner="bl" />

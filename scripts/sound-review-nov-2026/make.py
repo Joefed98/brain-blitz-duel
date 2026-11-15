@@ -335,6 +335,20 @@ def _(r):
     return room(x, r, 0.1, 0.12)
 
 
+@sound("sudoku.line", ["sudoku.line"], "placeholder: a gentle rising two-note glass chime, a line completed")
+def _(r):
+    n = n_of(0.5)
+    one = struck(GLASS, 1320, 0, 0.3, n, r) * 0.5
+    two = at(struck(GLASS, 1760, 0, 0.32, n_of(0.38), r) * 0.5, 0.11, n)
+    return room(mix(one, two), r, 0.1, 0.12)
+
+
+@sound("nonogram.line", ["nonogram.line"], "placeholder: a small porcelain chime, one clear note")
+def _(r):
+    n = n_of(0.4)
+    return room(struck(GLASS, 1480, 0, 0.3, n, r) * 0.6 + struck(STONE, 2960, 0, 0.08, n, r) * 0.15, r, 0.1, 0.12)
+
+
 @sound("nonogram.paint", ["nonogram.paint"], "placeholder: a tiny dry ceramic tick for each square a drag paints")
 def _(r):
     n = n_of(0.07)

@@ -21,6 +21,7 @@ import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-logic.css";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { RevealFacts } from "./logicReveal";
+import { gameFx } from "@/lib/fx/kit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Wet-paint display colours for stored indices 0–4 (red, blue, green, yellow, orange), chosen to stay distinct with red-green colour blindness. */
@@ -30,6 +31,9 @@ const FLOOD_NAMES = ["Magenta", "Blue", "Mint", "Yellow", "Orange"];
 function fillOf(colour: number): string {
   return FLOOD_FILLS[colour % FLOOD_FILLS.length]!;
 }
+
+/** A move that floods this many squares or more is a combo (the kit's sparkle and chord). */
+const FLOOD_COMBO_SQUARES = 20;
 
 /** The board, with one white outline around the player's region boundary. */
 export function Board({
@@ -169,10 +173,15 @@ function Stage({
       wrongMoveFlash(document.querySelector(`[data-game-stage] [aria-label="${FLOOD_NAMES[colour]}"]`));
       return;
     }
-    soundCue("flood.spread");
     const next = [...moves, colour];
     setMoves(next);
     const after = replayFlood(data.grid, next, undefined, moveLimit);
+    // The whoosh grows with the squares taken (a big gulp plays longer and lower); 20+ squares is a combo sparkle.
+    const taken = Math.max(0, after.region - replay.region);
+    soundCue("flood.spread", Math.max(0.7, 1.2 - taken / 90));
+    if (taken >= FLOOD_COMBO_SQUARES) {
+      gameFx("combo", document.querySelector('[data-game-stage] [data-logic-stage="flood"] .logic-flood'), { count: Math.min(8, Math.floor(taken / 10)), silent: true });
+    }
     if (after.solved) {
       submitted.current = true;
       playLock();
@@ -204,7 +213,8 @@ function Stage({
               label: "Moves",
               value: moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves,
               ...(moveLimit !== null ? { limit: moveLimit } : {}),
-              ...(replay.outOfMoves ? { tone: "warn" as const } : {}),
+              // Close to par with the board not yet flooded, the counter glows gold (a near-miss moment).
+              ...(replay.outOfMoves ? { tone: "warn" as const } : data.par && !replay.solved && replay.moves >= data.par - 1 ? { tone: "gold" as const } : {}),
             },
             data.par ? { id: "par", label: "Par", value: data.par, tone: "gold" } : null,
           ]}

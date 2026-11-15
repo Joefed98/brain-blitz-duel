@@ -42,6 +42,8 @@ export const NEW_GAME_SOUND_REPLACES: Readonly<Record<string, readonly string[]>
   "tubes.outOfPours": ["wrong"],
   "safe.wrongTry": ["wrong"],
   "nonogram.paint": MOVE,
+  "sudoku.line": MOVE,
+  "nonogram.line": MOVE,
   "tower.drop": MOVE,
   "tubes.pour": MOVE,
   "nonogram.fill": MOVE,

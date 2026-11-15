@@ -4,6 +4,33 @@ Box Six, Polypotions, Hanoi, Safe Cracker, Mosaic, Colour Flood and Minefield (p
 practice rounds drawn by `bun scripts/shots/capture.ts`. Today: the game reviews' screenshots
 (`docs/design/game-reviews/img/logic/`); concept: the render Joe picked (PR #429, `docs/design/game-concepts/logic/`).
 
+## Stage 2: the effects (15 Nov 2026)
+
+Built on the effects kit (#422, `src/lib/fx/kit.ts`) and its rules (transform and opacity only, the piece itself moves,
+never a control; the next tap is taken at once), with the game-specific moves in `src/puzzles/logicMotion.ts`.
+
+- **Polypotions, the pour** (the style guide's timing: lift 120 ms, travel and tilt 160, pour 300–500 by amount, settle
+  220, return 180): the flask flies over its target and tilts, a stream of the colour falls into the mouth while the
+  target's layers rise, the glug pitched by the level reached; a refused flask tips toward the target, nothing pours,
+  it rights itself (the lift kept); a flask completed gets its cork with a bright ring, two within four seconds a combo;
+  at the end the corks glint in turn. Clip: [tubes-effects.mp4](clips/tubes-effects.mp4) (9 s, 0.2 MB).
+
+  <img src="img/tubes-pour-strip.webp" width="700" alt="The pour, frame by frame">
+- **Hanoi**: the ring arcs from where it hovered over the posts and lands with a clunk pitched by its size; on the gold
+  post in final order it glints; an illegal post bounces the lifted ring and keeps it lifted. Clip:
+  [tower-effects.mp4](clips/tower-effects.mp4).
+- **Box Six**: a completed row, column or box lights along it from the cell just placed with a rising chime (several
+  at once: the kit's combo); a clash shakes the digit and rings it red; on solve the lines turn gold from the last cell
+  outwards. <img src="img/sudoku-solve-after.webp" width="160">
+- **Safe Cracker**: a wrong try jolts the door and flashes the broken clues; the right one slides three bolts back one by
+  one, the drums lock and the door swings. <img src="img/safe-solve-after.webp" width="160">
+- **Mosaic**: a fill presses the tile in; a drag rises in pitch square by square; a line matching its numbers lights its
+  clue with a chime (two at once a combo); the solve flips the picture row by row.
+- **Colour Flood**: the whoosh grows with the squares taken; 20 or more is a combo sparkle; near par the move counter
+  glows gold; the solve pulses the board in its colour.
+- **Minefield**: the cascade, flags and hits as before (a dull red pulse); at the clear the mines still hidden are
+  defused one by one, out from the last square opened, each under a fading gold ring.
+
 ## The look (second pass, 15 Nov 2026)
 
 Every piece is rendered in Blender inside its concept's own scene: the same stage lights, materials and place on the

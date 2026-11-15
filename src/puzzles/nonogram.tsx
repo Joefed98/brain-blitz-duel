@@ -14,6 +14,8 @@ import { playLock } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { RevealFacts } from "./logicReveal";
+import { lightCells } from "./logicMotion";
+import { gameFx } from "@/lib/fx/kit";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import "@/polish-layout/polish-nov3-logic.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -95,6 +97,7 @@ export function Board({
         return (
           <span
             key={`c${col}`}
+            data-clue={`c${col}`}
             className={`nono-clue-col flex items-end justify-center gap-0.5 whitespace-pre pb-1.5 font-mono font-bold leading-[1.15] ${reveal ? "" : "text-[15px]"} ${guide ? "nono-guide-col" : ""} ${
               !reveal && lineSatisfied(clue, cellsOf("col", col))
                 ? "text-muted-foreground/40"
@@ -111,6 +114,7 @@ export function Board({
         <Fragment key={`r${row}`}>
           <span
             data-runs={clue.length}
+            data-clue={`r${row}`}
             className={`nono-clue-row flex items-center justify-end gap-1 pr-1.5 font-mono font-bold leading-none ${reveal ? "" : "max-w-10 text-[15px]"} ${
               !reveal && lineSatisfied(clue, cellsOf("row", row))
                 ? "text-muted-foreground/40"
@@ -249,6 +253,29 @@ function Stage({
   }, [data, marks, SIZE]);
   useFrameProgress(linesDone, SIZE * 2, "lines");
 
+  // A line that now matches its numbers: its clue lights with a chime; two or more at once are a combo
+  // (Logic overhaul 1; the clue turning gold only when the line is truly right needs the solution: the levels stage).
+  const boardRef = useRef<HTMLDivElement>(null);
+  const doneLines = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    const line = (cells: number[]) => cells.map((cell) => marks[cell] === 1);
+    const span = Array.from({ length: SIZE }, (_, i) => i);
+    const now = new Set<string>([
+      ...data.rows.flatMap((clue, row) => (lineSatisfied(clue, line(span.map((col) => row * SIZE + col))) ? [`r${row}`] : [])),
+      ...data.cols.flatMap((clue, col) => (lineSatisfied(clue, line(span.map((row) => row * SIZE + col))) ? [`c${col}`] : [])),
+    ]);
+    const before = doneLines.current;
+    doneLines.current = now;
+    // The first pass only learns what already matches (an empty line of a "0" clue, a restored board).
+    if (!before || complete) return;
+    const fresh = [...now].filter((key) => !before.has(key));
+    if (!fresh.length) return;
+    lightCells(fresh.map((key) => boardRef.current?.querySelector<HTMLElement>(`[data-clue="${key}"]`)), 0);
+    soundCue("nonogram.line", 1 + (fresh.length - 1) * 0.12);
+    if (fresh.length > 1) gameFx("combo", boardRef.current?.querySelector(`[data-clue="${fresh[0]}"]`), { count: fresh.length, silent: true });
+  }, [data, marks, SIZE, complete]);
+
   // Every line matching its clues means the picture is the stored one.
   useEffect(() => {
     if (!data || locked || submitted.current || !complete) return;
@@ -285,7 +312,8 @@ function Stage({
     painted.current.add(index);
     paintRun.current += 1;
     // A rising tick per square painted (the cue carries the run's length for the pitch).
-    soundCue(value === 1 ? "nonogram.paint" : value === 2 ? "nonogram.mark" : "nonogram.clear");
+    // A rising tick per square painted (the run's length raises the pitch).
+    soundCue(value === 1 ? "nonogram.paint" : value === 2 ? "nonogram.mark" : "nonogram.clear", Math.min(1.6, 1 + paintRun.current * 0.05));
     setTapped((current) => ({ index, key: (current?.key ?? 0) + 1 }));
     setMarks((current) => current.map((mark, at) => (at === index ? value : mark)) as NonoMarks);
   };
@@ -294,7 +322,7 @@ function Stage({
     <div data-logic-stage="nonogram" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
-        <div className="logic-nono-fit logic-nono-frame">
+        <div ref={boardRef} className="logic-nono-fit logic-nono-frame">
           <Board rows={data.rows} cols={data.cols} marks={marks} size={SIZE} onCell={tap} onPaint={paint} fluid tapped={tapped} />
         </div>
       </div>
