@@ -34,21 +34,25 @@ export interface RinkPalette {
   floor: string;
 }
 
+/**
+ * The default rink (the Sports overhaul, 15 Nov 2026, concept A: clean bright ice, the house in strong blue and red,
+ * a quiet pebble and soft roof-light streaks with no glare, the floor round the sheet near black).
+ */
 export const DEFAULT_RINK: RinkPalette = {
-  ice: "#E9F1F6",
-  iceFar: "#B9C9D6",
-  iceMid: "#DCE7EF",
-  house: ["#1F5FB8", "#E9F1F6", "#C8202E", "#E9F1F6"],
+  ice: "#F1F6FA",
+  iceFar: "#CBD8E3",
+  iceMid: "#E6EEF4",
+  house: ["#1D5BB5", "#F1F6FA", "#C8202E", "#F1F6FA"],
   ring: [null, null, null, null],
   line: "#2B2B33",
   hog: "#C8202E",
   glowHog: false,
-  centre: "#2B2B3399",
-  pebble: ["#FFFFFF55", "#9FB3C455"],
+  centre: "#2B2B3380",
+  pebble: ["#FFFFFF3A", "#A9BCCB30"],
   reflections: true,
-  board: "#1A2230",
-  led: "#3FD6FF",
-  floor: "#0E1520",
+  board: "#141B27",
+  led: "#7FE3FF",
+  floor: "#070A11",
 };
 
 export const NEON_RINK: RinkPalette = {

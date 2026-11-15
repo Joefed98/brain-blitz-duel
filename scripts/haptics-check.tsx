@@ -533,9 +533,11 @@ const CALL_SITES: Record<string, Record<string, number>> = {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of Blockzone's top-out haptic): impact 19 → 20.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Sports overhaul): Apex's lights out (go), grass
  * (error), kerb rumble (tick, every 10 ticks on the kerb), clean sector (success) and finish (celebrate); Cue Ball's black
- * potted legally (celebrate) and the black too soon (error): success 7 → 8, error 1 → 3, celebrate 2, tick 1, go 1.
+ * potted legally (celebrate) and the black too soon (error); Curl Champ's release (tick), stone on stone (impact) and a
+ * stone coming to rest counting or after a takeout (success): success 7 → 9, error 1 → 3, impact 20 → 21, tick 2, go 1,
+ * celebrate 2.
  */
-const FEEL = { success: 8, error: 3, impact: 20, tick: 1, go: 1, celebrate: 2 };
+const FEEL = { success: 9, error: 3, impact: 21, tick: 2, go: 1, celebrate: 2 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);
