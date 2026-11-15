@@ -21,7 +21,10 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 
 | Cue | Trigger | Length |
 |---|---|---|
-| `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) | 170 ms (undo / reset 210 ms) |
+| `unblock.slide` | A car settles into a new bay one or two bays away (each kept move, each undo, a reset with moves to undo) | 170 ms (undo / reset 210 ms) |
+| `unblock.slideLong` | A car slides three or more bays (since 15 Nov 2026; `move.slide.mp3` until its own file) | 170 ms |
+| `unblock.blocked` | A drag pushed into the car or wall in the way: the car shakes and stays (a plain tap keeps the shake's quiet `wrong`; since 15 Nov 2026, `arc_wood_knock.mp3` until its own file) | 320 ms shake |
+| `unblock.laneClear` | A move leaves nothing between the gold car and the exit, short of the solve (since 15 Nov 2026, `gem.glint.mp3` until its own file) | — |
 | `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks | `pz_car_escape.mp3` (2.47 s, since 15 Nov 2026); placeholder `unblock.solve.mp3` with NEW_GAME_SOUNDS on |
 
 ## Tessellate (`blockparty`)

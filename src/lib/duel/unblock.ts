@@ -92,10 +92,20 @@ export function decodeMoves(raw: string): UnblockMove[] {
     .slice(0, 200);
 }
 
+/** The moves a stamp counts: unblockRev 4 (the Pattern overhaul) the slides on the board, older stamps every slide. */
+export function countedMoves(replay: UnblockReplay, undoGivesBack: boolean): number {
+  return undoGivesBack ? replay.net : replay.moves;
+}
+
 export interface UnblockReplay {
   solved: boolean;
   /** Legal moves actually played. */
   moves: number;
+  /**
+   * The slides still on the board: every slide played less those Undo or Reset took back (unblockRev 4, the Pattern
+   * overhaul: Undo gives the move back). Older stamps count `moves`.
+   */
+  net: number;
   /** The layout as it stood when the player stopped. */
   vehicles: UnblockVehicle[];
 }
@@ -115,7 +125,7 @@ export function replayUnblock(start: UnblockVehicle[], moves: UnblockMove[]): Un
     played += 1;
     if (isSolved(state)) break;
   }
-  return { solved: isSolved(state), moves: played, vehicles: state };
+  return { solved: isSolved(state), moves: played, net: history.length - 1, vehicles: state };
 }
 
 export function serialiseLayout(vehicles: UnblockVehicle[]): string {

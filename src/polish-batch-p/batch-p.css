@@ -51,16 +51,7 @@
 [data-puzzle-play][data-puzzle-play] .game-column [data-polish="unblock"] > [data-game-arena].unblock-arena {
   height: min(100cqw, calc(100cqh - 92px));
 }
-/* The gold block glows softly in the lot; a lifted car glows brighter. */
-[data-puzzle-play][data-puzzle-play] .unblock-car--gold .unblock-car-art {
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--primary) 55%, transparent));
-}
-[data-puzzle-play][data-puzzle-play] .unblock-car.is-lifted .unblock-car-art {
-  filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 8px color-mix(in srgb, var(--category-accent) 60%, transparent));
-}
-[data-puzzle-play][data-puzzle-play] .unblock-car--gold.is-lifted .unblock-car-art {
-  filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 10px color-mix(in srgb, var(--primary) 75%, transparent));
-}
+/* The Pattern overhaul (15 Nov 2026): the cars are rendered sprites; no glow on the gold car or a lifted one. */
 [data-puzzle-play][data-puzzle-play] .unblock-lot {
   box-shadow:
     0 14px 30px rgba(0, 0, 0, 0.55),
@@ -471,32 +462,8 @@
  */
 
 /* ---------------------------------------------------------------- Gridlock */
-[data-puzzle-play][data-puzzle-play] .ub-shade-top { stop-opacity: 0.62; }
-[data-puzzle-play][data-puzzle-play] .ub-shade-upper { stop-opacity: 0.14; }
-[data-puzzle-play][data-puzzle-play] .ub-shade-bottom { stop-opacity: 0.55; }
-[data-puzzle-play][data-puzzle-play] .unblock-car-art {
-  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.6)) saturate(1.15);
-}
-[data-puzzle-play][data-puzzle-play] .unblock-car--gold .unblock-car-art {
-  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 10px color-mix(in srgb, var(--primary) 85%, transparent)) saturate(1.1);
-}
-[data-puzzle-play][data-puzzle-play] .unblock-car.is-lifted .unblock-car-art {
-  filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 12px color-mix(in srgb, var(--category-accent) 90%, transparent)) saturate(1.15);
-}
-[data-puzzle-play][data-puzzle-play] .unblock-car--gold.is-lifted .unblock-car-art {
-  filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px var(--primary)) saturate(1.1);
-}
-/* The lot: light falls from the top of the screen, the far edge in shade. */
-[data-puzzle-play][data-puzzle-play] .unblock-lot::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 45%, rgba(0, 0, 0, 0.28));
-  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-}
+/* The Pattern overhaul (15 Nov 2026): the cars' shading and glow are in their rendered sprites. */
+/* The lot's light and shade are in its rendered sprite (no tint over it). */
 [data-puzzle-play][data-puzzle-play] .unblock-grid {
   z-index: 1;
 }

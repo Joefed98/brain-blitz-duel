@@ -19,6 +19,7 @@ import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
+import { prePatternNov15Pinned } from "./patternNov15";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -563,7 +564,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Clear a path", detail: "for the gold block." },
         // Pattern review fixes (15 Nov 2026): the screen shows Moves and Par pills, and Undo keeps the move counted.
         { action: "Par", detail: "is the fewest moves, shown beside your moves." },
-        { action: "Undo and Reset", detail: "don’t give a move back: every slide counts.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, unblockRev 4): Undo and Reset give the move back.
+        prePatternNov15Pinned()
+          ? { action: "Undo and Reset", detail: "don’t give a move back: every slide counts.", helpOnly: true }
+          : { action: "Undo and Reset", detail: "give the move back: only the slides left on the board count.", helpOnly: true },
       ],
       // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
       score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.unblock : PATTERN_STD_HELP.unblock,

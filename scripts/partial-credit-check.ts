@@ -31,6 +31,7 @@ import {
   usesPartialCredit,
 } from "../src/lib/duel/partialCredit";
 import { STANDARD_STAMPS } from "../src/lib/duel/standard/stamps";
+import { pinPrePatternNov15 } from "../src/lib/duel/patternNov15";
 import { decodeGradient, encodeGradient, gradientLocked, replayGradientAnswer } from "../src/lib/duel/jumbled";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -84,6 +85,9 @@ const stampOf = (p: PuzzleData, key: string) => (p as unknown as Record<string, 
 
 /* ------------------------------------------------------------------ 2. deals */
 
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Gridlock's live deal moved on to
+// unblockRev 4 (patternNov15.ts), so this section, written for the partial-credit stamps, deals the era before it.
+const prePatternNov15 = pinPrePatternNov15(true);
 for (const type of PARTIAL_CREDIT_TYPES) {
   const st = PARTIAL_CREDIT_STAMPS[type]!;
   const std = STANDARD_STAMPS[type]!;
@@ -104,6 +108,7 @@ for (const type of PARTIAL_CREDIT_TYPES) {
     }
   }
 }
+pinPrePatternNov15(prePatternNov15);
 
 /* ------------------------------------------------------------------ 3. the rules on the new stamps */
 

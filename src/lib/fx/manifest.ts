@@ -491,6 +491,11 @@ const ENTRIES = {
   "flow.connect": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/flow.connect.mp3", volume: 0.79 },
   "flow.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "unblock.slide": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3" },
+  // The Pattern overhaul (15 Nov 2026, docs/sound-cues/pattern-elevenlabs.md): library stand-ins until Joe's
+  // recordings (unblock.slideLong.mp3, unblock.blocked.mp3, unblock.laneClear.mp3) replace them.
+  "unblock.slideLong": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3" },
+  "unblock.blocked": { channel: "effects", frequency: 0, ms: 90, url: "/sounds/arc_wood_knock.mp3", volume: 0.7 },
+  "unblock.laneClear": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/gem.glint.mp3", volume: 0.6 },
   // 15 Nov 2026: the drive-out's recording through the cue (one sound); NEW_GAME_SOUNDS on swaps in unblock.solve.mp3.
   "unblock.solve": { channel: "effects", frequency: 0, ms: 2470, url: "/sounds/pz_car_escape.mp3" },
   "push.step": { channel: "effects", frequency: 0, ms: 120, url: null },

@@ -75,7 +75,9 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   check(/your moves: <span[^>]*>2<\/span>/.test(html), `Gridlock: the reveal line doesn't say 2 moves: ${html.match(/your moves:[^·]*/)?.[0]}`);
   const help = helpText("unblock");
   check(!/gold mark/i.test(help.how), "Gridlock: the help still names the bar's gold mark");
-  check(/Undo/.test(help.how) && /don’t give a move back/.test(help.how), "Gridlock: the help doesn't say Undo keeps the move counted");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): unblockRev 4 gives the move
+  // back on Undo, so the live help says so (pattern-overhaul-unblock-check holds the old line under the pin).
+  check(/Undo/.test(help.how) && /give the move back/.test(help.how), "Gridlock: the help doesn't say Undo gives the move back");
   check(help.intro.length <= 4, "Gridlock: more than four intro HOW lines");
 }
 

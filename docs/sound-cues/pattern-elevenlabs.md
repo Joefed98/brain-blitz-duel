@@ -13,6 +13,22 @@ effects with no lead-in silence.
 
 <!-- gridlock:start -->
 ## Gridlock
+
+Glossy painted toy cars on a dark lot. Every car sound is the same small, heavy die-cast toy on a smooth painted
+floor: never a real engine, horn or tyre squeal.
+
+- `unblock.slide` — a toy car pushed one or two bays: a short, smooth rubber-and-metal scrape across a painted lot
+  floor, ending in a soft, dull bump as it stops; light, tidy, satisfying; 0.17 s. (Replaces `move.slide.mp3`, a
+  generic 0.53 s slide that runs past the car's glide.)
+- `unblock.slideLong` — the same toy car pushed three or more bays: the same scrape held a little longer with a
+  slight rise in speed, the same soft bump on the stop; 0.25 s.
+- `unblock.blocked` — a drag into the car (or kerb) in the way: a dull, muffled knock of a die-cast toy car against
+  another, a tiny rattle, no ring; clearly "can't go", never harsh or buzzer-like; 0.12 s. (Today the library's
+  wood knock stands in.)
+- `unblock.laneClear` — the gold car's lane to the exit is open: a quick, bright metallic glint, one small sparkle
+  running left to right like light along polished gold paint; airy, short, not a chime melody; 0.35 s.
+- `unblock.solve` — **keep** (`pz_car_escape.mp3`, the gold car revving back and driving out).
+- Undo and Reset: no new sound; they play `unblock.slide` (the car sliding back).
 <!-- gridlock:end -->
 
 <!-- tessellate:start -->

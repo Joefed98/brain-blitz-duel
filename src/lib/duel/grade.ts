@@ -144,7 +144,8 @@ import {
   tapRevOf,
   type TapLogDiag,
 } from "./tapLog";
-import { decodeMoves, replayUnblock } from "./unblock";
+import { countedMoves, decodeMoves, replayUnblock } from "./unblock";
+import { usesPatternNov15 } from "./patternNov15";
 import {
   COUNT_REV2_TRAYS,
   countUpStageTruth,
@@ -665,8 +666,11 @@ function gradeUnderRev(
         if (before > 0) progress = Math.max(0, (before - after) / before) * (scoreRev1() ? 1 : 0.9);
         fewerBlockers = after < before;
       }
-      score = scoreUnblock(replay.solved, ms, replay.moves, min, progress, fewerBlockers, timeLimitMs);
-      extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min, ...(isDepth4(puzzle) ? { par: puzzle.par ?? min } : {}) };
+      // unblockRev 4 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the move back, so the moves counted
+      // (the par bonus, the stored figure) are the slides still on the board; older stamps count every slide played.
+      const counted = countedMoves(replay, usesPatternNov15(puzzle, "unblock"));
+      score = scoreUnblock(replay.solved, ms, counted, min, progress, fewerBlockers, timeLimitMs);
+      extraDetail = { solved: replay.solved, moves: counted, minMoves: min, ...(isDepth4(puzzle) ? { par: puzzle.par ?? min } : {}) };
       break;
     }
     case "blockparty": {

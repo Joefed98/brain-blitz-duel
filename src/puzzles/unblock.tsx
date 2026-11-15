@@ -3,7 +3,8 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useState } from "react";
 
 import { UnblockBoard, UnblockPuzzle } from "@/components/puzzles/UnblockPuzzle";
-import { applyMove, decodeMoves, replayUnblock } from "@/lib/duel/unblock";
+import { applyMove, countedMoves, decodeMoves, replayUnblock } from "@/lib/duel/unblock";
+import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import "@/polish-layout/polish-nov3-pattern.css";
 import { UNBLOCK_TIME_MS, type UnblockPuzzleData, type UnblockVehicle } from "@/lib/duel/types";
 
@@ -115,9 +116,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   // replayed as the grader replays them (replayUnblock), so the board is the one the player left and "your moves"
   // is the grader's count of slides played, never the markers.
   const replay = start.length > 0 ? safeReplay(start, myAnswer ?? "") : null;
-  const yours = myCorrect ? (replay?.vehicles ?? start) : null;
+  // unblockRev 4 (the Pattern overhaul): Undo gives the move back, so "your moves" is the slides left on the board (the
+  // server's count), and an unfinished player's own final board is the Yours side too. Older stamps read as before.
+  const overhaul = usesPatternNov15(puzzle, "unblock");
+  const yours = myCorrect || (overhaul && replay) ? (replay?.vehicles ?? start) : null;
 
-  const mine = replay?.moves ?? 0;
+  const mine = replay ? countedMoves(replay, overhaul) : 0;
   const min = puzzle.minMoves ?? 0;
 
   return (
@@ -155,10 +159,21 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
           Solution unavailable
         </p>
       )}
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        your moves: <span className="text-primary">{mine}</span>
-        {min > 0 ? ` · ${(puzzle.unblockRev ?? 0) >= 1 ? "par" : "min"} ${min}` : ""}
-      </p>
+      {overhaul ? (
+        // The Pattern overhaul: under Solution only the solution's figure shows; the player's count is the Yours side's.
+        <p className="unblock-reveal-line font-mono text-base uppercase tracking-widest text-muted-foreground">
+          <span data-yours-only="">
+            your moves: <span className="text-primary">{mine}</span>
+            {min > 0 ? " · " : ""}
+          </span>
+          {min > 0 ? `par ${min}` : ""}
+        </p>
+      ) : (
+        <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+          your moves: <span className="text-primary">{mine}</span>
+          {min > 0 ? ` · ${(puzzle.unblockRev ?? 0) >= 1 ? "par" : "min"} ${min}` : ""}
+        </p>
+      )}
       {myCorrect ? (
         <p className="font-mono text-base text-primary">
           {solvedMovesText(mine, min, myMsRemaining, timeLimitMs, "B", scoreParts)}
