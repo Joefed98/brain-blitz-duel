@@ -113,3 +113,19 @@
    too, so the board shown fills it as the unsolved reveal's does (6 Nov 2026). */
 .answer-reveal-content .reveal-card .unblock-reveal-pair { flex: 1 1 0; min-height: 0; align-items: stretch; }
 .answer-reveal-content .reveal-card .unblock-reveal-pair > div { min-height: 0; }
+
+/* ---- The Pattern overhaul (15 Nov 2026): Undo and Reset in champagne gold on navy ------------------------ */
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  box-shadow: inset 0 0 0 1px var(--jz-gold);
+}
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-gold-ink);
+}
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action]:disabled {
+  box-shadow: inset 0 0 0 1px var(--jz-surface-3);
+}
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action]:disabled [data-puzzle-icon]::before,
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action][data-puzzle-icon]:disabled::before {
+  -webkit-text-fill-color: var(--jz-text-3);
+}
