@@ -18,6 +18,8 @@ const tag = opt("tag") ?? "after";
 const out = opt("out") ?? ".shots/strategy";
 const [w, h] = (opt("size") ?? "390x844").split("x").map(Number) as [number, number];
 const reveal = args.includes("--reveal");
+/** --clip: also 10 frames 300 ms apart during play (`<game>-clip-<n>-<tag>.png`), for a short animated clip. */
+const clip = args.includes("--clip");
 const GAMES = args.filter((a) => !a.startsWith("--"));
 const games = GAMES.length ? GAMES : ["tilt", "matchup", "bubble", "inkbridge", "balltrack"];
 
@@ -77,6 +79,20 @@ try {
       await play(page, game);
       await page.waitForTimeout(800);
       await page.screenshot({ path: `${out}/${game}-play-${tag}.png` });
+      if (clip) {
+        const box = await page.locator("[data-game-arena]").first().boundingBox();
+        for (let n = 0; n < 10; n++) {
+          if (n % 3 === 0 && box) {
+            // Keep playing between frames so something moves.
+            await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.55);
+            await page.mouse.down();
+            await page.mouse.move(box.x + box.width * 0.62, box.y + box.height * (game === "bubble" ? 0.95 : 0.5), { steps: 6 });
+            await page.mouse.up();
+          }
+          await page.screenshot({ path: `${out}/${game}-clip-${n}-${tag}.png`, scale: "css" });
+          await page.waitForTimeout(300);
+        }
+      }
       if (reveal) {
         await page.locator("[data-reveal-screen], [data-practice-reveal-actions]").first().waitFor({ timeout: 200_000 });
         await page.waitForTimeout(3000);
