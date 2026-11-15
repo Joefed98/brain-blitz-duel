@@ -1,7 +1,12 @@
 # Action overhaul: gallery (phase 2, step 4)
 
 Before (main) and after per game, at 390 × 844, plus short clips of play showing the setting changing through the round.
-Each game's frames are in its own folder here.
+Each game's frames are in its own folder here. Every game has three side-by-side comparisons, Today (main) | the
+chosen concept | New (`<game>/compare-1.webp` to `compare-3.webp`), drawn by each tree's own renderer.
+
+**Reveals.** The answer reveals are redesigned in stage 2, inside #422's shared reveal layout, and their before and after
+shots arrive then. Stage 1 changed only their text: Roofbound's repeated "Bonuses" tile is gone, Moon Climb adds a hits
+line, Grappler reads "n of 51 stretches cleared", High Rise counts lives lost.
 
 ## Roofbound
 

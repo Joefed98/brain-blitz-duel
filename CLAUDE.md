@@ -2610,7 +2610,10 @@ outside the repo.
     `moonNight`, slate walls, sharper blades, RIDES n/6 and SCROLLS n/3 in the HUD, a hits line on the reveal from the
     stored Hits stat; ricochet-overhaul-check), *Iron Wall* (clear, dusty desert, battle smoke by wave in
     `bastionLook.ts`, S/M/H badges and outlines on far tanks past `BT_FAR_MARK_Z`, a one-time reload-swipe tip, a navy and
-    gold panel; bastion-overhaul-check). Intros are `ArtStill`s from each renderer on its live stamp.
+    gold panel; bastion-overhaul-check). Intros are `ArtStill`s from each renderer on its live stamp. The materials pass
+  (Joe, 15 Nov 2026: real light on materials, no glare over panels or numbers, never flat) is drawn in code and cached per
+  size, except Orbit's six planet textures (`public/orbit/planets/`, 43,692 bytes, `scripts/orbit-planet-maps.py`,
+  `orbitPlanetMaps.data.ts`). `pinSkylinePreLives(true)` deals skylineRev 10 (deal pin `skylinePreLives`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

@@ -58,6 +58,8 @@ export const DEAL_PINS = {
   orbitPreFuel: { texts: false },
   /** arcade.server.ts: Orbit orbitRev 14, before grace (the Action overhaul, 15 Nov 2026). */
   orbitPreGrace: { texts: false },
+  /** arcade.server.ts: High Rise skylineRev 10, before lives (the Action overhaul, 15 Nov 2026). */
+  skylinePreLives: { texts: false },
   /** arcade.server.ts: Grappler's bank courses, before the assault course. */
   swingPreAssault: { texts: false },
   /** arcade.server.ts: Grappler swingRev 14. */

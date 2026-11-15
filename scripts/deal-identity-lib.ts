@@ -106,9 +106,9 @@ export function digest(value: unknown): string {
  * preGameReviewNov15.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15),
- * flipPreGrace (Roofbound flipRev 13).
+ * flipPreGrace (Roofbound flipRev 13), skylinePreLives (High Rise skylineRev 11).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "orbitPreGrace", "flipPreGrace"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "orbitPreGrace", "flipPreGrace", "skylinePreLives"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -167,8 +167,9 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
  */
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
-  // arcade deal, unpinned here as before).
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "flipPreGrace"]);
+  // arcade deal, unpinned here as before). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action
+  // overhaul): the new arcade stamps that reach a room's deals, orbitPreGrace and skylinePreLives, beside flipPreGrace.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "flipPreGrace", "orbitPreGrace", "skylinePreLives"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

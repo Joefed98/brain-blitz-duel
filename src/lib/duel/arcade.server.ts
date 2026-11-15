@@ -16,7 +16,7 @@ import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
 import { TILT_REV_BIG } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
@@ -173,7 +173,7 @@ export function generateSkyline(): SkylinePuzzleData {
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted up to 61, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): three lives (a miss costs one, the run carries on) and the wide-block
   // rescue after five trims in a row; skylineRev 10's parts and gold blocks.
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_LIVES };
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: dealPinned("skylinePreLives") ? SKYLINE_REV_COUNT : SKYLINE_REV_LIVES };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
@@ -394,6 +394,14 @@ export function generateBurst(): BurstPuzzleData {
  */
 export function pinOrbitPreFuel(on: boolean): boolean {
   return setDealPin("orbitPreFuel", on);
+}
+
+/**
+ * Checks written for skylineRev 10: deal High Rise on skylineRev 10 as rooms did before lives (the Action overhaul,
+ * 15 Nov 2026; returns the previous setting).
+ */
+export function pinSkylinePreLives(on: boolean): boolean {
+  return setDealPin("skylinePreLives", on);
 }
 
 /**

@@ -119,7 +119,9 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
     // preGameReviewNov15): 26.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15), 27.
-    ok(names.size === 27, `27 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): flipPreGrace (flipRev 13) and
+    // skylinePreLives (skylineRev 11), 29.
+    ok(names.size === 29, `29 era switches (${names.size})`);
   },
 });
 
