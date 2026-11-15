@@ -150,7 +150,7 @@
 }
 /* Beside the avatar, a narrow title column drops the category word (its dot keeps the colour), whatever the length. */
 @container (max-width: 160px) {
-  :is([data-header-style="mockup"], [data-header-style="digital"]) .game-frame-titles .game-frame-cat {
+  [data-header-style="mockup"] .game-frame-titles .game-frame-cat {
     display: none;
   }
 }
@@ -160,7 +160,7 @@
     display: none;
   }
 }
-.game-frame-header:is([data-header-style="mockup"], [data-header-style="digital"]) > .game-frame-left {
+.game-frame-header[data-header-style="mockup"] > .game-frame-left {
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
@@ -194,7 +194,8 @@
   stroke: var(--jz-loss);
 }
 
-/* The bar (the mockup): the seconds in the centre column, the bar along the header's whole bottom edge. */
+/* The bar (the default): the bar along the header's whole bottom edge, no number; in the last ten seconds it turns red
+   and the seconds appear in the centre column (the timer's label carries the time to screen readers throughout). */
 .game-frame-header .game-timer[data-timer-look="bar"] {
   position: static;
 }
@@ -229,26 +230,10 @@
 }
 .game-timer[data-timer-look="bar"] > .game-timer-seconds {
   font-size: 17px;
-}
-
-/* Digital: m:ss in gold on a navy chip, centred (wider than the 48 px column, overflowing it evenly). */
-.game-timer[data-timer-look="digital"] {
-  width: auto;
-  min-width: 64px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: var(--jz-radius-md);
-  background: var(--jz-surface-2);
-}
-.game-timer[data-timer-look="digital"] > .game-timer-seconds {
-  font-size: 17px;
-  color: var(--jz-gold-ink);
-}
-.game-timer.fx-timer-critical[data-timer-look="digital"] > .game-timer-seconds {
   color: var(--jz-loss-text);
 }
 
-/* Chip: a navy pill with the seconds in white and a gold stripe along its foot that shrinks with the time. */
+/* Chip: the seconds (0:52) in white on a navy pill, a gold stripe along its foot that shrinks with the time. */
 .game-timer[data-timer-look="chip"] {
   width: 72px;
   height: 30px;
@@ -270,25 +255,49 @@
   color: var(--jz-text);
 }
 
-/* The arena panel's look: big digits over a full-width bar. */
-.game-timer[data-timer-look="panel"] {
+/* The arena's side panel draws the same choice, larger. */
+.game-timer[data-timer-place="panel"][data-timer-look="bar"] {
   display: flex;
   width: 100%;
+  min-height: 12px;
   height: auto;
   flex-direction: column-reverse;
   align-items: flex-start;
   gap: var(--jz-space-8);
 }
-.game-timer[data-timer-look="panel"] > .game-timer-seconds {
+.game-timer[data-timer-place="panel"][data-timer-look="bar"] > .game-timer-seconds {
   font-size: 40px;
   line-height: 44px;
 }
-.game-timer[data-timer-look="panel"] > .game-timer-bar {
+.game-timer[data-timer-place="panel"][data-timer-look="bar"] > .game-timer-bar {
   position: relative;
   left: 0;
   right: 0;
   bottom: 0;
   width: 100%;
+  height: 8px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="ring"] {
+  width: 96px;
+  height: 96px;
+  margin-inline: auto;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="ring"] > .game-timer-ring {
+  width: 96px;
+  height: 96px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="ring"] > .game-timer-seconds {
+  font-size: 32px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="chip"] {
+  width: 100%;
+  height: 56px;
+  border-radius: var(--jz-radius-md);
+}
+.game-timer[data-timer-place="panel"][data-timer-look="chip"] > .game-timer-seconds {
+  font-size: 32px;
+}
+.game-timer[data-timer-place="panel"][data-timer-look="chip"] > .game-timer-chip-fill {
   height: 6px;
 }
 
@@ -352,8 +361,11 @@
 [data-arena][data-layout="tablet"][data-arcade-play][data-desktop-mode="rotate"] > [data-shell-column="game"] {
   max-width: 1000px;
 }
-/* The goal is in the panel: the board's goal line keeps only its stage progress. */
-[data-arena] .game-goal-text {
+/* The goal, the progress and the board's status pills are in the panel (ArenaGamePanel's BoardStatus), so each number
+   is on screen once; kept in the layout (visibility only), so no board, world or control moves. */
+[data-arena] .game-goal-text,
+[data-arena] [data-goal-progress],
+[data-arena] [data-game-stage] [data-hud-pills] {
   visibility: hidden;
 }
 /* A sideways tablet's arcade play screen keeps the phone's 16 px foot; its world and fade as on a computer. */
@@ -451,6 +463,67 @@
 }
 .arena-game[data-in-room] .arena-game-goal {
   display: none;
+}
+.arena-game-stars {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--jz-space-4);
+}
+.arena-game-best {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+/* The board's status: one row a figure, label left, value right. */
+.arena-game-status {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--jz-space-4) var(--jz-space-16);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.arena-status-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-8) 0;
+}
+.arena-status-row + .arena-status-row {
+  border-top: 1px solid var(--jz-line);
+}
+.arena-status-row dt {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  color: var(--jz-text-2);
+}
+.arena-status-row dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 20px;
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.arena-status-row[data-tone="warn"] dd {
+  color: var(--jz-red);
+}
+.arena-game-challenges {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.arena-game-caption {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  color: var(--jz-text-3);
 }
 
 /* The controls tab: pinned to the panel's foot, pulls up the keys and the control choice. */
@@ -677,4 +750,68 @@
   font-weight: var(--jz-weight-bold);
   line-height: 18px;
   color: var(--jz-gold-ink);
+}
+
+/* Settings → Appearance → Game timer: its label over the three choices, under the appearance switch. */
+.st-timer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  margin-top: var(--jz-space-16);
+}
+.st-timer-label {
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+  color: var(--jz-text-2);
+}
+
+/* ------------------------------------------------------------------ 2d. phones: no dead band (pass 3, 15 Nov 2026)
+ * A tall phone's puzzle used to centre its board between the goal line and the controls, so the spare height split
+ * into a band above the board and an equal dead band between the board and the controls (97–192 px on Box Six or
+ * Gridlock), and the word keypads floated above a band at the bottom (124–390 px). On a phone's live round the board
+ * and its controls now sit together at the bottom, in thumb reach: the controls end at the bottom as before, the
+ * board sits its usual 12 px above them, and the spare height is above the board, under the goal line. The board
+ * keeps its size (already as wide as the screen allows); arenas that grow and centre their board inside put it at
+ * their foot instead. Live rounds only: intro demos keep the layout they were recorded on. */
+@media (max-width: 699px) {
+  [data-puzzle-play] .game-column [data-stage-column][data-stage-column] {
+    justify-content: flex-end;
+  }
+  /* Whatever centred the board (layout 2's auto margins, a game's own) gives way: nothing under the board but the
+     stage's 12 px, and the word games' "controls first" margin no longer splits the spare height. */
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] {
+    margin-bottom: 0 !important;
+  }
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] ~ :is([data-word-controls-first], [data-game-controls]) {
+    margin-top: 0 !important;
+  }
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] + [data-game-controls] {
+    margin-top: calc(12px - var(--stage-gap, 0px)) !important;
+  }
+  /* Spacers a stage puts round its board (empty flex children) stop growing below it. */
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] ~ div:empty {
+    flex-grow: 0 !important;
+  }
+  /* …and the one straight under it keeps the board its 12 px clear of what follows (a 4 px gap either side). */
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena] + div:empty {
+    min-height: 4px;
+  }
+  /* A grid board with no controls under it keeps clear of the screen's foot (boards that fill the height, Flash's or
+     Ascend's, keep theirs where it was). */
+  @media (min-height: 760px) {
+    [data-puzzle-play] .game-column [data-stage-column]:has(> [data-game-arena]:is([data-game-arena="logic"], [data-game-arena="board"])):not(:has(> [data-game-controls])) {
+      padding-bottom: 12px;
+    }
+  }
+  [data-puzzle-play] .game-column [data-logic-stage] > [data-game-arena="logic"][data-game-arena] {
+    justify-content: flex-end;
+  }
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena].flex-col.justify-center {
+    justify-content: flex-end;
+  }
+  [data-puzzle-play] .game-column [data-stage-column] > [data-game-arena].flex:not(.flex-col).items-center {
+    align-items: flex-end;
+  }
 }

@@ -7,9 +7,10 @@
  *     preference reaches every game that offers it (and clears per-game choices), and the default comes back after it;
  *  3. schemes are input mapping only: no sim, replay, grader or server file reads gameControls, the layout, the
  *     arena or the header style; the stage gates only keys (GameKeysOff) and hover aiming (ArcadeCanvasStage);
- *  4. the header style: the default is one line in gameFrameConfig.ts naming one of HEADER_STYLES, every style has a
- *     timer look, and a production build reads only the config (the check stand-in and the dev picker are behind
- *     checkOverride and import.meta.env.DEV).
+ *  4. the game timer (Changed with Joe's approval, 15 Nov 2026 (timer bar only by default): the header styles became
+ *     one player choice, Settings → Appearance → Game timer): the choices are Bar, Ring and Chip, the default is one
+ *     line in gameFrameConfig.ts naming Bar, a player's choice is kept on the device and a choice not offered is
+ *     refused, the check stand-in is only through checkOverride, and the bar shows its seconds only in the last 10 s.
  *
  *   bun scripts/game-controls-check.ts
  */
@@ -26,6 +27,9 @@ const store = new Map<string, string>();
   location: { pathname: "/", search: "", href: "https://joulz.uk/" },
   addEventListener() {},
   removeEventListener() {},
+  dispatchEvent() {
+    return true;
+  },
 };
 
 const C = await import("../src/lib/gameControls");
@@ -85,19 +89,28 @@ check(/layoutMode === "desktop" \? chosen : null/.test(shell), "schemes apply on
 
 /* 4 */
 const cfg = readFileSync(join(ROOT, "src/config/gameFrameConfig.ts"), "utf8");
-check((cfg.match(/export const GAME_HEADER_STYLE: HeaderStyle = "\w+";/g) ?? []).length === 1, "the default header style is one line");
-check(F.HEADER_STYLES.includes(F.GAME_HEADER_STYLE), "the default is one of the styles");
-check(F.HEADER_STYLES.length >= 4, "the default and at least three alternatives");
-for (const s of F.HEADER_STYLES) check(Boolean(H.TIMER_LOOK[s]), `${s}: a timer look`);
-check(H.headerStyleNow() === F.GAME_HEADER_STYLE, "with no stand-in, the config's style");
+check((cfg.match(/export const DEFAULT_GAME_TIMER: GameTimer = "\w+";/g) ?? []).length === 1, "the default game timer is one line");
+check(JSON.stringify(F.GAME_TIMERS) === JSON.stringify(["bar", "ring", "chip"]), `the choices are Bar, Ring and Chip (${F.GAME_TIMERS})`);
+check(F.DEFAULT_GAME_TIMER === "bar", "the default is the bar");
+for (const s of F.GAME_TIMERS) check(Boolean(F.GAME_TIMER_LABEL[s]), `${s}: a label`);
+check(H.gameTimerNow() === F.DEFAULT_GAME_TIMER, "with nothing chosen, the default");
+H.setGameTimer("ring");
+check(H.gameTimerNow() === "ring" && store.get(H.GAME_TIMER_KEY) === "ring", "a choice is kept on the device");
+H.setGameTimer("digital" as never);
+check(H.gameTimerNow() === "ring", "a choice not offered is refused");
+store.set(H.GAME_TIMER_KEY, "digital");
+check(H.gameTimerNow() === F.DEFAULT_GAME_TIMER, "a stored choice no longer offered reads as the default");
 const hs = readFileSync(join(ROOT, "src/lib/gameFrame/headerStyle.ts"), "utf8");
-check(/checkOverride<string>\("__DUELZ_HEADER_STYLE__"\)/.test(hs) && /import\.meta\.env\.DEV && typeof window/.test(hs), "stand-ins only through checkOverride and development builds");
-check(H.clockText(52) === "0:52" && H.clockText(125) === "2:05", "the digital clock reads m:ss");
+check(/checkOverride<string>\("__DUELZ_GAME_TIMER__"\)/.test(hs), "stand-ins only through checkOverride");
+check(H.BAR_SECONDS_FROM_MS === 10_000, "the bar shows its seconds in the last 10 s");
+check(H.clockText(52) === "0:52" && H.clockText(125) === "2:05", "the chip's clock reads m:ss");
+const tb = readFileSync(join(ROOT, "src/components/duel/TimerBar.tsx"), "utf8");
+check(/role="timer"/.test(tb) && /aria-label=/.test(tb), "the timer keeps its role and accessible label in every look");
 
 if (failures.length) {
   for (const f of failures) console.log(`  - ${f}`);
   console.log(`FAIL: game-controls-check: ${failures.length} of ${failures.length + passes}`);
   process.exit(1);
 }
-console.log(`PASS: game-controls-check: ${ACTIVE_PUZZLE_TYPES.length} games' schemes, the device choice and preference, input mapping only, the header style's one-line default (${passes} assertions)`);
+console.log(`PASS: game-controls-check: ${ACTIVE_PUZZLE_TYPES.length} games' schemes, the device choice and preference, input mapping only, the game timer's choices and one-line default (${passes} assertions)`);
 process.exit(0);

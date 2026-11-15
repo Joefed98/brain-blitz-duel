@@ -1,6 +1,7 @@
 # Game frame, arena and effects kit: gallery
 
-Phase 2, step 4 (pass 2, 15 Nov 2026). Before = main (1c9a5edf), after = this branch. Drawn through the screens
+Phase 2, step 4 (pass 3, 15 Nov 2026). Before = main (1c9a5edf), after = this branch; the phone-gap rows compare
+pass 2 with pass 3. Drawn through the screens
 harness (fixed clock, stubbed server); the computer clip on the dev server. Guide:
 [../../game-fx/README.md](../../game-fx/README.md). The room shots' harness clock has run out, so their timers read 0.
 
@@ -11,19 +12,43 @@ game, the timer bar, the best, the goal and the Controls tab.
 
 ![Breaker in the arena](arena-computer-breaker.webp)
 
-## Header and timer options
+## The game timer (Settings → Appearance → Game timer)
 
-Pick one; the default is one line in `src/config/gameFrameConfig.ts` (`GAME_HEADER_STYLE`, today `mockup`). Every
-style keeps the header's 60 px. Also on `/dev-design` → Header styles, side by side, with "Use in games".
+The header is one design; the timer is the player's choice. Bar is the default: a gold bar along the header's foot,
+no seconds for most of the round, red with the seconds in the last 10 s; the time is always in its accessible label.
+Every choice keeps the header's 60 px. Also on `/dev-design` → Game timer.
 
-![Mockup, ring, digital, chip](header-options.webp)
+![Bar, ring and chip, with the last ten seconds](timer-options.webp)
 
-| Style | Practice | A room (one-on-one) |
-|---|---|---|
-| mockup (default) | ![](header-mockup-practice-phone-after.webp) | ![](header-mockup-room-phone-after.webp) |
-| ring | ![](header-ring-practice-phone-after.webp) | ![](header-ring-room-phone-after.webp) |
-| digital | ![](header-digital-practice-phone-after.webp) | ![](header-digital-room-phone-after.webp) |
-| chip | ![](header-chip-practice-phone-after.webp) | ![](header-chip-room-phone-after.webp) |
+| Choice | Practice | A room (one-on-one) | The computer's side panel |
+|---|---|---|---|
+| Bar (default) | ![](timer-bar-practice-phone-after.webp) | ![](timer-bar-room-phone-after.webp) | ![](timer-bar-panel-desktop-after.webp) |
+| Ring | ![](timer-ring-practice-phone-after.webp) | ![](timer-ring-room-phone-after.webp) | ![](timer-ring-panel-desktop-after.webp) |
+| Chip | ![](timer-chip-practice-phone-after.webp) | ![](timer-chip-room-phone-after.webp) | ![](timer-chip-panel-desktop-after.webp) |
+
+![Settings → Appearance](timer-setting-phone-after.webp)
+
+## The side panel (computer, 1600 × 900)
+
+Below the timer, each only when the game has it: the score (in practice, the best), this game's stars, the board's
+progress and status pills (moved off the board, so each number shows once), the goal, the next challenges in
+progress; the Controls tab at the foot.
+
+| Colour Flood (moves, par, progress) | Polypotions (pours, par) | Mosaic (progress only) | Meteor (arcade) |
+|---|---|---|---|
+| ![](panel-flood-desktop-after.webp) | ![](panel-tubes-desktop-after.webp) | ![](panel-nonogram-desktop-after.webp) | ![](practice-arcade-desktop-after.webp) |
+
+## Phones: no dead band (pass 2 → pass 3)
+
+The board and its controls sit together at the bottom, in thumb reach; the spare height is above the board.
+`phone-gap-check` proves it on every puzzle at 360, 375, 390 and 430 px wide.
+
+| | 360 × 780 before | 360 × 780 after | 430 × 932 before | 430 × 932 after |
+|---|---|---|---|---|
+| Grid (Box Six) | ![](gap-sudoku-360-before.webp) | ![](gap-sudoku-360-after.webp) | ![](gap-sudoku-430-before.webp) | ![](gap-sudoku-430-after.webp) |
+| Word keypad (Cryptogrid) | ![](gap-codeword-360-before.webp) | ![](gap-codeword-360-after.webp) | ![](gap-codeword-430-before.webp) | ![](gap-codeword-430-after.webp) |
+| Number pad (Kakuro) | ![](gap-kakuro-360-before.webp) | ![](gap-kakuro-360-after.webp) | ![](gap-kakuro-430-before.webp) | ![](gap-kakuro-430-after.webp) |
+| Drag (Gridlock) | ![](gap-unblock-360-before.webp) | ![](gap-unblock-360-after.webp) | ![](gap-unblock-430-before.webp) | ![](gap-unblock-430-after.webp) |
 
 ## Phone (390 × 844)
 

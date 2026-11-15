@@ -105,30 +105,36 @@ The first that applies. Every variant still shows the state change; only the flo
 
 Every context (practice, rooms, rated, the Daily, tournaments, offline) draws the same frame.
 
-### Header styles
+### The header and the game timer
 
-`src/config/gameFrameConfig.ts` holds the default, **one line** (`GAME_HEADER_STYLE`). Each style keeps the header's
-60 px and three columns, so no board, world or control moves when it changes:
+One header (the style guide's puzzle.png / arcade.png), 60 px and three columns: your avatar (gold ring), the game and
+context left; the score, a one-on-one opponent's avatar and the menu right; the timer.
 
-| Style | Left | Centre | Right |
-|---|---|---|---|
-| `mockup` (default, the style guide's puzzle.png / arcade.png) | your avatar (gold ring), the game and context | the seconds, with a gold time bar along the header's bottom | the score, a one-on-one opponent's avatar, the menu |
-| `ring` | the game and context | a gold ring with the seconds | the score, the menu |
-| `digital` | your avatar, the game and context | a 0:52 countdown in gold on a navy chip | the score, the opponent's avatar, the menu |
-| `chip` | the game and context | a navy chip whose gold fill shrinks with the time | the score, the menu |
+The timer is the player's choice, **Settings → Appearance → Game timer** (`src/lib/gameFrame/headerStyle.ts`,
+`useGameTimer`, stored as `duelz-game-timer:v1`; the choices in `src/config/gameFrameConfig.ts`):
 
-Gold and navy throughout: no category-coloured ring; the last ten seconds turn the loss red. `/dev-design` → Header
-styles draws all four side by side (a room and practice) and, in a development build, "Use in games" plays this
-browser's games in one. Checks can stand a style in with `window.__DUELZ_HEADER_STYLE__`. The timer (`TimerBar`) reads
-its look from `TimerLookContext`; its sounds, warnings, role and label are the same in every look.
+| Choice | Look |
+|---|---|
+| Bar (default) | a gold time bar along the header's foot, no seconds for most of the round; in the last 10 s it turns red and the seconds appear |
+| Ring | a gold ring with the seconds in the centre |
+| Chip | a navy chip whose gold fill shrinks, with m:ss |
+
+Every look keeps the header's height, so no board, world or control moves when it changes. The timer's role, its
+accessible label ("N seconds remaining", throughout), its sounds and warnings are the same in every look; the arena's
+side panel draws the same choice larger. `/dev-design` → Game timer draws all three (a room, practice and the last 10
+s) and, in a development build, "Use in games" sets this browser's choice. Checks stand a choice in with
+`window.__DUELZ_GAME_TIMER__`.
 
 The shared controls' outline buttons (Box Six's Pencil and Clear and every `font-mono uppercase` outline action in a
 puzzle's dock) are the style guide's secondary button: navy on a ledge, sentence case; gold when on.
 
 ### Phones
 
-The board is already as wide as the screen allows; on a tall phone the dock's buttons (not the letter keypads, which
-would take height from the board) grow to a thumb's 52 px into the spare height.
+The board is already as wide as the screen allows. On a tall phone the board and its controls sit together at the
+bottom, in thumb reach: the controls end at the bottom, the board its usual 12 px above them, and the spare height is
+above the board under the goal line (game-fx.css "2d"; live rounds only, intro demos keep their recorded layout). The
+dock's buttons (not the letter keypads) grow to a thumb's 52 px. `phone-gap-check` proves it on grid, word keypad,
+number pad and drag games at 360, 375, 390 and 430 px wide.
 
 ### Results and the reveal
 
@@ -148,7 +154,11 @@ arena:
 
 - **No header.** Its name, context, timer, score, best and menu go to **one side panel** (`ArenaGamePanel`, portalled
   once, so the timer and score exist once): a 320 px panel outside a room, or the top of the 380 px room panel in a room
-  (whose standings follow). The goal is in the panel; the board's goal line keeps only its stage progress.
+  (whose standings follow). Below the timer, each only when the game or context has it: the score (practice: the best),
+  this game's stars (and its best, outside practice), the board's status (its progress, "13 / 36 filled", and its
+  status pills: moves, par, mistakes, lives…, read from the board's own and hidden there, so each number is on screen
+  once), the goal, and in practice the next one or two of this game's challenges in progress with their progress. The
+  Controls tab stays at the foot.
 - **The board as big as fits.** The column fills the height between the rail and the panel: puzzles up to 960 px wide,
   arcade worlds at the largest uniform scale of the identical world (tall worlds up to 640 px wide, rotated worlds up
   to 1000; Apex keeps its frame-rate cap). Never more of a world: `arena-world-check` proves every arcade play screen

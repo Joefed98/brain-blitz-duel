@@ -1,31 +1,28 @@
-import { useState } from "react";
-
 import { FrameMe } from "@/components/duel/ArenaGamePanel";
 import { FrameScore } from "@/components/duel/GameFrame";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { TimerBar } from "@/components/duel/TimerBar";
-import { GAME_HEADER_STYLE, HEADER_STYLES, type HeaderStyle } from "@/config/gameFrameConfig";
+import { DEFAULT_GAME_TIMER, GAME_TIMERS, GAME_TIMER_LABEL, type GameTimer } from "@/config/gameFrameConfig";
 import { Button, Icon, SectionHeader } from "@/design/components";
-import { DEV_HEADER_STYLE_KEY, TIMER_LOOK, TimerLookContext, headerStyleNow } from "@/lib/gameFrame/headerStyle";
+import { TimerLookContext, setGameTimer, useGameTimer } from "@/lib/gameFrame/headerStyle";
 
 /**
- * The header styles side by side (/dev-design, development only): each style's header drawn with the real timer at
- * 52 s of 90 and the real score block, a one-on-one room's (an opponent) and practice's (the best). "Use in games"
- * stores the style for this browser's games (development builds only); the default for everyone is the one line in
- * src/config/gameFrameConfig.ts.
+ * The game timer's three choices side by side in the style guide's header (/dev-design, development only): each drawn
+ * with the real timer at 52 s of 90 (and, below, at 7 s, the bar's red last ten) and the real score block, a
+ * one-on-one room's (an opponent) and practice's (the best). "Use in games" sets this device's choice, as Settings →
+ * Appearance → Game timer does; the default for everyone is the one line in src/config/gameFrameConfig.ts.
  */
-const NAMES: Record<HeaderStyle, string> = {
-  mockup: "Mockup: avatars, score, time bar",
-  ring: "Ring: the name, a gold ring timer",
-  digital: "Digital: avatars, a 0:52 countdown",
-  chip: "Chip: a shrinking time chip",
+const NAMES: Record<GameTimer, string> = {
+  bar: "Bar (default): a gold bar, seconds only at the end",
+  ring: "Ring: a gold ring round the seconds",
+  chip: "Chip: the seconds on a navy chip",
 };
 
-function Preview({ style, room }: { style: HeaderStyle; room: boolean }) {
-  const avatars = style === "mockup" || style === "digital";
+function Preview({ style, room, msLeft = 52_000 }: { style: GameTimer; room: boolean; msLeft?: number }) {
+  const avatars = true;
   return (
     <div data-frame="puzzle" className="fx-header-preview" data-category="logic">
-      <div data-header-style={style} data-game-frame-header className="game-frame-header">
+      <div data-header-style="mockup" data-game-timer={style} className="game-frame-header">
         <div className="game-frame-left">
           {avatars ? (
             <span data-frame-me className="game-frame-avatar">
@@ -41,8 +38,8 @@ function Preview({ style, room }: { style: HeaderStyle; room: boolean }) {
           </span>
         </div>
         <div className="game-frame-timer">
-          <TimerLookContext.Provider value={TIMER_LOOK[style]}>
-            <TimerBar msRemaining={52_000} totalMs={90_000} active={false} />
+          <TimerLookContext.Provider value={{ kind: style, place: "header" }}>
+            <TimerBar msRemaining={msLeft} totalMs={90_000} active={false} />
           </TimerLookContext.Provider>
         </div>
         <div className="game-frame-right">
@@ -64,29 +61,22 @@ function Preview({ style, room }: { style: HeaderStyle; room: boolean }) {
 }
 
 export function HeaderStylesShowcase() {
-  const [inGames, setInGames] = useState<HeaderStyle>(headerStyleNow);
-  const use = (style: HeaderStyle) => {
-    try {
-      window.localStorage.setItem(DEV_HEADER_STYLE_KEY, style);
-    } catch {
-      /* this visit only */
-    }
-    setInGames(style);
-  };
+  const inGames = useGameTimer();
   return (
     <section data-header-styles className="flex flex-col gap-4">
-      <h2 className="jz-title">Header styles</h2>
+      <h2 className="jz-title">Game timer</h2>
       <p className="jz-gallery-label">
-        The default is {GAME_HEADER_STYLE} (src/config/gameFrameConfig.ts, one line). “Use in games” plays this browser’s games
-        in a style (development only).
+        The default is {GAME_TIMER_LABEL[DEFAULT_GAME_TIMER]} (src/config/gameFrameConfig.ts, one line); players choose in Settings →
+        Appearance → Game timer. “Use in games” sets this device’s choice.
       </p>
       <div className="fx-header-grid">
-        {HEADER_STYLES.map((style) => (
+        {GAME_TIMERS.map((style) => (
           <div key={style} data-header-option={style} className="fx-header-option">
             <SectionHeader title={NAMES[style]} />
             <Preview style={style} room />
             <Preview style={style} room={false} />
-            <Button variant={inGames === style ? "gold" : "secondary"} size={36} onClick={() => use(style)}>
+            <Preview style={style} room={false} msLeft={7_000} />
+            <Button variant={inGames === style ? "gold" : "secondary"} size={36} onClick={() => setGameTimer(style)}>
               {inGames === style ? "In games now" : "Use in games"}
             </Button>
           </div>

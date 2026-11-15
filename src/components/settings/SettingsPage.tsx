@@ -27,6 +27,8 @@ import { Button, Icon, Panel, Row, Segmented, SwitchKnob } from "@/design/compon
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "@/lib/appearance";
+import { GAME_TIMERS, GAME_TIMER_LABEL } from "@/config/gameFrameConfig";
+import { setGameTimer, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
 import { useDesktop } from "@/lib/desktop";
 import { setPreferredScheme, usePreferredScheme } from "@/lib/gameControls";
@@ -94,6 +96,7 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
   };
   const sound = useSoundSettings();
   const appearance = useAppearance();
+  const gameTimer = useGameTimer();
   const saver = useBatterySaver();
   const haptics = useHapticsOn();
   const hapticsSupported = useHapticsSupported();
@@ -129,6 +132,18 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
               value={appearance}
               onChange={setAppearance}
               options={APPEARANCE_OPTIONS.map(({ value, label }) => ({ value, label, data: { "data-appearance-option": value } }))}
+            />
+          </div>
+          {/* Game timer (Joe, 15 Nov 2026): Bar (the default), Ring or Chip, in every game's header and the computer's side
+              panel; kept on this device like the appearance (lib/gameFrame/headerStyle.ts). */}
+          <div data-game-timer-setting={gameTimer} className="st-timer">
+            <span className="st-timer-label">Game timer</span>
+            <Segmented
+              label="Game timer"
+              radio
+              value={gameTimer}
+              onChange={setGameTimer}
+              options={GAME_TIMERS.map((value) => ({ value, label: GAME_TIMER_LABEL[value], data: { "data-game-timer-option": value } }))}
             />
           </div>
         </Group>

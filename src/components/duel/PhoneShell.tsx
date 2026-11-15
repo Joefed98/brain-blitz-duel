@@ -24,7 +24,7 @@ import { AppRail } from "@/components/app/AppRail";
 import { ArenaGamePanel, FrameMe } from "./ArenaGamePanel";
 import { createPortal } from "react-dom";
 import { ArenaMount, useArenaLayout, useArenaMount, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
-import { TIMER_LOOK, TimerLookContext, useHeaderStyle } from "@/lib/gameFrame/headerStyle";
+import { TimerLookContext, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
 import { PlayBar } from "@/components/nav/PlayBar";
@@ -188,12 +188,13 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
   );
   const nameLength = typeof title === "string" ? Math.max(6, title.length) : 12;
   const contextLength = (category ? CATEGORY_NAMES[category].length + 2 : 0) + (typeof label === "string" ? label.length : 12);
-  // The header style (src/config/gameFrameConfig.ts) and the arena (lib/gameFrame/arena.ts): in the arena the
-  // header is not drawn; its name, timer, score and menu go to the side panel once (no doubled timer).
-  const headerStyle = useHeaderStyle();
+  // The header (the style guide's: avatars and score) with the player's game timer (Settings → Appearance; lib/gameFrame/
+  // headerStyle.ts), and the arena (lib/gameFrame/arena.ts): in the arena the header is not drawn; its name, timer,
+  // score and menu go to the side panel once (no doubled timer).
+  const gameTimer = useGameTimer();
   const arenaMount = useArenaMount();
   const inArena = arenaMount.arena && Boolean(frame);
-  const avatars = headerStyle === "mockup" || headerStyle === "digital";
+  const avatars = true;
   const nameNode =
     typeof title === "string" ? (
       <FrameName data-frame-name text={title} />
@@ -215,7 +216,8 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
       data-round-heading
       data-game-topbar
       data-game-frame-header
-      data-header-style={headerStyle}
+      data-header-style="mockup"
+      data-game-timer={gameTimer}
       data-arcade-header={arcade ? "" : undefined}
       className="game-frame-header"
       style={NO_SELECT_STYLE}
@@ -233,7 +235,7 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
         {ping}
       </div>
       <div data-frame-timer data-arcade-timer={arcade ? "" : undefined} className="game-frame-timer">
-        <TimerLookContext.Provider value={TIMER_LOOK[headerStyle]}>{timer}</TimerLookContext.Provider>
+        <TimerLookContext.Provider value={{ kind: gameTimer, place: "header" }}>{timer}</TimerLookContext.Provider>
       </div>
       <div data-header-right className="game-frame-right">
         {score}
@@ -259,7 +261,7 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
             name={nameNode}
             context={contextNode}
             ping={ping}
-            timer={timer ? <TimerLookContext.Provider value="panel">{timer}</TimerLookContext.Provider> : null}
+            timer={timer ? <TimerLookContext.Provider value={{ kind: gameTimer, place: "panel" }}>{timer}</TimerLookContext.Provider> : null}
             score={score}
             opponent={opponent}
             menu={
@@ -269,6 +271,7 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
               </>
             }
             inRoom={arenaMount.roomPanel}
+            practice={label === "Practice"}
           />,
           arenaMount.mount,
         )

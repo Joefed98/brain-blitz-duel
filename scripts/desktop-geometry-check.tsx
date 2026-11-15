@@ -223,6 +223,9 @@ function playProbe() {
     timer: box(timer),
     ring: box(timer?.querySelector("svg") ?? null),
     seconds: timer?.querySelector("span") ? parseFloat(getComputedStyle(timer.querySelector("span")!).fontSize) : 0,
+    timerLook: timer?.querySelector("[data-timer-look]")?.getAttribute("data-timer-look") ?? null,
+    timerLabel: timer?.querySelector("[role='timer']")?.getAttribute("aria-label") ?? null,
+    timerBar: box(timer?.querySelector(".game-timer-bar") ?? null),
     scene: box(scene),
     controls: controls.map((el) => ({ what: el.getAttribute("aria-label") ?? el.getAttribute("data-game-controls") ?? (el.textContent ?? "").trim().slice(0, 16), ...box(el)! })),
     scrollX: document.documentElement.scrollWidth - window.innerWidth,
@@ -280,7 +283,13 @@ function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: s
   // not drawn; the one timer is in the side panel (its seconds at least the phone's 15 px), never beside a header copy.
   if (m.header) problems.push("a header drawn in the arena (the panel carries it; no doubled timer)");
   if (!m.timer || !m.arenaPanel || m.timer.x < m.arenaPanel.x - 0.5) problems.push(`the timer is not in the arena panel (${fmt(m.timer)})`);
-  if (m.seconds < 15 - 0.5) problems.push(`timer seconds ${m.seconds}px (at least 15)`);
+  // Changed with Joe's approval, 15 Nov 2026 (timer bar only by default): the default bar shows its seconds only in the
+  // last 10 s, so it may instead show the bar with its accessible label ("N seconds remaining"); the ring and chip keep
+  // their seconds (at least 15 px). Exactly one timer still.
+  if (m.timerLook === "bar") {
+    if (!m.timerLabel || !/\d+ seconds? remaining/.test(m.timerLabel)) problems.push(`the timer bar has no accessible label (${m.timerLabel})`);
+    if (!m.timerBar || m.timerBar.w < 100 || m.timerBar.h < 4) problems.push(`the timer bar is not drawn (${fmt(m.timerBar)})`);
+  } else if (m.seconds < 15 - 0.5) problems.push(`timer seconds ${m.seconds}px (at least 15)`);
   if (!m.slot || !m.arena || !m.worldW) return void problems.push("no arena slot / world");
   // A rotate game's world is turned in its rotor (desktop-layout-check and desktop-fairness-check judge it).
   if (mode === "rotate") return;
