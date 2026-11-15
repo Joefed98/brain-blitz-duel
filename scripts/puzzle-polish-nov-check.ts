@@ -48,6 +48,7 @@ import { evaluateLeftToRight, joinStages } from "../src/lib/duel/stagedRounds";
 import { joinCountSuffix, splitCountSuffix } from "../src/lib/duel/moveLimits";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { pinPrePatternNov15 } from "../src/lib/duel/patternNov15";
 import { encodeMazeTrail } from "../src/lib/duel/depth/labyrinth";
 import { mazeColsOf } from "../src/lib/duel/maze";
 import { BATCH_TYPES, dealBatch, flawlessSolve, spamBatch, type BatchType } from "./puzzle-batch-nov/players";
@@ -83,6 +84,10 @@ function pinned<T>(pin: (on: boolean) => boolean, fn: () => T): T {
 const parts = (g: ReturnType<typeof gradeAnswer>) => (g.extra as { parts?: { base?: number; speed?: number; efficiency?: number; measure?: string } } | undefined)?.parts;
 
 /* 1. Deals */
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Skid's and Topsy-Turvy's live
+// deals moved on (slideRev 5, gravityRev 8; patternNov15.ts), so this section, written for the stricter-par stamps,
+// deals the era before them.
+const prePatternNov15 = pinPrePatternNov15(true);
 for (const type of BATCH_TYPES) {
   const key = PAR_STRICT_STAMPS[type]!.key;
   for (const seed of SEEDS.slice(0, 4)) {
@@ -104,6 +109,7 @@ for (const type of BATCH_TYPES) {
     ok(JSON.stringify(dealBatch(type, seed)) === JSON.stringify(now), `${type} ${seed}: the same seed deals the same puzzle`);
   }
 }
+pinPrePatternNov15(prePatternNov15);
 for (const seed of SEEDS.slice(0, 6)) {
   const now = dealEquation(seed) as EquationPuzzleData;
   const old = pinned(pinPreOperatorGaps, () => dealEquation(seed)) as EquationPuzzleData;

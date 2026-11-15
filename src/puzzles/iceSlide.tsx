@@ -4,7 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, usePrefersReducedMotion, useSwipe } from "@/components/puzzles/GridDrag";
 import {
+  countedSlides,
+  decodeSlideMoves,
   encodeSlideMoves,
+  oneSlideFromExit,
   replaySlide,
   slideBoard,
   slideOutcome,
@@ -23,12 +26,14 @@ import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useInFrame } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { shownPar } from "@/lib/duel/parMoves";
+import { usesPatternNov15 } from "@/lib/duel/patternNov15";
+import { soundCue } from "@/lib/fx/patternFx";
 import "@/polish-layout/polish-nov3-pattern.css";
 import { IceGems } from "@/components/puzzles/depth4/IceGems";
 import { popCount, replayGems } from "@/lib/duel/depth4/iceGems";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { useSolveMoment } from "@/lib/fx/patternFx";
-import { IceBoard as Board, IceTrail, useIceSlideFx } from "@/components/puzzles/pattern/iceSlideBoard";
+import { IceArt, IceBoard as Board, IceTrail, useIceSlideFx } from "@/components/puzzles/pattern/iceSlideBoard";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -130,6 +135,20 @@ function Stage({
     restMask: replay.mask,
   });
   const solving = useSolveMoment(replay.solved && !animating, "iceslide.solve");
+  // slideRev 5 (the Pattern overhaul): Undo and Reset give the slide back, so the count is the slides still standing,
+  // as the server counts them; older stamps count every slide played.
+  const overhaul = usesPatternNov15(data, "iceslide");
+  const slidesShown = countedSlides(replay, overhaul);
+  const par = data ? shownPar(data) : null;
+  // Display and sound only: one slide from the exit with the finish still at par, the exit glows (once per resting spot).
+  const nearExit =
+    !animating && !replay.solved && par !== null && slidesShown + 1 <= par && oneSlideFromExit(board, replay);
+  const nearKey = useRef<string | null>(null);
+  useEffect(() => {
+    const key = nearExit ? `${replay.cell}:${replay.mask}:${slidesShown}` : null;
+    if (key && key !== nearKey.current) soundCue("iceslide.nearExit");
+    nearKey.current = key;
+  }, [nearExit, replay.cell, replay.mask, slidesShown]);
 
   useEffect(() => {
     onDraftAnswer?.(encodeSlideMoves(moves));
@@ -159,7 +178,11 @@ function Stage({
   const slide = (dir: SlideDir) => {
     if (locked || submitted.current || replay.solved || animating) return;
     const outcome = slideOutcome(board, replay.cell, replay.mask, dir);
-    if (!outcome.path.length) return;
+    if (!outcome.path.length) {
+      // Straight into a wall or the edge: nothing moves and nothing counts; a tiny bump says so (sound only).
+      soundCue("iceslide.bump");
+      return;
+    }
     slidePath.current = outcome.path;
     fx.begin(replay.cell, replay.mask, outcome);
     setVisualBall({ cell: replay.cell, jump: true });
@@ -172,7 +195,10 @@ function Stage({
       elapsed += jump ? 32 : reducedMotion ? 45 : 100;
       previous = cell;
     }
+    const stops = !outcome.fell && outcome.cell !== board.exit;
     slideTimers.current.push(setTimeout(() => {
+      // The ball comes to rest against what stopped it: a thump (sound only; a fall or the exit plays its own).
+      if (stops) soundCue("iceslide.stop");
       setVisualBall(null);
       setAnimating(false);
       slideTimers.current = [];
@@ -196,13 +222,12 @@ function Stage({
   });
 
   if (!data) return null;
-  const par = shownPar(data);
 
   return (
     <div data-stage-column="2" data-polish="iceslide" className="flex min-h-0 flex-1 flex-col gap-2">
       {inFrame ? null : (
         <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          moves <span className="text-primary">{replay.moves}</span>
+          moves <span className="text-primary">{slidesShown}</span>
           {replay.falls > 0 ? ` · ${replay.falls} fall${replay.falls === 1 ? "" : "s"}` : ""}
         </p>
       )}
@@ -228,6 +253,7 @@ function Stage({
             exit={data.exit}
             ball={animating ? -1 : replay.cell}
             solving={solving}
+            nearExit={nearExit}
           >
             <IceTrail cells={fx.trail} cols={SLIDE_COLS} rows={SLIDE_COLS} fading={fx.trailFading} />
             {gems.length ? <IceGems gems={gems} collected={gemsShown} cols={SLIDE_COLS} /> : null}
@@ -240,7 +266,9 @@ function Stage({
                   left: `calc((100% - 22px) * ${((fx.fall.cell % SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${(fx.fall.cell % SLIDE_COLS) * 2}px)`,
                   top: `calc((100% - 22px) * ${(Math.floor(fx.fall.cell / SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${Math.floor(fx.fall.cell / SLIDE_COLS) * 2}px)`,
                 }}
-              />
+              >
+                <IceArt name="ball" />
+              </span>
             ) : null}
           </Board>
           {visualBall && (
@@ -248,24 +276,27 @@ function Stage({
               aria-label="Ball"
               className="pointer-events-none absolute z-10 block rounded-full ice-player ice-ball"
               style={{
-                // 92 % of a square (12 across), as the resting ball (polish-nov3-pattern.css).
-                width: "calc((100% - 22px) * 0.076666667)",
-                height: "calc((100% - 22px) * 0.076666667)",
+                // One square (12 across): the ball render is 90 % of it, as the resting ball.
+                width: "calc((100% - 22px) / 12)",
+                height: "calc((100% - 22px) / 12)",
                 left: `calc((100% - 22px) * ${((visualBall.cell % SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${(visualBall.cell % SLIDE_COLS) * 2}px)`,
                 top: `calc((100% - 22px) * ${(Math.floor(visualBall.cell / SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${Math.floor(visualBall.cell / SLIDE_COLS) * 2}px)`,
                 transform: "translate(-50%, -50%)",
                 transition: visualBall.jump || reducedMotion ? "none" : "left 90ms linear, top 90ms linear",
               }}
-            />
+            >
+              <IceArt name="ball" />
+            </span>
           )}
         </div>
       </div>
       {/* Puzzle polish (3 Nov 2026): the summary as pills. On a stamp that shows its par (parMoves.ts `shownPar`),
-          "Moves n" is every slide made, an undone one included (the replay's count, as the server grades it). */}
+          "Slides n" is every slide made, an undone one included (the replay's count, as the server grades it); on
+          slideRev 5 (the Pattern overhaul) the slides still standing, Undo and Reset giving them back. */}
       <FramePills
         testId="iceslide"
         items={[
-          ...(par !== null ? parPills("Slides", replay.moves, par) : [{ id: "moves", label: "Moves", value: replay.moves }]),
+          ...(par !== null ? parPills("Slides", slidesShown, par) : [{ id: "moves", label: "Moves", value: slidesShown }]),
           gems.length ? { id: "gems", label: "Gems", value: `${popCount(gemsShown)} / ${gems.length}` } : null,
           replay.falls > 0 ? { id: "falls", label: replay.falls === 1 ? "Fall" : "Falls", value: replay.falls, tone: "warn" } : null,
         ]}
@@ -303,6 +334,60 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   const route = [puzzle.start, ...bestReplay.paths.flat()];
   const replay = replaySlide(board, (myAnswer ?? "").split("") as SlideDir[]);
   const min = puzzle.minMoves ?? best.length;
+  // slideRev 5 (the Pattern overhaul): Undo gives the slide back, so "your slides" is the slides still standing (the
+  // server's count), and the player's own final board (the ball where it stopped, its standing route, the ice it broke)
+  // is the Yours side of the answer reveal's Solution / Yours switch. Older stamps read exactly as before.
+  const overhaul = usesPatternNov15(puzzle, "iceslide");
+
+  if (overhaul) {
+    const mineReplay = replaySlide(board, decodeSlideMoves(myAnswer ?? ""));
+    const mine = countedSlides(mineReplay, true);
+    const yoursRoute = [puzzle.start, ...mineReplay.standing.flat()];
+    const rink = (props: { route: number[]; ball: number; broken?: number }) => (
+      <div className="ice-reveal-space">
+        <div className="ice-reveal-square">
+          <Board
+            walls={puzzle.walls}
+            holes={puzzle.holes ?? []}
+            arrows={puzzle.arrows ?? []}
+            portals={puzzle.portals ?? []}
+            thin={puzzle.thin ?? []}
+            broken={props.broken ?? 0}
+            start={puzzle.start}
+            exit={puzzle.exit}
+            ball={props.ball}
+            route={props.route}
+          />
+        </div>
+      </div>
+    );
+    return (
+      <div className="ice-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3">
+        <div className="ice-reveal-pair flex min-h-0 w-full flex-1 items-stretch justify-center gap-3">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center gap-1" data-ice-solution="">
+            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
+            {rink({ route, ball: puzzle.start })}
+            <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+              shortest route · {min} slide{min === 1 ? "" : "s"}
+            </p>
+          </div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center gap-1" data-ice-yours="">
+            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
+            {rink({ route: yoursRoute, ball: mineReplay.cell, broken: mineReplay.mask })}
+            <p className="font-mono text-base uppercase tracking-widest text-muted-foreground" data-ice-yours-line="">
+              your slides: <span className="text-primary">{mine}</span>
+              {min > 0 ? ` · par ${min}` : ""}
+            </p>
+            {myCorrect ? (
+              <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+                {solvedMovesText(mine, min, myMsRemaining, timeLimitMs, "B", scoreParts)}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ice-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3">
