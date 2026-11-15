@@ -214,6 +214,7 @@ function Stage({
             {moveLimit !== null
               ? <>Moves <span className={replay.outOfMoves ? "text-warn" : undefined}>{limitText(replay.moves, moveLimit)}</span></>
               : <>Moves: {replay.moves}</>}
+            {data.par ? <> · Par <span className="text-primary" data-flood-par="">{data.par}</span></> : null}
           </span>
         </div>
       )}
@@ -290,7 +291,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
             ))}
           </div>
         ) : null}
-        <div className="logic-square-bare logic-flood-frame" style={{ maxWidth: 120 }}>
+        {/* Logic overhaul 1: the round-end board fills the reveal's width (it was a 120 px thumbnail). */}
+        <div className="logic-square-bare logic-flood-frame logic-flood-reveal-board" data-flood-reveal-board="">
           <Board grid={replay.grid} fluid />
         </div>
       </div>

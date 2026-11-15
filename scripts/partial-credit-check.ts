@@ -40,6 +40,11 @@ import { KITS } from "./puzzle-fairness/kits";
 import { LEVELS, SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
 import { gradeSteps, median, sentAnswer } from "./standard-lib";
 import { PARTIAL_CREDIT_SEEDS, PARTIAL_CREDIT_TYPES, casesFor, dealFor, gradientDrafts, type LegacyCase } from "./partial-credit-record";
+import { pinPreLogicOverhaul1 } from "../src/lib/duel/logicOverhaul1";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): this check proves the partial-
+// credit batch's deals, so it deals as before Polypotions' tubesRev 3 (logicOverhaul1.ts), as later batches' checks do.
+pinPreLogicOverhaul1(true);
 
 const failures: string[] = [];
 let checks = 0;

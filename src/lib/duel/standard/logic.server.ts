@@ -12,7 +12,7 @@ import { decodePresses, decodeSudoku, lightsOnCount, replayLights } from "../log
 import { gradeSudokuGrid } from "../logic.server";
 import { decodeTowerMoves, replayTower } from "../tower";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes, sortedTubeCount } from "../tubes";
-import { tubesPourLimit, tubesSendsUndo, floodMoveLimit } from "../moveLimits";
+import { tubesPourLimit, tubesRefundsUndo, tubesSendsUndo, floodMoveLimit } from "../moveLimits";
 import { decodeSafePending, decodeSafeTries, dialsCorrect, safeOpenedOn } from "../safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "../bomb";
 import { decodeNonoCells, nonoSizeOf, replayNonogram } from "../nonogram";
@@ -161,7 +161,7 @@ const tower: StandardGame = {
 /* ------------------------------------------------------------------ Polypotions */
 
 function tubesReplay(p: Of<"tubes">, answer: string) {
-  return tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(answer), tubesPourLimit(p)) : replayTubes(p.tubes, decodeTubeMoves(answer));
+  return tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(answer), tubesPourLimit(p), undefined, tubesRefundsUndo(p)) : replayTubes(p.tubes, decodeTubeMoves(answer));
 }
 
 function tubesShare(p: Of<"tubes">, answer: string): { corked: number; total: number } {
@@ -178,7 +178,7 @@ const tubes: StandardGame = {
     if (usesPartialCredit(p)) {
       // The boards stood on, start first (Undo and Reset included), as grade.ts collects them.
       const boards = [p.tubes];
-      const replay = tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(input.answer), tubesPourLimit(p), (b) => boards.push(b)) : replayTubes(p.tubes, decodeTubeMoves(input.answer));
+      const replay = tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(input.answer), tubesPourLimit(p), (b) => boards.push(b), tubesRefundsUndo(p)) : replayTubes(p.tubes, decodeTubeMoves(input.answer));
       if (!tubesSendsUndo(p)) boards.push(replay.tubes);
       const share = tubesSolverProgress(p, boards, replay.moves);
       return { finished: false, credit: solverCredit(share), facts: { progress: Math.round(clamp01(share) * 100), corked: tubesShare(p, input.answer).corked } };

@@ -1,0 +1,245 @@
+/*
+ * Logic overhaul, session 1 (phase 2 step 4, 15 Nov 2026): the new look for Box Six, Polypotions, Hanoi, Safe Cracker,
+ * Mosaic, Colour Flood and Minefield's DOM parts. Pieces and surfaces are rendered in Blender
+ * (scripts/logic-art/render.py → public/logic-art/*.webp) and laid out and animated here; numerals stay crisp app text,
+ * bigger and bold, never inside a reflection. Darker surrounds, minimal glow; controls in champagne gold and navy (the
+ * style guide), never teal or bright yellow. Joe, 15 Nov 2026: minimal glow and no glare (no reflections across
+ * panels, tiles or numerals, no glowing edges; clean, even studio light). Each game keeps its own background gradient. Display only: no tap target
+ * changes size, nothing here touches answers, grading or timing. Imported last (styles.css), so it wins the cascade.
+ */
+
+/* ------------------------------------------------------------------ Box Six: lacquered tiles, gold numerals, silver lines */
+.logic-sudoku-frame {
+  padding: 3px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #d9dde3, #8b929b 45%, #5d636c 70%, #c3c8cf);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.6);
+}
+.logic-sudoku.logic-sudoku {
+  gap: 2px;
+  background: linear-gradient(160deg, #c9ced5, #7b828b 50%, #b7bcc4);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell {
+  border: 0;
+  background-color: #08090c;
+  background-image: url("/logic-art/box-tile.webp");
+  background-size: 100% 100%;
+}
+.logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell[data-tone="given"] {
+  background-image: url("/logic-art/box-tile-given.webp");
+}
+/* The 2 × 3 boxes: a thicker silver strip between them (the gap shows the frame's silver). */
+.logic-sudoku > .logic-sudoku-cell.sudoku-box-top:not(:nth-child(-n + 6)) { margin-top: 2px; }
+.logic-sudoku > .logic-sudoku-cell.sudoku-box-left:not(:nth-child(6n + 1)) { margin-left: 2px; }
+.logic-sudoku > .logic-sudoku-cell.bg-muted\/40 {
+  background-image: linear-gradient(rgb(226 192 122 / 0.1), rgb(226 192 122 / 0.1)), url("/logic-art/box-tile.webp");
+}
+.logic-sudoku > .logic-sudoku-cell.bg-primary\/20 {
+  outline-color: var(--jz-gold);
+  background-image: linear-gradient(rgb(226 192 122 / 0.2), rgb(226 192 122 / 0.2)), url("/logic-art/box-tile.webp");
+}
+.logic-sudoku-cell .logic-sudoku-digit {
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+  font-size: 1.12em;
+}
+.logic-sudoku-cell[data-tone="given"] .logic-sudoku-digit {
+  color: #f2efe8;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
+}
+.logic-sudoku-cell.text-primary .logic-sudoku-digit {
+  color: var(--jz-gold);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
+}
+.logic-sudoku-cell[data-tone="missed"] .logic-sudoku-digit {
+  color: rgb(242 239 232 / 0.32);
+  text-shadow: none;
+}
+/* Live clashes: the clashing digits pulse red once, then stay red-ringed while they clash. */
+.logic-sudoku-cell[data-clash] {
+  box-shadow: inset 0 0 0 2px rgb(255 90 110 / 0.75);
+}
+.logic-sudoku-cell[data-clash] .logic-sudoku-digit {
+  color: var(--jz-loss-text, #ff5a6e);
+  text-shadow: none;
+  animation: logic-clash-pulse 360ms ease-out 1;
+}
+@keyframes logic-clash-pulse {
+  40% { transform: scale(1.12); }
+}
+.logic-sudoku-key.logic-sudoku-key {
+  background: var(--jz-surface-2, #1a2140);
+  border: 1px solid rgb(226 192 122 / 0.35);
+  color: var(--jz-gold);
+  font-weight: 800;
+}
+
+/* ------------------------------------------------------------------ Polypotions: real glass, richer liquid, corks */
+[data-logic-stage="tubes"] .logic-flask.flask,
+.logic-potions .logic-flask.flask {
+  border-color: transparent;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0.01) 50%, rgb(255 255 255 / 0.05));
+  box-shadow: 0 4px 10px rgb(0 0 0 / 0.45);
+}
+.logic-potions .logic-flask-shine {
+  inset: -2px;
+  top: -2px;
+  bottom: -2px;
+  left: -2px;
+  width: auto;
+  max-width: none;
+  border-radius: 0 0 16px 16px;
+  background: url("/logic-art/flask-glass.webp") center / 100% 100% no-repeat;
+  mix-blend-mode: screen;
+  z-index: 4;
+}
+.logic-potions .logic-flask-rim { opacity: 0.55; }
+.logic-potions .logic-potion.potion-layer {
+  /* B's richer liquid colour under even light: a soft depth shade, no glossy streak or inner glow (Joe, 15 Nov 2026). */
+  background-image:
+    linear-gradient(90deg, rgb(255 255 255 / 0.1) 0 10%, transparent 35%, rgb(0 0 0 / 0.16) 85%, rgb(0 0 0 / 0.24));
+  filter: saturate(1.15);
+}
+.logic-potions .logic-cork,
+.logic-potions .potion-cork {
+  background: url("/logic-art/cork.webp") center / 100% 100% no-repeat !important;
+  height: 12px;
+  border-radius: 2px;
+  animation: logic-cork-in 260ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes logic-cork-in {
+  from { transform: translateY(-10px) scale(1.1); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.logic-out-banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 10px 22px;
+  border-radius: 12px;
+  background: var(--jz-surface-2, #1a2140);
+  border: 1px solid rgb(226 192 122 / 0.55);
+  color: var(--jz-gold);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.6);
+  z-index: 30;
+  animation: logic-out-in 220ms ease-out both;
+}
+@keyframes logic-out-in {
+  from { opacity: 0; transform: translate(-50%, -40%) scale(0.92); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+[data-logic-stage="tubes"] .tubes-actions > button {
+  background: var(--jz-surface-2, #1a2140);
+  border-color: rgb(226 192 122 / 0.35);
+  color: var(--jz-gold);
+}
+
+/* ------------------------------------------------------------------ Hanoi: turned oak posts, gold plate, candy-glass rings */
+.logic-hanoi-post.logic-hanoi-post {
+  background: url("/logic-art/hanoi-post.webp") center / 100% 100% no-repeat;
+  box-shadow: 2px 0 4px rgb(0 0 0 / 0.45);
+}
+.logic-hanoi-base.logic-hanoi-base {
+  background: url("/logic-art/hanoi-plate.webp") center / 100% 100% no-repeat;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.55);
+}
+.logic-hanoi-base.logic-hanoi-base-gold {
+  background: url("/logic-art/hanoi-plate-gold.webp") center / 100% 100% no-repeat;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.55);
+}
+/* The ring keeps its colour (background-color) and takes the rendered glass's light and shade through hard-light. */
+.logic-hanoi .logic-hanoi-ring.logic-hanoi-ring {
+  background-image: url("/logic-art/hanoi-ring.webp");
+  background-size: 100% 100%;
+  background-blend-mode: hard-light;
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.45);
+}
+.logic-hanoi .logic-hanoi-ring.hanoi-lifted {
+  box-shadow: 0 0 0 2px var(--jz-gold), 0 8px 8px rgb(0 0 0 / 0.4);
+}
+
+/* ------------------------------------------------------------------ Safe Cracker: brushed steel, brass drums, inked numerals */
+.logic-safe-door.safe-metal-panel.safe-metal-panel {
+  background: url("/logic-art/safe-door.webp") center / cover no-repeat;
+  border-color: #3b4048;
+}
+.logic-safe-door .logic-rivet { display: none; }
+.logic-drum.safe-dial-drum.safe-dial-drum {
+  background: url("/logic-art/safe-drum.webp") center / 100% 100% no-repeat;
+  border-color: #4d3a14;
+  color: #120d04;
+  text-shadow: 0 1px 0 rgb(255 240 205 / 0.55);
+  font-weight: 900;
+}
+.logic-drum-live.logic-drum-live { font-size: clamp(32px, 7cqh, 42px); }
+.logic-drum.logic-drum-wrong { border-color: var(--jz-loss-text, #ff5a6e); color: #4a0e0e; }
+.logic-safe-clue[data-broken] {
+  color: var(--jz-loss-text, #ff5a6e);
+  animation: logic-broken-flash 520ms ease-out 1;
+}
+.logic-safe-broken-mark { font-weight: 900; }
+@keyframes logic-broken-flash {
+  0%, 60% { background: rgb(255 90 110 / 0.18); }
+  100% { background: transparent; }
+}
+[data-logic-stage="safe"] > button[data-game-controls="actions"] {
+  background: var(--jz-gold);
+  color: var(--jz-on-gold, #06080f);
+  box-shadow: 0 4px 0 var(--jz-gold-ledge, #a8843e);
+}
+[data-logic-stage="safe"] .logic-safe-door button[aria-label="Up"],
+[data-logic-stage="safe"] .logic-safe-door button[aria-label="Down"] {
+  color: var(--jz-gold);
+}
+
+/* ------------------------------------------------------------------ Mosaic: glazed ceramic tiles in slate wells */
+[data-nono-paint] { touch-action: none; }
+.logic-nono .logic-nono-cell.logic-nono-cell {
+  border-color: transparent;
+  background: url("/logic-art/mosaic-well.webp") center / 100% 100% no-repeat;
+  color: rgb(242 239 232 / 0.6);
+}
+.logic-nono .logic-nono-cell.logic-nono-cell.bg-primary {
+  background: url("/logic-art/mosaic-tile.webp") center / 100% 100% no-repeat, #1b2229;
+  transform: scale(0.94);
+  transition: transform 90ms ease-out;
+}
+.logic-nono .nono-clue-col,
+.logic-nono .nono-clue-row {
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+}
+
+/* ------------------------------------------------------------------ Colour Flood: glossy enamel, glass paint pots */
+.logic-flood-frame {
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgb(0 0 0 / 0.55);
+}
+.logic-flood-sheen.logic-flood-sheen {
+  opacity: 1;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.05), transparent 40%, rgb(0 0 0 / 0.1));
+}
+.logic-paint-pot.logic-paint-pot {
+  border-radius: 50%;
+  background-image: url("/logic-art/flood-pot.webp");
+  background-size: 100% 100%;
+  background-blend-mode: hard-light;
+  border: 0;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.5);
+}
+.logic-paint-pot.logic-paint-pot-current {
+  box-shadow: 0 0 0 3px var(--jz-gold), 0 4px 8px rgb(0 0 0 / 0.5);
+}
+.logic-flood-reveal-board {
+  width: min(100%, 300px);
+  max-width: none;
+}

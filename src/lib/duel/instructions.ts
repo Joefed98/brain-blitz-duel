@@ -19,6 +19,7 @@ import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
+import { logicOverhaul1Dealt } from "./logicOverhaul1";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -688,7 +689,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Par:", detail: "sort in the fewest pours for a bonus." },
         { action: "Pour", detail: "onto the same colour or an empty flask; as many layers move as fit (5 per flask).", helpOnly: true },
         { action: "A full one-colour flask", detail: "gets a cork.", helpOnly: true },
-        { action: "Pours are limited", detail: "(the counter). Undo and Reset don’t give a pour back; out of pours, the board ends.", helpOnly: true },
+        logicOverhaul1Dealt()
+          ? { action: "Pours are limited", detail: "(the counter). Undo gives its pour back; out of pours, the board ends.", helpOnly: true }
+          : { action: "Pours are limited", detail: "(the counter). Undo and Reset don’t give a pour back; out of pours, the board ends.", helpOnly: true },
       ],
       score: logicStandardHelp("tubes"),
     },
@@ -699,6 +702,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap TRY", detail: "to test it: three tries." },
         { action: "Only one code", detail: "fits every clue." },
         { action: "Clean crack:", detail: "open it on the first try for the full bonus." },
+        { action: "A wrong try", detail: "marks the clues its code broke.", helpOnly: true },
       ],
       score: logicStandardHelp("safe"),
     },
@@ -772,7 +776,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a colour", detail: "to repaint your region." },
         { action: "Your region grows", detail: "into touching cells of it." },
         { action: "You start", detail: "from the top-left corner." },
-        { action: "Moves are limited:", detail: `par + ${FLOOD_STANDARD_SPARE_MOVES} (the counter). Out of moves, the board ends and scores 0.`, helpOnly: true },
+        { action: "Moves are limited:", detail: `par + ${FLOOD_STANDARD_SPARE_MOVES} (the counter). Out of moves, the board ends and scores for the squares you flooded.`, helpOnly: true },
       ],
       score: logicStandardHelp("flood"),
     },

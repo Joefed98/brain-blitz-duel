@@ -198,8 +198,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
       return;
     }
     if (!towerCanMove(replay.pegs, lifted, peg)) {
+      // Logic overhaul 1: the ring bounces back and stays lifted, so the player can pick another post.
       reject(peg);
-      setLifted(null);
       return;
     }
     soundCue("tower.drop");

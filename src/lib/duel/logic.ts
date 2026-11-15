@@ -230,6 +230,27 @@ export function sudokuBox(cell: number): number {
   );
 }
 
+/**
+ * Box Six's live clashes (Logic overhaul 1, display only): every filled cell whose digit repeats in its row, column or
+ * box. Shown during play; the clean bonus still counts every wrong digit ever typed, as before.
+ */
+export function sudokuClashes(grid: readonly number[]): Set<number> {
+  const out = new Set<number>();
+  for (let a = 0; a < SUDOKU_CELLS; a++) {
+    const v = grid[a] ?? 0;
+    if (!v) continue;
+    for (let b = a + 1; b < SUDOKU_CELLS; b++) {
+      if (grid[b] !== v) continue;
+      const same =
+        Math.floor(a / SUDOKU_COLS) === Math.floor(b / SUDOKU_COLS) ||
+        a % SUDOKU_COLS === b % SUDOKU_COLS ||
+        sudokuBox(a) === sudokuBox(b);
+      if (same) { out.add(a); out.add(b); }
+    }
+  }
+  return out;
+}
+
 /** True when no row, column or box repeats a digit (empties ignored). */
 export function sudokuLegal(grid: number[]): boolean {
   const groups: Record<string, Set<number>> = {};

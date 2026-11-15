@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { useSwipe } from "@/components/puzzles/GridDrag";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
-import { clueHolds, dialsCorrect, decodeSafeTries, encodeSafeDraft, encodeSafeTries } from "@/lib/duel/safe";
+import { brokenClues, clueHolds, dialsCorrect, decodeSafeTries, encodeSafeDraft, encodeSafeTries } from "@/lib/duel/safe";
 import { puzzleScoreRevOf } from "@/lib/duel/puzzleScoreRev";
 import { useStageState } from "@/lib/duel/stageState";
 import { SAFE_DIALS, SAFE_TIME_MS, SAFE_TRIES, type SafePuzzleData } from "@/lib/duel/types";
@@ -15,6 +15,9 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { usesDepth } from "@/lib/duel/logicDepth";
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import "@/polish-depth-d6/depth-d6.css";
+
+/** The shortest gap between two dial ticks (a held arrow steps every 160 ms; a fast swipe can step faster). */
+export const SAFE_TICK_GAP_MS = 60;
 
 /** One vertical drum, with arrows that repeat while held and a vertical swipe. */
 export function Dial({
@@ -126,9 +129,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
     onDraftAnswer?.(pendingDraft ? encodeSafeDraft(tries, dials) : encodeSafeTries(tries));
   }, [tries, dials, pendingDraft, onDraftAnswer]);
 
+  // Logic overhaul 1: after a wrong try, the clues that try broke (only after a Try, never live while turning).
+  const broken = new Set<number>(isSafe && !opened ? brokenClues(puzzle.clues, lastTry) : []);
+  // One mechanical tick per dial step, at most one per 60 ms, so a held arrow doesn't smear.
+  const lastTick = useRef(0);
   const step = (dial: number, delta: number) => {
     if (locked || submitted.current || triesLeft === 0) return;
-    soundCue("safe.click");
+    const now = performance.now();
+    if (now - lastTick.current >= SAFE_TICK_GAP_MS) {
+      lastTick.current = now;
+      soundCue("safe.click");
+    }
     setDials((current) =>
       current.map((digit, index) => (index === dial ? (digit + delta + 10) % 10 : digit)),
     );
@@ -147,6 +158,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
       return;
     }
     playWrong();
+    soundCue("safe.wrongTry");
     setShake(true);
     setTimeout(() => setShake(false), 320);
     if (next.length >= SAFE_TRIES) {
@@ -180,8 +192,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic">
         <div className="logic-safe-card w-full rounded-lg border border-border px-3 py-2">
-          {puzzle.clues.map((clue) => (
-            <p key={clue.text} className="safe-clue-text logic-safe-clue text-center leading-[1.45]">
+          {puzzle.clues.map((clue, index) => (
+            <p
+              key={clue.text}
+              data-broken={broken.has(index) ? "" : undefined}
+              className="safe-clue-text logic-safe-clue text-center leading-[1.45]"
+            >
+              {broken.has(index) ? <span className="logic-safe-broken-mark" aria-label="Broken by your last try: ">✕ </span> : null}
               {clue.text}
             </p>
           ))}
@@ -215,7 +232,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
               {/* depthRev 1: opening with a try to spare is a clean crack (the top 50 by speed: all of it on try 1, half on try 2). */}
               {/* The scoring standard (depthRev 3): the clean crack is full only with no wrong try (2.5 off each). */}
               {isSafe && usesDepth(puzzle) && (usesStandard(puzzle) ? triesLeft === SAFE_TRIES : triesLeft > 1) ? (
-                <span className="d6-clean"> · clean crack</span>
+                <span className="d6-clean" data-clean-crack="on"> · clean crack if this try opens it</span>
+              ) : isSafe && usesDepth(puzzle) && usesStandard(puzzle) && tries.length > 0 ? (
+                <span className="d6-clean" data-clean-crack="off"> · clean crack is first try only</span>
               ) : null}
             </p>
           </div>

@@ -19,6 +19,7 @@ import { dealOperatorGaps } from "./operatorGaps.server";
 import { dealWordNov7 } from "./wordNov7";
 import { withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
+import { dealLogicOverhaul1 } from "./logicOverhaul1";
 import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -165,6 +166,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "partialCredit", deal: dealPartialCredit },
   // The Word scoring fix (7 Nov 2026, wordNov7.ts): Interlock, Slider and Lookout one stamp above (Slider above the notes).
   { name: "wordNov7", deal: dealWordNov7 },
+  // The Logic overhaul, session 1 (15 Nov 2026, logicOverhaul1.ts): Polypotions tubesRev 3 (Undo gives the pour back).
+  { name: "logicOverhaul1", deal: dealLogicOverhaul1 },
 ];
 
 /**

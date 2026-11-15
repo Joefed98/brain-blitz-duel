@@ -195,7 +195,7 @@ import {
   wordSlideMadeRows,
 } from "./progressFigures";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
-import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
+import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesRefundsUndo, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
 import {
   scoreWordSlide,
@@ -939,7 +939,7 @@ function gradeUnderRev(
       // The boards the player stood on, start first (tubesRev 2: a dead board keeps the best before it).
       const tubeBoards = [puzzle.tubes];
       const replay = tubesSendsUndo(puzzle)
-        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer), pourLimit, (b) => tubeBoards.push(b))
+        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer), pourLimit, (b) => tubeBoards.push(b), tubesRefundsUndo(puzzle))
         : replayTubes(puzzle.tubes, decodeTubeMoves(answer));
       isCorrect = replay.solved;
       correctCount = replay.moves;

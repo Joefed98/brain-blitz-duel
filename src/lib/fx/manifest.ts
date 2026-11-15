@@ -545,8 +545,16 @@ const ENTRIES = {
   "tubes.pour": { channel: "effects", frequency: 0, ms: 240, url: null },
   "tubes.cork": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/tubes.cork.mp3", volume: 0.78 },
   "tubes.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.corks.mp3" },
-  "safe.click": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/safe.dialClick.mp3" },
+  "safe.click": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/safe.dialClick.mp3", gapMs: 60 },
   "safe.solve": { channel: "effects", frequency: 0, ms: 1200, url: null },
+  // The Logic overhaul, session 1 (15 Nov 2026): placeholders until Joe's ElevenLabs files
+  // (docs/sound-cues/logic-elevenlabs.md); each drops in by its slot name.
+  "sudoku.clash": { channel: "effects", frequency: 0, ms: 220, url: null },
+  "sudoku.pencil": { channel: "effects", frequency: 0, ms: 120, url: null },
+  "tubes.undo": { channel: "effects", frequency: 0, ms: 200, url: null },
+  "tubes.outOfPours": { channel: "effects", frequency: 0, ms: 700, url: null },
+  "safe.wrongTry": { channel: "effects", frequency: 0, ms: 400, url: null },
+  "nonogram.paint": { channel: "effects", frequency: 0, ms: 90, url: null, gapMs: 40 },
   "shikaku.place": { channel: "effects", frequency: 0, ms: 180, url: null },
   "shikaku.remove": { channel: "effects", frequency: 0, ms: 200, url: null },
   "shikaku.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },

@@ -66,6 +66,8 @@ export const DEAL_PINS = {
   swingPreSlide: { texts: false },
   /** arcade.server.ts: Minefield minesRev 1 (25 mines), before it moved to Logic (13 Nov 2026). */
   minesPreLogic: { texts: false },
+  /** logicOverhaul1.ts: Polypotions tubesRev 2, before the Logic overhaul's refunding Undo (15 Nov 2026). */
+  preLogicOverhaul1: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

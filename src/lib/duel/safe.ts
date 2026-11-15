@@ -165,3 +165,12 @@ export function safeOpenedOn(tries: number[][], combination: number[]): number {
   }
   return 0;
 }
+
+/**
+ * Safe Cracker after a wrong try (Logic overhaul 1, display only): the clues that try's code broke, by index. Shown only
+ * after a Try, never live while the dials turn; an opening try breaks none.
+ */
+export function brokenClues(clues: readonly SafeClue[], tried: readonly number[] | undefined): number[] {
+  if (!tried) return [];
+  return clues.flatMap((clue, index) => (clueHolds(clue, tried as number[]) ? [] : [index]));
+}

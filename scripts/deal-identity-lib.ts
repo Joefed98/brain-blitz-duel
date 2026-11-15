@@ -101,8 +101,11 @@ export function digest(value: unknown): string {
 export function dealDigest(type: PuzzleType, seed: number, banked: boolean, options?: DealOptions): string {
   // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 (13 Nov 2026) is a deliberate deal change after main's recording, so every deal here
   // pins its check-only minesPreLogic switch: each game still deals exactly as main did.
-  const opts: DealOptions | undefined = options ? { ...options, pins: [...(options.pins ?? []), "minesPreLogic"] } : undefined;
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): Polypotions' tubesRev 3 is a
+  // deliberate deal change after main's recording, so every deal also pins preLogicOverhaul1.
+  const opts: DealOptions | undefined = options ? { ...options, pins: [...(options.pins ?? []), "minesPreLogic", "preLogicOverhaul1"] } : undefined;
   const was = opts ? false : setDealPin("minesPreLogic", true);
+  const wasOverhaul = opts ? false : setDealPin("preLogicOverhaul1", true);
   try {
     return digest(
       withSeededRandom(seed, () =>
@@ -113,6 +116,7 @@ export function dealDigest(type: PuzzleType, seed: number, banked: boolean, opti
     return `ERR ${String((error as Error)?.message ?? error).split("\n")[0]}`;
   } finally {
     if (!opts) setDealPin("minesPreLogic", was);
+    if (!opts) setDealPin("preLogicOverhaul1", wasOverhaul);
   }
 }
 

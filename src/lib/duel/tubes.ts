@@ -159,6 +159,8 @@ export function decodeTubeLog(raw: string): TubeToken[] {
  * Replays a pour log: illegal pours are skipped, Undo steps back one pour and
  * Reset goes back to the start, but neither gives a pour back. With a limit,
  * nothing after the limit-th pour counts (the board has ended unfinished).
+ * `refund` (tubesRev 3): Undo gives its pour back and Reset gives them all back, so the
+ * count is the pours standing on the board; the limit still ends the board when reached.
  */
 export function replayTubeLog(
   start: TubeState,
@@ -166,6 +168,7 @@ export function replayTubeLog(
   limit: number | null = null,
   /** Server grading (solverProgress.server.ts): sees every board the player stood on, in order, after the start. */
   onBoard?: (tubes: TubeState) => void,
+  refund = false,
 ): { tubes: TubeState; moves: number; solved: boolean; sorted: number; outOfPours: boolean; depth: number } {
   const history: TubeState[] = [cloneTubes(start)];
   let poured = 0;
@@ -174,12 +177,16 @@ export function replayTubeLog(
     if (poured > 0 && tubesSolved(state)) break;
     if (limit !== null && poured >= limit) break;
     if (token === "undo") {
-      if (history.length > 1) history.pop();
+      if (history.length > 1) {
+        history.pop();
+        if (refund) poured -= 1;
+      }
       onBoard?.(history[history.length - 1]!);
       continue;
     }
     if (token === "reset") {
       history.length = 1;
+      if (refund) poured = 0;
       onBoard?.(history[0]!);
       continue;
     }

@@ -55,6 +55,8 @@
 @import "./polish-layout/tournaments-pages.css";
 @import "./polish-layout/home-play.css";
 @import "./polish-layout/settings.css";
+/* The Logic overhaul, session 1 (15 Nov 2026): last, so the rendered pieces win the cascade. */
+@import "./polish-logic/logic-overhaul-1.css";
 
 /*
  * Duelz design system — dark competitive esports feel.

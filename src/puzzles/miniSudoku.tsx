@@ -1,7 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { decodeSudoku, encodeSudoku, sudokuBox, sudokuSolved } from "@/lib/duel/logic";
+import { decodeSudoku, encodeSudoku, sudokuBox, sudokuClashes, sudokuSolved } from "@/lib/duel/logic";
 import {
   SUDOKU_BOX_COLS,
   SUDOKU_BOX_ROWS,
@@ -18,7 +18,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const DIGITS = [1, 2, 3, 4, 5, 6];
 
-type CellTone = "given" | "entry" | "wrong";
+type CellTone = "given" | "entry" | "wrong" | "missed";
 
 function boxEdges(cell: number): string {
   const row = Math.floor(cell / SUDOKU_COLS);
@@ -40,6 +40,7 @@ export function SudokuGrid({
   onSelect,
   cols = SUDOKU_COLS,
   placed,
+  clashes,
 }: {
   values: number[];
   tones: CellTone[];
@@ -49,6 +50,8 @@ export function SudokuGrid({
   cols?: number | undefined;
   /** The cell that just took a digit (it pops in). */
   placed?: number | null | undefined;
+  /** Cells whose digit repeats in a row, column or box (live clashes, display only). */
+  clashes?: ReadonlySet<number> | undefined;
 }) {
   const selectedRow =
     selected === null || selected === undefined ? -1 : Math.floor(selected / cols);
@@ -73,12 +76,15 @@ export function SudokuGrid({
           (row === selectedRow || col === selectedCol || sudokuBox(cell) === selectedBox);
         const tone = tones[cell] ?? "entry";
         const marks = pencil?.[cell] ?? [];
+        const clash = clashes?.has(cell) ?? false;
         return (
           <button
             key={cell}
             type="button"
             disabled={!onSelect}
             onClick={onSelect ? () => onSelect(cell) : undefined}
+            data-clash={clash ? "" : undefined}
+            data-tone={tone}
             className={`logic-sudoku-cell relative flex items-center justify-center font-display font-bold ${boxEdges(cell)} ${
               cell === selected
                 ? "bg-primary/20 outline outline-2 -outline-offset-2 outline-primary"
@@ -88,7 +94,7 @@ export function SudokuGrid({
             } ${tone === "given" ? "text-foreground" : tone === "wrong" ? "text-destructive" : "text-primary"}`}
             style={{ fontSize: "max(15px, calc(100cqw / 6 * 0.52))", "--logic-row": row, "--logic-box": sudokuBox(cell) } as CSSProperties}
             // 7 Nov 2026 (accessibility audit #16): the label said only "Cell N" and replaced the digit.
-            aria-label={`Row ${row + 1} column ${col + 1}, ${value ? value : marks.length ? `notes ${marks.join(" ")}` : "empty"}${tone === "given" ? ", given" : tone === "wrong" ? ", wrong" : ""}`}
+            aria-label={`Row ${row + 1} column ${col + 1}, ${value ? value : marks.length ? `notes ${marks.join(" ")}` : "empty"}${tone === "given" ? ", given" : tone === "wrong" ? ", wrong" : tone === "missed" ? ", missed" : ""}${clash ? ", clashes" : ""}`}
           >
             {value ? (
               <span key={value} className={`logic-sudoku-digit ${tone === "given" ? "logic-sudoku-given" : ""} ${placed === cell ? "logic-sudoku-pop" : ""}`}>
@@ -161,7 +167,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   }, [grid, onDraftAnswer]);
 
   const solving = useSolveFx("sudoku", puzzle.type === "sudoku" && sudokuSolved(grid, givens));
-  const inFrame = useFrameProgress(grid.filter(Boolean).length, SUDOKU_CELLS, "filled");
+  // The player's own cells only (the givens aren't progress): "1 / 22", not "14 / 36".
+  const blanks = givens.filter((given) => !given).length;
+  const inFrame = useFrameProgress(entries.filter((value, cell) => value && !givens[cell]).length, blanks, "filled");
+  // Logic overhaul 1: clashes are shown while playing (the clean bonus still counts every wrong digit typed).
+  const clashes = useMemo(() => sudokuClashes(grid), [grid]);
+  const clashCount = clashes.size;
+  const lastClashes = useRef(0);
+  useEffect(() => {
+    if (clashCount > lastClashes.current) soundCue("sudoku.clash");
+    lastClashes.current = clashCount;
+  }, [clashCount]);
 
   useEffect(() => {
     if (locked || submitted.current) return;
@@ -206,6 +222,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (locked || submitted.current || selected === null) return;
     if (givens[selected]) return;
     if (pencilMode) {
+      soundCue("sudoku.pencil");
       setPencil((current) =>
         current.map((marks, cell) =>
           cell === selected
@@ -243,6 +260,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             pencil={pencil}
             selected={selected}
             placed={placed}
+            clashes={clashes}
             onSelect={locked ? undefined : (cell) => setSelected(cell)}
           />
         </div>
@@ -302,7 +320,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       correct += 1;
       return "entry" as CellTone;
     }
-    return entry ? ("wrong" as CellTone) : ("given" as CellTone);
+    // A cell the player left empty shows its digit faintly (missed), never in the givens' colour.
+    return entry ? ("wrong" as CellTone) : ("missed" as CellTone);
   });
 
   const values = solution.map((value, cell) =>

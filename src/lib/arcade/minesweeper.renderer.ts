@@ -34,6 +34,7 @@ import {
   minesCellY,
   type MinesState,
 } from "./minesweeper";
+import { logicSprite, logicSpritesReady } from "./logicArt.renderer";
 
 export const MINES_ART = {
   bg: "#0B0D11",
@@ -50,7 +51,7 @@ export const MINES_ART = {
   openLo: "#11151A",
   flag: "#FF3B3B",
   pole: "#D9DDE2",
-  boom: "#C62828",
+  boom: "#8E2424",
   gold: "#F2C75C",
   chip: "rgba(20, 24, 30, 0.92)",
   chipEdge: "rgba(255, 255, 255, 0.12)",
@@ -140,8 +141,16 @@ export function paintMinesFrame(ctx: CanvasRenderingContext2D): void {
   screw(ctx, x + w - s, y + h - s);
 }
 
+/** The Logic overhaul's rendered pieces (Minefield A: raised silver stone, recessed slate, an iron mine, a cloth flag). */
+export const MINES_SPRITES = ["mine-raised", "mine-open", "mine-mine", "mine-flag"] as const;
+
 /** A covered square: raised, light on its top and left, shadow on its bottom and right. */
 export function paintMinesCover(ctx: CanvasRenderingContext2D, x: number, y: number, size = MINES_CELL): void {
+  const sprite = logicSprite("mine-raised");
+  if (sprite) {
+    ctx.drawImage(sprite, x + 0.5, y + 0.5, size - 1, size - 1);
+    return;
+  }
   const b = Math.max(2, Math.round(size / 10));
   ctx.fillStyle = MINES_ART.cover;
   ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
@@ -169,6 +178,11 @@ export function paintMinesCover(ctx: CanvasRenderingContext2D, x: number, y: num
 
 /** A revealed square: sunk into the slate, its top and left edges in shadow. */
 export function paintMinesOpen(ctx: CanvasRenderingContext2D, x: number, y: number, size = MINES_CELL): void {
+  const sprite = logicSprite("mine-open");
+  if (sprite) {
+    ctx.drawImage(sprite, x + 1, y + 1, size - 2, size - 2);
+    return;
+  }
   ctx.fillStyle = MINES_ART.open;
   ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
   ctx.fillStyle = MINES_ART.openLo;
@@ -180,11 +194,13 @@ export function paintMinesOpen(ctx: CanvasRenderingContext2D, x: number, y: numb
 export function paintMinesNumber(ctx: CanvasRenderingContext2D, n: number, cx: number, cy: number, size = MINES_CELL): void {
   if (n <= 0 || n > 8) return;
   ctx.save();
-  ctx.font = FONT.replace("22px", `${Math.round(size * 0.6)}px`);
+  // Logic overhaul 1: bigger and bolder, a dark edge instead of a glow, so it reads on the slate.
+  ctx.font = FONT.replace("800 22px", `900 ${Math.round(size * 0.7)}px`);
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.shadowColor = MINES_NUMBER_COLOURS[n]!;
-  ctx.shadowBlur = size * 0.28;
+  ctx.shadowColor = "rgba(0,0,0,0.85)";
+  ctx.shadowBlur = size * 0.06;
+  ctx.shadowOffsetY = size * 0.03;
   ctx.fillStyle = MINES_NUMBER_COLOURS[n]!;
   ctx.fillText(String(n), cx, cy + size * 0.03);
   ctx.restore();
@@ -194,6 +210,12 @@ export function paintMinesNumber(ctx: CanvasRenderingContext2D, n: number, cx: n
 export function paintMinesFlag(ctx: CanvasRenderingContext2D, x: number, y: number, size = MINES_CELL, alpha = 1): void {
   ctx.save();
   ctx.globalAlpha = alpha;
+  const sprite = logicSprite("mine-flag");
+  if (sprite) {
+    ctx.drawImage(sprite, x + size * 0.1, y + size * 0.08, size * 0.8, size * 0.8);
+    ctx.restore();
+    return;
+  }
   const u = size / 36;
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.fillRect(x + 11 * u, y + 27 * u, 15 * u, 3 * u);
@@ -219,6 +241,11 @@ export function paintMinesFlag(ctx: CanvasRenderingContext2D, x: number, y: numb
 
 /** A mine: a dark sphere with eight spikes and a glint. */
 export function paintMinesMine(ctx: CanvasRenderingContext2D, cx: number, cy: number, size = MINES_CELL): void {
+  const sprite = logicSprite("mine-mine");
+  if (sprite) {
+    ctx.drawImage(sprite, cx - size * 0.42, cy - size * 0.42, size * 0.84, size * 0.84);
+    return;
+  }
   const r = size * 0.22;
   ctx.save();
   ctx.strokeStyle = "#0A0A0C";
@@ -290,7 +317,7 @@ export function drawMinesweeper(ctx: CanvasRenderingContext2D, s: MinesState, si
 
 function drawMinesWorld(ctx: CanvasRenderingContext2D, s: MinesState): void {
   const over = minesCleared(s) || s.tick >= MINES_RUN_TICKS;
-  const key = `mines|${s.seed}|${over ? 1 : 0}|${s.open.join("")}`;
+  const key = `mines|${s.seed}|${over ? 1 : 0}|${logicSpritesReady(MINES_SPRITES) ? 1 : 0}|${s.open.join("")}`;
   deviceLayer(ctx, key, (c) => paintBoard(c, s, over));
   paintHud(ctx, s);
   const still = reducedMotion();
@@ -325,8 +352,9 @@ function drawMinesWorld(ctx: CanvasRenderingContext2D, s: MinesState): void {
     const life = TICKS_PER_SECOND * 0.5;
     if (age >= 0 && age < life) {
       ctx.save();
-      ctx.globalAlpha = (1 - age / life) * 0.6;
-      ctx.fillStyle = "#FFFFFF";
+      // Logic overhaul 1: a dull red pulse, not a bright white zap.
+      ctx.globalAlpha = (1 - age / life) * 0.55;
+      ctx.fillStyle = MINES_ART.boom;
       ctx.fillRect(minesCellX(s.lastHit), minesCellY(s.lastHit), MINES_CELL, MINES_CELL);
       ctx.restore();
     }

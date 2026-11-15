@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 
 import {
   decodeNonoCells,
@@ -28,6 +28,7 @@ export function Board({
   marks,
   size = NONO_SIZE,
   onCell,
+  onPaint,
   cell = 40,
   fluid = false,
   goldCells,
@@ -40,6 +41,8 @@ export function Board({
   marks: NonoMarks;
   size?: number;
   onCell?: (index: number) => void;
+  /** Drag to paint (Logic overhaul 1): a drag that moves onto another cell paints it as the first cell was. */
+  onPaint?: (index: number) => void;
   cell?: number;
   fluid?: boolean;
   goldCells?: Set<number>;
@@ -54,8 +57,27 @@ export function Board({
       line === "row" ? marks[index * size + other] === 1 : marks[other * size + index] === 1,
     );
 
+  // Drag to paint: while a pointer that went down on a cell is held, the cells it crosses are painted.
+  const painting = useRef(false);
+  useEffect(() => {
+    const up = () => { painting.current = false; };
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => { window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up); };
+  }, []);
+  const onMove = onPaint
+    ? (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!painting.current) return;
+        const el = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null;
+        const at = el?.closest<HTMLElement>("[data-nono-index]")?.dataset["nonoIndex"];
+        if (at !== undefined) onPaint(Number(at));
+      }
+    : undefined;
+
   return (
     <div
+      onPointerMove={onMove}
+      data-nono-paint={onPaint ? "" : undefined}
       className={`logic-nono grid gap-0 ${fluid ? "logic-nonogram-board" : ""} ${reveal ? "logic-nono-reveal w-full" : ""}`}
       style={{
         gridTemplateColumns: fluid ? `1.15fr repeat(${size}, minmax(0, 1fr))` : reveal ? `auto repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
@@ -108,7 +130,13 @@ export function Board({
                 type="button"
                 // 7 Nov 2026 (accessibility audit #16): the cell's state in its name (it was only its place).
                 aria-label={`Row ${row + 1} column ${col + 1}, ${gold ? "filled" : mark === 1 ? "filled" : mark === 2 ? "crossed" : "empty"}${wrong ? ", wrong" : ""}`}
-                onPointerDown={onCell ? () => onCell(index) : undefined}
+                data-nono-index={index}
+                onPointerDown={onCell ? (event) => {
+                  // Touch pointers capture to the cell they started on; release it so the drag reaches the others.
+                  (event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
+                  painting.current = Boolean(onPaint);
+                  onCell(index);
+                } : undefined}
                 style={{ "--logic-diag": row + col, "--logic-hue": (row * 47 + col * 83) % 360 } as CSSProperties}
                 className={`logic-nono-cell flex items-center justify-center border text-[13px] font-bold ${reveal ? "aspect-square" : ""} ${popped ? (mark === 1 ? "logic-nono-pop" : "logic-nono-tick") : ""} ${
                   rowGuide ? "nono-guide-row" : ""
@@ -184,6 +212,9 @@ function Stage({
   );
   const [tapped, setTapped] = useState<{ index: number; key: number } | null>(null);
   const submitted = useRef(false);
+  const paintValue = useRef<NonoMarks[number]>(1);
+  const paintRun = useRef(0);
+  const painted = useRef(new Set<number>());
 
   useEffect(() => {
     onDraftAnswer?.(encodeNonoCells(marks));
@@ -231,14 +262,26 @@ function Stage({
 
   const tap = (index: number) => {
     if (locked || submitted.current) return;
-    const next = ((marks[index] ?? 0) + 1) % 3;
+    const next = (((marks[index] ?? 0) + 1) % 3) as NonoMarks[number];
+    // The first square decides what a drag paints: fill, × or clear.
+    paintValue.current = next;
+    paintRun.current = 0;
+    painted.current = new Set([index]);
     soundCue(next === 1 ? "nonogram.fill" : next === 2 ? "nonogram.mark" : "nonogram.clear");
     setTapped((current) => ({ index, key: (current?.key ?? 0) + 1 }));
-    setMarks(
-      marks.map((mark, at) =>
-        at === index ? (((mark + 1) % 3) as NonoMarks[number]) : mark,
-      ) as NonoMarks,
-    );
+    setMarks(marks.map((mark, at) => (at === index ? next : mark)) as NonoMarks);
+  };
+
+  const paint = (index: number) => {
+    if (locked || submitted.current) return;
+    const value = paintValue.current;
+    if ((marks[index] ?? 0) === value || painted.current.has(index)) return;
+    painted.current.add(index);
+    paintRun.current += 1;
+    // A rising tick per square painted (the cue carries the run's length for the pitch).
+    soundCue(value === 1 ? "nonogram.paint" : value === 2 ? "nonogram.mark" : "nonogram.clear");
+    setTapped((current) => ({ index, key: (current?.key ?? 0) + 1 }));
+    setMarks((current) => current.map((mark, at) => (at === index ? value : mark)) as NonoMarks);
   };
 
   return (
@@ -246,7 +289,7 @@ function Stage({
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
         <div className="logic-nono-fit logic-nono-frame">
-          <Board rows={data.rows} cols={data.cols} marks={marks} size={SIZE} onCell={tap} fluid tapped={tapped} />
+          <Board rows={data.rows} cols={data.cols} marks={marks} size={SIZE} onCell={tap} onPaint={paint} fluid tapped={tapped} />
         </div>
       </div>
     </div>

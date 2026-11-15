@@ -53,5 +53,18 @@ shared screens.
 | `lightup.clear` | A square is cleared | — |
 | `lightup.solve` | Every square is lit with no clash and every number met | ~1.17 s: warm wave from the top-left, lamps swell |
 
+## Logic overhaul, session 1 (15 Nov 2026)
+
+Placeholder slots (no file yet: silent until Joe's ElevenLabs recordings, `logic-elevenlabs.md`, drop in by name).
+
+| Cue | Trigger | Visual length |
+|---|---|---|
+| `sudoku.clash` | A digit makes a row, column or box repeat (the clashing digits turn red) | 360 ms red pulse |
+| `sudoku.pencil` | A pencil mark is added or removed | — |
+| `tubes.undo` | Undo is tapped (tubesRev 3 gives the pour back) | — |
+| `tubes.outOfPours` | The last allowed pour leaves the board unsorted | 1.1 s "Out of pours" banner |
+| `safe.wrongTry` | A try that breaks a clue (the broken clues flash red) | 520 ms clue flash |
+| `nonogram.paint` | A drag paints one more square (fill) | 90 ms press-in |
+
 With `prefers-reduced-motion: reduce`, move animations snap and each completion effect is replaced by one still,
 soft glow over the play area (opacity only, 1.0 s). The cues fire either way.

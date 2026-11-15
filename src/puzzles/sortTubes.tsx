@@ -19,7 +19,7 @@ import {
   type TubeState,
   type TubeToken,
 } from "@/lib/duel/tubes";
-import { limitText, tubesPourLimit, tubesSendsUndo } from "@/lib/duel/moveLimits";
+import { limitText, tubesPourLimit, tubesRefundsUndo, tubesSendsUndo } from "@/lib/duel/moveLimits";
 import { TUBES_COLOURS, TUBES_COUNT, TUBES_TIME_MS, type TubesPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playWrong } from "@/lib/sound";
 
@@ -163,6 +163,9 @@ function IntroExample() {
   );
 }
 
+/** How long the "Out of pours" moment shows before the unfinished board goes in. */
+export const OUT_OF_POURS_MS = 1_100;
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: PuzzleStageProps) {
   const isTubes = puzzle.type === "tubes";
   const start = useMemo(
@@ -174,6 +177,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   // tubesRev 1 (moveLimits.ts): the log keeps Undo and Reset, every pour counts and the last allowed pour ends the board.
   const logged = isTubes && tubesSendsUndo(puzzle);
   const pourLimit = isTubes ? tubesPourLimit(puzzle) : null;
+  // tubesRev 3 (Logic overhaul 1): Undo gives its pour back, Reset gives them all back.
+  const refund = isTubes && tubesRefundsUndo(puzzle);
+  const [outShown, setOutShown] = useState(false);
   const [moves, setMoves] = useStageState<TubeToken[]>(stateKey, "tubeMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "tubeLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "tubeShake", () => null);
@@ -181,7 +187,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   const submitted = useRef(false);
 
   const play = (log: TubeToken[]) =>
-    logged ? replayTubeLog(start, log, pourLimit) : { ...replayTubes(start, log as TubeMove[]), outOfPours: false, depth: log.length };
+    logged ? replayTubeLog(start, log, pourLimit, undefined, refund) : { ...replayTubes(start, log as TubeMove[]), outOfPours: false, depth: log.length };
   const encode = (log: TubeToken[]) => (logged ? encodeTubeLog(log) : encodeTubeMoves(log as TubeMove[]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const replay = useMemo(() => play(moves), [start, moves, logged, pourLimit]);
@@ -196,9 +202,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   useEffect(() => {
     if (locked || submitted.current || !(replay.solved || replay.outOfPours)) return;
     submitted.current = true;
-    if (replay.solved) playCorrect();
-    // Out of pours: the board ends unfinished and goes in now.
-    onSubmit(encode(moves));
+    if (replay.solved) {
+      playCorrect();
+      onSubmit(encode(moves));
+      return;
+    }
+    // Out of pours: a clear moment (a banner and its own sound), then the board goes in unfinished. The draft is
+    // already sent, so a buzzer during the moment loses nothing.
+    setOutShown(true);
+    soundCue("tubes.outOfPours");
+    const answer = encode(moves);
+    window.setTimeout(() => onSubmit(answer), OUT_OF_POURS_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [replay.solved, replay.outOfPours, moves, locked, onSubmit]);
 
@@ -232,7 +246,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   const undo = () => {
     setLifted(null);
     setPoured(null);
-    // Undo never gives a pour back on a limited board: it is logged, not removed.
+    // Undo is logged, not removed; from tubesRev 3 the server gives its pour back (replayTubeLog's refund).
+    soundCue("tubes.undo");
     setMoves((current) => (logged ? [...current, "undo"] : current.slice(0, -1)));
   };
 
@@ -269,7 +284,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
               : <>moves <span className="text-primary">{replay.moves}</span></>}
           </p>
         )}
-        <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} />
+        <div className="relative">
+          <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} />
+          {outShown ? (
+            <div role="status" data-out-of-pours="" className="logic-out-banner">
+              Out of pours
+            </div>
+          ) : null}
+        </div>
         <LiveSummary
           inArena
           className="logic-status"
@@ -313,7 +335,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   if (puzzle.type !== "tubes") return null;
   const pourLimit = tubesPourLimit(puzzle);
   const mine = tubesSendsUndo(puzzle)
-    ? replayTubeLog(puzzle.tubes, decodeTubeLog(myAnswer ?? ""), pourLimit)
+    ? replayTubeLog(puzzle.tubes, decodeTubeLog(myAnswer ?? ""), pourLimit, undefined, tubesRefundsUndo(puzzle))
     : replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? ""));
   const limit = timeLimitMs;
   const elapsed =
@@ -328,10 +350,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </div>
       <p className="shrink-0 text-center font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {mine.moves} {myCorrect ? "✓" : "✗"}
+          {mine.moves}{pourLimit !== null ? "" : ` ${myCorrect ? "✓" : "✗"}`}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          {pourLimit !== null ? `of ${pourLimit} pours` : "moves"}{puzzle.minMoves ? ` · ${usesDepth(puzzle) ? "par" : "min"} ${puzzle.minMoves}` : ""}
+          {pourLimit !== null ? `of ${pourLimit} pours used` : "moves"}{puzzle.minMoves ? ` · ${usesDepth(puzzle) ? "par" : "min"} ${puzzle.minMoves}` : ""}
           {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
         </span>
       </p>
