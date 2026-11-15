@@ -49,6 +49,30 @@ def lathe(profile, m, segs=96):
     return jzlib._link(ob)
 
 
+def strip(x, z, width, energy, color="#ffffff"):
+    """A tall, narrow area light at sprite x and depth z, facing the jug's axis, its long side vertical (sprite y), so
+    a vertical glass wall reflects it as one straight line. (jzlib.area's tracking turns the long side towards the
+    camera here.)"""
+    from mathutils import Matrix, Vector
+    d = bpy.data.lights.new("strip", "AREA")
+    d.energy = energy; d.color = hexc(color)[:3]
+    d.shape = "RECTANGLE"; d.size = width * P; d.size_y = JH * 8 * P
+    ob = bpy.data.objects.new("strip", d); bpy.context.scene.collection.objects.link(ob)
+    loc = jzlib.V(x, JH / 2, z)
+    aim = jzlib.V(JW / 2, JH / 2, 0)
+    zax = (loc - aim).normalized()            # an area light shines down its local -Z
+    yax = Vector((0.0, 1.0, 0.0))
+    xax = yax.cross(zax).normalized()
+    yax = zax.cross(xax).normalized()
+    ob.matrix_world = Matrix((
+        (xax.x, yax.x, zax.x, loc.x),
+        (xax.y, yax.y, zax.y, loc.y),
+        (xax.z, yax.z, zax.z, loc.z),
+        (0, 0, 0, 1),
+    ))
+    return ob
+
+
 def jug_front():
     """A clear glass beaker lit as a product shot: crisp vertical highlights on its curved walls (narrow, in the
     right-hand wall and a thin edge on the left, clear of the litre marks), a bright rolled lip and a glinting thick
@@ -72,8 +96,9 @@ def jug_front():
     # Two tall, narrow strip lights well to the sides: on the curved wall each reflects as one crisp vertical line,
     # the key's on the right a third of the way in from the edge, a thinner one in the left wall's edge (clear of the
     # litre marks). Far past the ends, so the lines run the full height evenly (the app stretches the middle).
-    area(JW + 130, JH / 2, 70, 10, 2600, "#ffffff", target=(JW / 2, JH / 2, 0), sx=6, sy=JH * 6)
-    area(-210, JH / 2, 30, 10, 2600, "#e6eeff", target=(JW / 2, JH / 2, 0), sx=5, sy=JH * 6)
+    strip(JW + 130, 70, 8, 4200)                 # the crisp line on the right
+    strip(JW + 60, 120, 40, 900, "#eef3ff")      # a soft band beside it, further in
+    strip(-210, 30, 5, 2200, "#e6eeff")          # the thin edge line on the left
     # A small key in front, above and to the right: a bright glint on the rolled lip and the thick base's rim.
     area(JW * 0.8, -40, 120, 18, 420, "#fff6e8", target=(JW / 2, JH * 0.15, 0))
     write(GAME, "jug-front")

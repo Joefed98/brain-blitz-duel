@@ -8,14 +8,17 @@
   padding-bottom: 0;
 }
 
-/* The number card: a matte navy card, the number big and bold but the card no taller than it needs. */
+/* The number card: the rendered lacquer card (public/number/numline/card.webp, docs/design/number-overhaul/source/
+   numline.py), a deep navy face under a clear coat inside a polished steel rim that takes the light; drawn 9-slice
+   (corners 24 points of the 360 x 100 sprite, at 3 px a point). The face stays dark and clean for the number. */
 [data-puzzle-play] [data-polish="numline"] .numline-card {
   height: clamp(72px, 12cqh, 100px);
   font-size: clamp(40px, 8cqh, 60px);
-  border-color: var(--jz-line);
-  background-image: none;
-  background-color: var(--jz-surface);
-  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  border-image: url("/number/numline/card.webp") 72 fill / 18px stretch;
+  background: none;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--jz-bg) 70%, transparent);
 }
 [data-puzzle-play] [data-polish="numline"] .numline-card > span {
   font-family: var(--jz-font);

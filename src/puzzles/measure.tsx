@@ -66,8 +66,8 @@ const STREAM_TOP = 22;
  * the sprite's sides, the inside of the thick base 17.5 up from its bottom and the lip's top 6 above the inside.
  */
 const JUG_SPRITE = { w: 120, lip: 10, wall: 9, base: 24, inWall: 7.2, inBase: 17.5, inTop: 6 } as const;
-/** The jug sprite's 9-slice in image pixels (rendered at 2 px a point). */
-const JUG_SLICE = `${JUG_SPRITE.lip * 2} ${JUG_SPRITE.wall * 2} ${JUG_SPRITE.base * 2} ${JUG_SPRITE.wall * 2}`;
+/** The jug sprite's 9-slice in image pixels (rendered at 3 px a point). */
+const JUG_SLICE = `${JUG_SPRITE.lip * 3} ${JUG_SPRITE.wall * 3} ${JUG_SPRITE.base * 3} ${JUG_SPRITE.wall * 3}`;
 /** Height under a jug's water for its glass base, at this jug width. */
 export const measureGlassBase = (width: number) => Math.round((JUG_SPRITE.inBase * width) / JUG_SPRITE.w);
 const NO_ACTIONS: MeasureAction[] = [];
@@ -102,13 +102,24 @@ export const MEASURE_CSS = `
 [data-polish="measure"] [data-measure-jug] > div:first-child { outline: 0 solid transparent; outline-offset: 6px; border-radius: 6px 6px 12px 12px; transition: outline-color 150ms ease-out; }
 [data-polish="measure"] [data-measure-jug][data-selected] > div:first-child { outline: 2px solid var(--jz-gold); }
 [data-polish="measure"] .mj-water { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; transform-origin: 50% 100%; will-change: transform;
-  background: linear-gradient(to bottom, var(--mj-water-top), var(--mj-water) 38%, var(--mj-water-deep));
-  box-shadow: inset 6px 0 8px -4px rgba(255, 255, 255, 0.18), inset -6px 0 8px -4px rgba(0, 20, 60, 0.35);
+  /* Glossy water (the Number overhaul's material pass, 15 Nov 2026): a gloss band down the left, the body rounding
+     into shade on the right (a curved column), and depth from the bright top to the deep bottom. */
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.30) 0 5%, rgba(255, 255, 255, 0.10) 16%, transparent 40%, transparent 62%, rgba(0, 18, 60, 0.20) 86%, rgba(0, 18, 60, 0.34)),
+    linear-gradient(to bottom, var(--mj-water-top), var(--mj-water) 30%, var(--mj-water-deep));
+  box-shadow: inset 0 -10px 14px -8px rgba(0, 12, 40, 0.45);
   transition: transform ${LEVEL_MS}ms cubic-bezier(0.3, 0.7, 0.4, 1); }
 [data-polish="measure"] .mj-surface { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; z-index: 1; overflow: hidden; will-change: transform;
   transition: transform ${LEVEL_MS}ms cubic-bezier(0.3, 0.7, 0.4, 1), opacity 120ms linear; }
 [data-polish="measure"] .mj-wave { position: absolute; left: 0; top: 0; height: 6px; width: calc(100% + 40px); background: var(--mj-water-top);
   -webkit-mask: ${WAVE_MASK} repeat-x 0 0 / 40px 6px; mask: ${WAVE_MASK} repeat-x 0 0 / 40px 6px; animation: mj-wave 2.4s linear infinite; will-change: transform; }
+/* The meniscus: a crisp bright line along the water's top, inside the glass. */
+[data-polish="measure"] .mj-surface::after { content: ""; position: absolute; left: 3%; right: 3%; top: 2px; height: 1.5px; border-radius: 1px; z-index: 2;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.55) 60%, rgba(255, 255, 255, 0.85)); }
+/* The glass's own crisp highlight, down the right-hand curve (narrow, clear of the litre marks on the left). */
+[data-polish="measure"] .mj-glass::after { content: ""; position: absolute; top: 4%; bottom: 3%; right: 13%; width: 4%; max-width: 5px; min-width: 2px; z-index: 3;
+  border-radius: 999px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.22) 55%, rgba(255, 255, 255, 0.06)); }
 [data-polish="measure"] .mj-wave-back { top: -1px; opacity: 0.5; background: color-mix(in oklab, var(--mj-water-top) 70%, white); animation-duration: 3.7s; animation-direction: reverse; }
 @keyframes mj-wave { from { transform: translateX(0); } to { transform: translateX(-40px); } }
 [data-polish="measure"] .mj-ticks { position: absolute; inset: 0 0 0 4px; z-index: 5; pointer-events: none; }
@@ -380,7 +391,7 @@ export function Jugs({
                   top: -JUG_SPRITE.inTop * k,
                   bottom: base - JUG_SPRITE.inBase * k,
                   borderWidth: `${JUG_SPRITE.lip * k}px ${JUG_SPRITE.wall * k}px ${JUG_SPRITE.base * k}px`,
-                  borderImage: `url(${numberArt("measure", "jug-front")}) ${JUG_SLICE} / ${JUG_SPRITE.lip * k}px ${JUG_SPRITE.wall * k}px ${JUG_SPRITE.base * k}px stretch`,
+                  borderImage: `url(${numberArt("measure", "jug-front")}) ${JUG_SLICE} fill / ${JUG_SPRITE.lip * k}px ${JUG_SPRITE.wall * k}px ${JUG_SPRITE.base * k}px stretch`,
                 }}
               />
             </div>

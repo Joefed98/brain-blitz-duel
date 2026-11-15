@@ -153,9 +153,14 @@ const between = (text: string, from: string, to: string) => {
 
 /* ------------------------------------------------------------------ 6. Art and sound slots */
 {
-  for (const f of ["measure/jug-front", "measure/shelf", "numline/ruler", "numline/pin", "numline/pin-placed"])
+  for (const f of ["measure/jug-front", "measure/shelf", "numline/ruler", "numline/card", "numline/pin", "numline/pin-placed"])
     ok(existsSync(`public/number/${f}.webp`), `art: public/number/${f}.webp`);
   for (const f of ["measure.py", "numline.py"]) ok(existsSync(`docs/design/number-overhaul/source/${f}`), `art: its Blender source ${f}`);
+  // The material pass (Joe's clarification, 15 Nov 2026): the glass shell draws its middle too (fill), the water is
+  // glossy with a meniscus, and Ballpark's card is the rendered lacquer card.
+  ok(/\$\{JUG_SLICE\} fill \//.test(src("src/puzzles/measure.tsx")), "Brimful: the glass shell draws its middle (the rendered highlights)");
+  ok(/\.mj-surface::after/.test(src("src/puzzles/measure.tsx")) && /\.mj-glass::after/.test(src("src/puzzles/measure.tsx")), "Brimful: the water's meniscus and the glass's crisp highlight");
+  ok(/numline\/card\.webp/.test(src("src/polish-layout/batch-w-numline.css")), "Ballpark: the number card is the rendered lacquer card");
   const sheet = src("docs/sound-cues/cue-sheet.csv");
   for (const slot of ["measure.stageClear", "measure.fail", "numline.stageClear", "numline.edge"]) {
     ok(Boolean((SOUND_MANIFEST as Record<string, unknown>)[slot]), `sound: ${slot} in the manifest`);

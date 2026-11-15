@@ -24,6 +24,7 @@ def studio(w, h, scale=3):
     # The studio's reflection kept modest: a flat face looking at the camera would mirror the whole studio back
     # (a wash across the number); the bevels still catch the key's crisp highlight.
     setup(w, h, scale, reflect=0.35)
+    bpy.context.scene.view_settings.look = "AgX - Punchy"  # the concepts' colour look
 
 
 def gold(name="gold", rough=0.2):

@@ -19,6 +19,10 @@
   padding: 16px 10px 12px;
   border-radius: 18px;
   overflow: visible;
+  /* The material pass: the board is concept A's dark lacquered panel (public/number/equation/panel.webp, 9-slice). */
+  border: 12px solid transparent;
+  border-image: url("/number/equation/panel.webp") 72 fill / 24px stretch;
+  padding: 4px 0 0;
   background: none;
   box-shadow: none;
 }

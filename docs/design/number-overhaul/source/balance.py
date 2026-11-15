@@ -1,5 +1,9 @@
 """Counterweight (balance) pieces: concept A's materials, without numbers (the app draws them in Archivo).
 
+Materials (Joe's clarification, 15 Nov 2026: lit, not flat): polished brass that shines along the beam and the tags'
+bevels, dark walnut with real grain under a lacquered sheen, cast iron with a satin metallic sheen and a crisp edge
+highlight; the face plates the numbers sit on are brushed, so the highlight stays on their rims.
+
   wall        the dark walnut wall the scale hangs in front of (stretched to the arena)
   bench       the wooden bench the scale stands on
   beam        the brushed brass beam (stretched to the notch count)
@@ -21,32 +25,33 @@ from sprites import *  # noqa: F401,F403
 G = "balance"
 
 
-def studio(w, h, scale=3, key=1.0):
-    setup(w, h, scale)
+def studio(w, h, scale=3, key=1.0, reflect=0.8):
+    setup(w, h, scale, reflect=reflect)
+    # The concepts' colour look: warm wood and brass keep their colour (the shared Base Contrast greys them).
+    bpy.context.scene.view_settings.look = "AgX - Punchy"
     for ob in bpy.data.objects:
         if ob.type == "LIGHT":
             ob.data.energy *= key
-    # Metals see a soft studio around them (reflections only; the film stays transparent).
-    world("#06080f", 0.0, hdri="studio.exr", hdri_strength=0.55)
 
 
 def brass(name="brass"):
-    m = mat(name, "#c9a25a", 0.4, metal=1.0)
-    return add_bump(m, 60, 0.04, stretch=(1, 30, 1), distance=0.002)
+    m = mat(name, "#d4a957", 0.17, metal=1.0)
+    return add_bump(m, 60, 0.015, stretch=(1, 30, 1), distance=0.001)
 
 
 def iron(name="iron"):
-    m = mat(name, "#2a2d31", 0.5, metal=1.0)
-    return add_bump(m, 90, 0.06, distance=0.003)
+    m = mat(name, "#30343a", 0.32, metal=1.0, coat=0.35, coat_rough=0.2)
+    return add_bump(m, 90, 0.04, distance=0.002)
 
 
-def walnut(name="walnut", c1="#4a2e18", c2="#22140a", scale=1.4):
-    return wood(name, c1, c2, rough=0.62, coat=0.0, scale=scale)
+def walnut(name="walnut", c1="#4a2e18", c2="#22140a", scale=1.4, coat=0.55):
+    return wood(name, c1, c2, rough=0.4, coat=coat, scale=scale)
 
 
 def wall():
-    studio(390, 600, scale=2, key=0.45)
-    planks = walnut("wallwood", "#2a1709", "#0f0703", 0.45)
+    studio(390, 600, scale=2, key=0.55, reflect=0.2)
+    # A low satin coat on the big panel: a sheen with depth, never a reflection washed across it.
+    planks = walnut("wallwood", "#2c170a", "#0a0402", 0.6, coat=0.18)
     for i in range(6):
         box(i * 65 + 0.6, -2, 63.8, 604, 6, planks, r=1.2)
     # a dark seam behind the planks
@@ -55,7 +60,7 @@ def wall():
 
 
 def bench():
-    studio(390, 64, scale=2, key=0.6)
+    studio(390, 64, scale=2, key=0.85)
     top = walnut("benchtop", "#6b3a16", "#2e1606", 1.2)
     box(-4, 6, 398, 16, 12, top, r=3)          # the top's front edge
     box(-4, 20, 398, 44, 6, walnut("benchfront", "#4a240c", "#1e0e04", 1.2), r=2)
@@ -73,9 +78,10 @@ def beam():
 
 def tag():
     studio(40, 34, scale=4)
-    face = mat("tagface", "#d8b46c", 0.45, metal=1.0)
-    add_bump(face, 80, 0.03, stretch=(1, 20, 1), distance=0.0015)
-    box(2, 2, 36, 30, 6, face, r=4)
+    box(2, 2, 36, 30, 6, brass("tagrim"), r=4)                       # polished rim and bevel
+    face = mat("tagface", "#d6b066", 0.34, metal=1.0)
+    add_bump(face, 80, 0.02, stretch=(1, 20, 1), distance=0.001)
+    box(5, 5, 30, 24, 6.4, face, r=3)                                  # the brushed face the number sits on
     write(G, "tag")
 
 
@@ -114,17 +120,17 @@ def bell(name, handle_mat, face_mat):
 
 
 def bell_mine():
-    bell("bell-mine", lambda: brass("handle"), lambda: add_bump(mat("faceg", "#e2c07a", 0.5, metal=1.0), 70, 0.025, distance=0.0012))
+    bell("bell-mine", lambda: brass("handle"), lambda: add_bump(mat("faceg", "#dcb46a", 0.32, metal=1.0), 70, 0.025, distance=0.0012))
 
 
 def bell_fixed():
-    bell("bell-fixed", lambda: iron("handleiron"), lambda: add_bump(mat("faces", "#b8bec4", 0.5, metal=1.0), 70, 0.025, distance=0.0012))
+    bell("bell-fixed", lambda: iron("handleiron"), lambda: add_bump(mat("faces", "#b5bcc4", 0.3, metal=1.0), 70, 0.025, distance=0.0012))
 
 
 def tray():
-    studio(380, 100, scale=2)
+    studio(380, 100, scale=2, reflect=0.35)
     box(2, 6, 376, 92, 8, brass("lip"), r=10)
-    box(10, 14, 360, 76, 10, walnut("trayin", "#3e200b", "#170a03", 1.0), r=7, z=2)
+    box(10, 14, 360, 76, 10, walnut("trayin", "#331a09", "#110702", 1.0, coat=0.2), r=7, z=2)
     write(G, "tray")
 
 
