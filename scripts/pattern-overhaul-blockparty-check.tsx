@@ -10,7 +10,10 @@
  * 4. The help and intro say what changed (a double tap only flips, Undo gives the move back, clean drops; no "anchor").
  * 5. The sprites exist, are WebP with alpha and within budget, and the stage, tray, board and reveal draw them; the
  *    stage on blockRev 4 has Undo and Reset (older stamps don't), holds a turn for the double-tap window, sounds the
- *    pick-up and the illegal drop; the reveal's own count reads "You: …", never as the solution's.
+ *    pick-up and the illegal drop.
+ * 7. The answer reveal: two fit-target boards (Solution, Yours), sprites, red outlines on pieces off every solution
+ *    spot and dashed marks on empty squares (unfinished only), and pills whose numbers are the stored grade's, on the
+ *    new stamp, an older stamp and a round with no stored extra; no stray "×"; nothing under Solution but the board.
  * 6. The new sound slots exist in the manifest and each has its ElevenLabs line.
  */
 import { readFileSync, statSync } from "node:fs";
@@ -186,10 +189,80 @@ function solveAt(p: Block, sol: NonNullable<Block["solution"]>, drops: number): 
   const flipBranch = src.slice(src.indexOf("if (double) {"), src.indexOf("} else {", src.indexOf("if (double) {")));
   check(flipBranch.includes('soundCue("blockparty.flip")') && !flipBranch.includes("blockparty.turn"), "stage: a double tap still sounds a turn");
 
-  const p = live[0]!;
-  const reveal = renderToStaticMarkup(<blockPartyPuzzle.Reveal puzzle={p} myAnswer={encodeBlockAnswer((p.solution ?? []).slice(0, 2), 1)} myCorrect={false} {...({} as Record<string, never>)} />);
-  check(/<p data-own-count=""[^>]*>You: (<!-- -->)?2\/9 pieces in place/.test(reveal), `reveal: the own count is not labelled as the player's: ${reveal.slice(-260)}`);
-  check(/one solution/.test(reveal) && /your board/.test(reveal), "reveal: the Solution / Yours labels moved");
+  // The reveal (section 7 below) replaced the stage-1 "You: …" line.
+}
+
+/* 7. The answer reveal (Joe's reveal redesign, 15 Nov 2026). */
+{
+  const Reveal = blockPartyPuzzle.Reveal;
+  const draw = (p: Block, answer: string, msLeft: number) => {
+    const g = gradeAnswer(p, answer, msLeft);
+    const html = renderToStaticMarkup(
+      <Reveal puzzle={p} myAnswer={answer} myCorrect={g.isCorrect} myReactionAvgMs={null} myMsRemaining={msLeft} timeLimitMs={60_000} myExtra={g.extra as Record<string, unknown>} />,
+    );
+    return { g, html };
+  };
+  const pill = (html: string, id: string) => new RegExp(`data-hud-pill="${id}"[^>]*>(?:<span[^>]*>([^<]*)</span>)?<b[^>]*>([^<]*)</b>`).exec(html);
+  const pillValue = (html: string, id: string) => pill(html, id)?.[2] ?? null;
+
+  for (const [label, p] of [["new", live[1]!], ["old", fxPuzzle(0)]] as const) {
+    const sol = p.solution ?? [];
+    const pieces = blockGeometry(p).pieces.length;
+    // Solved, with two illegal drops on the new stamp.
+    const solved = draw(p, label === "new" ? encodeBlockAnswer(sol, 2) : sent(p, sol.map((_, i) => ({ answer: encodePlacements(sol.slice(0, i + 1)), at: 1000 + i * 1000 }))), 21_400);
+    check(solved.g.isCorrect, `reveal ${label}: the solved answer isn't a solve`);
+    check((solved.html.match(/data-reveal-board=""/g) ?? []).length === 2, `reveal ${label}: not one fit target per board`);
+    check(/>Solution</.test(solved.html) && />Yours</.test(solved.html), `reveal ${label}: the Solution / Yours labels`);
+    check(!/×/.test(solved.html), `reveal ${label}: a stray ×`);
+    check(!/data-reveal-wrong|data-reveal-gap/.test(solved.html), `reveal ${label}: a solved board is marked`);
+    check(pillValue(solved.html, "pieces") === `${pieces}/${pieces}`, `reveal ${label}: pieces pill ${pillValue(solved.html, "pieces")}`);
+    check(pillValue(solved.html, "time") === "21 s", `reveal ${label}: time pill ${pillValue(solved.html, "time")}`);
+    check(/block-\w+\.webp/.test(solved.html) && /peg\.webp/.test(solved.html), `reveal ${label}: no sprites`);
+    const extra = solved.g.extra as Record<string, unknown>;
+    if (label === "new") check(pillValue(solved.html, "illegal") === String(extra["illegalDrops"]) && extra["illegalDrops"] === 2, `reveal new: illegal pill ${pillValue(solved.html, "illegal")}`);
+    else check(typeof extra["rightFirstTime"] === "number" && pillValue(solved.html, "first") === `${extra["rightFirstTime"]}/${pieces}` && pill(solved.html, "illegal") === null, `reveal old: first-time pill ${pillValue(solved.html, "first")}`);
+
+    // Unfinished: two pieces in their spot, the first piece placed elsewhere.
+    const first = sol[0]!;
+    const elsewhere = otherSpot(p, sol.slice(1, 3), first.piece, [...first.cells].sort((a, b) => a - b).join(","));
+    const mine = [...sol.slice(1, 3), ...(elsewhere ? [{ piece: first.piece, cells: elsewhere }] : [])];
+    const part = draw(p, label === "new" ? encodeBlockAnswer(mine, 1) : encodePlacements(mine), 0);
+    const stored = decodePlacements(String((part.g.extra as Record<string, unknown>)["placements"]));
+    check(!part.g.isCorrect && stored.length === mine.length, `reveal ${label}: the unfinished answer graded ${stored.length} placements`);
+    check(pillValue(part.html, "pieces") === `${stored.length}/${pieces}`, `reveal ${label}: unfinished pieces pill ${pillValue(part.html, "pieces")}`);
+    const covered = Number((part.g.extra as Record<string, unknown>)["covered"]);
+    check(pillValue(part.html, "gaps") === String(blockGeometry(p).free - covered), `reveal ${label}: gaps pill ${pillValue(part.html, "gaps")}`);
+    const gaps = (part.html.match(/data-reveal-gap=/g) ?? []).length;
+    check(gaps === blockGeometry(p).free - covered, `reveal ${label}: ${gaps} empty squares marked, ${blockGeometry(p).free - covered} empty`);
+    if (elsewhere) {
+      const wrong = (part.html.match(/data-reveal-wrong="(\d+)"/g) ?? []).length;
+      check(wrong === elsewhere.length && part.html.includes(`data-reveal-wrong="${first.piece}"`), `reveal ${label}: the misplaced piece outlined on ${wrong} squares`);
+      check(pillValue(part.html, "wrong") === "1", `reveal ${label}: off-the-solution pill ${pillValue(part.html, "wrong")}`);
+      check(/Red: not in a solution spot/.test(part.html) && /Dashed: left empty/.test(part.html), `reveal ${label}: the marks' key`);
+    }
+    if (label === "new") check(pillValue(part.html, "illegal") === "1" && /Illegal drop</.test(part.html), `reveal new: one illegal drop pill`);
+    check(pill(part.html, "time") === null, `reveal ${label}: a time pill on an unfinished round`);
+    check(!/×/.test(part.html), `reveal ${label}: a stray × (unfinished)`);
+    // Nothing reads as the solution's: the numbers sit in the Yours column only.
+    const solCol = part.html.slice(part.html.indexOf('data-reveal-view="solution"'), part.html.indexOf('data-reveal-view="yours"'));
+    check(solCol.length > 0 && !/data-hud-pill|data-reveal-wrong|data-reveal-gap/.test(solCol), `reveal ${label}: numbers or marks under Solution`);
+  }
+  // A round with no stored extra (an older row): the reveal reads its own answer with the shared rules.
+  {
+    const p = live[2]!;
+    const sol = p.solution ?? [];
+    const html = renderToStaticMarkup(<Reveal puzzle={p} myAnswer={encodePlacements(sol.slice(0, 3))} myCorrect={false} myReactionAvgMs={null} timeLimitMs={60_000} />);
+    check(pillValue(html, "pieces") === `3/${blockGeometry(p).pieces.length}`, `reveal bare: pieces pill ${pillValue(html, "pieces")}`);
+    const empty = renderToStaticMarkup(<Reveal puzzle={p} myAnswer={null} myCorrect={false} myReactionAvgMs={null} timeLimitMs={60_000} />);
+    check(pillValue(empty, "pieces") === `0/${blockGeometry(p).pieces.length}`, "reveal: no answer");
+  }
+  // The fit targets the board itself (the half-size solution under the switch was the fit scaling a column).
+  const css = readFileSync("src/polish-pattern/blockparty.css", "utf8");
+  check(/\[data-solution-view\] \.bp-reveal-board \{ width: min\(100cqw, 360px\); \}/.test(css), "reveal: the shown board doesn't take the whole row");
+}
+function fxPuzzle(i: number): Block {
+  const fx = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/pattern-overhaul-blockparty-legacy.json.gz")).toString()) as { puzzles: Block[] };
+  return fx.puzzles[i]!;
 }
 
 /* 6. Sound slots and their lines. */

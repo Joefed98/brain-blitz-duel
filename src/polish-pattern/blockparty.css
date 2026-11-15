@@ -110,3 +110,17 @@
 /* One board at a time under the reveal's Solution / Yours switch (6 Nov 2026): the whole row, not half of it. */
 [data-solution-view] .bp-reveal-board { width: min(100cqw, 360px); }
 .bp-reveal > p { flex-shrink: 0; }
+
+/* The Pattern overhaul's reveal (15 Nov 2026). Each board is the reveal fit's own target (data-reveal-board), so the
+   fit scales the board itself, never a column whose size the switch's hidden labels decide (the half-size solution). */
+.bp-reveal-col { min-width: 0; }
+.bp-reveal-label { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--jz-text-2); }
+.bp-reveal-pills { justify-content: center; flex-wrap: wrap; height: auto; row-gap: 6px; }
+.bp-reveal-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: 13px; color: var(--jz-text-2); }
+.bp-key::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 3px; }
+.bp-key--wrong::before { border: 2px solid var(--jz-loss); }
+.bp-key--gap::before { border: 2px dashed var(--jz-text-2); }
+/* Marks on the player's board: a piece off every solution spot outlined red; a square left empty dashed. */
+.bp-mark { position: absolute; pointer-events: none; box-sizing: border-box; }
+.bp-mark--wrong { border: 3px solid var(--jz-loss); border-radius: 12%; }
+.bp-mark--gap { border: 2px dashed var(--jz-text-2); border-radius: 14%; transform: scale(0.78); }
