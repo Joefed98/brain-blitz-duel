@@ -43,12 +43,33 @@ def reach(img):
     return round(best / (w / 2), 4)
 
 
+def fit_circle(img, margin=0.95):
+    """Bonk's targets: re-centre the visible figure and scale it (down only) so every visible pixel sits inside the
+    sprite's circle (radius `margin` x half the width), the target's hit circle (the bounds rule)."""
+    a = img.getchannel("A")
+    box = a.point(lambda v: 255 if v > 8 else 0).getbbox()
+    if not box:
+        return img
+    w, h = img.size
+    cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    px = a.load()
+    far = max((math.hypot(x - cx, y - cy) for y in range(box[1], box[3]) for x in range(box[0], box[2]) if px[x, y] > 8), default=1)
+    k = min(1.0, margin * (w / 2) / far)
+    crop = img.crop(box)
+    crop = crop.resize((max(1, round(crop.width * k)), max(1, round(crop.height * k))), Image.LANCZOS)
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    out.paste(crop, (round(w / 2 - (cx - box[0]) * k), round(h / 2 - (cy - box[1]) * k)), crop)
+    return out
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     entries = {}
     for name in sorted(f[:-4] for f in os.listdir(SRC) if f.endswith(".png")):
         img = Image.open(os.path.join(SRC, name + ".png"))
         img = img.convert("RGB") if name in OPAQUE else img.convert("RGBA")
+        if name.startswith(("bonk-gopher", "bonk-hedgehog")):
+            img = fit_circle(img)
         buf = io.BytesIO()
         img.save(buf, "WEBP", quality=86, method=6, exact=False)
         data = buf.getvalue()
