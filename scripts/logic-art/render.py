@@ -54,7 +54,7 @@ def strip(cx, cy, key=1.0):
     area(cx - 120, cy, 260, 30, 900 * key, "#fff6ea", sx=900, sy=24, target=(cx, cy, 0))
 
 
-def frame(cx, cy, w, h, px_w, px_h, tilt=0.0, black=False, bold=False, key=1.0):
+def frame(cx, cy, w, h, px_w, px_h, tilt=0.0, black=False, bold=False, key=1.0, lens=None):
     """A fresh scene: the concept's lights, an orthographic camera looking down on (cx, cy) in screen points covering
     w x h points, rendering px_w x px_h. `tilt` leans the camera forward (degrees) to see a piece's side."""
     reset()
@@ -72,12 +72,19 @@ def frame(cx, cy, w, h, px_w, px_h, tilt=0.0, black=False, bold=False, key=1.0):
         mix = n.new("ShaderNodeMixShader")
         nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs[0]); nt.links.new(prev, mix.inputs[1])
         nt.links.new(bg2.outputs[0], mix.inputs[2]); nt.links.new(mix.outputs[0], out)
-    cam = bpy.data.cameras.new("cam"); cam.type = "ORTHO"
-    cam.ortho_scale = max(w, h) * P; cam.sensor_fit = "AUTO"; cam.clip_end = 100
+    cam = bpy.data.cameras.new("cam"); cam.clip_end = 100; cam.sensor_fit = "AUTO"
+    # `lens`: a close perspective camera (the piece seen at slightly different angles across it, as in the concept's
+    # full-board view, so lacquer and gloss pick up a gradient); else orthographic.
+    dist = 10.0
+    if lens:
+        cam.type = "PERSP"; cam.lens = lens; cam.sensor_width = 36.0
+        dist = max(w, h) * P * lens / 36.0
+    else:
+        cam.type = "ORTHO"; cam.ortho_scale = max(w, h) * P
     ob = bpy.data.objects.new("cam", cam); s.collection.objects.link(ob)
     t = math.radians(tilt)
     target = V(cx, cy, 0)
-    ob.location = (target.x, target.y - 10 * math.sin(t), 10 * math.cos(t))
+    ob.location = (target.x, target.y - dist * math.sin(t), dist * math.cos(t))
     ob.rotation_euler = (t, 0, 0)
     s.camera = ob
 
@@ -89,7 +96,10 @@ def write(name, key_glass=False, shading=False, quality=88, saturate=1.0, crop=N
     bpy.ops.render.render(write_still=True)
     from PIL import Image, ImageOps
     im = Image.open(png).convert("RGBA")
-    if crop:
+    if crop == "content":
+        # Trim to what was drawn (alpha), so the app can lay the piece edge to edge.
+        im = im.crop(im.getchannel("A").point(lambda v: 255 if v > 8 else 0).getbbox())
+    elif crop:
         im = im.crop(crop)
     if key_glass:
         # Keep only what the glass adds: alpha = its brightest channel, colour normalised by it.
@@ -122,10 +132,13 @@ def write(name, key_glass=False, shading=False, quality=88, saturate=1.0, crop=N
 def box_tile(given):
     cs = 60
     x, y = 195 - cs / 2, 380 - cs / 2
-    frame(195, 380, cs, cs, 240, 240, bold=True)
-    tile = mat("sdkB", "#0f1d1c" if not given else "#141c1a", 0.12, coat=1.0, coat_rough=0.04)
-    box(x + 2, y + 2, cs - 4, cs - 4, 5, tile, r=3, z=9)
-    write("box-tile-given" if given else "box-tile")
+    # Second pass (Joe, 15 Nov 2026: visible lacquered depth): concept B's camera lean (15 degrees), so the tile's lit
+    # top bevel and its lacquered lower side show, a deeper slab and a softer bevel catching B's key light.
+    frame(195, 380, cs + 4, cs + 4, 256, 256, tilt=12, bold=True, lens=30, key=0.4)
+    # Concept A's tile (#162523, a clear lacquer coat) under B's light: a soft sheen across it, no glare.
+    tile = mat("sdkA", "#121c1b" if not given else "#161d1b", 0.45, coat=0.45, coat_rough=0.42)
+    box(x + 2, y + 2, cs - 4, cs - 4, 10, tile, r=6, z=4)
+    write("box-tile-given" if given else "box-tile", crop="content")
 
 
 # ------------------------------------------------------------------ Polypotions: A's glass, B's liquids, C's cork
@@ -188,10 +201,11 @@ HANOI_SHADES = ["#FFE14D", "#FFC23D", "#FF9A3D", "#F2675E", "#E0508F", "#B85CD6"
 
 
 def hanoi_post():
-    frame(150, 410, 16, 312, 48, 936)
+    # Second pass: thicker (r 8, from 6), at twice the resolution, the grain stretched along the turning.
+    frame(150, 410, 20, 312, 96, 1498)
     oak = wood("oak", "#b07a45", "#6e4422", rough=0.35, coat=0.8, scale=4)
-    ycyl(150, 260, 310, 6, oak, z=26, bevel=5.5)
-    write("hanoi-post")
+    ycyl(150, 260, 310, 8, oak, z=26, bevel=7.5)
+    write("hanoi-post", crop="content")
 
 
 def hanoi_plate(gold):
@@ -205,11 +219,13 @@ def hanoi_ring(i):
     """B's candy-glass ring (coat, a little transmission, a soft inner glow), one per shade, a medium width (the app
     slices its rounded ends with border-image, so any width keeps round ends)."""
     rh, w = 26, 110
-    frame(195, 500, w + 6, w + 6, 456, 456, bold=True)
+    # Second pass: concept B's camera lean (15 degrees), so each ring shows its glossy top face over its rounded front,
+    # as the stacks do in the concept; trimmed to the ring.
+    frame(195, 500, w + 6, w + 6, 456, 456, tilt=15, bold=True)
     col = HANOI_SHADES[i]
     m = mat(f"ring{i}", col, 0.08, coat=1.0, coat_rough=0.03, trans=0.25, emit=col, emit_strength=0.45)
-    box(195 - w / 2, 500 - (rh - 3) / 2, w, rh - 3, 26, m, r=11.5, z=12)
-    write(f"hanoi-ring-{i + 1}", saturate=1.2, crop=(0, round(456 * (0.5 - (rh + 2) / 2 / (w + 6))), 456, round(456 * (0.5 + (rh + 2) / 2 / (w + 6)))))
+    box(195 - w / 2, 500 - (rh - 3) / 2, w, rh - 3, 26, m, r=11.5, z=0)
+    write(f"hanoi-ring-{i + 1}", saturate=1.2, crop="content")
 
 
 # ------------------------------------------------------------------ Safe Cracker: A's steel door and gold drums

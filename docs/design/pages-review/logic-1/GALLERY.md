@@ -27,8 +27,15 @@ The rendered pieces:
 
 <img src="img/sprites.webp" width="700" alt="The 47 rendered sprites">
 
-Image budget (the sprites each game loads): Box Six 4.3 KB, Polypotions 230.0 KB, Hanoi 61.1 KB, Safe Cracker 10.7 KB,
-Mosaic 4.2 KB, Colour Flood 26.4 KB, Minefield 11.0 KB; 348 KB for all seven, each under the 400 KB a game.
+Image budget (the sprites each game loads): Box Six 2.9 KB, Polypotions 230.0 KB, Hanoi 68.6 KB, Safe Cracker 10.7 KB,
+Mosaic 4.2 KB, Colour Flood 26.4 KB, Minefield 11.0 KB; 354 KB for all seven, each under the 400 KB a game.
+
+**Look pass 2 (15 Nov 2026, with stage 2; the table above shows it):** Polypotions' tubes take concept A's proportions
+(a 66 : 316 test tube, 82 % of its column, real space round each), smoked interiors and a faint lit glass wall, with no
+box round the flask buttons; Box Six's tiles are concept A's lacquer seen through a close camera under B's light, so a
+soft sheen falls across each dark tile and its bevel shows (no hard reflections); Hanoi's posts are thicker turned oak
+(radius 8, rendered at twice the resolution) and its rings concept B's candy glass seen at B's camera lean, their glossy
+top face over the rounded front.
 
 ## The answer reveals
 
