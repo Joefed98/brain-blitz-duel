@@ -108,24 +108,37 @@ The clip is made by `bun scripts/shots/bastion-overhaul-clip.ts <dir>` (frames) 
 
 <!-- highrise -->
 
-`skylineRev 11` (lives, the wide-block rescue) and the new look. Before: the game review's frames from main (390 × 844,
-intro / mid-play / reveal). After: the game's own renderer with the play screen's fill around it
-(`bun scripts/shots/skyline-overhaul-clip.ts <dir> <screenW> <screenH> [every] [sloppy]`), because the in-browser capture
-could not run on the shared machine (the dev server was killed for memory twice); `scripts/shots/skyline-overhaul-shots.ts`
-draws the same in the real app when a dev server is up.
+`skylineRev 11` (lives, the wide-block rescue), the new look and the materials pass (15 Nov 2026). The new frames are drawn
+by the game's own renderer with the play screen's fill around it (`bun scripts/shots/skyline-overhaul-clip.ts <dir>
+<screenW> <screenH> [every] [sloppy]`, in @napi-rs/canvas, no browser), so they show the world and its fill, not the app's
+header; text pops that run on the real clock sit on top of each other in these stills. Today is the game review's frame
+from main.
 
-| Before: start | Before: mid | Before: end |
-|---|---|---|
-| <img src="skyline/before-start.webp" width="200"> | <img src="skyline/before-mid.webp" width="200"> | <img src="skyline/before-end.webp" width="200"> |
+**Materials.** Each floor is a glass curtain wall exactly on the sim's rectangle: deep blue-black glass with the sky caught
+on its upper half, steel mullions with a lit side, a polished gold spandrel band (heavier every fifth floor), windows that
+light warm and cool as night falls, a crisp highlight line down the tower, a lit left edge and a shaded right edge so each
+floor and its overlap read at once. The crane's jib is painted yellow steel, light on its top faces, the two diagonals in
+two tones, with bolts. The city is concept A's three layers, held still (the tower climbs past it), and the stone plaza
+is a solid foreground with kerb, paving and a footing. The harbour is glossy: a sheen under the quay, the city's lights
+and the moon broken into reflections, the dusk's rose on the water. No glow edges, no glare over the HUD.
 
-| After: dusk, the plaza | After: a life lost ("−1 LIFE", LIVES 2 / 3) | After: night, 414 wide, edge to edge | After: late night |
+| Today · Concept A · New |
+|---|
+| <img src="skyline/compare-1.webp" width="640"> |
+| <img src="skyline/compare-2.webp" width="640"> |
+| <img src="skyline/compare-3.webp" width="640"> |
+
+| Dusk, the plaza | A life lost ("−1 LIFE", LIVES 2 / 3) | Night, 414 wide, edge to edge | Late night |
 |---|---|---|---|
 | <img src="skyline/after-start-dusk.webp" width="180"> | <img src="skyline/after-life-lost.webp" width="180"> | <img src="skyline/after-mid-414-edge.webp" width="180"> | <img src="skyline/after-night-414-edge.webp" width="180"> |
 
-Edge to edge on a computer's column (640 wide): <img src="skyline/after-desktop-edge.webp" width="240">
+Edge to edge on a computer's column (640 wide): the sky, the city, the jib and the plaza run on beside the world as one
+picture. <img src="skyline/after-desktop-edge.webp" width="240">
 
 Clip (about 6 s, one frame every 1.5 s of a 60 s run): dusk turning to night and the city lighting up as the tower
 climbs: <img src="skyline/clip-dusk-to-night.webp" width="240">
+
+Before (main), for reference: <img src="skyline/before-start.webp" width="120"> <img src="skyline/before-mid.webp" width="120"> <img src="skyline/before-end.webp" width="120">
 
 
 ## Orbit

@@ -247,28 +247,36 @@ function sprite(key: string, w: number, h: number, paint: (c: CanvasRenderingCon
   return out;
 }
 
-function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number, SKYLINE_WORLD_H: number, night = 1): void {
-  const k = 1 - (1 - zoom) * 0.2;
-  ctx.save();
-  ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H + scroll * 0.2 * zoom);
-  ctx.scale(k, k);
-  ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H);
-  // The Action overhaul (15 Nov 2026): the city from concept A, three layers deep; its windows light up as night falls.
+/**
+ * The city behind the tower (the Action overhaul, 15 Nov 2026): concept A's skyline, three layers deep, its windows lighting
+ * up as night falls. Since the materials pass it is held still, a distant city the camera never moves (the tower climbs
+ * past it), so the screen's fill can paint the very same city beside the world and the two meet without a seam.
+ */
+function drawBackdrop(ctx: CanvasRenderingContext2D, worldH: number, night = 1): void {
+  drawCityBand(ctx, -CITY_PAD, SKYLINE_WORLD_W + CITY_PAD, worldH, night);
+}
+
+/** The still city over world x [x0, x1] (repeated past its own width for wide screens), its foot on the world's bottom. */
+function drawCityBand(ctx: CanvasRenderingContext2D, x0: number, x1: number, worldH: number, night: number): void {
   const W = SKYLINE_WORLD_W + 2 * CITY_PAD;
   const dim = sprite("city-dim", W, CITY_H, (c) => paintCity(c, 0));
   const lit = night > 0 ? sprite("city-lit", W, CITY_H, (c) => paintCity(c, 1)) : null;
-  if (dim) {
-    ctx.drawImage(dim as CanvasImageSource, -CITY_PAD, SKYLINE_WORLD_H - CITY_H, W, CITY_H);
-    if (lit) {
+  for (let k = -3; k <= 3; k++) {
+    const cx = -CITY_PAD + k * W;
+    if (cx + W < x0 || cx > x1) continue;
+    if (dim) ctx.drawImage(dim as CanvasImageSource, cx, worldH - CITY_H, W, CITY_H);
+    else {
+      ctx.save();
+      ctx.translate(cx, worldH - CITY_H);
+      paintCity(ctx, night);
+      ctx.restore();
+    }
+    if (dim && lit) {
       ctx.globalAlpha = night;
-      ctx.drawImage(lit as CanvasImageSource, -CITY_PAD, SKYLINE_WORLD_H - CITY_H, W, CITY_H);
+      ctx.drawImage(lit as CanvasImageSource, cx, worldH - CITY_H, W, CITY_H);
       ctx.globalAlpha = 1;
     }
-  } else {
-    ctx.translate(-CITY_PAD, SKYLINE_WORLD_H - CITY_H);
-    paintCity(ctx, night);
   }
-  ctx.restore();
 }
 
 /** The city backdrop's size (world px) and how far it runs past each side of the world. */
@@ -353,42 +361,84 @@ function paintCity(c: CanvasRenderingContext2D, lights: number): void {
   c.fillRect(0, H - 26, W, 26);
 }
 
-export function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, h: number, index: number, age = Infinity): void {
-  ctx.fillStyle = STEEL;
+/**
+ * One floor (the Action overhaul's materials pass, 15 Nov 2026; display only, exactly the sim's rectangle): a glass
+ * curtain wall, deep blue-black glass between steel mullions, a gold spandrel band along the top with a metal sheen (a
+ * heavier one every fifth floor), windows lighting up as night falls (warm and cool), a crisp highlight down the glass
+ * where the tower's curve would catch the moon, a lit left edge and a shaded right edge so the floor's outline and its
+ * overlap read at once. `index` picks the windows and the bands; `age` fades a new floor's windows in; `night` 0–1.
+ */
+export function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, h: number, index: number, age = Infinity, night = 1): void {
+  if (w <= 0) return;
+  // Glass: darker at the foot, the sky's blue caught near the top.
+  const glass = ctx.createLinearGradient(0, top, 0, top + h);
+  glass.addColorStop(0, "#2C4166");
+  glass.addColorStop(0.45, "#18294A");
+  glass.addColorStop(1, "#0E1A31");
+  ctx.fillStyle = glass;
   ctx.fillRect(x, top, w, h);
-  ctx.fillStyle = GLASS[index % GLASS.length]!;
-  const inset = 3;
-  const panes = Math.max(1, Math.round((w - inset * 2) / 16));
+  const inset = 2;
+  const panes = Math.max(1, Math.round((w - inset * 2) / 11));
   const pw = (w - inset * 2) / panes;
-  for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, pw - 2, h - inset * 2 - 4);
-  ctx.fillStyle = PANE_GLOW;
-  for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, pw - 2, h - inset * 2 - 4);
-  ctx.fillStyle = "rgba(255,255,255,0.28)";
-  for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, Math.max(1, (pw - 2) * 0.3), h - inset * 2 - 4);
-  ctx.fillStyle = STEEL_LIGHT;
-  ctx.fillRect(x, top, w, 2);
-  // Polish A2: shading down the floor (lit from the top, darker at its foot) and a darker right edge.
-  ctx.fillStyle = "rgba(10,16,30,0.16)";
-  ctx.fillRect(x, top + h * 0.55, w, h * 0.45);
-  ctx.fillStyle = "rgba(10,16,30,0.22)";
-  ctx.fillRect(x, top + h - 2, w, 2);
-  ctx.fillRect(x + w - 2, top + 2, 2, h - 2);
-
-  // Warm lit windows for placed floors (fade in over ~20 ticks after landing).
-  if (age !== Infinity) {
-    const fade = Math.max(0, Math.min(1, age / 20));
-    for (let p = 0; p < panes; p++) {
-      const lit = artHash(index * 31 + p, 7) % 5;
-      if (lit === 0) continue;
-      ctx.globalAlpha = fade * (lit === 1 ? 0.45 : 0.85);
-      ctx.fillStyle = lit === 4 ? "#FFE3A3" : WINDOW_LIGHT;
-      ctx.fillRect(x + inset + p * pw + 2, top + inset + 3, pw - 4, h - inset * 2 - 6);
-      // Polish A2: a warm glow in the pane, brightest at its centre (inside the block).
-      ctx.globalAlpha = fade * (lit === 1 ? 0.25 : 0.45);
-      ctx.fillStyle = "#FFF4D6";
-      ctx.fillRect(x + inset + p * pw + 2 + (pw - 4) * 0.25, top + inset + 3 + (h - inset * 2 - 6) * 0.2, (pw - 4) * 0.5, (h - inset * 2 - 6) * 0.6);
+  const lit = 0.16 + 0.44 * night;
+  const fade = age === Infinity ? 1 : Math.max(0, Math.min(1, age / 20));
+  const winTop = top + 4;
+  const winH = h - 7;
+  for (let p = 0; p < panes; p++) {
+    const px0 = x + inset + p * pw + 1;
+    const r = artHash(index * 31 + p, 7);
+    if ((r % 1000) / 1000 < lit) {
+      // A lit window: warm or cool, brightest in its middle.
+      const warm = r % 5 < 3;
+      ctx.globalAlpha = (0.55 + ((r >>> 10) % 4) * 0.1) * fade;
+      ctx.fillStyle = warm ? "#FFD993" : "#C8DCFF";
+      ctx.fillRect(px0, winTop, pw - 2, winH);
+      ctx.globalAlpha = 0.5 * fade;
+      ctx.fillStyle = warm ? "#FFF0C8" : "#E8F2FF";
+      ctx.fillRect(px0 + (pw - 2) * 0.25, winTop + winH * 0.25, (pw - 2) * 0.5, winH * 0.5);
+      ctx.globalAlpha = 1;
+    } else {
+      // Dark glass with the sky's reflection on its upper half.
+      ctx.fillStyle = "rgba(120,160,220,0.13)";
+      ctx.fillRect(px0, winTop, pw - 2, winH * 0.45);
     }
-    ctx.globalAlpha = 1;
+  }
+  // Steel mullions between the panes, each with a lit side.
+  for (let p = 1; p < panes; p++) {
+    const mx = Math.round(x + inset + p * pw);
+    ctx.fillStyle = "#7D90AA";
+    ctx.fillRect(mx - 1, top + 2, 1, h - 3);
+    ctx.fillStyle = "rgba(225,235,250,0.35)";
+    ctx.fillRect(mx - 1, top + 2, 0.5, h - 3);
+  }
+  // The gold spandrel band along the top, a polished metal: light on its upper edge, shade under.
+  const heavy = index % 5 === 0;
+  const bandH = heavy ? 3 : 1.5;
+  const gold = ctx.createLinearGradient(0, top, 0, top + bandH);
+  gold.addColorStop(0, "#FFE7A3");
+  gold.addColorStop(0.5, "#E1B04A");
+  gold.addColorStop(1, "#9C7224");
+  ctx.fillStyle = gold;
+  ctx.fillRect(x, top, w, bandH);
+  // The floor slab line at the foot (separates floors crisply).
+  ctx.fillStyle = "#08101F";
+  ctx.fillRect(x, top + h - 1, w, 1);
+  // Edges: lit left, shaded right.
+  ctx.fillStyle = "rgba(210,226,250,0.55)";
+  ctx.fillRect(x, top + bandH, 1, h - bandH - 1);
+  ctx.fillStyle = "rgba(4,8,18,0.55)";
+  ctx.fillRect(x + w - 1.5, top + bandH, 1.5, h - bandH - 1);
+  // The glass's highlight: a soft band and a crisp line at a fixed place on the tower, so they line up floor to floor.
+  const hx = SKYLINE_WORLD_W * 0.43;
+  const l = Math.max(x + 1, hx - 7);
+  const rr = Math.min(x + w - 2, hx + 3);
+  if (rr > l) {
+    ctx.fillStyle = "rgba(200,225,255,0.09)";
+    ctx.fillRect(l, top + bandH, rr - l, h - bandH - 1);
+  }
+  if (hx + 1 > x + 1 && hx + 1 < x + w - 2) {
+    ctx.fillStyle = "rgba(235,245,255,0.42)";
+    ctx.fillRect(hx + 1, top + bandH, 1, h - bandH - 1);
   }
 }
 
@@ -423,33 +473,60 @@ function paintJibGlow(c: CanvasRenderingContext2D): void {
 }
 
 function drawCrane(ctx: CanvasRenderingContext2D, trolleyX: number, tick: number): void {
-  // Polish A2: the jib glows faintly.
-  if (!arcadeReducedEffects()) {
-    const glow = sprite("jibglow", SKYLINE_WORLD_W, 28, paintJibGlow);
-    if (glow) ctx.drawImage(glow as CanvasImageSource, 0, JIB_Y - 8, SKYLINE_WORLD_W, 28);
-  }
-  // Lattice jib across the top, from a mast stub at the right.
-  ctx.fillStyle = REAL_GOLD;
-  ctx.fillRect(0, JIB_Y, SKYLINE_WORLD_W, 3);
-  ctx.fillRect(0, JIB_Y + 9, SKYLINE_WORLD_W, 3);
-  ctx.strokeStyle = REAL_GOLD;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  for (let x = 0; x < SKYLINE_WORLD_W; x += 12) {
-    ctx.moveTo(x, JIB_Y + 3);
-    ctx.lineTo(x + 6, JIB_Y + 9);
-    ctx.lineTo(x + 12, JIB_Y + 3);
-  }
-  ctx.stroke();
-  // Trolley.
-  ctx.fillStyle = STEEL_LIGHT;
-  ctx.fillRect(trolleyX - 8, JIB_Y + 11, 16, 5);
+  // The materials pass (15 Nov 2026): the jib in painted yellow steel, light on its upper faces (no glow).
+  drawJib(ctx, 0, SKYLINE_WORLD_W);
+  // The trolley: a steel carriage on two wheels, the hook block under it.
+  const tg = ctx.createLinearGradient(0, JIB_Y + 11, 0, JIB_Y + 17);
+  tg.addColorStop(0, "#C9D5E4");
+  tg.addColorStop(1, "#5E6E84");
+  ctx.fillStyle = tg;
+  ctx.fillRect(trolleyX - 9, JIB_Y + 11, 18, 6);
+  ctx.fillStyle = "#1A2230";
+  ctx.fillRect(trolleyX - 7, JIB_Y + 10, 3, 2);
+  ctx.fillRect(trolleyX + 4, JIB_Y + 10, 3, 2);
   // Polish A2: a softer spotlight, fading as it falls, its edges feathered.
   const cone = sprite("cone", 140, 150, paintCone);
   if (cone) ctx.drawImage(cone as CanvasImageSource, trolleyX - 70, JIB_Y + 16, 140, 150);
   ctx.fillStyle = REAL_LAMP;
-  ctx.fillRect(trolleyX - 4, JIB_Y + 16, 8, 3);
+  ctx.fillRect(trolleyX - 4, JIB_Y + 17, 8, 2);
   void tick;
+}
+
+/**
+ * The crane's jib over world x [x0, x1] (the materials pass): two chords of painted yellow steel, each lit on its top face
+ * and shaded under, the lattice between them in two tones (the lit diagonal and the one in shade), bolts at the nodes.
+ * The pattern is fixed to the world's x, so the screen's fill draws the same jib beside the world without a seam.
+ */
+function drawJib(ctx: CanvasRenderingContext2D, x0: number, x1: number): void {
+  const start = Math.floor(x0 / 12) * 12;
+  for (const [y, h] of [[JIB_Y, 3], [JIB_Y + 9, 3]] as const) {
+    const g = ctx.createLinearGradient(0, y, 0, y + h);
+    g.addColorStop(0, "#FFE38A");
+    g.addColorStop(0.45, "#E9B42C");
+    g.addColorStop(1, "#8E6512");
+    ctx.fillStyle = g;
+    ctx.fillRect(x0, y, x1 - x0, h);
+  }
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = "#F2C443";
+  ctx.beginPath();
+  for (let x = start; x < x1; x += 12) {
+    ctx.moveTo(x, JIB_Y + 3);
+    ctx.lineTo(x + 6, JIB_Y + 9);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "#A87A1C";
+  ctx.beginPath();
+  for (let x = start; x < x1; x += 12) {
+    ctx.moveTo(x + 6, JIB_Y + 9);
+    ctx.lineTo(x + 12, JIB_Y + 3);
+  }
+  ctx.stroke();
+  ctx.fillStyle = "#5A4210";
+  for (let x = start; x < x1; x += 12) {
+    ctx.fillRect(x - 0.5, JIB_Y + 1, 1, 1);
+    ctx.fillRect(x + 5.5, JIB_Y + 10, 1, 1);
+  }
 }
 
 /**
@@ -621,23 +698,12 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   const visibleH = SKYLINE_WORLD_H / zoom;
   const camScroll = Math.max(0, towerH + blockH + GROUND_LIFT - visibleH * (expand ? EXPAND_CLIMB : 0.5));
 
-  drawBackdrop(ctx, zoom, camScroll, SKYLINE_WORLD_H, night);
+  drawBackdrop(ctx, SKYLINE_WORLD_H, night);
 
   ctx.save();
   ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H);
   ctx.scale(zoom, zoom);
   ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H + camScroll);
-
-  // The plaza the tower stands on, and the ground under it (the Action overhaul: solid and clear).
-  drawPlaza(ctx, floorH, SKYLINE_WORLD_H, state.blocks[0]!);
-  // Edge to edge (15 Nov 2026): the world's side edges blend into the screen's fill, which is the same scene held still
-  // (the camera moves the city and the plaza here, never there), so the world's edge always matches what lies beside it.
-  ctx.save();
-  ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H - camScroll);
-  ctx.scale(1 / zoom, 1 / zoom);
-  ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H);
-  drawEdgeRamps(ctx, SKYLINE_WORLD_H, night);
-  ctx.restore();
 
   state.blocks.forEach((block, index) => {
     const top = floorH - index * blockH - blockH;
@@ -649,7 +715,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
       ctx.fillStyle = REAL_SHADOW;
       if (r > l) ctx.fillRect(l, top + blockH, r - l, 3);
     }
-    drawBlock(ctx, px(block.x), top, px(block.w), blockH, index, state.tick - (mem.placementTicks[index] ?? state.tick));
+    drawBlock(ctx, px(block.x), top, px(block.w), blockH, index, state.tick - (mem.placementTicks[index] ?? state.tick), night);
     // skylineRev 7: a special block keeps its look once placed (block 0 is the base).
     if (expand && index > 0) drawKindMark(ctx, skylineKindAt(state, index - 1), px(block.x), top, px(block.w), blockH, state.tick, false);
   });
@@ -678,7 +744,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     ctx.stroke();
     ctx.fillStyle = REAL_GOLD;
     ctx.fillRect(hookX - 3, hangTop - 18, 6, 5);
-    drawBlock(ctx, bx, hangTop, bw, blockH, state.blocks.length);
+    drawBlock(ctx, bx, hangTop, bw, blockH, state.blocks.length, Infinity, night);
     if (expand) drawKindMark(ctx, skylineKindAt(state, state.placed), bx, hangTop, bw, blockH, state.tick, true);
   }
 
@@ -713,12 +779,14 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     ctx.globalAlpha = 1 - k;
     ctx.translate(px(c.x) + px(c.w) / 2 + c.dir * 40 * k, c.top + blockH / 2 + fall);
     ctx.rotate(c.dir * k * 1.4);
-    drawBlock(ctx, -px(c.w) / 2, -blockH / 2, px(c.w), blockH, c.colour);
+    drawBlock(ctx, -px(c.w) / 2, -blockH / 2, px(c.w), blockH, c.colour, Infinity, night);
     ctx.restore();
   }
   ctx.restore();
 
-  // The quay in the foreground: the world's bottom rows always settle to the quay's colour the fill below starts from.
+  // The stone plaza in the foreground, held still like the city: the tower stands on it at the start, and as the camera
+  // climbs the tower carries on behind it. Its foot is the quay's colour the fill below starts from.
+  drawPlaza(ctx, floorH, SKYLINE_WORLD_H, state.blocks[0]!);
   drawQuayStrip(ctx, 0, SKYLINE_WORLD_W, SKYLINE_WORLD_H);
 
   if (state.rev && !state.missed) drawGustLines(ctx, skylineGustAt(state, state.tick), state.tick, SKYLINE_WORLD_H);
@@ -863,11 +931,10 @@ function paintSkyStatic(ctx: CanvasRenderingContext2D, x: number, w: number, wor
 }
 
 /**
- * The scene held still (edge to edge, 15 Nov 2026): the sky as the world draws it (night with the dusk laid over it at the
- * same step), a scatter of stars kept clear of the world and the quay settling the bottom rows, in world units over
- * `rect`. The screen's fill paints it beside the world, and the world blends its side edges into it (drawEdgeRamps): the
- * city and the plaza move with the camera, so they fade out at the world's edges into the still sky rather than meet a
- * still copy of themselves, and no seam shows at any height of the tower.
+ * The scene beside the world (edge to edge, 15 Nov 2026; the materials pass): the sky as the world draws it (night with
+ * the dusk laid over it at the same step), stars kept clear of the world, the same still city and the same stone plaza
+ * the world draws, in world units over `rect`. The world draws its city and plaza held still too, so wherever the camera
+ * is, the world's edge and the scene beside it are one picture with no seam.
  */
 export function paintSkylineStatic(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }, worldH: number, night: number, strip = true): void {
   ctx.save();
@@ -882,61 +949,16 @@ export function paintSkylineStatic(ctx: CanvasRenderingContext2D, rect: { x: num
     const x = -SKYLINE_WORLD_W + ((r % 10007) / 10007) * SKYLINE_WORLD_W * 3;
     if (x > -4 && x < SKYLINE_WORLD_W + 4) continue;
     if (x < rect.x || x > rect.x + rect.w) continue;
-    const y = ((((r >>> 14) % 10009) / 10009) ** 1.6) * worldH * 0.7;
+    const y = ((((r >>> 14) % 10009) / 10009) ** 1.6) * worldH * 0.5;
     ctx.globalAlpha = (0.2 + ((r >>> 5) % 5) * 0.1) * (0.25 + 0.75 * night);
     ctx.fillRect(x, y, i % 9 === 0 ? 1.6 : 1, i % 9 === 0 ? 1.6 : 1);
   }
   ctx.globalAlpha = 1;
-  // The far city's low skyline, held still (the world's own city fades into it at the edges): dark blocks up to 70 px,
-  // their windows lighting with the night. Placed in world units by artHash, so beside and at the world's edge agree.
-  const base = worldH - GROUND_LIFT;
-  for (let x = -1_800, i = 0; x < rect.x + rect.w; i++) {
-    const r = artHash(Math.round(x) + 7_000, 811);
-    const bw = 16 + (r % 22);
-    const bh = 34 + ((r >>> 8) % 40);
-    if (x + bw >= rect.x) {
-      ctx.fillStyle = "#141A3A";
-      ctx.fillRect(x, base - bh, bw, bh + GROUND_LIFT);
-      for (let wy = base - bh + 5; wy < base - 3; wy += 7)
-        for (let wx = x + 3; wx < x + bw - 3; wx += 5) {
-          const q = artHash(Math.round(wx * 31 + wy), 17);
-          if (q % 1000 > 120 + 380 * night) continue;
-          ctx.globalAlpha = 0.5 + (q % 4) * 0.12;
-          ctx.fillStyle = q % 3 === 0 ? "#BFD6FF" : "#FFC66B";
-          ctx.fillRect(wx, wy, 2, 3);
-        }
-      ctx.globalAlpha = 1;
-    }
-    x += bw + 1 + ((r >>> 20) % 4);
-  }
+  drawCityBand(ctx, rect.x, rect.x + rect.w, worldH, night);
+  drawPlaza(ctx, worldH - GROUND_LIFT, worldH, { x: (SKYLINE_WORLD_RIGHT_FP - 51_200) / 2, w: 51_200 });
+  drawJib(ctx, rect.x, rect.x + rect.w);
   if (strip) drawQuayStrip(ctx, rect.x, rect.w, worldH);
   ctx.restore();
-}
-
-/** How wide the world's edge blend is (world px). */
-const EDGE_RAMP = 14;
-/** The world's left and right EDGE_RAMP px blended into the still scene (cached per night step; never over the blocks). */
-export function drawEdgeRamps(ctx: CanvasRenderingContext2D, worldH: number, night: number): void {
-  for (const side of [0, 1] as const) {
-    const x0 = side === 0 ? 0 : SKYLINE_WORLD_W - EDGE_RAMP;
-    const art = sprite(`edge-${side}-${worldH}-${night}`, EDGE_RAMP, worldH, (c) => {
-      c.save();
-      c.translate(-x0, 0);
-      paintSkylineStatic(c, { x: x0, y: 0, w: EDGE_RAMP, h: worldH }, worldH, night, false);
-      c.restore();
-      // The fade, in the sprite's own coordinates: opaque at the world's edge, clear EDGE_RAMP px in.
-      c.globalCompositeOperation = "destination-in";
-      const g = c.createLinearGradient(0, 0, EDGE_RAMP, 0);
-      g.addColorStop(0, side === 0 ? "rgba(0,0,0,1)" : "rgba(0,0,0,0)");
-      // Solid for the outermost 3 px, so the edge pixel is the still scene at any scale.
-      g.addColorStop(side === 0 ? 3 / EDGE_RAMP : 1 - 3 / EDGE_RAMP, "rgba(0,0,0,1)");
-      g.addColorStop(1, side === 0 ? "rgba(0,0,0,0)" : "rgba(0,0,0,1)");
-      c.fillStyle = g;
-      c.fillRect(0, 0, EDGE_RAMP, worldH);
-      c.globalCompositeOperation = "source-over";
-    });
-    if (art) ctx.drawImage(art as CanvasImageSource, x0, 0, EDGE_RAMP, worldH);
-  }
 }
 
 /**
@@ -950,7 +972,7 @@ export function skylineSceneFill(night: number): (ctx: CanvasRenderingContext2D,
   if (!fill) {
     fill = (ctx, view) => {
       for (const r of fillSides(view)) paintSkylineStatic(ctx, r, view.worldH, night);
-      skylineRiverFill(ctx, view);
+      skylineRiverFill(ctx, view, night);
     };
     sceneFills.set(night, fill);
   }
@@ -1045,16 +1067,16 @@ export const SKYLINE_ART_BG = REAL_NIGHT_BG;
  * on, then a river reflecting the city: gold window streaks and the moon's pale path on dark water,
  * settling darker towards the screen's bottom. Painted once per size (ArcadeArenaSlot's scene canvas).
  */
-export function skylineRiverFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+export function skylineRiverFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, night = 1): void {
   const r = fillBelow(view);
   if (!r) return;
-  // The quay's top runs on from the base's ground colour (at least 10 px, so no seam at the world's edge).
+  // The quay's top runs on from the plaza's foot colour (at least 10 px, so no seam at the world's edge).
   const quay = Math.min(12, r.h);
   fillGradient(ctx, r, r.y, r.y + r.h, [
     [0, "#3E4B5E"],
     [Math.min(0.9, (quay - 3) / r.h), "#36435A"],
-    [Math.min(0.95, quay / r.h), "#161C3C"],
-    [1, "#0A0D22"],
+    [Math.min(0.95, quay / r.h), "#141C3E"],
+    [1, "#060918"],
   ]);
   ctx.fillStyle = "rgba(190,205,230,0.22)";
   ctx.fillRect(r.x, r.y + 2, r.w, 1);
@@ -1062,24 +1084,52 @@ export function skylineRiverFill(ctx: CanvasRenderingContext2D, view: ArenaScene
   ctx.fillRect(r.x, r.y + quay - 1, r.w, 1);
   const water = { x: r.x, y: r.y + quay, w: r.w, h: r.h - quay };
   if (water.h <= 2) return;
+  // The materials pass (15 Nov 2026): glossy harbour water. At dusk it carries the sky's rose; a soft sheen near the quay.
+  if (night < 1) {
+    const dusk = ctx.createLinearGradient(0, water.y, 0, water.y + Math.min(water.h, 90));
+    dusk.addColorStop(0, `rgba(214,120,140,${(0.32 * (1 - night)).toFixed(3)})`);
+    dusk.addColorStop(1, "rgba(214,120,140,0)");
+    ctx.fillStyle = dusk;
+    ctx.fillRect(water.x, water.y, water.w, Math.min(water.h, 90));
+  }
+  const sheen = ctx.createLinearGradient(0, water.y, 0, water.y + 14);
+  sheen.addColorStop(0, "rgba(170,190,240,0.16)");
+  sheen.addColorStop(1, "rgba(170,190,240,0)");
+  ctx.fillStyle = sheen;
+  ctx.fillRect(water.x, water.y, water.w, 14);
+  // The city's lights reflected: columns of short broken dashes under the skyline, fading with depth.
+  const light = 0.35 + 0.65 * night;
+  const deep = Math.max(1, Math.min(water.h - 4, 110));
+  for (let k = 0; k < Math.round(water.w / 4); k++) {
+    const h = artHash(k, 211);
+    if (h % 3 === 0) continue;
+    const x = Math.round(water.x + ((h % 10007) / 10007) * water.w);
+    const warm = h % 4 !== 0;
+    const len = 18 + ((h >>> 9) % 60);
+    for (let y = 0; y < Math.min(len, deep); y += 3) {
+      const a = (0.34 - (0.3 * y) / len) * light;
+      if (a <= 0.02) continue;
+      const wob = (artHash(k * 31 + y, 5) % 3) - 1;
+      ctx.fillStyle = warm ? `rgba(255,214,140,${a.toFixed(3)})` : `rgba(190,215,255,${a.toFixed(3)})`;
+      ctx.fillRect(x + wob, water.y + 2 + y, 1 + ((h >>> 3) % 2), 1);
+    }
+  }
   // The moon's path: soft pale dashes under where the moon hangs.
   const mx = view.worldW * 0.84;
   for (let k = 0, y = water.y + 3; y < water.y + water.h - 2; k++, y += 4) {
     const span = 6 + (k % 3) * 5 + k * 0.8;
-    ctx.fillStyle = `rgba(236,240,214,${Math.max(0.05, 0.3 - k * 0.02).toFixed(3)})`;
+    ctx.fillStyle = `rgba(236,240,214,${(Math.max(0.05, 0.34 - k * 0.02) * light).toFixed(3)})`;
     ctx.fillRect(mx - span / 2 + ((artHash(k, 5) % 7) - 3), y, span, 1);
   }
-  // Window lights broken into short gold streaks on the ripples.
-  for (let k = 0; k < Math.round(water.w / 6); k++) {
-    const h = artHash(k, 97);
-    const x = water.x + ((h % 10007) / 10007) * water.w;
-    const y = water.y + 3 + (((h >>> 14) % 1000) / 1000) * Math.max(1, Math.min(water.h - 6, 60));
-    ctx.fillStyle = h % 4 === 0 ? "rgba(255,227,163,0.32)" : "rgba(255,201,102,0.2)";
-    ctx.fillRect(Math.round(x), Math.round(y), 3 + (h % 6), 1);
+  // Long, faint ripple lines, a glint on every third.
+  for (let y = water.y + 5, i = 0; y < water.y + water.h; y += 7, i++) {
+    ctx.fillStyle = "rgba(160,170,230,0.06)";
+    ctx.fillRect(water.x, Math.round(y), water.w, 1);
+    if (i % 3 === 0) {
+      ctx.fillStyle = "rgba(220,230,255,0.10)";
+      ctx.fillRect(water.x + ((artHash(i, 9) % 1000) / 1000) * water.w, Math.round(y), 22, 1);
+    }
   }
-  // Long, faint ripple lines.
-  ctx.fillStyle = "rgba(160,170,230,0.06)";
-  for (let y = water.y + 5; y < water.y + water.h; y += 7) ctx.fillRect(water.x, Math.round(y), water.w, 1);
 }
 
 /* ============ skylineRev 7: special blocks, the multiplier, the preview and milestones ============ */
@@ -1212,10 +1262,8 @@ function drawSkylineActionHud(ctx: CanvasRenderingContext2D, state: SkylineState
   const bh = 19;
   const bx = x0 + 50 + (68 - bw) / 2;
   const by = y0 + 24 - bh / 2;
-  ctx.fillStyle = STEEL;
-  ctx.fillRect(bx, by, bw, bh);
-  ctx.fillStyle = GLASS[(state.blocks.length + 1) % GLASS.length]!;
-  ctx.fillRect(bx + 3, by + 5, bw - 6, bh - 10);
+  // The next floor in the tower's own glass and steel (the materials pass).
+  drawBlock(ctx, bx, by, bw, bh, state.blocks.length + 1, Infinity, skylineNightStep(state.placed));
   if (look) drawKindMark(ctx, nextKind, bx, by, bw, bh, state.tick, nextKind === SKYLINE_KIND_GOLD);
   if (named && look) {
     ctx.font = `800 12px ${ARCADE_FX_DISPLAY_FONT}`;

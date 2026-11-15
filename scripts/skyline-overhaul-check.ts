@@ -273,6 +273,9 @@ for (let p = 1; p <= 80; p++) if (skylineNightShare(p) < skylineNightShare(p - 1
 ok(mono && skylineNightShare(0) === 0 && skylineNightShare(80) === 1, "dusk turns to night as floors are built, never back");
 ok(art.includes("drawPlaza(") && art.includes("paintCity(") && art.includes("paintDusk("), "the plaza, the city and the dusk sky are drawn");
 ok(/label: "LIVES"/.test(art), "the HUD shows the lives");
+// The materials pass (15 Nov 2026): the city, the plaza and the jib are held still, drawn alike in the world and beside it.
+ok(/function drawBackdrop\(ctx: CanvasRenderingContext2D, worldH: number/.test(art) && !/drawEdgeRamps/.test(art), "the city is held still (no camera on it, no edge fade)");
+ok(/drawCityBand\(ctx, rect\.x/.test(art) && /drawJib\(ctx, rect\.x/.test(art) && /drawPlaza\(ctx, worldH - GROUND_LIFT/.test(art), "the scene beside the world draws the same city, jib and plaza");
 const sim = readFileSync("src/lib/arcade/skyline.ts", "utf8");
 ok(!/skylineNightShare|paintCity|Math\.random/.test(sim), "the sim never reads the look (and nothing random)");
 
@@ -339,7 +342,7 @@ section("8. Edge to edge: the world meets the screen's fill without a seam");
       const where = `${scr.name}, ${s.placed} floors`;
       // Sides: the world's edge columns must show what lies beside it, the still scene the fill paints (drawn here across the
       // boundary as the reference), so world and fill meet without a seam however the camera has moved the city. Compared in
-      // bands of 8 rows (the crane's jib row and the HUD excepted).
+      // bands of 8 rows, the whole height (the crane's jib included: it runs on beside the world too).
       const ref = createCanvas(scr.w, scr.h);
       const rc = ref.getContext("2d") as unknown as CanvasRenderingContext2D;
       rc.setTransform(scale, 0, 0, scale, ox, 0);
@@ -351,7 +354,7 @@ section("8. Edge to edge: the world meets the screen's fill without a seam");
         let sum = 0;
         let n = 0;
         let bad = 0;
-        for (let y0 = Math.round(60 * scale); y0 + 8 <= wh - 4; y0 += 8) {
+        for (let y0 = 0; y0 + 8 <= wh - 4; y0 += 8) {
           for (const [inX, outX] of [[x0 + 1, x0 - 2], [x1 - 2, x1 + 1]] as const) {
             const a = [0, 0, 0];
             const b = [0, 0, 0];
