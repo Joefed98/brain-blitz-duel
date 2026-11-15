@@ -17,7 +17,7 @@ veil under the name on the leaderboard strip, plaque words on the full card only
 `bun scripts/cosmetic-redraws.ts` into `src/design/identity/redrawnArt.data.ts`; the in-game looks paint their renders
 into the games' cached layers (`src/lib/arcade/skins/`, through `sceneImages.ts`). Pictures:
 `bun scripts/cosmetic-redraws/identity-shots.tsx` and `bun scripts/cosmetic-redraws/game-looks-shots.ts`; this page
-`bun scripts/cosmetic-redraws/gallery-doc.ts`. Gallery pictures: 1.85 MB.
+`bun scripts/cosmetic-redraws/gallery-doc.ts`. Gallery pictures: 1.86 MB.
 
 ## Card arts (23)
 
@@ -29,8 +29,7 @@ into the games' cached layers (`src/lib/arcade/skins/`, through `sceneImages.ts`
 |---|---|
 | <img src="gallery/card-art/card-art.joulz-navy--before.webp" width="330"> | <img src="gallery/card-art/card-art.joulz-navy--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.joulz-navy": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.joulz-navy', 'redrawn, approved <date>');`
+Switch: off: Joe's "Royal Navy" may mean this item or Royal; kept as today until he says. To use it: `"card-art.joulz-navy": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('card-art.joulz-navy', 'redrawn, approved <date>');`
 
 ### Bolt Stripes
 
@@ -40,8 +39,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.joulz-navy',
 |---|---|
 | <img src="gallery/card-art/card-art.bolt-stripes--before.webp" width="330"> | <img src="gallery/card-art/card-art.bolt-stripes--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.bolt-stripes": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.bolt-stripes', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Grid
 
@@ -51,8 +49,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.bolt-stripes
 |---|---|
 | <img src="gallery/card-art/card-art.grid--before.webp" width="330"> | <img src="gallery/card-art/card-art.grid--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.grid": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.grid', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Waves
 
@@ -62,8 +59,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.grid', 'redr
 |---|---|
 | <img src="gallery/card-art/card-art.waves--before.webp" width="330"> | <img src="gallery/card-art/card-art.waves--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.waves": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.waves', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Hexes
 
@@ -73,8 +69,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.waves', 'red
 |---|---|
 | <img src="gallery/card-art/card-art.hexes--before.webp" width="330"> | <img src="gallery/card-art/card-art.hexes--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.hexes": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.hexes', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Dots
 
@@ -84,19 +79,17 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.hexes', 'red
 |---|---|
 | <img src="gallery/card-art/card-art.dots--before.webp" width="330"> | <img src="gallery/card-art/card-art.dots--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.dots": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.dots', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
-### Sunburst
+### Sunrise
 
-`card-art.sunburst` · no rarity · free starter · **withdrawn**. A dusk sun over a sea of cloud.
+`card-art.sunburst` · no rarity · free starter · **withdrawn**. Shown as Sunrise (Joe, 15 Nov): a dusk sun over a sea of cloud.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.sunburst--before.webp" width="330"> | <img src="gallery/card-art/card-art.sunburst--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.sunburst": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.sunburst', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Spark
 
@@ -106,8 +99,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.sunburst', '
 |---|---|
 | <img src="gallery/card-art/card-art.tier.spark--before.webp" width="330"> | <img src="gallery/card-art/card-art.tier.spark--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.tier.spark": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.spark', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Charge
 
@@ -117,8 +109,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.spark',
 |---|---|
 | <img src="gallery/card-art/card-art.tier.charge--before.webp" width="330"> | <img src="gallery/card-art/card-art.tier.charge--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.tier.charge": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.charge', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Volt
 
@@ -128,8 +119,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.charge'
 |---|---|
 | <img src="gallery/card-art/card-art.tier.volt--before.webp" width="330"> | <img src="gallery/card-art/card-art.tier.volt--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.tier.volt": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.volt', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Surge
 
@@ -139,8 +129,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.volt', 
 |---|---|
 | <img src="gallery/card-art/card-art.tier.surge--before.webp" width="330"> | <img src="gallery/card-art/card-art.tier.surge--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.tier.surge": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.surge', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Storm
 
@@ -150,8 +139,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.surge',
 |---|---|
 | <img src="gallery/card-art/card-art.tier.storm--before.webp" width="330"> | <img src="gallery/card-art/card-art.tier.storm--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.tier.storm": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.storm', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Lightning
 
@@ -161,28 +149,27 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.storm',
 |---|---|
 | <img src="gallery/card-art/card-art.tier.lightning--before.webp" width="330"> | <img src="gallery/card-art/card-art.tier.lightning--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.tier.lightning": true,`
+**Switch: on** (Joe, 15 Nov 2026)
 
 ### Top 500
 
-`card-art.tier.top-500` · no rarity · earned season peak tier · **withdrawn**. Top 500: a jewelled gold crown on velvet on a pedestal, gold light through haze; a slow light sweep.
+`card-art.tier.top-500` · no rarity · earned season peak tier · **withdrawn**. Polished (Joe, 15 Nov): a larger crown on a tall stepped pedestal under a shaft of gold light, crimson drapes, gold columns, gold dust; a slow light sweep.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.tier.top-500--before.webp" width="330"> | <img src="gallery/card-art/card-art.tier.top-500--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.tier.top-500": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.top-500', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"card-art.tier.top-500": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('card-art.tier.top-500', 'redrawn, approved <date>');`
 
 ### Crimson
 
-`card-art.crimson` · Epic · Shop, 1,000 coins · live. Deep crimson satin folds with a gold ruby ring.
+`card-art.crimson` · Epic · Shop, 1,000 coins · live. Redone (Joe, 15 Nov): a crimson velvet theatre curtain in heavy folds, gathered by a gold rope and tassel, gold fringe, warm stage light.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.crimson--before.webp" width="330"> | <img src="gallery/card-art/card-art.crimson--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.crimson": true,`
+Switch: off: redone for Joe's approval. To use it: `"card-art.crimson": true,` in `src/config/cosmeticRedraws.ts`
 
 ### Galaxy
 
@@ -192,28 +179,27 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.crimson": true,`
 |---|---|
 | <img src="gallery/card-art/card-art.galaxy--before.webp" width="330"> | <img src="gallery/card-art/card-art.galaxy--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.galaxy": true,`
+**Switch: on** (Joe, 15 Nov 2026)
 
 ### Royal
 
-`card-art.royal` · Epic · Shop, 1,000 coins · **withdrawn**. A gold orb and sceptre on royal-blue velvet.
+`card-art.royal` · Epic · Shop, 1,000 coins · **withdrawn**. Polished (Joe, 15 Nov): a gold crown with sapphires and diamonds on navy velvet with gold braid, a sceptre, navy drapes.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.royal--before.webp" width="330"> | <img src="gallery/card-art/card-art.royal--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.royal": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.royal', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"card-art.royal": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('card-art.royal', 'redrawn, approved <date>');`
 
 ### Emerald
 
-`card-art.emerald` · Epic · Shop, 1,000 coins · live. Raw emerald crystals growing from dark rock, with a cut stone.
+`card-art.emerald` · Epic · Shop, 1,000 coins · live. Polished (Joe, 15 Nov): large brilliant emerald crystals with an inner glow, back-lit, and a step-cut stone.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.emerald--before.webp" width="330"> | <img src="gallery/card-art/card-art.emerald--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.emerald": true,`
+Switch: off: polished for Joe's approval. To use it: `"card-art.emerald": true,` in `src/config/cosmeticRedraws.ts`
 
 ### Lava
 
@@ -223,52 +209,47 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.emerald": true,`
 |---|---|
 | <img src="gallery/card-art/card-art.lava--before.webp" width="330"> | <img src="gallery/card-art/card-art.lava--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.lava": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.lava', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Diamond Plate
 
-`card-art.diamond-plate` · Legendary · Shop, 2,800 coins · **withdrawn**. Gold tread plate with cut diamonds; a slow light sweep.
+`card-art.diamond-plate` · Legendary · Shop, 2,800 coins · **withdrawn**. Redone (Joe, 15 Nov): steel tread plate set with brilliant-cut diamonds, one large stone in front, white sparkle; a slow light sweep.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.diamond-plate--before.webp" width="330"> | <img src="gallery/card-art/card-art.diamond-plate--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.diamond-plate": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.diamond-plate', 'redrawn, approved <date>');`
+Switch: off: redone for Joe's approval. To use it: `"card-art.diamond-plate": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('card-art.diamond-plate', 'redrawn, approved <date>');`
 
 ### Frost
 
-`card-art.frost` · Elite · Shop, 1,600 coins · **withdrawn**. Crystal spires on a frozen lake at dawn, mountains in mist.
+`card-art.frost` · Elite · Shop, 1,600 coins · **withdrawn**. Polished (Joe, 15 Nov): a lake furred with rime over clear ice, rime at the spires' feet, frost glitter, a colder dawn.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.frost--before.webp" width="330"> | <img src="gallery/card-art/card-art.frost--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.frost": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.frost', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"card-art.frost": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('card-art.frost', 'redrawn, approved <date>');`
 
 ### Neon Skyline
 
-`card-art.neon-skyline` · Legendary · Pass free level 60 · **withdrawn**. A dusk city from a height, lit windows and neon trims; a slow light sweep.
+`card-art.neon-skyline` · Legendary · Pass free level 60 · **withdrawn**. Polished (Joe, 15 Nov): calmer: the right-hand towers only, a clean dusk sky behind the name, three neon accents, the moon; a slow light sweep.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.neon-skyline--before.webp" width="330"> | <img src="gallery/card-art/card-art.neon-skyline--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.neon-skyline": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.neon-skyline', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"card-art.neon-skyline": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('card-art.neon-skyline', 'redrawn, approved <date>');`
 
 ### Static
 
-`card-art.static` · Rare · Pass premium level 14 · **withdrawn**. Cyan discharges over carbon.
+`card-art.static` · Rare · Pass premium level 14 · **withdrawn**. Redone to keep its idea (TV static): a vintage walnut TV in a dark room, its curved glass full of fine static and scanlines.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/card-art/card-art.static--before.webp" width="330"> | <img src="gallery/card-art/card-art.static--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.static": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('card-art.static', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"card-art.static": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('card-art.static', 'redrawn, approved <date>');`
 
 ## Frames (13)
 
@@ -280,8 +261,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.static', 're
 |---|---|
 | <img src="gallery/frame/frame.bronze--before.webp" width="330"> | <img src="gallery/frame/frame.bronze--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.bronze": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.bronze', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Silver
 
@@ -291,8 +271,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.bronze', 'redra
 |---|---|
 | <img src="gallery/frame/frame.silver--before.webp" width="330"> | <img src="gallery/frame/frame.silver--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.silver": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.silver', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Obsidian
 
@@ -302,118 +281,107 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.silver', 'redra
 |---|---|
 | <img src="gallery/frame/frame.obsidian--before.webp" width="330"> | <img src="gallery/frame/frame.obsidian--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.obsidian": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.obsidian', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Founding
 
-`frame.founding` · no rarity · earned founding player · **withdrawn**. Cast champagne gold: engraved band, four set diamonds, an enamel crest with a raised bolt between laurels, and a plaque with the player's own number (full card only); a light runs over the metal.
+`frame.founding` · no rarity · earned founding player · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Cast champagne gold: engraved band, four set diamonds, an enamel crest with a raised bolt between laurels, and a plaque with the player's own number (full card only); a light runs over the metal.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.founding--before.webp" width="330"> | <img src="gallery/frame/frame.founding--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.founding": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.founding', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.founding": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.founding', 'redrawn, approved <date>');`
 
 ### Top 500
 
-`frame.top-500` · no rarity · earned top 500 · **withdrawn**. Heavy dark gold with filigree and a crimson enamel inlay, a gold coronet with pearls and a ruby, ruby cabochons; a TOP 500 plaque; a light runs over it.
+`frame.top-500` · no rarity · earned top 500 · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Heavy dark gold with filigree and a crimson enamel inlay, a gold coronet with pearls and a ruby, ruby cabochons; a TOP 500 plaque; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.top-500--before.webp" width="330"> | <img src="gallery/frame/frame.top-500--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.top-500": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.top-500', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.top-500": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.top-500', 'redrawn, approved <date>');`
 
 ### Championship
 
-`frame.championship` · no rarity · tournament · **withdrawn**. Platinum outer band and gold inner band with navy enamel, a gold trophy on a platinum sunburst inside a laurel wreath, diamond-set stars; a CHAMPION plaque; a light runs over it.
+`frame.championship` · no rarity · tournament · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Platinum outer band and gold inner band with navy enamel, a gold trophy on a platinum sunburst inside a laurel wreath, diamond-set stars; a CHAMPION plaque; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.championship--before.webp" width="330"> | <img src="gallery/frame/frame.championship--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.championship": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.championship', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.championship": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.championship', 'redrawn, approved <date>');`
 
 ### Season 1 Spark
 
-`frame.s1-spark` · no rarity · earned season peak tier · **withdrawn**. Season 1 Spark: copper with copper enamel (the calmest of the family).
+`frame.s1-spark` · no rarity · earned season peak tier · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Spark: copper with copper enamel (the calmest of the family).
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.s1-spark--before.webp" width="330"> | <img src="gallery/frame/frame.s1-spark--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.s1-spark": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.s1-spark', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.s1-spark": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.s1-spark', 'redrawn, approved <date>');`
 
 ### Season 1 Charge
 
-`frame.s1-charge` · no rarity · earned season peak tier · **withdrawn**. Season 1 Charge: platinum with emerald enamel.
+`frame.s1-charge` · no rarity · earned season peak tier · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Charge: platinum with emerald enamel.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.s1-charge--before.webp" width="330"> | <img src="gallery/frame/frame.s1-charge--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.s1-charge": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.s1-charge', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.s1-charge": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.s1-charge', 'redrawn, approved <date>');`
 
 ### Season 1 Volt
 
-`frame.s1-volt` · no rarity · earned season peak tier · **withdrawn**. Season 1 Volt: platinum with cyan enamel.
+`frame.s1-volt` · no rarity · earned season peak tier · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Volt: platinum with cyan enamel.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.s1-volt--before.webp" width="330"> | <img src="gallery/frame/frame.s1-volt--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.s1-volt": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.s1-volt', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.s1-volt": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.s1-volt', 'redrawn, approved <date>');`
 
 ### Season 1 Surge
 
-`frame.s1-surge` · no rarity · earned season peak tier · **withdrawn**. Season 1 Surge: gold with sapphire enamel, extra stones.
+`frame.s1-surge` · no rarity · earned season peak tier · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Surge: gold with sapphire enamel, extra stones.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.s1-surge--before.webp" width="330"> | <img src="gallery/frame/frame.s1-surge--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.s1-surge": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.s1-surge', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.s1-surge": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.s1-surge', 'redrawn, approved <date>');`
 
 ### Season 1 Storm
 
-`frame.s1-storm` · no rarity · earned season peak tier · **withdrawn**. Season 1 Storm: gold with amethyst enamel, a double band; a light runs over it.
+`frame.s1-storm` · no rarity · earned season peak tier · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Storm: gold with amethyst enamel, a double band; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.s1-storm--before.webp" width="330"> | <img src="gallery/frame/frame.s1-storm--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.s1-storm": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.s1-storm', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.s1-storm": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.s1-storm', 'redrawn, approved <date>');`
 
 ### Season 1 Lightning
 
-`frame.s1-lightning` · no rarity · earned season peak tier · **withdrawn**. Season 1 Lightning: gold with gold-yellow enamel, a double band, extra stones; a light runs over it.
+`frame.s1-lightning` · no rarity · earned season peak tier · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Lightning: gold with gold-yellow enamel, a double band, extra stones; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.s1-lightning--before.webp" width="330"> | <img src="gallery/frame/frame.s1-lightning--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.s1-lightning": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.s1-lightning', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.s1-lightning": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.s1-lightning', 'redrawn, approved <date>');`
 
 ### Season 1 Top 500
 
-`frame.s1-top-500` · no rarity · earned season peak tier · **withdrawn**. Season 1 Top 500: black and gold enamel, diamonds, a sunburst behind the hexagonal 1 medallion; a light runs over it.
+`frame.s1-top-500` · no rarity · earned season peak tier · **withdrawn**. Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Top 500: black and gold enamel, diamonds, a sunburst behind the hexagonal 1 medallion; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/frame/frame.s1-top-500--before.webp" width="330"> | <img src="gallery/frame/frame.s1-top-500--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"frame.s1-top-500": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('frame.s1-top-500', 'redrawn, approved <date>');`
+Switch: off: polished for Joe's approval. To use it: `"frame.s1-top-500": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('frame.s1-top-500', 'redrawn, approved <date>');`
 
 ## Name colours (5)
 
@@ -425,52 +393,47 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.s1-top-500', 'r
 |---|---|
 | <img src="gallery/name-colour/name-colour.chrome--before.webp" width="330"> | <img src="gallery/name-colour/name-colour.chrome--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"name-colour.chrome": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('name-colour.chrome', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Neon Pink
 
-`name-colour.neon-pink` · Common · Pass free level 10 · **withdrawn**. Candy pink lacquer over metal flake, a dark edge.
+`name-colour.neon-pink` · Common · Pass free level 10 · **withdrawn**. Keeps its idea: a lit pink neon tube with a pale hot core and a dark edge.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/name-colour/name-colour.neon-pink--before.webp" width="330"> | <img src="gallery/name-colour/name-colour.neon-pink--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"name-colour.neon-pink": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('name-colour.neon-pink', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"name-colour.neon-pink": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('name-colour.neon-pink', 'redrawn, approved <date>');`
 
 ### Neon Cyan
 
-`name-colour.neon-cyan` · Rare · Pass premium level 3 · **withdrawn**. Candy cyan lacquer over metal flake, a dark edge.
+`name-colour.neon-cyan` · Rare · Pass premium level 3 · **withdrawn**. Keeps its idea: a lit cyan neon tube with a pale hot core and a dark edge.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/name-colour/name-colour.neon-cyan--before.webp" width="330"> | <img src="gallery/name-colour/name-colour.neon-cyan--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"name-colour.neon-cyan": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('name-colour.neon-cyan', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"name-colour.neon-cyan": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('name-colour.neon-cyan', 'redrawn, approved <date>');`
 
 ### Neon Red
 
-`name-colour.neon-red` · Rare · Pass premium level 18 · **withdrawn**. Candy red lacquer over metal flake, a dark edge.
+`name-colour.neon-red` · Rare · Pass premium level 18 · **withdrawn**. Keeps its idea: a lit red neon tube with a pale hot core and a dark edge.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/name-colour/name-colour.neon-red--before.webp" width="330"> | <img src="gallery/name-colour/name-colour.neon-red--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"name-colour.neon-red": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('name-colour.neon-red', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"name-colour.neon-red": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('name-colour.neon-red', 'redrawn, approved <date>');`
 
 ### Electric Orange
 
-`name-colour.electric-orange` · Epic · Pass premium level 35 · **withdrawn**. Anodised orange metal in Archivo (the pixel face lost letters on the strip).
+`name-colour.electric-orange` · Epic · Pass premium level 35 · **withdrawn**. Keeps its idea: the pixel face (Silkscreen) filled with rendered anodised orange, a dark edge, a soft glow.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/name-colour/name-colour.electric-orange--before.webp" width="330"> | <img src="gallery/name-colour/name-colour.electric-orange--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"name-colour.electric-orange": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('name-colour.electric-orange', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"name-colour.electric-orange": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('name-colour.electric-orange', 'redrawn, approved <date>');`
 
 ## Avatar finishes (4)
 
@@ -482,8 +445,7 @@ Restore it (offer it again): `SELECT economy.restore_item('name-colour.electric-
 |---|---|
 | <img src="gallery/avatar-finish/avatar-finish.carbon--before.webp" width="330"> | <img src="gallery/avatar-finish/avatar-finish.carbon--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"avatar-finish.carbon": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.carbon', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Chrome
 
@@ -493,8 +455,7 @@ Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.carbon'
 |---|---|
 | <img src="gallery/avatar-finish/avatar-finish.chrome--before.webp" width="330"> | <img src="gallery/avatar-finish/avatar-finish.chrome--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"avatar-finish.chrome": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.chrome', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Holographic
 
@@ -504,8 +465,7 @@ Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.chrome'
 |---|---|
 | <img src="gallery/avatar-finish/avatar-finish.holographic--before.webp" width="330"> | <img src="gallery/avatar-finish/avatar-finish.holographic--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"avatar-finish.holographic": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.holographic', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Neon Glow
 
@@ -515,45 +475,41 @@ Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.hologra
 |---|---|
 | <img src="gallery/avatar-finish/avatar-finish.neon-glow--before.webp" width="330"> | <img src="gallery/avatar-finish/avatar-finish.neon-glow--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"avatar-finish.neon-glow": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.neon-glow', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ## Avatar accessory (1)
 
 ### Neon Bolt
 
-`avatar-accessory.neon-bolt` · Epic · Pass premium level 52 · **withdrawn**. A glass bolt with a lit cyan core above the circle.
+`avatar-accessory.neon-bolt` · Epic · Pass premium level 52 · **withdrawn**. Keeps its idea: a clearly cyan neon bolt above the circle, as large as its slot allows.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/avatar-accessory/avatar-accessory.neon-bolt--before.webp" width="330"> | <img src="gallery/avatar-accessory/avatar-accessory.neon-bolt--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"avatar-accessory.neon-bolt": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('avatar-accessory.neon-bolt', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"avatar-accessory.neon-bolt": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('avatar-accessory.neon-bolt', 'redrawn, approved <date>');`
 
 ## Reaction packs (6)
 
 ### Spark
 
-`reaction.spark` · Common · Pass free level 22 · **withdrawn**. A gold four-point star.
+`reaction.spark` · Common · Pass free level 22 · **withdrawn**. Keeps its idea: the star character with glossy eyes, a smile and blush, and two gold sparkles.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/reaction/reaction.spark--before.webp" width="330"> | <img src="gallery/reaction/reaction.spark--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"reaction.spark": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('reaction.spark', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"reaction.spark": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('reaction.spark', 'redrawn, approved <date>');`
 
 ### Zap
 
-`reaction.zap` · Rare · Pass premium level 8 · **withdrawn**. A glass bolt with a gold core.
+`reaction.zap` · Rare · Pass premium level 8 · **withdrawn**. Keeps its idea: a cyan neon bolt with a white-hot core, its face, speed lines and a yellow spark.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/reaction/reaction.zap--before.webp" width="330"> | <img src="gallery/reaction/reaction.zap--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"reaction.zap": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('reaction.zap', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"reaction.zap": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('reaction.zap', 'redrawn, approved <date>');`
 
 ### Clutch
 
@@ -563,8 +519,7 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.zap', 'redra
 |---|---|
 | <img src="gallery/reaction/reaction.clutch--before.webp" width="330"> | <img src="gallery/reaction/reaction.clutch--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"reaction.clutch": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('reaction.clutch', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Captain's Calls
 
@@ -574,19 +529,17 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.clutch', 're
 |---|---|
 | <img src="gallery/reaction/reaction.captains-calls--before.webp" width="330"> | <img src="gallery/reaction/reaction.captains-calls--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"reaction.captains-calls": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('reaction.captains-calls', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Retro Arcade
 
-`reaction.retro-arcade` · Epic · Shop, 1,000 coins · **withdrawn**. Key caps (the first a red glass heart), 1UP, LAG!!, GLHF.
+`reaction.retro-arcade` · Epic · Shop, 1,000 coins · **withdrawn**. Keeps its idea: a rendered CRT plate with the pixel heart and pixel words (1UP, LAG!!, GLHF) under scanlines.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/reaction/reaction.retro-arcade--before.webp" width="330"> | <img src="gallery/reaction/reaction.retro-arcade--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"reaction.retro-arcade": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('reaction.retro-arcade', 'redrawn, approved <date>');`
+Switch: off: redone keeping the original's idea, for Joe's approval. To use it: `"reaction.retro-arcade": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('reaction.retro-arcade', 'redrawn, approved <date>');`
 
 ### Neon Signs
 
@@ -596,43 +549,39 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.retro-arcade
 |---|---|
 | <img src="gallery/reaction/reaction.neon-signs--before.webp" width="330"> | <img src="gallery/reaction/reaction.neon-signs--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"reaction.neon-signs": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('reaction.neon-signs', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ## Celebrations (3)
 
 ### Spotlight
 
-`celebration.spotlight` · Epic · Shop, 1,000 coins · **withdrawn**. Two spotlights through haze onto a gold-rimmed navy drum, dust drifting.
+`celebration.spotlight` · Epic · Shop, 1,000 coins · **withdrawn**. Captain Joulz (modelled in Blender) in his win pose on the podium under two spotlights in haze.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/celebration/celebration.spotlight--before.webp" width="330"> | <img src="gallery/celebration/celebration.spotlight--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"celebration.spotlight": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('celebration.spotlight', 'redrawn, approved <date>');`
+Switch: off: Captain Joulz on the podium, for Joe's approval. To use it: `"celebration.spotlight": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('celebration.spotlight', 'redrawn, approved <date>');`
 
 ### Shockwave
 
-`celebration.shockwave` · Elite · Shop, 1,600 coins · **withdrawn**. Rings of light across a glass floor round the drum.
+`celebration.shockwave` · Elite · Shop, 1,600 coins · **withdrawn**. Captain Joulz on the podium, rings of light across a glass floor.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/celebration/celebration.shockwave--before.webp" width="330"> | <img src="gallery/celebration/celebration.shockwave--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"celebration.shockwave": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('celebration.shockwave', 'redrawn, approved <date>');`
+Switch: off: Captain Joulz on the podium, for Joe's approval. To use it: `"celebration.shockwave": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('celebration.shockwave', 'redrawn, approved <date>');`
 
 ### Circuit Overload
 
-`celebration.circuit-overload` · Elite · Pass premium level 58 · **withdrawn**. The drum on a lit gold circuit board, a pulsing surge.
+`celebration.circuit-overload` · Elite · Pass premium level 58 · **withdrawn**. Captain Joulz on the podium on a lit gold circuit board with a pulsing surge.
 
 | Today | Redrawn |
 |---|---|
 | <img src="gallery/celebration/celebration.circuit-overload--before.webp" width="330"> | <img src="gallery/celebration/celebration.circuit-overload--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"celebration.circuit-overload": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('celebration.circuit-overload', 'redrawn, approved <date>');`
+Switch: off: Captain Joulz on the podium, for Joe's approval. To use it: `"celebration.circuit-overload": true,` in `src/config/cosmeticRedraws.ts`; to offer it again: `SELECT economy.restore_item('celebration.circuit-overload', 'redrawn, approved <date>');`
 
 ## Tile style (1)
 
@@ -644,8 +593,7 @@ Restore it (offer it again): `SELECT economy.restore_item('celebration.circuit-o
 |---|---|
 | <img src="gallery/tile-style/tile-style.circuit-trace--before.webp" width="330"> | <img src="gallery/tile-style/tile-style.circuit-trace--after.webp" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"tile-style.circuit-trace": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('tile-style.circuit-trace', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ## Card backs (3)
 
@@ -657,7 +605,7 @@ Restore it (offer it again): `SELECT economy.restore_item('tile-style.circuit-tr
 |---|---|
 | <img src="gallery/game-looks/card-back.royal-damask--before.png" width="330"> | <img src="gallery/game-looks/card-back.royal-damask--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.royal-damask": true,`
+**Switch: on** (Joe, 15 Nov 2026)
 
 ### Holo Foil
 
@@ -667,7 +615,7 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.royal-damask": 
 |---|---|
 | <img src="gallery/game-looks/card-back.holo-foil--before.png" width="330"> | <img src="gallery/game-looks/card-back.holo-foil--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.holo-foil": true,`
+**Switch: on** (Joe, 15 Nov 2026)
 
 ### Neon card back
 
@@ -677,7 +625,7 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.holo-foil": tru
 |---|---|
 | <img src="gallery/game-looks/card-back.neon--before.png" width="330"> | <img src="gallery/game-looks/card-back.neon--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.neon": true,`
+**Switch: on** (Joe, 15 Nov 2026)
 
 ## Game skins (14)
 
@@ -689,8 +637,7 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.neon": true,`
 |---|---|
 | <img src="gallery/game-looks/game-skin.crazy-golf.watermelon--before.png" width="330"> | <img src="gallery/game-looks/game-skin.crazy-golf.watermelon--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.crazy-golf.watermelon": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.watermelon', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Disco
 
@@ -700,8 +647,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.
 |---|---|
 | <img src="gallery/game-looks/game-skin.crazy-golf.disco--before.png" width="330"> | <img src="gallery/game-looks/game-skin.crazy-golf.disco--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.crazy-golf.disco": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.disco', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Neon Glow
 
@@ -711,8 +657,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.
 |---|---|
 | <img src="gallery/game-looks/game-skin.crazy-golf.neon-glow--before.png" width="330"> | <img src="gallery/game-looks/game-skin.crazy-golf.neon-glow--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.crazy-golf.neon-glow": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.neon-glow', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Plasma
 
@@ -722,8 +667,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.
 |---|---|
 | <img src="gallery/game-looks/game-skin.crazy-golf.plasma--before.png" width="330"> | <img src="gallery/game-looks/game-skin.crazy-golf.plasma--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.crazy-golf.plasma": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.plasma', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Pixel Pool
 
@@ -733,8 +677,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.
 |---|---|
 | <img src="gallery/game-looks/game-skin.cue-ball.pixel-pool--before.png" width="330"> | <img src="gallery/game-looks/game-skin.cue-ball.pixel-pool--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.cue-ball.pixel-pool": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.pixel-pool', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Galaxy Set
 
@@ -744,8 +687,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.pi
 |---|---|
 | <img src="gallery/game-looks/game-skin.cue-ball.galaxy-set--before.png" width="330"> | <img src="gallery/game-looks/game-skin.cue-ball.galaxy-set--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.cue-ball.galaxy-set": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.galaxy-set', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Neon 8-ball
 
@@ -755,8 +697,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.ga
 |---|---|
 | <img src="gallery/game-looks/game-skin.cue-ball.neon-8-ball--before.png" width="330"> | <img src="gallery/game-looks/game-skin.cue-ball.neon-8-ball--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.cue-ball.neon-8-ball": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.neon-8-ball', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Neon ball set
 
@@ -766,8 +707,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.ne
 |---|---|
 | <img src="gallery/game-looks/game-skin.cue-ball.neon-ball-set--before.png" width="330"> | <img src="gallery/game-looks/game-skin.cue-ball.neon-ball-set--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.cue-ball.neon-ball-set": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.neon-ball-set', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Glacier
 
@@ -777,8 +717,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.ne
 |---|---|
 | <img src="gallery/game-looks/game-skin.curl-champ.glacier--before.png" width="330"> | <img src="gallery/game-looks/game-skin.curl-champ.glacier--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.curl-champ.glacier": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.glacier', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Aurora
 
@@ -788,8 +727,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.
 |---|---|
 | <img src="gallery/game-looks/game-skin.curl-champ.aurora--before.png" width="330"> | <img src="gallery/game-looks/game-skin.curl-champ.aurora--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.curl-champ.aurora": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.aurora', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Neon stones
 
@@ -799,8 +737,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.
 |---|---|
 | <img src="gallery/game-looks/game-skin.curl-champ.neon-stones--before.png" width="330"> | <img src="gallery/game-looks/game-skin.curl-champ.neon-stones--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.curl-champ.neon-stones": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.neon-stones', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Midnight Felt
 
@@ -810,8 +747,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.
 |---|---|
 | <img src="gallery/game-looks/game-skin.full-house.midnight-felt--before.png" width="330"> | <img src="gallery/game-looks/game-skin.full-house.midnight-felt--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.full-house.midnight-felt": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.midnight-felt', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Crimson Velvet
 
@@ -821,8 +757,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.
 |---|---|
 | <img src="gallery/game-looks/game-skin.full-house.crimson-velvet--before.png" width="330"> | <img src="gallery/game-looks/game-skin.full-house.crimson-velvet--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.full-house.crimson-velvet": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.crimson-velvet', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Neon felt
 
@@ -832,8 +767,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.
 |---|---|
 | <img src="gallery/game-looks/game-skin.full-house.neon-felt--before.png" width="330"> | <img src="gallery/game-looks/game-skin.full-house.neon-felt--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"game-skin.full-house.neon-felt": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.neon-felt', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ## World themes (3)
 
@@ -845,8 +779,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.
 |---|---|
 | <img src="samples/apex/today.png" width="330"> | <img src="samples/apex/redraw.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"world-theme.apex.neon-night": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('world-theme.apex.neon-night', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Crazy Golf: Neon Course
 
@@ -856,8 +789,7 @@ Restore it (offer it again): `SELECT economy.restore_item('world-theme.apex.neon
 |---|---|
 | <img src="gallery/game-looks/world-theme.crazy-golf.neon-course--before.png" width="330"> | <img src="gallery/game-looks/world-theme.crazy-golf.neon-course--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"world-theme.crazy-golf.neon-course": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('world-theme.crazy-golf.neon-course', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`
 
 ### Curl Champ: Neon Rink
 
@@ -867,5 +799,4 @@ Restore it (offer it again): `SELECT economy.restore_item('world-theme.crazy-gol
 |---|---|
 | <img src="gallery/game-looks/world-theme.curl-champ.neon-rink--before.png" width="330"> | <img src="gallery/game-looks/world-theme.curl-champ.neon-rink--after.png" width="330"> |
 
-Use the new art: in `src/config/cosmeticRedraws.ts`, `"world-theme.curl-champ.neon-rink": true,`  
-Restore it (offer it again): `SELECT economy.restore_item('world-theme.curl-champ.neon-rink', 'redrawn, approved <date>');`
+**Switch: on** (Joe, 15 Nov 2026); restored by `20261118100000_restore_approved_redraws.sql`

@@ -10,6 +10,17 @@ import { join } from "node:path";
 
 import { REDRAWN_ART_ON } from "../../src/config/cosmeticRedraws";
 
+/** Why a switch is still off (Joe's verdicts of 15 Nov 2026). */
+const OFF_WHY: Record<string, string> = {
+  polish: "off: polished for Joe's approval",
+  redo: "off: redone for Joe's approval",
+  idea: "off: redone keeping the original's idea, for Joe's approval",
+  celebration: "off: Captain Joulz on the podium, for Joe's approval",
+  navy: "off: Joe's \"Royal Navy\" may mean this item or Royal; kept as today until he says",
+};
+const offWhy = (id: string): string =>
+  id === "card-art.joulz-navy" ? OFF_WHY.navy! : id.startsWith("celebration.") ? OFF_WHY.celebration! : ["card-art.crimson", "card-art.diamond-plate"].includes(id) ? OFF_WHY.redo! : /^(frame\.(founding|top-500|championship|s1-)|card-art\.(emerald|frost|neon-skyline|royal|tier\.top-500))/.test(id) ? OFF_WHY.polish! : OFF_WHY.idea!;
+
 const ROOT = join(import.meta.dir, "../..");
 const DOC = join(ROOT, "docs/design/cosmetics-redraws");
 type Item = { id: string; name: string; kind: string; rarity: string | null; source: string; pass_level: number | null; shop_price_coins: number | null };
@@ -32,54 +43,54 @@ const WHAT: Record<string, string> = {
   "card-art.waves": "Navy satin in soft waves.",
   "card-art.hexes": "Raised hex tiles in perspective.",
   "card-art.dots": "A halftone of gold studs fading across navy.",
-  "card-art.sunburst": "A dusk sun over a sea of cloud.",
+  "card-art.sunburst": "Shown as Sunrise (Joe, 15 Nov): a dusk sun over a sea of cloud.",
   "card-art.tier.spark": "Spark: an anvil with a white-hot bar, sparks spraying in the forge's glow.",
   "card-art.tier.charge": "Charge: a glass cell holding a green plasma column, steel caps, cables.",
   "card-art.tier.volt": "Volt: two copper coils with cyan arcs between them.",
   "card-art.tier.surge": "Surge: a dark wave rolling in, its crest lit blue, spray.",
   "card-art.tier.storm": "Storm: a violet storm cloud base, forks of lightning, a ground strike; a flash every few seconds.",
   "card-art.tier.lightning": "Lightning: storm clouds lit from inside by a branching gold strike over a dark sea; a flash every few seconds.",
-  "card-art.tier.top-500": "Top 500: a jewelled gold crown on velvet on a pedestal, gold light through haze; a slow light sweep.",
-  "card-art.crimson": "Deep crimson satin folds with a gold ruby ring.",
-  "card-art.royal": "A gold orb and sceptre on royal-blue velvet.",
-  "card-art.emerald": "Raw emerald crystals growing from dark rock, with a cut stone.",
+  "card-art.tier.top-500": "Polished (Joe, 15 Nov): a larger crown on a tall stepped pedestal under a shaft of gold light, crimson drapes, gold columns, gold dust; a slow light sweep.",
+  "card-art.crimson": "Redone (Joe, 15 Nov): a crimson velvet theatre curtain in heavy folds, gathered by a gold rope and tassel, gold fringe, warm stage light.",
+  "card-art.royal": "Polished (Joe, 15 Nov): a gold crown with sapphires and diamonds on navy velvet with gold braid, a sceptre, navy drapes.",
+  "card-art.emerald": "Polished (Joe, 15 Nov): large brilliant emerald crystals with an inner glow, back-lit, and a step-cut stone.",
   "card-art.lava": "Black crust with glowing cracks and a molten channel, steam and embers.",
-  "card-art.diamond-plate": "Gold tread plate with cut diamonds; a slow light sweep.",
-  "card-art.frost": "Crystal spires on a frozen lake at dawn, mountains in mist.",
-  "card-art.neon-skyline": "A dusk city from a height, lit windows and neon trims; a slow light sweep.",
-  "card-art.static": "Cyan discharges over carbon.",
-  "frame.founding": "Cast champagne gold: engraved band, four set diamonds, an enamel crest with a raised bolt between laurels, and a plaque with the player's own number (full card only); a light runs over the metal.",
-  "frame.top-500": "Heavy dark gold with filigree and a crimson enamel inlay, a gold coronet with pearls and a ruby, ruby cabochons; a TOP 500 plaque; a light runs over it.",
-  "frame.championship": "Platinum outer band and gold inner band with navy enamel, a gold trophy on a platinum sunburst inside a laurel wreath, diamond-set stars; a CHAMPION plaque; a light runs over it.",
-  "frame.s1-top-500": "Season 1 Top 500: black and gold enamel, diamonds, a sunburst behind the hexagonal 1 medallion; a light runs over it.",
-  "frame.s1-lightning": "Season 1 Lightning: gold with gold-yellow enamel, a double band, extra stones; a light runs over it.",
-  "frame.s1-storm": "Season 1 Storm: gold with amethyst enamel, a double band; a light runs over it.",
-  "frame.s1-surge": "Season 1 Surge: gold with sapphire enamel, extra stones.",
-  "frame.s1-volt": "Season 1 Volt: platinum with cyan enamel.",
-  "frame.s1-charge": "Season 1 Charge: platinum with emerald enamel.",
-  "frame.s1-spark": "Season 1 Spark: copper with copper enamel (the calmest of the family).",
+  "card-art.diamond-plate": "Redone (Joe, 15 Nov): steel tread plate set with brilliant-cut diamonds, one large stone in front, white sparkle; a slow light sweep.",
+  "card-art.frost": "Polished (Joe, 15 Nov): a lake furred with rime over clear ice, rime at the spires' feet, frost glitter, a colder dawn.",
+  "card-art.neon-skyline": "Polished (Joe, 15 Nov): calmer: the right-hand towers only, a clean dusk sky behind the name, three neon accents, the moon; a slow light sweep.",
+  "card-art.static": "Redone to keep its idea (TV static): a vintage walnut TV in a dark room, its curved glass full of fine static and scanlines.",
+  "frame.founding": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Cast champagne gold: engraved band, four set diamonds, an enamel crest with a raised bolt between laurels, and a plaque with the player's own number (full card only); a light runs over the metal.",
+  "frame.top-500": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Heavy dark gold with filigree and a crimson enamel inlay, a gold coronet with pearls and a ruby, ruby cabochons; a TOP 500 plaque; a light runs over it.",
+  "frame.championship": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Platinum outer band and gold inner band with navy enamel, a gold trophy on a platinum sunburst inside a laurel wreath, diamond-set stars; a CHAMPION plaque; a light runs over it.",
+  "frame.s1-top-500": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Top 500: black and gold enamel, diamonds, a sunburst behind the hexagonal 1 medallion; a light runs over it.",
+  "frame.s1-lightning": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Lightning: gold with gold-yellow enamel, a double band, extra stones; a light runs over it.",
+  "frame.s1-storm": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Storm: gold with amethyst enamel, a double band; a light runs over it.",
+  "frame.s1-surge": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Surge: gold with sapphire enamel, extra stones.",
+  "frame.s1-volt": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Volt: platinum with cyan enamel.",
+  "frame.s1-charge": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Charge: platinum with emerald enamel.",
+  "frame.s1-spark": "Polished (Joe, 15 Nov): luminous metal, sparkling stones, a soft aura and twinkles. Season 1 Spark: copper with copper enamel (the calmest of the family).",
   "frame.obsidian": "Black volcanic glass with violet light along the inner edge, glass shards at the corners.",
   "frame.silver": "Polished silver with fine engraved lines.",
   "frame.bronze": "Warm satin bronze, plain (everyday).",
   "name-colour.chrome": "Letters filled with rendered polished chrome, a dark edge.",
-  "name-colour.neon-pink": "Candy pink lacquer over metal flake, a dark edge.",
-  "name-colour.neon-cyan": "Candy cyan lacquer over metal flake, a dark edge.",
-  "name-colour.neon-red": "Candy red lacquer over metal flake, a dark edge.",
-  "name-colour.electric-orange": "Anodised orange metal in Archivo (the pixel face lost letters on the strip).",
+  "name-colour.neon-pink": "Keeps its idea: a lit pink neon tube with a pale hot core and a dark edge.",
+  "name-colour.neon-cyan": "Keeps its idea: a lit cyan neon tube with a pale hot core and a dark edge.",
+  "name-colour.neon-red": "Keeps its idea: a lit red neon tube with a pale hot core and a dark edge.",
+  "name-colour.electric-orange": "Keeps its idea: the pixel face (Silkscreen) filled with rendered anodised orange, a dark edge, a soft glow.",
   "avatar-finish.chrome": "Rendered chrome on the avatar's shapes, a matching rim round the circle.",
   "avatar-finish.carbon": "Woven carbon under a clear coat, a carbon rim.",
   "avatar-finish.holographic": "Iridescent foil, a foil rim.",
   "avatar-finish.neon-glow": "The player's own colour with glass-tube reflections and a ring in that colour.",
-  "avatar-accessory.neon-bolt": "A glass bolt with a lit cyan core above the circle.",
-  "reaction.spark": "A gold four-point star.",
-  "reaction.zap": "A glass bolt with a gold core.",
+  "avatar-accessory.neon-bolt": "Keeps its idea: a clearly cyan neon bolt above the circle, as large as its slot allows.",
+  "reaction.spark": "Keeps its idea: the star character with glossy eyes, a smile and blush, and two gold sparkles.",
+  "reaction.zap": "Keeps its idea: a cyan neon bolt with a white-hot core, its face, speed lines and a yellow spark.",
   "reaction.clutch": "A gold plaque with CLUTCH! engraved.",
   "reaction.captains-calls": "White ceramic speech bubbles, each phrase on one line.",
-  "reaction.retro-arcade": "Key caps (the first a red glass heart), 1UP, LAG!!, GLHF.",
+  "reaction.retro-arcade": "Keeps its idea: a rendered CRT plate with the pixel heart and pixel words (1UP, LAG!!, GLHF) under scanlines.",
   "reaction.neon-signs": "Dark sign boxes ringed with lit neon tubes.",
-  "celebration.spotlight": "Two spotlights through haze onto a gold-rimmed navy drum, dust drifting.",
-  "celebration.shockwave": "Rings of light across a glass floor round the drum.",
-  "celebration.circuit-overload": "The drum on a lit gold circuit board, a pulsing surge.",
+  "celebration.spotlight": "Captain Joulz (modelled in Blender) in his win pose on the podium under two spotlights in haze.",
+  "celebration.shockwave": "Captain Joulz on the podium, rings of light across a glass floor.",
+  "celebration.circuit-overload": "Captain Joulz on the podium on a lit gold circuit board with a pulsing surge.",
   "tile-style.circuit-trace": "A rendered circuit board round the game's tile scene.",
   "card-back.royal-damask": "Gold-foil damask, a medallion with a raised bolt.",
   "card-back.holo-foil": "Diagonal prism foil with a pearl star.",
@@ -128,7 +139,11 @@ const sections = ORDER.map((kind) => {
     const it = items.get(id)!;
     const where = it.source === "shop" ? `Shop, ${it.shop_price_coins?.toLocaleString("en-GB")} coins` : it.source.startsWith("pass") ? `Pass ${it.source === "pass-free" ? "free" : "premium"} level ${it.pass_level}` : it.source.replace(/-/g, " ");
     const w = withdrawn(id);
-    return `### ${it.name}\n\n\`${id}\` · ${it.rarity ?? "no rarity"} · ${where} · ${w ? "**withdrawn**" : "live"}. ${WHAT[id] ?? ""}\n\n| Today | Redrawn |\n|---|---|\n| <img src="${pic(id, "before")}" width="330"> | <img src="${pic(id, "after")}" width="330"> |\n\nUse the new art: in \`src/config/cosmeticRedraws.ts\`, \`"${id}": true,\`` + (w ? `  \nRestore it (offer it again): \`SELECT economy.restore_item('${id}', 'redrawn, approved <date>');\`` : "");
+    // The withdrawn status shown is today's (before this branch's restore migration applies).
+    const status = REDRAWN_ART_ON[id]
+      ? `**Switch: on** (Joe, 15 Nov 2026)${w ? "; restored by `20261118100000_restore_approved_redraws.sql`" : ""}`
+      : `Switch: ${offWhy(id)}. To use it: \`"${id}": true,\` in \`src/config/cosmeticRedraws.ts\`${w ? `; to offer it again: \`SELECT economy.restore_item('${id}', 'redrawn, approved <date>');\`` : ""}`;
+    return `### ${it.name}\n\n\`${id}\` · ${it.rarity ?? "no rarity"} · ${where} · ${w ? "**withdrawn**" : "live"}. ${WHAT[id] ?? ""}\n\n| Today | Redrawn |\n|---|---|\n| <img src="${pic(id, "before")}" width="330"> | <img src="${pic(id, "after")}" width="330"> |\n\n${status}`;
   });
   return `## ${TITLE[kind]} (${mine.length})\n\n${rows.join("\n\n")}`;
 }).filter(Boolean);

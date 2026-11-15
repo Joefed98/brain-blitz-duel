@@ -81,3 +81,19 @@ Switch: `"default.crazy-golf.course": true,` in `REDRAWN_DEFAULT_LOOKS` (`src/co
 
 Joe approved the Blender standard on 15 Nov 2026; every other redraw followed it the same night, prestige first. All 76
 items (the 75 and Galaxy), before and after: [GALLERY.md](GALLERY.md).
+
+## Captain Joulz in 3D (15 Nov 2026)
+
+Captain Joulz modelled in Blender, true to his approved look: navy-black satin suit with gold piping and belt, the
+lacquered helmet with its cyan visor and V mask, the gold chest bolt, gauntlets, gloves and boots, the pointed gold
+cape. Built from code, posable (ready, win and run, from the approved 2D poses) and re-skinnable (every material in
+one table): `docs/design/cosmetics-redraws/blender/captain/` (`captain.py`, `README.md`, `captain.blend`). The three
+celebrations now show him on the podium in his win pose (switches off, for Joe's approval).
+
+| Win | Ready |
+|---|---|
+| <img src="samples/captain/captain-win.webp" width="260"> | <img src="samples/captain/captain-ready.webp" width="260"> |
+
+| Spotlight | Shockwave | Circuit Overload |
+|---|---|---|
+| <img src="gallery/celebration/celebration.spotlight--after.webp" width="240"> | <img src="gallery/celebration/celebration.shockwave--after.webp" width="240"> | <img src="gallery/celebration/celebration.circuit-overload--after.webp" width="240"> |
