@@ -36,6 +36,7 @@
  *
  * Drivers live in scripts/shots/drivers/ (registered in drivers/index.ts; see driver.ts).
  */
+import { practiceGameUrl } from "../practice-side-lib";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -47,7 +48,6 @@ import type { PuzzleType } from "../../src/lib/duel/types";
 import type { Driver, DriverCtx, FullPuzzle } from "./driver";
 import { DRIVERS } from "./drivers";
 import { exampleFor } from "./examples";
-import { practiceGameUrl } from "../practice-side-lib";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);

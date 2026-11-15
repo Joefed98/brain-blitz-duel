@@ -1,4 +1,6 @@
 import { lazy, memo, Suspense, useEffect, useState } from "react";
+import { SchemeChooser } from "./ArenaGamePanel";
+import { useDesktop } from "@/lib/desktop";
 import { createPortal } from "react-dom";
 
 import { VolumeSliders } from "@/components/app/VolumeSliders";
@@ -25,6 +27,7 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
   const [open, setOpen] = useState(false);
   const [ownHelp, setOwnHelp] = useState(false);
   const sound = useSoundSwitches();
+  const desktop = useDesktop();
   const showHelp = onHelp ?? (type ? () => setOwnHelp(true) : undefined);
   return (
     <div data-game-menu data-sound-controls="menu" className="game-frame-sound">
@@ -67,7 +70,13 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
               <VolumeSliders />
               {/* Pattern overhaul (15 Nov 2026): the arrows / joystick choice for the games played with the arrow pad,
                   the same setting as Settings → Game controls (lib/arrowControl.ts); the pad has no switch of its own. */}
-              {type && ARROW_PAD_GAMES.has(type) ? <DirectionRow /> : null}
+              {type && !desktop && ARROW_PAD_GAMES.has(type) ? <DirectionRow /> : null}
+              {/* Game controls on a computer (lib/gameControls.ts): where the game offers a choice. */}
+              {type && desktop ? (
+                <div data-game-menu-controls className="px-4 py-3">
+                  <SchemeChooser type={type} />
+                </div>
+              ) : null}
               {showHelp ? (
                 <Row
                   as="button"

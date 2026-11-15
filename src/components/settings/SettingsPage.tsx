@@ -28,7 +28,11 @@ import { useAccount } from "@/lib/account/accountApi";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "@/lib/appearance";
 import { setArrowControl, useArrowControl } from "@/lib/arrowControl";
+import { GAME_TIMERS, GAME_TIMER_LABEL } from "@/config/gameFrameConfig";
+import { setGameTimer, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
+import { useDesktop } from "@/lib/desktop";
+import { setPreferredScheme, usePreferredScheme } from "@/lib/gameControls";
 import { betaValue } from "@/lib/beta/betaValues";
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
@@ -67,12 +71,15 @@ export function SettingsHead({ title = "Settings", onBack }: { title?: string; o
 
 /** Everything under the header (drawn on its own by checks that need no router). */
 export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onDeleted }: SettingsActions) {
+  const desktop = useDesktop();
+  const preferred = usePreferredScheme();
   const account = useAccount();
   // The direction-controls choice (lib/arrowControl.ts), shared with the game menu and the arrow pad.
   const arrows = useArrowControl();
   const choose = (value: "arrows" | "joystick") => setArrowControl(value);
   const sound = useSoundSettings();
   const appearance = useAppearance();
+  const gameTimer = useGameTimer();
   const saver = useBatterySaver();
   const haptics = useHapticsOn();
   const hapticsSupported = useHapticsSupported();
@@ -108,6 +115,18 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
               value={appearance}
               onChange={setAppearance}
               options={APPEARANCE_OPTIONS.map(({ value, label }) => ({ value, label, data: { "data-appearance-option": value } }))}
+            />
+          </div>
+          {/* Game timer (Joe, 15 Nov 2026): Bar (the default), Ring or Chip, in every game's header and the computer's side
+              panel; kept on this device like the appearance (lib/gameFrame/headerStyle.ts). */}
+          <div data-game-timer-setting={gameTimer} className="st-timer">
+            <span className="st-timer-label">Game timer</span>
+            <Segmented
+              label="Game timer"
+              radio
+              value={gameTimer}
+              onChange={setGameTimer}
+              options={GAME_TIMERS.map((value) => ({ value, label: GAME_TIMER_LABEL[value], data: { "data-game-timer-option": value } }))}
             />
           </div>
         </Group>
@@ -147,6 +166,29 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
             {/* Battery saver (off by default): fewer particles and glows, puzzles at 30 fps. */}
             <SwitchRow label="Battery saver" on={saver} onChange={setBatterySaver} data="battery" />
           </Panel>
+          {/* On a computer (phase 2 step 4 pass 2, lib/gameControls.ts): its own panel under the device's controls. */}
+          {desktop ? (
+            <Panel className="mt-3">
+              <div className="jz-row st-seg-row" data-setting="computer-controls">
+                <span className="jz-row-text">
+                  <span className="jz-row-title">On a computer</span>
+                  <span className="jz-row-sub" data-ellipsis>Each game’s menu can change its own</span>
+                </span>
+                <Segmented
+                  label="On a computer"
+                  radio
+                  value={preferred ?? "own"}
+                  onChange={(v) => setPreferredScheme(v === "own" ? null : v)}
+                  className="st-seg"
+                  options={[
+                    { value: "own", label: "Default" },
+                    { value: "keys", label: "Keyboard" },
+                    { value: "mouse", label: "Mouse" },
+                  ]}
+                />
+              </div>
+            </Panel>
+          ) : null}
         </Group>
 
         {/* Phone notifications (B2): its own heading and panel; nothing while the switch is off or for a guest. */}
