@@ -544,7 +544,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   // The expansion to 200: Orbit's demo waited for one recorded on orbitRev 12 (orbit-expand-check); the arcade scoring
   // standard (orbitRev 13, as flipRev 9) waits for one recorded on orbitRev 13.
   // The fuel meter (orbitRev 14) waits for one recorded on orbitRev 14 (orbit-fuel-check).
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_FUEL\) return null/.test(src), "Orbit's demo plays only on orbitRev 14");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_GRACE\) return null/.test(src), "Orbit's demo plays only on orbitRev 15");
   // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).
   // btRev 8 (the arcade scoring standard) keeps btRev 7's play: a demo recorded on 7 or 8 plays.
   ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && !btIsV7Play\(demo\.puzzle\.btRev\)\) return null/.test(src), "Ball Tracker's demo plays only on btRev 7 or 8");

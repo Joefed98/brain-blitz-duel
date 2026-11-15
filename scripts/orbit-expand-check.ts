@@ -349,7 +349,8 @@ ok(ORBIT_TOTAL === 40, "the course keeps 40 planets and the sun");
   const src = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   // orbitRev 13 (the arcade standard, as flipRev 9): the demo waited for one recorded on orbitRev 13; orbitRev 14 (the fuel
   // meter) waits for one recorded on orbitRev 14.
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_FUEL\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 14");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_GRACE\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 15");
 }
 void ORBIT_INPUT_CHECKPOINT;
 

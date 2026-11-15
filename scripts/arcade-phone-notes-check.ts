@@ -193,7 +193,8 @@ ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND
     "the help states the dealt parts (Roofbound's and Tilt's standard parts)",
   );
   const demos = read("src/lib/duel/introDemo.functions.ts");
-  ok(/flipRev !== FLIP_REV_FLOW && demo\.puzzle\.flipRev !== FLIP_REV_DEAL && demo\.puzzle\.flipRev !== FLIP_REV_GRACE\) return null/.test(demos) && /tiltRev !== TILT_REV_BIG\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 11, Tilt tiltRev 12, since 3 Nov 2026)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
+  ok(/flipRev !== FLIP_REV_GRACE\) return null/.test(demos) && /tiltRev !== TILT_REV_BIG\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 13, Tilt tiltRev 12)");
 }
 
 /* 4. Ball Tracker's counts. */
