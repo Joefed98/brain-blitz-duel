@@ -970,9 +970,10 @@ function rev3GlowLayer(ctx: CanvasRenderingContext2D, state: OrbitRev3State, vis
       // Polish A4: every planet's soft atmosphere in its own colour.
       const eight = p.kind === ORBIT_EIGHT;
       const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
-      bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour, orbitGlowStrength(p, i)));
+      // The materials pass (15 Nov 2026): the expansion's view draws a lit rim inside each planet instead of a glow round it.
+      if (!state.xp) bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour, orbitGlowStrength(p, i)));
     }
-    if (!sun && i === state.cur) {
+    if (!sun && i === state.cur && !state.xp) {
       const glow = ctx.createRadialGradient(px, py, r * 0.8, px, py, r * 1.6);
       glow.addColorStop(0, "rgba(255,255,255,0.18)");
       glow.addColorStop(1, "rgba(255,255,255,0)");
@@ -1217,7 +1218,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
     ctx.translate(sx, sy);
     ctx.rotate(Math.atan2(uy, ux));
     if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still, Boolean(state.boost && state.flying > 0));
-    drawRev3RocketBody(ctx, dead);
+    drawRev3RocketBody(ctx, dead, Boolean(state.xp));
     ctx.restore();
   }
   if (sputter && !still) drawSputter(ctx, sputter, cam);
@@ -1267,7 +1268,103 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 }
 
 /** The rev3 rocket's fins, body, nose and window, pointing along +x at the origin. */
-function drawRev3RocketBody(ctx: CanvasRenderingContext2D, dead: boolean): void {
+/**
+ * The materials pass (15 Nov 2026, display only, the expansion's view): the rocket in brushed metal, the same silhouette
+ * as before (nose at +10, fins to −9, ±6 across): a lit-to-shadow hull across its width, panel seams, gold fins with a
+ * bright leading edge, a gold nose cone with a crisp specular, a glass porthole with a highlight, and a dark nozzle bell.
+ */
+function drawMetalRocket(ctx: CanvasRenderingContext2D): void {
+  // Fins: gold, lit on their upper edge.
+  const fin = ctx.createLinearGradient(0, -6, 0, 6);
+  fin.addColorStop(0, "#F7D27A");
+  fin.addColorStop(0.5, "#B87A22");
+  fin.addColorStop(1, "#6E4410");
+  ctx.fillStyle = fin;
+  ctx.beginPath();
+  ctx.moveTo(-6, -2);
+  ctx.lineTo(-9, -6);
+  ctx.lineTo(-2, -3);
+  ctx.closePath();
+  ctx.moveTo(-6, 2);
+  ctx.lineTo(-9, 6);
+  ctx.lineTo(-2, 3);
+  ctx.closePath();
+  ctx.fill();
+  // The nozzle bell.
+  ctx.fillStyle = "#2A2D36";
+  ctx.beginPath();
+  ctx.moveTo(-6, -2.2);
+  ctx.lineTo(-8, -2.8);
+  ctx.lineTo(-8, 2.8);
+  ctx.lineTo(-6, 2.2);
+  ctx.closePath();
+  ctx.fill();
+  // The hull: brushed steel, lit from above.
+  const hull = ctx.createLinearGradient(0, -4.5, 0, 4.5);
+  hull.addColorStop(0, "#FFFFFF");
+  hull.addColorStop(0.28, "#DADDE6");
+  hull.addColorStop(0.62, "#8B90A0");
+  hull.addColorStop(1, "#3E4250");
+  ctx.fillStyle = hull;
+  ctx.beginPath();
+  ctx.moveTo(10, 0);
+  ctx.quadraticCurveTo(4, -4.5, -6, -3);
+  ctx.lineTo(-6, 3);
+  ctx.quadraticCurveTo(4, 4.5, 10, 0);
+  ctx.closePath();
+  ctx.fill();
+  // Panel seams.
+  ctx.strokeStyle = "rgba(30,33,44,0.55)";
+  ctx.lineWidth = 0.4;
+  ctx.beginPath();
+  ctx.moveTo(-2, -3.6);
+  ctx.lineTo(-2, 3.6);
+  ctx.moveTo(-4.5, -3.2);
+  ctx.lineTo(-4.5, 3.2);
+  ctx.stroke();
+  // The gold nose cone.
+  const nose = ctx.createLinearGradient(0, -2.6, 0, 2.6);
+  nose.addColorStop(0, "#FFE7A3");
+  nose.addColorStop(0.5, "#E0A43A");
+  nose.addColorStop(1, "#8A5A14");
+  ctx.fillStyle = nose;
+  ctx.beginPath();
+  ctx.moveTo(10, 0);
+  ctx.quadraticCurveTo(7, -2.6, 5, -2.6);
+  ctx.lineTo(5, 2.6);
+  ctx.quadraticCurveTo(7, 2.6, 10, 0);
+  ctx.fill();
+  // The hull's specular: a crisp thin highlight along its lit curve.
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(7.5, -1.6);
+  ctx.quadraticCurveTo(2, -3.4, -5, -2.4);
+  ctx.stroke();
+  // The porthole: blue glass in a steel ring, a white glint on its upper left.
+  ctx.fillStyle = "#2B3140";
+  ctx.beginPath();
+  ctx.arc(1, 0, 1.9, 0, Math.PI * 2);
+  ctx.fill();
+  const glass = ctx.createRadialGradient(0.4, -0.6, 0.2, 1, 0, 1.5);
+  glass.addColorStop(0, "#BFE0FF");
+  glass.addColorStop(0.5, "#3F7FE0");
+  glass.addColorStop(1, "#173A80");
+  ctx.fillStyle = glass;
+  ctx.beginPath();
+  ctx.arc(1, 0, 1.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.arc(0.5, -0.6, 0.45, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawRev3RocketBody(ctx: CanvasRenderingContext2D, dead: boolean, metal = false): void {
+  if (metal && !dead) {
+    drawMetalRocket(ctx);
+    return;
+  }
   ctx.fillStyle = dead ? "#8A2B33" : "#C8862A";
   ctx.beginPath();
   ctx.moveTo(-6, -2);
@@ -1829,6 +1926,12 @@ function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, spu
   // Flashing red through the sputter (on and off every 100 ms), then steady red on a run that ended dry.
   const flashing = sputter !== null && !still && sputter.age < ORBIT_SPUTTER_MS;
   const red = sputter !== null && (flashing ? Math.floor(sputter.age / 100) % 2 === 0 : sputter.ended || still);
+  if (state.xp) {
+    drawGlassGauge(ctx, x, y, m.w, m.h, share, red ? (flashing ? 0.5 : 0.3) : 0, draining, state.tick, still);
+    ctx.restore();
+    if (sputter) drawSputterWords(ctx, sputter, W, H, still);
+    return;
+  }
   ctx.strokeStyle = red || sputter?.ended ? ORBIT_REV3_RED : draining ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)";
   ctx.lineWidth = 1.5;
   fuelRoundRect(ctx, x - 0.75, y - 0.75, m.w + 1.5, m.h + 1.5, 4);
@@ -1851,6 +1954,83 @@ function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, spu
   }
   ctx.restore();
   if (!sputter) return;
+  drawSputterWords(ctx, sputter, W, H, still);
+}
+
+/**
+ * The materials pass (15 Nov 2026, display only, the expansion's view): the fuel gauge as a glass tube in its frame,
+ * the fuel a glossy liquid column (green, amber below half, red below a quarter) with a curved meniscus and a moving
+ * surface glint, tick marks at quarters, and a crisp highlight down the glass's lit curve; the warning wash over it
+ * while the tank sputters.
+ */
+function drawGlassGauge(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, share: number, warn: number, draining: boolean, tick: number, still: boolean): void {
+  const r = w / 2;
+  // The tube's dark inside.
+  ctx.fillStyle = "rgba(10,14,26,0.95)";
+  fuelRoundRect(ctx, x, y, w, h, r);
+  ctx.fill();
+  // The liquid.
+  const level = Math.max(0, Math.min(1, share)) * (h - 4);
+  if (level > 0.5) {
+    const top = y + h - 2 - level;
+    const c = share > 0.5 ? ["#9BF5A8", "#2FC260", "#156B33"] : share > 0.25 ? ["#FFE08A", "#F2A93B", "#8A5410"] : ["#FFB0A8", "#E5484D", "#7A1418"];
+    const liquid = ctx.createLinearGradient(x, 0, x + w, 0);
+    liquid.addColorStop(0, c[2]!);
+    liquid.addColorStop(0.35, c[1]!);
+    liquid.addColorStop(0.62, c[0]!);
+    liquid.addColorStop(1, c[2]!);
+    ctx.save();
+    fuelRoundRect(ctx, x + 2, y + 2, w - 4, h - 4, r - 2);
+    ctx.clip();
+    ctx.fillStyle = liquid;
+    ctx.fillRect(x + 2, top, w - 4, level + 2);
+    // The meniscus: a curved, glossy top surface.
+    ctx.fillStyle = c[0]!;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, top, (w - 4) / 2, 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    const glint = still ? 0.3 : 0.3 + 0.2 * Math.sin(tick / (draining ? 4 : 18));
+    ctx.beginPath();
+    ctx.ellipse(x + w * glint + 2, top - 0.2, 1.6, 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  // Quarter tick marks on the glass.
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.lineWidth = 1;
+  for (let q = 1; q < 4; q++) {
+    const ty = Math.round(y + h - (h * q) / 4) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x + w - 5, ty);
+    ctx.lineTo(x + w - 1, ty);
+    ctx.stroke();
+  }
+  // The glass: a thin bright edge and a crisp highlight down its lit side.
+  ctx.strokeStyle = draining ? "rgba(235,240,255,0.85)" : "rgba(235,240,255,0.55)";
+  ctx.lineWidth = 1.2;
+  fuelRoundRect(ctx, x, y, w, h, r);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x + 3.5, y + r + 1);
+  ctx.lineTo(x + 3.5, y + h - r - 1);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.3)";
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(x + 5.5, y + r + 3);
+  ctx.lineTo(x + 5.5, y + h * 0.45);
+  ctx.stroke();
+  if (warn > 0) {
+    ctx.fillStyle = `rgba(248,113,113,${warn})`;
+    fuelRoundRect(ctx, x, y, w, h, r);
+    ctx.fill();
+  }
+}
+
+function drawSputterWords(ctx: CanvasRenderingContext2D, sputter: OrbitSputter, W: number, H: number, still: boolean): void {
   // The words: held on a run that ended dry; after a respawn they fade over the second half of a second.
   ctx.save();
   ctx.globalAlpha = still || sputter.ended ? 1 : Math.max(0, 1 - Math.max(0, sputter.age - SPUTTER_WORDS_MS / 2) / (SPUTTER_WORDS_MS / 2));

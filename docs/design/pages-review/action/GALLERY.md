@@ -187,17 +187,31 @@ Before (main), for reference: <img src="skyline/before-start.webp" width="120"> 
 
 <!-- orbit -->
 
-Drawn from each tree's own sim, renderer and screen fill (`scripts/shots/orbit-overhaul-frames.ts`) on the fixed intro
-example, the skill-band bot playing at the elite level, at 390 × 844 below the game header. Before is main a3f40ff7
-(orbitRev 14), after is orbitRev 15. The same run, the same ticks.
+Drawn from each tree's own sim, renderer and screen fill in @napi-rs/canvas (`scripts/shots/orbit-materials-frames.ts`)
+on the fixed intro example, the skill-band bot playing at the elite level, at 390 × 844 below the game header. Before is
+main a3f40ff7 (orbitRev 14), after is orbitRev 15 with the materials pass. The same run, the same ticks.
+
+Today | Concept A | New (the materials pass):
+
+<img src="orbit/compare-1.webp" width="760">
+
+<img src="orbit/compare-2.webp" width="760">
+
+<img src="orbit/compare-3.webp" width="760">
 
 | | Start (tick 60) | Planet 18 (tick 1300) | Planet 33 (tick 2200) | The sun (tick 2651) |
 |---|---|---|---|---|
 | Before | <img src="orbit/orbit-before-t0060.webp" width="170"> | <img src="orbit/orbit-before-t1300.webp" width="170"> | <img src="orbit/orbit-before-t2200.webp" width="170"> | <img src="orbit/orbit-before-t2651.webp" width="170"> |
 | After | <img src="orbit/orbit-after-t0060.webp" width="170"> | <img src="orbit/orbit-after-t1300.webp" width="170"> | <img src="orbit/orbit-after-t2200.webp" width="170"> | <img src="orbit/orbit-after-t2651.webp" width="170"> |
 
-- **Planets:** rendered-look spheres (banded gas, cratered rock, streaked ice) turning slowly under one light, a thin lit
-  limb; clean black space.
+- **Planets (materials pass):** true spheres projected from six pre-rendered surface maps (two banded gas giants, two
+  cratered rocks, an icy world, an ocean world; 43.7 KB of WebP in all), tinted with each planet's colour, turning slowly
+  under one sun: a soft terminator into a deep night side, a thin lit atmosphere rim inside the disc (no glow round it),
+  a crisp specular on water and ice. Clean black space.
+- **Rocket:** brushed-metal hull lit from above, panel seams, gold fins and nose cone, a crisp highlight along its curve,
+  a glass porthole with a glint, a dark nozzle bell.
+- **Fuel gauge:** a glass tube with a crisp highlight down its curve and quarter ticks; the fuel a glossy liquid column
+  (green, amber, red) with a curved meniscus and a moving surface glint.
 - **Setting:** the sun's warmth grows from the top as the run climbs (none at the start, a warm glow by planet 33, the
   sun itself at the end).
 - **HUD:** two rows of bigger pills (PLANETS and the checkpoint; DUST and SLING) instead of six small ones.
