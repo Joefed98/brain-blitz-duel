@@ -1,5 +1,31 @@
 # Rally on the arcade scoring standard (rallyRev 12, 29 Oct 2026)
 
+## rallyRev 13: lives and spin shots (the Retro overhaul, 15 Nov 2026)
+
+Joe's review (docs/design/game-reviews/retro.md "Rally"): lives instead of ending on a missed blue ball, teach spin in
+the intro, and a small bonus for gold scored with spin. New stamp **rallyRev 13** (`RALLY_REV_LIVES`, state marker
+`exp: 4`), rallyRev 12's court, balls, pads, bumpers, targets, spin and timings with:
+
+- **Lives** (`RALLY_V13_LIVES`, 2 at Normal). A missed blue ball costs a life while one is left: it waits 1.5 s at the
+  serve spot (`RALLY_V13_RELAUNCH`, 90 ticks; blinking with a 3-2-1 over it), then serves upwards again at its current
+  speed with a sideways lean from the seeded stream (the same for everyone). The second miss ends the run.
+- **Spin shots**: a ball still curving from a swiped return that strikes a pink pad or a gold target.
+
+| Part | Max | How |
+| --- | --- | --- |
+| Gold-ball hits | 130 | straight line, full at 23 hits (was 140) |
+| Pink pads | 30 | 3 each |
+| Gold targets | 30 | 5 for each of the 6 |
+| Spin shots | 10 | 2 each |
+
+The intro's HOW lines now teach the swipe ("Swipe as you hit: the ball curves; a curve that scores, +2.") and say a miss
+costs a life. A life lost plays `rally.lifeLost` (the `impact` haptic), the serve `rally.serve`, a spin shot
+`rally.spinShot` (library fallbacks until Joe's files, docs/sound-cues/retro-elevenlabs.md). rallyRev 12 rounds play,
+score and name their three parts as before (`specFor` in `src/lib/arcade/standard/rally.ts`). retro-overhaul-check
+proves the same play tick for tick up to the first miss on the skill-band bots' logs, the grace, the serve, the
+spin-shot rule and the server replay. Levels (Easy to Expert) come with the difficulty framework.
+
+
 Joe's row: "Rally (gameplay fix): the spin curves the wrong way. Swiping left on the ball must send it left and then
 curve round to the right (and the mirror for right). Core up to 140 = gold-ball hits, full at the near-flawless count.
 Pink target pads 30, split. Gold targets 30 (5 each of 6). Lasting the minute 0. Losing the blue ball ends the run."

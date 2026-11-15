@@ -1,5 +1,15 @@
 # Tempo (`beat`) on the arcade scoring standard: beatRev 11
 
+## beatRev 12: no note below 0 (the Retro overhaul, 15 Nov 2026)
+
+Joe's review (docs/design/game-reviews/retro.md "Tempo"): a miss-heavy run still earns something. New stamp **beatRev
+12** (`BEAT_REV_FLOOR`, `BEAT_STD_SPEC_V12`): beatRev 11's song, chart, windows, features and parts exactly; a missed note
+scores 0 instead of −2 (so a third of the notes Perfect is 333 of 1,000 accuracy, not 0). Every note Perfect is still
+1,000 and 200 overall. States add `floor: 1`, outside the checksum; `playRevOf` maps 12 to 11's play (`RETRO_REVS`).
+retro-overhaul-check proves the same checksums and judgements on the skill-band bots' logs at every level, that no run
+scores less, and the server replay.
+
+
 29 Oct 2026, batch B of the arcade scoring standard (`src/lib/arcade/arcadeStandard.ts`).
 
 ## The stamp

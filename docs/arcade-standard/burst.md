@@ -1,5 +1,16 @@
 # Fission under the arcade scoring standard (`burstRev 10`)
 
+## burstRev 12: kinder wave clears (the Retro overhaul, 15 Nov 2026)
+
+Joe's review (docs/design/game-reviews/retro.md "Fission"): tune the wave-clear bonuses so a good wave earns them more
+often (the Near-perfect bot earned 11 of 35 on burstRev 11). New stamp **burstRev 12** (`BURST_REV_WIDE`): burstRev
+11's play, parts and fair-play rules exactly; a wave's clear bonus is still the full 7 within its quick time (1 s plus
+0.6 s an atom: Normal's quick time is unchanged, as the level table keeps it), then falls evenly to 0 at **three** times
+the quick time (`BURST_V12_CLEAR_ZERO`; twice on burstRev 10 and 11). The HUD's "CLEAR +n" shows the live value. States
+add `wide: 1`; `playRevOf` maps 12 to 11's play. retro-overhaul-check proves the same play tick for tick on the bots'
+logs, never a lower score, and more clear points on good runs.
+
+
 29 Oct 2026, batch A of the arcade scoring standard. Gameplay and scoring change on a new stamp: rooms and practice
 deal `burstRev 10` (`BURST_REV_STD`, `src/lib/arcade/burst.ts`, "The arcade scoring standard"). Every older stamp
 (unstamped to `burstRev 9`) replays and scores exactly as before: burst-standard-check replays 72 runs recorded on

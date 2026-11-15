@@ -19,6 +19,10 @@
  *      on the second miss or at the buzzer; every room's world is the same (the serve's lean from the seeded stream);
  *   3. spin shots: a curling ball striking a pink pad counts one (built ball), a straight one doesn't;
  *   4. the server replay scores every bot run to its sim score, unflagged.
+ *  Fission burstRev 12 (wave clears taper to 0 at three times the quick time):
+ *   wiring (rooms 12, preRetro 11, playRevOf 12 → 11, the help's words); the bots' logs at every level play tick for
+ *   tick as on burstRev 11 (atoms, ship, lives, beams); the clear points never fall and rise for the good levels; the
+ *   server replay scores every bot run to its sim score.
  *  The shared Retro HUD: every count it draws is at least 11 px (retroHudFloorPx).
  *
  *   bun scripts/retro-overhaul-check.ts
@@ -59,6 +63,10 @@ import {
   RALLY_V13_RELAUNCH,
   type RallyState,
 } from "../src/lib/arcade/rally";
+import { bot as burstBot } from "./arcade-skill-bands/bots/burst";
+import { replayBurstRun } from "../src/lib/duel/burst";
+import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { burstGameFor, burstV10ClearPoints, BURST_CHECKPOINT_INTERVAL, BURST_REV_AIM, BURST_REV_WIDE, type BurstState } from "../src/lib/arcade/burst";
 import { RETRO_HUD_MIN_PX, retroHudFloorPx } from "../src/lib/arcade/retro.renderer";
 
 let checks = 0;
@@ -242,6 +250,51 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   ok((straight.targetHits ?? 0) === 1 && straight.spinScores === 0, "rally: a straight one is a pad and no spin shot");
 }
 
+/* ============================ Fission burstRev 12 ============================ */
+{
+  ok((generatePuzzle("burst") as any).burstRev === BURST_REV_WIDE && BURST_REV_WIDE === BURST_REV_AIM + 1, "burst: rooms deal burstRev 12");
+  pinPreRetro(true);
+  ok((generatePuzzle("burst") as any).burstRev === BURST_REV_AIM, "burst: preRetro deals burstRev 11");
+  pinPreRetro(false);
+  ok(LIVE_BANDS.burst.rev === BURST_REV_WIDE && playRevOf("burst", BURST_REV_WIDE) === playRevOf("burst", BURST_REV_AIM), "burst: LIVE_BANDS reads burstRev 12, burstRev 11's play");
+  ok(/down to 0 at three times that/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.burst)), "burst: the help says the bonus runs out at three times the quick time");
+  ok(burstGameFor(BURST_REV_WIDE).runTicks <= 120 * TICKS_PER_SECOND, "burst: the run is at most 120 s");
+  const q = 200;
+  ok(burstV10ClearPoints(q, q, true) === 7 && burstV10ClearPoints(2 * q, q, true) > 0 && burstV10ClearPoints(3 * q, q, true) === 0 && burstV10ClearPoints(2 * q, q, false) === 0, "burst: 7 within the quick time, some at twice it, 0 at three times it (burstRev 11: 0 at twice)");
+  for (let t = 0; t <= 4 * q; t += 7) if (burstV10ClearPoints(t, q, true) < burstV10ClearPoints(t, q, false)) ok(false, `burst: a clear at ${t} pays less on burstRev 12`);
+  const spec = GAME_BY_TYPE.get("burst" as never)!;
+  const play = (rev: number, seed: number, events: any[]) => {
+    const game = burstGameFor(rev);
+    const by = new Map(events.map((e: any) => [e.t, e]));
+    let s = game.init(seed) as BurstState;
+    const trace: string[] = [];
+    const checkpoints: unknown[] = [];
+    while (!game.isOver(s)) {
+      s = game.step(s, by.get(s.tick + 1) ?? null) as BurstState;
+      trace.push(`${s.x},${s.lives},${s.hits},${s.balls.length},${s.shots.length},${s.wave},${s.cleared},${s.whiffs}`);
+      if (s.tick % BURST_CHECKPOINT_INTERVAL === 0) checkpoints.push(spec.checkpoint(s));
+    }
+    return { state: s, trace, checkpoints, score: game.score(s) };
+  };
+  let rose = 0;
+  for (const level of ["weak", "average", "good", "great", "near", "elite"] as const)
+    for (let n = 0; n < 3; n++) {
+      const seed = spec.seedFor(n);
+      const tag = `burst ${level} seed ${seed}`;
+      const out = burstBot({ game: burstGameFor(BURST_REV_AIM), seed, rev: BURST_REV_AIM, human: new Human("burst", seed, level as never), fixes: true });
+      const events = out.events ?? [];
+      const a = play(BURST_REV_AIM, seed, events);
+      const b = play(BURST_REV_WIDE, seed, events);
+      ok(JSON.stringify(a.trace) === JSON.stringify(b.trace), `${tag}: burstRev 12 plays tick for tick as burstRev 11`);
+      ok((b.state.clearPts ?? 0) >= (a.state.clearPts ?? 0) && b.score >= a.score, `${tag}: never lower (clears ${a.state.clearPts} → ${b.state.clearPts}, score ${a.score} → ${b.score})`);
+      if ((b.state.clearPts ?? 0) > (a.state.clearPts ?? 0)) rose++;
+      const raw = spec.encode({ seed, claimedScore: b.score, events, endTick: b.state.tick, checkpoints: b.checkpoints }, BURST_REV_WIDE, seed);
+      const res = replayBurstRun(seed, raw, BURST_REV_WIDE);
+      ok(!res.flagged && res.score === b.score, `${tag}: replays through the server to ${b.score} (got ${res.score}${res.flagged ? ", flagged" : ""})`);
+    }
+  ok(rose >= 4, `burst: wave clears earn more on ${rose} of 18 runs`);
+}
+
 /* ============================ The shared Retro HUD ============================ */
 {
   ok(RETRO_HUD_MIN_PX === 11, `the Retro HUD's smallest count is 11 px (${RETRO_HUD_MIN_PX})`);
@@ -256,4 +309,4 @@ if (failures.length) {
   console.log(`FAIL retro-overhaul-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; the Retro HUD floor)`);
+console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; the Retro HUD floor)`);
