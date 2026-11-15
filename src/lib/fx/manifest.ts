@@ -798,6 +798,10 @@ const ENTRIES = {
   "flip.flowTick": { channel: "effects", frequency: 0, ms: 160, url: null },
   "flip.flowTen": { channel: "effects", frequency: 0, ms: 300, url: null },
   "flip.flowBreak": { channel: "effects", frequency: 0, ms: 350, url: null },
+  // Stage 2 of the Action overhaul (docs/sound-cues/action-overhaul-stage2.md): named now, fired with the effects kit.
+  "flip.nearMiss": { channel: "effects", frequency: 0, ms: 250, url: null, fallback: "arc_pickup" },
+  "flip.sweetGold": { channel: "effects", frequency: 0, ms: 350, url: null, fallback: "flip.sweetLanding" },
+  "flip.flowCount": { channel: "effects", frequency: 0, ms: 800, url: null, fallback: "reveal_score" },
   "ricochet.leap": { channel: "effects", frequency: 0, ms: 416, url: "/sounds/ricochet.leap.mp3" },
   "ricochet.doubleJump": { channel: "effects", frequency: 0, ms: 473, url: "/sounds/ricochet.doubleJump.mp3" },
   "ricochet.hit": { channel: "effects", frequency: 0, ms: 476, url: "/sounds/ricochet.hit.mp3" },
