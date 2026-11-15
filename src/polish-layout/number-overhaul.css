@@ -91,3 +91,65 @@
   color: var(--jz-text) !important;
   box-shadow: none !important;
 }
+
+/* ---------------------------------------------------------------- the reveals (RevealParts.tsx) */
+.nrv-boards {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.nrv-tabs {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  gap: 8px;
+}
+.nrv-tab {
+  display: inline-flex;
+  min-width: 52px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 12px;
+  background: var(--jz-surface-2);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.nrv-tab[data-current] {
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+}
+.nrv-tab-mark {
+  font-size: 15px;
+}
+.nrv-tab[data-mark="right"]:not([data-current]) .nrv-tab-mark { color: var(--jz-cyan); }
+.nrv-tab[data-mark="wrong"]:not([data-current]) .nrv-tab-mark { color: var(--jz-red); }
+.nrv-tab[data-mark="open"]:not([data-current]) .nrv-tab-mark { color: var(--jz-text-3); }
+.nrv-board {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.nrv-view {
+  width: min(100%, 280px);
+}
+.nrv-facts {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
