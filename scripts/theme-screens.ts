@@ -821,6 +821,10 @@ export const THEME_SCREENS: ThemeScreen[] = [
     name: "practice list, arcade side",
     mode: "practice",
     go: async (page) => {
+      // Changed with Joe's approval, 15 Nov 2026 (Puzzles | Arcade switch restored): the arcade groups' tiles are on the
+      // Arcade side, so the screen presses Arcade first, then the Retro tile as before.
+      await page.locator("[data-practice-side='arcade']").click();
+      await page.locator("[data-practice-side='arcade'][aria-pressed='true']").waitFor({ timeout: 10_000 });
       await page.locator("[data-practice-filter='retro']").click();
       await page.locator("[data-practice-filter='retro'][aria-pressed='true']").waitFor({ timeout: 10_000 });
       await page.waitForTimeout(400);
