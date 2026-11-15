@@ -13,10 +13,11 @@
  *  5. The boards (rendered to markup): Tents' lonely-tent ring and pill, the signs turning gold; Lamplighter's 0 ticked
  *     only once its neighbours are lit or dotted; Loopline's met numbers gold; Island Link's met coin; Regions' enamel
  *     by size; every sprite the boards name is a real file.
+ *  7. The answer reveals: one board, your answer marked (wrong, missed), the tally and chips; solved and locked rounds.
  *  6. The rules for every level of the seven games: at most 120 s, and every dealt board exactly one solution (sampled
  *     seeds through each game's own solver).
  */
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -25,6 +26,11 @@ import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { pinPreLogic2, TRAIL_REV_UNDO_EACH, FILLOMINO_REV_STROKE } from "../src/lib/duel/logicOverhaul2";
 import { trEncode, trSlots, trCountSolutions } from "../src/lib/duel/trail";
 import { encodeFillomino } from "../src/lib/duel/fillomino";
+import { encodeTents } from "../src/lib/duel/tents";
+import { encodeShikaku } from "../src/lib/duel/shikaku";
+import { encodeBulbs } from "../src/lib/duel/lightUp";
+import { encodeFences, fencesEdgeCount, FENCES_EMPTY, FENCES_LINE } from "../src/lib/duel/fences";
+import { encodeBridges } from "../src/lib/duel/bridges";
 import { countFillominoSolutions } from "../src/lib/duel/fillomino.server";
 import { countShikakuSolutions, rectArea, rectHas, shikakuSolved } from "../src/lib/duel/shikaku";
 import { countTentSolutions } from "../src/lib/duel/tents";
@@ -198,6 +204,14 @@ function trailRuns(p: TrailPuzzleData, undos: number) {
   // Every sprite a board names exists.
   const missing = Object.entries(LOGIC_ART_URLS).filter(([, url]) => !existsSync(join(import.meta.dir, "..", "public", url.split("?")[0]!)));
   ok(missing.length === 0, `every Logic sprite is on disk (${missing.map(([n]) => n).join(", ")})`);
+  // Image budget (Joe, 15 Nov 2026): each game's art and tile under about 400 KB.
+  const prefixes: Record<string, string[]> = { tents: ["tents-"], shikaku: ["shikaku-", "logic-cell"], lightup: ["lightup-", "logic-cell"], trail: ["trail-"], fences: ["fences-"], fillomino: ["fillomino-"], bridges: ["bridges-"] };
+  for (const [game, pre] of Object.entries(prefixes)) {
+    const bytes = Object.entries(LOGIC_ART_URLS)
+      .filter(([n]) => pre.some((x) => n.startsWith(x)))
+      .reduce((sum, [, url]) => sum + statSync(join(import.meta.dir, "..", "public", url.split("?")[0]!)).size, 0) + statSync(join(import.meta.dir, "..", "public", "tiles", `${game}.webp`)).size;
+    ok(bytes < 400 * 1024, `${game}: art and tile ${Math.round(bytes / 1024)} KB, under 400 KB`);
+  }
 }
 
 // 6. Level rules: at most 120 s and exactly one solution.
@@ -219,6 +233,82 @@ function trailRuns(p: TrailPuzzleData, undos: number) {
     ok(countFillominoSolutions(fi.size, fi.givens, 2) === 1, `fillomino ${seed}: one solution`);
     const b = deal<PuzzleData & { type: "bridges"; size: number; islands: { cell: number; n: number }[] }>("bridges", seed);
     ok(countBridgesSolutions(b.size, b.islands, 2) === 1, `bridges ${seed}: one solution`);
+  }
+}
+
+// 7. The answer reveal (the Logic overhaul, 15 Nov 2026): one board at a time, the player's answer marked against the
+// solution (wrong ringed, missed dashed), a right / wrong / missed tally, plain chips; a solved round shows "Your
+// solution" with no switch; a locked solution (a Daily or challenge before it closes) shows only the player's board.
+{
+  const wrongAnswers: Record<string, (p: any) => { half: string; full: string }> = {
+    tents: (p) => {
+      const sol: number[] = p.solution;
+      const off = Array.from({ length: p.size * (p.height ?? p.size) }, (_, c) => c).find((c) => !sol.includes(c) && !p.trees.includes(c))!;
+      return { half: encodeTents([...sol.slice(0, Math.floor(sol.length / 2)), off]), full: encodeTents(sol) };
+    },
+    shikaku: (p) => ({ half: encodeShikaku(p.solution.slice(0, Math.floor(p.solution.length / 2))), full: encodeShikaku(p.solution) }),
+    lightup: (p) => {
+      const sol: number[] = p.solution;
+      const off = Array.from({ length: p.size * (p.height ?? p.size) }, (_, c) => c).find((c) => !sol.includes(c) && !p.walls.includes(c))!;
+      return { half: encodeBulbs([...sol.slice(0, Math.floor(sol.length / 2)), off]), full: encodeBulbs(sol) };
+    },
+    trail: (p) => {
+      const sol: number[] = p.solution;
+      const path = sol.slice(0, 12);
+      return { half: trEncode(path), full: trEncode(trSlots(p.givens, sol)) };
+    },
+    fences: (p) => {
+      const n = fencesEdgeCount(p.size);
+      const sol: number[] = p.solution;
+      const states = new Array<number>(n).fill(FENCES_EMPTY);
+      sol.slice(0, Math.floor(sol.length / 2)).forEach((e) => (states[e] = FENCES_LINE));
+      const off = Array.from({ length: n }, (_, e) => e).find((e) => !sol.includes(e))!;
+      states[off] = FENCES_LINE;
+      const full = new Array<number>(n).fill(FENCES_EMPTY);
+      sol.forEach((e) => (full[e] = FENCES_LINE));
+      return { half: encodeFences(states), full: encodeFences(full) };
+    },
+    fillomino: (p) => {
+      const sol: number[] = p.solution;
+      const blanks = p.givens.flatMap((g: number, c: number) => (g ? [] : [c]));
+      const half = new Set(blanks.slice(0, Math.floor(blanks.length / 2)));
+      const wrongCell = blanks[blanks.length - 1];
+      return {
+        half: encodeFillomino(p.givens.map((g: number, c: number) => (g ? g : half.has(c) ? sol[c] : c === wrongCell ? (sol[c] === 1 ? 2 : 1) : 0))),
+        full: encodeFillomino(sol),
+      };
+    },
+    bridges: (p) => {
+      const sol: number[] = p.solution;
+      const mine = sol.map((k, i) => (i % 2 === 0 ? k : 0));
+      const extra = sol.findIndex((k) => k === 1);
+      if (extra >= 0) mine[extra] = 2;
+      return { half: encodeBridges(mine), full: encodeBridges(sol) };
+    },
+  };
+  const strip = (p: any) => {
+    const { solution, ...rest } = p;
+    void solution;
+    return rest;
+  };
+  for (const type of GAMES) {
+    const p = deal<any>(type, 7001);
+    const Reveal = puzzleDef(type).Reveal!;
+    const { half, full } = wrongAnswers[type]!(p);
+    const props = { puzzle: p, myReactionAvgMs: null, timeLimitMs: puzzleDef(type).timeLimitMs, myExtra: { mistakes: 2, undos: 1 } };
+    const partly = renderToStaticMarkup(createElement(Reveal, { ...props, myAnswer: half, myCorrect: false }));
+    ok(/data-logic2-reveal-switch/.test(partly) && />Your answer</.test(partly) && />Solution</.test(partly), `${type} reveal: a switch, Your answer / Solution`);
+    ok(/data-reveal-view="yours"/.test(partly), `${type} reveal: opens on the player's answer`);
+    ok(/data-missed|logic2-bridge-missed/.test(partly), `${type} reveal: missed pieces drawn as ghosts`);
+    ok(/data-logic2-tally/.test(partly) && /<b>\d+<\/b> of \d+ [a-z]+ right/.test(partly), `${type} reveal: the right / wrong / missed tally`);
+    ok(!/×/.test(partly.replace(/<[^>]+>/g, " ")), `${type} reveal: no stray ×`);
+    ok(/data-logic2-facts/.test(partly), `${type} reveal: number chips`);
+    if (type !== "shikaku" && type !== "trail") ok(/data-wrong|data-clash|fillomino-over|logic2-bridge-wrong/.test(partly), `${type} reveal: wrong pieces marked`);
+    ok((partly.match(/data-logic2=/g) ?? []).length === 1, `${type} reveal: one board at a time (${(partly.match(/data-logic2=/g) ?? []).length})`);
+    const solved = renderToStaticMarkup(createElement(Reveal, { ...props, myAnswer: full, myCorrect: true }));
+    ok(!/data-logic2-reveal-switch/.test(solved) && />Your solution</.test(solved) && !/data-logic2-tally/.test(solved), `${type} reveal: a solved round shows Your solution, no switch or tally`);
+    const locked = renderToStaticMarkup(createElement(Reveal, { ...props, puzzle: strip(p), myAnswer: half, myCorrect: false }));
+    ok(!/data-logic2-reveal-switch/.test(locked) && !/data-logic2-tally/.test(locked) && !/data-missed|logic2-bridge-missed/.test(locked), `${type} reveal: a locked solution shows only the player's board`);
   }
 }
 

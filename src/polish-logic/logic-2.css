@@ -479,3 +479,187 @@
 [data-polish="trail"] .logic2-trail .tr-cell.tr-end {
   box-shadow: inset 0 0 0 2px var(--jz-gold, #e2c07a);
 }
+
+/* ------------------------------------------------------------------ the answer reveal (logic2Reveal.tsx) */
+.logic2-reveal {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.logic2-reveal-switch {
+  display: flex;
+  align-self: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 3px;
+  background: var(--jz-surface, #0f1424);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.logic2-reveal-switch > button {
+  min-height: 36px;
+  min-width: 112px;
+  border-radius: 999px;
+  padding: 0 14px;
+  font-family: var(--jz-font, inherit);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--jz-text-2, #b5c6dd);
+}
+.logic2-reveal-switch > button[data-on] {
+  background: var(--jz-surface-3, #28335a);
+  color: var(--jz-gold, #e2c07a);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--jz-gold, #e2c07a) 55%, transparent);
+}
+.logic2-reveal-title {
+  align-self: center;
+  font-family: var(--jz-font, inherit);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--jz-text-2, #b5c6dd);
+}
+.logic2-reveal-board {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+}
+.logic2-reveal-board > * {
+  width: 100%;
+  max-width: 100%;
+}
+.logic2-reveal-tally {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.logic2-reveal-bar {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--jz-surface-2, #1e2640);
+}
+.logic2-reveal-bar > span[data-part="right"] { background: var(--jz-win, #16c35b); }
+.logic2-reveal-bar > span[data-part="wrong"] { background: var(--jz-loss, #ff5a6e); }
+.logic2-reveal-bar > span[data-part="missed"] {
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0 4px, transparent 4px 8px);
+}
+.logic2-reveal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--jz-text-2, #b5c6dd);
+}
+.logic2-reveal-legend b {
+  font-weight: 800;
+  color: var(--jz-text, #eef2ff);
+}
+.logic2-reveal-legend > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.logic2-reveal-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.logic2-reveal-legend > li[data-part="right"] i { background: var(--jz-win, #16c35b); }
+.logic2-reveal-legend > li[data-part="wrong"] i { box-shadow: inset 0 0 0 2px var(--jz-loss, #ff5a6e); }
+.logic2-reveal-legend > li[data-part="missed"] i { border: 2px dashed rgba(255, 255, 255, 0.6); }
+.logic2-reveal-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.logic2-reveal-facts > li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 12px;
+  background: var(--jz-surface-2, #1e2640);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--jz-text-2, #b5c6dd);
+  white-space: nowrap;
+}
+.logic2-reveal-facts b {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--jz-text, #eef2ff);
+}
+
+/* Missed pieces: a faint ghost with a dashed ring (shown only on "Your answer"). */
+.logic2-ghost {
+  opacity: 0.38;
+}
+.logic2-reveal [data-missed]::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 6px;
+  pointer-events: none;
+  border: 2px dashed rgba(255, 255, 255, 0.6);
+}
+.logic2-shikaku > .logic2-pane[data-wrong] {
+  outline: 3px solid var(--jz-loss, #ff5a6e);
+  outline-offset: -3px;
+}
+.logic2-shikaku > .logic2-rect-ghost {
+  border: 2px dashed rgba(255, 255, 255, 0.65);
+  margin: 3px;
+}
+.logic2-trail .logic2-trail-ghost {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: rgba(239, 230, 208, 0.55);
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+}
+.logic2-reveal .logic2-trail .logic2-trail-ghost[data-missed]::after {
+  border-radius: 50%;
+  inset: 0;
+}
+.logic2-fences .fences-line[data-wrong] {
+  stroke: var(--jz-loss, #ff5a6e);
+}
+.logic2-fences .logic2-fences-missed line {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-dasharray: 12 10;
+  stroke-linecap: round;
+}
+.logic2-fillomino .logic2-fill-ghost {
+  color: rgba(238, 242, 255, 0.4);
+}
+.logic2-fillomino > .fillomino-cell.fillomino-over .fillomino-entry {
+  text-decoration: none;
+}
+.logic2-bridges .bridges-line.logic2-bridge-wrong {
+  stroke: var(--jz-loss, #ff5a6e);
+}
+.logic2-bridges .logic2-bridge-missed {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 7;
+  stroke-dasharray: 14 12;
+  stroke-linecap: round;
+}
+.logic2-reveal-bridges {
+  width: 100%;
+  aspect-ratio: 1;
+}

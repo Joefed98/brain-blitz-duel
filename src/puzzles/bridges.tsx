@@ -20,6 +20,7 @@ import { puzzleReject } from "@/lib/fx/puzzleReject";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { logicArt } from "./logicArt";
+import { LogicReveal, extraCount } from "./logic2Reveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -41,6 +42,7 @@ export function BridgesBoard({
   small = false,
   boardRef,
   handlers,
+  compare,
 }: {
   size: number;
   islands: readonly BridgesIsland[];
@@ -50,6 +52,8 @@ export function BridgesBoard({
   small?: boolean;
   boardRef?: React.RefObject<SVGSVGElement | null>;
   handlers?: React.SVGProps<SVGSVGElement>;
+  /** Reveal: the solution's counts; bridges beyond them are red, missing ones dashed. */
+  compare?: readonly number[] | undefined;
 }) {
   const pairs = useMemo(() => bridgePairs(islands, size), [islands, size]);
   const deg = islandDegrees(islands, pairs, counts);
@@ -84,9 +88,17 @@ export function BridgesBoard({
       <g className="bridges-lines">
         {pairs.flatMap((p, i) => {
           const k = counts[i] ?? 0;
-          if (k === 1) return [line(p, 0, `b${i}`, "bridges-line")];
-          if (k === 2) return [line(p, -12, `b${i}a`, "bridges-line"), line(p, 12, `b${i}b`, "bridges-line")];
-          return [];
+          if (!compare) {
+            if (k === 1) return [line(p, 0, `b${i}`, "bridges-line")];
+            if (k === 2) return [line(p, -12, `b${i}a`, "bridges-line"), line(p, 12, `b${i}b`, "bridges-line")];
+            return [];
+          }
+          // The Logic overhaul's reveal: right planks gold, extra ones red, the solution's missing ones dashed.
+          const want = compare[i] ?? 0;
+          const slots = Math.max(k, want);
+          const kinds = Array.from({ length: slots }, (_, j) => (j < Math.min(k, want) ? "bridges-line" : j < k ? "bridges-line logic2-bridge-wrong" : "logic2-bridge-missed"));
+          const offsets = slots === 2 ? [-12, 12] : [0];
+          return kinds.map((cls, j) => line(p, offsets[j] ?? 0, `b${i}${j}`, cls));
         })}
       </g>
       {islands.map((isl, i) => {
@@ -395,36 +407,43 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "bridges") return null;
   const pairs = bridgePairs(puzzle.islands, puzzle.size);
   const mine = decodeBridges(myAnswer ?? "", pairs.length);
-  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
-  return (
-    <div className="logic-reveal">
-      <div className="logic-reveal-board">
-        <div className="logic-pair">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-            <div className="logic-glass-frame bridges-frame bridges-reveal-board">
-              <BridgesBoard size={puzzle.size} islands={puzzle.islands} counts={puzzle.solution ?? []} small />
-            </div>
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-            <div className="logic-glass-frame bridges-frame bridges-reveal-board">
-              <BridgesBoard size={puzzle.size} islands={puzzle.islands} counts={mine} small />
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026: no repeated "Solved · 1.6s"). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text text-center font-mono text-primary">
-          {(solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${mine.reduce((a, b) => a + b, 0)} bridges built`)}
-        </p>
-      )}
+  const hasSolution = Array.isArray(puzzle.solution) && puzzle.solution.length === pairs.length;
+  const sol = hasSolution ? puzzle.solution! : [];
+  let right = 0;
+  let wrong = 0;
+  let missed = 0;
+  pairs.forEach((_, i) => {
+    const k = mine[i] ?? 0;
+    const want = sol[i] ?? 0;
+    right += Math.min(k, want);
+    wrong += Math.max(0, k - want);
+    missed += Math.max(0, want - k);
+  });
+  const deg = islandDegrees(puzzle.islands, pairs, mine);
+  const met = puzzle.islands.filter((isl, i) => deg[i] === isl.n).length;
+  const board = (counts: readonly number[], compare: boolean) => (
+    <div className="logic-glass-frame bridges-frame logic2-reveal-bridges">
+      <BridgesBoard size={puzzle.size} islands={puzzle.islands} counts={counts} compare={compare && hasSolution ? sol : undefined} />
     </div>
+  );
+  const mistakes = extraCount(myExtra, "mistakes");
+  return (
+    <LogicReveal
+      game="bridges"
+      solved={myCorrect}
+      hasSolution={hasSolution}
+      yours={board(mine, true)}
+      solution={board(sol, false)}
+      tally={hasSolution ? { right, wrong, missed, unit: "bridges" } : null}
+      facts={[
+        ...(myCorrect ? [] : [{ label: "Islands met", value: `${met} of ${puzzle.islands.length}` }]),
+        ...(mistakes !== null ? [{ label: "Mistakes", value: String(mistakes) }] : []),
+      ]}
+    />
   );
 }
 

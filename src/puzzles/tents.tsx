@@ -16,6 +16,7 @@ import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { logicArt, logicArtVars } from "./logicArt";
+import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-logic.css";
@@ -91,6 +92,7 @@ export function Board({
   dimDone = true,
   lit = false,
   wrongTents,
+  missedTents,
 }: {
   size: number;
   /** Rows (the depth revision's 8 × 9 field); `size` when square. */
@@ -111,7 +113,9 @@ export function Board({
   /** The solve: lanterns light in every tent. */
   lit?: boolean;
   /** Reveal: tents that are not in the solution (a red ring). */
-  wrongTents?: ReadonlySet<number>;
+  wrongTents?: ReadonlySet<number> | undefined;
+  /** Reveal: the solution's tents the player didn't pitch (a faint ghost tent in a dashed ring). */
+  missedTents?: ReadonlySet<number> | undefined;
 }) {
   const treeSet = new Set(trees);
   const tents = marks.flatMap((mark, cell) => (mark === 1 ? [cell] : []));
@@ -160,6 +164,7 @@ export function Board({
               style={{ "--logic-i": tentIndex, "--logic-grass": (cell * 37) % 7 } as CSSProperties}
               className={`flex aspect-square items-center justify-center rounded-md camp-cell logic-camp-cell logic2-cell ${flash === cell ? "animate-shake" : ""} ${pitched === cell && mark === 1 ? "logic-tent-pitch" : ""}`}
               data-lonely={lonely.has(cell) ? "" : undefined}
+              data-missed={missedTents?.has(cell) && mark !== 1 ? "" : undefined}
               data-wrong={wrongTents?.has(cell) || (tentColour && mark === 1 && tentColour(cell) === "var(--destructive)") ? "" : undefined}
               aria-label={tree ? "Tree" : mark === 1 ? (lonely.has(cell) ? "Tent with no tree beside it" : "Tent") : mark === 2 ? "Grass" : "Empty"}
             >
@@ -167,6 +172,8 @@ export function Board({
                 <img className="logic2-piece logic2-tree" src={logicArt(((cell * 7 + (cell >> 3)) % 3) !== 0 ? "tents-tree-a" : "tents-tree-b")} alt="" draggable={false} />
               ) : mark === 1 ? (
                 <img className="logic-tent logic2-piece logic2-tent" src={logicArt(lit ? "tents-tent-lit" : "tents-tent")} alt="" draggable={false} />
+              ) : missedTents?.has(cell) ? (
+                <img className="logic2-piece logic2-tent logic2-ghost" src={logicArt("tents-tent")} alt="" draggable={false} />
               ) : mark === 2 ? (
                 <img className="logic2-piece logic2-tuft" src={logicArt("tents-tuft")} alt="" draggable={false} />
               ) : null}
@@ -279,63 +286,52 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "tents") return null;
   const height = tentsHeightOf(puzzle);
   const cells = puzzle.size * height;
+  const hasSolution = Array.isArray(puzzle.solution) && puzzle.solution.length > 0;
   const solution = new Set(puzzle.solution ?? []);
   const treeSet = new Set(puzzle.trees);
   const mine = decodeTents(myAnswer ?? "", puzzle.size, height).filter((cell) => !treeSet.has(cell));
-  const solvedMarks = Array.from({ length: cells }, (_, cell) =>
-    solution.has(cell) ? 1 : 0,
-  ) as Mark[];
   const mineSet = new Set(mine);
-  const myMarks = Array.from({ length: cells }, (_, cell) => (mineSet.has(cell) ? 1 : 0)) as Mark[];
-  const correct = mine.filter((cell) => solution.has(cell)).length;
-  const wrong = mine.length - correct;
-  const trees = puzzle.trees.length;
-
-  return (
-    <div className="logic-reveal">
-      <div className="logic-reveal-board">
-        <div className="logic-pair">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-            <Board
-              size={puzzle.size}
-              height={height}
-              trees={puzzle.trees}
-              rowCounts={puzzle.rowCounts}
-              colCounts={puzzle.colCounts}
-              marks={solvedMarks}
-              countSize={14}
-              gap={1}
-              dimDone={false}
-            />
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-            <Board
-              size={puzzle.size}
-              height={height}
-              trees={puzzle.trees}
-              rowCounts={puzzle.rowCounts}
-              colCounts={puzzle.colCounts}
-              marks={myMarks}
-              tentColour={(cell) => (solution.has(cell) ? "var(--primary)" : "var(--destructive)")}
-              countSize={14}
-              gap={1}
-              dimDone={false}
-            />
-          </div>
-        </div>
-      </div>
-      <p className="logic-reveal-text text-center font-mono text-primary">
-        {correct === trees && wrong === 0
-          ? `${correct} / ${trees}`
-          : `${correct} / ${trees} tents`}
-      </p>
+  const marksOf = (set: ReadonlySet<number>) => Array.from({ length: cells }, (_, cell) => (set.has(cell) ? 1 : 0)) as Mark[];
+  const wrong = new Set(hasSolution ? mine.filter((cell) => !solution.has(cell)) : []);
+  const missed = new Set(hasSolution ? [...solution].filter((cell) => !mineSet.has(cell)) : []);
+  const board = (marks: Mark[], compare: boolean) => (
+    <div className="logic-camp-frame logic2-reveal-camp">
+      <Board
+        size={puzzle.size}
+        height={height}
+        trees={puzzle.trees}
+        rowCounts={puzzle.rowCounts}
+        colCounts={puzzle.colCounts}
+        marks={marks}
+        countSize={22}
+        gap={1}
+        wrongTents={compare ? wrong : undefined}
+        missedTents={compare ? missed : undefined}
+        lit={myCorrect}
+      />
     </div>
+  );
+  const mistakes = extraCount(myExtra, "mistakes");
+  const { rows, cols } = lineCounts(mine, puzzle.size, height);
+  const signsMet = puzzle.rowCounts.filter((n, r) => n >= 0 && rows[r] === n).length + puzzle.colCounts.filter((n, c) => n >= 0 && cols[c] === n).length;
+  const signs = puzzle.rowCounts.filter((n) => n >= 0).length + puzzle.colCounts.filter((n) => n >= 0).length;
+  return (
+    <LogicReveal
+      game="tents"
+      solved={myCorrect}
+      hasSolution={hasSolution}
+      yours={board(marksOf(mineSet), true)}
+      solution={board(marksOf(solution), false)}
+      tally={tallySets(mine, solution, "tents")}
+      facts={[
+        ...(myCorrect ? [] : [{ label: "Signs met", value: `${signsMet} of ${signs}` }]),
+        ...(mistakes !== null ? [{ label: "Mistakes", value: String(mistakes) }] : []),
+      ]}
+    />
   );
 }
 

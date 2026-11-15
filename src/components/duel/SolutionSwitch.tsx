@@ -13,20 +13,15 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "flow",
   "blockparty",
   "nonogram",
-  "tents",
-  "shikaku",
-  "lightup",
-  "fillomino",
-  "fences",
-  "bridges",
   "tilegrid",
   // Gridlock (3 Nov 2026, puzzle polish): the shortest solution playing back, and a solved player's own board.
   "unblock",
   // 4 Nov 2026 (Joe's review): the three that still drew "Solution" / "Yours" headings without the switch.
   "numpyramid",
   "bomb",
-  "trail",
 ]);
+// The Logic overhaul (15 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions and Island Link draw
+// their own switch (src/puzzles/logic2Reveal.tsx: your answer marked against the solution), so they left this list.
 
 const SOLUTION_LABEL = /^(solution|solved|one solution|the solution|answer|one valid plan)$/i;
 const YOURS_LABEL = /^(yours|your board|your grid|you)$/i;

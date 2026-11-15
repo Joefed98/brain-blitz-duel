@@ -19,7 +19,7 @@ export const LOGIC_ART_URLS = {
   "trail-given": "/logic-art/trail-given.webp?v=0c02d423bf",
   "trail-stone": "/logic-art/trail-stone.webp?v=2b00a90e39",
   "trail-cell": "/logic-art/trail-cell.webp?v=1ef9e79408",
-  "fences-slate": "/logic-art/fences-slate.webp?v=c26fc5def0",
+  "fences-slate": "/logic-art/fences-slate.webp?v=48ffd10d99",
   "fences-peg": "/logic-art/fences-peg.webp?v=880008447a",
   "fillomino-tile-0": "/logic-art/fillomino-tile-0.webp?v=b050ed33ce",
   "fillomino-tile-1": "/logic-art/fillomino-tile-1.webp?v=762d010c08",
@@ -32,7 +32,7 @@ export const LOGIC_ART_URLS = {
   "fillomino-tile-8": "/logic-art/fillomino-tile-8.webp?v=161a6c0f3a",
   "fillomino-tile-9": "/logic-art/fillomino-tile-9.webp?v=8110ce209d",
   "fillomino-tile-clash": "/logic-art/fillomino-tile-clash.webp?v=78ecc95947",
-  "bridges-slate": "/logic-art/bridges-slate.webp?v=69724b231a",
+  "bridges-slate": "/logic-art/bridges-slate.webp?v=99ffd423ce",
   "bridges-coin": "/logic-art/bridges-coin.webp?v=827e157378",
   "bridges-coin-met": "/logic-art/bridges-coin-met.webp?v=5c0c0a6ffa",
 } as const;

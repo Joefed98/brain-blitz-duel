@@ -482,7 +482,7 @@ def _tcell():
 
 
 # Loopline -------------------------------------------------------------------------------------------------------
-@sprite("fences-slate", px=384)
+@sprite("fences-slate", px=768)
 def _slate():
     m = bump(mat("slate", "#15181b", 0.85), 26, 0.22, distance=0.004)
     rbox(0, 0, 1.0, 1.0, 0.04, m, r=0.0, seg=1)
@@ -512,7 +512,7 @@ sprite("fillomino-tile-clash")(lambda: enamel("#5a1414", "enx"))
 
 
 # Island Link -----------------------------------------------------------------------------------------------------
-@sprite("bridges-slate", px=384)
+@sprite("bridges-slate", px=768)
 def _bslate():
     m = bump(mat("bslate", "#0f1a33", 0.85), 26, 0.2, distance=0.004)
     rbox(0, 0, 1.0, 1.0, 0.04, m, r=0.0, seg=1)

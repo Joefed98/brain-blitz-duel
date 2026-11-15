@@ -39,7 +39,7 @@ export const LOGIC_ART: Record<string, number> = {
   "trail-given": 160,
   "trail-stone": 160,
   "trail-cell": 160,
-  "fences-slate": 384,
+  "fences-slate": 640,
   "fences-peg": 64,
   "fillomino-tile-0": 128,
   "fillomino-tile-1": 128,
@@ -52,7 +52,7 @@ export const LOGIC_ART: Record<string, number> = {
   "fillomino-tile-8": 128,
   "fillomino-tile-9": 128,
   "fillomino-tile-clash": 128,
-  "bridges-slate": 384,
+  "bridges-slate": 640,
   "bridges-coin": 128,
   "bridges-coin-met": 128,
 };

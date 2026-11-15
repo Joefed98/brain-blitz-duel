@@ -5,7 +5,7 @@ import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
-import { trCanStep, trComplete, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
+import { trCanStep, trComplete, trCorrectPrefix, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { TRAIL_TIME_MS, type TrailPuzzleData } from "@/lib/duel/types";
@@ -17,6 +17,7 @@ import { useGoalProgress } from "@/components/duel/GameFrame";
 import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
 import "@/polish-layout/batch-w-trail.css";
 import { logicArtVars } from "./logicArt";
+import { LogicReveal, extraCount } from "./logic2Reveal";
 
 const TRAIL_ART = logicArtVars(["trail-cell", "trail-given", "trail-stone"]);
 
@@ -89,13 +90,14 @@ export function Grid({
   glow = false,
   animate = true,
   cellH = cell,
+  ghosts,
 }: {
   size: number;
   givens: readonly (number | null)[];
   path: readonly number[];
   cell: number;
   /** Reveal: solution cell at each numbered step. */
-  marks?: readonly number[];
+  marks?: readonly number[] | undefined;
   shakeCell?: number | null;
   endCell?: number | undefined;
   gap?: number;
@@ -104,7 +106,11 @@ export function Grid({
   animate?: boolean;
   /** The Logic overhaul (15 Nov 2026): cells may be taller than wide, so the board fills the phone's height. */
   cellH?: number;
+  /** Reveal: the solution's path; squares the player's path didn't reach show its number faintly in a dashed ring. */
+  ghosts?: readonly number[] | undefined;
 }) {
+  const ghostOf = new Map<number, number>();
+  ghosts?.forEach((c, i) => ghostOf.set(c, i + 1));
   const stepOf = new Map<number, number>();
   path.forEach((c, i) => { if (c >= 0) stepOf.set(c, i + 1); });
   const end = endCell ?? path[path.length - 1];
@@ -155,7 +161,9 @@ export function Grid({
               className={`tr-cell ${g != null ? "tr-milestone" : ""} ${isEnd && g != null ? "tr-end" : ""} ${shakeCell === c ? "animate-shake" : ""}`}
               style={{ width: cell, height: cellH, fontSize: font }}
             >
-              {g != null ? g : step !== undefined ? (
+              {g != null ? g : step === undefined && ghostOf.has(c) ? (
+                <span className="logic2-trail-ghost" data-missed="" style={{ width: discPx, height: discPx }}>{ghostOf.get(c)}</span>
+              ) : step !== undefined ? (
                 <span key={`${c}:${step}`} className={`tr-step ${animate ? "tr-pop" : ""} ${wrong ? "tr-wrong" : ""} ${isEnd ? "tr-end" : ""}`} style={{ width: discPx, height: discPx, ["--tr-delay" as string]: `${(step - 1) * 16}ms` }}>{step}</span>
               ) : ""}
             </div>
@@ -423,44 +431,66 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
-  // Fit both boards to the space the shared reveal frame gives (side by side or stacked, whichever is larger).
+  // One board, as large as the shared reveal frame's box allows (the Logic overhaul, 15 Nov 2026).
   const root = useRef<HTMLDivElement | null>(null);
   const [space, setSpace] = useState({ w: 343, h: 440 });
   useBeforePaint(() => {
-    const host = root.current?.parentElement;
-    if (!host) return;
-    const read = () => setSpace({ w: host.clientWidth, h: host.clientHeight });
+    // Width from the board's own column, height from the reveal frame round it.
+    const column = root.current?.parentElement;
+    const host = root.current?.closest(".logic2-reveal")?.parentElement ?? column;
+    if (!host || !column) return;
+    const read = () => setSpace({ w: column.clientWidth, h: host.clientHeight });
     const ro = new ResizeObserver(read);
-    ro.observe(host); read();
+    ro.observe(host);
+    ro.observe(column);
+    read();
     return () => ro.disconnect();
   }, []);
   if (puzzle.type !== "trail") return null;
   const solution = puzzle.solution ?? [];
+  const hasSolution = solution.length > 0;
   const mine = trDecode(myAnswer ?? "", puzzle.givens.length);
-  const correctTiles = trCorrectTiles(puzzle.givens, mine, solution);
   const gap = 3;
-  const extra = 28 + (dev ? 30 : 0);
-  const side = Math.min(Math.floor(((space.w - 12) / 2 - 5 * gap) / 6), Math.floor((space.h - 22 - extra - 8 - 5 * gap) / 6));
-  const stacked = Math.min(Math.floor((space.w - 8 - 5 * gap) / 6), Math.floor(((space.h - 44 - extra - 16) / 2 - 5 * gap) / 6));
-  const cell = Math.max(24, Math.min(44, Math.max(side, stacked)));
-  return (
-    <div ref={root} className="flex w-full flex-col items-center gap-2">
-      <div className={`flex w-full items-center justify-center gap-3 ${side >= stacked ? "" : "flex-col gap-1.5"}`}>
-        <div className="flex flex-col items-center gap-1">
-          <span className="tr-label text-xs uppercase tracking-widest">Solution</span>
-          <Grid size={TR_SIZE} givens={puzzle.givens} path={solution} cell={cell} gap={gap} marks={solution} animate={false} />
-        </div>
-        <div className="flex flex-col items-center gap-1">
-          <span className="tr-label text-xs uppercase tracking-widest">Yours</span>
-          <Grid size={TR_SIZE} givens={puzzle.givens} path={mine} cell={cell} gap={gap} marks={solution} animate={false} />
-        </div>
-      </div>
-      <p className="font-mono text-base text-primary">{`${correctTiles} / 26 tiles correct`}</p>
-      {dev && <p className="max-w-[340px] break-all font-mono text-[10px] text-muted-foreground">dev · solution [{solution.join(", ")}]</p>}
+  // Leave room for the switch, the tally and the chips (about 150 px) under the shared frame's own rows.
+  const cell = Math.max(30, Math.min(56, Math.floor((space.w - 8 - 5 * gap) / 6), Math.floor((space.h - 150 - 5 * gap) / 6)));
+  const toPlace = puzzle.givens.filter((g) => g === null).length;
+  const placed = mine.filter((c, i) => c >= 0 && i < puzzle.givens.length && puzzle.givens[c] == null).length;
+  const right = hasSolution ? trCorrectTiles(puzzle.givens, mine, solution) : 0;
+  const prefix = hasSolution ? trCorrectPrefix(mine, solution) : 0;
+  const undos = extraCount(myExtra, "undos");
+  const board = (path: readonly number[], compare: boolean) => (
+    <div ref={root} data-reveal-board="" className="flex justify-center">
+      <Grid
+        size={TR_SIZE}
+        givens={puzzle.givens}
+        path={path}
+        cell={cell}
+        gap={gap}
+        marks={hasSolution ? solution : undefined}
+        ghosts={compare && hasSolution ? solution : undefined}
+        animate={false}
+      />
     </div>
+  );
+  return (
+    <>
+      <LogicReveal
+        game="trail"
+        solved={myCorrect}
+        hasSolution={hasSolution}
+        yours={board(mine, true)}
+        solution={board(solution, false)}
+        tally={hasSolution ? { right, wrong: placed - right, missed: toPlace - placed, unit: "squares" } : null}
+        facts={[
+          ...(myCorrect || !hasSolution ? [] : [{ label: "Path right up to", value: String(Math.max(1, prefix)) }]),
+          ...(undos !== null ? [{ label: "Undos", value: String(undos) }] : []),
+        ]}
+      />
+      {dev && <p className="max-w-[340px] break-all font-mono text-[10px] text-muted-foreground">dev · solution [{solution.join(", ")}]</p>}
+    </>
   );
 }
 

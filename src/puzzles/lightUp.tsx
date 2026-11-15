@@ -20,6 +20,7 @@ import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { logicArt, logicArtVars } from "./logicArt";
+import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
 
 const LIGHTUP_ART = logicArtVars(["logic-cell", "lightup-cell-lit", "lightup-wall"]);
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
@@ -88,15 +89,18 @@ export function Board({
   small = false,
   pointer,
   spread,
+  missed,
 }: {
   board: LightUpBoard;
   marks: readonly Mark[];
   /** Bulbs to draw red in the reveal. */
-  wrong?: ReadonlySet<number>;
+  wrong?: ReadonlySet<number> | undefined;
   small?: boolean;
   pointer?: ReturnType<typeof useGridPointer>;
   /** The lamp just placed, keyed per tap: its light spreads out along the beams. */
   spread?: { cell: number; key: number } | null;
+  /** Reveal: the solution's lamps the player didn't place (a faint ghost bulb in a dashed ring). */
+  missed?: ReadonlySet<number> | undefined;
 }) {
   const { size } = board;
   const height = lightUpHeightOf(board);
@@ -151,6 +155,7 @@ export function Board({
             style={{ "--logic-diag": r + c } as CSSProperties}
             className="lightup-cell logic2-lamp-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm"
             data-lit={lit ? "" : undefined}
+            data-missed={missed?.has(cell) && mark !== 1 ? "" : undefined}
           >
             {reach >= 0 && (
               <span key={spread?.key} aria-hidden="true" className="logic-light-in" style={{ animationDelay: `${reach * 40}ms` }} />
@@ -175,6 +180,8 @@ export function Board({
                 alt=""
                 draggable={false}
               />
+            ) : missed?.has(cell) ? (
+              <img className="logic2-piece logic2-bulb logic2-ghost relative" src={logicArt("lightup-lamp")} alt="" draggable={false} />
             ) : mark === 2 ? (
               <span className="relative h-1.5 w-1.5 rounded-full bg-muted-foreground" />
             ) : null}
@@ -301,38 +308,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "lightup") return null;
   const cells = puzzle.size * lightUpHeightOf(puzzle);
+  const hasSolution = Array.isArray(puzzle.solution) && puzzle.solution.length > 0;
   const solution = new Set(puzzle.solution ?? []);
   const mine = decodeBulbs(myAnswer ?? "", puzzle);
   const mineSet = new Set(mine);
-  const solvedMarks = Array.from({ length: cells }, (_, c) => (solution.has(c) ? 1 : 0)) as Mark[];
-  const myMarks = Array.from({ length: cells }, (_, c) => (mineSet.has(c) ? 1 : 0)) as Mark[];
-  const wrong = new Set(mine.filter((c) => !solution.has(c)));
+  const marksOf = (set: ReadonlySet<number>) => Array.from({ length: cells }, (_, c) => (set.has(c) ? 1 : 0)) as Mark[];
+  const wrong = new Set(hasSolution ? mine.filter((c) => !solution.has(c)) : []);
+  const missed = new Set(hasSolution ? [...solution].filter((c) => !mineSet.has(c)) : []);
   const status = lightUpStatus(puzzle, mine);
-  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
-  return (
-    <div className="logic-reveal">
-      <div className="logic-reveal-board">
-        <div className="logic-pair">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-            <Board board={puzzle} marks={solvedMarks} small />
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-            <Board board={puzzle} marks={myMarks} wrong={wrong} small />
-          </div>
-        </div>
-      </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026: no repeated "Solved · 1.6s"). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text text-center font-mono text-primary">
-          {(solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${status.lit.size} / ${status.whites} lit`)}
-        </p>
-      )}
+  const board = (marks: Mark[], compare: boolean) => (
+    <div className="logic-lamp-frame logic2-reveal-lamps">
+      <Board board={puzzle} marks={marks} wrong={compare ? wrong : undefined} missed={compare ? missed : undefined} />
     </div>
+  );
+  const mistakes = extraCount(myExtra, "mistakes");
+  return (
+    <LogicReveal
+      game="lightup"
+      solved={myCorrect}
+      hasSolution={hasSolution}
+      yours={board(marksOf(mineSet), true)}
+      solution={board(marksOf(solution), false)}
+      tally={tallySets(mine, solution, "lamps")}
+      facts={[
+        ...(myCorrect ? [] : [{ label: "Squares lit", value: `${status.lit.size} of ${status.whites}` }]),
+        ...(mistakes !== null ? [{ label: "Mistakes", value: String(mistakes) }] : []),
+      ]}
+    />
   );
 }
 

@@ -68,6 +68,31 @@ wrong squares is one mistake (`fillominoRev 2`).
 Black enamel coins in silver bezels that turn gold when met, gold rods on today's navy, numbers flat and bold; a tap on a
 bridge cycles it (one, two, none); the help says "drag towards an island".
 
+## The answer reveals
+
+Each game's own reveal (`src/puzzles/logic2Reveal.tsx`, inside the shared reveal layout): one large board at a time.
+"Your answer" opens first, marked against the solution: wrong pieces ringed red and missed ones as faint dashed ghosts.
+A switch shows the clean "Solution". A solved round shows "Your solution" with no switch. A Daily or challenge whose
+solution is still locked shows only your board. Under the board, a bar and legend in place of a line of text ("6 of 12
+tents right", wrong, missed), then plain number chips that explain the score (signs met, squares lit, numbers met,
+islands met, the path right up to step N, mistakes, undos). Each picture is **before | after**: a half-played round that
+ran out of time, then a solved one.
+
+| Game | Timed out (your answer) | Solved |
+|---|---|---|
+| Tents and Trees | ![](img/reveal-tents-timeout.webp) | ![](img/reveal-tents-reveal.webp) |
+| Shikaku | ![](img/reveal-shikaku-timeout.webp) | ![](img/reveal-shikaku-reveal.webp) |
+| Lamplighter | ![](img/reveal-lightup-timeout.webp) | ![](img/reveal-lightup-reveal.webp) |
+| Trail | ![](img/reveal-trail-timeout.webp) | ![](img/reveal-trail-reveal.webp) |
+| Loopline | ![](img/reveal-fences-timeout.webp) | ![](img/reveal-fences-reveal.webp) |
+| Regions | ![](img/reveal-fillomino-timeout.webp) | ![](img/reveal-fillomino-reveal.webp) |
+| Island Link | ![](img/reveal-bridges-timeout.webp) | ![](img/reveal-bridges-reveal.webp) |
+
+## Image budget
+
+Each game's Blender art plus its tile (WebP, 128 px pieces for 2x boards, 640 px slates): Tents and Trees 20 KB, Shikaku 14 KB, Lamplighter 12 KB, Trail 13 KB, Loopline 9 KB, Regions 25 KB, Island Link 14 KB (about 105 KB for all
+seven), well under the 400 KB a game Joe set; logic-overhaul-2-check fails any game over it.
+
 ## Stage 2: effects
 
 Waiting for the effects kit (#422) on main.
