@@ -281,8 +281,55 @@ view = await mount(() => React.createElement(Probe));
 await settle(60);
 check(heldSeen.join() === "unblock", "Practice learns the games held back for this device");
 view.root.unmount();
-const practiceSrc = (await import("node:fs")).readFileSync("src/routes/practice.tsx", "utf8");
-check(/matchesFilter\(key, side, filter, query\) && !heldBack\.includes\(key\)/.test(practiceSrc), "Practice's list leaves a held-back game out");
+// Changed with Joe's approval, 14 Nov 2026 (Games catalogue replaces the Practice list): was a source match on
+// practice.tsx's list, /matchesFilter\(key, side, filter, query\) && !heldBack\.includes\(key\)/, "Practice's list
+// leaves a held-back game out". Now the catalogue is drawn with held-back games and each is looked for in the grid, under
+// every chip, in a search for its own name and as the game of the day.
+{
+  const practiceSrc = (await import("node:fs")).readFileSync("src/routes/practice.tsx", "utf8");
+  check(/const heldBack = useEarlyAccessHeld\(\)/.test(practiceSrc) && /<GamesCatalogue[\s\S]*?hidden=\{heldBack\}/.test(practiceSrc), "Games passes the held-back games to the catalogue");
+  const { GamesCatalogue } = await import("../src/components/games/GamesCatalogue");
+  const { catalogueGames, catalogueShelves } = await import("../src/components/games/gameMeta");
+  const { gameOfTheDayAt } = await import("../src/lib/duel/gameOfTheDay");
+  const { PUZZLE_REGISTRY } = await import("../src/lib/duel/catalogue");
+  // Held back: today's game of the day (so the hero must pick another), Gridlock (Plus's own stand-in above) and every
+  // game of the smallest shelf (so its chip has nothing to open).
+  const smallest = [...catalogueShelves()].sort((a, b) => a.games.length - b.games.length)[0];
+  const dayGame = gameOfTheDayAt(Date.now(), catalogueGames());
+  const held = [...new Set([dayGame, "unblock", ...smallest.games])];
+  let setQuery: (q: string) => void = () => {};
+  function Catalogue() {
+    const [query, onQuery] = React.useState("");
+    const [filter, onFilter] = React.useState("all");
+    setQuery = onQuery;
+    return React.createElement(GamesCatalogue, { progress: null, query, onQuery, searchOpen: true, filter, onFilter, hidden: held, tileStyle: null, onOpen: () => {} });
+  }
+  view = await mount(() => React.createElement(Catalogue));
+  await settle(30);
+  const tiles = () => $$("[data-practice-game]").map((el) => el.getAttribute("data-practice-game") ?? "");
+  const shown = (type: string) => tiles().includes(type) || $(`[data-games-hero="${type}"]`) !== null;
+  check(tiles().length > 0 && held.every((t) => !tiles().includes(t)), "the grid leaves every held-back game out");
+  const hero = $("[data-games-hero]")?.getAttribute("data-games-hero") ?? null;
+  check(hero !== null && !held.includes(hero), `the game of the day is never a held-back game (${hero}, held ${dayGame})`);
+  check($(`[data-practice-filter="${smallest.id}"]`) === null, `a chip whose games are all held back isn't drawn (${smallest.id})`);
+  const chipIds = $$("[data-practice-filter]").map((el) => el.getAttribute("data-practice-filter") ?? "");
+  let underChips = true;
+  for (const id of chipIds) {
+    await click($(`[data-practice-filter="${id}"]`));
+    if (held.some(shown)) underChips = false;
+  }
+  check(chipIds.length > 1 && underChips, `no chip shows a held-back game (${chipIds.length} chips)`);
+  await click($('[data-practice-filter="all"]'));
+  let inSearch = true;
+  for (const type of held) {
+    await act(async () => setQuery(PUZZLE_REGISTRY[type as keyof typeof PUZZLE_REGISTRY].name));
+    if (shown(type)) inSearch = false;
+  }
+  check(inSearch, "a search for a held-back game's own name doesn't find it");
+  await act(async () => setQuery(""));
+  check(tiles().length === catalogueGames().filter((t) => !held.includes(t)).length, "every other game is still in the grid");
+  view.root.unmount();
+}
 
 check(consoleErrors.length === 0, `no console errors (${consoleErrors.slice(0, 2).join(" | ")})`);
 

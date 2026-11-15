@@ -60,7 +60,7 @@ import type { Driver } from "./shots/driver";
 import { DRIVERS } from "./shots/drivers";
 import { wordAnswer } from "./shots/word-answers";
 import { playTenDropPerfect } from "./tendrop-depth-player";
-import { showPracticeSide } from "./practice-side-lib";
+import { playFromCatalogue } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const ALL = args.includes("--all");
@@ -260,14 +260,9 @@ async function openRound(browser: Browser, game: PuzzleType, clock: boolean, swa
     return route.continue();
   });
   await page.goto(`${ORIGIN}/practice`, { waitUntil: "domcontentloaded" });
-  await showPracticeSide(page, game);
-  const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
-  await button.waitFor({ timeout: 60_000 });
-  await page.waitForTimeout(1500); // hydration
-  await button.click();
-  const ready = page.getByRole("button", { name: /^Ready/ }).first();
-  await ready.waitFor({ timeout: 60_000 });
-  await ready.click();
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): the game's
+  // tile opens its page, whose Play opens the round's intro already counting down (no Ready to press).
+  await playFromCatalogue(page, game);
   await page.locator("[data-game-stage], [data-arcade-play]").first().waitFor({ timeout: 30_000 });
   await page.waitForTimeout(1200);
   if (!deal) throw new Error(`no practice deal opened${errors.length ? `: ${errors.join(" | ")}` : ""}`);
@@ -468,3 +463,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`PASS standard-live-check: ${games.length} practice rounds (through the app) and ${roomCount} room rounds (the built room deal and grader) on the production build score the standard's 150 + speed + bonus`);
+// Changed with Joe's approval, 14 Nov 2026 (routine: the check's shutdown): the production server child can outlive its
+// kill() and hold the process open after the summary, so the check ends here (the failure path already exits).
+process.exit(0);

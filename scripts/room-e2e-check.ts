@@ -163,7 +163,8 @@ async function flow(browser: Browser, origin: string, db: LocalDb): Promise<void
   };
 
   // The host creates a room; a guest joins by its link.
-  const ali = await open("ali", "/");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create a room is on the Rooms page.
+  const ali = await open("ali", "/rooms");
   await ready(ali, "#name");
   await ali.fill("#name", "Ali");
   await ali.getByRole("button", { name: "Create a room" }).click();

@@ -6,19 +6,20 @@ import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { SkeletonPage } from "@/design/components";
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_NAME } from "@/lib/brand";
-import { MAIN_BOARDS, isPeriod, isScope, type BoardPeriod, type BoardScope, type MainBoard } from "@/lib/leaderboards/boards";
+import { isPeriod, isRatingBoard, isScope, type BoardPeriod, type BoardScope, type RatingBoard } from "@/lib/leaderboards/boards";
 
 /**
  * /leaderboards (wave 4, session W4a; docs/leaderboards.md, mockup 01): the Joulz Rating, Puzzles and Arcade boards,
- * global, by country and among friends, this season or all-time peak, with the category boards below. Everyone may
+ * global, by country and among friends, this season or all-time peak; the category boards and the Daily top 100 are
+ * in the board picker (phase 2 step 3). Everyone may
  * look; friends boards and your own pinned row need an account.
  */
-type Search = { board?: MainBoard; scope?: BoardScope; period?: BoardPeriod };
+type Search = { board?: RatingBoard; scope?: BoardScope; period?: BoardPeriod };
 
 export const Route = createFileRoute("/leaderboards")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>): Search => ({
-    ...((MAIN_BOARDS as readonly unknown[]).includes(search["board"]) ? { board: search["board"] as MainBoard } : {}),
+    ...(isRatingBoard(search["board"]) ? { board: search["board"] } : {}),
     ...(isScope(search["scope"]) ? { scope: search["scope"] } : {}),
     ...(isPeriod(search["period"]) ? { period: search["period"] } : {}),
   }),
@@ -53,7 +54,12 @@ function LeaderboardsScreen() {
       {account.kind === "unknown" ? (
         <SkeletonPage label="Loading the leaderboards" rows={6} />
       ) : (
-        <RatingBoardsScreen onBack={back} isAccount={account.kind === "account"} initial={search} />
+        <RatingBoardsScreen
+          onBack={back}
+          isAccount={account.kind === "account"}
+          initial={search}
+          onDaily={() => void router.navigate({ to: "/daily-board" })}
+        />
       )}
     </PhoneShell>
   );

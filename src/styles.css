@@ -51,6 +51,9 @@
 @import "./polish-layout/room-pages.css";
 @import "./polish-layout/rated-pages.css";
 @import "./polish-layout/profile.css";
+@import "./polish-layout/games.css";
+@import "./polish-layout/tournaments-pages.css";
+@import "./polish-layout/home-play.css";
 
 /*
  * Duelz design system — dark competitive esports feel.

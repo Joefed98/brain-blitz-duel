@@ -579,7 +579,8 @@ async function playInChallenge(puzzle: PuzzleData, answer: string, claimedMs: nu
   check((await dailyStatus(withTables.client, null, NOW)).challenges === true, "the daily status call says challenges are available once their table exists");
   const noChallenges = { from: (t: string) => ({ select: () => ({ eq: () => ({ maybeSingle: async () => (t === "challenges" ? { data: null, error: { code: "42P01", message: "relation does not exist" } } : { data: null, error: null }) }) }) }) };
   check((await dailyStatus(noChallenges, null, NOW)).challenges === false, "the daily status call says no before the challenge migration");
-  const home = readFileSync("src/routes/index.tsx", "utf8");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Challenge a friend moved to the Rooms page.
+  const home = readFileSync("src/routes/rooms.tsx", "utf8");
   check(
     /daily\.status\?\.challenges === true/.test(home) && /<PlaySlot id="challenge" state=\{slotState\(challenges !== null, challenges === true\)\}>/.test(home) && /if \(!available\) return null/.test(readFileSync("src/components/challenge/ChallengeCard.tsx", "utf8")),
     "the Play card shows only while challenges may be available, and collapses when they aren't",

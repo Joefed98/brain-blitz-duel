@@ -110,7 +110,7 @@ function DailyPanel() {
   );
 }
 
-function WeekPanel() {
+export function WeekPanel() {
   const [week, setWeek] = useState<{
     rooms: number;
     wins: number;

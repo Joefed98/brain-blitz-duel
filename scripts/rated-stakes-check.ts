@@ -59,6 +59,15 @@ const OUTSIDER = uid(904);
 const TWIN = uid(905);
 /** Placement opponents, a fresh one for every match (W3a freezes a pair from their 4th match in a day). */
 const OPP = Array.from({ length: 12 }, (_, i) => uid(920 + i));
+/**
+ * Section (b)'s player (fix, 15 Nov 2026): placed only through the fixed placement matches below (one Puzzles and one
+ * Arcade game each, the same result), so their Puzzles and Arcade ratings and recent games are equal by construction.
+ * A's history includes section (a)'s matches, dealt on random room seeds, which can pull A's two pools apart; the
+ * Joulz Rating then re-weights them as a match adds games, so a win and a loss stop being mirror images (the engine's
+ * rule: the stakes can be unequal). The "equally rated" estimate's assertions need a player whose pools are equal.
+ */
+const EQ = uid(906);
+const EQ_OPP = Array.from({ length: 5 }, (_, i) => uid(940 + i));
 
 if (!postgresBin()) {
   restore();
@@ -115,7 +124,7 @@ async function runAll(db: LocalDb): Promise<void> {
   const call = callServerFn;
   type Stakes = { win: number; loss: number } | null;
 
-  const everyone = [A, B, NEWBIE, OUTSIDER, TWIN, ...OPP];
+  const everyone = [A, B, NEWBIE, OUTSIDER, TWIN, ...OPP, EQ, ...EQ_OPP];
   q(`INSERT INTO auth.users (id) VALUES ${everyone.map((u) => `('${u}')`).join(", ")}`);
   q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
     ${everyone.map((u, i) => `('${u}', 'Stake_${i}', 'stake_${i}', ${i % 32}, DATE '1990-01-01', ${700 + i})`).join(", ")}`);
@@ -197,7 +206,11 @@ async function runAll(db: LocalDb): Promise<void> {
   // A and B through placement, each against fresh opponents.
   for (let i = 0; i < 5; i++) await play(A, OPP[i]!, i !== 2);
   for (let i = 0; i < 5; i++) await play(B, OPP[5 + i]!, i === 0 || i === 3);
+  for (let i = 0; i < 5; i++) await play(EQ, EQ_OPP[i]!, i !== 1);
   check(placed(A) === "5" && placed(B) === "5", `both players placed on W3a's engine (${placed(A)}, ${placed(B)})`);
+  const eqPools = q(`SELECT string_agg(key || ':' || rating::text || ':' || rd::text, ',' ORDER BY key) FROM public.rated_ratings WHERE player_id = '${EQ}' AND key IN ('puzzles', 'arcade')`);
+  const [eqArc, eqPuz] = eqPools.split(",").map((x) => x.split(":").slice(1).join(":"));
+  check(placed(EQ) === "5" && !!eqArc && eqArc === eqPuz, `section (b)'s player is placed with Puzzles and Arcade exactly equal (${eqPools})`);
 
   await section("(a) a matched match: exactly what settling applies", async () => {
     // Match 1: A wins outright.
@@ -238,43 +251,43 @@ async function runAll(db: LocalDb): Promise<void> {
   });
 
   await section("(b) before matching: an estimate against an equally rated opponent", async () => {
-    const est = (await call(fns.ratedStakesEstimateFn, { format: "bo3", choice: "mixed" }, userToken(A))) as Stakes;
+    const est = (await call(fns.ratedStakesEstimateFn, { format: "bo3", choice: "mixed" }, userToken(EQ))) as Stakes;
     check(!!est && est.win > 0 && est.loss < 0, `a placed player's estimate: a win up, a loss down (${JSON.stringify(est)})`);
     check(!!est && Math.abs(est.win + est.loss) <= 1, `against an equal opponent a win and a loss are near mirror images (${JSON.stringify(est)})`);
     check(noIds(est), "the answer holds no ids");
     // A real opponent stored with exactly A's ratings: the engine's own change against them matches the estimate.
     q(`SET session_replication_role = replica; INSERT INTO public.rated_ratings (player_id, key, rating, rd, volatility, matches, last_at)
-       SELECT '${TWIN}', key, rating, rd, volatility, matches, last_at FROM public.rated_ratings WHERE player_id = '${A}'`);
+       SELECT '${TWIN}', key, rating, rd, volatility, matches, last_at FROM public.rated_ratings WHERE player_id = '${EQ}'`);
     const vsTwin = async (aWins: boolean) => {
       const games = [game("puzzles"), game("arcade")].map((type) => {
         const pc = poolAndCategory(type)!;
-        return { type, pool: pc.pool, category: pc.category, version: "classic" as const, signature: "", scores: { [A]: aWins ? 1 : 0, [TWIN]: aWins ? 0 : 1 } };
+        return { type, pool: pc.pool, category: pc.category, version: "classic" as const, signature: "", scores: { [EQ]: aWins ? 1 : 0, [TWIN]: aWins ? 0 : 1 } };
       });
       const changes = await previewRatedMatch(client, {
         matchId: crypto.randomUUID(),
         format: { kind: "duel", bestOf: 3 },
         choice: "mixed",
         players: [
-          { playerId: A, side: "live" },
+          { playerId: EQ, side: "live" },
           { playerId: TWIN, side: "live" },
         ],
         games,
         rematchOf: null,
       });
-      return stakesMod.stakeOf(changes?.find((c) => c.playerId === A));
+      return stakesMod.stakeOf(changes?.find((c) => c.playerId === EQ));
     };
     const real = { win: await vsTwin(true), loss: await vsTwin(false) };
     check(!!est && real.win === est.win && real.loss === est.loss, `the estimate is the engine's change against a stored, equally rated opponent (${JSON.stringify(est)} v ${JSON.stringify(real)})`);
-    const bo5 = (await call(fns.ratedStakesEstimateFn, { format: "bo5", choice: "mixed" }, userToken(A))) as Stakes;
+    const bo5 = (await call(fns.ratedStakesEstimateFn, { format: "bo5", choice: "mixed" }, userToken(EQ))) as Stakes;
     check(!!est && !!bo5 && bo5.win > est.win && bo5.loss < est.loss, `a best of 5 stakes more than a best of 3 (${JSON.stringify(bo5)} v ${JSON.stringify(est)})`);
-    const puzzlesOnly = (await call(fns.ratedStakesEstimateFn, { format: "bo3", choice: "puzzles" }, userToken(A))) as Stakes;
+    const puzzlesOnly = (await call(fns.ratedStakesEstimateFn, { format: "bo3", choice: "puzzles" }, userToken(EQ))) as Stakes;
     check(!!puzzlesOnly && puzzlesOnly.win > 0 && puzzlesOnly.loss < 0, `All puzzles has its own estimate (${JSON.stringify(puzzlesOnly)})`);
-    check((await call(fns.ratedStakesEstimateFn, { format: "ffa4", choice: "mixed" }, userToken(A))) === null, "4 players: no estimate (switched off; placings aren't a win or a loss)");
-    check((await call(fns.ratedStakesEstimateFn, { format: "bo3", choice: "logic" }, userToken(A))) === null, "a single-category pick: no estimate (the ratings engine doesn't rate it)");
+    check((await call(fns.ratedStakesEstimateFn, { format: "ffa4", choice: "mixed" }, userToken(EQ))) === null, "4 players: no estimate (switched off; placings aren't a win or a loss)");
+    check((await call(fns.ratedStakesEstimateFn, { format: "bo3", choice: "logic" }, userToken(EQ))) === null, "a single-category pick: no estimate (the ratings engine doesn't rate it)");
     check((await call(fns.ratedStakesEstimateFn, { format: "bo3", choice: "mixed" }, userToken(OUTSIDER))) === null, "a player rated play isn't open to gets no estimate");
     let refused = false;
     try {
-      await call(fns.ratedStakesEstimateFn, { format: "best of 3", choice: "mixed" }, userToken(A));
+      await call(fns.ratedStakesEstimateFn, { format: "best of 3", choice: "mixed" }, userToken(EQ));
     } catch {
       refused = true;
     }

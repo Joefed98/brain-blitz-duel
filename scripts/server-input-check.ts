@@ -110,6 +110,8 @@ const BATCHES: Record<string, string[]> = {
     "src/lib/tournaments/events.functions.ts",
     "src/lib/challenges/challenges.functions.ts",
     "src/lib/practice/progress.functions.ts",
+    // Home and Play (phase 2 step 3, 14 Nov 2026): today's Daily play counts.
+    "src/lib/home/dailyCounts.functions.ts",
   ],
 };
 
@@ -496,6 +498,8 @@ const SPECS: Spec[] = [
   { file: TO, name: "scoreAttackStartFn", good: { eventId: "score_attack:2026-11-14" }, fields: { eventId: "text" } },
   { file: TO, name: "scoreAttackBoardFn", good: { eventId: "score_attack:2026-11-14" }, fields: { eventId: "text" } },
   { file: "src/lib/tournaments/events.functions.ts", name: "bigEventFn", good: { eventId: "category_cup:2026-11-14:1900" }, fields: { eventId: "text" } },
+  /* Home and Play (phase 2 step 3): today's Daily play counts, an optional list of the kinds asked for. */
+  { file: "src/lib/home/dailyCounts.functions.ts", name: "dailyPlayedTodayFn", good: { kinds: ["puzzle", "arcade"] }, fields: { kinds: "list" }, allowsNothing: true },
 ];
 
 /* ------------------------------------------------------------------ 1. static */

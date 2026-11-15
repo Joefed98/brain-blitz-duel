@@ -14,6 +14,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as BadgesRouteImport } from './routes/badges'
 import { Route as CardRouteImport } from './routes/card'
 import { Route as ChallengeRouteImport } from './routes/challenge'
+import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as CustomiseRouteImport } from './routes/customise'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DailyArchiveRouteImport } from './routes/daily-archive'
@@ -23,10 +24,12 @@ import { Route as DevDesignRouteImport } from './routes/dev-design'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as MoreRouteImport } from './routes/more'
+import { Route as PlayRouteImport } from './routes/play'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RatedRouteImport } from './routes/rated'
 import { Route as ReplayLabRouteImport } from './routes/replay-lab'
+import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TiersRouteImport } from './routes/tiers'
@@ -58,6 +61,11 @@ const CardRoute = CardRouteImport.update({
 const ChallengeRoute = ChallengeRouteImport.update({
   id: '/challenge',
   path: '/challenge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChallengesRoute = ChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomiseRoute = CustomiseRouteImport.update({
@@ -105,6 +113,11 @@ const MoreRoute = MoreRouteImport.update({
   path: '/more',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeRoute = PracticeRouteImport.update({
   id: '/practice',
   path: '/practice',
@@ -123,6 +136,11 @@ const RatedRoute = RatedRouteImport.update({
 const ReplayLabRoute = ReplayLabRouteImport.update({
   id: '/replay-lab',
   path: '/replay-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoomsRoute = RoomsRouteImport.update({
+  id: '/rooms',
+  path: '/rooms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShopRoute = ShopRouteImport.update({
@@ -167,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/badges': typeof BadgesRoute
   '/card': typeof CardRoute
   '/challenge': typeof ChallengeRoute
+  '/challenges': typeof ChallengesRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
@@ -176,10 +195,12 @@ export interface FileRoutesByFullPath {
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/more': typeof MoreRoute
+  '/play': typeof PlayRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/rooms': typeof RoomsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
@@ -194,6 +215,7 @@ export interface FileRoutesByTo {
   '/badges': typeof BadgesRoute
   '/card': typeof CardRoute
   '/challenge': typeof ChallengeRoute
+  '/challenges': typeof ChallengesRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
@@ -203,10 +225,12 @@ export interface FileRoutesByTo {
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/more': typeof MoreRoute
+  '/play': typeof PlayRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/rooms': typeof RoomsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
@@ -222,6 +246,7 @@ export interface FileRoutesById {
   '/badges': typeof BadgesRoute
   '/card': typeof CardRoute
   '/challenge': typeof ChallengeRoute
+  '/challenges': typeof ChallengesRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
@@ -231,10 +256,12 @@ export interface FileRoutesById {
   '/friends': typeof FriendsRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/more': typeof MoreRoute
+  '/play': typeof PlayRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/rooms': typeof RoomsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
@@ -251,6 +278,7 @@ export interface FileRouteTypes {
     | '/badges'
     | '/card'
     | '/challenge'
+    | '/challenges'
     | '/customise'
     | '/daily'
     | '/daily-archive'
@@ -260,10 +288,12 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboards'
     | '/more'
+    | '/play'
     | '/practice'
     | '/profile'
     | '/rated'
     | '/replay-lab'
+    | '/rooms'
     | '/shop'
     | '/terms'
     | '/tiers'
@@ -278,6 +308,7 @@ export interface FileRouteTypes {
     | '/badges'
     | '/card'
     | '/challenge'
+    | '/challenges'
     | '/customise'
     | '/daily'
     | '/daily-archive'
@@ -287,10 +318,12 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboards'
     | '/more'
+    | '/play'
     | '/practice'
     | '/profile'
     | '/rated'
     | '/replay-lab'
+    | '/rooms'
     | '/shop'
     | '/terms'
     | '/tiers'
@@ -305,6 +338,7 @@ export interface FileRouteTypes {
     | '/badges'
     | '/card'
     | '/challenge'
+    | '/challenges'
     | '/customise'
     | '/daily'
     | '/daily-archive'
@@ -314,10 +348,12 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboards'
     | '/more'
+    | '/play'
     | '/practice'
     | '/profile'
     | '/rated'
     | '/replay-lab'
+    | '/rooms'
     | '/shop'
     | '/terms'
     | '/tiers'
@@ -333,6 +369,7 @@ export interface RootRouteChildren {
   BadgesRoute: typeof BadgesRoute
   CardRoute: typeof CardRoute
   ChallengeRoute: typeof ChallengeRoute
+  ChallengesRoute: typeof ChallengesRoute
   CustomiseRoute: typeof CustomiseRoute
   DailyRoute: typeof DailyRoute
   DailyArchiveRoute: typeof DailyArchiveRoute
@@ -342,10 +379,12 @@ export interface RootRouteChildren {
   FriendsRoute: typeof FriendsRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
   MoreRoute: typeof MoreRoute
+  PlayRoute: typeof PlayRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
   RatedRoute: typeof RatedRoute
   ReplayLabRoute: typeof ReplayLabRoute
+  RoomsRoute: typeof RoomsRoute
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
   TiersRoute: typeof TiersRoute
@@ -390,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/challenge'
       fullPath: '/challenge'
       preLoaderRoute: typeof ChallengeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/challenges': {
+      id: '/challenges'
+      path: '/challenges'
+      fullPath: '/challenges'
+      preLoaderRoute: typeof ChallengesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customise': {
@@ -455,6 +501,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MoreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice': {
       id: '/practice'
       path: '/practice'
@@ -481,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/replay-lab'
       fullPath: '/replay-lab'
       preLoaderRoute: typeof ReplayLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rooms': {
+      id: '/rooms'
+      path: '/rooms'
+      fullPath: '/rooms'
+      preLoaderRoute: typeof RoomsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shop': {
@@ -541,6 +601,7 @@ const rootRouteChildren: RootRouteChildren = {
   BadgesRoute: BadgesRoute,
   CardRoute: CardRoute,
   ChallengeRoute: ChallengeRoute,
+  ChallengesRoute: ChallengesRoute,
   CustomiseRoute: CustomiseRoute,
   DailyRoute: DailyRoute,
   DailyArchiveRoute: DailyArchiveRoute,
@@ -550,10 +611,12 @@ const rootRouteChildren: RootRouteChildren = {
   FriendsRoute: FriendsRoute,
   LeaderboardsRoute: LeaderboardsRoute,
   MoreRoute: MoreRoute,
+  PlayRoute: PlayRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
   RatedRoute: RatedRoute,
   ReplayLabRoute: ReplayLabRoute,
+  RoomsRoute: RoomsRoute,
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
   TiersRoute: TiersRoute,
