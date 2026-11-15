@@ -24,7 +24,8 @@ export function WordsmithRing({ letters, selected = [], disabled = true, onTap, 
       const used = selected.includes(index);
       return <Button key={index} type="button" variant="ghost" disabled={disabled}
         data-wordsmith-tile={index} aria-pressed={used}
-        data-wa="disc" data-wa-tone={used ? "gold" : centre ? "sapphire" : "black"}
+        data-wa="disc" data-wa-tone={centre ? "sapphire" : used ? "gold" : "black"}
+        data-wa-ring={centre && used ? "" : undefined}
         aria-label={centre ? `Centre letter ${letter}` : `Letter ${letter}, tile ${index + 1}`}
         onClick={() => onTap?.(index)}
         className={`wordsmith-ring-tile letter-shuffle-tile ${centre ? "wordsmith-ring-centre" : "wordsmith-ring-outer"} ${used ? "wordsmith-ring-used" : ""}`}

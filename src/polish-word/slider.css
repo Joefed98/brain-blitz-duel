@@ -20,7 +20,7 @@
   background: url(/word-art/padlock-open.webp) center / contain no-repeat;
 }
 [data-polish="wordslide"] .slide-lock[data-slide-lock-shut] .slide-lock-art { background-image: url(/word-art/padlock-shut.webp); }
-[data-polish="wordslide"] .slide-lock:disabled .slide-lock-art { opacity: 0.4; }
+[data-polish="wordslide"] .slide-lock:disabled .slide-lock-art { opacity: 0.7; }
 
 /* Four rows locked: the last row's tiles swap. The open row is marked by a fine dashed line; the picked tile lifts. */
 [data-polish="wordslide"] [data-slide-swap] {

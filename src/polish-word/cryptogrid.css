@@ -1,6 +1,6 @@
 /*
  * Cryptogrid's look (the Word overhaul, 15 Nov 2026): concept A. Squares still to decode are recessed wells, decoded
- * squares dark glazed tiles, the given letters in gold, the picked number in sapphire glaze wherever it appears. The
+ * squares dark glazed tiles, the given letters in gold, the picked number tinted gold and ringed in gold wherever it appears (concept A). The
  * clue numbers are much bigger (two fifths of a square, the letter dropped clear of them). Display only.
  */
 [data-word-polish="codeword"] [data-game-arena="codeword"] {
@@ -24,4 +24,4 @@
   border-radius: 6px;
   background: url(/word-art/key.webp) center / 100% 100% no-repeat;
 }
-[data-word-polish="codeword"] [data-cw-key][data-cw-key-on] { background-image: url(/word-art/tile-sapphire.webp); box-shadow: none; }
+[data-word-polish="codeword"] [data-cw-key][data-cw-key-on] { background-image: url(/word-art/tile-amber.webp); box-shadow: inset 0 0 0 1.5px var(--jz-gold); }

@@ -1,12 +1,12 @@
 /*
  * Roundabout's look (the Word overhaul, 15 Nov 2026): concept A without the glow ring. Pearl-black letter discs on a
- * plain navy wheel; a letter in the trace in enamel gold; the crossword as recessed wells (empty) and glazed tiles
+ * turned lacquer tray; a letter in the trace in enamel gold; the crossword as recessed wells (empty) and glazed tiles
  * (filled); the bonus jar a rendered glass jar filling with gold coins. Display only: the wheel hit-tests in its own
  * percentages, so every target is where its disc is drawn.
  */
 [data-word-polish="letterwheel"][data-word-polish] [data-lw-wheel] {
-  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--jz-gold) 4%, #13204a) 0%, #0c1532 70%, #0a1128 100%);
-  box-shadow: inset 0 2px 10px rgb(0 0 0 / 0.55), 0 10px 22px rgb(0 0 0 / 0.45);
+  background: url(/word-art/wheel-tray.webp) center / 100% 100% no-repeat;
+  box-shadow: 0 10px 22px rgb(0 0 0 / 0.45);
   border-radius: 50% !important;
 }
 [data-word-polish="letterwheel"][data-word-polish] [data-lw-wheel] .letter-shuffle-tile { font-size: clamp(28px, 12cqmin, 40px) !important; }
@@ -18,7 +18,7 @@
 [data-lw-flash="bonus"] { color: var(--jz-gold); }
 
 /* The bonus jar. */
-.lw-jar-art { position: relative; display: block; width: 28px; height: 35px; }
+.lw-jar-art { position: relative; display: block; width: 40px; height: 50px; }
 .lw-jar-art > span { position: absolute; inset: 0; background: center / 100% 100% no-repeat; }
 .lw-jar-art > .lw-jar-coins { background-image: url(/word-art/jar-coins.webp); }
 .lw-jar-art > .lw-jar-glass { background-image: url(/word-art/jar.webp); }

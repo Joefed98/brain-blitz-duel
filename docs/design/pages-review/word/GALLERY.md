@@ -1,70 +1,65 @@
 # Word overhaul: gallery
 
-Phase 2, step 4 (`docs/design/game-reviews/word.md`). Before (main) beside after (this branch) for every Word game,
-taken with `scripts/shots/capture.ts` at 390 × 844 on each game's fixed intro example (shown at half size): mid-play,
-the round end, and the intro where it changed. Stage 1 is the new look and the game changes; the effects (stage 2)
-and the levels (stage 3) come next, with clips of the hero effects then.
+Phase 2, step 4 (`docs/design/game-reviews/word.md`, concepts in `docs/design/game-concepts/word.md`, PR #427). Each
+game mid-play at 390 × 844 on its fixed intro example: **today** (main), **concept A** (the concept Joe picked) and
+**new** (this branch), side by side. Stage 1 is the new look and the game changes; the effects (stage 2) and the levels
+(stage 3) follow, with clips of the hero effects then.
 
 ## Stage 1: the look and the game changes
 
-Every tile, disc, well, key, pip, the bonus jar and the padlocks are rendered in Blender
-(`scripts/word-art/word_art.py`; the pieces in `public/word-art/`): glazed black tiles, enamel champagne gold, teal and
-grey clue glazes, sapphire for a picked piece, recessed wells for empty squares, under clean even studio light with no
-glare or glow. The letters stay live text, big and bold. Controls are champagne gold (the action that plays) and navy.
+Every tile, disc, well, key, pip, tray, the bonus jar and the padlocks are rendered in Blender
+(`scripts/word-art/word_art.py`, the pieces in `public/word-art/`, 139 KB for the set) with real materials and light on
+them (Joe's clarification, 15 Nov 2026): glazes and lacquer under a glossy clear coat with depth, enamel gold, polished
+metal, glass with a crisp line on its curve. The camera looks straight down and the world is dark overhead, so a face
+never carries a sheet of glare across its letter, while every curve turned to the key light catches a clean highlight;
+no glowing edges or rims. The letters stay live text, big and bold. Controls are champagne gold and navy lacquer.
 
 ### Nucleus
-Pearl-black discs round a sapphire centre, picked letters in gold; Enter gold, Shuffle and Clear navy. The counter now
-counts the board's everyday words; an obscure word still scores, as a bonus word (`wordsmithRev 5`).
+Concept A: pearl-black glazed discs with a crisp line on their curve round a sapphire centre (ringed in gold once it is in the word) on a turned lacquer tray; the letters in the word in enamel gold; Enter champagne gold, Shuffle and Clear navy lacquer on a gold bezel. Concept A's blue glow under a picked letter is left out (Joe's no-glow rule). The counter counts the board's everyday words; a rarer word still scores, as a bonus word (`wordsmithRev 5`).
 
-<img src="img/wordsmith-play.webp" width="400"> <img src="img/wordsmith-reveal.webp" width="400">
+<img src="img/wordsmith-compare.webp" width="760">
 
 ### Interlock
-Concept B's tray of recessed wells with concept A's tiles; tiles in a real word turn gold, a run that isn't a word stays
-faint red while it stands; tiles drag back to the tray; the board no longer clips on short screens; the status is pills.
+Concept A's tiles in concept A's framed tray of dark recessed squares; a tile in a real word turns enamel gold (concept A rims it in gold instead), a run that is no word shows faint red while it stands; tiles drag back to the tray; the status is pills.
 
-<img src="img/tilegrid-play.webp" width="400"> <img src="img/tilegrid-reveal.webp" width="400">
+<img src="img/tilegrid-compare.webp" width="760">
 
 ### Slider
-Glazed tiles in a lacquer tray, rows reading as words in teal, locked rows in gold, rendered padlocks; fits a 375 px
-phone; Reset asks first; par is the proven fewest slides (`wordSlideRev 6`).
+Concept A: glazed tiles in a lacquer tray, a padlock in its own dark slot beside each row; a row reading as a word in teal glaze, a locked row in gold. Reset asks first; par is the proven fewest slides (`wordSlideRev 6`).
 
-<img src="img/wordslide-play.webp" width="400"> <img src="img/wordslide-reveal.webp" width="400">
+<img src="img/wordslide-compare.webp" width="760">
 
 ### Forage
-Polished tiles, the trace in sapphire, the golden tile in gold; Submit gold; the miss allowance on screen
-("Misses 3 / 14 free").
+Concept A: glazed tiles, the traced word in sapphire glaze with a fine line between (concept A rims them in blue light: no glow here), the golden tile in enamel gold; Submit gold; the miss allowance on screen.
 
-<img src="img/wordhunt-play.webp" width="400"> <img src="img/wordhunt-reveal.webp" width="400">
+<img src="img/wordhunt-compare.webp" width="760">
 
 ### Lookout
-Small glazed tiles, found words gold within a capsule loop, whole-word chips; on `wordSearchRev 6` the round goes on
-after the sixth word for the bonus, with a Done button.
+Concept A: small glazed tiles, found words in enamel gold inside a fine capsule line, the chips below as tags; on `wordSearchRev 6` the round goes on after the sixth word for the bonus, with Done.
 
-<img src="img/wordsearch-play.webp" width="400"> <img src="img/wordsearch-reveal.webp" width="400">
+<img src="img/wordsearch-compare.webp" width="760">
 
 ### Roundabout
-Pearl-black wheel letters on a plain navy wheel (no glow ring), the crossword as wells and tiles with more of the
-height, the rendered glass jar filling with coins; a miss and a repeat look different; new boards without odd or many
-three-letter words (`wheelRev 5`).
+Concept A: the crossword as dark recessed wells and glazed tiles, the letter wheel a turned lacquer tray, the bonus jar real glass (a crisp line down its curve) filling with polished coins. A miss and a repeat look different; boards without odd or many three-letter words (`wheelRev 5`).
 
-<img src="img/letterwheel-play.webp" width="400"> <img src="img/letterwheel-reveal.webp" width="400">
+<img src="img/letterwheel-compare.webp" width="760">
 
 ### Strikeout
-The keyboard at the bottom with 52 px keys and a letter preview, the tiles grown into the space, gold strike pips that
-turn to red studs, the gold Solve key; the delete key keeps one label.
+Concept A: strike counters as gold enamel pips turning to red studs, the word as tiles in a dark slot, the keyboard real keys with depth at the bottom (52 px, with a letter preview), Solve gold.
 
-<img src="img/strikeout-play.webp" width="400"> <img src="img/strikeout-reveal.webp" width="400">
+<img src="img/strikeout-compare.webp" width="760">
 
 ### Cryptogrid
-Wells and dark tiles with gold given letters and much bigger clue numbers, the keyboard at the bottom; after a letter
-the next unsolved number is picked; only letters shown wrong cost the clean crack (`codewordRev 6`).
+Concept A: dark wells and glazed tiles, given letters in gold, the picked number tinted gold and ringed in gold, the strip as small tags, the keyboard at the bottom; after a letter the next unsolved number is picked; only letters shown wrong cost the clean crack (`codewordRev 6`).
 
-<img src="img/codeword-play.webp" width="400"> <img src="img/codeword-reveal.webp" width="400">
+<img src="img/codeword-compare.webp" width="760">
 
 ### Swapword
-Gold, teal and grey glazes (the game's clues), bigger tiles; the intro shows one swap turning two tiles gold.
+Concept A: the figure-eight in glossy gold, teal and grey glazes, exactly today's clue colours; the intro shows a swap.
 
-<img src="img/swapword-play.webp" width="400"> <img src="img/swapword-intro.webp" width="400">
+<img src="img/swapword-compare.webp" width="760">
+
+Intro, today and new: <img src="img/swapword-intro.webp" width="400">
 
 ## Reveals
 
@@ -72,7 +67,7 @@ Joe's reveal brief (15 Nov 2026): each game's answer reveal redesigned inside th
 stamps only (older stamps draw their reveal exactly as before). Kit `src/components/puzzles/WordReveal.tsx`: the
 numbers that explain the score as big tiles with short plain labels, the solution drawn large, one board at a time
 with the shared Solution / Yours switch where there are two, misses and mistakes marked, and words as chips (the
-longest gold, missed outlined) in place of dense lists. Before (main) on the left, after on the right, at 390 × 844
+longest gold, missed outlined) in place of dense lists. Before (main) on the left, after (this branch, in the new art) on the right, at 390 × 844
 shown two-thirds size: a timed-out round, then the capture tool's driven run (a full solve where it has a driver).
 
 | Game | Timed out | Played |

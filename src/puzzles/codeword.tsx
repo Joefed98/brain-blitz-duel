@@ -69,7 +69,8 @@ export function Grid({
             data-cw-cell={n}
             data-cw-filled={letters[n - 1] ? "" : undefined}
             data-wa={letters[n - 1] || look(n) === "given" || look(n) === "selected" ? "tile-sm" : "well"}
-            data-wa-tone={look(n) === "selected" ? "sapphire" : look(n) === "wrong" ? "red" : undefined}
+            data-wa-tone={look(n) === "selected" ? "amber" : look(n) === "wrong" ? "red" : undefined}
+            data-wa-ring={look(n) === "selected" ? "" : undefined}
             data-cw-look={look(n)}
             role={onCell ? "button" : undefined}
             aria-label={onCell ? `Number ${n}` : undefined}

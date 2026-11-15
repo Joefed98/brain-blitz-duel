@@ -1,13 +1,15 @@
 /*
  * The Word overhaul's look (15 Nov 2026, phase 2 step 4; docs/design/game-reviews/word.md, concept A of
  * docs/design/game-concepts/word.md). Display only: every piece is a Blender-rendered surface (public/word-art/,
- * scripts/word-art/word_art.py) laid under the live letter, so letters stay crisp, big and bold. Clean, even studio
- * light: no glare, no reflections across tiles or letters, no glowing edges or rings. Word's dark navy background
+ * scripts/word-art/word_art.py) laid under the live letter, so letters stay crisp, big and bold. Real materials with
+ * light on them (glossy glaze and lacquer with depth, enamel gold, shining metal, glass with a crisp line on its
+ * curve), but no glare washing across a face or a letter and no glowing edges or rings. Word's dark navy background
  * is kept; controls are champagne gold and navy.
  *
  * Used through attributes, so every game keeps its own markup and hit areas:
  *   data-wa="tile" | "tile-sm" | "disc" | "well" | "key" | "pip"   the piece
- *   data-wa-tone="gold" | "teal" | "grey" | "red" | "dim" | "sapphire" | "black"   its material (black by default)
+ *   data-wa-tone="gold" | "teal" | "grey" | "red" | "dim" | "sapphire" | "amber" | "black"   its material (black by default)
+ *   data-wa-ring                                                  picked: a fine gold ring inside the edge
  *   data-wa-btn="gold" | "navy"                                   a control
  * Imported once by every Word game's module (and its reveal), after the game's own styles.
  */
@@ -50,9 +52,13 @@
 [data-wa="tile"][data-wa-tone="red"] { --wa-img: url(/word-art/tile-red.webp); }
 [data-wa="tile"][data-wa-tone="dim"] { --wa-img: url(/word-art/tile-dim.webp); }
 [data-wa="tile"][data-wa-tone="sapphire"] { --wa-img: url(/word-art/tile-sapphire.webp); }
+[data-wa="tile"][data-wa-tone="amber"] { --wa-img: url(/word-art/tile-amber.webp); }
 [data-wa="tile-sm"][data-wa-tone="gold"] { --wa-img: url(/word-art/tile-small-gold.webp); }
 [data-wa="tile-sm"][data-wa-tone="dim"] { --wa-img: url(/word-art/tile-small-dim.webp); }
 [data-wa="tile-sm"][data-wa-tone="sapphire"] { --wa-img: url(/word-art/tile-sapphire.webp); }
+[data-wa="tile-sm"][data-wa-tone="amber"] { --wa-img: url(/word-art/tile-amber.webp); }
+/* A piece marked as picked: a fine gold ring just inside its edge (a metal line, never a glow). */
+[data-wa-ring][data-wa][data-wa][data-wa][data-wa] { box-shadow: inset 0 0 0 2px var(--jz-gold), var(--wa-shadow) !important; }
 [data-wa="tile-sm"][data-wa-tone="red"] { --wa-img: url(/word-art/tile-red.webp); }
 [data-wa="disc"][data-wa-tone="gold"] { --wa-img: url(/word-art/disc-gold.webp); }
 [data-wa="disc"][data-wa-tone="sapphire"] { --wa-img: url(/word-art/disc-sapphire.webp); }

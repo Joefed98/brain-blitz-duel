@@ -1,12 +1,12 @@
 /*
- * Nucleus's look (the Word overhaul, 15 Nov 2026): concept A. Pearl-black letter discs round a sapphire centre on a
- * plain navy plate, the letters in the word in enamel gold; the orbit a fine line (no glow); the word strip a quiet
+ * Nucleus's look (the Word overhaul, 15 Nov 2026): concept A. Pearl-black letter discs round a sapphire centre (gold-ringed
+ * once it is in the word) on a turned lacquer tray, the letters in the word in enamel gold; the orbit a fine line (no glow); the word strip a quiet
  * recessed well; Enter in champagne gold. Display only.
  */
 [data-word-polish="wordsmith"] .wordsmith-orbit { filter: none; stroke: color-mix(in srgb, var(--jz-gold) 30%, transparent); stroke-width: 0.6; }
 [data-word-polish="wordsmith"] .word-confirmation-board::before {
-  background: radial-gradient(circle at 50% 50%, #101b3d 0 60%, transparent 72%);
-  box-shadow: inset 0 0 30px rgb(0 0 0 / 0.45);
+  background: url(/word-art/wheel-tray.webp) center / 100% 100% no-repeat;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.5);
 }
 [data-word-polish="wordsmith"][data-word-polish] [data-game-controls="input"] {
   border-color: transparent;
