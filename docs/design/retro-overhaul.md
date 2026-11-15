@@ -14,6 +14,25 @@ navy; edge to edge with the playing area's fair shape kept; no run ends on the f
 real frame; the most-heard sounds recorded (docs/sound-cues/retro-elevenlabs.md); rated rooms on Normal; older stamps
 replay exactly; at most 120 s at every level.
 
+## The answer reveal (Joe, 15 Nov 2026; built in stage 2, inside #422's shared reveal layout)
+
+Each Retro game's own reveal, clear, big and legible on a phone: the key numbers that explain the score, short plain
+labels (no stray "×", no counts that read as if they describe a solution), and a short visual summary of the run instead
+of dense text lists. Before and after reveal shots for every game go in the gallery.
+
+| Game | The run's visual summary |
+|---|---|
+| Hover | the course as a strip: gates passed, the dead-centre gates marked, where the saucer crashed or a shield broke |
+| Breaker | the wall as it was left (bricks broken, gold bricks' hits), where each ball was lost |
+| Rally | the gold returns along the clock, the best rally, the pads and targets struck, where each blue ball was missed |
+| Wavefront | the waves cleared in a row of five, the boss's fall time, where a life was lost |
+| Fission | the five waves with each clear's bonus, the golden atoms caught, where a life was lost |
+| Tempo | the song as a timeline coloured by judgement (Perfect, Good, OK, miss), the best streak, the fevers |
+| Meteor | the field with the comet's final length and where it crashed, the gold stars eaten |
+| Spacewalk | the crossings as a row of ticks, the best no-stop streak, where each hit was |
+| Pinball | the J-O-U-L-Z letters lit, the ramps, locks and multiballs, each ball's points |
+| Blockzone | the final well, the clears by size (1, 2, 3, 4 lines), the best multi-line clear |
+
 ## Stage 1 status
 
 | Game | Done on this branch | Still to do in stage 1 |
