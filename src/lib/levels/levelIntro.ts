@@ -1,7 +1,9 @@
 /**
  * The first-time explanation of difficulty levels (Joe, 15 Nov 2026): shown once, the first time a player sees a level
  * selector (the Games catalogue's difficulty switch, a game's page or the room settings sheet), wherever that is. Device
- * storage only (`duelz-level-intro:v1`): marked seen as soon as it is drawn, so it never shows again (it stays up for
+ * storage only (`duelz-level-intro:v1`). Never while a game is on screen (Joe, 15 Nov 2026): no claim is made while a
+ * round, its intro, a play screen or a reveal is in the page (GAME_ON_SCREEN), so a round or a check's game never has
+ * it. Marked seen as soon as it is drawn, so it never shows again (it stays up for
  * that visit until "Got it"). Without storage it is still shown only once per visit.
  */
 import { useEffect, useState } from "react";
@@ -44,13 +46,25 @@ export function resetLevelIntroMemory(): void {
   owner = null;
 }
 
+/** Anything that means a game is on screen: a live stage, a play screen, a round's intro, a reveal. */
+export const GAME_ON_SCREEN = "[data-game-stage], [data-arcade-play], [data-puzzle-play], [data-reveal-screen], [data-round-intro]";
+
+/** Whether a game is on screen now (never on the server). */
+export function gameOnScreen(): boolean {
+  try {
+    return typeof document !== "undefined" && document.querySelector(GAME_ON_SCREEN) !== null;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Claims the explanation for one screen: true the first time any selector asks on a device that hasn't seen it (that
  * screen keeps it until dismissed), false everywhere else. The claim marks it seen at once.
  */
 export function claimLevelIntro(who: symbol): boolean {
   if (owner === who) return true;
-  if (owner !== null || levelIntroSeen()) return false;
+  if (owner !== null || levelIntroSeen() || gameOnScreen()) return false;
   owner = who;
   markLevelIntroSeen();
   return true;

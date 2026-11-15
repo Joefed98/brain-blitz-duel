@@ -284,6 +284,17 @@ intro.releaseLevelIntro(first);
 check(!intro.claimLevelIntro(second), "after Got it, no selector shows it again this visit");
 intro.resetLevelIntroMemory();
 check(!intro.claimLevelIntro(Symbol("later")), "nor on a later visit");
+// Never while a game is on screen (Joe, 15 Nov 2026): a round, its intro, a play screen or a reveal in the page.
+memory.clear();
+intro.resetLevelIntroMemory();
+const realDocument = (globalThis as { document?: unknown }).document;
+(globalThis as { document?: unknown }).document = { querySelector: (sel: string) => (sel === intro.GAME_ON_SCREEN ? {} : null) };
+check(intro.gameOnScreen() && !intro.claimLevelIntro(Symbol("over a round")) && !intro.levelIntroSeen(), "it never shows while a game is on screen, and isn't spent there");
+(globalThis as { document?: unknown }).document = { querySelector: () => null };
+check(!intro.gameOnScreen() && intro.claimLevelIntro(Symbol("catalogue later")), "it shows on the next selector seen with no game on screen");
+(globalThis as { document?: unknown }).document = realDocument;
+for (const sel of ["[data-game-stage]", "[data-arcade-play]", "[data-puzzle-play]", "[data-reveal-screen]"])
+  check(intro.GAME_ON_SCREEN.split(", ").includes(sel), `a game on screen includes ${sel}`);
 check(/Rated matches and the Daily are always Normal\./.test(intro.LEVEL_INTRO_TEXT) && /Easy, Normal, Hard or Expert/.test(intro.LEVEL_INTRO_TEXT), "it names the four levels and says rated matches and the Daily are always Normal");
 check(intro.LEVEL_INTRO_TEXT.length <= 140, `it is short (${intro.LEVEL_INTRO_TEXT.length} characters)`);
 const drawnBy = ["src/components/games/GamesCatalogue.tsx", "src/components/games/GamePage.tsx", "src/components/duel/RoomSettingsSheet.tsx"].filter((f) => /<LevelIntro \/>/.test(readFileSync(f, "utf8")));
