@@ -519,6 +519,10 @@ const ENTRIES = {
   "pipes.rotate": { channel: "effects", frequency: 0, ms: 170, url: null },
   "pipes.flow": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pipes.flow.mp3", volume: 0.78 },
   "pipes.solve": { channel: "effects", frequency: 0, ms: 1200, url: "/sounds/pipes.solve.mp3" },
+  // The Pattern overhaul (15 Nov 2026): library placeholders until Joe's files (docs/sound-cues/pattern-elevenlabs.md).
+  "pipes.combo": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/combo.mp3" },
+  "pipes.drain": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/combo.lost.mp3" },
+  "pipes.bubble": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/arc_sea_bubble.mp3" },
   "iceslide.slide": { channel: "effects", frequency: 0, ms: 100, url: null },
   "iceslide.portal": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.portal.mp3", volume: 0.79 },
   "iceslide.crack": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.crack.mp3" },

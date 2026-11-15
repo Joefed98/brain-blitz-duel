@@ -52,20 +52,8 @@
 }
 
 /* ---------------------------------------------------------------- Pipeline (pipes) */
-/* Brighter steel (pipesArt.tsx's gradients); a dry pipe's channel a mid slate instead of near-black; water in the
-   connected network flows visibly (brighter ripples, a little faster; still under reduced motion). */
-.pipes-board .pipe-channel { fill: #34404e; }
-.pipes-board .pipe-hub-eye { fill: #26303b; }
-.pipes-board .pipe-hub-eye-wet { fill: #8fe0ff; }
-.pipes-board .pipe-ripple-dot { fill: rgba(240, 252, 255, 0.95); }
-.pipes-board .pipe-ripple { animation-duration: 700ms; }
-.pipes-board .pipe-surge-line { stroke-width: 18; }
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] .pipe-art {
-  filter: drop-shadow(0 0 4px rgba(90, 200, 255, 0.9));
-}
-@media (prefers-reduced-motion: reduce) {
-  .pipes-board .pipe-ripple { animation: none; }
-}
+/* The Pattern overhaul (15 Nov 2026): Pipeline's look is the Blender sprites (polish-pattern/pipes.css); no glow on the
+   connected network. */
 
 /* ---------------------------------------------------------------- Turntable (rings): the link legend diagram */
 .rings-legend {

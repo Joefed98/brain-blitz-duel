@@ -93,9 +93,12 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 
 | Cue | Trigger | Length |
 |---|---|---|
-| `pipes.rotate` | Each tile tap (a quarter turn) | 170 ms |
+| `pipes.rotate` | Each tile turn, either way (a quarter turn) | 170 ms |
 | `pipes.flow` | Water reaches more pipes after a turn (not on the solve) | 220 ms |
+| `pipes.combo` | Water reaches 6 or more pipes in one turn, in place of `pipes.flow` (pipesRev 5) | 486 ms |
+| `pipes.drain` | A turn cuts pipes off the water (pipesRev 5) | 486 ms |
 | `pipes.solve` | Water rushes from the source through every pipe | 1,200 ms |
+| `pipes.bubble` | The source bubbles as the solve fills the network (pipesRev 5) | 486 ms |
 
 ## Heave (`push`)
 

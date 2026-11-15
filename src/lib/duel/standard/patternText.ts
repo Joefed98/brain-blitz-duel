@@ -7,6 +7,7 @@ import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, TOPSY_S
 import { puzzleScoreList, type ScoreLine } from "../scoreList";
 import { fillMax } from "../roundMax";
 import { preNov7Pinned } from "../speedPipesNov7";
+import { prePatternNov15Pinned } from "../patternNov15";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parMovesDealt, parStrictDealt } from "../parMoves";
 import { GRADIENT_LIMIT_PER_PAR, partialCreditDealt } from "../partialCredit";
 
@@ -115,8 +116,15 @@ const isPartialPatternType = (type: PatternStdType): type is "unblock" | "rings"
  * wherever they are, in place of the tiles joined to the source.
  */
 export const PIPES_PLACED_HELP = help("pipes", "join every pipe to the source", [parLine("pipes", "Taps", "finish in the fewest taps (par)", P("pipes"))], "the share of the tiles you turn to fit, more for doing it early; turning a tile wrong takes it down");
+/**
+ * Pipeline on pipesRev 5 (the Pattern overhaul, 15 Nov 2026, patternNov15.ts): tiles turn both ways, so par counts the
+ * fewest turns either way; scoring otherwise pipesRev 4's.
+ */
+export const PIPES_TWO_WAY_HELP = help("pipes", "join every pipe to the source", [parLine("pipes", "Turns", "finish in the fewest turns, either way (par)", P("pipes"))], "the share of the tiles you turn to fit, more for doing it early; turning a tile wrong takes it down");
+export const PIPES_TWO_WAY_INTRO = "Join every pipe to the source; bonuses for speed and the fewest turns. Up to {max}.";
 /** Pipeline's help for the stamp dealt now. */
-export const pipesPatternHelp = (): string => (preNov7Pinned() ? PATTERN_STD_HELP.pipes : PIPES_PLACED_HELP);
+export const pipesPatternHelp = (): string =>
+  preNov7Pinned() ? PATTERN_STD_HELP.pipes : prePatternNov15Pinned() ? PIPES_PLACED_HELP : PIPES_TWO_WAY_HELP;
 
 /** The help as shown ({max} filled in: the game's maximum, 200). */
 export function patternStdHelp(type: PatternStdType): string {
@@ -131,5 +139,7 @@ export function patternStdHelp(type: PatternStdType): string {
 export function patternStdIntro(type: PatternStdType): string {
   if (isPartialPatternType(type) && partialCreditDealt()) return fillMax(PARTIAL_PATTERN_INTRO[type], type);
   if ((type === "iceslide" || type === "gravity") && parMovesDealt()) return fillMax(PAR_MOVES_PATTERN_INTRO[type], type);
+  // Pipeline pipesRev 5 (patternNov15.ts): turns both ways.
+  if (type === "pipes" && !preNov7Pinned() && !prePatternNov15Pinned()) return fillMax(PIPES_TWO_WAY_INTRO, type);
   return fillMax(PATTERN_STD_INTRO[type], type);
 }
