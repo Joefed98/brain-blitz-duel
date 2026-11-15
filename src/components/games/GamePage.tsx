@@ -12,6 +12,7 @@ import {
   type PracticeProgressView,
 } from "@/lib/practice/progress";
 
+import { LevelIntro } from "@/components/levels/LevelIntro";
 import { LevelSwitch } from "@/components/levels/LevelSwitch";
 import { levelsOf, resolveLevel } from "@/lib/levels/gameLevels";
 import { LEVEL_LABEL, NORMAL, storedLevelKey, type Level } from "@/lib/levels/levels";
@@ -143,7 +144,10 @@ export function GamePage({
         ) : null}
         <div className="gm-page-level" data-game-page-level={level}>
           {levels.length > 1 && onLevel ? (
-            <LevelSwitch value={level} onChange={onLevel} levels={levels} label={`${name} difficulty`} />
+            <>
+              <LevelSwitch value={level} onChange={onLevel} levels={levels} label={`${name} difficulty`} />
+              <LevelIntro />
+            </>
           ) : null}
           {level !== chosen ? (
             <p data-game-page-level-note className="gm-page-level-note">

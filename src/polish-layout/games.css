@@ -653,3 +653,22 @@
   color: var(--jz-text-2);
   font: var(--jz-type-caption);
 }
+
+/* The first-time explanation of difficulty levels (Joe, 15 Nov 2026), under a level selector. */
+.lv-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-12) var(--jz-space-16);
+}
+.lv-intro-title {
+  color: var(--jz-text);
+  font: var(--jz-type-label);
+  font-weight: var(--jz-weight-bold);
+}
+.lv-intro-text {
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  white-space: normal;
+}

@@ -204,6 +204,9 @@ try {
           check(/54, 226, 245/.test(retroGlow), `${at}: Retro tiles carry the cyan glow`);
         }
       }
+      // The first-time explanation of levels (Joe, 15 Nov 2026): on a new device's first look at the selector.
+      const introText = (await page.locator("[data-level-intro]").textContent()) ?? "";
+      check(/Rated matches and the Daily are always Normal/.test(introText), `${at}: a first visit explains the levels, rated and the Daily always Normal`);
       // The difficulty switch: four levels, Normal first chosen.
       const levelOptions = await page.locator("[data-catalogue-level] [data-level-option]").evaluateAll((els) => els.map((el) => [el.getAttribute("data-level-option"), el.textContent?.trim(), el.getAttribute("aria-pressed")]));
       check(JSON.stringify(levelOptions.map((o) => o[1])) === JSON.stringify(["Easy", "Normal", "Hard", "Expert"]) && levelOptions.find((o) => o[0] === "normal")?.[2] === "true", `${at}: the difficulty switch is Easy · Normal · Hard · Expert, on Normal`);
@@ -220,6 +223,7 @@ try {
       await settle(page);
       check((await sidePressed(page, "arcade")) === "true", `${at}: the side is remembered on this device`);
       check((await page.locator("[data-catalogue-level] [data-level-option='hard']").getAttribute("aria-pressed")) === "true", `${at}: the level is remembered on this device`);
+      check((await page.locator("[data-level-intro]").count()) === 0, `${at}: the explanation is shown only once`);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       check(overflow <= 0, `${at}: no sideways page scrolling (${overflow})`);
       // The search: by name only, on both sides.

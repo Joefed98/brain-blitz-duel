@@ -37,6 +37,8 @@ const expertStored = async (page: Page) => {
 export const DIFFICULTY_SCREENS = (): ThemeScreen[] => {
   const data = { __harnessProgress: gamesProgressFixture() };
   return [
+    // The first-time explanation (Joe, 15 Nov 2026): a new device's first look at the selector.
+    { name: "difficulty: catalogue, first-time explanation", mode: "practice", globals: data, sizes: NAV_SIZES },
     { name: "difficulty: catalogue, Arcade on Hard", mode: "practice", globals: data, sizes: NAV_SIZES, go: arcadeHard },
     {
       name: "difficulty: game page with levels",

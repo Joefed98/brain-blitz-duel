@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
+import { LevelIntro } from "@/components/levels/LevelIntro";
 import { LevelSwitch } from "@/components/levels/LevelSwitch";
 import { Button, GameTile, Icon, Input, Segmented, Stars } from "@/design/components";
 import { practiceSideCounts, practiceSideOf, type PracticeSide } from "@/lib/duel/practiceSide";
@@ -210,6 +211,7 @@ export function GamesCatalogue({
         ))}
       </div>
       <LevelSwitch value={level} onChange={onLevel} label="Difficulty for every game" className="gm-levels" data={{ "data-catalogue-level": level }} />
+      <LevelIntro />
       <div className="gm-grid" data-games-grid>
         {hero ? (
           <HeroTile type={hero} name={nameOf(hero)} progress={progress} level={level} onOpen={onOpen} />

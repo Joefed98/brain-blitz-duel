@@ -20,6 +20,7 @@ import {
   type RoomSettings,
   withRoomLevel,
 } from "@/lib/duel/roomSettings";
+import { LevelIntro } from "@/components/levels/LevelIntro";
 import { LevelSwitch } from "@/components/levels/LevelSwitch";
 import { NORMAL, type Level } from "@/lib/levels/levels";
 import { SCORING_MODES, scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
@@ -195,6 +196,7 @@ export function RoomSettingsSheet({
               }}
               data={{ "data-room-level-switch": "" }}
             />
+            <LevelIntro />
             <p data-room-level-note className="rss-note">
               {level === NORMAL
                 ? "Everyone plays the same level."

@@ -16,6 +16,8 @@
  *     ratings never mix levels (a recorded run holding another level is refused and is another game version).
  *  5. Bests and stars per level: Normal's values are the stored "classic" rows exactly; the migration only adds.
  *  6. The player's choice: the catalogue's level for every game, a game page's own choice, Normal without storage.
+ *  7. The first-time explanation (Joe, 15 Nov 2026): shown once on a device, on the first selector seen, never on a
+ *     second screen at the same time; it says rated matches and the Daily are always Normal; every selector draws it.
  *
  *   bun scripts/difficulty-check.ts
  */
@@ -266,6 +268,26 @@ check(choice.chosenLevel("tents") === "normal", "changing the catalogue's level 
 memory.set(choice.LEVEL_CHOICE_KEY, "{not json");
 choice.resetLevelChoiceCache();
 check(choice.levelChoiceNow().catalogue === "normal", "an unreadable record is Normal");
+
+/* ------------------------------------------------------------------ 7. the first-time explanation */
+
+const intro = await import("../src/lib/levels/levelIntro");
+memory.clear();
+intro.resetLevelIntroMemory();
+const first = Symbol("catalogue");
+const second = Symbol("game page");
+check(!intro.levelIntroSeen(), "a new device hasn't seen the explanation");
+check(intro.claimLevelIntro(first) && intro.claimLevelIntro(first), "the first selector seen shows it (and keeps it while it is up)");
+check(!intro.claimLevelIntro(second), "a second selector at the same time doesn't show it again");
+check(intro.levelIntroSeen() && memory.has(intro.LEVEL_INTRO_KEY), "it is marked seen on the device as soon as it is shown");
+intro.releaseLevelIntro(first);
+check(!intro.claimLevelIntro(second), "after Got it, no selector shows it again this visit");
+intro.resetLevelIntroMemory();
+check(!intro.claimLevelIntro(Symbol("later")), "nor on a later visit");
+check(/Rated matches and the Daily are always Normal\./.test(intro.LEVEL_INTRO_TEXT) && /Easy, Normal, Hard or Expert/.test(intro.LEVEL_INTRO_TEXT), "it names the four levels and says rated matches and the Daily are always Normal");
+check(intro.LEVEL_INTRO_TEXT.length <= 140, `it is short (${intro.LEVEL_INTRO_TEXT.length} characters)`);
+const drawnBy = ["src/components/games/GamesCatalogue.tsx", "src/components/games/GamePage.tsx", "src/components/duel/RoomSettingsSheet.tsx"].filter((f) => /<LevelIntro \/>/.test(readFileSync(f, "utf8")));
+check(drawnBy.length === 3, `every level selector draws the explanation (${drawnBy.length} of 3)`);
 
 console.log(`\n${failures === 0 ? "PASS" : "FAIL"}: difficulty-check, ${passes} passed, ${failures} failed`);
 process.exit(failures === 0 ? 0 : 1);
