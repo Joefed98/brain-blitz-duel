@@ -296,6 +296,77 @@ const press = (el: Element | null | undefined) =>
   }
 }
 
+/* ------------------------------------------------------------------ 6. The reveals */
+{
+  const { colourFloodPuzzle } = await import("../src/puzzles/colourFlood");
+  const { SOLUTION_SWITCH_TYPES } = await import("../src/components/duel/SolutionSwitch");
+  const reveal = (def: { Reveal: unknown }, puzzle: unknown, answer: string, correct = false) => {
+    const { host, unmount } = mount(
+      React.createElement(def.Reveal as never, { puzzle, myAnswer: answer, myCorrect: correct, myReactionAvgMs: null, timeLimitMs: 90_000 } as never),
+    );
+    const out = { facts: [...host.querySelectorAll("[data-reveal-facts] dt")].map((d) => d.textContent ?? ""), host };
+    return { ...out, done: unmount };
+  };
+  const noStray = (host: Element, name: string) =>
+    ok(![...host.querySelectorAll("p, span, dt, dd, li")].some((el) => el.children.length === 0 && /^\s*[×✗]\s*$/.test(el.textContent ?? "")), `${name} reveal: no stray × or ✗`);
+
+  const sud = generatePuzzle("sudoku", { bankSeed: 7 });
+  if (sud.type === "sudoku") {
+    const r = reveal(miniSudokuPuzzle, sud, "0".repeat(36));
+    ok(r.facts.some((f) => /^Right of \d+$/.test(f)) && r.facts.includes("Wrong") && r.facts.includes("Empty"), `Box Six reveal: right, wrong and empty (${r.facts.join(" | ")})`);
+    ok(/Solution/.test(r.host.textContent ?? "") && /Yours/.test(r.host.textContent ?? "") && SOLUTION_SWITCH_TYPES.has("sudoku"), "Box Six reveal: Solution and Yours, one at a time through the switch");
+    ok(r.host.querySelectorAll('[data-tone="missed"]').length > 0, "Box Six reveal: an empty answer rings the cells missed");
+    noStray(r.host, "Box Six"); r.done();
+  }
+  const tb = generatePuzzle("tubes", { bankSeed: 11 });
+  if (tb.type === "tubes") {
+    const r = reveal(sortTubesPuzzle, tb, "");
+    ok(r.facts.some((f) => f.startsWith("Pours used")) && r.facts.includes("Par") && r.facts.some((f) => f.startsWith("Sorted of")), `Polypotions reveal: pours used, par, sorted (${r.facts.join(" | ")})`);
+    const chips = r.host.querySelectorAll('[data-move-strip="tubes"] .logic-move-chip').length;
+    ok(!tb.solution || chips > 0, `Polypotions reveal: the shortest route as pictures (${chips})`);
+    noStray(r.host, "Polypotions"); r.done();
+  }
+  const tw = generatePuzzle("tower", { bankSeed: 5 });
+  if (tw.type === "tower") {
+    const r = reveal(towerPuzzle, tw, "");
+    ok(r.facts.includes("Moves") && r.facts.includes("Fewest possible"), `Hanoi reveal: moves and the fewest possible (${r.facts.join(" | ")})`);
+    ok(!tw.solution || r.host.querySelectorAll('[data-move-strip="tower"] .logic-move-chip').length > 0, "Hanoi reveal: the shortest route as pictures");
+    noStray(r.host, "Hanoi"); r.done();
+  }
+  const sf = generatePuzzle("safe", { bankSeed: 9 });
+  if (sf.type === "safe") {
+    const r = reveal(safeCrackerPuzzle, sf, "0000");
+    ok(r.host.querySelectorAll("[data-safe-tries] .logic-safe-try").length === 1, "Safe Cracker reveal: each try as a row of drums");
+    ok(r.host.querySelectorAll("[data-safe-clues] li").length === sf.clues.length, "Safe Cracker reveal: every clue listed");
+    ok(r.facts.some((f) => f.startsWith("Tries of")) && r.facts.some((f) => f.startsWith("Best dials of")), `Safe Cracker reveal: tries and best dials (${r.facts.join(" | ")})`);
+    r.done();
+  }
+  const nn = generatePuzzle("nonogram", { bankSeed: 3 });
+  if (nn.type === "nonogram") {
+    const r = reveal(nonogramPuzzle, nn, "");
+    ok(r.facts.some((f) => f.startsWith("Right of")) && r.facts.includes("Wrong") && r.facts.includes("Missed"), `Mosaic reveal: right, wrong, missed (${r.facts.join(" | ")})`);
+    ok(r.host.querySelectorAll("[data-missed]").length === (nn.pattern ?? []).filter(Boolean).length, "Mosaic reveal: an empty answer outlines every square missed");
+    r.done();
+  }
+  const fl = generatePuzzle("flood", { bankSeed: 4 });
+  if (fl.type === "flood") {
+    const r = reveal(colourFloodPuzzle, fl, "");
+    ok(r.facts.some((f) => f.startsWith("Moves")) && r.facts.includes("Par") && r.facts.includes("Flooded"), `Colour Flood reveal: moves, par, flooded (${r.facts.join(" | ")})`);
+    ok(!fl.solution || r.host.querySelector("[data-flood-route]") !== null, "Colour Flood reveal: the par route as swatches");
+    r.done();
+  }
+  const { RUN_SUMMARY_TYPES } = await import("../src/components/duel/ArcadeRunSummary");
+  ok(RUN_SUMMARY_TYPES.has("minesweeper") && RUN_SUMMARY_TYPES.size === 1, "Minefield's reveal draws the run (and no other game's changes)");
+  const { minesweeperPuzzle } = await import("../src/puzzles/minesweeper");
+  const ms = generatePuzzle("minesweeper", { bankSeed: 2 });
+  {
+    const r = reveal(minesweeperPuzzle, ms, "");
+    ok(r.host.querySelector("[data-run-summary='minesweeper']") !== null, "Minefield reveal: the board as the run left it");
+    ok(r.facts.some((f) => f.startsWith("Safe found of")) && r.facts.includes("Mines hit"), `Minefield reveal: safe found and mines hit (${r.facts.join(" | ")})`);
+    r.done();
+  }
+}
+
 /* ------------------------------------------------------------------ 5. The art */
 const SPRITES = ["box-tile", "box-tile-given", "flask-glass", "cork", "hanoi-ring", "hanoi-post", "hanoi-plate", "hanoi-plate-gold",
   "safe-door", "safe-drum", "mosaic-tile", "mosaic-well", "flood-pot", "mine-raised", "mine-open", "mine-mine", "mine-flag"];

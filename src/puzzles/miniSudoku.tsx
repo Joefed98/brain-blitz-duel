@@ -13,6 +13,7 @@ import {
 import { directionOf, useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { RevealFacts } from "./logicReveal";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -340,28 +341,49 @@ export function sudokuRevealCells(givens: readonly number[], solution: readonly 
   return { values, tones, correct };
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): one big board at a time through the shared Solution / Yours switch.
+ * Solution: the finished grid, the cells you missed or got wrong ringed. Yours: your grid, wrong digits in red, empty
+ * cells empty. Under it, the numbers behind the score: right, wrong and empty among your cells.
+ */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "sudoku") return null;
   const solution = puzzle.solution ?? puzzle.givens;
   const mine = decodeSudoku(myAnswer ?? "");
   const blanks = puzzle.givens.filter((given) => !given).length;
-  const { values, tones, correct } = sudokuRevealCells(puzzle.givens, solution, mine);
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
+  const yours = sudokuRevealCells(puzzle.givens, solution, mine);
+  const wrong = yours.tones.filter((tone) => tone === "wrong").length;
+  const empty = puzzle.givens.filter((given, cell) => !given && !(mine[cell] ?? 0)).length;
+  // The solution with every cell you didn't get right ringed ("missed").
+  const solutionTones = solution.map((value, cell) =>
+    puzzle.givens[cell] ? "given" : (mine[cell] ?? 0) === value ? "entry" : "missed",
+  ) as CellTone[];
 
   return (
     <div className="logic-reveal">
       <div className="logic-reveal-board">
-        <div className="logic-square-bare logic-sudoku-frame" style={{ maxWidth: 300 }}>
-          <SudokuGrid values={values} tones={tones} />
+        <div className="logic-reveal-pair">
+          <div className="logic-reveal-col">
+            <span className="logic-reveal-label">Solution</span>
+            <div className="logic-square-bare logic-sudoku-frame">
+              <SudokuGrid values={solution} tones={solutionTones} />
+            </div>
+          </div>
+          <div className="logic-reveal-col">
+            <span className="logic-reveal-label">Yours</span>
+            <div className="logic-square-bare logic-sudoku-frame">
+              <SudokuGrid values={yours.values} tones={yours.tones} />
+            </div>
+          </div>
         </div>
       </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text text-center font-mono uppercase tracking-widest text-muted-foreground">
-          {`${correct} / ${blanks} correct`}
-        </p>
-      )}
+      <RevealFacts
+        items={[
+          { label: `Right of ${blanks}`, value: yours.correct, tone: "good" },
+          { label: "Wrong", value: wrong, tone: wrong ? "bad" : undefined },
+          { label: "Empty", value: empty },
+        ]}
+      />
     </div>
   );
 }

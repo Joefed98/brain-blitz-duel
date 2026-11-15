@@ -54,13 +54,18 @@
   color: var(--jz-gold);
   text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
 }
+:is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="missed"] {
+  /* The reveal's solution: a cell you missed or got wrong, ringed so it stands out. */
+  /* !important: styles.css drops every sudoku cell's shadow with !important. */
+  box-shadow: inset 0 0 0 3px rgb(226 192 122 / 0.95) !important;
+}
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="missed"] .logic-sudoku-digit {
-  color: rgb(242 239 232 / 0.32);
-  text-shadow: none;
+  color: var(--jz-gold);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
 }
 /* Live clashes: the clashing digits pulse red once, then stay red-ringed while they clash. */
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-clash] {
-  box-shadow: inset 0 0 0 2px rgb(255 90 110 / 0.75);
+  box-shadow: inset 0 0 0 2px rgb(255 90 110 / 0.75) !important;
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-clash] .logic-sudoku-digit {
   color: var(--jz-loss-text, #ff5a6e);
@@ -279,4 +284,180 @@
 }
 :is(#logic-overhaul-1, html) :is([data-logic-stage="tower"], [data-logic-stage="tubes"]) [data-puzzle-icon]::before {
   -webkit-text-fill-color: var(--jz-gold);
+}
+
+/* ------------------------------------------------------------------ The reveals (15 Nov 2026: clear, big, legible) */
+:is(#logic-overhaul-1, html) .logic-reveal-pair {
+  display: flex;
+  width: min(100cqw, 100cqh, 420px);
+  justify-content: center;
+  gap: 12px;
+}
+:is(#logic-overhaul-1, html) .logic-reveal-col {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+:is(#logic-overhaul-1, html) .logic-reveal-col > .logic-sudoku-frame { width: 100%; }
+:is(#logic-overhaul-1, html) .logic-reveal-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(242 239 232 / 0.7);
+}
+:is(#logic-overhaul-1, html) .logic-reveal-facts {
+  display: grid;
+  width: 100%;
+  max-width: 420px;
+  flex: none;
+  gap: 8px;
+  margin: 0 auto;
+}
+:is(#logic-overhaul-1, html) .logic-reveal-fact {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: rgb(6 8 15 / 0.55);
+  border: 1px solid rgb(255 255 255 / 0.08);
+}
+:is(#logic-overhaul-1, html) .logic-reveal-fact dd {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #f2efe8;
+}
+:is(#logic-overhaul-1, html) .logic-reveal-fact dt {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  color: rgb(242 239 232 / 0.72);
+}
+:is(#logic-overhaul-1, html) .logic-reveal-fact[data-tone="good"] dd { color: #6fdc9a; }
+:is(#logic-overhaul-1, html) .logic-reveal-fact[data-tone="bad"] dd { color: var(--jz-loss-text, #ff5a6e); }
+:is(#logic-overhaul-1, html) .logic-reveal-fact[data-tone="gold"] dd { color: var(--jz-gold); }
+:is(#logic-overhaul-1, html) .logic-move-strip {
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 auto;
+}
+:is(#logic-overhaul-1, html) .logic-move-strip-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(242 239 232 / 0.7);
+}
+:is(#logic-overhaul-1, html) .logic-move-strip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+:is(#logic-overhaul-1, html) .logic-move-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 7px 0 5px;
+  border-radius: 7px;
+  background: rgb(6 8 15 / 0.6);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f2efe8;
+}
+:is(#logic-overhaul-1, html) .logic-move-piece {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35);
+}
+:is(#logic-overhaul-1, html) .logic-move-more { padding: 0 8px; color: rgb(242 239 232 / 0.7); }
+:is(#logic-overhaul-1, html) .flood-reveal-strip { display: flex; flex-wrap: wrap; gap: 4px; }
+:is(#logic-overhaul-1, html) .flood-reveal-strip > .flood-reveal-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.3);
+}
+:is(#logic-overhaul-1, html) .flood-reveal-strip > .flood-reveal-swatch[data-over-par] {
+  outline: 2px solid var(--jz-loss-text, #ff5a6e);
+  outline-offset: 1px;
+}
+/* Mosaic: the picture's squares you left empty, outlined on your board. */
+:is(#logic-overhaul-1, html) .logic-nono .logic-nono-cell[data-missed] {
+  box-shadow: inset 0 0 0 2px rgb(226 192 122 / 0.85) !important;
+}
+:is(#logic-overhaul-1, html) .logic-nono .logic-nono-cell.border-warn {
+  background: rgb(255 90 110 / 0.55) !important;
+}
+/* Safe Cracker: your tries as rows of small drums (right dials green) and the clue list for your last try. */
+:is(#logic-overhaul-1, html) .logic-safe-tries { display: flex; flex-direction: column; gap: 6px; }
+:is(#logic-overhaul-1, html) .logic-safe-try { display: flex; align-items: center; gap: 6px; }
+:is(#logic-overhaul-1, html) .logic-safe-try-label {
+  width: 46px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgb(242 239 232 / 0.72);
+}
+:is(#logic-overhaul-1, html) .logic-safe-try-dial {
+  display: inline-flex;
+  width: 30px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 20px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: #f2efe8;
+  background: rgb(255 90 110 / 0.3);
+  border: 1px solid rgb(255 90 110 / 0.7);
+}
+:is(#logic-overhaul-1, html) .logic-safe-try-dial[data-right] {
+  background: rgb(111 220 154 / 0.25);
+  border-color: rgb(111 220 154 / 0.8);
+}
+:is(#logic-overhaul-1, html) .logic-safe-clue-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: center;
+  color: #f2efe8;
+}
+:is(#logic-overhaul-1, html) .logic-safe-clue-list > li > span { color: #6fdc9a; font-weight: 900; }
+:is(#logic-overhaul-1, html) .logic-safe-clue-list > li[data-broken] { color: var(--jz-loss-text, #ff5a6e); }
+:is(#logic-overhaul-1, html) .logic-safe-clue-list > li[data-broken] > span { color: inherit; }
+/* Hanoi and Polypotions: the board grows into the reveal's room. */
+:is(#logic-overhaul-1, html) .logic-hanoi-reveal { width: min(100cqw, 380px); height: min(100cqh, 260px); }
+:is(#logic-overhaul-1, html) .logic-potions-reveal { width: min(100cqw, 340px); height: min(100cqh, 280px); }
+/* The arcade reveal's picture of the run (ArcadeRunSummary): the board as large as the column allows, never cropped. */
+:is(#logic-overhaul-1, html) .arcade-run-summary {
+  width: min(100%, 340px);
+  flex: none;
+  margin: 0 auto;
+  transition: opacity 200ms ease-out;
+}
+:is(#logic-overhaul-1, html) .arcade-run-summary > canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
 }

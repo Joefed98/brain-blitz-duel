@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import {
   decodeTowerMoves,
@@ -17,6 +17,7 @@ import { TOWER_DISCS, TOWER_PEGS, TOWER_TIME_MS, type TowerPuzzleData } from "@/
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { MovePicture, MoveStrip, RevealFacts } from "./logicReveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { ParMeter } from "@/components/puzzles/depth/ParMeter";
 import { usesDepth } from "@/lib/duel/logicDepth";
@@ -303,13 +304,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): your posts large, the numbers behind the score (moves, the fewest
+ * possible, rings on the gold post), and the shortest route as small pictures of each move (the ring, post to post).
+ */
+function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "tower") return null;
   const start = puzzle.start ?? [];
   const mine = replayTower(start, puzzle.targetPeg, puzzle.discs, decodeTowerMoves(myAnswer ?? ""));
-  const limit = timeLimitMs;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
+  const route: ReactNode[] = [];
+  const steps = decodeTowerMoves(puzzle.solution ?? "");
+  for (let i = 0; i < steps.length; i++) {
+    const pegs = replayTower(start, puzzle.targetPeg, puzzle.discs, steps.slice(0, i)).pegs;
+    const from = pegs[steps[i]!.from] ?? [];
+    const ring = from[from.length - 1];
+    if (ring === undefined) break;
+    route.push(<MovePicture colour={discColour(ring, puzzle.discs)} from={steps[i]!.from + 1} to={steps[i]!.to + 1} />);
+  }
+  const onGold = (mine.moves ? mine.pegs : towerPegsFrom(start))[puzzle.targetPeg]?.length ?? 0;
 
   return (
     <div className="logic-reveal">
@@ -320,23 +332,18 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
             discs={puzzle.discs}
             targetPeg={puzzle.targetPeg}
             compact
-            discHeight={`clamp(5px, calc(((100cqh - 40px) / ${puzzle.discs + 1} - 2px) * 0.6), 9px)`}
+            discHeight={`clamp(7px, calc(((100cqh - 40px) / ${puzzle.discs + 1} - 2px) * 0.7), 14px)`}
           />
         </div>
       </div>
-      <p className="shrink-0 text-center font-display text-2xl font-bold">
-        <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
-          {mine.moves}
-        </span>
-        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          moves · {usesDepth(puzzle) ? (mine.moves <= puzzle.minMoves && myCorrect ? "perfect solve, par" : "par") : "min"} {puzzle.minMoves}
-          {myCorrect && elapsed !== null ? `, ${elapsed.toFixed(1)} s` : ""}
-        </span>
-      </p>
-      <p className="logic-reveal-text text-center text-muted-foreground">
-        Park the big rings where they won’t block you.
-      </p>
+      <RevealFacts
+        items={[
+          { label: "Moves", value: mine.moves, tone: myCorrect && mine.moves <= puzzle.minMoves ? "gold" : undefined },
+          { label: "Fewest possible", value: puzzle.minMoves },
+          { label: `On gold of ${puzzle.discs}`, value: onGold, tone: myCorrect ? "good" : undefined },
+        ]}
+      />
+      <MoveStrip testId="tower" title="Shortest route" moves={route} />
     </div>
   );
 }

@@ -608,6 +608,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a cell,", detail: "then a number." },
         { action: "Use 1–6 once", detail: "in each row, column and box." },
         { action: "Pencil marks", detail: "are for notes." },
+        { action: "A clash turns red:", detail: "a number repeated in its row, column or box." },
         { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
       ],
       score: logicStandardHelp("sudoku"),
@@ -667,6 +668,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Never put a ring", detail: "on a smaller one." },
         { action: "Perfect solve:", detail: "the fewest moves (par) scores a bonus." },
         { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
+        { action: "A wrong post", detail: "bounces the ring back; it stays lifted for another try.", helpOnly: true },
       ],
       score: logicStandardHelp("tower"),
     },
@@ -760,7 +762,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     nonogram: {
       goal: "Fill cells so every line matches its numbers.",
       how: [
-        { action: "Tap a cell", detail: "to fill it; again to mark it empty." },
+        { action: "Tap or drag", detail: "to fill; tap again to mark empty. A drag paints like its first square." },
         { action: "The numbers", detail: "are the filled runs, in order." },
         { action: "A line dims", detail: "once it matches." },
       ],

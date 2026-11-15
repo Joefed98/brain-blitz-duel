@@ -11,6 +11,7 @@ import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playWrong } from "@/lib/sound";
 
 import { soundCue, usePrevious, useSolveFx } from "./logicFx";
+import { RevealFacts } from "./logicReveal";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { usesDepth } from "@/lib/duel/logicDepth";
 import { usesStandard } from "@/lib/duel/standard/stamps";
@@ -254,52 +255,57 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): the code on big drums; each of your tries as a row of small drums, the
+ * dials that matched the code green and the others red; the clues marked for your last try (✓ held, ✕ broken); and
+ * the numbers behind the score (tries used, best dials right, a clean crack).
+ */
+function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "safe") return null;
   const combination = puzzle.combination ?? new Array(SAFE_DIALS).fill(0);
   const tries = decodeSafeTries(myAnswer ?? "");
-  const last = tries[tries.length - 1] ?? null;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
+  const last = tries[tries.length - 1];
+  const broken = new Set(brokenClues(puzzle.clues, last));
+  const best = tries.reduce((most, t) => Math.max(most, dialsCorrect(t, combination)), 0);
+  const clean = myCorrect && usesDepth(puzzle) && (usesStandard(puzzle) ? tries.length === 1 : tries.length < SAFE_TRIES);
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div className={`flex gap-2 ${myCorrect ? "safe-metal-panel logic-safe-door solve-safe-door rounded-lg border border-border p-2" : ""}`}>
-        {combination.map((digit, dial) => (
-          <Dial key={dial} digit={digit} gold compact order={dial} />
-        ))}
-      </div>
-      <div className="w-full">
-        {puzzle.clues.map((clue) => (
-          <p key={clue.text} className="text-center text-base text-muted-foreground">
-            <span className="text-ok">✓</span> {clue.text}
-          </p>
-        ))}
-      </div>
-      {last && (
-        <div className="flex flex-col items-center gap-1">
-          <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            your last try
-          </p>
-          <div className="flex gap-2">
-            {last.map((digit, dial) => (
-              <Dial
-                key={dial}
-                digit={digit}
-                compact
-                order={dial}
-                wrong={digit !== combination[dial]}
-                gold={digit === combination[dial]}
-              />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board flex-col gap-3">
+        <div data-safe-code="" className={`flex gap-2 ${myCorrect ? "safe-metal-panel logic-safe-door solve-safe-door rounded-lg border border-border p-2" : ""}`}>
+          {combination.map((digit, dial) => (
+            <Dial key={dial} digit={digit} gold order={dial} />
+          ))}
+        </div>
+        {tries.length ? (
+          <div data-safe-tries="" className="logic-safe-tries">
+            {tries.map((t, i) => (
+              <div key={i} className="logic-safe-try" aria-label={`Try ${i + 1}: ${t.join(" ")}, ${dialsCorrect(t, combination)} dials right`}>
+                <span className="logic-safe-try-label">Try {i + 1}</span>
+                {t.map((digit, dial) => (
+                  <span key={dial} className="logic-safe-try-dial" data-right={digit === combination[dial] ? "" : undefined}>
+                    {digit}
+                  </span>
+                ))}
+              </div>
             ))}
           </div>
-        </div>
-      )}
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {myCorrect
-          ? `opened on try ${tries.length}${usesDepth(puzzle) && (usesStandard(puzzle) ? tries.length === 1 : tries.length < SAFE_TRIES) ? ", clean crack" : ""}${elapsed !== null ? ` · ${elapsed.toFixed(1)} s` : ""}`
-          : `locked · ${last ? dialsCorrect(last, combination) : 0} / ${SAFE_DIALS} dials`}
-      </p>
+        ) : null}
+        <ul data-safe-clues="" className="logic-safe-clue-list">
+          {puzzle.clues.map((clue, index) => (
+            <li key={clue.text} data-broken={last && broken.has(index) ? "" : undefined}>
+              <span aria-hidden="true">{last && broken.has(index) ? "✕" : "✓"}</span> {clue.text}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <RevealFacts
+        items={[
+          { label: `Tries of ${SAFE_TRIES}`, value: tries.length },
+          { label: `Best dials of ${SAFE_DIALS}`, value: myCorrect ? SAFE_DIALS : best, tone: myCorrect ? "good" : undefined },
+          myCorrect && { label: "Clean crack", value: clean ? "Yes" : "No", tone: clean ? "gold" : undefined },
+        ]}
+      />
     </div>
   );
 }

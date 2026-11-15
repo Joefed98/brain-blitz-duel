@@ -26,6 +26,8 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "numpyramid",
   "bomb",
   "trail",
+  // The Logic overhaul, session 1 (15 Nov 2026): Box Six's solution and your grid, one at a time.
+  "sudoku",
 ]);
 
 const SOLUTION_LABEL = /^(solution|solved|one solution|the solution|answer|one valid plan)$/i;

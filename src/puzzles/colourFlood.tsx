@@ -20,6 +20,7 @@ import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-logic.css";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
+import { RevealFacts } from "./logicReveal";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Wet-paint display colours for stored indices 0–4 (red, blue, green, yellow, orange), chosen to stay distinct with red-green colour blindness. */
@@ -254,55 +255,58 @@ function countedMoves(start: number[], moves: number[], limit: number | null): n
   return out;
 }
 
-/** Reveal (3 Nov 2026, display only): moves against par as two figures, the moves made as a strip of swatches. */
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
+/**
+ * Reveal (3 Nov 2026; Logic overhaul 1, 15 Nov 2026): the board at full width, the numbers behind the score (moves,
+ * par, the share flooded), and your moves against the par route as two strips of colour swatches, your moves past par
+ * marked.
+ */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "flood") return null;
   const moveLimit = floodMoveLimit(puzzle);
   const decoded = decodeFloodMoves(myAnswer ?? "");
   const replay = replayFlood(puzzle.grid, decoded, undefined, moveLimit);
   const made = countedMoves(puzzle.grid, decoded, moveLimit);
   const par = puzzle.par;
-  const tone = par > 0 && replay.solved ? (replay.moves <= par ? "good" : "over") : undefined;
+  const route = puzzle.solution ?? [];
+  const tone = par > 0 && replay.solved ? (replay.moves <= par ? "gold" : undefined) : undefined;
+  const flooded = Math.round((100 * replay.region) / FLOOD_CELLS);
+  const swatches = (colours: readonly number[], over: number) =>
+    colours.map((colour, i) => (
+      <i
+        key={i}
+        className="flood-reveal-swatch"
+        data-over-par={over > 0 && i >= over ? "" : undefined}
+        aria-label={FLOOD_NAMES[colour] ?? ""}
+        style={{ backgroundColor: fillOf(colour) }}
+      />
+    ));
 
   return (
     <div className="logic-reveal">
       <div className="logic-reveal-board flex flex-col items-center gap-3">
-        <div className="flood-reveal-figures" data-flood-reveal="">
-          <div className="flood-reveal-figure" data-tone={tone}>
-            <span>{moveLimit !== null ? `Moves (of ${moveLimit})` : "Moves"}</span>
-            <b data-flood-moves="">{replay.moves}</b>
-          </div>
-          {par > 0 ? (
-            <div className="flood-reveal-figure">
-              <span>Par</span>
-              <b data-flood-par="">{par}</b>
-            </div>
-          ) : null}
-        </div>
-        {made.length ? (
-          <div className="flood-reveal-strip" aria-label={`Moves made: ${made.map((c) => FLOOD_NAMES[c] ?? "").join(", ")}`}>
-            {made.map((colour, i) => (
-              <span
-                key={i}
-                className="flood-reveal-swatch"
-                data-over-par={par > 0 && i >= par ? "" : undefined}
-                style={{ backgroundColor: fillOf(colour) }}
-              />
-            ))}
-          </div>
-        ) : null}
-        {/* Logic overhaul 1: the round-end board fills the reveal's width (it was a 120 px thumbnail). */}
         <div className="logic-square-bare logic-flood-frame logic-flood-reveal-board" data-flood-reveal-board="">
           <Board grid={replay.grid} fluid />
         </div>
       </div>
-      <p
-        className={`logic-reveal-text whitespace-normal break-words text-center font-mono font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
-      >
-         {replay.solved
-           ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, timeLimitMs, "C", scoreParts)
-          : `${replay.region} / ${FLOOD_CELLS} cells${replay.outOfMoves ? " · out of moves" : ""}`}
-      </p>
+      <RevealFacts
+        items={[
+          { label: moveLimit !== null ? `Moves of ${moveLimit}` : "Moves", value: <span data-flood-moves="">{replay.moves}</span>, tone },
+          par > 0 && { label: "Par", value: <span data-flood-par="">{par}</span> },
+          { label: "Flooded", value: `${flooded}%`, tone: replay.solved ? "good" : undefined },
+        ]}
+      />
+      {made.length ? (
+        <div className="logic-move-strip" data-flood-reveal="">
+          <span className="logic-move-strip-title">Your moves</span>
+          <div className="flood-reveal-strip" aria-label={`Moves made: ${made.map((c) => FLOOD_NAMES[c] ?? "").join(", ")}`}>{swatches(made, par)}</div>
+        </div>
+      ) : null}
+      {route.length ? (
+        <div className="logic-move-strip" data-flood-route="">
+          <span className="logic-move-strip-title">Par route</span>
+          <div className="flood-reveal-strip" aria-label={`Par route: ${route.map((c) => FLOOD_NAMES[c] ?? "").join(", ")}`}>{swatches(route, 0)}</div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -4,6 +4,38 @@ Box Six, Polypotions, Hanoi, Safe Cracker, Mosaic, Colour Flood and Minefield (p
 section; the newest is first. Frames are 390 × 844 practice rounds drawn by `bun scripts/shots/capture.ts` (Before:
 the game reviews' own screenshots of today, `docs/design/game-reviews/img/logic/`).
 
+## The answer reveals (15 Nov 2026)
+
+Every reveal is clear, big and legible on a phone, inside the shared reveal layout: one board at a time (Box Six and
+Mosaic through the shared Solution / Yours switch, never two shrunken boards side by side), what you missed or got wrong
+marked on the board, the key numbers behind the score as big figures over short plain labels (no stray "×", no counts
+that read as if they describe the solution), and pictures instead of text lists: the shortest route as small move
+pictures (Polypotions, Hanoi), your moves against the par route as colour strips (Colour Flood), each try as a row of
+drums (Safe Cracker) and, for Minefield, the board exactly as your run left it (mines hit red, flags on mines ringed
+gold, wrong flags struck through). Before: main; after: this branch (practice, 390 × 844; a solved round, then a
+timed-out one).
+
+| Game | Before | After: solved | After: timed out |
+|---|---|---|---|
+| Box Six | <img src="img/sudoku-reveal-before.webp" width="180"> | <img src="img/sudoku-reveal-after.webp" width="180"> | <img src="img/sudoku-timeout-after.webp" width="180"> |
+| Polypotions | <img src="img/tubes-reveal-before.webp" width="180"> | <img src="img/tubes-reveal-after.webp" width="180"> | <img src="img/tubes-timeout-after.webp" width="180"> |
+| Hanoi | <img src="img/tower-reveal-before.webp" width="180"> | <img src="img/tower-reveal-after.webp" width="180"> | <img src="img/tower-timeout-after.webp" width="180"> |
+| Safe Cracker | <img src="img/safe-reveal-before.webp" width="180"> | <img src="img/safe-reveal-after.webp" width="180"> | <img src="img/safe-timeout-after.webp" width="180"> |
+| Mosaic | <img src="img/nonogram-reveal-before.webp" width="180"> | <img src="img/nonogram-reveal-after.webp" width="180"> | <img src="img/nonogram-timeout-after.webp" width="180"> |
+| Colour Flood | <img src="img/flood-reveal-before.webp" width="180"> | <img src="img/flood-reveal-after.webp" width="180"> | <img src="img/flood-timeout-after.webp" width="180"> |
+| Minefield | <img src="img/minesweeper-reveal-before.webp" width="180"> | <img src="img/minesweeper-reveal-after.webp" width="180"> | — |
+
+375 × 667: <img src="img/sudoku-reveal-after-375.webp" width="120"> <img src="img/tubes-reveal-after-375.webp" width="120">
+<img src="img/tower-reveal-after-375.webp" width="120"> <img src="img/safe-reveal-after-375.webp" width="120">
+<img src="img/nonogram-reveal-after-375.webp" width="120"> <img src="img/flood-reveal-after-375.webp" width="120">
+<img src="img/minesweeper-reveal-after-375.webp" width="120">
+
+## Image budget
+
+Each game's rendered art (public/logic-art/, WebP, sized for its largest display): Box Six 2.8 KB, Polypotions 4.2 KB,
+Hanoi 14.1 KB, Safe Cracker 8.4 KB, Mosaic 1.9 KB, Colour Flood 3.0 KB, Minefield 4.7 KB: 39 KB for all seven, far
+under the 400 KB a game, so the offline pack grows by under 40 KB.
+
 ## Stage 1: the new look and the agreed changes (15 Nov 2026)
 
 Pieces and surfaces are rendered in Blender (Cycles) by `scripts/logic-art/render.py` and exported as 17 WebP sprites

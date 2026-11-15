@@ -13,6 +13,7 @@ import { NONO_SIZE, NONO_TIME_MS, type NonoPuzzleData } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { RevealFacts } from "./logicReveal";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import "@/polish-layout/polish-nov3-logic.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -33,6 +34,7 @@ export function Board({
   fluid = false,
   goldCells,
   wrongCells,
+  missedCells,
   reveal = false,
   tapped,
 }: {
@@ -47,6 +49,8 @@ export function Board({
   fluid?: boolean;
   goldCells?: Set<number>;
   wrongCells?: Set<number>;
+  /** The reveal's "Yours" board: squares of the picture you left empty (outlined). */
+  missedCells?: Set<number>;
   /** Reveal: fluid cells, 12px clues, finished lines not dimmed. */
   reveal?: boolean;
   /** The cell that was just tapped, keyed per tap (its tile pops). */
@@ -122,6 +126,7 @@ export function Board({
             const mark = marks[index] ?? 0;
             const gold = goldCells?.has(index);
             const wrong = wrongCells?.has(index);
+            const missed = missedCells?.has(index);
             const colGuide = size >= 10 && (col + 1) % 5 === 0 && col + 1 !== size;
             const popped = tapped?.index === index;
             return (
@@ -129,8 +134,9 @@ export function Board({
                 key={popped ? `${index}-${tapped?.key}` : index}
                 type="button"
                 // 7 Nov 2026 (accessibility audit #16): the cell's state in its name (it was only its place).
-                aria-label={`Row ${row + 1} column ${col + 1}, ${gold ? "filled" : mark === 1 ? "filled" : mark === 2 ? "crossed" : "empty"}${wrong ? ", wrong" : ""}`}
+                aria-label={`Row ${row + 1} column ${col + 1}, ${gold ? "filled" : mark === 1 ? "filled" : mark === 2 ? "crossed" : "empty"}${wrong ? ", wrong" : ""}${missed ? ", missed" : ""}`}
                 data-nono-index={index}
+                data-missed={missed ? "" : undefined}
                 onPointerDown={onCell ? (event) => {
                   // Touch pointers capture to the cell they started on; release it so the drag reaches the others.
                   (event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
@@ -187,7 +193,7 @@ function IntroExample() {
     <div className="flex w-full flex-col items-center gap-2">
       <Board rows={rows} cols={cols} marks={marks} size={4} cell={24} />
       <p className="text-center text-xs text-muted-foreground">
-        The numbers are the run lengths - this one is a diamond.
+        The numbers are the run lengths: this one is a diamond. Tap or drag to fill.
       </p>
     </div>
   );
@@ -296,7 +302,12 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): one big board at a time through the shared Solution / Yours switch. Yours
+ * shows your filled squares, the wrong ones red and the picture's squares you left empty outlined. Under it, the numbers
+ * behind the score: squares right, wrong and missed.
+ */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "nonogram") return null;
   const pattern = puzzle.pattern ?? [];
   const size = nonoSizeOf(puzzle);
@@ -304,14 +315,13 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const mine = new Set(filled);
   const correct = filled.filter((cell) => pattern[cell]).length;
   const total = pattern.filter(Boolean).length;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   const solutionMarks = pattern.map((cell) => (cell ? 1 : 0)) as NonoMarks;
   const myMarks = Array.from({ length: size * size }, (_, index) =>
     mine.has(index) ? 1 : 0,
   ) as NonoMarks;
   const wrongCells = new Set(filled.filter((cell) => !pattern[cell]));
+  const missedCells = new Set(pattern.flatMap((cell, index) => (cell && !mine.has(index) ? [index] : [])));
 
   return (
     <div className="logic-reveal">
@@ -329,17 +339,19 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
               marks={myMarks}
               size={size}
               wrongCells={wrongCells}
+              missedCells={missedCells}
               reveal
             />
           </div>
         </div>
       </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text whitespace-normal break-words text-center font-mono font-bold text-foreground">
-          {`${correct} / ${total} cells`}
-        </p>
-      )}
+      <RevealFacts
+        items={[
+          { label: `Right of ${total}`, value: correct, tone: correct === total && !wrongCells.size ? "good" : undefined },
+          { label: "Wrong", value: wrongCells.size, tone: wrongCells.size ? "bad" : undefined },
+          { label: "Missed", value: missedCells.size },
+        ]}
+      />
     </div>
   );
 }

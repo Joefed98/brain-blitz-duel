@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   decodeTubeMoves,
   encodeTubeLog,
   encodeTubeMoves,
+  pour,
   replayTubeLog,
   replayTubes,
   topGroup,
@@ -24,6 +25,7 @@ import { TUBES_COLOURS, TUBES_COUNT, TUBES_TIME_MS, type TubesPuzzleData } from 
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { MovePicture, MoveStrip, RevealFacts } from "./logicReveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { ParMeter } from "@/components/puzzles/depth/ParMeter";
 import { usesDepth } from "@/lib/duel/logicDepth";
@@ -157,7 +159,7 @@ function IntroExample() {
         <Tubes tubes={tubes} lifted={2} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Flask 3’s top layer is lifted – pour it into the empty flask or onto a matching colour. Each flask holds five layers; a full one-colour flask gets a cork. You have 90 seconds.
+        Flask 3’s top layer is lifted – pour it into the empty flask or onto a matching colour. Each flask holds five layers; a full one-colour flask gets a cork. Undo gives its pour back. You have 90 seconds.
       </p>
     </div>
   );
@@ -331,15 +333,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): your flasks large, the numbers behind the score (pours used, par, flasks
+ * sorted), and the shortest route as small pictures of each pour (the colour poured, flask to flask).
+ */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tubes") return null;
   const pourLimit = tubesPourLimit(puzzle);
   const mine = tubesSendsUndo(puzzle)
     ? replayTubeLog(puzzle.tubes, decodeTubeLog(myAnswer ?? ""), pourLimit, undefined, tubesRefundsUndo(puzzle))
     : replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? ""));
-  const limit = timeLimitMs;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
+  const par = puzzle.par ?? puzzle.minMoves ?? 0;
+  const route: ReactNode[] = [];
+  let state = puzzle.tubes.map((tube) => [...tube]);
+  for (const move of decodeTubeMoves(puzzle.solution ?? "")) {
+    if (!canPour(state, move.from, move.to)) break;
+    const top = state[move.from]![state[move.from]!.length - 1]!;
+    route.push(<MovePicture colour={ballColour(top)} from={move.from + 1} to={move.to + 1} />);
+    state = pour(state, move.from, move.to);
+  }
 
   return (
     <div className="logic-reveal">
@@ -348,21 +360,14 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           <Tubes tubes={mine.tubes} compact layerHeight="clamp(10px, calc((100cqh - 56px) / 12), 18px)" />
         </div>
       </div>
-      <p className="shrink-0 text-center font-display text-2xl font-bold">
-        <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
-          {mine.moves}
-        </span>
-        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          {pourLimit !== null ? `of ${pourLimit} pours used` : "moves"}{puzzle.minMoves ? ` · ${usesDepth(puzzle) ? "par" : "min"} ${puzzle.minMoves}` : ""}
-          {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
-        </span>
-      </p>
-      <p className="logic-reveal-text text-center text-muted-foreground">
-        {myCorrect
-          ? "Keep one flask empty for as long as you can."
-          : `${mine.sorted} of ${TUBES_COLOURS} flasks corked${"outOfPours" in mine && mine.outOfPours ? " · out of pours" : ""}.`}
-      </p>
+      <RevealFacts
+        items={[
+          { label: pourLimit !== null ? `Pours used of ${pourLimit}` : "Pours", value: mine.moves, tone: mine.solved && par && mine.moves <= par ? "gold" : undefined },
+          par > 0 && { label: "Par", value: par },
+          { label: `Sorted of ${TUBES_COLOURS}`, value: mine.sorted, tone: mine.solved ? "good" : undefined },
+        ]}
+      />
+      <MoveStrip testId="tubes" title="Shortest route" moves={route} />
     </div>
   );
 }

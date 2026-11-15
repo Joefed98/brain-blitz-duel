@@ -27,6 +27,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { MinesweeperPuzzleData } from "@/lib/duel/types";
 import { minesweeperSounds } from "@/lib/fx/cardSounds";
 
+import { RevealFacts } from "./logicReveal";
+import { ArcadeRunSummary } from "@/components/duel/ArcadeRunSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { canvasRatio } from "@/lib/battery";
 
@@ -203,13 +205,28 @@ export function minesweeperLine(r: { revealed: number; opening: number; hits: nu
   return r.cleared ? `${head} · cleared in ${r.clearedSeconds.toFixed(1)}s · ${hits}` : `${head} · ${hits}`;
 }
 
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): the board as your run left it, drawn large by the game's own art
+ * (ArcadeRunSummary: mines hit in red, flags on mines ringed gold, wrong flags struck through), and the numbers behind
+ * the score: safe squares found beyond the opening, mines hit, flags right.
+ */
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "minesweeper") return null;
   const result = replayMinesweeperRun(puzzle.seed, myAnswer ?? "", puzzle.minesRev);
+  const state = (result as { state?: MinesState }).state;
+  const flagsRight = state ? state.open.filter((v, cell) => v === MINES_FLAG && state.mines[cell]).length : 0;
+  const ofSafe = minesSafeFor(puzzle.minesRev) - result.opening;
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{minesweeperLine(result)}</p>
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same board for everyone · {result.flags} flags</p>
+    <div className="logic-reveal">
+      <ArcadeRunSummary puzzle={puzzle} answer={myAnswer ?? ""} />
+      <RevealFacts
+        items={[
+          { label: `Safe found of ${ofSafe}`, value: result.revealed - result.opening, tone: result.cleared ? "good" : undefined },
+          { label: "Mines hit", value: result.hits, tone: result.hits ? "bad" : undefined },
+          result.flags > 0 && { label: `Flags right of ${result.flags}`, value: flagsRight },
+          result.cleared && { label: "Cleared in", value: `${result.clearedSeconds.toFixed(1)}s`, tone: "gold" },
+        ]}
+      />
     </div>
   );
 }

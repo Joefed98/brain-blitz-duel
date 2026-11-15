@@ -287,6 +287,21 @@ function paintBoard(ctx: CanvasRenderingContext2D, s: MinesState, over: boolean)
     } else {
       paintMinesCover(ctx, x, y);
       if (v === MINES_FLAG) paintMinesFlag(ctx, x, y);
+      // At the end (the reveal's summary of the run, Logic overhaul 1): a flag on a mine is ringed gold, a flag on a
+      // safe square struck through in red.
+      if (over && v === MINES_FLAG) {
+        ctx.save();
+        ctx.lineWidth = Math.max(2, MINES_CELL / 12);
+        ctx.strokeStyle = s.mines[cell] ? MINES_ART.gold : MINES_ART.boom;
+        ctx.beginPath();
+        if (s.mines[cell]) ctx.arc(x + MINES_CELL / 2, y + MINES_CELL / 2, MINES_CELL * 0.42, 0, Math.PI * 2);
+        else {
+          ctx.moveTo(x + MINES_CELL * 0.18, y + MINES_CELL * 0.18);
+          ctx.lineTo(x + MINES_CELL * 0.82, y + MINES_CELL * 0.82);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
       // At the buzzer the mines still hidden show faintly (the board is never played on again).
       if (over && v === MINES_HIDDEN && s.mines[cell]) {
         ctx.save();
