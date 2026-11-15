@@ -25,7 +25,7 @@ import {
   poolFlight,
   poolFoulLabel,
   poolInRack,
-  poolJawContact,
+  poolJawHit,
   poolPocketOf,
   poolSideBend,
   poolStrikePoint,
@@ -980,19 +980,64 @@ function liteFx(): boolean {
   return arcadeReducedEffects();
 }
 
-/** Jaw rattles seen (display only): the ball, the tick and the run (a rattle shivers for POOL_FX_SHIVER_TICKS). */
-let rattle: { seed: number; shots: number; tick: number; id: number } | null = null;
+/**
+ * Jaw rattles seen (display only): the ball, the tick, the run and the point on the jaw it struck (a rattle shivers for
+ * POOL_FX_SHIVER_TICKS). Read off the sim each drawn frame by poolRattleNow.
+ */
+let rattle: { seed: number; shots: number; tick: number; id: number; jx: number; jy: number } | null = null;
 
-/** The ball shivering after a jaw rattle, and its offset (world px) this frame; 0, 0 otherwise. */
+/** The rattle showing on this state (its ball, age and jaw point), or null. Notes a new one when this tick has one. */
+export function poolRattleNow(s: PoolState): { id: number; age: number; jx: number; jy: number } | null {
+  const hit = poolJawHit(s);
+  if (hit) rattle = { seed: s.seed, shots: s.shots, tick: s.tick, id: hit.id, jx: hit.x, jy: hit.y };
+  if (!rattle || rattle.seed !== s.seed || rattle.shots !== s.shots) return null;
+  const age = s.tick - rattle.tick;
+  if (age < 0 || age >= POOL_FX_SHIVER_TICKS) return null;
+  return { id: rattle.id, age, jx: rattle.jx, jy: rattle.jy };
+}
+
+/**
+ * The ball shivering after a jaw rattle, and its offset (world px) this frame; 0, 0 otherwise. The shiver runs along the
+ * jaw's normal (towards and away from the jaw), 2.6 px each way at first, alternating every 2 ticks and easing to 2 px,
+ * so it reads at phone size (a 16 px ball); the sim's position is untouched.
+ */
 export function poolShiver(s: PoolState, id: number): { dx: number; dy: number } {
   if (stillFx()) return { dx: 0, dy: 0 };
-  const now = poolJawContact(s);
-  if (now !== null) rattle = { seed: s.seed, shots: s.shots, tick: s.tick, id: now };
-  if (!rattle || rattle.id !== id || rattle.seed !== s.seed || rattle.shots !== s.shots) return { dx: 0, dy: 0 };
-  const age = s.tick - rattle.tick;
-  if (age < 0 || age >= POOL_FX_SHIVER_TICKS) return { dx: 0, dy: 0 };
-  const fall = 1 - age / POOL_FX_SHIVER_TICKS;
-  return { dx: Math.sin(age * 2.6) * 1.2 * fall, dy: Math.cos(age * 3.3) * 0.8 * fall };
+  const r = poolRattleNow(s);
+  if (!r || r.id !== id) return { dx: 0, dy: 0 };
+  const b = s.balls.find((x) => x.id === id);
+  if (!b) return { dx: 0, dy: 0 };
+  let nx = px(b.x) - r.jx;
+  let ny = px(b.y) - r.jy;
+  const len = Math.hypot(nx, ny) || 1;
+  nx /= len;
+  ny /= len;
+  const fall = 1 - r.age / POOL_FX_SHIVER_TICKS;
+  const amp = (2 + 0.6 * fall) * ((r.age >> 1) % 2 === 0 ? 1 : -1);
+  return { dx: nx * amp, dy: ny * amp };
+}
+
+/** Two short arcs at the jaw a ball rattled off, opening towards the ball and fading (reduced effects: one). */
+function drawRattleMarks(ctx: CanvasRenderingContext2D, s: PoolState): void {
+  if (stillFx()) return;
+  const r = poolRattleNow(s);
+  if (!r) return;
+  const b = s.balls.find((x) => x.id === r.id);
+  if (!b) return;
+  const dir = Math.atan2(px(b.y) - r.jy, px(b.x) - r.jx);
+  const fade = 1 - r.age / POOL_FX_SHIVER_TICKS;
+  const grow = Math.min(1, (r.age + 2) / 6);
+  ctx.save();
+  ctx.strokeStyle = "#FFEFC2";
+  ctx.lineCap = "round";
+  ctx.lineWidth = 1.8;
+  for (let k = 0; k < (liteFx() ? 1 : 2); k++) {
+    ctx.globalAlpha = 0.9 * fade * (k === 0 ? 1 : 0.7);
+    ctx.beginPath();
+    ctx.arc(r.jx, r.jy, (5 + 4.5 * k) * grow + 1.5, dir - 0.8, dir + 0.8);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /** The cue's thrust through the ball at the strike, and the chalk puff off its tip. */
@@ -1029,26 +1074,54 @@ function drawStrike(ctx: CanvasRenderingContext2D, s: PoolState): void {
   ctx.restore();
 }
 
-/** A tiny flash where two balls meet: a short white star at the contact point, gone in a few frames. */
+/**
+ * Where two balls meet (the Sports overhaul, readable at phone size): a crisp burst of six white-gold rays (long and short
+ * in turn) and a thin gold ring opening from the contact point, with both balls' rims catching the light for the first two
+ * thirds; strokes only (no glow or gradient, so nothing washes across the felt or the numbers), gone in
+ * POOL_FX_FLASH_TICKS. Reduced effects: the ring alone. Reduced motion: nothing.
+ */
 function drawContactFlash(ctx: CanvasRenderingContext2D, s: PoolState): void {
   if (stillFx()) return;
   const c = poolContactPoint(s);
   if (!c) return;
   const t = c.age / POOL_FX_FLASH_TICKS;
+  const fade = 1 - t;
+  const out = 1 - (1 - t) * (1 - t);
   ctx.save();
-  ctx.globalAlpha = 0.9 * (1 - t);
-  ctx.strokeStyle = "#FFF6DC";
-  ctx.lineWidth = 1.2;
   ctx.lineCap = "round";
-  const r = 3 + 5 * t;
-  for (let k = 0; k < (liteFx() ? 2 : 4); k++) {
-    const a = (k * Math.PI) / 4 + 0.4;
-    ctx.beginPath();
-    ctx.moveTo(c.x + Math.cos(a) * r * 0.35, c.y + Math.sin(a) * r * 0.35);
-    ctx.lineTo(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r);
-    ctx.moveTo(c.x - Math.cos(a) * r * 0.35, c.y - Math.sin(a) * r * 0.35);
-    ctx.lineTo(c.x - Math.cos(a) * r, c.y - Math.sin(a) * r);
-    ctx.stroke();
+  if (!liteFx() && t < 0.67) {
+    ctx.globalAlpha = 0.8 * (1 - t / 0.67);
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1.2;
+    for (const id of [c.a, c.b]) {
+      const b = s.balls.find((x) => x.id === id && !x.down);
+      if (!b) continue;
+      // The rim on the side facing the contact.
+      const face = Math.atan2(c.y - px(b.y), c.x - px(b.x));
+      ctx.beginPath();
+      ctx.arc(px(b.x), px(b.y), POOL_BALL_DRAW_R + 0.3, face - 1.1, face + 1.1);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 0.85 * fade;
+  ctx.strokeStyle = "#FFD982";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, 2.5 + 6.5 * out, 0, Math.PI * 2);
+  ctx.stroke();
+  if (!liteFx()) {
+    ctx.strokeStyle = "#FFF8E6";
+    ctx.lineWidth = 1.6;
+    ctx.globalAlpha = 0.95 * fade;
+    for (let k = 0; k < 6; k++) {
+      const a = (k * Math.PI) / 3 + 0.3;
+      const reach = (k % 2 === 0 ? 11 : 7.5) * (0.55 + 0.45 * out);
+      const inner = 2 + 3 * out;
+      ctx.beginPath();
+      ctx.moveTo(c.x + Math.cos(a) * inner, c.y + Math.sin(a) * inner);
+      ctx.lineTo(c.x + Math.cos(a) * reach, c.y + Math.sin(a) * reach);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -1394,6 +1467,7 @@ function drawPoolLooked(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAi
     drawBall(ctx, POOL_CUE, px(cue.x) + sh.dx, px(cue.y) + sh.dy);
   }
   drawContactFlash(ctx, s);
+  drawRattleMarks(ctx, s);
   drawFoul(ctx, s);
   if (aiming && cue) {
     const l = Math.hypot(aim.dx, aim.dy);
