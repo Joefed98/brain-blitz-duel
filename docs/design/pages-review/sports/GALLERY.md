@@ -1,4 +1,4 @@
-# Sports overhaul, stage 1: Cue Ball, Curl Champ, Apex
+# Sports overhaul: Cue Ball, Curl Champ, Apex (stages 1 and 2)
 
 Phase 2, step 4. This page shows each game three ways: today (main), the concept Joe chose
 (`docs/design/game-concepts/sports.md`, PR #426) and the new frame. It also shows the answer reveal before and after, plus
@@ -10,8 +10,12 @@ short clips.
 - **Clips:** drawn by the real renderer and sim with the rendered images loaded, using the same bots, at 15 fps
   (`bun scripts/shots/sports-clips.ts`).
 
-Stage 1 covers the look, Captain Joulz, the game changes, haptics, the reveals, and the intro and help text. Stage 2 (the
-effects kit, PR #422) and stage 3 (the difficulty levels, PR #432) come once those are on main.
+- Stage 1 (approved at a23372a7): the look, Captain Joulz, the game changes, haptics, the reveals, and the intro and
+  help text.
+- Stage 2: Joe's notes on Apex's track, then the effects on the kit (#422). Each game's "Effects" section below shows
+  them.
+- The clips show both stages.
+- Stage 3 (the difficulty levels) comes once PR #432 is on main.
 
 ## Cue Ball
 
@@ -29,9 +33,18 @@ The Captain's cue arm, gripping the butt and drawing back with the pull, the int
 
 <img src="clip-pool.webp" width="300">
 
+**Effects (stage 2).** Each one is read off the sim; reduced motion keeps the state and drops the flourish.
+- Aim and strike: the side-spin bend on the aim, the cue's thrust with a chalk puff.
+- Contact and pots: a flash where balls meet, the jaw rattle's shiver, a pot flying to the rack.
+- Fouls and streaks: "FOUL −10" by the cue ball, the IN A ROW chip growing, and "CLEARED!" with the time.
+
+<img src="pool-fx-1.webp" width="760">
+
+<img src="pool-fx-2.webp" width="580">
+
 **Answer reveal: today, then new.** The new reveal draws the table full width on its side. Each potted ball sits by its
 pocket in order, fouls show where they happened, and four plain tiles sit under the table (spots potted, the black,
-best streak, fouls), above the parts breakdown.
+best streak, fouls), above the parts breakdown. In stage 2 the pots land on the table one by one and the tiles count up.
 
 <img src="pool-reveal.webp" width="560">
 
@@ -51,8 +64,19 @@ The Captain sets up beside the stone, slides and lets go, then the stone runs:
 
 <img src="clip-curling.webp" width="300">
 
+**Effects (stage 2).** The far-house moments also show in the enlarged house view, where they read.
+- Throw and sweep: the power notch (louder in HOUSE), sweep strokes on the brushed side.
+- Hits: a clack ring where stones meet, the takeout's ring, a gold line and ring to each counting stone, a grey ring on a
+  near miss.
+- The end: the house grows and the counting stones light one by one.
+
+<img src="curling-fx-1.webp" width="760">
+
+<img src="curling-fx-2.webp" width="580">
+
 **Answer reveal: today, then new.** The house drawn large from above, with your stones numbered by throw and the reds
-shown. Counting stones get a gold ring and near misses a grey one. Counting, Takeouts and Closest sit under the house.
+shown. Counting stones get a gold ring and near misses a grey one. Counting, Takeouts and Closest sit under the house. In stage 2 the counting rings light one by one and the numbers count
+up.
 
 <img src="curling-reveal.webp" width="560">
 
@@ -63,6 +87,10 @@ shown. Counting stones get a gold ring and near misses a grey one. Counting, Tak
 - **Car:** concept A's race car from behind, in lacquered crimson, carbon and gold, with the Captain at the wheel. The car is
   1.35× larger on screen (the camera is closer; collision is unchanged).
 - **World:** a dusk sky, the sun low on the road ahead, rim-lit tree silhouettes, and a warm sheen up the asphalt.
+- **Track (Joe's stage 1 note, done in stage 2):** the red-and-white kerbs, edge lines and dashed markings, gravel
+  traps, the 150 / 100 / 50 boards, marshal posts, catch fences and grandstands are back.
+- **Scenery:** each circuit has its own: parkland for Sunset Park, a harbour (cranes, lighthouse, boats, containers) for
+  Harbour Run, hills (ridges, pines, rock) for Ridge Loop.
 - **Neon Night:** stays a cosmetic.
 
 The three circuits of racingRev 4, each dealt at every level: Sunset Park, Harbour Run and Ridge Loop.
@@ -71,12 +99,26 @@ The three circuits of racingRev 4, each dealt at every level: Sunset Park, Harbo
 
 <img src="racing-maps.webp" width="760">
 
+Today's track beside the three circuits after stage 2:
+
+<img src="racing-track.webp" width="760">
+
+**Effects (stage 2).**
+- Speed and surfaces: speed lines above 200 km/h, a small shake of the view on the kerb, dust and a red speedo drop on
+  the grass.
+- Corners and sectors: the corner sign green within its speed and red over, the clean-sector flash.
+- Walls and the finish: sparks off a wall scrape, the chequered flag with the lap times and average speed counting up.
+
+<img src="racing-fx-1.webp" width="760">
+
+<img src="racing-fx-2.webp" width="760">
+
 <img src="clip-racing.webp" width="300">
 
 **Answer reveal: today, then new.** One large map of the circuit:
 - **Map marks:** sectors driven clean in green, trips onto the grass as red dots, wall hits as red rings.
 - **Numbers:** the lap times, the average speed and the clean sectors under it.
 
-The right-hand shot is an unfinished race.
+The right-hand shot is an unfinished race. In stage 2 the lap times and the average speed count up.
 
 <img src="racing-reveal.webp" width="760">
