@@ -1,3 +1,5 @@
+import { GameReveal } from "@/components/duel/GameParts";
+import { RUN_SUMMARY_TYPES } from "@/lib/duel/runSummary";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/design/components";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
@@ -365,6 +367,13 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
         {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}
         {summary && myReveal !== storedReveal && storedReveal ? <span hidden data-stored-lines={storedReveal.lines.join("\n")} /> : null}
+
+        {/* The run's own visual summary (a game's Reveal, src/lib/duel/runSummary.ts): Crazy Golf's scorecard and hole map. */}
+        {RUN_SUMMARY_TYPES.has(puzzle.type) && myAnswer !== null && myAnswer !== undefined ? (
+          <div data-run-summary={puzzle.type} className="w-full shrink-0">
+            <GameReveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={false} myReactionAvgMs={null} timeLimitMs={0} />
+          </div>
+        ) : null}
 
         {/* The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot). */}
         {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}

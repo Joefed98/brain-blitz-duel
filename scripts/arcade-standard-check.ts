@@ -104,7 +104,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
-  { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
+  // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026; golfRev 1 and 2 were on the standard too). Changed with Joe's
+  // approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul).
+  { type: "minigolf", field: "golfRev", rev: 3, batch: "Sports" },
   { type: "pool", field: "poolRev", rev: 4, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
   // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).

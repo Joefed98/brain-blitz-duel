@@ -12,6 +12,8 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   balltrack: [["← → ↑ ↓", "move"], ["Space", "turn tile"]],
   bintoss: [["← → ↑ ↓", "aim"], ["Space", "throw"]],
   breaker: [["← →", "paddle"], ["Space", "power-up"]],
+  // Crazy Golf golfRev 3 (15 Nov 2026): the stage's keys (C switches putt and chip).
+  minigolf: [["← →", "aim"], ["↑ ↓", "power"], ["C", "putt / chip"], ["Space", "play the shot"]],
   bubble: [["← → ↑ ↓", "aim"], ["Space", "shoot"]],
   bullseye: [["← → ↑ ↓", "aim"], ["Space", "shoot"]],
   burst: [["← →", "move"], ["Space", "fire"]],

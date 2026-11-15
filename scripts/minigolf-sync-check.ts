@@ -14,7 +14,12 @@
  *     logs), slopes, hills, sand, tunnels, the windmills' doorways, water, putts that drop (lip-ins at the cup's capture speed), slow rolls, every witness's
  *     200-point route and time-out cuts;
  *  4. a replay of an answer with no run in it (an empty answer, a draft made before the first tick) prints no
- *     "client/server desync" line and scores 0, not flagged (empty Sports runs score 0, 15 Nov 2026).
+ *     "client/server desync" line and scores 0, not flagged (empty Sports runs score 0, 15 Nov 2026);
+ *  5. golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): every hole in the proven hole bank is rolled at every level
+ *     (Easy's slow sails, Normal and Hard, Expert's fast ones), with putts and lofted chips (chips over water, sand
+ *     and low walls, chips into water and sand, chips off the fence and through the windmills), rolls over the
+ *     swells of the last two holes, the composed witnesses' 200-point routes and time-out cuts, all identical phone
+ *     to server and Bun to Chromium.
  *
  *   bun scripts/minigolf-sync-check.ts
  */
@@ -25,6 +30,9 @@ import { decodeSportsRun, ilen } from "../src/lib/arcade/sportsKit";
 import { replayMinigolfRun } from "../src/lib/duel/minigolf";
 import { MINIGOLF_BANK } from "../src/lib/duel/minigolfBank.server";
 import { MINIGOLF_BANK_V2 } from "../src/lib/duel/minigolfBankV2.server";
+import { MINIGOLF_HOLES_BANK } from "../src/lib/duel/minigolfHolesBank.server";
+import { MG_LEVEL_NAMES, type MgLevel } from "../src/lib/arcade/minigolf";
+import { playCourseV3, WITNESS_FILE, type WitnessFile } from "./minigolf-holes-bank";
 import { phoneRuns, type PhoneRun, type ShotPlan, type SyncCase } from "./minigolf-sync/phone";
 
 const failures: string[] = [];
@@ -64,6 +72,28 @@ MINIGOLF_BANK.forEach((e, i) => {
   if (w && i % 2 === 0) add({ seed: e.seed, pars: [...e.pars], rev: 1, plan: "witness", rng: 0, cut: 0, events: decodeSportsRun(w, 7200).events });
 });
 
+// golfRev 3: course j holds each slot's hole j (so every bank hole is rolled), at each level in turn; every plan,
+// chips included, and the composed witnesses on every level.
+const witness3 = JSON.parse(readFileSync(WITNESS_FILE, "utf8")) as WitnessFile;
+const SLOT_MAX = Math.max(...MINIGOLF_HOLES_BANK.map((slot) => slot.length));
+const PLANS3: ShotPlan[] = ["random", "aim", "chip", "bank", "slow", "chip"];
+const v3Pars = (holes: number[], level: MgLevel) => holes.map((id, i) => MINIGOLF_HOLES_BANK[i]!.find((e) => e.id === id)!.pars[MG_LEVEL_NAMES.indexOf(level)]!);
+for (let j = 0; j < SLOT_MAX; j++) {
+  const holes = MINIGOLF_HOLES_BANK.map((slot) => slot[j % slot.length]!.id);
+  const level = MG_LEVEL_NAMES[j % 4]!;
+  const pars = v3Pars(holes, level);
+  const seed = 9000 + j;
+  add({ seed, pars, rev: 3, plan: PLANS3[j % PLANS3.length]!, rng: 0x3a11 + j, cut: 0, holes, level });
+  add({ seed, pars, rev: 3, plan: PLANS3[(j + 3) % PLANS3.length]!, rng: 0x3b22 + j, cut: j % 3 === 0 ? cutOf(j) % 5000 : 0, holes, level });
+  if (j % 3 === 0) add({ seed, pars, rev: 3, plan: "ace", rng: 0x3c33 + j, cut: 0, holes, level });
+  if (j % 2 === 0)
+    for (const lv of MG_LEVEL_NAMES) {
+      const pl = v3Pars(holes, lv);
+      const events = playCourseV3(holes, pl, lv, witness3).events;
+      add({ seed, pars: pl, rev: 3, plan: "witness", rng: 0, cut: 0, events, holes, level: lv });
+    }
+}
+
 /* ------------------------------------------------- 1. the phone in Bun vs the server */
 
 const started = Date.now();
@@ -73,7 +103,7 @@ let agreed = 0;
 for (let i = 0; i < cases.length; i++) {
   const c = cases[i]!;
   const p = bun[i]!;
-  const r = replayMinigolfRun(c.seed, p.answer, c.pars, c.rev);
+  const r = replayMinigolfRun(c.seed, p.answer, c.pars, c.rev, { holes: c.holes, level: c.level });
   const serverSums = r.checkpoints.map((cp) => cp.checksum >>> 0);
   const same =
     !r.flagged &&
@@ -106,16 +136,25 @@ interface Seen {
   slow: number;
   witness: number;
   cut: number;
+  /** golfRev 3: chips flown, chips over water and over sand, chips landing in water and stopped in sand, chips meeting the fence or a sail, rolls over swells. */
+  chip: number;
+  chipOverWater: number;
+  chipOverSand: number;
+  chipWet: number;
+  chipSand: number;
+  chipBank: number;
+  swell: number;
 }
-const seen: Seen = { holes: new Set(), bank: 0, slope: 0, hill: 0, sand: 0, tunnel: 0, mill: 0, water: 0, dropped: 0, slow: 0, witness: 0, cut: 0 };
+const seen: Seen = { holes: new Set(), bank: 0, slope: 0, hill: 0, sand: 0, tunnel: 0, mill: 0, water: 0, dropped: 0, slow: 0, witness: 0, cut: 0, chip: 0, chipOverWater: 0, chipOverSand: 0, chipWet: 0, chipSand: 0, chipBank: 0, swell: 0 };
+const seenIds = new Set<string>();
 
 /** Steps the server's game over a run and notes what its rolls went through (observation only). */
 function observe(c: SyncCase, p: PhoneRun) {
-  const game = minigolfGameFor(c.pars, c.rev);
+  const game = minigolfGameFor(c.pars, c.rev, { holes: c.holes, level: c.level });
   const events = new Map<number, ArcadeInputEvent>(decodeInputEvents(p.answer.split("|")[2] ?? "").map((e) => [e.t, e]));
   let s: MinigolfState = game.init(c.seed);
   let slowPutt = false;
-  const flags = { bank: false, slope: false, hill: false, sand: false, tunnel: false, mill: false, water: false, one: false, slow: false };
+  const flags = { bank: false, slope: false, hill: false, sand: false, tunnel: false, mill: false, water: false, one: false, slow: false, chip: false, chipOverWater: false, chipOverSand: false, chipWet: false, chipSand: false, chipBank: false, swell: false };
   while (!game.isOver(s) && s.tick < p.tick) {
     const prev = s;
     const ev = events.get(s.tick + 1) ?? null;
@@ -124,6 +163,19 @@ function observe(c: SyncCase, p: PhoneRun) {
     if (s.phase === MG_ROLL || prev.phase === MG_ROLL) {
       const h = s.course[prev.hole]!;
       seen.holes.add(`rev${c.rev}:${prev.hole}`);
+      if (c.rev >= 3) {
+        seenIds.add(`${h.holeId}:${c.level}`);
+        const flying = prev.air > 0;
+        if (flying) {
+          flags.chip = true;
+          if (h.ponds.some((pd) => ilen(s.x - pd.x, s.y - pd.y) < pd.r - fp(2))) flags.chipOverWater = true;
+          if ((h.sands ?? []).some((sd) => ilen(s.x - sd.x, s.y - sd.y) < sd.r) && s.air > 0) flags.chipOverSand = true;
+          if (s.bounces > prev.bounces) flags.chipBank = true;
+          if (s.waters > prev.waters) flags.chipWet = true;
+          if (s.sandStops > prev.sandStops) flags.chipSand = true;
+        }
+        if (!flying && (h.swells ?? []).some((w) => ilen(s.x - w.x, s.y - w.y) < w.r)) flags.swell = true;
+      }
       if (s.bounces > prev.bounces) flags.bank = true;
       if (s.waters > prev.waters) flags.water = true;
       if (s.tunnels > prev.tunnels) flags.tunnel = true;
@@ -148,11 +200,18 @@ function observe(c: SyncCase, p: PhoneRun) {
   if (flags.water) seen.water++;
   if (flags.one) seen.dropped++;
   if (flags.slow) seen.slow++;
+  for (const k of ["chip", "chipOverWater", "chipOverSand", "chipWet", "chipSand", "chipBank", "swell"] as const) if (flags[k]) seen[k]++;
   if (c.plan === "witness") seen.witness++;
   if (c.cut > 0) seen.cut++;
 }
 cases.forEach((c, i) => observe(c, bun[i]!));
-for (const rev of [1, 2]) for (let h = 0; h < MINIGOLF_HOLES; h++) ok(seen.holes.has(`rev${rev}:${h}`), `a roll on golfRev ${rev}'s hole ${h + 1}`);
+for (const rev of [1, 2, 3]) for (let h = 0; h < MINIGOLF_HOLES; h++) ok(seen.holes.has(`rev${rev}:${h}`), `a roll on golfRev ${rev}'s hole ${h + 1}`);
+// golfRev 3: every bank hole rolled, and at each level every hole with a windmill (its sails turn at the level's speed).
+{
+  const missing = MINIGOLF_HOLES_BANK.flat().filter((e) => !MG_LEVEL_NAMES.some((lv) => seenIds.has(`${e.id}:${lv}`)));
+  ok(missing.length === 0, `golfRev 3: every bank hole rolled (${MINIGOLF_HOLES_BANK.flat().length - missing.length} of ${MINIGOLF_HOLES_BANK.flat().length}; missing ${missing.slice(0, 5).map((e) => e.id).join(", ")})`);
+  for (const lv of MG_LEVEL_NAMES) ok([...seenIds].some((k) => k.endsWith(`:${lv}`)), `golfRev 3: rolls at ${lv}`);
+}
 const want: [keyof Omit<Seen, "holes">, number, string][] = [
   ["bank", 100, "bank shots (a rail, log, rock or planter hit)"],
   ["slope", 20, "rolls over a slope"],
@@ -165,6 +224,13 @@ const want: [keyof Omit<Seen, "holes">, number, string][] = [
   ["slow", 50, "slow rolls"],
   ["witness", 60, "witness routes"],
   ["cut", 60, "time-out cuts"],
+  ["chip", 100, "golfRev 3 chips flown"],
+  ["chipOverWater", 20, "chips carried over water"],
+  ["chipOverSand", 10, "chips carried over sand"],
+  ["chipWet", 10, "chips landing in water"],
+  ["chipSand", 5, "chips stopped dead in sand"],
+  ["chipBank", 20, "chips off the fence, a gate or a sail"],
+  ["swell", 60, "rolls over the last holes' swells"],
 ];
 for (const [key, min, what] of want) ok(seen[key] >= min, `coverage: ${seen[key]} runs with ${what} (want ${min}+)`);
 
@@ -200,7 +266,7 @@ else {
     let replayed = 0;
     v8.forEach((r, i) => {
       const c = cases[i]!;
-      const s = replayMinigolfRun(c.seed, r.answer, c.pars, c.rev);
+      const s = replayMinigolfRun(c.seed, r.answer, c.pars, c.rev, { holes: c.holes, level: c.level });
       if (!s.flagged && s.desyncTick === null && s.score === r.score) replayed++;
     });
     ok(replayed === cases.length, `every Chromium run replays identically on the server (${replayed} of ${cases.length})`);
@@ -245,7 +311,7 @@ else {
   };
   let tampered: ReturnType<typeof replayMinigolfRun>;
   try {
-    tampered = replayMinigolfRun(c.seed, parts.join("|"), c.pars, c.rev);
+    tampered = replayMinigolfRun(c.seed, parts.join("|"), c.pars, c.rev, { holes: c.holes, level: c.level });
   } finally {
     console.error = original;
   }
@@ -262,7 +328,7 @@ console.log(
   `PASS: minigolf-sync: ${cases.length} runs (${Object.entries(seen)
     .filter(([k]) => k !== "holes")
     .map(([k, v]) => `${k} ${v}`)
-    .join(", ")}; every hole of both revisions) recorded as the phone records them replay identically on the server, ` +
+    .join(", ")}; every hole of golfRev 1 and 2, every golfRev 3 bank hole at every level) recorded as the phone records them replay identically on the server, ` +
     `checkpoint for checkpoint; Chromium (V8) and Bun record the same answers byte for byte; an answer with no run in it ` +
     `logs no desync and scores 0, not flagged (${secs} s).`,
 );

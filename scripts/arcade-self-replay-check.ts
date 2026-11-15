@@ -16,6 +16,8 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
+import { MINIGOLF_HOLES_BANK } from "../src/lib/duel/minigolfHolesBank.server";
+import { MG_LEVEL_NAMES } from "../src/lib/arcade/minigolf";
 import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
@@ -1025,7 +1027,28 @@ const GAMES: Game[] = [
   // Minefield minesRev 2 (13 Nov 2026: a Logic game with 20 mines), appended so every earlier entry keeps its stream.
   { key: "minesweeper/v2", game: minesweeperGameFor(MINES_REV_LOGIC), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_LOGIC) },  // Thirteen pyramidRev 3 (15 Nov 2026: a dead end waits for Undo), appended so every earlier entry keeps its stream.
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
+  // Crazy Golf golfRev 3 (15 Nov 2026, the overhaul: the proven hole bank, chips, swells, levels), appended so every
+  // earlier entry keeps its stream: seed n is course n (each slot's hole by a spread of n) at level n mod 4. The random
+  // events include chips (kind 2).
+  {
+    key: "minigolf/v3",
+    game: minigolfGameFor(...mgV3(0)),
+    gameFor: (seed: number) => minigolfGameFor(...mgV3(seed)),
+    seedFor: (n: number) => n,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, ...mgV3(seed)),
+  },
 ];
+
+/** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */
+function mgV3(seed: number): [number[], number, { holes: number[]; level: (typeof MG_LEVEL_NAMES)[number] }] {
+  const level = MG_LEVEL_NAMES[Math.abs(seed) % 4]!;
+  const picks = MINIGOLF_HOLES_BANK.map((slot, i) => slot[(Math.abs(seed) * 7 + i * 31) % slot.length]!);
+  return [picks.map((e) => e.pars[MG_LEVEL_NAMES.indexOf(level)]!), 3, { holes: picks.map((e) => e.id), level }];
+}
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
 function candidate(ranges: readonly InputRange[], t: number): ArcadeInputEvent {

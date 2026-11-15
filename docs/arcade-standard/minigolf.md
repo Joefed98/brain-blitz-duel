@@ -1,7 +1,81 @@
-# Minigolf, shown as Crazy Golf (`minigolf`, `golfRev` 2; `golfRev` 1 replays)
+# Minigolf, shown as Crazy Golf (`minigolf`, `golfRev` 3; `golfRev` 1 and 2 replay)
 
-Rooms deal **golfRev 2** (crazy golf, 31 Oct 2026; the section "golfRev 2" below). Everything from "Play" to "Proofs"
-describes golfRev 1, which still replays and scores exactly as before.
+Rooms deal **golfRev 3** (the Crazy Golf overhaul, 15 Nov 2026; the section "golfRev 3" at the top). golfRev 2 (crazy
+golf, 31 Oct 2026; its section below) and golfRev 1 (everything from "Play" to "Proofs") still replay and score
+exactly as before.
+
+## golfRev 3: the overhaul (15 Nov 2026)
+
+The phase 2 step 4 overhaul (docs/design/game-reviews/sports.md, Crazy Golf). Gated on the stamp and on the puzzle's
+`holes`; golfRev 1 and 2 are untouched (minigolf-check and minigolf-sync-check pass unchanged on them).
+
+**Holes from a bank.** `src/lib/arcade/minigolfHolesV3.ts` holds twenty hole templates, four for each of the course's
+five slots (an opening lane, a dogleg family, a tricky middle, then two holes on uneven ground), and every variant of
+each: which of three tees, which of three cups, mirrored or not (18 a template, 360 in all). A hole is one integer id
+(`template × 100 + variant`) built from the id and the level alone, never the room seed, so a hole proven once is the
+same in any course. `scripts/minigolf-holes-bank.ts` searches every hole with the shot oracle (`bestRouteV3` in
+`scripts/minigolf-oracle.ts`: putts and chips on the sim's clock) at each windmill speed the levels use, and keeps a
+hole whose route has par (strokes + 1) from 2 to 5 at every speed: **all 360 holes are kept** (72 a slot). The bank
+(`src/lib/duel/minigolfHolesBank.server.ts`) lists them by slot with their pars per level; the witness routes are in
+`scripts/fixtures/minigolf-holes-witness.json`. The deal (`generateMinigolf` in `sports.server.ts`) draws one hole
+from each slot and stores `holes`, `pars` (at the level) and `level` (only off Normal), so a room's players all play
+the same five; about 72⁵ ≈ 1.9 billion courses. Any five composed (each first shot waiting for the sails' repeat to line
+up with the tick its route was proved from, `playCourseV3`) score exactly 200 through the server's replay at every
+level, all five under par (crazy-golf-v3-check: 600 courses).
+
+**Bunkers and ponds** are unions of overlapping circles (natural kidney and drop shapes, the same physics as before),
+bigger than golfRev 2's; drawn raked inside a turf lip, and water with ripples inside a dressed stone edge.
+
+**The chip** (input kind 2, `MG_INPUT_CHIP`; chosen on the Putt | Chip switch under the course, or C on a keyboard):
+the same pull-back, but the ball is lofted. It carries `MG_CHIP_MIN_PX`–`MG_CHIP_MAX_PX` (40–180 px) by power over
+`MG_CHIP_MIN_T`–`MG_CHIP_MAX_T` (20–42) ticks (`mgChipLaunch`). In the air (`mgRollTickV3`) it meets only the tall
+things: the fence, the castle gates and windmill houses (and their sails), the banked curved walls and the planters; it
+flies over water, sand, low timber walls, boulders, hills, ramps, tunnels and the cup. On its last air tick it lands:
+keeping `MG_CHIP_LAND_KEEP`/256 (80/256) of its speed and rolling on, stopped dead in a bunker, or in the water (a
+stroke added, the ball back where it was played, as a putt). Integer throughout, one function for the sim and every
+search, so phone and server step the same flight (minigolf-sync-check).
+
+**Uneven ground** (the last two slots): swells, broad mounds (k > 0) and hollows (k < 0) pushing a rolling ball
+4·|k|·d(r − d)/r² units a tick² away from or towards their centre (nothing at the centre or the rim; |k| 9–12). A
+resting ball stays put; a rolling one bends (a straight roll across the Rolling green drifts about 9 px). On the
+ground only: a chip flies over them.
+
+**The look** (display only): the slopes, hills and swells read through light and shadow alone (no arrows): a height
+field from the sim's own pieces (`groundHeight`, `src/lib/arcade/minigolfV3Ground.renderer.ts`) lit from the top left,
+and the mowing stripes laid on the ground so they bend over it. Captain Joulz stands beside the ball (top-down sprites
+from the approved 3D Captain, `docs/design/cosmetics-redraws/blender/captain/golf_sprites.py`: addressing it while
+aiming, following through after a putt or a chip), always to the side of the line. The HUD's chips are 14 px.
+
+**Moments** (display, sound, haptics): aiming stretches a rubber band from the ball to the finger with a soft tone rising
+with power; a putt's "tock" and a faint speed trail; a chip's "click", the ball lifted over its shadow and a ring where
+it lands; a white flash on a rail; a ball over the cup's lip rattles and wobbles; holed, the ball drops as the flag
+lifts, with confetti on a birdie or better; water a splash ring and a "plip"; sand a puff. Haptics on the strike
+(tick), a hole (success) and water (impact). New recordings: `docs/sound-cues/crazy-golf-elevenlabs.md`.
+
+**Levels** (`MG_LEVELS`; the puzzle's `level`, Normal when absent; rated play and the Daily deal Normal). All 90 s.
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Stroke limit | par + 4 | par + 3 | par + 3 | par + 2 |
+| Windmill sails | slower (128) | 256 | 256 | faster (512) |
+| Aim preview (display) | the line to its first bounce | the full line | 60 % | 35 % |
+| Speed full by | 60 s | 53 s | 50 s | 45 s |
+
+Each level's pars are proven at its own sail speed. The levels are ready for the difficulty framework (#432): its
+`GAME_LEVELS` entry is `minigolf: { levels: { easy: { settings: {} }, hard: { settings: {} }, expert: { settings: {} } } }`
+(the deal reads `context.level`; `generateMinigolf` already takes it).
+
+**Parts** (200, as golfRev 2): Holes 120, Par 40 (falling to 0 at the level's stroke limit), Under par 20, Speed 20
+(full by the level's time, 0 at 90 s).
+
+MEASURED_V3
+
+**Proofs.** crazy-golf-v3-check (the catalogue, the bank, 600 composed courses at 200, the deal, the chip, the swells, the
+levels, the reveal's trace; `CHECKS_FULL=1` also rebuilds the bank byte for byte, about 20 min), minigolf-sync-check
+(every bank hole at every level rolled phone = server and Bun = Chromium, chips and swells included),
+arcade-standard-check's entry and arcade-self-replay-check's `minigolf/v3`.
+
+
 
 The Sports group (30 Oct 2026). Five holes in 120 s on a night garden terrace, top down. Pull back from the ball to aim
 and set the power (a dotted aim line and a power pill); let go to putt. Sim `src/lib/arcade/minigolf.ts`, art
