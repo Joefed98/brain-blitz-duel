@@ -535,7 +535,9 @@ function playScreen() {
   const column = document.querySelector("[data-game-column]");
   const pad = column ? Number.parseFloat(getComputedStyle(column).paddingBottom) : 0;
   const header = document.querySelector("[data-arcade-header]");
-  const timer = header?.querySelector("[role='timer']") ?? null;
+  // The arena (15 Nov 2026, lib/gameFrame/arena.ts): no header; the one timer is in the side panel.
+  const arenaPanelEl = document.querySelector("[data-arena-panel], .dk-room-panel");
+  const timer = (header ?? arenaPanelEl)?.querySelector("[role='timer']") ?? null;
   const texts = header ? [...header.querySelectorAll("*")].filter((el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim())) : [];
   // The score block's label ("Score" / "Best") is the only header text allowed under 12 px (Polish 2: 11 px).
   const scoreLabels = texts.filter((el) => el.matches(".game-frame-score-label"));
@@ -551,7 +553,10 @@ function playScreen() {
   const sceneEl = shell?.querySelector(":scope > [data-arena-scene]") ?? null;
   if (sceneEl) clips.push({ what: "scene canvas", bottom: sceneEl.getBoundingClientRect().bottom, clip: clipBottom(sceneEl) });
   for (const b of below) clips.push({ what: `control "${b.getAttribute("aria-label") ?? b.getAttribute("data-game-controls") ?? (b.textContent ?? "").trim().slice(0, 24)}"`, bottom: b.getBoundingClientRect().bottom, clip: clipBottom(b) });
+  const arenaBox = arenaPanelEl ? arenaPanelEl.getBoundingClientRect() : null;
   return {
+    arenaPanel: arenaBox ? { x: arenaBox.x, y: arenaBox.y, w: arenaBox.width, h: arenaBox.height } : null,
+    timers: document.querySelectorAll("[role='timer']").length,
     clips,
     scrolled: doc.scrollTop,
     standalone: (navigator as Navigator & { standalone?: boolean }).standalone === true,
@@ -624,13 +629,23 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     }
     const { slot, arena } = m;
     if (m.scroll > 0) problems.push(`${at}: page scrolls by ${m.scroll} px`);
+    // Changed with Joe's approval, 15 Nov 2026 (sideways tablets get the arena): the 1280×800 touch laptop is the arena
+    // (lib/gameFrame/arena.ts): no header, the one timer in the side panel, the box from the top and left of the panel.
+    const inArena = Boolean(m.arenaPanel) && w >= 1024 && w > h;
+    if (inArena) {
+      if (m.header) problems.push(`${at}: a header in the arena (the panel carries it)`);
+      if (!m.timer || m.timers !== 1 || m.timer.x < m.arenaPanel!.x - 0.5) problems.push(`${at}: the arena's timer is not the one timer, in the panel`);
+    } else {
     if (!m.header || Math.abs(m.header.y - HEADER_TOP_PX) > 0.5 || Math.abs(m.header.h - HEADER_ROW_PX) > 0.5) problems.push(`${at}: header ${m.header ? `${m.header.h.toFixed(1)} px tall at ${m.header.y.toFixed(1)}` : "missing"}, want one ${HEADER_ROW_PX} px row ${HEADER_TOP_PX} px down`);
     if (!m.timer || Math.abs(m.timer.x + m.timer.w / 2 - w / 2) > 1) problems.push(`${at}: header timer not centred`);
+    }
     if (!(m.smallestText >= HEADER_MIN_TEXT_PX)) problems.push(`${at}: header text ${m.smallestText} px, want ${HEADER_MIN_TEXT_PX} px or more`);
     if (m.scoreLabel !== null && !(m.scoreLabel >= SCORE_LABEL_MIN_PX)) problems.push(`${at}: the score label ${m.scoreLabel} px, want ${SCORE_LABEL_MIN_PX} px or more`);
-    const boxTop = HEADER_TOP_PX + HEADER_ROW_PX + (ABOVE_PX[game] ?? 0);
-    if (Math.abs(slot.y - boxTop) > 0.5) problems.push(`${at}: box starts at ${slot.y.toFixed(1)} px, want ${boxTop.toFixed(1)} (4 px under the header${ABOVE_PX[game] ? " and the game's HUD" : ""})`);
-    if (Math.abs(slot.x) > 0.5 || Math.abs(slot.w - w) > 0.5) problems.push(`${at}: box ${slot.x.toFixed(1)}..${(slot.x + slot.w).toFixed(1)} px, want the full ${w} px width`);
+    const boxTop = (inArena ? 0 : HEADER_TOP_PX + HEADER_ROW_PX) + (ABOVE_PX[game] ?? 0);
+    if (Math.abs(slot.y - boxTop) > 0.5) problems.push(`${at}: box starts at ${slot.y.toFixed(1)} px, want ${boxTop.toFixed(1)} (${inArena ? "the top, no header in the arena" : "4 px under the header"}${ABOVE_PX[game] ? " and the game's HUD" : ""})`);
+    if (inArena) {
+      if (slot.x < -0.5 || slot.x + slot.w > m.arenaPanel!.x + 0.5) problems.push(`${at}: box ${slot.x.toFixed(1)}..${(slot.x + slot.w).toFixed(1)} px runs under the arena panel (from ${m.arenaPanel!.x.toFixed(1)})`);
+    } else if (Math.abs(slot.x) > 0.5 || Math.abs(slot.w - w) > 0.5) problems.push(`${at}: box ${slot.x.toFixed(1)}..${(slot.x + slot.w).toFixed(1)} px, want the full ${w} px width`);
     if (engine && m.touch.some((t) => t !== "none")) problems.push(`${at}: arena canvas / play area touch-action ${m.touch.join(" / ")}, want none`);
     if (Math.abs(arena.h - (arena.w * spec.height) / spec.width) > 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the ${spec.width}:${spec.height} world aspect`);
     if (arena.w > slot.w + 0.5 || arena.h > slot.h + 0.5) problems.push(`${at}: arena overflows its slot`);
@@ -666,7 +681,8 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
       if (Math.min(c.w, c.h) < 44) problems.push(`${at}: control ${c.w.toFixed(0)}x${c.h.toFixed(0)} under 44 px`);
       if (c.y < slot.y + slot.h - 0.5 || c.y + c.h > h + 0.5) problems.push(`${at}: control not between the arena and the bottom edge`);
     }
-    if (!centred) tops.push(arena.y);
+    // The arena has no header above its world, so only the phone sizes share one arena top.
+    if (!centred && !inArena) tops.push(arena.y);
   }
   if (tops.length && Math.max(...tops) - Math.min(...tops) > 0.5) problems.push(`layout: arena top moves between sizes (${tops.map((t) => t.toFixed(1)).join(", ")})`);
   // A 34 px home bar (CDP safe-area emulation) must not shrink the arena or move the column's end;

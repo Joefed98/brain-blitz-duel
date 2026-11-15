@@ -2587,6 +2587,19 @@ outside the repo.
   `public/tournaments-art/` (`TournamentArt`, `KIND_ART`). Styles `src/polish-layout/tournaments-pages.css`. Screens:
   `scripts/screens/tournaments.ts` (`TOURNAMENT_PAGES_SCREENS`, dark and light at every size; harness modes
   `tournament`, `tournamentrules`, `dailyarchive`); theme-check in sixths and no-wrap-check in elevenths.
+- **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
+  `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
+  `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
+  nearMiss, win, newBest, stars; transform and opacity only, shared sounds through playSound, haptics only through its
+  one call site; reduced / lite / calm variants), React pieces in `src/components/fx/GameFx.tsx`; **family sessions use
+  these, never a second kit**; fx-check. *Header styles*: `GAME_HEADER_STYLE` in `src/config/gameFrameConfig.ts` (one
+  line; `mockup` default, `ring`, `digital`, `chip`; every style keeps the 60 px header), `/dev-design` shows them.
+  *The arena* (`src/lib/gameFrame/arena.ts`): a computer's or a sideways tablet's (≥ 1024 px) live round has no header;
+  its timer, score, best, goal, menu and Controls tab are portalled once into the side panel (`ArenaGamePanel`; the top
+  of the room panel in a room); the identical world at the largest uniform scale (arena-world-check). *Controls*:
+  `src/lib/gameControls.ts` (schemes per game, chosen from the game menu, the Controls tab and Settings; input mapping
+  only; game-controls-check). The reveal's verdict row is the shared result card (`reveal-result`) with practice's
+  stars and new best (`RevealPayoff`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
