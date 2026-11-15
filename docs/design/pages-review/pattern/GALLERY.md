@@ -12,7 +12,16 @@ clips of the hero effects. Images are in this folder.
 |---|---|
 | <img src="../../game-reviews/img/pattern/unblock-1-start.webp" width="180"> | <img src="unblock-after-intro.webp" width="180"> |
 | <img src="../../game-reviews/img/pattern/unblock-2-mid.webp" width="180"> | <img src="unblock-after-play.webp" width="180"> |
-| <img src="../../game-reviews/img/pattern/unblock-3-end.webp" width="180"> | <img src="unblock-after-reveal-solution.webp" width="180"> <img src="unblock-after-reveal-yours.webp" width="180"> |
+
+**The answer reveal** (390 × 844, the same deal and answers on main and the branch: a solve with one slide undone, and
+an unfinished third of the line):
+
+| | Before (main) | After |
+|---|---|---|
+| Solved, Solution | <img src="unblock-reveal-before-solved.webp" width="180"> | <img src="unblock-reveal-after-solved.webp" width="180"> |
+| Solved, Yours | <img src="unblock-reveal-before-solved-yours.webp" width="180"> | <img src="unblock-reveal-after-solved-yours.webp" width="180"> |
+| Unfinished, Solution | <img src="unblock-reveal-before-unfinished.webp" width="180"> (no Yours side) | <img src="unblock-reveal-after-unfinished.webp" width="180"> |
+| Unfinished, Yours | — | <img src="unblock-reveal-after-unfinished-yours.webp" width="180"> |
 
 - **Look (A):** the cars and the lot are Blender renders (`docs/design/game-art/pattern/source/unblock.py`,
   `public/pattern-art/unblock/`): glossy painted toy cars in six muted bodies (blue, teal, red, violet, green, silver),
@@ -22,8 +31,12 @@ clips of the hero effects. Images are in this folder.
 - **Controls:** Undo and Reset in champagne gold on navy (`--jz-gold`, `--jz-surface-2`).
 - **Undo gives the move back (unblockRev 4):** Moves, the par bonus and the stored figure count the slides left on the
   board; the help says so. Older stamps grade as before.
-- **Reveal:** under Solution only "Par n" shows; "your moves" is on Yours, which shows the player's real final board,
-  unfinished too (the after shot: one slide played, then the clock ran out).
+- **Reveal:** the shortest solution large and playing back, with the par route under it as a strip of move chips (each
+  the car's own sprite, its way and its bays, the move just played lit gold); Yours is the player's real final board,
+  unfinished too, with the cars still in the gold car's lane outlined red and counted ("2 cars still in the gold car's
+  way"); the key numbers as pills from the stored grade: Par under both, "Your moves" and "Time left" under Yours only.
+  On main the solve with an undone slide read 17 moves (199); on unblockRev 4 it is 16 (200).
+- **Words:** the help, the intro, the frame's goal line and the two challenges say "car", not "block".
 - **Sound:** a short / long scrape by distance (`unblock.slide`, `unblock.slideLong`), a knock when a drag hits the car
   in the way (`unblock.blocked`), a glint when the gold car's lane opens (`unblock.laneClear`); the drive-out is kept.
 <!-- gridlock:end -->

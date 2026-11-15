@@ -129,3 +129,56 @@
 [data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action][data-puzzle-icon]:disabled::before {
   -webkit-text-fill-color: var(--jz-text-3);
 }
+
+/* ---- The answer reveal (the Pattern overhaul, 15 Nov 2026) ---------------------------------------------- */
+.unblock-reveal-label { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--jz-text-2); }
+.unblock-reveal-note { font-size: 14px; line-height: 1.35; color: var(--jz-text-2); text-align: center; }
+/* An unfinished board's blockers: a red outline on each car still in the gold car's lane. */
+.unblock-blocker {
+  z-index: 3;
+  border-radius: 14%;
+  box-shadow: inset 0 0 0 3px var(--destructive), 0 0 0 1px var(--jz-bg);
+}
+/* The par route: one chip a move (the car's sprite, the way and the bays), the move just played lit gold. */
+.unblock-route {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 380px;
+  width: 100%;
+  flex-shrink: 0;
+}
+.unblock-route-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 26px;
+  padding: 0 6px 0 4px;
+  border-radius: 7px;
+  background: var(--jz-surface-2);
+  box-shadow: inset 0 0 0 1px var(--jz-surface-3);
+  color: var(--jz-text-2);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.unblock-route-chip[data-done] { color: var(--foreground); }
+.unblock-route-chip[data-active] { box-shadow: inset 0 0 0 2px var(--jz-gold); color: var(--jz-gold-ink); }
+.unblock-route-car { display: block; pointer-events: none; }
+.unblock-route-car--h { width: 22px; height: 11px; }
+.unblock-route-car--v { width: 9px; height: 18px; }
+.unblock-route-move { line-height: 1; }
+/* The key numbers: pills, the value bold. */
+.unblock-reveal-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; flex-shrink: 0; }
+.unblock-key {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--jz-surface-2);
+  font-size: 14px;
+  color: var(--jz-text-2);
+}
+.unblock-key::first-letter { text-transform: uppercase; }
+.unblock-key-value { font-weight: 800; color: var(--foreground); font-variant-numeric: tabular-nums; }
+.unblock-reveal-pair > div > .unblock-reveal-note { flex-shrink: 0; }
