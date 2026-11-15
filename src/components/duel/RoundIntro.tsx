@@ -1,4 +1,14 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/catalogue";
+import { preloadStrategyArt } from "@/lib/arcade/strategyArt";
+
+/** Which rendered Strategy images each game draws (public/strategy/; strategy_art.py). */
+const STRATEGY_ART_PREFIXES: Partial<Record<string, readonly string[]>> = {
+  tilt: ["tilt-", "marble-gloss"],
+  matchup: ["gem-"],
+  bubble: ["bubble-"],
+  inkbridge: ["inkbridge-"],
+  balltrack: ["bt-marble-", "marble-gloss"],
+};
 import { useGameDef } from "@/lib/duel/gameLoader";
 import { GameIntroExample } from "@/components/duel/GameParts";
 import { levelStarsOf } from "@/lib/practice/progress";
@@ -216,6 +226,9 @@ export function RoundIntro({
   // demo (which waits for them) and the round itself draw the art from frame one.
   useEffect(() => {
     void preloadGameArt(type);
+    // The Strategy overhaul's rendered materials (src/lib/arcade/strategyArt.ts): loaded during the intro.
+    const strategyArt = STRATEGY_ART_PREFIXES[type];
+    if (strategyArt) preloadStrategyArt(strategyArt);
     // The game's own sounds (speed fix 5): decoded during the intro, so they play from the round's first moment.
     loadGameSounds(type);
     // Letterfall's dictionary: fetched as its intro begins, never with the main bundle.

@@ -4,6 +4,7 @@
  * half-size cs/4) and reads state without writing it.
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
+import { strategyArtVersion, strategyImage } from "./strategyArt";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
@@ -655,15 +656,15 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     // Rev 2: each marble that was still rolling when the maze ended (the last one home) sinks into its own cup.
     const u = finish.age / 400;
     ctx.globalAlpha = 1 - u;
-    if (!prev2.aHome) toyMarble(ctx, prev2.blue.x, prev2.blue.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
-    if (prev2.amber && !prev2.bHome) toyMarble(ctx, prev2.amber.x, prev2.amber.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_AMBER, -rot, 3);
+    if (!prev2.aHome) tiltMarbleArt(ctx, prev2.blue.x, prev2.blue.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
+    if (prev2.amber && !prev2.bHome) tiltMarbleArt(ctx, prev2.amber.x, prev2.amber.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_AMBER, -rot, 3);
     ctx.globalAlpha = 1;
   }
   const prevCup = state.rev ? undefined : (finish.before as Cup | undefined);
   if (prevCup && finish.age < 400 && !reducedMotion()) {
     const u = finish.age / 400;
     ctx.globalAlpha = 1 - u;
-    toyMarble(ctx, prevCup.x, prevCup.y, prevCup.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
+    tiltMarbleArt(ctx, prevCup.x, prevCup.y, prevCup.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
     ctx.globalAlpha = 1;
   }
   if (state.rev) {
@@ -674,19 +675,19 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
       const at = state.bHome ? cup : { x: state.b.x / FP - o, y: state.b.y / FP - o };
       if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES)) {
         if (!state.bHome) marbleShadow(ctx, at.x, at.y, mr, rot);
-        toyMarble(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
+        tiltMarbleArt(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
       }
     }
     if (state.aHome) {
       const cup = cupOf(m, o, m.exit, m.exitDir, true);
-      toyMarble(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
+      tiltMarbleArt(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
     }
   }
   if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES) && !state.aHome) {
     // Art pilot (Toybox): marble sprite fills the marble's collision circle; code art when absent.
     const mx = state.x / FP - o, my = state.y / FP - o, mr = m.br / FP;
     marbleShadow(ctx, mx, my, mr, rot);
-    if (!drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) toyMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
+    if (!tiltRenderedMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot) && !drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) tiltMarbleArt(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
     marbleGloss(ctx, mx, my, mr, rot);
     // The marbles roll through each other, and pressed into the same corner they sit exactly on top of
     // each other (and then move as one). The blue one is drawn last, so it used to hide the amber one
@@ -700,7 +701,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
         ctx.arc(bx, by, mr, -Math.PI / 2, Math.PI / 2);
         ctx.closePath();
         ctx.clip();
-        toyMarble(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
+        tiltMarbleArt(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
         ctx.restore();
       }
     }
@@ -888,7 +889,7 @@ function drawIce(ctx: CanvasRenderingContext2D, m: Maze, o: number): void {
 const mazeSpritesX = new WeakMap<Maze, { k: number; sprite: ArtCanvas | null }>();
 function mazeSpriteX(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean, big = false): ArtCanvas | null {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
-  const k = Math.round(Math.max(0.25, Math.min(2.5, t ? Math.hypot(t.a, t.b) : 1)) * 100) / 100 + (lite ? 1000 : 0) + (big ? 10000 : 0);
+  const k = Math.round(Math.max(0.25, Math.min(2.5, t ? Math.hypot(t.a, t.b) : 1)) * 100) / 100 + (lite ? 1000 : 0) + (big ? 10000 + 100000 * strategyArtVersion() : 0);
   const old = mazeSpritesX.get(m);
   if (old && old.k === k) return old.sprite;
   const R = discRadiusX(m, big);
@@ -1162,7 +1163,11 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     // The lamp's gloss over the disc, screen-fixed.
     ctx.save();
     ctx.rotate(-rot);
-    blitX(ctx, `gloss:${R}`, R + 1, (c) => {
+    // The Strategy overhaul (stage 2): on tiltRev 12 the lacquer's rendered reflection of the lamp (a small, soft spot
+    // upper left, screen-fixed; strategy_art.py), in place of the code gloss once it has loaded.
+    const lacquer = big ? strategyImage("tilt-disc-gloss") : null;
+    if (lacquer) ctx.drawImage(lacquer, -R, -R, R * 2, R * 2);
+    else blitX(ctx, `gloss:${R}`, R + 1, (c) => {
       const gloss = c.createRadialGradient(-R * 0.45, -R * 0.5, 10, 0, 0, R);
       gloss.addColorStop(0, "rgba(255,236,196,0.4)");
       gloss.addColorStop(0.6, "rgba(255,246,220,0)");
@@ -1220,7 +1225,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     const u = finish.age / 400;
     ctx.save();
     ctx.globalAlpha = 1 - u;
-    toyMarble(ctx, cam.x, cam.y, prev.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
+    tiltMarbleArt(ctx, cam.x, cam.y, prev.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
     ctx.restore();
   }
   // A marble back at its start after a black hole fades in over its hold (still: no fade).
@@ -1235,19 +1240,19 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
       ctx.save();
       if (!state.bHome) ctx.globalAlpha = holdAlpha(state.holdB);
       if (!state.bHome) marbleShadow(ctx, at.x, at.y, mr, rot);
-      toyMarble(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
+      tiltMarbleArt(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
       ctx.restore();
     }
   }
   if (state.aHome) {
     const cup = cupAt(m.exit, m.exitDir);
-    toyMarble(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
+    tiltMarbleArt(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
   } else if (!done) {
     const mx = state.x / FP - o, my = state.y / FP - o;
     ctx.save();
     ctx.globalAlpha = holdAlpha(state.holdA);
     marbleShadow(ctx, mx, my, mr, rot);
-    if (!drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) toyMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
+    if (!tiltRenderedMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot) && !drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) tiltMarbleArt(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
     marbleGloss(ctx, mx, my, mr, rot);
     ctx.restore();
     if (state.b && !state.bHome) {
@@ -1258,7 +1263,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
         ctx.arc(bx, by, mr, -Math.PI / 2, Math.PI / 2);
         ctx.closePath();
         ctx.clip();
-        toyMarble(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
+        tiltMarbleArt(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
         ctx.restore();
       }
     }
@@ -1431,6 +1436,18 @@ function drawWalnutTable(c: CanvasRenderingContext2D, W: number, H: number): voi
 
 /** The walnut disc face (grain and growth rings), in the disc's turning frame. */
 function paintWalnutDisc(c: CanvasRenderingContext2D, r: number): void {
+  // The Strategy overhaul (stage 2, display only): concept A's lacquered walnut, a Cycles render (strategy_art.py)
+  // filling the disc; the code walnut until it has loaded (and in checks, where there is no Image).
+  const rendered = strategyImage("tilt-disc");
+  if (rendered) {
+    c.save();
+    c.beginPath();
+    c.arc(0, 0, r, 0, Math.PI * 2);
+    c.clip();
+    c.drawImage(rendered, -r, -r, r * 2, r * 2);
+    c.restore();
+    return;
+  }
   const face = c.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
   face.addColorStop(0, WALNUT_DISC_LIT);
   face.addColorStop(1, WALNUT_DISC);
@@ -1534,4 +1551,28 @@ function drawBigHud(ctx: CanvasRenderingContext2D, state: TiltState, all: number
   const row = drawHudPillRow(ctx, 12, 12, pills, TILT_X_W - 12);
   let x = 12;
   for (const p of row.rest) x += drawHudPill(ctx, x, 12 + HUD_PILL_H + HUD_PILL_GAP, p.label, p.value, p.opts) + HUD_PILL_GAP;
+}
+
+/**
+ * The Strategy overhaul (stage 2, display only): Tilt's glass marbles as Cycles renders (strategy_art.py) at the
+ * marble's own radius, drawn turned by `angle` (the maze's turn undone, so the light's highlight stays where the lamp
+ * is). False when the image isn't there (not loaded yet, or a check with no Image), so the code marble is drawn.
+ */
+function tiltRenderedMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, angle: number): boolean {
+  const name = colour === TILT_MARBLE_BLUE ? "tilt-marble-blue" : colour === TILT_MARBLE_AMBER ? "tilt-marble-amber" : null;
+  const body = name ? strategyImage(name) : null;
+  const shine = body ? strategyImage("marble-gloss") : null;
+  if (!body || !shine) return false;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.drawImage(body, -r, -r, r * 2, r * 2);
+  ctx.drawImage(shine, -r, -r, r * 2, r * 2);
+  ctx.restore();
+  return true;
+}
+
+/** A blue or amber marble: the rendered one when loaded, else the code marble (toyMarble) exactly as before. */
+function tiltMarbleArt(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, angle: number, seed = 0): void {
+  if (!tiltRenderedMarble(ctx, x, y, r, colour, angle)) toyMarble(ctx, x, y, r, colour, angle, seed);
 }

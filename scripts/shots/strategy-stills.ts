@@ -14,7 +14,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createCanvas, Path2D as NapiPath2D } from "@napi-rs/canvas";
+import { createCanvas, loadImage, Path2D as NapiPath2D } from "@napi-rs/canvas";
 
 Object.defineProperty(globalThis, "performance", { configurable: true, value: { now: () => 10_000 } });
 Object.defineProperty(globalThis, "window", {
@@ -42,6 +42,14 @@ const { Human } = await import("../arcade-skill-bands/human");
 const { exampleFor } = await import("./examples");
 const { LIVE_BANDS } = await import("../../src/lib/arcade/liveBands");
 const { makeBallTrackGame } = await import("../../src/lib/arcade/ballTrack");
+// The rendered materials (stage 2, public/strategy/): handed to the renderers as the app's loader would.
+{
+  const { STRATEGY_ART } = await import("../../src/lib/arcade/strategyArt.data");
+  const { setStrategyImageForShots } = await import("../../src/lib/arcade/strategyArt");
+  for (const name of Object.keys(STRATEGY_ART) as (keyof typeof STRATEGY_ART)[]) {
+    setStrategyImageForShots(name, await loadImage(readFileSync(`public/strategy/${name}.webp`)));
+  }
+}
 
 export const STILL_TYPES = ["tilt", "matchup", "bubble", "inkbridge", "balltrack"] as const;
 /** The intro shows a still 210 px wide; the file is 2× that. */

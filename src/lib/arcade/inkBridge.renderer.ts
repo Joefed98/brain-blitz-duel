@@ -1,4 +1,5 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { strategyImage } from "./strategyArt";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { inkBridgeFxFor } from "./arcadeFxGames.renderer";
@@ -89,6 +90,9 @@ function stamp(c: CanvasRenderingContext2D, key: string, w: number, h: number, x
   if (image) c.drawImage(image, x, y, w, h);
   else { c.save(); c.translate(x, y); draw(c); c.restore(); }
 }
+/** Captain Joulz by the pot: his drawn height (world px) and how long he cheers after a coin lands in the pot (ticks). */
+export const INK_CAPTAIN_H = 36;
+export const INK_CAPTAIN_CHEER_TICKS = 75;
 function leprechaun(c:CanvasRenderingContext2D):void {
  c.fillStyle='#183F36';c.fillRect(6,14,10,10);c.fillRect(5,27,6,3);c.fillRect(13,27,6,3);
  c.fillStyle='#557F48';c.fillRect(7,22,3,5);c.fillRect(13,22,3,5);
@@ -538,7 +542,13 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   const lx=Math.min(INK_WORLD_W-24,Math.max(2,bx+40));
   // Polish A2: his soft shadow on the grass.
   c.fillStyle='rgba(20,60,25,0.28)';c.beginPath();c.ellipse(lx+11,base+2.5,11,2.6,0,0,Math.PI*2);c.fill();
-  stamp(c,"leprechaun",22,30,lx,base-27,leprechaun);
+  // The Strategy overhaul (stage 2, Joe: Captain Joulz by the pot): the 3D Captain (PR #423's model, rendered by
+  // strategy_art.py) waits by the pot and cheers, arms up, for 1.25 s after the coin lands in it; display only, every
+  // revision. The old figure is drawn only until his images have loaded (and in checks, where there is no Image).
+  const cheering=state.flashKind===1&&state.tick-state.flashTick>=0&&state.tick-state.flashTick<INK_CAPTAIN_CHEER_TICKS;
+  const captain=strategyImage(cheering?"inkbridge-captain-win":"inkbridge-captain-ready");
+  if(captain){const h=INK_CAPTAIN_H,w=h*captain.naturalWidth/captain.naturalHeight;c.drawImage(captain,lx+11-w/2,base+2-h,w,h);}
+  else stamp(c,"leprechaun",22,30,lx,base-27,leprechaun);
   countryStamp(c,'inkcloud',48,26,lvl.spoutX-24,19,inkCloud);
   for(const b of lvl.blocks) {
     if(b.h){drawBirds(c,b,inkBlockH(b),state.tick);continue;}

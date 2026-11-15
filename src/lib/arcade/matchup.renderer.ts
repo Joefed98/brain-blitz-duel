@@ -8,6 +8,7 @@
  * mapped back through matchupCellAtShown).
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { strategyArtVersion, strategyImage, type StrategyArtName } from "./strategyArt";
 import type { CanvasSize } from "./engine";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { MATCHUP_FX, STRATEGY_TEXT_BAND, fxSpecAt } from "./arcadeFxGames.renderer";
@@ -460,21 +461,25 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
   } else {
     const shape = MATCHUP_SHAPES[kind] ?? "circle";
     const colour = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
-    flatGem(ctx, shape, cx, cy, radius, colour);
+    // The Strategy overhaul (stage 2, display only): the rendered cut stone (strategy_art.py), the same outline at the
+    // same radius; the code-cut gem until it has loaded (and in checks, where there is no Image).
+    const rendered = strategyImage(`gem-${shape}` as StrategyArtName);
+    if (rendered) ctx.drawImage(rendered, cx - radius, cy - radius, radius * 2, radius * 2);
+    else flatGem(ctx, shape, cx, cy, radius, colour);
   }
   ctx.restore();
 }
 
 const gemSprites = new Map<string, ArtCanvas>();
 export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, radius: number, time = 0): void {
- const key = `${kind}:${radius}`; let stamp = gemSprites.get(key);
+ const key = `${kind}:${radius}:${strategyArtVersion()}`; let stamp = gemSprites.get(key);
  if (!stamp) { const canvas = artCanvas(Math.ceil(radius * 4 + 4), Math.ceil(radius * 4 + 4)); const native = canvas && artContext(canvas);
   if (canvas && native) { native.scale(2, 2); paintMatchupGem(native as CanvasRenderingContext2D, kind, radius + 1, radius + 1, radius, 0); stamp = canvas; if(gemSprites.size>=64){const oldest=gemSprites.keys().next().value;if(oldest!==undefined)gemSprites.delete(oldest);}gemSprites.set(key, stamp); }
  }
  if (stamp) ctx.drawImage(stamp, cx-radius-1, cy-radius-1, stamp.width/2, stamp.height/2);
  else paintMatchupGem(ctx, kind, cx, cy, radius, time);
 }
-const boardLayers = new WeakMap<CanvasRenderingContext2D, { canvas: ArtCanvas; cells: number[]; k: number; rows: number }>();
+const boardLayers = new WeakMap<CanvasRenderingContext2D, { canvas: ArtCanvas; cells: number[]; k: number; rows: number; v: number }>();
 
 /* ================================ Board =============================== */
 
@@ -754,7 +759,8 @@ function drawSettled(ctx: CanvasRenderingContext2D, cells: readonly number[], ti
   const t=typeof ctx.getTransform==="function"&&arcadeReducedEffects()?ctx.getTransform():null;
   const k=t?Math.round(Math.max(0.25,Math.min(2,Math.hypot(t.a,t.b)))*1000)/1000:2;
   let layer=boardLayers.get(ctx);
-  if (!layer||layer.k!==k||layer.rows!==L.rows) { const canvas=artCanvas(Math.round(MATCHUP_BOARD_W*k),Math.round(L.boardH*k)); layer=undefined; if(canvas){layer={canvas,cells:[],k,rows:L.rows};boardLayers.set(ctx,layer);} }
+  const v=strategyArtVersion();
+  if (!layer||layer.k!==k||layer.rows!==L.rows||layer.v!==v) { const canvas=artCanvas(Math.round(MATCHUP_BOARD_W*k),Math.round(L.boardH*k)); layer=undefined; if(canvas){layer={canvas,cells:[],k,rows:L.rows,v};boardLayers.set(ctx,layer);} }
   const native=layer&&artContext(layer.canvas);
   if(layer&&native){const c=native as CanvasRenderingContext2D;c.save();c.scale(layer.canvas.width/MATCHUP_BOARD_W,layer.canvas.height/L.boardH);
    for(let i=0;i<cells.length;i++){if(layer.cells[i]===cells[i])continue;const x=(i%MATCHUP_SIZE)*MATCHUP_CELL_PX,y=Math.floor(i/MATCHUP_SIZE)*MATCHUP_CELL_PX;

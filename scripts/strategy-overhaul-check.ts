@@ -256,6 +256,42 @@ section("Intro stills: real frames, light, hashed");
   }
 }
 
+/* ------------------------------------------------------------------ 5c. Rendered materials (stage 2) */
+section("Rendered materials: present, hashed, within budget, code art without them");
+{
+  const { createHash } = await import("node:crypto");
+  const { readdirSync, statSync } = await import("node:fs");
+  const { STRATEGY_ART } = await import("../src/lib/arcade/strategyArt.data");
+  const { strategyImage } = await import("../src/lib/arcade/strategyArt");
+  const files = readdirSync("public/strategy").filter((f) => f.endsWith(".webp")).sort();
+  ok(JSON.stringify(files.map((f) => f.replace(/\.webp$/, "")).sort()) === JSON.stringify(Object.keys(STRATEGY_ART).sort()), "every rendered image is in strategyArt.data.ts, and nothing else");
+  for (const f of files) {
+    const name = f.replace(/\.webp$/, "") as keyof typeof STRATEGY_ART;
+    ok(createHash("sha256").update(readFileSync(`public/strategy/${f}`)).digest("hex").slice(0, 10) === STRATEGY_ART[name], `${name}: its hash is the one on its URL`);
+  }
+  // Joe's budget: at most about 400 KB of images a game (the rendered art and the intro still).
+  const size = (p: string) => statSync(p).size;
+  const budget: Record<string, string[]> = {
+    tilt: ["tilt-", "marble-gloss"],
+    matchup: ["gem-"],
+    bubble: ["bubble-"],
+    inkbridge: ["inkbridge-"],
+    balltrack: ["bt-marble-", "marble-gloss"],
+  };
+  for (const [type, prefixes] of Object.entries(budget)) {
+    const bytes = files.filter((f) => prefixes.some((p) => f.startsWith(p))).reduce((a, f) => a + size(`public/strategy/${f}`), 0) + size(`public/intro/${type}.webp`);
+    ok(bytes > 0 && bytes <= 400_000, `${type}: ${Math.round(bytes / 1024)} KB of images (budget 400 KB)`);
+  }
+  // In Bun there is no Image: every renderer draws its code art, so checks and pixel digests see what they always did.
+  ok(strategyImage("gem-circle") === null && strategyImage("tilt-disc") === null, "with no Image the loader answers null (the code art is drawn)");
+  const sources = ["src/lib/arcade/matchup.renderer.ts", "src/lib/arcade/bubble.renderer.ts", "src/lib/arcade/ballTrackArt.renderer.ts", "src/lib/arcade/tiltArt.renderer.ts", "src/lib/arcade/inkBridge.renderer.ts"].map((f) => readFileSync(f, "utf8"));
+  ok(/if \(rendered\) ctx\.drawImage\(rendered, cx - radius, cy - radius, radius \* 2, radius \* 2\);\s*else flatGem/.test(sources[0]!), "Gemstone: the rendered stone at the gem's own radius, the code cut otherwise");
+  ok(/c\.drawImage\(body, 0, 0, size, size\)/.test(sources[1]!) && /drawCreature\(c, bubCreature\(value\)/.test(sources[1]!), "Coral Pop: the rendered bubble at its own size with its creature printed in it");
+  ok(/ctx\.drawImage\(body, x - r, y - r, r \* 2, r \* 2\)/.test(sources[2]!) && /toyMarble\(ctx, x, y, r, colour, 0, seed\)/.test(sources[2]!), "Ball Tracker: the rendered marble at the marble's radius, the code marble otherwise");
+  ok(/ctx\.drawImage\(body, -r, -r, r \* 2, r \* 2\)/.test(sources[3]!) && /strategyImage\("tilt-disc"\)/.test(sources[3]!), "Tilt: rendered marbles at the marble's radius and the lacquered disc");
+  ok(/inkbridge-captain-win/.test(sources[4]!) && /INK_CAPTAIN_CHEER_TICKS/.test(sources[4]!), "Rainbow Bridge: Captain Joulz waits by the pot and cheers when the coin lands");
+}
+
 /* ------------------------------------------------------------------ 6. Older stamps */
 section("Older stamps unchanged");
 {

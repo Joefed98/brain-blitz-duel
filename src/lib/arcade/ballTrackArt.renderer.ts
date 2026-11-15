@@ -1,4 +1,5 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { strategyImage, type StrategyArtName } from "./strategyArt";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { balltrackFxFor } from "./arcadeFxGames.renderer";
@@ -442,7 +443,25 @@ function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], 
  * Ball Tracker's glass marble: the toybox marble at the sim radius, with a
  * shaded edge and a soft bounce light low on the far side (inside the radius).
  */
+/** The rendered glass marble for each of BT_PALETTE's colours (strategy_art.py). */
+const BT_MARBLE_ART: Record<string, StrategyArtName> = {
+  [BT_PALETTE[0]]: "bt-marble-red",
+  [BT_PALETTE[1]]: "bt-marble-blue",
+  [BT_PALETTE[2]]: "bt-marble-green",
+  [BT_PALETTE[3]]: "bt-marble-yellow",
+};
+
 export function btMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, seed: number): void {
+  // The Strategy overhaul (stage 2, display only): the rendered glass marble and its crisp highlight at the marble's
+  // own radius; the code marble until they have loaded (and in checks, where there is no Image).
+  const art = BT_MARBLE_ART[colour];
+  const body = art ? strategyImage(art) : null;
+  const shine = body ? strategyImage("marble-gloss") : null;
+  if (body && shine) {
+    ctx.drawImage(body, x - r, y - r, r * 2, r * 2);
+    ctx.drawImage(shine, x - r, y - r, r * 2, r * 2);
+    return;
+  }
   toyMarble(ctx, x, y, r, colour, 0, seed);
   ctx.save();
   const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.15, x, y, r);

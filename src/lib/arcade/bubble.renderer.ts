@@ -6,6 +6,7 @@
  * only): the HUD on the rock is the shared pills ("Popped n", "Treasure n/6", "Combo ×n").
  */
 import type { CanvasSize } from "./engine";
+import { strategyArtVersion, strategyImage, type StrategyArtName } from "./strategyArt";
 import { artReady, drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { bubbleFxFor } from "./arcadeFxGames.renderer";
@@ -471,6 +472,19 @@ export function paintBubble(value: number) {
   if (bubIsSpecial(value)) return paintSpecial(value, false);
   return (c: CanvasRenderingContext2D, size: number) => {
     const r = size / 2;
+    // The Strategy overhaul (stage 2, display only): the rendered candy-glass bubble (strategy_art.py) at the bubble's
+    // own radius, its creature printed in it, then the rendered gloss over the top; the code bubble until both load.
+    const body = strategyImage(BUBBLE_ART[value - 1] ?? "bubble-red");
+    const gloss = strategyImage("bubble-gloss");
+    if (body && gloss && value >= 1 && value <= BUBBLE_ART.length) {
+      c.drawImage(body, 0, 0, size, size);
+      c.save();
+      c.globalAlpha = 0.92;
+      drawCreature(c, bubCreature(value), r, r + r * 0.03, r * BUB_CREATURE_FIT);
+      c.restore();
+      c.drawImage(gloss, 0, 0, size, size);
+      return;
+    }
     const colour = bubColour(value);
     const g = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.1, r, r, r);
     g.addColorStop(0, colour + "B0");
@@ -516,6 +530,9 @@ export function paintBubble(value: number) {
     bubbleGloss(c, r);
   };
 }
+
+/** The rendered body for each colour value 1…5 (BUB_PALETTE's order: red, yellow, green, blue, purple). */
+const BUBBLE_ART: readonly StrategyArtName[] = ["bubble-red", "bubble-yellow", "bubble-green", "bubble-blue", "bubble-purple"];
 
 /** The creature's fitting radius as a share of the bubble's (0.75 until the phone notes of 27 Oct 2026; 82 % of it). */
 const BUB_CREATURE_FIT = 0.615;
@@ -711,7 +728,7 @@ function bubbleDrift(ctx: CanvasRenderingContext2D, w: number, h: number, t: num
  */
 function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1, heading?: number): void {
   const directional = heading !== undefined && value === BUB_LINE;
-  const key = directional ? `bub-special4-${value}` : bubIsSpecial(value) ? `bub-special2-${value}` : `bub2-${value}${creatureArtReady() ? "-art" : ""}`;
+  const key = directional ? `bub-special4-${value}` : bubIsSpecial(value) ? `bub-special2-${value}` : `bub2-${value}${creatureArtReady() ? "-art" : ""}-v${strategyArtVersion()}`;
   const sprite = seaSprite(key, radius * 2 * dpr, directional ? paintSpecial(value, true) : paintBubble(value));
   if (!sprite) return;
   if (alpha !== 1) ctx.globalAlpha = alpha;
