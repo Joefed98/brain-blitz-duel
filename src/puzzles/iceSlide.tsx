@@ -32,7 +32,8 @@ import { IceGems } from "@/components/puzzles/depth4/IceGems";
 import { popCount, replayGems } from "@/lib/duel/depth4/iceGems";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { useSolveMoment } from "@/lib/fx/patternFx";
-import { IceArt, IceBoard as Board, IceTrail, useIceSlideFx } from "@/components/puzzles/pattern/iceSlideBoard";
+import { IceArt, IceBoard as Board, IceFallingBall, IceTrail, useIceSlideFx, type IceBallFx } from "@/components/puzzles/pattern/iceSlideBoard";
+import { gameFx } from "@/lib/fx/kit";
 import { HudPills, type HudPillItem } from "@/components/puzzles/HudPills";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -102,6 +103,9 @@ function Stage({
   const [visualBall, setVisualBall] = useState<{ cell: number; jump: boolean } | null>(null);
   const slideTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const slidePath = useRef<number[]>([]);
+  // Stage 2 (display only): the resting ball's moment, a settle as it stops or a bump against a wall; a new key plays it.
+  const [ballFx, setBallFx] = useState<IceBallFx | null>(null);
+  const ballFxKey = useRef(0);
 
   useEffect(() => () => slideTimers.current.forEach(clearTimeout), []);
 
@@ -144,11 +148,13 @@ function Stage({
   const nearExit =
     !animating && !replay.solved && par !== null && slidesShown + 1 <= par && oneSlideFromExit(board, replay);
   const nearKey = useRef<string | null>(null);
+  // The resting spot's key: the exit's near-miss pulse (the kit's nearMiss, stage 2) plays once per new key.
+  const nearSpot = nearExit ? `${replay.cell}:${replay.mask}:${slidesShown}` : null;
   useEffect(() => {
-    const key = nearExit ? `${replay.cell}:${replay.mask}:${slidesShown}` : null;
+    const key = nearSpot;
     if (key && key !== nearKey.current) soundCue("iceslide.nearExit");
     nearKey.current = key;
-  }, [nearExit, replay.cell, replay.mask, slidesShown]);
+  }, [nearSpot]);
 
   useEffect(() => {
     onDraftAnswer?.(encodeSlideMoves(moves));
@@ -179,10 +185,13 @@ function Stage({
     if (locked || submitted.current || replay.solved || animating) return;
     const outcome = slideOutcome(board, replay.cell, replay.mask, dir);
     if (!outcome.path.length) {
-      // Straight into a wall or the edge: nothing moves and nothing counts; a tiny bump says so (sound only).
+      // Straight into a wall or the edge: nothing moves and nothing counts; a tiny bump says so (a dull tap, and the
+      // ball's art nudges 2–3 px toward the wall; the next slide is taken at once).
       soundCue("iceslide.bump");
+      setBallFx({ kind: "bump", dir, key: ++ballFxKey.current });
       return;
     }
+    setBallFx(null);
     slidePath.current = outcome.path;
     fx.begin(replay.cell, replay.mask, outcome);
     setVisualBall({ cell: replay.cell, jump: true });
@@ -199,6 +208,8 @@ function Stage({
     slideTimers.current.push(setTimeout(() => {
       // The ball comes to rest against what stopped it: a thump (sound only; a fall or the exit plays its own).
       if (stops) soundCue("iceslide.stop");
+      // ...and its art settles (the kit's drop) as it comes to rest in its cell.
+      if (stops) setBallFx({ kind: "settle", key: ++ballFxKey.current });
       setVisualBall(null);
       setAnimating(false);
       slideTimers.current = [];
@@ -208,8 +219,14 @@ function Stage({
 
   const swipe = useSwipe(slide, { disabled: locked || replay.solved || animating });
 
-  const undo = () => setMoves((current) => [...current, "X"]);
-  const reset = () => setMoves((current) => [...current, "Y"]);
+  const undo = () => {
+    setBallFx(null);
+    setMoves((current) => [...current, "X"]);
+  };
+  const reset = () => {
+    setBallFx(null);
+    setMoves((current) => [...current, "Y"]);
+  };
 
   // Desktop keys: Z or Backspace = Undo, R = Reset (the arrows and WASD slide through ArrowPad).
   useGameKeys((kind, key, event) => {
@@ -254,22 +271,12 @@ function Stage({
             ball={animating ? -1 : replay.cell}
             solving={solving}
             nearExit={nearExit}
+            nearPulse={nearSpot}
+            ballFx={ballFx}
           >
             <IceTrail cells={fx.trail} cols={SLIDE_COLS} rows={SLIDE_COLS} fading={fx.trailFading} />
             {gems.length ? <IceGems gems={gems} collected={gemsShown} cols={SLIDE_COLS} /> : null}
-            {fx.fall ? (
-              <span
-                key={fx.fall.key}
-                className="ice-fall"
-                aria-hidden="true"
-                style={{
-                  left: `calc((100% - 22px) * ${((fx.fall.cell % SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${(fx.fall.cell % SLIDE_COLS) * 2}px)`,
-                  top: `calc((100% - 22px) * ${(Math.floor(fx.fall.cell / SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${Math.floor(fx.fall.cell / SLIDE_COLS) * 2}px)`,
-                }}
-              >
-                <IceArt name="ball" />
-              </span>
-            ) : null}
+            {fx.fall ? <IceFallingBall key={fx.fall.key} cell={fx.fall.cell} cols={SLIDE_COLS} /> : null}
           </Board>
           {visualBall && (
             <span
@@ -356,6 +363,15 @@ const storedNum = (extra: Record<string, unknown> | null | undefined, key: strin
  * route as chips. Older stamps read their stored figures (every slide played) the same way.
  */
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
+  // Stage 2: the solve's payoff on the result, the kit's win on the reveal's own result card, once (silent: the reveal
+  // plays its score sound; no haptic outside a live board).
+  const won = Boolean(myCorrect && puzzle.type === "iceslide");
+  const revealRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!won) return;
+    const card = revealRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]");
+    gameFx("win", card ?? null, { silent: true, inGame: false });
+  }, [won]);
   if (puzzle.type !== "iceslide") return null;
   const board = slideBoard(puzzle);
   const best = puzzle.solution
@@ -397,7 +413,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
   );
 
   return (
-    <div className="ice-reveal flex w-full flex-col items-center gap-3">
+    <div ref={revealRef} className="ice-reveal flex w-full flex-col items-center gap-3">
       <div className="ice-reveal-space">
         <div className="ice-reveal-pair">
           <div className="ice-reveal-col flex flex-col items-center gap-2" data-ice-solution="">

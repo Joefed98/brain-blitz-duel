@@ -18,6 +18,11 @@
  *  7. Art: every sprite exists as WebP with alpha, within budget, square; the stage, the intro example and the reveal
  *     draw them; no glow on the ball or the board.
  *  8. Sound: the new slots are manifest slots, fired by the stage, listed in the cue doc and pattern-elevenlabs.md.
+ *  9. The effects (stage 2, iceSlideFx.ts on the effects kit): the bump's 3 px nudge toward the wall, the stop's settle
+ *     (the kit's drop, silent), thin ice cracking open, both portal ends flaring, the ball spinning down a hole, the
+ *     exit's near miss one slide away at par (the kit's), each on its piece's own art and only on its moment (none on
+ *     the first draw, Undo, a fall or the exit); the next slide is taken during an effect; reduced motion a 120 ms
+ *     crossfade; transform and opacity only; the kit's silent win on a solved reveal's result card.
  *
  *   bun scripts/pattern-overhaul-iceslide-check.ts
  */
@@ -175,7 +180,9 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
   const stage = src("src/puzzles/iceSlide.tsx");
   check(/const slidesShown = countedSlides\(replay, overhaul\)/.test(stage) && /usesPatternNov15\(data, "iceslide"\)/.test(stage), "the stage's count isn't the standing slides on slideRev 5");
   check(/parPills\("Slides", slidesShown, par\)/.test(stage), "the stage no longer shows Slides and Par pills on the standing count");
-  check(/if \(!outcome\.path\.length\) \{\s*\/\/[^\n]*\n\s*soundCue\("iceslide\.bump"\);\s*return;\s*\}/.test(stage), "a slide into a wall doesn't play the bump and stop there");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): stage 2 adds the bump's
+  // nudge on the ball's art (a second comment line and setBallFx) between the sound and the return.
+  check(/if \(!outcome\.path\.length\) \{\s*(?:\/\/[^\n]*\n\s*)+soundCue\("iceslide\.bump"\);\s*setBallFx\(\{ kind: "bump", dir, key: \+\+ballFxKey\.current \}\);\s*return;\s*\}/.test(stage), "a slide into a wall doesn't play the bump and stop there");
   const p5 = { ...fixture.puzzles.find((x) => x.era === "rev4")!.puzzle, slideRev: 5 };
   const html = renderToStaticMarkup(React.createElement(iceSlidePuzzle.Stage, { puzzle: p5, phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => {} } as never));
   // Outside the game frame (no pills) the stage's own summary line shows the same count.
@@ -361,6 +368,196 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
     check(section.includes(`\`${slot}\``), `pattern-elevenlabs.md's Skid section doesn't list ${slot}`);
   const cues = src("docs/sound-cues/pattern.md");
   for (const slot of ["iceslide.slideLong", "iceslide.stop", "iceslide.bump", "iceslide.nearExit"]) check(cues.includes(`\`${slot}\``), `docs/sound-cues/pattern.md doesn't list ${slot}`);
+}
+
+/* ---------------------------------------------------------------- 9. the effects (stage 2) */
+{
+  // Real timers and React's own scheduling (the slide's steps are timers: an act scope would fold them into one render).
+  (g as Record<string, unknown>)["IS_REACT_ACT_ENVIRONMENT"] = false;
+  // The page's own events (Bun's globals are another realm's: happy-dom refuses them).
+  g["CustomEvent"] = (win as unknown as Record<string, unknown>)["CustomEvent"];
+  g["Event"] = (win as unknown as Record<string, unknown>)["Event"];
+  for (const key of ["PointerEvent", "MouseEvent", "KeyboardEvent", "requestAnimationFrame", "cancelAnimationFrame", "localStorage", "matchMedia"]) {
+    if (g[key] === undefined) g[key] = (win as unknown as Record<string, unknown>)[key];
+  }
+  const { createRoot } = await import("react-dom/client");
+  const { forceGameFxVariant, setGameFxSink } = await import("../src/lib/fx/kit");
+  const { ICE_FX_MAX_MS } = await import("../src/components/puzzles/pattern/iceSlideFx");
+  const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+  // Every animation started, recorded (happy-dom has no Web Animations engine).
+  type Rec = { el: Element; frames: Keyframe[]; options: KeyframeAnimationOptions };
+  const recs: Rec[] = [];
+  const proto = (win as unknown as { HTMLElement: { prototype: Record<string, unknown> } }).HTMLElement.prototype;
+  const realAnimate = proto["animate"];
+  proto["animate"] = function (this: Element, frames: Keyframe[], options: KeyframeAnimationOptions) {
+    recs.push({ el: this, frames, options: typeof options === "number" ? { duration: options } : options });
+    return { cancel() {}, addEventListener() {}, finished: Promise.resolve(), onfinish: null };
+  };
+  proto["setPointerCapture"] ??= () => {};
+  proto["hasPointerCapture"] ??= () => false;
+  proto["releasePointerCapture"] ??= () => {};
+  const kit: { kind: string; variant: string; sound: string | null }[] = [];
+  setGameFxSink((r) => kit.push({ kind: r.kind, variant: r.variant, sound: r.sound?.slot ?? null }));
+  const cues: string[] = [];
+  win.addEventListener("duelz-sound", (e) => cues.push(String((e as unknown as CustomEvent).detail?.cue)));
+  const allowed = new Set(["transform", "opacity", "offset", "easing", "composite"]);
+  const onlyTransformOpacity = () => recs.every((r) => r.frames.every((f) => Object.keys(f).every((k) => allowed.has(k))));
+  const isArt = (r: Rec, sel: string) => (r.el as Element).matches?.(sel);
+
+  // A hand-made 12 × 12 rink: the ball at 13 with a block at 12 (Left bumps), thin ice at 15 and a portal 17 ↔ 41 on
+  // the way right (it ends at 47), the exit at 59 one slide below (par 2), a hole at 37 below the start.
+  const puzzle = {
+    ...fixture.puzzles.find((x) => x.era === "rev4")!.puzzle,
+    slideRev: 5,
+    walls: [12],
+    holes: [37],
+    arrows: [],
+    thin: [15],
+    portals: [[17, 41]],
+    gems: [],
+    start: 13,
+    exit: 59,
+    par: 2,
+    minMoves: 2,
+  } as unknown as SlidePuzzleData;
+  const drafts: string[] = [];
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const root = createRoot(host as unknown as Element);
+  const mount = async (key: string) => {
+    {
+      root.render(
+        React.createElement(iceSlidePuzzle.Stage, {
+          key,
+          puzzle,
+          phaseStartedAt: 0,
+          now: 0,
+          locked: false,
+          onSubmit: () => {},
+          onDraftAnswer: (a: string) => drafts.push(a),
+          stateKey: `fx-${key}`,
+        } as never),
+      );
+    }
+    await sleep(60);
+  };
+  const press = (label: string) => {
+    const named = [...host.querySelectorAll("button")].find((b) => !b.getAttribute("aria-label") && b.textContent?.trim() === label);
+    if (named) return void (named as unknown as { click(): void }).click();
+    const btn = host.querySelector(`button[aria-label="${label}"]`);
+    if (!btn) throw new Error(`no ${label} button`);
+    btn?.dispatchEvent(new win.PointerEvent("pointerdown", { bubbles: true, pointerId: 1 }) as unknown as Event);
+    btn?.dispatchEvent(new win.PointerEvent("pointerup", { bubbles: true, pointerId: 1 }) as unknown as Event);
+  };
+  const clear = () => {
+    recs.length = 0;
+    kit.length = 0;
+    cues.length = 0;
+  };
+  forceGameFxVariant("full");
+  await mount("a");
+  check(recs.length === 0 && kit.length === 0, `fx: the first draw plays an effect (${recs.length}, ${JSON.stringify(kit)})`);
+
+  // A slide straight into the block: the dull tap and a 3 px nudge toward it on the ball's own art; then Up at once,
+  // while the nudge still runs, is taken (a real slide).
+  clear();
+  press("Left");
+  await sleep(30);
+  // The next slide while the nudge still runs (it lasts 150 ms).
+  press("Up");
+  await sleep(20);
+  const bump = recs.find((r) => isArt(r, ".ice-ball > .ice-art"));
+  check(cues[0] === "iceslide.bump" && !!bump, `fx: a slide into a wall isn't the bump (${cues}, ${recs.length})`);
+  check(!!bump && JSON.stringify(bump.frames.map((f) => f.transform)) === JSON.stringify(["translate(0, 0)", "translate(-3px, 0px)", "translate(0, 0)"]), `fx: the bump isn't a 3 px nudge toward the wall (${JSON.stringify(bump?.frames)})`);
+  check(drafts.at(-1) === "U" && cues.includes("iceslide.slide"), `fx: the next slide during the bump wasn't taken (${drafts.at(-1)}, ${cues})`);
+  // The slide ends against the top edge: the thump and the kit's drop on the ball's art, silent (its own slot plays).
+  await sleep(500);
+  check(cues.includes("iceslide.stop") && kit.some((k) => k.kind === "drop" && k.variant === "full" && k.sound === null), `fx: the stop isn't the kit's silent drop with the thump (${JSON.stringify(kit)}, ${cues})`);
+  check(recs.some((r) => isArt(r, ".ice-ball > .ice-art") && String(r.frames[0]!.transform).includes("translateY(-8px)")), "fx: the settle isn't on the ball's art");
+  // Undo gives the slide back: no settle, no bump, no sound of a slide.
+  clear();
+  press("Undo");
+  await sleep(50);
+  check(drafts.at(-1) === "UX", `fx: Undo wasn't taken (${drafts.at(-1)})`);
+  check(kit.length === 0 && recs.length === 0 && !cues.some((c) => c.startsWith("iceslide.")), `fx: Undo plays an effect (${JSON.stringify(kit)}, ${cues})`);
+
+  // Right: the thin ice cracks open, both ends of the portal flare, the ball settles at 47, one slide from the exit at par.
+  clear();
+  press("Right");
+  await sleep(1200);
+  check(cues.includes("iceslide.crack") && recs.some((r) => isArt(r, ".ice-broken > .ice-art") && String(r.frames[0]!.transform).startsWith("scale(0.35)")), `fx: thin ice doesn't crack open on its art (${cues})`);
+  const flares = recs.filter((r) => isArt(r, ".ice-portal > .ice-art"));
+  const glows = recs.filter((r) => isArt(r, ".ice-portal-glow"));
+  check(cues.includes("iceslide.portal") && flares.length === 2 && glows.length === 2, `fx: the portal doesn't flare at both ends (${flares.length}, ${glows.length})`);
+  check(kit.some((k) => k.kind === "drop") && cues.includes("iceslide.stop"), "fx: the slide's stop doesn't settle");
+  check(cues.includes("iceslide.nearExit") && kit.some((k) => k.kind === "nearMiss" && k.sound === null) && recs.some((r) => isArt(r, ".ice-exit > .ice-art")), `fx: one slide from the exit at par isn't the kit's near miss on the exit (${JSON.stringify(kit)})`);
+  // Down onto the exit: no settle (the exit shatters as before).
+  clear();
+  press("Down");
+  await sleep(600);
+  check(!kit.some((k) => k.kind === "drop") && !cues.includes("iceslide.stop") && cues.includes("iceslide.solve"), `fx: the exit plays the stop's settle, or no shatter (${JSON.stringify(kit)}, ${cues})`);
+
+  // A fresh rink: Down from the start into the hole spins the ball down; no settle.
+  await mount("b");
+  clear();
+  press("Down");
+  await sleep(700);
+  const fall = recs.find((r) => isArt(r, ".ice-fall"));
+  check(cues.includes("iceslide.fall") && !!fall && String(fall.frames.at(-1)!.transform).includes("rotate(160deg)") && fall.frames.at(-1)!.opacity === 0, `fx: the hole doesn't spin the ball down (${cues})`);
+  check(!kit.some((k) => k.kind === "drop") && !cues.includes("iceslide.stop"), "fx: a fall settles");
+  check(recs.every((r) => Number(r.options.duration ?? 0) <= Math.max(ICE_FX_MAX_MS, 900)), "fx: an effect runs longer than 900 ms");
+  check(onlyTransformOpacity(), "fx: an effect animates something other than transform and opacity");
+  check(!recs.some((r) => (r.el as Element).tagName === "BUTTON" || (r.el as Element).matches?.("[data-game-arena], [data-game-stage], .ice-board, .ice-board-grid, .ice-tile, .ice-stage-square")), "fx: an effect moves a control, the board, a cell or the arena");
+
+  // Reduced motion: every change a 120 ms crossfade, no movement.
+  forceGameFxVariant("reduced");
+  await mount("c");
+  clear();
+  press("Left");
+  press("Right");
+  await sleep(1200);
+  await mount("d");
+  press("Down");
+  await sleep(700);
+  // 120 ms each (the kit's near miss keeps its own 160 ms reduced flicker).
+  const nearMissReduced = (r: Rec) => r.frames[0]!.opacity === 0.6 && isArt(r, ".ice-exit > .ice-art");
+  check(recs.length >= 5 && recs.every((r) => r.frames.every((f) => f.transform === undefined) && Number(r.options.duration) <= (nearMissReduced(r) ? 160 : 120)), `fx: reduced motion still moves something, or longer than 120 ms (${JSON.stringify(recs.map((r) => [r.frames, r.options.duration]))})`);
+  check(kit.some((k) => k.kind === "drop" && k.variant === "reduced") && kit.some((k) => k.kind === "nearMiss" && k.variant === "reduced"), `fx: the reduced settle and near miss aren't the kit's (${JSON.stringify(kit)})`);
+  check(recs.some((r) => isArt(r, ".ice-fall")) && recs.some((r) => isArt(r, ".ice-broken > .ice-art")) && recs.some((r) => isArt(r, ".ice-portal > .ice-art")), "fx: reduced motion doesn't show the fall, the crack or the portal");
+  root.unmount();
+
+  // The reveal: a solve's payoff is the kit's win on the reveal's result card, silent; never on an unfinished one.
+  forceGameFxVariant("full");
+  const card = document.createElement("div");
+  card.className = "answer-reveal-content";
+  card.innerHTML = '<div data-verdict-row=""></div><div class="x"></div>';
+  document.body.appendChild(card);
+  const rroot = createRoot(card.querySelector(".x") as unknown as Element);
+  const p5 = { ...fixture.puzzles.find((x) => x.era === "rev4")!.puzzle, slideRev: 5 };
+  clear();
+  rroot.render(React.createElement(iceSlidePuzzle.Reveal, { puzzle: p5, myAnswer: "", myCorrect: false, myMsRemaining: 0, myExtra: null } as never));
+  await sleep(60);
+  check(!kit.some((k) => k.kind === "win"), "fx: an unfinished reveal plays the win");
+  rroot.render(React.createElement(iceSlidePuzzle.Reveal, { puzzle: p5, myAnswer: "", myCorrect: true, myMsRemaining: 30_000, myExtra: null } as never));
+  await sleep(60);
+  check(kit.filter((k) => k.kind === "win" && k.sound === null).length === 1 && recs.some((r) => isArt(r, "[data-verdict-row]")), `fx: the solved reveal isn't the kit's silent win on the result card (${JSON.stringify(kit)})`);
+  rroot.unmount();
+
+  forceGameFxVariant(null);
+  setGameFxSink(null);
+  proto["animate"] = realAnimate;
+
+  // Only iceSlideFx.ts (and the kit) start animations; the CSS animates transform and opacity only.
+  for (const file of ["src/puzzles/iceSlide.tsx", "src/components/puzzles/pattern/iceSlideBoard.tsx"]) check(!/\.animate\(/.test(src(file)), `fx: ${file} animates outside iceSlideFx.ts`);
+  const fxSrc = src("src/components/puzzles/pattern/iceSlideFx.ts");
+  check(/from "@\/lib\/fx\/kit"/.test(fxSrc) && /gameFx\("drop"/.test(fxSrc) && /gameFx\("nearMiss"/.test(fxSrc), "fx: the settle and the near miss aren't the kit's");
+  const css = src("src/polish-pattern/iceslide.css");
+  for (const [, name, body] of css.matchAll(/@keyframes ([\w-]+) \{((?:[^{}]*\{[^{}]*\})*)[^{}]*\}/g)) {
+    const props = [...body!.matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]);
+    check(props.every((p) => p === "transform" || p === "opacity"), `fx: keyframes ${name} animate ${props.join(", ")}`);
+  }
+  check(!/ice-near-exit|ice-portal-flare|ice-break-open|@keyframes ice-fall/.test(css), "fx: the old CSS effects (filter animations) are still there");
 }
 
 if (failures.length) {

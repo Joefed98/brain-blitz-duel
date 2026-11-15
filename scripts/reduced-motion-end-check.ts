@@ -68,7 +68,9 @@ const EFFECTS: Record<string, string> = {
   // variants pattern-overhaul-flow-check proves. The check's own rule (a stale entry fails) removed the two entries.
   "grav-lock-ring": "Topsy-Turvy socket lock ring",
   "ice-fade-out": "Skid: a ball falling through a hole / the solve frost, reduced-motion version (the piece has left the board)",
-  "ice-fall": "Skid: a ball falling through a hole (the piece has left the board)",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Skid's CSS fall (ice-fall)
+  // is gone; the fall is iceSlideFx.ts's Web Animation, whose reduced variant pattern-overhaul-iceslide-check proves. The
+  // check's own rule (a stale entry fails) removed the entry.
   "ice-frost-over": "Skid solve frost sweep",
   "ice-shatter-glint": "Skid ice shatter glint",
   "ice-solve-ring": "Skid solve ring",

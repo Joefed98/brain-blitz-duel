@@ -52,25 +52,28 @@
 .ice-rock { position: relative; }
 .ice-tile.ice-thin, .ice-tile.ice-gone { background: transparent; }
 
-/* Broken thin ice opens as it gives way. */
-.ice-broken.is-fresh .ice-art { animation: ice-break-open 260ms cubic-bezier(.2, .9, .3, 1.2) both; }
-@keyframes ice-break-open { from { transform: scale(0.35); opacity: 0.4; } to { transform: none; opacity: 1; } }
+/* Stage 2 (15 Nov 2026): the effects are Web Animations on each piece's own art layer, transform and opacity only, in
+   the effects kit's variants (iceSlideFx.ts): broken thin ice opens out of the sheet, both ends of a portal flare, the
+   ball settles, bumps a wall, spins down a hole; the exit pulses one slide away at par. */
 
-/* Portals: the pair's rings match (magenta and teal); passing through flares both ends briefly. */
-.ice-portal.is-flaring .ice-art { animation: ice-portal-flare 450ms ease-out both; }
-@keyframes ice-portal-flare {
-  0% { transform: scale(1); filter: none; }
-  30% { transform: scale(1.14); filter: brightness(1.45) drop-shadow(0 0 4px var(--portal)); }
-  100% { transform: scale(1); filter: none; }
+/* Portals: the pair's rings match (magenta and teal); a soft light in the pair's colour sits behind the ring, unseen
+   until the ball passes and both ends flare (its opacity and scale only). */
+.ice-portal { isolation: isolate; }
+.ice-portal-glow {
+  position: absolute;
+  inset: -12%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--portal) 0 34%, color-mix(in srgb, var(--portal) 40%, transparent) 52%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
 }
+.ice-portal > .ice-art { position: relative; }
 
-/* The exit: a gold plate (its render); one slide away with the finish still at par, it glows softly. */
+/* The exit: a gold plate (its render); one slide away with the finish still at par, it glows softly (a still glow; the
+   kit's near miss pulses the plate once as the ball comes to rest there). */
 .ice-tile.ice-goal { position: relative; }
-.ice-tile.ice-goal.is-near .ice-exit-art { animation: ice-near-exit 1.4s ease-in-out infinite; }
-@keyframes ice-near-exit {
-  0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 214, 110, 0.55)); }
-  50% { filter: drop-shadow(0 0 7px rgba(255, 214, 110, 0.95)); }
-}
+.ice-tile.ice-goal.is-near .ice-exit-art { filter: drop-shadow(0 0 5px rgba(255, 214, 110, 0.85)); }
 
 /* The start: a small frost ring on the ice. */
 .ice-start {
@@ -92,7 +95,7 @@ span.ice-player.ice-ball { background: none; }
 .ice-trail-haze { stroke: rgba(120, 185, 225, 0.45); stroke-width: 0.56; }
 .ice-trail-core { stroke: #fff; stroke-width: 0.22; opacity: 0.95; }
 
-/* ---------- Fall into a hole ---------- */
+/* ---------- Fall into a hole: the ball spins down (iceFall, transform and opacity) ---------- */
 .ice-fall {
   position: absolute;
   z-index: 5;
@@ -100,11 +103,6 @@ span.ice-player.ice-ball { background: none; }
   height: calc((100% - 22px) / 12);
   pointer-events: none;
   transform: translate(-50%, -50%);
-  animation: ice-fall 400ms cubic-bezier(.5, 0, .9, .6) both;
-}
-@keyframes ice-fall {
-  from { transform: translate(-50%, -50%) scale(1); opacity: 1; filter: brightness(1); }
-  to { transform: translate(-50%, -50%) scale(0.15) rotate(160deg); opacity: 0; filter: brightness(0.3); }
 }
 
 /* ---------- Completion: the ice frosts over and shatters into glints ---------- */
@@ -159,11 +157,7 @@ span.ice-player.ice-ball { background: none; }
 .ice-rink.is-solving .ice-exit-art { filter: drop-shadow(0 0 6px rgba(255, 214, 110, 0.95)); }
 
 @media (prefers-reduced-motion: reduce) {
-  .ice-broken.is-fresh .ice-art { animation: none; }
-  .ice-portal.is-flaring .ice-art { animation: none; filter: brightness(1.35); }
-  .ice-tile.ice-goal.is-near .ice-exit-art { animation: none; filter: drop-shadow(0 0 5px rgba(255, 214, 110, 0.85)); }
   .ice-trail.is-fading { transition: none; }
-  .ice-fall { animation: ice-fade-out 200ms linear both; }
   .ice-solve-ring, .ice-solve-shard { display: none; }
   .ice-solve-frost { animation: ice-fade-out 900ms linear both; transform: none; opacity: 0.6; }
   @keyframes ice-fade-out { from { opacity: 0.6; } to { opacity: 0; } }
