@@ -33,6 +33,20 @@ of dense text lists. Before and after reveal shots for every game go in the gall
 | Pinball | the J-O-U-L-Z letters lit, the ramps, locks and multiballs, each ball's points |
 | Blockzone | the final well, the clears by size (1, 2, 3, 4 lines), the best multi-line clear |
 
+## Joe's three additions (15 Nov 2026)
+
+1. **Intros and help** describe each changed game exactly. Done so far: Rally's intro HOW lines say a miss costs a life
+   and teach the swipe, its help covers the serve, both lives and spin shots, and its SCORE lists the four parts; Tempo's
+   help says a missed note scores nothing; Fission's help says the clear bonus runs out at three times the quick time.
+   Intro stills and demos follow each game's look change (stage 1) and levels (stage 3).
+2. **Challenges and stars** re-checked against the new Normal (practice-goals-check, practice-challenges-check). Adjusted:
+   *Rally king* (Rally, Hard, not live until levels): its "Gold-ball hits" part maximum 140 → 130, because rallyRev 13's
+   core is 130; the goal (23 gold balls on Hard) is unchanged. Every other Retro challenge is unchanged and still
+   achievable (Tempo's "Encore" 180 sits between the near-perfect and elite medians; Fission's and Rally's other goals
+   count things the new stamps don't touch). Stars stay at 175 for every game.
+3. **Image budget**: under about 400 KB of images a game. Today each Retro game ships one tile (3–6 KB); stage 1 has added
+   no images so far (the art is drawn in code). Each game's total is reported with every push.
+
 ## Stage 1 status
 
 | Game | Done on this branch | Still to do in stage 1 |
