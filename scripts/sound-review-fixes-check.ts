@@ -338,6 +338,53 @@ await new Promise((resolve) => setTimeout(resolve, sound.WRONG_ONCE_MS + 30));
 sound.playRejectWrong();
 check(take().length === 2, "two shakes apart each sound");
 
+// 2b. The paint that catches every game's own CSS shake (usePuzzleRejections, mounted by PhoneShell on puzzle screens):
+// Shikaku's board, Tents' and Trail's squares and Safe Cracker's door take `animate-shake`; each new shake sounds the
+// quiet wrong once (Safe Cracker's own playWrong first: still one).
+{
+  const { Window } = await import("happy-dom");
+  const React = await import("react");
+  const { createRoot } = await import("react-dom/client");
+  const { act } = await import("react");
+  const { usePuzzleRejections } = await import("../src/components/puzzles/usePuzzleRejections");
+  const hd = new Window();
+  Object.assign(globalThis, { MutationObserver: hd.MutationObserver, IS_REACT_ACT_ENVIRONMENT: true });
+  const container = hd.document.createElement("div");
+  hd.document.body.appendChild(container);
+  function Stage() {
+    const ref = React.useRef<HTMLDivElement | null>(null);
+    usePuzzleRejections(ref, true, "shikaku");
+    return React.createElement("div", { ref }, React.createElement("div", { "data-game-stage": "" },
+      React.createElement("div", { id: "board", className: "logic-square" }),
+      React.createElement("div", { id: "cell", className: "camp-cell" })));
+  }
+  const root = createRoot(container as unknown as Element);
+  await act(async () => root.render(React.createElement(Stage)));
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
+  const board = container.querySelector("#board")!;
+  const cell = container.querySelector("#cell")!;
+  await fresh();
+  board.className = "logic-square animate-shake";
+  await tick();
+  got = take();
+  check(heard(got).length === 1 && got[0]!.url === url("wrong") && got[0]!.volume === sound.REJECT_WRONG_VOLUME,
+    "a game's own CSS shake (Shikaku's board) sounds the quiet wrong");
+  await fresh();
+  sound.playWrong();
+  cell.className = "camp-cell animate-shake";
+  await tick();
+  check(heard(take()).length === 1, "a game that plays wrong and shakes (Safe Cracker): one wrong");
+  // (puzzleReject paints one target at most every 340 ms.)
+  await new Promise((resolve) => setTimeout(resolve, 360));
+  await fresh();
+  cell.className = "camp-cell";
+  await tick();
+  cell.className = "camp-cell animate-shake";
+  await tick();
+  check(heard(take()).length === 1, "the next shake of the same square sounds again, once");
+  await act(async () => root.unmount());
+}
+
 // 3, switch off: a new slot's cue changes nothing (no file; the move tick plays as before).
 await fresh();
 dispatch("sudoku.place");

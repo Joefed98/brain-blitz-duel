@@ -340,6 +340,9 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   ok(!/playTick/.test(s), "Roundabout: the bonus no longer adds a tick on top");
   const jarRepeat = between(s, '} else if (v.reason === "Not in this puzzle") {', "} else {");
   ok(jarRepeat.length > 0 && !/puzzleReject|fx\.onWrong|playWrong/.test(jarRepeat.replace(/\/\/[^\n]*/g, "")), "Roundabout: the already-in-the-jar shake is silent");
+  // The shared shake observer sounds every CSS shake unless it sits in [data-quiet-shake] (puzzleReject.ts).
+  ok(/setQuietShake\(true\)/.test(jarRepeat) && /data-quiet-shake=\{quietShake \? "" : undefined\}/.test(s), "Roundabout: the repeat's wheel shake is marked data-quiet-shake, so the shared observer stays silent");
+  ok(/closest\?\.\("\[data-quiet-shake\]"\)/.test(src("src/lib/fx/puzzleReject.ts")), "Roundabout: puzzleReject skips [data-quiet-shake]");
 }
 
 /* ------------------------------------------------------------------ 14. Strikeout */

@@ -88,6 +88,7 @@ export function Wheel({
   onTap,
   disabled,
   shake,
+  quietShake,
   order,
 }: {
   letters: string;
@@ -99,6 +100,8 @@ export function Wheel({
   onTap?: (index: number) => void;
   disabled?: boolean;
   shake?: boolean;
+  /** A harmless repeat's shake: no sound (puzzleReject skips `[data-quiet-shake]`). */
+  quietShake?: boolean;
   order?: readonly number[];
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -157,6 +160,7 @@ export function Wheel({
       ref={ref}
       data-play-area
       data-lw-wheel=""
+      data-quiet-shake={quietShake ? "" : undefined}
       className={`relative aspect-square h-full max-h-full select-none rounded-full bg-card ${shake ? "animate-shake" : ""}`}
       style={{ touchAction: "none", overscrollBehavior: "none", WebkitUserSelect: "none" }}
       onPointerDown={(e) => {
@@ -318,6 +322,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const jarRef = useRef<HTMLDivElement | null>(null);
   const [path, setPath] = useState<number[]>([]);
   const [shake, setShake] = useState(false);
+  const [quietShake, setQuietShake] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const [order, setOrder] = useState(() => Array.from({ length: data?.letters.length ?? 0 }, (_, i) => i));
@@ -445,8 +450,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       } else if (v.reason === "Not in this puzzle") {
         // Game review fix (15 Nov 2026): a word already in the jar is a harmless repeat: the wheel's own silent shake,
         // never the reject sound (wheelRev 1's word not in the puzzle plays its one `wrong` above).
+        // The shared shake observer plays the quiet `wrong` on every shake; this one is marked quiet (data-quiet-shake).
+        setQuietShake(true);
         setShake(true);
-        setTimeout(() => setShake(false), 350);
+        setTimeout(() => {
+          setShake(false);
+          setQuietShake(false);
+        }, 350);
         setFlash(usesJar ? "Already in the jar" : "Not in this puzzle");
         setTimeout(() => setFlash(null), 900);
       } else {
@@ -498,7 +508,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         </div>
       </div>
       <div data-game-arena="letterwheel-wheel" className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
-        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onCancel={clear} onTap={tapLetter} disabled={done} shake={shake} />
+        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onCancel={clear} onTap={tapLetter} disabled={done} shake={shake} quietShake={quietShake} />
       </div>
       {/* Raised inside the Stage (pb-3) so the buttons sit clear of the screen's bottom edge. */}
       <div data-game-controls="actions" data-word-controls-first="" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pb-3 pt-2">
