@@ -179,6 +179,27 @@ const FULL = process.env["CHECKS_FULL"] === "1";
   ok(/par pace/.test(R.RACING_V4_STD_SPEC.parts[0]!.how), "the dealt spec scores pace against the circuit's par");
 }
 
+/* 6. "Two hundred club" means 200 km/h on every circuit: racingRev 4's stored pace10 (display data), older stamps' Pace line. */
+{
+  const { gradeAnswer } = await import("../src/lib/duel/gradeAnswer.server");
+  const { PRACTICE_CHALLENGES, evaluateChallenge } = await import("../src/lib/duel/practiceChallenges");
+  const club = PRACTICE_CHALLENGES.find((c) => c.id === "racing.two-hundred-club")!;
+  for (let c = 0; c < 3; c++) {
+    const seed = RACING_DEAL_V4.find((s) => R.racingCircuitOf(s) === c)!;
+    const answer = racingSubmission(seed, oracleRun(seed, 4), 4);
+    const g = gradeAnswer({ type: "racing", seed, racingRev: 4 } as never, answer, 0) as unknown as { score: number; extra: Record<string, unknown> };
+    const server = replayRacingRun(seed, answer, 4);
+    ok(g.extra["pace10"] === R.racingPace10(server.state), `circuit ${c + 1}: the stored pace10 is the run's average speed (${String(g.extra["pace10"])})`);
+    ok(g.score === server.score, `circuit ${c + 1}: storing pace10 changes no score (${g.score})`);
+    const run = (pace10: number) => ({ score: 150, isCorrect: true, reactionAvgMs: null, extra: { ...g.extra, pace10 } });
+    ok(evaluateChallenge(club, run(2000)).met && !evaluateChallenge(club, run(1999)).met, `circuit ${c + 1}: "Two hundred club" is met at 200.0 km/h and not at 199.9`);
+  }
+  const seed3 = RACING_DEAL_V3[0]!;
+  const g3 = gradeAnswer({ type: "racing", seed: seed3, racingRev: 3 } as never, racingSubmission(seed3, oracleRun(seed3, 3), 3), 0) as unknown as { extra: Record<string, unknown> };
+  ok(!("pace10" in g3.extra), "racingRev 3's stored extra is unchanged (no pace10)");
+  ok(evaluateChallenge(club, { score: 200, isCorrect: true, reactionAvgMs: null, extra: g3.extra }).met, "on racingRev 3 the challenge still reads the Pace line (a 200 run meets it)");
+}
+
 if (failures.length) {
   console.log(`FAIL apex-overhaul-check: ${failures.length} of ${passes + failures.length} checks failed`);
   process.exit(1);

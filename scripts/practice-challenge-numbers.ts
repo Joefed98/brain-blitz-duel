@@ -257,7 +257,8 @@ function expectations(): Record<string, Expect> {
     "freekick.bend-it": { say: [[5, 10 / Number(/(\d+) for each goal from a well-bent/.exec(specPart("freekick", "Curl bonus")?.how ?? "")?.[1])]], th: [[10, 10]] },
     "freekick.top-bins": { say: [[4, of("freekick", "Targets")]] },
     "racing.clean-half": { say: [[4, 20 / 5]], th: [[20, 4 * (maxOf("racing", "Clean sectors") / of("racing", "Clean sectors"))]] },
-    "racing.two-hundred-club": { say: [[200, 200]], th: [[110, Math.floor((160 * (2000 - 1520)) / 695)]] },
+    // racingRev 4 reads pace10 (tenths of a km/h) itself: 2000 is 200 km/h; older stamps' Pace line as before.
+    "racing.two-hundred-club": { say: [[200, 200]], th: [[110, Math.floor((160 * (2000 - 1520)) / 695)], [2000, 200 * 10]] },
     "racing.grand-slam": { say: [[8, of("racing", "Clean sectors")]] },
     "fivehands.pick-of-the-bunch": { th: [[0, 0]] },
     "freecell.all-home": { say: [[40, Number(/all (\d+) home/.exec(specPart("freecell", "Cards")?.how ?? "")?.[1])]] },
@@ -295,7 +296,9 @@ function thresholds(c: PracticeChallenge): { v: number; proved: boolean; what: s
   if (g.kind === "speed") return [{ v: g.max, proved: true, what: "speed max" }, { v: g.withinS, proved: true, what: "full by" }];
   if (g.kind === "score") return [{ v: g.score, proved: false, what: "score" }];
   const out: { v: number; proved: boolean; what: string }[] = [];
-  for (const cond of g.all as readonly ChallengeCond[]) {
+  // A `since` condition reads its two rules (the stamp it switches on is not a goal number).
+  const flat = (g.all as readonly ChallengeCond[]).flatMap((cond) => (cond.c === "since" ? [cond.then, cond.before] : [cond]));
+  for (const cond of flat) {
     if (cond.c === "full") out.push({ v: cond.max, proved: true, what: `full ${cond.label}` });
     else if ("v" in cond && typeof cond.v === "number") out.push({ v: cond.v, proved: false, what: `${cond.c} ${"path" in cond ? cond.path : "label" in cond ? cond.label : ""}` });
   }
