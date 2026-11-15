@@ -22,6 +22,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { PlayerCard } from "../src/design/identity/PlayerCard";
 import { ANIMATED_ITEMS, CARD_CHROME_CSS, CARD_MOTION_CSS } from "../src/design/identity/playerCardArt.data";
+import { showApprovedArtForChecks } from "../src/design/identity/liveArt";
+
+// Harness addition (15 Nov 2026, Joe switched approved redraws on): this check proves the approved sources' cut
+// against their approved stills, so the card draws the approved art whatever the redraw switches say
+// (cosmetic-redraws-check proves the redraws).
+showApprovedArtForChecks();
 
 const MAX_MEAN_DIFF = 10;
 const shots = process.argv.find((a) => a.startsWith("--shots="))?.slice(8);
