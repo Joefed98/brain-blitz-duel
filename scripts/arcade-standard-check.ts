@@ -52,7 +52,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
   { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
   // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
-  { type: "snake", field: "snakeRev", rev: 12, batch: "A" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13, wrap-around edges.
+  { type: "snake", field: "snakeRev", rev: 13, batch: "A" },
   { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted, so more floors never score less.
   { type: "skyline", field: "skylineRev", rev: 10, batch: "B" },

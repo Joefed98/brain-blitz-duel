@@ -25,6 +25,9 @@
  *   server replay scores every bot run to its sim score.
  *  Pinball pinRev 7 (one J-O-U-L-Z set fills its part): wiring; the bots' logs play checkpoint for checkpoint as on
  *  pinRev 6, never score less, and replay through the server; a flawless-level run reaches 200 more often.
+ *  Meteor snakeRev 13 (wrap-around edges, the core full at 36): wiring; the wrap on a built state (out the right edge,
+ *  in at the left in the same row; out the top, in at the bottom); the bots' logs play tick for tick as on snakeRev 12
+ *  until snakeRev 12's wall crash, and on past it; the server replay; nobody crashes into a wall.
  *  The shared Retro HUD: every count it draws is at least 11 px (retroHudFloorPx).
  *
  *   bun scripts/retro-overhaul-check.ts
@@ -73,6 +76,9 @@ import { bot as pinballBot } from "./arcade-skill-bands/bots/pinball";
 import { replayPinballRun } from "../src/lib/duel/pinball";
 import { pinballGameForAny } from "../src/lib/arcade/pinball4";
 import { PIN_REV_JOULZ, PIN_REV_STD } from "../src/lib/arcade/pinball";
+import { bot as snakeBot } from "./arcade-skill-bands/bots/snake";
+import { replaySnakeRun } from "../src/lib/duel/snake";
+import { snakeColsOf, snakeGameFor, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, type SnakeState } from "../src/lib/arcade/snake";
 import { RETRO_HUD_MIN_PX, retroHudFloorPx } from "../src/lib/arcade/retro.renderer";
 
 let checks = 0;
@@ -348,6 +354,69 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   ok(at200[1] >= at200[0], `pinball: elite and flawless runs at 200 on pinRev 6 / 7: ${at200[0]} / ${at200[1]} of 8`);
 }
 
+/* ============================ Meteor snakeRev 13 ============================ */
+{
+  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_WRAP && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 13");
+  pinPreRetro(true);
+  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_12, "snake: preRetro deals snakeRev 12");
+  pinPreRetro(false);
+  ok(LIVE_BANDS.snake.rev === SNAKE_REV_WRAP && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 13's core line");
+  ok(/edges wrap/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)) && !/Hit a wall/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)), "snake: the help says the edges wrap, not that a wall ends the run");
+  const g12 = snakeGameFor(SNAKE_REV_12);
+  const g13 = snakeGameFor(SNAKE_REV_WRAP);
+  ok(g13.runTicks <= 120 * TICKS_PER_SECOND, "snake: the run is at most 120 s");
+  for (const seed of [1, 99, 4242]) {
+    const { wrap, ...rest } = g13.init(seed) as SnakeState;
+    ok(wrap === 1 && sorted(rest) === sorted(g12.init(seed)), `snake seed ${seed}: snakeRev 13 starts from snakeRev 12's exact world`);
+  }
+  // The wrap rule on built heads.
+  const s0 = g13.init(4242) as SnakeState;
+  const cols = snakeColsOf(s0);
+  const rows = snakeRowsOf(s0);
+  const at = (row: number, col: number) => row * cols + col;
+  const exit = (cell: number, dir: number, st: SnakeState = s0) => snakeTarget({ ...st, body: [cell], warps: undefined } as SnakeState, dir);
+  ok(exit(at(5, cols - 1), 1) === at(5, 0) && exit(at(5, 0), 3) === at(5, cols - 1), "snake: out the right edge, in at the left in the same row (and back)");
+  ok(exit(at(0, 4), 0) === at(rows - 1, 4) && exit(at(rows - 1, 4), 2) === at(0, 4), "snake: out the top, in at the bottom in the same column (and back)");
+  ok(exit(at(5, cols - 1), 1, { ...s0, wrap: undefined } as SnakeState) === -1, "snake: snakeRev 12's walls still end the move");
+  // The bots' logs.
+  const spec = GAME_BY_TYPE.get("snake" as never)!;
+  const play = (rev: number, seed: number, events: any[]) => {
+    const game = snakeGameFor(rev);
+    const by = new Map(events.map((e: any) => [e.t, e]));
+    let s = game.init(seed) as SnakeState;
+    const trace: string[] = [];
+    const checkpoints: unknown[] = [];
+    while (!game.isOver(s)) {
+      s = game.step(s, by.get(s.tick + 1) ?? null) as SnakeState;
+      trace.push(`${s.body.join(".")}|${s.eaten}|${s.pellet}|${(s.rocks ?? []).join(".")}`);
+      if (s.tick % 300 === 0) checkpoints.push(spec.checkpoint(s));
+    }
+    return { state: s, trace, checkpoints, score: game.score(s) };
+  };
+  let walled = 0;
+  for (const level of ["weak", "average", "good", "near"] as const)
+    for (let n = 0; n < 5; n++) {
+      const seed = spec.seedFor(n);
+      const tag = `snake ${level} seed ${seed}`;
+      const out = snakeBot({ game: g12, seed, rev: SNAKE_REV_12, human: new Human("snake", seed, level as never), fixes: true });
+      const events = out.events ?? [];
+      const a = play(SNAKE_REV_12, seed, events);
+      const b = play(SNAKE_REV_WRAP, seed, events);
+      const wallEnd = a.state.dead && !a.state.rockHit && a.state.body.length > 0 && snakeTarget(a.state, a.state.dir) < 0;
+      const upTo = a.state.dead ? a.trace.length - 1 : a.trace.length;
+      ok(JSON.stringify(a.trace.slice(0, upTo)) === JSON.stringify(b.trace.slice(0, upTo)), `${tag}: snakeRev 13 plays tick for tick as snakeRev 12 until its end`);
+      if (wallEnd && a.state.tick < g12.runTicks) {
+        walled++;
+        ok(b.state.tick > a.state.tick, `${tag}: snakeRev 12's wall crash at tick ${a.state.tick} is a wrap on snakeRev 13 (ran to ${b.state.tick})`);
+      }
+      ok(!(b.state.dead && !b.state.rockHit && snakeTarget(b.state, b.state.dir) < 0), `${tag}: no wall crash on snakeRev 13`);
+      const raw = spec.encode({ seed, claimedScore: b.score, events, endTick: b.state.tick, checkpoints: b.checkpoints }, SNAKE_REV_WRAP, seed);
+      const res = replaySnakeRun(seed, raw, SNAKE_REV_WRAP);
+      ok(!res.flagged && res.score === b.score, `${tag}: replays through the server to ${b.score} (got ${res.score}${res.flagged ? ", flagged" : ""})`);
+    }
+  ok(walled >= 2, `snake: ${walled} wall crashes turned into wraps`);
+}
+
 /* ============================ The shared Retro HUD ============================ */
 {
   ok(RETRO_HUD_MIN_PX === 11, `the Retro HUD's smallest count is 11 px (${RETRO_HUD_MIN_PX})`);
@@ -362,4 +431,4 @@ if (failures.length) {
   console.log(`FAIL retro-overhaul-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; the Retro HUD floor)`);
+console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; the Retro HUD floor)`);

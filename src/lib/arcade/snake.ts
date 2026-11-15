@@ -190,6 +190,8 @@ export interface SnakeState extends BandFields {
   laneRides?: number;
   /** snakeRev 12 only (1 Nov 2026): 1 = a gold star counts SNAKE_V12_GOLD_CORE stars towards the core, full at SNAKE_V12_CORE_STARS. */
   gold2?: number;
+  /** snakeRev 13 only (the Retro overhaul, 15 Nov 2026): 1 = the edges wrap (out one side, in the other in the same line). */
+  wrap?: number;
 }
 
 /** Grid rows a state plays on: Tuning E's taller grid, or the original 20. */
@@ -393,7 +395,13 @@ export function snakeTarget(state: SnakeState, dir: number): number {
   const head = state.body[0] ?? 0;
   const row = snakeRow(head, cols) + (dir === 0 ? -1 : dir === 2 ? 1 : 0);
   const col = snakeCol(head, cols) + (dir === 1 ? 1 : dir === 3 ? -1 : 0);
-  if (row < 0 || row >= snakeRowsOf(state) || col < 0 || col >= cols) return -1;
+  const rows = snakeRowsOf(state);
+  if (row < 0 || row >= rows || col < 0 || col >= cols) {
+    // snakeRev 13: through one edge and out of the opposite one, in the same row or column.
+    if (!state.wrap) return -1;
+    const cellW = cellOf((row + rows) % rows, (col + cols) % cols, cols);
+    return state.warps ? snakeWarpExit(state.warps, cellW) : cellW;
+  }
   const cell = cellOf(row, col, cols);
   return state.warps ? snakeWarpExit(state.warps, cell) : cell;
 }
@@ -599,6 +607,8 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
   if (state.std) extra.push(state.std, state.goldLeft ?? 0, state.laneRides ?? 0);
   // snakeRev 12: its marker after that, so every snakeRev 11 checksum is unchanged.
   if (state.gold2) extra.push(state.gold2);
+  // snakeRev 13 (the Retro overhaul): the wrap marker and its core figure, last.
+  if (state.wrap) extra.push(state.wrap);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -717,6 +727,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_WRAP) return snakeV13Game;
   if (rev === SNAKE_REV_12) return snakeV12Game;
   if (rev === SNAKE_REV_STD) return snakeStdGame;
   if (rev === SNAKE_REV_10) return snakeV10Game;
@@ -769,7 +780,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12) return SNAKE_V9_H;
+  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP) return SNAKE_V9_H;
   return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET || rev === SNAKE_REV_STRICT ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
@@ -876,7 +887,7 @@ export function snakeWorldWOf(state: { cols?: number }): number {
 }
 /** The world width (px) a stored round's snakeRev plays in. */
 export function snakeWorldWForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
+  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
 }
 
 /** The other mouth of a wormhole, or the square itself when it is not a mouth. */
@@ -1303,7 +1314,7 @@ export interface SnakeStdParts {
 /** snakeRev 11's parts, each within its maximum (snakeRev 12: the core counts gold stars twice, full at 28). */
 export function snakeStdParts(state: SnakeState): SnakeStdParts {
   return {
-    core: state.gold2 ? snakeV12Core(snakeCoreStars(state)) : snakeStdCore(state.eaten),
+    core: state.wrap ? snakeV13Core(snakeCoreStars(state)) : state.gold2 ? snakeV12Core(snakeCoreStars(state)) : snakeStdCore(state.eaten),
     gold: snakeStdGoldPoints(state.goldLeft ?? 0, (state.golds ?? []).length, state.goldLife ?? SNAKE_GOLD_LIFE),
     combo: Math.min(SNAKE_STD_CAPS.combo, state.comboPts ?? 0),
     lane: Math.min(SNAKE_STD_CAPS.lane, SNAKE_STD_LANE_POINTS * (state.laneRides ?? 0)),
@@ -1332,7 +1343,7 @@ function snakeStdBandParts(state: SnakeState): BandParts {
     bonus,
     penalty: 0,
     finished: false,
-    text: `${counted} (${SNAKE_STD_CORE_MAX} at ${state.gold2 ? SNAKE_V12_CORE_STARS : SNAKE_STD_CORE_STARS})`,
+    text: `${counted} (${SNAKE_STD_CORE_MAX} at ${state.wrap ? SNAKE_V13_CORE_STARS : state.gold2 ? SNAKE_V12_CORE_STARS : SNAKE_STD_CORE_STARS})`,
     bonusText: `Gold ${p.gold}/${C.gold} · combos ${p.combo}/${C.combo} · lanes ${p.lane}/${C.lane} · warps ${p.warp}/${C.warp}`,
   };
 }
@@ -1378,3 +1389,28 @@ function initV12(seed: number): SnakeState {
 }
 
 export const snakeV12Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeStdGame, init: initV12 };
+
+/* ================= The Retro overhaul: wrap-around edges (snakeRev 13, 15 Nov 2026) ================= */
+
+/**
+ * snakeRev 13 (the Retro overhaul, docs/design/game-reviews/retro.md "Meteor", docs/arcade-standard/snake.md "snakeRev
+ * 13"): snakeRev 12's world, rocks, shower, lanes, wormholes, gold schedule and parts, with two changes:
+ *
+ *  - The edges wrap (Normal; Hard and Expert keep deadly walls when levels come): the head goes out through one edge and
+ *    comes in through the opposite one in the same row or column, so a wall no longer ends a run. Rocks and the
+ *    meteor's own tail still do.
+ *  - The core is full at SNAKE_V13_CORE_STARS core stars (snakeRev 12: 28, which 87 % of Near-perfect runs filled, so
+ *    the top levels bunched); a gold star still counts 2.
+ *
+ * States add `wrap: 1`, folded into the checkpoint checksum last.
+ */
+export const SNAKE_REV_WRAP = 13;
+export const SNAKE_V13_CORE_STARS = 36;
+export const SNAKE_V13_BAND_CURVE = bandCurve([0, SNAKE_V13_CORE_STARS], [0, SNAKE_STD_CORE_MAX]);
+
+/** snakeRev 13's core points: the straight line to SNAKE_STD_CORE_MAX at SNAKE_V13_CORE_STARS core stars. */
+export function snakeV13Core(stars: number): number {
+  return Math.trunc((SNAKE_STD_CORE_MAX * clampInt(stars, 0, SNAKE_V13_CORE_STARS)) / SNAKE_V13_CORE_STARS);
+}
+
+export const snakeV13Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeV12Game, init: (seed) => ({ ...initV12(seed), wrap: 1 }) };

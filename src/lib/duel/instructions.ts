@@ -976,7 +976,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     snake: {
       goal: "Eat the stars; don’t crash.",
       how: [
-        { action: "Swipe to turn.", detail: "Stars grow and speed you up." },
+        { action: "Swipe to turn.", detail: "Off one edge, on at the other." },
         { action: "Red shadow?", detail: "A rock lands there in 2 s." },
         { action: "Gold stars, lanes, wormholes:", detail: "bonus points." },
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
@@ -988,7 +988,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. A big rock fills a 2 × 2 block: keep your head off all four squares.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
-        { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
+        { action: "The edges wrap:", detail: "go out through one side and you come back in on the opposite side, in the same row or column. Stars make you longer and faster.", helpOnly: true },
+        { action: "Hit your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
         { action: "Field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],

@@ -405,7 +405,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("rally", "Target practice", "Hit all six gold targets.", "C", "fullset", false, part("Gold targets", 30)),
   ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "maxout", false, part("Gold-ball hits", 130)),
   // Meteor (snake): stars 120 + gold stars 40 + combos 20 + lane rides 10 + warp stars 10.
-  ch("snake", "Star eater", "Eat 28 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
+  ch("snake", "Star eater", "Eat 36 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
   ch("snake", "Comet tail", "Score 150 or more.", "C", "bigscore", false, score(150)),
   ch("snake", "Golden comet", "Eat all seven gold stars.", "C", "fullset", false, all(f("goldStars", "gte", "@goldStarsDealt"), f("goldStarsDealt", "gte", 7))),
   // Wavefront (wavefront): ships 150 + boss destroyed 10 + boss speed 10 + saucers 20 + cannons and weak points 10.

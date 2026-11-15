@@ -20,7 +20,7 @@ import { CROSS_REV_KEEP, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross"
 import { MINES_REV_LOGIC, MINES_STD_SPEC_V2, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
 import { RALLY_REV_LIVES, RALLY_REV_STRICT, RALLY_STD_SPEC_V13, RALLY_V13_BAND_CURVE } from "./rally";
-import { SNAKE_REV_12, SNAKE_REV_STRICT, SNAKE_V12_BAND_CURVE } from "./snake";
+import { SNAKE_REV_WRAP, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
@@ -109,7 +109,8 @@ export const LIVE_BANDS = {
   rally: { field: "rallyRev", rev: RALLY_REV_LIVES, curve: RALLY_V13_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC_V13 },
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides
   // and warp stars pay up to 80 more (the help says so). snakeRev 11: 120 at 27 stars (SNAKE_V11_BAND_CURVE).
-  snake: { field: "snakeRev", rev: SNAKE_REV_12, curve: SNAKE_V12_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
+  // snakeRev 13 (the Retro overhaul, 15 Nov 2026): wrap-around edges; the core full at 36 core stars.
+  snake: { field: "snakeRev", rev: SNAKE_REV_WRAP, curve: SNAKE_V13_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_STD, curve: BINTOSS_V9_BAND_CURVE, strictRev: BINTOSS_REV_STRICT, std: BINTOSS_STD_SPEC },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).

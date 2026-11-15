@@ -29,7 +29,7 @@ import { CLAY_CONFIG, CLAY_QUICK_FULL_TICKS, CLAY_STREAK_POINTS } from "../src/l
 import { WHACK_COMBO_FULL_PCT, WHACK_COMBO_POINTS, WHACK_QUICK_FULL_TICKS, whackComboMaxPips, whackComboMultiplier, whackGame } from "../src/lib/arcade/whack";
 import { SKYLINE_V9_FULL_AT } from "../src/lib/arcade/skyline";
 import { SLICE_V12_COMBO_FULL } from "../src/lib/arcade/slice";
-import { SNAKE_STD_CORE_MAX, SNAKE_STD_GOLDS, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE } from "../src/lib/arcade/snake";
+import { SNAKE_STD_CORE_MAX, SNAKE_STD_GOLDS, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE, SNAKE_V13_CORE_STARS } from "../src/lib/arcade/snake";
 import { WAV_LIVES, WAV_X_SAUCERS } from "../src/lib/arcade/wavefront";
 import { CROSS_V11_CLOSE_MAX, CROSS_V11_FLOW_EACH, CROSS_V11_FLOW_MAX } from "../src/lib/arcade/cross";
 import { BURST_V10_GOLDENS, BURST_V10_WAVES } from "../src/lib/arcade/burst";
@@ -230,7 +230,9 @@ function expectations(): Record<string, Expect> {
     "rally.pink-pong": { say: [[5, 15 / 3]], th: [[15, 5 * Number(/(\d+) each time/.exec(specPart("rally", "Pink pads")?.how ?? "")?.[1])]] },
     "rally.target-practice": { say: [[6, Number(/of the (\d+) gold targets/.exec(specPart("rally", "Gold targets")?.how ?? "")?.[1])]] },
     "rally.rally-king": { say: [[23, Number(/for (\d+) hits/.exec(specPart("rally", "Gold-ball hits")?.how ?? "")?.[1])]] },
-    "snake.star-eater": { say: [[28, SNAKE_V12_CORE_STARS], [2, SNAKE_V12_GOLD_CORE]], th: [[120, SNAKE_STD_CORE_MAX]] },
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13's core is full at
+    // 36 core stars (snakeRev 12: 28), so the goal's text says 36.
+    "snake.star-eater": { say: [[36, SNAKE_V13_CORE_STARS], [2, SNAKE_V12_GOLD_CORE]], th: [[120, SNAKE_STD_CORE_MAX]] },
     "snake.golden-comet": { say: [[7, SNAKE_STD_GOLDS]], th: [[7, SNAKE_STD_GOLDS]] },
     "wavefront.boss-fight": { th: [[1, 1]] },
     "wavefront.saucer-spotter": { say: [[5, WAV_X_SAUCERS]] },

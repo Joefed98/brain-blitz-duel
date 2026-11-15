@@ -43,8 +43,7 @@ import {
   snakeGameFor, snakeStdParts, snakeCoreStars, snakeV12Core, snakeStdCore, snakeRow, snakeWorldHForRev, snakeWorldWForRev,
   SNAKE_REV_STD, SNAKE_REV_12, SNAKE_V12_BAND_CURVE, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE, SNAKE_V9_COLS, SNAKE_V9_ROWS,
   SNAKE_STD_CAPS, SNAKE_STD_CORE_MAX, SNAKE_INPUT_TURN,
-  type SnakeState,
-} from "../src/lib/arcade/snake";
+  type SnakeState, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE } from "../src/lib/arcade/snake";
 
 const RECORD = process.argv.includes("--record");
 const LEGACY = "scripts/fixtures/snake-rev12-legacy.json.gz";
@@ -83,8 +82,10 @@ const without = (s: SnakeState) => {
 };
 
 /* 1. Wiring. */
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_12 && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
-ok(LIVE_BANDS.snake.rev === SNAKE_REV_12 && LIVE_BANDS.snake.curve === SNAKE_V12_BAND_CURVE, "the help reads snakeRev 12's core line");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 13 (the edges
+// wrap, the core full at 36), one above snakeRev 12; the help reads its core line.
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_WRAP && SNAKE_REV_WRAP === SNAKE_REV_12 + 1 && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
+ok(LIVE_BANDS.snake.rev === SNAKE_REV_WRAP && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE && SNAKE_V12_BAND_CURVE.points.at(-1) === SNAKE_V13_BAND_CURVE.points.at(-1), "the help reads snakeRev 12's core line");
 ok(JSON.stringify(SNAKE_V12_BAND_CURVE.units) === JSON.stringify([0, 28]) && JSON.stringify(SNAKE_V12_BAND_CURVE.points) === JSON.stringify([0, 120]), "the help's curve is the straight line 0 → 0, 20 → 120");
 ok(SNAKE_V12_CORE_STARS === 28 && SNAKE_V12_GOLD_CORE === 2, "the core is full at 28 core stars; a gold star counts 2");
 ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
@@ -100,7 +101,8 @@ ok(playRevOf("snake", SNAKE_REV_12) === 10 && playRevOf("snake", SNAKE_REV_STD) 
   const intro = INTRO_SCORE.snake;
   ok(intro.length <= 90 && /stars/.test(intro) && intro.includes("gold stars") && intro.endsWith("Up to 200."), `the intro states the stars, the gold stars and the top: ${intro}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(demo.includes('demo.puzzle.snakeRev !== SNAKE_REV_12) return null;'), "the intro demo plays only when recorded on snakeRev 12");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the rule names the dealt snakeRev 13.
+  ok(demo.includes('demo.puzzle.snakeRev !== SNAKE_REV_WRAP) return null;'), "the intro demo plays only when recorded on the dealt stamp (snakeRev 13)");
   const renderer = readFileSync("src/lib/arcade/snake.renderer.ts", "utf8");
   ok(renderer.includes("`STARS ${snakeCoreStars(state)}`") && !renderer.includes("`STARS ${state.eaten}`"), "the HUD counts the core's stars");
 }

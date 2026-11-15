@@ -142,7 +142,7 @@ import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_SIX, MATCHUP_REV_STD, MA
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_FLOW, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
-import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12 } from "@/lib/arcade/snake";
+import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12, SNAKE_REV_WRAP } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
@@ -1031,6 +1031,8 @@ const GAMES: Game[] = [
   { key: "rally/lives", game: rallyGameFor(RALLY_REV_LIVES), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_LIVES) },
   // Pinball pinRev 7 (15 Nov 2026, the Retro overhaul: one J-O-U-L-Z set), appended so every earlier entry keeps its stream.
   { key: "pinball/joulz", game: pinball7Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_JOULZ) },
+  // Meteor snakeRev 13 (15 Nov 2026, the Retro overhaul: wrap-around edges), appended so every earlier entry keeps its stream.
+  { key: "snake/wrap", game: snakeGameFor(SNAKE_REV_WRAP), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_WRAP) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

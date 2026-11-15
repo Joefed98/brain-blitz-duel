@@ -576,7 +576,7 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Star eater | Eat 28 stars; a gold star counts as two. | Classic | Target | `meteorParts.core` ≥ 120 |  | `snake.star-eater` |
+| Star eater | Eat 36 stars; a gold star counts as two. | Classic | Target | `meteorParts.core` ≥ 120 |  | `snake.star-eater` |
 | Comet tail | Score 150 or more. | Classic | Big score | `score` ≥ 150 |  | `snake.comet-tail` |
 | Golden comet | Eat all seven gold stars. | Classic | Full set | `goldStars` ≥ `goldStarsDealt`, `goldStarsDealt` ≥ 7 |  | `snake.golden-comet` |
 

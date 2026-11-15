@@ -88,12 +88,16 @@ import {
   type SnipState,
 } from "../src/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "../src/lib/duel/snip";
-import { generateSkyline, generateSnake, generateSnip } from "../src/lib/duel/arcade.server";
+import { generateSkyline, generateSnake, generateSnip, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playSnipLevel } from "./snip-solver";
 import { playSnipRun, SNIP_PROOFS } from "./snip-run-bot";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 13 (the edges
+// wrap); this check was written for the deal before it, so it pins preRetro (snakeRev 12 and the other pre-overhaul stamps).
+pinPreRetro(true);
 
 /** A flawless player for best-score proofs: quick, never lapses, no timing, aim or judgement error. */
 const PERFECT: SkillProfile = { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.3, judgement: 0, trackLagMs: 30 };

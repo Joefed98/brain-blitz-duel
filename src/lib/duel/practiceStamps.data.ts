@@ -74,7 +74,7 @@ export const PRACTICE_STAMPS = {
   "shikaku": "depthRev=3 puzzleScoreRev=3 speedPar=1",
   "skyline": "puzzleScoreRev=3 skylineRev=10 speedPar=1",
   "slice": "puzzleScoreRev=3 sliceRev=13 speedPar=1",
-  "snake": "puzzleScoreRev=3 snakeRev=12 speedPar=1",
+  "snake": "puzzleScoreRev=3 snakeRev=13 speedPar=1",
   "snip": "puzzleScoreRev=3 snipRev=11 speedPar=1",
   "spotdiff": "puzzleScoreRev=3 speedPar=1 spotRev=3",
   "steady": "puzzleScoreRev=3 speedPar=1",
