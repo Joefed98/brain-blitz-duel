@@ -146,8 +146,9 @@
 }
 
 .duel-start-bolt {
-  width: 96%;
-  height: 96%;
+  /* The bolt lands at about two thirds of the screen (it filled it), drawn with depth (LogoMark `depth`). */
+  width: 68%;
+  height: 68%;
   color: var(--primary);
   transform: scale(0.04);
   transform-origin: center;
@@ -239,10 +240,12 @@
   animation-iteration-count: 1;
 }
 
-/* Prepare to Duel */
+/* Prepare to Duel (its rings, streaks, floor, embers, sweep and charge in the champagne gold, never the bright yellow;
+   the effects pass, 15 Nov 2026, Joe) */
+.room-fx[data-moment="prepare"] { --primary: var(--jz-gold); }
 [data-moment="prepare"] [data-part="glow"] {
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(245, 184, 46, 0.3) 0%, rgba(245, 184, 46, 0.08) 34%, transparent 62%);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--jz-gold) 30%, transparent) 0%, color-mix(in srgb, var(--jz-gold) 8%, transparent) 34%, transparent 62%);
   animation-name: rfx-prepare-glow;
   animation-timing-function: linear;
 }
@@ -266,9 +269,11 @@
   animation-name: rfx-streak-in;
   animation-timing-function: cubic-bezier(0.4, 0, 0.75, 0.6);
 }
+/* The landing flash (the effects pass, 15 Nov 2026, Joe: no glare, no bright yellow): a brief champagne bloom round the
+   bolt, fading out well before the screen's edges, never a full-screen wash. */
 [data-moment="prepare"] [data-part="flash"] {
   inset: 0;
-  background: var(--primary);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--jz-gold) 42%, transparent) 0%, color-mix(in srgb, var(--jz-gold) 14%, transparent) 26%, transparent 48%);
   animation-name: rfx-flash;
 }
 @keyframes rfx-prepare-glow { 0% { opacity: 0; } 30% { opacity: 0.35; } 88% { opacity: 0.75; } 100% { opacity: 0; } }
@@ -403,6 +408,13 @@
   70% { transform: rotate(0deg) scale(1); }
   88% { opacity: 0.7; }
   100% { opacity: 0; transform: rotate(0deg) scale(1); }
+}
+
+/* Rounds 2–6 (the effects pass, 15 Nov 2026, Joe): every part of a round's look and backdrop in the app's champagne
+   gold over a still navy wash, like the Final round; the category's colour stays on its word under the title. */
+.room-fx[data-moment="round"] { --category-accent: var(--jz-gold); }
+.room-fx[data-moment="round"]:not([data-over]) {
+  background: radial-gradient(ellipse 70% 55% at 50% 50%, color-mix(in srgb, var(--jz-surface) 92%, transparent) 0%, transparent 100%);
 }
 
 /* Final Round: gold edges, shock rings, gold rails, a punch on the title */

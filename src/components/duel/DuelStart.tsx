@@ -98,6 +98,7 @@ export function DuelStart({
           className="duel-start-logo h-full w-full"
           viewBox={DUEL_START_LOGO_VIEWBOX}
           lineWidth={LOGO_HAIRLINE_PX}
+          depth
         />
       </div>
     </div>

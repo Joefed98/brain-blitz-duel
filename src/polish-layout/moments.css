@@ -105,7 +105,8 @@
   font-size: min(70vw, 62vh);
   font-weight: var(--jz-weight-black);
   line-height: 1;
-  color: var(--category-accent, var(--jz-gold));
+  /* Champagne gold on every round (Joe, 15 Nov 2026), never the category colour. */
+  color: var(--jz-gold);
   opacity: 0.08;
   pointer-events: none;
   animation: round-ghost-in 2400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;

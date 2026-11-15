@@ -218,6 +218,21 @@ const { setBatterySaver } = await import("../src/lib/battery");
   check(/@media \(max-height: 720px\) \{[^}]*\[data-answer-reveal\]\[data-answer-reveal\],\s*\[data-answer-reveal\] > \.flex-col \{\s*gap: 6px;/.test(gfx), "the reveal's gaps tighten on short screens");
 }
 
+/* 7. Joe's notes on the effects pass (15 Nov 2026): no glare, no bright yellow; the rounds in champagne gold and navy. */
+{
+  const css = read("src/styles.css");
+  const flash = css.split('[data-moment="prepare"] [data-part="flash"] {')[1]?.split("}")[0] ?? "";
+  check(/radial-gradient\(circle at 50% 50%, color-mix\(in srgb, var\(--jz-gold\) 42%, transparent\)[^;]*transparent 48%\)/.test(flash) && !/var\(--primary\)/.test(flash), "Prepare's landing flash is a champagne bloom round the bolt, never a full-screen wash");
+  check(/\.room-fx\[data-moment="prepare"\] \{ --primary: var\(--jz-gold\); \}/.test(css), "Prepare's parts take the champagne gold, never the bright yellow");
+  check(!/rgba\(245, 184, 46/.test(css.split('[data-moment="prepare"] [data-part="glow"] {')[1]!.split("}")[0]!), "Prepare's glow has no bright yellow");
+  const mark = read("src/components/brand/LogoMark.tsx");
+  check(/depth \? \(\s*<g data-logo-depth="">[^]*?url\(#\$\{id\}-metal\)[^]*?url\(#\$\{id\}-shine\)[^]*?stroke: "var\(--jz-art-gold-deep\)"/.test(mark), "the large bolt has depth: a metal body, a highlight and an edge");
+  check(/lineWidth=\{LOGO_HAIRLINE_PX\}\s*depth\s*\/>/.test(read("src/components/duel/DuelStart.tsx")), "Prepare to Duel draws its bolt with depth");
+  check(/\.room-fx\[data-moment="round"\] \{ --category-accent: var\(--jz-gold\); \}/.test(css), "rounds 2–6: every part in the champagne gold, never the category colour (no teal orbs or corners)");
+  check(/\.room-fx\[data-moment="round"\]:not\(\[data-over\]\) \{\s*background: radial-gradient\(ellipse 70% 55% at 50% 50%, color-mix\(in srgb, var\(--jz-surface\) 92%, transparent\)/.test(css), "rounds 2–6 sit on a still navy wash");
+  check(/\.round-title-ghost \{[^}]*color: var\(--jz-gold\);/.test(read("src/polish-layout/moments.css")), "the round's large numeral is champagne gold");
+}
+
 if (failures.length) {
   for (const f of failures) console.log(`  - ${f}`);
   console.log(`FAIL: app-moments-check: ${failures.length} of ${failures.length + passes}`);
