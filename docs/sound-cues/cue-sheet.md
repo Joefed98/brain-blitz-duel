@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 42 | 0 | 488 | 530 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 68 | 1 | 984 | 1053 |
 
 ## Silent and placeholder cues
 
@@ -253,6 +253,18 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
+
+### Grappler
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `swing.ropeSnap` |  [action-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `swing.ropeSnap` |
+| `swing.speedWhoosh` |  [action-elevenlabs.md] |  | 5–40 (per move) | silent | none | 450 | game event | `swing.speedWhoosh` |
+| `swing.courseCleared` |  [action-elevenlabs.md] |  | 5–40 (per move) | silent | none | 1600 | game event | `swing.courseCleared` |
+| `swing.streakMeter` |  [action-elevenlabs.md] |  | 5–40 (per move) | silent | none | 120 | game event | `swing.streakMeter` |
+| `swing.outOfReach` |  [action-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | game event | `swing.outOfReach` |
+| `swing.pteroShadow` |  [action-elevenlabs.md] |  | 5–40 (per move) | silent | none | 1200 | game event | `swing.pteroShadow` |
+| `swing.stretchTally` |  [action-elevenlabs.md] |  | 5–40 (per move) | silent | none | 90 | game event | `swing.stretchTally` |
 
 ### Hot Floor
 
