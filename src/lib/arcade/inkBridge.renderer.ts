@@ -209,15 +209,15 @@ function paintBridge(c: CanvasRenderingContext2D,state:InkState):void {
     c.strokeStyle=rainbow(c,s.x0,s.y0,s.x1,s.y1,distance,len);
     c.beginPath();c.moveTo(s.x0,s.y0);c.lineTo(s.x1,s.y1);c.stroke();distance+=len;
   }
-  // Polish A2: a shine line along the ink, a thin white highlight on its upper side (inside the 6 px stroke).
-  c.lineWidth=1.4;c.strokeStyle='rgba(255,255,255,0.5)';
-  c.beginPath();
-  for(const s of state.segs){
+  // The Strategy overhaul (15 Nov 2026, display only): the ink as a glossy glass tube, all inside the 6 px stroke: a
+  // shade along its lower side, then a crisp white highlight on its upper side (Polish A2's shine, now sharper).
+  const along=(off:number)=>{c.beginPath();for(const s of state.segs){
     if(!s)continue;const len=Math.hypot(s.x1-s.x0,s.y1-s.y0);if(!len)continue;
     let nx=-(s.y1-s.y0)/len,ny=(s.x1-s.x0)/len;if(ny>0){nx=-nx;ny=-ny;}
-    c.moveTo(s.x0+nx*1.4,s.y0+ny*1.4);c.lineTo(s.x1+nx*1.4,s.y1+ny*1.4);
-  }
-  c.stroke();
+    c.moveTo(s.x0+nx*off,s.y0+ny*off);c.lineTo(s.x1+nx*off,s.y1+ny*off);
+  }c.stroke();};
+  c.lineWidth=1.6;c.strokeStyle='rgba(20,10,40,0.28)';along(-1.9);
+  c.lineWidth=1.3;c.strokeStyle='rgba(255,255,255,0.86)';along(1.5);
 }
 type BridgeCache={surface:ArtCanvas|null;segs:InkState['segs'];starts:InkState['strokeStarts'];k:number;h:number};
 const bridges=new WeakMap<CanvasRenderingContext2D,BridgeCache>();

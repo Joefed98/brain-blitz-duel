@@ -212,29 +212,54 @@ function facetedGem(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>,
   ctx.restore();
 }
 
-/** Flat table and bevel planes: fixed per cut, with three own-colour shades. */
+/**
+ * A cut stone (the Strategy overhaul, 15 Nov 2026, display only; was flat table and bevel planes in three shades): each
+ * bevel facet is lit by how it faces a light from the upper left, from deep shadow to near white, with its own
+ * gradient from the girdle in to the table; the table refracts (darker at its heart, bright at its edge); the most lit
+ * facet carries a crisp white specular strip, and the shared glint sits on top. All inside the cut's outline.
+ */
 function flatGem(ctx: CanvasRenderingContext2D, shape: string, cx: number, cy: number, r: number, colour: string): void {
   const pts = cutPoints(shape, cx, cy, r);
-  const inner = pts.map(([x, y]) => [cx + (x - cx) * 0.5, cy + (y - cy) * 0.5 - r * 0.12] as [number, number]);
-  const light = shade(colour, 0.28);
-  const dark = shade(colour, -0.3);
+  const inner = pts.map(([x, y]) => [cx + (x - cx) * 0.52, cy + (y - cy) * 0.52 - r * 0.1] as [number, number]);
+  const lx = -0.55, ly = -0.83;
   ctx.save();
   pathOf(ctx, pts);
   ctx.clip();
+  ctx.fillStyle = shade(colour, -0.45);
+  pathOf(ctx, pts);
+  ctx.fill();
+  let best = -2;
+  let bestK = 0;
   for (let k = 0; k < pts.length; k++) {
     const a = pts[k]; const b = pts[(k + 1) % pts.length];
     const ia = inner[k]; const ib = inner[(k + 1) % inner.length];
     if (!a || !b || !ia || !ib) continue;
-    const height = ((a[1] + b[1]) / 2 - cy) / r;
-    ctx.fillStyle = height < -0.3 ? light : height > 0.3 ? dark : colour;
+    const mx = (a[0] + b[0]) / 2 - cx, my = (a[1] + b[1]) / 2 - cy;
+    const len = Math.hypot(mx, my) || 1;
+    const lit = (mx / len) * lx + (my / len) * ly;
+    if (lit > best) { best = lit; bestK = k; }
+    const outer = shade(colour, lit > 0 ? 0.5 * lit : 0.62 * lit);
+    const innerC = shade(colour, lit > 0 ? 0.3 * lit + 0.05 : 0.35 * lit);
+    const g = ctx.createLinearGradient(cx + mx, cy + my, cx + mx * 0.5, cy + my * 0.5);
+    g.addColorStop(0, outer);
+    g.addColorStop(1, innerC);
+    ctx.fillStyle = g;
     pathOf(ctx, [a, b, ib, ia]);
     ctx.fill();
   }
+  // The table: light refracted round its edge, deeper at its heart.
+  const tcx = cx, tcy = cy - r * 0.1;
+  const table = ctx.createRadialGradient(tcx - r * 0.08, tcy - r * 0.08, 0, tcx, tcy, r * 0.55);
+  table.addColorStop(0, shade(colour, -0.12));
+  table.addColorStop(0.55, colour);
+  table.addColorStop(1, shade(colour, 0.32));
+  ctx.fillStyle = table;
   pathOf(ctx, inner);
-  ctx.fillStyle = light;
   ctx.fill();
-  ctx.strokeStyle = light;
-  ctx.lineWidth = 0.65;
+  // Facet edges: thin lighter lines, never a glowing outline.
+  ctx.strokeStyle = shade(colour, 0.35);
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = 0.6;
   ctx.beginPath();
   for (let k = 0; k < pts.length; k++) {
     const a = pts[k]; const b = inner[k];
@@ -243,15 +268,19 @@ function flatGem(ctx: CanvasRenderingContext2D, shape: string, cx: number, cy: n
   }
   ctx.stroke();
   pathOf(ctx, inner); ctx.stroke();
-  pathOf(ctx, pts); ctx.lineWidth = 1; ctx.stroke();
-  // Own-colour inner light is baked once into the clipped gem sprite.
-  const shine = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.25, 0, cx, cy, r * 0.9);
-  shine.addColorStop(0, shade(colour, 0.42));
-  shine.addColorStop(1, colour);
-  ctx.globalAlpha = 0.16;
-  ctx.fillStyle = shine;
-  pathOf(ctx, pts); ctx.fill();
   ctx.globalAlpha = 1;
+  // A crisp specular strip on the most lit facet.
+  const a = pts[bestK], b = pts[(bestK + 1) % pts.length], ia = inner[bestK], ib = inner[(bestK + 1) % inner.length];
+  if (a && b && ia && ib) {
+    const mid = (p: [number, number], q: [number, number], t: number): [number, number] => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+    ctx.fillStyle = "rgba(255,255,255,0.78)";
+    pathOf(ctx, [mid(a, ia, 0.22), mid(b, ib, 0.22), mid(b, ib, 0.42), mid(a, ia, 0.42)]);
+    ctx.fill();
+  }
+  pathOf(ctx, pts);
+  ctx.strokeStyle = shade(colour, -0.55);
+  ctx.lineWidth = 1;
+  ctx.stroke();
   gemGlint(ctx, pts, cx, cy, r);
   ctx.restore();
 }
