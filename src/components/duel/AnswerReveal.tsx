@@ -29,6 +29,7 @@ import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
 import { NewBestMoment } from "@/components/duel/NewBestMoment";
+import { FxNewBest, FxStars } from "@/components/fx/GameFx";
 import { MuteToggle } from "@/components/duel/MuteToggle";
 import {
   HERO_DANCE_MS,
@@ -635,6 +636,34 @@ export function StoredScore({ score, type }: { score: number | null; type: Puzzl
  * unsolved round shows an empty ring so the mark never flips from ✗ to partial. Each mark is an image named in
  * words (7 Nov 2026, accessibility audit #7): its glyphs were hidden and its wrapper unnamed, so it was silent.
  */
+/**
+ * The reveal's payoff row (phase 2 step 4 pass 2, the shared reveal layout): in practice, this game's mastery stars
+ * (Easy, Classic, Hard) landing with the kit's "stars" (the one just earned among them: "Star earned"), and the
+ * new-best badge with the kit's "newBest". Rooms show neither (their bests and stars are practice's).
+ */
+function RevealPayoff({ type, level, personalBest, starLine }: { type: string; level: unknown; personalBest: boolean; starLine: string | null }) {
+  const [stars, setStars] = useState<number | null>(null);
+  useEffect(() => {
+    // Read once the server's answer for this run has been counted (as the best line beside it).
+    const id = window.setTimeout(() => {
+      const view = practiceProgressNow();
+      const game = view?.games?.[type] as Record<string, { star?: boolean } | undefined> | undefined;
+      const earned = game ? (["easy", "classic", "hard"] as const).filter((l) => game[l]?.star).length : 0;
+      // A star this run earned counts even before the view catches up.
+      setStars(Math.max(earned, starLine ? 1 : 0));
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [type, level, starLine]);
+  if (stars === null) return null;
+  return (
+    <div data-reveal-payoff className="reveal-payoff shrink-0">
+      <FxStars earned={stars} total={3} label={`${stars} of 3 stars for this game`} />
+      {starLine ? <span data-reveal-star-earned className="reveal-payoff-note">Star earned</span> : null}
+      {personalBest ? <FxNewBest /> : null}
+    </div>
+  );
+}
+
 function Verdict({ correct, score }: { correct: boolean; score: number | null }) {
   if (!correct && score === null) {
     return <div data-verdict="pending" className="h-11 w-11 shrink-0 rounded-full border-2 border-border" aria-hidden="true" />;
@@ -854,6 +883,11 @@ function LiveAnswerReveal({
         </span>
       </div>
 
+      {/* The shared reveal layout (phase 2 step 4 pass 2): practice's stars and new best, for puzzles and arcade alike. */}
+      {practice && myScore !== null && answersReady ? (
+        <RevealPayoff type={puzzle.type} level={(puzzle as { level?: unknown }).level} personalBest={Boolean(personalBest)} starLine={starLine} />
+      ) : null}
+
       {ARCADE_REVEAL_RENDERERS[puzzle.type] && !PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
         <ArcadeReveal
           practice={practice}
@@ -877,7 +911,7 @@ function LiveAnswerReveal({
         {/* The hero's reserved strip (3 Nov 2026): only when the score earns a hero moment, above the verdict. */}
         {heroSpot ? <div data-hero-spot="" aria-hidden="true" className="reveal-hero-spot shrink-0" /> : null}
         {/* The verdict row: the mark in the category colour, "Solved in 53.2 s" in sentence case, the score in white. */}
-        <div data-verdict-row className="flex shrink-0 items-center gap-3 px-1">
+        <div data-verdict-row className="reveal-result flex shrink-0 items-center gap-3">
           {!puzzleOwnsRevealLayout && !FINISH_ONLY_TYPES.has(puzzle.type) ? <Verdict correct={myCorrect} score={myScore} /> : null}
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="reveal-verdict truncate">
