@@ -175,6 +175,17 @@ const EXEMPT: Record<string, string> = {
   "swing.ropeSnap": ACTION_ELEVENLABS,
   "swing.speedWhoosh": ACTION_ELEVENLABS,
   "swing.courseCleared": ACTION_ELEVENLABS,
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the stage-2 effects' slots,
+  // now fired, wait for Joe's files the same way.
+  "flip.nearMiss": ACTION_ELEVENLABS,
+  "flip.sweetGold": ACTION_ELEVENLABS,
+  "flip.flowCount": ACTION_ELEVENLABS,
+  "ricochet.scrollTally": ACTION_ELEVENLABS,
+  "ricochet.lanternSway": ACTION_ELEVENLABS,
+  "swing.outOfReach": ACTION_ELEVENLABS,
+  "swing.pteroShadow": ACTION_ELEVENLABS,
+  "swing.streakMeter": ACTION_ELEVENLABS,
+  "swing.stretchTally": ACTION_ELEVENLABS,
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

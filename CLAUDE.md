@@ -2617,6 +2617,19 @@ outside the repo.
   project), 363 KB in `public/orbit/planets/` (`orbitPlanetMaps.data.ts`), projected and lit by `orbitPlanets.renderer.ts`
   inside each collision circle, icy worlds taking only a cold cast (`orbitIceCast`). **Re-run the Blender script after
   changing a material.** `pinSkylinePreLives(true)` deals skylineRev 10 (deal pin `skylinePreLives`).
+- **The Action overhaul, stage 2** (15 Nov 2026; display, sound and reveal only except two stamps; each game's page in
+  `docs/arcade-standard/` has a stage-2 section, gallery "Stage 2" subsections). Two bigger-hero stamps with re-proved
+  deals: *Grappler* `swingRev 18` (`SWING_REV_BIG`, a 14 px body set only inside `withBody`, `SWING_BIG_DEAL` from
+  `bun scripts/swing-slide-deal.ts --rev=18`, `pinSwingPreBig(true)` deals 17, hero `GRAPPLER_V18_SCALE` 1.4×) and *Moon
+  Climb* `ricoRev 4` (`MOON_BIG_REV`, a 34 × 68 body, `ninjaBodyFor`, towers proved in the sim, `pinRicoPreBig(true)` deals
+  3); art-check holds each new figure in its own entry (Joe's approval), the old stamps exactly as main. Every game's effects
+  from Joe's list are drawn by its own renderer from the sim (flipFx.ts, swingEffects.renderer.ts, orbitEffects.renderer.ts,
+  bastionLook.ts, skyline.renderer.ts, ricochetNinja.renderer.ts); the six Action games draw no edge glow
+  (`ACTION_EDGELESS_GAMES` in success.renderer.ts, `arcadeFxEdgeless`; a spec's optional `moment` hook draws the
+  replacement); High Rise, Iron Wall, Roofbound and Grappler hold their submit briefly for the end card. The arcade reveal
+  draws a game's `PuzzleDefinition.RunPicture` (`GameRunPicture`) in place of the stat tiles: each Action game's run replayed
+  from the stored log through the real sim (`replaySwingRun` / `replayOrbitRun` take a no-op `observe`) and drawn as one
+  picture with big numbers.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
