@@ -125,11 +125,13 @@ export const REDRAWN_FRAMES: Record<string, { markup: string; style: Record<stri
 /** Redrawn name colours (as NAME_COLOURS). */
 export const REDRAWN_NAME_COLOURS: Record<string, { className: string; style: Record<string, string> }> = {
  "name-colour.chrome": {
-  "className": "rd-nc",
+  "className": "rd2-nc",
   "style": {
    "fontWeight": "900",
    "fontSize": "calc(19 * var(--pc-u))",
-   "background": "linear-gradient(180deg,#FFFFFF 0%,#EEF3FB 30%,#A3AFC6 47%,#3E4862 53%,#9AA6BE 72%,#F4F7FD 100%)",
+   "backgroundImage": "url(/cosmetics/redrawn/nc.chrome.webp)",
+   "backgroundSize": "100% 100%",
+   "backgroundPosition": "center",
    "WebkitBackgroundClip": "text",
    "backgroundClip": "text",
    "color": "transparent",
@@ -137,11 +139,13 @@ export const REDRAWN_NAME_COLOURS: Record<string, { className: string; style: Re
   }
  },
  "name-colour.neon-pink": {
-  "className": "rd-nc",
+  "className": "rd2-nc",
   "style": {
    "fontWeight": "900",
    "fontSize": "calc(19 * var(--pc-u))",
-   "background": "linear-gradient(180deg,#FFE6F7 0%,#FF9BE3 34%,#FF4FC4 66%,#D11E92 100%)",
+   "backgroundImage": "url(/cosmetics/redrawn/nc.neon-pink.webp)",
+   "backgroundSize": "100% 100%",
+   "backgroundPosition": "center",
    "WebkitBackgroundClip": "text",
    "backgroundClip": "text",
    "color": "transparent",
@@ -149,11 +153,13 @@ export const REDRAWN_NAME_COLOURS: Record<string, { className: string; style: Re
   }
  },
  "name-colour.neon-cyan": {
-  "className": "rd-nc",
+  "className": "rd2-nc",
   "style": {
    "fontWeight": "900",
    "fontSize": "calc(19 * var(--pc-u))",
-   "background": "linear-gradient(180deg,#EFFEFF 0%,#8AF3FF 34%,#22D3EE 66%,#0E8FB2 100%)",
+   "backgroundImage": "url(/cosmetics/redrawn/nc.neon-cyan.webp)",
+   "backgroundSize": "100% 100%",
+   "backgroundPosition": "center",
    "WebkitBackgroundClip": "text",
    "backgroundClip": "text",
    "color": "transparent",
@@ -161,11 +167,13 @@ export const REDRAWN_NAME_COLOURS: Record<string, { className: string; style: Re
   }
  },
  "name-colour.neon-red": {
-  "className": "rd-nc",
+  "className": "rd2-nc",
   "style": {
    "fontWeight": "900",
    "fontSize": "calc(19 * var(--pc-u))",
-   "background": "linear-gradient(180deg,#FFE6E6 0%,#FF8A8A 34%,#F23A48 66%,#A9142A 100%)",
+   "backgroundImage": "url(/cosmetics/redrawn/nc.neon-red.webp)",
+   "backgroundSize": "100% 100%",
+   "backgroundPosition": "center",
    "WebkitBackgroundClip": "text",
    "backgroundClip": "text",
    "color": "transparent",
@@ -173,11 +181,13 @@ export const REDRAWN_NAME_COLOURS: Record<string, { className: string; style: Re
   }
  },
  "name-colour.electric-orange": {
-  "className": "rd-nc",
+  "className": "rd2-nc",
   "style": {
    "fontWeight": "900",
    "fontSize": "calc(19 * var(--pc-u))",
-   "background": "linear-gradient(180deg,#FFF4C8 0%,#FFC44D 34%,#FF7D1F 66%,#C8420C 100%)",
+   "backgroundImage": "url(/cosmetics/redrawn/nc.electric-orange.webp)",
+   "backgroundSize": "100% 100%",
+   "backgroundPosition": "center",
    "WebkitBackgroundClip": "text",
    "backgroundClip": "text",
    "color": "transparent",
@@ -204,44 +214,44 @@ export const REDRAWN_CARD_CSS: Record<string, string> = {
 /** Redrawn avatar finishes (as FINISHES). */
 export const REDRAWN_FINISHES: Record<string, FinishArt> = {
  "avatar-finish.chrome": {
-  "paint": "url(#{{p}}rdch)",
-  "defs": "<linearGradient id=\"{{p}}rdch\" x1=\"0\" y1=\"0\" x2=\"0.25\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"></stop><stop offset=\"0.32\" stop-color=\"#DCE4F2\"></stop><stop offset=\"0.47\" stop-color=\"#8994AE\"></stop><stop offset=\"0.5\" stop-color=\"#2E364A\"></stop><stop offset=\"0.62\" stop-color=\"#6F7B96\"></stop><stop offset=\"0.85\" stop-color=\"#C9D3EA\"></stop><stop offset=\"1\" stop-color=\"#F4F7FD\"></stop></linearGradient><linearGradient id=\"{{p}}chrl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0.8\"></stop><stop offset=\"0.35\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0.35\"></stop></linearGradient>",
+  "paint": "url(#{{p}}r2chmc)",
+  "defs": "<pattern id=\"{{p}}r2chmc\" patternUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"100\" height=\"100\"><image href=\"/cosmetics/redrawn/fin.chrome.webp\" x=\"2\" y=\"2\" width=\"96\" height=\"96\" preserveAspectRatio=\"none\"></image></pattern><linearGradient id=\"{{p}}r2chrl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0.75\"></stop><stop offset=\"0.35\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0.35\"></stop></linearGradient>",
   "stroke": null,
   "shadow": false,
-  "overlay": "<ellipse cx=\"38\" cy=\"42\" rx=\"16\" ry=\"9\" fill=\"#FFFFFF\" opacity=\"0.22\" transform=\"rotate(-25 38 42)\"></ellipse><ellipse cx=\"36\" cy=\"40\" rx=\"5\" ry=\"2.4\" fill=\"#FFFFFF\" opacity=\"0.75\" transform=\"rotate(-25 36 40)\"></ellipse>",
+  "overlay": null,
   "filter": null,
-  "outer": "<circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"5.5\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}rdch)\" stroke-width=\"3.6\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}chrl)\" stroke-width=\"3.6\"></circle>",
+  "outer": "<circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"5.5\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}r2chmc)\" stroke-width=\"3.6\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}r2chrl)\" stroke-width=\"3.6\"></circle>",
   "wire": false
  },
  "avatar-finish.carbon": {
-  "paint": "url(#{{p}}rdcb)",
-  "defs": "<pattern id=\"{{p}}rdcb\" width=\"5\" height=\"5\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\"><rect width=\"5\" height=\"5\" fill=\"#15181F\"></rect><rect width=\"2.5\" height=\"5\" fill=\"url(#{{p}}rdcbt)\"></rect><rect x=\"2.5\" width=\"2.5\" height=\"5\" fill=\"url(#{{p}}rdcbu)\"></rect></pattern><linearGradient id=\"{{p}}rdcbt\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#4A5366\"></stop><stop offset=\"1\" stop-color=\"#1A1E27\"></stop></linearGradient><linearGradient id=\"{{p}}rdcbu\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#3A4252\"></stop><stop offset=\"1\" stop-color=\"#14171E\"></stop></linearGradient><linearGradient id=\"{{p}}rdcbr\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#5A6478\"></stop><stop offset=\"0.5\" stop-color=\"#1A1E27\"></stop><stop offset=\"1\" stop-color=\"#3A4252\"></stop></linearGradient><linearGradient id=\"{{p}}cbrl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0.8\"></stop><stop offset=\"0.35\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0.35\"></stop></linearGradient>",
+  "paint": "url(#{{p}}r2cbmc)",
+  "defs": "<pattern id=\"{{p}}r2cbmc\" patternUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"100\" height=\"100\"><image href=\"/cosmetics/redrawn/fin.carbon.webp\" x=\"2\" y=\"2\" width=\"96\" height=\"96\" preserveAspectRatio=\"none\"></image></pattern><linearGradient id=\"{{p}}r2cbrl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0.75\"></stop><stop offset=\"0.35\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0.35\"></stop></linearGradient>",
   "stroke": null,
   "shadow": false,
-  "overlay": "<path d=\"M18 46 Q50 30 84 40\" stroke=\"#FFFFFF\" stroke-width=\"5\" opacity=\"0.18\" fill=\"none\" stroke-linecap=\"round\"></path><ellipse cx=\"38\" cy=\"42\" rx=\"16\" ry=\"9\" fill=\"#FFFFFF\" opacity=\"0.22\" transform=\"rotate(-25 38 42)\"></ellipse><ellipse cx=\"36\" cy=\"40\" rx=\"5\" ry=\"2.4\" fill=\"#FFFFFF\" opacity=\"0.75\" transform=\"rotate(-25 36 40)\"></ellipse>",
+  "overlay": null,
   "filter": null,
-  "outer": "<circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"5.5\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}rdcbr)\" stroke-width=\"3.6\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}cbrl)\" stroke-width=\"3.6\"></circle>",
+  "outer": "<circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"5.5\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}r2cbmc)\" stroke-width=\"3.6\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}r2cbrl)\" stroke-width=\"3.6\"></circle>",
   "wire": false
  },
  "avatar-finish.holographic": {
-  "paint": "url(#{{p}}rdho)",
-  "defs": "<linearGradient id=\"{{p}}rdho\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#9FF3FF\"></stop><stop offset=\"0.25\" stop-color=\"#C9B4FF\"></stop><stop offset=\"0.5\" stop-color=\"#FFB4E8\"></stop><stop offset=\"0.75\" stop-color=\"#FFE7A6\"></stop><stop offset=\"1\" stop-color=\"#A6FFD9\"></stop></linearGradient><linearGradient id=\"{{p}}rdhs\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"0.5\" stop-color=\"#FFFFFF\" stop-opacity=\"0.55\"></stop><stop offset=\"1\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop></linearGradient><linearGradient id=\"{{p}}horl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0.8\"></stop><stop offset=\"0.35\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0.35\"></stop></linearGradient>",
+  "paint": "url(#{{p}}r2homc)",
+  "defs": "<pattern id=\"{{p}}r2homc\" patternUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"100\" height=\"100\"><image href=\"/cosmetics/redrawn/fin.holographic.webp\" x=\"2\" y=\"2\" width=\"96\" height=\"96\" preserveAspectRatio=\"none\"></image></pattern><linearGradient id=\"{{p}}r2horl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0.75\"></stop><stop offset=\"0.35\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0.35\"></stop></linearGradient>",
   "stroke": null,
   "shadow": false,
-  "overlay": "<g class=\"rd-holo\"><rect x=\"10\" y=\"10\" width=\"14\" height=\"90\" fill=\"url(#{{p}}rdhs)\" transform=\"rotate(28 50 50)\"></rect><rect x=\"44\" y=\"10\" width=\"7\" height=\"90\" fill=\"url(#{{p}}rdhs)\" transform=\"rotate(28 50 50)\"></rect></g><ellipse cx=\"38\" cy=\"42\" rx=\"16\" ry=\"9\" fill=\"#FFFFFF\" opacity=\"0.22\" transform=\"rotate(-25 38 42)\"></ellipse><ellipse cx=\"36\" cy=\"40\" rx=\"5\" ry=\"2.4\" fill=\"#FFFFFF\" opacity=\"0.75\" transform=\"rotate(-25 36 40)\"></ellipse>",
+  "overlay": null,
   "filter": null,
-  "outer": "<circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"5.5\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}rdho)\" stroke-width=\"3.6\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}horl)\" stroke-width=\"3.6\"></circle>",
+  "outer": "<circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"5.5\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}r2homc)\" stroke-width=\"3.6\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"url(#{{p}}r2horl)\" stroke-width=\"3.6\"></circle>",
   "wire": false
  },
  "avatar-finish.neon-glow": {
   "paint": null,
-  "defs": "<linearGradient id=\"{{p}}ngrl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0.8\"></stop><stop offset=\"0.35\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0.35\"></stop></linearGradient>",
+  "defs": "<linearGradient id=\"{{p}}r2ngrl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\" stop-opacity=\"0.75\"></stop><stop offset=\"0.35\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0.35\"></stop></linearGradient>",
   "stroke": {
    "colour": "#FFFFFF",
-   "width": 1.4
+   "width": 1.3
   },
   "shadow": false,
-  "overlay": "<ellipse cx=\"38\" cy=\"42\" rx=\"16\" ry=\"9\" fill=\"#FFFFFF\" opacity=\"0.22\" transform=\"rotate(-25 38 42)\"></ellipse><ellipse cx=\"36\" cy=\"40\" rx=\"5\" ry=\"2.4\" fill=\"#FFFFFF\" opacity=\"0.75\" transform=\"rotate(-25 36 40)\"></ellipse>",
+  "overlay": "<image href=\"/cosmetics/redrawn/fin.neon-glow.webp\" x=\"2\" y=\"2\" width=\"96\" height=\"96\" preserveAspectRatio=\"none\" style=\"mix-blend-mode: screen\"></image>",
   "filter": "drop-shadow(0 0 2px {{m1}}) drop-shadow(0 0 5px {{m1}})",
   "outer": "<circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"5.5\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"{{m1}}\" stroke-width=\"3\" style=\"filter: drop-shadow(0 0 3px {{m1}})\"></circle><circle cx=\"50\" cy=\"50\" r=\"49\" fill=\"none\" stroke=\"#FFFFFF\" stroke-opacity=\"0.85\" stroke-width=\"1\"></circle>",
   "wire": false
@@ -250,80 +260,80 @@ export const REDRAWN_FINISHES: Record<string, FinishArt> = {
 
 /** Redrawn accessories (as ACCESSORIES). */
 export const REDRAWN_ACCESSORIES: Record<string, string> = {
- "avatar-accessory.neon-bolt": "<path d=\"M50 6 V0\" stroke=\"#06080F\" stroke-width=\"3\"></path><image href=\"/cosmetics/redrawn/acc.neon-bolt.webp\" x=\"35\" y=\"-27\" width=\"30\" height=\"30\"></image>"
+ "avatar-accessory.neon-bolt": "<path d=\"M50 5 V-1\" stroke=\"#06080F\" stroke-width=\"3\"></path><image href=\"/cosmetics/redrawn/acc.bolt2.webp\" x=\"34\" y=\"-30\" width=\"32\" height=\"32\"></image>"
 };
 
 /** Redrawn reaction packs (as REACTIONS). */
 export const REDRAWN_REACTIONS: Record<string, readonly { svg: string; label: string }[]> = {
  "reaction.spark": [
   {
-   "svg": "<svg width=\"76\" height=\"76\" viewBox=\"0 0 76 76\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.spark.webp\" x=\"0\" y=\"0\" width=\"76\" height=\"76\"></image></svg>",
+   "svg": "<svg width=\"76\" height=\"76\" viewBox=\"0 0 76 76\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.spark.webp\" x=\"0\" y=\"0\" width=\"76\" height=\"76\"></image></svg>",
    "label": "Spark"
   }
  ],
  "reaction.zap": [
   {
-   "svg": "<svg width=\"80\" height=\"76\" viewBox=\"0 0 80 76\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.zap.webp\" x=\"2\" y=\"0\" width=\"76\" height=\"76\"></image></svg>",
+   "svg": "<svg width=\"80\" height=\"76\" viewBox=\"0 0 80 76\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.zap.webp\" x=\"0\" y=\"0\" width=\"80\" height=\"76\"></image></svg>",
    "label": "Zap"
   }
  ],
  "reaction.clutch": [
   {
-   "svg": "<svg width=\"118\" height=\"48\" viewBox=\"0 0 118 48\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.clutch.webp\" x=\"0\" y=\"0\" width=\"118\" height=\"48\"></image><text x=\"59.0\" y=\"23.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"17\" fill=\"#3A2406\">CLUTCH!</text></svg>",
+   "svg": "<svg width=\"118\" height=\"48\" viewBox=\"0 0 118 48\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.clutch.webp\" x=\"0\" y=\"0\" width=\"118\" height=\"48\"></image><text x=\"59\" y=\"24.7\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"19\" fill=\"#FFF3C4\" fill-opacity=\"0.7\">CLUTCH!</text><text x=\"59\" y=\"24.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"19\" fill=\"#1C1306\">CLUTCH!</text></svg>",
    "label": "CLUTCH!"
   }
  ],
  "reaction.captains-calls": [
   {
-   "svg": "<svg width=\"102\" height=\"46\" viewBox=\"0 0 102 46\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.bubble-0.webp\" x=\"0\" y=\"0\" width=\"102\" height=\"46\"></image><text x=\"51.0\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"8\" fill=\"#121218\">Was that luck?</text></svg>",
+   "svg": "<svg width=\"102\" height=\"46\" viewBox=\"0 0 102 46\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.bubble-0.webp\" x=\"0\" y=\"0\" width=\"102\" height=\"46\"></image><text x=\"51\" y=\"21.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"9.5\" fill=\"#121218\">Was that luck?</text></svg>",
    "label": "Was that luck?"
   },
   {
-   "svg": "<svg width=\"114\" height=\"46\" viewBox=\"0 0 114 46\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.bubble-1.webp\" x=\"0\" y=\"0\" width=\"114\" height=\"46\"></image><text x=\"57.0\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"8.3\" fill=\"#121218\">My thumb slipped</text></svg>",
+   "svg": "<svg width=\"114\" height=\"46\" viewBox=\"0 0 114 46\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.bubble-1.webp\" x=\"0\" y=\"0\" width=\"114\" height=\"46\"></image><text x=\"57\" y=\"21.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"9.5\" fill=\"#121218\">My thumb slipped</text></svg>",
    "label": "My thumb slipped"
   },
   {
-   "svg": "<svg width=\"96\" height=\"46\" viewBox=\"0 0 96 46\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.bubble-2.webp\" x=\"0\" y=\"0\" width=\"96\" height=\"46\"></image><text x=\"48.0\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"7.9\" fill=\"#121218\">Rematch. Now.</text></svg>",
+   "svg": "<svg width=\"96\" height=\"46\" viewBox=\"0 0 96 46\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.bubble-2.webp\" x=\"0\" y=\"0\" width=\"96\" height=\"46\"></image><text x=\"48\" y=\"21.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"9.4\" fill=\"#121218\">Rematch. Now.</text></svg>",
    "label": "Rematch. Now."
   },
   {
-   "svg": "<svg width=\"144\" height=\"46\" viewBox=\"0 0 144 46\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.bubble-3.webp\" x=\"0\" y=\"0\" width=\"144\" height=\"46\"></image><text x=\"72.0\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"8.7\" fill=\"#121218\">Who taught you that?!</text></svg>",
+   "svg": "<svg width=\"144\" height=\"46\" viewBox=\"0 0 144 46\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.bubble-3.webp\" x=\"0\" y=\"0\" width=\"144\" height=\"46\"></image><text x=\"72\" y=\"21.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"9.6\" fill=\"#121218\">Who taught you that?!</text></svg>",
    "label": "Who taught you that?!"
   }
  ],
  "reaction.retro-arcade": [
   {
-   "svg": "<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.key-0.webp\" x=\"0\" y=\"0\" width=\"60\" height=\"60\"></image><g transform=\"translate(0 1)\"><path d=\"M30 42 C18 34 13 28 13 22 C13 17 17 14 21 14 C25 14 28 16 30 19 C32 16 35 14 39 14 C43 14 47 17 47 22 C47 28 42 34 30 42 Z\" fill=\"#FF4D6D\" stroke=\"#121218\" stroke-width=\"2.2\" stroke-linejoin=\"round\"></path><ellipse cx=\"22\" cy=\"20\" rx=\"4\" ry=\"2.4\" fill=\"#FFFFFF\" opacity=\"0.7\" transform=\"rotate(-30 22 20)\"></ellipse></g></svg>",
+   "svg": "<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.key-0.webp\" x=\"0\" y=\"0\" width=\"60\" height=\"60\"></image></svg>",
    "label": "Retro Arcade"
   },
   {
-   "svg": "<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.key-1.webp\" x=\"0\" y=\"0\" width=\"60\" height=\"60\"></image><text x=\"30.0\" y=\"29.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"16\" fill=\"#FFFFFF\" stroke=\"#121218\" stroke-width=\"2.7\" paint-order=\"stroke\" stroke-linejoin=\"round\">1UP</text></svg>",
+   "svg": "<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.key-1.webp\" x=\"0\" y=\"0\" width=\"60\" height=\"60\"></image><text x=\"30\" y=\"28.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"16\" fill=\"#FFFFFF\" stroke=\"#121218\" stroke-width=\"2.7\" paint-order=\"stroke\" stroke-linejoin=\"round\">1UP</text></svg>",
    "label": "1UP"
   },
   {
-   "svg": "<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.key-2.webp\" x=\"0\" y=\"0\" width=\"60\" height=\"60\"></image><text x=\"30.0\" y=\"29.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"11.3\" fill=\"#FFFFFF\" stroke=\"#121218\" stroke-width=\"1.9\" paint-order=\"stroke\" stroke-linejoin=\"round\">LAG!!</text></svg>",
+   "svg": "<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.key-2.webp\" x=\"0\" y=\"0\" width=\"60\" height=\"60\"></image><text x=\"30\" y=\"28.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"12\" fill=\"#FFFFFF\" stroke=\"#121218\" stroke-width=\"2.0\" paint-order=\"stroke\" stroke-linejoin=\"round\">LAG!!</text></svg>",
    "label": "LAG!!"
   },
   {
-   "svg": "<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.key-3.webp\" x=\"0\" y=\"0\" width=\"60\" height=\"60\"></image><text x=\"30.0\" y=\"29.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"14.1\" fill=\"#FFFFFF\" stroke=\"#121218\" stroke-width=\"2.4\" paint-order=\"stroke\" stroke-linejoin=\"round\">GLHF</text></svg>",
+   "svg": "<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.key-3.webp\" x=\"0\" y=\"0\" width=\"60\" height=\"60\"></image><text x=\"30\" y=\"28.5\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"15\" fill=\"#FFFFFF\" stroke=\"#121218\" stroke-width=\"2.5\" paint-order=\"stroke\" stroke-linejoin=\"round\">GLHF</text></svg>",
    "label": "GLHF"
   }
  ],
  "reaction.neon-signs": [
   {
-   "svg": "<svg width=\"74\" height=\"40\" viewBox=\"0 0 74 40\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.sign-0.webp\" x=\"0\" y=\"0\" width=\"74\" height=\"40\"></image><text x=\"37.0\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"12.2\" fill=\"#FF9BE3\" stroke=\"#06080F\" stroke-width=\"2.0\" paint-order=\"stroke\" stroke-linejoin=\"round\">UNREAL</text></svg>",
+   "svg": "<svg width=\"74\" height=\"40\" viewBox=\"0 0 74 40\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.sign-0.webp\" x=\"0\" y=\"0\" width=\"74\" height=\"40\"></image><text x=\"37\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"14\" fill=\"#FFB3EC\" stroke=\"#06080F\" stroke-width=\"2.3\" paint-order=\"stroke\" stroke-linejoin=\"round\">UNREAL</text></svg>",
    "label": "UNREAL"
   },
   {
-   "svg": "<svg width=\"64\" height=\"40\" viewBox=\"0 0 64 40\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.sign-1.webp\" x=\"0\" y=\"0\" width=\"64\" height=\"40\"></image><text x=\"32.0\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"13\" fill=\"#8AF3FF\" stroke=\"#06080F\" stroke-width=\"2.2\" paint-order=\"stroke\" stroke-linejoin=\"round\">OOPS</text></svg>",
+   "svg": "<svg width=\"64\" height=\"40\" viewBox=\"0 0 64 40\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.sign-1.webp\" x=\"0\" y=\"0\" width=\"64\" height=\"40\"></image><text x=\"32\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"14\" fill=\"#A6F6FF\" stroke=\"#06080F\" stroke-width=\"2.3\" paint-order=\"stroke\" stroke-linejoin=\"round\">OOPS</text></svg>",
    "label": "OOPS"
   },
   {
-   "svg": "<svg width=\"114\" height=\"40\" viewBox=\"0 0 114 40\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.sign-2.webp\" x=\"0\" y=\"0\" width=\"114\" height=\"40\"></image><text x=\"57.0\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"13\" fill=\"#FFB070\" stroke=\"#06080F\" stroke-width=\"2.2\" paint-order=\"stroke\" stroke-linejoin=\"round\">BRB CRYING</text></svg>",
+   "svg": "<svg width=\"114\" height=\"40\" viewBox=\"0 0 114 40\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.sign-2.webp\" x=\"0\" y=\"0\" width=\"114\" height=\"40\"></image><text x=\"57\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"14\" fill=\"#FFC48A\" stroke=\"#06080F\" stroke-width=\"2.3\" paint-order=\"stroke\" stroke-linejoin=\"round\">BRB CRYING</text></svg>",
    "label": "BRB CRYING"
   },
   {
-   "svg": "<svg width=\"74\" height=\"40\" viewBox=\"0 0 74 40\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote.sign-3.webp\" x=\"0\" y=\"0\" width=\"74\" height=\"40\"></image><text x=\"37.0\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"12.2\" fill=\"#DFFF8A\" stroke=\"#06080F\" stroke-width=\"2.0\" paint-order=\"stroke\" stroke-linejoin=\"round\">SHEESH</text></svg>",
+   "svg": "<svg width=\"74\" height=\"40\" viewBox=\"0 0 74 40\" aria-hidden=\"true\"><image href=\"/cosmetics/redrawn/emote2.sign-3.webp\" x=\"0\" y=\"0\" width=\"74\" height=\"40\"></image><text x=\"37\" y=\"20.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"14\" fill=\"#E6FF9E\" stroke=\"#06080F\" stroke-width=\"2.3\" paint-order=\"stroke\" stroke-linejoin=\"round\">SHEESH</text></svg>",
    "label": "SHEESH"
   }
  ]
@@ -332,15 +342,15 @@ export const REDRAWN_REACTIONS: Record<string, readonly { svg: string; label: st
 /** Redrawn celebrations (as CELEBRATIONS). */
 export const REDRAWN_CELEBRATIONS: Record<string, { svg: string; sample: string }> = {
  "celebration.spotlight": {
-  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 240 150\" width=\"100%\" height=\"100%\" style=\"display: block\" aria-hidden=\"true\"><defs><clipPath id=\"{{p}}rdc\"><rect width=\"240\" height=\"150\" rx=\"10\"></rect></clipPath><linearGradient id=\"{{p}}rdg\" x1=\"0\" y1=\"0\" x2=\"0.4\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF3C4\"></stop><stop offset=\"0.35\" stop-color=\"#EDB43E\"></stop><stop offset=\"0.7\" stop-color=\"#B07A1E\"></stop><stop offset=\"1\" stop-color=\"#FFE08A\"></stop></linearGradient><radialGradient id=\"{{p}}rdk\" cx=\"0.15\" cy=\"0\" r=\"1\"><stop offset=\"0\" stop-color=\"#2A3558\"></stop><stop offset=\"1\" stop-color=\"#0B0F1C\"></stop></radialGradient><linearGradient id=\"{{p}}rdb\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF6DA\" stop-opacity=\"0.75\"></stop><stop offset=\"1\" stop-color=\"#FFE6A0\" stop-opacity=\"0.08\"></stop></linearGradient><radialGradient id=\"{{p}}rdpool\"><stop offset=\"0\" stop-color=\"#FFE6A0\" stop-opacity=\"0.55\"></stop><stop offset=\"1\" stop-color=\"#FFE6A0\" stop-opacity=\"0\"></stop></radialGradient></defs><g clip-path=\"url(#{{p}}rdc)\"><rect width=\"240\" height=\"150\" fill=\"url(#{{p}}rdk)\"></rect><g class=\"rd-swayL\" style=\"transform-origin: 46px -10px\"><path d=\"M37 -10 L55 -10 L150 132 L106 132 Z\" fill=\"url(#{{p}}rdb)\"></path></g><g class=\"rd-swayR\" style=\"transform-origin: 194px -10px\"><path d=\"M185 -10 L203 -10 L90 132 L134 132 Z\" fill=\"url(#{{p}}rdb)\"></path></g><ellipse cx=\"120\" cy=\"100\" rx=\"70\" ry=\"20\" fill=\"url(#{{p}}rdpool)\"></ellipse><image href=\"/cosmetics/redrawn/cel.podium.webp\" x=\"66\" y=\"78\" width=\"108\" height=\"72\"></image><text x=\"120\" y=\"130\" text-anchor=\"middle\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"17\" fill=\"url(#{{p}}rdg)\" stroke=\"#06080F\" stroke-width=\"2.4\" paint-order=\"stroke\">{{place}}</text>{{avatar}}</g><rect x=\"1\" y=\"1\" width=\"238\" height=\"148\" rx=\"10\" fill=\"none\" stroke=\"#2A3352\" stroke-width=\"2\"></rect></svg>",
+  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 240 150\" width=\"100%\" height=\"100%\" style=\"display: block\" aria-hidden=\"true\"><defs><clipPath id=\"{{p}}r2c\"><rect width=\"240\" height=\"150\" rx=\"10\"></rect></clipPath><linearGradient id=\"{{p}}r2g\" x1=\"0\" y1=\"0\" x2=\"0.4\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF3C4\"></stop><stop offset=\"0.35\" stop-color=\"#EDB43E\"></stop><stop offset=\"0.7\" stop-color=\"#B07A1E\"></stop><stop offset=\"1\" stop-color=\"#FFE08A\"></stop></linearGradient></defs><g clip-path=\"url(#{{p}}r2c)\"><image href=\"/cosmetics/redrawn/cel2.spotlight.webp\" x=\"0\" y=\"0\" width=\"240\" height=\"150\" preserveAspectRatio=\"xMidYMid slice\"></image><circle class=\"rd2-mote rd2-mote0\" cx=\"70\" cy=\"40\" r=\"1.3\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote1\" cx=\"82\" cy=\"70\" r=\"0.9\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote2\" cx=\"94\" cy=\"28\" r=\"1.3\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote0\" cx=\"64\" cy=\"92\" r=\"0.9\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote1\" cx=\"176\" cy=\"38\" r=\"1.3\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote2\" cx=\"160\" cy=\"66\" r=\"0.9\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote0\" cx=\"150\" cy=\"24\" r=\"1.3\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote1\" cx=\"172\" cy=\"90\" r=\"0.9\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote2\" cx=\"88\" cy=\"52\" r=\"1.3\" fill=\"#FFF3D6\"></circle><circle class=\"rd2-mote rd2-mote0\" cx=\"156\" cy=\"50\" r=\"0.9\" fill=\"#FFF3D6\"></circle><text x=\"120\" y=\"128\" text-anchor=\"middle\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"16\" fill=\"url(#{{p}}r2g)\" stroke=\"#06080F\" stroke-width=\"2.4\" paint-order=\"stroke\">{{place}}</text>{{avatar}}</g><rect x=\"1\" y=\"1\" width=\"238\" height=\"148\" rx=\"10\" fill=\"none\" stroke=\"#2A3352\" stroke-width=\"2\"></rect></svg>",
   "sample": "<circle cx=\"120\" cy=\"74\" r=\"18\" fill=\"#1E2640\" stroke=\"#06080F\" stroke-width=\"2\"></circle><path d=\"M108 78c0-8 5-13 12-13s12 5 12 13c0 6-4 9-12 11-8-2-12-5-12-11z\" fill=\"#FF6BD6\" stroke=\"#06080F\" stroke-width=\"1.5\"></path><path d=\"M111 74h18l-2 5-4-2-3 3-3-3-4 2z\" fill=\"#22E4FF\"></path>"
  },
  "celebration.shockwave": {
-  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 240 150\" width=\"100%\" height=\"100%\" style=\"display: block\" aria-hidden=\"true\"><defs><clipPath id=\"{{p}}rdc\"><rect width=\"240\" height=\"150\" rx=\"10\"></rect></clipPath><linearGradient id=\"{{p}}rdg\" x1=\"0\" y1=\"0\" x2=\"0.4\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF3C4\"></stop><stop offset=\"0.35\" stop-color=\"#EDB43E\"></stop><stop offset=\"0.7\" stop-color=\"#B07A1E\"></stop><stop offset=\"1\" stop-color=\"#FFE08A\"></stop></linearGradient><radialGradient id=\"{{p}}rdk\" cx=\"0.15\" cy=\"0\" r=\"1\"><stop offset=\"0\" stop-color=\"#2A3558\"></stop><stop offset=\"1\" stop-color=\"#0B0F1C\"></stop></radialGradient><linearGradient id=\"{{p}}rdw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"></stop><stop offset=\"0.4\" stop-color=\"#8AF3FF\"></stop><stop offset=\"1\" stop-color=\"#2D6BFF\"></stop></linearGradient></defs><g clip-path=\"url(#{{p}}rdc)\"><rect width=\"240\" height=\"150\" fill=\"url(#{{p}}rdk)\"></rect><ellipse class=\"rd-wave rd-wave0\" cx=\"120\" cy=\"96\" rx=\"40\" ry=\"13\" fill=\"none\" stroke=\"url(#{{p}}rdw)\" stroke-width=\"5\" style=\"transform-origin: 120px 96px\"></ellipse><ellipse class=\"rd-wave rd-wave1\" cx=\"120\" cy=\"96\" rx=\"40\" ry=\"13\" fill=\"none\" stroke=\"url(#{{p}}rdw)\" stroke-width=\"5\" style=\"transform-origin: 120px 96px\"></ellipse><ellipse class=\"rd-wave rd-wave2\" cx=\"120\" cy=\"96\" rx=\"40\" ry=\"13\" fill=\"none\" stroke=\"url(#{{p}}rdw)\" stroke-width=\"5\" style=\"transform-origin: 120px 96px\"></ellipse><image href=\"/cosmetics/redrawn/cel.podium.webp\" x=\"66\" y=\"78\" width=\"108\" height=\"72\"></image><text x=\"120\" y=\"130\" text-anchor=\"middle\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"17\" fill=\"url(#{{p}}rdg)\" stroke=\"#06080F\" stroke-width=\"2.4\" paint-order=\"stroke\">{{place}}</text>{{avatar}}</g><rect x=\"1\" y=\"1\" width=\"238\" height=\"148\" rx=\"10\" fill=\"none\" stroke=\"#2A3352\" stroke-width=\"2\"></rect></svg>",
+  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 240 150\" width=\"100%\" height=\"100%\" style=\"display: block\" aria-hidden=\"true\"><defs><clipPath id=\"{{p}}r2c\"><rect width=\"240\" height=\"150\" rx=\"10\"></rect></clipPath><linearGradient id=\"{{p}}r2g\" x1=\"0\" y1=\"0\" x2=\"0.4\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF3C4\"></stop><stop offset=\"0.35\" stop-color=\"#EDB43E\"></stop><stop offset=\"0.7\" stop-color=\"#B07A1E\"></stop><stop offset=\"1\" stop-color=\"#FFE08A\"></stop></linearGradient><radialGradient id=\"{{p}}r2w\"><stop offset=\"0.82\" stop-color=\"#8AF3FF\" stop-opacity=\"0\"></stop><stop offset=\"0.95\" stop-color=\"#C9F8FF\" stop-opacity=\"0.9\"></stop><stop offset=\"1\" stop-color=\"#8AF3FF\" stop-opacity=\"0\"></stop></radialGradient></defs><g clip-path=\"url(#{{p}}r2c)\"><image href=\"/cosmetics/redrawn/cel2.shockwave.webp\" x=\"0\" y=\"0\" width=\"240\" height=\"150\" preserveAspectRatio=\"xMidYMid slice\"></image><ellipse class=\"rd2-wave rd2-wave0\" cx=\"120\" cy=\"113\" rx=\"44\" ry=\"11\" fill=\"url(#{{p}}r2w)\" style=\"transform-origin: 120px 113px\"></ellipse><ellipse class=\"rd2-wave rd2-wave1\" cx=\"120\" cy=\"113\" rx=\"44\" ry=\"11\" fill=\"url(#{{p}}r2w)\" style=\"transform-origin: 120px 113px\"></ellipse><ellipse class=\"rd2-wave rd2-wave2\" cx=\"120\" cy=\"113\" rx=\"44\" ry=\"11\" fill=\"url(#{{p}}r2w)\" style=\"transform-origin: 120px 113px\"></ellipse><text x=\"120\" y=\"128\" text-anchor=\"middle\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"16\" fill=\"url(#{{p}}r2g)\" stroke=\"#06080F\" stroke-width=\"2.4\" paint-order=\"stroke\">{{place}}</text>{{avatar}}</g><rect x=\"1\" y=\"1\" width=\"238\" height=\"148\" rx=\"10\" fill=\"none\" stroke=\"#2A3352\" stroke-width=\"2\"></rect></svg>",
   "sample": "<circle cx=\"120\" cy=\"74\" r=\"18\" fill=\"#1E2640\" stroke=\"#06080F\" stroke-width=\"2\"></circle><path d=\"M108 78c0-8 5-13 12-13s12 5 12 13c0 6-4 9-12 11-8-2-12-5-12-11z\" fill=\"#FF6BD6\" stroke=\"#06080F\" stroke-width=\"1.5\"></path><path d=\"M111 74h18l-2 5-4-2-3 3-3-3-4 2z\" fill=\"#22E4FF\"></path>"
  },
  "celebration.circuit-overload": {
-  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 240 150\" width=\"100%\" height=\"100%\" style=\"display: block\" aria-hidden=\"true\"><defs><clipPath id=\"{{p}}rdc\"><rect width=\"240\" height=\"150\" rx=\"10\"></rect></clipPath><linearGradient id=\"{{p}}rdg\" x1=\"0\" y1=\"0\" x2=\"0.4\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF3C4\"></stop><stop offset=\"0.35\" stop-color=\"#EDB43E\"></stop><stop offset=\"0.7\" stop-color=\"#B07A1E\"></stop><stop offset=\"1\" stop-color=\"#FFE08A\"></stop></linearGradient><radialGradient id=\"{{p}}rdk\" cx=\"0.15\" cy=\"0\" r=\"1\"><stop offset=\"0\" stop-color=\"#2A3558\"></stop><stop offset=\"1\" stop-color=\"#0B0F1C\"></stop></radialGradient><linearGradient id=\"{{p}}rdt\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#7A4E10\"></stop><stop offset=\"0.5\" stop-color=\"#EDB43E\"></stop><stop offset=\"1\" stop-color=\"#7A4E10\"></stop></linearGradient></defs><g clip-path=\"url(#{{p}}rdc)\"><rect width=\"240\" height=\"150\" fill=\"url(#{{p}}rdk)\"></rect><path d=\"M0 40 H40 L58 58 H90\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"6\" stroke-linejoin=\"round\"></path><path d=\"M0 40 H40 L58 58 H90\" fill=\"none\" stroke=\"url(#{{p}}rdt)\" stroke-width=\"3.4\" stroke-linejoin=\"round\"></path><path class=\"rd-pulse\" d=\"M0 40 H40 L58 58 H90\" fill=\"none\" stroke=\"#FFF6DA\" stroke-width=\"2.2\" stroke-linecap=\"round\" pathLength=\"100\"></path><path d=\"M240 40 H200 L182 58 H150\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"6\" stroke-linejoin=\"round\"></path><path d=\"M240 40 H200 L182 58 H150\" fill=\"none\" stroke=\"url(#{{p}}rdt)\" stroke-width=\"3.4\" stroke-linejoin=\"round\"></path><path class=\"rd-pulse\" d=\"M240 40 H200 L182 58 H150\" fill=\"none\" stroke=\"#FFF6DA\" stroke-width=\"2.2\" stroke-linecap=\"round\" pathLength=\"100\"></path><path d=\"M0 112 H50 L64 98\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"6\" stroke-linejoin=\"round\"></path><path d=\"M0 112 H50 L64 98\" fill=\"none\" stroke=\"url(#{{p}}rdt)\" stroke-width=\"3.4\" stroke-linejoin=\"round\"></path><path class=\"rd-pulse\" d=\"M0 112 H50 L64 98\" fill=\"none\" stroke=\"#FFF6DA\" stroke-width=\"2.2\" stroke-linecap=\"round\" pathLength=\"100\"></path><path d=\"M240 112 H190 L176 98\" fill=\"none\" stroke=\"#06080F\" stroke-width=\"6\" stroke-linejoin=\"round\"></path><path d=\"M240 112 H190 L176 98\" fill=\"none\" stroke=\"url(#{{p}}rdt)\" stroke-width=\"3.4\" stroke-linejoin=\"round\"></path><path class=\"rd-pulse\" d=\"M240 112 H190 L176 98\" fill=\"none\" stroke=\"#FFF6DA\" stroke-width=\"2.2\" stroke-linecap=\"round\" pathLength=\"100\"></path><image href=\"/cosmetics/redrawn/cel.bolt.webp\" x=\"22\" y=\"10\" width=\"26\" height=\"26\"></image><image href=\"/cosmetics/redrawn/cel.bolt.webp\" x=\"192\" y=\"10\" width=\"26\" height=\"26\"></image><image href=\"/cosmetics/redrawn/cel.podium.webp\" x=\"66\" y=\"78\" width=\"108\" height=\"72\"></image><text x=\"120\" y=\"130\" text-anchor=\"middle\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"17\" fill=\"url(#{{p}}rdg)\" stroke=\"#06080F\" stroke-width=\"2.4\" paint-order=\"stroke\">{{place}}</text>{{avatar}}</g><rect x=\"1\" y=\"1\" width=\"238\" height=\"148\" rx=\"10\" fill=\"none\" stroke=\"#2A3352\" stroke-width=\"2\"></rect></svg>",
+  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 240 150\" width=\"100%\" height=\"100%\" style=\"display: block\" aria-hidden=\"true\"><defs><clipPath id=\"{{p}}r2c\"><rect width=\"240\" height=\"150\" rx=\"10\"></rect></clipPath><linearGradient id=\"{{p}}r2g\" x1=\"0\" y1=\"0\" x2=\"0.4\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF3C4\"></stop><stop offset=\"0.35\" stop-color=\"#EDB43E\"></stop><stop offset=\"0.7\" stop-color=\"#B07A1E\"></stop><stop offset=\"1\" stop-color=\"#FFE08A\"></stop></linearGradient><radialGradient id=\"{{p}}r2s\" cx=\"0.5\" cy=\"0.78\" r=\"0.6\"><stop offset=\"0\" stop-color=\"#FFD98A\" stop-opacity=\"0.55\"></stop><stop offset=\"1\" stop-color=\"#FFD98A\" stop-opacity=\"0\"></stop></radialGradient></defs><g clip-path=\"url(#{{p}}r2c)\"><image href=\"/cosmetics/redrawn/cel2.circuit.webp\" x=\"0\" y=\"0\" width=\"240\" height=\"150\" preserveAspectRatio=\"xMidYMid slice\"></image><rect class=\"rd2-surge\" width=\"240\" height=\"150\" fill=\"url(#{{p}}r2s)\"></rect><text x=\"120\" y=\"128\" text-anchor=\"middle\" font-family=\"Archivo, system-ui, sans-serif\" font-weight=\"900\" font-size=\"16\" fill=\"url(#{{p}}r2g)\" stroke=\"#06080F\" stroke-width=\"2.4\" paint-order=\"stroke\">{{place}}</text>{{avatar}}</g><rect x=\"1\" y=\"1\" width=\"238\" height=\"148\" rx=\"10\" fill=\"none\" stroke=\"#2A3352\" stroke-width=\"2\"></rect></svg>",
   "sample": "<circle cx=\"120\" cy=\"74\" r=\"18\" fill=\"#1E2640\" stroke=\"#06080F\" stroke-width=\"2\"></circle><path d=\"M108 78c0-8 5-13 12-13s12 5 12 13c0 6-4 9-12 11-8-2-12-5-12-11z\" fill=\"#FF6BD6\" stroke=\"#06080F\" stroke-width=\"1.5\"></path><path d=\"M111 74h18l-2 5-4-2-3 3-3-3-4 2z\" fill=\"#22E4FF\"></path>"
  }
 };
@@ -348,8 +358,8 @@ export const REDRAWN_CELEBRATIONS: Record<string, { svg: string; sample: string 
 /** Redrawn tile styles (as TILE_STYLES). */
 export const REDRAWN_TILE_STYLES: Record<string, { back: string; front: string; sample: string }> = {
  "tile-style.circuit-trace": {
-  "back": "<defs><linearGradient id=\"{{p}}rdtb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1A2A2A\"></stop><stop offset=\"1\" stop-color=\"#08100F\"></stop></linearGradient><linearGradient id=\"{{p}}rdtt\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFF3C4\"></stop><stop offset=\"0.4\" stop-color=\"#EDB43E\"></stop><stop offset=\"1\" stop-color=\"#8A5A14\"></stop></linearGradient></defs><rect x=\"3\" y=\"3\" width=\"84\" height=\"84\" rx=\"18\" fill=\"url(#{{p}}rdtb)\" stroke=\"#3B6B5E\" stroke-width=\"2\"></rect><path d=\"M10 70 H26 L32 64 H44\" fill=\"none\" stroke=\"#000000\" stroke-opacity=\"0.55\" stroke-width=\"3.6\" transform=\"translate(0.8 1.2)\"></path><path d=\"M10 70 H26 L32 64 H44\" fill=\"none\" stroke=\"url(#{{p}}rdtt)\" stroke-width=\"2.6\" stroke-linejoin=\"round\"></path><path d=\"M80 20 H64 L58 26 H48\" fill=\"none\" stroke=\"#000000\" stroke-opacity=\"0.55\" stroke-width=\"3.6\" transform=\"translate(0.8 1.2)\"></path><path d=\"M80 20 H64 L58 26 H48\" fill=\"none\" stroke=\"url(#{{p}}rdtt)\" stroke-width=\"2.6\" stroke-linejoin=\"round\"></path><path d=\"M14 18 V30 L22 38\" fill=\"none\" stroke=\"#000000\" stroke-opacity=\"0.55\" stroke-width=\"3.6\" transform=\"translate(0.8 1.2)\"></path><path d=\"M14 18 V30 L22 38\" fill=\"none\" stroke=\"url(#{{p}}rdtt)\" stroke-width=\"2.6\" stroke-linejoin=\"round\"></path><path d=\"M76 72 V60 L68 52\" fill=\"none\" stroke=\"#000000\" stroke-opacity=\"0.55\" stroke-width=\"3.6\" transform=\"translate(0.8 1.2)\"></path><path d=\"M76 72 V60 L68 52\" fill=\"none\" stroke=\"url(#{{p}}rdtt)\" stroke-width=\"2.6\" stroke-linejoin=\"round\"></path><circle cx=\"44\" cy=\"64\" r=\"3.2\" fill=\"url(#{{p}}rdtt)\" stroke=\"#06080F\" stroke-width=\"0.8\"></circle><circle cx=\"43\" cy=\"63\" r=\"0.9\" fill=\"#FFFFFF\"></circle><circle cx=\"48\" cy=\"26\" r=\"3.2\" fill=\"url(#{{p}}rdtt)\" stroke=\"#06080F\" stroke-width=\"0.8\"></circle><circle cx=\"47\" cy=\"25\" r=\"0.9\" fill=\"#FFFFFF\"></circle><circle cx=\"22\" cy=\"38\" r=\"3.2\" fill=\"url(#{{p}}rdtt)\" stroke=\"#06080F\" stroke-width=\"0.8\"></circle><circle cx=\"21\" cy=\"37\" r=\"0.9\" fill=\"#FFFFFF\"></circle><circle cx=\"68\" cy=\"52\" r=\"3.2\" fill=\"url(#{{p}}rdtt)\" stroke=\"#06080F\" stroke-width=\"0.8\"></circle><circle cx=\"67\" cy=\"51\" r=\"0.9\" fill=\"#FFFFFF\"></circle>",
-  "front": "<rect x=\"3\" y=\"3\" width=\"84\" height=\"42\" rx=\"18\" fill=\"#FFFFFF\" opacity=\"0.05\"></rect>",
+  "back": "<defs><clipPath id=\"{{p}}r2tc\"><rect x=\"3\" y=\"3\" width=\"84\" height=\"84\" rx=\"18\"></rect></clipPath></defs><image href=\"/cosmetics/redrawn/tile2.circuit.webp\" x=\"3\" y=\"3\" width=\"84\" height=\"84\" preserveAspectRatio=\"xMidYMid slice\" clip-path=\"url(#{{p}}r2tc)\"></image><rect x=\"3\" y=\"3\" width=\"84\" height=\"84\" rx=\"18\" fill=\"#06080F\" fill-opacity=\"0.1\"></rect><rect x=\"3\" y=\"3\" width=\"84\" height=\"84\" rx=\"18\" fill=\"none\" stroke=\"#3B6B5E\" stroke-width=\"2\"></rect>",
+  "front": "<rect x=\"3\" y=\"3\" width=\"84\" height=\"40\" rx=\"18\" fill=\"#FFFFFF\" opacity=\"0.05\"></rect>",
   "sample": ""
  }
 };
@@ -357,10 +367,10 @@ export const REDRAWN_TILE_STYLES: Record<string, { back: string; front: string; 
 /** Each redrawn cosmetic's motion (scoped to .jzc; every rule stops under prefers-reduced-motion). */
 export const REDRAWN_COSMETICS_CSS: Record<string, string> = {
  "avatar-finish.holographic": ".jzc .rd-holo{animation:jzc-rdHolo 4.5s ease-in-out infinite}\n@keyframes jzc-rdHolo{0%{transform:translateX(-40px)}60%,100%{transform:translateX(60px)}}\n@media (prefers-reduced-motion: reduce){.jzc .rd-holo{animation:none}}",
- "celebration.spotlight": ".jzc .rd-swayL{animation:jzc-rdSwayL 3.2s ease-in-out infinite alternate}.jzc .rd-swayR{animation:jzc-rdSwayR 3.2s ease-in-out infinite alternate}\n@keyframes jzc-rdSwayL{from{transform:rotate(-6deg)}to{transform:rotate(5deg)}}\n@keyframes jzc-rdSwayR{from{transform:rotate(6deg)}to{transform:rotate(-5deg)}}\n@media (prefers-reduced-motion: reduce){.jzc .rd-swayL,.jzc .rd-swayR{animation:none}}",
- "celebration.shockwave": ".jzc .rd-wave{animation:jzc-rdWave 2.4s cubic-bezier(.2,.7,.3,1) infinite}.jzc .rd-wave1{animation-delay:.8s}.jzc .rd-wave2{animation-delay:1.6s}\n@keyframes jzc-rdWave{0%{transform:scale(.6);opacity:0}15%{opacity:1}100%{transform:scale(2.6);opacity:0}}\n@media (prefers-reduced-motion: reduce){.jzc .rd-wave{animation:none;opacity:.7}.jzc .rd-wave1{transform:scale(1.6);opacity:.45}.jzc .rd-wave2{transform:scale(2.2);opacity:.25}}",
- "celebration.circuit-overload": ".jzc .rd-pulse{stroke-dasharray:14 86;animation:jzc-rdPulse 1.6s linear infinite}\n@keyframes jzc-rdPulse{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}\n@media (prefers-reduced-motion: reduce){.jzc .rd-pulse{animation:none;opacity:0}}"
+ "celebration.spotlight": ".jzc .rd2-mote{animation:jzc-rd2Mote 3.4s ease-in-out infinite}.jzc .rd2-mote1{animation-delay:-1.1s}.jzc .rd2-mote2{animation-delay:-2.3s}\n@keyframes jzc-rd2Mote{0%,100%{opacity:.15;transform:translateY(0)}50%{opacity:.9;transform:translateY(-4px)}}\n@media (prefers-reduced-motion: reduce){.jzc .rd2-mote{animation:none;opacity:.5}}",
+ "celebration.shockwave": ".jzc .rd2-wave{animation:jzc-rd2Wave 2.4s cubic-bezier(.2,.7,.3,1) infinite}.jzc .rd2-wave1{animation-delay:.8s}.jzc .rd2-wave2{animation-delay:1.6s}\n@keyframes jzc-rd2Wave{0%{transform:scale(.7);opacity:0}15%{opacity:1}100%{transform:scale(2.6);opacity:0}}\n@media (prefers-reduced-motion: reduce){.jzc .rd2-wave{animation:none;opacity:0}}",
+ "celebration.circuit-overload": ".jzc .rd2-surge{animation:jzc-rd2Surge 2.2s ease-in-out infinite}\n@keyframes jzc-rd2Surge{0%,100%{opacity:.2}50%{opacity:1}}\n@media (prefers-reduced-motion: reduce){.jzc .rd2-surge{animation:none;opacity:.5}}"
 };
 
 /** Every 3D piece the redraws draw (public/cosmetics/redrawn/<piece>.webp). */
-export const REDRAWN_PIECES: readonly string[] = ["acc.neon-bolt","card-art.bolt-stripes","card-art.crimson","card-art.diamond-plate","card-art.diamond-plate.gems","card-art.dots","card-art.emerald","card-art.frost","card-art.galaxy","card-art.grid","card-art.hexes","card-art.joulz-navy","card-art.lava","card-art.neon-skyline","card-art.royal","card-art.static","card-art.sunburst","card-art.tier.charge","card-art.tier.lightning","card-art.tier.spark","card-art.tier.storm","card-art.tier.surge","card-art.tier.top-500","card-art.tier.volt","card-art.waves","cel.bolt","cel.podium","emote.bubble-0","emote.bubble-1","emote.bubble-2","emote.bubble-3","emote.clutch","emote.key-0","emote.key-1","emote.key-2","emote.key-3","emote.sign-0","emote.sign-1","emote.sign-2","emote.sign-3","emote.spark","emote.zap","frame.founding","orn.crown","orn.gem-charge","orn.gem-lightning","orn.gem-spark","orn.gem-storm","orn.gem-surge","orn.gem-top-500","orn.gem-volt","orn.stud-bronze","orn.stud-gold","orn.stud-obsidian","orn.stud-silver","orn.trophy"];
+export const REDRAWN_PIECES: readonly string[] = ["acc.bolt2","card-art.bolt-stripes","card-art.crimson","card-art.diamond-plate","card-art.diamond-plate.gems","card-art.dots","card-art.emerald","card-art.frost","card-art.galaxy","card-art.grid","card-art.hexes","card-art.joulz-navy","card-art.lava","card-art.neon-skyline","card-art.royal","card-art.static","card-art.sunburst","card-art.tier.charge","card-art.tier.lightning","card-art.tier.spark","card-art.tier.storm","card-art.tier.surge","card-art.tier.top-500","card-art.tier.volt","card-art.waves","cel2.circuit","cel2.shockwave","cel2.spotlight","emote2.bubble-0","emote2.bubble-1","emote2.bubble-2","emote2.bubble-3","emote2.clutch","emote2.key-0","emote2.key-1","emote2.key-2","emote2.key-3","emote2.sign-0","emote2.sign-1","emote2.sign-2","emote2.sign-3","emote2.spark","emote2.zap","fin.carbon","fin.chrome","fin.holographic","fin.neon-glow","frame.founding","nc.chrome","nc.electric-orange","nc.neon-cyan","nc.neon-pink","nc.neon-red","orn.crown","orn.gem-charge","orn.gem-lightning","orn.gem-spark","orn.gem-storm","orn.gem-surge","orn.gem-top-500","orn.gem-volt","orn.stud-bronze","orn.stud-gold","orn.stud-obsidian","orn.stud-silver","orn.trophy","tile2.circuit"];

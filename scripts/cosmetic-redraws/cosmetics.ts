@@ -7,6 +7,7 @@
  * changed only a small helmet). Every motion is scoped to `.jzc` and stops under prefers-reduced-motion.
  */
 import type { FinishArt } from "../../src/design/identity/cosmeticsArt.data";
+import { V2_ACCESSORIES, V2_CELEBRATIONS, V2_COSMETIC_PIECES, V2_COSMETICS_CSS, V2_FINISHES, V2_REACTIONS, V2_TILE_STYLES } from "./v2/cosmetics";
 
 const IMG = (piece: string) => `/cosmetics/redrawn/${piece}.webp`;
 
@@ -222,5 +223,19 @@ const MOTION: Record<string, string> = {
 export function buildCosmetics() {
   const images = new Set<string>(["acc.neon-bolt", "cel.podium", "cel.bolt", "emote.spark", "emote.zap", "emote.clutch"]);
   for (let i = 0; i < 4; i++) for (const k of ["key", "sign", "bubble"]) images.add(`emote.${k}-${i}`);
-  return { finishes, accessories, reactions, celebrations, tiles, css: MOTION, images: [...images] };
+  // The second pass (Blender renders, v2/cosmetics.ts) in place of the first pass for every item it redraws.
+  const css: Record<string, string> = { ...MOTION };
+  for (const id of [...Object.keys(V2_CELEBRATIONS)]) delete css[id];
+  Object.assign(css, V2_COSMETICS_CSS);
+  if (Object.keys(V2_FINISHES).length + Object.keys(V2_REACTIONS).length) images.clear();
+  for (const p of V2_COSMETIC_PIECES) images.add(p);
+  return {
+    finishes: { ...finishes, ...V2_FINISHES },
+    accessories: { ...accessories, ...V2_ACCESSORIES },
+    reactions: { ...reactions, ...V2_REACTIONS },
+    celebrations: { ...celebrations, ...V2_CELEBRATIONS },
+    tiles: { ...tiles, ...V2_TILE_STYLES },
+    css,
+    images: [...images],
+  };
 }

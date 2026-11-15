@@ -41,7 +41,7 @@ const { keepPublicFile } = await import("../src/lib/offline/assets");
 
 const PIECES = join(ROOT, "public/cosmetics/redrawn");
 const files = readdirSync(PIECES);
-const allMarkup = JSON.stringify([R.REDRAWN_CARD_ARTS, R.REDRAWN_FRAMES, R.REDRAWN_FINISHES, R.REDRAWN_ACCESSORIES, R.REDRAWN_REACTIONS, R.REDRAWN_CELEBRATIONS, R.REDRAWN_TILE_STYLES]);
+const allMarkup = JSON.stringify([R.REDRAWN_CARD_ARTS, R.REDRAWN_FRAMES, R.REDRAWN_NAME_COLOURS, R.REDRAWN_FINISHES, R.REDRAWN_ACCESSORIES, R.REDRAWN_REACTIONS, R.REDRAWN_CELEBRATIONS, R.REDRAWN_TILE_STYLES]);
 const referenced = new Set([...allMarkup.matchAll(/\/cosmetics\/redrawn\/([\w.-]+)\.webp/g)].map((m) => m[1]!));
 check([...referenced].sort().join() === [...R.REDRAWN_PIECES].sort().join(), `REDRAWN_PIECES lists exactly the pieces the markup draws (${referenced.size})`);
 for (const piece of R.REDRAWN_PIECES) {
