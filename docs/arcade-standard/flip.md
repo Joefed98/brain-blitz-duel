@@ -34,11 +34,14 @@ difficulty framework's human-limited bot re-measures these in stage 3):
 | elite | 185, 182.1 | 200, 198.1 | 0 |
 | perfect | 200, 198.9 | 200, 199.8 | 0 |
 
-**Display (flipRev 11–13, no stamp; the sim is untouched and collision stays along x):** the rock is basalt columns lit
-from the tunnel over one seamless gradient, with three rivers of lava flowing through it (a dark crust, a molten body, a
-hot core and bright beads running along each channel); the surface the Captain runs on is a solid stone lip (8 px deep,
-a crisp lit top edge, block joints, the lava seam glowing in the rock under it); spikes are sharp single blades of
-obsidian heating to a bright edge and a white-hot tip, outlined dark, drawn 38 px tall inside the sim's exact x-span. The
+**Display (flipRev 11–13, no stamp; the sim is untouched and collision stays along x; the materials pass of 15 Nov
+2026, concept A):** the rock is faceted basalt from a cached tile (`paintFacetTile`, painted once per scale: each facet
+lit from the upper left by its own tilt, crisp pale edges on its lit sides, dark seams on the rest), darkening into the
+deep, with two channels of glossy molten lava (a charred crust, the molten body, a bright core and a sliding specular
+streak; no halo); the surface the Captain runs on is a dressed basalt lip in three bevelled bands with chamfered block
+joints, a crisp top edge and a molten seam under it; spikes are chunky two-faced obsidian (a hot lit face, a deep red
+far face, a dark outline and a glassy streak), drawn 38 px tall inside the sim's exact x-span, with no glow; behind the
+tunnel, angular rock shards in two parallax layers and a warm smoky haze (`drawTunnelShards`). The
 setting evolves with the run (`flipCaveHeat`, from the tick, the same for everyone): deeper in, the rock warms, the lava
 runs hotter, wider and brighter and the tunnel air takes more of its glow. Edge to edge (Joe, 15 Nov 2026): the rock
 fades to the bedrock colour `FLIP_DEEP` at the world's top and bottom (48 px) and everything at its sides (14 px), and

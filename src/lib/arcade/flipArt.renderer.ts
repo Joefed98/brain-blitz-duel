@@ -248,98 +248,166 @@ function insetPath(ctx: CanvasRenderingContext2D, at: Surface, outward: number, 
  * The rock of the taller cave on flipRev 11–13: basalt columns lit from the tunnel, fading into deep rock with no seam,
  * and rivers of lava flowing through it (bright beads running along each channel); the heat rises with the run.
  */
+/**
+ * The materials pass (15 Nov 2026, concept A): faceted basalt, painted once per device scale into a cached tile that
+ * wraps both ways. A jittered grid of quads, each split into two triangles along a seeded diagonal; every facet is lit
+ * from the upper left by its own tilt (lit planes and shadowed planes), with a crisp pale edge on its lit sides and a
+ * dark seam on the others, a fine grain and a few hairline cracks. No glow: the light is on the rock's planes.
+ */
+const FACET_TILE = 384;
+const FACET_STEP = 32;
+function paintFacetTile(c: CanvasRenderingContext2D): void {
+  const N = FACET_TILE / FACET_STEP;
+  const pt = (i: number, j: number): [number, number] => {
+    const ii = ((i % N) + N) % N;
+    const jj = ((j % N) + N) % N;
+    const h = artHash(ii * 131 + jj, 4211);
+    return [i * FACET_STEP + ((h % 21) - 10), j * FACET_STEP + (((h >>> 8) % 21) - 10)];
+  };
+  c.fillStyle = "#26232B";
+  c.fillRect(0, 0, FACET_TILE, FACET_TILE);
+  // Light from the upper left (x −0.55, y −0.65, out of the rock 0.52).
+  const L = [-0.55, -0.65, 0.52];
+  const tri = (p: [number, number][], h: number) => {
+    // A seeded tilt for the facet: its normal leans by up to ~40° in a seeded direction.
+    const a = ((h % 360) * Math.PI) / 180;
+    const lean = 0.25 + ((h >>> 9) % 50) / 100;
+    const n = [Math.cos(a) * lean, Math.sin(a) * lean, 1];
+    const len = Math.hypot(n[0]!, n[1]!, n[2]!);
+    const lit = Math.max(0, (n[0]! * L[0]! + n[1]! * L[1]! + n[2]! * L[2]!) / len);
+    const v = Math.round(20 + lit * 46 + ((h >>> 17) % 8));
+    c.fillStyle = `rgb(${v + 6},${v + 1},${v + 2})`;
+    c.beginPath();
+    c.moveTo(p[0]![0], p[0]![1]);
+    c.lineTo(p[1]![0], p[1]![1]);
+    c.lineTo(p[2]![0], p[2]![1]);
+    c.closePath();
+    c.fill();
+    // Crisp edges: pale on the sides facing the light, dark seams on the rest.
+    for (let e = 0; e < 3; e++) {
+      const [x0, y0] = p[e]!;
+      const [x1, y1] = p[(e + 1) % 3]!;
+      const nx = y1 - y0;
+      const ny = -(x1 - x0);
+      const facing = (nx * L[0]! + ny * L[1]!) / (Math.hypot(nx, ny) || 1);
+      c.strokeStyle = facing < -0.2 ? `rgba(236,224,214,${(0.1 + lit * 0.22).toFixed(3)})` : "rgba(4,3,6,0.55)";
+      c.lineWidth = facing < -0.2 ? 0.9 : 1.1;
+      c.beginPath();
+      c.moveTo(x0, y0);
+      c.lineTo(x1, y1);
+      c.stroke();
+    }
+  };
+  for (let dx = -FACET_TILE; dx <= FACET_TILE; dx += FACET_TILE)
+    for (let dy = -FACET_TILE; dy <= FACET_TILE; dy += FACET_TILE) {
+      c.save();
+      c.translate(dx, dy);
+      for (let i = 0; i < N; i++)
+        for (let j = 0; j < N; j++) {
+          const h = artHash(i * 977 + j, 4219);
+          const p00 = pt(i, j), p10 = pt(i + 1, j), p01 = pt(i, j + 1), p11 = pt(i + 1, j + 1);
+          if (h % 2) {
+            tri([p00, p10, p11], h);
+            tri([p00, p11, p01], h >>> 3);
+          } else {
+            tri([p00, p10, p01], h);
+            tri([p10, p11, p01], h >>> 3);
+          }
+        }
+      c.restore();
+    }
+  // Grain and a few hairline cracks.
+  for (let k = 0; k < 900; k++) {
+    const h = artHash(k, 4231);
+    c.fillStyle = h % 3 ? "rgba(0,0,0,0.22)" : "rgba(255,240,228,0.07)";
+    c.fillRect(h % FACET_TILE, (h >>> 9) % FACET_TILE, 1, 1);
+  }
+}
+const facetTiles = new WeakMap<CanvasRenderingContext2D, { key: string; tile: ArtCanvas | null }>();
+function facetTile(ctx: CanvasRenderingContext2D): ArtCanvas | null {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const scale = Math.min(2, Math.max(1, t ? Math.hypot(t.a, t.b) : 1));
+  const key = scale.toFixed(3);
+  const old = facetTiles.get(ctx);
+  if (old && old.key === key) return old.tile;
+  const tile = artCanvas(Math.ceil(FACET_TILE * scale), Math.ceil(FACET_TILE * scale));
+  const c = tile && artContext(tile);
+  if (tile && c) {
+    c.scale(scale, scale);
+    paintFacetTile(c as CanvasRenderingContext2D);
+  }
+  facetTiles.set(ctx, { key, tile: tile && c ? tile : null });
+  return tile && c ? tile : null;
+}
+
+/**
+ * The rock of the taller cave on flipRev 11–13 (the materials pass): faceted basalt lit from the upper left at the rock's
+ * slow parallax, darkening into the deep, warming with the heat; two channels of glossy molten lava cut through it (a
+ * charred crust, a molten body, a bright core and a specular streak along the top of the flow that slides as it runs).
+ */
 function drawRichRock(ctx: CanvasRenderingContext2D, state: FlipState, side: number, at: Surface, still: boolean): void {
   const cam = state.x / FP;
   const heat = flipCaveHeat(state);
   const outward = side === 0 ? 1 : -1;
   const lite = arcadeReducedEffects();
-  // Deep rock: one smooth gradient from the lit edge to the dark, warming with the heat.
+  ctx.fillStyle = "#24212A";
+  ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
+  const tile = facetTile(ctx);
+  const par = still ? 0 : (cam * 0.4) % FACET_TILE;
+  if (tile) {
+    for (let x = -par; x < FLIP_WORLD_W; x += FACET_TILE)
+      for (let y = 0; y < worldH; y += FACET_TILE) ctx.drawImage(tile as CanvasImageSource, x, side === 0 ? y : y - (FACET_TILE - (worldH % FACET_TILE)), FACET_TILE, FACET_TILE);
+  }
+  // Depth: the rock darkens away from the tunnel (its lit edge), and warms with the heat.
   const edgeY = at(RUNNER_X);
-  const deep = ctx.createLinearGradient(0, edgeY, 0, edgeY + outward * 420);
-  deep.addColorStop(0, `rgb(${Math.round(lerp(52, 64, heat))},${Math.round(lerp(46, 40, heat))},${Math.round(lerp(56, 44, heat))})`);
-  deep.addColorStop(0.35, `rgb(${Math.round(lerp(33, 42, heat))},${Math.round(lerp(30, 24, heat))},${Math.round(lerp(38, 28, heat))})`);
-  deep.addColorStop(1, FLIP_DEEP);
+  const deep = ctx.createLinearGradient(0, edgeY, 0, edgeY + outward * 380);
+  deep.addColorStop(0, "rgba(18,18,22,0)");
+  deep.addColorStop(0.45, "rgba(18,18,22,0.35)");
+  deep.addColorStop(1, "rgba(18,18,22,0.82)");
   ctx.fillStyle = deep;
   ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
-  // Basalt columns: slanted joints at the rock's slow parallax, each column's near face lit, crisp dark seams.
-  const par = still ? 0 : cam * 0.4;
-  const colW = 30;
-  const k0 = Math.floor(par / colW) - 1;
-  for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / colW) + 3; k++) {
-    const h = artHash(k, 907 + side);
-    const x = k * colW - par + (h % 8);
-    const w = colW - 2 + ((h >>> 4) % 10);
-    const lean = (((h >>> 9) % 9) - 4) * 0.08;
-    const top = (xx: number) => at(xx) + outward * (6 + ((h >>> 12) % 10));
-    const len = 150 + ((h >>> 16) % 120);
-    ctx.fillStyle = h % 3 === 0 ? "rgba(255,240,225,0.035)" : "rgba(0,0,0,0.10)";
-    ctx.beginPath();
-    ctx.moveTo(x, top(x));
-    ctx.lineTo(x + w, top(x + w));
-    ctx.lineTo(x + w + lean * len, top(x + w) + outward * len);
-    ctx.lineTo(x + lean * len, top(x) + outward * len);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "rgba(6,5,8,0.55)";
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(x, top(x));
-    ctx.lineTo(x + lean * len, top(x) + outward * len);
-    ctx.stroke();
-    ctx.strokeStyle = `rgba(255,${Math.round(lerp(200, 170, heat))},150,0.10)`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x + 1.5, top(x) + outward * 2);
-    ctx.lineTo(x + 1.5 + lean * len * 0.6, top(x) + outward * len * 0.6);
-    ctx.stroke();
-    // Cross joints, a few to a column.
-    for (let j = 1; j < 4; j++) {
-      const jh = artHash(k, j + 33);
-      if (jh % 2) continue;
-      const d = 30 + j * 46 + (jh % 18);
-      ctx.strokeStyle = "rgba(6,5,8,0.4)";
-      ctx.beginPath();
-      ctx.moveTo(x + lean * d, top(x) + outward * d);
-      ctx.lineTo(x + w + lean * d, top(x + w) + outward * (d + ((jh >>> 3) % 7) - 3));
-      ctx.stroke();
-    }
+  if (heat > 0) {
+    ctx.fillStyle = `rgba(150,46,18,${(0.16 * heat).toFixed(3)})`;
+    ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
   }
-  // Lava rivers flowing through the rock: three channels a side, each a dark crust, a molten body and a hot core, with
-  // bright beads running along it (the flow); wider, brighter and hotter as the run goes deeper.
-  const rivers = lite ? 1 : 3;
+  // Two glossy lava channels a side (one under reduced effects).
+  const rivers = lite ? 1 : 2;
   for (let r = 0; r < rivers; r++) {
     const rh = artHash(r, 1301 + side * 17);
-    const depth = 78 + r * 82 + (rh % 20);
-    const amp = 22 + (rh % 14);
+    const depth = 92 + r * 120 + (rh % 20);
+    const amp = 24 + (rh % 14);
     const wave = 60 + ((rh >>> 5) % 50);
     const phase = ((rh >>> 11) % 100) / 16;
     const rpar = still ? 0 : cam * (0.4 - r * 0.06);
     const d = (x: number) => depth + Math.sin((x + rpar) / wave + phase) * amp + Math.sin((x + rpar) / (wave * 0.43) + phase * 2.3) * amp * 0.45 + Math.sin((x + rpar) / (wave * 2.7) + phase * 0.7) * amp * 0.8;
-    const width = (3.2 + r * 0.6) * (1 + heat * 0.45);
+    const width = (6 + r * 1.5) * (1 + heat * 0.35);
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     insetPath(ctx, at, outward, d);
-    ctx.strokeStyle = "rgba(14,6,5,0.85)";
-    ctx.lineWidth = width + 5;
+    // The charred crust the channel is cut into.
+    ctx.strokeStyle = "rgba(12,6,6,0.92)";
+    ctx.lineWidth = width + 6;
     ctx.stroke();
-    if (!lite) {
-      ctx.strokeStyle = lavaRgb(heat, 0, 0.16 + heat * 0.12);
-      ctx.lineWidth = width + 12;
-      ctx.stroke();
-    }
-    ctx.strokeStyle = lavaRgb(heat, 0, 0.95);
+    ctx.strokeStyle = `rgb(${Math.round(lerp(150, 190, heat))},${Math.round(lerp(34, 52, heat))},14)`;
     ctx.lineWidth = width;
     ctx.stroke();
-    ctx.strokeStyle = lavaRgb(heat, 1, 0.9);
-    ctx.lineWidth = Math.max(1, width * 0.35);
+    ctx.strokeStyle = lavaRgb(heat, 0.35, 1);
+    ctx.lineWidth = width * 0.6;
     ctx.stroke();
-    // The flow: bright beads running along the channel (still under reduced motion).
-    ctx.setLineDash([3 + r, 16 + r * 5]);
+    ctx.strokeStyle = lavaRgb(heat, 1, 1);
+    ctx.lineWidth = Math.max(1, width * 0.22);
+    ctx.stroke();
+    // The specular streak: the liquid's gloss along the channel's lit side, sliding as the lava runs.
+    ctx.save();
+    ctx.translate(-0.6, -outward * width * 0.22);
+    insetPath(ctx, at, outward, d);
+    ctx.setLineDash([14 + r * 4, 9 + r * 3]);
     ctx.lineDashOffset = still ? 0 : -(state.tick * (0.9 + r * 0.25)) - cam * 0.4;
-    ctx.strokeStyle = `rgba(255,${Math.round(lerp(236, 250, heat))},${Math.round(lerp(180, 225, heat))},0.95)`;
-    ctx.lineWidth = Math.max(1, width * 0.55);
+    ctx.strokeStyle = "rgba(255,250,236,0.88)";
+    ctx.lineWidth = Math.max(0.9, width * 0.14);
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.restore();
   }
   ctx.lineCap = "butt";
   // Edge to edge (Joe, 15 Nov 2026): the rock reaches the world's top and bottom edges as the deep bedrock colour the
@@ -380,40 +448,46 @@ function drawSideFade(ctx: CanvasRenderingContext2D): void {
  */
 function drawStoneLip(ctx: CanvasRenderingContext2D, state: FlipState, side: number, at: Surface, rail: () => void): void {
   const heat = flipCaveHeat(state);
-  const lite = arcadeReducedEffects();
   ctx.save();
   rockPath(ctx, side, at);
   ctx.clip();
   rail();
-  if (!lite) {
-    ctx.strokeStyle = lavaRgb(heat, 0, 0.12 + heat * 0.1);
-    ctx.lineWidth = 34;
-    ctx.stroke();
-  }
-  ctx.strokeStyle = lavaRgb(heat, 0.6, 1);
+  // The lava seam under the lip: a molten line between the lip and the rock (no halo).
+  ctx.strokeStyle = lavaRgb(heat, 0.3, 1);
   ctx.lineWidth = 21;
   ctx.stroke();
-  ctx.strokeStyle = "#2A2630";
+  ctx.strokeStyle = lavaRgb(heat, 1, 1);
+  ctx.lineWidth = 19;
+  ctx.stroke();
+  // The lip: dressed basalt with a lit top face, a mid face and a shadowed underside (a bevel in three bands).
+  ctx.strokeStyle = "#1E1B22";
   ctx.lineWidth = 17;
   ctx.stroke();
-  ctx.strokeStyle = "#4A4452";
-  ctx.lineWidth = 11;
+  ctx.strokeStyle = "#3E3946";
+  ctx.lineWidth = 13;
   ctx.stroke();
-  ctx.strokeStyle = "#5C5564";
-  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#5E5867";
+  ctx.lineWidth = 7;
   ctx.stroke();
-  // Block joints across the lip, scrolling with the world.
-  ctx.setLineDash([1.4, 25]);
+  ctx.strokeStyle = "#8A8392";
+  ctx.lineWidth = 2.6;
+  ctx.stroke();
+  // Block joints across the lip, scrolling with the world, each with a lit chamfer.
+  ctx.setLineDash([1.6, 24.8]);
   ctx.lineDashOffset = (state.x / FP) % 26.4;
-  ctx.strokeStyle = "rgba(10,8,12,0.9)";
+  ctx.strokeStyle = "rgba(8,6,10,0.95)";
   ctx.lineWidth = 17;
+  ctx.stroke();
+  ctx.lineDashOffset = (state.x / FP) % 26.4 - 1.6;
+  ctx.setLineDash([1, 25.4]);
+  ctx.strokeStyle = "rgba(200,190,205,0.35)";
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
   // The crisp top edge the runner stands on.
   rail();
-  ctx.strokeStyle = "rgba(250,236,220,0.9)";
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = "rgba(246,238,228,0.95)";
+  ctx.lineWidth = 1.3;
   ctx.stroke();
 }
 
@@ -424,18 +498,9 @@ function drawStoneLip(ctx: CanvasRenderingContext2D, state: FlipState, side: num
 function drawSpikeBlades(ctx: CanvasRenderingContext2D, a: number, b: number, inward: number, at: Surface,
   maxH: number, seed: number, pulse: number, heat: number): void {
   if (b - a <= 1) return;
-  const count = Math.max(2, Math.round((b - a) / 13));
+  void pulse;
+  const count = Math.max(2, Math.round((b - a) / 17));
   const slot = (b - a) / count;
-  if (!arcadeReducedEffects()) {
-    const mid = (a + b) / 2;
-    const gy = at(mid) + inward * maxH * 0.4;
-    const reach = Math.max(maxH, (b - a) * 0.55);
-    const glow = ctx.createRadialGradient(mid, gy, 2, mid, gy, reach);
-    glow.addColorStop(0, lavaRgb(heat, 0, 0.16 + pulse * 0.06));
-    glow.addColorStop(1, lavaRgb(heat, 0, 0));
-    ctx.fillStyle = glow;
-    ctx.fillRect(mid - reach, gy - reach, reach * 2, reach * 2);
-  }
   ctx.save();
   ctx.beginPath();
   ctx.rect(a, -10, b - a, worldH + 20);
@@ -444,47 +509,51 @@ function drawSpikeBlades(ctx: CanvasRenderingContext2D, a: number, b: number, in
     const h = artHash(seed, k);
     const x0 = a + slot * k;
     const x1 = x0 + slot;
-    const tipX = x0 + slot * (0.42 + (h % 16) / 100);
+    const tipX = x0 + slot * (0.44 + (h % 12) / 100);
     const height = maxH * (0.86 + ((h >>> 6) % 15) / 100);
     const base0 = at(x0) - inward * 3;
     const base1 = at(x1) - inward * 3;
+    const baseM = at(tipX) - inward * 3;
     const tipY = at(tipX) + inward * height;
-    const body = ctx.createLinearGradient(0, at(tipX), 0, tipY);
-    body.addColorStop(0, "#1A0907");
-    body.addColorStop(0.18, "#B3241A");
-    body.addColorStop(0.55, lavaRgb(heat, 0.2, 1));
-    body.addColorStop(1, lavaRgb(heat, 1, 1));
+    // Two faces of glassy obsidian heated from the root: the lit face (left) hot orange to gold, the far face deep red.
+    const lit = ctx.createLinearGradient(0, baseM, 0, tipY);
+    lit.addColorStop(0, "#2A0B07");
+    lit.addColorStop(0.25, "#DC4620");
+    lit.addColorStop(0.7, lavaRgb(heat, 0.45, 1));
+    lit.addColorStop(1, "#FFE9B8");
+    ctx.fillStyle = lit;
+    ctx.beginPath();
+    ctx.moveTo(x0, base0);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineTo(tipX, baseM);
+    ctx.closePath();
+    ctx.fill();
+    const far = ctx.createLinearGradient(0, baseM, 0, tipY);
+    far.addColorStop(0, "#140504");
+    far.addColorStop(0.35, "#6E140E");
+    far.addColorStop(1, "#D9542A");
+    ctx.fillStyle = far;
+    ctx.beginPath();
+    ctx.moveTo(tipX, baseM);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineTo(x1, base1);
+    ctx.closePath();
+    ctx.fill();
+    // Crisp outline, then the ridge's glassy highlight and a specular glint near the tip.
+    ctx.strokeStyle = "rgba(10,3,2,0.95)";
+    ctx.lineWidth = 1.1;
     ctx.beginPath();
     ctx.moveTo(x0, base0);
     ctx.lineTo(tipX, tipY);
     ctx.lineTo(x1, base1);
-    ctx.closePath();
-    ctx.fillStyle = body;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(12,4,3,0.95)";
-    ctx.lineWidth = 1.1;
     ctx.stroke();
-    // The far face in shadow, a lit edge on the near face.
-    ctx.globalAlpha = 0.4;
-    ctx.fillStyle = "#120504";
+    // The glassy highlight: a thin pale streak inside the lit face, along its outer edge near the tip.
+    ctx.strokeStyle = "rgba(255,246,226,0.8)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(tipX, tipY);
-    ctx.lineTo(x1, base1);
-    ctx.lineTo(tipX + (x1 - tipX) * 0.35, base1 + (tipY - base1) * 0.1);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = "rgba(255,226,180,0.9)";
-    ctx.lineWidth = 0.9;
-    ctx.beginPath();
-    ctx.moveTo(x0 + (tipX - x0) * 0.25, base0 + (tipY - base0) * 0.25);
-    ctx.lineTo(tipX, tipY);
+    ctx.moveTo(x0 + (tipX - x0) * 0.5 + 1.2, base0 + (tipY - base0) * 0.5);
+    ctx.lineTo(x0 + (tipX - x0) * 0.9 + 0.4, base0 + (tipY - base0) * 0.9);
     ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#FFF6E0";
-    ctx.beginPath();
-    ctx.arc(tipX, tipY - inward * 0.6, 1.1, 0, Math.PI * 2);
-    ctx.fill();
   }
   ctx.restore();
 }
@@ -996,6 +1065,62 @@ function drawCaveDepths(ctx: CanvasRenderingContext2D, run: number, tick: number
   }
 }
 
+/**
+ * The materials pass (concept A's layered backdrop, flipRev 11–13): far angular rock shards in two parallax layers
+ * behind the tunnel, each a lit face and a shadowed face with a crisp pale edge, and a warm smoky haze rising with the
+ * heat. Clipped to the tunnel by the caller; nothing collides.
+ */
+function drawTunnelShards(ctx: CanvasRenderingContext2D, run: number, still: boolean, heat: number,
+  floorY: (x: number) => number, ceilY: (x: number) => number): void {
+  for (let row = 1; row >= 0; row--) {
+    const par = still ? 0 : run / (row ? 9 : 5);
+    const stride = row ? 70 : 54;
+    const k0 = Math.floor(par / stride) - 1;
+    for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / stride) + 3; k++) {
+      for (const down of [true, false]) {
+        const h = artHash(k * 3 + row * 7919 + (down ? 1 : 0), 2741);
+        if (h % 3 === 0) continue;
+        const x = k * stride - par + (h % 20);
+        const w = 26 + (h % 30) + row * 14;
+        const gap = floorY(x + w / 2) - ceilY(x + w / 2);
+        const len = gap * (0.22 + ((h >>> 6) % 30) / 100);
+        const base = down ? ceilY(x + w / 2) - 20 : floorY(x + w / 2) + 20;
+        const tipX = x + w * (0.3 + ((h >>> 11) % 40) / 100);
+        const tipY = down ? base + 20 + len : base - 20 - len;
+        const a = row ? 0.32 : 0.5;
+        ctx.fillStyle = `rgba(${row ? 46 : 58},${row ? 42 : 52},${row ? 50 : 58},${a})`;
+        ctx.beginPath();
+        ctx.moveTo(x, base);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(tipX, base);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = `rgba(${row ? 22 : 26},${row ? 20 : 22},${row ? 26 : 28},${a + 0.1})`;
+        ctx.beginPath();
+        ctx.moveTo(tipX, base);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(x + w, base);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = `rgba(230,214,200,${row ? 0.1 : 0.18})`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x, base);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+      }
+    }
+  }
+  // Warm smoke drifting in the tunnel's middle, thicker deeper in.
+  const mid = (floorY(FLIP_WORLD_W / 2) + ceilY(FLIP_WORLD_W / 2)) / 2;
+  const haze = ctx.createLinearGradient(0, mid - 160, 0, mid + 160);
+  haze.addColorStop(0, "rgba(70,40,30,0)");
+  haze.addColorStop(0.5, `rgba(${Math.round(lerp(70, 110, heat))},${Math.round(lerp(42, 46, heat))},34,${(0.14 + heat * 0.12).toFixed(3)})`);
+  haze.addColorStop(1, "rgba(70,40,30,0)");
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, mid - 160, FLIP_WORLD_W, 320);
+}
+
 /** Polish A4: spores (were embers) drifting slowly up through the tunnel, each with a faint glow; still under reduced motion. */
 function drawTunnelEmbers(ctx: CanvasRenderingContext2D, tick: number, still: boolean,
   floorY: (x: number) => number = () => FLIP_FLOOR_Y, ceilY: (x: number) => number = () => FLIP_CEIL_Y): void {
@@ -1078,7 +1203,9 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     bandPath(ctx, ceilAt, floorAt);
     ctx.clip();
     // Rev 8: two layers on the bent rails; earlier revisions keep one on the fixed lines.
-    drawCaveDepths(ctx, still ? 0 : state.x / FP, state.tick, still, state.exp ? floorAt : floorBase, state.exp ? ceilAt : ceilBase, state.exp ? 2 : 1);
+    // flipRev 11–13 (the materials pass): concept A's lit rock shards and smoky haze in place of the thin depths.
+    if (state.flow) drawTunnelShards(ctx, state.x / FP, still, heat, floorAt, ceilAt);
+    else drawCaveDepths(ctx, still ? 0 : state.x / FP, state.tick, still, state.exp ? floorAt : floorBase, state.exp ? ceilAt : ceilBase, state.exp ? 2 : 1);
     drawTunnelEmbers(ctx, state.tick, still, floorBase, ceilBase);
     ctx.restore();
   }

@@ -17,9 +17,22 @@ in, so the setting's change shows down each column: deeper in, the rock warms an
 | Before | <img src="flip/flip-before-t600.webp" width="200"> | <img src="flip/flip-before-t1800.webp" width="200"> | <img src="flip/flip-before-t3300.webp" width="200"> |
 | After | <img src="flip/flip-after-t600.webp" width="200"> | <img src="flip/flip-after-t1800.webp" width="200"> | <img src="flip/flip-after-t3300.webp" width="200"> |
 
-- The floor the Captain runs on is a solid stone lip with a crisp lit edge and block joints, the lava seam glowing under it.
-- The rock is lit basalt columns with three rivers of lava flowing through it (bright beads run along each channel).
-- Spikes are sharp single blades heating to a white-hot tip, outlined dark.
+Today | Concept A | New, at 10, 30 and 55 s (the materials pass):
+
+<img src="flip/compare-1.webp" width="720">
+<img src="flip/compare-2.webp" width="720">
+<img src="flip/compare-3.webp" width="720">
+
+- The rock is faceted basalt (a cached tile, painted once per scale): every facet lit from the upper left by its own
+  tilt, crisp pale edges on its lit sides and dark seams on the rest, darkening into the deep and warming with the heat.
+- Two channels of glossy molten lava cut through it: a charred crust, the molten body, a bright core and a specular
+  streak along the flow's lit side that slides as the lava runs (no halo).
+- The floor the Captain runs on is a dressed basalt lip in three bevelled bands with chamfered block joints and a
+  crisp top edge, a molten seam under it.
+- Spikes are chunky two-faced obsidian: a hot lit face, a deep red far face, a dark outline and a glassy streak near
+  the tip. No glow behind them.
+- Behind the tunnel, concept A's angular rock shards in two parallax layers (a lit face, a shadowed face, a pale
+  edge) and a warm smoky haze that thickens deeper in.
 - Edge to edge: the world fades to the bedrock at its edges and the arena scene continues it, here on a 1366 × 768
   computer, 55 s in (the faint veins run off into the rock beside the world):
 
