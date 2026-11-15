@@ -27,8 +27,13 @@ import { ArtStill } from "@/components/puzzles/ArtStill";
 import { ORBIT_INTRO_COURSE } from "./orbitIntroCourse.data";
 import { ORBIT_REV_GRACE, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
+import { canvasRatio } from "@/lib/battery";
+import { drawOrbitRunMap, ORBIT_MAP_COLOURS } from "@/lib/arcade/orbitReveal.renderer";
+import { traceOrbitRun, type OrbitRunTrace } from "@/lib/duel/orbitRunTrace";
+import { ORBIT_TOTAL } from "@/lib/arcade/orbit";
+import { ORBIT_STD } from "@/lib/arcade/orbitRev3";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunSummaryProps } from "./types";
 
 /**
  * The intro still (the Action overhaul, 15 Nov 2026): the live renderer on the dealt revision (orbitRev 15), on the fixed
@@ -213,6 +218,135 @@ export function orbitXpLine(x: { dust: number; dustTotal: number; slings: number
   return `Stardust ${x.dust}/${x.dustTotal} · slingshots ${x.slings}/${x.slingsTotal} · fields ${x.threads}/${x.threadsTotal} · ${x.perfect} perfect orbits`;
 }
 
+/** The course map's drawing size (CSS px; the canvas scales to the reveal's width, keeping this shape). */
+const MAP_W = 360;
+const MAP_H = 300;
+
+/**
+ * The course map canvas (stage 2): drawn once per size at the device's pixel ratio from the trace (no frame loop).
+ */
+function RunMap({ trace }: { trace: OrbitRunTrace }) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  const [width, setWidth] = useState(MAP_W);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const measure = () => setWidth(Math.max(240, Math.min(420, Math.round(c.parentElement?.clientWidth ?? MAP_W))));
+    measure();
+    if (typeof ResizeObserver === "undefined" || !c.parentElement) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(c.parentElement);
+    return () => ro.disconnect();
+  }, []);
+  const height = Math.round((width * MAP_H) / MAP_W);
+  useEffect(() => {
+    const c = ref.current;
+    const ctx = c?.getContext("2d");
+    if (!c || !ctx) return;
+    const ratio = canvasRatio();
+    c.width = Math.round(width * ratio);
+    c.height = Math.round(height * ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    drawOrbitRunMap(ctx, trace, width, height);
+  }, [trace, width, height]);
+  return (
+    <canvas
+      ref={ref}
+      data-orbit-run-map=""
+      role="img"
+      aria-label={`Course map: ${trace.finished ? "the sun reached" : `${trace.best} of ${ORBIT_TOTAL} planets reached`}, ${trace.slips.length} slip${trace.slips.length === 1 ? "" : "s"}`}
+      style={{ width, height }}
+    />
+  );
+}
+
+/** A big number with its short label (the reveal's key numbers). */
+function BigStat({ label, value, of }: { label: string; value: string | number; of?: number }) {
+  return (
+    <div data-orbit-stat={label} className="flex min-w-0 flex-col items-center rounded-xl bg-white/5 px-2 py-2">
+      <span className="text-2xl font-extrabold leading-tight tabular-nums text-foreground">
+        {value}
+        {of !== undefined ? <span className="text-base font-bold text-muted-foreground">/{of}</span> : null}
+      </span>
+      <span className="text-sm font-semibold text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+function LegendMark({ kind }: { kind: "flight" | "fuel" | "crash" | "dust" | "moon" }) {
+  const colour = ORBIT_MAP_COLOURS[kind];
+  const text = { flight: "Flights", fuel: "Out of fuel", crash: "Crash", dust: "Stardust", moon: "Slingshot" }[kind];
+  const mark =
+    kind === "flight" ? (
+      <span aria-hidden className="inline-block h-0.5 w-4 rounded" style={{ background: colour }} />
+    ) : kind === "fuel" || kind === "crash" ? (
+      <span aria-hidden className="text-base font-black leading-none" style={{ color: colour }}>
+        {kind === "fuel" ? "✕" : "✶"}
+      </span>
+    ) : kind === "dust" ? (
+      <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: colour }} />
+    ) : (
+      <span aria-hidden className="inline-block h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: colour }} />
+    );
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      {mark}
+      {text}
+    </span>
+  );
+}
+
+/**
+ * Stage 2's reveal (15 Nov 2026): the run as a picture, a course map of the replayed run (folded into four columns, start
+ * bottom left, the sun top right), then its key numbers big: planets, stardust, slingshots and slips, and the score's
+ * parts as the standard stores them. Older stamps (no features) keep their lines.
+ */
+function RunPicture({ trace }: { trace: OrbitRunTrace }) {
+  const fuel = trace.slips.filter((s) => s.kind === "fuel").length;
+  const crashes = trace.slips.length - fuel;
+  const parts = trace.parts;
+  const partRows = parts
+    ? ORBIT_STD.parts.map((p) => ({ key: p.key, label: p.key === "core" ? "Planets" : p.label, points: p.key === "core" ? parts.core : (parts.features[p.key] ?? 0), max: p.max }))
+    : [];
+  return (
+    <div data-orbit-run-summary="" className="flex w-full flex-col items-center gap-3">
+      <RunMap trace={trace} />
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs font-semibold text-muted-foreground">
+        <LegendMark kind="flight" />
+        {fuel ? <LegendMark kind="fuel" /> : null}
+        {crashes ? <LegendMark kind="crash" /> : null}
+        <LegendMark kind="dust" />
+        <LegendMark kind="moon" />
+      </div>
+      <div className="grid w-full max-w-sm grid-cols-4 gap-2">
+        <BigStat label={trace.finished ? "Sun!" : "Planets"} value={trace.best} of={ORBIT_TOTAL} />
+        <BigStat label="Stardust" value={trace.counts.dust} of={trace.counts.dustTotal} />
+        <BigStat label="Slings" value={trace.counts.slings} of={trace.counts.slingsTotal} />
+        <BigStat label={trace.slips.length === 1 ? "Slip" : "Slips"} value={trace.slips.length} />
+      </div>
+      {partRows.length ? (
+        <div data-orbit-parts="" className="grid w-full max-w-sm grid-cols-3 gap-2">
+          {partRows.map((p) => (
+            <div key={p.key} data-orbit-part={p.key} className="flex flex-col items-center rounded-xl border border-white/10 px-1 py-1.5">
+              <span className="text-xl font-extrabold leading-tight tabular-nums text-foreground">{p.points}</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {p.label} <span className="tabular-nums">(of {p.max})</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The arcade reveal's run summary (PuzzleDefinition.RunSummary): the expansion's view only (orbitRev 12+). */
+export function OrbitRunSummary({ puzzle, myAnswer }: RunSummaryProps) {
+  const trace = useMemo(() => (puzzle.type === "orbit" && orbitXpRev(puzzle.orbitRev) && myAnswer ? traceOrbitRun(puzzle, myAnswer) : null), [puzzle, myAnswer]);
+  return trace ? <RunPicture trace={trace} /> : null;
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "orbit") return null;
   const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
@@ -244,4 +378,5 @@ export const orbitPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
+  RunSummary: OrbitRunSummary,
 };

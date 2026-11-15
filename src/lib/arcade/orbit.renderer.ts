@@ -107,6 +107,11 @@ function planetLook(p: Planet, i: number, lobe: number) {
   };
 }
 
+/** A planet's seeded colour (its orbit line's and rim's), for the reveal's course map. */
+export function orbitPlanetColour(p: Planet, i: number): string {
+  return planetLook(p, i, 0).colour;
+}
+
 /** Mix a #RRGGBB colour towards white (amt > 0) or black (amt < 0). */
 function tint(hex: string, amt: number): string {
   const n = Number.parseInt(hex.slice(1), 16);
@@ -828,6 +833,7 @@ import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.render
 import { drawPlanetRing, drawRenderedPlanet, drawSunWarmth, orbitPlanetTurn } from "./orbitPlanets.renderer";
 import { drawHudPill, hudPillWidth, HUD_PILL_GAP } from "./hudPill.renderer";
 import { ORBIT_GRACE_HOLD_TICKS } from "./orbitRev3";
+import { drawCatchLock, drawHoldRing, drawLaunchPuff, drawSunBloom, orbitFlameOn, orbitLowFuel, orbitLowFuelWash } from "./orbitEffects.renderer";
 
 /** The run's slips so far (display only): checkpoint respawns used plus orbitRev 15's automatic respawns; never falls. */
 export function orbitSlips(state: { respawns: number; autoRespawns?: number }): number {
@@ -1188,7 +1194,14 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   const sx = state.x / FP - cam.x;
   const sy = state.y / FP - cam.y;
   const ship = observeShip(ctx, state);
-  drawCaptureGlow(ctx, ship, here.x / FP - cam.x, here.y / FP - cam.y, here.r / FP, state.cur === ORBIT_TOTAL ? ORBIT_GOLD : planetLook(here, state.cur, 0).colour, still);
+  const hereColour = state.cur === ORBIT_TOTAL ? ORBIT_GOLD : planetLook(here, state.cur, 0).colour;
+  // Stage 2 (15 Nov 2026, display only): on the expansion's view every catch is a lock ring closing with four clamps (no
+  // glow), the launch leaves a thruster puff, and a respawn's hold drains a gold arc round its planet, then GO.
+  if (state.xp) {
+    drawCatchLock(ctx, state, cam, hereColour, still);
+    drawLaunchPuff(ctx, state, cam, still);
+    drawHoldRing(ctx, state, cam, still);
+  } else drawCaptureGlow(ctx, ship, here.x / FP - cam.x, here.y / FP - cam.y, here.r / FP, hereColour, still);
   drawShipTrail(ctx, ship, cam.x, cam.y, state.ended === 2);
   // orbitRev 14: a run that ran dry draws its rocket in the sputter instead (dropping away, no exhaust streak),
   // unless motion is reduced.
@@ -1215,7 +1228,9 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(Math.atan2(uy, ux));
-    if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still, Boolean(state.boost && state.flying > 0));
+    // Stage 2: on low fuel the flame stutters (a seeded skip on the round tick; steady under reduced motion).
+    const flameOn = !state.xp || orbitFlameOn(state.tick, orbitLowFuel(state), still);
+    if (!dead && flameOn) drawRocketFlame(ctx, state.flying, since, state.tick, still, Boolean(state.boost && state.flying > 0));
     drawRev3RocketBody(ctx, dead, Boolean(state.xp));
     ctx.restore();
   }
@@ -1243,6 +1258,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   }
   // orbitRev 14: the fuel meter, bottom right, and the sputter when the tank runs dry.
   if (state.fuel !== undefined) drawFuelMeter(ctx, state, sputter, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H, still);
+  // Stage 2: the sun reached: a bloom of light, ALL 40 PLANETS! and the planets counting up.
+  if (state.xp) drawSunBloom(ctx, state, cam, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H, still);
   if ((state.hold ?? 0) > 0) {
     // orbitRev 15 (grace): an automatic respawn's hold, counted down over the planet ("BACK IN 3"), the run carrying on.
     drawGraceHold(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
@@ -1855,7 +1872,10 @@ function observeSputter(ctx: object, state: OrbitRev3State): OrbitSputter | null
 
 /** Where the falling rocket is at share p (0–1) of the sputter, world px, and its turn. */
 function sputterPose(sp: OrbitSputter, p: number): { x: number; y: number; turn: number } {
-  return { x: sp.x + sp.ux * 16 * p, y: sp.y + sp.uy * 16 * p + 78 * p * p, turn: 2.8 * p * p };
+  // Stage 2 (15 Nov 2026): the engine dies and the rocket drifts on along its heading, slowing, sinking a little and
+  // turning slowly (it fell away before).
+  const glide = p * (2 - p);
+  return { x: sp.x + sp.ux * 34 * glide, y: sp.y + sp.uy * 34 * glide + 12 * p * p, turn: 1.1 * p * p };
 }
 
 /** The smoke and the rocket dropping away (not under reduced motion). */
@@ -1925,7 +1945,9 @@ function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, spu
   const flashing = sputter !== null && !still && sputter.age < ORBIT_SPUTTER_MS;
   const red = sputter !== null && (flashing ? Math.floor(sputter.age / 100) % 2 === 0 : sputter.ended || still);
   if (state.xp) {
-    drawGlassGauge(ctx, x, y, m.w, m.h, share, red ? (flashing ? 0.5 : 0.3) : 0, draining, state.tick, still);
+    // Stage 2: a quarter of the tank or less in flight pulses the gauge red (steady under reduced motion).
+    const low = !sputter && orbitLowFuel(state) ? orbitLowFuelWash(state.tick, still) : 0;
+    drawGlassGauge(ctx, x, y, m.w, m.h, share, red ? (flashing ? 0.5 : 0.3) : low, draining, state.tick, still);
     ctx.restore();
     if (sputter) drawSputterWords(ctx, sputter, W, H, still);
     return;
