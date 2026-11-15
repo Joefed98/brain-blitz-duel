@@ -54,8 +54,8 @@ export const PATTERN_STD_HELP: Record<PatternStdType, string> = {
   pipes: help("pipes", "join every pipe to the source", [parLine("pipes", "Taps", "finish in the fewest taps (par)", P("pipes"))], "the share of the pipes joined to the source, more for doing it early"),
   push: help("push", "push every crate onto a mark", [
     { label: "Gold crate", how: "the gold crate on the gold mark", max: PUSH_STD.gold },
-    // Pattern review fixes (15 Nov 2026): Heave shows no par during play, so the help no longer names one.
-    parLine("push", "Pushes", "finish in the fewest pushes the warehouse allows", P("push")),
+    // The Pattern overhaul (15 Nov 2026): Heave shows Pushes and Par during play, so the help names par again.
+    parLine("push", "Pushes", "finish in the fewest pushes (par, shown)", P("push")),
   ], `${PUSH_STD.perCrate} for each crate on a mark, more for getting it there early, plus the gold crate; wasted pushes take it down`),
 };
 

@@ -112,3 +112,5 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 | `push.push` | A step that pushes a crate | 120 ms |
 | `push.home` | A crate lands on a marking: it thumps and kicks up dust (not on the solving push) | 300 ms thump, 520 ms dust |
 | `push.solve` | The crates thump in turn and the warehouse lights switch on in a row | 1,200 ms |
+| `push.goldOff` | The gold crate pushed off its gold mark (since 15 Nov 2026, `retro.powerDown.mp3` until its own file) | — |
+| `push.stuck` | A crate pushed where it can never leave: a warning creak (slot only: fired by the deadlock hint, which comes with the levels; `swing.vineCreak.mp3` until its own file) | — |
