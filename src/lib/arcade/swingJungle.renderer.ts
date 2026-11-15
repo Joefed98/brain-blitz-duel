@@ -19,6 +19,7 @@ import type { SwingGate, SwingLedge, SwingSlider, SwingState } from "./swing";
 import { swingAnchorAt, swingHookLit, SWING_GATE_HALF_W, SWING_LEDGE_THICK } from "./swing";
 import { artHash } from "./art.renderer";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
+import { JUNGLE_MID, JUNGLE_NEAR, paintTrunkSpan, drawGrabRing, drawLeafClusterSprite, drawTrunkLayer, nearTrunksOnScreen, paintPlanks, paintTrunk, strokeVineRope } from "./swingJungleArt.renderer";
 
 const FP = 256;
 const COL = 40 * FP;
@@ -117,6 +118,18 @@ function paintJungleFarSpan(ctx: CanvasRenderingContext2D, x0: number, x1: numbe
       ctx.fill();
     }
   }
+  // The materials pass: the third, farthest row of trunks, pale in the haze (concept A's three-deep forest).
+  for (let k = Math.floor(x0 / 70) - 1; k <= x1 / 70 + 1; k++) {
+    const h = artHash(k, 557);
+    const tx = k * 70 + (h % 30);
+    const tw = 8 + ((h >>> 5) % 8);
+    const tg = ctx.createLinearGradient(tx, 0, tx + tw, 0);
+    tg.addColorStop(0, "rgba(44,92,72,0.75)");
+    tg.addColorStop(0.3, "rgba(66,120,96,0.75)");
+    tg.addColorStop(1, "rgba(34,76,60,0.75)");
+    ctx.fillStyle = tg;
+    ctx.fillRect(tx, 0, tw, H);
+  }
   // Distant tree crowns: rounded canopies on thin trunks.
   const layers = lite ? ([[H * 0.52, "#1C4A3A", 70]] as const) : ([[H * 0.46, "#1C4A3A", 80], [H * 0.58, "#173A2D", 62]] as const);
   for (const [base, colour, step] of layers) {
@@ -177,6 +190,9 @@ export function paintJungleSides(ctx: CanvasRenderingContext2D, r: { x: number; 
   ctx.rect(r.x, r.y, r.w, r.h);
   ctx.clip();
   paintJungleFarSpan(ctx, r.x, r.x + r.w, H, false);
+  // The materials pass: the mid and near trunks beside the world too (still: the fill is painted once per step).
+  paintTrunkSpan(ctx, JUNGLE_MID, r.x, r.x + r.w, H);
+  paintTrunkSpan(ctx, JUNGLE_NEAR, r.x, r.x + r.w, H);
   jungleVeil(ctx, r.x, r.y, r.w, r.h, H, depth);
   // The canopy band: the same gradient and leaves as the world's canopy mass, its underside a soft wave.
   const leafLit = jungleMix(JUNGLE.leafLight, "#245E3A", depth * 0.8);
@@ -236,38 +252,28 @@ export function jungleDeepWater(depth: number): string {
 }
 
 /**
- * The backdrop: the far layer (cached, still) and the mid trunks at half the course's speed (flat fills, cheap), then
- * the deepening veil (the Action overhaul, 15 Nov 2026): `depth` 0–1 (swingJungleDepth) darkens and cools the backdrop
- * only, behind every vine, platform and the hero, so the deep jungle never costs readability.
+ * The backdrop: the far layer (cached, still), then the materials pass's two trunk layers (swingJungleArt.renderer.ts:
+ * mid trunks fading into the haze at 0.3 of the camera, near trunks with bark and lit leaf clusters at 0.55), moss
+ * curtains deeper in, then the deepening veil (the Action overhaul, 15 Nov 2026): `depth` 0–1 (swingJungleDepth)
+ * darkens and cools the backdrop only, behind every vine, platform and the hero, so the deep jungle never costs
+ * readability. Reduced effects: the mid layer only.
  */
 export function drawJungleBackdrop(ctx: CanvasRenderingContext2D, cam: number, W: number, H: number, t: number, lite: boolean, depth = 0): void {
   deviceLayer(ctx, `swing-jungle-far:${W}x${H}:${lite ? 1 : 0}`, (c) => paintJungleFar(c, W, H, lite));
   void t;
+  drawTrunkLayer(ctx, JUNGLE_MID, cam, W, H);
   if (!lite) {
-    const step = 170;
-    const off = (cam * 0.5) % step;
-    const k0 = Math.floor((cam * 0.5) / step);
-    // Calmer mid trunks (the overhaul): closer to the haze, so the vines and the hero stand out against them.
-    ctx.strokeStyle = "rgba(48,86,52,0.4)";
-    ctx.lineWidth = 2;
-    for (let k = -1; k <= W / step + 1; k++) {
-      const h = artHash(k0 + k, 977);
-      const x = k * step - off + (h % 60);
-      const w = 16 + ((h >>> 6) % 14);
-      ctx.fillStyle = "rgba(24,46,32,0.55)";
-      ctx.fillRect(x, 0, w, H);
-      ctx.fillStyle = "rgba(52,74,46,0.5)";
-      ctx.fillRect(x + 2, 0, 3, H);
-      ctx.beginPath();
-      const lx = x + w + 6;
-      ctx.moveTo(lx, 0);
-      ctx.quadraticCurveTo(lx + 10, H * 0.3, lx - 2, H * 0.45 + (h % 80));
-      ctx.stroke();
-      // Deeper in: hanging moss curtains between the trunks (from a third of the way).
-      if (depth > 0.3 && h % 2 === 0) {
-        ctx.globalAlpha = Math.min(1, (depth - 0.3) * 2) * 0.85;
-        ctx.fillStyle = "#0E241A";
-        const mx = x + w + 30 + (h % 40);
+    // Deeper in: hanging moss curtains between the layers (from a third of the way).
+    if (depth > 0.3) {
+      const step = 170;
+      const off = (cam * 0.42) % step;
+      const k0 = Math.floor((cam * 0.42) / step);
+      ctx.globalAlpha = Math.min(1, (depth - 0.3) * 2) * 0.85;
+      ctx.fillStyle = "#0E241A";
+      for (let k = -1; k <= W / step + 1; k++) {
+        const h = artHash(k0 + k, 977);
+        if (h % 2) continue;
+        const mx = k * step - off + 60 + (h % 40);
         const len = H * (0.25 + ((h >>> 3) % 20) / 100);
         ctx.beginPath();
         ctx.moveTo(mx - 9, 0);
@@ -275,9 +281,10 @@ export function drawJungleBackdrop(ctx: CanvasRenderingContext2D, cam: number, W
         ctx.quadraticCurveTo(mx + 6, len * 0.6, mx + 9, 0);
         ctx.closePath();
         ctx.fill();
-        ctx.globalAlpha = 1;
       }
+      ctx.globalAlpha = 1;
     }
+    drawTrunkLayer(ctx, JUNGLE_NEAR, cam, W, H);
   }
   // The deep jungle: the backdrop darkens and cools towards blue-green night under the canopy (the fill beside the
   // world draws the same veil at the same depth step).
@@ -340,21 +347,18 @@ export function drawJungleCanopy(ctx: CanvasRenderingContext2D, state: SwingStat
     const wx = k * 26;
     const px = wx - state.camX / FP;
     const cy = lerpAt(ceil, wx * FP) / FP;
-    for (let row = 0; row < (lite ? 1 : 2); row++) {
-      const h = artHash(k, 41 + row);
-      const r = 12 + (h % 8) - row * 2;
-      const y = cy - 6 - row * 22 - (h >>> 4) % 8;
-      ctx.fillStyle = row === 0 ? leafLit : row === 1 ? leafMid : "#123620";
+    // The materials pass: clusters of real leaves (two deep where effects allow) along the underside, inside the mass,
+    // dimming deeper in; the mass's own colours below them.
+    const h = artHash(k, 41);
+    if (lite) {
+      ctx.fillStyle = leafLit;
       ctx.beginPath();
-      ctx.ellipse(px + ((h >>> 8) % 10) - 5, y, r, r * 0.7, ((h >>> 3) % 7) * 0.3, 0, Math.PI * 2);
+      ctx.ellipse(px + ((h >>> 8) % 10) - 5, cy - 8, 13, 9, 0, 0, Math.PI * 2);
       ctx.fill();
-      if (row === 0 && !lite) {
-        ctx.fillStyle = "rgba(170,230,110,0.35)";
-        ctx.beginPath();
-        ctx.ellipse(px - 3, y - 3, r * 0.45, r * 0.25, -0.4, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      continue;
     }
+    if (k % 2 === 0) drawLeafClusterSprite(ctx, px + ((h >>> 8) % 10) - 5, cy - 32 - ((h >>> 4) % 8), 20, (h >>> 12) % 6, depth);
+    drawLeafClusterSprite(ctx, px + ((h >>> 9) % 8) - 4, cy - 9 - ((h >>> 5) % 5), 15 + (h % 4), (h >>> 15) % 6, depth);
   }
   ctx.strokeStyle = JUNGLE.barkDark;
   ctx.lineWidth = 5;
@@ -421,6 +425,23 @@ export function drawJungleRiver(ctx: CanvasRenderingContext2D, state: SwingState
   band.addColorStop(1, "rgba(170,236,214,0)");
   ctx.fillStyle = band;
   ctx.fillRect(0, top - 2, W, 18);
+  // The materials pass: the gloss. The near trunks reflected (dark wavering columns under each one), then a broad
+  // sheen across the water where the light falls, so the river reads as glossy liquid rather than a flat band.
+  if (!lite) {
+    ctx.fillStyle = "rgba(2,16,18,0.42)";
+    for (const tr of nearTrunksOnScreen(cam, W))
+      for (let y = top + 2; y < H; y += 3) {
+        const wob = still ? 0 : Math.sin(y * 0.35 + t * 2.4) * (1 + (y - top) * 0.04);
+        ctx.fillRect(tr.x + wob + tr.w * 0.1, y, tr.w * 0.8, 2);
+      }
+    const sheen = ctx.createLinearGradient(0, 0, W, 0);
+    sheen.addColorStop(0, "rgba(200,255,245,0)");
+    sheen.addColorStop(0.35, "rgba(200,255,245,0.16)");
+    sheen.addColorStop(0.55, "rgba(200,255,245,0.04)");
+    sheen.addColorStop(1, "rgba(200,255,245,0)");
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, top, W, H - top);
+  }
   const flow = (speed: number, period: number) => (still ? 0 : (t * speed) % period);
   // Ripple lines drifting left with the current (the river runs against the swing), two depths.
   if (!lite)
@@ -548,31 +569,12 @@ export function drawJunglePlatform(ctx: CanvasRenderingContext2D, l: SwingLedge,
   const top = l.top / FP;
   const thick = SWING_LEDGE_THICK / FP;
   const left = x - half;
-  // The trunk, behind the planks, down into the water.
+  // The trunk, behind the planks, down into the water (the materials pass: real bark).
   const tw = Math.min(18, half * 0.5);
-  const g = ctx.createLinearGradient(x - tw / 2, 0, x + tw / 2, 0);
-  g.addColorStop(0, JUNGLE.barkLight);
-  g.addColorStop(1, JUNGLE.barkDark);
-  ctx.fillStyle = g;
-  ctx.fillRect(x - tw / 2, top + thick - 1, tw, Math.max(0, floorY - top - thick + 4));
-  // Planks.
-  const p = ctx.createLinearGradient(0, top, 0, top + thick);
-  p.addColorStop(0, "#A47A4C");
-  p.addColorStop(1, "#5A3D24");
-  ctx.fillStyle = p;
-  ctx.beginPath();
-  ctx.roundRect(left, top, half * 2, thick, 3);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(40,24,12,0.7)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let n = 1; n < Math.floor(half / 9); n++) {
-    const px = left + n * 18;
-    if (px >= left + half * 2 - 2) break;
-    ctx.moveTo(px, top + 1);
-    ctx.lineTo(px, top + thick - 1);
-  }
-  ctx.stroke();
+  paintTrunk(ctx, x - tw / 2, top + thick - 1, top + thick - 1 + Math.max(0, floorY - top - thick + 4), tw, l.x, "#5A3E28", "#8A6440", "#2A1C12", 0.8);
+  // Planks with grain, seams and a lit top edge.
+  paintPlanks(ctx, left, top, half * 2, thick, l.x);
+
   // Moss along the top; gold once landed on.
   ctx.fillStyle = reached ? JUNGLE.gold : JUNGLE.leafLit;
   ctx.fillRect(left, top, half * 2, reached ? 2.5 : 2);
@@ -685,74 +687,38 @@ export function drawJungleGrabPoints(ctx: CanvasRenderingContext2D, state: Swing
     const topY = lerpAt(state.ceil, sl ? sl.x : a.x) / FP;
     const held = i === state.rope;
     // The vine (behind the loop): a soft curve with leaves along it.
-    ctx.strokeStyle = JUNGLE.vineDark;
-    ctx.lineWidth = 4.5;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(topX, topY);
-    ctx.quadraticCurveTo((topX + x) / 2 + 4, (topY + y) / 2, x, y - R - 1);
-    ctx.stroke();
-    ctx.strokeStyle = JUNGLE.vine;
-    ctx.lineWidth = 2.2;
-    ctx.stroke();
+    // The materials pass: a twisted rope with its lit strand (swingJungleArt's strokeVineRope).
+    strokeVineRope(ctx, () => {
+      ctx.moveTo(topX, topY);
+      ctx.quadraticCurveTo((topX + x) / 2 + 4, (topY + y) / 2, x, y - R - 1);
+    }, 1);
     const len = Math.hypot(x - topX, y - topY);
     for (let k = 1; k < Math.min(6, len / 22); k++) {
       const f = k / Math.min(6, len / 22);
       const lx = topX + (x - topX) * f;
       const ly = topY + (y - R - 1 - topY) * f;
-      ctx.fillStyle = k % 2 ? JUNGLE.leafLight : JUNGLE.vine;
-      ctx.beginPath();
-      ctx.ellipse(lx + (k % 2 ? 4 : -4), ly, 4.5, 2, k % 2 ? 0.6 : -0.6, 0, Math.PI * 2);
-      ctx.fill();
+      drawLeafClusterSprite(ctx, lx + (k % 2 ? 5 : -5), ly, 6, (i + k) % 6, 0);
     }
-    // A small glow (less than before) and the knotted loop at the anchor.
+    // The materials pass: the ring itself, enamelled cream metal (gold just after a grab), no glow round it.
     const flash = held && state.tick - state.grabTick < 12;
-    if (!lite) {
-      const pulse = still ? 0 : 1.5 * Math.sin(t * 3 + i);
-      drawJungleGlow(ctx, x, y, (flash ? 28 : 22) + pulse, "rgba(255,236,140,0.45)", "rgba(220,255,130,0.14)");
-    }
-    ctx.fillStyle = "rgba(6,20,10,0.55)";
-    ctx.beginPath();
-    ctx.arc(x, y, R, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = flash ? 7 : 6.5;
-    ctx.strokeStyle = flash ? JUNGLE.gold : "#1A2E0E";
-    ctx.beginPath();
-    ctx.arc(x, y, R, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.lineWidth = flash ? 4 : 3.6;
-    ctx.strokeStyle = flash ? "#FFF2B0" : "#E2F59C";
-    ctx.beginPath();
-    ctx.arc(x, y, R, 0, Math.PI * 2);
-    ctx.stroke();
-    // The knot at the loop's top.
-    ctx.fillStyle = flash ? JUNGLE.gold : "#F2C75C";
-    ctx.beginPath();
-    ctx.arc(x, y - R, 4.6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#3A2A08";
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
+    void still;
+    drawGrabRing(ctx, x, y, R, flash);
   });
 }
 
 /**
- * The vine the hero holds: taut from the anchor to the hands, dark core with a light twist. `w` scales its width
- * (the game draws it 1.35× since the Action overhaul, 15 Nov 2026; the tile keeps 1).
+ * The vine the hero holds: taut from the anchor to the hands, a twisted rope (swingJungleArt's strokeVineRope). `w`
+ * scales its width (the game draws it 1.35× since the Action overhaul, 15 Nov 2026; the tile keeps 1).
  */
 export function drawJungleRope(ctx: CanvasRenderingContext2D, ax: number, ay: number, hx: number, hy: number, w = 1): void {
-  ctx.lineCap = "round";
-  ctx.strokeStyle = JUNGLE.vineDark;
-  ctx.lineWidth = 5.5 * w;
-  ctx.beginPath();
-  ctx.moveTo(ax, ay);
-  ctx.lineTo(hx, hy);
-  ctx.stroke();
-  ctx.strokeStyle = JUNGLE.vineLight;
-  ctx.lineWidth = 2.4 * w;
-  ctx.setLineDash([4 * w, 4 * w]);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  strokeVineRope(
+    ctx,
+    () => {
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(hx, hy);
+    },
+    w,
+  );
 }
 
 /** The pterodactyl (the chase): wings beating, long crest and beak; its beak tip at (x + 34, y), the catch line. */

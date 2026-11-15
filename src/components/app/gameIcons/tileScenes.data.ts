@@ -89,7 +89,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   sudoku: "892767eb13",
   swapword: "fa928ef31f",
   swerve: "019aaa98a6",
-  swing: "42f662eaf6",
+  swing: "8b7c706579",
   symscan: "be4afd4924",
   target: "1574aa027c",
   tendrop: "3958635a79",
