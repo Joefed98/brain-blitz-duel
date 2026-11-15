@@ -1,4 +1,5 @@
 import { matchupFill } from "@/lib/arcade/arenaFills.renderer";
+import { FrameStill } from "@/components/puzzles/FrameStill";
 import { matchupCascadeFeel } from "@/lib/fx/gameSounds";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -62,42 +63,8 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: a 4×4 board with one swap making a line of three. */
 function IntroExample() {
-  const board = [
-    [0, 1, 2, 3],
-    [1, 2, 0, 1],
-    [2, 0, 1, 2],
-    [1, 1, 2, 1],
-  ];
-  return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 120 120"
-        width={120}
-        height={120}
-        aria-hidden="true"
-        style={{ background: MATCHUP_BG, borderRadius: 10 }}
-      >
-        {board.flatMap((row, r) =>
-          row.map((kind, c) => (
-            <circle
-              key={`${r}-${c}`}
-              cx={15 + c * 30}
-              cy={15 + r * 30}
-              r={10}
-              fill={MATCHUP_COLOURS[kind]}
-            />
-          )),
-        )}
-        <g stroke="#F5B82E" strokeWidth="2" fill="none">
-          <rect x="65" y="95" width="20" height="20" rx="4" />
-          <rect x="95" y="95" width="20" height="20" rx="4" />
-        </g>
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Swap those two and the bottom row makes a line of three.
-      </p>
-    </div>
-  );
+  // The Strategy overhaul (15 Nov 2026): a real frame of today's game (scripts/shots/strategy-stills.ts).
+  return <FrameStill type="matchup" ratio={1.8452} caption="Match gems for the colour goals; bring the treasure chest down." />;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {

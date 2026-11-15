@@ -1,4 +1,5 @@
 import { heldHorizontal } from "@/lib/desktop";
+import { FrameStill } from "@/components/puzzles/FrameStill";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { tiltArenaSceneFor, tiltArtGameFor, WALNUT_TABLE_EDGE } from "@/lib/arcade/tiltArt.renderer";
 import { tiltSounds } from "@/lib/fx/gameSounds";
@@ -24,20 +25,8 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 /** Fixed intro still: a tilted disc maze, the ball rolling toward the teal exit. */
 function IntroExample() {
-  return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 150 150" width={150} height={150} aria-hidden="true" style={{ background: TILT_BG, borderRadius: 10 }}>
-        <g transform="rotate(20 75 75)">
-          <circle cx={75} cy={75} r={62} fill="#11111B" stroke={TILT_GOLD} strokeOpacity={0.5} strokeWidth={2} />
-          <path d="M35 45 H95 M55 65 V105 M75 85 H115 M95 45 V65 M35 105 H75" stroke={TILT_GOLD} strokeWidth={3} strokeLinecap="round" />
-          <line x1={115} y1={95} x2={115} y2={115} stroke={TILT_TEAL} strokeWidth={5} />
-          <polygon points="45,80 49.3,87.5 40.7,87.5" fill={TILT_RED} />
-          <circle cx={95} cy={100} r={6} fill={TILT_GOLD} />
-        </g>
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Spin the maze so each marble rolls into its own cup. Gold stars are bonus detours.</p>
-    </div>
-  );
+  // The Strategy overhaul (15 Nov 2026): a real frame of today's game (scripts/shots/strategy-stills.ts).
+  return <FrameStill type="tilt" ratio={1.8643} caption="Spin the disc so each marble rolls into its own cup." />;
 }
 
 /** Desktop keys: px a tick of the virtual finger (a steady finger drag). */

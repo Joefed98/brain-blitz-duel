@@ -1,7 +1,7 @@
 /**
- * Review frames for the Strategy overhaul (phase 2, step 4): each Strategy game's intro, a mid-play frame after some
- * scripted input, and (with --reveal) its answer reveal once the clock runs out, at one phone size. Practice rounds are
- * opened by `/practice?game=<id>` (the full intro with Ready). Frames are 2× WebP-ready PNGs
+ * Review frames for the Strategy overhaul (phase 2, step 4): each Strategy game's page, its intro (the full intro
+ * with Ready, `/practice?game=<id>` on trees before the Games pages; else the game page's Play), a mid-play frame after
+ * some scripted input, and (with --reveal) its answer reveal once the clock runs out, at one phone size. Frames are 2× WebP-ready PNGs
  * `<game>-<phase>-<tag>.png` in --out (default .shots/strategy/).
  *
  *   bun scripts/shots/strategy-shots.ts --url=<origin> [games…] [--tag=after] [--out=<dir>] [--reveal] [--size=390x844]
@@ -49,12 +49,29 @@ try {
   for (const game of games) {
     const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2, hasTouch: false });
     try {
-      await page.goto(`${origin}/practice?game=${game}`, { waitUntil: "domcontentloaded" });
+      // The game page (14 Nov 2026 on): its art, goal and challenges, then Play opens the round in its 3-2-1.
+      await page.goto(`${origin}/practice?page=${game}`, { waitUntil: "domcontentloaded" });
+      const playButton = page.getByRole("button", { name: /^Play$/ }).first();
       const ready = page.getByRole("button", { name: /^Ready/ }).first();
-      await ready.waitFor({ timeout: 180_000 });
+      const which = await Promise.race([
+        playButton.waitFor({ timeout: 180_000 }).then(() => "page" as const),
+        ready.waitFor({ timeout: 180_000 }).then(() => "intro" as const),
+      ]);
       await page.waitForTimeout(2500);
-      await page.screenshot({ path: `${out}/${game}-intro-${tag}.png` });
-      await ready.click();
+      if (which === "page") {
+        await page.screenshot({ path: `${out}/${game}-page-${tag}.png` });
+        // The intro with its Ready (the old ?game= link) for the intro still.
+        const intro = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
+        await intro.goto(`${origin}/practice?game=${game}`, { waitUntil: "domcontentloaded" });
+        await intro.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 180_000 }).catch(() => {});
+        await intro.waitForTimeout(2500);
+        await intro.screenshot({ path: `${out}/${game}-intro-${tag}.png` });
+        await intro.close();
+        await playButton.click();
+      } else {
+        await page.screenshot({ path: `${out}/${game}-intro-${tag}.png` });
+        await ready.click();
+      }
       await page.locator("[data-game-stage]").first().waitFor({ timeout: 60_000 });
       await page.waitForTimeout(4500);
       await play(page, game);

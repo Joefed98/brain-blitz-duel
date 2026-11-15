@@ -425,6 +425,8 @@ export interface ArcadeFxSpec<S> {
    * lights still start where the event happened. Absent: text where each event says (the default for every other game).
    */
   textBand?: number;
+  /** With textBand: the world x every word is centred on (absent: banners centred, pops kept near their event). */
+  textX?: number;
 }
 
 export const ARCADE_FX_MAX_PARTICLES = 40;
@@ -758,7 +760,7 @@ function spawn<S>(
     const band = spec.textBand;
     m.pops.push({
       text,
-      x: banner ? spec.width / 2 : band !== undefined ? Math.max(spec.width * 0.25, Math.min(spec.width * 0.75, point.x)) : point.x,
+      x: band !== undefined && spec.textX !== undefined ? spec.textX : banner ? spec.width / 2 : band !== undefined ? Math.max(spec.width * 0.25, Math.min(spec.width * 0.75, point.x)) : point.x,
       y: band !== undefined ? band : banner ? spec.height * (big ? 0.4 : 0.24) : point.y - 10,
       born: now,
       life: event.molten && !banner ? ARCADE_FX_MOLTEN_MS : t.popLife,

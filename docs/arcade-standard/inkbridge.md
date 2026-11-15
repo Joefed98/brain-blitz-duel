@@ -1,5 +1,25 @@
 # Rainbow Bridge on the arcade scoring standard (inkRev 12, 29 Oct 2026; inkRev 13, Nov 2026; inkRev 14, 3 Nov 2026)
 
+## inkRev 15 (15 Nov 2026): the pot moves, fewer and bigger birds, a sunset
+
+Rooms deal `inkRev 15` (`INK_REV_HILLS`, `inkBridgeHillsGame`), the Strategy overhaul's stamp, from its own proved deal
+(`src/lib/duel/inkHillsDeal.server.ts`, `bun scripts/ink-big-deal.ts --rev=15 [--check]`: 100 seeds, none of the first
+100 candidates dropped; witnesses `scripts/fixtures/ink-hills-deal-witness.json.gz`, each exactly 200 through the
+server replay). inkRev 14's rules, sizes and parts (`INK_V15_STD` is `INK_V13_STD`'s parts) with:
+
+- **The pot and its hill move between levels.** Each run's seed orders four placements (`INK_V15_POT_PLANS`: lower,
+  higher, further from the spout, closer to it; `inkV15PotPlan`) and repeats them, so each is used two or three times
+  and never twice running; the layout puts the pot there (`placePot`) before the level is built, and every level is
+  built and proved exactly as before (drawable within its ink, its bonus line, two clovers, its ink par). The pot's rim
+  now ranges over about 440–620 px (inkRev 14: about 530–600). The hill's crest follows the pot as it always did.
+- **Fewer, bigger birds.** Each bird box is 14 px thick (`INK_V15_BIRD_H_FP`; inkRev 14: 10) and the inkRev 13 extra
+  birds are gone; the art draws a bird every 36 px or so filling its box exactly, each on its own wing beat.
+- **Display (inkRev 15 only):** the sky turns from day to sunset over the ten levels (`inkSunset`, the level alone, so
+  the same for everyone), in the world and in the scene round it; the pot is a rendered cast-iron pot of gold (every
+  revision).
+
+`pinInkPreHills(true)` deals inkRev 14 from its own deal for the checks written for it.
+
 ## inkRev 14 (3 Nov 2026): a bigger coin, clovers and birds
 
 Rooms deal **`inkRev 14`** (`INK_REV_BIG`, one above inkRev 13) since 3 Nov 2026, from a proved deal. Joe's audit on an

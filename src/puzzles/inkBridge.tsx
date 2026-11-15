@@ -1,4 +1,5 @@
 import { inkBridgeExtras } from "@/lib/arcade/arenaFills.renderer";
+import { FrameStill } from "@/components/puzzles/FrameStill";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
@@ -31,19 +32,8 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 /** Fixed intro shares the rainbow sprites without changing demo inputs. */
 function IntroExample() {
-  const canvas = useRef<HTMLCanvasElement | null>(null);
-  useEffect(() => {
-    const ctx = canvas.current?.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(2, 0, 0, 2, 0, 0);
-    drawInkRainbowExample(ctx);
-  }, []);
-  return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <canvas ref={canvas} width={336} height={260} className="h-[130px] w-[168px] rounded-lg" aria-hidden="true" />
-      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Roll through a clover or bounce off a cloud for bonus points.</p>
-    </div>
-  );
+  // The Strategy overhaul (15 Nov 2026): a real frame of today's game (scripts/shots/strategy-stills.ts).
+  return <FrameStill type="inkbridge" ratio={1.7286} caption="Draw a rainbow round the birds so the coin rolls into the pot." />;
 }
 
 const artGames = new Map<number, ReturnType<typeof inkBridgeArtGameFor>>();

@@ -180,7 +180,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 }
 import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, SNIP_X_VIEW_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_X_H, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
-import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
+import { btWorldH, BT_BALLS, BT_H, BT_HOPPER_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
@@ -1700,14 +1700,16 @@ export const SLICE_FX_V9: ArcadeFxSpec<SliceState> = { ...SLICE_FX, width: SLICE
 export const STRATEGY_TEXT_BAND = {
   bubble: (worldH: number) => worldH - 16,
   inkbridge: 92,
-  balltrack: 14,
+  balltrack: BT_HOPPER_H / 2,
   matchup: MATCHUP_V9_PANEL_Y - 9,
 } as const;
-const withBand = <S,>(spec: ArcadeFxSpec<S>, y: number): ArcadeFxSpec<S> => {
-  const key = `${spec.game}:${spec.height}:band${y}`;
+/** Ball Tracker's words sit in the free right half of its waiting row (the queue fills the left half). */
+export const BALLTRACK_TEXT_X = (BT_W * 3) / 4;
+const withBand = <S,>(spec: ArcadeFxSpec<S>, y: number, x?: number): ArcadeFxSpec<S> => {
+  const key = `${spec.game}:${spec.height}:band${y}:${x ?? ""}`;
   let hit = specAtCache.get(key) as ArcadeFxSpec<S> | undefined;
   if (!hit) {
-    hit = { ...spec, textBand: y };
+    hit = { ...spec, textBand: y, ...(x !== undefined ? { textX: x } : {}) };
     specAtCache.set(key, hit as unknown as ArcadeFxSpec<never>);
   }
   return hit;
@@ -1782,7 +1784,7 @@ const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, he
 export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: ORBIT_XP_DRAW_H_FX };
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
-export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => withBand(fxSpecAt(BALLTRACK_FX, btWorldH(s)), STRATEGY_TEXT_BAND.balltrack);
+export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => (s.r7 ? withBand(fxSpecAt(BALLTRACK_FX, btWorldH(s)), STRATEGY_TEXT_BAND.balltrack, BALLTRACK_TEXT_X) : fxSpecAt(BALLTRACK_FX, btWorldH(s)));
 /** x200 (Oct 2026): Rainbow Bridge inkRev 10's taller world draws through the spec at its own height. */
 export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => (inkWorldH(s) === INK_TALL_H ? withBand(fxSpecAt(INKBRIDGE_FX, inkWorldH(s)), STRATEGY_TEXT_BAND.inkbridge) : fxSpecAt(INKBRIDGE_FX, inkWorldH(s)));
 export const INKBRIDGE_FX_TALL = fxSpecAt(INKBRIDGE_FX, INK_TALL_H);

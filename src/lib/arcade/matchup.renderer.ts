@@ -363,8 +363,8 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
     ctx.stroke();
   } else if (kind === MATCHUP_TREASURE) {
     // The treasure (the Strategy overhaul, 15 Nov 2026; look only, every revision): a treasure chest, never a gem's cut,
-    // so it reads at once: a domed lid and a deep box in dark cherry wood, champagne-gold bands and corners, a gold
-    // lock plate and a soft gold glint at the lid's seam. Drawn inside the cell's square (the clip above).
+    // so it reads at once: a domed lid and a deep box in dark cherry wood, shiny bronze bands and lock plate (the
+    // treasure's bronze since 27 Oct 2026) and a soft warm glint on the lid. Drawn inside the cell's square (the clip above).
     const w = radius * 1.84;
     const left = cx - w / 2;
     const lidTop = cy - radius * 0.86;
@@ -393,13 +393,13 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
     ctx.fill();
     // Gold bands: the seam, two uprights, the edges.
     const gold = ctx.createLinearGradient(left, 0, left + w, 0);
-    gold.addColorStop(0, "#C9A24A");
-    gold.addColorStop(0.5, "#F6E3A6");
-    gold.addColorStop(1, "#B8903C");
+    gold.addColorStop(0, "#C8803E");
+    gold.addColorStop(0.5, "#FFD3A1");
+    gold.addColorStop(1, "#9A5A26");
     ctx.fillStyle = gold;
     ctx.fillRect(left, seam - radius * 0.08, w, radius * 0.16);
     for (const fx of [0.24, 0.76]) ctx.fillRect(left + w * fx - radius * 0.07, lidTop + radius * 0.1, radius * 0.14, bottom - lidTop - radius * 0.1);
-    ctx.strokeStyle = "#E9CC7E";
+    ctx.strokeStyle = "#E39A55";
     ctx.lineWidth = Math.max(1, radius * 0.09);
     ctx.beginPath();
     ctx.roundRect(left + 0.5, seam, w - 1, bottom - seam - 0.5, radius * 0.12);

@@ -1,4 +1,5 @@
 import { KeyCursor, useGridCursor } from "@/components/puzzles/KeyCursor";
+import { FrameStill } from "@/components/puzzles/FrameStill";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 import { ballTrackFill } from "@/lib/arcade/arenaFills.renderer";
@@ -51,36 +52,8 @@ const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,2,0,1,-1,3],"relay":{"tick":14
 
 /** Compact example: turn an upper tube, then follow the fixed bottom to its tray. */
 function IntroExample() {
-  const [step, setStep] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setStep(s => (s + 1) % 7), 600);
-    return () => window.clearInterval(id);
-  }, []);
-  const positions = [{x:50,y:-10},{x:50,y:50},{x:150,y:50},{x:150,y:150},{x:50,y:150},{x:50,y:250},{x:50,y:315}];
-  const ball = positions[step] ?? positions[0];
-  if (!ball) return null;
-  const tube = (d: string, key: string, fixed = false) => (
-    <g key={key}>
-      <path d={d} fill="none" stroke={fixed ? "var(--bt-fixed)" : "var(--bt-tube)"} strokeWidth="49" />
-      <path d={d} fill="none" stroke="var(--bt-background)" strokeWidth="43" />
-    </g>
-  );
-  return (
-    <svg viewBox="0 -30 300 370" className="bt-example h-40 w-auto" aria-hidden="true">
-      <rect width="300" height="300" fill="var(--bt-background)" />
-      {tube("M50 2Q50 50 98 50", "a", true)}
-      {tube("M150 2V98", "b")}
-      {tube("M202 50Q250 50 250 98", "c", true)}
-      {tube("M298 150Q250 150 250 102", "d", true)}
-      {tube("M198 150H102", "e")}
-      {tube("M98 150Q50 150 50 198", "f", true)}
-      {tube("M50 202V298", "g", true)}
-      {tube("M102 250H198", "h", true)}
-      {tube("M202 250Q250 250 250 298", "i", true)}
-      <rect x="8" y="306" width="84" height="28" fill="none" stroke="var(--bt-example-ball)" strokeWidth="4" />
-      <circle cx={ball.x} cy={ball.y} r="22.5" fill="var(--bt-example-ball)" className="bt-example-ball" />
-    </svg>
-  );
+  // The Strategy overhaul (15 Nov 2026): a real frame of today's game (scripts/shots/strategy-stills.ts).
+  return <FrameStill type="balltrack" ratio={2.0} caption="Turn the gold tubes so every marble reaches its own cup." />;
 }
 
 /* ---------------------------------- Stage ---------------------------------- */

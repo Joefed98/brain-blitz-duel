@@ -952,11 +952,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Swap neighbours;", detail: "collect the goal’s colours." },
         { action: "Match on frozen gems", detail: "to break the ice." },
-        { action: "Bring the chest down:", detail: "clear the gems under it, or swap it with a gem that makes a line." },
+        { action: "Bring chests down:", detail: "clear below, or swap." },
         { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
         { action: "Six goals,", detail: `one for each colour, are shown under the board from the start: clear that many gems of the colour to meet it. Every gem of the colour counts, in a line, a cascade or a blast.`, helpOnly: true },
         { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Clear the gem in the ice (in a line, a cascade or a blast) and the ice breaks; it never comes back.", helpOnly: true },
-        { action: "The treasure chest", detail: `(a gold-banded chest, not a gem) can’t be matched or blasted. Two ways bring it down: clear gems in its column below it, so it drops into the gap, or swap it with a neighbour when that neighbour then makes a line of three. It is collected when it reaches the bottom row; ${MATCHUP_V12_TREASURES} come a round, one at a time.`, helpOnly: true },
+        { action: "The treasure chest", detail: `(a gold-banded chest, not a gem) can’t be matched or blasted. Two ways bring it down: clear gems in its column below it, so it drops into the gap, or swap it with a neighbour: it swaps with a gem that then makes a line of three. It is collected when it reaches the bottom row; ${MATCHUP_V12_TREASURES} come a round, one at a time.`, helpOnly: true },
         { action: "Tip:", detail: "work low in the chest’s column. A line under the chest drops it one row for each gem cleared below it, and a glowing trail shows the column it falls down.", helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
         { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
@@ -1403,7 +1403,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     bubble: {
       goal: "Pop threes and free the treasure.",
       how: [
-        { action: "Drag to aim,", detail: "let go to shoot. Drag further for a faster shot." },
+        { action: "Drag to aim;", detail: "drag further for a faster shot." },
         { action: "Chests pay", detail: "only when they fall with a cluster." },
         { action: "Bank off walls;", detail: "pop back to back for combos." },
         { action: "Crown Joker", detail: "matches any colour. Mines blast; torpedoes drill where aimed.", helpOnly: true },
@@ -1413,7 +1413,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: `joins every colour it touches and pops each group that reaches three. A mine pops the ${BUB_V11_MINE_POPS} bubbles nearest where it lands; bubbles left hanging then fall.`, helpOnly: true },
         { action: "A torpedo never sticks:", detail: `it flies where you aim it, bank shots included, and destroys up to ${BUB_TORPEDO_HITS} bubbles it runs into on the way up. Bubbles left hanging then fall.`, helpOnly: true },
         { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
-        { action: "A faster shot", detail: "comes from dragging further down the aim line: gold chevrons over the gun show its speed. It follows exactly the same path, only quicker.", helpOnly: true },
+        { action: "Let go to shoot.", detail: "A faster shot comes from dragging further down the aim line: gold chevrons over the gun show its speed. It follows exactly the same path, only quicker.", helpOnly: true },
         { action: `${BUB_V12_REEF} bubbles`, detail: "make the reef. Clear it all for a bonus, and more for clearing it fast.", helpOnly: true },
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
       ],

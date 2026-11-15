@@ -1,4 +1,27 @@
-# Coral Pop on the arcade scoring standard (`bubbleRev 11`, 29 Oct 2026)
+# Coral Pop (`bubbleRev 12`, 15 Nov 2026: the fast shot and a clearable reef)
+
+Rooms deal `bubbleRev 12` (`BUB_REV_FAST`, `bubbleFastGame` in `src/lib/arcade/bubble.ts`), the Strategy overhaul's
+stamp (phase 2 step 4, `docs/design/game-reviews/strategy.md`). bubbleRev 11's game and parts (below) with two changes,
+both from the seed or the input log only, so every phone and the server play them identically:
+
+- **A smaller reef.** Nine rows (86 bubbles, `BUB_V12_REEF`) instead of ten (95); the chests are drawn on rows 3–8. The
+  review found Near-perfect play left about 20 of 95 in the 90 s. The core is full at the whole 86-bubble reef
+  (`BUB_V12_STD_SPEC`, the same parts and maximums).
+- **The fast shot.** Dragging further down the aim line shoots faster: the release carries `c` = 0, 1 or 2 (the phone's
+  drag length: 110 px and 190 px, `BUB_V12_FAST_DRAG`, `bubFastLevel`), and the shot's flight runs `c + 1` times a tick.
+  Each run is the very flight step every revision uses, so the bubble follows exactly the same path (sub-steps, wall
+  bounces, landing cell) and only arrives sooner. Gold chevrons over the gun show the level while aiming. Only
+  bubbleRev 12's input range carries `c` (`bubbleInputRangesFor`); older stamps clamp it to 0 and never read it.
+
+The checkpoint folds the fast-shot mark and the shot's level in last. `pinBubblePreFast(true)` deals bubbleRev 11 for
+the checks written for it. strategy-overhaul-check proves the reef on 200 seeds, the same landing for 300 shots at each
+level, a fast-shot run through the server replay, and bubbleRev 11 unchanged.
+
+**Measured (skill-band bots, `bun scripts/arcade-skill-bands.ts bubble --rev=now --seeds=12`; the bot drags further at
+higher levels, `FAST_DRAG`):** medians Average 66, Good 99, Near-perfect 171, Elite 178 (bubbleRev 11's Near-perfect
+and Elite sat at about 158). The difficulty levels (Easy, Hard, Expert) come with the difficulty framework.
+
+## Coral Pop on the arcade scoring standard (`bubbleRev 11`, 29 Oct 2026)
 
 Rooms deal `bubbleRev 11` (`BUB_REV_STD`, `bubbleStdGame` in `src/lib/arcade/bubble.ts`). Every earlier revision
 replays and scores exactly as before (bubble-standard-check replays 28 bubbleRev 10 runs recorded on the untouched
