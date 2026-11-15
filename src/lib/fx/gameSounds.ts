@@ -17,6 +17,7 @@ import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWIN
 import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
 import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_KIND_BUS, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, crossKindCrossed, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
+import { flipNearMiss } from "@/lib/arcade/flipFx";
 import { HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
 import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
 import { BRK_SLIDE_STARTS, brkDestroyed, brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
@@ -407,7 +408,14 @@ export function flipSounds(): GameSounds<FlipState> {
           if (streak > was && streak % 10 === 0) effectCue("flip.flowTen");
           else if (streak > was) effectCue("flip.flowTick", 0, 1 + (streak % 10) * 0.06);
           else if (streak === 0 && was >= 3) effectCue("flip.flowBreak");
+          // Stage 2 (15 Nov 2026): a near miss on a spike (its glint's short "tsss") and a sweet landing's gold puff (the
+          // chime stays flip.sweetLanding's moment); silent until their files, as the other renderer cues.
+          const miss = flipNearMiss(state);
+          if (miss && miss.tick > prev.tick && miss.tick <= state.tick) effectCue("flip.nearMiss");
+          if ((state.sweetT ?? 0) > (prev.sweetT ?? 0)) effectCue("flip.sweetGold");
         }
+        // Stage 2: SURVIVED! with the flow best counting up under it (silent until its file).
+        if (state.flow && state.ended === 1 && prev.ended !== 1 && (state.bestStreak ?? 0) > 0) effectCue("flip.flowCount");
         if (state.ended === 0) {
           // The tunnel speeds up a step (every 3 s); only every third step is sounded (9, 18, 27, 36, 45 s).
           if (flipSpeed(state.tick) > flipSpeed(prev.tick) && Math.trunc(state.tick / FLIP_STEP_TICKS) % 3 === 0) effectCue("flip.speedUp");

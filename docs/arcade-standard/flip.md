@@ -50,6 +50,31 @@ specks, so the world meets the fill with no step or line. The intro still is the
 The reveal no longer shows a "Bonuses" tile (the parts above it add up already); on flipRev 13 its first tile counts the
 crashes.
 
+### Stage 2: effects and reveal (15 Nov 2026, display only, no stamp)
+
+Every effect on flipRev 11–13 is read from the sim's own state (`src/lib/arcade/flipFx.ts`: the take-off tick from the
+arc timer, the landing tick from `land`, the crash from the shield), so a replay or a seek back draws what the live run
+drew; the renderer draws them, `flipSounds` sounds them, nothing writes a state. A flip: a slight stretch along the arc
+(`FLIP_STRETCH_Y` 0.07: at most 1.3 px past the runner's 32 × 36 box, inside the bounds rule's 2) and a two-frame trail.
+A double flip: a gold ring at the runner (two on a triple). A landing: a dust puff at the landing spot, gold on a sweet
+spot, with the PERFECT pop just ahead of the feet (`flipPerfectAt` on the flow revisions; earlier ones unchanged). The
+flow counter rides over the runner's head ("×12"), swings round behind it in a flip, pops on each clean landing, turns
+gold on every 10th and cracks and falls away when a streak of 3 or more breaks (the one per-canvas memory, the streak
+before the break). A near miss (`flipNearMiss`): a flip off a surface with a spike's leading edge within 24 px of the box
+ahead, or a landing with one's trailing edge within 24 px behind; never a crash; 0–7 a run on the bands' bots. A crash:
+a white flash for 8 ticks, then the respawn blink. The end: BEST FLOW counting up under SURVIVED! over 800 ms; the stage
+holds a survived run's answer 1.2 s (`flipEndHoldMs`). Sound slots: `flip.flipUp` / `flipDown`, `land`, `sweetGold`,
+`flowTick`, `flowTen`, `flowBreak`, `nearMiss`, `respawn`, `flowCount` (docs/sound-cues/arcade-effects.md). flipRev 13's
+world box is the 730 px cave (`flipWorldHFor`; until now the stage and replay boxed it at 620, shrinking the cave). No edge
+glow (`ACTION_EDGELESS_GAMES`): the spec's `moment` hook `flipMoment` draws a gold rule under a banner moment and a ring at a
+point one (a double flip's ring is the renderer's).
+
+The answer reveal draws the run as a picture (`FlipRunPicture`, the definition's `RunPicture`, which ArcadeReveal draws through `GameRunPicture` in place of the stat tiles): the minute as
+one strip of the cave with the best flow streak lit gold, perfect landings as gold diamonds, double flips as rings and
+crashes as red marks, then clean time, perfect landings, double flips and best flow in big type. It replays the stored
+log with the real sim (`flipRunTimeline`, the server replay's validated inputs); flip-overhaul-check section 9 proves its
+moments are the server replay's. Earlier revisions keep their lines.
+
 ### Levels (stage 3, documented now; levels arrive with the difficulty framework)
 
 Normal is flipRev 13 above. Levers, from Joe's table (Grace holds at every level: a crash never ends the run):

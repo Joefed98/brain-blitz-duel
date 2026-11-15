@@ -245,11 +245,14 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 | `flip.speedZone` | Into a speed zone (flipRev 8) | SPEED ZONE! banner; warm air and streaks between the zone's gates | `hover.zone.mp3` (volume 0.8) | 0–2 | 528 ms |
 | `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) | a small molten PERFECT at the runner (neon orange, dripping, ~0.6 s; no burst; since 3 Nov 2026, every flipRev 8+ round); the strip glows orange and cools | `sfx_spark_chime.mp3` (shared recording, volume 0.6) | 0–8 | 600 ms |
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) | The scroll speeds up | `speed.up.mp3` · own file `flip.tunnelRush.mp3` (sound batch 4, volume 0.6) | 5 | 390 ms |
-| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) | The runner blinks for its second of shield; a "−10 s" pop | none yet (silent until it has a file) | 0–5 | 450 ms |
-| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) | The runner touches down on the lip | none yet (silent until it has a file) | 20–60 | 180 ms |
-| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) | The FLOW chip ticks up | none yet (silent until it has a file) | 20–60 | 160 ms |
-| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) | The FLOW chip ticks up | none yet (silent until it has a file) | 0–6 | 300 ms |
-| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) | The FLOW chip drops to 0 | none yet (silent until it has a file) | 0–5 | 350 ms |
+| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) | A short white flash at the runner (8 ticks), then it blinks for its second of shield; a "−10 s" pop | none yet (silent until it has a file) | 0–5 | 450 ms |
+| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) | A dust puff at the landing spot, drifting back with the cave (stage 2; gold on a sweet spot) | none yet (silent until it has a file) | 20–60 | 180 ms |
+| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) | The flow counter riding over the runner's head ("×12") pops up a step (stage 2); the FLOW chip ticks up | none yet (silent until it has a file) | 20–60 | 160 ms |
+| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) | The counter turns gold for the step, bigger, with two small glints (stage 2) | none yet (silent until it has a file) | 0–6 | 300 ms |
+| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) | The counter cracks in two, dulls and falls away (stage 2); the FLOW chip drops to 0 | none yet (silent until it has a file) | 0–5 | 350 ms |
+| `flip.nearMiss` | The runner flips off just before a spike or lands just past one, within 24 px of its box (flipRev 11–13, stage 2 of the Action overhaul) | A white glint on the spike's nearest blade tip | none yet (silent until it has a file) | 0–10 | 250 ms |
+| `flip.sweetGold` | A sweet-spot landing's gold dust puff (flipRev 11–13, stage 2; the chime stays `flip.sweetLanding`) | A gold puff at the landing spot | none yet (silent until it has a file) | 0–8 | 350 ms |
+| `flip.flowCount` | The end card's flow best counting up (flipRev 11–13, stage 2) | SURVIVED! with BEST FLOW counting up under it (800 ms) | none yet (silent until it has a file) | 0–1 | 800 ms |
 
 Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).
 
