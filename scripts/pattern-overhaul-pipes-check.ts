@@ -16,6 +16,12 @@
  *      network's open ends only; the reveal's own line is Yours-only and has no "×".
  *   7. The gestures: a tap turns clockwise, a long press, a swipe and a right click anticlockwise (once each).
  *   8. The sounds: every slot is in the manifest and fired by the stage; each has a line in the ElevenLabs list.
+ *   9. The answer reveal (Joe's reveal redesign): Solution and Yours each one large board (the shared switch's labels),
+ *      Yours the board as the server graded it (the log cut at the stored turns) with turned-but-wrong tiles outlined
+ *      red, untouched ones dimmed and the network's open ends spraying; the player's line "You: …" only in the Yours
+ *      column; pills from the stored grade (Turns, Par, Joined, Time left); no "×". Solved, unfinished and empty answers
+ *      on pipesRev 5, and every kind of the legacy fixture's pipesRev 3 and 4 cases, plus an unlogged pipesRev 0 board.
+ *  10. The intro and demos: older demos stopped; both live practice challenges and the 175 star still reachable.
  */
 import { readFileSync, statSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -41,7 +47,7 @@ const { rotateMask, tileOpenings, PIPE_E, PIPE_N, PIPE_S, PIPE_W } = await impor
 const { PUZZLE_INSTRUCTIONS } = await import("../src/lib/duel/instructions");
 const { patternStdHelp, patternStdIntro } = await import("../src/lib/duel/standard/patternText");
 const { INTRO_SCORE } = await import("../src/lib/duel/introScore");
-const { PipesBoard, pipesPuzzle, networkLeakArms, PIPES_LONG_PRESS_MS } = await import("../src/puzzles/pipes");
+const { PipesBoard, pipesPuzzle, networkLeakArms, pipesRevealView, PIPES_LONG_PRESS_MS } = await import("../src/puzzles/pipes");
 const { pipeArtUrls, pipeSprite } = await import("../src/components/puzzles/pattern/pipesArt");
 const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
 const { PIPES_OVERHAUL_FIXTURE, pipesOverhaulAnswers } = await import("./pattern-overhaul-pipes-record");
@@ -158,7 +164,7 @@ for (const seed of SEEDS) {
     check(buf.length <= 25_000, `sprite: ${url} is ${buf.length} bytes`);
   }
   check(total <= 400_000, `sprites: ${total} bytes for the game`);
-  check(pipeArtUrls().length === 13, "sprites: expected 13");
+  check(pipeArtUrls().length === 33, `sprites: expected 33, ${pipeArtUrls().length}`);
   // Every side-set maps to a sprite and its turn.
   for (let mask = 1; mask < 16; mask++) {
     const s = pipeSprite(mask);
@@ -180,23 +186,17 @@ for (const seed of SEEDS) {
   const leaks = networkLeakArms(tiles, connected, 3);
   check(leaks[3] === PIPE_S && leaks[0] === 0 && leaks[1] === 0 && leaks[2] === 0 && leaks[4] === 0, `leaks: ${JSON.stringify(leaks)}`);
   const html = renderToStaticMarkup(React.createElement(PipesBoard, { tiles, source: 0, cols: 3, connected, showLeaks: true }));
-  check(html.includes('/pattern-art/pipes/corner-dry.webp') && html.includes('/pattern-art/pipes/corner-wet.webp'), "art: the board doesn't draw the corner sprites");
+  check(html.includes('/pattern-art/pipes/corner-1-dry.webp') && html.includes('/pattern-art/pipes/corner-1-wet.webp'), "art: the board doesn't draw the turned corner's sprites");
   check((html.match(/data-wet="true"/g) ?? []).length === 4, "art: the wet set isn't shown on exactly the connected pipes");
-  check(html.includes("/pattern-art/pipes/source.webp"), "art: no source valve");
+  check(html.includes("/pattern-art/pipes/valve.webp"), "art: no source valve");
   check((html.match(/data-pipe-leak=/g) ?? []).length === 1, "art: spills aren't drawn at the network's open ends only");
-  check(/rotate\(90deg\)/.test(html), "art: the sprites aren't turned by a transform");
+  check(/data-pipe-turns="1"/.test(html) && !/rotate\(\d+deg\)/.test(html.split("pipe-spill")[0]!), "art: a turned pipe doesn't draw its own turn's sprite");
   check(!/<svg[^>]*class="pipe-art/.test(html) && !html.includes("pipe-channel"), "art: the old SVG pipework is still drawn");
   check(src("src/polish-pattern/pipes.css").includes('/pattern-art/pipes/tile.webp'), "art: the tile sprite isn't the tile's background");
   check(!/drop-shadow/.test(src("src/polish-layout/polish-nov3-pattern.css").split("Pipeline (pipes)")[1]!.split("Turntable")[0]!), "art: the network still glows");
   // The intro and the reveal draw the same board.
   const intro = renderToStaticMarkup(React.createElement(pipesPuzzle.IntroExample!));
   check(intro.includes("/pattern-art/pipes/") && intro.includes("data-pipe-leak"), "art: the intro doesn't draw the sprites and a leak");
-  const p = live[0]!;
-  const reveal = renderToStaticMarkup(React.createElement(pipesPuzzle.Reveal, { timeLimitMs: 120_000, puzzle: p, myAnswer: `${"0".repeat(49)}~0,-1`, myCorrect: false, myMsRemaining: 0 } as never));
-  check(reveal.includes("/pattern-art/pipes/"), "reveal: no sprites");
-  const own = reveal.match(/<p data-yours-only=""[^>]*>([^<]*)<\/p>/);
-  check(!!own && /^You: \d+ \/ 49 connected$/.test(own[1]!), `reveal: the player's line isn't Yours-only "You: n / 49 connected": ${own?.[1]}`);
-  check(!/×/.test(reveal), "reveal: a stray × is drawn");
   // Turns and Par sit with the board, inside the arena.
   const stage = src("src/puzzles/pipes.tsx");
   check(/<FramePills inArena testId="pipes"/.test(stage), "pills: Turns / Par aren't drawn next to the board");
@@ -259,6 +259,101 @@ for (const seed of SEEDS) {
     check(stage.includes(`"${slot}"`), `sound: the stage never fires ${slot}`);
     check(section.includes(`\`${slot}\``), `sound: ${slot} has no line in pattern-elevenlabs.md`);
   }
+}
+
+/* 9. The answer reveal. */
+{
+  const column = (html: string, attr: string) => {
+    const at = html.indexOf(attr);
+    if (at < 0) return "";
+    const next = html.indexOf("data-pipes-yours", at + attr.length);
+    return attr === "data-pipes-solution" ? html.slice(at, next < 0 ? undefined : next) : html.slice(at);
+  };
+  const pill = (html: string, id: string) => html.match(new RegExp(`data-hud-pill="${id}"><span[^>]*>[^<]*</span><b[^>]*>([^<]*)</b>`))?.[1] ?? null;
+  const render = (puzzle: PuzzleData, answer: string | null, correct: boolean, msLeft: number, extra: unknown) =>
+    renderToStaticMarkup(React.createElement(pipesPuzzle.Reveal, { timeLimitMs: 120_000, puzzle, myAnswer: answer, myCorrect: correct, myMsRemaining: msLeft, myExtra: extra, myReactionAvgMs: null } as never));
+  const judge = (label: string, puzzle: PuzzleData, answer: string | null, msLeft: number, gradeOf: { correct: boolean; extra: unknown }) => {
+    const html = render(puzzle, answer, gradeOf.correct, msLeft, gradeOf.extra);
+    const extra = (gradeOf.extra ?? {}) as { turns?: number; connected?: number };
+    const sol = column(html, "data-pipes-solution");
+    const yours = column(html, "data-pipes-yours");
+    check(/>Solution</.test(sol) && />Yours</.test(yours), `reveal ${label}: no Solution / Yours labels`);
+    check(sol.includes("/pattern-art/pipes/") && yours.includes("/pattern-art/pipes/"), `reveal ${label}: a board without the sprites`);
+    check(!/You:/.test(sol) && /data-pipes-result="">You: /.test(yours), `reveal ${label}: the player's line isn't "You: …" in the Yours column only`);
+    check(!/×/.test(html) && !/data-yours-only/.test(sol), `reveal ${label}: a stray × or a Yours-only line under Solution`);
+    check(!/data-hud-pill/.test(sol), `reveal ${label}: numbers under Solution`);
+    if (typeof extra.connected === "number") check(pill(yours, "connected") === `${extra.connected}/49`, `reveal ${label}: Joined ${pill(yours, "connected")}, stored ${extra.connected}`);
+    if (typeof extra.turns === "number") check(pill(yours, "turns") === String(extra.turns), `reveal ${label}: Turns ${pill(yours, "turns")}, stored ${extra.turns}`);
+    else check(pill(yours, "turns") === null, `reveal ${label}: a turns pill without a stored count`);
+    const par = (puzzle as Pipes).pipesRev ? (puzzle as Pipes).par ?? 0 : 0;
+    check(par > 0 ? pill(yours, "par") === String(par) : pill(yours, "par") === null, `reveal ${label}: Par ${pill(yours, "par")}`);
+    check(gradeOf.correct ? pill(yours, "time") === `${Math.round(msLeft / 1000)} s` : pill(yours, "time") === null, `reveal ${label}: Time left ${pill(yours, "time")}`);
+    // Highlights: an unfinished board marks the wrong / untouched tiles exactly as the graded board has them.
+    const view = pipesRevealView(puzzle as Pipes, answer, extra as Record<string, unknown>);
+    const wrongN = (yours.match(/data-wrong="true"/g) ?? []).length;
+    const dimN = (yours.match(/data-untouched="true"/g) ?? []).length;
+    if (gradeOf.correct) check(wrongN === 0 && dimN === 0, `reveal ${label}: a solved board has highlights`);
+    else {
+      check(wrongN === view.wrong.size && dimN === view.untouched.size && wrongN + dimN > 0, `reveal ${label}: ${wrongN} red, ${dimN} dimmed (view ${view.wrong.size}, ${view.untouched.size})`);
+      const solution = (puzzle as Pipes).solution!;
+      check([...view.wrong, ...view.untouched].every((c) => tileOpenings(view.mine[c]!) !== (solution[c]! & 15)), `reveal ${label}: a tile as in the solution is highlighted`);
+      check(view.mine.every((t, c) => tileOpenings(t) === (solution[c]! & 15) || view.wrong.has(c) || view.untouched.has(c)), `reveal ${label}: a wrong tile isn't highlighted`);
+      check(view.connected.size === (extra.connected ?? view.connected.size), `reveal ${label}: the board shown isn't the graded board`);
+      check(view.leaks === 0 || /data-pipe-leak=/.test(yours), `reveal ${label}: open ends not drawn`);
+    }
+  };
+  // pipesRev 5: solved (two-way par line), unfinished (half of it), empty.
+  for (const p of live) {
+    const best = p.tiles.flatMap((tile, cell) => {
+      const want = p.solution![cell]! & 15;
+      for (let t = 0; t < 4; t++) if (rotateMask(tileOpenings(tile), t) === want) return t === 0 ? [] : t <= 2 ? Array(t).fill({ cell, turn: 1 as const }) : [{ cell, turn: 3 as const }];
+      return [];
+    });
+    for (const [label, log] of [["solved", best], ["unfinished", best.slice(0, best.length >> 1)], ["one turn", best.slice(0, 1)]] as const) {
+      const board = pipesAfterTurns(p.tiles, log);
+      const answer = encodePipesTurnAnswer(board, log);
+      const msLeft = 41_400;
+      const gr = gradeAnswer(p, answer, msLeft);
+      judge(`rev5 ${label}`, p, answer, msLeft, { correct: gr.isCorrect, extra: gr.extra });
+      if (label === "solved") check(/data-pipes-turns-bar/.test(render(p, answer, true, msLeft, gr.extra)), "reveal: no turns-against-par bar on a solve");
+    }
+    const empty = gradeAnswer(p, "", 0);
+    judge("rev5 empty", p, null, 0, { correct: empty.isCorrect, extra: empty.extra });
+  }
+  // Older stamps: every kind in the legacy fixture (its stored grade), and an unlogged board (pipesRev 0).
+  const fx = JSON.parse(gunzipSync(readFileSync(PIPES_OVERHAUL_FIXTURE)).toString()) as PipesOverhaulFixture;
+  const sample = fx.cases.filter((_, i) => i % 7 === 0);
+  for (const c of sample) judge(`rev${(fx.puzzles[c.p] as Pipes).pipesRev} case`, fx.puzzles[c.p]!, c.answer, c.msLeft, { correct: c.correct, extra: c.extra });
+  check(sample.some((c) => c.correct) && sample.some((c) => !c.correct), "reveal: the sample lacks a solved or an unfinished case");
+  const p0 = { ...live[0]!, pipesRev: undefined, par: undefined } as unknown as PuzzleData;
+  const sides = (live[0]!.tiles.map((t, i) => (i < 10 ? rotateMask(tileOpenings(t), 1) : tileOpenings(t)).toString(16))).join("");
+  const g0 = gradeAnswer(p0, sides, 0);
+  judge("rev0", p0, sides, 0, { correct: g0.isCorrect, extra: g0.extra });
+}
+
+/* 10. Intro, demos, challenges and stars. */
+{
+  check(/data\.type === "pipes" && demo\?\.puzzle\.type === "pipes" && \(demo\.puzzle\.pipesRev \?\? 0\) < 5\) return null;/.test(src("src/lib/duel/introDemo.functions.ts")), "demos: a Pipeline demo recorded before pipesRev 5 would still play");
+  check(PUZZLE_INSTRUCTIONS.pipes.goal === "Connect every pipe to the source.", "intro: the GOAL changed");
+  // The live practice challenges: No leaks (finish) and Plumber's par (the par bonus in full) are met by a two-way par
+  // solve and missed by a clockwise-only one (so par stays meaningful); the 175 star is met by the par solve at 60 s left.
+  const p = live[1]!;
+  const best = p.tiles.flatMap((tile, cell) => {
+    const want = p.solution![cell]! & 15;
+    for (let t = 0; t < 4; t++) if (rotateMask(tileOpenings(tile), t) === want) return t === 0 ? [] : t <= 2 ? Array(t).fill({ cell, turn: 1 as const }) : [{ cell, turn: 3 as const }];
+    return [];
+  });
+  const board = pipesAfterTurns(p.tiles, best);
+  const parSolve = gradeAnswer(p, encodePipesTurnAnswer(board, best), 60_000);
+  const parts = (parSolve.extra as { parts?: { efficiency?: number } } | null)?.parts;
+  check(parSolve.isCorrect && (parts?.efficiency ?? 0) >= 10, `challenges: Plumber's par isn't met by a par solve (${JSON.stringify(parts)})`);
+  check(parSolve.score >= 175, `stars: a par solve at 60 s left scores ${parSolve.score} (< 175)`);
+  const cw = best.flatMap((t) => (t.turn === 3 ? [1, 2, 3].map(() => ({ cell: t.cell, turn: 1 as const })) : [t]));
+  const cwSolve = gradeAnswer(p, encodePipesTurnAnswer(board, cw), 60_000);
+  const cwParts = (cwSolve.extra as { parts?: { efficiency?: number } } | null)?.parts;
+  check(cwSolve.isCorrect && (cwParts?.efficiency ?? 0) < 10, `challenges: Plumber's par is met clockwise only (${JSON.stringify(cwParts)})`);
+  const challenges = src("src/lib/duel/practiceChallenges.data.ts");
+  check(challenges.includes('ch("pipes", "No leaks", "Connect every pipe.", "C", "finish", false, all(FIN))') && challenges.includes('ch("pipes", "Plumber’s par", "Connect every pipe in par turns.", "C", "par", false, bonus(10))'), "challenges: Pipeline's live challenges changed");
 }
 
 if (failures.length) {

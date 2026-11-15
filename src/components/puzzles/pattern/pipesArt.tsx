@@ -44,19 +44,29 @@ export function pipeSprite(mask: number): { shape: PipeShape; turns: number } | 
   return null;
 }
 
+/** Each shape's distinct turns, each rendered with the key light top left (the richness pass, 15 Nov 2026). */
+export const PIPE_TURNS: Record<PipeShape, number> = { end: 4, straight: 2, corner: 4, tee: 4, cross: 1 };
+
+/** A pipe sprite's URL: the shape in its turn, dry or wet. */
+export function pipeSpriteUrl(shape: PipeShape, turns: number, wet: boolean): string {
+  return `${PIPE_ART_BASE}/${shape}-${turns % PIPE_TURNS[shape]}-${wet ? "wet" : "dry"}.webp`;
+}
+
 /** Every sprite the board draws (checks and preloading). */
 export function pipeArtUrls(): string[] {
   return [
     `${PIPE_ART_BASE}/tile.webp`,
-    `${PIPE_ART_BASE}/source.webp`,
+    `${PIPE_ART_BASE}/valve.webp`,
     `${PIPE_ART_BASE}/spill.webp`,
-    ...PIPE_SHAPES.flatMap((shape) => [`${PIPE_ART_BASE}/${shape}-dry.webp`, `${PIPE_ART_BASE}/${shape}-wet.webp`]),
+    ...PIPE_SHAPES.flatMap((shape) =>
+      Array.from({ length: PIPE_TURNS[shape] }, (_, t) => [pipeSpriteUrl(shape, t, false), pipeSpriteUrl(shape, t, true)]).flat(),
+    ),
   ];
 }
 
 /**
- * One tile's pipework: the shape's sprite turned by a CSS transform, dry (plain chrome) under wet (water in the sight
- * glass), so water reaching the pipe fades in; the source's red valve on top; a spill at each open end of the network
+ * One tile's pipework: the shape's sprite in its turn (each turn rendered, so the light stays top left), dry (chrome)
+ * under wet (water in the sight glass), so water reaching the pipe fades in; the source's red valve on top; a spill at each open end of the network
  * (`leakArms`). Inside the tile's box. Memoised on its primitive props (a board is 49 of these and the round clocks
  * re-render the stage ten times a second).
  */
@@ -81,28 +91,28 @@ export const PipeArt = memo(function PipeArt({
   const turnRef = useRef<HTMLSpanElement>(null);
   const lastTurn = useRef(turnKey);
   const sprite = pipeSprite(mask);
-  const deg = (sprite?.turns ?? 0) * 90;
 
   useLayoutEffect(() => {
     if (turnKey === lastTurn.current) return;
     lastTurn.current = turnKey;
     const node = turnRef.current;
     if (!node?.animate || reducedMotion()) return;
-    node.animate([{ transform: `rotate(${deg - 90 * turnDir}deg)` }, { transform: `rotate(${deg}deg)` }], {
+    // The new turn's sprite swings in from where the tile was.
+    node.animate([{ transform: `rotate(${-90 * turnDir}deg)` }, { transform: "rotate(0deg)" }], {
       duration: 170,
       easing: "cubic-bezier(.2,.9,.3,1.15)",
     });
-  }, [turnKey, turnDir, deg]);
+  }, [turnKey, turnDir]);
 
   return (
     <span className="pipe-art" aria-hidden="true">
       {sprite ? (
-        <span ref={turnRef} className="pipe-turn" style={{ transform: `rotate(${deg}deg)` }}>
-          <img className="pipe-sprite" src={`${PIPE_ART_BASE}/${sprite.shape}-dry.webp`} alt="" draggable={false} decoding="async" />
+        <span ref={turnRef} className="pipe-turn" data-pipe-turns={sprite.turns}>
+          <img className="pipe-sprite" src={pipeSpriteUrl(sprite.shape, sprite.turns, false)} alt="" draggable={false} decoding="async" />
           <img
             className="pipe-sprite pipe-sprite-wet"
             data-wet={wet ? "true" : undefined}
-            src={`${PIPE_ART_BASE}/${sprite.shape}-wet.webp`}
+            src={pipeSpriteUrl(sprite.shape, sprite.turns, true)}
             alt=""
             draggable={false}
             decoding="async"
@@ -114,7 +124,7 @@ export const PipeArt = memo(function PipeArt({
           <img src={`${PIPE_ART_BASE}/spill.webp`} alt="" draggable={false} decoding="async" />
         </span>
       ))}
-      {source ? <img className="pipe-source" src={`${PIPE_ART_BASE}/source.webp`} alt="" draggable={false} decoding="async" /> : null}
+      {source ? <img className="pipe-source" src={`${PIPE_ART_BASE}/valve.webp`} alt="" draggable={false} decoding="async" /> : null}
     </span>
   );
 });
