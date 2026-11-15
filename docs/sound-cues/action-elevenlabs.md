@@ -38,6 +38,27 @@ Kept (Joe's 6 Nov 2026 recordings, good as they are): `swing.vineCreak` (grab), 
 
 <!-- moonclimb -->
 
+The best-served game in the group: Joe's November recordings stay for the leap (`ricochet.leap`), double jump
+(`.doubleJump`), stone landing (`.land`), moss/ice landing (`.slip`), mid-ledge (`.ledge`), hit clang (`.hit`), scroll
+(`.scroll`), lantern grab (`.lanternGrab`), the lantern-ride loop (`.lanternRide`), each Flow step (`.flow`) and the
+bed (`music_ricochet`). The leap's whoosh already carries the stage-2 wall dust, and the double jump's airy spin its
+ring of air, so neither needs a new file. New or better sounds:
+
+- `ricochet.fallWhistle` (new, wired, silent until set): the falling whistle as a hit tumbles the ninja 3 m down,
+  played with the clang. A descending slide whistle, soft and cartoon-light, not comic; airy wood-flute tone; 0.8–0.9 s.
+- `ricochet.flowBreak` (new, wired, silent until set): a Flow streak of 3+ broken by sliding too long. A dull muted
+  koto string plucked and damped, a short downward bend, disappointed not harsh; 0.3 s.
+- `ricochet.scuff` (new loop, wired, silent until set): sliding down moss or ice. Soft cloth-and-sandal scrape on wet
+  stone with a faint gritty hiss, seamless loop, quiet; 2 s loop.
+- `ricochet.scrollTally` (registered, fired by the stage-2 fly-in): the taken scroll landing on the SCROLLS count. A
+  tiny temple bell "ting" with a paper tap, bright and short; 0.4 s.
+- `ricochet.lanternSway` (registered, fired by the stage-2 lantern flare): the lantern brightening and swaying as the ninja grabs it. A soft paper creak with
+  a warm flame flutter, gentle; 0.5 s.
+- `ricochet.heightStreak` (better, replace the shared banner file): every 50 m climbed. A single deep temple bell,
+  calm, with a long soft tail; 0.9 s.
+- `ricochet.fullHeight` (better, replace the shared full-clear file): reaching the full 245 m. A rising shakuhachi
+  phrase over a soft gong swell, triumphant but night-quiet; 1.5 s.
+
 
 ## Iron Wall (`bastion`)
 

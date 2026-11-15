@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 54 | 0 | 491 | 545 |
+| game event | 59 | 0 | 491 | 550 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 1 | 1 | 22 | 24 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 81 | 1 | 987 | 1069 |
+| **all** | 86 | 1 | 987 | 1074 |
 
 ## Silent and placeholder cues
 
@@ -286,6 +286,16 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `bastion.tip` |  [arcade-effects.md] | "Tip: swipe down to reload early" on the panel | 5–40 (per move) | silent | none | 300 | game event | `bastion.tip` |
 | `bastion.dustWind` |  [arcade-effects.md] | Amber haze and sand hills | 5–40 (per move) | silent | none | loop | game event | `bastion.dustWind` |
 | `bastion.stormFire` |  [arcade-effects.md] | Smoke columns and fires on the skyline | 5–40 (per move) | silent | none | loop | game event | `bastion.stormFire` |
+
+### Moon Climb
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `ricochet.scrollTally` | Moon Climb (ricoRev 3): a taken scroll lands on the HUD's SCROLLS count [action-overhaul-stage2.md] | The scroll flies up into the count | 0–3 | silent | none | 400 | game event | `ricochet.scrollTally` |
+| `ricochet.lanternSway` | Moon Climb (ricoRev 3): a sky lantern brightens and sways as the ninja grabs it [action-overhaul-stage2.md] | The lantern flares and swings under the ninja's hands | 0–6 | silent | none | 500 | game event | `ricochet.lanternSway` |
+| `ricochet.fallWhistle` |  [arcade-effects.md] | The ninja stunned and falling, a red wash | 5–40 (per move) | silent | none | 900 | game event | `ricochet.fallWhistle` |
+| `ricochet.flowBreak` |  [arcade-effects.md] | FLOW ×n drops to ×0 in the HUD | 5–40 (per move) | silent | none | 350 | game event | `ricochet.flowBreak` |
+| `ricochet.scuff` |  [arcade-effects.md] | The ninja sliding down a green or icy patch | 5–40 (per move) | silent | none | loop | game event | `ricochet.scuff` |
 
 ### Orbit
 

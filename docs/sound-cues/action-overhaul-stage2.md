@@ -10,3 +10,5 @@ The sounds to generate for them are in `action-elevenlabs.md`.
 | `swing.outOfReach` | Action overhaul (stage 2): a press with the nearest vine just out of reach | The vine glowing red for a beat | none yet (silent until it has a file) | 0–20 | 300 ms |
 | `swing.pteroShadow` | Action overhaul (stage 2): the pterodactyl's shadow sweeping across before it appears | A shadow crossing the screen | none yet (silent until it has a file) | 0–1 | 1200 ms |
 | `swing.stretchTally` | Action overhaul (stage 2): the end screen counting the stretches up | The stretch count ticking up | none yet (silent until it has a file) | 0–51 | 90 ms |
+| `ricochet.scrollTally` | Moon Climb (ricoRev 3): a taken scroll lands on the HUD's SCROLLS count | The scroll flies up into the count | none yet (silent until it has a file) | 0–3 | 400 ms |
+| `ricochet.lanternSway` | Moon Climb (ricoRev 3): a sky lantern brightens and sways as the ninja grabs it | The lantern flares and swings under the ninja's hands | none yet (silent until it has a file) | 0–6 | 500 ms |

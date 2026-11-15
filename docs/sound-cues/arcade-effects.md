@@ -344,6 +344,16 @@ Already sounded: rope cut (`snip.cut`), springy branch (`snip.springBounce`), pi
 
 Already sounded: gate (`tilt.gate`), maze done (`tilt.mazeDone`), cup (`tilt.cup`, also the first marble home), star (`tilt.starTaken`), caught (`tilt.caught`), knocks and roll.
 
+## Moon Climb
+
+The Action overhaul (15 Nov 2026; `docs/sound-cues/action-elevenlabs.md` has the brief for each recording).
+
+| Cue | When | Looks like | File | Per run | Length |
+| --- | --- | --- | --- | --- | --- |
+| `ricochet.fallWhistle` | ricoRev 3: a hit (with `ricochet.hit`), the ninja tumbling down 3 m | The ninja stunned and falling, a red wash | none yet (silent until it has a file) | 0–20 | 900 ms |
+| `ricochet.flowBreak` | ricoRev 3: a Flow streak of 3 or more broken by a slide, never on a hit | FLOW ×n drops to ×0 in the HUD | none yet (silent until it has a file) | 0–20 | 350 ms |
+| `ricochet.scuff` | ricoRev 3: while the ninja slides down moss or ice (a loop, faded out when the slide stops) | The ninja sliding down a green or icy patch | none yet (silent until it has a file) | loop | loop |
+
 ## Iron Wall
 
 | Cue | When | Looks like | File | Per run | Length |
