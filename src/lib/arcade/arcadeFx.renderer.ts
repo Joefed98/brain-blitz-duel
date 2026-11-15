@@ -31,8 +31,7 @@
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { reducedMotion } from "./art.renderer";
-/** The smallest Retro pop or banner (px): retro.renderer.ts RETRO_HUD_MIN_PX, kept here so this layer imports no Retro art. */
-export const RETRO_TEXT_MIN_PX = 11;
+import { retroTextFloorFor } from "./retroScale";
 
 export type ArcadeWorld =
   | "retro"
@@ -1491,7 +1490,7 @@ function paint<S>(
             ? 1.1 - ((p - 0.15) / 0.1) * 0.1
             : 1;
     // The Retro overhaul (Joe, 15 Nov 2026): Retro games' pops and banners never draw below 11 px, even popping in.
-    const size = spec.world === "retro" ? Math.max(RETRO_TEXT_MIN_PX, Math.round(pop.size * scale)) : Math.round(pop.size * scale);
+    const size = spec.world === "retro" ? Math.max(retroTextFloorFor(spec.width, spec.height), Math.round(pop.size * scale)) : Math.round(pop.size * scale);
     ctx.globalAlpha = p < 0.75 ? 1 : Math.max(0, 1 - (p - 0.75) / 0.25);
     ctx.font = `${theme.weight ?? 700} ${size}px ${theme.font}`;
     ctx.lineWidth = Math.max(2, size / 5);

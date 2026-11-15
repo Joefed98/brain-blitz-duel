@@ -14,7 +14,7 @@
  */
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
-import { RETRO_FONT, RETRO_HUD_MIN_PX } from "./retro.renderer";
+import { RETRO_FONT, retroTextFloor } from "./retro.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { FX_PARTICLE_LIMIT } from "@/lib/fx/limits";
 
@@ -236,7 +236,7 @@ export function drawPops(ctx: CanvasRenderingContext2D, key: object, worldW: num
     const k = (t - p.at) / POP_MS;
     const grow = still ? 1 : k < 0.12 ? 0.7 + (k / 0.12) * 0.45 : k < 0.24 ? 1.15 - ((k - 0.12) / 0.12) * 0.15 : 1;
     // The Retro overhaul (Joe, 15 Nov 2026): these pops are Retro games' only; never below 11 px.
-    const size = Math.max(RETRO_HUD_MIN_PX, Math.round(p.px * grow));
+    const size = Math.max(retroTextFloor(), Math.round(p.px * grow));
     const y = Math.round(p.y - (still ? 0 : 18 * (1 - (1 - k) * (1 - k))));
     const half = (p.text.length * size) / 2;
     const x = Math.round(Math.min(worldW - 8 - half, Math.max(8 + half, p.x)));

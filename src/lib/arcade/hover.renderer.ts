@@ -187,7 +187,12 @@ function paintNight(c: CanvasRenderingContext2D, H: number): void {
  */
 const NEB_BLOCK = 3;
 const NEB_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
-const NEB_STEPS = ["rgba(24,42,110,0.32)", "rgba(34,62,150,0.38)", "rgba(58,74,178,0.42)", "rgba(110,120,220,0.38)"] as const;
+/**
+ * The nebula's colour steps, darkest first (stage 2, Joe: "much closer to concept B's rich nebula, with dark space
+ * between the clouds"): deep navy gas, royal blue, a lit periwinkle and a pale blue-white heart, the steps opaque enough
+ * to read as gas lit from within, not a tint.
+ */
+const NEB_STEPS = ["rgba(14,26,84,0.5)", "rgba(22,44,128,0.6)", "rgba(34,66,170,0.66)", "rgba(58,96,206,0.7)", "rgba(96,132,226,0.7)", "rgba(150,176,240,0.66)"] as const;
 function nebulaNoise(x: number, y: number, cell: number, seed: number): number {
   const gx = Math.floor(x / cell);
   const gy = Math.floor(y / cell);
@@ -200,20 +205,35 @@ function nebulaNoise(x: number, y: number, cell: number, seed: number): number {
   const bottom = v(0, 1) + (v(1, 1) - v(0, 1)) * sx;
   return top + (bottom - top) * sy;
 }
+/**
+ * The deep-space nebula (the Retro overhaul, concept B kept retro): billowing blue gas sweeping across the sky from the
+ * upper left, bright at its heart with broad dark dust drifting through it, and deep black space either side. Pixel art: three
+ * octaves of value noise quantised into NEB_STEPS with a 4 × 4 ordered dither between steps, in 3 px blocks; the dust
+ * is a coarse noise darkening the gas in broad patches. A sprinkle of bright young stars sits inside the brightest gas.
+ * Painted once into the sky layer, seeded: every phone and the reveal draw the same sky. Barriers, saucer and stars stay
+ * brighter than the gas, so play reads first.
+ */
 function paintNebula(c: CanvasRenderingContext2D, H: number): void {
   for (let y = 0; y < H; y += NEB_BLOCK) {
     for (let x = 0; x < HOVER_WORLD_W; x += NEB_BLOCK) {
-      // Two octaves of noise, strongest along a band sweeping from the upper left to the lower right (concept B).
-      const n = 0.62 * nebulaNoise(x, y, 120, 907) + 0.38 * nebulaNoise(x, y, 46, 131);
-      const along = (y - H * 0.18 - x * 0.75) / (H * 0.42);
-      const band = Math.exp(-along * along);
-      const level = Math.max(0, (n * band - 0.24) * 6);
+      const n = 0.5 * nebulaNoise(x, y, 150, 907) + 0.32 * nebulaNoise(x, y, 60, 131) + 0.18 * nebulaNoise(x, y, 22, 53);
+      // The band: a broad sweep from the upper left to the lower right, wavy along its length.
+      const along = (y - H * 0.12 - x * 0.85 - 40 * Math.sin(x / 70)) / (H * 0.36);
+      const band = Math.exp(-along * along * 1.4);
+      // Dust: broad dark patches drifting through the gas (a coarse noise, never thin lines).
+      const dust = 0.55 + 0.45 * Math.min(1, Math.max(0, (nebulaNoise(x, y, 90, 377) - 0.25) * 2.2));
+      const level = Math.max(0, (n * band * dust - 0.24) * 10);
       const step = Math.floor(level);
       const frac = level - step;
       const k = step + (frac * 16 > NEB_BAYER[((y / NEB_BLOCK) & 3) * 4 + ((x / NEB_BLOCK) & 3)]! ? 1 : 0);
       if (k <= 0) continue;
       c.fillStyle = NEB_STEPS[Math.min(NEB_STEPS.length, k) - 1]!;
       c.fillRect(x, y, NEB_BLOCK, NEB_BLOCK);
+      // Young stars in the brightest gas.
+      if (k >= 5 && hash(x * 7 + 3, y * 13 + 1) % 13 === 0) {
+        c.fillStyle = "#FFFFFF";
+        c.fillRect(x + 1, y + 1, 1, 1);
+      }
     }
   }
 }

@@ -1,4 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { drawStarLayers, paintPixelNebula, paintPixelPlanet } from "./retroSpace.renderer";
+import { retroText, retroTextFloor, withRetroTextFloor } from "./retro.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { wavefrontFxFor } from "./arcadeFxGames.renderer";
@@ -385,22 +387,28 @@ function paintSpace(c: CanvasRenderingContext2D, H: number): void {
   sky.addColorStop(1, "#07070C");
   c.fillStyle = sky;
   c.fillRect(0, 0, W, H);
-  // Polish A4 (25 Oct 2026): a richer blue and purple nebula, each cloud with a brighter heart.
-  for (const [nx, ny, nr, colour] of [
-    [300, 150, 220, "rgba(150,70,220,0.2)"],
-    [70, 380, 200, "rgba(50,100,235,0.18)"],
-    [230, 290, 140, "rgba(110,80,240,0.12)"],
-    [350, 480, 170, "rgba(80,60,210,0.12)"],
-    [110, 110, 120, "rgba(180,80,230,0.1)"],
-    [220, 260, 110, "rgba(220,90,170,0.05)"],
-  ] as const) {
-    const g = c.createRadialGradient(nx, ny, 0, nx, ny, nr);
-    g.addColorStop(0, colour);
-    g.addColorStop(0.45, colour.replace(/[\d.]+\)$/, (a) => `${(Number.parseFloat(a) * 0.45).toFixed(3)})`));
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    c.fillStyle = g;
-    c.fillRect(nx - nr, ny - nr, nr * 2, nr * 2);
-  }
+  // Stage 2 of the Retro overhaul (Joe, 15 Nov 2026: "a richer retro space scene with more depth, no pink"): a pixel
+  // nebula in violet and indigo with dim teal wisps (retroSpace.renderer.ts), thin where the formation flies and fuller
+  // lower down and at the sides, so every ship reads; then a large lit ringed planet low on the right and
+  // a small moon. The drifting star layers are drawn each frame (drawSpace).
+  paintPixelNebula(c, {
+    x: 0,
+    y: 0,
+    w: W,
+    h: H,
+    seed: 41,
+    steps: ["rgba(34,18,78,0.5)", "rgba(52,28,118,0.58)", "rgba(78,44,160,0.62)", "rgba(112,72,196,0.62)", "rgba(156,120,226,0.58)"],
+    steps2: ["rgba(10,34,64,0.42)", "rgba(14,52,84,0.48)", "rgba(20,78,108,0.5)", "rgba(36,110,134,0.46)", "rgba(80,160,180,0.4)"],
+    band: (x, y) => {
+      const side = Math.min(1, Math.abs(x - W / 2) / (W * 0.42));
+      // Thin where the formation flies (the top 45 %), fuller lower down and at the sides.
+      return 0.4 + 0.55 * side + 0.4 * Math.min(1, Math.max(0, (y - H * 0.35) / (H * 0.4)));
+    },
+    threshold: 0.3,
+    gain: 9,
+  });
+  paintPixelPlanet(c, W - 40, H - 150, 46, ["#140E2C", "#2A2058", "#4A3C8C", "#7E6CC4"], "rgba(150,170,240,0.55)");
+  paintPixelPlanet(c, 60, 120, 9, ["#1A1A2E", "#33344E", "#565A7A", "#9096B4"]);
   let v = 91;
   const next = () => {
     v = (Math.imul(v, 1103515245) + 12345) | 0;
@@ -423,22 +431,13 @@ function paintSpace(c: CanvasRenderingContext2D, H: number): void {
     c.lineTo(x, y + r);
     c.stroke();
   }
-  // A dim ringed planet low on the left, behind everything.
-  const px = 34, py = 470 + (H - 620), pr = 26;
-  const planet = c.createRadialGradient(px - 9, py - 9, 2, px, py, pr);
-  planet.addColorStop(0, "#3A3060");
-  planet.addColorStop(1, "#120E24");
-  c.fillStyle = planet;
-  c.beginPath();
-  c.arc(px, py, pr, 0, Math.PI * 2);
-  c.fill();
-  c.strokeStyle = "rgba(180,160,255,0.16)";
-  c.lineWidth = 2;
-  c.beginPath();
-  c.ellipse(px, py, pr * 1.7, pr * 0.42, -0.35, 0, Math.PI * 2);
-  c.stroke();
 }
 
+const WAV_STAR_LAYERS = [
+  { count: 46, speed: 5, size: 1, colour: "rgba(190,200,255,0.45)", seed: 501 },
+  { count: 26, speed: 13, size: 1, colour: "rgba(220,230,255,0.7)", seed: 502 },
+  { count: 12, speed: 28, size: 2, colour: "rgba(255,255,255,0.85)", seed: 503 },
+] as const;
 const spaceLayers = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas | null }>();
 function drawSpace(ctx: CanvasRenderingContext2D, t: number, WAV_WORLD_H: number): void {
   const tr = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
@@ -457,6 +456,8 @@ function drawSpace(ctx: CanvasRenderingContext2D, t: number, WAV_WORLD_H: number
   }
   if (cached.layer) ctx.drawImage(cached.layer as CanvasImageSource, 0, 0, WAV_WORLD_W, WAV_WORLD_H);
   else drawStars(ctx, WAV_WORLD_W, WAV_WORLD_H, 91);
+  // Three star layers drifting down at different speeds (stage 2): space with depth behind the formation.
+  drawStarLayers(ctx, WAV_WORLD_W, WAV_WORLD_H, t, WAV_STAR_LAYERS);
   // A few stars twinkle (presentation clock; still under reduced motion).
   for (let k = 0; k < 8; k++) {
     const h = artHash(k, 707);
@@ -1079,7 +1080,8 @@ const motion = { tick: -1, shipX: 0, movedTick: -100 };
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
-  arcadeFx(ctx, wavefrontFxFor(state), state, () => drawWavefrontArtWorld(ctx, state, size), size);
+  // The on-screen text floor for this world (the Retro overhaul, retroScale.ts).
+  withRetroTextFloor(WAV_WORLD_W, wavWorldH(state), () => arcadeFx(ctx, wavefrontFxFor(state), state, () => drawWavefrontArtWorld(ctx, state, size), size));
 }
 
 function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
@@ -1221,16 +1223,14 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     const k = state.enter ?? 0;
     const fade = Math.min(1, k / 20, (WAV_BREATHER_TICKS - k + 1) / 12);
     ctx.globalAlpha = Math.max(0, fade);
-    ctx.font = "800 34px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = state.boss ? "#E6E9EE" : WAV_GOLD;
-    ctx.fillText(state.boss?.mid ? "GUNSHIP" : state.boss ? "BOSS" : `WAVE ${state.wave}`, WAV_WORLD_W / 2, 300);
-    ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillStyle = "#F7F7F8";
-    ctx.fillText(state.boss && state.x10 ? "Hit the cannons and the open core" : state.boss ? "Shoot it down" : state.wave === wavWaves(state) ? "Last wave" : `of ${wavWaves(state)}`, WAV_WORLD_W / 2, 332);
+    // The pixel arcade font since stage 2 of the Retro overhaul (was JetBrains Mono): the title in gold with a dark
+    // outline, the line under it at the world's on-screen floor (retroTextFloor).
+    const title = state.boss?.mid ? "GUNSHIP" : state.boss ? "BOSS" : `WAVE ${state.wave}`;
+    const sub = state.boss && state.x10 ? "HIT THE CANNONS + CORE" : state.boss ? "SHOOT IT DOWN" : state.wave === wavWaves(state) ? "LAST WAVE" : `OF ${wavWaves(state)}`;
+    for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2]] as const) retroText(ctx, title, WAV_WORLD_W / 2 + dx, 284 + dy, 28, "#140A26", "center");
+    retroText(ctx, title, WAV_WORLD_W / 2, 284, 28, state.boss ? "#E6E9EE" : WAV_GOLD, "center", 4);
+    retroText(ctx, sub, WAV_WORLD_W / 2, 326, retroTextFloor(), "#F7F7F8", "center");
     ctx.globalAlpha = 1;
-    ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
   }

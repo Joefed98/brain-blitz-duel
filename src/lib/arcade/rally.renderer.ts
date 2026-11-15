@@ -122,7 +122,7 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number, RALLY_
   c.fillRect(left + inset, courtTop, right - left - 2 * inset, 2);
   c.fillRect(left + inset, courtTop, 2, courtBottom - courtTop);
   c.fillRect(right - inset - 2, courtTop, 2, courtBottom - courtTop);
-  paintCourtFinish(c, left + inset, courtTop, right - left - 2 * inset, courtBottom - courtTop, Math.round((top + RALLY_PADDLE_Y) / 2), 96);
+  paintCourtFinish(c, left + inset, courtTop, right - left - 2 * inset, courtBottom - courtTop);
   for (const [x0, dir] of [[left, 1], [right, -1]] as const) {
     c.fillStyle = linear(c, x0, 0, x0 + dir * 22, 0, [[0, "rgba(61,255,224,0.32)"], [1, "rgba(61,255,224,0)"]]);
     c.fillRect(dir > 0 ? x0 : x0 - 22, top, 22, RALLY_WORLD_H - top);
@@ -177,54 +177,60 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number, RALLY_
 }
 
 /**
- * The court's finish (the Retro overhaul, 15 Nov 2026; display only, painted once into the court layer). A richer hard
- * court in today's teal-blue: the service area inside the box lines a shade lighter (a two-tone court), the
- * floodlight from the far end painted as an ordered pixel dither (4 × 4 Bayer: whole light pixels thinning with the
- * distance, a period technique that stays crisp), a fine grain of lighter and darker specks so it reads as a surface,
- * and a lacquer sheen along the near baseline. Nothing over the play area is bright: the lines and the ball stay the
- * clearest things on the court.
+ * The court's finish (the Retro overhaul; display only, painted once into the court layer). One hard court in today's
+ * teal-blue, rich as a whole (stage 2, Joe: no box on the court): a deeper surface laid in large faint panels (a 2-tone
+ * pixel checker, the way a hard court is poured), two soft floodlight pools from the far corners and the light falling
+ * away towards the player, the court darkening towards its side lines, a fine grain of lighter and darker specks so it
+ * reads as a surface, and a lacquer sheen along the near baseline. The CRT scanlines over it keep it retro. Nothing over
+ * the play area is bright: the lines and the ball stay the clearest things on the court.
  */
-const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
-function paintCourtFinish(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, mid: number, box: number): void {
+function paintCourtFinish(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
   c.save();
   c.beginPath();
   c.rect(x, y, w, h);
   c.clip();
-  // A deeper, more saturated court, then the lighter service area between the box lines.
-  c.fillStyle = linear(c, 0, y, 0, y + h, [[0, "rgba(10,52,104,0.55)"], [1, "rgba(6,70,96,0.55)"]]);
+  c.fillStyle = linear(c, 0, y, 0, y + h, [[0, "rgba(10,56,110,0.62)"], [0.55, "rgba(8,60,100,0.6)"], [1, "rgba(6,70,92,0.62)"]]);
   c.fillRect(x, y, w, h);
-  c.fillStyle = "rgba(40,120,170,0.22)";
-  c.fillRect(x + 18, mid - box - 2, w - 36, 2 * box + 4);
-  // The floodlight's dither: a light pixel where the Bayer threshold is under the light's strength there.
-  const lx = x + w / 2;
-  const ly = y - 40;
-  const reach = h * 0.72;
-  c.fillStyle = "rgba(170,225,255,0.16)";
-  for (let py = Math.floor(y); py < y + h; py += 2) {
-    for (let px = Math.floor(x); px < x + w; px += 2) {
-      const d = Math.hypot((px - lx) * 0.8, py - ly) / reach;
-      const strength = Math.max(0, 1 - d) * 16;
-      if (strength > BAYER4[((py >> 1) & 3) * 4 + ((px >> 1) & 3)]!) c.fillRect(px, py, 1, 1);
+  // Large faint panels.
+  const panel = 52;
+  for (let py = 0; py * panel < h; py++)
+    for (let px = 0; px * panel < w; px++) {
+      if ((px + py) % 2) continue;
+      c.fillStyle = "rgba(120,200,255,0.035)";
+      c.fillRect(Math.round(x + px * panel), Math.round(y + py * panel), panel, panel);
     }
+  // Two floodlight pools at the far end.
+  for (const fx of [x + w * 0.24, x + w * 0.76]) {
+    const pool = c.createRadialGradient(fx, y + h * 0.1, 6, fx, y + h * 0.18, h * 0.42);
+    pool.addColorStop(0, "rgba(190,236,255,0.2)");
+    pool.addColorStop(0.45, "rgba(150,214,255,0.08)");
+    pool.addColorStop(1, "rgba(150,214,255,0)");
+    c.fillStyle = pool;
+    c.fillRect(x, y, w, h);
+  }
+  // Darkening towards the side lines.
+  for (const [x0, dir] of [[x, 1], [x + w, -1]] as const) {
+    c.fillStyle = linear(c, x0, 0, x0 + dir * w * 0.24, 0, [[0, "rgba(0,10,26,0.42)"], [1, "rgba(0,10,26,0)"]]);
+    c.fillRect(dir > 0 ? x0 : x0 - w * 0.24, y, w * 0.24, h);
   }
   let v = 0x2a11_5eed | 0;
   const next = () => {
     v = (Math.imul(v, 1103515245) + 12345) | 0;
     return ((v >>> 8) & 0xffff) / 0x10000;
   };
-  const specks = Math.round((w * h) / 70);
+  const specks = Math.round((w * h) / 60);
   for (let i = 0; i < specks; i++) {
     const sx = Math.floor(x + next() * w);
     const sy = Math.floor(y + next() * h);
-    c.fillStyle = next() < 0.5 ? "rgba(170,230,255,0.10)" : "rgba(0,10,24,0.22)";
-    c.fillRect(sx, sy, 1, 1);
+    c.fillStyle = next() < 0.5 ? "rgba(170,230,255,0.1)" : "rgba(0,10,24,0.24)";
+    c.fillRect(sx, sy, next() < 0.15 ? 2 : 1, 1);
   }
-  const sheen = c.createLinearGradient(0, y + h - 70, 0, y + h);
+  const sheen = c.createLinearGradient(0, y + h - 90, 0, y + h);
   sheen.addColorStop(0, "rgba(140,230,255,0)");
-  sheen.addColorStop(0.7, "rgba(140,230,255,0.08)");
+  sheen.addColorStop(0.7, "rgba(140,230,255,0.1)");
   sheen.addColorStop(1, "rgba(140,230,255,0)");
   c.fillStyle = sheen;
-  c.fillRect(x, y + h - 70, w, 70);
+  c.fillRect(x, y + h - 90, w, 90);
   c.restore();
 }
 

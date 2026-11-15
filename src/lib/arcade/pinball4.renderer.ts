@@ -159,13 +159,35 @@ function paintPlayfield(c: Ctx, detail: boolean): void {
   c.fillStyle = g;
   c.fillRect(0, 0, P4_WORLD_W, P4_WORLD_H);
 
-  // Pools of colour: the lanes, the ramps, the bumpers, the target bank and the flippers.
-  pool(c, 186, 110, 110, "rgba(75,255,122,A)", 0.06);
-  pool(c, 80, 260, 90, "rgba(61,255,224,A)", 0.06);
-  pool(c, 306, 250, 90, "rgba(255,77,255,A)", 0.06);
-  pool(c, 190, 228 + S, 120, "rgba(255,77,255,A)", 0.13);
-  pool(c, 190, 352 + S, 80, "rgba(255,138,60,A)", 0.08);
-  pool(c, P4_MID_X, 600 + S, 130, "rgba(255,216,74,A)", 0.05);
+  // Stage 2 of the Retro overhaul (Joe: "a clear lift that stays pixel and retro"): the classic playfield sunburst, rays
+  // of two violets fanning out from the bumper cluster under everything, fading towards the table's edge.
+  {
+    const cx = 190, cy = 228 + S;
+    const rays = 22;
+    for (let i = 0; i < rays; i++) {
+      if (i % 2) continue;
+      const a0 = (i / rays) * Math.PI * 2;
+      const a1 = ((i + 1) / rays) * Math.PI * 2;
+      const burst = c.createRadialGradient(cx, cy, 30, cx, cy, 460);
+      burst.addColorStop(0, "rgba(150,70,230,0.2)");
+      burst.addColorStop(0.55, "rgba(110,50,200,0.1)");
+      burst.addColorStop(1, "rgba(110,50,200,0)");
+      c.fillStyle = burst;
+      c.beginPath();
+      c.moveTo(cx, cy);
+      c.lineTo(cx + Math.cos(a0) * 700, cy + Math.sin(a0) * 700);
+      c.lineTo(cx + Math.cos(a1) * 700, cy + Math.sin(a1) * 700);
+      c.closePath();
+      c.fill();
+    }
+  }
+  // Pools of colour: the lanes, the ramps, the bumpers, the target bank and the flippers (twice as strong since stage 2).
+  pool(c, 186, 110, 110, "rgba(75,255,122,A)", 0.12);
+  pool(c, 80, 260, 90, "rgba(61,255,224,A)", 0.12);
+  pool(c, 306, 250, 90, "rgba(255,77,255,A)", 0.12);
+  pool(c, 190, 228 + S, 120, "rgba(255,77,255,A)", 0.2);
+  pool(c, 190, 352 + S, 80, "rgba(255,138,60,A)", 0.14);
+  pool(c, P4_MID_X, 600 + S, 130, "rgba(255,216,74,A)", 0.1);
 
   let seed = 0x9e3779b9;
   const rnd = () => ((seed = (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) | 0) >>> 0) / 4294967296;
@@ -226,6 +248,21 @@ function paintPlayfield(c: Ctx, detail: boolean): void {
   vg.addColorStop(1, "rgba(0,0,0,0.55)");
   c.fillStyle = vg;
   c.fillRect(0, 0, P4_WORLD_W, P4_WORLD_H);
+  c.restore();
+  // A gold pinstripe just inside the playfield's edge, the lacquered trim of a real table (stage 2).
+  c.save();
+  playfieldPath(c);
+  c.clip();
+  c.strokeStyle = "rgba(255,216,74,0.32)";
+  c.lineWidth = 2;
+  c.setLineDash([]);
+  c.save();
+  c.translate(P4_MID_X, P4_WORLD_H / 2);
+  c.scale(0.965, 0.985);
+  c.translate(-P4_MID_X, -P4_WORLD_H / 2);
+  playfieldPath(c);
+  c.stroke();
+  c.restore();
   c.restore();
 }
 

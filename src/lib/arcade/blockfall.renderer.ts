@@ -12,10 +12,12 @@
  * `blockfallScene` carries the cabinet's dark glow out to the screen's edges (painted per size, never per frame).
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { fillAbove, fillBelow, fillGradient, fillSides } from "./arenaFills.renderer";
-import { retroHud, RETRO_FONT, RETRO_HUD_MIN_PX, RETRO_WHITE } from "./retro.renderer";
+import { retroHud, retroMix, retroTextFloor, RETRO_FONT, RETRO_WHITE, withRetroTextFloor } from "./retro.renderer";
 import {
   BF_H, BF_HIDDEN, BF_PREVIEW, BF_W, BF_ZONE_MULTI_MAX, BF_ZONE_PIECES_MAX, BLOCKFALL_REV_ZONE, bfCells, bfCoreFullFor, bfGhostY, bfGravityFor, bfLevelFor,
   bfMultiPoints, blockfallGame, blockfallGameFor, type BfState,
@@ -110,7 +112,7 @@ function drawPad(ctx: CanvasRenderingContext2D, p: (typeof BF_PADS)[number], on:
   ctx.stroke();
   const ink = dim ? "rgba(160,236,248,0.35)" : "#E8FDFF";
   ctx.fillStyle = ink;
-  ctx.font = `12px ${RETRO_FONT}`;
+  ctx.font = `${Math.max(12, retroTextFloor())}px ${RETRO_FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(p.label, p.x + p.w / 2, p.y + p.h / 2 + 16);
@@ -200,6 +202,11 @@ export function drawBfSquare(ctx: CanvasRenderingContext2D, shape: number, x: nu
   ctx.globalAlpha = alpha * 0.95;
   const g = Math.max(1.5, size * 0.14);
   ctx.fillRect(x0 + bev + 1, y0 + bev + 1, g, Math.max(1, g * 0.6));
+  // Stage 2: a lit gem centre, the face's core colour glowing in its middle (a jewel, lit from within).
+  ctx.globalAlpha = alpha * 0.5;
+  ctx.fillStyle = retroMix(c.rim, "#FFFFFF", 0.45);
+  const m = Math.round(w * 0.3);
+  ctx.fillRect(Math.round(x0 + (w - m) / 2), Math.round(y0 + (w - m) / 2), m, m);
   ctx.globalAlpha = 1;
 }
 
@@ -261,7 +268,8 @@ export const BLOCKFALL_FX: ArcadeFxSpec<BfState> = {
 };
 
 export function drawBlockfall(ctx: CanvasRenderingContext2D, state: BfState, size: CanvasSize, view?: BfView): void {
-  arcadeFx(ctx, BLOCKFALL_FX, state, () => drawBlockfallWorld(ctx, state, size, view), size);
+  // The on-screen text floor for this world (the Retro overhaul, retroScale.ts).
+  withRetroTextFloor(BF_WORLD_W, BF_WORLD_H, () => arcadeFx(ctx, BLOCKFALL_FX, state, () => drawBlockfallWorld(ctx, state, size, view), size));
 }
 
 function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size: CanvasSize, view?: BfView): void {
@@ -275,6 +283,7 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   bg.addColorStop(1, BF_BG);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
+  paintBlockzoneCabinet(ctx, W, H);
 
   // HUD.
   const L = bfLayout(state.rev);
@@ -309,20 +318,28 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
     ctx.lineWidth = w;
     ctx.strokeRect(bx - 1, by - 1, L.bw + 2, L.bh + 2);
   }
-  ctx.fillStyle = "#03080F";
+  // Stage 2 of the Retro overhaul (Joe: "a clear lift"): the well's back wall is dark glass shading from deep teal to
+  // violet with a soft light falling from its top, a grid of fine dots at the cell corners in place of lines, and a
+  // chrome bevel just inside the glow (lit on its top and left, in shade on its right and bottom).
+  const wall = ctx.createLinearGradient(0, by, 0, by + L.bh);
+  wall.addColorStop(0, "#04141E");
+  wall.addColorStop(0.6, "#060B18");
+  wall.addColorStop(1, "#0C0820");
+  ctx.fillStyle = wall;
   ctx.fillRect(bx, by, L.bw, L.bh);
-  ctx.strokeStyle = "rgba(54,226,245,0.07)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let x = 1; x < BF_W; x++) {
-    ctx.moveTo(bx + x * cell + 0.5, by);
-    ctx.lineTo(bx + x * cell + 0.5, by + L.bh);
-  }
-  for (let y = 1; y < BF_H; y++) {
-    ctx.moveTo(bx, by + y * cell + 0.5);
-    ctx.lineTo(bx + L.bw, by + y * cell + 0.5);
-  }
-  ctx.stroke();
+  const light = ctx.createRadialGradient(bx + L.bw / 2, by - 40, 10, bx + L.bw / 2, by, L.bh * 0.7);
+  light.addColorStop(0, "rgba(54,226,245,0.12)");
+  light.addColorStop(1, "rgba(54,226,245,0)");
+  ctx.fillStyle = light;
+  ctx.fillRect(bx, by, L.bw, L.bh);
+  ctx.fillStyle = "rgba(120,220,255,0.22)";
+  for (let x = 1; x < BF_W; x++) for (let y = 1; y < BF_H; y++) ctx.fillRect(Math.round(bx + x * cell) - 1, Math.round(by + y * cell) - 1, 2, 2);
+  ctx.fillStyle = "#9FB6CC";
+  ctx.fillRect(bx - 3, by - 3, L.bw + 6, 2);
+  ctx.fillRect(bx - 3, by - 3, 2, L.bh + 6);
+  ctx.fillStyle = "#26303E";
+  ctx.fillRect(bx - 3, by + L.bh + 1, L.bw + 6, 2);
+  ctx.fillRect(bx + L.bw + 1, by - 3, 2, L.bh + 6);
   // The low-stack line: the top of the bottom four rows.
   ctx.strokeStyle = "rgba(242,199,92,0.28)";
   ctx.setLineDash([6, 6]);
@@ -332,6 +349,30 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   ctx.stroke();
   ctx.setLineDash([]);
 
+  // Stage 2 of the Retro overhaul (Joe: "the glow emphasised"): a neon halo round the stack, drawn first for every
+  // settled square and the falling piece, 5 px past each square in its own colour, so the whole stack glows at its
+  // outline while every face (drawn after) stays crisp. Under reduced effects, none.
+  if (!arcadeReducedEffects()) {
+    const halo = (shape: number, x: number, y: number) => {
+      const c = BF_COLOURS[shape] ?? BF_COLOURS[1]!;
+      ctx.fillStyle = c.rim;
+      ctx.globalAlpha = 0.07;
+      ctx.fillRect(x - 5, y - 5, cell + 10, cell + 10);
+      ctx.globalAlpha = 0.09;
+      ctx.fillRect(x - 2, y - 2, cell + 4, cell + 4);
+    };
+    for (let y = BF_HIDDEN; y < BF_HIDDEN + BF_H; y++)
+      for (let x = 0; x < BF_W; x++) {
+        const v = state.board[y * BF_W + x]!;
+        if (v) halo(v - 1, bx + x * cell, by + (y - BF_HIDDEN) * cell);
+      }
+    if (state.ended === 0)
+      for (const [cx, cy] of bfCells(state.piece.shape, state.piece.turn)) {
+        const row = state.piece.y + cy - BF_HIDDEN;
+        if (row >= 0) halo(state.piece.shape, bx + (state.piece.x + cx) * cell, by + row * cell);
+      }
+    ctx.globalAlpha = 1;
+  }
   // Settled squares (visible rows only).
   for (let y = BF_HIDDEN; y < BF_HIDDEN + BF_H; y++) {
     for (let x = 0; x < BF_W; x++) {
@@ -380,7 +421,7 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   ctx.strokeRect(bx - 1, by - 1, L.bw + 2, L.bh + 2);
 
   // Next three, top right.
-  ctx.font = `${RETRO_HUD_MIN_PX}px ${RETRO_FONT}`;
+  ctx.font = `${retroTextFloor()}px ${RETRO_FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = RETRO_WHITE;
@@ -401,7 +442,7 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
     const sy = by + 44 + BF_PREVIEW * 60;
     ctx.fillStyle = "rgba(160,236,248,0.85)";
     ctx.fillText("SPEED", L.nextX + L.sideW / 2, sy);
-    ctx.font = `13px ${RETRO_FONT}`;
+    ctx.font = `${Math.max(13, retroTextFloor())}px ${RETRO_FONT}`;
     ctx.fillStyle = "#E8FDFF";
     ctx.fillText(`${level + 1}/${bfGravityFor(state.rev).length}`, L.nextX + L.sideW / 2, sy + 20);
     ctx.restore();
@@ -441,3 +482,38 @@ export function blockfallArtGame(view?: BfView, rev?: number | null): ArcadeGame
 }
 
 export const blockfallArt = blockfallArtGame();
+
+/**
+ * The cabinet round the well (stage 2 of the Retro overhaul): a fixed pixel starfield over the navy and, low down, a
+ * faint synthwave floor (horizontal lines closing up towards a horizon behind the well, and lines fanning out from its
+ * vanishing point), so the margins round the well read as a scene rather than flat colour. Display only; static.
+ */
+function paintBlockzoneCabinet(ctx: CanvasRenderingContext2D, W: number, H: number): void {
+  ctx.save();
+  for (let i = 0; i < 70; i++) {
+    const r = Math.imul(i + 1, 0x9e3779b1) >>> 0;
+    ctx.fillStyle = r % 7 === 0 ? "rgba(255,255,255,0.7)" : "rgba(160,200,255,0.35)";
+    ctx.fillRect(r % W, (r >>> 9) % Math.round(H * 0.7), r % 11 === 0 ? 2 : 1, r % 11 === 0 ? 2 : 1);
+  }
+  const horizon = Math.round(H * 0.62);
+  ctx.strokeStyle = "rgba(160,90,255,0.18)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 1; i <= 9; i++) {
+    const y = horizon + i * i * 3.2;
+    if (y > H) break;
+    ctx.moveTo(0, Math.round(y) + 0.5);
+    ctx.lineTo(W, Math.round(y) + 0.5);
+  }
+  for (let j = -6; j <= 6; j++) {
+    ctx.moveTo(W / 2, horizon);
+    ctx.lineTo(W / 2 + j * 70, H);
+  }
+  ctx.stroke();
+  const glow = ctx.createLinearGradient(0, horizon - 40, 0, horizon + 10);
+  glow.addColorStop(0, "rgba(255,120,200,0)");
+  glow.addColorStop(1, "rgba(160,90,255,0.16)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, horizon - 40, W, 50);
+  ctx.restore();
+}

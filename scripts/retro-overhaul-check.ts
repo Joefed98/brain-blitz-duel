@@ -707,30 +707,40 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   }
 }
 
-/* ============ No Retro text below 11 px (Joe, 15 Nov 2026), labels and pops included ============ */
+/* ============ No Retro text below 11 px on a 390 × 844 phone's screen (Joe, 15 Nov 2026) ============ */
 {
-  // Every text draw each Retro game's renderer makes over a weak and a near-perfect bot's run (a frame every 30 ticks,
-  // on any canvas, cached layers included), measured in the units it draws in (world pixels, as the HUD floor).
-  const { createCanvas, retroArtFor, retroRun, RETRO_TYPES, textRecorder } = await import("./retro-render-lib");
+  // Every text draw each Retro game's renderer makes over a weak and a near-perfect bot's run (a frame every 30 ticks, on
+  // any canvas, cached layers included), measured on screen: its size in world pixels times the scale its world draws at
+  // in the 390 × 768 arena box of a 390 × 844 phone (retroScale.ts; docs/arena-sizes-oct-2026.md). Labels and pops count.
+  const { createCanvas, retroArtFor, retroRun, retroWorldSize, RETRO_TYPES, textRecorder } = await import("./retro-render-lib");
+  const { RETRO_PHONE_BOX, RETRO_SCREEN_MIN_PX, retroPhoneScale } = await import("../src/lib/arcade/retroScale");
+  ok(RETRO_SCREEN_MIN_PX === 11 && RETRO_PHONE_BOX.width === 390 && RETRO_PHONE_BOX.height === 768, "the floor is 11 px in a 390 × 768 arena box (a 390 × 844 phone)");
   const rec = textRecorder();
   for (const type of RETRO_TYPES) {
     let draws = 0;
+    let smallest = Infinity;
     const small = new Set<string>();
     for (const level of ["weak", "near"]) {
       const run = await retroRun(type, { level, every: 30 });
       const draw = await retroArtFor(type, run.rev);
       for (const st of run.states) {
-        const ctx = createCanvas(390, 760).getContext("2d") as unknown as CanvasRenderingContext2D;
+        const world = await retroWorldSize(type, st);
+        const scale = retroPhoneScale(world.width, world.height);
+        const W = Math.round(world.width * scale);
+        const H = Math.round(world.height * scale);
+        const ctx = createCanvas(W, H).getContext("2d") as unknown as CanvasRenderingContext2D;
         rec.start();
-        draw(ctx, st, { width: 390, height: 760 });
+        draw(ctx, st, { width: W, height: H });
         for (const t of rec.stop()) {
           draws += 1;
-          if (!(t.px >= RETRO_HUD_MIN_PX)) small.add(`"${t.text}" at ${t.px} px`);
+          const onScreen = t.px * scale;
+          smallest = Math.min(smallest, onScreen);
+          if (!(onScreen >= RETRO_SCREEN_MIN_PX - 1e-6)) small.add(`"${t.text}" at ${onScreen.toFixed(1)} px`);
         }
       }
     }
     ok(draws > 0, `${type}: its renderer draws text (${draws} draws seen)`);
-    ok(small.size === 0, `${type}: no text below ${RETRO_HUD_MIN_PX} px${small.size ? ` (${[...small].slice(0, 6).join(", ")})` : ""}`);
+    ok(small.size === 0, `${type}: no text below ${RETRO_SCREEN_MIN_PX} px on a 390 × 844 phone (smallest ${smallest.toFixed(1)} px)${small.size ? `: ${[...small].slice(0, 6).join(", ")}` : ""}`);
   }
 }
 
@@ -739,4 +749,4 @@ if (failures.length) {
   console.log(`FAIL retro-overhaul-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; Breaker's clearable wall; Wavefront's charged shot; the Retro HUD floor; no Retro text below 11 px)`);
+console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; Breaker's clearable wall; Wavefront's charged shot; the Retro HUD floor; no Retro text below 11 px on a 390 × 844 phone)`);

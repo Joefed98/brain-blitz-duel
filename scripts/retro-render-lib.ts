@@ -142,3 +142,21 @@ export function textRecorder(): { start(): void; stop(): { text: string; px: num
     },
   };
 }
+
+/** A Retro game's world size (px) for a state of its run: what its arena fits on a phone. */
+export async function retroWorldSize(type: RetroType, state: unknown): Promise<{ width: number; height: number }> {
+  const s = state as Record<string, number>;
+  const m = async (p: string) => (await import(`../src/lib/arcade/${p}`)) as Record<string, any>;
+  switch (type) {
+    case "hover": { const h = await m("hover"); return { width: h.HOVER_WORLD_W, height: h.hoverWorldH(s) }; }
+    case "breaker": { const b = await m("breaker"); return { width: b.brkWorldW(s), height: b.brkWorldH(s) }; }
+    case "rally": { const r = await m("rally"); return { width: r.rallyWorldW(s), height: r.rallyWorldH(s) }; }
+    case "wavefront": { const w = await m("wavefront"); return { width: w.WAV_WORLD_W, height: w.wavWorldH(s) }; }
+    case "burst": { const b = await m("burst"); return { width: b.BURST_WORLD_W, height: b.burstFloorY(s) }; }
+    case "beat": { const b = await m("beat"); return { width: b.BEAT_WORLD_W, height: b.beatWorldH(s) }; }
+    case "snake": { const n = await m("snake"); return { width: n.snakeWorldWOf(s), height: n.snakeWorldHForRev(s.snakeRev ?? n.SNAKE_REV_SIZES) }; }
+    case "cross": { const c = await m("cross"); return { width: c.CROSS_WORLD_W, height: c.crossGeomOf(s).worldH }; }
+    case "pinball": { const p = await m("pinball4.renderer"); const q = await m("pinball"); return { width: q.PIN_WORLD_W, height: p.pinballWorldHFor(q.PIN_REV_JOULZ) }; }
+    case "blockfall": { const b = await m("blockfall.renderer"); return { width: b.BF_WORLD_W, height: b.BF_WORLD_H }; }
+  }
+}

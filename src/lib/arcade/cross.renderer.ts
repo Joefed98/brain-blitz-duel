@@ -1,4 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { drawStarLayers } from "./retroSpace.renderer";
+import { withRetroTextFloor } from "./retro.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { crossFxFor } from "./arcadeFxGames.renderer";
@@ -1004,7 +1006,8 @@ function roadLayer(ctx: CanvasRenderingContext2D, course: ReturnType<typeof cros
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true, pavedFoot = false): void {
-  arcadeFx(ctx, crossFxFor(state), state, () => drawCrossArtWorld(ctx, state, size, crashIndicator, pavedFoot), size);
+  // The on-screen text floor for this world (the Retro overhaul, retroScale.ts).
+  withRetroTextFloor(CROSS_WORLD_W, crossGeomOf(state).worldH, () => arcadeFx(ctx, crossFxFor(state), state, () => drawCrossArtWorld(ctx, state, size, crashIndicator, pavedFoot), size));
 }
 
 function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true, pavedFoot = false): void {
@@ -1034,6 +1037,20 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
 
   // Verges, pavements, road surface, markings and roadworks: one cached layer per crossing.
   const layer = roadLayer(ctx, course, tex, g);
+  // Stage 2 of the Retro overhaul: two star layers drifting slowly down behind the traffic (space with depth), clipped
+  // to the lanes between the decks; the sim tick is their clock, so a replay matches, and they hold still under reduced
+  // motion (drawStarLayers).
+  {
+    const top = CROSS_HUD_H + g.goalH;
+    const bottom = crossStartTop(g);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(CROSS_BOARD_X, top, CROSS_BOARD_W, bottom - top);
+    ctx.clip();
+    ctx.translate(CROSS_BOARD_X, top);
+    drawStarLayers(ctx, CROSS_BOARD_W, bottom - top, state.tick / 60, CROSS_STAR_LAYERS);
+    ctx.restore();
+  }
   // The play screen's arena scene (crossArenaScene) widens the start pavement downwards: the
   // grass strip under it is paved too, so pavement runs on unbroken past the world's edge.
   if (pavedFoot) {
@@ -1187,6 +1204,10 @@ function hudPill(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
 }
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
+const CROSS_STAR_LAYERS = [
+  { count: 34, speed: 4, size: 1, colour: "rgba(190,205,255,0.5)", seed: 611 },
+  { count: 14, speed: 11, size: 2, colour: "rgba(235,240,255,0.75)", seed: 612 },
+] as const;
 export const crossArtGame = { ...crossGame, draw: drawCrossArt };
 /** The art game for a stored puzzle.crossRev (play, demos and reveals). */
 const crossArtGames = new Map<number, typeof crossArtGame>();

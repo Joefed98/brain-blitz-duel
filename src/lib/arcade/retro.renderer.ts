@@ -5,6 +5,7 @@
  * original draw used, then draw in world coordinates with the pixel helpers.
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { RETRO_SCREEN_MIN_PX, retroTextFloorFor } from "./retroScale";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
@@ -93,6 +94,27 @@ export function retroScreen(
    * scanlines must never shade (Meteor's board border, whose blink was the bottom-edge flash).
    */
   overlay?: (ctx: CanvasRenderingContext2D) => void,
+): RetroFrame {
+  // Everything the world draws holds to its own on-screen text floor (retroScale.ts), restored when it is done.
+  const floorBefore = worldTextFloor;
+  worldTextFloor = retroTextFloorFor(worldW, worldH);
+  try {
+    return retroScreenDraw(ctx, size, worldW, worldH, mode, drawWorld, bezelFlash, corner, overlay);
+  } finally {
+    worldTextFloor = floorBefore;
+  }
+}
+
+function retroScreenDraw(
+  ctx: CanvasRenderingContext2D,
+  size: { width: number; height: number },
+  worldW: number,
+  worldH: number,
+  mode: "fit" | "stretch",
+  drawWorld: (ctx: CanvasRenderingContext2D) => void,
+  bezelFlash: number,
+  corner: number,
+  overlay: ((ctx: CanvasRenderingContext2D) => void) | undefined,
 ): RetroFrame {
   let scaleX: number;
   let scaleY: number;
@@ -236,7 +258,8 @@ export function retroText(
   align: CanvasTextAlign = "left",
   glow = 0,
 ): void {
-  // The Retro overhaul (Joe, 15 Nov 2026): no Retro text below RETRO_HUD_MIN_PX (11 px), labels included.
+  // The Retro overhaul (Joe, 15 Nov 2026): no Retro text below 11 px on a 390 × 844 phone's screen, labels included
+  // (the floor in this world's pixels, retroTextFloor).
   ctx.font = `${retroHudFloorPx(Math.round(px))}px ${RETRO_FONT}`;
   ctx.textAlign = align;
   ctx.textBaseline = "top";
@@ -404,10 +427,28 @@ export function retroEventAge(ctx: CanvasRenderingContext2D, name: string, trigg
  * `wrapMain` lets a game pulse its main count (successHud).
  */
 /** The smallest size any Retro HUD count is drawn at (the Retro overhaul, 15 Nov 2026). */
-export const RETRO_HUD_MIN_PX = 11;
+export const RETRO_HUD_MIN_PX = RETRO_SCREEN_MIN_PX;
+/**
+ * The text floor (world px) for the world being drawn now (Joe, 15 Nov 2026: 11 px on a 390 × 844 phone's screen):
+ * retroScreen and withRetroTextFloor set it from the world's size (retroScale.ts), 11 outside any world.
+ */
+let worldTextFloor = RETRO_HUD_MIN_PX;
+export function retroTextFloor(): number {
+  return worldTextFloor;
+}
+/** Draws `draw` with the text floor of a world of this size (for the Retro games that don't draw through retroScreen). */
+export function withRetroTextFloor<T>(worldW: number, worldH: number, draw: () => T): T {
+  const before = worldTextFloor;
+  worldTextFloor = retroTextFloorFor(worldW, worldH);
+  try {
+    return draw();
+  } finally {
+    worldTextFloor = before;
+  }
+}
 /** A requested HUD size held to the floor. */
 export function retroHudFloorPx(px: number): number {
-  return Math.max(RETRO_HUD_MIN_PX, Math.round(px));
+  return Math.max(worldTextFloor, Math.round(px));
 }
 export interface RetroHudItem {
   text: string;
@@ -450,9 +491,10 @@ export function retroHudLayout(
   });
   let w = widths();
   const fits = () => inset * 2 + w.mainW + w.sideW + 10 <= worldW;
-  while (!fits() && (sidePx > RETRO_HUD_MIN_PX || mainPx > RETRO_HUD_MIN_PX)) {
-    if (sidePx > RETRO_HUD_MIN_PX && sidePx >= mainPx - 3) sidePx -= 1;
-    else if (mainPx > RETRO_HUD_MIN_PX) mainPx -= 1;
+  const floor = worldTextFloor;
+  while (!fits() && (sidePx > floor || mainPx > floor)) {
+    if (sidePx > floor && sidePx >= mainPx - 3) sidePx -= 1;
+    else if (mainPx > floor) mainPx -= 1;
     else sidePx -= 1;
     w = widths();
   }
