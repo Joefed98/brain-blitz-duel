@@ -186,3 +186,31 @@ Levers in the sim: `skylineSpeed` (`SKYLINE_SPEED_START`, `SKYLINE_SPEED_STEP`, 
 `SKYLINE_PERFECT_TOL`, `SKYLINE_WIND_FROM`, `SKYLINE_V11_LIVES`; each level a stamp of its own, rated rooms on Normal.
 "Skyscraper" (61 floors on Expert) must stay possible: the run stays 60 s with no time lost for a life, and today a
 perfect-drop player builds 61 floors on 21 of 24 seeds (13 of 24 after losing two lives early).
+
+## Stage 2: effects and the reveal (15 Nov 2026, the Action overhaul; display only, no stamp)
+
+Joe's effects list, each drawn by the game's own renderer from the sim moment it observes (`skyline.renderer.ts`, the
+landing the renderer remembers: its sim tick, a perfect drop, a trim or a sliver, and the block below's span). Nothing is
+written to the sim; the next tap is taken at once.
+
+| Moment | What shows | Sound slot |
+| --- | --- | --- |
+| A drop | the block falls the last floor from the hook (`DROP_FALL_TICKS` 5, ~80 ms), then the tower squashes 2 px from the plaza and springs back (`skylineSquashPx`, 300 ms) | `skyline.drop` (no whistle recording yet; the clank meanwhile) |
+| A perfect drop | a flattened gold ring spreads from the join (`PERFECT_RING_TICKS`, ~470 ms), the join a crisp gold seam, and the strip the block grew by (beyond the block below) lit gold and fading into the glass; the success layer's burst at the join, not mid-screen | `skyline.perfect`, a semitone higher for each drop in the streak, up to seven (`skylinePerfectRate`) |
+| A trim | the overhang falls away spinning (`TRIM_SPIN`) and chips of glass and concrete crumble from the cut edge | `skyline.trim` |
+| A sliver (under a quarter of the block on the tower) | it wobbles on its foot, at most 2 px at its corners (`skylineSliverTilt`, a second) | `skyline.sliver` |
+| A lost life | the block tumbles away (`LOST_SPIN`), "−1 LIFE", the LIVES chip rings | `skyline.lifeLost` |
+| A gold block landed perfectly | GOLD BONUS and the gold lights (as before) | `shared.celebrate.chime` |
+| The end | the hook and NEXT go, the camera pulls back over the whole tower (`END_FIT`) and a big floor count counts up from 0 (`SKYLINE_END_COUNT_MS`, 900 ms); the stage holds its submit `SKYLINE_END_HOLD_MS` (1.3 s) so it is seen (the drafts already carry the same run) | none |
+
+No edge glow: the shared success layer draws none for the Action games (`ACTION_EDGELESS_GAMES`, `success.renderer.ts`;
+the effect is on the tower instead). Reduced motion: no fall, squash, wobble, spin or crumbs; the ring and the strip show
+still and fade; the count is shown whole.
+
+**The reveal** (`RunPicture` in `src/puzzles/skyline.tsx`, drawn by ArcadeReveal under the score and breakdown): the stored
+log replayed through the real sim (`skylineRunSummary`, `src/lib/duel/skylineSummary.ts`) and drawn as the tower as built
+(`drawSkylineRunPicture`): every floor at its real width and place, perfect drops gold, gold blocks brighter, wide blocks
+(the rescue) teal, trims the tower's glass; each lost life the missed block tipping off in red where it missed; the best
+streak bracketed in gold. Above it the three numbers that explain the score, big (Floors, Perfect drops, Best streak);
+under it a legend with short labels and counts. The picture's numbers replace the reveal's stat tiles. The score is the
+stored one; nothing here grades.

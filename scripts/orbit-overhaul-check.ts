@@ -18,6 +18,9 @@
  *     ORBIT_CHECKPOINT_HOLD_MS (≥ 300 ms), never on press.
  *  6. Display: the HUD is at most two rows of at most two pills, 28 px or taller (no text under 12 px on a 375-wide
  *     phone); the slips count never falls; a rendered planet stays inside its collision circle and stands still at t = 0.
+ *     Stage 2 (Blender planets): the nine maps and their height maps are the files the data file names, within 400 KB,
+ *     tone maps grey and colour maps coloured, every map worn by some planet and drawn (with a ring) inside its circle
+ *     + 2 px at 1x and the desktop's 2.84x, a lit side over a deep night side, icy worlds never warm, the relief lit.
  *  7. Edge to edge (Joe's rule, 15 Nov 2026): the sun's warmth is 0 along the world's sides and bottom at every point of
  *     the course, and the fill starts at the world's own black with no seam at 414×896 (app), 390×844, 375×667 and
  *     1440×900.
@@ -282,31 +285,132 @@ const planets = await import("../src/lib/arcade/orbitPlanets.renderer");
     if (!drawn) outside += 1e6;
   }
   ok(outside === 0, `a rendered planet draws nothing past its collision circle + 2 px (${outside} px)`);
-  // The materials pass: the six surface maps shipped are small and every projected sphere keeps inside its circle too.
+  // Stage 2 (15 Nov 2026): the Blender-rendered maps. Changed with Joe's approval, 15 Nov 2026 (routine consequence of
+  // the Action overhaul): the stage-1 assertions on six numpy maps now read the nine Blender maps (and their height maps)
+  // through the data file's new shape; every rule they proved (size, inside the circle, every map reachable) is kept.
   const { ORBIT_PLANET_MAPS, ORBIT_PLANET_MAP_BYTES } = await import("../src/lib/arcade/orbitPlanetMaps.data");
   const { loadImage } = await import("@napi-rs/canvas");
-  let bytes = 0, sphereOut = 0, sphereDrawn = 0;
-  for (const name of Object.keys(ORBIT_PLANET_MAPS) as (keyof typeof ORBIT_PLANET_MAPS)[]) {
-    const file = `public/orbit/planets/${name}.webp`;
-    bytes += readFileSync(file).length;
+  const { createHash } = await import("node:crypto");
+  const names = Object.keys(ORBIT_PLANET_MAPS) as (keyof typeof ORBIT_PLANET_MAPS)[];
+  let bytes = 0, hashesOk = 0, kindsOk = 0, heights = 0, mapPx = 0;
+  const decode = async (key: string, file: string) => {
+    const buf = readFileSync(file);
+    bytes += buf.length;
     const img = await loadImage(file);
     const mc = createCanvas(img.width, img.height);
     const mx = mc.getContext("2d");
     mx.drawImage(img, 0, 0);
-    planets.setOrbitPlanetMap(name, { w: img.width, h: img.height, data: mx.getImageData(0, 0, img.width, img.height).data as unknown as Uint8ClampedArray });
+    const data = mx.getImageData(0, 0, img.width, img.height).data as unknown as Uint8ClampedArray;
+    planets.setOrbitPlanetMap(key as never, { w: img.width, h: img.height, data });
+    return { buf, img, data };
+  };
+  for (const name of names) {
+    const m = ORBIT_PLANET_MAPS[name];
+    const { buf, img, data } = await decode(name, `public/orbit/planets/${name}.webp`);
+    if (m.url.endsWith(`?v=${createHash("sha256").update(buf).digest("hex").slice(0, 10)}`)) hashesOk++;
+    // Tone maps are grey (the renderer tints them); colour maps carry their own colours.
+    let chroma = 0;
+    for (let i = 0; i < data.length; i += 4 * 97) chroma = Math.max(chroma, Math.max(data[i]!, data[i + 1]!, data[i + 2]!) - Math.min(data[i]!, data[i + 1]!, data[i + 2]!));
+    if ((m.kind === "tone") === chroma <= 4) kindsOk++;
+    if (img.width >= 512 && img.width === 2 * img.height) mapPx++;
+    if (m.height) {
+      const h = await decode(`${name}-h`, `public/orbit/planets/${name}-h.webp`);
+      if (m.height.endsWith(`?v=${createHash("sha256").update(h.buf).digest("hex").slice(0, 10)}`)) heights++;
+    }
   }
-  for (const [type, h] of [[1, 32], [1, 0], [0, 5], [0, 128], [0, 1], [2, 7]] as const) {
-    const lk = { ...look, type, h };
-    const cv = createCanvas(120, 120);
-    const ctx = cv.getContext("2d");
-    if (planets.drawRenderedPlanet(ctx as never, 60, 60, 30, lk, 0.61)) sphereDrawn++;
-    const data = ctx.getImageData(0, 0, 120, 120).data;
-    for (let y = 0; y < 120; y++)
-      for (let x = 0; x < 120; x++) if (Math.hypot(x + 0.5 - 60, y + 0.5 - 60) > 32 && data[(y * 120 + x) * 4 + 3]! > 0) sphereOut++;
-  }
-  const maps = new Set([[1, 32], [1, 0], [0, 5], [0, 128], [0, 1], [2, 7]].map(([type, h]) => planets.orbitPlanetMapFor({ ...look, type: type!, h: h! })));
+  const withHeight = names.filter((n) => ORBIT_PLANET_MAPS[n].height).length;
+  ok(names.length === 9 && hashesOk === 9 && heights === withHeight && withHeight >= 5, `the nine Blender maps (and ${withHeight} height maps) are the files the data file names (${hashesOk} + ${heights} hashes match)`);
+  ok(kindsOk === 9, `tone maps are grey and colour maps carry colour (${kindsOk} of 9)`);
+  ok(mapPx === 9, `every map is an equirectangular map at least 512 px wide (${mapPx} of 9)`);
   ok(bytes === ORBIT_PLANET_MAP_BYTES && bytes <= 400_000, `the planet maps ship ${bytes} bytes (at most 400 KB; the data file says ${ORBIT_PLANET_MAP_BYTES})`);
-  ok(sphereDrawn === 6 && maps.size === 6 && sphereOut === 0, `every surface map projects a sphere inside its collision circle (${sphereDrawn} drawn, ${maps.size} maps, ${sphereOut} px outside)`);
+  ok(/orbit-planets-blender\.py/.test(readFileSync("src/lib/arcade/orbitPlanetMaps.data.ts", "utf8")) && /import bpy/.test(readFileSync("scripts/orbit-planets-blender.py", "utf8")), "the maps are Blender bakes from the scene script in the repo");
+  // Every map is worn by some planet: every type in every seeded colour, over many seeds.
+  const COLOURS = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FF6BD6", "#FF8A3D", "#8B5A2B", "#FFE600"];
+  const worn = new Set<string>();
+  const looks: { type: number; colour: string; ring: boolean; tilt: number; h: number }[] = [];
+  for (const colour of COLOURS)
+    for (let type = 0; type < 3; type++)
+      for (let h = 0; h < 192; h += 7) {
+        const lk = { type, colour, ring: (h & 3) === 0, tilt: ((h % 60) - 30) * (Math.PI / 180), h };
+        const name = planets.orbitPlanetMapFor(lk);
+        if (!worn.has(name)) looks.push(lk);
+        worn.add(name);
+      }
+  ok(names.every((n) => worn.has(n)), `every map is worn by some planet (${worn.size} of ${names.length})`);
+  // Each draws inside its circle + 2 px at the phone's scale and at the desktop column's (2.84 device px a world px, the
+  // largest bake), rings included.
+  let sphereOut = 0, sphereDrawn = 0;
+  for (const scale of [1, 2.84]) {
+    for (const lk of looks) {
+      const cv = createCanvas(Math.ceil(120 * scale), Math.ceil(120 * scale));
+      const ctx = cv.getContext("2d");
+      ctx.scale(scale, scale);
+      if (planets.drawRenderedPlanet(ctx as never, 60, 60, 30, lk, 0.61)) sphereDrawn++;
+      planets.drawPlanetRing(ctx as never, 60, 60, 30, { ...lk, ring: true });
+      const W = cv.width;
+      const data = ctx.getImageData(0, 0, W, W).data;
+      for (let y = 0; y < W; y++)
+        for (let x = 0; x < W; x++) if (Math.hypot((x + 0.5) / scale - 60, (y + 0.5) / scale - 60) > 32 && data[(y * W + x) * 4 + 3]! > 0) sphereOut++;
+    }
+  }
+  ok(sphereDrawn === 2 * looks.length && sphereOut === 0, `every surface map projects a sphere (and a ring) inside its collision circle + 2 px at 1x and 2.84x (${sphereDrawn} drawn, ${sphereOut} px outside)`);
+  ok(planets.SPHERE_MAX_PX >= Math.ceil(2 * 28 * (640 / 450) * 2), `the bake reaches the largest planet on screen (${planets.SPHERE_MAX_PX} px ≥ a radius-28 planet on the desktop column at 2x)`);
+  // No glow halo: a planet on a transparent canvas leaves the ring of pixels just past its circle empty (checked above at
+  // + 2 px); and the night side stays visible, never black.
+  {
+    const cv = createCanvas(240, 240);
+    const ctx = cv.getContext("2d");
+    ctx.scale(4, 4);
+    planets.drawRenderedPlanet(ctx as never, 30, 30, 28, { type: 0, colour: "#FF4D4D", ring: false, tilt: 0, h: 1 }, 0.3);
+    const px = (x: number, y: number) => Array.from(ctx.getImageData(x * 4, y * 4, 1, 1).data);
+    const lit = px(18, 18), night = px(46, 44);
+    const lum = (p: number[]) => 0.3 * p[0]! + 0.59 * p[1]! + 0.11 * p[2]!;
+    ok(lum(lit) > 2.5 * lum(night) && lum(night) > 0 && night[3]! === 255, `a lit side and a deep (never black) night side (lit ${Math.round(lum(lit))}, night ${Math.round(lum(night))})`);
+  }
+  // Icy worlds keep their own icy colours: never pink, orange or red, whatever the seed (Joe's note); the cold cast is
+  // blue, teal or lilac only.
+  {
+    let warm = 0;
+    for (const colour of COLOURS) {
+      const cast = planets.orbitIceCast(colour);
+      if (cast && !(cast[2] >= cast[0] && cast[2] >= 200)) warm++;
+      for (const h of [0, 64]) {
+        const cv = createCanvas(240, 240);
+        const ctx = cv.getContext("2d");
+        ctx.scale(4, 4);
+        planets.drawRenderedPlanet(ctx as never, 30, 30, 28, { type: 2, colour, ring: false, tilt: 0, h }, 0.2);
+        const d = ctx.getImageData(40, 40, 80, 80).data;
+        let r = 0, b = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          r += d[i]!;
+          b += d[i + 2]!;
+        }
+        if (r > b) warm++;
+      }
+    }
+    ok(warm === 0, `an icy world's lit face is never warmer than blue, in any seeded colour (${warm} warm)`);
+  }
+  // Relief: the height map changes the light (craters and canyons catch the sun), and only where a height map is shipped.
+  {
+    const lk = { type: 0, colour: "#FFE600", ring: false, tilt: 0, h: 3 };
+    // (Two seeds of the same world, so the second draw isn't served from the first's cached frame.)
+    const draw = (h = lk.h) => {
+      const cv = createCanvas(160, 160);
+      const ctx = cv.getContext("2d");
+      ctx.scale(2.84, 2.84);
+      planets.drawRenderedPlanet(ctx as never, 28, 28, 28, { ...lk, h }, 0.45);
+      return ctx.getImageData(0, 0, 160, 160).data;
+    };
+    const withRelief = draw();
+    const name = planets.orbitPlanetMapFor(lk);
+    planets.setOrbitPlanetMap(`${name}-h` as never, { w: 4, h: 2, data: new Uint8ClampedArray(4 * 2 * 4).fill(128) });
+    const flat = draw(lk.h + 5);
+    ok(planets.orbitPlanetMapFor({ ...lk, h: lk.h + 5 }) === name, "the relief's flat draw wears the same map");
+    let diff = 0;
+    for (let i = 0; i < flat.length; i += 4) diff += Math.abs(flat[i]! - withRelief[i]!);
+    await decode(`${name}-h`, `public/orbit/planets/${name}-h.webp`);
+    ok(diff / (flat.length / 4) > 1, `the height map's relief lights the surface (mean change ${(diff / (flat.length / 4)).toFixed(1)} per pixel)`);
+  }
   ok(planets.orbitPlanetTurn(look, 0) === 0 && planets.orbitPlanetTurn(look, 10) !== planets.orbitPlanetTurn(look, 20), "the surface turns with the round clock and stands at t = 0 (reduced motion)");
 }
 

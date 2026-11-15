@@ -7,7 +7,7 @@
  */
 import { useEffect } from "react";
 
-import type { PuzzleRevealProps, PuzzleStageProps } from "@/puzzles/types";
+import type { PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "@/puzzles/types";
 import { loadGameSounds } from "@/lib/sound";
 import { useGameDef } from "@/lib/duel/gameLoader";
 import type { RemovedPuzzleType } from "@/lib/duel/removedGames";
@@ -34,4 +34,20 @@ export function GameIntroExample({ type }: { type: PuzzleType | RemovedPuzzleTyp
   if (!definition) return null;
   const Example = definition.IntroExample;
   return <Example />;
+}
+
+/**
+ * An arcade game's own picture of the run on the answer reveal (the Action overhaul, stage 2, 15 Nov 2026): drawn by the
+ * game's `RunPicture` (PuzzleDefinition) under the score and breakdown when it has one, nothing otherwise. Display only.
+ */
+export function GameRunPicture(props: RunPictureProps) {
+  const definition = useGameDef(props.puzzle.type);
+  const Picture = definition?.RunPicture;
+  if (!Picture) return null;
+  return <Picture {...props} />;
+}
+
+/** True once the game's chunk is in and it draws its own run picture (its stats then replace the reveal's tiles). */
+export function useHasRunPicture(type: PuzzleType): boolean {
+  return Boolean(useGameDef(type)?.RunPicture);
 }

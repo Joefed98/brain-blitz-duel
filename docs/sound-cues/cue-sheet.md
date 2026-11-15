@@ -272,8 +272,8 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) [arcade-effects.md] | The block falls away, "−1 LIFE", the LIVES chip rings | 0–2 | silent | none | 600 | fail sting | `skyline.lifeLost` |
 | `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) [arcade-effects.md] | The NEXT panel shows WIDE | 0–3 | silent | none | 400 | game event | `skyline.wideBlock` |
-| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) [arcade-effects.md] | The overhang falls away spinning | 10–40 | silent | none | 700 | game event | `skyline.trim` |
-| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) [arcade-effects.md] | A thin floor on the tower | 0–5 | silent | none | 700 | game event | `skyline.sliver` |
+| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) [arcade-effects.md] | The overhang falls away spinning and the cut edge crumbles (stage 2) | 10–40 | silent | none | 700 | game event | `skyline.trim` |
+| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) [arcade-effects.md] | A thin floor on the tower wobbles on its foot (stage 2) | 0–5 | silent | none | 700 | game event | `skyline.sliver` |
 
 ### Hot Floor
 

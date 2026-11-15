@@ -16,6 +16,7 @@ import { ArcadeScoreChart } from "./ArcadeScoreChart";
 import { GameReveal } from "./GameParts";
 import { ARCADE_RUN_PICTURES } from "@/lib/arcade/runPictures";
 import { RevealBreakdown } from "./RevealBreakdown";
+import { GameRunPicture, useHasRunPicture } from "./GameParts";
 import { moonHitsLine } from "@/lib/duel/moonRevealHits";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
@@ -300,7 +301,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   const partLabels = standardPartLabels(puzzle as unknown as { type: string } & Record<string, unknown>);
   // Moon Climb's hits read as a line of the breakdown, not a stat (the Action overhaul, 15 Nov 2026; moonRevealHits.ts).
   const hitsLine = myReveal ? moonHitsLine(puzzle as unknown as { type: string; ricoRev?: unknown }, myReveal.tiles) : null;
-  const tiles = shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label) && !(hitsLine && t.label === "Hits")).slice(0, 4), ...costRows] : [];
+  // A game that draws its own run picture (RunPicture, stage 2) shows its key numbers there, in place of the tiles.
+  const ownPicture = useHasRunPicture(puzzle.type);
+  const tiles = ownPicture ? [] : shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label) && !(hitsLine && t.label === "Hits")).slice(0, 4), ...costRows] : [];
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
   const breakdownLines = shown ? (hitsLine ? [...shown.lines, hitsLine] : shown.lines) : [];
@@ -377,6 +380,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
         {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}
         {summary && myReveal !== storedReveal && storedReveal ? <span hidden data-stored-lines={storedReveal.lines.join("\n")} /> : null}
+
+        {/* The game's own picture of the run (the Action overhaul, stage 2): one picture, under the score and breakdown. */}
+        {myAnswer ? <GameRunPicture puzzle={puzzle} myAnswer={myAnswer} /> : null}
 
         {/* The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot). */}
         {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}
