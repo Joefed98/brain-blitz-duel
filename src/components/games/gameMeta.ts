@@ -54,6 +54,11 @@ export function catalogueShelves(): Shelf[] {
   return [...categories, ...groups].filter((shelf) => shelf.games.length > 0);
 }
 
+/** The Puzzles | Arcade side a shelf is on: an arcade group's on Arcade, a puzzle category's on Puzzles. */
+export function shelfSide(id: string): "puzzles" | "arcade" {
+  return ARCADE_GROUPS.some((group) => group.id === id) ? "arcade" : "puzzles";
+}
+
 /** Every playable game, in the catalogue's order (puzzles by category, then arcade by group; each once). */
 export function catalogueGames(): PuzzleType[] {
   const order: PuzzleType[] = [];
