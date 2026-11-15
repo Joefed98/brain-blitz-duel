@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 35 | 0 | 512 | 547 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 37 | 41 |
+| fail sting | 4 | 0 | 42 | 46 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 61 | 1 | 1013 | 1075 |
 
 ## Silent and placeholder cues
 
@@ -1126,6 +1126,11 @@ Grouped by game or screen.
 | `bridges.build` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
 | `bridges.remove` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
 | `bridges.solve` |  [grid.md] |  | 0–1 | recorded sound | `bridges.solve` | 1000 | success sting | `bridges.solve` |
+| `bridges.double` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.double` | 200 | game event | `bridges.double` |
+| `bridges.islandMet` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.islandMet` | 200 | game event | `bridges.islandMet` |
+| `bridges.snapBack` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.snapBack` | 200 | game event | `bridges.snapBack` |
+| `bridges.undo` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.undo` | 200 | game event | `bridges.undo` |
+| `bridges.reset` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.reset` | 300 | fail sting | `bridges.reset` |
 | `music.bridges` | Island Link round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bridges` |
 
 ### Lamplighter
@@ -1134,6 +1139,9 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `lightup.clear` | A square is cleared [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.clear` | 200 | game event | `lightup.clear` |
 | `lightup.solve` | Every square is lit with no clash and every number met [logic.md] |  | 0–1 | recorded sound | `lightup.solve` | 1170 | success sting | `lightup.solve` |
+| `lightup.clash` | A lamp is placed where it sees another (15 Nov 2026, the Logic overhaul) [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.clash` | 200 | game event | `lightup.clash` |
+| `lightup.wallMet` | A wall's number is newly satisfied [logic.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 200 | game event | `lightup.wallMet` |
+| `lightup.dark` | Six or fewer squares are left dark, the first time [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.dark` | 200 | game event | `lightup.dark` |
 | `music.lightup` | Lamplighter round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_lightup` |
 
 ### Loopline
@@ -1144,6 +1152,11 @@ Grouped by game or screen.
 | `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
 | `fences.clear` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.clear` | 200 | game event | `fences.clear` |
 | `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
+| `fences.numberMet` |  [grid.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 200 | game event | `fences.numberMet` |
+| `fences.over` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.over` | 200 | game event | `fences.over` |
+| `fences.loopWrong` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.loopWrong` | 200 | game event | `fences.loopWrong` |
+| `fences.undo` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.undo` | 200 | game event | `fences.undo` |
+| `fences.reset` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.reset` | 300 | fail sting | `fences.reset` |
 | `music.fences` | Loopline round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
 
 ### Minefield
@@ -1182,6 +1195,12 @@ Grouped by game or screen.
 | `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
 | `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
 | `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
+| `fillomino.stroke` |  [grid.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 200 | game event | `fillomino.stroke` |
+| `fillomino.over` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.over` | 200 | game event | `fillomino.over` |
+| `fillomino.erase` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.erase` | 200 | game event | `fillomino.erase` |
+| `fillomino.undo` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.undo` | 200 | game event | `fillomino.undo` |
+| `fillomino.reset` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.reset` | 300 | fail sting | `fillomino.reset` |
+| `fillomino.pick` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.pick` | 200 | game event | `fillomino.pick` |
 | `music.fillomino` | Regions round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_fillomino` |
 
 ### Safe Cracker
@@ -1197,6 +1216,9 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `shikaku.solve` | Every square is covered by a valid rectangle [logic.md] |  | 0–1 | recorded sound | `shikaku.solve` | 1200 | success sting | `shikaku.solve` |
+| `shikaku.dragStart` | A drag starts on the board (15 Nov 2026, the Logic overhaul) [logic.md] |  | 5–40 (per move) | recorded sound | `shikaku.dragStart` | 200 | game event | `shikaku.dragStart` |
+| `shikaku.snap` | The drag's outline grows or shrinks by a square [logic.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 200 | game event | `shikaku.snap` |
+| `shikaku.invalid` | A rectangle is refused [logic.md] |  | 5–40 (per move) | recorded sound | `shikaku.invalid` | 420 | game event | `shikaku.invalid` |
 | `music.shikaku` | Shikaku round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_shikaku` |
 
 ### Tents and Trees
@@ -1205,6 +1227,9 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `tents.clear` | A cell is cleared [logic.md] |  | 5–40 (per move) | recorded sound | `tents.clear` | 200 | game event | `tents.clear` |
 | `tents.solve` | The layout is valid [logic.md] |  | 0–1 | recorded sound | `tents.solve` | 1150 | success sting | `tents.solve` |
+| `tents.touch` | A tent is pitched touching another (15 Nov 2026, the Logic overhaul) [logic.md] |  | 5–40 (per move) | recorded sound | `tents.touch` | 200 | game event | `tents.touch` |
+| `tents.lonely` | A tent is pitched with no tree beside it [logic.md] |  | 5–40 (per move) | recorded sound | `tents.lonely` | 200 | game event | `tents.lonely` |
+| `tents.signMet` | A row's or column's count is met [logic.md] |  | 5–40 (per move) | recorded sound | `tents.signMet` | 200 | game event | `tents.signMet` |
 | `music.tents` | Tents and Trees round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_tents` |
 
 ### Trail
@@ -1212,6 +1237,10 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `trail.solve` | the trail is complete [number.md] |  | 0–1 | recorded sound | `trail.solve` | 1150 | success sting | `trail.solve` |
+| `trail.fixed` | the path reaches a fixed number on its own step (15 Nov 2026, the Logic overhaul) [number.md] |  | 5–40 (per move) | recorded sound | `trail.fixed` | 700 | game event | `trail.fixed` |
+| `trail.refused` | a step is refused [number.md] |  | 5–40 (per move) | recorded sound | `trail.refused` | 300 | fail sting | `trail.refused` |
+| `trail.undo` | a step is taken back (Undo, a step back, a drag back) [number.md] |  | 5–40 (per move) | recorded sound | `trail.undo` | 200 | game event | `trail.undo` |
+| `trail.reset` | Reset clears the path [number.md] |  | 5–40 (per move) | recorded sound | `trail.reset` | 300 | fail sting | `trail.reset` |
 | `music.trail` | Trail round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_trail` |
 
 ### Apex
@@ -1927,7 +1956,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 |---|---|---|---|
 | `player_joined` | effects | `player_joined` | 110 |
 | `round_start` | effects | `round_start` | 180 |
-| `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid`, `bastion.dry` | 55 |
+| `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid`, `lightup.wallMet`, `fences.numberMet`, `fillomino.stroke`, `shikaku.snap`, `bastion.dry` | 55 |
 | `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
 | `place` | effects | `place`, `tendrop.apply` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
@@ -2386,6 +2415,35 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `fences.cross` | effects | `fences.cross` | 528 |
 | `fences.clear` | effects | `fences.clear` | 528 |
 | `fences.solve` | effects | `fences.solve` | 1000 |
+| `tents.touch` | effects | `tents.touch` | 522 |
+| `tents.signMet` | effects | `tents.signMet` | 528 |
+| `tents.lonely` | effects | `tents.lonely` | 522 |
+| `shikaku.dragStart` | effects | `shikaku.dragStart` | 522 |
+| `shikaku.snap` | effects | `shikaku.snap` | 78 |
+| `shikaku.invalid` | effects | `shikaku.invalid` | 522 |
+| `lightup.clash` | effects | `lightup.clash` | 522 |
+| `lightup.wallMet` | effects | `lightup.wallMet` | 78 |
+| `lightup.dark` | effects | `lightup.dark` | 522 |
+| `trail.fixed` | effects | `trail.fixed` | 528 |
+| `trail.refused` | effects | `trail.refused` | 522 |
+| `trail.undo` | effects | `trail.undo` | 522 |
+| `trail.reset` | effects | `trail.reset` | 522 |
+| `fences.numberMet` | effects | `fences.numberMet` | 78 |
+| `fences.over` | effects | `fences.over` | 522 |
+| `fences.loopWrong` | effects | `fences.loopWrong` | 522 |
+| `fences.undo` | effects | `fences.undo` | 522 |
+| `fences.reset` | effects | `fences.reset` | 522 |
+| `fillomino.stroke` | effects | `fillomino.stroke` | 78 |
+| `fillomino.over` | effects | `fillomino.over` | 522 |
+| `fillomino.erase` | effects | `fillomino.erase` | 522 |
+| `fillomino.undo` | effects | `fillomino.undo` | 522 |
+| `fillomino.reset` | effects | `fillomino.reset` | 522 |
+| `fillomino.pick` | effects | `fillomino.pick` | 522 |
+| `bridges.double` | effects | `bridges.double` | 528 |
+| `bridges.islandMet` | effects | `bridges.islandMet` | 528 |
+| `bridges.snapBack` | effects | `bridges.snapBack` | 522 |
+| `bridges.undo` | effects | `bridges.undo` | 522 |
+| `bridges.reset` | effects | `bridges.reset` | 522 |
 | `fillomino.place` | effects | `fillomino.place` | 528 |
 | `fillomino.region` | effects | `fillomino.region` | 528 |
 | `fillomino.solve` | effects | `fillomino.solve` | 1000 |

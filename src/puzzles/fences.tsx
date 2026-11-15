@@ -19,12 +19,15 @@ import {
   fencesSolved,
   hEdge,
   isHorizontal,
+  isSingleLoop,
   vEdge,
 } from "@/lib/duel/fences";
 import { FENCES_SIZE, FENCES_TIME_MS, type FencesPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
-import { soundCue, useSolveFx } from "./logicFx";
+import { useSolveFx } from "./logicFx";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
 import { logicArt } from "./logicArt";
 import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
@@ -202,6 +205,7 @@ export function FencesBoard({
           <text
             key={`n${cell}`}
             className="fences-clue"
+            data-clue={cell}
             data-tone={tone}
             x={PAD + (cell % size) * U + U / 2}
             y={PAD + Math.floor(cell / size) * U + U / 2}
@@ -308,6 +312,48 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const numbered = clues.filter((n) => n >= 0).length;
   const inFrame = useFrameProgress(met, numbered, "numbers met");
 
+  // The Logic overhaul's effects (15 Nov 2026, the effects kit), after each change: a number newly met pops gold with a
+  // tick, one newly over shakes red with a low tick, and a loop that closes but isn't the answer flashes once with its
+  // failing numbers lit (the right loop is the solve).
+  const fxSeen = useRef<{ met: Set<number>; over: Set<number>; loop: boolean } | null>(null);
+  const [loopWrong, setLoopWrong] = useState(0);
+  useEffect(() => {
+    const svg = svgRef.current;
+    const metNow = new Set<number>();
+    const overNow = new Set<number>();
+    clues.forEach((n, cell) => {
+      if (n < 0) return;
+      const k = cellLineCount(size, cell, lineSet);
+      if (k === n) metNow.add(cell);
+      else if (k > n) overNow.add(cell);
+    });
+    const lines = [...lineSet];
+    const loop = lines.length > 0 && isSingleLoop(size, lines);
+    const before = fxSeen.current;
+    fxSeen.current = { met: metNow, over: overNow, loop };
+    if (!before || !svg) return;
+    const clueEl = (cell: number) => svg.querySelector(`[data-clue="${cell}"]`);
+    const newMet = [...metNow].filter((c) => !before.met.has(c));
+    const newOver = [...overNow].filter((c) => !before.over.has(c));
+    if (newOver.length) {
+      soundCue("fences.over");
+      for (const c of newOver) gameFx("wrong", clueEl(c), { silent: true, noHaptic: true });
+    } else if (newMet.length) {
+      soundCue("fences.numberMet");
+      for (const c of newMet) gameFx("tap", clueEl(c), { silent: true });
+    }
+    if (loop && !before.loop && !solved) {
+      soundCue("fences.loopWrong");
+      setLoopWrong((n) => n + 1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [encoded]);
+  useEffect(() => {
+    if (!loopWrong) return;
+    const timer = window.setTimeout(() => setLoopWrong(0), 700);
+    return () => window.clearTimeout(timer);
+  }, [loopWrong]);
+
   useEffect(() => {
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
@@ -411,12 +457,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const canReset = active && !submitted.current && marked;
   const undo = () => {
     if (!canUndo) return;
+    soundCue("fences.undo");
     gesture.current = null;
     setStates(history[history.length - 1]!);
     setHistory((h) => h.slice(0, -1));
   };
   const reset = () => {
     if (!canReset) return;
+    soundCue("fences.reset");
     gesture.current = null;
     setHistory((h) => [...h, states]);
     setStates(new Array<number>(fencesEdgeCount(size)).fill(FENCES_EMPTY));
@@ -442,7 +490,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             numbers met <span className="text-primary">{met}</span> / {numbered}
           </p>
         )}
-        <div className="logic-square logic-glass-frame fences-frame">
+        <div className="logic-square logic-glass-frame fences-frame" data-loop-wrong={loopWrong ? "" : undefined}>
           <FencesBoard size={size} clues={clues} states={states} solved={solving} handlers={handlers} svgRef={svgRef} />
         </div>
         <LiveSummary inArena className="logic-status" items={[<SummaryItem key="lines" label="Lines" value={lineCount} />]} />

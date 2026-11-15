@@ -19,7 +19,9 @@ import { FILLOMINO_SIZE, FILLOMINO_TIME_MS, type FillominoPuzzleData } from "@/l
 import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playCorrect } from "@/lib/sound";
 
-import { soundCue, useSolveFx } from "./logicFx";
+import { useSolveFx } from "./logicFx";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
 import { logicArtVars } from "./logicArt";
 import { LogicReveal, extraCount } from "./logic2Reveal";
 import { fillominoStrokes } from "@/lib/duel/logicOverhaul2";
@@ -148,6 +150,7 @@ export function FillominoBoard({
           <div
             key={cell}
             data-cell={cell}
+            data-fm-cell={cell}
             data-edge-r={thickR ? "" : undefined}
             data-edge-b={thickB ? "" : undefined}
             data-shade={shade && shade[cell]! >= 0 ? shade[cell] : undefined}
@@ -158,6 +161,7 @@ export function FillominoBoard({
               borderRightWidth: right === null ? 0 : thickR ? 3 : 1,
               borderBottomWidth: down === null ? 0 : thickB ? 3 : 1,
               "--fm-i": (r + c) % 12,
+              "--fm-size": v || 0,
             } as CSSProperties}
           >
             {v ? (
@@ -248,7 +252,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   /** The entries as last written (several squares can be crossed between renders). */
   const live = useRef(entries);
   live.current = entries;
-  const stroke = useRef<{ before: number[]; mode: "paint" | "clear"; value: number; last: number } | null>(null);
+  const stroke = useRef<{ before: number[]; mode: "paint" | "clear"; value: number; last: number; n?: number } | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const fxSeen = useRef<{ done: Set<number>; over: Set<number> } | null>(null);
 
   const values = useMemo(() => givens.map((g, c) => (g ? g : (entries[c] ?? 0))), [givens, entries]);
   const encoded = encodeFillomino(values);
@@ -258,6 +264,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const filled = givens.reduce((n, g, c) => n + (!g && values[c] ? 1 : 0), 0);
   const inFrame = useFrameProgress(filled, blanks, "filled");
   const doneCount = fillominoComplete(size, values).size;
+
+  // The Logic overhaul's effects (15 Nov 2026, the effects kit), after each change: a region newly complete pops its
+  // squares (its gold edge appears), a group newly too big pulses red with a low tick.
+  useEffect(() => {
+    const root = boardRef.current;
+    const done = fillominoComplete(size, values);
+    const over = fillominoOversized(size, values);
+    const before = fxSeen.current;
+    fxSeen.current = { done, over };
+    if (!before || !root) return;
+    const cellEl = (c: number) => root.querySelector(`[data-fm-cell="${c}"]`);
+    for (const c of done) if (!before.done.has(c)) gameFx("tap", cellEl(c), { silent: true });
+    const newOver = [...over].filter((c) => !before.over.has(c));
+    if (newOver.length) {
+      soundCue("fillomino.over");
+      for (const c of newOver) gameFx("wrong", cellEl(c), { silent: true, noHaptic: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values]);
 
   // fillominoRev 2 (the Logic overhaul, 15 Nov 2026): the draft is reported once a stroke ends, so one stroke over
   // wrong squares is one mistake; older stamps report every square as before.
@@ -287,11 +312,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (next === now) return;
     const list = [...cur];
     list[cell] = next;
+    // Sounds (the Logic overhaul, 15 Nov 2026): a region completed plays a chord pitched by its size (1 high, 9 low);
+    // otherwise the first square of a stroke a block tap and each later one a tick rising a step a square; a square
+    // cleared a soft wipe.
+    const s = stroke.current;
+    const nth = s ? (s.n = (s.n ?? 0) + 1) : 1;
     if (next) {
       const before = fillominoComplete(size, full(cur)).size;
       const after = fillominoComplete(size, full(list)).size;
-      soundCue(after > before ? "fillomino.region" : "fillomino.place");
-    }
+      if (after > before) soundCue("fillomino.region", 2 ** ((8 - 2 * (next - 1)) / 12));
+      else if (nth > 1) soundCue("fillomino.stroke", 2 ** (Math.min(nth - 2, 12) / 12));
+      else soundCue("fillomino.place");
+    } else soundCue("fillomino.erase");
     live.current = list;
     setEntries(list);
   };
@@ -330,6 +362,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const anyEntry = entries.some((v, c) => v && !givens[c]);
   const undo = () => {
     if (!canUndo || submitted.current) return;
+    soundCue("fillomino.undo");
     const prev = history[history.length - 1]!;
     setHistory((h) => h.slice(0, -1));
     live.current = prev;
@@ -337,6 +370,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   };
   const reset = () => {
     if (!active || submitted.current || !anyEntry) return;
+    soundCue("fillomino.reset");
     setHistory((h) => [...h, [...live.current]]);
     const cleared = new Array<number>(size * size).fill(0);
     live.current = cleared;
@@ -389,7 +423,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             filled <span className="text-primary">{filled}</span> / {blanks}
           </p>
         )}
-        <div className="logic-square logic-glass-frame fillomino-frame">
+        <div ref={boardRef} className="logic-square logic-glass-frame fillomino-frame">
           <FillominoBoard size={size} values={values} tones={tones} selected={locked ? null : cursor} pointer={pointer} />
         </div>
         {inFrame ? (
@@ -403,7 +437,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             type="button"
             data-fillomino-tool={digit}
             aria-pressed={tool === digit}
-            onClick={() => setTool(digit)}
+            onClick={() => {
+              soundCue("fillomino.pick");
+              setTool(digit);
+            }}
             disabled={locked}
             className={keyLook(tool === digit)}
           >
@@ -415,7 +452,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           data-fillomino-tool="eraser"
           aria-label="Eraser"
           aria-pressed={tool === ERASER}
-          onClick={() => setTool(ERASER)}
+          onClick={() => {
+            soundCue("fillomino.pick");
+            setTool(ERASER);
+          }}
           disabled={locked}
           className={`${keyLook(tool === ERASER)} flex items-center justify-center`}
         >

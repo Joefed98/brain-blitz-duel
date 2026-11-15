@@ -4,7 +4,15 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
+import { PolishStyle, useSolveFx } from "@/components/puzzles/numberPolish";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
+
+/** A major scale (semitones): each step's note climbs it, wrapping every octave (the Logic overhaul, 15 Nov 2026). */
+const STEP_SCALE = [0, 2, 4, 5, 7, 9, 11];
+export function trailStepRate(step: number): number {
+  return 2 ** (STEP_SCALE[(Math.max(1, step) - 1) % STEP_SCALE.length]! / 12);
+}
 import { trCanStep, trComplete, trCorrectPrefix, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
@@ -158,6 +166,7 @@ export function Grid({
           return (
             <div
               key={c}
+              data-trail-cell={c}
               className={`tr-cell ${g != null ? "tr-milestone" : ""} ${isEnd && g != null ? "tr-end" : ""} ${shakeCell === c ? "animate-shake" : ""}`}
               style={{ width: cell, height: cellH, fontSize: font }}
             >
@@ -254,7 +263,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const steps = slots.filter((c) => c >= 0).length;
   const lastSteps = useRef(steps);
   useEffect(() => {
-    if (steps > lastSteps.current) soundCue("trail.step");
+    if (steps > lastSteps.current) {
+      soundCue("trail.step", trailStepRate(steps));
+      // A fixed number reached on its own step: it pops gold with a chime.
+      const reached = data ? slots.filter((c, i) => c >= 0 && data.givens[c] === i + 1 && i + 1 > lastSteps.current && i + 1 <= steps) : [];
+      if (reached.length) {
+        soundCue("trail.fixed");
+        for (const c of reached) {
+          const el = grid.current?.querySelector<HTMLElement>(`[data-trail-cell="${c}"]`);
+          gameFx("tap", el, { silent: true });
+          el?.setAttribute("data-reached", "");
+          window.setTimeout(() => el?.removeAttribute("data-reached"), 700);
+        }
+      }
+    } else if (steps < lastSteps.current && steps > 1) soundCue("trail.undo");
     lastSteps.current = steps;
   }, [steps]);
   const glow = useSolveFx(complete, "trail.solve", 1150);
@@ -286,8 +308,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const refuse = (c: number) => {
     if (lastRefused.current === c) return;
     lastRefused.current = c;
-    setShakeCell(null);
-    requestAnimationFrame(() => setShakeCell(c));
+    // The kit's short shake on the refused square and a low tick (the Logic overhaul, 15 Nov 2026).
+    soundCue("trail.refused");
+    gameFx("wrong", grid.current?.querySelector(`[data-trail-cell="${c}"]`), { silent: true, noHaptic: true });
   };
 
   /** The cell under the finger, only near its centre so diagonals are easy to hit. */
@@ -372,6 +395,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   };
   const reset = () => {
     if (busy) return;
+    soundCue("trail.reset");
+    lastSteps.current = 1;
     setPath([startCell]);
     lastRefused.current = null;
   };

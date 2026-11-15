@@ -746,3 +746,117 @@
 .logic2-lamps > .logic2-lamp-cell[data-lit]::before {
   content: none;
 }
+
+/* ------------------------------------------------------------------ stage 2: effects */
+/* Tents and Trees: a faint line joins each tent to its tree (half in each square, meeting across the gap). */
+.logic2-camp > .logic2-cell > .logic2-pair-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(50% + 1px);
+  height: 2px;
+  margin-top: -1px;
+  transform-origin: 0 50%;
+  transform: rotate(var(--logic2-pair, 0deg));
+  background: rgba(240, 226, 190, 0.35);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.logic2-camp > .logic2-cell > .logic2-piece {
+  position: relative;
+}
+/* Shikaku: a refused rectangle's outline in red (the kit's short shake on it alone, never the board). */
+.logic2-shikaku > .logic2-bad-rect {
+  border: 3px solid var(--jz-loss, #ff5a6e);
+  background: color-mix(in oklab, var(--jz-loss, #ff5a6e) 14%, transparent);
+}
+/* The solve: the panes ripple from the top-left corner to the bottom-right (≤ 1.2 s, from useSolveFx). */
+[data-logic-solved] .logic2-shikaku > .logic2-pane {
+  animation: logic2-pane-ripple 420ms ease-out calc(var(--logic2-diag, 0) * 40ms) 1 both;
+}
+@keyframes logic2-pane-ripple {
+  0%, 100% { transform: none; filter: none; }
+  45% { transform: scale(1.04); filter: brightness(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-solved] .logic2-shikaku > .logic2-pane { animation: none; }
+}
+/* Lamplighter's solve: every lamp and the light it throws brighten together, once (≤ 1.2 s). */
+[data-logic-solved] .logic2-lamps > .logic2-glow {
+  animation: logic2-lights-up 900ms ease-out 1 both;
+}
+[data-logic-solved] .logic2-lamps .logic2-bulb {
+  animation: logic2-bulb-up 900ms ease-out 1 both;
+}
+@keyframes logic2-lights-up {
+  0%, 100% { opacity: 1; }
+  40% { opacity: 1; filter: blur(6px) brightness(1.45); }
+}
+@keyframes logic2-bulb-up {
+  0%, 100% { transform: none; }
+  40% { transform: scale(1.12); filter: brightness(1.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-solved] .logic2-lamps > .logic2-glow,
+  [data-logic-solved] .logic2-lamps .logic2-bulb { animation: none; }
+}
+/* Trail: a fixed number reached on its own step glows gold for a moment. */
+.logic2-trail .tr-cell.tr-milestone[data-reached] {
+  box-shadow: inset 0 0 0 3px var(--jz-gold, #e2c07a);
+  color: var(--jz-gold, #e2c07a);
+}
+/* Loopline: clue numbers pop about their own centre; a loop that closes but isn't the answer flashes once and its
+   failing numbers glow (met numbers stay gold). */
+.logic2-fences .fences-clue {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-loop-wrong] .logic2-fences .fences-line {
+  animation: logic2-loop-flash 650ms ease-out 1;
+}
+[data-loop-wrong] .logic2-fences .fences-clue:not([data-tone="met"]) {
+  fill: var(--jz-loss, #ff5a6e);
+}
+@keyframes logic2-loop-flash {
+  0%, 100% { stroke: #b8954f; }
+  35% { stroke: #fff4d8; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-loop-wrong] .logic2-fences .fences-line { animation: none; }
+}
+/* Regions' solve: the regions light in size order, the 1s first (≤ 1.2 s). */
+[data-logic-solved] .logic2-fillomino.fillomino-board > .fillomino-cell {
+  animation: logic2-region-fill 420ms ease-out calc(var(--fm-size, 0) * 80ms) 1 both;
+}
+@keyframes logic2-region-fill {
+  0%, 100% { filter: none; }
+  45% { filter: brightness(1.45) saturate(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-solved] .logic2-fillomino.fillomino-board > .fillomino-cell { animation: none; }
+}
+/* Island Link: a bridge just built lays its planks from one island to the other (200 ms); islands pop about their own
+   centre; the solve runs a light across every bridge in turn. */
+.logic2-bridges .bridges-line.logic2-lay {
+  stroke-dasharray: 1;
+  animation: logic2-lay 200ms ease-out 1 both;
+}
+@keyframes logic2-lay {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.logic2-bridges .bridges-island {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-logic-solved] .logic2-bridges .bridges-line {
+  animation: logic2-rod-run 520ms ease-out calc(var(--logic-i, 0) * 30ms) 1 both;
+}
+@keyframes logic2-rod-run {
+  0%, 100% { stroke: #b8954f; }
+  45% { stroke: #fff2cf; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logic2-bridges .bridges-line.logic2-lay,
+  [data-logic-solved] .logic2-bridges .bridges-line { animation: none; }
+}

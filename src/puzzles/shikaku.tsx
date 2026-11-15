@@ -23,7 +23,9 @@ import {
 import { SHIKAKU_TIME_MS, type ShikakuPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
-import { soundCue, useSolveFx } from "./logicFx";
+import { useSolveFx } from "./logicFx";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
 import { logicArtVars } from "./logicArt";
 import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
 
@@ -101,6 +103,7 @@ export function Board({
   pointer,
   wrong,
   ghosts,
+  bad,
 }: {
   size: number;
   rows?: number;
@@ -113,6 +116,8 @@ export function Board({
   wrong?: ReadonlySet<number> | undefined;
   /** Reveal: the solution's rectangles the player didn't draw (dashed outlines). */
   ghosts?: readonly ShikakuRect[] | undefined;
+  /** Live play: a refused rectangle, outlined red for a moment. */
+  bad?: ShikakuRect | null | undefined;
 }) {
   const clueAt = new Map(clues.map((clue) => [clue.cell, clue.n]));
   // The Logic overhaul (15 Nov 2026): main's fills (touching rectangles never alike) drawn as four jewel panes.
@@ -152,6 +157,7 @@ export function Board({
           data-fill={fills[i]}
           data-jewel={SHIKAKU_JEWELS[fills[i] ?? 0]}
           data-wrong={wrong?.has(i) ? "" : undefined}
+          data-rect={`${r.r0},${r.c0},${r.r1},${r.c1}`}
           style={{
             ...place(r),
             zIndex: 1,
@@ -161,6 +167,7 @@ export function Board({
           } as CSSProperties}
         />
       ))}
+      {bad ? <div data-bad-rect="" className="logic2-bad-rect pointer-events-none rounded-md" style={{ ...place(bad), zIndex: 2 }} /> : null}
       {ghosts?.map((r) => (
         <div
           key={`g${r.r0}-${r.c0}-${r.r1}-${r.c1}`}
@@ -219,7 +226,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const clues = data?.clues ?? [];
   const [rects, setRects] = useStageState<ShikakuRect[]>(stateKey ?? "shikaku", "shikakuRects", () => []);
   const [preview, setPreview] = useState<ShikakuRect | null>(null);
-  const [shake, setShake] = useState(0);
+  const [bad, setBad] = useState<{ rect: ShikakuRect; key: number } | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const placedFx = useRef<ShikakuRect | null>(null);
+  // The Logic overhaul's effects (15 Nov 2026, the effects kit): a placed pane drops in; a refused outline flashes red.
+  useEffect(() => {
+    const r = placedFx.current;
+    placedFx.current = null;
+    if (!r) return;
+    gameFx("drop", boardRef.current?.querySelector(`[data-rect="${r.r0},${r.c0},${r.r1},${r.c1}"]`), { silent: true });
+  }, [rects]);
+  useEffect(() => {
+    if (!bad) return;
+    gameFx("wrong", boardRef.current?.querySelector("[data-bad-rect]"), { silent: true, noHaptic: true });
+    const timer = window.setTimeout(() => setBad(null), 420);
+    return () => window.clearTimeout(timer);
+  }, [bad]);
   const start = useRef<number | null>(null);
   const last = useRef<number | null>(null);
   const submitted = useRef(false);
@@ -246,7 +268,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     onCell: active
       ? (cell) => {
           if (submitted.current) return;
-          if (start.current === null) start.current = cell;
+          if (start.current === null) {
+            start.current = cell;
+            soundCue("shikaku.dragStart");
+          } else if (cell !== last.current) soundCue("shikaku.snap");
           last.current = cell;
           setPreview(rectFrom(start.current, cell, size));
         }
@@ -266,10 +291,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       }
       const rect = rectFrom(a, b, size);
       if (rects.some((r) => rectsOverlap(r, rect)) || !rectValid(rect, clues, size)) {
-        setShake((n) => n + 1);
+        soundCue("shikaku.invalid");
+        setBad((b) => ({ rect, key: (b?.key ?? 0) + 1 }));
         return;
       }
       soundCue("shikaku.place");
+      placedFx.current = rect;
       setRects((current) => [...current, rect]);
     },
   });
@@ -287,11 +314,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           </p>
         )}
         <div
-          key={shake}
-          className={`${height === size ? "logic-square" : "logic-board-tall"} logic-glass-frame ${shake ? "animate-shake" : ""}`}
+          ref={boardRef}
+          className={`${height === size ? "logic-square" : "logic-board-tall"} logic-glass-frame`}
           style={height === size ? undefined : ({ "--board-aspect": height / size } as CSSProperties)}
         >
-          <Board size={size} rows={height} clues={clues} rects={rects} preview={preview} pointer={pointer} />
+          <Board size={size} rows={height} clues={clues} rects={rects} preview={preview} pointer={pointer} bad={bad?.rect ?? null} />
         </div>
         <LiveSummary
           inArena

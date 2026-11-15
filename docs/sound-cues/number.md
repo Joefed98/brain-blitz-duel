@@ -41,6 +41,10 @@ belongs to Rotation and shared screens.
 | numpyramid.solve | the final board is solved | 1100 ms |
 | trail.step | the path gains a step | 190–200 ms |
 | trail.solve | the trail is complete | 1150 ms |
+| trail.fixed | the path reaches a fixed number on its own step (15 Nov 2026, the Logic overhaul) | 700 ms gold ring, a pop |
+| trail.refused | a step is refused | the kit's short shake on the square |
+| trail.undo | a step is taken back (Undo, a step back, a drag back) | — |
+| trail.reset | Reset clears the path | — |
 | numline.place | every Place | 220 ms drop |
 | numline.line | a new line starts (lines 2 and 3) | 220 ms slide |
 | numline.solve | the 15th Place | ~1100 ms |

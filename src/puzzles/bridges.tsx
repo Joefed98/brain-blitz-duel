@@ -18,7 +18,9 @@ import { BRIDGES_SIZE, BRIDGES_TIME_MS, type BridgesIsland, type BridgesPuzzleDa
 import { playCorrect } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 
-import { soundCue, useSolveFx } from "./logicFx";
+import { useSolveFx } from "./logicFx";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
 import { logicArt } from "./logicArt";
 import { LogicReveal, extraCount } from "./logic2Reveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
@@ -43,6 +45,7 @@ export function BridgesBoard({
   boardRef,
   handlers,
   compare,
+  justBuilt,
 }: {
   size: number;
   islands: readonly BridgesIsland[];
@@ -54,6 +57,8 @@ export function BridgesBoard({
   handlers?: React.SVGProps<SVGSVGElement>;
   /** Reveal: the solution's counts; bridges beyond them are red, missing ones dashed. */
   compare?: readonly number[] | undefined;
+  /** Live play: the bridge just built, whose planks draw in from island to island. */
+  justBuilt?: { pair: number; key: number } | null | undefined;
 }) {
   const pairs = useMemo(() => bridgePairs(islands, size), [islands, size]);
   const deg = islandDegrees(islands, pairs, counts);
@@ -66,7 +71,9 @@ export function BridgesBoard({
     const dy = p.horizontal ? 0 : RADIUS;
     const ox = p.horizontal ? 0 : offset;
     const oy = p.horizontal ? offset : 0;
-    return <line key={key} className={cls} x1={x1 + dx + ox} y1={y1 + dy + oy} x2={x2 - dx + ox} y2={y2 - dy + oy} />;
+    // A bridge just laid draws from its first island to the other (pathLength 1, so the dash runs the whole bridge).
+    const lay = cls.includes("logic2-lay") ? { pathLength: 1 } : {};
+    return <line key={key} className={cls} {...lay} x1={x1 + dx + ox} y1={y1 + dy + oy} x2={x2 - dx + ox} y2={y2 - dy + oy} />;
   };
   return (
     <svg
@@ -89,8 +96,10 @@ export function BridgesBoard({
         {pairs.flatMap((p, i) => {
           const k = counts[i] ?? 0;
           if (!compare) {
-            if (k === 1) return [line(p, 0, `b${i}`, "bridges-line")];
-            if (k === 2) return [line(p, -12, `b${i}a`, "bridges-line"), line(p, 12, `b${i}b`, "bridges-line")];
+            const fresh = justBuilt?.pair === i ? ` logic2-lay` : "";
+            const kk = justBuilt?.pair === i ? `:${justBuilt.key}` : "";
+            if (k === 1) return [line(p, 0, `b${i}${kk}`, `bridges-line${fresh}`)];
+            if (k === 2) return [line(p, -12, `b${i}a${kk}`, `bridges-line${fresh}`), line(p, 12, `b${i}b${kk}`, `bridges-line${fresh}`)];
             return [];
           }
           // The Logic overhaul's reveal: right planks gold, extra ones red, the solution's missing ones dashed.
@@ -113,7 +122,7 @@ export function BridgesBoard({
       {islands.map((isl, i) => {
         const [x, y] = centre(size, isl.cell);
         return (
-          <g key={isl.cell} className={`bridges-island bridges-island-${tone(i)}`} style={{ "--logic-i": i } as CSSProperties}>
+          <g key={isl.cell} data-island={i} className={`bridges-island bridges-island-${tone(i)}`} style={{ "--logic-i": i } as CSSProperties}>
             <image
               href={logicArt(tone(i) === "done" ? "bridges-coin-met" : "bridges-coin")}
               x={x - RADIUS - 4}
@@ -170,6 +179,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const submitted = useRef(false);
   const svg = useRef<SVGSVGElement | null>(null);
   const drag = useRef<Drag | null>(null);
+  /** The bridge just built (its planks draw in from island to island), keyed so a rebuild draws again. */
+  const [justBuilt, setJustBuilt] = useState<{ pair: number; key: number } | null>(null);
+  const metSeen = useRef<Set<number> | null>(null);
   const bridgeTap = useRef<{ bridge: number; x: number; y: number } | null>(null);
   const [preview, setPreview] = useState<number | null>(null);
   /** Boards before each change (a built or removed bridge, a reset), newest last; device memory only. */
@@ -177,6 +189,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const deg = islandDegrees(islands, pairs, current);
   const done = islands.filter((isl, i) => deg[i] === isl.n).length;
   const inFrame = useFrameProgress(done, islands.length, "islands");
+  // The Logic overhaul's effects (15 Nov 2026, the effects kit): an island newly met pops as its coin turns gold.
+  useEffect(() => {
+    const met = new Set(islands.flatMap((isl, i) => (deg[i] === isl.n ? [i] : [])));
+    const before = metSeen.current;
+    metSeen.current = met;
+    if (!before) return;
+    const fresh = [...met].filter((i) => !before.has(i));
+    if (!fresh.length) return;
+    soundCue("bridges.islandMet");
+    for (const i of fresh) gameFx("tap", svg.current?.querySelector(`[data-island="${i}"]`), { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [encoded]);
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -251,6 +275,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     const d = drag.current;
     drag.current = null;
     setPreview(null);
+    // A drag that reached towards a pair but not halfway: the preview snaps back with a small rubber-band sound.
+    if (d && d.pair !== null && !d.reached && active && !submitted.current) soundCue("bridges.snapBack");
     if (!d || d.pair === null || !d.reached || submitted.current || !active) return;
     const i = d.pair;
     const next = ((current[i] ?? 0) + 1) % 3;
@@ -258,7 +284,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       puzzleReject(svg.current?.parentElement ?? null);
       return;
     }
-    soundCue(next === 0 ? "bridges.remove" : "bridges.build");
+    soundCue(next === 0 ? "bridges.remove" : next === 2 ? "bridges.double" : "bridges.build");
+    setJustBuilt(next ? { pair: i, key: Date.now() } : null);
     setHistory((h) => [...h, current]);
     setCounts(current.map((v, j) => (j === i ? next : v)));
   };
@@ -286,7 +313,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const cycleBridge = (i: number) => {
     if (!active || submitted.current) return;
     const next = ((current[i] ?? 0) + 1) % 3;
-    soundCue(next === 0 ? "bridges.remove" : "bridges.build");
+    soundCue(next === 0 ? "bridges.remove" : next === 2 ? "bridges.double" : "bridges.build");
+    setJustBuilt(next ? { pair: i, key: Date.now() } : null);
     setHistory((h) => [...h, current]);
     setCounts(current.map((v, j) => (j === i ? next : v)));
   };
@@ -296,6 +324,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const canReset = active && !submitted.current && built;
   const undo = () => {
     if (!canUndo) return;
+    soundCue("bridges.undo");
     drag.current = null;
     setPreview(null);
     setCounts(history[history.length - 1]!);
@@ -303,6 +332,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   };
   const reset = () => {
     if (!canReset) return;
+    soundCue("bridges.reset");
     drag.current = null;
     setPreview(null);
     setHistory((h) => [...h, current]);
@@ -383,7 +413,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           </p>
         )}
         <div className="logic-square logic-glass-frame bridges-frame">
-          <BridgesBoard size={size} islands={islands} counts={current} preview={preview} boardRef={svg} handlers={handlers} />
+          <BridgesBoard size={size} islands={islands} counts={current} preview={preview} boardRef={svg} handlers={handlers} justBuilt={justBuilt} />
         </div>
         <LiveSummary
           inArena

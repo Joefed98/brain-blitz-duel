@@ -108,7 +108,9 @@ check("docs/sound-cues/logic.md matches the code", () => {
   const doc = readFileSync("docs/sound-cues/logic.md", "utf8");
   const listed = new Set([...doc.matchAll(/^\| `([a-z]+\.[a-z]+)` \|/gm)].map((m) => m[1]!));
   assert.deepEqual([...fired].sort(), [...listed].sort());
-  assert.equal(fired.size, 34);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): the overhaul's new cues for
+  // Tents and Trees, Shikaku and Lamplighter (camelCase ones such as tents.signMet are outside this pattern) make 40.
+  assert.equal(fired.size, 40);
 });
 
 if (failures) {

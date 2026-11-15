@@ -18,7 +18,9 @@ import {
 import { LIGHTUP_TIME_MS, type LightUpPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
-import { soundCue, useSolveFx } from "./logicFx";
+import { useSolveFx } from "./logicFx";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
 import { logicArt, logicArtVars } from "./logicArt";
 import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
 
@@ -176,6 +178,7 @@ export function Board({
               className="logic2-wall relative flex aspect-square items-center justify-center rounded-sm"
               data-over={over ? "" : undefined}
               data-met={done ? "" : undefined}
+              data-wall={cell}
             >
               {n >= 0 && (
                 <span className={`logic2-num ${small ? "text-xs" : "logic2-wall-num"}`}>{n}</span>
@@ -220,6 +223,7 @@ export function Board({
               <img
                 className={`logic-lamp logic2-piece logic2-bulb relative ${bad ? "animate-pulse" : ""}`}
                 data-clash={bad ? "" : undefined}
+                data-bulb={cell}
                 src={logicArt("lightup-lamp")}
                 alt=""
                 draggable={false}
@@ -273,6 +277,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const [spread, setSpread] = useState<{ cell: number; key: number } | null>(null);
   const submitted = useRef(false);
   const pressed = useRef(false);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const seen = useRef<{ met: Set<string>; clash: Set<string>; darkNear: boolean } | null>(null);
+  // The Logic overhaul's effects (15 Nov 2026, the effects kit), read from the board as drawn after each change:
+  // a new clash flickers both lamps with a buzz, a number newly satisfied pops with a tick, and the first time six or
+  // fewer squares are left dark a soft nudge plays (the board says how many).
+  useEffect(() => {
+    const root = boardRef.current;
+    if (!root || !data) return;
+    const ids = (sel: string, attr: string) => new Set([...root.querySelectorAll<HTMLElement>(sel)].map((el) => el.getAttribute(attr) ?? ""));
+    const met = ids("[data-wall][data-met]", "data-wall");
+    const clash = ids("[data-bulb][data-clash]", "data-bulb");
+    const st = lightUpStatus(data, bulbs);
+    const dark = st.whites - st.lit.size;
+    const darkNear = dark > 0 && dark <= LIGHTUP_DARK_HINT && bulbs.length > 0;
+    const before = seen.current;
+    seen.current = { met, clash, darkNear };
+    if (!before) return;
+    const newClash = [...clash].filter((c) => !before.clash.has(c));
+    if (newClash.length) {
+      soundCue("lightup.clash");
+      for (const c of clash) gameFx("wrong", root.querySelector(`[data-bulb="${c}"]`), { silent: true, noHaptic: true });
+    }
+    const newMet = [...met].filter((c) => !before.met.has(c));
+    if (newMet.length) {
+      soundCue("lightup.wallMet");
+      for (const c of newMet) gameFx("tap", root.querySelector(`[data-wall="${c}"]`), { silent: true });
+    }
+    if (darkNear && !before.darkNear) soundCue("lightup.dark");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marks]);
   const bulbs = marks.flatMap((m, cell) => (m === 1 ? [cell] : []));
   const encoded = encodeBulbs(bulbs);
   const solving = useSolveFx("lightup", Boolean(data && lightUpValid(data, bulbs)));
@@ -330,7 +364,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           className={`${height === size ? "logic-square" : "logic-board-tall"} logic-lamp-frame`}
           style={height === size ? undefined : ({ "--board-aspect": height / size } as CSSProperties)}
         >
-          <Board board={data} marks={marks} pointer={pointer} spread={spread} />
+          <div ref={boardRef} className="contents">
+            <Board board={data} marks={marks} pointer={pointer} spread={spread} />
+          </div>
         </div>
         {darkLeft > 0 && darkLeft <= LIGHTUP_DARK_HINT && bulbs.length > 0 ? (
           <p className="logic2-hint" role="status" data-lightup-dark={darkLeft}>

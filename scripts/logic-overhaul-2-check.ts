@@ -13,11 +13,12 @@
  *  5. The boards (rendered to markup): Tents' lonely-tent ring and pill, the signs turning gold; Lamplighter's 0 ticked
  *     only once its neighbours are lit or dotted; Loopline's met numbers gold; Island Link's met coin; Regions' enamel
  *     by size; every sprite the boards name is a real file.
+ *  8. Stage 2's effects: the markup they read, Trail's rising notes, every listed sound slot in the manifest.
  *  7. The answer reveals: one board, your answer marked (wrong, missed), the tally and chips; solved and locked rounds.
  *  6. The rules for every level of the seven games: at most 120 s, and every dealt board exactly one solution (sampled
  *     seeds through each game's own solver).
  */
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -41,7 +42,10 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { puzzleDef } from "../src/lib/duel/registry";
 import type { FillominoPuzzleData, PuzzleData, ShikakuPuzzleData, TrailPuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { SHIKAKU_EXAMPLE, shikakuFills as shikakuColours, shikakuRectsTouch as rectsTouch } from "../src/puzzles/shikaku";
-import { Board as TentsBoard } from "../src/puzzles/tents";
+import { Board as TentsBoard, tentTreePairs } from "../src/puzzles/tents";
+import { Board as ShikakuBoard } from "../src/puzzles/shikaku";
+import { trailStepRate } from "../src/puzzles/trail";
+import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
 import { Board as LampBoard } from "../src/puzzles/lightUp";
 import { FencesBoard } from "../src/puzzles/fences";
 import { BridgesBoard } from "../src/puzzles/bridges";
@@ -315,6 +319,32 @@ function trailRuns(p: TrailPuzzleData, undos: number) {
     const locked = renderToStaticMarkup(createElement(Reveal, { ...props, puzzle: strip(p), myAnswer: half, myCorrect: false }));
     ok(!/data-logic2-reveal-switch/.test(locked) && !/data-logic2-tally/.test(locked) && !/data-missed|logic2-bridge-missed/.test(locked), `${type} reveal: a locked solution shows only the player's board`);
   }
+}
+
+// 8. Stage 2, the effects (15 Nov 2026, the effects kit): the markup the effects read, the pitch helpers, and every
+// sound slot in the ElevenLabs list present in the manifest with a file (a library placeholder until Joe's arrives).
+{
+  const html = (el: ReturnType<typeof createElement>) => renderToStaticMarkup(el);
+  const marks = new Array(16).fill(0);
+  marks[1] = 1;
+  const camp = html(createElement(TentsBoard, { size: 4, trees: [0], rowCounts: [1, 0, 0, 0], colCounts: [0, 1, 0, 0], marks, onTap: () => {} }));
+  ok((camp.match(/logic2-pair-line/g) ?? []).length === 2, "Tents: a paired tent and its tree each draw half the joining line");
+  ok(/data-tent-cell="1"/.test(camp) && /data-sign="r0"/.test(camp) && /data-sign="c1"/.test(camp), "Tents: squares and signs are named for the effects");
+  const pairs = tentTreePairs([1, 4], new Set([0]), 4, 4);
+  ok(pairs.size === 1, "Tents: two tents beside one tree pair only one of them");
+  const shik = html(createElement(ShikakuBoard, { size: 3, clues: [{ cell: 0, n: 3 }], rects: [{ r0: 0, c0: 0, r1: 0, c1: 2 }], bad: { r0: 1, c0: 0, r1: 1, c1: 1 } }));
+  ok(/data-bad-rect/.test(shik) && /data-rect="0,0,0,2"/.test(shik), "Shikaku: the refused outline and each pane's rectangle are drawn for the effects");
+  const lamps = html(createElement(LampBoard, { board: { size: 3, walls: [4], wallNumbers: [1] }, marks: [0, 1, 0, 0, 0, 0, 0, 0, 0] }));
+  ok(/data-bulb="1"/.test(lamps) && /data-wall="4"/.test(lamps), "Lamplighter: bulbs and walls are named for the effects");
+  ok(Math.abs(trailStepRate(1) - 1) < 1e-9 && trailStepRate(2) > 1 && Math.abs(trailStepRate(8) - 1) < 1e-9, "Trail: each step's note climbs a major scale and wraps every octave");
+  const isl = html(createElement(BridgesBoard, { size: 3, islands: [{ cell: 0, n: 1 }, { cell: 2, n: 1 }], counts: [1], justBuilt: { pair: 0, key: 1 } }));
+  ok(/logic2-lay/.test(isl) && /pathLength="1"/.test(isl) && /data-island="0"/.test(isl), "Island Link: a bridge just built lays in, islands are named for the effects");
+  const doc = readFileSync(join(import.meta.dir, "..", "docs/sound-cues/logic-elevenlabs-2.md"), "utf8");
+  const slots = [...doc.matchAll(/^\| \d+ \| `([a-z]+\.[A-Za-z]+)`/gm)].map((m) => m[1]!);
+  const missing = slots.filter((slot) => !(slot in SOUND_MANIFEST));
+  ok(slots.length >= 45 && missing.length === 0, `every slot in the ElevenLabs list is in the manifest (${slots.length} listed; missing ${missing.join(", ")})`);
+  const silent = slots.filter((slot) => !(SOUND_MANIFEST as Record<string, { url: string | null }>)[slot]?.url && !["tents.pitch", "tents.grass", "shikaku.place", "shikaku.remove", "lightup.lamp", "lightup.dot", "trail.step", "lightup.clear", "tents.clear"].includes(slot));
+  ok(silent.length === 0, `every new slot plays a placeholder file until Joe's arrives (silent: ${silent.join(", ")})`);
 }
 
 console.log(failures.length ? `FAIL logic-overhaul-2-check: ${failures.length} of ${checks} checks failed` : `logic-overhaul-2-check: ${checks} passed`);

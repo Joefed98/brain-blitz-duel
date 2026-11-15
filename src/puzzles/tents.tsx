@@ -14,7 +14,9 @@ import {
 import { TENTS_TIME_MS, type TentsPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
-import { soundCue, useSolveFx } from "./logicFx";
+import { useSolveFx } from "./logicFx";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
 import { logicArt, logicArtVars } from "./logicArt";
 import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
@@ -74,6 +76,39 @@ function TuftIcon() {
 
 type Mark = 0 | 1 | 2;
 
+/** The angle (deg) from a cell to an orthogonal neighbour: 0 right, 90 down, 180 left, 270 up. */
+function dirTo(from: number, to: number, size: number): number {
+  if (to === from + 1) return 0;
+  if (to === from + size) return 90;
+  if (to === from - 1) return 180;
+  return 270;
+}
+
+/**
+ * Each tent paired with a different tree beside it (display only: the faint line of the Logic overhaul's tent effect):
+ * a maximum matching (Kuhn's), so a tent shows a line only when a tree is free for it.
+ */
+export function tentTreePairs(tents: readonly number[], trees: ReadonlySet<number>, size: number, height: number): Map<number, number> {
+  const treeOf = new Map<number, number>();
+  const tentOf = new Map<number, number>();
+  const options = new Map(tents.map((t) => [t, orthNeighbours(t, size, height).filter((n) => trees.has(n))]));
+  const tryTent = (tent: number, seen: Set<number>): boolean => {
+    for (const tree of options.get(tent) ?? []) {
+      if (seen.has(tree)) continue;
+      seen.add(tree);
+      const holder = tentOf.get(tree);
+      if (holder === undefined || tryTent(holder, seen)) {
+        tentOf.set(tree, tent);
+        treeOf.set(tent, tree);
+        return true;
+      }
+    }
+    return false;
+  };
+  for (const tent of tents) tryTent(tent, new Set());
+  return treeOf;
+}
+
 const TENTS_ART = logicArtVars(["tents-turf", "tents-sign", "tents-sign-met"]);
 
 export function Board({
@@ -122,6 +157,13 @@ export function Board({
   const { rows, cols } = lineCounts(tents, size, height);
   // The Logic overhaul (15 Nov 2026): a tent with no tree beside it gets a red ring (live play only).
   const lonely = new Set(onTap ? tents.filter((cell) => !orthNeighbours(cell, size, height).some((n) => treeSet.has(n))) : []);
+  // Live play: a faint line joins each tent to the tree it is paired with (one tree each, a matching found afresh).
+  const pairOf = onTap ? tentTreePairs(tents, treeSet, size, height) : new Map<number, number>();
+  const pairDir = new Map<number, number>();
+  for (const [tent, tree] of pairOf) {
+    pairDir.set(tent, dirTo(tent, tree, size));
+    pairDir.set(tree, dirTo(tree, tent, size));
+  }
   return (
     <div
       className="logic-camp logic2-camp grid w-full"
@@ -137,6 +179,7 @@ export function Board({
         <span
           key={`c${c}`}
           className="camp-sign logic-sign logic2-sign mx-auto mb-px w-[86%] text-center"
+          data-sign={`c${c}`}
           data-met={dimDone && count >= 0 && cols[c] === count ? "" : undefined}
         >
           {count < 0 ? "?" : count}
@@ -146,6 +189,7 @@ export function Board({
         <span
           key={`r${r}`}
           className="camp-sign logic-sign logic2-sign my-[10%] flex items-center justify-center"
+          data-sign={`r${r}`}
           data-met={dimDone && (rowCounts[r] ?? -1) >= 0 && rows[r] === rowCounts[r] ? "" : undefined}
         >
           {(rowCounts[r] ?? -1) < 0 ? "?" : rowCounts[r]}
@@ -163,11 +207,13 @@ export function Board({
               onClick={onTap && !tree ? () => onTap(cell) : undefined}
               style={{ "--logic-i": tentIndex, "--logic-grass": (cell * 37) % 7 } as CSSProperties}
               className={`flex aspect-square items-center justify-center rounded-md camp-cell logic-camp-cell logic2-cell ${flash === cell ? "animate-shake" : ""} ${pitched === cell && mark === 1 ? "logic-tent-pitch" : ""}`}
+              data-tent-cell={cell}
               data-lonely={lonely.has(cell) ? "" : undefined}
               data-missed={missedTents?.has(cell) && mark !== 1 ? "" : undefined}
               data-wrong={wrongTents?.has(cell) || (tentColour && mark === 1 && tentColour(cell) === "var(--destructive)") ? "" : undefined}
               aria-label={tree ? "Tree" : mark === 1 ? (lonely.has(cell) ? "Tent with no tree beside it" : "Tent") : mark === 2 ? "Grass" : "Empty"}
             >
+              {pairDir.has(cell) ? <span aria-hidden="true" className="logic2-pair-line" style={{ "--logic2-pair": `${pairDir.get(cell)}deg` } as CSSProperties} /> : null}
               {tree ? (
                 <img className="logic2-piece logic2-tree" src={logicArt(((cell * 7 + (cell >> 3)) % 3) !== 0 ? "tents-tree-a" : "tents-tree-b")} alt="" draggable={false} />
               ) : mark === 1 ? (
@@ -210,9 +256,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const [marks, setMarks] = useStageState<Mark[]>(stateKey ?? "tents", "tentsMarks", () =>
     new Array(size * height).fill(0),
   );
-  const [flash, setFlash] = useState<number | null>(null);
-  const [pitched, setPitched] = useState<number | null>(null);
   const submitted = useRef(false);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const fxQueue = useRef<{ cell: number; pitched: boolean; touching: number[]; metNow: string[]; lonely: boolean } | null>(null);
+  // Effects for the last tap, once the board shows it (the kit animates the pieces only; nothing waits on it).
+  useEffect(() => {
+    const fx = fxQueue.current;
+    fxQueue.current = null;
+    const root = boardRef.current;
+    if (!fx || !root) return;
+    const cellEl = (c: number) => root.querySelector<HTMLElement>(`[data-tent-cell="${c}"]`);
+    if (fx.pitched) gameFx("drop", cellEl(fx.cell)?.querySelector(".logic2-tent"), { silent: true });
+    if (fx.touching.length) {
+      soundCue("tents.touch");
+      for (const c of [fx.cell, ...fx.touching]) gameFx("wrong", cellEl(c)?.querySelector(".logic2-tent"), { silent: true, noHaptic: true });
+    } else if (fx.lonely) soundCue("tents.lonely");
+    if (fx.metNow.length) {
+      soundCue("tents.signMet");
+      for (const id of fx.metNow) gameFx("tap", root.querySelector(`[data-sign="${id}"]`), { silent: true });
+    }
+  }, [marks]);
 
   const tents = marks.flatMap((mark, cell) => (mark === 1 ? [cell] : []));
   const encoded = encodeTents(tents);
@@ -240,11 +303,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (locked || submitted.current) return;
     const nextMark = (((marks[cell] ?? 0) + 1) % 3) as Mark;
     soundCue(nextMark === 1 ? "tents.pitch" : nextMark === 2 ? "tents.grass" : "tents.clear");
-    setPitched(nextMark === 1 ? cell : null);
-    if (nextMark === 1 && tents.some((tent) => tentsTouch(tent, cell, size))) {
-      setFlash(cell);
-      window.setTimeout(() => setFlash(null), 450);
-    }
+    // The Logic overhaul's effects (15 Nov 2026, the effects kit): played once the board shows the change.
+    const next = nextMark === 1 ? [...tents, cell] : tents.filter((t) => t !== cell);
+    const touching = nextMark === 1 ? tents.filter((tent) => tentsTouch(tent, cell, size)) : [];
+    const was = lineCounts(tents, size, height);
+    const now = lineCounts(next, size, height);
+    const metNow = [
+      ...data.rowCounts.flatMap((n, r) => (n >= 0 && now.rows[r] === n && was.rows[r] !== n ? [`r${r}`] : [])),
+      ...data.colCounts.flatMap((n, c) => (n >= 0 && now.cols[c] === n && was.cols[c] !== n ? [`c${c}`] : [])),
+    ];
+    const lonelyNow = nextMark === 1 && !orthNeighbours(cell, size, height).some((n) => treeCells.has(n));
+    fxQueue.current = { cell, pitched: nextMark === 1, touching, metNow, lonely: lonelyNow };
     setMarks((current) => current.map((mark, index) => (index === cell ? nextMark : mark)));
   };
 
@@ -257,7 +326,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             tents <span className="text-primary">{tents.length}</span> / {data.trees.length}
           </p>
         )}
-        <div className="logic-tents-fit logic-camp-frame" style={{ "--board-aspect": height / size } as CSSProperties}>
+        <div ref={boardRef} className="logic-tents-fit logic-camp-frame" style={{ "--board-aspect": height / size } as CSSProperties}>
           <Board
             size={size}
             height={height}
@@ -266,8 +335,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             colCounts={data.colCounts}
             marks={marks}
             onTap={locked ? undefined : tap}
-            flash={flash}
-            pitched={pitched}
             countSize={26}
             gap={1}
             lit={solving}
