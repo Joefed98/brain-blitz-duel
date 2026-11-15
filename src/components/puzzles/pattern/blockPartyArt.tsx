@@ -1,8 +1,9 @@
 /**
- * Tessellate (blockparty) art, pattern polish 13 Oct 2026. Presentation only:
- * the pegboard, the bevelled pieces, the placement snap and the completion
- * shine. Every piece is drawn inside its own cells (a small inset), and the
- * board's cell boxes are unchanged, so what you see is what the drop counts.
+ * Tessellate (blockparty) art, pattern polish 13 Oct 2026; the Pattern overhaul's look A (15 Nov 2026): Blender
+ * sprites (public/pattern-art/blockparty/, docs/design/game-art/pattern/source/blockparty.py), one image per board
+ * cell: brass studs for the pegs, satin recesses for the free squares and a glossy lacquered block per piece square.
+ * Presentation only: every image is exactly its cell's box, so what you see is what the drop counts; the placement
+ * snap and the completion shine are unchanged.
  */
 import { createContext, memo, useContext, useId, useMemo } from "react";
 
@@ -10,7 +11,6 @@ import { BLOCK_COLS as N, type BlockPlacement } from "@/lib/duel/types";
 
 const U = 100; // one cell in art units
 const GAP = 5; // inset from the cell edge
-const BEVEL = 9; // rim width
 const RADIUS = 11;
 
 interface ArtIds {
@@ -113,35 +113,26 @@ export function BlockArtDefs({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** One bevelled piece: a lit rim, a raised face and faint seams between its squares. */
-export const PieceArt = memo(function PieceArt({
-  cells,
-  colour,
-}: {
-  cells: Pt[];
-  colour: string;
-}) {
-  const ids = useContext(IdsContext);
-  const outer = useMemo(() => pieceOutline(cells, GAP), [cells]);
-  const face = useMemo(() => pieceOutline(cells, GAP + BEVEL, RADIUS - 3), [cells]);
-  const seams = useMemo(() => {
-    const has = new Set(cells.map(([r, c]) => `${r},${c}`));
-    const out: string[] = [];
-    for (const [r, c] of cells) {
-      if (has.has(`${r},${c + 1}`)) out.push(`M${(c + 1) * U} ${r * U + GAP + BEVEL + 4}V${(r + 1) * U - GAP - BEVEL - 4}`);
-      if (has.has(`${r + 1},${c}`)) out.push(`M${c * U + GAP + BEVEL + 4} ${(r + 1) * U}H${(c + 1) * U - GAP - BEVEL - 4}`);
-    }
-    return out.join("");
-  }, [cells]);
+/** The Blender sprites (docs/design/game-art/pattern/source/blockparty.py): one image per board cell. */
+export const BLOCK_ART_DIR = "/pattern-art/blockparty";
+/** Each piece's sprite colour, index for index today's piece colours (BlockPartyPuzzle PIECE_COLOURS). */
+export const BLOCK_SPRITE_COLOURS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow", "white"] as const;
+export const blockSprite = (piece: number) =>
+  `${BLOCK_ART_DIR}/block-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}.webp`;
+export const BLOCK_WELL_SPRITE = `${BLOCK_ART_DIR}/well.webp`;
+export const BLOCK_PEG_SPRITE = `${BLOCK_ART_DIR}/peg.webp`;
+
+/**
+ * One piece (the Pattern overhaul, 15 Nov 2026; look A): a glossy lacquered block in each of its squares, drawn
+ * exactly inside that square's box (the sprite is the cell; its block and shadow sit within it).
+ */
+export const PieceArt = memo(function PieceArt({ cells, piece }: { cells: Pt[]; /** The piece's index (its colour). */ piece: number }) {
+  const href = blockSprite(piece);
   return (
     <>
-      <path d={outer} fill="#000" opacity="0.4" transform="translate(2 5)" className="bp-drop" />
-      <path d={outer} style={{ fill: colour }} />
-      {ids && <path d={outer} fill={`url(#${ids.rim})`} />}
-      <path d={face} style={{ fill: colour }} />
-      {ids && <path d={face} fill={`url(#${ids.face})`} />}
-      <path d={face} fill="none" stroke="#fff" strokeOpacity="0.22" strokeWidth="2" />
-      {seams && <path d={seams} stroke="#000" strokeOpacity="0.2" strokeWidth="3" strokeLinecap="round" />}
+      {cells.map(([r, c]) => (
+        <image key={`${r},${c}`} className="bp-block" href={href} x={c * U} y={r * U} width={U} height={U} preserveAspectRatio="none" />
+      ))}
     </>
   );
 });
@@ -152,49 +143,27 @@ export const BlockColsContext = createContext(N);
 /** Cells of a placement as [row, col]. */
 const rowCol = (cell: number, n: number = N): Pt => [Math.floor(cell / n), cell % n];
 
-/** The static pegboard: slab, recessed wells and brass pegs. */
+/** The static pegboard (look A): the dark slab, a satin recess in every square and a brass stud on each peg. */
 export const BlockBoardArt = memo(function BlockBoardArt({ blockers }: { blockers: number[] }) {
-  const base = cleanId(useId());
   const n = useContext(BlockColsContext);
   const pegs = new Set(blockers);
   const S = n * U;
   return (
     <svg className="bp-board-art" viewBox={`0 0 ${S} ${S}`} aria-hidden="true">
-      <defs>
-        <linearGradient id={`${base}-slab`} x1="0" y1="0" x2="0.4" y2="1">
-          <stop offset="0" stopColor="#2b2d3a" />
-          <stop offset="1" stopColor="#181921" />
-        </linearGradient>
-        <linearGradient id={`${base}-well`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#000" stopOpacity="0.55" />
-          <stop offset="0.3" stopColor="#000" stopOpacity="0.1" />
-          <stop offset="1" stopColor="#fff" stopOpacity="0.06" />
-        </linearGradient>
-        <radialGradient id={`${base}-brass`} cx="0.36" cy="0.32" r="0.75">
-          <stop offset="0" stopColor="#fff2c4" />
-          <stop offset="0.35" stopColor="var(--primary)" />
-          <stop offset="1" stopColor="#7a510c" />
-        </radialGradient>
-      </defs>
-      <rect x="0" y="0" width={S} height={S} rx="22" fill={`url(#${base}-slab)`} />
-      <rect x="1.5" y="1.5" width={S - 3} height={S - 3} rx="21" fill="none" stroke="#fff" strokeOpacity="0.07" strokeWidth="3" />
+      <rect className="bp-slab" x="0" y="0" width={S} height={S} rx="22" />
       {Array.from({ length: n * n }, (_, cell) => {
         const [r, c] = rowCol(cell, n);
-        const x = c * U;
-        const y = r * U;
         return (
-          <g key={cell}>
-            <rect x={x + 6} y={y + 6} width={U - 12} height={U - 12} rx="13" fill={pegs.has(cell) ? "#14151b" : "#111219"} />
-            <rect x={x + 6} y={y + 6} width={U - 12} height={U - 12} rx="13" fill={`url(#${base}-well)`} />
-            {pegs.has(cell) && (
-              <>
-                <circle cx={x + 50} cy={y + 50} r="31" fill="#2a2416" stroke="#000" strokeOpacity="0.4" strokeWidth="2" />
-                <circle cx={x + 52} cy={y + 55} r="25" fill="#000" opacity="0.5" />
-                <circle className="bp-peg" cx={x + 50} cy={y + 50} r="25" fill={`url(#${base}-brass)`} />
-                <ellipse cx={x + 42} cy={y + 40} rx="9" ry="5" fill="#fff" opacity="0.55" transform={`rotate(-30 ${x + 42} ${y + 40})`} />
-              </>
-            )}
-          </g>
+          <image
+            key={cell}
+            className={pegs.has(cell) ? "bp-peg" : "bp-well"}
+            href={pegs.has(cell) ? BLOCK_PEG_SPRITE : BLOCK_WELL_SPRITE}
+            x={c * U}
+            y={r * U}
+            width={U}
+            height={U}
+            preserveAspectRatio="none"
+          />
         );
       })}
     </svg>
@@ -232,12 +201,12 @@ export function BlockPiecesArt({
 
 function PlacedPiece({
   placement,
-  colour,
   snap,
   delay,
 }: {
   placement: BlockPlacement;
-  colour: string;
+  /** The piece's colour (the sprite carries it; kept for callers). */
+  colour?: string | undefined;
   snap?: boolean | undefined;
   delay?: number | undefined;
 }) {
@@ -250,7 +219,7 @@ function PlacedPiece({
         className={delay !== undefined ? "bp-piece-lock" : undefined}
         style={delay !== undefined ? { animationDelay: `${delay}ms` } : undefined}
       >
-        <PieceArt cells={cells} colour={colour} />
+        <PieceArt cells={cells} piece={placement.piece} />
         {snap && <path className="bp-snap-ring" d={outline} fill="none" stroke="#fff" strokeWidth="5" />}
       </g>
     </g>
