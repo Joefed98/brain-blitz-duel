@@ -258,13 +258,13 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `swing.streakMeter` | Action overhaul (stage 2): each clean grab filling the streak meter [action-overhaul-stage2.md] | The streak meter's arc filling | 0–60 | silent | none | 120 | game event | `swing.streakMeter` |
-| `swing.outOfReach` | Action overhaul (stage 2): a press with the nearest vine just out of reach [action-overhaul-stage2.md] | The vine glowing red for a beat | 0–20 | silent | none | 300 | game event | `swing.outOfReach` |
-| `swing.pteroShadow` | Action overhaul (stage 2): the pterodactyl's shadow sweeping across before it appears [action-overhaul-stage2.md] | A shadow crossing the screen | 0–1 | silent | none | 1200 | game event | `swing.pteroShadow` |
-| `swing.stretchTally` | Action overhaul (stage 2): the end screen counting the stretches up [action-overhaul-stage2.md] | The stretch count ticking up | 0–51 | silent | none | 90 | game event | `swing.stretchTally` |
 | `swing.ropeSnap` | Action overhaul: every grab, on top of swing.vineCreak (swingRev 17) [arcade-effects.md] | The vine pulled taut at the grab point | 20–60 | silent | none | 200 | game event | `swing.ropeSnap` |
 | `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) [arcade-effects.md] | The hero flying off the vine | 0–20 | silent | none | 450 | game event | `swing.speedWhoosh` |
 | `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) [arcade-effects.md] | COURSE CLEARED! banner | 0–1 | silent | none | 1600 | game event | `swing.courseCleared` |
+| `swing.streakMeter` | Action overhaul stage 2: each clean grab (swingRev 17+), a pentatonic step higher up the block of eight [arcade-effects.md] | A segment of the arc meter under STREAK lighting gold | 0–60 | silent | none | 120 | game event | `swing.streakMeter` |
+| `swing.outOfReach` | Action overhaul stage 2: a press that grabbed nothing, the nearest vine ahead just out of reach (swingRev 17+, live play only) [arcade-effects.md] | That vine and its ring tinted red for half a second | 0–20 | silent | none | 300 | game event | `swing.outOfReach` |
+| `swing.pteroShadow` | Action overhaul stage 2: the pterodactyl starting the chase (swingRev 17+); its screech and wingbeats follow 1.2 s later [arcade-effects.md] | Its shadow sweeping across the canopy | 0–1 | silent | none | 1200 | game event | `swing.pteroShadow` |
+| `swing.stretchTally` | Action overhaul stage 2: the end banner counting the stretches cleared up, one tick a stretch, rising [arcade-effects.md] | "COURSE CLEARED!" (or "TIME") and "n / 51 stretches" | 0–51 | silent | none | 90 | game event | `swing.stretchTally` |
 
 ### High Rise
 
