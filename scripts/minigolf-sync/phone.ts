@@ -9,7 +9,7 @@
  * putts and any difference can only come from the sim.
  */
 import { inputAt, recordInput, type ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { minigolfCheckpoint, minigolfGameFor, MG_AIM, MG_INPUT_PUTT, MG_POWER_MAX, MG_ROLL, type MinigolfState } from "../../src/lib/arcade/minigolf";
+import { minigolfCheckpoint, minigolfGameFor, MG_AIM, MG_INPUT_CHIP, MG_INPUT_PUTT, MG_POWER_MAX, MG_ROLL, type MgLevel, type MinigolfState } from "../../src/lib/arcade/minigolf";
 import { encodeSportsRun, ilen, idiv, SPORTS_CHECKPOINT_INTERVAL } from "../../src/lib/arcade/sportsKit";
 
 /** How a case picks its putts. */
@@ -25,7 +25,9 @@ export type ShotPlan =
   /** Within 150 px of the cup, a putt searched for that drops (the cup's capture speed, lip-ins), else "aim". */
   | "ace"
   /** A stored witness's putts on their own ticks (the oracle's 200-point routes). */
-  | "witness";
+  | "witness"
+  /** golfRev 3: lofted chips only, any direction and carry (over water, sand and low walls; into them too). */
+  | "chip";
 
 export interface SyncCase {
   name: string;
@@ -39,6 +41,9 @@ export interface SyncCase {
   cut: number;
   /** The witness's events (plan "witness"). */
   events?: ArcadeInputEvent[];
+  /** golfRev 3: the five hole ids and the level. */
+  holes?: number[];
+  level?: MgLevel;
 }
 
 export interface PhoneRun {
@@ -90,6 +95,14 @@ function acePutt(game: Game, s: MinigolfState): { a: number; b: number; c: numbe
   return null;
 }
 
+/** golfRev 3: a shot is a putt or a chip; the case's own stream decides (chips only on the "chip" plan, a third elsewhere). */
+function pickShot(plan: ShotPlan, s: MinigolfState, next: () => number, game: Game): { k: number; a: number; b: number; c: number } {
+  const p = pickPutt(plan === "chip" ? "random" : plan, s, next, game);
+  if (s.rev < 3) return { k: MG_INPUT_PUTT, ...p };
+  const chip = plan === "chip" || (plan !== "ace" && next() % 3 === 0);
+  return { k: chip ? MG_INPUT_CHIP : MG_INPUT_PUTT, ...p };
+}
+
 function pickPutt(plan: ShotPlan, s: MinigolfState, next: () => number, game: Game): { a: number; b: number; c: number } {
   const h = s.course[s.hole]!;
   if (plan === "ace" && ilen(h.cup.x - s.x, h.cup.y - s.y) < 150 * 256) {
@@ -125,12 +138,12 @@ function pickPutt(plan: ShotPlan, s: MinigolfState, next: () => number, game: Ga
 
 /** Plays one case as the phone does and returns its answer. */
 export function phoneRun(c: SyncCase): PhoneRun {
-  const game = minigolfGameFor(c.pars, c.rev);
+  const game = minigolfGameFor(c.pars, c.rev, { holes: c.holes, level: c.level });
   const next = prng(c.rng);
   let s = game.init(c.seed);
   const events: ArcadeInputEvent[] = [];
   const checkpoints: { tick: number; checksum: number }[] = [];
-  const queue: { a: number; b: number; c: number }[] = [];
+  const queue: { k: number; a: number; b: number; c: number }[] = [];
   const witness = new Map((c.events ?? []).map((e) => [e.t, e]));
   const powers: number[] = [];
   let waitUntil = 0;
@@ -139,7 +152,7 @@ export function phoneRun(c: SyncCase): PhoneRun {
   while (!game.isOver(s) && s.tick < end) {
     if (c.plan === "witness") {
       const w = witness.get(s.tick + 1);
-      if (w) queue.push({ a: w.a, b: w.b, c: w.c });
+      if (w) queue.push({ k: w.k, a: w.a, b: w.b, c: w.c });
     } else if (s.phase === MG_AIM && queue.length === 0) {
       // A new resting ball: the player looks for a while (the sails turn meanwhile), then lets go.
       const at = s.hole * 64 + s.strokes;
@@ -148,13 +161,13 @@ export function phoneRun(c: SyncCase): PhoneRun {
         waitUntil = s.tick + (next() % 140);
       }
       if (s.tick >= waitUntil) {
-        queue.push(pickPutt(c.plan, s, next, game));
+        queue.push(pickShot(c.plan, s, next, game));
         aimedFor = -1;
       }
     }
     const shot = queue.shift();
     if (shot) {
-      const rec = recordInput(events, { t: s.tick + 1, k: MG_INPUT_PUTT, a: shot.a, b: shot.b, c: shot.c, d: 0 }, game.inputRanges);
+      const rec = recordInput(events, { t: s.tick + 1, k: shot.k, a: shot.a, b: shot.b, c: shot.c, d: 0 }, game.inputRanges);
       if (rec) powers.push(rec.c);
     }
     s = game.step(s, inputAt(events, s.tick + 1));

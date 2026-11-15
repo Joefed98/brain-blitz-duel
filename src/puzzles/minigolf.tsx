@@ -18,7 +18,7 @@ import {
 
   MINIGOLF_HOLES,
   MINIGOLF_REV,
-  MINIGOLF_RUN_TICKS,
+  MINIGOLF_RUN_TICKS_V3,
   MINIGOLF_W,
   type MinigolfState,
 } from "@/lib/arcade/minigolf";
@@ -39,30 +39,36 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 const FULL_PULL = 150;
 const MIN_PULL = 12;
 
-/** Fixed intro still: a hole's turf and rails, the ball, the dotted aim and the cup with its flag. */
+/**
+ * Fixed intro still (golfRev 3, the Crazy Golf overhaul): a hole's turf with its mowing stripes bending over a mound,
+ * a stone-edged pond and a raked bunker in natural shapes, the ball with its rubber band pulled back, a chip's dotted
+ * arc over the pond to its landing ring, and the cup with its flag.
+ */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg viewBox="0 0 195 110" width={195} height={110} aria-hidden="true" style={{ background: "#1A1714", borderRadius: 10 }}>
-        <rect x="20" y="10" width="155" height="90" rx="10" fill="#2F7A3A" stroke="#6B4426" strokeWidth="5" />
-        <rect x="22" y="28" width="151" height="16" fill="#2A6F35" />
-        <rect x="22" y="62" width="151" height="16" fill="#2A6F35" />
-        <circle cx="140" cy="36" r="5" fill="#111" stroke="#E9EDE6" strokeWidth="1.4" />
-        <line x1="140" y1="36" x2="142" y2="18" stroke="#E8E2D2" strokeWidth="1.4" />
-        <path d="M142 18 L154 21 L142 25 Z" fill="#C8283A" />
-        {/* A windmill's doorway: brick walls either side and the four sails on their hub. */}
-        <rect x="22" y="52" width="66" height="7" rx="3.5" fill="#9E4A30" />
-        <rect x="118" y="52" width="55" height="7" rx="3.5" fill="#9E4A30" />
-        <g transform="rotate(20 103 55.5)">
-          <rect x="101.5" y="40" width="3" height="31" rx="1.5" fill="#EFE6D2" stroke="#6B4426" strokeWidth="0.8" />
-          <rect x="88" y="54" width="31" height="3" rx="1.5" fill="#EFE6D2" stroke="#6B4426" strokeWidth="0.8" />
-        </g>
-        <circle cx="103" cy="55.5" r="3.2" fill="#D8B25A" />
-        <circle cx="52" cy="78" r="4" fill="#F4F6F8" />
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <circle key={i} cx={60 + i * 9} cy={74 - i * 4.4} r="1.4" fill="#FFFFFF" opacity={0.9 - i * 0.12} />
+        <rect x="14" y="8" width="167" height="94" rx="12" fill="#2F7A3A" stroke="#8A7A62" strokeWidth="4" />
+        {/* Mowing stripes, bending up over a mound on the right (lit on its top-left face). */}
+        <path d="M16 30 C 70 30, 110 30, 125 24 S 160 30, 179 30 L179 44 C 160 44, 140 36, 125 38 S 70 44, 16 44 Z" fill="#2A6F35" />
+        <path d="M16 62 C 70 62, 110 62, 128 56 S 160 62, 179 62 L179 76 C 160 76, 140 68, 128 70 S 70 76, 16 76 Z" fill="#2A6F35" />
+        <ellipse cx="140" cy="54" rx="24" ry="18" fill="#FFF6C8" opacity="0.12" />
+        {/* A pond with a stone edge and a bunker, in natural shapes. */}
+        <path d="M70 46 c 8 -10 26 -8 30 0 c 6 10 -4 20 -16 18 c -10 0 -20 -8 -14 -18 z" fill="#9A8C74" />
+        <path d="M72 47 c 7 -8 23 -6 26 0 c 5 9 -4 16 -14 15 c -9 0 -17 -7 -12 -15 z" fill="#1B6A86" />
+        <path d="M118 78 c 6 -6 18 -5 22 0 c 3 6 -6 10 -12 9 c -7 0 -14 -3 -10 -9 z" fill="#DCC07E" />
+        {/* The cup and flag. */}
+        <circle cx="152" cy="30" r="5" fill="#111" stroke="#E9EDE6" strokeWidth="1.4" />
+        <line x1="152" y1="30" x2="154" y2="12" stroke="#E8E2D2" strokeWidth="1.4" />
+        <path d="M154 12 L166 15 L154 19 Z" fill="#C8283A" />
+        {/* The ball, its rubber band pulled back, and a chip's dotted arc over the pond to its landing ring. */}
+        <line x1="42" y1="82" x2="28" y2="94" stroke="#5FD3E8" strokeWidth="2" />
+        <circle cx="28" cy="94" r="3" fill="#5FD3E8" />
+        <circle cx="44" cy="80" r="4" fill="#F4F6F8" />
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <circle key={i} cx={52 + i * 9} cy={74 - i * 7 + i * i * 0.55} r="1.4" fill="#C8F5FF" opacity={0.95 - i * 0.07} />
         ))}
-        <line x1="47" y1="81" x2="32" y2="89" stroke="#F2C75C" strokeWidth="1.6" opacity="0.7" />
+        <ellipse cx="128" cy="46" rx="6" ry="4.6" fill="none" stroke="#C8F5FF" strokeWidth="1.2" />
       </svg>
     </div>
   );
@@ -234,7 +240,8 @@ export const minigolfPuzzle: PuzzleDefinition = {
   key: "minigolf",
   name: gameDisplayName("minigolf"),
   category: "arcade",
-  timeLimitMs: (MINIGOLF_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
+  // golfRev 3 runs 90 s (the Crazy Golf overhaul; golfRev 1 and 2 rounds were 120 s and still replay to their length).
+  timeLimitMs: (MINIGOLF_RUN_TICKS_V3 / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
   generate: () => ({ type: "minigolf", seed: 1, golfRev: MINIGOLF_REV, pars: [2, 3, 3, 3, 3] }) satisfies MinigolfPuzzleData,
   check: () => false,
