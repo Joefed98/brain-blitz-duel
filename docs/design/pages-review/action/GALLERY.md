@@ -88,18 +88,37 @@ Display and sound only (no stamp). The same Near-perfect skill-band run (seed 7,
 dusty desert → battle-smoke storm; far tanks get a pale outline and an S / M / H badge; the panel is navy with gold
 labels at 13 px.
 
+**Materials pass** (15 Nov 2026): the road is asphalt (aggregate speckles, worn tyre lanes, tar seams, solid worn edge
+lines and worn dashes, sand drifting over the shoulders in the dust); the field has sand grain and wind ripples; peaks
+have sunlit faces and the dunes lit ridges; the storm's smoke billows have volume (a lit crown, a dark core, a warm
+underside over the fires) and every wreck burns with its own plume; tanks are painted metal (a lit top plane, a crisp lit
+front edge, track links, a turret dome lit from above with a specular glint, a ground shadow no wider than the hull);
+the barrel is gunmetal with a crisp highlight down its lit side, on a cast mount; the parapet is cast concrete with a lit
+coping; the panel's shells are glass capsules (brass shells with a crisp highlight on the top curve, dark glass when
+empty) and the reload gauge a recessed channel with a polished steel needle. No glow edges, no glare over the HUD or
+the panel's numbers. All drawn in code and cached per setting: no new shipped images.
+
+Today | concept | new, the same moment:
+
+<img src="bastion/compare-1.webp" width="640">
+
+<img src="bastion/compare-2.webp" width="640">
+
+<img src="bastion/compare-3.webp" width="640">
+
 | | Wave 1 | Wave 3 | Wave 5 |
 | --- | --- | --- | --- |
 | Before | <img src="bastion/before-wave1.webp" width="200"> | <img src="bastion/before-wave3.webp" width="200"> | <img src="bastion/before-wave5.webp" width="200"> |
 | After | <img src="bastion/after-wave1.webp" width="200"> | <img src="bastion/after-wave3.webp" width="200"> | <img src="bastion/after-wave5.webp" width="200"> |
 
-Edge to edge (arcade-fill-check's own frame, the real play screen as an iPhone 11 home-screen app, 414 × 896): the
-scene and the navy panel run on to the screen's bottom with no seam. Clip (6 s, the whole minute, the scenery carried
-past the world's sides): the setting changing wave by wave.
+Edge to edge (the scene and the world drawn as the stage draws them, in a 375 × 667 phone's arena box, so the sides
+show the scenery carried on; arcade-fill-check proved the real play screen at 414 × 896 app and 390 × 844, and
+bastion-overhaul-check proves no seam at four sizes in every setting). Clip (6 s, the whole minute): the setting changing
+wave by wave.
 
-| Edge to edge, 414 × 896 app | Clip: the minute |
+| Edge to edge, 375 × 667 | Clip: the minute |
 | --- | --- |
-| <img src="bastion/edge-414x896-app.webp" width="200"> | <img src="bastion/clip-waves.webp" width="200"> |
+| <img src="bastion/edge-375x667.webp" width="200"> | <img src="bastion/clip-waves.webp" width="200"> |
 
 The clip is made by `bun scripts/shots/bastion-overhaul-clip.ts <dir>` (frames) and encoded as an animated WebP.
 

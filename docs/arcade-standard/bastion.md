@@ -20,6 +20,13 @@ From Joe's review (`docs/design/game-reviews/action.md`). Play, deal and scoring
 - **The reload tip**: the first time the magazine runs dry, and only if the run's first reload was that one, the panel
   shows "Tip: swipe down to reload early" in gold for that reload (`bastionSwipeHint`, from the sim's own counters, so
   replays draw it the same); never again in the run.
+- **Materials** (the materials pass, same day; display only, drawn in code and cached per setting, no shipped images):
+  asphalt road (aggregate, worn tyre lanes, tar seams, worn solid edges and dashes, sand on the shoulders in the dust),
+  sand grain and ripples, sunlit peak faces and dune ridges, storm smoke with volume and a plume off every burning wreck,
+  painted-metal tanks (lit top plane and front edge, track links, a lit turret dome with a specular glint, a ground
+  shadow no wider than the hull; all inside the tank's rectangles), a gunmetal barrel on a cast mount, a concrete
+  parapet with a lit coping, glass shell capsules and a recessed reload gauge with a steel needle. No glow edges, no
+  glare over the HUD or the panel's numbers.
 - **Intro**: the still is the game's own art (bastionRev 3, seed 7, 10.7 s in, `ArtStill`).
 - **Sounds**: new slots waiting for files (`docs/sound-cues/action-elevenlabs.md`): weak-spot ting, shells snapping in,
   jam grind, debris, near miss (a shell on open ground within a tank-length of a hull, `bastionNearMiss`), panel crack,
