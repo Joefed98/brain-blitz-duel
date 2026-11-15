@@ -13,6 +13,8 @@ import type { PuzzleData } from "@/lib/duel/types";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
+import { GameReveal } from "./GameParts";
+import { ARCADE_RUN_PICTURES } from "@/lib/arcade/runPictures";
 import { RevealBreakdown } from "./RevealBreakdown";
 import { moonHitsLine } from "@/lib/duel/moonRevealHits";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
@@ -363,6 +365,13 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           ) : null}
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
+
+        {/* The game's own picture of the run (runPictures.ts; the Action overhaul stage 2), drawn from the stored answer. */}
+        {myScore !== null && myAnswer && ARCADE_RUN_PICTURES.has(puzzle.type) ? (
+          <div data-run-picture={puzzle.type} className="flex w-full shrink-0 justify-center animate-fade-in">
+            <GameReveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={false} myReactionAvgMs={null} timeLimitMs={0} />
+          </div>
+        ) : null}
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}

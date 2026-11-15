@@ -46,6 +46,41 @@ Today | Concept A | New, at 10, 30 and 55 s (the materials pass):
 The whole minute as a time-lapse (one frame every 1⅓ s of play, about 6 s):
 <img src="flip/flip-clip-setting.webp" width="240">
 
+### Stage 2: effects and reveal
+
+Drawn by the game's own renderer on dealt course 301794028 (the flawless witness, and the Weak bot for the crash), the
+390 × 730 world at 2×, cropped round the runner. Every moment is read from the sim's state (`src/lib/arcade/flipFx.ts`);
+nothing writes to it, no stamp.
+
+<img src="flip/effects-s2.webp" width="720">
+
+- **Flip**: the runner stretches a little along its arc (at most 1.3 px past its box) with a two-frame trail behind it;
+  the whoosh rises to the roof or falls to the floor (`flip.flipUp` / `flip.flipDown`).
+- **Double flip**: a gold ring opens round the runner (a second ring on a triple), with the DOUBLE FLIP! pop.
+- **Landing**: a dust puff at the landing spot that drifts back with the cave (`flip.land`); on a sweet spot a gold puff
+  (`flip.sweetGold`) and the molten PERFECT just ahead of the feet, the chime `flip.sweetLanding`.
+- **Flow**: the counter rides over the runner's head ("×12") and swings round behind it in a flip (never ahead, where
+  the hazards come from); each clean landing pops it up a step with a rising note (`flip.flowTick`), every 10th turns it
+  gold with two glints (`flip.flowTen`); a crash cracks it in two and it dulls and falls away (`flip.flowBreak`).
+- **Near miss**: flipping off just before a spike, or landing just past one, within 24 px: a white glint on the blade's
+  tip (`flip.nearMiss`; 0–7 a run in the bands).
+- **Crash**: a short white flash, then the respawn blink (`flip.respawn`, the impact haptic as before).
+- **End**: SURVIVED! with BEST FLOW counting up under it over 800 ms (`flip.flowCount`); the stage holds the answer
+  1.2 s so it lands before the reveal.
+- Reduced motion: no trail, stretch or swing; the puffs, glints and rings hold still and fade; the count shows whole.
+  Reduced effects: one trail frame and half the dust.
+
+A few seconds of play (a 20th clean landing, a double flip, then a Weak run's crash and break):
+<img src="flip/effects-s2-clip.webp" width="240">
+
+**The reveal**: a picture of the run in place of a list. The minute is one strip of the cave: the best flow streak lit
+gold where it ran, perfect landings as gold diamonds on the top rail, double flips as rings on the lower rail, crashes
+as red marks; under it the four numbers the score is made of, big. Replayed from the stored log with the real sim
+(`src/lib/duel/flipTimeline.ts`, the server replay's inputs); the score stays the server's. Before (today) and after,
+practice at 390 × 844, a Weak run and the flawless one:
+
+<img src="flip/reveal-s2.webp" width="720">
+
 
 ## Grappler
 

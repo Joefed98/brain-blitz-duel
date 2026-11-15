@@ -2,6 +2,8 @@ import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { flipFxFor } from "./arcadeFxGames.renderer";
+import { ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
+import { FLIP_CRASH_FLASH_TICKS, FLIP_FLOW_BREAK_MIN, FLIP_FLOW_BREAK_TICKS, FLIP_FLOW_POP_TICKS, FLIP_NEAR_GLINT_TICKS, FLIP_PUFF_TICKS, FLIP_RING_TICKS, flipCrashTick, flipFlowCountShown, flipFlowPopAge, flipIsDouble, flipLandingPuff, flipNearMissShown, flipTakeoffTick } from "./flipFx";
 /** Lava-tube artwork only. Never mutates the simulation or changes its geometry. */
 import type { CanvasSize } from "./engine";
 import {
@@ -1344,6 +1346,8 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     // (hazards stand on the surfaces, so the middle of the tunnel is always clear there).
     if (!state.grace) drawSaveBadge(ctx, state, 8, (ceilAt(15) + floorAt(15)) / 2 - 8);
   }
+  // Stage 2 (display only, flipRev 11–13): a near miss's glint on its spike and the landing's dust (gold on a sweet spot).
+  if (state.flow) drawFlowGroundFx(ctx, state, toScreen, floorAt, ceilAt, still);
   // Edge to edge (flipRev 11–13): the sides fade to the bedrock the side scene paints.
   if (state.flow) drawSideFade(ctx);
   // flipRev 11: the flow streak in the rock above the cave (no star counts on this revision).
@@ -1365,9 +1369,22 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   }
   // flipRev 13 (grace): after a crash the runner blinks while its second of shield lasts (held steady under reduced motion).
   const blink = state.grace && (state.inv ?? 0) > 0 && state.ended === 0 && !still && Math.floor(state.tick / 4) % 2 === 0;
+  // Stage 2 (display only, flipRev 11–13): the flip's two-frame motion trail behind the runner.
+  if (state.flow && !blink) drawFlipTrail(ctx, state, still, sink);
   if (blink) ctx.globalAlpha = 0.35;
+  // Stage 2: the flip's slight stretch along its arc (inside the clip, at most 1.3 px past the box: the bounds rule's 2).
+  const stretch = state.flow && !still ? flipStretch(state) : 0;
+  if (stretch > 0) {
+    ctx.save();
+    ctx.translate(RUNNER_X, y);
+    ctx.scale(1 - FLIP_STRETCH_X * stretch, 1 + FLIP_STRETCH_Y * stretch);
+    ctx.translate(-RUNNER_X, -y);
+  }
   drawRunnerHero(ctx, state, y, still, sink);
+  if (stretch > 0) ctx.restore();
   ctx.globalAlpha = 1;
+  // Stage 2: the crash's flash, the double flip's ring, the flow counter beside the runner and the end card's flow best.
+  if (state.flow) drawFlowRunnerFx(ctx, state, y, still);
   if (state.exp && (state.inv ?? 0) > 0 && state.ended === 0) drawShield(ctx, state, y, still);
   successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-((state.exp?state.arcN||FLIP_ARC_TICKS:FLIP_ARC_TICKS)-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-1:1)*runnerBox(state).h/2,shape:'pixel'}});
   ctx.restore();
@@ -1702,6 +1719,315 @@ function drawSaveBadge(ctx: CanvasRenderingContext2D, state: FlipState, x: numbe
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
+  ctx.restore();
+}
+
+/* ===================== Stage 2 effects (flipRev 11–13, display only) ===================== */
+// The Action overhaul stage 2 (15 Nov 2026; docs/arcade-standard/flip.md "Stage 2: effects and reveal"). Every moment is
+// read from the state (flipFx.ts); only the flow counter's break and the end card's count keep a per-canvas memory (the
+// streak before the break, the moment the run ended), reset when the run is seeked back. Nothing here is read by the sim.
+
+/** The flip's stretch: across and along its arc at its peak (the clip grows ≤ 1.3 px a side, inside the bounds rule's 2). */
+export const FLIP_STRETCH_X = 0.035;
+export const FLIP_STRETCH_Y = 0.07;
+/** How far into its arc the motion trail lasts (share of the arc). */
+const TRAIL_UNTIL = 0.85;
+const GOLD = "#F5B82E";
+const GOLD_LIGHT = "#FFE4A1";
+
+/** 0 on the ground, rising to 1 at the arc's middle and back to 0 on landing (sin of the arc's share). */
+export function flipStretch(state: FlipState): number {
+  if (state.flipT <= 0 || state.ended !== 0) return 0;
+  const n = state.arcN || FLIP_ARC_TICKS;
+  return Math.sin(Math.PI * (1 - Math.min(n, state.flipT) / n));
+}
+
+/** The two-frame motion trail: the runner where it was 2 and 4 ticks ago, faint (one ghost on reduced effects). */
+function drawFlipTrail(ctx: CanvasRenderingContext2D, state: FlipState, still: boolean, sink: number | null): void {
+  if (still || state.flipT <= 0 || state.ended !== 0) return;
+  const n = state.arcN || FLIP_ARC_TICKS;
+  if (1 - state.flipT / n > TRAIL_UNTIL) return;
+  const lift = runnerBox(state).h / 2;
+  const ghosts: [number, number][] = arcadeReducedEffects() ? [[2, 0.2]] : [[4, 0.1], [2, 0.22]];
+  for (const [k, alpha] of ghosts) {
+    const flipT = Math.min(n, state.flipT + k);
+    if (flipT === state.flipT) continue;
+    const ghost = { ...state, flipT };
+    const gy = runnerY(ghost, state.side, flipT, lift) + state.warpY;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawRunnerHero(ctx, ghost, gy, still, sink);
+    ctx.restore();
+  }
+}
+
+/** A spike blade's tip, exactly as drawSpikeBlades draws it (blade k of the span a..b; -1 the last). */
+function bladeTip(a: number, b: number, inward: number, at: Surface, maxH: number, seed: number, k: number): { x: number; y: number } {
+  const count = Math.max(2, Math.round((b - a) / 17));
+  const slot = (b - a) / count;
+  const kk = Math.max(0, Math.min(count - 1, k < 0 ? count - 1 : k));
+  const h = artHash(seed, kk);
+  const x = a + slot * kk + slot * (0.44 + (h % 12) / 100);
+  return { x, y: at(x) + inward * maxH * (0.86 + ((h >>> 6) % 15) / 100) };
+}
+
+/** A four-point white glint: crisp, no blur. */
+function glint(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, alpha: number): void {
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.quadraticCurveTo(x, y, x + r * 0.62, y);
+  ctx.quadraticCurveTo(x, y, x, y + r);
+  ctx.quadraticCurveTo(x, y, x - r * 0.62, y);
+  ctx.quadraticCurveTo(x, y, x, y - r);
+  ctx.fill();
+  ctx.fillRect(x - 0.8, y - 0.8, 1.6, 1.6);
+  ctx.restore();
+}
+
+/** The near miss's glint on its spike, and the landing's puff (dust, or gold on a sweet spot) at the landing spot. */
+function drawFlowGroundFx(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (wx: number) => number, floorAt: Surface, ceilAt: Surface, still: boolean): void {
+  const lite = arcadeReducedEffects();
+  const miss = flipNearMissShown(state);
+  const seg = miss ? state.segs[miss.seg] : undefined;
+  if (miss && seg) {
+    const shift = flipSegShift(seg, state.tick) / FP;
+    const inward = seg.side === 0 ? -1 : 1;
+    const tip = bladeTip(toScreen(seg.x0) + shift, toScreen(seg.x1) + shift, inward, seg.side === 0 ? floorAt : ceilAt, FLIP_FLOW_SPIKE_H, seg.x0 ^ state.warpFloor, miss.kind === "off" ? 0 : -1);
+    const t = (state.tick - miss.tick) / FLIP_NEAR_GLINT_TICKS;
+    // The glint flares and shrinks (still under reduced motion), a thin white catch-light down the blade's lit face.
+    const r = still ? 8 : 11 * (1 - 0.55 * t) * Math.min(1, 0.4 + t * 4);
+    glint(ctx, tip.x, tip.y, r, 1 - t * t);
+    ctx.save();
+    ctx.globalAlpha = 0.75 * (1 - t);
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(tip.x - 1, tip.y - inward * 3);
+    ctx.lineTo(tip.x - 5, tip.y - inward * 16);
+    ctx.stroke();
+    ctx.restore();
+  }
+  const puff = flipLandingPuff(state);
+  if (puff) {
+    const x = toScreen(puff.x);
+    const at = puff.side === 0 ? floorAt : ceilAt;
+    const inward = puff.side === 0 ? -1 : 1;
+    const t = puff.age / FLIP_PUFF_TICKS;
+    const e = 1 - (1 - t) * (1 - t);
+    const n = (puff.sweet ? 10 : 6) / (lite ? 2 : 1);
+    ctx.save();
+    for (let i = 0; i < n; i++) {
+      const h = artHash(puff.x | 0, i);
+      const dir = i % 2 === 0 ? -1 : 1;
+      const reach = (10 + (h % 14)) * (puff.sweet ? 1.5 : 1);
+      const px = still ? x + dir * (6 + (i >> 1) * 4) : x + dir * (3 + reach * e);
+      const py = at(px) + inward * (2 + (((h >>> 5) % 6) + 3) * (still ? 0.6 : e));
+      const r = (2.2 + ((h >>> 9) % 10) / 4) * (still ? 1 : 1 - 0.35 * t) + (puff.sweet ? 1.4 : 0);
+      const a = (1 - t) * (puff.sweet ? 0.95 : 0.55);
+      if (puff.sweet) {
+        // Gold dust with a lit top: a warm body and a pale highlight where the cave light catches it.
+        ctx.globalAlpha = a;
+        ctx.fillStyle = i % 3 === 0 ? GOLD_LIGHT : GOLD;
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = a * 0.9;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(px - r * 0.45, py - r * 0.55, r * 0.5, r * 0.4);
+      } else {
+        ctx.globalAlpha = a;
+        ctx.fillStyle = i % 2 === 0 ? "#9E948C" : "#7C736C";
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+}
+
+interface FlowMemory {
+  tick: number;
+  streak: number;
+  breakTick: number;
+  breakValue: number;
+  endTick: number;
+  endAt: number;
+}
+const flowMemories = new WeakMap<object, FlowMemory>();
+
+function flowMemory(ctx: object, state: FlipState): FlowMemory {
+  let m = flowMemories.get(ctx);
+  if (!m || state.tick < m.tick) {
+    m = { tick: state.tick, streak: state.streak ?? 0, breakTick: -1000, breakValue: 0, endTick: -1, endAt: 0 };
+    flowMemories.set(ctx, m);
+  }
+  const streak = state.streak ?? 0;
+  if (state.tick > m.tick) {
+    if (streak === 0 && m.streak >= FLIP_FLOW_BREAK_MIN) {
+      m.breakTick = flipCrashTick(state) ?? state.tick;
+      m.breakValue = m.streak;
+    }
+    m.tick = state.tick;
+    m.streak = streak;
+  }
+  return m;
+}
+
+/** The streak counter's chip: a dark enamel pill, the count in gold (all gold with dark text on every 10th). */
+function flowChip(ctx: CanvasRenderingContext2D, text: string, cx: number, cy: number, ten: boolean, dull = false): void {
+  ctx.font = `800 15px ${ARCADE_FX_DISPLAY_FONT}`;
+  const w = Math.ceil(ctx.measureText(text).width) + 14;
+  const h = 22;
+  const body = ctx.createLinearGradient(0, cy - h / 2, 0, cy + h / 2);
+  if (dull) {
+    body.addColorStop(0, "#3A3634");
+    body.addColorStop(1, "#262322");
+  } else if (ten) {
+    body.addColorStop(0, "#FFE08A");
+    body.addColorStop(0.5, GOLD);
+    body.addColorStop(1, "#C98A16");
+  } else {
+    body.addColorStop(0, "#2C2622");
+    body.addColorStop(1, "#141112");
+  }
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2);
+  ctx.fill();
+  // The enamel's crisp highlight along its top curve (no glow).
+  ctx.strokeStyle = dull ? "rgba(255,255,255,0.08)" : ten ? "rgba(255,255,255,0.55)" : "rgba(255,228,161,0.22)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - w / 2 + h / 2, cy - h / 2 + 1.5);
+  ctx.lineTo(cx + w / 2 - h / 2, cy - h / 2 + 1.5);
+  ctx.stroke();
+  ctx.fillStyle = dull ? "#8F8984" : ten ? "#2A1A04" : "#FFD27A";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, cx, cy + 1);
+}
+
+/**
+ * Where the flow counter rides: over the runner's head, on the cave side (PERFECT shows ahead of it, flipPerfectAt). In a
+ * flip it turns with the runner, swinging round behind it (never ahead, where the hazards come from) to the other side.
+ */
+export function flipFlowChipAt(state: FlipState, y: number, still = false): { x: number; y: number } {
+  const upright = state.side === 0 ? 0 : Math.PI;
+  const n = state.arcN || FLIP_ARC_TICKS;
+  const angle = !still && state.flipT > 0 ? upright + (state.side === 0 ? -1 : 1) * Math.PI * (Math.min(n, state.flipT) / n) : upright;
+  const x = flipRunnerX(state) + 4 * Math.cos(angle) + 44 * Math.sin(angle);
+  return { x: Math.max(24, x), y: y + 4 * Math.sin(angle) - 44 * Math.cos(angle) };
+}
+
+/** The crash's flash, the double flip's ring, the flow counter beside the runner and the end card's flow best. */
+function drawFlowRunnerFx(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean): void {
+  const mem = flowMemory(ctx, state);
+  const inward = state.side === 0 ? -1 : 1;
+  ctx.save();
+  // A crash: a short white flash at the runner, then the respawn blink (drawn by the runner's own pass).
+  const crash = flipCrashTick(state);
+  if (crash !== null && state.ended === 0 && state.tick - crash < FLIP_CRASH_FLASH_TICKS) {
+    const t = (state.tick - crash) / FLIP_CRASH_FLASH_TICKS;
+    const r = still ? 24 : 18 + 14 * t;
+    const flash = ctx.createRadialGradient(RUNNER_X, y, 2, RUNNER_X, y, r);
+    flash.addColorStop(0, `rgba(255,255,255,${(still ? 0.35 : 0.7) * (1 - t)})`);
+    flash.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = flash;
+    ctx.beginPath();
+    ctx.arc(RUNNER_X, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // A double flip: a gold ring opening round the runner (a second on a triple).
+  const off = flipTakeoffTick(state);
+  if (flipIsDouble(state) && off !== null) {
+    const rings = Math.min(2, state.chain ?? 1);
+    for (let k = 0; k < rings; k++) {
+      const age = state.tick - off - k * 4;
+      if (age < 0 || age >= FLIP_RING_TICKS) continue;
+      const t = age / FLIP_RING_TICKS;
+      const e = 1 - (1 - t) * (1 - t);
+      ctx.strokeStyle = GOLD;
+      ctx.globalAlpha = 0.95 * (1 - t);
+      ctx.lineWidth = 3.2 * (1 - t) + 0.8;
+      ctx.beginPath();
+      ctx.arc(RUNNER_X, y, still ? 26 : 18 + 24 * e, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // The flow streak's counter, riding beside the runner on the cave side of its head.
+  const streak = state.streak ?? 0;
+  const { x: cx, y: cy } = flipFlowChipAt(state, y, still);
+  if (streak > 0 && state.ended === 0) {
+    const age = flipFlowPopAge(state);
+    const ten = streak % 10 === 0;
+    const p = age === null || still ? 0 : 1 - age / FLIP_FLOW_POP_TICKS;
+    const s = 1 + (ten ? 0.45 : 0.3) * p * p;
+    ctx.save();
+    ctx.translate(cx, cy - 3 * p);
+    ctx.scale(s, s);
+    flowChip(ctx, `×${streak}`, 0, 0, ten);
+    ctx.restore();
+    if (ten && p > 0) {
+      // Every 10th: a brighter step, two small glints off the chip.
+      glint(ctx, cx + 20, cy - 10, 6 * p + 2, p);
+      glint(ctx, cx - 18, cy + 9, 4 * p + 2, p * 0.8);
+    }
+  } else if (state.ended === 0 && state.tick - mem.breakTick < FLIP_FLOW_BREAK_TICKS) {
+    // A break: the chip cracks in two and falls away, dulled (fades in place under reduced motion).
+    const t = (state.tick - mem.breakTick) / FLIP_FLOW_BREAK_TICKS;
+    const text = `×${mem.breakValue}`;
+    ctx.font = `800 15px ${ARCADE_FX_DISPLAY_FONT}`;
+    const w = Math.ceil(ctx.measureText(text).width) + 14;
+    for (const half of [-1, 1]) {
+      ctx.save();
+      ctx.globalAlpha = 1 - t * t;
+      const fall = still ? 0 : 140 * t * t;
+      ctx.translate(cx + (still ? 0 : half * 10 * t), cy - inward * fall);
+      ctx.rotate(still ? 0 : half * 0.9 * t);
+      ctx.beginPath();
+      // The crack: a zigzag down the chip's middle; each half keeps its side.
+      ctx.moveTo(0, -12);
+      ctx.lineTo(half * -2, -4);
+      ctx.lineTo(half * 2, 2);
+      ctx.lineTo(0, 12);
+      ctx.lineTo(half * (w / 2 + 2), 12);
+      ctx.lineTo(half * (w / 2 + 2), -12);
+      ctx.closePath();
+      ctx.clip();
+      flowChip(ctx, text, 0, 0, false, true);
+      ctx.restore();
+    }
+  }
+  // The end card: under SURVIVED!, the run's best flow streak counting up.
+  const best = state.bestStreak ?? 0;
+  if (state.ended === 1 && best > 0) {
+    const now = typeof performance === "undefined" ? 0 : performance.now();
+    if (mem.endTick !== state.endedTick) {
+      mem.endTick = state.endedTick;
+      mem.endAt = now;
+    }
+    const shown = flipFlowCountShown(best, now - mem.endAt, still);
+    const midY = flipWorldH(state) * 0.4 + 62;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+    ctx.font = `800 16px ${ARCADE_FX_DISPLAY_FONT}`;
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(10,8,8,0.85)";
+    ctx.strokeText("BEST FLOW", FLIP_WORLD_W / 2, midY);
+    ctx.fillStyle = GOLD_LIGHT;
+    ctx.fillText("BEST FLOW", FLIP_WORLD_W / 2, midY);
+    ctx.font = `900 44px ${ARCADE_FX_DISPLAY_FONT}`;
+    ctx.lineWidth = 6;
+    ctx.strokeText(String(shown), FLIP_WORLD_W / 2, midY + 36);
+    ctx.fillStyle = GOLD;
+    ctx.fillText(String(shown), FLIP_WORLD_W / 2, midY + 36);
+  }
   ctx.restore();
 }
 

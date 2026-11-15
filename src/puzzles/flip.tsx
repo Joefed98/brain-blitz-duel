@@ -8,6 +8,7 @@ import {
   FLIP_REV_GRACE,
   FLIP_WORLD_W,
   flipWorldHFor,
+  type FlipState,
 } from "@/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { FLIP_TIME_MS, type FlipPuzzleData } from "@/lib/duel/types";
@@ -15,6 +16,10 @@ import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 import { flipArenaSceneFor, flipArtGameFor } from "@/lib/arcade/flipArt.renderer";
 import { flipSounds } from "@/lib/fx/gameSounds";
+import { flipEndHoldMs } from "@/lib/arcade/flipFx";
+import { flipRunTimeline } from "@/lib/duel/flipTimeline";
+import { FlipRunPicture } from "@/components/puzzles/FlipRunPicture";
+import { useMemo } from "react";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -57,6 +62,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldH={flipWorldHFor(data?.flipRev)}
       game={game}
       sounds={flipSounds}
+      endHoldMs={(state) => flipEndHoldMs(state as FlipState)}
       checkpoint={flipCheckpoint}
       interval={FLIP_CHECKPOINT_INTERVAL}
       encodeRun={encodeFlipRun}
@@ -79,8 +85,16 @@ export function flipLine(r: { survived: boolean; survivedSeconds: number }): str
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "flip") return null;
-  const result = replayFlipRun(puzzle.seed, myAnswer ?? "", puzzle.flipRev);
+  const flip = puzzle.type === "flip" ? puzzle : null;
+  // Stage 2 of the Action overhaul (15 Nov 2026): the flow revisions (flipRev 11–13) draw the run as a picture, replayed
+  // from the stored log with the real sim; earlier revisions keep their lines.
+  const timeline = useMemo(
+    () => (flip && myAnswer ? flipRunTimeline(flip.seed, myAnswer, flip.flipRev) : null),
+    [flip, myAnswer],
+  );
+  if (!flip) return null;
+  if (timeline) return <FlipRunPicture timeline={timeline} />;
+  const result = replayFlipRun(flip.seed, myAnswer ?? "", flip.flipRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">

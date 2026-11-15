@@ -1051,7 +1051,9 @@ export interface FlipV8Course {
 }
 
 export function flipWorldHFor(rev?: number | null): number {
-  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD || rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
+  // flipRev 13 (grace) plays flipRev 12's course in the same 730 px cave (display only: the stage's and replay's world box;
+  // until 15 Nov 2026 it was left off this list, so a flipRev 13 stage drew its 730 px cave shrunk into a 620 px box).
+  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD || rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL || rev === FLIP_REV_GRACE ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
 }
 export function flipWorldH(state: Pick<FlipState, "exp">): number {
   return state.exp ? FLIP_V8_WORLD_H : FLIP_WORLD_H;

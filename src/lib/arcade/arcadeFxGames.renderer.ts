@@ -1237,6 +1237,10 @@ export const BUBBLE_FX: ArcadeFxSpec<BubState> = {
 /** Where a perfect landing's PERFECT shows: just off the runner's head, into the cave (below it on the roof above). */
 function flipPerfectAt(s: FlipState): { x: number; y: number } {
   const p = flipRunnerPoint(s);
+  // The flow revisions (flipRev 11–13, stage 2 of the Action overhaul): at the landing spot, just ahead of the runner's
+  // feet (the pop draws 10 px above its spot), clear of the flow counter riding over the runner's head (flipFlowChipAt)
+  // and of a double flip's pop as the runner leaves the surface.
+  if (s.flow) return { x: p.x + 58, y: s.side === 0 ? p.y + 22 : p.y - 2 };
   return { x: p.x + 16, y: s.side === 0 ? p.y - 24 : p.y + 38 };
 }
 

@@ -318,14 +318,14 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `flip.nearMiss` | The runner passes a spike within a few pixels (stage 2) [action-overhaul-stage2.md] | A white glint on the spike | 0–10 | silent | none | 250 | game event | `flip.nearMiss` |
-| `flip.sweetGold` | A sweet-spot landing's gold dust puff (stage 2; the chime stays flip.sweetLanding) [action-overhaul-stage2.md] | A gold puff at the landing spot | 0–8 | silent | none | 350 | game event | `flip.sweetGold` |
-| `flip.flowCount` | The end card's flow best counting up (stage 2) [action-overhaul-stage2.md] | SURVIVED! with the flow best counting up | 0–1 | silent | none | 800 | game event | `flip.flowCount` |
-| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) [arcade-effects.md] | The runner blinks for its second of shield; a "−10 s" pop | 0–5 | silent | none | 450 | game event | `flip.respawn` |
-| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) [arcade-effects.md] | The runner touches down on the lip | 20–60 | silent | none | 180 | game event | `flip.land` |
-| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) [arcade-effects.md] | The FLOW chip ticks up | 20–60 | silent | none | 160 | game event | `flip.flowTick` |
-| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) [arcade-effects.md] | The FLOW chip ticks up | 0–6 | silent | none | 300 | game event | `flip.flowTen` |
-| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) [arcade-effects.md] | The FLOW chip drops to 0 | 0–5 | silent | none | 350 | game event | `flip.flowBreak` |
+| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) [arcade-effects.md] | A short white flash at the runner (8 ticks), then it blinks for its second of shield; a "−10 s" pop | 0–5 | silent | none | 450 | game event | `flip.respawn` |
+| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) [arcade-effects.md] | A dust puff at the landing spot, drifting back with the cave (stage 2; gold on a sweet spot) | 20–60 | silent | none | 180 | game event | `flip.land` |
+| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) [arcade-effects.md] | The flow counter riding over the runner's head ("×12") pops up a step (stage 2); the FLOW chip ticks up | 20–60 | silent | none | 160 | game event | `flip.flowTick` |
+| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) [arcade-effects.md] | The counter turns gold for the step, bigger, with two small glints (stage 2) | 0–6 | silent | none | 300 | game event | `flip.flowTen` |
+| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) [arcade-effects.md] | The counter cracks in two, dulls and falls away (stage 2); the FLOW chip drops to 0 | 0–5 | silent | none | 350 | game event | `flip.flowBreak` |
+| `flip.nearMiss` | The runner flips off just before a spike or lands just past one, within 24 px of its box (flipRev 11–13, stage 2 of the Action overhaul) [arcade-effects.md] | A white glint on the spike's nearest blade tip | 0–10 | silent | none | 250 | game event | `flip.nearMiss` |
+| `flip.sweetGold` | A sweet-spot landing's gold dust puff (flipRev 11–13, stage 2; the chime stays flip.sweetLanding) [arcade-effects.md] | A gold puff at the landing spot | 0–8 | silent | none | 350 | game event | `flip.sweetGold` |
+| `flip.flowCount` | The end card's flow best counting up (flipRev 11–13, stage 2) [arcade-effects.md] | SURVIVED! with BEST FLOW counting up under it (800 ms) | 0–1 | silent | none | 800 | game event | `flip.flowCount` |
 
 ### Rooftop Run
 
