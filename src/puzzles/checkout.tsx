@@ -852,7 +852,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: Puz
   useBeforePaint(() => {
     const el = box.current;
     if (!el) return;
-    const measure = () => setWidth(Math.max(200, Math.min(320, Math.floor(el.clientWidth))));
+    // As wide as the box allows, up to 320, and no taller than 38 % of the screen, so a short phone keeps the reveal's
+    // text at full size (the shared reveal fit would otherwise shrink everything).
+    const measure = () =>
+      setWidth(Math.max(200, Math.min(320, Math.floor(el.clientWidth), Math.floor(window.innerHeight * 0.38))));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
