@@ -13,6 +13,9 @@ one per 60 ms), `mines_reveal`, `mines_cascade`, `mines_flag`, `mines_unflag`, t
 
 ## Wanted
 
+Every action in the seven games, game by game (Joe, 15 Nov 2026: none may be missed). An action marked *kept* stays on
+today's file; every other line needs a new or better recording.
+
 (A list, not a table, so the cue sheet does not read these as cues before their slots exist.)
 
 - `sudoku.place`: A lacquered wooden tile set down on a hard board, one soft dry tap, 0.15 s
@@ -39,3 +42,37 @@ one per 60 ms), `mines_reveal`, `mines_cascade`, `mines_flag`, `mines_unflag`, t
 - `minesweeper.hit`: A heavy muffled thud under stone, no explosion crackle, 0.45 s
 - `minesweeper.defuse`: A soft mechanical click, like a spring-loaded pin locking, 0.15 s (each remaining mine defused at the clear)
 - `minesweeper.tapNumber`: A tiny dull knock on stone, 0.1 s (an unsatisfied number tapped)
+
+### Every action, checked
+
+- Box Six: select a cell (silent by design: selection is constant), digit placed (`sudoku.place`), same digit again
+  clears (`sudoku.clear`: A tile lifted off a board, a soft dry tick, 0.12 s), pencil (`sudoku.pencil`), Clear button
+  (`sudoku.clear`), clash (`sudoku.clash`), line done (`sudoku.line`), several lines (`sudoku.combo`), solve
+  (`sudoku.solve`: Grid lines ringing into gold, a warm rising shimmer of small chimes outward from one point, 1.0 s).
+- Polypotions: lift (`tubes.lift`), pour (`tubes.pour`), wrong flask (`tubes.wrong`), cork (`tubes.cork`, *kept*),
+  two corks quickly (`tubes.combo`: Two quick cork pops then a bright glassy ting, 0.6 s), Undo (`tubes.undo`), Reset
+  (`tubes.reset`: Several glass vials set back in a wooden rack at once, a soft clatter, 0.5 s), out of pours
+  (`tubes.outOfPours`), solve (`tubes.solve`, *kept*: done.corks), each cork glinting at the end (`tubes.glint`: A tiny
+  glass ting, very soft, 0.2 s).
+- Hanoi: lift (`tower.lift`: A wooden ring lifted off a post, a light wooden scrape, 0.25 s), deselect
+  (`tower.lower`: The same ring lowered back, a soft tap, 0.15 s), drop (`tower.drop`), illegal (`tower.illegal`), ring
+  home in order on gold (`tower.glint`), Undo (`tower.undo`: A ring slid back onto a post, short wooden slide, 0.25 s),
+  Reset (`tower.reset`: Several rings slid off posts together, a brief wooden clatter, 0.5 s), solve (`tower.solve`: A
+  rising run of warm wood-block notes ending in a bright gold chime, 1.0 s), time-out near miss (`tower.near`: A soft
+  falling two-note wooden tone, 0.4 s).
+- Safe Cracker: dial step (`safe.click`, *kept*, capped to one per 60 ms), wrong try (`safe.wrongTry`), broken clues
+  flashing (covered by `safe.wrongTry`), right try (`safe.solve`), drums locking in turn before the door
+  (`safe.drumLock`: A single brass tumbler dropping into place, crisp metallic click, 0.15 s).
+- Mosaic: fill (`nonogram.fill`), drag paint (`nonogram.paint`), × (`nonogram.mark`), clear (`nonogram.clear`, *kept*),
+  line complete (`nonogram.line`), two lines at once (`nonogram.combo`: Two porcelain chime notes together, a small
+  bright chord, 0.6 s), solve (`nonogram.solve`: Tiles flipping row by row, a quick cascade of light ceramic clicks into
+  a soft chime, 1.0 s).
+- Colour Flood: flood (`flood.spread`), 20+ squares (`flood.combo`), the current colour tapped (`flood.reject`: A dull
+  glass marble bump, 0.15 s), near par counter glow (`flood.nearPar`: A soft low pulse, like a muted bell, 0.4 s), out of
+  moves (`flood.outOfMoves`: A short descending glassy tone, final, 0.6 s), solve (`flood.solve`: One deep warm swell
+  across the board, enamel shimmer, 1.0 s).
+- Minefield: reveal (`minesweeper.reveal`, *kept*), cascade (`minesweeper.cascade`, *kept*, its ticks to be pitched
+  rising: `minesweeper.cascadeTick`: A dry stone tick, very short, 0.05 s), flag and unflag (`minesweeper.flag`,
+  `minesweeper.unflag`, *kept*), unsatisfied number tapped (`minesweeper.tapNumber`), mine (`minesweeper.hit`), clear
+  (`minesweeper.clear`: Soft clicks of mines defusing one after another, ending on a calm low chime, 1.2 s), each mine
+  defused (`minesweeper.defuse`).

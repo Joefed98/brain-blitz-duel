@@ -151,6 +151,10 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
  */
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
   const rooms: Record<string, string> = {};
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): whole rooms deal as main did
+  // with Polypotions' tubesRev 3 pinned off, as dealDigest does.
+  const wasOverhaul = setDealPin("preLogicOverhaul1", true);
+  try {
   for (const seed of seeds) {
     try {
       const room = withSeededRandom(seed, () => buildRoomPuzzles({ seed, unblockRow: null }));
@@ -165,6 +169,9 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
     } catch (error) {
       rooms[String(seed)] = `ERR ${String((error as Error)?.message ?? error).split("\n")[0]}`;
     }
+  }
+  } finally {
+    setDealPin("preLogicOverhaul1", wasOverhaul);
   }
   return rooms;
 }
