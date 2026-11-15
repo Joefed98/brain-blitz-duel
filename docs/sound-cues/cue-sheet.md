@@ -22,12 +22,12 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | game event | 35 | 0 | 488 | 523 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
-| UI tap | 10 | 0 | 30 | 40 |
+| UI tap | 12 | 0 | 30 | 42 |
 | fail sting | 4 | 0 | 37 | 41 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 63 | 1 | 984 | 1048 |
 
 ## Silent and placeholder cues
 
@@ -137,6 +137,13 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `stroop.gatePulse` | Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md] |  | 5–40 (per move) | silent | none | 300 | game event | `stroop.gatePulse` |
+
+### Tally
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `countup.mark` | Tally: countRev 7: a shape tapped to mark it as counted (the Attention overhaul, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | silent | none | 120 | UI tap | `countup.mark` |
+| `countup.unmark` | Tally: countRev 7: a mark taken off a shape [speed-attention.md] |  | 5–40 (per move) | silent | none | 100 | UI tap | `countup.unmark` |
 
 ### Gradient
 

@@ -6,16 +6,16 @@
  */
 
 /* ------------------------------------------------------------------ controls: champagne gold and navy */
-html body .attn-action {
-  background: var(--jz-gold);
-  color: var(--jz-navy);
+html body .attn-action:not(:disabled) {
+  background: var(--jz-gold) !important;
+  color: var(--jz-navy) !important;
   border: 1px solid var(--jz-gold-ledge);
   box-shadow: 0 2px 0 var(--jz-gold-ledge);
   text-shadow: none;
 }
-html body .attn-action[data-attn-action="secondary"] {
-  background: var(--jz-navy);
-  color: var(--jz-gold);
+html body .attn-action[data-attn-action="secondary"]:not(:disabled) {
+  background: var(--jz-navy) !important;
+  color: var(--jz-gold) !important;
   border-color: var(--jz-navy-edge);
   box-shadow: 0 2px 0 var(--jz-bg);
 }

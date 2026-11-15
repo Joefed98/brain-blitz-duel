@@ -29,6 +29,8 @@ spotdiff.miss,Double Take,Double Take: A wrong tap (the existing shake) [speed-a
 symscan.mark,Eagle Eye,Eagle Eye: A cell is marked (pop) [speed-attention.md],,5–40 (per move),silent,,200,UI tap,symscan.mark,
 symscan.unmark,Eagle Eye,Eagle Eye: A cell is unmarked [speed-attention.md],,5–40 (per move),silent,,150,UI tap,symscan.unmark,
 stroop.gatePulse,Mixed Signals,"Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md]",,5–40 (per move),silent,,300,game event,stroop.gatePulse,
+countup.mark,Tally,"Tally: countRev 7: a shape tapped to mark it as counted (the Attention overhaul, 15 Nov 2026) [speed-attention.md]",,5–40 (per move),silent,,120,UI tap,countup.mark,
+countup.unmark,Tally,Tally: countRev 7: a mark taken off a shape [speed-attention.md],,5–40 (per move),silent,,100,UI tap,countup.unmark,
 tiles.slide,Gradient,A tile changes cell (a slide or an undo) [pattern.md (Gradient (tiles))],,5–40 (per move),silent,,160,game event,tiles.slide,
 push.step,Heave,A walking step [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.step,
 push.push,Heave,A step that pushes a crate [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.push,

@@ -370,7 +370,7 @@ def felt_tray():
 def maze_floor():
     """Labyrinth's floor: dark flagstone, seamless, one square of the maze a tile."""
     setup(360, 360, scale=2)
-    plane(0, 0, 360, 360, stone("flag", "#2a272c", "#1d1b20", scale=2.5, bump=0.25), z=0)
+    plane(0, 0, 360, 360, stone("flag", "#1e1b21", "#141217", scale=2.5, bump=0.25), z=0)
     write("maze", "floor")
 
 

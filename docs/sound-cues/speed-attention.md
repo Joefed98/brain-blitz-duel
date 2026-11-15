@@ -22,6 +22,8 @@ Completion effects last at most 1.2 s. Most of the motion is done by about 0.9 s
 | `countup.countersTick` | Tally | Final answer submitted: tray counters start ticking up | 1.1 s (effect) |
 | `countup.countersLock` | Tally | The last counter locks (about 790 ms into the effect) | instant |
 | `countup.trayIn` | Tally | Stage 2 or 3 tray slides in (2, 3 or 4 on countRev 2) | 280 ms |
+| `countup.mark` | Tally | countRev 7: a shape tapped to mark it as counted (the Attention overhaul, 15 Nov 2026) | 120 ms |
+| `countup.unmark` | Tally | countRev 7: a mark taken off a shape | 100 ms |
 | `pairmatch.cardWave` | Matchmaker | Last pair matched: the cards flip in a wave | 1.1 s |
 | `whack.finale` | Bonk | End of run, local `whackGame.score` ≥ 120: hard hats fly up as gophers pop out together | 1.1 s |
 | `clayshoot.finalBurst` | Pull! | End of run, local clay score ≥ 120: final burst of clay fragments | 1.1 s (effect) |

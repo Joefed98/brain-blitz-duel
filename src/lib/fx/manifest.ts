@@ -488,6 +488,10 @@ const ENTRIES = {
   "countup.countersTick": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/countup.countersTick.mp3" },
   "countup.countersLock": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.counterLock.mp3" },
   "countup.trayIn": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/countup.trayIn.mp3", volume: 0.86 },
+  // The Attention overhaul (15 Nov 2026; docs/sound-cues/attention-elevenlabs.md): Tally's tap-to-mark (countRev 7).
+  // Silent until Joe's recordings land as public/sounds/<slot>.mp3 and the url is set here.
+  "countup.mark": { channel: "effects", frequency: 0, ms: 120, url: null },
+  "countup.unmark": { channel: "effects", frequency: 0, ms: 100, url: null },
   "flow.connect": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/flow.connect.mp3", volume: 0.79 },
   "flow.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "unblock.slide": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3" },

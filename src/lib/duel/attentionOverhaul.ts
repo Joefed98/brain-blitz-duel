@@ -77,7 +77,7 @@ export function dealAttentionOverhaul<T extends { type: string }>(puzzle: T): T 
 /* ------------------------------------------------------------------ Double Take */
 
 type SpotColourId = keyof typeof SPOT_ENAMEL;
-const spotHex = (c: StroopColour): string => SPOT_ENAMEL[c as SpotColourId] ?? "#000000";
+const spotHex = (c: StroopColour): string => SPOT_ENAMEL[c as SpotColourId] ?? SPOT_ENAMEL.BROWN;
 
 /** The colours a Double Take shape of colour `c` may change to on spotRev 4 (lightness apart, never itself). */
 export function spotColourSwaps(c: StroopColour): StroopColour[] {
@@ -109,7 +109,7 @@ export function legibleSpot(p: SpotPuzzleData): SpotPuzzleData {
 /* ------------------------------------------------------------------ Tally */
 
 type TallyColourId = keyof typeof TALLY_ENAMEL;
-const tallyHex = (c: GlyphColour): string => TALLY_ENAMEL[c as TallyColourId] ?? "#000000";
+const tallyHex = (c: GlyphColour): string => TALLY_ENAMEL[c as TallyColourId] ?? TALLY_ENAMEL.RED;
 const TALLY_COLOURS = Object.keys(TALLY_ENAMEL) as GlyphColour[];
 
 /** The colours a tray counts: its question's colour(s); none for a shape-only question. */
@@ -118,6 +118,14 @@ export function tallyCountedColours(stage: CountUpStage): GlyphColour[] {
   if (stage.ask === "shape") return [];
   return [stage.targetColour];
 }
+
+/** The hue look-alikes Tally never puts beside each other (countUp.tsx TOO_CLOSE): never introduced by a recolour. */
+export const TALLY_HUE_LOOKALIKES: readonly (readonly [GlyphColour, GlyphColour])[] = [
+  ["RED", "ORANGE"],
+  ["ORANGE", "BROWN"],
+  ["BLUE", "PURPLE"],
+];
+const hueLookalike = (a: GlyphColour, b: GlyphColour) => TALLY_HUE_LOOKALIKES.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
 /** True when a colour sits clear in lightness of every counted colour (or is one of them). */
 export function tallyColourClear(colour: GlyphColour, counted: GlyphColour[]): boolean {
@@ -168,11 +176,37 @@ export function spreadStage(stage: CountUpStage): CountUpStage {
 
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
 
+/** Colours clear of every counted one in lightness and never their hue look-alike (GOLD never dealt). */
+function clearOf(counted: GlyphColour[]): GlyphColour[] {
+  return TALLY_COLOURS.filter((c) => c !== "GOLD" && !counted.includes(c) && tallyColourClear(c, counted) && counted.every((k) => !hueLookalike(c, k)));
+}
+
+/**
+ * A comparison tray whose two colours leave no clear filler colour: its "less" colour is renamed to one that does (every
+ * shape of it, so both counts and the answer are unchanged); any filler already in the new colour is left for the
+ * recolour that follows.
+ */
+function compareWithRoom(stage: CountUpStage): CountUpStage {
+  const cmp = stage.compare;
+  if (!cmp || clearOf([cmp.more, cmp.less]).length > 0) return stage;
+  const options = TALLY_COLOURS.filter(
+    (c) => c !== "GOLD" && c !== cmp.more && tallyColourClear(c, [cmp.more]) && !hueLookalike(c, cmp.more) && clearOf([cmp.more, c]).length > 0,
+  );
+  if (options.length === 0) return stage;
+  const less = pick(options);
+  // The two colours swap: fillers already in the new colour take the old one (no longer counted), and the recolour that
+  // follows moves them on if they sit too close to the counted colours.
+  const shapes = stage.shapes.map((s) => (s.colour === cmp.less ? { ...s, colour: less } : s.colour === less ? { ...s, colour: cmp.less } : s));
+  return { ...stage, compare: { more: cmp.more, less }, shapes };
+}
+
 /** countRev 7: each tray's uncounted colours made clear of the counted ones, then spread on its grid. */
 export function spreadTally(p: CountUpPuzzleData): CountUpPuzzleData {
-  const stages = p.stages.map((stage) => {
+  const stages = p.stages.map((dealt) => {
+    const stage = compareWithRoom(dealt);
     const counted = tallyCountedColours(stage);
-    const clear = TALLY_COLOURS.filter((c) => c !== "GOLD" && !counted.includes(c) && tallyColourClear(c, counted));
+    // A replacement colour is clear in lightness of the counted ones and never their hue look-alike.
+    const clear = clearOf(counted);
     const shapes = stage.shapes.map((s) => (tallyColourClear(s.colour, counted) || clear.length === 0 ? s : { ...s, colour: pick(clear) }));
     return spreadStage({ ...stage, shapes });
   });
