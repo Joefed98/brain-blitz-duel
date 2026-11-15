@@ -158,20 +158,6 @@ span.ice-player.ice-ball { background: none; }
 }
 .ice-rink.is-solving .ice-exit-art { filter: drop-shadow(0 0 6px rgba(255, 214, 110, 0.95)); }
 
-/* ---------- Reveal: the board as large as the space allows ---------- */
-.answer-reveal-content .reveal-card > .ice-reveal { flex: 1 1 auto; min-height: 0; }
-.ice-reveal > p { flex: 0 0 auto; }
-.ice-reveal-space {
-  flex: 1 1 auto;
-  min-height: 160px;
-  width: 100%;
-  container-type: size;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.ice-reveal-square { width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); }
-
 @media (prefers-reduced-motion: reduce) {
   .ice-broken.is-fresh .ice-art { animation: none; }
   .ice-portal.is-flaring .ice-art { animation: none; filter: brightness(1.35); }
@@ -182,10 +168,6 @@ span.ice-player.ice-ball { background: none; }
   .ice-solve-frost { animation: ice-fade-out 900ms linear both; transform: none; opacity: 0.6; }
   @keyframes ice-fade-out { from { opacity: 0.6; } to { opacity: 0; } }
 }
-
-/* ---------- Reveal: Solution and Yours (slideRev 5), one shown at a time by the answer reveal's switch ---------- */
-.ice-reveal-pair > div { min-height: 0; }
-.ice-reveal-pair .ice-reveal-space { min-height: 140px; }
 
 /* ---------- The Pattern overhaul (15 Nov 2026): the arrow pad, Undo and Reset in champagne gold on navy ---------- */
 [data-polish="iceslide"] button:is([aria-label="Left"], [aria-label="Up"], [aria-label="Down"], [aria-label="Right"]) {
@@ -211,3 +193,32 @@ span.ice-player.ice-ball { background: none; }
 [data-puzzle-surface] [data-polish="iceslide"] > [data-game-controls] [data-puzzle-action][data-puzzle-icon]:disabled::before {
   -webkit-text-fill-color: var(--jz-text-3);
 }
+
+/* ---------- The answer reveal (the Pattern overhaul, 15 Nov 2026) ----------
+   Two labelled columns; the reveal's Solution / Yours switch shows one at a time across the whole row. Each rink is the
+   reveal fit's own target (data-reveal-board), so the fit grows the board itself, never a half-width column. */
+.answer-reveal-content .reveal-card > .ice-reveal { min-height: 0; }
+.ice-reveal-space { width: 100%; container-type: inline-size; }
+.ice-reveal-pair { display: flex; align-items: flex-start; justify-content: center; gap: 12px; }
+.ice-reveal-col { min-width: 0; }
+.ice-reveal-board { width: min(calc(50cqw - 8px), 230px); aspect-ratio: 1; }
+[data-solution-view] .ice-reveal-board { width: min(100cqw, 380px); }
+.ice-reveal-label { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--jz-text-2); }
+.ice-reveal-caption { font-size: 15px; font-weight: 600; color: var(--jz-text); }
+.hud-pills.ice-reveal-pills { justify-content: center; flex-wrap: wrap; height: auto; row-gap: 6px; overflow: visible; }
+.hud-pills.ice-reveal-pills .hud-pill { flex: 0 0 auto; }
+/* A route as arrow chips: the arrow tiles' renders, small, wrapping. */
+.ice-chips { display: flex; align-items: center; gap: 8px; max-width: min(100cqw, 380px); }
+.ice-chips-label { flex: 0 0 auto; min-width: 30px; text-align: right; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--jz-text-2); }
+.ice-chips-row { display: flex; flex-wrap: wrap; gap: 2px; }
+.ice-art.ice-chip { width: 16px; height: 16px; }
+/* Under Solution the par route stands alone: a little larger, centred. */
+[data-ice-chips="solution"] { flex-direction: column; gap: 4px; }
+[data-ice-chips="solution"] .ice-chips-row { justify-content: center; }
+[data-ice-chips="solution"] .ice-art.ice-chip { width: 20px; height: 20px; }
+.ice-chips-pair { display: flex; flex-direction: column; gap: 4px; }
+.ice-chips-none { font-size: 13px; color: var(--jz-text-2); }
+/* Where the ball fell: a red ring on the square. */
+.ice-fell-mark { display: block; width: 100%; height: 100%; border: 3px solid var(--jz-loss); border-radius: 50%; box-sizing: border-box; pointer-events: none; z-index: 2; }
+.ice-reveal-key { display: flex; justify-content: center; font-size: 13px; color: var(--jz-text-2); }
+.ice-key--fell::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 50%; border: 2px solid var(--jz-loss); }

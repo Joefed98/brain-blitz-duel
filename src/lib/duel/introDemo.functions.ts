@@ -109,6 +109,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The Pattern overhaul (15 Nov 2026): gravityRev 8 gives undone tilts back and limits each board to par + 8 (and
     // older demos may show stars), so only a demo recorded on gravityRev 8 plays; until then the intro shows its still.
     if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 8) return null;
+    // The Pattern overhaul (15 Nov 2026): Skid's slideRev 5 gives undone slides back (and older demos may show ice gems),
+    // so only a demo recorded on slideRev 5 plays; until then the intro shows its still.
+    if (data.type === "iceslide" && demo?.puzzle.type === "iceslide" && (demo.puzzle.slideRev ?? 0) < 5) return null;
     if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 4) return null;
     // Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1): number and mixed gaps on a new screen, so a signs-only demo
     // stays stopped (the intro shows its still) until one is recorded on gapsRev 1.

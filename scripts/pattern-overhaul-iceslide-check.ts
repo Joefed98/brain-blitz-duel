@@ -191,29 +191,75 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
 
 /* ---------------------------------------------------------------- 5. the reveal */
 {
-  // A 12 × 12 rink with one wall: start top left, exit top right; the ball stops at the wall otherwise.
+  // The reveal redesign (Joe, 15 Nov 2026): two labelled columns (the switch shows one large board at a time), the par
+  // route as arrow chips, the player's own final board with a red ring where the ball fell, the numbers from the
+  // stored grade as pills; the same layout reads every stamp's stored figures.
   const base = { type: "iceslide", walls: [24], holes: [], start: 0, exit: 11, minMoves: 1, par: 1, solution: "R" } as unknown as SlidePuzzleData;
-  const reveal = (puzzle: SlidePuzzleData, answer: string, correct: boolean) =>
-    renderToStaticMarkup(React.createElement(iceSlidePuzzle.Reveal, { timeLimitMs: 90_000, puzzle, myAnswer: answer, myCorrect: correct, myMsRemaining: 20_000 } as never));
-  const solved = "DXR"; // one slide down, undone, then the line: 1 standing, 2 played
-  const h5 = reveal({ ...base, slideRev: 5 } as SlidePuzzleData, solved, true);
-  check(/>Solution</.test(h5) && />Yours</.test(h5), "slideRev 5: the reveal has no Solution and Yours columns");
+  const reveal = (puzzle: SlidePuzzleData, answer: string, correct: boolean, extra?: unknown, msLeft = 20_000) =>
+    renderToStaticMarkup(React.createElement(iceSlidePuzzle.Reveal, { timeLimitMs: 90_000, puzzle, myAnswer: answer, myCorrect: correct, myMsRemaining: msLeft, myExtra: extra ?? null } as never));
+  const split = (html: string) => ({
+    solution: html.slice(html.indexOf("data-ice-solution="), html.indexOf("data-ice-yours=")),
+    yours: html.slice(html.indexOf("data-ice-yours=")),
+  });
+  const pill = (html: string, id: string) => new RegExp(`(?<=data-hud-pill="${id}">)[\\s\\S]*?</b></span>`).exec(html)?.[0] ?? "";
+  const pillValue = (html: string, id: string) => {
+    const m = pill(html, id).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    return m;
+  };
   check(SOLUTION_SWITCH_TYPES.has("iceslide"), "Skid isn't on the answer reveal's Solution / Yours switch");
-  const yours = h5.slice(h5.indexOf("data-ice-yours="));
-  const solution = h5.slice(h5.indexOf("data-ice-solution="), h5.indexOf("data-ice-yours="));
-  check(/your slides: <span[^>]*>1<\/span>/.test(yours), `slideRev 5: "your slides" isn't 1 under Yours: ${yours.match(/your slides:[^·]*/)?.[0]}`);
-  check(!/your slides/.test(solution), "slideRev 5: the player's count shows under Solution");
-  check(/shortest route · 1 slide</.test(solution), "slideRev 5: the Solution column lost its shortest-route line");
-  const u5 = reveal({ ...base, slideRev: 5 } as SlidePuzzleData, "D", false);
-  const uy = u5.slice(u5.indexOf("data-ice-yours="));
-  // The ball rests on its final cell (row 1, col 0 = cell 12) in the Yours board.
+  const solved = "DXR"; // one slide down, undone, then the line: 1 standing, 2 played
+  for (const rev of [5, 4]) {
+    const h = reveal({ ...base, slideRev: rev } as SlidePuzzleData, solved, true);
+    const { solution, yours } = split(h);
+    check(/>Solution</.test(h) && />Yours</.test(h), `slideRev ${rev}: the reveal has no Solution and Yours columns`);
+    check((h.match(/data-reveal-board=""/g) ?? []).length === 2, `slideRev ${rev}: each column isn't its own reveal-fit board`);
+    check(/Shortest route · 1 slide</.test(solution) && /data-ice-chips="solution"/.test(solution), `slideRev ${rev}: the Solution column lost its route line or its arrow chips`);
+    check(!/data-hud-pill="you"/.test(solution) && !/Your slides/.test(solution), `slideRev ${rev}: the player's count shows under Solution`);
+    check(/data-ice-chips="yours"/.test(yours) && /data-ice-chips="yours-par"/.test(yours), `slideRev ${rev}: Yours lacks the slides-vs-par arrow chips`);
+    check(!/×/.test(h), `slideRev ${rev}: a stray "×" in the reveal`);
+    // With no stored grade the phone's replay stands in: rev 5 counts the slide standing, older stamps every slide.
+    check(pillValue(yours, "you") === `You ${rev >= 5 ? 1 : 2}`, `slideRev ${rev}: the You pill reads "${pillValue(yours, "you")}"`);
+    check(pillValue(yours, "par") === "Par 1", `slideRev ${rev}: the Par pill reads "${pillValue(yours, "par")}"`);
+    check(pillValue(yours, "time") === "Time left 20 s", `slideRev ${rev}: a solve's Time left pill reads "${pillValue(yours, "time")}"`);
+    check((yours.match(/class="ice-art ice-chip"/g) ?? []).length === 2, `slideRev ${rev}: the chips aren't your standing slide and the par route's`);
+  }
+  // Unfinished: the ball where the player left it, the slides standing on the board.
   const ballCell = (part: string) => {
     const cells = part.split(/class="ice-(?:tile|rock)/).slice(1);
-    return cells.findIndex((c) => c.startsWith('"') && c.includes('aria-label="Ball"')) ;
+    return cells.findIndex((c) => c.startsWith('"') && c.includes('aria-label="Ball"'));
   };
-  check(ballCell(uy) === 12, `slideRev 5: the Yours board's ball isn't where the player left it (cell ${ballCell(uy)})`);
-  const h4 = reveal({ ...base, slideRev: 4 } as SlidePuzzleData, solved, true);
-  check(!/>Yours</.test(h4) && /shortest route · 1 move</.test(h4) && /2 moves/.test(h4), "slideRev 4: the reveal no longer reads as before (one board, every slide played)");
+  const u5 = split(reveal({ ...base, slideRev: 5 } as SlidePuzzleData, "D", false)).yours;
+  check(ballCell(u5) === 12, `slideRev 5: the Yours board's ball isn't where the player left it (cell ${ballCell(u5)})`);
+  check(!/data-hud-pill="time"/.test(u5), "an unfinished reveal shows Time left");
+  // A fall: ringed red on the Yours board only, with its key, and the Falls pill.
+  const holed = { ...base, walls: [], holes: [24], slideRev: 5 } as unknown as SlidePuzzleData;
+  const f = split(reveal(holed, "D", false));
+  check(/data-reveal-fell="24"/.test(f.yours) && /where you fell/.test(f.yours), "a fall isn't ringed on the Yours board with its key");
+  check(!/data-reveal-fell/.test(f.solution), "the solution board shows a fall ring");
+  check(pillValue(f.yours, "falls") === "Fall 1", `the Falls pill reads "${pillValue(f.yours, "falls")}"`);
+  const clean = split(reveal({ ...base, slideRev: 5 } as SlidePuzzleData, "R", true)).yours;
+  check(!/data-reveal-fell/.test(clean) && !/where you fell/.test(clean) && !/data-hud-pill="falls"/.test(clean), "a clean run shows a fall mark");
+  // The key numbers are the stored grade's: real deals graded through the server, on the new stamp and the old.
+  let compared = 0;
+  for (const { era, puzzle } of fixture.puzzles) {
+    for (const p of era === "rev4" ? [{ ...puzzle, slideRev: 5 } as SlidePuzzleData, puzzle] : [puzzle]) {
+      for (const m of markerAnswers(puzzle).slice(0, 4)) {
+        const graded = gradeAnswer(p, m.answer, m.msLeft);
+        const extra = graded.extra as { moves?: number; falls?: number; movesFromExit?: number | null };
+        const y = split(reveal(p, m.answer, graded.isCorrect, extra, m.msLeft)).yours;
+        compared++;
+        check(pillValue(y, "you") === `You ${extra.moves}`, `${era} ${m.label}: You pill "${pillValue(y, "you")}", stored ${extra.moves}`);
+        check(pillValue(y, "par") === `Par ${p.minMoves}`, `${era} ${m.label}: Par pill "${pillValue(y, "par")}", stored ${p.minMoves}`);
+        if ((extra.falls ?? 0) > 0) check(pillValue(y, "falls").endsWith(` ${extra.falls}`), `${era} ${m.label}: Falls pill isn't the stored ${extra.falls}`);
+        if (!graded.isCorrect && typeof extra.movesFromExit === "number")
+          check(pillValue(y, "away").startsWith(`From the exit ${extra.movesFromExit} slide`), `${era} ${m.label}: From the exit pill "${pillValue(y, "away")}", stored ${extra.movesFromExit}`);
+      }
+    }
+  }
+  check(compared >= 40, `only ${compared} stored grades compared with the reveal`);
+  // The reveal's styles keep one board at a time large under the switch.
+  const css = src("src/polish-pattern/iceslide.css");
+  check(/\[data-solution-view\] \.ice-reveal-board \{ width: min\(100cqw, 380px\); \}/.test(css), "the switched reveal board isn't drawn the row's width");
 }
 
 /* ---------------------------------------------------------------- 6. help */
@@ -227,6 +273,12 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
   const pinned = how();
   pinPrePatternNov15(before);
   check(!/give the slide back/.test(pinned), "the pinned help says Undo gives the slide back");
+  // Joe's additions (15 Nov 2026): the pad's arrows named apart from the chevron tiles; the intro example says the same.
+  check(/Swipe or tap an arrow/.test(live) && /Chevron tiles turn you/.test(live) && /holes send you back to the start/.test(live), `the live help doesn't name the arrow pad and the chevron tiles: ${live}`);
+  check(/Arrows turn you;/.test(pinned) && !/Chevron tiles/.test(pinned), "the pinned help changed its older lines");
+  const example = renderToStaticMarkup(React.createElement(iceSlidePuzzle.IntroExample!));
+  check(/Swipe or tap an arrow/.test(example) && /Undo gives a slide back/.test(example) && /par slides/.test(example), "the intro example's text doesn't describe the new play");
+  check(/data\.type === "iceslide" && demo\?\.puzzle\.type === "iceslide" && \(demo\.puzzle\.slideRev \?\? 0\) < 5\) return null/.test(src("src/lib/duel/introDemo.functions.ts")), "an intro demo recorded before slideRev 5 isn't stopped");
   check(PUZZLE_INSTRUCTIONS.iceslide.how.filter((l) => !l.helpOnly).length <= 4, "more than four intro HOW lines");
 }
 
