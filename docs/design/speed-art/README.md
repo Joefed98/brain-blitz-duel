@@ -51,3 +51,12 @@ so a redraw reaches every phone, the offline worker included). Keep the Blender 
 - **Ascend**: bigger discs where the board has room (44–60 px, never closer than 6 px).
 
 Checks written for the stamps before pin them with `pinPreSpeedOverhaul(true)` (`src/lib/duel/speedOverhaul.ts`).
+
+## Effects and sounds (stage 2, 15 Nov 2026)
+
+On #422's kit (`src/lib/fx/kit.ts`): DOM pieces through `gameFx` (Flash's wrong shake and Done, Ascend's combo, wrong and
+the shuffle's slide, the reveal's count-up), the canvas games through their renderers (Bonk's squash and flip rims) and
+small CSS moments that end visible (`speed-overhaul.css`: Flash's time pop, Bonk's banner slam, Tenfall's "TEN!" burst).
+Every hit sound plays on the tap (Flash, Ascend) or on the sim tick that applies it (Bonk, Tenfall, Pull!). The 28 new
+sound slots and their placeholder files: docs/sound-cues/speed-overhaul.md; the recordings to make:
+docs/sound-cues/speed-elevenlabs.md.

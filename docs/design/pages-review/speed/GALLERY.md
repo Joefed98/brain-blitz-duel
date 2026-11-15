@@ -106,3 +106,44 @@ The ten targets as plaques, made ones in enamel, the next marked; the finish tim
 | <img src="reveal-before-clayshoot.webp" width="220"> | <img src="reveal-after-clayshoot.webp" width="220"> |
 
 Every clay in launch order, filled when hit and hollow when it got away; Best streak, Doubles, Birds hit.
+
+## Effects (stage 2, 15 Nov 2026)
+
+Short clips of a practice round with scripted taps (9 s, 360 wide, no sound: the sounds are listed in
+docs/sound-cues/speed-overhaul.md, placeholders until Joe's ElevenLabs files arrive).
+
+### Flash
+
+<video src="clip-reaction.mp4" width="240" controls muted loop></video> [clip-reaction.mp4](clip-reaction.mp4)
+
+Hits snap on the tap with the time popping up (gold under 250 ms, orange fast, white slower); three fast in a row adds "3 fast in a row" with a climbing chime; a decoy tap is one short wrong and a shake; the run ends on "Done".
+
+### Ascend
+
+<video src="clip-numhunt.mp4" width="240" controls muted loop></video> [clip-numhunt.mp4](clip-numhunt.mp4)
+
+Each right number a marimba note a semitone higher (two octaves over 24) and the disc turns gold; five fast in a row a combo; the bell one second before the shuffle, then every disc glides to its new place with a whoosh.
+
+### Don't Break the Chain
+
+<video src="clip-chain.mp4" width="240" controls muted loop></video> [clip-chain.mp4](clip-chain.mp4)
+
+The rising link tones as before; a soft whoosh as the board reshuffles every 5 links; a heartbeat under the last 5 links, quickening.
+
+### Bonk
+
+<video src="clip-whack.mp4" width="240" controls muted loop></video> [clip-whack.mp4](clip-whack.mp4)
+
+A cartoon bonk on every right hit (rising with the combo) as the gopher squashes; the rule flip: a whistle, the banner slamming in and every burrow rim flashing the new hat colour; a hedgehog a heavy wrong; a diamond a sparkle.
+
+### Tenfall
+
+<video src="clip-tendrop.mp4" width="240" controls muted loop></video> [clip-tendrop.mp4](clip-tendrop.mp4)
+
+The total counts quickly to its new value; within 5 of the target the target glows softly with a shimmer; a hit throws "TEN!" over the strip; an overshoot shatters the total to 0; an empty tap a soft tap.
+
+### Pull!
+
+<video src="clip-clayshoot.mp4" width="240" controls muted loop></video> [clip-clayshoot.mp4](clip-clayshoot.mp4)
+
+Shot and shatter in one with shards in the clay's colour; a gold clay a brighter shatter and a chime; a double the combo; a bird feathers and a short wrong; an escaping clay a soft whistle.
