@@ -97,6 +97,16 @@ export function swapwordBlindSwaps(start: string, swaps: readonly (readonly [num
 const TOTAL = "{max}" as unknown as number;
 
 /** The "?" help SCORE text for each Word game on the standard (`{max}` is the round maximum): one line a part. */
+/** Cryptogrid codewordRev 6 (the Word overhaul, wordOverhaul.ts): the clean crack counts only letters shown wrong. */
+export const CODEWORD_OVERHAUL_HELP = puzzleScoreList({
+  finish: "decode every number",
+  speed: { max: STD_CRYPTOGRID.speed, fullByS: STD_CRYPTOGRID.fullByS },
+  bonuses: [{ label: "Clean crack", how: "no letter that finished a word on the grid as no real word (trial letters in words still missing letters are free)", fixed: STD_CRYPTOGRID.clean }],
+  unfinished: "the share of the code decoded, more for decoding it early",
+  penalties: [`When not finished, each wrong letter left standing costs ${STD_CRYPTOGRID.wrongCost}`],
+  total: TOTAL,
+});
+
 export const WORD_STANDARD_HELP = {
   tilegrid: puzzleScoreList({
     finish: "place all 15 tiles in one connected grid, every run a real word",

@@ -23,7 +23,8 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
-import "@/polish-layout/batch-w-swapword.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/swapword.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -49,6 +50,9 @@ function tileStyle(look: TileLook): React.CSSProperties {
       return { background: "var(--puzzle-given)", color: "var(--foreground)", borderColor: "var(--puzzle-edge)" };
   }
 }
+
+/** The Word overhaul: each look's rendered glaze (gold, teal and grey are the game's clue colours and stay). */
+const WA_LOOK: Record<string, string> = { "2": "gold", "1": "teal", "0": "grey", pending: "dim", missed: "red" };
 
 /** The figure-eight board: 6 × 6 cells, 21 of them tiles. */
 export function Board({
@@ -94,6 +98,8 @@ export function Board({
           <div
             key={cell}
             data-sw-tile={tile}
+            data-wa="tile"
+            data-wa-tone={WA_LOOK[String(look)]}
             className={`flex items-center justify-center rounded-[22%] border-b-4 font-display font-bold transition-transform ${
               selected === tile ? "-translate-y-0.5 ring-2 ring-foreground" : ""
             } ${lifted === tile ? "opacity-30" : ""}`}
@@ -115,24 +121,37 @@ const FIGURE_EIGHT: readonly (readonly number[])[] = [
   [18], [19], [20], [21], [22], [23, 17], [29], [35], [34], [33, 32], [27], [15], [9], [3], [2], [1], [0], [6], [12],
 ];
 
-/** Fixed example: one word row, two tiles to swap. */
+/**
+ * Fixed example: one word row, one swap (the Word overhaul, 15 Nov 2026: the intro shows a swap turning two tiles gold).
+ * N and L slide past each other in the top row (a looping demo, still under reduced motion), and the row below shows
+ * the result: both tiles gold, LEMON done.
+ */
 function IntroExample() {
-  const row = (letters: string, looks: TileLook[]) => (
+  const row = (letters: string, looks: TileLook[], swap?: readonly number[]) => (
     <div className="flex shrink-0 gap-1">
       {[...letters].map((ch, i) => (
-        <span key={i} className="flex h-8 w-8 items-center justify-center rounded-[22%] border-b-4 font-display text-base font-bold" style={tileStyle(looks[i] ?? 0)}>
+        <span
+          key={i}
+          data-wa="tile"
+          data-wa-tone={WA_LOOK[String(looks[i] ?? 0)]}
+          data-sw-demo-swap={swap?.includes(i) ? (i === swap[0] ? "a" : "b") : undefined}
+          className="flex h-8 w-8 items-center justify-center rounded-[22%] font-display text-base font-bold"
+          style={tileStyle(looks[i] ?? 0)}
+        >
           {ch}
         </span>
       ))}
     </div>
   );
   return (
-    <div className="flex flex-col items-center gap-2">
-      {row("NEMOL", [1, 2, 2, 2, 1])}
-      <ArrowLeftRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    <div className="flex flex-col items-center gap-2" data-sw-intro-swap="">
+      {row("NEMOL", [1, 2, 2, 2, 1], [0, 4])}
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+        <ArrowLeftRight className="h-4 w-4 shrink-0" /> Swap N and L: both turn gold
+      </p>
       {row("LEMON", [2, 2, 2, 2, 2])}
       <p className="max-w-[260px] text-center text-xs text-muted-foreground">
-        Gold is in place; teal belongs elsewhere in its word. Swap N and L to finish LEMON.
+        Gold is in place; teal belongs elsewhere in its word; grey fits neither.
       </p>
     </div>
   );
@@ -286,7 +305,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   };
 
   // As large as the arena allows (to 400px on big phones).
-  const boardSide = "min(100cqw, 100cqh, 400px)";
+  // The Word overhaul: the figure-eight uses more of the screen (up to 460 px; was 400).
+  const boardSide = "min(100cqw, 100cqh, 460px)";
   const ghostLook = drag ? looks[drag.tile] ?? 0 : 0;
 
   return (

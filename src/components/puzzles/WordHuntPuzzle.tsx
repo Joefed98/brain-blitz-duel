@@ -20,7 +20,9 @@ import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useStageState } from "@/lib/duel/stageState";
 import { scoreWordHunt, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "@/lib/duel/scoring";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
-import "@/polish-layout/batch-w-wordhunt.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/forage.css";
+import { WORDHUNT_FREE_MISSES, WORDHUNT_FREE_MISSES_PER_WORD } from "@/lib/duel/scoring";
 import { goldPulse, playFinish, rippleDelay, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 
 interface Found {
@@ -93,7 +95,7 @@ export function WordHuntBoard({
             strokeWidth={2.6}
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={0.5}
+            opacity={0.8}
           />
         )}
         {path.length > 0 && pointer && (
@@ -105,7 +107,7 @@ export function WordHuntBoard({
             stroke="var(--category-accent)"
             strokeWidth={2.6}
             strokeLinecap="round"
-            opacity={0.5}
+            opacity={0.8}
           />
         )}
       </svg>
@@ -119,6 +121,8 @@ export function WordHuntBoard({
               data-cell={cell}
               data-bw-lit={lit ? "" : undefined}
               data-golden={cell === golden ? "" : undefined}
+              data-wa="tile"
+              data-wa-tone={lit ? "sapphire" : cell === golden ? "gold" : "black"}
               onPointerDown={
                 interactive && onPathStart ? (event) => onPathStart(cell, event) : undefined
               }
@@ -407,6 +411,7 @@ export function WordHuntPuzzle({
     };
   }, [finish, tapCell, N]);
 
+  const freeMisses = WORDHUNT_FREE_MISSES + WORDHUNT_FREE_MISSES_PER_WORD * found.length;
   // Batch W live summary (display only): what the status line shows when no message is up.
   const best = found.reduce<Found | null>((top, entry) => (!top || valueOf(entry) > valueOf(top) || (valueOf(entry) === valueOf(top) && entry.word.length > top.word.length) ? entry : top), null);
   // Puzzle polish (3 Nov 2026): separate pills, never one line with dots in it.
@@ -427,10 +432,17 @@ export function WordHuntPuzzle({
 
   return (
     <div data-polish="wordhunt" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="grid grid-cols-2 items-center font-mono text-base font-semibold uppercase text-foreground">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 font-mono text-base font-semibold uppercase text-foreground">
         <span>
           points <span className="text-primary">{shownPoints}</span>
         </span>
+        {/* The Word overhaul: the miss allowance on screen (it was invisible): "Misses 3 / 14 free", red once past it. */}
+        {sendsMisses ? (
+          <HudPills
+            testId="wordhunt-misses"
+            items={[{ id: "misses", label: "Misses", value: `${misses.length} / ${freeMisses} free`, tone: misses.length > freeMisses ? "warn" : undefined }]}
+          />
+        ) : <span />}
         <span className="text-right">words: {found.length}</span>
       </div>
 
@@ -467,7 +479,7 @@ export function WordHuntPuzzle({
         type="button"
         onClick={() => void finish()}
         disabled={locked || path.length === 0}
-        data-game-controls="actions" className="press tap-target rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        data-game-controls="actions" data-wa-btn="gold" className="press tap-target h-11 rounded-xl font-display text-sm font-semibold uppercase tracking-widest disabled:opacity-40"
       >
         Submit
       </button>

@@ -14,6 +14,7 @@ import { useStageState } from "@/lib/duel/stageState";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-wordsmith.css";
 import "@/polish-layout/polish-nov3-word.css";
+import "@/polish-word/nucleus.css";
 
 /** The pangram moment (wordsmithRev 3): the shared moment-card sting, not a completion cue (docs/sound-cues/word.md lists those). */
 const PANGRAM_CUE = "shared.momentcard";
@@ -42,6 +43,8 @@ interface WordsmithPuzzleProps {
 interface Found {
   word: string;
   points: number;
+  /** wordsmithRev 5 (the Word overhaul): an obscure valid word, scored quietly, outside the board's counted words. */
+  bonus?: boolean;
 }
 
 export function WordsmithPuzzle({
@@ -75,6 +78,9 @@ export function WordsmithPuzzle({
   selectedRef.current = selectedTiles;
   const word = selectedTiles.map((index) => letters[index] ?? "").join("");
   const points = found.reduce((sum, entry) => sum + entry.points, 0);
+  // wordsmithRev 5: the counter counts the board's everyday words; obscure ones are bonus words (scored the same).
+  const counted = found.filter((entry) => !entry.bonus).length;
+  const bonusFinds = found.length - counted;
   // Word depth (wordsmithRev 3): the pangram badge, the phone's display of a public rule (the server scores it).
   const pangramRule = (puzzle.wordsmithRev ?? 0) >= WORDSMITH_REV_DEPTH;
   const pangramFound = found.some((entry) => entry.word.length >= letters.length);
@@ -136,11 +142,11 @@ export function WordsmithPuzzle({
     );
     setBusy(false);
     if (verdict.valid) {
-      setFound((current) => [{ word: verdict.word, points: verdict.points }, ...current]);
+      setFound((current) => [{ word: verdict.word, points: verdict.points, ...(verdict.bonus ? { bonus: true } : {}) }, ...current]);
       selectedRef.current = [];
       setSelectedTiles([]);
       setMessage(null);
-      setAcceptedWord(verdict.word);
+      setAcceptedWord(verdict.bonus ? `Bonus · ${verdict.word}` : verdict.word);
       rightMoveFlash(wordBoxRef.current);
       if (pangramRule && verdict.word.length >= letters.length && !pangramFound) wordCue(PANGRAM_CUE);
     } else {
@@ -218,14 +224,14 @@ export function WordsmithPuzzle({
           aria-expanded={listOpen}
           className="press rounded-full border border-border bg-card px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-foreground"
         >
-          Words {found.length} / {puzzle.wordCount ?? "?"}
+          Words {counted} / {puzzle.wordCount ?? "?"}
         </button>
         {listOpen && (
           <>
             <div className="fixed inset-0 z-20" onPointerDown={() => setListOpen(false)} aria-hidden />
             <div className="absolute right-0 top-full z-30 mt-2 max-h-72 w-60 overflow-y-auto rounded-xl border border-border bg-card p-3 shadow-lg">
               <p className="mb-2 text-[11px] text-muted-foreground">
-                {found.length} of {puzzle.wordCount ?? "?"} possible words
+                {counted} of {puzzle.wordCount ?? "?"} words{bonusFinds > 0 ? ` · ${bonusFinds} bonus` : ""}
               </p>
               {found.length === 0 ? (
                 <p className="text-sm normal-case tracking-normal text-muted-foreground">No words yet.</p>
@@ -235,7 +241,7 @@ export function WordsmithPuzzle({
                     .sort((a, b) => b.word.length - a.word.length || a.word.localeCompare(b.word))
                     .map((entry) => (
                       <li key={entry.word} className="flex justify-between text-sm text-foreground">
-                        <span>{entry.word}</span>
+                        <span>{entry.word}{entry.bonus ? <span className="ml-1 text-[11px] text-muted-foreground">bonus</span> : null}</span>
                         <span className="text-primary">{entry.points}</span>
                       </li>
                     ))}
@@ -275,14 +281,14 @@ export function WordsmithPuzzle({
       )}
 
       <div data-game-controls="actions" className={`${column ? "" : "mt-auto "}grid shrink-0 grid-cols-[44px_1fr_1fr] gap-2`}>
-        <Button type="button" variant="outline" className="h-11 w-11 p-0" aria-label="Shuffle letters" title="Shuffle letters" disabled={locked || busy} onClick={() => setOrder(current => shuffleLetterOrder(current, WORDSMITH_CENTRE_INDEX))}><Shuffle className="h-5 w-5" /></Button>
+        <Button type="button" variant="outline" data-wa-btn="navy" className="h-11 w-11 p-0" aria-label="Shuffle letters" title="Shuffle letters" disabled={locked || busy} onClick={() => setOrder(current => shuffleLetterOrder(current, WORDSMITH_CENTRE_INDEX))}><Shuffle className="h-5 w-5" /></Button>
         <Button type="button" variant="outline" onClick={() => {
           selectedRef.current = [];
           setSelectedTiles([]);
           setMessage(null);
-        }} disabled={locked || busy || word.length === 0} className="h-11" >Clear</Button>
+        }} disabled={locked || busy || word.length === 0} data-wa-btn="navy" className="h-11" >Clear</Button>
         <Button type="button" onClick={() => void trySubmit()} disabled={locked || busy || word.length === 0}
-          className="h-11">Enter</Button>
+          data-wa-btn="gold" className="h-11">Enter</Button>
       </div>
     </div>
   );

@@ -1,0 +1,27 @@
+/*
+ * Cryptogrid's look (the Word overhaul, 15 Nov 2026): concept A. Squares still to decode are recessed wells, decoded
+ * squares dark glazed tiles, the given letters in gold, the picked number in sapphire glaze wherever it appears. The
+ * clue numbers are much bigger (two fifths of a square, the letter dropped clear of them). Display only.
+ */
+[data-word-polish="codeword"] [data-game-arena="codeword"] {
+  --cw-num-scale: 0.4;
+  --cw-letter-drop: 0.16;
+}
+[data-word-polish="codeword"] [data-game-arena="codeword"] .grid { background: transparent; padding: 0; }
+[data-word-polish="codeword"] [data-game-arena="codeword"] .grid > div[aria-hidden="true"] { background: #03050c; border-radius: 4px; }
+[data-word-polish="codeword"] [data-game-arena="codeword"] .cw-num {
+  left: 3px;
+  top: 2px;
+  font-family: var(--jz-font);
+  font-weight: 700;
+  color: var(--jz-text-2);
+}
+[data-cw-look="given"][data-wa][data-wa][data-wa][data-wa] { color: var(--jz-gold) !important; }
+[data-cw-look="selected"] .cw-num { color: var(--jz-text) !important; }
+
+/* The decode strip: small keys, the picked number gold-rimmed. */
+[data-word-polish="codeword"] [data-cw-key] {
+  border-radius: 6px;
+  background: url(/word-art/key.webp) center / 100% 100% no-repeat;
+}
+[data-word-polish="codeword"] [data-cw-key][data-cw-key-on] { background-image: url(/word-art/tile-sapphire.webp); box-shadow: none; }

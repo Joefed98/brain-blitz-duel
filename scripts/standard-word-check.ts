@@ -32,12 +32,16 @@ import { pinPrePuzzleNotes } from "../src/lib/duel/puzzleNotes";
 import { pinPreWordNov7 } from "../src/lib/duel/wordNov7";
 import { WORD_STANDARD_HELP, strikeoutEarlySolvePoints, swapwordBlindSwaps } from "../src/lib/duel/standard/word";
 import { solutionProgress } from "../src/lib/duel/progressFigures";
+import { pinPreWordOverhaul } from "../src/lib/duel/wordOverhaul";
 
 // Written for the standard's stamps: Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts) deal Slider and Tally one above,
 // so new deals here keep the standard's (puzzle-notes-check proves the new stamps).
 pinPrePuzzleNotes(true);
 // The Word scoring fix (7 Nov 2026, wordNov7.ts) deals Interlock and Lookout one above too; word-nov7-check proves it.
 pinPreWordNov7(true);
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul): written for the stamps before it,
+// so new deals here keep them (wordOverhaul.ts; word-overhaul-check proves the new stamps).
+pinPreWordOverhaul(true);
 
 const PRINT = process.argv.includes("--print");
 const GAMES: PuzzleType[] = ["tilegrid", "wordslide", "wordsearch", "letterwheel", "strikeout", "codeword", "swapword"];

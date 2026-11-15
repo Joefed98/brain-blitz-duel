@@ -1,0 +1,19 @@
+/*
+ * Swapword's look (the Word overhaul, 15 Nov 2026): concept A. The figure-eight in glazed tiles whose glaze is the
+ * game's clue: gold in place, teal elsewhere in its word, grey neither. The picked tile lifts with a plain light rim
+ * (no glow). Display only.
+ */
+[data-wa="tile"][data-wa-tone="teal"][data-wa][data-wa][data-wa] { color: var(--jz-on-gold) !important; }
+[data-word-polish="swapword"] [data-sw-tile].ring-2[data-wa][data-wa][data-wa] {
+  outline: 2px solid var(--jz-text);
+  outline-offset: 1px;
+}
+[data-word-polish="swapword"] [data-sw-tile] { border-bottom-width: 0; }
+
+/* The intro's swap: N and L (32 px tiles, 4 px gaps: 4 places = 144 px) slide past each other and back. */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-reduced-effects]) [data-sw-demo-swap="a"] { animation: sw-demo-a 2.4s ease-in-out infinite; }
+  html:not([data-reduced-effects]) [data-sw-demo-swap="b"] { animation: sw-demo-b 2.4s ease-in-out infinite; }
+}
+@keyframes sw-demo-a { 0%, 25% { transform: none; } 45%, 80% { transform: translate(144px, -6px); } 100% { transform: none; } }
+@keyframes sw-demo-b { 0%, 25% { transform: none; } 45%, 80% { transform: translate(-144px, 6px); } 100% { transform: none; } }

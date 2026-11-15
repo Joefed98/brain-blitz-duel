@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 37 | 0 | 488 | 525 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 63 | 1 | 984 | 1048 |
 
 ## Silent and placeholder cues
 
@@ -54,6 +54,18 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `music.reveal` | Answer reveal (rooms and practice): none (stopped as the score lands) |  | loop | silent | none | 8000 | music | `music_reveal` |
 | `music.winner` | Winner reveal: none (drum roll and voice) |  | loop | silent | none | 6300 | music | `music_winner` |
 | `music.tension` | Tension bed (not placed): registered, no file, never started (startMusic refuses it) |  | loop | silent | none | loop | music | `tension_loop` |
+
+### Cryptogrid
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `codeword.key` | Cryptogrid: Any key on the keyboard, as Strikeout's. [word.md] |  | 5–40 (per move) | silent | none | 50 | game event | `codeword.key` |
+
+### Strikeout
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `strikeout.key` | Strikeout: Any key on the keyboard (the Word overhaul, 15 Nov 2026): a soft typewriter click; word.key.mp3 behind NEW_GAME_SOUNDS until Joe's recording (word-elevenlabs.md). [word.md] |  | 5–40 (per move) | silent | none | 50 | game event | `strikeout.key` |
 
 ### Ballpark
 

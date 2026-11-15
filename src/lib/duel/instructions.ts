@@ -8,7 +8,8 @@ import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHe
 import { parBonusHelp } from "./parBonusText";
 import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
-import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
+import { CODEWORD_OVERHAUL_HELP, STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
+import { wordOverhaulDealt } from "./wordOverhaul";
 import { wordNov7Dealt } from "./wordNov7";
 import { preStandardPinned } from "./standard/stamps";
 import { MINES_COUNT_V2, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
@@ -369,6 +370,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a selected letter again", detail: "to remove it. Clear empties the word; Enter checks it.", helpOnly: true },
         { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
+        ...(wordOverhaulDealt("wordsmith")
+          ? [{ action: "The word counter", detail: "counts the board’s everyday words; a rarer dictionary word still scores, as a bonus word.", helpOnly: true }]
+          : []),
       ],
       score: scoreList([
         { label: "Words", how: "longer words score more (4 letters 1 word point, 5 letters 2, 6 letters 4, 7 letters 7, 8 letters 11, 9 or more 15, shown on the counter)", max: WORDSMITH_V3_CAP },
@@ -381,8 +385,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a tile,", detail: "then a cell to place it." },
         { action: "Every run", detail: "must be a real word of 3+ letters." },
         { action: "Tap Done", detail: "to check. All tiles must connect." },
-        { action: "Double-tap a placed tile", detail: "to take it back. Clear empties the grid.", helpOnly: true },
-        { action: "After Done,", detail: "runs that are not words flash red for a moment: fix them and tap Done again.", helpOnly: true },
+        { action: "Drag a placed tile", detail: "back to the tray, or double-tap it, to take it back. Clear empties the grid.", helpOnly: true },
+        { action: "A run that is not a word", detail: "shows red while it stands. After Done, any left flash red for a moment: fix them and tap Done again.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
       score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : wordNov7Dealt("tilegrid") ? WORD_NOV7_HELP.tilegrid : WORD_STANDARD_HELP.tilegrid,
@@ -410,7 +414,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? [{ action: "Four words locked?", detail: "Tap two tiles in the last row to swap them; each swap is a move." }]
           : []),
         { action: "Finish within par", detail: "moves for a bonus; Undo and Reset count." },
-        { action: "Par", detail: "is the number of slides that scrambled the board, shown beside your moves (gold while you are within it).", helpOnly: true },
+        wordOverhaulDealt("wordslide")
+          ? { action: "Par", detail: "is the fewest moves that solve the board, shown beside your moves (gold while you are within it).", helpOnly: true }
+          : { action: "Par", detail: "is the number of slides that scrambled the board, shown beside your moves (gold while you are within it).", helpOnly: true },
+        ...(wordOverhaulDealt("wordslide") ? [{ action: "Reset", detail: "asks first: tap it twice.", helpOnly: true }] : []),
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
@@ -1930,7 +1937,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A seventh theme word hides unlisted:", detail: "find it for a bonus." },
         { action: "A found word", detail: "turns gold on the grid, with a line along it.", helpOnly: true },
         { action: "Each chip shows", detail: "a hidden word’s letter count until you find it; the word then fills it.", helpOnly: true },
-        { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
+        wordOverhaulDealt("wordsearch")
+          ? { action: "The bonus word", detail: "fills the gold star chip. After the sixth word the round goes on: find the bonus, or tap Done.", helpOnly: true }
+          : { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
       score: preStandardPinned() ? wordSearchBonusHelp() : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
     },
@@ -1971,9 +1980,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Six numbers", detail: "start decoded." },
         { action: "Each letter has one number.", detail: "Using a letter again moves it from its old number; Clear empties the selected number.", helpOnly: true },
         { action: "The strip above the keys", detail: "shows what you have decoded.", helpOnly: true },
+        { action: "After each letter", detail: "the next number still to decode is picked for you.", helpOnly: true },
         { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
       ],
-      score: preStandardPinned() ? stretchHelp("codeword", CODEWORD_STRETCH) : WORD_STANDARD_HELP.codeword,
+      score: preStandardPinned() ? stretchHelp("codeword", CODEWORD_STRETCH) : wordOverhaulDealt("codeword") ? CODEWORD_OVERHAUL_HELP : WORD_STANDARD_HELP.codeword,
     },
     swapword: {
       goal: "Swap tiles until all six words read correctly.",

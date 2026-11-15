@@ -1357,7 +1357,7 @@ export const checkWordFn = createServerFn({ method: "POST" })
     }
 
     const { checkWordsmithWord } = await import("./wordsmith.server");
-    return checkWordsmithWord(pub.letters, String(data.word ?? ""), found);
+    return checkWordsmithWord(pub.letters, String(data.word ?? ""), found, pub.wordsmithRev);
   });
 
 /**

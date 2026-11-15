@@ -1,0 +1,34 @@
+/*
+ * Slider's look (the Word overhaul, 15 Nov 2026): concept A. Glazed tiles in a navy lacquer tray (word-look.css), a
+ * row reading as a word in teal glaze, a locked row in gold; each row's padlock is a rendered gold padlock in its own
+ * slot, open or shut. Display only: sizes, places and the swipe areas are the stage's.
+ */
+[data-polish="wordslide"] .puzzle-board {
+  border: 0;
+  border-radius: 16px;
+  background: url(/word-art/tray.webp) center / 100% 100% no-repeat;
+  box-shadow: 0 10px 22px rgb(0 0 0 / 0.45);
+}
+[data-polish="wordslide"] .slide-lock {
+  background: url(/word-art/well.webp) center / 100% 100% no-repeat;
+  border: 0;
+}
+[data-polish="wordslide"] .slide-lock-art {
+  display: block;
+  width: 26px;
+  height: 32px;
+  background: url(/word-art/padlock-open.webp) center / contain no-repeat;
+}
+[data-polish="wordslide"] .slide-lock[data-slide-lock-shut] .slide-lock-art { background-image: url(/word-art/padlock-shut.webp); }
+[data-polish="wordslide"] .slide-lock:disabled .slide-lock-art { opacity: 0.4; }
+
+/* Four rows locked: the last row's tiles swap. The open row is marked by a fine dashed line; the picked tile lifts. */
+[data-polish="wordslide"] [data-slide-swap] {
+  outline: 2px dashed color-mix(in srgb, var(--jz-gold) 55%, transparent);
+  outline-offset: -5px;
+  cursor: pointer;
+}
+[data-polish="wordslide"] [data-slide-swap="picked"] { outline: none; transform: translateY(-4px); }
+@media (prefers-reduced-motion: reduce) {
+  [data-polish="wordslide"] [data-slide-swap="picked"] { transform: none; }
+}

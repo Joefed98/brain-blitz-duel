@@ -2587,6 +2587,27 @@ outside the repo.
   `public/tournaments-art/` (`TournamentArt`, `KIND_ART`). Styles `src/polish-layout/tournaments-pages.css`. Screens:
   `scripts/screens/tournaments.ts` (`TOURNAMENT_PAGES_SCREENS`, dark and light at every size; harness modes
   `tournament`, `tournamentrules`, `dailyarchive`); theme-check in sixths and no-wrap-check in elevenths.
+- **The Word overhaul, stage 1** (phase 2 step 4, 15 Nov 2026; `docs/design/game-reviews/word.md`, gallery
+  `docs/design/pages-review/word/GALLERY.md`). *Look* (display only): every Word piece is a Blender render
+  (`scripts/word-art/word_art.py`, bpy from PyPI, run from a venv outside the repo; deterministic) in
+  `public/word-art/` (`manifest.json`), laid under live letters through attributes: `data-wa` = tile / tile-sm / disc /
+  well / key / pip with `data-wa-tone` (gold, teal, grey, red, dim, sapphire), `data-wa-btn` = gold / navy (nine-sliced),
+  in `src/polish-word/word-look.css` (four attributes deep: it outranks the older tile rules) and one file a game in
+  `src/polish-word/`. No glows. **Re-run word_art.py after changing a piece's material and keep its sizes under 20 KB.**
+  Reveals whose markup a legacy check compares keep it: Strikeout's reveal is styled by its existing attributes, and
+  Roundabout's crossword takes the art only live and on wheelRev 5 (`Crossword art`). The keyboards (`LetterKeypad`)
+  are 52 px keys with a pop-up letter preview and a key cue (`strikeout.key` / `codeword.key`, `word.key.mp3` behind
+  NEW_GAME_SOUNDS) and sit at the bottom. The round-end list is `WordDropList` (words drop in, the longest gold).
+  *Game changes* (`src/lib/duel/wordOverhaul.ts`, layer `dealWordOverhaul` in `wordOverhaul.server.ts`, last in
+  DEAL_LAYERS; `pinPreWordOverhaul(true)` deals the stamps before): Nucleus `wordsmithRev 5` (counted words and the
+  missed list everyday only; obscure words score as bonus words, the verdict's `bonus`), Slider `wordSlideRev 6` (par =
+  the proven fewest slides; Reset asks first), Lookout `wordSearchRev 6` (the round goes on after the sixth word, Done;
+  speed measured at the sixth word), Roundabout `wheelRev 5` (`letterWheelBankRev5.server.ts`,
+  `bun scripts/letter-wheel-bank.ts --rev5 [--check]`: common-answer slot words, at most two of three letters),
+  Cryptogrid `codewordRev 6` (only letters shown wrong cost the clean crack; the selection jumps on). Display: Interlock
+  live red runs and drag back to the tray, Forage's miss pill, Roundabout's miss vs repeat, Swapword's intro swap.
+  ElevenLabs list: `docs/sound-cues/word-elevenlabs.md`. Checks: word-overhaul-check; screens `scripts/screens/word.ts`.
+  Stages 2 (effects, on #422's kit) and 3 (levels) follow.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

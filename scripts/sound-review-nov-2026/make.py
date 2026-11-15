@@ -1035,6 +1035,15 @@ def _(r):
     return room(mix(a, b), r, 0.05, 0.08)
 
 
+# The Word overhaul (15 Nov 2026, docs/sound-cues/word-elevenlabs.md): the keyboards' key press, a placeholder until
+# Joe's recording drops in by name.
+@sound("word.key", ["strikeout.key", "codeword.key"], "a soft typewriter key: a short, dry, light mechanical click")
+def _(r):
+    n = n_of(0.09)
+    x = click(n, r, 4200, 2.0) * 0.7 + struck(WOOD, 1650, 0, 0.035, n, r) * 0.35 + thump(320, 220, 0.02, n) * 0.25
+    return room(x, r, 0.06, 0.08)
+
+
 # --------------------------------------------------------------------------------------------------- build
 
 

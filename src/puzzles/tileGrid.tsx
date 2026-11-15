@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useStageState } from "@/lib/duel/stageState";
@@ -27,7 +27,9 @@ import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { useGameKeys } from "@/lib/desktop";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
-import "@/polish-layout/batch-w-tilegrid.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/interlock.css";
+import { HudPills } from "@/components/puzzles/HudPills";
 
 const GAP = 2;
 const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
@@ -43,6 +45,7 @@ function MiniGrid({ cells, cell = 20, font }: { cells: string[]; cell?: number; 
       {cells.map((letter, i) => (
         <span
           key={i}
+          data-wa={letter ? "tile" : undefined}
           className={`word-letter-tile flex items-center justify-center rounded-[3px] font-display font-bold ${letter ? "bg-primary text-primary-foreground" : "bg-background/40"}`}
           style={{ height: cell, fontSize: font ?? Math.round(cell * 0.6) }}
         >
@@ -67,6 +70,8 @@ function IntroExample() {
         {cells.map((letter, i) => (
           <span
             key={i}
+            data-wa={letter ? "tile" : "well"}
+            data-wa-tone={letter ? "gold" : undefined}
             className={`word-letter-tile flex h-[30px] items-center justify-center rounded font-display text-sm font-bold ${letter ? "bg-primary text-primary-foreground shadow-[inset_0_-3px_0_var(--opponent)]" : "bg-background/40"}`}
           >
             {letter}
@@ -92,6 +97,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const [checking, setChecking] = useState(false);
   const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const lastTap = useRef<{ tile: number; time: number } | null>(null);
+  const drag = useRef<{ tile: number; x: number; y: number; moved: boolean } | null>(null);
+  const swallowClick = useRef(false);
+  const placedRef = useRef(placed);
+  placedRef.current = placed;
   const submitted = useRef(false);
   const boardSpace = useRef<HTMLDivElement | null>(null);
   const [cellSize, setCellSize] = useState(40);
@@ -100,7 +109,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   useBeforePaint(() => {
     const space = boardSpace.current;
     if (!space) return;
-    const measure = () => setCellSize(Math.max(44, Math.floor(Math.min(
+    // The Word overhaul: the size the space allows (a 44 px floor clipped the board on short screens), at least 30 px.
+    const measure = () => setCellSize(Math.max(30, Math.floor(Math.min(
       (space.clientWidth - 12 - GAP * (TG_SIZE - 1)) / TG_SIZE,
       (space.clientHeight - 12 - GAP * (TG_SIZE - 1)) / TG_SIZE,
     ))));
@@ -167,6 +177,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     () => tileGridWordCells(cells, (word) => verdicts[word] === true),
     [cells, verdicts],
   );
+  // The Word overhaul: a run the server says is no word stays faintly red while it stands (it used to show only for
+  // 0.7 s after Done). Cells also in a good word stay good.
+  const badCells = useMemo(() => {
+    const out = new Set<number>();
+    for (const run of runs) if (run.word.length >= 3 && verdicts[run.word] === false) run.cells.forEach((c) => out.add(c));
+    for (const c of goodCells) out.delete(c);
+    return out;
+  }, [runs, verdicts, goodCells]);
 
   // A valid grid on Done: its words light up one after another (display only).
   useWordFinish(finished, () => {
@@ -233,6 +251,45 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     if (isDouble) returnToTray(tile);
     else setSelected((current) => current === tile ? null : tile);
   };
+  /**
+   * Drag (the Word overhaul): a tile dragged from the tray or the board drops on an empty square, or, dragged off the
+   * board onto the tray, goes back to it. A press that moves under 8 px is a tap (the click handlers stay as they are).
+   */
+  const startDrag = (tile: number, event: ReactPointerEvent) => {
+    if (frozen || event.button !== 0) return;
+    const d = { tile, x: event.clientX, y: event.clientY, moved: false };
+    drag.current = d;
+    const move = (e: PointerEvent) => {
+      if (d.moved || Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8) return;
+      d.moved = true;
+      setSelected(d.tile);
+    };
+    const up = (e: PointerEvent) => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      drag.current = null;
+      if (!d.moved || e.type === "pointercancel") return;
+      swallowClick.current = true;
+      window.setTimeout(() => { swallowClick.current = false; }, 0);
+      dropAt(d.tile, document.elementFromPoint(e.clientX, e.clientY));
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+  const dropAt = (tile: number, hit: Element | null) => {
+    if (frozen) return;
+    const cellEl = hit?.closest?.("[data-tg-cell]");
+    if (cellEl) {
+      const at = Number(cellEl.getAttribute("data-tg-cell"));
+      if (placedRef.current[at] === null) place(tile, at);
+      else setSelected(null);
+      return;
+    }
+    if (hit?.closest?.("[data-game-controls='tray']")) returnToTray(tile);
+    else setSelected(null);
+  };
   const done = async () => {
     if (frozen || checking || placedCount(cells) !== TG_TILES) return;
     setChecking(true);
@@ -276,8 +333,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
               data-word-cell={letter && goodCells.has(i) ? "true" : undefined}
               data-bw-slot={letter ? undefined : selected !== null ? "open" : "empty"}
               data-bw-selected={selected === tile && tile !== null ? "" : undefined}
+              data-tg-bad={letter && badCells.has(i) ? "" : undefined}
+              data-wa={letter ? "tile" : "well"}
+              data-wa-tone={letter ? (flash.has(i) || badCells.has(i) ? "red" : selected === tile ? "sapphire" : goodCells.has(i) ? "gold" : "black") : undefined}
+              onPointerDown={tile !== null ? (event) => startDrag(tile, event) : undefined}
               onClick={() => {
-                if (frozen) return;
+                if (frozen || swallowClick.current) return;
                 if (tile !== null) tapPlaced(tile);
                 else if (selected !== null) place(selected, i);
               }}
@@ -304,7 +365,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           <span
             key={tile}
             data-bw-selected={selected === tile ? "" : undefined}
-            onClick={() => { if (!frozen) setSelected((current) => current === tile ? null : tile); }}
+            data-wa="tile"
+            data-wa-tone={selected === tile ? "sapphire" : "black"}
+            onPointerDown={(event) => startDrag(tile, event)}
+            onClick={() => { if (!frozen && !swallowClick.current) setSelected((current) => current === tile ? null : tile); }}
             className={`word-letter-tile flex items-center justify-center rounded-lg bg-primary font-display text-xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
             style={{ width: TRAY_TILE, height: TRAY_TILE }}
           >
@@ -314,19 +378,25 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       </div>
       <div data-game-controls="actions" className="flex w-full shrink-0 items-center gap-2">
         {/* Batch W live summary (display only): tiles placed and tiles in words, from what the board shows. */}
-        <span data-tg-hint="" data-live-summary="tilegrid" className="min-w-0 truncate whitespace-nowrap text-[13px] font-semibold tabular-nums text-[#a09da6]">
-          {allPlaced ? (
-            <><b className="font-extrabold text-[#f3f1ec]">{goodCells.size}</b> / {TG_TILES} in words</>
-          ) : (
-            <><b className="font-extrabold text-[#f3f1ec]">{placedCount(cells)}</b> / {TG_TILES} placed{goodCells.size > 0 ? ` · ${goodCells.size} in words` : ""}</>
-          )}
-        </span>
+        {/* The Word overhaul: separate pills that fit at 375 px (the one line was cut off at 390 px). */}
+        <div data-tg-hint="" data-live-summary="tilegrid" className="min-w-0 flex-1">
+          <HudPills
+            testId="tilegrid"
+            className="justify-start"
+            items={[
+              { id: "placed", label: "Placed", value: `${placedCount(cells)}/${TG_TILES}` },
+              { id: "words", label: "In words", value: goodCells.size, tone: "gold" },
+              badCells.size > 0 ? { id: "bad", label: "Not words", value: badCells.size, tone: "warn" } : null,
+            ]}
+          />
+        </div>
         <Button
           type="button"
           variant="ghost"
           disabled={frozen || placedCount(cells) === 0}
           onClick={clearAll}
-          className="ml-auto h-11 w-24 font-display font-bold uppercase tracking-widest text-muted-foreground"
+          data-wa-btn="navy"
+          className="ml-auto h-11 w-20 shrink-0 font-display font-bold uppercase tracking-widest"
         >
           Clear
         </Button>
@@ -335,7 +405,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           disabled={frozen || checking || !allPlaced}
           title={allPlaced ? undefined : `Place all ${TG_TILES} tiles`}
           onClick={() => void done()}
-          className="h-11 w-28 font-display font-bold uppercase tracking-widest"
+          data-wa-btn="gold"
+          className="h-11 w-24 shrink-0 font-display font-bold uppercase tracking-widest"
         >
           Done
         </Button>

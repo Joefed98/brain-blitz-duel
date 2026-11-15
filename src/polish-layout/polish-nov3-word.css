@@ -69,8 +69,8 @@
 
 /* Roundabout: the crossword takes the height the wheel gave up (main capped it at 260 px tall and 334 px across). */
 .game-column [data-polish="letterwheel"][data-word-polish] > [data-arena-part="letterwheel-board"][data-arena-part] {
-  height: min(380px, calc(100cqh - var(--lw-wheel) - 80px));
-  max-height: min(400px, 100cqw);
+  height: min(420px, calc(100cqh - var(--lw-wheel) - 80px));
+  max-height: min(440px, 100cqw);
 }
 /* Its word count and misses: two compact pills stacked inside the 44 px row. */
 [data-word-polish="letterwheel"] [data-lw-count] .hud-pills {
@@ -95,8 +95,10 @@
    with the word and keypad pushed to the bottom. The arena now holds the tiles (at most 80 px tall) and a short
    solved-words band above them; the column's slack falls below the keypad. The arena keeps a definite height (it
    is a size container: the tiles size from it). */
+/* The Word overhaul (15 Nov 2026, Joe): the keyboard goes back to the bottom, in thumb reach, and the tiles grow into
+   the room it leaves (up to 72 × 96 px); the solved words sit centred in the band above them. */
 .game-column [data-word-polish="strikeout"][data-word-polish] > [data-game-arena="strikeout"][data-game-arena]:has([data-so-solved-space]) {
-  max-height: 176px;
+  max-height: none;
 }
 [data-word-polish="strikeout"] [data-so-solved-space] {
   min-height: 34px;

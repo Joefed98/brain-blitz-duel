@@ -11,7 +11,10 @@ import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 import { useGoalProgress } from "@/components/duel/GameFrame";
-import "@/polish-layout/batch-w-wordsearch.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/lookout.css";
+import { Button } from "@/components/ui/button";
+import { usesWordOverhaul } from "@/lib/duel/wordOverhaul";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -66,6 +69,8 @@ export function Grid({
             key={cell}
             data-ws-cell={cell}
             data-bw-live={live?.has(cell) && !bad?.has(cell) ? "" : undefined}
+            data-wa="tile-sm"
+            data-wa-tone={bad?.has(cell) ? "red" : live?.has(cell) ? "sapphire" : gold.has(cell) ? "gold" : missedOnly ? "dim" : "black"}
             className={`word-letter-tile flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
             style={{ fontSize: small ? "max(9px, 5.6cqw)" : `clamp(16px, calc(min(100cqw, 100cqh) * ${(0.6 / size).toFixed(4)}), 28px)` }}
           >
@@ -77,11 +82,21 @@ export function Grid({
         {foundPaths.map((path, i) => {
           const a = path[0], b = path.at(-1);
           if (a === undefined || b === undefined) return null;
-          return <line key={i} data-ws-line="" x1={a % size + 0.5} y1={Math.floor(a / size) + 0.5} x2={b % size + 0.5} y2={Math.floor(b / size) + 0.5} stroke="var(--primary-foreground)" strokeWidth={0.06} strokeLinecap="round" opacity={0.7} />;
+          // The Word overhaul: a found word is circled by a gold capsule loop (the letters stay readable inside it).
+          return <path key={i} data-ws-line="" className="lookout-loop" d={capsule(a % size + 0.5, Math.floor(a / size) + 0.5, b % size + 0.5, Math.floor(b / size) + 0.5, 0.42)} />;
         })}
       </svg>
     </div>
   );
+}
+
+/** A capsule round the segment (x1, y1)–(x2, y2), radius r, as an SVG path (Lookout's found-word loop). */
+export function capsule(x1: number, y1: number, x2: number, y2: number, r: number): string {
+  const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+  const nx = (-(y2 - y1) / len) * r;
+  const ny = ((x2 - x1) / len) * r;
+  const f = (v: number) => Number(v.toFixed(3));
+  return `M${f(x1 + nx)} ${f(y1 + ny)}L${f(x2 + nx)} ${f(y2 + ny)}A${r} ${r} 0 0 0 ${f(x2 - nx)} ${f(y2 - ny)}L${f(x1 - nx)} ${f(y1 - ny)}A${r} ${r} 0 0 0 ${f(x1 + nx)} ${f(y1 + ny)}Z`;
 }
 
 /** Fixed 5×5 example: LION found on a diagonal, read backwards. */
@@ -134,14 +149,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
 
-  useEffect(() => {
-    if (submitted.current || locked || found.length < total) return;
+  // wordSearchRev 6 (the Word overhaul): finding the last listed word no longer ends the round; the bonus can still
+  // be found, and Done ends it (or the clock). With the bonus found too there is nothing left, so it ends at once.
+  const runsOn = usesWordOverhaul(data, "wordsearch") && !!data && wsHasBonus(data);
+  const allFound = found.length >= total;
+  const finish = () => {
+    if (submitted.current || locked) return;
     submitted.current = true;
     onSubmit(encoded);
+  };
+  useEffect(() => {
+    if (submitted.current || locked || !allFound) return;
+    if (runsOn && !bonus) return;
+    finish();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [found.length, locked]);
+  }, [found.length, locked, bonus]);
 
-  const done = locked || found.length >= total;
+  const done = locked || submitted.current || (allFound && !runsOn);
   // Batch W (display only): the found count moves to the frame's goal line in a live round; intros keep theirs.
   const inFrame = useGoalProgress({ done: found.length, total, text: `${found.length} of ${total} found` });
   const pointer = useGridPointer({
@@ -258,6 +282,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           </span>
         ) : null}
       </div>
+      {runsOn ? (
+        <div data-game-controls="actions" className="flex h-11 w-full shrink-0 items-center justify-center gap-3">
+          {allFound ? (
+            <>
+              <span className="text-sm font-semibold text-muted-foreground">All {total} found · bonus still hidden</span>
+              <Button type="button" data-ws-done="" data-wa-btn="gold" className="h-11 w-28 font-bold uppercase tracking-widest" disabled={done} onClick={finish}>
+                Done
+              </Button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -39,12 +39,14 @@ import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@
 
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-strikeout.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/strikeout.css";
 import "@/polish-layout/polish-nov3-word.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** One strike marker per strike allowed (five, ten from rev 3 or twelve from rev 4, drawn smaller); used ones are filled red. */
-export function Strikes({ used, max = SO_MAX_STRIKES, markerRef }: { used: number; max?: number; markerRef?: React.RefObject<HTMLDivElement | null> }) {
+export function Strikes({ used, max = SO_MAX_STRIKES, markerRef, art = false }: { used: number; max?: number; markerRef?: React.RefObject<HTMLDivElement | null>; /** The live stage's rendered pips (reveals keep their markup; strikeout.css styles them). */ art?: boolean }) {
   const many = max > SO_MAX_STRIKES;
   // Rev 4's twelve markers sit a little closer (12 × 20 px + 11 × 4 px = 284 px) so the row fits a 320 px phone.
   const gap = max > 10 ? "gap-1" : many ? "gap-1.5" : "gap-2";
@@ -53,6 +55,8 @@ export function Strikes({ used, max = SO_MAX_STRIKES, markerRef }: { used: numbe
       {Array.from({ length: max }, (_, i) => (
         <span
           key={i}
+          data-wa={art ? "pip" : undefined}
+          data-wa-tone={art ? (i < used ? "red" : "gold") : undefined}
           className={`flex ${many ? "h-5 w-5" : "h-6 w-6"} items-center justify-center rounded-full border-2 font-display ${many ? "text-xs" : "text-sm"} font-bold leading-none ${
             i < used ? "border-destructive bg-destructive text-destructive-foreground" : "border-border text-transparent"
           }`}
@@ -76,6 +80,16 @@ const TILE: Record<TileLook, string> = {
   missed: "border-2 border-destructive bg-card text-muted-foreground",
 };
 
+/** The Word overhaul: each look's rendered piece and material (word-look.css). */
+const WA_LOOK: Record<TileLook, [string, string | undefined]> = {
+  hidden: ["well", undefined],
+  shown: ["tile", undefined],
+  given: ["tile", "dim"],
+  solved: ["tile", "gold"],
+  typed: ["tile", "sapphire"],
+  missed: ["tile", "red"],
+};
+
 export function Row({
   letters,
   looks,
@@ -84,7 +98,10 @@ export function Row({
   tile,
   tileH,
   rowIndex,
+  art = false,
 }: {
+  /** The live stage's rendered tiles (reveals keep their markup; strikeout.css styles them by their look). */
+  art?: boolean;
   letters: string[];
   looks: TileLook[];
   selected?: boolean | undefined;
@@ -109,6 +126,8 @@ export function Row({
           key={i}
           data-so-tile={`${rowIndex}-${i}`}
           data-so-look={looks[i] ?? "hidden"}
+          data-wa={art ? WA_LOOK[looks[i] ?? "hidden"][0] : undefined}
+          data-wa-tone={art ? WA_LOOK[looks[i] ?? "hidden"][1] : undefined}
           className={`so-tile flex items-center justify-center rounded-md font-display font-bold ${TILE[looks[i] ?? "hidden"]}`}
           style={{ width: side, height, fontSize: `calc(${side} * 0.55)` }}
         >
@@ -275,7 +294,7 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
       style={{ ...NO_SCROLL_STYLE, touchAction: "manipulation" }}
     >
       <div className="flex h-8 w-full shrink-0 items-center justify-center">
-        <Strikes used={strikes} markerRef={strikeRef} />
+        <Strikes used={strikes} markerRef={strikeRef} art />
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div ref={board} className="flex flex-col items-center gap-1" style={{ ["--so-tile" as string]: tileSize }}>
@@ -284,7 +303,7 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
             const solved = !r.includes("_");
             const letters = [...r].map((ch, i) => (isSel && typed[i] ? typed[i]! : ch === "_" ? "" : ch));
             const looks = [...r].map((ch, i): TileLook => (isSel && typed[i] ? "typed" : solved ? "solved" : ch === "_" ? "hidden" : "shown"));
-            return <Row key={ri} letters={letters} looks={looks} selected={isSel} rowIndex={ri} tile="var(--so-tile)" onTap={done || solved ? undefined : () => tapRow(ri)} />;
+            return <Row key={ri} letters={letters} looks={looks} selected={isSel} rowIndex={ri} tile="var(--so-tile)" onTap={done || solved ? undefined : () => tapRow(ri)} art />;
           })}
         </div>
       </div>
@@ -303,17 +322,18 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
         </div>
       </div>
       <LetterKeypad
+        keyCue="strikeout.key"
         onLetter={pressLetter}
         tone={tone}
         disabled={(letter) => !solving && guessed.has(letter)}
         locked={done}
         left={
-          <KeypadAction label="Delete" disabled={!solving || typed.length === 0} onPress={() => setTyped((t) => t.slice(0, -1))}>
+          <KeypadAction keyCue="strikeout.key" label="Delete" disabled={!solving || typed.length === 0} onPress={() => setTyped((t) => t.slice(0, -1))}>
             <Delete className="h-5 w-5" />
           </KeypadAction>
         }
         right={
-          <KeypadAction label="Solve" emphasis disabled={!solving || typed.length !== SO_LEN} onPress={solve}>
+          <KeypadAction keyCue="strikeout.key" label="Solve" emphasis disabled={!solving || typed.length !== SO_LEN} onPress={solve}>
             Solve
           </KeypadAction>
         }
@@ -634,8 +654,9 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   // than wide, 72–80px where the arena has the height, never smaller than before (the old height,
   // min(1.2 × width, (arena − 56) / 1.6), is always within the new limits).
   const tileCount = Math.max(1, pattern.length || 8);
-  const tileSize = `min(64px, calc((100cqw - ${8 + (tileCount - 1) * 4}px) / ${tileCount}), calc((100cqh - 56px) / 1.6))`;
-  const tileHeight = "min(max(calc(var(--so-tile) * 1.45), 72px), 80px, calc((100cqh - 40px) / 1.25))";
+  // The Word overhaul: the keyboard sits at the bottom and the tiles take the room it left (up to 72 × 96 px).
+  const tileSize = `min(72px, calc((100cqw - ${8 + (tileCount - 1) * 4}px) / ${tileCount}), calc((100cqh - 56px) / 1.6))`;
+  const tileHeight = "min(max(calc(var(--so-tile) * 1.45), 72px), 96px, calc((100cqh - 40px) / 1.25))";
   let k = 0;
   const letters = [...shown].map((ch) => (ch === "_" ? (isSolving ? (typed[k++] ?? "") : "") : ch));
   k = 0;
@@ -656,7 +677,7 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       style={{ ...NO_SCROLL_STYLE, touchAction: "manipulation" }}
     >
       <div className="flex h-8 w-full shrink-0 items-center justify-center">
-        <Strikes used={strikes} max={rules.maxStrikes} markerRef={strikeRef} />
+        <Strikes used={strikes} max={rules.maxStrikes} markerRef={strikeRef} art />
       </div>
       <div className="relative flex h-6 w-full shrink-0 items-center justify-between px-2">
         <WordDots solved={solvedCount} current={view?.word ?? 0} />
@@ -691,6 +712,7 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
             tile="var(--so-tile)"
             tileH={tileHeight}
             onTap={done ? undefined : toggleSolve}
+            art
           />
         </div>
       </div>
@@ -719,21 +741,25 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
         </div>
       </div>
       <LetterKeypad
+        keyCue="strikeout.key"
         onLetter={pressLetter}
         tone={tone}
         disabled={keyOff}
         locked={done}
         left={
+          // The Word overhaul: the delete key keeps one label (it read "Back" with nothing typed); with nothing typed
+          // it still leaves solving.
           <KeypadAction
-            label={isSolving && typed.length === 0 ? "Back" : "Delete"}
+            keyCue="strikeout.key"
+            label="Delete"
             disabled={!isSolving}
             onPress={() => (typed.length === 0 ? setSolving(false) : setTyped((t) => t.slice(0, -1)))}
           >
-            {isSolving && typed.length === 0 ? "Back" : <Delete className="h-5 w-5" />}
+            <Delete className="h-5 w-5" />
           </KeypadAction>
         }
         right={
-          <KeypadAction label="Solve" emphasis disabled={done || holes.length === 0 || (isSolving && typed.length !== holes.length)} onPress={solve}>
+          <KeypadAction keyCue="strikeout.key" label="Solve" emphasis disabled={done || holes.length === 0 || (isSolving && typed.length !== holes.length)} onPress={solve}>
             Solve
           </KeypadAction>
         }

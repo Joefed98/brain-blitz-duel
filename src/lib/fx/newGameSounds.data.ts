@@ -102,4 +102,5 @@ export const NEW_GAME_SOUND_RECORDINGS = [
   { file: "balltrack.wrong.mp3", slots: ["balltrack.wrong"], ms: 74, bytes: 1567, lufs: -24.5, target: -22.7, truePeak: -2.6, loop: false, what: "a marble in the wrong cup: a dull, low clunk" },
   { file: "balltrack.switch.mp3", slots: ["balltrack.switch"], ms: 78, bytes: 1567, lufs: -25.3, target: -22.7, truePeak: -1.9, loop: false, what: "a track switched: a click-clack" },
   { file: "bastion.dry.mp3", slots: ["bastion.dry"], ms: 72, bytes: 1567, lufs: -25.7, target: -22.7, truePeak: -1.0, loop: false, what: "a dry fire: an empty mechanical click" },
+  { file: "word.key.mp3", slots: ["strikeout.key", "codeword.key"], ms: 48, bytes: 1253, lufs: -26.6, target: -22.7, truePeak: -2.9, loop: false, what: "a soft typewriter key: a short, dry, light mechanical click" },
 ] as const;

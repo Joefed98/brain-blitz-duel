@@ -69,6 +69,9 @@ export const NEW_GAME_SOUND_REPLACES: Readonly<Record<string, readonly string[]>
   // Double Take's find played the generic correct.
   "spotdiff.found": ["correct"],
   "bomb.press": MOVE,
+  // The Word overhaul's key press: the click takes the place of the draft's move tick (a hit still plays its place).
+  "strikeout.key": MOVE,
+  "codeword.key": MOVE,
 };
 
 /** Sets every new slot's file on the manifest's entries (manifest.ts, only with NEW_GAME_SOUNDS on; and checks). */

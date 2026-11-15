@@ -18,6 +18,7 @@ import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps } from "./operatorGaps.server";
 import { dealWordNov7 } from "./wordNov7";
 import { dealGameReviewNov15 } from "./gameReviewNov15";
+import { dealWordOverhaul } from "./wordOverhaul.server";
 import { withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -171,6 +172,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "notesFree", deal: dealNotesFree },
   // The game review fixes (15 Nov 2026, gameReviewNov15.ts): Brimful measureRev 4 (out of moves ends only that puzzle).
   { name: "gameReviewNov15", deal: dealGameReviewNov15 },
+  // The Word overhaul (15 Nov 2026, wordOverhaul.ts): Nucleus, Slider, Lookout, Roundabout and Cryptogrid one stamp up.
+  { name: "wordOverhaul", deal: dealWordOverhaul },
 ];
 
 /**

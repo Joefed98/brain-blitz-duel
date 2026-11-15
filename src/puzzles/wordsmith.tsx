@@ -7,6 +7,8 @@ import { WORDSMITH_TIME_MS } from "@/lib/duel/types";
 import { WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { WORDSMITH_REV_EVERYDAY } from "@/lib/duel/wordOverhaul";
+import { WordDropList } from "@/components/puzzles/WordDropList";
 
 /** Fixed intro example — never randomised. Centre letter is index 4. */
 const EXAMPLE_TILES = ["C", "A", "R", "E", "P", "N", "T", "E", "R"];
@@ -62,6 +64,7 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
     .filter((entry) => !mine.includes(entry.word))
     .sort((a, b) => b.word.length - a.word.length || b.points - a.points)
     .slice(0, 5);
+  const everyday = (puzzle.wordsmithRev ?? 0) >= WORDSMITH_REV_EVERYDAY && puzzle.words ? new Set(puzzle.words.map((entry) => entry.word)) : null;
   const pangram = puzzle.source ?? (puzzle.words ?? []).find((entry) => entry.word.length === puzzle.letters.length)?.word;
 
   // Sized so all 25-odd words of a board fit on one 375×667 screen: the ring sits
@@ -89,14 +92,15 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       </div>
 
       {mine.length > 0 && (
-        <ul className="word-reveal-list w-full">
-          {mine.map((word) => (
-            <li key={word}>
-              <span>{word}</span>
-              <span className="text-primary">{wordsmithPoints(word)}</span>
-            </li>
-          ))}
-        </ul>
+        <WordDropList
+          className="word-reveal-list w-full"
+          words={mine.map((word) => ({
+            word,
+            points: wordsmithPoints(word),
+            // wordsmithRev 5: a word off the board's everyday list was a bonus word.
+            bonus: everyday ? !everyday.has(word) : false,
+          }))}
+        />
       )}
 
       {missed.length > 0 && (

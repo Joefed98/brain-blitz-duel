@@ -45,5 +45,5 @@ export async function checkRoundWord(
   if (pub.type !== "wordsmith")
     return { valid: false as const, points: 0, word: "", reason: "Not this round." };
   const { checkWordsmithWord } = await import("./wordsmith.server");
-  return checkWordsmithWord(pub.letters, String(data.word ?? ""), found);
+  return checkWordsmithWord(pub.letters, String(data.word ?? ""), found, pub.wordsmithRev);
 }

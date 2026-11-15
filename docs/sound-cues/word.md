@@ -25,6 +25,8 @@ fired here.
 | `codeword.finish` | Cryptogrid | The server confirms the grid is cracked (the solve moment). The decoded letters flip across the grid in a diagonal wave. | 1.1 s |
 | `swapword.finish` | Swapword | The server confirms the board is solved (the solve moment). A gold wave runs once round the figure-eight. | 1.16 s |
 | `wordfall.finish` | Letterfall | The run ends (time or a full column) with a local score (`wordfallScore` of the sim's points) of 120 or more, on the live stage only (never the reveal's replay). The well's tiles shimmer from bottom to top, inside each tile's face. | 1.1 s |
+| `strikeout.key` | Strikeout | Any key on the keyboard (the Word overhaul, 15 Nov 2026): a soft typewriter click; `word.key.mp3` behind NEW_GAME_SOUNDS until Joe's recording (`word-elevenlabs.md`). | 0.05 s |
+| `codeword.key` | Cryptogrid | Any key on the keyboard, as Strikeout's. | 0.05 s |
 
 No `shared.*` cues are added by this pass. Other changes in the pass (eased tile fills,
 the accepted-word chip moving into Nucleus's HUD, floating found-word chips) reuse

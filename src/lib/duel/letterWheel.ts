@@ -19,6 +19,8 @@ export const LW_MAX_WORDS = 400;
 export const LW_REV = 1;
 /** Bank limits for wheelRev 1 (scripts/letter-wheel-bank.ts). */
 export const LW_REV1_LIMITS = { maxCols: 11, maxRows: 9, minWords: 11, maxWords: 14, minLong: 7, maxShort: 5 } as const;
+/** wheelRev 5 (the Word overhaul, wordOverhaul.ts): rev 1's limits with at most two 3-letter words. */
+export const LW_REV5_LIMITS = { maxCols: 11, maxRows: 9, minWords: 11, maxWords: 14, minLong: 9, maxShort: 2 } as const;
 /** Misses (traces that are neither a slot word nor a dictionary word) that cost nothing. */
 export const LW_FREE_MISSES = 5;
 /** Points per miss beyond the free ones, off the unfinished credit or the finish's efficiency part. */

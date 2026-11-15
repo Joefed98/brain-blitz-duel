@@ -31,6 +31,7 @@ import { TOPUP_FIXTURE, type TopupFixture } from "./depth-topup-record";
 import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
 import { pinPreStandard } from "../src/lib/duel/standard/stamps";
 import { pinPreNov7 } from "../src/lib/duel/speedPipesNov7";
+import { pinPreWordOverhaul } from "../src/lib/duel/wordOverhaul";
 
 // Written for the top-up's stamps (Swapword swapwordRev 5): new deals stay on the stamps before Joe's phone notes (27 Oct 2026) here;
 // phone-notes-check proves the stamps rooms deal now.
@@ -39,6 +40,9 @@ pinPrePhoneNotes(true);
 pinPreStandard(true);
 // …and on Flash and Bang On's tapRev 6 (7 Nov 2026 deals tapRev 7, speedPipesNov7.ts; speed-pipes-nov7-check proves it).
 pinPreNov7(true);
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul): written for the stamps before it,
+// so new deals here keep them (wordOverhaul.ts; word-overhaul-check proves the new stamps).
+pinPreWordOverhaul(true);
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);

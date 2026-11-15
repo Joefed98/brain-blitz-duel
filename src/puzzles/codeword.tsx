@@ -19,7 +19,8 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 import { HudPills } from "@/components/puzzles/HudPills";
-import "@/polish-layout/batch-w-codeword.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/cryptogrid.css";
 import "@/polish-layout/polish-nov3-word.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -65,6 +66,9 @@ export function Grid({
             key={i}
             data-cw-cell={n}
             data-cw-filled={letters[n - 1] ? "" : undefined}
+            data-wa={letters[n - 1] || look(n) === "given" || look(n) === "selected" ? "tile-sm" : "well"}
+            data-wa-tone={look(n) === "selected" ? "sapphire" : look(n) === "wrong" ? "red" : undefined}
+            data-cw-look={look(n)}
             role={onCell ? "button" : undefined}
             aria-label={onCell ? `Number ${n}` : undefined}
             onClick={onCell ? () => onCell(n) : undefined}
@@ -138,6 +142,20 @@ function IntroExample() {
       </p>
     </div>
   );
+}
+
+/**
+ * The Word overhaul: the next number after `from` (in the grid's reading order, wrapping round) that is neither given
+ * nor filled; null when every number has a letter.
+ */
+export function codewordNextUnsolved(cells: readonly number[], from: number, given: ReadonlySet<number>, letters: readonly string[]): number | null {
+  const open = (n: number) => n > 0 && n !== from && !given.has(n) && !letters[n - 1];
+  const at = cells.indexOf(from);
+  for (let k = 1; k <= cells.length; k++) {
+    const n = cells[(Math.max(0, at) + k) % cells.length]!;
+    if (open(n)) return n;
+  }
+  return null;
 }
 
 /** A full grid's status (game review fix, 15 Nov 2026): "wrong" once the server has said this grid is wrong. */
@@ -249,6 +267,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     if (letters[selected - 1] === letter) return;
     record({ n: selected, letter });
     fx.onPlace();
+    // The Word overhaul: after a letter, the selection jumps to the next unsolved number (in grid order).
+    const after = replayCodeword(numbers, givens, [...actions, { n: selected, letter }]);
+    const next = codewordNextUnsolved(data.cells, selected, given, after);
+    if (next !== null) setSelected(next);
   };
 
   const clear = () => {
@@ -270,7 +292,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   return (
     <div ref={root} data-stage-column="1" data-word-polish="codeword" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1" style={NO_SCROLL_STYLE}>
       <div data-game-arena="codeword" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div ref={gridRef} style={{ width: "min(100cqw, 100cqh, 420px)", aspectRatio: "1 / 1" }}>
+        <div ref={gridRef} style={{ width: "min(100cqw, 100cqh, 460px)", aspectRatio: "1 / 1" }}>
           <Grid
             size={data.size}
             cells={data.cells}
@@ -300,18 +322,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
         ) : null /* 3 Nov 2026 (Joe's audit): no on-board hint; the intro's HOW says "Tap a square, then a letter". */}
       </div>
       <LetterKeypad
+        keyCue="codeword.key"
         onLetter={pressLetter}
         tone={(letter) => (placed.has(letter) ? "used" : "plain")}
         locked={done}
-        keyHeight={42}
-        keyFontPx={19}
+        keyFontPx={20}
         left={
-          <KeypadAction label="Clear" keyHeight={42} fontPx={16} disabled={done || selected === null || given.has(selected) || !letters[(selected ?? 1) - 1]} onPress={clear}>
+          <KeypadAction keyCue="codeword.key" label="Clear" fontPx={16} disabled={done || selected === null || given.has(selected) || !letters[(selected ?? 1) - 1]} onPress={clear}>
             Clear
           </KeypadAction>
         }
         right={
-          <KeypadAction label="Next empty" keyHeight={42} fontPx={16} disabled={done || complete} onPress={nextEmpty}>
+          <KeypadAction keyCue="codeword.key" label="Next empty" fontPx={16} disabled={done || complete} onPress={nextEmpty}>
             Next
           </KeypadAction>
         }

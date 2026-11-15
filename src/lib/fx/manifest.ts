@@ -526,6 +526,10 @@ const ENTRIES = {
   "lightsout.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "bomb.cut": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/bomb.cut.mp3", volume: 0.77 },
   "bomb.press": { channel: "effects", frequency: 0, ms: 200, url: null },
+  // The Word overhaul (15 Nov 2026): a key press on Strikeout's and Cryptogrid's keyboards (word.key.mp3 behind
+  // NEW_GAME_SOUNDS until Joe's recording; docs/sound-cues/word-elevenlabs.md).
+  "strikeout.key": { channel: "effects", frequency: 0, ms: 48, url: null },
+  "codeword.key": { channel: "effects", frequency: 0, ms: 48, url: null },
   "bomb.defuse": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/bomb.defuse.mp3" },
   "bomb.solve": { channel: "effects", frequency: 0, ms: 686, url: "/sounds/bomb.solve.mp3" },
   "sudoku.place": { channel: "effects", frequency: 0, ms: 170, url: null },

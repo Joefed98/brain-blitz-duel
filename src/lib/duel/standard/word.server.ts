@@ -13,7 +13,8 @@ import { swapwordCounts, wordSlideMadeRows } from "../progressFigures";
 import { wsDecode, wsGrade, wsSplitBonus } from "../wordSearch";
 import { LW_JAR_DROPS, lwDecodeLog, lwJarKept, lwJarTally, lwMissPenalty, lwTallyLog } from "../letterWheel";
 import { decodeStrikeout2, replayStrikeout2, so2EarlySolves, so2Rules, so2Tally, strikeoutRevOf } from "../strikeout";
-import { codewordTally, decodeCodeword, replayCodeword } from "../codeword";
+import { codewordRuns, codewordTally, decodeCodeword, replayCodeword } from "../codeword";
+import { cryptogridVisibleWrong, usesWordOverhaul } from "../wordOverhaul";
 import { decodeSwapword, replaySwapword } from "../swapword";
 import { PUZZLE_EFFICIENCY_POINTS } from "../puzzleScoreRev";
 import type { PuzzleData, PuzzleType } from "../types";
@@ -184,6 +185,15 @@ const lookout: StandardGame = {
     const extra = input.graded.extra ?? {};
     const bonus = extra["bonusFound"] === true ? STD_LOOKOUT.bonus : 0;
     if (input.graded.isCorrect) {
+      // wordSearchRev 6 (wordOverhaul.ts): the round runs on after the last listed word for the bonus, so speed is
+      // measured when the last listed word was found (the timeline's first draft holding every word), else at the answer.
+      if (usesWordOverhaul(input.puzzle, "wordsearch") && input.puzzle.type === "wordsearch") {
+        const total = num(extra["total"]);
+        const doneAt = input.drafts?.find((d) => total > 0 && lookoutFound(input.puzzle as Extract<PuzzleData, { type: "wordsearch" }>, d.draft) >= total)?.t;
+        const msLeft = doneAt === undefined ? input.msLeft : Math.max(input.msLeft, input.limitMs - doneAt);
+        const speed = speedPoints(STD_LOOKOUT.speed, msLeft, input.limitMs, STD_LOOKOUT.fullByS * 1000);
+        return { finished: true, speed, bonus, measure: "bonus word", facts: { allFoundAtMs: doneAt ?? null } };
+      }
       return { finished: true, speed: speedOf(input, STD_LOOKOUT.speed, STD_LOOKOUT.fullByS), bonus, measure: "bonus word" };
     }
     const found = num(extra["found"]);
@@ -289,13 +299,25 @@ export function cryptogridWrongEntries(puzzle: Extract<PuzzleData, { type: "code
   return wrong.size;
 }
 
+/**
+ * codewordRev 6: wrong letters the player was shown to be wrong (each completed a run that is no real word), from the
+ * draft timeline; null without one (no clean bonus then, as before).
+ */
+export function cryptogridShownWrong(puzzle: Extract<PuzzleData, { type: "codeword" }>, drafts: readonly { draft: string }[] | null): number | null {
+  if (!drafts) return null;
+  const runs = codewordRuns(puzzle.cells, puzzle.size).map((run) => run.cells.map((cell) => puzzle.cells[cell]!));
+  const states = drafts.map((d) => replayCodeword(puzzle.numbers, puzzle.givens, decodeCodeword(d.draft, puzzle.numbers)));
+  return cryptogridVisibleWrong(states, runs, puzzle.solution ?? "", new Set(puzzle.givens.map((g) => g.n)), isWord);
+}
+
 const cryptogrid: StandardGame = {
   parts: (puzzle, draft) => (puzzle.type === "codeword" ? cryptogridCorrect(puzzle, draft) : 0),
   grade(input, ctx) {
     const p = input.puzzle;
     if (p.type !== "codeword") return { finished: false, credit: 0 };
     if (input.graded.isCorrect) {
-      const wrong = cryptogridWrongEntries(p, input.drafts);
+      // codewordRev 6 (wordOverhaul.ts): only the wrong letters the grid showed to be wrong count.
+      const wrong = usesWordOverhaul(p, "codeword") ? cryptogridShownWrong(p, input.drafts) : cryptogridWrongEntries(p, input.drafts);
       const clean = wrong === null ? 0 : cleanPoints(STD_CRYPTOGRID.clean, STD_CRYPTOGRID.clean, wrong);
       return { finished: true, speed: speedOf(input, STD_CRYPTOGRID.speed, STD_CRYPTOGRID.fullByS), bonus: clean, measure: "clean crack", facts: { wrongEntered: wrong } };
     }
