@@ -28,6 +28,8 @@ import { useAccount } from "@/lib/account/accountApi";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "@/lib/appearance";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
+import { useDesktop } from "@/lib/desktop";
+import { setPreferredScheme, usePreferredScheme } from "@/lib/gameControls";
 import { betaValue } from "@/lib/beta/betaValues";
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
@@ -77,6 +79,8 @@ export function SettingsHead({ title = "Settings", onBack }: { title?: string; o
 
 /** Everything under the header (drawn on its own by checks that need no router). */
 export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onDeleted }: SettingsActions) {
+  const desktop = useDesktop();
+  const preferred = usePreferredScheme();
   const account = useAccount();
   const [arrows, setArrows] = useState<"arrows" | "joystick">("arrows");
   useEffect(() => setArrows(readArrows()), []);
@@ -164,6 +168,29 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
             {/* Battery saver (off by default): fewer particles and glows, puzzles at 30 fps. */}
             <SwitchRow label="Battery saver" on={saver} onChange={setBatterySaver} data="battery" />
           </Panel>
+          {/* On a computer (phase 2 step 4 pass 2, lib/gameControls.ts): its own panel under the device's controls. */}
+          {desktop ? (
+            <Panel className="mt-3">
+              <div className="jz-row st-seg-row" data-setting="computer-controls">
+                <span className="jz-row-text">
+                  <span className="jz-row-title">On a computer</span>
+                  <span className="jz-row-sub" data-ellipsis>Each game’s menu can change its own</span>
+                </span>
+                <Segmented
+                  label="On a computer"
+                  radio
+                  value={preferred ?? "own"}
+                  onChange={(v) => setPreferredScheme(v === "own" ? null : v)}
+                  className="st-seg"
+                  options={[
+                    { value: "own", label: "Default" },
+                    { value: "keys", label: "Keyboard" },
+                    { value: "mouse", label: "Mouse" },
+                  ]}
+                />
+              </div>
+            </Panel>
+          ) : null}
         </Group>
 
         {/* Phone notifications (B2): its own heading and panel; nothing while the switch is off or for a guest. */}

@@ -118,7 +118,11 @@ for (const m of css.matchAll(/transition(?:-property)?\s*:\s*([^;]+);/g)) check(
 check(!/@keyframes/.test(css) || [...css.matchAll(/@keyframes[^{]+\{([\s\S]*?)\n\}/g)].every((m) => !LAYOUT.test(m[1]!)), "game-fx.css: keyframes move only transform and opacity");
 for (const file of [
   "src/components/fx/GameFx.tsx",
-  "src/components/duel/ArenaSidePanel.tsx",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): the arena's panel is
+  // ArenaGamePanel (the mirrored ArenaSidePanel is gone); the timer's new looks and the header styles' showcase join.
+  "src/components/duel/ArenaGamePanel.tsx",
+  "src/components/duel/TimerBar.tsx",
+  "src/design/HeaderStylesShowcase.tsx",
   "src/components/duel/RoundResult.tsx",
   "src/components/duel/RoundResultsTable.tsx",
   "src/components/duel/FinalResult.tsx",

@@ -103,26 +103,68 @@ The first that applies. Every variant still shows the state change; only the flo
 
 ## The shared frame
 
-Every context (practice, rooms, rated, the Daily, tournaments, offline) draws the same frame:
+Every context (practice, rooms, rated, the Daily, tournaments, offline) draws the same frame.
 
-- **In play** (`GameLayout` in `PhoneShell.tsx`, `GameFrame.tsx`, `game-frame.css` + `game-fx.css` section 2): one
-  60 px header, name and context left, the 48 px timer ring centred, the score block and the game menu right; puzzles
-  add the goal line, the tray and the dock; `HudPills` are solid surface chips. Round 2 of the style guide's type:
-  names and scores in 800, captions in 600, text 2 for secondary lines. Every box keeps its size, so no board, world,
-  control or check measure moves.
-- **RoundIntro**: behaviour unchanged (Play's straight-to-3-2-1 path included).
-- **Results** (`RoundResult`, `RoundResultsTable`, `FinalResult`, `AsyncResults`, `OfflineRunResult`): the kit's
-  payoff: totals count up (`FxCountUp`), the winner's card, row or headline gets `win`, an offline run confirmed as a
-  new best shows `FxNewBest`; score bars fill by `scaleX`, never by width.
+### Header styles
 
-## The computer arena
+`src/config/gameFrameConfig.ts` holds the default, **one line** (`GAME_HEADER_STYLE`). Each style keeps the header's
+60 px and three columns, so no board, world or control moves when it changes:
 
-On a computer (`data-layout="desktop"`) a live round outside a room gets a side panel right of the play column
-(`ArenaSidePanel`): the game, its goal, the time left and the score, larger than the header's. It mirrors the header
-(no second timer, sound or effect) and is shown only where the space right of the centred column holds it (puzzles from
-1452 px wide, tall arcade worlds from 1332 px), so the column, the world and every control stay where the desktop checks
-expect them. A room keeps its 380 px room panel (standings for 16, round progress, chat). Sideways tablets keep the
-phone game screen (desktop-layout-check pins it).
+| Style | Left | Centre | Right |
+|---|---|---|---|
+| `mockup` (default, the style guide's puzzle.png / arcade.png) | your avatar (gold ring), the game and context | the seconds, with a gold time bar along the header's bottom | the score, a one-on-one opponent's avatar, the menu |
+| `ring` | the game and context | a gold ring with the seconds | the score, the menu |
+| `digital` | your avatar, the game and context | a 0:52 countdown in gold on a navy chip | the score, the opponent's avatar, the menu |
+| `chip` | the game and context | a navy chip whose gold fill shrinks with the time | the score, the menu |
+
+Gold and navy throughout: no category-coloured ring; the last ten seconds turn the loss red. `/dev-design` → Header
+styles draws all four side by side (a room and practice) and, in a development build, "Use in games" plays this
+browser's games in one. Checks can stand a style in with `window.__DUELZ_HEADER_STYLE__`. The timer (`TimerBar`) reads
+its look from `TimerLookContext`; its sounds, warnings, role and label are the same in every look.
+
+The shared controls' outline buttons (Box Six's Pencil and Clear and every `font-mono uppercase` outline action in a
+puzzle's dock) are the style guide's secondary button: navy on a ledge, sentence case; gold when on.
+
+### Phones
+
+The board is already as wide as the screen allows; on a tall phone the dock's buttons (not the letter keypads, which
+would take height from the board) grow to a thumb's 52 px into the spare height.
+
+### Results and the reveal
+
+- `RoundResult`, `RoundResultsTable`, `FinalResult`, `AsyncResults`, `OfflineRunResult`: totals count up
+  (`FxCountUp`), the winner's card, row or headline gets `win`, an offline run confirmed as a new best shows
+  `FxNewBest`; score bars fill by `scaleX`, never by width.
+- The answer reveal (`AnswerReveal`, practice and matches): one result card (the verdict mark, the verdict in the
+  Heading size, the stored score), then in practice the payoff row (this game's three stars landing with `stars`, "Star
+  earned" when this run earned one, the new-best badge), then the game's own drawing of the solution with the
+  Solution / Yours switch where the game has both. Each game keeps its own Reveal; no game's reveal logic changed.
+  Practice ends on Back and Play again; a room's reveal moves on by itself (its seconds in the header).
+
+## The arena (computers and sideways tablets)
+
+`src/lib/gameFrame/arena.ts`. A live round on a computer, or on a tablet held sideways at least 1024 px wide, is the
+arena:
+
+- **No header.** Its name, context, timer, score, best and menu go to **one side panel** (`ArenaGamePanel`, portalled
+  once, so the timer and score exist once): a 320 px panel outside a room, or the top of the 380 px room panel in a room
+  (whose standings follow). The goal is in the panel; the board's goal line keeps only its stage progress.
+- **The board as big as fits.** The column fills the height between the rail and the panel: puzzles up to 960 px wide,
+  arcade worlds at the largest uniform scale of the identical world (tall worlds up to 640 px wide, rotated worlds up
+  to 1000; Apex keeps its frame-rate cap). Never more of a world: `arena-world-check` proves every arcade play screen
+  draws the same world size and visible area on a phone, a sideways tablet and a computer.
+- **Controls** (`src/lib/gameControls.ts`, computers only): the keyboard hint box is now a small "Controls" tab at the
+  panel's foot that pulls up the keys and the choice. Schemes, input mapping only (the sim receives exactly a phone's
+  inputs):
+
+  | Game type | Schemes (default first) |
+  |---|---|
+  | Games with keys (desktopKeys.ts) | Keyboard (keys and the mouse), Mouse (click and drag only, keys off) |
+  | Games without keys (Flash, Bang On, Bonk, Tenfall, Tempo, …) | Mouse |
+  | Iron Wall (hover aiming) | Mouse movement (move to aim, click to fire), Click and drag (as on a phone) |
+
+  A player's choice is kept per game on the device (`duelz-game-controls:v1`), set from the game menu or the tab;
+  Settings → Game controls → On a computer sets a preference for every game that offers it.
 
 ## Examples for family sessions
 

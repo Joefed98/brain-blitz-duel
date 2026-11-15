@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 
 import { GameMenu } from "./GameMenu";
 import { BOARD_FILL, CATEGORY_NAMES, FrameName, GoalLine, useBoardTray } from "./GameFrame";
@@ -21,13 +21,17 @@ import { SeasonNotice } from "@/components/seasons/SeasonNotice";
 import type { ThemeSkin } from "@/lib/theme";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
-import { DesktopControlsHint } from "./DesktopControlsHint";
-import { ArenaSidePanel } from "./ArenaSidePanel";
+import { ArenaGamePanel, FrameMe } from "./ArenaGamePanel";
+import { createPortal } from "react-dom";
+import { ArenaMount, useArenaLayout, useArenaMount, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
+import { TIMER_LOOK, TimerLookContext, useHeaderStyle } from "@/lib/gameFrame/headerStyle";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
 import { PlayBar } from "@/components/nav/PlayBar";
 import { useHomeBeneath, useNavPlacement, useNavScroll } from "@/components/nav/navigation";
 import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
+import { ControlSchemeContext, useControlScheme } from "@/lib/gameControls";
+import { GameKeysOff } from "@/lib/desktop";
 import { DesktopPresentation, type DesktopPresentationValue } from "@/lib/desktopPresentation";
 
 interface PhoneShellProps {
@@ -119,7 +123,7 @@ const CONTROL = "button, a, input, textarea, select, [role='button']";
  * the score block, an empty slot (kept for live scores) and the game menu (GameMenu: sound, music, how to play) on the right. Puzzles add the goal line under it (GoalLine) and sit
  * on the tray; arcade worlds start directly under it.
  */
-export function GameLayout({ label, title, onHelp, progress, score, ping, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
+export function GameLayout({ label, title, onHelp, progress, score, ping, timer, opponent, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
   /** The context after the category: "Practice", "Round 2 of 6", "Daily". */
   label: ReactNode;
   title: ReactNode;
@@ -139,6 +143,11 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
   /** @deprecated The frame's name and context line say the round and game; kept so callers compile. */
   roundLabel?: ReactNode;
   timer?: ReactNode;
+  /**
+   * A one-on-one room's opponent, drawn beside the score in the avatar header styles (the style guide's header):
+   * their mini card (RoomMiniCard). Nothing in practice, the Daily or a room of 3+.
+   */
+  opponent?: ReactNode;
   beforeGame?: ReactNode;
   children: ReactNode;
   overlay?: ReactNode;
@@ -160,55 +169,114 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
   };
   // Puzzles: the tray behind the board (GameFrame useBoardTray); arcade worlds have none.
   useBoardTray(regionRef, trayRef, Boolean(frame && !arcade && type));
+  // Game controls on a computer (lib/gameControls.ts): input mapping only; null on phones and tablets.
+  const layoutMode = useLayoutMode();
+  const chosen = useControlScheme(type);
+  const scheme = layoutMode === "desktop" ? chosen : null;
   const stage = (
     <div ref={setRegion} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       {frame && !arcade && type ? <div ref={trayRef} data-game-tray aria-hidden="true" className="game-tray" /> : null}
       <div data-game-stage className={`game-column game-column-centred game-column-lifted flex min-h-0 flex-1 flex-col ${locked ? `pointer-events-none transition-opacity duration-200${held ? "" : " opacity-30"}` : ""}`} data-board-held={locked && held ? "" : undefined}>
-        <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
+        <ControlSchemeContext.Provider value={scheme}>
+          <GameKeysOff.Provider value={scheme === "mouse" || scheme === "drag"}>
+            <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
+          </GameKeysOff.Provider>
+        </ControlSchemeContext.Provider>
       </div>
       {overlay}
     </div>
   );
   const nameLength = typeof title === "string" ? Math.max(6, title.length) : 12;
   const contextLength = (category ? CATEGORY_NAMES[category].length + 2 : 0) + (typeof label === "string" ? label.length : 12);
-  const header = (
+  // The header style (src/config/gameFrameConfig.ts) and the arena (lib/gameFrame/arena.ts): in the arena the
+  // header is not drawn; its name, timer, score and menu go to the side panel once (no doubled timer).
+  const headerStyle = useHeaderStyle();
+  const arenaMount = useArenaMount();
+  const inArena = arenaMount.arena && Boolean(frame);
+  const avatars = headerStyle === "mockup" || headerStyle === "digital";
+  const nameNode =
+    typeof title === "string" ? (
+      <FrameName data-frame-name text={title} />
+    ) : (
+      <span data-frame-name className="game-frame-name" style={{ ["--name-len" as string]: nameLength }}>{title}</span>
+    );
+  const contextNode = (
+    <span data-frame-context data-fit={contextLength > 20 ? "short" : undefined} className="game-frame-context">
+      <span aria-hidden="true" className="game-frame-dot" />
+      <span className="game-frame-context-text">
+        {category ? <span className="game-frame-cat">{CATEGORY_NAMES[category]}, </span> : null}
+        {label}
+      </span>
+      {progress ? <span data-frame-pips className="game-frame-pips">{progress}</span> : null}
+    </span>
+  );
+  const header = inArena ? null : (
     <div
       data-round-heading
       data-game-topbar
       data-game-frame-header
+      data-header-style={headerStyle}
       data-arcade-header={arcade ? "" : undefined}
       className="game-frame-header"
       style={NO_SELECT_STYLE}
     >
       <div data-header-left className="game-frame-left">
-        {typeof title === "string" ? (
-          <FrameName data-frame-name text={title} />
-        ) : (
-          <span data-frame-name className="game-frame-name" style={{ ["--name-len" as string]: nameLength }}>{title}</span>
-        )}
-        <span data-frame-context data-fit={contextLength > 20 ? "short" : undefined} className="game-frame-context">
-          <span aria-hidden="true" className="game-frame-dot" />
-          <span className="game-frame-context-text">
-            {category ? <span className="game-frame-cat">{CATEGORY_NAMES[category]}, </span> : null}
-            {label}
+        {avatars ? (
+          <span data-frame-me className="game-frame-avatar">
+            <FrameMe />
           </span>
-          {progress ? <span data-frame-pips className="game-frame-pips">{progress}</span> : null}
+        ) : null}
+        <span className="game-frame-titles">
+          {nameNode}
+          {contextNode}
         </span>
         {ping}
       </div>
-      <div data-frame-timer data-arcade-timer={arcade ? "" : undefined} className="game-frame-timer">{timer}</div>
+      <div data-frame-timer data-arcade-timer={arcade ? "" : undefined} className="game-frame-timer">
+        <TimerLookContext.Provider value={TIMER_LOOK[headerStyle]}>{timer}</TimerLookContext.Provider>
+      </div>
       <div data-header-right className="game-frame-right">
         {score}
-        {/* The "?" button's 36 px, left empty (6 Nov 2026) so nothing else moves; it will hold live 1v1 scores. */}
-        <span data-frame-slot aria-hidden="true" className="game-frame-slot" />
+        {/* The "?" button's old 36 px: the opponent's avatar in the avatar styles, else kept empty so nothing moves. */}
+        {avatars && opponent ? (
+          <span data-frame-opponent className="game-frame-avatar game-frame-slot">
+            {opponent}
+          </span>
+        ) : (
+          <span data-frame-slot aria-hidden="true" className="game-frame-slot" />
+        )}
         {frame?.topAction}
         <GameMenu type={type} onHelp={onHelp} />
       </div>
     </div>
   );
+  const panel =
+    inArena && arenaMount.mount
+      ? createPortal(
+          <ArenaGamePanel
+            type={type}
+            arcade={arcade}
+            name={nameNode}
+            context={contextNode}
+            ping={ping}
+            timer={timer ? <TimerLookContext.Provider value="panel">{timer}</TimerLookContext.Provider> : null}
+            score={score}
+            opponent={opponent}
+            menu={
+              <>
+                {frame?.topAction}
+                <GameMenu type={type} onHelp={onHelp} />
+              </>
+            }
+            inRoom={arenaMount.roomPanel}
+          />,
+          arenaMount.mount,
+        )
+      : null;
   return (
     <div data-round-layout data-frame={arcade ? "arcade" : "puzzle"} className="flex min-h-0 flex-1 flex-col animate-round-in">
       {header}
+      {panel}
       {!arcade && type ? (
         <GoalLine type={type}>
           {beforeGame}
@@ -443,11 +511,20 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   const railHere = desktop || (placement === "rail" && tabPage);
   useHomeBeneath(tabPage ? tabs : undefined);
   useNavScroll(tabPage);
-  const panel = desktop && !tabPage && roomPanel ? roomPanel : null;
+  // The arena (phase 2 step 4 pass 2): a live round on a computer or a sideways tablet; the header's timer, score and
+  // menu move to one side panel (the room panel's top in a room), and the world fills the height.
+  const arena = useArenaLayout(layout, Boolean(gameScreen && play));
+  const panel = (desktop || arena) && !tabPage && roomPanel ? roomPanel : null;
+  const [arenaMountNode, setArenaMountNode] = useState<HTMLElement | null>(null);
+  const arenaValue = useMemo(
+    () => ({ arena, mount: arenaMountNode, setMount: setArenaMountNode, roomPanel: Boolean(panel) }),
+    [arena, arenaMountNode, panel],
+  );
   const modeInfo = gameType ? DESKTOP_MODES[gameType] : undefined;
+  const presented = Boolean((desktop && gameScreen) || arena);
   const presentation: DesktopPresentationValue = {
-    mode: desktop && gameScreen && modeInfo ? modeInfo.mode : null,
-    rotate: Boolean(desktop && gameScreen && play && modeInfo?.mode === "rotate"),
+    mode: presented && modeInfo ? modeInfo.mode : null,
+    rotate: Boolean(presented && play && modeInfo?.mode === "rotate"),
     keys: desktop && gameScreen && play && modeInfo?.mode === "rotate" ? (modeInfo.keys ?? null) : null,
   };
   const definition = gameType ? puzzleDef(gameType) : undefined;
@@ -470,6 +547,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   // Game screens stay dark in every theme (2b): the status bar over one stays dark too.
   useEffect(() => (gameScreen ? holdDarkStatusBar() : undefined), [gameScreen]);
   return (
+    <ArenaMount.Provider value={arenaValue}>
     <div
       ref={surfaceRef}
       className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""}${tabPage && tabs === "more" ? " jz-nav" : ""} ${
@@ -490,6 +568,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       data-nav-rail={railHere && !desktop ? "" : undefined}
       data-desktop-mode={presentation.mode ?? undefined}
       data-room-panel={panel ? "" : undefined}
+      data-arena={arena ? "" : undefined}
       data-desktop-cap={desktop && gameScreen && modeInfo?.maxWorldWidth ? "" : undefined}
       style={
         gameScreen
@@ -531,9 +610,12 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
         {wider && tabPage && aside ? aside : null}
       </div>
       {panel}
-      {desktop && framePlay && gameType ? <DesktopControlsHint type={gameType} /> : null}
-      {/* The computer arena (phase 2 step 4): a side panel right of the column where it fits; a room has its own panel. */}
-      {desktop && framePlay && gameType && !panel ? <ArenaSidePanel type={gameType} /> : null}
+      {/* The arena's side panel outside a room (a room's game block is at the top of its room panel). */}
+      {arena && !panel ? (
+        <aside data-arena-panel aria-label="Game" className="arena-panel" style={{ ["--arena-panel-w" as string]: `${ARENA_PANEL_W}px` }}>
+          <div ref={setArenaMountNode} className="arena-panel-mount" />
+        </aside>
+      ) : null}
       {/* The gold Play bar: Home and Games only, just above the tab bar (the rail has its own Play button). */}
       {tabPage && !railHere && (tabs === "play" || tabs === "practice") ? <PlayBar from={tabs} /> : null}
       {tabPage && !railHere ? <AppTabBar current={tabs!} /> : null}
@@ -547,5 +629,6 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       {tabs && !gameScreen ? <SeasonNotice /> : null}
       <FxLayer theme={theme} />
     </div>
+    </ArenaMount.Provider>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { fx } from "@/lib/fx";
+import { clockText, useTimerLook } from "@/lib/gameFrame/headerStyle";
 import { stopWarning10, playVoice, playWarningTick } from "@/lib/sound";
 
 interface TimerBarProps {
@@ -66,12 +67,30 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
     }
   }, [active, seconds, remaining]);
   useEffect(() => () => stopWarning10(), []);
-  // The game frame's ring (Polish 2, 24 Oct 2026, display only): 48px, a #26262C track and the
-  // category-colour arc with a round cap, the seconds inside (polish-layout/game-frame.css).
+  // The look follows the header style (src/config/gameFrameConfig.ts) or the arena panel (TimerLookContext); the
+  // sounds, warnings and the timer's role and label are the same in every look.
+  const look = useTimerLook();
+  const fill = { transform: `scaleX(${progress})` };
+  const classes = `game-timer ${finalTen && !reduced ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`;
+  if (look !== "ring") {
+    const digits = look === "bar" ? String(seconds) : clockText(seconds);
+    return (
+      <div ref={root} data-timer-look={look} className={classes} aria-label={`${seconds} seconds remaining`} role="timer">
+        {look === "bar" || look === "panel" ? (
+          <span aria-hidden="true" className="game-timer-bar">
+            <span className={`game-timer-bar-fill${reduced || !smooth ? "" : " is-smooth"}`} style={fill} />
+          </span>
+        ) : null}
+        {look === "chip" ? <span aria-hidden="true" className={`game-timer-chip-fill${reduced || !smooth ? "" : " is-smooth"}`} style={fill} /> : null}
+        <span className="game-timer-seconds">{digits}</span>
+      </div>
+    );
+  }
   return (
     <div
       ref={root}
-      className={`game-timer ${finalTen && !reduced ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`}
+      data-timer-look="ring"
+      className={classes}
       aria-label={`${seconds} seconds remaining`}
       role="timer"
     >

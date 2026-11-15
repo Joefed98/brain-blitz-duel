@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { ComponentsGallery } from "@/design/ComponentsGallery";
 import { GameFxShowcase } from "@/design/GameFxShowcase";
+import { HeaderStylesShowcase } from "@/design/HeaderStylesShowcase";
 import {
   Button,
   Chip,
@@ -87,6 +88,7 @@ function DevDesign() {
       <div data-dev-design className="flex flex-col gap-6 pb-12">
         <ComponentsGallery />
         <GameFxShowcase />
+        <HeaderStylesShowcase />
         <h2 className="jz-title">More pieces</h2>
 
         <Block title="Button">
