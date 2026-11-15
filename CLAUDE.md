@@ -2587,6 +2587,30 @@ outside the repo.
   `public/tournaments-art/` (`TournamentArt`, `KIND_ART`). Styles `src/polish-layout/tournaments-pages.css`. Screens:
   `scripts/screens/tournaments.ts` (`TOURNAMENT_PAGES_SCREENS`, dark and light at every size; harness modes
   `tournament`, `tournamentrules`, `dailyarchive`); theme-check in sixths and no-wrap-check in elevenths.
+- **The Action overhaul, stage 1** (15 Nov 2026, phase 2 step 4; `docs/design/game-reviews/action.md`, gallery
+  `docs/design/pages-review/action/GALLERY.md`, sounds for Joe `docs/sound-cues/action-elevenlabs.md`, which the cue sheet
+  skips; slots nothing fires yet are in `docs/sound-cues/action-overhaul-stage2.md`; screens `scripts/screens/action.ts`).
+  Every game is edge to edge (its fill continues its own scenery beside and below the fixed world, repainted by
+  `sceneKey` only when the setting's step changes) and its setting evolves through the round (display only, from the sim,
+  the same for everyone). Three new stamps for grace (no run ends on the first slip at Normal):
+  - *Roofbound* `flipRev 13` (`FLIP_REV_GRACE`): a crash with no save respawns on the spot, every crash costs 10 s of clean
+    time; clean time full at 55 s, perfect landings at 5 of 8 (`FLIP_V13`); deal `flipDealV13.server.ts`
+    (`bun scripts/flip-deal.ts --rev=13`), `pinFlipPreGrace(true)` deals 12; basalt, lava rivers, heat rising (`flipCaveHeat`);
+    no "Bonuses" reveal tile. "Sweet spot" challenge now five sweet spots. flip-overhaul-check.
+  - *High Rise* `skylineRev 11`: 3 lives (`SKYLINE_V11_LIVES`, a miss costs one, 30 ticks of ignored taps after), a wide
+    block after 5 trims in a row (`SKYLINE_V11_TRIM_RUN`); rev 10's parts; dusk to night by floors (`skylineNightStep`),
+    concept A's city, a plaza, the LIVES chip. skyline-overhaul-check.
+  - *Orbit* `orbitRev 15` (`ORBIT_REV_GRACE`): a crash or empty tank with no checkpoint respawns at the planet left after
+    `ORBIT_GRACE_HOLD_TICKS` (180); the same 96-course bank re-proved; `pinOrbitPreGrace(true)` deals 14; shaded turning
+    planets (`orbitPlanets.renderer.ts`), the sun's warmth up the course, two rows of big pills, SET CHECKPOINT held 450 ms
+    (`CheckpointHoldButton`), the capture chain counting `orbitSlips`. Bands `bun scripts/orbit-grace-bands.ts`.
+    orbit-overhaul-check.
+  - Display only, no stamp: *Grappler* (the jungle deepening by `swingJungleDepth`, moving river, 12 px grab loops, a
+    1.35× held vine, HUD 1.3×; one stretch count, 51 a course; swing-overhaul-check), *Moon Climb* (a moonrise by height,
+    `moonNight`, slate walls, sharper blades, RIDES n/6 and SCROLLS n/3 in the HUD, a hits line on the reveal from the
+    stored Hits stat; ricochet-overhaul-check), *Iron Wall* (clear, dusty desert, battle smoke by wave in
+    `bastionLook.ts`, S/M/H badges and outlines on far tanks past `BT_FAR_MARK_Z`, a one-time reload-swipe tip, a navy and
+    gold panel; bastion-overhaul-check). Intros are `ArtStill`s from each renderer on its live stamp.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
