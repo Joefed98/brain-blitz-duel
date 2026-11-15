@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 52 | 0 | 488 | 540 |
+| game event | 54 | 0 | 491 | 545 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
 | fail sting | 4 | 0 | 37 | 41 |
 | success sting | 1 | 0 | 75 | 76 |
-| ambience | 0 | 1 | 22 | 23 |
+| ambience | 1 | 1 | 22 | 24 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 78 | 1 | 984 | 1063 |
+| **all** | 81 | 1 | 987 | 1069 |
 
 ## Silent and placeholder cues
 
@@ -286,6 +286,14 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `bastion.tip` |  [arcade-effects.md] | "Tip: swipe down to reload early" on the panel | 5–40 (per move) | silent | none | 300 | game event | `bastion.tip` |
 | `bastion.dustWind` |  [arcade-effects.md] | Amber haze and sand hills | 5–40 (per move) | silent | none | loop | game event | `bastion.dustWind` |
 | `bastion.stormFire` |  [arcade-effects.md] | Smoke columns and fires on the skyline | 5–40 (per move) | silent | none | loop | game event | `bastion.stormFire` |
+
+### Orbit
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `orbit.thrust` | The rocket flies (orbitRev 14+, the Action overhaul) [arcade-effects.md] | The flame; the loop's rate falls with the fuel left | loop | silent | none | loop | ambience | `orbit.thrust` |
+| `orbit.stardust` | A stardust mote is taken (orbitRev 12+) [arcade-effects.md] | The mote's glitter | 0–30 | silent | none | 120 | game event | `orbit.stardust` |
+| `orbit.sunBloom` | The sun is reached (orbitRev 14+) [arcade-effects.md] | The sun's bloom (stage 2 of the Action overhaul) | 0–1 | silent | none | 2500 | game event | `orbit.sunBloom` |
 
 ### Rooftop Run
 
@@ -1678,6 +1686,9 @@ Grouped by game or screen.
 | `orbit.launch` | Orbit: The rocket is released from a planet [arcade.md] |  | 20–40 | recorded sound | `arc_thruster` (shared) | 160 | game event | `orbit.launch` |
 | `orbit.checkpoint` | Orbit: The first checkpoint is reached [arcade.md] |  | 1 | recorded sound | `arc_pickup` (shared) | 100 | game event | `orbit.checkpoint` |
 | `orbit.crash` | Orbit: A respawn (black hole, missed planet) or the run lost [arcade.md] |  | 1–5 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `orbit.crash` |
+| `orbit.outOfFuel` | Orbit: The tank runs dry (orbitRev 14+: the run lost, or on 15 a respawn) [arcade.md] |  | 0–5 | recorded sound | `arc_lose_life` (shared) | 900 | game event | `orbit.outOfFuel` |
+| `orbit.lowFuel` | Orbit: A flight's tank falls to a quarter (orbitRev 14+) [arcade.md] |  | 0–10 | recorded sound | `warning_tick` (shared) | 600 | game event | `orbit.lowFuel` |
+| `orbit.respawnReady` | Orbit: An automatic respawn's hold ends (orbitRev 15) [arcade.md] |  | 0–5 | recorded sound | `countdown_step` (shared) | 250 | game event | `orbit.respawnReady` |
 | `music.orbit` | Orbit: music_orbit |  | loop | recorded sound | `music_orbit` | loop | music | `music_orbit` |
 
 ### Pinball
@@ -1955,7 +1966,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `player_joined` | effects | `player_joined` | 110 |
 | `round_start` | effects | `round_start` | 180 |
 | `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid`, `bastion.dry` | 55 |
-| `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
+| `countdown_step` | effects | `countdown_step`, `balltrack.countdown`, `orbit.respawnReady` | 251 |
 | `place` | effects | `place`, `tendrop.apply` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
 | `correct` | effects | `correct` | 120 |
@@ -1967,7 +1978,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `complete` | effects | `complete` | 200 |
 | `combo` | effects | `combo` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
-| `warning_tick` | effects | `warning_tick` | 120 |
+| `warning_tick` | effects | `warning_tick`, `orbit.lowFuel` | 120 |
 | `warning_tick_final` | effects | `warning_tick_final` | 250 |
 | `warning_5` | effects | `warning_5` (registered, never played) | 130 |
 | `time_up` | effects | `time_up` | 250 |
@@ -1977,7 +1988,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken`, `flip.trailStar` | 100 |
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
-| `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `wavefront.lifeLost` | 220 |
+| `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `orbit.outOfFuel`, `wavefront.lifeLost` | 220 |
 | `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |

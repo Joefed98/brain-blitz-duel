@@ -753,6 +753,14 @@ const ENTRIES = {
   "orbit.launch": { channel: "effects", frequency: 0, ms: 160, url: null },
   "orbit.checkpoint": { channel: "effects", frequency: 0, ms: 100, url: null },
   "orbit.crash": { channel: "effects", frequency: 0, ms: 200, url: null },
+  // The Action overhaul (15 Nov 2026; docs/sound-cues/action-elevenlabs.md): slots for Joe's ElevenLabs files, each
+  // playing its library stand-in (or nothing, for the loop and the bloom) until its url is set.
+  "orbit.thrust": { channel: "effects", frequency: 0, ms: 0, url: null, loop: true },
+  "orbit.lowFuel": { channel: "effects", frequency: 0, ms: 600, url: null },
+  "orbit.outOfFuel": { channel: "effects", frequency: 0, ms: 900, url: null },
+  "orbit.respawnReady": { channel: "effects", frequency: 0, ms: 250, url: null },
+  "orbit.stardust": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 40 },
+  "orbit.sunBloom": { channel: "effects", frequency: 0, ms: 2500, url: null },
   "pinball.start": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pinball.start.mp3", volume: 0.78 },
   "pinball.ballLost": { channel: "effects", frequency: 0, ms: 587, url: "/sounds/pinball.ballLost.mp3", volume: 0.87 },
   "pinball.launch": { channel: "effects", frequency: 0, ms: 428, url: "/sounds/pinball.launch.mp3", volume: 0.77 },

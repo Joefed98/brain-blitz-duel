@@ -72,9 +72,17 @@ export const ORBIT_REV_STD = 13;
  * orbitRev 13's parts (orbitRev3.ts ORBIT_STD), 200 in all.
  */
 export const ORBIT_REV_FUEL = 14;
+/**
+ * orbitRev 15 (the Action overhaul, 15 Nov 2026, docs/arcade-standard/orbit.md "orbitRev 15"): orbitRev 14's course,
+ * fuel, features, view and parts, with grace: a crash or an empty tank with no checkpoint set no longer ends the run.
+ * The rocket respawns at the last planet it caught, with a full tank, held in orbit for ORBIT_GRACE_HOLD_TICKS (taps
+ * ignored), so the slip costs time. The manual SET CHECKPOINT stays: its one respawn is instant (no hold). The run ends
+ * only at the sun or the buzzer.
+ */
+export const ORBIT_REV_GRACE = 15;
 /** The expansion's features and view: orbitRev 12, its score-only successor 13 and the fuel revision 14 (display, layout). */
 export function orbitXpRev(rev: number | null | undefined): boolean {
-  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD || rev === ORBIT_REV_FUEL;
+  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD || rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE;
 }
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
@@ -749,6 +757,9 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
   // orbitRev 12 (world expansion): its feature counters, last.
   const xp = state as { xp?: number; dustGot?: number; slung?: number; threaded?: number; perfect?: number; lapLeft?: number; arm?: number; boost?: number; moonIn?: number; vx?: number; vy?: number; reach?: number };
   if (xp.xp) values.push(xp.xp, xp.dustGot ?? 0, xp.slung ?? 0, xp.threaded ?? 0, xp.perfect ?? 0, xp.lapLeft ?? 0, xp.arm ?? 0, xp.boost ?? 0, xp.moonIn ?? 0, xp.vx ?? 0, xp.vy ?? 0, xp.reach ?? 0);
+  // orbitRev 15 (grace): the fuel, the respawn hold and the automatic respawns, last (earlier states never carry `grace`).
+  const grace = state as { grace?: number; fuel?: number; hold?: number; autoRespawns?: number };
+  if (grace.grace) values.push(grace.grace, grace.fuel ?? 0, grace.hold ?? 0, grace.autoRespawns ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;

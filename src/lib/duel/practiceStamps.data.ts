@@ -56,7 +56,7 @@ export const PRACTICE_STAMPS = {
   "numhunt": "puzzleScoreRev=3 speedPar=1 tapRev=6",
   "numline": "depthRev=2 numlineRev=2 puzzleScoreRev=3 speedPar=1",
   "numpyramid": "depthRev=2 puzzleScoreRev=3 speedPar=1",
-  "orbit": "orbitRev=14 puzzleScoreRev=3 speedPar=1",
+  "orbit": "orbitRev=15 puzzleScoreRev=3 speedPar=1",
   "pairmatch": "pairRev=3 puzzleScoreRev=3 speedPar=1",
   "pinball": "pinRev=6 puzzleScoreRev=3 speedPar=1",
   "pipes": "pipesRev=4 puzzleScoreRev=3 speedPar=1",

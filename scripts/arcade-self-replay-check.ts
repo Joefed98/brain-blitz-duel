@@ -195,8 +195,8 @@ import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
@@ -1025,6 +1025,25 @@ const GAMES: Game[] = [
   // Minefield minesRev 2 (13 Nov 2026: a Logic game with 20 mines), appended so every earlier entry keeps its stream.
   { key: "minesweeper/v2", game: minesweeperGameFor(MINES_REV_LOGIC), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_LOGIC) },  // Thirteen pyramidRev 3 (15 Nov 2026: a dead end waits for Undo), appended so every earlier entry keeps its stream.
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
+  // Orbit orbitRev 15 (the Action overhaul, 15 Nov 2026: grace, a slip respawns after a 3 s hold), appended so every
+  // earlier entry keeps its stream: random taps and checkpoints on the fuel-bank courses.
+  {
+    key: "orbit/grace",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initGraceFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras)) };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK[n % ORBIT_FUEL_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_GRACE, e.planets, e.holes, e.extras);
+    },
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

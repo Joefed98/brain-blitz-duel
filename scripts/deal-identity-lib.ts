@@ -105,8 +105,9 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game review fixes' Brimful measureRev 4):
  * preGameReviewNov15.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "orbitPreGrace"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {

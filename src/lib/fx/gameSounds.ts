@@ -127,7 +127,26 @@ export function orbitSounds(): GameSounds<OrbitState> {
       if (prev && state.tick > prev.tick) {
         if (state.releaseTick !== prev.releaseTick && state.flying > 0) sfx("orbit.launch", "arc_thruster");
         if (prev.checkpoint < 0 && state.checkpoint >= 0) sfx("orbit.checkpoint", "arc_pickup");
-        if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) { sfx("orbit.crash", "arc_crash"); feel("impact"); }
+        // The Action overhaul (15 Nov 2026): an empty tank has its own sputter (orbitRev 14+), a crash keeps the crash.
+        const fuelState = state as OrbitState & { fuel?: number; dry?: number; hold?: number; finished?: number };
+        const fuelPrev = prev as typeof fuelState;
+        if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) {
+          if (fuelState.dry !== undefined && fuelState.dry === state.tick) sfx("orbit.outOfFuel", "arc_lose_life");
+          else sfx("orbit.crash", "arc_crash");
+          feel("impact");
+        }
+        // orbitRev 14+: a quarter of the tank left in flight starts the low-fuel beep (once a flight); the thruster's
+        // hiss runs in flight, its pitch falling with the fuel left (silent until its recording is set).
+        if (fuelState.fuel !== undefined) {
+          const flyingNow = state.flying > 0 && state.ended === 0;
+          if (flyingNow && fuelState.fuel <= ORBIT_LOW_FUEL && (fuelPrev.fuel ?? ORBIT_LOW_FUEL + 1) > ORBIT_LOW_FUEL) sfx("orbit.lowFuel", "warning_tick");
+          loopCue("orbit.thrust", flyingNow);
+          if (flyingNow) setCueLoopRate("orbit.thrust", 0.75 + 0.35 * Math.min(1, fuelState.fuel / ORBIT_LOW_FUEL / 4));
+          // orbitRev 15 (grace): the respawn's hold ends with a ready blip.
+          if ((fuelPrev.hold ?? 0) > 0 && (fuelState.hold ?? 0) === 0) sfx("orbit.respawnReady", "countdown_step");
+          // Reaching the sun: the bloom's swell (silent until its recording is set; the banner keeps its cue).
+          if (fuelState.finished === 1 && fuelPrev.finished !== 1) effectCue("orbit.sunBloom");
+        }
         // A planet caught: the bloom and ring; every tenth also sends a shooting star across the sky.
         if (state.captured > prev.captured) {
           if (Math.trunc(state.captured / 10) > Math.trunc(prev.captured / 10)) effectCue("orbit.shootingStar");
@@ -138,7 +157,11 @@ export function orbitSounds(): GameSounds<OrbitState> {
         const xp = state as OrbitState & { xp?: number; dustGot?: number; slung?: number; threaded?: number; perfect?: number };
         const was = prev as typeof xp;
         if (xp.xp) {
-          if ((xp.dustGot ?? 0) !== (was.dustGot ?? 0)) sfx("shared.celebrate.countTick", "tick", 0.8);
+          // The Action overhaul: Orbit's own stardust tick once its recording is set; the shared tick until then.
+          if ((xp.dustGot ?? 0) !== (was.dustGot ?? 0)) {
+            if (cueHasFile("orbit.stardust")) effectCue("orbit.stardust");
+            else sfx("shared.celebrate.countTick", "tick", 0.8);
+          }
           if ((xp.slung ?? 0) !== (was.slung ?? 0)) sfx("shared.celebrate.zap", "arc_pickup");
           if ((xp.threaded ?? 0) !== (was.threaded ?? 0)) sfx("shared.celebrate.chime", "arc_pickup");
           if ((xp.perfect ?? 0) > (was.perfect ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.55);
@@ -153,9 +176,14 @@ export function orbitSounds(): GameSounds<OrbitState> {
       } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;
     },
-    stop: () => stopSlotLoop("orbit.ambience", "arc_space_ambience"),
+    stop: () => {
+      stopSlotLoop("orbit.ambience", "arc_space_ambience");
+      loopCue("orbit.thrust", false);
+    },
   };
 }
+/** Orbit's low-fuel line (sound only): a quarter of the 160-tick tank. */
+const ORBIT_LOW_FUEL = 40;
 
 /** swingRev 4+: the dragon is off the left edge and its arrow has turned red (under 4 m behind), as the renderer draws it. */
 function swingDragonNear(s: SwingState): boolean {

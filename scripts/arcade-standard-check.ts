@@ -72,7 +72,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Rainbow Bridge deals inkRev 14 since 3 Nov 2026 (inkRev 13's clovers, ink par and parts with a bigger coin, clovers and
   // birds, from a proved deal; ink-v14-check).
   { type: "inkbridge", field: "inkRev", rev: 14, batch: "C" },
-  { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 15 (grace:
+  // a slip respawns at the last planet caught after a 3 s hold; orbitRev 14's courses and parts; orbit-overhaul-check).
+  { type: "orbit", field: "orbitRev", rev: 15, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
   { type: "swing", field: "swingRev", rev: 17, batch: "D" }, // swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).

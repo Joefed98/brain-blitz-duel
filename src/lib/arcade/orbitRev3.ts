@@ -54,6 +54,7 @@ import {
   ORBIT_REV_XP,
   ORBIT_REV_STD,
   ORBIT_REV_FUEL,
+  ORBIT_REV_GRACE,
   orbitXpRev,
   inside,
   lapPhases,
@@ -596,6 +597,13 @@ export interface OrbitRev3State extends BandFields {
    */
   fuel?: number;
   dry?: number;
+  /**
+   * orbitRev 15 only (grace): 1 = a crash or an empty tank with no checkpoint respawns at the last planet caught;
+   * `hold` = ticks left of the respawn's hold in orbit (taps ignored); `autoRespawns` = how many such respawns.
+   */
+  grace?: number;
+  hold?: number;
+  autoRespawns?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -685,6 +693,10 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
   const s: OrbitRev3State = { ...state, tick };
   const here = s.planets[s.cur]!;
   if (input?.k === ORBIT_INPUT_CHECKPOINT && orbitRev3CanSetCheckpoint(s)) s.checkpoint = s.cur;
+  // orbitRev 15: while a respawn's hold runs the rocket stays in orbit and a tap does nothing.
+  const held = (s.hold ?? 0) > 0;
+  if (held) s.hold = s.hold! - 1;
+  if (held && input?.k === ORBIT_INPUT_TAP) input = null;
   let respawned = false;
   const die = () => {
     if (s.xp) {
@@ -706,6 +718,25 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.flying = 0;
       if (s.xp) s.lapLeft = lapPhases(p).length;
       if (s.fuel !== undefined) s.fuel = ORBIT_FUEL_MAX;
+      respawned = true;
+      return;
+    }
+    if (s.grace) {
+      // orbitRev 15: no checkpoint left; respawn at the planet last caught (the one this flight left), full tank,
+      // held in orbit ORBIT_GRACE_HOLD_TICKS. The run carries on; the slip costs the hold's time.
+      s.autoRespawns = (s.autoRespawns ?? 0) + 1;
+      s.hold = ORBIT_GRACE_HOLD_TICKS;
+      s.respawnTick = tick;
+      const p = s.planets[s.cur]!;
+      s.angle = 3 * ANG_QUARTER;
+      const pos = orbitPos(p, s.angle);
+      s.x = pos.x;
+      s.y = pos.y;
+      s.vx = 0;
+      s.vy = 0;
+      s.flying = 0;
+      if (s.xp) s.lapLeft = lapPhases(p).length;
+      s.fuel = ORBIT_FUEL_MAX;
       respawned = true;
       return;
     }
@@ -888,6 +919,8 @@ export function orbitRev3Extra(s: OrbitRev3State) {
     secondsLeft: s.finished ? Math.max(0, ORBIT_REV3_RUN_TICKS - s.tick) / 60 : 0,
     // orbitRev 14 only: the run ended when the tank ran dry (absent on every earlier round).
     ...(s.fuel !== undefined ? { outOfFuel: s.ended === 2 && s.dry === s.endedTick } : {}),
+    // orbitRev 15 only: the automatic respawns (each a crash or an empty tank caught by grace).
+    ...(s.grace ? { autoRespawns: s.autoRespawns ?? 0 } : {}),
   };
 }
 
@@ -1285,6 +1318,7 @@ export function orbitWorldWFor(rev?: number | null): number {
 
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
 export function orbitRev3StartFor(rev: number | null | undefined, extras?: OrbitExtras | null): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_GRACE) return (planets, worldW, holes) => initGraceFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_FUEL) return (planets, worldW, holes) => initFuelFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_STD) return (planets, worldW, holes) => initStdFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_XP) return (planets, worldW, holes) => initXpFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
@@ -1632,8 +1666,8 @@ export const ORBIT_STD_SPEED_FULL_LEFT = ORBIT_REV3_RUN_TICKS / 2;
 export const ORBIT_STD_PERFECT_OF = 21;
 export const ORBIT_STD: StdSpec = {
   field: "orbitRev",
-  // The stamp rooms deal on these parts: orbitRev 14 (the fuel meter) since 1 Nov 2026; orbitRev 13 scores on them too.
-  rev: ORBIT_REV_FUEL,
+  // The stamp rooms deal on these parts: orbitRev 15 (grace) since 15 Nov 2026; orbitRev 13 and 14 score on them too.
+  rev: ORBIT_REV_GRACE,
   parts: [
     { key: "core", label: "Planets", max: 130, of: ORBIT_STD_CORE_OF, item: "planet" },
     { key: "speed", label: "Speed", max: 20, of: 1 },
@@ -1725,4 +1759,22 @@ export function orbitCaptureAny(planets: readonly Planet[], cur: number, x: numb
 /** orbitRev 14 start: orbitRev 13's start (features, view, the standard's parts) with a full tank. */
 export function initFuelFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
   return { ...initStdFrom(planets, worldW, holes, extras), fuel: ORBIT_FUEL_MAX, dry: -100 };
+}
+
+/* ================= Grace (orbitRev 15, the Action overhaul, 15 Nov 2026) ================= */
+/*
+ * orbitRev 15 (docs/arcade-standard/orbit.md "orbitRev 15"): orbitRev 14 exactly (the same fuel bank, features, view
+ * and parts; a run with no slip replays tick for tick), except that no slip ends the run. A crash (a belt, a rock, a
+ * moon, a tap on the inner lobe) or an empty tank:
+ *  - with SET CHECKPOINT armed, uses its one respawn as before (instant, at the checkpoint planet): the bonus;
+ *  - otherwise respawns at the planet the flight left (the last caught), with a full tank, held in orbit for
+ *    ORBIT_GRACE_HOLD_TICKS (3 s; a tap does nothing), so the slip costs time, never the run.
+ * The run ends only at the sun or the buzzer. Integer only.
+ */
+/** An automatic respawn's hold in orbit: 3 s of the 90 s run. */
+export const ORBIT_GRACE_HOLD_TICKS = 180;
+
+/** orbitRev 15 start: orbitRev 14's start with grace on. */
+export function initGraceFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
+  return { ...initFuelFrom(planets, worldW, holes, extras), grace: 1, hold: 0, autoRespawns: 0 };
 }
