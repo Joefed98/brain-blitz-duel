@@ -166,3 +166,30 @@
 }
 .kakuro-key-wrong { box-shadow: inset 0 0 0 2px var(--jz-loss); }
 .kakuro-key-missed { outline: 1.5px dashed var(--jz-text-3); outline-offset: -1.5px; }
+
+/*
+ * The solve sweep (the Number overhaul, stage 2; src/puzzles/kakuroFx.ts): over the rendered squares a soft gold light
+ * passes along the runs across, then down: each square lights on its across run's turn and again on its down run's,
+ * the last ending by 1 s. Opacity only (composited); decorative, so it rests unlit.
+ */
+[data-number-kakuro] .kakuro-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--jz-gold) 34%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-logic-solved] [data-number-kakuro] .kakuro-cell::after {
+  animation:
+    kakuro-run-light 320ms ease-out calc(var(--kakuro-a, 0) * var(--kakuro-step, 60ms)) 1 both,
+    kakuro-run-light 320ms ease-out calc(var(--kakuro-d, 0) * var(--kakuro-step, 60ms)) 1 both;
+}
+@keyframes kakuro-run-light {
+  0%, 100% { opacity: 0; }
+  40% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-solved] [data-number-kakuro] .kakuro-cell::after { animation: none; }
+}

@@ -29,7 +29,8 @@ import { HudPills } from "@/components/puzzles/HudPills";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-target.css";
 import { EXACT_ELEGANT_TILES, usesNumberDepth } from "@/lib/duel/numberDepth";
-import { exactLockReady, toggleOperator } from "@/lib/duel/numberOverhaulInput";
+import { exactCombineRate, exactLockReady, exactNear, toggleOperator } from "@/lib/duel/numberOverhaulInput";
+import { gameFx } from "@/lib/fx/kit";
 import { RevealFacts, RevealView, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 // The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
@@ -49,6 +50,21 @@ function isLarge(value: number): boolean {
 type TileState = "idle" | "selected" | "consumed";
 
 /* Exact polish (13 Oct 2026): drawing, animation and sound cues only; steps and submit untouched. */
+/** The combine's pop, pitched by the result's size (the Number overhaul's effects; the slot's own file, not a kit sound). */
+function combineCue(result: number): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("duelz-sound", { detail: { cue: "target.combine", rate: exactCombineRate(result) } }));
+}
+
+/**
+ * The Number overhaul's effects (stage 2, 15 Nov 2026; the effects kit, src/lib/fx/kit.ts): display only, run after
+ * the move's render so they read the new layout. Each animates a piece's own face (never a button or the board), with
+ * `silent` where the game plays its own cue.
+ */
+function afterPaint(fn: () => void): void {
+  if (typeof window !== "undefined") requestAnimationFrame(() => requestAnimationFrame(fn));
+}
+
 export const EXACT_CSS = `
 [data-polish="target"] .exact-board { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 10px 8px; border-radius: 16px; overflow: hidden;
   background: radial-gradient(120% 70% at 50% 0%, rgba(245,184,46,.10), transparent 60%), repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 22px), linear-gradient(180deg, #17171f, #101016);
@@ -285,6 +301,15 @@ function TargetStage({
     const last = history[history.length - 1];
     if (!last) return;
     soundCue("target.undo");
+    // The merge played backwards: the number given back slides out of the result's place to its own.
+    const back = last.before.find((b) => !pool.find((t) => t.id === b.id)?.active && b.active);
+    const resultFace = pool.find((t) => t.active && last.before.find((b) => b.id === t.id)?.value !== t.value);
+    const fromBox = resultFace ? rootRef.current?.querySelector(`[data-tile-id="${resultFace.id}"] .exact-face`)?.getBoundingClientRect() : undefined;
+    if (back && fromBox) afterPaint(() => {
+      const el = rootRef.current?.querySelector(`[data-tile-id="${back.id}"] .exact-face`);
+      const to = el?.getBoundingClientRect();
+      if (el && to) gameFx("slide", el, { from: { x: fromBox.left - to.left, y: fromBox.top - to.top }, silent: true });
+    });
     setPool(last.before);
     setHistory((current) => current.slice(0, -1));
     setSelectedId(null);
@@ -328,7 +353,22 @@ function TargetStage({
     setSelectedId(first.id);
     setOperator(null);
     setCombine((c) => ({ id: first.id, consumed: tile.id, n: (c?.n ?? 0) + 1 }));
-    soundCue("target.combine");
+    combineCue(result);
+    // The two numbers slide together into the result (FLIP from the second number's place), then, within 10 of the
+    // target, the target plate pulses softly (the hit has its own flight and gold flip below).
+    const fromBox = rootRef.current?.querySelector(`[data-tile-id="${tile.id}"] .exact-face`)?.getBoundingClientRect();
+    const nextClosest = Math.min(
+      Math.abs(result - target),
+      ...pool.filter((t) => t.active && t.id !== first.id && t.id !== tile.id).map((t) => Math.abs(t.value - target)),
+    );
+    afterPaint(() => {
+      const el = rootRef.current?.querySelector(`[data-tile-id="${first.id}"] .exact-face`);
+      const to = el?.getBoundingClientRect();
+      if (el && to && fromBox) gameFx("slide", el, { from: { x: fromBox.left - to.left, y: fromBox.top - to.top }, silent: true });
+      const plaque = rootRef.current?.querySelector(".exact-plaque");
+      if (result === target) gameFx("win", plaque, { silent: true });
+      else if (exactNear(nextClosest)) gameFx("nearMiss", plaque);
+    });
 
     // Hitting the target locks the answer at once.
     if (result === target) {
@@ -487,12 +527,16 @@ function TargetStage({
             type="button"
             disabled={isLockedNow}
             // The Number overhaul (15 Nov 2026): tapping the picked operator again deselects it.
-            onClick={() => { soundCue("target.operator"); setOperator(toggleOperator(operator, op)); }}
+            onClick={(event) => {
+              soundCue("target.operator");
+              gameFx("tap", event.currentTarget.firstElementChild, { silent: true });
+              setOperator(toggleOperator(operator, op));
+            }}
             data-on={operator === op ? "true" : undefined}
             aria-pressed={operator === op}
             className="press exact-op"
           >
-            {op === "-" ? "−" : op}
+            <span className="exact-op-face">{op === "-" ? "−" : op}</span>
           </button>
         ))}
       </div>
@@ -571,6 +615,17 @@ const EXACT_REVEAL_CSS = `
 .exact-rv-tile[data-hit] { background-image: url("/number/target/tile-picked.webp"); color: var(--jz-on-gold); }
 .exact-rv-op { min-width: 18px; font-size: 22px; font-weight: 800; color: var(--jz-text); }
 .exact-rv-empty { font-size: 16px; font-weight: 600; color: var(--jz-text-2); }
+/* A short screen (the shared reveal layout's payoff row above, #422): smaller plates and route tiles, so a four-step
+   route and the facts fit at 375 × 667. */
+@media (max-height: 760px) {
+  .exact-rv-plate { min-height: 72px; padding: 4px 6px; }
+  .exact-rv-plate-value { font-size: 32px; }
+  .exact-rv-plate-note { font-size: 13px; }
+  .exact-rv-route { gap: 4px; }
+  .exact-rv-step { gap: 4px; }
+  .exact-rv-tile { min-width: 46px; height: 34px; font-size: 18px; }
+  .exact-rv-op { font-size: 18px; }
+}
 `;
 
 /** One step of a route as tiles: a op b = result (the result gold when it is the target). */

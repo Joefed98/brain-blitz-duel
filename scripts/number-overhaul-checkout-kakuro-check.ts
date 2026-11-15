@@ -313,6 +313,96 @@ for (const seed of [5, 6, 7, 8]) {
   console.log("reveals: Checkout (rev 1–3, public half) and Kakuro (rev 1–2, public half) drawn");
 }
 
+/* ------------------------------------------------------------------ 6. Stage 2 effects (display only) */
+{
+  const { dartSpot, CHECKOUT_BOARD_GEOMETRY: G, CHECKOUT_TUG_MS } = await import("../src/puzzles/checkout");
+  const { checkoutDartFlight, CHECKOUT_FLIGHT_MS, CHECKOUT_THROW_FROM } = await import("../src/puzzles/checkoutFx");
+  const { kakuroRunRate, kakuroSolveOrder, KAKURO_SWEEP_MS, KAKURO_SWEEP_RUN_MS } = await import("../src/puzzles/kakuroFx");
+  const { CHECKOUT_BULL } = await import("../src/lib/duel/checkout");
+  ok(CHECKOUT_FLIGHT_MS <= 600, `Checkout: the flight is at most 600 ms (${CHECKOUT_FLIGHT_MS})`);
+  ok(CHECKOUT_TUG_MS <= 900, `Checkout: Undo's tug is a short physical action (${CHECKOUT_TUG_MS} ms)`);
+  // Every wedge and ring, plain and ×4 boards, every dart position: the flight ends exactly on the drawn spot, and that
+  // spot is inside the chosen ring's band and the chosen wedge (the same geometry as the hit areas).
+  const band = (ring: number, quad: boolean): [number, number] =>
+    ring === 2 ? [G.R_DOUBLE_IN, G.R_DOUBLE_OUT] : ring === 3 ? [G.R_TREBLE_IN, G.R_TREBLE_OUT] : ring === 4 ? [G.R_QUAD_IN, G.R_QUAD_OUT] : quad ? [G.R_QUAD_OUT, G.R_TREBLE_IN] : [G.R_TREBLE_OUT, G.R_DOUBLE_IN];
+  let spots = 0;
+  let inRing = 0;
+  let landsOnSpot = 0;
+  let fromThrow = 0;
+  for (const quad of [false, true])
+    for (let wedge = 0; wedge < 20; wedge++)
+      for (const ring of quad ? [1, 2, 3, 4] : [1, 2, 3])
+        for (let nth = 0; nth < 3; nth++) {
+          spots++;
+          const spot = dartSpot({ wedge, ring }, quad, nth);
+          const r = Math.hypot(spot.x - G.C, spot.y - G.C);
+          const [r0, r1] = band(ring, quad);
+          const angle = ((Math.atan2(spot.y - G.C, spot.x - G.C) * 180) / Math.PI + 90 + 360) % 360;
+          const off = Math.abs(((angle - wedge * 18 + 540) % 360) - 180);
+          if (r > r0 && r < r1 && off < 9) inRing++;
+          const frames = checkoutDartFlight(spot);
+          const last = frames[frames.length - 1]!;
+          if (last.dx === 0 && last.dy === 0 && last.scale === 1 && last.offset === 1) landsOnSpot++;
+          const first = frames[0]!;
+          if (Math.abs(spot.x + first.dx - CHECKOUT_THROW_FROM.x) < 0.02 && Math.abs(spot.y + first.dy - CHECKOUT_THROW_FROM.y) < 0.02 && first.scale > 1) fromThrow++;
+        }
+  ok(inRing === spots, `Checkout: every dart lands inside its chosen ring's band and wedge (${inRing} / ${spots})`);
+  ok(landsOnSpot === spots, `Checkout: every flight ends exactly on its landing spot, at full size (${landsOnSpot} / ${spots})`);
+  ok(fromThrow === spots, `Checkout: every flight starts at the throw point below the board, larger (${fromThrow} / ${spots})`);
+  for (const ring of [1, 2]) {
+    const spot = dartSpot({ wedge: CHECKOUT_BULL, ring }, false, 0);
+    const r = Math.hypot(spot.x - G.C, spot.y - G.C);
+    ok(ring === 2 ? r < G.R_INNER_BULL : r > G.R_INNER_BULL && r < G.R_BULL, `Checkout: a ${ring === 2 ? "bull" : "25"} dart lands in its ring (${r.toFixed(2)})`);
+    const frames = checkoutDartFlight(spot);
+    ok(frames[frames.length - 1]!.dx === 0 && frames[frames.length - 1]!.dy === 0, "Checkout: a bull dart's flight ends on its spot");
+  }
+  // The flight rises above the straight line from the throw to the board (an arc, not a slide).
+  const mid = checkoutDartFlight({ x: 100, y: 30 })[3]!;
+  ok(30 + mid.dy < (CHECKOUT_THROW_FROM.y + 30) / 2 - 10, `Checkout: the flight arcs above the straight line (${(30 + mid.dy).toFixed(1)})`);
+
+  // Kakuro: the run-complete two-note rises with the run's length, a 2-square run at the recording's own pitch.
+  const rates = [2, 3, 4, 5, 6, 7, 8, 9].map(kakuroRunRate);
+  ok(rates[0] === 1, `Kakuro: a 2-square run plays the recording at its own pitch (${rates[0]})`);
+  ok(rates.every((r, i) => i === 0 || r > rates[i - 1]!), `Kakuro: each square more raises the pitch (${rates.join(", ")})`);
+  ok(rates[rates.length - 1]! <= 2.3, `Kakuro: the pitch stays within about an octave and a quarter (${rates[rates.length - 1]})`);
+  // The solve sweep lights every across run before any down run, in reading order, and ends by the sweep's length.
+  let orderOk = 0;
+  let boards = 0;
+  for (let seed = 1; seed <= 20; seed++) {
+    const p = deal<KakuroPuzzleData>("kakuro", seed);
+    const runs = kakuroRuns(p);
+    const { step, turns } = kakuroSolveOrder(runs);
+    const across = runs.filter((r) => r.across);
+    const down = runs.filter((r) => !r.across);
+    boards++;
+    const acrossOk = across.every((run, i) => run.cells.every((c) => turns.get(c)?.a === i));
+    const downOk = down.every((run, i) => run.cells.every((c) => turns.get(c)?.d === across.length + i));
+    const before = p.white.every((c) => (turns.get(c)?.a ?? 0) < (turns.get(c)?.d ?? 0));
+    const total = across.length + down.length;
+    const ends = (total - 1) * step + KAKURO_SWEEP_RUN_MS <= KAKURO_SWEEP_MS && KAKURO_SWEEP_MS <= 1200;
+    if (acrossOk && downOk && before && ends) orderOk++;
+  }
+  ok(orderOk === boards, `Kakuro: the solve lights the runs across, then down, ending by ${KAKURO_SWEEP_MS} ms (${orderOk} / ${boards} boards)`);
+  // Nothing in the effects touches grading: the grading and rules modules import neither the kit nor the effects files.
+  for (const path of ["src/lib/duel/checkout.ts", "src/lib/duel/kakuro.ts", "src/lib/duel/grade.ts", "src/lib/duel/standard/number.server.ts", "src/lib/duel/standard/grid.server.ts"]) {
+    const text = readFileSync(path, "utf8");
+    ok(!/fx\/kit|checkoutFx|kakuroFx/.test(text), `${path}: no effects import (grading untouched)`);
+  }
+  for (const path of ["src/puzzles/checkoutFx.ts", "src/puzzles/kakuroFx.ts"]) {
+    const text = readFileSync(path, "utf8");
+    ok(!/grade|numberOverhaul|stageState|onSubmit|onDraftAnswer/.test(text.replace(/^\s*\*.*$/gm, "").replace(/\/\/.*$/gm, "")), `${path}: display only (no grade, stamp, state or submit)`);
+  }
+  // The stage wires them through the kit, its own cues kept (silent kit sounds), on landing.
+  const src = readFileSync("src/puzzles/checkout.tsx", "utf8");
+  ok(/const onLand = \(\) => \{[\s\S]*?soundCue\("checkout\.thud"\)[\s\S]*?soundCue\("checkout\.bust"\)[\s\S]*?gameFx\("wrong"[\s\S]*?soundCue\("checkout\.tick"\)[\s\S]*?countUpText\(/.test(src), "Checkout: the thud, bust and count-down play when the dart lands");
+  ok(/soundCue\("checkout\.undo"\);\s*\n\s*\/\/[^\n]*\n\s*tugOut\(/.test(src), "Checkout: Undo plays its tug");
+  ok(/gameFx\("match", box\.current\?\.querySelector\("\[data-checkout-lit\]"\)/.test(src), "Checkout: a finish rings the lit ring (match)");
+  const ksrc = readFileSync("src/puzzles/kakuro.tsx", "utf8");
+  ok(/gameFx\("drop"/.test(ksrc) && /gameFx\("wrong", clueEl\(i\)/.test(ksrc) && /gameFx\("match", el/.test(ksrc) && /gameFx\("combo"/.test(ksrc), "Kakuro: drop, wrong, match and combo through the kit");
+  ok(/cue: "kakuro\.run", rate: kakuroRunRate\(/.test(ksrc), "Kakuro: the run chime is pitched by its length");
+  console.log("stage 2 effects: dart flight, landing, tug, run pitch and the solve order proved");
+}
+
 if (failures.length) {
   console.log(`\nFAIL number-overhaul-checkout-kakuro-check: ${failures.length} failure(s)`);
   process.exit(1);

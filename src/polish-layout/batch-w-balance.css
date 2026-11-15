@@ -65,3 +65,26 @@
   translate: none;
   margin-top: -2px;
 }
+
+/* The Number overhaul's effects (stage 2): the pivot's pointer on balanceRev 4's live beam. A brass stud that turns
+   champagne gold when the scale is level; the effects kit trembles it on a near miss and locks it on a balance. */
+.balance-instrument .bal-pointer {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, var(--jz-gold), var(--jz-gold-ledge));
+  box-shadow: 0 0 0 1px var(--jz-bg);
+  opacity: 0.85;
+}
+.balance-instrument .bal-pointer[data-on] {
+  background: var(--jz-gold);
+  opacity: 1;
+}
+/* The reveal's boards keep their own height (never squeezed under their content), so on a short screen the balance,
+   the key and the facts stack below the scale instead of over each other; the shared reveal fit scales the whole. */
+.bal-reveal > .nrv-boards,
+.bal-reveal > .nrv-boards > .nrv-board {
+  flex: 0 0 auto;
+}

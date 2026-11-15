@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { NumberStage, numberArt } from "@/components/puzzles/number/overhaul";
 import { checkoutBust } from "@/lib/duel/numberOverhaul";
+import { countUpText, gameFx, gameFxVariant } from "@/lib/fx/kit";
+import { CHECKOUT_FLIGHT_MS, checkoutFlightKeyframes } from "./checkoutFx";
 import {
   FAIR_CHALK,
   FAIR_HORIZON,
@@ -79,6 +81,9 @@ const R_QUAD_IN = 21;
 const R_BULL = 14;
 const R_INNER_BULL = 6.5;
 
+/** The board's geometry in its 200-unit viewBox (the checks prove a flight lands in the chosen ring's band). */
+export const CHECKOUT_BOARD_GEOMETRY = { C, R_DOUBLE_IN, R_DOUBLE_OUT, R_TREBLE_IN, R_TREBLE_OUT, R_QUAD_IN, R_QUAD_OUT, R_BULL, R_INNER_BULL } as const;
+
 const angleOf = (wedge: number) => ((-90 + wedge * 18) * Math.PI) / 180;
 const point = (r: number, a: number) =>
   `${(C + r * Math.cos(a)).toFixed(2)} ${(C + r * Math.sin(a)).toFixed(2)}`;
@@ -94,8 +99,8 @@ function finishBand(finish: number): [number, number] {
   return finish === 3 ? [R_TREBLE_IN, R_TREBLE_OUT] : [R_DOUBLE_IN, R_DOUBLE_OUT];
 }
 
-/** Where a dart marker sits: the middle of its ring band in its wedge. */
-function dartSpot(dart: CheckoutDart, quad: boolean, nth: number): { x: number; y: number } {
+/** Where a dart marker sits: the middle of its ring band in its wedge (exported for the checks: the flight ends here). */
+export function dartSpot(dart: CheckoutDart, quad: boolean, nth: number): { x: number; y: number } {
   if (dart.wedge === CHECKOUT_BULL) {
     const r = dart.ring === 2 ? 2 : (R_BULL + R_INNER_BULL) / 2;
     const a = (nth * 2.1) % (Math.PI * 2);
@@ -159,15 +164,17 @@ export function BoardArt({ wedges, quad, bare }: { wedges: readonly number[]; qu
 }
 
 /** A steel dart stuck in the board: tip at the spot, flights up and to the right. */
-export function Dart({ x, y, n, fresh, final }: { x: number; y: number; n: number; fresh: boolean; final: boolean }) {
+export function Dart({ x, y, n, fresh, final, flying = false }: { x: number; y: number; n: number; fresh: boolean; final: boolean; flying?: boolean }) {
   const dx = Math.cos((-55 * Math.PI) / 180) * 20.5;
   const dy = Math.sin((-55 * Math.PI) / 180) * 20.5;
   // The sprite is 64 × 120 points with its tip at (12, 108) (checkout.py `dart`), drawn 0.25 units a point.
   const k = 0.25;
   return (
     <g transform={`translate(${x.toFixed(2)} ${y.toFixed(2)})`} pointerEvents="none">
-      {fresh ? <circle r={4} className="co-impact" fill="none" stroke={FAIR_CHALK} strokeWidth={0.8} /> : null}
-      <g className={fresh ? "co-dart" : final ? "co-final-dart" : undefined}>
+      {fresh && !flying ? <circle r={4} className="co-impact" fill="none" stroke={FAIR_CHALK} strokeWidth={0.8} /> : null}
+      {/* Stage 2: a thrown dart's flight (checkoutFx.ts) moves this group from below the board to its spot. */}
+      <g data-checkout-flight={flying ? "" : undefined}>
+      <g data-checkout-dart-body className={fresh && !flying ? "co-dart" : final ? "co-final-dart" : undefined}>
         <ellipse cx={0} cy={0.4} rx={2.2} ry={1.1} fill="#000" fillOpacity={0.35} />
         <image href={numberArt("checkout", "dart")} x={-12 * k} y={-108 * k} width={64 * k} height={120 * k} />
         <circle cx={dx} cy={dy} r={4.6} fill="var(--jz-gold)" stroke="var(--jz-on-gold)" strokeWidth={0.8} />
@@ -183,6 +190,7 @@ export function Dart({ x, y, n, fresh, final }: { x: number; y: number; n: numbe
         >
           {n}
         </text>
+      </g>
       </g>
     </g>
   );
@@ -205,6 +213,8 @@ export function Board({
   finish = 2,
   bare = false,
   busted = false,
+  flight = false,
+  onLand,
 }: {
   stage: Pick<CheckoutStageData, "wedges" | "quad">;
   selected?: number | null;
@@ -219,6 +229,10 @@ export function Board({
   bare?: boolean;
   /** checkoutRev 3: the board just bust; its darts drop out. */
   busted?: boolean;
+  /** A live round (stage 2): the fresh dart flies in from below the board in an arc, then lands. */
+  flight?: boolean;
+  /** Called when the fresh dart lands (at once under reduced motion). */
+  onLand?: (() => void) | undefined;
 }) {
   const quad = stage.quad === true;
   const wedgeKey = stage.wedges.join(",");
@@ -228,6 +242,35 @@ export function Board({
   const last = list[list.length - 1];
   const fromWedge = last && last.wedge !== CHECKOUT_BULL ? last.wedge : 0;
   const [band0, band1] = finishBand(finish);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const landRef = useRef(onLand);
+  landRef.current = onLand;
+  const flyingDart = flight && fresh >= 0 ? fresh : -1;
+  const flyingSpot = flyingDart >= 0 && list[flyingDart] ? dartSpot(list[flyingDart]!, quad, flyingDart) : null;
+  // The flight (stage 2, display only): the next input is never held for it; the dart lands with the kit's drop.
+  useEffect(() => {
+    if (flyingDart < 0 || !flyingSpot) return undefined;
+    const group = svgRef.current?.querySelector<SVGGElement>(`[data-checkout-dart="${flyingDart}"] [data-checkout-flight]`);
+    let live = true;
+    const land = () => {
+      if (!live) return;
+      gameFx("drop", svgRef.current?.querySelector(`[data-checkout-dart="${flyingDart}"] [data-checkout-dart-body]`), { silent: true });
+      landRef.current?.();
+    };
+    if (!group || typeof group.animate !== "function" || gameFxVariant("drop") === "reduced") {
+      land();
+      return () => {
+        live = false;
+      };
+    }
+    const anim = group.animate(checkoutFlightKeyframes(flyingSpot), { duration: CHECKOUT_FLIGHT_MS, easing: "cubic-bezier(.3,.05,.55,1)", fill: "backwards" });
+    anim.finished.then(land, () => undefined);
+    return () => {
+      live = false;
+      anim.cancel();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flyingDart, list.length, flight]);
   const selPath =
     selected === null || selected === undefined
       ? null
@@ -236,6 +279,7 @@ export function Board({
         : sector(R_BULL, R_NUMBERS, selected);
   return (
     <svg
+      ref={svgRef}
       viewBox="0 0 200 200"
       width={size}
       height={size}
@@ -286,6 +330,7 @@ export function Board({
             y={spot.y}
             n={i + 1}
             fresh={i === fresh}
+            flying={i === flyingDart}
             final={lit === "final" && i === list.length - 1}
           />
           </g>
@@ -318,6 +363,32 @@ export function Board({
       ) : null}
     </svg>
   );
+}
+
+/** Undo's tug (stage 2, display only): the undone dart's copy eases back out of the board and fades (transform and
+ * opacity; skipped under reduced motion), while the real dart is already gone from the state. */
+export const CHECKOUT_TUG_MS = 220;
+function tugOut(dart: Element | null): void {
+  if (!dart || !dart.parentNode || gameFxVariant("drop") === "reduced") return;
+  const ghost = dart.cloneNode(true) as SVGGElement;
+  ghost.removeAttribute("data-checkout-dart");
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.style.pointerEvents = "none";
+  dart.parentNode.appendChild(ghost);
+  if (typeof ghost.animate !== "function") {
+    ghost.remove();
+    return;
+  }
+  const anim = ghost.animate(
+    [
+      { transform: "translate(0px, 0px)", opacity: 1 },
+      { transform: "translate(-1.5px, 2px)", opacity: 1, offset: 0.25 },
+      { transform: "translate(7px, -9px)", opacity: 0 },
+    ],
+    { duration: CHECKOUT_TUG_MS, easing: "cubic-bezier(.3,.1,.5,1)" },
+  );
+  const done = () => ghost.remove();
+  anim.finished.then(done, done);
 }
 
 /* Checkout's own stylesheet: the stall backdrop, chalk scoreboard and move animations. */
@@ -493,6 +564,20 @@ function Stage({
   }, []);
   /** "stage:count" of the dart that just landed, so only that dart thuds. */
   const [landed, setLanded] = useState<string | null>(null);
+  /**
+   * Stage 2 (display only): the dart in the air ("stage:count"), and what its landing shows: the remaining score
+   * counting down from `from` to `to`, or the bust. The state (darts, bust) changes at the throw, as before.
+   */
+  const [flying, setFlying] = useState<string | null>(null);
+  const landPlan = useRef<{ bust: boolean; from: number; to: number } | null>(null);
+  const leftRef = useRef<HTMLSpanElement | null>(null);
+  const scoreRef = useRef<HTMLDivElement | null>(null);
+  // While a dart is in the air the remaining score still reads what it was; it counts down when the dart lands
+  // (countUpText writes only the text, ending on the number React already holds).
+  useBeforePaint(() => {
+    const plan = landPlan.current;
+    if (flying && plan && !plan.bust && leftRef.current) leftRef.current.textContent = String(plan.from);
+  }, [flying]);
   const submitted = useRef(false);
   const box = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 340, height: 320 });
@@ -538,6 +623,8 @@ function Stage({
   const left = checkoutRemaining(current, darts);
   const bustShowing = busted === stage;
   const busy = locked || submitted.current || bustShowing;
+  // The "Bust" word and the darts' drop wait for the busting dart to land (display only; the bust holds play at once).
+  const bustSeen = bustShowing && flying === null;
   const done = isSolved(stage);
   const full = darts.length >= current.maxDarts;
 
@@ -565,7 +652,10 @@ function Stage({
     if (!checkoutDartAllowed(current, dart)) return;
     const next = [...darts, dart];
     setLanded(`${stage}:${next.length}`);
-    soundCue("checkout.thud");
+    // Stage 2: the dart flies in and lands; its thud, the count-down and a bust's moment play on landing (onLand).
+    setFlying(`${stage}:${next.length}`);
+    const busts = bustRule && checkoutBustsAt(current, checkoutRemaining(current, next), dart, next.length);
+    landPlan.current = { bust: Boolean(busts), from: left, to: checkoutRemaining(current, next) };
     setDarts(next);
     // checkoutRev 3: a bust, as in real darts. The darts show with "Bust" for a moment, then drop out and the board
     // starts again (the answer only ever holds the darts thrown since the last bust; the server re-checks every one).
@@ -573,20 +663,37 @@ function Stage({
       const at = stage;
       setBusted(at);
       setSelected(null);
-      soundCue("checkout.bust");
       if (bustTimer.current) clearTimeout(bustTimer.current);
       bustTimer.current = setTimeout(() => {
         bustTimer.current = null;
         setBusted(null);
         setInPlay((all) => all.map((list, i) => (i === at ? [] : list)));
-      }, CHECKOUT_BUST_MS);
+      }, CHECKOUT_BUST_MS + CHECKOUT_FLIGHT_MS);
+      return;
+    }
+  };
+  /** The flying dart has landed (display only): the thud, then the count-down, or the bust. */
+  const onLand = () => {
+    const plan = landPlan.current;
+    landPlan.current = null;
+    setFlying(null);
+    soundCue("checkout.thud");
+    if (!plan) return;
+    if (plan.bust) {
+      soundCue("checkout.bust");
+      gameFx("wrong", scoreRef.current, { silent: true });
       return;
     }
     soundCue("checkout.tick");
+    if (leftRef.current) countUpText(leftRef.current, plan.from, plan.to, { silent: true });
   };
   const undo = () => {
     if (busy || done || !darts.length) return;
     soundCue("checkout.undo");
+    // Stage 2: the dart is pulled out with a light tug (a copy of it eases back and away; the state changes at once).
+    tugOut(box.current?.querySelector(`[data-checkout-dart="${darts.length - 1}"]`) ?? null);
+    landPlan.current = null;
+    setFlying(null);
     setDarts(darts.slice(0, -1));
   };
   const reject = () => {
@@ -607,6 +714,7 @@ function Stage({
     setSelected(null);
     if (next.every(Boolean)) {
       playCorrect();
+      requestAnimationFrame(() => gameFx("match", box.current?.querySelector("[data-checkout-lit]"), { silent: true }));
       submitted.current = true;
       onSubmit(joinCheckoutRound(next));
       return;
@@ -614,6 +722,8 @@ function Stage({
     // A big finish on a board that pays: the crowd's "oh!" (the stage moment's chime plays with it).
     if (bigPays && checkoutBigFinish(current, darts[darts.length - 1])) soundCue("checkout.bigFinish");
     setCorrect(true);
+    // Stage 2: the finishing ring lights and rings (the kit's match on the lit ring; the stage moment's chime plays).
+    requestAnimationFrame(() => gameFx("match", box.current?.querySelector("[data-checkout-lit]"), { silent: true }));
     const following = [1, 2, 3, 4, 5]
       .map((k) => (stage + k) % CHECKOUT_STAGES)
       .find((i) => !next[i]);
@@ -701,8 +811,10 @@ function Stage({
             darts={darts}
             fresh={fresh}
             lit={lit}
-            busted={bustShowing}
+            busted={bustSeen}
             finish={current.finish}
+            flight
+            onLand={onLand}
             onWedge={
               busy || done
                 ? undefined
@@ -717,12 +829,13 @@ function Stage({
         </NumberStage>
       </div>
       <div
+        ref={scoreRef}
         className={`co-score flex h-11 w-full shrink-0 items-center justify-between gap-2 rounded-lg px-2.5 ${shake ? "animate-shake" : ""}`}
         data-checkout-darts
-        data-checkout-bust={bustShowing ? "" : undefined}
+        data-checkout-bust={bustSeen ? "" : undefined}
       >
         <span className="co-from min-w-0 truncate text-sm">
-          {nudge && !bustShowing ? (
+          {nudge && !bustSeen ? (
             <span className="co-hint" data-checkout-nudge>Pick a wedge first</span>
           ) : (
             <>
@@ -741,10 +854,12 @@ function Stage({
           {darts.length}/{current.maxDarts} darts
         </span>
         <span
-          key={`${stage}:${left}:${done}:${bustShowing}`}
-          className={`co-tick co-left ${bustShowing ? "co-bust-word" : left === 0 ? "text-primary" : left < 0 ? "text-warn" : ""}`}
+          ref={leftRef}
+          key={`${stage}:${left}:${done}:${bustSeen}`}
+          data-checkout-left
+          className={`co-tick co-left ${bustSeen ? "co-bust-word" : left === 0 ? "text-primary" : left < 0 ? "text-warn" : ""}`}
         >
-          {bustShowing ? "Bust" : done ? "✓ 0" : left}
+          {bustSeen ? "Bust" : done ? "✓ 0" : left}
         </span>
       </div>
       <div data-game-controls="rings" className="flex w-full shrink-0 gap-1.5">

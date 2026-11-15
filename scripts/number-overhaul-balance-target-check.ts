@@ -26,7 +26,7 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { gradeAnswer } from "../src/lib/duel/gradeAnswer.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { BALANCE_REV_FREE_MOVES, BALANCE_REV_LIMITS, balanceFreeMoves, pinPreNumberOverhaul } from "../src/lib/duel/numberOverhaul";
-import { balanceHangCost, balanceLeftOnTray, balanceMovedWeights, balanceRevealMarks, balanceTorqueText, exactLockReady, toggleOperator } from "../src/lib/duel/numberOverhaulInput";
+import { BALANCE_TILT_MAX, BALANCE_TILT_MIN, EXACT_NEAR, balanceHangCost, balanceLeftOnTray, balanceMovedWeights, balanceNearMiss, balanceRevealMarks, balanceTiltDeg, balanceTorqueText, exactCombineRate, exactLockReady, exactNear, toggleOperator } from "../src/lib/duel/numberOverhaulInput";
 import { firstBoardToShow } from "../src/components/puzzles/number/RevealParts";
 import { encodeSteps } from "../src/lib/duel/target";
 import { encodeBalance, type Placement } from "../src/lib/duel/balance";
@@ -224,6 +224,50 @@ ok(balanceLeftOnTray([0, null, 5, undefined as unknown as null], 4).join(",") ==
     const { host, done } = await show(targetNumberPuzzle, { puzzle: { ...ex, solution: [] }, myAnswer: "" });
     ok(/No steps made/.test(text(host)) && !host.querySelector("[data-reveal-view]"), "Exact: an empty answer with no stored way reads No steps made, no switch");
     await done();
+  }
+}
+
+/* ------------------------------------------------------------------ 8. Stage 2: the effects (the kit) */
+{
+  // The tilt: level 0; any imbalance at least 3°, capped at 12°; proportional to the share off, monotonic.
+  ok(balanceTiltDeg(15, 15) === 0, "Counterweight: a level scale has no tilt");
+  ok(balanceTiltDeg(30, 31) > 0 && balanceTiltDeg(31, 30) < 0, "Counterweight: the heavier side goes down (sign)");
+  ok(Math.abs(balanceTiltDeg(30, 31)) >= BALANCE_TILT_MIN && Math.abs(balanceTiltDeg(30, 31)) < 4, `Counterweight: off by one on a heavy scale is a small visible tilt (${balanceTiltDeg(30, 31).toFixed(2)}°)`);
+  let prev = 0, mono = true, capped = true;
+  for (let d = 1; d <= 60; d++) {
+    const t = Math.abs(balanceTiltDeg(40, 40 + d));
+    if (t < prev - 1e-9) mono = false;
+    if (t > BALANCE_TILT_MAX + 1e-9) capped = false;
+    prev = t;
+  }
+  ok(mono, "Counterweight: the tilt never falls as the scale gets further off");
+  ok(capped && Math.abs(balanceTiltDeg(0, 100)) === BALANCE_TILT_MAX, "Counterweight: the tilt is capped at 12°");
+  // The old proportion hit the cap at a 15-unit difference whatever the scale; the new one doesn't on a heavy scale.
+  ok(Math.abs(balanceTiltDeg(60, 75)) < BALANCE_TILT_MAX, `Counterweight: 15 off on a heavy scale is under the cap (${balanceTiltDeg(60, 75).toFixed(2)}°)`);
+  ok(Math.abs(balanceTiltDeg(10, 20)) > Math.abs(balanceTiltDeg(60, 70)), "Counterweight: the same difference tilts a light scale more than a heavy one (proportional)");
+  ok(balanceNearMiss(14, 15) && balanceNearMiss(15, 14) && !balanceNearMiss(15, 15) && !balanceNearMiss(13, 15), "Counterweight: the near miss is off by exactly one");
+  // Exact: the pop's pitch rises with the result and stays in range; the near miss within 10, not on the target.
+  ok(exactCombineRate(4) < exactCombineRate(40) && exactCombineRate(40) < exactCombineRate(400), "Exact: a bigger result pops higher");
+  ok([1, 9, 99, 999, 99999].every((r) => exactCombineRate(r) >= 0.85 && exactCombineRate(r) <= 1.3), "Exact: the pop's rate stays within 0.85–1.3");
+  ok(exactNear(4) && exactNear(EXACT_NEAR) && !exactNear(0) && !exactNear(11) && !exactNear(null), "Exact: the near-miss pulse is within 10 and not on the target");
+
+  // Every effect is a kit call (no hand-rolled animation), silent where the game plays its own cue; live round only.
+  ok(/gameFx\("drop", [^\n]*\{ silent: true \}\)/.test(bal), "Counterweight: the hang drops through the kit, silent (balance.drop plays)");
+  ok(/gameFx\("pickUp", [^\n]*\{ silent: true \}\)/.test(bal) && /releaseGameFx\(/.test(bal), "Counterweight: the lift is the kit's pickUp, released when hung or put back");
+  ok(/gameFx\("nearMiss", pointer\)/.test(bal) && /gameFx\("win", pointer, \{ silent: true, noHaptic: true \}\)/.test(bal), "Counterweight: the pointer trembles on a near miss and locks on a balance (kit)");
+  ok(/const kitOn = freeMoves && inFrame;/.test(bal) && /if \(kitOn\) \{/.test(bal), "Counterweight: the effects run only on balanceRev 4's live round (intros and demos as before)");
+  ok(/kitFx \? \(balanced \? 0 : balanceTiltDeg\(/.test(bal), "Counterweight: the live beam's tilt is the proportional one");
+  ok(/gameFx\("slide", el, \{ from: [^\n]*silent: true \}\)/.test(tgt), "Exact: combining and undoing slide the tiles through the kit, silent");
+  ok(/gameFx\("tap", event\.currentTarget\.firstElementChild, \{ silent: true \}\)/.test(tgt), "Exact: an operator gives the kit's tap on its face, silent (target.operator plays)");
+  ok(/gameFx\("win", plaque, \{ silent: true \}\)/.test(tgt) && /gameFx\("nearMiss", plaque\)/.test(tgt), "Exact: the target plate's near-miss pulse and the hit's payoff are kit calls");
+  ok(/rate: exactCombineRate\(result\)/.test(tgt), "Exact: the combine's own cue is pitched by the result");
+  // Effects observe: no effect code reaches a grade, a clock or the answer.
+  for (const [name, code] of [["balance", bal], ["target", tgt]] as const) {
+    const fxLines = code.split("\n").filter((l) => /gameFx\(|releaseGameFx\(/.test(l));
+    ok(fxLines.length > 0 && fxLines.every((l) => !/onSubmit|setHangs|setPlacements|setPool|setHistory|gradeAnswer|phaseStartedAt/.test(l)), `${name}: the effect calls touch no answer, grade or clock`);
+  }
+  for (const f of ["src/lib/fx/kit.ts", "src/lib/duel/numberOverhaulInput.ts"]) {
+    ok(!/gradeAnswer|grade\.ts|scoring/.test(readFileSync(f, "utf8").split("\n").filter((l) => /^import/.test(l)).join("\n")), `${f}: imports nothing that grades`);
   }
 }
 

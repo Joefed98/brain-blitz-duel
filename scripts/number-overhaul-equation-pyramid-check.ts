@@ -33,7 +33,8 @@ import { gapSlots, gapStageCorrect, joinGapSegment, splitGapSegment } from "../s
 import { GAPS_REV_FAIR_TRIES, GAPS_REV_FIRST, operatorFairTries, pinPreNumberOverhaul } from "../src/lib/duel/numberOverhaul";
 import { countTry, nextOpenStage, operatorNextLabel, targetGap } from "../src/lib/duel/operatorFairTries";
 import { NP_SET_SIZE, NP_TRAY_GAP, NP_TRAY_MIN_W, npBuild, npIndex, npSeams, npSkipLabel, npSumState, npTrayPerRow, npTrayRows } from "../src/lib/duel/numberPyramid";
-import type { EquationPuzzleData, PuzzleData } from "../src/lib/duel/types";
+import type { EquationPuzzleData, EquationStage, PuzzleData } from "../src/lib/duel/types";
+import { gapRunningTotal, npRowsRight, operatorAllFirstTime } from "../src/lib/duel/numberOverhaulFx";
 
 const FIXTURE = "scripts/fixtures/number-overhaul-equation-legacy.json";
 const RECORD = process.argv.includes("--record");
@@ -189,6 +190,12 @@ if (RECORD) {
 /* ------------------------------------------------------------------ 3b. The live screen (happy-dom) */
 {
   const win = new Window({ url: "https://joulz.uk/practice" });
+  // happy-dom rejects an animation's `finished` the moment the effects kit replaces it (a browser only does so when the
+  // promise was asked for), so those rejections are harness noise; anything else still fails the run.
+  process.on("unhandledRejection", (reason) => {
+    if ((reason as { name?: string } | null)?.name === "AbortError") return;
+    throw reason;
+  });
   for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "CustomEvent", "localStorage", "sessionStorage", "location", "MutationObserver", "ResizeObserver", "getComputedStyle", "requestAnimationFrame", "cancelAnimationFrame", "matchMedia"] as const) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: (win as unknown as Record<string, unknown>)[key] });
   }
@@ -318,6 +325,52 @@ if (RECORD) {
     ok(pub.host.querySelectorAll("[data-np-wrong]").length >= 1, "pyramid reveal: without the solutions, stones in a broken sum still read wrong");
     await pub.unmount();
   }
+}
+
+/* ------------------------------------------------------------------ 8. Stage 2 effects (display only) */
+{
+  // Operator's running total: left to right over the filled prefix, whole steps, blank when it can't be worked out.
+  const signs: EquationStage = { numbers: [10, 5, 3, 2], target: 26, signs: [null, null, null] };
+  ok(gapRunningTotal(signs, [null, null, null]) === null, "running total: nothing filled is blank");
+  ok(gapRunningTotal(signs, ["-", null, null]) === 5, "running total: 10 − 5 = 5 after the first sign");
+  ok(gapRunningTotal(signs, ["-", "×", null]) === 15, "running total: left to right, (10 − 5) × 3 = 15, not 10 − 15");
+  ok(gapRunningTotal(signs, ["-", "×", "+"]) === 17, "running total: the whole line, 15 + 2 = 17");
+  ok(gapRunningTotal(signs, [null, "×", "+"]) === null, "running total: stops at the first empty gap (blank when no step works)");
+  ok(gapRunningTotal(signs, ["÷", null, null]) === 2, "running total: 10 ÷ 5 = 2, a whole step");
+  const odd: EquationStage = { numbers: [7, 2, 4], target: 1, signs: [null, null] };
+  ok(gapRunningTotal(odd, ["÷", null]) === null, "running total: 7 ÷ 2 is not whole, so blank");
+  const neg: EquationStage = { numbers: [3, 5, 4], target: 1, signs: [null, null] };
+  ok(gapRunningTotal(neg, ["-", null]) === null, "running total: below 0 is blank");
+  const nums: EquationStage = { numbers: [0, 0, 6], target: 20, signs: ["×", "+"], tray: [3, 4, 9] };
+  ok(gapRunningTotal(nums, ["3", null]) === null && gapRunningTotal(nums, ["3", "4"]) === 18,
+    "running total: number gaps count once filled (3 × 4 + 6 = 18)");
+  // Four right first time: only when every equation is solved with exactly one try.
+  ok(operatorAllFirstTime([1, 1, 1, 1], [true, true, true, true], 4), "combo: four right first time");
+  ok(!operatorAllFirstTime([1, 2, 1, 1], [true, true, true, true], 4), "combo: not when one took two tries");
+  ok(!operatorAllFirstTime([1, 1, 1, 0], [true, true, true, false], 4), "combo: not when one isn't solved");
+  ok(!operatorAllFirstTime([1, 1, 1], [true, true, true], 4), "combo: not before all four");
+  // Integer Pyramid's full rows: every stone filled and right, and the player had a hand in it.
+  const full = npBuild([3, 5, 2, 8]);
+  const givens: (number | null)[] = full.map((v, i) => (i >= npIndex(3, 0) ? v : null));
+  ok(npRowsRight(givens, givens, 4).length === 0, "rows right: an empty pyramid has none");
+  const row2 = givens.map((v, i) => (i >= npIndex(2, 0) ? full[i]! : v));
+  ok(npRowsRight(givens, row2, 4).join() === "2", "rows right: the third row filled right counts once");
+  ok(npRowsRight(givens, full, 4).join() === "0,1,2", "rows right: a complete pyramid has every summed row");
+  const wrongRow = row2.map((v, i) => (i === npIndex(2, 1) ? (v ?? 0) + 1 : v));
+  ok(npRowsRight(givens, wrongRow, 4).length === 0, "rows right: a wrong stone keeps the row from counting");
+  const allGiven = full.map((v) => v as number | null);
+  ok(npRowsRight(allGiven, full, 4).length === 0, "rows right: rows the player had no hand in never count");
+  // Nothing in grading reads the effects module.
+  for (const f of ["src/lib/duel/grade.ts", "src/lib/duel/gradeAnswer.server.ts", "src/lib/duel/standard/number.server.ts", "src/lib/duel/operatorGaps.ts", "src/lib/duel/numberPyramid.ts", "src/lib/duel/stagedRounds.ts"])
+    ok(!readFileSync(f, "utf8").includes("numberOverhaulFx"), `effects: ${f} never reads the effects helpers`);
+  // The screens build the effects with the kit.
+  const eq = readFileSync("src/puzzles/equationGaps.tsx", "utf8");
+  ok(/gameFx\("drop"/.test(eq) && /gameFx\("wrong", line\.current/.test(eq) && /gameFx\("combo", goalEl\(line\.current\), four \? \{ count: 4 \}/.test(eq), "Operator: drop, wrong and the gold \"=\" / four-first-time combo go through the kit");
+  ok(/data-running-total/.test(eq) && /gapRunningTotal\(current, fills\)/.test(eq), "Operator: the running total is drawn under the line");
+  const np = readFileSync("src/puzzles/numberPyramid.tsx", "utf8");
+  ok(/gameFx\("drop"/.test(np) && /gameFx\("wrong", stoneAt/.test(np) && /gameFx\("combo", stoneAt/.test(np), "Integer Pyramid: drop, the crack's shake and the seam's pop go through the kit");
+  ok(/soundCue\("numpyramid\.row"\)/.test(np) && /count: rowsRight/.test(np), "Integer Pyramid: a full row right is the kit's combo, counting the rows, with numpyramid.row");
+  ok(/gameFx\("stars", null, \{ count: i \+ 1/.test(np) && /i \* NP_GOLD_ROW_MS/.test(np), "Integer Pyramid: a rising note per row with the gold sweep");
 }
 
 if (failures) {

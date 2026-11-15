@@ -269,6 +269,82 @@ const between = (text: string, from: string, to: string) => {
   ok(/height: 56px;/.test(readFileSync("src/polish-layout/batch-w-numline.css", "utf8")), "Ballpark: the card is compact (56 px)");
 }
 
+/* ------------------------------------------------------------------ 9. Stage 2 effects (the effects kit) */
+// The helpers the effects read, the kit calls in the stages, and that nothing an effect touches is graded.
+{
+  const fx = await import("../src/lib/duel/measureFx");
+  const { numlineTenthsCrossed, numlinePayoffPlan, NUMLINE_PAYOFF_STEP_MS } = await import("../src/lib/duel/numlineFx");
+  const { measureActions, measureApply, measureSolved, replayMeasure } = await import("../src/lib/duel/measure");
+  const { isStdBullseye } = await import("../src/lib/duel/standard/number");
+  // Brimful: one move from the target, over real dealt boards and every state one or two moves from the start.
+  let nearChecked = 0;
+  let nearFound = 0;
+  for (let seed = 1; seed <= 24; seed++) {
+    const p = withSeededRandom(seed, () => generatePuzzle("measure")) as MeasurePuzzleData;
+    for (const board of p.boards) {
+      const states: number[][] = [[...board.start]];
+      for (const a of measureActions(board)) {
+        const n1 = measureApply(board, board.start, a);
+        if (!n1) continue;
+        states.push(n1);
+        for (const b of measureActions(board)) {
+          const n2 = measureApply(board, n1, b);
+          if (n2) states.push(n2);
+        }
+      }
+      // The stored best line's states: the one before its last move is always one move from the target.
+      const best = p.solutions?.[p.boards.indexOf(board)];
+      if (best) {
+        let at = [...board.start];
+        for (const a of decodeMeasureActions(best, board.caps.length)) {
+          const n = measureApply(board, at, a);
+          if (!n) continue;
+          states.push(n);
+          at = n;
+        }
+      }
+      const lines = fx.measureTargetLines(board);
+      for (const st of states) {
+        nearChecked++;
+        const near = fx.measureNearJugs(board, st);
+        // The truth by brute force: some single move solves the board, and those jugs land on their line.
+        const want = new Set<number>();
+        if (!measureSolved(board, st))
+          for (const a of measureActions(board)) {
+            const n = measureApply(board, st, a);
+            if (n && measureSolved(board, n)) n.forEach((v, j) => { if (v !== st[j] && lines[j] !== null && v === lines[j]) want.add(j); });
+          }
+        if (near.length) nearFound++;
+        if (near.join() !== [...want].sort((a, b) => a - b).join()) { ok(false, `Brimful ${seed}: one-move hint ${near.join()} vs ${[...want].join()} at ${st.join(",")}`); break; }
+      }
+      ok(fx.measureNearJugs(board, replayMeasure(board, (p.solutions?.[p.boards.indexOf(board)] ? decodeMeasureActions(p.solutions[p.boards.indexOf(board)]!, board.caps.length) : [])).amounts).length === 0, `Brimful ${seed}: a solved board gives no hint`);
+    }
+  }
+  ok(nearChecked > 1000 && nearFound > 20, `Brimful: the one-move hint checked on ${nearChecked} states, found on ${nearFound}`);
+  ok(fx.measureFillPlays(1) === 1 && fx.measureFillPlays(4) === 1 && fx.measureFillPlays(5) === 2 && fx.measureFillPlays(8) === 2 && fx.measureFillPlays(9) === 3 && fx.measureFillPlays(14) === 3 && fx.measureFillPlays(0) === 1, "Brimful: the tap's running water is sized to the amount (1 / 2 / 3 plays)");
+  const ms = src("src/puzzles/measure.tsx");
+  ok(/gameFx\("pickUp", glassOf\(jug\), \{ silent: true \}\)/.test(ms), "Brimful: a picked jug lifts with the kit (pickUp, the game's cue plays the sound)");
+  ok(/gameFx\("pour", source, \{ tilt: jug > from \? 28 : -28, silent: true \}\)/.test(ms), "Brimful: the pour tilts the jug towards the one it pours into (pour)");
+  ok(/gameFx\("tap", liquidOf\(jug\), \{ silent: true \}\)/.test(ms), "Brimful: the receiving water settles (tap at the liquid's foot)");
+  ok(/gameFx\("match", flash, \{ silent: true \}\)/.test(ms) && /soundCue\("measure\.target"\)/.test(ms), "Brimful: a jug on its target line flashes the line (match) with the plink");
+  ok(/gameFx\("nearMiss", glassOf\(near\[0\]!\), \{ silent: true \}\)/.test(ms) && /soundCue\("measure\.near"\)/.test(ms), "Brimful: one move from the target, the matching jug pulses a hint (nearMiss)");
+  ok(/measureFillPlays\(/.test(ms) && /soundCue\("measure\.fill"\)/.test(ms), "Brimful: the fill sound plays sized to the litres added");
+  // Ballpark: the drag tick.
+  ok(numlineTenthsCrossed(0.05, 0.08) === 0 && numlineTenthsCrossed(0.08, 0.12) === 1 && numlineTenthsCrossed(0.12, 0.08) === 1 && numlineTenthsCrossed(0.05, 0.55) === 5 && numlineTenthsCrossed(0, 1) === 10 && numlineTenthsCrossed(-1, 2) === 10, "Ballpark: the tenths a drag crosses");
+  const ns = src("src/puzzles/numline.tsx");
+  ok(/numlineTenthsCrossed\(marker \/ NUMLINE_SCALE, nextShare\) > 0\) soundCue\("numline\.dragTick"\)/.test(ns), "Ballpark: a faint tick as the marker crosses a tenth");
+  ok(/gameFx\("drop", lineBox\.current\?\.querySelector\(`\[data-numline-placed=/.test(ns), "Ballpark: the placed pin stamps in with the kit (drop)");
+  // Ballpark's payoff: placed numbers in order, a step apart; bullseyes on the stamp's own threshold sparkle.
+  const plan = numlinePayoffPlan([{ placement: 10, bull: true }, { placement: null, bull: false }, { placement: 400, bull: false }, { placement: 900, bull: true }]);
+  ok(plan.map((x) => `${x.index}@${x.delayMs}${x.bull ? "*" : ""}`).join(" ") === `0@0* 2@${NUMLINE_PAYOFF_STEP_MS} 3@${2 * NUMLINE_PAYOFF_STEP_MS}*`, `Ballpark: the payoff's order and timing (${plan.map((x) => `${x.index}@${x.delayMs}`).join(" ")})`);
+  ok(isStdBullseye(0.01) && !isStdBullseye(0.011), "Ballpark: a bullseye is within 1 % (the stamp's own rule the reveal rows carry)");
+  ok(/gameFx\("slide", el, \{ from:/.test(ns) && /gameFx\("stars", ring,/.test(ns) && /soundCue\("numline\.bullseye"\)/.test(ns) && /<FxCountUp value=\{all\.filter\(\(r\) => r\.bull\)\.length\}/.test(ns), "Ballpark: the reveal's payoff (true spots fly in, bullseyes sparkle, the count climbs)");
+  // Effects never reach the graders: the grading and dealing modules don't import the effects.
+  for (const path of ["src/lib/duel/grade.ts", "src/lib/duel/measure.ts", "src/lib/duel/numline.ts", "src/lib/duel/standard/number.server.ts"])
+    ok(!/measureFx|numlineFx|fx\/kit/.test(src(path)), `${path}: never reads an effect`);
+  ok(!/gameFx|soundCue|import/.test(src("src/lib/duel/measureFx.ts").replace(/^import .*$/gm, "")) && !/kit|sound/.test(src("src/lib/duel/numlineFx.ts")), "The effect helpers are pure (no kit, no sound)");
+}
+
 console.log(`number-overhaul-measure-numline-check: ${passes} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log(`FAIL summary: ${failures.length} failed`);

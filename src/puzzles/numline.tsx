@@ -15,6 +15,9 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { visualFx } from "@/lib/fx";
+import { gameFx } from "@/lib/fx/kit";
+import { FxCountUp } from "@/components/fx/GameFx";
+import { numlinePayoffPlan, numlineTenthsCrossed } from "@/lib/duel/numlineFx";
 import {
   decodeNumline,
   encodeNumline,
@@ -124,6 +127,8 @@ const NUMLINE_CSS = `
 .nl-reveal-row[data-close] .nl-reveal-off { color: var(--jz-text); }
 .nl-reveal-off[data-bull] { color: var(--jz-gold); }
 .nl-reveal-row:not([data-placed]) .nl-reveal-off { color: var(--jz-text-3); }
+/* A short screen (375 x 667 under the shared reveal layout's stars row): tighter rows and no key, so nothing is shrunk. */
+@media (max-height: 700px) { .nl-reveal-key { display: none; } .nl-reveal-row { min-height: 28px; } .nl-reveal-rows { gap: 2px; } }
 `;
 
 const fmt = (n: number) =>
@@ -594,7 +599,10 @@ function Stage({
   };
   const move = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (busy || !dragging) return;
-    setMarker(Math.round(shareAt(event.clientX) * NUMLINE_SCALE));
+    const nextShare = shareAt(event.clientX);
+    // Stage 2 (the effects kit's rules; the game's own faint tick): a tick each time the marker crosses a tenth.
+    if (marker !== null && numlineTenthsCrossed(marker / NUMLINE_SCALE, nextShare) > 0) soundCue("numline.dragTick");
+    setMarker(Math.round(nextShare * NUMLINE_SCALE));
     bumpAt(event.clientX);
     setDragging({ x: event.clientX, y: event.clientY });
   };
@@ -604,6 +612,11 @@ function Stage({
     const next = [...placements, marker];
     setPlacements(next);
     setMarker(null);
+    // Stage 2: the pin stamps in (the kit's drop, silent: the place cue below is the sound), once it is drawn.
+    const placedAt = (next.length - 1) % NUMLINE_ITEMS;
+    requestAnimationFrame(() =>
+      gameFx("drop", lineBox.current?.querySelector(`[data-numline-placed="${placedAt}"]`) ?? null, { silent: true }),
+    );
     // Game review fix (15 Nov 2026): one sound a place (was tick + place + the game's cue): the game's own cue once it
     // has a file, else the shared place sound.
     numlinePlaceSound();
@@ -682,7 +695,7 @@ function Stage({
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (
-                    <g key={i} data-puzzle-cell={i} className="numline-drop">
+                    <g key={i} data-puzzle-cell={i} data-numline-placed={i} style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}>
                       <Pin
                         cx={x(p / NUMLINE_SCALE)}
                         geom={geom}
@@ -958,6 +971,32 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const lines = puzzle.type === "numline" ? numlineRevealLines(puzzle, myAnswer) : [];
   const marks = lines.map((l) => l.mark);
   const [index, setIndex] = useRevealBoard(marks);
+  const drawing = useRef<HTMLDivElement | null>(null);
+  const played = useRef<Set<number>>(new Set());
+  /*
+   * Stage 2's round-end payoff (the effects kit; display only, after the round, never over a live board): the first
+   * time a line is shown, each true spot flies in from your marker in the numbers' order (slide), and a bullseye's
+   * ring sparkles as it lands (stars, with the game's own bullseye chime).
+   */
+  useEffect(() => {
+    const line = lines[index];
+    const root = drawing.current;
+    if (!line || !root || played.current.has(index)) return undefined;
+    played.current.add(index);
+    const timers: number[] = [];
+    for (const step of numlinePayoffPlan(line.rows)) {
+      const el = root.querySelector(`[data-reveal-true="${step.index}"]`);
+      const from = el?.getAttribute("data-from")?.split(",").map(Number);
+      if (el && from && from.length === 2) gameFx("slide", el, { from: { x: from[0]!, y: from[1]! }, delayMs: step.delayMs, silent: true, inGame: false });
+      if (step.bull) {
+        const ring = root.querySelector(`[data-reveal-ring="${step.index}"]`);
+        gameFx("stars", ring, { delayMs: step.delayMs + 180, silent: true, inGame: false });
+        timers.push(window.setTimeout(() => soundCue("numline.bullseye"), step.delayMs + 180));
+      }
+    }
+    return () => timers.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
   if (puzzle.type !== "numline") return null;
   const all = lines.flatMap((l) => l.rows);
   const placed = all.filter((r) => r.error !== null);
@@ -981,11 +1020,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <RevealFacts
         facts={[
           { label: "Average off", value: avg === null ? "–" : `${(avg * 100).toFixed(1)}%` },
-          bullseyes && { label: "Bullseyes", value: all.filter((r) => r.bull).length },
+          bullseyes && { label: "Bullseyes", value: <FxCountUp value={all.filter((r) => r.bull).length} /> },
           worst && worst.error !== null && !worst.bull && { label: "Worst miss", value: `${worst.item}, ${(worst.error * 100).toFixed(1)}%`, tone: worst.close ? undefined : "miss" },
         ]}
       />
       <RevealBoards noun="Line" marks={marks} index={index} onIndex={setIndex}>
+        <div ref={drawing} className="w-full" key={index}>
         <Line
           stage={line.stage}
           width={REVEAL_W}
@@ -1007,9 +1047,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                   <g key={i} data-reveal-pair={i} data-close={r.close ? "" : undefined} data-bull={r.bull ? "" : undefined}>
                     {px !== null ? <line x1={px} y1={py - 9} x2={tx} y2={y} stroke={tone} strokeWidth={2.5} strokeOpacity={0.9} /> : null}
                     <line x1={tx} y1={y - REVEAL_T / 2 - 4} x2={tx} y2={y + REVEAL_T / 2 + 2} stroke="var(--jz-gold)" strokeWidth={3} />
-                    {r.bull ? <circle cx={tx} cy={y} r={11} fill="none" stroke="var(--jz-gold)" strokeWidth={2.5} /> : null}
-                    <circle cx={tx} cy={ty} r={10} fill="var(--jz-gold)" />
-                    <text x={tx} y={ty + 4.5} textAnchor="middle" fontSize={13} fontWeight={800} fill="var(--jz-on-gold)" fontFamily="var(--jz-font)">{i + 1}</text>
+                    {r.bull ? <circle data-reveal-ring={i} cx={tx} cy={y} r={11} fill="none" stroke="var(--jz-gold)" strokeWidth={2.5} style={{ transformBox: "fill-box", transformOrigin: "50% 50%" }} /> : null}
+                    {/* The true spot's disc: the payoff flies it in from your marker (data-from, in drawing units). */}
+                    <g data-reveal-true={i} data-from={px === null ? undefined : `${px - tx},${py - ty}`}>
+                      <circle cx={tx} cy={ty} r={10} fill="var(--jz-gold)" />
+                      <text x={tx} y={ty + 4.5} textAnchor="middle" fontSize={13} fontWeight={800} fill="var(--jz-on-gold)" fontFamily="var(--jz-font)">{i + 1}</text>
+                    </g>
                     {px !== null ? (
                       <>
                         <circle cx={px} cy={py} r={10} fill="var(--jz-surface-2)" stroke={tone} strokeWidth={2} />
@@ -1022,6 +1065,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             </>
           )}
         </Line>
+        </div>
         <p className="nl-reveal-key"><span className="nl-key-true">●</span> true spot <span className="nl-key-yours">●</span> your marker</p>
         <ol className="nl-reveal-rows">
           {line.rows.map((r, i) => (

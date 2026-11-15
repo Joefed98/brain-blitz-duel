@@ -7,10 +7,11 @@ import { useGameKeys } from "@/lib/desktop";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { FitLine, useFitOneLine } from "@/components/puzzles/useFitOneLine";
-import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { NUMBER_STAGE_MOMENT_SOUND, NumberStage, stageSkipCue } from "@/components/puzzles/number/overhaul";
+import { gameFx } from "@/lib/fx/kit";
+import { gapRunningTotal, operatorAllFirstTime } from "@/lib/duel/numberOverhaulFx";
 import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type BoardMark, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { operatorFairTries } from "@/lib/duel/numberOverhaul";
 import { countTry, nextOpenStage, operatorNextLabel, targetGap } from "@/lib/duel/operatorFairTries";
@@ -113,6 +114,18 @@ export function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark, mar
   );
 }
 
+/** The line's "=" (and its target), for the kit's gold pop. */
+function goalEl(line: HTMLElement | null): HTMLElement | null {
+  return line?.querySelector<HTMLElement>(".opg-goal") ?? null;
+}
+
+/** The red outline the shared reject paints, for a moment (display only; the kit does the shake). */
+function flashRed(el: HTMLElement | null): void {
+  if (!el) return;
+  el.setAttribute("data-puzzle-rejected", "true");
+  setTimeout(() => el.removeAttribute("data-puzzle-rejected"), 240);
+}
+
 export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" }: PuzzleStageProps) {
   const column = useGameColumnLayout();
   const inFrame = useContext(GoalLineContext) !== null;
@@ -149,6 +162,7 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   const nextOpen = fair ? nextOpenStage(stage, total, openAt) : stage >= total - 1 ? null : stage + 1;
   const nextOnNext = fair ? nextOpenStage(stage, total, openAt, false) : nextOpen;
   const solvedCount = data ? data.stages.filter((_, i) => solvedAt(i)).length : 0;
+  const runningTotal = current ? gapRunningTotal(current, fills) : null;
   const holding = useStageCorrectHold({
     complete,
     finalStage: nextOpen === null,
@@ -160,9 +174,19 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
 
+
   const box = useRef<HTMLDivElement>(null);
   const line = useRef<HTMLSpanElement>(null);
   useFitOneLine(box, line, inFrame ? EQ_FRAME_PX : EQ_PX, EQ_MIN_PX, `${stage}:${current?.numbers.join(",")}=${current?.target}`);
+
+  // Stage 2 (the effects kit), display only. A tile drops into its gap (its own `equation.drop` cue plays, so the
+  // kit's sound is left out). A true line's "=" pops gold with sparks in place() (the shared stage moment plays the
+  // chime), or, on the last of four right first time, the kit's combo at its fourth step.
+  useEffect(() => {
+    if (fresh === null) return;
+    const gap = line.current?.querySelectorAll<HTMLElement>(".opg-gap")[fresh];
+    gameFx("drop", gap?.querySelector(".opg-fill") ?? gap ?? null, { silent: true });
+  }, [fresh, fills]);
 
   // Desktop: + − × ÷ (also - * x /) fill the next sign gap; digits type a tray number (it goes in as soon as no other
   // tray number starts with what was typed, or after a short pause); Backspace empties the last filled gap; Enter = Next.
@@ -196,10 +220,20 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
       setTried(tried.map((t, i) => (i === stage ? counted.tried : t)));
       const usedNow = triesUsed + (counted.uses ? 1 : 0);
       if (counted.uses) setTries(tries.map((n, i) => (i === stage ? usedNow : n)));
+      if (gapStageCorrect(current, seg)) {
+        // Stage 2: the last of four right first time gets the kit's combo, at its fourth step.
+        const solvedNow = (data?.stages ?? []).map((st, i) => (i === stage ? true : gapStageCorrect(st, liveAnswers[i] ?? "")));
+        const triesNow = tries.map((n, i) => (i === stage ? usedNow : n));
+        const four = operatorAllFirstTime(triesNow, solvedNow, total);
+        gameFx("combo", goalEl(line.current), four ? { count: 4 } : { count: 1, silent: true });
+      }
       if (!gapStageCorrect(current, seg)) {
         // A new wrong line cracks a try pip with its own sound (the last one the out-of-tries thunk); the same fill
         // again uses no try and gets the shared reject only.
-        wrongMoveFlash(box.current, !counted.uses);
+        // Stage 2 (the effects kit): the line shakes and flashes red. A new wrong fill plays its own crack cue below
+        // (the kit's sound left out); the same fill again, which uses no try, takes the kit's quiet wrong.
+        gameFx("wrong", line.current, { silent: counted.uses });
+        flashRed(box.current);
         if (counted.uses) {
           setCracked(usedNow - 1);
           soundCue(usedNow >= tryLimit ? "equation.fail" : "equation.tryCracked");
@@ -340,9 +374,14 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
             className="opg-equation"
           >
             <span ref={line} className="opg-line">
-              <GapLine stage={current} fills={fills} onGap={keysFrozen ? undefined : tapGap} nextGap={nextGap} chosen={chosen} fresh={fresh} />
+              {/* The kit drops the fresh tile (stage 2), so the CSS drop is left off here. */}
+              <GapLine stage={current} fills={fills} onGap={keysFrozen ? undefined : tapGap} nextGap={nextGap} chosen={chosen} fresh={null} />
             </span>
           </div>
+          {/* The running total, worked left to right over the filled prefix (display only; blank until a step works). */}
+          <p className="opg-running" data-running-total={runningTotal ?? ""} aria-live="polite">
+            {runningTotal !== null ? <>So far <b>{runningTotal}</b></> : "\u00a0"}
+          </p>
         </NumberStage>
         <div data-game-controls="operators" data-equation-pad className="opg-pad">
           {hasSigns ? (

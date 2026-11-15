@@ -31,6 +31,8 @@ import { limitText, measureMoveLimits } from "@/lib/duel/moveLimits";
 import { measureBoardOut } from "@/lib/duel/gameReviewNov15";
 import { MEASURE_TIME_MS, type MeasureBoardData, type MeasurePuzzleData } from "@/lib/duel/types";
 import { useReducedMotion } from "@/lib/motion";
+import { gameFx, releaseGameFx } from "@/lib/fx/kit";
+import { MEASURE_FILL_GAP_MS, measureFillPlays, measureLinesReached, measureNearJugs } from "@/lib/duel/measureFx";
 import { playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -109,6 +111,10 @@ export const MEASURE_CSS = `
     linear-gradient(to bottom, var(--mj-water-top), var(--mj-water) 30%, var(--mj-water-deep));
   box-shadow: inset 0 -10px 14px -8px rgba(0, 12, 40, 0.45);
   transition: transform ${LEVEL_MS}ms cubic-bezier(0.3, 0.7, 0.4, 1); }
+/* Stage 2 effects (the kit): the liquid settles as one (transform-origin at its foot), the target line flashes. */
+[data-polish="measure"] .mj-liquid { position: absolute; inset: 0; z-index: 1; transform-origin: 50% 100%; }
+[data-polish="measure"] .mj-line-flash { position: absolute; left: -2px; right: -2px; top: -5px; height: 7px; border-radius: 4px; opacity: 0;
+  background: var(--jz-gold); pointer-events: none; }
 [data-polish="measure"] .mj-surface { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; z-index: 1; overflow: hidden; will-change: transform;
   transition: transform ${LEVEL_MS}ms cubic-bezier(0.3, 0.7, 0.4, 1), opacity 120ms linear; }
 [data-polish="measure"] .mj-wave { position: absolute; left: 0; top: 0; height: 6px; width: calc(100% + 40px); background: var(--mj-water-top);
@@ -166,6 +172,8 @@ export const MEASURE_CSS = `
 [data-polish="measure"] .mj-pic-jug::after { content: ""; position: absolute; top: 6%; bottom: 8%; right: 16%; width: 2px; border-radius: 1px; z-index: 1;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.12)); pointer-events: none; }
 [data-polish="measure"] .mj-pic-n { position: absolute; z-index: 2; left: 0; right: 0; bottom: 2px; text-align: center; font-family: var(--jz-font); font-weight: 800; font-size: 15px; line-height: 16px; color: var(--jz-text); text-shadow: 0 0 3px var(--jz-bg); }
+/* A short screen (375 x 667 under the shared reveal layout's stars row): smaller pictures so nothing is shrunk to fit. */
+@media (max-height: 700px) { [data-polish="measure"] .mj-line-pics { --mj-pic-max: 64px; } [data-polish="measure"] .mj-reveal-jugs { display: none; } }
 [data-polish="measure"] .mj-pic-label { font-family: var(--jz-font); font-size: 13px; font-weight: 700; color: var(--jz-text-2); white-space: nowrap; }
 [data-polish="measure"] .mj-pic[data-last] .mj-pic-label { color: var(--jz-gold); }
 [data-polish="measure"] .mj-pic[data-miss] .mj-pic-label { color: var(--jz-red); }
@@ -270,6 +278,7 @@ export function Jugs({
   flow,
   celebrate,
   onJug,
+  kitLift = false,
 }: {
   board: MeasureBoardData;
   amounts: readonly number[];
@@ -282,6 +291,8 @@ export function Jugs({
   /** Completion effect on the solved jugs at their target line. */
   celebrate?: "move" | "static" | null;
   onJug?: ((jug: number) => void) | undefined;
+  /** Stage 2 (the live round): the effects kit lifts a picked jug (pickUp), so the CSS lift is left out. */
+  kitLift?: boolean;
 }) {
   const lines = targetLines(board);
   const maxCap = Math.max(...board.caps);
@@ -314,10 +325,10 @@ export function Jugs({
             disabled={!onJug}
             onClick={() => onJug?.(jug)}
             aria-label={`Jug ${jug + 1}: ${amount} of ${cap} litres`}
-            className={`relative flex flex-col items-center justify-end transition-transform duration-150 ${isSelected ? "-translate-y-2" : ""} ${shake === jug ? "animate-shake" : ""}`}
+            className={`relative flex flex-col items-center justify-end transition-transform duration-150 ${isSelected && !kitLift ? "-translate-y-2" : ""} ${shake === jug ? "animate-shake" : ""}`}
             style={{ width, height: tall + 26 + base }}
           >
-            <div className="relative w-full" style={{ height: height + base }}>
+            <div className="relative w-full" data-measure-glass={jug} style={{ height: height + base, transformOrigin: "50% 100%" }}>
               <div className="absolute inset-x-0 top-0" style={{ height }}>
               <div
                 className="mj-glass"
@@ -325,6 +336,7 @@ export function Jugs({
                 data-solved={party ? "" : undefined}
               >
                 {/* Body scales from the bottom and the surface strip rides up, so nothing ever lies outside the glass. */}
+                <div className="mj-liquid" data-measure-liquid={jug}>
                 <div className="mj-water" style={{ height, transform: `scaleY(${body})` }} />
                 <div
                   className="mj-surface"
@@ -332,6 +344,7 @@ export function Jugs({
                 >
                   <span className="mj-wave mj-wave-back" />
                   <span className="mj-wave" />
+                </div>
                 </div>
                 {/* Litre markings: a tick every litre, a number every litre (every other on small jugs). */}
                 <div className="mj-ticks">
@@ -354,6 +367,7 @@ export function Jugs({
                 </div>
                 {line !== null && line !== undefined ? (
                   <div data-measure-target className="mj-line" style={{ bottom: line * litre - 1.5 }}>
+                    <span className="mj-line-flash" data-measure-line-flash={jug} aria-hidden="true" />
                     <span className="mj-line-tag">{line}</span>
                   </div>
                 ) : null}
@@ -543,6 +557,50 @@ function Stage({
     return () => clearTimeout(timer);
   }, [flow]);
 
+  /*
+   * Stage 2 effects (the Number overhaul, the effects kit; display only, never a move, grade or clock): a picked jug
+   * lifts (pickUp) and the pour tilts it over towards the jug it pours into (pour); the receiving water settles (tap,
+   * from the liquid's foot); a jug reaching its target line flashes the line (match) with a bright plink; one move from
+   * the target, the matching jug pulses a hint (nearMiss). The game's own cues play the sounds (kit calls are silent).
+   */
+  const glassOf = (jug: number | null) => (jug === null ? null : box.current?.querySelector(`[data-measure-glass="${jug}"]`) ?? null);
+  const liquidOf = (jug: number) => box.current?.querySelector(`[data-measure-liquid="${jug}"]`) ?? null;
+  const fxTimers = useRef<number[]>([]);
+  const later = (ms: number, fn: () => void) => {
+    fxTimers.current.push(window.setTimeout(fn, ms));
+  };
+  useEffect(() => () => fxTimers.current.forEach((t) => window.clearTimeout(t)), []);
+  // A jug picked before a reload is lifted again.
+  useEffect(() => {
+    if (selected !== null) gameFx("pickUp", glassOf(selected), { silent: true });
+    // Only on mount and on a new puzzle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+  const lastAmounts = useRef<{ stage: number; amounts: readonly number[]; count: number } | null>(null);
+  useEffect(() => {
+    if (!board || !replay) return;
+    const was = lastAmounts.current;
+    lastAmounts.current = { stage, amounts: replay.amounts, count: actions.length };
+    if (!was || was.stage !== stage || actions.length <= was.count || actions[actions.length - 1]?.kind === "reset") return;
+    // The settle and the line's flash land as the pour finishes (the stream's length).
+    later(380, () => {
+      for (const jug of measureLinesReached(board, was.amounts, replay.amounts)) {
+        const flash = box.current?.querySelector(`[data-measure-line-flash="${jug}"]`) ?? null;
+        gameFx("match", flash, { silent: true });
+        later(420, () => releaseGameFx(flash));
+        // The plink for a jug on its line that doesn't finish the puzzle; a finish has the stage moment's chime.
+        if (!replay.solved) soundCue("measure.target");
+      }
+      if (replay.solved) return;
+      const near = measureNearJugs(board, replay.amounts);
+      if (near.length) {
+        gameFx("nearMiss", glassOf(near[0]!), { silent: true });
+        soundCue("measure.near");
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, actions.length]);
+
   const complete = replay?.solved ?? false;
   const outOfMoves = replay?.outOfMoves ?? false;
   const boardOut = !!data && measureBoardOut(data);
@@ -626,29 +684,57 @@ function Stage({
     if (selected === null) {
       setSelected(jug);
       soundCue("measure.select");
+      gameFx("pickUp", glassOf(jug), { silent: true });
       return;
     }
     if (selected === jug) {
       setSelected(null);
+      releaseGameFx(glassOf(jug));
       return;
     }
     const from = selected;
     setSelected(null);
+    releaseGameFx(glassOf(from));
     if (!act({ kind: "pour", from, to: jug })) {
       reject(jug);
       return;
     }
     soundCue("measure.pour");
     setFlow({ kind: "pour", from, to: jug, id: ++flowId.current });
+    // The jug tips over towards the one it pours into, holds while it pours, and comes back; the other's water settles.
+    // It pivots on its foot's corner nearest the other jug, so it tips over towards it, not into it.
+    const source = glassOf(from) as HTMLElement | null;
+    if (source) source.style.transformOrigin = jug > from ? "100% 100%" : "0% 100%";
+    gameFx("pour", source, { tilt: jug > from ? 28 : -28, silent: true });
+    later(800, () => {
+      if (source) source.style.transformOrigin = "50% 100%";
+    });
+    later(380, () => gameFx("tap", liquidOf(jug), { silent: true }));
   };
   const fillOrEmpty = (kind: "fill" | "empty") => {
     if (selected === null) return;
     const jug = selected;
+    const before = replay?.amounts[jug] ?? 0;
     if (!act({ kind, jug })) reject(jug);
     else {
       setSelected(null);
-      soundCue(kind === "fill" ? "measure.fill" : "measure.empty");
-      if (kind === "fill") setFlow({ kind: "fill", to: jug, id: ++flowId.current });
+      releaseGameFx(glassOf(jug));
+      if (kind === "fill") {
+        // Running water sized to the amount: one play up to 4 litres, two up to 8, three beyond.
+        const plays = measureFillPlays((board?.caps[jug] ?? 0) - before);
+        for (let i = 0; i < plays; i++) later(i * MEASURE_FILL_GAP_MS, () => soundCue("measure.fill"));
+        setFlow({ kind: "fill", to: jug, id: ++flowId.current });
+        later(380, () => gameFx("tap", liquidOf(jug), { silent: true }));
+      } else {
+        // A splash: the jug tips out over its outer side.
+        soundCue("measure.empty");
+        const tipped = glassOf(jug) as HTMLElement | null;
+        if (tipped) tipped.style.transformOrigin = jug === 0 ? "0% 100%" : "100% 100%";
+        gameFx("pour", tipped, { tilt: jug === 0 ? -40 : 40, silent: true });
+        later(800, () => {
+          if (tipped) tipped.style.transformOrigin = "50% 100%";
+        });
+      }
     }
   };
   const reset = () => {
@@ -723,6 +809,7 @@ function Stage({
           flow={flow}
           celebrate={solveFx ? (reduced ? "static" : "move") : null}
           onJug={busy ? undefined : tapJug}
+          kitLift
         />
         </NumberStage>
       </div>
@@ -864,11 +951,11 @@ function LinePictures({ board, raw, kind, solved }: { board: MeasureBoardData; r
         const last = i === states.length - 1;
         return (
           <li key={i} className="mj-pic" data-last={last ? "" : undefined} data-miss={last && !solved ? "" : undefined}>
-            <span className="mj-pic-jugs" aria-hidden="true" style={{ height: H }}>
+            <span className="mj-pic-jugs" aria-hidden="true" style={{ height: `min(${H}px, var(--mj-pic-max, ${H}px))` }}>
               {board.caps.map((cap, jug) => {
                 const hit = last && solved && measureSolvedJug(board, st.amounts[jug] ?? 0, jug);
                 return (
-                  <span key={jug} className="mj-pic-jug" data-hit={hit ? "" : undefined} style={{ height: Math.max(22, Math.round((cap / maxCap) * H)) }}>
+                  <span key={jug} className="mj-pic-jug" data-hit={hit ? "" : undefined} style={{ height: `max(22px, ${Math.round((cap / maxCap) * 1000) / 10}%)` }}>
                     <span className="mj-pic-water" style={{ height: `${((st.amounts[jug] ?? 0) / cap) * 100}%` }} />
                     <span className="mj-pic-n">{st.amounts[jug] ?? 0}</span>
                   </span>

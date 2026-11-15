@@ -26,6 +26,8 @@ import { Button } from "@/components/ui/button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { NUMBER_STAGE_MOMENT_SOUND, NumberStage } from "@/components/puzzles/number/overhaul";
+import { gameFx } from "@/lib/fx/kit";
+import { npRowsRight } from "@/lib/duel/numberOverhaulFx";
 import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type BoardMark, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
@@ -307,14 +309,51 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const seams = board ? npSeams(board.givens, fullValues, board.rows) : [];
   const rightSeams = seams.filter((x) => x.state === "right").length;
   const wrongSeams = seams.length - rightSeams;
-  const seamCounts = useRef({ stage, right: rightSeams, wrong: wrongSeams });
+  // Stage 2 (the effects kit), display only: a sum judged right pops its stone with gold sparks, a wrong one shakes it
+  // (each plays its own cue, so the kit's sound is left out); a full row right is the kit's combo, counting up the rows,
+  // with `numpyramid.row`.
+  const rowsRight = board ? npRowsRight(board.givens, fullValues, board.rows).length : 0;
+  const seamKeys = seams.map((x) => `${x.row}:${x.col}:${x.state}`).join(",");
+  const seamCounts = useRef({ stage, right: rightSeams, wrong: wrongSeams, rows: rowsRight, keys: seamKeys });
   useEffect(() => {
     const was = seamCounts.current;
-    seamCounts.current = { stage, right: rightSeams, wrong: wrongSeams };
+    seamCounts.current = { stage, right: rightSeams, wrong: wrongSeams, rows: rowsRight, keys: seamKeys };
     if (was.stage !== stage || locked || submitted.current) return;
-    if (wrongSeams > was.wrong) soundCue("numpyramid.crack");
+    const before = new Set(was.keys ? was.keys.split(",") : []);
+    const stoneAt = (row: number, col: number) => box.current?.querySelectorAll<HTMLElement>(".np-row")[row]?.children[col] ?? null;
+    for (const seam of seams) {
+      if (before.has(`${seam.row}:${seam.col}:${seam.state}`)) continue;
+      if (seam.state === "wrong") gameFx("wrong", stoneAt(seam.row, seam.col), { silent: true });
+      else if (!complete) gameFx("combo", stoneAt(seam.row, seam.col), { count: 1, silent: true });
+    }
+    if (rowsRight > was.rows && !complete) {
+      soundCue("numpyramid.row");
+      const top = npRowsRight(board!.givens, fullValues, board!.rows)[0] ?? 0;
+      gameFx("combo", box.current?.querySelectorAll<HTMLElement>(".np-row")[top] ?? null, { count: rowsRight, silent: true });
+    } else if (wrongSeams > was.wrong) soundCue("numpyramid.crack");
     else if (rightSeams > was.right && !complete) soundCue("numpyramid.seam");
-  }, [stage, rightSeams, wrongSeams, complete, locked]);
+  }, [stage, rightSeams, wrongSeams, rowsRight, seamKeys, complete, locked]);
+
+  // Stage 2: a stone set on the pyramid drops in with the kit (its own `numpyramid.place` cue plays).
+  const [fresh, setFresh] = useState<number | null>(null);
+  useEffect(() => {
+    if (fresh === null) return;
+    gameFx("drop", box.current?.querySelector(`[data-np-cell="${fresh}"] .np-block`) ?? null, { silent: true });
+  }, [fresh, placements]);
+
+  // Stage 2: a completed board's gold sweep runs from the bottom row up, a rising note with each row (the kit's
+  // stars, one step higher a row). Only when completed here, never on a restore.
+  const wasComplete = useRef({ stage, complete });
+  const sweepTimers = useRef<number[]>([]);
+  useEffect(() => {
+    const was = wasComplete.current;
+    wasComplete.current = { stage, complete };
+    if (!board || !complete || (was.stage === stage && was.complete) || locked) return;
+    if (was.stage !== stage) return;
+    // The notes outlive a later re-render (the submit locks the stage at once); only unmounting stops them.
+    sweepTimers.current = Array.from({ length: board.rows }, (_, i) => window.setTimeout(() => gameFx("stars", null, { count: i + 1, inGame: true }), i * NP_GOLD_ROW_MS));
+  }, [stage, complete, board, locked]);
+  useEffect(() => () => sweepTimers.current.forEach((t) => window.clearTimeout(t)), []);
   const fullWrongKey = fullWrong ? `${stage}:${npEncodeRound(stage, [placements])}` : "";
   useEffect(() => {
     if (fullWrongKey && !locked && !submitted.current) wrongMoveFlash(box.current?.querySelector("[data-game-arena]") ?? box.current);
@@ -372,6 +411,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       if (swap) next[from] = occupant;
       next[cell] = tray;
       soundCue(swap ? "numpyramid.swap" : "numpyramid.place");
+      setFresh(cell);
     } else if (from !== null) soundCue("numpyramid.unplace");
     updatePlacements(next);
   };
@@ -446,7 +486,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
         <NumberStage type="numpyramid" index={stage} exit={holding ? "clear" : null} className="justify-center">
         <div className="relative" style={NO_TOUCH}>
-          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
+          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth animate={false} />
           {/* The pick-up layer sits above the placed blocks (.np-block is z-index 1): below them, taps on a
               placed tile never reached it, so tiles could not be double-tapped back or dragged to another cell. */}
           <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4, zIndex: 3 }}>

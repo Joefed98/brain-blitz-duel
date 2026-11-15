@@ -52,3 +52,40 @@ export function balanceMovedWeights(mine: Placement, solution: Placement): Set<n
 export function balanceLeftOnTray(mine: Placement, trayLength: number): number[] {
   return Array.from({ length: trayLength }, (_, i) => i).filter((i) => mine[i] === null || mine[i] === undefined);
 }
+
+/**
+ * Counterweight (the Number overhaul's effects, display only): the beam's tilt in degrees from the two turning forces,
+ * proportional to how far off the scale is relative to its total (so a heavy scale doesn't hit the cap at once):
+ * 0 when level, then at least 3° so any imbalance shows, growing with the share off, capped at 12°. Positive tips
+ * the right side down.
+ */
+export const BALANCE_TILT_MAX = 12;
+export const BALANCE_TILT_MIN = 3;
+export function balanceTiltDeg(left: number, right: number): number {
+  const diff = right - left;
+  if (diff === 0) return 0;
+  const total = Math.max(1, Math.abs(left) + Math.abs(right));
+  const share = Math.abs(diff) / total;
+  const deg = Math.min(BALANCE_TILT_MAX, BALANCE_TILT_MIN + 18 * share);
+  return Math.sign(diff) * deg;
+}
+
+/** Counterweight: off by one unit of turning force (the near-miss tremble at the pointer). */
+export function balanceNearMiss(left: number, right: number): boolean {
+  return Math.abs(left - right) === 1;
+}
+
+/**
+ * Exact (display only): the combine pop's playback rate, higher for a bigger result (1 → 0.9, 999 → about 1.26),
+ * within 0.85–1.3.
+ */
+export function exactCombineRate(result: number): number {
+  const r = 0.9 + 0.12 * Math.log10(Math.max(1, result));
+  return Math.round(Math.min(1.3, Math.max(0.85, r)) * 1000) / 1000;
+}
+
+/** Exact: the target's near-miss pulse when the closest number comes within 10 (not on it). */
+export const EXACT_NEAR = 10;
+export function exactNear(away: number | null): boolean {
+  return away !== null && away > 0 && away <= EXACT_NEAR;
+}

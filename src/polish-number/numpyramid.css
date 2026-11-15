@@ -77,9 +77,10 @@
   from { opacity: 0; }
   to { opacity: 0.7; }
 }
+/* Opacity only (the effects kit's rule: transform and opacity); the stone above shakes with the kit. */
 @keyframes np-crack-in {
-  from { stroke-dasharray: 0 80; }
-  to { stroke-dasharray: 80 0; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Oak tray tiles in a dark well, two even rows on a phone; a picked tile lifts with a champagne outline. */

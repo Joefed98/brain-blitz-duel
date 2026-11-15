@@ -1,7 +1,9 @@
 import { BALANCE_CSS, BALANCE_DEFS, IronKettlebell, ScalesLevelFx } from "@/components/puzzles/balanceArt";
 import { NumberStage, numberArt, stageFailCue, type StageExit } from "@/components/puzzles/number/overhaul";
 import { balanceFreeMoves } from "@/lib/duel/numberOverhaul";
-import { balanceHangCost, balanceLeftOnTray, balanceMovedWeights, balanceRevealMarks, balanceTorqueText } from "@/lib/duel/numberOverhaulInput";
+import { balanceHangCost, balanceLeftOnTray, balanceMovedWeights, balanceNearMiss, balanceRevealMarks, balanceTiltDeg, balanceTorqueText } from "@/lib/duel/numberOverhaulInput";
+import { gameFx, releaseGameFx } from "@/lib/fx/kit";
+import { balanceTorque } from "@/lib/duel/balance";
 import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -89,7 +91,21 @@ const NUDGE_MS = 1400;
 
 const TILT_EASE = "transform 260ms cubic-bezier(.34,1.4,.55,1)";
 
-export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyNotch, torque, marks, selected, showControls = false, height, compact = false, solving = false, fill = false }: {
+/**
+ * The Number overhaul's effects (stage 2, 15 Nov 2026; the effects kit): display only, after the move's render. Each
+ * animates a piece's own art (never a button, notch or the board), `silent` where the game plays its own cue.
+ */
+function afterPaint(fn: () => void): void {
+  if (typeof window !== "undefined") requestAnimationFrame(() => requestAnimationFrame(fn));
+}
+
+export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyNotch, torque, marks, selected, showControls = false, height, compact = false, solving = false, fill = false, kitFx = false }: {
+  /**
+   * balanceRev 4's live beam (the Number overhaul's effects): the tilt proportional to how far off the scale is
+   * (balanceTiltDeg), a pointer at the pivot for the near-miss tremble and the balanced lock, and the kit's drop in
+   * place of the old CSS one. Older stamps' beams, intros and reveals draw as before.
+   */
+  kitFx?: boolean;
   /**
    * A live round's beam fills its wall (Joe, 15 Nov 2026): the kettlebells grow past their notch (1.6 times its width),
    * every other notch's hanging a bell's height lower on a brass rod so neighbours never touch, and the whole
@@ -113,8 +129,9 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
   /** The completion moment: the brass shines along its length. */
   solving?: boolean;
 }) {
-  const tilt = visibleTilt(scale, placement);
   const balanced = scaleSolved(scale, placement);
+  const forces = balanceTorque(scale, placement);
+  const tilt = kitFx ? (balanced ? 0 : balanceTiltDeg(forces.left, forces.right)) : visibleTilt(scale, placement);
   const pegs = scalePegs(scale);
   const width = spacing * pegs;
   const big = height !== undefined;
@@ -183,8 +200,11 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
         </>}
       </g>
       <image href={numberArt("balance", "pivot")} x={cx - (big ? 13 : 8)} y={beamY - (big ? 13 : 8)} width={big ? 26 : 16} height={big ? 26 : 16}/>
-      {balanced && <circle cx={cx} cy={beamY} r={big ? 5 : 3.5} fill="var(--jz-gold)" stroke="#3E2805" strokeWidth="1"/>}
+      {balanced && !kitFx && <circle cx={cx} cy={beamY} r={big ? 5 : 3.5} fill="var(--jz-gold)" stroke="#3E2805" strokeWidth="1"/>}
     </svg>
+    {/* The pivot's pointer (kitFx): gold when balanced; the kit trembles it on a near miss and locks it on a balance. */}
+    {kitFx ? <span data-bal-pointer="" data-on={balanced ? "" : undefined} className="bal-pointer" aria-hidden="true"
+      style={{ left: cx - 7, top: beamY - 7 }} /> : null}
     {Array.from({ length: pegs }, (_, peg) => {
       const item = onPeg.get(peg), available = selected != null && !item;
       return <div key={peg} className="absolute flex flex-col items-center" style={{ top: beamY - 32, left: peg * spacing, width: spacing, transform: `translateY(${offset(peg)}px)`, transition: TILT_EASE }}>
@@ -193,7 +213,7 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
           className="balance-notch h-11 w-full min-w-0 px-0 font-mono text-sm">
           <span className={available ? 'bal-notch-label bal-notch-active' : 'bal-notch-label'} style={{ width: labelW }}>{pegDistance(peg, pegs)}</span>
         </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm"><span className="bal-notch-label" style={{ width: labelW }}>{pegDistance(peg, pegs)}</span></div>}
-        {item && <div key={item.fixed ? 'f' : `t${item.tray}`} data-reveal-mark={!item.fixed && item.tray !== undefined && marks?.has(item.tray) ? "moved" : undefined} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}
+        {item && <div key={item.fixed ? 'f' : `t${item.tray}`} data-reveal-mark={!item.fixed && item.tray !== undefined && marks?.has(item.tray) ? "moved" : undefined} data-bell-tray={!item.fixed ? item.tray : undefined} className={`flex flex-col items-center ${showControls && !item.fixed && !kitFx ? 'bal-drop' : ''}`}
           style={edgeNudge && (peg === 0 || peg === pegs - 1) ? { translate: `${peg === 0 ? edgeNudge : -edgeNudge}px 0` } : undefined}>
           {rod > 0 ? <span className="bal-rod" aria-hidden="true" style={{ height: rod + (peg % 2 === 1 ? stagger : 0) }} /> : null}
           <svg className="bal-hook" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0V3.2a2.1 2.1 0 1 1-2.1 2.1" fill="none" stroke="#D9A940" strokeWidth="1.6" strokeLinecap="round"/></svg>
@@ -311,6 +331,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 
   // Polish batch W: in a live round the frame's goal line shows the scale; the old pip bar is not drawn.
   const inFrame = useGoalProgress({ done: current, total, text: `Scale ${current + 1} of ${total}` });
+  // The Number overhaul's effects (stage 2): balanceRev 4 in a live round only (intros and demos draw as before).
+  const kitOn = freeMoves && inFrame;
   // Puzzle polish (3 Nov 2026, display only): in a live round the notches widen into the panel's width (up to
   // LIVE_PEG_WIDTH) and the kettlebells grow with them; intros and demos keep 44 px, so recorded touches still land.
   const spacing = useSpacing(root, scales[current] ? scalePegs(scales[current]!) : 8, inFrame ? LIVE_PEG_WIDTH : 44);
@@ -396,6 +418,20 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     // Button taps update the same placement array encoded for server torque validation.
     const next = [...placement]; next[tray] = peg;
     soundCue("balance.drop");
+    if (kitOn) {
+      // The effects kit: the kettlebell drops onto its hook (its own clink plays above); off by one the pointer
+      // trembles; balanced, it locks gold (the stage moment's chime is the scale's own).
+      const after = balanceTorque(scale, next);
+      const level = scaleSolved(scale, next);
+      afterPaint(() => {
+        const box = root.current;
+        releaseGameFx(box?.querySelector(`[data-tray-cup="${tray}"] .bal-bell`));
+        gameFx("drop", box?.querySelector(`[data-bell-tray="${tray}"] .bal-bell`), { silent: true });
+        const pointer = box?.querySelector("[data-bal-pointer]");
+        if (level) gameFx("win", pointer, { silent: true, noHaptic: true });
+        else if (balanceNearMiss(after.left, after.right)) gameFx("nearMiss", pointer);
+      });
+    }
     // Older stamps count every placement; balanceRev 4 counts only a weight hung from the tray.
     setSelected(null); setCurrent(next, balanceHangCost(placement, tray, peg, freeMoves) === 1);
   };
@@ -410,11 +446,16 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       // balanceRev 4: one tap picks a hung weight up (a free notch then moves it there, free); tapping the picked
       // hung weight again puts it back on the tray.
       if (selected === tray) {
+        releaseGameFx(root.current?.querySelector(`[data-tray-cup="${tray}"] .bal-bell, [data-bell-tray="${tray}"] .bal-bell`));
         if (placement[tray] !== null) toTray(tray);
         else setSelected(null);
         return;
       }
       soundCue(placement[tray] !== null ? "balance.pickup" : "balance.select");
+      // The effects kit: the kettlebell lifts (off the tray, or off its hook) and stays up until it is hung or put back.
+      const box = kitOn ? root.current : null;
+      if (selected !== null) releaseGameFx(box?.querySelector(`[data-tray-cup="${selected}"] .bal-bell, [data-bell-tray="${selected}"] .bal-bell`));
+      gameFx("pickUp", box?.querySelector(`[data-tray-cup="${tray}"] .bal-bell, [data-bell-tray="${tray}"] .bal-bell`), { silent: true });
       setSelected(tray);
       return;
     }
@@ -453,6 +494,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       key={i}
       aria-label={`Select weight ${scale.tray[i] ?? 0}`}
       data-selected={selected === i}
+      data-tray-cup={i}
       onClick={(event) => { event.stopPropagation(); tapWeight(i); }}
       className={`bal-tray-cup ${inFrame ? "h-[88px] w-[80px]" : "h-14 w-14"} p-0`}
     >
@@ -514,6 +556,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
                   solving={solveFx}
                   height={beamHeight}
                   fill={inFrame}
+                  kitFx={kitOn}
                   torque={torque}
                   onWeightTap={tapWeight}
                   onEmptyNotch={emptyNotch}
@@ -543,6 +586,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
               selected={selected}
               showControls
               solving={solveFx}
+              kitFx={kitOn}
               torque={torque}
               onWeightTap={tapWeight}
               onEmptyNotch={emptyNotch}
@@ -560,7 +604,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 }
 
 /** The reveal's beam height: about a quarter of the screen's height, 170–250 px (a 375 × 667 phone fits it all). */
-const revealBeamHeight = (screenHeight: number) => Math.round(Math.min(250, Math.max(170, screenHeight * 0.27)));
+// A short screen (the shared reveal layout's payoff row above, #422) gets a shorter beam, so the balance, the key and
+// the facts never meet.
+const revealBeamHeight = (screenHeight: number) =>
+  Math.round(screenHeight < 760 ? Math.max(130, screenHeight * 0.21) : Math.min(250, Math.max(170, screenHeight * 0.27)));
 
 /**
  * The answer reveal (the Number overhaul, 15 Nov 2026): one scale at a time, drawn large with its rendered art, on

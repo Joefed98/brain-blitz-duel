@@ -375,3 +375,20 @@
 [data-puzzle-play] [data-number-overhaul] .opg-key[data-kind="sign"] {
   width: 72px;
 }
+
+/* The running total under the line (stage 2, display only): the equation worked left to right as far as it is filled. */
+[data-number-overhaul] .opg-running {
+  min-height: 20px;
+  margin: 2px 0 0;
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+[data-number-overhaul] .opg-running b {
+  font-weight: 800;
+  color: var(--jz-text);
+}
