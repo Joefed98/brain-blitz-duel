@@ -132,6 +132,7 @@ import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
 import { resolveLevel } from "@/lib/levels/gameLevels";
+import { dealWordLevel } from "./wordLevels.server";
 
 /** Room-level context a generator may need beyond its own randomness. */
 export interface GenerateContext {
@@ -229,6 +230,12 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (depth) return depth;
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
+  // The Word overhaul's levels (stage 3, 15 Nov 2026): a Word game asked at a level beyond Normal is built by its own
+  // level deal (wordLevels.server.ts); Normal never reaches it.
+  if (context.level && context.level !== NORMAL) {
+    const atLevel = dealWordLevel(type, context.level as Exclude<Level, "normal">, context);
+    if (atLevel) return atLevel;
+  }
   if (type === "stroop") return generateColourClash();
   // Nucleus and Forage carry their scoring-targets stamp (18 Oct 2026; scoring.ts WORDSMITH_V1_CURVE, WORDHUNT_V1_CURVE).
   // Word depth (25 Oct 2026): Nucleus deals wordsmithRev 3 (the curve to 200 and the pangram bonus).

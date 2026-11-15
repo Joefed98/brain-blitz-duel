@@ -26,6 +26,7 @@ import { checkOverride } from "@/lib/checkOverride";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import { LEVELS, NORMAL, type Level } from "./levels";
+import { WORD_LEVELS } from "./word";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -43,10 +44,10 @@ export interface GameLevels<S = Record<string, unknown>> {
 }
 
 /**
- * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
- * Normal only.
+ * Every game's levels beyond Normal. A game with no entry offers Normal only. The Word games' entries (the Word
+ * overhaul, stage 3, 15 Nov 2026) live one file a game in ./word.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = { ...WORD_LEVELS };
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;
