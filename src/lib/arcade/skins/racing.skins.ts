@@ -9,6 +9,7 @@
  */
 import type { ContrastPair, GameLook } from "./look";
 import { skinRedrawn } from "./redrawPreview";
+import { sceneImage, sceneImagesVersion } from "./sceneImages";
 
 export type CarPaint = "stripes" | "gold" | "neon";
 
@@ -52,7 +53,9 @@ const hash = (n: number): number => {
 /** The night sky (the source's #05040F → #160A30). */
 export function paintNeonNightSky(ctx: CanvasRenderingContext2D, w: number, h: number, horizon: number): void {
   if (skinRedrawn(NEON_NIGHT_ITEM)) {
-    paintNeonNightSkyV2(ctx, w, h, horizon);
+    const sky = sceneImage("apex.sky");
+    if (sky) ctx.drawImage(sky, 0, 0, Math.max(w, 390), Math.min(h, horizon + 20));
+    else paintNeonNightSkyV2(ctx, w, h, horizon);
     return;
   }
   const g = ctx.createLinearGradient(0, 0, 0, horizon + 20);
@@ -91,7 +94,9 @@ export function paintNeonNightStars(ctx: CanvasRenderingContext2D, w: number, ho
 /** The neon city on the far strip: dark towers with lit windows in pink, cyan and gold, a pink horizon line. */
 export function paintNeonCity(ctx: CanvasRenderingContext2D, w: number, h: number): void {
   if (skinRedrawn(NEON_NIGHT_ITEM)) {
-    paintNeonCityV2(ctx, w, h);
+    const far = sceneImage("apex.city-far");
+    if (far) ctx.drawImage(far, 0, 0, w, h);
+    else paintNeonCityV2(ctx, w, h);
     return;
   }
   let x = 0;
@@ -291,6 +296,36 @@ export function racingContrast(look: GameLook): ContrastPair[] {
 /* ============================== The redraw (phase 2 step 4) ============================== */
 
 const NEON_NIGHT_ITEM = "world-theme.apex.neon-night";
+
+/*
+ * The second pass (docs/design/cosmetics-redraws/blender/apex_neon_night.py): the Blender-rendered city in the
+ * renderer's cached layers: the sky, the far skyline and a near band of towers (both seamless round the full 360),
+ * and three lit skyscrapers in place of the roadside trees. Each is drawn once it has loaded (sceneImages.ts); until
+ * then, the first pass's painters.
+ */
+
+/** A key for the renderer's layer cache: repaint once the city's images arrive (empty when the redraw is off). */
+export function neonNightLayerKey(): string {
+  return skinRedrawn(NEON_NIGHT_ITEM) ? `|v2:${sceneImagesVersion()}` : "";
+}
+
+/** The near band of towers (true when drawn; false: the renderer paints its own hill strip). */
+export function paintNeonNear(ctx: CanvasRenderingContext2D, w: number, h: number): boolean {
+  if (!skinRedrawn(NEON_NIGHT_ITEM)) return false;
+  const near = sceneImage("apex.city-near");
+  if (!near) return false;
+  ctx.drawImage(near, 0, 0, w, h);
+  return true;
+}
+
+/** A lit skyscraper in a roadside tree's place, its foot at (x, y), h tall (true when drawn). */
+export function paintNeonTower(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, variant: number): boolean {
+  if (!skinRedrawn(NEON_NIGHT_ITEM)) return false;
+  const tower = sceneImage(`apex.tower-${variant % 3}`);
+  if (!tower) return false;
+  ctx.drawImage(tower, x - h / 4, y - h, h / 2, h);
+  return true;
+}
 
 /** The redrawn night sky: deep at the top, a violet-to-magenta glow at the horizon, a moon top left (the key light). */
 function paintNeonNightSkyV2(ctx: CanvasRenderingContext2D, w: number, h: number, horizon: number): void {

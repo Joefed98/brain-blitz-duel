@@ -172,6 +172,7 @@ def strip_camera(height_px):
 def render_strip(name, height_px, setup, samples):
     s = lib.reset(int(WRAP * K), int(round(height_px * K)), samples=samples, transparent=True)
     s.cycles.volume_bounces = 1
+    s.view_settings.view_transform = "Standard"  # keeps the neon saturated (AgX whitens bright colour)
     lib.world((0.0, 0.0, 0.0), 0.0)
     setup()
     strip_camera(height_px)
@@ -222,12 +223,12 @@ def sky():
 
 
 def far():
-    city_band(11, (18, 66), (14, 34), 3, 0.42, 0.18, 30, glow=0.9)
+    city_band(11, (18, 66), (14, 34), 3, 0.42, 0.18, 30, glow=0.38)
     haze(70, 0.004)
 
 
 def near():
-    city_band(23, (16, 54), (22, 48), 1, 0.3, 0.45, 0, glow=1.6)
+    city_band(23, (16, 54), (22, 48), 1, 0.3, 0.45, 0, glow=0.8)
     # The street glow along the base.
     lib.area_light((WRAP / 2, -60, -6), (WRAP / 2, 0, 20), 3.0e6, 300, PINK)
 
@@ -235,9 +236,10 @@ def near():
 def towers():
     for v in range(3):
         s = lib.reset(120, 240, samples=96, transparent=True)
+        s.view_settings.view_transform = "Standard"
         lib.world((0.0, 0.0, 0.0), 0.0)
         rng = np.random.default_rng(100 + v)
-        mat = facade_material(f"t{v}", 0.24, 0.42, 0.3, glow=2.0)
+        mat = facade_material(f"t{v}", 0.2, 0.26, 0.3, glow=0.9)
         h = 104
         w = 34 + v * 4
         box(0, 0, w, w, h, mat)
