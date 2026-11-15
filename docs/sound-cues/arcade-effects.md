@@ -442,3 +442,13 @@ Already sounded: shatter (`pz_clay_hit` + `clayshoot.shatter` / `clayshoot.goldS
 | `stroop.drop` | The word is dropped | The word falls fast to its gate | `signals.whoosh.mp3` | 15–40 | 100 ms |
 
 Already sounded: lane change (`stroop.lane`), right / wrong gate (`stroop.right`, `stroop.wrong`, `stroop.gatePulse`), finish and its all-sorted / flawless moments (`stroop.gatesFlash`).
+
+## Apex (the Sports overhaul, stage 2)
+
+| Cue | When | Looks like | File | Per run | Length |
+| --- | --- | --- | --- | --- | --- |
+| `racing.speedRush` | While driving above 200 km/h (0.2) | Speed lines at the screen's edges, stronger with speed | none yet (silent until it has a file) | loop | loop |
+| `racing.scrape` | Against the tyre wall and still moving (at least an eighth of top speed), after the first impact; at most one per 0.8 s | Sparks off the car's touching side | none yet (silent until it has a file) | 0–10 | 800 ms |
+| `racing.chequer` | The finish line after lap 2, with `racing.finish` and `racing.roar` | The chequered flag waves in, then the lap times and average speed count up | none yet (silent until it has a file) | 0–1 | 2500 ms |
+
+Already sounded: a clean sector (`racing.sector`, its bar flashing on the timing bar), the kerb (`racing.kerb`, the view's rumble), the grass (`racing.grass` / `racing.grassLoop`, the dust and the speedo's red drop). The corner sign's green or red verdict is silent (it would fall on every corner). The prompts for all six are in `sports-elevenlabs.md`.

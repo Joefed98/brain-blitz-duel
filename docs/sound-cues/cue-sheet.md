@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 40 | 0 | 489 | 529 |
+| game event | 43 | 0 | 489 | 532 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 66 | 1 | 985 | 1052 |
+| **all** | 69 | 1 | 985 | 1055 |
 
 ## Silent and placeholder cues
 
@@ -247,6 +247,14 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
+
+### Apex
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `racing.speedRush` |  [arcade-effects.md] | Speed lines at the screen's edges, stronger with speed | 5–40 (per move) | silent | none | loop | game event | `racing.speedRush` |
+| `racing.scrape` |  [arcade-effects.md] | Sparks off the car's touching side | 5–40 (per move) | silent | none | 800 | game event | `racing.scrape` |
+| `racing.chequer` |  [arcade-effects.md] | The chequered flag waves in, then the lap times and average speed count up | 5–40 (per move) | silent | none | 2500 | game event | `racing.chequer` |
 
 ### Curl Champ
 
