@@ -83,8 +83,8 @@ HUD chips, buttons and meters are drawn flat over the renders as stand-ins for t
   with chevrons and a log, the dome hill, a boulder, the windmill at the doorway casting its shadow, the sand trap,
   tee mat, cup and flag, the ball with its aim and gold pull handle.
 - **B**: the same hole at dusk under festoon lights strung across the course, warm bulbs on a cool evening.
-- **C**: the hole as a hand-built tabletop model: felt turf, light wood rails, tilted with a shallow depth of field
-  on a dark plinth.
+- **C**: the hole as a hand-built tabletop model: felt turf, light wood rails, tilted like a photo of a model on a
+  table, with a shallow depth of field.
 - Notes: the dome hill and sand read faintly from straight above; B's dusk tint is muddy and needs a grade.
 
 ## Apex (`racing`)
