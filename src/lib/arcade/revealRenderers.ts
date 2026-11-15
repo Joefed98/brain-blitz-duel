@@ -235,7 +235,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     heightFor: (p) => (p.type === "ricochet" && isNinjaRev(p.ricoRev) ? NINJA_WORLD_H : RICO_WORLD_H),
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type === "ricochet" && isMoonRev(puzzle.ricoRev)) {
-        const { state } = replayMoonRun(seedOf(puzzle), answer);
+        const { state } = replayMoonRun(seedOf(puzzle), answer, puzzle.ricoRev);
         moonArtGame.draw(ctx, state, { width: NINJA_WORLD_W, height: NINJA_WORLD_H });
         return ninjaDrawPoint(state);
       }

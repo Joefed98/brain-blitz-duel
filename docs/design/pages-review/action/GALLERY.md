@@ -119,6 +119,33 @@ no step at the world's edge (ricochet-overhaul-check measures it at 414 × 896, 
 
 <img src="ricochet/edge-390x844.webp" width="360">
 
+### Stage 2 look pass (15 Nov 2026)
+
+Today (main e0aa53f2) | Concept A | New: the witness climb on seed 11 at the same ticks (ricoRev 3 on main, ricoRev 4 on
+this branch, its own tower), the 390 × 730 world at 2×, shrunk. Riding the first lantern at 33 m with the moon rising
+over the ridge; about 110 m with the moon behind the shaft; riding a lantern at 240 m under a high moon.
+
+<img src="ricochet/compare-s2-1.webp" width="720">
+<img src="ricochet/compare-s2-2.webp" width="720">
+<img src="ricochet/compare-s2-3.webp" width="720">
+
+Clip (7 s, the whole minute at 8×): the moon rising and shrinking, wisps drifting across it, far lanterns rising behind
+the walls, the raking moonlight moving up the stone with the moon, each lantern lighting the walls near it.
+<img src="ricochet/clip-s2-climb.webp" width="180">
+
+- **Sky**: a deeper five-stop night, a slanting band of star dust, 170 stars of every kind (pinpoints, cool and warm,
+  bright ones with a four-point glint), drifting cloud wisps lit where they pass the moon, a moonlit mist band.
+- **Moon**: larger (84 → 66 px as it rises, was 66 → 50), a lit sphere with maria and 28 craters (shadowed floors, lit
+  far rims, central peaks), amber low down, warm cream high; far paper lanterns rise behind the walls and across it.
+- **Pagoda in mist**: three ranges with moonlit crests, two far pagodas, the temple's with warm paper windows.
+- **Walls**: blocks stand proud of a lighter mortar bed and cast short shadows on it, faces rounded by the light, crisp
+  lit edges; the moon rakes across the stone at its own height every frame; moss and ice catch it along their lips;
+  the mid-ledges are the same carved slate with iron bands.
+- **Sky lanterns**: translucent paper lit from the flame low in the base, bamboo ribs dark against the light, a crisp
+  sheen on the curve, lacquered rim; the warm light falls on the walls and ledges near it, never as a glow round it.
+- **The bigger ninja** (ricoRev 4): the body box 34 × 68 (was 26 × 52) and the figure drawn at 17/13 to fill it, the
+  hits following exactly what is drawn; no gold rim round it.
+
 
 ## Iron Wall
 
@@ -241,6 +268,27 @@ climbs: <img src="skyline/clip-dusk-to-night.webp" width="240">
 Before (main), for reference: <img src="skyline/before-start.webp" width="120"> <img src="skyline/before-mid.webp" width="120"> <img src="skyline/before-end.webp" width="120">
 
 
+
+### Stage 2: effects and reveal
+
+Joe's effects list (docs/arcade-standard/skyline.md "Stage 2"), drawn by the game's own renderer on one scripted skylineRev
+11 run (five trims, a rescue, two lost lives, a sliver), in @napi-rs/canvas (`bun scripts/shots/skyline-stage2-shots.ts
+<dir>`): the block falling the last floor, the perfect drop's gold ring at the join and the lit grown strip, the trimmed
+overhang spinning off with crumbs at the cut, a sliver tipping on its foot, a lost block tumbling under "−1 LIFE", and the
+end's count over the whole tower. No edge glow on any of them (the shared layer draws none for the Action games).
+
+<img src="skyline/effects-s2.webp" width="900">
+
+The end, a frame every 100 ms: the hook goes, the camera pulls back over the tower and the count rises to the floors
+built. <img src="skyline/clip-s2-end.webp" width="200">
+
+The answer reveal, the same run: today's breakdown and stat tiles | the new picture of the run under the same breakdown,
+with Floors, Perfect drops and Best streak big and a legend (gold perfect drops, glass trims, teal wide blocks, red lost
+lives, the best streak bracketed). Drawn on the reveal's gradient at the reveal's type sizes; the app's own CSS sets the
+text (the picture itself is the real `drawSkylineRunPicture`).
+
+<img src="skyline/reveal-s2.webp" width="640">
+
 ## Orbit
 
 <!-- orbit -->
@@ -283,4 +331,40 @@ Edge to edge on a wider screen (640 × 900, the world centred, its sides filled)
 Clip (6 s, the whole elite run sped up): the course from near space to the sun, the warmth growing.
 
 <img src="orbit/orbit-clip-to-the-sun.webp" width="240">
+
+### Stage 2 look pass: Blender-rendered planets
+
+Today is main e0aa53f2 (orbitRev 14's look), Concept A is `orbit-A`, New is this pass: the same run and ticks (700, 1300,
+2200), drawn at 2× by `scripts/shots/orbit-materials-frames.ts --dpr=2`.
+
+<img src="orbit/compare-s2-1.webp" width="760">
+
+<img src="orbit/compare-s2-2.webp" width="760">
+
+<img src="orbit/compare-s2-3.webp" width="760">
+
+Every world type in each of the eight seeded colours at the desktop column's scale (2.84 device px a world px,
+`scripts/shots/orbit-planet-sheet.ts --ring`), and the turn (sped up about 50×; in play one turn takes 40–80 s):
+
+<img src="orbit/orbit-s2-planets.webp" width="760">
+
+<img src="orbit/orbit-s2-turning.webp" width="560">
+
+- **The maps are Blender bakes:** nine procedural Blender materials (noise, voronoi and wave textures) baked by Cycles into
+  equirectangular maps by `scripts/orbit-planets-blender.py` (in the repo, fixed seeds, `--check` rebuilds byte for byte):
+  two banded gas giants (broad belts and zones, turbulent edges, a storm oval), a marbled world (concept A's green planet),
+  a cratered moon, a rust desert (canyons, craters, frost caps), a volcanic world (black basalt plates, orange fissures),
+  an ocean world (seas, continents, deserts, cloud, ice caps) and two icy worlds (cracks, frozen seas, caps). Rocks and ice
+  also ship a height map. 363 KB of WebP in all (640 × 320 maps, 320 × 160 heights), from 43.7 KB.
+- **Lit in the renderer:** each frame is projected (bilinear) at the canvas's own device scale up to 192 px across (a
+  radius-28 planet on the desktop column at 2× is 159), lit from one sun at the upper left: a soft terminator into a deep
+  night side, the height map's relief catching the light (craters, canyons, ridges), a crisp highlight on water and ice,
+  a thin atmosphere rim inside the disc in the planet's own colour. 240 frames a turn (120 on slow devices); reduced
+  motion holds the turn. No glow halo; nothing past the collision circle + 2 px.
+- **Colours:** the seeded colour stays the planet's identity (its orbit line and rim). Gas giants, the marbled world and
+  the moon are tinted by it (the moon only lightly); red and orange rocks are deserts or volcanic worlds, brown deserts,
+  blue ocean worlds, green and pink marbled, purple and yellow moons. Icy worlds keep their own blue-white with a blue,
+  teal or lilac cast for blue, green and purple seeds and none for the warm seeds, so an icy world is never pink.
+- **Rings:** three touching ringlets (a darker middle one reading as the gap), lit on the sun's side, the near half
+  casting a thin shadow on the globe, all inside 0.88 of the radius.
 

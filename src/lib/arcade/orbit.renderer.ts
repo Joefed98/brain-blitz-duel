@@ -825,7 +825,7 @@ function orbitCheckpointPill(state: { checkpoint: number; respawns: number }): H
   return [state.respawns > 0 ? { text: `Checkpoint ${state.checkpoint}`, colour: ORBIT_GOLD } : { text: "Checkpoint used", colour: "rgba(255,255,255,0.5)" }];
 }
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
-import { drawRenderedPlanet, drawSunWarmth, orbitPlanetTurn } from "./orbitPlanets.renderer";
+import { drawPlanetRing, drawRenderedPlanet, drawSunWarmth, orbitPlanetTurn } from "./orbitPlanets.renderer";
 import { drawHudPill, hudPillWidth, HUD_PILL_GAP } from "./hudPill.renderer";
 import { ORBIT_GRACE_HOLD_TICKS } from "./orbitRev3";
 
@@ -1124,10 +1124,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
         // its rendered look, its surface turning slowly (orbitPlanets.renderer.ts); earlier views keep the baked sprite.
         const look = planetLook(p, i, lobe);
         if (state.xp && drawRenderedPlanet(ctx, px + bx, py, r, look, orbitPlanetTurn(look, t))) {
-          if (look.ring) {
-            drawRingHalf(ctx, px + bx, py, r, look.tilt, true);
-            drawRingHalf(ctx, px + bx, py, r, look.tilt, false);
-          }
+          // Stage 2 (15 Nov 2026): the ring is three ringlets with a shadow on the globe, inside the circle.
+          if (look.ring) drawPlanetRing(ctx, px + bx, py, r, look);
           return;
         }
         const sprite = rev3PlanetSprite(state.planets, p, i, lobe, r);

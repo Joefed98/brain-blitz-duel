@@ -31,6 +31,7 @@
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { reducedMotion } from "./art.renderer";
+import { edgelessGame } from "./success.renderer";
 
 export type ArcadeWorld =
   | "retro"
@@ -419,6 +420,42 @@ export interface ArcadeFxSpec<S> {
    * caller has already applied the world transform.
    */
   fit?: "fit" | "stretch" | "world";
+  /**
+   * The Action overhaul, stage 2 (15 Nov 2026, Joe: no glowing edges): false draws no edge glow on a perfect, streak,
+   * combo, clear or final moment. The six Action games (ACTION_EDGELESS_GAMES in success.renderer.ts) are edgeless
+   * whatever this says; every other game keeps its edge glow unless it sets false.
+   */
+  edgeGlow?: boolean;
+  /**
+   * The edge glow's replacement on an edgeless game: called each frame for the moment's life (ARCADE_FX_MOMENT_MS,
+   * the edge glow's old window) to draw an effect on the thing that happened, in the spec's coordinates and inside its
+   * clip, after the world and before the pops. Display only: read the moment, never write state.
+   */
+  moment?: (ctx: CanvasRenderingContext2D, moment: ArcadeFxMoment) => void;
+}
+
+/** A success moment handed to an edgeless spec's `moment` hook. */
+export interface ArcadeFxMoment {
+  kind: Exclude<ArcadeFxKind, "pop">;
+  /** Where it happened (the event's `at`, else the centre), in the spec's coordinates. */
+  x: number;
+  y: number;
+  /** The event's colour (perfect) or the world's primary. */
+  colour: string;
+  /** Milliseconds since the moment, and its share of ARCADE_FX_MOMENT_MS (0…1). */
+  ageMs: number;
+  p: number;
+  /** Reduced motion (draw it still) and reduced effects (draw it lighter). */
+  still: boolean;
+  lite: boolean;
+}
+
+/** How long a success moment's edge glow (or, edgeless, its `moment` hook) lasts. */
+export const ARCADE_FX_MOMENT_MS = 600;
+
+/** True when a spec draws no edge glow: an Action game's, or one that sets `edgeGlow: false`. */
+export function arcadeFxEdgeless(spec: { game: string; edgeGlow?: boolean }): boolean {
+  return spec.edgeGlow === false || edgelessGame(spec.game);
 }
 
 export const ARCADE_FX_MAX_PARTICLES = 40;
@@ -596,6 +633,9 @@ interface Memory {
   shakeMs: number;
   edgeAt: number;
   edgeColour: string;
+  edgeKind: Exclude<ArcadeFxKind, "pop">;
+  edgeX: number;
+  edgeY: number;
   neonAt: number;
   sweepAt: number;
   arenaAt: number;
@@ -659,6 +699,9 @@ function freshMemory(tick: number, counts: number[], missCounts: number[], last:
     shakeMs: 0,
     edgeAt: -Infinity,
     edgeColour: "#FFFFFF",
+    edgeKind: "perfect",
+    edgeX: 0,
+    edgeY: 0,
     neonAt: -Infinity,
     sweepAt: -Infinity,
     arenaAt: -Infinity,
@@ -816,6 +859,9 @@ function spawn<S>(
   if (event.kind !== "pop") {
     m.edgeAt = now;
     m.edgeColour = event.kind === "perfect" ? colour : theme.primary;
+    m.edgeKind = event.kind;
+    m.edgeX = point.x;
+    m.edgeY = point.y;
   }
   if (event.neon) m.neonAt = now;
   if (event.sweep && !still) m.sweepAt = now;
@@ -1344,7 +1390,7 @@ function paint<S>(
   const arenaAge = now - m.arenaAt;
   const bulbsAge = now - m.bulbsAt;
   if (
-    !m.particles.length && !m.pops.length && !m.rings.length && !m.lights.length && flashAge > 260 && edgeAge > 600 &&
+    !m.particles.length && !m.pops.length && !m.rings.length && !m.lights.length && flashAge > 260 && edgeAge > ARCADE_FX_MOMENT_MS &&
     neonAge > ARCADE_FX_NEON_MS && sweepAge > ARCADE_FX_SWEEP_MS &&
     arenaAge > m.arenaMs && bulbsAge > m.bulbsMs && missAge > ARCADE_FX_MISS_MS && !m.puffs.length
   )
@@ -1365,8 +1411,10 @@ function paint<S>(
     ctx.fillStyle = m.flashColour;
     ctx.fillRect(clip.x, clip.y, clip.w, clip.h);
   }
-  if (edgeAge >= 0 && edgeAge < 600) {
-    const p = edgeAge / 600;
+  if (edgeAge >= 0 && edgeAge < ARCADE_FX_MOMENT_MS && arcadeFxEdgeless(spec)) {
+    spec.moment?.(ctx, { kind: m.edgeKind, x: m.edgeX, y: m.edgeY, colour: m.edgeColour, ageMs: edgeAge, p: edgeAge / ARCADE_FX_MOMENT_MS, still, lite });
+  } else if (edgeAge >= 0 && edgeAge < ARCADE_FX_MOMENT_MS) {
+    const p = edgeAge / ARCADE_FX_MOMENT_MS;
     ctx.strokeStyle = m.edgeColour;
     for (let i = 0; i < 2; i++) {
       ctx.globalAlpha = Math.sin(Math.PI * p) * 0.22 * (1 - i / 2);
@@ -1710,6 +1758,18 @@ export function arcadeFxStats(
     rings: m.rings.filter((r) => now - r.born < r.life).length,
     shaking: now - m.shakeAt >= 0 && now - m.shakeAt < m.shakeMs,
   };
+}
+
+/**
+ * Diagnostics for checks (the Action overhaul, stage 2): whether a success moment is live on this canvas, and whether it
+ * is drawn as the edge glow (false on an edgeless spec, whose `moment` hook draws it instead).
+ */
+export function arcadeFxMomentStats(ctx: object, spec: { game: string; edgeGlow?: boolean }): { live: boolean; edgeGlow: boolean; at: ArcadeFxPoint | null } {
+  const m = memories.get(ctx)?.get(spec.game);
+  if (!m) return { live: false, edgeGlow: false, at: null };
+  const age = clock() - m.edgeAt;
+  const live = age >= 0 && age < ARCADE_FX_MOMENT_MS;
+  return { live, edgeGlow: live && !arcadeFxEdgeless(spec), at: live ? { x: m.edgeX, y: m.edgeY } : null };
 }
 
 /** Diagnostics for checks: whether a miss's edge pulse is up, and its live puffs (Polish 1). */

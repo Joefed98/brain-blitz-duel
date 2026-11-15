@@ -1,6 +1,6 @@
 /**
  * Moon Climb's Action overhaul, stage 1 (15 Nov 2026; docs/arcade-standard/ricochet.md "The Action overhaul";
- * display only, no stamp, no scoring change):
+ * display only, no stamp, no scoring change) and stage 2 (sections 9 and 10: ricoRev 4 and the look pass):
  *
  *  1. scores unchanged: 24 ricoRev 3 runs (skill-band bots, weak to flawless, on 8 seeds) recorded before the overhaul
  *     (scripts/fixtures/ricochet-overhaul-runs.json, `--record` writes it from the unchanged sim) and the 12 ricoRev 2
@@ -17,6 +17,13 @@
  *  6. the 120 s rule (the run 60 s, the round's clock under 120 s) and grace (a hit never ends the run: a run of
  *     hits only lasts the minute);
  *  7. "Moonwalker" (245 m on Hard) stays possible: every dealt tower's witness climbs 245 m or more.
+ *  8. edge to edge (below), for ricoRev 3 and 4.
+ *
+ * Stage 2 (15 Nov 2026, the look pass and the bigger ninja; docs/design/pages-review/action/GALLERY.md):
+ *  9. ricoRev 4, the bigger ninja: ricoRev 3 unchanged on fixtures recorded before it, the deal and its pin, the body,
+ *     every tower re-proved to 200 through the server replay, grace, the hit box, the bands rising;
+ * 10. the look: a sky lantern's light only on the stone (no glow round it), far lanterns display only and small, the
+ *     moon large, the walls' raking moonlight, the bigger figure and no rim round it.
  *
  *   bun scripts/ricochet-overhaul-check.ts [--record]
  */
@@ -30,8 +37,18 @@ import {
   KATANA_HALF, KATANA_LEN, MOON_CORE_FULL_M, MOON_REV, MOON_SCROLLS, MOON_SKY, NINJA_CHECKPOINT_INTERVAL, NINJA_INPUT_TAP,
   NINJA_KNOCK, NINJA_PX_PER_M, NINJA_RUN_SECONDS, NINJA_START, NINJA_WALL_L, NINJA_WALL_R, NINJA_WORLD_W, SHURIKEN_R,
   moonCheckpoint, moonDeal, moonGame, ninjaMetres, type MoonState,
+  MOON_BIG_BODY, MOON_BIG_HH, MOON_BIG_HW, MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_LEDGE_HW, MOON_SKY_R, MOON_STD_SPEC, MODE_FLIGHT, NINJA_BODY,
+  NINJA_LEAP_TICKS, katanaTouches, moonGameFor, moonLeapTicks, moonLedgeX, moonSkyAt, ninjaBodyFor,
 } from "../src/lib/arcade/ricochetNinja";
-import { drawKatana, drawNinja, drawShuriken, moonHudRows, moonNight, moonPlace } from "../src/lib/arcade/ricochetNinja.renderer";
+import {
+  drawKatana, drawNinja, drawNinjaWorld as drawWorld, drawShuriken, FAR_LANTERN_COUNT, farLanternAt, moonHudRows, moonNight, moonPlace, ninjaArtScale,
+  ninjaCamera, ninjaDrawPoint, ninjaScreenY, wallRake,
+} from "../src/lib/arcade/ricochetNinja.renderer";
+import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
+import { ARCADE_STANDARD } from "../src/lib/arcade/standard";
+import { generateRicochet, pinRicoPreBig } from "../src/lib/duel/arcade.server";
+import { DEAL_PIN_NAMES } from "../src/lib/duel/dealEra";
+import { POST_RECORDING_PINS } from "./deal-identity-lib";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { encodeMoonRun, replayMoonRun, replayNinjaRun } from "../src/lib/duel/ricochet";
 import { MOON_HIT_KNOCK_M, MOON_HITS_REV, moonHitsLine } from "../src/lib/duel/moonRevealHits";
@@ -60,6 +77,19 @@ function moonRaw(seed: number, events: ArcadeInputEvent[]): string {
     if (s.tick % NINJA_CHECKPOINT_INTERVAL === 0) cps.push(moonCheckpoint(s));
   }
   return encodeMoonRun({ seed, claimedScore: moonGame.score(s), events, endTick: s.tick, checkpoints: cps });
+}
+
+/** A Moon Climb ricoRev 4 run as the phone sends it (with checkpoints). */
+function moonRaw4(seed: number, events: ArcadeInputEvent[]): string {
+  const game = moonGameFor(4);
+  const at = new Map(events.map((e) => [e.t, e]));
+  let s = game.init(seed);
+  const cps = [];
+  while (!game.isOver(s)) {
+    s = game.step(s, at.get(s.tick + 1) ?? null);
+    if (s.tick % NINJA_CHECKPOINT_INTERVAL === 0) cps.push(moonCheckpoint(s));
+  }
+  return encodeMoonRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints: cps });
 }
 
 /* 1. Scores unchanged. */
@@ -266,6 +296,18 @@ if (process.argv.includes("--record")) {
     }
     states.push([`${ninjaMetres(s)} m`, s as MoonState]);
   }
+  // ricoRev 4's bigger ninja (the stage-2 look pass): the same edges at its start and part-way.
+  {
+    const g4 = moonGameFor(4);
+    const at4 = new Map(moonDeal(11, 4).witness.map((e) => [e.t, e.a]));
+    let s4 = g4.init(11);
+    states.push(["rev 4 start", s4 as MoonState]);
+    while (s4.tick < 2200) {
+      const a = at4.get(s4.tick + 1);
+      s4 = g4.step(s4, a === undefined ? null : tap(s4.tick + 1, a));
+    }
+    states.push([`rev 4 ${ninjaMetres(s4)} m`, s4 as MoonState]);
+  }
   const mean = (d: Uint8ClampedArray, w: number, x0: number, y0: number, x1: number, y1: number) => {
     const m = [0, 0, 0];
     let n = 0;
@@ -302,6 +344,214 @@ if (process.argv.includes("--record")) {
         ok(left <= SEAM_MAX && right <= SEAM_MAX, `edge: ${size.name}, ${label}: the side edges step ${left.toFixed(1)} / ${right.toFixed(1)} per channel (most ${SEAM_MAX})`);
       }
     }
+}
+
+/*
+ * 9. ricoRev 4, the bigger ninja (the Action overhaul's stage 2, 15 Nov 2026; Joe's ask; docs/arcade-standard/ricochet.md
+ * "ricoRev 4"): rev 3's game with the body box MOON_BIG_HW × MOON_BIG_HH either side (34 × 68, was 26 × 52).
+ *  a. ricoRev 3 unchanged: 60 towers (tower, witness and its metres) and 40 runs (random and every skill level, 5
+ *     seeds) recorded on 14ce058d before the change (scripts/fixtures/ricochet-big-legacy.json,
+ *     scripts/ricochet-big-legacy-record.ts) deal and replay to the same digests and scores;
+ *  b. rooms deal ricoRev 4; the ricoPreBig pin deals ricoRev 3; the live bands, the standard's spec and the practice
+ *     stamps follow;
+ *  c. the body: the box, the cling x, the floor's standing height (metres measured from it), a wall-to-wall leap still
+ *     NINJA_LEAP_TICKS, the ledge faces; rev 3 keeps the old body; the parts are rev 3's exactly;
+ *  d. every tower re-proved: each dealt tower's witness through the server's rev-4 replay scores exactly 200 with every
+ *     part full and no hit (24 seeds; CHECKS_FULL 120), so "Moonwalker" (245 m on Hard) stays possible on every tower;
+ *  e. the 120 s rule and grace on rev 4: a run of hits still lasts the minute;
+ *  f. the hits follow the bigger body: a katana the old box missed by 2 px now hits;
+ *  g. the bands still rise weak → flawless on rev 4 (4 seeds, quick).
+ */
+{
+  const L = JSON.parse(readFileSync("scripts/fixtures/ricochet-big-legacy.json", "utf8")) as { deals: Record<string, string>; runs: Rec[] };
+  const badDeals = Object.entries(L.deals).filter(([seed, dg]) => {
+    const d = moonDeal(Number(seed), MOON_REV);
+    return digest({ tower: d.tower, witness: d.witness, metres: d.witnessMetres }) !== dg;
+  });
+  ok(Object.keys(L.deals).length === 60 && badDeals.length === 0, `ricoRev 4 a: the 60 ricoRev 3 towers recorded before it deal the same (${badDeals.map(([s]) => s).join(", ") || "all"})`);
+  const badRuns = L.runs.filter((r) => {
+    const out = replayMoonRun(r.seed, r.raw, MOON_REV);
+    return out.score !== r.score || digest(out.state) !== r.digest;
+  });
+  ok(L.runs.length === 40 && badRuns.length === 0 && new Set(L.runs.map((r) => r.level)).size === 8, `ricoRev 4 a: the 40 ricoRev 3 runs recorded before it replay to the same score and state (${badRuns.length} differ)`);
+  ok(L.runs.every((r) => replayMoonRun(r.seed, r.raw).score === r.score), "ricoRev 4 a: a stored round with no stamp argument still replays as ricoRev 3");
+
+  // b. The deal.
+  ok(MOON_BIG_REV === 4 && generateRicochet().ricoRev === MOON_BIG_REV, "ricoRev 4 b: rooms deal ricoRev 4");
+  const was = pinRicoPreBig(true);
+  ok(generateRicochet().ricoRev === MOON_REV, "ricoRev 4 b: the ricoPreBig pin deals ricoRev 3");
+  pinRicoPreBig(was);
+  ok(LIVE_BANDS.ricochet!.rev === MOON_BIG_REV && LIVE_BANDS.ricochet!.std === MOON_BIG_STD_SPEC, "ricoRev 4 b: the live bands carry ricoRev 4's spec");
+  ok(ARCADE_STANDARD.ricochet!.spec === MOON_BIG_STD_SPEC, "ricoRev 4 b: the standard's spec is ricoRev 4's");
+  ok(/ricochet": "[^"]*ricoRev=4/.test(readFileSync("src/lib/duel/practiceStamps.data.ts", "utf8")), "ricoRev 4 b: the practice stamps carry ricoRev=4");
+  ok(DEAL_PIN_NAMES.includes("ricoPreBig") && POST_RECORDING_PINS.includes("ricoPreBig"), "ricoRev 4 b: ricoPreBig is an era switch, pinned by deal-identity's recording");
+
+  // c. The body.
+  const B = MOON_BIG_BODY;
+  ok(B.hw === 17 && B.hh === 34 && MOON_BIG_HW === 17 && MOON_BIG_HH === 34, "ricoRev 4 c: the body box 34 × 68");
+  ok(ninjaBodyFor(4) === B && ninjaBodyFor(3) === NINJA_BODY && ninjaBodyFor(2) === NINJA_BODY && NINJA_BODY.hw === 13 && NINJA_BODY.hh === 26, "ricoRev 4 c: rev 4 the bigger body, rev 2 and 3 the old");
+  ok(B.clingX[0] === NINJA_WALL_L + 17 && B.clingX[1] === NINJA_WALL_R - 17 && B.start === (34 + 4) * 256, "ricoRev 4 c: cling x and the floor's standing height follow the body");
+  ok(moonLeapTicks(B.gap, B) === NINJA_LEAP_TICKS && moonLeapTicks(NINJA_BODY.gap) === NINJA_LEAP_TICKS, "ricoRev 4 c: a wall-to-wall leap is still NINJA_LEAP_TICKS");
+  const s4 = moonGameFor(4).init(21) as MoonState;
+  const s3 = moonGameFor(3).init(21) as MoonState;
+  ok(s4.rev === 4 && s4.x === B.clingX[0] && s4.y === B.start && s4.best === B.start && ninjaMetres(s4) === 0, "ricoRev 4 c: a rev-4 run starts on the floor at the bigger body's place, 0 m");
+  ok(s3.rev === 3 && s3.x === NINJA_BODY.clingX[0] && s3.y === NINJA_START, "ricoRev 4 c: a rev-3 run starts where it always did");
+  ok(ninjaMetres({ ...s4, best: B.start + 245 * NINJA_PX_PER_M * 256 }) === 245, "ricoRev 4 c: metres are measured from the bigger body's floor height");
+  const ledge = { x: 195, lo: 400, hi: 520 };
+  ok(moonLedgeX(ledge, 0, B) === 195 - MOON_LEDGE_HW - 17 && moonLedgeX(ledge, 1, B) === 195 + MOON_LEDGE_HW + 17 && moonLedgeX(ledge, 0) === 195 - MOON_LEDGE_HW - 13, "ricoRev 4 c: the ledge faces follow the body");
+  ok(JSON.stringify(MOON_BIG_STD_SPEC.parts) === JSON.stringify(MOON_STD_SPEC.parts) && MOON_BIG_STD_SPEC.rev === 4 && MOON_STD_SPEC.rev === 3, "ricoRev 4 c: the parts are rev 3's exactly, under the new stamp");
+  const full4 = { ...s4, acted: 1, best: B.start + 300 * NINJA_PX_PER_M * 256, flow: 10, rides: MOON_SKY, scrolls: MOON_SCROLLS } as MoonState;
+  ok(moonGameFor(4).score(full4) === 200 && moonGameFor(3).score({ ...full4, rev: 3, best: NINJA_START + 300 * NINJA_PX_PER_M * 256 } as MoonState) === 200, "ricoRev 4 c: every part full scores 200 on both");
+
+  // d. Every tower re-proved through the server replay.
+  const SEEDS4 = process.env["CHECKS_FULL"] === "1" ? Array.from({ length: 120 }, (_, i) => i * 7919 + 3) : [0, 1, 2, 3, 11, 77, 4100, 10000, 123456789, ...Array.from({ length: 15 }, (_, i) => 5000 + i * 131)];
+  const notPerfect: string[] = [];
+  for (const seed of SEEDS4) {
+    const d = moonDeal(seed, MOON_BIG_REV);
+    const run = replayMoonRun(seed, moonRaw4(seed, d.witness.map((e) => tap(e.t, e.a))), MOON_BIG_REV);
+    const st = run.state as MoonState;
+    if (run.flagged || run.score !== 200 || st.hits !== 0 || st.rides !== MOON_SKY || st.scrolls !== MOON_SCROLLS || ninjaMetres(st) < 245) notPerfect.push(`${seed}: ${run.score}, ${ninjaMetres(st)} m, ${st.hits} hits`);
+  }
+  ok(notPerfect.length === 0, `ricoRev 4 d: every tower's witness scores 200 through the server's rev-4 replay, every part full, no hit, 245 m or more (${SEEDS4.length} seeds; ${notPerfect.join("; ") || "all"})`);
+  ok(moonDeal(77, MOON_BIG_REV).witnessMetres >= 245 && JSON.stringify(moonDeal(77, MOON_BIG_REV).tower) !== JSON.stringify(moonDeal(77, MOON_REV).tower), "ricoRev 4 d: rev 4's towers are their own (built and proved with the bigger body), each witness at 245 m or more");
+
+  // e. 120 s and grace.
+  let g = moonGameFor(4).init(31);
+  while (!moonGameFor(4).isOver(g)) g = moonGameFor(4).step(g, (g.tick + 1) % 12 === 0 ? tap(g.tick + 1) : null);
+  ok(g.tick >= NINJA_RUN_SECONDS * 60 && g.hits > 0, `ricoRev 4 e: a run that takes ${g.hits} hits lasts the whole minute (${g.tick} ticks)`);
+
+  // f. The hit box is the bigger body: a katana 2 px beyond the old box's top edge misses rev 3 and hits rev 4.
+  const k = { wall: 0, y: 500 };
+  const ypx = k.y + KATANA_HALF + 26 + 2; // the old box's foot 2 px above the blade
+  ok(!katanaTouches(k, NINJA_WALL_L + 13, ypx) && katanaTouches(k, NINJA_WALL_L + 17, ypx, 0, B), "ricoRev 4 f: a katana 2 px clear of the old box touches the bigger one");
+
+  // g. The bands still rise (quick).
+  const lv = ["weak", "great", "perfect"] as const;
+  const med: number[] = [];
+  for (const level of lv) {
+    const xs: number[] = [];
+    for (const seed of [4100, 4197, 4294]) {
+      const ev = ricoBot({ game: moonGameFor(4) as any, seed, rev: MOON_BIG_REV, human: new Human("ricochet", seed, level as any), fixes: true }).events ?? [];
+      xs.push(replayMoonRun(seed, moonRaw4(seed, ev), MOON_BIG_REV).score);
+    }
+    med.push(xs.sort((a, b) => a - b)[1]!);
+  }
+  ok(med[0]! < med[1]! && med[1]! < med[2]! && med[2] === 200, `ricoRev 4 g: weak < great < flawless (${med.join(" < ")})`);
+}
+
+/*
+ * 10. The stage-2 look pass (15 Nov 2026, display only; concept ricochet-A): every frame below drawn by the real renderer.
+ *  a. the sky lantern's light falls on the stone only: a frame with a lantern differs from the same frame without it
+ *     only inside the lantern's own touch radius (+2, the bounds rule) or on the walls and ledges (no glow round it);
+ *  b. the far lanterns are display only and small: placed by the tick alone, inside the shaft, never larger than half a
+ *     sky lantern; the sim never imports the renderer;
+ *  c. the moon is large and warm low down and rises (section 4), drawn inside the sky between the walls;
+ *  d. the wall's moonlight rakes: brighter at the moon's height than far from it, none in the world's bottom 40 px;
+ *  e. the bigger ninja draws at ninjaArtScale(4) = 17/13 and fills its box: wider and taller than the old figure, each
+ *     pose within main's figure's allowance grown by that scale (art-check holds the same); no rim round it.
+ */
+{
+  const frame = (s: MoonState) => {
+    const c = createCanvas(390, 730);
+    const x = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    drawWorld(x, s);
+    return (x as any).getImageData(0, 0, 390, 730).data as Uint8ClampedArray;
+  };
+  // a. A rev-4 run when a sky lantern is in view mid-shaft.
+  const d = moonDeal(11, MOON_BIG_REV);
+  const at = new Map(d.witness.map((e) => [e.t, e.a]));
+  let s = moonGameFor(4).init(11) as MoonState;
+  let found: { s: MoonState; i: number } | null = null;
+  while (!s.ended && !found) {
+    const a = at.get(s.tick + 1);
+    s = moonGameFor(4).step(s, a === undefined ? null : tap(s.tick + 1, a)) as MoonState;
+    if (s.mode !== MODE_FLIGHT && s.mode !== 0) continue;
+    s.tower.sky.forEach((l, i) => {
+      const p = moonSkyAt(l, s.tick);
+      if (!found && p && !s.gotSky[i] && Math.abs(p.y - (s.y >> 8)) < 160) found = { s, i };
+    });
+  }
+  ok(!!found, "look a: a frame with a sky lantern in view");
+  if (found) {
+    const { s: st, i } = found as { s: MoonState; i: number };
+    const without = { ...st, gotSky: st.gotSky.map((g, j) => (j === i ? 1 : g)) } as MoonState;
+    const A = frame({ ...st, hitTick: -999, pickTick: -999, flowTick: -999, grabTick: -999 } as MoonState);
+    const Bf = frame({ ...without, hitTick: -999, pickTick: -999, flowTick: -999, grabTick: -999 } as MoonState);
+    const cam = ninjaCamera(st);
+    const p = moonSkyAt(st.tower.sky[i]!, st.tick)!;
+    const lx = p.x;
+    const ly = ninjaScreenY(cam, p.y);
+    const ledges = st.tower.ledges.map((l) => ({ x0: l.x - MOON_LEDGE_HW, x1: l.x + MOON_LEDGE_HW, y0: ninjaScreenY(cam, l.hi), y1: ninjaScreenY(cam, l.lo) }));
+    const ninja = ninjaDrawPoint(st);
+    let stray = 0;
+    let lit = 0;
+    for (let y = 60; y < 700; y++)
+      for (let x = 0; x < 390; x++) {
+        const k = (y * 390 + x) * 4;
+        const diff = Math.abs(A[k]! - Bf[k]!) + Math.abs(A[k + 1]! - Bf[k + 1]!) + Math.abs(A[k + 2]! - Bf[k + 2]!);
+        if (diff <= 6) continue;
+        const onStone = x < NINJA_WALL_L || x >= NINJA_WALL_R || ledges.some((l) => x >= l.x0 && x < l.x1 && y >= l.y0 && y < l.y1);
+        const inLantern = Math.hypot(x + 0.5 - lx, y + 0.5 - ly) <= MOON_SKY_R + 2;
+        const nearNinja = Math.abs(x - ninja.x) <= 40 && Math.abs(y - ninja.y) <= 60;
+        if (onStone) lit++;
+        else if (!inLantern && !nearNinja) stray++;
+      }
+    ok(stray === 0, `look a: the lantern changes nothing in the gap outside its own radius (+2): ${stray} pixels`);
+    ok(lit > 400, `look a: its warm light falls on the stone near it (${lit} wall or ledge pixels lit)`);
+  }
+  // b. Far lanterns.
+  const sim = readFileSync("src/lib/arcade/ricochetNinja.ts", "utf8");
+  ok(!/renderer/.test(sim.split("\n").filter((l) => l.startsWith("import")).join("\n")), "look b: the sim imports no renderer");
+  let inside = true;
+  let small = true;
+  for (let i = 0; i < FAR_LANTERN_COUNT; i++)
+    for (const t of [0, 500, 1800, 3599]) {
+      const f = farLanternAt(i, t);
+      const g2 = farLanternAt(i, t);
+      if (f.x !== g2.x || f.y !== g2.y) inside = false;
+      if (f.x < NINJA_WALL_L + 8 || f.x > NINJA_WALL_R - 8) inside = false;
+      if (7 * f.s > MOON_SKY_R) small = false;
+    }
+  ok(FAR_LANTERN_COUNT >= 4 && inside, "look b: the far lanterns are placed by the tick alone, inside the shaft");
+  ok(small, "look b: a far lantern is never taller than half a sky lantern");
+  // c. The moon: large and low at the foot.
+  ok(moonPlace(0).r >= 80 && moonPlace(1).r >= 60, `look c: the moon is large (${moonPlace(0).r} px low down, ${moonPlace(1).r} px high)`);
+  // d. The rake.
+  {
+    const c = createCanvas(390, 730);
+    const x = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    x.fillStyle = "#000";
+    x.fillRect(0, 0, 390, 730);
+    wallRake(x, 0, 300, 0.5);
+    const px = (xx: number, yy: number) => (x as any).getImageData(xx, yy, 1, 1).data[0] as number;
+    ok(px(NINJA_WALL_L - 2, 300) > px(NINJA_WALL_L - 2, 60) && px(NINJA_WALL_L - 2, 300) > px(10, 300), "look d: the moon rakes brightest at its height and on the face towards the gap");
+    let foot = 0;
+    for (let y = 690; y < 730; y++) foot = Math.max(foot, px(NINJA_WALL_L - 2, y));
+    wallRake(x, 0, 700, 1);
+    let foot2 = 0;
+    for (let y = 690; y < 730; y++) foot2 = Math.max(foot2, px(NINJA_WALL_L - 2, y));
+    ok(foot === 0 && foot2 === 0, "look d: no rake in the world's bottom 40 px (the fill below carries none)");
+  }
+  // e. The bigger ninja.
+  ok(ninjaArtScale(4) === MOON_BIG_HW / 13 && ninjaArtScale(3) === 1, "look e: rev 4 draws the figure at 17/13");
+  const inkOf = (scale: number) => {
+    const c = createCanvas(240, 240);
+    const x = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    drawNinja(x, 120, 120, 0, 1, 7, 0, scale);
+    const dd = (x as any).getImageData(0, 0, 240, 240).data as Uint8ClampedArray;
+    let l = 999, r = -1, t = 999, b = -1;
+    for (let y = 0; y < 240; y++)
+      for (let xx = 0; xx < 240; xx++)
+        if (dd[(y * 240 + xx) * 4 + 3]! > 40) {
+          l = Math.min(l, xx); r = Math.max(r, xx); t = Math.min(t, y); b = Math.max(b, y);
+        }
+    return { w: r - l + 1, h: b - t + 1 };
+  };
+  const small1 = inkOf(1);
+  const big = inkOf(ninjaArtScale(4));
+  ok(big.w >= small1.w * 1.25 && big.h >= small1.h * 1.25, `look e: the bigger ninja is drawn larger (${big.w} × ${big.h} px, was ${small1.w} × ${small1.h})`);
+  const src = readFileSync("src/lib/arcade/ricochetNinja.renderer.ts", "utf8");
+  ok(!/rgba\(242,199,92,0\.55\)/.test(src), "look e: no gold rim round the ninja (Joe: no glowing edges)");
 }
 
 if (failures.length) {

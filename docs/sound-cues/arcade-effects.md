@@ -404,10 +404,10 @@ Already sounded: switch and tube turn (`balltrack.switch`), marble home and cup 
 | `skyline.gustWarn` | The flag streams a second before a gust blows | The flag streams and ripples | `ui.warn.mp3` | 2–8 | 500 ms |
 | `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) | The block falls away, "−1 LIFE", the LIVES chip rings | none yet (silent until it has a file; `arc_lose_life` plays meanwhile) | 0–2 | 600 ms |
 | `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) | The NEXT panel shows WIDE | none yet (silent until it has a file; `arc_pickup` plays meanwhile) | 0–3 | 400 ms |
-| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) | The overhang falls away spinning | none yet (silent until it has a file; `arc_wood_knock` plays meanwhile) | 10–40 | 700 ms |
-| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) | A thin floor on the tower | none yet (silent until it has a file; `arc_clank` plays meanwhile) | 0–5 | 700 ms |
+| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) | The overhang falls away spinning and the cut edge crumbles (stage 2) | none yet (silent until it has a file; `arc_wood_knock` plays meanwhile) | 10–40 | 700 ms |
+| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) | A thin floor on the tower wobbles on its foot (stage 2) | none yet (silent until it has a file; `arc_clank` plays meanwhile) | 0–5 | 700 ms |
 
-Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (`skyline.perfect`), streak drop (`skyline.streakDrop`), miss (`skyline.miss`).
+Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (`skyline.perfect`; since stage 2, 15 Nov 2026, a semitone higher for each drop in the streak, up to seven, as the gold ring spreads from the join), streak drop (`skyline.streakDrop`), miss (`skyline.miss`).
 
 ## Gemstone
 

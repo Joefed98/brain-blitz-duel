@@ -5,7 +5,7 @@
  * sim on the fixed intro example with the elite skill-band bot's log (computed here, so every tree draws the same run).
  *
  *   bun scripts/shots/orbit-materials-frames.ts [--root=<tree, default .>] [--rev=15] --out=<dir>
- *       [--ticks=60,1300,2200,2651] [--size=390x844] [--clip --clip-every=45]
+ *       [--ticks=60,1300,2200,2651] [--size=390x844] [--dpr=1] [--clip --clip-every=45]
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -25,6 +25,7 @@ const [W, H] = (opt("size") ?? "390x844").split("x").map(Number) as [number, num
 const CLIP = args.includes("--clip");
 const CLIP_EVERY = Number(opt("clip-every") ?? 45);
 const HEADER = 60;
+const DPR = Number(opt("dpr") ?? 1);
 
 // A browser-shaped global for the renderers: canvases from @napi-rs/canvas, no reduced motion, the app's one font.
 GlobalFonts.registerFromPath("public/fonts/archivo-var-latin.woff2", "Archivo");
@@ -40,13 +41,18 @@ const fills = await import(join(ROOT, "src/lib/arcade/arenaFills.renderer.ts"));
 // The materials pass's surface maps, decoded here (the page loads them as images).
 try {
   const planets = await import(join(ROOT, "src/lib/arcade/orbitPlanets.renderer.ts"));
-  const maps = (await import(join(ROOT, "src/lib/arcade/orbitPlanetMaps.data.ts"))).ORBIT_PLANET_MAPS as Record<string, string>;
-  for (const name of Object.keys(maps)) {
-    const img = await loadImage(join(ROOT, "public/orbit/planets", `${name}.webp`));
+  const maps = (await import(join(ROOT, "src/lib/arcade/orbitPlanetMaps.data.ts"))).ORBIT_PLANET_MAPS as Record<string, string | { height: string | null }>;
+  const put = async (key: string, file: string) => {
+    const img = await loadImage(join(ROOT, "public/orbit/planets", file));
     const c = createCanvas(img.width, img.height);
     const cx = c.getContext("2d");
     cx.drawImage(img, 0, 0);
-    planets.setOrbitPlanetMap(name, { w: img.width, h: img.height, data: cx.getImageData(0, 0, img.width, img.height).data });
+    planets.setOrbitPlanetMap(key, { w: img.width, h: img.height, data: cx.getImageData(0, 0, img.width, img.height).data });
+  };
+  for (const [name, m] of Object.entries(maps)) {
+    await put(name, `${name}.webp`);
+    // Stage 2 (Blender maps): rocks and ice carry a height map too.
+    if (typeof m === "object" && m.height) await put(`${name}-h`, `${name}-h.webp`);
   }
 } catch {
   // An older tree: no maps.
@@ -75,8 +81,9 @@ const side = (box.w / scale - worldW) / 2;
 const view = { worldW, worldH: drawH, left: -side, right: worldW + side, top: 0, bottom: box.h / scale, scale, boxTop: 0 };
 for (const tick of ticks) {
   while (s.tick < tick && !s.ended) s = r3.orbitRev3Game.step(s, byTick.get(s.tick + 1) ?? null);
-  const c = createCanvas(W, H);
+  const c = createCanvas(W * DPR, H * DPR);
   const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
   ctx.fillStyle = "#070709";
   ctx.fillRect(0, 0, W, H);
   ctx.save();
@@ -84,9 +91,10 @@ for (const tick of ticks) {
   ctx.scale(scale, scale);
   fills.orbitFill(ctx, view);
   ctx.restore();
-  const world = createCanvas(Math.round(worldW * scale * 2), Math.round(drawH * scale * 2));
+  const ss = Math.max(2, DPR);
+  const world = createCanvas(Math.round(worldW * scale * ss), Math.round(drawH * scale * ss));
   art.orbitRev3ArtGame.draw(world.getContext("2d"), s, { width: world.width, height: world.height });
-  ctx.drawImage(world, Math.round(side * scale), HEADER, world.width / 2, world.height / 2);
+  ctx.drawImage(world, Math.round(side * scale), HEADER, world.width / ss, world.height / ss);
   ctx.fillStyle = "#070709";
   ctx.fillRect(0, 0, W, HEADER);
   ctx.fillStyle = "#F5F5F7";
