@@ -415,17 +415,14 @@ def sunburst():
     lib.area_light((0, 0, 10), (0, 20, -1), 300, 30, (0.35, 0.45, 0.9))
 
 
+# Diamond Plate, Neon Skyline, Frost, Royal, Crimson and Emerald are now rendered by cards_redo.py (Joe, 15 Nov 2026);
+# their first second-pass scenes stay here for reference.
 SCENES = {
-    "diamond-plate": (diamond_plate, dict(location=(0, -5.6, 1.2), target=(0.3, 1.0, -0.8), lens=36, dof_target=(1.9, 0.6, -0.62), fstop=2.8), (0.62, 14, 0.5), None),
-    "neon-skyline": (neon_skyline, dict(location=(-0.5, -4.0, 2.6), target=(0.6, 10, 0.4), lens=32), (0.55, 16, 0.6), None),
-    "frost": (frost, dict(location=(0, -6.5, -0.4), target=(0.3, 8, -0.2), lens=34, dof_target=(2.0, 2.0, -0.4), fstop=5.6), (0.7, 14, 0.4), None),
-    "royal": (royal, dict(location=(0.6, -2.6, 0.5), target=(1.4, 1.3, -0.55), lens=40, dof_target=(2.4, 1.6, -0.45), fstop=2.8), (0.62, 14, 0.45), dict(shadow=(0.01, 0.03, 0.14), highlight=(1.0, 0.85, 0.5), amount=0.3)),
     "lava": (lava, dict(location=(0, -5.5, 0.6), target=(0.4, 3, -0.6), lens=34, dof_target=(2.3, 2.5, -0.6), fstop=4.5), (0.55, 18, 0.6), None),
-    "crimson": (crimson, dict(location=(0, -5.8, 0.9), target=(0.4, 1.4, -0.7), lens=40, dof_target=(2.15, 1.2, -0.45), fstop=3.2), (0.62, 14, 0.45), None),
-    "emerald": (emerald, dict(location=(0, -6.0, 0.4), target=(0.4, 1.6, -0.3), lens=38, dof_target=(2.0, 1.5, -0.4), fstop=3.6), (0.6, 16, 0.5), None),
     "sunburst": (sunburst, dict(location=(0, -4.0, 0.3), target=(1.0, 20, 0.0), lens=30), (0.55, 24, 0.7), dict(highlight=(1.0, 0.8, 0.45), amount=0.3)),
 }
 
-for name in sys.argv[1:] or list(SCENES):
-    build, cam, bloom, tone = SCENES[name]
-    C.run(f"card-art.{name}", build, cam, samples=160, bloom=bloom, tone=tone)
+if __name__ == "__main__":
+    for name in sys.argv[1:] or list(SCENES):
+        build, cam, bloom, tone = SCENES[name]
+        C.run(f"card-art.{name}", build, cam, samples=160, bloom=bloom, tone=tone)

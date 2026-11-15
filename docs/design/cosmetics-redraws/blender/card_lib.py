@@ -311,3 +311,34 @@ def run(name, build, cam, samples=160, bloom=(0.62, 16, 0.5), tone=None):
     secs = lib.render(png)
     _, size = finish(name, png, bloom, tone)
     print(f"{name}: {secs:.1f} s, {size / 1024:.1f} KB")
+
+
+def glints(img, threshold=0.93, count=40, length=10, strength=0.9, min_gap=10):
+    """Star glints on the brightest specular points (what a lens does with a gem's fire): a thin four-point star on
+    each local peak above `threshold`, brightest first, at most `count`, `min_gap` px apart."""
+    from scipy.ndimage import maximum_filter
+
+    a = np.asarray(img.convert("RGB")).astype(np.float32) / 255
+    lum = a.max(axis=2)
+    peaks = (lum == maximum_filter(lum, size=min_gap)) & (lum >= threshold)
+    ys, xs = np.nonzero(peaks)
+    order = np.argsort(-lum[ys, xs])[:count]
+    h, w = lum.shape
+    add = np.zeros((h, w), np.float32)
+    for i in order:
+        y, x = ys[i], xs[i]
+        k = lum[y, x]
+        L = int(length * (0.5 + k))
+        for d in range(-L, L + 1):
+            f = (1 - abs(d) / (L + 1)) ** 2.2 * strength * k
+            if 0 <= x + d < w:
+                add[y, x + d] = max(add[y, x + d], f)
+            if 0 <= y + d < h:
+                add[y + d, x] = max(add[y + d, x], f)
+        for d in range(-L // 2, L // 2 + 1):
+            f = (1 - abs(d) / (L // 2 + 1)) ** 2.4 * strength * k * 0.45
+            for yy, xx in ((y + d, x + d), (y + d, x - d)):
+                if 0 <= yy < h and 0 <= xx < w:
+                    add[yy, xx] = max(add[yy, xx], f)
+    out = 1 - (1 - a) * (1 - np.clip(add, 0, 1)[..., None] * np.array([1.0, 0.98, 0.95], np.float32))
+    return Image.fromarray((np.clip(out, 0, 1) * 255).astype(np.uint8))

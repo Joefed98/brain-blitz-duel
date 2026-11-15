@@ -270,13 +270,13 @@ def top500():
     C.fog(0.035, (1.0, 0.85, 0.6), size=(14, 14, 8), centre=(1.5, 3, 1))
 
 
+# Top 500 is now rendered by cards_redo.py (Joe, 15 Nov 2026: more majesty).
 SCENES = {
     "spark": (spark, dict(target=(0.1, 0, -0.05), location=(0, -7.0, 0.5), lens=38, dof_target=(2.0, 1.1, 0.0), fstop=4.0), (0.6, 14, 0.5), dict(highlight=(1.0, 0.62, 0.3), amount=0.35)),
     "charge": (charge, dict(CAM, dof_target=(2.0, 1.0, 0.1), fstop=4.0), (0.6, 16, 0.55), dict(highlight=(0.75, 1.0, 0.8), amount=0.3)),
     "volt": (volt, dict(location=(0, -7.6, 0.2), target=(0.3, 0, 0.0), lens=36, dof_target=(2.0, 1.4, 0.4), fstop=4.0), (0.58, 18, 0.6), dict(highlight=(0.75, 0.95, 1.0), amount=0.3)),
     "surge": (surge, dict(location=(0, -3.0, -0.55), target=(0.4, 4, -0.35), lens=30, dof_target=(2.2, 3.9, -0.3), fstop=5.6), (0.55, 18, 0.6), dict(highlight=(0.7, 0.82, 1.0), amount=0.3)),
     "storm": (storm, dict(location=(0, -5.0, -0.5), target=(0.5, 6, 0.55), lens=28), (0.6, 18, 0.6), dict(highlight=(0.85, 0.75, 1.0), amount=0.35)),
-    "top-500": (top500, dict(location=(0, -6.2, 0.6), target=(0.3, 1, 0.25), lens=40, dof_target=(2.05, 1.2, 0.3), fstop=3.2), (0.6, 18, 0.55), dict(highlight=(1.0, 0.82, 0.45), amount=0.35)),
 }
 
 for name in sys.argv[1:] or list(SCENES):

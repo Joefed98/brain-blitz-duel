@@ -196,6 +196,7 @@ def static():
         C.arc(C.path(rng, a, b, 7, 0.3, (1, 1, 0)), 0.0022, (0.85, 1.0, 1.0), (0.13, 0.85, 1.0), 12 if k < 3 else 6, 0, f"s{k}")
 
 
+# Static is now rendered by cards_redo.py (Joe, 15 Nov 2026: keep the idea, TV static).
 SCENES = {
     "joulz-navy": (joulz_navy, dict(location=(0.4, -4.4, 1.3), target=(1.2, 1.0, -0.9), lens=36, dof_target=(2.35, 0.9, -1.0), fstop=4.0)),
     "bolt-stripes": (bolt_stripes, dict(LOW, dof_target=(2.4, 1.2, -1.0), fstop=4.0)),
@@ -203,7 +204,6 @@ SCENES = {
     "waves": (waves, dict(location=(0, -6.0, 0.9), target=(0.4, 2.5, -1.0), lens=36, dof_target=(2.0, 2.0, -1.0), fstop=4.0)),
     "hexes": (hexes, dict(location=(0, -5.5, 1.0), target=(0.6, 2.0, -1.0), lens=36, dof_target=(2.2, 1.6, -1.0), fstop=3.6)),
     "dots": (dots, dict(LOW, dof_target=(2.4, 1.2, -1.0), fstop=4.0)),
-    "static": (static, dict(LOW, dof_target=(2.4, 1.2, -1.0), fstop=4.0)),
 }
 
 for name in sys.argv[1:] or list(SCENES):
