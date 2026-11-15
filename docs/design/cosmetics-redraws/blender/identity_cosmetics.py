@@ -534,6 +534,175 @@ def tile(s):
     lib.camera((0, 0, 12), (0, 0, 0), ortho_scale=4.4)
 
 
+# ------------------------------------------------------------------ keep the idea (15 Nov 2026, Joe's rule)
+
+def spark_character(s):
+    """Spark, as the original: a cheerful five-point star with a face and sparkles, now a puffy, polished gold toy."""
+    studio(top=0.25, band=1.6, tint=(1.0, 0.95, 0.85))
+    bm = bmesh.new()
+    pts = []
+    for i in range(10):
+        a = math.pi / 2 + i * math.pi / 5
+        r = 1.0 if i % 2 == 0 else 0.5
+        pts.append((r * math.cos(a), r * math.sin(a)))
+    face = bm.faces.new([bm.verts.new((x, -0.17, z)) for x, z in pts])
+    ext = bmesh.ops.extrude_face_region(bm, geom=[face])
+    for v in [e for e in ext["geom"] if isinstance(e, bmesh.types.BMVert)]:
+        v.co.y += 0.34
+    me = bpy.data.meshes.new("spark")
+    bm.to_mesh(me)
+    o = bpy.data.objects.new("spark", me)
+    bpy.context.scene.collection.objects.link(o)
+    bev = o.modifiers.new("b", "BEVEL")
+    bev.width, bev.segments, bev.limit_method = 0.16, 6, "NONE"
+    sub = o.modifiers.new("s", "SUBSURF")
+    sub.levels = sub.render_levels = 2
+    gold = lib.material("sparkgold", base=(1.0, 0.72, 0.06), metallic=0.1, roughness=0.22, coat=0.6)
+    o.data.materials.append(gold)
+    bpy.ops.object.select_all(action="DESELECT")
+    o.select_set(True)
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.shade_smooth()
+    o.rotation_euler = (0, math.radians(-6), 0)
+    ink = lib.material("eye", base=(0.03, 0.03, 0.05), roughness=0.05, coat=1.0)
+    for x in (-0.17, 0.17):
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=(x, -0.27, 0.06))
+        e = bpy.context.object
+        e.scale = (0.075, 0.04, 0.11)
+        e.data.materials.append(ink)
+        bpy.ops.object.shade_smooth()
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.026, location=(x - 0.025, -0.31, 0.11))
+        bpy.context.object.data.materials.append(lib.emission_material("catch", (1, 1, 1), 4))
+    for x in (-0.33, 0.33):
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=(x, -0.24, -0.08))
+        b = bpy.context.object
+        b.scale = (0.08, 0.02, 0.05)
+        b.data.materials.append(lib.material("blush", base=(1.0, 0.42, 0.55), roughness=0.4))
+    # The smile: a short arc.
+    cu = bpy.data.curves.new("smile", "CURVE")
+    cu.dimensions = "3D"
+    cu.bevel_depth = 0.022
+    sp = cu.splines.new("POLY")
+    arc = [(0.11 * math.cos(t), -0.27, -0.12 + 0.07 * math.sin(t)) for t in np.linspace(math.radians(200), math.radians(340), 12)]
+    sp.points.add(len(arc) - 1)
+    for i, p in enumerate(arc):
+        sp.points[i].co = (*p, 1)
+    sm = bpy.data.objects.new("smile", cu)
+    bpy.context.scene.collection.objects.link(sm)
+    sm.data.materials.append(ink)
+    # Two little sparkles, as the original's.
+    for (x, z, r) in ((0.86, 0.78, 0.17), (-0.8, -0.74, 0.11)):
+        bm = bmesh.new()
+        sp_pts = []
+        for i in range(8):
+            a = math.pi / 2 + i * math.pi / 4
+            rr = r if i % 2 == 0 else r * 0.28
+            sp_pts.append(bm.verts.new((x + rr * math.cos(a), -0.2, z + rr * math.sin(a))))
+        bm.faces.new(sp_pts)
+        me2 = bpy.data.meshes.new("glint")
+        bm.to_mesh(me2)
+        g = bpy.data.objects.new("glint", me2)
+        bpy.context.scene.collection.objects.link(g)
+        g.data.materials.append(lib.emission_material("glintgold", (1.0, 0.72, 0.15), 2.2))
+    lib.area_light((-3, -4, 4), (0, 0, 0), 820, 2.5, (1, 0.97, 0.92))
+    lib.area_light((3, -3, -1), (0, 0, 0), 180, 2.5, (0.9, 0.95, 1.0))
+    lib.camera((0, -9, 0.4), (0, 0, 0), ortho_scale=2.3)
+
+
+def arcade_screen(s):
+    """Retro Arcade's plate, as the original (a dark screen in a bright square frame), made real: a gunmetal bezel with a
+    polished chrome lip round a black glass CRT screen with a faint glow (the pixel art and words are drawn on it)."""
+    studio(top=0.04, band=2.4)
+    o = rounded_box((1.8, 0.4, 1.8), 0.28, segments=8)
+    o.data.materials.append(lib.material("bezel", base=(0.08, 0.09, 0.12), metallic=0.85, roughness=0.28))
+    lip = rounded_box((1.58, 0.1, 1.58), 0.2, loc=(0, -0.2, 0), segments=8)
+    lip.data.materials.append(lib.material("lip", base=(0.95, 0.96, 0.99), metallic=1.0, roughness=0.06))
+    scr = rounded_box((1.42, 0.1, 1.42), 0.16, loc=(0, -0.24, 0), segments=8)
+    m = lib.material("crt", base=(0.004, 0.006, 0.012), roughness=0.12, coat=0.5, emission=(0.03, 0.05, 0.14), strength=0.25)
+    scr.data.materials.append(m)
+    lib.area_light((-2, -5, 4), (0, 0, 0), 320, 3, (1, 0.97, 0.92))
+    lib.camera((0, -10, 0.9), (0, 0, 0), ortho_scale=1.9)
+
+
+def keep_idea():
+    go("emote3.spark", 228, 228, spark_character)
+    go("emote3.arcade", 180, 180, arcade_screen)
+
+
+# ------------------------------------------------------------------ keep the idea: the cyan neon bolts (Zap, Neon Bolt)
+
+ZAP_BOLT = [(50, 2), (24, 40), (38, 40), (30, 74), (64, 30), (48, 30), (58, 2)]  # Zap's own outline (80 x 76 units)
+# The Neon Bolt, as large as its slot above the avatar's circle allows: Zap's bolt at half size over x 40..60, y -34..2.
+ACC_BOLT = [(40 + (x - 24) * 0.5, -34 + (y - 2) * 0.5) for x, y in ZAP_BOLT]
+
+
+def neon_bolt(outline, box, scale_px):
+    """A bolt of cyan neon on the item's own outline: a cyan glass body lit from inside, a white-hot core, a lit tube
+    round its edge; camera straight on over `box` (x0, y0, w, h in the item's units), so the svg drawn over it lines up."""
+    x0, y0, bw, bh = box
+
+    def build(s):
+        studio(top=0.05, band=1.2)
+        cx = sum(p[0] for p in outline) / len(outline)
+        cy = sum(p[1] for p in outline) / len(outline)
+        pts = [(x, -y) for x, y in outline]
+
+        def slab(points, depth, y_front, mat, bevel):
+            bm = bmesh.new()
+            f = bm.faces.new([bm.verts.new((x, y_front, z)) for x, z in points])
+            ext = bmesh.ops.extrude_face_region(bm, geom=[f])
+            for v in [e for e in ext["geom"] if isinstance(e, bmesh.types.BMVert)]:
+                v.co.y += depth
+            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+            me = bpy.data.meshes.new("slab")
+            bm.to_mesh(me)
+            o = bpy.data.objects.new("slab", me)
+            bpy.context.scene.collection.objects.link(o)
+            b = o.modifiers.new("b", "BEVEL")
+            b.width, b.segments, b.limit_method = bevel, 4, "NONE"
+            o.data.materials.append(mat)
+            return o
+
+        unit = bw / 80
+        body = lib.material("cyanglass", base=(0.05, 0.75, 0.95), roughness=0.08, coat=1.0, emission=(0.1, 0.85, 1.0), strength=1.4)
+        slab(pts, 4 * unit, -2 * unit, body, 1.4 * unit)
+        inner = [(cx + (x - cx) * 0.5, -(cy + (-z - cy) * 0.5)) for x, z in pts]
+        slab(inner, 1 * unit, -2.6 * unit, lib.emission_material("core", (0.85, 1.0, 1.0), 9), 0.4 * unit)
+        cu = bpy.data.curves.new("tube", "CURVE")
+        cu.dimensions = "3D"
+        cu.bevel_depth = 0.9 * unit
+        sp = cu.splines.new("POLY")
+        sp.points.add(len(pts))
+        for i, (x, z) in enumerate(pts + pts[:1]):
+            sp.points[i].co = (x, -2.4 * unit, z, 1)
+        t = bpy.data.objects.new("tube", cu)
+        bpy.context.scene.collection.objects.link(t)
+        t.data.materials.append(lib.emission_material("tube", (0.2, 0.92, 1.0), 6))
+        lib.area_light((x0 - bw, -60 * unit, -y0 + bh), (cx, 0, -cy), 2600 * unit * unit, 30 * unit, (1, 1, 1))
+        lib.camera((x0 + bw / 2, -400, -(y0 + bh / 2)), (x0 + bw / 2, 0, -(y0 + bh / 2)), ortho_scale=max(bw, bh))
+        s.render.resolution_x, s.render.resolution_y = round(bw * scale_px), round(bh * scale_px)
+
+    return build
+
+
+def neon_glow(img, radius=6, amount=0.9):
+    """The neon's light round it (its own colour, blurred), kept under the tube."""
+    from PIL import ImageFilter
+
+    a = img.convert("RGBA")
+    halo = a.filter(ImageFilter.GaussianBlur(radius))
+    arr = np.asarray(halo).astype(np.float32)
+    arr[..., 3] *= amount
+    out = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
+    out.alpha_composite(a)
+    return out
+
+
+def neon_bolts():
+    go("emote3.zap", 240, 228, neon_bolt(ZAP_BOLT, (0, 0, 80, 76), 3), view="Standard", post=lambda i: neon_glow(i, 7, 0.85))
+    go("acc.bolt3", 96, 96, neon_bolt(ACC_BOLT, (36, -38, 28, 42), 3), view="Standard", post=lambda i: neon_glow(i, 4, 0.9))
+
+
 GROUPS = {
     "names": names,
     "finishes": finishes,
@@ -542,6 +711,8 @@ GROUPS = {
     "celebrations": celebrations,
     "circuit": lambda: go("cel2.circuit", 720, 450, circuit, transparent=False, quality=82),
     "tile": lambda: go("tile2.circuit", 270, 270, tile, transparent=False, quality=84),
+    "keepidea": keep_idea,
+    "neonbolts": neon_bolts,
 }
 for g in sys.argv[1:] or list(GROUPS):
     GROUPS[g]()

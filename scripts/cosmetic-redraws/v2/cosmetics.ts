@@ -21,9 +21,6 @@ const u = (n: number) => `calc(${n} * var(--pc-u))`;
 
 const NAME_PIECES: Record<string, string> = {
   "name-colour.chrome": "nc.chrome",
-  "name-colour.neon-pink": "nc.neon-pink",
-  "name-colour.neon-cyan": "nc.neon-cyan",
-  "name-colour.neon-red": "nc.neon-red",
   "name-colour.electric-orange": "nc.electric-orange",
 };
 
@@ -47,6 +44,45 @@ export const V2_NAME_COLOURS: Record<string, { className: string; style: Record<
     },
   ]),
 );
+
+/*
+ * Keep the idea (Joe, 15 Nov 2026): Electric Orange stays a pixel face (Silkscreen, as the original), its letters now
+ * filled with the rendered anodised orange and set on one crisp pixel step of burnt orange, with the dark edge; the
+ * three neon colours stay neon: each letter a lit tube (a pale hot core, the colour as the glass, its light round it).
+ */
+V2_NAME_COLOURS["name-colour.electric-orange"] = {
+  className: "rd2-nc",
+  style: {
+    fontFamily: "Silkscreen, Archivo, monospace",
+    fontWeight: "700",
+    fontSize: u(17),
+    // The rendered anodised orange, lifted by a sheet of its own light so thin pixel strokes stay bright.
+    backgroundImage: `linear-gradient(180deg, rgba(255,214,140,0.5) 0%, rgba(255,150,40,0.3) 50%, rgba(255,120,20,0.25) 100%), url(${IMG("nc.electric-orange")})`,
+    backgroundSize: "100% 100%",
+    backgroundPosition: "center",
+    WebkitBackgroundClip: "text",
+    backgroundClip: "text",
+    color: "transparent",
+    filter: `drop-shadow(${u(1.5)} ${u(1.5)} 0 #C24E00) drop-shadow(${u(1)} ${u(1)} 0 #06080F) drop-shadow(0 0 ${u(4)} rgba(255,122,24,0.4))`,
+  },
+};
+const NEON: Record<string, [core: string, tube: string, light: string]> = {
+  "name-colour.neon-pink": ["#FFE8F8", "#FF4FC8", "rgba(255,79,200,0.75)"],
+  "name-colour.neon-cyan": ["#E8FDFF", "#22D8F2", "rgba(34,216,242,0.75)"],
+  "name-colour.neon-red": ["#FFE6E6", "#FF3B4B", "rgba(255,59,75,0.75)"],
+};
+for (const [id, [core, tube, light]] of Object.entries(NEON))
+  V2_NAME_COLOURS[id] = {
+    className: "rd2-nc",
+    style: {
+      fontWeight: "800",
+      fontSize: u(19),
+      color: core,
+      WebkitTextStroke: `${u(2.2)} ${tube}`,
+      paintOrder: "stroke fill",
+      filter: `drop-shadow(0 0 ${u(2)} ${light}) drop-shadow(0 0 ${u(6)} ${light}) drop-shadow(0 ${u(1)} ${u(0.5)} #06080F)`,
+    },
+  };
 
 /* ---------------------------------------------------------------- avatar finishes */
 
@@ -96,7 +132,8 @@ export const V2_FINISHES: Record<string, FinishArt> = {
 
 export const V2_ACCESSORIES: Record<string, string> = {
   // A glass bolt with a lit cyan core above the circle, on a short dark stem.
-  "avatar-accessory.neon-bolt": `<path d="M50 5 V-1" stroke="#06080F" stroke-width="3"></path><image href="${IMG("acc.bolt2")}" x="34" y="-30" width="32" height="32"></image>`,
+  // Keep the idea (15 Nov 2026): a clearly cyan neon bolt, as large as the slot above the circle allows.
+  "avatar-accessory.neon-bolt": `<image href="${IMG("acc.bolt3")}" x="36" y="-38" width="28" height="42"></image>`,
 };
 
 /* ---------------------------------------------------------------- emotes (each at its pack's own size) */
@@ -116,17 +153,52 @@ const SIGNS = ["UNREAL", "OOPS", "BRB CRYING", "SHEESH"];
 const SIGN_W = [74, 64, 114, 74];
 const SIGN_INK = ["#FFB3EC", "#A6F6FF", "#FFC48A", "#E6FF9E"];
 
+/* Zap (keep the idea): the original's cyan bolt with speed lines, a spark and its face, now lit neon (emote3.zap is
+ * rendered on the original's own outline, so the face and lines drawn over it sit where the original's did). */
+const glowLine = (d: string, colour: string, w: number) =>
+  `<path d="${d}" stroke="${colour}" stroke-width="${w * 2.6}" stroke-linecap="round" opacity="0.28" fill="none"></path><path d="${d}" stroke="${colour}" stroke-width="${w}" stroke-linecap="round" fill="none"></path><path d="${d}" stroke="#E8FDFF" stroke-width="${w * 0.35}" stroke-linecap="round" fill="none"></path>`;
+const ZAP_SPEED = glowLine("M8 22 H20 M4 34 H18 M8 46 H20", "#22E4FF", 3);
+const ZAP_SPARK = glowLine("M68 10 L74 4 M70 18 L78 16", "#FFE600", 2.5);
+const ZAP_FACE =
+  `<path d="M40 30 L46 33 M52 27 L46 33" stroke="#06080F" stroke-width="2.4" stroke-linecap="round"></path>` +
+  `<circle cx="42" cy="37" r="2.6" fill="#06080F"></circle><circle cx="50" cy="34" r="2.6" fill="#06080F"></circle>` +
+  `<circle cx="41.2" cy="36.2" r="0.8" fill="#FFFFFF"></circle><circle cx="49.2" cy="33.2" r="0.8" fill="#FFFFFF"></circle>` +
+  `<path d="M41 45 L45 43 L49 45" fill="none" stroke="#06080F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>`;
+
+/* Retro Arcade (keep the idea): the original's pixel heart and pixel words (Silkscreen), lit on a CRT screen. */
+const HEART_ROWS = ["  XX XX  ", " XXXXXXX ", " XXXXXXX ", "  XXXXX  ", "   XXX   ", "    X    "];
+const PIXEL_HEART = HEART_ROWS.flatMap((row, r) =>
+  [...row].flatMap((ch, c) => {
+    if (ch !== "X") return [];
+    const x = 12 + c * 4;
+    const y = 18 + r * 4;
+    const lit = r === 1 && c <= 2 ? "#FFB3BF" : "#FF3D5C";
+    return [`<rect x="${x - 0.6}" y="${y - 0.6}" width="5.2" height="5.2" fill="#FF3D5C" opacity="0.28"></rect>`, `<rect x="${x}" y="${y}" width="4" height="4" fill="${lit}"></rect>`];
+  }),
+).join("");
+const SCANLINES = Array.from({ length: 22 }, (_, i) => `<rect x="9" y="${9 + i * 2}" width="42" height="0.6" fill="#FFFFFF" opacity="0.05"></rect>`).join("");
+function pixelWord(text: string, colour: string, size: number): string {
+  const a = `x="30" y="31" text-anchor="middle" dominant-baseline="central" font-family="Silkscreen, monospace" font-weight="700" font-size="${size}"`;
+  return `<text ${a} fill="${colour}" stroke="${colour}" stroke-width="2.4" opacity="0.3">${text}</text><text ${a} fill="${colour}">${text}</text>`;
+}
+
 export const V2_REACTIONS: Record<string, { svg: string; label: string }[]> = {
-  "reaction.spark": [{ svg: svgOf(76, 76, imgOf("emote2.spark", 76, 76)), label: "Spark" }],
-  "reaction.zap": [{ svg: svgOf(80, 76, imgOf("emote2.zap", 80, 76)), label: "Zap" }],
+  "reaction.spark": [{ svg: svgOf(76, 76, imgOf("emote3.spark", 76, 76)), label: "Spark" }],
+  "reaction.zap": [{ svg: svgOf(80, 76, ZAP_SPEED + imgOf("emote3.zap", 80, 76) + ZAP_FACE + ZAP_SPARK), label: "Zap" }],
   "reaction.clutch": [{ svg: svgOf(118, 48, imgOf("emote2.clutch", 118, 48) + word("CLUTCH!", 59, 24, 82, "#1C1306", 19, undefined, true)), label: "CLUTCH!" }],
   "reaction.captains-calls": CALLS.map((t, i) => ({
     svg: svgOf(CALL_W[i]!, 46, imgOf(`emote2.bubble-${i}`, CALL_W[i]!, 46) + word(t, CALL_W[i]! / 2, 21, CALL_W[i]! - 22, "#121218", 13)),
     label: t,
   })),
   "reaction.retro-arcade": [
-    { svg: svgOf(60, 60, imgOf("emote2.key-0", 60, 60)), label: "Retro Arcade" },
-    ...["1UP", "LAG!!", "GLHF"].map((t, i) => ({ svg: svgOf(60, 60, imgOf(`emote2.key-${i + 1}`, 60, 60) + word(t, 30, 28.5, 36, "#FFFFFF", 16, "#121218")), label: t })),
+    { svg: svgOf(60, 60, imgOf("emote3.arcade", 60, 60) + PIXEL_HEART + SCANLINES), label: "Retro Arcade" },
+    ...(
+      [
+        ["1UP", "#3DFF9A", 12],
+        ["LAG!!", "#FFE600", 10],
+        ["GLHF", "#22E4FF", 10],
+      ] as const
+    ).map(([t, c, size]) => ({ svg: svgOf(60, 60, imgOf("emote3.arcade", 60, 60) + pixelWord(t, c, size) + SCANLINES), label: t })),
   ],
   "reaction.neon-signs": SIGNS.map((t, i) => ({
     svg: svgOf(SIGN_W[i]!, 40, imgOf(`emote2.sign-${i}`, SIGN_W[i]!, 40) + word(t, SIGN_W[i]! / 2, 20, SIGN_W[i]! - 22, SIGN_INK[i]!, 14, "#06080F")),
@@ -213,11 +285,12 @@ export const V2_COSMETIC_PIECES: readonly string[] = [
   "fin.carbon",
   "fin.holographic",
   "fin.neon-glow",
-  "acc.bolt2",
-  "emote2.spark",
-  "emote2.zap",
+  "acc.bolt3",
+  "emote3.spark",
+  "emote3.arcade",
+  "emote3.zap",
   "emote2.clutch",
-  ...[0, 1, 2, 3].flatMap((i) => [`emote2.bubble-${i}`, `emote2.key-${i}`, `emote2.sign-${i}`]),
+  ...[0, 1, 2, 3].flatMap((i) => [`emote2.bubble-${i}`, `emote2.sign-${i}`]),
   "cel2.spotlight",
   "cel2.shockwave",
   "cel2.circuit",
