@@ -7,7 +7,8 @@ so a file with the slot's name replaces it with no code change. Sounds the games
 listed as **keep** and need nothing.
 
 The house levels (docs/sound-cues/levels-nov-2026.md) are applied when a file is wired: generate at any level, short
-effects with no lead-in silence.
+effects with no lead-in silence. Slots that borrow a library file until then (Gridlock's knock and glint, Chroma
+Lines' draw, cut and near-miss) are repointed at the new file when it lands (one manifest line each).
 
 <!-- Each game's section is between its own markers; per-game work edits only its own section. -->
 

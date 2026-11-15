@@ -491,9 +491,9 @@ const ENTRIES = {
   // The Pattern overhaul (15 Nov 2026): Chroma Lines' drawing tone (played a little higher each square), the cut and
   // the near-miss hint, empty until Joe's recordings (docs/sound-cues/pattern-elevenlabs.md); until then the draw keeps
   // FeedbackStage's `move` tick.
-  "flow.draw": { channel: "effects", frequency: 0, ms: 140, url: null },
-  "flow.cut": { channel: "effects", frequency: 0, ms: 180, url: null },
-  "flow.nearMiss": { channel: "effects", frequency: 0, ms: 600, url: null },
+  "flow.draw": { channel: "effects", frequency: 0, ms: 140, url: "/sounds/arc_sea_bubble.mp3", volume: 0.45, gapMs: 40 },
+  "flow.cut": { channel: "effects", frequency: 0, ms: 180, url: "/sounds/arc_sea_pop.mp3", volume: 0.5 },
+  "flow.nearMiss": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/arc_retro_blip.mp3", volume: 0.5 },
   "flow.connect": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/flow.connect.mp3", volume: 0.79 },
   "flow.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "unblock.slide": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3" },
