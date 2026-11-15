@@ -15,7 +15,7 @@
 import { isRed, RANK_LABELS, rankOf, suitOf } from "./cards";
 
 import { NO_LOOK, type GameLook } from "../skins/look";
-import { cardBackOf, feltOf, paintSkinBack, paintSkinFelt } from "../skins/cards.skins";
+import { backCacheTag, cardBackOf, feltCacheTag, feltOf, paintSkinBack, paintSkinFelt } from "../skins/cards.skins";
 
 /**
  * The look the card games draw in (wave 2 skins): set by a looked art game's draw for its length (withCardsLook), the
@@ -734,7 +734,7 @@ export function drawCard(ctx: CanvasRenderingContext2D, card: number, x: number,
   }
   const skinBack = look.down ? cardBackOf(CL) : null;
   const img = skinBack
-    ? cached(`back:${skinBack}`, w, h, scale, (c) => paintSkinBack(c, skinBack, w, h))
+    ? cached(`back:${skinBack}${backCacheTag(skinBack)}`, w, h, scale, (c) => paintSkinBack(c, skinBack, w, h))
     : look.down
       ? cached("back", w, h, scale, (c) => paintBack(c, w, h))
       : cached(`c${card}`, w, h, scale, (c) => paintFace(c, card, w, h));
@@ -770,7 +770,7 @@ export function drawSlot(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 export function drawFelt(ctx: CanvasRenderingContext2D, w: number, h: number): void {
   const scale = scaleOf(ctx);
   const felt = feltOf(CL);
-  const key = `felt:${felt ? `${felt}:` : ""}${w}x${h}@${scale}`;
+  const key = `felt:${felt ? `${felt}${feltCacheTag(felt)}:` : ""}${w}x${h}@${scale}`;
   let canvas = cache.get(key);
   if (!canvas) {
     canvas = makeCanvas(Math.ceil(w * scale), Math.ceil(h * scale));
