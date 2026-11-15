@@ -18,7 +18,11 @@ import {
   type PresetId,
   type RoomPick,
   type RoomSettings,
+  withRoomLevel,
 } from "@/lib/duel/roomSettings";
+import { LevelIntro } from "@/components/levels/LevelIntro";
+import { LevelSwitch } from "@/components/levels/LevelSwitch";
+import { NORMAL, type Level } from "@/lib/levels/levels";
 import { SCORING_MODES, scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
 import { Button, Chip, Segmented, Sheet } from "@/design/components";
 
@@ -47,6 +51,8 @@ export function RoomSettingsSheet({
   const [rounds, setRounds] = useState(() => clampRounds(initial.rounds, initial.picks));
   /** The preset last tapped; editing a chip clears it. Opens on the preset the picks match. */
   const [preset, setPreset] = useState<PresetId | null>(() => presetOf(initial.picks));
+  /** The room's level (difficulty framework): every player's rounds at it; Normal for a game without it. */
+  const [level, setLevel] = useState<Level>(() => initial.level ?? NORMAL);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cap = roundCap(picks);
@@ -73,7 +79,7 @@ export function RoomSettingsSheet({
     setSaving(true);
     setError(null);
     try {
-      await onSave({ picks, rounds }, scoring);
+      await onSave(withRoomLevel({ picks, rounds }, level), scoring);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t save the settings. Try again.");
@@ -176,6 +182,25 @@ export function RoomSettingsSheet({
               {cap < MAX_ROUNDS
                 ? `Only ${games} games in your picks, so up to ${cap} rounds.`
                 : "3 to 12 rounds, every one a different game."}
+            </p>
+          </section>
+          <section aria-label="Difficulty" data-room-level className="flex flex-col gap-2.5">
+            <div className="rs-head">
+              <h3 className="ap-group-title">Difficulty</h3>
+            </div>
+            <LevelSwitch
+              value={level}
+              onChange={(next) => {
+                setLevel(next);
+                setError(null);
+              }}
+              data={{ "data-room-level-switch": "" }}
+            />
+            <LevelIntro />
+            <p data-room-level-note className="rss-note">
+              {level === NORMAL
+                ? "Everyone plays the same level."
+                : "Everyone plays the same level. Games without it play Normal."}
             </p>
           </section>
           {scoring ? (

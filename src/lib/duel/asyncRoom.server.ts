@@ -19,6 +19,7 @@
  * The database client is passed in, so scripts/daily-check.ts drives this exact code with an
  * in-memory stand-in. Every write is keyed on the calling device's own attempt.
  */
+import { puzzleLevel } from "@/lib/levels/levels";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import { DAILY_ARCHIVE_KIND, asyncReceipt, asyncRoundWindow, isArchiveKind, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
 import { recordAsyncEvent, recordRoundRecordsFor, roundRecords } from "./betaRecord.server";
@@ -593,7 +594,7 @@ export async function startAsyncRound(
     mode: asyncMode(room.kind),
     roomId: room.id,
     // A Daily archive replay (Plus) keeps the daily mode and is marked, so it is counted apart from real Daily games.
-    props: isArchiveKind(room.kind) ? { round, archive: true } : { round },
+    props: isArchiveKind(room.kind) ? { round, archive: true, level: puzzleLevel(pub) } : { round, level: puzzleLevel(pub) },
   });
   return { ok: true, puzzle: pub, startedAt: nowMs };
 }
@@ -691,7 +692,9 @@ export async function submitAsyncAnswer(
     durationMs: playedMs(puzzleTimeLimitMs(puzzle), msLeft, graded.extra as Record<string, unknown> | null | undefined),
     roomId: room.id,
     inputType: input.inputType,
-    props: isArchiveKind(room.kind) ? { round: input.round, archive: true } : { round: input.round },
+    props: isArchiveKind(room.kind)
+      ? { round: input.round, archive: true, level: puzzleLevel(puzzle) }
+      : { round: input.round, level: puzzleLevel(puzzle) },
   });
   await refreshAttempt(client, room, attempt, rows, nowMs);
   return { ok: true, score: graded.score };
