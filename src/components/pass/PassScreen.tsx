@@ -1,3 +1,4 @@
+import { useAppMoment } from "@/components/fx/useMomentEnter";
 import { useState } from "react";
 
 import { ShopArt } from "@/components/shop/ShopArt";
@@ -22,6 +23,9 @@ export function PassScreen() {
   const account = useAccount();
   const name = account.kind === "account" ? account.username : "Your name";
   const [busy, setBusy] = useState<string | null>(null);
+  // A reward claimed (15 Nov 2026, the effects pass): its cell gets the kit's win payoff, once.
+  const [claimed, setClaimed] = useState<string | null>(null);
+  useAppMoment("win", `[data-pass-cell="${claimed ?? ""}"]`, claimed);
   const [said, setSaid] = useState<string | null>(null);
 
   if (pass.state === "none" || pass.state === "loading")
@@ -56,6 +60,7 @@ export function PassScreen() {
     const out = await claimReward(cell.track, cell.level);
     setBusy(null);
     setSaid(out.ok ? `${cell.title}: claimed.` : out.message);
+    if (out.ok) setClaimed(`${cell.track}:${cell.level}`);
   };
   const buyTest = async () => {
     setBusy("premium");

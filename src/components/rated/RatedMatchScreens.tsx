@@ -1,3 +1,5 @@
+import { countUpText } from "@/lib/fx/kit";
+import { useCelebrationsOn } from "@/components/fx/useCelebration";
 /**
  * The rated match from search to result (wave 3, session W3c; mockups 03, 04, 07, 12 and 13 in docs/mockups/wave-3/).
  * Every figure comes from the server's answer (backend.ts); nothing here works out a result, a rating or a tier.
@@ -262,9 +264,7 @@ export function MatchResult({
             <RankEmblem rank={result.rating.after} size={44} />
             <span className="rt-rating-text">
               <span className="rt-rating-label" data-one-line>Joulz Rating</span>
-              <span className="rt-rating-value" data-joulz-rating data-one-line>
-                {ratingText(result.rating.after.rating)}
-              </span>
+              <RatingCountUp to={result.rating.after.rating} change={result.rating.change} />
             </span>
             <Change value={result.rating.change} big />
           </div>
@@ -502,6 +502,25 @@ function DivisionNext({ rank }: { rank: NonNullable<RatedPlayer["rank"]> }) {
   return (
     <span className="rt-reveal-next" data-bar-next>
       {divisionBar(rank).next}
+    </span>
+  );
+}
+
+/**
+ * The Joulz Rating on the result (15 Nov 2026, the effects pass): counts up (or down) from the rating before the match
+ * to the one after, the kit's count-up with its ticks. The markup holds the final rating; nothing with the celebrations off.
+ */
+function RatingCountUp({ to, change }: { to: number; change: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const on = useCelebrationsOn();
+  useEffect(() => {
+    const el = ref.current;
+    if (!on || !el || !change) return;
+    return countUpText(el, Math.round(to - change), Math.round(to), { format: ratingText, ms: 900 });
+  }, [on, to, change]);
+  return (
+    <span ref={ref} className="rt-rating-value" data-joulz-rating data-one-line>
+      {ratingText(to)}
     </span>
   );
 }

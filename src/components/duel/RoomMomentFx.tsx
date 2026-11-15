@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 import type { MomentPart, MomentSpec } from "@/lib/fx/roomMoments";
 import { useMomentElapsed, useRoomMomentCues } from "@/lib/fx/useRoomMoments";
+import { useCelebrationsOn } from "@/components/fx/useCelebration";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 
 function partElements(part: MomentPart, elapsed: number) {
   const count = part.count ?? 1;
@@ -38,8 +40,11 @@ function partElements(part: MomentPart, elapsed: number) {
 export function RoomMomentFx({ spec, startedAt }: { spec: MomentSpec; startedAt: number }) {
   const elapsed = useMomentElapsed(startedAt);
   useRoomMomentCues(spec, startedAt);
+  // The effects pass's richer layer: only with the celebrations on and full effects (reduced effects and the battery
+  // saver keep the moments as they were).
+  const rich = useCelebrationsOn() && !arcadeReducedEffects();
   const layer = (over: boolean) => {
-    const parts = spec.parts.filter((p) => Boolean(p.over) === over);
+    const parts = spec.parts.filter((p) => Boolean(p.over) === over && (rich || !p.rich));
     if (parts.length === 0) return null;
     return (
       <div

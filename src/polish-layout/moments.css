@@ -1,0 +1,176 @@
+/*
+ * The effects pass (15 Nov 2026): the app's big moments in one language, built on the kit (src/lib/fx/kit.ts) and the
+ * room moments (src/lib/fx/roomMoments.ts). Transform and opacity only; every entrance ends in place and visible, so
+ * reduced motion (which jumps animations to their end) shows the finished screen.
+ */
+
+/* ------------------------------------------------------------------ Prepare to Duel: the players' cards arrive */
+.duel-lineup {
+  position: absolute;
+  z-index: 1;
+  left: 16px;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 9vh);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px 12px;
+  pointer-events: none;
+}
+.duel-lineup[data-duel] {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 420px;
+  margin-inline: auto;
+}
+.duel-lineup[data-count="9"],
+.duel-lineup[data-count="10"],
+.duel-lineup[data-count="11"],
+.duel-lineup[data-count="12"],
+.duel-lineup[data-count="13"],
+.duel-lineup[data-count="14"],
+.duel-lineup[data-count="15"],
+.duel-lineup[data-count="16"] {
+  max-width: 360px;
+  margin-inline: auto;
+}
+.duel-lineup-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  animation: lineup-rise 600ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+.duel-lineup-card[data-side="left"] {
+  animation-name: lineup-from-left;
+  animation-duration: 700ms;
+}
+.duel-lineup-card[data-side="right"] {
+  animation-name: lineup-from-right;
+  animation-duration: 700ms;
+}
+.duel-lineup-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 20px;
+  color: var(--jz-text);
+}
+.duel-lineup-vs {
+  font-family: var(--jz-font);
+  font-size: 34px;
+  font-weight: var(--jz-weight-black);
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--jz-gold);
+  animation: lineup-vs 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes lineup-rise {
+  0% { opacity: 0; transform: translateY(24px) scale(0.85); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes lineup-from-left {
+  0% { opacity: 0; transform: translateX(-46vw) rotate(-6deg); }
+  70% { opacity: 1; }
+  100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+}
+@keyframes lineup-from-right {
+  0% { opacity: 0; transform: translateX(46vw) rotate(6deg); }
+  70% { opacity: 1; }
+  100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+}
+@keyframes lineup-vs {
+  0% { opacity: 0; transform: scale(2.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ------------------------------------------------------------------ Round titles: the round's numeral behind */
+.round-title-ghost {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  top: 50%;
+  margin-top: -0.55em;
+  text-align: center;
+  font-family: var(--jz-font);
+  font-size: min(70vw, 62vh);
+  font-weight: var(--jz-weight-black);
+  line-height: 1;
+  color: var(--category-accent, var(--jz-gold));
+  opacity: 0.08;
+  pointer-events: none;
+  animation: round-ghost-in 2400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.round-title-ghost[data-final] {
+  color: var(--jz-gold);
+  opacity: 0.1;
+  font-size: min(80vw, 66vh);
+  animation-name: round-ghost-final;
+  animation-duration: 900ms;
+}
+@keyframes round-ghost-in {
+  0% { opacity: 0; transform: scale(1.25); }
+  100% { opacity: 0.08; transform: scale(1); }
+}
+@keyframes round-ghost-final {
+  0% { opacity: 0; transform: scale(1.6) rotate(-8deg); }
+  100% { opacity: 0.1; transform: scale(1) rotate(0deg); }
+}
+/* The title and its category line stay above the numeral. */
+.duel-start-screen .round-title-lines {
+  position: relative;
+  z-index: 1;
+}
+/* The screen keeps its own children in flow (styles.css); the lineup and the numeral are laid over it. */
+.duel-start-screen > .duel-lineup.duel-lineup,
+.duel-start-screen > .round-title-ghost.round-title-ghost {
+  position: absolute;
+}
+.duel-start-screen > .round-title-ghost.round-title-ghost {
+  z-index: 0;
+}
+/* Two players: the left card, the VS, the right card. */
+.duel-lineup[data-duel] .duel-lineup-card[data-side="left"] { order: 0; }
+.duel-lineup[data-duel] .duel-lineup-vs { order: 1; }
+.duel-lineup[data-duel] .duel-lineup-card[data-side="right"] { order: 2; }
+
+/* ------------------------------------------------------------------ the in-match screens' entrance (useMomentEnter)
+ * Round results, standings, the podium, the final screen and the answer reveal: their sections arrive one after
+ * another (60 ms apart, at most eight), each ending in place and visible. `fade` for the screens that slide their rows. */
+[data-moment-enter] > * {
+  animation: moment-rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+[data-moment-enter="fade"] > * {
+  animation-name: moment-fade;
+  animation-duration: 360ms;
+}
+[data-moment-enter] > :nth-child(2) { animation-delay: 60ms; }
+[data-moment-enter] > :nth-child(3) { animation-delay: 120ms; }
+[data-moment-enter] > :nth-child(4) { animation-delay: 180ms; }
+[data-moment-enter] > :nth-child(5) { animation-delay: 240ms; }
+[data-moment-enter] > :nth-child(6) { animation-delay: 300ms; }
+[data-moment-enter] > :nth-child(7) { animation-delay: 360ms; }
+[data-moment-enter] > :nth-child(n + 8) { animation-delay: 420ms; }
+@keyframes moment-rise {
+  0% { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes moment-fade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ page transitions (PhoneShell `data-page-enter`)
+ * A tab page, or a page pushed from one, fades in: opacity only, so nothing moves (play-tab-shift-check). */
+[data-page-enter] {
+  animation: moment-fade 220ms ease-out both;
+}

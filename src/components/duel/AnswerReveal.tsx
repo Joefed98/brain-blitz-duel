@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { JoulesLine } from "@/components/pass/JoulesLine";
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
 import { partialProgressNote } from "@/lib/duel/partialCredit";
@@ -6,6 +7,7 @@ import { levelOf } from "@/lib/practice/progressRules";
 import { practiceProgressNow } from "@/lib/practice/useProgress";
 import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
 import { SolutionSwitch } from "@/components/duel/SolutionSwitch";
+import { revealHeading, type SwitchState } from "@/lib/duel/revealHeading";
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -769,6 +771,7 @@ function LiveAnswerReveal({
   onPlayAgain,
   onBack,
 }: AnswerRevealProps) {
+  const enter = useMomentEnter("fade");
   const practiceActions = practice && (onPlayAgain || onBack);
   const [engineOpen, setEngineOpen] = useState(false);
   const secondsLeft = Math.max(
@@ -786,6 +789,7 @@ function LiveAnswerReveal({
   const scoreCue = useRef<number | undefined>(undefined);
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
+  const [switchState, setSwitchState] = useState<SwitchState | null>(null);
   useRevealLabels(solvedBoard);
   const revealCard = useRef<HTMLDivElement>(null);
   const trayRef = useRef<HTMLDivElement>(null);
@@ -859,7 +863,7 @@ function LiveAnswerReveal({
   }, [celebrate, myScore, round, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div ref={revealRoot} data-skin="room" data-answer-reveal data-hero-earned={heroSpot ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
+    <div ref={revealRoot} data-skin="room" data-answer-reveal {...enter} data-hero-earned={heroSpot ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
       {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
       {practice && (personalBest || starLine) && myScore !== null ? <NewBestMoment starLine={starLine} /> : null}
       {/* Its own screen (3 Nov 2026): this row is the screen's header (no app top bar), so the sound button sits here. */}
@@ -908,9 +912,10 @@ function LiveAnswerReveal({
             <span className="reveal-verdict truncate">
               {verdictLine(myCorrect, myScore, myMsRemaining, puzzleTimeLimitMs(puzzle), puzzle.type)}
             </span>
-            {!puzzleOwnsRevealLayout ? (
+            {/* The heading follows the board shown (15 Nov 2026, Joe): "Your answer", "The solution", or both. */}
+            {!puzzleOwnsRevealLayout && !solutionLock ? (
               <span data-reveal-heading className="reveal-meta truncate">
-                {def.revealHeading ?? "The answer was"}
+                {revealHeading(puzzle, myCorrect, switchState)}
               </span>
             ) : null}
           </span>
@@ -940,7 +945,7 @@ function LiveAnswerReveal({
         {/* The board keeps its box (flex-1, as before); the tray behind its card hugs what the card draws (useRevealFit). */}
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
-          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} /> : null}
+          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} /> : null}
           {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
           <div ref={revealCard} data-reveal-card="" className="reveal-card">
           {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}
