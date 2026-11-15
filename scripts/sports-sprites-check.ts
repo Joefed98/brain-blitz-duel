@@ -40,22 +40,24 @@ function sizeOf(buf: Buffer): { w: number; h: number } | null {
 }
 
 const ROOT = "public/sports";
-type Entry = { w: number; h: number };
-const expected: Record<string, Record<string, Entry>> = {};
+type Entry = { w: number; h: number } | null;
+// Every image each game ships (renders the games anchor in their own renderers have no recorded size here: null).
+const yaws = (variant: string) => Array.from({ length: 7 }, (_, i) => `${variant}-${i}`);
+const FILES: Record<string, string[]> = {
+  pool: ["arm", "table"],
+  curling: ["slide", "release", "arena", "stone-gold", "stone-red"],
+  racing: [...yaws("car"), ...yaws("brake"), ...yaws("mask")],
+};
 const data = SPORTS_SPRITES as unknown as Record<string, Record<string, unknown>>;
-for (const [game, set] of Object.entries(data)) {
-  expected[game] = {};
-  for (const [name, v] of Object.entries(set)) {
-    if (name === "frames" && Array.isArray(v)) {
-      // Apex: each yaw's car, brake and paint-mask frames share one size.
-      (v as Entry[]).forEach((f, i) => {
-        for (const variant of ["car", "brake", "mask"]) expected[game]![`${variant}-${i}`] = { w: f.w, h: f.h };
-      });
-    } else if (v && typeof v === "object" && "w" in (v as object)) expected[game]![name] = v as Entry;
-  }
+function recorded(game: string, name: string): Entry {
+  const set = data[game] ?? {};
+  // Apex: every yaw's car, brake and paint-mask frames share the set's one packed size.
+  if (game === "racing") return typeof set["w"] === "number" ? { w: set["w"] as number, h: set["h"] as number } : null;
+  const v = set[name] as { w?: number; h?: number } | undefined;
+  return v && typeof v.w === "number" ? { w: v.w, h: v.h as number } : null;
 }
 
-for (const game of Object.keys(expected)) {
+for (const [game, names] of Object.entries(FILES)) {
   const dir = join(ROOT, game);
   ok(existsSync(dir), `${game}: public/sports/${game} exists`);
   if (!existsSync(dir)) continue;
@@ -63,7 +65,7 @@ for (const game of Object.keys(expected)) {
   let bad = 0;
   const files = readdirSync(dir).filter((f) => f.endsWith(".webp"));
   for (const f of files) total += statSync(join(dir, f)).size;
-  for (const [name, e] of Object.entries(expected[game]!)) {
+  for (const name of names) {
     const path = join(dir, `${name}.webp`);
     if (!existsSync(path)) {
       bad++;
@@ -71,13 +73,18 @@ for (const game of Object.keys(expected)) {
       continue;
     }
     const s = sizeOf(readFileSync(path));
-    if (!s || s.w !== e.w || s.h !== e.h) {
+    const e = recorded(game, name);
+    if (!s) {
       bad++;
-      failures.push(`${game}/${name}.webp is ${s ? `${s.w}×${s.h}` : "not a WebP"}, the data file says ${e.w}×${e.h}`);
+      failures.push(`${game}/${name}.webp is not a WebP`);
+    } else if (e && (s.w !== e.w || s.h !== e.h)) {
+      bad++;
+      failures.push(`${game}/${name}.webp is ${s.w}×${s.h}, the data file says ${e.w}×${e.h}`);
     }
   }
-  ok(bad === 0, `${game}: ${Object.keys(expected[game]!).length} sprites present at their recorded sizes`);
-  ok(files.length === Object.keys(expected[game]!).length, `${game}: no stray images (${files.length} files)`);
+  ok(bad === 0, `${game}: ${names.length} images present, real WebPs, at their recorded sizes where the data file records one`);
+  const stray = files.filter((f) => !names.includes(f.replace(/\.webp$/, "")));
+  ok(stray.length === 0, `${game}: no stray images${stray.length ? ` (${stray.join(", ")})` : ""}`);
   ok(total / 1024 <= BUDGET_KB, `${game}: ${(total / 1024).toFixed(1)} KB of images, within the ${BUDGET_KB} KB budget`);
 }
 
