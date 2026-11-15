@@ -208,6 +208,24 @@ the walls, the raking moonlight moving up the stone with the moon, each lantern 
 - **The bigger ninja** (ricoRev 4): the body box 34 × 68 (was 26 × 52) and the figure drawn at 17/13 to fill it, the
   hits following exactly what is drawn; no gold rim round it.
 
+### Stage 2: effects and reveal (15 Nov 2026)
+
+Each effect drawn by the game's own renderer from a real ricoRev 4 run (the Average skill-band bot, seed 4100, every
+tick drawn on one canvas): a leap's dust off the wall, a double jump's ring of air, a slide on moss past the flow's
+limit (the scuff's gouges turn red), a grabbed lantern swaying, a scroll flying to its count (the chip flashes as it
+lands), and a hit (the tumble and a red "−3 m" beside the height).
+
+<img src="ricochet/effects-s2.webp" width="720">
+
+The answer reveal, before and after (a Near-perfect run, seed 4197, 163 points). Before: the breakdown and four stat
+tiles. After: the four numbers that explain the score in big type, then the climb drawn as the shaft (the real canvas
+picture, `drawMoonRunPicture` from `moonRunSummary`'s replay): the column up to the height reached, the longest Flow
+streak's stretch in gold, each hit a red mark with its metres lost, lanterns ridden and scrolls taken beside it, the
+full height dashed, a ruler every 50 m. The hits line from stage 1 stays in the breakdown. (The panel is composed from
+the real picture and the component's numbers; the stat tiles give way to it in the shared reveal.)
+
+<img src="ricochet/reveal-s2.webp" width="560">
+
 
 ## Iron Wall
 

@@ -10,10 +10,11 @@
  * drifting wisps, far lanterns, a larger cratered moon, the walls' raking moonlight and cast shadows, lanterns lighting
  * the stone near them; ricoRev 4's bigger ninja drawn at ninjaArtScale(rev).
  */
-import { drawActionHud, type ActionHudRow } from "./actionHud.renderer";
+import { ACTION_CHIP_H, ACTION_HUD_EDGE, ACTION_HUD_TOP, ACTION_ROW_STEP, actionChipWidth, drawActionHud, type ActionHudRow } from "./actionHud.renderer";
 import { artCanvas, artContext, deviceLayer } from "./cache.renderer";
 import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
-import { artHash } from "./art.renderer";
+import { artHash, reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "../fx/lowEnd";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import type { CanvasSize } from "./engine";
 import {
@@ -23,6 +24,12 @@ import {
   LANTERN_R,
   MODE_FLIGHT,
   MODE_STUN,
+  MOON_FLOW_SLIDE,
+  MOON_RIDE,
+  NINJA_FALL_TICKS,
+  NINJA_KNOCK,
+  NINJA_STUN,
+  ninjaSurface,
   NINJA_CORE_FULL_M,
   NINJA_HANG,
   NINJA_PX_PER_M,
@@ -1171,7 +1178,17 @@ export const LANTERN_LIGHT_R = 210;
  * A sky lantern (Moon Climb): a paper lantern glowing orange, its body inside the touch radius (MOON_SKY_R round its
  * centre), a dark cap and base and a short tassel; the glow round it is light only.
  */
-export function drawSkyLantern(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, ridden = false): void {
+export function drawSkyLantern(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, ridden = false, sway = 0, flare = 0): void {
+  if (sway !== 0) {
+    // Swaying about its base, where the ninja's hands hold it (the stage-2 effects: a grabbed lantern swings).
+    ctx.save();
+    ctx.translate(x, y + MOON_SKY_R - 2.5);
+    ctx.rotate(sway);
+    ctx.translate(-x, -(y + MOON_SKY_R - 2.5));
+    drawSkyLantern(ctx, x, y, tick, ridden, 0, flare);
+    ctx.restore();
+    return;
+  }
   // Translucent paper lit from within (the stage-2 look pass; no glow round it: its light falls on the walls instead,
   // drawLanternLight): a sky lantern's body, wider at the shoulder, its flame low in the open base. The paper glows
   // brightest round the flame and deepens to orange-red at the curved edge; bamboo ribs show dark against the light
@@ -1222,6 +1239,11 @@ export function drawSkyLantern(ctx: CanvasRenderingContext2D, x: number, y: numb
     ctx.moveTo(x - 13, yy);
     ctx.quadraticCurveTo(x, yy + 1.6, x + 13, yy);
     ctx.stroke();
+  }
+  // Brightening as it is grabbed: the paper itself lit whiter (inside its body only, never a halo).
+  if (flare > 0.01) {
+    ctx.fillStyle = `rgba(255,246,214,${(0.5 * flare).toFixed(3)})`;
+    ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
   }
   // The sheen down the left of the curve: a crisp highlight on the paper, never a halo.
   ctx.strokeStyle = "rgba(255,250,232,0.75)";
@@ -1449,6 +1471,249 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
   ctx.restore();
 }
 
+/* ================================ Effects (stage 2) ================================ */
+/*
+ * Moon Climb's effects (the Action overhaul's stage 2, 15 Nov 2026; Joe's list; display only, no stamp). Each observes
+ * the sim (its counters, ticks and modes) and draws in the world, never over the HUD's numbers but the two meant to:
+ *  - a leap kicks dust off the wall (or ledge) it leaves: flecks of the surface's own colour, slate grit, moss or ice;
+ *  - a double jump puffs a ring of air under the feet;
+ *  - sliding on moss or ice scuffs a trail down the face, red from the point where the slide breaks the flow (the
+ *    sim's MOON_FLOW_SLIDE) while a streak runs; a broken streak's trail flashes red as it fades (sounds ricochet.scuff,
+ *    ricochet.flowBreak);
+ *  - a grabbed lantern brightens and sways under the hands, settling over its ride (ricochet.lanternSway);
+ *  - a scroll flies into the HUD's SCROLLS count, the chip flashing as it lands (ricochet.scrollTally);
+ *  - a hit tumbles the ninja through the 3 m knock-down (ricochet.fallWhistle) and a short red "−3 m" shows beside the
+ *    height.
+ * Ages are in sim ticks (the same picture for the same state). Every physical action ends within 900 ms (54 ticks).
+ * Reduced motion: no tumble or sway, rings and dust shown still for a moment; reduced effects: no dust.
+ * Events are noticed by comparing each drawn state with the one drawn before on the same canvas (MoonFxMem), so a
+ * replay or reveal drawing one frame shows none, and a jump back in time starts afresh.
+ */
+/** Ticks: dust, the air ring, a scroll's flight to the HUD, the red "−n m", a trail's fade once left. */
+export const MOON_FX_DUST_TICKS = 30;
+export const MOON_FX_RING_TICKS = 24;
+export const MOON_FX_SCROLL_TICKS = 24;
+export const MOON_FX_LOSS_TICKS = 60;
+export const MOON_FX_TRAIL_FADE = 30;
+/** The tumble's length: the sim's knock-down fall (NINJA_FALL_TICKS). */
+export const MOON_FX_TUMBLE_TICKS = NINJA_FALL_TICKS;
+
+interface MoonFxEvent {
+  kind: "dust" | "ring" | "scroll" | "loss" | "trail";
+  t: number;
+  /** World x and height (px above the floor); for a trail its bottom and top heights. */
+  x: number;
+  y: number;
+  y2?: number;
+  /** dust: +1 kicked rightwards, −1 leftwards; trail: the red part's top height (or -1). */
+  dir?: number;
+  surf?: number;
+  /** loss: metres lost; trail: 1 when the flow broke. */
+  n?: number;
+}
+interface MoonFxMem {
+  tick: number;
+  seed: string;
+  prev: MoonState;
+  events: MoonFxEvent[];
+}
+const moonFxMems = new WeakMap<object, MoonFxMem>();
+
+/** The flow-breaking part of the current slide: the heights (px) of its trail and where it turns red, or null. */
+export function moonScuff(s: MoonState): { top: number; bottom: number; redFrom: number | null; surf: number } | null {
+  if (s.mode !== 0 || s.ledge >= 0 || s.slid <= 0) return null;
+  const y = s.y >> 8;
+  const surf = ninjaSurface(s.tower.patches, s.wall, y);
+  if (surf !== SURF_MOSS && surf !== SURF_ICE) return null;
+  const top = (s.y + s.slid) >> 8;
+  // From MOON_FLOW_SLIDE below the landing on, a take-off would break the streak (only while there is one).
+  const redFrom = s.streak > 0 && s.slid >= MOON_FLOW_SLIDE ? top - (MOON_FLOW_SLIDE >> 8) : null;
+  return { top, bottom: y, redFrom, surf };
+}
+
+/** Notices the events between the last state drawn on this canvas and this one. */
+export function moonFxEvents(ctx: object, s: MoonState): MoonFxEvent[] {
+  const key = `${s.tower.katanas.length}:${s.tower.sky[0]?.t0 ?? 0}:${s.rev}`;
+  let mem = moonFxMems.get(ctx);
+  if (!mem || mem.seed !== key || s.tick < mem.tick || s.tick > mem.tick + 30) {
+    mem = { tick: s.tick, seed: key, prev: s, events: [] };
+    moonFxMems.set(ctx, mem);
+    return mem.events;
+  }
+  if (s.tick === mem.tick) return mem.events;
+  const p = mem.prev;
+  const b = ninjaBodyFor(s.rev);
+  if (s.leaps > p.leaps && s.mode !== MODE_STUN) {
+    // A take-off from a wall or a ledge (never from a lantern: the ride's leap-off has nothing to push from).
+    if (p.mode === 0) {
+      const onLedge = p.ledge >= 0;
+      // The side of the surface pushed off (a ledge lies the way the ninja was heading when it clung there).
+      const side = onLedge ? (p.toX > p.x ? 1 : -1) : p.x < NINJA_WORLD_W / 2 ? -1 : 1;
+      const surf = onLedge ? 0 : ninjaSurface(p.tower.patches, p.wall, p.y >> 8);
+      mem.events.push({ kind: "dust", t: s.tick, x: p.x + side * b.hw, y: (p.y >> 8) - b.hh + 6, dir: -side, surf });
+    }
+  }
+  if (s.djs > p.djs) mem.events.push({ kind: "ring", t: s.tick, x: s.x, y: (s.y >> 8) - b.hh });
+  if (s.scrolls > p.scrolls) mem.events.push({ kind: "scroll", t: s.tick, x: s.x, y: s.y >> 8 });
+  if (s.hits > p.hits) {
+    const lost = Math.max(1, Math.round((p.y - s.knockTo) / 256 / NINJA_PX_PER_M));
+    mem.events.push({ kind: "loss", t: s.tick, x: 0, y: 0, n: Math.min(lost, Math.round(NINJA_KNOCK / NINJA_PX_PER_M)) });
+  }
+  // A slide's trail left behind (a take-off or a hit): kept to fade, red where it broke the flow.
+  const was = moonScuff(p);
+  if (was && !(s.mode === 0 && s.ledge < 0 && s.wall === p.wall && s.slid > 0)) {
+    const broke = p.streak >= 1 && s.streak === 0 && s.hits === p.hits;
+    mem.events.push({ kind: "trail", t: s.tick, x: p.wall === 0 ? NINJA_WALL_L : NINJA_WALL_R, y: was.bottom, y2: was.top, dir: was.redFrom ?? -1, surf: was.surf, n: broke ? 1 : 0 });
+  }
+  const keep = Math.max(MOON_FX_LOSS_TICKS, MOON_FX_DUST_TICKS, MOON_FX_TRAIL_FADE);
+  mem.events = mem.events.filter((e) => s.tick - e.t <= keep);
+  mem.tick = s.tick;
+  mem.prev = s;
+  return mem.events;
+}
+
+/** Scuff marks down a wall face from height `top` to `bottom` (px), red below `redFrom` when given. */
+function drawScuffTrail(ctx: CanvasRenderingContext2D, cam: number, wall: number, top: number, bottom: number, redFrom: number | null, surf: number, alpha: number, tick: number): void {
+  const face = wall === 0 ? NINJA_WALL_L : NINJA_WALL_R;
+  const inward = wall === 0 ? 1 : -1;
+  const y0 = ninjaScreenY(cam, top);
+  const y1 = ninjaScreenY(cam, bottom);
+  if (y1 - y0 < 1) return;
+  const base = surf === SURF_ICE ? "235,248,255" : "198,236,150";
+  // Three gouges in the patch beside the face (the hands and feet dragging down it), never behind the ninja's body.
+  for (let k = 0; k < 3; k++) {
+    const x = face - inward * (2 + k * 3.2);
+    const split = redFrom === null ? y1 : Math.min(y1, Math.max(y0, ninjaScreenY(cam, redFrom)));
+    ctx.fillStyle = `rgba(${base},${(alpha * (0.85 - k * 0.15)).toFixed(3)})`;
+    ctx.fillRect(x - 1, y0 + (k * 3) % 5, 2, Math.max(0, split - y0 - ((k * 3) % 5)));
+    if (redFrom !== null && split < y1) {
+      ctx.fillStyle = `rgba(236,56,68,${(alpha * (0.95 - k * 0.15)).toFixed(3)})`;
+      ctx.fillRect(x - 1.1, split, 2.2, y1 - split);
+    }
+  }
+  // Flecks thrown off at the foot of a live slide.
+  if (alpha >= 1 && !reducedMotion()) {
+    ctx.fillStyle = `rgba(${base},0.8)`;
+    for (let i = 0; i < 3; i++) {
+      const h = artHash(tick + i, 71);
+      ctx.fillRect(face + inward * (3 + (h % 6)), y1 + 2 + ((h >>> 5) % 6), 1.5, 1.5);
+    }
+  }
+}
+
+/** The effects drawn behind the ninja: the live scuff trail, the trails left fading, the dust and the air ring. */
+function drawMoonFxUnder(ctx: CanvasRenderingContext2D, s: MoonState, events: readonly MoonFxEvent[], cam: number): void {
+  const still = reducedMotion();
+  const lite = arcadeReducedEffects();
+  const live = moonScuff(s);
+  const hh = ninjaBodyFor(s.rev).hh;
+  // Two tracks, the hands' and the feet's, each from where it landed down to where it is now.
+  const tracks = [Math.round(hh * 0.6), -hh + 6];
+  if (live) for (const o of tracks) drawScuffTrail(ctx, cam, s.wall, live.top + o, live.bottom + o, live.redFrom === null ? null : live.redFrom + o, live.surf, 1, s.tick);
+  for (const e of events) {
+    const age = s.tick - e.t;
+    if (e.kind === "trail" && age <= MOON_FX_TRAIL_FADE) {
+      const f = 1 - age / MOON_FX_TRAIL_FADE;
+      const wall = e.x === NINJA_WALL_L ? 0 : 1;
+      // A broken streak's whole trail turns red as it fades.
+      for (const o of tracks) drawScuffTrail(ctx, cam, wall, e.y2! + o, e.y + o, e.n ? e.y2! + o : e.dir! >= 0 ? e.dir! + o : null, e.surf ?? SURF_MOSS, f * 0.9, s.tick);
+    } else if (e.kind === "dust" && age <= MOON_FX_DUST_TICKS && !lite) {
+      const f = age / MOON_FX_DUST_TICKS;
+      const sy = ninjaScreenY(cam, e.y);
+      const tone = e.surf === SURF_MOSS ? "128,182,86" : e.surf === SURF_ICE ? "232,246,255" : "182,190,212";
+      const t = still ? 5 : age;
+      // A soft puff where the feet pushed off, spreading along the face and out into the gap.
+      for (let i = 0; i < 3; i++) {
+        const h = artHash(e.t * 7 + i, 61);
+        const px = e.x + (e.dir ?? 1) * (3 + i * 4 + t * 0.35 * (1 + i * 0.3));
+        const py = sy - 4 + i * 6 + ((h % 7) - 3) + t * 0.12;
+        const r = 6 + i * 2 + t * 0.4;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+        g.addColorStop(0, `rgba(${tone},${(0.55 * (1 - f)).toFixed(3)})`);
+        g.addColorStop(1, `rgba(${tone},0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(px - r, py - r, 2 * r, 2 * r);
+      }
+      // Grit kicked off the face, falling as it flies.
+      for (let i = 0; i < 14; i++) {
+        const h = artHash(e.t * 13 + i, 59);
+        const vx = (0.5 + (h % 100) / 55) * (e.dir ?? 1);
+        const vy = -0.9 + ((h >>> 8) % 100) / 60;
+        const x = e.x + vx * t * 1.5;
+        const y = sy + vy * t + 0.05 * t * t + (((h >>> 16) % 24) - 12);
+        ctx.fillStyle = `rgba(${tone},${(0.9 * (1 - f)).toFixed(3)})`;
+        const r = 2 + ((h >>> 24) % 4) * 0.7;
+        ctx.fillRect(x - r / 2, y - r / 2, r, r);
+      }
+    } else if (e.kind === "ring" && age <= MOON_FX_RING_TICKS) {
+      const f = age / MOON_FX_RING_TICKS;
+      const r = still ? 14 : 8 + 20 * Math.sqrt(f);
+      const sy = ninjaScreenY(cam, e.y);
+      ctx.strokeStyle = `rgba(225,235,255,${(0.7 * (1 - f)).toFixed(3)})`;
+      ctx.lineWidth = 2 * (1 - f) + 0.6;
+      ctx.beginPath();
+      ctx.ellipse(e.x, sy + 2, r, r * 0.32, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(225,235,255,${(0.35 * (1 - f)).toFixed(3)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(e.x, sy + 6, r * 0.7, r * 0.22, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+}
+
+/** Where the HUD's SCROLLS chip sits (world px): the second row's right chip. */
+export function moonScrollChipAt(ctx: CanvasRenderingContext2D, s: MoonState): { x: number; y: number } {
+  const chip = moonHudRows(s)[1]!.right![0]!;
+  const w = actionChipWidth(ctx, chip);
+  return { x: NINJA_WORLD_W - ACTION_HUD_EDGE - w / 2, y: ACTION_HUD_TOP + ACTION_ROW_STEP + ACTION_CHIP_H / 2 };
+}
+
+/** The effects drawn over the HUD: a scroll flying into its count and the red "−n m" beside the height. */
+function drawMoonFxOver(ctx: CanvasRenderingContext2D, s: MoonState, events: readonly MoonFxEvent[], cam: number): void {
+  for (const e of events) {
+    const age = s.tick - e.t;
+    if (e.kind === "scroll" && age < MOON_FX_SCROLL_TICKS) {
+      const to = moonScrollChipAt(ctx, s);
+      const u = reducedMotion() ? 1 : age / MOON_FX_SCROLL_TICKS;
+      const e2 = u * u * (3 - 2 * u);
+      const fx = e.x + (to.x - e.x) * e2;
+      const fy0 = ninjaScreenY(cam, e.y);
+      const fy = fy0 + (to.y - fy0) * e2 - Math.sin(Math.PI * u) * 40;
+      ctx.save();
+      ctx.translate(fx, fy);
+      ctx.scale(2.2 - 1.2 * e2, 2.2 - 1.2 * e2);
+      drawScrollIcon(ctx, 0, 0);
+      ctx.restore();
+    } else if (e.kind === "loss" && age < MOON_FX_LOSS_TICKS) {
+      const chip = moonHudRows(s)[0]!.left[0]!;
+      const x = ACTION_HUD_EDGE + actionChipWidth(ctx, chip) + 8;
+      const a = age < 40 ? 1 : 1 - (age - 40) / 20;
+      const rise = reducedMotion() ? 0 : Math.min(4, age * 0.3);
+      ctx.save();
+      ctx.font = `800 15px ${ARCADE_FX_DISPLAY_FONT}`;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "left";
+      ctx.fillStyle = `rgba(6,8,18,${(0.7 * a).toFixed(3)})`;
+      const text = `−${e.n ?? 3} m`;
+      const w = ctx.measureText(text).width;
+      ctx.beginPath();
+      ctx.roundRect(x - 6, ACTION_HUD_TOP + 1 - rise, w + 12, ACTION_CHIP_H - 2, 8);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,92,100,${a.toFixed(3)})`;
+      ctx.fillText(text, x, ACTION_HUD_TOP + ACTION_CHIP_H / 2 - rise);
+      ctx.restore();
+    }
+  }
+}
+
+/** The ridden lantern's sway (radians) and brightening (0 … 1) this many ticks after the grab. */
+export function moonLanternSway(age: number): { angle: number; flare: number } {
+  if (reducedMotion()) return { angle: 0, flare: age < 18 ? 0.6 : 0 };
+  return { angle: 0.2 * Math.exp(-age / 28) * Math.sin(age / 4.2), flare: Math.exp(-age / 14) };
+}
+
 /* ================================ The frame ================================ */
 
 /**
@@ -1460,7 +1725,9 @@ export function moonHudRows(s: MoonState): ActionHudRow[] {
   const m = ninjaMetres(s);
   const lit = s.tick - s.flowTick < 30;
   const grab = s.tick - s.grabTick < 30 ? 1 - (s.tick - s.grabTick) / 30 : 0;
-  const scroll = s.tick - s.pickTick < 30 ? 1 - (s.tick - s.pickTick) / 30 : 0;
+  // The SCROLLS chip flashes as the scroll flying into it lands (stage 2's effects: MOON_FX_SCROLL_TICKS after the take).
+  const landed = s.tick - s.pickTick - MOON_FX_SCROLL_TICKS;
+  const scroll = landed >= 0 && landed < 30 ? 1 - landed / 30 : 0;
   return [
     {
       left: [{ label: "HEIGHT", value: `${m} m`, tone: m >= MOON_CORE_FULL_M ? "gold" : "plain", pulse: { id: "ricochet", tick: s.tick } }],
@@ -1623,20 +1890,30 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
     const p = shurikenAt(sh, t);
     drawShuriken(ctx, p.x, ninjaScreenY(cam, p.y), t);
   }
+  // Stage 2's effects behind the ninja (scuffs, dust, the air ring), noticed against the last frame drawn here.
+  const fxEvents = moon ? moonFxEvents(ctx, moon) : [];
+  if (moon) drawMoonFxUnder(ctx, moon, fxEvents, cam);
   // The ninja: blinking while stunned or in its grace.
   const at = ninjaDrawPoint(s);
   const blink = s.safe > 0 && s.mode !== MODE_STUN && Math.trunc(t / 4) % 2 === 0;
   // On a mid-ledge the ninja faces away from it (its side is the wall it was heading for).
   const onLedge = moon !== null && moon.mode !== MODE_FLIGHT && moon.ledge >= 0;
   const face = s.mode === MODE_FLIGHT ? (s.wall === 1 ? 1 : -1) : onLedge ? (s.wall === 1 ? -1 : 1) : s.wall === 0 ? 1 : -1;
-  const pose = s.mode === MODE_STUN ? 3 : s.mode === MODE_RIDE ? 4 : s.mode === MODE_FLIGHT ? (s.dj && s.hang > 0 ? 2 : 1) : 0;
-  // The ridden lantern above the ninja's hands.
+  // A hit on Moon Climb tumbles the ninja through the knock-down (one turn over the fall), then it hangs stunned.
+  const fallAge = moon && s.mode === MODE_STUN ? NINJA_STUN - s.stun : MOON_FX_TUMBLE_TICKS;
+  const tumbling = moon !== null && fallAge < MOON_FX_TUMBLE_TICKS && !reducedMotion();
+  const pose = tumbling ? 2 : s.mode === MODE_STUN ? 3 : s.mode === MODE_RIDE ? 4 : s.mode === MODE_FLIGHT ? (s.dj && s.hang > 0 ? 2 : 1) : 0;
+  const spin = tumbling ? (fallAge / MOON_FX_TUMBLE_TICKS) * Math.PI * 2 : s.dj ? ((NINJA_HANG - s.hang) / NINJA_HANG) * Math.PI * 2 : 0;
+  // The ridden lantern above the ninja's hands, brightening and swaying as it is grabbed.
   const body = ninjaBodyFor(s.rev);
-  if (moon && moon.mode === MODE_RIDE) drawSkyLantern(ctx, at.x, at.y - moonRideHang(s.rev), t, true);
+  if (moon && moon.mode === MODE_RIDE) {
+    const sw = moonLanternSway(MOON_RIDE - moon.ride);
+    drawSkyLantern(ctx, at.x, at.y - moonRideHang(s.rev), t, true, sw.angle, sw.flare);
+  }
   if (blink) ctx.globalAlpha = 0.4;
-  drawNinja(ctx, at.x, at.y, pose, face, t, s.dj ? ((NINJA_HANG - s.hang) / NINJA_HANG) * Math.PI * 2 : 0, ninjaArtScale(s.rev));
+  drawNinja(ctx, at.x, at.y, pose, face, t, spin, ninjaArtScale(s.rev));
   ctx.globalAlpha = 1;
-  if (s.mode === MODE_STUN) {
+  if (s.mode === MODE_STUN && !tumbling) {
     // Stars round the head.
     ctx.fillStyle = NINJA_GOLD;
     for (let i = 0; i < 3; i++) {
@@ -1650,6 +1927,7 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
     ctx.fillRect(0, 0, W, H);
   }
   drawHud(ctx, s);
+  if (moon) drawMoonFxOver(ctx, moon, fxEvents, cam);
 }
 
 const isMoon = (s: NinjaState): s is MoonState => isMoonState(s);
@@ -1701,3 +1979,181 @@ export function ninjaArtGameFor(rev: number | null | undefined) {
 
 /** The metres to px factor, for the reveal. */
 export const NINJA_M = NINJA_PX_PER_M;
+
+/* ============================== The run picture (stage 2) ============================== */
+
+/** The run picture's colours (the reveal's legend uses the same). */
+export const MOON_RUN_COLOURS = { route: "rgba(225,232,255,0.6)", flow: NINJA_GOLD, hit: "#FF5C66", full: "#F2C75C", reached: "#FFFFFF" } as const;
+
+/** What the run picture draws (moonSummary.ts builds it from the stored log; the renderer never imports the summary). */
+export interface MoonRunPictureData {
+  route: readonly { x: number; y: number }[];
+  hits: readonly { x: number; y: number; lostM: number }[];
+  rides: readonly { x: number; y: number }[];
+  scrolls: readonly { x: number; y: number }[];
+  bestRun: { from: number; to: number } | null;
+  bestPx: number;
+  metres: number;
+  fullM: number;
+}
+
+/**
+ * Moon Climb's run picture for the answer reveal (the Action overhaul, stage 2, 15 Nov 2026; display only): the shaft
+ * drawn tall between two slate walls, the route the ninja climbed as a pale line (the longest Flow streak's stretch in
+ * gold), each hit a red mark with its drop and the metres lost, each lantern ridden and scroll taken where it happened,
+ * a dashed gold line at the core's full height and the height reached labelled at the top of the climb.
+ */
+export function drawMoonRunPicture(ctx: CanvasRenderingContext2D, d: MoonRunPictureData, size: { width: number; height: number }): void {
+  const W = size.width;
+  const H = size.height;
+  const wall = 20;
+  const top = 26;
+  const bottom = H - 12;
+  const fullPx = d.fullM * NINJA_PX_PER_M;
+  const span = Math.max(d.bestPx, fullPx) * 1.04 + 1;
+  const sx = (x: number) => wall + ((x - NINJA_WALL_L) / (NINJA_WALL_R - NINJA_WALL_L)) * (W - 2 * wall);
+  const sy = (h: number) => bottom - (h / span) * (bottom - top);
+  // The night and the walls.
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  for (const [o, c] of SKY_STOPS) g.addColorStop(o, c);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 40; i++) {
+    const h = artHash(i, 301);
+    ctx.fillStyle = `rgba(230,236,255,${(0.25 + ((h >>> 8) % 4) * 0.12).toFixed(2)})`;
+    ctx.fillRect(wall + (h % Math.max(1, W - 2 * wall)), (h >>> 12) % H, 1.2, 1.2);
+  }
+  for (const left of [true, false]) {
+    const x0 = left ? 0 : W - wall;
+    const sg = ctx.createLinearGradient(x0, 0, x0 + wall, 0);
+    sg.addColorStop(0, left ? "#232839" : "#3F475E");
+    sg.addColorStop(1, left ? "#3F475E" : "#232839");
+    ctx.fillStyle = sg;
+    ctx.fillRect(x0, 0, wall, H);
+    ctx.fillStyle = SLATE_BED;
+    for (let y = H; y > 0; y -= 12) ctx.fillRect(x0, y, wall, 1.5);
+    ctx.fillStyle = "rgba(214,226,255,0.35)";
+    ctx.fillRect(left ? wall - 1.5 : W - wall, 0, 1.5, H);
+  }
+  ctx.fillStyle = MOON_FLOOR;
+  ctx.fillRect(wall, bottom, W - 2 * wall, H - bottom);
+  ctx.font = `800 13px ${ARCADE_FX_DISPLAY_FONT}`;
+  ctx.textBaseline = "middle";
+  const label = (text: string, x: number, y: number, colour: string, align: CanvasTextAlign) => {
+    ctx.textAlign = align;
+    const w = ctx.measureText(text).width;
+    const lx = align === "right" ? x - w : align === "center" ? x - w / 2 : x;
+    ctx.fillStyle = "rgba(6,8,18,0.72)";
+    ctx.beginPath();
+    ctx.roundRect(lx - 5, y - 10, w + 10, 20, 6);
+    ctx.fill();
+    ctx.fillStyle = colour;
+    ctx.fillText(text, x, y + 0.5);
+  };
+  // The core's full height.
+  const fy = sy(fullPx);
+  ctx.strokeStyle = MOON_RUN_COLOURS.full;
+  ctx.globalAlpha = 0.85;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 5]);
+  ctx.beginPath();
+  ctx.moveTo(wall, fy);
+  ctx.lineTo(W - wall, fy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  // The climb as a column up the middle of the shaft (the route itself is too dense to read at this size): pale from the
+  // floor to the height reached, the longest Flow streak's stretch of it gold, a ruler every 50 m along the walls.
+  const cx = W / 2;
+  const bw = 12;
+  ctx.textAlign = "left";
+  ctx.font = `700 12px ${ARCADE_FX_DISPLAY_FONT}`;
+  for (let m = 50; m * NINJA_PX_PER_M < span; m += 50) {
+    const y = sy(m * NINJA_PX_PER_M);
+    ctx.fillStyle = "rgba(214,226,255,0.32)";
+    ctx.fillRect(wall, y, 8, 1.2);
+    ctx.fillRect(W - wall - 8, y, 8, 1.2);
+    // The ruler's number, unless the full-height or reached line sits on it.
+    if (Math.abs(y - fy) < 14 || Math.abs(y - sy(d.bestPx)) < 14) continue;
+    ctx.fillStyle = "rgba(214,226,255,0.6)";
+    ctx.fillText(String(m), wall + 11, y);
+  }
+  const col = ctx.createLinearGradient(cx - bw / 2, 0, cx + bw / 2, 0);
+  col.addColorStop(0, "rgba(160,180,240,0.55)");
+  col.addColorStop(0.5, "rgba(225,232,255,0.85)");
+  col.addColorStop(1, "rgba(160,180,240,0.55)");
+  ctx.fillStyle = col;
+  ctx.fillRect(cx - bw / 2, sy(d.bestPx), bw, bottom - sy(d.bestPx));
+  if (d.bestRun) {
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = d.bestRun.from; i <= d.bestRun.to && i < d.route.length; i++) {
+      lo = Math.min(lo, d.route[i]!.y);
+      hi = Math.max(hi, d.route[i]!.y);
+    }
+    if (hi > lo) {
+      ctx.fillStyle = MOON_RUN_COLOURS.flow;
+      ctx.fillRect(cx - bw / 2, sy(hi), bw, Math.max(2, sy(lo) - sy(hi)));
+    }
+  }
+  // Lanterns ridden and scrolls taken, beside the column on the right at their heights.
+  let lastIcon = Infinity;
+  const items = [...d.rides.map((r) => ({ y: r.y, ride: true })), ...d.scrolls.map((c) => ({ y: c.y, ride: false }))].sort((a, b) => a.y - b.y);
+  for (const it of items) {
+    let y = sy(it.y);
+    if (lastIcon - y < 22) y = lastIcon - 22;
+    lastIcon = y;
+    ctx.strokeStyle = "rgba(225,232,255,0.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx + bw / 2, sy(it.y));
+    ctx.lineTo(cx + bw / 2 + 16, y);
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(cx + bw / 2 + 28, y);
+    if (it.ride) {
+      ctx.scale(0.7, 0.7);
+      drawSkyLantern(ctx, 0, 0, 0, true);
+    } else {
+      ctx.scale(1.3, 1.3);
+      drawScrollIcon(ctx, 0, 0);
+    }
+    ctx.restore();
+  }
+  // Hits: on the column's left, a red mark where it struck and its drop; the metres lost labelled to the left where
+  // the label has room (every mark is drawn; the breakdown's hits line gives the count).
+  let lastLabel = sy(d.bestPx) - 8;
+  for (const hit of [...d.hits].sort((a, b) => b.y - a.y)) {
+    const x = cx - bw / 2 - 5;
+    const y0 = sy(hit.y);
+    const y1 = sy(Math.max(0, hit.y - hit.lostM * NINJA_PX_PER_M));
+    ctx.strokeStyle = MOON_RUN_COLOURS.hit;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y0);
+    ctx.lineTo(x, y1);
+    ctx.stroke();
+    ctx.fillStyle = MOON_RUN_COLOURS.hit;
+    ctx.beginPath();
+    ctx.arc(x, y0, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    if (hit.lostM > 0 && y0 - lastLabel >= 22) {
+      ctx.font = `800 13px ${ARCADE_FX_DISPLAY_FONT}`;
+      label(`\u2212${hit.lostM} m`, x - 10, y0, MOON_RUN_COLOURS.hit, "right");
+      lastLabel = y0;
+    }
+  }
+  // The height reached.
+  const ry = sy(d.bestPx);
+  const reachedFull = d.metres >= d.fullM;
+  ctx.strokeStyle = reachedFull ? MOON_RUN_COLOURS.full : MOON_RUN_COLOURS.reached;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(wall, ry);
+  ctx.lineTo(W - wall, ry);
+  ctx.stroke();
+  ctx.font = `800 15px ${ARCADE_FX_DISPLAY_FONT}`;
+  label(`${d.metres} m`, W / 2, Math.max(12, ry - 13), reachedFull ? MOON_RUN_COLOURS.full : MOON_RUN_COLOURS.reached, "center");
+  ctx.font = `800 13px ${ARCADE_FX_DISPLAY_FONT}`;
+  if (Math.abs(fy - ry) > 22) label(`${d.fullM} m`, W - wall - 6, fy - 12, MOON_RUN_COLOURS.full, "right");
+}

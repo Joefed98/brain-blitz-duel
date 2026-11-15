@@ -301,11 +301,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `ricochet.scrollTally` | Moon Climb (ricoRev 3): a taken scroll lands on the HUD's SCROLLS count [action-overhaul-stage2.md] | The scroll flies up into the count | 0–3 | silent | none | 400 | game event | `ricochet.scrollTally` |
-| `ricochet.lanternSway` | Moon Climb (ricoRev 3): a sky lantern brightens and sways as the ninja grabs it [action-overhaul-stage2.md] | The lantern flares and swings under the ninja's hands | 0–6 | silent | none | 500 | game event | `ricochet.lanternSway` |
 | `ricochet.fallWhistle` |  [arcade-effects.md] | The ninja stunned and falling, a red wash | 5–40 (per move) | silent | none | 900 | game event | `ricochet.fallWhistle` |
 | `ricochet.flowBreak` |  [arcade-effects.md] | FLOW ×n drops to ×0 in the HUD | 5–40 (per move) | silent | none | 350 | game event | `ricochet.flowBreak` |
 | `ricochet.scuff` |  [arcade-effects.md] | The ninja sliding down a green or icy patch | 5–40 (per move) | silent | none | loop | game event | `ricochet.scuff` |
+| `ricochet.scrollTally` |  [arcade-effects.md] | The scroll flies up into the count, the chip flashing | 5–40 (per move) | silent | none | 400 | game event | `ricochet.scrollTally` |
+| `ricochet.lanternSway` |  [arcade-effects.md] | The lantern brightens and sways under the ninja's hands, settling over the ride | 5–40 (per move) | silent | none | 500 | game event | `ricochet.lanternSway` |
 
 ### Orbit
 

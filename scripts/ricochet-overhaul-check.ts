@@ -23,7 +23,9 @@
  *  9. ricoRev 4, the bigger ninja: ricoRev 3 unchanged on fixtures recorded before it, the deal and its pin, the body,
  *     every tower re-proved to 200 through the server replay, grace, the hit box, the bands rising;
  * 10. the look: a sky lantern's light only on the stone (no glow round it), far lanterns display only and small, the
- *     moon large, the walls' raking moonlight, the bigger figure and no rim round it.
+ *     moon large, the walls' raking moonlight, the bigger figure and no rim round it;
+ * 11. stage 2's effects (dust, air ring, scuff trail, lantern sway, scroll tally, the hit's tumble and "−3 m") and the
+ *     answer reveal's run picture.
  *
  *   bun scripts/ricochet-overhaul-check.ts [--record]
  */
@@ -38,7 +40,7 @@ import {
   NINJA_KNOCK, NINJA_PX_PER_M, NINJA_RUN_SECONDS, NINJA_START, NINJA_WALL_L, NINJA_WALL_R, NINJA_WORLD_W, SHURIKEN_R,
   moonCheckpoint, moonDeal, moonGame, ninjaMetres, type MoonState,
   MOON_BIG_BODY, MOON_BIG_HH, MOON_BIG_HW, MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_LEDGE_HW, MOON_SKY_R, MOON_STD_SPEC, MODE_FLIGHT, NINJA_BODY,
-  NINJA_LEAP_TICKS, katanaTouches, moonGameFor, moonLeapTicks, moonLedgeX, moonSkyAt, ninjaBodyFor,
+  NINJA_LEAP_TICKS, katanaTouches, moonGameFor, moonLeapTicks, moonLedgeX, moonSkyAt, ninjaBodyFor, ninjaSurface, MOON_FLOW_SLIDE, SURF_MOSS,
 } from "../src/lib/arcade/ricochetNinja";
 import {
   drawKatana, drawNinja, drawNinjaWorld as drawWorld, drawShuriken, FAR_LANTERN_COUNT, farLanternAt, moonHudRows, moonNight, moonPlace, ninjaArtScale,
@@ -552,6 +554,162 @@ if (process.argv.includes("--record")) {
   ok(big.w >= small1.w * 1.25 && big.h >= small1.h * 1.25, `look e: the bigger ninja is drawn larger (${big.w} × ${big.h} px, was ${small1.w} × ${small1.h})`);
   const src = readFileSync("src/lib/arcade/ricochetNinja.renderer.ts", "utf8");
   ok(!/rgba\(242,199,92,0\.55\)/.test(src), "look e: no gold rim round the ninja (Joe: no glowing edges)");
+}
+
+/*
+ * 11. Stage 2's effects and the answer reveal (15 Nov 2026, display only; docs/arcade-standard/ricochet.md "Stage 2:
+ *     effects and the reveal"):
+ *  a. every effect observes the sim: a run drawn every tick ends in exactly the state of the same run not drawn;
+ *  b. the events: a leap off a wall kicks dust at that wall's face, a double jump a ring under the feet, a scroll its
+ *     flight to the HUD (whose SCROLLS chip flashes as it lands), a hit a red "−3 m"; the same states give the same
+ *     events on any canvas; every physical action ends within 900 ms (54 ticks); the sound's tally tick matches;
+ *  c. the scuff trail turns red only once a slide on moss or ice would break a running streak (MOON_FLOW_SLIDE);
+ *  d. the grabbed lantern brightens and sways, settling over its ride; the hit tumbles through the knock-down's fall;
+ *  e. sounds: lanternSway on a grab, scrollTally on the landing, wired and documented (their rows moved to
+ *     arcade-effects.md);
+ *  f. the reveal's run picture: the stored log replayed through the real sim (moonRunSummary) agrees with the server's
+ *     replay (height, rides, scrolls, hits, best flow) on runs at every level; each hit's metres lost at most 3; the
+ *     drawing shows the reached height, the hits in red and the best flow in gold; the component shows four big
+ *     numbers with short plain labels and one picture, and the shared reveal draws it in place of the tiles.
+ */
+{
+  const R = await import("../src/lib/arcade/ricochetNinja.renderer");
+  const g4 = moonGameFor(4);
+  // a + b. A run with every kind of event, drawn every tick on one canvas.
+  const seed = 4100;
+  const ev = ricoBot({ game: g4 as any, seed, rev: MOON_BIG_REV, human: new Human("ricochet", seed, "average" as any), fixes: true }).events ?? [];
+  const at = new Map(ev.map((e) => [e.t, e]));
+  const c = createCanvas(390, 730);
+  const x = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+  let drawn = g4.init(seed) as MoonState;
+  let plain = g4.init(seed) as MoonState;
+  const seen = { dust: 0, ring: 0, scroll: 0, loss: 0, trail: 0 } as Record<string, number>;
+  let dustAtFace = true;
+  let lossText = true;
+  let scrollFlash = true;
+  let mem = new Set<string>();
+  const ctxKey = {};
+  for (let t = 1; t <= 2400 && !g4.isOver(drawn); t++) {
+    const input = at.get(t) ?? null;
+    const before = drawn;
+    drawn = g4.step(drawn, input) as MoonState;
+    plain = g4.step(plain, input) as MoonState;
+    R.drawNinjaWorld(x, drawn);
+    const events = R.moonFxEvents(ctxKey, drawn);
+    for (const e of events) {
+      const id = `${e.kind}:${e.t}`;
+      if (mem.has(id)) continue;
+      mem.add(id);
+      seen[e.kind] = (seen[e.kind] ?? 0) + 1;
+      if (e.kind === "dust" && before.ledge < 0 && e.x !== NINJA_WALL_L && e.x !== NINJA_WALL_R) dustAtFace = false;
+      if (e.kind === "loss" && e.n !== 3 && drawn.knockTo > MOON_BIG_BODY.start) lossText = false;
+    }
+    if (drawn.scrolls > before.scrolls) {
+      const rows0 = moonHudRows(drawn);
+      if ((rows0[1]!.right![0]!.flash ?? 0) !== 0) scrollFlash = false;
+      const landed = moonHudRows({ ...drawn, tick: drawn.tick + R.MOON_FX_SCROLL_TICKS } as MoonState);
+      if (!((landed[1]!.right![0]!.flash ?? 0) > 0.9)) scrollFlash = false;
+    }
+  }
+  ok(JSON.stringify(drawn) === JSON.stringify(plain), "effects a: a run drawn every tick ends in the same state as the same run not drawn");
+  ok(seen.dust! > 10 && seen.ring! > 2 && seen.loss! > 0 && seen.scroll! > 0, `effects b: the run shows dust, air rings, hits and scrolls (${JSON.stringify(seen)})`);
+  ok(dustAtFace, "effects b: a leap's dust kicks off the face of the wall it leaves");
+  ok(lossText, "effects b: a hit shows the metres it knocked the ninja down (3)");
+  ok(scrollFlash, "effects b: the SCROLLS chip flashes when the flying scroll lands, not before");
+  const again = {};
+  let a2 = g4.init(seed) as MoonState;
+  for (let t = 1; t <= 600; t++) {
+    a2 = g4.step(a2, at.get(t) ?? null) as MoonState;
+    R.moonFxEvents(again, a2);
+  }
+  const b2 = {};
+  let s2 = g4.init(seed) as MoonState;
+  for (let t = 1; t <= 600; t++) {
+    s2 = g4.step(s2, at.get(t) ?? null) as MoonState;
+    R.moonFxEvents(b2, s2);
+  }
+  ok(JSON.stringify(R.moonFxEvents(again, a2)) === JSON.stringify(R.moonFxEvents(b2, s2)), "effects b: the same states give the same events on any canvas");
+  ok(Math.max(R.MOON_FX_DUST_TICKS, R.MOON_FX_RING_TICKS, R.MOON_FX_SCROLL_TICKS, R.MOON_FX_TRAIL_FADE, R.MOON_FX_TUMBLE_TICKS) <= 54, "effects b: every physical action ends within 900 ms");
+  const { MOON_SCROLL_TALLY_TICKS } = await import("../src/lib/fx/gameSounds");
+  ok(MOON_SCROLL_TALLY_TICKS === R.MOON_FX_SCROLL_TICKS, "effects b: the tally sound lands with the scroll");
+  // c. The scuff trail.
+  const base = g4.init(5) as MoonState;
+  const patch = base.tower.patches.find((p) => p.wall === 0 && p.kind === SURF_MOSS)!;
+  const on = { ...base, mode: 0, ledge: -1, wall: 0, y: (patch.lo + 20) * 256 } as MoonState;
+  ok(R.moonScuff({ ...on, slid: 0 }) === null, "effects c: no trail before the slide starts");
+  ok(R.moonScuff({ ...on, slid: 8 * 256, streak: 4 })?.redFrom === null, "effects c: a short slide's trail is not red");
+  ok(R.moonScuff({ ...on, slid: MOON_FLOW_SLIDE + 256, streak: 4 })?.redFrom !== null, "effects c: past MOON_FLOW_SLIDE with a streak running the trail turns red");
+  ok(R.moonScuff({ ...on, slid: MOON_FLOW_SLIDE + 256, streak: 0 })?.redFrom === null, "effects c: with no streak to break it stays plain");
+  ok(R.moonScuff({ ...on, y: (patch.hi + 300) * 256, slid: 9000 }) === null || ninjaSurface(base.tower.patches, 0, patch.hi + 300) !== 0, "effects c: no scuff on plain stone");
+  // d. The lantern sway and the tumble.
+  const s0 = R.moonLanternSway(0);
+  const s40 = R.moonLanternSway(40);
+  const s100 = R.moonLanternSway(100);
+  ok(s0.flare === 1 && s40.flare < 0.1 && Math.abs(s100.angle) < 0.06, "effects d: the grabbed lantern flares and its sway settles over the ride");
+  const rsrc = readFileSync("src/lib/arcade/ricochetNinja.renderer.ts", "utf8");
+  ok(/fallAge < MOON_FX_TUMBLE_TICKS/.test(rsrc) && R.MOON_FX_TUMBLE_TICKS === 20, "effects d: a hit tumbles the ninja through the knock-down's fall");
+  // e. Sounds.
+  const snd = readFileSync("src/lib/fx/gameSounds.ts", "utf8");
+  ok(/effectCue\("ricochet\.lanternSway"\)/.test(snd) && /effectCue\("ricochet\.scrollTally"\)/.test(snd) && /effectCue\("ricochet\.fallWhistle"\)/.test(snd) && /effectCue\("ricochet\.flowBreak"/.test(snd) && /loopCue\("ricochet\.scuff"/.test(snd), "effects e: every effect's sound is wired to its slot");
+  const fx = readFileSync("docs/sound-cues/arcade-effects.md", "utf8");
+  const st2 = readFileSync("docs/sound-cues/action-overhaul-stage2.md", "utf8");
+  ok(/`ricochet\.scrollTally`/.test(fx) && /`ricochet\.lanternSway`/.test(fx) && !/`ricochet\./.test(st2), "effects e: their rows moved to arcade-effects.md");
+  // f. The run picture.
+  const { moonRunSummary } = await import("../src/lib/duel/moonSummary");
+  let agree = 0;
+  let runs = 0;
+  let lastRaw = "";
+  let lastSum: ReturnType<typeof moonRunSummary> | null = null;
+  for (const [sd, level] of [[4100, "weak"], [4197, "average"], [4294, "great"], [5131, "perfect"]] as const) {
+    const e2 = ricoBot({ game: g4 as any, seed: sd, rev: MOON_BIG_REV, human: new Human("ricochet", sd, level as any), fixes: true }).events ?? [];
+    const raw = moonRaw4(sd, e2);
+    const run = replayMoonRun(sd, raw, MOON_BIG_REV);
+    const sum = moonRunSummary(sd, raw, MOON_BIG_REV);
+    runs++;
+    const st = run.state as MoonState;
+    if (sum.metres === run.metres && sum.rideCount === run.rides && sum.scrollCount === run.scrolls && sum.hitCount === run.hits && sum.hits.length === run.hits && sum.rides.length === run.rides && sum.scrolls.length === run.scrolls && sum.bestStreak === st.bestStreak && sum.hits.every((h) => h.lostM >= 0 && h.lostM <= 3)) agree++;
+    if (run.hits > 2) {
+      lastRaw = raw;
+      lastSum = sum;
+    }
+  }
+  // A stored rev-3 run too (the recorded fixture), on its own stamp.
+  const L3 = JSON.parse(readFileSync("scripts/fixtures/ricochet-big-legacy.json", "utf8")) as { runs: Rec[] };
+  for (const r of L3.runs.slice(0, 16)) {
+    const run = replayMoonRun(r.seed, r.raw, MOON_REV);
+    const sum = moonRunSummary(r.seed, r.raw, MOON_REV);
+    runs++;
+    if (sum.metres === run.metres && sum.hitCount === run.hits && sum.rideCount === run.rides && sum.scrollCount === run.scrolls) agree++;
+  }
+  ok(agree === runs, `reveal f: the picture's numbers are the server replay's on ${agree} of ${runs} runs (rev 4 at every level, stored rev-3 runs)`);
+  if (lastSum) {
+    const W = 340;
+    const cc = createCanvas(W, 360);
+    const px = cc.getContext("2d") as unknown as CanvasRenderingContext2D;
+    R.drawMoonRunPicture(px, lastSum, { width: W, height: 360 });
+    const d = (px as any).getImageData(0, 0, W, 360).data as Uint8ClampedArray;
+    let red = 0;
+    let gold = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i]! > 220 && d[i + 1]! < 120 && d[i + 2]! < 130) red++;
+      if (d[i]! > 220 && d[i + 1]! > 170 && d[i + 2]! < 120) gold++;
+    }
+    ok(red > 30 && gold > 100, `reveal f: the picture shows the hits in red (${red} px) and the best flow and full height in gold (${gold} px)`);
+    const React = await import("react");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { ricochetPuzzle } = await import("../src/puzzles/ricochet");
+    ok(typeof ricochetPuzzle.RunPicture === "function", "reveal f: Moon Climb declares its run picture");
+    const html = renderToStaticMarkup(React.createElement(ricochetPuzzle.RunPicture!, { puzzle: { type: "ricochet", seed: 4294, ricoRev: MOON_BIG_REV } as never, myAnswer: lastRaw }));
+    const stat = (name: string) => new RegExp(`data-moon-stat="${name}"[^>]*><span[^>]*>([^<]+)</span>`).exec(html)?.[1];
+    ok(stat("height") === `${lastSum.metres} m` && stat("flow") === String(lastSum.bestStreak) && stat("rides") === `${lastSum.rideCount}/6` && stat("scrolls") === `${lastSum.scrollCount}/3`, `reveal f: four big numbers, height, best flow, rides and scrolls (${stat("height")}, ${stat("flow")}, ${stat("rides")}, ${stat("scrolls")})`);
+    ok(/text-3xl/.test(html) && (html.match(/<canvas/g) ?? []).length === 1, "reveal f: big type and one picture");
+    for (const name of ["flow", "hit", "full"]) ok(html.includes(`data-moon-legend="${name}"`), `reveal f: the legend names ${name}`);
+    const text = html.replace(/<[^>]+>/g, " ");
+    ok(!/[×→·]/.test(text) && !/\bcore\b|\bunits\b/i.test(text), "reveal f: no stray ×, arrows or jargon in the picture's text");
+    const ar = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
+    ok(/<GameRunPicture puzzle=\{puzzle\} myAnswer=\{myAnswer\} \/>/.test(ar) && /ownPicture \? \[\]/.test(ar) && /hitsLine/.test(ar), "reveal f: the shared reveal draws it in place of the tiles, the stage-1 hits line kept");
+    if (process.env.EFFECT_SHOTS) (await import("node:fs")).writeFileSync(`${process.env.EFFECT_SHOTS}/moon-picture.png`, cc.toBuffer("image/png"));
+  } else ok(false, "reveal f: a run with hits to draw");
 }
 
 if (failures.length) {
