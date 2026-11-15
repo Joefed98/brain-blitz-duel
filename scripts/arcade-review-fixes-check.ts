@@ -40,6 +40,8 @@ import { demoRevAccepted, SAME_PLAY_DEMO_REVS } from "../src/lib/duel/introDemo.
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { setDealPin } from "../src/lib/duel/dealEra";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
+import { fcNoMoves, fcNoMovesText, freecellGameFor, FC_REV_UNDO, type FcState } from "../src/lib/arcade/cards/freecell";
+import { cardOf, NO_CARD } from "../src/lib/arcade/cards/cards";
 import { pyramidFlawless } from "./cards/flawless";
 import { pyRandomRun, type PyLegacyRun } from "./arcade-review-fixes-record";
 
@@ -211,6 +213,21 @@ check(!/W\/S the power/.test(read("src/puzzles/minigolf.tsx")), "Crazy Golf: the
   const src = read("src/lib/duel/introDemo.functions.ts");
   for (const [game, field] of [["wavefront", "wavRev"], ["burst", "burstRev"], ["cross", "crossRev"], ["skyline", "skylineRev"]] as const)
     check(src.includes(`!demoRevAccepted("${game}", demo.puzzle.${field})) return null`), `${game}: the stop rule reads demoRevAccepted`);
+}
+
+/* Free Cell: a dead end says so (15 Nov 2026, Joe; display only) */
+{
+  const live = freecellGameFor(5).init(7) as FcState;
+  check(!fcNoMoves(live) && fcNoMovesText(live) === "", "Free Cell: a fresh deal has moves (no message)");
+  // Every free cell full, every column top red and two reds deep (no run), nothing an Ace, home empty: nothing can move.
+  const reds = [1, 2].flatMap((suit) => [3, 5, 7, 9, 11, 13].map((rank) => cardOf(suit, rank)));
+  const stuck: FcState = { ...live, home: [0, 0, 0, 0], cells: reds.slice(0, 4), cols: Array.from({ length: 8 }, (_, c) => [cardOf(0, 13 - c), reds[4 + c] ?? cardOf(1, 2)]) };
+  check(fcNoMoves(stuck), "Free Cell: a board where no card can move is a dead end");
+  check(fcNoMovesText(stuck) === "No moves: Undo or Reset" && fcNoMovesText({ ...stuck, rev: 1 }) === "No moves left", "Free Cell: the dead-end words (Undo or Reset from freecellRev 2, 'No moves left' on rev 1)");
+  check(FC_REV_UNDO === 2, "Free Cell: Undo arrives on freecellRev 2");
+  check(!fcNoMoves({ ...stuck, cells: [NO_CARD, ...stuck.cells.slice(1)] }), "Free Cell: a free cell open means moves remain");
+  check(!fcNoMoves({ ...stuck, ended: 2 }), "Free Cell: no message once the run has ended");
+  check(/drawNoMoves\(ctx, state\)/.test(read("src/lib/arcade/cards/freecell.renderer.ts")), "Free Cell: the renderer draws the dead-end pill");
 }
 
 if (failures.length) {

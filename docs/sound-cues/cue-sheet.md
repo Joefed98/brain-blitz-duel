@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 490 | 525 |
+| game event | 35 | 0 | 488 | 523 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
 | fail sting | 4 | 0 | 37 | 41 |
-| success sting | 3 | 0 | 73 | 76 |
+| success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 63 | 1 | 984 | 1048 |
+| **all** | 61 | 1 | 984 | 1046 |
 
 ## Silent and placeholder cues
 
@@ -144,12 +144,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Gradient (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
 
-### Gridlock
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | silent | none | 1160 | success sting | `unblock.solve` |
-
 ### Heave
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -233,12 +227,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tubes.pour` | A pour lands [logic.md] |  | 5–40 (per move) | silent | none | 240 | game event | `tubes.pour` |
-
-### Safe Cracker
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `safe.solve` | A try satisfies every clue (the same test that submits) [logic.md] |  | 0–1 | silent | none | 1200 | success sting | `safe.solve` |
 
 ### Shikaku
 
@@ -1030,8 +1018,8 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pz_car_escape` | Gridlock: The gold car drives out (solve) [core.md] |  | 0–1 | recorded sound | `pz_car_escape` | 2470 | game event | `pz_car_escape` |
 | `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
+| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | recorded sound | `unblock.solve` | 2470 | success sting | `unblock.solve` |
 | `music.unblock` | Gridlock round bed: music_pattern_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_2` (shared) | 60000 | music | `music_pattern_unblock` |
 
 ### Heave
@@ -1200,8 +1188,8 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pz_safe_open` | Safe Cracker: The safe opens (solve) [core.md] |  | 0–1 | recorded sound | `pz_safe_open` | 2200 | game event | `pz_safe_open` |
 | `safe.click` | A dial turns one step (each repeat while held fires again) [logic.md] |  | 5–40 (per move) | recorded sound | `safe.click` | 130 | game event | `safe.click` |
+| `safe.solve` | A try satisfies every clue (the same test that submits) [logic.md] |  | 0–1 | recorded sound | `safe.solve` | 2200 | success sting | `safe.solve` |
 | `music.safe` | Safe Cracker round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_safe` |
 
 ### Shikaku
@@ -2007,9 +1995,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pz_laser_gem` | effects | `pz_laser_gem` | 1012 |
 | `pz_laser_split` | effects | `pz_laser_split` | 1042 |
 | `pz_padlock` | effects | `pz_padlock` | 450 |
-| `pz_safe_open` | effects | `pz_safe_open` | 2200 |
 | `pz_bomb_explode` | effects | `pz_bomb_explode` | 1770 |
-| `pz_car_escape` | effects | `pz_car_escape` | 2470 |
 | `pz_clay_hit` | effects | `pz_clay_hit` | 780 |
 | `pz_gravity_pull` | effects | `pz_gravity_pull` | 1100 |
 | `prepareToDuel` | voice | `prepareToDuel` | 2837 |
@@ -2359,6 +2345,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `flow.connect` | effects | `flow.connect` | 486 |
 | `flow.solve` | effects | `flow.solve` | 1000 |
 | `unblock.slide` | effects | `unblock.slide` | 528 |
+| `unblock.solve` | effects | `unblock.solve` | 2470 |
 | `push.home` | effects | `push.home` | 486 |
 | `push.solve` | effects | `push.solve` | 1147 |
 | `tiles.solve` | effects | `tiles.solve` | 1000 |
@@ -2393,6 +2380,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `tubes.cork` | effects | `tubes.cork` | 486 |
 | `tubes.solve` | effects | `tubes.solve` | 1080 |
 | `safe.click` | effects | `safe.click` | 528 |
+| `safe.solve` | effects | `safe.solve` | 2200 |
 | `shikaku.solve` | effects | `shikaku.solve` | 1000 |
 | `fences.draw` | effects | `fences.draw` | 486 |
 | `fences.cross` | effects | `fences.cross` | 528 |

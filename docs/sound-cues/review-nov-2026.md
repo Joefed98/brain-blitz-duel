@@ -6,7 +6,9 @@ The game reviews (`docs/design/game-reviews/`) found three sound problems across
    in the same frame. Now a puzzle's own solve or finish cue (`<game>.solve`, `<game>.finish`) that plays from its file
    leaves the generic sounds of that moment out (`ownMomentReplaces` / `holdMomentSounds` in `src/lib/sound.ts`: for
    150 ms after it, and one started up to 150 ms before it is faded out in 8 ms, in practice before a sample of it is
-   heard). A solve cue with no file (Safe Cracker's `safe.solve`, Gridlock's `unblock.solve`) keeps the generic sound.
+   heard). A solve cue with no file keeps the generic sound. Safe Cracker's opening and Gridlock's drive-out (Joe, 15 Nov
+   2026: one sound on opening) play their recordings through the solve cue's slot (`safe.solve` → `pz_safe_open.mp3`,
+   `unblock.solve` → `pz_car_escape.mp3`, live with the switch off), no longer straight from the game beside it.
 2. **Silent shakes.** Every shake the shared rejection paint draws (`puzzleReject`, which also catches every game's own
    `animate-shake`: Shikaku, Tents, Trail, Gridlock, Tessellate…) sounds the quiet `wrong` once (`playRejectWrong`,
    volume 0.6). If the move already played `wrong`, nothing more plays; a game's `wrong` just after the shake's is left
@@ -17,8 +19,8 @@ The game reviews (`docs/design/game-reviews/`) found three sound problems across
    band-passed noise for air, water and grit, band-limited pulse waves for the Retro games; seeded, so a rebuild writes
    the same bytes), on the house method of [levels-nov-2026.md](levels-nov-2026.md) (mono 44.1 kHz 96 kbps with the
    gapless tag; levelled to the library's median for their length, true peaks at -1 dBFS or under, the limiter only
-   while transparent; loops built on their own crossfade and written with fix.py's wrap-around frames). 97 files,
-   107 slots, about 371 KB, each loading with its own game (never on the first tap).
+   while transparent; loops built on their own crossfade and written with fix.py's wrap-around frames). 99 files,
+   109 slots, about 389 KB, each loading with its own game (never on the first tap).
 
 **They are behind one switch, `NEW_GAME_SOUNDS` in `src/config/soundConfig.ts`, off by default**: off, the manifest is
 exactly as written and every cue plays what it did. On, `manifest.ts` gives each slot its file at load
@@ -28,8 +30,10 @@ uses the new files too. Every sound can be played on `/dev-design` → Sounds (d
 says. Turning the switch on also changes what the cue sheet calls each slot's file today: re-run
 `bun scripts/sound-cue-sheet.ts` with it (sound-manifest-check compares the sheet with the manifest).
 
-Left without a file (sound-review-fixes-check's `EXEMPT`): Gridlock's `unblock.solve`, Safe Cracker's `safe.solve`,
-Lightbender's `laser.gem`, Topsy-Turvy's `gravity.tilt` and Pull!'s clays (each moment already plays its own `pz_*`
+`safe.solve.mp3` and `unblock.solve.mp3` are placeholders (switch on only) for Safe Cracker's and Gridlock's solve
+moments; switch off they keep the game's own recordings above.
+
+Left without a file (sound-review-fixes-check's `EXEMPT`): Lightbender's `laser.gem`, Topsy-Turvy's `gravity.tilt` and Pull!'s clays (each moment already plays its own `pz_*`
 recording), Checkout's `checkout.tick` (its own `checkout.thud`), `clayshoot.goldSparkle` (silent by design), the
 wrong-move shakes `spotdiff.miss`, `measure.reject` and `tendrop.refused` (the quiet `wrong`), and the stage moments
 `equation.advance` and `numline.line` (the shared `stage_complete`, one sound for every stage game).
@@ -48,6 +52,8 @@ public/sounds/<file>…`. Proved by sound-review-fixes-check.
 | Colour Flood | `flood.spread.mp3` | `flood.spread` | a liquid ripple washing out across the board | 327 | 4.6 KB | -17.7 (-17.5) | `move` |
 | Tents and Trees | `tents.pitch.mp3` | `tents.pitch` | canvas snapping taut, a peg tapped into the ground | 128 | 2.1 KB | -22.9 (-22.7) | `move` |
 | Tents and Trees | `tents.grass.mp3` | `tents.grass` | a soft brush of grass | 107 | 2.1 KB | -22.9 (-22.7) | `move` |
+| Safe Cracker | `safe.solve.mp3` | `safe.solve` | placeholder: the safe opening: three drum clicks in turn, then a heavy latch and a low door swing | 707 | 9.2 KB | -20.4 (-17.1) | `pz_safe_open` (the slot's live recording) |
+| Gridlock | `unblock.solve.mp3` | `unblock.solve` | placeholder: the gold block driving out: a short rising engine buzz and a whoosh past the exit | 675 | 8.6 KB | -17.1 (-17.1) | `pz_car_escape` (the slot's live recording) |
 | Shikaku | `shikaku.place.mp3` | `shikaku.place` | a frame snapping into place: two quick clicks on a wooden body | 109 | 2.1 KB | -22.9 (-22.7) | `move` |
 | Shikaku | `shikaku.remove.mp3` | `shikaku.remove` | the frame lifted off: a soft, falling wooden knock | 99 | 1.8 KB | -23.2 (-22.7) | `move` |
 | Lamplighter | `lightup.lamp.mp3` | `lightup.lamp` | a warm lamp switching on: a soft hum swelling under a small glass ping | 341 | 4.9 KB | -17.5 (-17.5) | `move` |
@@ -137,3 +143,25 @@ public/sounds/<file>…`. Proved by sound-review-fixes-check.
 | Ball Tracker | `balltrack.wrong.mp3` | `balltrack.wrong` | a marble in the wrong cup: a dull, low clunk | 74 | 1.5 KB | -24.5 (-22.7) | the library sound |
 | Ball Tracker | `balltrack.switch.mp3` | `balltrack.switch` | a track switched: a click-clack | 78 | 1.5 KB | -25.3 (-22.7) | the library sound |
 | Iron Wall | `bastion.dry.mp3` | `bastion.dry` | a dry fire: an empty mechanical click | 72 | 1.5 KB | -25.7 (-22.7) | the library sound |
+
+## Replacing these with Joe's own sounds
+
+Joe will replace the synthesised files with sounds he generates. The file names, slots and loudness are the contract,
+so a later session can drop new files in without touching code:
+
+1. **Names.** Each recording is `public/sounds/<file>.mp3` with the file name in the table below (and in
+   `src/lib/fx/newGameSounds.data.ts`, `NEW_GAME_SOUND_RECORDINGS`). Keep the name; one file may serve several slots
+   (the shared Retro files). Don't rename a file a slot points at.
+2. **Levelling.** Cut and level each new file on the house method: [levels-nov-2026.md](levels-nov-2026.md) and
+   `scripts/sound-audit-nov-2026/fix.py` (mono 44.1 kHz 96 kbps with the LAME gapless tag; an effect levelled to the
+   library median for its length, the target is the table's "target" column; true peak -1 dBFS or under; trim only
+   digital silence, 10 ms kept before the attack; loops crossfaded and written with wrap-around frames). Measure with
+   `python3 -I scripts/sound-audit-nov-2026/measure.py out.json public/sounds/<file>.mp3`.
+3. **The make step.** `make.py` writes the synthesised files *and* `newGameSounds.data.ts` (each file's exact length,
+   which the manifest uses as the slot's `ms`). After dropping in real files, don't re-run make.py over them (it would
+   write the synthesised ones back); instead update that file's `ms` in `newGameSounds.data.ts` to the new file's
+   length (measure.py prints it) and remove its recipe from make.py, or run make.py into a scratch folder
+   (`python3 -I scripts/sound-review-nov-2026/make.py <dir> -`) to compare.
+4. **Prove it.** `bun scripts/sound-review-fixes-check.ts` (format, length, size, true peak and loudness band of every
+   file; every slot played once with the switch on), `bun scripts/sound-manifest-check.ts`, `bun scripts/mp3-gapless-check.ts`.
+   Listen on `/dev-design` → Sounds, then turn `NEW_GAME_SOUNDS` on and re-run `bun scripts/sound-cue-sheet.ts`.

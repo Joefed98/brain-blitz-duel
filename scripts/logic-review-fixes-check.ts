@@ -57,7 +57,7 @@ const dealRaw = <T extends PuzzleData["type"]>(type: T, seed: number, pinned = f
     pinPreNotesFree(before);
   }
 };
-/** The puzzle notesRev 1 deals: the live deal, or (Mosaic, Tents, Lamplighter, not dealt it until Joe decides) the same deal stamped. */
+/** The puzzle notesRev 1 deals (every game in NOTES_FREE_DEALT is dealt it live). */
 const deal = <T extends PuzzleData["type"]>(type: T, seed: number, pinned = false): Of<T> => {
   const p = dealRaw(type, seed, pinned);
   if (pinned || (NOTES_FREE_DEALT as readonly string[]).includes(type)) return p;
@@ -72,13 +72,12 @@ const prefixes = <T>(items: readonly T[], encode: (items: T[]) => string) => ite
 
 /* ------------------------------------------------------------------ 1. Notes never count as mistakes */
 
-// Mosaic, Tents and Lamplighter are not dealt notesRev 1 yet (standard-logic-check's live assertion is Joe's call).
 for (const type of NOTES_FREE_TYPES) {
   const dealt = (NOTES_FREE_DEALT as readonly string[]).includes(type);
   const raw = dealRaw(type, 6100);
   ok(dealt === ("notesRev" in raw), `${type}: the live deal ${dealt ? "carries" : "does not carry"} notesRev (NOTES_FREE_DEALT)`);
 }
-for (const type of ["nonogram", "tents", "lightup"]) ok(!(NOTES_FREE_DEALT as readonly string[]).includes(type), `${type} waits for Joe's decision`);
+for (const type of NOTES_FREE_TYPES) ok((NOTES_FREE_DEALT as readonly string[]).includes(type), `${type} is dealt notesRev 1 (switched on with Joe's approval, 15 Nov 2026)`);
 for (const type of NOTES_FREE_TYPES) {
   const live = deal(type, 6100);
   const old = deal(type, 6100, true);

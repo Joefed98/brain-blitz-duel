@@ -95,9 +95,7 @@ const ENTRIES = {
   pz_laser_gem: { channel: "effects", frequency: 600, ms: 1012, url: "/sounds/pz_laser_gem.mp3" },
   pz_laser_split: { channel: "effects", frequency: 600, ms: 1042, url: "/sounds/pz_laser_split.mp3" },
   pz_padlock: { channel: "effects", frequency: 600, ms: 450, url: "/sounds/pz_padlock.mp3" },
-  pz_safe_open: { channel: "effects", frequency: 600, ms: 2200, url: "/sounds/pz_safe_open.mp3" },
   pz_bomb_explode: { channel: "effects", frequency: 600, ms: 1770, url: "/sounds/pz_bomb_explode.mp3" },
-  pz_car_escape: { channel: "effects", frequency: 600, ms: 2470, url: "/sounds/pz_car_escape.mp3" },
   pz_clay_hit: { channel: "effects", frequency: 600, ms: 780, url: "/sounds/pz_clay_hit.mp3" },
   pz_gravity_pull: { channel: "effects", frequency: 600, ms: 1100, url: "/sounds/pz_gravity_pull.mp3" },
   prepareToDuel: { channel: "voice", frequency: 440, ms: 2837, url: "/sounds/prepareToDuel.mp3" },
@@ -493,7 +491,8 @@ const ENTRIES = {
   "flow.connect": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/flow.connect.mp3", volume: 0.79 },
   "flow.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "unblock.slide": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3" },
-  "unblock.solve": { channel: "effects", frequency: 0, ms: 1160, url: null },
+  // 15 Nov 2026: the drive-out's recording through the cue (one sound); NEW_GAME_SOUNDS on swaps in unblock.solve.mp3.
+  "unblock.solve": { channel: "effects", frequency: 0, ms: 2470, url: "/sounds/pz_car_escape.mp3" },
   "push.step": { channel: "effects", frequency: 0, ms: 120, url: null },
   "push.push": { channel: "effects", frequency: 0, ms: 120, url: null },
   "push.home": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/push.home.mp3", volume: 0.88 },
@@ -550,7 +549,9 @@ const ENTRIES = {
   "tubes.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.corks.mp3" },
   // Logic review (15 Nov 2026): a held arrow steps a dial every frame or so; the half-second click layered. One a 60 ms.
   "safe.click": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/safe.dialClick.mp3", gapMs: 60 },
-  "safe.solve": { channel: "effects", frequency: 0, ms: 1200, url: null },
+  // 15 Nov 2026 (Joe: one sound on opening): the opening's recording, played through the cue so it stands in for the
+  // generic lock / correct of that moment; NEW_GAME_SOUNDS on swaps in the placeholder safe.solve.mp3.
+  "safe.solve": { channel: "effects", frequency: 0, ms: 2200, url: "/sounds/pz_safe_open.mp3" },
   "shikaku.place": { channel: "effects", frequency: 0, ms: 180, url: null },
   "shikaku.remove": { channel: "effects", frequency: 0, ms: 200, url: null },
   "shikaku.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },

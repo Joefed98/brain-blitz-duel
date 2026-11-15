@@ -11,6 +11,8 @@ export const NEW_GAME_SOUND_RECORDINGS = [
   { file: "flood.spread.mp3", slots: ["flood.spread"], ms: 327, bytes: 4702, lufs: -17.7, target: -17.5, truePeak: -2.5, loop: false, what: "a liquid ripple washing out across the board" },
   { file: "tents.pitch.mp3", slots: ["tents.pitch"], ms: 128, bytes: 2194, lufs: -22.9, target: -22.7, truePeak: -1.5, loop: false, what: "canvas snapping taut, a peg tapped into the ground" },
   { file: "tents.grass.mp3", slots: ["tents.grass"], ms: 107, bytes: 2194, lufs: -22.9, target: -22.7, truePeak: -1.9, loop: false, what: "a soft brush of grass" },
+  { file: "safe.solve.mp3", slots: ["safe.solve"], ms: 707, bytes: 9404, lufs: -20.4, target: -17.1, truePeak: -2.4, loop: false, what: "placeholder: the safe opening: three drum clicks in turn, then a heavy latch and a low door swing" },
+  { file: "unblock.solve.mp3", slots: ["unblock.solve"], ms: 675, bytes: 8777, lufs: -17.1, target: -17.1, truePeak: -2.1, loop: false, what: "placeholder: the gold block driving out: a short rising engine buzz and a whoosh past the exit" },
   { file: "shikaku.place.mp3", slots: ["shikaku.place"], ms: 109, bytes: 2194, lufs: -22.9, target: -22.7, truePeak: -2.3, loop: false, what: "a frame snapping into place: two quick clicks on a wooden body" },
   { file: "shikaku.remove.mp3", slots: ["shikaku.remove"], ms: 99, bytes: 1880, lufs: -23.2, target: -22.7, truePeak: -2.4, loop: false, what: "the frame lifted off: a soft, falling wooden knock" },
   { file: "lightup.lamp.mp3", slots: ["lightup.lamp"], ms: 341, bytes: 5015, lufs: -17.5, target: -17.5, truePeak: -2.5, loop: false, what: "a warm lamp switching on: a soft hum swelling under a small glass ping" },

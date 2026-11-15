@@ -338,6 +338,24 @@ def _(r):
     return g * 0.6
 
 
+@sound("safe.solve", ["safe.solve"], "placeholder: the safe opening: three drum clicks in turn, then a heavy latch and a low door swing")
+def _(r):
+    n = n_of(0.9)
+    clicks = mix(*[at(struck(METAL, 1900 + 140 * i, 0, 0.05, n_of(0.08), r) * 0.6 + click(n_of(0.08), r, 6500) * 0.4, 0.06 * i, n) for i in range(3)])
+    latch = at(thump(150, 90, 0.09, n_of(0.3)) * 0.8 + struck(METAL, 420, 0, 0.18, n_of(0.3), r) * 0.5, 0.22, n)
+    swing = at(svf(noise(n_of(0.6), r), glide(500, 260, n_of(0.6)), 1.6) * env(n_of(0.6), 0.08, 0.45) * 0.3, 0.3, n)
+    return room(mix(clicks, latch, swing), r, 0.16, 0.14)
+
+
+@sound("unblock.solve", ["unblock.solve"], "placeholder: the gold block driving out: a short rising engine buzz and a whoosh past the exit")
+def _(r):
+    n = n_of(0.8)
+    f = glide(85, 170, n)
+    buzz = svf((tri(glide(110, 220, n), n) * 0.5 + noise(n, r) * 0.15) * (0.6 + 0.4 * sine(30, n)), f * 6, 0.9, "lp") * env(n, 0.04, 0.55) * 0.7
+    whoosh = svf(noise(n, r), glide(900, 3200, n), 1.3) * env(n, 0.25, 0.4) * 0.3
+    return room(mix(buzz, whoosh), r, 0.12, 0.12)
+
+
 @sound("shikaku.place", ["shikaku.place"], "a frame snapping into place: two quick clicks on a wooden body")
 def _(r):
     n = n_of(0.16)

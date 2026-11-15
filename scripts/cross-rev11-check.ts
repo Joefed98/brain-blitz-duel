@@ -191,7 +191,7 @@ function scriptedRun(seed: number, waits: readonly number[]): ArcadeInputEvent[]
   const intro = INTRO_SCORE.cross;
   ok(intro.length <= 90 && /no-stop/.test(intro) && !/coin/i.test(intro) && /close calls/.test(intro) && /hits cost/.test(intro) && intro.endsWith("Up to 200."), `the intro line (${intro.length} characters): ${intro}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of Joe's scope update: the intro-demo stop rule accepts the
+  // Changed with Joe's approval, 15 Nov 2026 (intro demos accept the previous stamp): the intro-demo stop rule accepts the
   // dealt stamp and the stamp whose play it keeps, SAME_PLAY_DEMO_REVS; arcade-review-fixes-check proves older demos stay stopped).
   ok(demo.includes('demo.puzzle.crossRev !== CROSS_REV_FLOW) return null') || demo.includes('!demoRevAccepted("cross", demo.puzzle.crossRev)) return null'), "the intro demo plays only when recorded on crossRev 11 (or 12, its play)");
   ok(playRevOf("cross", CROSS_REV_FLOW) === CROSS_REV_STD, "playRevOf: crossRev 11 keeps crossRev 10's play");

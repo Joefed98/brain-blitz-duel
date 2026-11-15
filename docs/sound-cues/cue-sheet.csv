@@ -30,7 +30,6 @@ symscan.mark,Eagle Eye,Eagle Eye: A cell is marked (pop) [speed-attention.md],,5
 symscan.unmark,Eagle Eye,Eagle Eye: A cell is unmarked [speed-attention.md],,5–40 (per move),silent,,150,UI tap,symscan.unmark,
 stroop.gatePulse,Mixed Signals,"Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md]",,5–40 (per move),silent,,300,game event,stroop.gatePulse,
 tiles.slide,Gradient,A tile changes cell (a slide or an undo) [pattern.md (Gradient (tiles))],,5–40 (per move),silent,,160,game event,tiles.slide,
-unblock.solve,Gridlock,The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))],,0–1,silent,,1160,success sting,unblock.solve,
 push.step,Heave,A walking step [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.step,
 push.push,Heave,A step that pushes a crate [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.push,
 laser.place,Lightbender,A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))],,5–40 (per move),silent,,180,UI tap,laser.place,
@@ -50,7 +49,6 @@ lightup.dot,Lamplighter,A square is marked with a dot [logic.md],,5–40 (per mo
 nonogram.fill,Mosaic,A cell is filled [logic.md],,5–40 (per move),silent,,170,game event,nonogram.fill,
 nonogram.mark,Mosaic,A cell is marked empty (×) [logic.md],,5–40 (per move),silent,,140,UI tap,nonogram.mark,
 tubes.pour,Polypotions,A pour lands [logic.md],,5–40 (per move),silent,,240,game event,tubes.pour,
-safe.solve,Safe Cracker,A try satisfies every clue (the same test that submits) [logic.md],,0–1,silent,,1200,success sting,safe.solve,
 shikaku.place,Shikaku,A rectangle is accepted [logic.md],,5–40 (per move),silent,,180,UI tap,shikaku.place,
 shikaku.remove,Shikaku,A rectangle is tapped away [logic.md],,5–40 (per move),silent,,200,game event,shikaku.remove,
 tents.pitch,Tents and Trees,A tent is placed [logic.md],,5–40 (per move),silent,,240,game event,tents.pitch,
@@ -468,8 +466,8 @@ flow.solve,Chroma Lines,"Each path pulses end to end in its colour, then the boa
 music.flow,Chroma Lines,Chroma Lines round bed: music_logic_2 (pattern bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_pattern_flow,
 tiles.solve,Gradient,"The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Gradient (tiles))]",,0–1,recorded sound,tiles.solve,980,success sting,tiles.solve,public/sounds/tiles.solve.mp3 (from done.glowSweep.mp3)
 music.tiles,Gradient,"Gradient round bed (retired, practice): music_pattern_1 (pattern bed shared with other games)",,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_tiles,
-pz_car_escape,Gridlock,Gridlock: The gold car drives out (solve) [core.md],,0–1,recorded sound,pz_car_escape,2470,game event,pz_car_escape,
 unblock.slide,Gridlock,"A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))]",,5–40 (per move),recorded sound,unblock.slide,170,game event,unblock.slide,
+unblock.solve,Gridlock,The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))],,0–1,recorded sound,unblock.solve,2470,success sting,unblock.solve,
 music.unblock,Gridlock,Gridlock round bed: music_pattern_2 (pattern bed shared with other games),,loop,recorded sound,music_pattern_2 (shared),60000,music,music_pattern_unblock,
 push.home,Heave,A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))],,5–40 (per move),recorded sound,push.home,300,game event,push.home,public/sounds/push.home.mp3 (from push.home.mp3)
 push.solve,Heave,The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))],,0–1,recorded sound,push.solve,1200,success sting,push.solve,public/sounds/push.solve.mp3 (from done.crates.mp3)
@@ -538,8 +536,8 @@ fillomino.place,Regions, [grid.md],,5–40 (per move),recorded sound,fillomino.p
 fillomino.region,Regions, [grid.md],,5–40 (per move),recorded sound,fillomino.region,200,game event,fillomino.region,
 fillomino.solve,Regions, [grid.md],,0–1,recorded sound,fillomino.solve,1000,success sting,fillomino.solve,
 music.fillomino,Regions,Regions round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_fillomino,
-pz_safe_open,Safe Cracker,Safe Cracker: The safe opens (solve) [core.md],,0–1,recorded sound,pz_safe_open,2200,game event,pz_safe_open,
 safe.click,Safe Cracker,A dial turns one step (each repeat while held fires again) [logic.md],,5–40 (per move),recorded sound,safe.click,130,game event,safe.click,
+safe.solve,Safe Cracker,A try satisfies every clue (the same test that submits) [logic.md],,0–1,recorded sound,safe.solve,2200,success sting,safe.solve,
 music.safe,Safe Cracker,Safe Cracker round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_safe,
 shikaku.solve,Shikaku,Every square is covered by a valid rectangle [logic.md],,0–1,recorded sound,shikaku.solve,1200,success sting,shikaku.solve,public/sounds/shikaku.solve.mp3 (from done.glowSweep.mp3)
 music.shikaku,Shikaku,Shikaku round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_shikaku,

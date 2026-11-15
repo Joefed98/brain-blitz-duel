@@ -112,7 +112,7 @@ ok(LIVE_BANDS.burst.rev === BURST_REV_STD + 1 && LIVE_BANDS.burst.curve === BURS
 ok(burstWorldHFor(BURST_REV_STD) === BURST_TALL_H, "the 390 × 650 world");
 {
   const src = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of Joe's scope update: the intro-demo stop rule accepts the
+  // Changed with Joe's approval, 15 Nov 2026 (intro demos accept the previous stamp): the intro-demo stop rule accepts the
   // dealt stamp and the stamp whose play it keeps, SAME_PLAY_DEMO_REVS; arcade-review-fixes-check proves older demos stay stopped).
   ok(/(demo\.puzzle\.burstRev !== BURST_REV_STD|!demoRevAccepted\("burst", demo\.puzzle\.burstRev\))\) return null/.test(src), "an older intro demo stays stopped on burstRev 10");
 }

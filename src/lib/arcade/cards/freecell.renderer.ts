@@ -10,7 +10,7 @@ import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { NO_CARD } from "./cards";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import {
-  FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcCardsFor, fcHomeCount, fcNoteText, freecellGameFor, type FcState } from "./freecell";
+  FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcCardsFor, fcHomeCount, fcNoMovesText, fcNoteText, freecellGameFor, type FcState } from "./freecell";
 import { cardOf, rankOf, suitOf } from "./cards";
 
 export const FC_WORLD_W = 414;
@@ -173,6 +173,29 @@ function drawButtons(ctx: CanvasRenderingContext2D, state: FcState, view?: FcVie
     ctx.stroke();
     buttonIcon(ctx, kind, cx, FC_BTN_Y + FC_BTN_H / 2, held ? "#231503" : live ? "#F6EBD0" : "rgba(246,235,208,0.35)");
   }
+}
+
+/** A dead end (no card can move anywhere): a steady pill where the toast sits, until a move, Undo or Reset (display only). */
+function drawNoMoves(ctx: CanvasRenderingContext2D, state: FcState): void {
+  const text = fcNoMovesText(state);
+  if (!text) return;
+  ctx.save();
+  ctx.font = `800 14px ${CARD_FONT}`;
+  const w = Math.ceil(ctx.measureText(text).width + 30);
+  const h = 30;
+  const x = FC_WORLD_W / 2 - w / 2;
+  const y = FC_CELL_Y + FC_BIG_H + 24;
+  roundRect(ctx, x, y, w, h, h / 2);
+  ctx.fillStyle = "rgba(6,10,24,0.92)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(233,196,106,0.75)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.fillStyle = "#F6EBD0";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, FC_WORLD_W / 2, y + h / 2 + 0.5);
+  ctx.restore();
 }
 
 /** The refused move's toast: a dark pill under the free cells, fading out over its last third. */
@@ -355,6 +378,7 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     ctx.fillRect(0, 0, W, H);
   }
   if (state.ended === 0) drawNote(ctx, state);
+  drawNoMoves(ctx, state);
   ctx.restore();
 }
 

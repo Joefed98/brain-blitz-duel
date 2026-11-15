@@ -32,7 +32,7 @@ import { recordEvents } from "@/lib/data/events.server";
 import { readDailyBoardBadgeFacts } from "@/lib/data/leaderboards.server";
 import { readProfile } from "@/lib/data/profiles.server";
 import { readRatedBadgeFacts, type RatedBadgeFactsRow } from "@/lib/data/ratings.server";
-import { ACTIVE_PUZZLE_TYPES, ARCADE_CATEGORY, PUZZLE_TYPES, puzzleInfo, typeTimeLimitMs } from "@/lib/duel/catalogue";
+import { ACTIVE_PUZZLE_TYPES, ARCADE_CATEGORY, PUZZLE_TYPES, puzzleInfo, shownTimeLimitMs } from "@/lib/duel/catalogue";
 import { longestDailyStreak } from "@/lib/duel/dailyStreak";
 import { dailyRecordFor } from "@/lib/duel/dailyStreak.server";
 import { creditCoins, grantItem } from "@/lib/economy/economy.server";
@@ -106,12 +106,15 @@ export async function settleAccountRewards(client: Db, userId: string): Promise<
   return { account: true, signup: paid.status, founding: profile.founding };
 }
 
-/** Every puzzle (non-arcade) type's clock in ms, for badge_facts (Buzzer Beater, Speed Demon). */
+/**
+ * Every puzzle (non-arcade) type's clock in ms, for badge_facts (Buzzer Beater, Speed Demon): the clock each game is
+ * actually dealt (shownTimeLimitMs: DEALT_CLOCK_MS where the deal carries its own; 15 Nov 2026, Joe).
+ */
 let puzzleLimitsCache: Record<string, number> | null = null;
 export function puzzleLimits(): Record<string, number> {
   if (puzzleLimitsCache) return puzzleLimitsCache;
   const out: Record<string, number> = {};
-  for (const type of PUZZLE_TYPES) if (puzzleInfo(type).category !== ARCADE_CATEGORY) out[type] = typeTimeLimitMs(type);
+  for (const type of PUZZLE_TYPES) if (puzzleInfo(type).category !== ARCADE_CATEGORY) out[type] = shownTimeLimitMs(type);
   return (puzzleLimitsCache = out);
 }
 

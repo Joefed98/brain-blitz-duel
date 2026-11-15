@@ -52,7 +52,10 @@ for (const slot of Object.keys(NEW_GAME_SOUND_FILES)) {
   check(!!e, `${slot}: a new sound for a slot the manifest doesn't have`);
   if (!e) continue;
   // Off: the entry is exactly as manifest.ts writes it (no file); on: its new file.
-  if (!NEW_GAME_SOUNDS) check(e.url === null, `${slot}: with NEW_GAME_SOUNDS off the manifest must keep url null (has ${e.url})`);
+  // Safe Cracker's and Gridlock's solve slots play the game's existing recording with the switch off (15 Nov 2026);
+  // their new files are placeholders for when it is on.
+  const LIVE_RECORDING: Record<string, string> = { "safe.solve": "/sounds/pz_safe_open.mp3", "unblock.solve": "/sounds/pz_car_escape.mp3" };
+  if (!NEW_GAME_SOUNDS) check(e.url === (LIVE_RECORDING[slot] ?? null), `${slot}: with NEW_GAME_SOUNDS off the manifest must keep its entry (${LIVE_RECORDING[slot] ?? "url null"}; has ${e.url})`);
   check(e.channel === "effects" && e.frequency === 0, `${slot}: an effects slot that never beeps`);
   check(Boolean(e.loop) === NEW_GAME_SOUND_FILES[slot]!.loop, `${slot}: the recording's loop flag must match the slot's`);
   check(live(prefixOf(slot)), `${slot}: not a live (unretired) game's slot`);
@@ -120,8 +123,6 @@ const solveTemplate = new Set([...text.matchAll(/useSolveFx\(\s*"([a-z0-9]+)"/g)
 const played = (id: string) => text.includes(`"${id}"`) || text.includes(`'${id}'`) || solveTemplate.has(id);
 /** Played keys with no file of their own that keep it so, and why. */
 const EXEMPT: Record<string, string> = {
-  "unblock.solve": "Gridlock's drive-out plays its own pz_car_escape recording at that moment (the review asks to drop this slot)",
-  "safe.solve": "Safe Cracker's opening plays its own pz_safe_open recording at that moment",
   "laser.gem": "Lightbender's gem plays its own pz_laser_gem recording on the same beam step",
   "gravity.tilt": "Topsy-Turvy's tilt plays its own pz_gravity_pull recording",
   "clayshoot.shatter": "Pull!'s clay plays its own pz_clay_hit recording",
@@ -157,7 +158,7 @@ for (const slot of Object.keys(NEW_GAME_SOUND_FILES)) {
     // Arcade moments go through their slot (sfx / ensureSlotLoop / retroStart / toy*): the file replaces the library.
     check(new RegExp(`\\("${slot.replace(".", "\\.")}"`).test(gameSounds), `${slot}: an arcade slot gameSounds.ts never plays`);
     check(!NEW_GAME_SOUND_REPLACES[slot], `${slot}: an arcade slot needs no REPLACES (its file replaces the library sound)`);
-  } else check(!!NEW_GAME_SOUND_REPLACES[slot]?.length, `${slot}: a puzzle cue must say which shared sound it replaces`);
+  } else check(!!NEW_GAME_SOUND_REPLACES[slot]?.length || /^[a-z0-9]+\.(solve|finish)$/.test(slot), `${slot}: a puzzle cue must say which shared sound it replaces (a solve cue replaces the generic solve sounds)`);
 }
 for (const slot of Object.keys(NEW_GAME_SOUND_REPLACES)) check(!!NEW_GAME_SOUND_FILES[slot], `REPLACES ${slot}: no new file`);
 
@@ -280,7 +281,7 @@ const url = (id: string) => manifest[id]!.url;
 // 1. One sound on solve (switch off: the existing solve files).
 check(sound.isOwnSolveCue("tower.solve") && sound.isOwnSolveCue("codeword.finish"), "tower.solve / codeword.finish are puzzles' own solve cues");
 check(!sound.isOwnSolveCue("racing.finish") && !sound.isOwnSolveCue("lightup.clear"), "an arcade finish or a cell clear is no solve cue");
-for (const [cue, generic] of [["tower.solve", "correct"], ["sudoku.solve", "correct"], ["flood.solve", "lock"], ["nonogram.solve", "lock"], ["kakuro.solve", "correct"]] as const) {
+for (const [cue, generic] of [["tower.solve", "correct"], ["sudoku.solve", "correct"], ["flood.solve", "lock"], ["nonogram.solve", "lock"], ["kakuro.solve", "correct"], ["safe.solve", "lock"], ["unblock.solve", "correct"]] as const) {
   check(!!url(cue), `${cue}: has a file (its own solve sound)`);
   await fresh();
   dispatch(cue);
@@ -292,10 +293,11 @@ for (const [cue, generic] of [["tower.solve", "correct"], ["sudoku.solve", "corr
   dispatch(cue);
   check(JSON.stringify(heard(take())) === JSON.stringify([url(cue)]), `${generic} + lock then ${cue}: the generic ones are faded out, the game's own plays`);
 }
-await fresh();
-dispatch("safe.solve");
-sound.playCorrect();
-check(JSON.stringify(heard(take())) === JSON.stringify([url("correct")]), "safe.solve has no file: the generic correct still plays");
+// Safe Cracker's opening and Gridlock's drive-out (15 Nov 2026, Joe: one sound on opening): their recordings play through
+// the solve cue's slot, never straight from the game, so they stand in for the generic sounds of that moment.
+check(url("safe.solve") === "/sounds/pz_safe_open.mp3" && url("unblock.solve") === "/sounds/pz_car_escape.mp3", "safe.solve / unblock.solve play the opening and drive-out recordings (switch off)");
+check(!/playSound\("pz_safe_open"\)/.test(readFileSync("src/puzzles/safeCracker.tsx", "utf8")), "Safe Cracker no longer plays pz_safe_open beside its solve cue");
+check(!/playSound\("pz_car_escape"\)/.test(readFileSync("src/components/puzzles/UnblockPuzzle.tsx", "utf8")), "Gridlock no longer plays pz_car_escape beside its solve cue");
 await fresh();
 sound.playCorrect();
 check(heard(take()).length === 1, "a correct with no solve cue around it plays as before");

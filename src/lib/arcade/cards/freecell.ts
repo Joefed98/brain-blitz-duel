@@ -330,6 +330,28 @@ export function fcBestTarget(state: FcState, from: number, index: number): numbe
   return -1;
 }
 
+/**
+ * Display only (15 Nov 2026, Joe: say when there are no moves left, as Thirteen and Summit do): true while the run is
+ * on and no card can move anywhere (no column run or free-cell card has a legal pile). Never read by the sim.
+ */
+export function fcNoMoves(state: FcState): boolean {
+  if (state.ended !== 0) return false;
+  const targets = [FC_PILE_HOME, ...Array.from({ length: FC_CELLS }, (_, i) => FC_PILE_CELL + i), ...Array.from({ length: FC_COLS }, (_, c) => c)];
+  const sources: [number, number][] = [];
+  for (let c = 0; c < FC_COLS; c++) {
+    const col = state.cols[c]!;
+    for (let i = fcRunStart(col); i < col.length; i++) sources.push([c, i]);
+  }
+  for (let i = 0; i < FC_CELLS; i++) if (state.cells[i] !== NO_CARD) sources.push([FC_PILE_CELL + i, 0]);
+  return !sources.some(([from, index]) => targets.some((to) => fcLegal(state, from, index, to)));
+}
+
+/** The words for a dead end: Undo can get out of it from freecellRev 2 (display only). */
+export function fcNoMovesText(state: FcState): string {
+  if (!fcNoMoves(state)) return "";
+  return state.rev >= FC_REV_UNDO ? "No moves: Undo or Reset" : "No moves left";
+}
+
 /** Sends every safe card home (column tops and free cells) until none is left; counts them (rev 3: keeps them for the art). */
 function autoHome(state: FcState): void {
   const fly: number[] | null = state.rev >= FC_REV_EASY ? [] : null;

@@ -8,6 +8,8 @@
  *
  *   bun scripts/clock-display-check.ts
  */
+import { readFileSync } from "node:fs";
+
 import { gameSeconds } from "../src/components/games/gameMeta";
 import {
   ACTIVE_PUZZLE_TYPES,
@@ -41,6 +43,17 @@ for (const type of ACTIVE_PUZZLE_TYPES) {
   check(listed === (clock !== typeTimeLimitMs(type)), `${type}: DEALT_CLOCK_MS ${listed ? "lists" : "misses"} it (definition ${typeTimeLimitMs(type)} ms, dealt ${clock} ms)`);
 }
 for (const type of Object.keys(DEALT_CLOCK_MS)) check((ACTIVE_PUZZLE_TYPES as string[]).includes(type), `DEALT_CLOCK_MS lists ${type}, which isn't an active game`);
+
+// The room settings' "about N min" estimate and the badge rule's clocks (Buzzer Beater, Speed Demon) read the dealt
+// clock too (15 Nov 2026, Joe).
+{
+  const { puzzleLimits } = await import("../src/lib/badges/badges.server");
+  const limits = puzzleLimits();
+  for (const [type, ms] of Object.entries(DEALT_CLOCK_MS)) check(limits[type] === ms, `badge clocks: ${type} reads ${limits[type]} ms, dealt ${ms} ms`);
+  const settings = readFileSync("src/lib/duel/roomSettings.ts", "utf8");
+  const avg = settings.slice(settings.indexOf("function averageLimitS"), settings.indexOf("export function estimateRoomMinutes"));
+  check(/shownTimeLimitMs\(t\)/.test(avg) && !/timeLimitMs \?\?/.test(avg), "the room estimate reads shownTimeLimitMs (the dealt clock)");
+}
 
 if (failures.length) {
   console.log(`clock-display-check: FAIL (${failures.length} of ${failures.length + passes})`);

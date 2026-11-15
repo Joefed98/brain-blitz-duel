@@ -30,7 +30,7 @@ advances. No shared tap hook plays a sound.
 | Double Take | `spotdiff.miss` | `wrong` |
 | Eagle Eye | `symscan.mark`, `symscan.unmark` | `move` |
 | Mixed Signals | `stroop.gatePulse` | `pz_clash_right` / `pz_clash_wrong` on the same frame |
-| Gridlock | `unblock.solve` | `pz_car_escape`, `lock` 420 ms later |
+| Gridlock | `unblock.solve` | `pz_car_escape.mp3` through the `unblock.solve` slot (15 Nov 2026), `lock` 420 ms later |
 | Heave | `push.step`, `push.push` | `move` |
 | Gradient (Jumbled until 27 Oct) | `tiles.slide` | `move` (`lock` if it solves) |
 | Lightbender | `laser.place`, `laser.turn`, `laser.fire` | `move` |
@@ -47,7 +47,7 @@ advances. No shared tap hook plays a sound.
 | Lamplighter | `lightup.lamp`, `lightup.dot` | `move` |
 | Mosaic | `nonogram.fill`, `nonogram.mark` | `move` |
 | Polypotions | `tubes.pour` | `move` (+ `tubes.cork` when a tube is sorted) |
-| Safe Cracker | `safe.solve` | `pz_safe_open` + `lock` + `move` |
+| Safe Cracker | `safe.solve` | `pz_safe_open.mp3` through the `safe.solve` slot, standing in for `lock` (15 Nov 2026: one sound on opening) |
 | Shikaku | `shikaku.place`, `shikaku.remove` | `move` |
 | Tents and Trees | `tents.pitch`, `tents.grass` | `move` |
 | Room | `room.winner` | `music_winner` starts; the `winnerIs` voice 200 ms later |

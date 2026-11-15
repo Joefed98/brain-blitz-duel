@@ -24,13 +24,8 @@ export const NOTES_FREE_REV = 1;
 /** The games the rule covers when their puzzle carries notesRev 1. */
 export const NOTES_FREE_TYPES: readonly PuzzleType[] = ["nonogram", "tents", "lightup", "fences", "bridges"];
 
-/**
- * The games dealt notesRev 1 today. Mosaic, Tents and Lamplighter wait for Joe: standard-logic-check asserts that
- * on their live deal a wrong mark entered and taken back by the very next tap costs the clean bonus, which is
- * exactly the pass-through this rule frees (their drafts can't tell the two apart), so it is his call. To switch
- * them on, add them here and pin standard-logic-check with `pinPreNotesFree(true)` (the grader already handles them).
- */
-export const NOTES_FREE_DEALT: readonly PuzzleType[] = ["fences", "bridges"];
+/** The games dealt notesRev 1: all five (Mosaic, Tents and Lamplighter switched on with Joe's approval, 15 Nov 2026). */
+export const NOTES_FREE_DEALT: readonly PuzzleType[] = NOTES_FREE_TYPES;
 
 /** Checks written for the stamps before this pin new deals to them (returns the previous setting). */
 export function pinPreNotesFree(on: boolean): boolean {
