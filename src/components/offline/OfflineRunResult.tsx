@@ -6,6 +6,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 import { PendingClock } from "./PendingClock";
 import { useQueuedRun } from "./useOfflinePractice";
 import { Button, Icon } from "@/design/components";
+import { FxCountUp, FxNewBest } from "@/components/fx/GameFx";
 
 /**
  * The end of a practice run played away from the server (offline practice, 31 Oct 2026), in place of the
@@ -33,10 +34,9 @@ export function OfflineRunResult({
       <h1 className="text-[22px] font-extrabold leading-tight text-foreground">{PUZZLE_REGISTRY[type]?.name ?? type}</h1>
       {status === "confirmed" ? (
         <div className="flex flex-col items-center gap-2">
-          <span data-offline-score className="of-result-score">
-            {run?.score}
-          </span>
+          <FxCountUp data-offline-score value={run?.score ?? 0} className="of-result-score" />
           <span className="ap-meta">{run?.improved ? "Confirmed, new best" : "Confirmed"}</span>
+          {run?.improved ? <FxNewBest /> : null}
         </div>
       ) : status === "rejected" ? (
         <div className="flex flex-col items-center gap-2">

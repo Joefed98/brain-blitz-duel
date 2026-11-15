@@ -17,6 +17,7 @@ import { soundCue } from "@/lib/fx/soundCues";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
+import { useGameFxOnce } from "@/components/fx/GameFx";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 import { Medal } from "./Medal";
 import { useOpenRoomCard, useRoomNameplate } from "./RoomPlayer";
@@ -87,6 +88,10 @@ export function RoundResultsTable({
   const listRef = useScrollMore<HTMLOListElement>();
   // Big rooms (31 Oct 2026, up to 16): compact rows; my own row is pinned in view while the list scrolls.
   const compact = isCompactRoom(ordered.length);
+  // The kit's payoff on my row when I took the round (silent: round_won already plays).
+  const myRow = useRef<HTMLLIElement>(null);
+  const iTopped = ordered.some((row) => row.slot === mySlot && row.roundScore > 0 && row.roundScore === topScore);
+  useGameFxOnce("win", myRow, iTopped, { silent: true, noHaptic: true });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
@@ -113,7 +118,7 @@ export function RoundResultsTable({
           const look = looks?.get(row.slot);
           const note = finalRound ? null : mark?.note;
           return (
-            <li key={row.slot} className="rs-row p-0" data-pinned={isMe && compact ? "" : undefined}>
+            <li key={row.slot} ref={isMe ? myRow : undefined} className="rs-row p-0" data-pinned={isMe && compact ? "" : undefined}>
               <button
                 type="button"
                 aria-expanded={open}
