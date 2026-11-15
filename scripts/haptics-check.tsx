@@ -14,7 +14,7 @@
  *     live board on screen; no vibrate call exists outside the helper, and haptic() is called only
  *     from the listed call sites (CALL_SITES).
  *  4. The setting: "Haptics" in Settings, on by default, saved on the device; off stops everything;
- *     on an unsupported device the switch shows "Not supported on this device" and nothing calls.
+ *     on an unsupported device the Haptics row isn't drawn (and leaves no gap) and nothing calls.
  *
  *   bun scripts/haptics-check.tsx
  */
@@ -192,14 +192,17 @@ const clickAll = async (selector: string, skip: (b: Element) => boolean = () => 
 
 /* ------------------------------------------------------------ 4b. the Settings switch */
 
-const { SettingsSheet } = await import("../src/components/app/SettingsSheet");
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): the Settings
+// page's body (SettingsBody) in place of the sheet; the same switch, taps and note.
+const { SettingsBody } = await import("../src/components/settings/SettingsPage");
+const settingsPage = () => <div data-settings-page><SettingsBody onHowItWorks={() => undefined} onTerms={() => undefined} onSignIn={() => undefined} /></div>;
 fresh();
-await draw(<SettingsSheet onClose={() => undefined} onHowItWorks={() => undefined} />);
+await draw(settingsPage());
 const hapticsRow = () => document.querySelector("[data-setting='haptics']");
 check(hapticsRow()?.getAttribute("role") === "switch" && hapticsRow()?.getAttribute("aria-checked") === "true", "Settings has a Haptics switch, on");
 check(!hapticsRow()?.querySelector("[data-setting-note]"), "no note where haptics are supported");
 // 3: every button tap in Settings (but the Haptics switch) vibrates nothing.
-const settingTaps = await clickAll("[data-settings-sheet] button", (b) => b === hapticsRow());
+const settingTaps = await clickAll("[data-settings-page] button", (b) => b === hapticsRow());
 check(settingTaps >= 4 && calls.length === 0, `Settings' ${settingTaps} button taps made ${calls.length} haptic calls`);
 await act(async () => (hapticsRow() as unknown as HTMLElement).click());
 check(hapticsRow()?.getAttribute("aria-checked") === "false" && !H.hapticsOn() && localStorage.getItem(H.HAPTICS_KEY) === "0", "the switch turns haptics off and saves it");
@@ -208,11 +211,18 @@ check(H.hapticsOn() && calls.length === 0, "the switch turns haptics back on (an
 await clear();
 supportVibrate(false);
 H.resetHapticsForTest();
-await draw(<SettingsSheet onClose={() => undefined} onHowItWorks={() => undefined} />);
-check(!!hapticsRow() && hapticsRow()?.querySelector("[data-setting-note]")?.textContent === "Not supported on this device", "unsupported: the switch is shown with its note");
+await draw(settingsPage());
+// Changed with Joe's approval, 15 Nov 2026 (Haptics shown only where supported): on an unsupported device the Haptics
+// row isn't drawn and leaves no gap (the panel's rows run straight from Direction controls to Battery saver).
+{
+  const rows = Array.from(document.querySelector("[data-settings-group='controls'] [data-jz='panel'], [data-settings-group='controls'] .jz-panel")?.children ?? []);
+  const marks = rows.map((r) => r.getAttribute("data-setting"));
+  check(!hapticsRow() && !document.body.textContent?.includes("Not supported on this device"), "unsupported: no Haptics row and no note");
+  check(marks.join(",") === "direction,battery", `unsupported: no gap where Haptics was (${marks.join(",")})`);
+}
 await clear();
 supportVibrate(true);
-document.querySelectorAll("[data-settings-sheet]").forEach((n) => n.closest("[data-skin]")?.remove());
+document.querySelectorAll("[data-settings-page]").forEach((n) => n.remove());
 
 /* ------------------------------------------------------------ 2a. the countdown */
 

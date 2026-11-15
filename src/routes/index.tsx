@@ -8,7 +8,6 @@ import { goToTab } from "@/components/app/AppTabBar";
 import { shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
 import { PlaySlot } from "@/components/app/PlaySlot";
 import { IntroCard } from "@/components/app/IntroCard";
-import { SettingsSheet } from "@/components/app/SettingsSheet";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { WeekPanel } from "@/components/app/PageAside";
 import { HeaderLead } from "@/components/app/AppHeader";
@@ -103,7 +102,6 @@ function Home() {
   const placement = useNavPlacement();
   // The first-time intro's three panels (Onboarding), from "How it works".
   const [intro, setIntro] = useState(false);
-  const [settings, setSettings] = useState(false);
   const [introCard, setIntroCard] = useState<"pending" | "show" | "hide">("pending");
   const progress = usePracticeProgress();
   const [streak, setStreak] = useState(0);
@@ -169,7 +167,7 @@ function Home() {
       </button>
     ) : null;
   const bellButton = bell ? (
-    <button type="button" className="hp-bell press" aria-label="Notifications" onClick={() => setSettings(true)} data-hp-bell>
+    <button type="button" className="hp-bell press" aria-label="Notifications" onClick={() => void router.navigate({ to: "/settings", search: { section: "notifications" }, state: { fromPlayTab: true } as never } as never)} data-hp-bell>
       <Icon name="notifications" size={22} />
     </button>
   ) : null;
@@ -251,15 +249,6 @@ function Home() {
           </button>
         </div>
       </div>
-      {settings ? (
-        <SettingsSheet
-          onClose={() => setSettings(false)}
-          onHowItWorks={() => {
-            setSettings(false);
-            setIntro(true);
-          }}
-        />
-      ) : null}
     </PhoneShell>
     </HeaderLead.Provider>
   );

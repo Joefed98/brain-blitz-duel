@@ -183,7 +183,7 @@ interface Shot {
   group: string;
   file: string;
   label: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "settings";
   device?: Device;
   room?: RoomSpec;
   daily?: () => HarnessDaily;
@@ -271,7 +271,7 @@ const SHOTS: Shot[] = [
   // Profile
   { group: "profile", file: "profile-new", label: "New player", mode: "profile", device: FRESH, scrollEnd: true },
   { group: "profile", file: "profile-stats", label: "Stats, bests, recent rooms", mode: "profile", device: RETURNING, daily: () => dailyFixture().after, challenge: () => challengeFixture("create"), scrollEnd: true },
-  { group: "profile", file: "profile-settings", label: "Settings sheet", mode: "profile", device: RETURNING, go: async (p) => { await p.locator("[data-open-settings]").click(); await p.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 }); } },
+  { group: "profile", file: "profile-settings", label: "Settings", mode: "settings", device: RETURNING, go: async (p) => { await p.locator("[data-settings-page]").waitFor({ timeout: 10_000 }); } },
   // Lobby
   { group: "lobby", file: "lobby-1", label: "1 player (host alone)", mode: "room", room: { status: "waiting", phase: "starting", players: 1, order: SIX } },
   { group: "lobby", file: "lobby-3", label: "3 players", mode: "room", room: { status: "waiting", phase: "starting", players: 3, order: SIX } },

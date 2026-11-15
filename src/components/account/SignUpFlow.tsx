@@ -381,7 +381,7 @@ export function SignUpFlow({
 
   const page = (body: React.ReactNode, opts: { striped?: boolean; screen: string }) => (
     <PhoneShell bare skin="profile">
-      <div className="acct-page" data-account-screen={opts.screen} data-striped={opts.striped ? "" : undefined}>
+      <div className="acct-page" data-account-flow data-account-screen={opts.screen} data-striped={opts.striped ? "" : undefined}>
         {body}
       </div>
     </PhoneShell>

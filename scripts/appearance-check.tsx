@@ -93,8 +93,9 @@ for (const stored of [null, "dark", "light", "system", "nonsense"] as const) {
 const csp = readFileSync("src/lib/security/csp.ts", "utf8");
 check(/INLINE_BOOT_SCRIPTS[^=]*=\s*\[[^\]]*APPEARANCE_BOOT/.test(csp), "the boot script is hashed in the content security policy");
 check(/<script dangerouslySetInnerHTML=\{APPEARANCE_BOOT_HTML\} \/>/.test(readFileSync("src/routes/__root.tsx", "utf8")), "the root writes the boot script in <head>");
-const sheet = readFileSync("src/components/app/SettingsSheet.tsx", "utf8");
-check(/ap-group-title">Appearance</.test(sheet) && /APPEARANCE_OPTIONS/.test(sheet), "Settings draws Appearance");
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): the page's body.
+const sheet = readFileSync("src/components/settings/SettingsPage.tsx", "utf8");
+check(/<Group title="Appearance"/.test(sheet) && /APPEARANCE_OPTIONS/.test(sheet), "Settings draws Appearance");
 check(A.APPEARANCE_OPTIONS.map((o) => o.label).join() === "Dark,Light,Match my device", "its three choices, Dark first");
 
 /* ------------------------------------------------------------ 2. in Chromium */
