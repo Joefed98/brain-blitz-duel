@@ -12,8 +12,12 @@
  */
 import { fp } from "../src/lib/arcade/engine";
 import {
+  mgChipLaunch,
   mgPuttVelocity,
   mgRollTick,
+  mgRollTickV3,
+  MG_INPUT_CHIP,
+  MG_INPUT_PUTT,
   mgRollTickV2,
   MG_BALL_R,
   MG_MILL_PERIOD,
@@ -455,6 +459,163 @@ function bestRouteV2(h: MgHole, maxDepth: number, beam: number, startTick: numbe
       }
       if (depth === maxDepth) continue;
       const opts = leavesV2(h, n.x, n.y, depth === 1 ? 2 : 4, depth === 1 ? 25 : 50, n.tick);
+      const ace = opts.find((l) => l.dist < 0);
+      if (ace) return done(n, ace.putt);
+      for (const l of opts) {
+        if (!Number.isFinite(l.dist) || l.dist >= n.dist) continue;
+        const key = `${Math.round(l.x / 256 / 6)},${Math.round(l.y / 256 / 6)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push({ x: l.x, y: l.y, dist: l.dist, putts: [...n.putts, l.putt], tick: l.next! });
+      }
+    }
+    next.sort((a, b) => a.dist - b.dist);
+    frontier = next.slice(0, beam);
+    if (!frontier.length) return null;
+  }
+  return null;
+}
+
+/* ========================= golfRev 3: putts and chips ========================= */
+
+/**
+ * golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): a shot is a putt (k 1) or a lofted chip (k 2), rolled through
+ * the sim's own mgRollTickV3 on the sim's clock (the windmills turn on it; swells bend the roll). A hole is proved on
+ * its own, from a first playable tick `tick`; the sails repeat every `period` ticks, so a route proved from tick T plays
+ * the same from any tick T + n·period (the bank stores T mod period; minigolf-holes-bank.ts).
+ */
+export interface Shot extends Putt {
+  k?: number;
+}
+
+export function rollShotV3(h: MgHole, x: number, y: number, p: Shot, tick = 1): ShotEnd {
+  const chip = p.k === MG_INPUT_CHIP;
+  const launch = chip ? mgChipLaunch(p.a, p.b, p.c) : { ...mgPuttVelocity(p.a, p.b, p.c, 2), air: 0 };
+  const ball = { x, y, vx: launch.vx, vy: launch.vy, air: launch.air };
+  const strike = tick + (p.w ?? 0);
+  let sail = false;
+  for (let t = 1; ; t++) {
+    const r = mgRollTickV3(h, ball, t, strike + t);
+    if (r.sail) sail = true;
+    if (r.end === MG_END_NONE) continue;
+    if (r.end === MG_END_HOLED) return { holed: true, wet: false, x: h.cup.x, y: h.cup.y, ticks: t, sail };
+    if (r.end === MG_END_WATER) return { holed: false, wet: true, x, y, ticks: t, sail };
+    return { holed: false, wet: false, x: ball.x, y: ball.y, ticks: t, sail };
+  }
+}
+
+/** The sails' repeat on a hole (ticks), or 0 for a hole without windmills. */
+export function millPeriodOf(h: MgHole): number {
+  const m = (h.windmills ?? [])[0];
+  return m ? 16384 / Math.abs(m.spin) : 0;
+}
+
+/** Waits tried when a shot meets the sails: every eighth of the hole's repeat. */
+function waitsOf(h: MgHole): number[] {
+  const P = millPeriodOf(h);
+  return P ? Array.from({ length: 7 }, (_, i) => Math.round(((i + 1) * P) / 8)) : [];
+}
+
+/** golfRev 3's holing shots from (x, y): putts on the straight line (±6°), then chips on it (±3°), each sail-blocked try retried after waits. */
+export function holingShotsV3(h: MgHole, x: number, y: number, tick: number, opts: { max?: number; chips?: boolean } = {}): Shot[] {
+  const out: Shot[] = [];
+  const max = opts.max ?? 1;
+  const base = angleTo(x, y, h.cup.x, h.cup.y);
+  const d = Math.hypot(h.cup.x - x, h.cup.y - y) / 256;
+  const waits = waitsOf(h);
+  let last: ShotEnd | null = null;
+  const tryShot = (p: Shot): boolean => {
+    const end = rollShotV3(h, x, y, p, tick);
+    last = end;
+    if (end.holed) {
+      out.push(p);
+      return true;
+    }
+    if (end.sail)
+      for (const w of waits)
+        if (rollShotV3(h, x, y, { ...p, w }, tick).holed) {
+          out.push({ ...p, w });
+          return true;
+        }
+    return false;
+  };
+  for (let da = 0; da <= 6; da += 0.25) {
+    for (const sign of da === 0 ? [1] : [1, -1]) {
+      const { a, b } = dirOf(base + sign * da);
+      for (let c = 10; c <= MG_POWER_MAX; c += 10) {
+        if (tryShot({ a, b, c })) {
+          if (out.length >= max) return out;
+          break;
+        }
+        const end = last as ShotEnd | null;
+        if (end && !end.wet && !end.sail && Math.hypot(end.x - x, end.y - y) / 256 > d + 40) break;
+      }
+    }
+  }
+  if (opts.chips === false) return out;
+  for (let da = 0; da <= 3; da += 0.5) {
+    for (const sign of da === 0 ? [1] : [1, -1]) {
+      const { a, b } = dirOf(base + sign * da);
+      for (let c = 10; c <= MG_POWER_MAX; c += 15) if (tryShot({ k: MG_INPUT_CHIP, a, b, c }) && out.length >= max) return out;
+    }
+  }
+  return out;
+}
+
+/** golfRev 3's resting spots from (x, y): a sweep of putts and (coarser) chips, nearest the cup by walking distance first. */
+export function leavesV3(h: MgHole, x: number, y: number, angleStep: number, powerStep: number, tick: number): Leave[] {
+  const field = pathField(h);
+  const out: Leave[] = [];
+  const seen = new Set<string>();
+  const waits = waitsOf(h);
+  const add = (p: Shot, end: ShotEnd) => {
+    if (end.wet) return;
+    const next = tick + (p.w ?? 0) + end.ticks + 1;
+    if (end.holed) {
+      out.push({ putt: p, x: end.x, y: end.y, dist: -1, next });
+      return;
+    }
+    const key = `${Math.round(end.x / 256 / 6)},${Math.round(end.y / 256 / 6)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ putt: p, x: end.x, y: end.y, dist: field.at(end.x, end.y), next });
+  };
+  const sweep = (k: number, aStep: number, pStep: number) => {
+    for (let deg = 0; deg < 360; deg += aStep) {
+      const { a, b } = dirOf(deg);
+      for (let c = pStep; c <= MG_POWER_MAX; c += pStep) {
+        const p: Shot = k === MG_INPUT_CHIP ? { k, a, b, c } : { a, b, c };
+        const end = rollShotV3(h, x, y, p, tick);
+        add(p, end);
+        if (end.sail) for (const w of waits) add({ ...p, w }, rollShotV3(h, x, y, { ...p, w }, tick));
+      }
+    }
+  };
+  sweep(MG_INPUT_PUTT, angleStep, powerStep);
+  sweep(MG_INPUT_CHIP, angleStep * 2, powerStep * 2);
+  out.sort((p, q) => p.dist - q.dist || (p.next ?? 0) - (q.next ?? 0));
+  return out;
+}
+
+/** golfRev 3's best route from the tee, the first shot playable from `startTick`. */
+export function bestRouteV3(h: MgHole, maxDepth = 4, beam = 14, startTick = 1): Route | null {
+  type Node = { x: number; y: number; dist: number; putts: Shot[]; tick: number };
+  const t = h.tee;
+  const done = (n: Node, p: Shot): Route => {
+    const end = rollShotV3(h, n.x, n.y, p, n.tick);
+    return { strokes: n.putts.length + 1, putts: [...n.putts, p], holedTick: n.tick + (p.w ?? 0) + end.ticks };
+  };
+  let frontier: Node[] = [{ x: t.x, y: t.y, dist: pathField(h).at(t.x, t.y), putts: [], tick: startTick }];
+  for (let depth = 1; depth <= maxDepth; depth++) {
+    const next: Node[] = [];
+    const seen = new Set<string>();
+    for (const n of frontier) {
+      if (n.putts.length > 0) {
+        const hole = holingShotsV3(h, n.x, n.y, n.tick);
+        if (hole.length) return done(n, hole[0]!);
+      }
+      if (depth === maxDepth) continue;
+      const opts = leavesV3(h, n.x, n.y, depth === 1 ? 2 : 4, depth === 1 ? 25 : 50, n.tick);
       const ace = opts.find((l) => l.dist < 0);
       if (ace) return done(n, ace.putt);
       for (const l of opts) {

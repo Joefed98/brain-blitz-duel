@@ -13,7 +13,9 @@ import { arcadeSeed } from "./arcade.server";
 import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
 import { racingDealSeedV3 } from "./racingDealV3.server";
-import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
+import { MINIGOLF_REV, MINIGOLF_REV_COURSE, mgLevelOf, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
+import { dealPinned } from "./dealEra";
+import { MINIGOLF_HOLES_BANK } from "./minigolfHolesBank.server";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V4 } from "./curlingBankV4.server";
@@ -39,10 +41,26 @@ export function generateRacing(): RacingPuzzleData {
   return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_DEALT };
 }
 
-export function generateMinigolf(): MinigolfPuzzleData {
-  // golfRev 2 (crazy golf, 31 Oct 2026) deals from its own proven bank; golfRev 1's bank (minigolfBank.server.ts) still replays.
-  const entry = MINIGOLF_BANK_V2[arcadeSeed() % MINIGOLF_BANK_V2.length]!;
-  return { type: "minigolf", seed: entry.seed, golfRev: MINIGOLF_REV, pars: [...entry.pars] };
+export function generateMinigolf(level: unknown = "normal"): MinigolfPuzzleData {
+  if (dealPinned("minigolfPreCourse")) {
+    // golfRev 2 (crazy golf, 31 Oct 2026) deals from its own proven bank; golfRev 1's bank (minigolfBank.server.ts) still replays.
+    const entry = MINIGOLF_BANK_V2[arcadeSeed() % MINIGOLF_BANK_V2.length]!;
+    return { type: "minigolf", seed: entry.seed, golfRev: MINIGOLF_REV, pars: [...entry.pars] };
+  }
+  // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): one hole from each slot of the proven hole bank, with its par at the
+  // dealt level (a level the deal doesn't know is Normal). Stored once, so a room's players all play the same five.
+  const lv: MgLevel = mgLevelOf(level);
+  const at = MG_LEVEL_NAMES.indexOf(lv);
+  const seed = arcadeSeed();
+  const picks = MINIGOLF_HOLES_BANK.map((slot) => slot[arcadeSeed() % slot.length]!);
+  return {
+    type: "minigolf",
+    seed,
+    golfRev: MINIGOLF_REV_COURSE,
+    holes: picks.map((e) => e.id),
+    pars: picks.map((e) => e.pars[at]!),
+    ...(lv === "normal" ? {} : { level: lv }),
+  };
 }
 
 export function generatePool(): PoolPuzzleData {

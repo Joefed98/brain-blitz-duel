@@ -103,7 +103,7 @@ import { ricoGame, RICO_WORLD_H, RICO_WORLD_W } from "./ricochet";
 import { pyramidArt, PY_WORLD_H, PY_WORLD_W } from "./cards/pyramid.renderer";
 import { golfSolArt, GS_WORLD_H, GS_WORLD_W } from "./cards/golfSol.renderer";
 import { mugginsArt, MG_WORLD_H, MG_WORLD_W } from "./cards/muggins.renderer";
-import { replayMinigolfRun } from "@/lib/duel/minigolf";
+import { minigolfCourseOf, replayMinigolfRun } from "@/lib/duel/minigolf";
 import { replayPoolRun } from "@/lib/duel/pool";
 import { replayCurlingRun } from "@/lib/duel/curling";
 import { replayBlockfallRun } from "@/lib/duel/blockfall";
@@ -279,7 +279,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   },
   // pinRev 4 (E4) draws its own taller table (drawPinballAny reads the state's revision).
   // The Sports group (30 Oct 2026): each final state drawn by its own art, without the aim.
-  minigolf: simple("#7FD58A", MINIGOLF_W, MINIGOLF_H, { draw: (ctx, s: MinigolfState) => drawMinigolf(ctx, s, null) }, (p, a) => replayMinigolfRun(seedOf(p), a, p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined)),
+  minigolf: simple("#7FD58A", MINIGOLF_W, MINIGOLF_H, { draw: (ctx, s: MinigolfState) => drawMinigolf(ctx, s, null) }, (p, a) => replayMinigolfRun(seedOf(p), a, p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined, p.type === "minigolf" ? minigolfCourseOf(p) : {})),
   // curlRev 2 draws a shorter world (390 × 540; display only).
   curling: simple("#E8C35A", CURLING_W, CURLING_H, { draw: (ctx, s: CurlingState) => drawCurling(ctx, s, null) }, (p, a) => replayCurlingRun(seedOf(p), a, p.type === "curling" ? p.curlRev : undefined), undefined, undefined, (p) => curlingWorldHFor(p.type === "curling" ? p.curlRev : undefined)),
   pool: simple("#3FA672", POOL_W, POOL_H, { draw: (ctx, s: PoolState) => drawPool(ctx, s, null) }, (p, a) => replayPoolRun(seedOf(p), a, p.type === "pool" ? p.poolRev : undefined)),
