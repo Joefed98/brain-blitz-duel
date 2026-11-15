@@ -577,7 +577,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a piece", detail: "to turn it." },
         // Pattern review fixes (15 Nov 2026): the double tap's flip was never in the help.
         { action: "Double-tap it", detail: "to flip it over (it doesn’t turn first)." },
-        { action: "Drag it", detail: "onto the board; drag a placed piece to move it." },
+        { action: "Drag it", detail: "onto the board to place or move it." },
         { action: "Fit every piece", detail: "around the fixed pegs." },
         { action: "Hold any square of a piece:", detail: "the piece lands with that square under your finger.", helpOnly: true },
         ...(prePatternNov15Pinned()

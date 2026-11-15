@@ -10,7 +10,7 @@
  * 4. The help and intro say what changed (a double tap only flips, Undo gives the move back, clean drops; no "anchor").
  * 5. The sprites exist, are WebP with alpha and within budget, and the stage, tray, board and reveal draw them; the
  *    stage on blockRev 4 has Undo and Reset (older stamps don't), holds a turn for the double-tap window, sounds the
- *    pick-up and the illegal drop; the reveal's own count shows only under Yours.
+ *    pick-up and the illegal drop; the reveal's own count reads "You: …", never as the solution's.
  * 6. The new sound slots exist in the manifest and each has its ElevenLabs line.
  */
 import { readFileSync, statSync } from "node:fs";
@@ -188,7 +188,7 @@ function solveAt(p: Block, sol: NonNullable<Block["solution"]>, drops: number): 
 
   const p = live[0]!;
   const reveal = renderToStaticMarkup(<blockPartyPuzzle.Reveal puzzle={p} myAnswer={encodeBlockAnswer((p.solution ?? []).slice(0, 2), 1)} myCorrect={false} {...({} as Record<string, never>)} />);
-  check(/<p data-yours-only=""[^>]*>[^<]*2\/9 pieces in place/.test(reveal), `reveal: the own count is not Yours-only: ${reveal.slice(-260)}`);
+  check(/<p data-own-count=""[^>]*>You: (<!-- -->)?2\/9 pieces in place/.test(reveal), `reveal: the own count is not labelled as the player's: ${reveal.slice(-260)}`);
   check(/one solution/.test(reveal) && /your board/.test(reveal), "reveal: the Solution / Yours labels moved");
 }
 

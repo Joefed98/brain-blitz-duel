@@ -70,10 +70,13 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           </div>
         </div>
       </div>
-      {/* The player's own count: under the Solution / Yours switch it shows only under Yours (Pattern overhaul). */}
-      <p data-yours-only="" className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+      {/* The player's own count, labelled as theirs (Pattern overhaul): under the Solution / Yours switch it never
+          reads as the solution's. It stays under both views: hiding it under Solution left the card no width of its
+          own and the reveal's fit drew the solution at half size. */}
+      <p data-own-count="" className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+        You:{" "}
         {myCorrect ? (
-          <span className="text-primary">Solved</span>
+          <span className="text-primary">solved</span>
         ) : (
           (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${geo.free} covered`)
         )}

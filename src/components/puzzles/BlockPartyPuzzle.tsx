@@ -510,6 +510,9 @@ export function BlockPartyPuzzle({
     Math.min(
       (traySize.height - 20 - Math.max(0, trayRows.length - 1) * 4) / trayHeightUnits,
       (traySize.width - 20 - 8) / trayWidthUnits,
+      // The tray's three columns are equal: the widest piece fits its own column, never over a neighbour
+      // (Pattern overhaul; display only).
+      (traySize.width - 20 - 8) / 3 / Math.max(1, ...inTray.map((piece) => offsetsSize(shownOffsetsFor(piece)).cols)),
     ),
   );
   // The board and the tray settle against each other (see useBeforePaint above); in the frame the HUD
