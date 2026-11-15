@@ -27,6 +27,7 @@ import { SHOP_SCREENS } from "./screens/shop";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
 import { roomsRatedScreens } from "./screens/rooms-rated";
 import { PROFILE_SCREENS } from "./screens/profile";
+import { SETTINGS_ACCOUNT_SCREENS } from "./screens/settings-account";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
   .pub as PuzzleData;
@@ -177,7 +178,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "badges" | "card";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "badges" | "card" | "settings" | "onboarding";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -782,13 +783,13 @@ export const NAV_SCREENS = (): ThemeScreen[] => {
 /** 2b (14 Nov 2026): Settings → Appearance (Dark, Light, Match my device), at every size; appended last. */
 export const APPEARANCE_SCREENS = (): ThemeScreen[] => [
   {
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings).
     name: "settings, appearance",
-    mode: "profile",
+    mode: "settings",
     sizes: ALL_SIZES,
     go: async (page) => {
-      await page.locator("[data-open-settings]").first().click();
-      await page.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 });
-      await page.locator("[data-settings-sheet] [data-appearance-setting]").scrollIntoViewIfNeeded();
+      await page.locator("[data-settings-page]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-settings-page] [data-appearance-setting]").scrollIntoViewIfNeeded();
       await page.waitForTimeout(300);
     },
   },
@@ -798,13 +799,13 @@ export const COMPONENT_SCREENS = (): ThemeScreen[] => [
   { name: "components", mode: "components", plain: true, sizes: ALL_SIZES },
   { name: "components, light", mode: "components", plain: true, globals: { __harnessTheme: "light" }, sizes: ALL_SIZES },
   {
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings).
     name: "settings, sound and volume",
-    mode: "profile",
+    mode: "settings",
     sizes: ALL_SIZES,
     go: async (page) => {
-      await page.locator("[data-open-settings]").first().click();
-      await page.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 });
-      await page.locator("[data-settings-sheet] [data-volume-slider='music']").scrollIntoViewIfNeeded();
+      await page.locator("[data-settings-page]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-settings-page] [data-volume-slider='music']").scrollIntoViewIfNeeded();
       await page.waitForTimeout(300);
     },
   },
@@ -867,12 +868,12 @@ export const THEME_SCREENS: ThemeScreen[] = [
       await page.waitForTimeout(300);
     },
   },
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): the page.
   {
     name: "settings sheet",
-    mode: "profile",
+    mode: "settings",
     go: async (page) => {
-      await page.locator("[data-open-settings]").click();
-      await page.locator("[data-settings-sheet]").waitFor({ timeout: 10_000 });
+      await page.locator("[data-settings-page]").waitFor({ timeout: 10_000 });
     },
   },
   { name: "lobby, 2 players", mode: "room", room: room("waiting", "starting") },
@@ -999,6 +1000,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...SHOP_SCREENS(),
   ...roomsRatedScreens({ room, sizes: ALL_SIZES }),
   ...PROFILE_SCREENS(),
+  ...SETTINGS_ACCOUNT_SCREENS(),
 ];
 
 export interface ThemeViewport {

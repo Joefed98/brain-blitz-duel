@@ -149,7 +149,7 @@ function roomNow(
 
 interface Screen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "settings";
   room?: () => ReturnType<typeof roomNow>;
   /** Steps after load (practice), then a settle wait. */
   go?: (page: Page) => Promise<void>;
@@ -184,11 +184,11 @@ const ALL_SCREENS: Screen[] = [
     name: "sound settings",
     // Changed with Joe's approval, 14 Nov 2026 (the components step: no page header has sound controls; sound
     // settings are reached through Profile's gear → Settings). The assertions on the screen are unchanged.
-    mode: "profile",
-    overlay: true,
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): the
+    // Settings page, a scrolling page judged as the other pages are.
+    mode: "settings",
     go: async (page) => {
-      await page.locator("[data-open-settings]").first().click();
-      await page.getByRole("dialog").first().waitFor({ timeout: 10_000 });
+      await page.locator("[data-settings-page]").first().waitFor({ timeout: 10_000 });
     },
   },
   { name: "practice round intro", mode: "practice", go: openGame, fits: true },

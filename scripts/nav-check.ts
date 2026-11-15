@@ -9,7 +9,7 @@
  * 2. The real app on a dev server (an iPhone 11 home-screen app's geometry, a guest), end to end: every tab opens its
  *    screen; the gold Play bar is on Home and Games only, above the tab bar, and opens Home's play section; More's rows
  *    open Profile, Friends (the save-your-progress sheet for a guest), Leaderboards, Challenges (Games, scrolled to the
- *    full list), Daily, Settings (the sheet) and Support; the avatar opens the save-your-progress sheet for a guest.
+ *    full list), Daily, Settings (/settings) and Support; the avatar opens the save-your-progress sheet for a guest.
  *    Back (Android's back button or gesture: the browser's history back): one screen at a time, and from any main tab
  *    to Home before leaving, including a tab opened directly (Home put beneath it). The tab bar and Play bar sit above
  *    the home bar / gesture bar inset. Every tab, row, the avatar and Play are at least 44 px. Tablets: the tab bar
@@ -116,6 +116,8 @@ const check = (ok: boolean, what: string) => {
     "daily-board.tsx": "the Daily screens' Top 100; Leaderboards",
     "daily-archive.tsx": "Joulz Plus: the Daily archive",
     "terms.tsx": "Settings: Beta terms; the first room, Daily or challenge",
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings).
+    "settings.tsx": "More: Settings; Profile's gear; the rail's gear",
     "__root.tsx": "the app's root (the launch screen)",
     "dev-crash.tsx": "development only",
     "dev-design.tsx": "development only",
@@ -338,10 +340,16 @@ try {
     check(!!list && list.y >= -2 && list.y < 220, `More → Challenges opens Games at the full list (${list?.y})`);
     await page.goBack();
     await waitPath(page, "/more");
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): More →
+    // Settings opens the Settings page, and Back returns to More.
     await page.locator("[data-more-row='settings']").click();
-    check(await page.getByRole("dialog", { name: "Settings" }).isVisible(), "More → Settings opens the settings sheet");
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(400);
+    await waitPath(page, "/settings");
+    check(path(page) === "/settings", "More → Settings opens /settings");
+    await page.getByRole("heading", { level: 1, name: "Settings" }).waitFor({ timeout: 60_000 });
+    await page.goBack();
+    await waitPath(page, "/more");
+    check(path(page) === "/more", "Back from Settings returns to More");
+    await page.locator("[data-more-row='friends']").waitFor();
     await page.locator("[data-more-row='friends']").click();
     await page.waitForTimeout(600);
     check((await page.locator("[data-save-progress], [role='dialog']").count()) > 0 && path(page) === "/more", "More → Friends offers a guest the save-your-progress sheet");

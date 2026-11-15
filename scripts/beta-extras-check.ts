@@ -448,10 +448,22 @@ try {
       await context.close();
     }
   }
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): Profile's
+  // gear goes to the Settings page, which has the Beta terms row.
   {
     const { context, page } = await open("profile");
     try {
       await page.locator("[data-open-settings]").click();
+      const went = await page.evaluate(() => JSON.stringify((window as unknown as { __harness: { routerNavigations?: unknown[] } }).__harness.routerNavigations ?? []));
+      check(/"to":"\/settings"/.test(went), `Profile → the gear opens /settings (${went})`);
+    } finally {
+      await context.close();
+    }
+  }
+  {
+    const { context, page } = await open("settings");
+    try {
+      await page.locator("[data-settings-page]").waitFor({ timeout: 30_000 });
       check(await page.getByRole("button", { name: "Beta terms" }).isVisible(), "Profile → settings: Beta terms");
     } finally {
       await context.close();

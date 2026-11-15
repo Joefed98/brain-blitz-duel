@@ -33,6 +33,8 @@ import { Route as TermsRoute } from "@/routes/terms";
 import { Route as FriendsRoute } from "@/routes/friends";
 import { Route as CustomiseRoute } from "@/routes/customise";
 import { Route as MoreRoute } from "@/routes/more";
+import { Route as SettingsRoute } from "@/routes/settings";
+import { Onboarding } from "@/components/duel/Onboarding";
 import { LaunchSplash } from "@/components/nav/LaunchSplash";
 import { setAccount } from "@/lib/account/accountApi";
 import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
@@ -733,6 +735,12 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
     const Card = CardRoute.options.component as () => JSX.Element;
     return <Card />;
   },
+  // The Settings session (phase 2 step 3, scripts/screens/settings-account.ts): /settings and the first-time intro.
+  settings: () => {
+    const Settings = SettingsRoute.options.component as () => JSX.Element;
+    return <Settings />;
+  },
+  onboarding: () => <Onboarding onDone={() => undefined} />,
 };
 const Screen = ROOT_SCREENS[mode ?? ""] ?? (
   mode === "room"

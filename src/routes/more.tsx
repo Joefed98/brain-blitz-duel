@@ -2,8 +2,6 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 
 import { SaveProgressOffer } from "@/components/account/SaveProgress";
-import { SettingsSheet } from "@/components/app/SettingsSheet";
-import { Onboarding } from "@/components/duel/Onboarding";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { NavArt } from "@/components/nav/NavArt";
 import type { NavArtName } from "@/components/nav/navArt.data";
@@ -26,7 +24,7 @@ import { unlockAudio } from "@/lib/sound";
  * - Friends and rivals: Profile, Friends (accounts; a guest gets the save-your-progress sheet, as Profile's Friends
  *   button does), Leaderboards.
  * - Compete: Challenges (the full list, on Games), Daily.
- * - Joulz: Joulz Plus (only where the Shop is on), Settings (the settings sheet), Support (the support address, else
+ * - Joulz: Joulz Plus (only where the Shop is on), Settings (/settings), Support (the support address, else
  *   the feedback form; no row while neither is set).
  */
 export const Route = createFileRoute("/more")({
@@ -50,8 +48,6 @@ function MoreScreen() {
   const signedIn = account.kind === "account";
   const waiting = useWaitingRequests(signedIn);
   const [offer, setOffer] = useState(false);
-  const [settings, setSettings] = useState(false);
-  const [intro, setIntro] = useState(false);
   const contact = betaValue("CONTACT_EMAIL");
   const feedback = feedbackUrl(feedbackBase(), null);
   const support = contact ? `mailto:${contact}` : feedback;
@@ -60,8 +56,6 @@ function MoreScreen() {
     unlockAudio();
     void router.navigate({ to, ...extra, state: { fromPlayTab: true, ...((extra["state"] as object) ?? {}) } as never } as never);
   };
-
-  if (intro) return <Onboarding onDone={() => setIntro(false)} />;
 
   return (
     <PhoneShell tabs="more" title="More">
@@ -90,7 +84,7 @@ function MoreScreen() {
 
         <Group title={APP_NAME}>
           {shop ? <Row art="plus" title={`${APP_NAME} Plus`} data="plus" onClick={push("/shop", { search: { part: "plus" } })} /> : null}
-          <Row art="settings" title="Settings" data="settings" onClick={() => setSettings(true)} />
+          <Row art="settings" title="Settings" data="settings" onClick={push("/settings")} />
           {support ? <Row art="support" title="Support" data="support" href={support} external={!contact} /> : null}
         </Group>
         {/* The brand (Joe, 14 Nov 2026): out of every page header; it stays here and on the launch screen. */}
@@ -99,19 +93,6 @@ function MoreScreen() {
         </div>
       </div>
       {offer ? <SaveProgressOffer onClose={() => setOffer(false)} /> : null}
-      {settings ? (
-        <SettingsSheet
-          onClose={() => setSettings(false)}
-          onHowItWorks={() => {
-            setSettings(false);
-            setIntro(true);
-          }}
-          onTerms={() => {
-            setSettings(false);
-            void router.navigate({ to: "/terms", state: { fromPlayTab: true } as never });
-          }}
-        />
-      ) : null}
     </PhoneShell>
   );
 }
