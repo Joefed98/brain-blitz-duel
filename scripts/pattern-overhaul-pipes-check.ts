@@ -40,6 +40,7 @@ const { gradePipesBoard } = await import("../src/lib/duel/logic.server");
 const { rotateMask, tileOpenings, PIPE_E, PIPE_N, PIPE_S, PIPE_W } = await import("../src/lib/duel/logic");
 const { PUZZLE_INSTRUCTIONS } = await import("../src/lib/duel/instructions");
 const { patternStdHelp, patternStdIntro } = await import("../src/lib/duel/standard/patternText");
+const { INTRO_SCORE } = await import("../src/lib/duel/introScore");
 const { PipesBoard, pipesPuzzle, networkLeakArms, PIPES_LONG_PRESS_MS } = await import("../src/puzzles/pipes");
 const { pipeArtUrls, pipeSprite } = await import("../src/components/puzzles/pattern/pipesArt");
 const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
@@ -127,10 +128,11 @@ for (const seed of SEEDS) {
   check(/Turns/.test(patternStdHelp("pipes")) && /either way/.test(patternStdHelp("pipes")), "help: the SCORE list doesn't count turns either way");
   const intro = patternStdIntro("pipes");
   check(intro.length <= 90 && /fewest turns/.test(intro), `intro: "${intro}"`);
+  check(/fewest turns/.test(INTRO_SCORE.pipes), `intro: the round intro's SCORE line says "${INTRO_SCORE.pipes}"`);
   const was = pinPrePatternNov15(true);
   const oldHow = PUZZLE_INSTRUCTIONS.pipes.how.map((l) => `${l.action} ${l.detail}`).join(" | ");
   check(!/anticlockwise/.test(oldHow) && /fewest taps/.test(oldHow), "help: the pinned help describes pipesRev 5");
-  check(/fewest taps/.test(patternStdIntro("pipes")), "intro: the pinned intro describes pipesRev 5");
+  check(/fewest taps/.test(patternStdIntro("pipes")) && /fewest taps/.test(INTRO_SCORE.pipes), "intro: the pinned intro describes pipesRev 5");
   pinPrePatternNov15(was);
   check(/anticlockwise/.test(PUZZLE_INSTRUCTIONS.pipes.how.map((l) => l.detail).join(" ")), "help: the texts didn't rebuild after the pin");
 }

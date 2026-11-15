@@ -34,7 +34,8 @@
 
 /* A leak: the spill sprite at an open end of the network (north in the sprite, turned to its side). */
 .pipe-spill { position: absolute; inset: 0; display: block; }
-.pipe-spill img { position: absolute; left: 20%; top: 0; width: 60%; height: 60%; display: block; }
+/* The spray fans from the pipe's mouth at the tile edge back along the pipe end (the sprite flipped). */
+.pipe-spill img { position: absolute; left: 14%; top: 0; width: 72%; height: 44%; display: block; transform: scaleY(-1); }
 
 /* Solve rush: a bright water front runs from the source through every pipe by 0.9 s, then fades by 1.2 s. */
 .pipe-surge { overflow: visible; animation: pipe-surge-fade 1200ms linear both; }
