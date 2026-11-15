@@ -11,14 +11,18 @@
  */
 import type { Page } from "playwright";
 
+import { puzzleDef } from "../src/lib/duel/catalogue";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
 
 export async function showPracticeSide(page: Page, game: string, timeout = 60_000): Promise<void> {
-  const tile = page.locator(`[data-practice-game="${game}"]`).first();
-  await tile.waitFor({ timeout });
   // The catalogue answers taps once the page has hydrated (it marks itself data-hydrated from an effect).
   await page.locator("[data-games-catalogue][data-hydrated]").first().waitFor({ timeout });
+  // The Puzzles | Arcade switch (restored 15 Nov 2026, the difficulty framework): the game's tile is on its side.
+  const side = puzzleDef(game as PuzzleType).category === "arcade" ? "arcade" : "puzzles";
+  const toggle = page.locator(`[data-practice-side="${side}"]`).first();
+  if ((await toggle.count()) > 0 && (await toggle.getAttribute("aria-pressed")) !== "true") await toggle.click({ timeout });
+  await page.locator(`[data-practice-game="${game}"]`).first().waitFor({ timeout });
 }
 
 /** The link that opens a game's round with its full intro (Goal, How, Ready), as the list's tile did until 14 Nov 2026. */
