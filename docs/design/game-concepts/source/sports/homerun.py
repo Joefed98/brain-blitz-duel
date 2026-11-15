@@ -12,8 +12,8 @@ WALL_R = 96.0
 
 def build(look):
     reset(samples=128 if look == "A" else 160, view="AgX", look="AgX - Punchy", exposure=0.0 if look == "A" else -0.1)
-    grass = stripes("grass", (30, 116, 40), (44, 138, 52), band=4.0, angle=math.radians(45), fibre=200)
-    grass2 = stripes("grass2", (34, 122, 44), (48, 142, 56), band=1.6, angle=math.radians(45), fibre=200)
+    grass = stripes("grass", (30, 116, 40), (44, 138, 52), band=4.0, angle=math.radians(45), fibre=200, sheen=0.0, rough=0.7)
+    grass2 = stripes("grass2", (34, 122, 44), (48, 142, 56), band=1.6, angle=math.radians(45), fibre=200, sheen=0.0, rough=0.7)
     dirt = noisy("dirt", (150, 96, 60), (178, 120, 78), scale=40, rough=0.95, bump=0.3)
     chalk = mat("chalk", (240, 240, 236), rough=0.8)
     disc("field", 140, grass, (0, 40), z=0.0, verts=160)
@@ -114,7 +114,7 @@ def build(look):
     red = mat("red", (196, 34, 42), rough=0.6, sheen=0.3)
     helmet = mat("helmet", (20, 30, 64), rough=0.15, coat=1.0)
     cap = mat("capr", (170, 26, 34), rough=0.5)
-    figure("pitcher", (0, 18.6, 0.85), 1.88, red, shorts_mat=white, sock_mat=red, head_mat=cap, face_dir=(0, -1))
+    figure("pitcher", (0, 18.6, 0.18), 1.88, red, shorts_mat=white, sock_mat=red, head_mat=cap, face_dir=(0, -1))
     fielders = [(-26, 44), (24, 47), (6, 54), (-50, 78), (0, 84), (48, 80)]
     ringm = mat("catch", (255, 255, 255), rough=0.4, alpha=0.35)
     for i, (x, y) in enumerate(fielders):
@@ -122,9 +122,12 @@ def build(look):
         torus("circle", 5.5, 0.07, emission("circ", (255, 255, 255), 0.6), loc=(x, y, 0.06))
         disc("circfill", 5.5, ringm, (x, y), z=0.05, verts=48)
     # batter: back to the camera, bat cocked over the shoulder
-    parts = figure("batter", (-1.0, -0.15, 0.0), 1.9, navy, shorts_mat=white, sock_mat=navy, head_mat=helmet, face_dir=(0.55, 0.85))
-    bat = cyl("bat", 0.035, 0.86, wood("ash", (214, 172, 112), (176, 132, 76), scale=8, coat=0.6), loc=(-1.12, -0.05, 2.1), verts=24)
-    bat.rotation_euler = (math.radians(-20), math.radians(-28), 0)
+    parts = figure("batter", (-1.0, -0.15, 0.0), 1.9, navy, shorts_mat=white, sock_mat=navy, head_mat=helmet, face_dir=(0.55, 0.85), pose="bat")
+    bpy.ops.mesh.primitive_cone_add(radius1=0.022, radius2=0.042, depth=0.86, vertices=24, location=(-1.32, -0.42, 1.98))
+    bat = bpy.context.object
+    bat.data.materials.append(wood("ash", (214, 172, 112), (176, 132, 76), scale=8, coat=0.6))
+    bpy.ops.object.shade_smooth()
+    bat.rotation_euler = (math.radians(-35), math.radians(-30), 0)
     # the pitch: the ball and its closing ring
     ball_m = mat("ball", (250, 248, 240), rough=0.4)
     bp = (0.15, 5.5, 1.15)
@@ -137,6 +140,7 @@ def build(look):
             a = math.radians(deg)
             area((math.sin(a) * 120, math.cos(a) * 120, 45), (0, 30, 0), size=14, energy=2.4e4, color=(255, 246, 230))
         area((6, -12, 10), (0, 0, 1), size=6, energy=2600, color=(220, 230, 255))
+        area((0, 40, 30), (0, 110, 10), size=40, energy=6.0e4, color=(255, 244, 226))
     else:
         world_color((2, 3, 8), 0.3)
         for o in bpy.data.objects:
@@ -149,6 +153,7 @@ def build(look):
             area((math.sin(a) * 120, math.cos(a) * 120, 45), (0, 30, 0), size=6, energy=3.2e4, color=(255, 250, 240))
         area((-10, 6, 4), (-1, 0, 1.4), size=2, energy=1600, color=(140, 190, 255))
         area((8, -10, 8), (0, 0, 1), size=5, energy=1000, color=(255, 220, 190))
+        area((0, 40, 30), (0, 110, 10), size=40, energy=3.0e4, color=(200, 220, 255))
     cam_look((-0.55, -5.2, 3.6), (0.1, 40, -7.5), lens=24)
     pills = [("Pitch", "6/10", False), ("HR", 5, False), ("Bonus", 2, False)]
     return dict(pills=pills, right_pills=[("Perfect", "×1", True)], post=vignette(0.55, 1.8) if look == "B" else None)

@@ -43,7 +43,7 @@ def plain_ball(name, x, y, r_px, color, rough=0.08, coat=1.0, z=None):
 
 
 def figure(name, base, height, body_mat, skin_mat=None, head_mat=None, shorts_mat=None, sock_mat=None,
-           pose="stand", num_tex=None, face_dir=(0, -1)):
+           pose="stand", num_tex=None, face_dir=(0, -1), glove_mat=None):
     """A stylised faceless athlete standing at base (Vector, ground z), height in units, facing face_dir.
     Built from rounded capsules (no face, no features)."""
     import bmesh as _b
@@ -79,8 +79,9 @@ def figure(name, base, height, body_mat, skin_mat=None, head_mat=None, shorts_ma
     hip = b + up * leg
     sw = hgt * 0.07
     for s in (-1, 1):
-        foot = b + side * s * sw * 0.9
-        knee = b + side * s * sw * 0.85 + up * leg * 0.5
+        spread = 1.9 if pose == "bat" else 0.9
+        foot = b + side * s * sw * spread
+        knee = b + side * s * sw * (spread * 0.85) + up * leg * 0.48
         cap(name + "shin", foot + up * 0.01 * hgt, knee, hgt * 0.04, so)
         cap(name + "thigh", knee, hip + side * s * sw * 0.7, hgt * 0.055, sh)
     chest = hip + up * hgt * 0.30
@@ -103,6 +104,10 @@ def figure(name, base, height, body_mat, skin_mat=None, head_mat=None, shorts_ma
         if pose == "wall":  # hands crossed low in front
             hand = hip + side * s * hgt * 0.03 + Vector((fx, fy, 0)) * hgt * 0.10 + up * hgt * 0.03
             elbow = (shoulder + hand) / 2 + Vector((fx, fy, 0)) * hgt * 0.04 + side * s * hgt * 0.06
+        elif pose == "bat":  # both hands together by the back shoulder, elbows out
+            grip = sh_l + up * hgt * 0.02 - Vector((fx, fy, 0)) * hgt * 0.10 + side * hgt * 0.02
+            hand = grip + side * s * hgt * 0.015
+            elbow = shoulder + side * s * hgt * 0.10 - up * hgt * 0.10 - Vector((fx, fy, 0)) * hgt * 0.02
         elif pose == "keeper":
             hand = shoulder + side * s * hgt * 0.30 + up * hgt * 0.10
             elbow = shoulder + side * s * hgt * 0.16 + up * hgt * 0.02
@@ -215,3 +220,51 @@ def stripes(name, a, b, band=1.0, axis="Y", fibre=900.0, rough=0.85, sheen=0.4, 
     bs.inputs["Roughness"].default_value = rough
     bs.inputs["Sheen Weight"].default_value = sheen
     return m
+
+
+def world_gradient(stops, strength=1.0):
+    """A sky from a colour ramp over the view direction's height: stops = [(z 0..1, rgb), ...] (0 = horizon)."""
+    nt = bpy.context.scene.world.node_tree
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(tc.outputs["Generated"], sep.inputs[0])
+    cr = nt.nodes.new("ShaderNodeValToRGB")
+    el = cr.color_ramp.elements
+    el[0].position, el[0].color = stops[0][0], lin(stops[0][1])
+    el[1].position, el[1].color = stops[-1][0], lin(stops[-1][1])
+    for p, c in stops[1:-1]:
+        e = el.new(p)
+        e.color = lin(c)
+    nt.links.new(sep.outputs["Z"], cr.inputs["Fac"])
+    bg = nt.nodes["Background"]
+    nt.links.new(cr.outputs[0], bg.inputs[0])
+    bg.inputs[1].default_value = strength
+
+
+def sun_disc(loc, r, color=(255, 236, 190), strength=30.0, glow=True):
+    """A visible sun: a bright disc facing the origin and a few soft glow rings."""
+    o = sphere("sundisc", r, emission("sundisc", color, strength), loc=loc, seg=32)
+    if glow:
+        # a camera-facing plane with a soft radial falloff (no hard rings)
+        bpy.ops.mesh.primitive_plane_add(size=r * 16, location=loc)
+        g = bpy.context.object
+        g.rotation_euler = (math.radians(90), 0, 0)
+        m = bpy.data.materials.new("sunglow")
+        m.use_nodes = True
+        nt = m.node_tree
+        for n in list(nt.nodes):
+            if n.type != "OUTPUT_MATERIAL":
+                nt.nodes.remove(n)
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        mp = nt.nodes.new("ShaderNodeMapping"); mp.inputs["Scale"].default_value = (2.0, 2.0, 2.0)
+        gr = nt.nodes.new("ShaderNodeTexGradient"); gr.gradient_type = "SPHERICAL"
+        nt.links.new(tc.outputs["Object"], mp.inputs[0]); nt.links.new(mp.outputs[0], gr.inputs[0])
+        pw = nt.nodes.new("ShaderNodeMath"); pw.operation = "POWER"; pw.inputs[1].default_value = 2.6
+        nt.links.new(gr.outputs["Fac"], pw.inputs[0])
+        em = nt.nodes.new("ShaderNodeEmission"); em.inputs[0].default_value = lin((255, 196, 130)); em.inputs[1].default_value = 4.0
+        tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+        mx = nt.nodes.new("ShaderNodeMixShader")
+        nt.links.new(pw.outputs[0], mx.inputs[0]); nt.links.new(tr.outputs[0], mx.inputs[1]); nt.links.new(em.outputs[0], mx.inputs[2])
+        nt.links.new(mx.outputs[0], nt.nodes["Material Output"].inputs[0])
+        g.data.materials.append(m)
+    return o
