@@ -1,11 +1,10 @@
 import { useRouter } from "@tanstack/react-router";
-import { useState, type FormEvent, type MouseEvent } from "react";
+import { type FormEvent, type MouseEvent } from "react";
 
 import { AppWordmark } from "@/components/brand/AppWordmark";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { AvatarButton } from "@/components/nav/AvatarButton";
 import { PlayBar } from "@/components/nav/PlayBar";
-import { SettingsSheet } from "@/components/app/SettingsSheet";
 import { CoinCounter } from "@/components/app/CoinCounter";
 import { goToTab, TAB_PATHS, type AppTab } from "@/components/app/AppTabBar";
 import { useShopOn } from "@/lib/identity/shopSwitch";
@@ -36,7 +35,6 @@ export function AppRail({
   const router = useRouter();
   const shop = useShopOn();
   const shopDot = shopDotFor(useShopStatus()) && shop && current !== "shop";
-  const [settings, setSettings] = useState(false);
 
   const open = (tab: AppTab) => (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
@@ -93,26 +91,16 @@ export function AppRail({
             data-rail-settings
             aria-label="Settings"
             title="Settings"
-            onClick={() => setSettings(true)}
+            onClick={() => {
+              unlockAudio();
+              void router.navigate({ to: "/settings" });
+            }}
             className="dk-rail-icon press"
           >
             <Icon name="settings" size={20} />
           </button>
         </div>
       </div>
-      {settings ? (
-        <SettingsSheet
-          onClose={() => setSettings(false)}
-          onHowItWorks={() => {
-            setSettings(false);
-            void router.navigate({ to: "/" });
-          }}
-          onTerms={() => {
-            setSettings(false);
-            void router.navigate({ to: "/terms" });
-          }}
-        />
-      ) : null}
     </nav>
   );
 }
