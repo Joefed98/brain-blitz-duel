@@ -202,7 +202,7 @@ yet" means the game has never had a demo (its intro shows the still).
 | Top Bins (`freekick`) | `freekickRev 4` | None yet (the drawn shot since 3 Nov) |
 | Grappler (`swing`) | `swingRev 18` | Stopped (`SWING_REV_BIG`, the bigger hero); **recorded run ready** (Action demos below) |
 | Rainbow Bridge (`inkbridge`) | `inkRev 13` | Stopped (`INK_REV_CLOVER`) |
-| Orbit (`orbit`) | `orbitRev 15` | Stopped (`ORBIT_REV_GRACE` since 15 Nov 2026; the rule had named only 14, so a demo on the dealt stamp was refused); **recorded run ready** (Action demos below); a later stamp: re-record with `--rev` |
+| Orbit (`orbit`) | `orbitRev 16` | Stopped (`ORBIT_REV_BIG` since stage 3, 15 Nov 2026; `ORBIT_REV_GRACE` before); **recorded run ready** on 16 (Action demos below); a later stamp: re-record with `--rev` |
 | Meteor (`snake`) | `snakeRev 12` | Stopped (`SNAKE_REV_12`) |
 | Gemstone (`matchup`) | `matchupRev 12` | Stopped (`MATCHUP_REV_SIX`) |
 | Fission (`burst`) | `burstRev 10` | Stopped (`BURST_REV_STD`) |
