@@ -1,0 +1,307 @@
+/*
+ * The games foundation (phase 2 step 4, 15 Nov 2026; presentation only; docs/design/game-fx/README.md):
+ *  1. the effects kit's particle layer (src/lib/fx/kit.ts) and the round-end payoff (ResultPayoff);
+ *  2. the shared game frame restyled to the style guide's round 2 (docs/design/style-guide/phone/puzzle.png,
+ *     arcade.png): the header's type on the six sizes, the score in the title weight, the status pills as solid
+ *     surface chips. Every box keeps its size and place (the header stays 60 px, the pills 22 px), so no board,
+ *     world, control or check geometry moves;
+ *  3. the computer arena's side panel (ArenaSidePanel): on a computer, beside a live round's column when the space
+ *     right of it has room for the panel without moving the column.
+ * Every animation here moves transform and opacity only; reduced motion ends each on its final state.
+ */
+
+/* ------------------------------------------------------------------ 1. the kit's layer */
+
+.fx-kit-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+.fx-kit-spark {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--jz-round);
+  background: var(--jz-gold);
+  will-change: transform, opacity;
+}
+.fx-kit-spark[data-tone="loss"] {
+  background: var(--jz-loss);
+}
+
+/* The round-end payoff (ResultPayoff): the score, the stars landing and the new-best badge. */
+.fx-payoff {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-8);
+  font-family: var(--jz-font);
+}
+.fx-payoff-score {
+  display: inline-block;
+  font-size: 48px;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 105%;
+  line-height: 52px;
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}
+.fx-payoff-label {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+  color: var(--jz-text-3);
+}
+.fx-stars {
+  display: flex;
+  gap: var(--jz-space-8);
+}
+.fx-star {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  color: var(--jz-surface-3);
+}
+.fx-star[data-earned] {
+  color: var(--jz-gold);
+}
+.fx-star svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fx-newbest {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: var(--jz-round);
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+  font-size: 13px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 28px;
+  white-space: nowrap;
+}
+/* The score bars on the result screens fill by scale, never by width (no layout animation). */
+.fx-bar {
+  display: block;
+  height: 100%;
+  border-radius: var(--jz-round);
+  transform: scaleX(var(--fx-bar, 0));
+  transform-origin: left center;
+  transition: transform var(--jz-dur-reward) var(--jz-ease);
+}
+.fx-bar[data-from-right] {
+  transform-origin: right center;
+}
+
+/* ------------------------------------------------------------------ 2. the frame, style guide round 2 */
+
+/* The header's secondary lines in text 2 (the guide's "Game 1 of 3" and ratings), not the caption grey; the names and
+   scores already sit on the Heading and Title weight (800). */
+.game-frame-context,
+.game-frame-score-label,
+.game-frame-score-note {
+  color: var(--jz-text-2);
+}
+.game-frame-score-value {
+  letter-spacing: -0.01em;
+}
+.game-timer .timer-ring-track {
+  stroke: var(--jz-surface-2);
+}
+
+/* Status pills: a solid surface chip (the guide's "Moves 7" "Par 9"), label and value both bold. */
+.hud-pill.jz-status {
+  background: var(--jz-surface-2);
+  box-shadow: none;
+}
+.hud-pill .hud-pill-label {
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text-2);
+}
+.hud-pill .hud-pill-value {
+  font-weight: var(--jz-weight-bold);
+}
+
+/* ------------------------------------------------------------------ 3. the computer arena's side panel */
+
+.dk-arena-panel {
+  display: none;
+}
+@media (min-width: 1024px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  /*
+   * Shown only where the free space right of the play column holds the panel and its gaps, so the column (and the
+   * world, its controls and every desktop check's measure of them) never moves: the column is centred in the space
+   * right of the 76 px rail, so the space beside it is (width - 76 - column) / 2.
+   */
+  [data-layout="desktop"].game-screen > .dk-arena-panel {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 30;
+    width: var(--dk-arena-panel, 260px);
+    max-height: calc(100% - 48px);
+    flex-direction: column;
+    gap: var(--jz-space-16);
+    overflow: hidden;
+    padding: 20px;
+    border-radius: var(--jz-radius-lg);
+    background: var(--jz-surface);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    pointer-events: none;
+  }
+}
+/* Puzzles (a 760 px column): 76 + 760 + 2 × (260 + 24 + 24) = 1452. */
+@media (min-width: 1452px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"].game-screen[data-desktop-mode="wide"]:not([data-arcade-play]) > .dk-arena-panel {
+    display: flex;
+  }
+}
+/* Tall arcade worlds (a 640 px column): 76 + 640 + 2 × 308 = 1332. */
+@media (min-width: 1332px) and (min-height: 500px) and (hover: hover) and (pointer: fine) {
+  [data-layout="desktop"].game-screen[data-arcade-play][data-desktop-mode="tall"] > .dk-arena-panel {
+    display: flex;
+  }
+}
+.dk-ap-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dk-ap-title {
+  font-size: 20px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 26px;
+}
+.dk-ap-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+  color: var(--jz-text-3);
+}
+.dk-ap-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--jz-round);
+  background: var(--category-accent, var(--jz-gold));
+}
+.dk-ap-goal {
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+  color: var(--jz-text-2);
+}
+.dk-ap-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--jz-space-12);
+}
+.dk-ap-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface-2);
+}
+.dk-ap-stat-label {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+  color: var(--jz-text-2);
+}
+.dk-ap-stat-value {
+  font-size: 24px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.dk-ap-stat-value[data-critical] {
+  color: var(--jz-loss-text);
+}
+.dk-ap-note {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+  color: var(--jz-text-3);
+}
+
+/* ------------------------------------------------------------------ the showcase (/dev-design, development only) */
+
+.fx-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--jz-space-12);
+}
+.fx-demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-12);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.fx-demo-stage {
+  display: flex;
+  height: 96px;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+.fx-demo-track {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  padding-inline: var(--jz-space-12);
+}
+.fx-demo-track-left {
+  justify-content: flex-start;
+}
+.fx-demo-track-right {
+  justify-content: flex-end;
+}
+.fx-demo-piece {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--jz-radius-md);
+  background: var(--category-accent, var(--jz-gold));
+  color: var(--jz-on-gold);
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+}
+.fx-demo-piece[data-fx-piece="gold"] {
+  background: var(--jz-gold);
+}
+.fx-demo-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--jz-space-4);
+}
+.fx-demo-name {
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 20px;
+  color: var(--jz-text);
+}
+.fx-demo-what {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--jz-text-3);
+}

@@ -514,6 +514,9 @@ const CALL_SITES: Record<string, Record<string, number>> = {
   "components/duel/FinalResult.tsx": { celebrate: 1 },
   "components/duel/RoomChat.tsx": { tick: 1 },
   "components/duel/Standings.tsx": { success: 1 },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the games effects kit, phase 2 step 4): the
+  // kit's one call site (lib/fx/kit.ts gameFx: wrong, near miss and the payoff moments, through the same gates).
+  "lib/fx/kit.ts": { plan: 1 },
 };
 /**
  * gameSounds' feel() calls: the arcade moments (success: goal, home run, pot x2, Blockfall's three or four rows at

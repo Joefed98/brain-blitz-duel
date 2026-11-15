@@ -22,6 +22,7 @@ import type { ThemeSkin } from "@/lib/theme";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
 import { DesktopControlsHint } from "./DesktopControlsHint";
+import { ArenaSidePanel } from "./ArenaSidePanel";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
 import { PlayBar } from "@/components/nav/PlayBar";
@@ -531,6 +532,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       </div>
       {panel}
       {desktop && framePlay && gameType ? <DesktopControlsHint type={gameType} /> : null}
+      {/* The computer arena (phase 2 step 4): a side panel right of the column where it fits; a room has its own panel. */}
+      {desktop && framePlay && gameType && !panel ? <ArenaSidePanel type={gameType} /> : null}
       {/* The gold Play bar: Home and Games only, just above the tab bar (the rail has its own Play button). */}
       {tabPage && !railHere && (tabs === "play" || tabs === "practice") ? <PlayBar from={tabs} /> : null}
       {tabPage && !railHere ? <AppTabBar current={tabs!} /> : null}
