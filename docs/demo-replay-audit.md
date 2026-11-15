@@ -109,15 +109,15 @@ Replay columns describe the room's results-screen highlight and the podium's pla
 | Matchmaker (`pairmatch`) | Attention | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct10-polish-b`. Flips are stored in order, but the reveal ignores a part-played list (needs `replay.matched` drawn). |
 | Mixed Signals (`stroop`) | Attention | No (stopped) | n/a: still | Arcade highlight | Yes: the stored run | Demo stopped until recorded on `clashRev 5`+ (tall). |
 | Tally (`countup`) | Attention | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct14-attention-rework`. Per-tray counts (quiz-style). |
-| Chroma Lines (`flow`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct10-polish-b`. Stores final paths only; needs an action log. |
+| Chroma Lines (`flow`) | Pattern | Yes (bundled, `flowRev 3`) | Yes | Final board | No: final board only | Demo needs `flowRev 3` and `oct10-polish-b`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/flow.json`, until a live row on today's stamp replaces it: all ten lines drawn, Green drawn through Brown's squares and cut back as Brown is drawn, then redrawn. Stores final paths only; needs an action log. |
 | Gridlock (`unblock`) | Pattern | Not confirmed | Yes | Time-lapse (solved rounds) | Yes (fixed): moves in order, evenly spaced | Demo needs `oct13-pattern-polish`. Its reveal draws the player's board only for a correct answer. |
 | Heave (`push`) | Pattern | Not confirmed | Yes | Time-lapse (solved rounds) | Yes (fixed): steps in order, evenly spaced | Demo needs `oct13-pattern-polish`. As Gridlock. |
 | Gradient (`tiles`; Jumbled until 27 Oct 2026) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct14-pattern-logic-batch`. Moves are stored in order, but the reveal ignores a part-played list (needs `replay.frame` drawn). |
 | Lightbender (`laser`) | Pattern | No (stopped unless `splitterPieces 1`) | Yes | Time-lapse (action-log rounds) | Yes (new): every piece and FIRE at its recorded time, scaled | Demo needs `oct10-polish-b` and a movable-piece example. Older answers (no action log) show the final board. |
-| Pipeline (`pipes`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct13-pattern-polish`. Stores final tiles only; needs an action log. |
-| Skid (`iceslide`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct13-pattern-polish`. Moves are stored in order, but the reveal ignores a part-played list (needs the ball and paths drawn per prefix). |
-| Tessellate (`blockparty`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct10-polish-b`. Placements stored, removals lost; needs an action log. |
-| Topsy-Turvy (`gravity`) | Pattern | Not confirmed | Yes | Time-lapse | Yes (fixed): tilts in order, evenly spaced | Demo needs `oct10-polish-b`. No times stored. |
+| Pipeline (`pipes`) | Pattern | Yes (bundled, `pipesRev 5`) | Yes | Final board | No: final board only | Demo needs `pipesRev 5` and `oct13-pattern-polish`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/pipes.json`, until a live row on today's stamp replaces it: every tile turned the short way, taps clockwise and long presses anticlockwise, the water running through as the network grows and the solve rush at the end. Stores final tiles only; needs an action log. |
+| Skid (`iceslide`) | Pattern | Yes (bundled, `slideRev 5`) | Yes | Final board | No: final board only | Demo needs `slideRev 5` and `oct13-pattern-polish`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/iceslide.json`, until a live row on today's stamp replaces it: the 19-slide route with one slide off it (Left at step 8) taken back by Undo. Moves are stored in order, but the reveal ignores a part-played list (needs the ball and paths drawn per prefix). |
+| Tessellate (`blockparty`) | Pattern | Yes (bundled, `blockRev 4`) | Yes | Final board | No: final board only | Demo needs `blockRev 4` and `nov15-tessellate-overhaul`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/blockparty.json`, until a live row on today's stamp replaces it: the nine pieces turned with taps, one flipped with a double tap, each dropped cleanly onto its place. Placements stored, removals lost; needs an action log. |
+| Topsy-Turvy (`gravity`) | Pattern | Yes (bundled, `gravityRev 8`) | Yes | Time-lapse | Yes (fixed): tilts in order, evenly spaced | Demo needs `gravityRev 8` and `oct10-polish-b`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/gravity.json`, until a live row on today's stamp replaces it: the three boards' shortest routes (13 tilts), every ball home. No times stored. |
 | Turntable (`rings`) | Pattern | Not confirmed | Yes | Time-lapse | Yes (fixed): turns in order, evenly spaced | Demo needs `oct13-pattern-polish`. No times stored. |
 | Blackout (`lightsout`) | Logic | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct13-logic-polish`. Presses are stored in order, but the reveal ignores a part-played list (needs `replayLights` drawn per prefix). |
 | Bomb Defusal (`bomb`) | Logic | No (stopped unless `bombVersion 3`) | Yes | Final board | No: final board only | Demo needs `oct13-logic-polish` on a v3 card. Steps stored; needs a board view per step. |
@@ -173,6 +173,35 @@ demo; a stopped demo's intro shows its still (also proved there, as the no-demo 
 - **Quiz-style picks**: Operator, Tally, Eagle Eye, Double Take (a per-pick view with times).
 - **Word games**: Nucleus and Forage (a timed word log; Forage's traced paths).
 
+## Bundled demos (15 Nov 2026, the Pattern overhaul)
+
+The Pattern overhaul's stamps stopped five live demos (Tessellate `blockRev 4`, Pipeline `pipesRev 5`, Chroma Lines
+`flowRev 3`, Skid `slideRev 5`, Topsy-Turvy `gravityRev 8`). This container cannot reach the live database, and stored
+demos are never rewritten by a migration, so each new demo ships with the app: `src/lib/duel/bundledDemos/<id>.json`, one
+`intro_demos` row each (2–5 KB). Each was recorded by real play of the fixed intro example in dev practice (Intro
+examples on, the dev demo key) in headless Chromium at 390 × 844, and is the exact payload the reveal's "Save as intro
+demo" button sent (the example's public half, the touch log with its presentation and layout), captured from the request.
+`getIntroDemoFn` returns the live row when it plays on today's stamp and presentation (`acceptIntroDemo`, then
+`pickIntroDemo`), else the bundled demo; so a demo recorded live through the Save button replaces a bundled one with no
+code change. Gridlock's live demo (`unblockRev 4`) was never stopped: its drags still land, so nothing is bundled for it.
+`pattern-overhaul-demos-check` proves each demo is today's example and stamp, is chosen over a refused or older live row
+and loses to a current one, and replays through the game's own rules to a solved board; demo-intro-check plays them in
+the intro. Stills of each playing in its intro (mid-demo and the solved end, the dev server's practice intro at 390 × 844):
+`docs/design/pages-review/pattern/intro-demos/<id>.webp`.
+
+Same day, two recorder and player fixes any puzzle demo saved from now on gets:
+- The recorder (`DemoRecorder.finish`) keeps a press still down when the round ends. Topsy-Turvy's last tilt (and a
+  Pipeline long press that finishes the board) submits before the finger lifts, so a Save made before this stopped one
+  move short of the solve.
+- Since the game frame (Polish 2, 24 Oct 2026) a puzzle round is drawn under the play shell's attributes
+  (`[data-puzzle-play] …` rules size boards and buttons) with the frame's goal line holding the stage's progress, while
+  the intro's demo player drew the stage bare (its own progress line on top, other sizes), so touches recorded in a
+  round landed off target in the intro. The recorder now keeps the frame (`PuzzleDemoLog.frame`: the shell's data
+  attributes) and the player draws such a demo under the same attributes (on its demo box) with a goal line, so it
+  lays out as it was played. Demos without `frame` (every older one) draw exactly as before. Rules scoped to
+  `[data-game-stage]` are left out on purpose (that attribute marks a live round for haptics and checks); none of them
+  moved these five games' touches.
+
 ## Re-record list (3 Nov 2026)
 
 One list of every game whose intro demo is stopped, never recorded, or out of date after the October and November
@@ -185,8 +214,9 @@ yet" means the game has never had a demo (its intro shows the still).
 | Game (id) | Record on | Why |
 |---|---|---|
 | Labyrinth (`maze`) | `mazeRev 4` | Out of date: the par-moves batch (3 Nov) took the stars and gems away; no stop rule for `mazeRev` |
-| Topsy-Turvy (`gravity`) | `gravityRev 6` | Out of date: the rule lets `gravityRev 4`/`5` demos play, which still collect stars |
-| Skid (`iceslide`) | `slideRev 5` | Stopped (`slideRev` under 5, 15 Nov 2026: Undo gives the slide back; older demos may show gems) |
+| Topsy-Turvy (`gravity`) | `gravityRev 8` | Done (15 Nov 2026): a bundled demo on `gravityRev 8` (the stop rule refuses rows under 8) |
+| Skid (`iceslide`) | `slideRev 5` | Done (15 Nov 2026): a bundled demo on `slideRev 5` |
+| Pipeline, Chroma Lines, Tessellate (`pipes`, `flow`, `blockparty`) | `pipesRev 5`, `flowRev 3`, `blockRev 4` | Done (15 Nov 2026): bundled demos on those stamps |
 | Apex (`racing`) | `racingRev 3` | None yet (start lights since rev 2, corner signs and gravel since rev 3) |
 | Home Run (`homerun`) | `homerunRev 4` | None yet ("pick your spot" since 3 Nov) |
 | Cue Ball (`pool`) | `poolRev 4` | None yet (spots or stripes, 90 s since 3 Nov) |

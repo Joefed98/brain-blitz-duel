@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { ArrowModeOverride } from "@/components/puzzles/GridDrag";
 import { GameColumnLayout } from "@/components/puzzles/gameColumn";
+import { GoalLineContext } from "@/components/duel/GameFrame";
 import { puzzleInputDemoCompatible } from "@/components/puzzles/wordInput";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import {
@@ -41,6 +42,9 @@ export function usePuzzleDemo(type: PuzzleType): { puzzle: PuzzleData; log: Puzz
   if (!puzzleInputDemoCompatible(type, log)) return null;
   return { puzzle: demo.puzzle, log };
 }
+
+/** A demo recorded in the game frame: its goal line takes the stage's progress (nothing to draw in a demo). */
+const frameGoalLine = () => undefined;
 
 /** Intro slot for non-engine puzzles: the saved demo over the fixed intro example. */
 export function PuzzleIntroDemo({ demo, onReady }: { demo: { puzzle: PuzzleData; log: PuzzleDemoLog }; onReady?: () => void }) {
@@ -314,6 +318,9 @@ function PuzzleDemoPlayer({
       ref={boxRef}
       className="intro-demo relative overflow-hidden rounded-lg border border-border bg-background"
       style={{ aspectRatio: `${log.w} / ${log.h}` }}
+      // A demo recorded in the game frame (PuzzleDemoLog.frame) draws its stage under the play shell's own attributes,
+      // so the stage lays out as it did when the touches were recorded; older demos draw as before.
+      {...(log.frame?.attrs ?? {})}
       aria-label="Demo of the puzzle being solved"
     >
       {mounted ? (
@@ -329,6 +336,7 @@ function PuzzleDemoPlayer({
           }}
         >
           <GameColumnLayout.Provider value={(log.layout ?? 0) >= 1}>
+          <GoalLineContext.Provider value={log.frame ? frameGoalLine : null}>
           <ArrowModeOverride.Provider value={log.joystick ?? false}>
           <GameKeysOff.Provider value>
             <Stage
@@ -344,6 +352,7 @@ function PuzzleDemoPlayer({
             />
           </GameKeysOff.Provider>
           </ArrowModeOverride.Provider>
+          </GoalLineContext.Provider>
           </GameColumnLayout.Provider>
         </div>
       ) : null}
