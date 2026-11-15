@@ -146,7 +146,6 @@ import {
   type TapLogDiag,
 } from "./tapLog";
 import { countedMoves, decodeMoves, replayUnblock } from "./unblock";
-import { usesPatternNov15 } from "./patternNov15";
 import {
   COUNT_REV2_TRAYS,
   countUpStageTruth,

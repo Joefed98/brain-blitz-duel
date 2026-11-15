@@ -10,7 +10,6 @@ import { preNov7Pinned } from "../speedPipesNov7";
 import { prePatternNov15Pinned } from "../patternNov15";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parMovesDealt, parStrictDealt } from "../parMoves";
 import { GRADIENT_LIMIT_PER_PAR, partialCreditDealt } from "../partialCredit";
-import { prePatternNov15Pinned } from "../patternNov15";
 
 /** The intro line (two phone lines at most, no scoring terms). */
 export const PATTERN_STD_INTRO: Record<PatternStdType, string> = {

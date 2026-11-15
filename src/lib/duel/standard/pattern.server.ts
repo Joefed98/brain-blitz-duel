@@ -27,7 +27,6 @@ import { decodeSides, rotateMask, tileOpenings } from "../logic";
 import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
 import { decodePipesTurns, pipesAfterTurns } from "../depth4/pipesTaps";
-import { usesPatternNov15 } from "../patternNov15";
 import { cratesOnTargets, decodePushMoves, replayPush } from "../push";
 import { FLOW_PAIRS, LASER_MAX_FIRES, RINGS_SEGMENTS } from "../types";
 import { GRADIENT_WASTE_WEIGHT, PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
