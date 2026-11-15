@@ -328,7 +328,8 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
   const help = PUZZLE_INSTRUCTIONS.orbit;
   ok(help.how.some((h) => /Fuel/.test(h.action) && /drains only while you fly/.test(h.detail)) && /jump past too/.test(help.score), "the help explains the fuel and that a planet jumped past counts");
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_FUEL\) return null/.test(demo), "Orbit's intro demo stays stopped until one is recorded on orbitRev 14");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_GRACE\) return null/.test(demo), "Orbit's intro demo stays stopped until one is recorded on orbitRev 15 (the stamp rooms deal)");
 }
 
 /* 7. The sputter (display only): a run that ends dry animates for ORBIT_SPUTTER_MS on the presentation clock (the sim
