@@ -13,6 +13,7 @@
 import { TIER } from "../../docs/design/cosmetics-redraws/source/scenes";
 import { v2ArtCss, v2ArtMarkup, v2FrameCss, v2FrameMarkup } from "./v2/compose";
 import { V2_CARD_ARTS, V2_FRAMES } from "./v2/registry";
+import { V2_NAME_COLOURS } from "./v2/cosmetics";
 
 const IMG = (piece: string) => `/cosmetics/redrawn/${piece}.webp`;
 const u = (n: number) => `calc(${n} * var(--pc-u))`;
@@ -237,6 +238,6 @@ export function buildCardPieces(): {
     images.add(id);
     css[id] = v2FrameCss(d);
   }
-  for (const [id, g] of Object.entries(NAME_GRADS)) names[id] = { className: "rd-nc", style: nameStyle(g) };
+  for (const [id, g] of Object.entries(NAME_GRADS)) names[id] = V2_NAME_COLOURS[id] ?? { className: "rd-nc", style: nameStyle(g) };
   return { cardArts, frames, names, css, images: [...images].sort() };
 }
