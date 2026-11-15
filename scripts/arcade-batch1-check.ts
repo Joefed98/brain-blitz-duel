@@ -337,7 +337,9 @@ console.log(`  150 reached through the server replay on ${flip150} of ${FLIP_SEE
 // flipRev 11 (3 Nov 2026, no star pickups; flip-rev11-check) pays the core on clean time, 100 at the full minute's 120 half
 // seconds: the intro states clean time and the top (no stars to state), the help clean time's 100 at the full minute.
 // Text pass (4 Nov 2026): the intro is one plain sentence; the help a list ("A good run (100 points)" is gone).
-ok(/without crashing/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip) && /Clean time: [^.]*the whole minute with no crash for all of it, up to 100\./.test(PUZZLE_INSTRUCTIONS.flip.score), "Roofbound intro states clean time and the top (200); the help the full minute's 120 clean half seconds for clean time's 100 (flipRev 11)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro and help describe
+// flipRev 13 (grace: crashes cost time; clean time's 100 at 55 s clean, each crash 10 s).
+ok(/crashes cost time/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip) && /Clean time: [^.]*less 10 s for each crash; 55 s clean for all of it, up to 100\./.test(PUZZLE_INSTRUCTIONS.flip.score), "Roofbound intro states clean time and the top (200); the help 55 s clean for clean time's 100 (flipRev 13)");
 }
 
 /* ============================= 2c. Ball Tracker ============================= */
