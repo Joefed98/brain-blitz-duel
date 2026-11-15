@@ -14,7 +14,7 @@ import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
 import { RevealBreakdown } from "./RevealBreakdown";
-import { RunSummary } from "./runSummary";
+import { hasRunSummary, RunSummary } from "./runSummary";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
 
@@ -296,7 +296,10 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   const summary = shown ? revealSummary(shown.lines, myScore) : null;
   // The stats card keeps only what the breakdown doesn't already say (4 Nov 2026): no part repeated as "n / max".
   const partLabels = standardPartLabels(puzzle as unknown as { type: string } & Record<string, unknown>);
-  const tiles = shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label)).slice(0, 4), ...costRows] : [];
+  // A game with its own run summary shows its stats there, in pictures and big numbers (the Sports overhaul): the stored
+  // stat rows would only repeat them, so they're left out (stored costs still show).
+  const statTiles = shown && !hasRunSummary(puzzle.type) ? shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label)).slice(0, 4) : [];
+  const tiles = shown ? [...statTiles, ...costRows] : [];
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
   const breakdownLines = shown ? shown.lines : [];
