@@ -592,6 +592,18 @@ const ENTRIES = {
   // Iron Wall bastionRev 3 (3 Nov 2026): the drone's quiet loop while one is in the sky, and its fall.
   "bastion.drone": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/bastion.drone.mp3", loop: true },
   "bastion.droneDown": { channel: "effects", frequency: 0, ms: 800, url: "/sounds/bastion.droneDown.mp3" },
+  // Iron Wall's Action overhaul (15 Nov 2026; docs/sound-cues/action-elevenlabs.md): slots waiting for Joe's files,
+  // each silent (or on its fallback) until its url is set to /sounds/<slot>.mp3.
+  "bastion.weakTing": { channel: "effects", frequency: 0, ms: 260, url: null, fallback: "arc_retro_coin" },
+  "bastion.shellIn": { channel: "effects", frequency: 0, ms: 90, url: null, fallback: "arc_latch" },
+  "bastion.jamGrind": { channel: "effects", frequency: 0, ms: 700, url: null, fallback: "arc_clank" },
+  "bastion.debris": { channel: "effects", frequency: 0, ms: 600, url: null, fallback: "arc_retro_hit" },
+  "bastion.nearMiss": { channel: "effects", frequency: 0, ms: 350, url: null, fallback: "arc_fair_thud" },
+  "bastion.panelCrack": { channel: "effects", frequency: 0, ms: 500, url: null, fallback: "arc_crash" },
+  "bastion.wallHeld": { channel: "effects", frequency: 0, ms: 1800, url: null, fallback: "arc_fair_sting" },
+  "bastion.tip": { channel: "effects", frequency: 0, ms: 300, url: null, fallback: "arc_hover_tap" },
+  "bastion.dustWind": { channel: "effects", frequency: 0, ms: 6000, url: null, loop: true },
+  "bastion.stormFire": { channel: "effects", frequency: 0, ms: 6000, url: null, loop: true },
   "music_dual": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_hotfloor": { channel: "music", frequency: 0, ms: 0, url: null },
   // Moon Climb's own bed (Joe's sounds-nov-2026 file, docs/sound-cues/mapping-nov-2026.csv).

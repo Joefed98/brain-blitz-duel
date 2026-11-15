@@ -1,5 +1,48 @@
 # Iron Wall (id `bastion`) on the arcade scoring standard (bastionRev 2, 1 Nov 2026; bastionRev 3, 3 Nov 2026)
 
+## The Action overhaul (15 Nov 2026, phase 2 step 4; display and sound only, no stamp)
+
+From Joe's review (`docs/design/game-reviews/action.md`). Play, deal and scoring are unchanged on every revision
+(bastion-overhaul-check replays the stored rev 2 and rev 3 runs to the same scores).
+
+- **The setting changes with the battle** (`src/lib/arcade/bastionLook.ts`, the same for every player, from the round
+  clock): waves 1–2 a clear evening (slate sky paling to the horizon, a low sun, two ridges of peaks), waves 3–4 a
+  dusty desert (amber haze, rolling sand hills, no skyline ruins), wave 5 a battle-smoke storm (a red-orange sky, smoke
+  columns over fires on the skyline). Each setting cross-fades into the next over 1.5 s from its wave's start
+  (`bastionSettingMix`, `BT_SETTING_FADE` 90 ticks); the play screen's scenery beyond the world repaints once per
+  setting (`sceneKey`). Only the backdrop changes: road, lanes, tanks, crosshair and panel keep their colours, every
+  haze sits behind the tanks, and the far tanks' fog takes the setting's tint.
+- **Far tanks read at the horizon**: past 620 px from the wall (`BT_FAR_MARK_Z`) a tank gets a thin pale outline on its
+  hull and turret edges (fading in over 200 px, inside the 2 px bounds rule) and a type badge over its health pips (S
+  Scout, M Medium, H Heavy; 16 × 15 view px, the letter 11 px, a ring in the type's colour; `paintTankBadge`, drawn in
+  view pixels so it never shrinks).
+- **The panel**: navy with a champagne-gold rule and gold SHELLS / RELOAD labels at 13 px; the hint line 13 px.
+- **The reload tip**: the first time the magazine runs dry, and only if the run's first reload was that one, the panel
+  shows "Tip: swipe down to reload early" in gold for that reload (`bastionSwipeHint`, from the sim's own counters, so
+  replays draw it the same); never again in the run.
+- **Intro**: the still is the game's own art (bastionRev 3, seed 7, 10.7 s in, `ArtStill`).
+- **Sounds**: new slots waiting for files (`docs/sound-cues/action-elevenlabs.md`): weak-spot ting, shells snapping in,
+  jam grind, debris, near miss (a shell on open ground within a tank-length of a hull, `bastionNearMiss`), panel crack,
+  WALL HELD, the tip, and the desert wind and storm-fire ambience beds.
+- The crosshair floats **120 px** above the thumb (`FINGER_LIFT` in `src/puzzles/bastion.tsx`; the review read an
+  older 100 px note).
+
+### Levels (stage 3, with the difficulty framework; not built yet)
+
+Joe finds today's game much too hard: **today's game becomes Expert**. The levers, each a new stamp with its own
+oracle proof of 200 (`scripts/bastion-oracle.ts` on every level's seeds):
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Wave pace (`BT3_WAVE_PACE` and the early waves' paces) | much slower | slower | a little slower than today | today (bastionRev 3) |
+| Green zone (`BT3_ZONE_W`) | very wide | wide | wider than today | 45 ‰ (90 ms) |
+| Weak spots open (of every 90 ticks) | most of the time | longer than today | slightly longer | 60 |
+| Base hits allowed (`BT2_BASE`) | 5 | 4 | 3 | 3 |
+| Heavy tanks | few | fewer | today's | today's |
+
+Every level keeps the 60 s clock (under the 120 s rule), the grace (a run never ends on the first base hit) and Normal
+for rated rooms.
+
 ## The view (3 Nov 2026, the Action polish; display and input mapping only, no stamp)
 
 Joe's audit: about half the screen was sky, so the tanks, pips and weak spots were small and far. The view
