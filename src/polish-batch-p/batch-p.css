@@ -98,16 +98,7 @@
 }
 
 /* ---------------------------------------------------------------- Chroma Lines (flow) */
-/* A joined colour glows in its own hue (flowArt's halo path); open slots are wells. */
-.flow-halo {
-  display: none;
-}
-[data-puzzle-play][data-puzzle-play] .flow-halo {
-  display: inline;
-}
-[data-puzzle-play][data-puzzle-play] .flow-board .flow-cell[data-puzzle-cell]:not(.flow-wall) {
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
-}
+/* The Pattern overhaul (15 Nov 2026): no halo or glow; the slots are the rendered cell tile (src/polish-pattern/flow.css). */
 
 /* ---------------------------------------------------------------- Skid (iceslide) */
 /* The ice joins the dark app: the same sheet, scratches, glints and rocks, in cool blue-grey ice
@@ -565,7 +556,7 @@
 }
 
 /* ---------------------------------------------------------------- Chroma Lines */
-/* The neon halo (flowArt, a blurred copy) under every path; deep slots; a lit tray. */
+/* A lit tray (the Pattern overhaul, 15 Nov 2026: no halo; the slots and beads are rendered art, flow.css). */
 [data-puzzle-play][data-puzzle-play] .flow-board {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
@@ -574,15 +565,6 @@
 }
 [data-puzzle-play][data-puzzle-play] .flow-board .flow-cell[data-puzzle-cell]:not(.flow-wall) {
   background-color: #101117 !important;
-  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.04));
-  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.07);
-}
-[data-puzzle-play][data-puzzle-play] .flow-dot {
-  box-shadow:
-    0 0 0 1.5px var(--dot-rim, rgba(0, 0, 0, 0.6)),
-    0 0 0 3px rgba(10, 11, 15, 0.9),
-    0 0 10px 2px color-mix(in oklab, var(--dot, #fff) 55%, transparent),
-    0 3px 4px rgba(0, 0, 0, 0.6);
 }
 
 /* ---------------------------------------------------------------- Heave */

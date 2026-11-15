@@ -80,7 +80,10 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 
 | Cue | Trigger | Length |
 |---|---|---|
-| `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join) | 460 ms |
+| `flow.draw` | The line grows by a square (a soft liquid tone, played a little higher as the line grows; the `move` tick until it has a file) | 140 ms |
+| `flow.cut` | flowRev 3: drawing over another colour cuts that line back | 180 ms |
+| `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join; the only sound for a join since the Pattern overhaul) | 460 ms |
+| `flow.nearMiss` | The board first reaches one pair short, or every pair joined with squares still empty (a soft hint) | 600 ms |
 | `flow.solve` | Each path pulses end to end in its colour, then the board glows | 1,150 ms |
 
 ## Pipeline (`pipes`)

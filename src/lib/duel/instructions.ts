@@ -2,6 +2,7 @@ import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
 import { gridStandardHelp } from "./standard/gridText";
 import { FLOOD_STANDARD_SPARE_MOVES } from "./standard/logicRules";
+import { flowCutsDealt } from "./flow";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
@@ -613,12 +614,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     flow: {
       goal: "Join every colour pair and fill every square.",
-      how: [
-        { action: "Drag from a dot", detail: "to its partner." },
-        { action: "Paths can’t cross", detail: "or enter dark walls." },
-        { action: "Fill every square", detail: "with a path." },
-        { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
-      ],
+      // The Pattern overhaul (flowRev 3, flow.ts flowCutsLines): drawing over a line cuts it back; a tap on a dot
+      // leaves its line alone.
+      how: flowCutsDealt()
+        ? [
+            { action: "Drag from a dot", detail: "to its partner." },
+            { action: "Draw over a line", detail: "to cut it back; walls block." },
+            { action: "Fill every square", detail: "with a path." },
+            { action: "Drag from a loose end", detail: "to carry on; drag from a dot to start its line again (a tap leaves it as it is).", helpOnly: true },
+            { action: "Each bead", detail: "has its own symbol, so close colours are easy to tell apart.", helpOnly: true },
+          ]
+        : [
+            { action: "Drag from a dot", detail: "to its partner." },
+            { action: "Paths can’t cross", detail: "or enter dark walls." },
+            { action: "Fill every square", detail: "with a path." },
+            { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
+          ],
       score: PATTERN_STD_HELP.flow,
     },
     iceslide: {

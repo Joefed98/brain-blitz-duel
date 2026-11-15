@@ -6,7 +6,7 @@ import { FramePills } from "@/components/puzzles/pattern/framePills";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
-import { FLOW_COLOUR_HEX as GLYPH_COLOURS, encodeFlowPaths, flowDrawStep, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
+import { FLOW_COLOUR_HEX as GLYPH_COLOURS, encodeFlowPaths, flowCutsLines, flowDrawStep, flowTapClears, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   FLOW_CELLS,
@@ -15,9 +15,9 @@ import {
   type FlowPair,
   type FlowPuzzleData,
 } from "@/lib/duel/types";
-import { playCorrect } from "@/lib/sound";
+import { soundCue } from "@/lib/fx/soundCues";
 
-import { FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
+import { FLOW_CELL_URL, FLOW_WALL_URL, FlowBead, FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -98,7 +98,8 @@ export function FlowBoard({
             return (
               <div
                 key={cell}
-                className="flow-wall rounded-[3px] border border-foreground/30 bg-[repeating-linear-gradient(45deg,var(--background),var(--background)_3px,var(--muted)_3px,var(--muted)_6px)]"
+                className="flow-wall rounded-[3px]"
+                style={{ backgroundImage: `url(${FLOW_WALL_URL})` }}
                 aria-label="Wall"
               />
             );
@@ -106,23 +107,25 @@ export function FlowBoard({
           return (
             <div
               key={cell}
-              className="flow-cell flex items-center justify-center rounded-[3px] border border-border bg-card"
-              style={tint ? { backgroundColor: `${tint}22`, borderColor: `${tint}55` } : undefined}
+              className="flow-cell flex items-center justify-center rounded-[3px]"
+              style={{ backgroundImage: tint ? `linear-gradient(${tint}24, ${tint}24), url(${FLOW_CELL_URL})` : `url(${FLOW_CELL_URL})` }}
             >
               {/* The dot is a child of its own cell, so it is always dead centre,
                   and it sits above the path layer. */}
               {dot && (
                 <span
                   className={`flow-dot relative block rounded-full ${joined[pairs.indexOf(dot)] ? "flow-dot-joined" : ""}`}
+                  data-flow-colour={dot.colour}
                   style={{
                     width: "64%",
                     height: "64%",
                     zIndex: 2,
-                    backgroundColor: GLYPH_COLOURS[dot.colour],
                     ["--dot" as string]: GLYPH_COLOURS[dot.colour],
                     ["--dot-rim" as string]: shadeHex(GLYPH_COLOURS[dot.colour], -0.5),
                   }}
-                />
+                >
+                  <FlowBead colour={dot.colour} />
+                </span>
               )}
             </div>
           );
@@ -173,7 +176,8 @@ function IntroExample() {
         <FlowBoard pairs={pairs} paths={paths} walls={walls} cols={4} cells={16} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Striped squares are walls – no path can enter them. Drag from a dot to its partner. You have 75 seconds.
+        Striped squares are walls – no path can enter them. Drag from a dot to its partner; drawing over another line
+        cuts it back. You have 75 seconds.
       </p>
     </div>
   );
@@ -195,6 +199,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   const submitted = useRef(false);
 
   const walls = puzzle.type === "flow" ? (puzzle.walls ?? []) : [];
+  /** flowRev 3: drawing over another line cuts it back, and a still tap on a dot leaves its line alone. */
+  const cuts = flowCutsLines(puzzle);
+  const tapClears = flowTapClears(puzzle);
   const verdict = useMemo(() => verifyFlow(pairs, paths, walls), [pairs, paths, walls]);
   const filled = flowFilledCells(paths);
   const inFrame = useFrameProgress(verdict.pairsJoined, pairs.length, "pairs");
@@ -206,9 +213,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   useEffect(() => {
     if (locked || submitted.current || !verdict.solved) return;
     submitted.current = true;
-    playCorrect();
+    // One sound for the solve: the board's own `flow.solve` (FlowBoard), no extra generic `correct`.
     onSubmit(encodeFlowPaths(paths));
   }, [verdict.solved, paths, locked, onSubmit]);
+
+  // A near miss (presentation only): the first time the board is one pair short, or every pair is joined with
+  // squares still empty, a soft hint sounds; it sounds again only after the board has left that state.
+  const nearMiss = !verdict.solved && pairs.length > 1 && (verdict.pairsJoined === pairs.length - 1 || (verdict.pairsJoined === pairs.length && filled < FLOW_CELLS - walls.length));
+  const wasNear = useRef(false);
+  useEffect(() => {
+    if (nearMiss && !wasNear.current && !locked) soundCue("flow.nearMiss");
+    wasNear.current = nearMiss;
+  }, [nearMiss, locked]);
 
   const dotPair = useCallback(
     (cell: number) => pairs.findIndex((pair) => pair.a === cell || pair.b === cell),
@@ -247,25 +263,33 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
       }
 
       const from = restartFrom.current;
-      let completed = false;
+      let grewTo = 0;
+      let cutLine = false;
       setPaths((current) => {
-        const step = flowDrawStep(current, active, cell, pairs, walls, from);
+        const step = flowDrawStep(current, active, cell, pairs, walls, from, cuts);
         if (step.rejected) puzzleReject();
         if (!step.moved) return current;
         moved.current = true;
         restartFrom.current = null;
-        if (step.completed) {
-          drawing.current = null;
-          completed = true;
-        }
+        if (step.completed) drawing.current = null;
+        const before = from !== null ? 1 : (current[active]?.length ?? 0);
+        const after = step.paths[active]?.length ?? 0;
+        if (after > before && !step.completed) grewTo = after;
+        if (step.cut !== null) cutLine = true;
         return step.paths;
       });
-      if (completed) playCorrect();
+      // The line growing: a soft liquid tone, a little higher with every square (the join itself is `flow.connect`,
+      // one sound, from the board).
+      if (grewTo) soundCue("flow.draw", Math.min(1.6, 1 + 0.04 * (grewTo - 2)));
+      if (cutLine) soundCue("flow.cut");
     },
-    [dotPair, locked, pairs, paths, setPaths, walls],
+    [cuts, dotPair, locked, pairs, paths, setPaths, walls],
   );
 
-  /** Lifting the finger without moving, on a dot, clears that colour. */
+  /**
+   * Lifting the finger without moving, on a dot, clears that colour on the stamps before flowRev 3; from it a still
+   * touch leaves the line as it is (a stray touch must never wipe a finished pair; a drag restarts it).
+   */
   const release = useCallback(() => {
     const pair = startedOnDot.current;
     const wasStill = !moved.current;
@@ -273,9 +297,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
     startedOnDot.current = null;
     restartFrom.current = null;
     holding.current = false;
-    if (pair === null || !wasStill || locked || submitted.current) return;
+    if (!tapClears || pair === null || !wasStill || locked || submitted.current) return;
     setPaths((current) => current.map((path, index) => (index === pair ? [] : path)));
-  }, [locked, setPaths]);
+  }, [tapClears, locked, setPaths]);
 
   if (puzzle.type !== "flow") return null;
 
@@ -298,7 +322,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           solved={verdict.solved}
         />
       </div>
-      <FramePills testId="flow" items={[{ id: "filled", label: "Filled", value: `${filled} / ${FLOW_CELLS - walls.length}` }]} />
+      <FramePills
+        testId="flow"
+        items={[
+          { id: "pairs", label: "Pairs", value: `${verdict.pairsJoined} / ${pairs.length}` },
+          { id: "filled", label: "Filled", value: `${filled} / ${FLOW_CELLS - walls.length}` },
+        ]}
+      />
     </div>
   );
 }
@@ -334,10 +364,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           </span>
         </div>
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+      {/* The player's own count: shown only under Yours (SolutionSwitch), never as if it described the solution. */}
+      <p data-yours-only="" className="flow-reveal-line font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
-          : `${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${verdict.pairsJoined} / ${puzzle.pairs.length} pairs`}`}
+          ? `You: solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
+          : `You: ${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${verdict.pairsJoined}/${puzzle.pairs.length} pairs`}`}
       </p>
     </div>
   );
