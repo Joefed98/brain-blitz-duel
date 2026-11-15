@@ -1802,7 +1802,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap it again", detail: "to clear a square, or use the eraser." },
         { action: "Each region of N", detail: "is N squares, all numbered N." },
         { action: "Same-size regions", detail: "never touch side by side." },
-        { action: "Right-size regions are tinted", detail: "by their size and edged in gold. The tint means the size is right, not that the region is correct.", helpOnly: true },
+        { action: "Every number has its own colour;", detail: "a region of the right size is edged in gold. Gold means the size is right, not that the region is correct.", helpOnly: true },
         { action: "A region past its number", detail: "turns red.", helpOnly: true },
         { action: "Undo", detail: "takes back a whole stroke; Reset clears the board.", helpOnly: true },
       ],

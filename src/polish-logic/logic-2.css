@@ -171,7 +171,7 @@
   background-image: var(--la-lightup-cell-lit);
 }
 .logic2-lamps > .logic2-lamp-cell .lightup-beam {
-  opacity: 0.3;
+  opacity: 0.16;
 }
 .logic2-lamps > .logic2-wall,
 [data-puzzle-play] .logic2-lamps > .logic2-wall {
@@ -287,13 +287,13 @@
 
 /* ------------------------------------------------------------------ Regions (fillomino) */
 .logic2-fillomino.fillomino-board > .fillomino-cell,
-[data-puzzle-play][data-puzzle-play] .logic2-fillomino.fillomino-board > .fillomino-cell:not(.fillomino-done):not(.fillomino-over) {
+[data-puzzle-play][data-puzzle-play] .logic2-fillomino.fillomino-board > .fillomino-cell:not([data-size]):not(.fillomino-over) {
   background: var(--la-fillomino-tile-0) center / 100% 100% no-repeat;
   box-shadow: none;
 }
-/* Finished regions take the enamel of their size (two same-size regions can never touch, so neighbours differ). */
-.logic2-fillomino.fillomino-board > .fillomino-cell.fillomino-done,
-[data-puzzle-play][data-puzzle-play] .logic2-fillomino.fillomino-board > .fillomino-cell.fillomino-done {
+/* Every filled tile takes the enamel of its number (Joe, 15 Nov 2026); a finished region is edged in gold. */
+.logic2-fillomino.fillomino-board > .fillomino-cell[data-size],
+[data-puzzle-play][data-puzzle-play] .logic2-fillomino.fillomino-board > .fillomino-cell[data-size]:not(.fillomino-over) {
   background-image: var(--logic2-enamel);
   background-color: transparent;
   box-shadow: none;
@@ -662,4 +662,39 @@
 .logic2-reveal-bridges {
   width: 100%;
   aspect-ratio: 1;
+}
+
+/* Gold wire and rods: a darker body and a narrow pale highlight along the top edge (light on a curve, not a glow). */
+.logic2-fences .fences-line:not([data-wrong]) {
+  stroke: #b8954f;
+}
+.logic2-fences .logic2-wire-hl line {
+  stroke: #f6e3b4;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.logic2-bridges .bridges-line:not(.logic2-bridge-wrong) {
+  stroke: #b8954f;
+}
+.logic2-bridges .logic2-rod-hl line {
+  stroke: #f6e3b4;
+  stroke-width: 3;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* Lamplighter: light falling across the floor. A lit square keeps the dark floor and lays the warm light pool over it
+   at its brightness (--logic2-light, 1 beside the bulb fading down the row), so a lit corridor reads as one stretch of
+   light that dims away from its lamp. */
+.logic2-lamps > .logic2-lamp-cell[data-lit],
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell[data-lit] {
+  background-image: var(--la-logic-cell) !important;
+}
+.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--la-lightup-cell-lit) center / 100% 100% no-repeat;
+  opacity: calc(0.15 + 0.85 * var(--logic2-light, 1));
 }

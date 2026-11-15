@@ -101,6 +101,15 @@ export function BridgesBoard({
           return kinds.map((cls, j) => line(p, offsets[j] ?? 0, `b${i}${j}`, cls));
         })}
       </g>
+      {/* The Logic overhaul (15 Nov 2026): a narrow highlight along each built bridge, so it reads as a round gold rod. */}
+      <g className="logic2-rod-hl" aria-hidden="true">
+        {pairs.flatMap((p, i) => {
+          const k = Math.min(counts[i] ?? 0, compare ? (compare[i] ?? 0) : 2);
+          if (k === 1) return [line(p, -2, `h${i}`, "")];
+          if (k === 2) return [line(p, -14, `h${i}a`, ""), line(p, 10, `h${i}b`, "")];
+          return [];
+        })}
+      </g>
       {islands.map((isl, i) => {
         const [x, y] = centre(size, isl.cell);
         return (

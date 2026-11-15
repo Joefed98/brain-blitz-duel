@@ -152,7 +152,7 @@ export function FillominoBoard({
             data-edge-b={thickB ? "" : undefined}
             data-shade={shade && shade[cell]! >= 0 ? shade[cell] : undefined}
             data-missed={ghosts && !v && ghosts[cell] ? "" : undefined}
-            data-size={shade && shade[cell]! >= 0 ? v : undefined}
+            data-size={v ? v : undefined}
             className={`fillomino-cell flex min-h-0 min-w-0 items-center justify-center ${shade && shade[cell]! >= 0 ? "fillomino-done" : ""} ${over.has(cell) || tone === "wrong" ? "fillomino-over" : ""} ${cell === selected ? "fillomino-selected" : ""}`}
             style={{
               borderRightWidth: right === null ? 0 : thickR ? 3 : 1,

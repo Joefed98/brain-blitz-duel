@@ -82,6 +82,34 @@ export function lightUpWallTicked(n: number, neighbours: readonly number[], bulb
   return neighbours.every((x) => walls.has(x) || lit.has(x) || marks[x] === 2);
 }
 
+/**
+ * How brightly each lit square is lit (the Logic overhaul, 15 Nov 2026; display only): 1 under and beside a lamp,
+ * fading by 0.17 a square down its row or column to 0.25, the brightest lamp reaching it winning. Light falls across
+ * the floor from the bulb instead of every lit square reading the same.
+ */
+export function lightFalloff(board: LightUpBoard, bulbs: readonly number[]): Map<number, number> {
+  const { size } = board;
+  const height = lightUpHeightOf(board);
+  const walls = new Set(board.walls);
+  const out = new Map<number, number>();
+  const put = (cell: number, v: number) => out.set(cell, Math.max(out.get(cell) ?? 0, v));
+  for (const bulb of bulbs) {
+    put(bulb, 1);
+    const r0 = Math.floor(bulb / size);
+    const c0 = bulb % size;
+    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      let r = r0 + dr;
+      let c = c0 + dc;
+      for (let k = 1; r >= 0 && c >= 0 && r < height && c < size && !walls.has(r * size + c); k++) {
+        put(r * size + c, Math.max(0.25, 1 - 0.17 * (k - 1)));
+        r += dr;
+        c += dc;
+      }
+    }
+  }
+  return out;
+}
+
 export function Board({
   board,
   marks,
@@ -108,6 +136,7 @@ export function Board({
   const bulbSet = new Set(bulbs);
   const status = lightUpStatus(board, bulbs);
   const beam = beams(board, bulbs);
+  const lightAt = lightFalloff(board, bulbs);
   const wallIndex = new Map(board.walls.map((wall, i) => [wall, i]));
   const wallSet = new Set(board.walls);
   const beamW = small ? 2 : 4;
@@ -152,9 +181,9 @@ export function Board({
         return (
           <div
             key={cell}
-            style={{ "--logic-diag": r + c } as CSSProperties}
             className="lightup-cell logic2-lamp-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm"
             data-lit={lit ? "" : undefined}
+            style={lit ? ({ "--logic-diag": r + c, "--logic2-light": lightAt.get(cell) ?? 1 } as CSSProperties) : ({ "--logic-diag": r + c } as CSSProperties)}
             data-missed={missed?.has(cell) && mark !== 1 ? "" : undefined}
           >
             {reach >= 0 && (

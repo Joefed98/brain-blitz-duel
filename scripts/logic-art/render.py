@@ -61,25 +61,34 @@ def reset(w=PX, h=PX, view=1.0, tilt=0.0):
     w_ = bpy.data.worlds.new("w")
     s.world = w_
     w_.use_nodes = True
-    # A studio sky for the metals to reflect: dark below, a soft bright band above-left (the camera sees none of it:
-    # the film is transparent).
+    # The studio sky (Joe, 15 Nov 2026: real materials, light on them, but no glare across a face): dark straight above,
+    # so a flat top seen from above reflects darkness and keeps its depth (and any number over it stays clean), and a
+    # bright band low round the horizon, so bevels, rims and curves catch a crisp highlight. The camera sees none of it.
     nt = w_.node_tree
     tc = nt.nodes.new("ShaderNodeTexCoord")
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    rng = nt.nodes.new("ShaderNodeMapRange")
+    rng.inputs["From Min"].default_value = -1.0
+    rng.inputs["From Max"].default_value = 1.0
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].position = 0.35
-    ramp.color_ramp.elements[0].color = hexc("#121418")
-    ramp.color_ramp.elements[1].position = 0.9
-    ramp.color_ramp.elements[1].color = hexc("#8a8884")
+    cr = ramp.color_ramp
+    cr.elements[0].position = 0.0
+    cr.elements[0].color = hexc("#08090b")
+    cr.elements[1].position = 1.0
+    cr.elements[1].color = hexc("#050506")
+    for pos, col in ((0.42, "#1a1b1e"), (0.55, "#f2efe8"), (0.78, "#c8c3b8"), (0.9, "#3a3a3c"), (0.96, "#0c0c0e")):
+        e = cr.elements.new(pos)
+        e.color = hexc(col)
     nt.links.new(tc.outputs["Generated"], sep.inputs[0])
-    nt.links.new(sep.outputs[2], ramp.inputs[0])
+    nt.links.new(sep.outputs[2], rng.inputs["Value"])
+    nt.links.new(rng.outputs[0], ramp.inputs[0])
     nt.links.new(ramp.outputs[0], nt.nodes["Background"].inputs[0])
-    nt.nodes["Background"].inputs[1].default_value = 0.6
+    nt.nodes["Background"].inputs[1].default_value = 1.4
     lights()
     return s
 
 
-def area(loc, size, energy, color, target=(0, 0, 0)):
+def area(loc, size, energy, color, target=(0, 0, 0), glossy=True):
     d = bpy.data.lights.new("a", "AREA")
     d.energy = energy
     d.color = hexc(color)[:3]
@@ -88,15 +97,17 @@ def area(loc, size, energy, color, target=(0, 0, 0)):
     bpy.context.scene.collection.objects.link(ob)
     ob.location = loc
     ob.rotation_euler = (Vector(target) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
+    ob.visible_glossy = glossy
     return ob
 
 
 def lights(key=1.0):
-    """Clean, even studio light (Joe, 15 Nov 2026: no glare): a large soft key from the top left, a broad overhead
-    wash and a soft fill, so no surface shows a hot spot or a reflected light."""
-    area((-2.2, 2.4, 3.2), 6.0, 200 * key, "#fff4e6")
-    area((0.0, 0.0, 4.0), 8.0, 160 * key, "#ffffff")
-    area((2.6, -1.0, 2.2), 6.0, 70 * key, "#e6eeff")
+    """The art kit's light, re-tuned for Joe's rule of 15 Nov 2026: a warm key from the top left (soft on the surfaces,
+    a small crisp highlight on curves, never a wash across a face), an overhead fill seen only diffusely (invisible in
+    reflections, so no hot spot over a tile or number), and a cool rim low on the right for the edges."""
+    area((-2.6, 2.6, 2.2), 1.2, 230 * key, "#fff1dc")
+    area((0.0, 0.0, 4.0), 8.0, 120 * key, "#ffffff", glossy=False)
+    area((3.0, -1.6, 1.0), 1.6, 70 * key, "#d6e4ff")
 
 
 def point(loc, energy, color, radius=0.05):
@@ -112,10 +123,6 @@ def point(loc, energy, color, radius=0.05):
 # ------------------------------------------------------------------------------------------------ materials
 def mat(name, color="#808080", rough=0.4, metal=0.0, coat=0.0, trans=0.0, ior=1.45, emit=None, emit_strength=0.0,
         sheen=0.0, alpha=1.0):
-    # No glare (Joe, 15 Nov 2026): never a clear coat, and every surface satin or matte (metals brushed), so no
-    # reflection runs across a panel, tile or number.
-    coat = 0.0
-    rough = max(rough, 0.45 if metal else 0.55)
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]
@@ -164,8 +171,9 @@ def wood(name, c1="#8a5a32", c2="#4e2e14", rough=0.35, coat=0.5, scale=6.0, stre
     mp.inputs["Scale"].default_value = stretch
     wave = n.new("ShaderNodeTexWave")
     wave.inputs["Scale"].default_value = scale
-    wave.inputs["Distortion"].default_value = 6.0
-    wave.inputs["Detail"].default_value = 4.0
+    wave.inputs["Distortion"].default_value = 9.0
+    wave.inputs["Detail"].default_value = 6.0
+    wave.inputs["Detail Scale"].default_value = 1.6
     ramp = n.new("ShaderNodeValToRGB")
     ramp.color_ramp.elements[0].color = hexc(c2)
     ramp.color_ramp.elements[1].color = hexc(c1)
@@ -177,7 +185,9 @@ def wood(name, c1="#8a5a32", c2="#4e2e14", rough=0.35, coat=0.5, scale=6.0, stre
 
 
 def gold(name="gold", rough=0.22):
-    return mat(name, "#d8b56a", rough, metal=1.0)
+    # Part metallic: a flat gold face shows champagne under the key light (it would mirror the dark sky overhead as
+    # olive otherwise), while rims and curves keep a metal's crisp highlight.
+    return mat(name, "#e9c77f", rough, metal=0.72)
 
 
 def silver(name="silver", rough=0.18):
@@ -316,6 +326,39 @@ def tube(points, r, m, z=0.0):
 
 
 # ------------------------------------------------------------------------------------------------ shared surfaces
+def slate_mat(name, c1, c2):
+    """Slate: layered grey (or navy) clefts with fine grain in the bump and a low satin sheen."""
+    m = mat(name, c1, 0.78)
+    # Low specular: the slate keeps its texture with no soft glare patch from the key light.
+    m.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.12
+    n = m.node_tree.nodes
+    l = m.node_tree.links
+    tc = n.new("ShaderNodeTexCoord")
+    mp = n.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (1.0, 3.5, 1.0)
+    noise = n.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 4.0
+    noise.inputs["Detail"].default_value = 12.0
+    noise.inputs["Roughness"].default_value = 0.7
+    ramp = n.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = hexc(c2)
+    ramp.color_ramp.elements[1].color = hexc(c1)
+    l.new(tc.outputs["Object"], mp.inputs["Vector"])
+    l.new(mp.outputs[0], noise.inputs["Vector"])
+    l.new(noise.outputs[0], ramp.inputs[0])
+    l.new(ramp.outputs[0], n["Principled BSDF"].inputs["Base Color"])
+    grain = n.new("ShaderNodeTexNoise")
+    grain.inputs["Scale"].default_value = 90.0
+    grain.inputs["Detail"].default_value = 8.0
+    bp = n.new("ShaderNodeBump")
+    bp.inputs["Strength"].default_value = 0.35
+    bp.inputs["Distance"].default_value = 0.004
+    l.new(tc.outputs["Object"], grain.inputs["Vector"])
+    l.new(grain.outputs[0], bp.inputs["Height"])
+    l.new(bp.outputs[0], n["Principled BSDF"].inputs["Normal"])
+    return m
+
+
 def tile(m, edge=0.06, d=0.08, inset=0.03):
     """A full-sprite square tile (the sprite is 1 x 1), raised `d`, its plan inset a hair so the bevel shows."""
     return rbox(0, 0, 1 - 2 * inset, 1 - 2 * inset, d, m, r=edge)
@@ -337,88 +380,175 @@ def sprite(name, **opts):
 
 
 # Tents and Trees ------------------------------------------------------------------------------------------
+def shadow_catcher(size=1.2):
+    """A ground plane that only catches shadows (the film stays transparent): a soft contact shadow under a piece."""
+    bpy.ops.mesh.primitive_plane_add(size=size, location=(0, 0, 0))
+    ob = bpy.context.active_object
+    ob.is_shadow_catcher = True
+    return ob
+
+
+def grass(name, c1, c2):
+    """Turf: two greens mixed by noise, short blades in the bump, no gloss."""
+    m = mat(name, c1, 0.82, sheen=0.6)
+    n = m.node_tree.nodes
+    l = m.node_tree.links
+    tc = n.new("ShaderNodeTexCoord")
+    noise = n.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 9.0
+    noise.inputs["Detail"].default_value = 8.0
+    ramp = n.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = hexc(c2)
+    ramp.color_ramp.elements[1].color = hexc(c1)
+    l.new(tc.outputs["Object"], noise.inputs["Vector"])
+    l.new(noise.outputs[0], ramp.inputs[0])
+    l.new(ramp.outputs[0], n["Principled BSDF"].inputs["Base Color"])
+    vor = n.new("ShaderNodeTexVoronoi")
+    vor.inputs["Scale"].default_value = 140.0
+    bp = n.new("ShaderNodeBump")
+    bp.inputs["Strength"].default_value = 0.6
+    bp.inputs["Distance"].default_value = 0.006
+    l.new(tc.outputs["Object"], vor.inputs["Vector"])
+    l.new(vor.outputs["Distance"], bp.inputs["Height"])
+    l.new(bp.outputs[0], n["Principled BSDF"].inputs["Normal"])
+    return m
+
+
 @sprite("tents-turf")
 def _turf():
-    m = bump(mat("turf", "#1d3a27", 0.82, sheen=0.5), 260, 0.35, distance=0.004)
-    tile(m, edge=0.07)
+    # Rich turf on B's darker ground: deep greens with blades, a soft bevel.
+    tile(grass("turf", "#163319", "#08170c"), edge=0.07)
 
 
-def pine(seed, tiers=3):
+# The standing pieces (trees, tents, tufts) are seen from the front and above (35°), so they stand up with real relief
+# and a soft contact shadow; they are drawn inside their square, as before.
+PIECE_TILT = 58.0
+
+
+def pine(seed, tiers=3, scale=1.0):
     rnd = random.Random(seed)
     trunk = wood("trunk", "#7a4a26", "#3e220e", scale=12)
-    rbox(0, -0.30, 0.10, 0.16, 0.10, trunk, r=0.02)
-    greens = ["#2f8f4c", "#3aa858", "#4cbb68"]
+    cyl(0, 0, 0.045 * scale, 0.2 * scale, trunk, z=0, bevel=0.01)
+    greens = [("#2f8a49", "#1f6236"), ("#3ca257", "#2a7a42"), ("#4dba68", "#348f4e")]
     for k in range(tiers):
-        w = 0.74 - k * 0.17
-        bot = -0.24 + k * 0.17
-        top = bot + 0.36
-        c = greens[k]
-        m = bump(mat(f"pine{k}", c, 0.5, coat=0.35, sheen=0.3), 90, 0.18, distance=0.003)
-        jig = rnd.uniform(-0.015, 0.015)
-        slab([(-w / 2 + jig, bot), (w / 2 + jig, bot), (jig * 0.5, top)], 0.08 + k * 0.03, m, z=0.06 + k * 0.03, bevel=0.012)
-    # a soft contact shadow is the film's own: nothing under the tree
+        c1, c2 = greens[k]
+        m = bump(mat(f"pine{k}", c1, 0.72, sheen=0.1), 60, 0.35, distance=0.004)
+        r = (0.30 - k * 0.07) * scale
+        z = (0.13 + k * 0.15) * scale
+        h = (0.34 - k * 0.04) * scale
+        ob = cone(rnd.uniform(-0.01, 0.01), rnd.uniform(-0.01, 0.01), r, 0.0, h, m, z=z, verts=9)
+        ob.rotation_euler[2] = rnd.uniform(0, 1)
 
 
-@sprite("tents-tree-a")
+@sprite("tents-tree-a", tilt=PIECE_TILT)
 def _tree_a():
-    pine(1, 3)
+    shadow_catcher()
+    pine(1, 3, 1.28)
 
 
-@sprite("tents-tree-b")
+@sprite("tents-tree-b", tilt=PIECE_TILT)
 def _tree_b():
+    shadow_catcher()
     trunk = wood("trunk", "#7a4a26", "#3e220e", scale=12)
-    rbox(0, -0.28, 0.10, 0.20, 0.10, trunk, r=0.02)
-    leaf = bump(mat("leaf", "#3f9d55", 0.55, coat=0.3, sheen=0.4), 70, 0.35, kind="voronoi", distance=0.006)
-    for (x, y, r) in ((0, 0.05, 0.27), (-0.15, -0.04, 0.17), (0.15, -0.03, 0.18), (0.02, 0.2, 0.17)):
-        sphere(x, y, r, leaf, z=0.12 + r * 0.6, sz=0.55)
+    cyl(0, 0, 0.06, 0.26, trunk, z=0, bevel=0.01)
+    leaf = bump(mat("leaf", "#47a85c", 0.72, sheen=0.1), 70, 0.45, kind="voronoi", distance=0.006)
+    k = 1.2
+    for (x, y, z, r) in ((0, 0, 0.42, 0.25), (-0.16, 0.02, 0.32, 0.17), (0.16, -0.02, 0.33, 0.18), (0.02, 0.06, 0.58, 0.16)):
+        sphere(x * k, y * k, r * k, leaf, z=z * k)
+
+
+def canvas_mat(lit):
+    """Canvas: a woven texture in the bump and a warm cream; the lit tent glows faintly through its walls."""
+    m = mat("canvas", "#e4cc98", 0.7, sheen=0.5, emit="#ffb860" if lit else None, emit_strength=0.25 if lit else 0.0)
+    n = m.node_tree.nodes
+    l = m.node_tree.links
+    tc = n.new("ShaderNodeTexCoord")
+    weave = n.new("ShaderNodeTexWave")
+    weave.inputs["Scale"].default_value = 60.0
+    weave.inputs["Distortion"].default_value = 0.6
+    stripes = n.new("ShaderNodeTexWave")
+    stripes.wave_type = "BANDS"
+    stripes.bands_direction = "Y"
+    stripes.inputs["Scale"].default_value = 3.0
+    ramp = n.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = hexc("#c9aa70")
+    ramp.color_ramp.elements[1].color = hexc("#e9d4a4")
+    bp = n.new("ShaderNodeBump")
+    bp.inputs["Strength"].default_value = 0.25
+    bp.inputs["Distance"].default_value = 0.002
+    l.new(tc.outputs["Object"], weave.inputs["Vector"])
+    l.new(tc.outputs["Object"], stripes.inputs["Vector"])
+    l.new(stripes.outputs[0], ramp.inputs[0])
+    l.new(ramp.outputs[0], n["Principled BSDF"].inputs["Base Color"])
+    l.new(weave.outputs[0], bp.inputs["Height"])
+    l.new(bp.outputs[0], n["Principled BSDF"].inputs["Normal"])
+    return m
+
+
+def mesh(name, verts, faces, m):
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.update()
+    ob = link(bpy.data.objects.new(name, me))
+    return setm(ob, m)
 
 
 def tent(lit):
-    canvas = bump(mat("canvas", "#e2c58d", 0.6, sheen=0.4, coat=0.15), 220, 0.10, stretch=(1, 4, 1), distance=0.002)
-    seam = mat("seam", "#a9884e", 0.55)
-    # A ridge tent seen from the front-top: a gable triangle and the roof falling away.
-    slab([(-0.40, -0.30), (0.40, -0.30), (0.0, 0.34)], 0.16, canvas, z=0.02, bevel=0.02)
-    slab([(-0.36, -0.30), (-0.30, -0.30), (-0.02, 0.28)], 0.17, seam, z=0.02, bevel=0.004)
-    slab([(0.36, -0.30), (0.30, -0.30), (0.02, 0.28)], 0.17, seam, z=0.02, bevel=0.004)
-    if lit:
-        door = mat("doorlit", "#e89a3c", 0.7, emit="#ffa040", emit_strength=1.2)
-        point((0, -0.18, 0.12), 0.6, "#ffc26b", 0.04)
-    else:
-        door = mat("door", "#3c2810", 0.7)
-    slab([(-0.12, -0.30), (0.12, -0.30), (0.0, 0.02)], 0.185, door, z=0.02, bevel=0.004)
+    shadow_catcher()
+    canvas = canvas_mat(lit)
+    w, h, d = 0.72, 0.5, 0.58
+    # A ridge tent: its triangle faces the camera (−y), the roof runs back along +y.
+    tent_ob = mesh("tent", [(-w / 2, -d / 2, 0), (w / 2, -d / 2, 0), (0, -d / 2, h), (-w / 2, d / 2, 0), (w / 2, d / 2, 0), (0, d / 2, h)],
+                   [(0, 1, 2), (3, 5, 4), (1, 4, 5, 2), (0, 2, 5, 3)], canvas)
+    mod = tent_ob.modifiers.new("bv", "BEVEL")
+    mod.width = 0.01
+    mod.segments = 2
+    # The door: a dark opening, or a warm lantern-lit one.
+    door = mat("doorlit", "#f09a3c", 0.6, emit="#ffa040", emit_strength=4.0) if lit else mat("door", "#2a1a0a", 0.8)
+    dw, dh = 0.2, 0.3
+    mesh("door", [(-dw, -d / 2 - 0.004, 0), (dw, -d / 2 - 0.004, 0), (0, -d / 2 - 0.004, dh)], [(0, 1, 2)], door)
+    # Tied-back flaps either side of the door.
+    flap = canvas_mat(lit)
+    mesh("flapL", [(-dw - 0.02, -d / 2 - 0.006, 0), (-dw + 0.04, -d / 2 - 0.006, 0), (-0.02, -d / 2 - 0.006, dh + 0.02)], [(0, 1, 2)], flap)
+    mesh("flapR", [(dw - 0.04, -d / 2 - 0.006, 0), (dw + 0.02, -d / 2 - 0.006, 0), (0.02, -d / 2 - 0.006, dh + 0.02)], [(0, 1, 2)], flap)
     pole = wood("pole", "#8a5a32", "#4e2e14", scale=14)
-    cyl(0, 0.36, 0.022, 0.24, pole, z=0.02, bevel=0)
+    cyl(0, -d / 2 - 0.01, 0.014, h + 0.08, pole, z=0, bevel=0)
+    rope = mat("rope", "#d8c8a4", 0.8)
+    for sx in (-1, 1):
+        tube([(sx * 0.48, -d / 2 - 0.08), (sx * 0.02, -d / 2)], 0.004, rope, z=0.02)
+    if lit:
+        point((0, -d / 2 - 0.12, 0.12), 1.2, "#ffb860", 0.05)
 
 
-@sprite("tents-tent")
+@sprite("tents-tent", tilt=PIECE_TILT)
 def _tent():
     tent(False)
 
 
-@sprite("tents-tent-lit")
+@sprite("tents-tent-lit", tilt=PIECE_TILT)
 def _tent_lit():
     tent(True)
 
 
-@sprite("tents-tuft")
+@sprite("tents-tuft", tilt=PIECE_TILT)
 def _tuft():
-    g = mat("tuft", "#6cc276", 0.5, sheen=0.4)
+    g = mat("tuft", "#5fae5a", 0.6, sheen=0.4)
     rnd = random.Random(4)
-    for k in range(7):
-        x = -0.16 + k * 0.055 + rnd.uniform(-0.01, 0.01)
-        tube([(x, -0.18), (x + rnd.uniform(-0.08, 0.08), 0.12 + rnd.uniform(0, 0.12))], 0.022, g, z=0.03)
+    for k in range(9):
+        x = -0.18 + k * 0.045 + rnd.uniform(-0.01, 0.01)
+        cone(x, rnd.uniform(-0.04, 0.04), 0.018, 0.0, 0.14 + rnd.uniform(0, 0.12), g, z=0, verts=6).rotation_euler = (rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), 0)
 
 
 @sprite("tents-sign")
 def _sign():
-    rbox(0, 0, 0.86, 0.74, 0.10, wood("tag", "#b07a46", "#6e4320", scale=7, stretch=(10, 1, 1)), r=0.08)
+    rbox(0, 0, 0.86, 0.74, 0.10, wood("tag", "#c48d55", "#5c3414", scale=5, stretch=(12, 1.2, 1)), r=0.08)
     for x in (-0.33, 0.33):
         sphere(x, 0.24, 0.035, silver("nail"), z=0.11, sz=0.5)
 
 
 @sprite("tents-sign-met")
 def _sign_met():
-    rbox(0, 0, 0.86, 0.74, 0.10, gold("plaque", 0.28), r=0.08)
+    rbox(0, 0, 0.86, 0.74, 0.10, gold("plaque", 0.38), r=0.08)
     for x in (-0.33, 0.33):
         sphere(x, 0.24, 0.035, mat("nailg", "#6b5428", 0.4, metal=1), z=0.11, sz=0.5)
 
@@ -435,7 +565,7 @@ JEWELS = {"sapphire": "#1d4bb8", "emerald": "#137a4a", "amber": "#c27e14", "ruby
 def pane(color):
     rim = gold("rim", 0.2)
     rbox(0, 0, 0.96, 0.96, 0.07, rim, r=0.12)
-    glassm = mat("glass", color, 0.6)
+    glassm = mat("glass", color, 0.12, coat=1.0, emit=color, emit_strength=0.05)
     rbox(0, 0, 0.86, 0.86, 0.10, glassm, r=0.10, z=0.0)
 
 
@@ -446,7 +576,26 @@ for _k, _c in JEWELS.items():
 # Lamplighter ----------------------------------------------------------------------------------------------------
 @sprite("lightup-cell-lit")
 def _cell_lit():
-    m = bump(mat("litfloor", "#a8661c", 0.6, emit="#e8922a", emit_strength=0.25), 160, 0.02, distance=0.002)
+    # A lit square: the dark lacquer floor with warm light falling across it, brightest in the middle and soft at the
+    # edges (an emission pool shaped by a spherical gradient), so lit and dark read at a glance.
+    m = mat("litfloor", "#4a3216", 0.35, coat=0.6)
+    n = m.node_tree.nodes
+    l = m.node_tree.links
+    tc = n.new("ShaderNodeTexCoord")
+    mp = n.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (1.2, 1.2, 1.0)
+    grad = n.new("ShaderNodeTexGradient")
+    grad.gradient_type = "SPHERICAL"
+    ramp = n.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = hexc("#7a3a08")
+    ramp.color_ramp.elements[1].color = hexc("#ffbf5c")
+    mid = ramp.color_ramp.elements.new(0.5)
+    mid.color = hexc("#e07a18")
+    l.new(tc.outputs["Object"], mp.inputs["Vector"])
+    l.new(mp.outputs[0], grad.inputs["Vector"])
+    l.new(grad.outputs[0], ramp.inputs[0])
+    l.new(ramp.outputs[0], n["Principled BSDF"].inputs["Emission Color"])
+    n["Principled BSDF"].inputs["Emission Strength"].default_value = 1.1
     tile(m, edge=0.08, d=0.06)
 
 
@@ -456,17 +605,19 @@ def _wall():
     rbox(0, 0, 0.88, 0.88, 0.26, mat("wallblk", "#0b0d0d", 0.38, coat=0.8), r=0.07)
 
 
-@sprite("lightup-lamp")
+@sprite("lightup-lamp", tilt=20.0)
 def _lamp():
-    cyl(0, 0, 0.30, 0.08, gold("brass", 0.25), z=0, bevel=0.02)
-    sphere(0, 0, 0.22, mat("bulb", "#ffd08a", 0.1, coat=1.0, emit="#ff9a24", emit_strength=0.9), z=0.24)
-    point((0, 0, 0.6), 4.0, "#ffcf7a")
+    # A brass socket and a lit bulb: a bright warm core inside frosted glass, a crisp highlight on the glass's curve.
+    cyl(0, 0, 0.26, 0.1, gold("brass", 0.3), z=0, bevel=0.03)
+    cyl(0, 0, 0.17, 0.12, gold("brassring", 0.22), z=0.08, bevel=0.02)
+    sphere(0, 0, 0.21, mat("bulbglass", "#ffd08a", 0.1, coat=1.0, emit="#ff9c2a", emit_strength=5.0), z=0.32)
+    sphere(0, 0, 0.08, emissive("filament", "#fff2c8", 14.0), z=0.32)
 
 
 # Trail ---------------------------------------------------------------------------------------------------------
 @sprite("trail-given")
 def _given():
-    rbox(0, 0, 0.92, 0.92, 0.12, gold("tedge", 0.24), r=0.12)
+    rbox(0, 0, 0.92, 0.92, 0.12, gold("tedge", 0.34), r=0.12)
     stone = bump(mat("tstone", "#3b4440", 0.55, coat=0.2), 90, 0.18, distance=0.003)
     rbox(0, 0, 0.80, 0.80, 0.14, stone, r=0.10)
 
@@ -484,7 +635,7 @@ def _tcell():
 # Loopline -------------------------------------------------------------------------------------------------------
 @sprite("fences-slate", px=768)
 def _slate():
-    m = bump(mat("slate", "#15181b", 0.85), 26, 0.22, distance=0.004)
+    m = slate_mat("slate", "#24282d", "#121417")
     rbox(0, 0, 1.0, 1.0, 0.04, m, r=0.0, seg=1)
 
 
@@ -496,7 +647,7 @@ def _peg():
 
 # Regions ----------------------------------------------------------------------------------------------------------
 # Enamel by region size (1 to 9): rich, distinct, dark enough for white digits (the game picks the tile, never "correct").
-ENAMEL = {1: "#7a2f5a", 2: "#2f5aa8", 3: "#2a7d6a", 4: "#8a6420", 5: "#5a3f9a", 6: "#3d7a2e", 7: "#9a3a2c", 8: "#24607a", 9: "#6a5a2a"}
+ENAMEL = {1: "#a8306f", 2: "#2f63c4", 3: "#1f9479", 4: "#b07a1c", 5: "#6c48c0", 6: "#4a9236", 7: "#bf4430", 8: "#2380a6", 9: "#8a7428"}
 
 
 def enamel(color, name):
@@ -514,14 +665,15 @@ sprite("fillomino-tile-clash")(lambda: enamel("#5a1414", "enx"))
 # Island Link -----------------------------------------------------------------------------------------------------
 @sprite("bridges-slate", px=768)
 def _bslate():
-    m = bump(mat("bslate", "#0f1a33", 0.85), 26, 0.2, distance=0.004)
+    m = slate_mat("bslate", "#1a2a4c", "#0b1428")
     rbox(0, 0, 1.0, 1.0, 0.04, m, r=0.0, seg=1)
 
 
 def coin(full):
     bezel = gold("bez", 0.2) if full else silver("bez", 0.18)
     cyl(0, 0, 0.46, 0.10, bezel, bevel=0.035)
-    face = gold("face", 0.4) if full else mat("enamelblk", "#0b1110", 0.14, coat=1.0)
+    # A brushed gold face (rough enough to gather the bright band, so it shines without mirroring a light).
+    face = gold("face", 0.36) if full else mat("enamelblk", "#0b1110", 0.14, coat=1.0)
     cyl(0, 0, 0.37, 0.115, face, bevel=0.012)
 
 
@@ -539,7 +691,10 @@ def _coin_met():
 def render(name):
     fn, opts = SPRITES[name]
     px = opts.get("px", PX)
-    reset(px, px, view=1.0)
+    reset(px, px, view=1.0, tilt=opts.get("tilt", 0.0))
+    if opts.get("tilt"):
+        # A standing piece: its ground point sits a little below the middle, so its top stays inside the square.
+        bpy.context.scene.camera.data.shift_y = 0.16
     fn()
     os.makedirs(OUT, exist_ok=True)
     s = bpy.context.scene

@@ -170,6 +170,15 @@ export function FencesBoard({
           />
         );
       })}
+      {/* The Logic overhaul (15 Nov 2026): a narrow highlight along each line, so the loop reads as round gold wire. */}
+      <g className="logic2-wire-hl" aria-hidden="true">
+        {Array.from({ length: edges }, (_, e) => {
+          if (states[e] !== FENCES_LINE || wrongEdges?.has(e)) return null;
+          const [a, b] = edgeDots(size, e).map((d) => dotXY(size, d));
+          const off = -stroke * 0.16;
+          return <line key={`h${e}`} x1={a![0] + off} y1={a![1] + off} x2={b![0] + off} y2={b![1] + off} strokeWidth={stroke * 0.3} />;
+        })}
+      </g>
       {missedEdges && missedEdges.size > 0 ? (
         <g className="logic2-fences-missed" data-missed-edges={missedEdges.size}>
           {[...missedEdges].map((e) => {
