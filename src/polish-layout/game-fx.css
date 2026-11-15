@@ -636,6 +636,10 @@
   height: 100%;
   flex: none;
 }
+/* A turned world's black fill spans its turned footprint (the rotor's on-screen width), not the upright world's. */
+[data-arena-slot][data-arena-rotate]::after {
+  width: round(down, min(100cqw, 100cqh * var(--arena-h) / var(--arena-w)), 2px);
+}
 
 /* ------------------------------------------------------------------ the showcase (/dev-design, development only) */
 
