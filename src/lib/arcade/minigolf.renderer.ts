@@ -40,6 +40,7 @@ import type { ArenaSceneView } from "./arenaScene.renderer";
 import { NO_LOOK, type GameLook } from "./skins/look";
 import { paintBallArt } from "./skins/ballArt";
 import { minigolfBallArt, neonCourseCup, neonCourseFlag, neonCourseHole, neonCourseScene, NEON_COURSE } from "./skins/minigolf.skins";
+import { courseArt, courseArtKey, type CourseArt } from "./skins/minigolfCourse";
 
 /** The look this draw uses (wave 2 skins): set by the public draw calls for their length, the default otherwise. */
 let L: GameLook = NO_LOOK;
@@ -962,6 +963,11 @@ export function paintMinigolfHole(ctx: CanvasRenderingContext2D, h: MgHole, salt
     });
     return;
   }
+  const art = courseArt();
+  if (art) {
+    paintHoleRedrawn(ctx, h, salt, art);
+    return;
+  }
   paintTerrace(ctx, MINIGOLF_W, MINIGOLF_H, salt + h.index * 101);
   // A soft shadow under the course.
   ctx.save();
@@ -986,6 +992,226 @@ export function paintMinigolfHole(ctx: CanvasRenderingContext2D, h: MgHole, salt
   paintLamps(ctx, MINIGOLF_W, MINIGOLF_H);
 }
 
+/* ===================== The redrawn default course (behind its switch) ===================== */
+
+/** A repeating pattern of a rendered tile, drawn at `scale` world px per image px (the tiles are rendered at 2×). */
+function tilePattern(ctx: CanvasRenderingContext2D, img: HTMLImageElement, scale = 0.5, dx = 0, dy = 0): CanvasPattern | null {
+  const p = ctx.createPattern(img, "repeat");
+  if (p && typeof DOMMatrix !== "undefined") p.setTransform(new DOMMatrix().translateSelf(dx, dy).scaleSelf(scale, scale));
+  return p;
+}
+
+/** The garden round the course: sandstone paving, planted beds with flowering shrubs, warm lamp pools. */
+function paintGardenRedrawn(ctx: CanvasRenderingContext2D, w: number, h: number, salt: number, art: CourseArt): void {
+  ctx.fillStyle = tilePattern(ctx, art.paving, 0.5, (salt % 7) * 23, 0) ?? "#2A241E";
+  ctx.fillRect(0, 0, w, h);
+  // A warm evening grade on the stone, so the lit course is the brightest thing.
+  ctx.fillStyle = "rgba(26,16,8,0.42)";
+  ctx.fillRect(0, 0, w, h);
+  const beds: [number, number, number, number][] = [
+    [0, 0, w, 26],
+    [0, h - 26, w, 26],
+    [0, 0, 18, h],
+    [w - 18, 0, 18, h],
+  ];
+  for (const [x, y, bw, bh] of beds) {
+    ctx.fillStyle = "#1A120C";
+    ctx.fillRect(x, y, bw, bh);
+  }
+  // A stone kerb along each bed's inner edge.
+  ctx.strokeStyle = "rgba(205,190,165,0.35)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(18, 26, w - 36, h - 52);
+  for (let i = 0; i < 64; i++) {
+    const side = i % 4;
+    const t = hash(i * 17 + salt);
+    const u = hash(i * 29 + 3 + salt);
+    const x = side === 0 || side === 1 ? t * w : side === 2 ? 6 + u * 6 : w - 12 + u * 6;
+    const y = side === 2 || side === 3 ? t * h : side === 0 ? 6 + u * 12 : h - 18 + u * 12;
+    const size = 22 + hash(i * 41 + salt) * 14;
+    const img = art.shrubs[i % art.shrubs.length]!;
+    ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
+  }
+}
+
+/** The fairway: rendered turf, mowing stripes along the hole, a soft shade under the rails. */
+function paintTurfRedrawn(ctx: CanvasRenderingContext2D, h: MgHole, art: CourseArt): void {
+  ctx.save();
+  polyPath(ctx, h.poly);
+  ctx.clip();
+  const b = h.box;
+  ctx.fillStyle = tilePattern(ctx, art.turf, 0.5, h.index * 37, h.index * 53) ?? TURF_A;
+  ctx.fillRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
+  const stripe = 18;
+  for (let y = b.y - 4, k = 0; y < b.y + b.h + 8; y += stripe, k++) {
+    ctx.fillStyle = k & 1 ? "rgba(0,30,6,0.10)" : "rgba(225,255,190,0.09)";
+    ctx.fillRect(b.x - 4, y, b.w + 8, stripe);
+  }
+  // Light falling from the top left across the green, then a soft shade along its edges (under the coping).
+  const lg = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
+  lg.addColorStop(0, "rgba(255,240,190,0.10)");
+  lg.addColorStop(1, "rgba(0,12,4,0.10)");
+  ctx.fillStyle = lg;
+  ctx.fillRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
+  // A richer green through the blades (soft light keeps the texture and the stripes).
+  ctx.globalCompositeOperation = "soft-light";
+  ctx.fillStyle = "rgba(70,170,40,0.55)";
+  ctx.fillRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 9;
+  polyPath(ctx, h.poly);
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** The rails as dressed-stone coping on exactly today's line and width, lit from the top left. */
+function paintRailsRedrawn(ctx: CanvasRenderingContext2D, h: MgHole, art: CourseArt): void {
+  const p = h.poly;
+  ctx.save();
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.save();
+  ctx.translate(1.5, 2);
+  polyPath(ctx, p);
+  ctx.strokeStyle = "rgba(0,0,0,0.5)";
+  ctx.lineWidth = 10;
+  ctx.stroke();
+  ctx.restore();
+  polyPath(ctx, p);
+  ctx.strokeStyle = tilePattern(ctx, art.stone, 0.5) ?? "#8A7A62";
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  // The coping's bevel: a lit upper-left lip, a shaded lower-right one.
+  ctx.save();
+  ctx.translate(-0.8, -0.8);
+  polyPath(ctx, p);
+  ctx.strokeStyle = "rgba(255,244,222,0.38)";
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.translate(0.9, 1);
+  polyPath(ctx, p);
+  ctx.strokeStyle = "rgba(30,20,10,0.35)";
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+  // The inner face on the collision line, crisp.
+  ctx.save();
+  polyPath(ctx, p);
+  ctx.clip();
+  polyPath(ctx, p);
+  ctx.strokeStyle = "rgba(18,14,8,0.7)";
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A bunker: rendered sand inside a turf lip, shaded from the top left (the sim's circle). */
+function paintSandRedrawn(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, art: CourseArt): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(40,28,8,0.6)";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y, r - 1.2, 0, Math.PI * 2);
+  ctx.fillStyle = tilePattern(ctx, art.sand, 0.5, x, y) ?? "#DCC07E";
+  ctx.fill();
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.2, x, y, r);
+  g.addColorStop(0, "rgba(255,248,225,0.18)");
+  g.addColorStop(0.75, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(60,38,10,0.4)");
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A sprite drawn round a collision circle (its rendered footprint is 80 % of its frame), turned by `k`. */
+function drawFootprint(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, r: number, k: number): void {
+  const s = r * 2.5;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(k * 1.3);
+  ctx.drawImage(img, -s / 2, -s / 2, s, s);
+  ctx.restore();
+}
+
+/** The cup: a white liner, a deep hole shaded from the top left, a short-cut collar. */
+function paintCupRedrawn(ctx: CanvasRenderingContext2D, h: MgHole): void {
+  const x = px(h.cup.x);
+  const y = px(h.cup.y);
+  const collar = ctx.createRadialGradient(x, y, MG_CUP_R, x, y, MG_CUP_R + 14);
+  collar.addColorStop(0, "rgba(190,250,160,0.28)");
+  collar.addColorStop(1, "rgba(190,250,160,0)");
+  ctx.fillStyle = collar;
+  ctx.beginPath();
+  ctx.arc(x, y, MG_CUP_R + 14, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#F2F4EE";
+  ctx.beginPath();
+  ctx.arc(x, y, MG_CUP_R, 0, Math.PI * 2);
+  ctx.fill();
+  const hole = ctx.createRadialGradient(x + 1.6, y + 1.8, 0.5, x, y, MG_CUP_R - 1);
+  hole.addColorStop(0, "#000000");
+  hole.addColorStop(0.7, "#0A0806");
+  hole.addColorStop(1, "#3A342C");
+  ctx.fillStyle = hole;
+  ctx.beginPath();
+  ctx.arc(x, y, MG_CUP_R - 1.2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function paintHoleRedrawn(ctx: CanvasRenderingContext2D, h: MgHole, salt: number, art: CourseArt): void {
+  paintGardenRedrawn(ctx, MINIGOLF_W, MINIGOLF_H, salt + h.index * 101, art);
+  ctx.save();
+  ctx.translate(3, 5);
+  polyPath(ctx, h.poly);
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fill();
+  ctx.restore();
+  paintTurfRedrawn(ctx, h, art);
+  paintSlopes(ctx, h);
+  (h.sands ?? []).forEach((c) => paintSandRedrawn(ctx, px(c.x), px(c.y), px(c.r), art));
+  (h.hills ?? []).forEach((c) => paintHill(ctx, px(c.x), px(c.y), px(c.r)));
+  (h.tunnels ?? []).forEach((t, i) => {
+    const colour = TUNNEL_COLOURS[i % TUNNEL_COLOURS.length]!;
+    paintTunnelIn(ctx, px(t.x), px(t.y), colour);
+    paintTunnelOut(ctx, px(t.ox), px(t.oy), t.dx, t.dy, colour);
+  });
+  paintTee(ctx, h);
+  for (const p of h.ponds) paintPond(ctx, px(p.x), px(p.y), px(p.r));
+  paintCupRedrawn(ctx, h);
+  paintRailsRedrawn(ctx, h, art);
+  paintRampRails(ctx, h);
+  h.logs.forEach((l) => paintLog(ctx, px(l.ax), px(l.ay), px(l.bx), px(l.by), px(l.r)));
+  (h.curves ?? []).forEach((c) => paintCurve(ctx, c));
+  (h.gates ?? []).forEach((g) => paintGate(ctx, g));
+  h.rocks.forEach((c, i) => drawFootprint(ctx, art.boulders[(i + h.index) % art.boulders.length]!, px(c.x), px(c.y), px(c.r), i + h.index * 7));
+  h.planters.forEach((c, i) => drawFootprint(ctx, art.planter, px(c.x), px(c.y), px(c.r), i + h.index));
+  paintLamps(ctx, MINIGOLF_W, MINIGOLF_H);
+}
+
+/** Beyond the world: more of the paved garden, darker towards the edges. */
+function paintSceneRedrawn(ctx: CanvasRenderingContext2D, view: ArenaSceneView, art: CourseArt): void {
+  const { left, top, right, bottom } = view;
+  ctx.fillStyle = tilePattern(ctx, art.paving, 0.5) ?? "#2A241E";
+  ctx.fillRect(left, top, right - left, bottom - top);
+  ctx.fillStyle = "rgba(26,16,8,0.5)";
+  ctx.fillRect(left, top, right - left, bottom - top);
+  const cx = view.worldW / 2;
+  const cy = view.worldH / 2;
+  const g = ctx.createRadialGradient(cx, cy, Math.min(view.worldW, view.worldH) * 0.4, cx, cy, Math.max(right - left, bottom - top) * 0.8);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(0,0,0,0.45)");
+  ctx.fillStyle = g;
+  ctx.fillRect(left, top, right - left, bottom - top);
+}
+
 /* ================================= Frames ================================= */
 
 const holeCache: { key: string; canvas: HTMLCanvasElement | OffscreenCanvas | null } = { key: "", canvas: null };
@@ -993,7 +1219,7 @@ const holeCache: { key: string; canvas: HTMLCanvasElement | OffscreenCanvas | nu
 function cachedHole(ctx: CanvasRenderingContext2D, h: MgHole, seed: number): CanvasImageSource | null {
   const m = ctx.getTransform();
   const scale = Math.max(0.5, Math.min(4, Math.hypot(m.a, m.b)));
-  const key = `${h.rev ?? 1}:${seed}:${h.index}:${scale.toFixed(3)}${L.world ? `:${L.world}` : ""}`;
+  const key = `${h.rev ?? 1}:${seed}:${h.index}:${scale.toFixed(3)}${L.world ? `:${L.world}` : courseArtKey()}`;
   if (holeCache.key === key && holeCache.canvas) return holeCache.canvas;
   const w = Math.ceil(MINIGOLF_W * scale);
   const hh = Math.ceil(MINIGOLF_H * scale);
@@ -1261,6 +1487,11 @@ function paintMinigolfScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView,
   const { left, top, right, bottom } = view;
   if (look.world) {
     neonCourseScene(ctx, view);
+    return;
+  }
+  const art = courseArt();
+  if (art) {
+    paintSceneRedrawn(ctx, view, art);
     return;
   }
   ctx.fillStyle = "#14110F";
