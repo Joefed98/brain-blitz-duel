@@ -1,16 +1,17 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { solutionProgress } from "@/lib/duel/progressFigures";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills } from "@/components/puzzles/pattern/framePills";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
-import { FLOW_COLOUR_HEX as GLYPH_COLOURS, encodeFlowPaths, flowCutsLines, flowDrawStep, flowTapClears, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
+import { HudPills } from "@/components/puzzles/HudPills";
+import { FLOW_COLOUR_HEX as GLYPH_COLOURS, decodeFlowPaths, encodeFlowPaths, flowCutsLines, flowDrawStep, flowTapClears, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   FLOW_CELLS,
   FLOW_COLS,
+  FLOW_MAX_PAIRS,
   FLOW_TIME_MS,
   type FlowPair,
   type FlowPuzzleData,
@@ -38,6 +39,7 @@ export function FlowBoard({
   onRelease,
   live = false,
   solved = false,
+  marks = null,
 }: {
   pairs: FlowPair[];
   paths: number[][];
@@ -50,6 +52,8 @@ export function FlowBoard({
   live?: boolean;
   /** Every pair joined and every cell filled (starts the completion effect). */
   solved?: boolean;
+  /** The reveal's highlights on the player's board: dots of pairs left unjoined, and squares left empty. */
+  marks?: FlowMarks | null;
 }) {
   const rows = Math.ceil(cells / cols) || cols;
   const total = cols * rows;
@@ -63,7 +67,7 @@ export function FlowBoard({
     for (const cell of path) filled.set(cell, GLYPH_COLOURS[colour]);
   });
 
-  const stroke = metrics ? Math.max(3, metrics.cellW * 0.4) : 0;
+  const stroke = metrics ? Math.max(3, metrics.cellW * 0.44) : 0;
   // Presentation only: which pairs are joined end to end, for the tube caps,
   // the join pulse and the completion effect.
   const joined = pairs.map((pair, index) => {
@@ -107,6 +111,7 @@ export function FlowBoard({
           return (
             <div
               key={cell}
+              data-flow-empty={marks?.empty.has(cell) ? "" : undefined}
               className="flow-cell flex items-center justify-center rounded-[3px]"
               style={{ backgroundImage: tint ? `linear-gradient(${tint}24, ${tint}24), url(${FLOW_CELL_URL})` : `url(${FLOW_CELL_URL})` }}
             >
@@ -115,10 +120,11 @@ export function FlowBoard({
               {dot && (
                 <span
                   className={`flow-dot relative block rounded-full ${joined[pairs.indexOf(dot)] ? "flow-dot-joined" : ""}`}
+                  data-flow-missed={marks?.missed.has(cell) ? "" : undefined}
                   data-flow-colour={dot.colour}
                   style={{
-                    width: "64%",
-                    height: "64%",
+                    width: "72%",
+                    height: "72%",
                     zIndex: 2,
                     ["--dot" as string]: GLYPH_COLOURS[dot.colour],
                     ["--dot-rim" as string]: shadeHex(GLYPH_COLOURS[dot.colour], -0.5),
@@ -155,6 +161,73 @@ export function FlowBoard({
         </svg>
       )}
     </div>
+  );
+}
+
+/** The reveal's highlights: dots of pairs the player left unjoined, and squares no line of theirs covers. */
+export interface FlowMarks {
+  missed: ReadonlySet<number>;
+  empty: ReadonlySet<number>;
+}
+
+export type FlowPairState = "route" | "other" | "open";
+
+/**
+ * What the reveal shows of the player's answer (display only): their paths, the highlights, each pair's state (joined
+ * along the solution's route, joined another way, or not joined) and the numbers from the stored grade (`myExtra`:
+ * pairsJoined, filled, redraws), read again from the answer only for a round stored without them.
+ */
+export function flowRevealView(puzzle: FlowPuzzleData, answer: string, extra: Record<string, unknown> | null | undefined) {
+  const walls = puzzle.walls ?? [];
+  const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_MAX_PAIRS);
+  const verdict = verifyFlow(puzzle.pairs, paths, walls);
+  const solution = puzzle.solution ?? [];
+  const key = (cells: readonly number[]) => [...cells].sort((a, b) => a - b).join(",");
+  const states: FlowPairState[] = puzzle.pairs.map((_, i) =>
+    !verdict.joined[i] ? "open" : solution[i] && key(paths[i] ?? []) === key(solution[i]!) ? "route" : "other",
+  );
+  const covered = new Set<number>();
+  paths.forEach((path, i) => {
+    if (verdict.joined[i]) for (const c of path) covered.add(c);
+  });
+  const dots = new Set(puzzle.pairs.flatMap((pr) => [pr.a, pr.b]));
+  const wallSet = new Set(walls);
+  const missed = new Set<number>();
+  puzzle.pairs.forEach((pr, i) => {
+    if (!verdict.joined[i]) {
+      missed.add(pr.a);
+      missed.add(pr.b);
+    }
+  });
+  const empty = new Set<number>();
+  for (let c = 0; c < FLOW_CELLS; c++) if (!covered.has(c) && !dots.has(c) && !wallSet.has(c)) empty.add(c);
+  const num = (k: string): number | null => {
+    const v = extra?.[k];
+    return typeof v === "number" && Number.isFinite(v) ? v : null;
+  };
+  return {
+    paths,
+    states,
+    marks: { missed, empty } satisfies FlowMarks,
+    pairsJoined: num("pairsJoined") ?? verdict.pairsJoined,
+    filled: num("filled") ?? verdict.filled,
+    redraws: num("redraws"),
+    squares: FLOW_CELLS - walls.length,
+  };
+}
+
+/** One pair's chip in the reveal's strip: its bead and whether the player joined it (on route, another way, not). */
+function PairChip({ colour, state }: { colour: FlowPair["colour"]; state: FlowPairState }) {
+  const word = state === "route" ? "joined on the solution’s route" : state === "other" ? "joined another way" : "not joined";
+  return (
+    <span className="flow-pair-chip" data-state={state} aria-label={`${colour.toLowerCase()}: ${word}`} title={word}>
+      <span className="flow-pair-bead">
+        <FlowBead colour={colour} />
+      </span>
+      <span className="flow-pair-mark" aria-hidden="true">
+        {state === "open" ? "!" : "✓"}
+      </span>
+    </span>
   );
 }
 
@@ -333,43 +406,63 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "flow") return null;
   const solution = puzzle.solution ?? puzzle.pairs.map(() => []);
-  const mine = myAnswer
-    ? myAnswer.split("|").map((part) =>
-        part
-          .split(",")
-          .map((value) => Number.parseInt(value, 10))
-          .filter((cell) => Number.isInteger(cell)),
-      )
-    : puzzle.pairs.map(() => []);
-  const verdict = verifyFlow(puzzle.pairs, mine, puzzle.walls ?? []);
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
+  const walls = puzzle.walls ?? [];
+  const view = flowRevealView(puzzle, myAnswer ?? "", myExtra);
+  const total = puzzle.pairs.length;
+  const timeLeft = myCorrect && myMsRemaining !== undefined ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
+  const elapsed = myCorrect && myMsRemaining !== undefined ? Math.round((timeLimitMs - myMsRemaining) / 100) / 10 : null;
+  const open = view.states.filter((st) => st === "open").length;
+  const other = view.states.filter((st) => st === "other").length;
+  const result = myCorrect
+    ? `You: every pair joined${elapsed === null ? "" : ` in ${elapsed.toFixed(1)} s`}`
+    : myAnswer
+      ? `You: ${view.pairsJoined} of ${total} pairs, ${view.filled} of ${view.squares} squares`
+      : "You: no lines drawn";
 
   return (
-    <div className="flow-reveal flex w-full min-h-0 flex-col items-center gap-3">
-      <div className="flow-reveal-boards flex min-h-0 w-full flex-1 items-center justify-center gap-3">
-        <div className="flow-reveal-board flex flex-col items-center gap-1">
-          <FlowBoard pairs={puzzle.pairs} paths={solution} walls={puzzle.walls ?? []} />
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            solved
-          </span>
+    <div className="flow-reveal flex w-full min-h-0 flex-col items-center gap-2" data-flow-reveal="">
+      <div className="flow-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
+        <div className="flow-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-flow-solution="">
+          <div className="flow-reveal-board aspect-square">
+            <FlowBoard pairs={puzzle.pairs} paths={solution} walls={walls} />
+          </div>
+          <span className="flow-reveal-label">Solution</span>
+          <span className="flow-reveal-caption">The one way to join all {total} pairs and fill every square</span>
         </div>
-        <div className="flow-reveal-board flex flex-col items-center gap-1">
-          <FlowBoard pairs={puzzle.pairs} paths={mine} walls={puzzle.walls ?? []} />
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            yours
+        <div className="flow-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-flow-yours="">
+          <div className="flow-reveal-board flow-reveal-board-yours aspect-square">
+            <FlowBoard pairs={puzzle.pairs} paths={view.paths} walls={walls} marks={myCorrect ? null : view.marks} />
+          </div>
+          <span className="flow-reveal-label">Yours</span>
+          <span className="flow-reveal-caption" data-flow-result="">{result}</span>
+          {/* The numbers that explain the score, from the stored grade (the player's own, so under Yours). */}
+          <HudPills
+            testId="flow-reveal"
+            className="flow-reveal-pills"
+            items={[
+              { id: "pairs", label: "Pairs", value: `${view.pairsJoined}/${total}`, tone: view.pairsJoined === total ? "good" : undefined },
+              { id: "filled", label: "Filled", value: `${view.filled}/${view.squares}` },
+              view.redraws !== null ? { id: "redraws", label: "Redraws", value: view.redraws, tone: view.redraws > 0 ? "warn" : "good" } : null,
+              timeLeft !== null ? { id: "time", label: "Time left", value: `${timeLeft} s` } : null,
+            ]}
+          />
+          <span className="flow-pair-strip" aria-label="Your pairs">
+            {puzzle.pairs.map((pair, i) => (
+              <PairChip key={i} colour={pair.colour} state={view.states[i]!} />
+            ))}
           </span>
+          {!myCorrect && (open || view.marks.empty.size || other) ? (
+            <span className="flow-reveal-key" data-flow-key="">
+              {open ? <span data-key="missed">Red ring: pair not joined</span> : null}
+              {view.marks.empty.size ? <span data-key="empty">Red dot: square left empty</span> : null}
+              {other ? <span data-key="other">Amber tick: pair joined another way</span> : null}
+            </span>
+          ) : null}
         </div>
       </div>
-      {/* The player's own count: shown only under Yours (SolutionSwitch), never as if it described the solution. */}
-      <p data-yours-only="" className="flow-reveal-line font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {myCorrect
-          ? `You: solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
-          : `You: ${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${verdict.pairsJoined}/${puzzle.pairs.length} pairs`}`}
-      </p>
     </div>
   );
 }
