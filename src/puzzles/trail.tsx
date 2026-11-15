@@ -166,9 +166,13 @@ export function Grid({
   );
 }
 
-/** A real 6×6 board: ten fixed numbers, the path drawn once a step at a time. */
-const EX_GIVENS: (number | null)[] = [null,null,null,null,null,null,null,17,null,null,null,28,null,null,null,null,30,1,null,23,35,null,31,null,11,null,null,36,null,null,null,null,null,null,4,null];
-const EX_PATH = [17,23,29,34,35,28,33,32,31,30,24,25,18,12,6,0,7,1,2,3,8,13,19,14,9,4,5,11,10,16,22,15,21,26,20,27];
+/**
+ * A 6×6 board with ten fixed numbers and one solution, the path drawn once a step at a time. It is never dealt (Logic
+ * review, 15 Nov 2026: it used to be the bank's first board): made by the bank's own method from a seed of its own,
+ * and logic-review-fixes-check proves it is no bank board and has exactly one path.
+ */
+export const EX_GIVENS: (number | null)[] = [null,null,null,null,null,null,null,null,null,null,18,17,null,26,28,23,null,null,null,null,null,null,31,null,null,6,1,null,36,34,null,null,null,null,null,null];
+export const EX_PATH = [26,33,32,31,30,25,24,18,12,6,0,1,2,3,4,5,11,10,17,23,16,9,15,8,7,13,19,14,20,21,22,27,34,29,35,28];
 
 function IntroExample() {
   const [n, setN] = useState(1);

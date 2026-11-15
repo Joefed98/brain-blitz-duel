@@ -98,7 +98,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
   { type: "bastion", field: "bastionRev", rev: 3, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
-  { type: "pyramid", field: "pyramidRev", rev: 2, batch: "Cards" },
+  // Thirteen pyramidRev 3 (15 Nov 2026): a dead end waits for Undo (rev 2's deals and parts). Changed with Joe's approval,
+  // 15 Nov 2026 (routine consequence of pyramidRev 3).
+  { type: "pyramid", field: "pyramidRev", rev: 3, batch: "Cards" },
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.

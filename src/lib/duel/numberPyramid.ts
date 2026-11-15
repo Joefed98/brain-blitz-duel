@@ -39,6 +39,19 @@ export function npRulesHold(values: readonly (number | null)[], rows: number): b
   return npRules(rows).every(([a, b, c]) => values[a] != null && values[a] === values[b]! + values[c]!);
 }
 
+/**
+ * Display only (game review fix, 15 Nov 2026): the placed (non-given) cells that break a sum, that is, every
+ * placed cell in a filled triple (a stone and the two under it) whose sum is wrong. Never graded or scored.
+ */
+export function npBrokenCells(givens: readonly (number | null)[], values: readonly (number | null)[], rows: number): number[] {
+  const out = new Set<number>();
+  for (const [a, b, c] of npRules(rows)) {
+    if (values[a] == null || values[b] == null || values[c] == null || values[a] === values[b]! + values[c]!) continue;
+    for (const cell of [a, b, c]) if (givens[cell] == null) out.add(cell);
+  }
+  return [...out].sort((x, y) => x - y);
+}
+
 export function npCountSolutions(givens: readonly (number | null)[], tray: readonly number[], rows: number, cap = 2): number {
   const empties: number[] = [];
   for (let r = rows - 1; r >= 0; r--) for (let c = 0; c <= r; c++) if (givens[npIndex(r, c)] == null) empties.push(npIndex(r, c));

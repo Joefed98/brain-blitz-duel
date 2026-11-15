@@ -143,7 +143,8 @@ export async function runSpecs(): Promise<RunSpec[]> {
       draw: (ctx, s, look) => CardsR.withCardsLook(look, () => art.draw(ctx, s, { width: TpR.TP_WORLD_W, height: TpR.TP_WORLD_H })),
     });
   }
-  for (const rev of [1, Py.PY_REV]) {
+  // pyramidRev 1 and 2, the revisions these fixtures were recorded on (pyramidRev 3, 15 Nov 2026, plays rev 2 until a dead end).
+  for (const rev of [1, 2]) {
     const art = PyR.pyramidArtGame(undefined, rev);
     specs.push({
       game: "pyramid", rev, sim: () => Py.pyramidGameFor(rev), seedFor: (n) => 1000 + n * 7919, checkpoint: Py.pyCheckpoint, interval: Py.PY_CHECKPOINT_INTERVAL, rate: 120,

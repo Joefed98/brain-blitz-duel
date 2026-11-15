@@ -14,8 +14,10 @@ pterodactyl (its beak on the catch line; "PTERODACTYL n m" at the left edge). Th
 tree crowns at slow parallax, mid trunks with lianas and light shafts. The hero fills the sim's 10 px body radius (±11 px;
 it was about ±8) with a soft light round it, on a thicker vine. The HUD is the Action HUD's chips (STRETCH and STREAK; the
 stretch's PAR clock with a bar, and GATES). The help, intro still and tile say vines, platforms, the river and the
-pterodactyl. Sounds: `swing.vineCreak`, `swing.splash`, `swing.pterodactyl`, `swing.pteroCatch` on library files and the
-`swing.jungle` bed (silent until recorded; docs/sound-cues/action-polish-nov-2026.md).
+pterodactyl. Sounds (Joe's recordings since 6 Nov 2026, docs/sound-cues/retheme-nov-2026.md): `swing.vineCreak` on a
+grab, `swing.release`, `swing.land`, `swing.gate`, `swing.streak` (each streak block of 8), the `swing.slideVine` loop on a
+sliding vine, `swing.splash`, `swing.pterodactyl` with its `swing.wings` loop, `swing.pteroCatch`, and the `swing.jungle`
+ambience bed. (Until 15 Nov 2026 this page said the streak and the sliding vines had no sound and the bed was silent.)
 
 
 29 Oct 2026. Joe's direction after swingRev 14: it went too far, all ledges and hooks. Grappler (`swing`) is mostly
@@ -315,7 +317,7 @@ the dealt courses are ones a flawless line clears cleanly, a little kinder on av
 | Part | Points | How |
 |---|---|---|
 | Course (core) | 110 | A straight line on the share of the course behind the hero (as rev 15), **full at 700 per mille** (`SWING_V17_FULL`, about the great level's median; `SWING_V17_BAND_CURVE`). |
-| Pars | 40 | Each stretch cleared pays by how far under par (full at 30 ticks under), counted over **45 stretches** (`SWING_V17_PAR_STRETCHES`; a course has 51), so the pars keep paying for every stretch after the core is full. |
+| Pars | 40 | Each stretch cleared pays by how far under par (full at 30 ticks under), counted over **45 stretches** (`SWING_V17_PAR_STRETCHES`; every dealt course has **51**, the HUD's STRETCH x / 51 and the reveal's stretches left, so the pars are full with 45 cleared well under par), so the pars keep paying for every stretch after the core is full. |
 | Gates | 10 | 2 each for the 5 (banked as before: put back on a miss since the last hook). |
 | Clean-swing streak | 40 | 2 for every 8 clean grabs in a row (summed over the run's streaks), up to 40. |
 | **Total** | **200** | No input 0; any input at least 1 (`stdFinal`). Earning a feature never costs core. |
@@ -370,6 +372,7 @@ home), the arcade-standard entry (four parts), the self-replay list (`swing/slid
 ## Follow-ups
 
 - The intro demo needs recording on swingRev 17 (until then the intro shows its still).
-- Sounds: the library only (no new slot); the streak and the sliding hooks have no cue of their own.
+- Sounds: the library only when swingRev 17 shipped (3 Nov 2026); since 6 Nov 2026 the streak (`swing.streak`) and the
+  sliding vines (the `swing.slideVine` loop) have recordings of their own (docs/sound-cues/retheme-nov-2026.md).
 - Screenshots: `screenshots/grappler-slide-nov-2026/` (`bun scripts/shots/swing-slide-shots.ts`): a sliding hook at
   each end of its rail, the moment it is grabbed, and the streak in the HUD, at 414×896.

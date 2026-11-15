@@ -34,8 +34,7 @@ import { countBridgesSolutions } from "../src/lib/duel/bridges.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { puzzleDef } from "../src/lib/duel/registry";
 import type { FillominoPuzzleData, PuzzleData, ShikakuPuzzleData, TrailPuzzleData, PuzzleType } from "../src/lib/duel/types";
-import { SHIKAKU_EXAMPLE } from "../src/puzzles/shikaku";
-import { rectsTouch, shikakuColours } from "../src/puzzles/shikakuColours";
+import { SHIKAKU_EXAMPLE, shikakuFills as shikakuColours, shikakuRectsTouch as rectsTouch } from "../src/puzzles/shikaku";
 import { Board as TentsBoard } from "../src/puzzles/tents";
 import { Board as LampBoard } from "../src/puzzles/lightUp";
 import { FencesBoard } from "../src/puzzles/fences";
@@ -73,7 +72,7 @@ const deal = <T extends PuzzleData>(type: PuzzleType, seed: number) => generateP
   ok(/never take a placed number back/.test(PUZZLE_INSTRUCTIONS.trail.score), "pinned: Trail's help as before");
   pinPreLogic2(false);
   const tentsHelp = PUZZLE_INSTRUCTIONS.tents.how.map((l) => `${l.action} ${l.detail}`).join(" ");
-  ok(/“\?” signpost/.test(tentsHelp), "Tents' help explains the ? signposts");
+  ok(/A \? sign/.test(tentsHelp) && /no tree beside it/.test(tentsHelp), "Tents' help explains the ? signs and the lonely-tent ring");
   ok(PUZZLE_INSTRUCTIONS.shikaku.how.some((l) => /remove/.test(l.detail)), "Shikaku's help says a tap removes a rectangle");
   ok(PUZZLE_INSTRUCTIONS.bridges.how.some((l) => /Tap a bridge/.test(l.action)), "Island Link's help says a tap cycles a bridge");
 }

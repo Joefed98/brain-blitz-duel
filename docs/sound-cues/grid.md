@@ -9,6 +9,7 @@ cues are in number.md. Haptics come only from the shared puzzle signals (a corre
 | --- | --- | --- |
 | `fences.draw` | A line is drawn on an edge (tap or drag) | The line draws in |
 | `fences.cross` | An edge is marked ✕ | — |
+| `fences.clear` | An edge's ✕ is cleared by a tap, or lines are erased by a drag (15 Nov 2026; it played `fences.cross`) | — |
 | `fences.solve` | The lines are one closed loop meeting every number | ≤1.2 s: the loop lights up around the board |
 | `fillomino.place` | A number is entered or painted on a square | — |
 | `fillomino.region` | A region reaches its size (N squares of N) | The region tints |

@@ -18,8 +18,10 @@ import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps } from "./operatorGaps.server";
 import { dealLogic2 } from "./logicOverhaul2";
 import { dealWordNov7 } from "./wordNov7";
+import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
+import { dealNotesFree } from "./notesFree";
 import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -166,6 +168,10 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "partialCredit", deal: dealPartialCredit },
   // The Word scoring fix (7 Nov 2026, wordNov7.ts): Interlock, Slider and Lookout one stamp above (Slider above the notes).
   { name: "wordNov7", deal: dealWordNov7 },
+  // Notes never count as mistakes (15 Nov 2026, notesFree.ts): Mosaic, Tents, Lamplighter, Loopline and Island Link.
+  { name: "notesFree", deal: dealNotesFree },
+  // The game review fixes (15 Nov 2026, gameReviewNov15.ts): Brimful measureRev 4 (out of moves ends only that puzzle).
+  { name: "gameReviewNov15", deal: dealGameReviewNov15 },
   // The Logic overhaul, session 2 (15 Nov 2026, logicOverhaul2.ts): Trail's per-undo cost and Regions' stroke rule.
   { name: "logic2", deal: dealLogic2 },
 ];

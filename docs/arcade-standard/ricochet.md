@@ -77,8 +77,9 @@ slips. Flawless plays the deal's witness (the route the deal proved), as Blockfa
 
 New slots `ricochet.lanternGrab`, `ricochet.lanternRide` (a loop while riding), `ricochet.ledge`, `ricochet.flow`;
 `ricochet.leap`, `.doubleJump`, `.land`, `.hit`, `.slip`, `.scroll` kept; `ricochet.coin` and `ricochet.lantern`
-removed; `music_ricochet` is the bed (Grappler's track until Joe's file). Every slot plays a library sound until its
-file is set (`docs/sound-cues/moon-climb-blockzone.md`). Haptics unchanged: `impact` on a hit and the arcade buzzer.
+removed; `music_ricochet` is the bed. Every slot has Joe's own recording since 3 Nov 2026
+(`docs/sound-cues/mapping-nov-2026.csv`, `docs/sound-cues/moon-climb-blockzone.md`). Haptics unchanged: `impact` on a
+hit and the arcade buzzer.
 
 ## Decisions and assumptions
 

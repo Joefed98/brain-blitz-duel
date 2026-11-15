@@ -6,12 +6,11 @@ import { LW_FREE_MISSES, LW_JAR_DROPS, lwDecode, lwDecodeLog, lwEncodeLog, lwGra
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
 import { prefersReducedMotion } from "@/lib/motion";
-import { playTick } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 import { Shuffle, X } from "lucide-react";
 import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
-import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { fx } from "@/lib/fx";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-letterwheel.css";
@@ -89,6 +88,7 @@ export function Wheel({
   onTap,
   disabled,
   shake,
+  quietShake,
   order,
 }: {
   letters: string;
@@ -100,6 +100,8 @@ export function Wheel({
   onTap?: (index: number) => void;
   disabled?: boolean;
   shake?: boolean;
+  /** A harmless repeat's shake: no sound (puzzleReject skips `[data-quiet-shake]`). */
+  quietShake?: boolean;
   order?: readonly number[];
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -158,6 +160,7 @@ export function Wheel({
       ref={ref}
       data-play-area
       data-lw-wheel=""
+      data-quiet-shake={quietShake ? "" : undefined}
       className={`relative aspect-square h-full max-h-full select-none rounded-full bg-card ${shake ? "animate-shake" : ""}`}
       style={{ touchAction: "none", overscrollBehavior: "none", WebkitUserSelect: "none" }}
       onPointerDown={(e) => {
@@ -289,7 +292,25 @@ function IntroExample() {
   );
 }
 
+/**
+ * The one sound a Roundabout trace's verdict plays (game review fix, 15 Nov 2026): a slot word or a new bonus word
+ * (a real word not in the crossword, wheelRev 2's jar) is `correct`; a harmless repeat (a slot word already written, a
+ * word already in the jar) plays nothing; a miss (not a word, or wheelRev 1's real word not in this puzzle) is `wrong`.
+ */
+export function letterWheelVerdictSound(
+  verdict: { valid: boolean; reason?: string },
+  usesJar: boolean,
+  inJar: boolean,
+): "correct" | "wrong" | null {
+  if (verdict.valid) return "correct";
+  if (verdict.reason === "Already found") return null;
+  if (verdict.reason === "Not in this puzzle") return usesJar ? (inJar ? null : "correct") : "wrong";
+  return "wrong";
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }: PuzzleStageProps) {
+  const lockedNow = useRef(locked);
+  lockedNow.current = locked;
   const data: LetterWheelPuzzleData | null = puzzle.type === "letterwheel" ? puzzle : null;
   const key = stateKey ?? "letterwheel";
   const [filled, setFilled] = useStageState<(string | undefined)[]>(key, "lwFilled", () => []);
@@ -301,6 +322,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const jarRef = useRef<HTMLDivElement | null>(null);
   const [path, setPath] = useState<number[]>([]);
   const [shake, setShake] = useState(false);
+  const [quietShake, setQuietShake] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const [order, setOrder] = useState(() => Array.from({ length: data?.letters.length ?? 0 }, (_, i) => i));
@@ -400,6 +422,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       return;
     }
     void checkWord(word, words).then((v) => {
+      // Game review fix (15 Nov 2026): the checks are silent in FeedbackStage (silentWordChecks); each trace plays its
+      // one sound here (letterWheelVerdictSound): a bonus word is a positive sound, never `wrong`.
+      const sound = letterWheelVerdictSound(v, usesJar, bonus.includes(v.word.toUpperCase()));
+      if (!lockedNow.current) {
+        if (sound === "correct") fx.onCorrect();
+        else if (sound === "wrong") fx.onWrong();
+      }
       if (v.valid && v.reason?.startsWith("slot:")) {
         const i = Number(v.reason.slice(5));
         setAccepted(previous => ({ word: v.word, points: data.slots.length === 8 ? 15 : 13, serial: (previous?.serial ?? 0) + 1 }));
@@ -415,12 +444,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         // wheelRev 2: a real word not in the crossword drops into the bonus jar.
         const word = v.word.toUpperCase();
         setBonus((b) => (b.includes(word) ? b : [...b, word]));
-        playTick();
         setFlash(`Bonus · ${word}`);
         setTimeout(() => setFlash(null), 900);
         jarPulse(jarRef.current);
       } else if (v.reason === "Not in this puzzle") {
-        puzzleReject();
+        // Game review fix (15 Nov 2026): a word already in the jar is a harmless repeat: the wheel's own silent shake,
+        // never the reject sound (wheelRev 1's word not in the puzzle plays its one `wrong` above).
+        // The shared shake observer plays the quiet `wrong` on every shake; this one is marked quiet (data-quiet-shake).
+        setQuietShake(true);
+        setShake(true);
+        setTimeout(() => {
+          setShake(false);
+          setQuietShake(false);
+        }, 350);
         setFlash(usesJar ? "Already in the jar" : "Not in this puzzle");
         setTimeout(() => setFlash(null), 900);
       } else {
@@ -472,7 +508,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         </div>
       </div>
       <div data-game-arena="letterwheel-wheel" className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
-        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onCancel={clear} onTap={tapLetter} disabled={done} shake={shake} />
+        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onCancel={clear} onTap={tapLetter} disabled={done} shake={shake} quietShake={quietShake} />
       </div>
       {/* Raised inside the Stage (pb-3) so the buttons sit clear of the screen's bottom edge. */}
       <div data-game-controls="actions" data-word-controls-first="" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pb-3 pt-2">
@@ -565,3 +601,5 @@ export const letterWheelPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
+// Game review fix (15 Nov 2026): the stage plays each check's one sound itself (letterWheelVerdictSound).
+(Stage as { silentWordChecks?: boolean }).silentWordChecks = true;

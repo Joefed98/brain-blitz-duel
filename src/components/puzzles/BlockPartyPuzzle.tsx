@@ -25,6 +25,7 @@ import {
   encodePlacements,
   offsetsSize,
   orientationOffsets,
+  tapPose,
   type Offsets,
 } from "@/lib/duel/blockParty";
 import {
@@ -288,7 +289,8 @@ export function BlockPartyPuzzle({
         const previous = lastTap.current;
         const double =
           previous && previous.piece === info.item.piece && Date.now() - previous.at < 300;
-        lastTap.current = { piece: info.item.piece, at: Date.now() };
+        // A double tap is used up, so a third quick tap is a plain turn, never a second double.
+        lastTap.current = double ? null : { piece: info.item.piece, at: Date.now() };
         setTurned((current) => ({
           piece: info.item.piece,
           kind: double ? "flip" : "turn",
@@ -297,12 +299,8 @@ export function BlockPartyPuzzle({
         soundCue(double ? "blockparty.flip" : "blockparty.turn");
         setPose((current) => {
           const state = current[info.item.piece] ?? { rot: 0, flip: false };
-          return {
-            ...current,
-            [info.item.piece]: double
-              ? { ...state, flip: !state.flip }
-              : { ...state, rot: (state.rot + 1) % 4 },
-          };
+          // A double tap's first tap already turned the piece: tapPose takes that turn back as it flips.
+          return { ...current, [info.item.piece]: tapPose(state, Boolean(double)) };
         });
         return true;
       }

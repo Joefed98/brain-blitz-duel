@@ -23,15 +23,21 @@
  * moves onto the cards: the core 140 (5 a card), cleared 15, speed 25 (whole-number maths, stdSpeedInt), pyramid pairs
  * 20. A clear always scores at least as much as any run that misses one (27 removed and every pair: 135 + 20 = 155; a
  * clear at the buzzer with no pyramid pairs: 140 + 15 = 155). Rev 1 runs play and score as before.
+ *
+ * pyramidRev 3 (15 Nov 2026, the game reviews; Joe): a dead end no longer ends the run while Undo can take the player out
+ * of it. The run ends only on a clear, at the buzzer, or stuck with nothing to undo (`pyTrulyStuck`: no action left in
+ * the history, which is the deal itself). The same deals and parts as rev 2; rev 1 and 2 runs replay and score as before.
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSpeedInt, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
 import { bandCurve, type BandParts } from "../scoreBands";
 import { cardOf, hashInts, rankOf } from "./cards";
 
-/** The dealt revision (rev 2: more of the 200 on the cards); rev 1 runs replay on pyramidGameV1. */
-export const PY_REV = 2;
+/** The dealt revision (rev 3: a dead end waits for Undo; rev 2: more of the 200 on the cards); rev 1 runs replay on pyramidGameV1. */
+export const PY_REV = 3;
 export const PY_REV_SHARE = 2;
+/** pyramidRev 3: stuck ends the run only with nothing to undo. */
+export const PY_REV_UNDO_OUT = 3;
 export const PY_CARDS = 28;
 export const PY_STOCK = 24;
 /** One pass through the stock: the waste is never turned back over (Joe, 1 Nov 2026, before pyramidRev 1 shipped). */
@@ -70,7 +76,8 @@ export function pyCoreUnits(state: Pick<PyState, "removed">): number {
 /** pyramidRev 2's spec (what rooms deal: the help, LIVE_BANDS, the reveal). */
 export const PY_STD_SPEC: StdSpec = {
   field: "pyramidRev",
-  rev: PY_REV_SHARE,
+  // The stamp rooms deal on these parts: pyramidRev 3 since 15 Nov 2026 (rev 2 scores on them too).
+  rev: PY_REV,
   parts: [
     { key: "core", label: "Pyramid cards", max: PY_V2_CORE_MAX, of: PY_CORE_FULL, item: "card", how: "remove the 28 pyramid cards, each worth the same" },
     { key: "clear", label: "Cleared", max: PY_V2_CLEAR_MAX, of: 1, how: "remove all 28" },
@@ -187,6 +194,18 @@ export function pyMoves(state: PyState): number[][] {
 
 export function pyStuck(state: PyState): boolean {
   return !pyCanDraw(state) && pyMoves(state).length === 0;
+}
+
+/** Stuck with no way out: no move, no draw and nothing to undo (pyramidRev 3's end; Reset from the deal is refused). */
+export function pyTrulyStuck(state: PyState): boolean {
+  return pyStuck(state) && state.hist.length === 0;
+}
+
+/** Why the board shows a dead-end note (display only): "wait" a dead end Undo can leave (pyramidRev 3), "over" the run ended stuck. */
+export function pyDeadEnd(state: PyState): "wait" | "over" | null {
+  if (state.ended === 3) return "over";
+  if (!state.ended && (state.rev ?? 1) >= PY_REV_UNDO_OUT && pyStuck(state)) return "wait";
+  return null;
 }
 
 /** A built deal: the pyramid's 28 cards, the stock's 24 in turning order, and the witness taps that clear it. */
@@ -525,7 +544,7 @@ function finish(next: PyState): PyState {
   if (next.removed === PY_CARDS) {
     next.ended = 1;
     next.finishTick = next.tick;
-  } else if (pyStuck(next)) next.ended = 3;
+  } else if ((next.rev ?? 1) >= PY_REV_UNDO_OUT ? pyTrulyStuck(next) : pyStuck(next)) next.ended = 3;
   else if (next.tick >= PY_RUN_TICKS) next.ended = 2;
   return next;
 }
@@ -624,6 +643,10 @@ export const pyramidGameV1 = pyramidGame;
 /** pyramidRev 2's game: the same deals and play, scored on rev 2's parts. */
 export const pyramidGameV2: ArcadeGame<PyState, ArcadeInputEvent | null> = { ...pyramidGame, init: (seed) => pyInit(seed, PY_REV_SHARE) };
 
+/** pyramidRev 3's game: rev 2's deals and parts; a dead end waits for Undo or Reset, ending only with nothing to undo. */
+export const pyramidGameV3: ArcadeGame<PyState, ArcadeInputEvent | null> = { ...pyramidGame, init: (seed) => pyInit(seed, PY_REV_UNDO_OUT) };
+
 export function pyramidGameFor(rev?: number | null): ArcadeGame<PyState, ArcadeInputEvent | null> {
-  return (rev ?? 1) >= PY_REV_SHARE ? pyramidGameV2 : pyramidGame;
+  const r = rev ?? 1;
+  return r >= PY_REV_UNDO_OUT ? pyramidGameV3 : r >= PY_REV_SHARE ? pyramidGameV2 : pyramidGame;
 }

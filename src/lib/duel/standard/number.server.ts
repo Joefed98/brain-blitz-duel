@@ -7,6 +7,7 @@ import { equationVerdict } from "../operatorGaps";
 import { gradeCheckoutStages, splitCheckoutRound, decodeCheckoutDarts, checkoutBigFinish } from "../checkout";
 import { decodeBalance, balanceScalesSolved } from "../balance";
 import { gradeMeasureBoards } from "../measure";
+import { measureBoardOut } from "../gameReviewNov15";
 import { balancePlaceLimits, equationTryLimit, measureMoveLimits, splitCountSuffix } from "../moveLimits";
 import { exactTilesUsed } from "../numberDepth.server";
 import { npComplete, npCorrectCells, npDecode, npDecodeRound } from "../numberPyramid";
@@ -346,7 +347,7 @@ const trail: StandardGame = {
 /* ------------------------------------------------------------------ Brimful */
 
 function measureResults(puzzle: MeasurePuzzleData, answer: string) {
-  return gradeMeasureBoards(puzzle.boards, puzzle.minMoves ?? [], answer, measureMoveLimits(puzzle));
+  return gradeMeasureBoards(puzzle.boards, puzzle.minMoves ?? [], answer, measureMoveLimits(puzzle), measureBoardOut(puzzle));
 }
 
 const brimful: StandardGame = {

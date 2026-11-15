@@ -158,11 +158,13 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
           return at < 0 ? list : [...list.slice(0, at), ...list.slice(at + 1)];
         });
       }
+      // Game review fix (15 Nov 2026): a refused solve costs nothing, so it gets the soft reject (puzzleReject's
+      // shared.reject), never `wrong`.
       puzzleReject(board.current?.querySelector(`[aria-label="Word ${refused?.kind === "solve" ? refused.row + 1 : 1}"]`) ?? board.current);
-      fx.onWrong();
       flash("Not in the word list");
     } else if (before && next.strikes > before.strikes) {
-      puzzleReject(strikeRef.current);
+      // A strike: one sound, `wrong` (the shake is silent; it also played shared.reject before 15 Nov 2026).
+      puzzleReject(strikeRef.current, false);
       fx.onWrong();
       flash(next.last === "wrong" ? "Wrong word: strike" : "Not in any word: strike");
     } else if (next.last === "right") {
@@ -489,11 +491,12 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
           return at < 0 ? list : [...list.slice(0, at), ...list.slice(at + 1)];
         });
       }
+      // Game review fix (15 Nov 2026): a refused action costs nothing: the soft reject only, never `wrong`.
       puzzleReject(board.current);
-      fx.onWrong();
       flash(next.last === "notword" ? "Not in the word list" : "No vowel guesses left");
     } else if (before && next.strikes > before.strikes) {
-      puzzleReject(strikeRef.current);
+      // A strike: one sound, `wrong` (the shake is silent; it also played shared.reject before 15 Nov 2026).
+      puzzleReject(strikeRef.current, false);
       fx.onWrong();
       flash(next.last === "wrong" ? "Wrong word: strike" : "Not in the word: strike");
     } else if ((next.word ?? 0) > (before?.word ?? 0)) {

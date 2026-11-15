@@ -68,6 +68,10 @@ export const DEAL_PINS = {
   swingPreSlide: { texts: false },
   /** arcade.server.ts: Minefield minesRev 1 (25 mines), before it moved to Logic (13 Nov 2026). */
   minesPreLogic: { texts: false },
+  /** notesFree.ts: Mosaic, Tents, Lamplighter, Loopline and Island Link before notes stopped counting (15 Nov 2026). */
+  preNotesFree: { texts: false },
+  /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
+  preGameReviewNov15: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

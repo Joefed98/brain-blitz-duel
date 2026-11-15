@@ -1,5 +1,11 @@
 # Summit (`tripeaks`) on the arcade scoring standard (tripeaksRev 3, 7 Nov 2026; tripeaksRev 2, 3 Nov 2026; tripeaksRev 1, 30 Oct 2026)
 
+## The stuck end (15 Nov 2026, display only, every revision)
+
+When the stock is gone and no face-up card plays, the run ends (`ended = 3`, unchanged). Summit has no Undo or Reset,
+so that end is truly over; it used to end with no message. The board now says "NO PLAYS / LEFT" between the stock and
+the discard (`tpStuckLines`). No stamp: nothing the sim does changed.
+
 ## tripeaksRev 3 (7 Nov 2026, scoring audit issue 6: what rooms deal)
 
 The audit (`docs/audit-nov-2026/scoring.md`, issues 6 and 22) found 80 of rev 2's 200 locked behind a clear (clear 10,

@@ -361,7 +361,7 @@ function TargetStage({
       if (tile?.active) tapTile(tile);
     } else if (key === "r") {
       if (history.length > 0) reset();
-    } else send(steps);
+    } else if (steps.length > 0) send(steps);
     return true;
   });
 
@@ -478,8 +478,10 @@ function TargetStage({
         </div>
         <button
           type="button"
-          onClick={() => send(steps)}
-          disabled={isLockedNow}
+          onClick={() => { if (steps.length > 0) send(steps); }}
+          // Game review fix (15 Nov 2026): no Lock before the first step (one tap used to lock 0 points);
+          // the time-out still sends whatever stands.
+          disabled={isLockedNow || steps.length === 0}
           data-exact-lock=""
           className="press tap-target rounded-xl bg-primary px-5 font-display text-sm font-bold tracking-wide text-primary-foreground disabled:opacity-40"
         >

@@ -25,7 +25,9 @@ import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { logicArtVars } from "./logicArt";
-import { SHIKAKU_JEWELS, shikakuColours } from "./shikakuColours";
+
+/** The four jewel panes, by main's fill index (the Logic overhaul, 15 Nov 2026). */
+export const SHIKAKU_JEWELS = ["sapphire", "emerald", "amber", "ruby"] as const;
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -35,6 +37,57 @@ const SHIKAKU_ART = logicArtVars(["logic-cell", "shikaku-pane-sapphire", "shikak
 function previewFits(rect: ShikakuRect, clues: readonly ShikakuClue[], size: number): boolean {
   const inside = clues.filter((clue) => rectHas(rect, clue.cell, size));
   return inside.length === 1 && inside[0]!.n === (rect.r1 - rect.r0 + 1) * (rect.c1 - rect.c0 + 1);
+}
+
+/**
+ * Four gold-family fills (Logic review, 15 Nov 2026; display only). Two fills by placement order let touching
+ * rectangles share one (and both were the same gold), so each rectangle takes the first fill no earlier touching
+ * rectangle holds (`shikakuFills`).
+ */
+const FILLS = [
+  "var(--primary)",
+  "color-mix(in oklab, var(--primary) 55%, var(--jz-white))",
+  "var(--jz-bronze)",
+  "color-mix(in oklab, var(--primary) 55%, var(--jz-bg))",
+];
+
+/** True when two rectangles share part of a side. */
+export function shikakuRectsTouch(a: ShikakuRect, b: ShikakuRect): boolean {
+  const rows = a.r0 <= b.r1 && b.r0 <= a.r1;
+  const cols = a.c0 <= b.c1 && b.c0 <= a.c1;
+  return (rows && (a.c1 + 1 === b.c0 || b.c1 + 1 === a.c0)) || (cols && (a.r1 + 1 === b.r0 || b.r1 + 1 === a.r0));
+}
+
+/**
+ * A fill index (0–3) for each rectangle, touching rectangles never alike: the first such colouring in placement order
+ * (each rectangle the lowest fill that still lets every later one be coloured), so a placed rectangle keeps its colour
+ * unless a new neighbour leaves no other way (always possible in four for rectangles tiling a grid).
+ */
+export function shikakuFills(rects: readonly ShikakuRect[], colours = FILLS.length): number[] {
+  const near = rects.map((r, i) => rects.flatMap((q, j) => (j < i && shikakuRectsTouch(r, q) ? [j] : [])));
+  const fill = new Array<number>(rects.length).fill(-1);
+  let budget = 200_000;
+  const place = (i: number): boolean => {
+    if (i === rects.length) return true;
+    for (let c = 0; c < colours; c++) {
+      if (--budget < 0) return false;
+      if (near[i]!.some((j) => fill[j] === c)) continue;
+      fill[i] = c;
+      if (place(i + 1)) return true;
+    }
+    fill[i] = -1;
+    return false;
+  };
+  if (place(0)) return fill;
+  // Never expected: the plain lowest-free fill, wrapped.
+  const out: number[] = [];
+  rects.forEach((_, i) => {
+    const used = new Set(near[i]!.map((j) => out[j]!));
+    let c = 0;
+    while (used.has(c)) c++;
+    out.push(c % colours);
+  });
+  return out;
 }
 
 export function Board({
@@ -55,8 +108,8 @@ export function Board({
   pointer?: ReturnType<typeof useGridPointer>;
 }) {
   const clueAt = new Map(clues.map((clue) => [clue.cell, clue.n]));
-  // The Logic overhaul (15 Nov 2026): four jewel colours, no two touching rectangles alike (reveals too).
-  const jewels = shikakuColours(rects);
+  // The Logic overhaul (15 Nov 2026): main's fills (touching rectangles never alike) drawn as four jewel panes.
+  const fills = shikakuFills(rects);
   const place = (r: ShikakuRect) => ({
     gridRow: `${r.r0 + 1} / ${r.r1 + 2}`,
     gridColumn: `${r.c0 + 1} / ${r.c1 + 2}`,
@@ -89,7 +142,8 @@ export function Board({
         <div
           key={`r${r.r0}-${r.c0}-${r.r1}-${r.c1}`}
           className="logic-pane logic2-pane pointer-events-none rounded-md"
-          data-jewel={SHIKAKU_JEWELS[jewels[i] ?? 0]}
+          data-fill={fills[i]}
+          data-jewel={SHIKAKU_JEWELS[fills[i] ?? 0]}
           style={{
             ...place(r),
             zIndex: 1,

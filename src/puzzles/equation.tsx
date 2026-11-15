@@ -12,6 +12,7 @@ import "@/polish-layout/batch-w-equation.css";
 import { equationVerdict, operatorGapsDealt, usesOperatorGaps } from "@/lib/duel/operatorGaps";
 import { GapsIntroExample, GapsReveal, GapsStage } from "./equationGaps";
 
+import { playSound } from "@/lib/sound";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { randInt, shuffled } from "@/lib/duel/random";
@@ -272,6 +273,9 @@ function SignsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equat
     setEntered(true);
     setDropped(null);
     soundCue("equation.advance");
+    // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) gets the neutral move tick, never a
+    // solve's sound; StageProgress stays quiet for it.
+    if (!equationStageCorrect(data.stages[stage]!.numbers, data.stages[stage]!.target, next[stage] ?? "")) playSound("move");
     const nextNumbers = data.stages[nextStage]?.numbers;
     if (nextNumbers) setSlots(Array(nextNumbers.length - 1).fill(null));
   };
@@ -307,7 +311,7 @@ function SignsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equat
     <div data-polish="equation" data-stage-column="3" className={`flex min-h-0 flex-1 flex-col gap-3 ${column ? "" : "justify-between"}`}>
       <PolishStyle id="equation" css={OPERATOR_CSS} />
       <div data-game-arena="fixed" className="op-board">
-        <StageProgress stage={stage} total={total} />
+        <StageProgress stage={stage} total={total} quiet={stage > 0 && !equationStageCorrect(data.stages[stage - 1]!.numbers, data.stages[stage - 1]!.target, answers[stage - 1] ?? "")} />
         <p className="op-caption">
           {inFrame ? "Left to right" : <>Equation {stage + 1} of {total} · left to right</>}
         </p>

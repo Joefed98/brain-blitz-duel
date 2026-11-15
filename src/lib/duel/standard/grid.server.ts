@@ -7,10 +7,11 @@
  * by (items on the solution − items off it) ÷ the solution's items, plus up to 10 for how early those items were placed.
  */
 import type { PuzzleData, PuzzleType } from "../types";
-import { fencesProgress, fencesWrongKeys } from "../fences";
+import { FENCES_CROSS, FENCES_LINE, decodeFences, fencesProgress, fencesWrongKeys } from "../fences";
 import { fillominoProgress, fillominoWrongKeys } from "../fillomino";
 import { fillominoStrokes } from "../logicOverhaul2";
-import { bridgesProgress, bridgesWrongKeys } from "../bridges";
+import { bridgePairs, bridgesProgress, bridgesWrongKeys, decodeBridges } from "../bridges";
+import { leftWrongKeys, usesNotesFree } from "../notesFree";
 import { kakuroProgress, kakuroWrongKeys } from "../kakuro";
 import { cleanPoints, speedPoints } from "./shape";
 import type { StandardGame, StandardInput } from "./grade.server";
@@ -25,12 +26,24 @@ interface GridProgress {
 interface GridGame {
   progress(puzzle: PuzzleData, answer: string): GridProgress;
   wrongKeys(puzzle: PuzzleData, answer: string): string[];
+  /**
+   * notesRev 1 (notesFree.ts): true when `next` is `cur` with the item behind wrong key `key` moved one step on its tap
+   * cycle (Loopline's line to ✕, Island Link's double to none) and nothing else changed.
+   */
+  cycledOn?(puzzle: PuzzleData, cur: string, next: string, key: string): boolean;
 }
 
 const GAMES: Record<GridStandardType, GridGame> = {
   fences: {
     progress: (p, a) => (p.type === "fences" ? fencesProgress(p, a) : EMPTY),
     wrongKeys: (p, a) => (p.type === "fences" ? fencesWrongKeys(p, a) : []),
+    cycledOn: (p, cur, next, key) => {
+      if (p.type !== "fences") return false;
+      const a = decodeFences(cur, p.size);
+      const b = decodeFences(next, p.size);
+      const e = Number(key);
+      return a[e] === FENCES_LINE && b[e] === FENCES_CROSS && a.every((s, i) => i === e || s === b[i]);
+    },
   },
   fillomino: {
     progress: (p, a) => (p.type === "fillomino" ? fillominoProgress(p, a) : EMPTY),
@@ -39,6 +52,14 @@ const GAMES: Record<GridStandardType, GridGame> = {
   bridges: {
     progress: (p, a) => (p.type === "bridges" ? bridgesProgress(p, a) : EMPTY),
     wrongKeys: (p, a) => (p.type === "bridges" ? bridgesWrongKeys(p, a) : []),
+    cycledOn: (p, cur, next, key) => {
+      if (p.type !== "bridges") return false;
+      const n = bridgePairs(p.islands, p.size).length;
+      const a = decodeBridges(cur, n);
+      const b = decodeBridges(next, n);
+      const pair = Number(key.split(":")[0]);
+      return a[pair] === 2 && b[pair] === 0 && a.every((v, i) => i === pair || v === b[i]);
+    },
   },
   kakuro: {
     progress: (p, a) => (p.type === "kakuro" ? kakuroProgress(p, a) : EMPTY),
@@ -51,6 +72,10 @@ const EMPTY: GridProgress = { right: 0, wrong: 0, total: 0 };
 /** Distinct wrong items across every draft of the timeline (null without one: history unknown). */
 function everWrong(game: GridGame, input: StandardInput): number | null {
   if (!input.drafts) return null;
+  if (game.cycledOn && usesNotesFree(input.puzzle)) {
+    const cycledOn = game.cycledOn;
+    return leftWrongKeys(input.drafts, (d) => game.wrongKeys(input.puzzle, d), (cur, next, key) => cycledOn(input.puzzle, cur, next, key));
+  }
   const seen = new Set<string>();
   for (const d of input.drafts) for (const k of game.wrongKeys(input.puzzle, d.draft)) seen.add(k);
   return seen.size;

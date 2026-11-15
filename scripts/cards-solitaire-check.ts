@@ -117,7 +117,8 @@ for (let i = 0, x = 0x2545f491; i < 200; i++) {
   const py = generatePuzzle("pyramid");
   const gs = generatePuzzle("golfsol");
   const mg = generatePuzzle("muggins");
-  ok(py.type === "pyramid" && py.pyramidRev === 2 && gs.type === "golfsol" && gs.golfSolRev === 1 && gs.seed >= 0 && gs.seed < GS_DEALS.length && mg.type === "muggins" && mg.mugginsRev === 1, "rooms deal pyramidRev 2 (any seed), golfSolRev 1 (a bank index) and mugginsRev 1 (any seed)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of pyramidRev 3, the dead end that waits for Undo).
+  ok(py.type === "pyramid" && py.pyramidRev === 3 && gs.type === "golfsol" && gs.golfSolRev === 1 && gs.seed >= 0 && gs.seed < GS_DEALS.length && mg.type === "muggins" && mg.mugginsRev === 1, "rooms deal pyramidRev 3 (any seed), golfSolRev 1 (a bank index) and mugginsRev 1 (any seed)");
 }
 
 /* 3. Rules. */

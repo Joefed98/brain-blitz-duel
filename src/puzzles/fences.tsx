@@ -239,6 +239,16 @@ function IntroExample() {
 
 /* --------------------------------------------------------------- the stage */
 
+/** The cue for an edge's new state (Logic review, 15 Nov 2026): a line draws, a ✕ crosses, clearing clears. */
+export function fencesEdgeCue(to: number): "fences.draw" | "fences.cross" | "fences.clear" {
+  return to === FENCES_LINE ? "fences.draw" : to === FENCES_CROSS ? "fences.cross" : "fences.clear";
+}
+
+/** A drag's paint cue: none when every edge already holds the state (nothing changes). */
+export function fencesPaintCue(states: readonly number[], edges: readonly number[], to: number): "fences.draw" | "fences.cross" | "fences.clear" | null {
+  return edges.length === 0 || edges.every((e) => states[e] === to) ? null : fencesEdgeCue(to);
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data: FencesPuzzleData | null = puzzle.type === "fences" ? puzzle : null;
   const size = data?.size ?? FENCES_SIZE;
@@ -296,16 +306,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     return [((e.clientX - rect.left) / rect.width) * vb, ((e.clientY - rect.top) / rect.height) * vb];
   };
 
-  /** Sets edges to a state (a drag's draw or erase). */
+  /** Sets edges to a state (a drag's draw or erase); a paint that changes nothing makes no sound. */
   const paint = (edges: number[], to: number) => {
     if (!edges.length) return;
+    const cue = fencesPaintCue(states, edges, to);
     setStates((current) => {
       if (edges.every((e) => current[e] === to)) return current;
       const next = [...current];
       for (const e of edges) next[e] = to;
       return next;
     });
-    soundCue(to === FENCES_LINE ? "fences.draw" : "fences.cross");
+    if (cue) soundCue(cue);
   };
 
   const handlers = {
@@ -356,7 +367,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       const next = now === FENCES_EMPTY ? FENCES_LINE : now === FENCES_LINE ? FENCES_CROSS : FENCES_EMPTY;
       setHistory((h) => [...h, states]);
       setStates((current) => current.map((s, i) => (i === g.edge ? next : s)));
-      soundCue(next === FENCES_LINE ? "fences.draw" : "fences.cross");
+      soundCue(fencesEdgeCue(next));
     },
     onPointerCancel: () => {
       const g = gesture.current;

@@ -16,6 +16,7 @@
  */
 
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
+import { NEW_GAME_SOUND_REPLACES } from "./fx/newGameSounds";
 import { PUZZLE_TYPES, puzzleInfo } from "./duel/catalogue";
 import type { PuzzleType } from "./duel/types";
 import { SOUND_CUE_EVENT, type SoundCueDetail } from "./fx/soundCues";
@@ -683,6 +684,10 @@ export function demoHushed(): boolean {
  */
 export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): number {
   if (demoHushed()) return 0;
+  // One sound a moment: a game's own cue just played for this moment (see holdMomentSounds).
+  if (momentHeld(cue)) return 0;
+  // A wrong move sounds once: the game's own `wrong` just after the shake's (playRejectWrong) is left out.
+  if (cue === "wrong" && momentClock() - lastRejectWrongAt < WRONG_ONCE_MS) return 0;
   if (isMuted() || !ready() || !ctx || !effectsGain) return 0;
   const entry = SOUND_MANIFEST[cue];
   if (entry.channel === "music") return 0;
@@ -723,9 +728,12 @@ export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): 
     source.connect(gain).connect(entry.channel === "voice" && voiceGain ? voiceGain : effectsGain);
     source.onended = () => {
       if (playingEffects.get(cue) === source) playingEffects.delete(cue);
+      if (momentStarts.get(cue)?.source === source) momentStarts.delete(cue);
     };
     if (!overlap) playingEffects.set(cue, source);
     source.start();
+    if (cue === "wrong") lastWrongAt = momentClock();
+    if (MOMENT_SHARED.has(cue)) momentStarts.set(cue, { source, gain, at: momentClock() });
     return (buffer.duration * 1000) / (rate > 0 ? rate : 1);
   } catch (error) {
     warnOnce("effect playback failed", error);
@@ -1017,6 +1025,97 @@ export function replayQuieted(cue: string): boolean {
   return replayQuiet > 0 && !/^(shared|room|ui)\./.test(cue);
 }
 
+/* One sound a moment (the November game reviews, docs/sound-cues/review-nov-2026.md). Most puzzles played the generic
+   `correct` / `lock` / `complete` and their own solve sound in the same frame, and a named move cue with its own file
+   played over FeedbackStage's `move` tick. When a game's own cue plays from its file through the bridge, the shared
+   sounds that moment plays (ownMomentReplaces) are left out for MOMENT_MS after it, and one that started up to
+   MOMENT_MS before it is faded out at once (same task: before a sample of it is heard). A cue with no file (or one
+   not yet decoded) holds nothing, so that moment keeps its generic sound. Presentation only. */
+export const MOMENT_MS = 150;
+/** The generic sounds a game's own solve (or finish) sound stands in for. */
+export const SOLVE_SHARED = ["correct", "lock", "complete"] as const;
+const MOMENT_SHARED = new Set<string>([
+  ...SOLVE_SHARED,
+  ...Object.values(NEW_GAME_SOUND_REPLACES).flat(),
+]);
+const momentClock = () => (typeof performance === "undefined" ? Date.now() : performance.now());
+const momentUntil = new Map<string, number>();
+const momentStarts = new Map<string, { source: AudioBufferSourceNode; gain: GainNode; at: number }>();
+function momentHeld(cue: string): boolean {
+  const until = momentUntil.get(cue);
+  return until !== undefined && momentClock() < until;
+}
+/** A puzzle's own solve or finish cue (`<gameId>.solve`, `<gameId>.finish`; never an arcade game's). */
+export function isOwnSolveCue(cue: string): boolean {
+  const m = /^([a-z0-9]+)\.(solve|finish)$/.exec(cue);
+  if (!m || !GAME_IDS.has(m[1]!)) return false;
+  return puzzleInfo(m[1] as PuzzleType).category !== "arcade";
+}
+/** The shared sounds a game's own cue stands in for when it plays from its file (none for most cues). */
+export function ownMomentReplaces(cue: string): readonly string[] {
+  return NEW_GAME_SOUND_REPLACES[cue] ?? (isOwnSolveCue(cue) ? SOLVE_SHARED : []);
+}
+function holdMomentSounds(ids: readonly string[]): void {
+  const now = momentClock();
+  for (const id of ids) {
+    momentUntil.set(id, now + MOMENT_MS);
+    const started = momentStarts.get(id);
+    if (!started || now - started.at > MOMENT_MS) continue;
+    momentStarts.delete(id);
+    try {
+      if (ctx) {
+        started.gain.gain.cancelScheduledValues(ctx.currentTime);
+        started.gain.gain.setValueAtTime(started.gain.gain.value, ctx.currentTime);
+        started.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.008);
+        started.source.stop(ctx.currentTime + 0.01);
+      } else started.source.stop();
+    } catch {
+      /* already finished */
+    }
+    if (playingEffects.get(id as SoundId) === started.source) playingEffects.delete(id as SoundId);
+  }
+}
+/** Checks only: forget the moment holds and the last wrong, as if the page had just loaded. */
+export function resetMomentHolds(): void {
+  momentUntil.clear();
+  momentStarts.clear();
+  lastWrongAt = -Infinity;
+  lastRejectWrongAt = -Infinity;
+}
+
+/* A wrong-move shake sounds the quiet `wrong`, once (the November game reviews): Shikaku's, Tents', Trail's and the
+   other shakes the shared rejection paint (puzzleReject) were silent, and Forage's or Brimful's played `wrong` and
+   `shared.reject` together. puzzleReject now calls playRejectWrong, which plays `wrong` at REJECT_WRONG_VOLUME
+   unless one already started inside WRONG_ONCE_MS; a game's own `wrong` inside that window after the shake's is left
+   out (playSound), so a move never sounds twice. Two of a game's own `wrong`s are never touched. */
+export const WRONG_ONCE_MS = 150;
+export const REJECT_WRONG_VOLUME = 0.6;
+let lastWrongAt = -Infinity;
+let lastRejectWrongAt = -Infinity;
+export function playRejectWrong(): void {
+  if (demoHushed()) return;
+  if (momentClock() - lastWrongAt < WRONG_ONCE_MS) return;
+  if (playSound("wrong", REJECT_WRONG_VOLUME) > 0) lastRejectWrongAt = momentClock();
+}
+
+/**
+ * /dev-design's Sounds (development only): plays one file from public/sounds as it is, on the effects channel,
+ * whatever its slot or NEW_GAME_SOUNDS say. Unlocks audio first (call it from a tap).
+ */
+export async function previewSoundFile(url: string): Promise<void> {
+  unlockAudio();
+  const decoded = await fetchDecoded(url);
+  if (!decoded || !ctx || !effectsGain) return;
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = decoded.buffer;
+    source.connect(effectsGain);
+    source.start();
+  } catch (error) {
+    warnOnce("preview playback failed", error);
+  }
+}
+
 let cueBridge = false;
 /**
  * Listens for every named cue and plays the file in its manifest slot, if any.
@@ -1028,7 +1127,10 @@ export function installSoundCueBridge(): void {
   window.addEventListener(SOUND_CUE_EVENT, (event) => {
     const detail = (event as CustomEvent<SoundCueDetail>).detail;
     const cue = detail?.cue;
-    if (typeof cue === "string" && !replayQuieted(cue)) playCueSlot(cue, 1, detail?.rate ?? 1);
+    if (typeof cue !== "string" || replayQuieted(cue)) return;
+    // The game's own file played: the shared sounds this moment also plays are left out (holdMomentSounds).
+    const replaces = ownMomentReplaces(cue);
+    if (playCueSlot(cue, 1, detail?.rate ?? 1) && replaces.length && slotReady(cue)) holdMomentSounds(replaces);
   });
 }
 
