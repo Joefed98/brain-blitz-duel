@@ -28,10 +28,10 @@ export const SCENES = {
     box([1.4, 0.03, 1.1], { pos: [0, -0.03, 0], col: '#B9774A', r: 0.02 });
     cyl(0.75, 0.005, { pos: [0.6, 0.004, -0.6], col: C.GRASS });
     prism([[-0.25, 0.12], [0.25, 0.12], [0.25, -0.05], [0, -0.25], [-0.25, -0.05]], 0.012, { pos: [-0.2, 0.012, 0.45], rot: [-90, 0, 0], col: C.WHITE });
-    cone(0.07, 0.035, 0.6, { pos: [-0.35, 0.75, 0.2], rot: [0, 30, -70], col: C.WOOD2, r: 0.03 });
-    sphere(0.045, { pos: [-0.9, 0.55, 0.05], col: C.INK });
-    sphere(0.15, { pos: [0.6, 0.95, -0.3], col: C.WHITE, pattern: { type: 'stripe', axis: 'x', w: 0.012, col: C.RED } });
-    for (let k = 1; k < 5; k++) sphere(0.05, { pos: [0.6 - k * 0.22, 0.95 - k * 0.07, -0.3 + k * 0.12], col: C.WHITE, emit: 0.3 });
+    cone(0.12, 0.055, 0.85, { pos: [-0.3, 0.8, 0.25], rot: [0, 30, -72], col: C.WOOD2, r: 0.05 });
+    sphere(0.07, { pos: [-1.08, 0.55, 0.0], col: C.INK });
+    sphere(0.22, { pos: [0.65, 1.05, -0.25], col: C.WHITE, pattern: { type: 'stripe', axis: 'x', w: 0.018, col: C.RED } });
+    for (let k = 1; k < 4; k++) sphere(0.07 - k * 0.012, { pos: [0.65 - k * 0.24, 1.05 - k * 0.08, -0.25 + k * 0.13], col: C.WHITE, emit: 0.3 });
   }),
   // Crazy Golf: a hole with a little windmill, the ball rolling up to the flag.
   minigolf: () => build(() => {

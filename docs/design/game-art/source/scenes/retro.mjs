@@ -102,4 +102,4 @@ export const SCENES = {
   }),
 };
 const crop = { tile: { zoomOut: 0.78 }, hero: { zoomOut: 0.9 } };
-export const CAMERAS = Object.fromEntries(Object.keys(SCENES).filter((k) => k !== 'blockfall').map((k) => [k, crop]));
+export const CAMERAS = Object.fromEntries(Object.keys(SCENES).filter((k) => k !== 'blockfall' && k !== 'burst').map((k) => [k, crop]));

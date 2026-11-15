@@ -38,15 +38,14 @@ export function frame(prims, fr, cam = {}) {
   const proj = (dist, T) => { const ro = T.map((v, i) => v + dir[i] * dist); let a = 1e9, b = -1e9, c = 1e9, d = -1e9;
     for (const p of pts) { const q = p.map((v, i) => v - ro[i]); const z = dot(q, ww); const x = (C.focal * dot(q, uu)) / z, y = (C.focal * dot(q, vv)) / z; a = Math.min(a, x); b = Math.max(b, x); c = Math.min(c, y); d = Math.max(d, y); }
     return [a, c, b, d]; };
-  let dist = 6;
-  for (let it = 0; it < 4; it++) {
-    let lo2 = 0.5, hi2 = 200;
-    for (let k = 0; k < 50; k++) { const m = (lo2 + hi2) / 2; const [a, c, b, d] = proj(m, T); if (b - a <= x1 - x0 && d - c <= y1 - y0) hi2 = m; else lo2 = m; }
-    dist = hi2 * (cam.zoomOut || 1);
-    const [a, c, b, d] = proj(dist, T); const z = dist;
-    const dx = (a + b) / 2 - (x0 + x1) / 2, dy = (c + d) / 2 - (y0 + y1) / 2;
-    T = T.map((v, i) => v + (uu[i] * dx * z) / C.focal + (vv[i] * dy * z) / C.focal);
-  }
+  // Aim so the scene's 3D centre lands on the box's centre (perspective makes a projected-bounds centre drift
+  // towards near corners), then pull back until every hull point is inside the box.
+  const centre = T.slice(), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const aim = (dist) => centre.map((v, i) => v - ((uu[i] * cx + vv[i] * cy) * dist) / C.focal);
+  let lo2 = 0.5, hi2 = 200;
+  for (let k = 0; k < 60; k++) { const m = (lo2 + hi2) / 2; const [a, c, b, d] = proj(m, aim(m)); if (a >= x0 && b <= x1 && c >= y0 && d <= y1) hi2 = m; else lo2 = m; }
+  const dist = hi2 * (cam.zoomOut || 1);
+  T = aim(dist);
   const ro = T.map((v, i) => v + dir[i] * dist);
   const fu = norm([uu[0], 0, uu[2]]), back = norm([dir[0], 0, dir[2]]);
   const L = norm([0, 1, 2].map((i) => -0.5 * fu[i] + 0.95 * [0, 1, 0][i] + 0.5 * back[i]));
