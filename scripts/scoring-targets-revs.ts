@@ -98,11 +98,14 @@ export const AUDIT_REVS: Partial<Record<LiveBandGame, readonly [rev: number, pla
 
 /**
  * The Retro overhaul's score-only revisions (15 Nov 2026, docs/design/game-reviews/retro.md): type → [the revision, the
- * revision whose play it keeps exactly]. Tempo beatRev 12 scores a missed note 0 rather than −2 (retro-overhaul-check
- * proves the same play and checksums, and that no run scores less).
+ * revision whose play it keeps exactly]. Tempo beatRev 12 scores a missed note 0 rather than −2; Fission burstRev 12's
+ * wave-clear bonus runs out at three times the quick time (retro-overhaul-check proves the same play and that no run
+ * scores less).
  */
 export const RETRO_REVS: Partial<Record<LiveBandGame, readonly [rev: number, play: number]>> = {
   beat: [12, 11],
+  // Fission burstRev 12: burstRev 11's play tick for tick; its wave-clear bonus runs out at three times the quick time.
+  burst: [12, 11],
 };
 
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {

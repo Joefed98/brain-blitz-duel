@@ -33,7 +33,7 @@ import { ORBIT_REV_STRICT, ORBIT_REV_FUEL } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_FLOOR, BEAT_REV_STRICT, BEAT_STD_SPEC_V12, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice";
-import { BURST_REV_AIM, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
+import { BURST_REV_WIDE, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
 import { SWING_REV_SLIDE, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
@@ -134,7 +134,8 @@ export const LIVE_BANDS = {
   // sliceRev 12 (3 Nov 2026): bigger food; the core's straight line from half the food thrown to 120.
   slice: { field: "sliceRev", rev: SLICE_REV_LINE, curve: SLICE_V13_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   // burstRev 10 (the arcade scoring standard): the core's straight line (140 at all 87 atoms); wave clears, golden atoms and lives on top (the help says so).
-  burst: { field: "burstRev", rev: BURST_REV_AIM, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
+  // burstRev 12 (the Retro overhaul, 15 Nov 2026): burstRev 11 with the wave-clear bonus running out at 3× the quick time.
+  burst: { field: "burstRev", rev: BURST_REV_WIDE, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 17 (the sliding hooks and the clean-swing streak, 90 s): the course's straight line to 140, full at SWING_V17_FULL
   // per mille; pars, gates and the streak pay up to 60 more (the help says so).
   swing: { field: "swingRev", rev: SWING_REV_SLIDE, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },

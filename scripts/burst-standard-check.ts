@@ -77,6 +77,7 @@ import { bandPoints, bandTotal } from "../src/lib/arcade/scoreBands";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { burstPuzzle } from "../src/puzzles/burst";
+import { playRevOf } from "./scoring-targets-revs";
 
 /** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
 const STANDARD = {
@@ -106,9 +107,11 @@ const fire = (t: number, b = 1): ArcadeInputEvent => ({ t, k: BURST_INPUT_FIRE, 
 /* ============================== 1. Dealt ============================== */
 section("Rooms and practice deal burstRev 10");
 // The scoring audit (Nov 2026): rooms deal burstRev 11, burstRev 10's play and parts (scoring-audit-arcade-check).
-ok(generateBurst().burstRev === BURST_REV_STD + 1 && (generatePuzzle("burst") as { burstRev?: number }).burstRev === BURST_REV_STD + 1, "rooms deal burstRev 11 (burstRev 10's play)");
-ok((burstPuzzle.generate() as { burstRev?: number }).burstRev === BURST_REV_STD + 1, "the practice definition deals burstRev 11 (burstRev 10's play)");
-ok(LIVE_BANDS.burst.rev === BURST_REV_STD + 1 && LIVE_BANDS.burst.curve === BURST_V10_BAND_CURVE && roundMaxFor("burst") === 200, "LIVE_BANDS reads burstRev 10's core line, dealt as burstRev 11; ROUND_MAX 200");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal burstRev 12, burstRev
+// 11's play with kinder wave clears (retro-overhaul-check), so the dealt stamp is compared by the play it keeps.
+ok(playRevOf("burst", generateBurst().burstRev) === playRevOf("burst", BURST_REV_STD + 1) && playRevOf("burst", (generatePuzzle("burst") as { burstRev?: number }).burstRev) === playRevOf("burst", BURST_REV_STD + 1), "rooms deal burstRev 11 (burstRev 10's play)");
+ok(playRevOf("burst", (burstPuzzle.generate() as { burstRev?: number }).burstRev) === playRevOf("burst", BURST_REV_STD + 1), "the practice definition deals burstRev 11 (burstRev 10's play)");
+ok(playRevOf("burst", LIVE_BANDS.burst.rev) === playRevOf("burst", BURST_REV_STD + 1) && LIVE_BANDS.burst.curve === BURST_V10_BAND_CURVE && roundMaxFor("burst") === 200, "LIVE_BANDS reads burstRev 10's core line, dealt as burstRev 11; ROUND_MAX 200");
 ok(burstWorldHFor(BURST_REV_STD) === BURST_TALL_H, "the 390 × 650 world");
 {
   const src = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");

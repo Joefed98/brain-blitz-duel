@@ -58,9 +58,11 @@ section("1. rooms deal the new stamps; each keeps the previous stamp's play");
 for (const g of AUDIT_GAMES) {
   for (let k = 0; k < 5; k++) {
     const dealt = (generatePuzzle(g.type) as unknown as Record<string, unknown>)[g.field];
-    ok(dealt === g.rev, `${g.type}: rooms deal ${g.field} ${g.rev} (got ${String(dealt)})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Fission deals burstRev 12,
+    // burstRev 11's play with kinder wave clears, so the dealt stamp is compared by the play it keeps.
+    ok(playRevOf(g.type, dealt as number) === playRevOf(g.type, g.rev), `${g.type}: rooms deal ${g.field} ${g.rev} (got ${String(dealt)})`);
   }
-  ok((LIVE_BANDS as any)[g.type].rev === g.rev, `${g.type}: LIVE_BANDS reads ${g.field} ${g.rev}`);
+  ok(playRevOf(g.type, (LIVE_BANDS as any)[g.type].rev) === playRevOf(g.type, g.rev), `${g.type}: LIVE_BANDS reads ${g.field} ${g.rev}`);
   ok(playRevOf(g.type, g.rev) === playRevOf(g.type, g.old), `${g.type}: ${g.field} ${g.rev} keeps ${g.field} ${g.old}'s play (playRevOf ${String(playRevOf(g.type, g.rev))})`);
   // The intro demo's gate names the stamp the demo was recorded on (the old one): the same play, so it still plays.
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");

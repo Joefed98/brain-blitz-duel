@@ -250,6 +250,8 @@ export interface BurstState extends BandFields {
   /** The tick the wave on screen appeared, and wave-clear time points. */
   waveAt?: number;
   clearPts?: number;
+  /** burstRev 12 only (the Retro overhaul, 15 Nov 2026): 1 = a wave's clear bonus tapers to 0 at three times its quick time. */
+  wide?: number;
   /** The last wave cleared's time bonus and clean bonus (render only: the pop). */
   lastClear?: number;
   lastClean?: number;
@@ -854,6 +856,7 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_WIDE) return burstWideGame;
   if (rev === BURST_REV_AIM) return burstAimGame;
   if (rev === BURST_REV_STD) return burstStdGame;
   if (rev === BURST_REV_CARRY) return burstCarryGame;
@@ -912,7 +915,7 @@ export const burstTallGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { 
 
 /** The drawn world's height (the floor, px) a stored round's burstRev plays in. */
 export function burstWorldHFor(rev?: number | null): number {
-  return rev === BURST_REV_AIM || rev === BURST_REV_STD || rev === BURST_REV_CARRY || rev === BURST_REV_CLEAN || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
+  return rev === BURST_REV_WIDE || rev === BURST_REV_AIM || rev === BURST_REV_STD || rev === BURST_REV_CARRY || rev === BURST_REV_CLEAN || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
 }
 
 /* ================= Scoring targets (burstRev 5, 18 Oct 2026) ================= */
@@ -1558,9 +1561,10 @@ export function burstV10Atoms(waves: readonly BurstSpawn[][]): number {
  * A wave cleared `ticks` after it appeared: the full 7 within its quick time, then evenly less to 0 at twice the
  * quick time (floored to whole points).
  */
-export function burstV10ClearPoints(ticks: number, quick: number): number {
+export function burstV10ClearPoints(ticks: number, quick: number, wide = false): number {
   if (ticks <= quick) return BURST_V10_CLEAR_PER_WAVE;
-  const zero = 2 * quick;
+  // burstRev 12 (the Retro overhaul): the bonus runs out at three times the quick time, not twice.
+  const zero = (wide ? BURST_V12_CLEAR_ZERO : 2) * quick;
   if (ticks >= zero) return 0;
   return Math.floor((BURST_V10_CLEAR_PER_WAVE * (zero - ticks)) / (zero - quick));
 }
@@ -1640,7 +1644,7 @@ function burstGoldenTouchesV10(s: BurstState, floor: number): boolean {
 
 /** burstRev 10: a wave cleared pays its time bonus. */
 function burstWaveClearV10(s: BurstState, tick: number): void {
-  const pts = burstV10ClearPoints(tick - (s.waveAt ?? tick), burstV9QuickTicks(s.waves[s.wave - 1] ?? []));
+  const pts = burstV10ClearPoints(tick - (s.waveAt ?? tick), burstV9QuickTicks(s.waves[s.wave - 1] ?? []), Boolean(s.wide));
   s.clearPts = (s.clearPts ?? 0) + pts;
   s.lastClear = pts;
   if (pts > 0) s.quickWaves = (s.quickWaves ?? 0) + 1;
@@ -1654,7 +1658,7 @@ function burstCompleteV10(s: BurstState): boolean {
 /** burstRev 10: the wave-clear bonus the wave on screen would pay if cleared now (the HUD's "CLEAR +n"); 0 between waves. */
 export function burstV10ClearNow(state: BurstState): number {
   if (state.balls.length === 0 || state.wave === 0) return 0;
-  return burstV10ClearPoints(state.tick - (state.waveAt ?? state.tick), burstV9QuickTicks(state.waves[state.wave - 1] ?? []));
+  return burstV10ClearPoints(state.tick - (state.waveAt ?? state.tick), burstV9QuickTicks(state.waves[state.wave - 1] ?? []), Boolean(state.wide));
 }
 
 /** burstRev 9 and 10: the tick the golden atom in play fades (-1 none). */
@@ -1780,4 +1784,23 @@ function burstV11PenaltyText(state: BurstState, p: { core: number; lives: number
 export const burstAimGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
   ...burstStdGame,
   init: (seed: number) => ({ ...initV10(seed), aim: 1, whiffs: 0 }),
+};
+
+/* ================= The Retro overhaul: kinder wave clears (burstRev 12, 15 Nov 2026) ================= */
+
+/**
+ * burstRev 12 (the Retro overhaul, docs/design/game-reviews/retro.md "Fission", docs/arcade-standard/burst.md "burstRev
+ * 12"): burstRev 11's play, parts and fair-play rules exactly, with one scoring change: a wave's clear bonus is still
+ * the full 7 within its quick time (1 s plus 0.6 s an atom), but then falls evenly to 0 at three times the quick time
+ * (was twice), so a good wave cleared a little late still earns most of it (the Near-perfect bot earned 11 of 35 on
+ * burstRev 11). The atoms, lives, beams and every tick of play are burstRev 11's; states add `wide: 1`, outside the
+ * checkpoint checksum (its clearPts, inside it, is what grows).
+ */
+export const BURST_REV_WIDE = 12;
+/** A wave's clear bonus reaches 0 at this many times its quick time. */
+export const BURST_V12_CLEAR_ZERO = 3;
+
+export const burstWideGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
+  ...burstAimGame,
+  init: (seed: number) => ({ ...burstAimGame.init(seed), wide: 1 }),
 };

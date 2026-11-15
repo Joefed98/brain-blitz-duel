@@ -70,7 +70,7 @@ export const DEAL_PINS = {
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
-  /** arcade.server.ts: the Retro games' stamps before the Retro overhaul (15 Nov 2026): Tempo beatRev 11, Rally rallyRev 12. */
+  /** arcade.server.ts: the Retro games' stamps before the Retro overhaul (15 Nov 2026): Tempo beatRev 11, Rally rallyRev 12, Fission burstRev 11. */
   preRetro: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 

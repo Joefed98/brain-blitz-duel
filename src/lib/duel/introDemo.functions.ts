@@ -16,7 +16,7 @@ import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
 import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { WAV_REV_KEEP, WAV_REV_STD } from "@/lib/arcade/wavefront";
-import { BURST_REV_AIM, BURST_REV_STD } from "@/lib/arcade/burst";
+import { BURST_REV_AIM, BURST_REV_WIDE } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { SNAKE_REV_12 } from "@/lib/arcade/snake";
@@ -44,7 +44,8 @@ import type { PuzzleDemoLog } from "./puzzleDemo";
  */
 export const SAME_PLAY_DEMO_REVS = {
   wavefront: [WAV_REV_STD, WAV_REV_KEEP],
-  burst: [BURST_REV_STD, BURST_REV_AIM],
+  // burstRev 12 (the Retro overhaul, 15 Nov 2026) plays burstRev 11 exactly (its wave clears scored more kindly).
+  burst: [BURST_REV_AIM, BURST_REV_WIDE],
   cross: [CROSS_REV_FLOW, CROSS_REV_KEEP],
   skyline: [SKYLINE_REV_STD, SKYLINE_REV_COUNT],
 } as const;
@@ -185,7 +186,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // older demo stays stopped until one is recorded on burstRev 9.
     // The arcade scoring standard (29 Oct 2026): burstRev 10's run is five waves with a golden atom that hurts, so an
     // older demo stays stopped until one is recorded on burstRev 10.
-    // burstRev 11 (the scoring audit) plays burstRev 10 exactly, so a demo recorded on either plays.
+    // burstRev 11 (the scoring audit) plays burstRev 10 exactly, so a demo recorded on either plays; burstRev 12 (the Retro
+    // overhaul) plays burstRev 11 exactly, so since 15 Nov 2026 a demo recorded on 11 or 12 plays.
     if (data.type === "burst" && demo?.puzzle.type === "burst" && !demoRevAccepted("burst", demo.puzzle.burstRev)) return null;
     // Expansion E9 (26 Oct 2026, docs/expansions/e9.md): Flightpath bullRev 8 too (Rally and Fission above).
     // bullRev 9 (the arcade scoring standard, 29 Oct 2026) plays as bullRev 8 but a dead-centre dart shows +2, not +7, so

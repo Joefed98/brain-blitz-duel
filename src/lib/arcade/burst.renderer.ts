@@ -12,7 +12,7 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   burstFloorY,
-  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM,
+  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM, BURST_REV_WIDE,
   BURST_V9_GOLDEN_LIFE,
   burstV9ClearNow,
   burstV10ClearNow,
@@ -441,7 +441,10 @@ const burstArtGameV9: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...bur
 const burstArtGameV10: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_STD), draw };
 /** burstRev 11: burstRev 10's play and look, scored on the fair-play rules. */
 const burstArtGameV11: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_AIM), draw };
+/** burstRev 12: burstRev 11's play and look, its wave clears kinder. */
+const burstArtGameV12: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_WIDE), draw };
 export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_WIDE) return burstArtGameV12;
   if (rev === BURST_REV_AIM) return burstArtGameV11;
   if (rev === BURST_REV_STD) return burstArtGameV10;
   if (rev === BURST_REV_CARRY) return burstArtGameV9;

@@ -13,7 +13,7 @@ export const PRACTICE_STAMPS = {
   "bridges": "bridgesRev=1 notesRev=1 puzzleScoreRev=3 speedPar=1",
   "bubble": "bubbleRev=11 puzzleScoreRev=3 speedPar=1",
   "bullseye": "bullRev=9 puzzleScoreRev=3 speedPar=1",
-  "burst": "burstRev=11 puzzleScoreRev=3 speedPar=1",
+  "burst": "burstRev=12 puzzleScoreRev=3 speedPar=1",
   "chain": "chainCycleRev=1 chainDepthRev=3 chainTimeRev=1 puzzleScoreRev=3 rulesVersion=2 speedPar=1",
   "checkout": "checkoutRev=2 depthRev=3 puzzleScoreRev=3 speedPar=1",
   "clayshoot": "clayRev=9 puzzleScoreRev=3 speedPar=1",
