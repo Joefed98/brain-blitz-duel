@@ -3,7 +3,7 @@
  * beside today's art behind one switch per item, and a switch changes only the drawing. No browser, ~2 s.
  *
  * 1. src/design/identity/redrawnArt.data.ts is what scripts/cosmetic-redraws.ts builds, and every 3D piece it names
- *    is a WebP in public/cosmetics/redrawn (none unused, none over 80 KB), kept out of the offline download.
+ *    is a WebP in public/cosmetics/redrawn (none unused, none over 80 KB), kept for offline play (Joe, 15 Nov 2026).
  * 2. The switches: every listed item is a catalogue item; every identity item has its redraw in the right map; every
  *    in-game look is drawn behind its switch in src/lib/arcade/skins; with a switch off its item draws exactly the
  *    approved art (liveArt's maps hold the approved values), with it on the redraw.
@@ -68,7 +68,8 @@ const used = (piece: string) =>
 const unused = files.map((f) => f.replace(/\.webp$/, "")).filter((p) => !used(p));
 check(unused.length === 0, `no unused piece in public/cosmetics/redrawn (${unused.join(", ") || "none"})`);
 for (const r of gameRefs.filter((g) => !g.prefix)) check(existsSync(join(PIECES, `${r.name}.webp`)), `${r.name}.webp (drawn by a game look) exists`);
-check(!keepPublicFile("/cosmetics/redrawn/card-art.lava.webp") && keepPublicFile("/tiles/pool.webp"), "the pieces stay out of the offline download (other public files kept)");
+// Joe, 15 Nov 2026: the approved redraws show offline too, so their pieces are in the offline download.
+check(keepPublicFile("/cosmetics/redrawn/card-art.lava.webp") && keepPublicFile("/tiles/pool.webp"), "the pieces are kept for offline play (Joe, 15 Nov 2026)");
 
 /* 2. the switches */
 type Item = { id: string; kind: string; animated?: boolean };
@@ -139,7 +140,7 @@ const readers = walk(join(ROOT, "src"))
 const ALLOWED = [/^src\/config\/cosmeticRedraws\.ts$/, /^src\/design\/identity\/(liveArt|redrawnArt\.data)\.ts$/, /^src\/lib\/arcade\/skins\//];
 check(readers.every((f) => ALLOWED.some((re) => re.test(f))), `only drawing code reads the switches (${readers.join(", ")})`);
 const migrations = readdirSync(join(ROOT, "supabase/migrations"));
-check(migrations.every((f) => !/cosmeticRedraws|cosmetic-redraws|cosmetics\/redrawn/.test(readFileSync(join(ROOT, "supabase/migrations", f), "utf8"))), "no migration mentions the redraws (nothing restored, withdrawn, given or priced)");
+check(migrations.every((f) => !/cosmeticRedraws|cosmetic-redraws|cosmetics\/redrawn/.test(readFileSync(join(ROOT, "supabase/migrations", f), "utf8"))), "no migration names the switches or the redraws' code (the switches are code; restores go through economy.restore_item)");
 
 /* 4. the markup */
 function wellFormed(id: string, markup: string): void {
@@ -161,7 +162,8 @@ for (const [id, f] of Object.entries(R.REDRAWN_FRAMES)) {
 }
 for (const [id, c] of Object.entries(R.REDRAWN_CELEBRATIONS)) {
   wellFormed(id, c.svg);
-  check(c.svg.includes("{{avatar}}") && c.svg.includes("{{place}}"), `${id}: draws the winner's avatar and place`);
+  // Joe, 15 Nov 2026: the redrawn celebrations show Captain Joulz on the podium in place of the flat avatar head.
+  check(c.svg.includes("{{place}}"), `${id}: draws the winner's place`);
 }
 for (const [id, t] of Object.entries(R.REDRAWN_TILE_STYLES)) wellFormed(id, t.back + t.front);
 for (const [id, f] of Object.entries(R.REDRAWN_FINISHES)) wellFormed(id, `<svg>${f.defs}${f.overlay ?? ""}${f.outer}</svg>`);

@@ -60,15 +60,19 @@ const { catalogueItems } = await import("./catalogue-files");
 const ITEMS = catalogueItems<Item>();
 const MIGRATION = readFileSync("supabase/migrations/20261116800000_catalogue_withdrawn.sql", "utf8");
 const WITHDRAWN = [...MIGRATION.slice(MIGRATION.indexOf("FROM (VALUES")).matchAll(/\('([a-z0-9.-]+)'\)/g)].map((m) => m[1]!);
-/** Joe's restores since (13 Nov 2026: the card backs, 20261116800200_restore_card_backs.sql). */
-const RESTORE = readFileSync("supabase/migrations/20261116800200_restore_card_backs.sql", "utf8");
+/** Joe's restores since (13 Nov 2026: the card backs, 20261116800200_restore_card_backs.sql; 15 Nov 2026: the approved redraws). */
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of restoring the approved redraws, 20261118100000_restore_approved_redraws.sql): the second restore migration is read too, and the examples below use items still withdrawn.
+const RESTORE_FILES = ["supabase/migrations/20261116800200_restore_card_backs.sql", "supabase/migrations/20261118100000_restore_approved_redraws.sql"];
+const RESTORE = RESTORE_FILES.map((f) => readFileSync(f, "utf8")).join("\n");
 const RESTORED = new Set([...RESTORE.matchAll(/economy\.restore_item\('([a-z0-9.-]+)'/g)].map((m) => m[1]!));
 const W = new Set(WITHDRAWN.filter((id) => !RESTORED.has(id)));
 
 /* =================================================================== pure */
 {
   check(WITHDRAWN.length === 72 && new Set(WITHDRAWN).size === 72, `the migration withdraws 72 items, each once (${WITHDRAWN.length})`);
-  check([...RESTORED].sort().join() === "card-back.holo-foil,card-back.neon,card-back.royal-damask" && W.size === 69, `Joe restored the three card backs, one line each: 69 stay withdrawn (${W.size})`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of restoring the approved redraws): 3 card backs on
+  // 13 Nov, then 43 approved redraws on 15 Nov, one line each; 26 stay withdrawn.
+  check(["card-back.holo-foil", "card-back.neon", "card-back.royal-damask"].every((id) => RESTORED.has(id)) && RESTORED.size === 46 && W.size === 26, `Joe restored the three card backs and 43 approved redraws, one line each: 26 stay withdrawn (${W.size})`);
   check(WITHDRAWN.every((id) => ITEMS.some((i) => i.id === id)), "every withdrawn id is a catalogue item");
   const review = readFileSync("docs/cosmetics-review/verdicts.json", "utf8");
   const verdicts = JSON.parse(review) as Record<string, string>;
@@ -138,10 +142,10 @@ async function databaseChecks(db: LocalDb): Promise<void> {
   await section("owners keep them", async () => {
     // Ana owned Lava and had it equipped before the withdrawal (rows as a purchase would leave them).
     q(`SELECT public.create_profile('${ANA}', 'Ana_Owner', 3::smallint, DATE '1990-01-01', 'GB')`);
-    q(`INSERT INTO inventory_items (user_id, item_id, how) VALUES ('${ANA}', 'card-art.lava', 'grant')`);
-    check(q(`SELECT public.economy_equip('${ANA}', 'card-art', 'card-art.lava')`) === "equipped", "an owned withdrawn item still equips");
-    check(owns(ANA, "card-art.lava") && q(`SELECT item_id FROM loadout_slots WHERE user_id = '${ANA}' AND slot = 'card-art'`) === "card-art.lava", "it stays owned and in its slot");
-    check(q(`SELECT economy.add_item('${ANA}', 'card-art.lava', 'pass')`) === "owned", "a grant to its owner answers owned (nothing changes)");
+    q(`INSERT INTO inventory_items (user_id, item_id, how) VALUES ('${ANA}', 'card-art.diamond-plate', 'grant')`);
+    check(q(`SELECT public.economy_equip('${ANA}', 'card-art', 'card-art.diamond-plate')`) === "equipped", "an owned withdrawn item still equips");
+    check(owns(ANA, "card-art.diamond-plate") && q(`SELECT item_id FROM loadout_slots WHERE user_id = '${ANA}' AND slot = 'card-art'`) === "card-art.diamond-plate", "it stays owned and in its slot");
+    check(q(`SELECT economy.add_item('${ANA}', 'card-art.diamond-plate', 'pass')`) === "owned", "a grant to its owner answers owned (nothing changes)");
   });
 
   await section("never given", async () => {
@@ -149,7 +153,7 @@ async function databaseChecks(db: LocalDb): Promise<void> {
     const starters = ITEMS.filter((i) => i.source === "free-starter" && !W.has(i.id)).map((i) => i.id).sort();
     check(q(`SELECT string_agg(item_id, ',' ORDER BY item_id) FROM inventory_items WHERE user_id = '${BOB}'`) === starters.join(), `a new account's starters: those not withdrawn (${starters.join(", ")})`);
     for (const how of ["pass", "earned", "starter"])
-      check(q(`SELECT economy.add_item('${BOB}', 'frame.bronze', '${how}')`) === "withdrawn" && !owns(BOB, "frame.bronze"), `a '${how}' grant of a withdrawn item answers withdrawn and gives nothing`);
+      check(q(`SELECT economy.add_item('${BOB}', 'frame.s1-spark', '${how}')`) === "withdrawn" && !owns(BOB, "frame.s1-spark"), `a '${how}' grant of a withdrawn item answers withdrawn and gives nothing`);
     check((await economy.grantItem(admin, { userId: BOB, itemId: "frame.founding", how: "earned" })) === "withdrawn", "the server's grant answers withdrawn (the Founding frame)");
     check((await economy.grantItem(admin, { userId: BOB, itemId: "frame.championship", how: "earned" })) === "withdrawn" && !owns(BOB, "frame.championship"), "the Championship frame's grant stays off (no art)");
     check(q(`SELECT economy.add_item('${BOB}', 'card-art.aurora', 'earned')`) === "granted", "a live item is still given");
@@ -190,24 +194,24 @@ async function databaseChecks(db: LocalDb): Promise<void> {
       p_user_id: ANA,
       p_season: "s1",
       p_epoch: Date.parse("2026-11-16T00:00:00Z"),
-      p_rows: Array.from({ length: 4 }, (_, i) => ({ key: `w:${i}`, kind: "weekly", base: 2000, at: new Date(Date.parse("2026-11-17T12:00:00Z") + i).toISOString() })) as never,
+      p_rows: Array.from({ length: 6 }, (_, i) => ({ key: `w:${i}`, kind: "weekly", base: 2000, at: new Date(Date.parse("2026-11-17T12:00:00Z") + i * 86400000).toISOString() })) as never,
     } as never);
     const v = await pass.passViewFor(admin, ANA, NOW);
-    check(v.open === true && v.level >= 6, `the tester reached level 6 (${v.open ? v.level : "closed"})`);
-    const bronze = v.open ? v.levels[5]!.free : null;
-    check(bronze?.state === "withdrawn" && bronze.itemId === null && bronze.title === pass.WITHDRAWN_TITLE, "free level 6 (Bronze, withdrawn): a gap, being redrawn, no item shown");
+    check(v.open === true && v.level >= 10, `the tester reached level 10 (${v.open ? v.level : "closed"})`);
+    const bronze = v.open ? v.levels[9]!.free : null;
+    check(bronze?.state === "withdrawn" && bronze.itemId === null && bronze.title === pass.WITHDRAWN_TITLE, "free level 10 (Neon Pink, withdrawn): a gap, being redrawn, no item shown");
     check(v.open === true && v.levels[1]!.free?.state === "claimable", "free level 2 (100 coins): claimable as before");
-    const c = await pass.claimReward(admin, ANA, { track: "free", level: 6 }, NOW);
-    check(c.ok === false && c.reason === "withdrawn" && !owns(ANA, "frame.bronze"), "claiming it is refused (withdrawn) and gives nothing");
+    const c = await pass.claimReward(admin, ANA, { track: "free", level: 10 }, NOW);
+    check(c.ok === false && c.reason === "withdrawn" && !owns(ANA, "name-colour.neon-pink"), "claiming it is refused (withdrawn) and gives nothing");
     check(v.open === true && v.levels.every((l) => [l.free, l.premium].every((cell) => !cell || cell.state !== "withdrawn" || cell.itemId === null)), "no withdrawn cell names its item");
-    // Joe restores Bronze: the level is claimable and pays the frame.
-    const r = JSON.parse(q(`SELECT economy.restore_item('frame.bronze', 'check: redrawn')`)) as { item: string };
-    check(r.item === "frame.bronze", "economy.restore_item answers the item");
+    // Joe restores Neon Pink: the level is claimable and pays the name colour.
+    const r = JSON.parse(q(`SELECT economy.restore_item('name-colour.neon-pink', 'check: redrawn')`)) as { item: string };
+    check(r.item === "name-colour.neon-pink", "economy.restore_item answers the item");
     economy.forgetCatalogueCache();
     const v2 = await pass.passViewFor(admin, ANA, NOW);
-    check(v2.open === true && v2.levels[5]!.free?.state === "claimable", "restored: the level is claimable");
-    const c2 = await pass.claimReward(admin, ANA, { track: "free", level: 6 }, NOW);
-    check(c2.ok === true && owns(ANA, "frame.bronze"), "and pays the frame");
+    check(v2.open === true && v2.levels[9]!.free?.state === "claimable", "restored: the level is claimable");
+    const c2 = await pass.claimReward(admin, ANA, { track: "free", level: 10 }, NOW);
+    check(c2.ok === true && owns(ANA, "name-colour.neon-pink"), "and pays the item");
   });
 
   await section("Joe's functions", async () => {
@@ -225,15 +229,15 @@ async function databaseChecks(db: LocalDb): Promise<void> {
       const c = JSON.parse(q(`SELECT economy.restore_item('frame.championship', 'check')`)) as { given: number };
       check(c.given === 1 && owns(DEE, "frame.championship"), "restoring the Championship frame gives it to every recorded winner");
     } else check(false, `the Championship award row could be recorded (${champ.err.slice(0, 160)})`);
-    const before = Number(q(`SELECT count(*) FROM inventory_items WHERE item_id = 'card-art.grid'`));
-    const g = JSON.parse(q(`SELECT economy.restore_item('card-art.grid', 'check')`)) as { given: number };
+    const before = Number(q(`SELECT count(*) FROM inventory_items WHERE item_id = 'card-art.joulz-navy'`));
+    const g = JSON.parse(q(`SELECT economy.restore_item('card-art.joulz-navy', 'check')`)) as { given: number };
     const profiles = Number(q(`SELECT count(*) FROM profiles`));
-    check(Number(q(`SELECT count(*) FROM inventory_items WHERE item_id = 'card-art.grid'`)) === profiles && g.given === profiles - before, "restoring a starter gives it to every account");
+    check(Number(q(`SELECT count(*) FROM inventory_items WHERE item_id = 'card-art.joulz-navy'`)) === profiles && g.given === profiles - before, "restoring a starter gives it to every account");
     check(q(`SELECT count(*) FROM catalogue_shop WHERE id = 'card-art.royal'`) === "0", "Royal still withdrawn");
     q(`SELECT economy.restore_item('card-art.royal', 'check')`);
     check(q(`SELECT count(*) FROM catalogue_shop WHERE id = 'card-art.royal'`) === "1", "restored: back in the shop query (one line)");
     check(q(`SELECT economy.withdraw_item('card-art.royal', 'check: again')`) === "withdrawn" && q(`SELECT count(*) FROM catalogue_shop WHERE id = 'card-art.royal'`) === "0", "economy.withdraw_item takes one away (one line)");
-    check(Number(q(`SELECT count(*) FROM economy.admin_log WHERE action IN ('restore_item', 'withdraw_item')`)) === 9, "every restore and withdrawal is logged (the migration's three card backs too)");
+    check(Number(q(`SELECT count(*) FROM economy.admin_log WHERE action IN ('restore_item', 'withdraw_item')`)) === 6 + RESTORED.size, "every restore and withdrawal is logged (the migrations' restores too)");
     check(/note/.test(refused(`SELECT economy.restore_item('card-art.lava', '')`)), "a note is required");
     for (const role of ["anon", "authenticated", "service_role"])
       check(/permission denied/.test(refused(`SET LOCAL ROLE ${role}; SELECT economy.restore_item('card-art.lava', 'x')`)) && /permission denied/.test(refused(`SET LOCAL ROLE ${role}; SELECT economy.withdraw_item('card-art.lava', 'x')`)), `${role} can't reach Joe's withdraw and restore`);

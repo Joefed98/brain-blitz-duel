@@ -21,9 +21,6 @@ export function keepPublicFile(path: string): boolean {
   if (path === "/og-image.png" || path === "/robots.txt") return false;
   // The iPhone launch screens (APP_SPLASHES): iOS reads them when the app is added to the home screen.
   if (path.startsWith("/splash/")) return false;
-  // The cosmetics redraws' 3D pieces (docs/design/cosmetics-redraws): drawn only by an item whose switch is on
-  // (src/config/cosmeticRedraws.ts, all off on 15 Nov 2026), so no phone downloads them for offline play.
-  if (path.startsWith("/cosmetics/redrawn/")) return false;
   if (/\.txt$/.test(path) && !path.startsWith("/wordfall/")) return false;
   return true;
 }
