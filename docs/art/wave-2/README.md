@@ -47,7 +47,7 @@ The 32 game avatars and the 54 badges are packaged separately (`docs/art/avatars
 | Hexes | `card-art.hexes` | – | Free for everyone | – | – |  | [png](items/card-art/hexes.png) · [html](items/card-art/hexes.html) |
 | Circuit | `card-art.circuit` | – | Free for everyone | – | – |  | [png](items/card-art/circuit.png) · [html](items/card-art/circuit.html) |
 | Dots | `card-art.dots` | – | Free for everyone | – | – |  | [png](items/card-art/dots.png) · [html](items/card-art/dots.html) |
-| Sunburst | `card-art.sunburst` | – | Free for everyone | – | – |  | [png](items/card-art/sunburst.png) · [html](items/card-art/sunburst.html) |
+| Sunrise (shown as Sunburst until 15 Nov 2026) | `card-art.sunburst` | – | Free for everyone | – | – |  | [png](items/card-art/sunburst.png) · [html](items/card-art/sunburst.html) |
 | Spark | `card-art.tier.spark` | – | Earned: season peak tier | – | – |  | [png](items/card-art/tier--spark.png) · [html](items/card-art/tier--spark.html) |
 | Charge | `card-art.tier.charge` | – | Earned: season peak tier | – | – |  | [png](items/card-art/tier--charge.png) · [html](items/card-art/tier--charge.html) |
 | Volt | `card-art.tier.volt` | – | Earned: season peak tier | – | – |  | [png](items/card-art/tier--volt.png) · [html](items/card-art/tier--volt.html) |

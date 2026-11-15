@@ -11,7 +11,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 
 import { avatarKey, avatarMarkup, celebrationScene, ensureCosmeticStyles } from "@/design/identity";
-import { CELEBRATIONS } from "@/design/identity/cosmeticsArt.data";
+import { CELEBRATIONS } from "@/design/identity/liveArt";
 import type { PublicCosmetics } from "@/lib/cosmetics/types";
 import { ordinal } from "@/lib/duel/ordinal";
 
