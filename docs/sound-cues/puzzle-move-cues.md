@@ -13,7 +13,7 @@ advances. No shared tap hook plays a sound.
 
 | Game | Cue | What plays at that moment |
 |---|---|---|
-| Ballpark | `numline.place` | `tick` + `place` + `move` |
+| Ballpark | `numline.place` | `move` (one sound a place since the game review fixes, 15 Nov 2026; the cue adds the pop) |
 | Ballpark | `numline.line` | `stage_complete` with the tap's `tick` / `place` / `move` |
 | Brimful | `measure.pour`, `measure.fill`, `measure.empty`, `measure.reset` | `move` |
 | Brimful | `measure.reject` | `wrong` |
@@ -23,14 +23,14 @@ advances. No shared tap hook plays a sound.
 | Integer Pyramid | `numpyramid.place` | `move` |
 | Operator | `equation.drop` | `move` |
 | Operator | `equation.advance` | `stage_complete` |
-| Tenfall | `tendrop.refused` | `tick` |
+| Tenfall | `tendrop.refused` | the quiet `wrong` (`playRejectWrong`, every wrong-move shake's sound since 15 Nov 2026; it was `tick`) |
 | Trail | `trail.step` | `move` |
 | Pull! | `clayshoot.shatter`, `clayshoot.goldShatter` | `pz_clay_hit` (+ the shot's `tick`) |
 | Double Take | `spotdiff.found` | `correct` |
 | Double Take | `spotdiff.miss` | `wrong` |
 | Eagle Eye | `symscan.mark`, `symscan.unmark` | `move` |
 | Mixed Signals | `stroop.gatePulse` | `pz_clash_right` / `pz_clash_wrong` on the same frame |
-| Gridlock | `unblock.solve` | `pz_car_escape`, `lock` 420 ms later |
+| Gridlock | `unblock.solve` | `pz_car_escape.mp3` through the `unblock.solve` slot (15 Nov 2026), `lock` 420 ms later |
 | Heave | `push.step`, `push.push` | `move` |
 | Gradient (Jumbled until 27 Oct) | `tiles.slide` | `move` (`lock` if it solves) |
 | Lightbender | `laser.place`, `laser.turn`, `laser.fire` | `move` |
@@ -47,7 +47,7 @@ advances. No shared tap hook plays a sound.
 | Lamplighter | `lightup.lamp`, `lightup.dot` | `move` |
 | Mosaic | `nonogram.fill`, `nonogram.mark` | `move` |
 | Polypotions | `tubes.pour` | `move` (+ `tubes.cork` when a tube is sorted) |
-| Safe Cracker | `safe.solve` | `pz_safe_open` + `lock` + `move` |
+| Safe Cracker | `safe.solve` | `pz_safe_open.mp3` through the `safe.solve` slot, standing in for `lock` (15 Nov 2026: one sound on opening) |
 | Shikaku | `shikaku.place`, `shikaku.remove` | `move` |
 | Tents and Trees | `tents.pitch`, `tents.grass` | `move` |
 | Room | `room.winner` | `music_winner` starts; the `winnerIs` voice 200 ms later |

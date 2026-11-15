@@ -39,7 +39,7 @@ import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
 import { pinPreDepth } from "../src/lib/duel/wordDepth";
 import { pinPreWordNov7 } from "../src/lib/duel/wordNov7";
 import type { PuzzleType } from "../src/lib/duel/types";
-import { setDealPin, type DealOptions } from "../src/lib/duel/dealEra";
+import { setDealPin, type DealOptions, type DealPin } from "../src/lib/duel/dealEra";
 
 /** Each check pin, switched on and off through its own function. */
 export const PIN_VARIANTS: Record<string, (on: boolean) => unknown> = {
@@ -98,22 +98,40 @@ export function digest(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(stable(value))).digest("hex").slice(0, 24);
 }
 
-export function dealDigest(type: PuzzleType, seed: number, banked: boolean, options?: DealOptions): string {
-  // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 (13 Nov 2026) is a deliberate deal change after main's recording, so every deal here
-  // pins its check-only minesPreLogic switch: each game still deals exactly as main did.
-  const opts: DealOptions | undefined = options ? { ...options, pins: [...(options.pins ?? []), "minesPreLogic"] } : undefined;
-  const was = opts ? false : setDealPin("minesPreLogic", true);
+/**
+ * Era switches newer than main's recording: every deal here pins them, so each game still deals exactly as main did.
+ * Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 (13 Nov 2026) is a deliberate deal change after
+ * main's recording (its check-only minesPreLogic switch).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game review fixes' Brimful measureRev 4):
+ * preGameReviewNov15.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
+ */
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree"];
+
+/** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
+export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
+  const was = pins.map((pin) => setDealPin(pin, true));
   try {
-    return digest(
-      withSeededRandom(seed, () =>
-        generatePuzzle(type, banked ? { unblockRow: null, bankSeed: (seed * 7919 + 13) >>> 0 } : { unblockRow: null }, opts),
-      ),
-    );
-  } catch (error) {
-    return `ERR ${String((error as Error)?.message ?? error).split("\n")[0]}`;
+    return fn();
   } finally {
-    if (!opts) setDealPin("minesPreLogic", was);
+    pins.forEach((pin, i) => setDealPin(pin, was[i]!));
   }
+}
+
+export function dealDigest(type: PuzzleType, seed: number, banked: boolean, options?: DealOptions): string {
+  const opts: DealOptions | undefined = options ? { ...options, pins: [...(options.pins ?? []), ...POST_RECORDING_PINS] } : undefined;
+  const run = () => {
+    try {
+      return digest(
+        withSeededRandom(seed, () =>
+          generatePuzzle(type, banked ? { unblockRow: null, bankSeed: (seed * 7919 + 13) >>> 0 } : { unblockRow: null }, opts),
+        ),
+      );
+    } catch (error) {
+      return `ERR ${String((error as Error)?.message ?? error).split("\n")[0]}`;
+    }
+  };
+  return opts ? run() : withPostRecordingPins(run);
 }
 
 export const TYPES = Object.keys(PUZZLE_REGISTRY).sort() as PuzzleType[];
@@ -146,6 +164,12 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
  * (its seed as the bank seed, the tie-break stamp) on a stream of its own.
  */
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
+  // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
+  // arcade deal, unpinned here as before).
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree"]);
+}
+
+function roomDigestsNow(seeds: readonly number[]): Record<string, string> {
   const rooms: Record<string, string> = {};
   for (const seed of seeds) {
     try {

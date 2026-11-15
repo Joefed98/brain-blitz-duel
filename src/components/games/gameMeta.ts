@@ -6,7 +6,7 @@ import {
   isPlayable,
   puzzleCategories,
   puzzleDef,
-  typeTimeLimitMs,
+  shownTimeLimitMs,
   typesInCategory,
   usesArcadeClock,
 } from "@/lib/duel/catalogue";
@@ -102,7 +102,7 @@ export function gameTag(type: PuzzleType): { id: string; label: string } {
 
 /** The round's length in seconds, as the round intro says it (an arcade clock's 3 s of slack left out). */
 export function gameSeconds(type: PuzzleType): number {
-  return Math.round((typeTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000);
+  return Math.round((shownTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000);
 }
 
 /** The goal and the intro's how-to lines (never the help-only ones), at most three. */

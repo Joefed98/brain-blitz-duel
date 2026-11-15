@@ -29,7 +29,7 @@ import {
   CHECKOUT_STANDARD,
   type CheckoutDart,
 } from "@/lib/duel/checkout";
-import { checkoutBigFinish } from "@/lib/duel/checkout";
+import { checkoutBigFinish, checkoutDartTerm } from "@/lib/duel/checkout";
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import { checkoutBigBoards } from "@/lib/duel/standard/number";
 import { useGameKeys } from "@/lib/desktop";
@@ -59,6 +59,8 @@ const ROOT_STYLE: CSSProperties = {
  * own board moved to lighter golds and pinks, 27 Oct 2026, so Checkout's board is unchanged). */
 const [GOLD, BURGUNDY, BLUE, PINK, CHARCOAL, CREAM] = ["#F5B82E", "#9B2335", "#2471B5", "#E8A7DC", "#30343B", "#F7F7F8"] as const;
 const NEGATIVE_INK = "#FF8FA3";
+/** The beat between a board's right throw and the next board. */
+const CHECKOUT_ADVANCE_MS = 900;
 const WIRE = "#D5D9E0";
 
 /* Board geometry in a 200-unit viewBox. */
@@ -602,6 +604,10 @@ function Stage({
   );
   const [shake, setShake] = useState(false);
   const [correct, setCorrect] = useState(false);
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+  }, []);
   /** "stage:count" of the dart that just landed, so only that dart thuds. */
   const [landed, setLanded] = useState<string | null>(null);
   const submitted = useRef(false);
@@ -694,10 +700,13 @@ function Stage({
     const following = [1, 2, 3, 4, 5]
       .map((k) => (stage + k) % CHECKOUT_STAGES)
       .find((i) => !next[i]);
-    setTimeout(() => {
+    // Game review fix (15 Nov 2026): the auto-advance is cleared if the screen leaves first.
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    advanceTimer.current = setTimeout(() => {
+      advanceTimer.current = null;
       setCorrect(false);
       if (following !== undefined) setStage(following);
-    }, 900);
+    }, CHECKOUT_ADVANCE_MS);
   };
 
   const boardSize = Math.max(180, Math.min(size.width - 8, size.height - 4));
@@ -793,7 +802,7 @@ function Stage({
           {current.target}
           {darts.map((d, i) => (
             <span key={`${stage}-${i}`} className={i === fresh ? "co-term" : undefined} style={{ color: FAIR_CHALK }}>
-              {" "}− {checkoutDartLabel(current, d)}
+              {" "}{checkoutDartTerm(current, d)}
             </span>
           ))}
         </span>

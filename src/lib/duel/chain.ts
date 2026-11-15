@@ -224,3 +224,19 @@ export function replayChain(puzzle: ChainPuzzleData, answer: ChainAnswer): Chain
   }
   return replay;
 }
+
+/**
+ * Which momentum band the next link is in (0 = the first window), for the link after `links` made (speed review
+ * fixes, 15 Nov 2026; display only): the ring's tier and the FASTER banner follow the windows the replay uses.
+ */
+export function chainWindowTier(links: number, puzzle?: ChainPuzzleData): number {
+  const bands = chainRules(puzzle).bands;
+  const link = links + 1;
+  const index = bands.findIndex((band) => link <= band.upTo);
+  return index === -1 ? Math.max(0, bands.length - 1) : index;
+}
+
+/** True when the link after `made` has a shorter window than the one just made: the FASTER banner's moment. */
+export function chainWindowShrinksAfter(made: number, puzzle?: ChainPuzzleData): boolean {
+  return made >= 1 && chainWindowMs(made + 1, puzzle) < chainWindowMs(made, puzzle);
+}

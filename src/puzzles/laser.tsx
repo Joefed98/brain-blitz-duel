@@ -57,6 +57,11 @@ const GOLD = "var(--primary)";
 
 export { directionalChevronPoints };
 
+/** The Gems pill's count: the best shot so far, or the beam on screen if it lights more. */
+export function laserGemsShown(best: number, onScreen: number): number {
+  return Math.max(best, onScreen);
+}
+
 /** Each fork starts when the travelling beam reaches its parent splitter. */
 export function beamBranchOffsets(paths: number[][]): number[] {
   const offsets: number[] = [];
@@ -317,6 +322,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
     path.slice(0, Math.max(0, shot.step - (offsets[index] ?? 0) + 1))) : null;
   const visibleCells = revealed?.flat() ?? [];
   const litGems = shot ? shot.trace.gemsLit.filter((gem) => visibleCells.includes(gem)) : [];
+  // Pattern review fixes (15 Nov 2026, display only): the Gems pill keeps the best shot's count, so it no longer
+  // falls back to 0 when a beam fades (the board still lights only the shot on screen).
+  const [bestLit, setBestLit] = useStageState<number>(stateKey, "bestLit", () => 0);
+  useEffect(() => {
+    if (litGems.length > bestLit) setBestLit(litGems.length);
+  }, [litGems.length, bestLit, setBestLit]);
+  const gemsShown = laserGemsShown(bestLit, litGems.length);
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
   const solved = submitted.current;
   const firesLeft = Math.max(0, LASER_MAX_FIRES - fires);
@@ -611,12 +623,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
               // laserRev 1 (depth batch 4): the elegant beam's par mirrors.
               ...parPills("Mirrors", mirrorsPlaced, elegantPar, "mirrors"),
               splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced}/${splitterTotal}` } : null,
-              { id: "gems", label: "Gems", value: `${litGems.length}/${gems.length}` },
+              { id: "gems", label: "Gems", value: `${gemsShown}/${gems.length}` },
             ]
           : [
               { id: "mirrors", label: "Mirrors", value: `${mirrorsPlaced} / ${total}` },
               splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced} / ${splitterTotal}` } : null,
-              { id: "gems", label: "Gems lit", value: `${litGems.length} / ${gems.length}` },
+              { id: "gems", label: "Gems lit", value: `${gemsShown} / ${gems.length}` },
             ]}
       />
       <div data-game-controls="pieces" className="flex shrink-0 items-center justify-center gap-2">

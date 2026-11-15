@@ -127,9 +127,13 @@ appears under the thumb anywhere below world y 477 since 31 Oct 2026, 250 above 
 
 ## Sound cues
 
-`racingSounds()`: `racing.go` (first throttle; fallback `arc_horn`), `racing.sector` (`arc_retro_coin`), `racing.lap`
-(`arc_fair_bell`), `racing.wall` (`arc_crash`), `racing.grass` (`arc_bounce`), `racing.finish` (`arc_fair_sting`). No
-engine loop yet.
+`racingSounds()` in `src/lib/fx/gameSounds.ts` (15 Nov 2026: this section described the first wiring). Recordings
+(sound batch 6, `docs/sound-cues/batch6-sports-cards.md`): `racing.light` as each start light comes on and `racing.go`
+at lights out (racingRev 2+; racingRev 1: the first throttle), the engine loops `racing.idle` on the grid and
+`racing.drive` pitched by speed (0.7× at rest to 1.5× flat out), the kerb and grass loops `racing.kerb` /
+`racing.grassLoop`, `racing.squeal` in a hard corner (at most once in 1.5 s), `racing.wall` (with the `impact` haptic),
+`racing.lap`, and `racing.finish` with the crowd's `racing.roar`. Still on the library: `racing.sector` (`arc_retro_coin`)
+and `racing.grass` (`arc_bounce`, only while the grass loop has no file).
 
 ## Assumptions and decisions
 

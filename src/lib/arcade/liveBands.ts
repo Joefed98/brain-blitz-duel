@@ -119,8 +119,8 @@ export const LIVE_BANDS = {
   // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
   breaker: { field: "brkRev", rev: BRK_REV_STD, curve: BRK_V11_BAND_CURVE, strictRev: BRK_REV_STRICT },
   // tiltRev 10 (the arcade scoring standard): the core's straight line (35 a maze, to 140); finish, speed and gold stars add up to 60 (the help says so).
-  // tiltRev 11 (3 Nov 2026): no gold stars; the core's straight line (25 a maze, to 100); par, a clean run, finish and
-  // speed add up to 100 (the help says so). tiltRev 10: 35 a maze, to 140 (TILT_V10_BAND_CURVE).
+  // tiltRev 11 (3 Nov 2026): no gold stars; the core's straight line (35 a maze, to 140, up to 20 of a maze for
+  // progress); par 24, a clean run 12 and speed 24 add up to 60 more (the help says so).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts and straight line (35 a maze, to 140) with bigger marbles and keys.
   tilt: { field: "tiltRev", rev: TILT_REV_BIG, curve: TILT_V12_BAND_CURVE, strictRev: TILT_REV_STRICT },
   // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130; speed and features pay up to 70 more.

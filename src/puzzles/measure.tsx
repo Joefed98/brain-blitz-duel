@@ -16,6 +16,7 @@ import {
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { limitText, measureMoveLimits } from "@/lib/duel/moveLimits";
+import { measureBoardOut } from "@/lib/duel/gameReviewNov15";
 import { MEASURE_TIME_MS, type MeasureBoardData, type MeasurePuzzleData } from "@/lib/duel/types";
 import { useReducedMotion } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
@@ -38,6 +39,8 @@ const ROOT_STYLE: CSSProperties = {
 /** Water level easing per move (transform only). */
 const LEVEL_MS = 260;
 /** Lifetime of a pour or tap stream. */
+/** measureRev 4: the beat between a puzzle running out of moves and the next one. */
+const MEASURE_BOARD_OUT_MS = 700;
 const FLOW_MS = 320;
 /** Completion: ripples and sparkles at the target line. */
 const SOLVE_MS = 1100;
@@ -466,13 +469,26 @@ function Stage({
 
   const complete = replay?.solved ?? false;
   const outOfMoves = replay?.outOfMoves ?? false;
+  const boardOut = !!data && measureBoardOut(data);
   useEffect(() => {
-    // Out of moves: puzzles are played in order, so the run ends here and goes in now.
-    if (!outOfMoves || locked || submitted.current) return;
+    if (!outOfMoves || locked || submitted.current) return undefined;
+    // measureRev 4 (game review fix, 15 Nov 2026): out of moves ends only this puzzle; the next one starts after a
+    // short beat, with the fail sound (never a solve's).
+    if (boardOut && stage < MEASURE_BOARDS - 1) {
+      setSelected(null);
+      playWrong();
+      const timer = setTimeout(() => {
+        setFlow(null);
+        setStage(stage + 1);
+      }, MEASURE_BOARD_OUT_MS);
+      return () => clearTimeout(timer);
+    }
+    // Older stamps (and the last puzzle): the run ends here and goes in now.
     submitted.current = true;
     setSelected(null);
     onSubmit(encodeMeasureRound(allActions));
-  }, [outOfMoves, locked, allActions, onSubmit, setSelected]);
+    return undefined;
+  }, [outOfMoves, locked, allActions, onSubmit, setSelected, boardOut, stage, setStage]);
   // Completion effect: only when the last board (the whole puzzle) is solved.
   const solveFx = useSolveFx(complete && stage >= MEASURE_BOARDS - 1, "measure.solve", SOLVE_MS);
   const advance = () => {
@@ -585,7 +601,7 @@ function Stage({
       style={ROOT_STYLE}
     >
       <PolishStyle id="measure" css={MEASURE_CSS} />
-      <StageProgress stage={stage} total={MEASURE_BOARDS} />
+      <StageProgress stage={stage} total={MEASURE_BOARDS} quiet={!!data && stage > 0 && !!data.boards[stage - 1] && !replayMeasure(data.boards[stage - 1]!, allActions[stage - 1] ?? NO_ACTIONS, measureMoveLimits(data)?.[stage - 1] ?? null).solved} />
       <div className={`flex ${framed ? "h-8" : "h-9"} w-full shrink-0 items-center justify-between gap-2`}>
         {/* Puzzle polish (3 Nov 2026): moves and par as separate pills (one line with a "·" before). */}
         <HudPills
@@ -711,7 +727,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         const mine = open
           ? replayMeasure(board, decodeMeasureActions(parts[index] ?? "", board.caps.length), measureMoveLimits(puzzle)?.[index] ?? null)
           : null;
-        if (!mine?.solved) open = false;
+        // measureRev 4: a puzzle out of its moves ends only itself, so the next one was still played.
+        if (!mine?.solved && !(measureBoardOut(puzzle) && mine?.outOfMoves)) open = false;
         const min = puzzle.minMoves?.[index];
         return (
           <div

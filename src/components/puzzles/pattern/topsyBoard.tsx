@@ -384,7 +384,8 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) 
       ) : null}
       <p className="font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {replay.cleared} / {TOPSY_BOARDS} {myCorrect ? "✓" : "✗"}
+          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
+          {replay.cleared} / {TOPSY_BOARDS}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">boards</span>
       </p>

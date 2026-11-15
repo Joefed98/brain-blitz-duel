@@ -153,7 +153,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                   aria-label="Reset"
                   disabled={locked}
                   className="h-[44px] rounded-xl border-2 border-foreground/30 bg-background/40 px-3.5 text-[14px] font-bold text-foreground hover:bg-background/40 active:bg-foreground/15"
-                  onPressStart={() => send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_RESET, b: 0, c: 0 })}
+                  // Reset throws the board back to the deal: it fires on release over the button (15 Nov 2026), so a
+                  // touch that slides off it resets nothing.
+                  onPressEnd={(event) => {
+                    if (mahjongReleaseInside(event)) send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_RESET, b: 0, c: 0 });
+                  }}
                 >
                   ⤺ Reset
                 </ArcadeControlButton>
@@ -176,6 +180,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       />
     </div>
   );
+}
+
+/** A pointer-up still over the button (Reset's trigger); a cancel, a lost capture or a release off it is not a press. */
+export function mahjongReleaseInside(event: { type: string; clientX: number; clientY: number; currentTarget: { getBoundingClientRect(): { left: number; right: number; top: number; bottom: number } } }): boolean {
+  if (event.type !== "pointerup") return false;
+  const r = event.currentTarget.getBoundingClientRect();
+  return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
 }
 
 export function mahjongLine(r: { pairs: number; shuffles: number; cleared: boolean; clearedSeconds: number }): string {

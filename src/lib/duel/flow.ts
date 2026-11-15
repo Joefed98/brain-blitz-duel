@@ -142,3 +142,50 @@ export function flowFilledCells(paths: number[][]): number {
   for (const path of paths) for (const cell of path) cells.add(cell);
   return cells.size;
 }
+
+/** What one cell under a drawing finger does to the paths (the phone's drawing rule, shared for checks). */
+export interface FlowDrawStep {
+  /** The paths after the step (the same array when nothing changed). */
+  paths: number[][];
+  /** The path grew or was rubbed out behind the finger. */
+  moved: boolean;
+  /** The step reached the path's partner dot. */
+  completed: boolean;
+  /** The step was refused (not a neighbour, a wall, its own path, another colour). */
+  rejected: boolean;
+}
+
+/**
+ * One step of a drag on pair `active` onto `cell`. `restartFrom` is the dot a drag began on (pattern review fixes,
+ * 15 Nov 2026): touching a dot no longer wipes its path at once, so a stray touch on a finished pair leaves it
+ * alone; the path restarts from that dot only on the drag's first real step off it.
+ */
+export function flowDrawStep(
+  current: number[][],
+  active: number,
+  cell: number,
+  pairs: { a: number; b: number }[],
+  walls: number[],
+  restartFrom: number | null = null,
+): FlowDrawStep {
+  const same = { paths: current, moved: false, completed: false, rejected: false };
+  const path = restartFrom !== null ? [restartFrom] : (current[active] ?? []);
+  const last = path[path.length - 1];
+  if (last === undefined || cell === last) return same;
+  // Backing up over the previous cell rubs the path out behind the finger.
+  if (path.length > 1 && cell === path[path.length - 2]) {
+    return { ...same, paths: current.map((value, index) => (index === active ? path.slice(0, -1) : value)), moved: true };
+  }
+  const reject = { ...same, rejected: true };
+  if (!flowAdjacent(last, cell)) return reject;
+  if (path.includes(cell) || walls.includes(cell)) return reject;
+  const pair = pairs[active]!;
+  // Its own partner dot is welcome; any other colour's dot is refused.
+  const ends = cell === pair.a || cell === pair.b;
+  if (pairs.some((other, index) => index !== active && (other.a === cell || other.b === cell))) return reject;
+  // Another colour's path is refused too — it is never cut back.
+  if (current.some((value, index) => index !== active && value.includes(cell))) return reject;
+  const next = [...current];
+  next[active] = [...path, cell];
+  return { paths: next, moved: true, completed: ends, rejected: false };
+}

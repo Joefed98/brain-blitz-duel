@@ -140,6 +140,11 @@ function IntroExample() {
   );
 }
 
+/** A full grid's status (game review fix, 15 Nov 2026): "wrong" once the server has said this grid is wrong. */
+export function codewordFullStatus(checkedWrong: boolean): "wrong" | "checking" {
+  return checkedWrong ? "wrong" : "checking";
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }: PuzzleStageProps) {
   const data: CodewordPuzzleData | null = puzzle.type === "codeword" ? puzzle : null;
   const key = stateKey ?? "codeword";
@@ -147,6 +152,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   const [selected, setSelected] = useStageState<number | null>(key, "cwSelected", () => null);
   const [solved, setSolved] = useStageState<boolean>(key, "cwSolved", () => false);
   const [note, setNote] = useState<string | null>(null);
+  // Game review fix (15 Nov 2026): the full grid the server last said is wrong, so the status line shows that state
+  // (it fell back to "Checking…" after the 1.2 s note and stayed there).
+  const [checkedWrong, setCheckedWrong] = useState<string | null>(null);
   const submitted = useRef(false);
   const root = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
@@ -178,6 +186,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
       return;
     }
     if (view.complete) {
+      setCheckedWrong(sentMoves);
       puzzleReject(gridRef.current, false);
       fx.onWrong();
       flash("Not cracked yet: a letter is wrong");
@@ -278,7 +287,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
         ) : solved ? (
           <span className="text-primary">Cracked it</span>
         ) : complete ? (
-          <span>Checking…</span>
+          codewordFullStatus(checkedWrong === encoded) === "wrong" ? <span className="text-destructive">A letter is wrong</span> : <span>Checking…</span>
         ) : actions.length > 0 ? (
           // Batch W: the live summary once a letter is placed (counts the grid already shows).
           <HudPills

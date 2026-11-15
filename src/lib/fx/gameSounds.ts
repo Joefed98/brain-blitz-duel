@@ -1627,9 +1627,12 @@ export function ninjaSounds(): GameSounds<NinjaState> {
  */
 export function blockfallSounds(): GameSounds<BfState> {
   let prev: BfState | null = null;
+  // The coin when the run starts, as every Retro game (15 Nov 2026).
+  const start = retroStart("blockfall.start");
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("blockfall", state);
+      start(running);
       if (prev && state.tick > prev.tick) {
         const p = state.piece;
         const q = prev.piece;
@@ -1644,7 +1647,8 @@ export function blockfallSounds(): GameSounds<BfState> {
         } else if (cleared > 0) sfx("blockfall.clear", "arc_retro_coin", 0.8);
         else if (state.pieces > prev.pieces) sfx("blockfall.lock", "arc_retro_hit", 0.45);
         if (bfLevelFor(state.tick, state.rev) > bfLevelFor(prev.tick, prev.rev)) sfx("blockfall.speedUp", "arc_retro_note", 0.6, 1.25);
-        if (state.ended === 2 && prev.ended === 0) sfx("blockfall.topOut", "arc_retro_explode", 0.8);
+        // A top-out ends the run early: an `impact` haptic, as every other Retro game's run-ending crash (15 Nov 2026).
+        if (state.ended === 2 && prev.ended === 0) { sfx("blockfall.topOut", "arc_retro_explode", 0.8); feel("impact"); }
       }
       prev = state;
     },
@@ -1702,7 +1706,8 @@ export function pyramidSounds(): GameSounds<PyState> {
         if (prev.tick === 0) effectCue("pyramid.shuffle");
         if (state.pairs > prev.pairs) sfx("pyramid.pair", "correct", 0.8);
         else if (state.kings > prev.kings) sfx("pyramid.king", "place", 0.8);
-        else if (state.sel >= 0 && state.sel !== prev.sel) effectCue("pyramid.select");
+        // A refused pair moves the selection too; it plays only its refusal (one sound, 15 Nov 2026).
+        else if (state.sel >= 0 && state.sel !== prev.sel && state.rejects === prev.rejects) effectCue("pyramid.select");
         if (state.draws > prev.draws) sfx("pyramid.deal", "move", 0.8);
         if (state.pass > prev.pass) effectCue("pyramid.turn");
         if (state.rejects > prev.rejects) sfx("pyramid.invalid", "wrong", 0.5);

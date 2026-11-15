@@ -24,7 +24,7 @@ import { isLevel, LEVEL_LABEL, NORMAL, type Level } from "@/lib/levels/levels";
 import { typesAlsoIn } from "./alsoIn";
 import { arcadeGroupInfo, arcadeGroupOf, arcadeGroupTypes, type ArcadeGroup } from "./arcadeGroups";
 import { normaliseCategories } from "./categories";
-import { puzzleDef, typesInCategory } from "./catalogue";
+import { puzzleDef, shownTimeLimitMs, typesInCategory } from "./catalogue";
 import { roomRoundCount } from "./selection";
 import type { PuzzleCategory, PuzzleType } from "./types";
 
@@ -304,7 +304,8 @@ function averageLimitS(pick: RoomPick, picks: readonly RoomPick[]): number {
   const types = pickTypes(pick, picks);
   if (!types.length) return 0;
   return (
-    types.reduce((sum, t) => sum + (puzzleDef(t).timeLimitMs ?? 60_000), 0) / types.length / 1000
+    // The clock each game is actually dealt (DEALT_CLOCK_MS; 15 Nov 2026, Joe).
+    types.reduce((sum, t) => sum + shownTimeLimitMs(t), 0) / types.length / 1000
   );
 }
 

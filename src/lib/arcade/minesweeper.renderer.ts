@@ -22,12 +22,12 @@ import {
   MINES_CELL,
   MINES_CELLS,
   minesCountFor,
+  minesProgress,
   MINES_FLAG,
   MINES_FRAME,
   MINES_HIDDEN,
   MINES_OPEN,
   MINES_RUN_TICKS,
-  minesSafeFor,
   MINES_WORLD_H,
   MINES_WORLD_W,
   minesCellX,
@@ -271,14 +271,24 @@ function paintBoard(ctx: CanvasRenderingContext2D, s: MinesState, over: boolean)
   }
 }
 
-/** The HUD chips across the top: mines left (25 less flags and mines hit), safe squares and mines hit. */
+/**
+ * The HUD's figures (Logic review, 15 Nov 2026; display only): the safe squares beyond the free opening, as the reveal
+ * counts them ("33 of 87"), and the mines less the flags placed (a mine hit no longer counts as one found).
+ */
+export function minesHudFigures(s: Pick<MinesState, "open" | "revealed" | "opening" | "rev">): { safe: string; cleared: boolean; minesLeft: number } {
+  let flags = 0;
+  for (let i = 0; i < MINES_CELLS; i++) if (s.open[i] === MINES_FLAG) flags += 1;
+  const { got, of } = minesProgress(s);
+  return { safe: `${got}/${of}`, cleared: got >= of, minesLeft: minesCountFor(s.rev) - flags };
+}
+
+/** The HUD chips across the top: safe squares (beyond the opening), mines less flags placed, and mines hit. */
 function paintHud(ctx: CanvasRenderingContext2D, s: MinesState): void {
-  let marked = 0;
-  for (let i = 0; i < MINES_CELLS; i++) if (s.open[i] === MINES_FLAG || s.open[i] === MINES_BOOM) marked += 1;
+  const f = minesHudFigures(s);
   // Pill chips (3 Nov 2026), the main count (safe squares) top left.
   drawHudPillRow(ctx, 10, 8, [
-    { label: "Safe", value: `${s.revealed}/${minesSafeFor(s.rev)}`, opts: { gold: s.revealed >= minesSafeFor(s.rev) } },
-    { label: "Mines", value: String(minesCountFor(s.rev) - marked) },
+    { label: "Safe", value: f.safe, opts: { gold: f.cleared } },
+    { label: "Mines", value: String(f.minesLeft) },
     { label: "Hits", value: String(s.hits), opts: { alert: s.hits > 0 } },
   ]);
 }

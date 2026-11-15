@@ -327,8 +327,16 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
     const age = state.tick - (state.doneTick[lastHit] ?? -99);
     if (lastHit >= 0 && state.dp.combo > 0 && m >= 2 && age >= 0 && age < 18) drawComboTag(ctx, hitOrigin.x + cellW / 2, hitOrigin.y + cellH * 0.18, cell, m, age);
   }
-  successFrame(ctx, { id: 'whack', tick: state.tick, count: state.hits, misses: state.wrong + state.bombs + state.empty, colour: PALETTE.gold, width: size.width, height: size.height, eventTick: state.doneTick[lastHit], point: { x: hitOrigin.x + cellW / 2, y: hitOrigin.y + cellH / 2 - 8, shape: 'spark' }, enabled: lastHit >= 0 && state.schedule.kind[lastHit] === 0 });
+  successFrame(ctx, { id: 'whack', tick: state.tick, count: state.hits, misses: state.wrong + state.bombs + state.empty, colour: PALETTE.gold, width: size.width, height: size.height, eventTick: state.doneTick[lastHit], point: { x: hitOrigin.x + cellW / 2, y: hitOrigin.y + cellH / 2 - 8, shape: 'spark' }, enabled: whackSparkEnabled(state.status, lastHit) });
   ctx.restore();
+}
+
+/**
+ * The success spark over the last hit (speed review fixes, 15 Nov 2026; display only): every correct hit (a HIT is
+ * always the hat the rule names), red hats as well as gold; it used to draw only for gold-hat targets.
+ */
+export function whackSparkEnabled(status: ArrayLike<number>, lastHit: number): boolean {
+  return lastHit >= 0 && status[lastHit] === WHACK_STATUS_HIT;
 }
 
 /* ------------------------------ whackRev 3: diamonds and the combo ------------------------------ */

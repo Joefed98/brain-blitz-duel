@@ -34,6 +34,7 @@ import { kitBands, median, sentAnswer } from "./standard-lib";
 import { TIMELINE_MARK } from "../src/lib/duel/standard/timeline";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
+import { pinPreNotesFree } from "../src/lib/duel/notesFree";
 
 // Written for the standard's stamps: the partial-credit fixes of 7 Nov 2026 (partialCredit.ts) deal
 // Blackout, Hanoi and Polypotions one stamp above, so new deals here keep the standard's (partial-credit-check proves the new stamps).
@@ -102,6 +103,11 @@ interface Example {
   solve: string[];
   /** The slow example's drafts (a mistake made and taken back where the game has a bonus for none). */
   slow: string[];
+  /**
+   * Mosaic, Tents and Lamplighter (notesRev 1): the same wrong mark LEFT on the board while the next right one goes
+   * down, then taken off (a scored mark the player leaves, so it still costs).
+   */
+  left?: string[];
   /** Half the parts done. */
   half: string[];
 }
@@ -184,7 +190,7 @@ function nonoEx(p: Of<"nonogram">): Example {
   const wrongCell = [...Array(n).keys()].find((c) => !pattern[c])!;
   const solve = prefixes(cells, enc);
   // Slow: a wrong cell filled and cleared first.
-  return { solve, slow: [enc([wrongCell]), enc([]), ...solve], half: solve.slice(0, Math.floor(cells.length / 2)) };
+  return { solve, slow: [enc([wrongCell]), enc([]), ...solve], left: [enc([wrongCell]), enc([wrongCell, cells[0]!]), ...solve], half: solve.slice(0, Math.floor(cells.length / 2)) };
 }
 
 function floodEx(p: Of<"flood">): Example {
@@ -199,7 +205,7 @@ function tentsEx(p: Of<"tents">): Example {
   const solSet = new Set(sol);
   const wrongCell = [...Array(p.size * (p.height ?? p.size)).keys()].find((c) => !trees.has(c) && !solSet.has(c))!;
   const solve = prefixes(sol, encodeTents);
-  return { solve, slow: [encodeTents([wrongCell]), encodeTents([]), ...solve], half: solve.slice(0, Math.floor(sol.length / 2)) };
+  return { solve, slow: [encodeTents([wrongCell]), encodeTents([]), ...solve], left: [encodeTents([wrongCell]), encodeTents([wrongCell, sol[0]!]), ...solve], half: solve.slice(0, Math.floor(sol.length / 2)) };
 }
 
 function shikakuEx(p: Of<"shikaku">): Example {
@@ -233,7 +239,7 @@ function lightupEx(p: Of<"lightup">): Example {
   const solSet = new Set(sol);
   const wrongCell = [...Array(p.size * (p.height ?? p.size)).keys()].find((c) => !walls.has(c) && !solSet.has(c))!;
   const solve = prefixes(sol, encodeBulbs);
-  return { solve, slow: [encodeBulbs([wrongCell]), encodeBulbs([]), ...solve], half: solve.slice(0, Math.floor(sol.length / 2)) };
+  return { solve, slow: [encodeBulbs([wrongCell]), encodeBulbs([]), ...solve], left: [encodeBulbs([wrongCell]), encodeBulbs([wrongCell, sol[0]!]), ...solve], half: solve.slice(0, Math.floor(sol.length / 2)) };
 }
 
 const EXAMPLES: Record<LogicStandardType, (p: PuzzleData) => Example> = {
@@ -281,21 +287,30 @@ const EXPECTED: Record<LogicStandardType, { fast: number; slow: number; half: nu
   bomb: { fast: 200, slow: 175, half: 65 },
   // Mosaic (120 s, full by 60 s, 34 cells): fast 150 + 40 + 10. Slow: a wrong cell filled and cleared, clean 7.5 → 8,
   // speed 20 → 178. Half: 17 cells at 1…17 s: 60 + (10 ÷ 34) × (17 − 153 ÷ 120) = 4.6 → 65.
-  nonogram: { fast: 200, slow: 178, half: 65 },
+  nonogram: { fast: 200, slow: 180, half: 65 },
+  // Changed with Joe's approval, 15 Nov 2026 (notes never count as mistakes): on notesRev 1 the wrong mark taken back
+  // by the very next tap is the tap that cycles it to its note and costs nothing (clean 10, speed 20 → 180); a wrong
+  // mark left in place still costs (section 2b), and the pinned older stamp keeps 178 (section 2b).
   // Colour Flood (60 s, full by 30 s, par 10): fast 150 + 10 + 40. Slow: par at 45 s, speed 10 × 15 ÷ 30 = 5 → 195.
   // Half: 5 of the 10 moves flood 67 of the 194 cells outside the start region: 120 × 67 ÷ 194 = 41.4, early
   // 67 × (10 ÷ 194) × (1 − about 4 s ÷ 60) ≈ 3.3 → 45.
   flood: { fast: 200, slow: 195, half: 45 },
   // Tents and Trees (90 s, full by 45 s, 12 trees): fast 150 + 40 + 10. Slow: a wrong tent pitched and removed, 178.
   // Half: 6 tents at 1…6 s: 60 + (10 ÷ 12) × (6 − 21 ÷ 90) = 4.8 → 65.
-  tents: { fast: 200, slow: 178, half: 65 },
+  tents: { fast: 200, slow: 180, half: 65 },
+  // Changed with Joe's approval, 15 Nov 2026 (notes never count as mistakes): on notesRev 1 the wrong mark taken back
+  // by the very next tap is the tap that cycles it to its note and costs nothing (clean 10, speed 20 → 180); a wrong
+  // mark left in place still costs (section 2b), and the pinned older stamp keeps 178 (section 2b).
   // Shikaku (90 s, full by 45 s, 10 × 11): fast 150 + 40 + 10. Slow: a wrong rectangle drawn and removed, 178.
   // Half: 9 of 18 rectangles cover 72 of 110 cells: 120 × 72 ÷ 110 = 78.5, early ≈ 72 × (10 ÷ 110) × (1 − about 5 s
   // ÷ 90) ≈ 6.2 → 85.
   shikaku: { fast: 200, slow: 178, half: 85 },
   // Lamplighter (90 s, full by 45 s, 19 bulbs): fast 150 + 40 + 10. Slow: a wrong bulb placed and removed, 178.
   // Half: 9 bulbs at 1…9 s: 120 × 9 ÷ 19 = 56.8, early (10 ÷ 19) × (9 − 45 ÷ 90) = 4.5 → 61.
-  lightup: { fast: 200, slow: 178, half: 61 },
+  lightup: { fast: 200, slow: 180, half: 61 },
+  // Changed with Joe's approval, 15 Nov 2026 (notes never count as mistakes): on notesRev 1 the wrong mark taken back
+  // by the very next tap is the tap that cycles it to its note and costs nothing (clean 10, speed 20 → 180); a wrong
+  // mark left in place still costs (section 2b), and the pinned older stamp keeps 178 (section 2b).
 };
 
 const FULL_BY_S: Record<LogicStandardType, number> = { lightsout: 20, sudoku: 45, tower: 45, tubes: 45, safe: 30, bomb: 30, nonogram: 60, flood: 30, tents: 45, shikaku: 45, lightup: 45 };
@@ -322,6 +337,28 @@ for (const type of LOGIC_STANDARD_TYPES) {
   expect(`${type} blank`, blank.score, 0);
   expect(`${type} fast is a finish`, fast.isCorrect, true);
   expect(`${type} half is unfinished`, half.isCorrect, false);
+}
+
+/* ------------------------------------------------------------------ 2b. Notes never count as mistakes */
+// Changed with Joe's approval, 15 Nov 2026 (notes never count as mistakes): Mosaic, Tents and Lamplighter deal
+// notesRev 1 (notesFree.ts). A wrong mark left on the board while the next right one goes down still costs 2.5 of the
+// clean bonus (178); on the older stamp (pinPreNotesFree) the mark taken back by the very next tap still costs, exactly
+// as before (178), and so does the one left.
+for (const type of ["nonogram", "tents", "lightup"] as const) {
+  const fresh = deal(type);
+  expect(`${type}: the live deal carries notesRev 1`, (fresh as { notesRev?: number }).notesRev, 1);
+  const before = pinPreNotesFree(true);
+  const old = deal(type);
+  pinPreNotesFree(before);
+  expect(`${type}: the pinned older deal has no notesRev`, (old as { notesRev?: number }).notesRev, undefined);
+  for (const [label, p, slow] of [["notesRev 1", fresh, 180], ["older stamp", old, 178]] as const) {
+    const limit = puzzleTimeLimitMs(p);
+    const slowEnd = Math.round(FULL_BY_S[type] * 1000 + (limit - FULL_BY_S[type] * 1000) / 2);
+    const ex = EXAMPLES[type](p);
+    expect(`${type} ${label}: a wrong mark taken back by the very next tap`, play(p, endingAt(ex.slow, slowEnd), true).score, slow);
+    expect(`${type} ${label}: a wrong mark left in place while the next goes down`, play(p, endingAt(ex.left!, slowEnd), true).score, 178);
+    expect(`${type} ${label}: finished fast`, play(p, timed(ex.solve, 1000, 400), true).score, 200);
+  }
 }
 
 /* ------------------------------------------------------------------ 3. History-based clean bonuses */

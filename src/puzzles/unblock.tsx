@@ -3,7 +3,7 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useState } from "react";
 
 import { UnblockBoard, UnblockPuzzle } from "@/components/puzzles/UnblockPuzzle";
-import { applyMove, decodeMoves } from "@/lib/duel/unblock";
+import { applyMove, decodeMoves, replayUnblock } from "@/lib/duel/unblock";
 import "@/polish-layout/polish-nov3-pattern.css";
 import { UNBLOCK_TIME_MS, type UnblockPuzzleData, type UnblockVehicle } from "@/lib/duel/types";
 
@@ -111,9 +111,13 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   const available = shortest !== null;
   const shown = available ? (playOut(solution.slice(0, step)) ?? start) : start;
   // A solved player's own final board (the results screen's time-lapse plays the winner's moves through it).
-  const yours = myCorrect ? (playOut(decodeMoves(myAnswer ?? "")) ?? start) : null;
+  // Pattern review fixes (15 Nov 2026, display only): the answer's Undo (-1:0) and Reset (-2:0) markers are
+  // replayed as the grader replays them (replayUnblock), so the board is the one the player left and "your moves"
+  // is the grader's count of slides played, never the markers.
+  const replay = start.length > 0 ? safeReplay(start, myAnswer ?? "") : null;
+  const yours = myCorrect ? (replay?.vehicles ?? start) : null;
 
-  const mine = decodeMoves(myAnswer ?? "").length;
+  const mine = replay?.moves ?? 0;
   const min = puzzle.minMoves ?? 0;
 
   return (
@@ -152,7 +156,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
         </p>
       )}
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {myCorrect ? "✓" : "✗"} your moves: <span className="text-primary">{mine}</span>
+        your moves: <span className="text-primary">{mine}</span>
         {min > 0 ? ` · ${(puzzle.unblockRev ?? 0) >= 1 ? "par" : "min"} ${min}` : ""}
       </p>
       {myCorrect ? (
@@ -162,6 +166,15 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
       ) : null}
     </div>
   );
+}
+
+/** The grader's own replay of a stored answer (undo and reset markers included); null if it can't be read. */
+export function safeReplay(start: UnblockVehicle[], answer: string) {
+  try {
+    return replayUnblock(start, decodeMoves(answer));
+  } catch {
+    return null;
+  }
 }
 
 /** Layouts come from a verified bank; the minimum and its solution stay server-side. */

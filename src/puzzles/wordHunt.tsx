@@ -79,7 +79,7 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const more = mine.length - shown.length;
   return (
     <div data-word-reveal="wordhunt" className="flex w-full flex-col items-center gap-3">
-      <p className="font-mono text-base uppercase tracking-widest text-foreground">{mine.length} words</p>
+      <p className="font-mono text-base uppercase tracking-widest text-foreground">{mine.length} {mine.length === 1 ? "word" : "words"}</p>
 
       {shown.length > 0 && (
         <ul className="word-reveal-list w-full">
