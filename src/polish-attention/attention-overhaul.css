@@ -193,3 +193,269 @@ html body .bomb-clues.bomb-clues {
   white-space: nowrap;
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35);
 }
+
+/* ------------------------------------------------------------------ the reveals (RevealParts.tsx) */
+.attn-rv {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.attn-rv-tabs.attn-rv-tabs {
+  width: 100%;
+}
+.attn-rv-tabs [data-tone="good"]::after,
+.attn-rv-tabs [data-tone="bad"]::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  vertical-align: middle;
+  background: var(--jz-gold);
+}
+.attn-rv-tabs [data-tone="bad"]::after {
+  background: var(--warn);
+}
+/* The numbers that explain the score: big, plain, tabular. */
+.attn-rv-stats {
+  display: grid;
+  width: 100%;
+  gap: 6px;
+}
+.attn-rv-stat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: var(--jz-navy);
+  border: 1px solid var(--jz-navy-edge);
+}
+.attn-rv-stat-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.attn-rv-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-white, #fff);
+  white-space: nowrap;
+}
+.attn-rv-stat[data-tone="good"] .attn-rv-stat-value {
+  color: var(--jz-gold);
+}
+.attn-rv-stat[data-tone="bad"] .attn-rv-stat-value {
+  color: var(--warn);
+}
+/* The key: one swatch per mark on the board. */
+.attn-rv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.attn-rv-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.attn-rv-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+[data-attn-mark="found"] .attn-rv-swatch { border: 2.5px solid var(--jz-gold); }
+[data-attn-mark="wrong"] .attn-rv-swatch { border: 2.5px solid var(--warn); }
+[data-attn-mark="missed"] .attn-rv-swatch { border: 2.5px dashed var(--warn); }
+[data-attn-mark="trail"] .attn-rv-swatch { height: 5px; border-radius: 3px; background: var(--jz-gold); }
+[data-attn-mark="route"] .attn-rv-swatch { height: 0; border-top: 3px dashed var(--jz-cyan); border-radius: 0; }
+[data-attn-mark="dim"] .attn-rv-swatch { background: var(--jz-surface-2); opacity: 0.6; }
+
+/* Eagle Eye's reveal: the grid as wide as the screen allows (up to 360 px), found / wrong / missed rings. */
+html body .eye-reveal .eye-reveal-grid {
+  width: min(100%, 360px);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="target"] {
+  box-shadow: inset 0 0 0 2.5px var(--jz-gold), 0 2px 3px rgb(0 0 0 / 0.45);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="wrong"] {
+  border: 0;
+  box-shadow: inset 0 0 0 2.5px var(--warn), 0 2px 3px rgb(0 0 0 / 0.45);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="missed"] {
+  border: 2.5px dashed var(--warn);
+}
+
+/* Double Take's reveal: the differences as small before → after pictures, three a row. */
+.dt-rv-diffs {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dt-rv-diff {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--jz-navy);
+  border: 2.5px dashed var(--warn);
+}
+.dt-rv-diff[data-got] {
+  border: 2.5px solid var(--jz-gold);
+}
+.dt-rv-piece {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+.dt-rv-arrow {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--jz-text-2);
+}
+.dt-rv-star {
+  position: absolute;
+  top: 1px;
+  right: 5px;
+  font-size: 12px;
+  color: var(--jz-gold);
+}
+
+/* Matchmaker's reveal: pairs you matched bright with a gold edge, the rest dimmed. */
+[data-pair-reveal-board] .pairmatch-face-front:not(.is-matched) {
+  opacity: 0.6;
+}
+
+/* Labyrinth's reveal: the maze as wide as the screen allows; the key's route in the ghost route's own colour. */
+[data-attn-reveal="maze"] .maze-reveal-board {
+  width: min(100%, 360px);
+}
+[data-attn-reveal="maze"] [data-attn-mark="route"] .attn-rv-swatch {
+  border-top-color: var(--maze-start);
+}
+
+/* Bomb Defusal's reveal: one step track, the right action beside yours. */
+.bomb-rv-steps {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bomb-rv-head,
+.bomb-rv-step {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.bomb-rv-head {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--jz-text-2);
+  text-align: center;
+}
+.bomb-rv-step {
+  min-height: 40px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 10px;
+  background: var(--jz-navy);
+  border: 1.5px solid var(--jz-navy-edge);
+}
+.bomb-rv-step[data-step-state="right"] {
+  border-color: color-mix(in srgb, var(--jz-gold) 70%, transparent);
+}
+.bomb-rv-step[data-step-state="wrong"] {
+  border: 2.5px solid var(--warn);
+}
+.bomb-rv-step[data-step-state="after"] {
+  opacity: 0.5;
+}
+.bomb-rv-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--jz-gold);
+  color: var(--jz-navy);
+  font-size: 12px;
+  font-weight: 800;
+}
+.bomb-rv-pic {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.bomb-rv-none {
+  justify-content: center;
+  color: var(--jz-text-3);
+}
+.bomb-rv-wire {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 10px;
+  border-radius: 999px;
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+}
+/* The cut: a small gap across the wire's middle. */
+.bomb-rv-wire > i {
+  position: absolute;
+  left: 18px;
+  top: -2px;
+  width: 4px;
+  height: 14px;
+  background: var(--jz-navy);
+  transform: skewX(-18deg);
+}
+.bomb-rv-cap {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background-size: 100% 100%;
+  font-size: 12px;
+  font-weight: 800;
+}
+.bomb-rv-word {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

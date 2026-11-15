@@ -27,6 +27,7 @@ import "@/polish-layout/polish-nov3-speedatt.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { pairSprite } from "@/components/puzzles/attention/attentionArt";
 import { pairClear } from "@/lib/duel/attentionOverhaul";
+import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
 
 /**
  * pairRev 4 (the Attention overhaul): the card's symbol is a Blender-rendered enamel inlay with a champagne-gold rim,
@@ -317,22 +318,37 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   const stored = (key: string) => (typeof myExtra?.[key] === "number" ? `, +${myExtra[key] as number}` : "");
   const everything = new Set(Array.from({ length: PAIR_CARDS }, (_, index) => index));
 
+  const matched = new Set(replay.matched);
+  const clear = pairClear(puzzle);
+  const goldText = depth ? (depth.goldTry !== null && depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)} s` : depth.goldTry !== null ? `Try ${depth.goldTry}` : "–") : null;
+  // The Attention overhaul's reveal (15 Nov 2026): the whole board face up and large, the pairs you matched bright with a
+  // gold edge and the ones you didn't dimmed, then the numbers that explain the score as tiles.
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <div className="w-full max-w-[288px] shrink-0">
-        <Board cards={puzzle.cards} faceUp={everything} matched={new Set()} glyph={pairClear(puzzle) ? 30 : 22} cols={pairClear(puzzle) ? PAIR_CLEAR_COLS : 6} clear={pairClear(puzzle)} compact gold={depth ? puzzle.gold : undefined} />
+    <div className="attn-rv min-h-0 flex-1" data-attn-reveal="pairmatch">
+      <div className={`pairmatch-reveal-board w-full shrink-0 ${clear ? "max-w-[360px]" : "max-w-[320px]"}`} data-pair-reveal-board="">
+        <Board cards={puzzle.cards} faceUp={everything} matched={matched} glyph={clear ? 40 : 28} cols={clear ? PAIR_CLEAR_COLS : 6} clear={clear} compact gold={depth ? puzzle.gold : undefined} />
       </div>
-      <p
-        className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
-      >
-        {replay.pairs} / {PAIR_PAIRS} · {replay.flips} flips
-        {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
-      </p>
+      <RevealLegend
+        items={[
+          { mark: "found", label: "You matched" },
+          { mark: "dim", label: "Not matched" },
+        ]}
+      />
+      <RevealStats
+        game="pairmatch"
+        items={[
+          { id: "pairs", label: "Pairs", value: `${replay.pairs} of ${PAIR_PAIRS}`, tone: replay.solved ? "good" : undefined },
+          { id: "flips", label: "Flips", value: replay.flips },
+          depth ? { id: "streak", label: "Best streak", value: depth.bestStreak } : null,
+          depth ? { id: "gold", label: "Gold", value: goldText, tone: depth.goldTry !== null ? "good" : undefined } : null,
+        ]}
+      />
       {depth ? (
-        <p data-pair-reveal-bonus="" className="text-center font-mono text-xs text-muted-foreground">
+        <p data-pair-reveal-bonus="" className="text-center text-sm font-semibold text-muted-foreground">
           {pairStandard(puzzle)
-            ? `Best streak ${depth.bestStreak}${stored("streakPoints")} · gold ${depth.goldTry !== null && depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)}s${stored("goldPoints")}` : "not found"}`
-            : `Best streak ${depth.bestStreak} · streak +${depth.streakBonus} · gold ${depth.goldTry !== null ? (depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)}s, +${depth.goldBonus}` : `try ${depth.goldTry}, +${depth.goldBonus}`) : "not found"}`}
+            ? `Gold pair ${depth.goldTry !== null && depth.goldMs !== null ? `matched at ${(depth.goldMs / 1000).toFixed(1)} s${stored("goldPoints")}` : "not found"}${typeof myExtra?.["streakPoints"] === "number" && (myExtra["streakPoints"] as number) > 0 ? ` · streak +${myExtra["streakPoints"] as number}` : ""}`
+            : `Streak bonus +${depth.streakBonus} · gold ${depth.goldTry !== null ? `+${depth.goldBonus}` : "not found"}`}
+          {elapsed !== null && myCorrect ? ` · finished in ${elapsed.toFixed(1)} s` : ""}
         </p>
       ) : null}
     </div>

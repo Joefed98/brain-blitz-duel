@@ -23,6 +23,7 @@ import {
 
 import { playDifferenceGlow } from "./doubleTakeArt";
 import { attentionArt, spotSprite } from "@/components/puzzles/attention/attentionArt";
+import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
 import { spotWaitsForNext } from "@/lib/duel/attentionOverhaul";
 import { SPOT_BONUS_SCALE, SPOT_DEPTH_REV } from "@/lib/duel/depth/doubleTake";
 import { ATTENTION_REWORK_TIME_MS, SPOT_TWO_WRONG_LIMIT, parseSpotTaps, spotScenes, type SpotTheme } from "@/lib/duel/attentionRev";
@@ -567,6 +568,47 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   );
 }
 
+/**
+ * One difference as two small pieces, the top panel's then the bottom's, each drawn as the panel draws it (its turn,
+ * mirror and size), ringed gold when found, dashed when missed. Its plain label is for screen readers and the title.
+ */
+function DifferenceCard({
+  label,
+  cell,
+  top,
+  bottom,
+  theme,
+  got,
+  hidden = false,
+}: {
+  label: string;
+  cell: number;
+  top: SpotShape[];
+  bottom: SpotShape[];
+  theme: SpotTheme;
+  got: boolean;
+  hidden?: boolean;
+}) {
+  const piece = (shape: SpotShape | undefined) =>
+    shape ? (
+      <img
+        src={spotSprite(theme, shape.kind, shape.colour)}
+        alt=""
+        draggable={false}
+        className="dt-rv-piece"
+        style={{ transform: `${shape.rot ? `rotate(${shape.rot}deg) ` : ""}${shape.flip ? "scaleX(-1) " : ""}scale(${shape.small ? SPOT_BONUS_SCALE : 1})` }}
+      />
+    ) : null;
+  return (
+    <li className="dt-rv-diff" data-got={got ? "" : undefined} data-hidden={hidden ? "" : undefined} data-dt-hidden-line={hidden ? (got ? "found" : "missed") : undefined} title={label} aria-label={`${label}: ${got ? "found" : "missed"}`}>
+      {piece(top.find((s) => s.cell === cell))}
+      <span className="dt-rv-arrow" aria-hidden="true">→</span>
+      {piece(bottom.find((s) => s.cell === cell))}
+      {hidden ? <span className="dt-rv-star" aria-hidden="true">★</span> : null}
+    </li>
+  );
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const [shown, setShown] = useState<number | null>(null);
   const [panelSide, setPanelSide] = useState<"top" | "bottom">("bottom");
@@ -601,42 +643,34 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const totalFound = pictures.reduce((n, p) => n + p.found.length, 0);
   const totalDiffs = twoPictures ? differences.length : SPOT_DIFFERENCES;
 
+  // Misses as the server counts them: taps on no difference (the hidden seventh is never a miss).
+  const misses = pictures.reduce((n, p, i) => {
+    const cells = new Set([...p.own.flatMap((d) => d.cells), ...(p.bonus ? p.bonus.cells : [])]);
+    return n + (tapsByScene[i] ?? []).filter((c) => !cells.has(c)).length;
+  }, 0);
+  const hiddenPic = pictures.find((p) => p.bonus);
+
+  // The Attention overhaul's reveal (15 Nov 2026): a tab for each picture, one panel at a time at full width with the
+  // rings, every difference as a small before → after picture (found ringed gold, missed dashed), the numbers as tiles.
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1.5">
+    <div className="attn-rv min-h-0 flex-1" data-attn-reveal="spotdiff">
       {twoPictures ? (
-        <div className="flex w-full gap-1" role="tablist" aria-label="Pictures">
-          {pictures.map((p, i) => (
-            <button
-              key={i}
-              type="button"
-              role="tab"
-              aria-selected={i === open}
-              onClick={() => setShown(i)}
-              className={`min-h-11 flex-1 rounded-xl border px-2 font-mono text-sm font-bold ${i === open ? "border-primary/70 bg-card" : "border-transparent bg-card/60"} ${
-                p.found.length === p.own.length ? "text-primary" : "text-warn"
-              }`}
-            >
-              Picture {i + 1} · {p.found.length} / {p.own.length}
-            </button>
-          ))}
-        </div>
+        <RevealTabs
+          label="Pictures"
+          value={open}
+          onChange={setShown}
+          options={pictures.map((p, i) => ({ value: i, label: i === 0 ? "Sweet shop" : "Rock pool", tone: p.found.length === p.own.length ? "good" : "bad" }))}
+        />
       ) : null}
-      {/* The Attention overhaul: one panel at a time at full width (the top or the bottom one), the rings on both. */}
-      <div className="flex w-full gap-1" role="tablist" aria-label="Panels" data-dt-panel-switch="">
-        {(["top", "bottom"] as const).map((side) => (
-          <button
-            key={side}
-            type="button"
-            role="tab"
-            aria-selected={side === panelSide}
-            onClick={() => setPanelSide(side)}
-            data-attn-action={side === panelSide ? "primary" : "secondary"}
-            className="attn-action min-h-11 flex-1 rounded-xl px-2 font-display text-sm font-bold uppercase tracking-wide"
-          >
-            {side === "top" ? "Top picture" : "Bottom picture"}
-          </button>
-        ))}
-      </div>
+      <RevealTabs
+        label="Panels"
+        value={panelSide}
+        onChange={setPanelSide}
+        options={[
+          { value: "top" as const, label: "Top picture" },
+          { value: "bottom" as const, label: "Bottom picture" },
+        ]}
+      />
       <div className="dt-reveal-panels dt-arena w-full overflow-hidden rounded-2xl border border-border bg-card p-1" data-dt-theme={pic.scene.theme} data-dt-reveal-side={panelSide}>
         <div className="w-full overflow-hidden rounded-lg">
           <Panel
@@ -648,28 +682,44 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           />
         </div>
       </div>
-      <div className="flex w-full flex-col gap-0.5">
-        {pic.own.map((difference, index) => {
-          const got = pic.found.includes(difference);
-          return (
-            <div key={index} className="flex items-center justify-between text-base leading-6">
-              <span className="text-foreground/80">{themedLabel(difference, pic.scene.theme, pic.scene.top)}</span>
-              <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
-                {got ? "✓" : "✗"}
-              </span>
-            </div>
-          );
-        })}
+      <ul className="dt-rv-diffs" aria-label="The differences" data-dt-diffs="">
+        {pic.own.map((difference, index) => (
+          <DifferenceCard
+            key={index}
+            label={themedLabel(difference, pic.scene.theme, pic.scene.top)}
+            cell={difference.cells[0]!}
+            top={pic.scene.top}
+            bottom={pic.scene.bottom}
+            theme={pic.scene.theme}
+            got={pic.found.includes(difference)}
+          />
+        ))}
         {pic.bonus ? (
-          <div className="flex items-center justify-between text-base leading-6" data-dt-hidden-line={pic.bonusGot ? "found" : "missed"}>
-            <span className="text-foreground/80">★ Hidden: {themedLabel(pic.bonus, pic.scene.theme, pic.scene.top)}</span>
-            <span className={`font-display font-bold ${pic.bonusGot ? "text-primary" : "text-muted-foreground"}`}>{pic.bonusGot ? "✓" : "–"}</span>
-          </div>
+          <DifferenceCard
+            label={`Hidden: ${themedLabel(pic.bonus, pic.scene.theme, pic.scene.top)}`}
+            cell={pic.bonus.cells[0]!}
+            top={pic.scene.top}
+            bottom={pic.scene.bottom}
+            theme={pic.scene.theme}
+            got={pic.bonusGot}
+            hidden
+          />
         ) : null}
-      </div>
-      <p className="font-mono text-2xl font-bold tabular-nums text-primary">
-        {totalFound} / {totalDiffs} found
-      </p>
+      </ul>
+      <RevealLegend
+        items={[
+          { mark: "found", label: "Found" },
+          { mark: "missed", label: "Missed" },
+        ]}
+      />
+      <RevealStats
+        game="spotdiff"
+        items={[
+          { id: "found", label: "Found", value: `${totalFound} of ${totalDiffs}`, tone: totalFound === totalDiffs ? "good" : undefined },
+          { id: "misses", label: "Wrong taps", value: misses, tone: misses ? "bad" : undefined },
+          hiddenPic ? { id: "hidden", label: "Hidden 7th", value: hiddenPic.bonusGot ? "Found" : "Missed", tone: hiddenPic.bonusGot ? "good" : undefined } : null,
+        ]}
+      />
     </div>
   );
 }

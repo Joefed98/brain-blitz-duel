@@ -26,6 +26,7 @@ import { dealtTopupRev } from "@/lib/duel/depthTopup";
 import { scanStandard } from "@/lib/duel/standard/attention";
 import { playEagleTakeoff } from "./eagleEyeArt";
 import { eagleSprite } from "@/components/puzzles/attention/attentionArt";
+import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
@@ -329,11 +330,32 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     const selected = parseSelection(parts[s] ?? "");
     return { stage, targets, selected, result: gridResult(puzzle, s, selected, targets) };
   });
-  // One grid at a time, large enough to read; the first grid with a slip opens first.
+  // The Attention overhaul's reveal (15 Nov 2026): one grid at a time, large, a tab for each; the eagles you found ringed
+  // gold, wrong taps red, the ones you missed dashed; the grid's numbers as tiles. The first grid with a slip opens first.
   const open = shown ?? Math.max(0, grids.findIndex((g) => !g.result.perfect));
   const grid = grids[open]!;
+  const missed = Math.max(0, grid.result.targets - grid.result.found);
   return (
-    <div className="eye-reveal flex w-full flex-col items-center gap-2">
+    <div className="eye-reveal attn-rv" data-attn-reveal="symscan">
+      <RevealTabs
+        label="Grids"
+        value={open}
+        onChange={(s) => {
+          soundCue("symscan.revealGrid");
+          setShown(s);
+        }}
+        options={grids.map((g, s) => ({ value: s, label: `Grid ${s + 1}`, tone: g.result.perfect ? "good" : "bad" }))}
+      />
+      <div className="flex items-center gap-2" data-eye-reveal-target="">
+        <span className="text-sm font-semibold text-muted-foreground">{grid.stage.alsoTarget ? "Targets" : "Target"}</span>
+        <EagleIcon dir={grid.stage.target} gold size={36} />
+        {grid.stage.alsoTarget ? (
+          <>
+            <span className="text-sm font-semibold text-muted-foreground">or</span>
+            <EagleIcon dir={grid.stage.alsoTarget} gold size={36} />
+          </>
+        ) : null}
+      </div>
       <div
         className="eye-reveal-grid grid gap-1"
         style={{ gridTemplateColumns: `repeat(${grid.stage.cols}, minmax(0, 1fr))` }}
@@ -346,33 +368,22 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           return <CellBox key={`${open}-${index}`} index={index} dir={dir} state={state} />;
         })}
       </div>
-      <div className="flex w-full flex-col gap-1" role="tablist" aria-label="Grids">
-        {grids.map(({ stage, result }, s) => (
-          <button
-            key={s}
-            type="button"
-            role="tab"
-            aria-selected={s === open}
-            onClick={() => {
-              soundCue("symscan.revealGrid");
-              setShown(s);
-            }}
-            className={`eye-reveal-row flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 text-left ${
-              s === open ? "border-primary/70 bg-card" : "border-transparent bg-card/60"
-            }`}
-          >
-            <span className="flex shrink-0 items-center gap-1.5 text-primary">
-              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Grid {s + 1}</span>
-              <EagleIcon dir={stage.target} size={20} />
-              {stage.alsoTarget ? <><span className="text-[10px] font-bold uppercase">or</span><EagleIcon dir={stage.alsoTarget} size={20} /></> : null}
-            </span>
-            <span className={`ml-auto font-mono text-base font-bold ${result.perfect ? "text-primary" : "text-warn"}`}>
-              {/* A grid with none to find says so (4 Nov 2026: it read "0 / 0 found"). */}
-              {result.targets > 0 ? `${result.found} / ${result.targets} found` : "None to find"}{result.wrong ? ` · ${result.wrong} wrong` : ""} {result.perfect ? "✓" : "✗"}
-            </span>
-          </button>
-        ))}
-      </div>
+      <RevealLegend
+        items={[
+          { mark: "found", label: "Found" },
+          { mark: "wrong", label: "Wrong tap" },
+          { mark: "missed", label: "Missed" },
+        ]}
+      />
+      <RevealStats
+        game="symscan"
+        items={[
+          // A grid with none to find says so (4 Nov 2026: it read "0 / 0 found").
+          { id: "found", label: "Found", value: grid.result.targets > 0 ? `${grid.result.found} of ${grid.result.targets}` : "None to find", tone: grid.result.perfect ? "good" : undefined },
+          { id: "wrong", label: "Wrong taps", value: grid.result.wrong, tone: grid.result.wrong ? "bad" : undefined },
+          { id: "missed", label: "Missed", value: missed, tone: missed ? "bad" : undefined },
+        ]}
+      />
       {/* The scoring standard (scanRev 4) scores clean grids from the round's history instead, so the count is not shown. */}
       {usesScanDepth(puzzle) && !scanStandard(puzzle) && scanCorrections(myAnswer) > 0 ? (
         <p data-eye-undone="" className="text-center font-mono text-xs text-muted-foreground">

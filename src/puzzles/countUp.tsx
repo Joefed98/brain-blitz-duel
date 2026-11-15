@@ -3,6 +3,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { tallySprite } from "@/components/puzzles/attention/attentionArt";
 import { tallySpread } from "@/lib/duel/attentionOverhaul";
+import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
 import { fireTallyFinish } from "@/components/puzzles/countUpFx";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
@@ -345,47 +346,55 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+  const [shown, setShown] = useState<number | null>(null);
   if (puzzle.type !== "countup") return null;
   const rev2 = usesCountRev2(puzzle);
   const parts = splitStages(myAnswer, rev2 ? puzzle.stages.length : STAGE_COUNT);
-  // Compact rows (Polish, 13 Oct 2026): a small tray beside each question, so all three
-  // stages fit one phone screen. The answer line renders the same text as before.
+  const trays = puzzle.stages.map((stage, i) => {
+    const truth = rev2 ? countUpStageTruth(stage) : (puzzle.counts?.[i] ?? null);
+    const given = parseCount(parts[i] ?? "");
+    const exact = truth !== null && given === truth;
+    // Near misses that still score: one or two off on stored rounds, only one off on countRev 2.
+    const near = truth !== null && given !== null && !exact && Math.abs(given - truth) <= (rev2 ? 1 : 2);
+    return { stage, truth, given, exact, near };
+  });
+  // The Attention overhaul's reveal (15 Nov 2026): one tray at a time, large, the shapes that count ringed gold; the
+  // right count against yours in big numbers; a tab for each tray. The first tray you got wrong opens first.
+  const open = shown ?? Math.max(0, trays.findIndex((t) => !t.exact));
+  const tray = trays[open]!;
+  const right = trays.filter((t) => t.exact).length;
+  const off = tray.truth !== null && tray.given !== null ? Math.abs(tray.given - tray.truth) : null;
+  const verdict = tray.given === null ? "No answer" : tray.exact ? "Exact" : off === 1 ? "So close: off by 1" : `Off by ${off}`;
   return (
-    <div data-polish-reveal="countup" className={`flex w-full flex-col ${rev2 ? "gap-1.5" : "gap-2"}`}>
-      {puzzle.stages.map((stage, i) => {
-        const truth = rev2 ? countUpStageTruth(stage) : (puzzle.counts?.[i] ?? null);
-        const given = parseCount(parts[i] ?? "");
-        const exact = truth !== null && given === truth;
-        // Near misses that still score: one or two off on stored rounds, only one off on countRev 2.
-        const near = truth !== null && given !== null && !exact && Math.abs(given - truth) <= (rev2 ? 1 : 2);
-        return (
-          <div key={i} className={`tally-reveal-row flex w-full items-center gap-3 rounded-2xl bg-card px-2.5 ${rev2 ? "py-1" : "py-2"}`}>
-            <div className={`${rev2 ? "w-[80px]" : "w-[112px]"} shrink-0`}>
-              {tallySpread(puzzle) ? (
-                <SpreadField stage={stage} width={80} height={80} highlight={(item) => countUpCounts(stage, item)} />
-              ) : (
-              <Field
-                shapes={stage.shapes}
-                cols={stage.cols}
-                rows={stage.rows}
-                highlight={(item) => countUpCounts(stage, item)}
-                height={Math.round((rev2 ? 6.9 : 9.7) * stage.rows)}
-                size={10}
-              />
-              )}
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="font-display text-sm font-bold leading-snug">{countUpStageQuestion(stage)}</p>
-              <p className="font-mono text-base font-bold leading-snug">
-                <span className="text-primary">Answer {truth ?? "—"}</span>
-                <span className={exact ? "text-primary" : near ? "text-foreground" : "text-warn"}>
-                  {" · "}you {given ?? "—"} {exact ? "✓" : near ? "~" : "✗"}
-                </span>
-              </p>
-            </div>
+    <div data-polish-reveal="countup" className="attn-rv" data-attn-reveal="countup">
+      <RevealTabs
+        label="Trays"
+        value={open}
+        onChange={setShown}
+        options={trays.map((t, i) => ({ value: i, label: `Tray ${i + 1}`, tone: t.exact ? "good" : "bad" }))}
+      />
+      <p className="text-center font-display text-base font-bold leading-snug" data-tally-question="">{countUpStageQuestion(tray.stage)}</p>
+      <div className="tally-reveal-tray flex w-full justify-center" data-tally-reveal-tray={open + 1}>
+        {tallySpread(puzzle) ? (
+          <SpreadField stage={tray.stage} width={340} height={300} highlight={(item) => countUpCounts(tray.stage, item)} />
+        ) : (
+          <div className="w-full max-w-[340px]">
+            <Field shapes={tray.stage.shapes} cols={tray.stage.cols} rows={tray.stage.rows} highlight={(item) => countUpCounts(tray.stage, item)} height={260} size={26} />
           </div>
-        );
-      })}
+        )}
+      </div>
+      <RevealLegend items={[{ mark: "found", label: "Counts" }]} />
+      <RevealStats
+        game="countup"
+        items={[
+          { id: "answer", label: "Right count", value: tray.truth ?? "—", tone: "good" },
+          { id: "you", label: "You said", value: tray.given ?? "—", tone: tray.exact ? "good" : "bad" },
+          { id: "verdict", label: "This tray", value: <span className="text-base">{verdict}</span>, tone: tray.exact ? "good" : tray.near ? undefined : "bad" },
+        ]}
+      />
+      <p className="text-center text-sm font-semibold text-muted-foreground" data-tally-right="">
+        {right} of {trays.length} trays exact
+      </p>
     </div>
   );
 }

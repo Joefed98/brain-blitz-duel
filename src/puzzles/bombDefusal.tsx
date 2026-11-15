@@ -1,6 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { capSprite, wireSprite } from "@/components/puzzles/attention/attentionArt";
+import { RevealStats } from "@/components/puzzles/attention/RevealParts";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -440,6 +441,43 @@ export function bombActionAllowed(actions: readonly BombAction[], action: BombAc
   return actions.length < steps && !actions.includes(action);
 }
 
+/** One step as a small picture: a wire's braided sleeve with its number, or a button's cap with its letter; "—" for none. */
+function StepPicture({
+  action,
+  wires,
+  buttons,
+  mine = false,
+}: {
+  action: BombAction | undefined;
+  wires: WireColour[];
+  buttons: { label: "A" | "B"; colour: WireColour }[];
+  mine?: boolean;
+}) {
+  if (!action) return <span className="bomb-rv-pic bomb-rv-none">{mine ? "—" : ""}</span>;
+  if (isCut(action)) {
+    const index = Number.parseInt(action.slice(1), 10);
+    const colour = wires[index] ?? "WHITE";
+    return (
+      <span className="bomb-rv-pic" aria-label={actionLabel(action, wires)}>
+        <span className="bomb-rv-wire" style={{ backgroundImage: `url(${wireSprite(colour)})`, backgroundColor: WIRE_HEX[colour] }} aria-hidden="true">
+          <i />
+        </span>
+        <span className="bomb-rv-word">Cut {index + 1}</span>
+      </span>
+    );
+  }
+  const label = action.slice(1) as "A" | "B";
+  const colour = buttons.find((b) => b.label === label)?.colour ?? "WHITE";
+  return (
+    <span className="bomb-rv-pic" aria-label={actionLabel(action, wires)}>
+      <span className="bomb-rv-cap" style={{ backgroundImage: `url(${capSprite(colour)})`, color: colour === "BLACK" ? "#F2F2F2" : "#111" }} aria-hidden="true">
+        {label}
+      </span>
+      <span className="bomb-rv-word">Press {label}</span>
+    </span>
+  );
+}
+
 /** The reveal's status lamp: red, turning green on a verified defuse. */
 function BombLamp({ defused }: { defused: boolean }) {
   const cued = useRef(false);
@@ -468,46 +506,48 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
+  const rows = Math.max(shown.length, mine.length);
+  const right = replay.correctPrefix;
+  // The Attention overhaul's reveal (15 Nov 2026): one step track, the right action beside yours on each row, each a
+  // small picture of the wire (its braided colour and number) or the button (its cap and letter); the first wrong step
+  // ringed red and the steps after it dimmed. No "Solution" / "Yours" columns side by side, so no switch is needed.
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <div className="grid w-full grid-cols-2 gap-3 text-base">
-        <div>
-          <p className="mb-1 text-center font-mono uppercase text-primary">One valid plan</p>
-          {shown.map((action, index) => (
-            <p key={`${action}-${index}`} className="break-words">
-              <span className="font-mono text-primary">{index + 1}.</span>{" "}
-              {actionLabel(action, puzzle.wires)}
-            </p>
-          ))}
-        </div>
-        <div>
-          <p className="mb-1 text-center font-mono uppercase text-muted-foreground">Yours</p>
-          {mine.map((action, index) => (
-            <p
-              key={`${action}-${index}`}
-              className={index === replay.firstWrong ? "break-words text-warn" : "break-words"}
-            >
-              <span className="font-mono">{index + 1}.</span> {actionLabel(action, puzzle.wires)}
-              {index === replay.firstWrong ? " ✗" : ""}
-            </p>
-          ))}
-        </div>
-      </div>
-      <p className="flex items-center justify-center gap-2 font-display text-xl font-bold">
+    <div className="attn-rv" data-attn-reveal="bomb">
+      <p className="flex items-center justify-center gap-2 font-display text-xl font-bold" data-bomb-outcome="">
         <BombLamp defused={myCorrect && replay.defused} />
         <span className={myCorrect ? "text-ok" : "text-warn"}>
           {replay.exploded
             ? `Exploded at step ${replay.correctPrefix + 1}`
             : replay.defused
-              ? "DEFUSED"
-              : `${replay.correctPrefix} / ${required.length} steps`}
+              ? "Defused"
+              : `${replay.correctPrefix} of ${required.length} steps right`}
         </span>
-        {myCorrect && elapsed !== null && (
-          <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-            {elapsed.toFixed(1)}s
-          </span>
-        )}
       </p>
+      <ol className="bomb-rv-steps" aria-label="The steps" data-bomb-steps="">
+        <li className="bomb-rv-head" aria-hidden="true">
+          <span />
+          <span>Right order</span>
+          <span>Your steps</span>
+        </li>
+        {Array.from({ length: rows }, (_, index) => {
+          const state = replay.firstWrong === index ? "wrong" : replay.firstWrong !== null && index > replay.firstWrong ? "after" : index < right ? "right" : "open";
+          return (
+            <li key={index} className="bomb-rv-step" data-step-state={state}>
+              <span className="bomb-rv-num">{index + 1}</span>
+              <StepPicture action={shown[index]} wires={puzzle.wires} buttons={puzzle.buttons} />
+              <StepPicture action={mine[index]} wires={puzzle.wires} buttons={puzzle.buttons} mine />
+            </li>
+          );
+        })}
+      </ol>
+      <RevealStats
+        game="bomb"
+        items={[
+          { id: "right", label: "Steps right", value: `${right} of ${required.length}`, tone: replay.defused ? "good" : right < required.length ? "bad" : undefined },
+          { id: "made", label: "Steps made", value: mine.length },
+          myCorrect && elapsed !== null ? { id: "time", label: "Time", value: `${elapsed.toFixed(1)} s` } : null,
+        ]}
+      />
     </div>
   );
 }

@@ -69,3 +69,20 @@ bomb never reacts while you work (stage 3 adds Expert's instant explosion).
 Plum-lacquer backs with a champagne border and studs, navy faces with enamel symbols. pairRev 4: five columns, so each
 card is a third bigger; five colours a full step of lightness apart (no red / orange or pink / purple) over six shapes
 (the hexagon and the diamond added); tapping a third card turns a miss back at once.
+
+## The answer reveals
+
+Each game's own reveal, before (main) and after, from a part-played practice round that ran out of time (so right,
+wrong and missed all show), 390 × 844, the whole reveal. Built inside today's AnswerReveal (the result card, then the
+game's own Reveal), which is the order #422's shared reveal layout keeps, so it drops into that layout unchanged. Shared
+parts: `src/components/puzzles/attention/RevealParts.tsx` (tabs for one board at a time, a key for the marks, big
+number tiles).
+
+| Game | Before | After | What changed |
+|---|---|---|---|
+| Eagle Eye | <img src="img/symscan-reveal-before.webp" width="220"> | <img src="img/symscan-reveal-after.webp" width="220"> | A tab per grid; the target shown big; found gold, wrong taps red, missed dashed, named in a key; Found / Wrong taps / Missed as tiles (no "✗" or "0 / 8 found" lines). |
+| Double Take | <img src="img/spotdiff-reveal-before.webp" width="220"> | <img src="img/spotdiff-reveal-after.webp" width="220"> | Picture tabs, one panel at full width (Top / Bottom); each difference as a small before → after picture, found ringed gold, missed dashed; the hidden 7th starred; Found / Wrong taps / Hidden 7th as tiles. |
+| Tally | <img src="img/countup-reveal-before.webp" width="220"> | <img src="img/countup-reveal-after.webp" width="220"> | A tab per tray; the tray large with every shape that counts ringed; Right count / You said / "Off by 5" or "So close: off by 1" as tiles; trays exact below. |
+| Labyrinth | <img src="img/maze-reveal-before.webp" width="220"> | <img src="img/maze-reveal-after.webp" width="220"> | The maze large, your trail in gold over the dashed shortest route, a key; How far / Steps walked / Par as tiles. |
+| Bomb Defusal | <img src="img/bomb-reveal-before.webp" width="220"> | <img src="img/bomb-reveal-after.webp" width="220"> | One step track: the right action beside yours on each row, each a picture of the wire (its colour, cut) or the button cap; the first wrong step ringed red, later ones dimmed; Steps right / Steps made as tiles. |
+| Matchmaker | <img src="img/pairmatch-reveal-before.webp" width="220"> | <img src="img/pairmatch-reveal-after.webp" width="220"> | The whole board face up and large: pairs you matched bright with a gold edge, the rest dimmed; Pairs / Flips / Best streak / Gold as tiles. |

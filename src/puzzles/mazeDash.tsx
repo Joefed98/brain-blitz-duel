@@ -11,6 +11,7 @@ import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import { ArrowPad, gridCellAt } from "@/components/puzzles/GridDrag";
 import { attentionArt } from "@/components/puzzles/attention/attentionArt";
+import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
 
 import {
   MAZE_E,
@@ -526,8 +527,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
+  const walked = walk ? Math.max(0, walk.length - 1) : Math.max(0, mine.length - 1);
+  const shortest = Math.max(0, (puzzle.solution ?? []).length - 1);
+  // The Attention overhaul's reveal (15 Nov 2026): the maze large, your trail in gold over the shortest route (dashed),
+  // and the numbers that explain the score as tiles: how far you got, the steps you walked (backtracks count) and par.
   return (
-    <div className="flex w-full flex-col items-center gap-3">
+    <div className="attn-rv" data-attn-reveal="maze">
       <div className="maze-reveal-board">
         <MazeBoard
           cells={puzzle.cells}
@@ -541,18 +546,24 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
           taken={taken}
         />
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {/* Solved: the verdict row above says it (4 Nov 2026); this line keeps only the extra detail. */}
-        {[
-          myCorrect ? "" : `${Math.round(verdict.progress * 100)}% of the way`,
-          // mazeRev 4: the steps taken against par (the stored figures, a finish only).
-          parMoves && myCorrect && typeof myExtra?.["steps"] === "number" ? `${myExtra["steps"]} steps, par ${Number(myExtra["parSteps"] ?? 0)}` : "",
+      <RevealLegend
+        items={[
+          { mark: "trail", label: "Your trail" },
+          { mark: "route", label: "Shortest route" },
+        ]}
+      />
+      <RevealStats
+        game="maze"
+        items={[
+          { id: "far", label: myCorrect ? "Reached" : "How far", value: myCorrect ? "Exit" : `${Math.round(verdict.progress * 100)} %`, tone: myCorrect ? "good" : undefined },
+          // mazeRev 4: the steps taken against par (the stored figures on a finish).
+          { id: "steps", label: "Steps walked", value: parMoves && myCorrect && typeof myExtra?.["steps"] === "number" ? (myExtra["steps"] as number) : walked },
+          { id: "par", label: parMoves ? "Par" : "Shortest", value: parMoves && myCorrect && typeof myExtra?.["parSteps"] === "number" ? (myExtra["parSteps"] as number) : shortest },
           // The scoring standard (mazeRev 3): stars count finished or not.
-          taken ? `★ ${taken.length}/${LAB_STARS}${(myCorrect || mazeStandard(puzzle)) && starBonus > 0 ? ` +${starBonus}` : ""}` : "",
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
+          taken ? { id: "stars", label: "Stars", value: `${taken.length} of ${LAB_STARS}${(myCorrect || mazeStandard(puzzle)) && starBonus > 0 ? ` +${starBonus}` : ""}` } : null,
+        ]}
+      />
+      {myCorrect && elapsed !== null ? <p className="text-center text-sm font-semibold text-muted-foreground">Finished in {elapsed.toFixed(1)} s</p> : null}
     </div>
   );
 }

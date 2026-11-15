@@ -24,7 +24,7 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "unblock",
   // 4 Nov 2026 (Joe's review): the three that still drew "Solution" / "Yours" headings without the switch.
   "numpyramid",
-  "bomb",
+  // Bomb Defusal left 15 Nov 2026 (the Attention overhaul): its reveal draws the right order and yours on one step track.
   "trail",
 ]);
 
