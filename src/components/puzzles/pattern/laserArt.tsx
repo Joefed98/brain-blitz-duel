@@ -143,8 +143,8 @@ export function LaserBeam({
   danger: boolean;
   solved: boolean;
 }) {
-  const colour = danger ? "#FF4D4D" : "#F7C548";
-  const core = danger ? "#FFE1E1" : "#FFF3C8";
+  const colour = danger ? "#FF4D4D" : "#FFB21E";
+  const core = danger ? "#FFE1E1" : "#FFFBEA";
   const lines = branches.filter((points) => points.length > 1).map(pathData);
   if (!lines.length) return null;
   return (
@@ -153,8 +153,10 @@ export function LaserBeam({
         ? lines.map((d, i) => <path key={`f${i}`} d={d} className="laser-beam-flare" stroke={colour} strokeWidth={unit * 0.45} />)
         : null}
       {lines.map((d, i) => <path key={`e${i}`} d={d} stroke="#3a2600" strokeOpacity={0.55} strokeWidth={Math.max(3, unit * 0.22)} />)}
-      {lines.map((d, i) => <path key={`g${i}`} d={d} stroke={colour} strokeWidth={Math.max(2, unit * 0.16)} />)}
-      {lines.map((d, i) => <path key={`c${i}`} d={d} className="laser-beam-core" stroke={core} strokeWidth={Math.max(1, unit * 0.055)} />)}
+      {/* A hot gold body with a soft inner tone, then the bright core (the Pattern overhaul richness pass: no blur). */}
+      {lines.map((d, i) => <path key={`g${i}`} d={d} stroke={colour} strokeWidth={Math.max(2, unit * 0.18)} />)}
+      {lines.map((d, i) => <path key={`t${i}`} d={d} stroke={danger ? "#FF9A9A" : "#FFD866"} strokeWidth={Math.max(1.5, unit * 0.11)} />)}
+      {lines.map((d, i) => <path key={`c${i}`} d={d} className="laser-beam-core" stroke={core} strokeWidth={Math.max(1, unit * 0.075)} />)}
     </g>
   );
 }

@@ -209,20 +209,24 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 <!-- lightbender:start -->
 ## Lightbender
 
+| Today (main) | Concept A | New |
+|---|---|---|
+| <img src="../../game-reviews/img/pattern/laser-2-mid.webp" width="180"> | <img src="laser-concept-A.webp" width="180"> | <img src="laser-after-play.webp" width="180"> |
+
 | | Before (main) | After |
 |---|---|---|
 | Start / intro | <img src="../../game-reviews/img/pattern/laser-1-start.webp" width="180"> | <img src="laser-after-intro.webp" width="180"> |
-| Mid-play (a shot) | <img src="../../game-reviews/img/pattern/laser-2-mid.webp" width="180"> | <img src="laser-after-play.webp" width="180"> |
 | Out of shots | — (only "Fires left: 0") | <img src="laser-after-out-of-shots.webp" width="180"> |
 | Reveal, unfinished | <img src="laser-reveal-before-unfinished.webp" width="180"> | <img src="laser-reveal-after-unfinished-yours.webp" width="180"> |
-| Reveal, solved | (no solved "before" in the review) | <img src="laser-reveal-after-solved.webp" width="180"> <img src="laser-reveal-after-solved-yours.webp" width="180"> |
+| Reveal, solved | <img src="laser-reveal-before-solved.webp" width="180"> | <img src="laser-reveal-after-solved.webp" width="180"> <img src="laser-reveal-after-solved-yours.webp" width="180"> |
 
-- **Look (A):** Blender sprites (`docs/design/game-art/pattern/source/laser.py`, `public/pattern-art/laser/`, 10 files,
-  34 KB): graphite floor plates, terracotta brick walls, silvered glass mirrors on both diagonals, a violet glass
-  splitter under its white split arrows, cut crystal gems (cool smoky crystal dark, burning gold when lit; a gem lit
+- **Look (A, richness pass):** Blender sprites under the rich studio (`docs/design/game-art/pattern/source/laser.py`,
+  `public/pattern-art/laser/`, 10 files at 160 px, 63 KB): dark graphite floor plates, textured terracotta brick walls
+  on sunk mortar, silvered glass mirrors on both diagonals, a violet glass
+  splitter under its white split arrows, cut crystal gems (clear ice-blue faceted crystal dark, brilliant gold when lit; a gem lit
   from one side only is drawn smaller with a bold arrow on its side), round black bombs with a red band (red hot when
-  hit) and a gunmetal emitter turned to the beam. The beam is a solid golden line with a pale core: no blurred neon
-  copy, halo or glows (batch P's beam, cell and gem glows removed).
+  hit) and a gunmetal emitter turned to the beam. The beam is a hot golden line with a warm inner tone and a bright
+  core: no blurred neon copy, halo or glows (batch P's beam, cell and gem glows removed).
 - **Undo takes back any change (laserRev 4):** a place, turn, move, removal or Reset, with the ordinary log verbs, so
   grading is unchanged (no moves are counted; laserRev 4 grades exactly as 3). Older stamps: Undo removes the last
   placed piece, as before.

@@ -14,8 +14,8 @@ import bpy, bmesh
 import jzlib
 
 SIZE = 100
-PX = 112   # a cell is ~36 css px on a phone: about 3× for DPR 3
-LIGHT = float(os.environ.get("LB_LIGHT", "0.32"))
+PX = 160   # a cell is ~36 css px on a phone: past 3× for DPR 3, so facets and grain stay crisp
+LIGHT = float(os.environ.get("LB_LIGHT", "1.0"))  # the rich studio (sprite.py begin(rich=True))
 
 
 def cell_begin(light=LIGHT, shadow=True):
@@ -29,7 +29,7 @@ def cell_begin(light=LIGHT, shadow=True):
 def floor():
     """An empty square: a satin graphite plate, softly bevelled (fills its box; the board gap shows round it)."""
     cell_begin(shadow=False)
-    plate = mat("plate", "#17151d", 0.6, coat=0.15, coat_rough=0.4)
+    plate = mat("plate", "#09080c", 0.7, coat=0.0)
     add_bump(plate, scale=140, strength=0.04, detail=3, distance=0.002)
     box(1.0, 1.0, SIZE - 2.0, SIZE - 2.0, 5, plate, r=7, z=0)
 
@@ -37,12 +37,12 @@ def floor():
 def brick():
     """A wall: terracotta bricks in two staggered courses on dark mortar."""
     cell_begin(shadow=False)
-    mortar = mat("mortar", "#3a2418", 0.85)
-    add_bump(mortar, scale=160, strength=0.2, distance=0.002)
-    clay = mat("brick", "#b0623a", 0.62)
-    add_bump(clay, scale=34, strength=0.25, detail=6, distance=0.003)
-    clay2 = mat("brick2", "#9c5332", 0.66)
-    add_bump(clay2, scale=30, strength=0.25, detail=6, distance=0.003)
+    mortar = mat("mortar", "#2e1c13", 0.9)
+    add_bump(mortar, scale=220, strength=0.45, distance=0.003)
+    clay = mat("brick", "#8a3a1c", 0.62, coat=0.05, coat_rough=0.6)
+    add_bump(clay, scale=55, strength=1.0, detail=12, distance=0.03)
+    clay2 = mat("brick2", "#76301a", 0.64, coat=0.05, coat_rough=0.6)
+    add_bump(clay2, scale=50, strength=1.0, detail=12, distance=0.03)
     box(1, 1, SIZE - 2, SIZE - 2, 8, mortar, r=5, z=0)
     g = 4.0     # the mortar joint
     m = 4.0     # the margin inside the cell
@@ -68,9 +68,9 @@ def mirror(kind):
     """A mirror on its diagonal: a silvered glass pane in a slim dark frame, standing proud of the cell."""
     def build():
         cell_begin()
-        frame_m = mat("mirrorFrame", "#23262e", 0.4, metal=0.6)
-        silver = mat("silver", "#e9eef4", 0.12, metal=1.0)
-        glass_edge = mat("glassEdge", "#bfe2f2", 0.08, coat=1.0, coat_rough=0.05)
+        frame_m = mat("mirrorFrame", "#1d2027", 0.25, metal=0.8, coat=0.6, coat_rough=0.12)
+        silver = mat("silver", "#f2f5f8", 0.04, metal=1.0, coat=1.0, coat_rough=0.03)
+        glass_edge = mat("glassEdge", "#d8f0ff", 0.02, coat=1.0, coat_rough=0.02, emit="#eaf6ff", emit_strength=0.25)
         rot = math.radians(45 if kind == "slash" else -45)
         L = 118.0   # along the diagonal (the cell's diagonal is 141)
         cbox(50, 50, L, 15, 14, frame_m, r=3, z=0, rot=rot)
@@ -82,7 +82,7 @@ def mirror(kind):
 def splitter():
     """The splitter: a violet glass prism block, a square turned 45°; the game draws its split arrows over it."""
     cell_begin()
-    violet = mat("prism", "#7b4fd6", 0.08, coat=1.0, coat_rough=0.06, trans=0.35, ior=1.5, emit="#5b2fb8", emit_strength=0.15)
+    violet = mat("prism", "#8357e6", 0.04, coat=1.0, coat_rough=0.03, trans=0.45, ior=1.5, emit="#5b2fb8", emit_strength=0.12)
     rim = mat("prismRim", "#d9c8ff", 0.2, metal=0.3)
     cbox(50, 50, 70, 70, 12, rim, r=4, z=0, rot=math.radians(45))
     cbox(50, 50, 64, 64, 20, violet, r=6, z=0, rot=math.radians(45))
@@ -122,13 +122,17 @@ def gem(lit):
     """A cut crystal on a small dark setting. Dark: cool smoky crystal; lit: the same stone burning gold from inside."""
     def build():
         cell_begin()
+        if lit:
+            # AgX drains a glowing amber towards peach; the lit stone keeps its full gold under the Standard transform.
+            bpy.context.scene.view_settings.view_transform = "Standard"
+            bpy.context.scene.view_settings.look = "None"
         setting = mat("setting", "#2b2833", 0.45, metal=0.7)
         cyl(50, 50, 33, 5, setting, z=0, bevel=1.5, verts=16)
         if lit:
-            stone = mat("gemLit", "#f59a00", 0.12, coat=0.4, coat_rough=0.1, ior=2.0,
-                        emit="#ff8a00", emit_strength=0.55)
+            stone = mat("gemLit", "#e08200", 0.05, coat=1.0, coat_rough=0.03, ior=2.2,
+                        emit="#ff7a00", emit_strength=0.28)
         else:
-            stone = mat("gemDark", "#7f8fbf", 0.08, coat=1.0, coat_rough=0.06, trans=0.1, ior=2.0)
+            stone = mat("gemDark", "#8fa6d8", 0.02, coat=1.0, coat_rough=0.02, trans=0.35, ior=2.2)
         ob = bpy.data.objects.new("gem", _gem_mesh(R=37, girdle_z=22, table_r=19, table_z=34, culet_z=4))
         ob.location = jzlib.V(50, 50, 0)
         ob.rotation_euler[2] = math.pi / 8
@@ -144,8 +148,8 @@ def bomb(hit):
     """A round black bomb with a brass fuse cap, a fuse and a lit spark; `hit`: the shell glowing red hot."""
     def build():
         cell_begin()
-        shell = mat("bombHit" if hit else "bomb", "#3a0f0f" if hit else "#16171c", 0.45, coat=0.5, coat_rough=0.45,
-                    emit="#d81a10" if hit else None, emit_strength=0.7 if hit else 0.0)
+        shell = mat("bombHit" if hit else "bomb", "#5a0c08" if hit else "#16171c", 0.3, coat=1.0, coat_rough=0.1,
+                    emit="#e01a0a" if hit else None, emit_strength=0.35 if hit else 0.0)
         sphere(46, 54, 33, shell, z=33)
         # A red danger band round the equator reads "bomb" at a glance.
         torus(46, 54, 31.5, 3.2, mat("bombBand", "#c4262a", 0.4, coat=0.6), z=34)
