@@ -28,7 +28,7 @@ SPRITE_SAMPLES = int(os.environ.get("JZ_SAMPLES", "64"))
 def setup(w, h, scale=3, samples=None):
     """A fresh scene framing a w x h point box; returns the scene."""
     jzlib.W, jzlib.H = w, h
-    jzlib._mats.clear(); jzlib._fonts.clear()
+    jzlib._mats.clear(); jzlib._fonts.clear(); jzlib._meshes.clear()
     s = reset()
     s.cycles.samples = samples or SPRITE_SAMPLES
     s.cycles.seed = 7

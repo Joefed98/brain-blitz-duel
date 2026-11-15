@@ -1,3 +1,5 @@
+import { numberArt } from "@/components/puzzles/number/overhaul";
+
 /**
  * Counterweight art (Number polish, 13 Oct 2026): a brass beam with engraved notches,
  * dark iron kettlebells and a lamp-lit workbench. Presentation only: nothing here reads
@@ -54,28 +56,26 @@ export const BALANCE_DEFS = (
 );
 
 /**
- * A cast-iron kettlebell in a 44 × 52 box. `fixed` weights are bolted on (steel plate,
- * iron handle, lock); yours carry a brass handle and a gold plate.
+ * A cast-iron kettlebell in its box (the Number overhaul, 15 Nov 2026): the Blender-rendered bell
+ * (docs/design/number-overhaul/source/balance.py) with its weight drawn over the face in Archivo. `fixed` weights
+ * are bolted on (iron handle, steel face, a lock); yours carry a brass handle and a champagne face.
  */
 export function IronKettlebell({ value, fixed, width, height }: { value: number; fixed: boolean; width: number; height: number }) {
+  // The art is 60 × 72; it is drawn as large as the box allows, centred at the box's foot.
+  const scale = Math.min(width / 60, height / 72);
+  const w = Math.round(60 * scale), h = Math.round(72 * scale);
   return (
-    <svg width={width} height={height} style={{ width, height }} viewBox="0 0 44 52" role="img" aria-label={`${value}${fixed ? " fixed" : ""}`} className="bal-bell">
-      <path d="M13.5 21V12.5C13.5 3 30.5 3 30.5 12.5V21" fill="none" stroke={fixed ? "#0E1114" : "#5A3A0C"} strokeWidth="6.5" strokeLinecap="round" />
-      <path d="M13.5 21V12.5C13.5 3 30.5 3 30.5 12.5V21" fill="none" stroke={fixed ? "#4A535C" : "url(#bal-brass-h)"} strokeWidth="4" strokeLinecap="round" />
-      <path d="M15.4 13c.6-4.6 3.4-6.8 6.6-6.8" fill="none" stroke="#FFFFFF" strokeOpacity={fixed ? 0.28 : 0.6} strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M11 18.5h22l4.2 8.6C42 37.5 37 50.5 22 50.5S2 37.5 6.8 27.1Z" fill="url(#bal-iron)" stroke="#07090B" strokeWidth="1.2" />
-      <path d="M9.5 28.5c.6-3.8 2.6-6.6 5.4-8" fill="none" stroke="#FFFFFF" strokeOpacity="0.38" strokeWidth="2" strokeLinecap="round" />
-      <path d="M33 45.5c3-2.4 4.6-5.6 4.8-9.4" fill="none" stroke="#9AA6B2" strokeOpacity="0.3" strokeWidth="1.4" strokeLinecap="round" />
-      <circle cx="22" cy="35" r="11" fill={fixed ? "url(#bal-plate)" : "url(#bal-plate-mine)"} stroke={fixed ? "#5D6670" : "#7A4F14"} strokeWidth="1.2" />
-      <circle cx="22" cy="35" r="9" fill="none" stroke="#000" strokeOpacity="0.16" strokeWidth="0.8" />
-      <text x="22" y="40.6" textAnchor="middle" fill="#14171A" fontFamily="var(--font-mono)" fontSize={value >= 10 ? 13 : 16} fontWeight="800">{value}</text>
+    <span role="img" aria-label={`${value}${fixed ? " fixed" : ""}`} className="bal-bell" data-fixed={fixed ? "" : undefined}
+      style={{ width, height, ["--bell-w" as string]: `${w}px`, ["--bell-h" as string]: `${h}px` }}>
+      <img src={numberArt("balance", fixed ? "bell-fixed" : "bell-mine")} alt="" draggable={false} className="bal-bell-art" />
+      <span className="bal-bell-num" style={{ fontSize: Math.round(h * (value >= 10 ? 0.25 : 0.31)) }}>{value}</span>
       {fixed && (
-        <g transform="translate(31.5 2)">
-          <path d="M2.5 5V3.5a3 3 0 0 1 6 0V5" fill="none" stroke="#C9D1D8" strokeWidth="1.6" />
-          <rect x="1" y="5" width="9" height="7" rx="1.5" fill="#C9D1D8" stroke="#0E1114" strokeWidth="0.6" />
-        </g>
+        <svg className="bal-bell-lock" viewBox="0 0 11 13" aria-hidden="true">
+          <path d="M2.5 5V3.5a3 3 0 0 1 6 0V5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          <rect x="1" y="5" width="9" height="7" rx="1.5" fill="currentColor" />
+        </svg>
       )}
-    </svg>
+    </span>
   );
 }
 

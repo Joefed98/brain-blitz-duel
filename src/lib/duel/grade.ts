@@ -114,6 +114,7 @@ import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid
 import { gradeMeasureBoards, scoreMeasure } from "./measure";
 import { measureBoardOut } from "./gameReviewNov15";
 import { gradeCheckoutStages, scoreCheckout } from "./checkout";
+import { checkoutBust } from "./numberOverhaul";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
@@ -2730,7 +2731,8 @@ function gradeUnderRev(
     }
     case "checkout": {
       // Every stage's darts are re-added against the stored board, target and finishing ring.
-      const results = gradeCheckoutStages(puzzle.stages, puzzle.minDarts ?? [], answer);
+      // checkoutRev 3 (numberOverhaul.ts): no dart on a board's way to its checkout may bust.
+      const results = gradeCheckoutStages(puzzle.stages, puzzle.minDarts ?? [], answer, checkoutBust(puzzle));
       const solved = results.filter((r) => r.solved).length;
       isCorrect = solved === puzzle.stages.length;
       correctCount = solved;

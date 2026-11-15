@@ -77,11 +77,38 @@ export function checkoutBigFinish(stage: CheckoutStageData, dart: CheckoutDart |
   return !!dart && stage.bigFinish === true && isBigFinishDart(stage.finish, dart, CHECKOUT_BULL);
 }
 
-/** True when these darts check out: exactly zero, right count, last dart in the finishing ring (or a big finish). */
-export function checkoutValid(stage: CheckoutStageData, darts: readonly CheckoutDart[]): boolean {
+/**
+ * checkoutRev 3 (the Number overhaul, numberOverhaul.ts `checkoutBust`): true when the `count`th dart, leaving
+ * `remaining`, is a bust as in real darts: past the target (below 0), to exactly 0 without checking out (not on the
+ * finishing ring or a big finish, or short of an exact dart count), or leaving exactly 1 on a double-finish board.
+ * A bust clears that board's darts and the board starts again.
+ */
+export function checkoutBustsAt(stage: CheckoutStageData, remaining: number, dart: CheckoutDart, count: number): boolean {
+  if (remaining < 0) return true;
+  if (remaining === 0) return !(checkoutFinisher(stage, dart) && (!stage.exactDarts || count === stage.maxDarts));
+  return remaining === 1 && stage.finish === 2;
+}
+
+/** The index of the first dart in this list that busts (checkoutRev 3), or -1. */
+export function checkoutBustIndex(stage: CheckoutStageData, darts: readonly CheckoutDart[]): number {
+  let left = stage.target;
+  for (let i = 0; i < darts.length; i++) {
+    left -= checkoutDartValue(stage, darts[i]!);
+    if (checkoutBustsAt(stage, left, darts[i]!, i + 1)) return i;
+  }
+  return -1;
+}
+
+/**
+ * True when these darts check out: exactly zero, right count, last dart in the finishing ring (or a big finish).
+ * With `bust` (checkoutRev 3) no dart on the way may bust: a list the phone could only have thrown past a bust is
+ * never a checkout (the phone clears a busted board, so the list it sends starts after the last bust).
+ */
+export function checkoutValid(stage: CheckoutStageData, darts: readonly CheckoutDart[], bust = false): boolean {
   if (!darts.length || darts.length > stage.maxDarts) return false;
   if (stage.exactDarts && darts.length !== stage.maxDarts) return false;
   if (!darts.every((dart) => checkoutDartAllowed(stage, dart))) return false;
+  if (bust && checkoutBustIndex(stage, darts.slice(0, -1)) >= 0) return false;
   return checkoutRemaining(stage, darts) === 0 && checkoutFinisher(stage, darts[darts.length - 1]!);
 }
 
@@ -212,11 +239,12 @@ export function gradeCheckoutStages(
   stages: readonly CheckoutStageData[],
   minDarts: readonly number[],
   raw: string,
+  bust = false,
 ): CheckoutStageResult[] {
   const parts = splitCheckoutRound(raw);
   return stages.map((stage, index) => {
     const darts = decodeCheckoutDarts(parts[index] ?? "", stage.maxDarts);
-    const solved = checkoutValid(stage, darts);
+    const solved = checkoutValid(stage, darts, bust);
     const min = minDarts[index] ?? stage.maxDarts;
     return {
       solved,

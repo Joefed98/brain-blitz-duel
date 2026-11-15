@@ -11,7 +11,8 @@ import { FENCES_CROSS, FENCES_LINE, decodeFences, fencesProgress, fencesWrongKey
 import { fillominoProgress, fillominoWrongKeys } from "../fillomino";
 import { bridgePairs, bridgesProgress, bridgesWrongKeys, decodeBridges } from "../bridges";
 import { leftWrongKeys, usesNotesFree } from "../notesFree";
-import { kakuroProgress, kakuroWrongKeys } from "../kakuro";
+import { kakuroProgress, kakuroRuleMistakeKeys, kakuroWrongKeys } from "../kakuro";
+import { kakuroRuleMistakes } from "../numberOverhaul";
 import { cleanPoints, speedPoints } from "./shape";
 import type { StandardGame, StandardInput } from "./grade.server";
 import { GRID_EARLY_POINTS, GRID_SHARE_POINTS, GRID_STANDARD, gridNetPlaced, type GridStandardType } from "./gridRules";
@@ -30,6 +31,11 @@ interface GridGame {
    * cycle (Loopline's line to ✕, Island Link's double to none) and nothing else changed.
    */
   cycledOn?(puzzle: PuzzleData, cur: string, next: string, key: string): boolean;
+  /**
+   * Distinct mistakes read from the drafts in order, in place of wrongKeys, where the game's stamp says so (Kakuro
+   * kakuroRev 2: only a digit that breaks a rule as it goes in); null to use wrongKeys.
+   */
+  mistakesFrom?(puzzle: PuzzleData, drafts: readonly string[]): number | null;
 }
 
 const GAMES: Record<GridStandardType, GridGame> = {
@@ -63,6 +69,7 @@ const GAMES: Record<GridStandardType, GridGame> = {
   kakuro: {
     progress: (p, a) => (p.type === "kakuro" ? kakuroProgress(p, a) : EMPTY),
     wrongKeys: (p, a) => (p.type === "kakuro" ? kakuroWrongKeys(p, a) : []),
+    mistakesFrom: (p, drafts) => (p.type === "kakuro" && kakuroRuleMistakes(p) ? kakuroRuleMistakeKeys(p, drafts).length : null),
   },
 };
 
@@ -71,6 +78,8 @@ const EMPTY: GridProgress = { right: 0, wrong: 0, total: 0 };
 /** Distinct wrong items across every draft of the timeline (null without one: history unknown). */
 function everWrong(game: GridGame, input: StandardInput): number | null {
   if (!input.drafts) return null;
+  const ruled = game.mistakesFrom?.(input.puzzle, input.drafts.map((d) => d.draft));
+  if (ruled !== undefined && ruled !== null) return ruled;
   if (game.cycledOn && usesNotesFree(input.puzzle)) {
     const cycledOn = game.cycledOn;
     return leftWrongKeys(input.drafts, (d) => game.wrongKeys(input.puzzle, d), (cur, next, key) => cycledOn(input.puzzle, cur, next, key));

@@ -5,6 +5,7 @@
  */
 import { equationVerdict } from "../operatorGaps";
 import { gradeCheckoutStages, splitCheckoutRound, decodeCheckoutDarts, checkoutBigFinish } from "../checkout";
+import { checkoutBust } from "../numberOverhaul";
 import { decodeBalance, balanceScalesSolved } from "../balance";
 import { gradeMeasureBoards } from "../measure";
 import { measureBoardOut } from "../gameReviewNov15";
@@ -358,11 +359,11 @@ export function checkoutBigPoints(puzzle: CheckoutPuzzleData, answer: string, so
 const checkout: StandardGame = {
   parts: (puzzle, draft) => {
     const p = puzzle as CheckoutPuzzleData;
-    return gradeCheckoutStages(p.stages, p.minDarts ?? [], draft).filter((r) => r.solved).length;
+    return gradeCheckoutStages(p.stages, p.minDarts ?? [], draft, checkoutBust(p)).filter((r) => r.solved).length;
   },
   grade({ puzzle, answer, graded, msLeft, limitMs }, ctx) {
     const p = puzzle as CheckoutPuzzleData;
-    const results = gradeCheckoutStages(p.stages, p.minDarts ?? [], answer);
+    const results = gradeCheckoutStages(p.stages, p.minDarts ?? [], answer, checkoutBust(p));
     const solved = results.map((r) => r.solved);
     const count = solved.filter(Boolean).length;
     // A big finish is earned board by board, so it counts towards an unfinished score too.

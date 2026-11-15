@@ -29,6 +29,8 @@ import { HudPills } from "@/components/puzzles/HudPills";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-target.css";
 import { EXACT_ELEGANT_TILES, usesNumberDepth } from "@/lib/duel/numberDepth";
+import { exactLockReady, toggleOperator } from "@/lib/duel/numberOverhaulInput";
+import { numberArt } from "@/components/puzzles/number/overhaul";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -455,7 +457,8 @@ function TargetStage({
             key={op}
             type="button"
             disabled={isLockedNow}
-            onClick={() => setOperator(op)}
+            // The Number overhaul (15 Nov 2026): tapping the picked operator again deselects it.
+            onClick={() => setOperator(toggleOperator(operator, op))}
             data-on={operator === op ? "true" : undefined}
             aria-pressed={operator === op}
             className="press exact-op"
@@ -483,7 +486,9 @@ function TargetStage({
           // the time-out still sends whatever stands.
           disabled={isLockedNow || steps.length === 0}
           data-exact-lock=""
-          className="press tap-target rounded-xl bg-primary px-5 font-display text-sm font-bold tracking-wide text-primary-foreground disabled:opacity-40"
+          // The Number overhaul (15 Nov 2026): navy until there's a step to lock, champagne gold once there is.
+          data-ready={exactLockReady(steps.length) ? "" : undefined}
+          className="press tap-target exact-lock"
         >
           {/* Puzzle polish (3 Nov 2026): "Lock in 150 (564 away)": the number that would be locked and its distance. */}
           {steps.length > 0 && closest !== null && away !== null
