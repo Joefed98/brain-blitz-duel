@@ -25,6 +25,7 @@ const runFor = (rev: number) =>
     checkpoint: homerunCheckpoint,
     keys: HOMERUN_CHECKPOINT_KEYS,
     interval: HOMERUN_CHECKPOINT_INTERVAL,
+    emptyIsZero: true,
   });
 const run = runFor(1);
 const runV2 = runFor(HOMERUN_REV_2);
