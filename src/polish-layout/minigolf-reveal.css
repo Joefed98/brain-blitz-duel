@@ -1,0 +1,117 @@
+/*
+ * Crazy Golf's reveal (the Crazy Golf overhaul, 15 Nov 2026): the scorecard that is also the hole switcher, the big
+ * hole map and the key numbers. Tokens only. The scorecard fills hole by hole (each cell rising in after the one
+ * before it); under reduced motion every cell is simply there.
+ */
+[data-minigolf-reveal] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  width: 100%;
+  font-family: var(--jz-font);
+}
+[data-minigolf-reveal] [data-scorecard] {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--jz-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-minigolf-reveal] [data-scorecard] button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 64px;
+  padding: var(--jz-space-4) 0;
+  border-radius: var(--jz-radius-md);
+  border: 1px solid var(--jz-line);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+  animation: mg-card-in var(--jz-dur-select) var(--jz-ease-out) both;
+  animation-delay: calc(var(--i, 0) * 140ms);
+}
+[data-minigolf-reveal] [data-scorecard] button[aria-pressed="true"] {
+  border-color: var(--jz-gold);
+  background: var(--jz-surface-2);
+  box-shadow: 0 0 0 1px var(--jz-gold) inset;
+}
+[data-minigolf-reveal] [data-scorecard] [data-cell-hole],
+[data-minigolf-reveal] [data-scorecard] [data-cell-par] {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text-2);
+  line-height: 1.2;
+}
+[data-minigolf-reveal] [data-scorecard] [data-cell-strokes] {
+  font-size: 24px;
+  font-weight: var(--jz-weight-black);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+[data-minigolf-reveal] [data-result="under"] [data-cell-strokes] {
+  color: var(--jz-gold);
+}
+[data-minigolf-reveal] [data-result="par"] [data-cell-strokes] {
+  color: var(--jz-win);
+}
+[data-minigolf-reveal] [data-result="none"] [data-cell-strokes] {
+  color: var(--jz-text-3);
+}
+[data-minigolf-reveal] canvas[data-hole-map] {
+  display: block;
+  width: 100%;
+  border-radius: var(--jz-radius-md);
+}
+[data-minigolf-reveal] [data-hole-line] {
+  margin: 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text);
+}
+[data-minigolf-reveal] [data-key-numbers] {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--jz-space-8);
+  margin: 0;
+}
+[data-minigolf-reveal] [data-key-numbers] div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+[data-minigolf-reveal] [data-key-numbers] dt {
+  font-size: 13px;
+  color: var(--jz-text-2);
+}
+[data-minigolf-reveal] [data-key-numbers] dd {
+  margin: 0;
+  font-size: 20px;
+  font-weight: var(--jz-weight-black);
+  font-variant-numeric: tabular-nums;
+}
+[data-minigolf-reveal] [data-map-key] {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--jz-text-2);
+}
+@keyframes mg-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-minigolf-reveal] [data-scorecard] button {
+    animation: none;
+  }
+}

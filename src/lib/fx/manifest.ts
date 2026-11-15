@@ -1072,6 +1072,13 @@ const ENTRIES = {
   "mahjong.clear": { channel: "effects", frequency: 0, ms: 1806, url: "/sounds/mahjong_clear.mp3" },
   "minigolf.roll": { channel: "effects", frequency: 0, ms: 1375, url: "/sounds/minigolf_roll_loop.mp3", loop: true },
   "minigolf.bush": { channel: "effects", frequency: 0, ms: 439, url: "/sounds/minigolf_bush.mp3" },
+  // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): library stand-ins until the recordings listed in
+  // docs/sound-cues/crazy-golf-elevenlabs.md are made.
+  "minigolf.chip": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/pool_ball_click.mp3" },
+  "minigolf.land": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/move.softFall.mp3", volume: 0.7 },
+  "minigolf.rattle": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/arc_marble_clink.mp3", volume: 0.7 },
+  "minigolf.plip": { channel: "effects", frequency: 0, ms: 80, url: "/sounds/arc_sea_pop.mp3" },
+  "minigolf.sand": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/move.softFall.mp3", volume: 0.5 },
   "pool.chalk": { channel: "effects", frequency: 0, ms: 733, url: "/sounds/pool_chalk.mp3" },
   "pool.cueSoft": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/pool_cue_soft.mp3" },
   "pool.cueHard": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/pool_cue_hard.mp3" },

@@ -8,7 +8,7 @@ approved 3D Captain (captain.py) with a club, lit from the top left as the cours
 Two clubs, built here: a gold-shafted putter with a black lacquer head and a wedge with a gold blade. The Captain faces
 -Y (towards the ball); the target is +X, so a sprite is drawn by the game turned so that +X is the shot's direction.
 
-    python golf_sprites.py        → public/minigolf/captain-<pose>.webp (256 px square, the sprite's world size MG_CAPTAIN_PX)
+    python golf_sprites.py        → public/cosmetics/redrawn/mg.captain-<pose>.webp (256 px square, the sprite's world size MG_CAPTAIN_PX)
 
 Runs with bpy 5.3 (pip install bpy pillow numpy); render outside the project (RENDER_TMP).
 """
@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 import captain  # noqa: E402
 import lib  # noqa: E402
 
-OUT = os.path.join(lib.REPO, "public/minigolf")
+OUT = os.path.join(lib.REPO, "public/cosmetics/redrawn")
 os.makedirs(OUT, exist_ok=True)
 
 # The golf poses, in the 2D art's joint units (captain-poses.json's frame: x 0..160 centre 80, y down, feet at 184).
@@ -131,7 +131,7 @@ def sprite(pose, px=256):
     png = os.path.join(lib.TMP, f"captain-golf-{pose}.png")
     secs = lib.render(png)
     img = Image.open(png).convert("RGBA")
-    path = os.path.join(OUT, f"captain-{pose}.webp")
+    path = os.path.join(OUT, f"mg.captain-{pose}.webp")
     img.save(path, "WEBP", quality=82, method=6, exact=False)
     print(f"captain-{pose}: {secs:.1f} s, {os.path.getsize(path) / 1024:.1f} KB")
 

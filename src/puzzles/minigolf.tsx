@@ -1,4 +1,7 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
+
+import { Segmented } from "@/design/components";
+import { playTone } from "@/lib/sound";
 
 import { useGameLookRef } from "@/lib/skins/equipped";
 import { lookKey } from "@/lib/arcade/skins/look";
@@ -9,6 +12,7 @@ import {
   minigolfGameFor,
   minigolfStdParts,
   MG_AIM,
+  MG_INPUT_CHIP,
   MG_INPUT_PUTT,
   MG_POWER_MAX,
 
@@ -18,16 +22,17 @@ import {
   MINIGOLF_W,
   type MinigolfState,
 } from "@/lib/arcade/minigolf";
-import { drawMinigolfCourse, drawMinigolfPlay, minigolfSceneFor, MINIGOLF_BG, MINIGOLF_VIEW_H, type MinigolfAim } from "@/lib/arcade/minigolf.renderer";
+import { drawMinigolfCourse, drawMinigolfPlay, minigolfCamera, minigolfSceneFor, MINIGOLF_BG, MINIGOLF_VIEW_H, type MinigolfAim } from "@/lib/arcade/minigolf.renderer";
 import { courseArtKey } from "@/lib/arcade/skins/minigolfCourse";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
 import { MINIGOLF_FX } from "@/lib/arcade/sportsFx.renderer";
-import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
+import { encodeMinigolfRun, minigolfCourseOf, replayMinigolfPuzzle } from "@/lib/duel/minigolf";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { MinigolfPuzzleData } from "@/lib/duel/types";
 import { minigolfSounds } from "@/lib/fx/gameSounds";
 
+import { MinigolfReveal } from "./minigolfReveal";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** A pull this long (world px) is full power; a shorter one than MIN_PULL is let go without a putt. */
@@ -68,17 +73,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const aim = useRef<MinigolfAim | null>(null);
   const anchor = useRef<{ x: number; y: number } | null>(null);
   const pars = data?.pars;
+  // golfRev 3 (the Crazy Golf overhaul): a putt or a lofted chip, chosen on the switch under the course.
+  const v3 = (data?.golfRev ?? 1) >= 3 && (data?.holes?.length ?? 0) === MINIGOLF_HOLES;
+  const [shotKind, setShotKind] = useState<"putt" | "chip">("putt");
+  const chipRef = useRef(false);
+  chipRef.current = v3 && shotKind === "chip";
+  const toneStep = useRef(-1);
   // The player's own equipped skin and world theme (wave 2; display only, src/lib/skins/equipped.ts).
   const [look, lookRef] = useGameLookRef("minigolf");
   const scene = useMemo(() => minigolfSceneFor(look), [look]);
   // The game the stage runs: the stored pars' sim, drawn with the aim the finger is holding (presentation only).
   const game = useMemo<ArcadeGame<MinigolfState, ArcadeInputEvent | null>>(() => {
-    const base = minigolfGameFor(pars ?? undefined, data?.golfRev);
+    const base = minigolfGameFor(pars ?? undefined, data?.golfRev, minigolfCourseOf(data));
     // The live view (3 Nov 2026, display only): the hole under its fixed camera with its effects, the HUD unzoomed.
-    const world = withArcadeFx(MINIGOLF_FX, (ctx, s) => drawMinigolfCourse(ctx, s, aim.current, lookRef.current));
+    // golfRev 3's rubber band reaches the finger: its point (view px) is carried into the hole's own world px here.
+    const aimIn = (s: MinigolfState): MinigolfAim | null => {
+      const a = aim.current;
+      if (!a || a.hx === undefined || a.hy === undefined) return a;
+      const cam = minigolfCamera(s);
+      return { ...a, hx: (a.hx - cam.x) / cam.k, hy: (a.hy - cam.y) / cam.k };
+    };
+    const world = withArcadeFx(MINIGOLF_FX, (ctx, s) => drawMinigolfCourse(ctx, s, aimIn(s), lookRef.current));
     return { ...base, draw: (ctx, s, size) => drawMinigolfPlay(ctx, s, () => world(ctx, s, size), MINIGOLF_VIEW_H, lookRef.current) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pars?.join(","), data?.golfRev]);
+  }, [pars?.join(","), data?.golfRev, data?.holes?.join(","), data?.level]);
 
   /** The pull from the touch-down point to the finger: the putt goes the other way. */
   const pullOf = (x: number, y: number) => {
@@ -88,8 +106,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const dy = a.y - y;
     const len = Math.hypot(dx, dy);
     if (len < MIN_PULL) return null;
-    return { dx: dx / len, dy: dy / len, power: Math.min(1, len / FULL_PULL) };
+    return { dx: dx / len, dy: dy / len, power: Math.min(1, len / FULL_PULL), chip: chipRef.current, hx: x, hy: y };
   };
+
+  /** golfRev 3: a soft tone rising with the pull's power, sounded at each twelfth of the way (presentation only). */
+  const toneFor = (power: number | null) => {
+    if (!v3 || power === null) {
+      toneStep.current = -1;
+      return;
+    }
+    const step = Math.round(power * 12);
+    if (step === toneStep.current) return;
+    toneStep.current = step;
+    playTone(240 + power * 620, 45, "sine", 0.05);
+  };
+  const shotPayload = (a: { dx: number; dy: number; power: number }): PointerPayload => ({
+    k: chipRef.current ? MG_INPUT_CHIP : MG_INPUT_PUTT,
+    a: Math.round(a.dx * 4000),
+    b: Math.round(a.dy * 4000),
+    c: Math.max(1, Math.round(a.power * MG_POWER_MAX)),
+  });
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     if (kind === "down") {
@@ -100,17 +136,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const pull = pullOf(x, y);
     if (kind === "move") {
       aim.current = pull;
+      toneFor(pull?.power ?? null);
       return null;
     }
     anchor.current = null;
     aim.current = null;
+    toneFor(null);
     if (!pull) return null;
-    return {
-      k: MG_INPUT_PUTT,
-      a: Math.round(pull.dx * 4000),
-      b: Math.round(pull.dy * 4000),
-      c: Math.max(1, Math.round(pull.power * MG_POWER_MAX)),
-    };
+    return shotPayload(pull);
   };
 
   return (
@@ -136,10 +169,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         inputKind={MG_INPUT_PUTT}
         pointer={(kind, x, y) => pointer(kind, x, y)}
         keys={(kind, key, send, state) => {
-          // Desktop: Left / Right turn the aim, Up / Down set the power, Space putts.
+          // Desktop: Left / Right turn the aim, Up / Down set the power, Space plays the shot; golfRev 3: C switches putt / chip.
           if (state.phase !== MG_AIM) return false;
-          const cur = aim.current ?? { dx: 0, dy: -1, power: 0.4 };
-          if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(key);
+          const cur = aim.current ?? { dx: 0, dy: -1, power: 0.4, chip: chipRef.current };
+          if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", ...(v3 ? ["c", "C"] : [])].includes(key);
+          if (v3 && (key === "c" || key === "C")) {
+            const next = shotKind === "chip" ? "putt" : "chip";
+            setShotKind(next);
+            chipRef.current = next === "chip";
+            aim.current = { ...cur, chip: next === "chip" };
+            return true;
+          }
           const turn = (deg: number) => {
             const r = (deg * Math.PI) / 180;
             aim.current = { dx: cur.dx * Math.cos(r) - cur.dy * Math.sin(r), dy: cur.dx * Math.sin(r) + cur.dy * Math.cos(r), power: cur.power };
@@ -151,10 +191,32 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           else if (key === " " && aim.current) {
             const a = aim.current;
             aim.current = null;
-            send({ k: MG_INPUT_PUTT, a: Math.round(a.dx * 4000), b: Math.round(a.dy * 4000), c: Math.max(1, Math.round(a.power * MG_POWER_MAX)) });
+            send(shotPayload(a));
           } else return false;
           return true;
         }}
+        footer={
+          v3
+            ? () => (
+                // golfRev 3: putt or chip, one tap, under the course (never over the tee, the ball or the aim).
+                <div data-game-controls="shot" className="flex shrink-0 justify-center px-3 pt-2">
+                  <Segmented
+                    label="Shot"
+                    radio
+                    value={shotKind}
+                    onChange={(v) => {
+                      setShotKind(v);
+                      chipRef.current = v === "chip";
+                    }}
+                    options={[
+                      { value: "putt", label: "Putt", data: { "data-shot": "putt" } },
+                      { value: "chip", label: "Chip", data: { "data-shot": "chip" } },
+                    ]}
+                  />
+                </div>
+              )
+            : undefined
+        }
         onSubmit={onSubmit}
         onDraftAnswer={onDraftAnswer}
       />
@@ -164,40 +226,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "minigolf") return null;
-  const result = replayMinigolfRun(puzzle.seed, myAnswer ?? "", puzzle.pars, puzzle.golfRev);
-  const s = result.state;
-  const parts = minigolfStdParts(s);
-  return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
-      <div className="flex shrink-0 justify-center gap-2 font-mono text-sm">
-        {Array.from({ length: MINIGOLF_HOLES }, (_, i) => {
-          const holed = s.holed[i] === 1;
-          const strokes = s.taken[i] ?? 0;
-          const par = s.pars[i] ?? 3;
-          const colour = !holed ? "#8A8F96" : strokes < par ? "#F2C75C" : strokes === par ? "#7FD58A" : "#EDEBE4";
-          return (
-            <span key={i} className="flex flex-col items-center rounded-md border border-white/10 px-2 py-1" style={{ color: colour }}>
-              <span className="text-[11px] text-muted-foreground">H{i + 1} · P{par}</span>
-              <span className="text-base font-bold">{holed ? strokes : strokes > 0 ? "–" : "·"}</span>
-            </span>
-          );
-        })}
-      </div>
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.holed} of {result.holes} holed · {result.strokes} strokes
-      </p>
-      {parts ? (
-        <div className="flex shrink-0 flex-col items-center gap-0.5">
-          {parts.map((part) => `${part.label}: ${part.detail}`).map((line) => (
-            <p key={line} className="text-center font-mono text-sm text-muted-foreground">
-              {line}
-            </p>
-          ))}
-        </div>
-      ) : null}
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">Same five holes for everyone</p>
-    </div>
-  );
+  return <MinigolfReveal puzzle={puzzle} answer={myAnswer ?? ""} />;
 }
 
 /** The course is dealt on the server (a proven bank course and its pars); every run is replayed there for scoring. */

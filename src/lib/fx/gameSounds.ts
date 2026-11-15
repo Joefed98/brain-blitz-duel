@@ -1088,7 +1088,21 @@ export function minigolfSounds(): GameSounds<MinigolfState> {
       beginFrame("minigolf", state);
       loopCue("minigolf.roll", running && state.phase === MG_ROLL && Math.abs(state.vx) + Math.abs(state.vy) > MG_STOP_V * 4, SURFACE_VOLUME);
       if (prev && state.tick > prev.tick) {
-        if (prev.phase === MG_AIM && state.phase === MG_ROLL) sfx("minigolf.putt", "arc_wood_knock", 0.8);
+        if (prev.phase === MG_AIM && state.phase === MG_ROLL) {
+          // golfRev 3: a chip's crisp lofted click, a putt's short tock; both a light tap in the hand.
+          if (state.rev >= 3 && state.shot === 2) effectCue("minigolf.chip");
+          else sfx("minigolf.putt", "arc_wood_knock", 0.8);
+          if (state.rev >= 3) feel("tick");
+        }
+        if (state.rev >= 3) {
+          if (state.landTick > prev.landTick && state.landTick === state.tick) effectCue("minigolf.land", 80);
+          if (state.lips > prev.lips) effectCue("minigolf.rattle", 150);
+          if (state.sandStops > prev.sandStops) effectCue("minigolf.sand", 120);
+          if (state.waters > prev.waters) {
+            effectCue("minigolf.plip");
+            feel("impact");
+          }
+        }
         if (state.bounces > prev.bounces) {
           const struck = minigolfStruck(state);
           if (struck === "rail") sfx("minigolf.bounce", "arc_bounce", 0.6);
@@ -1101,6 +1115,7 @@ export function minigolfSounds(): GameSounds<MinigolfState> {
           const under = (state.taken[h] ?? 9) < (state.pars[h] ?? 0);
           sfx("minigolf.holed", "arc_marble_clink");
           if (under) sfx("minigolf.birdie", "arc_fair_bell", 0.8);
+          if (state.rev >= 3) feel("success");
         }
       }
       prev = state;

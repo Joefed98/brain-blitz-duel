@@ -14,6 +14,12 @@
 import { px } from "./engine";
 import { ANG_FULL } from "./trig";
 import {
+  mgChipLaunch,
+  mgPuttVelocity,
+  mgRollTickV3,
+  MG_CHIP_PEAK_PX,
+  MG_END_NONE,
+  MG_LEVELS,
   mgMillAngle,
   mgSails,
   MG_AIM,
@@ -41,6 +47,8 @@ import { NO_LOOK, type GameLook } from "./skins/look";
 import { paintBallArt } from "./skins/ballArt";
 import { minigolfBallArt, neonCourseCacheTag, neonCourseCup, neonCourseFlag, neonCourseHole, neonCourseScene, NEON_COURSE } from "./skins/minigolf.skins";
 import { courseArt, courseArtKey, type CourseArt } from "./skins/minigolfCourse";
+import { sceneImage } from "./skins/sceneImages";
+import { paintBunkersV3, paintGroundLight, paintPlainTurf, paintPondsV3 } from "./minigolfV3Ground.renderer";
 
 /** The look this draw uses (wave 2 skins): set by the public draw calls for their length, the default otherwise. */
 let L: GameLook = NO_LOOK;
@@ -52,6 +60,11 @@ export interface MinigolfAim {
   dy: number;
   /** 0…1 of full power. */
   power: number;
+  /** golfRev 3: the shot being aimed is a chip (else a putt). */
+  chip?: boolean;
+  /** golfRev 3: where the finger is (world px), for the rubber band; absent from the keyboard. */
+  hx?: number;
+  hy?: number;
 }
 
 export const MINIGOLF_BG = "#0B0F0C";
@@ -964,6 +977,10 @@ export function paintMinigolfHole(ctx: CanvasRenderingContext2D, h: MgHole, salt
     return;
   }
   const art = courseArt();
+  if (h.rev === 3) {
+    paintHoleV3(ctx, h, salt, art);
+    return;
+  }
   if (art) {
     paintHoleRedrawn(ctx, h, salt, art);
     return;
@@ -1196,6 +1213,71 @@ function paintHoleRedrawn(ctx: CanvasRenderingContext2D, h: MgHole, salt: number
   paintLamps(ctx, MINIGOLF_W, MINIGOLF_H);
 }
 
+/**
+ * golfRev 3's hole (the Crazy Golf overhaul, 15 Nov 2026): the redrawn garden and turf (or the plain ones without the
+ * rendered art), then the ground's light and mowing (minigolfV3Ground.renderer.ts: slopes, hills and swells shown by
+ * light and shadow and by the stripes bending over them, no arrows), raked bunkers and stone-edged ponds in their
+ * natural shapes, and the same rails, walls, gates, boulders and planters as golfRev 2, each on the sim's geometry.
+ */
+function paintHoleV3(ctx: CanvasRenderingContext2D, h: MgHole, salt: number, art: CourseArt | null): void {
+  if (art) paintGardenRedrawn(ctx, MINIGOLF_W, MINIGOLF_H, salt + h.index * 101, art);
+  else paintTerrace(ctx, MINIGOLF_W, MINIGOLF_H, salt + h.index * 101);
+  ctx.save();
+  ctx.translate(3, 5);
+  polyPath(ctx, h.poly);
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fill();
+  ctx.restore();
+  if (art) {
+    ctx.save();
+    polyPath(ctx, h.poly);
+    ctx.clip();
+    const b = h.box;
+    ctx.fillStyle = tilePattern(ctx, art.turf, 0.5, h.index * 37, h.index * 53) ?? TURF_A;
+    ctx.fillRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
+    ctx.globalCompositeOperation = "soft-light";
+    ctx.fillStyle = "rgba(70,170,40,0.55)";
+    ctx.fillRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
+    ctx.restore();
+  } else paintPlainTurf(ctx, h);
+  paintGroundLight(ctx, h);
+  // The edges' soft shade under the coping.
+  ctx.save();
+  polyPath(ctx, h.poly);
+  ctx.clip();
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 9;
+  polyPath(ctx, h.poly);
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  ctx.restore();
+  paintBunkersV3(ctx, h, art ? tilePattern(ctx, art.sand, 0.5) : null);
+  (h.tunnels ?? []).forEach((t, i) => {
+    const colour = TUNNEL_COLOURS[i % TUNNEL_COLOURS.length]!;
+    paintTunnelIn(ctx, px(t.x), px(t.y), colour);
+    paintTunnelOut(ctx, px(t.ox), px(t.oy), t.dx, t.dy, colour);
+  });
+  paintTee(ctx, h);
+  paintPondsV3(ctx, h, art ? tilePattern(ctx, art.stone, 0.5) : null);
+  if (art) paintCupRedrawn(ctx, h);
+  else paintCup(ctx, h);
+  if (art) paintRailsRedrawn(ctx, h, art);
+  else paintRails(ctx, h);
+  paintRampRails(ctx, h);
+  h.logs.forEach((l) => paintLog(ctx, px(l.ax), px(l.ay), px(l.bx), px(l.by), px(l.r)));
+  (h.curves ?? []).forEach((c) => paintCurve(ctx, c));
+  (h.gates ?? []).forEach((g) => paintGate(ctx, g));
+  if (art) {
+    h.rocks.forEach((c, i) => drawFootprint(ctx, art.boulders[(i + h.index) % art.boulders.length]!, px(c.x), px(c.y), px(c.r), i + h.index * 7));
+    h.planters.forEach((c, i) => drawFootprint(ctx, art.planter, px(c.x), px(c.y), px(c.r), i + h.index));
+  } else {
+    h.rocks.forEach((c, i) => paintBoulder(ctx, px(c.x), px(c.y), px(c.r), i + h.index * 7));
+    h.planters.forEach((c, i) => paintPlanter(ctx, px(c.x), px(c.y), px(c.r), i + h.index));
+  }
+  paintLamps(ctx, MINIGOLF_W, MINIGOLF_H);
+}
+
 /** Beyond the world: more of the paved garden, darker towards the edges. */
 function paintSceneRedrawn(ctx: CanvasRenderingContext2D, view: ArenaSceneView, art: CourseArt): void {
   const { left, top, right, bottom } = view;
@@ -1219,7 +1301,7 @@ const holeCache: { key: string; canvas: HTMLCanvasElement | OffscreenCanvas | nu
 function cachedHole(ctx: CanvasRenderingContext2D, h: MgHole, seed: number): CanvasImageSource | null {
   const m = ctx.getTransform();
   const scale = Math.max(0.5, Math.min(4, Math.hypot(m.a, m.b)));
-  const key = `${h.rev ?? 1}:${seed}:${h.index}:${scale.toFixed(3)}${L.world ? `:${L.world}${neonCourseCacheTag()}` : courseArtKey()}`;
+  const key = `${h.rev ?? 1}:${h.holeId ?? ""}:${seed}:${h.index}:${scale.toFixed(3)}${L.world ? `:${L.world}${neonCourseCacheTag()}` : courseArtKey()}`;
   if (holeCache.key === key && holeCache.canvas) return holeCache.canvas;
   const w = Math.ceil(MINIGOLF_W * scale);
   const hh = Math.ceil(MINIGOLF_H * scale);
@@ -1375,6 +1457,10 @@ export function drawMinigolfCourse(ctx: CanvasRenderingContext2D, s: MinigolfSta
 }
 
 function drawCourseLooked(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null): void {
+  if (s.rev >= 3) {
+    drawCourseV3(ctx, s, aim);
+    return;
+  }
   const h = s.course[Math.min(s.hole, MINIGOLF_HOLES - 1)]!;
   const img = cachedHole(ctx, h, s.seed);
   if (img) ctx.drawImage(img, 0, 0, MINIGOLF_W, MINIGOLF_H);
@@ -1423,6 +1509,10 @@ function drawCourseLooked(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: 
 
 /** The HUD chips at the top corners (world px, never under the hole's camera). */
 export function drawMinigolfHud(ctx: CanvasRenderingContext2D, s: MinigolfState): void {
+  if (s.rev >= 3) {
+    drawHudV3(ctx, s);
+    return;
+  }
   const holedNow = s.holed[s.hole] === 1 && (s.phase === MG_PAUSE || s.phase === MG_DONE);
   // HUD chips at the top corners (inside the garden beds).
   const par = s.pars[Math.min(s.hole, MINIGOLF_HOLES - 1)]!;
@@ -1551,4 +1641,513 @@ export function paintMinigolfTile(c: CanvasRenderingContext2D, size: number): vo
   drawBall(c, 36, 80);
   paintLamps(c, 104, 104);
   c.restore();
+}
+
+/* ========================= golfRev 3: the overhaul's frame ========================= */
+
+/**
+ * golfRev 3's frame (the Crazy Golf overhaul, 15 Nov 2026; display only): the cached hole, then Captain Joulz beside
+ * the ball (a top-down sprite from the approved 3D Captain, docs/design/cosmetics-redraws/blender/captain/
+ * golf_sprites.py: addressing the ball while aiming, his follow-through after the strike; always to the side of the
+ * line, never over the aim or the pull), the ball (lifted over its shadow while a chip is in the air), the windmills,
+ * the aim (a rubber band from the ball to the finger and the level's preview: Easy's line to its first bounce, Normal's
+ * full line, Hard's and Expert's shorter ones; a chip's arc to its landing) and the moments: a white flash on a rail,
+ * a rattle and wobble over the cup's lip, the ball dropping as the flag lifts (confetti on a birdie or better), a
+ * splash ring in water, a puff of sand, a ring where a chip lands.
+ */
+
+/** The Captain sprite's world size (px) and where the ball sits in it (sprite px of 256: ahead of the club's face). */
+export const MG_CAPTAIN_PX = 64;
+const CAPTAIN_BALL = { x: 152, y: 198 };
+const CAPTAIN_HOLD = 70;
+
+interface FrameMemory {
+  tick: number;
+  x: number;
+  y: number;
+  strokes: number;
+  strikeDx: number;
+  strikeDy: number;
+  strikeTick: number;
+  bounces: number;
+  flashX: number;
+  flashY: number;
+  waters: number;
+  splashX: number;
+  splashY: number;
+  splashTick: number;
+  inSand: boolean;
+  puffTick: number;
+  puffX: number;
+  puffY: number;
+  landX: number;
+  landY: number;
+}
+const memory = new WeakMap<object, FrameMemory>();
+
+function memOf(s: MinigolfState): FrameMemory {
+  let m = memory.get(s.course);
+  if (!m || s.tick < m.tick) {
+    m = { tick: s.tick, x: s.x, y: s.y, strokes: s.strokes, strikeDx: 0, strikeDy: -1, strikeTick: -999, bounces: s.bounces, flashX: 0, flashY: 0, waters: s.waters, splashX: 0, splashY: 0, splashTick: -999, inSand: false, puffTick: -999, puffX: 0, puffY: 0, landX: 0, landY: 0 };
+    memory.set(s.course, m);
+  }
+  return m;
+}
+
+function inSandAt(h: MgHole, x: number, y: number): boolean {
+  return (h.sands ?? []).some((c) => (x - c.x) * (x - c.x) + (y - c.y) * (y - c.y) < c.r * c.r);
+}
+
+/** Updates the frame memory from the state (the strike's direction, where a splash or puff happened). */
+function noteFrame(s: MinigolfState, h: MgHole): FrameMemory {
+  const m = memOf(s);
+  if (s.tick !== m.tick) {
+    if (s.strokes > m.strokes && s.phase === MG_ROLL) {
+      const l = Math.hypot(s.vx, s.vy) || 1;
+      m.strikeDx = s.vx / l;
+      m.strikeDy = s.vy / l;
+      m.strikeTick = s.tick;
+    }
+    if (s.bounces > m.bounces) {
+      m.flashX = px(s.x);
+      m.flashY = px(s.y);
+    }
+    if (s.waters > m.waters) {
+      m.splashX = px(m.x);
+      m.splashY = px(m.y);
+      m.splashTick = s.tick;
+    }
+    const sandy = s.air === 0 && inSandAt(h, s.x, s.y);
+    if (sandy && !m.inSand && s.phase === MG_ROLL) {
+      m.puffTick = s.tick;
+      m.puffX = px(s.x);
+      m.puffY = px(s.y);
+    }
+    if (s.landTick === s.tick) {
+      m.landX = px(s.x);
+      m.landY = px(s.y);
+    }
+    m.inSand = sandy;
+    m.tick = s.tick;
+    m.x = s.x;
+    m.y = s.y;
+    m.strokes = s.strokes;
+    m.bounces = s.bounces;
+    m.waters = s.waters;
+  }
+  return m;
+}
+
+function captainImage(pose: "address" | "putt" | "chip"): HTMLImageElement | null {
+  return sceneImage(`mg.captain-${pose}`);
+}
+
+/** The Captain beside a ball at (bx, by), the shot's line `dir`, in a pose, at `alpha`. */
+function drawCaptain(ctx: CanvasRenderingContext2D, bx: number, by: number, dx: number, dy: number, pose: "address" | "putt" | "chip", alpha: number): void {
+  const img = captainImage(pose);
+  if (!img || alpha <= 0) return;
+  const th = Math.atan2(dy, dx);
+  const k = MG_CAPTAIN_PX / 256;
+  // The sprite's +X is the shot's line and its +Y points at the ball; the ball sits at CAPTAIN_BALL in the sprite.
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(bx, by);
+  ctx.rotate(th);
+  ctx.drawImage(img, -CAPTAIN_BALL.x * k, -CAPTAIN_BALL.y * k, 256 * k, 256 * k);
+  ctx.restore();
+}
+
+/** A deterministic 0–1 hash (confetti, puffs). */
+function h01(n: number): number {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function drawCourseV3(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null): void {
+  const h = s.course[Math.min(s.hole, MINIGOLF_HOLES - 1)]!;
+  const img = cachedHole(ctx, h, s.seed);
+  if (img) ctx.drawImage(img, 0, 0, MINIGOLF_W, MINIGOLF_H);
+  else paintMinigolfHole(ctx, h, s.seed & 1023);
+  const m = noteFrame(s, h);
+  const holedNow = s.holed[s.hole] === 1 && (s.phase === MG_PAUSE || s.phase === MG_DONE);
+  const bx = px(s.x);
+  const by = px(s.y);
+  const t = s.tick;
+
+  // The Captain, under the ball and the aim: addressing it while aiming, following through after the strike.
+  if (!holedNow && s.phase === MG_AIM) {
+    let dx = aim?.dx ?? 0;
+    let dy = aim?.dy ?? 0;
+    if (!aim) {
+      const l = Math.hypot(h.cup.x - s.x, h.cup.y - s.y) || 1;
+      dx = (h.cup.x - s.x) / l;
+      dy = (h.cup.y - s.y) / l;
+    }
+    drawCaptain(ctx, bx, by, dx, dy, "address", 0.96);
+  } else if (s.phase === MG_ROLL || holedNow) {
+    const since = t - m.strikeTick;
+    if (since >= 0 && since < CAPTAIN_HOLD) {
+      const fade = since < CAPTAIN_HOLD - 20 ? 0.96 : 0.96 * ((CAPTAIN_HOLD - since) / 20);
+      drawCaptain(ctx, px(s.fromX), px(s.fromY), m.strikeDx, m.strikeDy, s.shot === 2 ? "chip" : "putt", fade);
+    }
+  }
+
+  // Chip landing ring and the sand puff (under the ball).
+  if (t - s.landTick < 22 && s.landTick > 0) {
+    const k = (t - s.landTick) / 22;
+    ctx.strokeStyle = `rgba(240,255,220,${0.6 * (1 - k)})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.ellipse(m.landX, m.landY, 4 + k * 14, (4 + k * 14) * 0.8, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (t - m.puffTick < 24 || t - s.sandTick < 24) {
+    const at = t - m.puffTick < 24 ? m.puffTick : s.sandTick;
+    const x0 = t - m.puffTick < 24 ? m.puffX : bx;
+    const y0 = t - m.puffTick < 24 ? m.puffY : by;
+    const k = (t - at) / 24;
+    for (let i = 0; i < 9; i++) {
+      const a = h01(at * 13 + i) * Math.PI * 2;
+      const d = 3 + k * (8 + h01(i * 7 + at) * 8);
+      ctx.fillStyle = `rgba(230,205,150,${0.55 * (1 - k)})`;
+      ctx.beginPath();
+      ctx.arc(x0 + Math.cos(a) * d, y0 + Math.sin(a) * d - k * 3, 1.6 + k * 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // Water: a splash ring and droplets where the ball went in (it is already back where it was played from).
+  if (t - m.splashTick < 40) {
+    const k = (t - m.splashTick) / 40;
+    for (const r0 of [0, 0.35]) {
+      const kk = Math.max(0, k - r0);
+      ctx.strokeStyle = `rgba(210,240,255,${0.75 * (1 - kk)})`;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.ellipse(m.splashX, m.splashY, 3 + kk * 18, (3 + kk * 18) * 0.75, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (k < 0.5)
+      for (let i = 0; i < 7; i++) {
+        const a = -Math.PI / 2 + (h01(m.splashTick + i) - 0.5) * 2.2;
+        const d = k * 30;
+        ctx.fillStyle = `rgba(220,245,255,${0.8 * (1 - k * 2)})`;
+        ctx.beginPath();
+        ctx.arc(m.splashX + Math.cos(a) * d, m.splashY + Math.sin(a) * d * 0.7, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+  }
+
+  if (holedNow) {
+    // The ball drops into the cup (shrinking as it goes) and the flag is lifted out.
+    const k = Math.min(1, (t - s.holedTick) / 16);
+    drawBall(ctx, bx, by, 1 - k);
+    const lift = Math.min(1, (t - s.holedTick) / 20);
+    drawFlagLifted(ctx, h, t, lift);
+    // Confetti on a birdie or better.
+    const hole = Math.min(s.hole, MINIGOLF_HOLES - 1);
+    if (s.taken[hole]! < s.pars[hole]! && t - s.holedTick < 40) {
+      const kk = (t - s.holedTick) / 40;
+      const colours = ["#F2C75C", "#7FD58A", "#5FD3E8", "#F28CB0", "#FFFFFF"];
+      for (let i = 0; i < 24; i++) {
+        const a = h01(i * 3.3) * Math.PI * 2;
+        const v = 14 + h01(i * 5.1) * 26;
+        const x = bx + Math.cos(a) * v * kk;
+        const y = by + Math.sin(a) * v * kk + kk * kk * 22;
+        ctx.fillStyle = colours[i % colours.length]!;
+        ctx.globalAlpha = 1 - kk;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(a + kk * 6);
+        ctx.fillRect(-1.6, -0.8, 3.2, 1.6);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+  } else {
+    drawFlag(ctx, h, t, false);
+    // The rail flash.
+    if (t - s.bounceTick < 8 && s.bounceTick > 0) {
+      const k = (t - s.bounceTick) / 8;
+      const g = ctx.createRadialGradient(m.flashX, m.flashY, 0, m.flashX, m.flashY, 10 + k * 6);
+      g.addColorStop(0, `rgba(255,255,255,${0.8 * (1 - k)})`);
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(m.flashX, m.flashY, 10 + k * 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (s.air > 0) {
+      // A chip in the air: its shadow on the ground (the sim's position), the ball lifted and larger above it.
+      const T = Math.max(1, s.airTotal);
+      const u = (T - s.air) / T;
+      const z = 4 * MG_CHIP_PEAK_PX * u * (1 - u);
+      ctx.fillStyle = `rgba(0,0,0,${0.42 - z / 120})`;
+      ctx.beginPath();
+      ctx.ellipse(bx + z * 0.25, by + z * 0.3, MG_BALL_R + 1, MG_BALL_R * 0.8 + 1, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.save();
+      ctx.translate(bx - z * 0.3, by - z * 0.75);
+      const sc = 1 + z / 70;
+      ctx.scale(sc, sc);
+      drawBall(ctx, 0, 0);
+      ctx.restore();
+    } else {
+      if (s.phase === MG_ROLL) {
+        const sp = Math.hypot(s.vx, s.vy);
+        if (sp > 0) {
+          const tx = (-s.vx / sp) * Math.min(18, sp / 50);
+          const ty = (-s.vy / sp) * Math.min(18, sp / 50);
+          const g = ctx.createLinearGradient(bx, by, bx + tx, by + ty);
+          g.addColorStop(0, "rgba(255,255,255,0.32)");
+          g.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.strokeStyle = g;
+          ctx.lineWidth = MG_BALL_R * 1.5;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx + tx, by + ty);
+          ctx.stroke();
+        }
+      }
+      // Over the lip: a quick wobble for a third of a second.
+      const lip = t - s.lipTick < 20 && s.lipTick > 0 ? Math.sin((t - s.lipTick) * 1.9) * 1.6 * (1 - (t - s.lipTick) / 20) : 0;
+      drawBall(ctx, bx + lip, by - Math.abs(lip) * 0.4);
+    }
+  }
+  for (const w of h.windmills ?? []) drawWindmill(ctx, w, t);
+  if (aim && s.phase === MG_AIM) drawAimV3(ctx, s, h, bx, by, aim);
+}
+
+/** The flag being lifted out of the cup (lift 0 → 1): it rises off the cup, tilting, and fades. */
+function drawFlagLifted(ctx: CanvasRenderingContext2D, h: MgHole, tick: number, lift: number): void {
+  if (lift >= 1) return;
+  ctx.save();
+  ctx.globalAlpha = 1 - lift;
+  ctx.translate(0, -lift * 16);
+  drawFlag(ctx, h, tick, false);
+  ctx.restore();
+}
+
+/**
+ * The aim: a rubber band stretched from the ball to the finger (thinner the further it stretches) and the level's
+ * preview. A putt's preview is its line (Easy: rolled on a copy of the sim to its first bounce and a little past it;
+ * Normal its full length; Hard 60 %; Expert 35 %); a chip's is its arc to the landing (the landing ring on Easy and
+ * Normal). Display only: the sim never sees any of it.
+ */
+function drawAimV3(ctx: CanvasRenderingContext2D, s: MinigolfState, h: MgHole, bx: number, by: number, aim: MinigolfAim): void {
+  const rules = MG_LEVELS[s.level];
+  ctx.save();
+  ctx.lineCap = "round";
+  // The rubber band, from either side of the ball to the handle.
+  const hx = aim.hx ?? bx - aim.dx * (12 + aim.power * 70);
+  const hy = aim.hy ?? by - aim.dy * (12 + aim.power * 70);
+  const nx = -aim.dy;
+  const ny = aim.dx;
+  const w = 3.2 - aim.power * 1.9;
+  ctx.strokeStyle = aim.chip ? "rgba(95,211,232,0.85)" : "rgba(242,199,92,0.85)";
+  ctx.lineWidth = w;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(bx + nx * side * (MG_BALL_R + 1), by + ny * side * (MG_BALL_R + 1));
+    ctx.lineTo(hx + nx * side * 1.5, hy + ny * side * 1.5);
+    ctx.stroke();
+  }
+  ctx.fillStyle = aim.chip ? "#5FD3E8" : "#F2C75C";
+  ctx.beginPath();
+  ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,0.5)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const c = Math.max(1, Math.round(aim.power * 1000));
+  const a = Math.round(aim.dx * 4000);
+  const b = Math.round(aim.dy * 4000);
+  if (aim.chip) {
+    const launch = mgChipLaunch(a, b, c);
+    const carry = Math.hypot(launch.vx, launch.vy) * launch.air / 256;
+    const shown = carry * rules.preview;
+    for (let d = 8; d < shown; d += 7) {
+      const u = d / carry;
+      const z = 4 * MG_CHIP_PEAK_PX * u * (1 - u);
+      ctx.fillStyle = `rgba(200,245,255,${0.9 - 0.5 * u})`;
+      ctx.beginPath();
+      ctx.arc(bx + aim.dx * d - z * 0.3, by + aim.dy * d - z * 0.75, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (rules.preview >= 1) {
+      ctx.strokeStyle = "rgba(200,245,255,0.8)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(bx + aim.dx * carry, by + aim.dy * carry, 7, 5.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else if (rules.bounce) {
+    // Easy: the putt rolled on a copy of the sim (its own tick) to its first bounce, then a little past it.
+    const v = mgPuttVelocity(a, b, c, 2);
+    const ball = { x: s.x, y: s.y, vx: v.vx, vy: v.vy, air: 0 };
+    let after = -1;
+    const pts: { x: number; y: number; after: boolean }[] = [];
+    for (let k = 1; k <= 240; k++) {
+      const r = mgRollTickV3(h, ball, k, s.tick + k);
+      if (r.hits > 0 && after < 0) after = 0;
+      pts.push({ x: px(ball.x), y: px(ball.y), after: after >= 0 });
+      if (after >= 0 && ++after > 14) break;
+      if (r.end !== MG_END_NONE) break;
+    }
+    let last = { x: bx, y: by };
+    let acc = 0;
+    for (const p of pts) {
+      acc += Math.hypot(p.x - last.x, p.y - last.y);
+      last = p;
+      if (acc < 9) continue;
+      acc = 0;
+      ctx.fillStyle = p.after ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.88)";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    const len = (24 + aim.power * 150) * rules.preview;
+    for (let d = 10; d < len; d += 9) {
+      const al = 0.88 * (1 - d / (len + 30));
+      ctx.fillStyle = `rgba(255,255,255,${al})`;
+      ctx.beginPath();
+      ctx.arc(bx + aim.dx * d, by + aim.dy * d, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // The power pill.
+  const pct = `${Math.round(aim.power * 100)}%`;
+  ctx.font = "700 13px Archivo, system-ui, sans-serif";
+  const pw = ctx.measureText(pct).width + 14;
+  let x = bx + 14;
+  let y = by - 34;
+  if (x + pw > MINIGOLF_W - 4) x = bx - 14 - pw;
+  if (y < 30) y = by + 14;
+  ctx.fillStyle = "rgba(10,12,10,0.82)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, pw, 21, 10.5);
+  ctx.fill();
+  ctx.strokeStyle = `hsl(${120 - aim.power * 120} 80% 55%)`;
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+  ctx.fillStyle = "#F5F5F0";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillText(pct, x + 7, y + 11);
+  ctx.restore();
+}
+
+/** A larger HUD chip (golfRev 3: 14 px type, the review's 9 px complaint). */
+function chipV3(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, align: "left" | "right", accent = false): void {
+  ctx.font = "700 14px Archivo, system-ui, sans-serif";
+  const w = ctx.measureText(text).width + 18;
+  const left = align === "left" ? x : x - w;
+  ctx.fillStyle = "rgba(10,12,10,0.76)";
+  ctx.beginPath();
+  ctx.roundRect(left, y, w, 26, 13);
+  ctx.fill();
+  ctx.strokeStyle = accent ? "rgba(242,199,92,0.8)" : "rgba(255,255,255,0.16)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = accent ? "#F2C75C" : "#F2F0EA";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillText(text, left + 9, y + 13.5);
+}
+
+function drawHudV3(ctx: CanvasRenderingContext2D, s: MinigolfState): void {
+  const hole = Math.min(s.hole, MINIGOLF_HOLES - 1);
+  const holedNow = s.holed[s.hole] === 1 && (s.phase === MG_PAUSE || s.phase === MG_DONE);
+  const par = s.pars[hole]!;
+  chipV3(ctx, 8, 6, `Hole ${hole + 1} of ${MINIGOLF_HOLES} · Par ${par}`, "left");
+  const strokes = holedNow ? s.taken[s.hole]! : s.strokes;
+  const limit = mgStrokeLimit(s.rev, par, s.level);
+  chipV3(ctx, MINIGOLF_W - 8, 6, `Stroke ${Math.min(strokes + (s.phase === MG_AIM ? 1 : 0), limit)} of ${limit}`, "right", strokes >= limit - 1);
+}
+
+/* ========================= The reveal's hole map (the redesigned reveal) ========================= */
+
+/** A stroke as the reveal map draws it (world px; minigolf.ts minigolfShotTrace). */
+export interface MinigolfRevealStroke {
+  kind: "putt" | "chip";
+  path: readonly { x: number; y: number; air: boolean }[];
+  end: { x: number; y: number };
+  water: boolean;
+  holed: boolean;
+  sand: boolean;
+}
+
+/**
+ * One hole for the reveal, filling a `w × h` canvas (display only, 15 Nov 2026): the hole as it was played (the
+ * default look), then every stroke drawn over it: a putt's roll a white line, a chip's flight a cyan dotted arc that
+ * turns white where it rolled on, each stroke's resting spot numbered in order, a holed stroke ending in a gold ring,
+ * a stroke into water a red ring where the ball went in and a sand stop a sand ring. The camera fits the hole's box.
+ */
+export function drawMinigolfRevealHole(ctx: CanvasRenderingContext2D, hole: MgHole, strokes: readonly MinigolfRevealStroke[], w: number, h: number, salt = 0): void {
+  const b = hole.box;
+  const margin = 6;
+  const k = Math.min(w / (b.w + margin * 2), h / (b.h + margin * 2));
+  ctx.save();
+  ctx.fillStyle = MINIGOLF_BG;
+  ctx.fillRect(0, 0, w, h);
+  ctx.translate(w / 2 - (b.x + b.w / 2) * k, h / 2 - (b.y + b.h / 2) * k);
+  ctx.scale(k, k);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(b.x - margin, b.y - margin, b.w + margin * 2, b.h + margin * 2);
+  ctx.clip();
+  paintMinigolfHole(ctx, hole, salt & 1023);
+  ctx.restore();
+  drawFlag(ctx, hole, 0, false);
+  const lw = 2.2 / Math.max(0.6, k) + 1.2;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  strokes.forEach((st) => {
+    // The path: a dark casing, then white rolls and a cyan dotted flight.
+    ctx.strokeStyle = "rgba(0,0,0,0.55)";
+    ctx.lineWidth = lw + 2;
+    ctx.beginPath();
+    st.path.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.stroke();
+    for (let i = 1; i < st.path.length; i++) {
+      const a = st.path[i - 1]!;
+      const p = st.path[i]!;
+      ctx.strokeStyle = p.air ? "#5FD3E8" : "#FFFFFF";
+      ctx.setLineDash(p.air ? [lw * 1.2, lw * 1.6] : []);
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  });
+  // The ends on top, numbered in play order.
+  const r = 7.5 / Math.max(0.7, k) + 3;
+  strokes.forEach((st, i) => {
+    const { x, y } = st.end;
+    if (st.holed) {
+      ctx.strokeStyle = "#F2C75C";
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.arc(x, y, MG_CUP_R + 3, 0, Math.PI * 2);
+      ctx.stroke();
+      return;
+    }
+    ctx.fillStyle = st.water ? "#E5484D" : st.sand ? "#C9A35A" : "#101410";
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = st.water ? "#FFD6D6" : "#FFFFFF";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `800 ${Math.round(r * 1.25)}px Archivo, system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(i + 1), x, y + 0.5);
+  });
+  ctx.restore();
 }
