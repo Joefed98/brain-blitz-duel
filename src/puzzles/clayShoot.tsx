@@ -45,7 +45,7 @@ import {
 import { CLAY_WAITING, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV } from "@/lib/arcade/clayShoot";
 import { clayDepthDetail, encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
-import { playSound, playTick } from "@/lib/sound";
+import { playCueSlot, playSound, playTick } from "@/lib/sound";
 import { momentFrame } from "@/lib/fx/momentCues";
 import { soundCue as dispatchPitched } from "@/lib/fx/soundCues";
 import { demoHushed } from "@/lib/sound";
@@ -284,11 +284,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if ((s.birdNext ?? 0) > seenBirdsIn && !game.isOver(s)) soundCue("clayshoot.birdIn");
       seenBirdsIn = s.birdNext ?? 0;
       // A shot that hits nothing leaves a smoke puff.
+      // A shot that hits nothing leaves a smoke puff.
       if (s.shotTick > seenShot && !s.shotHit) soundCue("clayshoot.missPuff");
       seenShot = s.shotTick;
       if (s.hits > seenHits) {
-        for (let n = seenHits; n < s.hits; n++) playSound("pz_clay_hit", 1, 1, true);
-        if (s.goldHits > seenGold) soundCue("clayshoot.goldShatter");
+        // The Speed overhaul (15 Nov 2026): the shot and the shatter in one (its own file); a gold clay its brighter
+        // shatter and a chime. Played on the tick the shot lands, so within a frame of the tap.
+        for (let n = seenHits; n < s.hits; n++) if (!playCueSlot("clayshoot.shot")) playSound("pz_clay_hit", 1, 1, true);
+        if (s.goldHits > seenGold) {
+          soundCue("clayshoot.goldShatter");
+          soundCue("clayshoot.goldChime");
+        }
         else if (!quiet.has("clayshoot.shatter")) soundCue("clayshoot.shatter");
         seenHits = s.hits;
         seenGold = s.goldHits;
@@ -296,6 +302,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if ((s.birdHits ?? 0) > seenBirds) {
         seenBirds = s.birdHits ?? 0;
         soundCue("clayshoot.birdStartle");
+        soundCue("clayshoot.birdWrong");
       }
       const doubles = s.dp ? clayDoublesHit(s) : 0;
       const multiplier = s.dp ? clayStreakMultiplier(s.dp.streak) : 1;

@@ -397,6 +397,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const path = replay.used[boardIndex] ?? [];
   const broken = ended === "wrong" || ended === "momentum";
   const over = Boolean(ended) || locked;
+  // The Speed overhaul (15 Nov 2026; sound only): a soft whoosh as the board reshuffles every 5 links, and a heartbeat
+  // under the link tones for the last 5 links, quickening as the end nears.
+  const shownBoard = useRef(boardIndex);
+  useEffect(() => {
+    if (boardIndex !== shownBoard.current && !over) playCueSlot("chain.reshuffle");
+    shownBoard.current = boardIndex;
+  }, [boardIndex, over]);
+  const lastFive = !over && links >= rules.length - 5 && links < rules.length;
+  useEffect(() => {
+    if (!lastFive) return undefined;
+    const ms = 700 - 60 * (links - (rules.length - 5));
+    playCueSlot("chain.heartbeat", 0.8);
+    const id = window.setInterval(() => playCueSlot("chain.heartbeat", 0.8), ms);
+    return () => window.clearInterval(id);
+  }, [lastFive, links, rules.length]);
   // The ring sits on the last linked node; after a reshuffle it follows that slot.
   const lastSlot = replay.used[chainBoardIndex(Math.max(0, links - 1), data)]?.at(-1) ?? null;
   const windowMs = chainWindowMs(links + 1, data);

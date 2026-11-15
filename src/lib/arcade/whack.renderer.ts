@@ -1,5 +1,5 @@
 import { successFrame } from "./success.renderer";
-import { whackComboMultiplier, whackGame, WHACK_COLS, whackDiamondLife, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
+import { whackRule, WHACK_RED, whackComboMultiplier, whackGame, WHACK_COLS, whackDiamondLife, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
 import { reducedMotion } from './art.renderer';
 import { arcadeReducedEffects } from '@/lib/fx/lowEnd';
 import type { CanvasSize } from './engine';
@@ -299,6 +299,8 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
     }
   }
 
+  drawFlipRims(ctx, state, cellW, cellH, origin);
+
   const { kind, hole, at: spawn } = state.schedule;
   const tick = state.tick;
   const r = cell * 0.3;
@@ -336,6 +338,17 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
       drawTarget(ctx, cx, cy + fall * cellH * 0.5, r * (1 - 0.3 * fall), targetKind);
     } else if (state.status[i] === WHACK_STATUS_HIT) {
       const age = tick - doneTick;
+      // The Speed overhaul (15 Nov 2026; display only): the bonked target squashes flat into its burrow for a moment
+      // (both hat colours), under the gold ring and the spark.
+      if (age < 8 && !reducedMotion()) {
+        const k = age / 8;
+        ctx.save();
+        ctx.translate(cx, cy + r * 0.35 * k);
+        ctx.scale(1 + 0.25 * (1 - k), 0.55 + 0.1 * k);
+        ctx.globalAlpha = 1 - k * 0.6;
+        drawTarget(ctx, 0, 0, r, targetKind);
+        ctx.restore();
+      }
       if (age < 10) {
         // Polish batch S: a gold glow inside the cell under the hit ring.
         const hitGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, cell * 0.5);
@@ -368,6 +381,36 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
     if (lastHit >= 0 && state.dp.combo > 0 && m >= 2 && age >= 0 && age < 18) drawComboTag(ctx, hitOrigin.x + cellW / 2, hitOrigin.y + cellH * 0.18, cell, m, age);
   }
   successFrame(ctx, { id: 'whack', tick: state.tick, count: state.hits, misses: state.wrong + state.bombs + state.empty, colour: PALETTE.gold, width: size.width, height: size.height, eventTick: state.doneTick[lastHit], point: { x: hitOrigin.x + cellW / 2, y: hitOrigin.y + cellH / 2 - 8, shape: 'spark' }, enabled: whackSparkEnabled(state.status, lastHit) });
+  ctx.restore();
+}
+
+/** How long every burrow rim flashes the new hat colour after a rule flip (ticks). */
+export const WHACK_FLIP_RIM_TICKS = 36;
+
+/**
+ * The Speed overhaul (15 Nov 2026; display only): for WHACK_FLIP_RIM_TICKS after a rule flip every burrow's rim
+ * flashes the new hat colour (a ring on the rim, outside the gophers, so the board stays readable), fading out.
+ */
+export function whackFlipRimAge(state: Pick<WhackState, "tick" | "schedule">): number {
+  let age = -1;
+  for (const f of state.schedule.flips) if (state.tick >= f) age = state.tick - f;
+  return age >= 0 && age < WHACK_FLIP_RIM_TICKS ? age : -1;
+}
+
+function drawFlipRims(ctx: CanvasRenderingContext2D, state: WhackState, cellW: number, cellH: number, origin: (h: number) => { x: number; y: number }): void {
+  const age = whackFlipRimAge(state);
+  if (age < 0) return;
+  const red = whackRule(state.schedule.flips, state.tick) === WHACK_RED;
+  ctx.save();
+  ctx.globalAlpha = reducedMotion() ? 0.85 : 0.9 * (1 - age / WHACK_FLIP_RIM_TICKS) * (age % 12 < 8 ? 1 : 0.55);
+  ctx.strokeStyle = red ? PALETTE.red : PALETTE.gold;
+  ctx.lineWidth = Math.max(3, cellW * 0.05);
+  for (let h = 0; h < WHACK_HOLES; h++) {
+    const o = origin(h);
+    ctx.beginPath();
+    ctx.ellipse(o.x + cellW / 2, o.y + cellH / 2, cellW * 0.485, cellH * 0.465, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 

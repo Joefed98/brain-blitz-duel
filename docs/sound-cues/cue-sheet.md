@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 34 | 0 | 509 | 543 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
-| UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 37 | 41 |
+| UI tap | 10 | 0 | 36 | 46 |
+| fail sting | 4 | 0 | 39 | 43 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 60 | 1 | 1013 | 1074 |
 
 ## Silent and placeholder cues
 
@@ -104,7 +104,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `clayshoot.goldSparkle` | Pull!: 380 ms into the final burst: the fragments turn into gold sparkle across the sky [speed-attention.md] |  | 0–1 | silent | none | 700 | success sting | `clayshoot.goldSparkle` |
 | `clayshoot.shatter` | Pull!: An orange clay is hit (new shard shatter) [speed-attention.md] |  | 5–40 (per move) | silent | none | 433 | game event | `clayshoot.shatter` |
-| `clayshoot.goldShatter` | Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md] |  | 5–40 (per move) | silent | none | 433 | game event | `clayshoot.goldShatter` |
 
 ### Tenfall
 
@@ -868,6 +867,13 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `numhunt.discsPop` | Ascend: Finish (last disc tapped): discs pop upwards in order [speed-attention.md] |  | 0–1 | recorded sound | `numhunt.discsPop` | 1100 | success sting | `numhunt.discsPop` |
+| `numhunt.note-low` | Ascend: A right tap, taps 1–8: one marimba note, a step higher each tap [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `numhunt.note-low` | 300 | game event | `numhunt.note-low` |
+| `numhunt.note-mid` | Ascend: A right tap, taps 9–16 [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `numhunt.note-mid` | 300 | game event | `numhunt.note-mid` |
+| `numhunt.note-high` | Ascend: A right tap, taps 17–24 [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `numhunt.note-high` | 300 | game event | `numhunt.note-high` |
+| `numhunt.combo` | Ascend: Five fast right taps in a row [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `numhunt.combo` | 400 | game event | `numhunt.combo` |
+| `numhunt.wrong` | Ascend: A wrong tap: a dull knock on that disc [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `numhunt.wrong` | 150 | fail sting | `numhunt.wrong` |
+| `numhunt.warn` | Ascend: One second before the discs move: a small brass bell [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `numhunt.warn` | 900 | game event | `numhunt.warn` |
+| `numhunt.shuffle` | Ascend: The discs gliding to their new places: a whoosh [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `numhunt.shuffle` | 320 | game event | `numhunt.shuffle` |
 | `music.numhunt` | Ascend round bed: music_speed_2 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_2` (shared) | 60000 | music | `music_speed_numhunt` |
 
 ### Bang On
@@ -889,6 +895,12 @@ Grouped by game or screen.
 | `whack.hedgehogUp` | A hedgehog pops up (in place of whack.popUp) [arcade-effects.md] | The hedgehog rises from its burrow | 10–15 | recorded sound | `whack.hedgehogUp` | 200 | game event | `whack.hedgehogUp` |
 | `whack.emptyTap` | A tap on an empty hole (−3 points) [arcade-effects.md] | Nothing is drawn yet (the score drops by 3) | 0–10 | recorded sound | `whack.emptyTap` | 200 | game event | `whack.emptyTap` |
 | `whack.finale` | Bonk: End of run, local whackGame.score ≥ 120: hard hats fly up as gophers pop out together [speed-attention.md] |  | 0–1 | recorded sound | `whack.finale` | 1100 | success sting | `whack.finale` |
+| `whack.bonk` | Bonk: A right hit (gold or red hat): a cartoon bonk, pitched up for streaks [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `whack.bonk` | 180 | game event | `whack.bonk` |
+| `whack.whistle` | Bonk: The rule flip: a short double whistle [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `whack.whistle` | 450 | game event | `whack.whistle` |
+| `whack.slam` | Bonk: The rule flip: the banner slamming in [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `whack.slam` | 260 | game event | `whack.slam` |
+| `whack.hedgehog` | Bonk: A hedgehog bonked: a heavy wrong [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `whack.hedgehog` | 320 | game event | `whack.hedgehog` |
+| `whack.wrongHat` | Bonk: A wrong-colour hat: a dull clonk [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `whack.wrongHat` | 150 | fail sting | `whack.wrongHat` |
+| `whack.diamond` | Bonk: A diamond: a crystalline sparkle [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `whack.diamond` | 420 | game event | `whack.diamond` |
 | `music.whack` | Bonk round bed: music_speed_3 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_3` (shared) | 60000 | music | `music_speed_whack` |
 
 ### Don’t Break the Chain
@@ -900,6 +912,8 @@ Grouped by game or screen.
 | `chain.finishShine` | Don't Break the Chain: Chain completed: gold chain glows, shine runs along every link [speed-attention.md] |  | 0–1 | recorded sound | `chain.finishShine` | 1100 | success sting | `chain.finishShine` |
 | `chain.faster` | Don't Break the Chain: The FASTER banner (a speed-up link; not when the REVERSE flash takes the same link) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `chain.faster` | 350 | game event | `chain.faster` |
 | `chain.reverse` | Don't Break the Chain: chainCycleRev 1: the ← REVERSE flash as the reversed board starts [speed-attention.md] |  | 5–40 (per move) | recorded sound | `chain.reverse` | 500 | game event | `chain.reverse` |
+| `chain.reshuffle` | Don't Break the Chain: The board reshuffling every 5 links: a soft whoosh [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `chain.reshuffle` | 300 | game event | `chain.reshuffle` |
+| `chain.heartbeat` | Don't Break the Chain: Under the tones for the last 5 links: a low heartbeat [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `chain.heartbeat` | 500 | game event | `chain.heartbeat` |
 | `music.chain` | Don’t Break the Chain round bed: music_speed_2 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_2` (shared) | 60000 | music | `music_speed_chain` |
 
 ### Flash
@@ -907,6 +921,11 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `reaction.goldPulse` | Flash: End of run (every flash settled), local scoreReaction ≥ 120: gold pulse from the centre [speed-attention.md] |  | 0–1 | recorded sound | `reaction.goldPulse` | 1100 | UI tap | `reaction.goldPulse` |
+| `reaction.hit` | Flash: A hit on the gold: a crisp snap [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `reaction.hit` | 90 | UI tap | `reaction.hit` |
+| `reaction.combo` | Flash: Three fast hits in a row: a rising chime, a step higher each hit [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `reaction.combo` | 250 | UI tap | `reaction.combo` |
+| `reaction.wrong` | Flash: A tap on a decoy or the dark screen: a short muted buzz [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `reaction.wrong` | 140 | UI tap | `reaction.wrong` |
+| `reaction.done` | Flash: Done: every flash settled [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `reaction.done` | 600 | UI tap | `reaction.done` |
+| `reaction.bar` | Flash: Reveal: each flash's bar dropping in, pitched up bar by bar [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `reaction.bar` | 70 | UI tap | `reaction.bar` |
 | `music.reaction` | Flash round bed: music_speed_1 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_1` (shared) | 60000 | music | `music_speed_reaction` |
 
 ### Pull!
@@ -921,7 +940,11 @@ Grouped by game or screen.
 | `clayshoot.escape` | A clay escapes unshot [arcade-effects.md] | Its HUD pip turns red | 0–25 | recorded sound | `clayshoot.escape` | 300 | game event | `clayshoot.escape` |
 | `pz_clay_hit` | Pull!: A clay is hit [core.md] |  | 10–25 | recorded sound | `pz_clay_hit` | 780 | game event | `pz_clay_hit` |
 | `clayshoot.finalBurst` | Pull!: End of run, local clay score ≥ 120: final burst of clay fragments [speed-attention.md] |  | 0–1 | recorded sound | `clayshoot.finalBurst` | 1100 | success sting | `clayshoot.finalBurst` |
+| `clayshoot.goldShatter` | Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `clayshoot.goldShatter` | 433 | game event | `clayshoot.goldShatter` |
 | `clayshoot.birdStartle` | Pull!: A bird is shot (feathers drift) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `clayshoot.birdStartle` | 600 | game event | `clayshoot.birdStartle` |
+| `clayshoot.shot` | Pull!: An orange clay hit: shot and shatter in one [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `clayshoot.shot` | 450 | game event | `clayshoot.shot` |
+| `clayshoot.goldChime` | Pull!: A gold clay hit: a bright chime with the shatter [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `clayshoot.goldChime` | 500 | game event | `clayshoot.goldChime` |
+| `clayshoot.birdWrong` | Pull!: A bird hit: a short dull wrong, with the feathers [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `clayshoot.birdWrong` | 250 | game event | `clayshoot.birdWrong` |
 | `music.clayshoot` | Pull! round bed: music_speed_3 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_3` (shared) | 60000 | music | `music_speed_clayshoot` |
 
 ### Tenfall
@@ -929,10 +952,15 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tendrop.nextTarget` | The next target starts [arcade-effects.md] | The old lane's tiles fade out | 5–8 | recorded sound | `tendrop.nextTarget` | 300 | game event | `tendrop.nextTarget` |
-| `tendrop.apply` | a tap applies a tile without hitting the target [number.md] |  | 5–40 (per move) | recorded sound | `place` (shared) | 200 | game event | `tendrop.apply` |
+| `tendrop.apply` | a tap applies a tile without hitting the target [number.md] |  | 5–40 (per move) | recorded sound | `tendrop.apply` | 200 | game event | `tendrop.apply` |
 | `tendrop.clear` | a target is cleared [number.md] |  | 5–40 (per move) | recorded sound | `tendrop.clear` | 360 | game event | `tendrop.clear` |
 | `tendrop.reset` | the total overshoots and resets [number.md] |  | 5–40 (per move) | recorded sound | `tendrop.reset` | 360 | fail sting | `tendrop.reset` |
 | `tendrop.solve` | all ten targets cleared: last target bursts, remaining tiles shimmer [number.md] |  | 0–1 | recorded sound | `tendrop.solve` | 1200 | success sting | `tendrop.solve` |
+| `tendrop.count` | Tenfall: The total counting to its new value: one soft tick a step [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `tendrop.count` | 30 | game event | `tendrop.count` |
+| `tendrop.near` | Tenfall: The total within 5 of the target: a faint rising shimmer [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `tendrop.near` | 300 | game event | `tendrop.near` |
+| `tendrop.tenBurst` | Tenfall: A target hit: tiles clacking and a bright burst [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `tendrop.tenBurst` | 500 | game event | `tendrop.tenBurst` |
+| `tendrop.shatter` | Tenfall: An overshoot: the total shatters to 0 [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `tendrop.shatter` | 420 | game event | `tendrop.shatter` |
+| `tendrop.tap` | Tenfall: A tap on empty board: a soft tap [speed-overhaul.md] |  | 5–40 (per move) | recorded sound | `tendrop.tap` | 50 | UI tap | `tendrop.tap` |
 | `music.tendrop` | Tenfall round bed: music_number_3 (speed bed shared with other games) |  | loop | recorded sound | `music_number_3` (shared) | 60000 | music | `music_speed_tendrop` |
 
 ### Bomb Defusal
@@ -1929,7 +1957,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `round_start` | effects | `round_start` | 180 |
 | `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid`, `bastion.dry` | 55 |
 | `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
-| `place` | effects | `place`, `tendrop.apply` | 50 |
+| `place` | effects | `place` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
 | `correct` | effects | `correct` | 120 |
 | `wrong` | effects | `wrong` | 140 |
@@ -2331,6 +2359,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `chain.finishShine` | effects | `chain.finishShine` | 1000 |
 | `reaction.goldPulse` | effects | `reaction.goldPulse` | 1000 |
 | `clayshoot.finalBurst` | effects | `clayshoot.finalBurst` | 1080 |
+| `clayshoot.goldShatter` | effects | `clayshoot.goldShatter` | 433 |
 | `clayshoot.birdStartle` | effects | `clayshoot.birdStartle` | 606 |
 | `spotdiff.allFound` | effects | `spotdiff.allFound` | 1000 |
 | `spotdiff.nextPicture` | effects | `spotdiff.nextPicture` | 528 |
@@ -2816,3 +2845,31 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `bintoss.wind` | effects | `bintoss.wind` | 800 |
 | `bintoss.ambience` | effects | `bintoss.ambience` | 8000 |
 | `bullseye.ambience` | effects | `bullseye.ambience` | 8000 |
+| `reaction.hit` | effects | `reaction.hit` | 90 |
+| `reaction.combo` | effects | `reaction.combo` | 250 |
+| `reaction.wrong` | effects | `reaction.wrong` | 140 |
+| `reaction.done` | effects | `reaction.done` | 600 |
+| `reaction.bar` | effects | `reaction.bar` | 70 |
+| `numhunt.note-low` | effects | `numhunt.note-low` | 300 |
+| `numhunt.note-mid` | effects | `numhunt.note-mid` | 300 |
+| `numhunt.note-high` | effects | `numhunt.note-high` | 300 |
+| `numhunt.combo` | effects | `numhunt.combo` | 400 |
+| `numhunt.wrong` | effects | `numhunt.wrong` | 150 |
+| `numhunt.warn` | effects | `numhunt.warn` | 900 |
+| `numhunt.shuffle` | effects | `numhunt.shuffle` | 320 |
+| `chain.reshuffle` | effects | `chain.reshuffle` | 300 |
+| `chain.heartbeat` | effects | `chain.heartbeat` | 500 |
+| `whack.bonk` | effects | `whack.bonk` | 180 |
+| `whack.whistle` | effects | `whack.whistle` | 450 |
+| `whack.slam` | effects | `whack.slam` | 260 |
+| `whack.hedgehog` | effects | `whack.hedgehog` | 320 |
+| `whack.wrongHat` | effects | `whack.wrongHat` | 150 |
+| `whack.diamond` | effects | `whack.diamond` | 420 |
+| `tendrop.count` | effects | `tendrop.count` | 30 |
+| `tendrop.near` | effects | `tendrop.near` | 300 |
+| `tendrop.tenBurst` | effects | `tendrop.tenBurst` | 500 |
+| `tendrop.shatter` | effects | `tendrop.shatter` | 420 |
+| `tendrop.tap` | effects | `tendrop.tap` | 50 |
+| `clayshoot.shot` | effects | `clayshoot.shot` | 450 |
+| `clayshoot.goldChime` | effects | `clayshoot.goldChime` | 500 |
+| `clayshoot.birdWrong` | effects | `clayshoot.birdWrong` | 250 |

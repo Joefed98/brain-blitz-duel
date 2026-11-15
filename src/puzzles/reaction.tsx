@@ -2,6 +2,9 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { speedArtCss } from "@/lib/fx/speedArt";
+import { gameFx } from "@/lib/fx/kit";
+import { FxCountUp } from "@/components/fx/GameFx";
+import { playCueSlot } from "@/lib/sound";
 
 import { serverNow } from "@/lib/duel/clock";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
@@ -42,6 +45,10 @@ import { RevealBars, RevealCaption, RevealNumbers, RevealPanel } from "@/compone
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const DECOY_COLOURS = REACTION_PLAIN_DECOYS;
+
+/** A hit faster than this counts towards the fast-hits combo (display and sound only). */
+export const FLASH_FAST_MS = 350;
+const arenaEl = () => (typeof document === "undefined" ? null : document.querySelector(".flash-arena"));
 
 /** The Speed overhaul's Blender art (speedArt.ts), one style object for every render. */
 const FLASH_ART_STYLE = {
@@ -325,7 +332,7 @@ function ReactionArena({
 }: {
   surface: string;
   falseStarts: number;
-  lastShown: { text: string; bad: boolean } | null;
+  lastShown: { text: string; bad: boolean; speed?: "gold" | "fast" | "slow" | undefined; combo?: number | undefined } | null;
   live: boolean;
   done: boolean;
   decoy: boolean;
@@ -383,9 +390,12 @@ function ReactionArena({
         {ripple && <span key={ripple.id} aria-hidden="true" className="reaction-tap-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />}
         {live ? null : lastShown ? (
           <span
-            className={`flash-readout relative font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : "text-primary"}`}
+            key={lastShown.text + (lastShown.combo ?? 0)}
+            data-flash-speed={lastShown.bad ? undefined : lastShown.speed}
+            className={`flash-readout relative flex flex-col items-center font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : lastShown.speed === "slow" ? "text-foreground" : "text-primary"}`}
           >
             {lastShown.text}
+            {lastShown.combo ? <span data-flash-combo={lastShown.combo} className="flash-combo font-display text-lg font-black uppercase tracking-widest">{lastShown.combo} fast in a row</span> : null}
           </span>
         ) : done ? (
           // The Speed overhaul (15 Nov 2026): a clear "Done" moment at the end (the flash count stays hidden till then).
@@ -411,10 +421,11 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
   const key = `${phaseStartedAt}:${flashes.join(",")}`;
   const taps = useRef<number[]>([]);
   const [logLength, setLogLength] = useState(0);
-  const [lastShown, setLastShown] = useState<{ text: string; until: number; bad: boolean } | null>(null);
+  const [lastShown, setLastShown] = useState<{ text: string; until: number; bad: boolean; speed?: "gold" | "fast" | "slow"; combo?: number } | null>(null);
   const [t, setT] = useState(() => serverNow() - phaseStartedAt);
   const submitted = useRef("");
   const shownMisses = useRef(0);
+  const fastRun = useRef(0);
 
   useEffect(() => {
     taps.current = [];
@@ -452,6 +463,15 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
     if (flashes.length) onDraftAnswer?.(encodeTapTimes(taps.current));
   }, [logLength]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "Done": the last flash settled (the count is never shown before).
+  const doneKey = useRef("");
+  useEffect(() => {
+    if (!replay.done || doneKey.current === key || flashes.length === 0) return;
+    doneKey.current = key;
+    playCueSlot("reaction.done");
+    gameFx("win", document.querySelector("[data-flash-done]"), { silent: true, noHaptic: true });
+  }, [replay.done, key, flashes.length]);
+
   useEffect(() => {
     if (flashes.length === 0 || locked || submitted.current === key || !replay.done) return;
     submitted.current = key;
@@ -480,9 +500,17 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
     const outcome = next.outcomes[next.outcomes.length - 1];
     if (outcome === "hit") {
       const ms = next.times.find((v, i) => v !== null && before.times[i] === null) ?? 0;
-      setLastShown({ text: `${ms} ms`, until: stamp + 1_000, bad: false });
+      // The Speed overhaul (15 Nov 2026): a crisp snap on the tap itself (within the frame), the time popping up
+      // coloured by speed, and three fast hits in a row a climbing combo.
+      playCueSlot("reaction.hit");
+      fastRun.current = ms < FLASH_FAST_MS ? fastRun.current + 1 : 0;
+      if (fastRun.current >= 3) playCueSlot("reaction.combo", 1, Math.pow(2, (2 * Math.min(5, fastRun.current - 3)) / 12));
+      setLastShown({ text: `${ms} ms`, until: stamp + 1_000, bad: false, speed: ms < 250 ? "gold" : ms < FLASH_FAST_MS ? "fast" : "slow", combo: fastRun.current >= 3 ? fastRun.current : 0 });
     } else if (outcome === "false") {
-      puzzleReject();
+      fastRun.current = 0;
+      // A tap on a decoy or the dark screen: a short "wrong" and the shake (no second sound).
+      playCueSlot("reaction.wrong");
+      gameFx("wrong", arenaEl(), { silent: true });
       setLastShown({ text: "False start", until: stamp + 900, bad: true });
     }
   };
@@ -563,7 +591,7 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
     <>
       <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-3">
         <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
-        <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg ?? "—"} ms</p>
+        <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg !== null ? <FxCountUp value={avg} /> : "—"} ms</p>
       </div>
       {times.length === 0 ? (
         <p className="font-display text-2xl font-bold text-warn">No attempts</p>
@@ -579,6 +607,7 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
             )}
           />
           <RevealCaption>Taller is faster · gold under 250 ms</RevealCaption>
+          <BarTicks count={times.length} />
         </RevealPanel>
       )}
       <RevealNumbers
@@ -609,6 +638,18 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
       </div>
     </>
   );
+}
+
+/** The bars landing one after another: a soft tick each, a step higher bar by bar (the bars' CSS stagger). */
+export const FLASH_BAR_STAGGER_MS = 90;
+function BarTicks({ count }: { count: number }) {
+  useEffect(() => {
+    const ids = Array.from({ length: count }, (_, i) =>
+      window.setTimeout(() => playCueSlot("reaction.bar", 0.6, Math.pow(2, (2 * i) / 12)), 120 + i * FLASH_BAR_STAGGER_MS),
+    );
+    return () => ids.forEach((id) => window.clearTimeout(id));
+  }, [count]);
+  return null;
 }
 
 export const reactionPuzzle: PuzzleDefinition = {

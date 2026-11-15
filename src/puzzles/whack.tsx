@@ -35,7 +35,7 @@ import {
 } from "@/lib/arcade/whack";
 import { encodeWhackRun, replayWhackRun, whackDepthDetail } from "@/lib/duel/whack";
 import { WHACK_TIME_MS, type WhackPuzzleData } from "@/lib/duel/types";
-import { playCorrect, playTick, playWrong } from "@/lib/sound";
+import { playCorrect, playCueSlot, playTick, playWrong } from "@/lib/sound";
 import { momentFrame } from "@/lib/fx/momentCues";
 import { soundCue as dispatchPitched } from "@/lib/fx/soundCues";
 import { demoHushed } from "@/lib/sound";
@@ -64,7 +64,9 @@ function Banner({ red, flash, small = false }: { red: boolean; flash: boolean; s
         small
           ? "rounded-full bg-card px-6 py-2 text-2xl font-bold"
           : "bonk-banner-large w-full max-w-[20rem] rounded-2xl border-2 border-current bg-card px-6 py-2.5 text-4xl font-black"
-      } ${red ? "bonk-banner-red" : "bonk-banner-gold"} ${flash ? "scale-110 ring-2 ring-current" : ""}`}
+      } ${red ? "bonk-banner-red" : "bonk-banner-gold"} ${flash ? "ring-2 ring-current" : ""}`}
+      // The Speed overhaul (15 Nov 2026): the flip slams the banner in (speed-overhaul.css, reduced motion: none).
+      data-slam={flash && !small ? "" : undefined}
     >
       {red ? "TAP RED" : "TAP GOLD"}
     </div>
@@ -193,9 +195,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (state.current.tick % WHACK_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(whackCheckpoint(state.current));
           }
+          // The Speed overhaul (15 Nov 2026): the rule flip is the game's biggest moment: a whistle, the banner
+          // slamming in and every burrow rim flashing the new hat colour (the renderer, whackFlipRims).
           if (state.current.schedule.flips.includes(state.current.tick)) {
-            playTick();
-            flashUntil = time + 400;
+            soundCue("whack.whistle");
+            soundCue("whack.slam");
+            flashUntil = time + 600;
           }
           if (whackGame.isOver(state.current)) break;
         }
@@ -204,12 +209,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const quiet = momentFrame("whack", state.current);
       if (state.current.hits > hits) {
         hits = state.current.hits;
-        if (!quiet.has("correct")) playCorrect();
+        // A cartoon bonk, a step higher each right hit in a row (to the 8th).
+        if (!quiet.has("correct")) pitchedCue("whack.bonk", 1 + 0.06 * Math.min(8, Math.max(0, (state.current.dp?.combo ?? 1) - 1)));
       }
       // A bomb tapped flashes its hole red (it was silent: wrong taps play their own sound).
       if (state.current.bombs > bombs) {
         bombs = state.current.bombs;
-        soundCue("whack.bomb");
+        // The Speed overhaul: a heavy "wrong" of its own; the explosion until its file loads.
+        if (!playCueSlot("whack.hedgehog")) soundCue("whack.bomb");
       }
       // A gopher rises (a hedgehog has its own careful-now cue); one left unbonked sinks away.
       if (state.current.next > popped) {
@@ -229,7 +236,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       sunk = retired;
       if (state.current.wrong > wrong) {
         wrong = state.current.wrong;
-        playWrong();
+        soundCue("whack.wrongHat");
       }
       const dp = state.current.dp;
       if (dp) {
@@ -239,7 +246,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         diamondsUp = Math.max(diamondsUp, up);
         if (dp.hits > diamondHits) {
           diamondHits = dp.hits;
-          pitchedCue("whack.cleanTwenty", 1.25);
+          soundCue("whack.diamond");
         }
         const m = whackComboMultiplier(dp.combo);
         if (m > multiplier && live) pitchedCue("whack.bonkStreak", 1 + 0.08 * m);

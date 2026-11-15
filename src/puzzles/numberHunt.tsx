@@ -1,6 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { speedArtCss } from "@/lib/fx/speedArt";
+import { gameFx } from "@/lib/fx/kit";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 import { serverNow } from "@/lib/duel/clock";
 import { randInt } from "@/lib/duel/random";
@@ -25,7 +27,7 @@ import {
 } from "@/lib/duel/types";
 
 import { fireAscendFinish } from "@/components/puzzles/numberHuntFx";
-import { playSound } from "@/lib/sound";
+import { playCueSlot, playSound } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
@@ -71,6 +73,48 @@ export function ascendDiscSize(spots: readonly { x: number; y: number }[], w: nu
     }
   }
   return Math.max(ASCEND_DISC_MIN, Math.min(ASCEND_DISC_MAX, Math.floor(closest - ASCEND_DISC_GAP)));
+}
+
+/**
+ * The Speed overhaul (15 Nov 2026; display and sound only): a small bell one second before the discs move, then every
+ * disc glides from where it was to its new place (the kit's slide, transform only; each disc's button is at its new
+ * place at once, so a tap during the glide counts as before) with a whoosh.
+ */
+function useShuffleCues(arenaRef: RefObject<HTMLDivElement | null>, spots: readonly HuntSpot[], elapsed: number): void {
+  const cycle = Math.floor(Math.max(0, elapsed) / NUMHUNT_MOVE_MS);
+  const warnAt = NUMHUNT_MOVE_MS - 1000;
+  const warned = useRef(-1);
+  useEffect(() => {
+    const inCycle = Math.max(0, elapsed) % NUMHUNT_MOVE_MS;
+    if (inCycle >= warnAt && warned.current !== cycle && cycle < 3) {
+      warned.current = cycle;
+      playCueSlot("numhunt.warn", 0.7);
+    }
+  }, [elapsed, cycle, warnAt]);
+  const places = useRef(new Map<number, DOMRect>());
+  const layoutKey = spots.map((s) => `${s.n}:${s.x}:${s.y}`).join("|");
+  const firstLayout = useRef(true);
+  useBeforePaint(() => {
+    const root = arenaRef.current;
+    if (!root) return;
+    const next = new Map<number, DOMRect>();
+    const buttons = [...root.querySelectorAll<HTMLElement>("[aria-label^='Circle ']")];
+    for (const b of buttons) next.set(Number(b.getAttribute("aria-label")!.slice(7)), b.getBoundingClientRect());
+    if (!firstLayout.current) {
+      let moved = false;
+      for (const b of buttons) {
+        const n = Number(b.getAttribute("aria-label")!.slice(7));
+        const was = places.current.get(n);
+        const now = next.get(n)!;
+        if (!was || (Math.abs(was.left - now.left) < 1 && Math.abs(was.top - now.top) < 1)) continue;
+        moved = true;
+        gameFx("slide", b, { from: { x: was.left - now.left, y: was.top - now.top }, silent: true });
+      }
+      if (moved) playCueSlot("numhunt.shuffle");
+    }
+    firstLayout.current = false;
+    places.current = next;
+  }, [layoutKey]);
 }
 
 function useBoardSize(ref: RefObject<HTMLDivElement | null>): { w: number; h: number } {
@@ -202,13 +246,38 @@ function IntroExample() {
  * a light, quiet tick.
  */
 function ascendWrongTap(disc: Element | null): void {
-  playSound("wrong");
-  if (disc) puzzleReject(disc, false);
+  // The Speed overhaul (15 Nov 2026): a short "wrong" on that disc only (its own knock; the shared wrong without one).
+  if (!playCueSlot("numhunt.wrong")) playSound("wrong");
+  ascendRun.length = 0;
+  if (disc) gameFx("wrong", disc, { silent: true });
 }
-function ascendRightTap(disc: Element | null): void {
-  playSound("tick", 0.45, 1.25, true);
+
+/** The time of each right tap in the current fast run (a gap over ASCEND_FAST_GAP_MS starts a new one). */
+const ascendRun: number[] = [];
+export const ASCEND_FAST_GAP_MS = 700;
+
+/**
+ * A right tap: a marimba note a step (a semitone) higher each number, two octaves over 24, from three recordings an
+ * octave apart (low for 1–8, mid for 9–16, high for 17–24, so none is pitched far); five fast in a row a combo.
+ */
+export function ascendNote(reached: number): { cue: "numhunt.note-low" | "numhunt.note-mid" | "numhunt.note-high"; rate: number } {
+  const step = Math.max(0, Math.min(23, reached - 1));
+  if (step < 8) return { cue: "numhunt.note-low", rate: Math.pow(2, step / 12) };
+  if (step < 16) return { cue: "numhunt.note-mid", rate: Math.pow(2, (step - 12) / 12) };
+  return { cue: "numhunt.note-high", rate: Math.pow(2, (step - 24) / 12) };
+}
+function ascendRightTap(disc: Element | null, reached = 0): void {
+  const note = ascendNote(reached);
+  if (!playCueSlot(note.cue, 0.8, note.rate)) playSound("tick", 0.45, 1.25, true);
   // Polish batch S: the shared right-move glow on the disc just tapped (display only).
   rightMoveFlash(disc);
+  const now = typeof performance === "undefined" ? 0 : performance.now();
+  if (ascendRun.length && now - ascendRun[ascendRun.length - 1]! > ASCEND_FAST_GAP_MS) ascendRun.length = 0;
+  ascendRun.push(now);
+  if (ascendRun.length >= 5 && ascendRun.length % 5 === 0) {
+    playCueSlot("numhunt.combo");
+    gameFx("combo", disc, { count: ascendRun.length / 5, silent: true });
+  }
 }
 
 /** Rounds stored before tap logs (no `tapRev`): the phone's own "reached,errors" summary. */
@@ -254,7 +323,7 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleSt
       ascendWrongTap(disc);
       return;
     }
-    ascendRightTap(disc);
+    ascendRightTap(disc, index + 1);
     const done = index + 1;
     setNext(done);
     if (done === spots.length && submitted.current !== key) {
@@ -313,6 +382,7 @@ function AscendBoard({
   // than the closest pair allows, so no two ever touch); each disc's button is the disc, as before.
   const board = useBoardSize(arenaRef);
   const discSize = ascendDiscSize(spots, board.w, board.h);
+  useShuffleCues(arenaRef, spots, elapsed);
   useEffect(() => registerFxPreview("numhunt", () => fireAscendFinish(arenaRef.current, spotsRef.current)), [arenaRef]);
   return (
     <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
@@ -439,7 +509,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
     if (outcome === "wrong") {
       setFlash(index);
       ascendWrongTap(disc);
-    } else if (after.reached > replay.reached) ascendRightTap(disc);
+    } else if (after.reached > replay.reached) ascendRightTap(disc, after.reached);
     if (after.finishedAt !== null && submitted.current !== key) {
       submitted.current = key;
       fireAscendFinish(arenaRef.current, spots);

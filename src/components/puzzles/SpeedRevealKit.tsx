@@ -58,7 +58,7 @@ export function RevealBars({ bars, testId, label }: { bars: readonly RevealBar[]
   return (
     <ol data-speed-reveal-bars={testId} aria-label={label} className="sr-bars">
       {bars.map((bar, i) => (
-        <li key={i} aria-label={bar.label} className="sr-bar" data-tone={bar.tone}>
+        <li key={i} aria-label={bar.label} className="sr-bar" data-tone={bar.tone} style={{ ["--sr-i" as string]: i }}>
           <span className="sr-bar-text">{bar.text}</span>
           <span className="sr-bar-track">
             <span className="sr-bar-fill" style={{ height: `${Math.round(Math.max(0.06, Math.min(1, bar.share)) * 100)}%` }} />

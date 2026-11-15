@@ -1,5 +1,6 @@
 import { RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { countUpText } from "@/lib/fx/kit";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -89,8 +90,43 @@ const TD_CSS = `
  * keeps its fixed 56 px band above the board (arcade-play-check's ABOVE_PX.tendrop), the pills on one row inside it.
  */
 function Hud({ target, total, cleared, flash }: { target: number; total: number; cleared: number; flash: "" | "red" | "gold" }) {
+  // The Speed overhaul (15 Nov 2026; display only): the total counts quickly to its new value, the target glows softly
+  // within 5 of it (a sound as it gets close), and a hit throws a "TEN!" burst over the strip.
+  const totalRef = useRef<HTMLSpanElement | null>(null);
+  const shown = useRef(total);
+  useEffect(() => {
+    const el = totalRef.current;
+    const from = shown.current;
+    shown.current = total;
+    if (!el || from === total || total === 0) return;
+    soundCue("tendrop.count");
+    return countUpText(el, from, total, { ms: 220, silent: true });
+  }, [total]);
+  const near = total !== target && Math.abs(target - total) <= 5 && total > 0;
+  const wasNear = useRef(false);
+  useEffect(() => {
+    if (near && !wasNear.current) soundCue("tendrop.near");
+    wasNear.current = near;
+  }, [near]);
+  const [burst, setBurst] = useState(0);
+  const seenCleared = useRef(cleared);
+  useEffect(() => {
+    if (cleared > seenCleared.current) {
+      setBurst(cleared);
+      const id = window.setTimeout(() => setBurst(0), 700);
+      seenCleared.current = cleared;
+      return () => window.clearTimeout(id);
+    }
+    seenCleared.current = cleared;
+    return undefined;
+  }, [cleared]);
   return (
-    <div className="td-hud td-hud-v3">
+    <div className="td-hud td-hud-v3" data-near={near ? "" : undefined}>
+      {burst ? (
+        <span key={burst} data-td-ten="" aria-hidden="true" className="td-ten-burst">
+          TEN!
+        </span>
+      ) : null}
       <HudPills
         testId="tendrop"
         className="td-pills"
@@ -100,7 +136,7 @@ function Hud({ target, total, cleared, flash }: { target: number; total: number;
             label: "Total",
             value: (
               <span className="td-total" data-flash={flash === "red" ? "red" : undefined} aria-label={`Running total ${total}`}>
-                <span key={total} className="td-bump">{total}</span>
+                <span key={total} ref={totalRef} className="td-bump">{total}</span>
               </span>
             ),
           },
@@ -260,8 +296,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const s = state.current;
       if (s.cleared > seenCleared) {
         seenCleared = s.cleared;
-        playCorrect();
-        soundCue("tendrop.clear");
+        // The Speed overhaul (15 Nov 2026): total and target collide in a "TEN!" burst (the renderer's pop).
+        soundCue("tendrop.tenBurst");
       }
       // tenRev 4: a ten made by the gold tile adds the moment cue over the clear (an existing cue, no new audio).
       if ((s.goldTens ?? 0) > seenGold) {
@@ -270,8 +306,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       if (s.resets > seenResets) {
         seenResets = s.resets;
-        playWrong();
-        soundCue("tendrop.reset");
+        // The total shatters to 0.
+        soundCue("tendrop.shatter");
       }
       if (s.refused > seenRefused) {
         seenRefused = s.refused;
@@ -289,6 +325,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (e.tick <= seenLogTick) continue;
         seenLogTick = e.tick;
         if (e.code === TD_LOG_APPLIED) soundCue("tendrop.apply");
+        // A tap on empty board: a soft tap (it was silent).
+        else if (e.code === TD_LOG_EMPTY) soundCue("tendrop.tap");
       }
       const flash: "" | "red" | "gold" =
         tenDropHolding(s) ? "gold" : s.tick - s.resetTick < 24 ? "red" : "";

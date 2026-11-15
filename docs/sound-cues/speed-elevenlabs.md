@@ -67,10 +67,9 @@ Keep: `tendrop.nextTarget`.
 | Tenfall | A tile applied | `tendrop.apply.mp3` | A crisp enamel tile clicking onto a wooden rail, light and clean | 70 ms | the generic `place` |
 | Tenfall | The total counting to its new value | `tendrop.count.mp3` | A very short, soft wooden tick (played once per step of the count) | 30 ms | none |
 | Tenfall | The total within 5 of the target | `tendrop.near.mp3` | A faint, warm rising shimmer of brass, gentle | 300 ms | none |
-| Tenfall | A target hit (the total meets the target) | `tendrop.ten.mp3` | Two enamel tiles clacking together, then a bright brass "ting" burst | 500 ms | `correct` + `tendrop.clear` |
+| Tenfall | A target hit (the total meets the target) | `tendrop.tenBurst.mp3` | Two enamel tiles clacking together, then a bright brass "ting" burst | 500 ms | `correct` + `tendrop.clear` |
 | Tenfall | An overshoot (the total shatters to 0) | `tendrop.shatter.mp3` | A small ceramic tile shattering on wood, crisp shards, no boom | 420 ms | `wrong` + `tendrop.reset` |
 | Tenfall | A tap on empty board | `tendrop.tap.mp3` | A soft fingertip tap on oiled wood | 50 ms | silent |
-| Tenfall | A ÷ refused (not exact) | `tendrop.refused.mp3` | A short tile rattle in its slot, dry wood, two quick knocks | 150 ms | `tick` |
 
 ## Pull!
 
@@ -83,6 +82,5 @@ Keep: `clayshoot.launch`, `clayshoot.birdStartle` (the feathers), `clayshoot.fin
 | Pull! | A gold clay hit (2/2) | `clayshoot.goldChime.mp3` | A bright single bell chime with a sparkle on top | 500 ms | none |
 | Pull! | A clay escaping off screen | `clayshoot.escape.mp3` | A soft, falling whistle, airy, fading away | 400 ms | `move.softFall` |
 | Pull! | A bird hit | `clayshoot.birdWrong.mp3` | A short dull "wrong": a low muted honk, played with the feathers | 250 ms | none (feathers only) |
-| Pull! | A shot that hits nothing | `clayshoot.dryShot.mp3` | A distant shotgun report with no impact, thinner and quieter | 300 ms | `clay.missPuff` |
 
-34 files in all.
+32 files in all.

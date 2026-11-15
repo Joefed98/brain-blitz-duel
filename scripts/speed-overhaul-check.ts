@@ -306,6 +306,45 @@ const stamp = (type: "tendrop" | "clayshoot", field: string) => (generatePuzzle(
   check(/storedAscendRun\(myExtra\) \?\? replayed/.test(reveal), "Ascend: the reveal shows the server's stored count before the phone's replay");
 }
 
+/* ------------------------------------------------------------------ 10. Stage 2: effects and sounds */
+{
+  const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
+  const doc = read("docs/sound-cues/speed-overhaul.md");
+  const slots = [...doc.matchAll(/^\| `([a-z]+\.[A-Za-z-]+)` \|/gm)].map((m) => m[1]!);
+  check(slots.length === 28, `speed-overhaul.md lists the 28 new slots (${slots.length})`);
+  const sources = ["reaction", "numberHunt", "chainTap", "whack", "tenDrop", "clayShoot"].map((f) => read(`src/puzzles/${f}.tsx`)).join("\n");
+  for (const slot of slots) {
+    const e = (SOUND_MANIFEST as Record<string, { url: string | null }>)[slot];
+    check(e?.url === `/sounds/${slot}.mp3`, `${slot}: its manifest slot plays /sounds/${slot}.mp3 (Joe's file drops in by name)`);
+    check(existsSync(join(ROOT, "public", "sounds", `${slot}.mp3`)), `${slot}: the placeholder file is there`);
+    check(sources.includes(`"${slot}"`) || (slot.startsWith("numhunt.note-") && sources.includes("numhunt.note-")), `${slot}: its game plays it`);
+  }
+  // Every file named in the ElevenLabs list is a slot the games play.
+  const eleven = read("docs/sound-cues/speed-elevenlabs.md");
+  for (const m of eleven.matchAll(/`([a-z]+\.[A-Za-z-]+)\.mp3`/g)) check(m[1]! in (SOUND_MANIFEST as object), `the ElevenLabs file ${m[1]}.mp3 has its slot`);
+  // Ascend's notes: a semitone a number, two octaves over 24, no recording pitched more than 8 semitones.
+  const { ascendNote } = await import("../src/puzzles/numberHunt");
+  const semis = Array.from({ length: 24 }, (_, i) => {
+    const n = ascendNote(i + 1);
+    const base = n.cue === "numhunt.note-low" ? 0 : n.cue === "numhunt.note-mid" ? 12 : 24;
+    return Math.round(base + 12 * Math.log2(n.rate));
+  });
+  check(semis.every((v, i) => v === i), `Ascend: the notes rise a semitone a number over two octaves (${semis.join(",")})`);
+  check(Array.from({ length: 24 }, (_, i) => Math.abs(12 * Math.log2(ascendNote(i + 1).rate))).every((d) => d <= 8.01), "Ascend: no recording pitched more than 8 semitones");
+  // Hit sounds play on the tap (Flash, in the handler) or on the tick the sim applies it (the canvas games).
+  const flash = read("src/puzzles/reaction.tsx");
+  check(/if \(outcome === "hit"\) \{[\s\S]{0,400}playCueSlot\("reaction\.hit"\)/.test(flash), "Flash: the snap plays in the tap handler");
+  check(/outcome === "false"\) \{[\s\S]{0,200}playCueSlot\("reaction\.wrong"\)/.test(flash) && !/outcome === "false"\) \{[\s\S]{0,200}puzzleReject\(\)/.test(flash), "Flash: a decoy tap is one short wrong");
+  check(/FLASH_FAST_MS = 350/.test(flash) && /fastRun\.current >= 3/.test(flash), "Flash: three fast hits in a row climb");
+  const { whackFlipRimAge, WHACK_FLIP_RIM_TICKS } = await import("../src/lib/arcade/whack.renderer");
+  const sched = { flips: [600, 1200] } as unknown as Parameters<typeof whackFlipRimAge>[0]["schedule"];
+  check(whackFlipRimAge({ tick: 599, schedule: sched }) === -1 && whackFlipRimAge({ tick: 600, schedule: sched }) === 0 && whackFlipRimAge({ tick: 600 + WHACK_FLIP_RIM_TICKS, schedule: sched }) === -1, "Bonk: the rims flash for the 36 ticks after a flip only");
+  const whack = read("src/puzzles/whack.tsx");
+  check(/soundCue\("whack\.whistle"\);\s*soundCue\("whack\.slam"\)/.test(whack) && /data-slam=/.test(whack), "Bonk: the flip whistles and slams the banner in");
+  const css = read("src/polish-speed/speed-overhaul.css");
+  for (const anim of ["bonk-slam", "td-ten-burst", "flash-pop", "flash-done-in"]) check(new RegExp(`@keyframes ${anim} \\{[^}]*\\}[\\s\\S]*?100% \\{[^}]*opacity: 1`).test(css) || new RegExp(`@keyframes ${anim} \\{[^\\n]*to \\{[^}]*opacity: 1`).test(css), `${anim}: ends visible`);
+}
+
 if (failures.length) {
   console.log(`speed-overhaul-check: FAIL (${failures.length} failed, ${passes} passed)`);
   for (const f of failures.slice(0, 40)) console.log(`  FAIL ${f}`);

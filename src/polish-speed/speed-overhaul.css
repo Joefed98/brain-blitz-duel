@@ -62,3 +62,48 @@
 
 /* ------------------------------------------------------------ Pull! */
 [data-polish="clayshoot"] .clay-hud-pills { justify-content: center; }
+
+/* ------------------------------------------------------------ Effects (stage 2) */
+/* Bonk: the rule flip slams the banner in. */
+.bonk-banner-large[data-slam] { animation: bonk-slam 600ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes bonk-slam {
+  0% { transform: translateY(-28px) scale(1.35); opacity: 0.4; }
+  45% { transform: translateY(2px) scale(0.96); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .bonk-banner-large[data-slam] { animation: none; } }
+/* Tenfall: a soft glow on the target within 5 (no glowing edge on anything else), and the "TEN!" burst over the strip. */
+[data-polish="tendrop"] .td-hud { position: relative; }
+[data-polish="tendrop"] .td-hud[data-near] [data-hud-pill="target"] { box-shadow: 0 0 0 2px rgba(245, 184, 46, 0.55), 0 0 12px rgba(245, 184, 46, 0.35); }
+.td-ten-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  pointer-events: none;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, -50%);
+  animation: td-ten-burst 560ms cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+@keyframes td-ten-burst {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  35% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .td-ten-burst { animation: none; } }
+/* Flash: the time pops up, gold under 250 ms, orange fast, white slower; the fast-hits combo under it. */
+.flash-readout { animation: flash-pop 220ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.flash-readout[data-flash-speed="fast"] { color: #f08a3a; }
+.flash-combo { color: var(--primary); text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6); }
+@keyframes flash-pop { 0% { transform: scale(0.7); opacity: 0.4; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .flash-readout { animation: none; } }
+/* Flash's reveal: each flash's bar grows in, one after another. */
+[data-speed-reveal-bars="reaction"] .sr-bar-fill { transform-origin: bottom; animation: sr-bar-in 360ms cubic-bezier(0.2, 1.2, 0.4, 1) both; }
+@keyframes sr-bar-in { from { transform: scaleY(0); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { [data-speed-reveal-bars="reaction"] .sr-bar-fill { animation: none; } }
+[data-speed-reveal-bars="reaction"] .sr-bar-fill { animation-delay: calc(120ms + var(--sr-i, 0) * 90ms); }
