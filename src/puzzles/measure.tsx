@@ -3,7 +3,7 @@ import { useContext, useEffect, useMemo, useRef, useState, type CSSProperties } 
 
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
-import { NumberStage, numberArt, type StageExit } from "@/components/puzzles/number/overhaul";
+import { NumberStage, numberArt, stageFailCue, type StageExit } from "@/components/puzzles/number/overhaul";
 import {
   RevealBoards,
   RevealFacts,
@@ -552,8 +552,9 @@ function Stage({
     // short beat, with the fail sound (never a solve's).
     if (boardOut && stage < MEASURE_BOARDS - 1) {
       setSelected(null);
-      // The fail sound (never a solve's); the Number overhaul's slide-away (NumberStage, quiet for this exit) goes with it.
-      playWrong();
+      // The Number overhaul (Joe's approval, 15 Nov 2026): the board's own dull thunk, the shared fail moment's
+      // `measure.fail` (never a solve's); the slide-away (NumberStage, quiet for this exit) goes with it.
+      soundCue(stageFailCue("measure"));
       const timer = setTimeout(() => {
         setFlow(null);
         setStage(stage + 1);

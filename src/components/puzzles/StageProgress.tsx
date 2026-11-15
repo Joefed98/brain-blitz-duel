@@ -10,18 +10,24 @@ import { useGoalProgress } from "@/components/duel/GameFrame";
  * `quiet` (game review fix, 15 Nov 2026): true on the render where the stage moved on without being
  * completed (a Skip, an equation out of tries), so a skip never plays the stage-complete sound and haptic.
  */
-export function StageProgress({ stage, total = 3, quiet = false }: { stage: number; total?: number; quiet?: boolean }) {
+/**
+ * `done` (the Number overhaul, Joe's approval of 15 Nov 2026): how many stages the bar fills, where that isn't the
+ * stage reached (Operator, whose equations can be skipped and gone back to: the bar counts equations solved). Absent:
+ * the stages before the current one, as before.
+ */
+export function StageProgress({ stage, total = 3, quiet = false, done }: { stage: number; total?: number; quiet?: boolean; done?: number | undefined }) {
   const previous = useRef(stage);
   useEffect(() => { if (stage > previous.current && !quiet) fx.onStageComplete(); previous.current = stage; }, [stage]);
   const label = `Stage ${Math.min(stage + 1, total)} of ${total}`;
-  const framed = useGoalProgress({ done: stage, total, text: label });
+  const filled = done ?? stage;
+  const framed = useGoalProgress({ done: filled, total, text: label });
   if (framed) return null;
   return (
     <div className="flex h-3 w-full shrink-0 gap-1.5" aria-label={label}>
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
-          className={`h-3 flex-1 rounded-full ${i < stage ? "bg-category-accent" : i === stage ? "bg-category-accent/35" : "bg-border"}`}
+          className={`h-3 flex-1 rounded-full ${i < filled ? "bg-category-accent" : i === stage ? "bg-category-accent/35" : "bg-border"}`}
         />
       ))}
     </div>

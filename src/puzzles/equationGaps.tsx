@@ -8,10 +8,9 @@ import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { FitLine, useFitOneLine } from "@/components/puzzles/useFitOneLine";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
-import { playSound } from "@/lib/sound";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
-import { NUMBER_STAGE_MOMENT_SOUND, NumberStage } from "@/components/puzzles/number/overhaul";
+import { NUMBER_STAGE_MOMENT_SOUND, NumberStage, stageSkipCue } from "@/components/puzzles/number/overhaul";
 import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type BoardMark, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { operatorFairTries } from "@/lib/duel/numberOverhaul";
 import { countTry, nextOpenStage, operatorNextLabel, targetGap } from "@/lib/duel/operatorFairTries";
@@ -254,9 +253,10 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
     goTo(seg, to);
     if (to === null) return;
     soundCue("equation.advance");
-    // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) gets the neutral move tick, never a
-    // solve's sound; StageProgress stays quiet for it.
-    if (!gapStageCorrect(data.stages[stage]!, seg)) playSound("move");
+    // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) never plays a solve's sound; StageProgress
+    // stays quiet for it. The Number overhaul (Joe's approval, 15 Nov 2026): it plays its own flat swish, the shared
+    // skip moment's `equation.skip`.
+    if (!gapStageCorrect(data.stages[stage]!, seg)) soundCue(stageSkipCue("equation"));
   };
   const goBack = (to: number) => {
     if (!fair || frozen || to === stage || !openAt(to)) return;
@@ -304,8 +304,9 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
 
   return (
     <div data-polish="equation" data-operator-gaps="" data-number-overhaul="" data-stage-column="3" className="opg-stage flex min-h-0 flex-1 flex-col gap-3">
-      {/* A skip moves on quietly; a true equation's moment is the shared NumberStage's, with its own sound. */}
-      <StageProgress stage={stage} total={total} quiet={stage > 0 && !gapStageCorrect(data.stages[stage - 1]!, answers[stage - 1] ?? "") || NUMBER_STAGE_MOMENT_SOUND} />
+      {/* A skip moves on quietly; a true equation's moment is the shared NumberStage's, with its own sound. The bar counts
+          the equations solved (gapsRev 2's skips and going back make the stage reached a poor count; Joe, 15 Nov 2026). */}
+      <StageProgress stage={stage} total={total} done={fair ? solvedCount : undefined} quiet={stage > 0 && !gapStageCorrect(data.stages[stage - 1]!, answers[stage - 1] ?? "") || NUMBER_STAGE_MOMENT_SOUND} />
       {column ? <div className="opg-spacer" aria-hidden /> : null}
       <div data-game-arena="fixed" className="op-board opg-board">
         {fair ? (

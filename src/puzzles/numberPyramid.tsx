@@ -296,11 +296,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   // Completion: the final board's sums light from the bottom row up (display only, after the submit).
   const lit = useSolveFx(complete && stage >= NP_SET_SIZE - 1, "numpyramid.solve", 1100);
   const busy = locked || submitted.current || complete;
-  // Game review fix (15 Nov 2026, display only): a full pyramid that isn't right marks the stones that break a
-  // sum in red and gets the shared wrong-move shake with its quiet reject sound, once per arrangement.
+  // Game review fix (15 Nov 2026, display only): a full pyramid that isn't right gets the shared wrong-move shake with
+  // its quiet reject sound, once per arrangement. The Number overhaul (Joe's approval, 15 Nov 2026): its broken sums
+  // show as cracks only (the seams below), no red fill on the stones.
   const fullValues = board ? npFilled(board.givens, board.tray, placements) : [];
   const fullWrong = !!board && !complete && fullValues.every((v) => v != null);
-  const broken = fullWrong && board ? npBrokenCells(board.givens, fullValues, board.rows) : [];
   // The Number overhaul (display only): each judged sum shows as a gold seam or a red crack as soon as it can be judged.
   const seams = board ? npSeams(board.givens, fullValues, board.rows) : [];
   const rightSeams = seams.filter((x) => x.state === "right").length;
@@ -440,7 +440,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
         <NumberStage type="numpyramid" index={stage} exit={holding ? "clear" : null} className="justify-center">
         <div className="relative" style={NO_TOUCH}>
-          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} {...(broken.length ? { marks: Object.fromEntries(broken.map((cell) => [cell, false])) } : {})} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
+          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
           {/* The pick-up layer sits above the placed blocks (.np-block is z-index 1): below them, taps on a
               placed tile never reached it, so tiles could not be double-tapped back or dragged to another cell. */}
           <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4, zIndex: 3 }}>

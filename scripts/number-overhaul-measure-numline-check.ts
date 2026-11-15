@@ -88,7 +88,8 @@ const between = (text: string, from: string, to: string) => {
   ok(/const exit: StageExit = holding \? "clear" : boardOut && outOfMoves && stage < MEASURE_BOARDS - 1 \? "fail" : null;/.test(s), "Brimful: solved boards clear, boards out of moves fail");
   ok(!/playCorrect/.test(s) && !/<StageCorrect /.test(s), "Brimful: the stage moment is the board's one success sound (no extra correct, no CORRECT line)");
   const effect = between(s, "if (boardOut && stage < MEASURE_BOARDS - 1) {", "return () => clearTimeout(timer);");
-  ok(effect.length > 0 && (effect.match(/play[A-Z]\w*\(\)/g) ?? []).join() === "playWrong()", "Brimful: out of moves plays one sound, the fail sound");
+  // Changed with Joe's approval, 15 Nov 2026 (Number overhaul brief): the board's own dull thunk (measure.fail).
+  ok(effect.length > 0 && !(effect.match(/play[A-Z]\w*\(\)/g) ?? []).length && (effect.match(/soundCue\(/g) ?? []).length === 1 && /soundCue\(stageFailCue\("measure"\)\)/.test(effect), "Brimful: out of moves plays one sound, its own dull thunk (measure.fail)");
   ok(/quiet=\{exit === "fail"\}/.test(s), "Brimful: the fail slide adds no second sound");
   ok(/numberArt\("measure", "jug-front"\)/.test(s) && /className="mj-shell"/.test(s), "Brimful: the glass is the rendered shell in front of the water");
   ok(!/#F5B82E/.test(s), "Brimful: no bright yellow");

@@ -1,5 +1,5 @@
 import { BALANCE_CSS, BALANCE_DEFS, IronKettlebell, ScalesLevelFx } from "@/components/puzzles/balanceArt";
-import { NumberStage, numberArt, type StageExit } from "@/components/puzzles/number/overhaul";
+import { NumberStage, numberArt, stageFailCue, type StageExit } from "@/components/puzzles/number/overhaul";
 import { balanceFreeMoves } from "@/lib/duel/numberOverhaul";
 import { balanceHangCost, balanceLeftOnTray, balanceMovedWeights, balanceRevealMarks, balanceTorqueText } from "@/lib/duel/numberOverhaulInput";
 import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type RevealSide } from "@/components/puzzles/number/RevealParts";
@@ -32,7 +32,7 @@ import {
 import { useStageState } from "@/lib/duel/stageState";
 import { balancePlaceLimits, joinCountSuffix, limitText, splitCountSuffix } from "@/lib/duel/moveLimits";
 import type { BalancePuzzleData, BalanceScale } from "@/lib/duel/types";
-import { playLock, playWrong } from "@/lib/sound";
+import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -319,9 +319,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     // Out of hangs on a scale before the last: it ends unbalanced and the next scale starts.
     if (!outOfHangs || current >= total - 1 || locked || submitted.current) return;
     // Game review fix (15 Nov 2026): out of hangs is a failed scale, so it never plays the balanced sound. The Number
-    // overhaul: the scale greys and slides away (the shared fail moment), then the next
-    // scale starts. The sound stays the fail sound (playWrong; the slide below is silent, number-word-review-fixes-check).
-    playWrong();
+    // overhaul (Joe's approval, 15 Nov 2026): the scale greys and slides away with its own dull thunk, the shared fail
+    // moment's `balance.fail`, then the next scale starts.
+    soundCue(stageFailCue("balance"));
     setFailing(current);
     const timer = setTimeout(() => {
       setFailing(null);
