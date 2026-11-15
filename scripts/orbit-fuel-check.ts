@@ -31,7 +31,7 @@
  */
 import { readFileSync } from "node:fs";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { FP, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_STD, ORBIT_REV_XP, ORBIT_TOTAL, orbitXpRev } from "../src/lib/arcade/orbit";
+import { FP, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_STD, ORBIT_REV_XP, ORBIT_TOTAL, orbitXpRev } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitExtras,
   decodeOrbitHoles,
@@ -60,7 +60,7 @@ import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../src/lib/duel/orbitFuelBank.server";
 import { ORBIT_XP_BANK } from "../src/lib/duel/orbitXpBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
-import { generateOrbit, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
+import { generateOrbit, pinOrbitPreFuel, pinOrbitPreGrace } from "../src/lib/duel/arcade.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { grade, pick, type OrbitLegacyRun } from "./orbit-fuel-legacy";
 import { buildFuelCourseRaw, farRate, fuelWitnessRun } from "./orbit-fuel-lib";
@@ -308,16 +308,22 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
 /* 6. Dealing and text. */
 {
   let fuel = 0;
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal orbitRev 15 (grace)
+  // on the same fuel-bank courses since; this check proves orbitRev 14's deal through pinOrbitPreGrace.
+  const wasGrace = pinOrbitPreGrace(true);
   for (let k = 0; k < 60; k++) {
     const p = generateOrbit();
     if (p.orbitRev === ORBIT_REV_FUEL && p.extras && p.planets?.length === ORBIT_TOTAL + 1 && ORBIT_FUEL_BANK.some((e) => JSON.stringify(e.planets) === JSON.stringify(p.planets))) fuel++;
   }
+  pinOrbitPreGrace(wasGrace);
   ok(fuel === 60, `generateOrbit deals orbitRev 14 on a fuel-bank course (${fuel} / 60)`);
   const was = pinOrbitPreFuel(true);
   const old = generateOrbit();
   pinOrbitPreFuel(was);
   ok(old.orbitRev === ORBIT_REV_STD && ORBIT_XP_BANK.length > 0, "pinned, it deals orbitRev 13 on a feature-bank course as before");
-  ok((LIVE_BANDS as Record<string, { rev: number; curve: unknown }>).orbit!.rev === ORBIT_REV_FUEL && ORBIT_STD.rev === ORBIT_REV_FUEL, "LIVE_BANDS and ORBIT_STD carry orbitRev 14");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is orbitRev 15
+  // (grace), on orbitRev 14's parts and line (orbit-overhaul-check proves its play).
+  ok((LIVE_BANDS as Record<string, { rev: number; curve: unknown }>).orbit!.rev === ORBIT_REV_GRACE && ORBIT_STD.rev === ORBIT_REV_GRACE, "LIVE_BANDS and ORBIT_STD carry the live orbitRev (15, grace, on orbitRev 14's parts)");
   ok(JSON.stringify(ORBIT_V14_BAND_CURVE) === JSON.stringify(ORBIT_V13_BAND_CURVE) && ORBIT_STD.parts.reduce((a, p) => a + p.max, 0) === 200, "orbitRev 14 keeps orbitRev 13's straight core line and six parts (200)");
   const help = PUZZLE_INSTRUCTIONS.orbit;
   ok(help.how.some((h) => /Fuel/.test(h.action) && /drains only while you fly/.test(h.detail)) && /jump past too/.test(help.score), "the help explains the fuel and that a planet jumped past counts");

@@ -256,6 +256,7 @@ import {
   ORBIT_STD,
   ORBIT_STD_PERFECT_OF,
   ORBIT_FUEL_MAX,
+  ORBIT_GRACE_HOLD_TICKS,
 } from "@/lib/arcade/orbitRev3";
 import {
   CROSS_V9_SKILL_PAY,
@@ -1670,11 +1671,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Grab stardust;", detail: "sling through moon halos." },
         { action: "Thread rock gaps;", detail: "let go on the first lap.", helpOnly: true },
         { action: "Fuel:", detail: "drains in flight, refills in orbit." },
-        { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
+        { action: "Checkpoint:", detail: "hold it; a crash returns you there.", helpOnly: true },
         { action: "Black hole:", detail: "fly in, skip 5–6 planets.", helpOnly: true },
         { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until an orbit catches you: any planet’s orbit you reach, even one you skip ahead to (the planets you pass count as reached).", helpOnly: true },
-        { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s, and the run ends (or you go back to your checkpoint).`, helpOnly: true },
-        { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
+        { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s: you go back to your checkpoint, or else to the planet you left, ready again after ${ORBIT_GRACE_HOLD_TICKS / 60} s.`, helpOnly: true },
+        { action: "Hold Set Checkpoint once while orbiting.", detail: "Your next crash returns you there at once. Without it, or after using it, a crash sends you back to the planet you left, ready again after a few seconds: the run never ends early. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
         { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops – never at the crossing.", helpOnly: true },
         { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
         { action: "Any black hole ahead counts:", detail: "touch one with any part of the rocket on any flight, even from the planet before, and it swallows you; one you have already passed fades out.", helpOnly: true },

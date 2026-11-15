@@ -29,7 +29,7 @@ import { paintMahjongWood } from "./mahjong.renderer";
 /** Games whose fill moves (slowly); everything else is painted once per size. */
 export const ARENA_FILL_MOVING = ["pinball", "rally", "beat", "snake", "cross", "flip", "burst"] as const;
 /** Games whose fill also runs down their sides when the world is narrower than the screen. */
-export const ARENA_FILL_SIDES = ["wavefront", "snake", "balltrack", "beat", "matchup", "clayshoot", "minesweeper", "mahjong", "freecell", "tripeaks", "pokersquares", "fivehands", "blockfall", "alleyroll", "ricochet", "pyramid", "golfsol", "muggins"] as const;
+export const ARENA_FILL_SIDES = ["wavefront", "snake", "balltrack", "beat", "matchup", "clayshoot", "minesweeper", "mahjong", "freecell", "tripeaks", "pokersquares", "fivehands", "blockfall", "alleyroll", "ricochet", "pyramid", "golfsol", "muggins", "orbit"] as const;
 /** Games centred on the play screen (item 23), their world's size unchanged. */
 export const ARENA_FILL_CENTRED = ["pinball", "snake", "snip", "matchup", "whack"] as const;
 
@@ -517,11 +517,20 @@ export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneVie
 
 /** 18. Orbit: black space with light stars under the world (no coloured nebula since 27 Oct 2026). */
 export function orbitFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  const r = fillBelow(view);
-  if (!r) return;
-  // A deep navy (the screen fill must read lighter than the screen edge's black), with no coloured nebula.
-  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#0E0E24"], [0.5, "#0C0C1F"], [1, "#0B0B1C"]]);
-  stars(ctx, r, 181, ["#FFFFFF", "#D9E2FF", "#BFD0FF"], 650, 0.42);
+  // Edge to edge (the Action overhaul, Joe's standing rule of 15 Nov 2026): the world's own black space (#06060F, the
+  // rev3 and rev1 backgrounds) carries on below and beside it with the same light starfield, so no colour steps at the
+  // world's edge; it deepens to a faint navy only well below it (still lighter than the screen edge's black). The sun's
+  // warmth (orbitPlanets.renderer.ts) is a dome inside the world, 0 at its sides and bottom, so the fill never needs
+  // repainting as the course climbs.
+  for (const r of around(view, true)) {
+    const below = r.y >= view.worldH - SCENE_TUCK - 0.5;
+    if (below) fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#06060F"], [0.55, "#08081A"], [1, "#0A0A1C"]]);
+    else {
+      ctx.fillStyle = "#06060F";
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+    }
+    stars(ctx, r, 181 + Math.round(r.x), ["#FFFFFF", "#D9E2FF", "#BFD0FF"], 520, 0.5, 0);
+  }
 }
 
 /** 19. Grappler: more lava under the cavern's lava, then dark rock. */

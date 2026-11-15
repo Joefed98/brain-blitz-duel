@@ -24,6 +24,9 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `orbit.launch` | Orbit | The rocket is released from a planet | `arc_thruster` | 20–40 | 160 ms |
 | `orbit.checkpoint` | Orbit | The first checkpoint is reached | `arc_pickup` | 1 | 100 ms |
 | `orbit.crash` | Orbit | A respawn (black hole, missed planet) or the run lost | `arc_crash` | 1–5 | 200 ms |
+| `orbit.outOfFuel` | Orbit | The tank runs dry (orbitRev 14+: the run lost, or on 15 a respawn) | `arc_lose_life` | 0–5 | 900 ms |
+| `orbit.lowFuel` | Orbit | A flight's tank falls to a quarter (orbitRev 14+) | `warning_tick` | 0–10 | 600 ms |
+| `orbit.respawnReady` | Orbit | An automatic respawn's hold ends (orbitRev 15) | `countdown_step` | 0–5 | 250 ms |
 | `swing.crash` | Grappler | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `swing.grapple` | Grappler | The rope catches | `arc_grapple` | 20–60 | 450 ms |
 | `swing.starTaken` | Grappler | A star is taken (swingRev 4+) | `arc_pickup` (0.9) | 5–20 | 100 ms |

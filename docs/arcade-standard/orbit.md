@@ -184,3 +184,68 @@ sounds (`shared.celebrate.countTick`, `gameSounds.ts`); no new cue or recording.
 Review frames: `bun scripts/shots/orbit-camera-shots.ts` (`screenshots/arcade-batch-nov-2026/orbit-before-catch.png`, a
 long flight just before its catch with the view where it was at the release; `orbit-after-catch.png`, the pan settled on
 the new planet; `orbit-stardust.png`, a mote's sparkle trail and the clusters ahead), 414 × 896 at 2×.
+
+## orbitRev 15: grace (the Action overhaul, 15 Nov 2026)
+
+Rooms deal **orbitRev 15** (`ORBIT_REV_GRACE`) since the Action overhaul (phase 2, step 4; `docs/design/game-reviews/action.md`):
+orbitRev 14's fuel-bank courses, fuel, features, view and parts, with one rule changed. The review's capture showed a blind
+first try catching one planet, running dry and ending the 90 s round at 5 s with 3 points. Joe's grace rule: no run ends on
+the first slip.
+
+- **A slip no longer ends the run.** A crash (a belt, a rock, a moon, a tap on a planet's inner lobe) or an empty tank,
+  with no checkpoint armed, respawns the rocket at the planet the flight left (the last planet caught), with a full tank,
+  held in orbit for `ORBIT_GRACE_HOLD_TICKS` (180 ticks, 3 s). A tap during the hold does nothing; the screen shows
+  "OUT OF FUEL" or "CRASHED" over "BACK IN 3, 2, 1". The hold is the whole cost: the clock runs on and the planets already
+  reached stay reached. The run ends only at the sun or the buzzer.
+- **SET CHECKPOINT stays, as the bonus.** Its one respawn is instant (no hold) at the checkpoint planet, as on orbitRev 14.
+  Once it is used, later slips fall to grace.
+- **No slip, no change.** A run with no slip plays orbitRev 14 tick for tick (every fuel-bank witness replays to the same
+  200 on both). The state adds `grace`, `hold` and `autoRespawns`, folded into the checkpoint checksum last, so orbitRev
+  14 and earlier checksums are unchanged.
+- **Proof.** Every one of the 96 fuel-bank witnesses replays through the server on orbitRev 15 to exactly 200 with every
+  feature (orbit-overhaul-check). The bank is unchanged: grace only adds a way back, so every course's proof holds.
+
+Display and input, every revision of the expansion's view (no stamp):
+
+- **The planets** (concept A, made in canvas, `orbitPlanets.renderer.ts`): each planet a sphere-shaded disc whose surface
+  (banded gas, cratered rock or streaked ice, in its seeded colour) turns slowly under a fixed light, a thin lit limb on
+  the sunward side, all inside the collision circle. Clean black space, no nebula. The turn follows the round tick and
+  stands still under reduced motion.
+- **The setting: towards the sun.** The sun's warmth grows from the top of the view as the run climbs the course (0 at the
+  start, full by planet 39), a low dome that is 0 along the world's sides and bottom, so the screen's fill (black space and
+  the same stars, `orbitFill`) meets the world with no seam at any point of the course (edge to edge).
+- **The HUD:** fewer and bigger counters: PLANETS (and the checkpoint, once armed) in 32 px pills, then STARDUST and
+  SLING in 28 px pills. Asteroid fields and perfect orbits show as their pops and in the reveal.
+- **SET CHECKPOINT is held, not tapped** (`ORBIT_CHECKPOINT_HOLD_MS`, 450 ms, a gold fill sweeping across it), so a
+  release aimed near the corner can't spend the checkpoint by accident. The keyboard's C stays a single press.
+- **The capture chain** of the success layer now resets on every slip (it read the respawns left, which fall).
+
+### Skill bands (30 room seeds a level, the same human on both, server replay; `bun scripts/orbit-grace-bands.ts`)
+
+| Level | orbitRev 14 median (p10–p90), run ends at | orbitRev 15 median (p10–p90), respawns |
+|---|---|---|
+| Weak | 17 (6–67), 17 s | 78 (37–98), 4 |
+| Average | 57 (18–115), 39 s | 94 (79–142), 4 |
+| Good | 84 (13–146), 43 s | 131 (111–153), 3 |
+| Great | 151 (65–178), 75 s | 161 (140–178), 1 |
+| Near-perfect | 184 (175–191), 90 s | 184 (175–191), 0 |
+| Elite | 188 (173–197), 90 s | 188 (182–197), 0 |
+| Flawless | 195 (187–199), 90 s | 195 (187–199), 0 |
+
+Brilliant > great > good still holds; the levels that never slip are unchanged, and the ones that did now play the whole
+90 s. The skill-band bot (`scripts/arcade-skill-bands/bots/orbit.ts`) plays orbitRev 14 and 15 (its replan key carries the
+automatic respawns).
+
+### Levels (stage 3 of the overhaul, not built yet)
+
+Joe's levers, for the difficulty framework (Normal is orbitRev 15 as above; every level a new stamp with its own proved
+bank, rated rooms on Normal, max 120 s):
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Fuel (`ORBIT_FUEL_MAX`) | much more (240 ticks) | 160 | less (140) | least (120) |
+| Zigzag step | shorter (40–150 px) | 60–220 px | longer (80–240 px) | longest (100–260 px) |
+| Black holes / belts from | planet 25 | 21 / 31 | 15 / 25 | 11 / 21 |
+| Checkpoints | automatic every 10 planets | one (SET CHECKPOINT) | one | respawn only (grace) |
+
+"Stargazer" (all the stardust on Hard) must stay possible: the Hard bank's witnesses must take all 30 motes.

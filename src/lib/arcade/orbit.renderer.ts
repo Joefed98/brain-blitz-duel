@@ -777,7 +777,7 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
   if (rocket) ctx.drawImage(rocket, -rocket.width / 2, -rocket.height / 2);
   ctx.restore();
 
-  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:orbitSlips(state),colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   // Action's pill HUD (3 Nov 2026, Orbit moved to Action): the planets, then the checkpoint, on one row.
   successHud(ctx, "orbit", state.tick, 14, 12, () =>
     drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, ORBIT_WORLD_W - 12),
@@ -825,6 +825,68 @@ function orbitCheckpointPill(state: { checkpoint: number; respawns: number }): H
   return [state.respawns > 0 ? { text: `Checkpoint ${state.checkpoint}`, colour: ORBIT_GOLD } : { text: "Checkpoint used", colour: "rgba(255,255,255,0.5)" }];
 }
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
+import { drawRenderedPlanet, drawSunWarmth, orbitPlanetTurn } from "./orbitPlanets.renderer";
+import { drawHudPill, hudPillWidth, HUD_PILL_GAP } from "./hudPill.renderer";
+import { ORBIT_GRACE_HOLD_TICKS } from "./orbitRev3";
+
+/** The run's slips so far (display only): checkpoint respawns used plus orbitRev 15's automatic respawns; never falls. */
+export function orbitSlips(state: { respawns: number; autoRespawns?: number }): number {
+  return Math.max(0, 1 - state.respawns) + (state.autoRespawns ?? 0);
+}
+
+/** The Action overhaul's HUD labels and values on the expansion's view (display only): at most two rows. */
+export function orbitXpHudRows(state: OrbitRev3State): { label: string; value: string; gold?: boolean; faded?: boolean }[][] {
+  const c = orbitXpCounts(state);
+  const first: { label: string; value: string; gold?: boolean; faded?: boolean }[] = [{ label: "PLANETS", value: `${state.best}/${ORBIT_TOTAL}` }];
+  if (state.checkpoint >= 0) first.push(state.respawns > 0 ? { label: "CP", value: `${state.checkpoint}`, gold: true } : { label: "CP", value: "used", faded: true });
+  return [first, [{ label: "DUST", value: `${c.dust}/${c.dustTotal}` }, { label: "SLING", value: `${c.slings}/${c.slingsTotal}` }]];
+}
+
+/** The pill heights: the planets' row 32 px (17 px value), the features' 28 px (15 px value), in world px. */
+export const ORBIT_XP_HUD_H = [32, 28] as const;
+
+function drawOrbitXpHud(ctx: CanvasRenderingContext2D, state: OrbitRev3State, right: number): void {
+  const rows = orbitXpHudRows(state);
+  let y = 10;
+  rows.forEach((row, r) => {
+    const h = ORBIT_XP_HUD_H[r]!;
+    let x = 12;
+    for (const p of row) {
+      if (x + hudPillWidth(ctx, p.label, p.value, h) > right && x > 12) break;
+      x += drawHudPill(ctx, x, y, p.label, p.value, { h, gold: Boolean(p.gold), ...(p.faded ? { alpha: 0.55 } : {}) }) + HUD_PILL_GAP;
+    }
+    y += h + HUD_PILL_GAP;
+  });
+}
+
+/** orbitRev 15: the hold after an automatic respawn: what happened, then a whole-second countdown, over the view. */
+function drawGraceHold(ctx: CanvasRenderingContext2D, state: OrbitRev3State, w: number, h: number): void {
+  const left = state.hold ?? 0;
+  const secs = Math.ceil(left / 60);
+  const dry = state.dry === state.respawnTick;
+  const fade = Math.min(1, (ORBIT_GRACE_HOLD_TICKS - left) / 10, left / 10);
+  ctx.save();
+  ctx.globalAlpha = fade;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(6,8,16,0.72)";
+  const bw = 228, bh = 78;
+  const bx = w / 2 - bw / 2, by = h * 0.42 - bh / 2;
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") ctx.roundRect(bx, by, bw, bh, 14);
+  else ctx.rect(bx, by, bw, bh);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(245,184,46,0.55)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = dry ? "#FF9A8A" : "#FFFFFF";
+  ctx.font = "800 18px 'Archivo', system-ui, sans-serif";
+  ctx.fillText(dry ? "OUT OF FUEL" : "CRASHED", w / 2, by + 26);
+  ctx.fillStyle = ORBIT_GOLD;
+  ctx.font = "800 24px 'Archivo', system-ui, sans-serif";
+  ctx.fillText(`BACK IN ${secs}`, w / 2, by + 54);
+  ctx.restore();
+}
 
 /** One baked sprite per (planet index, lobe, radius) — drawPlanet has no time dependence. */
 const rev3SpriteCaches = new WeakMap<Planet[], Map<string, HTMLCanvasElement>>();
@@ -1029,6 +1091,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 
   const capturePlanet=state.planets[state.cur];
   rev3Starfield(ctx, cam, t, still, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W);
+  // The Action overhaul (display only): on the expansion's view the sun's warmth grows from the top as the course climbs.
+  if (state.xp) drawSunWarmth(ctx, state.best, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
   // The play layers, drawn under SET CHECKPOINT's overlay too (no clip since 1 Nov 2026), to the matching restore.
   ctx.save();
   if (!still && !arcadeReducedEffects()) drawAmbientShootingStar(ctx, state.tick, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
@@ -1055,9 +1119,19 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
       const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
       bodies.forEach((bx, lobe) => {
         const r = (eight ? p.r * 0.8 : p.r) / FP;
+        // The Action overhaul (15 Nov 2026, display only): the expansion's view (orbitRev 12–15) draws each planet with
+        // its rendered look, its surface turning slowly (orbitPlanets.renderer.ts); earlier views keep the baked sprite.
+        const look = planetLook(p, i, lobe);
+        if (state.xp && drawRenderedPlanet(ctx, px + bx, py, r, look, orbitPlanetTurn(look, t))) {
+          if (look.ring) {
+            drawRingHalf(ctx, px + bx, py, r, look.tilt, true);
+            drawRingHalf(ctx, px + bx, py, r, look.tilt, false);
+          }
+          return;
+        }
         const sprite = rev3PlanetSprite(state.planets, p, i, lobe, r);
         if (sprite) ctx.drawImage(sprite, px + bx - sprite.width / 2, py - sprite.height / 2);
-        else drawPlanet(ctx, px + bx, py, r, planetLook(p, i, lobe));
+        else drawPlanet(ctx, px + bx, py, r, look);
       });
     }
     if (i === state.checkpoint && state.respawns > 0) {
@@ -1148,29 +1222,21 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   }
   if (sputter && !still) drawSputter(ctx, sputter, cam);
 
-  // The end of the play layers: the HUD and the success layer's HUD burst are top left.
+  // The end of the play layers: the HUD and the success layer's HUD burst are top left. The success layer's capture chain
+  // resets on a slip: misses count the slips so far, which only rise (the Action overhaul: it read the respawns left).
   ctx.restore();
-  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:orbitSlips(state),colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   // Action's pill HUD (3 Nov 2026, Orbit moved to Action): at most two rows, top left, clear of SET CHECKPOINT's
   // corner (ORBIT_XP_ZONE, orbitRev 12+): the planets and the checkpoint, then what the run has taken of the features.
   const hudRight = state.xp ? ORBIT_CAM_VIEW_W - ORBIT_XP_ZONE.w - 8 : ORBIT_CAM_VIEW_W - 12;
-  successHud(ctx, "orbit3", state.tick, 14, 12, () =>
-    drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, hudRight),
-  );
   if (state.xp) {
-    const c = orbitXpCounts(state);
-    drawHudTextPillRow(
-      ctx,
-      [
-        { text: `Dust ${c.dust}/${c.dustTotal}`, colour: "#FFE9A8" },
-        { text: `Sling ${c.slings}/${c.slingsTotal}`, colour: "#FFE9A8" },
-        { text: `Thread ${c.threads}/${c.threadsTotal}`, colour: "#FFE9A8" },
-        { text: `Perfect ${c.perfect}`, colour: "#FFE9A8" },
-      ],
-      12,
-      10 + HUD_TEXT_PILL_H + 6,
-      hudRight,
-      13,
+    // The Action overhaul (15 Nov 2026, display only): fewer and bigger counters on the expansion's view: the planets
+    // (and the checkpoint, once set) in 32 px pills, then stardust and slingshots in 28 px ones (asteroid fields and
+    // perfect orbits show as their pops, and in the reveal).
+    successHud(ctx, "orbit3", state.tick, 14, 12, () => drawOrbitXpHud(ctx, state, hudRight));
+  } else {
+    successHud(ctx, "orbit3", state.tick, 14, 12, () =>
+      drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, hudRight),
     );
   }
   if (xpMemory) {
@@ -1178,7 +1244,10 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   }
   // orbitRev 14: the fuel meter, bottom right, and the sputter when the tank runs dry.
   if (state.fuel !== undefined) drawFuelMeter(ctx, state, sputter, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H, still);
-  if (state.tick - state.respawnTick < 45) {
+  if ((state.hold ?? 0) > 0) {
+    // orbitRev 15 (grace): an automatic respawn's hold, counted down over the planet ("BACK IN 3"), the run carrying on.
+    drawGraceHold(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
+  } else if (state.tick - state.respawnTick < 45) {
     ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
     ctx.fillStyle = ORBIT_GOLD;
     ctx.font = "700 22px 'JetBrains Mono', ui-monospace, monospace";

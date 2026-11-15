@@ -1,7 +1,8 @@
 import { orbitFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
+import { ORBIT_CHECKPOINT_HOLD_MS } from "@/lib/arcade/orbitCheckpointHold";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import {
   orbitBeltPlanets,
@@ -22,35 +23,78 @@ import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { orbitArtGame, orbitDrawHFor, orbitEndHoldMs, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
 import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldWFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import { ORBIT_INTRO_COURSE } from "./orbitIntroCourse.data";
+import { ORBIT_REV_GRACE, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the ship leaving one orbit toward the next planet. */
+/**
+ * The intro still (the Action overhaul, 15 Nov 2026): the live renderer on the dealt revision (orbitRev 15), on the fixed
+ * intro example's course (ORBIT_INTRO_COURSE), two seconds in: the rendered planets, their orbits, the stardust ahead,
+ * the HUD and the fuel meter, as a round opens.
+ */
+const introGame = (() => {
+  const start = orbitStartForPuzzle({ orbitRev: ORBIT_REV_GRACE, ...(ORBIT_INTRO_COURSE as unknown as Pick<OrbitPuzzleData, "planets" | "holes" | "extras">) });
+  return { ...orbitRev3ArtGame, init: () => start!() } as unknown as typeof orbitRev3ArtGame;
+})();
+
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 150" width={168} height={150} aria-hidden="true" style={{ background: ORBIT_BG, borderRadius: 10 }}>
-        <circle cx={50} cy={110} r={30} fill="none" stroke={ORBIT_COLOURS[0]} strokeOpacity={0.25} />
-        <circle cx={50} cy={110} r={12} fill="none" stroke={ORBIT_COLOURS[0]} strokeWidth={4} />
-        <circle cx={120} cy={42} r={28} fill="none" stroke={ORBIT_COLOURS[1]} strokeOpacity={0.25} />
-        <circle cx={120} cy={42} r={11} fill="none" stroke={ORBIT_COLOURS[1]} strokeWidth={4} />
-        <path d="M 120 14 A 28 28 0 0 1 148 42" fill="none" stroke={ORBIT_RED} strokeWidth={4} />
-        <line x1={50} y1={80} x2={104} y2={64} stroke={ORBIT_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
-        {/* orbitRev 12: stardust on the line, a slingshot moon's ring beside it, an asteroid pair either side of a gap. */}
-        {[[60, 77], [70, 74], [88, 69]].map(([x, y]) => (
-          <circle key={x} cx={x} cy={y} r={2} fill="#FFE9A8" />
-        ))}
-        <circle cx={92} cy={86} r={12} fill="none" stroke="#5CE1E6" strokeOpacity={0.6} strokeDasharray="3 3" />
-        <circle cx={92} cy={86} r={3.5} fill="#A7A2C2" />
-        <circle cx={30} cy={56} r={3} fill="#A29989" />
-        <circle cx={44} cy={44} r={3} fill="#8E8476" />
-        <path d="M 50 110 m -19 -11 A 22 22 0 0 1 50 88" fill="none" stroke={ORBIT_GOLD} strokeWidth={2.5} strokeOpacity={0.7} />
-        <polygon points="80,71 68,70 72,80" fill={ORBIT_GOLD} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Let go on the first lap; collect stardust, sling past moons, thread the rocks.</p>
-    </div>
+    <ArtStill
+      game={introGame as never}
+      worldW={orbitWorldWFor(ORBIT_REV_GRACE)}
+      worldH={orbitDrawHFor(ORBIT_REV_GRACE)}
+      ticks={120}
+      input={null as never}
+      shownW={180}
+      caption="Let go on the first lap; collect stardust, sling past moons, thread the rocks."
+    />
+  );
+}
+
+/**
+ * SET CHECKPOINT, guarded (the Action overhaul, 15 Nov 2026; input mapping only, every revision): the press must be held
+ * ORBIT_CHECKPOINT_HOLD_MS, a gold fill sweeping across the button meanwhile, before its one input is sent, so a tap that
+ * lands on the corner by accident can't spend the checkpoint. Let go early and nothing is sent.
+ */
+function CheckpointHoldButton({ onSet, className }: { onSet: () => void; className?: string }) {
+  const [holding, setHolding] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stop = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => stop, []);
+  return (
+    <ArcadeControlButton
+      type="button"
+      aria-label="Hold to set checkpoint"
+      data-orbit-checkpoint-hold={ORBIT_CHECKPOINT_HOLD_MS}
+      className={`relative h-11 overflow-hidden px-3 font-bold ${className ?? ""}`}
+      style={{ fontSize: 11 }}
+      onPressStart={() => {
+        stop();
+        setHolding(true);
+        timer.current = setTimeout(() => {
+          timer.current = null;
+          setHolding(false);
+          onSet();
+        }, ORBIT_CHECKPOINT_HOLD_MS);
+      }}
+      onPressEnd={() => {
+        stop();
+        setHolding(false);
+      }}
+    >
+      <span
+        data-orbit-checkpoint-fill=""
+        className="absolute inset-y-0 left-0 opacity-40"
+        style={{ background: "var(--jz-gold)", width: holding ? "100%" : "0%", transition: holding ? `width ${ORBIT_CHECKPOINT_HOLD_MS}ms linear` : "none" }}
+      />
+      <span className="relative">SET CHECKPOINT</span>
+    </ArcadeControlButton>
   );
 }
 
@@ -122,12 +166,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       overlay={xp ? (send) => (
         <div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">
           {canSet && !locked && (
-            <ArcadeControlButton
-              type="button"
-              aria-label="Set checkpoint"
-              className="pointer-events-auto h-11 px-3 text-[11px] font-bold before:content-['SET_CHECKPOINT']"
-              onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
-            />
+            <CheckpointHoldButton className="pointer-events-auto" onSet={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })} />
           )}
         </div>
       ) : undefined}
@@ -136,12 +175,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         // button is 44 px tall with 11 px text and 12 px sides, narrower than before (15 Oct 2026, display only).
         <div data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">
           {canSet && !locked && (
-            <ArcadeControlButton
-              type="button"
-              aria-label="Set checkpoint"
-              className="h-11 px-3 text-[11px] font-bold before:content-['SET_CHECKPOINT']"
-              onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
-            />
+            <CheckpointHoldButton onSet={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })} />
           )}
         </div>
       )}
