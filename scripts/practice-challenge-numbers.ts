@@ -250,11 +250,13 @@ function expectations(): Record<string, Expect> {
     "wordhunt.long-haul": { say: [[6, Number(/extra for (\d)-letter words/.exec(help("wordhunt"))?.[1])]] },
     "pool.clean-break": { th: [[0, 0]] },
     "curling.red-ring-circus": { say: [[8, of("curling", "Red ring")]] },
-    "homerun.sign-here": { say: [[5, 10 / Number(/(\d+) each time/.exec(specPart("homerun", "Bonus signs")?.how ?? "")?.[1])]], th: [[10, 10]] },
+    // Since 15 Nov 2026 (homerunRev 5, routine consequence of the Home Run and Top Bins overhaul): Good eye's five balls
+    // are the part's own count; Top Bins' Skill shooter's five are 15 points at the part's own each.
+    "homerun.good-eye": { say: [[5, of("homerun", "Good eye")]] },
     "homerun.homers": { say: [[10, of("homerun", "Home runs")]] },
     "homerun.streak": { say: [[10, of("homerun", "Perfect streak")]] },
     "freekick.five-alive": { say: [[5, 5]] },
-    "freekick.bend-it": { say: [[5, 10 / Number(/(\d+) for each goal from a well-bent/.exec(specPart("freekick", "Curl bonus")?.how ?? "")?.[1])]], th: [[10, 10]] },
+    "freekick.skill-shooter": { say: [[5, 15 / Number(/(\d+) for each goal under/.exec(specPart("freekick", "Skill shots")?.how ?? "")?.[1])]], th: [[15, 15]] },
     "freekick.top-bins": { say: [[4, of("freekick", "Targets")]] },
     "racing.clean-half": { say: [[4, 20 / 5]], th: [[20, 4 * (maxOf("racing", "Clean sectors") / of("racing", "Clean sectors"))]] },
     "racing.two-hundred-club": { say: [[200, 200]], th: [[110, Math.floor((160 * (2000 - 1520)) / 695)]] },

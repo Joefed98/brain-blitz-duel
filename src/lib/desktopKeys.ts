@@ -18,7 +18,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   cross: [["← → ↑ ↓", "step"]],
   flip: [["Space", "flip"]],
   hover: [["Space", "flap"]],
-  homerun: [["Click", "pick your spot"], ["Space or click", "swing"]],
+  homerun: [["C / P", "Contact or Power"], ["Mouse swipe, or Space", "swing (hold ← / → to aim)"]],
   inkbridge: [["Mouse", "draw"], ["Enter", "release"], ["Z", "undo"], ["R", "reset"], ["D", "drop again"]],
   matchup: [["← → ↑ ↓", "move"], ["Space", "pick"], ["Arrow", "swap picked gem"]],
   orbit: [["Space", "release"], ["C", "checkpoint"]],
@@ -36,7 +36,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   blockfall: [["← →", "move"], ["↑", "turn"], ["↓", "soft drop"], ["Space", "drop"]],
   alleyroll: [["Mouse drag", "swipe up the lane to roll"], ["← →", "line up"], ["Hold Space", "roll straight"]],
   // Sports
-  freekick: [["Drag", "draw the shot (bend it to curl)"], ["← → ↑ ↓ / A D", "nudge the aim / curl"], ["Space (hold)", "power, release to strike"]],
+  freekick: [["Drag", "draw the shot (bend to curl, flick to dip)"], ["← → ↑ ↓ / A D / S", "nudge the aim / curl / strike"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],
   ricochet: [["Click / Space", "leap, again in the air to double jump"], ["← →", "leap off a lantern that way"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],

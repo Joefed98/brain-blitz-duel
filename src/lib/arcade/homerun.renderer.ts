@@ -28,6 +28,7 @@
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, deviceLayer } from "./cache.renderer";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
+import { glassPill, glossSpot } from "./sportsGlass.renderer";
 import { HOMERUN_FX, HOMERUN_FX_V2 } from "./sportsFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
@@ -77,6 +78,7 @@ import {
   HOMERUN_REV_5,
 } from "./homerun";
 import {
+  hr5Fence,
   homerunInningsPlan,
   hr5BasesBefore,
   hr5Moves,
@@ -2053,7 +2055,7 @@ export const homerunV5Ui: { aim: number | null; at: number } = { aim: null, at: 
 /** One font for every word on homerunRev 5's screen (Archivo, the app's), sized to be read at a glance. */
 const UI = ARCADE_FX_DISPLAY_FONT;
 /** Captain Joulz's kit on the batter (homerunRev 5; the hero's black suit, gold trim, gold gloves). */
-const CAPTAIN_KIT = { navy: "#121218", navyLit: "#2A2A33", pants: "#1B1B22", pantsShade: "#0C0C10", trim: "#F2C75C" } as const;
+const CAPTAIN_KIT = { navy: "#121218", navyLit: "#3C3C4C", pants: "#1E1E26", pantsShade: "#08080C", trim: "#F2C75C" } as const;
 
 /** Base path points (field feet, x toward first, z out): home, first, second, third, home. */
 const BASE_FEET: readonly [number, number][] = [
@@ -2124,6 +2126,55 @@ function paintRunner(ctx: CanvasRenderingContext2D, x: number, y: number, k: num
   ctx.strokeStyle = CAPTAIN_KIT.trim;
   ctx.lineWidth = 0.7 * u;
   ctx.stroke();
+  ctx.restore();
+}
+
+/** homerunRev 5's ball: the stitched leather ball with a crisp specular spot (glossy, lit by the towers). */
+function paintBall5(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number): void {
+  paintBall(ctx, x, y, r, spin);
+  glossSpot(ctx, x, y, r);
+}
+
+/**
+ * homerunRev 5's turf (display only, painted once a size): the outfield mown in a checkerboard (bands by spray angle
+ * and by depth, alternately a shade lighter, as a groundskeeper's mower leaves it) and soft pools of floodlight on it,
+ * so the grass reads as real turf under the towers rather than one flat green.
+ */
+function paintTurf(ctx: CanvasRenderingContext2D): void {
+  ctx.save();
+  const quad = (s0: number, s1: number, f0: number, f1: number) => {
+    const pts = [
+      [s0, f0],
+      [s1, f0],
+      [s1, f1],
+      [s0, f1],
+    ].map(([sp, ft]) => hvPt(homerunV4XOf(sp!), homerunGroundY(ft!)));
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.closePath();
+  };
+  for (let sp = -450, i = 0; sp < 450; sp += 75, i++) {
+    for (let ft = 160, j = 0; ft < 400; ft += 40, j++) {
+      const top = Math.min(ft + 40, hr5Fence(sp) - 4, hr5Fence(sp + 75) - 4);
+      if (top <= ft) continue;
+      quad(sp, sp + 75, ft, top);
+      ctx.fillStyle = (i + j) % 2 ? "rgba(214,255,200,0.07)" : "rgba(0,22,6,0.07)";
+      ctx.fill();
+    }
+  }
+  // Light pools from the towers (left and right field), the turf brighter under them.
+  for (const [sp, ft] of [
+    [300, 300],
+    [-300, 300],
+    [0, 230],
+  ] as const) {
+    const c = hvPt(homerunV4XOf(sp), homerunGroundY(ft));
+    const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 120);
+    g.addColorStop(0, "rgba(255,250,225,0.09)");
+    g.addColorStop(1, "rgba(255,250,225,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(c.x - 120, c.y - 120, 240, 240);
+  }
   ctx.restore();
 }
 
@@ -2201,13 +2252,7 @@ function pill(ctx: CanvasRenderingContext2D, x: number, y: number, text: string,
   ctx.font = `800 ${size}px ${UI}`;
   const w = Math.ceil(ctx.measureText(text).width) + 20;
   const x0 = opts.align === "right" ? x - w : opts.align === "center" ? x - w / 2 : x;
-  ctx.fillStyle = opts.gold ? "rgba(242,199,92,0.95)" : "rgba(6,9,18,0.78)";
-  ctx.beginPath();
-  ctx.roundRect(x0, y, w, h, h / 2);
-  ctx.fill();
-  ctx.strokeStyle = opts.gold ? "rgba(255,240,200,0.9)" : "rgba(255,255,255,0.16)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  glassPill(ctx, x0, y, w, h, opts.gold);
   ctx.fillStyle = opts.gold ? "#1A1206" : "#F3F1EC";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -2223,13 +2268,7 @@ function paintScorebug(ctx: CanvasRenderingContext2D, inn: Hr5Inn): void {
   const w = 168;
   const h = 46;
   ctx.save();
-  ctx.fillStyle = "rgba(6,9,18,0.82)";
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, 12);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.16)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  glassPill(ctx, x, y, w, h);
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
   ctx.fillStyle = "#F2C75C";
@@ -2315,7 +2354,16 @@ function drawInnings(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: 
   const inn = state.inn!;
   const plan = homerunInningsPlan(state.seed, inn.level);
   const still = reducedMotion();
-  deviceLayer(ctx, `homerun-park5:${viewH}`, (c) => paintWarpedPark(c, null, { ...WORLD_EXTENT, y1: viewH + 8 }));
+  deviceLayer(ctx, `homerun-park5:${viewH}`, (c) => {
+    paintWarpedPark(c, null, { ...WORLD_EXTENT, y1: viewH + 8 });
+    const on = hvOn;
+    hvOn = true;
+    try {
+      paintTurf(c);
+    } finally {
+      hvOn = on;
+    }
+  });
   const last = inn.hits[inn.hits.length - 1];
   const since = last ? state.tick - last.at : 1e9;
   const over = inn.endAt > 0;
@@ -2446,7 +2494,7 @@ function drawInnings(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: 
         ctx.stroke();
         ctx.restore();
       }
-      paintBall(ctx, b.x, b.y, r, state.tick * 0.9);
+      paintBall5(ctx, b.x, b.y, r, state.tick * 0.9);
     }
   }
 
@@ -2487,7 +2535,7 @@ function drawInnings(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: 
       ctx.restore();
       if (f.u < 1) {
         const q = hvPt(f.x, f.y);
-        paintBall(ctx, q.x, q.y, f.r * hvItemK(f.y), since * 0.6);
+        paintBall5(ctx, q.x, q.y, f.r * hvItemK(f.y), since * 0.6);
       } else if (since < 150 && last.out !== HR5_OUT_CAUGHT) {
         // The landing spot: a small ring on the grass (or in the seats).
         const l = v5Landing(last);
@@ -2504,7 +2552,7 @@ function drawInnings(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: 
       const u = since / 20;
       ctx.save();
       hvNear(ctx);
-      paintBall(ctx, p.plateX + p.breakX * 0.3 * u, p.plateY + 140 * u + 60 * u * u, pitchR(1) * (1 + 0.8 * u), state.tick * 0.9);
+      paintBall5(ctx, p.plateX + p.breakX * 0.3 * u, p.plateY + 140 * u + 60 * u * u, pitchR(1) * (1 + 0.8 * u), state.tick * 0.9);
       ctx.restore();
     }
     // The call: one banner under the field, the timing pill on its right.

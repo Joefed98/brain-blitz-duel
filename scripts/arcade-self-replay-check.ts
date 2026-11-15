@@ -16,6 +16,8 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
+import { homerunDealSeedV5 } from "../src/lib/duel/homerunDealV5.server";
+import { freekickDealSeedV5 } from "../src/lib/duel/freekickDealV5.server";
 import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
@@ -1025,6 +1027,10 @@ const GAMES: Game[] = [
   // Minefield minesRev 2 (13 Nov 2026: a Logic game with 20 mines), appended so every earlier entry keeps its stream.
   { key: "minesweeper/v2", game: minesweeperGameFor(MINES_REV_LOGIC), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_LOGIC) },  // Thirteen pyramidRev 3 (15 Nov 2026: a dead end waits for Undo), appended so every earlier entry keeps its stream.
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
+  // Home Run homerunRev 5 (the innings) and Top Bins freekickRev 5 (the layered kick), 15 Nov 2026, at Normal on their
+  // proved deals; appended so every earlier entry keeps its stream.
+  { key: "homerun/v5", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(5), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, 5), seedFor: (n: number) => homerunDealSeedV5(n) },
+  { key: "freekick/v5", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(5), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 5), seedFor: (n: number) => freekickDealSeedV5(n) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

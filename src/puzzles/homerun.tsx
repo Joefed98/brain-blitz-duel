@@ -24,7 +24,8 @@ import {
   HOMERUN_WORLD_W,
 } from "@/lib/arcade/homerun";
 import { drawHomerunArt, homerunScene, homerunSceneV4, homerunV4ViewToWorld, homerunV5Ui } from "@/lib/arcade/homerun.renderer";
-import { HOMERUN_REV_5, HR5_AIM_MAX, HR5_INPUT_SWING, HR5_SWING_EARLY } from "@/lib/arcade/homerunInnings";
+import { hr5Fence, HOMERUN_REV_5, HR5_AIM_MAX, HR5_CHOICE, HR5_FOUL, HR5_HOMER, HR5_INPUT_SWING, HR5_OUT_CAUGHT, HR5_SINGLE, HR5_SWING_EARLY, HR5_WHIFF, type Hr5Inn } from "@/lib/arcade/homerunInnings";
+import { Dot, RevealLegend, RevealStats } from "@/components/puzzles/SportsRevealParts";
 import { encodeHomerunRun, replayHomerunRun } from "@/lib/duel/homerun";
 import { HOMERUN_TIME_MS, type HomerunPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -69,15 +70,25 @@ function IntroExample() {
         <rect x="112" y="96" width="30" height="32" fill="none" stroke="#fff" strokeOpacity="0.35" strokeDasharray="3 3" />
         <circle cx="126" cy="106" r="2.6" fill="#F4F3EE" />
         <path d="M120 140 L134 140 L137 146 L127 150 L117 146 Z" fill="#F5F6F2" />
-        <path d="M48 148 L56 120 L52 104 L66 104 L70 120 L74 148 L66 148 L62 124 L58 148 Z" fill="#E7E9EF" />
-        <path d="M50 104 L48 82 Q60 76 72 82 L70 104 Z" fill="#17244A" />
-        <circle cx="61" cy="74" r="7" fill="#2C4282" />
-        <ellipse cx="68" cy="74" rx="4" ry="1.2" fill="#0C1430" />
+        <path d="M48 148 L56 120 L52 104 L66 104 L70 120 L74 148 L66 148 L62 124 L58 148 Z" fill="#1B1B22" />
+        <path d="M50 104 L48 82 Q60 76 72 82 L70 104 Z" fill="#121218" stroke="#F2C75C" strokeWidth="0.8" />
+        <path d="M61 84 l-3 7 h3 l-2 7 l5 -9 h-3 l2 -5 Z" fill="#F2C75C" />
+        <circle cx="61" cy="74" r="7" fill="#1B1B22" stroke="#F2C75C" strokeWidth="0.8" />
+        <ellipse cx="68" cy="74" rx="4" ry="1.2" fill="#6FE3FF" />
         <circle cx="70" cy="84" r="2.6" fill="#F2C75C" />
         <path d="M70 84 L84 44 L87 45 L73 85 Z" fill="#C08A52" />
+        <circle cx="40" cy="70" r="2.4" fill="#E0473E" />
+        <circle cx="104" cy="66" r="2.4" fill="#E0473E" />
+        <circle cx="168" cy="70" r="2.4" fill="#E0473E" />
+        <rect x="150" y="84" width="5" height="5" transform="rotate(45 152.5 86.5)" fill="#FFE7A3" />
+        <circle cx="146" cy="84" r="2.6" fill="#121218" stroke="#F2C75C" strokeWidth="0.7" />
+        <rect x="4" y="4" width="70" height="20" rx="6" fill="rgba(6,9,18,0.85)" />
+        <text x="11" y="18.5" fill="#F2C75C" fontSize="12" fontWeight="900" fontFamily="Archivo, sans-serif">2</text>
+        <text x="22" y="18" fill="#F3F1EC" fontSize="7" fontWeight="800" fontFamily="Archivo, sans-serif">RUNS</text>
+        <text x="46" y="18" fill="#F3F1EC" fontSize="8" fontWeight="800" fontFamily="Archivo, sans-serif">1–2</text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Tap a spot on the field before the pitch, then tap as the ring closes on the ball: perfect timing sends it to your spot.
+        Read the pitch, then swipe the way you want to hit it as it reaches you: find the gaps and bring your runners home.
       </p>
     </div>
   );
@@ -309,8 +320,75 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+/** homerunRev 5's reveal picture: the field from above, every batted ball where it came down. */
+function InningsField({ inn }: { inn: Hr5Inn }) {
+  const S = 0.55;
+  const PX = 180;
+  const PY = 288;
+  const at = (spray: number, feet: number) => {
+    const a = (spray / 10) * (Math.PI / 180);
+    return { x: PX - Math.sin(a) * feet * S, y: PY - Math.cos(a) * feet * S };
+  };
+  const fence: string[] = [];
+  for (let sp = -450; sp <= 450; sp += 30) {
+    const p = at(sp, hr5Fence(sp));
+    fence.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+  }
+  const left = at(450, 330);
+  const right = at(-450, 330);
+  const base = (n: number) => at([0, -450, 0, 450][n]!, [0, 90, 127, 90][n]!);
+  const bases = [base(1), base(2), base(3)];
+  const marks = inn.hits.filter((h) => h.st >= 0 && h.out !== HR5_WHIFF && h.out !== HR5_FOUL);
+  return (
+    <svg viewBox="0 18 360 282" className="w-full" style={{ maxWidth: 420, maxHeight: "34vh" }} role="img" aria-label="Where each batted ball landed">
+      <path d={`M${PX},${PY} L${right.x},${right.y} L${fence.join(" L")} L${left.x},${left.y} Z`} fill="var(--jz-surface-2)" stroke="var(--jz-line)" strokeWidth={1.5} />
+      <polyline points={fence.join(" ")} fill="none" stroke="var(--jz-text-3)" strokeWidth={3} />
+      <path d={`M${PX},${PY} L${bases[0]!.x},${bases[0]!.y} L${bases[1]!.x},${bases[1]!.y} L${bases[2]!.x},${bases[2]!.y} Z`} fill="var(--jz-surface-3)" stroke="var(--jz-text-3)" strokeWidth={1.2} />
+      {[...bases, { x: PX, y: PY }].map((b, i) => (
+        <rect key={i} x={b.x - 3.5} y={b.y - 3.5} width={7} height={7} transform={`rotate(45 ${b.x} ${b.y})`} fill="var(--jz-white)" />
+      ))}
+      {marks.map((h, i) => {
+        const p = h.out === HR5_HOMER ? at(h.spray, Math.max(h.feet, hr5Fence(h.spray) + 22)) : at(h.spray, Math.max(25, h.feet));
+        const out = h.out === HR5_OUT_CAUGHT || h.out === HR5_CHOICE;
+        const colour = h.out === HR5_HOMER ? "var(--jz-gold)" : out ? "var(--jz-red)" : "var(--jz-white)";
+        return <circle key={i} cx={p.x} cy={p.y} r={h.out === HR5_HOMER ? 6.5 : 5.5} fill={out ? "none" : colour} stroke={colour} strokeWidth={2.4} />;
+      })}
+    </svg>
+  );
+}
+
+function InningsReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "homerun") return null;
+  const result = replayHomerunRun(puzzle.seed, myAnswer ?? "", puzzle.homerunRev, puzzle.level);
+  const inn = result.state.inn;
+  if (!inn) return null;
+  const hits = inn.hits.filter((h) => h.out >= HR5_SINGLE && h.out <= HR5_HOMER).length;
+  const longest = result.longest;
+  return (
+    <div className="flex w-full flex-col items-center justify-start gap-2" data-homerun-reveal>
+      <InningsField inn={inn} />
+      <RevealLegend
+        items={[
+          { mark: <Dot colour="var(--jz-gold)" />, label: "Home run" },
+          { mark: <Dot colour="var(--jz-white)" />, label: "Hit" },
+          { mark: <Dot colour="var(--jz-red)" hollow />, label: "Caught" },
+        ]}
+      />
+      <RevealStats
+        stats={[
+          { label: "Hits", value: String(hits), gold: true },
+          { label: "Outs", value: String(inn.outs) },
+          { label: "Longest", value: `${longest} ft` },
+        ]}
+      />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  const { puzzle, myAnswer } = props;
+  if (puzzle.type !== "homerun") return null;
+  if ((puzzle.homerunRev ?? 1) >= HOMERUN_REV_5) return <InningsReveal {...props} />;
   const result = replayHomerunRun(puzzle.seed, myAnswer ?? "", puzzle.homerunRev, puzzle.level);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);

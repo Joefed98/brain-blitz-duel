@@ -15,6 +15,7 @@ import {
   FREEKICK_REV_5,
   FREEKICK_REV_STD,
   fkLevelOf,
+  FK_M,
   type FreekickCheckpoint,
   type FreekickState,
 } from "@/lib/arcade/freekick";
@@ -92,4 +93,40 @@ export function replayFreekickRun(seed: number, raw: string, rev?: number | null
     std: true,
     parts: freekickStdParts(s) ?? [],
   };
+}
+
+/** One kick of a run for the reveal (display only): its outcome, where it crossed the goal line (m), the strike and the flags. */
+export interface FreekickKickSummary {
+  out: number;
+  /** Crossing point in metres (x across, + right; y up), or null when it never reached the goal line. */
+  at: { x: number; y: number } | null;
+  strike: number;
+  target: boolean;
+  skill: boolean;
+}
+
+/**
+ * Each kick of a stored run, replayed on the stored stamp and level (display only: the reveal's goal-frame picture;
+ * the score is always replayFreekickRun's). Kicks never reached are left out.
+ */
+export function freekickKickSummaries(seed: number, raw: string, rev?: number | null, level?: string | null): FreekickKickSummary[] {
+  const game = freekickGameFor(rev ?? FREEKICK_REV_STD, level);
+  const events = new Map(decodeFreekickRun(raw).events.map((e) => [e.t, e]));
+  const out: FreekickKickSummary[] = [];
+  let s = game.init(seed);
+  let guard = 0;
+  while (!game.isOver(s) && guard++ < 20_000) {
+    const before = s.outs[s.k] ?? -1;
+    const k = s.k;
+    const strike = s.strike ?? 0;
+    s = game.step(s, events.get(s.tick + 1) ?? null);
+    const now = s.outs[k] ?? -1;
+    if (before < 0 && now >= 0) {
+      const f = s.fl;
+      const crossed = f && (f.crossX !== 0 || f.crossY !== 0);
+      const flags = s.flags[k] ?? 0;
+      out.push({ out: now, at: crossed ? { x: f.crossX / FK_M, y: f.crossY / FK_M } : null, strike, target: (flags & 1) === 1, skill: (flags & 8) === 8 });
+    }
+  }
+  return out;
 }

@@ -11,6 +11,9 @@ import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
 import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { arcadeSeed } from "./arcade.server";
 import { homerunDealSeedV5 } from "./homerunDealV5.server";
+import { homerunDealSeedV4 } from "./homerunDealV4.server";
+import { freekickDealSeedV4 } from "./freekickDealV4.server";
+import { dealPinned } from "./dealEra";
 import { freekickDealSeedV5 } from "./freekickDealV5.server";
 import { hrLevelOf } from "@/lib/arcade/homerunInnings";
 import { fkLevelOf } from "@/lib/arcade/freekick";
@@ -30,12 +33,15 @@ import type { AlleyRollPuzzleData, CurlingPuzzleData, FreekickPuzzleData, Homeru
  * revisions (their deal files stay as they were).
  */
 export function generateHomerun(level?: string | null): HomerunPuzzleData {
+  // A check's era pin (dealEra.ts): rooms' deal before the overhaul, homerunRev 4 from its own proved deal.
+  if (dealPinned("sportsPreOverhaul")) return { type: "homerun", seed: homerunDealSeedV4(arcadeSeed()), homerunRev: 4 };
   const l = hrLevelOf(level);
   return { type: "homerun", seed: homerunDealSeedV5(arcadeSeed(), l), homerunRev: HOMERUN_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
 /** Top Bins deals freekickRev 5 (15 Nov 2026, the layered kick) from the level's proved deal; rev 1–4 rounds replay on their own. */
 export function generateFreekick(level?: string | null): FreekickPuzzleData {
+  if (dealPinned("sportsPreOverhaul")) return { type: "freekick", seed: freekickDealSeedV4(arcadeSeed()), freekickRev: 4 };
   const l = fkLevelOf(level);
   return { type: "freekick", seed: freekickDealSeedV5(arcadeSeed(), l), freekickRev: FREEKICK_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }

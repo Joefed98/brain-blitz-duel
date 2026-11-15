@@ -98,14 +98,32 @@ export const FK_STRIKE_CURL = 0;
 export const FK_STRIKE_DRIVE = 1;
 export const FK_STRIKE_DIP = 2;
 export const FK_STRIKE_NAMES = ["Curler", "Driven", "Dipping"] as const;
-/** A drive keeps this much of the drawn curl and leaves the foot this much faster (per mille). */
+/** A drive keeps this much of the drawn curl and leaves the foot this much faster (per mille), lower and on a flatter line. */
 export const FK_DRIVE_CURL = 300;
 export const FK_DRIVE_SPEED = 1180;
+/** A drive's drop (per mille of g): the flat line that keeps a low drive under a jumping wall. */
+export const FK_DRIVE_DROP = 400;
+/** A drive leaves the foot with this much of a struck ball's lift (per mille). */
+export const FK_DRIVE_LIFT = 350;
 /** A dip: extra gravity past the wall's line (per mille of g), a small seeded-free wobble, and the keeper later by this many ticks. */
 export const FK_DIP_DROP = 650;
 export const FK_DIP_READ = 6;
-/** A jumping wall rises this high (world units) on its fixed schedule; a ball beneath its feet goes under. */
-export const FK_V5_WALL_JUMP = Math.round(0.45 * 65536);
+/**
+ * A jumping wall (freekickRev 5) leaves the ground FK_V5_JUMP_FROM ticks after the kick, its feet highest
+ * (FK_V5_WALL_JUMP) at FK_V5_JUMP_PEAK, as a driven ball reaches it, and lands at FK_V5_JUMP_TO; a ball beneath its feet
+ * goes under.
+ */
+export const FK_V5_WALL_JUMP = Math.round(0.8 * 65536);
+export const FK_V5_JUMP_FROM = 8;
+export const FK_V5_JUMP_PEAK = 22;
+export const FK_V5_JUMP_TO = 36;
+/** A jumping wall's lift `t` ticks after the kick (freekickRev 5; a fixed schedule, the same for everyone). */
+export function fkV5WallLift(t: number): number {
+  if (t < FK_V5_JUMP_FROM || t > FK_V5_JUMP_TO) return 0;
+  const half = FK_V5_JUMP_PEAK - FK_V5_JUMP_FROM;
+  const d = t - FK_V5_JUMP_PEAK;
+  return Math.max(0, FK_V5_WALL_JUMP - Math.trunc((FK_V5_WALL_JUMP * d * d) / (half * half)));
+}
 /** The keeper's lean: his start this far toward the side he leans, quicker that way (per mille) and slower the other. */
 export const FK_V5_LEAN = Math.round(0.3 * 65536);
 export const FK_V5_LEAN_TO = 1200;
@@ -343,7 +361,7 @@ export const FREEKICK_V5_STD_SPEC: StdSpec = {
   parts: [
     { key: "core", label: "Goals", max: FREEKICK_V5_CORE_MAX, of: FREEKICK_V5_CORE_FULL, how: "100 a goal, more the further it goes from the keeper" },
     { key: "targets", label: "Targets", max: FREEKICK_TARGETS_MAX, of: FREEKICK_TARGETS, item: "target", how: "10 for each corner hoop or crossbar hit" },
-    { key: "skill", label: "Skill shots", max: FREEKICK_V5_SKILL_MAX, of: FREEKICK_V5_SKILL_MAX / FREEKICK_V5_SKILL_EACH, item: "skill shot", how: `${FREEKICK_V5_SKILL_EACH} for each goal under a jumping wall, dipped over it, curled round it or into the keeper's open side` },
+    { key: "skill", label: "Skill shots", max: FREEKICK_V5_SKILL_MAX, of: FREEKICK_V5_SKILL_MAX / FREEKICK_V5_SKILL_EACH, item: "skill shot", how: `${FREEKICK_V5_SKILL_EACH} for each goal under a jumping wall, dipped over it, curled round it or into the keeper’s open side` },
     { key: "streak", label: "Five in a row", max: FREEKICK_STREAK_MAX, of: 1, how: "for five goals in a row" },
   ],
 };
@@ -723,7 +741,9 @@ export function fkFlightStep(k: FkKick, f: FkFlight, frame = true, ground = true
   const azc = -Math.trunc((f.b * f.vx) / CURL_DIV);
   f.vx += axc + k.wind * WIND_K - Math.trunc(f.vx / DRAG);
   f.vz += azc - Math.trunc(f.vz / DRAG);
-  f.vy += -G - Math.trunc(f.vy / DRAG);
+  // freekickRev 5: a driven strike flies a flat, hard line (struck through the middle, it drops far less), so a low
+  // drive skims under a jumping wall's feet.
+  f.vy += (f.st === FK_STRIKE_DRIVE ? -Math.trunc((G * FK_DRIVE_DROP) / 1000) : -G) - Math.trunc(f.vy / DRAG);
   // freekickRev 5: a dipping strike drops harder once past the wall's line, with a small wobble across.
   if (f.st === FK_STRIKE_DIP && fkLocal(k, f.x, f.z).w >= FK_WALL_DIST) {
     f.vy -= Math.trunc((G * FK_DIP_DROP) / 1000);
@@ -763,7 +783,7 @@ export function fkFlightStep(k: FkKick, f: FkFlight, frame = true, ground = true
       const u = a.u + Math.trunc(((bl.u - a.u) * (FK_WALL_DIST - a.w)) / Math.max(1, span));
       const y = py + Math.trunc(((f.y - py) * (FK_WALL_DIST - a.w)) / Math.max(1, span));
       // freekickRev 5: the wall jumps only on its kicks (higher, so a low ball can go under its feet); else it stands.
-      const lift = k.v5 ? (k.v5.jump ? Math.trunc((fkWallJump(f.t) * FK_V5_WALL_JUMP) / FK_WALL_JUMP) : 0) : fkWallJump(f.t);
+      const lift = k.v5 ? (k.v5.jump ? fkV5WallLift(f.t) : 0) : fkWallJump(f.t);
       const top = FK_WALL_H + lift;
       const under = k.v5 !== undefined && lift > 0 && y < lift - FK_BALL_R;
       if (under) f.under = 1;
@@ -985,6 +1005,8 @@ export function fkV5Strike(k: FkKick, a: number, b: number, c: number, st: numbe
     f.vx = Math.trunc((f.vx * FK_DRIVE_SPEED) / 1000);
     f.vy = Math.trunc((f.vy * FK_DRIVE_SPEED) / 1000);
     f.vz = Math.trunc((f.vz * FK_DRIVE_SPEED) / 1000);
+    // Struck through the middle: it leaves the foot low.
+    f.vy = Math.trunc((f.vy * FK_DRIVE_LIFT) / 1000);
   }
   f.st = st;
   f.under = 0;

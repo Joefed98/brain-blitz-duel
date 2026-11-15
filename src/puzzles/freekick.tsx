@@ -48,8 +48,8 @@ import {
   freekickViewOn,
   freekickViewToWorld,
 } from "@/lib/arcade/freekick.renderer";
-import { encodeFreekickRun, replayFreekickRun } from "@/lib/duel/freekick";
-import { strikeFromStroke } from "@/lib/arcade/freekickStroke";
+import { encodeFreekickRun, freekickKickSummaries, replayFreekickRun, type FreekickKickSummary } from "@/lib/duel/freekick";
+import { strikeFromStroke, STRIKE_LABEL } from "@/lib/arcade/freekickStroke";
 import { FREEKICK_TIME_MS, type FreekickPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { freekickSounds } from "@/lib/fx/freekickSounds";
@@ -93,8 +93,18 @@ function IntroExample() {
         <path d="M96 122 Q78 84 120 44" fill="none" stroke="#FFECBE" strokeOpacity={0.55} strokeWidth={2} strokeDasharray="3 3" />
         <path d="M92 128 Q86 112 104 100" fill="none" stroke="#FFFFFF" strokeOpacity={0.8} strokeWidth={3} strokeLinecap="round" />
         <circle cx={96} cy={118} r={5.5} fill="#F4F6F8" />
+        {/* Captain Joulz on the ball's left, kicking leg drawn back; the wind flag over the goal. */}
+        <g stroke="#F2C75C" strokeWidth={0.8} strokeLinecap="round">
+          <circle cx={72} cy={96} r={3.6} fill="#121218" />
+          <path d="M72 100 L71 112" stroke="#121218" strokeWidth={4} />
+          <path d="M71 112 L68 124 M71 112 L80 120" stroke="#121218" strokeWidth={2.6} />
+          <path d="M72 102 L64 108 M72 102 L80 106" stroke="#121218" strokeWidth={2} />
+        </g>
+        <path d="M66 100 L60 114 L68 110 Z" fill="#E7C46A" opacity={0.9} />
+        <line x1={160} y1={6} x2={160} y2={22} stroke="#D9DDE6" strokeWidth={1.2} />
+        <path d="M160 6 L174 9 L171 12 L174 15 L160 13 Z" fill="#FF8A3D" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Draw the shot from the ball (bend it to curl), then hold the bar and release in the gold.</p>
+      <p className="text-center text-xs text-muted-foreground">Draw the shot from the ball (bend to curl, straight to drive, flick to dip), read the wind, then hold the bar and release in the gold.</p>
     </div>
   );
 }
@@ -406,8 +416,79 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+const KICK_WORD: Record<number, string> = { 1: "Goal", 2: "Saved", 3: "Wall", 4: "Missed", 5: "Short", 6: "No kick" };
+
+/** freekickRev 5's reveal picture: the goal frame with every kick where it crossed the line, numbered. */
+function KicksOnGoal({ kicks }: { kicks: readonly FreekickKickSummary[] }) {
+  const K = 44;
+  const W = 380;
+  const H = 170;
+  const gx = (x: number) => W / 2 + x * K;
+  const gy = (y: number) => 140 - y * K;
+  const half = 3.66;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxWidth: 440, maxHeight: "24vh" }} role="img" aria-label="Where each kick crossed the goal line">
+      <rect x={0} y={140} width={W} height={30} fill="var(--jz-surface-2)" />
+      <rect x={gx(-half)} y={gy(2.44)} width={2 * half * K} height={2.44 * K} fill="var(--jz-surface)" stroke="var(--jz-white)" strokeWidth={4} />
+      {kicks.map((k, i) => {
+        if (!k.at) return null;
+        const x = Math.max(8, Math.min(W - 8, gx(k.at.x)));
+        const y = Math.max(10, Math.min(150, gy(k.at.y)));
+        const goal = k.out === 1;
+        return (
+          <g key={i}>
+            <circle cx={x} cy={y} r={10} fill={goal ? "var(--jz-gold)" : "none"} stroke={goal ? "var(--jz-gold)" : "var(--jz-red)"} strokeWidth={2.5} />
+            <text x={x} y={y + 4.5} textAnchor="middle" fontSize={12} fontWeight={900} fill={goal ? "var(--jz-on-gold)" : "var(--jz-text)"}>
+              {i + 1}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function LayeredReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "freekick") return null;
+  const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
+  const kicks = freekickKickSummaries(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
+  void result;
+  return (
+    <div className="flex w-full flex-col items-center justify-start gap-2" data-freekick-reveal>
+      <KicksOnGoal kicks={kicks} />
+      <div className="grid w-full grid-cols-5 gap-1.5" data-kick-strip>
+        {Array.from({ length: 10 }, (_, i) => {
+          const k = kicks[i];
+          const goal = k?.out === 1;
+          return (
+            <div
+              key={i}
+              className="flex flex-col items-center py-1"
+              style={{ borderRadius: "var(--jz-radius-sm)", background: "var(--jz-surface)", border: `2px solid ${goal ? "var(--jz-gold)" : "transparent"}` }}
+            >
+              <span className="font-black" style={{ fontSize: 15, color: goal ? "var(--jz-gold)" : "var(--jz-text)" }}>
+                {i + 1}
+              </span>
+              <span className="font-bold" style={{ fontSize: 11, color: "var(--jz-text-2)" }}>
+                {k ? KICK_WORD[k.out] ?? "" : "—"}
+              </span>
+              {k && goal ? (
+                <span className="font-semibold" style={{ fontSize: 10, color: "var(--jz-text-3)" }}>
+                  {STRIKE_LABEL[k.strike]}
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  const { puzzle, myAnswer } = props;
+  if (puzzle.type !== "freekick") return null;
+  if ((puzzle.freekickRev ?? 1) >= FREEKICK_REV_5) return <LayeredReveal {...props} />;
   const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);

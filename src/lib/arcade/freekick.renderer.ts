@@ -26,13 +26,13 @@ import type { CanvasSize } from "./engine";
 import { strikeFromStroke, STRIKE_LABEL } from "./freekickStroke";
 import { reducedMotion } from "./art.renderer";
 import { paintKicker } from "./sportsCaptain.renderer";
+import { glassPill } from "./sportsGlass.renderer";
 import {
   FK_AIM,
   FK_LEVEL_SETTINGS,
   FK_OVER,
   FK_SETUP,
-  FK_V5_WALL_JUMP,
-  FK_WALL_JUMP,
+  fkV5WallLift,
   FREEKICK_REV_5,
   FREEKICK_SETUP_TICKS,
   fkLevelOf,
@@ -1370,7 +1370,7 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   const leanKv = v5 && !f && k.v5 ? k.v5.lean * Math.trunc(FK_KEEPER_VMAX / 6) : 0;
   items.push({ w: fkCamSpace(cam, kx, 0, FK_KEEPER_Z / M).w, draw: () => paintKeeper(ctx, cam, kx, f?.kv ?? leanKv, f?.out === FK_OUT_SAVED, raise) });
   // freekickRev 5: only a jumping wall jumps, and higher (fkFlightStep's rule).
-  const lift = f ? (k.v5 ? (k.v5.jump ? Math.trunc((fkWallJump(t) * FK_V5_WALL_JUMP) / FK_WALL_JUMP) : 0) : fkWallJump(t)) : 0;
+  const lift = f ? (k.v5 ? (k.v5.jump ? fkV5WallLift(t) : 0) : fkWallJump(t)) : 0;
   const players = wallPlayers(k);
   const wallW = players.length ? fkCamSpace(cam, players[0]!.x, 0, players[0]!.z).w : 0;
   items.push({
@@ -1736,14 +1736,8 @@ function chipUi(ctx: Ctx, x: number, y: number, text: string, accent = false, al
   ctx.font = `800 13px ${ARCADE_FX_DISPLAY_FONT}`;
   const w = Math.max(minW, Math.ceil(ctx.measureText(text).width) + 20);
   const x0 = align === "left" ? x : align === "right" ? x - w : x - w / 2;
-  ctx.fillStyle = "rgba(6,9,18,0.72)";
-  ctx.beginPath();
-  ctx.roundRect(x0, y, w, 24, 12);
-  ctx.fill();
-  ctx.strokeStyle = accent ? "rgba(242,199,92,0.8)" : "rgba(255,255,255,0.16)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.fillStyle = accent ? GOLD : "#F3F1EC";
+  glassPill(ctx, x0, y, w, 24, accent);
+  ctx.fillStyle = accent ? "#2A1A04" : "#F3F1EC";
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   ctx.fillText(text, x0 + w / 2, y + 12.5);
@@ -1756,13 +1750,7 @@ function paintWindFlag(ctx: Ctx, cx: number, y: number, wind: number, tick: numb
   const w = 96;
   const x0 = cx - w / 2;
   ctx.save();
-  ctx.fillStyle = "rgba(6,9,18,0.72)";
-  ctx.beginPath();
-  ctx.roundRect(x0, y, w, 26, 13);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.16)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  glassPill(ctx, x0, y, w, 26);
   const dir = Math.sign(wind) || 1;
   const pole = cx - dir * 30;
   ctx.strokeStyle = "#D9DDE6";

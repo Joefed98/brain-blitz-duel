@@ -1,5 +1,57 @@
 # Home Run on the arcade scoring standard (homerunRev 1, 30 Oct 2026; homerunRev 2, 31 Oct 2026; homerunRev 3, 1 Nov 2026; homerunRev 4, 3 Nov 2026)
 
+## homerunRev 5: the innings (15 Nov 2026)
+
+**Rooms deal homerunRev 5** (`HOMERUN_REV_5`, `src/lib/arcade/homerunInnings.ts`; the sections below describe rev 1–4,
+which replay and score exactly as before). One innings of real batting with consequences, 117 s (the round's clock
+120 s), against a seeded run of up to 40 pitches (`homerunInningsPlan(seed, level)`), the same for everyone in a room.
+
+- **Each pitch**: the pitcher's wind-up shows its kind in the last 0.4 s (arm slot and glove colour; Easy adds the grip
+  bubble): fastball quick and straight, curveball bending, changeup floating in slowly. A fixed count of the first 24
+  pitches land outside the strike zone (Easy 6, Normal 7, Hard 8, Expert 9; seeded places), one in four after that.
+- **Swing or take**: a swipe swings (kind 5, `a` the swipe's direction in tenths of a degree, + pulled to left field),
+  the bat meeting the plate 6 ticks after it starts. Leaving a pitch: a strike in the zone, a ball outside. Four balls
+  walk, three strikes an out (swinging or looking), a foul never the third strike. On two strikes the plate must be
+  protected.
+- **Contact or Power** (kind 2, locked at the release, carried on): Contact's window ±5 ticks (Normal) and at most
+  340 ft; Power's ±3 and at most 450 ft. A swing within the PERFECT window (±1 tick on Easy and Normal, the exact tick
+  on Hard and Expert) goes exactly where it was swiped at full carry; each tick beyond takes carry and moves it 3° (early
+  pulls, late pushes). A ball outside the zone hit at all is weak contact (52 %), never PERFECT.
+- **The field**: seven fielders, shifting every pitch; a ball landing in a catch area is an out. Otherwise a single
+  (short of 170 ft), a double, a triple (within 30 ft of the wall) or a home run over it (400 ft in centre, 330 down the
+  lines); an outfielder within 11° of the ball's line holds it to one base less. Runners advance by the hit's bases, a
+  runner on second scoring on a single; a short single with a runner on first near an infielder is a fielder's choice
+  (the runner out at second).
+- **The end**: three outs, or no pitch in the clock's last 2 s; the run holds 2 s on the innings' summary.
+
+**Score** (`HOMERUN_STD_SPEC_V5`): Runs 100 (a straight line, full at 18), Home runs 40 (4 each), Perfect streak 40
+(4 for each swing in the longest run of perfect swings), Good eye 20 (4 for each ball left alone beyond the balls
+chased). The flawless batter (Power, every zone pitch met on its arrival tick, every ball left) scores 200 on every
+seed of the proved deal (`homerunDealV5.server.ts`, 120 a level, `bun scripts/homerun-innings-deal.ts [--check]`).
+
+**Levels** (`HR_LEVEL_SETTINGS`; Normal is the rated level):
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Fastball flight (ticks) | 42–47 | 36–41 | 32–36 | 29–32 |
+| Balls in the first 24 | 6 | 7 | 8 | 9 |
+| Contact / Power window | ±7 / ±5 | ±5 / ±3 | ±4 / ±3 | ±4 / ±2 |
+| PERFECT | ±2 | ±1 | exact | exact |
+| Movement | 45 % | 100 % | 130 % | 160 % |
+| Catch areas | 80 % | 100 % | 110 % | 120 % |
+
+**Measured** (`bun scripts/homerun-innings-bands.ts --seeds=40`, medians, average in brackets):
+
+| | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| Easy | 59 (48) | 90 (89) | 149 (144) | 184 (183) | 200 (195) | 200 (199) | 200 |
+| Normal | 16 (27) | 63 (60) | 132 (126) | 171 (173) | 200 (194) | 200 (199) | 200 |
+| Hard | 11 (18) | 32 (40) | 85 (78) | 140 (140) | 168 (168) | 176 (177) | 200 |
+| Expert | 5 (10) | 38 (34) | 80 (79) | 135 (130) | 168 (168) | 176 (175) | 200 |
+
+Checks: homerun-innings-check (the deal, the count, the runners, contact, the plan, the replay, the bands),
+arcade-standard-check's entry, homerun-check (rev 1–4 unchanged).
+
 Shown as **Home Run** since 31 Oct 2026 (was Home Run Derby; the id `homerun` is unchanged). Rooms deal
 **homerunRev 4** since 3 Nov 2026 (section "homerunRev 4" at the end: a new way to bat, with its own plan and parts);
 rev 3 was dealt on 1 Nov 2026 and rev 2 on 31 Oct 2026 (their sections); everything above them describes rev 1, which

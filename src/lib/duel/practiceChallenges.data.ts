@@ -439,13 +439,15 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("curling", "Shot stone", "Finish holding shot.", "C", "target", false, part("Holding shot", 10)),
   ch("curling", "House clearance", "Knock every red out of the house.", "C", "maxout", false, part("Takeouts", 20)),
   ch("curling", "Red ring circus", "Stop all eight stones in the red ring.", "C", "fullset", true, part("Red ring", 20)),
-  // Home Run (homerun): distance 120 + home runs 40 + bonus signs 20 + perfect streak 20.
-  ch("homerun", "Sign here", "Hit the lit sign five times.", "C", "target", false, all(line("Bonus signs", "gte", 10))),
+  // Home Run (homerun, homerunRev 5 since 15 Nov 2026, the innings): runs 100 + home runs 40 + perfect streak 40 + good
+  // eye 20. "Sign here" (the lit signs, gone on rev 5) became "Good eye"; "Perfect ten" reads rev 5's streak (4 a swing).
+  ch("homerun", "Good eye", "Leave five more balls alone than you chase.", "C", "target", false, part("Good eye", 20)),
   ch("homerun", "Out of the park", "Hit ten home runs.", "C", "fullset", false, part("Home runs", 40), "homerun.homers"),
-  ch("homerun", "Perfect ten", "Make ten perfect swings in a row.", "C", "streak", true, part("Perfect streak", 20), "homerun.streak"),
-  // Top Bins (freekick): goals 120 + targets 40 + round the wall 10 + curl bonus 20 + five in a row 10.
+  ch("homerun", "Perfect ten", "Make ten perfect swings in a row.", "C", "streak", true, part("Perfect streak", 40), "homerun.streak"),
+  // Top Bins (freekick, freekickRev 5 since 15 Nov 2026, the layered kick): goals 120 + targets 40 + skill shots 30 + five
+  // in a row 10. "Bend it" (the Curl bonus, gone on rev 5) became "Skill shooter".
   ch("freekick", "Five alive", "Score five in a row.", "C", "streak", false, part("Five in a row", 10)),
-  ch("freekick", "Bend it", "Score five well-bent goals.", "C", "target", false, all(line("Curl bonus", "gte", 10))),
+  ch("freekick", "Skill shooter", "Score five skill shots.", "C", "target", false, all(line("Skill shots", "gte", 15))),
   ch("freekick", "Top bins", "Score through all four hoops.", "C", "fullset", true, part("Targets", 40)),
   // Apex (racing): pace 160 + clean sectors 40.
   ch("racing", "Clean half", "Drive four sectors clean.", "C", "clean", false, all(line("Clean sectors", "gte", 20))),

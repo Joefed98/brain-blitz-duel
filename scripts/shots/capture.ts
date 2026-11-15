@@ -342,6 +342,16 @@ async function newRun(
     }
     return route.continue();
   });
+  // Since the Games pages (14 Nov 2026) the catalogue has no Puzzles | Arcade switch: `/practice?game=<id>` opens the
+  // round's intro with Ready directly (scripts/practice-side-lib.ts practiceGameUrl), unless stage state is seeded first.
+  if (!opts.seed) {
+    await page.goto(`${origin}/practice?game=${game}`, { waitUntil: "domcontentloaded" });
+    await page
+      .getByRole("button", { name: /^Ready/ })
+      .first()
+      .waitFor({ timeout: 90_000 });
+    return run;
+  }
   await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
   // The Practice tab's Puzzles | Arcade switch (30 Oct 2026): an arcade game's button is on the Arcade side.
   const { puzzleDef } = await import("../../src/lib/duel/registry");

@@ -122,8 +122,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pool: "Pot your balls; bonuses for the black, pots in a row and speed; fouls cost. Up to {max}.",
     curling: "Stop near the button; bonuses for takeouts, the red ring and holding shot. Up to {max}.",
     pinball: "Score table points; bonuses for J-O-U-L-Z, multiball, jackpots, ramp combos. Up to {max}.",
-    homerun: "Hit it far; bonuses for home runs, lit signs and a perfect streak. Up to {max}.",
-    freekick: "Score goals; bonuses for targets, bent shots and five in a row. Up to {max}.",
+    homerun: "Score runs; bonuses for home runs, a perfect streak and a good eye. Up to {max}.",
+    freekick: "Score goals; bonuses for targets, skill shots and five in a row. Up to {max}.",
     racing: "Keep your average speed high; a bonus for each clean sector. Up to {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: "Move cards home, every one counts; bonuses for few moves and speed. Up to {max}.",

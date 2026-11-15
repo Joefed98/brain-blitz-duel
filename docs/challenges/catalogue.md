@@ -641,16 +641,16 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Sign here | Hit the lit sign five times. | Classic | Target | line “Bonus signs” ≥ 10 |  | `homerun.sign-here` |
+| Good eye | Leave five more balls alone than you chase. | Classic | Target | line “Good eye” = 20 of 20 |  | `homerun.good-eye` |
 | Out of the park | Hit ten home runs. | Classic | Full set | line “Home runs” = 40 of 40 |  | `homerun.homers` |
-| Perfect ten | Make ten perfect swings in a row. | Classic | Streak | line “Perfect streak” = 20 of 20 | ● | `homerun.streak` |
+| Perfect ten | Make ten perfect swings in a row. | Classic | Streak | line “Perfect streak” = 40 of 40 | ● | `homerun.streak` |
 
 #### Top Bins (`freekick`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Five alive | Score five in a row. | Classic | Streak | line “Five in a row” = 10 of 10 |  | `freekick.five-alive` |
-| Bend it | Score five well-bent goals. | Classic | Target | line “Curl bonus” ≥ 10 |  | `freekick.bend-it` |
+| Skill shooter | Score five skill shots. | Classic | Target | line “Skill shots” ≥ 15 |  | `freekick.skill-shooter` |
 | Top bins | Score through all four hoops. | Classic | Full set | line “Targets” = 40 of 40 | ● | `freekick.top-bins` |
 
 #### Apex (`racing`)

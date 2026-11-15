@@ -28,7 +28,7 @@ import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_
 import type { TiltState } from "@/lib/arcade/tilt";
 import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { HR5_BALL, HR5_CHOICE, HR5_FOUL, HR5_HOMER, HR5_OUT_CAUGHT, HR5_SINGLE, HR5_STRIKE_CALLED, HR5_WHIFF } from "@/lib/arcade/homerunInnings";
-import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, FK_LEVEL_SETTINGS, fkKickOf, fkLevelOf, fkV3Meter, FREEKICK_REV_5, type FreekickState } from "@/lib/arcade/freekick";
+import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, FK_LEVEL_SETTINGS, FK_V5_JUMP_FROM, fkKickOf, fkLevelOf, fkV3Meter, FREEKICK_REV_5, type FreekickState } from "@/lib/arcade/freekick";
 import { freekickV4Ui } from "@/lib/arcade/freekick.renderer";
 import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
@@ -1402,7 +1402,7 @@ function layeredSound(prev: FreekickState, state: FreekickState, running: boolea
   const f = state.fl;
   const was = prev.fl;
   if (f && was && state.kickTick === prev.kickTick) {
-    if (k.v5?.jump && was.t < 6 && f.t >= 6) effectCue("freekick.wallJump");
+    if (k.v5?.jump && was.t < FK_V5_JUMP_FROM && f.t >= FK_V5_JUMP_FROM) effectCue("freekick.wallJump");
     if (f.react >= 0 && was.t < f.react && f.t >= f.react) effectCue("freekick.dive");
     if (f.out === FK_OUT_SAVED && was.out !== FK_OUT_SAVED) effectCue("freekick.spill");
   }
