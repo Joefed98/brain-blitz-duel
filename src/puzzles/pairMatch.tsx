@@ -25,8 +25,19 @@ import { pairGoldPoints, pairStandard } from "@/lib/duel/standard/attention";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-speedatt.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { pairSprite } from "@/components/puzzles/attention/attentionArt";
+import { pairClear } from "@/lib/duel/attentionOverhaul";
 
-export function CardFace({ card, size }: { card: PairCard; size: number }) {
+/**
+ * pairRev 4 (the Attention overhaul): the card's symbol is a Blender-rendered enamel inlay with a champagne-gold rim,
+ * in one of five colours a full step of lightness apart. Older boards keep their drawn symbols.
+ */
+function ClearFace({ card, size }: { card: PairCard; size: number }) {
+  return <img src={pairSprite(card.shape, card.colour)} alt="" draggable={false} className="pairmatch-symbol pointer-events-none select-none" style={{ width: size, height: size }} />;
+}
+
+export function CardFace({ card, size, clear = false }: { card: PairCard; size: number; clear?: boolean }) {
+  if (clear) return <ClearFace card={card} size={size} />;
   const fill = GLYPH_COLOURS[card.colour];
   const stroke = "var(--card-foreground, #0a0a0f)";
   return (
@@ -53,6 +64,9 @@ export function CardFace({ card, size }: { card: PairCard; size: number }) {
   );
 }
 
+/** pairRev 4's board: five columns (30 cards in six rows). */
+export const PAIR_CLEAR_COLS = 5;
+
 /** A 6×5 board (or a small example board) of face-down cards. */
 export function Board({
   cards,
@@ -63,6 +77,7 @@ export function Board({
   onCard,
   compact = false,
   gold,
+  clear = false,
 }: {
   cards: PairCard[];
   faceUp: Set<number>;
@@ -73,6 +88,8 @@ export function Board({
   compact?: boolean;
   /** pairRev 1: the gold pair's face; its cards show gold foil once turned over. */
   gold?: PairCard | undefined;
+  /** pairRev 4: the rendered symbols on the clear palette. */
+  clear?: boolean;
 }) {
   return (
     <div
@@ -104,7 +121,7 @@ export function Board({
                   matched.has(index) ? "is-matched border-primary bg-primary/10" : "border-border bg-card"
                 }${golden && open ? " is-gold" : ""}`}
               >
-                {open ? <CardFace card={card} size={glyph} /> : null}
+                {open ? <CardFace card={card} size={glyph} clear={clear} /> : null}
                 {golden && open ? <span className="pairmatch-gold-tag" aria-hidden="true">★</span> : null}
               </span>
             </span>
@@ -189,12 +206,20 @@ function Stage({
 
   if (!data || !replay) return null;
 
+  const clear = pairClear(data);
   const tap = (index: number, card?: Element | null) => {
     if (locked || submitted.current) return;
-    if (matched.has(index) || open.includes(index)) return;
-    if (open.length >= 2) return;
+    if (matched.has(index)) return;
+    // pairRev 4: a third card while a miss shows turns the miss back at once and starts a new try with this card.
+    const showing = open.length >= 2 && clear ? [] : open;
+    if (showing !== open && timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    if (showing.includes(index)) return;
+    if (showing.length >= 2) return;
     const nextFlips = [...flips, index];
-    const nextOpen = [...open, index];
+    const nextOpen = [...showing, index];
     setFlips(nextFlips);
     setOpen(nextOpen);
     if (nextOpen.length < 2) return;
@@ -264,15 +289,18 @@ function Stage({
         ]}
       />
       </div>
-      <div ref={boardRef} data-game-arena="fixed" className="w-full max-w-[340px]">
+      {/* pairRev 4: five columns, so each card is a third bigger and the board grows downwards into the free space. */}
+      <div ref={boardRef} data-game-arena="fixed" data-pair-clear={clear ? "" : undefined} className={clear ? "pairmatch-board-clear w-full" : "w-full max-w-[340px]"}>
         <Board
           cards={data.cards}
           faceUp={new Set(open)}
           matched={matched}
-          glyph={36}
+          cols={clear ? PAIR_CLEAR_COLS : 6}
+          glyph={clear ? 50 : 36}
           compact
+          clear={clear}
           gold={depth ? data.gold : undefined}
-          onCard={open.length >= 2 ? undefined : tap}
+          onCard={open.length >= 2 && !clear ? undefined : tap}
         />
       </div>
     </div>
@@ -292,7 +320,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="w-full max-w-[288px] shrink-0">
-        <Board cards={puzzle.cards} faceUp={everything} matched={new Set()} glyph={22} compact gold={depth ? puzzle.gold : undefined} />
+        <Board cards={puzzle.cards} faceUp={everything} matched={new Set()} glyph={pairClear(puzzle) ? 30 : 22} cols={pairClear(puzzle) ? PAIR_CLEAR_COLS : 6} clear={pairClear(puzzle)} compact gold={depth ? puzzle.gold : undefined} />
       </div>
       <p
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}

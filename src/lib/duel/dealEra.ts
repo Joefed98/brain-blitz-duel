@@ -70,6 +70,8 @@ export const DEAL_PINS = {
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
+  /** attentionOverhaul.ts: Double Take spotRev 3, Tally countRev 6, Matchmaker pairRev 3, before the Attention overhaul. */
+  preAttentionOverhaul: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

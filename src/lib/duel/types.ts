@@ -1739,8 +1739,10 @@ export const PAIR_PAIR_POINTS = 8;
 
 /** The four card shapes. */
 export const PAIR_SHAPES = ["circle", "square", "triangle", "star"] as const;
+/** Matchmaker pairRev 4 (attentionOverhaul.ts) adds the hexagon and the diamond; older boards never hold them. */
+export const PAIR_SHAPES_CLEAR = ["circle", "square", "triangle", "star", "hexagon", "diamond"] as const;
 
-export type PairShape = (typeof PAIR_SHAPES)[number];
+export type PairShape = (typeof PAIR_SHAPES_CLEAR)[number];
 
 export interface PairCard {
   shape: PairShape;

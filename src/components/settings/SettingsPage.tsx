@@ -31,6 +31,7 @@ import { setBatterySaver, useBatterySaver } from "@/lib/battery";
 import { betaValue } from "@/lib/beta/betaValues";
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
+import { setDirectionControls } from "@/lib/directionControls";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
 
 /** The direction-controls choice GridDrag keeps on the device (arrows or joystick). */
@@ -82,11 +83,8 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
   useEffect(() => setArrows(readArrows()), []);
   const choose = (value: "arrows" | "joystick") => {
     setArrows(value);
-    try {
-      window.localStorage.setItem(ARROW_KEY, value);
-    } catch {
-      /* storage is a nicety */
-    }
+    // The Attention overhaul (15 Nov 2026): the same choice the game menu sets, told to every pad on screen.
+    setDirectionControls(value);
   };
   const sound = useSoundSettings();
   const appearance = useAppearance();

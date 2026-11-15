@@ -105,8 +105,9 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game review fixes' Brimful measureRev 4):
  * preGameReviewNov15.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): preAttentionOverhaul.
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preAttentionOverhaul"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -166,7 +167,8 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
   // arcade deal, unpinned here as before).
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree"]);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): preAttentionOverhaul.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preAttentionOverhaul"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

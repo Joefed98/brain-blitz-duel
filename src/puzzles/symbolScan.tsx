@@ -24,7 +24,8 @@ import { scanRev1StageResult, scanStageMatches, usesScanRev1 } from "@/lib/duel/
 import { SCAN_DEPTH_REV, SCAN_TOPUP_REV, scanCorrections, usesScanDepth } from "@/lib/duel/depth/eagleEye";
 import { dealtTopupRev } from "@/lib/duel/depthTopup";
 import { scanStandard } from "@/lib/duel/standard/attention";
-import { EagleArt as EagleIcon, playEagleTakeoff } from "./eagleEyeArt";
+import { playEagleTakeoff } from "./eagleEyeArt";
+import { eagleSprite } from "@/components/puzzles/attention/attentionArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
@@ -72,8 +73,27 @@ export function CellBox({
       data-eye-state={state}
       style={{ ...(size ? { width: size, height: size } : {}), ...cloudStyle(index) }}
     >
-      <EagleIcon dir={dir} size={size ? Math.round(size * 0.66) : 32} />
+      <EagleIcon dir={dir} gold={state === "selected" || state === "target"} size={size ? Math.round(size * 0.78) : undefined} />
     </Tag>
+  );
+}
+
+/**
+ * The Attention overhaul (15 Nov 2026): the eagle is a Blender render of the app's own outline (pewter, or gold once
+ * marked), with the bald eagle's white head and tail and a gold beak, so its facing reads at grid size. `size` unset:
+ * it fills its cell (78 %).
+ */
+function EagleIcon({ dir, gold = false, size }: { dir: ArrowDir; gold?: boolean; size?: number | undefined }) {
+  return (
+    <img
+      src={eagleSprite(dir, gold)}
+      alt=""
+      draggable={false}
+      aria-hidden="true"
+      data-eye-dir={dir}
+      className="eye-eagle eye-sprite shrink-0 select-none"
+      style={size ? { width: size, height: size } : undefined}
+    />
   );
 }
 
@@ -94,7 +114,7 @@ function IntroExample() {
       <div className="flex flex-col items-center gap-1">
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <div className="eye-target flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
-          <EagleIcon dir={EXAMPLE_TARGET} size={30} />
+          <EagleIcon dir={EXAMPLE_TARGET} gold size={30} />
         </div>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
@@ -119,11 +139,12 @@ function matchesOf(stage: SymbolScanStage): number[] {
 }
 
 /** The target eagle(s) for a grid: one, or two side by side with "or" on scanRev 1's grid 3. */
-function TargetBadge({ stage, size = 30 }: { stage: SymbolScanStage; size?: number }) {
-  const box = size >= 30 ? "h-12 w-12" : "h-9 w-9";
+function TargetBadge({ stage, size = 46 }: { stage: SymbolScanStage; size?: number }) {
+  // The Attention overhaul: the target chips are larger (56 px) so the facing reads before the grid does.
+  const box = size >= 40 ? "eye-target-lg" : size >= 30 ? "h-12 w-12" : "h-9 w-9";
   const badge = (dir: ArrowDir) => (
     <div className={`eye-target flex ${box} items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary`}>
-      <EagleIcon dir={dir} size={size} />
+      <EagleIcon dir={dir} gold size={size} />
     </div>
   );
   if (!stage.alsoTarget) return badge(stage.target);
@@ -171,7 +192,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (!el || !top || !submit) return;
     const read = () => {
       const availableHeight = el.clientHeight - top.offsetHeight - submit.offsetHeight - 20;
-      setGridSide(Math.max(0, Math.floor(Math.min(Math.max(availableHeight, 332), el.clientWidth))));
+      // The Attention overhaul: no height floor, so the grid fits short phones without being cut off.
+      setGridSide(Math.max(0, Math.floor(Math.min(availableHeight, el.clientWidth))));
     };
     read();
     const observer = new ResizeObserver(read);
@@ -290,7 +312,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
         type="button"
         onClick={() => scanSubmitAllowed(frozen, selected.length, holding) && advance(selections)}
         disabled={!scanSubmitAllowed(frozen, selected.length, holding)}
-        data-game-controls="actions" className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
+        data-game-controls="actions" data-attn-action="primary" className="attn-action tap-target mt-3 w-full shrink-0 rounded-xl font-display text-base font-bold uppercase tracking-wide transition-opacity disabled:opacity-40"
       >
         Submit
       </Button>

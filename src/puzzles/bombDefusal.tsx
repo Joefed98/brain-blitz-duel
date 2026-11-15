@@ -1,5 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { capSprite, wireSprite } from "@/components/puzzles/attention/attentionArt";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -121,8 +122,12 @@ export function Panel({
               key={`${end ?? "whole"}-${justCut ? lastAction?.key : 0}`}
               className={`logic-wire rounded-full ${end ? `logic-wire-cut logic-wire-${end}` : ""} ${justCut ? "logic-wire-snap" : ""}`}
               style={{
-                height: compact ? 4 : 8,
+                height: compact ? 4 : 10,
                 backgroundColor: WIRE_HEX[colour],
+                // The Attention overhaul: a braided, insulated sleeve rendered in Blender, repeated along the wire.
+                backgroundImage: `url(${wireSprite(colour)})`,
+                backgroundSize: "auto 100%",
+                backgroundRepeat: "repeat-x",
                 boxShadow: colour === "BLACK" ? "0 0 0 1px #6A6A74" : undefined,
                 ...style,
               }}
@@ -136,7 +141,8 @@ export function Panel({
               onClick={() => onWire?.(index)}
               // 7 Nov 2026 (accessibility audit #16): the rules name colours, so the label does too.
               aria-label={`Wire ${index + 1}, ${colour.toLowerCase()}${isCutWire ? ", cut" : ""}`}
-              className="flex w-full items-center gap-1"
+              className="bomb-wire-row flex w-full items-center gap-1"
+              data-bomb-wire-row={index + 1}
             >
               <span className="bomb-wire-index font-mono text-sm font-bold text-muted-foreground">{index + 1}</span>
               <span className="relative flex flex-1 items-center">
@@ -167,9 +173,12 @@ export function Panel({
                 width: compact ? 24 : 44,
                 height: compact ? 24 : 44,
                 backgroundColor: WIRE_HEX[button.colour],
-                borderColor: isDown ? "#F5B82E" : button.colour === "BLACK" ? "#6A6A74" : "transparent",
+                // The Attention overhaul: a domed cap in a steel bezel, rendered in Blender; pressed, a gold ring.
+                backgroundImage: compact ? undefined : `url(${capSprite(button.colour)})`,
+                backgroundSize: "100% 100%",
+                borderColor: isDown ? "#E2C07A" : "transparent",
                 color: button.colour === "BLACK" ? "#F2F2F2" : "#111",
-                boxShadow: isDown ? "0 0 8px rgba(245,184,46,0.8)" : "none",
+                boxShadow: "none",
               }}
             >
               {button.label}
@@ -196,6 +205,18 @@ function Swatch({ colour }: { colour: WireColour }) {
   );
 }
 
+/** The Attention overhaul: a wire or button named in a clue as a chip in its own colour, bold, easy to find. */
+function Chip({ colour, children }: { colour: WireColour; children: ReactNode }) {
+  return (
+    <span className="bomb-chip" data-bomb-chip={colour.toLowerCase()} style={{ backgroundColor: WIRE_HEX[colour], color: CHIP_INK[colour] }}>
+      {children}
+    </span>
+  );
+}
+
+/** Ink on each chip colour (dark on the light wires, light on the dark ones). */
+const CHIP_INK: Record<WireColour, string> = { RED: "#140A0A", BLUE: "#06101F", GREEN: "#04140B", YELLOW: "#191400", WHITE: "#121216", BLACK: "#F2F2F2" };
+
 function RuleText({
   text,
   wires,
@@ -218,12 +239,9 @@ function RuleText({
           const c2 = wires[(b ?? 1) - 1] ?? "WHITE";
           return (
             <span key={index} className="inline-flex items-center font-bold text-foreground/90">
-              wires&nbsp;
-              <Swatch colour={c1} />
-              <span>{a}</span>
+              <Chip colour={c1}>wire {a}</Chip>
               &nbsp;and&nbsp;
-              <Swatch colour={c2} />
-              <span>{b}</span>
+              <Chip colour={c2}>wire {b}</Chip>
             </span>
           );
         }
@@ -232,10 +250,7 @@ function RuleText({
           const n = Number(part.slice(5));
           const colour = wires[n - 1] ?? "WHITE";
           return (
-            <span key={index} className="inline-flex items-center font-bold text-foreground/90">
-              <Swatch colour={colour} />
-              {part}
-            </span>
+            <Chip key={index} colour={colour}>{part}</Chip>
           );
         }
         
@@ -243,19 +258,13 @@ function RuleText({
           const label = part.slice(-1) as "A" | "B";
           const colour = buttons.find((b) => b.label === label)?.colour ?? "WHITE";
           return (
-            <span key={index} className="inline-flex items-center font-bold text-foreground/90">
-              <Swatch colour={colour} />
-              {part}
-            </span>
+            <Chip key={index} colour={colour}>{part}</Chip>
           );
         }
         
         const colour = part.toUpperCase() as WireColour;
         return (
-          <span key={index} className="inline-flex items-center font-bold uppercase tracking-tight text-foreground/90">
-            <Swatch colour={colour} />
-            {part}
-          </span>
+          <Chip key={index} colour={colour}>{part.toLowerCase()}</Chip>
         );
       })}
     </>
@@ -306,6 +315,8 @@ function Stage({
 
   const act = (action: BombAction) => {
     if (locked || submitted.current) return;
+    // The Attention overhaul (15 Nov 2026, input only): no more steps than the bomb needs, and a button presses once.
+    if (!bombActionAllowed(actions, action, stepTotal)) return;
     soundCue(isCut(action) ? "bomb.cut" : "bomb.press");
     const next = [...actions, action];
     setActions(next);
@@ -357,14 +368,17 @@ function Stage({
   return (
     <div data-stage-column="2" data-logic-stage="bomb" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <div data-game-arena="logic">
-        <div className="logic-bomb-rules w-full shrink-0 rounded-xl border border-border bg-card p-2">
+        {/* The Attention overhaul: a clean matte card, each clue numbered on its own pip, names as coloured chips. */}
+        <ol className="logic-bomb-rules bomb-clues w-full shrink-0 rounded-xl p-2" data-bomb-clues="">
           {puzzle.rules.map((rule, index) => (
-            <p key={rule.id} className="text-[14px] leading-[1.5]">
-              <span className="font-mono text-primary">{index + 1}.</span>{" "}
-              <RuleText text={rule.text} wires={puzzle.wires} buttons={puzzle.buttons} />
-            </p>
+            <li key={rule.id} className="bomb-clue">
+              <span className="bomb-clue-pip" aria-hidden="true">{index + 1}</span>
+              <span className="bomb-clue-text">
+                <RuleText text={rule.text} wires={puzzle.wires} buttons={puzzle.buttons} />
+              </span>
+            </li>
           ))}
-        </div>
+        </ol>
 
         <div className="logic-bomb-board flex w-full">
           <Panel
@@ -395,7 +409,8 @@ function Stage({
           type="button"
           disabled={locked || !actions.length}
           onClick={defuse}
-          className="h-11 w-3/4 rounded-lg px-4 font-display text-[10.5px] font-bold uppercase tracking-widest disabled:opacity-40"
+          data-attn-action="primary"
+          className="attn-action h-11 w-3/4 rounded-lg px-4 font-display text-sm font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Defuse
         </Button>
@@ -406,13 +421,23 @@ function Stage({
           onClick={() => {
             setActions([]);
           }}
-          className="h-11 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+          data-attn-action="secondary"
+          className="attn-action h-11 rounded-xl px-4 font-display text-xs font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Reset
         </button>
       </div>
     </div>
   );
+}
+
+/**
+ * The Attention overhaul (input only): a step is taken only while fewer than the bomb's steps are made, a wire is cut
+ * once and a button pressed once. No bank plan ever repeats an action or runs past its steps
+ * (attention-overhaul-check), so this never blocks a defusing order.
+ */
+export function bombActionAllowed(actions: readonly BombAction[], action: BombAction, steps: number): boolean {
+  return actions.length < steps && !actions.includes(action);
 }
 
 /** The reveal's status lamp: red, turning green on a verified defuse. */

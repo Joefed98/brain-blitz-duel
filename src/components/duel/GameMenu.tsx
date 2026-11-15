@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { VolumeSliders } from "@/components/app/VolumeSliders";
 import { Icon, Panel, Row, Sheet, SwitchKnob, type IconName } from "@/design/components";
 import type { PuzzleType } from "@/lib/duel/types";
+import { MENU_DIRECTION_GAMES, useDirectionControls } from "@/lib/directionControls";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
 
 // The help copy (instructions.ts) is game code: loaded when the menu's own help first opens, never with the shell.
@@ -25,6 +26,8 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
   const [ownHelp, setOwnHelp] = useState(false);
   const sound = useSoundSwitches();
   const showHelp = onHelp ?? (type ? () => setOwnHelp(true) : undefined);
+  // The Attention overhaul: Labyrinth's arrows / joystick switch lives here (and in Settings), not beside the pad.
+  const [direction, setDirection] = useDirectionControls();
   return (
     <div data-game-menu data-sound-controls="menu" className="game-frame-sound">
       <button
@@ -64,6 +67,14 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
                 onChange={(on) => setMusicMuted(!on)}
               />
               <VolumeSliders />
+              {type && MENU_DIRECTION_GAMES.includes(type) ? (
+                <SwitchRow
+                  label="Joystick"
+                  icon="settings"
+                  on={direction === "joystick"}
+                  onChange={(on) => setDirection(on ? "joystick" : "arrows")}
+                />
+              ) : null}
               {showHelp ? (
                 <Row
                   as="button"

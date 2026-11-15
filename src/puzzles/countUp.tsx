@@ -1,6 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useContext, useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
+import { tallySprite } from "@/components/puzzles/attention/attentionArt";
+import { tallySpread } from "@/lib/duel/attentionOverhaul";
 import { fireTallyFinish } from "@/components/puzzles/countUpFx";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
@@ -110,6 +112,76 @@ export function TallyGlyph({ shape, colour, size }: { shape: SceneShape; colour:
   );
 }
 
+/**
+ * countRev 7 (the Attention overhaul): a tray spread on its own grid in a box of the grid's shape (cols : rows), every
+ * shape a Blender-rendered token sized as a share of the box's width, so no two shapes touch at any size. With
+ * `onMark`, a tap marks a shape as counted (a small dot stays on it); marks are a display aid only.
+ */
+export function SpreadField({
+  stage,
+  width,
+  height,
+  marks,
+  onMark,
+  highlight,
+}: {
+  stage: CountUpStage;
+  width: number;
+  height: number;
+  marks?: readonly number[];
+  onMark?: (index: number) => void;
+  highlight?: (item: CountUpShape) => boolean;
+}) {
+  const aspect = stage.cols / stage.rows;
+  const w = Math.max(0, Math.floor(Math.min(width, height * aspect)));
+  const h = Math.floor(w / aspect);
+  return (
+    <div className="tally-tray tally-spread relative shrink-0 overflow-hidden rounded-lg" style={{ width: w, height: h }} data-tally-spread="" data-tally-grid={`${stage.cols}x${stage.rows}`}>
+      {stage.shapes.map((item, index) => {
+        const px = (item.size / 100) * w;
+        const lit = highlight?.(item) ?? false;
+        const marked = marks?.includes(index) ?? false;
+        const style = { left: `${item.x}%`, top: `${item.y}%`, width: px, height: px };
+        const token = (
+          <img
+            src={tallySprite(item.shape, item.colour)}
+            alt=""
+            draggable={false}
+            className="tally-token pointer-events-none h-full w-full select-none"
+            style={{ transform: `rotate(${item.rotation}deg)` }}
+          />
+        );
+        const extras = (
+          <>
+            {marked ? <span aria-hidden="true" className="tally-mark" data-tally-mark="" /> : null}
+            {lit ? <span aria-hidden="true" className="tally-lit" /> : null}
+          </>
+        );
+        return onMark ? (
+          <button
+            key={index}
+            type="button"
+            className="tally-spot absolute -translate-x-1/2 -translate-y-1/2 p-0"
+            style={style}
+            aria-label={`${tallyColourName(item.colour)} ${item.shape}${marked ? ", marked" : ""}`}
+            aria-pressed={marked}
+            data-tally-shape={index}
+            onClick={() => onMark(index)}
+          >
+            {token}
+            {extras}
+          </button>
+        ) : (
+          <span key={index} className="tally-spot absolute -translate-x-1/2 -translate-y-1/2" style={style} data-tally-shape={index} data-tally-lit={lit ? "" : undefined}>
+            {token}
+            {extras}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function Field({
   shapes,
   highlight,
@@ -212,6 +284,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
     if (stage > 0 && stage < trays) soundCue("countup.trayIn");
   }, [stage, trays]);
 
+  // countRev 7: shapes tapped as counted on this tray (cleared when the next tray comes in; never sent).
+  const [marks, setMarks] = useState<number[]>([]);
+  useEffect(() => setMarks([]), [stage]);
+  const spread = tallySpread(data);
+  const mark = (index: number) => {
+    if (locked || done.current) return;
+    soundCue(marks.includes(index) ? "countup.unmark" : "countup.mark");
+    setMarks((m) => (m.includes(index) ? m.filter((i) => i !== index) : [...m, index]));
+  };
+
   // Polish batch S: on a live round the goal line shows "Stage n of N", so the question drops its count.
   const framed = useContext(GoalLineContext) !== null;
   const current = data?.stages[Math.min(stage, trays - 1)];
@@ -251,8 +333,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
       >
         <StageProgress stage={stage} total={trays} />
         <div ref={spaceRef} data-tally-space="" className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
-          {cellSize > 0 && (
-            <Field key={stage} shapes={current.shapes} cols={cols} rows={rows} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />
+          {spread ? (
+            space.width > 0 && <SpreadField key={stage} stage={current} width={space.width - 4} height={space.height - 4} marks={marks} onMark={mark} />
+          ) : (
+            cellSize > 0 && <Field key={stage} shapes={current.shapes} cols={cols} rows={rows} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />
           )}
         </div>
       </NumberEntry>
@@ -277,6 +361,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         return (
           <div key={i} className={`tally-reveal-row flex w-full items-center gap-3 rounded-2xl bg-card px-2.5 ${rev2 ? "py-1" : "py-2"}`}>
             <div className={`${rev2 ? "w-[80px]" : "w-[112px]"} shrink-0`}>
+              {tallySpread(puzzle) ? (
+                <SpreadField stage={stage} width={80} height={80} highlight={(item) => countUpCounts(stage, item)} />
+              ) : (
               <Field
                 shapes={stage.shapes}
                 cols={stage.cols}
@@ -285,6 +372,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                 height={Math.round((rev2 ? 6.9 : 9.7) * stage.rows)}
                 size={10}
               />
+              )}
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <p className="font-display text-sm font-bold leading-snug">{countUpStageQuestion(stage)}</p>

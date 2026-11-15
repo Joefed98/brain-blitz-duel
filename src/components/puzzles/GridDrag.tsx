@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 
 import { ArcadeControlButton, usePressSafeElement } from "./ArcadeControlButton";
 import { Button } from "@/components/ui/button";
+import { onDirectionControls } from "@/lib/directionControls";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 /**
@@ -557,12 +558,15 @@ export function ArrowPad({
   repeatMs,
   directions = ["L", "U", "D", "R"],
   expanded = false,
+  menuSwitch = false,
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;
   repeatMs?: number | undefined;
   directions?: readonly ("U" | "D" | "L" | "R")[];
   expanded?: boolean;
+  /** The switch lives in the game menu and Settings (directionControls.ts MENU_DIRECTION_GAMES): none beside the pad. */
+  menuSwitch?: boolean;
 }) {
   const press = useRef(onPress);
   press.current = onPress;
@@ -586,7 +590,9 @@ export function ArrowPad({
     } catch {
       // Storage is optional; arrows remain the safe default.
     }
-  }, [forcedJoystick]);
+    // The game menu and Settings change it live (directionControls.ts).
+    return onDirectionControls((value) => setMode(value === "joystick", false));
+  }, [forcedJoystick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stop = useCallback(() => {
     if (timer.current !== null) {
@@ -597,13 +603,14 @@ export function ArrowPad({
 
   useEffect(() => stop, [stop]);
 
-  const setMode = useCallback((next: boolean) => {
+  const setMode = useCallback((next: boolean, store = true) => {
     stop();
     stickOrigin.current = null;
     stickLatched.current = false;
     stickDirection.current = null;
     setKnob({ x: 0, y: 0 });
     setJoystick(next);
+    if (!store) return;
     try {
       window.localStorage.setItem("duelz-arrow-control", next ? "joystick" : "arrows");
     } catch {
@@ -692,7 +699,7 @@ export function ArrowPad({
   }, [stop]);
 
   return (
-    <div data-game-controls="arrows" className={`grid w-full shrink-0 grid-cols-[minmax(0,1fr)_44px] items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[60px]"}`}>
+    <div data-game-controls="arrows" className={`grid w-full shrink-0 ${menuSwitch ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_44px]"} items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[60px]"}`}>
       {joystick ? (
         <div
           ref={stickElement}
@@ -725,7 +732,7 @@ export function ArrowPad({
           {directions.includes("R") ? button("R", "▶", "Right") : null}
         </div>
       )}
-      <Button
+      {menuSwitch ? null : <Button
         type="button"
         variant="ghost"
         role="switch"
@@ -736,7 +743,7 @@ export function ArrowPad({
         className={`h-11 w-11 shrink-0 rounded-lg border p-0 ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 7v9M6 20h12l-2-4H8z" /><circle cx="12" cy="5" r="3" /></svg>
-      </Button>
+      </Button>}
     </div>
   );
 }

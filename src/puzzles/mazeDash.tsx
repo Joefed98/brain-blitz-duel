@@ -10,6 +10,7 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import { ArrowPad, gridCellAt } from "@/components/puzzles/GridDrag";
+import { attentionArt } from "@/components/puzzles/attention/attentionArt";
 
 import {
   MAZE_E,
@@ -88,6 +89,8 @@ const MazeWalls = memo(function MazeWalls({ cells, cols, rows, k = 1 }: { cells:
         </pattern>
       </defs>
       <rect width={cols} height={rows * k} fill={`url(#maze-floor-${id})`} />
+      {/* The Attention overhaul (15 Nov 2026): a Blender-rendered dark flagstone floor over the drawn one. */}
+      <image href={attentionArt("maze", "floor")} x={0} y={0} width={cols} height={rows * k} preserveAspectRatio="xMidYMid slice" data-maze-floor="" />
       {/* Polish batch S: a wide, faint ambient shadow under every wall for depth (display only). */}
       <path d={d} transform="translate(0.09 0.13)" stroke="rgba(0,0,0,0.28)" strokeWidth={0.3} strokeLinecap="round" fill="none" />
       <path d={d} transform="translate(0.05 0.07)" stroke="var(--maze-wall-shadow)" strokeWidth={0.17} strokeLinecap="square" fill="none" />
@@ -493,6 +496,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
           disabled={locked || solved}
           repeatMs={240}
           expanded
+          menuSwitch
         />
       </div>
     </div>

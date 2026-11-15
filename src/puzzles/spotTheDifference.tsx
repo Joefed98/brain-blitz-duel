@@ -21,10 +21,12 @@ import {
   type StroopColour,
 } from "@/lib/duel/types";
 
-import { ShopBackdrop, SweetArt, playDifferenceGlow } from "./doubleTakeArt";
+import { playDifferenceGlow } from "./doubleTakeArt";
+import { attentionArt, spotSprite } from "@/components/puzzles/attention/attentionArt";
+import { spotWaitsForNext } from "@/lib/duel/attentionOverhaul";
 import { SPOT_BONUS_SCALE, SPOT_DEPTH_REV } from "@/lib/duel/depth/doubleTake";
 import { ATTENTION_REWORK_TIME_MS, SPOT_TWO_WRONG_LIMIT, parseSpotTaps, spotScenes, type SpotTheme } from "@/lib/duel/attentionRev";
-import { ReefArt, ReefBackdrop, reefLabel } from "./doubleTakeReef";
+import { reefLabel } from "./doubleTakeReef";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const COLOURS: Record<Exclude<StroopColour, "YELLOW">, string> = {
@@ -80,8 +82,12 @@ function cellsApart(a: number, b: number): number {
   return Math.max(Math.abs(ac - bc), Math.abs(ar - br));
 }
 
-function shapePath(kind: SpotShapeKind, fill: string, theme: SpotTheme = "shop") {
-  return theme === "reef" ? <ReefArt kind={kind} fill={fill} /> : <SweetArt kind={kind} fill={fill} />;
+/**
+ * The Attention overhaul (15 Nov 2026): each sweet and creature is a Blender-rendered enamel pin made from the app's
+ * own outline (attentionArt.ts), in its 40-unit box, so the turns, flips and sizes are exactly as before.
+ */
+function shapePath(kind: SpotShapeKind, colour: StroopColour, theme: SpotTheme = "shop") {
+  return <image href={spotSprite(theme, kind, colour)} x={0} y={0} width={40} height={40} preserveAspectRatio="xMidYMid meet" />;
 }
 
 /** A difference's label for the picture it belongs to (display only): a colour change names the
@@ -113,7 +119,7 @@ function DrawnShape({ shape, size = SHAPE, theme = "shop" }: { shape: SpotShape;
     .join(" ");
   const colour = COLOURS[shape.colour as keyof typeof COLOURS];
   if (!colour) return null;
-  return <g transform={turns}>{shapePath(shape.kind, colour, theme)}</g>;
+  return <g transform={turns} data-dt-shape={`${shape.kind}-${shape.colour}`}>{shapePath(shape.kind, shape.colour, theme)}</g>;
 }
 
 /** The sweets of one picture; re-rendered only when the picture itself changes. */
@@ -169,7 +175,15 @@ export function Panel({
       data-dt-panel=""
       data-dt-theme={theme}
     >
-      {theme === "reef" ? <ReefBackdrop cols={SPOT_COLS} rows={rows} cell={CELL_H} /> : <ShopBackdrop cols={SPOT_COLS} rows={rows} cell={CELL_H} />}
+      <image
+        href={attentionArt("spotdiff", theme === "reef" ? "rockpool" : "shelves")}
+        x={0}
+        y={0}
+        width={PANEL_W}
+        height={PANEL_H}
+        preserveAspectRatio="xMidYMin slice"
+        data-dt-backdrop={theme}
+      />
       <SweetLayer shapes={shapes} size={shapeSize} theme={theme} />
       {missed.map((cell) => {
         const { x, y } = cellCentre(cell);
@@ -409,21 +423,25 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   // All six found in the last picture lock the round in (in picture 1 they bring on
   // picture 2); otherwise the taps so far go up just before the clock runs out. The
   // server re-checks every tap either way.
+  // spotRev 4 (the Attention overhaul): a picture stays until Next (Done on the last), so the hidden seventh can still
+  // be found after the six; the round locks in by itself only when the last picture holds nothing more to find.
+  const waits = spotWaitsForNext(data);
+  const lastSceneAll = foundGroups.length >= total && (hidden.length === 0 ? false : hiddenFound.length > 0);
   useEffect(() => {
     if (groups.length === 0 || locked || submitted.current === key) return;
     const timeUp = now >= phaseStartedAt + limitMs - 400;
-    const sceneDone = foundGroups.length >= total;
+    const sceneDone = waits ? lastSceneAll : foundGroups.length >= total;
     if (!sceneDone && !timeUp) return;
     if (sceneDone && !lastScene && !timeUp) return;
     submitted.current = key;
     // Finish effect when all six are found (display only, never awaited).
     if (sceneDone) glow.current();
     onSubmit(answer);
-  }, [foundGroups.length, total, locked, now, key, lastScene]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [foundGroups.length, total, locked, now, key, lastScene, lastSceneAll]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Picture 1 finished: a short glow, then picture 2 slides in (the clock keeps running).
   useEffect(() => {
-    if (!twoPictures || lastScene || locked || foundGroups.length < total || groups.length === 0) return;
+    if (waits || !twoPictures || lastScene || locked || foundGroups.length < total || groups.length === 0) return;
     glow.current();
     const timer = setTimeout(() => setScene((s) => Math.min(s + 1, scenes.length - 1)), 700);
     return () => clearTimeout(timer);
@@ -438,7 +456,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   // Desktop keys: Enter or N = Next picture (while that button shows).
   useGameKeys((kind, pressed, event) => {
     if (!data || !twoPictures || lastScene || (pressed !== "Enter" && pressed !== "n")) return false;
-    if (kind === "down" && !event.repeat && !locked && !sceneFinished) skip();
+    if (kind === "down" && !event.repeat && !locked && (waits || !sceneFinished)) skip();
     return true;
   });
 
@@ -450,7 +468,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   const sceneFinished = foundGroups.length >= total;
 
   const tap = (cell: number) => {
-    if (locked || sceneFinished) return;
+    if (locked || (sceneFinished && !waits)) return;
     // Attention review fixes (15 Nov 2026): a square already tapped (a find, or a miss that counted once) is ignored
     // silently, so re-tapping a wrong square no longer replays the shake and sound for a miss that adds nothing.
     if (spotTapIgnored(sceneTaps, foundCells, hiddenFound, cell)) return;
@@ -474,6 +492,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     setScene(scene + 1);
   };
 
+  /** spotRev 4: Done on the last picture once its six are found: the round locks in now (the clock stops). */
+  const finish = () => {
+    if (locked || !lastScene || submitted.current === key) return;
+    submitted.current = key;
+    glow.current();
+    onSubmit(answer);
+  };
+
   return (
     <div data-stage-column="2" data-polish="spotdiff" className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
       <div className="flex w-full shrink-0 items-center justify-center gap-3 font-mono text-sm uppercase tracking-widest">
@@ -481,7 +507,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
         <span className="text-primary">{foundGroups.length} / {total} found</span>
         {twoPictures ? (
           <span className={misses > SPOT_TWO_WRONG_LIMIT ? "text-warn" : "text-muted-foreground"} data-dt-misses={misses}>
-            Misses {misses} / {SPOT_TWO_WRONG_LIMIT}
+            {waits ? `Misses ${misses} of ${SPOT_TWO_WRONG_LIMIT} allowed` : `Misses ${misses} / ${SPOT_TWO_WRONG_LIMIT}`}
           </span>
         ) : null}
         {/* spotRev 2: a gold star once the hidden difference is found; its space is always kept, so nothing moves. */}
@@ -502,7 +528,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
         data-dt-theme={current.theme}
         data-game-arena="tall" className={`dt-arena flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card ${
           scene > 0 ? "dt-scene-in" : ""
-        } ${wrong !== null ? "animate-shake" : ""}`}
+        }`}
       >
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <Panel shapes={current.top} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
@@ -516,11 +542,25 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
         <button
           type="button"
           onClick={skip}
-          disabled={locked || sceneFinished}
+          disabled={locked || (sceneFinished && !waits)}
           data-game-controls="actions"
-          className="tap-target w-full shrink-0 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-wide text-foreground disabled:opacity-40"
+          data-attn-action={waits && sceneFinished ? "primary" : "secondary"}
+          className="attn-action tap-target w-full shrink-0 rounded-xl font-display text-sm font-bold uppercase tracking-wide disabled:opacity-40"
         >
           Next picture
+        </button>
+      ) : null}
+      {waits && twoPictures && lastScene ? (
+        <button
+          type="button"
+          onClick={finish}
+          disabled={locked || !sceneFinished}
+          data-game-controls="actions"
+          data-dt-done=""
+          data-attn-action="primary"
+          className="attn-action tap-target w-full shrink-0 rounded-xl font-display text-sm font-bold uppercase tracking-wide disabled:opacity-40"
+        >
+          Done
         </button>
       ) : null}
     </div>
@@ -529,6 +569,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const [shown, setShown] = useState<number | null>(null);
+  const [panelSide, setPanelSide] = useState<"top" | "bottom">("bottom");
   if (puzzle.type !== "spotdiff") return null;
   const scenes = spotScenes(puzzle);
   const twoPictures = scenes.length > 1;
@@ -580,13 +621,31 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           ))}
         </div>
       ) : null}
-      {/* Side by side: each picture is larger than when stacked on a short phone. */}
-      <div className="dt-reveal-panels dt-arena flex w-full flex-row gap-1 overflow-hidden rounded-2xl border border-border bg-card p-1" data-dt-theme={pic.scene.theme}>
-        <div className="min-w-0 flex-1 overflow-hidden rounded-lg">
-          <Panel shapes={pic.scene.top} theme={pic.scene.theme} found={pic.foundCells} hidden={pic.bonusGot ? pic.bonus!.cells : []} missed={[...pic.missedCells, ...(pic.bonus && !pic.bonusGot ? pic.bonus.cells : [])]} />
-        </div>
-        <div className="min-w-0 flex-1 overflow-hidden rounded-lg">
-          <Panel shapes={pic.scene.bottom} theme={pic.scene.theme} found={pic.foundCells} hidden={pic.bonusGot ? pic.bonus!.cells : []} missed={[...pic.missedCells, ...(pic.bonus && !pic.bonusGot ? pic.bonus.cells : [])]} />
+      {/* The Attention overhaul: one panel at a time at full width (the top or the bottom one), the rings on both. */}
+      <div className="flex w-full gap-1" role="tablist" aria-label="Panels" data-dt-panel-switch="">
+        {(["top", "bottom"] as const).map((side) => (
+          <button
+            key={side}
+            type="button"
+            role="tab"
+            aria-selected={side === panelSide}
+            onClick={() => setPanelSide(side)}
+            data-attn-action={side === panelSide ? "primary" : "secondary"}
+            className="attn-action min-h-11 flex-1 rounded-xl px-2 font-display text-sm font-bold uppercase tracking-wide"
+          >
+            {side === "top" ? "Top picture" : "Bottom picture"}
+          </button>
+        ))}
+      </div>
+      <div className="dt-reveal-panels dt-arena w-full overflow-hidden rounded-2xl border border-border bg-card p-1" data-dt-theme={pic.scene.theme} data-dt-reveal-side={panelSide}>
+        <div className="w-full overflow-hidden rounded-lg">
+          <Panel
+            shapes={panelSide === "top" ? pic.scene.top : pic.scene.bottom}
+            theme={pic.scene.theme}
+            found={pic.foundCells}
+            hidden={pic.bonusGot ? pic.bonus!.cells : []}
+            missed={[...pic.missedCells, ...(pic.bonus && !pic.bonusGot ? pic.bonus.cells : [])]}
+          />
         </div>
       </div>
       <div className="flex w-full flex-col gap-0.5">

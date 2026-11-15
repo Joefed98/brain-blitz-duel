@@ -1,0 +1,195 @@
+/*
+ * The Attention overhaul (15 Nov 2026, phase 2 step 4; docs/design/attention-overhaul.md): display only.
+ * Blender-rendered pieces and surfaces (public/attention/), the category's pink kept in the background only,
+ * controls in champagne gold and navy, no glowing edges, no glare. Specificity is raised with `html body` so these
+ * rules sit over the earlier polish layers without editing them.
+ */
+
+/* ------------------------------------------------------------------ controls: champagne gold and navy */
+html body .attn-action {
+  background: var(--jz-gold);
+  color: var(--jz-navy);
+  border: 1px solid var(--jz-gold-ledge);
+  box-shadow: 0 2px 0 var(--jz-gold-ledge);
+  text-shadow: none;
+}
+html body .attn-action[data-attn-action="secondary"] {
+  background: var(--jz-navy);
+  color: var(--jz-gold);
+  border-color: var(--jz-navy-edge);
+  box-shadow: 0 2px 0 var(--jz-bg);
+}
+html body .attn-action:disabled {
+  background: var(--jz-navy);
+  color: var(--jz-text-3, currentColor);
+  border-color: var(--jz-navy-edge);
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------------ Eagle Eye */
+html body .eye-grid {
+  background: none;
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state] {
+  background: url("/attention/symscan/tile.webp") center / 100% 100% no-repeat;
+  border-color: transparent;
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.45);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="selected"],
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="target"] {
+  background-image: url("/attention/symscan/tile-marked.webp");
+  border-color: transparent;
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="wrong"] {
+  border: 2px solid var(--warn);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="missed"] {
+  border: 2px dashed var(--warn);
+}
+.eye-sprite {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  pointer-events: none;
+}
+html body .eye-target,
+html body .eye-target.eye-target {
+  background: url("/attention/symscan/tile.webp") center / 100% 100% no-repeat;
+  border-color: var(--jz-gold);
+  box-shadow: none;
+}
+.eye-target-lg {
+  width: 56px;
+  height: 56px;
+}
+
+/* ------------------------------------------------------------------ Tally (countRev 7) */
+html body .tally-tray.tally-spread {
+  background: url("/attention/countup/felt.webp") center / cover no-repeat;
+  border: 1px solid var(--jz-navy-edge);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.45);
+}
+.tally-spot {
+  display: block;
+  border: 0;
+  background: none;
+  touch-action: manipulation;
+}
+.tally-token {
+  display: block;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.5));
+}
+/* A counted mark: a small champagne dot with a dark edge, at the token's centre, staying put. */
+.tally-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(6px, 26%);
+  height: max(6px, 26%);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: var(--jz-gold);
+  box-shadow: 0 0 0 1.5px var(--jz-navy);
+  pointer-events: none;
+}
+/* The reveal's counted shapes: a thin gold ring (no glow). */
+.tally-lit {
+  position: absolute;
+  inset: -2px;
+  border-radius: 999px;
+  border: 1.5px solid var(--jz-gold);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ Matchmaker */
+/* The rendered card back (plum lacquer, a champagne-gold border and studs) on every board, no glow. */
+html body .pairmatch-face.pairmatch-face.pairmatch-card-back {
+  background: url("/attention/pairmatch/back.webp") center / 100% 100% no-repeat;
+  border-color: transparent;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.5);
+}
+html body .pairmatch-face-front.pairmatch-face-front.pairmatch-face-front {
+  background: url("/attention/pairmatch/face.webp") center / 100% 100% no-repeat;
+  border-color: transparent;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.5);
+}
+html body .pairmatch-face-front.pairmatch-face-front.pairmatch-face-front.is-matched {
+  border-color: var(--jz-gold);
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.5);
+}
+/* pairRev 4: five columns across the play area's full width (each card a third bigger than on six). */
+.pairmatch-board-clear {
+  max-width: min(100%, 380px);
+}
+.pairmatch-symbol {
+  width: 72%;
+  height: auto;
+}
+
+/* ------------------------------------------------------------------ Bomb Defusal */
+html body .bomb-plate.bomb-plate {
+  background: url("/attention/bomb/casing.webp") center / cover no-repeat;
+  border-color: var(--jz-navy-edge);
+}
+html body .bomb-plate .bomb-screw {
+  background: url("/attention/bomb/screw.webp") center / contain no-repeat;
+  box-shadow: none;
+}
+html body .bomb-plate .logic-terminal {
+  width: 10px;
+  height: 14px;
+  background: url("/attention/bomb/terminal.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+/* The whole wire row is the target: at least 36 px tall. */
+.bomb-wire-row {
+  min-height: 36px;
+}
+html body .bomb-plate .logic-bomb-cap {
+  background-color: transparent;
+}
+/* The clue card: matte, no glow, each clue on its own numbered pip. */
+html body .bomb-clues.bomb-clues {
+  list-style: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--jz-navy);
+  border: 1px solid var(--jz-navy-edge);
+  box-shadow: none;
+}
+.bomb-clue {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.bomb-clue-pip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--jz-gold);
+  color: var(--jz-navy);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bomb-chip {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 2px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35);
+}
