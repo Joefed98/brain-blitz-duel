@@ -160,6 +160,8 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
   inset: -11.4%;
   width: 122.8%;
   height: 122.8%;
+  max-width: none;
+  max-height: none;
   pointer-events: none;
   user-select: none;
 }
