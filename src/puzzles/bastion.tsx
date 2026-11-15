@@ -201,7 +201,7 @@ function IntroExample() {
       seed={7}
       ticks={640}
       input={null}
-      caption="Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks, hit the glowing weak spot while it is open for double damage, and shoot down the drones."
+      caption="Drag to aim and lift to fire. Far tanks wear S, M or H badges; hit the glowing weak spot for double damage. The battlefield turns from a clear evening to dust, then battle smoke."
     />
   );
 }
