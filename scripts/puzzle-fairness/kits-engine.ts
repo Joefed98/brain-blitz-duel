@@ -12,7 +12,7 @@
 import { appendClientCounters, arcadeCounters } from "../../src/lib/arcade/diagnostics";
 import { inputAt, recordInput, TICK_MS, type ArcadeGame, type ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import {
-  tenDropCheckpoint, tenDropGame, tenDropHolding, tdApply,
+  tenDropCheckpoint, tenDropGame, tenDropHolding, tenDropInit, tdApply, TEN_DROP_RESET_REV,
   TD_CHECKPOINT_INTERVAL, TD_CONFIG, TD_H, TD_INPUT_TAP, type TenDropState,
 } from "../../src/lib/arcade/tenDrop";
 import { encodeTenDropRun } from "../../src/lib/duel/tenDrop";
@@ -105,7 +105,11 @@ class Sched {
 /* ================================= Tenfall ================================= */
 
 function tenDropDrive(p: PuzzleData, pick: Pick<TenDropState> | null): Driven<TenDropState> {
-  return drive(tenDropGame, p.type === "tendrop" ? p.seed : 1, "tendrop", tenDropCheckpoint, TD_CHECKPOINT_INTERVAL, encodeTenDropRun, pick);
+  // From tenRev 6 (the Speed overhaul, 15 Nov 2026) the kit plays the stamp's own board and score (tenDropInit with the
+  // stamp, as the server's replay does), so its runs replay unflagged; older stamps keep the plain board they always drove.
+  const rev = p.type === "tendrop" ? (p.tenRev ?? 0) : 0;
+  const game = rev >= TEN_DROP_RESET_REV ? { ...tenDropGame, init: (seed: number) => tenDropInit(seed, rev) } : tenDropGame;
+  return drive(game, p.type === "tendrop" ? p.seed : 1, "tendrop", tenDropCheckpoint, TD_CHECKPOINT_INTERVAL, encodeTenDropRun, pick);
 }
 
 /** A tap aimed at a tile's centre `dt` ticks from now (where it will be when the finger lands). */
@@ -488,8 +492,10 @@ const wordfallKit: PuzzleKit = {
 /* =================================== Bonk =================================== */
 
 function whackDrive(p: PuzzleData, pick: Pick<WhackState> | null): Driven<WhackState> {
-  // whackRev 3 adds diamonds (its own game); every older revision plays the same board.
-  return drive(whackGameFor(p.type === "whack" && p.whackRev === 3 ? 3 : undefined), p.type === "whack" ? p.seed : 1, "whack", whackCheckpoint, WHACK_CHECKPOINT_INTERVAL, encodeWhackRun, pick);
+  // whackRev 3 adds diamonds (its own game) and whackRev 4 keeps them up longer (its own game: the kit drove it as the
+  // old board, so its runs desynced at the first checkpoint; fixed 15 Nov 2026 for the Speed intro demos); every older
+  // revision plays the same board.
+  return drive(whackGameFor(p.type === "whack" && (p.whackRev === 3 || p.whackRev === 4) ? p.whackRev : undefined), p.type === "whack" ? p.seed : 1, "whack", whackCheckpoint, WHACK_CHECKPOINT_INTERVAL, encodeWhackRun, pick);
 }
 const whackTap = (hole: number): Ev => ({ k: WHACK_INPUT_TAP, a: hole, b: 0, c: 0 });
 

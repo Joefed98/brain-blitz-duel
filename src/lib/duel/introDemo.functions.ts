@@ -5,7 +5,7 @@ import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_SLIDE } from "@/lib/arcade/swing";
 import { INK_REV_BIG } from "@/lib/arcade/inkBridge";
-import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
+import { CLAY_REV_WIDE } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_STD } from "@/lib/arcade/breaker";
@@ -24,7 +24,7 @@ import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } fro
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
-import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
+import { TEN_DROP_RESET_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { PIN_REV_STD } from "@/lib/arcade/pinball";
@@ -129,7 +129,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
     // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
     // diamonds; an older demo shows none of them, so each stays stopped (the intro shows its still) until re-recorded.
-    if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV_DEPTH) return null;
+    // The Speed overhaul (15 Nov 2026): Pull! clayRev 10 (the wider quick-hit window) scores a run differently, so only a
+    // demo recorded on clayRev 10 plays (scripts/fixtures/speed-demos.json, speed-demos-check).
+    if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV_WIDE) return null;
     // Joe's phone notes (27 Oct 2026): whackRev 4 keeps the diamond up longer, so only a demo recorded on it plays.
     if (data.type === "whack" && demo?.puzzle.type === "whack" && demo.puzzle.whackRev !== WHACK_REV_NOTES) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
@@ -247,7 +249,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "snip" && demo?.puzzle.type === "snip" && demo.puzzle.snipRev !== SNIP_REV_EXPAND) return null;
     // Tenfall tenRev 4 (25 Oct 2026, depth to 200): gold tiles. An older demo shows no gold tile under the gold-tile
     // help, so Tenfall's intro shows its still until a demo is recorded on tenRev 4.
-    if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && (demo.puzzle.tenRev ?? 0) < TEN_DROP_DEPTH_REV) return null;
+    // The Speed overhaul (15 Nov 2026): tenRev 6 charges resets on a finished run too, so only a demo recorded on tenRev 6
+    // plays (its score and HUD are the dealt stamp's).
+    if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && demo.puzzle.tenRev !== TEN_DROP_RESET_REV) return null;
     // Logic depth to 200 (depthRev 1, 25 Oct 2026): Mosaic, Tents and Trees, Shikaku and Lamplighter deal bigger boards, and
     // Blackout, Hanoi, Polypotions and Safe Cracker show their par line or clean crack: an older demo would show the old
     // board or no feature, so these stay stopped (the intro shows its still) until one is recorded on depthRev 1.

@@ -60,3 +60,15 @@ small CSS moments that end visible (`speed-overhaul.css`: Flash's time pop, Bonk
 Every hit sound plays on the tap (Flash, Ascend) or on the sim tick that applies it (Bonk, Tenfall, Pull!). The 28 new
 sound slots and their placeholder files: docs/sound-cues/speed-overhaul.md; the recordings to make:
 docs/sound-cues/speed-elevenlabs.md.
+
+## Intro demos (15 Nov 2026)
+
+Bonk, Tenfall and Pull! play a saved run on their intros. `scripts/fixtures/speed-demos.json` holds one elite-bot run each
+on the stamps rooms deal (whackRev 4, tenRev 6, clayRev 10; `bun scripts/speed-demos-record.ts`), as the intro_demos
+columns, and speed-demos-check proves each scores exactly what the server's replay says, unflagged. Nobody saves them to
+the database by hand: the manual "Save intro demos" workflow does after the final merge. The demo rules
+(`introDemo.functions.ts`) now play only those stamps, so a demo recorded on clayRev 9 or tenRev 4–5 stops (the still
+shows) until the saved run arrives. Flash, Ascend and Don't Break the Chain use touch demos on the fixed intro example, not
+server-replayed runs, so they are not in the file. To get these runs the shared bot kit
+(`scripts/puzzle-fairness/kits-engine.ts`) now plays Bonk's whackRev 4 and Tenfall's tenRev 6 on their own boards. Before,
+it drove the older board and its runs desynced.
