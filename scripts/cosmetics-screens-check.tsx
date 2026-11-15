@@ -292,43 +292,57 @@ view.root.unmount();
   const { catalogueGames, catalogueShelves } = await import("../src/components/games/gameMeta");
   const { gameOfTheDayAt } = await import("../src/lib/duel/gameOfTheDay");
   const { PUZZLE_REGISTRY } = await import("../src/lib/duel/catalogue");
-  // Held back: today's game of the day (so the hero must pick another), Gridlock (Plus's own stand-in above) and every
-  // game of the smallest shelf (so its chip has nothing to open).
+  // Changed with Joe's approval, 15 Nov 2026 (Puzzles | Arcade switch restored): the page shows one side at a time and
+  // has no All chip, so the catalogue is drawn on each side and every held-back game is proved absent on both (grid,
+  // tiles, search, game of the day), with every other game present across the two sides combined. Was one drawing with
+  // an All chip and every game in one grid.
+  const { practiceSideOf } = await import("../src/lib/duel/practiceSide");
+  const SIDES = ["puzzles", "arcade"] as const;
+  // Held back: each side's game of the day (so each side's hero must pick another), Gridlock (Plus's own stand-in above)
+  // and every game of the smallest shelf (so its chip has nothing to open).
   const smallest = [...catalogueShelves()].sort((a, b) => a.games.length - b.games.length)[0];
-  const dayGame = gameOfTheDayAt(Date.now(), catalogueGames());
-  const held = [...new Set([dayGame, "unblock", ...smallest.games])];
-  let setQuery: (q: string) => void = () => {};
-  function Catalogue() {
-    const [query, onQuery] = React.useState("");
-    const [filter, onFilter] = React.useState("all");
-    setQuery = onQuery;
-    return React.createElement(GamesCatalogue, { progress: null, query, onQuery, searchOpen: true, filter, onFilter, hidden: held, tileStyle: null, onOpen: () => {} });
+  const sideGames = (side: (typeof SIDES)[number]) => catalogueGames().filter((t) => practiceSideOf(t) === side);
+  const dayGames = SIDES.map((side) => gameOfTheDayAt(Date.now(), sideGames(side)));
+  const held = [...new Set([...dayGames, "unblock", ...smallest.games])];
+  const seenAcross = new Set<string>();
+  for (const side of SIDES) {
+    let setQuery: (q: string) => void = () => {};
+    function Catalogue() {
+      const [query, onQuery] = React.useState("");
+      const [filter, onFilter] = React.useState("all");
+      setQuery = onQuery;
+      return React.createElement(GamesCatalogue, { progress: null, query, onQuery, searchOpen: true, filter, onFilter, side, onSide: () => {}, hidden: held, tileStyle: null, onOpen: () => {} });
+    }
+    view = await mount(() => React.createElement(Catalogue));
+    await settle(30);
+    const tiles = () => $$("[data-practice-game]").map((el) => el.getAttribute("data-practice-game") ?? "");
+    const shown = (type: string) => tiles().includes(type) || $(`[data-games-hero="${type}"]`) !== null;
+    check(tiles().length > 0 && held.every((t) => !tiles().includes(t)), `${side}: the grid leaves every held-back game out`);
+    const hero = $("[data-games-hero]")?.getAttribute("data-games-hero") ?? null;
+    check(hero !== null && !held.includes(hero), `${side}: the game of the day is never a held-back game (${hero}, held ${dayGames.join(", ")})`);
+    check($(`[data-practice-filter="${smallest.id}"]`) === null, `${side}: a chip whose games are all held back isn't drawn (${smallest.id})`);
+    const chipIds = $$("[data-practice-filter]").map((el) => el.getAttribute("data-practice-filter") ?? "");
+    let underChips = true;
+    for (const id of chipIds) {
+      await click($(`[data-practice-filter="${id}"]`));
+      if (held.some(shown)) underChips = false;
+      // A second tap on the chosen tile shows the whole side again (there is no All chip).
+      await click($(`[data-practice-filter="${id}"]`));
+    }
+    check(chipIds.length >= 1 && underChips && !chipIds.includes("all"), `${side}: no chip shows a held-back game, and there is no All chip (${chipIds.length} chips)`);
+    let inSearch = true;
+    for (const type of held) {
+      await act(async () => setQuery(PUZZLE_REGISTRY[type as keyof typeof PUZZLE_REGISTRY].name));
+      if (shown(type)) inSearch = false;
+    }
+    check(inSearch, `${side}: a search for a held-back game's own name doesn't find it`);
+    await act(async () => setQuery(""));
+    const want = sideGames(side).filter((t) => !held.includes(t));
+    check(JSON.stringify([...tiles()].sort()) === JSON.stringify([...want].sort()), `${side}: every other game on this side is in the grid (${tiles().length})`);
+    for (const t of tiles()) seenAcross.add(t);
+    view.root.unmount();
   }
-  view = await mount(() => React.createElement(Catalogue));
-  await settle(30);
-  const tiles = () => $$("[data-practice-game]").map((el) => el.getAttribute("data-practice-game") ?? "");
-  const shown = (type: string) => tiles().includes(type) || $(`[data-games-hero="${type}"]`) !== null;
-  check(tiles().length > 0 && held.every((t) => !tiles().includes(t)), "the grid leaves every held-back game out");
-  const hero = $("[data-games-hero]")?.getAttribute("data-games-hero") ?? null;
-  check(hero !== null && !held.includes(hero), `the game of the day is never a held-back game (${hero}, held ${dayGame})`);
-  check($(`[data-practice-filter="${smallest.id}"]`) === null, `a chip whose games are all held back isn't drawn (${smallest.id})`);
-  const chipIds = $$("[data-practice-filter]").map((el) => el.getAttribute("data-practice-filter") ?? "");
-  let underChips = true;
-  for (const id of chipIds) {
-    await click($(`[data-practice-filter="${id}"]`));
-    if (held.some(shown)) underChips = false;
-  }
-  check(chipIds.length > 1 && underChips, `no chip shows a held-back game (${chipIds.length} chips)`);
-  await click($('[data-practice-filter="all"]'));
-  let inSearch = true;
-  for (const type of held) {
-    await act(async () => setQuery(PUZZLE_REGISTRY[type as keyof typeof PUZZLE_REGISTRY].name));
-    if (shown(type)) inSearch = false;
-  }
-  check(inSearch, "a search for a held-back game's own name doesn't find it");
-  await act(async () => setQuery(""));
-  check(tiles().length === catalogueGames().filter((t) => !held.includes(t)).length, "every other game is still in the grid");
-  view.root.unmount();
+  check(seenAcross.size === catalogueGames().filter((t) => !held.includes(t)).length, "every other game is still in the grid, across the two sides");
 }
 
 check(consoleErrors.length === 0, `no console errors (${consoleErrors.slice(0, 2).join(" | ")})`);

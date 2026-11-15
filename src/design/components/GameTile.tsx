@@ -25,6 +25,7 @@ export function GameTile({
   iconSize,
   tileStyle,
   stars,
+  starLevel,
   className,
   ...rest
 }: {
@@ -32,6 +33,8 @@ export function GameTile({
   size?: "s" | "m" | "l" | "card";
   /** The card's mastery stars by level. */
   stars?: { easy: boolean; classic: boolean; hard: boolean };
+  /** The level the card is shown at (the catalogue's difficulty switch), marked on the stars. */
+  starLevel?: "easy" | "classic" | "hard" | "expert" | undefined;
   name?: ReactNode;
   best?: ReactNode;
   charge?: number;
@@ -47,7 +50,7 @@ export function GameTile({
         <GameIcon type={type} size={iconSize ?? 160} tileStyle={tileStyle ?? null} />
         <span className="jz-tile-card-foot">
           {name !== undefined ? <span className="jz-tile-name">{name}</span> : null}
-          {stars ? <Stars levels={stars} /> : null}
+          {stars ? <Stars levels={stars} current={starLevel} /> : null}
         </span>
       </>
     );
