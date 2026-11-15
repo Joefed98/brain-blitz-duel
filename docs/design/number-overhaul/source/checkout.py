@@ -41,12 +41,21 @@ def sisal(name, color):
 def board(quad):
     """Concept A's board under a product light: lacquered walnut, sisal with visible fibre, red and blue rings, a bright
     steel spider that catches the key. Highlights sit on the wire and the wood's polished edge, never across a wedge."""
-    setup(200, 200, scale=4.5, samples=48).view_settings.exposure = -0.75
+    setup(200, 200, scale=4.5, samples=48, reflect=0.15).view_settings.exposure = -0.6
+    # A flat board seen face on: the studio's reflection is kept low and the rig's low rim light goes, since on the
+    # flat wooden ring both only laid a pale sweep under the numbers; the key still lights the grain and the wire.
+    import bpy
+    rim = min((o for o in bpy.data.objects if o.type == "LIGHT"), key=lambda o: o.location.y)
+    bpy.data.objects.remove(rim)
     # The wooden surround: turned walnut under a deep lacquer, its grain running round the ring, a polished rolled edge.
-    walnut = wood("walnut", "#6a3c1c", "#2c1608", rough=0.42, coat=0.18, scale=5, stretch=(1, 1, 1))
+    walnut = wood("walnut", "#6a3c1c", "#2c1608", rough=0.4, coat=0.7, scale=5, stretch=(1, 1, 1))
     # A satin lacquer: the key leaves a soft sheen along the rim, never a hard spot across the numbers.
-    walnut.node_tree.nodes["Principled BSDF"].inputs["Coat Roughness"].default_value = 0.5
-    cyl(C, C, R_NUM - 0.4, 6, walnut, z=-6.5, bevel=2.4, verts=200)
+    walnut.node_tree.nodes["Principled BSDF"].inputs["Coat Roughness"].default_value = 0.12
+    ring = cyl(C, C, R_NUM - 0.4, 6, walnut, z=-6.5, bevel=2.4, verts=200)
+    # Its broad top face is shaded flat (a smooth-shaded cap tilts the normals across it and mirrors the lights into
+    # bright spots under the numbers); the rolled edge stays smooth and takes the highlight.
+    for poly in ring.data.polygons:
+        poly.use_smooth = abs(poly.normal.z) < 0.98
     # A dark iron band where the sisal meets the wood.
     cyl(C, C, R_DO + 1.2, 1.0, mat("band", "#202024", 0.3, metal=1.0), z=-1.2, bevel=0.3, verts=180)
     black = sisal("sisal_black", "#171615")

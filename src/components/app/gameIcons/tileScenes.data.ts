@@ -20,7 +20,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   bullseye: "ff9cacb83d",
   burst: "0b9d6f6cc6",
   chain: "87a34c5524",
-  checkout: "4d81b6b09e",
+  checkout: "331ed2b2f1",
   clayshoot: "33945592e7",
   codeword: "bef060a98d",
   countup: "c623e7e01a",
