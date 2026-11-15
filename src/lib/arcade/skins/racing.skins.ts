@@ -8,6 +8,8 @@
  * chase in cyan and pink and its stars twinkle. All of it reads skinTime(), which stands still under Reduce Motion.
  */
 import type { ContrastPair, GameLook } from "./look";
+import { skinRedrawn } from "./redrawPreview";
+import { sceneImage, sceneImagesVersion } from "./sceneImages";
 
 export type CarPaint = "stripes" | "gold" | "neon";
 
@@ -50,6 +52,12 @@ const hash = (n: number): number => {
 
 /** The night sky (the source's #05040F → #160A30). */
 export function paintNeonNightSky(ctx: CanvasRenderingContext2D, w: number, h: number, horizon: number): void {
+  if (skinRedrawn(NEON_NIGHT_ITEM)) {
+    const sky = sceneImage("apex.sky");
+    if (sky) ctx.drawImage(sky, 0, 0, Math.max(w, 390), Math.min(h, horizon + 20));
+    else paintNeonNightSkyV2(ctx, w, h, horizon);
+    return;
+  }
   const g = ctx.createLinearGradient(0, 0, 0, horizon + 20);
   g.addColorStop(0, "#05040F");
   g.addColorStop(1, "#160A30");
@@ -85,6 +93,12 @@ export function paintNeonNightStars(ctx: CanvasRenderingContext2D, w: number, ho
 
 /** The neon city on the far strip: dark towers with lit windows in pink, cyan and gold, a pink horizon line. */
 export function paintNeonCity(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  if (skinRedrawn(NEON_NIGHT_ITEM)) {
+    const far = sceneImage("apex.city-far");
+    if (far) ctx.drawImage(far, 0, 0, w, h);
+    else paintNeonCityV2(ctx, w, h);
+    return;
+  }
   let x = 0;
   let i = 0;
   while (x < w) {
@@ -277,4 +291,107 @@ export function racingContrast(look: GameLook): ContrastPair[] {
   const colours = paint === "stripes" ? ["#2050D8", "#FFFFFF"] : paint === "gold" ? ["#F2C14E", "#FFF3C4"] : paint === "neon" ? ["#FF3DCB", "#22E4FF"] : ["#7A6670", "#E3B341", "#B3202A"];
   const backgrounds = look.world ? [NEON_NIGHT_COL.roadA, NEON_NIGHT_COL.roadB] : ["#4B4A52", "#47464E"];
   return [{ object: "car", colours, backgrounds }];
+}
+
+/* ============================== The redraw (phase 2 step 4) ============================== */
+
+const NEON_NIGHT_ITEM = "world-theme.apex.neon-night";
+
+/*
+ * The second pass (docs/design/cosmetics-redraws/blender/apex_neon_night.py): the Blender-rendered city in the
+ * renderer's cached layers: the sky, the far skyline and a near band of towers (both seamless round the full 360),
+ * and three lit skyscrapers in place of the roadside trees. Each is drawn once it has loaded (sceneImages.ts); until
+ * then, the first pass's painters.
+ */
+
+/** A key for the renderer's layer cache: repaint once the city's images arrive (empty when the redraw is off). */
+export function neonNightLayerKey(): string {
+  return skinRedrawn(NEON_NIGHT_ITEM) ? `|v2:${sceneImagesVersion()}` : "";
+}
+
+/** The near band of towers (true when drawn; false: the renderer paints its own hill strip). */
+export function paintNeonNear(ctx: CanvasRenderingContext2D, w: number, h: number): boolean {
+  if (!skinRedrawn(NEON_NIGHT_ITEM)) return false;
+  const near = sceneImage("apex.city-near");
+  if (!near) return false;
+  ctx.drawImage(near, 0, 0, w, h);
+  return true;
+}
+
+/** A lit skyscraper in a roadside tree's place, its foot at (x, y), h tall (true when drawn). */
+export function paintNeonTower(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, variant: number): boolean {
+  if (!skinRedrawn(NEON_NIGHT_ITEM)) return false;
+  const tower = sceneImage(`apex.tower-${variant % 3}`);
+  if (!tower) return false;
+  ctx.drawImage(tower, x - h / 4, y - h, h / 2, h);
+  return true;
+}
+
+/** The redrawn night sky: deep at the top, a violet-to-magenta glow at the horizon, a moon top left (the key light). */
+function paintNeonNightSkyV2(ctx: CanvasRenderingContext2D, w: number, h: number, horizon: number): void {
+  const bottom = Math.min(h, horizon + 20);
+  const g = ctx.createLinearGradient(0, 0, 0, horizon + 20);
+  g.addColorStop(0, "#04030C");
+  g.addColorStop(0.55, "#120A34");
+  g.addColorStop(0.85, "#3A1460");
+  g.addColorStop(1, "#7A1E78");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, bottom);
+  // The moon: a lit disc with its soft halo, shaded to the lower right.
+  const mx = w * 0.18;
+  const my = horizon * 0.28;
+  const mr = Math.max(8, horizon * 0.1);
+  const halo = ctx.createRadialGradient(mx, my, mr * 0.8, mx, my, mr * 4);
+  halo.addColorStop(0, "rgba(200,190,255,0.22)");
+  halo.addColorStop(1, "rgba(200,190,255,0)");
+  ctx.fillStyle = halo;
+  ctx.fillRect(mx - mr * 4, my - mr * 4, mr * 8, mr * 8);
+  const moon = ctx.createRadialGradient(mx - mr * 0.35, my - mr * 0.35, 0, mx, my, mr);
+  moon.addColorStop(0, "#FFFFFF");
+  moon.addColorStop(0.6, "#E4DEFF");
+  moon.addColorStop(1, "#A99BE0");
+  ctx.fillStyle = moon;
+  ctx.beginPath();
+  ctx.arc(mx, my, mr, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** The redrawn city: towers lit on their left face by the moon, windows in rows, roof beacons. */
+function paintNeonCityV2(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  let x = 0;
+  let i = 0;
+  while (x < w) {
+    const bw = 18 + Math.floor(hash(i * 3 + 1) * 4) * 6;
+    const bh = h * (0.3 + hash(i * 5 + 2) * 0.65);
+    const g = ctx.createLinearGradient(x, 0, x + bw, 0);
+    g.addColorStop(0, "#2A2050");
+    g.addColorStop(0.3, "#16102E");
+    g.addColorStop(1, "#0A0718");
+    ctx.fillStyle = g;
+    ctx.fillRect(x, h - bh, bw, bh);
+    ctx.fillStyle = "rgba(220,210,255,0.35)";
+    ctx.fillRect(x, h - bh, bw, 1);
+    for (let wy = h - bh + 5; wy < h - 4; wy += 7)
+      for (let wx = x + 3; wx < x + bw - 3; wx += 5) {
+        const k = hash(Math.round(wx * 13 + wy * 7));
+        if (k < 0.5) continue;
+        ctx.fillStyle = k < 0.68 ? "#FF6BD6" : k < 0.86 ? "#7FF0FF" : "#FFD27A";
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(wx, wy, 2.5, 2.5);
+        ctx.globalAlpha = 1;
+      }
+    if (hash(i * 7 + 4) > 0.6) {
+      ctx.fillStyle = "#FF3D5A";
+      ctx.fillRect(x + bw / 2 - 1, h - bh - 3, 2, 3);
+    }
+    x += bw + 2;
+    i++;
+  }
+  const gl = ctx.createLinearGradient(0, h - 6, 0, h);
+  gl.addColorStop(0, "rgba(255,61,203,0)");
+  gl.addColorStop(1, "rgba(255,61,203,0.55)");
+  ctx.fillStyle = gl;
+  ctx.fillRect(0, h - 6, w, 6);
+  ctx.fillStyle = "#FF6BD6";
+  ctx.fillRect(0, h - 1.2, w, 1.2);
 }
