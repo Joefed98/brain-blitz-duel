@@ -36,7 +36,23 @@ const PUMP_MIN_V = 102; // 0.4 px/tick
 const MAX_SPEED = 9 * FP;
 const GRAVITY = 77; // 0.3 px/tick²
 const MAX_FALL = 12 * FP;
-const RADIUS = 10 * FP;
+/** The hero's body radius on every revision before swingRev 18. */
+const RADIUS_BASE = 10 * FP;
+/**
+ * The body radius the sim is using right now: RADIUS_BASE, or swingRev 18's larger body while one of its courses is
+ * built or stepped (withBody, synchronous, always restored), so every rule below that reads it (roof, river, squeezes,
+ * ledges, the dragon's catch) takes the body the course is played with. Never left changed between calls.
+ */
+let RADIUS = RADIUS_BASE;
+function withBody<T>(r: number, fn: () => T): T {
+  const was = RADIUS;
+  RADIUS = r;
+  try {
+    return fn();
+  } finally {
+    RADIUS = was;
+  }
+}
 const REACH = 220 * FP;
 const MIN_ROPE = 24 * FP;
 const START_X = 3000 * FP;
@@ -507,6 +523,8 @@ export interface SwingState extends Body, BandFields {
   streakAt?: number;
   streakPaid?: number;
   bestHook?: number;
+  /** swingRev 18 only: the marker (the larger body, SWING_V18_RADIUS; otherwise swingRev 17's rules exactly). */
+  big?: number;
   tick: number;
   rng: number;
   camX: number;
@@ -681,7 +699,8 @@ function isOver(state: SwingState): boolean {
 function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
   if (isOver(state)) return state;
   // swingRev 14 and 15: the assault course and the swinging course have their own rules (below); every earlier revision steps on here.
-  if (state.rework) return stepRework(state, input);
+  // swingRev 18: the same rules on the larger body.
+  if (state.rework) return state.big ? withBody(SWING_V18_RADIUS, () => stepRework(state, input)) : stepRework(state, input);
   if (state.assault) return stepAssault(state, input);
   const tick = state.tick + 1;
   const s: SwingState = { ...state, tick };
@@ -1077,6 +1096,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_BIG) return swingBigGame;
   if (rev === SWING_REV_SLIDE) return swingSlideGame;
   if (rev === SWING_REV_DARK) return swingDarkGame;
   if (rev === SWING_REV_REWORK) return swingReworkGame;
@@ -1412,7 +1432,7 @@ export function swingWorldH(state: { worldH?: number }): number {
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
-  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE) return SWING_V13_H;
+  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG) return SWING_V13_H;
   return rev === SWING_REV_TALL || rev === SWING_REV_TARGET || rev === SWING_REV_STRICT ? SWING_TALL_H : SWING_WORLD_H;
 }
 
@@ -1792,14 +1812,14 @@ export function swingWorldW(state: { worldW?: number }): number {
 }
 /** The world width (px) a stored round's swingRev plays in. */
 export function swingWorldWFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE ? SWING_V13_W : SWING_WORLD_W;
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG ? SWING_V13_W : SWING_WORLD_W;
 }
 /**
  * The height (px) a stored round's reveal and demo draw at in the shared 390-wide reveal box: the
  * world's own height, or for swingRev 13's 450-wide view the height that keeps its shape (731).
  */
 export function swingRevealHFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
 }
 
 /** Grabbing from a ledge, the hero kicks off it: SWING_LEDGE_KICK of forward speed along the swing. */
@@ -3655,6 +3675,8 @@ interface V15Shape {
   plans: Map<number, SwingReworkPlan>;
   /** swingRev 17: the sliding hooks, gates on the planned line, no gems or stars (slideCourse). */
   slide?: boolean;
+  /** swingRev 18: the body radius the course is built and proved with (RADIUS_BASE when absent). */
+  radius?: number;
 }
 /** The most failed blocks one rev-15 build may roll back before it starts the course again. */
 const V15_BLOCK_FAILURES = 40;
@@ -3682,7 +3704,7 @@ function initShape(seed: number, shape: V15Shape): SwingState {
   const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
   // A stretch that proves no shape from where the course has got to starts the course again, further along the same stream.
   for (let attempt = 0; attempt < V15_BUILDS; attempt++) {
-    const built = buildV15(draw, shape);
+    const built = shape.radius ? withBody(shape.radius, () => buildV15(draw, shape)) : buildV15(draw, shape);
     if (!built) continue;
     built.state.rng = rng;
     if (shape.cache.size > 16) {
@@ -4098,7 +4120,7 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
  * own init at the start instant. Display timing only: the course is the seed's whatever builds it, and when.
  */
 export function prepareSwingCourse(seed: number, rev?: number): void {
-  if (rev === SWING_REV_SLIDE || rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev).init(seed);
+  if (rev === SWING_REV_BIG || rev === SWING_REV_SLIDE || rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev).init(seed);
 }
 
 /** The rope's body (swingRev 15's look-ahead kit below). */
@@ -4109,7 +4131,7 @@ export type SwingBody = Body;
  */
 export const swingBotKit = {
   body: (s: SwingState): Body => ({ x: s.x, y: s.y, vx: s.vx, vy: s.vy, rope: s.rope, len: s.len, th: s.th, om: s.om, grabLen: s.grabLen, reelTo: s.reelTo, reelLeft: s.reelLeft, pumps: s.pumps }),
-  move: (b: Body, s: SwingState): boolean => moveBody(b, s),
+  move: (b: Body, s: SwingState): boolean => (s.big ? withBody(SWING_V18_RADIUS, () => moveBody(b, s)) : moveBody(b, s)),
   attach: (b: Body, i: number, s: SwingState): void => attach(b, i, s.anchors[i]!),
   detach: (b: Body, s: SwingState): void => detach(b, s.anchors[b.rope]!),
   reel: (b: Body): void => startReel(b, SWING_REEL_UP),
@@ -4129,7 +4151,9 @@ export const swingBotKit = {
     slideStop(v, i, tick);
     return v;
   },
-  radius: RADIUS,
+  /** The body radius before swingRev 18 (radiusOf gives a state's own). */
+  radius: RADIUS_BASE,
+  radiusOf: (s: Pick<SwingState, "big">): number => (s.big ? SWING_V18_RADIUS : RADIUS_BASE),
   reach: REACH,
 };
 
@@ -4632,3 +4656,35 @@ function initV17(seed: number): SwingState {
 
 /** swingRev 17: the sliding hooks and the clean-swing streak, on rev 16's 90 s. Band 3; the score is swingScoreV17. */
 export const swingSlideGame: typeof swingGame = { ...swingTunecGame, runTicks: SWING_V16_RUN_TICKS, init: (seed) => ({ ...bandInit(initV17(seed)), band: 3 }) };
+
+/* ================= The bigger hero (swingRev 18, 15 Nov 2026) ================= */
+
+/**
+ * swingRev 18 (the Action overhaul's stage 2, Joe 15 Nov 2026): swingRev 17's game exactly (the sliding hooks, the dark
+ * ledge runs, the streak, the parts and their 200, 90 s) with the hero's body 14 px in radius (was 10), so the figure
+ * and its vine can be drawn 1.4× larger and still fill exactly what collides. Every rule that reads the body reads the
+ * larger one: the roof and the river (4 px sooner), a squeeze's rock, landing on a ledge (standing 4 px higher) and the
+ * pterodactyl's catch line; grabs are by reach and gates by the body's centre line, so neither changes. Each course is
+ * built and proved on the larger body from its own salt (the squeezes keep their 14 px of clearance round it), and
+ * rooms deal only courses whose flawless run replays to exactly 200 (swingBigDeal.server.ts).
+ */
+export const SWING_REV_BIG = 18;
+export const SWING_V18_RADIUS = 14 * FP;
+const V18_SHAPE: V15Shape = { blocks: SWING_V16_BLOCKS, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runFirst: 4, runEvery: 6, salt: 0x5be0cd19, failures: 60, cache: new Map(), plans: new Map(), slide: true, radius: SWING_V18_RADIUS };
+
+/** The witness of a seed's swingRev 18 course (building it if need be), as swingSlidePlan. */
+export function swingBigPlan(seed: number): SwingReworkPlan {
+  return shapePlan(seed, V18_SHAPE);
+}
+
+function initV18(seed: number): SwingState {
+  return { ...initShape(seed, V18_SHAPE), dark: 1, slide: 1, big: 1 };
+}
+
+/** The body radius (world px) a state is played with: 14 on swingRev 18, 10 on every earlier revision (display reads it). */
+export function swingBodyRadiusPx(s: Pick<SwingState, "big">): number {
+  return (s.big ? SWING_V18_RADIUS : RADIUS_BASE) / FP;
+}
+
+/** swingRev 18: swingRev 17 on the larger body. Band 3; the score is swingScoreV17. */
+export const swingBigGame: typeof swingGame = { ...swingSlideGame, init: (seed) => ({ ...bandInit(initV18(seed)), band: 3 }) };

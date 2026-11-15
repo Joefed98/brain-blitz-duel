@@ -21,7 +21,7 @@ import { TILT_REV_BIG } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
-import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
+import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD } from "@/lib/arcade/pinball";
@@ -36,6 +36,7 @@ import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
 import { swingSlideDealSeed } from "./swingSlideDeal.server";
+import { swingBigDealSeed } from "./swingBigDeal.server";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { dealtTopupRev } from "./depthTopup";
@@ -487,8 +488,19 @@ export function pinSwingPreSlide(on: boolean): boolean {
   return setDealPin("swingPreSlide", on);
 }
 
+/**
+ * Checks written for swingRev 17 (the sliding hooks): deal it as rooms did before the bigger hero (swingRev 18, the
+ * Action overhaul's stage 2, 15 Nov 2026; returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinSwingPreBig(on: boolean): boolean {
+  return setDealPin("swingPreBig", on);
+}
+
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
+  // swingRev 18 (the bigger hero, 15 Nov 2026): from its own deal, courses built on the 14 px body whose oracle run
+  // replays to exactly 200 (scripts/swing-slide-deal.ts --rev=18).
+  if (!dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig")) return { type: "swing", seed: swingBigDealSeed(roomSeed), swingRev: SWING_REV_BIG };
   // swingRev 17 (the sliding hooks and the streak): from its deal, courses whose oracle run replays to exactly 200
   // (scripts/swing-slide-deal.ts, as Apex's). 16 (the dark ledge runs, 90 s), 15 (the swinging course) and 14 (the
   // assault course): any seed; the course is built and proved from it in the sim.

@@ -764,6 +764,12 @@ export const HERO_NO_GROW: HeroGrow = { w: 1, h: 1, feet: false };
  * inside the box's ±16 px, and taller, the head above the box (flipArt.renderer.ts opens its clip that far).
  */
 export const GRAPPLER_HERO_GROW: HeroGrow = { w: 1.2, h: 1.12, feet: true };
+/**
+ * Grappler swingRev 18 (the bigger hero, the Action overhaul's stage 2, 15 Nov 2026; Joe's explicit approval): the
+ * jungle figure drawn 1.4× about the body's centre, exactly the ratio of the larger body (14 px against 10), so it fills
+ * the new hit circle as the rev-17 figure fills its 10 px one. Every earlier revision draws the figure as before.
+ */
+export const GRAPPLER_V18_SCALE = 1.4;
 export const ROOFBOUND_HERO_GROW: HeroGrow = { w: 1.15, h: 1.25, feet: true };
 /** How far (px) the grown Roofbound head reaches past its 36 px box (24.25 up against the box's 18; art-measured, rounded up). */
 export const ROOFBOUND_HERO_HEADROOM_PX = 7;

@@ -5,7 +5,7 @@
  * above a 16 px strip), at the start, a third, two thirds and near the end of the course, plus `--clip` frames for an
  * animated strip of the setting deepening. `--root=<checkout>` draws another tree (e.g. main) for a before → after pair.
  *
- *   bun scripts/shots/swing-overhaul-frames.ts [--root=<checkout>] [--tag=after] [--out=<dir>] [--clip]
+ *   bun scripts/shots/swing-overhaul-frames.ts [--root=<checkout>] [--rev=17|18] [--tag=after] [--out=<dir>] [--clip]
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -32,9 +32,11 @@ const SR = await import(`${ROOT}/src/lib/arcade/swing.renderer.ts`);
 const F = await import(`${ROOT}/src/lib/arcade/arenaFills.renderer.ts`);
 const J = await import(`${ROOT}/src/lib/arcade/swingJungle.renderer.ts`);
 type Ev = { t: number };
-const witnesses = (JSON.parse(gunzipSync(readFileSync("scripts/fixtures/swing-slide-deal-witness.json.gz")).toString()) as { witnesses: { seed: number; events: Ev[] }[] }).witnesses;
+// `--rev=18` draws swingRev 18 (the bigger hero) on its own deal's witnesses; swingRev 17 otherwise.
+const REV_ARG = Number(arg("rev") ?? 17);
+const witnesses = (JSON.parse(gunzipSync(readFileSync(REV_ARG === 18 ? "scripts/fixtures/swing-big-deal-witness.json.gz" : "scripts/fixtures/swing-slide-deal-witness.json.gz")).toString()) as { witnesses: { seed: number; events: Ev[] }[] }).witnesses;
 const w = witnesses[Number(arg("course") ?? 2)]!;
-const rev = S.SWING_REV_SLIDE;
+const rev = REV_ARG === 18 ? S.SWING_REV_BIG : S.SWING_REV_SLIDE;
 const game = S.swingGameFor(rev);
 const art = SR.swingArtGameFor(rev);
 const by = new Map(w.events.map((e) => [e.t, e]));

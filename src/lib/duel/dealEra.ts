@@ -68,6 +68,8 @@ export const DEAL_PINS = {
   swingPreDark: { texts: false },
   /** arcade.server.ts: Grappler swingRev 16. */
   swingPreSlide: { texts: false },
+  /** arcade.server.ts: Grappler swingRev 17, before the bigger hero (the Action overhaul's stage 2, 15 Nov 2026). */
+  swingPreBig: { texts: false },
   /** arcade.server.ts: Minefield minesRev 1 (25 mines), before it moved to Logic (13 Nov 2026). */
   minesPreLogic: { texts: false },
   /** notesFree.ts: Mosaic, Tents, Lamplighter, Loopline and Island Link before notes stopped counting (15 Nov 2026). */

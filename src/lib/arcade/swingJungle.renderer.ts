@@ -91,11 +91,12 @@ function paintJungleFar(ctx: CanvasRenderingContext2D, W: number, H: number, lit
  * jungle runs on past the world's edges without a seam.
  */
 function paintJungleFarSpan(ctx: CanvasRenderingContext2D, x0: number, x1: number, H: number, lite: boolean): void {
+  // Stage 2 (calmer, 15 Nov 2026): a darker, quieter haze (concept A's deep green), so the course in front reads first.
   const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, "#0E2A1C");
-  sky.addColorStop(0.45, "#1B4A35");
-  sky.addColorStop(0.8, "#24604A");
-  sky.addColorStop(1, "#173E36");
+  sky.addColorStop(0, "#0B2116");
+  sky.addColorStop(0.45, "#173F2A");
+  sky.addColorStop(0.8, "#1E4E3C");
+  sky.addColorStop(1, "#163A31");
   ctx.fillStyle = sky;
   ctx.fillRect(x0, 0, x1 - x0, H);
   if (!lite) {
@@ -104,7 +105,7 @@ function paintJungleFarSpan(ctx: CanvasRenderingContext2D, x0: number, x1: numbe
       const h = artHash(k, 313);
       const base = k * 150 + (h % 40);
       const w = 30 + (h % 40);
-      const a = 0.035 + ((h >>> 5) % 5) * 0.007; // calmer (the overhaul): softer shafts
+      const a = 0.018 + ((h >>> 5) % 5) * 0.004; // calmer (stage 2): faint shafts only
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, `rgba(220,255,170,${a})`);
       g.addColorStop(1, "rgba(220,255,170,0)");
@@ -124,14 +125,14 @@ function paintJungleFarSpan(ctx: CanvasRenderingContext2D, x0: number, x1: numbe
     const tx = k * 70 + (h % 30);
     const tw = 8 + ((h >>> 5) % 8);
     const tg = ctx.createLinearGradient(tx, 0, tx + tw, 0);
-    tg.addColorStop(0, "rgba(44,92,72,0.75)");
-    tg.addColorStop(0.3, "rgba(66,120,96,0.75)");
-    tg.addColorStop(1, "rgba(34,76,60,0.75)");
+    tg.addColorStop(0, "rgba(30,64,50,0.6)");
+    tg.addColorStop(0.3, "rgba(40,78,62,0.6)");
+    tg.addColorStop(1, "rgba(24,52,42,0.6)");
     ctx.fillStyle = tg;
     ctx.fillRect(tx, 0, tw, H);
   }
   // Distant tree crowns: rounded canopies on thin trunks.
-  const layers = lite ? ([[H * 0.52, "#1C4A3A", 70]] as const) : ([[H * 0.46, "#1C4A3A", 80], [H * 0.58, "#173A2D", 62]] as const);
+  const layers = lite ? ([[H * 0.52, "#15362A", 70]] as const) : ([[H * 0.46, "#15362A", 80], [H * 0.58, "#112C22", 62]] as const);
   for (const [base, colour, step] of layers) {
     ctx.fillStyle = colour;
     for (let k = Math.min(-1, Math.floor(x0 / step) - 1); k <= x1 / step + 1; k++) {
@@ -149,9 +150,9 @@ function paintJungleFarSpan(ctx: CanvasRenderingContext2D, x0: number, x1: numbe
   }
   // A low mist over the far crowns (the overhaul: aerial depth, so the course in front reads first).
   const mist = ctx.createLinearGradient(0, H * 0.35, 0, H);
-  mist.addColorStop(0, "rgba(40,96,76,0)");
-  mist.addColorStop(0.55, "rgba(40,96,76,0.22)");
-  mist.addColorStop(1, "rgba(30,78,66,0.3)");
+  mist.addColorStop(0, "rgba(34,80,64,0)");
+  mist.addColorStop(0.55, "rgba(34,80,64,0.26)");
+  mist.addColorStop(1, "rgba(30,74,64,0.4)");
   ctx.fillStyle = mist;
   ctx.fillRect(x0, H * 0.35, x1 - x0, H * 0.65);
 }
@@ -395,7 +396,10 @@ export function jungleRiverWave(wx: number, t: number, still: boolean): number {
  * The river: its surface on the sim's floor line (waves within 1.5 px), deep teal below. The Action overhaul (15 Nov
  * 2026) gives it movement and shine: three waves rolling at different speeds, a lit band under the surface (the canopy
  * reflected), slow ripple lines drifting with the current, and small glints that travel along the surface and
- * twinkle. `depth` (swingJungleDepth) takes it towards a darker, colder river; still with reduced motion.
+ * twinkle. Stage 2 makes it glossy liquid: a brighter sky band, the trunks and any low-hanging ring reflected and
+ * wavering, a broad sheen of light drifting across, ripple rings opening and fading, a dark meniscus under the crisp lit
+ * edge, lily pads with a lit rim. `depth` (swingJungleDepth) takes it towards a darker, colder river; still (every
+ * motion held) with reduced motion.
  */
 export function drawJungleRiver(ctx: CanvasRenderingContext2D, state: SwingState, cam: number, W: number, H: number, t: number, still: boolean, lite: boolean, depth = 0): void {
   // Three waves: 1.0 + 0.3 + 0.15 = at most 1.45 px off the sim's line (jungleRiverWave).
@@ -419,30 +423,71 @@ export function drawJungleRiver(ctx: CanvasRenderingContext2D, state: SwingState
   ctx.fill();
   ctx.save();
   ctx.clip();
-  // The lit band under the surface: the canopy's green light on the water.
-  const band = ctx.createLinearGradient(0, top, 0, top + 16);
-  band.addColorStop(0, "rgba(170,236,214,0.32)");
-  band.addColorStop(1, "rgba(170,236,214,0)");
+  // Stage 2 (15 Nov 2026, Joe: real movement and shine): glossy liquid. First the sky band: the canopy's green light
+  // reflected in the top of the water, bright under the surface and fading down (no glare: it never reaches white).
+  const band = ctx.createLinearGradient(0, top, 0, top + 22);
+  band.addColorStop(0, `rgba(176,240,222,${(0.58 * (1 - depth * 0.4)).toFixed(3)})`);
+  band.addColorStop(0.35, "rgba(120,210,200,0.22)");
+  band.addColorStop(1, "rgba(120,210,200,0)");
   ctx.fillStyle = band;
-  ctx.fillRect(0, top - 2, W, 18);
-  // The materials pass: the gloss. The near trunks reflected (dark wavering columns under each one), then a broad
-  // sheen across the water where the light falls, so the river reads as glossy liquid rather than a flat band.
+  ctx.fillRect(0, top - 2, W, 24);
+  const flow = (speed: number, period: number) => (still ? 0 : (t * speed) % period);
   if (!lite) {
-    ctx.fillStyle = "rgba(2,16,18,0.42)";
+    // The near trunks reflected: dark columns under each, wavering more the deeper the reflection.
+    // Stage 2: an unbroken wavering column that fades with depth (was a ladder of bars).
     for (const tr of nearTrunksOnScreen(cam, W))
-      for (let y = top + 2; y < H; y += 3) {
+      for (let y = top + 1; y < Math.min(H, top + 44); y += 2) {
         const wob = still ? 0 : Math.sin(y * 0.35 + t * 2.4) * (1 + (y - top) * 0.04);
-        ctx.fillRect(tr.x + wob + tr.w * 0.1, y, tr.w * 0.8, 2);
+        ctx.fillStyle = `rgba(2,16,18,${(0.34 * (1 - (y - top) / 44)).toFixed(3)})`;
+        ctx.fillRect(tr.x + wob + tr.w * 0.1, y, tr.w * 0.8, 2.2);
       }
-    const sheen = ctx.createLinearGradient(0, 0, W, 0);
-    sheen.addColorStop(0, "rgba(200,255,245,0)");
-    sheen.addColorStop(0.35, "rgba(200,255,245,0.16)");
-    sheen.addColorStop(0.55, "rgba(200,255,245,0.04)");
-    sheen.addColorStop(1, "rgba(200,255,245,0)");
+    // The vines and their cream rings reflected where they hang low over the water (a ring within 120 px of the
+    // surface shows a broken cream streak under it, a lime line above that), wavering with the swell.
+    state.anchors.forEach((home, i) => {
+      if (state.dark && !swingHookLit(state, i)) return;
+      const a = state.slide ? swingAnchorAt(state, i, state.tick) : home;
+      const x = a.x / FP - cam;
+      if (x < -20 || x > W + 20) return;
+      const floorY = lerpAt(state.floor, a.x) / FP;
+      const h = floorY - a.y / FP;
+      if (h > 140 || h < 0) return;
+      const ry = floorY + h * 0.35;
+      for (let k = 0; k < 4; k++) {
+        const yy = ry + k * 3 - 4;
+        if (yy < top + 2) continue;
+        const wob = still ? 0 : Math.sin(yy * 0.5 + t * 3 + i) * 2;
+        ctx.fillStyle = `rgba(230,240,200,${(0.28 - k * 0.05).toFixed(3)})`;
+        ctx.fillRect(x - JUNGLE_LOOP_R * 0.8 + wob, yy, JUNGLE_LOOP_R * 1.6, 1.6);
+      }
+    });
+    // The lit sheen: a broad soft band of light crossing the water slowly, as the light through the canopy moves.
+    const sheenX = still ? W * 0.35 : ((t * 9) % (W + 300)) - 150;
+    const sheen = ctx.createLinearGradient(sheenX - 150, 0, sheenX + 150, 0);
+    sheen.addColorStop(0, "rgba(210,255,245,0)");
+    sheen.addColorStop(0.5, "rgba(210,255,245,0.14)");
+    sheen.addColorStop(1, "rgba(210,255,245,0)");
     ctx.fillStyle = sheen;
     ctx.fillRect(0, top, W, H - top);
+    // Ripple rings opening and fading at seeded spots on the surface (one every few seconds; held as a ring when still).
+    ctx.lineWidth = 1.1;
+    for (let k = Math.floor(cam / 130) - 1; k < Math.floor(cam / 130) + W / 130 + 2; k++) {
+      const h = artHash(k, 641);
+      const wx = k * 130 + (h % 90);
+      const px = wx - cam;
+      const period = 2.6 + (h % 7) * 0.3;
+      const ph = still ? 0.45 : ((t + (h % 100) / 37) % period) / period;
+      const py = lerpAt(state.floor, Math.round(wx * FP)) / FP + 6 + ((h >>> 6) % 10);
+      for (const lag of [0, 0.22]) {
+        const p = ph - lag;
+        if (p <= 0) continue;
+        const r = 4 + p * 26;
+        ctx.strokeStyle = `rgba(220,252,246,${(0.34 * (1 - p)).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(px, py, r, r * 0.22, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
   }
-  const flow = (speed: number, period: number) => (still ? 0 : (t * speed) % period);
   // Ripple lines drifting left with the current (the river runs against the swing), two depths.
   if (!lite)
     for (const [period, speed, dy, alpha] of [[60, 18, 14, 0.2], [90, 11, 30, 0.13]] as const) {
@@ -472,7 +517,7 @@ export function drawJungleRiver(ctx: CanvasRenderingContext2D, state: SwingState
     ctx.lineTo(px + 12 + (h >>> 3) % 14, py);
   }
   ctx.stroke();
-  // Reeds and lily pads at the surface (inside the water's own shape).
+  // Lily pads riding the surface (inside the water's own shape), each with a lit rim.
   if (!lite) for (let k = Math.floor(cam / 80) - 1; k < Math.floor(cam / 80) + W / 80 + 2; k++) {
     const h = artHash(k, 505);
     if (h % 3) continue;
@@ -484,8 +529,20 @@ export function drawJungleRiver(ctx: CanvasRenderingContext2D, state: SwingState
     ctx.ellipse(px, py, 9, 2.6, 0, 0.3, Math.PI * 2 - 0.3);
     ctx.lineTo(px, py);
     ctx.fill();
+    ctx.strokeStyle = "rgba(190,240,150,0.5)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.ellipse(px, py, 9, 2.6, 0, Math.PI * 1.05, Math.PI * 1.7);
+    ctx.stroke();
   }
   ctx.restore();
+  // The meniscus: a dark line just under the surface (the water's thickness), then the crisp lit edge on the sim's line.
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(3,22,26,0.5)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  surface.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py + 2.6) : ctx.lineTo(px, py + 2.6)));
+  ctx.stroke();
   ctx.strokeStyle = JUNGLE.foam;
   ctx.lineWidth = 1.6;
   ctx.beginPath();
@@ -495,17 +552,18 @@ export function drawJungleRiver(ctx: CanvasRenderingContext2D, state: SwingState
     ctx.strokeStyle = "rgba(216,246,242,0.22)";
     ctx.lineWidth = 4;
     ctx.stroke();
-    // Shine: small glints riding the surface downstream, each twinkling on its own beat (no glare: short and thin).
+    // Shine: glints riding the swell's crests downstream, each twinkling on its own beat (short and thin: no glare),
+    // and a travelling specular streak on each wave's lit face.
     ctx.lineCap = "round";
-    for (let k = Math.floor(cam / 46) - 1; k < Math.floor(cam / 46) + W / 46 + 2; k++) {
+    for (let k = Math.floor(cam / 40) - 1; k < Math.floor(cam / 40) + W / 40 + 2; k++) {
       const h = artHash(k, 919);
-      const wx = k * 46 + (h % 30) - flow(14, 46);
+      const wx = k * 40 + (h % 26) - flow(14, 40);
       const px = wx - cam;
       const a = still ? 0.5 : 0.5 + 0.5 * Math.sin(t * (2 + (h % 3)) + (h % 17));
       if (a < 0.15) continue;
-      const py = lerpAt(state.floor, Math.round(wx * FP)) / FP + wave(wx) + 4;
+      const py = lerpAt(state.floor, Math.round(wx * FP)) / FP + wave(wx) + 3 + ((h >>> 9) % 3);
       const len = 6 + ((h >>> 4) % 10);
-      ctx.strokeStyle = `rgba(255,255,250,${(0.75 * a * (1 - depth * 0.35)).toFixed(3)})`;
+      ctx.strokeStyle = `rgba(255,255,250,${(0.8 * a * (1 - depth * 0.35)).toFixed(3)})`;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(px - len / 2, py);
@@ -664,8 +722,8 @@ export function drawJungleVinePaths(ctx: CanvasRenderingContext2D, state: SwingS
   });
 }
 
-/** The grab loop's radius (px; the Action overhaul, 15 Nov 2026: 12, was 10). Display only: a grab is by reach. */
-export const JUNGLE_LOOP_R = 12;
+/** The grab loop's radius (px; the Action overhaul: 12, was 10; stage 2, 15 Nov 2026: 14). Display only: a grab is by reach. */
+export const JUNGLE_LOOP_R = 14;
 
 /**
  * The grab points: a vine from the canopy down to each anchor (a swinging vine's from above its travel's middle) and
@@ -688,16 +746,17 @@ export function drawJungleGrabPoints(ctx: CanvasRenderingContext2D, state: Swing
     const held = i === state.rope;
     // The vine (behind the loop): a soft curve with leaves along it.
     // The materials pass: a twisted rope with its lit strand (swingJungleArt's strokeVineRope).
+    // Stage 2 (15 Nov 2026): the vine a little thicker and cleaner (two small leaf tufts, not five), so the line from
+    // the canopy to the ring reads at speed.
     strokeVineRope(ctx, () => {
       ctx.moveTo(topX, topY);
       ctx.quadraticCurveTo((topX + x) / 2 + 4, (topY + y) / 2, x, y - R - 1);
-    }, 1);
+    }, 1.2);
     const len = Math.hypot(x - topX, y - topY);
-    for (let k = 1; k < Math.min(6, len / 22); k++) {
-      const f = k / Math.min(6, len / 22);
+    for (const f of len > 90 ? [0.3, 0.62] : len > 50 ? [0.45] : []) {
       const lx = topX + (x - topX) * f;
       const ly = topY + (y - R - 1 - topY) * f;
-      drawLeafClusterSprite(ctx, lx + (k % 2 ? 5 : -5), ly, 6, (i + k) % 6, 0);
+      drawLeafClusterSprite(ctx, lx + (f < 0.5 ? 5 : -5), ly, 6, (i + Math.round(f * 10)) % 6, 0);
     }
     // The materials pass: the ring itself, enamelled cream metal (gold just after a grab), no glow round it.
     const flash = held && state.tick - state.grabTick < 12;

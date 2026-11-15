@@ -11,7 +11,8 @@
  *  4. The games' figures (Grappler's cave and jungle, Moon Climb with its gear) are drawn no further out on any
  *     side than today's figure, recorded on main (scripts/fixtures/hero-bounds-main.json), plus 0.5 px; Grappler,
  *     drawn larger since 8 Nov 2026 and measured at its game's scale, + 0.5 px down, + 3 px across, + 3.5 px up.
- *     Roofbound's grown runner stays within its box's ±16 px across, 25 px up and 18 px down.
+ *     Roofbound's grown runner stays within its box's ±16 px across, 25 px up and 18 px down. Grappler swingRev 18 (its
+ *     14 px body, Joe's approval of 15 Nov 2026) is its own entry: main's jungle figure plus the allowance, × 1.4.
  *  5. The celebration poses keep their contract (feet on the ground, arms up in a V, the run leaving the
  *     ground) and draw without error.
  *  6. Medal: 1st to 3rd render the medal art (no number), 4th on the plain number, a shared place says so.
@@ -213,6 +214,40 @@ if (record) {
         const ext = ink((x) => drawNinja(x, 0, 0, pose, face, tick, pose === 2 ? 0.7 : 0, k));
         ext.forEach((v, i) => ok(v <= (was[i]! + 0.5) * k + 0.25, `ricoRev 4 ${key}: drawn ${v.toFixed(2)} px to the ${["left", "right", "top", "bottom"][i]}, main's figure + 0.5 × ${k.toFixed(3)} = ${((was[i]! + 0.5) * k).toFixed(2)} (+0.25, one 4× sample)`));
       }
+}
+
+/*
+ * 4c. Grappler swingRev 18's bigger hero: Joe's explicit approval, 15 Nov 2026 (the Action overhaul's stage 2), its own
+ * entry beside main's recorded bounds (which stay exactly as recorded and still hold every older figure above). On the
+ * new stamp the hero's body is 14 px (10 before) and the jungle figure is drawn GRAPPLER_V18_SCALE (1.4, the radius
+ * ratio) about the body's centre, so each pose's drawn extent is held to main's jungle figure's, plus the Grappler
+ * allowance, both times 1.4, plus half a pixel: the same figure filling the larger hit circle as it filled the old one.
+ */
+{
+  ok(H.GRAPPLER_V18_SCALE === 1.4, `swingRev 18's figure scale is ${H.GRAPPLER_V18_SCALE}, not the approved 1.4 (14 px over 10)`);
+  const old = JSON.parse(readFileSync(FIXTURE, "utf8")) as Record<string, Ext>;
+  const k = H.GRAPPLER_V18_SCALE;
+  const ALLOW = [3, 3, 3.5, 0.5];
+  const big = measure({ H, drawNinja });
+  let n = 0;
+  for (const [key, ext] of Object.entries(big)) {
+    if (!key.startsWith("grappler-jungle-")) continue;
+    const was = old[key]!;
+    // The same pose drawn as swing.renderer.ts draws it on swingRev 18: scaled k about the body's centre.
+    const scaled = ext.map((v) => v * k) as Ext;
+    scaled.forEach((v, i) => ok(v <= (was[i]! + ALLOW[i]!) * k + 0.5, `swingRev 18 ${key}: drawn ${v.toFixed(2)} px to the ${["left", "right", "top", "bottom"][i]}, main's ${was[i]!.toFixed(2)} (+${ALLOW[i]}) × ${k}`));
+    n++;
+  }
+  // And measured for real at that scale (the figure drawn under the scale, its detail cut-off at the real size).
+  const p = Object.assign(H.heroPose(), {
+    headR: 4.2, stick: 3, headX: 0, headY: -7.5, neckX: 0, neckY: -3.2, hipX: 0, hipY: 3.6, shoulderX: 0, shoulderY: -3.2,
+    handAX: 0, handAY: -12.7, handBX: -2.4, handBY: -11.7, footAX: -3.6, footAY: 11, footBX: 3.6, footBY: 11, detailScale: k, gentle: true,
+  });
+  H.heroGrow(p, H.GRAPPLER_HERO_GROW);
+  const real = ink((x) => { x.scale(k, k); H.drawHero(x, p); });
+  const was = old["grappler-jungle-m0-a6"]!;
+  real.forEach((v, i) => ok(v <= (was[i]! + ALLOW[i]!) * k + 0.75, `swingRev 18's hanging figure drawn at ×${k}: ${v.toFixed(2)} px to the ${["left", "right", "top", "bottom"][i]} (main's ${was[i]!.toFixed(2)} + ${ALLOW[i]}, × ${k})`));
+  ok(n === 40, `swingRev 18's allowance covers the 40 jungle poses (${n})`);
 }
 
 /* 4b. Roofbound's grown rev-2 runner (flipArt.renderer.ts drawRunnerHero's joints at ×1.65) inside its box across. */

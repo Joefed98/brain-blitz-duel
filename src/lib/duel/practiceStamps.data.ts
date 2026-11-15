@@ -84,7 +84,7 @@ export const PRACTICE_STAMPS = {
   "sudoku": "depthRev=3 puzzleScoreRev=3 speedPar=1 sudokuRev=1",
   "swapword": "puzzleScoreRev=3 speedPar=1 swapwordRev=7",
   "swerve": "puzzleScoreRev=3 speedPar=1",
-  "swing": "puzzleScoreRev=3 speedPar=1 swingRev=17",
+  "swing": "puzzleScoreRev=3 speedPar=1 swingRev=18",
   "symscan": "puzzleScoreRev=3 scanRev=4 speedPar=1",
   "target": "depthRev=4 puzzleScoreRev=3 speedPar=1",
   "tendrop": "puzzleScoreRev=3 speedPar=1 tenRev=5",

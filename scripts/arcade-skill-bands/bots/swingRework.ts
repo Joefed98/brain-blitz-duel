@@ -83,7 +83,8 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
   const missed = (s: SwingState, k: number, b: SwingBody) => {
     if (kit.move(b, s)) return true;
     const sq = s.squeezes?.[s.sections![k]!.sq];
-    return Boolean(sq && b.x + kit.radius > sq.x0 && b.x - kit.radius < sq.x1 && (b.y - kit.radius < sq.top || b.y + kit.radius > sq.bottom));
+    const r = kit.radiusOf(s);
+    return Boolean(sq && b.x + r > sq.x0 && b.x - r < sq.x1 && (b.y - r < sq.top || b.y + r > sq.bottom));
   };
   /** 1 if a flight from (py) to b came down on section k's landing ledge, -1 on its start ledge, 0 neither. */
   const landed = (s: SwingState, k: number, py: number, b: SwingBody) => {
@@ -92,7 +93,7 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
     for (const [i, v] of [[sec.to ?? -1, 1], [sec.from ?? -1, -1]] as const) {
       if (i < 0) continue;
       const l = s.ledges![i]!;
-      if (Math.abs(b.x - l.x) <= l.half && py + kit.radius <= l.top && b.y + kit.radius >= l.top) return v;
+      if (Math.abs(b.x - l.x) <= l.half && py + kit.radiusOf(s) <= l.top && b.y + kit.radiusOf(s) >= l.top) return v;
     }
     return 0;
   };

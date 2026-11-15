@@ -202,7 +202,8 @@ import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
+import { SWING_BIG_DEAL } from "@/lib/duel/swingBigDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -1052,6 +1053,9 @@ const GAMES: Game[] = [
   // Moon Climb ricoRev 4 (15 Nov 2026, the Action overhaul's stage 2: the bigger ninja), appended so every earlier entry
   // keeps its stream.
   { key: "ricochet/big", interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(4), checkpoint: moonCheckpoint, mode: "events", rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 4) },
+  // Grappler swingRev 18 (15 Nov 2026, the Action overhaul's stage 2: the bigger hero), appended so every earlier entry
+  // keeps its stream: on its proved deal's courses.
+  { key: "swing/big", game: swingGameFor(SWING_REV_BIG), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BIG), seedFor: (n: number) => SWING_BIG_DEAL[n % SWING_BIG_DEAL.length]! },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

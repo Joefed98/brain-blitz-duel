@@ -69,6 +69,7 @@ import {
   SWING_REV_TALL,
   SWING_REV_EXPAND,
   SWING_REV_SLIDE,
+  SWING_REV_BIG,
   SWING_ROCK_HALF_W,
   SWING_STARS,
   SWING_STAR_TOUCH,
@@ -206,7 +207,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     const swing = generateSwing();
     pinSwingPreAssault(was);
     ok(swing.swingRev === SWING_REV_EXPAND && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 13 (the expansion, after swingRev 9) on a course re-proved for the taller cavern");
-    ok(generateSwing().swingRev === SWING_REV_SLIDE, "rooms deal swingRev 17 (the swinging course's sliding hooks) unpinned");
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18.
+    ok(generateSwing().swingRev === SWING_REV_BIG, "rooms deal swingRev 18 (the bigger hero) unpinned");
     // The fuel meter (orbitRev 14, 1 Nov 2026) moved rooms to its own bank (orbit-fuel-check); pinned, the deal before it.
     const wasFuel = pinOrbitPreFuel(true);
     const orbit = generateOrbit();
@@ -537,7 +539,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   const src = read("src/lib/duel/introDemo.functions.ts");
   // Grappler's 200 expansion: its demo played only on swingRev 13 (swing-x200-check); the assault course's only on swingRev
   // 14; the swinging course's only on swingRev 15; its dark ledge runs' only on swingRev 16; its sliding hooks' only on swingRev 17.
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_SLIDE\) return null/.test(src), "Grappler's demo plays only on swingRev 17");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18.
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(src), "Grappler's demo plays only on swingRev 18");
   // The expansion to 200: Orbit's demo waited for one recorded on orbitRev 12 (orbit-expand-check); the arcade scoring
   // standard (orbitRev 13, as flipRev 9) waits for one recorded on orbitRev 13.
   // The fuel meter (orbitRev 14) waits for one recorded on orbitRev 14 (orbit-fuel-check).

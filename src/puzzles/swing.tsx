@@ -13,7 +13,7 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
-  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE,
+  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG,
   swingWorldHFor,
   swingWorldWFor,
   SWING_CHECKPOINT_INTERVAL,
@@ -31,8 +31,8 @@ import { ArtStill } from "@/components/puzzles/ArtStill";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** The intro still's course: the first course rooms deal on swingRev 17 (swingSlideDeal.server.ts), built in the sim. */
-const SWING_INTRO_SEED = 80672385;
+/** The intro still's course: the first course rooms deal on swingRev 18 (swingBigDeal.server.ts), built in the sim. */
+const SWING_INTRO_SEED = 1560728537;
 
 /**
  * The intro still (the Action overhaul, 15 Nov 2026): swingRev 17's own jungle drawn by the game's renderer on a fixed
@@ -41,9 +41,9 @@ const SWING_INTRO_SEED = 80672385;
 function IntroExample() {
   return (
     <ArtStill
-      game={swingArtGameFor(SWING_REV_SLIDE)}
-      worldW={swingWorldWFor(SWING_REV_SLIDE)}
-      worldH={swingWorldHFor(SWING_REV_SLIDE)}
+      game={swingArtGameFor(SWING_REV_BIG)}
+      worldW={swingWorldWFor(SWING_REV_BIG)}
+      worldH={swingWorldHFor(SWING_REV_BIG)}
       seed={SWING_INTRO_SEED}
       ticks={90}
       input={null}
@@ -63,7 +63,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <ArcadeCanvasStage
       diagKey="swing"
       scene={swingFillFor(data?.swingRev, () => ({ depth: scene.current.step / SWING_DEPTH_STEPS, darkRight: scene.current.darkRight, dim: scene.current.dim }))}
-      sceneKey={(s: SwingState) => (data?.swingRev === SWING_REV_SLIDE ? swingJungleSceneKey((scene.current = swingJungleScene(s))) : 0)}
+      sceneKey={(s: SwingState) => (data?.swingRev === SWING_REV_SLIDE || data?.swingRev === SWING_REV_BIG ? swingJungleSceneKey((scene.current = swingJungleScene(s))) : 0)}
       label={gameDisplayName("swing")}
       background="transparent"
       fitWorld
@@ -141,7 +141,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.stars ?? 0} / {result.starTotal ?? 0} stars
         </p>
       )}
-      {puzzle.swingRev === SWING_REV_SLIDE && "streakPaid" in result && (
+      {(puzzle.swingRev === SWING_REV_SLIDE || puzzle.swingRev === SWING_REV_BIG) && "streakPaid" in result && (
         <p className="shrink-0 whitespace-normal break-words text-center font-mono text-sm text-muted-foreground">
           {result.parsBeaten} under par · {result.gates} / {result.gateTotal} gates · streak +{result.streakPoints}
         </p>
@@ -156,7 +156,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.gems} / {result.gemTotal} gems · {result.gates} / {result.gateTotal} gates · {result.ledges} / {result.ledgeTotal} ledges · best chain {result.bestChain}
         </p>
       )}
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK || puzzle.swingRev === SWING_REV_DARK || puzzle.swingRev === SWING_REV_SLIDE ? "Same course for everyone" : "Same cavern for everyone"}</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK || puzzle.swingRev === SWING_REV_DARK || puzzle.swingRev === SWING_REV_SLIDE || puzzle.swingRev === SWING_REV_BIG ? "Same course for everyone" : "Same cavern for everyone"}</p>
     </div>
   );
 }

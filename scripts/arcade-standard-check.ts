@@ -80,7 +80,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // a slip respawns at the last planet caught after a 3 s hold; orbitRev 14's courses and parts; orbit-overhaul-check).
   { type: "orbit", field: "orbitRev", rev: 15, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
-  { type: "swing", field: "swingRev", rev: 17, batch: "D" }, // swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is 18.
+  { type: "swing", field: "swingRev", rev: 18, batch: "D" }, // swingRev 18 (15 Nov 2026): rev 17 on a 14 px body; swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   // Changed with Joe's approval, 13 Nov 2026: Minefield deals minesRev 2 (a Logic game with 20 mines).
   { type: "minesweeper", field: "minesRev", rev: 2, batch: "Cards & Board" },
