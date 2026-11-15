@@ -20,7 +20,7 @@
  * The shared names every *-demos-save.ts takes, DEMOS_URL, DEMOS_GAMES and DEMOS_DRY=1, work too (an ACTION_ one wins).
  *
  * The server must be a dev server (the function ids are read from its client modules), e.g. one the workflow starts with
- * `bun run dev` on the live project's environment. The key is never printed. Exit codes: 0 all OK, 1 any game failed, 2 missing URL or key (usage).
+ * `NODE_OPTIONS=--max-old-space-size=6144 bun run dev` on the live project's environment. The key is never printed. Exit codes: 0 all OK, 1 any game failed, 2 missing URL or key (usage).
  *
  * `--dry` deals and compares only (nothing saved). The calls go over HTTP with TanStack Start's own client fetcher, to
  * the ids the dev server's client module names (the same requests the phone makes). scripts/action-demos-check.ts runs
