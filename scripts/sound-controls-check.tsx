@@ -62,10 +62,11 @@ for (const row of sliders.split("data-volume-slider=").slice(1)) {
 }
 assert.match(sliders, /aria-label="Sound effects volume"/);
 assert.match(sliders, /aria-label="Music volume"/);
-for (const file of ["src/components/app/SettingsSheet.tsx", "src/components/duel/GameMenu.tsx"]) {
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings).
+for (const file of ["src/components/settings/SettingsPage.tsx", "src/components/duel/GameMenu.tsx"]) {
   assert.match(readFileSync(file, "utf8"), /<VolumeSliders \/>/, `${file} draws the two volume sliders`);
 }
-assert.doesNotMatch(readFileSync("src/components/app/SettingsSheet.tsx", "utf8"), /aria-label="Volume"/, "no single Volume slider");
+assert.doesNotMatch(readFileSync("src/components/settings/SettingsPage.tsx", "utf8"), /aria-label="Volume"/, "no single Volume slider");
 const timer = readFileSync("src/components/duel/TimerBar.tsx", "utf8");
 assert.doesNotMatch(timer, /RoundMusic/, "the timer bar never owns round music");
 for (const file of [

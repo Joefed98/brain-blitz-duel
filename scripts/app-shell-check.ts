@@ -268,10 +268,14 @@ try {
       await page.getByRole("heading", { level: 1, name: "Profile" }).waitFor({ timeout: 30_000 });
       check(new URL(page.url()).pathname === "/profile", `Profile (from More): the URL is /profile (${new URL(page.url()).pathname})`);
       check((await page.locator("[data-public-game='join']").count()) === 0, "Profile has no schedule card");
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): the gear
+      // opens the Settings page, and its Back returns to Profile.
       await page.locator("[data-open-settings]").click();
-      check(await page.getByRole("dialog", { name: "Settings" }).isVisible(), "Profile: the gear opens the settings");
-      check((await page.locator("[data-settings-sheet] [data-sound-controls]").count()) === 1, "Settings: the sound controls");
-      await page.getByRole("button", { name: "Close settings" }).click();
+      await page.getByRole("heading", { level: 1, name: "Settings" }).waitFor({ timeout: 30_000 });
+      check(new URL(page.url()).pathname === "/settings", `Profile: the gear opens the settings (${new URL(page.url()).pathname})`);
+      check((await page.locator("[data-settings-page] [data-sound-controls]").count()) === 1, "Settings: the sound controls");
+      await page.locator("[data-settings-back]").click();
+      await page.getByRole("heading", { level: 1, name: "Profile" }).waitFor({ timeout: 30_000 });
       // A device with no rooms, dailies or bests (tab pages refresh): its card, the pointer to Customise and Get started.
       // Changed with Joe's approval, 13 Nov 2026: "Your look" is retired for Customise (one identity everywhere).
       check((await page.getByRole("button", { name: "Choose your look" }).count()) === 0, 'Profile (new player): no "Choose your look"');

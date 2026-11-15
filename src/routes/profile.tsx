@@ -4,10 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { useHomeBed } from "@/lib/useScreenMusic";
-import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { PlaceDisc } from "@/components/app/TabIcons";
-import { SettingsSheet } from "@/components/app/SettingsSheet";
 import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHistory";
 import { readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
@@ -59,8 +57,6 @@ function ProfileScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
-  const [settings, setSettings] = useState(false);
-  const [intro, setIntro] = useState(false);
   const [history, setHistory] = useState<RoomRecord[]>([]);
   const [daily, setDaily] = useState<DailyRecord | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -99,8 +95,6 @@ function ProfileScreen() {
   const doneCount = steps.filter((step) => step.done).length;
   // A tablet or computer draws the card column as the page's side column (PhoneShell's aside); a phone heads the page with it.
   const wide = useLayoutMode() !== "phone";
-
-  if (intro) return <Onboarding onDone={() => setIntro(false)} />;
 
   const openStep = (id: (typeof steps)[number]["id"]) => {
     if (id === "room") goToTab(router, "profile", "play");
@@ -150,7 +144,7 @@ function ProfileScreen() {
       tabs="profile"
       title="Profile"
       headerAction={
-        <Button variant="icon" aria-label="Settings" data-open-settings onClick={() => setSettings(true)} className="-mr-2.5">
+        <Button variant="icon" aria-label="Settings" data-open-settings onClick={() => void router.navigate({ to: "/settings", state: { fromPlayTab: true } as never } as never)} className="-mr-2.5">
           <Icon name="settings" size={20} />
         </Button>
       }
@@ -311,19 +305,6 @@ function ProfileScreen() {
           </div>
         )}
       </div>
-      {settings ? (
-        <SettingsSheet
-          onClose={() => setSettings(false)}
-          onHowItWorks={() => {
-            setSettings(false);
-            setIntro(true);
-          }}
-          onTerms={() => {
-            setSettings(false);
-            void router.navigate({ to: "/terms" });
-          }}
-        />
-      ) : null}
     </PhoneShell>
   );
 }
