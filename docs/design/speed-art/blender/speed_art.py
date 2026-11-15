@@ -217,33 +217,50 @@ def chain_board():
     cplane(195, 320, 420, 680, dark_wood("cb_wood", "#38200C", "#0F0602", scale=9), z=0)
 
 
+def _lighter(h, k):
+    c = hexc(h)
+    return (c[0] + (1 - c[0]) * k, c[1] + (1 - c[1]) * k, c[2] + (1 - c[2]) * k, 1)
+
+
+def _dome(ob, cast):
+    """Bulges a slab into a gem's cushion: subdivide, cast towards a sphere, flatten the base; flat-shaded so its
+    facets each catch a highlight."""
+    sub = ob.modifiers.new("sub", "SUBSURF")
+    sub.levels = sub.render_levels = 2
+    c = ob.modifiers.new("cast", "CAST")
+    c.cast_type = "SPHERE"
+    c.factor = cast
+    ob.scale = (ob.scale[0], ob.scale[1], ob.scale[2] * 0.7)
+    for p in ob.data.polygons:
+        p.use_smooth = False
+    return ob
+
+
 def chain_charm(shape, colour):
-    """A glass charm, 112 px across, in a thin polished champagne bezel: a clear coloured glass body with a lit core
-    of the same colour inside (the concept's look); its shape is cut as clearly as its colour."""
+    """A cut gem, 112 px across, in a thin polished champagne bezel (concept B, Joe 15 Nov 2026): a faceted crown (its
+    chamfers flat-shaded, so each facet catches the key or the rim as its own crisp highlight) under a raised, brighter
+    table, the colour glowing faintly from inside under a glassy coat. Each keeps its own cut: round brilliant, cushion,
+    trillion."""
     setup(128, 128, scale=2.0, seed=11)
-    even_light(0.75)
+    even_light(0.8)
     col = CHAIN_GEMS[colour]
-    body = gem_glass(f"cg_{colour}", col)
-    core = lib.emissive(f"cc_{colour}", hexc(col), 2.2)
-    base = lib.emissive(f"cb_{colour}", hexc(col), 2.4)
+    crown = mat(f"cz_{colour}", hexc(col), rough=0.22, coat=1.0, coat_rough=0.02, emit=hexc(col), emit_strength=0.35)
+    table = mat(f"ct_{colour}", _lighter(col, 0.12), rough=0.18, coat=1.0, coat_rough=0.02, emit=hexc(col), emit_strength=0.55)
     bezel = champagne()
-    # Glass over a lit core reads as a dark ring on the walnut board in play (only the core shows), so every charm is a
-    # lit glaze: the colour glowing faintly from inside under a glassy clear coat, domed on the round ones.
-    glaze = mat(f"cz_{colour}", hexc(col), rough=0.3, coat=1.0, coat_rough=0.03, emit=hexc(col), emit_strength=0.45)
     if shape == "circle":
         disc(64, 64, 56, 5, bezel, z=0, bevel=2.0)
-        disc(64, 64, 50, 3, base, z=1, bevel=1)
-        sphere(64, 64, 50, glaze, z=4, squash=0.42)
+        body = sphere(64, 64, 50, crown, z=3, squash=0.5, segs=16)
+        for poly_ in body.data.polygons:
+            poly_.use_smooth = False
+        disc(64, 64, 24, 3, table, z=26, bevel=1.2, verts=8, segs=1)
     elif shape == "square":
         rbox(64, 64, 108, 108, 5, bezel, r=20, z=0, bevel=2.0)
-        rbox(64, 64, 96, 96, 3, base, r=15, z=1, bevel=1)
-        rbox(64, 64, 50, 50, 8, core, r=8, z=2, bevel=3, segs=4)
-        rbox(64, 64, 96, 96, 10, glaze, r=16, z=3, bevel=4.5, segs=8)
+        _dome(rbox(64, 64, 96, 96, 22, crown, r=14, z=3, bevel=2, segs=1), 0.42)
+        rbox(64, 64, 40, 40, 2, table, r=4, z=23, bevel=0.8, segs=1)
     else:
         prism(poly(3, 62), 5, bezel, z=0, cx=64, cy=72, bevel=2.0, segs=4)
-        prism(poly(3, 52), 3, base, z=1, cx=64, cy=72, bevel=1, segs=3)
-        prism(poly(3, 26), 8, core, z=2, cx=64, cy=74, bevel=3, segs=4)
-        prism(poly(3, 52), 10, glaze, z=3, cx=64, cy=72, bevel=4.5, segs=8)
+        _dome(prism(poly(3, 54), 22, crown, z=3, cx=64, cy=72, bevel=2, segs=1), 0.22)
+        prism(poly(3, 18), 2, table, z=23, cx=64, cy=74, bevel=0.8, segs=1)
 
 
 # ---------------------------------------------------------------------------------------------- Bonk
@@ -403,8 +420,17 @@ def tenfall_tile(look):
 # --------------------------------------------------------------------------------------------- Pull!
 
 
+def _haze(key, color, alpha):
+    m = mat(key, color, rough=1.0)
+    b = m.node_tree.nodes["Principled BSDF"]
+    b.inputs["Alpha"].default_value = alpha
+    return m
+
+
 def pull_sky():
-    """The range in late afternoon, the sun toned right down: a deep sky, haze over a treeline, the grass and fence."""
+    """The range in late afternoon (concept A, Joe 15 Nov 2026): a deep sky warming to a hazy horizon glow (no sun disc,
+    no glare), high thin cloud, three layers of hills and treeline fading into the haze with distance, the grass and the
+    rail fence in front."""
     setup(360, 680, transparent=False, seed=8)
     m = bpy.data.materials.new("ps_sky")
     m.use_nodes = True
@@ -417,35 +443,62 @@ def pull_sky():
     nt.links.new(tc.outputs["Generated"], sep.inputs["Vector"])
     cr = nt.nodes.new("ShaderNodeValToRGB")
     els = cr.color_ramp.elements
-    els[0].position, els[0].color = 0.0, hexc("#C98B5A")
-    els[1].position, els[1].color = 1.0, hexc("#1F3E66")
-    mid = els.new(0.35)
-    mid.color = hexc("#6A7E92")
+    els[0].position, els[0].color = 0.0, hexc("#E6B184")
+    els[1].position, els[1].color = 1.0, hexc("#17355E")
+    for pos, col in ((0.12, "#D9A47E"), (0.26, "#A9A6A2"), (0.45, "#6C88A6"), (0.72, "#2E5584")):
+        el = els.new(pos)
+        el.color = hexc(col)
     nt.links.new(sep.outputs["Y"], cr.inputs["Fac"])
-    nt.links.new(cr.outputs["Color"], e.inputs["Color"])
+    # Thin high cloud: stretched noise, warm, faint, mixed over the upper sky.
+    nz = nt.nodes.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = 4.0
+    nz.inputs["Detail"].default_value = 6
+    nz.inputs["Roughness"].default_value = 0.55
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (0.35, 3.2, 1)
+    nt.links.new(tc.outputs["Generated"], mp.inputs["Vector"])
+    nt.links.new(mp.outputs["Vector"], nz.inputs["Vector"])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].position = 0.55
+    ramp.color_ramp.elements[0].color = (0, 0, 0, 1)
+    ramp.color_ramp.elements[1].position = 0.78
+    ramp.color_ramp.elements[1].color = (0.32, 0.27, 0.24, 1)
+    nt.links.new(nz.outputs["Fac"], ramp.inputs["Fac"])
+    add = nt.nodes.new("ShaderNodeMix")
+    add.data_type = "RGBA"
+    add.blend_type = "ADD"
+    add.inputs["Factor"].default_value = 1.0
+    nt.links.new(cr.outputs["Color"], add.inputs["A"])
+    nt.links.new(ramp.outputs["Color"], add.inputs["B"])
+    nt.links.new(add.outputs["Result"], e.inputs["Color"])
     e.inputs["Strength"].default_value = 1.0
     nt.links.new(e.outputs[0], o.inputs[0])
-    cplane(180, 340, 440, 780, m, z=-30)
+    cplane(180, 340, 440, 780, m, z=-60)
     lib.world("sunset", 0.35, rot=2.4)
-    area(-200, 520, 300, 400, 420, (1.0, 0.78, 0.55), target=(180, 600))
-    area(500, -200, 900, 900, 900, (0.8, 0.86, 1.0), target=(180, 500))
-    trees = mat("ps_trees", hexc("#1C2A1C"), rough=0.85)
+    area(-200, 520, 300, 400, 380, (1.0, 0.78, 0.55), target=(180, 600))
+    area(500, -200, 900, 900, 800, (0.8, 0.86, 1.0), target=(180, 500))
+    # Far hills, bluish and hazy; mid treeline; near treeline, darkest.
+    far = mat("ps_far", hexc("#5D7186"), rough=1.0)
+    for k in range(9):
+        h = sphere(-20 + k * 48, 584, 1, far, z=-30)
+        h.scale = (50 * S, (30 + (k * 13) % 18) * S, 4 * S)
+    cplane(180, 586, 400, 36, _haze("ps_haze1", (0.84, 0.74, 0.66, 1), 0.28), z=-24)
+    mid = mat("ps_mid", hexc("#33493A"), rough=0.9)
+    for k in range(18):
+        sphere(-10 + k * 22, 600 - ((k * 7) % 9), 13 + (k % 3) * 2, mid, z=-20, squash=1.4)
+    cplane(180, 600, 400, 30, _haze("ps_haze2", (0.78, 0.68, 0.6, 1), 0.3), z=-14)
+    near = mat("ps_near", hexc("#1B2A1C"), rough=0.85)
     for k in range(26):
         x = -10 + k * 15.5
         hgt = 34 + ((k * 37) % 23)
-        sphere(x, 590 - hgt * 0.45, 14 + (k % 3) * 3, trees, z=-10, squash=1.6)
-    haze = mat("ps_haze", (0.55, 0.5, 0.48, 1), rough=1.0)
-    haze_mat = bpy.data.materials["ps_haze"]
-    b = haze_mat.node_tree.nodes["Principled BSDF"]
-    b.inputs["Alpha"].default_value = 0.22
-    cplane(180, 590, 400, 26, haze, z=-4)
+        sphere(x, 612 - hgt * 0.35, 14 + (k % 3) * 3, near, z=-10, squash=1.6)
     grass = mat("ps_grass", hexc("#2D4A22"), rough=0.9, sheen=0.3, bump=0.4, bump_scale=600)
-    cplane(180, 640, 400, 84, grass, z=0)
-    post = wood("ps_post", hexc("#6B4A2E"), hexc("#3A2614"), rough=0.7, scale=20, coat=0.0)
+    cplane(180, 650, 400, 70, grass, z=0)
+    post = wood("ps_post", hexc("#6B4A2E"), hexc("#3A2614"), rough=0.6, scale=20, coat=0.2)
     for k in range(7):
-        rbox(10 + k * 58, 626, 6, 34, 5, post, r=1.5, z=1, bevel=1)
-    rbox(180, 616, 400, 4, 4, post, r=1, z=4, bevel=0.8)
-    rbox(180, 630, 400, 4, 4, post, r=1, z=4, bevel=0.8)
+        rbox(10 + k * 58, 636, 6, 34, 5, post, r=1.5, z=1, bevel=1)
+    rbox(180, 626, 400, 4, 4, post, r=1, z=4, bevel=0.8)
+    rbox(180, 640, 400, 4, 4, post, r=1, z=4, bevel=0.8)
 
 
 def _clay(colour, rim, key):

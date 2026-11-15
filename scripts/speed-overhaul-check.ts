@@ -41,7 +41,8 @@ import { standardNumberHelp } from "../src/lib/duel/standard/numberText";
 import { pinPreSpeedOverhaul } from "../src/lib/duel/speedOverhaul";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { SPEED_ART } from "../src/lib/fx/speedArt.data";
-import { ascendDiscSize, ASCEND_DISC_GAP, ASCEND_DISC_MAX, ASCEND_DISC_MIN } from "../src/puzzles/numberHunt";
+import { ascendDiscSize, ASCEND_DISC_GAP, ASCEND_DISC_MAX, ASCEND_DISC_MIN, storedAscendRun } from "../src/puzzles/numberHunt";
+import { encodeNumberTaps } from "../src/lib/duel/tapLog";
 import { playTenDropPerfect } from "./tendrop-depth-player";
 import type { PuzzleData } from "../src/lib/duel/types";
 
@@ -277,6 +278,32 @@ const stamp = (type: "tendrop" | "clayshoot", field: string) => (generatePuzzle(
   check(/size=\{44\}/.test(reveal("numberHunt")) && /h-80/.test(reveal("numberHunt")), "Ascend: the board drawn large");
   const answerReveal = read("src/components/duel/AnswerReveal.tsx");
   check(/SPEED_VISUAL_REVEAL_TYPES[^\n]*\["tendrop", "whack", "clayshoot"\]/.test(answerReveal) && /!SPEED_VISUAL_REVEAL_TYPES\.has\(puzzle\.type\)/.test(answerReveal), "Tenfall, Bonk and Pull! show their picture beside the stored breakdown");
+}
+
+/* ------------------------------------------------------------------ 9. Ascend: a solved run always says solved */
+{
+  // An honest run: every number in order, 0.7 s apart, sent 0.3 s after the last tap; the server grades it with its own
+  // receipt (practice's and a room's rule: the log is held to the time the server saw pass, + 1.5 s).
+  for (const seed of [3, 41, 777]) {
+    const p = quiet(() => generatePuzzle("numhunt", { bankSeed: seed })) as PuzzleData & { spots: { n: number }[]; puzzleScoreRev?: number };
+    const limit = 60_000;
+    const order = [...p.spots].map((s) => s.n).sort((a, b) => a - b);
+    const taps = order.map((n, i) => ({ n, t: 1000 + i * 700 }));
+    const log = encodeNumberTaps(taps);
+    const last = taps[taps.length - 1]!.t;
+    const honest = quiet(() => gradeAnswer(p, log, limit - last, undefined, limit - (last + 300)));
+    const stored = storedAscendRun(honest.extra);
+    check(honest.isCorrect, `Ascend seed ${seed}: an honest full run is graded solved`);
+    check(stored?.reached === order.length, `Ascend seed ${seed}: the server stores all ${order.length} reached (${stored?.reached})`);
+    // A phone clock far ahead of the server (the screenshot tool's fake clock): the server counts only what it saw
+    // pass, and the reveal now shows the server's count, so the verdict and the board always agree.
+    const ahead = quiet(() => gradeAnswer(p, log, limit - last, undefined, limit - 6_000));
+    const shown = storedAscendRun(ahead.extra);
+    check(!ahead.isCorrect && shown !== null && shown.reached < order.length, `Ascend seed ${seed}: a log ahead of the receipt is counted to the receipt (${shown?.reached})`);
+    check(shown !== null && (shown.reached >= order.length) === ahead.isCorrect, `Ascend seed ${seed}: the reveal's count agrees with the verdict`);
+  }
+  const reveal = read("src/puzzles/numberHunt.tsx");
+  check(/storedAscendRun\(myExtra\) \?\? replayed/.test(reveal), "Ascend: the reveal shows the server's stored count before the phone's replay");
 }
 
 if (failures.length) {

@@ -105,6 +105,18 @@ export function parseRun(answer: string | null) {
 }
 
 /** A tap-log answer, replayed as the server scored it: count reached, wrong taps, finishing time. */
+/**
+ * The server's stored count for a tap-log round (extra.reached, extra.wrongTaps or the replay's errors, the finishing
+ * tap's time), or null for a round stored without it. Exported for speed-overhaul-check.
+ */
+export function storedAscendRun(extra: Record<string, unknown> | null | undefined): { reached: number; errors: number; elapsedMs: number } | null {
+  const reached = extra?.["reached"];
+  if (typeof reached !== "number") return null;
+  const wrong = extra?.["wrongTaps"];
+  const at = extra?.["finishedAtMs"];
+  return { reached, errors: typeof wrong === "number" ? wrong : 0, elapsedMs: typeof at === "number" ? at : 0 };
+}
+
 function loggedRun(puzzle: NumberHuntPuzzleData, answer: string | null) {
   if (!answer?.startsWith(TAP_LOG_PREFIX)) return { reached: 0, errors: 0, elapsedMs: 0 };
   const replay = replayAscend(puzzle, decodeNumberTaps(answer, NUMHUNT_TIME_MS, puzzle).taps);
@@ -480,7 +492,11 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const storedRun = myExtra?.["bestRun"];
   const bestRun = !standard ? 0 : typeof storedRun === "number" ? storedRun : ascendBestRun(replayAscend(puzzle, decodeNumberTaps(myAnswer ?? "", NUMHUNT_TIME_MS, puzzle).taps).outcomes);
   const flowPoints = typeof myExtra?.["flowPoints"] === "number" ? (myExtra["flowPoints"] as number) : null;
-  const { reached, errors, elapsedMs } = usesTapLog(puzzle) ? loggedRun(puzzle, myAnswer) : parseRun(myAnswer);
+  // The server's own count first (15 Nov 2026): the server replays the log only up to its receipt (latestTapMs), so the
+  // phone's replay of the whole log could show 24/24 beside a "Not solved" verdict. The stored figures are what was
+  // graded; the phone's replay stands in only for rounds stored without them.
+  const replayed = usesTapLog(puzzle) ? loggedRun(puzzle, myAnswer) : parseRun(myAnswer);
+  const { reached, errors, elapsedMs } = storedAscendRun(myExtra) ?? replayed;
   const finished = reached >= puzzle.spots.length;
 
   // The Speed overhaul (Joe, 15 Nov 2026; display only): the board large, reached discs gold, the disc you needed
