@@ -1,4 +1,8 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+
+import { countUpText, gameFx } from "@/lib/fx/kit";
+import { prefersReducedMotion } from "@/lib/motion";
+import { demoHushed, playSlotOr } from "@/lib/sound";
 
 import "@/polish-word/word-look.css";
 import "@/polish-word/word-reveal.css";
@@ -21,19 +25,46 @@ export interface RevealNumber {
 }
 
 /** The numbers that explain the score: a row of big value tiles, each with a short plain label under it. */
-export function RevealNumbers({ items }: { items: ReadonlyArray<RevealNumber | null | false | undefined> }) {
+export function RevealNumbers({ items, countAfterMs }: {
+  items: ReadonlyArray<RevealNumber | null | false | undefined>;
+  /**
+   * Stage 2's round end: the numeric values count up from 0 once the found words have dropped in (this many ms
+   * after the reveal opens). The markup always holds the final number (screen readers, checks, reduced motion).
+   */
+  countAfterMs?: number;
+}) {
   const shown = items.filter((i): i is RevealNumber => !!i);
+  const root = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (countAfterMs === undefined || prefersReducedMotion()) return;
+    const stops: (() => void)[] = [];
+    const timer = window.setTimeout(() => {
+      root.current?.querySelectorAll<HTMLElement>("[data-wr-count]").forEach((el, k) => {
+        const to = Number(el.dataset["wrCount"]);
+        if (Number.isFinite(to) && to > 0) stops.push(countUpText(el, 0, to, { silent: k > 0 || demoHushed() }));
+      });
+    }, countAfterMs);
+    return () => {
+      window.clearTimeout(timer);
+      stops.forEach((stop) => stop());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
-    <div data-wr-numbers="" className="wr-numbers" style={{ gridTemplateColumns: `repeat(${Math.min(4, shown.length)}, minmax(0, 1fr))` }}>
+    <div ref={root} data-wr-numbers="" className="wr-numbers" style={{ gridTemplateColumns: `repeat(${Math.min(4, shown.length)}, minmax(0, 1fr))` }}>
       {shown.map((n) => (
         <div key={n.id ?? n.label} data-wr-number={n.id ?? n.label} data-tone={n.tone} className="wr-num">
-          <span className="wr-num-value">{n.value}</span>
+          <span className="wr-num-value" data-wr-count={countAfterMs !== undefined && typeof n.value === "number" ? n.value : undefined}>{n.value}</span>
           <span className="wr-num-label">{n.label}</span>
         </div>
       ))}
     </div>
   );
 }
+
+/** Stage 2's round end: how long the found words take to drop in (a chip every DROP_STEP_MS, up to 12 of them). */
+export const DROP_STEP_MS = 90;
+export const dropEndsMs = (chips: number) => Math.min(chips, 12) * DROP_STEP_MS + 260;
 
 /** A short plain section label ("You missed", "Your words"). */
 export function RevealLabel({ children }: { children: ReactNode }) {
@@ -54,12 +85,35 @@ export interface RevealChip {
   kind: ChipKind;
 }
 
-/** Words as chips that wrap to whole words: found plain, the longest gold, missed outlined, wrong red. */
-export function RevealChips({ items, id }: { items: readonly RevealChip[]; id?: string }) {
+/**
+ * Words as chips that wrap to whole words: found plain, the longest gold, missed outlined, wrong red. With `drop`
+ * (stage 2's round end) the found words drop in one by one with a soft tick and the longest lands on its gold chip
+ * with its own note (`shared.wordDrop`, `shared.wordLongest`, the shared tick until Joe's files); every chip ends
+ * visible, and under reduced motion nothing moves.
+ */
+export function RevealChips({ items, id, drop = false }: { items: readonly RevealChip[]; id?: string; drop?: boolean }) {
+  const root = useRef<HTMLUListElement | null>(null);
+  useEffect(() => {
+    if (!drop || demoHushed()) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    items.slice(0, 12).forEach((chip, i) => {
+      if (chip.kind === "missed" || chip.kind === "wrong") return;
+      timers.push(
+        setTimeout(() => {
+          if (chip.kind === "longest") {
+            playSlotOr("shared.wordLongest", "tick", 0.7);
+            gameFx("combo", root.current?.children[i] as HTMLElement | undefined, { count: 1, silent: true, inGame: false });
+          } else playSlotOr("shared.wordDrop", "tick", 0.45);
+        }, i * DROP_STEP_MS),
+      );
+    });
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
-    <ul data-wr-chips={id ?? ""} className="wr-chips">
+    <ul ref={root} data-wr-chips={id ?? ""} data-wr-drop={drop ? "" : undefined} className="wr-chips">
       {items.map((c, i) => (
-        <li key={`${c.text}-${i}`} data-kind={c.kind} className="wr-chip">
+        <li key={`${c.text}-${i}`} data-kind={c.kind} className="wr-chip" style={drop ? { ["--wd-i" as string]: Math.min(i, 12) } : undefined}>
           <span>{c.text}</span>
           {c.sub !== undefined && c.sub !== "" ? <span className="wr-chip-sub">{c.sub}</span> : null}
         </li>

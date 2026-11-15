@@ -9,13 +9,24 @@ import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsHasBonus, wsSnapLine, wsSpl
 import { fx } from "@/lib/fx";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
+
+/** Stage 2 effects: a found word's chime, pitched by its length (4 letters to 9+). */
+const FOUND_CUES = ["wordsearch.found4", "wordsearch.found5", "wordsearch.found6", "wordsearch.found7", "wordsearch.found8", "wordsearch.found9"] as const;
+
+/** Inks a loop in: its stroke drawn along its length (an SVG path's own dash; display only). */
+function inkLoop(path: Element | null | undefined, delay = 0): void {
+  if (!(path instanceof SVGPathElement) || typeof path.getTotalLength !== "function") return;
+  const length = path.getTotalLength();
+  path.animate([{ strokeDasharray: `${length}`, strokeDashoffset: `${length}` }, { strokeDasharray: `${length}`, strokeDashoffset: "0" }], { duration: 360, delay, easing: "ease-out" });
+}
 
 import { useGoalProgress } from "@/components/duel/GameFrame";
 import "@/polish-word/word-look.css";
 import "@/polish-word/lookout.css";
 import { Button } from "@/components/ui/button";
 import { overhaulReveal, usesWordOverhaul } from "@/lib/duel/wordOverhaul";
-import { RevealChips, RevealNumbers, type RevealChip } from "@/components/puzzles/WordReveal";
+import { RevealChips, RevealNumbers, type RevealChip, dropEndsMs } from "@/components/puzzles/WordReveal";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -189,6 +200,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           if (start.current === null) start.current = cell;
           const next = wsSnapLine(start.current, cell, size);
           if (next.join(".") !== current.current.join(".")) {
+            // Stage 2: the marker squeaks as the loop grows (one short squeak a letter).
+            if (next.length > current.current.length && next.length > 1) wordCue("wordsearch.drag");
             current.current = next;
             setLine(next);
           }
@@ -211,8 +224,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         if (verdict.valid && (verdict as { bonus?: boolean }).bonus) {
           setBonus((b) => b ?? { word: verdict.word, cells: path });
           rightMoveFlash(bonusChip.current);
+          // Stage 2: the bonus has its own sparkle and brighter chime.
+          if (!lockedNow.current) wordFx("combo", bonusChip.current, "wordsearch.bonus", { count: 2, silent: true });
+          inkNext.current = true;
         } else if (verdict.valid) {
           setFound((f) => (f.some((x) => x.word === verdict.word) ? f : [...f, { word: verdict.word, cells: path }]));
+          // Stage 2: the loop inks in, the chip ticks with a pen stroke; the chime is pitched by the word's length.
+          if (!lockedNow.current) wordCue(stepCue(FOUND_CUES, verdict.word.length - 4));
+          inkNext.current = true;
+        } else if (verdict.reason === "Already found") {
+          // Stage 2: re-dragging a found word is a gentle bump on its chip, never an error.
+          if (!lockedNow.current) wordFx("nearMiss", stageRef.current?.querySelector('[data-ws-chip="found"]'), "wordsearch.already", { noHaptic: true, silent: true });
         } else if (verdict.reason !== "Already found") {
           setBad(path);
           setTimeout(() => setBad([]), 350);
@@ -221,9 +243,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     },
   });
 
+  // Stage 2: the newest loop inks in and its chip ticks (after the found word or the bonus lands on screen).
+  const inkNext = useRef(false);
+  const loopCount = found.length + (bonus ? 1 : 0);
+  useEffect(() => {
+    if (!inkNext.current) return;
+    inkNext.current = false;
+    const lines = stageRef.current?.querySelectorAll("[data-ws-line]");
+    inkLoop(lines?.[lines.length - 1]);
+    const chips = stageRef.current?.querySelectorAll('[data-ws-chip="found"]');
+    wordFx("drop", chips?.[found.length - 1], null, { silent: true });
+  }, [loopCount, found.length]);
+
   // All six found: every found word glows in the grid together (display only).
   useWordFinish(total > 0 && found.length >= total, () => {
     wordCue("wordsearch.finish");
+    // Stage 2: the last word redraws every loop in order.
+    wordCue("wordsearch.redraw");
+    const lines = stageRef.current?.querySelectorAll("[data-ws-line]") ?? [];
+    stagger(lines.length, 90, (i) => inkLoop(lines[i]));
     const root = stageRef.current;
     const cells = new Set(found.flatMap((f) => f.cells));
     const steps: FinishStep[] = [...cells].map((cell) => ({
@@ -332,6 +370,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   return (
     <div data-word-reveal="wordsearch" data-wr-version="overhaul" className="wr">
       <RevealNumbers
+        countAfterMs={dropEndsMs(chips.length)}
         items={[
           { id: "found", label: "Words found", value: `${verdict.found.length}/${placements.length}`, tone: verdict.found.length === placements.length ? "gold" : undefined },
           puzzle.bonus ? { id: "bonus", label: "Bonus word", value: split.bonusFound ? "Found" : "Missed", tone: split.bonusFound ? "gold" : undefined } : null,
@@ -341,7 +380,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       <div style={{ width: "min(84vw, 340px)", containerType: "inline-size" }}>
         <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPaths={missedPaths} />
       </div>
-      <RevealChips id="words" items={chips} />
+      <RevealChips id="words" items={chips} drop />
     </div>
   );
 }

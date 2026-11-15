@@ -2611,7 +2611,12 @@ outside the repo.
   stamps draw their reveal exactly as before) each game's reveal is built from `src/components/puzzles/WordReveal.tsx`
   (the score's numbers as tiles, the board large, Solution / Yours through the shared switch, words as chips; styles
   `src/polish-word/word-reveal.css`).
-  Stages 2 (effects, on #422's kit) and 3 (levels) follow.
+  *Stage 2, the effects* (15 Nov 2026, on #422's kit): every moment through `wordFx` (`src/components/puzzles/wordFx.ts`:
+  the kit's effect on the piece's own element plus the game's cue), 81 cues named in `word-elevenlabs.md`, each with a
+  placeholder in `scripts/sound-review-nov-2026/make.py` behind NEW_GAME_SOUNDS and a NEW_GAME_SOUND_REPLACES entry (the
+  kit or game sound it stands in for); the round end in each reveal (`RevealChips drop`: words drop in with
+  `shared.wordDrop` ticks, the longest `shared.wordLongest`; `RevealNumbers countAfterMs` counts the numbers up after).
+  Clips in the gallery; `bun scripts/shots/capture.ts … --video=<dir>` records a run. Stage 3 (levels) follows.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

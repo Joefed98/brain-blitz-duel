@@ -61,6 +61,60 @@ Concept A: the figure-eight in glossy gold, teal and grey glazes, exactly today'
 
 Intro, today and new: <img src="img/swapword-intro.webp" width="400">
 
+
+## Stage 2: the effects
+
+Every effect is the shared kit's (`src/lib/fx/kit.ts`, #422) on the piece's own element, plus the game's own sound cue
+(`src/components/puzzles/wordFx.ts`; the cues and their placeholders in `docs/sound-cues/word-elevenlabs.md`). Until
+Joe's recordings arrive each moment plays the kit's shared sound; his file then stands in for it. The round end, in
+every game's reveal: the found words drop in one by one with a soft tick, the longest on its gold chip with its own
+note, then the numbers count up. Clips at 390 × 844 (shown 270 px wide): the effects while playing, then the round end.
+
+### Nucleus
+A letter rises out of the ring with a key click; Shuffle slides the letters round; a valid word lifts from the strip and flies to the list, its note rising with its length; three words inside 10 s a combo on the counter; the pangram spins the ring once (letters upright) with its own chord; a refused word shakes back with a soft buzz.
+
+<video src="clips/wordsmith-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/wordsmith-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
+### Interlock
+A tray tile lifts with a shadow when picked; it lands on its square with a clack; a run that becomes a word lights tile by tile with a chord that grows with it, two at once a combo; a run that is no word stays faintly red with one quiet note; Done lights the words in order, then the words pill counts up.
+
+<video src="clips/tilegrid-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/tilegrid-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
+### Slider
+A swipe slides its line with a tile rattle; a row becoming a word plays a two-note; a padlock snaps shut (or opens) on its art; at par with three rows done the moves pill nudges; arming Reset ticks; all rows words shuts the padlocks top to bottom.
+
+<video src="clips/wordslide-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/wordslide-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
+### Forage
+Tracing plays a soft note a letter, rising; crossing the golden tile sparkles; a valid word flashes, flies to the list from its last letter and its points pop; 7+ letters a bigger chord.
+
+<video src="clips/wordhunt-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/wordhunt-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
+### Lookout
+The marker squeaks as the loop grows; a found word's loop inks in, its chip ticks and the chime is pitched by length; the bonus sparkles; re-dragging a found word is a gentle bump on its chip; the last word redraws every loop in order.
+
+<video src="clips/wordsearch-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/wordsearch-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
+### Roundabout
+Tracing plays a note a letter; a slot word's letters fly from the wheel into their squares one by one; a bonus word drops into the jar with a coin plink; a repeat is a gentle bump; a miss its own note; the finished grid spins the wheel and lights corner to corner.
+
+<video src="clips/letterwheel-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/letterwheel-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
+### Strikeout
+Each key a typewriter click; a hit flips the matching tiles one after another with a clack; a strike slams onto its pip; one strike left pulses the strike row; an early solve with 3+ letters hidden is a combo; the round end flips the words gold.
+
+<video src="clips/strikeout-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/strikeout-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
+### Cryptogrid
+A letter ripples out into every square with its number, nearest first, ticks rising; a word it completes glints; a full grid that's wrong plays its own note; the selection's jump has its own tick; cracked flips the grid on the diagonal.
+
+<video src="clips/codeword-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/codeword-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
+### Swapword
+The two tiles pass each other with a clack; a tile turning gold plinks, two in one swap a combo; a locked gold tile wiggles; three swaps left pulses the counter; out of swaps the board greys with a closing clunk; solved runs a wave round the figure-eight with a rising scale.
+
+<video src="clips/swapword-effects.mp4" width="270" muted loop autoplay playsinline></video> <video src="clips/swapword-round-end.mp4" width="270" muted loop autoplay playsinline></video>
+
 ## Reveals
 
 Joe's reveal brief (15 Nov 2026): each game's answer reveal redesigned inside the shared reveal layout, on the new

@@ -6,7 +6,7 @@ import { wordHuntDepth, wordHuntLongHalves } from "@/lib/duel/wordHunt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import "@/polish-layout/polish-nov3-word.css";
 import { wordHuntCols } from "@/lib/duel/types";
-import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, type RevealChip } from "@/components/puzzles/WordReveal";
+import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, type RevealChip, dropEndsMs } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 
 /** Fixed intro example — never randomised: a 6×6 board (wordHuntRev 3) with its golden tile on the A. */
@@ -116,6 +116,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
     <div data-word-reveal="wordhunt" data-wr-version="overhaul" className="wr">
       <RevealHeadline>{mine.length} {mine.length === 1 ? "word" : "words"}</RevealHeadline>
       <RevealNumbers
+        countAfterMs={dropEndsMs(yours.length)}
         items={[
           { id: "points", label: "Word points", value: num("points") ?? 0, tone: "gold" },
           num("value") !== null ? { id: "value", label: "With boosts", value: num("value") } : null,
@@ -129,7 +130,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       {yours.length > 0 ? (
         <div className="flex w-full flex-col items-center gap-1.5">
           <RevealLabel>Your words</RevealLabel>
-          <RevealChips id="yours" items={yours} />
+          <RevealChips id="yours" items={yours} drop />
           {mine.length > yours.length ? <p className="wr-label">+ {mine.length - yours.length} more</p> : null}
         </div>
       ) : null}

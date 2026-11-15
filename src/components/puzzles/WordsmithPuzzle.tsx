@@ -9,6 +9,7 @@ import { toggleWordsmithTile } from "./wordInput";
 import { Shuffle } from "lucide-react";
 import { shuffleLetterOrder } from "./letterShuffle";
 import { playFinish, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
+import { comboWindow, flyFrom, stepCue, wordFx } from "./wordFx";
 import { scoreWordsmith, WORDSMITH_REV_DEPTH, WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 import { useStageState } from "@/lib/duel/stageState";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
@@ -18,6 +19,8 @@ import "@/polish-word/nucleus.css";
 
 /** The pangram moment (wordsmithRev 3): the shared moment-card sting, not a completion cue (docs/sound-cues/word.md lists those). */
 const PANGRAM_CUE = "shared.momentcard";
+/** The Word overhaul's effects (stage 2): a valid word's note rises with its length, 4 letters low to 9+ high. */
+const WORD_CUES = ["wordsmith.word4", "wordsmith.word5", "wordsmith.word6", "wordsmith.word7", "wordsmith.word8", "wordsmith.word9"] as const;
 
 import {
   WORDSMITH_MIN_LENGTH,
@@ -74,6 +77,8 @@ export function WordsmithPuzzle({
   const submitted = useRef(false);
   const foundRef = useRef<Found[]>([]);
   foundRef.current = found;
+  const counterRef = useRef<HTMLSpanElement | null>(null);
+  const wordTimes = useRef<number[]>([]);
 
   selectedRef.current = selectedTiles;
   const word = selectedTiles.map((index) => letters[index] ?? "").join("");
@@ -132,6 +137,7 @@ export function WordsmithPuzzle({
     if (candidate.length < WORDSMITH_MIN_LENGTH) {
       setMessage(`${WORDSMITH_MIN_LENGTH} letters or more`);
       setShake((n) => n + 1);
+      wordFx("wrong", null, "wordsmith.invalid");
       return;
     }
     if (!checkWord) return;
@@ -148,18 +154,37 @@ export function WordsmithPuzzle({
       setMessage(null);
       setAcceptedWord(verdict.bonus ? `Bonus · ${verdict.word}` : verdict.word);
       rightMoveFlash(wordBoxRef.current);
-      if (pangramRule && verdict.word.length >= letters.length && !pangramFound) wordCue(PANGRAM_CUE);
+      // Stage 2 effects: the word lifts from the strip and flies to the list (the HUD's chip), its note rising with
+      // its length; three words inside 10 s is a combo on the counter; the pangram spins the ring once in gold.
+      const from = wordBoxRef.current?.getBoundingClientRect();
+      requestAnimationFrame(() => flyFrom(wordBoxRef.current?.parentElement?.querySelector(".accepted-word-chip"), from));
+      wordCue(stepCue(WORD_CUES, verdict.word.length - 4));
+      const streak = comboWindow(wordTimes.current, Date.now());
+      if (streak >= 3) wordFx("combo", counterRef.current, "wordsmith.combo", { count: streak - 1 });
+      if (pangramRule && verdict.word.length >= letters.length && !pangramFound) {
+        wordCue(PANGRAM_CUE);
+        wordCue("wordsmith.pangram");
+        // The letters turn against the ring, so they stay upright as it spins (as the end-of-run spin does).
+        const timing = { duration: 900, easing: "cubic-bezier(.5,0,.2,1)" };
+        const ring = ringRef.current?.querySelector(".wordsmith-ring");
+        ring?.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], timing);
+        ring?.querySelectorAll(".wordsmith-ring-letter").forEach((el) => el.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(-360deg)" }], timing));
+      }
     } else {
       setMessage(verdict.reason ?? "Not a word");
       setShake((n) => n + 1);
+      wordFx("wrong", null, "wordsmith.invalid");
     }
   };
 
   const tapTile = (index: number) => {
     if (locked || busy) return;
     setMessage(null);
+    const adding = !selectedRef.current.includes(index);
     selectedRef.current = toggleWordsmithTile(selectedRef.current, index);
     setSelectedTiles(selectedRef.current);
+    // Stage 2: a letter rises out of the ring with a soft key click (the letter, never the disc's hit area).
+    if (adding) wordFx("tap", ringRef.current?.querySelector(`[data-wordsmith-tile="${index}"] .wordsmith-ring-letter`), "wordsmith.letter");
   };
 
   // Desktop keys: typing a letter taps the first unused tile with it, Backspace taps the last tile again
@@ -224,7 +249,8 @@ export function WordsmithPuzzle({
           aria-expanded={listOpen}
           className="press rounded-full border border-border bg-card px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-foreground"
         >
-          Words {counted} / {puzzle.wordCount ?? "?"}
+          {/* The combo plays on this label, never on the button's own box (the kit's rule). */}
+          <span ref={counterRef} className="inline-block">Words {counted} / {puzzle.wordCount ?? "?"}</span>
         </button>
         {listOpen && (
           <>
@@ -281,7 +307,10 @@ export function WordsmithPuzzle({
       )}
 
       <div data-game-controls="actions" className={`${column ? "" : "mt-auto "}grid shrink-0 grid-cols-[44px_1fr_1fr] gap-2`}>
-        <Button type="button" variant="outline" data-wa-btn="navy" className="h-11 w-11 p-0" aria-label="Shuffle letters" title="Shuffle letters" disabled={locked || busy} onClick={() => setOrder(current => shuffleLetterOrder(current, WORDSMITH_CENTRE_INDEX))}><Shuffle className="h-5 w-5" /></Button>
+        <Button type="button" variant="outline" data-wa-btn="navy" className="h-11 w-11 p-0" aria-label="Shuffle letters" title="Shuffle letters" disabled={locked || busy} onClick={() => {
+          setOrder(current => shuffleLetterOrder(current, WORDSMITH_CENTRE_INDEX));
+          wordFx("slide", null, "wordsmith.shuffle");
+        }}><Shuffle className="h-5 w-5" /></Button>
         <Button type="button" variant="outline" onClick={() => {
           selectedRef.current = [];
           setSelectedTiles([]);

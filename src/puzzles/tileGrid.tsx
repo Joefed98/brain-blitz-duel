@@ -24,12 +24,16 @@ import { fx } from "@/lib/fx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
+
+/** Stage 2 effects: a run becoming a word plays a chord that grows with it (3 letters to 7). */
+const TG_WORD_CUES = ["tilegrid.word3", "tilegrid.word4", "tilegrid.word5", "tilegrid.word6", "tilegrid.word7"] as const;
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { useGameKeys } from "@/lib/desktop";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/interlock.css";
-import { BoardPair, RevealChips, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { BoardPair, RevealChips, RevealNumbers, dropEndsMs } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import { HudPills } from "@/components/puzzles/HudPills";
 
@@ -104,6 +108,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const swallowClick = useRef(false);
   const placedRef = useRef(placed);
   placedRef.current = placed;
+  const lastWordAt = useRef(0);
   const submitted = useRef(false);
   const boardSpace = useRef<HTMLDivElement | null>(null);
   const [cellSize, setCellSize] = useState(40);
@@ -157,7 +162,18 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         fx.onCorrect();
         // Batch W (display only): the word's tiles get the toolkit's right-move glow.
         for (const run of runsRef.current)
-          if (run.word === word) run.cells.forEach((cell) => rightMoveFlash(boardSpace.current?.querySelector(`[data-tg-cell="${cell}"]`)));
+          if (run.word === word) {
+            run.cells.forEach((cell) => rightMoveFlash(boardSpace.current?.querySelector(`[data-tg-cell="${cell}"]`)));
+            // Stage 2: the run lights tile by tile with a chord that grows with the word; two words at once a combo.
+            stagger(run.cells.length, 45, (i) => wordFx("tap", boardSpace.current?.querySelector(`[data-tg-cell="${run.cells[i]}"]`), null, { silent: true }));
+          }
+        wordCue(stepCue(TG_WORD_CUES, word.length - 3));
+        const at = Date.now();
+        if (at - lastWordAt.current < 400) wordFx("combo", boardSpace.current?.querySelector("[data-word-cell]"), "tilegrid.combo", { count: 2 });
+        lastWordAt.current = at;
+      } else if (!verdict.valid && !lockedNow.current && !openingWords.current?.has(word)) {
+        // A run that isn't a word: it stays faintly red while it stands, with one quiet note (no haptic: not a refusal).
+        wordFx("wrong", null, "tilegrid.notword", { noHaptic: true });
       }
       return verdict.valid;
     },
@@ -202,6 +218,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         duration: 480,
       })),
     );
+    // Stage 2: then the bonus counts up on the words pill.
+    setTimeout(() => wordFx("countUp", document.querySelector('[data-hud-pills="tilegrid"] [data-hud-pill="words"]'), "tilegrid.bonus", { inGame: false }), Math.min(900, words.length * gap + 300));
     return playFinish(steps);
   });
 
@@ -235,12 +253,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     next[hit] = tile;
     setPlaced(next);
     setSelected(null);
+    // Stage 2: the tile lands on its square with a wooden clack.
+    requestAnimationFrame(() => wordFx("drop", boardSpace.current?.querySelector(`[data-tg-cell="${hit}"]`), "tilegrid.place"));
   };
   const returnToTray = (tile: number) => {
     const from = placed.indexOf(tile);
     if (from < 0) return;
     const next = [...placed]; next[from] = null;
     setPlaced(next); setSelected(null);
+    wordFx("slide", null, "tilegrid.back");
   };
   const clearAll = () => {
     if (frozen) return;
@@ -371,7 +392,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
             data-wa="tile"
             data-wa-tone={selected === tile ? "sapphire" : "black"}
             onPointerDown={(event) => startDrag(tile, event)}
-            onClick={() => { if (!frozen && !swallowClick.current) setSelected((current) => current === tile ? null : tile); }}
+            onClick={(event) => {
+              if (frozen || swallowClick.current) return;
+              // Stage 2: picking a tile up lifts it with a shadow (it stays up until it is placed or put down).
+              if (selected !== tile) wordFx("pickUp", event.currentTarget, "tilegrid.pick");
+              setSelected((current) => current === tile ? null : tile);
+            }}
             className={`word-letter-tile flex items-center justify-center rounded-lg bg-primary font-display text-xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
             style={{ width: TRAY_TILE, height: TRAY_TILE }}
           >
@@ -435,6 +461,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   return (
     <div data-word-reveal="tilegrid" data-wr-version="overhaul" className="wr">
       <RevealNumbers
+        countAfterMs={dropEndsMs(bigWords.length)}
         items={[
           { id: "placed", label: "Tiles placed", value: `${placedCount(mine)}/${TG_TILES}` },
           inWords !== null ? { id: "in-words", label: "Tiles in words", value: inWords, tone: inWords === TG_TILES ? "gold" : undefined } : null,
@@ -445,7 +472,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         solution={<MiniGrid cells={solution} cell={cell} gold={new Set(solution.map((l, i) => (l ? i : -1)).filter((i) => i >= 0))} />}
         yours={<MiniGrid cells={mine} cell={cell} gold={bigCells} />}
       />
-      {bigWords.length > 0 ? <RevealChips id="big-words" items={bigWords.map((w) => ({ text: w, kind: "longest" as const }))} /> : null}
+      {bigWords.length > 0 ? <RevealChips id="big-words" items={bigWords.map((w) => ({ text: w, kind: "longest" as const }))} drop /> : null}
     </div>
   );
 }

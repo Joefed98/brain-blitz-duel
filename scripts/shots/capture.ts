@@ -5,6 +5,7 @@
  *
  *   bun scripts/shots/capture.ts [games…] [--category=<id>] [--all] [--sizes=375x667,390x844]
  *       [--url=<origin>] [--out=<dir>, default .shots/ (gitignored)] [--tag=after] [--phases=intro,play,solve,reveal]
+ *       [--video=<dir>] (each run also recorded as WebM under <dir>/<game>/)
  *       [--dpr=1] [--hold=2000] [--reduced-motion]
  *   bun scripts/shots/sheets.ts --in=<dir> --out=<dir>      (before/after contact sheets)
  *
@@ -301,10 +302,13 @@ async function newRun(
   size: readonly [number, number],
   opts: { clock?: boolean; answer?: string | null; seed?: Record<string, unknown> },
 ): Promise<Run> {
+  // --video=<dir>: each run is also recorded as a video (WebM; the gallery's effect clips, 15 Nov 2026).
+  const videoDir = opt("video");
   const context = await browser.newContext({
     viewport: { width: size[0], height: size[1] },
     deviceScaleFactor: DPR,
     reducedMotion: flag("reduced-motion") ? "reduce" : "no-preference",
+    ...(videoDir ? { recordVideo: { dir: `${videoDir}/${game}`, size: { width: size[0], height: size[1] } } } : {}),
   });
   await context.addInitScript(SEED_RANDOM);
   const page = await context.newPage();

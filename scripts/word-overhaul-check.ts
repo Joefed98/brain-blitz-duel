@@ -388,6 +388,46 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
   ok(path.length > 0 && path.map((c) => wh.grid[c]).join("").toUpperCase() === w0, `forage: the best word's path is found on the board (${w0})`);
 }
 
+/* ------------------------------------------------------------------------------------------------ 11. Effects (stage 2) */
+{
+  // Every sound the ElevenLabs list names is played by its game, has a placeholder recording behind NEW_GAME_SOUNDS
+  // and says which shared sound it stands in for; the effects go through the kit (no second kit, no haptic calls).
+  const { NEW_GAME_SOUND_FILES, NEW_GAME_SOUND_REPLACES } = await import("../src/lib/fx/newGameSounds");
+  const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
+  const list = readFileSync("docs/sound-cues/word-elevenlabs.md", "utf8");
+  const slots = new Set<string>();
+  for (const m of list.matchAll(/^\| `([a-z]+)\.([A-Za-z]+?)(\d)?`(?: … `[a-z]+\.[A-Za-z]+?(\d)`)?/gm)) {
+    const [, game, name, lo, hi] = m;
+    if (lo && hi) for (let k = Number(lo); k <= Number(hi); k++) slots.add(`${game}.${name}${k}`);
+    else slots.add(`${game}.${name}${lo ?? ""}`);
+  }
+  ok(slots.size >= 80, `effects: the ElevenLabs list names every sound (${slots.size})`);
+  const sources = ["src/components/puzzles/WordsmithPuzzle.tsx", "src/puzzles/tileGrid.tsx", "src/puzzles/wordSlide.tsx",
+    "src/components/puzzles/WordHuntPuzzle.tsx", "src/puzzles/wordSearch.tsx", "src/puzzles/letterWheel.tsx", "src/puzzles/strikeout.tsx",
+    "src/puzzles/codeword.tsx", "src/puzzles/swapword.tsx", "src/components/puzzles/WordReveal.tsx", "src/components/puzzles/LetterKeypad.tsx"]
+    .map((f) => readFileSync(f, "utf8")).join("\n");
+  for (const slot of slots) {
+    ok(sources.includes(`"${slot}"`), `effects: ${slot} is played by its game`);
+    ok(slot in SOUND_MANIFEST, `effects: ${slot} has a manifest slot`);
+    if (slot.startsWith("shared.")) continue;
+    ok(!!NEW_GAME_SOUND_FILES[slot], `effects: ${slot} has a placeholder recording`);
+    ok((NEW_GAME_SOUND_REPLACES[slot]?.length ?? 0) > 0, `effects: ${slot} names the shared sound it stands in for`);
+  }
+  const fxSource = readFileSync("src/components/puzzles/wordFx.ts", "utf8");
+  ok(/from "@\/lib\/fx\/kit"/.test(fxSource) && !/navigator\.vibrate|haptic\(/.test(sources + fxSource), "effects: through the kit only (no vibrate or haptic call of their own)");
+  // The round end: found words drop in (with their ticks), the numbers count up after them; every chip ends visible.
+  const reveal = readFileSync("src/components/puzzles/WordReveal.tsx", "utf8");
+  ok(/data-wr-drop/.test(reveal) && /shared\.wordDrop/.test(reveal) && /shared\.wordLongest/.test(reveal), "round end: chips drop with a tick, the longest its own note");
+  ok(/countUpText/.test(reveal) && /data-wr-count/.test(reveal), "round end: the numbers count up (the markup holds the final number)");
+  const revealCss = readFileSync("src/polish-word/word-reveal.css", "utf8");
+  ok(/prefers-reduced-motion: no-preference[\s\S]*\[data-wr-drop\]/.test(revealCss), "round end: the drop is off under reduced motion");
+  const { RevealChips } = await import("../src/components/puzzles/WordReveal");
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const html = renderToStaticMarkup(createElement(RevealChips, { items: [{ text: "CAT", kind: "found" }, { text: "TIGER", kind: "longest" }], drop: true }));
+  ok(/data-wr-drop=""/.test(html) && /TIGER/.test(html) && /CAT/.test(html), "round end: every word is in the markup from the start");
+}
+
 console.log(`word-overhaul-check: ${passes} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log("FAIL");

@@ -18,6 +18,25 @@ import { KeypadAction, LetterKeypad } from "@/components/puzzles/LetterKeypad";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { stagger, wordFx } from "@/components/puzzles/wordFx";
+
+/** The grid's runs of two or more squares (rows, then columns), as square indices (display only: stage 2's glint). */
+function codewordRuns(cells: readonly number[], size: number): number[][] {
+  const runs: number[][] = [];
+  for (const across of [true, false])
+    for (let a = 0; a < size; a++) {
+      let run: number[] = [];
+      for (let b = 0; b <= size; b++) {
+        const i = across ? a * size + b : b * size + a;
+        if (b < size && (cells[i] ?? 0) > 0) run.push(i);
+        else {
+          if (run.length >= 2) runs.push(run);
+          run = [];
+        }
+      }
+    }
+  return runs;
+}
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-word/word-look.css";
 import "@/polish-word/cryptogrid.css";
@@ -210,6 +229,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
       setCheckedWrong(sentMoves);
       puzzleReject(gridRef.current, false);
       fx.onWrong();
+      wordCue("codeword.wrong");
       flash("Not cracked yet: a letter is wrong");
     }
   });
@@ -272,8 +292,29 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     fx.onPlace();
     // The Word overhaul: after a letter, the selection jumps to the next unsolved number (in grid order).
     const after = replayCodeword(numbers, givens, [...actions, { n: selected, letter }]);
+    // Stage 2: the letter ripples out into every square with its number, nearest first, ticks rising; a word the
+    // letter completes glints.
+    const size = data.size;
+    const squares = data.cells.map((n, i) => (n === selected ? i : -1)).filter((i) => i >= 0);
+    const first = squares[0] ?? 0;
+    const far = (i: number) => Math.abs(Math.floor(i / size) - Math.floor(first / size)) + Math.abs((i % size) - (first % size));
+    const ordered = [...squares].sort((a, b) => far(a) - far(b));
+    const cellEls = gridRef.current?.firstElementChild?.children;
+    wordCue("codeword.ripple");
+    stagger(ordered.length, 55, (k) => wordFx("tap", cellEls?.[ordered[k]!], null, { silent: true }));
+    const filled = (i: number) => !!after[(data.cells[i] ?? 0) - 1];
+    const completed = codewordRuns(data.cells, size).filter((run) => run.some((i) => data.cells[i] === selected) && run.every(filled));
+    if (completed.length > 0) {
+      window.setTimeout(() => {
+        wordCue("codeword.word");
+        for (const run of completed) stagger(run.length, 35, (k) => wordFx("tap", cellEls?.[run[k]!], null, { silent: true }));
+      }, ordered.length * 55 + 60);
+    }
     const next = codewordNextUnsolved(data.cells, selected, given, after);
-    if (next !== null) setSelected(next);
+    if (next !== null) {
+      setSelected(next);
+      wordCue("codeword.jump");
+    }
   };
 
   const clear = () => {
@@ -362,6 +403,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   return (
     <div data-word-reveal="codeword" data-wr-version="overhaul" className="wr">
       <RevealNumbers
+        countAfterMs={200}
         items={[
           { id: "decoded", label: "Letters decoded", value: `${tally.correct}/${tally.hidden}`, tone: tally.solved ? "gold" : undefined },
           { id: "wrong", label: "Wrong at the end", value: tally.wrong ?? 0, tone: (tally.wrong ?? 0) > 0 ? "warn" : undefined },

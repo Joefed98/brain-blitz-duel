@@ -17,3 +17,6 @@
 }
 @keyframes sw-demo-a { 0%, 25% { transform: none; } 45%, 80% { transform: translate(144px, -6px); } 100% { transform: none; } }
 @keyframes sw-demo-b { 0%, 25% { transform: none; } 45%, 80% { transform: translate(-144px, 6px); } 100% { transform: none; } }
+
+/* Stage 2: out of swaps, the board greys (with the closing clunk). */
+[data-word-polish="swapword"][data-sw-out] [data-sw-tile] { filter: grayscale(0.85) brightness(0.8); transition: filter 400ms ease-out; }

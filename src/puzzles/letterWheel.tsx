@@ -12,6 +12,10 @@ import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { fx } from "@/lib/fx";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { flyFrom, stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
+
+/** Stage 2 effects: a note a letter while tracing, rising. */
+const LW_TRACE_CUES = ["letterwheel.trace1", "letterwheel.trace2", "letterwheel.trace3", "letterwheel.trace4", "letterwheel.trace5", "letterwheel.trace6", "letterwheel.trace7", "letterwheel.trace8"] as const;
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-letterwheel.css";
 import "@/polish-word/word-look.css";
@@ -356,9 +360,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filledCount, locked]);
 
+  // Stage 2: a note for each letter the trace takes, rising.
+  const tracedLength = useRef(0);
+  useEffect(() => {
+    const grew = path.length > tracedLength.current;
+    tracedLength.current = path.length;
+    if (grew) wordCue(stepCue(LW_TRACE_CUES, path.length - 1));
+  }, [path]);
+
   // Crossword complete: the wheel spins once, then the crossword lights corner to corner (display only).
   useWordFinish(slotCount > 0 && filledCount >= slotCount, () => {
     wordCue("letterwheel.finish");
+    wordCue("letterwheel.spin");
     const root = stageRef.current;
     const cols = data?.cols ?? 1;
     const rows = data?.rows ?? 1;
@@ -445,6 +458,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         // Batch W: the toolkit's right-move glow on the slot's cells as the word lands (display only).
         const slot = data.slots[i];
         if (slot) for (const cell of lwSlotCells(slot, data.cols)) rightMoveFlash(stageRef.current?.querySelector(`[data-lw-cell="${cell}"]`));
+        // Stage 2: the word's letters fly from the wheel into their squares, one after another.
+        if (slot && !lockedNow.current) {
+          const from = stageRef.current?.querySelector("[data-lw-wheel]")?.getBoundingClientRect();
+          const cells = lwSlotCells(slot, data.cols);
+          wordCue("letterwheel.fly");
+          requestAnimationFrame(() => stagger(cells.length, 60, (k) => flyFrom(stageRef.current?.querySelector(`[data-lw-cell="${cells[k]}"]`), from)));
+        }
       } else if (v.reason === "Not in this puzzle" && usesJar && !bonus.includes(v.word.toUpperCase())) {
         // wheelRev 2: a real word not in the crossword drops into the bonus jar.
         const word = v.word.toUpperCase();
@@ -452,12 +472,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         setFlash(`Bonus · ${word}`);
         setTimeout(() => setFlash(null), 900);
         jarPulse(jarRef.current);
+        // Stage 2: the bonus word drops into the jar with a coin plink.
+        if (!lockedNow.current) wordFx("drop", null, "letterwheel.jar", { silent: true });
       } else if (v.reason === "Not in this puzzle") {
         // Game review fix (15 Nov 2026): a word already in the jar is a harmless repeat: the wheel's own silent shake,
         // never the reject sound (wheelRev 1's word not in the puzzle plays its one `wrong` above).
         // The shared shake observer plays the quiet `wrong` on every shake; this one is marked quiet (data-quiet-shake).
         setQuietShake(true);
         setShake(true);
+        // Stage 2: a harmless repeat is a gentle bump with a soft tick, never an error.
+        if (!lockedNow.current) wordFx("nearMiss", null, "letterwheel.repeat", { noHaptic: true });
         setTimeout(() => {
           setShake(false);
           setQuietShake(false);
@@ -469,6 +493,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         setShake(true);
         setTimeout(() => setShake(false), 350);
         if (v.reason === "Not a word") {
+          if (!lockedNow.current) wordCue("letterwheel.miss");
           setMissFlash(true);
           setTimeout(() => setMissFlash(false), 450);
           setFlash("Not a word");
@@ -574,6 +599,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   return (
     <div data-word-reveal="letterwheel" data-wr-version="overhaul" className="wr">
       <RevealNumbers
+        countAfterMs={200}
         items={[
           { id: "words", label: "Words found", value: `${v.slots.length}/${words.length}`, tone: v.slots.length === words.length ? "gold" : undefined },
           { id: "bonus", label: "Bonus words", value: bonusWords, tone: bonusWords > 0 ? "gold" : undefined },

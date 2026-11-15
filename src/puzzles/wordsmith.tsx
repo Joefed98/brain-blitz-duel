@@ -9,7 +9,7 @@ import { WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { WORDSMITH_REV_EVERYDAY } from "@/lib/duel/wordOverhaul";
 import { WordDropList } from "@/components/puzzles/WordDropList";
-import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, TileRow, type RevealChip } from "@/components/puzzles/WordReveal";
+import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, TileRow, type RevealChip, dropEndsMs } from "@/components/puzzles/WordReveal";
 
 /** Fixed intro example — never randomised. Centre letter is index 4. */
 const EXAMPLE_TILES = ["C", "A", "R", "E", "P", "N", "T", "E", "R"];
@@ -84,6 +84,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
     <div data-word-reveal="wordsmith" data-wr-version="overhaul" className="wr">
       <RevealHeadline>{mine.length} {mine.length === 1 ? "word" : "words"}</RevealHeadline>
       <RevealNumbers
+        countAfterMs={dropEndsMs(yours.length)}
         items={[
           { id: "points", label: "Word points", value: points, tone: "gold" },
           { id: "counted", label: "Board words found", value: `${counted}/${puzzle.wordCount ?? everyday.size}` },
@@ -99,7 +100,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       {yours.length > 0 ? (
         <div className="flex w-full flex-col items-center gap-1.5">
           <RevealLabel>Your words</RevealLabel>
-          <RevealChips id="yours" items={yours} />
+          <RevealChips id="yours" items={yours} drop />
         </div>
       ) : null}
       {missed.length > 0 ? (

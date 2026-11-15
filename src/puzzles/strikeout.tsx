@@ -36,6 +36,7 @@ import { KeypadAction, LetterKeypad, type KeyTone } from "@/components/puzzles/L
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { wordFx } from "@/components/puzzles/wordFx";
 
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-strikeout.css";
@@ -524,6 +525,9 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       puzzleReject(strikeRef.current, false);
       fx.onWrong();
       flash(next.last === "wrong" ? "Wrong word: strike" : "Not in the word: strike");
+      // Stage 2: the strike slams onto its pip; with one strike left, the strike row pulses.
+      wordFx("drop", strikeRef.current?.children[next.strikes - 1], "strikeout.strike", { silent: true });
+      if (next.strikes === rules.maxStrikes - 1) window.setTimeout(() => wordFx("nearMiss", strikeRef.current, "strikeout.lastStrike"), 380);
     } else if ((next.word ?? 0) > (before?.word ?? 0)) {
       const solvedWord = next.rows[before?.word ?? 0] ?? "";
       if (rev >= STRIKEOUT_REV5 && next.last === "right") {
@@ -538,12 +542,17 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
             return out;
           });
           if (counts) popEarly(earlyRef.current);
+          // Stage 2: an early solve with 3+ letters still hidden is a combo (they all flip at once).
+          if (hidden >= 3) wordFx("combo", earlyRef.current, "strikeout.combo", { count: hidden });
         }
       }
       setAccepted((a) => ({ word: solvedWord, points: 30, serial: (a?.serial ?? 0) + 1 }));
       fx.onCorrect();
+      wordCue("strikeout.solve");
     } else if (next.last === "hit") {
       fx.onPlace();
+      // Stage 2: each matching tile flips with a clack, one after another (the flip is the layout effect below).
+      wordCue("strikeout.flip");
     }
   });
 
@@ -829,6 +838,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   return (
     <div data-word-reveal="strikeout" data-strikeout-rev={strikeoutRevOf(puzzle)} data-wr-version="overhaul" className="wr">
       <RevealNumbers
+        countAfterMs={200}
         items={[
           { id: "solved", label: "Words solved", value: `${state.solvedWords}/${words.length}`, tone: state.solvedWords === words.length ? "gold" : undefined },
           { id: "strikes", label: "Strikes used", value: `${state.strikes}/${rules.maxStrikes}`, tone: state.strikes >= rules.maxStrikes ? "warn" : undefined },

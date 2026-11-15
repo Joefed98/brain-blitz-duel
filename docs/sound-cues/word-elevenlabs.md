@@ -5,8 +5,7 @@ action that needs a new or better sound, for Joe to generate in ElevenLabs's sou
 slot, the file it drops in as, what it is, its material, its feel and its length.
 
 **How a file drops in.** Save each recording as `public/sounds/<file>` exactly as named below. Each slot is named in
-`src/lib/fx/manifest.ts` and played by its game (the keyboards' key press now; the rest as the overhaul's effects
-land, stage 2); until Joe's file arrives a synthesised placeholder of the
+`src/lib/fx/manifest.ts` and played by its game (every one is wired since stage 2's effects, 15 Nov 2026); until Joe's file arrives a synthesised placeholder of the
 same name (`scripts/sound-review-nov-2026/make.py`, listed in `src/lib/fx/newGameSounds.data.ts`) plays behind the
 `NEW_GAME_SOUNDS` switch (`src/config/soundConfig.ts`, off by default, so the games sound as they do today). After
 dropping files in, level them as the house does (`docs/sound-cues/levels-nov-2026.md`: mono, 44.1 kHz, peaks at
@@ -78,7 +77,7 @@ pangram moment card (`shared.momentcard`), Strikeout's typewriter flip on a hit 
 
 | Slot (file) | Action | What it is · material · feel | Length |
 |---|---|---|---|
-| `wordsearch.drag` (`wordsearch.drag.mp3`, loop) | Dragging: a marker squeak as the loop grows | A felt-tip marker drawn on glossy card: a soft continuous squeak, seamless loop | 0.8–1.2 s loop |
+| `wordsearch.drag` (`wordsearch.drag.mp3`) | Dragging: a marker squeak each time the loop grows a letter | A felt-tip marker drawn on glossy card: one short soft squeak (it repeats a letter at a time, so keep it light) | 0.08–0.12 s |
 | `wordsearch.found4` … `wordsearch.found9` (`wordsearch.found4.mp3` … `wordsearch.found9.mp3`) | A word found: the loop inks in, the chip ticks with a pen stroke; the chime pitched by length | A pen tick on paper followed by a warm chime, six rising pitches | 350–450 ms each |
 | `wordsearch.bonus` (`wordsearch.bonus.mp3`) | The bonus word | A brighter chime with a light sparkle on top | 600–800 ms |
 | `wordsearch.already` (`wordsearch.already.mp3`) | Re-dragging a found word | A gentle "already found" bump: a soft muted double tap, friendly | 120–180 ms |
