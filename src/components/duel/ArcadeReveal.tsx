@@ -14,6 +14,7 @@ import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
 import { RevealBreakdown } from "./RevealBreakdown";
+import { RunSummary } from "./runSummary";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
 
@@ -360,6 +361,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           ) : null}
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
+
+        {/* The game's own run summary (the Sports overhaul): drawn large under the score, in practice and rooms. */}
+        <RunSummary puzzle={puzzle} myAnswer={myAnswer} myScore={myScore} practice={practice} />
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
