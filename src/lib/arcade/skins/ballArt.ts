@@ -8,6 +8,7 @@
 
 import { glossSphere, hash01 } from "./gloss.renderer";
 import { skinRedrawn } from "./redrawPreview";
+import { sceneImage } from "./sceneImages";
 
 export type BallArt = "watermelon" | "disco" | "neon-glow" | "plasma" | "comet" | "retro-leather" | "neon-football";
 
@@ -147,6 +148,18 @@ const GLOW: Partial<Record<BallArt, string>> = { "neon-glow": "#22E4FF", plasma:
  */
 export function paintBallArt(ctx: CanvasRenderingContext2D, art: BallArt, x: number, y: number, r: number, spin = 0): void {
   if (skinRedrawn(BALL_ITEMS[art])) {
+    // The second pass: the ball rendered in Blender (a sphere under a clear coat, lit from the top left), drawn exactly
+    // into the ball's draw circle; the first pass's painting while the image loads.
+    const sprite = BALL_SPRITES.has(art) ? sceneImage(BALL_ITEMS[art]) : null;
+    if (sprite) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(sprite, x - r, y - r, r * 2, r * 2);
+      ctx.restore();
+      return;
+    }
     paintBallArtV2(ctx, art, x, y, r, spin);
     return;
   }
@@ -217,6 +230,8 @@ const BALL_ITEMS: Readonly<Record<BallArt, string>> = {
   "retro-leather": "game-skin.top-bins.retro-leather",
   "neon-football": "game-skin.top-bins.neon-football",
 };
+/** The balls with a Blender sprite (public/cosmetics/redrawn/<item>.webp; docs/design/cosmetics-redraws/blender/game_looks.py). */
+const BALL_SPRITES: ReadonlySet<BallArt> = new Set<BallArt>(["watermelon", "disco", "neon-glow", "plasma"]);
 /** Whether a ball art draws its redraw (its item's switch, docs/design/cosmetics-redraws/). */
 export const ballArtRedrawn = (art: BallArt): boolean => skinRedrawn(BALL_ITEMS[art]);
 

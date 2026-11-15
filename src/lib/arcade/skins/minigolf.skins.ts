@@ -12,6 +12,7 @@ import { BALL_ART_COLOURS, BALL_ART_COLOURS_V2, ballArtRedrawn } from "./ballArt
 import { type ContrastPair, type GameLook } from "./look";
 import { skinTime } from "./motion.renderer";
 import { skinRedrawn } from "./redrawPreview";
+import { sceneImage, sceneImagesVersion } from "./sceneImages";
 
 const BALLS: Readonly<Record<string, BallArt>> = {
   "game-skin.crazy-golf.watermelon": "watermelon",
@@ -199,6 +200,7 @@ export function neonCourseFlag(ctx: CanvasRenderingContext2D, x: number, y: numb
 /** The night beyond the course: deep violet with faint specks. */
 export function neonCourseScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   if (skinRedrawn(NEON_COURSE_ITEM)) {
+    sceneImage("course.turf"); // asked for early, so it has arrived by the time the hole is painted
     neonCourseSceneV2(ctx, view);
     return;
   }
@@ -219,6 +221,17 @@ export function minigolfContrast(look: GameLook): ContrastPair[] {
 /* ============================== The redraw (phase 2 step 4) ============================== */
 
 const NEON_COURSE_ITEM = "world-theme.crazy-golf.neon-course";
+
+/**
+ * Extra cache-key text for a hole under the Neon Course's redraw: it changes when the turf image arrives, so a cached
+ * hole is painted again once with it ("" with the switch off). For minigolf.renderer.ts's hole cache key (not wired
+ * here: that file belongs to the default-course session).
+ */
+export function neonCourseCacheTag(): string {
+  if (!skinRedrawn(NEON_COURSE_ITEM)) return "";
+  sceneImage("course.turf");
+  return `:v${sceneImagesVersion()}`;
+}
 
 /** A lit tube along the path just built: a dark bed under it, the colour, a white core on the lit side. */
 function tube(ctx: CanvasRenderingContext2D, colour: string, width: number): void {
@@ -260,6 +273,18 @@ function neonCourseHoleV2(ctx: CanvasRenderingContext2D, h: MgHole, parts: NeonH
   turf.addColorStop(1, "#041A12");
   ctx.fillStyle = turf;
   ctx.fillRect(h.box.x - 4, h.box.y - 4, h.box.w + 8, h.box.h + 8);
+  // The second pass: the night turf rendered in Blender (blades and nap), laid over the lit gradient.
+  const turfImg = sceneImage("course.turf");
+  const turfPattern = turfImg ? ctx.createPattern(turfImg, "repeat") : null;
+  if (turfPattern) {
+    ctx.save();
+    ctx.globalAlpha = 0.78;
+    ctx.globalCompositeOperation = "overlay";
+    ctx.scale(0.5, 0.5);
+    ctx.fillStyle = turfPattern;
+    ctx.fillRect((h.box.x - 4) * 2, (h.box.y - 4) * 2, (h.box.w + 8) * 2, (h.box.h + 8) * 2);
+    ctx.restore();
+  }
   // The mown stripes, faint, and the turf's fine grain.
   for (let x = Math.floor(h.box.x / 22) * 22; x < h.box.x + h.box.w + 4; x += 22) {
     ctx.fillStyle = (x / 22) % 2 ? "rgba(61,255,154,0.05)" : "rgba(0,0,0,0.08)";

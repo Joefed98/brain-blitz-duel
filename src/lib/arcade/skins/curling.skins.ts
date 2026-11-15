@@ -11,6 +11,7 @@ import { artHash } from "../art.renderer";
 import { glossDisc } from "./gloss.renderer";
 import type { ContrastPair, GameLook } from "./look";
 import { skinRedrawn } from "./redrawPreview";
+import { sceneImage, sceneImagesVersion } from "./sceneImages";
 
 
 /** The sheet's colours (the default rink's exactly, and the Neon Rink's from its source). */
@@ -270,6 +271,15 @@ const STONE_ITEMS: ReadonlyMap<StoneSkin, string> = new Map<StoneSkin, string>([
   [RINK_THEIRS, NEON_RINK_ITEM],
 ]);
 
+/** Each stone look's Blender-rendered top (public/cosmetics/redrawn/stone.<name>.webp, blender/game_looks.py). */
+const STONE_SPRITES: ReadonlyMap<StoneSkin, string> = new Map<StoneSkin, string>([
+  [STONES["game-skin.curl-champ.glacier"]!, "stone.glacier"],
+  [STONES["game-skin.curl-champ.aurora"]!, "stone.aurora"],
+  [STONES["game-skin.curl-champ.neon-stones"]!, "stone.neon-stones"],
+  [RINK_MINE, "stone.rink-mine"],
+  [RINK_THEIRS, "stone.rink-theirs"],
+]);
+
 /** The redrawn stones' polished tops (the side band and handle follow the skin's own colours). */
 interface StoneFinish {
   top: readonly [string, string, string];
@@ -320,11 +330,29 @@ function paintSkinStoneV2(ctx: CanvasRenderingContext2D, k: StoneSkin, sx: numbe
   ctx.beginPath();
   ctx.ellipse(sx, ty, rx - edgeW / 2, Math.max(0.5, ry - edgeW / 2), 0, 0, Math.PI * 2);
   ctx.fill();
+  // The second pass: the polished top rendered in Blender (granite, its inlay and the light on it), squashed into the
+  // top's own ellipse; the first pass's painting while the image loads.
+  const spriteName = STONE_SPRITES.get(k);
+  const sprite = spriteName ? sceneImage(spriteName) : null;
+  if (sprite) {
+    ctx.save();
+    ctx.clip();
+    ctx.drawImage(sprite, sx - (rx - edgeW / 2), ty - Math.max(0.5, ry - edgeW / 2), (rx - edgeW / 2) * 2, Math.max(0.5, ry - edgeW / 2) * 2);
+    ctx.restore();
+    ctx.beginPath();
+    ctx.ellipse(sx, ty, rx - edgeW / 2, Math.max(0.5, ry - edgeW / 2), 0, 0, Math.PI * 2);
+  }
   if (k.topEdge) {
     ctx.strokeStyle = k.topEdge;
     ctx.lineWidth = edgeW;
     ctx.stroke();
   }
+  if (!sprite) paintStoneTopV2(ctx, k, f, sx, ty, rx, ry, edgeW, seed);
+  stoneHandleV2(ctx, k, sx, ty, rx, ry, lift, edgeW, moving);
+}
+
+/** The first pass's painted top: speckle, the inner disc or aurora, the inlaid rings and the gloss. */
+function paintStoneTopV2(ctx: CanvasRenderingContext2D, k: StoneSkin, f: StoneFinish, sx: number, ty: number, rx: number, ry: number, edgeW: number, seed: number): void {
   if (f.speckle && rx > 5) {
     ctx.fillStyle = f.speckle;
     for (let i = 0; i < 26; i++) {
@@ -401,7 +429,10 @@ function paintSkinStoneV2(ctx: CanvasRenderingContext2D, k: StoneSkin, sx: numbe
     ctx.stroke();
   }
   glossDisc(ctx, sx, ty, rx - edgeW, Math.max(0.5, ry - edgeW), k.inner === "aurora" ? 0.6 : 0.9);
-  // The handle: the default's shape, lit from the top left with a highlight along its top.
+}
+
+/** The handle: the default's shape, lit from the top left with a highlight along its top. */
+function stoneHandleV2(ctx: CanvasRenderingContext2D, k: StoneSkin, sx: number, ty: number, rx: number, ry: number, lift: number, edgeW: number, moving: boolean): void {
   const hw = rx * 0.95;
   const hh = Math.max(1.2, lift * 0.55);
   const hg = ctx.createLinearGradient(sx - hw * 0.7, ty - hh, sx + hw * 0.6, ty);
@@ -466,4 +497,31 @@ function neonRinkArenaV2(ctx: CanvasRenderingContext2D, top: number, bottom: num
   ctx.fillRect(-400, bottom - 4, w + 800, 1.4);
   ctx.fillStyle = "rgba(255,255,255,0.7)";
   ctx.fillRect(-400, bottom - 3.8, w + 800, 0.5);
+}
+
+/**
+ * The Neon Rink's ice in the second pass: the Blender-rendered ice (depth, cloud and skate scratches) laid over a
+ * sheet's lit gradient, inside the sheet's own clip. Nothing with the switch off (today's ice exactly).
+ */
+export function neonRinkIce(ctx: CanvasRenderingContext2D, top: number, w: number, h: number): void {
+  if (!skinRedrawn(NEON_RINK_ITEM)) return;
+  const img = sceneImage("rink.ice");
+  const pattern = img ? ctx.createPattern(img, "repeat") : null;
+  if (!pattern) return;
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  ctx.globalCompositeOperation = "overlay";
+  ctx.scale(0.5, 0.5);
+  ctx.fillStyle = pattern;
+  ctx.fillRect(-800, top * 2, (w + 800) * 2, (h - top) * 2 + 4);
+  ctx.restore();
+}
+
+/** Extra cache-key text for the rink's layer under the Neon Rink's redraw (changes when the ice arrives; "" when off). */
+export function neonRinkCacheTag(): string {
+  if (!skinRedrawn(NEON_RINK_ITEM)) return "";
+  sceneImage("rink.ice");
+  sceneImage("stone.rink-mine");
+  sceneImage("stone.rink-theirs");
+  return `:v${sceneImagesVersion()}`;
 }
