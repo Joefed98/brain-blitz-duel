@@ -1181,7 +1181,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Slide the stone", detail: "along the start line, then drag the gold target to aim." },
         { action: "Tap In or Out;", detail: "the faint line shows the stone’s first third for that aim and turn." },
-        { action: "Tap or drag the power bar", detail: "on the right to set the weight, then tap Throw. In its gold HOUSE zone the stone stops in the house." },
+        { action: "Tap or drag the power bar", detail: "on the right to set the weight, then tap Throw (grey while a stone is still moving). In its gold HOUSE zone the stone stops in the house." },
         { action: "Brush its left or right side", detail: "as it travels to bend it that way." },
         { action: "Only stones nearer the button", detail: "than every red stone in the house score: knock reds out, or draw in closer than them.", helpOnly: true },
         { action: "The power bar", detail: "keeps its marker where you set it, from stone to stone. Its gold zone changes with your start, target and turn; the mark in it stops on the tee line.", helpOnly: true },
@@ -1189,7 +1189,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Brushing", detail: "also carries the stone a little further. Brush anywhere on the screen: left of the stone bends it left, right of it bends it right.", helpOnly: true },
         { action: "The stone curls", detail: "towards the side its turn takes it, more as it slows: the aim line shows only the start of it.", helpOnly: true },
         { action: "Three red-handled stones", detail: "start in the house, the same for everyone. Every one can be hit with your stone staying on the button.", helpOnly: true },
-        { action: "The inset, top right,", detail: "shows exactly where every stone sits.", helpOnly: true },
+        { action: "The house view, top right,", detail: "shows exactly where every stone sits, from above. Tap or drag in it to put the target there.", helpOnly: true },
+        { action: "Throw turns grey", detail: "while a stone travels and lights up gold when the next one is ready with a weight set.", helpOnly: true },
         { action: "A stone short of the far hog line,", detail: "or through the back or the sides, is out of play.", helpOnly: true },
       ],
       score: liveStdHelp("curling"),

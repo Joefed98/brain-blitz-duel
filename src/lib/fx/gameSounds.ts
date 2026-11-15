@@ -1182,8 +1182,16 @@ export function curlingSounds(): GameSounds<CurlingState> {
       else if (prev && state.tick < prev.tick) lastStroke = -1;
       loopCue("curling.sweep", travelling && lastStroke >= 0 && state.tick - lastStroke < SWEEP_HOLD_TICKS, SURFACE_VOLUME);
       if (prev && state.tick > prev.tick) {
-        if (state.thrown > prev.thrown) effectCue("curling.release");
-        if (state.hits > prev.hits) effectCue("curling.hit", 80);
+        // Haptics (the Sports overhaul, 15 Nov 2026): the release, stone on stone, and a stone coming to rest counting
+        // or after a takeout (the end has the shared arcade buzzer's).
+        if (state.thrown > prev.thrown) {
+          effectCue("curling.release");
+          feel("tick");
+        }
+        if (state.hits > prev.hits) {
+          effectCue("curling.hit", 80);
+          feel("impact");
+        }
         for (let i = 0; i < prev.live.length; i++) {
           // Out over a side or back board while moving (a hog-line stone at the settle is not a board).
           if (prev.live[i] === 1 && state.live[i] === 0 && state.restTick === prev.restTick) {
@@ -1193,6 +1201,7 @@ export function curlingSounds(): GameSounds<CurlingState> {
         }
         if (state.restTick !== prev.restTick && state.pts.length > prev.pts.length) {
           const takeout = curlTakeouts(state) > curlTakeouts(prev);
+          if (takeout || (state.pts[state.pts.length - 1] ?? 0) > 0) feel("success");
           if (curlShotTeam(state) === TEAM_MINE && curlShotTeam(prev) !== TEAM_MINE) effectCue("curling.shot");
           else if (state.four[state.four.length - 1] === 1 || takeout) effectCue("curling.applause");
         }
