@@ -46,15 +46,15 @@ import {
   NINJA_WORLD_W,
   moonCheckpoint,
   moonDeal,
-  moonGame,
+  moonGameFor,
   MODE_RIDE,
-  MOON_REV,
+  MOON_BIG_REV,
   MOON_SCROLLS,
   MOON_SKY,
   type MoonState,
   type NinjaState,
 } from "@/lib/arcade/ricochetNinja";
-import { drawNinjaFrame, moonArtGame, ninjaArtGame, NINJA_BG } from "@/lib/arcade/ricochetNinja.renderer";
+import { drawNinjaFrame, moonArtGameFor, ninjaArtGame, NINJA_BG } from "@/lib/arcade/ricochetNinja.renderer";
 import { ninjaScene } from "@/lib/arcade/ricochetNinjaScene.renderer";
 import { ninjaSounds } from "@/lib/fx/gameSounds";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
@@ -307,9 +307,10 @@ export function ninjaIntroState(): NinjaState {
   return { ...s, hitTick: -999, pickTick: -999 };
 }
 
-/** Moon Climb's intro still (ricoRev 3): seed 0's tower, its witness riding the first sky lantern. */
+/** Moon Climb's intro still (the live ricoRev 4, the bigger ninja): seed 0's tower, its witness riding the first sky lantern. */
 export function moonIntroState(): MoonState {
-  const at = new Map(moonDeal(0).witness.map((e) => [e.t, e.a]));
+  const moonGame = moonGameFor(MOON_BIG_REV);
+  const at = new Map(moonDeal(0, MOON_BIG_REV).witness.map((e) => [e.t, e.a]));
   let s = moonGame.init(0);
   while (!(s.mode === MODE_RIDE && s.ride < 80) && !s.ended) {
     const a = at.get(s.tick + 1);
@@ -348,7 +349,7 @@ function NinjaStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProp
       locked={locked}
       worldW={NINJA_WORLD_W}
       worldH={NINJA_WORLD_H}
-      game={(moon ? moonArtGame : ninjaArtGame) as typeof ninjaArtGame}
+      game={(moon ? moonArtGameFor(data?.ricoRev) : ninjaArtGame) as typeof ninjaArtGame}
       sounds={ninjaSounds}
       checkpoint={(moon ? moonCheckpoint : ninjaCheckpoint) as typeof ninjaCheckpoint}
       interval={NINJA_CHECKPOINT_INTERVAL}
@@ -381,7 +382,7 @@ export function moonLine(r: { metres: number; rides: number; bestFlow: number; s
 function NinjaReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "ricochet") return null;
   if (isMoonRev(puzzle.ricoRev)) {
-    const m = replayMoonRun(puzzle.seed, myAnswer ?? "");
+    const m = replayMoonRun(puzzle.seed, myAnswer ?? "", puzzle.ricoRev);
     return (
       <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
         <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{moonLine(m)}</p>
@@ -410,14 +411,14 @@ function Reveal(props: PuzzleRevealProps) {
   return isNinjaRev(rev) ? <NinjaReveal {...props} /> : <RicoV1Reveal {...props} />;
 }
 
-/** The seed is generated on the server; every run is replayed there for scoring. Rooms and practice deal ricoRev 3 (Moon Climb). */
+/** The seed is generated on the server; every run is replayed there for scoring. Rooms and practice deal ricoRev 4 (Moon Climb, the bigger ninja). */
 export const ricochetPuzzle: PuzzleDefinition = {
   key: "ricochet",
   name: gameDisplayName("ricochet"),
   category: "arcade",
   timeLimitMs: (NINJA_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "ricochet", seed: 1, ricoRev: MOON_REV }) satisfies RicoPuzzleData,
+  generate: () => ({ type: "ricochet", seed: 1, ricoRev: MOON_BIG_REV }) satisfies RicoPuzzleData,
   check: () => false,
   revealHeading: "Your climb",
   IntroExample,

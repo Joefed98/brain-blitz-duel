@@ -1349,9 +1349,9 @@ function gradeUnderRev(
     }
     case "ricochet": {
       if (isMoonRev(puzzle.ricoRev)) {
-        // ricoRev 3, Moon Climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        // ricoRev 3 and 4, Moon Climb: the tower dealt from the stored seed and stamp, the move log replayed; only that scores.
         const replayStart = performance.now();
-        const run = replayMoonRun(puzzle.seed, answer);
+        const run = replayMoonRun(puzzle.seed, answer, puzzle.ricoRev);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         isCorrect = run.metres >= MOON_CORE_FULL_M;

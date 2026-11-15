@@ -67,7 +67,7 @@ export const PRACTICE_STAMPS = {
   "racing": "puzzleScoreRev=3 racingRev=3 speedPar=1",
   "rally": "puzzleScoreRev=3 rallyRev=12 speedPar=1",
   "reaction": "puzzleScoreRev=3 speedPar=1 tapRev=7",
-  "ricochet": "puzzleScoreRev=3 ricoRev=3 speedPar=1",
+  "ricochet": "puzzleScoreRev=3 ricoRev=4 speedPar=1",
   "rings": "puzzleScoreRev=3 ringsRev=4 speedPar=1",
   "rooftop": "puzzleScoreRev=3 speedPar=1",
   "safe": "depthRev=3 puzzleScoreRev=3 speedPar=1",

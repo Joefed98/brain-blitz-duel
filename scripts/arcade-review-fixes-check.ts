@@ -56,7 +56,14 @@ const read = (p: string) => readFileSync(p, "utf8");
 /* Orbit */
 {
   const src = read("src/lib/arcade/orbit.renderer.ts");
-  check(!src.includes("misses:1-state.respawns") && (src.match(/misses:state\.respawns/g) ?? []).length === 2, "Orbit: both success layers count misses up with the respawns");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitRev 15's automatic
+  // respawns are misses too, so both layers read orbitSlips (the checkpoint respawns plus the automatic ones).
+  check(
+    !src.includes("misses:1-state.respawns") &&
+      (src.match(/misses:orbitSlips\(state\)/g) ?? []).length === 2 &&
+      /export function orbitSlips\([^)]*\)[^{]*\{[^}]*state\.respawns/.test(src),
+    "Orbit: both success layers count misses up with the respawns",
+  );
   // The success layer resets its chain only when misses rise: a crash (respawns + 1) must reset it.
   const ctx = createCanvas(100, 100).getContext("2d") as unknown as CanvasRenderingContext2D;
   const opts = (tick: number, count: number, respawns: number) => ({ id: "orbit-check", tick, count, misses: respawns, colour: "#fff", width: 100, height: 100, point: { x: 1, y: 1 } });

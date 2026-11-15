@@ -236,6 +236,22 @@ Brilliant > great > good still holds; the levels that never slip are unchanged, 
 90 s. The skill-band bot (`scripts/arcade-skill-bands/bots/orbit.ts`) plays orbitRev 14 and 15 (its replan key carries the
 automatic respawns).
 
+### Stage 2 look pass: Blender-rendered planets (15 Nov 2026, display only, no stamp)
+
+The planets of the expansion's view (orbitRev 12–15) are drawn from nine surface maps baked in Blender
+(`scripts/orbit-planets-blender.py`: procedural materials on a UV sphere, a Cycles EMIT bake, fixed seeds, `--check`
+rebuilds byte for byte; run it with Blender as a Python module in a venv outside the project). Two gas giants, a marbled
+world and a cratered moon are grey tone maps tinted with the seeded colour; a desert, a volcanic world, an ocean world and
+two icy worlds keep their own colours; rocks and ice add a height map. 363 KB in `public/orbit/planets/`, loaded on the
+first draw (the stage-1 strip look shows until they arrive). `orbitPlanets.renderer.ts` projects a map onto the sphere at
+the canvas's device scale (up to `SPHERE_MAX_PX` 192), lights it from one sun (terminator, deep night side, relief from the
+height map, highlight on water and ice, a thin rim inside the disc in the seeded colour), 240 frames a turn (120 under
+reduced effects), the turn still under reduced motion. Which map a planet wears follows its type and seeded colour
+(`orbitPlanetMapFor`); icy worlds take only a cold cast (`orbitIceCast`), never a warm colour. Rings are three ringlets
+inside 0.88 r (`drawPlanetRing`). Nothing is drawn past the collision circle + 2 px and there is no glow halo
+(orbit-overhaul-check). The planets' size is the sim's: radius 19–28 world px, so 17–26 CSS px on a phone and up to 40 on
+the desktop column; drawing them larger would need a new stamp (the collision circle).
+
 ### Levels (stage 3 of the overhaul, not built yet)
 
 Joe's levers, for the difficulty framework (Normal is orbitRev 15 as above; every level a new stamp with its own proved

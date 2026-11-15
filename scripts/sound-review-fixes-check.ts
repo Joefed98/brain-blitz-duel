@@ -148,6 +148,33 @@ const EXEMPT: Record<string, string> = {
   "bastion.tip": ACTION_ELEVENLABS,
   "bastion.dustWind": ACTION_ELEVENLABS,
   "bastion.stormFire": ACTION_ELEVENLABS,
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): stage 2's end-card tally
+  // slot, listed in action-elevenlabs.md, waits for its file the same way.
+  "bastion.tally": ACTION_ELEVENLABS,  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the other five Action games'
+  // new slots wait for Joe's ElevenLabs files the same way (docs/sound-cues/action-elevenlabs.md).
+  "skyline.lifeLost": ACTION_ELEVENLABS,
+  "skyline.wideBlock": ACTION_ELEVENLABS,
+  "skyline.trim": ACTION_ELEVENLABS,
+  "skyline.sliver": ACTION_ELEVENLABS,
+  "orbit.thrust": ACTION_ELEVENLABS,
+  "orbit.lowFuel": ACTION_ELEVENLABS,
+  "orbit.outOfFuel": ACTION_ELEVENLABS,
+  "orbit.respawnReady": ACTION_ELEVENLABS,
+  "orbit.stardust": ACTION_ELEVENLABS,
+  "orbit.sunBloom": ACTION_ELEVENLABS,
+  "flip.flipUp": ACTION_ELEVENLABS,
+  "flip.flipDown": ACTION_ELEVENLABS,
+  "flip.respawn": ACTION_ELEVENLABS,
+  "flip.land": ACTION_ELEVENLABS,
+  "flip.flowTick": ACTION_ELEVENLABS,
+  "flip.flowTen": ACTION_ELEVENLABS,
+  "flip.flowBreak": ACTION_ELEVENLABS,
+  "ricochet.fallWhistle": ACTION_ELEVENLABS,
+  "ricochet.flowBreak": ACTION_ELEVENLABS,
+  "ricochet.scuff": ACTION_ELEVENLABS,
+  "swing.ropeSnap": ACTION_ELEVENLABS,
+  "swing.speedWhoosh": ACTION_ELEVENLABS,
+  "swing.courseCleared": ACTION_ELEVENLABS,
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

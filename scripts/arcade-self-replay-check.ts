@@ -79,7 +79,7 @@ import { encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
 import { encodeMoonRun, encodeNinjaRun, encodeRicoRun, replayMoonRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
-import { moonCheckpoint, moonGame, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
+import { moonCheckpoint, moonGame, moonGameFor, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { FLIP_DEAL } from "@/lib/duel/flipDeal.server";
@@ -1050,6 +1050,9 @@ const GAMES: Game[] = [
   { key: "skyline/lives", game: skylineGameFor(11), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 11) },
   // Roofbound flipRev 13 (15 Nov 2026, the Action overhaul: grace), appended so every earlier entry keeps its stream.
   { key: "flip/grace", game: flipGameFor(13), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 13), seedFor: (n: number) => FLIP_DEAL[n % FLIP_DEAL.length]! },
+  // Moon Climb ricoRev 4 (15 Nov 2026, the Action overhaul's stage 2: the bigger ninja), appended so every earlier entry
+  // keeps its stream.
+  { key: "ricochet/big", interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(4), checkpoint: moonCheckpoint, mode: "events", rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 4) },
   // Grappler swingRev 18 (15 Nov 2026, the Action overhaul's stage 2: the bigger hero), appended so every earlier entry
   // keeps its stream: on its proved deal's courses.
   { key: "swing/big", game: swingGameFor(SWING_REV_BIG), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BIG), seedFor: (n: number) => SWING_BIG_DEAL[n % SWING_BIG_DEAL.length]! },

@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 70 | 0 | 493 | 563 |
+| game event | 71 | 0 | 493 | 564 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 1 | 1 | 22 | 24 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 98 | 1 | 989 | 1088 |
+| **all** | 99 | 1 | 989 | 1089 |
 
 ## Silent and placeholder cues
 
@@ -272,8 +272,8 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) [arcade-effects.md] | The block falls away, "−1 LIFE", the LIVES chip rings | 0–2 | silent | none | 600 | fail sting | `skyline.lifeLost` |
 | `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) [arcade-effects.md] | The NEXT panel shows WIDE | 0–3 | silent | none | 400 | game event | `skyline.wideBlock` |
-| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) [arcade-effects.md] | The overhang falls away spinning | 10–40 | silent | none | 700 | game event | `skyline.trim` |
-| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) [arcade-effects.md] | A thin floor on the tower | 0–5 | silent | none | 700 | game event | `skyline.sliver` |
+| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) [arcade-effects.md] | The overhang falls away spinning and the cut edge crumbles (stage 2) | 10–40 | silent | none | 700 | game event | `skyline.trim` |
+| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) [arcade-effects.md] | A thin floor on the tower wobbles on its foot (stage 2) | 0–5 | silent | none | 700 | game event | `skyline.sliver` |
 
 ### Hot Floor
 
@@ -285,13 +285,14 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `bastion.weakTing` |  [arcade-effects.md] | The gold flash on the weak spot | 5–40 (per move) | silent | none | 260 | game event | `bastion.weakTing` |
-| `bastion.shellIn` |  [arcade-effects.md] | The five shell slots refill | 5–40 (per move) | silent | none | 90 | game event | `bastion.shellIn` |
-| `bastion.jamGrind` |  [arcade-effects.md] | The needle turns red | 5–40 (per move) | silent | none | 700 | game event | `bastion.jamGrind` |
-| `bastion.debris` |  [arcade-effects.md] | The burst and smoke where the tank was | 5–40 (per move) | silent | none | 600 | game event | `bastion.debris` |
-| `bastion.nearMiss` |  [arcade-effects.md] | The dust puff where it landed | 5–40 (per move) | silent | none | 350 | game event | `bastion.nearMiss` |
-| `bastion.panelCrack` |  [arcade-effects.md] | The red edge flash | 5–40 (per move) | silent | none | 500 | game event | `bastion.panelCrack` |
-| `bastion.wallHeld` |  [arcade-effects.md] | WALL HELD (stage 2) | 5–40 (per move) | silent | none | 1800 | game event | `bastion.wallHeld` |
+| `bastion.weakTing` |  [arcade-effects.md] | The weak spot flashing gold (a disc, then a ring opening out), every time | 5–40 (per move) | silent | none | 260 | game event | `bastion.weakTing` |
+| `bastion.shellIn` |  [arcade-effects.md] | The five shell slots lighting one by one beside the green needle | 5–40 (per move) | silent | none | 90 | game event | `bastion.shellIn` |
+| `bastion.jamGrind` |  [arcade-effects.md] | The needle turns red and shakes | 5–40 (per move) | silent | none | 700 | game event | `bastion.jamGrind` |
+| `bastion.debris` |  [arcade-effects.md] | The burst, armour debris flung out and falling, "+n" rising off it, then the smoke | 5–40 (per move) | silent | none | 600 | game event | `bastion.debris` |
+| `bastion.nearMiss` |  [arcade-effects.md] | A bigger, dustier puff where it landed and CLOSE rising off it | 5–40 (per move) | silent | none | 350 | game event | `bastion.nearMiss` |
+| `bastion.panelCrack` |  [arcade-effects.md] | The red edge flash and a crack splitting across the bottom panel where the tank came through (it stays) | 5–40 (per move) | silent | none | 500 | game event | `bastion.panelCrack` |
+| `bastion.wallHeld` |  [arcade-effects.md] | WALL HELD stamped under the tally | 5–40 (per move) | silent | none | 1800 | game event | `bastion.wallHeld` |
+| `bastion.tally` |  [arcade-effects.md] | WAVE n with its tank pips and "4 / 5" | 5–40 (per move) | silent | none | 150 | game event | `bastion.tally` |
 | `bastion.tip` |  [arcade-effects.md] | "Tip: swipe down to reload early" on the panel | 5–40 (per move) | silent | none | 300 | game event | `bastion.tip` |
 | `bastion.dustWind` |  [arcade-effects.md] | Amber haze and sand hills | 5–40 (per move) | silent | none | loop | game event | `bastion.dustWind` |
 | `bastion.stormFire` |  [arcade-effects.md] | Smoke columns and fires on the skyline | 5–40 (per move) | silent | none | loop | game event | `bastion.stormFire` |

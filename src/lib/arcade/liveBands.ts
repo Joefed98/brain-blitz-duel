@@ -48,7 +48,7 @@ import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
 import { FH_REV, FH_STD_SPEC, FH_V3_BAND_CURVE } from "./cards/fiveHands";
 import { BLOCKFALL_REV_ZONE, BF_ZONE_STD_SPEC, BF_V2_BAND_CURVE } from "./blockfall";
 import { ALLEYROLL_REV_DEALT, AR2_STD_SPEC, AR_V2_BAND_CURVE } from "./alleyroll";
-import { MOON_REV, MOON_STD_SPEC, MOON_V3_BAND_CURVE } from "./ricochetNinja";
+import { MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_V4_BAND_CURVE } from "./ricochetNinja";
 import { PY_REV, PY_STD_SPEC, PY_V2_BAND_CURVE } from "./cards/pyramid";
 import { GS_REV, GS_STD_SPEC, GS_V1_BAND_CURVE } from "./cards/golfSol";
 import { MG_REV, MG_STD_SPEC, MG_V1_BAND_CURVE } from "./cards/muggins";
@@ -166,8 +166,8 @@ export const LIVE_BANDS = {
   // fiveHandsRev 3 (3 Nov 2026): the flat hand table, the hand points summed, capped at 200 (not every deck reaches it).
   fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V3_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
-  // Moon Climb (ricoRev 3, 3 Nov 2026): the live stamp, its own parts (height, flow, lantern rides, scrolls).
-  ricochet: { field: "ricoRev", rev: MOON_REV, curve: MOON_V3_BAND_CURVE, std: MOON_STD_SPEC, born: true },
+  // Moon Climb (ricoRev 3, 3 Nov 2026): its own parts (height, flow, lantern rides, scrolls); ricoRev 4 (15 Nov 2026) the bigger ninja, the same parts.
+  ricochet: { field: "ricoRev", rev: MOON_BIG_REV, curve: MOON_V4_BAND_CURVE, std: MOON_BIG_STD_SPEC, born: true },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the arcade scoring standard.
   pyramid: { field: "pyramidRev", rev: PY_REV, curve: PY_V2_BAND_CURVE, std: PY_STD_SPEC, born: true },
   golfsol: { field: "golfSolRev", rev: GS_REV, curve: GS_V1_BAND_CURVE, std: GS_STD_SPEC, born: true },

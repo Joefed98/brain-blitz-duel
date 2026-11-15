@@ -5,8 +5,8 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
-import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
-import { bastionNearMiss, bastionSettingNow, bastionSwipeHint } from "@/lib/arcade/bastionLook";
+import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_MAG, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
+import { bastionNearMiss, bastionSettingNow, bastionSwipeHint, bastionTallyRows, BT_HELD_AT_MS, BT_SNAP_STEP } from "@/lib/arcade/bastionLook";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, isMusicMuted, musicVolume, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import { haptic, type HapticPattern } from "@/lib/haptics";
@@ -50,7 +50,7 @@ import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
-import { MODE_CLING, MODE_FLIGHT, MODE_RIDE, MOON_REV, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
+import { isMoonState, MODE_CLING, MODE_FLIGHT, MODE_RIDE, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
 import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
@@ -908,6 +908,11 @@ export function junctionSounds(): GameSounds<JuncState> {
   };
 }
 
+/** High Rise's perfect-drop tock (stage 2, 15 Nov 2026): a semitone higher for each perfect drop in a row after the first, up to seven. */
+export function skylinePerfectRate(streak: number): number {
+  return 2 ** (Math.max(0, Math.min(7, streak - 1)) / 12);
+}
+
 export function skylineSounds(): GameSounds<SkylineState> {
   let prev: SkylineState | null = null;
   return {
@@ -916,7 +921,8 @@ export function skylineSounds(): GameSounds<SkylineState> {
       if (prev && state.tick > prev.tick) {
         if (state.blocks.length > prev.blocks.length) {
           sfx("skyline.drop", "arc_clank", 0.8, 1, true);
-          if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct");
+          // Stage 2: the tock rises with the perfect streak (streak is absent on unstamped rounds: the base pitch).
+          if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct", 1, skylinePerfectRate(state.streak ?? 1), false, true);
           else {
             // The Action overhaul (15 Nov 2026): a trim crumbles; a sliver (under a quarter of the block on the tower) creaks.
             const top = state.blocks[state.blocks.length - 1]!;
@@ -1297,6 +1303,10 @@ function bastionDroneUp(s: BastionTankState): boolean {
  */
 export function bastionTankSounds(): GameSounds<BastionTankState> {
   let prev: BastionTankState | null = null;
+  // The end card (stage 2): when the run ended on this phone's clock, the wave rows already ticked, and the stamp.
+  let endAt: number | null = null;
+  let tallied = 0;
+  let stamped = false;
   return {
     frame(state, running) {
       beginFrame("bastion", state);
@@ -1312,8 +1322,12 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
         }
         // The one-time reload tip (Action overhaul): a soft cue as it appears.
         if (bastionSwipeHint(state) && !bastionSwipeHint(prev)) effectCue("bastion.tip");
-        // A fast reload's shells snapping back in as the reload ends.
-        if (prev.reloadAt >= 0 && state.reloadAt < 0 && prev.reloadTap === 1) effectCue("bastion.shellIn");
+        // A fast reload's shells snapping in one by one as it ends (stage 2): a click for each, as the slots light.
+        if (state.reloadAt < 0 && state.reloadTap === 1)
+          for (let n = 0; n < BT2_MAG; n++) {
+            const at = state.reloadEnd + BT_SNAP_STEP * n;
+            if (prev.tick < at && state.tick >= at) effectCue("bastion.shellIn", 0, 1 + 0.04 * n);
+          }
         if (prev.reloadAt >= 0 && state.reloadAt < 0) sfx("bastion.loaded", "arc_latch", 0.5, 1.3);
         const fresh = state.impacts.filter((m) => m.t > prev!.tick);
         for (const m of fresh) {
@@ -1338,8 +1352,22 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
           feel("impact");
         }
         if (bastionWave(state) !== bastionWave(prev) || (prev.tick < BT2_WAVE_START[0] && state.tick >= BT2_WAVE_START[0])) sfx("bastion.wave", "arc_horn", 0.6);
-        // The wall held: the clock ran out or every tank is gone with the base standing.
-        if (prev.ended === 0 && (state.ended === 1 || state.ended === 3)) effectCue("bastion.wallHeld");
+        if (prev.ended === 0 && state.ended !== 0) {
+          endAt = typeof performance !== "undefined" ? performance.now() : 0;
+          tallied = 0;
+          stamped = false;
+        }
+      }
+      // The end card (stage 2, on the art's timing, bastionLook.ts): a tick a step higher as each wave's row lands,
+      // then, the wall held (the clock ran out or every tank is gone with the base standing), its sting.
+      if (endAt !== null && state.ended !== 0) {
+        const ms = (typeof performance !== "undefined" ? performance.now() : 0) - endAt;
+        const rows = bastionTallyRows(ms);
+        while (tallied < rows) effectCue("bastion.tally", 0, 1 + 0.06 * tallied++);
+        if (!stamped && ms >= BT_HELD_AT_MS) {
+          stamped = true;
+          if (state.ended === 1 || state.ended === 3) effectCue("bastion.wallHeld");
+        }
       }
       loopCue("bastion.drone", running && state.ended === 0 && bastionDroneUp(state));
       // The setting's ambience (Action overhaul): desert wind in waves 3–4, the storm's fires in wave 5.
@@ -1353,6 +1381,7 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
       loopCue("bastion.dustWind", false);
       loopCue("bastion.stormFire", false);
       prev = null;
+      endAt = null;
     },
   };
 }
@@ -1690,7 +1719,7 @@ export function ninjaSounds(): GameSounds<NinjaState> {
   return {
     frame(state, running) {
       beginFrame("ricochet", state);
-      const moon = state.rev === MOON_REV ? (state as MoonState) : null;
+      const moon = isMoonState(state) ? (state as MoonState) : null;
       loopCue("ricochet.lanternRide", running && moon !== null && moon.mode === MODE_RIDE && moon.ended === 0);
       // The Action overhaul (15 Nov 2026): a scuff loop while sliding on moss or ice (silent until its file is set).
       const sliding =

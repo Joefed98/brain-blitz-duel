@@ -279,3 +279,48 @@
   padding: 12px;
   box-sizing: border-box;
 }
+
+/*
+ * A game's own picture of the run on the arcade reveal (the Action overhaul's stage 2, 15 Nov 2026; Iron Wall first):
+ * the key numbers big, two to a row, each with a short plain label under it, then the game's drawing at full width.
+ */
+.reveal-run {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
+}
+.reveal-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.reveal-stat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 6px 10px;
+  border-radius: var(--jz-radius-md);
+  background: color-mix(in srgb, var(--jz-bg) 62%, transparent);
+}
+.reveal-stat-value {
+  font-family: var(--jz-font);
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}
+.reveal-stat-label {
+  font-family: var(--jz-font);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--reveal-text-2, var(--jz-text-2));
+  white-space: nowrap;
+}
+.reveal-run-picture {
+  display: block;
+  width: 100%;
+}

@@ -602,6 +602,8 @@ const ENTRIES = {
   "bastion.panelCrack": { channel: "effects", frequency: 0, ms: 500, url: null, fallback: "arc_crash" },
   "bastion.wallHeld": { channel: "effects", frequency: 0, ms: 1800, url: null, fallback: "arc_fair_sting" },
   "bastion.tip": { channel: "effects", frequency: 0, ms: 300, url: null, fallback: "arc_hover_tap" },
+  // Stage 2 (15 Nov 2026): each wave's row landing on the end card (the slot action-elevenlabs.md said comes with the tally).
+  "bastion.tally": { channel: "effects", frequency: 0, ms: 150, url: null, fallback: "tick" },
   "bastion.dustWind": { channel: "effects", frequency: 0, ms: 6000, url: null, loop: true },
   "bastion.stormFire": { channel: "effects", frequency: 0, ms: 6000, url: null, loop: true },
   "music_dual": { channel: "music", frequency: 0, ms: 0, url: null },

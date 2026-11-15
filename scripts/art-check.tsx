@@ -193,7 +193,31 @@ if (record) {
 }
 
 /*
- * 4a. Grappler swingRev 18's bigger hero: Joe's explicit approval, 15 Nov 2026 (the Action overhaul's stage 2), its own
+ * 4a. Moon Climb's bigger ninja (ricoRev 4). Joe's explicit approval, 15 Nov 2026 (the Action overhaul's stage 2: "a
+ * bigger ninja, the same approach as Grappler"): on ricoRev 4 the sim's body box is MOON_BIG_HW × MOON_BIG_HH (34 × 68,
+ * was 26 × 52) and the same figure is drawn at ninjaArtScale(4) = 17 / 13. Each pose's drawn extent is held to the old
+ * stamps' allowance grown by that scale, (main's recorded figure + 0.5) × 17 / 13 (the fixture above, never
+ * re-recorded), plus 0.25 px (one sample of the 4× measure). The old stamps' figure (scale 1) stays held to main's
+ * exactly as before, above.
+ */
+{
+  const { ninjaArtScale } = await import("../src/lib/arcade/ricochetNinja.renderer");
+  const { MOON_BIG_HW, MOON_BIG_HH, NINJA_HW, NINJA_HH } = await import("../src/lib/arcade/ricochetNinja");
+  const k = ninjaArtScale(4);
+  ok(k === MOON_BIG_HW / NINJA_HW && Math.abs(k - MOON_BIG_HH / NINJA_HH) < 1e-9 && ninjaArtScale(3) === 1 && ninjaArtScale(2) === 1, `Moon Climb's drawing scale: ricoRev 4 ${k}, the body box's own growth; 1 before`);
+  const old = JSON.parse(readFileSync(FIXTURE, "utf8")) as Record<string, Ext>;
+  for (const pose of [0, 1, 2, 3, 4])
+    for (const face of [1, -1])
+      for (const tick of [0, 7, 19]) {
+        const key = `ninja-p${pose}-f${face}-t${tick}`;
+        const was = old[key]!;
+        const ext = ink((x) => drawNinja(x, 0, 0, pose, face, tick, pose === 2 ? 0.7 : 0, k));
+        ext.forEach((v, i) => ok(v <= (was[i]! + 0.5) * k + 0.25, `ricoRev 4 ${key}: drawn ${v.toFixed(2)} px to the ${["left", "right", "top", "bottom"][i]}, main's figure + 0.5 × ${k.toFixed(3)} = ${((was[i]! + 0.5) * k).toFixed(2)} (+0.25, one 4× sample)`));
+      }
+}
+
+/*
+ * 4c. Grappler swingRev 18's bigger hero: Joe's explicit approval, 15 Nov 2026 (the Action overhaul's stage 2), its own
  * entry beside main's recorded bounds (which stay exactly as recorded and still hold every older figure above). On the
  * new stamp the hero's body is 14 px (10 before) and the jungle figure is drawn GRAPPLER_V18_SCALE (1.4, the radius
  * ratio) about the body's centre, so each pose's drawn extent is held to main's jungle figure's, plus the Grappler

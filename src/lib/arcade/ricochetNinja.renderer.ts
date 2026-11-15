@@ -6,7 +6,9 @@
  * the mid-ledges (slim hanging stone pieces), the sky lanterns (paper, glowing orange; the ninja hangs from one it
  * rides) and the Height and Flow pills, and no coins or gold lanterns. Every object is drawn inside its sim bounds (within 2 px: the
  * arcade bounds rule). The sky is painted once per canvas size (deviceLayer); only the walls, the objects in view and
- * the HUD are drawn each frame.
+ * the HUD are drawn each frame. The stage-2 look pass (15 Nov 2026, docs/arcade-standard/ricochet.md): a deeper night,
+ * drifting wisps, far lanterns, a larger cratered moon, the walls' raking moonlight and cast shadows, lanterns lighting
+ * the stone near them; ricoRev 4's bigger ninja drawn at ninjaArtScale(rev).
  */
 import { drawActionHud, type ActionHudRow } from "./actionHud.renderer";
 import { artCanvas, artContext, deviceLayer } from "./cache.renderer";
@@ -26,13 +28,17 @@ import {
   NINJA_PX_PER_M,
   NINJA_HH,
   NINJA_HW,
-  NINJA_START,
   NINJA_WALL_L,
   NINJA_WALL_R,
   NINJA_WORLD_H,
   NINJA_WORLD_W,
   ninjaGame,
   moonGame,
+  moonBigGame,
+  moonRideHang,
+  ninjaBodyFor,
+  isMoonState,
+  MOON_BIG_REV,
   ninjaClimbedPx,
   ninjaMetres,
   SCROLL_R,
@@ -47,7 +53,6 @@ import {
   MOON_CORE_FULL_M,
   MOON_LEDGE_HW,
   MOON_REV,
-  MOON_RIDE_HANG,
   MOON_SKY,
   MOON_SCROLLS,
   MOON_SKY_R,
@@ -142,163 +147,371 @@ function paintSky(ctx: CanvasRenderingContext2D): void {
  * pagoda and the mist (painted once per size, over the moon so it rises from behind them).
  */
 /** The night's progress, 0 at the foot of the tower to 1 at the core's full height: smooth, never going back. */
-export function moonNight(state: Pick<NinjaState, "best">): number {
+export function moonNight(state: Pick<NinjaState, "best"> & { rev?: number }): number {
   const p = Math.max(0, Math.min(1, ninjaClimbedPx(state) / (MOON_CORE_FULL_M * NINJA_PX_PER_M)));
   return p * p * (3 - 2 * p);
 }
-/** The moon's centre and radius for a night's progress (world px). */
+/** The moon's centre and radius for a night's progress (world px): large and low over the ridge, rising and a little smaller. */
 export function moonPlace(p: number): { x: number; y: number; r: number } {
-  return { x: NINJA_WORLD_W / 2, y: Math.round(610 - 440 * p), r: Math.round(66 - 16 * p) };
+  return { x: NINJA_WORLD_W / 2, y: Math.round(610 - 440 * p), r: Math.round(84 - 18 * p) };
 }
+
+/*
+ * The stage-2 look pass (15 Nov 2026; concept ricochet-A, docs/design/pages-review/action/GALLERY.md): a deeper,
+ * layered night. The sky (painted once per size): an indigo-to-blue gradient in five stops, a faint band of star dust
+ * across it and 170 stars of every kind (dim pinpoints, small cool and warm stars, a few bright ones with a four-point
+ * glint). Each frame: the night's deepening as the climb goes on, the stars that come out with it (some twinkling),
+ * the moon (a cratered disc, warm and large low down, paler as it rises), the cloud wisps drifting across with their
+ * moon-facing edges lit, the mist band the moon lights where it sits, and far paper lanterns rising through the sky
+ * (display only, never touched), one at a time crossing the moon. Then the ridges, the pagoda and the valley mist
+ * (painted once per size), over the moon so it rises from behind them.
+ */
+const SKY_STOPS: [number, string][] = [[0, "#03050F"], [0.28, "#081029"], [0.56, "#122253"], [0.82, "#1D3471"], [1, "#2A4584"]];
 
 function paintMoonSky(ctx: CanvasRenderingContext2D): void {
   const W = NINJA_WORLD_W;
   const H = NINJA_WORLD_H;
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "#0A1435");
-  g.addColorStop(0.45, "#16295E");
-  g.addColorStop(0.8, "#26407F");
-  g.addColorStop(1, "#33508F");
+  for (const [o, c] of SKY_STOPS) g.addColorStop(o, c);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-  // Stars, brighter higher up.
-  for (let i = 0; i < 90; i++) {
-    const h = artHash(i, 43);
-    const y = (h >>> 12) % Math.round(H * 0.72);
-    ctx.globalAlpha = (0.2 + ((h >>> 9) % 6) * 0.1) * (1 - (0.5 * y) / H);
-    ctx.fillStyle = "#E8ECFF";
-    ctx.fillRect(NINJA_WALL_L + (h % (NINJA_WALL_R - NINJA_WALL_L)), y, (h >>> 28) % 5 === 0 ? 2 : 1, (h >>> 28) % 5 === 0 ? 2 : 1);
+  // A faint band of star dust running down the sky at a slant, its own fine stars in it.
+  ctx.save();
+  ctx.translate(W * 0.5, H * 0.34);
+  ctx.rotate(-0.42);
+  const band = ctx.createLinearGradient(0, -46, 0, 46);
+  band.addColorStop(0, "rgba(150,170,235,0)");
+  band.addColorStop(0.5, "rgba(150,170,235,0.075)");
+  band.addColorStop(1, "rgba(150,170,235,0)");
+  ctx.fillStyle = band;
+  ctx.fillRect(-W, -46, 2 * W, 92);
+  for (let i = 0; i < 140; i++) {
+    const h = artHash(i, 77);
+    ctx.fillStyle = `rgba(220,230,255,${(0.12 + ((h >>> 20) % 5) * 0.05).toFixed(2)})`;
+    const along = (h % (2 * W)) - W;
+    const across = (((h >>> 11) % 61) - 30) * (0.4 + ((h >>> 26) % 4) * 0.2);
+    ctx.fillRect(along, across, 1, 1);
   }
-  ctx.globalAlpha = 1;
-  // Thin cloud wisps, lit from below by the moon.
-  for (let i = 0; i < 6; i++) {
-    const h = artHash(i, 91);
-    const cy = 200 + (h % 360);
-    const cx = NINJA_WALL_L + ((h >>> 9) % (NINJA_WALL_R - NINJA_WALL_L));
-    const w = 70 + ((h >>> 17) % 70);
-    const c = ctx.createLinearGradient(0, cy - 5, 0, cy + 5);
-    c.addColorStop(0, "rgba(150,170,230,0)");
-    c.addColorStop(1, "rgba(170,190,245,0.16)");
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, w / 2, 4 + ((h >>> 25) % 4), 0, 0, Math.PI * 2);
-    ctx.fill();
+  ctx.restore();
+  // Stars: dim pinpoints, small cool and warm ones, a few bright with a soft core.
+  for (let i = 0; i < 170; i++) {
+    const h = artHash(i, 43);
+    const x = h % W;
+    const y = (h >>> 12) % Math.round(H * 0.78);
+    const kind = (h >>> 24) % 16;
+    const fade = 1 - (0.55 * y) / H;
+    const tone = (h >>> 5) % 3 === 0 ? "255,236,205" : (h >>> 5) % 3 === 1 ? "205,222,255" : "238,242,255";
+    if (kind < 9) {
+      ctx.fillStyle = `rgba(${tone},${(0.22 + ((h >>> 9) % 4) * 0.08) * fade})`;
+      ctx.fillRect(x, y, 1, 1);
+    } else if (kind < 14) {
+      ctx.fillStyle = `rgba(${tone},${0.55 * fade})`;
+      ctx.fillRect(x - 0.5, y - 0.5, 1.6, 1.6);
+    } else drawStar(ctx, x, y, 1.1 + ((h >>> 3) % 3) * 0.35, 0.85 * fade, tone);
   }
 }
 
-/** The far ridge, the pagoda and the mist (transparent elsewhere): drawn over the moon. */
+/** A bright star: a small soft core and a thin four-point glint (crisp, no halo wash). */
+function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, a: number, tone: string): void {
+  const core = ctx.createRadialGradient(x, y, 0, x, y, 2.4 * s);
+  core.addColorStop(0, `rgba(255,255,255,${a})`);
+  core.addColorStop(0.35, `rgba(${tone},${0.55 * a})`);
+  core.addColorStop(1, `rgba(${tone},0)`);
+  ctx.fillStyle = core;
+  ctx.fillRect(x - 2.4 * s, y - 2.4 * s, 4.8 * s, 4.8 * s);
+  ctx.fillStyle = `rgba(${tone},${0.6 * a})`;
+  ctx.fillRect(x - 4.5 * s, y - 0.3, 9 * s, 0.6);
+  ctx.fillRect(x - 0.3, y - 4.5 * s, 0.6, 9 * s);
+}
+
+/** The far ridges, the pagoda and the mist (transparent elsewhere): drawn over the moon. */
 function paintMoonRidge(ctx: CanvasRenderingContext2D): void {
   const W = NINJA_WORLD_W;
   const H = NINJA_WORLD_H;
-  // Misty layers (the materials pass; concept A): a far range and a small far pagoda in haze, a mist band, the
-  // nearer ridge, another band, then the near ridge and the temple's pagoda, mist rising off the valley.
   const band = (y: number, h: number, a: number) => {
     const g = ctx.createLinearGradient(0, y - h, 0, y + h);
-    g.addColorStop(0, "rgba(140,160,225,0)");
-    g.addColorStop(0.5, `rgba(140,160,225,${a})`);
-    g.addColorStop(1, "rgba(140,160,225,0)");
+    g.addColorStop(0, "rgba(150,170,230,0)");
+    g.addColorStop(0.5, `rgba(150,170,230,${a})`);
+    g.addColorStop(1, "rgba(150,170,230,0)");
     ctx.fillStyle = g;
     ctx.fillRect(0, y - h, W, 2 * h);
   };
-  ctx.fillStyle = "#26386E";
-  ctx.beginPath();
-  ctx.moveTo(0, H * 0.8);
-  for (let x = 0; x <= W; x += 15) ctx.lineTo(x, H * 0.79 + 12 * Math.sin(x / 29 + 2) + 5 * Math.sin(x / 7));
-  ctx.lineTo(W, H);
-  ctx.lineTo(0, H);
-  ctx.fill();
+  const ridge = (base: number, amp: number, f1: number, f2: number, top: string, bottom: string, rim: string) => {
+    const path = () => {
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 6) ctx.lineTo(x, base + amp * Math.sin(x / f1 + 1.3) + amp * 0.42 * Math.sin(x / f2));
+      ctx.lineTo(W, H);
+      ctx.closePath();
+    };
+    const g = ctx.createLinearGradient(0, base - amp, 0, H);
+    g.addColorStop(0, top);
+    g.addColorStop(1, bottom);
+    ctx.fillStyle = g;
+    path();
+    ctx.fill();
+    // Moonlight along the crest: a thin lit line, the ridge's own shape.
+    ctx.strokeStyle = rim;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 6) {
+      const y = base + amp * Math.sin(x / f1 + 1.3) + amp * 0.42 * Math.sin(x / f2);
+      if (x === 0) ctx.moveTo(x, y + 0.5);
+      else ctx.lineTo(x, y + 0.5);
+    }
+    ctx.stroke();
+  };
+  // The farthest range in haze, a small far pagoda on it, mist; the middle range; mist; the near ridge, the temple's
+  // pagoda, and the valley mist rising.
+  ridge(H * 0.765, 13, 31, 9, "#2C407C", "#22346A", "rgba(190,205,250,0.24)");
   ctx.save();
-  ctx.globalAlpha = 0.45;
-  drawPagoda(ctx, W * 0.28, Math.round(H * 0.8), 0.55);
+  ctx.globalAlpha = 0.5;
+  drawPagoda(ctx, W * 0.24, Math.round(H * 0.775), 0.5);
   ctx.restore();
-  band(H * 0.82, 16, 0.18);
-  ctx.fillStyle = "#1B2A5C";
-  ctx.beginPath();
-  ctx.moveTo(0, H * 0.86);
-  for (let x = 0; x <= W; x += 15) ctx.lineTo(x, H * 0.85 + 16 * Math.sin(x / 37 + 1) + 7 * Math.sin(x / 9));
-  ctx.lineTo(W, H);
-  ctx.lineTo(0, H);
-  ctx.fill();
-  band(H * 0.875, 12, 0.16);
-  ctx.fillStyle = "#101A3E";
-  ctx.beginPath();
-  ctx.moveTo(0, H * 0.9);
-  for (let x = 0; x <= W; x += 15) ctx.lineTo(x, H * 0.89 + 11 * Math.sin(x / 41) + 5 * Math.sin(x / 11));
-  ctx.lineTo(W, H);
-  ctx.lineTo(0, H);
-  ctx.fill();
-  drawPagoda(ctx, W / 2, Math.round(H * 0.9), 1.2);
-  const mist = ctx.createLinearGradient(0, H * 0.78, 0, H);
-  mist.addColorStop(0, "rgba(130,150,215,0)");
-  mist.addColorStop(1, "rgba(130,150,215,0.2)");
+  band(H * 0.8, 18, 0.2);
+  ridge(H * 0.84, 15, 37, 11, "#1D2D61", "#15224D", "rgba(175,192,245,0.2)");
+  ctx.save();
+  ctx.globalAlpha = 0.72;
+  drawPagoda(ctx, W * 0.8, Math.round(H * 0.85), 0.62);
+  ctx.restore();
+  band(H * 0.865, 13, 0.18);
+  ridge(H * 0.895, 10, 41, 12, "#121C42", "#0C1430", "rgba(160,178,235,0.18)");
+  drawPagoda(ctx, W / 2, Math.round(H * 0.9), 1.25);
+  const mist = ctx.createLinearGradient(0, H * 0.82, 0, H);
+  mist.addColorStop(0, "rgba(140,158,220,0)");
+  mist.addColorStop(0.6, "rgba(140,158,220,0.14)");
+  mist.addColorStop(1, "rgba(140,158,220,0.26)");
   ctx.fillStyle = mist;
-  ctx.fillRect(0, H * 0.78, W, H * 0.22);
+  ctx.fillRect(0, H * 0.82, W, H * 0.18);
 }
 
-/** The night's deepening, the extra stars and the moon for this progress (each frame). */
-function drawMoonNight(ctx: CanvasRenderingContext2D, p: number, tick: number): void {
-  const W = NINJA_WORLD_W;
-  const H = NINJA_WORLD_H;
-  if (p > 0.01) {
-    const d = ctx.createLinearGradient(0, 0, 0, H * 0.85);
-    d.addColorStop(0, `rgba(2,4,18,${(0.62 * p).toFixed(3)})`);
-    d.addColorStop(1, `rgba(2,4,18,${(0.3 * p).toFixed(3)})`);
-    ctx.fillStyle = d;
-    ctx.fillRect(0, 0, W, H);
-    // More stars come out as the night deepens; a few twinkle.
-    ctx.fillStyle = "#F2F4FF";
-    for (let i = 0; i < 40; i++) {
-      const h = artHash(i, 57);
-      const tw = (h >>> 3) % 7 === 0 ? 0.6 + 0.4 * Math.sin((tick + (h % 97)) / 11) : 1;
-      ctx.globalAlpha = Math.min(1, p * 1.4 * (0.45 + ((h >>> 9) % 6) * 0.1)) * tw;
-      const sz = (h >>> 28) % 4 === 0 ? 2 : 1.4;
-      ctx.fillRect(NINJA_WALL_L + 4 + (h % (NINJA_WALL_R - NINJA_WALL_L - 8)), (h >>> 12) % Math.round(H * 0.6), sz, sz);
-    }
-    ctx.globalAlpha = 1;
+/* ---- The moon: a cratered disc (cached per radius and warmth step where a canvas can be made) ---- */
+const MOON_CRATERS: [number, number, number][] = (() => {
+  const out: [number, number, number][] = [];
+  for (let i = 0; i < 28; i++) {
+    const h = artHash(i, 211);
+    const a = ((h % 3600) / 3600) * Math.PI * 2;
+    const d = Math.sqrt(((h >>> 12) % 1000) / 1000) * 0.84;
+    const r = i < 4 ? 0.085 + ((h >>> 22) % 5) * 0.012 : i < 12 ? 0.04 + ((h >>> 22) % 5) * 0.006 : 0.014 + ((h >>> 22) % 6) * 0.003;
+    out.push([Math.cos(a) * d, Math.sin(a) * d, r]);
   }
-  // The moon: warm and large on the ridge, pale and higher as it rises.
-  const m = moonPlace(p);
-  const warm = 1 - p;
-  const halo = ctx.createRadialGradient(m.x, m.y, m.r * 0.8, m.x, m.y, m.r * 2.3);
-  halo.addColorStop(0, `rgba(255,${Math.round(225 + 15 * p)},${Math.round(170 + 50 * p)},0.26)`);
-  halo.addColorStop(1, "rgba(255,235,200,0)");
-  ctx.fillStyle = halo;
-  ctx.fillRect(m.x - m.r * 2.3, m.y - m.r * 2.3, m.r * 4.6, m.r * 4.6);
-  const face = ctx.createRadialGradient(m.x - m.r * 0.35, m.y - m.r * 0.35, m.r * 0.1, m.x, m.y, m.r);
-  face.addColorStop(0, `rgb(255,${Math.round(246 - 6 * warm)},${Math.round(226 - 50 * warm)})`);
-  face.addColorStop(1, `rgb(${Math.round(232 + 10 * warm)},${Math.round(218 - 22 * warm)},${Math.round(186 - 66 * warm)})`);
+  return out;
+})();
+/** Paints the moon's disc at (x, y), radius r; `warm` 1 low and amber, 0 high and pale. */
+function paintMoonDisc(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, warm: number): void {
+  const mix = (a: number, b: number) => Math.round(a + (b - a) * warm);
+  // The face: lit from the upper left, darkening to the limb (the sphere's own shading, never a flat disc).
+  const face = ctx.createRadialGradient(x - r * 0.3, y - r * 0.32, r * 0.08, x, y, r);
+  face.addColorStop(0, `rgb(${mix(255, 255)},${mix(249, 238)},${mix(226, 196)})`);
+  face.addColorStop(0.62, `rgb(${mix(242, 248)},${mix(230, 210)},${mix(196, 150)})`);
+  face.addColorStop(1, `rgb(${mix(208, 218)},${mix(192, 162)},${mix(160, 104)})`);
   ctx.fillStyle = face;
   ctx.beginPath();
-  ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+  ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
-  // Maria (soft, broad) and craters (the materials pass): each crater shadowed inside on its upper-left wall and lit on
-  // its lower-right rim, so the surface reads cratered, scaled to the moon.
-  const k = m.r / 56;
-  const tint = (a: number) => `rgba(${Math.round(160 + 20 * warm)},${Math.round(150 - 10 * warm)},${Math.round(132 - 30 * warm)},${a})`;
-  ctx.fillStyle = tint(0.24);
-  for (const [x, y, rx, ry] of [[-14, -8, 18, 13], [14, 12, 13, 10], [-6, 22, 10, 7]] as const) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.clip();
+  // Maria: broad soft darker seas.
+  const sea = `rgba(${mix(150, 160)},${mix(136, 116)},${mix(118, 78)},`;
+  for (const [mx, my, rx, ry, a] of [[-0.25, -0.18, 0.4, 0.28, 0.34], [0.24, 0.1, 0.32, 0.24, 0.3], [-0.05, 0.4, 0.24, 0.15, 0.26], [0.36, -0.38, 0.18, 0.13, 0.22], [-0.5, 0.22, 0.15, 0.22, 0.2], [0.05, -0.05, 0.16, 0.12, 0.18]] as const) {
+    const g = ctx.createRadialGradient(x + mx * r, y + my * r, 0, x + mx * r, y + my * r, Math.max(rx, ry) * r);
+    g.addColorStop(0, `${sea}${a})`);
+    g.addColorStop(1, `${sea}0)`);
+    ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.ellipse(m.x + x * k, m.y + y * k, rx * k, ry * k, 0.4, 0, Math.PI * 2);
+    ctx.ellipse(x + mx * r, y + my * r, rx * r, ry * r, 0.5, 0, Math.PI * 2);
     ctx.fill();
   }
-  for (const [x, y, r] of [[-18, -10, 6], [16, 14, 5], [8, -24, 4.5], [-10, 24, 3.5], [26, -8, 4], [-28, 10, 3.2], [30, 18, 2.6], [-2, 4, 2.4], [20, -26, 2.8], [-30, -16, 2.4]] as const) {
-    const cx = m.x + x * k;
-    const cy = m.y + y * k;
-    const cr = r * k;
-    ctx.fillStyle = tint(0.38);
+  // Craters: a shadowed floor on the side towards the light, a lit rim on the far side, a central peak on the big ones.
+  for (const [cx0, cy0, cr0] of MOON_CRATERS) {
+    const cx = x + cx0 * r;
+    const cy = y + cy0 * r;
+    const cr = cr0 * r;
+    if (cr < 0.7) continue;
+    // The floor: shadowed towards the upper left (the wall facing away from the light), lighter across.
+    const floor = ctx.createRadialGradient(cx + cr * 0.3, cy + cr * 0.3, 0, cx, cy, cr);
+    floor.addColorStop(0, `${sea}0.12)`);
+    floor.addColorStop(1, `rgba(${mix(96, 112)},${mix(86, 72)},${mix(76, 46)},0.42)`);
+    ctx.fillStyle = floor;
     ctx.beginPath();
     ctx.arc(cx, cy, cr, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = tint(0.55);
-    ctx.lineWidth = Math.max(0.8, cr * 0.28);
+    ctx.strokeStyle = "rgba(255,251,236,0.55)";
+    ctx.lineWidth = Math.max(0.5, cr * 0.16);
     ctx.beginPath();
-    ctx.arc(cx, cy, cr * 0.82, Math.PI * 0.95, Math.PI * 1.75);
+    ctx.arc(cx, cy, cr, Math.PI * 0.02, Math.PI * 0.8);
     ctx.stroke();
-    ctx.strokeStyle = "rgba(255,252,240,0.7)";
-    ctx.lineWidth = Math.max(0.7, cr * 0.22);
+    if (cr > 6) {
+      ctx.fillStyle = "rgba(255,250,232,0.45)";
+      ctx.beginPath();
+      ctx.arc(cx + cr * 0.12, cy + cr * 0.12, cr * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // Fine grain across the face.
+  for (let i = 0; i < 160; i++) {
+    const h = artHash(i, 233);
+    const a = ((h % 3600) / 3600) * Math.PI * 2;
+    const d = Math.sqrt(((h >>> 12) % 1000) / 1000) * r;
+    ctx.fillStyle = (h >>> 23) % 3 === 0 ? "rgba(255,255,245,0.22)" : `${sea}0.22)`;
+    ctx.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d, 1, 1);
+  }
+  // The limb: a soft darkening to the edge on the shadowed side.
+  const limb = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.7, x - r * 0.1, y - r * 0.1, r * 1.15);
+  limb.addColorStop(0, "rgba(40,30,20,0)");
+  limb.addColorStop(1, `rgba(${mix(40, 90)},${mix(44, 40)},${mix(60, 20)},0.35)`);
+  ctx.fillStyle = limb;
+  ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+  ctx.restore();
+}
+const moonSprites = new Map<string, CanvasImageSource>();
+function drawMoonDisc(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, warm: number): void {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const k = t ? Math.max(1, Math.min(4, Math.hypot(t.a, t.b))) : 1;
+  const step = Math.round(warm * 8);
+  const key = `${r}|${step}|${k.toFixed(2)}`;
+  let sprite = moonSprites.get(key) ?? null;
+  if (!sprite) {
+    const size = Math.ceil((2 * r + 4) * k);
+    const surface = artCanvas(size, size);
+    const c = surface ? (artContext(surface) as CanvasRenderingContext2D | null) : null;
+    if (surface && c) {
+      c.scale(k, k);
+      paintMoonDisc(c, r + 2, r + 2, r, step / 8);
+      if (moonSprites.size > 12) moonSprites.clear();
+      moonSprites.set(key, surface as CanvasImageSource);
+      sprite = surface as CanvasImageSource;
+    }
+  }
+  if (sprite) ctx.drawImage(sprite, x - r - 2, y - r - 2, 2 * r + 4, 2 * r + 4);
+  else paintMoonDisc(ctx, x, y, r, step / 8);
+}
+
+/* ---- Clouds: soft wisps drifting across, their edge towards the moon lit ---- */
+interface Wisp {
+  y: number;
+  w: number;
+  h: number;
+  speed: number;
+  phase: number;
+}
+const WISPS: Wisp[] = Array.from({ length: 7 }, (_, i) => {
+  const h = artHash(i, 97);
+  return { y: 70 + i * 82 + ((h >>> 3) % 40), w: 110 + ((h >>> 9) % 90), h: 9 + ((h >>> 17) % 8), speed: 0.05 + ((h >>> 21) % 5) * 0.02, phase: h % 600 };
+});
+/** One wisp at (x, y): a few overlapping soft lobes, its lower edge lit by `lit` (0 … 1). */
+function drawWisp(ctx: CanvasRenderingContext2D, x: number, y: number, wsp: Wisp, lit: number, seed: number): void {
+  for (let j = 0; j < 4; j++) {
+    const h = artHash(seed, j + 5);
+    const lx = x + ((j - 1.5) * wsp.w) / 4.2 + ((h % 11) - 5);
+    const ly = y + ((h >>> 8) % 5) - 2;
+    const rx = wsp.w * (0.28 + ((h >>> 12) % 10) * 0.012);
+    const ry = wsp.h * (0.8 + ((h >>> 16) % 6) * 0.06);
+    const g = ctx.createRadialGradient(lx, ly + ry * 0.35, 0, lx, ly, rx);
+    g.addColorStop(0, `rgba(${Math.round(120 + 100 * lit)},${Math.round(132 + 88 * lit)},${Math.round(180 + 55 * lit)},${(0.2 + 0.2 * lit).toFixed(3)})`);
+    g.addColorStop(1, "rgba(90,105,160,0)");
+    ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.arc(cx, cy, cr, Math.PI * 0.05, Math.PI * 0.75);
-    ctx.stroke();
+    ctx.ellipse(lx, ly, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/* ---- Far lanterns: small paper lanterns rising through the sky (display only, never touched) ---- */
+const FAR_LANTERNS = Array.from({ length: 6 }, (_, i) => {
+  const h = artHash(i, 131);
+  return { x: NINJA_WALL_L + 24 + (h % (NINJA_WALL_R - NINJA_WALL_L - 48)), s: 1.2 + ((h >>> 10) % 5) * 0.2, speed: 0.11 + ((h >>> 14) % 5) * 0.025, phase: (h >>> 4) % 900, sway: (h >>> 20) % 100 };
+});
+/** Where far lantern i is on this tick (world px; y may be off the sky), its size and its flicker. */
+export function farLanternAt(i: number, tick: number): { x: number; y: number; s: number } {
+  const l = FAR_LANTERNS[i]!;
+  const span = NINJA_WORLD_H + 120;
+  const y = NINJA_WORLD_H * 0.84 - ((tick * l.speed + l.phase) % span);
+  return { x: l.x + Math.sin((tick + l.sway * 7) / 140) * 6, y, s: l.s };
+}
+export const FAR_LANTERN_COUNT = FAR_LANTERNS.length;
+/** A far lantern: a small paper body lit from inside (bright gold round its flame, orange at the edge), no halo past it. */
+function drawFarLantern(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, tick: number, i: number): void {
+  const w = 5.4 * s;
+  const h = 7 * s;
+  const fl = 0.88 + 0.12 * Math.sin(tick / 5 + i * 1.7);
+  const g = ctx.createRadialGradient(x, y + h * 0.3, 0, x, y, h * 0.62);
+  g.addColorStop(0, `rgba(255,246,200,${fl})`);
+  g.addColorStop(0.45, `rgba(255,190,90,${fl})`);
+  g.addColorStop(1, `rgba(236,104,40,${fl})`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.36, y - h / 2);
+  ctx.lineTo(x + w * 0.36, y - h / 2);
+  ctx.quadraticCurveTo(x + w * 0.62, y - h * 0.1, x + w * 0.34, y + h / 2);
+  ctx.lineTo(x - w * 0.34, y + h / 2);
+  ctx.quadraticCurveTo(x - w * 0.62, y - h * 0.1, x - w * 0.36, y - h / 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(150,60,20,0.28)";
+  ctx.fillRect(x - Math.max(0.25, 0.22 * s), y - h / 2, Math.max(0.5, 0.45 * s), h);
+  ctx.fillStyle = "rgba(70,28,10,0.9)";
+  ctx.fillRect(x - w * 0.36, y - h / 2 - 0.5 * s, w * 0.72, 0.9 * s);
+}
+
+/** The night's deepening, its stars, the moon, the drifting wisps, the moonlit mist and the far lanterns (each frame). */
+function drawMoonNight(ctx: CanvasRenderingContext2D, p: number, tick: number): void {
+  const W = NINJA_WORLD_W;
+  const H = NINJA_WORLD_H;
+  const m = moonPlace(p);
+  const warm = 1 - 0.75 * p;
+  // Warm moonlight in the sky round the moon: a wide, faint lift of the sky's own blue (no ring, no glare).
+  const lift = ctx.createRadialGradient(m.x, m.y, m.r * 0.9, m.x, m.y, m.r * 3.2);
+  lift.addColorStop(0, `rgba(${Math.round(150 + 70 * warm)},${Math.round(160 + 30 * warm)},${Math.round(225 - 60 * warm)},0.2)`);
+  lift.addColorStop(1, "rgba(120,140,220,0)");
+  ctx.fillStyle = lift;
+  ctx.fillRect(m.x - m.r * 3.2, m.y - m.r * 3.2, m.r * 6.4, m.r * 6.4);
+  if (p > 0.01) {
+    const d = ctx.createLinearGradient(0, 0, 0, H * 0.85);
+    d.addColorStop(0, `rgba(1,2,10,${(0.6 * p).toFixed(3)})`);
+    d.addColorStop(1, `rgba(1,2,10,${(0.28 * p).toFixed(3)})`);
+    ctx.fillStyle = d;
+    ctx.fillRect(0, 0, W, H);
+    // More stars come out as the night deepens; the bright ones glint.
+    for (let i = 0; i < 46; i++) {
+      const h = artHash(i, 57);
+      const tw = (h >>> 3) % 5 === 0 ? 0.55 + 0.45 * Math.sin((tick + (h % 97)) / 13) : 1;
+      const a = Math.min(1, p * 1.4 * (0.45 + ((h >>> 9) % 6) * 0.1)) * tw;
+      const x = NINJA_WALL_L + 4 + (h % (NINJA_WALL_R - NINJA_WALL_L - 8));
+      const y = (h >>> 12) % Math.round(H * 0.62);
+      if ((h >>> 26) % 6 === 0) drawStar(ctx, x, y, 1 + 0.3 * tw, a, (h >>> 5) % 2 ? "255,236,205" : "205,222,255");
+      else {
+        ctx.fillStyle = `rgba(242,244,255,${a.toFixed(3)})`;
+        ctx.fillRect(x, y, 1.4, 1.4);
+      }
+    }
+  }
+  drawMoonDisc(ctx, m.x, m.y, m.r, warm);
+  // Wisps drifting across; those near the moon are lit on their edge towards it.
+  WISPS.forEach((wsp, i) => {
+    const span = W + wsp.w * 2;
+    const x = ((tick * wsp.speed + wsp.phase * 3) % span) - wsp.w;
+    const y = wsp.y;
+    const near = Math.max(0, 1 - Math.hypot(x - m.x, y - m.y) / (m.r * 3));
+    drawWisp(ctx, x, y, wsp, near, i);
+  });
+  // The mist band the moon lights where it sits.
+  const mist = ctx.createRadialGradient(m.x, m.y + m.r * 0.7, 0, m.x, m.y + m.r * 0.7, W * 0.62);
+  mist.addColorStop(0, `rgba(${Math.round(200 + 40 * warm)},${Math.round(205 + 15 * warm)},${Math.round(240 - 50 * warm)},0.13)`);
+  mist.addColorStop(1, "rgba(160,175,230,0)");
+  ctx.save();
+  ctx.translate(0, m.y + m.r * 0.7);
+  ctx.scale(1, 0.16);
+  ctx.translate(0, -(m.y + m.r * 0.7));
+  ctx.fillStyle = mist;
+  ctx.fillRect(0, m.y + m.r * 0.7 - W * 0.62, W, W * 1.24);
+  ctx.restore();
+  for (let i = 0; i < FAR_LANTERN_COUNT; i++) {
+    const l = farLanternAt(i, tick);
+    if (l.y < -10 || l.y > H * 0.9) continue;
+    drawFarLantern(ctx, l.x, l.y, l.s, tick, i);
   }
 }
 
@@ -327,10 +540,16 @@ export function drawPagoda(ctx: CanvasRenderingContext2D, x: number, base: numbe
     ctx.lineTo(x + w * 0.3, y - h - 6 * s);
     ctx.quadraticCurveTo(x + w * 0.42, y - h - 2 * s, x + w * 0.62, y - h + 1 * s);
     ctx.stroke();
-    if (i < 3) {
-      ctx.fillStyle = "rgba(255,190,90,0.55)";
-      ctx.fillRect(x - 2 * s, y - h * 0.7, 3 * s, 5 * s);
+    if (i < 4) {
+      // A lit window: paper glowing warm, a darker frame bar (the stage-2 look pass: brighter, two panes low down).
+      ctx.fillStyle = "rgba(255,196,104,0.85)";
+      ctx.fillRect(x - 2 * s, y - h * 0.72, 3.4 * s, 6 * s);
+      if (i < 2) {
+        ctx.fillRect(x - 9 * s, y - h * 0.72, 3.4 * s, 6 * s);
+        ctx.fillRect(x + 5.6 * s, y - h * 0.72, 3.4 * s, 6 * s);
+      }
       ctx.fillStyle = "#0E1226";
+      ctx.fillRect(x - 0.3 * (s + 1), y - h * 0.72, Math.max(0.5, 0.6 * s), 6 * s);
     }
     y -= h + 6 * s;
   }
@@ -351,13 +570,30 @@ const SLATE_H = SLATE_ROWS * ROW;
  * bottom and far side, the odd chipped corner (lit on its broken face) and crack; mortar sunk dark between. Painted
  * once per wall and device scale into a strip SLATE_ROWS courses tall and copied in place each frame (where no
  * offscreen canvas exists, painted straight onto the frame). Shared with the play screen's fill (ricochetNinjaScene).
+ * The stage-2 look pass (15 Nov 2026): each block stands proud of a lighter mortar bed and casts a short shadow on it,
+ * down and away from the gap (the moon is over the shaft), its face rounded by a light falling across it towards the
+ * gap, a brighter lit top and gap-side edge; the moon's raking light is laid over it each frame (wallRake).
  */
+const SLATE_BED = "#1C2032";
 const SLATE_TONES = ["#434C64", "#3B4359", "#4B5570", "#363E52", "#454E67", "#3F475E"] as const;
 /** Paints courses r0 … r0 + n − 1 of one wall between x0 and x1; `rowAt(r)` is course r's top edge (y grows down). */
 export function paintSlate(c: CanvasRenderingContext2D, wall: number, x0: number, x1: number, rowAt: (r: number) => number, r0: number, n: number): void {
-  c.fillStyle = MORTAR;
+  c.fillStyle = SLATE_BED;
   c.fillRect(x0, rowAt(r0 + n - 1), x1 - x0, n * ROW);
   const inner = wall === 0 ? 1 : -1;
+  // Each block's cast shadow on the bed: down and away from the gap (painted under every block first).
+  c.fillStyle = "rgba(2,3,9,0.62)";
+  for (let k = 0; k < n; k++) {
+    const r = r0 + k;
+    const m = ((r % SLATE_ROWS) + SLATE_ROWS) % SLATE_ROWS;
+    const off = m % 2 === 0 ? 0 : 22;
+    const start = wall === 0 ? x0 - off : x0 - off - 4;
+    for (let bx = start; bx < x1; bx += 44) {
+      const a = Math.max(x0, bx + 1 - inner * 2);
+      const b = Math.min(x1, bx + 43 - inner * 2);
+      if (b > a) c.fillRect(a, rowAt(r) + 3, b - a, ROW - 2);
+    }
+  }
   for (let k = 0; k < n; k++) {
     const r = r0 + k;
     const m = ((r % SLATE_ROWS) + SLATE_ROWS) % SLATE_ROWS;
@@ -376,6 +612,13 @@ export function paintSlate(c: CanvasRenderingContext2D, wall: number, x0: number
       g.addColorStop(1, "#2A3043");
       c.fillStyle = g;
       c.fillRect(a, top, b - a, bh);
+      // The face rounded: darker on the far side, catching the light towards the gap.
+      const across = c.createLinearGradient(inner === 1 ? a : b, 0, inner === 1 ? b : a, 0);
+      across.addColorStop(0, "rgba(0,0,8,0.2)");
+      across.addColorStop(0.55, "rgba(0,0,8,0)");
+      across.addColorStop(1, "rgba(205,218,255,0.1)");
+      c.fillStyle = across;
+      c.fillRect(a, top, b - a, bh);
       // Grain: fine light and dark flecks from the block's own place, and a faint strata line.
       for (let i = 0; i < 10; i++) {
         const q = artHash(h, i + 3);
@@ -385,9 +628,11 @@ export function paintSlate(c: CanvasRenderingContext2D, wall: number, x0: number
       c.fillStyle = "rgba(10,12,22,0.28)";
       c.fillRect(a + 1, top + 8 + ((h >>> 4) % 12), b - a - 2, 1);
       // The bevel: lit top edge and the side facing the gap, shadowed bottom and far side.
-      c.fillStyle = "rgba(200,214,255,0.34)";
+      c.fillStyle = "rgba(214,226,255,0.46)";
       c.fillRect(a, top, b - a, 1.5);
-      c.fillStyle = "rgba(200,214,255,0.2)";
+      c.fillStyle = "rgba(214,226,255,0.14)";
+      c.fillRect(a, top + 1.5, b - a, 1);
+      c.fillStyle = "rgba(205,218,255,0.28)";
       if (inner === 1) c.fillRect(b - 1.5, top, 1.5, bh);
       else c.fillRect(a, top, 1.5, bh);
       c.fillStyle = "rgba(0,0,0,0.42)";
@@ -469,6 +714,34 @@ function slateStrip(wall: number, k: number): CanvasImageSource | null {
   return surface as CanvasImageSource;
 }
 
+/**
+ * The moon's raking light across a wall (the stage-2 look pass; display only): strongest on the face towards the gap
+ * and at the moon's own height, falling off along the wall and into the stone, warmer while the moon is low. Laid in
+ * bands of 8 px, faded out over the world's bottom 120 px (the play screen's fill below carries no rake: no seam).
+ */
+export function wallRake(ctx: CanvasRenderingContext2D, wall: number, moonY: number, warm: number): void {
+  const x0 = wall === 0 ? 0 : NINJA_WALL_R;
+  const x1 = wall === 0 ? NINJA_WALL_L : NINJA_WORLD_W;
+  const H = NINJA_WORLD_H;
+  const tone = `${Math.round(200 + 50 * warm)},${Math.round(212 + 8 * warm)},${Math.round(255 - 75 * warm)}`;
+  const g = ctx.createLinearGradient(wall === 0 ? x1 : x0, 0, wall === 0 ? x0 : x1, 0);
+  g.addColorStop(0, `rgba(${tone},1)`);
+  g.addColorStop(0.45, `rgba(${tone},0.35)`);
+  g.addColorStop(1, `rgba(${tone},0)`);
+  ctx.save();
+  ctx.fillStyle = g;
+  for (let y = 0; y < H; y += 8) {
+    const mid = y + 4;
+    const near = Math.max(0, 1 - Math.abs(mid - moonY) / 330);
+    const foot = Math.max(0, Math.min(1, (H - 40 - mid) / 80));
+    const a = 0.2 * near * near * foot;
+    if (a < 0.004) continue;
+    ctx.globalAlpha = a;
+    ctx.fillRect(x0, y, x1 - x0, 8);
+  }
+  ctx.restore();
+}
+
 function drawWall(ctx: CanvasRenderingContext2D, wall: number, cam: number): void {
   const x0 = wall === 0 ? 0 : NINJA_WALL_R;
   const x1 = wall === 0 ? NINJA_WALL_L : NINJA_WORLD_W;
@@ -497,8 +770,9 @@ function drawWall(ctx: CanvasRenderingContext2D, wall: number, cam: number): voi
   ctx.restore();
 }
 
-function drawFloor(ctx: CanvasRenderingContext2D, cam: number): void {
-  const sy = ninjaScreenY(cam, (NINJA_START >> 8) - NINJA_HH);
+function drawFloor(ctx: CanvasRenderingContext2D, cam: number, rev: number): void {
+  const body = ninjaBodyFor(rev);
+  const sy = ninjaScreenY(cam, (body.start >> 8) - body.hh);
   if (sy > NINJA_WORLD_H) return;
   // The temple's slate floor (the Action overhaul): the play screen's fill below the world carries on in the same
   // colour (MOON_FLOOR, ricochetNinjaScene.renderer.ts), so there is no step at the world's bottom edge.
@@ -519,7 +793,7 @@ export const MOON_FLOOR = "#1E2540";
  * Ice: pale blue and frosted (white speckles, crystal streaks, a glint running down it) with icicles off its lower
  * edge, so it reads as plainly as the moss.
  */
-export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: number, top: number, bottom: number, tick: number): void {
+export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: number, top: number, bottom: number, tick: number, moonY: number | null = null): void {
   const face = wall === 0 ? NINJA_WALL_L : NINJA_WALL_R;
   const depth = 14;
   const x = wall === 0 ? face - depth : face;
@@ -555,6 +829,7 @@ export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: num
     // Drips into the gap.
     ctx.fillStyle = "#3C6E2C";
     for (let i = 0; i < 3; i++) ctx.fillRect(wall === 0 ? face : face - 2, top + ((i + 1) * h) / 4, 2, 5);
+    if (moonY !== null) moonCatch(ctx, face, wall, top, bottom, moonY, "210,255,190");
   } else {
     // Glassy ice (the materials pass): a clear sheet, deep blue where it meets the stone and pale at its rounded lip,
     // the slate faintly through it, a long crisp highlight on the curve.
@@ -586,6 +861,7 @@ export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: num
     const shine = (tick * 2 + top) % Math.max(1, Math.round(h + 40));
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.fillRect(wall === 0 ? face - 5 : face + 2, top + shine - 20, 3, 14);
+    if (moonY !== null) moonCatch(ctx, face, wall, top, bottom, moonY, "235,248,255");
     // Icicles off the lower edge, along the face.
     ctx.fillStyle = "#D6F0FC";
     for (const [dx, len] of [[1, 9], [5, 6], [9, 8]] as const) {
@@ -598,6 +874,22 @@ export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: num
       ctx.fill();
     }
   }
+}
+
+/**
+ * Moss and ice catching the moon (the stage-2 look pass, display only): a wet or glassy sheen along the lip at the
+ * moon's height, brightest level with it and fading along the patch, a crisp line, never a glow past the patch.
+ */
+function moonCatch(ctx: CanvasRenderingContext2D, face: number, wall: number, top: number, bottom: number, moonY: number, tone: string): void {
+  const near = Math.max(0, 1 - Math.abs((top + bottom) / 2 - moonY) / 360);
+  if (near <= 0.02) return;
+  const g = ctx.createLinearGradient(0, top, 0, bottom);
+  const mid = Math.max(0, Math.min(1, (moonY - top) / Math.max(1, bottom - top)));
+  g.addColorStop(0, `rgba(${tone},${(0.25 * near).toFixed(3)})`);
+  g.addColorStop(mid, `rgba(${tone},${(0.85 * near).toFixed(3)})`);
+  g.addColorStop(1, `rgba(${tone},${(0.25 * near).toFixed(3)})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(wall === 0 ? face - 3.4 : face + 2.2, top + 2, 1.2, Math.max(0, bottom - top - 4));
 }
 
 export function drawKatana(ctx: CanvasRenderingContext2D, wall: number, sy: number, tick: number, seed: number): void {
@@ -791,76 +1083,174 @@ export function drawScroll(ctx: CanvasRenderingContext2D, x: number, y: number, 
 }
 
 /**
- * A mid-ledge (Moon Climb): a slim hanging piece of the temple's stone, MOON_LEDGE_HW × 2 px wide from `top` to
- * `bottom` (screen y), with a bronze cap at each end and a rope up from its top. Drawn inside its sim box.
+ * A mid-ledge (Moon Climb): a slim hanging pillar of the walls' own carved slate, MOON_LEDGE_HW × 2 px wide from `top`
+ * to `bottom` (screen y), in short blocks (each lit along its top and on its left, the moon's side of the shaft, shaded
+ * underneath and on its right), an iron band with a bright edge at each end and a twisted rope up from its top. Drawn
+ * inside its sim box (the stage-2 look pass, 15 Nov 2026: the same slate as the walls).
  */
 export function drawLedge(ctx: CanvasRenderingContext2D, x: number, top: number, bottom: number): void {
   const w = MOON_LEDGE_HW * 2;
   const l = x - MOON_LEDGE_HW;
-  ctx.strokeStyle = "rgba(190,170,130,0.55)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(x, top - 22);
-  ctx.lineTo(x, top);
-  ctx.stroke();
-  ctx.fillStyle = STONE;
+  // The rope: two strands twisted, lit on one side.
+  for (let k = 0; k < 6; k++) {
+    const y0 = top - 24 + k * 4;
+    ctx.fillStyle = k % 2 ? "#6E5A3C" : "#9C8460";
+    ctx.fillRect(x - 1.4, y0, 2.8, 4);
+    ctx.fillStyle = "rgba(255,235,190,0.45)";
+    ctx.fillRect(x - 1.4 + (k % 2), y0 + 0.5, 1, 2.5);
+  }
+  ctx.fillStyle = SLATE_BED;
   ctx.fillRect(l, top, w, bottom - top);
-  ctx.fillStyle = STONE_LIT;
-  ctx.fillRect(l, top, 3, bottom - top);
-  ctx.fillStyle = STONE_DARK;
-  ctx.fillRect(l + w - 3, top, 3, bottom - top);
-  ctx.fillStyle = MORTAR;
-  for (let y = top + 22; y < bottom - 8; y += 22) ctx.fillRect(l + 2, Math.round(y), w - 4, 1.5);
-  ctx.fillStyle = "#B8873A";
-  ctx.fillRect(l, top, w, 4);
-  ctx.fillRect(l, bottom - 4, w, 4);
-  ctx.fillStyle = "rgba(255,226,150,0.6)";
-  ctx.fillRect(l + 1, top, w - 2, 1.2);
+  const bh = 20;
+  for (let y = top + 4, i = 0; y < bottom - 4; y += bh, i++) {
+    const yb = Math.min(bottom - 4, y + bh);
+    const h = artHash(Math.round(x), i + Math.round(top));
+    const g = ctx.createLinearGradient(0, y + 1, 0, yb - 1);
+    g.addColorStop(0, SLATE_TONES[h % SLATE_TONES.length]!);
+    g.addColorStop(1, "#2A3043");
+    ctx.fillStyle = g;
+    ctx.fillRect(l + 1, y + 1, w - 2, yb - y - 2);
+    const across = ctx.createLinearGradient(l, 0, l + w, 0);
+    across.addColorStop(0, "rgba(205,218,255,0.16)");
+    across.addColorStop(1, "rgba(0,0,8,0.32)");
+    ctx.fillStyle = across;
+    ctx.fillRect(l + 1, y + 1, w - 2, yb - y - 2);
+    ctx.fillStyle = "rgba(214,226,255,0.48)";
+    ctx.fillRect(l + 1, y + 1, w - 2, 1.4);
+    ctx.fillRect(l + 1, y + 1, 1.2, yb - y - 2);
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(l + 1, yb - 3, w - 2, 2);
+    ctx.fillStyle = "rgba(5,7,14,0.3)";
+    ctx.fillRect(l + 4 + (h % 8), y + 5 + ((h >>> 5) % 9), 3, 1);
+  }
+  // Iron bands at each end, lit along the top.
+  for (const y of [top, bottom - 4]) {
+    const g = ctx.createLinearGradient(0, y, 0, y + 4);
+    g.addColorStop(0, "#8A93A8");
+    g.addColorStop(0.4, "#4A5266");
+    g.addColorStop(1, "#1C2130");
+    ctx.fillStyle = g;
+    ctx.fillRect(l, y, w, 4);
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillRect(l + 1, y, w - 2, 0.8);
+  }
 }
+
+/**
+ * The sky lanterns' warm light falling on the walls and ledges near them (the stage-2 look pass, display only): a soft
+ * pool round each lantern, added to the stone only (clipped to the walls and the ledges in view), so a lantern lights
+ * what is near it and is never ringed by a glow of its own.
+ */
+function drawLanternLight(ctx: CanvasRenderingContext2D, lights: { x: number; y: number }[], moon: MoonState, cam: number, lo: number, hi: number, tick: number): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, NINJA_WALL_L, NINJA_WORLD_H);
+  ctx.rect(NINJA_WALL_R, 0, NINJA_WORLD_W - NINJA_WALL_R, NINJA_WORLD_H);
+  for (const l of moon.tower.ledges) {
+    if (l.hi < lo || l.lo > hi) continue;
+    const top = ninjaScreenY(cam, l.hi);
+    ctx.rect(l.x - MOON_LEDGE_HW, top, MOON_LEDGE_HW * 2, ninjaScreenY(cam, l.lo) - top);
+  }
+  ctx.clip();
+  ctx.globalCompositeOperation = "lighter";
+  for (const [i, p] of lights.entries()) {
+    const f = 0.9 + 0.1 * Math.sin(tick / 6 + i * 2.1);
+    const g = ctx.createRadialGradient(p.x, p.y + 4, 0, p.x, p.y + 4, LANTERN_LIGHT_R);
+    g.addColorStop(0, `rgba(255,178,92,${(0.6 * f).toFixed(3)})`);
+    g.addColorStop(0.5, `rgba(255,150,64,${(0.26 * f).toFixed(3)})`);
+    g.addColorStop(1, "rgba(255,140,50,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(p.x - LANTERN_LIGHT_R, p.y + 4 - LANTERN_LIGHT_R, 2 * LANTERN_LIGHT_R, 2 * LANTERN_LIGHT_R);
+  }
+  ctx.restore();
+}
+/** How far (px) a sky lantern's light reaches across the stone. */
+export const LANTERN_LIGHT_R = 210;
 
 /**
  * A sky lantern (Moon Climb): a paper lantern glowing orange, its body inside the touch radius (MOON_SKY_R round its
  * centre), a dark cap and base and a short tassel; the glow round it is light only.
  */
 export function drawSkyLantern(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, ridden = false): void {
-  // Translucent paper lit from within (the materials pass; no glow round it): bright where the flame sits low in the
-  // body, deepening to orange at the curved edge, the bamboo ribs dark against the light, lacquered caps.
-  const flick = Math.sin(tick / 7 + x) * 0.8;
+  // Translucent paper lit from within (the stage-2 look pass; no glow round it: its light falls on the walls instead,
+  // drawLanternLight): a sky lantern's body, wider at the shoulder, its flame low in the open base. The paper glows
+  // brightest round the flame and deepens to orange-red at the curved edge; bamboo ribs show dark against the light
+  // with the paper beside each a touch brighter; a crisp sheen down the curve; a lacquered rim at the top and the base
+  // ring round the flame. Everything inside MOON_SKY_R of the centre.
   const r = MOON_SKY_R;
-  const body = ctx.createRadialGradient(x, y + 3 + flick * 0.5, 1, x, y, r);
-  body.addColorStop(0, ridden ? "#FFF4D6" : "#FFEBC0");
-  body.addColorStop(0.35, "#FFC066");
-  body.addColorStop(0.8, "#F07A2A");
-  body.addColorStop(1, "#B9461A");
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.ellipse(x, y, r - 3, r - 1, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(110,38,8,0.6)";
-  ctx.lineWidth = 0.9;
-  for (const dx of [-7, -3.5, 0, 3.5, 7]) {
+  const flick = Math.sin(tick / 6 + x) * 0.6;
+  const top = y - r + 1.5;
+  const base = y + r - 2.5;
+  const body = () => {
     ctx.beginPath();
-    ctx.moveTo(x + dx * 0.55, y - r + 3);
-    ctx.quadraticCurveTo(x + dx * 1.05, y, x + dx * 0.55, y + r - 3);
+    ctx.moveTo(x - 7.5, top);
+    ctx.bezierCurveTo(x - 12.5, top + 4, x - 12, base - 6, x - 7, base);
+    ctx.lineTo(x + 7, base);
+    ctx.bezierCurveTo(x + 12, base - 6, x + 12.5, top + 4, x + 7.5, top);
+    ctx.closePath();
+  };
+  const lit = ctx.createRadialGradient(x, base - 2 + flick, 1, x, y - 2, r + 2);
+  lit.addColorStop(0, ridden ? "#FFF6DA" : "#FFF0C8");
+  lit.addColorStop(0.32, "#FFCB72");
+  lit.addColorStop(0.7, "#F58A33");
+  lit.addColorStop(1, "#C24E1C");
+  ctx.fillStyle = lit;
+  body();
+  ctx.fill();
+  ctx.save();
+  body();
+  ctx.clip();
+  // The ribs: four bamboo ribs curving with the body, dark against the light, the paper beside each a little brighter.
+  for (const k of [-0.62, -0.22, 0.22, 0.62]) {
+    ctx.strokeStyle = "rgba(255,236,190,0.35)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x + k * 7.5 + 0.9, top);
+    ctx.quadraticCurveTo(x + k * 13.5 + 0.9, y, x + k * 7 + 0.9, base);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(105,36,8,0.6)";
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(x + k * 7.5, top);
+    ctx.quadraticCurveTo(x + k * 13.5, y, x + k * 7, base);
     ctx.stroke();
   }
-  // The flame inside, soft through the paper.
-  ctx.fillStyle = "rgba(255,250,225,0.75)";
+  ctx.strokeStyle = "rgba(120,44,10,0.32)";
+  ctx.lineWidth = 0.7;
+  for (const yy of [y - 4, y + 4]) {
+    ctx.beginPath();
+    ctx.moveTo(x - 13, yy);
+    ctx.quadraticCurveTo(x, yy + 1.6, x + 13, yy);
+    ctx.stroke();
+  }
+  // The sheen down the left of the curve: a crisp highlight on the paper, never a halo.
+  ctx.strokeStyle = "rgba(255,250,232,0.75)";
+  ctx.lineWidth = 1.1;
   ctx.beginPath();
-  ctx.ellipse(x, y + 4 + flick * 0.5, 2, 3.2, 0, 0, Math.PI * 2);
+  ctx.moveTo(x - 7, top + 2.5);
+  ctx.bezierCurveTo(x - 10.5, top + 6, x - 10.5, base - 9, x - 7.5, base - 4);
+  ctx.stroke();
+  ctx.restore();
+  // The lacquered top rim and the base ring, the flame seen through the opening.
+  const rim = ctx.createLinearGradient(0, top - 1, 0, top + 2.5);
+  rim.addColorStop(0, "#8A4A22");
+  rim.addColorStop(1, "#2A140A");
+  ctx.fillStyle = rim;
+  ctx.fillRect(x - 7.5, top - 1, 15, 3);
+  ctx.fillStyle = "rgba(255,215,170,0.8)";
+  ctx.fillRect(x - 6.5, top - 1, 13, 0.7);
+  ctx.fillStyle = "#3A1A0A";
+  ctx.beginPath();
+  ctx.ellipse(x, base, 7, 1.8, 0, 0, Math.PI * 2);
   ctx.fill();
-  // Lacquered caps with a thin highlight, and the tassel.
-  const cap = ctx.createLinearGradient(0, y - r, 0, y - r + 3);
-  cap.addColorStop(0, "#6A3418");
-  cap.addColorStop(1, "#2A140A");
-  ctx.fillStyle = cap;
-  ctx.fillRect(x - 6, y - r, 12, 3);
-  ctx.fillStyle = "#2A140A";
-  ctx.fillRect(x - 5, y + r - 3, 10, 3);
-  ctx.fillStyle = "rgba(255,210,160,0.7)";
-  ctx.fillRect(x - 5, y - r, 10, 0.8);
-  ctx.fillStyle = NINJA_RED;
-  ctx.fillRect(x - 1, y + r - 1, 2, 2);
+  ctx.fillStyle = "#FFF6D8";
+  ctx.beginPath();
+  ctx.ellipse(x, base - 1.2 + flick * 0.4, 1.6, 2.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#FFB040";
+  ctx.beginPath();
+  ctx.ellipse(x, base - 0.2, 2.2, 1, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 /**
@@ -873,6 +1263,14 @@ export function drawSkyLantern(ctx: CanvasRenderingContext2D, x: number, y: numb
  * swaying), 4 hanging from a sky lantern (Moon Climb). `scale` draws it larger or smaller (the tile icon); the game draws at 1.
  */
 const ninjaPoseMemo = heroPose();
+/**
+ * The ninja's drawing scale for a stamp: 1 up to ricoRev 3 (its 26 × 52 body box), MOON_BIG_HW ÷ NINJA_HW on ricoRev 4
+ * (the bigger ninja, 15 Nov 2026), the same figure grown to fill its 34 × 68 box (art-check holds each pose's extent to
+ * main's figure × this scale).
+ */
+export function ninjaArtScale(rev: number | null | undefined): number {
+  return ninjaBodyFor(rev).hw / NINJA_HW;
+}
 const NINJA_WRAP = "#2A2D45";
 const NINJA_WRAP_EDGE = "#6B72A8";
 
@@ -960,15 +1358,19 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
   ctx.translate(x, y);
   if (scale !== 1) ctx.scale(scale, scale);
   const f = face;
-  // A soft moonlit glow behind the figure (inside its body box), so it reads on the night sky; brighter since the
-  // Action overhaul (15 Nov 2026), with a firmer gold rim: the ninja is the first thing the eye finds.
-  ctx.fillStyle = "rgba(175,195,255,0.38)";
+  // A soft moonlit backing behind the figure (inside its body box), so it reads on the night sky and the dark stone;
+  // since the stage-2 look pass (15 Nov 2026) it fades out to its edge, with no rim (Joe: no glowing edges).
+  ctx.save();
+  ctx.scale(1, (NINJA_HH + 1) / (NINJA_HW + 1));
+  const backing = ctx.createRadialGradient(0, 0, 0, 0, 0, NINJA_HW + 1);
+  backing.addColorStop(0, "rgba(175,195,255,0.42)");
+  backing.addColorStop(0.7, "rgba(175,195,255,0.3)");
+  backing.addColorStop(1, "rgba(175,195,255,0)");
+  ctx.fillStyle = backing;
   ctx.beginPath();
-  ctx.ellipse(0, 0, NINJA_HW + 1, NINJA_HH + 1, 0, 0, Math.PI * 2);
+  ctx.arc(0, 0, NINJA_HW + 1, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(242,199,92,0.55)";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+  ctx.restore();
   if (pose === 2) ctx.rotate(spin * face);
   // The katana on the back, behind the hero: a dark scabbard and a gold-wrapped hilt over the far shoulder.
   ctx.save();
@@ -1099,7 +1501,7 @@ function drawMoonHud(ctx: CanvasRenderingContext2D, s: MoonState): void {
 
 /** The HUD: "Height N m" top left, the items top right. */
 function drawHud(ctx: CanvasRenderingContext2D, s: NinjaState): void {
-  if (s.rev === MOON_REV) {
+  if (isMoonState(s)) {
     drawMoonHud(ctx, s as MoonState);
     return;
   }
@@ -1142,22 +1544,28 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
   const H = NINJA_WORLD_H;
   const cam = ninjaCamera(s);
   const t = s.tick;
-  const moon = s.rev === MOON_REV ? (s as MoonState) : null;
+  const moon = isMoonState(s) ? (s as MoonState) : null;
+  const night = moon ? moonNight(s) : 0;
   if (moon) {
-    deviceLayer(ctx, "moon-sky-v2", paintMoonSky);
-    drawMoonNight(ctx, moonNight(s), t);
-    deviceLayer(ctx, "moon-ridge-v2", paintMoonRidge);
+    deviceLayer(ctx, "moon-sky-v3", paintMoonSky);
+    drawMoonNight(ctx, night, t);
+    deviceLayer(ctx, "moon-ridge-v3", paintMoonRidge);
   } else deviceLayer(ctx, "ninja-sky", paintSky);
   drawWall(ctx, 0, cam);
   drawWall(ctx, 1, cam);
-  drawFloor(ctx, cam);
+  if (moon) {
+    const mp = moonPlace(night);
+    wallRake(ctx, 0, mp.y, 1 - night);
+    wallRake(ctx, 1, mp.y, 1 - night);
+  }
+  drawFloor(ctx, cam, s.rev);
   const lo = cam - (H - EYE) - 40;
   const hi = cam + EYE + 40;
   const tower = s.tower;
   for (const p of tower.patches) {
     if (p.hi < lo) continue;
     if (p.lo > hi) break;
-    drawPatch(ctx, p.wall, p.kind, ninjaScreenY(cam, p.hi), ninjaScreenY(cam, p.lo), t);
+    drawPatch(ctx, p.wall, p.kind, ninjaScreenY(cam, p.hi), ninjaScreenY(cam, p.lo), t, moon ? moonPlace(night).y : null);
   }
   // Each shuriken's seeded path, faint and dotted, under everything else in the gap.
   for (const sh of tower.shurikens) {
@@ -1176,6 +1584,18 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
       if (l.lo > hi) break;
       drawLedge(ctx, l.x, ninjaScreenY(cam, l.hi), ninjaScreenY(cam, l.lo));
     }
+    // The sky lanterns' warm light on the walls and ledges near them (the light itself, never a glow round the lantern).
+    const lights: { x: number; y: number }[] = [];
+    moon.tower.sky.forEach((l, i) => {
+      if (moon.gotSky[i]) return;
+      const p = moonSkyAt(l, t);
+      if (p && p.y >= lo - 120 && p.y <= hi + 120) lights.push({ x: p.x, y: ninjaScreenY(cam, p.y) });
+    });
+    if (moon.mode === MODE_RIDE) {
+      const at = ninjaDrawPoint(s);
+      lights.push({ x: at.x, y: at.y - moonRideHang(s.rev) });
+    }
+    if (lights.length) drawLanternLight(ctx, lights, moon, cam, lo, hi, t);
     moon.tower.sky.forEach((l, i) => {
       if (moon.gotSky[i]) return;
       const p = moonSkyAt(l, t);
@@ -1211,16 +1631,17 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
   const face = s.mode === MODE_FLIGHT ? (s.wall === 1 ? 1 : -1) : onLedge ? (s.wall === 1 ? -1 : 1) : s.wall === 0 ? 1 : -1;
   const pose = s.mode === MODE_STUN ? 3 : s.mode === MODE_RIDE ? 4 : s.mode === MODE_FLIGHT ? (s.dj && s.hang > 0 ? 2 : 1) : 0;
   // The ridden lantern above the ninja's hands.
-  if (moon && moon.mode === MODE_RIDE) drawSkyLantern(ctx, at.x, at.y - MOON_RIDE_HANG, t, true);
+  const body = ninjaBodyFor(s.rev);
+  if (moon && moon.mode === MODE_RIDE) drawSkyLantern(ctx, at.x, at.y - moonRideHang(s.rev), t, true);
   if (blink) ctx.globalAlpha = 0.4;
-  drawNinja(ctx, at.x, at.y, pose, face, t, s.dj ? ((NINJA_HANG - s.hang) / NINJA_HANG) * Math.PI * 2 : 0);
+  drawNinja(ctx, at.x, at.y, pose, face, t, s.dj ? ((NINJA_HANG - s.hang) / NINJA_HANG) * Math.PI * 2 : 0, ninjaArtScale(s.rev));
   ctx.globalAlpha = 1;
   if (s.mode === MODE_STUN) {
     // Stars round the head.
     ctx.fillStyle = NINJA_GOLD;
     for (let i = 0; i < 3; i++) {
       const a = t / 6 + (i * Math.PI * 2) / 3;
-      ctx.fillRect(at.x + Math.cos(a) * 11 - 1.5, at.y - NINJA_HH - 2 + Math.sin(a) * 3 - 1.5, 3, 3);
+      ctx.fillRect(at.x + Math.cos(a) * 11 - 1.5, at.y - body.hh - 2 + Math.sin(a) * 3 - 1.5, 3, 3);
     }
   }
   // A red wash on a hit.
@@ -1231,7 +1652,7 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
   drawHud(ctx, s);
 }
 
-const isMoon = (s: NinjaState): s is MoonState => s.rev === MOON_REV;
+const isMoon = (s: NinjaState): s is MoonState => isMoonState(s);
 
 /**
  * The shared success layer: coins (Moon Climb: each Flow step), gold lanterns (Moon Climb: a sky lantern grabbed) and
@@ -1267,9 +1688,15 @@ export function drawNinjaFrame(ctx: CanvasRenderingContext2D, state: NinjaState,
 export const ninjaArtGame = { ...ninjaGame, draw: drawNinjaFrame };
 /** Moon Climb (ricoRev 3) with its art. */
 export const moonArtGame = { ...moonGame, draw: drawNinjaFrame };
+/** Moon Climb's bigger ninja (ricoRev 4) with its art. */
+export const moonBigArtGame = { ...moonBigGame, draw: drawNinjaFrame };
+/** Moon Climb's art game for a stamp (rev 3 or 4). */
+export function moonArtGameFor(rev: number | null | undefined) {
+  return (rev ?? 0) >= MOON_BIG_REV ? moonBigArtGame : moonArtGame;
+}
 /** The art game for a stamp. */
 export function ninjaArtGameFor(rev: number | null | undefined) {
-  return (rev ?? 0) >= MOON_REV ? moonArtGame : ninjaArtGame;
+  return (rev ?? 0) >= MOON_REV ? moonArtGameFor(rev) : ninjaArtGame;
 }
 
 /** The metres to px factor, for the reveal. */

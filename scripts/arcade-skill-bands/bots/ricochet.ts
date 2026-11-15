@@ -138,9 +138,10 @@ const MOON_SCROLL_V = 90;
 const FLOW_V = 30;
 const RIDE_WAITS = [0, 6, 14, 24, 36, 50, 66, 84, 104];
 
-const moonBot: SkillBot = ({ game, seed, human }) => {
+const moonBot: SkillBot = ({ game, seed, human, rev }) => {
   const level = human.level as SkillLevel;
-  if (level === "perfect") return { events: moonDeal(seed).witness.map((e) => ({ t: e.t, k: NINJA_INPUT_TAP, a: e.a, b: 0, c: 0, d: 0 })) };
+  // Flawless plays the witness of the stamp's own tower (ricoRev 4's is dealt and proved with the bigger body).
+  if (level === "perfect") return { events: moonDeal(seed, rev ?? MOON_REV).witness.map((e) => ({ t: e.t, k: NINJA_INPUT_TAP, a: e.a, b: 0, c: 0, d: 0 })) };
   const itemTry = ITEM_TRY[level] ?? 0.5;
   const weight = ITEM_WEIGHT[level] ?? 1;
   let leapAt = -1;
