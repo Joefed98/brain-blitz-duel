@@ -434,3 +434,11 @@ glare). The HUD's chips are 30 px at 16 px, the speed 34 px; the circuit's name 
 **The reveal's run summary** (`components/duel/summaries/RacingSummary.tsx`, `racingMap.ts`): the circuit from above,
 its sectors green where driven clean (solid on both laps, lighter on one), red dots where the car went onto the grass
 or gravel and red rings for the tyre wall; under it each lap's time, the average speed and "Clean sectors n of 8".
+
+**The world at dusk** (second look pass, 15 Nov 2026; display only, every revision; the Neon Night unchanged, proved
+pixel for pixel): the sky a deep violet through rose to a gold horizon; the low sun ahead as a soft disc with a halo
+(no rays), between the far hills and the near tree line, its bearing taken against the heading smoothed over 140
+segments either way, so it settles just off centre on the straights and swings through the corners; the far hills in
+hazy rose, the near ridge and roadside trees as dark silhouettes with a warm rim; darker dusk grass, gravel and
+asphalt; a warm sheen up the road towards the sun; the car's long soft shadow towards the camera. All painted: no
+image budget used beyond the car's 285 KB.

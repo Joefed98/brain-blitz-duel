@@ -59,6 +59,7 @@ import { minesSafeFor } from "@/lib/arcade/minesweeper";
 import { decodeHomerunRun, replayHomerunRun } from "./homerun";
 import { decodeFreekickRun, replayFreekickRun } from "./freekick";
 import { decodeRacingRun, replayRacingRun } from "./racing";
+import { racingPace10, RACING_REV_4, type RacingState } from "@/lib/arcade/racing";
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
 import { replayMinigolfRun } from "./minigolf";
 import { replayPoolRun } from "./pool";
@@ -1588,6 +1589,9 @@ function gradeUnderRev(
         inputs: decoded.events.length,
         claimedScore: decoded.claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
+        // Apex racingRev 4 (the Sports overhaul, 15 Nov 2026; display data only, nothing scores or ranks from it): the
+        // run's average speed in tenths of a km/h, so "Average 200 km/h" means 200 km/h on all three circuits.
+        ...(puzzle.type === "racing" && rev >= RACING_REV_4 ? { pace10: racingPace10((run as unknown as { state: RacingState }).state) } : {}),
       };
       break;
     }

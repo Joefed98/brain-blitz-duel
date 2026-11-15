@@ -200,6 +200,12 @@ function apply(run: Run, cond: ChallengeCond, type: string, meet: boolean): void
     case "tile":
       setTile(run.extra, cond.label, n(cond.v, cond.op));
       return;
+    case "since": {
+      // The run on the newer stamp (as rooms and practice deal it): its rule met or just short.
+      setPath(run.extra, cond.path, cond.from);
+      apply(run, cond.then, type, meet);
+      return;
+    }
   }
 }
 
@@ -227,6 +233,8 @@ function carries(run: RecordedRun, cond: ChallengeCond): boolean {
       return ((e?.reveal?.lines ?? []) as string[]).some((l) => LINE.exec(l)?.[1] === cond.label);
     case "tile":
       return ((e?.reveal?.tiles ?? []) as any[]).some((t) => t.label === cond.label);
+    case "since":
+      return carries(run, cond.then) || carries(run, cond.before);
   }
 }
 
