@@ -43,6 +43,7 @@ import { POOL_DROP_MOUTH_TICKS } from "@/lib/arcade/pool.renderer";
 import { MG_AIM, MG_BALL_R, MG_ROLL, MG_STOP_V, type MinigolfState } from "@/lib/arcade/minigolf";
 import { POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, type PoolState } from "@/lib/arcade/pool";
 import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
+import { curlShortBy, NEAR_MISS_CM } from "@/lib/arcade/curlingFx";
 import type { MinesState } from "@/lib/arcade/minesweeper";
 import type { MahjongState } from "@/lib/arcade/mahjong";
 import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
@@ -1191,9 +1192,13 @@ export function curlingSounds(): GameSounds<CurlingState> {
           feel("tick");
         }
         if (state.hits > prev.hits) {
-          effectCue("curling.hit", 80);
+          // The clack (the Sports overhaul's effects): its own recording once it has one, today's hit until then.
+          effectCue(cueHasFile("curling.clack") ? "curling.clack" : "curling.hit", 80);
           feel("impact");
         }
+        // A red knocked out of the house: the crowd's "ooh" as it goes (silent until its recording; the applause still
+        // plays when the stone comes to rest).
+        if (curlTakeouts(state) > curlTakeouts(prev)) effectCue("curling.ooh");
         for (let i = 0; i < prev.live.length; i++) {
           // Out over a side or back board while moving (a hog-line stone at the settle is not a board).
           if (prev.live[i] === 1 && state.live[i] === 0 && state.restTick === prev.restTick) {
@@ -1206,6 +1211,8 @@ export function curlingSounds(): GameSounds<CurlingState> {
           if (takeout || (state.pts[state.pts.length - 1] ?? 0) > 0) feel("success");
           if (curlShotTeam(state) === TEAM_MINE && curlShotTeam(prev) !== TEAM_MINE) effectCue("curling.shot");
           else if (state.four[state.four.length - 1] === 1 || takeout) effectCue("curling.applause");
+          // A near miss (curlingFx.ts: scored nothing, but would have NEAR_MISS_CM nearer the button): a soft "aw".
+          else if ((state.pts[state.pts.length - 1] ?? 0) === 0 && curlShortBy(state, state.theirs + state.pts.length - 1) <= NEAR_MISS_CM) effectCue("curling.aw");
         }
       }
       prev = state;

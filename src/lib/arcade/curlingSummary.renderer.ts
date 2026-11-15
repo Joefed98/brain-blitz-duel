@@ -4,6 +4,7 @@
  * each of your stones that counted and a grey ring on a near miss, and the run's key numbers. Built by replaying this
  * player's own stored log through the sim (replayCurlingRun, the one place a score is worked out); nothing is stored.
  */
+import { curlShortBy, NEAR_MISS_CM } from "./curlingFx";
 import { replayCurlingRun } from "@/lib/duel/curling";
 import {
   BUTTON_R,
@@ -18,8 +19,11 @@ import {
   type CurlingState,
 } from "./curling";
 
-/** A near miss: one of yours not counting, its centre within this far (cm) of the house's edge, or inside it. */
-export const CURL_NEAR_MISS_CM = 30;
+/**
+ * A near miss on the reveal: the same rule as in play (stage 2, curlingFx.ts `curlShortBy`): one of yours in play that
+ * scored nothing but would have, NEAR_MISS_CM nearer the button (judged on the sheet as it ended).
+ */
+export const CURL_NEAR_MISS_CM = NEAR_MISS_CM;
 /** The summary's view: this many cm from the button to each edge. */
 export const CURL_SUMMARY_R = 250;
 
@@ -69,7 +73,7 @@ export function curlingSummaryOf(s: CurlingState, takeouts: number, opponents: n
       mine,
       throw: mine ? n + 1 : null,
       counting,
-      nearMiss: mine && !counting && dist <= IN_HOUSE + CURL_NEAR_MISS_CM,
+      nearMiss: mine && !counting && curlShortBy(s, i) <= CURL_NEAR_MISS_CM,
       dist,
     });
   }
@@ -93,8 +97,19 @@ const GOLD_HI = "#FFE29A";
 const RED = "#C42A2E";
 const GREY = "#8E97A6";
 
-/** Paints the summary's house (size × size device px) from above, the far end up. */
-export function paintCurlingSummary(ctx: CanvasRenderingContext2D, size: number, sum: CurlSummary): void {
+/** Where a summary stone sits on the board, as a share of its size (0…1 from the top left): the reveal's overlays. */
+export function curlSummaryAt(st: Pick<CurlSummaryStone, "x" | "y">): { x: number; y: number } {
+  return { x: 0.5 + st.x / (2 * CURL_SUMMARY_R), y: 0.5 + st.y / (2 * CURL_SUMMARY_R) };
+}
+
+/** The gold counting ring's radius as a share of the board's size (the reveal's overlay draws it there). */
+export const CURL_SUMMARY_RING = (STONE_R * 1.42) / (2 * CURL_SUMMARY_R);
+
+/**
+ * Paints the summary's house (size × size device px) from above, the far end up. `domRings`: the gold counting rings are
+ * the reveal's own lit overlays (CurlingSummary), so the board leaves them out.
+ */
+export function paintCurlingSummary(ctx: CanvasRenderingContext2D, size: number, sum: CurlSummary, domRings = false): void {
   const k = size / 2 / CURL_SUMMARY_R;
   const c = size / 2;
   const P = (x: number, y: number) => ({ x: c + x * k, y: c + y * k });
@@ -130,7 +145,7 @@ export function paintCurlingSummary(ctx: CanvasRenderingContext2D, size: number,
   const order = [...sum.stones].sort((a, b) => Number(a.mine) - Number(b.mine) || b.dist - a.dist);
   for (const st of order) {
     const p = P(st.x, st.y);
-    if (st.counting || st.nearMiss) {
+    if ((st.counting && !domRings) || st.nearMiss) {
       ctx.strokeStyle = st.counting ? GOLD : GREY;
       ctx.lineWidth = Math.max(2, sr * 0.28);
       ctx.beginPath();

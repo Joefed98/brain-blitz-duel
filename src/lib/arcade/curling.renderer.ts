@@ -22,7 +22,17 @@ import type { CanvasSize } from "./engine";
 import { NO_LOOK, type GameLook } from "./skins/look";
 import { curlStoneSkin, DEFAULT_RINK, neonRinkArena, neonRinkCacheTag, neonRinkIce, neonRinkPalette, neonStroke, paintSkinStone } from "./skins/curling.skins";
 import type { ArenaSceneView } from "./arenaScene.renderer";
-import { artHash } from "./art.renderer";
+import { artHash, reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "../fx/lowEnd";
+import {
+  CURL_FX_RING_TICKS,
+  CURL_FX_STROKE_TICKS,
+  CURL_FX_VERDICT_TICKS,
+  CURL_FX_ZOOM_MS as CURL_FX_ZOOM_MS_R,
+  curlEndLit,
+  curlEndZoom,
+  type CurlFxTracker,
+} from "./curlingFx";
 import { sportsSprite, sportsSpritesVersion } from "./sportsSprites";
 import {
   BACK_FAR,
@@ -764,6 +774,11 @@ export interface CurlAim {
    */
   lastRelease?: number | null;
   keyWeight?: number | null;
+  /**
+   * curlRev 4 (the Sports overhaul's effects, display only): when the power bar's marker last clicked into place
+   * (performance.now() ms), so the marker snaps for a moment; absent or null, no snap.
+   */
+  snapAt?: number | null;
 }
 
 /** curlRev 3's weight meter (world px, curlRev 2's 390 × 540 view): a bar on the right, weight 0 at the bottom. */
@@ -1036,13 +1051,29 @@ function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolea
   if (v4 && aiming && aim.keyWeight != null) {
     // curlRev 4: the set weight's marker, a bright handle across the bar that stays where it was set.
     const y = my(aim.keyWeight);
+    // The marker clicks into place (stage 2): a short snap wider then back, and a notch flash, 160 ms (none under
+    // reduced motion; the tone plays either way).
+    const since = aim.snapAt != null && typeof performance !== "undefined" ? performance.now() - aim.snapAt : Infinity;
+    const snap = since < CURL_SNAP_MS && !reducedMotion() ? 1 - since / CURL_SNAP_MS : 0;
+    const grow = 5 * snap;
     ctx.fillStyle = "#FFFFFF";
     ctx.strokeStyle = "#05080F";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(m.x - 6, y - 3.5, m.w + 12, 7, 3.5);
+    ctx.roundRect(m.x - 6 - grow, y - 3.5 - grow * 0.3, m.w + 12 + grow * 2, 7 + grow * 0.6, 3.5);
     ctx.fill();
     ctx.stroke();
+    if (snap > 0) {
+      const inZone = !!zone && aim.keyWeight >= zone.lo && aim.keyWeight <= zone.hi;
+      ctx.strokeStyle = inZone ? `rgba(255,226,154,${(0.9 * snap).toFixed(3)})` : `rgba(255,255,255,${(0.7 * snap).toFixed(3)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(m.x - 12 - grow, y);
+      ctx.lineTo(m.x - 7 - grow, y);
+      ctx.moveTo(m.x + m.w + 7 + grow, y);
+      ctx.lineTo(m.x + m.w + 12 + grow, y);
+      ctx.stroke();
+    }
   } else if (v4 && aiming) {
     // Nothing set yet: a quiet prompt down the bar.
     ctx.save();
@@ -1195,5 +1226,232 @@ export function paintCurlingStoneIn(look: GameLook, ctx: CanvasRenderingContext2
     stone(ctx, x, y, mine, 1, false, curlViewFor(rev));
   } finally {
     L = NO_LOOK;
+  }
+}
+
+/* ============================ Effects (the Sports overhaul, stage 2) ============================ */
+
+/** The power bar's marker snap (ms). */
+export const CURL_SNAP_MS = 160;
+/** Where the end's house view lands (world px, curlRev 4's 390 × 640): centred, clear above the In / Out / Throw row. */
+export const CURL_END_HOUSE = { x: 45, y: 96, w: 300, h: 300 };
+
+const easeOut = (t: number) => 1 - (1 - t) * (1 - t) * (1 - t);
+
+/**
+ * The effects over the world (display only), from the observer (curlingFx.ts): broom strokes laid on the ice on the side
+ * brushed, a ring where stones met, a red's trail as a takeout knocks it away, a gold line drawn from the button to a
+ * stone that came to rest counting (with a gold ring) or a grey ring on a near miss, and at the end the house view zoomed
+ * to the middle with the counting stones lit one by one. Reduced motion: each drawn still at its final size; reduced
+ * effects (a slow phone, the battery saver): the strokes thinned to the latest few.
+ */
+export function drawCurlingFx(ctx: CanvasRenderingContext2D, s: CurlingState, fx: CurlFxTracker, nowMs: number): void {
+  const v = curlViewFor(s.rev);
+  const still = reducedMotion();
+  const lite = arcadeReducedEffects();
+  ctx.save();
+  // Broom strokes: two short arcs laid across the line ahead of the stone, fading.
+  const strokes = lite ? fx.strokes.slice(-3) : fx.strokes;
+  for (const st of strokes) {
+    const age = s.tick - st.tick;
+    if (age < 0 || age >= CURL_FX_STROKE_TICKS) continue;
+    const p = curlProject(st.x, st.y, v);
+    const a = 0.8 * (1 - age / CURL_FX_STROKE_TICKS);
+    const w = Math.max(7, 18 * p.k);
+    ctx.strokeStyle = `rgba(86,118,152,${a.toFixed(3)})`;
+    ctx.lineWidth = Math.max(1.6, 2.6 * p.k);
+    ctx.lineCap = "round";
+    for (const dy of [-3, 3]) {
+      ctx.beginPath();
+      ctx.moveTo(p.sx - w, p.sy + dy * p.k);
+      ctx.quadraticCurveTo(p.sx, p.sy + dy * p.k - 4 * p.k * (st.side || 1), p.sx + w, p.sy + dy * p.k);
+      ctx.stroke();
+    }
+  }
+  // Stone on stone: a ring opening at the contact point.
+  for (const c of fx.contacts) {
+    const age = s.tick - c.tick;
+    if (age < 0 || age >= CURL_FX_RING_TICKS) continue;
+    const t = still ? 1 : easeOut(age / CURL_FX_RING_TICKS);
+    const p = curlProject(c.x, c.y, v);
+    ctx.strokeStyle = `rgba(255,255,255,${(0.85 * (1 - age / CURL_FX_RING_TICKS)).toFixed(3)})`;
+    ctx.lineWidth = Math.max(1, 2.5 * p.k);
+    ctx.beginPath();
+    ctx.ellipse(p.sx, p.sy, Math.max(2, (6 + 22 * t) * p.k), Math.max(1, (6 + 22 * t) * p.k * 0.42), 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // A takeout: a fading red ring where the red left the house.
+  for (const o of fx.takeouts) {
+    const age = s.tick - o.tick;
+    if (age < 0 || age >= CURL_FX_VERDICT_TICKS) continue;
+    const p = curlProject(o.x, o.y, v);
+    ctx.strokeStyle = `rgba(255,138,128,${(0.8 * (1 - age / CURL_FX_VERDICT_TICKS)).toFixed(3)})`;
+    ctx.lineWidth = Math.max(1, 2 * p.k);
+    ctx.setLineDash([4 * Math.max(0.5, p.k), 3 * Math.max(0.5, p.k)]);
+    ctx.beginPath();
+    ctx.ellipse(p.sx, p.sy, STONE_R * 1.6 * p.k, STONE_R * 1.6 * p.k * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // A stone at rest: counting (a gold line from the button to it, then its gold ring) or a near miss (a grey ring).
+  for (const d of fx.verdicts) {
+    const age = s.tick - d.tick;
+    if (age < 0 || age >= CURL_FX_VERDICT_TICKS) continue;
+    const fade = age < CURL_FX_VERDICT_TICKS - 20 ? 1 : (CURL_FX_VERDICT_TICKS - age) / 20;
+    const p = curlProject(d.x, d.y, v);
+    const rx = STONE_R * 1.45 * p.k;
+    if (d.kind === "count") {
+      const grow = still ? 1 : Math.min(1, age / 18);
+      const b = curlProject(0, 0, v);
+      ctx.strokeStyle = `rgba(232,181,58,${(0.9 * fade).toFixed(3)})`;
+      ctx.lineWidth = Math.max(1, 2.2 * p.k);
+      ctx.beginPath();
+      ctx.moveTo(b.sx, b.sy);
+      ctx.lineTo(b.sx + (p.sx - b.sx) * grow, b.sy + (p.sy - b.sy) * grow);
+      ctx.stroke();
+      if (grow >= 1) {
+        ctx.lineWidth = Math.max(1.5, 3 * p.k);
+        ctx.beginPath();
+        ctx.ellipse(p.sx, p.sy, rx, rx * 0.42, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else {
+      ctx.strokeStyle = `rgba(200,206,216,${(0.85 * fade).toFixed(3)})`;
+      ctx.lineWidth = Math.max(1.5, 2.6 * p.k);
+      ctx.beginPath();
+      ctx.ellipse(p.sx, p.sy, rx, rx * 0.42, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  // The far house is small on the sheet, so the house view (top right) carries the same moments where they read.
+  if (!fx.end) insetFx(ctx, s, fx, still);
+  if (fx.end && s.rev >= 4) drawCurlingEnd(ctx, s, fx, nowMs, still);
+}
+
+/** The house view's copy of the in-play moments: the contact ring, the takeout's trail, the gold and grey rings. */
+function insetFx(ctx: CanvasRenderingContext2D, s: CurlingState, fx: CurlFxTracker, still: boolean): void {
+  const i = curlInsetFor(s.rev);
+  const cx = i.x + i.w / 2;
+  const cy = i.y + i.h / 2;
+  const P = (x: number, y: number) => ({ x: cx + x * i.scale, y: cy + y * i.scale });
+  const sr = STONE_R * i.scale;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(i.x, i.y, i.w, i.h, 10);
+  ctx.clip();
+  for (const c of fx.contacts) {
+    const age = s.tick - c.tick;
+    if (age < 0 || age >= CURL_FX_RING_TICKS) continue;
+    const t = still ? 1 : easeOut(age / CURL_FX_RING_TICKS);
+    const p = P(c.x, c.y);
+    ctx.strokeStyle = `rgba(27,30,36,${(0.85 * (1 - age / CURL_FX_RING_TICKS)).toFixed(3)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, sr * (0.5 + 1.6 * t), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  for (const o of fx.takeouts) {
+    const age = s.tick - o.tick;
+    if (age < 0 || age >= CURL_FX_VERDICT_TICKS) continue;
+    const p = P(o.x, o.y);
+    ctx.strokeStyle = `rgba(196,42,46,${(0.9 * (1 - age / CURL_FX_VERDICT_TICKS)).toFixed(3)})`;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 2.5]);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, sr * 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  for (const d of fx.verdicts) {
+    const age = s.tick - d.tick;
+    if (age < 0 || age >= CURL_FX_VERDICT_TICKS) continue;
+    const fade = age < CURL_FX_VERDICT_TICKS - 20 ? 1 : (CURL_FX_VERDICT_TICKS - age) / 20;
+    const p = P(d.x, d.y);
+    if (d.kind === "count") {
+      const grow = still ? 1 : Math.min(1, age / 18);
+      ctx.strokeStyle = `rgba(232,181,58,${fade.toFixed(3)})`;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + (p.x - cx) * grow, cy + (p.y - cy) * grow);
+      ctx.stroke();
+      if (grow >= 1) {
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, sr * 1.55, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else {
+      ctx.strokeStyle = `rgba(110,118,132,${fade.toFixed(3)})`;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, sr * 1.55, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/** The end: the house view grows from its corner to the middle and the counting stones light one by one. */
+function drawCurlingEnd(ctx: CanvasRenderingContext2D, s: CurlingState, fx: CurlFxTracker, nowMs: number, still: boolean): void {
+  const end = fx.end!;
+  const i = curlInsetFor(s.rev);
+  const z = still ? 1 : easeOut(curlEndZoom(end, nowMs));
+  const T = CURL_END_HOUSE;
+  const w = i.w + (T.w - i.w) * z;
+  const x = i.x + (T.x - i.x) * z;
+  const y = i.y + (T.y - i.y) * z;
+  const k = w / i.w;
+  ctx.save();
+  // A dim over the sheet behind it as it grows (the run is over: nothing below is live).
+  ctx.fillStyle = `rgba(3,6,12,${(0.45 * z).toFixed(3)})`;
+  ctx.fillRect(0, 0, CURLING_W, curlViewFor(s.rev).h);
+  ctx.translate(x, y);
+  ctx.scale(k, k);
+  ctx.translate(-i.x, -i.y);
+  inset(ctx, s, null);
+  const lit = curlEndLit(end, nowMs);
+  const cx = i.x + i.w / 2;
+  const cy = i.y + i.h / 2;
+  end.stones.forEach((st, n) => {
+    if (n >= lit) return;
+    const since = nowMs - end.at - CURL_FX_ZOOM_MS_R - n * end.gap;
+    const pop = still ? 1 : Math.min(1, Math.max(0, since / 140));
+    const px = cx + st.x * i.scale;
+    const py = cy + st.y * i.scale;
+    const r = STONE_R * i.scale * (1.35 + 0.35 * (1 - pop));
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.6 / k + 0.8;
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // Its count beside it.
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    ctx.arc(px + r * 0.9, py - r * 0.9, 4.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#05080F";
+    ctx.font = "800 5.5px Archivo, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(n + 1), px + r * 0.9, py - r * 0.9 + 0.3);
+  });
+  ctx.restore();
+  // The count under the house, in plain words.
+  if (z >= 1) {
+    const text = end.stones.length === 0 ? "None counting" : `Counting ${Math.min(lit, end.stones.length)} of ${CURLING_STONES}`;
+    ctx.save();
+    ctx.font = "800 18px Archivo, system-ui, sans-serif";
+    const tw = ctx.measureText(text).width + 28;
+    ctx.fillStyle = "#05080FE6";
+    ctx.beginPath();
+    ctx.roundRect(CURLING_W / 2 - tw / 2, T.y + T.h + 12, tw, 34, 17);
+    ctx.fill();
+    ctx.fillStyle = "#F3F1EC";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, CURLING_W / 2, T.y + T.h + 29);
+    ctx.restore();
   }
 }

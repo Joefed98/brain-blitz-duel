@@ -37,6 +37,7 @@ import {
   curlProject,
   curlViewFor,
   drawCurling,
+  drawCurlingFx,
   CURLING_BG,
   CURL_PX_PER_CM_FAR,
   CURL_VIEW_V4,
@@ -46,6 +47,8 @@ import { devWarp } from "@/lib/arcade/devWarp";
 import { TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { curlingSounds } from "@/lib/fx/gameSounds";
+import { CurlFxTracker, curlEndHoldMs } from "@/lib/arcade/curlingFx";
+import { demoHushed, playSlotOr } from "@/lib/sound";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { CurlingPuzzleData } from "@/lib/duel/types";
@@ -159,6 +162,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // The sim as rooms deal it; its draw shows the arena, the stones and what the stage holds (broom, turn, swipe, start).
   // The player's own equipped skin and world theme (wave 2; display only, src/lib/skins/equipped.ts).
   const [, lookRef] = useGameLookRef("curling");
+  /** The effects observer (stage 2, display only): contacts, strokes, verdicts and the end's count (curlingFx.ts). */
+  const fxTracker = useRef(new CurlFxTracker());
   const game = useMemo<ArcadeGame<CurlingState, ArcadeInputEvent | null>>(() => {
     // devWarp: development only (review shots, scripts/shots/curling-prepare-shots.ts); production plays the game as is.
     const base = devWarp("curling", curlingGameFor(rev));
@@ -184,7 +189,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             a.path = curlAimPath(state, sx, bx, by, a.zone?.tee ?? 316, a.turn);
           }
         }
-        withArcadeFx(fx, (c, st: CurlingState) => drawCurling(c, st, aim.current, lookRef.current))(ctx, state, { width: CURLING_W, height: worldH });
+        const now = performance.now();
+        const tracker = fxTracker.current;
+        tracker.observe(state, now);
+        withArcadeFx(fx, (c, st: CurlingState) => {
+          drawCurling(c, st, aim.current, lookRef.current);
+          // The effects over the world (stage 2), under the success layer's labels.
+          drawCurlingFx(c, st, tracker, now);
+        })(ctx, state, { width: CURLING_W, height: worldH });
+        // The end's count: a tick as each counting stone lights, a step higher each time.
+        tracker.cues.forEach(() => {
+          if (!demoHushed()) playSlotOr("curling.countTick", "tick", 0.7, 1 + 0.06 * (tracker.lit - 1));
+        });
       },
     };
   }, [rev, worldH]);
@@ -197,6 +213,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // curlRev 4: the power bar's marker stays where it was set.
     if (!v4) aim.current.keyWeight = null;
     return throwPayloadOf(weight);
+  };
+  /**
+   * curlRev 4: the power marker clicks into place (stage 2): the marker's snap and the notch tone, the brighter one with
+   * the marker in the gold HOUSE zone. On a tap or the end of a drag on the bar, and each − / + press.
+   */
+  const notch = () => {
+    const a = aim.current;
+    if (a.keyWeight == null) return;
+    a.snapAt = performance.now();
+    const inHouse = !!a.zone && a.keyWeight >= a.zone.lo && a.keyWeight <= a.zone.hi;
+    if (inHouse) playSlotOr("curling.powerNotchHouse", "tick", 1, 1.25);
+    else playSlotOr("curling.powerNotch", "tick", 0.55);
   };
   /** curlRev 4: set the bar's weight (the marker, the meter's fill and the Throw button follow it). */
   const setBar = (w: number) => {
@@ -283,6 +311,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     if (kind === "up") {
       gesture.current = null;
+      if (g.mode === "power" && s.phase === CURL_AIM) notch();
       if (g.mode === "swipe") {
         const w = aim.current.swipe;
         aim.current.swipe = null;
@@ -313,6 +342,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         worldH={worldH}
         game={game}
         sounds={curlingSounds}
+        endHoldMs={curlEndHoldMs}
         checkpoint={curlingCheckpoint}
         interval={SPORTS_CHECKPOINT_INTERVAL}
         encodeRun={encodeCurlingRun}
@@ -332,8 +362,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           else if (v3 && (key === "-" || key === "=" || key === "+") && state.phase === CURL_AIM) {
             const from = aim.current.keyWeight ?? aim.current.zone?.tee ?? 316;
             const next = Math.max(1, Math.min(CURL_WEIGHT_MAX, from + (key === "-" ? -1 : 1) * KEY_WEIGHT_STEP * (event.shiftKey ? 5 : 1)));
-            if (v4) setBar(next);
-            else aim.current.keyWeight = next;
+            if (v4) {
+              setBar(next);
+              notch();
+            } else aim.current.keyWeight = next;
           } else if (key === "Enter" && state.phase === CURL_AIM) send(throwPayload(v3 ? (aim.current.keyWeight ?? aim.current.zone?.tee ?? 316) : 306));
           else if (key === "s" && state.phase === CURL_TRAVEL) send({ k: CURL_INPUT_SWEEP, a: 60, b: 0, c: 0 });
           else return false;

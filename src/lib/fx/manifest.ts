@@ -1083,6 +1083,14 @@ const ENTRIES = {
   "curling.board": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/curling_board.mp3" },
   "curling.applause": { channel: "effects", frequency: 0, ms: 1995, url: "/sounds/curling_applause.mp3" },
   "curling.shot": { channel: "effects", frequency: 0, ms: 998, url: "/sounds/curling_shot.mp3" },
+  // The Sports overhaul's effects (stage 2, 15 Nov 2026; docs/sound-cues/sports-overhaul.md): silent or a stand-in
+  // until Joe's recordings (docs/sound-cues/sports-elevenlabs.md); the "aw" borrows the crowd's groan, softly.
+  "curling.powerNotch": { channel: "effects", frequency: 0, ms: 80, url: null },
+  "curling.powerNotchHouse": { channel: "effects", frequency: 0, ms: 150, url: null },
+  "curling.clack": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "curling.ooh": { channel: "effects", frequency: 0, ms: 1200, url: null },
+  "curling.aw": { channel: "effects", frequency: 0, ms: 1995, url: "/sounds/sports_crowd_groan.mp3", volume: 0.45 },
+  "curling.countTick": { channel: "effects", frequency: 0, ms: 100, url: null },
   "homerun.crowd": { channel: "effects", frequency: 0, ms: 9271, url: "/sounds/sports_crowd_loop.mp3", loop: true },
   "homerun.pitch": { channel: "effects", frequency: 0, ms: 259, url: "/sounds/homerun_pitch.mp3" },
   "homerun.whiff": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/homerun_whiff.mp3" },

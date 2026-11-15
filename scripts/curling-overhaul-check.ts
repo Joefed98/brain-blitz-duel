@@ -15,14 +15,26 @@
  *      the curlRev 4 witnesses and nudged copies of them) its counting stones are the replay's own count and its
  *      takeouts the replay's, every stone it draws is a live stone, and each legacy run still replays to its stored
  *      score (the overhaul changed no rule).
+ *   5. The effects (stage 2, display only): over curlRev 4 runs with brushing added, observing and drawing them never
+ *      changes the sim's state; a broom stroke is laid only on a tick a stroke landed on a travelling stone, ahead of
+ *      it on the side brushed; a contact ring only on a hit, between two touching stones; a gold ring exactly on a
+ *      stone the sim scored and a grey ring exactly on the near-miss rule (curlShortBy, also unit-tested), each at the
+ *      settle; the end lights exactly the counting stones in throw order, one tick each, inside the stage's hold and
+ *      the 2 s of full-rate frames, its house clear above the In / Out / Throw row; reduced motion draws each effect
+ *      still at its final size (no growing ring, no zoom).
  *
  *   bun scripts/curling-overhaul-check.ts   (~10 s, no browser)
  */
 import { readFileSync } from "node:fs";
 import { loadImage, createCanvas } from "@napi-rs/canvas";
-import { CURL_AIM, CURL_TRAVEL, CURLING_REV, CURLING_STONES, CU, HOG_NEAR, STONE_R, curlingGameFor, type CurlingState } from "../src/lib/arcade/curling";
+import { CURL_AIM, CURL_INPUT_SWEEP, CURL_TRAVEL, CURLING_H_V4, CURLING_REV, CURLING_RUN_TICKS, CURLING_STONES, CURLING_W, CU, HOG_NEAR, STONE_R, curlingGameFor, type CurlingState } from "../src/lib/arcade/curling";
+import { CURL_FX_END_HOLD_MS, CURL_FX_LIGHT_MS, CURL_FX_ZOOM_MS, CurlFxTracker, NEAR_MISS_CM, curlEndCounting, curlEndHoldMs, curlEndLit, curlShortBy } from "../src/lib/arcade/curlingFx";
+import { decodeSportsRun } from "../src/lib/arcade/sportsKit";
+import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   CURL_CAPTAIN,
+  CURL_END_HOUSE,
+  drawCurlingFx,
   CURL_INSET,
   CURL_INSET_V4,
   curlInsetFor,
@@ -317,10 +329,184 @@ for (const run of v4Runs) {
 ok(counts.size >= 3, `the runs cover several outcomes (counting ${[...counts].sort().join(", ")})`);
 ok(summaries >= 100, `${summaries} summaries judged`);
 
+/* ------------------------------------------------------------ 5. the effects (stage 2) */
+
+// Reduced motion stands in through window.matchMedia (art.renderer.ts reads it once and keeps the query).
+const motion = { reduce: false };
+(globalThis as unknown as { window: unknown }).window ??= {};
+(globalThis as unknown as { window: { matchMedia: unknown } }).window.matchMedia = () => ({
+  get matches() {
+    return motion.reduce;
+  },
+});
+
+let fxTicks = 0;
+let fxStrokes = 0;
+let fxContacts = 0;
+let fxVerdicts = 0;
+let fxNear = 0;
+let fxEnds = 0;
+const canvas = createCanvas(CURLING_W, CURLING_H_V4);
+const fctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
+const game4 = curlingGameFor(CURLING_REV);
+const view4 = curlViewFor(CURLING_REV);
+/** The In / Out / Throw row's top (world px): its middle less half its 48 px height (curling.tsx CURL_TURN_ROW_TOP). */
+const rowTop = view4.h * CURL_TURN_ROW_MID - 24;
+
+for (const [n, run] of v4Runs.entries()) {
+  // The witness throws with brushing added (every 6th tick of a stone's first 2 s, one side a throw, alternating), so
+  // strokes, bends and their effects all happen; and every 3rd run drawn each tick with effects, the rest observed.
+  const decoded = decodeSportsRun(run.raw, CURLING_RUN_TICKS);
+  const byTick = new Map(decoded.events.map((e) => [e.t, e]));
+  const fx = new CurlFxTracker();
+  let s = game4.init(run.seed);
+  let now = 0;
+  const draw = n % 3 === 0;
+  while (!game4.isOver(s)) {
+    const t = s.tick + 1;
+    let input = (byTick.get(t) ?? null) as ArcadeInputEvent | null;
+    if (!input && s.phase === CURL_TRAVEL && s.travelTicks >= 10 && s.travelTicks <= 130 && t % 6 === 0) input = { t, k: CURL_INPUT_SWEEP, a: 40, b: s.thrown % 2 === 0 ? 1 : -1, c: 0, d: 0 };
+    const prev = s;
+    s = game4.step(s, input);
+    now += 1000 / 60;
+    const before = draw ? JSON.stringify(s) : "";
+    fx.observe(s, now);
+    if (draw) {
+      drawCurlingFx(fctx, s, fx, now);
+      ok(JSON.stringify(s) === before, `sheet ${run.seed} tick ${s.tick}: observing and drawing the effects left the sim's state as it was`);
+    }
+    fxTicks++;
+    // Strokes: only on a tick a broom stroke landed, on a travelling stone, on the side brushed.
+    // (Counted by tick: the observer forgets faded marks, so its lists shrink as well as grow.)
+    const newStrokes = fx.strokes.filter((x) => x.tick === s.tick).length;
+    const stroked = s.sweeps > prev.sweeps && prev.phase === CURL_TRAVEL;
+    ok(newStrokes === (stroked && s.phase === CURL_TRAVEL && s.active >= 0 && s.live[s.active] ? 1 : 0), `sheet ${run.seed} tick ${s.tick}: ${newStrokes} strokes laid, a stroke ${stroked ? "landed" : "didn't land"}`);
+    if (newStrokes === 1) {
+      const st = fx.strokes[fx.strokes.length - 1]!;
+      const side = Math.sign(s.bend);
+      const off = st.x - s.x[s.active]! / CU;
+      ok(st.side === side && (side === 0 ? Math.abs(off) < 1e-9 : Math.sign(off) === side), `sheet ${run.seed} tick ${s.tick}: the stroke lies on the side brushed (side ${st.side}, bend ${s.bend}, offset ${off.toFixed(1)} cm)`);
+      ok(st.y < s.y[s.active]! / CU, `sheet ${run.seed} tick ${s.tick}: the stroke lies ahead of the stone`);
+      fxStrokes++;
+    }
+    // A ring where stones met: on a tick with a hit only, at a point between two touching stones.
+    const newContacts = fx.contacts.filter((x) => x.tick === s.tick).length;
+    ok(newContacts === 0 || s.hits > prev.hits, `sheet ${run.seed} tick ${s.tick}: a contact ring only on a hit`);
+    if (newContacts > 0) {
+      const c = fx.contacts[fx.contacts.length - 1]!;
+      let touching = 0;
+      for (let i = 0; i < s.x.length; i++) if ((s.live[i] || prev.live[i]) && Math.hypot(s.x[i]! / CU - c.x, s.y[i]! / CU - c.y) <= STONE_R + 3 + 1e-6) touching++;
+      ok(touching >= 2, `sheet ${run.seed} tick ${s.tick}: the contact point lies between two stones (${touching} within reach)`);
+      fxContacts++;
+    }
+    if (s.hits > prev.hits) ok(newContacts === 1, `sheet ${run.seed} tick ${s.tick}: a hit gives one contact ring`);
+    // Verdicts: at a stone's settle only; gold exactly when the sim scored it, grey exactly on the near-miss rule.
+    const newVerdicts = fx.verdicts.filter((x) => x.tick === s.tick);
+    if (s.pts.length > prev.pts.length) {
+      const i = s.theirs + s.pts.length - 1;
+      const scored = (s.pts[s.pts.length - 1] ?? 0) > 0;
+      const near = !scored && curlShortBy(s, i) <= NEAR_MISS_CM;
+      ok(newVerdicts.length === (scored || near ? 1 : 0), `sheet ${run.seed} throw ${s.pts.length}: ${newVerdicts.length} verdicts (scored ${scored}, near ${near})`);
+      if (newVerdicts[0]) ok(newVerdicts[0].kind === (scored ? "count" : "near") && newVerdicts[0].stone === i, `sheet ${run.seed} throw ${s.pts.length}: a ${newVerdicts[0].kind} ring on stone ${newVerdicts[0].stone} (expected ${scored ? "count" : "near"} on ${i})`);
+      if (scored) fxVerdicts++;
+      if (near) fxNear++;
+    } else ok(newVerdicts.length === 0, `sheet ${run.seed} tick ${s.tick}: no verdict between settles`);
+  }
+  // The end: the counting stones lit one by one, every one inside the stage's hold, never over the controls' row.
+  fx.observe(s, now);
+  const end = fx.end;
+  ok(!!end, `sheet ${run.seed}: the end is seen`);
+  if (end) {
+    const want = curlEndCounting(s);
+    ok(JSON.stringify(end.stones) === JSON.stringify(want), `sheet ${run.seed}: the end lights the counting stones in throw order`);
+    ok(want.every((st) => (s.pts[st.stone - s.theirs] ?? 0) > 0 && s.live[st.stone] === 1), `sheet ${run.seed}: each lit stone scored and is still on the sheet`);
+    const hold = curlEndHoldMs(s);
+    ok(hold > CURL_FX_ZOOM_MS && hold <= CURL_FX_END_HOLD_MS, `sheet ${run.seed}: the hold ${hold} ms covers the zoom and is at most ${CURL_FX_END_HOLD_MS}`);
+    let ticks = 0;
+    let lastLit = 0;
+    for (let ms = 0; ms <= hold; ms += 10) {
+      fx.observe(s, end.at + ms);
+      ticks += fx.cues.length;
+      const lit = curlEndLit(end, end.at + ms);
+      ok(lit >= lastLit, `sheet ${run.seed}: lights only go on`);
+      lastLit = lit;
+    }
+    ok(lastLit === want.length && ticks === want.length, `sheet ${run.seed}: all ${want.length} counting stones lit (${lastLit}) with one tick each (${ticks}) inside the ${hold} ms hold`);
+    ok(want.length === 0 || end.at + CURL_FX_ZOOM_MS + (want.length - 1) * end.gap <= end.at + 2000, `sheet ${run.seed}: the last light lands inside the 2 s the stage keeps drawing at full rate`);
+    fxEnds++;
+  }
+}
+// The end's house and its count line sit clear above the In / Out / Throw row.
+ok(CURL_END_HOUSE.y + CURL_END_HOUSE.h + 12 + 34 <= rowTop, `the end's house and its line end at ${CURL_END_HOUSE.y + CURL_END_HOUSE.h + 46} px, above the In / Out / Throw row (${rowTop.toFixed(1)})`);
+ok(CURL_END_HOUSE.x >= 0 && CURL_END_HOUSE.x + CURL_END_HOUSE.w <= CURLING_W, "the end's house fits the world's width");
+
+// The near-miss rule: 0 when it scored, the cm short of the edge with no red nearer, the margin past the nearest red.
+{
+  const base = game4.init(witnesses[0]!.seed);
+  const st = (x: number, y: number, redsAt: [number, number][]): CurlingState => ({
+    ...base,
+    x: [...redsAt.map((r) => r[0] * CU), x * CU],
+    y: [...redsAt.map((r) => r[1] * CU), y * CU],
+    vx: [...redsAt.map(() => 0), 0],
+    vy: [...redsAt.map(() => 0), 0],
+    team: [...redsAt.map(() => 1), 0],
+    live: [...redsAt.map(() => 1), 1],
+    theirs: redsAt.length,
+  });
+  ok(curlShortBy(st(0, 50, []), 0) === 0, "near-miss rule: a stone inside the scoring edge with no reds needs nothing");
+  ok(Math.abs(curlShortBy(st(0, 130, []), 0) - 10) < 0.01, "near-miss rule: 10 cm past the 120 cm edge needs 10 cm (a near miss)");
+  ok(curlShortBy(st(0, 150, []), 0) > NEAR_MISS_CM, "near-miss rule: 30 cm past the edge is not a near miss");
+  ok(Math.abs(curlShortBy(st(0, 60, [[0, 50]]), 1) - 11) < 0.01, "near-miss rule: 10 cm behind the nearest red in the house needs 11 cm");
+  ok(curlShortBy(st(0, 60, [[0, 20]]), 1) > NEAR_MISS_CM, "near-miss rule: 40 cm behind the nearest red is not a near miss");
+  ok(curlShortBy({ ...st(0, 50, []), live: [0] }, 0) === Infinity, "near-miss rule: a stone out of play is never a near miss");
+}
+
+// Reduced motion: the effects drawn still at their final size (no ring growing, no zoom), so two moments of one
+// effect differ only in how faded they are; full motion animates them.
+{
+  const s0 = game4.init(witnesses[0]!.seed);
+  const fx = new CurlFxTracker();
+  fx.contacts.push({ tick: s0.tick, x: 0, y: 0 });
+  const frame = (age: number) => {
+    const c = createCanvas(CURLING_W, CURLING_H_V4);
+    const cx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    drawCurlingFx(cx, { ...s0, tick: s0.tick + age }, fx, 0);
+    const d = c.getContext("2d").getImageData(0, 0, CURLING_W, CURLING_H_V4).data;
+    // The ring's horizontal extent (any painted pixel).
+    let lo = CURLING_W;
+    let hi = -1;
+    for (let y = 0; y < CURLING_H_V4; y++) for (let x = 0; x < CURLING_W; x++) if (d[(y * CURLING_W + x) * 4 + 3]! > 0) {
+      lo = Math.min(lo, x);
+      hi = Math.max(hi, x);
+    }
+    return hi - lo;
+  };
+  motion.reduce = true;
+  const still = [frame(1), frame(20)];
+  motion.reduce = false;
+  const moving = [frame(1), frame(20)];
+  ok(still[0] === still[1] && still[0]! > 0, `reduced motion: the contact ring is drawn at one size (${still.join(" and ")} px wide)`);
+  ok(moving[1]! > moving[0]!, `full motion: the contact ring opens (${moving.join(" → ")} px)`);
+  // The end: no zoom under reduced motion (the house is at its full size from the first frame).
+  const ended = { ...s0, over: 1 };
+  const fe = new CurlFxTracker();
+  fe.end = { at: 0, stones: [], gap: CURL_FX_LIGHT_MS };
+  const pixels = (ms: number) => {
+    const c = createCanvas(CURLING_W, CURLING_H_V4);
+    drawCurlingFx(c.getContext("2d") as unknown as CanvasRenderingContext2D, ended, fe, ms);
+    return c.toBuffer("image/png").toString("base64");
+  };
+  motion.reduce = true;
+  ok(pixels(1) === pixels(CURL_FX_ZOOM_MS + 50), "reduced motion: the end's house is drawn at its full size at once (no zoom)");
+  motion.reduce = false;
+  ok(pixels(1) !== pixels(CURL_FX_ZOOM_MS + 50), "full motion: the end's house zooms");
+}
+ok(fxStrokes >= 50 && fxContacts >= 10 && fxVerdicts >= 10 && fxNear >= 1 && fxEnds === v4Runs.length, `the effects runs cover every effect (${fxStrokes} strokes, ${fxContacts} contact rings, ${fxVerdicts} gold rings, ${fxNear} near misses, ${fxEnds} ends over ${fxTicks} ticks)`);
+
 if (failures.length) {
   console.log(`curling-overhaul-check: FAIL (${failures.length} of ${passes + failures.length})`);
   for (const f of failures.slice(0, 40)) console.log(`  FAIL ${f}`);
   process.exit(1);
 }
-console.log(`curling-overhaul-check: PASS (${passes} checks; the Captain on ${captainFrames} frames, Throw on ${throwTicks} ticks, ${summaries} summaries)`);
+console.log(`curling-overhaul-check: PASS (${passes} checks; the Captain on ${captainFrames} frames, Throw on ${throwTicks} ticks, ${summaries} summaries, the effects on ${fxTicks} ticks)`);
 process.exit(0);

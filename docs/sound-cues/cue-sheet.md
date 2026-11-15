@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 40 | 0 | 489 | 529 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 66 | 1 | 985 | 1052 |
 
 ## Silent and placeholder cues
 
@@ -247,6 +247,16 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
+
+### Curl Champ
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `curling.powerNotch` | Curl Champ: The power bar's marker clicks into place (curlRev 4: a tap or the end of a drag on the bar, each − / +), outside the gold HOUSE zone; the marker snaps (without its file: tick, 0.55) [sports-overhaul.md] |  | 8–20 | silent | none | 80 | game event | `curling.powerNotch` |
+| `curling.powerNotchHouse` | Curl Champ: The same, with the marker in the gold HOUSE zone (without its file: tick, full and a third higher) [sports-overhaul.md] |  | 4–16 | silent | none | 150 | game event | `curling.powerNotchHouse` |
+| `curling.clack` | Curl Champ: Stone on stone, with a ring opening at the contact point (without its file: curling.hit, as before) [sports-overhaul.md] |  | 0–15 | silent | none | 300 | game event | `curling.clack` |
+| `curling.ooh` | Curl Champ: A red knocked out of the house, as it goes (a dashed red ring marks where it left; silent until its file, the applause still plays as the stone comes to rest) [sports-overhaul.md] |  | 0–3 | silent | none | 1200 | game event | `curling.ooh` |
+| `curling.countTick` | Curl Champ: The end (curlRev 4): the house view zooms to the middle and each counting stone lights, one tick each, a step higher each time (without its file: tick, 0.7) [sports-overhaul.md] |  | 0–8 | silent | none | 100 | game event | `curling.countTick` |
 
 ### Dual
 
@@ -1348,6 +1358,7 @@ Grouped by game or screen.
 | `curling.applause` | Curl Champ: A thrown stone settles in the 4-foot or knocks a stone out [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.applause` | 1995 | game event | `curling.applause` |
 | `curling.shot` | Curl Champ: A thrown stone settles and takes shot (nearest the button) [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.shot` | 998 | game event | `curling.shot` |
 | `music.curling` | Curl Champ: music_curling |  | loop | recorded sound | `music_curling` | 39300 | music | `music_curling` |
+| `curling.aw` | Curl Champ: A thrown stone comes to rest a near miss (a grey ring on it) [sports-overhaul.md] |  | 0–8 | recorded sound | `curling.aw` | 1995 | game event | `curling.aw` |
 
 ### Fission
 
@@ -2724,6 +2735,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `curling.board` | effects | `curling.board` | 400 |
 | `curling.applause` | effects | `curling.applause` | 1995 |
 | `curling.shot` | effects | `curling.shot` | 998 |
+| `curling.aw` | effects | `curling.aw` | 1995 |
 | `homerun.crowd` | effects | `homerun.crowd` | 9271 |
 | `homerun.pitch` | effects | `homerun.pitch` | 259 |
 | `homerun.whiff` | effects | `homerun.whiff` | 400 |
