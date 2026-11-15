@@ -209,7 +209,7 @@ ok(balanceLeftOnTray([0, null, 5, undefined as unknown as null], 4).join(",") ==
     const yours = [...host.querySelectorAll("[data-reveal-view] button")].find((b) => b.textContent === "Your route");
     await click(yours);
     ok(host.querySelectorAll("[data-route-step]").length === 2, "Exact: your route drawn a step a row");
-    ok(/Off by/.test(text(host.querySelector("[data-number-reveal-facts]"))) && /Your steps\s*2/.test(text(host.querySelector("[data-number-reveal-facts]"))), "Exact: the facts give how far off and your steps");
+    ok(/Your steps\s*2/.test(text(host.querySelector("[data-number-reveal-facts]"))) && /\d+ away/.test(text(host.querySelector('[data-plate="yours"]'))), "Exact: how far off on your plate, your steps in the facts");
     const outside = [...host.querySelectorAll("p, [data-plate]")].map((e) => e.textContent ?? "").join(" ");
     ok(!/×/.test(outside), "Exact: × only inside a step, never as a mark");
     await done();

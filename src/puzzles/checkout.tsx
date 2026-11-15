@@ -814,6 +814,13 @@ export function checkoutRevealBoards(puzzle: CheckoutPuzzleData, answer: string 
   });
 }
 
+/** The board's finishing rule in plain words: the ring, and the big finish where the board has one. */
+function revealRule(stage: CheckoutStageData): string {
+  const ring = `Finish on a ${finishWord(stage)}`;
+  if (stage.bigFinish !== true) return ring;
+  return stage.finish === 3 ? `${ring} or the Bull` : `${ring}, a treble or the Bull`;
+}
+
 /** The darts as chips: the ring and number in bold, the points under; the finishing dart in gold. */
 function DartChips({ stage, darts, finished }: { stage: CheckoutStageData; darts: readonly CheckoutDart[]; finished: boolean }) {
   if (!darts.length) return <p className="co-rv-none">No darts thrown</p>;
@@ -838,7 +845,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: Puz
   const boards = useMemo(() => (checkout ? checkoutRevealBoards(checkout, myAnswer) : []), [checkout, myAnswer]);
   const marks = boards.map((b) => b.mark);
   const [index, setIndex] = useRevealBoard(marks);
-  const [side, setSide] = useState<RevealSide>("yours");
+  // Chosen by the player; until then a board with darts opens on yours, one with none on the solution.
+  const [picked, setPicked] = useState<RevealSide | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(300);
   useBeforePaint(() => {
@@ -854,7 +862,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: Puz
   const stage = checkout.stages[index]!;
   const board = boards[index]!;
   const hasBest = board.best.length > 0;
-  const view: RevealSide = hasBest ? side : "yours";
+  const view: RevealSide = hasBest ? (picked ?? (board.mine.length ? "yours" : "solution")) : "yours";
   const darts = view === "yours" ? board.mine : board.best;
   const solved = boards.filter((b) => b.mark === "right");
   const used = solved.reduce((n, b) => n + b.mine.length, 0);
@@ -877,16 +885,16 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: Puz
       <RevealBoards noun="Board" marks={marks} index={index} onIndex={setIndex}>
         <div className="co-rv-head">
           <span className="co-rv-target" data-checkout-reveal-target>{stage.target}</span>
-          <span className="co-rv-rule">Finish on a {finishWord(stage)}</span>
+          <span className="co-rv-rule">{revealRule(stage)}</span>
         </div>
-        {hasBest ? <RevealView value={side} onChange={setSide} /> : null}
+        {hasBest ? <RevealView value={view} onChange={setPicked} /> : null}
         <div ref={box} className="co-rv-board" data-checkout-reveal-side={view}>
           <Board stage={stage} darts={darts} size={width} finish={stage.finish} lit={view === "solution" || board.mark === "right" ? "stage" : null} />
         </div>
         <DartChips stage={stage} darts={darts} finished={view === "solution" || board.mark === "right"} />
         <p className="co-rv-verdict" data-mark={view === "solution" ? "right" : board.mark}>
           {view === "solution"
-            ? `Fewest darts: ${board.best.length}`
+            ? `Fewest darts: ${board.best.length}${checkoutBigFinish(stage, board.best[board.best.length - 1]) ? " · big finish" : ""}`
             : board.mark === "right"
               ? board.big
                 ? `Checked out in ${board.mine.length} · big finish`

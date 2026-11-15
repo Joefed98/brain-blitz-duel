@@ -187,6 +187,21 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
   </div>;
 }
 
+/** An element's width, kept up to date (the reveal's beam fits its panel). */
+function useWidth(ref: React.RefObject<HTMLDivElement | null>): number {
+  const [w, setW] = useState(0);
+  useBeforePaint(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setW(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return w;
+}
+
 function useHeight(ref: React.RefObject<HTMLDivElement | null>): number {
   const [h, setH] = useState(0);
   useBeforePaint(() => {
@@ -543,9 +558,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
     : scales.map((_, s) => s < solvedInOrder);
   const marks = balanceRevealMarks(placements, okAt);
   const [index, setIndex] = useRevealBoard(marks);
-  const root = useRef<HTMLDivElement | null>(null);
+  const stage = useRef<HTMLDivElement | null>(null);
   const scale = scales[index];
-  const spacing = useSpacing(root, scale ? scalePegs(scale) : 8, 44);
+  // The beam fills the panel's width: each notch up to the live round's 44 px, down to 30 on a 10-notch scale.
+  const stageWidth = useWidth(stage);
+  const pegs = scale ? scalePegs(scale) : 8;
+  const spacing = stageWidth > 0 ? Math.max(30, Math.min(44, Math.floor((stageWidth - 12) / pegs))) : 36;
   const solution = data?.solutions?.[index] ?? null;
   const right = !!okAt[index];
   const [side, setSide] = useState<RevealSide>("solution");
@@ -561,11 +579,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   const left = showing === "yours" ? balanceLeftOnTray(mine, scale.tray.length) : [];
   const elapsed = myMsRemaining === undefined ? null : ((timeLimitMs - myMsRemaining) / 1000).toFixed(1);
   return (
-    <div ref={root} data-balance-reveal className="bal-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3 py-1">
+    <div data-balance-reveal data-polish="balance" className="bal-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3 py-1">
       <BalanceArt />
       <RevealBoards noun="Scale" marks={marks} index={index} onIndex={(i) => { setIndex(i); setSide("solution"); }}>
         {canSwitch ? <RevealView value={showing} onChange={setSide} /> : null}
-        <div className="bal-reveal-stage" data-reveal-side={showing}>
+        <div ref={stage} className="bal-reveal-stage" data-reveal-side={showing}>
           <Beam scale={scale} placement={shown} spacing={spacing} height={REVEAL_BEAM_HEIGHT}
             torque={balanceTorqueText(scale, shown)} {...(moved ? { marks: moved } : {})} />
         </div>

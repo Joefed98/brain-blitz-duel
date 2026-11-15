@@ -20,7 +20,8 @@ import { Segmented } from "@/design/components";
 export type BoardMark = "right" | "wrong" | "open";
 
 const MARK_WORD: Record<BoardMark, string> = { right: "right", wrong: "not right", open: "not reached" };
-const MARK_GLYPH: Record<BoardMark, string> = { right: "✓", wrong: "✗", open: "–" };
+// A dot, never "✗" (Joe, 15 Nov 2026: no stray "×" on a reveal); the tab's name says the verdict in words.
+const MARK_GLYPH: Record<BoardMark, string> = { right: "✓", wrong: "●", open: "○" };
 
 /** The board to open on: the first that isn't right, else the first. */
 export function firstBoardToShow(marks: readonly BoardMark[]): number {

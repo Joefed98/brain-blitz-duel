@@ -650,7 +650,6 @@ function TargetReveal({
         )}
       </div>
       <RevealFacts facts={[
-        madeSteps > 0 ? { label: "Off by", value: away ?? "–", ...(hit ? { tone: "good" as const } : {}) } : null,
         { label: "Your steps", value: madeSteps },
         used !== null ? { label: "Numbers used", value: used, ...(used <= EXACT_ELEGANT_TILES ? { tone: "good" as const } : {}) } : null,
       ]} />

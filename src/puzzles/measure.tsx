@@ -142,13 +142,13 @@ export const MEASURE_CSS = `
 [data-polish="measure"] .mj-row[data-solved] { border-left-color: var(--jz-gold); }
 [data-polish="measure"] .mj-par { color: var(--jz-gold); font-weight: 700; }
 /* The reveal's best line: small jug pictures, one per move. */
-[data-polish="measure"] .mj-line-pics { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 10px; width: 100%; margin: 2px 0 0; padding: 0; list-style: none; }
-[data-polish="measure"] .mj-pic { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; }
-[data-polish="measure"] .mj-pic-jugs { display: flex; align-items: flex-end; gap: 4px; }
-[data-polish="measure"] .mj-pic-jug { position: relative; width: 24px; min-height: 22px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--jz-text) 60%, transparent); border-top-width: 1px; border-radius: 3px 3px 6px 6px; }
+[data-polish="measure"] .mj-line-pics { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 6px; width: 100%; margin: 2px 0 0; padding: 0; list-style: none; }
+[data-polish="measure"] .mj-pic { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 44px; }
+[data-polish="measure"] .mj-pic-jugs { display: flex; align-items: flex-end; gap: 3px; }
+[data-polish="measure"] .mj-pic-jug { position: relative; width: var(--mj-pic-w, 24px); min-height: 22px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--jz-text) 60%, transparent); border-top-width: 1px; border-radius: 3px 3px 6px 6px; }
 [data-polish="measure"] .mj-pic-jug[data-hit] { border-color: var(--jz-gold); }
 [data-polish="measure"] .mj-pic-water { position: absolute; left: 0; right: 0; bottom: 0; background: var(--mj-water); }
-[data-polish="measure"] .mj-pic-n { position: absolute; left: 0; right: 0; bottom: 2px; text-align: center; font-family: var(--jz-font); font-weight: 800; font-size: 14px; line-height: 15px; color: var(--jz-text); text-shadow: 0 0 3px var(--jz-bg); }
+[data-polish="measure"] .mj-pic-n { position: absolute; left: 0; right: 0; bottom: 2px; text-align: center; font-family: var(--jz-font); font-weight: 800; font-size: 15px; line-height: 16px; color: var(--jz-text); text-shadow: 0 0 3px var(--jz-bg); }
 [data-polish="measure"] .mj-pic-label { font-family: var(--jz-font); font-size: 13px; font-weight: 700; color: var(--jz-text-2); white-space: nowrap; }
 [data-polish="measure"] .mj-pic[data-last] .mj-pic-label { color: var(--jz-gold); }
 [data-polish="measure"] .mj-pic[data-miss] .mj-pic-label { color: var(--jz-red); }
@@ -831,10 +831,13 @@ function revealGoal(board: MeasureBoardData): string {
 function LinePictures({ board, raw, kind, solved }: { board: MeasureBoardData; raw: string; kind: "best" | "yours"; solved: boolean }) {
   const states = measureLineStates(board, raw);
   const maxCap = Math.max(...board.caps);
-  const H = 56;
+  // As large as the line allows: a short line's pictures are drawn bigger.
+  const H = states.length <= 6 ? 80 : states.length <= 10 ? 66 : 56;
+  const jugW = states.length <= 6 ? 24 : 22;
   return (
     <ol
       className="mj-line-pics"
+      style={{ ["--mj-pic-w" as string]: `${jugW}px` }}
       data-measure-line={kind}
       data-measure-best={kind === "best" ? states.length - 1 : undefined}
       aria-label={`${kind === "best" ? "Fewest moves" : "Your moves"}: ${states.slice(1).map((st) => measureMoveLabel(board, st.action)).join(", ") || "none"}`}

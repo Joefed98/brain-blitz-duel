@@ -265,6 +265,12 @@
   font-weight: 600;
   color: var(--jz-text-2);
 }
+/* The fitted line's inner run: the numbers, signs and gap pieces on one centre line. */
+[data-operator-reveal] .op-fit-line {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
 .opr-line {
   display: flex;
   align-self: stretch;

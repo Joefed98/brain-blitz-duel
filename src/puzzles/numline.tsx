@@ -116,10 +116,10 @@ const NUMLINE_CSS = `
 .nl-reveal-key { font-family: var(--jz-font); font-size: 13px; font-weight: 600; color: var(--jz-text-2); }
 .nl-reveal-key .nl-key-true { color: var(--jz-gold); }
 .nl-reveal-key .nl-key-yours { color: var(--jz-text); margin-left: 10px; }
-.nl-reveal-rows { display: flex; width: 100%; max-width: 420px; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.nl-reveal-row { display: flex; min-height: 40px; align-items: center; gap: 10px; padding: 4px 12px; border-radius: 12px; background: var(--jz-surface-2); }
+.nl-reveal-rows { display: flex; width: 100%; max-width: 420px; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.nl-reveal-row { display: flex; min-height: 34px; align-items: center; gap: 10px; padding: 2px 12px; border-radius: 12px; background: var(--jz-surface-2); }
 .nl-reveal-n { display: inline-flex; width: 26px; height: 26px; flex: none; align-items: center; justify-content: center; border-radius: 50%; background: var(--jz-gold); color: var(--jz-on-gold); font-family: var(--jz-font); font-size: 14px; font-weight: 800; }
-.nl-reveal-item { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--jz-font); font-size: 20px; font-weight: 800; color: var(--jz-text); }
+.nl-reveal-item { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--jz-font); font-size: 19px; font-weight: 800; color: var(--jz-text); }
 .nl-reveal-off { flex: none; font-family: var(--jz-font); font-size: 16px; font-weight: 700; color: var(--jz-red); font-variant-numeric: tabular-nums; }
 .nl-reveal-row[data-close] .nl-reveal-off { color: var(--jz-text); }
 .nl-reveal-off[data-bull] { color: var(--jz-gold); }
@@ -835,7 +835,7 @@ const REVEAL_W = 340;
 /** The tape's end inset (Line's SIDE) and a reveal number label's width with its gap, in drawing px. */
 const REVEAL_SIDE = SIDE;
 const REVEAL_LABEL_W = 8;
-const REVEAL_H = 150;
+const REVEAL_H = 128;
 /** The rule's height in the reveal's drawing, and where it sits (its centre, as a share of the height). */
 const REVEAL_T = 14;
 const REVEAL_Y = 0.42;
@@ -924,7 +924,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           { label: "Average off", value: avg === null ? "–" : `${(avg * 100).toFixed(1)}%` },
           bullseyes && { label: "Bullseyes", value: all.filter((r) => r.bull).length },
           worst && worst.error !== null && !worst.bull && { label: "Worst miss", value: `${worst.item}, ${(worst.error * 100).toFixed(1)}%`, tone: worst.close ? undefined : "miss" },
-          placed.length < NUMLINE_TOTAL && { label: "Placed", value: `${placed.length} of ${NUMLINE_TOTAL}`, tone: "miss" },
         ]}
       />
       <RevealBoards noun="Line" marks={marks} index={index} onIndex={setIndex}>
@@ -943,7 +942,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                 const tx = x(r.truth / NUMLINE_SCALE);
                 const ty = y - REVEAL_T / 2 - 18 - truthLevels[i]! * 22;
                 const px = r.placement === null ? null : x(r.placement / NUMLINE_SCALE);
-                const py = y + REVEAL_T / 2 + 40 + pinLevels[i]! * 22;
+                const py = y + REVEAL_T / 2 + 30 + pinLevels[i]! * 22;
                 const tone = r.close ? "var(--jz-gold)" : "var(--jz-red)";
                 return (
                   <g key={i} data-reveal-pair={i} data-close={r.close ? "" : undefined} data-bull={r.bull ? "" : undefined}>

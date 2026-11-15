@@ -33,6 +33,7 @@
 /* ---- The reveal (the Number overhaul, 15 Nov 2026): one board at a time, large, the darts as chips. */
 [data-checkout-reveal] .co-rv-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: center;
   gap: 10px;
@@ -46,6 +47,7 @@
   font-variant-numeric: tabular-nums;
 }
 [data-checkout-reveal] .co-rv-rule {
+  text-align: center;
   font-size: 14px;
   font-weight: 600;
   color: var(--jz-text-2);
