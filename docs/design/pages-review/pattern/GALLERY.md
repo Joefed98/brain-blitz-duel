@@ -192,14 +192,19 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 (Main had no solved-reveal shot in the review; its solved reveal is the same single board as the unfinished one, plus a
 "n moves (fewest m)" line.)
 
-- **Look (A, the richness pass):** every piece is a Blender render under the rich studio light
-  (`docs/design/game-art/pattern/source/iceslide.py`, `public/pattern-art/iceslide/`, 13 images, 56 KB):
-  - The ice is a clear-coated sheet over crystalline facets, each a slightly different blue, with flakes that catch
-    the key light as sparkles.
-  - The blocks are polished speckled granite.
-  - The ball is deep-blue enamel over steel under a clear coat, with one crisp highlight.
-  - The portals are a glossy magenta and a glossy teal enamel ring. The chevrons are navy lacquer on frosted plates.
-  - Thin ice is clouded grey-blue with white cracks; the exit is a polished gold plate.
+- **Look (A, the richness pass, redone 15 Nov 2026 after the captain's review: the first rink read as a pale, near-white
+  sheet):** every piece is a Blender render under the rich studio light
+  (`docs/design/game-art/pattern/source/iceslide.py`, `public/pattern-art/iceslide/`, 13 images, 106 KB):
+  - The ice is now a pale-to-mid icy blue with depth: deeper blue where the ice is thick, faint crystal facets and
+    frost, fine skate scratches and a scatter of air bubbles under a clear coat (an even sheen, no glare patch). It
+    is richer than both today's grey-blue sheet and concept A's flat pale one.
+  - The blocks are polished speckled granite with a wide bevel catching the light, so they stand up off the ice.
+  - The ball is glossy blue enamel over steel with one crisp highlight (only the key light shows on its curve); its
+    shadow fades out round, never a square.
+  - The portals are a glossy magenta and a glossy teal enamel ring. The chevrons are navy lacquer on pale frosted
+    plates.
+  - Thin ice is dark, glassy deep water with bright white cracks, so it stands apart from the rink; the exit is a
+    shinier polished gold plate.
   - Each image is exactly its cell. There is no glow on any piece.
 - **Controls:** the arrow pad, Undo and Reset in champagne gold on navy (`--jz-gold`, `--jz-surface-2`).
 - **Undo gives the slide back (slideRev 5):**
