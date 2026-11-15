@@ -1,5 +1,4 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, usePrefersReducedMotion, useSwipe } from "@/components/puzzles/GridDrag";
@@ -34,6 +33,7 @@ import { popCount, replayGems } from "@/lib/duel/depth4/iceGems";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { IceArt, IceBoard as Board, IceTrail, useIceSlideFx } from "@/components/puzzles/pattern/iceSlideBoard";
+import { HudPills, type HudPillItem } from "@/components/puzzles/HudPills";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -54,7 +54,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Swipe to slide the ball. It won’t stop until it hits something. Avoid the holes – fall
+        Swipe or tap an arrow to slide the ball. It won’t stop until it hits something. Avoid the holes – fall
         in and you start again. A chevron turns the ball. Portals carry you across the board.
         Cracked ice breaks after you cross it once.
       </p>
@@ -74,7 +74,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer moves earn a bonus. You have 90 seconds.
+        Reaching the exit in par slides earns a bonus; Undo gives a slide back. You have 90 seconds.
       </p>
     </div>
   );
@@ -324,7 +324,38 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
+const DIR_NAME: Record<string, string> = { U: "Up", D: "Down", L: "Left", R: "Right" };
+
+/** A route as a strip of arrow chips (the arrow tiles' own renders), in order. */
+function SlideChips({ dirs, label, view }: { dirs: readonly SlideDir[]; label: string; view: string }) {
+  const shown = dirs.filter((d) => d === "U" || d === "D" || d === "L" || d === "R");
+  return (
+    <div className="ice-chips" data-ice-chips={view}>
+      <span className="ice-chips-label">{label}</span>
+      <span className="ice-chips-row" role="img" aria-label={`${label}: ${shown.map((d) => DIR_NAME[d]).join(", ") || "none"}`}>
+        {shown.length ? (
+          shown.map((d, i) => <IceArt key={i} name={`arrow-${d as "U" | "D" | "L" | "R"}`} className="ice-chip" />)
+        ) : (
+          <span className="ice-chips-none">none</span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+const storedNum = (extra: Record<string, unknown> | null | undefined, key: string): number | null => {
+  const v = extra?.[key];
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+};
+
+/**
+ * The answer reveal (the Pattern overhaul's reveal, 15 Nov 2026), every stamp: two labelled columns for the reveal's
+ * Solution / Yours switch, one large board at a time. Solution: the shortest route drawn on the rink and as arrow chips.
+ * Yours: the player's own final board (the ball where it stopped, the slides left standing, the ice it broke, a red ring
+ * wherever it fell), the numbers behind the score from the stored grade, and the player's slides against the par
+ * route as chips. Older stamps read their stored figures (every slide played) the same way.
+ */
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "iceslide") return null;
   const board = slideBoard(puzzle);
   const best = puzzle.solution
@@ -332,89 +363,67 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
     : (slideSearch(board)?.route ?? []);
   const bestReplay = replaySlide(board, best);
   const route = [puzzle.start, ...bestReplay.paths.flat()];
-  const replay = replaySlide(board, (myAnswer ?? "").split("") as SlideDir[]);
-  const min = puzzle.minMoves ?? best.length;
-  // slideRev 5 (the Pattern overhaul): Undo gives the slide back, so "your slides" is the slides still standing (the
-  // server's count), and the player's own final board (the ball where it stopped, its standing route, the ice it broke)
-  // is the Yours side of the answer reveal's Solution / Yours switch. Older stamps read exactly as before.
+  const mine = replaySlide(board, decodeSlideMoves(myAnswer ?? ""));
   const overhaul = usesPatternNov15(puzzle, "iceslide");
+  const par = puzzle.minMoves ?? best.length;
+  // The figures the score was built from, as the server stored them (the phone's replay only where none was stored).
+  const slides = storedNum(myExtra, "moves") ?? countedSlides(mine, overhaul);
+  const falls = storedNum(myExtra, "falls") ?? mine.falls;
+  const away = storedNum(myExtra, "movesFromExit");
+  const seconds = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.floor(myMsRemaining / 1000)) : null;
+  const items: Array<HudPillItem | null> = [
+    { id: "you", label: "You", value: `${slides}`, tone: myCorrect ? (slides <= par ? "good" : "warn") : undefined },
+    par > 0 ? { id: "par", label: "Par", value: `${par}`, tone: "gold" } : null,
+    falls > 0 ? { id: "falls", label: falls === 1 ? "Fall" : "Falls", value: `${falls}`, tone: "warn" } : null,
+    !myCorrect && away !== null ? { id: "away", label: "From the exit", value: `${away} slide${away === 1 ? "" : "s"}` } : null,
+    seconds !== null ? { id: "time", label: "Time left", value: `${seconds} s` } : null,
+  ];
+  const rink = (props: { route: number[]; ball: number; broken?: number; fallen?: number[] }) => (
+    <div className="ice-reveal-board" data-reveal-board="">
+      <Board
+        walls={puzzle.walls}
+        holes={puzzle.holes ?? []}
+        arrows={puzzle.arrows ?? []}
+        portals={puzzle.portals ?? []}
+        thin={puzzle.thin ?? []}
+        broken={props.broken ?? 0}
+        start={puzzle.start}
+        exit={puzzle.exit}
+        ball={props.ball}
+        route={props.route}
+        fallen={props.fallen}
+      />
+    </div>
+  );
 
-  if (overhaul) {
-    const mineReplay = replaySlide(board, decodeSlideMoves(myAnswer ?? ""));
-    const mine = countedSlides(mineReplay, true);
-    const yoursRoute = [puzzle.start, ...mineReplay.standing.flat()];
-    const rink = (props: { route: number[]; ball: number; broken?: number }) => (
+  return (
+    <div className="ice-reveal flex w-full flex-col items-center gap-3">
       <div className="ice-reveal-space">
-        <div className="ice-reveal-square">
-          <Board
-            walls={puzzle.walls}
-            holes={puzzle.holes ?? []}
-            arrows={puzzle.arrows ?? []}
-            portals={puzzle.portals ?? []}
-            thin={puzzle.thin ?? []}
-            broken={props.broken ?? 0}
-            start={puzzle.start}
-            exit={puzzle.exit}
-            ball={props.ball}
-            route={props.route}
-          />
-        </div>
-      </div>
-    );
-    return (
-      <div className="ice-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3">
-        <div className="ice-reveal-pair flex min-h-0 w-full flex-1 items-stretch justify-center gap-3">
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center gap-1" data-ice-solution="">
-            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
+        <div className="ice-reveal-pair">
+          <div className="ice-reveal-col flex flex-col items-center gap-2" data-ice-solution="">
             {rink({ route, ball: puzzle.start })}
-            <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-              shortest route · {min} slide{min === 1 ? "" : "s"}
+            <span className="ice-reveal-label">Solution</span>
+            <p className="ice-reveal-caption" data-solution-caption="">
+              Shortest route · {par} slide{par === 1 ? "" : "s"}
             </p>
+            <SlideChips dirs={best} label="Par route" view="solution" />
           </div>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center gap-1" data-ice-yours="">
-            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-            {rink({ route: yoursRoute, ball: mineReplay.cell, broken: mineReplay.mask })}
-            <p className="font-mono text-base uppercase tracking-widest text-muted-foreground" data-ice-yours-line="">
-              your slides: <span className="text-primary">{mine}</span>
-              {min > 0 ? ` · par ${min}` : ""}
-            </p>
-            {myCorrect ? (
-              <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-                {solvedMovesText(mine, min, myMsRemaining, timeLimitMs, "B", scoreParts)}
+          <div className="ice-reveal-col flex flex-col items-center gap-2" data-ice-yours="">
+            {rink({ route: [puzzle.start, ...mine.standing.flat()], ball: mine.cell, broken: mine.mask, fallen: mine.fellAt })}
+            <span className="ice-reveal-label">Yours</span>
+            <HudPills testId="iceslide-reveal" items={items} className="ice-reveal-pills" />
+            <div className="ice-chips-pair">
+              <SlideChips dirs={mine.standingDirs} label="You" view="yours" />
+              <SlideChips dirs={best} label="Par" view="yours-par" />
+            </div>
+            {mine.fellAt.length ? (
+              <p className="ice-reveal-key">
+                <span className="ice-key ice-key--fell">Red ring: where you fell</span>
               </p>
             ) : null}
           </div>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="ice-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3">
-      <div className="ice-reveal-space">
-        <div className="ice-reveal-square">
-        <Board
-          walls={puzzle.walls}
-          holes={puzzle.holes ?? []}
-          arrows={puzzle.arrows ?? []}
-          portals={puzzle.portals ?? []}
-          thin={puzzle.thin ?? []}
-          start={puzzle.start}
-          exit={puzzle.exit}
-          ball={puzzle.start}
-          route={route}
-        />
-        </div>
-      </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        shortest route · {min} move{min === 1 ? "" : "s"}
-      </p>
-      {/* The verdict row says solved or not (4 Nov 2026: "Partly solved" above "✗ Not solved"); this keeps the moves. */}
-      {myCorrect ? (
-        <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-          {solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)}
-        </p>
-      ) : null}
     </div>
   );
 }

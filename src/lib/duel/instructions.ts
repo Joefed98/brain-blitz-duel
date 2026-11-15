@@ -653,8 +653,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     iceslide: {
       goal: "Slide the ball to the gold exit.",
       how: [
-        { action: "Swipe", detail: "to slide until something stops you." },
-        { action: "Arrows turn you;", detail: "avoid the holes." },
+        // The Pattern overhaul (15 Nov 2026): the pad's arrows are named apart from the chevron tiles on the ice.
+        prePatternNov15Pinned()
+          ? { action: "Swipe", detail: "to slide until something stops you." }
+          : { action: "Swipe or tap an arrow", detail: "to slide until something stops you." },
+        prePatternNov15Pinned()
+          ? { action: "Arrows turn you;", detail: "avoid the holes." }
+          : { action: "Chevron tiles turn you;", detail: "holes send you back to the start." },
         { action: "Portals", detail: "carry you across." },
         // The puzzle batch of 3 Nov 2026 (slideRev 3, parMoves.ts): no ice gems; the fewest slides score a bonus.
         parMovesDealt()

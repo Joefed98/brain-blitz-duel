@@ -186,7 +186,7 @@ yet" means the game has never had a demo (its intro shows the still).
 |---|---|---|
 | Labyrinth (`maze`) | `mazeRev 4` | Out of date: the par-moves batch (3 Nov) took the stars and gems away; no stop rule for `mazeRev` |
 | Topsy-Turvy (`gravity`) | `gravityRev 6` | Out of date: the rule lets `gravityRev 4`/`5` demos play, which still collect stars |
-| Skid (`iceslide`) | `slideRev 3` | Out of date: the depth-4 rule lets a `slideRev 2` demo play, which still shows gems |
+| Skid (`iceslide`) | `slideRev 5` | Stopped (`slideRev` under 5, 15 Nov 2026: Undo gives the slide back; older demos may show gems) |
 | Apex (`racing`) | `racingRev 3` | None yet (start lights since rev 2, corner signs and gravel since rev 3) |
 | Home Run (`homerun`) | `homerunRev 4` | None yet ("pick your spot" since 3 Nov) |
 | Cue Ball (`pool`) | `poolRev 4` | None yet (spots or stripes, 90 s since 3 Nov) |

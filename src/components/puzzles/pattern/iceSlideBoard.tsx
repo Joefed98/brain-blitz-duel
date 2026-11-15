@@ -84,6 +84,8 @@ export interface IceBoardProps {
   solving?: boolean;
   /** One slide from the exit with the finish still at par: the exit glows softly (display only). */
   nearExit?: boolean;
+  /** Reveal only: cells where the ball fell, ringed red (display only). */
+  fallen?: number[] | undefined;
   children?: ReactNode;
 }
 
@@ -105,6 +107,7 @@ export function IceBoard({
   dotted,
   solving = false,
   nearExit = false,
+  fallen,
   children,
 }: IceBoardProps) {
   const rows = Math.ceil(cells / cols);
@@ -119,6 +122,7 @@ export function IceBoard({
     });
     return pair;
   }, [portals]);
+  const fellSet = useMemo(() => new Set(fallen ?? []), [fallen]);
   const thinBit = useMemo(() => new Map(thin.map((cell, bit) => [cell, bit])), [thin]);
   const exitCol = exit % cols;
   const exitRow = Math.floor(exit / cols);
@@ -182,6 +186,7 @@ export function IceBoard({
                 <span aria-label="Thin ice" className="ice-piece ice-thin-art"><IceArt name="thin" /></span>
               ) : null}
               {piece}
+              {fellSet.has(cell) ? <span className="ice-fell-mark" data-reveal-fell={cell} aria-label="You fell here" /> : null}
             </div>
           );
         })}

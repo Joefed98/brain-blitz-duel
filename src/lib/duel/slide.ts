@@ -150,6 +150,10 @@ export interface SlideReplay {
   net: number;
   /** Cells crossed by each standing slide, in order (the route the player's board shows). */
   standing: number[][];
+  /** The direction of each standing slide, in order (the reveal's arrow chips). */
+  standingDirs: SlideDir[];
+  /** The cell where each fall happened, in play order (undone falls included: the reveal marks where the ball fell). */
+  fellAt: number[];
 }
 
 /** The slides a stamp counts: slideRev 5 (the Pattern overhaul) the standing slides, older stamps every slide played. */
@@ -166,11 +170,14 @@ export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
   const history: SlideState[] = [state];
   const paths: number[][] = [];
   const standing: number[][] = [];
+  const standingDirs: SlideDir[] = [];
+  const fellAt: number[] = [];
   for (const dir of moves) {
     if (dir === "X") {
       if (history.length > 1) {
         history.pop();
         standing.pop();
+        standingDirs.pop();
       }
       state = history[history.length - 1]!;
       continue;
@@ -178,6 +185,7 @@ export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
     if (dir === "Y") {
       history.length = 1;
       standing.length = 0;
+      standingDirs.length = 0;
       state = history[0]!;
       continue;
     }
@@ -189,11 +197,15 @@ export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
     visited.push(state);
     paths.push(out.path);
     standing.push(out.path);
+    standingDirs.push(dir);
     count += 1;
-    if (out.fell) falls += 1;
+    if (out.fell) {
+      falls += 1;
+      fellAt.push(out.path[out.path.length - 1]!);
+    }
     if (state.cell === board.exit) break;
   }
-  return { ...state, moves: count, solved: state.cell === board.exit, falls, visited, paths, net: history.length - 1, standing };
+  return { ...state, moves: count, solved: state.cell === board.exit, falls, visited, paths, net: history.length - 1, standing, standingDirs, fellAt };
 }
 
 /** Breadth-first search over (cell, broken mask): fewest slides and one shortest route. */

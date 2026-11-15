@@ -171,32 +171,56 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 <!-- skid:start -->
 ## Skid
 
-| Before (main) | After |
-|---|---|
-| <img src="../../game-reviews/img/pattern/iceslide-1-start.webp" width="180"> | <img src="iceslide-after-intro.webp" width="180"> |
-| <img src="../../game-reviews/img/pattern/iceslide-2-mid.webp" width="180"> | <img src="iceslide-after-play.webp" width="180"> |
-| <img src="../../game-reviews/img/pattern/iceslide-3-end.webp" width="180"> | <img src="iceslide-after-reveal-solution.webp" width="180"> <img src="iceslide-after-reveal-yours.webp" width="180"> |
+**The play frame: today | concept A | new** (same scale)
 
-- **Look (A):** every piece is a Blender render (`docs/design/game-art/pattern/source/iceslide.py`,
-  `public/pattern-art/iceslide/`, 13 images, 31 KB): a pale frosted ice sheet with faint frost lines between squares,
-  dark granite blocks, a glossy deep-blue ball (90 % of a square, was 92 % in CSS), round black holes with a crushed-ice
-  rim, a magenta and a teal portal pair (enamel rings round a dark well; the second pair was orange, too near the gold
-  exit), a bold navy chevron on a frosted plate per direction, grey thin ice with white cracks, a jagged broken hole,
-  and the gold exit plate with its door-and-arrow mark. Each image is exactly its cell. The old CSS sheet's glints,
-  sheen, scratches, the exit's pulsing glow and the ball's glow are gone.
+| Today (main) | Concept A | New |
+|---|---|---|
+| <img src="../../game-reviews/img/pattern/iceslide-2-mid.webp" width="180"> | <img src="iceslide-concept-A.webp" width="180"> | <img src="iceslide-after-play.webp" width="180"> |
+
+**Intro** (the example board in the new art): <img src="iceslide-after-intro.webp" width="180">
+
+**The answer reveal: before | after**
+
+| Before (main, unfinished) | After, unfinished: Solution | After, unfinished: Yours |
+|---|---|---|
+| <img src="../../game-reviews/img/pattern/iceslide-3-end.webp" width="180"> | <img src="iceslide-reveal-after-unfinished-solution.webp" width="180"> | <img src="iceslide-reveal-after-unfinished-yours.webp" width="180"> |
+
+| After, solved: Solution | After, solved: Yours |
+|---|---|
+| <img src="iceslide-reveal-after-solved-solution.webp" width="180"> | <img src="iceslide-reveal-after-solved-yours.webp" width="180"> |
+
+(Main had no solved-reveal shot in the review; its solved reveal is the same single board as the unfinished one, plus a
+"n moves (fewest m)" line.)
+
+- **Look (A, the richness pass):** every piece is a Blender render under the rich studio light
+  (`docs/design/game-art/pattern/source/iceslide.py`, `public/pattern-art/iceslide/`, 13 images, 56 KB):
+  - The ice is a clear-coated sheet over crystalline facets, each a slightly different blue, with flakes that catch
+    the key light as sparkles.
+  - The blocks are polished speckled granite.
+  - The ball is deep-blue enamel over steel under a clear coat, with one crisp highlight.
+  - The portals are a glossy magenta and a glossy teal enamel ring. The chevrons are navy lacquer on frosted plates.
+  - Thin ice is clouded grey-blue with white cracks; the exit is a polished gold plate.
+  - Each image is exactly its cell. There is no glow on any piece.
 - **Controls:** the arrow pad, Undo and Reset in champagne gold on navy (`--jz-gold`, `--jz-surface-2`).
-- **Undo gives the slide back (slideRev 5):** the Slides pill, the par bonus and the stored figure count the slides
-  still standing; unfinished credit still counts every slide played (wandering and undoing never earns credit). The help
-  says so, and that the arrow pad or swipe is chosen in the game menu (⋮) or Settings → Game controls. Older stamps
-  grade as before.
-- **A slide into a wall** still does nothing and costs nothing; it now gives a tiny bump (`iceslide.bump`).
-- **Near the exit:** resting one slide from the exit with the finish still at par, the exit glows softly
-  (`iceslide.nearExit`).
-- **Reveal:** a Solution / Yours switch: "shortest route · n slides" under Solution; under Yours the player's own final
-  board (the ball where it stopped, the standing route, the ice it broke) and "your slides: n · par p" (the after shot:
-  three slides standing, then the clock ran out).
+- **Undo gives the slide back (slideRev 5):**
+  - The Slides pill, the par bonus and the stored figure count the slides still standing.
+  - Unfinished credit still counts every slide played, so wandering and undoing never earns credit.
+  - Older stamps grade as before.
+- **A slide into a wall** costs nothing and gives a tiny bump (`iceslide.bump`). One slide from the exit at par, the
+  exit glows softly (`iceslide.nearExit`).
+- **Reveal (every stamp):** a Solution / Yours switch, one large board at a time.
+  - Solution: the shortest route drawn on the rink, "Shortest route · n slides" and the par route as arrow chips (the
+    arrow tiles' renders).
+  - Yours: the player's own final board (the ball where it stopped, the slides left standing, the ice it broke) with a
+    red ring on every square where the ball fell. Below it, pills from the stored grade: You · Par · Falls ·
+    From the exit (unfinished) · Time left (solved). Then the player's slides against the par route as two rows of
+    arrow chips.
+- **Help and intro:** the arrow pad ("Swipe or tap an arrow") is named apart from the chevron tiles ("Chevron tiles turn
+  you; holes send you back to the start"). Undo gives the slide back. The arrow pad or swipe is chosen in the game menu
+  (⋮) or Settings → Game controls.
+- **Intro demo:** a demo recorded before slideRev 5 is stopped; the intro shows its example board.
 - **Sound:** a short or long ice hiss by distance (`iceslide.slide`, `iceslide.slideLong`), a thump when the ball
-  stops (`iceslide.stop`), the bump and the near-exit shimmer; crack, portal, fall and the exit shatter kept.
+  stops (`iceslide.stop`), the bump and the near-exit shimmer. Crack, portal, fall and the exit shatter are kept.
 <!-- skid:end -->
 
 <!-- heave:start -->

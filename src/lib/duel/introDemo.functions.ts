@@ -115,6 +115,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The Pattern overhaul (15 Nov 2026): pipesRev 5 turns tiles both ways and shows leaks live, so a demo recorded
     // before it (clockwise taps, no spills) stays stopped until one is recorded on pipesRev 5; the intro shows its still.
     if (data.type === "pipes" && demo?.puzzle.type === "pipes" && (demo.puzzle.pipesRev ?? 0) < 5) return null;
+    // The Pattern overhaul (15 Nov 2026): Skid's slideRev 5 gives undone slides back (and older demos may show ice gems),
+    // so only a demo recorded on slideRev 5 plays; until then the intro shows its still.
+    if (data.type === "iceslide" && demo?.puzzle.type === "iceslide" && (demo.puzzle.slideRev ?? 0) < 5) return null;
     if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 4) return null;
     // Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1): number and mixed gaps on a new screen, so a signs-only demo
     // stays stopped (the intro shows its still) until one is recorded on gapsRev 1.
