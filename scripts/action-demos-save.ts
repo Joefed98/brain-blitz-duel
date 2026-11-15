@@ -17,6 +17,8 @@
  *   ACTION_DEMOS_URL=<server origin> INTRO_DEMO_KEY=<key> [ACTION_DEMOS_GAMES=flip,orbit] [ACTION_DEMOS_DRY=1] \
  *     bun scripts/action-demos-save.ts
  *
+ * The shared names every *-demos-save.ts takes, DEMOS_URL, DEMOS_GAMES and DEMOS_DRY=1, work too (an ACTION_ one wins).
+ *
  * The server must be a dev server (the function ids are read from its client modules), e.g. one the workflow starts with
  * `bun run dev` on the live project's environment. The key is never printed. Exit codes: 0 all OK, 1 any game failed, 2 missing URL or key (usage).
  *
@@ -132,12 +134,13 @@ export async function httpCall(origin: string): Promise<DemoCall> {
 if (import.meta.main) {
   const args = process.argv.slice(2);
   const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-  const env = (name: string) => (process.env[name] ?? "").trim();
-  const url = (opt("url") ?? env("ACTION_DEMOS_URL")).replace(/\/+$/, "");
-  const key = opt("key") ?? env("INTRO_DEMO_KEY");
-  const dry = args.includes("--dry") || /^(1|true|yes)$/i.test(env("ACTION_DEMOS_DRY"));
+  // ACTION_DEMOS_* first, then the shared DEMOS_* every *-demos-save.ts reads (the captain's workflow).
+  const env = (name: string) => (process.env[`ACTION_${name}`] ?? "").trim() || (process.env[name] ?? "").trim();
+  const url = (opt("url") ?? env("DEMOS_URL")).replace(/\/+$/, "");
+  const key = opt("key") ?? (process.env["INTRO_DEMO_KEY"] ?? "").trim();
+  const dry = args.includes("--dry") || /^(1|true|yes)$/i.test(env("DEMOS_DRY"));
   const fromArgs = args.filter((a) => !a.startsWith("--"));
-  const games = (fromArgs.length ? fromArgs : env("ACTION_DEMOS_GAMES").split(/[\s,]+/).filter(Boolean)) as ActionDemoType[];
+  const games = (fromArgs.length ? fromArgs : env("DEMOS_GAMES").split(/[\s,]+/).filter(Boolean)) as ActionDemoType[];
   for (const g of games) if (!ACTION_DEMO_TYPES.includes(g)) throw new Error(`unknown game ${g} (one of ${ACTION_DEMO_TYPES.join(", ")})`);
   if (!url || (!key && !dry)) {
     console.log(
