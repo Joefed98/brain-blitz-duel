@@ -24,8 +24,6 @@ SELECT economy.restore_item('avatar-finish.carbon', 'Joe, 15 Nov 2026: redrawn a
 SELECT economy.restore_item('avatar-finish.chrome', 'Joe, 15 Nov 2026: redrawn and approved (docs/design/cosmetics-redraws/GALLERY.md)');
 SELECT economy.restore_item('avatar-finish.holographic', 'Joe, 15 Nov 2026: redrawn and approved (docs/design/cosmetics-redraws/GALLERY.md)');
 SELECT economy.restore_item('avatar-finish.neon-glow', 'Joe, 15 Nov 2026: redrawn and approved (docs/design/cosmetics-redraws/GALLERY.md)');
-SELECT economy.restore_item('avatar-accessory.neon-bolt', 'Joe, 15 Nov 2026: redrawn and approved (docs/design/cosmetics-redraws/GALLERY.md)');
-SELECT economy.restore_item('reaction.zap', 'Joe, 15 Nov 2026: redrawn and approved (docs/design/cosmetics-redraws/GALLERY.md)');
 SELECT economy.restore_item('reaction.clutch', 'Joe, 15 Nov 2026: redrawn and approved (docs/design/cosmetics-redraws/GALLERY.md)');
 SELECT economy.restore_item('reaction.captains-calls', 'Joe, 15 Nov 2026: redrawn and approved (docs/design/cosmetics-redraws/GALLERY.md)');
 SELECT economy.restore_item('reaction.neon-signs', 'Joe, 15 Nov 2026: redrawn and approved (docs/design/cosmetics-redraws/GALLERY.md)');

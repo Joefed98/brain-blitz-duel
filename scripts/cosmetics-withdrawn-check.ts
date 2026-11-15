@@ -71,8 +71,8 @@ const W = new Set(WITHDRAWN.filter((id) => !RESTORED.has(id)));
 {
   check(WITHDRAWN.length === 72 && new Set(WITHDRAWN).size === 72, `the migration withdraws 72 items, each once (${WITHDRAWN.length})`);
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of restoring the approved redraws): 3 card backs on
-  // 13 Nov, then 43 approved redraws on 15 Nov, one line each; 26 stay withdrawn.
-  check(["card-back.holo-foil", "card-back.neon", "card-back.royal-damask"].every((id) => RESTORED.has(id)) && RESTORED.size === 46 && W.size === 26, `Joe restored the three card backs and 43 approved redraws, one line each: 26 stay withdrawn (${W.size})`);
+  // 13 Nov, then 41 approved redraws on 15 Nov, one line each; 28 stay withdrawn.
+  check(["card-back.holo-foil", "card-back.neon", "card-back.royal-damask"].every((id) => RESTORED.has(id)) && RESTORED.size === 44 && W.size === 28, `Joe restored the three card backs and 41 approved redraws, one line each: 28 stay withdrawn (${W.size})`);
   check(WITHDRAWN.every((id) => ITEMS.some((i) => i.id === id)), "every withdrawn id is a catalogue item");
   const review = readFileSync("docs/cosmetics-review/verdicts.json", "utf8");
   const verdicts = JSON.parse(review) as Record<string, string>;
