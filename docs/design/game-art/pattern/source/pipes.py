@@ -49,13 +49,105 @@ def chrome_cap():
     return mat("pipeCap", "#bfc5cd", 0.18, metal=1.0, coat=0.4, coat_rough=0.05)
 
 
+W_R = R - 4.2     # the water's radius inside the glass (the clear wall shows round it)
+HL_R = 1.15       # the specular stripe's radius
+
+
 def water():
-    # Deep, saturated blue liquid; glossy, a touch of self-light only so it stays blue under the glass (no glow).
-    return mat("water", "#1466ea", 0.08, coat=1.0, coat_rough=0.02, emit="#0e54d0", emit_strength=0.08)
+    """Deep glossy water (stage 2, Joe: "glossy blue water inside glass"): a saturated blue that darkens towards the
+    tube's sides (Layer Weight facing), so the column reads round and deep, under a mirror-smooth clear coat."""
+    if "water" in jzlib._mats:
+        return jzlib._mats["water"]
+    m = mat("water", "#1a6cf0", 0.05, coat=1.0, coat_rough=0.015)
+    n, l = m.node_tree.nodes, m.node_tree.links
+    b = n["Principled BSDF"]
+    lw = n.new("ShaderNodeLayerWeight"); lw.inputs["Blend"].default_value = 0.42
+    cr = n.new("ShaderNodeValToRGB")
+    cr.color_ramp.elements[0].color = jzlib.hexc("#4aa6ff")
+    cr.color_ramp.elements[1].color = jzlib.hexc("#021446")
+    cr.color_ramp.elements[0].position = 0.05
+    cr.color_ramp.elements[1].position = 0.5
+    l.new(lw.outputs["Facing"], cr.inputs[0])
+    l.new(cr.outputs[0], b.inputs["Base Color"])
+    return m
 
 
 def tube_glass():
-    return thin_glass("tubeGlass", "#f2f9ff", rough=0.02, strength=0.75)
+    # Clear glass walls: Fresnel reflections strong enough that the wall reads as a pale rim round the water.
+    return thin_glass("tubeGlass", "#f4faff", rough=0.015, strength=1.55)
+
+
+def highlight():
+    # The water's crisp specular stripe (an emitter on the key light's reflection line; no bloom, so no glow).
+    return mat("waterHighlight", "#ffffff", 0.2, emit="#f4faff", emit_strength=3.2)
+
+
+def sheen():
+    # A soft band round the stripe, so the highlight reads as light on a curve, not a painted line.
+    return mat("waterSheen", "#7fc2ff", 0.2, emit="#6fb6ff", emit_strength=0.8)
+
+
+def rim():
+    # The glass wall: a thin pale line along each side of the tube, where the glass is seen edge on.
+    return mat("glassRim", "#d6ebff", 0.2, emit="#cfe6ff", emit_strength=0.75)
+
+
+def sides(pts, z, offset):
+    """The tube's two silhouette lines (offset each side in the plane), the same on every tile and turn."""
+    left, right = [], []
+    for i, (x, y) in enumerate(pts):
+        a = pts[max(0, i - 1)]
+        b = pts[min(len(pts) - 1, i + 1)]
+        tx, ty = b[0] - a[0], b[1] - a[1]
+        tl = math.hypot(tx, ty) or 1.0
+        nx, ny = -ty / tl, tx / tl
+        left.append((x + offset * nx, y + offset * ny, z))
+        right.append((x - offset * nx, y - offset * ny, z))
+    return left, right
+
+
+def densify(pts, step=2.0):
+    fine = [pts[0]]
+    for q in pts[1:]:
+        p0 = fine[-1]
+        n = max(1, int(math.ceil(math.hypot(q[0] - p0[0], q[1] - p0[1]) / step)))
+        fine += [(p0[0] + (q[0] - p0[0]) * k / n, p0[1] + (q[1] - p0[1]) * k / n) for k in range(1, n + 1)]
+    return fine
+
+
+def _half_vector():
+    """The key sun's half vector with the camera (screen coords, y down, z up): where a mirror shows the light."""
+    lx, ly, lz = -0.8, -0.8, 1.1
+    n = math.sqrt(lx * lx + ly * ly + lz * lz)
+    hx, hy, hz = lx / n, ly / n, lz / n + 1.0
+    m = math.sqrt(hx * hx + hy * hy + hz * hz)
+    return hx / m, hy / m, hz / m
+
+
+def stripe(pts, z, radius, sign=1.0, trim=0.0):
+    """Points on a tube's surface where it mirrors the key light: the half vector less its part along the path.
+
+    Depends only on the path's direction, so the stripe on one tile meets its neighbour's in the gap exactly and
+    follows a bend smoothly. `trim` drops the first points within that distance of the start (arms from a junction).
+    """
+    hx, hy, hz = _half_vector()
+    pts = densify(pts)
+    out = []
+    for i, (x, y) in enumerate(pts):
+        a = pts[max(0, i - 1)]
+        b = pts[min(len(pts) - 1, i + 1)]
+        tx, ty = b[0] - a[0], b[1] - a[1]
+        tl = math.hypot(tx, ty) or 1.0
+        tx, ty = tx / tl, ty / tl
+        d = hx * tx + hy * ty
+        px, py, pz = sign * (hx - d * tx), sign * (hy - d * ty), hz
+        pl = math.sqrt(px * px + py * py + pz * pz)
+        out.append((x + radius * px / pl, y + radius * py / pl, z + radius * pz / pl))
+    if trim:
+        x0, y0 = pts[0]
+        keep = [p for p, q in zip(out, pts) if math.hypot(q[0] - x0, q[1] - y0) >= trim]
+        out = keep
+    return out
 
 
 def edge(d):
@@ -142,8 +234,23 @@ def pipework(arms, wet):
     c = SIZE / 2
     for pts in paths(arms):
         if wet:
-            tube([(x, y, z) for x, y in pts], R - 1.1, water(), round_caps=False)
-            tube([(x, y, z) for x, y in pts], R, tube_glass(), round_caps=False)
+            # Arms from a junction start inside the through tube: their glass, stripe and rims start at its wall, open
+            # (no cap disc showing through the through tube's glass).
+            junction = pts[0] == (c, c) and len(arms) > 2
+            trim = R - 0.6 if junction else 0.0
+            tube([(x, y, z) for x, y in pts], W_R, water(), round_caps=False)
+            cut = W_R if junction else 0.0
+            soft = stripe(pts, z, W_R - 1.5, trim=cut)
+            core = stripe(pts, z, W_R + 0.7, trim=cut)
+            if len(core) >= 2:
+                tube(soft, 2.6, sheen(), round_caps=False)
+                tube(core, HL_R * 1.15, highlight(), round_caps=False)
+            fine = [q for q in densify(pts) if not trim or math.hypot(q[0] - c, q[1] - c) >= trim]
+            for side in sides(fine, z, R - 0.55):
+                tube(side, 0.55, rim(), round_caps=False)
+            g = tube([(x, y, z) for x, y in fine], R, tube_glass(), round_caps=False)
+            if junction:
+                g.data.use_fill_caps = False
         else:
             tube([(x, y, z) for x, y in pts], R, chrome(), round_caps=False)
     if len(arms) == 1:
@@ -161,9 +268,10 @@ TURNS = {"end": 4, "straight": 2, "corner": 4, "tee": 4, "cross": 1}
 
 
 def tile():
-    """The dark tile: a glossy graphite plate with a soft bevel (fills its box; the board gap shows round it)."""
-    begin(SIZE, PX, pad=0, light=0.7)
-    plate = mat("tilePlate", "#121016", 0.32, coat=0.8, coat_rough=0.16)
+    """The dark tile: a glossy graphite plate with a soft bevel (fills its box; the board gap shows round it). Darker since
+    stage 2 (Joe: "make the tiles darker so the water stands out")."""
+    begin(SIZE, PX, pad=0, light=0.3, reflect=0.12)
+    plate = mat("tilePlate", "#08070b", 0.38, coat=0.55, coat_rough=0.26)
     add_bump(plate, scale=120, strength=0.03, detail=3, distance=0.002)
     box(1.0, 1.0, SIZE - 2.0, SIZE - 2.0, 6, plate, r=8, z=0)
 

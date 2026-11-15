@@ -6,16 +6,16 @@
 .game-column [data-polish="pipes"] .pipes-play-board { width: min(100cqw, 100cqh); }
 .game-column [data-polish="pipes"] .pipes-play-board[data-with-pills] { width: min(100cqw, calc(100cqh - 34px)); }
 
-/* The board: a dark recess that shows through the gaps between tiles. */
+/* The board: a dark recess that shows through the gaps between tiles (darker since stage 2, so the water stands out). */
 .pipes-board {
   border-radius: 8px;
-  background: linear-gradient(160deg, #15121b, #0b0a0f);
+  background: linear-gradient(160deg, #0d0b11, #060508); /* design-lint-ignore: Pipeline's board art (game art) */
 }
 .pipes-play-board { border-radius: 8px; }
 
 /* Each tile is the rendered dark tile; the pipe sprite is laid over it, turned by a transform. */
 .pipe-tile {
-  background: #17151c url("/pattern-art/pipes/tile.webp") center / 100% 100% no-repeat;
+  background: #0c0b0f url("/pattern-art/pipes/tile.webp") center / 100% 100% no-repeat; /* design-lint-ignore: tile art */
   -webkit-touch-callout: none;
   user-select: none;
 }
@@ -36,9 +36,23 @@
 }
 .pipe-frame { position: absolute; inset: calc(var(--pipe-gap, 6px) / 2); display: block; }
 .pipe-sprite { position: absolute; left: -12%; top: -12%; width: 124%; height: 124%; max-width: none; display: block; }
-/* The wet set fades in over the dry one as the water reaches the pipe. */
-.pipe-sprite-wet { opacity: 0; transition: opacity 220ms ease-out; }
-.pipe-sprite-wet[data-wet] { opacity: 1; }
+/* The water: the wet set in its own clipping box over the dry one. Water reaching a pipe runs in from the side it
+   enters by, and drains back out of it (pipesFx.ts: the box slides, its content holds still; transform only). */
+.pipe-wet { position: absolute; inset: 0; display: block; overflow: hidden; opacity: 0; }
+.pipe-wet[data-wet] { opacity: 1; }
+.pipe-wet-in { position: absolute; inset: 0; display: block; }
+/* The solve: bubbles welling up out of the source valve (pipesFx.ts sourceBubbles; none under reduced motion). */
+.pipe-bubble {
+  position: absolute;
+  left: var(--bubble-x, 50%);
+  top: 34%;
+  width: var(--bubble-size, 18%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / 0.95) 0 14%, rgb(170 220 255 / 0.5) 26%, rgb(40 130 240 / 0.28) 62%, rgb(210 240 255 / 0.8) 74%, transparent 78%); /* design-lint-ignore: water bubble art */
+}
 .pipe-source { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* A leak: the spill sprite at an open end of the network (north in the sprite, turned to its side). */
@@ -49,23 +63,21 @@
 /* Solve rush: a bright water front runs from the source through every pipe by 0.9 s, then fades by 1.2 s. */
 .pipe-surge { overflow: visible; animation: pipe-surge-fade 1200ms linear both; }
 .pipe-surge-line {
-  stroke: #cdeeff;
-  stroke-width: 9;
-  stroke-linecap: butt;
-  stroke-dashoffset: 1;
+  fill: #d7f1ff; /* design-lint-ignore: water rush art */
+  transform-box: fill-box;
   animation: pipe-surge-run var(--surge-ms) linear var(--surge-delay) both;
 }
 .pipe-surge-hub { fill: #e6f7ff; opacity: 0; animation: pipe-surge-hub 260ms ease-out var(--surge-delay) both; }
-@keyframes pipe-surge-run { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes pipe-surge-run { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes pipe-surge-hub { from { opacity: 0; transform: scale(0.4); } 40% { opacity: 0.9; } to { opacity: 0.6; transform: scale(1); } }
 .pipe-surge-hub { transform-box: fill-box; transform-origin: center; }
 @keyframes pipe-surge-fade { 0%, 74% { opacity: 0.85; } 100% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .pipe-sprite-wet { transition: none; }
   /* A static glow over the network for the moment, then it is removed. */
   .pipe-surge { animation: none; opacity: 0.55; }
-  .pipe-surge-line, .pipe-surge-hub { animation: none; stroke-dashoffset: 0; opacity: 1; transform: none; }
+  .pipe-surge-line, .pipe-surge-hub { animation: none; opacity: 1; transform: none; }
+  .pipe-bubble { display: none; }
 }
 
 /* Reveal (the Pattern overhaul, 15 Nov 2026): Solution and Yours one at a time at full size (the shared switch), the

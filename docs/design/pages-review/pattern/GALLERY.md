@@ -138,6 +138,37 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
   bar on a solve; a short key; no "×".
 - **Sounds**: `pipes.combo` (6+ joined), `pipes.drain` (a turn that cuts pipes off), `pipes.bubble` (the source on the
   solve) on library placeholders; `pipes.rotate` for both directions.
+
+### Stage 2: Joe's fixes and the effects (15 Nov 2026)
+
+**Glass and water, darker tiles** (390 × 844, practice)
+
+| Stage 1 | Concept A | Stage 2 |
+|---|---|---|
+| <img src="pipes-after-play.webp" width="180"> | <img src="pipes-concept-A.webp" width="180"> | <img src="pipes-stage2-after-play.webp" width="180"> |
+
+**Hero: water running into newly joined pipes** ([MP4, 4 s](pipes-hero.mp4)): one tap joins eight pipes and the water
+runs into each from the source; a turn back drains them; the tap again; the last end piece solves the board (the rush
+and the source's bubbles).
+
+<img src="pipes-hero.webp" width="360">
+
+- **Fix 1, the water**: every wet pipe is a clear glass section full of deep glossy water: pale glass walls along both
+  sides (where the glass is seen edge on), the water darkening towards its sides so the column reads round and deep, a
+  crisp white specular stripe on the key light's reflection line with a soft sheen round it. The stripe and walls depend
+  only on the pipe's direction, so they meet the neighbour's exactly in the board gap and follow a bend smoothly; arms
+  from a junction start at the through pipe's wall (no cap showing through its glass).
+- **Fix 2, darker tiles**: the tile plate and the board recess darker (the tile's mean brightness 53 → 24 of 255), so
+  the water stands out.
+- **Turn**: a metallic two-click ratchet (190 ms, a small overshoot) on the pipe's own art, either way; `pipes.rotate`.
+- **Water in**: each newly joined pipe fills from the side its water enters by, in order from the source, 200 ms a
+  pipe and every pipe full within 900 ms (the wet layer's clip slides in while its content holds still); `pipes.flow`
+  pitched by the join (one pipe brighter, five or more lower).
+- **Combo**: 6+ pipes joined by one turn: the kit's combo on the turned pipe (silent) and `pipes.combo`.
+- **Drain**: a turn that cuts pipes off empties them back towards the water, the furthest first; `pipes.drain`.
+- **Solve**: the rush fills the network (now a scale, transform only), the source valve bubbles (`pipes.bubble`), and
+  the reveal's result card gets the kit's win.
+- **Reduced motion**: every change a 120 ms crossfade (the kit's for the turn), no bubbles; the rush a still glow.
 <!-- pipeline:end -->
 
 <!-- chroma:start -->

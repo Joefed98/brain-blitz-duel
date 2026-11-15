@@ -22,6 +22,12 @@
  *      column; pills from the stored grade (Turns, Par, Joined, Time left); no "×". Solved, unfinished and empty answers
  *      on pipesRev 5, and every kind of the legacy fixture's pipesRev 3 and 4 cases, plus an unlogged pipesRev 0 board.
  *  10. The intro and demos: older demos stopped; both live practice challenges and the 175 star still reachable.
+ *  11. The effects (stage 2, pipesFx.ts on the effects kit): the ratchet turn both ways on the pipe's own art; water
+ *      running into newly joined pipes from the side it enters by, in order from the source, ~200 ms a pipe, all within
+ *      900 ms; cut-off pipes draining furthest first; nothing animates on a redraw; the next turn taken mid-effect;
+ *      transform and opacity only, never the tile button, board or arena; reduced motion a 120 ms crossfade (the kit's
+ *      for the turn) with no bubbles; the solve's source bubbles; the stage's wiring (the sized gurgle, the kit's silent
+ *      combo, the bubble cue, the kit's win on the result).
  */
 import { readFileSync, statSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -354,6 +360,148 @@ for (const seed of SEEDS) {
   check(cwSolve.isCorrect && (cwParts?.efficiency ?? 0) < 10, `challenges: Plumber's par is met clockwise only (${JSON.stringify(cwParts)})`);
   const challenges = src("src/lib/duel/practiceChallenges.data.ts");
   check(challenges.includes('ch("pipes", "No leaks", "Connect every pipe.", "C", "finish", false, all(FIN))') && challenges.includes('ch("pipes", "Plumber’s par", "Connect every pipe in par turns.", "C", "par", false, bonus(10))'), "challenges: Pipeline's live challenges changed");
+}
+
+/* 11. The effects (stage 2, 15 Nov 2026; pipesFx.ts, the effects kit). */
+{
+  const { planWaterIn, planDrain, PIPE_FLOW_TOTAL_MS, PIPE_FLOW_TILE_MS } = await import("../src/components/puzzles/pattern/pipesFx");
+  const { forceGameFxVariant, setGameFxSink } = await import("../src/lib/fx/kit");
+  const { pipeFlowRate } = await import("../src/puzzles/pipes");
+
+  // The plans: in order from the source, a step of at most 200 ms, every pipe full within 900 ms; drains furthest first.
+  const many = Array.from({ length: 12 }, (_, i) => ({ cell: i, depth: 3 + i, dx: 1, dy: 0 }));
+  const plan = planWaterIn([...many].reverse());
+  check(plan.map((s) => s.cell).join() === many.map((s) => s.cell).join(), "fx: water doesn't run in from the source outwards");
+  check(plan.every((s, i) => i === 0 || s.delay - plan[i - 1]!.delay <= PIPE_FLOW_TILE_MS), "fx: a step longer than 200 ms");
+  check(plan.at(-1)!.delay + PIPE_FLOW_TILE_MS <= PIPE_FLOW_TOTAL_MS, `fx: water still running after 900 ms (${plan.at(-1)!.delay})`);
+  const few = planWaterIn([{ cell: 4, depth: 2, dx: 0, dy: 1 }, { cell: 5, depth: 3, dx: 1, dy: 0 }, { cell: 9, depth: 3, dx: 0, dy: 1 }]);
+  check(few[0]!.delay === 0 && few[1]!.delay === PIPE_FLOW_TILE_MS && few[2]!.delay === PIPE_FLOW_TILE_MS, `fx: ~200 ms a pipe (${JSON.stringify(few)})`);
+  const drain = planDrain(many);
+  check(drain[0]!.cell === 11 && drain.at(-1)!.cell === 0 && drain.at(-1)!.delay <= PIPE_FLOW_TOTAL_MS, "fx: draining isn't furthest first within 900 ms");
+  check(pipeFlowRate(1) > pipeFlowRate(3) && pipeFlowRate(3) > pipeFlowRate(5) && pipeFlowRate(5) === pipeFlowRate(9), "fx: the gurgle isn't sized to the join");
+
+  // Every animation the board starts, recorded (happy-dom has no Web Animations engine).
+  type Rec = { el: Element; frames: Keyframe[]; options: KeyframeAnimationOptions };
+  const recs: Rec[] = [];
+  const proto = (win as unknown as { HTMLElement: { prototype: Record<string, unknown> } }).HTMLElement.prototype;
+  const realAnimate = proto["animate"];
+  proto["animate"] = function (this: Element, frames: Keyframe[], options: KeyframeAnimationOptions) {
+    recs.push({ el: this, frames, options });
+    return { cancel() {}, addEventListener() {}, finished: Promise.resolve() };
+  };
+  const kitCalls: string[] = [];
+  setGameFxSink((r) => kitCalls.push(`${r.kind}:${r.variant}`));
+  const allowed = new Set(["transform", "opacity", "offset", "easing", "composite"]);
+  const onlyTransformOpacity = () => recs.every((r) => r.frames.every((f) => Object.keys(f).every((k) => allowed.has(k))));
+
+  // A 3 × 3 (source top left): a run east along the top, a corner down the middle; tile 1 turned off the line.
+  const solvedTiles: PipeTile[] = [
+    { sides: PIPE_E }, { sides: PIPE_E | PIPE_W }, { sides: PIPE_W | PIPE_S },
+    { sides: 0 }, { sides: 0 }, { sides: PIPE_N | PIPE_S },
+    { sides: 0 }, { sides: 0 }, { sides: PIPE_N },
+  ];
+  const off = solvedTiles.map((t, i) => (i === 1 ? { sides: PIPE_N | PIPE_S } : t));
+  const { pipelineDepths } = await import("../src/components/puzzles/pipelineFlow");
+  const conn = (tiles: PipeTile[]) => new Set(pipelineDepths(tiles, 0, 3).keys());
+  const turns: [number, number][] = [];
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const root = createRoot(host as unknown as Element);
+  const draw = (tiles: PipeTile[]) =>
+    act(async () => {
+      root.render(React.createElement(PipesBoard, { tiles, source: 0, cols: 3, connected: conn(tiles), animateWater: true, twoWay: true, onTurn: (cell: number, dir: number) => turns.push([cell, dir]) }));
+    });
+  forceGameFxVariant("full");
+  await draw(off);
+  check(recs.length === 0, `fx: the first draw animates (${recs.length})`);
+  const wetOf = (cell: number) => host.querySelector(`[data-pipe-index="${cell}"] .pipe-wet`);
+  // Rejoin: 1, 2, 5, 8 fill in order from the source; nothing else moves.
+  await draw(solvedTiles);
+  const fills = recs.filter((r) => (r.el as Element).classList?.contains("pipe-wet"));
+  const order = [1, 2, 5, 8].map((c) => fills.find((r) => r.el === wetOf(c)));
+  check(order.every(Boolean) && fills.length === 4, `fx: water ran into ${fills.length} pipes (want 1, 2, 5, 8)`);
+  check(order.every((r, i) => i === 0 || Number(r!.options.delay) > Number(order[i - 1]!.options.delay)), "fx: water doesn't reach the pipes in order from the source");
+  check(String(order[0]!.frames[0]!.transform).startsWith("translate(-100%, 0%)"), `fx: water into tile 1 doesn't enter from the west (${order[0]!.frames[0]!.transform})`);
+  check(String(order[2]!.frames[0]!.transform) === "translate(0%, -100%)", `fx: water into tile 5 doesn't enter from the north (${order[2]!.frames[0]!.transform})`);
+  check(recs.filter((r) => (r.el as Element).classList?.contains("pipe-wet-in")).length === 4, "fx: the water's content isn't held in place while it runs in");
+  check(!recs.some((r) => r.el === wetOf(0)), "fx: the source's water re-ran");
+  // Cut off again: the same pipes drain, the furthest first, held full until their turn.
+  recs.length = 0;
+  await draw(off);
+  const drains = recs.filter((r) => (r.el as Element).classList?.contains("pipe-wet"));
+  const d8 = drains.find((r) => r.el === wetOf(8));
+  const d1 = drains.find((r) => r.el === wetOf(1));
+  check(drains.length === 4 && !!d8 && !!d1 && Number(d8.options.delay) < Number(d1.options.delay), "fx: draining isn't the cut-off pipes, furthest first");
+  check(drains.every((r) => r.frames.every((f) => f.opacity === 1) && r.options.fill === "backwards"), "fx: a draining pipe isn't held full until its turn");
+  // A redraw with nothing changed (the clock) animates nothing.
+  recs.length = 0;
+  await draw(off);
+  check(recs.length === 0, "fx: a redraw with no turn animates");
+
+  // The turn: a ratchet on the pipe's own art, either way; never on the tile button (its hit area).
+  recs.length = 0;
+  const btn = (i: number) => host.querySelector(`[data-pipe-cell="${i}"]`) as unknown as HTMLElement;
+  await act(async () => {
+    btn(2).dispatchEvent(new win.MouseEvent("click", { bubbles: true }) as unknown as Event);
+    // The next input at once, mid-effect: taken.
+    btn(5).dispatchEvent(new win.MouseEvent("click", { bubbles: true }) as unknown as Event);
+  });
+  await act(async () => {
+    // Straight after, while tile 5's ratchet still runs: the other way round.
+    btn(5).dispatchEvent(new win.PointerEvent("pointerdown", { bubbles: true, button: 2 }) as unknown as Event);
+  });
+  check(JSON.stringify(turns.slice(-3)) === JSON.stringify([[2, 1], [5, 1], [5, -1]]), `fx: an input during an effect was not taken (${JSON.stringify(turns)})`);
+  const ratchets = recs.filter((r) => (r.el as Element).classList?.contains("pipe-turn"));
+  check(ratchets.length === 3 && String(ratchets[0]!.frames[0]!.transform) === "rotate(-90deg)" && String(ratchets[2]!.frames[0]!.transform) === "rotate(90deg)", `fx: the ratchet doesn't turn from where the tile was, both ways (${ratchets.map((r) => r.frames[0]!.transform)})`);
+  check(ratchets.every((r) => r.frames.length >= 4 && Number(r.options.duration) <= 900), "fx: the turn isn't a two-click ratchet under 900 ms");
+  check(!recs.some((r) => (r.el as Element).tagName === "BUTTON" || (r.el as Element).matches?.("[data-game-arena], [data-game-stage], .pipes-board")), "fx: an effect moves a tile button, the board or the arena");
+  check(onlyTransformOpacity(), "fx: an effect animates something other than transform and opacity");
+
+  // Reduced motion: every change a 120 ms crossfade, no movement.
+  forceGameFxVariant("reduced");
+  recs.length = 0;
+  kitCalls.length = 0;
+  await act(async () => {
+    btn(1).dispatchEvent(new win.MouseEvent("click", { bubbles: true }) as unknown as Event);
+  });
+  await draw(solvedTiles);
+  check(kitCalls.includes("tap:reduced"), `fx: the reduced turn isn't the kit's crossfade (${kitCalls})`);
+  check(recs.length > 0 && recs.every((r) => r.frames.every((f) => f.transform === undefined) && Number(r.options.duration) <= 120), "fx: reduced motion still moves something, or longer than 120 ms");
+  check(recs.filter((r) => (r.el as Element).classList?.contains("pipe-wet")).length === 4, "fx: reduced motion doesn't show the water's change");
+  recs.length = 0;
+  await draw(off);
+  check(recs.filter((r) => (r.el as Element).classList?.contains("pipe-wet")).every((r) => r.frames[0]!.opacity === 1 && r.frames.at(-1)!.opacity === 0 && !r.options.delay), "fx: reduced draining isn't a crossfade out");
+  await act(async () => root.unmount());
+
+  // The solve's bubbles: from the source valve, none under reduced motion.
+  const { sourceBubbles } = await import("../src/components/puzzles/pattern/pipesFx");
+  const valve = document.createElement("span");
+  document.body.appendChild(valve);
+  recs.length = 0;
+  sourceBubbles(valve as unknown as Element);
+  check(valve.querySelectorAll(".pipe-bubble").length === 0, "fx: bubbles under reduced motion");
+  forceGameFxVariant("full");
+  sourceBubbles(valve as unknown as Element);
+  check(valve.querySelectorAll(".pipe-bubble").length === 4 && recs.length === 4 && onlyTransformOpacity(), "fx: the source doesn't bubble on the solve");
+  forceGameFxVariant(null);
+  setGameFxSink(null);
+  proto["animate"] = realAnimate;
+
+  // The stage wires each moment (sounds through their slots; the kit for the combo and the result).
+  const stage = src("src/puzzles/pipes.tsx");
+  check(/soundCueAt\("pipes\.flow", pipeFlowRate\(joined\)\)/.test(stage), "fx: the gurgle isn't sized to the join");
+  check(/gameFx\("combo", turned\?\.querySelector\("\.pipe-art"\), \{ count: [^}]*silent: true \}\)/.test(stage), "fx: the combo isn't the kit's, silent, on the turned pipe");
+  check(/sourceBubbles\(/.test(stage) && /soundCue\("pipes\.bubble"\)/.test(stage), "fx: the solve doesn't bubble the source");
+  check(/gameFx\("win", card \?\? null, \{ silent: true, inGame: false \}\)/.test(stage), "fx: the kit's win isn't on the result");
+  check(/animateWater\n/.test(stage), "fx: the live board doesn't animate the water");
+  // Only Pipeline's effects file calls animate, and the solve rush is transform-only CSS.
+  for (const file of ["src/puzzles/pipes.tsx", "src/components/puzzles/pattern/pipesArt.tsx"]) check(!/\.animate\(/.test(src(file)), `fx: ${file} animates outside pipesFx.ts`);
+  const css = src("src/polish-pattern/pipes.css");
+  check(!/stroke-dashoffset|transition:/.test(css), "fx: pipes.css animates something other than transform and opacity");
+  for (const [, body] of css.matchAll(/@keyframes [\w-]+ \{((?:[^{}]*\{[^{}]*\})*)[^{}]*\}/g)) {
+    const props = [...body!.matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]);
+    check(props.every((p) => p === "transform" || p === "opacity"), `fx: a keyframe animates ${props.join(", ")}`);
+  }
 }
 
 if (failures.length) {
