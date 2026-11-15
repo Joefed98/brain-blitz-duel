@@ -183,7 +183,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           gold ? { id: "gold", label: "Gold crate", value: goldHome ? "on its mark" : "not yet", ...(goldHome ? { tone: "good" as const } : {}) } : null,
         ]}
       />
-        <ArrowPad onPress={step} disabled={locked || replay.solved} />
+        <ArrowPad modeSwitch={false} onPress={step} disabled={locked || replay.solved} />
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"

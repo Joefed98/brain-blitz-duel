@@ -78,6 +78,10 @@ export function SolutionSwitch({ type, root }: { type: string; root: { current: 
       // In a two-column grid (Bomb Defusal) the column shown takes the whole row.
       show.style.gridColumn = "1 / -1";
       show.dataset["solutionView"] = view;
+      // Pattern overhaul (15 Nov 2026): a line about the player's own board (their count, "You: 0 / 9") is marked
+      // `data-yours-only` and shown only under Yours, so nothing below the Solution reads as the solution's.
+      for (const line of Array.from(node.querySelectorAll<HTMLElement>("[data-yours-only]")))
+        line.style.display = view === "solution" ? "none" : "";
     };
     apply();
     const watch = new MutationObserver(() => {

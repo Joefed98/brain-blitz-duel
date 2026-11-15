@@ -329,7 +329,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
             ]}
       />
       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center gap-3">
-        <ArrowPad onPress={press} disabled={blocked} />
+        <ArrowPad modeSwitch={false} onPress={press} disabled={blocked} />
         <div data-game-controls="actions" className="flex gap-3 px-2">
           <Button
             type="button"

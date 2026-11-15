@@ -1,4 +1,5 @@
 import { directionOf, useGameKeys } from "@/lib/desktop";
+import { onArrowControlChange, readArrowControl, setArrowControl } from "@/lib/arrowControl";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { ArcadeControlButton, usePressSafeElement } from "./ArcadeControlButton";
@@ -557,12 +558,18 @@ export function ArrowPad({
   repeatMs,
   directions = ["L", "U", "D", "R"],
   expanded = false,
+  modeSwitch = true,
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;
   repeatMs?: number | undefined;
   directions?: readonly ("U" | "D" | "L" | "R")[];
   expanded?: boolean;
+  /**
+   * false (Pattern overhaul, 15 Nov 2026: Skid, Heave, Topsy-Turvy): no switch beside the pad; the arrows / joystick
+   * choice is the game menu's and Settings → Game controls' (lib/arrowControl.ts), and the pad takes the full row.
+   */
+  modeSwitch?: boolean;
 }) {
   const press = useRef(onPress);
   press.current = onPress;
@@ -581,11 +588,9 @@ export function ArrowPad({
       setJoystick(forcedJoystick);
       return;
     }
-    try {
-      setJoystick(window.localStorage.getItem("duelz-arrow-control") === "joystick");
-    } catch {
-      // Storage is optional; arrows remain the safe default.
-    }
+    setJoystick(readArrowControl() === "joystick");
+    // The game menu and Settings change it while a round is open (lib/arrowControl.ts).
+    return onArrowControlChange((value) => setJoystick(value === "joystick"));
   }, [forcedJoystick]);
 
   const stop = useCallback(() => {
@@ -604,11 +609,7 @@ export function ArrowPad({
     stickDirection.current = null;
     setKnob({ x: 0, y: 0 });
     setJoystick(next);
-    try {
-      window.localStorage.setItem("duelz-arrow-control", next ? "joystick" : "arrows");
-    } catch {
-      // The preference simply remains session-only when storage is unavailable.
-    }
+    setArrowControl(next ? "joystick" : "arrows");
   }, [stop]);
 
   const start = useCallback(
@@ -692,7 +693,7 @@ export function ArrowPad({
   }, [stop]);
 
   return (
-    <div data-game-controls="arrows" className={`grid w-full shrink-0 grid-cols-[minmax(0,1fr)_44px] items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[60px]"}`}>
+    <div data-game-controls="arrows" data-arrow-mode={joystick ? "joystick" : "arrows"} className={`grid w-full shrink-0 ${modeSwitch ? "grid-cols-[minmax(0,1fr)_44px]" : "grid-cols-1"} items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[60px]"}`}>
       {joystick ? (
         <div
           ref={stickElement}
@@ -725,7 +726,7 @@ export function ArrowPad({
           {directions.includes("R") ? button("R", "▶", "Right") : null}
         </div>
       )}
-      <Button
+      {modeSwitch ? <Button
         type="button"
         variant="ghost"
         role="switch"
@@ -736,7 +737,7 @@ export function ArrowPad({
         className={`h-11 w-11 shrink-0 rounded-lg border p-0 ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 7v9M6 20h12l-2-4H8z" /><circle cx="12" cy="5" r="3" /></svg>
-      </Button>
+      </Button> : null}
     </div>
   );
 }

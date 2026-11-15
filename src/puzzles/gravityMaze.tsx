@@ -152,7 +152,7 @@ function ClassicStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gra
         ]}
       />
       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center gap-3">
-        <ArrowPad onPress={press} disabled={locked || replay.solved || replay.outOfTilts} />
+        <ArrowPad modeSwitch={false} onPress={press} disabled={locked || replay.solved || replay.outOfTilts} />
         <div data-game-controls="actions" className="flex gap-3 px-2">
           <Button
             type="button"

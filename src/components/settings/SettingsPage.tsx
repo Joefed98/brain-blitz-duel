@@ -27,22 +27,12 @@ import { Button, Icon, Panel, Row, Segmented, SwitchKnob } from "@/design/compon
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "@/lib/appearance";
+import { setArrowControl, useArrowControl } from "@/lib/arrowControl";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
 import { betaValue } from "@/lib/beta/betaValues";
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
-
-/** The direction-controls choice GridDrag keeps on the device (arrows or joystick). */
-const ARROW_KEY = "duelz-arrow-control";
-
-function readArrows(): "arrows" | "joystick" {
-  try {
-    return window.localStorage.getItem(ARROW_KEY) === "joystick" ? "joystick" : "arrows";
-  } catch {
-    return "arrows";
-  }
-}
 
 export interface SettingsActions {
   /** Back to the page before (More, Profile, wherever Settings was opened from). */
@@ -78,16 +68,9 @@ export function SettingsHead({ title = "Settings", onBack }: { title?: string; o
 /** Everything under the header (drawn on its own by checks that need no router). */
 export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onDeleted }: SettingsActions) {
   const account = useAccount();
-  const [arrows, setArrows] = useState<"arrows" | "joystick">("arrows");
-  useEffect(() => setArrows(readArrows()), []);
-  const choose = (value: "arrows" | "joystick") => {
-    setArrows(value);
-    try {
-      window.localStorage.setItem(ARROW_KEY, value);
-    } catch {
-      /* storage is a nicety */
-    }
-  };
+  // The direction-controls choice (lib/arrowControl.ts), shared with the game menu and the arrow pad.
+  const arrows = useArrowControl();
+  const choose = (value: "arrows" | "joystick") => setArrowControl(value);
   const sound = useSoundSettings();
   const appearance = useAppearance();
   const saver = useBatterySaver();

@@ -270,7 +270,7 @@ function Stage({
           replay.falls > 0 ? { id: "falls", label: replay.falls === 1 ? "Fall" : "Falls", value: replay.falls, tone: "warn" } : null,
         ]}
       />
-      <ArrowPad onPress={slide} disabled={locked || replay.solved || animating} />
+      <ArrowPad modeSwitch={false} onPress={slide} disabled={locked || replay.solved || animating} />
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"

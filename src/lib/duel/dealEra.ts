@@ -70,6 +70,8 @@ export const DEAL_PINS = {
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
+  /** patternNov15.ts: the eight Pattern games before the Pattern overhaul (15 Nov 2026). */
+  prePatternNov15: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;
