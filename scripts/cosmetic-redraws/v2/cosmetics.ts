@@ -10,7 +10,8 @@
  * - A finish paints the avatar's main shapes with a sphere of the material (a matcap), so real reflections fall
  *   across them; a rim of the same material round the circle makes the finish read at the card's size.
  * - Emotes are rendered objects and plates at each emote's own size, their words crisp SVG over them.
- * - Celebrations are rendered stages with the winner's avatar and place where the first pass put them.
+ * - Celebrations are rendered stages with Captain Joulz (blender/captain) standing on the winner's drum, the place
+ *   drawn live on its front.
  */
 import type { FinishArt } from "../../../src/design/identity/cosmeticsArt.data";
 
@@ -216,35 +217,37 @@ function stage(piece: string, defs: string, motion: string): string {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" width="100%" height="100%" style="display: block" aria-hidden="true">` +
     `<defs><clipPath id="{{p}}r2c"><rect width="240" height="150" rx="10"></rect></clipPath>${GOLD_GRAD}${defs}</defs>` +
     `<g clip-path="url(#{{p}}r2c)"><image href="${IMG(piece)}" x="0" y="0" width="240" height="150" preserveAspectRatio="xMidYMid slice"></image>${motion}` +
-    // The place on the drum's front, the winner's avatar on its top.
-    `<text x="120" y="128" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-weight="900" font-size="16" fill="url(#{{p}}r2g)" stroke="#06080F" stroke-width="2.4" paint-order="stroke">{{place}}</text>` +
-    `{{avatar}}</g>` +
+    // The place on the drum's front; Captain Joulz stands on its top in the render (blender/celebrations_captain.py,
+    // Joe 15 Nov 2026), in place of the flat avatar head the first pass drew there.
+    `<text x="120" y="133" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-weight="900" font-size="16" fill="url(#{{p}}r2g)" stroke="#06080F" stroke-width="2.4" paint-order="stroke">{{place}}</text>` +
+    `</g>` +
     `<rect x="1" y="1" width="238" height="148" rx="10" fill="none" stroke="#2A3352" stroke-width="2"></rect></svg>`
   );
 }
+// Dust in the two beams, kept off the Captain (x 100–140).
 const MOTES = [
-  [70, 40], [82, 70], [94, 28], [64, 92], [176, 38], [160, 66], [150, 24], [172, 90], [88, 52], [156, 50],
+  [70, 40], [82, 70], [90, 26], [64, 92], [176, 38], [160, 66], [152, 22], [172, 90], [86, 52], [156, 50],
 ] as const;
 
 export const V2_CELEBRATIONS: Record<string, { svg: string; sample: string }> = {
   "celebration.spotlight": {
     // Two stage spots through haze onto the drum; dust drifting in the beams.
-    svg: stage("cel2.spotlight", "", MOTES.map(([x, y], i) => `<circle class="rd2-mote rd2-mote${i % 3}" cx="${x}" cy="${y}" r="${i % 2 ? 0.9 : 1.3}" fill="#FFF3D6"></circle>`).join("")),
+    svg: stage("cel3.spotlight", "", MOTES.map(([x, y], i) => `<circle class="rd2-mote rd2-mote${i % 3}" cx="${x}" cy="${y}" r="${i % 2 ? 0.9 : 1.3}" fill="#FFF3D6"></circle>`).join("")),
     sample: SAMPLE,
   },
   "celebration.shockwave": {
     // The wave leaving the drum: rings of light racing out across the glass floor.
     svg: stage(
-      "cel2.shockwave",
+      "cel3.shockwave",
       `<radialGradient id="{{p}}r2w"><stop offset="0.82" stop-color="#8AF3FF" stop-opacity="0"></stop><stop offset="0.95" stop-color="#C9F8FF" stop-opacity="0.9"></stop><stop offset="1" stop-color="#8AF3FF" stop-opacity="0"></stop></radialGradient>`,
-      [0, 1, 2].map((i) => `<ellipse class="rd2-wave rd2-wave${i}" cx="120" cy="113" rx="44" ry="11" fill="url(#{{p}}r2w)" style="transform-origin: 120px 113px"></ellipse>`).join(""),
+      [0, 1, 2].map((i) => `<ellipse class="rd2-wave rd2-wave${i}" cx="120" cy="141" rx="56" ry="12" fill="url(#{{p}}r2w)" style="transform-origin: 120px 141px"></ellipse>`).join(""),
     ),
     sample: SAMPLE,
   },
   "celebration.circuit-overload": {
     // The board's traces charging: a surge of light across the floor, then the drum's gold catching it.
     svg: stage(
-      "cel2.circuit",
+      "cel3.circuit",
       `<radialGradient id="{{p}}r2s" cx="0.5" cy="0.78" r="0.6"><stop offset="0" stop-color="#FFD98A" stop-opacity="0.55"></stop><stop offset="1" stop-color="#FFD98A" stop-opacity="0"></stop></radialGradient>`,
       `<rect class="rd2-surge" width="240" height="150" fill="url(#{{p}}r2s)"></rect>`,
     ),
@@ -291,8 +294,8 @@ export const V2_COSMETIC_PIECES: readonly string[] = [
   "emote3.zap",
   "emote2.clutch",
   ...[0, 1, 2, 3].flatMap((i) => [`emote2.bubble-${i}`, `emote2.sign-${i}`]),
-  "cel2.spotlight",
-  "cel2.shockwave",
-  "cel2.circuit",
+  "cel3.spotlight",
+  "cel3.shockwave",
+  "cel3.circuit",
   "tile2.circuit",
 ];
