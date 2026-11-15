@@ -194,7 +194,7 @@
   left: 0;
   width: 40%;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--jz-gold) 55%, transparent) 45%, color-mix(in oklab, var(--jz-white) 80%, transparent) 60%, transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--jz-gold) 85%, transparent) 40%, var(--jz-white) 58%, color-mix(in oklab, var(--jz-gold) 70%, transparent) 72%, transparent);
   opacity: 0;
   will-change: transform, opacity;
 }

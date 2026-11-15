@@ -50,6 +50,25 @@ an unfinished third of the line):
 - **Words:** the help, the intro, the frame's goal line and the two challenges say "car", not "block".
 - **Sound:** a short / long scrape by distance (`unblock.slide`, `unblock.slideLong`), a knock when a drag hits the car
   in the way (`unblock.blocked`), a glint when the gold car's lane opens (`unblock.laneClear`); the drive-out is kept.
+**Stage 2: the effects** (390 × 844, a real practice deal played by its shortest line; 4 s):
+
+| A blocked drag, two slides, the lane clearing, the drive-out |
+|---|
+| <video src="unblock-fx-moves.mp4" width="180" controls muted loop playsinline poster="unblock-fx-moves-still.webp"></video><br><img src="unblock-fx-moves-still.webp" width="180"> |
+
+- **Slide:** the car glides to its bay as before (display only) and, as the glide ends, gets the effects kit's soft
+  settle on its own art (`tap`, silent: the slide's scrape, `unblock.slide` / `unblock.slideLong` by distance, ends in
+  the bump). Undo and Reset settle the same way.
+- **Blocked:** the knock (`unblock.blocked`), the dragged car's shared shake, and now the kit's `wrong` shake on the
+  car in the way as well (its art only; silent, no haptic). The kerb has no car to shake; a tap that tries to go
+  nowhere plays nothing.
+- **Lane cleared:** with `unblock.laneClear`, a gold-white band runs along the exit lane from the gold car's nose out
+  through the gap (560 ms), on the lot's art layer under the cars; only on the move that opens the lane.
+- **Solve:** the drive-out with its streaks, unchanged; the reveal's key numbers row lands with the kit's `win` (silent)
+  on a solve.
+- Every effect is on a car's art or the lot (never a car's box, which the drag reads), transform and opacity only, and
+  the next drag is taken at once. Reduced motion: no glide; the settle and the shake are the kit's 120–160 ms
+  crossfades, the glint a still glow along the lane fading in and out (240 ms).
 <!-- gridlock:end -->
 
 <!-- tessellate:start -->
