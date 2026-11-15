@@ -64,7 +64,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   orbit: "b69b20288e",
   pairmatch: "cf87b64211",
   pinball: "c9bad8201a",
-  pipes: "9cb380d749",
+  pipes: "07e7578f5b",
   pokersquares: "7dbb164210",
   pool: "037e01f78a",
   push: "cc34e14955",

@@ -1,6 +1,9 @@
 import { pipelineDepths } from "@/components/puzzles/pipelineFlow";
 import { PIPE_ARMS, PipeArt, PipeSurge } from "@/components/puzzles/pattern/pipesArt";
+import { planDrain, planWaterIn, runWater, sourceBubbles } from "@/components/puzzles/pattern/pipesFx";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
+import { soundCue as soundCueAt } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { HudPills } from "@/components/puzzles/HudPills";
@@ -15,7 +18,7 @@ import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect } from "@/lib/sound";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 
 import {
   decodeSides,
@@ -159,6 +162,7 @@ const PipeTileView = memo(function PipeTileView({
       data-untouched={untouched ? "true" : undefined}
       data-two-way={twoWay && onTurnCell ? "true" : undefined}
       data-pipe-cell={onTurnCell ? cell : undefined}
+      data-pipe-index={cell}
       aria-label={label ?? "Pipe tile"}
     >
       <PipeArt mask={mask} wet={lit} source={source} leakArms={leakArms} turnKey={turn.key} turnDir={turn.dir} />
@@ -201,6 +205,7 @@ export const PipesBoard = memo(function PipesBoard({
   gap = 6,
   cols = PIPES_COLS,
   solvedFlow = false,
+  animateWater = false,
 }: {
   tiles: PipeTile[];
   source: number;
@@ -217,14 +222,35 @@ export const PipesBoard = memo(function PipesBoard({
   cols?: number | undefined;
   /** Plays the water rush from the source through the network. */
   solvedFlow?: boolean;
+  /** The live round (stage 2's effects): water runs into newly joined pipes and drains out of cut-off ones. */
+  animateWater?: boolean;
 }) {
   const depths = useMemo(() => pipelineDepths(tiles, source, cols), [tiles, source, cols]);
   const inflows = useMemo(() => pipeInflows(tiles, depths, cols), [tiles, depths, cols]);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const water = useRef<{ connected: ReadonlySet<number>; depths: Map<number, number>; inflows: number[] } | null>(null);
+  // Before paint, so a newly joined pipe never shows full for a frame before its water runs in (presentation only:
+  // reads the board drawn, never a turn or the answer).
+  useLayoutEffect(() => {
+    const last = water.current;
+    water.current = { connected, depths, inflows };
+    if (!animateWater || !last || !boardRef.current) return;
+    const travel = (cell: number, from: number[], depth: Map<number, number>) => {
+      const arm = PIPE_ARMS.find((a) => (from[cell] ?? 0) & a.bit);
+      return { cell, depth: depth.get(cell) ?? 0, dx: arm ? -arm.dx : 0, dy: arm ? -arm.dy : 0 };
+    };
+    const joined = [...connected].filter((cell) => !last.connected.has(cell)).map((cell) => travel(cell, inflows, depths));
+    const cut = [...last.connected].filter((cell) => !connected.has(cell)).map((cell) => travel(cell, last.inflows, last.depths));
+    const layer = (cell: number) => boardRef.current?.querySelector(`[data-pipe-index="${cell}"] .pipe-wet`) ?? null;
+    for (const step of planWaterIn(joined)) runWater(layer(step.cell), layer(step.cell)?.firstElementChild ?? null, step, true);
+    for (const step of planDrain(cut)) runWater(layer(step.cell), layer(step.cell)?.firstElementChild ?? null, step, false);
+  }, [animateWater, connected, depths, inflows]);
   const leakArms = useMemo(() => (showLeaks ? networkLeakArms(tiles, connected, cols) : null), [showLeaks, tiles, connected, cols]);
   // The rush reaches the furthest pipe by 0.9 s, then fades by 1.2 s.
   const stepMs = 900 / (Math.max(0, ...depths.values()) + 1);
   return (
     <div
+      ref={boardRef}
       className="pipes-board relative mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
@@ -273,6 +299,11 @@ function pipeInflows(tiles: PipeTile[], depths: Map<number, number>, cols: numbe
     }
     return inflow;
   });
+}
+
+/** The gurgle's pitch by how many pipes one turn joined: one a little brighter, five or more a little lower. */
+export function pipeFlowRate(joined: number): number {
+  return Math.round((1.12 - 0.05 * (Math.min(5, Math.max(1, joined)) - 1)) * 100) / 100;
 }
 
 /** The fixed intro example's tiles (3 × 3; the source top left), never randomised. */
@@ -342,12 +373,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
   useEffect(() => {
     const joined = state.connected.size - wetCount.current;
     if (joined > 0 && !state.solved) {
-      // Water reaching more pipes after a turn: a gurgle, the combo for a big join (the solve has its own cue).
-      soundCue(twoWay && joined >= PIPES_COMBO_JOIN ? "pipes.combo" : "pipes.flow");
-      // Batch P (display only): the turned tile that let the water on flashes the right-move ring.
-      if (lastTurned.current !== null) {
-        rightMoveFlash(document.querySelector(`[data-game-stage] [data-pipe-cell="${lastTurned.current}"]`));
+      // Water reaching more pipes after a turn: a gurgle sized to the join (one pipe brighter and quicker, five lower
+      // and fuller), the combo for a big join (the solve has its own cue). The water itself runs in on the board.
+      const turned = lastTurned.current === null ? null : document.querySelector(`[data-game-stage] [data-pipe-cell="${lastTurned.current}"]`);
+      if (twoWay && joined >= PIPES_COMBO_JOIN) {
+        soundCue("pipes.combo");
+        // The kit's combo on the turned pipe's own art (its sound is pipes.combo, so silent).
+        gameFx("combo", turned?.querySelector(".pipe-art"), { count: joined - PIPES_COMBO_JOIN + 2, silent: true });
+      } else {
+        soundCueAt("pipes.flow", pipeFlowRate(joined));
       }
+      // Batch P (display only): the turned tile that let the water on flashes the right-move ring.
+      if (turned) rightMoveFlash(turned);
     } else if (joined < 0 && twoWay) {
       // A turn that cut pipes off the water: the drain.
       soundCue("pipes.drain");
@@ -356,8 +393,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
   }, [state.connected.size, state.solved, twoWay]);
   useEffect(() => {
     // The solve: the rush fills the network (pipes.solve) and the source bubbles.
-    if (solveFx && twoWay) soundCue("pipes.bubble");
-  }, [solveFx, twoWay]);
+    if (!solveFx) return;
+    if (twoWay) soundCue("pipes.bubble");
+    sourceBubbles(document.querySelector(`[data-game-stage] [data-pipe-index="${source}"] .pipe-art`));
+  }, [solveFx, twoWay, source]);
 
   const answer = !tapLog
     ? encodeSides(tiles)
@@ -413,6 +452,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
             connected={state.connected}
             showLeaks={twoWay}
             solvedFlow={solveFx}
+            animateWater
             twoWay={twoWay}
             onTurn={locked ? undefined : rotate}
           />
@@ -489,6 +529,15 @@ function TurnsBar({ turns, par }: { turns: number; par: number }) {
 }
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
+  // The solve's payoff on the result: the kit's win on the reveal's own result card, once (silent: the reveal plays
+  // its score sound; no haptic outside a live board).
+  const winRef = useRef<HTMLDivElement>(null);
+  const won = Boolean(myCorrect && puzzle.type === "pipes");
+  useEffect(() => {
+    if (!won) return;
+    const card = winRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]");
+    gameFx("win", card ?? null, { silent: true, inGame: false });
+  }, [won]);
   // Kept per puzzle and answer, so the reveal clock's ticks leave both memoised boards alone.
   const boards = useMemo(() => {
     if (puzzle.type !== "pipes") return null;
@@ -512,7 +561,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
       : `You: ${connected} of ${PIPES_CELLS} joined to the source`;
 
   return (
-    <div className="pipes-reveal flex w-full min-h-0 flex-col items-center gap-2" data-pipes-reveal="">
+    <div ref={winRef} className="pipes-reveal flex w-full min-h-0 flex-col items-center gap-2" data-pipes-reveal="">
       <div className="pipes-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
         <div className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-solution="">
           <div className="pipes-reveal-board aspect-square">

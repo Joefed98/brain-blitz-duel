@@ -8,6 +8,7 @@
 import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 
 import { PIPE_E, PIPE_N, PIPE_S, PIPE_W } from "@/lib/duel/logic";
+import { pipeTurnFx } from "./pipesFx";
 
 /** Each open side, as a rotation of the canonical north arm. */
 export const PIPE_ARMS: { bit: number; turn: number; dx: number; dy: number }[] = [
@@ -74,7 +75,7 @@ export function pipeArtUrls(): string[] {
 
 /**
  * One tile's pipework: the shape's sprite in its turn (each turn rendered, so the light stays top left), dry (chrome)
- * under wet (water in the sight glass), so water reaching the pipe fades in; the source's red valve on top; a spill at each open end of the network
+ * under wet (water in the sight glass), its own clipping box, so water can run in and drain out (pipesFx.ts); the source's red valve on top; a spill at each open end of the network
  * (`leakArms`). Inside the tile's box. Memoised on its primitive props (a board is 49 of these and the round clocks
  * re-render the stage ten times a second).
  */
@@ -103,13 +104,9 @@ export const PipeArt = memo(function PipeArt({
   useLayoutEffect(() => {
     if (turnKey === lastTurn.current) return;
     lastTurn.current = turnKey;
-    const node = turnRef.current;
-    if (!node?.animate || reducedMotion()) return;
-    // The new turn's sprite swings in from where the tile was.
-    node.animate([{ transform: `rotate(${-90 * turnDir}deg)` }, { transform: "rotate(0deg)" }], {
-      duration: 170,
-      easing: "cubic-bezier(.2,.9,.3,1.15)",
-    });
+    // The new turn's sprite ratchets in from where the tile was, in two clicks (pipesFx.ts; a crossfade under reduced
+    // motion). Only the art turns; the tile button, its box and hit area never move.
+    pipeTurnFx(turnRef.current, turnDir);
   }, [turnKey, turnDir]);
 
   return (
@@ -118,14 +115,14 @@ export const PipeArt = memo(function PipeArt({
         <span ref={turnRef} className="pipe-turn" data-pipe-turns={sprite.turns}>
           <span className="pipe-frame">
             <img className="pipe-sprite" src={pipeSpriteUrl(sprite.shape, sprite.turns, false)} alt="" draggable={false} decoding="async" />
-            <img
-              className="pipe-sprite pipe-sprite-wet"
-              data-wet={wet ? "true" : undefined}
-              src={pipeSpriteUrl(sprite.shape, sprite.turns, true)}
-              alt=""
-              draggable={false}
-              decoding="async"
-            />
+          </span>
+          {/* The water: the wet set in its own clipping box, so water can run in from the side it enters by (pipesFx). */}
+          <span className="pipe-wet" data-wet={wet ? "true" : undefined}>
+            <span className="pipe-wet-in">
+              <span className="pipe-frame">
+                <img className="pipe-sprite pipe-sprite-wet" src={pipeSpriteUrl(sprite.shape, sprite.turns, true)} alt="" draggable={false} decoding="async" />
+              </span>
+            </span>
           </span>
         </span>
       ) : null}
@@ -139,7 +136,10 @@ export const PipeArt = memo(function PipeArt({
   );
 });
 
-/** The solve-time rush through one tile: in through its inflow arms, out of the rest. */
+/**
+ * The solve-time rush through one tile: a bright water front in through its inflow arms, out of the rest. Each arm is a
+ * bar that grows from its start (a scale, transform only), so the rush runs along the path.
+ */
 export function PipeSurge({
   mask,
   inflow,
@@ -159,20 +159,13 @@ export function PipeSurge({
         const style = {
           "--surge-delay": `${Math.round(into ? delay : delay + half)}ms`,
           "--surge-ms": `${Math.max(30, Math.round(half))}ms`,
+          // In through the edge: grows from the edge towards the centre; out: from the centre towards the edge.
+          transformOrigin: into ? "50% 0%" : "50% 100%",
         } as CSSProperties;
         return (
-          <line
-            key={arm.bit}
-            transform={`rotate(${arm.turn} 50 50)`}
-            x1="50"
-            y1={into ? 0 : 50}
-            x2="50"
-            y2={into ? 50 : 0}
-            pathLength={1}
-            strokeDasharray="1 1"
-            className="pipe-surge-line"
-            style={style}
-          />
+          <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
+            <rect x="45.5" y="0" width="9" height="50" rx="4.5" className="pipe-surge-line" style={style} />
+          </g>
         );
       })}
       <circle
@@ -184,12 +177,4 @@ export function PipeSurge({
       />
     </svg>
   );
-}
-
-function reducedMotion(): boolean {
-  try {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
 }
