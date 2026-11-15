@@ -472,4 +472,32 @@ sparks, then the solve flare.
 - **Sound:** a looped marble rumble for exactly as long as the balls roll, a click as each stops, a pip as each drops
   home (a combo for two or more), a board-cleared sound, a closing clunk when a board runs out of tilts (library
   stand-ins until Joe's files).
+
+### Stage 2: Joe's reveal fix and the effects (15 Nov 2026)
+
+| Reveal, before (stage 1) | After: board 2 | After: board 1 | Concept A |
+|---|---|---|---|
+| <img src="gravity-reveal-after-unfinished.webp" width="180"> | <img src="gravity-fix-after-reveal.webp" width="180"> | <img src="gravity-fix-after-reveal-b1.webp" width="180"> | <img src="gravity-concept-A.webp" width="180"> |
+
+- **Joe's fix:** the line and the pills under the Board 1 / 2 / 3 switcher are now all the chosen board's own: "Board 2 ·
+  Not finished", then Tilts (the stored grade's tilts on that board), Par (that board's par) and Home (that board's
+  balls home, from the grader's replay). The round's totals (Boards, Home of 18, Tilts, Par, Time left) sit apart in
+  their own row under a **Round** label, below the par route, so the two never read as the same thing.
+
+| Hero clip: the roll | Still | Mid-lean |
+|---|---|---|
+| <video src="gravity-fx.mp4" width="180" autoplay loop muted playsinline></video> ([MP4](gravity-fx.mp4)) | <img src="gravity-fx-still.webp" width="180"> | <img src="gravity-fx-lean.webp" width="180"> |
+
+- **A tilt:** the tray's art layer leans 6° towards the tilt and holds while the balls roll, then settles; the rumble
+  (`gravity.tilt`, a loop) lasts exactly as long as they move, and each ball that stops clicks (`gravity.stop`). The
+  board's measured grid never moves (a separate, hidden grid in the same place), so no square or ball place changes.
+- **A ball home:** it drops into its cup as its roll ends (kit `drop`) with the bright pip (`gravity.lock`); two or more
+  in one tilt pop their rings above the board as a combo (kit `combo`, `gravity.combo`).
+- **A tilt that moves nothing:** a 2° nod and back, no sound, no draft.
+- **A board cleared:** at the end of its hold the tray flips away and the next one turns in (`gravity.boardClear`).
+- **Out of tilts:** the banner lands (kit `drop`) with the closing clunk (`gravity.outOfTilts`).
+- **Solved:** the solve as before (`gravity.solve`, the cups lighting in turn), plus the kit's `win` on the reveal's
+  result (the board line and pills).
+- Every effect is transform and opacity only, at most 900 ms, and the next tilt is taken at once. Reduced motion: a
+  120 ms crossfade for the tilt, the drop and the next board; no lean, nod or flip.
 <!-- topsy:end -->
