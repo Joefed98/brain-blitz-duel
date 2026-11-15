@@ -1197,7 +1197,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
       how: [
-        { action: "Hold left or right", detail: "to flip; with the ball on the plunger, any press launches it." },
+        { action: "Hold left or right", detail: "to flip; any press plunges." },
         { action: "Ramps, J-O-U-L-Z and jackpots", detail: "score bonuses." },
         { action: "Lock 3 balls", detail: "for multiball and a jackpot." },
         { action: "Hold the left or right half", detail: "of the screen to raise that flipper; two thumbs raise both.", helpOnly: true },
