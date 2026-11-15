@@ -531,8 +531,11 @@ const CALL_SITES: Record<string, Record<string, number>> = {
  * gold cup, buzzer); error: foul; impact: lives and crashes, Ricochet's hit and Bastion's base hit since 1 Nov 2026,
  * Blockzone's top-out since 15 Nov 2026).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of Blockzone's top-out haptic): impact 19 → 20.
+ * Changed 15 Nov 2026 (routine consequence of the Sports overhaul): Apex's lights out (go), grass (error), kerb rumble
+ * (tick, every 10 ticks on the kerb), clean sector (success) and finish (celebrate): success 7 → 8, error 1 → 2, and
+ * tick, go and celebrate 1 each.
  */
-const FEEL = { success: 7, error: 1, impact: 20 };
+const FEEL = { success: 8, error: 2, impact: 20, tick: 1, go: 1, celebrate: 1 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);

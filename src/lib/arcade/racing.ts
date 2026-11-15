@@ -43,8 +43,13 @@ export const RACING_REV_2 = 2;
  * score re-fitted: the core is the race's pace (average speed), clean sectors on top.
  */
 export const RACING_REV_3 = 3;
+/**
+ * racingRev 4 (the Sports overhaul, 15 Nov 2026): racingRev 3's car, gravel and start on three fixed named circuits
+ * (racingCircuitOf), the pace part measured against each circuit's own par pace (RACING_V4_PACE).
+ */
+export const RACING_REV_4 = 4;
 /** The revision rooms and practice deal. */
-export const RACING_REV_DEALT = RACING_REV_3;
+export const RACING_REV_DEALT = RACING_REV_4;
 /** The race itself: 90 s (on racingRev 2 from lights out). */
 export const RACING_RUN_SECONDS = 90;
 export const RACING_RUN_TICKS = RACING_RUN_SECONDS * TICKS_PER_SECOND;
@@ -239,6 +244,12 @@ export function buildRacingTrack(seed: number): RacingTrack {
     straightLen.push(minLen(i) + extra);
   }
 
+  return assembleRacingTrack(seed, curved, straightLen, draw);
+}
+
+/** A circuit from its curved sections and straights (one before each curve and a closing one), hills from `draw`. */
+function assembleRacingTrack(seed: number, curved: readonly { kind: number; len: number; dir: number; peak: number }[], straightLen: readonly number[], draw: (bound: number) => number, hillAmp = 1200): RacingTrack {
+  const nStraights = straightLen.length;
   const curve = new Int8Array(RACING_LAP_SEGS);
   const sections: RacingSection[] = [];
   let at = 0;
@@ -269,7 +280,7 @@ export function buildRacingTrack(seed: number): RacingTrack {
   while (p < RACING_LAP_SEGS) {
     let len = 90 + draw(71);
     if (RACING_LAP_SEGS - (p + len) < 90) len = RACING_LAP_SEGS - p;
-    const h1 = p + len >= RACING_LAP_SEGS ? 0 : draw(2400) - 1200;
+    const h1 = p + len >= RACING_LAP_SEGS ? 0 : draw(hillAmp * 2) - hillAmp;
     const L3 = len * len * len;
     for (let k = 0; k < len; k++) hill[p + k] = h0 + Math.trunc(((h1 - h0) * (3 * k * k * len - 2 * k * k * k)) / L3);
     h0 = h1;
@@ -289,6 +300,81 @@ export function racingTrack(seed: number): RacingTrack {
     trackCache.set(key, t);
   }
   return t;
+}
+
+/* ================================ racingRev 4's three circuits ================================ */
+
+/**
+ * racingRev 4 (the Sports overhaul, 15 Nov 2026): three fixed, named circuits in place of a fresh layout per seed, so
+ * players learn them. The seed picks which (racingCircuitOf); everything else about a circuit is fixed, its hills
+ * included. A later level changes settings (gravel, run-off, signs), never which circuit a seed deals.
+ *  - Sunset Park: racingRev 3's own layout for its first proved seed (two hairpins, a chicane, three corners, two sweepers).
+ *  - Harbour Run: fast and flowing: long straights, three sweepers, one hairpin, a chicane, two corners.
+ *  - Ridge Loop: technical and hilly: three hairpins, two chicanes, two corners and a closing sweeper.
+ */
+export interface RacingCircuit {
+  id: "sunset" | "harbour" | "ridge";
+  name: string;
+}
+export const RACING_CIRCUITS: readonly RacingCircuit[] = [
+  { id: "sunset", name: "Sunset Park" },
+  { id: "harbour", name: "Harbour Run" },
+  { id: "ridge", name: "Ridge Loop" },
+];
+/** Sunset Park is racingRev 3's circuit for this seed (the first of its proved deal). */
+export const RACING_SUNSET_SEED = 1655421732;
+
+/** The circuit (0, 1 or 2) a racingRev 4 seed races on. */
+export function racingCircuitOf(seed: number): number {
+  return ((Math.trunc(seed) % RACING_CIRCUITS.length) + RACING_CIRCUITS.length) % RACING_CIRCUITS.length;
+}
+
+type Curved = { kind: number; len: number; dir: number; peak: number };
+const H = RACING_SEC_HAIRPIN;
+const C = RACING_SEC_CORNER;
+const K = RACING_SEC_CHICANE;
+const W = RACING_SEC_SWEEPER;
+const sec = (kind: number, len: number, dir: number, peak: number): Curved => ({ kind, len, dir, peak });
+
+/** The two new circuits' plans: the curved sections in lap order and the straights (one before each, and a closing one). */
+const CIRCUIT_PLANS: readonly { curved: readonly Curved[]; straights: readonly number[]; hillSeed: number; hillAmp: number }[] = [
+  {
+    curved: [sec(W, 100, 1, 2), sec(C, 50, -1, 5), sec(W, 110, -1, 1), sec(K, 40, 1, 7), sec(W, 90, 1, 2), sec(H, 34, -1, 10), sec(C, 46, 1, 4)],
+    straights: [140, 90, 120, 80, 110, 90, 100, 90],
+    hillSeed: 0x4a7b_0001,
+    hillAmp: 700,
+  },
+  {
+    curved: [sec(H, 36, 1, 11), sec(K, 40, -1, 7), sec(H, 32, -1, 10), sec(C, 40, 1, 6), sec(K, 38, 1, 7), sec(H, 34, 1, 11), sec(C, 50, -1, 5), sec(W, 80, -1, 2)],
+    straights: [100, 110, 120, 90, 110, 100, 120, 90, 100],
+    hillSeed: 0x4a7b_0002,
+    hillAmp: 1900,
+  },
+];
+
+const circuitCache: RacingTrack[] = [];
+/** A racingRev 4 circuit by its index (cached, the same object for the sim, the renderer and the bots). */
+export function racingCircuit(index: number): RacingTrack {
+  let t = circuitCache[index];
+  if (!t) {
+    if (index === 0) t = buildRacingTrack(RACING_SUNSET_SEED);
+    else {
+      const plan = CIRCUIT_PLANS[index - 1]!;
+      t = assembleRacingTrack(RACING_SUNSET_SEED + index, plan.curved, plan.straights, makeDraw(plan.hillSeed), plan.hillAmp);
+    }
+    circuitCache[index] = t;
+  }
+  return t;
+}
+
+/** The circuit a run races on: racingRev 4's named circuit for its seed, else the seed's own layout (racingRev 1–3). */
+export function racingTrackFor(seed: number, rev: number | null | undefined): RacingTrack {
+  return (rev ?? 1) >= RACING_REV_4 ? racingCircuit(racingCircuitOf(seed)) : racingTrack(seed);
+}
+
+/** The circuit of a state (the sim, renderer, sounds and bots all ask this). */
+export function racingTrackOf(state: Pick<RacingState, "seed" | "rev">): RacingTrack {
+  return racingTrackFor(state.seed, state.rev);
 }
 
 /** The seeded plan (the brief's `pSeedPlan`): the circuit itself. */
@@ -411,7 +497,6 @@ export interface RacingState {
 }
 
 export function racingInit(seed: number): RacingState {
-  racingTrack(seed);
   return {
     rev: RACING_REV_STD,
     seed: seed | 0,
@@ -491,7 +576,7 @@ export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): R
     // The car waits on its grid spot until the lights go out.
     if (s0.tick <= RACING_V2_GO) return s0;
   }
-  const track = racingTrack(s0.seed);
+  const track = racingTrackOf(s0);
   const c = track.curve[racingSegAt(s0.s)]!;
 
   // Speed.
@@ -654,26 +739,51 @@ export function racingPace10(state: Pick<RacingState, "rev" | "tick" | "finishTi
   return Math.floor((dist * 10 * RACING_KMH_AT_VMAX) / (ticks * RACING_VMAX));
 }
 
+/**
+ * racingRev 4's pace part per circuit, in tenths of a km/h: nothing at `zero`, all of it at `full` (each circuit's
+ * oracle reaches `full` exactly, so 200 is reachable on all three); the same spread as racingRev 3.
+ */
+export const RACING_V4_PACE: readonly { zero: number; full: number }[] = [
+  { zero: 1520, full: 2215 },
+  { zero: 1690, full: 2385 },
+  { zero: 1335, full: 2030 },
+];
+
+/** The pace range a run is scored on (racingRev 4: its circuit's; racingRev 3: the fixed one). */
+export function racingPaceRange(state: Pick<RacingState, "rev" | "seed">): { zero: number; full: number } {
+  return state.rev >= RACING_REV_4 ? RACING_V4_PACE[racingCircuitOf(state.seed)]! : { zero: RACING_V3_PACE_ZERO, full: RACING_V3_PACE_FULL };
+}
+
+export const RACING_V4_STD_SPEC: StdSpec = {
+  field: "racingRev",
+  rev: RACING_REV_4,
+  parts: [
+    { key: "core", label: "Pace", max: RACING_V3_PACE_MAX, of: RACING_V3_PACE_OF, item: "tenth of a km/h", items: "tenths of a km/h", how: "your average speed, all of it at the circuit's par pace" },
+    { key: "sectors", label: "Clean sectors", max: RACING_V3_SECTORS_MAX, of: RACING_SECTORS, item: "clean sector", how: `${RACING_V3_SECTORS_MAX / RACING_SECTORS} for each of the ${RACING_SECTORS} sectors driven with no grass or wall` },
+  ],
+};
+
 /** A revision's spec (null for an unknown one). */
 export function racingStdSpecFor(rev: number): StdSpec | null {
-  return rev === RACING_REV_STD ? RACING_STD_SPEC : rev === RACING_REV_2 ? RACING_V2_STD_SPEC : rev === RACING_REV_3 ? RACING_V3_STD_SPEC : null;
+  return rev === RACING_REV_STD ? RACING_STD_SPEC : rev === RACING_REV_2 ? RACING_V2_STD_SPEC : rev === RACING_REV_3 ? RACING_V3_STD_SPEC : rev === RACING_REV_4 ? RACING_V4_STD_SPEC : null;
 }
 
 /** racingRev 3's parts: pace and clean sectors. */
 function racingV3Parts(state: RacingState): StdPart[] {
-  const spec = RACING_V3_STD_SPEC;
+  const spec = state.rev >= RACING_REV_4 ? RACING_V4_STD_SPEC : RACING_V3_STD_SPEC;
+  const range = racingPaceRange(state);
   const dist = clampInt(state.s, 0, RACING_TOTAL);
   const pct = Math.floor((dist * 100) / RACING_TOTAL);
   const finished = state.finishTick > 0;
   const pace = racingPace10(state);
   const lead = finished ? `2 laps in ${(racingPaceTicks(state) / TICKS_PER_SECOND).toFixed(1)} s` : `${pct}% of 2 laps`;
   return [
-    stdPart(spec, "core", stdLine(RACING_V3_PACE_MAX, pace - RACING_V3_PACE_ZERO, RACING_V3_PACE_OF), `${lead}, average ${kmh10(pace)} km/h`),
+    stdPart(spec, "core", stdLine(RACING_V3_PACE_MAX, pace - range.zero, range.full - range.zero), `${lead}, average ${kmh10(pace)} km/h`),
     stdPart(spec, "sectors", stdLine(RACING_V3_SECTORS_MAX, state.clean, RACING_SECTORS), `${state.clean} of ${RACING_SECTORS} clean`),
   ];
 }
 
-/** The run's parts (null off racingRev 1, 2 and 3). */
+/** The run's parts (null off racingRev 1 to 4). */
 export function racingStdParts(state: RacingState): StdPart[] | null {
   const spec = racingStdSpecFor(state.rev);
   if (!spec) return null;
@@ -713,7 +823,7 @@ export function racingBandParts(state: RacingState): BandParts {
   return stdBandParts(
     racingStdSpecFor(state.rev) ?? RACING_STD_SPEC,
     { core, features, penalty: 0 },
-    state.rev >= RACING_REV_3 ? clampInt(racingPace10(state) - RACING_V3_PACE_ZERO, 0, RACING_V3_PACE_OF) : Math.floor((clampInt(state.s, 0, RACING_TOTAL) * 1000) / RACING_TOTAL),
+    state.rev >= RACING_REV_3 ? clampInt(racingPace10(state) - racingPaceRange(state).zero, 0, racingPaceRange(state).full - racingPaceRange(state).zero) : Math.floor((clampInt(state.s, 0, RACING_TOTAL) * 1000) / RACING_TOTAL),
     parts.map((p) => `${p.label} ${p.points}`).join(" · "),
     state.finishTick > 0,
   );
@@ -818,8 +928,17 @@ export const racingGameV3: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
   init: racingInitV3,
 };
 
+/** racingRev 4: racingRev 3's car on the three named circuits. */
+export function racingInitV4(seed: number): RacingState {
+  return { ...racingInit(seed), rev: RACING_REV_4, offFrom: 0, rec: 0 };
+}
+export const racingGameV4: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
+  ...racingGameV2,
+  init: racingInitV4,
+};
+
 /** The game for a stored stamp (unstamped and 1: racingRev 1; 2: the lights start and the softer joystick; 3: the softer gravel and the pace score). */
 export function racingGameFor(rev?: number | null): ArcadeGame<RacingState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
-  return r >= RACING_REV_3 ? racingGameV3 : r >= RACING_REV_2 ? racingGameV2 : racingGame;
+  return r >= RACING_REV_4 ? racingGameV4 : r >= RACING_REV_3 ? racingGameV3 : r >= RACING_REV_2 ? racingGameV2 : racingGame;
 }

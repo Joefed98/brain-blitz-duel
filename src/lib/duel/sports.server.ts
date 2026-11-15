@@ -12,7 +12,7 @@ import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { arcadeSeed } from "./arcade.server";
 import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
-import { racingDealSeedV3 } from "./racingDealV3.server";
+import { racingDealSeedV4 } from "./racingDealV4.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
@@ -34,9 +34,9 @@ export function generateFreekick(): FreekickPuzzleData {
 }
 
 export function generateRacing(): RacingPuzzleData {
-  // Apex deals racingRev 3 (3 Nov 2026: the softer gravel, corner speed signs, the pace score) from its own proved deal;
-  // racingRev 2 and 1 rounds replay on theirs (racingDealV2.server.ts, racingDeal.server.ts).
-  return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_DEALT };
+  // Apex deals racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits) from its own proved deal;
+  // racingRev 3, 2 and 1 rounds replay on theirs (racingDealV3.server.ts, racingDealV2.server.ts, racingDeal.server.ts).
+  return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev: RACING_REV_DEALT };
 }
 
 export function generateMinigolf(): MinigolfPuzzleData {

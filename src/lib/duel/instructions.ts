@@ -1136,6 +1136,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Braking boards", detail: "(150, 100, 50) count down to the tightest corners. The sign before them is the corner’s speed in km/h: be at it by the turn-in and full lock holds the corner.", helpOnly: true },
         { action: "The gravel", detail: "slows the car to about two thirds of its speed; back on the tarmac it picks up faster.", helpOnly: true },
         { action: "Ghost cars", detail: "show the other players in the room. They can’t touch you and passing them scores nothing.", helpOnly: true },
+        { action: "Three circuits:", detail: "Sunset Park, Harbour Run and Ridge Loop. The round’s circuit is named on the grid; each has its own par pace for full pace points.", helpOnly: true },
         { action: "Everyone", detail: "races the same track.", helpOnly: true },
       ],
       score: liveStdHelp("racing"),

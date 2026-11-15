@@ -21,7 +21,7 @@ import {
 } from "@/lib/arcade/racing";
 import {
   drawRacingPlay, setRacingLargeScreen,
-  paintRacingTile,
+  paintRacingIntro,
   racingAmbient,
   racingSceneFor,
   racingSteerThrow,
@@ -35,6 +35,8 @@ import { publishRaceGhost, useRaceGhosts } from "@/lib/duel/raceGhosts";
 import { RACING_TIME_MS, type RacingPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { racingSounds } from "@/lib/fx/racingSounds";
+import { preloadSportsSprites, sportsSprite, sportsSpritesVersion } from "@/lib/arcade/sportsSprites";
+import { RACING_CAR_SPRITE_NAMES } from "@/lib/arcade/racingCar.renderer";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { canvasRatio } from "@/lib/battery";
@@ -42,7 +44,7 @@ import { useDesktopPresentation } from "@/lib/desktopPresentation";
 
 const STILL = 200;
 
-/** Fixed intro still: the chase view at sunset, the car on the start straight (Apex). */
+/** Fixed intro still: the chase view at sunset on Sunset Park, the rendered car with Captain Joulz at the wheel (Apex). */
 function IntroExample() {
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
@@ -53,13 +55,31 @@ function IntroExample() {
     node.width = STILL * ratio;
     node.height = STILL * ratio;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    paintRacingTile(ctx, STILL);
+    const paint = () => {
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      paintRacingIntro(ctx, STILL);
+    };
+    paint();
+    // The rendered car arrives a moment later: repaint the still once with it.
+    preloadSportsSprites("racing", RACING_CAR_SPRITE_NAMES);
+    const seen = sportsSpritesVersion();
+    const id = window.setInterval(() => {
+      if (sportsSpritesVersion() !== seen && sportsSprite("racing", "car-3")) {
+        paint();
+        window.clearInterval(id);
+      }
+    }, 120);
+    const stop = window.setTimeout(() => window.clearInterval(id), 6000);
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(stop);
+    };
   }, []);
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={ref} width={STILL} height={STILL} aria-hidden="true" style={{ width: STILL, height: STILL, background: RACING_BG, borderRadius: 10 }} />
       <p className="text-center text-xs text-muted-foreground">
-        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps; the red signs show each corner’s speed.
+        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps of Sunset Park, Harbour Run or Ridge Loop; the red signs show each corner’s speed.
       </p>
     </div>
   );
@@ -104,6 +124,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const origin = useRef<{ x: number; y: number } | null>(null);
   const keys = useRef(new Set<string>());
   const ghosts = useRaceGhosts();
+  // The rendered car's images (every yaw, braking and the paint masks), asked for before the lights go out.
+  useEffect(() => preloadSportsSprites("racing", RACING_CAR_SPRITE_NAMES), []);
   useEffect(() => {
     setRacingGhosts(ghosts);
   }, [ghosts]);
