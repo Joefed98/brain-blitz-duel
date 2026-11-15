@@ -2612,8 +2612,11 @@ outside the repo.
     `bastionLook.ts`, S/M/H badges and outlines on far tanks past `BT_FAR_MARK_Z`, a one-time reload-swipe tip, a navy and
     gold panel; bastion-overhaul-check). Intros are `ArtStill`s from each renderer on its live stamp. The materials pass
   (Joe, 15 Nov 2026: real light on materials, no glare over panels or numbers, never flat) is drawn in code and cached per
-  size, except Orbit's six planet textures (`public/orbit/planets/`, 43,692 bytes, `scripts/orbit-planet-maps.py`,
-  `orbitPlanetMaps.data.ts`). `pinSkylinePreLives(true)` deals skylineRev 10 (deal pin `skylinePreLives`).
+  size, except Orbit's planets (stage 2): nine surface maps baked in Blender by `scripts/orbit-planets-blender.py`
+  (procedural materials, fixed seeds, `--check` rebuilds byte for byte; Blender as a Python module from a venv outside the
+  project), 363 KB in `public/orbit/planets/` (`orbitPlanetMaps.data.ts`), projected and lit by `orbitPlanets.renderer.ts`
+  inside each collision circle, icy worlds taking only a cold cast (`orbitIceCast`). **Re-run the Blender script after
+  changing a material.** `pinSkylinePreLives(true)` deals skylineRev 10 (deal pin `skylinePreLives`).
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
