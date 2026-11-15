@@ -7,7 +7,9 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { RunSummaryProps } from "@/components/duel/runSummary";
 import { poolPenalty, POOL_SPOTS, poolSetName, POOL_SET_SPOTS } from "@/lib/arcade/pool";
 import { poolRunEvents, type PoolRunEvents } from "@/lib/arcade/poolRunEvents";
-import { drawPoolSummary, poolSummaryHeight } from "@/lib/arcade/poolSummary.renderer";
+import { drawPoolSummary, poolSummaryHeight, type PoolSummaryLanding } from "@/lib/arcade/poolSummary.renderer";
+import { FxCountUp } from "@/components/fx/GameFx";
+import { gameFxVariant, type GameFxVariant } from "@/lib/fx/kit";
 
 /** The run's key numbers, as short labelled tiles (no "×", nothing that reads as describing the solution). */
 export function poolSummaryStats(ev: PoolRunEvents, rev: number): { label: string; value: string; tone?: "good" | "bad" }[] {
@@ -24,6 +26,39 @@ export function poolSummaryStats(ev: PoolRunEvents, rev: number): { label: strin
   const fouls = ev.fouls.length;
   out.push({ label: "Fouls", value: fouls === 0 ? "0" : `${fouls} (−${poolPenalty(ev.state)})`, ...(fouls > 0 ? { tone: "bad" as const } : {}) });
   return out;
+}
+
+/** Each pot's landing on the summary table (ms), and the gap before the next starts. */
+export const POOL_LAND_MS = 260;
+export const POOL_LAND_GAP_MS = 140;
+
+/** The landing's plan for a number of pots and the kit's variant: null for the final state at once (no pots, reduced, calm). */
+export function poolLandingPlan(pots: number, variant: GameFxVariant): { pots: number; land: number; gap: number } | null {
+  if (pots === 0 || variant === "reduced" || variant === "calm") return null;
+  const lite = variant === "lite";
+  return { pots, land: lite ? POOL_LAND_MS / 2 : POOL_LAND_MS, gap: lite ? POOL_LAND_GAP_MS / 2 : POOL_LAND_GAP_MS };
+}
+
+/** Where the landing is at `ms`: the pots fully down and the next one's share in, or null once every pot is down. */
+export function poolLandingAt(plan: { pots: number; land: number; gap: number }, ms: number): PoolSummaryLanding | null {
+  if (ms >= (plan.pots - 1) * plan.gap + plan.land) return null;
+  const n = Math.max(0, Math.min(plan.pots - 1, Math.floor(ms / plan.gap)));
+  return { pots: n, land: Math.max(0, Math.min(1, (ms - n * plan.gap) / plan.land)) };
+}
+
+/**
+ * A tile's value with its leading number counting up (the kit's FxCountUp; the final number is in the markup), the rest
+ * of the words as they are ("6 of 7", "2 pots", "1 (−10)"). A value with no leading number shows as it is.
+ */
+function StatValue({ value, className }: { value: string; className: string }) {
+  const m = /^(\d+)(.*)$/.exec(value);
+  if (!m) return <span className={className}>{value}</span>;
+  return (
+    <span className={className} data-pool-stat-value={value}>
+      <FxCountUp value={Number(m[1])} silent />
+      {m[2]}
+    </span>
+  );
 }
 
 export default function PoolSummary({ puzzle, myAnswer }: RunSummaryProps) {
@@ -51,7 +86,25 @@ export default function PoolSummary({ puzzle, myAnswer }: RunSummaryProps) {
     const ctx = c.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawPoolSummary(ctx, w, h, events);
+    // The payoff (stage 2): the pots land on the table one by one, by the kit's count-up rules (lighter on a slow phone
+    // or with the battery saver; the final table at once under reduced motion or with celebrations off). Bounded.
+    const plan = poolLandingPlan(events.pots.length, gameFxVariant("countUp"));
+    if (!plan || typeof requestAnimationFrame === "undefined") {
+      drawPoolSummary(ctx, w, h, events);
+      return;
+    }
+    let frame = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const at = poolLandingAt(plan, now - start);
+      drawPoolSummary(ctx, w, h, events, at ?? undefined);
+      if (at) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      drawPoolSummary(ctx, w, h, events);
+    };
   }, [events, w, h]);
   if (!events) return null;
   const stats = poolSummaryStats(events, rev);
@@ -65,7 +118,7 @@ export default function PoolSummary({ puzzle, myAnswer }: RunSummaryProps) {
         {stats.map((s) => (
           <div key={s.label} data-pool-stat={s.label} className="flex flex-col rounded-lg bg-black/30 px-3 py-2">
             <span className="text-sm font-semibold text-muted-foreground">{s.label}</span>
-            <span className={`text-xl font-extrabold tabular-nums ${s.tone === "bad" ? "text-destructive" : "text-foreground"}`}>{s.value}</span>
+            <StatValue value={s.value} className={`text-xl font-extrabold tabular-nums ${s.tone === "bad" ? "text-destructive" : "text-foreground"}`} />
           </div>
         ))}
       </div>

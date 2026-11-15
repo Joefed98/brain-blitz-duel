@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 39 | 0 | 489 | 528 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 65 | 1 | 985 | 1051 |
 
 ## Silent and placeholder cues
 
@@ -247,6 +247,15 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
+
+### Cue Ball
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pool.cueCrack` | Cue Ball: The cue strikes the cue ball (with its file it replaces the soft or hard strike) [pool-overhaul.md] |  | 5–20 | silent | none | 300 | game event | `pool.cueCrack` |
+| `pool.rackRoll` | Cue Ball: A potted ball of your set lands in the rack at the top [pool-overhaul.md] |  | 0–7 | silent | none | 800 | game event | `pool.rackRoll` |
+| `pool.blackUnlock` | Cue Ball: Your seven are down: the black unlocks [pool-overhaul.md] |  | 0–1 | silent | none | 700 | game event | `pool.blackUnlock` |
+| `pool.streakUp` | Cue Ball: The "IN A ROW" count grows [pool-overhaul.md] |  | 0–6 | silent | none | 400 | game event | `pool.streakUp` |
 
 ### Dual
 
@@ -1327,6 +1336,7 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pool.click` | Cue Ball: Ball meets ball [arcade.md] |  | 10–60 | recorded sound | `pool.click` | 200 | game event | `pool.click` |
+| `pool.jawRattle` | Cue Ball: A ball bounces off a pocket's jaw (the ball shivers) [arcade.md] |  | 0–8 | recorded sound | `arc_bounce` (shared) | 600 | game event | `pool.jawRattle` |
 | `pool.pocket` | Cue Ball: A ball drops into a pocket (the cue ball too): poolRev 1 on the drop, poolRev 2 as the rolling ball reaches the mouth, 10 ticks into its 18-tick drop (POOL_DROP_MOUTH_TICKS, pool.renderer.ts) (without its file: shared.celebrate.countDing, 0.9, as before) [batch6-sports-cards.md] |  | 5–12 | recorded sound | `pool.pocket` | 908 | game event | `pool.pocket` |
 | `pool.foul` | Cue Ball: A foul (without its file: shared.celebrate.zap, 0.7, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `pool.foul` | 484 | game event | `pool.foul` |
 | `pool.blackWin` | Cue Ball: The black potted after every spot (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `pool.blackWin` | 1327 | game event | `pool.blackWin` |
@@ -1951,7 +1961,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
+| `arc_bounce` | effects | `racing.grass`, `pool.jawRattle`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |

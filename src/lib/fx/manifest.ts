@@ -1076,6 +1076,12 @@ const ENTRIES = {
   "pool.cueSoft": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/pool_cue_soft.mp3" },
   "pool.cueHard": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/pool_cue_hard.mp3" },
   "pool.cushion": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/pool_cushion.mp3" },
+  // The Sports overhaul's Cue Ball moments (stage 2; docs/sound-cues/pool-overhaul.md): no file yet (Joe's ElevenLabs list).
+  "pool.cueCrack": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "pool.jawRattle": { channel: "effects", frequency: 0, ms: 600, url: null },
+  "pool.rackRoll": { channel: "effects", frequency: 0, ms: 800, url: null },
+  "pool.blackUnlock": { channel: "effects", frequency: 0, ms: 700, url: null },
+  "pool.streakUp": { channel: "effects", frequency: 0, ms: 400, url: null },
   "curling.release": { channel: "effects", frequency: 0, ms: 484, url: "/sounds/curling_release.mp3" },
   "curling.slide": { channel: "effects", frequency: 0, ms: 2177, url: "/sounds/curling_slide_loop.mp3", loop: true },
   "curling.sweep": { channel: "effects", frequency: 0, ms: 1013, url: "/sounds/curling_sweep_loop.mp3", loop: true },

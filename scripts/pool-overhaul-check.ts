@@ -245,6 +245,219 @@ const allRuns: { rev: number; seed: number; raw: string; label: string }[] = [..
   ok(kb < 400, `Cue Ball's new images total ${kb.toFixed(1)} KB (budget 400 KB)`);
 }
 
+/*
+ * 6. Stage 2's effects (display only; poolFx.ts and pool.renderer.ts). Every effect is read off the sim's own state:
+ *    a. the preview's side-spin bend turns the way the sim turns the cue ball at a cushion, by about as much;
+ *    b. the contact flash shows at the meeting point on (nearly) every ball-on-ball tick, and only within its ticks;
+ *    c. a jaw rattle is detected only on a tick a cushion or jaw was struck, for a ball on the table at a jaw;
+ *    d. a potted ball of the set flies to the rack exactly after its drop, and lights the rack on landing; no other
+ *       ball flies;
+ *    e. "FOUL −10" sits inside the table, beside the cue ball, for exactly its ticks after a foul;
+ *    f. under reduced motion no transient flourish is drawn (the thrust, the puff, the flash, the flight);
+ *    g. drawing a state never changes it, so the sim is identical with the effects on and off;
+ *    h. the reveal's pots land one by one and end on the final table; none move under reduced motion or calm;
+ *    i. the success layer's streak sits by the rack, and CLEARED! carries the clear's time.
+ */
+{
+  const fx = await import("../src/lib/arcade/poolFx");
+  const R = await import("../src/lib/arcade/pool.renderer");
+  const P = await import("../src/lib/arcade/pool");
+  const { POOL_FX } = await import("../src/lib/arcade/sportsFx.renderer");
+  const { poolLandingPlan, poolLandingAt } = await import("../src/components/duel/summaries/PoolSummary");
+
+  // a. Side spin against the sim: a lone cue ball shot into the right cushion with no side, then with ±side.
+  {
+    const angleAfterBounce = (side: number, rev: number): number | null => {
+      const game = P.poolGameFor(rev);
+      let s = game.init(v4Runs[0]!.seed);
+      s = { ...s, balls: s.balls.map((b) => (b.id === P.POOL_CUE ? { ...b, x: 150 * 256, y: 380 * 256, vx: 0, vy: 0 } : { ...b, down: 1 })) };
+      const shot = { t: s.tick + 1, k: P.POOL_INPUT_SHOT, a: 4096, b: 900, ...P.poolShot2(600, side, 0) };
+      let prevVx = 0;
+      for (let t = 0; t < 400; t++) {
+        const before = s.balls.find((b) => b.id === P.POOL_CUE)!;
+        prevVx = before.vx;
+        s = game.step(s, t === 0 ? (shot as never) : null);
+        const cue = s.balls.find((b) => b.id === P.POOL_CUE)!;
+        if (prevVx > 0 && cue.vx < 0) return Math.atan2(cue.vy, cue.vx);
+      }
+      return null;
+    };
+    let right = 0;
+    let cases = 0;
+    const notes: string[] = [];
+    for (const rev of [2, 3, 4]) {
+      const plain = angleAfterBounce(0, rev);
+      for (const side of [-100, -50, 50, 100]) {
+        cases++;
+        const spun = angleAfterBounce(side, rev);
+        if (plain === null || spun === null) continue;
+        const simTurn = spun - plain;
+        const bent = fx.poolSideBend(Math.cos(plain), Math.sin(plain), side, rev);
+        const shownTurn = Math.atan2(bent.vy, bent.vx) - plain;
+        const close = Math.sign(simTurn) === Math.sign(shownTurn) && Math.abs(shownTurn - simTurn) <= Math.abs(simTurn) * 0.35 + 0.01;
+        if (close) right++;
+        else notes.push(`rev ${rev} side ${side}: sim ${simTurn.toFixed(3)} rad, preview ${shownTurn.toFixed(3)} rad`);
+      }
+    }
+    for (const n of notes.slice(0, 4)) console.log(`    ${n}`);
+    ok(right === cases, `the preview's side-spin bend turns the sim's way by about the sim's amount at a cushion (${right} of ${cases}: poolRev 2–4, four sides)`);
+    // The preview draws the spun bounce (gold) only with side on the dot.
+    const game = P.poolGameFor(4);
+    const s0 = game.init(v4Runs[0]!.seed);
+    const cue = s0.balls.find((b) => b.id === P.POOL_CUE)!;
+    const drawAimAt = (spinX: number) => {
+      const c = createCanvas(390, 740);
+      R.drawPool(c.getContext("2d") as unknown as CanvasRenderingContext2D, s0, { dx: 1, dy: 0.15, power: 0.5, spinX, spinY: 0 });
+      return c.getContext("2d").getImageData(0, 0, 390, 740).data;
+    };
+    const plain = drawAimAt(0);
+    const spun = drawAimAt(80);
+    let diff = 0;
+    for (let i = 0; i < plain.length; i += 4) if (Math.abs(plain[i]! - spun[i]!) > 30) diff++;
+    ok(diff > 20 && R.poolAimSide({ spinX: 80 }, 4) === 80 && R.poolAimSide({ spinX: 80 }, 1) === 2, `side on the dot draws the spun bounce (${diff} px differ from no side; cue at ${(cue.x / 256).toFixed(0)}, ${(cue.y / 256).toFixed(0)})`);
+  }
+
+  // Every tick of the stored runs, through the sim, for b–e.
+  let hitTicks = 0;
+  let flashed = 0;
+  let flashOutside = 0;
+  let jawSeen = 0;
+  let jawWrong = 0;
+  let flightsWrong = 0;
+  let flightsSeen = 0;
+  let foulWrong = 0;
+  let foulSeen = 0;
+  let mutated = 0;
+  for (const run of allRuns) {
+    const game = P.poolGameFor(run.rev);
+    const dec = decodeSportsRun(run.raw, game.runTicks);
+    const events = new Map(checkInputEvents(dec.events, game.runTicks, game.inputRanges ?? []).events.map((e) => [e.t, e]));
+    let s = game.init(run.seed);
+    for (let t = 1; t <= game.runTicks; t++) {
+      s = game.step(s, events.get(t) ?? null);
+      // b. The flash.
+      const c = fx.poolContactPoint(s);
+      if (s.hitTick === s.tick && s.hits > 0) {
+        hitTicks++;
+        if (c) flashed++;
+      }
+      if (c && (s.tick - s.hitTick >= fx.POOL_FX_FLASH_TICKS || s.tick < s.hitTick)) flashOutside++;
+      // c. The jaw.
+      const jaw = fx.poolJawContact(s);
+      if (jaw !== null) {
+        jawSeen++;
+        const b = s.balls.find((x) => x.id === jaw)!;
+        if (s.cushionTick !== s.tick || b.down) jawWrong++;
+      }
+      // d. Flights: exactly in their window, the set's balls only, and the rack lit from landing.
+      for (const b of s.balls) {
+        const f = fx.poolFlight(s, b);
+        if (f !== null) flightsSeen++;
+        if (b.downAt === undefined || !b.down) {
+          if (f !== null) flightsWrong++;
+          continue;
+        }
+        const age = s.tick - b.downAt - fx.POOL_FX_DROP_TICKS;
+        const inWindow = age >= 0 && age < fx.POOL_FX_FLIGHT_TICKS;
+        const flies = b.id >= 1 && b.id <= P.POOL_SPOTS;
+        if ((f !== null) !== (inWindow && flies)) flightsWrong++;
+        if (flies && fx.poolInRack(s, b) !== (age >= fx.POOL_FX_FLIGHT_TICKS || s.over === 1)) flightsWrong++;
+      }
+      // e. The foul label.
+      const lab = fx.poolFoulLabel(s);
+      const cue = s.balls.find((b) => b.id === P.POOL_CUE && !b.down);
+      const live = s.fouls > 0 && s.tick - s.foulTick < fx.POOL_FX_FOUL_TICKS && !!cue;
+      if (lab) {
+        foulSeen++;
+        const inside = lab.x - 37 >= P.POOL_CL && lab.x + 37 <= P.POOL_CR && lab.y - 10 >= P.POOL_CT && lab.y + 10 <= P.POOL_CB;
+        const near = cue ? Math.hypot(lab.x - cue.x / 256, lab.y - cue.y / 256) <= 55 : false;
+        if (!inside || !near || !live || lab.text !== `FOUL −${P.POOL_FOUL_PTS}`) foulWrong++;
+      } else if (live) foulWrong++;
+      if (game.isOver(s)) break;
+    }
+    // g. Drawing never touches a state (a sample of ticks per run).
+    let s2 = game.init(run.seed);
+    for (let t = 1; t <= game.runTicks; t++) {
+      s2 = game.step(s2, events.get(t) ?? null);
+      if (t % 37 === 0) {
+        const before = JSON.stringify(s2);
+        const cv = createCanvas(390, 740);
+        R.drawPool(cv.getContext("2d") as unknown as CanvasRenderingContext2D, s2, { dx: 0.6, dy: -0.8, power: 0.4, spinX: 40, spinY: 20 });
+        if (JSON.stringify(s2) !== before) mutated++;
+      }
+      if (game.isOver(s2)) break;
+    }
+  }
+  ok(hitTicks > 0 && flashed >= hitTicks * 0.9 && flashOutside === 0, `the contact flash shows on ${flashed} of ${hitTicks} ball-on-ball ticks and never outside its ${fx.POOL_FX_FLASH_TICKS} ticks`);
+  ok(jawSeen > 0 && jawWrong === 0, `a jaw rattle is read only on a tick a cushion or jaw was struck, for a ball still on the table (${jawSeen} rattles)`);
+  ok(flightsSeen > 0 && flightsWrong === 0, `potted balls of the set fly to the rack exactly after their drop and light it on landing; no other ball flies (${flightsSeen} flight frames)`);
+  ok(foulSeen > 0 && foulWrong === 0, `"FOUL −${P.POOL_FOUL_PTS}" sits inside the table beside the cue ball for exactly its ticks after a foul (${foulSeen} frames)`);
+  ok(mutated === 0, "drawing a state with every effect never changes it: the sim is identical with the effects on and off");
+
+  // f. Reduced motion: a strike, a flash and a flight are drawn (full), and none of them under reduced motion.
+  {
+    const run = allRuns.find((r) => r.rev >= 2)!;
+    const game = P.poolGameFor(run.rev);
+    const dec = decodeSportsRun(run.raw, game.runTicks);
+    const events = new Map(checkInputEvents(dec.events, game.runTicks, game.inputRanges ?? []).events.map((e) => [e.t, e]));
+    let s = game.init(run.seed);
+    let strike: typeof s | null = null;
+    let flight: typeof s | null = null;
+    for (let t = 1; t <= game.runTicks && (!strike || !flight); t++) {
+      s = game.step(s, events.get(t) ?? null);
+      if (!strike && fx.poolStrikePoint(s)?.age === 2) strike = s;
+      if (!flight && s.balls.some((b) => (fx.poolFlight(s, b) ?? 0) > 0.4)) flight = s;
+      if (game.isOver(s)) break;
+    }
+    const frame = (st: typeof s) => {
+      const c = createCanvas(390, 740);
+      R.drawPool(c.getContext("2d") as unknown as CanvasRenderingContext2D, st, null);
+      return Buffer.from(c.getContext("2d").getImageData(0, 0, 390, 740).data).toString("base64");
+    };
+    // The same state with the effect's moment moved out of reach draws no flourish.
+    const noStrike = (st: typeof s) => ({ ...st, shotTicks: 999 });
+    const noFlight = (st: typeof s) => ({ ...st, over: 1 });
+    const fullDiffers = !!strike && !!flight && frame(strike) !== frame(noStrike(strike)) && frame(flight) !== frame({ ...flight, balls: flight.balls.map((b) => (b.downAt !== undefined ? { ...b, downAt: -9999 } : b)) });
+    (globalThis as unknown as { window: unknown }).window = { matchMedia: () => ({ matches: true }) };
+    const stillSame = !!strike && frame(strike) === frame(noStrike(strike)) && !!flight && frame(flight) === frame({ ...flight, balls: flight.balls.map((b) => (b.downAt !== undefined ? { ...b, downAt: -9999 } : b)) });
+    void noFlight;
+    ok(fullDiffers && stillSame, "the strike's thrust and puff and the flight to the rack are drawn, and under reduced motion none of them is (the state drawn still)");
+    delete (globalThis as unknown as { window?: unknown }).window;
+  }
+
+  // h. The reveal's pots land one by one and end on the final table; nothing moves under reduced motion or calm.
+  {
+    const plan = poolLandingPlan(5, "full")!;
+    // Five pots, 140 ms apart, each landing over 260 ms: every sample until 820 ms is on its way, then it stops.
+    const at = [0, 100, 300, 600, 800, 2000].map((ms) => poolLandingAt(plan, ms));
+    const ordered = at.slice(0, -1).every((a, i) => i === 0 || (a !== null && at[i - 1] !== null && a.pots >= at[i - 1]!.pots));
+    ok(
+      poolLandingPlan(5, "reduced") === null && poolLandingPlan(5, "calm") === null && poolLandingPlan(0, "full") === null && poolLandingPlan(5, "lite")!.land < plan.land && ordered && at[5] === null,
+      "the reveal's pots land in order and stop; reduced motion, celebrations off and a run with no pots draw the final table at once",
+    );
+    const ev = poolRunEvents(allRuns[0]!.seed, allRuns[0]!.raw, allRuns[0]!.rev);
+    const w = 358;
+    const h = poolSummaryHeight(w);
+    const draw = (l?: { pots: number; land: number }) => {
+      const c = createCanvas(w, h);
+      drawPoolSummary(c.getContext("2d") as unknown as CanvasRenderingContext2D, w, h, ev, l);
+      return Buffer.from(c.getContext("2d").getImageData(0, 0, w, h).data).toString("base64");
+    };
+    const last = Math.max(0, ev.pots.length - 1);
+    ok(ev.pots.length > 0 && draw({ pots: last, land: 1 }) === draw() && draw({ pots: 0, land: 0 }) !== draw(), `the landing ends exactly on the final table (${ev.pots.length} pots)`);
+  }
+
+  // i. The success layer: the streak by the rack, CLEARED! with the time.
+  {
+    const combo = POOL_FX.events.find((e) => e.kind === "combo")!;
+    const fin = POOL_FX.events.find((e) => e.kind === "final")!;
+    const spot = combo.at!({} as never);
+    const s = { ...poolGameFor(4).init(1), black: 1, finishAt: 2472 };
+    ok(spot.y <= 80 && spot.x <= 200, `the streak's count pops by the rack (${spot.x}, ${spot.y}), not mid-table`);
+    ok((fin.label as (s: unknown) => string)(s) === "CLEARED! 41.2 s", `the clear reads "${(fin.label as (s: unknown) => string)(s)}"`);
+  }
+}
+
 if (failures.length) {
   console.log(`FAIL pool-overhaul-check: ${failures.length} failure(s)`);
   process.exit(1);

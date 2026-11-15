@@ -43,7 +43,16 @@ export function poolSummarySizes(w: number): { tableBallR: number; potR: number;
   return { tableBallR, potR: tableBallR * POOL_SUMMARY_MARK_SCALE, numberR: Math.max(7, tableBallR * 1.7), foulR: Math.max(8, tableBallR * 1.9) };
 }
 
-export function drawPoolSummary(ctx: CanvasRenderingContext2D, w: number, h: number, ev: PoolRunEvents): void {
+/**
+ * The pots' landing (stage 2's reveal payoff): `pots` pots drawn in place, and the next one `land` of the way in (0…1:
+ * dropping from above its spot, growing from 1.6× and fading in). Omitted: every pot in place (the final state).
+ */
+export interface PoolSummaryLanding {
+  pots: number;
+  land: number;
+}
+
+export function drawPoolSummary(ctx: CanvasRenderingContext2D, w: number, h: number, ev: PoolRunEvents, landing?: PoolSummaryLanding): void {
   ctx.clearRect(0, 0, w, h);
   const { k, at } = poolSummaryMap(w);
   const m = POOL_SUMMARY_MARGIN;
@@ -72,12 +81,17 @@ export function drawPoolSummary(ctx: CanvasRenderingContext2D, w: number, h: num
     const along = pw.x > midX + 1 ? -1 : pw.x < midX - 1 ? 1 : 1;
     const i = perPocket.get(pot.pocket) ?? 0;
     perPocket.set(pot.pocket, i + 1);
+    // The landing: pots after the one arriving aren't drawn yet; the arriving one drops in, larger and fading in.
+    if (landing && order > landing.pots) return;
+    const arriving = landing && order === landing.pots ? Math.max(0, Math.min(1, landing.land)) : 1;
+    if (arriving <= 0) return;
     const bx = Math.min(w - r - 1, Math.max(r + 1, pw.x + along * i * r * 2.15));
-    const by = pw.y + up * r * 0.25;
+    const by = pw.y + up * r * 0.25 - (1 - arriving) * r * 2.5;
     ctx.save();
-    if (!pot.mine) ctx.globalAlpha = 0.85;
-    drawPoolBallAt(ctx, poolShownId(pot.id, set), bx, by, r);
+    ctx.globalAlpha = (pot.mine ? 1 : 0.85) * arriving;
+    drawPoolBallAt(ctx, poolShownId(pot.id, set), bx, by, r * (1 + 0.6 * (1 - arriving)));
     ctx.restore();
+    if (arriving < 1) return;
     // The pot's order in a gold disc beside the ball, out towards the table's edge (a foul's ball in red).
     const tx = bx + along * r * 0.75;
     const ty = by + up * r * 0.95;
