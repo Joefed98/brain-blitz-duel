@@ -71,41 +71,42 @@ lifts, with confetti on a birdie or better; water a splash ring and a "plip"; sa
 
 | | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
-| Par | best route + 1 | best route + 1 | the best route | the best route |
+| Par | best route + 2 | best route + 2 | the best route | the best route |
 | Under par (4 a hole) | under par | under par | in par | in par |
 | Stroke limit | par + 4 | par + 3 | par + 3 | par + 2 |
 | Windmill sails | slower (128) | 256 | 256 | faster (512) |
 | Extra hazards | | | each template's | each template's |
-| Slopes, domes, swells | | | 1.4× | 1.8× |
-| Aim preview (display) | the line to its first bounce | the full line | 45 % | 25 % |
-| Speed full by | 60 s | 53 s | 42 s | 36 s |
+| Slopes, domes, swells, bowls | | | 1.4× | 1.8× |
+| Aim preview (display) | the line to its first bounce | the full line | 35 % | 20 % |
+| Speed full by | 60 s | 53 s | 24 s | 22 s |
 
 Each level builds its own hole (`buildHoleV3(id, slot, level)`: its sails, extras and slope strength) and each level's
-par is proven on that hole: the bank holds four witnesses a hole. Holing in par earns the under-par bonus on Hard and
-Expert, where par is the best route itself, so 200 stays reachable on every level (every composed course's witness
-scores 200 at every level). The levels are ready for the difficulty framework (#432): its
+par is proven on that hole: the bank holds four witnesses a hole and each witness's time (`t`). Holing in par earns the
+under-par bonus on Hard and Expert, where par is the best route itself. The deal (`pickMinigolfHoles`) re-draws until the
+five holes' witness times fit the level's Speed time, so 200 stays reachable on every level (every composed course's
+witness scores 200 at every level; crazy-golf-v3-check). The levels are ready for the difficulty framework (#432): its
 `GAME_LEVELS` entry is `minigolf: { levels: { easy: { settings: {} }, hard: { settings: {} }, expert: { settings: {} } } }`
 (the deal reads `context.level`; `generateMinigolf` already takes it).
 
 **Parts** (200, as golfRev 2): Holes 120, Par 40 (falling to 0 at the level's stroke limit), Under par 20, Speed 20
 (full by the level's time, 0 at 90 s).
 
-**Measured** (15 Nov 2026, `bun scripts/crazy-golf-levels.ts --courses=24`: the golfRev 3 bot,
-`scripts/arcade-skill-bands/bots/minigolfV3.ts`, under the skill-band tool's human limits, on 24 courses dealt from the
-bank as the server deals them, every run scored through the server's replay; the aim preview modelled as a scale on the
-power error, Easy 0.6, Normal 1, Hard 1.35, Expert 1.7). Median score (all five holed of 24; median finish):
+**Measured** (round 2, 15 Nov 2026, `bun scripts/crazy-golf-levels.ts --courses=32 --skills=great,near,elite`: the
+golfRev 3 bot, `scripts/arcade-skill-bands/bots/minigolfV3.ts`, under the skill-band tool's human limits, on 32 courses
+dealt from the bank as the server deals them, every run scored through the server's replay; the aim preview modelled as
+a scale on the power error, Easy 0.6, Normal 1, Hard 1.75, Expert 2.3). Median score / mean (all five holed of 32;
+median finish):
 
-| | Good | Great | Near-perfect | Elite |
+| | Great | Near-perfect | Elite | Target (near-perfect) |
 |---|---|---|---|---|
-| Easy | 179.5 (20; 53.7 s) | 184 (21; 44.6 s) | 186 (23; 39.3 s) | 189 (24; 34.9 s) |
-| Normal | 170.5 (19; 57.1 s) | 171.5 (19; 47.8 s) | 184.5 (21; 37.6 s) | 186 (23; 32.9 s) |
-| Hard | 164.5 (17; 54.6 s) | 176.5 (20; 46.7 s) | 181 (22; 38.3 s) | 188.5 (21; 32.3 s) |
-| Expert | 144.5 (12; 57.7 s) | 174 (16; 44.3 s) | 178 (14; 34.6 s) | 188 (21; 35.8 s) |
+| Easy | 195 / 191.5 (30; 49.5 s) | 196 / 195.5 (32; 40.7 s) | 200 / 196.8 (32; 36.8 s) | |
+| Normal | 194 / 186.0 (28; 47.1 s) | 196 / 195.8 (32; 40.1 s) | 200 / 196.6 (32; 37.6 s) | about 198 |
+| Hard | 161 / 157.2 (26; 44.5 s) | 168 / 164.0 (25; 38.7 s) | 175.5 / 172.8 (29; 33.9 s) | about 160 |
+| Expert | 145.5 / 144.1 (17; 43.8 s) | 156 / 152.9 (19; 36.3 s) | 172 / 167.4 (25; 32.7 s) | about 140 |
 
-About 1.1–1.5 chips a run. Expert is humanly possible (the elite bot holes all five on 21 of 24 courses, median 188;
-every course's witness scores 200 on Expert). The brief's targets (about 198, 160 and 140) are not met as measured: the
-levels' rules are the brief's table, which separates the levels mostly by the stroke limit and the sails; see the PR's
-"Needs Joe".
+Tried and not kept: Expert's slopes at 2.2× (the bank re-proved, 356 holes): near-perfect median 158.5, mean 154.2, 20 of
+32 holed, no lower than 1.8×. Expert's stroke limit at par + 1: near-perfect median 139, mean 135.2, but only 9 of 32
+hole all five (great 119.5, 7 of 32; elite 160, 20 of 32), so it misses "mostly finishing"; a decision for Joe.
 
 **Proofs.** crazy-golf-v3-check (the catalogue, the bank, 600 composed courses at 200, the deal, the chip, the swells, the
 levels, the reveal's trace; `CHECKS_FULL=1` also rebuilds the bank byte for byte, about 20 min), minigolf-sync-check
