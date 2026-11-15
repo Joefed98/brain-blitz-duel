@@ -14,7 +14,7 @@
  *     live board on screen; no vibrate call exists outside the helper, and haptic() is called only
  *     from the listed call sites (CALL_SITES).
  *  4. The setting: "Haptics" in Settings, on by default, saved on the device; off stops everything;
- *     on an unsupported device the switch shows "Not supported on this device" and nothing calls.
+ *     on an unsupported device the Haptics row isn't drawn (and leaves no gap) and nothing calls.
  *
  *   bun scripts/haptics-check.tsx
  */
@@ -212,7 +212,14 @@ await clear();
 supportVibrate(false);
 H.resetHapticsForTest();
 await draw(settingsPage());
-check(!!hapticsRow() && hapticsRow()?.querySelector("[data-setting-note]")?.textContent === "Not supported on this device", "unsupported: the switch is shown with its note");
+// Changed with Joe's approval, 15 Nov 2026 (Haptics shown only where supported): on an unsupported device the Haptics
+// row isn't drawn and leaves no gap (the panel's rows run straight from Direction controls to Battery saver).
+{
+  const rows = Array.from(document.querySelector("[data-settings-group='controls'] [data-jz='panel'], [data-settings-group='controls'] .jz-panel")?.children ?? []);
+  const marks = rows.map((r) => r.getAttribute("data-setting"));
+  check(!hapticsRow() && !document.body.textContent?.includes("Not supported on this device"), "unsupported: no Haptics row and no note");
+  check(marks.join(",") === "direction,battery", `unsupported: no gap where Haptics was (${marks.join(",")})`);
+}
 await clear();
 supportVibrate(true);
 document.querySelectorAll("[data-settings-page]").forEach((n) => n.remove());

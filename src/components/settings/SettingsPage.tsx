@@ -159,14 +159,8 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
                 ]}
               />
             </div>
-            {/* Haptics (on by default): main moments only. Shown where the device has none, with a note. */}
-            <SwitchRow
-              label="Haptics"
-              on={haptics}
-              onChange={setHapticsOn}
-              note={hapticsSupported ? undefined : "Not supported on this device"}
-              data="haptics"
-            />
+            {/* Haptics (on by default): main moments only. Drawn only where the device can vibrate (Joe, 15 Nov 2026). */}
+            {hapticsSupported ? <SwitchRow label="Haptics" on={haptics} onChange={setHapticsOn} data="haptics" /> : null}
             {/* Battery saver (off by default): fewer particles and glows, puzzles at 30 fps. */}
             <SwitchRow label="Battery saver" on={saver} onChange={setBatterySaver} data="battery" />
           </Panel>
