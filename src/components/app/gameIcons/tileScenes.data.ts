@@ -77,7 +77,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   rooftop: "0b2ef030d8",
   safe: "03cc4b8719",
   shikaku: "92e8cf996b",
-  skyline: "dab78e9841",
+  skyline: "e75df62905",
   slice: "dc5fa5556d",
   snake: "d55170b941",
   snip: "f1c76f9426",
