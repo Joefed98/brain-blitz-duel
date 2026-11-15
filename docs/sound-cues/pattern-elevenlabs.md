@@ -67,9 +67,9 @@ Look A: glossy lacquered blocks on a dark slab with brass studs. Today `turn` an
 
 <!-- chroma:start -->
 ## Chroma Lines
-- `flow.draw` — the line grows one square: a single soft liquid "bloop", like a drop of thick paint pushed through a glass tube; round, warm, no click at the start; the game plays it a little higher with every square, so record it at a low-middle pitch; 120–150 ms.
-- `flow.cut` — drawing over another colour cuts that line back: a quick soft snip of a rubber tube, wet and short, a little lower than the draw tone, never harsh; 150–200 ms.
-- `flow.connect` — a pair joined (the one sound for it; today's file is a placeholder): a glass marble settling into a cup with a short liquid "plip" rising a fifth, satisfying and clean; 400–500 ms.
+- `flow.draw` — the line grows one square: a soft liquid slide, thick glossy paint gliding a short way along a glass tube (a smooth "shhlp" with a gentle upward glide, no bloop or click at the start); it plays on every square, rising smoothly in pitch as the line grows (up to half again, levelling off), so record it at a low-middle pitch and keep its tail short enough to chain; 120–150 ms.
+- `flow.cut` — drawing over another colour cuts that line back (the cut part retracts into the cut): a quick soft snip of a rubber tube followed by a short wet suck-back, a little lower than the draw tone, never harsh; 180–240 ms.
+- `flow.connect` — a pair joined (the one sound for it, under a light running along the tube to the far bead; today's file is a placeholder): a short liquid rush along the tube ending in a glass marble settling with a "plip" rising a fifth, satisfying and clean; 400–500 ms.
 - `flow.nearMiss` — the board is one pair short (or every pair joined with squares empty): a gentle two-note hint, a soft glassy "almost", the second note left unresolved, quiet; 500–700 ms.
 - `flow.solve` — every square filled: liquid colour rushing through every tube at once, then a bright glass-marble chime chord that blooms and fades; 1.0–1.2 s.
 <!-- chroma:end -->

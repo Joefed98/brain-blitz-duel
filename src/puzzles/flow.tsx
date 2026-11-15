@@ -20,6 +20,7 @@ import { soundCue } from "@/lib/fx/soundCues";
 
 import { FLOW_CELL_URL, FLOW_WALL_URL, FlowBead, FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
 import { useSolveMoment } from "@/lib/fx/patternFx";
+import { gameFx } from "@/lib/fx/kit";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -60,13 +61,6 @@ export function FlowBoard({
   const pointer = useGridPointer({ cols, rows, onCell, onRelease });
   const metrics = useGridMetrics(pointer.ref, cols, rows);
 
-  const filled = new Map<number, string>();
-  paths.forEach((path, index) => {
-    const colour = pairs[index]?.colour;
-    if (!colour) return;
-    for (const cell of path) filled.set(cell, GLYPH_COLOURS[colour]);
-  });
-
   const stroke = metrics ? Math.max(3, metrics.cellW * 0.44) : 0;
   // Presentation only: which pairs are joined end to end, for the tube caps,
   // the join pulse and the completion effect.
@@ -76,11 +70,11 @@ export function FlowBoard({
     const last = path[path.length - 1];
     return path.length > 1 && ((first === pair.a && last === pair.b) || (first === pair.b && last === pair.a));
   });
-  const pulse = useFlowJoins(joined, live, solved);
+  useFlowJoins(joined, live, solved);
   const solveFx = useSolveMoment(live && solved, "flow.solve");
 
   return (
-    <div className={`flow-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none ${solveFx ? "flow-board-solved" : ""}`}>
+    <div className="flow-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none">
       <div
         ref={pointer.ref}
         className="puzzle-board grid h-full w-full touch-none"
@@ -96,7 +90,6 @@ export function FlowBoard({
         onPointerCancel={pointer.handlers.onPointerCancel}
       >
         {Array.from({ length: total }, (_, cell) => {
-          const tint = filled.get(cell);
           const dot = pairs.find((pair) => pair.a === cell || pair.b === cell);
           if (walls.includes(cell)) {
             return (
@@ -113,13 +106,15 @@ export function FlowBoard({
               key={cell}
               data-flow-empty={marks?.empty.has(cell) ? "" : undefined}
               className="flow-cell flex items-center justify-center rounded-[3px]"
-              style={{ backgroundImage: tint ? `linear-gradient(${tint}24, ${tint}24), url(${FLOW_CELL_URL})` : `url(${FLOW_CELL_URL})` }}
+              // No colour wash round a line (Joe, 15 Nov 2026: it read as a glow); the tube alone shows the square is filled.
+              style={{ backgroundImage: `url(${FLOW_CELL_URL})` }}
             >
               {/* The dot is a child of its own cell, so it is always dead centre,
                   and it sits above the path layer. */}
               {dot && (
                 <span
-                  className={`flow-dot relative block rounded-full ${joined[pairs.indexOf(dot)] ? "flow-dot-joined" : ""}`}
+                  className="flow-dot relative block rounded-full"
+                  data-flow-pair={pairs.indexOf(dot)}
                   data-flow-missed={marks?.missed.has(cell) ? "" : undefined}
                   data-flow-colour={dot.colour}
                   style={{
@@ -155,8 +150,9 @@ export function FlowBoard({
               };
             })}
             width={stroke}
-            pulse={pulse}
-            solved={solveFx}
+            live={live}
+            solved={solved}
+            solveFx={solveFx}
           />
         </svg>
       )}
@@ -294,10 +290,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   // squares still empty, a soft hint sounds; it sounds again only after the board has left that state.
   const nearMiss = !verdict.solved && pairs.length > 1 && (verdict.pairsJoined === pairs.length - 1 || (verdict.pairsJoined === pairs.length && filled < FLOW_CELLS - walls.length));
   const wasNear = useRef(false);
+  const arena = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (nearMiss && !wasNear.current && !locked) soundCue("flow.nearMiss");
+    if (nearMiss && !wasNear.current && !locked) {
+      soundCue("flow.nearMiss");
+      // The two dots still to join pulse softly (kit nearMiss; the sound is the game's own cue).
+      const open = verdict.pairsJoined === pairs.length - 1 ? verdict.joined.findIndex((j) => !j) : -1;
+      if (open !== -1) {
+        const dots = arena.current?.querySelectorAll(`.flow-dot[data-flow-pair="${open}"]`) ?? [];
+        dots.forEach((dot, i) => gameFx("nearMiss", dot, { silent: true, noHaptic: i > 0 }));
+      }
+    }
     wasNear.current = nearMiss;
-  }, [nearMiss, locked]);
+  }, [nearMiss, locked, verdict, pairs.length]);
 
   const dotPair = useCallback(
     (cell: number) => pairs.findIndex((pair) => pair.a === cell || pair.b === cell),
@@ -353,7 +358,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
       });
       // The line growing: a soft liquid tone, a little higher with every square (the join itself is `flow.connect`,
       // one sound, from the board).
-      if (grewTo) soundCue("flow.draw", Math.min(1.6, 1 + 0.04 * (grewTo - 2)));
+      // A fluid slide: the pitch rises smoothly and levels off (at most half again), so a long line never squeaks.
+      if (grewTo) soundCue("flow.draw", 1 + 0.5 * (1 - Math.exp(-(grewTo - 2) / 12)));
       if (cutLine) soundCue("flow.cut");
     },
     [cuts, dotPair, locked, pairs, paths, setPaths, walls],
@@ -384,7 +390,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           {verdict.pairsJoined} / {pairs.length} pairs
         </p>
       )}
-      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
+      <div ref={arena} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <FlowBoard
           pairs={pairs}
           paths={paths}

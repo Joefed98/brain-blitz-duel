@@ -63,8 +63,9 @@ const EFFECTS: Record<string, string> = {
   "bp-shine": "Block Party solve shine (bp-shine-still under reduced motion)",
   "bp-shine-still": "Block Party solve shine, reduced-motion version",
   "bp-snap-ring": "Block Party snap ring",
-  "flow-board-glow": "Pipeline/Flow solve glow",
-  "flow-pulse": "Flow endpoint pulse",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Chroma Lines' CSS solve glow
+  // (flow-board-glow) and line pulse (flow-pulse) are gone (Joe's no-glow fix); its effects are the kit's, whose reduced
+  // variants pattern-overhaul-flow-check proves. The check's own rule (a stale entry fails) removed the two entries.
   "grav-lock-ring": "Topsy-Turvy socket lock ring",
   "ice-fade-out": "Skid: a ball falling through a hole / the solve frost, reduced-motion version (the piece has left the board)",
   "ice-fall": "Skid: a ball falling through a hole (the piece has left the board)",

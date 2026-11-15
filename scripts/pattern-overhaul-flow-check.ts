@@ -17,6 +17,12 @@
  *     the switch, never half size), the player's board with unjoined pairs ringed and empty squares dotted, each pair
  *     as a bead chip (on route / another way / not joined), the numbers from the stored grade, plain labels, no "×";
  *     on the new stamp and an older one. Demos recorded before flowRev 3 stay stopped.
+ *  9. Stage 2 (15 Nov 2026): Joe's fix (no glow on the lines and dots: glossy tubes like concept A, a strong deep
+ *     body, no lighter core, no colour wash, no drop shadow) and the effects through the kit, on the real components
+ *     in happy-dom: the head slides into each new square, a cut part retracts, a join sends one light along its tube,
+ *     the near miss pulses the two unjoined dots, the solve pulses every line together (kit win); each only on its
+ *     moment, silent where the game plays its own cue, never blocking the next move, transform and opacity only, with
+ *     the reduced-motion crossfades.
  *
  *   bun scripts/pattern-overhaul-flow-check.ts
  */
@@ -285,6 +291,228 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
   check(/\.flow-reveal-board \{\s*width: min\(100%/.test(css) && !/flow-reveal-board[^}]*\/ 2\)/.test(css), "each reveal board is sized to the full column, never half width");
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   check(/data\.type === "flow"[^\n]*flowRev \?\? 0\) < 3\) return null/.test(demos), "demos recorded before flowRev 3 stay stopped");
+}
+
+/* ------------------------------------------------------------------ 9. Joe's fix and the effects (stage 2) */
+{
+  // Joe's fix (15 Nov 2026): the lines glowed neon on a phone. No glow, blur, drop shadow, blend or colour wash on the
+  // lines and dots; glossy tubes like concept A (a thin dark edge, darker sides, the saturated body, one crisp white
+  // highlight stripe; no lighter core).
+  const css = readFileSync("src/polish-pattern/flow.css", "utf8");
+  const art = readFileSync("src/components/puzzles/pattern/flowArt.tsx", "utf8");
+  const stage = readFileSync("src/puzzles/flow.tsx", "utf8");
+  const batchP = readFileSync("src/polish-batch-p/batch-p.css", "utf8");
+  const flowRules = (text: string) => [...text.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]*\.flow-[^{}]*)\{([^}]*)\}/g)].map((m) => `${m[1]}{${m[2]}}`);
+  for (const [name, text] of [["flow.css", css], ["batch-p.css", batchP]] as const)
+    for (const rule of flowRules(text))
+      check(!/drop-shadow|filter\s*:|blur\(|mix-blend/.test(rule), `${name}: a rule on Chroma Lines' lines or dots draws a glow or filter (${rule.trim().slice(0, 80)})`);
+  check(!/@keyframes/.test(css), "flow.css: no keyframes (the effects are the kit's, transform and opacity)");
+  check(!/feGaussianBlur|stroke-dash|strokeDash|mixBlendMode|mix-blend|filter=/.test(art), "flowArt: no blur, dash animation, blend or filter on the tubes");
+  check(!/const tint = /.test(stage) && !/linear-gradient\(\$\{tint\}/.test(stage), "the board no longer washes a line's colour into its squares");
+  const { tubeLayers, tubeBody } = await import("../src/components/puzzles/pattern/flowArt");
+  const hsl = (hex: string) => {
+    const n = Number.parseInt(hex.slice(1), 16);
+    const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255);
+    const max = Math.max(...c);
+    const min = Math.min(...c);
+    const l = (max + min) / 2;
+    const s = max === min ? 0 : l > 0.5 ? (max - min) / (2 - max - min) : (max - min) / (max + min);
+    return { s, l };
+  };
+  const { FLOW_COLOUR_HEX } = await import("../src/lib/duel/flow");
+  for (const c of COLOURS) {
+    const hex = FLOW_COLOUR_HEX[c];
+    const layers = tubeLayers(hex, 20);
+    const body = tubeBody(hex);
+    const lum = (h: string) => hsl(h).l;
+    const coloured = layers.filter((l) => l.stroke.toLowerCase() !== "#ffffff");
+    check(coloured.every((l) => lum(l.stroke) <= lum(body) + 1e-9), `${c}: no layer lighter than the body (no lighter core)`);
+    check(lum(coloured[0]!.stroke) < lum(body) * 0.45 && coloured[0]!.width > 20 && coloured[0]!.width <= 22, `${c}: a thin dark edge`);
+    check(coloured.some((l) => l.width === 20 && lum(l.stroke) < lum(body)), `${c}: darker sides`);
+    const stripes = layers.filter((l) => l.stroke.toLowerCase() === "#ffffff" && (l.opacity ?? 1) >= 0.7);
+    check(stripes.length === 1 && stripes[0]!.width <= 3 && (stripes[0]!.shift ?? 0) < 0, `${c}: one crisp highlight stripe towards the top-left light`);
+    check(layers.every((l) => l.width <= 21.5), `${c}: nothing drawn outside the tube (no halo)`);
+    if (hsl(hex).s >= 0.15) check(hsl(body).l <= 0.52 && hsl(body).s >= hsl(hex).s * 0.75, `${c}: the body is a strong pigment, not a screen neon (${body})`);
+  }
+  for (const c of ["LIME", "PINK", "PURPLE"] as const)
+    check(hsl(tubeBody(FLOW_COLOUR_HEX[c])).l < hsl(FLOW_COLOUR_HEX[c]).l - 0.07, `${c}: the tube is deeper than the old neon line`);
+
+  // The effects, on the real board components in happy-dom.
+  const { Window } = await import("happy-dom");
+  const win = new Window({ url: "https://joulz.uk/" });
+  for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "CustomEvent", "localStorage", "sessionStorage", "location", "getComputedStyle", "requestAnimationFrame", "cancelAnimationFrame", "MutationObserver"] as const) {
+    const value = (win as unknown as Record<string, unknown>)[key];
+    const bind = typeof value === "function" && !["HTMLElement", "Element", "Node", "Event", "CustomEvent", "MutationObserver"].includes(key);
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: bind ? (value as (...a: unknown[]) => unknown).bind(win) : value });
+  }
+  for (const key of Object.getOwnPropertyNames(win)) {
+    if (!/^(HTML|SVG|Mutation|Resize|Text|Comment|Document|Custom|Node|Event)/.test(key) || key in globalThis) continue;
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: (win as unknown as Record<string, unknown>)[key] });
+  }
+  if (!("ResizeObserver" in globalThis))
+    Object.defineProperty(globalThis, "ResizeObserver", { configurable: true, writable: true, value: class { observe() {} unobserve() {} disconnect() {} } });
+  let reduced = false;
+  const matchMedia = (query: string) => ({ matches: query.includes("prefers-reduced-motion") ? reduced : false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+  Object.defineProperty(win, "matchMedia", { configurable: true, writable: true, value: matchMedia });
+  Object.defineProperty(globalThis, "matchMedia", { configurable: true, writable: true, value: matchMedia });
+  type Anim = { onfinish: null | (() => void); oncancel: null | (() => void) };
+  type Rec = { el: Element; frames: Keyframe[]; options: KeyframeAnimationOptions; anim: Anim };
+  let played: Rec[] = [];
+  Object.defineProperty((win as unknown as { Element: { prototype: object } }).Element.prototype, "animate", {
+    configurable: true,
+    writable: true,
+    value(this: Element, frames: Keyframe[], options: KeyframeAnimationOptions) {
+      const anim = { onfinish: null as null | (() => void), oncancel: null as null | (() => void), cancel() {}, finish() {}, finished: new Promise<void>(() => {}) };
+      played.push({ el: this, frames, options, anim });
+      return anim;
+    },
+  });
+  const finishAll = () => played.forEach((p) => p.anim.onfinish?.());
+  const K = await import("../src/lib/fx/kit");
+  let kit: { kind: string; variant: string; sound: unknown; haptic: unknown }[] = [];
+  K.setGameFxSink((r) => kit.push({ kind: r.kind, variant: r.variant, sound: r.sound, haptic: r.haptic }));
+  const cues: string[] = [];
+  window.addEventListener("duelz-sound", (e) => cues.push((e as CustomEvent<{ cue: string }>).detail.cue));
+  const reset = () => {
+    played = [];
+    kit = [];
+    cues.length = 0;
+  };
+  const onlyTransformOpacity = (frames: Keyframe[]) => frames.every((f) => Object.keys(f).every((k) => ["transform", "opacity", "offset", "easing"].includes(k)));
+
+  const { createRoot } = await import("react-dom/client");
+  const { flushSync } = await import("react-dom");
+  const { FlowTubes: Tubes } = await import("../src/components/puzzles/pattern/flowArt");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  document.body.appendChild(svg);
+  const root = createRoot(svg as unknown as Element);
+  type T = { colour: string; points: { x: number; y: number }[]; joined: boolean };
+  const pt = (c: number) => ({ x: 20 + (c % 9) * 40, y: 20 + Math.floor(c / 9) * 40 });
+  const tube = (cells: number[], joined = false, colour = "#A8F03A"): T => ({ colour, points: cells.map(pt), joined });
+  const draw = (tubes: T[], o: { live?: boolean; solved?: boolean; solveFx?: boolean } = {}) =>
+    flushSync(() => root.render(createElement(Tubes, { tubes, width: 18, live: o.live ?? true, solved: o.solved ?? false, solveFx: o.solveFx ?? false })));
+  const clear = () => flushSync(() => root.render(createElement("g")));
+
+  for (const motion of ["full", "reduced"] as const) {
+    reduced = motion === "reduced";
+    const tag = `(${motion})`;
+    clear();
+    draw([tube([0, 1]), tube([]), tube([])]);
+    reset();
+    // Growing: the head slides into the new square (kit slide on each of the head's layers; the stage's sound only).
+    draw([tube([0, 1, 2]), tube([]), tube([])]);
+    const heads = svg.querySelectorAll('[data-flow-tube="0"] [data-flow-head]');
+    const slides = kit.filter((k) => k.kind === "slide");
+    check(heads.length >= 6 && slides.length === heads.length, `${tag} the line's head slides into the new square on all ${heads.length} of its layers (${slides.length})`);
+    check(slides.every((k) => k.sound === null && k.haptic === null && k.variant === (reduced ? "reduced" : "full")), `${tag} the head slide is silent (flow.draw is the stage's) and in the ${motion} variant`);
+    check(played.length === heads.length && played.every((p) => p.el.hasAttribute("data-flow-head")), `${tag} only the head's own layers move (never the tube, board or arena)`);
+    if (reduced) check(played.every((p) => p.frames.every((f) => f.transform === undefined)), `${tag} the head crossfades, no movement`);
+    else check(played.some((p) => String(p.frames[0]!.transform).includes("translate(-40px, 0px)")), `${tag} the head is drawn from the square before (FLIP)`);
+    check(svg.querySelector('[data-flow-tube="0"] [data-flow-head] path')?.getAttribute("d") === "M60.0 20.0L100.0 20.0", `${tag} the new square is drawn at once (the effect never holds the state back)`);
+    // Nothing changed: no effect.
+    reset();
+    draw([tube([0, 1, 2]), tube([]), tube([])]);
+    check(played.length === 0 && kit.length === 0, `${tag} a render that changes nothing plays nothing`);
+    // The next move while the slide runs is taken at once and plays its own slide.
+    draw([tube([0, 1, 2, 3]), tube([]), tube([])]);
+    check(
+      kit.filter((k) => k.kind === "slide").length === heads.length && svg.querySelector('[data-flow-tube="0"] [data-flow-head] path')?.getAttribute("d") === "M100.0 20.0L140.0 20.0",
+      `${tag} the next square during an effect is drawn and animated at once (input never queued)`,
+    );
+    // A cut: the cut part retracts into the cut, under the lines, and leaves.
+    reset();
+    draw([tube([0, 1]), tube([]), tube([])]);
+    const ghost = svg.querySelector("[data-flow-ghosts] [data-flow-retract]");
+    const gPlay = played.find((p) => p.el === ghost);
+    check(!!ghost && !!gPlay && kit.length === 0, `${tag} a cut line's cut part retracts (${played.length} animations)`);
+    if (ghost && gPlay) {
+      check(onlyTransformOpacity(gPlay.frames), `${tag} the retract moves only transform and opacity`);
+      check(
+        reduced
+          ? gPlay.frames.every((f) => f.transform === undefined) && Number(gPlay.options.duration) <= 120
+          : String(gPlay.frames[1]!.transform).startsWith("scale(") && Number(gPlay.options.duration) <= 300,
+        `${tag} the retract: ${reduced ? "a 120 ms fade" : "it shrinks into the cut"}`,
+      );
+      const origin = (ghost as unknown as { style: { transformOrigin: string } }).style.transformOrigin;
+      check(origin === "60px 20px", `${tag} it retracts into the square the line was cut back to (${origin})`);
+    }
+    finishAll();
+    check(!svg.querySelector("[data-flow-retract]"), `${tag} the retracted part is removed when it ends`);
+    // A pair joined: one light runs along its tube (not on the solving join).
+    draw([tube([0, 1, 2]), tube([]), tube([])]);
+    reset();
+    draw([tube([0, 1, 2, 3], true), tube([]), tube([])]);
+    const light = svg.querySelector("[data-flow-join-light]");
+    if (reduced) {
+      const fade = played.find((p) => p.el.getAttribute("data-flow-tube") === "0");
+      check(!light && !!fade && onlyTransformOpacity(fade.frames) && fade.frames.every((f) => f.transform === undefined) && Number(fade.options.duration) <= 120, `${tag} a join crossfades its tube (no light runs)`);
+    } else {
+      const lp = played.find((p) => p.el === light);
+      check(!!light && !!lp, `${tag} a pair joined sends one light along its tube`);
+      if (lp) {
+        check(onlyTransformOpacity(lp.frames) && lp.frames.length === 4 && Number(lp.options.duration) <= 900, `${tag} the light travels square by square on transform and opacity, under 900 ms`);
+        check(String(lp.frames[0]!.transform).startsWith("translate(20.0px, 20.0px)") && String(lp.frames[3]!.transform).startsWith("translate(140.0px, 20.0px)"), `${tag} the light runs from one bead to the other`);
+      }
+      finishAll();
+      check(!svg.querySelector("[data-flow-join-light]"), `${tag} the light is removed when it lands`);
+    }
+    check(!kit.some((k) => k.kind === "match" || k.kind === "win"), `${tag} a join plays no kit sound or payoff (flow.connect is the board's one sound)`);
+    // The solving join: no join light; the solve moment pulses every line together (kit win, silent).
+    clear();
+    draw([tube([0, 1, 2]), tube([9, 10], true), tube([18, 19], true)]);
+    reset();
+    draw([tube([0, 1, 2, 3], true), tube([9, 10], true), tube([18, 19], true)], { solved: true });
+    check(!svg.querySelector("[data-flow-join-light]") && !played.some((p) => p.el.getAttribute("data-flow-tube") === "0"), `${tag} the solving join sends no join light`);
+    reset();
+    draw([tube([0, 1, 2, 3], true), tube([9, 10], true), tube([18, 19], true)], { solved: true, solveFx: true });
+    const sheen = svg.querySelector("[data-flow-solve-light]");
+    const wins = kit.filter((k) => k.kind === "win");
+    check(!!sheen && sheen.children.length === 3 && wins.length === 1, `${tag} the solve pulses all ${sheen?.children.length ?? 0} lines together (kit win once)`);
+    check(wins.every((k) => k.sound === null && k.variant === (reduced ? "reduced" : "full")), `${tag} the solve's kit win is silent (flow.solve is the board's) and ${motion}`);
+    draw([tube([0, 1, 2, 3], true), tube([9, 10], true), tube([18, 19], true)], { solved: true, solveFx: true });
+    check(kit.filter((k) => k.kind === "win").length === 1, `${tag} the solve plays once`);
+    check(played.every((p) => onlyTransformOpacity(p.frames)), `${tag} every effect moves only transform and opacity`);
+    // Not live (the intro, reveal and demo boards): nothing plays.
+    clear();
+    draw([tube([0, 1]), tube([]), tube([])], { live: false });
+    reset();
+    draw([tube([0, 1, 2], true), tube([]), tube([])], { live: false, solved: true, solveFx: true });
+    draw([tube([0], false), tube([]), tube([])], { live: false });
+    check(played.length === 0 && kit.length === 0, `${tag} still boards (intro, reveal) play no effect`);
+    clear();
+  }
+  reduced = false;
+
+  // The near miss: on the stage, the two dots still to join pulse (kit nearMiss, silent: flow.nearMiss is the cue).
+  const { seedStageState } = await import("./shots/seed");
+  const { flowPuzzle: fp } = await import("../src/puzzles/flow");
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const stageRoot = createRoot(host as unknown as Element);
+  const p3 = { type: "flow", flowRev: 3, walls: [], pairs: [{ colour: "RED", a: 0, b: 1 }, { colour: "BLUE", a: 9, b: 10 }, { colour: "LIME", a: 18, b: 19 }] } as unknown as Flow;
+  const mount = (key: string, paths: number[][]) => {
+    seedStageState([key], { flowPaths: paths });
+    reset();
+    flushSync(() => stageRoot.render(createElement(fp.Stage, { puzzle: p3, locked: false, onSubmit: () => {}, onDraftAnswer: () => {}, stateKey: key } as never)));
+  };
+  mount("flow-check-near", [[0, 1], [9, 10], []]);
+  const near = kit.filter((k) => k.kind === "nearMiss");
+  check(cues.filter((c) => c === "flow.nearMiss").length === 1, `the near miss sounds once (${cues.join(",")})`);
+  check(near.length === 2 && near.every((k) => k.sound === null), `the near miss pulses the two unjoined dots (kit nearMiss, silent): ${near.length}`);
+  check(near.filter((k) => k.haptic !== null).length === 1, "the near miss gives one light haptic, not two");
+  check(played.length === 2 && played.every((p) => p.el.classList.contains("flow-dot") && p.el.getAttribute("data-flow-pair") === "2"), "the pulse is on the unjoined pair's own dots, nothing else");
+  flushSync(() => stageRoot.render(createElement("div")));
+  mount("flow-check-far", [[0, 1], [], []]);
+  check(!kit.some((k) => k.kind === "nearMiss") && !cues.includes("flow.nearMiss"), "no near miss two pairs short");
+  flushSync(() => stageRoot.render(createElement("div")));
+  root.unmount();
+  stageRoot.unmount();
+  K.setGameFxSink(null);
+  // The stage's sounds stay one a moment: the draw tone only when the line grew, the cut only on a cut.
+  check(/if \(grewTo\) soundCue\("flow\.draw", 1 \+ 0\.5 \* \(1 - Math\.exp/.test(stage) && /if \(!step\.moved\) return current;/.test(stage), "the draw tone rises smoothly and plays only when the line grew (a move that does nothing is silent)");
+  check(/if \(cutLine\) soundCue\("flow\.cut"\)/.test(stage), "the cut sound plays only on a cut");
+  check(!/\.animate\(/.test(stage), "the stage animates nothing itself (the kit does)");
+  check((art.match(/\.animate\(/g) ?? []).length === 2, "flowArt animates through two helpers only (playAndRemove, playAndKeep), each fed transform and opacity frames");
 }
 
 if (failures) {

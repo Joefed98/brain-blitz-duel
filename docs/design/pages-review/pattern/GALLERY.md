@@ -160,7 +160,7 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 - **Look (A, richness pass):** every dot is a glossy marble bead rendered in Blender under the rich studio light (a crisp
   highlight on its curve; one per colour, `public/pattern-art/flow/`, 38 KB in all), each with its own white symbol so
   white/silver and yellow/lime are told apart; walls are hatched steel blocks, cells dark recessed slots; the lines are
-  saturated glossy tubes (a dark edge, shaded sides, a lighter core and a highlight stripe, no blur halo).
+  saturated glossy tubes (since stage 2: a thin dark edge, darker sides, the deep body and a crisp highlight stripe; no lighter core, no glow).
 - **flowRev 3:** drawing over another colour cuts that line back to the square before the crossing (the server grades
   the board by the same rule); a stray touch on a finished dot no longer wipes its line (only a drag restarts it).
 - **Pills:** "Pairs 7 / 10" beside "Filled 48 / 78".
@@ -170,6 +170,38 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
   (Pairs, Filled, Redraws, Time left). No stray "×".
 - **Sound:** the line's tone rises as it grows (`flow.draw`), a cut (`flow.cut`), one sound for a join
   (`flow.connect`, the extra `correct` dropped), a near-miss hint (`flow.nearMiss`) and the solve (`flow.solve`).
+
+### Stage 2: Joe's no-glow fix and the effects (15 Nov 2026)
+
+**Lines: before (neon on a phone) | concept A | after** (390 × 844, the real game, the same board)
+
+| Before (stage 1) | Concept A | After |
+|---|---|---|
+| <img src="flow-fix-before-play.webp" width="180" alt="Chroma Lines stage 1: neon lines"> | <img src="flow-concept-A.webp" width="180" alt="Chroma Lines concept A"> | <img src="flow-after-play.webp" width="180" alt="Chroma Lines after the fix: glossy tubes"> |
+
+- **No glow:** the lighter core that made every line read as neon is gone, so is the colour wash in the squares round a
+  line, the beads' CSS drop shadow and the old CSS solve glow and dash pulse. Each line is a glossy tube like concept
+  A: a thin dark edge, darker sides, the colour's deep pigment (light neons such as lime, pink and purple brought to
+  about half lightness, a fifth less saturated, `tubeBody`) and one crisp white highlight stripe towards the top-left
+  light.
+
+**Effects** (the effects kit; transform and opacity only, nothing blocks the next move): the last line drawn, its join
+and the solve.
+
+<video src="flow-fx.mp4" width="300" autoplay loop muted playsinline></video>
+
+<img src="flow-fx-still.webp" width="300" alt="Chroma Lines: every line pulsing together on the solve">
+
+- **Drawing:** the line's head slides into each new square (kit `slide` on the head's own layers, FLIP from the square
+  before) while `flow.draw` rises smoothly in pitch, levelling off at half again.
+- **A pair joined:** one light runs along the tube from bead to bead with a match-style swell (≤ 560 ms), under the one
+  sound `flow.connect`; no extra `correct`.
+- **Near miss** (one pair short): the two unjoined beads pulse twice (kit `nearMiss`, silent) under `flow.nearMiss`.
+- **A cut:** the cut part retracts into the square it was cut back to and fades (240 ms) under `flow.cut`.
+- **Solve:** a light copy of every line lands on the lines together and fades (kit `win`, its gold burst and haptic,
+  silent) under `flow.solve`.
+- **Reduced motion:** each change shows as a 120 ms crossfade (the head, the joined tube, the cut part, the solve), no
+  light runs and no particles.
 <!-- chroma:end -->
 
 <!-- skid:start -->
