@@ -4,18 +4,20 @@ Every piece and surface the six Speed games draw is rendered in Blender (Cycles,
 [blender/speed_art.py](blender/speed_art.py), on the concepts Joe picked ([game-concepts/speed.md](../game-concepts/speed.md),
 PR #427) and the art standard ([cosmetics-redraws/ART-DIRECTION.md](../cosmetics-redraws/ART-DIRECTION.md), PR #423).
 
-- **The look**: Speed's warm wood and orange on darker backgrounds; real materials (oiled walnut, satin enamel, brushed
-  champagne gold, glass gems, packed earth, turf, satin clay). **Minimal glow and no glare**: every surface is satin
-  (roughness 0.35 or more, a rough coat at most), lit by one large soft key and a soft fill, so no panel, tile or number
-  carries a reflection, a hot spot or a glowing edge. **Numbers are never rendered**: the games draw them in code, big and
-  bold, on the plain faces the sprites leave for them.
+- **The look**: Speed's warm wood and orange on darker backgrounds; real materials with light on them (Joe's
+  clarification, 15 Nov 2026): glass charms with a crisp highlight on their curve and a lit core, glazed enamel and
+  lacquer with depth, hand-rubbed walnut with its grain, polished brass and champagne gold that shine. **No glare across a
+  panel, tile or number and no glowing edges**: the studio's surround is dark, so a flat face looking up at the camera
+  reflects darkness, while a compact key low from the top left and a cool rim low from the right put one sharp highlight
+  on every curve, bevel and rim. **Numbers are never rendered**: the games draw them in code, big and bold, on the faces
+  the sprites leave clear.
 - **What each game uses** (per the concepts, A or B):
 
 | Game | Look | Sprites |
 |---|---|---|
 | Flash | A waiting (dark smoked glass with faint etched rings in a polished walnut frame), B for the flash (the glass flooding an even warm gold) | `flash-wait`, `flash-gold`, `flash-frame` (a CSS border image) |
-| Ascend | B: darker walnut, domed onyx counters with brass rims, gold counters once reached; bold Archivo 900 numbers, white on onyx, navy on gold | `ascend-board`, `ascend-disc`, `ascend-disc-done` |
-| Don't Break the Chain | B: vivid gem charms (six colours, each in its own cut: circle, square, triangle) in champagne bezels, on darker wood | `chain-board`, `chain-<shape>-<colour>` (18) |
+| Ascend | B: darker lacquered walnut, domed glossy onyx counters with polished brass rims, glazed gold domes once reached; bold Archivo 900 numbers, white on onyx, navy on gold | `ascend-board`, `ascend-disc`, `ascend-disc-done` |
+| Don't Break the Chain | B: round charms in clear glass over a lit core; square and triangle charms in a lit glaze under a glassy coat (flat-topped glass read black); six colours, each in all three cuts, in polished champagne bezels, on darker lacquered walnut | `chain-board`, `chain-<shape>-<colour>` (18) |
 | Bonk | B: gophers in gold and red hard hats and the hedgehog in dark burrows on a darker dusk lawn; nothing but the sixteen burrows looks like one | `bonk-lawn`, `bonk-burrow`, `bonk-gopher-gold`, `bonk-gopher-red`, `bonk-hedgehog` |
 | Tenfall | B's darker oiled wood with A's satin enamel tiles (cream digits, gold operators, blue minus, a gilded gold digit); bold flat labels, operators bigger; tiles come out of a chute below the counters | `tenfall-board`, `tenfall-tile-<look>` (5) |
 | Pull! | A, the sun toned right down (a deep late-afternoon sky with haze over the treeline, no glare); satin orange clays, brushed gold clays (shinier, with their glint); white gulls in three wing frames | `pull-sky`, `pull-clay-orange`, `pull-clay-gold`, `pull-bird-0/1/2` |

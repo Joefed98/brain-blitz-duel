@@ -59,32 +59,55 @@ def setup(w, h, scale=2.0, transparent=True, seed=1, tilt=0.0):
 
 
 def even_light(power=1.0, warm=(1.0, 0.93, 0.84), world_strength=0.22):
-    """Clean, even light: a large soft key from the top left, a soft cool fill, a dim interior world. No hot spots."""
+    """Studio light that makes materials read without washing a face (Joe, 15 Nov 2026): a dark surround, so flat faces
+    looking up at the camera reflect darkness (no glare across a panel, tile or number); a compact warm key low from the
+    top left and a cool rim low from the right, so every curve, bevel and rim catches one crisp highlight; a soft fill so
+    shadows keep their colour."""
     w, h = lib.W, lib.H
     m = max(w, h)
-    lib.world("interior", world_strength, rot=1.0, tint=(1.0, 0.92, 0.84, 1))
-    d = m * 2.2
-    area(-m * 0.6, -m * 0.6, d, m * 2.6, 2.3e-3 * d * d * power, warm, target=(w / 2, h / 2))
-    area(w + m * 0.7, h + m * 0.5, d * 0.8, m * 2.6, 0.9e-3 * d * d * power, (0.86, 0.9, 1.0), target=(w / 2, h / 2))
+    lib.world("night", world_strength * 0.35, rot=0.8, tint=(1.0, 0.9, 0.8, 1))
+    d = m * 1.6
+    # Key: elevated ~40 degrees, small enough to give a sharp highlight on a bevel.
+    area(-m * 0.9, -m * 0.7, d, m * 0.45, 9.0e-3 * d * d * power, warm, target=(w / 2, h / 2))
+    # Rim: low from the right, cool.
+    area(w + m * 1.0, h * 0.3, d * 0.55, m * 0.35, 2.2e-3 * d * d * power, (0.82, 0.9, 1.0), target=(w / 2, h / 2))
+    # Fill: broad and weak from the bottom right.
+    area(w + m * 0.4, h + m * 0.8, d * 0.9, m * 1.8, 0.5e-3 * d * d * power, (1.0, 0.95, 0.9), target=(w / 2, h / 2))
 
 
 def satin(key, color, rough=0.45, coat=0.0, metal_=0.0, bump=0.0, rough_var=0.08):
-    """The overhaul's one non-metal surface: satin, never glossy (coat roughness 0.3)."""
+    """A soft non-metal (fur, turf, earth, felt): no coat."""
     return mat(key, color, rough=rough, metal=metal_, coat=coat, coat_rough=0.3, rough_var=rough_var, bump=bump)
 
 
+def enamel(key, color, rough=0.32, coat=1.0, coat_rough=0.035, bump=0.0):
+    """Fired enamel or lacquer: colour with depth under a glassy clear coat (the highlight sits on its bevels)."""
+    return mat(key, color, rough=rough, coat=coat, coat_rough=coat_rough, rough_var=0.04, bump=bump)
+
+
+def gem_glass(key, color, core=None, strength=1.6):
+    """Coloured glass: a clear refractive body, lightly tinted (a thick slab of saturated glass reads black); its lit
+    core is a separate emissive shape inside."""
+    c = hexc(color)
+    return glass(key, (0.35 + 0.65 * c[0], 0.35 + 0.65 * c[1], 0.35 + 0.65 * c[2], 1), rough=0.02, ior=1.45)
+
+
 def champagne(key="champagne"):
-    """Champagne gold, brushed and satin (no mirror highlights)."""
-    return metal(key, hexc("#E2C07A"), rough=0.42, aniso=0.3)
+    """Champagne gold, polished: it shines, its highlight a crisp band on the rim."""
+    return metal(key, hexc("#E6C47E"), rough=0.16, aniso=0.2)
+
+
+def brass(key="brass"):
+    return metal(key, hexc("#C99A4E"), rough=0.2, aniso=0.25)
 
 
 def dark_wood(key, light="#3A2416", dark="#160C06", scale=10.0, rot90=False):
-    """Dark oiled wood, warm (Speed's wood, a step darker than today's)."""
-    return wood(key, hexc(light), hexc(dark), rough=0.55, scale=scale, coat=0.15, rot90=rot90)
+    """Dark walnut under a hand-rubbed lacquer: the grain reads, the lacquer catches light on the edges."""
+    return wood(key, hexc(light), hexc(dark), rough=0.32, scale=scale, coat=0.7, rot90=rot90)
 
 
 def warm_board_light(power=0.85):
-    even_light(power, warm=(1.0, 0.86, 0.68), world_strength=0.12)
+    even_light(power, warm=(1.0, 0.84, 0.64), world_strength=0.12)
 
 
 # ---------------------------------------------------------------------------------------------- Flash
@@ -137,7 +160,7 @@ def flash_frame():
     """The polished walnut frame round the screen, drawn as a CSS border image (40 px slices, transparent middle)."""
     setup(240, 240, scale=2.0)
     even_light(1.0)
-    rim = wood("ff_walnut", hexc("#7A4A26"), hexc("#3A1E0C"), rough=0.4, scale=16, coat=0.35)
+    rim = wood("ff_walnut", hexc("#7A4626"), hexc("#2E1608"), rough=0.3, scale=16, coat=0.9)
     outline(120, 120, 236, 236, 26, 30, 10, rim, z=0)
     outline(120, 120, 180, 180, 10, 4, 6, satin("ff_lip", hexc("#170D07"), rough=0.6), z=0)
     outline(120, 120, 186, 186, 12, 2.2, 10.5, champagne("ff_gold"), z=0)
@@ -158,15 +181,16 @@ def _counter(face_fn, rim_fn, key):
     even_light(1.0)
     face, rim_mat = face_fn(), rim_fn()
     disc(64, 64, 60, 8, rim_mat, z=0, bevel=3.0, segs=5)
-    disc(64, 64, 52, 11, face, z=0, bevel=4.5, segs=6)
+    disc(64, 64, 52, 8, face, z=0, bevel=3.0, segs=6)
+    sphere(64, 64, 51, face, z=6, squash=0.16)
 
 
 def ascend_disc():
-    _counter(lambda: satin("ad_onyx", hexc("#1E1916"), rough=0.5, coat=0.2), lambda: metal("ad_brass", hexc("#B8925A"), rough=0.45), "todo")
+    _counter(lambda: enamel("ad_onyx", hexc("#141110"), rough=0.22), lambda: brass("ad_brass"), "todo")
 
 
 def ascend_disc_done():
-    _counter(lambda: satin("add_gold", hexc("#F0B43C"), rough=0.42, coat=0.15), lambda: metal("add_rim", hexc("#C9952E"), rough=0.4), "done")
+    _counter(lambda: enamel("add_gold", hexc("#E9A92E"), rough=0.3), lambda: metal("add_rim", hexc("#D9A441"), rough=0.16), "done")
 
 
 # --------------------------------------------------------------------------------------------- Chain
@@ -188,20 +212,33 @@ def chain_board():
 
 
 def chain_charm(shape, colour):
-    """A gem charm, 112 px across, in a champagne bezel; its shape is cut as clearly as its colour."""
+    """A glass charm, 112 px across, in a thin polished champagne bezel: a clear coloured glass body with a lit core
+    of the same colour inside (the concept's look); its shape is cut as clearly as its colour."""
     setup(128, 128, scale=2.0, seed=11)
-    even_light(0.62)
-    gem = satin(f"cg_{colour}", hexc(CHAIN_GEMS[colour]), rough=0.36, coat=0.25)
+    even_light(0.75)
+    col = CHAIN_GEMS[colour]
+    body = gem_glass(f"cg_{colour}", col)
+    core = lib.emissive(f"cc_{colour}", hexc(col), 2.2)
+    base = lib.emissive(f"cb_{colour}", hexc(col), 2.4)
     bezel = champagne()
+    # Flat-topped glass reads black against the dark studio, so the square and triangle are a lit glaze: the colour
+    # glowing faintly from inside under a glassy clear coat (the same read as the concept's charms).
+    glaze = mat(f"cz_{colour}", hexc(col), rough=0.3, coat=1.0, coat_rough=0.03, emit=hexc(col), emit_strength=0.45)
     if shape == "circle":
-        disc(64, 64, 56, 6, bezel, z=0, bevel=2.2)
-        disc(64, 64, 50, 12, gem, z=0, bevel=6, segs=6)
+        disc(64, 64, 56, 5, bezel, z=0, bevel=2.0)
+        disc(64, 64, 50, 3, base, z=1, bevel=1)
+        disc(64, 64, 26, 8, core, z=2, bevel=3, segs=4)
+        sphere(64, 64, 50, body, z=4, squash=0.42)
     elif shape == "square":
-        rbox(64, 64, 108, 108, 6, bezel, r=20, z=0, bevel=2.2)
-        rbox(64, 64, 96, 96, 12, gem, r=15, z=0, bevel=6, segs=6)
+        rbox(64, 64, 108, 108, 5, bezel, r=20, z=0, bevel=2.0)
+        rbox(64, 64, 96, 96, 3, base, r=15, z=1, bevel=1)
+        rbox(64, 64, 50, 50, 8, core, r=8, z=2, bevel=3, segs=4)
+        rbox(64, 64, 96, 96, 10, glaze, r=16, z=3, bevel=4.5, segs=8)
     else:
-        prism(poly(3, 62, star=None), 6, bezel, z=0, cx=64, cy=72, bevel=2.2, segs=4)
-        prism(poly(3, 52, star=None), 12, gem, z=0, cx=64, cy=72, bevel=6, segs=6)
+        prism(poly(3, 62), 5, bezel, z=0, cx=64, cy=72, bevel=2.0, segs=4)
+        prism(poly(3, 52), 3, base, z=1, cx=64, cy=72, bevel=1, segs=3)
+        prism(poly(3, 26), 8, core, z=2, cx=64, cy=74, bevel=3, segs=4)
+        prism(poly(3, 52), 10, glaze, z=3, cx=64, cy=72, bevel=4.5, segs=8)
 
 
 # ---------------------------------------------------------------------------------------------- Bonk
@@ -247,6 +284,7 @@ def bonk_burrow():
     even_light(0.85, warm=(1.0, 0.9, 0.78))
     earth = lib.stone("bb_earth", hexc("#4A3220"), hexc("#21150B"), rough=0.85, scale=18, veins=False)
     parts = [ring(80, 75, 78, 64, 6, earth, z=0, bevel=3.0, verts=128),
+             ring(80, 75, 72, 66, 7.5, brass("bb_brass"), z=0, bevel=2.2, verts=128),
              disc(80, 75, 66, 1, satin("bb_hole", hexc("#050404"), rough=0.9), z=-6),
              disc(80, 75, 70, 1, satin("bb_shade", hexc("#0E0905"), rough=0.9), z=-2)]
     for o in parts:
@@ -259,7 +297,7 @@ def _gopher(hat_colour=None, hedgehog=False):
     even_light(1.15, warm=(1.0, 0.92, 0.82))
     fur = mat("bg_fur", hexc("#6B4E3A"), rough=0.82, sheen=0.15, bump=0.15, bump_scale=900)
     belly = mat("bg_muzzle", hexc("#E9CFA2"), rough=0.7, sheen=0.4)
-    ink = satin("bg_ink", hexc("#160F0C"), rough=0.4)
+    ink = enamel("bg_ink", hexc("#100A08"), rough=0.2)
     white = satin("bg_white", hexc("#FAF4E8"), rough=0.4)
     if hedgehog:
         spine = mat("bh_spine", hexc("#5B4636"), rough=0.6)
@@ -290,10 +328,10 @@ def _gopher(hat_colour=None, hedgehog=False):
     rbox(105, 174, 8, 10, 3, white, r=2, z=90, bevel=0.8)
     rbox(115, 174, 8, 10, 3, white, r=2, z=90, bevel=0.8)
     if hat_colour:
-        hat = satin(f"bg_hat_{hat_colour}", hexc(hat_colour), rough=0.38, coat=0.25)
+        hat = enamel(f"bg_hat_{hat_colour}", hexc(hat_colour), rough=0.3)
         sphere(110, 98, 46, hat, z=88, squash=0.66)
         disc(110, 112, 54, 5, hat, z=82, bevel=2.2)
-        rbox(110, 78, 9, 34, 7, satin("bg_hatrib", hexc(hat_colour), rough=0.45), r=4, z=108, bevel=2)
+        rbox(110, 78, 9, 34, 7, enamel("bg_hatrib", hexc(hat_colour), rough=0.3), r=4, z=108, bevel=2)
 
 
 def fit_group(pivot, to, k):
@@ -335,8 +373,7 @@ def tenfall_board():
     rail = dark_wood("tb_rail", "#4A2D16", "#1E1006", scale=14, rot90=True)
     for col in (1, 2, 3):
         rbox(col * 90, 260, 6, 560, 4, rail, r=2, z=0, bevel=1.2)
-    for col in range(4):
-        rbox(col * 90 + 45, 260, 82, 560, 0.6, satin("tb_groove", hexc("#0E0703"), rough=0.8), r=4, z=-0.4, bevel=0.2)
+    rbox(180, 3, 380, 6, 6, brass("tb_rail"), r=2, z=0, bevel=2.2)
 
 
 TENFALL_TILES = {
@@ -352,10 +389,10 @@ def tenfall_tile(look):
     """A blank enamel tile, 76 x 64 at (2, 2) in an 80 x 68 sprite; its label is drawn in code."""
     setup(80, 68, scale=3.0, seed=6)
     even_light(1.05)
-    face = satin(f"tt_{look}", hexc(TENFALL_TILES[look]), rough=0.48, coat=0.1)
-    rbox(40, 34, 76, 64, 7, face, r=11, z=0, bevel=2.6, segs=5)
+    face = enamel(f"tt_{look}", hexc(TENFALL_TILES[look]), rough=0.35)
+    rbox(40, 34, 76, 64, 8, face, r=11, z=0, bevel=4.2, segs=8)
     if look == "gold":
-        outline(40, 34, 70, 58, 9, 2.0, 7.3, metal("tt_goldrim", hexc("#A8730E"), rough=0.4))
+        outline(40, 34, 70, 58, 9, 2.0, 7.3, metal("tt_goldrim", hexc("#C08A1E"), rough=0.18))
 
 
 # --------------------------------------------------------------------------------------------- Pull!
@@ -410,9 +447,9 @@ def _clay(colour, rim, key):
     """A clay target seen in flight: the 2R x 1.1R ellipse footprint, a raised dome and ring, satin (no glint)."""
     setup(26, 14.3, scale=6.0, seed=12, tilt=56)
     even_light(1.2)
-    body = satin(f"pc_{key}", hexc(colour), rough=0.5, coat=0.15)
+    body = enamel(f"pc_{key}", hexc(colour), rough=0.45, coat=0.5, coat_rough=0.12)
     disc(13, 7.15, 13, 3.0, body, z=0, bevel=1.2, segs=5)
-    disc(13, 7.15, 8.2, 4.6, satin(f"pc_{key}d", hexc(rim), rough=0.5), z=0, bevel=1.4, segs=5)
+    disc(13, 7.15, 8.2, 4.6, enamel(f"pc_{key}d", hexc(rim), rough=0.45, coat=0.5, coat_rough=0.12), z=0, bevel=1.4, segs=5)
 
 
 def pull_clay_orange():
@@ -422,9 +459,9 @@ def pull_clay_orange():
 def pull_clay_gold():
     setup(26, 14.3, scale=6.0, seed=12, tilt=56)
     even_light(1.25)
-    body = metal("pc_gold", hexc("#E9B53C"), rough=0.3, brushed=False)
+    body = metal("pc_gold", hexc("#E9B53C"), rough=0.14, brushed=False)
     disc(13, 7.15, 13, 3.0, body, z=0, bevel=1.2, segs=5)
-    disc(13, 7.15, 8.2, 4.6, metal("pc_goldd", hexc("#F6CC5C"), rough=0.26, brushed=False), z=0, bevel=1.4, segs=5)
+    disc(13, 7.15, 8.2, 4.6, metal("pc_goldd", hexc("#F6CC5C"), rough=0.1, brushed=False), z=0, bevel=1.4, segs=5)
 
 
 def _bird(frame):
