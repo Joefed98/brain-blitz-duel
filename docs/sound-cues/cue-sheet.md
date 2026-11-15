@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 47 | 0 | 494 | 541 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
-| UI tap | 10 | 0 | 30 | 40 |
+| UI tap | 11 | 0 | 30 | 41 |
 | fail sting | 4 | 0 | 37 | 41 |
-| success sting | 1 | 0 | 75 | 76 |
+| success sting | 1 | 0 | 76 | 77 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 74 | 1 | 991 | 1066 |
 
 ## Silent and placeholder cues
 
@@ -254,6 +254,16 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
 
+### Home Run
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `homerun.umpStrike` | Home Run: homerunRev 5: strike one or two (swinging or looking): the umpire's call [home-run-top-bins-elevenlabs.md] |  | 0–30 | silent | none | 700 | game event | `homerun.umpStrike` |
+| `homerun.umpBall` | Home Run: homerunRev 5: a pitch outside the zone left alone (ball one to three) [home-run-top-bins-elevenlabs.md] |  | 0–15 | silent | none | 600 | game event | `homerun.umpBall` |
+| `homerun.footsteps` | Home Run: homerunRev 5: a hit or fielder's choice, as the runners set off [home-run-top-bins-elevenlabs.md] |  | 0–25 | silent | none | 900 | game event | `homerun.footsteps` |
+| `homerun.aimThunk` | Home Run: homerunRev 5: the swipe's aim line drops onto the field as the swing starts [home-run-top-bins-elevenlabs.md] |  | 0–30 | silent | none | 250 | UI tap | `homerun.aimThunk` |
+| `homerun.inningsEnd` | Home Run: homerunRev 5: the third out or the clock (the innings summary appears) [home-run-top-bins-elevenlabs.md] |  | 1 | silent | none | 2500 | game event | `homerun.inningsEnd` |
+
 ### Hot Floor
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -289,6 +299,19 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `beat.backing` | Tempo: The synthesised 120 BPM backing beat, one step per eighth note (no slot); since sound batch 4 only until music_beat has decoded, or if it fails [core.md] |  | loop | synthesised placeholder | none | loop | ambience | none |
+
+### Top Bins
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `freekick.windFlag` | Top Bins: freekickRev 5: a loop under a kick being set when there is wind (louder with it) [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 3000 | game event | `freekick.windFlag` |
+| `freekick.bendWhistle` | Top Bins: freekickRev 5: a loop while the drawn stroke bends, its pitch rising with the bend [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 1200 | game event | `freekick.bendWhistle` |
+| `freekick.powerTone` | Top Bins: freekickRev 5: a loop while the power bar is held, its pitch rising with the bar [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 1600 | game event | `freekick.powerTone` |
+| `freekick.wallJump` | Top Bins: freekickRev 5: the wall jumps (its kicks only) [home-run-top-bins-elevenlabs.md] |  | 0–6 | silent | none | 500 | game event | `freekick.wallJump` |
+| `freekick.dive` | Top Bins: freekickRev 5: the keeper sets off on his dive [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 600 | game event | `freekick.dive` |
+| `freekick.spill` | Top Bins: freekickRev 5: a save, the ball spilling from the keeper's hands [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 500 | game event | `freekick.spill` |
+| `freekick.chant` | Top Bins: freekickRev 5: the fifth goal in a row (the crowd chants) [home-run-top-bins-elevenlabs.md] |  | 0–1 | silent | none | 4000 | game event | `freekick.chant` |
+| `freekick.hoopShrink` | Top Bins: freekickRev 5: the next kick's corner hoop appears, smaller [home-run-top-bins-elevenlabs.md] |  | 0–4 | silent | none | 600 | game event | `freekick.hoopShrink` |
 
 ## Music by screen and game
 
@@ -1522,6 +1545,12 @@ Grouped by game or screen.
 | `homerun.foul` | Home Run: A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) [arcade.md] |  | 0–5 | recorded sound | `homerun.foul` | 150 | game event | `homerun.foul` |
 | `homerun.strike` | Home Run: The ball in the catcher's mitt: a swing and a miss, or a pitch taken [arcade.md] |  | 0–10 | recorded sound | `homerun.strike` | 150 | game event | `homerun.strike` |
 | `homerun.catch` | Home Run: homerunRev 4: a fielder catches the ball as it comes down (with homerun.groan, the crowd); the library's glove pop, homerun_mitt.mp3 [arcade.md] |  | 0–10 | recorded sound | `homerun.catch` | 400 | game event | `homerun.catch` |
+| `homerun.umpOut` | Home Run: homerunRev 5: a caught ball reaches the glove (with homerun.catch and homerun.groan) [arcade.md] |  | 0–3 | recorded sound | `arc_fair_thud` (shared) | 700 | game event | `homerun.umpOut` |
+| `homerun.strikeout` | Home Run: homerunRev 5: strike three, swinging or looking (with an impact haptic) [arcade.md] |  | 0–3 | recorded sound | `arc_fair_thud` (shared) | 1100 | game event | `homerun.strikeout` |
+| `homerun.walk` | Home Run: homerunRev 5: ball four, the batter takes first [arcade.md] |  | 0–5 | recorded sound | `arc_hover_tap` (shared) | 700 | game event | `homerun.walk` |
+| `homerun.perfect` | Home Run: homerunRev 5: a perfect swing, a note higher for each in a row [arcade.md] |  | 0–25 | recorded sound | `arc_fair_bell` (shared) | 400 | success sting | `homerun.perfect` |
+| `homerun.slide` | Home Run: homerunRev 5: the runners reach their bases after a hit (a slide into the bag) [arcade.md] |  | 0–25 | recorded sound | `arc_bounce` (shared) | 600 | game event | `homerun.slide` |
+| `homerun.runScores` | Home Run: homerunRev 5: a run scores (with a tick haptic) [arcade.md] |  | 0–30 | recorded sound | `arc_fair_bell` (shared) | 800 | game event | `homerun.runScores` |
 | `homerun.crowd` | Home Run: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `homerun.crowd` | loop | ambience | `homerun.crowd` |
 | `homerun.pitch` | Home Run: The pitcher releases the ball [batch6-sports-cards.md] |  | 10 | recorded sound | `homerun.pitch` | 259 | game event | `homerun.pitch` |
 | `homerun.whiff` | Home Run: A swing and a miss (with homerun.strike, the mitt) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.whiff` | 400 | game event | `homerun.whiff` |
@@ -1879,6 +1908,7 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `freekick.goldTick` | Top Bins: freekickRev 5: the power bar's needle crosses the gold zone's edge [arcade.md] |  | 0–40 | recorded sound | `arc_hover_tap` (shared) | 120 | game event | `freekick.goldTick` |
 | `freekick.kick` | Top Bins: The ball is struck [arcade.md] |  | 10 | recorded sound | `freekick.kick` | 150 | game event | `freekick.kick` |
 | `freekick.post` | Top Bins: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `freekick.post` | 200 | game event | `freekick.post` |
 | `freekick.save` | Top Bins: The keeper saves [arcade.md] |  | 0–10 | recorded sound | `freekick.save` | 200 | game event | `freekick.save` |
@@ -1951,15 +1981,15 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
+| `arc_bounce` | effects | `racing.grass`, `homerun.slide`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
 | `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
 | `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
 | `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
-| `arc_fair_thud` | effects | `bullseye.thud` | 160 |
-| `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |
+| `arc_fair_thud` | effects | `bullseye.thud`, `homerun.umpOut`, `homerun.strikeout` | 160 |
+| `arc_fair_bell` | effects | `bullseye.bull`, `homerun.perfect`, `homerun.runScores`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `bintoss.basket` | 200 |
 | `arc_fair_sting` | effects | `bullseye.perfect`, `bintoss.perfect` | 300 |
 | `arc_marble_roll` | effects | `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
@@ -1977,7 +2007,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_rope_cut` | effects | `snip.cut` | 230 |
 | `arc_grapple` | effects | `swing.grapple` | 450 |
 | `arc_gravity_flip` | effects | `flip.flip` | 330 |
-| `arc_hover_tap` | effects | `homerun.swing`, `arc_hover_tap` | 110 |
+| `arc_hover_tap` | effects | `homerun.swing`, `homerun.walk`, `arc_hover_tap`, `freekick.goldTick` | 110 |
 | `arc_gem_match` | effects | `arc_gem_match` | 400 |
 | `arc_ketchup` | effects | `arc_ketchup` | 230 |
 | `arc_knife_slice` | effects | `slice.cut` | 300 |

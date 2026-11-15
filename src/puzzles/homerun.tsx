@@ -23,7 +23,8 @@ import {
   HOMERUN_WORLD_H,
   HOMERUN_WORLD_W,
 } from "@/lib/arcade/homerun";
-import { drawHomerunArt, homerunScene, homerunSceneV4, homerunV4ViewToWorld } from "@/lib/arcade/homerun.renderer";
+import { drawHomerunArt, homerunScene, homerunSceneV4, homerunV4ViewToWorld, homerunV5Ui } from "@/lib/arcade/homerun.renderer";
+import { HOMERUN_REV_5, HR5_AIM_MAX, HR5_INPUT_SWING, HR5_SWING_EARLY } from "@/lib/arcade/homerunInnings";
 import { encodeHomerunRun, replayHomerunRun } from "@/lib/duel/homerun";
 import { HOMERUN_TIME_MS, type HomerunPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -93,9 +94,13 @@ function homerunObserver(onMode: (mode: number) => void, onLive?: (live: boolean
       frame: (state: HomerunState, running: boolean) => {
         onState?.(state);
         onMode(state.mode);
-        // The pitch is live from its release until it is decided (the sim moves on to the next pitch then).
-        const cur = homerunCurrent(state);
-        onLive?.(cur !== null && state.tick >= cur.release);
+        // The pitch is live from its release until it is decided (the sim moves on to the next pitch then); homerunRev 5
+        // from just before the release (a swipe is a swing from then) until it is decided, and after the innings ends.
+        if (state.inn) onLive?.(state.inn.endAt > 0 || state.tick >= state.inn.release - HR5_SWING_EARLY);
+        else {
+          const cur = homerunCurrent(state);
+          onLive?.(cur !== null && state.tick >= cur.release);
+        }
         inner.frame(state, running);
       },
       stop: () => inner.stop(),
@@ -109,7 +114,8 @@ const MODE_BUTTON =
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HomerunPuzzleData | null = puzzle.type === "homerun" ? puzzle : null;
   // homerunRev 3: the Contact / Power choice under the field (the sim's own choice lights its button).
-  const choose = (data?.homerunRev ?? 1) === HOMERUN_REV_3;
+  const innings = (data?.homerunRev ?? 1) >= HOMERUN_REV_5;
+  const choose = (data?.homerunRev ?? 1) === HOMERUN_REV_3 || innings;
   const [mode, setMode] = useState(HOMERUN_MODE_CONTACT);
   const shown = useRef(HOMERUN_MODE_CONTACT);
   // The row hides (a quick fade) from the pitch's release until the hit or miss is decided: the choice is locked on
@@ -149,7 +155,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return homerunV4SpotOk(a, b) ? { k: HOMERUN_INPUT_SPOT, a, b, c: 0 } : null;
   };
   // devWarp: development review shots only (scripts/shots/homerun-tuning-shots.ts); production returns the game as is.
-  const game = useMemo(() => ({ ...devWarp("homerun", homerunGameFor(data?.homerunRev)), draw: drawHomerunArt }), [data?.homerunRev]);
+  const game = useMemo(() => ({ ...devWarp("homerun", homerunGameFor(data?.homerunRev, data?.level)), draw: drawHomerunArt }), [data?.homerunRev, data?.level]);
+  // homerunRev 5: the aim held on a computer (← pulls to left field, → pushes to right; none: straightaway).
+  const keyAim = useRef(0);
   // The swipe: where the finger went down, and whether this swipe has already started the swing.
   const start = useRef<{ x: number; y: number; sent: boolean } | null>(null);
   // homerunRev 2 reads the swipe over a longer chord (18 px, rev 1 12 px) so its angle, the aim, is steadier.
@@ -174,6 +182,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       discrete
       inputKind={HOMERUN_INPUT_SWING}
       pointer={(kind, x, y) => {
+        if (innings) {
+          // homerunRev 5: one swipe swings. It starts once the finger has moved startPx; its direction is the aim (up is
+          // straightaway, up-left pulls to left field, up-right to right field; more than 45° off the line is foul).
+          if (kind === "down") {
+            start.current = { x, y, sent: false };
+            return null;
+          }
+          const s = start.current;
+          if (kind === "up") {
+            start.current = null;
+            return null;
+          }
+          if (!s || s.sent) return null;
+          const dx = x - s.x;
+          const dy = y - s.y;
+          if (dx * dx + dy * dy < startPx * startPx) return null;
+          s.sent = true;
+          const aim = Math.max(-HR5_AIM_MAX, Math.min(HR5_AIM_MAX, Math.round((Math.atan2(-dx, -dy) * 1800) / Math.PI)));
+          homerunV5Ui.aim = aim;
+          homerunV5Ui.at = typeof performance === "undefined" ? 0 : performance.now();
+          setTimeout(() => {
+            if ((typeof performance === "undefined" ? 0 : performance.now()) - homerunV5Ui.at >= 380) homerunV5Ui.aim = null;
+          }, 400);
+          return { k: HR5_INPUT_SWING, a: aim, b: 0, c: 0 };
+        }
         if (spotGame) return kind === "down" ? tapKind(x, y) : null;
         if (kind === "down") {
           // homerunRev 3's view runs below the world (display only): a touch there starts no swing.
@@ -197,6 +230,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return { k: HOMERUN_INPUT_SWING, a: Math.round(s.y), b: Math.max(-900, Math.min(900, angle)), c: 0 };
       }}
       keys={(kind, key, send) => {
+        // homerunRev 5: C (or 1) Contact, P (or 2) Power, ← / → held aim, Space swings (or a mouse swipe).
+        if (innings) {
+          const k = key.length === 1 ? key.toLowerCase() : key;
+          if (k === "ArrowLeft" || k === "ArrowRight") {
+            keyAim.current = kind === "down" ? (k === "ArrowLeft" ? 250 : -250) : 0;
+            return true;
+          }
+          if (k === " " || k === "Spacebar") {
+            if (kind === "down") send({ k: HR5_INPUT_SWING, a: keyAim.current, b: 0, c: 0 });
+            return true;
+          }
+          const m = k === "c" || k === "1" ? HOMERUN_MODE_CONTACT : k === "p" || k === "2" ? HOMERUN_MODE_POWER : -1;
+          if (m < 0) return false;
+          if (kind === "down") send(pick(m));
+          return true;
+        }
         // homerunRev 4: Space swings (a click does too; a click before the pitch moves the spot).
         if (spotGame) {
           if (key !== " " && key !== "Spacebar") return false;
@@ -227,8 +276,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 style={{ bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}
               >
                 {[
-                  { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: "easier timing" },
-                  { m: HOMERUN_MODE_POWER, label: "Power", hint: "goes further" },
+                  { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: innings ? "wider timing, shorter hits" : "easier timing" },
+                  { m: HOMERUN_MODE_POWER, label: "Power", hint: innings ? "tight timing, goes further" : "goes further" },
                 ].map(({ m, label, hint }) => (
                   <ArcadeControlButton
                     key={m}
@@ -262,7 +311,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "homerun") return null;
-  const result = replayHomerunRun(puzzle.seed, myAnswer ?? "", puzzle.homerunRev);
+  const result = replayHomerunRun(puzzle.seed, myAnswer ?? "", puzzle.homerunRev, puzzle.level);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   return (

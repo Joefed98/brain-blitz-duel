@@ -141,6 +141,13 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `homerun.foul` | Home Run | A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) | `arc_bounce` (0.7) | 0–5 | 150 ms |
 | `homerun.strike` | Home Run | The ball in the catcher's mitt: a swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
 | `homerun.catch` | Home Run | homerunRev 4: a fielder catches the ball as it comes down (with `homerun.groan`, the crowd); the library's glove pop, `homerun_mitt.mp3` | `arc_fair_thud` (0.8) | 0–10 | 400 ms |
+| `homerun.umpOut` | Home Run | homerunRev 5: a caught ball reaches the glove (with `homerun.catch` and `homerun.groan`) | `arc_fair_thud` (0.4, rate 0.8) | 0–3 | 700 ms |
+| `homerun.strikeout` | Home Run | homerunRev 5: strike three, swinging or looking (with an impact haptic) | `arc_fair_thud` (0.9, rate 0.7) | 0–3 | 1100 ms |
+| `homerun.walk` | Home Run | homerunRev 5: ball four, the batter takes first | `arc_hover_tap` (0.5) | 0–5 | 700 ms |
+| `homerun.perfect` | Home Run | homerunRev 5: a perfect swing, a note higher for each in a row | `arc_fair_bell` (0.55, rate 1 + 0.06 a swing, at most 1.6) | 0–25 | 400 ms |
+| `homerun.slide` | Home Run | homerunRev 5: the runners reach their bases after a hit (a slide into the bag) | `arc_bounce` (0.4, rate 0.7) | 0–25 | 600 ms |
+| `homerun.runScores` | Home Run | homerunRev 5: a run scores (with a tick haptic) | `arc_fair_bell` (0.7) | 0–30 | 800 ms |
+| `freekick.goldTick` | Top Bins | freekickRev 5: the power bar's needle crosses the gold zone's edge | `arc_hover_tap` (0.45, rate 1.6) | 0–40 | 120 ms |
 | `freekick.kick` | Top Bins | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
 | `freekick.post` | Top Bins | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
 | `freekick.save` | Top Bins | The keeper saves | `arc_wood_knock` | 0–10 | 200 ms |

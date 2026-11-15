@@ -2543,7 +2543,9 @@ function drawInnings(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: 
   const locked = cur && state.tick >= inn.release;
   const m = locked ? inn.pmode : inn.mode;
   pill(ctx, W - 8, 8, m === HR5_MODE_POWER ? "POWER" : "CONTACT", { gold: m === HR5_MODE_POWER, align: "right" });
-  if (inn.streak > 0) pill(ctx, W - 8, 38, `PERFECT ×${inn.streak}`, { gold: inn.streak >= 3, align: "right", size: 12, h: 22 });
+  if (inn.streak > 0) pill(ctx, 8, 60, `PERFECT ×${inn.streak}`, { gold: inn.streak >= 3, size: 12, h: 22 });
+  // The radar board reads out the last pitch once it is decided.
+  if (last) paintRadarReading(ctx, v5Pitch(plan.pitches[last.i]!, last.rel), since);
   if (cur && state.tick >= inn.release && state.tick < inn.release + cur.flight) {
     const name = cur.kind === 0 ? "FASTBALL" : cur.kind === PITCH_CURVE ? "CURVEBALL" : "CHANGEUP";
     pill(ctx, W / 2, 64, `${name} · ${cur.mph} MPH`, { align: "center", size: 12, h: 22 });

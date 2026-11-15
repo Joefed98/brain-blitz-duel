@@ -531,8 +531,10 @@ const CALL_SITES: Record<string, Record<string, number>> = {
  * gold cup, buzzer); error: foul; impact: lives and crashes, Ricochet's hit and Bastion's base hit since 1 Nov 2026,
  * Blockzone's top-out since 15 Nov 2026).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of Blockzone's top-out haptic): impact 19 → 20.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: haptics on the
+ * key moments): homerunRev 5's home run (success 7 → 8), strikeout (impact 20 → 21) and a run scoring (tick, new).
  */
-const FEEL = { success: 7, error: 1, impact: 20 };
+const FEEL = { success: 8, error: 1, impact: 21, tick: 1 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);

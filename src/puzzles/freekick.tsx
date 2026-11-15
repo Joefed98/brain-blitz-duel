@@ -18,6 +18,7 @@ import {
   FREEKICK_REV_DEALT,
   FREEKICK_REV_3,
   FREEKICK_REV_4,
+  FREEKICK_REV_5,
   FREEKICK_INPUT_SHOT,
   FREEKICK_INPUT_AIM,
   FREEKICK_INPUT_CURL,
@@ -48,6 +49,7 @@ import {
   freekickViewToWorld,
 } from "@/lib/arcade/freekick.renderer";
 import { encodeFreekickRun, replayFreekickRun } from "@/lib/duel/freekick";
+import { strikeFromStroke } from "@/lib/arcade/freekickStroke";
 import { FREEKICK_TIME_MS, type FreekickPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { freekickSounds } from "@/lib/fx/freekickSounds";
@@ -263,6 +265,8 @@ function v4Pointer(
   const shot = freekickDrawnShot(state, pts);
   if (!shot) return null;
   freekickV4Ui.line = { k: state.k, pts: pts.slice() };
+  // freekickRev 5: the stroke's shape picks the strike (a flick at the end dips, a straight line drives, a bend curls).
+  if (state.freekickRev >= FREEKICK_REV_5) return { k: FREEKICK_INPUT_SHOT, a: shot.x, b: shot.y, c: shot.b, d: strikeFromStroke(pts, shot.b) };
   return { k: FREEKICK_INPUT_SHOT, a: shot.x, b: shot.y, c: shot.b };
 }
 
@@ -273,9 +277,15 @@ function v4Pointer(
  */
 function v4Key(kind: "down" | "up", key: string, send: (p: PointerPayload) => void, state: FreekickState, event: KeyboardEvent): boolean {
   const k = key.length === 1 ? key.toLowerCase() : key;
-  const handled = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "a", "d", " "].includes(k);
+  const v5 = state.freekickRev >= FREEKICK_REV_5;
+  const handled = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "a", "d", " ", ...(v5 ? ["s"] : [])].includes(k);
   if (!handled) return false;
   if (state.phase !== FK_AIM) return true;
+  // freekickRev 5: S steps through the strike (curler, driven, dipping) on the shot drawn.
+  if (v5 && k === "s") {
+    if (kind === "down" && (state.meterAt ?? -1) < 0 && state.aimed === 1) send({ k: FREEKICK_INPUT_SHOT, a: state.aimX ?? 0, b: state.aimY ?? 120, c: state.curl ?? 0, d: ((state.strike ?? 0) + 1) % 3 });
+    return true;
+  }
   const metering = (state.meterAt ?? -1) >= 0;
   if (k === " ") {
     if (kind === "down" && !event.repeat && !metering && state.aimed === 1) send({ k: FREEKICK_INPUT_POWER, a: 0, b: 0, c: 0 });
@@ -294,7 +304,7 @@ function v4Key(kind: "down" | "up", key: string, send: (p: PointerPayload) => vo
     y += k === "ArrowUp" ? step : k === "ArrowDown" ? -step : 0;
   }
   freekickV4Ui.line = null;
-  send({ k: FREEKICK_INPUT_SHOT, a: Math.max(-372, Math.min(372, x)), b: Math.max(11, Math.min(250, y)), c: b });
+  send({ k: FREEKICK_INPUT_SHOT, a: Math.max(-372, Math.min(372, x)), b: Math.max(11, Math.min(250, y)), c: b, ...(v5 ? { d: state.strike ?? 0 } : {}) });
   return true;
 }
 
@@ -334,10 +344,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // The player's own equipped football (wave 2; display only, src/lib/skins/equipped.ts).
   const [, lookRef] = useGameLookRef("freekick");
   const game = useMemo(() => {
-    const art = freekickArtGameFor(data?.freekickRev);
+    const art = freekickArtGameFor(data?.freekickRev, undefined, data?.level);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, s: FreekickState, size: CanvasSize) => withFreekickLook(lookRef.current, () => art.draw(ctx, s, size)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.freekickRev]);
+  }, [data?.freekickRev, data?.level]);
   const stroke = useRef<StrokePoint[]>([]);
   const gesture = useRef<{ x: number; y: number; power: boolean; drag: boolean } | null>(null);
   const v3 = (data?.freekickRev ?? 1) >= FREEKICK_REV_3;
@@ -398,7 +408,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "freekick") return null;
-  const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev);
+  const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   return (

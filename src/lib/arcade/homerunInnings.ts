@@ -448,6 +448,9 @@ export function hr5Step(inn: Hr5Inn, tick: number, seed: number, input: { k: num
     return { inn: n, acted: input !== null };
   }
   const plan = homerunInningsPlan(seed, n.level);
+  // No new pitch in the clock's last HR5_END_HOLD ticks: the innings ends there (a pitch already thrown plays out), so
+  // the end is always seen.
+  if (n.st < 0 && tick < n.release - HR5_SWING_EARLY && tick >= HR5_RUN_TICKS - HR5_END_HOLD) return { inn: { ...n, endAt: tick }, acted: input !== null };
   if (input && input.k === HR5_INPUT_MODE) {
     acted = true;
     n = { ...n, mode: input.a === HR5_MODE_POWER ? HR5_MODE_POWER : HR5_MODE_CONTACT };
