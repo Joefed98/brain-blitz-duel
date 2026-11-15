@@ -103,7 +103,7 @@ function Vehicle({
         ["--escape" as string]: `${((vehicle.len + 0.6) / vehicle.len) * 100}%`,
         ...style,
       }}
-      aria-label={gold ? "Gold block" : `${vehicle.len === 3 ? "Long block" : "Block"} ${vehicle.id}`}
+      aria-label={gold ? "Gold car" : `${vehicle.len === 3 ? "Van" : "Car"} ${vehicle.id}`}
     >
       <UnblockCarArt id={vehicle.id} axis={vehicle.axis} len={vehicle.len} />
     </div>
@@ -282,7 +282,7 @@ export function UnblockPuzzle({
           <span>
             moves <span className="text-primary">{moveCount}</span>
           </span>
-          <span>get the gold block out</span>
+          <span>get the gold car out</span>
         </div>
       )}
 

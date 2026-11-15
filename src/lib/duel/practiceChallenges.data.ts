@@ -178,8 +178,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
 
   /* ================================================================ Pattern */
   // Gridlock (unblock): 150 + speed 30 (40 s) + moves 20 (par).
-  ch("unblock", "Clear road", "Free the gold block in par moves.", "C", "par", false, bonus(20), "unblock.par"),
-  ch("unblock", "Rush hour", "Free the gold block within 40 s.", "C", "speed", false, speed(30, 40), "unblock.speed"),
+  ch("unblock", "Clear road", "Free the gold car in par moves.", "C", "par", false, bonus(20), "unblock.par"),
+  ch("unblock", "Rush hour", "Free the gold car within 40 s.", "C", "speed", false, speed(30, 40), "unblock.speed"),
   ch("unblock", "Green wave", "Score 200 on an Expert jam.", "E", "perfect", true, score(200)),
   // Tessellate (blockparty): 150 + speed 40 (40 s) + clean drops 10 (blockRev 4, the Pattern overhaul: moving a
   // placed piece is free, each drop where a piece won't fit costs a share; 10 needs no illegal drop).

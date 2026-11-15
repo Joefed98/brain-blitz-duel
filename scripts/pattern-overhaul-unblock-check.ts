@@ -9,8 +9,10 @@
  *     board (the stored moves and the par bonus equal the clean line's); the same answers on unblockRev 3 count every
  *     slide; unfinished credit is unchanged between the two stamps.
  *  4. The stage's Moves pill counts the board's slides on unblockRev 4.
- *  5. The reveal: on unblockRev 4 "your moves" is the net count and marked data-yours-only, the Yours board is the
- *     player's real final layout (an unfinished one too); older stamps read as before.
+ *  5. The reveal (Joe's reveal brief): the shortest solution large with the par route as move chips, the player's own
+ *     final board under Yours (the gold car's blockers outlined on an unfinished one), the key numbers (Par, your moves
+ *     and time left, from the stored grade) as pills, the player's own only under Yours; older stamps take the look and
+ *     read their own counts.
  *  6. Help: the live help says Undo gives the move back (no "gold mark"); the pinned help keeps the old line.
  *  7. Art: every sprite exists as WebP with alpha, its size within budget and its shape its vehicle box's; the stage,
  *     the board (intro and reveal) and the lot draw them.
@@ -42,7 +44,7 @@ const { withSeededRandom } = await import("../src/lib/duel/random");
 const { pinPrePatternNov15 } = await import("../src/lib/duel/patternNov15");
 const { PUZZLE_INSTRUCTIONS } = await import("../src/lib/duel/instructions");
 const { decodeMoves, encodeMoves, replayUnblock, applyMove } = await import("../src/lib/duel/unblock");
-const { unblockPuzzle } = await import("../src/puzzles/unblock");
+const { unblockPuzzle, laneBlockers } = await import("../src/puzzles/unblock");
 const { UnblockBoard, UnblockPuzzle, goldLaneClear } = await import("../src/components/puzzles/UnblockPuzzle");
 const { UNBLOCK_BODIES, unblockCarSprite, UNBLOCK_LOT_SPRITE } = await import("../src/components/puzzles/pattern/unblockArt");
 const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
@@ -148,31 +150,78 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
 
 /* ---------------------------------------------------------------- 5. the reveal */
 {
+  // A small board: the gold car in row 2, car 1 (vertical) across its lane, car 2 (horizontal) elsewhere.
   const vs: UnblockVehicle[] = [
     { id: 0, axis: "h", len: 2, row: 2, col: 0 },
     { id: 1, axis: "v", len: 2, row: 1, col: 3 },
+    { id: 2, axis: "h", len: 3, row: 5, col: 0 },
   ];
   const base = { type: "unblock", vehicles: vs, minMoves: 2, par: 2, solution: "1:3,0:5" } as unknown as UnblockPuzzleData;
-  const reveal = (puzzle: UnblockPuzzleData, answer: string, correct: boolean) =>
-    renderToStaticMarkup(React.createElement(unblockPuzzle.Reveal, { timeLimitMs: 60_000, puzzle, myAnswer: answer, myCorrect: correct, myMsRemaining: 20_000 } as never));
+  const reveal = (puzzle: UnblockPuzzleData, answer: string | null, correct: boolean, myExtra?: Record<string, unknown>) =>
+    renderToStaticMarkup(React.createElement(unblockPuzzle.Reveal, { timeLimitMs: 60_000, puzzle, myAnswer: answer, myCorrect: correct, myMsRemaining: 20_400, myExtra } as never));
+  const graded = (puzzle: UnblockPuzzleData, answer: string) => gradeAnswer(puzzle, answer, 20_400).extra as Record<string, unknown>;
   const solvedAnswer = "1:4,-1:0,1:3,0:5"; // a slide undone, then the line: 2 on the board, 3 played
-  const h4 = reveal({ ...base, unblockRev: 4 } as UnblockPuzzleData, solvedAnswer, true);
-  check(/data-yours-only[^>]*>\s*your moves: <span[^>]*>2<\/span>/.test(h4), `unblockRev 4: the reveal's "your moves" isn't 2 under Yours only: ${h4.match(/your moves:[^·]*/)?.[0]}`);
-  check(/par 2/.test(h4), "unblockRev 4: the reveal lost the par figure");
-  const h3 = reveal({ ...base, unblockRev: 3 } as UnblockPuzzleData, solvedAnswer, true);
-  check(/your moves: <span[^>]*>3<\/span>/.test(h3) && !/data-yours-only/.test(h3), "unblockRev 3: the reveal no longer reads as before (3 moves, no Yours-only line)");
-  // An unfinished player's own final board shows under Yours (unblockRev 4 only).
-  const unfinished = "1:3"; // the blocker moved out of the lane, gold not yet out
-  const u4 = reveal({ ...base, unblockRev: 4 } as UnblockPuzzleData, unfinished, false);
-  check(/data-unblock-yours/.test(u4), "unblockRev 4: an unfinished player's reveal has no Yours board");
-  const u3 = reveal({ ...base, unblockRev: 3 } as UnblockPuzzleData, unfinished, false);
-  check(!/data-unblock-yours/.test(u3), "unblockRev 3: an unfinished player's reveal changed (it showed no Yours board)");
-  // The Yours board is the layout the player left (blocker in row 3, not the start's row 1).
-  const yoursPart = u4.slice(u4.indexOf("data-unblock-yours"));
-  check(yoursPart.includes("top:42.857142857142854%") && !yoursPart.includes("top:14.285714285714286%"), "unblockRev 4: the Yours board isn't the layout the player left (the blocker in row 3)");
-  const after = applyMove(vs, { id: 1, to: 3 })!;
-  const r = replayUnblock(vs, decodeMoves(unfinished));
-  check(same(r.vehicles, after), "the replay's final board isn't the board the player left");
+  const stuck = "2:2"; // only car 2 moved: car 1 still in the gold car's lane
+  const p4 = { ...base, unblockRev: 4 } as UnblockPuzzleData;
+  const p3 = { ...base, unblockRev: 3 } as UnblockPuzzleData;
+  const yoursOf = (html: string) => html.slice(html.indexOf("data-unblock-yours=\"\""));
+  const solutionOf = (html: string) => html.slice(html.indexOf("data-unblock-solution"), html.indexOf("data-unblock-yours=\"\""));
+  const key = (html: string, k: string) => html.match(new RegExp(`data-unblock-key="${k}"[^>]*>([^<]*)<span class="unblock-key-value">([^<]*)</span>`));
+
+  // Solved, the new stamp: the key numbers are the stored grade's (moves 2, par 2) and the time left.
+  const e4 = graded(p4, solvedAnswer);
+  const h4 = reveal(p4, solvedAnswer, true, e4);
+  check(e4["moves"] === 2, `unblockRev 4: the grade stores ${String(e4["moves"])} moves, not 2`);
+  check(key(h4, "you")?.[2] === String(e4["moves"]) && /data-unblock-key="you"[^>]*data-yours-only/.test(h4), `unblockRev 4: the "your moves" pill isn't the stored ${String(e4["moves"])} under Yours only`);
+  check(key(h4, "par")?.[1]?.trim() === "Par" && key(h4, "par")?.[2] === "2" && !/data-unblock-key="par"[^>]*data-yours-only/.test(h4), "the Par pill is missing or hidden under Solution");
+  check(key(h4, "time")?.[2] === "20 s" && /data-unblock-key="time"[^>]*data-yours-only/.test(h4), "a solve's time left isn't a Yours pill (20 s)");
+  check(/your moves: <span[^>]*>2<\/span>/.test(h4), "the pill no longer reads \"your moves: n\"");
+  // The pair: both boards the same full-size board (one shown at a time by the switch), the solution side holding
+  // nothing marked Yours-only (so it is never drawn half size beside a hidden Yours line).
+  check(/data-unblock-solution/.test(h4) && /data-unblock-yours=""/.test(h4), "the solved reveal isn't a Solution / Yours pair");
+  check(!/data-yours-only/.test(solutionOf(h4)), "the Solution side holds a Yours-only line");
+  check((h4.match(/class="unblock-reveal-board"/g) ?? []).length === 2, "the two boards don't share the one full-size board box");
+  check(/>Solution</.test(h4) && />Yours</.test(h4), "the Solution / Yours labels are missing");
+  // The par route: one chip a move with the car's own sprite and its way.
+  const route = h4.match(/data-unblock-route="(\d+)"/);
+  check(route?.[1] === "2", `the route strip has ${route?.[1]} chips, not the solution's 2`);
+  check(solutionOf(h4).includes('class="unblock-route"') && !yoursOf(h4).includes('class="unblock-route"'), "the route strip isn't under the Solution");
+  check(/unblock-route-car--v[^>]*|src="\/pattern-art\/unblock\/blue-2v\.webp"/.test(h4) && h4.includes('src="/pattern-art/unblock/gold-2h.webp"'), "the route chips don't draw the cars' sprites");
+  check(/↓2/.test(h4) && /→5/.test(h4), "the route chips don't show the way and the bays (car 1 ↓2, the gold car →5)");
+  check(!/data-unblock-blocker/.test(h4), "a solved board is marked with blockers");
+  check(!h4.includes("×"), "a stray × in the reveal");
+
+  // Unfinished, the new stamp: the player's own board under Yours, the car still in the lane outlined.
+  const eS = graded(p4, stuck);
+  const hS = reveal(p4, stuck, false, eS);
+  check(/data-unblock-yours-board="unfinished"/.test(hS), "an unfinished player's board isn't the Yours side");
+  check(/data-unblock-blocker="1"/.test(yoursOf(hS)) && !/data-unblock-blocker="2"/.test(hS), "the car in the gold car's lane isn't outlined (or another car is)");
+  check(/1 car still in the gold car’s way/.test(yoursOf(hS)), "the Yours side doesn't say how many cars are still in the way");
+  check(key(hS, "you")?.[2] === String(eS["moves"]), "the unfinished \"your moves\" isn't the stored grade's");
+  check(!/data-unblock-key="time"/.test(hS), "an unfinished round shows a time left");
+  check(laneBlockers(vs).join() === "1" && laneBlockers(applyMove(vs, { id: 1, to: 3 })!).length === 0, "laneBlockers: wrong cars");
+  // The Yours board is the layout the player left (car 2 at column 2, not the start's column 0).
+  const yS = yoursOf(hS);
+  check(/left:28\.571428571428573%[^"]*top:71\.42857142857143%/.test(yS), "the Yours board isn't the layout the player left (car 2 moved to column 2)");
+  const r = replayUnblock(vs, decodeMoves(stuck));
+  check(same(r.vehicles, applyMove(vs, { id: 2, to: 2 })), "the replay's final board isn't the board the player left");
+
+  // An older stamp takes the same look but reads its own count (every slide played).
+  const e3 = graded(p3, solvedAnswer);
+  const h3 = reveal(p3, solvedAnswer, true, e3);
+  check(e3["moves"] === 3 && key(h3, "you")?.[2] === "3", "unblockRev 3: the reveal doesn't show its stored 3 moves");
+  const h3x = reveal(p3, solvedAnswer, true); // a row stored without the extra: the grader's own replay count
+  check(key(h3x, "you")?.[2] === "3", "unblockRev 3: without the stored extra the reveal doesn't count every slide");
+  const u3 = reveal(p3, stuck, false, graded(p3, stuck));
+  check(/data-unblock-blocker="1"/.test(u3), "unblockRev 3: the unfinished reveal has no blocker marks");
+  const old = reveal({ type: "unblock", vehicles: vs, minMoves: 2, solution: "1:3,0:5" } as unknown as UnblockPuzzleData, stuck, false);
+  check(key(old, "par")?.[1]?.trim() === "Fewest", "an unstamped round's figure isn't labelled Fewest");
+  // No answer at all: the solution alone, no Yours pill.
+  const none = reveal(p4, null, false);
+  check(!/data-unblock-key="you"/.test(none) && /data-unblock-route="2"/.test(none), "a reveal with no answer shows a Yours count or no route");
+  // A broken stored solution: the player's board stands in, "Solution unavailable".
+  const broken = reveal({ ...p4, solution: "9:9" } as UnblockPuzzleData, stuck, false);
+  check(/Solution unavailable/.test(broken) && /data-unblock-yours-board/.test(broken), "a broken solution doesn't fall back to the player's board");
 }
 
 /* ---------------------------------------------------------------- 6. help */
@@ -187,6 +236,17 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
   pinPrePatternNov15(before);
   check(/don’t give a move back/.test(pinned), "the pinned help lost the older stamps' Undo line");
   check(PUZZLE_INSTRUCTIONS.unblock.how.filter((l) => !l.helpOnly).length <= 4, "more than four intro HOW lines");
+  // The new look: cars on a lot, the gold car (intro GOAL / HOW / SCORE, "?" help, the intro example, the frame's goal).
+  const ins = PUZZLE_INSTRUCTIONS.unblock;
+  check(ins.goal === "Slide the gold car out through the exit.", `the GOAL line: ${ins.goal}`);
+  check(/Drag a car along its own direction/.test(live) && /Clear a path for the gold car/.test(live), "the HOW lines don't describe the cars");
+  const scoreText = JSON.stringify(ins.score);
+  check(/gold car/.test(scoreText) && !/block/i.test(scoreText), `the "?" SCORE help still says block: ${scoreText}`);
+  check(!/block/i.test(live + ins.goal), "the help still says block");
+  const introHtml = renderToStaticMarkup(React.createElement(unblockPuzzle.IntroExample!));
+  check(/Slide the cars out of the way\. Get the gold car to the exit\./.test(introHtml) && /Undo gives a move back/.test(introHtml), "the intro example's lines don't describe the cars and Undo");
+  check(/unblock: "Slide the gold car out"/.test(src("src/components/duel/GameFrame.tsx")), "the frame's goal line still says block");
+  check(/"Gold car"/.test(src("src/components/puzzles/UnblockPuzzle.tsx")) && /aria-label="Gold car"/.test(src("src/components/puzzles/useSolveFlourish.ts")), "the gold car's label and the solve flourish's selector disagree");
 }
 
 /* ---------------------------------------------------------------- 7. art */

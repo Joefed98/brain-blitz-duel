@@ -137,8 +137,8 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Clear road | Free the gold block in par moves. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `unblock.par` |
-| Rush hour | Free the gold block within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `unblock.speed` |
+| Clear road | Free the gold car in par moves. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `unblock.par` |
+| Rush hour | Free the gold car within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `unblock.speed` |
 | Green wave | Score 200 on an Expert jam. | Expert | Perfect | `score` ≥ 200 | ● | `unblock.green-wave` |
 
 #### Tessellate (`blockparty`)

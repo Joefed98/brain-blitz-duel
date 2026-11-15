@@ -13,7 +13,7 @@ import { GRADIENT_LIMIT_PER_PAR, partialCreditDealt } from "../partialCredit";
 
 /** The intro line (two phone lines at most, no scoring terms). */
 export const PATTERN_STD_INTRO: Record<PatternStdType, string> = {
-  unblock: "Free the gold block; bonuses for speed and the fewest moves. Up to {max}.",
+  unblock: "Free the gold car; bonuses for speed and the fewest moves. Up to {max}.",
   blockparty: "Fill the board; bonuses for speed and pieces right first time. Up to {max}.",
   iceslide: "Reach the exit; bonuses for speed and every ice gem. Up to {max}.",
   gravity: "Clear all three boards; bonuses for speed and the stars. Up to {max}.",
@@ -40,7 +40,7 @@ const P = (t: PatternStdType) => PATTERN_STD[t].par ?? 0;
 
 /** The "?" help SCORE text: one line a part (scoreList.ts). */
 export const PATTERN_STD_HELP: Record<PatternStdType, string> = {
-  unblock: help("unblock", "free the gold block", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "the share of the blocks in the gold block’s way you clear, more for doing it early; wasted moves take it down"),
+  unblock: help("unblock", "free the gold car", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "the share of the cars in the gold car’s way you clear, more for doing it early; wasted moves take it down"),
   blockparty: help("blockparty", "fill the board", [{ label: "First time", how: "pieces placed right first time and never moved again", max: BLOCK_STD.firstTime }], `${BLOCK_STD.perPiece} for each piece on its spot in the solution, more for placing it early`),
   iceslide: help("iceslide", "reach the exit", [{ label: "Ice gems", how: "collect the ice gems off the direct route", max: ICE_STD.gems }], "how much closer you got to the exit, plus the gems so far; wasted slides take it down"),
   gravity: help("gravity", "clear all three boards", [{ label: "Stars", how: "collect the stars", max: TOPSY_STD.stars }, parLine("gravity", "Tilts", "clear each board in the fewest tilts (par)", P("gravity"))], "the share of the balls home, more for doing it early; wasted tilts take it down"),
@@ -98,13 +98,13 @@ export const parMovesPatternHelp = (type: "iceslide" | "gravity"): string => (pa
  * (tilesRev 7, with its swap limit) count how close the best board got to solved, in proportion.
  */
 export const PARTIAL_PATTERN_INTRO: Record<"unblock" | "rings" | "tiles", string> = {
-  unblock: "Free the gold block; partway counts. Bonuses for speed and fewest moves. Up to {max}.",
+  unblock: "Free the gold car; partway counts. Bonuses for speed and fewest moves. Up to {max}.",
   rings: "Line up every spoke; partway counts. Bonuses for speed and fewest turns. Up to {max}.",
   tiles: "Place every tile before the swaps run out; bonuses for speed and few swaps. Up to {max}.",
 };
 
 export const PARTIAL_PATTERN_HELP: Record<"unblock" | "rings" | "tiles", string> = {
-  unblock: help("unblock", "free the gold block", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "how close your best board got to freeing the gold block, in proportion (the moves still needed); moves that brought it no closer take it down"),
+  unblock: help("unblock", "free the gold car", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "how close your best board got to freeing the gold car, in proportion (the moves still needed); moves that brought it no closer take it down"),
   rings: help("rings", "line up every spoke", [parLine("rings", "Turns", "finish in the fewest turns (par)", P("rings"))], "how close your best board got to every spoke lined up, in proportion (the turns still needed); turns that brought it no closer take it down a little"),
   tiles: help("tiles", `put every tile in place within the swap limit (${fmt(GRADIENT_LIMIT_PER_PAR)} times par, shown)`, [parLine("tiles", "Swaps", "finish in the fewest swaps (par, shown)", P("tiles"))], "how close your best board got to solved, in proportion (the swaps still needed); each swap that brought it no closer takes off half a swap’s worth"),
 };

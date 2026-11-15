@@ -560,10 +560,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ], { penalties: [`Tracing non-words: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} for each word found are free, then each takes ${WORDHUNT_MISS_COST_PCT} % off`], total: "{max}" as unknown as number }),
     },
     unblock: {
-      goal: "Slide the gold block out through the exit.",
+      goal: "Slide the gold car out through the exit.",
       how: [
-        { action: "Drag a block", detail: "along its own direction." },
-        { action: "Clear a path", detail: "for the gold block." },
+        { action: "Drag a car", detail: "along its own direction." },
+        { action: "Clear a path", detail: "for the gold car." },
         // Pattern review fixes (15 Nov 2026): the screen shows Moves and Par pills, and Undo keeps the move counted.
         { action: "Par", detail: "is the fewest moves, shown beside your moves." },
         // The Pattern overhaul (15 Nov 2026, unblockRev 4): Undo and Reset give the move back.

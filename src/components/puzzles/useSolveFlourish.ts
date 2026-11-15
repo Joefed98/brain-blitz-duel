@@ -6,7 +6,7 @@ export const SOLVE_FLOURISH: Partial<Record<PuzzleType, string>> = {
   sudoku: "Cell ripple",
   nonogram: "Cell ripple",
   lightsout: "Lights-off wave",
-  unblock: "Gold block exits",
+  unblock: "Gold car exits",
   flow: "Completed-path glow",
   trail: "Completed-path glow",
   tiles: "Tiles pulse in numeric order",
@@ -91,7 +91,7 @@ export function useSolveFlourish(
     if (type === "tiles") selector = "[data-pointer-index]";
     if (type === "push") selector = 'svg[aria-label="Crate home"]';
     if (type === "lightsout") selector = ".lightsout-bulb";
-    if (type === "unblock") selector = '[aria-label="Gold block"]';
+    if (type === "unblock") selector = '[aria-label="Gold car"]';
     if (type === "safe") selector = ".solve-safe-door";
     if (type === "lightup") selector = ".lightup-cell-lit";
     if (type === "tower") selector = ".hanoi-disc";
