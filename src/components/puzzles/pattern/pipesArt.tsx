@@ -1,8 +1,8 @@
 /**
- * Pipeline art (Pattern polish, 13 Oct 2026). Presentation only: metal tubes,
- * flanges and rivets drawn from a tile's side-set, water in the connected
- * network and the solve-time rush. Nothing here reads or changes what the
- * stage grades; water directions come from the presentation-only BFS.
+ * Pipeline art (the Pattern overhaul, 15 Nov 2026; SVG since the 13 Oct polish until then). Presentation only: the
+ * Blender sprites (docs/design/game-art/pattern/source/pipes.py: chrome pipes on dark tiles, water in the connected
+ * network's sight glass, the red source valve, a spill at each open end of the network) and the solve-time rush.
+ * Nothing here reads or changes what the stage grades; water directions come from the presentation-only BFS.
  */
 import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 
@@ -16,154 +16,106 @@ export const PIPE_ARMS: { bit: number; turn: number; dx: number; dy: number }[] 
   { bit: PIPE_W, turn: 270, dx: -1, dy: 0 },
 ];
 
-/** Shared gradients and the channel clip, drawn once per board. */
-export function PipeDefs({ id }: { id: string }) {
-  return (
-    <svg width="0" height="0" aria-hidden="true" focusable="false" className="pointer-events-none absolute">
-      <defs>
-        {/* Puzzle polish (3 Nov 2026): brighter steel, so a dry pipe reads on the dark board. */}
-        <linearGradient id={`${id}-tube`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#56606e" />
-          <stop offset="0.22" stopColor="#adb8c5" />
-          <stop offset="0.42" stopColor="#f6f9fc" />
-          <stop offset="0.6" stopColor="#c8d1db" />
-          <stop offset="1" stopColor="#5e6876" />
-        </linearGradient>
-        {/* A pipe the water reaches: the tube itself turns blue, so the connected network is plainly lit. */}
-        <linearGradient id={`${id}-tube-wet`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#0d4f86" />
-          <stop offset="0.22" stopColor="#2f9be6" />
-          <stop offset="0.42" stopColor="#d4f2ff" />
-          <stop offset="0.6" stopColor="#66c4f5" />
-          <stop offset="1" stopColor="#11568f" />
-        </linearGradient>
-        <linearGradient id={`${id}-flange`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#c9d2dc" />
-          <stop offset="0.55" stopColor="#8a95a3" />
-          <stop offset="1" stopColor="#4a525e" />
-        </linearGradient>
-        <radialGradient id={`${id}-hub`} cx="0.4" cy="0.36" r="0.7">
-          <stop offset="0" stopColor="#f1f5f9" />
-          <stop offset="0.45" stopColor="#9ba7b5" />
-          <stop offset="1" stopColor="#3b434e" />
-        </radialGradient>
-        <radialGradient id={`${id}-pump`} cx="0.4" cy="0.35" r="0.72">
-          <stop offset="0" stopColor="#ffb39a" />
-          <stop offset="0.5" stopColor="#e2483a" />
-          <stop offset="1" stopColor="#7c1d18" />
-        </radialGradient>
-        <linearGradient id={`${id}-water`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#1f86e0" />
-          <stop offset="0.45" stopColor="#6fd8ff" />
-          <stop offset="0.6" stopColor="#b5ecff" />
-          <stop offset="1" stopColor="#1f86e0" />
-        </linearGradient>
-        <clipPath id={`${id}-channel`} clipPathUnits="userSpaceOnUse">
-          <rect x="41" y="0" width="18" height="50" />
-        </clipPath>
-      </defs>
-    </svg>
-  );
+/** The sprites (public/pattern-art/pipes/). */
+export const PIPE_ART_BASE = "/pattern-art/pipes";
+export const PIPE_SHAPES = ["end", "straight", "corner", "tee", "cross"] as const;
+export type PipeShape = (typeof PIPE_SHAPES)[number];
+
+/** Each shape's side-set as its sprite draws it: the open sides from north, clockwise. */
+const CANONICAL: Record<PipeShape, number> = {
+  end: PIPE_N,
+  straight: PIPE_N | PIPE_S,
+  corner: PIPE_N | PIPE_E,
+  tee: PIPE_N | PIPE_E | PIPE_S,
+  cross: PIPE_N | PIPE_E | PIPE_S | PIPE_W,
+};
+
+function turnMask(mask: number, turns: number): number {
+  let out = 0;
+  for (let bit = 0; bit < 4; bit++) if (mask & (1 << bit)) out |= 1 << ((bit + turns) % 4);
+  return out;
+}
+
+/** The sprite and its quarter turns clockwise for a side-set (null for a tile with no pipe). */
+export function pipeSprite(mask: number): { shape: PipeShape; turns: number } | null {
+  for (const shape of PIPE_SHAPES) {
+    for (let turns = 0; turns < 4; turns++) if (turnMask(CANONICAL[shape], turns) === (mask & 15)) return { shape, turns };
+  }
+  return null;
+}
+
+/** Every sprite the board draws (checks and preloading). */
+export function pipeArtUrls(): string[] {
+  return [
+    `${PIPE_ART_BASE}/tile.webp`,
+    `${PIPE_ART_BASE}/source.webp`,
+    `${PIPE_ART_BASE}/spill.webp`,
+    ...PIPE_SHAPES.flatMap((shape) => [`${PIPE_ART_BASE}/${shape}-dry.webp`, `${PIPE_ART_BASE}/${shape}-wet.webp`]),
+  ];
 }
 
 /**
- * One tile's pipework. `inflow` holds the arms water enters through (towards
- * the source); every other wet arm carries water away from the centre.
- * Memoised on its primitive props: a board is 49 of these (about 2,300 SVG nodes), and the
- * practice and room clocks re-render the stage ten times a second.
+ * One tile's pipework: the shape's sprite turned by a CSS transform, dry (plain chrome) under wet (water in the sight
+ * glass), so water reaching the pipe fades in; the source's red valve on top; a spill at each open end of the network
+ * (`leakArms`). Inside the tile's box. Memoised on its primitive props (a board is 49 of these and the round clocks
+ * re-render the stage ten times a second).
  */
 export const PipeArt = memo(function PipeArt({
-  id,
   mask,
   wet,
   source,
-  inflow,
+  leakArms = 0,
   turnKey,
+  turnDir = 1,
 }: {
-  id: string;
   mask: number;
   wet: boolean;
   source: boolean;
-  inflow: number;
-  /** Changes on every tap; plays the quarter-turn. */
+  /** Open sides of a wet pipe that nothing joins: the water spills there. */
+  leakArms?: number;
+  /** Changes on every turn; plays the quarter-turn. */
   turnKey: number;
+  /** The last turn's direction: 1 clockwise, -1 anticlockwise. */
+  turnDir?: 1 | -1;
 }) {
-  const turnRef = useRef<SVGGElement>(null);
-  const waterRef = useRef<SVGGElement>(null);
+  const turnRef = useRef<HTMLSpanElement>(null);
   const lastTurn = useRef(turnKey);
-  const wasWet = useRef(wet);
+  const sprite = pipeSprite(mask);
+  const deg = (sprite?.turns ?? 0) * 90;
 
   useLayoutEffect(() => {
     if (turnKey === lastTurn.current) return;
     lastTurn.current = turnKey;
     const node = turnRef.current;
     if (!node?.animate || reducedMotion()) return;
-    node.animate([{ transform: "rotate(-90deg)" }, { transform: "rotate(0deg)" }], {
+    node.animate([{ transform: `rotate(${deg - 90 * turnDir}deg)` }, { transform: `rotate(${deg}deg)` }], {
       duration: 170,
       easing: "cubic-bezier(.2,.9,.3,1.15)",
     });
-  }, [turnKey]);
+  }, [turnKey, turnDir, deg]);
 
-  useLayoutEffect(() => {
-    if (wet && !wasWet.current) {
-      waterRef.current?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: reducedMotion() ? 1 : 220, easing: "ease-out" });
-    }
-    wasWet.current = wet;
-  }, [wet]);
-
-  const arms = PIPE_ARMS.filter((arm) => mask & arm.bit);
   return (
-    <svg viewBox="0 0 100 100" className="pipe-art h-full w-full" aria-hidden="true">
-      <g ref={turnRef} className="pipe-turn">
-        {arms.map((arm) => (
-          <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
-            <rect x="31" y="0" width="38" height="52" fill={`url(#${id}-${wet ? "tube-wet" : "tube"})`} />
-            <rect x="41" y="0" width="18" height="50" className="pipe-channel" />
-          </g>
-        ))}
-        <g ref={waterRef} className={wet ? "pipe-water" : "pipe-water pipe-water-off"}>
-          {arms.map((arm) => (
-            <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
-              <rect x="41" y="0" width="18" height="50" fill={`url(#${id}-water)`} />
-              <g clipPath={`url(#${id}-channel)`}>
-                <g className={inflow & arm.bit ? "pipe-ripple pipe-ripple-in" : "pipe-ripple"}>
-                  {[-12, 0, 12, 24, 36, 48, 60].map((y) => (
-                    <rect key={y} x="47" y={y} width="6" height="5" rx="2.5" className="pipe-ripple-dot" />
-                  ))}
-                </g>
-              </g>
-            </g>
-          ))}
-        </g>
-        {arms.map((arm) => (
-          <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
-            <rect x="26" y="0.5" width="48" height="8" rx="1.6" fill={`url(#${id}-flange)`} stroke="#2a3039" strokeWidth="1" />
-            <circle cx="30.5" cy="4.5" r="1.9" className="pipe-rivet" />
-            <circle cx="69.5" cy="4.5" r="1.9" className="pipe-rivet" />
-          </g>
-        ))}
-        {source ? (
-          <g>
-            <circle cx="50" cy="50" r="27" fill={`url(#${id}-pump)`} stroke="#4a1210" strokeWidth="1.6" />
-            {[0, 60, 120].map((turn) => (
-              <rect key={turn} x="47.5" y="27" width="5" height="46" rx="2.5" transform={`rotate(${turn} 50 50)`} className="pipe-spoke" />
-            ))}
-            <circle cx="50" cy="50" r="10" fill={`url(#${id}-hub)`} stroke="#2a3039" strokeWidth="1.2" />
-            <circle cx="50" cy="50" r="5" className="pipe-water-eye" />
-          </g>
-        ) : (
-          arms.length > 0 && (
-            <g>
-              <circle cx="50" cy="50" r="20" fill={`url(#${id}-hub)`} stroke="#262c34" strokeWidth="1.4" />
-              {[45, 135, 225, 315].map((turn) => (
-                <circle key={turn} cx="50" cy="35.5" r="2" transform={`rotate(${turn} 50 50)`} className="pipe-rivet" />
-              ))}
-              <circle cx="50" cy="50" r="8.5" className={wet ? "pipe-hub-eye pipe-hub-eye-wet" : "pipe-hub-eye"} />
-            </g>
-          )
-        )}
-      </g>
-    </svg>
+    <span className="pipe-art" aria-hidden="true">
+      {sprite ? (
+        <span ref={turnRef} className="pipe-turn" style={{ transform: `rotate(${deg}deg)` }}>
+          <img className="pipe-sprite" src={`${PIPE_ART_BASE}/${sprite.shape}-dry.webp`} alt="" draggable={false} decoding="async" />
+          <img
+            className="pipe-sprite pipe-sprite-wet"
+            data-wet={wet ? "true" : undefined}
+            src={`${PIPE_ART_BASE}/${sprite.shape}-wet.webp`}
+            alt=""
+            draggable={false}
+            decoding="async"
+          />
+        </span>
+      ) : null}
+      {PIPE_ARMS.filter((arm) => leakArms & arm.bit).map((arm) => (
+        <span key={arm.bit} className="pipe-spill" data-pipe-leak={arm.bit} style={{ transform: `rotate(${arm.turn}deg)` }}>
+          <img src={`${PIPE_ART_BASE}/spill.webp`} alt="" draggable={false} decoding="async" />
+        </span>
+      ))}
+      {source ? <img className="pipe-source" src={`${PIPE_ART_BASE}/source.webp`} alt="" draggable={false} decoding="async" /> : null}
+    </span>
   );
 });
 

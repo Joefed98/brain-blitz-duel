@@ -21,6 +21,19 @@ effects with no lead-in silence.
 
 <!-- pipeline:start -->
 ## Pipeline
+- `pipes.rotate` — a pipe tile turned a quarter, either way: a metallic ratchet, two quick pawl clicks on a hollow steel
+  joint, dry and tight, no ring-out; 110–150 ms. (Today the November placeholder `pipes.rotate.mp3`, behind
+  `NEW_GAME_SOUNDS`; silent with the switch off.)
+- `pipes.flow` — water reaching newly joined pipes: a short gurgle through a metal pipe, a few bubbles running away
+  from the listener, wet and clean; 200–300 ms for one to five pipes. (Today's file works; replace only if the new one
+  matches the ratchet's material.)
+- `pipes.combo` — six or more pipes joined by one turn: a longer, fuller gush through the pipework that rises a little
+  in pitch as it runs, satisfying, still water in metal (no chime); 450–600 ms. (Placeholder: the library's `combo.mp3`.)
+- `pipes.drain` — a turn that cuts pipes off the water: a falling drain note, water glugging away down a pipe, a soft
+  downward gurgle ending in a hollow drip; 350–500 ms. (Placeholder: the library's `combo.lost.mp3`.)
+- `pipes.solve` — keep: the water rush through the whole network (1,200 ms).
+- `pipes.bubble` — the source valve bubbling as the solved network fills: three or four round bubbles welling up in a
+  metal tank, gentle and cheerful, closing on a small pop; 400–550 ms. (Placeholder: the library's `arc_sea_bubble.mp3`.)
 <!-- pipeline:end -->
 
 <!-- chroma:start -->

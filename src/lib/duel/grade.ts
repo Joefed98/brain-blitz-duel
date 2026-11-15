@@ -19,7 +19,8 @@ import {
 } from "./stagedRounds";
 import { blockGeometry, decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { isDepth4 } from "./depth4/stamps";
-import { decodePipesTaps, pipesAfterTaps } from "./depth4/pipesTaps";
+import { decodePipesTurns, pipesAfterTurns } from "./depth4/pipesTaps";
+import { usesPatternNov15 } from "./patternNov15";
 import { replayGems } from "./depth4/iceGems";
 import { gemMinMoves } from "./depth4/gems.server";
 import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
@@ -721,15 +722,16 @@ function gradeUnderRev(
     case "pipes": {
       // Connectivity and leaks are worked out here, so any valid layout counts.
       // pipesRev 1 (depth batch 4): the board comes from the tap log alone; the taps up to the solve are counted.
-      const taps = isDepth4(puzzle) ? decodePipesTaps(answer, puzzle.tiles.length) : null;
+      // pipesRev 5 (the Pattern overhaul, patternNov15.ts): "-cell" in the log is an anticlockwise turn.
+      const taps = isDepth4(puzzle) ? decodePipesTurns(answer, puzzle.tiles.length, usesPatternNov15(puzzle, "pipes")) : null;
       let turns = 0;
       if (taps) {
         for (let k = 0; k <= taps.length; k++) {
           turns = k;
-          if (gradePipesBoard(puzzle.source, pipesAfterTaps(puzzle.tiles, taps.slice(0, k))).solved) break;
+          if (gradePipesBoard(puzzle.source, pipesAfterTurns(puzzle.tiles, taps.slice(0, k))).solved) break;
         }
       }
-      const board = taps ? pipesAfterTaps(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
+      const board = taps ? pipesAfterTurns(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
       const verdict = gradePipesBoard(puzzle.source, board);
       isCorrect = verdict.solved;
       correctCount = verdict.connected;

@@ -17,6 +17,7 @@ import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
+import { prePatternNov15Pinned } from "./patternNov15";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
 import { standardNumberHelp } from "./standard/numberText";
@@ -592,12 +593,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     pipes: {
       goal: "Connect every pipe to the source.",
-      how: [
-        { action: "Tap a tile", detail: "to rotate its pipe." },
-        { action: "Join every opening", detail: "to another pipe." },
-        { action: "No leaks", detail: "at the edges." },
-        { action: "Par", detail: "is the fewest taps, shown beside your taps." },
-      ],
+      // pipesRev 5 (the Pattern overhaul, patternNov15.ts): turns both ways, leaks shown live.
+      how: prePatternNov15Pinned()
+        ? [
+            { action: "Tap a tile", detail: "to rotate its pipe." },
+            { action: "Join every opening", detail: "to another pipe." },
+            { action: "No leaks", detail: "at the edges." },
+            { action: "Par", detail: "is the fewest taps, shown beside your taps." },
+          ]
+        : [
+            { action: "Tap a tile", detail: "to turn it clockwise." },
+            { action: "Hold or swipe a tile", detail: "to turn it anticlockwise (right click on a computer)." },
+            { action: "Water spills", detail: "from every open end it reaches: join every opening, no leaks." },
+            { action: "Par", detail: "is the fewest turns either way, shown under the board beside your turns." },
+          ],
       // pipesRev 4 (7 Nov 2026, speedPipesNov7.ts): the tiles turned to fit.
       score: pipesPatternHelp(),
     },

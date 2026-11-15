@@ -25,7 +25,8 @@ import { decodeFlowPaths, verifyFlow } from "../flow";
 import { decodeSides, rotateMask, tileOpenings } from "../logic";
 import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
-import { decodePipesTaps, pipesAfterTaps } from "../depth4/pipesTaps";
+import { decodePipesTurns, pipesAfterTurns } from "../depth4/pipesTaps";
+import { usesPatternNov15 } from "../patternNov15";
 import { cratesOnTargets, decodePushMoves, replayPush } from "../push";
 import { FLOW_PAIRS, LASER_MAX_FIRES, RINGS_SEGMENTS } from "../types";
 import { GRADIENT_WASTE_WEIGHT, PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
@@ -541,8 +542,9 @@ function pipesPlaced(puzzle: Of<"pipes">, board: readonly { sides: number }[]): 
 
 /** Tiles connected to the source beyond those connected at the start, out of those that weren't. */
 function pipesConnected(puzzle: Of<"pipes">, answer: string): { done: number; total: number } {
-  const taps = (puzzle.pipesRev ?? 0) >= 1 ? decodePipesTaps(answer, puzzle.tiles.length) : null;
-  const board = taps ? pipesAfterTaps(puzzle.tiles, taps) : decodeSides(puzzle.tiles, answer);
+  // pipesRev 5 (patternNov15.ts): "-cell" in the log is an anticlockwise turn.
+  const taps = (puzzle.pipesRev ?? 0) >= 1 ? decodePipesTurns(answer, puzzle.tiles.length, usesPatternNov15(puzzle, "pipes")) : null;
+  const board = taps ? pipesAfterTurns(puzzle.tiles, taps) : decodeSides(puzzle.tiles, answer);
   if (usesPipesPlaced(puzzle) && puzzle.solution?.length === puzzle.tiles.length) return pipesPlaced(puzzle, board);
   const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected;
   const now = gradePipesBoard(puzzle.source, board).connected;
