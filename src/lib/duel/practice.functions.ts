@@ -90,13 +90,26 @@ async function heldBack(type: string): Promise<boolean> {
   return (await heldGames()).includes(type);
 }
 
+/**
+ * A practice deal at a level (the difficulty framework, 15 Nov 2026): Normal is dealPractice exactly (kept as it was,
+ * round-engine-parity-check reads it); another level the same deal with the level in its context.
+ */
+async function dealPracticeAt(type: PuzzleType, unblockRow: unknown, level: Level): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
+  if (level === NORMAL) return dealPractice(type, unblockRow);
+  const { dealOne } = await import("./generate.server");
+  const { newRoomSeed } = await import("./selection");
+  const seed = newRoomSeed();
+  const { pub, priv } = splitPuzzle(dealOne(type, { unblockRow: unblockRow as never, bankSeed: seed, level }));
+  return { pub: pub as PuzzleData, priv: priv as Loose, seed };
+}
+
 /** One fresh practice deal of a type (the board picked by a new seed), split into its public and private halves. */
-async function dealPractice(type: PuzzleType, unblockRow: unknown, level: Level = NORMAL): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
+async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
   // The round engine's single deal (src/lib/round/deal.server.ts): no tie-break stamp, a fresh bank seed.
   const { dealOne } = await import("./generate.server");
   const { newRoomSeed } = await import("./selection");
   const seed = newRoomSeed();
-  const { pub, priv } = splitPuzzle(dealOne(type, { unblockRow: unblockRow as never, bankSeed: seed, ...(level !== NORMAL ? { level } : {}) }));
+  const { pub, priv } = splitPuzzle(dealOne(type, { unblockRow: unblockRow as never, bankSeed: seed }));
   return { pub: pub as PuzzleData, priv: priv as Loose, seed };
 }
 
@@ -135,7 +148,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
       if (await heldBack(type)) throw new Error(EARLY_ACCESS_HELD);
       // Slow types come from their precomputed bank; a fresh seed picks the board.
       // Practice offers every level the game has, all open from the start (src/lib/levels/modes.ts).
-      const { pub, priv } = await dealPractice(type, unblockRow, modeLevel("practice", data.level ?? null));
+      const { pub, priv } = await dealPracticeAt(type, unblockRow, modeLevel("practice", data.level ?? null));
       return { puzzle: pub, sealed: await sealDeal(pub, priv, { __dealtAt: Date.now() }) };
     }
     const { withSeededRandom } = await import("./random");

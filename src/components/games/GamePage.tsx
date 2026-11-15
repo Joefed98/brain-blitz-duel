@@ -67,7 +67,8 @@ export function GamePage({
   const tag = gameTag(type);
   const levels = levelsOf(type);
   const level = resolveLevel(type, chosen);
-  const best = bestOf(progress, type, storedLevelKey(level));
+  // The account's best (Normal's: the page shows Normal's best until the bests checks follow levels, see "For Joe").
+  const best = bestOf(progress, type);
   const stars = levelStarsOf(progress, type);
   const guide = gameGuide(type);
   const challenges = useChallengeStates(server, type);

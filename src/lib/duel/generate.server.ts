@@ -200,7 +200,8 @@ function dealLive(type: PuzzleType, requested: GenerateContext): PuzzleData {
 }
 
 function withoutLevel(context: GenerateContext): GenerateContext {
-  if (!("level" in context)) return context;
+  // Callers have passed things that aren't objects (a check passes a string): those are handed on exactly as before.
+  if (typeof context !== "object" || context === null || !("level" in context)) return context;
   const { level: _level, ...rest } = context;
   return rest;
 }
