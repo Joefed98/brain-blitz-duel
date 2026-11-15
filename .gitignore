@@ -33,3 +33,6 @@ dist-ssr
 
 # Screenshot tool output (scripts/shots/capture.ts, sheets.ts default)
 .shots/
+
+# Python bytecode caches (the sound scripts)
+__pycache__/
