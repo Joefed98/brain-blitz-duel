@@ -14,7 +14,7 @@
  *     logs), slopes, hills, sand, tunnels, the windmills' doorways, water, putts that drop (lip-ins at the cup's capture speed), slow rolls, every witness's
  *     200-point route and time-out cuts;
  *  4. a replay of an answer with no run in it (an empty answer, a draft made before the first tick) prints no
- *     "client/server desync" line, and its result (score 0, flagged as before) is unchanged.
+ *     "client/server desync" line and scores 0, not flagged (empty Sports runs score 0, 15 Nov 2026).
  *
  *   bun scripts/minigolf-sync-check.ts
  */
@@ -225,9 +225,11 @@ else {
     console.error = original;
   }
   ok(!lines.some((l) => l.includes("desync")), `no "client/server desync" line for an answer with no run in it (${lines.length} printed)`);
+  // Changed with Joe's approval, 15 Nov 2026 (empty Sports runs score 0): was "flagged, the first unmatched checkpoint
+  // at tick 300".
   ok(
-    results.every((r) => r.score === 0 && r.flagged && r.desyncTick === 300 && r.replayTick === 7200),
-    "an answer with no run in it replays as before: score 0, flagged, the first unmatched checkpoint at tick 300",
+    results.every((r) => r.score === 0 && !r.flagged && r.desyncTick === null && r.replayTick === 7200),
+    "an answer with no run in it scores 0, not flagged, no mismatch",
   );
   // A real disagreement is still logged: one checkpoint changed in a played run.
   const p = bun.find((r) => r.sums.length > 2)!;
@@ -262,5 +264,5 @@ console.log(
     .map(([k, v]) => `${k} ${v}`)
     .join(", ")}; every hole of both revisions) recorded as the phone records them replay identically on the server, ` +
     `checkpoint for checkpoint; Chromium (V8) and Bun record the same answers byte for byte; an answer with no run in it ` +
-    `logs no desync and grades as before (${secs} s).`,
+    `logs no desync and scores 0, not flagged (${secs} s).`,
 );
