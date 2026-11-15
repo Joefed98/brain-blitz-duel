@@ -43,6 +43,28 @@ export interface PuzzleDemoLog {
   joystick?: boolean;
   /** In-game column layout revision the run was recorded against (absent = original layout). */
   layout?: number;
+  /**
+   * The game frame the run was played in (Polish 2, 24 Oct 2026; recorded since 15 Nov 2026): the play shell's data
+   * attributes, which style the stage (`[data-puzzle-play] …`), and the frame's goal line, which held the stage's own
+   * progress line. The demo player draws the stage the same way, so the recorded touches land where they were made.
+   * Absent: a run recorded outside the frame (every older demo), drawn as before.
+   */
+  frame?: { attrs: Record<string, string> };
+}
+
+/** The play shell's attributes a stage's look depends on (PhoneShell), kept with a demo recorded in the frame. */
+export const DEMO_FRAME_ATTRS = ["data-category", "data-puzzle-surface", "data-puzzle-screen", "data-puzzle-play", "data-board-fill", "data-particle-shape"] as const;
+
+/** The frame attributes of the play shell around `el`, or null outside a framed puzzle round. */
+export function demoFrameOf(el: Element): PuzzleDemoLog["frame"] | null {
+  const shell = el.closest("[data-puzzle-play]");
+  if (!shell) return null;
+  const attrs: Record<string, string> = {};
+  for (const name of DEMO_FRAME_ATTRS) {
+    const value = shell.getAttribute(name);
+    if (value !== null) attrs[name] = value;
+  }
+  return { attrs };
 }
 
 /**
@@ -67,6 +89,7 @@ export class DemoRecorder {
   private typing: { t: number; text: string } | null = null;
   private detach: (() => void) | null = null;
   private w = 0;
+  private frame: PuzzleDemoLog["frame"] | null = null;
   private h = 0;
 
   constructor(private readonly startedAt: number) {}
@@ -77,6 +100,7 @@ export class DemoRecorder {
     const r0 = rect();
     this.w = Math.round(r0.width);
     this.h = Math.round(r0.height);
+    this.frame = demoFrameOf(el);
     const norm = (e: PointerEvent): [number, number] => {
       const r = rect();
       return [round3((e.clientX - r.left) / r.width), round3((e.clientY - r.top) / r.height)];
@@ -154,6 +178,15 @@ export class DemoRecorder {
 
   finish(): PuzzleDemoLog {
     this.flushTyping();
+    // A press still down when the round ends is the one that finished it (a stage that solves on pointerdown, such as
+    // Topsy-Turvy's last tilt, submits before the finger lifts): keep it, or the demo would stop one move short.
+    const open = this.down;
+    if (open) {
+      this.down = null;
+      const last = open.pts[open.pts.length - 1]!;
+      open.pts.push([last[0], last[1], Math.max(last[2], Date.now() - open.t0)]);
+      this.finishPress(open);
+    }
     this.detach?.();
     this.detach = null;
     let joystick: boolean | undefined;
@@ -168,6 +201,7 @@ export class DemoRecorder {
       h: this.h,
       verdicts: this.verdicts,
       layout: GAME_COLUMN_LAYOUT,
+      ...(this.frame ? { frame: this.frame } : {}),
       ...(joystick === undefined ? {} : { joystick }),
     };
   }
