@@ -8,6 +8,8 @@
  * own puzzles, copied, and every score is the room's grading (submitAnswerFn) or the stored score of the run.
  */
 import type { RatedMatchOutcome } from "@/lib/data/ratings";
+import { modeLevel } from "@/lib/levels/modes";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { toPublic } from "@/lib/identity/publicIds.server";
 import { categoriesOfPicks, encodeRoomSettings, type RoomPick } from "@/lib/duel/roomSettings";
 import { dealRoomRounds } from "@/lib/duel/roomDeal";
@@ -278,6 +280,8 @@ function toRecordedGame(round: SourceRound, withTimeline: boolean): StoredRecord
   return {
     type: round.puzzle.type,
     signature: gameVersionOf(round.puzzle),
+    // Only a game dealt at another level carries it (never one rated play deals; matchmaking.ts refuses the run).
+    ...(puzzleLevel(round.puzzle) !== "normal" ? { level: puzzleLevel(round.puzzle) } : {}),
     score: round.score,
     finishMs,
     timeline,
@@ -547,6 +551,9 @@ export async function createDealtMatchRoom(
     unblockRow: await drawUnblockRow(client),
     recentBankKeys: new Set(),
     roundOrder: types,
+    // Rated matches (and the tournament duels dealt here) are always Normal (src/lib/levels/modes.ts): ratings never
+    // mix levels. Named, not left to the default, so a later setting can't reach it by accident.
+    level: modeLevel("rated", null),
   });
   const players = input.userIds.map((userId, i) => ({ userId, slot: i + 1, displayName: input.displayNames?.[i] ?? null }));
   return createStartedRoom(client, { players, puzzles, picks: settings.picks }, nowMs);

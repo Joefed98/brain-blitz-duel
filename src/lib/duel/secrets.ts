@@ -147,6 +147,9 @@ export function splitPuzzle(puzzle: PuzzleData): SplitPuzzle {
   const secrets = SECRET_KEYS[puzzle.type];
   const pub: Loose = {};
   const priv: Loose = { type: puzzle.type };
+  // The level (src/lib/levels/; only on a deal that isn't Normal) is public and also kept with the private half, as
+  // the type is, so a sealed practice deal names its level for the server alone (analytics, the grade's checks).
+  if (typeof full["level"] === "string") priv["level"] = full["level"];
 
   for (const [key, value] of Object.entries(full)) {
     if (secrets.includes(key)) priv[key] = value;

@@ -8,6 +8,7 @@
  * rated_matches, and nothing here calls W3a's recordRatedMatch (tournaments-check proves both). Nothing here deals
  * differently, grades, scores or stamps: every round is the rooms' (or the Daily's async rooms') own grading.
  */
+import { levelOrNormal } from "@/lib/levels/levels";
 import { publicIdOf, toPublic } from "@/lib/identity/publicIds.server";
 import { ARENA_MIN_ENTRANTS, SCORE_ATTACK_ROUNDS } from "@/config/tournamentConfig";
 import { asJson, type Db } from "@/lib/data/db.server";
@@ -846,7 +847,8 @@ export async function scoreAttackRoom(client: Db, row: TournamentEventRow) {
       const { drawUnblockRow } = await import("@/lib/duel/unblock.server");
       unblockRow = await drawUnblockRow(client);
     }
-    const puzzles = dealRounds(types, { seed, unblockRow });
+    // The event's level (difficulty framework, 15 Nov 2026; default Normal, so every event deals as before).
+    const puzzles = dealRounds(types, { seed, unblockRow, level: levelOrNormal((row as { level?: unknown }).level) });
     room = await createAsyncRoom(client, {
       kind: "score_attack",
       key,

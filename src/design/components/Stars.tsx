@@ -10,6 +10,7 @@ export function Stars({
   levels,
   size = "s",
   label = true,
+  current,
   className,
 }: {
   tier?: number;
@@ -17,6 +18,11 @@ export function Stars({
   levels?: { easy: boolean; classic: boolean; hard: boolean };
   size?: "s" | "m";
   label?: boolean;
+  /**
+   * The level being shown (the difficulty framework, 15 Nov 2026: the catalogue's difficulty switch), marked with
+   * `data-current`; left out, nothing is marked (exactly as before).
+   */
+  current?: "easy" | "classic" | "hard" | "expert" | undefined;
   className?: string;
 }) {
   const earned = levels
@@ -35,7 +41,12 @@ export function Stars({
     >
       {levels
         ? (["easy", "classic", "hard"] as const).map((level) => (
-            <span key={level} data-level={level} data-on={levels[level] ? "" : undefined} />
+            <span
+              key={level}
+              data-level={level}
+              data-on={levels[level] ? "" : undefined}
+              data-current={current === level ? "" : undefined}
+            />
           ))
         : (["bronze", "silver", "gold"] as const).map((metal, i) => (
             <span key={metal} data-metal={metal} data-on={i < earned ? "" : undefined} />
