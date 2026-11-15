@@ -6,7 +6,8 @@
  *   DEMOS_URL=<a dev server's origin> INTRO_DEMO_KEY=<the key> bun scripts/sports-demos-save.ts [--games=pool,racing] [--dry]
  *
  * Settings (flags win over the environment; it never prompts):
- *   DEMOS_URL / --url=       the dev server's origin (its server must allow demo saves: INTRO_DEMO_SAVES=1 in production)
+ *   DEMOS_URL / --url=       the dev server's origin (its server must allow demo saves: INTRO_DEMO_SAVES=1 in production;
+ *                            start it with NODE_OPTIONS=--max-old-space-size=6144, as the merge captain found the deals need)
  *   INTRO_DEMO_KEY / --key=  the private intro-demo key (never printed)
  *   DEMOS_GAMES / --games=   a comma list of the fixture's games (default all three)
  *   DEMOS_DRY=1 / --dry      deal and compare only; nothing is saved

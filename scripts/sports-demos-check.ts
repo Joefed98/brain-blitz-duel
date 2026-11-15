@@ -21,6 +21,8 @@ import { DEMO_LENGTH_TICKS, DEMO_MAX_CHARS, DEMO_START_TICK, runSeed } from "../
 import { replayPoolRun } from "../src/lib/duel/pool";
 import { replayCurlingRun } from "../src/lib/duel/curling";
 import { replayRacingRun } from "../src/lib/duel/racing";
+import { splitPuzzle } from "../src/lib/duel/secrets";
+import { exampleFor } from "./shots/examples";
 
 const failures: string[] = [];
 let passes = 0;
@@ -63,6 +65,11 @@ for (const [type, field, , rev] of RULES) {
   if (!d) continue;
   ok(Object.keys(d).sort().join() === KEYS && Object.keys(d.input_log).join() === "run", `${type}: the row is the stored shape (upsertIntroDemo's columns, input_log { run }) plus its score`);
   ok(d.puzzle["type"] === type && d.puzzle[field] === rev, `${type}: dealt on ${field} ${rev}, the stamp rooms deal, so the demo rule plays it`);
+  // saveIntroDemoFn takes only a run on a deal the server sealed: the intro example (practiceGenerateFn, example: true),
+  // which deals exactly as exampleFor does (the bank's example, else the example seed's live deal).
+  const canon = (v: unknown): string =>
+    Array.isArray(v) ? `[${v.map(canon).join(",")}]` : v && typeof v === "object" ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canon((v as Record<string, unknown>)[k])}`).join(",")}}` : JSON.stringify(v);
+  ok(canon(d.puzzle) === canon(splitPuzzle(exampleFor(type as never)).pub), `${type}: the puzzle is exactly the intro example deal the server seals (practiceGenerateFn, example)`);
   ok(d.seed === runSeed(d.input_log.run) && d.seed === Number(d.puzzle["seed"]), `${type}: the row's seed is its run's and its puzzle's (${d.seed})`);
   ok(d.start_tick === DEMO_START_TICK && d.length_ticks === DEMO_LENGTH_TICKS, `${type}: the demo's window is the intro's (${d.start_tick} + ${d.length_ticks} ticks)`);
   ok(d.input_log.run.length > 0 && d.input_log.run.length <= DEMO_MAX_CHARS, `${type}: the run fits the demo limit (${d.input_log.run.length} of ${DEMO_MAX_CHARS} chars)`);
