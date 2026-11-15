@@ -964,13 +964,19 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: Puz
   const [picked, setPicked] = useState<RevealSide | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(300);
+  // A short screen (under 760 px, e.g. 375 × 667, where the shared reveal layout's rows above take more height): the
+  // compact layout, the target and the Yours | Solution switch on one row and a smaller board, so the reveal's text
+  // stays at full size instead of the shared fit shrinking the whole reveal.
+  const [short, setShort] = useState(false);
   useBeforePaint(() => {
     const el = box.current;
     if (!el) return;
-    // As wide as the box allows, up to 320, and no taller than 38 % of the screen, so a short phone keeps the reveal's
-    // text at full size (the shared reveal fit would otherwise shrink everything).
-    const measure = () =>
-      setWidth(Math.max(200, Math.min(320, Math.floor(el.clientWidth), Math.floor(window.innerHeight * 0.38))));
+    // As wide as the box allows, up to 320, and no taller than 38 % of the screen (19 % on a short one).
+    const measure = () => {
+      const isShort = window.innerHeight < 760;
+      setShort(isShort);
+      setWidth(Math.max(isShort ? 120 : 200, Math.min(320, Math.floor(el.clientWidth), Math.floor(window.innerHeight * (isShort ? 0.19 : 0.38)))));
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
@@ -989,7 +995,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: Puz
   const big = boards.filter((b) => b.big).length;
   const elapsed = myCorrect && myMsRemaining !== undefined ? Math.max(0, timeLimitMs - myMsRemaining) / 1000 : null;
   return (
-    <div className="co-rv flex w-full flex-col items-center gap-2.5" data-checkout-root data-checkout-reveal>
+    <div className={`co-rv flex w-full flex-col items-center ${short ? "gap-1.5" : "gap-2.5"}`} data-checkout-root data-checkout-reveal data-short={short ? "" : undefined}>
       <PolishStyle id="checkout" css={CHECKOUT_CSS} />
       <RevealFacts
         facts={[
@@ -1003,9 +1009,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: Puz
       <RevealBoards noun="Board" marks={marks} index={index} onIndex={setIndex}>
         <div className="co-rv-head">
           <span className="co-rv-target" data-checkout-reveal-target>{stage.target}</span>
-          <span className="co-rv-rule">{revealRule(stage)}</span>
+          {short && hasBest ? <RevealView value={view} onChange={setPicked} /> : <span className="co-rv-rule">{revealRule(stage)}</span>}
         </div>
-        {hasBest ? <RevealView value={view} onChange={setPicked} /> : null}
+        {short && hasBest ? <span className="co-rv-rule">{revealRule(stage)}</span> : null}
+        {!short && hasBest ? <RevealView value={view} onChange={setPicked} /> : null}
         <div ref={box} className="co-rv-board" data-checkout-reveal-side={view}>
           <Board stage={stage} darts={darts} size={width} finish={stage.finish} lit={view === "solution" || board.mark === "right" ? "stage" : null} />
         </div>

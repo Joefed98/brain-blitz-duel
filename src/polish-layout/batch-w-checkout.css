@@ -52,6 +52,21 @@
   font-weight: 600;
   color: var(--jz-text-2);
 }
+/* The compact reveal on a short screen: the target beside the Yours | Solution switch, the rule under them. */
+[data-checkout-reveal][data-short] .co-rv-head {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+}
+[data-checkout-reveal][data-short] .co-rv-head .nrv-view {
+  width: 200px;
+}
+[data-checkout-reveal][data-short] .co-rv-target {
+  font-size: 30px;
+}
+[data-checkout-reveal][data-short] .co-rv-rule {
+  font-size: 13px;
+}
 [data-checkout-reveal] .co-rv-board {
   display: flex;
   width: 100%;

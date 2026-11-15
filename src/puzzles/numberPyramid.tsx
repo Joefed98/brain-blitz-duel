@@ -602,11 +602,15 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
   const rows = board.rows;
   const gap = 4;
   const pyramidW = Math.min(space.w, 420) - 12;
-  const cellW = Math.max(28, Math.min(68, Math.floor((pyramidW - (rows - 1) * gap) / rows)));
+  const widthFit = Math.floor((pyramidW - (rows - 1) * gap) / rows);
   // Under the pyramid: the tabs (44 + 12), the switch (44 + 10), the note (24 + 10) and the facts (two rows on a small
   // phone, 52 + 12).
   const room = space.h - 56 - (both ? 54 : 0) - 34 - 64 - (dev ? 16 : 0);
-  const cellH = Math.max(26, Math.min(58, Math.floor((room - (rows - 1) * gap) / rows), Math.round(cellW * 0.86)));
+  // Stage 2 (inside the shared reveal layout of #422): the stones keep their shape when the height is the limit (a
+  // 375 × 667 phone), narrowing with it rather than squashing flat.
+  const heightFit = Math.floor((room - (rows - 1) * gap) / rows);
+  const cellW = Math.max(24, Math.min(68, widthFit, Math.round(Math.max(22, heightFit) / 0.86)));
+  const cellH = Math.max(22, Math.min(58, heightFit, Math.round(cellW * 0.86)));
   const fontSize = Math.max(14, Math.min(26, Math.floor(Math.min(cellH * 0.56, cellW * 0.44))));
   const done = boards.filter((b) => b.mark === "right").length;
   const wrongTotal = boards.reduce((n, b) => n + b.wrong, 0);

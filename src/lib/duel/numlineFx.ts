@@ -11,6 +11,8 @@ export function numlineTenthsCrossed(a: number, b: number): number {
 
 /** Each true spot flying in, in the numbers' order, this far apart (ms). */
 export const NUMLINE_PAYOFF_STEP_MS = 160;
+/** The payoff starts once the reveal screen has settled (its own entrance first). */
+export const NUMLINE_PAYOFF_START_MS = 500;
 
 export interface NumlinePayoffStep {
   /** The number's index on its line. */
@@ -25,11 +27,11 @@ export interface NumlinePayoffStep {
  * The reveal's payoff: each placed number's true spot flies in from your marker in the numbers' order, a step
  * apart; bullseyes sparkle as they land. Numbers not placed have no marker and take no step.
  */
-export function numlinePayoffPlan(rows: readonly { placement: number | null; bull: boolean }[], stepMs = NUMLINE_PAYOFF_STEP_MS): NumlinePayoffStep[] {
+export function numlinePayoffPlan(rows: readonly { placement: number | null; bull: boolean }[], stepMs = NUMLINE_PAYOFF_STEP_MS, startMs = NUMLINE_PAYOFF_START_MS): NumlinePayoffStep[] {
   const out: NumlinePayoffStep[] = [];
   rows.forEach((row, index) => {
     if (row.placement === null) return;
-    out.push({ index, delayMs: out.length * stepMs, bull: row.bull });
+    out.push({ index, delayMs: startMs + out.length * stepMs, bull: row.bull });
   });
   return out;
 }

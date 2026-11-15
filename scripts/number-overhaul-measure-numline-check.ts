@@ -273,7 +273,7 @@ const between = (text: string, from: string, to: string) => {
 // The helpers the effects read, the kit calls in the stages, and that nothing an effect touches is graded.
 {
   const fx = await import("../src/lib/duel/measureFx");
-  const { numlineTenthsCrossed, numlinePayoffPlan, NUMLINE_PAYOFF_STEP_MS } = await import("../src/lib/duel/numlineFx");
+  const { numlineTenthsCrossed, numlinePayoffPlan, NUMLINE_PAYOFF_STEP_MS, NUMLINE_PAYOFF_START_MS } = await import("../src/lib/duel/numlineFx");
   const { measureActions, measureApply, measureSolved, replayMeasure } = await import("../src/lib/duel/measure");
   const { isStdBullseye } = await import("../src/lib/duel/standard/number");
   // Brimful: one move from the target, over real dealt boards and every state one or two moves from the start.
@@ -336,7 +336,7 @@ const between = (text: string, from: string, to: string) => {
   ok(/gameFx\("drop", lineBox\.current\?\.querySelector\(`\[data-numline-placed=/.test(ns), "Ballpark: the placed pin stamps in with the kit (drop)");
   // Ballpark's payoff: placed numbers in order, a step apart; bullseyes on the stamp's own threshold sparkle.
   const plan = numlinePayoffPlan([{ placement: 10, bull: true }, { placement: null, bull: false }, { placement: 400, bull: false }, { placement: 900, bull: true }]);
-  ok(plan.map((x) => `${x.index}@${x.delayMs}${x.bull ? "*" : ""}`).join(" ") === `0@0* 2@${NUMLINE_PAYOFF_STEP_MS} 3@${2 * NUMLINE_PAYOFF_STEP_MS}*`, `Ballpark: the payoff's order and timing (${plan.map((x) => `${x.index}@${x.delayMs}`).join(" ")})`);
+  ok(plan.map((x) => `${x.index}@${x.delayMs}${x.bull ? "*" : ""}`).join(" ") === `0@${NUMLINE_PAYOFF_START_MS}* 2@${NUMLINE_PAYOFF_START_MS + NUMLINE_PAYOFF_STEP_MS} 3@${NUMLINE_PAYOFF_START_MS + 2 * NUMLINE_PAYOFF_STEP_MS}*`, `Ballpark: the payoff's order and timing (${plan.map((x) => `${x.index}@${x.delayMs}`).join(" ")})`);
   ok(isStdBullseye(0.01) && !isStdBullseye(0.011), "Ballpark: a bullseye is within 1 % (the stamp's own rule the reveal rows carry)");
   ok(/gameFx\("slide", el, \{ from:/.test(ns) && /gameFx\("stars", ring,/.test(ns) && /soundCue\("numline\.bullseye"\)/.test(ns) && /<FxCountUp value=\{all\.filter\(\(r\) => r\.bull\)\.length\}/.test(ns), "Ballpark: the reveal's payoff (true spots fly in, bullseyes sparkle, the count climbs)");
   // Effects never reach the graders: the grading and dealing modules don't import the effects.
