@@ -125,7 +125,7 @@
   },
   "orbit": {
    "type": "orbit",
-   "stamp": 15,
+   "stamp": 16,
    "level": "perfect",
    "humanSeed": 4,
    "score": 196,
@@ -137,11 +137,11 @@
     "slips": 0,
     "checkpoint": 1
    },
-   "digest": "34dd8d6f8b1ff4f8",
+   "digest": "a6b09823a2711c33",
    "puzzle": {
     "type": "orbit",
     "seed": 2107625504,
-    "orbitRev": 15,
+    "orbitRev": 16,
     "planets": [
      [
       128000,

@@ -250,7 +250,7 @@ reduced effects), the turn still under reduced motion. Which map a planet wears 
 (`orbitPlanetMapFor`); icy worlds take only a cold cast (`orbitIceCast`), never a warm colour. Rings are three ringlets
 inside 0.88 r (`drawPlanetRing`). Nothing is drawn past the collision circle + 2 px and there is no glow halo
 (orbit-overhaul-check). The planets' size is the sim's: radius 19–28 world px, so 17–26 CSS px on a phone and up to 40 on
-the desktop column; drawing them larger would need a new stamp (the collision circle).
+the desktop column; drawing them larger would need a new stamp (the collision circle): orbitRev 16 below.
 
 ### Stage 2: effects and the answer reveal (15 Nov 2026, display only, no stamp)
 
@@ -264,6 +264,57 @@ still under reduced motion. The reveal's run picture (`PuzzleDefinition.RunPictu
 (`replayOrbitRun`'s new `observe`, which changes nothing) and `drawOrbitRunMap` (orbitReveal.renderer.ts) draws the
 course folded into four columns; the planets, stardust, slingshots and slips are big numbers above it. The planet maps
 load with the game's chunk (`preloadOrbitPlanetMaps`).
+
+### orbitRev 16: bigger planets (stage 3 of the overhaul, 15 Nov 2026)
+
+Joe asked for bigger planets that read clearly on a phone. `ORBIT_REV_BIG` 16 (`initBigFrom`, the state's `big`, outside
+the checksum) is orbitRev 15's play exactly: the same 96 fuel-bank courses, rings, catches, black holes, belts, features,
+fuel, grace and parts. Only each planet's body circle (`r`, the bounds its art is held to) changes, in
+`orbitBigPlanets` (orbit.ts):
+
+- the body is `ORBIT_BIG_PCT` 140 % of orbitRev 15's, **capped** so the drawn body (a figure-eight's two bodies at 80 %)
+  keeps `ORBIT_BIG_AIR` (the rocket's 10 px radius and 3 px) from the planet's own orbit path (`orbitPathClearance`,
+  1,024 phases, integer), and never smaller than before; the sun is 140 % (40 → 56 px).
+- Why a cap and not bigger orbits: the body is collided with by nothing (a catch is the orbit's region, a crash a belt,
+  rock, moon or the figure-eight's crossing), so growing the bodies inside the paths keeps every catch, hole and course
+  exactly fair, and the bank needs no new courses. Growing the rings too would change every catch region and the course
+  layout, and need a new bank and new bands.
+- What that gives on the bank's 3,840 planets: every circle orbit 140 % (63 %), ellipses ×1.17 (median), figure-eights
+  unchanged (their bodies already sit close to the crossing). By stretch of the course: planets 1–10 140 %, 11–20 140 %
+  (79 % of them), 21–30 ×1.22, 31–39 ×1.00 (43 % at 140 %). Largest body 39.2 px (was 28).
+- No grown body reaches a neighbour's path or belt, a mote, moon, rock or black hole (orbit-overhaul-check section 9).
+- The Blender maps fill the bigger discs from the same files (640 × 320, no new bytes: 363,486 in all);
+  `SPHERE_MAX_PX` 224 so a radius-39 planet on the desktop column at 2× (222 px) is baked at full size. Rings stay inside
+  the circle + 2 px.
+
+Proof: all 96 bank witnesses replay to 200 with every feature on orbitRev 16 through the server, tick for tick and checksum
+for checksum as on 15 (`bun scripts/orbit-fuel-bank.ts --rev=16`, orbit-overhaul-check section 9); 120 runs on orbitRev
+12–15 recorded on 329286de before the change (`scripts/fixtures/orbit-big-legacy.json`, `scripts/orbit-big-record.ts`)
+replay exactly, and the 30 orbitRev 15 logs among them (bots, a random tapper with slips, a checkpoint) play the same on
+16. Rooms deal 16; `pinOrbitPreBig(true)` (deal pin `orbitPreBig`) deals 15. Stargazer is met on 16. Self-replay entry
+`orbit/big`.
+
+Skill bands (30 room seeds a level, the same human on both, server replay;
+`bun scripts/orbit-grace-bands.ts --from=15 --to=16`): identical at every level, as the play is.
+
+| Level | orbitRev 15 median (p10–p90) | orbitRev 16 median (p10–p90) |
+|---|---|---|
+| Weak | 78 (37–98) | 78 (37–98) |
+| Average | 94 (79–142) | 94 (79–142) |
+| Good | 131 (111–153) | 131 (111–153) |
+| Great | 161 (140–178) | 161 (140–178) |
+| Near-perfect | 184 (175–191) | 184 (175–191) |
+| Elite | 188 (182–197) | 188 (182–197) |
+| Flawless | 195 (187–199) | 195 (187–199) |
+
+**The answer reveal** (Joe, 15 Nov 2026): the run picture (big numbers and the course map) sits straight under the score,
+with the stored breakdown in the shared layout below it, as Roofbound, Moon Climb and Iron Wall read (the shared
+ArcadeReveal order, `data-reveal-run-picture` before `RevealBreakdown`, from the stage-3 reveal fix); Orbit's own `Reveal` (results-screen replays) on
+the expansion's view is the same picture, never the old lines.
+
+**The sun's end hold** (Joe, 15 Nov 2026, display only): a finished run on the expansion's view holds its submit
+`ORBIT_SUN_HOLD_MS` 1,500 ms (`orbitEndHoldMs`), so the bloom, ALL 40 PLANETS! and the count-up show in practice too;
+the finished run is the draft meanwhile. A dry end still holds 600 ms for the sputter.
 
 ### Levels (stage 3 of the overhaul, not built yet)
 

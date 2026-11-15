@@ -195,8 +195,8 @@ import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
@@ -1056,6 +1056,25 @@ const GAMES: Game[] = [
   // Grappler swingRev 18 (15 Nov 2026, the Action overhaul's stage 2: the bigger hero), appended so every earlier entry
   // keeps its stream: on its proved deal's courses.
   { key: "swing/big", game: swingGameFor(SWING_REV_BIG), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BIG), seedFor: (n: number) => SWING_BIG_DEAL[n % SWING_BIG_DEAL.length]! },
+  // Orbit orbitRev 16 (15 Nov 2026, the Action overhaul's stage 3: bigger planets on grace's play), appended so every
+  // earlier entry keeps its stream: random taps and checkpoints on the fuel-bank courses.
+  {
+    key: "orbit/big",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initBigFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras)) };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK[n % ORBIT_FUEL_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras);
+    },
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

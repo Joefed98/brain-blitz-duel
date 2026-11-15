@@ -55,6 +55,8 @@ import {
   ORBIT_REV_STD,
   ORBIT_REV_FUEL,
   ORBIT_REV_GRACE,
+  ORBIT_REV_BIG,
+  orbitBigPlanets,
   orbitXpRev,
   inside,
   lapPhases,
@@ -604,6 +606,8 @@ export interface OrbitRev3State extends BandFields {
   grace?: number;
   hold?: number;
   autoRespawns?: number;
+  /** orbitRev 16 only: 1 = the bigger planets (display bounds only; outside the checksum: the play is orbitRev 15's). */
+  big?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -1318,6 +1322,7 @@ export function orbitWorldWFor(rev?: number | null): number {
 
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
 export function orbitRev3StartFor(rev: number | null | undefined, extras?: OrbitExtras | null): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_BIG) return (planets, worldW, holes) => initBigFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_GRACE) return (planets, worldW, holes) => initGraceFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_FUEL) return (planets, worldW, holes) => initFuelFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_STD) return (planets, worldW, holes) => initStdFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
@@ -1666,8 +1671,9 @@ export const ORBIT_STD_SPEED_FULL_LEFT = ORBIT_REV3_RUN_TICKS / 2;
 export const ORBIT_STD_PERFECT_OF = 21;
 export const ORBIT_STD: StdSpec = {
   field: "orbitRev",
-  // The stamp rooms deal on these parts: orbitRev 15 (grace) since 15 Nov 2026; orbitRev 13 and 14 score on them too.
-  rev: ORBIT_REV_GRACE,
+  // The stamp rooms deal on these parts: orbitRev 16 (bigger planets) since 15 Nov 2026 (stage 3); orbitRev 13, 14
+  // and 15 score on them too.
+  rev: ORBIT_REV_BIG,
   parts: [
     { key: "core", label: "Planets", max: 130, of: ORBIT_STD_CORE_OF, item: "planet" },
     { key: "speed", label: "Speed", max: 20, of: 1 },
@@ -1777,4 +1783,14 @@ export const ORBIT_GRACE_HOLD_TICKS = 180;
 /** orbitRev 15 start: orbitRev 14's start with grace on. */
 export function initGraceFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
   return { ...initFuelFrom(planets, worldW, holes, extras), grace: 1, hold: 0, autoRespawns: 0 };
+}
+
+/* ============ Bigger planets (orbitRev 16, the Action overhaul, stage 3, 15 Nov 2026) ============ */
+/**
+ * orbitRev 16 start: orbitRev 15's start (grace on) on the same course with bigger planet bodies (orbitBigPlanets, in
+ * orbit.ts). `big` stays outside the checksum: the bodies are collided with by nothing, so an orbitRev 15 log plays
+ * tick for tick and scores the same.
+ */
+export function initBigFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
+  return { ...initGraceFrom(orbitBigPlanets(planets), worldW, holes, extras), big: 1 };
 }

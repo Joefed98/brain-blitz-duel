@@ -11,6 +11,9 @@
  *   bun scripts/orbit-fuel-bank.ts --merge [count] [--dir=...]   # write the longest prefix of bank seeds the cache holds
  *   bun scripts/orbit-fuel-bank.ts --check [n]                   # rebuild the first n entries (default 2) and compare, no write
  *   bun scripts/orbit-fuel-bank.ts --worker <w> <n> <count> <dir> # one worker (bank seeds k ≡ w mod n)
+ *   bun scripts/orbit-fuel-bank.ts --rev=<n>                     # re-prove the bank on orbitRev n, no write (stage 3,
+ *                                                                 # 15 Nov 2026: orbitRev 16 plays orbitRev 15's courses
+ *                                                                 # unchanged, so its bank is this one, re-proved)
  * The bank is every bank seed k below count that built, in order of k; a seed whose salts all fail is left out.
  */
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -61,6 +64,36 @@ export const ORBIT_FUEL_BANK: OrbitFuelBankEntry[] = ${JSON.stringify(entries)};
 
 if (import.meta.main) {
   const args = process.argv.slice(2);
+  const proveRev = args.find((a) => a.startsWith("--rev="))?.slice(6);
+  if (proveRev) {
+    // Every entry's witness, played as the phone records it on that revision, through the server's replay: 200 with every feature.
+    const { ORBIT_FUEL_BANK } = await import("../src/lib/duel/orbitFuelBank.server");
+    const { orbitCheckpoint, ORBIT_INPUT_TAP } = await import("../src/lib/arcade/orbit");
+    const { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, orbitRev3Game, orbitRev3StartFor, orbitXpCounts, ORBIT_REV3_WORLD_W } = await import("../src/lib/arcade/orbitRev3");
+    const { encodeOrbitRun, replayOrbitRun } = await import("../src/lib/duel/orbit");
+    const rev = Number(proveRev);
+    let good = 0;
+    for (const e of ORBIT_FUEL_BANK) {
+      const start = orbitRev3StartFor(rev, decodeOrbitExtras(e.extras));
+      if (!start) throw new Error(`orbitRev ${rev} has no bank-course start`);
+      const taps = new Set(e.taps);
+      let st = start(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes));
+      const checkpoints: unknown[] = [];
+      while (!st.ended && st.tick < orbitRev3Game.runTicks) {
+        st = orbitRev3Game.step(st, taps.has(st.tick + 1) ? { t: st.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null);
+        if (st.tick % 300 === 0) checkpoints.push(orbitCheckpoint(st as never));
+      }
+      const events = e.taps.map((t) => ({ t, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }));
+      const raw = encodeOrbitRun({ seed: e.seed, claimedScore: orbitRev3Game.score(st), events, inputs: [], taps: [], endTick: st.tick, checkpoints } as never);
+      const r = replayOrbitRun(e.seed, raw, rev, e.planets, e.holes, e.extras);
+      const c = orbitXpCounts(r.state as never);
+      const ok = !r.flagged && r.score === 200 && c.dust === c.dustTotal && c.slings === c.slingsTotal && c.threads === c.threadsTotal;
+      if (ok) good++;
+      else console.log(`FAIL bank seed ${e.seed}: ${r.score}${r.flagged ? " (flagged)" : ""}`);
+    }
+    console.log(good === ORBIT_FUEL_BANK.length ? `PASS: all ${good} bank courses' witnesses reach 200 with every feature on orbitRev ${rev}` : `FAIL: ${good} / ${ORBIT_FUEL_BANK.length} on orbitRev ${rev}`);
+    process.exit(good === ORBIT_FUEL_BANK.length ? 0 : 1);
+  }
   if (args[0] === "--check") {
     const n = Number(args[1] ?? 2);
     const { ORBIT_FUEL_BANK } = await import("../src/lib/duel/orbitFuelBank.server");

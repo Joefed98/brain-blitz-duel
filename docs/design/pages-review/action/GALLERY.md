@@ -545,3 +545,29 @@ the rocket crashed, stardust and slingshot moons bright where taken):
 
 <img src="orbit/reveal-s2-sun.webp" width="560">
 
+### Stage 3: bigger planets, the reveal, the sun's end hold
+
+Today is main 36ea8022 (orbitRev 14's look), Concept A is `orbit-A`, New is orbitRev 16: the same run and ticks (700, 1300,
+2200), drawn at 2× by `scripts/shots/orbit-materials-frames.ts --dpr=2` (`--root=<main checkout> --rev=14` for Today).
+
+<img src="orbit/compare-s3-1.webp" width="760">
+
+<img src="orbit/compare-s3-2.webp" width="760">
+
+<img src="orbit/compare-s3-3.webp" width="760">
+
+- **Bigger planets (orbitRev 16):** each body 140 % where its own orbit path leaves the rocket its radius and 3 px, never
+  smaller; the sun 140 %. Every circle orbit (two thirds of the planets) is 140 %; ellipses about ×1.17; the
+  figure-eights' pairs keep their size (their bodies already sit by the crossing). Rings, catches, black holes and the
+  courses are unchanged, so the play and the scores are orbitRev 15's. The Blender maps fill the bigger discs (no new
+  image bytes).
+- **The reveal:** the big numbers and the course map straight under the score, the stored breakdown below them (before:
+  stage 2's breakdown lines between the score and the picture). `bun scripts/shots/orbit-stage2-shots.ts <out> --s3`.
+
+<img src="orbit/reveal-s3-weak.webp" width="560">
+
+<img src="orbit/reveal-s3-elite.webp" width="560">
+
+- **The sun's end hold:** a finished run waits 1.5 s before the reveal, so the bloom, ALL 40 PLANETS! and the count-up
+  (the effects strip's last frame above) show in practice too.
+

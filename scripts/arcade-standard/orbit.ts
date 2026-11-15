@@ -4,6 +4,8 @@
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal orbitRev 15 (grace,
  * orbitRev 14's parts and courses; a slip respawns at the last planet caught, after a 3 s hold), so the entry runs
  * on orbitRev 15; a single release that runs dry now respawns instead of ending the run.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal orbitRev 16 (bigger
+ * planets, orbitRev 15's play and parts on the same courses), so the entry runs on orbitRev 16.
  *
  * Rooms deal orbitRev 14: the fuel bank's zigzag courses (src/lib/duel/orbitFuelBank.server.ts,
  * scripts/orbit-fuel-bank.ts), scored on orbitRev 13's parts.
@@ -16,14 +18,14 @@
  * idle(): no input at all.
  */
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE } from "../../src/lib/arcade/orbit";
-import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initGraceFrom, orbitRev3Game, ORBIT_REV3_WORLD_W, ORBIT_STD, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "../../src/lib/arcade/orbit";
+import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initBigFrom, orbitRev3Game, ORBIT_REV3_WORLD_W, ORBIT_STD, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../../src/lib/duel/orbitFuelBank.server";
 import type { StdEntry, StdRun } from "./entry";
 
 const ev = (t: number, k: number): ArcadeInputEvent => ({ t, k, a: 0, b: 0, c: 0, d: 0 });
-const startOf = (e: OrbitFuelBankEntry) => initGraceFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras));
+const startOf = (e: OrbitFuelBankEntry) => initBigFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras));
 
 /** Plays an input log on the sim as the phone does (checkpoints every 300 ticks) and grades it through the server's replay. */
 export function orbitFuelServerScore(e: OrbitFuelBankEntry, events: ArcadeInputEvent[]): { score: number; flagged: boolean; state: OrbitRev3State } {
@@ -35,15 +37,15 @@ export function orbitFuelServerScore(e: OrbitFuelBankEntry, events: ArcadeInputE
     if (s.tick % 300 === 0) checkpoints.push(orbitCheckpoint(s as never));
   }
   const raw = encodeOrbitRun({ seed: e.seed, claimedScore: orbitRev3Game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
-  const r = replayOrbitRun(e.seed, raw, ORBIT_REV_GRACE, e.planets, e.holes, e.extras);
+  const r = replayOrbitRun(e.seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras);
   return { score: r.flagged ? -1 : r.score, flagged: Boolean(r.flagged), state: r.state as OrbitRev3State };
 }
 
 export const entry: StdEntry = {
   type: "orbit",
   field: "orbitRev",
-  rev: ORBIT_REV_GRACE,
-  before: ORBIT_REV_FUEL,
+  rev: ORBIT_REV_BIG,
+  before: ORBIT_REV_GRACE,
   parts: ORBIT_STD.parts,
   spec: ORBIT_STD,
   perfect: () => {

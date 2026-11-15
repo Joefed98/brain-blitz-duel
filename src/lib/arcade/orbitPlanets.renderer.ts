@@ -1,6 +1,6 @@
 /**
  * Orbit's rendered-look planets and the road to the sun (the Action overhaul, 15 Nov 2026; display only, no stamp; drawn
- * on the expansion's view, orbitRev 12–15). Concept A's look (docs/design/game-concepts/action.md "Orbit") made in
+ * on the expansion's view, orbitRev 12–16). Concept A's look (docs/design/game-concepts/action.md "Orbit") made in
  * canvas: each planet is a sphere-shaded disc whose surface (banded gas, cratered rock or streaked ice, in the planet's
  * own seeded colour) turns slowly under a fixed light, with a thin lit limb on the sunward side. Nothing reaches past the
  * planet's collision circle (the bounds rule); the soft atmosphere outside it stays the glow layer's.
@@ -345,8 +345,9 @@ const mapStore = new Map<MapKey, OrbitMapPixels | "loading" | "failed">();
 export const SPHERE_FRAMES = 240;
 /** Frames a turn on a slow device (lib/fx/lowEnd's reduced effects): half the bakes. */
 export const SPHERE_FRAMES_LITE = 120;
-/** The largest baked disc, in device px (a radius-28 planet on the 640-wide desktop column at 2x is 159). */
-export const SPHERE_MAX_PX = 192;
+/** The largest baked disc, in device px (a radius-28 planet on the 640-wide desktop column at 2x is 159; orbitRev 16's
+ * radius-39 planet 222, stage 3, 15 Nov 2026). */
+export const SPHERE_MAX_PX = 224;
 /** Baked frames kept: the visible planets' current frames and a few spare. */
 const SPHERE_CACHE_MAX = 48;
 const sphereCache = new Map<string, HTMLCanvasElement>();

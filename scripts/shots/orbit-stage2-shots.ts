@@ -7,7 +7,7 @@
  * reveal's type sizes. In @napi-rs/canvas, no browser, so the reveal's text is drawn to the layout here. A design tool,
  * not a check.
  *
- *   bun scripts/shots/orbit-stage2-shots.ts <out dir>
+ *   bun scripts/shots/orbit-stage2-shots.ts <out dir> [--s3]
  *
  * Writes effects-s2.png and reveal-s2.png (before | after); the gallery's WebPs are made from them with Pillow.
  */
@@ -49,7 +49,9 @@ for (const [name, m] of Object.entries(ORBIT_PLANET_MAPS)) {
   }
 }
 
-const out = process.argv[2] ?? ".shots/orbit-s2";
+const out = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? ".shots/orbit-s2";
+/** --s3: also write reveal-s3-<tag>.png, stage 2's reveal | stage 3's (the picture under the score, the breakdown below). */
+const S3 = process.argv.includes("--s3");
 mkdirSync(out, { recursive: true });
 const puzzle = exampleFor("orbit" as never) as unknown as { type: "orbit"; seed: number; orbitRev: number; planets: never; holes: never; extras: never };
 const start = R3.orbitStartForPuzzle(puzzle as never)!;
@@ -135,7 +137,7 @@ for (const [tag, run] of [["weak", weak], ["elite", elite]] as const) {
   const trace = traceOrbitRun(puzzle as never, run.raw)!;
   const palette = REVEAL_PALETTE["orbit"]!;
   const PW = 390, PH = 900;
-  const panel = (title: string, body: (c: SKRSContext2D, y: number) => void) => {
+  const panel = (title: string, body: (c: SKRSContext2D, y: number) => number | void, rowsFirst = true) => {
     const c = createCanvas(PW, PH);
     const x = c.getContext("2d") as unknown as SKRSContext2D;
     const grad = x.createLinearGradient(0, 0, 0, PH);
@@ -159,13 +161,23 @@ for (const [tag, run] of [["weak", weak], ["elite", elite]] as const) {
     x.fillText("points", PW / 2, 142);
     x.textAlign = "left";
     let y = 176;
-    x.font = "600 15px Archivo";
-    for (const r of rows) {
-      x.fillStyle = "#F3F1EC";
-      x.fillText(r, 20, y);
-      y += 26;
+    const drawRows = () => {
+      x.font = "600 15px Archivo";
+      x.textAlign = "left";
+      for (const r of rows) {
+        x.fillStyle = "#F3F1EC";
+        x.fillText(r, 20, y);
+        y += 26;
+      }
+    };
+    // Stage 3 (15 Nov 2026): the picture straight under the score, the stored breakdown below it.
+    if (rowsFirst) {
+      drawRows();
+      body(x, y + 10);
+    } else {
+      y = (body(x, y) as number) + 18;
+      drawRows();
     }
-    body(x, y + 10);
     return c;
   };
   const before = panel("Today (main)", (x, y0) => {
@@ -183,7 +195,7 @@ for (const [tag, run] of [["weak", weak], ["elite", elite]] as const) {
     }
     x.textAlign = "left";
   });
-  const after = panel("New", (x, y0) => {
+  const picture = (x: SKRSContext2D, y0: number): number => {
     let y = y0;
     if (trace.finished) {
       x.textAlign = "center";
@@ -234,7 +246,9 @@ for (const [tag, run] of [["weak", weak], ["elite", elite]] as const) {
       x.fillText(text, lx + 16, y);
       lx += 28 + x.measureText(text).width;
     }
-  });
+    return y + 12;
+  };
+  const after = panel(S3 ? "Stage 2" : "New", picture);
   const pair = createCanvas(PW * 2 + 30, PH + 20);
   const pc = pair.getContext("2d") as unknown as SKRSContext2D;
   pc.fillStyle = "#0B0F1A";
@@ -242,6 +256,17 @@ for (const [tag, run] of [["weak", weak], ["elite", elite]] as const) {
   pc.drawImage(before, 10, 10);
   pc.drawImage(after, PW + 20, 10);
   writeFileSync(`${out}/reveal-s2-${tag}.png`, pair.toBuffer("image/png"));
+  if (S3) {
+    // Stage 3: the stage-2 reveal (the breakdown's lines above the picture) | the new one (the picture under the score).
+    const now = panel("New", picture, false);
+    const p3 = createCanvas(PW * 2 + 30, PH + 20);
+    const c3 = p3.getContext("2d") as unknown as SKRSContext2D;
+    c3.fillStyle = "#0B0F1A";
+    c3.fillRect(0, 0, p3.width, p3.height);
+    c3.drawImage(after, 10, 10);
+    c3.drawImage(now, PW + 20, 10);
+    writeFileSync(`${out}/reveal-s3-${tag}.png`, p3.toBuffer("image/png"));
+  }
   console.log(`${tag}: score ${replay.score}, planets ${trace.best}, slips ${trace.slips.length}, flights ${trace.flights.length}, dust ${trace.counts.dust}`);
 }
 console.log(`effects: ${frames.map(([l, f]) => `${l.split(":")[0]} ${f ? "ok" : "missing"}`).join(", ")}`);

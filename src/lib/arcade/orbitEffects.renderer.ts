@@ -1,6 +1,6 @@
 /**
  * Orbit's in-world effects (the Action overhaul, stage 2, 15 Nov 2026; display only, drawn by Orbit's own renderer on the
- * expansion's view, orbitRev 12–15). Each observes the sim (its ticks, counters and fuel) and never writes to it; no glow
+ * expansion's view, orbitRev 12–16). Each observes the sim (its ticks, counters and fuel) and never writes to it; no glow
  * halos or glare; reduced motion gets the calm version (a still mark, no movement); every motion is over within 900 ms.
  *
  *  - Launch: a thruster puff where the rocket left its orbit (orbit.launch, and the orbit.thrust hiss in flight).
@@ -26,6 +26,8 @@ export const ORBIT_GO_TICKS = 30;
 /** The sun's bloom and its banner, ms (the count-up inside it 700 ms). */
 export const ORBIT_BLOOM_MS = 900;
 export const ORBIT_BLOOM_COUNT_MS = 700;
+/** A finished run's submit hold (15 Nov 2026, Joe): the bloom, ALL 40 PLANETS! and the count-up show before the reveal. */
+export const ORBIT_SUN_HOLD_MS = 1500;
 
 let fxClock: () => number = () => (typeof performance !== "undefined" ? performance.now() : 0);
 /** Screenshot and check hook: the clock the catch lock and the sun's bloom are timed on (null restores it). */
