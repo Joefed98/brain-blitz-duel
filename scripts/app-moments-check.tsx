@@ -202,6 +202,7 @@ const { setBatterySaver } = await import("../src/lib/battery");
   check(/plate\.closest\("\[data-arena\]"\)/.test(panel), "never in the arena (the side panel has it)");
   check(/\[data-frame="puzzle"\] > \.game-frame-header \[data-header-left\] > \[data-finished-ping\] \{\s*inset: auto 12px auto 12px;\s*top: calc\(100% \+ 2px\);/.test(gfx), "a puzzle's finished strip sits under the header (below the timer bar)");
   check(/\[data-frame="arcade"\] > \.game-frame-header \[data-header-left\] > \[data-finished-ping\] \{\s*bottom: 10px;/.test(gfx), "an arcade's strip ends above the bar");
+  check(/\[data-frame="arcade"\] > \.game-frame-header \[data-header-left\]:has\(> \[data-finished-ping\]\) > :not\(\[data-finished-ping\]\) \{\s*visibility: hidden;/.test(gfx), "the lines under an arcade's strip are hidden while it shows");
   check(/keep\.push\(box\(el, "timer bar"\)\)/.test(read("scripts/room-extras-check.ts")), "room-extras-check keeps the strip off the timer bar");
 }
 

@@ -837,6 +837,10 @@
 [data-frame="arcade"] > .game-frame-header [data-header-left] > [data-finished-ping] {
   bottom: 10px;
 }
+/* The lines the arcade strip covers are hidden while it shows (the round line no longer peeks out below it). */
+[data-frame="arcade"] > .game-frame-header [data-header-left]:has(> [data-finished-ping]) > :not([data-finished-ping]) {
+  visibility: hidden;
+}
 
 /* ------------------------------------------------------------------ the phone's status panel (15 Nov 2026, Joe)
  * In the space above a puzzle's board (ArenaGamePanel's PhoneStatus): the goal and the live figures in larger type; the
