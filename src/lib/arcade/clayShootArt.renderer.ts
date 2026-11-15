@@ -774,8 +774,10 @@ export function drawClayArt(ctx: CanvasRenderingContext2D, state: ClayState, siz
     ctx.fillRect(0, 0, W, worldH);
   }
 
-  // Drifting clouds (pre-rendered sprites, position from the sim tick).
-  for (const lane of CLOUD_LANES) {
+  // Drifting clouds (pre-rendered sprites, position from the sim tick). The Speed overhaul's rendered sky carries its
+  // own high cloud and haze, so the drawn clouds stay off over it (15 Nov 2026; display only).
+  const artSky = worldH > H && speedArtImage("pull-sky") !== null;
+  for (const lane of artSky ? [] : CLOUD_LANES) {
     const s = cloudSprite(lane.s, k);
     if (!s) continue;
     const span = W + s.w;

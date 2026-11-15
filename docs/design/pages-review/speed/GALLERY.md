@@ -28,7 +28,7 @@ Darker lacquered walnut; glossy domed onyx counters with polished brass rims, ea
 |---|---|---|
 | <img src="../../game-reviews/img/speed/chain-2-mid.webp" width="200"> | <img src="concept-chain-b.webp" width="200"><br>B | <img src="after-chain.webp" width="200"> |
 
-Vivid charms in six colours, each colour in all three cuts, in polished champagne bezels on dark lacquered walnut, drawn at the concept's size. Each is a lit glaze under a glassy coat (domed on the round ones), so the colour glows from inside with a crisp edge highlight. "Chain broken" sits on the chain strip.
+Cut gems in six colours, each colour in all three cuts (a faceted round brilliant, a cushion-cut square, a trillion-cut triangle), in polished champagne bezels on dark lacquered walnut, at the concept's size: every facet catches its own crisp highlight under a glassy coat, the colour glowing faintly from inside. "Chain broken" sits on the chain strip.
 
 ## Bonk
 
@@ -52,7 +52,7 @@ Dark lacquered planks with their grain and a brass rail; glazed enamel tiles (cr
 |---|---|---|
 | <img src="../../game-reviews/img/speed/clayshoot-2-mid.webp" width="200"> | <img src="concept-clayshoot-a.webp" width="200"><br>A, sun toned down | <img src="after-clayshoot.webp" width="200"> |
 
-A deep late-afternoon range with haze over the treeline and the sun toned right down; glazed orange clays and polished gold ones; white gulls in three wing frames. HUD as two pills.
+A layered late-afternoon range: deep blue warming to a hazy horizon glow (no sun disc, no glare), soft high cloud, blue far hills fading behind two treelines, the grass and rail fence in front (the drawn cartoon clouds stay off over it); glazed orange clays and polished gold ones; white gulls in three wing frames. HUD as two pills.
 
 ## Answer reveals (Joe, 15 Nov 2026)
 

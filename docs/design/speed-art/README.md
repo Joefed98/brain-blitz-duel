@@ -17,10 +17,10 @@ PR #427) and the art standard ([cosmetics-redraws/ART-DIRECTION.md](../cosmetics
 |---|---|---|
 | Flash | A waiting (dark smoked glass with faint etched rings in a polished walnut frame), B for the flash (the glass flooding an even warm gold) | `flash-wait`, `flash-gold`, `flash-frame` (a CSS border image) |
 | Ascend | B: darker lacquered walnut, domed glossy onyx counters with polished brass rims, glazed gold domes once reached; bold Archivo 900 numbers, white on onyx, navy on gold | `ascend-board`, `ascend-disc`, `ascend-disc-done` |
-| Don't Break the Chain | B: round charms in clear glass over a lit core; square and triangle charms in a lit glaze under a glassy coat (flat-topped glass read black); six colours, each in all three cuts, in polished champagne bezels, on darker lacquered walnut | `chain-board`, `chain-<shape>-<colour>` (18) |
+| Don't Break the Chain | B: cut gems (a faceted round brilliant, a cushion-cut square, a trillion-cut triangle) in a lit glaze under a glassy coat, each facet with its own crisp highlight; six colours, each in all three cuts, in polished champagne bezels, on darker lacquered walnut | `chain-board`, `chain-<shape>-<colour>` (18) |
 | Bonk | B: gophers in gold and red hard hats and the hedgehog in dark burrows on a darker dusk lawn; nothing but the sixteen burrows looks like one | `bonk-lawn`, `bonk-burrow`, `bonk-gopher-gold`, `bonk-gopher-red`, `bonk-hedgehog` |
 | Tenfall | B's darker oiled wood with A's satin enamel tiles (cream digits, gold operators, blue minus, a gilded gold digit); bold flat labels, operators bigger; tiles come out of a chute below the counters | `tenfall-board`, `tenfall-tile-<look>` (5) |
-| Pull! | A, the sun toned right down (a deep late-afternoon sky with haze over the treeline, no glare); satin orange clays, brushed gold clays (shinier, with their glint); white gulls in three wing frames | `pull-sky`, `pull-clay-orange`, `pull-clay-gold`, `pull-bird-0/1/2` |
+| Pull! | A, the sun toned right down: a layered late-afternoon sky (soft high cloud, a hazy horizon glow, blue far hills behind two treelines), no glare; glazed orange clays, polished gold clays (shinier, with their glint); white gulls in three wing frames | `pull-sky`, `pull-clay-orange`, `pull-clay-gold`, `pull-bird-0/1/2` |
 
 ## The bounds rule
 
