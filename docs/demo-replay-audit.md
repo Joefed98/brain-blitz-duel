@@ -256,6 +256,10 @@ service-role key and `INTRO_DEMO_KEY` (as for a recording from the practice reve
     bun scripts/action-demos-save.ts --url=http://localhost:8080 --key=<INTRO_DEMO_KEY>
 
 (the port is the one `bun run dev` prints; add game ids to save only those, `--dry` to deal and compare without saving).
+It never prompts, so a GitHub workflow can run it after the final deploy (Joe, 15 Nov 2026) from the environment
+instead of flags (flags win): `ACTION_DEMOS_URL` (the dev server's origin), `INTRO_DEMO_KEY`, optionally
+`ACTION_DEMOS_GAMES=flip,orbit` and `ACTION_DEMOS_DRY=1`. Exit 0 when every game is OK, 1 when any failed, 2 when the URL
+or key is missing.
 For each game it asks the dev server for the sealed intro example through `practiceGenerateFn`, refuses if the server
 deals another stamp or another example than the run was recorded on, saves through `saveIntroDemoFn` (the same call as
 the reveal's Save demo button; it never writes the database itself), and reads the demo back through `getIntroDemoFn`, so

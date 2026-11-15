@@ -11,6 +11,15 @@
  *
  *   bun scripts/action-demos-save.ts --url=http://localhost:8080 --key=<INTRO_DEMO_KEY> [games…] [--dry]
  *
+ * Non-interactive (Joe, 15 Nov 2026: the captain's GitHub workflow saves them after the final deploy): every option can
+ * come from the environment instead, flags winning, and nothing is ever prompted for:
+ *
+ *   ACTION_DEMOS_URL=<server origin> INTRO_DEMO_KEY=<key> [ACTION_DEMOS_GAMES=flip,orbit] [ACTION_DEMOS_DRY=1] \
+ *     bun scripts/action-demos-save.ts
+ *
+ * The server must be a dev server (the function ids are read from its client modules), e.g. one the workflow starts with
+ * `bun run dev` on the live project's environment. The key is never printed. Exit codes: 0 all OK, 1 any game failed, 2 missing URL or key (usage).
+ *
  * `--dry` deals and compares only (nothing saved). The calls go over HTTP with TanStack Start's own client fetcher, to
  * the ids the dev server's client module names (the same requests the phone makes). scripts/action-demos-check.ts runs
  * `saveActionDemos` through the server-function harness on a local PostgreSQL (the real handlers end to end).
@@ -123,13 +132,18 @@ export async function httpCall(origin: string): Promise<DemoCall> {
 if (import.meta.main) {
   const args = process.argv.slice(2);
   const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-  const url = (opt("url") ?? "").replace(/\/+$/, "");
-  const key = opt("key") ?? process.env["INTRO_DEMO_KEY"] ?? "";
-  const dry = args.includes("--dry");
-  const games = args.filter((a) => !a.startsWith("--")) as ActionDemoType[];
+  const env = (name: string) => (process.env[name] ?? "").trim();
+  const url = (opt("url") ?? env("ACTION_DEMOS_URL")).replace(/\/+$/, "");
+  const key = opt("key") ?? env("INTRO_DEMO_KEY");
+  const dry = args.includes("--dry") || /^(1|true|yes)$/i.test(env("ACTION_DEMOS_DRY"));
+  const fromArgs = args.filter((a) => !a.startsWith("--"));
+  const games = (fromArgs.length ? fromArgs : env("ACTION_DEMOS_GAMES").split(/[\s,]+/).filter(Boolean)) as ActionDemoType[];
   for (const g of games) if (!ACTION_DEMO_TYPES.includes(g)) throw new Error(`unknown game ${g} (one of ${ACTION_DEMO_TYPES.join(", ")})`);
   if (!url || (!key && !dry)) {
-    console.log("usage: bun scripts/action-demos-save.ts --url=<dev server origin> --key=<INTRO_DEMO_KEY> [games…] [--dry]");
+    console.log(
+      "usage: bun scripts/action-demos-save.ts --url=<server origin> --key=<INTRO_DEMO_KEY> [games…] [--dry]\n" +
+        "   or: ACTION_DEMOS_URL=… INTRO_DEMO_KEY=… [ACTION_DEMOS_GAMES=a,b] [ACTION_DEMOS_DRY=1] bun scripts/action-demos-save.ts",
+    );
     process.exit(2);
   }
   const results = await saveActionDemos(await httpCall(url), { key, games, dry });
