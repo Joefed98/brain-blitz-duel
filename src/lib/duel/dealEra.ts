@@ -76,6 +76,8 @@ export const DEAL_PINS = {
   preGameReviewNov15: { texts: false },
   /** arcade.server.ts: Roofbound flipRev 12, before the Action overhaul's grace (15 Nov 2026). */
   flipPreGrace: { texts: false },
+  /** arcade.server.ts: Moon Climb ricoRev 3, before the bigger ninja (the Action overhaul's stage 2, 15 Nov 2026). */
+  ricoPreBig: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

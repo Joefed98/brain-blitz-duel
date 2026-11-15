@@ -50,7 +50,7 @@ import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
-import { MODE_CLING, MODE_FLIGHT, MODE_RIDE, MOON_REV, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
+import { isMoonState, MODE_CLING, MODE_FLIGHT, MODE_RIDE, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
 import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
@@ -1690,7 +1690,7 @@ export function ninjaSounds(): GameSounds<NinjaState> {
   return {
     frame(state, running) {
       beginFrame("ricochet", state);
-      const moon = state.rev === MOON_REV ? (state as MoonState) : null;
+      const moon = isMoonState(state) ? (state as MoonState) : null;
       loopCue("ricochet.lanternRide", running && moon !== null && moon.mode === MODE_RIDE && moon.ended === 0);
       // The Action overhaul (15 Nov 2026): a scuff loop while sliding on moss or ice (silent until its file is set).
       const sliding =

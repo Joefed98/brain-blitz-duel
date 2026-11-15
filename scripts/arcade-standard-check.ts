@@ -123,7 +123,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "alleyroll", field: "alleyRollRev", rev: 2, batch: "Sports" },
   // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2; Moon Climb
   // (Ricochet's id) deals ricoRev 3 since 3 Nov 2026 (sky lanterns, mid-ledges, flow; no coins or gold lanterns).
-  { type: "ricochet", field: "ricoRev", rev: 3, batch: "Action" },
+  // ricoRev 4 (15 Nov 2026, the bigger ninja; rev 3's parts). Changed with Joe's approval, 15 Nov 2026 (routine
+  // consequence of the Action overhaul).
+  { type: "ricochet", field: "ricoRev", rev: 4, batch: "Action" },
 ];
 
 /**
