@@ -787,11 +787,17 @@ let lastView = { rot: 0, zoom: 1 };
  * screen and only the board turns. Mazes 1–3 draw at about 0.98, 0.86 and 0.77 of their size; tiltRev 10's fourth maze
  * (19 cells of 16 px, a 336 px disc) at full size, a smaller disc on screen than maze 3's.
  */
-function tiltFixedZoom(R: number, big = false): number {
-  // The Strategy overhaul (15 Nov 2026, display only; tiltRev 12): every maze's disc, rim included, fills the width
-  // (smaller mazes drawn larger, the largest maze no longer shrunk), so maze 4's paths read on a phone.
-  if (big) return (TILT_X_W / 2 - 3) / (R + 9);
+function tiltFixedZoom(R: number): number {
   return Math.min(1, (TILT_X_W / 2 - 4) / (R + 10));
+}
+
+/**
+ * The Strategy overhaul (15 Nov 2026, display only; tiltRev 12): every maze's disc, rim included, fills the width
+ * (smaller mazes drawn larger, the largest no longer shrunk), so maze 4's paths read on a phone. Older revisions keep
+ * tiltFixedZoom.
+ */
+function tiltFillZoom(R: number): number {
+  return (TILT_X_W / 2 - 3) / (R + 9);
 }
 
 /** The disc face for a radius (cached sprite per radius). */
@@ -1126,7 +1132,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
 
   // The camera stays on the disc's centre (display only): screen = centre + zoom · rotate(angle) · maze point.
   const cam = { x: 0, y: 0 };
-  const zoom = tiltFixedZoom(R, big);
+  const zoom = big ? tiltFillZoom(R) : tiltFixedZoom(R);
   lastView = { rot, zoom };
   ctx.translate(W / 2, H / 2);
   ctx.scale(zoom, zoom);

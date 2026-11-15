@@ -243,6 +243,19 @@ section("The help and intro say what changed");
   for (const type of ["tilt", "matchup", "bubble", "inkbridge", "balltrack"]) ok(intro(type) <= 4, `${type}: at most four intro HOW lines`);
 }
 
+/* ------------------------------------------------------------------ 5b. Intro stills */
+section("Intro stills: real frames, light, hashed");
+{
+  const { createHash } = await import("node:crypto");
+  const { STRATEGY_STILLS } = await import("../src/components/puzzles/strategyStills.data");
+  for (const [type, file] of [["tilt", "tilt.tsx"], ["matchup", "matchup.tsx"], ["bubble", "bubble.tsx"], ["inkbridge", "inkBridge.tsx"], ["balltrack", "ballTrack.tsx"]] as const) {
+    const bytes = readFileSync(`public/intro/${type}.webp`);
+    ok(bytes.length > 4000 && bytes.length <= 60_000, `${type}: the still is a real frame under 60 KB (${bytes.length} bytes)`);
+    ok(createHash("sha256").update(bytes).digest("hex").slice(0, 10) === STRATEGY_STILLS[type], `${type}: the still's hash is the one on its URL`);
+    ok(new RegExp(`<FrameStill type="${type}"`).test(readFileSync(`src/puzzles/${file}`, "utf8")), `${type}: the intro shows the real-frame still`);
+  }
+}
+
 /* ------------------------------------------------------------------ 6. Older stamps */
 section("Older stamps unchanged");
 {

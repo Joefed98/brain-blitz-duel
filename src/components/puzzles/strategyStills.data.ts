@@ -4,7 +4,7 @@
  */
 export const STRATEGY_STILLS: Record<"tilt" | "matchup" | "bubble" | "inkbridge" | "balltrack", string> = {
   tilt: "871e33d1e4",
-  matchup: "7c5ca7d1d2",
+  matchup: "8762e2afd6",
   bubble: "db8771f0db",
   inkbridge: "2b4668ee2f",
   balltrack: "a8eb96f7ea",
