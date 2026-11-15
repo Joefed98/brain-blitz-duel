@@ -178,6 +178,9 @@ function probe() {
       return tops.filter((t) => t === tops[0]).length;
     })(),
     hint: !!document.querySelector("[data-controls-hint]"),
+    // The arena (15 Nov 2026): the game's block in the panel, and whether a header is still drawn.
+    arenaGame: !!document.querySelector("[data-arena-game]"),
+    frameHeader: !!document.querySelector("[data-game-frame-header]"),
     hintBox: box(document.querySelector("[data-controls-hint]")),
     arena: arena ? { ...box(arena)!, turned, rotors: document.querySelectorAll("[data-arena-rotor]").length } : null,
     // Text inside a rotor would read sideways: none may be there (Cue Ball's HUD is on its upright strip).
@@ -341,20 +344,30 @@ try {
         await context.close();
       }
     }
-    // A touch screen as wide as a desktop: the tablet layout (pages two columns, games as on a phone).
+    // A touch screen as wide as a desktop: the tablet layout. Changed with Joe's approval, 15 Nov 2026 (sideways
+    // tablets get the arena): its pages keep two columns and the rail; its live round is the arena (lib/gameFrame/
+    // arena.ts): the room panel down the right edge with the game's block at its top, no rail and no header, the
+    // world upright and inside the centre left of the panel, no controls hint (no keyboard); "exactly as a phone's"
+    // now holds for phones only (judgePhone, above).
     {
       const viewport: ThemeViewport = { name: "1440x900 touch", w: 1440, h: 900 };
       for (const screen of [named("practice list"), roomRound("racing", true)]) {
         const { context, page } = await open(browser, server.origin, screen, viewport, true);
         const problems: string[] = [];
+        if (screen.mode === "room") await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 }).catch(() => {});
         const m = await page.evaluate(probe);
         if (m.layout !== "tablet") problems.push(`layout ${m.layout}, want tablet`);
-        // Changed with Joe's approval, 14 Nov 2026 (his decision that day: a tablet held sideways takes the rail on its
-        // main screens; rooms and games stay the phone's): a page here has the rail and no tab bar, a room neither rail
-        // nor panel.
-        if ((screen.mode === "room" && m.rail) || m.panel || m.banners || m.mode || m.hint) problems.push("a touch screen shows the desktop panel, banner, mode or hint, or a rail in a room");
-        if (screen.mode !== "room" && (!m.aside || !m.rail || m.tabbar)) problems.push("the sideways tablet page lacks its side column or rail, or still has the tab bar");
-        if (screen.mode === "room" && m.arena && m.arena.turned) problems.push("a touch screen turned the world");
+        if (m.banners || m.hint) problems.push("a touch screen shows the banner or the controls hint");
+        if (screen.mode !== "room" && (!m.aside || !m.rail || m.tabbar || m.panel || m.mode)) problems.push("the sideways tablet page lacks its side column or rail, still has the tab bar, or shows a panel or mode");
+        if (screen.mode === "room") {
+          if (m.rail) problems.push("a rail on the sideways tablet's round");
+          if (!m.panel || !near(m.panel.r, m.innerW) || !near(m.panel.w, PANEL)) problems.push(`the sideways tablet's round lacks the ${PANEL}px room panel down the right edge`);
+          if (!m.arenaGame) problems.push("the sideways tablet's room panel lacks the game's block (timer and score)");
+          if (m.frameHeader) problems.push("the sideways tablet's round still draws the header (the panel carries it)");
+          if (m.mode !== DESKTOP_MODES.racing.mode) problems.push(`mode ${m.mode}, want ${DESKTOP_MODES.racing.mode}`);
+          if (m.arena && m.arena.turned) problems.push("a touch screen turned an upright world");
+          if (m.arena && m.panel && (m.arena.x < -0.75 || m.arena.r > m.panel.x + 0.75)) problems.push(`world ${m.arena.x.toFixed(0)}..${m.arena.r.toFixed(0)} not left of the panel`);
+        }
         await report(`tablet ${screen.name} ${viewport.name}`, problems, page);
         await context.close();
       }

@@ -347,6 +347,8 @@ interface HeaderSize {
   h: number;
   top: number;
   bottom: number;
+  /** The arena (lib/gameFrame/arena.ts): a sideways tablet 1024 px wide and up plays without the header. */
+  arena?: boolean;
 }
 /** A phone in the browser (not a home-screen app) with its insets. */
 const phone = (w: number, h: number, top: number, bottom: number): DeviceConfig => ({ key: `${w}x${h}`, label: `${w}x${h}`, w, h, screenH: h, top, bottom, standalone: false });
@@ -357,7 +359,10 @@ const HEADER_SIZES: HeaderSize[] = [
   { name: "360x800", device: phone(360, 800, 0, 0), w: 360, h: 800, top: 0, bottom: 0 },
   // Wider screens (a tablet, a desktop window) exercise the wider forms.
   { name: "600x900", device: phone(600, 900, 0, 0), w: 600, h: 900, top: 0, bottom: 0 },
-  { name: "1024x768", device: phone(1024, 768, 0, 0), w: 1024, h: 768, top: 0, bottom: 0 },
+  // Changed with Joe's approval, 15 Nov 2026 (sideways tablets get the arena; the computer arena is the routine consequence
+  // of the game frame restyle): 1024 px wide (a computer here, or a sideways tablet) draws
+  // the arena: no header; the name, "Round n of N" and the one timer in the side panel (judged below).
+  { name: "1024x768", device: phone(1024, 768, 0, 0), w: 1024, h: 768, top: 0, bottom: 0, arena: true },
 ];
 /** The longest display name in the bank, drawn as an arcade game's name. */
 const LONGEST_NAME = "Don’t Break the Chain";
@@ -505,6 +510,31 @@ async function roomPlayHeader(): Promise<{ rows: string[]; geometry: Record<stri
         await emulateDevice(page, size.device);
         await page.evaluate(() => document.fonts.ready);
         await page.waitForTimeout(1200);
+        if (size.arena) {
+          const a = await page.evaluate(() => {
+            const panel = document.querySelector("[data-arena-game]");
+            const cut = (el: Element | null) => (el ? (el as HTMLElement).scrollWidth > (el as HTMLElement).clientWidth + 1 : false);
+            const name = panel?.querySelector<HTMLElement>("[data-frame-name]") ?? null;
+            const ctx = panel?.querySelector<HTMLElement>(".game-frame-context-text") ?? null;
+            const lines = name ? Math.round(name.getBoundingClientRect().height / parseFloat(getComputedStyle(name).lineHeight || "20")) : 0;
+            return {
+              header: Boolean(document.querySelector("[data-game-frame-header]")),
+              timers: document.querySelectorAll("[role='timer']").length,
+              panelTimer: Boolean(panel?.querySelector("[role='timer']")),
+              name: name?.textContent?.trim() ?? null,
+              nameCut: cut(name) || lines > 2,
+              context: ctx?.textContent?.trim() ?? null,
+              contextCut: cut(ctx),
+            };
+          });
+          const name = c.as ?? gameName(c.type);
+          const want = `Round ${c.round} of ${c.rounds}`;
+          if (a.header) fails.push("the arena still draws the header");
+          if (!a.panelTimer || a.timers !== 1) fails.push(`the arena's timer: ${a.timers} on screen, in the panel ${a.panelTimer} (want exactly one, in the panel)`);
+          if (a.name !== name || a.nameCut) fails.push(`the panel's name reads "${a.name}"${a.nameCut ? " (cut)" : ""}: want "${name}"`);
+          if (!a.context || !a.context.endsWith(want) || a.contextCut) fails.push(`the panel's context reads "${a.context}"${a.contextCut ? " (cut)" : ""}: want it to end "${want}"`);
+          if (errors.length) fails.push(`page errors: ${[...new Set(errors)].slice(0, 2).join(" | ")}`);
+        } else {
         const g = await page.evaluate(headerGeometry);
         geometry[`${c.name} | ${size.name}`] = g;
         if (SHOTS) await page.screenshot({ path: `${SHOTS}/room-header-${c.name.replace(/\W+/g, "-")}-${size.w}x${size.device.screenH}.png`, clip: { x: 0, y: 0, width: size.w, height: Math.max(4, size.top) + 60 } });
@@ -533,6 +563,7 @@ async function roomPlayHeader(): Promise<{ rows: string[]; geometry: Record<stri
         }
         rows.push(`| ${c.name} | ${size.name} | ${F.name?.text} (${F.name?.size}px, ${F.name?.lines} line) | ${F.context?.text} | ${F.left?.w.toFixed(0)}px |`);
         if (errors.length) fails.push(`page errors: ${[...new Set(errors)].slice(0, 2).join(" | ")}`);
+        }
       } catch (error) {
         fails.push(String((error as Error).message ?? error).split("\n")[0]!);
       } finally {
