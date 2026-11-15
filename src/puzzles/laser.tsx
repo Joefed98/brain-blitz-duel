@@ -988,18 +988,6 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
 
   return (
     <div className="laser-reveal flex w-full min-h-0 flex-col items-center gap-2" data-laser-reveal="">
-      {/* The numbers that explain the score, from the stored grade. */}
-      <HudPills
-        testId="laser-reveal"
-        className="laser-reveal-pills"
-        items={[
-          { id: "gems", label: "Your gems", value: `${view.gems}/${total}`, tone: view.solved ? "good" : undefined },
-          { id: "shots", label: "Shots used", value: `${view.shotsUsed}/${LASER_MAX_FIRES}` },
-          view.mirrors !== null ? { id: "mirrors", label: "Your mirrors", value: view.mirrors, tone: view.par > 0 && view.mirrors > view.par ? "warn" : undefined } : null,
-          view.par > 0 ? { id: "par", label: "Par", value: view.par, tone: "gold" } : null,
-          timeLeft !== null ? { id: "time", label: "Time left", value: `${timeLeft} s` } : null,
-        ]}
-      />
       <div className="laser-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
         <div className="laser-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-laser-solution="">
           <div className="laser-reveal-board aspect-square">{board(solution, solutionTrace, null)}</div>
@@ -1012,6 +1000,18 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
           <div className="laser-reveal-board aspect-square">{board(view.layout, view.trace, view.marks)}</div>
           <span className="laser-reveal-label">Yours</span>
           <span className="laser-reveal-caption" data-laser-result="">{result}</span>
+          {/* The numbers that explain the score, from the stored grade (the player's own, so under Yours). */}
+          <HudPills
+            testId="laser-reveal"
+            className="laser-reveal-pills"
+            items={[
+              { id: "gems", label: "Gems", value: `${view.gems}/${total}`, tone: view.solved ? "good" : undefined },
+              { id: "shots", label: "Shots", value: `${view.shotsUsed}/${LASER_MAX_FIRES}` },
+              view.mirrors !== null ? { id: "mirrors", label: "Mirrors", value: view.mirrors, tone: view.par > 0 && view.mirrors > view.par ? "warn" : undefined } : null,
+              view.par > 0 ? { id: "par", label: "Par", value: view.par, tone: "gold" } : null,
+              timeLeft !== null ? { id: "time", label: "Time left", value: `${timeLeft} s` } : null,
+            ]}
+          />
           {view.shots.length ? (
             <span className="laser-shot-strip" aria-label="Your shots">
               {view.shots.map((s, i) => (

@@ -150,6 +150,34 @@ clips of the hero effects. Images are in this folder.
 
 <!-- lightbender:start -->
 ## Lightbender
+
+| | Before (main) | After |
+|---|---|---|
+| Start / intro | <img src="../../game-reviews/img/pattern/laser-1-start.webp" width="180"> | <img src="laser-after-intro.webp" width="180"> |
+| Mid-play (a shot) | <img src="../../game-reviews/img/pattern/laser-2-mid.webp" width="180"> | <img src="laser-after-play.webp" width="180"> |
+| Out of shots | — (only "Fires left: 0") | <img src="laser-after-out-of-shots.webp" width="180"> |
+| Reveal, unfinished | <img src="laser-reveal-before-unfinished.webp" width="180"> | <img src="laser-reveal-after-unfinished-yours.webp" width="180"> |
+| Reveal, solved | (no solved "before" in the review) | <img src="laser-reveal-after-solved.webp" width="180"> <img src="laser-reveal-after-solved-yours.webp" width="180"> |
+
+- **Look (A):** Blender sprites (`docs/design/game-art/pattern/source/laser.py`, `public/pattern-art/laser/`, 10 files,
+  34 KB): graphite floor plates, terracotta brick walls, silvered glass mirrors on both diagonals, a violet glass
+  splitter under its white split arrows, cut crystal gems (cool smoky crystal dark, burning gold when lit; a gem lit
+  from one side only is drawn smaller with a bold arrow on its side), round black bombs with a red band (red hot when
+  hit) and a gunmetal emitter turned to the beam. The beam is a solid golden line with a pale core: no blurred neon
+  copy, halo or glows (batch P's beam, cell and gem glows removed).
+- **Undo takes back any change (laserRev 4):** a place, turn, move, removal or Reset, with the ordinary log verbs, so
+  grading is unchanged (no moves are counted; laserRev 4 grades exactly as 3). Older stamps: Undo removes the last
+  placed piece, as before.
+- **Out of shots (laserRev 4):** after the third missed shot the board dims, says "Out of shots" and takes no more
+  changes; "Shots left" is a big figure, gold at 0. The Gems pill keeps the best shot; Par shows in play.
+- **Controls:** Undo and Reset in champagne gold on navy; Fire stays the gold primary.
+- **Reveal:** one large board at a time (Solution / Yours). Yours draws the solving shot, else the best shot as the
+  board stood at that FIRE, with its beam; red squares on pieces not in the solution, the solution's mirror ghosted in
+  gold dashes where it was missing, red rings on gems left dark, a short key. The numbers come from the stored grade
+  ("Gems 0/6 · Shots 3/3 · Par 8"; on a solve "Mirrors 8 · Par 8 · Time left 49 s"), with a strip of the shots (gem
+  dots, a bomb). The "Missed" line under the solution is gone; the player's line is "You: …" under Yours.
+- **Sound:** a near miss (5 of 6) plays `laser.nearMiss` in place of `wrong`, a bomb only `laser.bomb`, out of shots
+  `laser.outOfShots` (library stand-ins); place, turn and fire keep their November placeholders; the gem notes kept.
 <!-- lightbender:end -->
 
 <!-- topsy:start -->

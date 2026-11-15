@@ -225,7 +225,8 @@
   text-align: center;
   color: var(--jz-text-2);
 }
-.laser-reveal-pills {
+.laser-reveal .hud-pills.laser-reveal-pills {
+  overflow: visible;
   justify-content: center;
   flex-wrap: wrap;
   height: auto;
