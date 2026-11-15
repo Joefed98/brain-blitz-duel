@@ -11,6 +11,8 @@
  * the score beside a strip, or the badges).
  */
 import { TIER } from "../../docs/design/cosmetics-redraws/source/scenes";
+import { v2ArtCss, v2ArtMarkup, v2FrameCss, v2FrameMarkup } from "./v2/compose";
+import { V2_CARD_ARTS, V2_FRAMES } from "./v2/registry";
 
 const IMG = (piece: string) => `/cosmetics/redrawn/${piece}.webp`;
 const u = (n: number) => `calc(${n} * var(--pc-u))`;
@@ -211,16 +213,29 @@ export function buildCardPieces(): {
   const css: Record<string, string> = {};
   const images = new Set<string>();
   for (const [id, d] of Object.entries(CARD_ART_DEFS)) {
+    if (V2_CARD_ARTS[id]) continue;
     cardArts[id] = cardArtMarkup(id, d);
     images.add(id);
     if (d.over) images.add(d.over);
     if (d.sweep) css[id] = SWEEP_CSS;
   }
   for (const [id, d] of Object.entries(FRAME_DEFS)) {
+    if (V2_FRAMES[id]) continue;
     frames[id] = { markup: frameMarkup(d), style: { filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.55))", overflow: "visible" } };
     images.add(d.stud);
     if (d.crest) images.add(d.crest);
     if (d.glint) css[id] = GLINT_CSS;
+  }
+  // The second pass: Blender renders (v2/), in place of the first pass's art for the same items.
+  for (const [id, d] of Object.entries(V2_CARD_ARTS)) {
+    cardArts[id] = v2ArtMarkup(id, d);
+    images.add(id);
+    css[id] = v2ArtCss(d);
+  }
+  for (const [id, d] of Object.entries(V2_FRAMES)) {
+    frames[id] = { markup: v2FrameMarkup(id, d), style: { overflow: "visible" } };
+    images.add(id);
+    css[id] = v2FrameCss(d);
   }
   for (const [id, g] of Object.entries(NAME_GRADS)) names[id] = { className: "rd-nc", style: nameStyle(g) };
   return { cardArts, frames, names, css, images: [...images].sort() };

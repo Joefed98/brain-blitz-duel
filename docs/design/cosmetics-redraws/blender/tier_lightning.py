@@ -71,7 +71,7 @@ def channel(pts, radius, strength, name):
     # Light it casts (a few points along the channel).
     for p in pts[:: max(1, len(pts) // 5)][:-1]:
         l = bpy.data.lights.new(name + "L", "POINT")
-        l.energy = strength * 9
+        l.energy = strength * 13
         l.color = TIER_GOLD
         l.shadow_soft_size = 0.4
         lo = bpy.data.objects.new(name + "L", l)
@@ -198,6 +198,6 @@ rain()
 lib.camera((0, -6.5, -0.45), (0.6, 3.0, 0.75), lens=30, dof_target=(2.3, 2.6, 0.5), fstop=5.6)
 png = os.path.join(lib.TMP, "tier-lightning.png")
 secs = lib.render(png)
-img = lib.split_tone(lib.bloom(Image.open(png), threshold=0.7, radius=18, amount=0.45), amount=0.38)
+img = lib.split_tone(lib.bloom(Image.open(png), threshold=0.7, radius=18, amount=0.45), amount=0.46)
 path, size = lib.save_webp(img, "card-art.tier.lightning")
 print(f"lightning: {secs:.1f} s render, {size / 1024:.1f} KB -> {path}")

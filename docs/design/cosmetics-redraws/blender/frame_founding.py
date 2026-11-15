@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lib  # noqa: E402
 
 W, H, M = 300.0, 112.0, 10.0
-GOLD = (1.0, 0.70, 0.32)
+GOLD = (1.0, 0.74, 0.34)
 CHAMPAGNE = (0.95, 0.74, 0.42)
 NAVY = (0.012, 0.022, 0.07)
 
@@ -47,12 +47,12 @@ def rounded_rect_path(inset, radius, per_corner=24, per_side=60):
 
 
 # The band's profile: (across: - outside, + inside; height), and which material each segment takes.
-PROFILE = [(u * 1.3, h * 1.2) for (u, h) in [(-3.6, 0.2), (-3.5, 1.4), (-3.0, 2.3), (-2.4, 2.5), (-1.9, 2.0), (-1.5, 2.15), (1.5, 2.15), (1.9, 2.0), (2.5, 2.7), (3.1, 2.3), (3.5, 1.2), (3.6, 0.2)]]
+PROFILE = [(u * 1.55, h * 1.35) for (u, h) in [(-3.6, 0.2), (-3.5, 1.4), (-3.0, 2.3), (-2.4, 2.5), (-1.9, 2.0), (-1.5, 2.15), (1.5, 2.15), (1.9, 2.0), (2.5, 2.7), (3.1, 2.3), (3.5, 1.2), (3.6, 0.2)]]
 SEG_MAT = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]  # 0 polished gold, 1 the engraved field
 
 
 def band():
-    path = rounded_rect_path(inset=4.8, radius=5.8)
+    path = rounded_rect_path(inset=5.6, radius=5.0)
     n = len(path)
     bm = bmesh.new()
     uv_layer = bm.loops.layers.uv.new("UVMap")
@@ -80,7 +80,7 @@ def band():
             f.material_index = SEG_MAT[k]
             f.smooth = True
             for loop, (aa, kk) in zip(f.loops, ((i, k), (i, k + 1), (i + 1, k + 1), (i + 1, k))):
-                loop[uv_layer].uv = (lengths[aa] / 40.0, PROFILE[kk][0] / 9.4 + 0.5)
+                loop[uv_layer].uv = (lengths[aa] / 40.0, PROFILE[kk][0] / 11.2 + 0.5)
     me = bpy.data.meshes.new("band")
     bm.to_mesh(me)
     o = bpy.data.objects.new("band", me)
@@ -173,22 +173,22 @@ def bolt_mesh(cx, cy, scale, z, height):
 
 def crest(cx, cy):
     """The medallion: a gold rim, a navy enamel field, a raised gold bolt."""
-    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=15.0, depth=3.4, location=card_to_world(cx, cy, 1.6))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=17.5, depth=4.0, location=card_to_world(cx, cy, 1.6))
     rim = bpy.context.object
     bev = rim.modifiers.new("bevel", "BEVEL")
     bev.width = 0.9
     bev.segments = 4
     rim.data.materials.append(gold_material("rim", 0.13))
     bpy.ops.object.shade_smooth()
-    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=11.9, depth=0.6, location=card_to_world(cx, cy, 3.25))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=13.9, depth=0.6, location=card_to_world(cx, cy, 3.25))
     enamel = bpy.context.object
     enamel.data.materials.append(lib.material("enamel", base=NAVY, roughness=0.08, coat=1.0))
     bpy.ops.object.shade_smooth()
     # A fine gold ring inside the rim.
-    bpy.ops.mesh.primitive_torus_add(major_radius=12.5, minor_radius=0.45, location=card_to_world(cx, cy, 3.4))
+    bpy.ops.mesh.primitive_torus_add(major_radius=14.6, minor_radius=0.45, location=card_to_world(cx, cy, 3.4))
     bpy.context.object.data.materials.append(gold_material("ring", 0.1))
     bpy.ops.object.shade_smooth()
-    b = bolt_mesh(cx, cy, 9.4, 3.4, 1.6)
+    b = bolt_mesh(cx, cy, 11.0, 3.4, 1.8)
     b.data.materials.append(gold_material("boltgold", 0.12))
 
 
@@ -197,7 +197,7 @@ def laurel(cx, cy, side):
     leaf_mat = gold_material("leaf", 0.2)
     for i in range(8):
         t = i / 7
-        x = cx + side * (18 + t * 30)
+        x = cx + side * (21 + t * 34)
         y = cy - 1.5 + t * 4.2
         for s in (-1, 1):
             bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1.0, location=card_to_world(x, y + s * (2.3 - t * 0.6), 3.0))
@@ -210,7 +210,7 @@ def laurel(cx, cy, side):
     bpy.ops.curve.primitive_bezier_curve_add(location=(0, 0, 0))
     c = bpy.context.object
     sp = c.data.splines[0]
-    sp.bezier_points[0].co = card_to_world(cx + side * 17, cy - 1.5, 2.7)
+    sp.bezier_points[0].co = card_to_world(cx + side * 20, cy - 1.5, 2.7)
     sp.bezier_points[0].handle_left = card_to_world(cx + side * 10, cy - 2, 2.7)
     sp.bezier_points[0].handle_right = card_to_world(cx + side * 25, cy - 0.5, 2.7)
     sp.bezier_points[1].co = card_to_world(cx + side * 48, cy + 3, 2.7)
@@ -251,7 +251,7 @@ def studio():
     coord = nt.nodes.new("ShaderNodeTexCoord")
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    stops = [(0.0, 0.02), (0.5, 0.02), (0.58, 1.8), (0.64, 0.08), (0.82, 0.03), (1.0, 0.22)]
+    stops = [(0.0, 0.03), (0.5, 0.04), (0.57, 2.6), (0.64, 0.14), (0.82, 0.05), (1.0, 0.34)]
     ramp.color_ramp.elements[0].position, ramp.color_ramp.elements[0].color = stops[0][0], (stops[0][1],) * 3 + (1,)
     ramp.color_ramp.elements[1].position, ramp.color_ramp.elements[1].color = stops[-1][0], (stops[-1][1],) * 3 + (1,)
     for pos, v in stops[1:-1]:
@@ -272,10 +272,10 @@ s.view_settings.look = "AgX - Base Contrast"
 studio()
 band()
 for (x, y) in ((8, 8), (292, 8), (8, 104), (292, 104)):
-    diamond(x, y, 4.6)
-crest(150, 10)
-laurel(150, 10, 1)
-laurel(150, 10, -1)
+    diamond(x, y, 5.4)
+crest(150, 8)
+laurel(150, 8, 1)
+laurel(150, 8, -1)
 plaque(150, 104.5)
 cam = lib.camera(card_to_world(150, 56, 400), card_to_world(150, 56, 0), ortho_scale=W + 2 * M)
 png = os.path.join(lib.TMP, "frame-founding.png")
