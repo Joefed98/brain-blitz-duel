@@ -248,7 +248,7 @@ puzzle), played by the game's skill-band bot at a strong level and replayed by t
 | Moon Climb (`ricochet`) | `ricoRev 4` | perfect | 200 | 36 m, flow ×12, a lantern ride, no hit |
 | Iron Wall (`bastion`) | `bastionRev 3` | perfect | 200 | wave 1's first tanks, weak spots and fast reloads, base 3/3 |
 | High Rise (`skyline`) | `skylineRev 11` | elite | 184 | 15 floors, 11 perfect drops, a gold block, lives 3/3 |
-| Orbit (`orbit`) | `orbitRev 15` | perfect | 196 | 4 planets caught, a checkpoint set, no crash |
+| Orbit (`orbit`) | `orbitRev 16` | perfect | 196 | 4 planets caught, a checkpoint set, no crash |
 
 **To put them live (Joe, once):** start a dev server whose environment points at the live project with the
 service-role key and `INTRO_DEMO_KEY` (as for a recording from the practice reveal), then
