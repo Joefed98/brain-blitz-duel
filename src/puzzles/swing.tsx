@@ -47,7 +47,7 @@ function IntroExample() {
       seed={SWING_INTRO_SEED}
       ticks={90}
       input={null}
-      caption="Swing vine to vine: let go to fly, hold to grab the next. Tree platforms and squeezes between. Miss: back to your last vine."
+      caption="Swing vine to vine over the river: let go to fly, hold to grab the next loop. Tree platforms and squeezes between. Fall in the river: back to your last vine."
     />
   );
 }

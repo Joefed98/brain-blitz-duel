@@ -97,6 +97,8 @@ ok(game.runTicks <= 120 * 60 && SWING_TIME_MS <= 120_000, `the run is ${game.run
   ok(nearMissInfo("swing", { ...extra, swingRev: 16 })?.line === `${c.sectionTotal - c.sections} stretches left to clear`, "swingRev 15 and 16 keep their \"stretches left to clear\" line");
   const hud = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/label: "STRETCH", value: `\$\{shown\} \/ \$\{c\.sectionTotal\}`/.test(hud), "the HUD counts the stretch in play out of the same total");
+  const help = readFileSync("src/lib/duel/instructions.ts", "utf8");
+  ok(help.includes("The course is 51 stretches:") && help.includes("“Stretch 23 / 51”"), "the help names the same count, 51 stretches, as the HUD and the reveal");
   const doc = readFileSync("docs/arcade-standard/swing.md", "utf8");
   ok(doc.includes("**51 stretches**") && doc.includes("n of 51 stretches cleared"), "swing.md names the one count, 51");
 }
