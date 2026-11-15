@@ -280,6 +280,9 @@ export function replaySportsRun<S extends { tick: number }>(
   const lastTick = clientLag ? endTick : game.runTicks;
   const client = new Map((run.checkpoints ?? []).map((c) => [c.tick, c]));
   const empty = isEmptyRunAnswer(raw);
+  // An answer with no run in it (no events, no checkpoints, no end tick) has nothing to compare: the diagnostic line
+  // is skipped so the log names real disagreements (minigolf-sync-check); an empty answer is also graded as 0 above.
+  const noRun = endTick === 0 && client.size === 0 && run.events.length === 0;
   let state = game.init(seed);
   let reached = 0;
   let desyncTick: number | null = null;
@@ -293,7 +296,7 @@ export function replaySportsRun<S extends { tick: number }>(
       const theirs = client.get(state.tick);
       if (!empty && (!theirs || theirs.checksum !== mine.checksum) && desyncTick === null && state.tick <= (endTick || lastTick)) {
         desyncTick = state.tick;
-        console.error(`[${label}] client/server desync`, { tick: state.tick, client: theirs, server: mine });
+        if (!noRun) console.error(`[${label}] client/server desync`, { tick: state.tick, client: theirs, server: mine });
       }
     }
     if (game.isOver(state)) break;
