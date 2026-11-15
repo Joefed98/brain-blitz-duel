@@ -188,7 +188,7 @@ yet" means the game has never had a demo (its intro shows the still).
 | Topsy-Turvy (`gravity`) | `gravityRev 6` | Out of date: the rule lets `gravityRev 4`/`5` demos play, which still collect stars |
 | Skid (`iceslide`) | `slideRev 3` | Out of date: the depth-4 rule lets a `slideRev 2` demo play, which still shows gems |
 | Apex (`racing`) | `racingRev 3` | None yet (start lights since rev 2, corner signs and gravel since rev 3) |
-| Home Run (`homerun`) | `homerunRev 4` | None yet ("pick your spot" since 3 Nov) |
+| Home Run (`homerun`) | `homerunRev 5`, Normal | Prepared in `scripts/fixtures/home-run-top-bins-demos.json` (15 Nov, the innings; saved by the "Save intro demos" workflow after the final merge) |
 | Cue Ball (`pool`) | `poolRev 4` | None yet (spots or stripes, 90 s since 3 Nov) |
 | Ringer (`alleyroll`) | `alleyRollRev 2` | None yet (the funfair alley since 3 Nov) |
 | Iron Wall (`bastion`) | `bastionRev 3` | Stopped (`BASTION_REV_DEALT`); none yet |
@@ -199,7 +199,7 @@ yet" means the game has never had a demo (its intro shows the still).
 | Tilt (`tilt`) | `tiltRev 11` | Stopped (`TILT_REV_PAR`) |
 | Roofbound (`flip`) | `flipRev 11` or `12` | Stopped (`FLIP_REV_FLOW`, `FLIP_REV_DEAL`: flipRev 12 is flipRev 11's game, so a demo on either plays) |
 | Curl Champ (`curling`) | `curlRev 4` | None yet (the power bar since 3 Nov) |
-| Top Bins (`freekick`) | `freekickRev 4` | None yet (the drawn shot since 3 Nov) |
+| Top Bins (`freekick`) | `freekickRev 5`, Normal | Prepared in `scripts/fixtures/home-run-top-bins-demos.json` (15 Nov, the layered kick; saved by the "Save intro demos" workflow after the final merge) |
 | Grappler (`swing`) | `swingRev 17` | Stopped (`SWING_REV_SLIDE`) |
 | Rainbow Bridge (`inkbridge`) | `inkRev 13` | Stopped (`INK_REV_CLOVER`) |
 | Orbit (`orbit`) | `orbitRev 14` | Stopped (`ORBIT_REV_FUEL`) |

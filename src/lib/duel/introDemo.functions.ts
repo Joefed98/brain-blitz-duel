@@ -2,6 +2,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { record, text } from "@/lib/validate";
 import { SHORT_MAX } from "./inputLimits";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
+import { sportsDemoPlays } from "./sportsDemoRules";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_SLIDE } from "@/lib/arcade/swing";
 import { INK_REV_BIG } from "@/lib/arcade/inkBridge";
@@ -150,6 +151,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Bastion bastionRev 2 (1 Nov 2026) is a new game (the tank-defence shooter): a demo of the original turret stays
     // stopped (the intro shows its still) until one is recorded on bastionRev 2.
     if (data.type === "bastion" && demo?.puzzle.type === "bastion" && demo.puzzle.bastionRev !== BASTION_REV_DEALT) return null;
+    // The Home Run and Top Bins overhaul (15 Nov 2026): homerunRev 5 and freekickRev 5 are new games, so only a demo
+    // recorded on them, on Normal, plays (sportsDemoRules.ts); an older demo stays stopped and the still shows.
+    if (demo && !sportsDemoPlays(data.type, demo.puzzle)) return null;
     // Tilt's expansion (tiltRev 8, 26 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
     // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 8.
     // tiltRev 9 (27 Oct 2026) keeps tiltRev 8's play on lifted curves, under a fixed camera: only a demo recorded on 9 plays.
