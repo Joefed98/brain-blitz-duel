@@ -2601,6 +2601,22 @@ outside the repo.
   cards-board-overhaul-check (~1 s); skins-default-check pins the four redesigned card games to
   `scripts/fixtures/skins-default-frames-cards.json`; sound slots for Joe's recordings in
   `docs/sound-cues/cards-board-elevenlabs.md`. Stages 2 (effects, with the kit) and 3 (levels and hints) follow.
+- **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
+  `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
+  `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
+  nearMiss, win, newBest, stars; transform and opacity only, shared sounds through playSound, haptics only through its
+  one call site; reduced / lite / calm variants), React pieces in `src/components/fx/GameFx.tsx`; **family sessions use
+  these, never a second kit**; fx-check. *Game timer*: the player's choice, Settings → Appearance → Game timer (Bar, the
+  default: a gold bar with no seconds until the last 10 s, red then; Ring; Chip; `gameFrameConfig.ts`, `useGameTimer`;
+  every look keeps the 60 px header and the timer's accessible label; game-controls-check).
+  *The arena* (`src/lib/gameFrame/arena.ts`): a computer's or a sideways tablet's (≥ 1024 px) live round has no header;
+  its timer, score, best, stars, the board's progress and status pills (hidden on the board, so each number shows once),
+  goal, practice's next challenges, menu and Controls tab are portalled once into the side panel (`ArenaGamePanel`; the
+  top of the room panel in a room); on a phone a puzzle's board and controls sit together at the bottom
+  (phone-gap-check); the identical world at the largest uniform scale (arena-world-check). *Controls*:
+  `src/lib/gameControls.ts` (schemes per game, chosen from the game menu, the Controls tab and Settings; input mapping
+  only; game-controls-check). The reveal's verdict row is the shared result card (`reveal-result`) with practice's
+  stars and new best (`RevealPayoff`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
