@@ -54,7 +54,14 @@ for (const piece of R.REDRAWN_PIECES) {
   check(head.toString("latin1", 0, 4) === "RIFF" && head.toString("latin1", 8, 12) === "WEBP", `${piece} is a WebP`);
   check(statSync(f).size <= 80 * 1024, `${piece} is at most 80 KB (${(statSync(f).size / 1024).toFixed(1)} KB)`);
 }
-check(files.every((f) => referenced.has(f.replace(/\.webp$/, ""))), `no unused piece in public/cosmetics/redrawn (${files.filter((f) => !referenced.has(f.replace(/\.webp$/, ""))).join(", ") || "none"})`);
+// Game looks' pieces are drawn by their renderers (sceneImage("<name>") or sceneImage(`<prefix>${…}`) in src/lib/arcade).
+const gameRefs = [...readdirSync(join(ROOT, "src/lib/arcade"), { recursive: true }) as string[]]
+  .filter((f) => /\.tsx?$/.test(f))
+  .flatMap((f) => [...readFileSync(join(ROOT, "src/lib/arcade", f), "utf8").matchAll(/sceneImage\(\s*[`"']([\w.-]+)(\$\{)?/g)].map((m) => ({ name: m[1]!, prefix: !!m[2] })));
+const used = (piece: string) => referenced.has(piece) || gameRefs.some((r) => (r.prefix ? piece.startsWith(r.name) : piece === r.name));
+const unused = files.map((f) => f.replace(/\.webp$/, "")).filter((p) => !used(p));
+check(unused.length === 0, `no unused piece in public/cosmetics/redrawn (${unused.join(", ") || "none"})`);
+for (const r of gameRefs.filter((g) => !g.prefix)) check(existsSync(join(PIECES, `${r.name}.webp`)), `${r.name}.webp (drawn by a game look) exists`);
 check(!keepPublicFile("/cosmetics/redrawn/card-art.lava.webp") && keepPublicFile("/tiles/pool.webp"), "the pieces stay out of the offline download (other public files kept)");
 
 /* 2. the switches */
@@ -141,7 +148,9 @@ for (const [id, f] of Object.entries(R.REDRAWN_FRAMES)) {
   wellFormed(id, f.markup);
   for (const img of f.markup.matchAll(/<image [^>]*x="(-?[\d.]+)" y="(-?[\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) {
     const [x, y, w, h] = img.slice(1, 5).map(Number) as [number, number, number, number];
-    check(x >= -2 && y >= -2 && x + w <= 302 && y + h <= 114, `${id}: its pieces stay inside the card's box (${x},${y} ${w}×${h})`);
+    // Inside the card's box plus the 10-unit margin a frame render keeps for its contact shadow and ornaments
+    // (ART-DIRECTION.md "Frames"); nothing reaches the score beside a strip.
+    check(x >= -10 && y >= -10 && x + w <= 310 && y + h <= 122, `${id}: its pieces stay inside the card's box and its margin (${x},${y} ${w}×${h})`);
   }
 }
 for (const [id, c] of Object.entries(R.REDRAWN_CELEBRATIONS)) {
