@@ -25,6 +25,8 @@ export type CheckOverrideName =
   | "__DUELZ_ALLOW_TOURNAMENTS__"
   | "__DUELZ_BANNERS__"
   | "__DUELZ_BETA_CONFIG__"
+  | "__DUELZ_GAME_TIMER__"
+  | "__DUELZ_ARENA__"
   | "__DUELZ_CELEBRATION_LOG__"
   | "__DUELZ_FAIL_ROOM_DEAL__"
   | "__DUELZ_CHALLENGES__"
