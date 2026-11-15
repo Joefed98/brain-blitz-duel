@@ -54,7 +54,7 @@ def clear_lights():
 def ruler():
     """A flat ruler bar, 360 x 80 points at its largest display: a dark enamel face, even and clean so the app's ticks
     and pins read, between polished bevelled chrome edges top and bottom and chrome end caps; the crisp highlights
-    sit only on those edges and caps. Written whole (ruler.webp) and cut into three slices the app draws so only the
+    sit only on those edges and caps. Rendered whole and cut into three slices (only the slices ship) the app draws so only the
     plain middle stretches, and only sideways: ruler-l and ruler-r (the end caps, 24 points wide) and ruler-m (a
     4-point slice of the plain middle)."""
     setup(360, 80, scale=3, samples=128)
@@ -87,6 +87,7 @@ def ruler():
     im.crop((0, 0, cap, im.height)).save(out.replace("ruler.webp", "ruler-l.webp"), "WEBP", quality=88, method=6)
     im.crop((im.width - cap, 0, im.width, im.height)).save(out.replace("ruler.webp", "ruler-r.webp"), "WEBP", quality=88, method=6)
     im.crop((mid - round(2 * k), 0, mid + round(2 * k), im.height)).save(out.replace("ruler.webp", "ruler-m.webp"), "WEBP", quality=92, method=6)
+    os.remove(out)  # only the slices ship
     print("cut ruler-l, ruler-m, ruler-r")
 
 

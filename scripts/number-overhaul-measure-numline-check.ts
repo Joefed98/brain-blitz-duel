@@ -127,7 +127,9 @@ const between = (text: string, from: string, to: string) => {
   ok(/if \(next\.length < NUMLINE_TOTAL && next\.length % NUMLINE_ITEMS === 0\) setClearing\(stageIndex\);/.test(place), "Ballpark: a finished line (not the last) clears before the next");
   ok(/<NumberStage type="numline" index=\{shownStage\} exit=\{clearing !== null \? "clear" : null\}/.test(s), "Ballpark: the line sits in the shared stage moment");
   ok(!/soundCue\("numline\.line"\)/.test(s), "Ballpark: no second sound when the next line comes in");
-  ok(/numberArt\("numline", "ruler"\)/.test(s) && /"pin-placed" : "pin"/.test(s), "Ballpark: the rule and the pins are the rendered pieces");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): the ruler is three slices
+  // (only the plain middle stretches, sideways), no longer one stretched rod.
+  ok(["ruler-l", "ruler-m", "ruler-r"].every((n) => s.includes(`numberArt("numline", "${n}")`)) && /"pin-placed" : "pin"/.test(s), "Ballpark: the ruler (three slices) and the pins are the rendered pieces");
   ok(/variant="gold"/.test(between(s, 'data-game-controls="actions"', "</Button>")), "Ballpark: Place is the screen's one gold button");
   const css = src("src/polish-layout/batch-w-numline.css");
   ok(!/drop-shadow|text-shadow: 0 0 1|0 0 14px/.test(css), "Ballpark: nothing glows in the live round");
@@ -154,7 +156,8 @@ const between = (text: string, from: string, to: string) => {
 
 /* ------------------------------------------------------------------ 6. Art and sound slots */
 {
-  for (const f of ["measure/jug-front", "measure/shelf", "numline/ruler", "numline/card", "numline/pin", "numline/pin-placed"])
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): the ruler ships as its three slices.
+  for (const f of ["measure/jug-front", "measure/shelf", "numline/ruler-l", "numline/ruler-m", "numline/ruler-r", "numline/card", "numline/pin", "numline/pin-placed"])
     ok(existsSync(`public/number/${f}.webp`), `art: public/number/${f}.webp`);
   for (const f of ["measure.py", "numline.py"]) ok(existsSync(`docs/design/number-overhaul/source/${f}`), `art: its Blender source ${f}`);
   // The material pass (Joe's clarification, 15 Nov 2026): the glass shell draws its middle too (fill), the water is
