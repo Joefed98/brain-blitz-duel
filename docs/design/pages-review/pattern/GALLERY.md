@@ -321,12 +321,12 @@ and the solve.
 |---|---|---|
 | <img src="../../game-reviews/img/pattern/iceslide-3-end.webp" width="180"> | <img src="iceslide-reveal-after-unfinished-solution.webp" width="180"> | <img src="iceslide-reveal-after-unfinished-yours.webp" width="180"> |
 
-| After, solved: Solution | After, solved: Yours |
-|---|---|
-| <img src="iceslide-reveal-after-solved-solution.webp" width="180"> | <img src="iceslide-reveal-after-solved-yours.webp" width="180"> |
+| Before (main, solved) | After, solved: Solution | After, solved: Yours |
+|---|---|---|
+| <img src="iceslide-reveal-before-solved.webp" width="180"> | <img src="iceslide-reveal-after-solved-solution.webp" width="180"> | <img src="iceslide-reveal-after-solved-yours.webp" width="180"> |
 
-(Main had no solved-reveal shot in the review; its solved reveal is the same single board as the unfinished one, plus a
-"n moves (fewest m)" line.)
+(Main's solved reveal, shot on origin/main by solving the practice example: the same single board as the unfinished
+one, plus a "19 moves (fewest 19)" line.)
 
 - **Look (A, the richness pass, redone 15 Nov 2026 after the captain's review: the first rink read as a pale, near-white
   sheet):** every piece is a Blender render under the rich studio light
@@ -362,6 +362,30 @@ and the solve.
 - **Intro demo:** a demo recorded before slideRev 5 is stopped; the intro shows its example board.
 - **Sound:** a short or long ice hiss by distance (`iceslide.slide`, `iceslide.slideLong`), a thump when the ball
   stops (`iceslide.stop`), the bump and the near-exit shimmer. Crack, portal, fall and the exit shatter are kept.
+
+### Stage 2: the effects
+
+| The clip (4 s: a bump, two portals, one slide from the exit at par, then the exit) | Still: both ends of a portal flaring |
+|---|---|
+| <video src="iceslide-fx-clip.mp4" width="180" controls muted loop playsinline poster="iceslide-fx-still.webp"></video><br>[MP4, 4 s](iceslide-fx-clip.mp4) | <img src="iceslide-fx-still.webp" width="180"> |
+
+Every effect plays on its piece's own art (`src/components/puzzles/pattern/iceSlideFx.ts`, the effects kit's variants;
+transform and opacity only), never on the board, a cell or a control, and the next slide is taken as soon as the ball
+stops:
+
+- **A slide:** the ice hiss lasts about as long as the slide (`iceslide.slide` up to four squares, `iceslide.slideLong`
+  past that).
+- **It stops:** a thump (`iceslide.stop`) and the ball's art settles with the kit's drop (a small squash).
+- **Straight into a wall:** a dull tap (`iceslide.bump`) and a 3 px nudge toward the wall (2 px on a slow phone); nothing
+  counts.
+- **Thin ice** cracks open out of the sheet (`iceslide.crack`); **a portal** flares at both ends, the ring swelling over
+  a bloom of its own colour (`iceslide.portal`); **a hole** spins the ball down and out (`iceslide.fall`).
+- **One slide from the exit at par:** the exit glows and the kit's near miss pulses it twice (`iceslide.nearExit`).
+- **The exit:** the ice frosts over and shatters as before (`iceslide.solve`), and the reveal's result card plays the
+  kit's win (silent).
+- **Reduced motion:** each is a 120 ms crossfade to the new state (no movement); the kit's own variants for the settle
+  and the near miss.
+- The old CSS effects that animated `filter` (the portal flare, the pulsing exit, the fall's darkening) are gone.
 <!-- skid:end -->
 
 <!-- heave:start -->
@@ -379,7 +403,10 @@ and the solve.
 | Before (main) | After: Solution | After: Yours |
 |---|---|---|
 | <img src="push-reveal-before-unfinished.webp" width="180" alt="Heave reveal before, unfinished"> | <img src="push-reveal-after-unfinished-solution.webp" width="180" alt="Heave reveal after, unfinished, Solution"> | <img src="push-reveal-after-unfinished-yours.webp" width="180" alt="Heave reveal after, unfinished, Yours"> |
-| (solved: the same single board) | <img src="push-reveal-after-solved-solution.webp" width="180" alt="Heave reveal after, solved, Solution"> | <img src="push-reveal-after-solved-yours.webp" width="180" alt="Heave reveal after, solved, Yours"> |
+| <img src="push-reveal-before-solved.webp" width="180" alt="Heave reveal before, solved"> | <img src="push-reveal-after-solved-solution.webp" width="180" alt="Heave reveal after, solved, Solution"> | <img src="push-reveal-after-solved-yours.webp" width="180" alt="Heave reveal after, solved, Yours"> |
+
+(Main's solved reveal, shot on origin/main by solving the practice example: the same single board as the unfinished
+one, plus a "27 pushes · the minimum" line.)
 
 - **Look (A, the richness pass):** every tile and piece is a Blender render under the rich studio light, one cell each
   at 160 px (`docs/design/game-art/pattern/source/push.py`, `public/pattern-art/push/`, 10 WebPs, 54,006 bytes):
@@ -403,6 +430,29 @@ and the solve.
 - **Sound:** the gold crate pushed off its mark (`push.goldOff`), a slot for the deadlock creak (`push.stuck`), and
   lines for the footstep, the crate's scrape and the lights coming on at the solve.
 - No stamp: nothing Heave deals or grades changed.
+
+### Stage 2: the effects
+
+| The clip (4 s: the last crates of the practice example, a crate home, the solve's lights) | Still: a crate home, its mark glowing |
+|---|---|
+| <video src="push-fx-clip.mp4" width="180" controls muted loop playsinline poster="push-fx-still.webp"></video><br>[MP4, 4 s](push-fx-clip.mp4) | <img src="push-fx-still.webp" width="180"> |
+
+Every effect plays on a piece's own art or the floor's own light layers (`src/components/puzzles/pattern/pushFx.ts`, the
+effects kit's variants; transform and opacity only), never on the board, a cell box or a control; every step is taken
+at once, as before:
+
+- **A step:** a light footstep (`push.step`), nothing else.
+- **A push:** the heavy scrape (`push.push`), and the crate starts its glide 60 ms after the worker's, so the worker is
+  seen to lean in and heave it.
+- **A crate home:** the thump (`push.home`), the kit's drop on the crate (a small squash), the dust as before, and the
+  mark lighting up warm round the crate and fading back. Never when Undo or Reset puts a crate back on a mark.
+- **The gold crate pushed off its gold mark:** its sound (`push.goldOff`) and the gold mark dimming for a moment; no shake.
+- **A crate stuck where it can't leave:** not yet (it comes with the levels; `push.stuck` stays unfired).
+- **The solve:** the warehouse lights come on along the top wall (`push.solve`), each lamp's pool flickering on in turn
+  as a warm wash over the floor under the pieces, and they stay on; the reveal's result card plays the kit's win
+  (silent).
+- **Reduced motion:** each is a 120 ms crossfade (no movement, no dust); the lights are simply on.
+- The bulbs' old `fill` animation is gone: each lit bulb is its own layer, its opacity only.
 <!-- heave:end -->
 
 <!-- lightbender:start -->

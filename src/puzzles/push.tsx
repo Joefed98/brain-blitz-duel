@@ -27,6 +27,7 @@ import {
   type PushPuzzleData,
 } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
+import { gameFx } from "@/lib/fx/kit";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -40,8 +41,14 @@ function Board({
   facing,
   solveFx,
   gold,
+  lit,
+  goldOff,
+  moveFx,
 }: {
   gold?: { crate: number; target: number } | undefined;
+  lit?: boolean;
+  goldOff?: number;
+  moveFx?: boolean;
   walls: number[];
   targets: number[];
   crates: number[];
@@ -63,6 +70,9 @@ function Board({
       facing={facing}
       solveFx={solveFx ?? false}
       gold={gold}
+      lit={lit ?? false}
+      goldOff={goldOff ?? 0}
+      moveFx={moveFx ?? false}
     />
   );
 }
@@ -102,6 +112,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   const startPusher = puzzle.type === "push" ? puzzle.pusher : 0;
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "pushMoves", () => []);
   const submitted = useRef(false);
+  // Stage 2 (display only): a new key dims the gold mark (a push took the gold crate off it).
+  const [goldOff, setGoldOff] = useState(0);
+  // A crate home thumps and its mark glows only on a push (never when Undo or Reset puts a crate back on a mark).
+  const [moveFx, setMoveFx] = useState(false);
 
   const replay = useMemo(
     () => replayPush(walls, targets, startPusher, startCrates, moves),
@@ -136,7 +150,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     if (home > replay.cratesOnTargets && home < targets.length) soundCue("push.home");
     if (gold && !goldHome && result.state.crates[gold.crate] === gold.target) playCorrect();
     // The Pattern overhaul (15 Nov 2026, sound only): the gold crate pushed off its gold mark.
-    if (gold && goldHome && result.state.crates[gold.crate] !== gold.target) soundCue("push.goldOff");
+    if (gold && goldHome && result.state.crates[gold.crate] !== gold.target) {
+      soundCue("push.goldOff");
+      setGoldOff((key) => key + 1);
+    }
+    setMoveFx(true);
     setMoves((current) => [...current, dir]);
   };
 
@@ -144,14 +162,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
 
   const undo = () => setMoves((current) => current.slice(0, -1));
   const reset = () => setMoves([]);
+  // Undo and Reset as the buttons and keys run them: a crate they put back on a mark lands quietly (no thump or glow).
+  const undoMove = () => {
+    setMoveFx(false);
+    undo();
+  };
+  const resetMoves = () => {
+    setMoveFx(false);
+    reset();
+  };
 
   // Desktop keys: Z or Backspace = Undo, R = Reset (the arrows and WASD step through ArrowPad).
   useGameKeys((kind, key, event) => {
     const used = key === "z" || key === "Backspace" || key === "r";
     if (!used || kind !== "down" || event.repeat) return used;
     if (locked || !moves.length) return true;
-    if (key === "r") reset();
-    else undo();
+    if (key === "r") resetMoves();
+    else undoMove();
     return true;
   });
 
@@ -178,6 +205,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           facing={moves.at(-1)}
           solveFx={solveFx}
           gold={gold}
+          lit={replay.solved}
+          goldOff={goldOff}
+          moveFx={moveFx}
         />
       </div>
       <FramePills
@@ -193,7 +223,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={undo}
+          onClick={undoMove}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
@@ -201,7 +231,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={reset}
+          onClick={resetMoves}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
@@ -228,6 +258,15 @@ function storedNumber(extra: Record<string, unknown> | null | undefined, key: st
  */
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   const isPush = puzzle.type === "push";
+  // Stage 2: the solve's payoff on the result, the kit's win on the reveal's own result card, once (silent: the reveal
+  // plays its score sound; no haptic outside a live board).
+  const won = Boolean(myCorrect && isPush);
+  const revealRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!won) return;
+    const card = revealRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]");
+    gameFx("win", card ?? null, { silent: true, inGame: false });
+  }, [won]);
   const solution = isPush ? decodePushSolution(puzzle.solution ?? "") : [];
   const frames = useMemo(
     () => (isPush ? pushSolutionFrames(puzzle.crates, solution) : []),
@@ -308,7 +347,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
   ) : null;
 
   return (
-    <div className="push-reveal flex w-full flex-col items-center gap-2">
+    <div ref={revealRef} className="push-reveal flex w-full flex-col items-center gap-2">
       {available && yoursBoard ? (
         <div className="push-reveal-pair flex w-full items-start justify-center gap-3">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-solution="">

@@ -4,11 +4,12 @@
  * Stage's travelling ball still lands on cell centres. Nothing here reads or
  * writes moves, masks or timing; the Stage passes in what it already decided.
  */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { soundCue } from "@/lib/fx/patternFx";
 import { SLIDE_CELLS, SLIDE_COLS, type SlideArrow, type SlideDir } from "@/lib/duel/types";
 import type { SlideOutcome } from "@/lib/duel/slide";
+import { iceBump, iceCrack, iceFall, iceNearExit, icePortalFlare, iceSettle } from "./iceSlideFx";
 
 const GOLD = "var(--ice-exit)";
 const PORTAL_COLOURS = ["var(--ice-portal-one)", "var(--ice-portal-two)"] as const;
@@ -42,11 +43,92 @@ function Chevron({ dir }: { dir: SlideDir }) {
   );
 }
 
-/** Where thin ice gave way: a jagged black hole with shards (opening when fresh). */
+/** The art layer inside a piece's span (the effects animate it, never the cell). */
+const artOf = (span: HTMLSpanElement | null) => span?.querySelector(".ice-art") ?? null;
+
+/** Where thin ice gave way: a jagged black hole with shards (it opens out of the sheet when fresh; iceCrack). */
 function BrokenHole({ fresh }: { fresh: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    if (fresh) iceCrack(artOf(ref.current));
+  }, [fresh]);
   return (
-    <span aria-label="Hole" className={`ice-piece ice-broken${fresh ? " is-fresh" : ""}`}>
+    <span ref={ref} aria-label="Hole" className={`ice-piece ice-broken${fresh ? " is-fresh" : ""}`}>
       <IceArt name="broken" />
+    </span>
+  );
+}
+
+/** A portal end: its ring and, behind it, the pair's coloured light, which blooms as the ball passes (icePortalFlare). */
+function Portal({ pair, flaring }: { pair: number; flaring: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    if (flaring) icePortalFlare(artOf(ref.current), ref.current?.querySelector(".ice-portal-glow"));
+  }, [flaring]);
+  return (
+    <span
+      ref={ref}
+      aria-label="Portal"
+      className={`ice-piece ice-portal${flaring ? " is-flaring" : ""}`}
+      style={{ ["--portal" as string]: PORTAL_COLOURS[pair === 0 ? 0 : 1] }}
+    >
+      <span className="ice-portal-glow" aria-hidden="true" />
+      <IceArt name={pair === 0 ? "portal-a" : "portal-b"} />
+    </span>
+  );
+}
+
+/** What the resting ball just did (the stage's moment): came to rest (`settle`) or bumped a wall it slid into. */
+export interface IceBallFx {
+  kind: "settle" | "bump";
+  dir?: SlideDir | undefined;
+  /** A new key replays the effect. */
+  key: number;
+}
+
+/** The resting ball: its art settles as it stops (the kit's drop) or nudges toward a wall it slid straight into. */
+function Ball({ fx }: { fx?: IceBallFx | null | undefined }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    if (!fx) return;
+    const art = artOf(ref.current);
+    if (fx.kind === "settle") iceSettle(art);
+    else iceBump(art, fx.dir ?? "R");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one effect per key
+  }, [fx?.key]);
+  return (
+    <span ref={ref} aria-label="Ball" className="ice-piece ice-ball"><IceArt name="ball" /></span>
+  );
+}
+
+/** The exit plate: one slide away at par, the kit's near miss pulses it once per resting spot (`pulse`). */
+function ExitPlate({ pulse }: { pulse: string | null }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    if (pulse) iceNearExit(artOf(ref.current));
+  }, [pulse]);
+  return (
+    <span ref={ref} className="ice-piece ice-exit"><IceArt name="exit" className="ice-exit-art" /></span>
+  );
+}
+
+/** The ball falling into a hole: it spins down and is gone (iceFall), drawn over the cell it fell in. */
+export function IceFallingBall({ cell, cols }: { cell: number; cols: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    iceFall(ref.current);
+  }, []);
+  return (
+    <span
+      ref={ref}
+      className="ice-fall"
+      aria-hidden="true"
+      style={{
+        left: `calc((100% - 22px) * ${((cell % cols) + 0.5) / cols} + ${(cell % cols) * 2}px)`,
+        top: `calc((100% - 22px) * ${(Math.floor(cell / cols) + 0.5) / cols} + ${Math.floor(cell / cols) * 2}px)`,
+      }}
+    >
+      <IceArt name="ball" />
     </span>
   );
 }
@@ -86,6 +168,10 @@ export interface IceBoardProps {
   nearExit?: boolean;
   /** Reveal only: cells where the ball fell, ringed red (display only). */
   fallen?: number[] | undefined;
+  /** The resting ball's moment (stage 2): it settled, or bumped a wall. */
+  ballFx?: IceBallFx | null | undefined;
+  /** A new key pulses the exit (one slide away at par; the kit's near miss). */
+  nearPulse?: string | null | undefined;
   children?: ReactNode;
 }
 
@@ -108,6 +194,8 @@ export function IceBoard({
   solving = false,
   nearExit = false,
   fallen,
+  ballFx = null,
+  nearPulse = null,
   children,
 }: IceBoardProps) {
   const rows = Math.ceil(cells / cols);
@@ -152,23 +240,17 @@ export function IceBoard({
           const pair = portalPair.get(cell);
           const isExit = cell === exit;
           const piece = isBall ? (
-            <span aria-label="Ball" className="ice-piece ice-ball"><IceArt name="ball" /></span>
+            <Ball fx={ballFx} />
           ) : pit.has(cell) ? (
             <span aria-label="Hole" className="ice-piece ice-hole"><IceArt name="hole" /></span>
           ) : brokenHole ? (
             <BrokenHole fresh={(fresh & (1 << bit!)) !== 0} />
           ) : pair !== undefined ? (
-            <span
-              aria-label="Portal"
-              className={`ice-piece ice-portal${flare === pair || (flare === -1) ? " is-flaring" : ""}`}
-              style={{ ["--portal" as string]: PORTAL_COLOURS[pair === 0 ? 0 : 1] }}
-            >
-              <IceArt name={pair === 0 ? "portal-a" : "portal-b"} />
-            </span>
+            <Portal pair={pair} flaring={flare === pair || flare === -1} />
           ) : bit !== undefined ? null : turn ? (
             <Chevron dir={turn} />
           ) : isExit ? (
-            <IceArt name="exit" className="ice-exit-art" />
+            <ExitPlate pulse={nearPulse} />
           ) : cell === start ? (
             <span className="ice-start" />
           ) : null;
