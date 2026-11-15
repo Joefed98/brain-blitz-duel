@@ -308,8 +308,8 @@ Skill bands (30 room seeds a level, the same human on both, server replay;
 | Flawless | 195 (187–199) | 195 (187–199) |
 
 **The answer reveal** (Joe, 15 Nov 2026): the run picture (big numbers and the course map) sits straight under the score,
-with the stored breakdown in the shared layout below it, as Roofbound, Moon Climb and Iron Wall read (ArcadeReveal draws a
-game's `RunPicture` before `RevealBreakdown`, for every game with one); Orbit's own `Reveal` (results-screen replays) on
+with the stored breakdown in the shared layout below it, as Roofbound, Moon Climb and Iron Wall read (the shared
+ArcadeReveal order, `data-reveal-run-picture` before `RevealBreakdown`, from the stage-3 reveal fix); Orbit's own `Reveal` (results-screen replays) on
 the expansion's view is the same picture, never the old lines.
 
 **The sun's end hold** (Joe, 15 Nov 2026, display only): a finished run on the expansion's view holds its submit

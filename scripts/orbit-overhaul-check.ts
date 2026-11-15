@@ -781,10 +781,13 @@ const popcount = (n: number) => { let c = 0; for (let v = n >>> 0; v; v &= v - 1
     const { renderToString } = await import("react-dom/server");
     const { orbitPuzzle } = await import("../src/puzzles/orbit");
     const ar = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
+    // The shared order (the PR branch's ArcadeReveal fix, 79910515): the score, the game's RunPicture in
+    // data-reveal-run-picture, then the stored breakdown; Orbit declares a RunPicture, so its reveal reads that way.
+    const scoreAt = ar.indexOf("data-reveal-score={myScore}");
+    const slotAt = ar.indexOf("data-reveal-run-picture");
     const pictureAt = ar.indexOf("<GameRunPicture puzzle={puzzle} myAnswer={myAnswer} />");
     const breakdownAt = ar.indexOf("<RevealBreakdown lines={breakdownLines}");
-    const scoreAt = ar.indexOf("data-reveal-score={myScore}");
-    ok(scoreAt > 0 && pictureAt > scoreAt && breakdownAt > pictureAt, "the arcade reveal draws the run picture under the score and the stored breakdown below the picture");
+    ok(scoreAt > 0 && slotAt > scoreAt && pictureAt > slotAt && breakdownAt > pictureAt && typeof orbitPuzzle.RunPicture === "function", "Orbit's arcade reveal: the score, its run picture (data-reveal-run-picture), then the stored breakdown below");
     const e = ORBIT_FUEL_BANK[0]!;
     const r = bigRun(e, e.taps.map((t) => ev(t, ORBIT_INPUT_TAP)));
     const puzzle = { type: "orbit", seed: e.seed, orbitRev: ORBIT_REV_BIG, planets: e.planets, holes: e.holes, extras: e.extras } as never;
