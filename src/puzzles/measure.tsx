@@ -158,8 +158,14 @@ export const MEASURE_CSS = `
 [data-polish="measure"] .mj-pic-jugs { display: flex; align-items: flex-end; gap: 3px; }
 [data-polish="measure"] .mj-pic-jug { position: relative; width: var(--mj-pic-w, 24px); min-height: 22px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--jz-text) 60%, transparent); border-top-width: 1px; border-radius: 3px 3px 6px 6px; }
 [data-polish="measure"] .mj-pic-jug[data-hit] { border-color: var(--jz-gold); }
-[data-polish="measure"] .mj-pic-water { position: absolute; left: 0; right: 0; bottom: 0; background: var(--mj-water); }
-[data-polish="measure"] .mj-pic-n { position: absolute; left: 0; right: 0; bottom: 2px; text-align: center; font-family: var(--jz-font); font-weight: 800; font-size: 15px; line-height: 16px; color: var(--jz-text); text-shadow: 0 0 3px var(--jz-bg); }
+[data-polish="measure"] .mj-pic-water { position: absolute; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.30) 0 8%, transparent 40%, rgba(0, 18, 60, 0.28)), linear-gradient(to bottom, var(--mj-water-top), var(--mj-water) 35%, var(--mj-water-deep));
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.8); }
+/* The picture's glass: a cool edge and a crisp highlight down its right side, as on the live jugs. */
+[data-polish="measure"] .mj-pic-jug { background: linear-gradient(90deg, rgba(200, 225, 255, 0.10), rgba(255, 255, 255, 0.02) 45%, rgba(200, 225, 255, 0.12)); }
+[data-polish="measure"] .mj-pic-jug::after { content: ""; position: absolute; top: 6%; bottom: 8%; right: 16%; width: 2px; border-radius: 1px; z-index: 1;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.12)); pointer-events: none; }
+[data-polish="measure"] .mj-pic-n { position: absolute; z-index: 2; left: 0; right: 0; bottom: 2px; text-align: center; font-family: var(--jz-font); font-weight: 800; font-size: 15px; line-height: 16px; color: var(--jz-text); text-shadow: 0 0 3px var(--jz-bg); }
 [data-polish="measure"] .mj-pic-label { font-family: var(--jz-font); font-size: 13px; font-weight: 700; color: var(--jz-text-2); white-space: nowrap; }
 [data-polish="measure"] .mj-pic[data-last] .mj-pic-label { color: var(--jz-gold); }
 [data-polish="measure"] .mj-pic[data-miss] .mj-pic-label { color: var(--jz-red); }

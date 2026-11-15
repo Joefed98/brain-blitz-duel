@@ -65,7 +65,7 @@ def tile_picked():
 
 def op():
     studio(90, 52, scale=3)
-    box(2, 2, 86, 48, 8, slate("opface", "#141c38"), r=10)
+    box(2, 2, 86, 48, 8, slate("opface", "#0b1022"), r=10)
     write(G, "op")
 
 
