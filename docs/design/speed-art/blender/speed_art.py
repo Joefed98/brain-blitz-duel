@@ -144,15 +144,21 @@ def flash_gold():
     nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
     nt.links.new(mp.outputs["Vector"], gr.inputs["Vector"])
     cr = nt.nodes.new("ShaderNodeValToRGB")
-    cr.color_ramp.elements[0].color = hexc("#E9971E")
-    cr.color_ramp.elements[1].color = hexc("#FFD36A")
+    cr.color_ramp.elements[0].color = hexc("#E08A12")
+    cr.color_ramp.elements[1].color = hexc("#FFF2CF")
     cr.color_ramp.elements[0].position = 0.0
     cr.color_ramp.elements[1].position = 1.0
+    mid = cr.color_ramp.elements.new(0.62)
+    mid.color = hexc("#FFC64A")
     nt.links.new(gr.outputs["Fac"], cr.inputs["Fac"])
     nt.links.new(cr.outputs["Color"], e.inputs["Color"])
     e.inputs["Strength"].default_value = 1.0
     nt.links.new(e.outputs[0], o.inputs[0])
     cplane(180, 280, 380, 580, m)
+    # Faint etched rings in the glass, as the waiting screen's, lit from behind (the concept's B).
+    etch = lib.emissive("fg_ring", hexc("#FFE3A0"), 1.15)
+    for r in (40, 92, 150, 214):
+        ring(180, 280, r + 1.4, r, 0.3, etch, z=0.05, bevel=0.1)
     bpy.context.scene.view_settings.view_transform = "Standard"
 
 
@@ -221,14 +227,13 @@ def chain_charm(shape, colour):
     core = lib.emissive(f"cc_{colour}", hexc(col), 2.2)
     base = lib.emissive(f"cb_{colour}", hexc(col), 2.4)
     bezel = champagne()
-    # Flat-topped glass reads black against the dark studio, so the square and triangle are a lit glaze: the colour
-    # glowing faintly from inside under a glassy clear coat (the same read as the concept's charms).
+    # Glass over a lit core reads as a dark ring on the walnut board in play (only the core shows), so every charm is a
+    # lit glaze: the colour glowing faintly from inside under a glassy clear coat, domed on the round ones.
     glaze = mat(f"cz_{colour}", hexc(col), rough=0.3, coat=1.0, coat_rough=0.03, emit=hexc(col), emit_strength=0.45)
     if shape == "circle":
         disc(64, 64, 56, 5, bezel, z=0, bevel=2.0)
         disc(64, 64, 50, 3, base, z=1, bevel=1)
-        disc(64, 64, 26, 8, core, z=2, bevel=3, segs=4)
-        sphere(64, 64, 50, body, z=4, squash=0.42)
+        sphere(64, 64, 50, glaze, z=4, squash=0.42)
     elif shape == "square":
         rbox(64, 64, 108, 108, 5, bezel, r=20, z=0, bevel=2.0)
         rbox(64, 64, 96, 96, 3, base, r=15, z=1, bevel=1)

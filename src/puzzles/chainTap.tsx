@@ -115,13 +115,14 @@ export function ChainDefs() {
  * Enamel charm in a silver bezel: same shape, colour and footprint as before, with
  * depth shading (needs <ChainDefs /> on the screen; without it only the shading drops).
  */
-export function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; colour?: string }) {
+export function NodeGlyph({ shape, size, colour, grow = 1 }: { shape: ChainShape; size: number; colour?: string; grow?: number }) {
   const inner = Math.round(size * 0.74);
   // The Speed overhaul (15 Nov 2026): the Blender gem charm in its champagne bezel, the same footprint as the drawn
   // charm (the sprite's bezel is 112 of its 128 px; the drawn shape 20 of 24). Unknown colours keep the drawn charm.
   const art = colour ? CHARM_ART[colour] : undefined;
   if (art) {
-    const px = Math.round((inner * 20 * 128) / (24 * 112));
+    // `grow`: the board draws its charms 1.25× (the concept's size), exactly filling their tap button (NODE + 10).
+    const px = Math.round((grow * inner * 20 * 128) / (24 * 112));
     return <img src={speedArtUrl(`chain-${shape}-${art}` as SpeedArtName)} width={px} height={px} alt="" aria-hidden="true" draggable={false} data-charm-art={`${shape}-${art}`} className="chain-charm chain-charm-art" />;
   }
   const bezel = { fill: "none", stroke: "url(#chainz-bezel)", strokeWidth: 1.3, strokeLinejoin: "round" as const };
@@ -537,7 +538,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
               }}
             >
               {ringed && <MomentumRing left={left} size={box} warn={left * windowMs <= CHAIN_WARN_MS} />}
-              <NodeGlyph shape={node.shape} colour={GLYPH_COLOURS[node.colour]} size={glyph} />
+              <NodeGlyph shape={node.shape} colour={GLYPH_COLOURS[node.colour]} size={glyph} grow={1.25} />
             </button>
           );
         })}

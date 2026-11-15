@@ -1,106 +1,108 @@
 # Speed overhaul: review gallery, stage 1 (15 Nov 2026)
 
-Phone shots at 390 × 844 (shrunk to 360 wide), each a few seconds into a practice round. "Before" is the game review's mid-play
-screenshot (docs/design/game-reviews/img/speed/), "after" this branch with the Blender sprites (docs/design/speed-art/README.md).
-Effect clips come with stage 2 (the effects kit); levels with stage 3.
+Phone shots at 390 × 844 (shrunk to 360 wide). **Today** is the game review's mid-play screenshot
+(docs/design/game-reviews/img/speed/), **Concept** the look Joe picked (PR #427, docs/design/game-concepts/speed/), **New** this
+branch a few seconds into a practice round with the Blender sprites (docs/design/speed-art/README.md). Effect clips come with
+stage 2 (the effects kit), levels with stage 3.
 
 ## Flash
 
-| Before | After |
-|---|---|
-| <img src="../../game-reviews/img/speed/reaction-2-mid.webp" width="240"> | <img src="after-reaction.webp" width="240"> |
+| Today | Concept | New |
+|---|---|---|
+| <img src="../../game-reviews/img/speed/reaction-2-mid.webp" width="200"> | <img src="concept-reaction-a.webp" width="200"><br>A, waiting | <img src="after-reaction.webp" width="200"> |
+|  | <img src="concept-reaction-b.webp" width="200"><br>B, the flash | <img src="after-reaction-gold.webp" width="200"> |
 
-The polished walnut frame round the screen; waiting is dark smoked glass with faint etched rings, the flash a warm, even gold (decoys keep their flat colours, as here). The run ends on a clear "Done".
+Waiting: dark smoked glass with faint etched rings inside a lacquered walnut frame whose grain and rounded edge catch the light. The flash: the glass floods gold from a white-hot centre through faint rings (concept B). Decoys keep their flat colours (the waiting shot here caught a teal decoy). The run ends on a clear "Done".
 
 ## Ascend
 
-| Before | After |
-|---|---|
-| <img src="../../game-reviews/img/speed/numhunt-2-mid.webp" width="240"> | <img src="after-numhunt.webp" width="240"> |
+| Today | Concept | New |
+|---|---|---|
+| <img src="../../game-reviews/img/speed/numhunt-2-mid.webp" width="200"> | <img src="concept-numhunt-b.webp" width="200"><br>B | <img src="after-numhunt.webp" width="200"> |
 
-Darker walnut board; domed onyx counters with brass rims and bold white numbers, reached ones gold with navy numbers. Discs grow to the room the board has (44–60 px, never closer than 6 px).
+Darker lacquered walnut; glossy domed onyx counters with polished brass rims, each with one crisp highlight on its curve and none across the number; reached counters are glazed gold domes with navy numbers. Bold Archivo numbers.
 
 ## Don't Break the Chain
 
-| Before | After |
-|---|---|
-| <img src="../../game-reviews/img/speed/chain-2-mid.webp" width="240"> | <img src="after-chain.webp" width="240"> |
+| Today | Concept | New |
+|---|---|---|
+| <img src="../../game-reviews/img/speed/chain-2-mid.webp" width="200"> | <img src="concept-chain-b.webp" width="200"><br>B | <img src="after-chain.webp" width="200"> |
 
-Vivid gem charms in champagne bezels, each colour keeping its own cut, on darker wood. "Chain broken" now sits on the chain strip at the top.
+Vivid charms in six colours, each colour in all three cuts, in polished champagne bezels on dark lacquered walnut, drawn at the concept's size. Each is a lit glaze under a glassy coat (domed on the round ones), so the colour glows from inside with a crisp edge highlight. "Chain broken" sits on the chain strip.
 
 ## Bonk
 
-| Before | After |
-|---|---|
-| <img src="../../game-reviews/img/speed/whack-2-mid.webp" width="240"> | <img src="after-whack.webp" width="240"> |
+| Today | Concept | New |
+|---|---|---|
+| <img src="../../game-reviews/img/speed/whack-2-mid.webp" width="200"> | <img src="concept-whack-b.webp" width="200"><br>B | <img src="after-whack.webp" width="200"> |
 
-Rendered gophers in gold and red hard hats in dark burrows, on a darker dusk lawn; nothing but the sixteen burrows looks like one.
+Gophers in glossy gold and red hard hats and the hedgehog, in dark burrows with polished brass rims, on a darker dusk lawn; nothing but the sixteen burrows looks like one.
 
 ## Tenfall
 
-| Before | After |
-|---|---|
-| <img src="../../game-reviews/img/speed/tendrop-2-mid.webp" width="240"> | <img src="after-tendrop.webp" width="240"> |
+| Today | Concept | New |
+|---|---|---|
+| <img src="../../game-reviews/img/speed/tendrop-2-mid.webp" width="200"> | <img src="concept-tendrop-b.webp" width="200"><br>B (with A's tiles) | <img src="after-tendrop.webp" width="200"> |
 
-Dark oiled wood with four lanes, satin enamel tiles with flat bold labels (operators bigger); tiles slide out of a chute under the counters. tenRev 6: resets cost on a finished run too.
+Dark lacquered planks with their grain and a brass rail; glazed enamel tiles (cream digits, gold operators, blue minus) whose bevels catch the light; flat bold labels, operators bigger; tiles slide out of a chute under the counters.
 
 ## Pull!
 
-| Before | After |
-|---|---|
-| <img src="../../game-reviews/img/speed/clayshoot-2-mid.webp" width="240"> | <img src="after-clayshoot.webp" width="240"> |
+| Today | Concept | New |
+|---|---|---|
+| <img src="../../game-reviews/img/speed/clayshoot-2-mid.webp" width="200"> | <img src="concept-clayshoot-a.webp" width="200"><br>A, sun toned down | <img src="after-clayshoot.webp" width="200"> |
 
-A late-afternoon range with the sun toned right down; satin clays, brushed gold ones; white gulls. The HUD is two pills (clays, streak). clayRev 10: a wider quick-hit window (0.4 s full, 0.6 s none).
+A deep late-afternoon range with haze over the treeline and the sun toned right down; glazed orange clays and polished gold ones; white gulls in three wing frames. HUD as two pills.
 
 ## Answer reveals (Joe, 15 Nov 2026)
 
-Each game's own part of the reveal, inside the shared reveal layout: practice rounds with some scripted taps, the clock run out
-(the local dev server grades these at 0, so the score lines read 0; the pictures are what changed).
+Each game's own part of the reveal, inside the shared reveal layout: practice rounds with scripted taps, the clock run out. The
+local dev server grades these runs at 0, so the score lines read 0; the pictures are what changed.
 
 ### Flash
 
 | Before | After |
 |---|---|
-| <img src="reveal-before-reaction.webp" width="240"> | <img src="reveal-after-reaction.webp" width="240"> |
+| <img src="reveal-before-reaction.webp" width="220"> | <img src="reveal-after-reaction.webp" width="220"> |
 
-The average stays big; the two-column text list becomes one bar per flash (taller is faster, gold under 250 ms, red a miss), with Fastest, Missed and False starts as big figures.
+The average big, one bar per flash (taller is faster, gold under 250 ms, red a miss), Fastest, Missed and False starts.
 
 ### Ascend
 
 | Before | After |
 |---|---|
-| <img src="reveal-before-numhunt.webp" width="240"> | <img src="reveal-after-numhunt.webp" width="240"> |
+| <img src="reveal-before-numhunt.webp" width="220"> | <img src="reveal-after-numhunt.webp" width="220"> |
 
-The board drawn large in the new art, reached discs gold and the disc you needed next ringed; "Finished with 0 errors · 14.7s" becomes Reached, Wrong taps, Best run and Time.
+The board large in the new art, reached discs gold, the disc you needed next ringed; Reached, Wrong taps, Best run, Time.
 
 ### Don't Break the Chain
 
 | Before | After |
 |---|---|
-| <img src="reveal-before-chain.webp" width="240"> | <img src="reveal-after-chain.webp" width="240"> |
+| <img src="reveal-before-chain.webp" width="220"> | <img src="reveal-after-chain.webp" width="220"> |
 
-The forty links as pips (made gold, the break red), then the charm the chain needed beside the one tapped, both large; Links and Time as big figures.
+The forty links as pips (made gold, the break red), the charm needed beside the one tapped; Links and Time.
 
 ### Bonk
 
 | Before | After |
 |---|---|
-| <img src="reveal-before-whack.webp" width="240"> | <img src="reveal-after-whack.webp" width="240"> |
+| <img src="reveal-before-whack.webp" width="220"> | <img src="reveal-after-whack.webp" width="220"> |
 
-The field as a map: every burrow shows its right hits in gold and its mistakes as a red badge, with Best combo and Hedgehogs (the stored breakdown above already gives the rest).
+The field as a map, each burrow its right hits (gold) and mistakes (a red badge); Best combo and Hedgehogs.
 
 ### Tenfall
 
 | Before | After |
 |---|---|
-| <img src="reveal-before-tendrop.webp" width="240"> | <img src="reveal-after-tendrop.webp" width="240"> |
+| <img src="reveal-before-tendrop.webp" width="220"> | <img src="reveal-after-tendrop.webp" width="220"> |
 
-The ten targets as plaques, made ones in enamel and the next one marked; the finish time when there is one.
+The ten targets as plaques, made ones in enamel, the next marked; the finish time.
 
 ### Pull!
 
 | Before | After |
 |---|---|
-| <img src="reveal-before-clayshoot.webp" width="240"> | <img src="reveal-after-clayshoot.webp" width="240"> |
+| <img src="reveal-before-clayshoot.webp" width="220"> | <img src="reveal-after-clayshoot.webp" width="220"> |
 
-Every clay in launch order (orange or gold filled when hit, hollow when it got away), with Best streak, Doubles and Birds hit.
+Every clay in launch order, filled when hit and hollow when it got away; Best streak, Doubles, Birds hit.
