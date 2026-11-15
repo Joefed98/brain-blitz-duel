@@ -25,7 +25,8 @@ import {
 } from "@/lib/arcade/homerun";
 import { drawHomerunArt, homerunScene, homerunSceneV4, homerunV4ViewToWorld, homerunV5Ui } from "@/lib/arcade/homerun.renderer";
 import { hr5Fence, HOMERUN_REV_5, HR5_AIM_MAX, HR5_CHOICE, HR5_FOUL, HR5_HOMER, HR5_INPUT_SWING, HR5_OUT_CAUGHT, HR5_SINGLE, HR5_SWING_EARLY, HR5_WHIFF, type Hr5Inn } from "@/lib/arcade/homerunInnings";
-import { Dot, RevealLegend, RevealStats } from "@/components/puzzles/SportsRevealParts";
+import { Dot, LAND_SVG_STYLE, RevealLegend, RevealStats, useLandInTurn } from "@/components/puzzles/SportsRevealParts";
+import { gameFx } from "@/lib/fx/kit";
 import { encodeHomerunRun, replayHomerunRun } from "@/lib/duel/homerun";
 import { HOMERUN_TIME_MS, type HomerunPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -302,7 +303,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                         ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(245,184,46,0.3)] hover:bg-primary/20 active:bg-primary/30"
                         : "border-foreground/25 bg-background/40 text-foreground/80 active:bg-foreground/15"
                     }`}
-                    onPressStart={() => send(pick(m))}
+                    onPressStart={(event) => {
+                      send(pick(m));
+                      // The press registering (#422's kit: a sink and spring, its tick; never a haptic).
+                      gameFx("tap", event.currentTarget);
+                    }}
                   >
                     <span className="flex flex-col items-center leading-tight">
                       <span>{label}</span>
@@ -322,6 +327,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 /** homerunRev 5's reveal picture: the field from above, every batted ball where it came down. */
 function InningsField({ inn }: { inn: Hr5Inn }) {
+  const land = useLandInTurn();
   const S = 0.55;
   const PX = 180;
   const PY = 288;
@@ -351,7 +357,20 @@ function InningsField({ inn }: { inn: Hr5Inn }) {
         const p = h.out === HR5_HOMER ? at(h.spray, Math.max(h.feet, hr5Fence(h.spray) + 22)) : at(h.spray, Math.max(25, h.feet));
         const out = h.out === HR5_OUT_CAUGHT || h.out === HR5_CHOICE;
         const colour = h.out === HR5_HOMER ? "var(--jz-gold)" : out ? "var(--jz-red)" : "var(--jz-white)";
-        return <circle key={i} cx={p.x} cy={p.y} r={h.out === HR5_HOMER ? 6.5 : 5.5} fill={out ? "none" : colour} stroke={colour} strokeWidth={2.4} />;
+        return (
+          <circle
+            key={i}
+            ref={land(i)}
+            data-reveal-mark=""
+            style={LAND_SVG_STYLE}
+            cx={p.x}
+            cy={p.y}
+            r={h.out === HR5_HOMER ? 6.5 : 5.5}
+            fill={out ? "none" : colour}
+            stroke={colour}
+            strokeWidth={2.4}
+          />
+        );
       })}
     </svg>
   );
@@ -376,9 +395,9 @@ function InningsReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       />
       <RevealStats
         stats={[
-          { label: "Hits", value: String(hits), gold: true },
-          { label: "Outs", value: String(inn.outs) },
-          { label: "Longest", value: `${longest} ft` },
+          { label: "Hits", value: hits, gold: true },
+          { label: "Runs", value: inn.runs },
+          { label: "Longest", value: longest, unit: "ft" },
         ]}
       />
     </div>

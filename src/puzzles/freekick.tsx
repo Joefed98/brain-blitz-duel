@@ -52,6 +52,7 @@ import { encodeFreekickRun, freekickKickSummaries, replayFreekickRun, type Freek
 import { strikeFromStroke, STRIKE_LABEL } from "@/lib/arcade/freekickStroke";
 import { FREEKICK_TIME_MS, type FreekickPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
+import { LAND_SVG_STYLE, RevealStats, useLandInTurn } from "@/components/puzzles/SportsRevealParts";
 import { freekickSounds } from "@/lib/fx/freekickSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -445,6 +446,7 @@ function spread(kicks: readonly FreekickKickSummary[]) {
 
 /** freekickRev 5's reveal picture: the goal frame with every kick where it crossed the line, numbered. */
 function KicksOnGoal({ kicks }: { kicks: readonly FreekickKickSummary[] }) {
+  const land = useLandInTurn();
   const K = 44;
   const W = 380;
   const H = 170;
@@ -466,7 +468,7 @@ function KicksOnGoal({ kicks }: { kicks: readonly FreekickKickSummary[] }) {
       {spread(kicks).map(({ k, i, x, y }) => {
         const goal = k.out === 1;
         return (
-          <g key={i}>
+          <g key={i} ref={land(i)} data-reveal-mark="" style={LAND_SVG_STYLE}>
             <circle cx={x} cy={y} r={9} fill={goal ? "var(--jz-gold)" : "var(--jz-bg)"} stroke={goal ? "var(--jz-on-gold)" : "var(--jz-red)"} strokeWidth={2} />
             <text x={x} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={900} fill={goal ? "var(--jz-on-gold)" : "var(--jz-text)"}>
               {i + 1}
@@ -482,10 +484,17 @@ function LayeredReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "freekick") return null;
   const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
   const kicks = freekickKickSummaries(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
-  void result;
+  const skill = kicks.filter((k) => k.out === 1 && k.skill).length;
   return (
     <div className="flex w-full flex-col items-center justify-start gap-2" data-freekick-reveal>
       <KicksOnGoal kicks={kicks} />
+      <RevealStats
+        stats={[
+          { label: "Goals", value: result.goals, gold: true },
+          { label: "Best run", value: result.best },
+          { label: "Skill shots", value: skill },
+        ]}
+      />
       <div className="grid w-full grid-cols-5 gap-1.5" data-kick-strip>
         {Array.from({ length: 10 }, (_, i) => {
           const k = kicks[i];

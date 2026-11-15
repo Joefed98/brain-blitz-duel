@@ -2617,6 +2617,9 @@ outside the repo.
   Captain Joulz bats (the batter in his kit) and kicks (`sportsCaptain.renderer.ts`). Reveals: each draws its own run
   picture (the field with every batted ball, the goal frame with the ten kicks) through ArcadeReveal's `summaryVisual`
   (`hasArcadeSummary`, `src/lib/duel/arcadeSummary.ts`). Sound slots wait for `docs/sound-cues/home-run-top-bins-elevenlabs.md`.
+  Effects (stage 2, on #422's kit): in-game moments stay in the renderers and sound observers (the kit's rule for canvas
+  games); the DOM pieces use the kit: Contact / Power presses `tap`, the reveals' marks land in turn (`useLandInTurn` in
+  `SportsRevealParts.tsx`, the kit's `drop`, silent) and their stats count up (`FxCountUp`, silent); sports-overhaul-fx-check.
   Checks: homerun-innings-check, freekick-layered-check; frames `bun scripts/shots/homerun-innings-frames.ts`,
   `freekick-layered-frames.ts`. Rev 1–4 of both replay and score exactly as before.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
