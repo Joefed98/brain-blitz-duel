@@ -250,11 +250,13 @@ export function paintRacingSky(ctx: Ctx2D, w: number, h: number, horizon = HORIZ
     return;
   }
   const g = ctx.createLinearGradient(0, 0, 0, horizon + 20);
-  g.addColorStop(0, "#2C2F5E");
-  g.addColorStop(0.28, "#6B4778");
-  g.addColorStop(0.58, "#D9714F");
-  g.addColorStop(0.84, "#F7A55C");
-  g.addColorStop(1, "#FFD38A");
+  // Dusk (the Sports overhaul, 15 Nov 2026): deep violet overhead through rose to a gold horizon.
+  g.addColorStop(0, "#241C40");
+  g.addColorStop(0.3, "#4E3260");
+  g.addColorStop(0.58, "#A4566C");
+  g.addColorStop(0.8, "#E28456");
+  g.addColorStop(0.93, "#F9B36E");
+  g.addColorStop(1, "#FFD89A");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, Math.min(h, horizon + 20));
   // Thin warm clouds.
@@ -285,9 +287,9 @@ function paintSun(ctx: Ctx2D, x: number, y: number, r = 15): void {
   glow.addColorStop(1, "rgba(255,140,80,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(x - r * 9, y - r * 9, r * 18, r * 18);
-  // Rays: soft wedges.
+  // Rays: soft wedges (off since the Sports overhaul: no glare).
   ctx.save();
-  ctx.globalAlpha = 0.12;
+  ctx.globalAlpha = SUN_RAYS ? 0.12 : 0;
   ctx.fillStyle = "#FFE3A8";
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2 + 0.13;
@@ -300,11 +302,17 @@ function paintSun(ctx: Ctx2D, x: number, y: number, r = 15): void {
     ctx.fill();
   }
   ctx.restore();
-  ctx.fillStyle = "#FFF4D6";
+  const disc = ctx.createRadialGradient(x, y - r * 0.2, 0, x, y, r);
+  disc.addColorStop(0, "#FFFBEA");
+  disc.addColorStop(0.7, "#FFF0C8");
+  disc.addColorStop(1, "#FFD99A");
+  ctx.fillStyle = disc;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
 }
+/** The sun's rays (off: the overhaul's sun is a soft disc and halo, no glare). */
+const SUN_RAYS = false;
 
 /** A hill layer strip (repeating every `w`): ridge heights from a seeded sum of waves. */
 function paintHillStrip(ctx: Ctx2D, w: number, h: number, seed: number, top: string, bottom: string, rim: string, amp: number, trees: boolean): void {
@@ -384,11 +392,11 @@ function layersFor(scale: number): Layers {
   const layers: Layers = {
     scale: s,
     sky: surf(RACING_WORLD_W, HORIZON + 20, (c) => paintRacingSky(c, RACING_WORLD_W, RACING_WORLD_H)),
-    far: surf(HILL_W, FAR_H, (c) => (SK.world ? paintNeonCity(c, HILL_W, FAR_H) : paintHillStrip(c, HILL_W, FAR_H, 3, "#8A5A7A", "#5E4466", "rgba(255,190,150,0.55)", 52, false))),
+    far: surf(HILL_W, FAR_H, (c) => (SK.world ? paintNeonCity(c, HILL_W, FAR_H) : paintHillStrip(c, HILL_W, FAR_H, 3, "#A56A80", "#7E5774", "rgba(255,200,160,0.7)", 52, false))),
     near: surf(HILL_W, NEAR_H, (c) =>
       SK.world
         ? paintNeonNear(c, HILL_W, NEAR_H) || paintHillStrip(c, HILL_W, NEAR_H, 11, NEON_NIGHT_NEAR.top, NEON_NIGHT_NEAR.bottom, NEON_NIGHT_NEAR.rim, 40, false)
-        : paintHillStrip(c, HILL_W, NEAR_H, 11, "#4A3B48", "#2E2A30", "rgba(255,170,110,0.6)", 40, true),
+        : paintHillStrip(c, HILL_W, NEAR_H, 11, "#3A2A3A", "#1C171D", "rgba(255,160,95,0.75)", 40, true),
     ),
     car: surf(CAR_SPRITE_W, CAR_SPRITE_H, (c) => paintRacingCar(c, CAR_SPRITE_W / 2, CAR_SPRITE_H - 2, CAR_SPRITE_W, false)),
     carBrake: surf(CAR_SPRITE_W, CAR_SPRITE_H, (c) => paintRacingCar(c, CAR_SPRITE_W / 2, CAR_SPRITE_H - 2, CAR_SPRITE_W, true)),
@@ -407,8 +415,8 @@ function paintTree(ctx: Ctx2D, x: number, y: number, h: number, variant: number)
   if (SK.world && paintNeonTower(ctx as CanvasRenderingContext2D, x, y, h, variant)) return;
   ctx.fillStyle = SK.world ? NEON_NIGHT_TREE.trunk : "#2B1E18";
   ctx.fillRect(x - h * 0.025, y - h * 0.3, h * 0.05, h * 0.3);
-  const body = SK.world ? NEON_NIGHT_TREE.body : variant === 0 ? "#22301F" : variant === 1 ? "#283522" : "#1E2A20";
-  const rim = SK.world ? NEON_NIGHT_TREE.rim : "rgba(255,170,90,0.55)";
+  const body = SK.world ? NEON_NIGHT_TREE.body : variant === 0 ? "#18221A" : variant === 1 ? "#1C261C" : "#141D17";
+  const rim = SK.world ? NEON_NIGHT_TREE.rim : "rgba(255,165,85,0.8)";
   if (variant === 2) {
     // A poplar.
     ctx.fillStyle = body;
@@ -613,6 +621,8 @@ interface Look {
   heading: Float32Array;
   /** Roadside sprites per segment. */
   sprites: { kind: number; x: number; v: number }[][];
+  /** The heading smoothed over a long window (the sun's frame). */
+  smooth: Float32Array;
 }
 const SPR_TREE = 0;
 const SPR_STAND = 1;
@@ -678,7 +688,20 @@ function lookFor(track: RacingTrack): Look {
       if (r < 0.42) sprites[i]!.push({ kind: SPR_TREE, x: side * (WALL_W + 500 + hash(i * 5 + side + track.seed) * 2800), v: Math.floor(hash(i * 11 + side) * 3) });
     }
   }
-  look = { track, kerb, gravel, skid, line, heading, sprites };
+  // The sun's frame (the Sports overhaul, 15 Nov 2026, display only): the heading averaged over 140 segments either way
+  // (the lap continued past its ends), so through a corner the sun swings with the hills and on a straight it settles
+  // ahead of the car again (the circuits are pseudo-3D: their heading drifts over a lap, so a fixed sun would hide).
+  const total = h;
+  const SMOOTH = 140;
+  const smooth = new Float32Array(n);
+  const H = (j: number) => heading[at(j)]! + Math.floor(j / n) * total;
+  let acc = 0;
+  for (let j = -SMOOTH; j <= SMOOTH; j++) acc += H(j);
+  for (let i = 0; i < n; i++) {
+    smooth[i] = acc / (2 * SMOOTH + 1);
+    acc += H(i + SMOOTH + 1) - H(i - SMOOTH);
+  }
+  look = { track, kerb, gravel, skid, line, heading, smooth, sprites };
   return look;
 }
 
@@ -691,14 +714,15 @@ interface Proj {
   scale: number;
 }
 
+/** The default circuit at dusk (the Sports overhaul, 15 Nov 2026: darker ground and asphalt under the low sun). */
 const COL_DAY = {
-  grassA: "#5D6A2E",
-  grassB: "#566428",
-  gravelA: "#C4A275",
-  gravelB: "#BC9A6C",
-  runoff: "#5A5A60",
-  roadA: "#4B4A52",
-  roadB: "#47464E",
+  grassA: "#4A5528",
+  grassB: "#444F24",
+  gravelA: "#B0906A",
+  gravelB: "#A88864",
+  runoff: "#4A494F",
+  roadA: "#3A3940",
+  roadB: "#37363D",
   lineDark: "rgba(28,26,30,0.38)",
   kerbR: "#C8312C",
   kerbW: "#EDE7DF",
@@ -802,14 +826,17 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
         ctx.restore();
       }
   } else paintRacingSky(ctx, W, RACING_WORLD_H);
-  let rel = SUN_BEARING - heading;
+  // The low sun ahead (the Sports overhaul): bearing taken against the smoothed heading, so it sits just off centre on
+  // the straights and swings out through the corners; on the horizon, half behind the tree line. The Neon Night has none.
+  const smoothHere = lk.smooth[carSeg]! + (lk.smooth[(carSeg + 1) % n]! - lk.smooth[carSeg]!) * carFrac;
+  let rel = SUN_BEARING * 0.4 - 0.5 * (heading - smoothHere);
   rel = Math.atan2(Math.sin(rel), Math.cos(rel));
   const sunX = W / 2 + Math.tan(Math.max(-1.3, Math.min(1.3, rel))) * F;
-  const sunY = HORIZON - 34;
+  const sunY = HORIZON - 30;
   const sunOn = Math.abs(rel) < 1.1;
   if (SK.world) {
     if (high) paintNeonNightStars(ctx, W, HORIZON, skinTime());
-  } else if (sunOn && high) paintSun(ctx, sunX, sunY);
+  }
   const hillShift = (layer: Surface | null, h: number, k: number, y: number) => {
     if (!layer) return;
     let off = (-heading * PX_PER_RAD * k) % HILL_W;
@@ -819,11 +846,13 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   };
   if (high) {
     hillShift(L.far, FAR_H, 0.5, HORIZON + 2);
+    // The sun between the far hills and the near tree line: low ahead, its foot behind the trees.
+    if (!SK.world && sunOn) paintSun(ctx, sunX, sunY, 22);
     hillShift(L.near, NEAR_H, 0.8, HORIZON + 4);
   }
   // The far fields in the haze, under the road's farthest segment.
   const haze = ctx.createLinearGradient(0, HORIZON + 4, 0, HAZE_END);
-  haze.addColorStop(0, SK.world ? NEON_NIGHT_HAZE : "#8C7A58");
+  haze.addColorStop(0, SK.world ? NEON_NIGHT_HAZE : "#B2805E");
   haze.addColorStop(1, COL.grassA);
   ctx.fillStyle = haze;
   ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, B.y1 - HORIZON - 3);
@@ -980,6 +1009,28 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
       }
     }
     const lx = Math.max(-W, Math.min(2 * W, sunX));
+    // The asphalt's sheen towards the low sun: a warm band from the sun's place on the horizon fanning down the road,
+    // brightest far ahead, gone before the car (on the tarmac only: the paths it clips to are the road's).
+    if (sunOn) {
+      const reach = (RACING_CAR_Y - HORIZON) * 0.95;
+      const sheen = ctx.createLinearGradient(0, HORIZON, 0, HORIZON + reach);
+      sheen.addColorStop(0, "rgba(255,196,140,0.42)");
+      sheen.addColorStop(0.35, "rgba(255,170,115,0.2)");
+      sheen.addColorStop(1, "rgba(255,150,100,0)");
+      for (const road of [P.roadA, P.roadB]) {
+        ctx.save();
+        ctx.clip(road);
+        ctx.fillStyle = sheen;
+        ctx.beginPath();
+        ctx.moveTo(lx - 10, HORIZON);
+        ctx.lineTo(lx + 10, HORIZON);
+        ctx.lineTo(lx + (W / 2 - lx) * 0.6 + W * 0.32, HORIZON + reach);
+        ctx.lineTo(lx + (W / 2 - lx) * 0.6 - W * 0.32, HORIZON + reach);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    }
     const warm = ctx.createRadialGradient(lx, HORIZON, 0, lx, HORIZON, W * 1.5);
     warm.addColorStop(0, "rgba(255,150,80,0.26)");
     warm.addColorStop(0.45, "rgba(255,120,70,0.1)");
@@ -1158,6 +1209,24 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   // the body: more with speed, a little even at a crawl so the wheels read on the grid.
   const steerShare = (state.rev >= RACING_REV_2 ? state.wheel : state.steer) / RACING_STICK_MAX;
   const yaw = Math.max(-1, Math.min(1, steerShare * (0.35 + 0.65 * Math.min(1, speedShare * 1.6))));
+  // The car's long shadow towards the camera, cast by the low sun ahead (display only, on the ground under the car;
+  // the Neon Night has no sun).
+  if (!SK.world) {
+    const len = carW * 1.15;
+    const lean = Math.max(-0.5, Math.min(0.5, (W / 2 - sunX) / W)) * carW * 0.8;
+    const top = RACING_CAR_Y + bounce - carW * 0.05;
+    const sh = ctx.createLinearGradient(0, top, 0, top + len);
+    sh.addColorStop(0, "rgba(8,6,10,0.5)");
+    sh.addColorStop(1, "rgba(8,6,10,0)");
+    ctx.fillStyle = sh;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - carW * 0.46, top);
+    ctx.lineTo(W / 2 + carW * 0.46, top);
+    ctx.lineTo(W / 2 + carW * 0.4 + lean, top + len);
+    ctx.lineTo(W / 2 - carW * 0.4 + lean, top + len);
+    ctx.closePath();
+    ctx.fill();
+  }
   // The rendered car (the Sports overhaul, 15 Nov 2026): the yaw's own frame, exactly the collision width, its lowest
   // pixel on the contact line; the painted car below until its images arrive (and in checks without images).
   const rendered = drawRacingCarSprite(ctx, {
