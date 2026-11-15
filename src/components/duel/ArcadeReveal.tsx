@@ -347,6 +347,14 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
               {best === null ? "First go at this one" : <>Your best: <span className="tabular-nums text-foreground">{best}</span></>}
             </p>
           ) : null}
+          {/* The game's own picture of the run (the Action overhaul, stage 2; stage 3, 15 Nov 2026, Joe: "the big
+              numbers plus the run picture, with the stored breakdown in the shared layout below"): straight under the
+              score, its numbers in place of the tiles, and the breakdown (the room's summary line, the rows) after it. */}
+          {myAnswer && ownPicture ? (
+            <div data-reveal-run-picture="" className="mt-2 w-full">
+              <GameRunPicture puzzle={puzzle} myAnswer={myAnswer} />
+            </div>
+          ) : null}
           {summary && !practice ? (
             folds ? (
               <Button
@@ -371,9 +379,6 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
         {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}
         {summary && myReveal !== storedReveal && storedReveal ? <span hidden data-stored-lines={storedReveal.lines.join("\n")} /> : null}
-
-        {/* The game's own picture of the run (the Action overhaul, stage 2): one picture, under the score and breakdown. */}
-        {myAnswer ? <GameRunPicture puzzle={puzzle} myAnswer={myAnswer} /> : null}
 
         {/* The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot). */}
         {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}

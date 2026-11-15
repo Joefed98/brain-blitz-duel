@@ -18,6 +18,9 @@
  *  9. Edge to edge (below).
  * 10. Stage 2 (15 Nov 2026): swingRev 18's bigger hero, re-proved deal and colliding body; the hooks, water and calmer
  *     backdrop of the look pass (below).
+ * 11. Stage 2's effects and reveal (below).
+ * 12. Stage 3: the reveal's run picture readable at 375 × 667 and 390 × 844 (sizes on screen, below).
+ * 13. Stage 3: the denser canopy, still calm at every camera (below).
  *
  *   bun scripts/swing-overhaul-check.ts
  */
@@ -647,6 +650,199 @@ for (const w of sample.slice(0, 3)) {
   ok(/RunPicture: SwingRunPicture/.test(src) && /name="course" label="Course"/.test(src) && /name="stretches" label="Stretches"/.test(src) && /name="pars" label="Under par"/.test(src) && /name="gates" label="Gates"/.test(src), "the reveal's run picture is registered with its four big numbers: course, stretches, under par, gates");
   const labels = (src.match(/label="[^"]*"|label=\{[^}]*\}/g) ?? []).join(" ");
   ok(!labels.includes("×"), "no stray × in the run picture's labels");
+}
+
+/*
+ * 12. Stage 3 (15 Nov 2026, Joe: the reveal's 51 stretches read as a tight squiggle on a phone): the run picture at its
+ * real on-screen size on the reveal at 375 × 667 and 390 × 844. The width is the reveal column's, from the CSS that
+ * lays it out (the play screen's 0.25 rem padding, AnswerReveal's and the column's px-3, the picture's w-full wrap),
+ * and the canvas is drawn at that CSS size, so the picture's pixels are on-screen pixels: every stretch at least 30 px
+ * wide, at most 10 a row, rows at least 40 px apart, the marks big enough to see (lines 5 px, drops 10 px tall, gate
+ * posts 10 px, the catch wedge 12 px, the flag 16 px), every figure drawn at 11 px or more, nothing past the canvas;
+ * the numbers and legend round it in text-sm (14 px) or larger, never text-xs.
+ */
+{
+  const RV = await import("../src/lib/arcade/swingReveal.renderer");
+  const styles = readFileSync("src/styles.css", "utf8");
+  const answerReveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");
+  const arcadeReveal = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
+  const shell = readFileSync("src/components/duel/PhoneShell.tsx", "utf8");
+  const src = readFileSync("src/puzzles/swing.tsx", "utf8");
+  ok(/@utility pad-game-safe \{[\s\S]*?padding-left: max\(0\.25rem, env\(safe-area-inset-left\)\);[\s\S]*?padding-right: max\(0\.25rem, env\(safe-area-inset-right\)\);/.test(styles) && /gameScreen \? "pad-game-safe"/.test(shell), "the reveal screen's column: pad-game-safe, 4 px a side");
+  ok(/data-answer-reveal[^>]*className="[^"]*\bpx-3\b/.test(answerReveal) && /data-reveal-column className="[^"]*\bpx-3\b/.test(arcadeReveal), "AnswerReveal and the reveal column: px-3 (12 px) each a side");
+  ok(/data-reveal-run-picture="" className="mt-2 w-full"/.test(arcadeReveal) && /<div ref=\{wrap\} className="w-full">/.test(src), "the picture fills the column's width (w-full)");
+  ok(/node\.style\.width = `\$\{width\}px`/.test(src) && /node\.width = Math\.round\(width \* ratio\)/.test(src) && /ctx\.setTransform\(ratio, 0, 0, ratio, 0, 0\)/.test(src) && /swingRunPictureHeight\(width\)/.test(src), "the canvas is drawn at its CSS size (its pixels are on-screen pixels)");
+  const pictureW = (viewport: number) => viewport - 2 * (4 + 12 + 12);
+  // A course of 51 with every mark: ledge and swinging stretches in every state, falls (one and many), catches, gates.
+  const stretches = Array.from({ length: 51 }, (_, k) => ({
+    swinging: k % 5 !== 2,
+    state: (k < 20 ? (k % 3 === 0 ? "under" : "cleared") : k === 20 ? "current" : "ahead") as "under" | "cleared" | "current" | "ahead",
+    falls: k === 4 ? 1 : k === 9 ? 7 : k === 15 ? 3 : 0,
+    caught: k === 12 ? 1 : 0,
+    gates: k % 10 === 1 ? [true] : k === 33 ? [false, false] : [],
+  }));
+  const trace = { stretches, total: 51, finished: false } as never;
+  const M = RV.SWING_RUN_MARKS;
+  for (const [vw, vh] of [[375, 667], [390, 844]] as const) {
+    const width = pictureW(vw);
+    const lay = RV.swingRunLayout(width, 51);
+    const height = RV.swingRunPictureHeight(width);
+    const tag = `${vw} × ${vh} (the picture ${width} × ${height} px on screen)`;
+    ok(lay.cell >= 30 && lay.cols <= 10 && lay.rowH >= 40 && lay.cols * lay.rows >= 51, `${tag}: ${lay.cols} stretches a row of ${lay.cell.toFixed(1)} px, ${lay.rows} rows ${lay.rowH} px apart`);
+    const slots = Array.from({ length: 51 }, (_, k) => RV.swingRunSlot(k, 51, width));
+    const inside = slots.every((s) => Math.min(s.x0, s.x1) >= 8 && Math.max(s.x0, s.x1) <= width - 8 && s.y - 22 >= 0 && s.y + M.dip + 9 + M.dropH * 0.4 + 2 <= height);
+    const overlap = slots.some((a, i) => slots.some((b, j) => j > i && a.row === b.row && Math.min(Math.max(a.x0, a.x1), Math.max(b.x0, b.x1)) - Math.max(Math.min(a.x0, a.x1), Math.min(b.x0, b.x1)) > 0.5));
+    ok(inside && !overlap, `${tag}: every stretch and its marks inside the picture, none overlapping`);
+    ok(M.line >= 5 && M.lineAhead >= 3 && M.dropH >= 10 && M.dropW >= 7 && M.gateH >= 10 && M.gateW >= 2.5 && M.wedgeW >= 12 && M.wedgeH >= 8 && M.startR >= 4 && M.flagH >= 16, `${tag}: the marks on screen: lines ${M.line} px, drops ${M.dropW} × ${M.dropH}, gate posts ${M.gateH} px, the wedge ${M.wedgeW} × ${M.wedgeH}, the flag ${M.flagH}`);
+    // Every figure the picture draws, at the font size it is drawn at (a recording context round a real one).
+    const c = createCanvas(width, height);
+    const real = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    const sizes: number[] = [];
+    const rec = new Proxy(real, {
+      get(target, key) {
+        const v = (target as unknown as Record<string | symbol, unknown>)[key];
+        if (key === "fillText" || key === "strokeText") return (...a: unknown[]) => {
+          sizes.push(Number(/(\d+(?:\.\d+)?)px/.exec(target.font)?.[1] ?? 0));
+          return (v as (...x: unknown[]) => unknown).apply(target, a);
+        };
+        return typeof v === "function" ? (v as (...x: unknown[]) => unknown).bind(target) : v;
+      },
+      set(target, key, value) {
+        (target as unknown as Record<string | symbol, unknown>)[key] = value;
+        return true;
+      },
+    });
+    RV.drawSwingRunPicture(rec, trace, { width, height });
+    ok(sizes.length >= 2 && Math.min(...sizes) >= 11, `${tag}: every figure in the picture at 11 px or more (${sizes.length} drawn, smallest ${Math.min(...sizes)} px)`);
+    // The drawn marks measured in pixels: the first stretch's line is as thick as the constant says.
+    const d = (real as unknown as { getImageData: (a: number, b: number, w: number, h: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, width, height).data;
+    const s1 = slots[1]!;
+    const midX = Math.round((s1.x0 + s1.x1) / 2);
+    let thick = 0;
+    for (let y = 0; y < height; y++) if (d[(y * width + midX) * 4 + 3]! > 128) thick++;
+    ok(thick >= M.line - 1, `${tag}: a stretch's line is ${thick} px thick on screen`);
+  }
+  // The text round the picture: the big numbers and the legend at 14 px or larger.
+  const picture = src.slice(src.indexOf("export function SwingRunPicture"), src.indexOf("export const swingPuzzle"));
+  const big = src.slice(src.indexOf("function BigStat"), src.indexOf("function Legend"));
+  ok(/data-swing-legend="" className="[^"]*\btext-sm\b/.test(picture) && /text-2xl/.test(big) && /text-sm font-semibold/.test(big) && !/text-xs|text-\[(?:[0-9]|10)px\]/.test(picture + big), "the big numbers (text-2xl, labels text-sm) and the legend (text-sm, 14 px): nothing smaller than 14 px round the picture");
+}
+
+/*
+ * 13. Stage 3 (15 Nov 2026, Joe: one more pass on the canopy, closer to concept A's dense canopy, keeping stage 2's calm):
+ *  a. The canopy is dense: four rows of lit leaf clusters packed back into the mass across the view (paintCanopyLeaves,
+ *     at least 60 clusters on a 450-wide view), and at least 45 % of the canopy mass drawn as leaves.
+ *  b. Nothing of the canopy below the sim's ceiling line (the bounds rule: its underside is what collides).
+ *  c. The near trunks carry leaves: a crown under the canopy, a spray part way up and sprigs down the trunk.
+ *  d. Still calm, at every camera: the backdrop's luminance spread and edge energy at most 60 % of stage 1's at the same
+ *     camera (14ce058d, scratch bgmeasure) and its mean darker; the river, vines, rings and hero drawn over it unchanged.
+ *  e. The deepening jungle holds: the canopy's leaves darker at the finish than at the start; the screen fill beside the
+ *     world draws the same rows of leaves (the same function and seeds) at the same depth.
+ *  f. No image shipped: the canopy is painted in code (no file under public/ for Grappler's jungle).
+ */
+{
+  const A = await import("../src/lib/arcade/swingJungleArt.renderer");
+  const big = S.swingGameFor(S.SWING_REV_BIG);
+  const bigW = (JSON.parse(gunzipSync(readFileSync("scripts/fixtures/swing-big-deal-witness.json.gz")).toString()) as { witnesses: { seed: number }[] }).witnesses;
+  const s0 = big.init(bigW[0]!.seed);
+  const FPX = 256, COLW = 40 * 256;
+  const W = S.swingWorldW(s0), Hh = S.swingWorldH(s0);
+  const canopyFrame = (state: typeof s0, depth: number) => {
+    const c = createCanvas(W, Hh);
+    const x = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    const cam = state.camX / FPX;
+    const sx = (v: number) => v / FPX - cam;
+    const first = Math.max(0, Math.min(state.ceil.length - 2, Math.trunc(state.camX / COLW) - 1));
+    const last = Math.min(state.ceil.length - 1, first + Math.ceil(W / 40) + 2);
+    J.drawJungleCanopy(x, state, first, last, sx, W, 0, false, depth);
+    return { d: (x as unknown as { getImageData: (a: number, b: number, w: number, h: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, W, Hh).data, cam };
+  };
+  const ceilAt = (state: typeof s0, px: number) => {
+    const wx = (px + state.camX / FPX) * FPX;
+    const i = Math.max(0, Math.min(state.ceil.length - 2, Math.trunc(wx / COLW)));
+    const f = wx - i * COLW;
+    return (state.ceil[i]! + Math.trunc(((state.ceil[i + 1]! - state.ceil[i]!) * f) / COLW)) / FPX;
+  };
+  // a.
+  const cv = createCanvas(450, 300);
+  const n = A.paintCanopyLeaves(cv.getContext("2d") as unknown as CanvasRenderingContext2D, 0, 450, 0, () => 120, 0);
+  ok(A.CANOPY_ROWS.length >= 4 && n >= 60, `a dense canopy: ${A.CANOPY_ROWS.length} rows, ${n} leaf clusters across a 450-wide view`);
+  const { d } = canopyFrame(s0, 0);
+  let mass = 0, leafy = 0, below = 0;
+  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
+    const k = (y * W + x) * 4;
+    const ceil = ceilAt(s0, x);
+    if (d[k + 3]! < 200) continue;
+    if (y > ceil + 2) below++;
+    else if (y < ceil - 1) {
+      mass++;
+      // A leaf pixel: green leading, lighter than the mass's dark gradient.
+      if (d[k + 1]! > d[k]! + 12 && d[k + 1]! > 70) leafy++;
+    }
+  }
+  ok(mass > 0 && leafy / mass >= 0.45, `the canopy mass is ${(100 * leafy / Math.max(1, mass)).toFixed(0)} % leaves (at least 45 %)`);
+  // b.
+  ok(below === 0, `nothing of the canopy drawn more than 2 px below the sim's ceiling line (${below} px)`);
+  // c.
+  const art = readFileSync("src/lib/arcade/swingJungleArt.renderer.ts", "utf8");
+  const tile = art.slice(art.indexOf("function paintTrunkTile"), art.indexOf("const tileCache"));
+  ok((tile.match(/paintLeafCluster\(/g) ?? []).length >= 4 && /for \(let i = 0; i < 5; i\+\+\)/.test(tile) && /H \* \(0\.44 \+ i \* 0\.085\)/.test(tile), "each near trunk carries a crown, a mid spray and five sprigs down its length");
+  {
+    const tc = createCanvas(640, 844);
+    const tx = tc.getContext("2d") as unknown as CanvasRenderingContext2D;
+    A.drawTrunkLayer(tx, A.JUNGLE_NEAR, 0, 640, 844);
+    const td = (tx as unknown as { getImageData: (a: number, b: number, w: number, h: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, 640, 844).data;
+    const greenRows = (y0: number, y1: number) => {
+      let g = 0;
+      for (let y = y0; y < y1; y++) for (let x = 0; x < 640; x++) {
+        const k = (y * 640 + x) * 4;
+        if (td[k + 3]! > 60 && td[k + 1]! > td[k]! + 20 && td[k + 1]! > 60) g++;
+      }
+      return g;
+    };
+    const crown = greenRows(60, 160), lower = greenRows(Math.round(844 * 0.45), Math.round(844 * 0.85));
+    ok(crown > 2000 && lower > 400, `leaves on the near trunks: under the canopy (${crown} px) and down the trunks (${lower} px)`);
+  }
+  // d.
+  const STAGE1 = { 0: { sd: 20.8, edge: 5.968, mean: 63.1 }, 1500: { sd: 20.08, edge: 5.584, mean: 62.6 }, 3000: { sd: 20.13, edge: 5.437, mean: 63.7 }, 6000: { sd: 18.83, edge: 5.136, mean: 65.2 } } as const;
+  for (const cam of [0, 1500, 3000, 6000] as const) {
+    const c = createCanvas(450, 844);
+    const x = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    J.drawJungleBackdrop(x, cam, 450, 844, 0, false, 0);
+    const px = (x as unknown as { getImageData: (a: number, b: number, w: number, h: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, 450, 844).data;
+    const L: number[] = [];
+    for (let y = 100; y < 760; y++) for (let xx = 0; xx < 450; xx++) {
+      const k = (y * 450 + xx) * 4;
+      L.push(0.2126 * px[k]! + 0.7152 * px[k + 1]! + 0.0722 * px[k + 2]!);
+    }
+    const mean = L.reduce((a, b) => a + b, 0) / L.length;
+    const sd = Math.sqrt(L.reduce((a, b) => a + (b - mean) ** 2, 0) / L.length);
+    let edge = 0;
+    for (let y = 0; y < 659; y++) for (let xx = 0; xx < 449; xx++) {
+      const i = y * 450 + xx;
+      edge += Math.abs(L[i]! - L[i + 1]!) + Math.abs(L[i]! - L[i + 450]!);
+    }
+    edge /= L.length;
+    const s1 = STAGE1[cam];
+    ok(sd <= s1.sd * 0.6 && edge <= s1.edge * 0.6 && mean < s1.mean, `camera ${cam}: still calm with the leaves (spread ${sd.toFixed(2)} ≤ ${(s1.sd * 0.6).toFixed(2)}, edges ${edge.toFixed(3)} ≤ ${(s1.edge * 0.6).toFixed(3)}, mean ${mean.toFixed(1)} < ${s1.mean})`);
+  }
+  // e.
+  const lum = (dd: Uint8ClampedArray) => {
+    let sum = 0, cnt = 0;
+    for (let i = 0; i < dd.length; i += 4) if (dd[i + 3]! > 200) {
+      sum += 0.2126 * dd[i]! + 0.7152 * dd[i + 1]! + 0.0722 * dd[i + 2]!;
+      cnt++;
+    }
+    return sum / Math.max(1, cnt);
+  };
+  const early = lum(canopyFrame(s0, 0).d), late = lum(canopyFrame(s0, 1).d);
+  ok(late < early * 0.85, `the canopy deepens: its leaves darker at the finish (${late.toFixed(1)}) than at the start (${early.toFixed(1)})`);
+  const jungle = readFileSync("src/lib/arcade/swingJungle.renderer.ts", "utf8");
+  const sides = jungle.slice(jungle.indexOf("export function paintJungleSides"), jungle.indexOf("export function jungleDeepWater"));
+  const canopy = jungle.slice(jungle.indexOf("export function drawJungleCanopy"), jungle.indexOf("export function jungleRiverWave"));
+  ok(/paintCanopyLeaves\(ctx, r\.x, r\.x \+ r\.w, 0, under, depth\)/.test(sides) && /paintCanopyLeaves\(ctx, cam, cam \+ W, cam,/.test(canopy), "the screen fill beside the world and the world's canopy draw the same rows of leaves at the same depth");
+  // f.
+  ok(!/\.(webp|png|jpe?g)["'`]/.test(art) && !/\.(webp|png|jpe?g)["'`]/.test(jungle), "the canopy is painted in code: no image shipped for Grappler's jungle");
 }
 
 console.log(`swing-overhaul-check: ${passes} passed, ${fails} failed`);

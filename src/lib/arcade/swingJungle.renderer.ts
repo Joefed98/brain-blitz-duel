@@ -19,7 +19,7 @@ import type { SwingGate, SwingLedge, SwingSlider, SwingState } from "./swing";
 import { swingAnchorAt, swingHookLit, SWING_GATE_HALF_W, SWING_LEDGE_THICK } from "./swing";
 import { artHash } from "./art.renderer";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
-import { JUNGLE_MID, JUNGLE_NEAR, paintTrunkSpan, drawGrabRing, drawLeafClusterSprite, drawTrunkLayer, nearTrunksOnScreen, paintPlanks, paintTrunk, strokeVineRope } from "./swingJungleArt.renderer";
+import { JUNGLE_MID, JUNGLE_NEAR, paintCanopyLeaves, paintTrunkSpan, drawGrabRing, drawLeafClusterSprite, drawTrunkLayer, nearTrunksOnScreen, paintPlanks, paintTrunk, strokeVineRope } from "./swingJungleArt.renderer";
 
 const FP = 256;
 const COL = 40 * FP;
@@ -125,9 +125,12 @@ function paintJungleFarSpan(ctx: CanvasRenderingContext2D, x0: number, x1: numbe
     const tx = k * 70 + (h % 30);
     const tw = 8 + ((h >>> 5) % 8);
     const tg = ctx.createLinearGradient(tx, 0, tx + tw, 0);
-    tg.addColorStop(0, "rgba(30,64,50,0.6)");
+    // Stage 3 (15 Nov 2026): their sides soft into the haze (no hard edge), which keeps the backdrop as calm as stage 2
+    // with the denser leaves in front of it.
+    tg.addColorStop(0, "rgba(30,64,50,0)");
     tg.addColorStop(0.3, "rgba(40,78,62,0.6)");
-    tg.addColorStop(1, "rgba(24,52,42,0.6)");
+    tg.addColorStop(0.7, "rgba(30,62,48,0.55)");
+    tg.addColorStop(1, "rgba(24,52,42,0)");
     ctx.fillStyle = tg;
     ctx.fillRect(tx, 0, tw, H);
   }
@@ -196,7 +199,6 @@ export function paintJungleSides(ctx: CanvasRenderingContext2D, r: { x: number; 
   paintTrunkSpan(ctx, JUNGLE_NEAR, r.x, r.x + r.w, H);
   jungleVeil(ctx, r.x, r.y, r.w, r.h, H, depth);
   // The canopy band: the same gradient and leaves as the world's canopy mass, its underside a soft wave.
-  const leafLit = jungleMix(JUNGLE.leafLight, "#245E3A", depth * 0.8);
   const leafMid = jungleMix(JUNGLE.leaf, "#10301F", depth * 0.8);
   const under = (x: number) => JUNGLE_SIDE_CEIL + Math.sin(x * 0.045) * 8 + Math.sin(x * 0.11) * 4;
   ctx.beginPath();
@@ -209,17 +211,12 @@ export function paintJungleSides(ctx: CanvasRenderingContext2D, r: { x: number; 
   g.addColorStop(1, leafMid);
   ctx.fillStyle = g;
   ctx.fill();
-  for (let k = Math.floor(r.x / 26) - 1; k < (r.x + r.w) / 26 + 2; k++) {
-    const cy = under(k * 26);
-    for (let row = 0; row < 2; row++) {
-      const hh = artHash(k, 41 + row);
-      const rad = 12 + (hh % 8) - row * 2;
-      ctx.fillStyle = row === 0 ? leafLit : leafMid;
-      ctx.beginPath();
-      ctx.ellipse(k * 26 + ((hh >>> 8) % 10) - 5, cy - 6 - row * 22 - ((hh >>> 4) % 8), rad, rad * 0.7, ((hh >>> 3) % 7) * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
+  // Stage 3 (15 Nov 2026): the same dense rows of leaves as the world's canopy, clipped to the band.
+  ctx.save();
+  ctx.clip();
+  paintCanopyLeaves(ctx, r.x, r.x + r.w, 0, under, depth);
+  canopyShade(ctx, r.x, r.w, depth);
+  ctx.restore();
   // The river: the world's colours at this depth, from about the courses' floor to the bottom.
   const water = jungleMix(JUNGLE.water, "#1E6C7A", depth * 0.7);
   const mid = jungleMix("#1C6F80", "#11485A", depth * 0.7);
@@ -324,6 +321,13 @@ export function drawJungleGlow(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.fill();
 }
 
+/** Stage 3: the canopy's leaves sink into the deepening jungle with the backdrop (inside the mass's clip only). */
+function canopyShade(ctx: CanvasRenderingContext2D, x: number, w: number, depth: number): void {
+  if (depth <= 0) return;
+  ctx.fillStyle = `rgba(2,10,12,${(0.4 * depth).toFixed(3)})`;
+  ctx.fillRect(x - 4, -4, w + 8, 400);
+}
+
 /** The canopy: the mass above the sim's ceiling line, its underside exactly on the line, fringed with leaves inside it. */
 export function drawJungleCanopy(ctx: CanvasRenderingContext2D, state: SwingState, first: number, last: number, sx: (x: number) => number, W: number, t: number, lite: boolean, depth = 0): void {
   // Deeper in (the overhaul), the canopy's leaves darken a little; its underside stays on the sim's line.
@@ -342,25 +346,21 @@ export function drawJungleCanopy(ctx: CanvasRenderingContext2D, state: SwingStat
   ctx.fillStyle = g;
   ctx.fill();
   ctx.clip();
-  // Leaf clumps inside the mass, brightest along the underside; branches through them.
-  const c0 = Math.floor((state.camX / FP) / 26) - 1;
-  for (let k = c0; k < c0 + W / 26 + 3; k++) {
-    const wx = k * 26;
-    const px = wx - state.camX / FP;
-    const cy = lerpAt(ceil, wx * FP) / FP;
-    // The materials pass: clusters of real leaves (two deep where effects allow) along the underside, inside the mass,
-    // dimming deeper in; the mass's own colours below them.
-    const h = artHash(k, 41);
-    if (lite) {
+  // Leaf clumps inside the mass, brightest along the underside; branches through them. Stage 3 (15 Nov 2026, Joe:
+  // concept A's dense canopy): four rows of lit leaf clusters packed back into the mass (paintCanopyLeaves), seeded by
+  // world x; reduced effects keep one row of soft clumps.
+  const cam = state.camX / FP;
+  if (lite) {
+    const c0 = Math.floor(cam / 26) - 1;
+    for (let k = c0; k < c0 + W / 26 + 3; k++) {
+      const wx = k * 26;
+      const h = artHash(k, 41);
       ctx.fillStyle = leafLit;
       ctx.beginPath();
-      ctx.ellipse(px + ((h >>> 8) % 10) - 5, cy - 8, 13, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(wx - cam + ((h >>> 8) % 10) - 5, lerpAt(ceil, wx * FP) / FP - 8, 13, 9, 0, 0, Math.PI * 2);
       ctx.fill();
-      continue;
     }
-    if (k % 2 === 0) drawLeafClusterSprite(ctx, px + ((h >>> 8) % 10) - 5, cy - 32 - ((h >>> 4) % 8), 20, (h >>> 12) % 6, depth);
-    drawLeafClusterSprite(ctx, px + ((h >>> 9) % 8) - 4, cy - 9 - ((h >>> 5) % 5), 15 + (h % 4), (h >>> 15) % 6, depth);
-  }
+  } else paintCanopyLeaves(ctx, cam, cam + W, cam, (wx) => lerpAt(ceil, wx * FP) / FP, depth);
   ctx.strokeStyle = JUNGLE.barkDark;
   ctx.lineWidth = 5;
   for (let k = Math.floor(state.camX / FP / 140) - 1; k < Math.floor(state.camX / FP / 140) + W / 140 + 2; k++) {
@@ -372,6 +372,7 @@ export function drawJungleCanopy(ctx: CanvasRenderingContext2D, state: SwingStat
     ctx.quadraticCurveTo(x0 + 60, y0 + 8 - (h >>> 4) % 16, x0 + 140, y0 - 6);
     ctx.stroke();
   }
+  canopyShade(ctx, 0, W, depth);
   ctx.restore();
   // Leaf tips hanging just under the line? No: the underside stays exactly on the sim's line (a soft lit rim only).
   ctx.strokeStyle = "rgba(160,225,100,0.55)";

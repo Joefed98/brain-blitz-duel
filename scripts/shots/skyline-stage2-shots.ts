@@ -8,11 +8,14 @@
  *
  *   bun scripts/shots/skyline-stage2-shots.ts <out dir>
  *
- * Writes effects-s2.png, reveal-s2.png (before | after); the gallery's WebPs are made from them with Pillow.
+ * Writes effects-s2.png, reveal-s2.png (before | after) and reveal-s3.png (stage 3: the reveal's order, the big numbers and
+ * the picture straight under the score, the shared breakdown list below); the gallery's WebPs are made with Pillow.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 
-import { createCanvas, Path2D as NapiPath2D, type SKRSContext2D } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts, Path2D as NapiPath2D, type SKRSContext2D } from "@napi-rs/canvas";
+
+GlobalFonts.registerFromPath("public/fonts/archivo-var-latin.woff2", "Archivo");
 
 let clockMs = 10_000;
 Object.defineProperty(globalThis, "performance", { configurable: true, value: { now: () => clockMs } });
@@ -239,3 +242,97 @@ pc.drawImage(before, 10, 10);
 pc.drawImage(after, PW + 20, 10);
 writeFileSync(`${out}/reveal-s2.png`, pair.toBuffer("image/png"));
 console.log(`effects ${[...frames.keys()].join(", ")}; score ${replay.score}, ${sum.placed} floors, ${sum.livesLost} lost, rescues ${sum.rescues}; rows ${rows.length}`);
+
+/* ---------------- Stage 3 (15 Nov 2026): the reveal's order, before | after, the breakdown as the shared list. ---------------- */
+{
+  const parts = breakdownRows(lines, replay.score);
+  const H3 = 900;
+  /** The shared breakdown list (RevealBreakdown): a dark panel, one row a part (name, detail, points of max, a bar). */
+  const list = (x: SKRSContext2D, y0: number): number => {
+    const rowH = 50;
+    x.fillStyle = "rgba(7,7,10,0.55)";
+    x.beginPath();
+    x.roundRect(12, y0, PW - 24, rowH * parts.length + 8, 10);
+    x.fill();
+    parts.forEach((row, i) => {
+      const y = y0 + 8 + i * rowH;
+      x.textAlign = "left";
+      x.fillStyle = row.kind === "total" ? "#F2C75C" : "#F3F1EC";
+      x.font = "700 15px Archivo, sans-serif";
+      x.fillText(row.name, 24, y + 12);
+      if (row.detail) {
+        x.font = "500 13px Archivo, sans-serif";
+        x.fillStyle = "rgba(243,241,236,0.8)";
+        x.fillText(row.detail, 24, y + 30);
+      }
+      x.textAlign = "right";
+      x.font = "700 15px Archivo, sans-serif";
+      x.fillStyle = row.kind === "total" ? "#F2C75C" : "#F3F1EC";
+      if (row.points !== null) x.fillText(row.max !== null ? `${row.points} of ${row.max}` : `${row.points} points`, PW - 24, y + 12);
+      if (row.max) {
+        x.fillStyle = "rgba(255,255,255,0.12)";
+        x.fillRect(24, y + 41, PW - 48, 3);
+        x.fillStyle = "#F2C75C";
+        x.fillRect(24, y + 41, ((PW - 48) * Math.max(0, Math.min(1, (row.points ?? 0) / row.max))), 3);
+      }
+    });
+    return y0 + rowH * parts.length + 8;
+  };
+  /** The run picture as the component lays it out: three big numbers, the tower, the legend. */
+  const picture = (x: SKRSContext2D, y0: number): number => {
+    const stats: [number, string][] = [[sum.placed, "Floors"], [sum.perfects, "Perfect drops"], [sum.bestStreak, "Best streak"]];
+    stats.forEach(([v, label], i) => {
+      const cx = PW / 6 + (i * PW) / 3;
+      x.textAlign = "center";
+      x.fillStyle = "#F3F1EC";
+      x.font = "800 36px Archivo, sans-serif";
+      x.fillText(String(v), cx, y0 + 18);
+      x.font = "600 14px Archivo, sans-serif";
+      x.fillStyle = "rgba(243,241,236,0.75)";
+      x.fillText(label, cx, y0 + 48);
+    });
+    const pic = createCanvas(PW - 24, 220);
+    R.drawSkylineRunPicture(pic.getContext("2d") as unknown as CanvasRenderingContext2D, sum, { width: PW - 24, height: 220 });
+    x.drawImage(pic, 12, y0 + 70);
+    x.textAlign = "center";
+    x.font = "600 14px Archivo, sans-serif";
+    x.fillStyle = "#F3F1EC";
+    x.fillText(`Perfect ${sum.floors.filter((f) => f.kind === "perfect").length} · Trimmed ${sum.floors.filter((f) => f.kind === "trim").length} · Life lost ${sum.livesLost}`, PW / 2, y0 + 306);
+    return y0 + 324;
+  };
+  const shell = (title: string): [ReturnType<typeof createCanvas>, SKRSContext2D] => {
+    const c = createCanvas(PW, H3);
+    const x = c.getContext("2d") as unknown as SKRSContext2D;
+    const grad = x.createLinearGradient(0, 0, 0, H3);
+    palette.forEach((stop, i) => grad.addColorStop(i / (palette.length - 1), stop));
+    x.fillStyle = grad;
+    x.fillRect(0, 0, PW, H3);
+    x.textBaseline = "middle";
+    x.fillStyle = "#F3F1EC";
+    x.font = "800 18px Archivo, sans-serif";
+    x.fillText("High Rise", 16, 30);
+    x.textAlign = "right";
+    x.font = "600 13px Archivo, sans-serif";
+    x.fillStyle = "rgba(243,241,236,0.75)";
+    x.fillText(title, PW - 16, 30);
+    x.textAlign = "center";
+    x.fillStyle = "#F3F1EC";
+    x.font = "800 64px Archivo, sans-serif";
+    x.fillText(String(replay.score), PW / 2, 96);
+    x.font = "600 15px Archivo, sans-serif";
+    x.fillStyle = "rgba(243,241,236,0.75)";
+    x.fillText("points", PW / 2, 136);
+    return [c, x];
+  };
+  const [b3, bx] = shell("Before (stage 2), practice");
+  picture(bx, list(bx, 160) + 18);
+  const [a3, ax] = shell("After, practice");
+  list(ax, picture(ax, 166) + 10);
+  const pair3 = createCanvas(PW * 2 + 30, H3 + 20);
+  const p3 = pair3.getContext("2d") as unknown as SKRSContext2D;
+  p3.fillStyle = "#0B0F1A";
+  p3.fillRect(0, 0, pair3.width, pair3.height);
+  p3.drawImage(b3, 10, 10);
+  p3.drawImage(a3, PW + 20, 10);
+  writeFileSync(`${out}/reveal-s3.png`, pair3.toBuffer("image/png"));
+}

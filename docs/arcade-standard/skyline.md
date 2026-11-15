@@ -214,3 +214,9 @@ log replayed through the real sim (`skylineRunSummary`, `src/lib/duel/skylineSum
 streak bracketed in gold. Above it the three numbers that explain the score, big (Floors, Perfect drops, Best streak);
 under it a legend with short labels and counts. The picture's numbers replace the reveal's stat tiles. The score is the
 stored one; nothing here grades.
+
+**Stage 3 (15 Nov 2026, Joe: no block of text lines above the picture):** the shared arcade reveal now draws the score,
+then the big numbers and the picture, then the stored breakdown in the shared list (`RevealBreakdown`; in a room the
+summary line and See breakdown) below it, for every game with a run picture (`ArcadeReveal`, `data-reveal-run-picture`).
+skyline-overhaul-check section 11 mounts the reveal in happy-dom in practice and in a room and proves the order, every
+stored part line a row of the shared list and none above the picture, and Roofbound's reveal in the same order.

@@ -73,6 +73,21 @@ The reveal's run picture (`SwingRunPicture`, `traceSwingRun` through `replaySwin
 course %, stretches (the one count, 51), under par and gates big over the course drawn as a path of its stretches. Older
 stamps draw no run picture (their reveal lines remain in `Reveal`).
 
+## Stage 3: the canopy and a readable reveal (15 Nov 2026; display only, no stamp)
+
+- **The canopy** (every jungle revision): four rows of lit leaf clusters packed back into the canopy mass
+  (`paintCanopyLeaves`, `CANOPY_ROWS` in `swingJungleArt.renderer.ts`), seeded by world x, clipped to the mass so its
+  underside is still the sim's ceiling line, darkened with the deepening jungle (`canopyShade`); the screen fill's canopy
+  band beside the world draws the same rows. Each near trunk's tile carries a crown of leaves under the canopy, a spray
+  part way up and five sprigs down its length in the shade's own greens (`paintLeafCluster(..., soft)`: no midrib or
+  sheen); the far trunks' sides fade into the haze. The backdrop stays at most 60 % of stage 1's luminance spread and edge
+  energy at every camera (swing-overhaul-check 13). Drawn in code and cached per size: no image shipped.
+- **The reveal's run picture** (`swingRunLayout`): the 51 stretches fold into rows that keep each at least
+  `SWING_RUN_MIN_CELL` (34) px wide on the reveal's real width (8 a row and 7 rows at 375 × 667, 9 and 6 at 390 × 844),
+  `SWING_RUN_ROW_H` (46) px apart, with `SWING_RUN_MARKS` (6 px lines, 11 px drops, 12 px gate posts, a 14 px wedge, an
+  18 px flag) and the fall count at `SWING_RUN_TEXT_PX` (13); the legend is text-sm (14 px). The canvas is drawn at its
+  CSS size, so these are on-screen pixels; swing-overhaul-check 12 measures them at both sizes.
+
 ## The Action overhaul (15 Nov 2026, phase 2 step 4; display only, swingRev 17)
 
 Joe's review (`docs/design/game-reviews/action.md`). No stamp: the course, rules, timings and scores are unchanged
