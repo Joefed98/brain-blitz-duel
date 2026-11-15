@@ -19,6 +19,8 @@ import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
+import { blockPatternHelp } from "./standard/patternText"; // tessellate (Pattern overhaul)
+import { prePatternNov15Pinned } from "./patternNov15"; // tessellate (Pattern overhaul)
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -571,14 +573,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     blockparty: {
       goal: "Fit every piece into the free squares.",
       how: [
-        { action: "Tap a piece", detail: "to rotate it." },
+        // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026: a double tap only flips; Undo and Reset)
+        { action: "Tap a piece", detail: "to turn it." },
         // Pattern review fixes (15 Nov 2026): the double tap's flip was never in the help.
-        { action: "Double-tap it", detail: "to flip it over." },
-        { action: "Drag it", detail: "onto the board." },
+        { action: "Double-tap it", detail: "to flip it over (it doesn’t turn first)." },
+        { action: "Drag it", detail: "onto the board; drag a placed piece to move it." },
         { action: "Fit every piece", detail: "around the fixed pegs." },
-        { action: "Drag a piece’s anchor", detail: "onto a free board square.", helpOnly: true },
+        { action: "Hold any square of a piece:", detail: "the piece lands with that square under your finger.", helpOnly: true },
+        ...(prePatternNov15Pinned()
+          ? []
+          : [{ action: "Undo", detail: "gives your last move back; Reset sends every piece back to the tray.", helpOnly: true }]),
+        // ---- tessellate:end
       ],
-      score: PATTERN_STD_HELP.blockparty,
+      score: blockPatternHelp(),
     },
     lightsout: {
       goal: "Turn every light off.",

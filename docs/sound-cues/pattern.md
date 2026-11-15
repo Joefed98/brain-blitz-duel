@@ -29,8 +29,12 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 | Cue | Trigger | Length |
 |---|---|---|
 | `blockparty.place` | A piece dropped legally on the board pops into place | 260 ms (outline 320 ms) |
-| `blockparty.turn` | A single tap rotates a tray piece | 180 ms |
-| `blockparty.flip` | A double tap flips a tray piece | 180 ms |
+| `blockparty.turn` | A single tap rotates a tray piece (shown once the double-tap window has passed, 260 ms; Pattern overhaul) | 180 ms |
+| `blockparty.flip` | A double tap flips a tray piece (it no longer turns first) | 180 ms |
+| `blockparty.pickup` | A piece lifted: the first drag movement of a tray or board piece, or a tap that takes a placed piece back | lift |
+| `blockparty.illegal` | A piece let go over the board where it doesn't fit: it slides back (blockRev 4 counts it) | ~300 ms |
+| `blockparty.undo` | Undo (blockRev 4): the last move given back | short |
+| `blockparty.reset` | Reset (blockRev 4): every piece back to the tray | short |
 | `blockparty.solve` | All squares covered: rings leave the pegs, then a shine sweeps outwards | ~1,100 ms |
 
 ## Skid (`iceslide`)

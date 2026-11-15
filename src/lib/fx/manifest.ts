@@ -517,6 +517,13 @@ const ENTRIES = {
   "blockparty.turn": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "blockparty.flip": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "blockparty.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.pops.mp3" },
+  // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026): library placeholders until Joe's files
+  // (docs/sound-cues/pattern-elevenlabs.md); each url becomes /sounds/<slot>.mp3 when its file lands.
+  "blockparty.pickup": { channel: "effects", frequency: 0, ms: 334, url: "/sounds/cards_pick.mp3", volume: 0.7 },
+  "blockparty.illegal": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/checkout.thud.mp3", volume: 0.8 },
+  "blockparty.undo": { channel: "effects", frequency: 0, ms: 334, url: "/sounds/cards_pick.mp3", volume: 0.6 },
+  "blockparty.reset": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3", volume: 0.8 },
+  // ---- tessellate:end
   "gravity.tilt": { channel: "effects", frequency: 0, ms: 200, url: null },
   "gravity.lock": { channel: "effects", frequency: 0, ms: 201, url: "/sounds/gravity.lock.mp3" },
   "gravity.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.rising.mp3" },

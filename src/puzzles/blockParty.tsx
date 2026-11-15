@@ -18,7 +18,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Fit every piece around the pegs. Tap to rotate.
+        Fit every piece around the pegs. Tap to turn, double-tap to flip.
       </p>
       <BlockBoard blockers={EXAMPLE_BLOCKERS} placements={EXAMPLE_PLACED} size={150} />
       <p className="text-xs text-muted-foreground">
@@ -70,7 +70,8 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           </div>
         </div>
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+      {/* The player's own count: under the Solution / Yours switch it shows only under Yours (Pattern overhaul). */}
+      <p data-yours-only="" className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect ? (
           <span className="text-primary">Solved</span>
         ) : (

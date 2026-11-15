@@ -11,6 +11,7 @@ import { PAR_MOVES_MAZE_INTRO, STANDARD_ATTENTION_INTRO } from "./standard/atten
 import { parMovesDealt } from "./parMoves";
 import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
 import { PAR_MOVES_PATTERN_INTRO, PARTIAL_PATTERN_INTRO, PATTERN_STD_INTRO } from "./standard/patternText";
+import { blockPatternIntro } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { partialCreditDealt } from "./partialCredit";
 import { standardNumberIntro } from "./standard/numberText";
 import { fillMax, liveRecord } from "./roundMax";
@@ -91,7 +92,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     flood: logicStandardIntro("flood"),
     tiles: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.tiles : PATTERN_STD_INTRO.tiles,
     rings: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.rings : PATTERN_STD_INTRO.rings,
-    blockparty: PATTERN_STD_INTRO.blockparty,
+    blockparty: blockPatternIntro(),
     shikaku: logicStandardIntro("shikaku"),
     fences: gridStandardIntro("fences"),
     fillomino: gridStandardIntro("fillomino"),
