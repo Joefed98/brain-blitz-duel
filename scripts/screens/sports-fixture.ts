@@ -9,7 +9,8 @@ import { LIVE_BANDS } from "../../src/lib/arcade/liveBands";
 import { encodeSportsRun, SPORTS_CHECKPOINT_INTERVAL, type SportsCheckpoint } from "../../src/lib/arcade/sportsKit";
 import { poolCheckpoint } from "../../src/lib/arcade/pool";
 import { curlingCheckpoint } from "../../src/lib/arcade/curling";
-import { racingCheckpoint } from "../../src/lib/arcade/racing";
+import { racingCheckpoint, RACING_CHECKPOINT_INTERVAL } from "../../src/lib/arcade/racing";
+import { encodeRacingRun } from "../../src/lib/duel/racing";
 import { GAMES } from "../arcade-skill-bands/games";
 import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import type { SkillBot } from "../arcade-skill-bands/bot";
@@ -22,6 +23,9 @@ export type SportsOverhaulGame = (typeof SPORTS_OVERHAUL_GAMES)[number];
 
 const BOTS: Record<SportsOverhaulGame, SkillBot> = { pool: poolBot, curling: curlingBot, racing: racingBot };
 const CHECKPOINT: Record<SportsOverhaulGame, (s: any) => SportsCheckpoint> = { pool: poolCheckpoint, curling: curlingCheckpoint, racing: racingCheckpoint };
+/** Each game's own checkpoint interval and encoder (Apex checks every 120 ticks with its own run format). */
+const INTERVAL: Record<SportsOverhaulGame, number> = { pool: SPORTS_CHECKPOINT_INTERVAL, curling: SPORTS_CHECKPOINT_INTERVAL, racing: RACING_CHECKPOINT_INTERVAL };
+const ENCODE: Record<SportsOverhaulGame, (run: any) => string> = { pool: encodeSportsRun, curling: encodeSportsRun, racing: encodeRacingRun };
 
 /** The stored answer a player of `level` would send for this dealt puzzle, and the sim's score for it. */
 export function sportsRunFor(type: SportsOverhaulGame, puzzle: Record<string, unknown>, level: SkillLevel): { answer: string; score: number } {
@@ -37,9 +41,9 @@ export function sportsRunFor(type: SportsOverhaulGame, puzzle: Record<string, un
   const checkpoints: SportsCheckpoint[] = [];
   while (!game.isOver(state) && state.tick < game.runTicks) {
     state = game.step(state, byTick.get(state.tick + 1) ?? null);
-    if (state.tick % SPORTS_CHECKPOINT_INTERVAL === 0) checkpoints.push(CHECKPOINT[type](state));
+    if (state.tick % INTERVAL[type] === 0) checkpoints.push(CHECKPOINT[type](state));
   }
   const score = game.score(state) as number;
   const endTick = state.tick >= game.runTicks ? 0 : state.tick;
-  return { answer: encodeSportsRun({ seed, claimedScore: score, events: out.events ?? [], endTick, checkpoints }), score };
+  return { answer: ENCODE[type]({ seed, claimedScore: score, events: out.events ?? [], endTick, checkpoints }), score };
 }

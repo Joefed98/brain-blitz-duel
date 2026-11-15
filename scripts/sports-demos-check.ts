@@ -4,6 +4,11 @@
  * before the overhaul (the old table, sheet or road, Curl Champ's older buttons, Apex's single circuit) never plays under
  * the new look. Read from the server's own rule in src/lib/duel/introDemo.functions.ts, as each game's check reads its own.
  *
+ * The demos themselves (the merge captain's demo pattern, 15 Nov 2026): scripts/fixtures/sports-demos.json holds one row
+ * per game exactly as upsertIntroDemo stores it (written by scripts/sports-demos-record.ts), for the "Save intro demos"
+ * workflow to save after the final merge. Each must be on the stamp rooms deal, pass the demo rule above, carry its own
+ * run's seed, fit the demo's size limit, and score exactly its stored score through the server's own replay, unflagged.
+ *
  *   bun scripts/sports-demos-check.ts
  */
 import { readFileSync } from "node:fs";
@@ -12,6 +17,10 @@ import { POOL_REV } from "../src/lib/arcade/pool";
 import { CURLING_REV } from "../src/lib/arcade/curling";
 import { RACING_REV_4, RACING_REV_DEALT } from "../src/lib/arcade/racing";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
+import { DEMO_LENGTH_TICKS, DEMO_MAX_CHARS, DEMO_START_TICK, runSeed } from "../src/lib/arcade/introDemo";
+import { replayPoolRun } from "../src/lib/duel/pool";
+import { replayCurlingRun } from "../src/lib/duel/curling";
+import { replayRacingRun } from "../src/lib/duel/racing";
 
 const failures: string[] = [];
 let passes = 0;
@@ -38,6 +47,28 @@ for (const [type, field, name, rev] of RULES) {
   ok(live[type]?.rev === rev, `${type}: ${name} is the stamp rooms deal (LIVE_BANDS ${live[type]?.rev})`);
 }
 ok(RACING_REV_DEALT === RACING_REV_4, "Apex: the demo's stamp is racingRev 4, the three circuits");
+
+// The demos to save.
+type Row = { game_type: string; seed: number; puzzle: Record<string, unknown>; input_log: { run: string }; start_tick: number; length_ticks: number; score: number };
+const fixture = JSON.parse(readFileSync("scripts/fixtures/sports-demos.json", "utf8")) as { demos: Row[] };
+const REPLAY: Record<string, (seed: number, raw: string, rev: number) => { score: number; flagged: boolean }> = {
+  pool: replayPoolRun,
+  curling: replayCurlingRun,
+  racing: replayRacingRun,
+};
+const KEYS = ["game_type", "seed", "puzzle", "input_log", "start_tick", "length_ticks", "score"].sort().join();
+ok(fixture.demos.map((d) => d.game_type).sort().join() === RULES.map(([t]) => t).sort().join(), "one demo for each of Cue Ball, Curl Champ and Apex");
+for (const [type, field, , rev] of RULES) {
+  const d = fixture.demos.find((x) => x.game_type === type);
+  if (!d) continue;
+  ok(Object.keys(d).sort().join() === KEYS && Object.keys(d.input_log).join() === "run", `${type}: the row is the stored shape (upsertIntroDemo's columns, input_log { run }) plus its score`);
+  ok(d.puzzle["type"] === type && d.puzzle[field] === rev, `${type}: dealt on ${field} ${rev}, the stamp rooms deal, so the demo rule plays it`);
+  ok(d.seed === runSeed(d.input_log.run) && d.seed === Number(d.puzzle["seed"]), `${type}: the row's seed is its run's and its puzzle's (${d.seed})`);
+  ok(d.start_tick === DEMO_START_TICK && d.length_ticks === DEMO_LENGTH_TICKS, `${type}: the demo's window is the intro's (${d.start_tick} + ${d.length_ticks} ticks)`);
+  ok(d.input_log.run.length > 0 && d.input_log.run.length <= DEMO_MAX_CHARS, `${type}: the run fits the demo limit (${d.input_log.run.length} of ${DEMO_MAX_CHARS} chars)`);
+  const r = REPLAY[type]!(Number(d.puzzle["seed"]), d.input_log.run, rev);
+  ok(!r.flagged && r.score === d.score, `${type}: the server's replay scores it ${r.score} (stored ${d.score}), unflagged`);
+}
 
 if (failures.length) {
   console.log(`FAIL sports-demos-check: ${failures.length} failure(s), ${passes} passed`);
