@@ -10,6 +10,7 @@ import { Shuffle } from "lucide-react";
 import { shuffleLetterOrder } from "./letterShuffle";
 import { playFinish, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 import { comboWindow, flyFrom, stepCue, wordFx } from "./wordFx";
+import { cueHasFile } from "@/lib/sound";
 import { scoreWordsmith, WORDSMITH_REV_DEPTH, WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 import { useStageState } from "@/lib/duel/stageState";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
@@ -162,8 +163,12 @@ export function WordsmithPuzzle({
       const streak = comboWindow(wordTimes.current, Date.now());
       if (streak >= 3) wordFx("combo", counterRef.current, "wordsmith.combo", { count: streak - 1 });
       if (pangramRule && verdict.word.length >= letters.length && !pangramFound) {
-        wordCue(PANGRAM_CUE);
-        wordCue("wordsmith.pangram");
+        // Joe (15 Nov 2026): the pangram's own recording replaces the shared moment-card sting once it is in; never both.
+        if (cueHasFile("wordsmith.pangram")) wordCue("wordsmith.pangram");
+        else {
+          wordCue(PANGRAM_CUE);
+          wordCue("wordsmith.pangram");
+        }
         // The letters turn against the ring, so they stay upright as it spins (as the end-of-run spin does).
         const timing = { duration: 900, easing: "cubic-bezier(.5,0,.2,1)" };
         const ring = ringRef.current?.querySelector(".wordsmith-ring");
