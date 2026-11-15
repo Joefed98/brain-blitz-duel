@@ -145,7 +145,7 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| No second thoughts | Fill the board without moving a piece twice. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `blockparty.no-second-thoughts` |
+| No second thoughts | Fill the board without dropping a piece where it won’t fit. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `blockparty.no-second-thoughts` |
 | Snap fit | Fill the board within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 40 s) |  | `blockparty.snap-fit` |
 
 #### Skid (`iceslide`)

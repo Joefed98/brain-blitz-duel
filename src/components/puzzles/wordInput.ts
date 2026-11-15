@@ -102,7 +102,14 @@ export const DEPTH_D3_ATTENTION_PRESENTATION = "oct25-depth-d3-attention";
  */
 export const DEPTH_D3_SPEED_DEMOS = new Set(["reaction", "stopwatch", "numhunt"]);
 export const DEPTH_D3_SPEED_PRESENTATION = "oct25-depth-d3-speed";
+/**
+ * Tessellate in the Pattern overhaul (15 Nov 2026, blockRev 4): a tap's turn waits out the double-tap window, the tray
+ * fits each piece to its column and Undo / Reset take a row under it, so older coordinate demos would miss and replay
+ * the old taps; they are rejected until re-recorded on blockRev 4 (the intro shows its still).
+ */
+export const BLOCKPARTY_NOV15_PRESENTATION = "nov15-tessellate-overhaul";
 export function puzzlePresentation(type: string): string {
+  if (type === "blockparty") return BLOCKPARTY_NOV15_PRESENTATION; // tessellate (Pattern overhaul)
   if (ROUNDABOUT_DEPTH_DEMOS.has(type)) return ROUNDABOUT_DEPTH_PRESENTATION;
   if (FORAGE_DEPTH_DEMOS.has(type)) return FORAGE_DEPTH_PRESENTATION;
   if (LOOKOUT_DEPTH_DEMOS.has(type)) return LOOKOUT_DEPTH_PRESENTATION;

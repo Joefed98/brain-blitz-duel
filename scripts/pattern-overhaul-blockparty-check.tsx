@@ -39,6 +39,9 @@ import { blockPartyPuzzle } from "../src/puzzles/blockParty";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { blockCases, otherSpot, sent } from "./pattern-overhaul-blockparty-lib";
 import { roomPuzzle } from "./puzzle-fairness/run";
+import { challengeById, evaluateChallenge } from "../src/lib/duel/practiceChallenges";
+import { STAR_SCORE } from "../src/lib/practice/progressRules";
+import { BLOCKPARTY_NOV15_PRESENTATION, puzzlePresentation } from "../src/components/puzzles/wordInput";
 
 type Block = Extract<PuzzleData, { type: "blockparty" }>;
 const failures: string[] = [];
@@ -264,6 +267,35 @@ function fxPuzzle(i: number): Block {
   const fx = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/pattern-overhaul-blockparty-legacy.json.gz")).toString()) as { puzzles: Block[] };
   return fx.puzzles[i]!;
 }
+
+/* 8. Challenges and the star against the new Normal (Joe's additions, 15 Nov 2026). */
+{
+  const p = live[3]!;
+  const sol = p.solution ?? [];
+  const nst = challengeById("blockparty.no-second-thoughts")!;
+  const snap = challengeById("blockparty.snap-fit")!;
+  check(/without dropping a piece where it won’t fit/.test(nst.text) && !/twice/.test(nst.text), `challenge: No second thoughts reads "${nst.text}"`);
+  const run = (answer: string, msLeft: number) => {
+    const g = gradeAnswer(p, answer, msLeft);
+    return { score: g.score, isCorrect: g.isCorrect, extra: g.extra as Record<string, unknown> };
+  };
+  const clean = run(encodeBlockAnswer(sol, 0), 25_000);
+  const first = sol[0]!;
+  const elsewhere = otherSpot(p, [], first.piece, [...first.cells].sort((a, b) => a - b).join(","));
+  const moved = elsewhere
+    ? run(sent(p, [{ answer: encodePlacements([{ piece: first.piece, cells: elsewhere }]), at: 500 }, ...sol.map((_, i) => ({ answer: encodePlacements(sol.slice(0, i + 1)), at: 1000 + i * 1000 }))]), 25_000)
+    : clean;
+  const oneDrop = run(encodeBlockAnswer(sol, 1), 25_000);
+  check(evaluateChallenge(nst, clean).met && evaluateChallenge(nst, moved).met, "challenge: a clean solve (pieces moved or not) misses No second thoughts");
+  check(!evaluateChallenge(nst, oneDrop).met, "challenge: one illegal drop still meets No second thoughts");
+  check(evaluateChallenge(snap, run(encodePlacements(sol), 20_000)).met && !evaluateChallenge(snap, run(encodePlacements(sol), 10_000)).met, "challenge: Snap fit is not 'within 40 s'");
+  // The star (175): a solve by 40 s with up to two illegal drops earns it; a slow, careless one doesn't.
+  check(STAR_SCORE === 175 && run(encodeBlockAnswer(sol, 2), 20_000).score >= STAR_SCORE, "star: a quick solve with two illegal drops misses 175");
+  check(run(encodeBlockAnswer(sol, 9), 2_000).score < STAR_SCORE, "star: a slow solve with nine illegal drops reaches 175");
+}
+
+// Older coordinate demos are stopped until re-recorded on blockRev 4 (the intro shows its still).
+check(puzzlePresentation("blockparty") === BLOCKPARTY_NOV15_PRESENTATION, "demo: Tessellate's older demos are not stopped");
 
 /* 6. Sound slots and their lines. */
 {
