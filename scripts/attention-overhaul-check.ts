@@ -19,6 +19,8 @@
  *   7. The 120 s rule: every Attention game's live deal is at most 120 s.
  *   8. Every sprite the games ask for exists in public/attention/.
  *   9. The help says what changed; Labyrinth's switch is in the game menu, not beside the pad.
+ *  10. Every Classic practice challenge of Double Take, Tally and Matchmaker (the three new stamps) is still met by a
+ *      perfect run on the new Normal, through the real grader and the real challenge checker.
  *
  *   bun scripts/attention-overhaul-check.ts
  */
@@ -267,6 +269,14 @@ for (const type of ["symscan", "spotdiff", "countup", "maze", "bomb", "pairmatch
     want.push(art.attentionArt(game, name));
   const missing = want.filter((url) => !existsSync(new URL(`../public${url}`, import.meta.url)));
   check(missing.length === 0, `${missing.length} sprites missing: ${missing.slice(0, 5).join(", ")}`);
+  // Joe's image budget (15 Nov 2026): each game's new art under about 400 KB of compressed WebP.
+  const { readdirSync, statSync } = await import("node:fs");
+  for (const game of art.ATTENTION_ART_GAMES) {
+    const dir = new URL(`../public/attention/${game}/`, import.meta.url);
+    const bytes = readdirSync(dir).reduce((n, f) => n + statSync(new URL(f, dir)).size, 0);
+    check(bytes <= 400 * 1024, `${game}: ${Math.round(bytes / 1024)} KB of art, over the 400 KB budget`);
+    check(readdirSync(dir).every((f) => f.endsWith(".webp")), `${game}: art that isn't WebP`);
+  }
   const css = readFileSync(new URL("../src/polish-attention/attention-overhaul.css", import.meta.url), "utf8");
   for (const m of css.matchAll(/url\("([^"]+)"\)/g)) check(existsSync(new URL(`../public${m[1]}`, import.meta.url)), `the CSS names a missing file ${m[1]}`);
 }
@@ -298,6 +308,45 @@ for (const type of ["symscan", "spotdiff", "countup", "maze", "bomb", "pairmatch
   setDirectionControls("arrows");
   check(readDirectionControls() === "arrows" && heard.at(-1) === "arrows", "the direction choice didn't go back");
   off();
+}
+
+/* ------------------------------------------------------------------ 10. challenges still achievable */
+{
+  const { challengesFor, evaluateChallenge } = await import("../src/lib/duel/practiceChallenges");
+  const { joinStages } = await import("../src/lib/duel/stagedRounds");
+  const { joinPairGoldTime } = await import("../src/lib/duel/depth/matchmaker");
+  const perfect: Record<string, (p: AnyPuzzle) => string> = {
+    spotdiff: (p) => {
+      const diffs = (p.differences as { cells: number[]; scene?: number }[]) ?? [];
+      const bonus = p.bonus as { cells: number[]; scene?: number } | undefined;
+      return [0, 1]
+        .map((sc) => [...diffs.filter((d) => (d.scene ?? 0) === sc).map((d) => d.cells[0]), ...(bonus && (bonus.scene ?? 0) === sc ? [bonus.cells[0]] : [])].join(","))
+        .join("|");
+    },
+    countup: (p) => joinStages((p.stages as import("../src/lib/duel/types").CountUpStage[]).map((st) => String(countUpStageTruth(st))), 4),
+    pairmatch: (p) => {
+      const cards = p.cards as import("../src/lib/duel/types").PairCard[];
+      const seen = new Map<string, number>();
+      const flips: number[] = [];
+      cards.forEach((c, i) => {
+        const k = `${c.shape}:${c.colour}`;
+        if (seen.has(k)) flips.push(seen.get(k)!, i);
+        else seen.set(k, i);
+      });
+      return joinPairGoldTime(encodePairFlips(flips), 5_000);
+    },
+  };
+  for (const [type, answer] of Object.entries(perfect)) {
+    for (const seed of [11, 12, 13]) {
+      const p = deal(type, seed);
+      const limit = (p.timeLimitMs as number | undefined) ?? 90_000;
+      const graded = gradeAnswer(p as never, answer(p), limit - 15_000);
+      for (const c of challengesFor(type).filter((c) => c.level === "classic")) {
+        const r = evaluateChallenge(c, { score: graded.score, isCorrect: graded.isCorrect, extra: graded.extra as Record<string, unknown> | null, level: "classic" });
+        check(r.met, `${type} seed ${seed}: a perfect run on the new stamp misses the challenge "${c.name}" (score ${graded.score})`);
+      }
+    }
+  }
 }
 
 if (failures.length) {

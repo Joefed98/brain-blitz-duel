@@ -360,7 +360,7 @@ function IntroExample() {
         <Panel shapes={EXAMPLE_REEF_BOTTOM} theme="reef" found={[5]} rows={1} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Tap each difference in either panel. 60 seconds for both pictures.
+        Tap each difference in either panel, then Next. One picture hides a 7th, smaller shape. 60 seconds for both.
       </p>
     </div>
   );

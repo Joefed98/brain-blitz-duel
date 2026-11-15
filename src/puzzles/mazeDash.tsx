@@ -311,7 +311,7 @@ function IntroExample() {
         <MazeBoard cells={cells} cols={3} start={0} exit={8} path={[0, 3, 4]} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Wrong turns cost you time and steps. Finish in the fewest steps for a bonus.
+        Every step counts, back steps too. Finish close to par for a bonus.
       </p>
     </div>
   );

@@ -228,26 +228,33 @@ function Field({
   );
 }
 
-/** Fixed intro example — three pink stars among other shapes, every time (gold is never dealt). */
-const EXAMPLE_SHAPES: CountUpShape[] = [
-  { shape: "star", colour: "PINK", x: 18, y: 24, size: 30, rotation: 5, layer: 1 },
-  { shape: "circle", colour: "BLUE", x: 42, y: 18, size: 38, rotation: 0, layer: 2 },
-  { shape: "star", colour: "PINK", x: 68, y: 34, size: 32, rotation: 20, layer: 3 },
-  { shape: "triangle", colour: "GREEN", x: 84, y: 20, size: 34, rotation: 18, layer: 4 },
-  { shape: "square", colour: "PURPLE", x: 30, y: 58, size: 42, rotation: 32, layer: 5 },
-  { shape: "star", colour: "ORANGE", x: 54, y: 62, size: 28, rotation: 8, layer: 6 },
-  { shape: "star", colour: "PINK", x: 78, y: 74, size: 36, rotation: 28, layer: 7 },
-  { shape: "circle", colour: "RED", x: 16, y: 80, size: 40, rotation: 0, layer: 8 },
-  { shape: "triangle", colour: "BLUE", x: 46, y: 84, size: 32, rotation: 14, layer: 9 },
-];
+
+/** The Attention overhaul's still: a small spread tray (countRev 7) with one pink star already marked as counted. */
+const EXAMPLE_SPREAD: CountUpStage = {
+  cols: 3,
+  rows: 3,
+  targetShape: "star",
+  targetColour: "PINK",
+  shapes: [
+    { shape: "star", colour: "PINK", x: 17, y: 18, size: 22, rotation: 5, layer: 0 },
+    { shape: "circle", colour: "BLUE", x: 50, y: 15, size: 22, rotation: 0, layer: 1 },
+    { shape: "star", colour: "PINK", x: 82, y: 20, size: 21, rotation: 18, layer: 2 },
+    { shape: "triangle", colour: "GREEN", x: 15, y: 50, size: 22, rotation: 12, layer: 3 },
+    { shape: "square", colour: "PURPLE", x: 50, y: 52, size: 21, rotation: -10, layer: 4 },
+    { shape: "star", colour: "BROWN", x: 83, y: 48, size: 22, rotation: 8, layer: 5 },
+    { shape: "circle", colour: "RED", x: 18, y: 84, size: 21, rotation: 0, layer: 6 },
+    { shape: "star", colour: "PINK", x: 50, y: 82, size: 22, rotation: -14, layer: 7 },
+    { shape: "hexagon", colour: "BLUE", x: 82, y: 83, size: 21, rotation: 0, layer: 8 },
+  ],
+};
 
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="font-display text-base font-bold">How many pink stars?</p>
-      <Field shapes={EXAMPLE_SHAPES} height={140} size={20} cols={8} rows={6} />
-      <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">3</span>
+      <SpreadField stage={EXAMPLE_SPREAD} width={170} height={170} marks={[0]} />
+      <p className="text-center text-sm text-muted-foreground">
+        Tap a shape to mark it counted. Answer <span className="font-bold text-primary">3</span>
       </p>
     </div>
   );

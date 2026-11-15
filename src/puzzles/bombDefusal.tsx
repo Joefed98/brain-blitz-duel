@@ -288,7 +288,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Clue: “Step 1: cut wire 2.” So wire 2 is cut first. Read every clue, work out the six steps and their order, then do them.
+        Clue: “Step 1: cut wire 2.” So wire 2 is cut first. Work out the six steps and their order, then tap DEFUSE: nothing reacts before that.
       </p>
     </div>
   );

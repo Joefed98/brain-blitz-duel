@@ -150,12 +150,13 @@ function IntroExample() {
           faceUp={new Set()}
           matched={new Set([0, 2])}
           cols={2}
-          glyph={26}
+          glyph={40}
           compact
+          clear
           gold={EXAMPLE_CARDS[0]}
         />
       </div>
-      <p className="text-center text-xs text-muted-foreground">Match all fifteen pairs.</p>
+      <p className="text-center text-xs text-muted-foreground">Match all fifteen pairs. Tap another card to skip a miss’s wait.</p>
     </div>
   );
 }
