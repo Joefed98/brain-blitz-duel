@@ -65,7 +65,9 @@ import { artHash, reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { GRAPPLER_HERO_GROW, GRAPPLER_V18_SCALE, drawHero, heroGrow, heroPose } from "./hero.renderer";
 import { ANG_PER_RAD } from "./trig";
-import { drawActionHud, type ActionChip } from "./actionHud.renderer";
+import { ACTION_HUD_EDGE, ACTION_HUD_TOP, ACTION_ROW_STEP, ACTION_CHIP_H, actionChipWidth, drawActionHud, type ActionChip } from "./actionHud.renderer";
+import { drawPteroShadow, drawSpeedStreak, drawStreakMeter, drawSwingEnd, swingGrabFlex } from "./swingEffects.renderer";
+import { swingOutOfReach } from "./swingPress";
 import {
   JUNGLE,
   drawJungleBackdrop,
@@ -1689,6 +1691,8 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   drawJungleBackdrop(ctx, cam, W, H, t, lite, depth);
   drawJungleCanopy(ctx, state, first, last, sx, W, t, lite, depth);
   drawJungleRiver(ctx, state, cam, W, H, t, still, lite, depth);
+  // Stage 2: the pterodactyl's shadow sweeping across as the chase starts (behind everything that collides).
+  drawPteroShadow(ctx, state, W, H, still);
 
   // Squeezes: a hanging trunk over the roof rectangle and a boulder stack over the floor one.
   for (const sq of state.squeezes ?? []) {
@@ -1730,7 +1734,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   if (state.dark) drawDark(ctx, state, sx, W, H, still, JUNGLE.shade);
   // Swinging vines' paths under their loops, then every grab point where the sim has it this tick.
   if (state.slide) drawJungleVinePaths(ctx, state, sx, W);
-  drawJungleGrabPoints(ctx, state, sx, W, t, still, lite);
+  drawJungleGrabPoints(ctx, state, sx, W, t, still, lite, swingOutOfReach(state));
 
   const anchor = state.anchors[state.rope];
   if (anchor) successFrame(ctx, { id: "swing", tick: state.tick, count: Math.max(0, state.rope), eventTick: state.grabTick, colour: SWING_GOLD, width: W, height: H, point: { x: sx(swingAnchorAt(state, state.rope, state.tick).x), y: anchor.y / FP, shape: "spark" } });
@@ -1752,7 +1756,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
     const ax = sx(a.x);
     const ay = a.y / FP;
     // swingRev 18: the hands 1.4× further from the body's centre, the vine thicker.
-    drawJungleRope(ctx, ax, ay, fx, fy - 4 * heroK, state.big ? SWING_V18_ROPE_W : SWING_JUNGLE_ROPE_W);
+    drawJungleRope(ctx, ax, ay, fx, fy - 4 * heroK, state.big ? SWING_V18_ROPE_W : SWING_JUNGLE_ROPE_W, swingGrabFlex(state.tick - state.grabTick, still));
     const d = Math.hypot(ax - fx, ay - fy) || 1;
     armX = (ax - fx) / d;
     armY = (ay - fy) / d;
@@ -1791,6 +1795,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   // A soft light round the hero so it reads against the leaves, then (the Action overhaul, 15 Nov 2026) a dark pool
   // under the figure itself, so its gold and black read at once against leaves, trunks, water or the deep shade: a
   // backlit silhouette. The figure is already as large as its 10 px hit circle allows (art-check's Grappler allowance).
+  drawSpeedStreak(ctx, state, fx, fy, heroK, still, lite);
   if (!lite) drawJungleGlow(ctx, fx, fy, 30 * heroK, "rgba(255,230,150,0.3)", "rgba(255,230,150,0.1)");
   drawJungleGlow(ctx, fx, fy - 2 * heroK, 20 * heroK, "rgba(3,10,6,0.62)", "rgba(3,10,6,0.36)");
   const blink = (state.respawn ?? 0) > 0 && !still && Math.floor(state.tick / 4) % 2 === 1;
@@ -1839,7 +1844,9 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
       }
     }
   }
-  drawSwingActionHud(ctx, state, W);
+  drawSwingActionHud(ctx, state, W, still, lite);
+  // Stage 2: the end, "COURSE CLEARED!" (or "TIME") and the stretches tallying.
+  if (state.ended !== 0) drawSwingEnd(ctx, state, W, H, still);
   ctx.restore();
 }
 
@@ -1847,7 +1854,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
  * Grappler's Action HUD (swingRev 17): STRETCH x / y (the main count) and STREAK ×n on the first row, the stretch's
  * par clock and GATES n / y on the second.
  */
-function drawSwingActionHud(ctx: CanvasRenderingContext2D, state: SwingState, W: number): void {
+function drawSwingActionHud(ctx: CanvasRenderingContext2D, state: SwingState, W: number, still = false, lite = false): void {
   const c = swingAssaultCounts(state);
   const shown = Math.min(c.sectionTotal, c.sections + (c.sections < c.sectionTotal ? 1 : 0));
   const streak = swingStreakNow(state);
@@ -1860,9 +1867,15 @@ function drawSwingActionHud(ctx: CanvasRenderingContext2D, state: SwingState, W:
   // 1.3× (the Action overhaul): the helper's chips drawn larger, laid out on the narrower width that scale leaves.
   ctx.save();
   ctx.scale(SWING_HUD_SCALE, SWING_HUD_SCALE);
+  // Stage 2 (15 Nov 2026): GATES moves beside PAR so the streak's arc meter sits under STREAK.
+  const streakChip: ActionChip = { label: "STREAK", value: `×${streak}`, tone: streak >= SWING_V17_STREAK_BLOCK ? "gold" : "plain" };
   drawActionHud(ctx, W / SWING_HUD_SCALE, [
-    { left: [{ label: "STRETCH", value: `${shown} / ${c.sectionTotal}`, pulse: { id: "swing", tick: state.tick } }], right: [{ label: "STREAK", value: `×${streak}`, tone: streak >= SWING_V17_STREAK_BLOCK ? "gold" : "plain" }] },
-    { left: row2, right: [{ label: "GATES", value: `${c.gates} / ${c.gateTotal}`, tone: c.gates > 0 ? "gold" : "plain" }] },
+    { left: [{ label: "STRETCH", value: `${shown} / ${c.sectionTotal}`, pulse: { id: "swing", tick: state.tick } }], right: [streakChip] },
+    { left: [...row2, { label: "GATES", value: `${c.gates} / ${c.gateTotal}`, tone: c.gates > 0 ? "gold" : "plain" }] },
   ]);
+  // The streak meter: eight segments in an arc under the STREAK chip, one per clean grab of the block of eight.
+  const sw = actionChipWidth(ctx, streakChip);
+  const cx = W / SWING_HUD_SCALE - ACTION_HUD_EDGE - sw / 2;
+  drawStreakMeter(ctx, state, cx, ACTION_HUD_TOP + ACTION_ROW_STEP + ACTION_CHIP_H + 4, 22, still, lite);
   ctx.restore();
 }

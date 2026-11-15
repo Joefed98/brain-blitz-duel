@@ -109,6 +109,29 @@ Today (main e0aa53f2, swingRev 17) | Concept A | New (swingRev 18 on its own dea
 
 **Clip** (the water's movement, the bottom of the play screen over four 1.5 s windows): <img src="swing/water-s2.webp" width="390">
 
+### Stage 2: effects and reveal
+
+Effects (swingRev 18, the game's own renderer on a dealt course's witness; display only, each drawn from the sim moment
+it observes):
+- the vine flexes as it takes the hero's weight (`swing.ropeSnap`);
+- a faint speed streak trails a release fast enough to light a gate (`swing.speedWhoosh`, pitched by speed);
+- the arc meter under STREAK fills a segment per clean grab and bursts gold on the eighth (`swing.streakMeter` up a
+  pentatonic arpeggio, then `swing.streak`); GATES moved beside PAR so the meter sits under STREAK;
+- a vine just out of reach of a press is tinted red for half a second (`swing.outOfReach`);
+- the pterodactyl's shadow sweeps across before its screech and wingbeats (`swing.pteroShadow`);
+- the end's "COURSE CLEARED!" (or "TIME") with the stretches tallying up (`swing.courseCleared`, `swing.stretchTally`).
+
+<img src="swing/fx-s2.webp" width="720">
+
+The reveal's run picture (`SwingRunPicture`, the stored run replayed by the server's own replay): course %, stretches,
+under par and gates big, then the 51 stretches as one path in three rows (gold under par, lime cleared, dashed where the
+run ended, faint never reached; blue drops where the hero fell, a red wedge for a pterodactyl catch, gate posts gold once
+lit), then a legend with the best streak. Before is today's reveal lines; an average and a flawless run:
+
+<img src="swing/reveal-s2-average.webp" width="720">
+
+<img src="swing/reveal-s2-flawless.webp" width="720">
+
 
 ## Moon Climb
 

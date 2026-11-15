@@ -209,6 +209,10 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.ropeSnap` | Action overhaul: every grab, on top of `swing.vineCreak` (swingRev 17) | The vine pulled taut at the grab point | none yet (silent until it has a file) | 20–60 | 200 ms |
 | `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) | The hero flying off the vine | none yet (silent until it has a file) | 0–20 | 450 ms |
 | `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) | COURSE CLEARED! banner | none yet (silent until it has a file) | 0–1 | 1600 ms |
+| `swing.streakMeter` | Action overhaul stage 2: each clean grab (swingRev 17+), a pentatonic step higher up the block of eight | A segment of the arc meter under STREAK lighting gold | none yet (silent until it has a file) | 0–60 | 120 ms |
+| `swing.outOfReach` | Action overhaul stage 2: a press that grabbed nothing, the nearest vine ahead just out of reach (swingRev 17+, live play only) | That vine and its ring tinted red for half a second | none yet (silent until it has a file) | 0–20 | 300 ms |
+| `swing.pteroShadow` | Action overhaul stage 2: the pterodactyl starting the chase (swingRev 17+); its screech and wingbeats follow 1.2 s later | Its shadow sweeping across the canopy | none yet (silent until it has a file) | 0–1 | 1200 ms |
+| `swing.stretchTally` | Action overhaul stage 2: the end banner counting the stretches cleared up, one tick a stretch, rising | "COURSE CLEARED!" (or "TIME") and "n / 51 stretches" | none yet (silent until it has a file) | 0–51 | 90 ms |
 
 Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.starTaken`), dragon (`swing.dragon`), stalactite shake (`swing.rockShake`), stalactite lands and the replays' "dodged" pop (`swing.rockLand`), crash (`swing.crash`).
 
