@@ -11,10 +11,13 @@
  *  4. Par shown in play: pushParFor (pushPar.data.ts) gives the bank's minimum for every layout of both banks and for
  *     live deals read from the public half alone (minPushes stays secret); the data file is up to date; the stage's
  *     pills are Pushes and Par.
- *  5. The reveal: under the solution playing back, the player's own count reads "You: …".
+ *  5. The reveal: Solution / Yours columns for the switch, each board full size; the minimum route as arrow chips; the
+ *     player's final warehouse with the crates not home outlined and the empty marks ringed; the key numbers (Par,
+ *     You, Home, Gold crate, Time left) from the stored grade, the player's own only under Yours; no "×"; for a
+ *     solved and an unfinished answer on today's stamp and on an older one (no gold pair).
  *  6. Help: the help names par as shown, says Undo and Reset give the push back and where the arrows / swipe choice
  *     lives; the intro keeps at most four HOW lines.
- *  7. Art: every sprite exists as a 120 × 120 WebP with alpha within budget; the stage, the reveal and the intro draw
+ *  7. Art: every sprite exists as a 160 × 160 WebP with alpha within budget; the stage, the reveal and the intro draw
  *     them (one worker render per facing, the gold crate and gold mark only for the gold pair); no glow left on any
  *     piece.
  *  8. Sound: push.goldOff (fired when the gold crate leaves its mark) and push.stuck (a slot for the deadlock hint) are
@@ -49,6 +52,7 @@ const { splitPuzzle } = await import("../src/lib/duel/secrets");
 const { PUSH_BANK } = await import("../src/lib/duel/pushBank.server");
 const { PUSH_D4_BANK } = await import("../src/lib/duel/depth4/pushD4Bank.server");
 const { pushPuzzle } = await import("../src/puzzles/push");
+const { SOLUTION_SWITCH_TYPES } = await import("../src/components/duel/SolutionSwitch");
 const { PUSH_SPRITES, PUSH_SPRITE_NAMES, WarehouseBoard } = await import("../src/components/puzzles/pattern/pushArt");
 const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
 const { dealPushEra, pushAnswers, PUSH_LEGACY_SEEDS } = await import("./pattern-overhaul-push-record");
@@ -142,11 +146,94 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
 
 /* ---------------------------------------------------------------- 5. reveal */
 {
-  const p = fixture.puzzles[0]!.puzzle;
-  const html = renderToStaticMarkup(React.createElement(pushPuzzle.Reveal, { timeLimitMs: 120_000, puzzle: p, myAnswer: "", myCorrect: false, myMsRemaining: 0 } as never));
-  check(/You: \d+ \/ \d+ home/.test(html) && html.includes(`Minimum ${p.minPushes} push`), "the unsolved reveal's line doesn't say whose count it is");
-  const sol = decodePushSolution(p.solution ?? "");
-  check(sol.length === p.minPushes, "the stored solution isn't the minimum");
+  check(SOLUTION_SWITCH_TYPES.has("push"), "Heave's reveal isn't on the Solution / Yours switch");
+  const reveal = (puzzle: PushPuzzleData, answer: string | null, extra: Record<string, unknown> | null, msLeft = 0) => {
+    const g2 = answer === null ? null : gradeAnswer(puzzle, answer, msLeft);
+    const stored = extra ?? ((g2?.extra as Record<string, unknown> | undefined) ?? null);
+    return {
+      grade: g2,
+      stored,
+      html: renderToStaticMarkup(
+        React.createElement(pushPuzzle.Reveal, { timeLimitMs: 120_000, puzzle, myAnswer: answer, myCorrect: !!g2?.isCorrect, myMsRemaining: msLeft, myReactionAvgMs: null, myExtra: stored } as never),
+      ),
+    };
+  };
+  const count = (html: string, re: RegExp) => (html.match(re) ?? []).length;
+  const pill = (html: string, key: string) => html.match(new RegExp(`data-push-key="${key}"[^>]*>(.*?)</span></span>`))?.[1]?.replace(/<[^>]+>/g, "") ?? null;
+  // An older stamp: a layout from the first bank, no gold pair, no stamp.
+  const e = PUSH_BANK[3]!;
+  const older = { type: "push", walls: e.walls, crates: e.crates, targets: e.targets, pusher: e.pusher, minPushes: e.minPushes, solution: e.solution } as PushPuzzleData;
+  const live = fixture.puzzles.find((x) => x.era === "live")!.puzzle;
+  const solvedCase = fixture.cases.find((c) => c.era === "live" && c.seed === fixture.puzzles.find((x) => x.puzzle === live)!.seed && c.isCorrect);
+  const unfinishedCase = fixture.cases.find((c) => c.era === "live" && c.seed === fixture.puzzles.find((x) => x.puzzle === live)!.seed && !c.isCorrect && c.answer.length > 0);
+  check(!!solvedCase && !!unfinishedCase, "the fixture lacks a solved and an unfinished answer for the reveal");
+  // The solution's own pushes, as the phone sends them (a walk between pushes), for the older stamp.
+  const walkSolution = (pz: PushPuzzleData) => {
+    const walls = new Set(pz.walls);
+    let state = { pusher: pz.pusher, crates: [...pz.crates] };
+    const out: string[] = [];
+    const behind: Record<string, number> = { U: 9, D: -9, L: 1, R: -1 };
+    for (const m of decodePushSolution(pz.solution ?? "")) {
+      const goal = m.cell + behind[m.dir]!;
+      // BFS for the worker to the cell behind the crate.
+      const prev = new Map<number, [number, string]>([[state.pusher, [-1, ""]]]);
+      const q = [state.pusher];
+      while (q.length && !prev.has(goal)) {
+        const c = q.shift()!;
+        for (const d of ["U", "D", "L", "R"] as const) {
+          const n = c + { U: -9, D: 9, L: -1, R: 1 }[d];
+          if (n < 0 || n > 80 || walls.has(n) || state.crates.includes(n) || prev.has(n)) continue;
+          if ((d === "L" || d === "R") && Math.floor(n / 9) !== Math.floor(c / 9)) continue;
+          prev.set(n, [c, d]);
+          q.push(n);
+        }
+      }
+      const path: string[] = [];
+      for (let c = goal; prev.get(c)![0] !== -1; c = prev.get(c)![0]) path.unshift(prev.get(c)![1]);
+      out.push(...path, m.dir);
+      for (const d of [...path, m.dir]) state = replayPush(pz.walls, pz.targets, state.pusher, state.crates, [d as never]).state;
+    }
+    return out.join("");
+  };
+  const olderSolve = walkSolution(older);
+  check(replayPush(older.walls, older.targets, older.pusher, older.crates, decodePushMoves(olderSolve)).solved, "the older stamp's walked solution doesn't solve");
+  const olderUnfinished = olderSolve.slice(0, Math.floor(olderSolve.length / 2));
+
+  for (const [label, puzzle, answer, msLeft] of [
+    ["live solved", live, solvedCase!.answer, solvedCase!.msLeft],
+    ["live unfinished", live, unfinishedCase!.answer, unfinishedCase!.msLeft],
+    ["older solved", older, olderSolve, 40_000],
+    ["older unfinished", older, olderUnfinished, 0],
+  ] as const) {
+    const { grade: g2, stored, html } = reveal(puzzle, answer, null, msLeft);
+    const solved = !!g2?.isCorrect;
+    check(html.includes(">Solution<") && html.includes(">Yours<"), `${label}: the reveal lacks its Solution / Yours columns`);
+    check(!html.includes("×"), `${label}: a stray × in the reveal`);
+    check(count(html, /class="push-route-chip"/g) === decodePushSolution(puzzle.solution ?? "").length, `${label}: the route strip doesn't hold one chip a push of the solution`);
+    check(html.includes(`data-push-yours-board="${solved ? "solved" : "unfinished"}"`), `${label}: the Yours board isn't the player's ${solved ? "solved" : "unfinished"} warehouse`);
+    const final = replayPush(puzzle.walls, puzzle.targets, puzzle.pusher, puzzle.crates, decodePushMoves(answer));
+    const notHome = final.state.crates.filter((c) => !puzzle.targets.includes(c)).length;
+    check(count(html, /data-push-missed=""/g) === (solved ? 0 : notHome), `${label}: ${count(html, /data-push-missed=""/g)} crates outlined, ${solved ? 0 : notHome} not home`);
+    check(count(html, /data-push-empty-mark=/g) === (solved ? 0 : notHome), `${label}: the empty marks aren't ringed`);
+    if (!solved && notHome) check(html.includes(`data-push-missed-count="${notHome}"`), `${label}: no note on the crates not home`);
+    // The key numbers are the stored grade's.
+    check(pill(html, "par") === `Par ${stored!["minPushes"]}`, `${label}: the Par pill reads ${pill(html, "par")}, the grade stored ${stored!["minPushes"]}`);
+    check(pill(html, "pushes") === `You ${stored!["pushes"]}`, `${label}: the You pill reads ${pill(html, "pushes")}`);
+    check(pill(html, "home") === `Home ${stored!["cratesHome"]} / ${stored!["crates"]}`, `${label}: the Home pill reads ${pill(html, "home")}`);
+    check(solved ? pill(html, "time") === `Time left ${Math.round(msLeft / 1000)} s` : pill(html, "time") === null, `${label}: the Time left pill is wrong`);
+    check((pill(html, "gold") !== null) === (puzzle.pushRev ?? 0) >= 1, `${label}: the gold pill shows on the wrong stamp`);
+    check(/data-push-key="pushes" data-yours-only=""/.test(html) && !/data-push-key="par" data-yours-only/.test(html), `${label}: the player's count isn't marked Yours-only (or par is)`);
+  }
+  // Stored figures win over the phone's replay.
+  const { html: forged } = reveal(live, unfinishedCase!.answer, { ...(gradeAnswer(live, unfinishedCase!.answer, 0).extra as Record<string, unknown>), pushes: 77, minPushes: 31 });
+  check(pill(forged, "pushes") === "You 77" && pill(forged, "par") === "Par 31", "the reveal recomputes its numbers instead of reading the stored grade");
+  // No answer: the solution alone.
+  const none = renderToStaticMarkup(React.createElement(pushPuzzle.Reveal, { timeLimitMs: 120_000, puzzle: live, myAnswer: null, myCorrect: false, myReactionAvgMs: null } as never));
+  check(!none.includes("data-push-yours-board") && none.includes("push-route-chip"), "a reveal with no answer doesn't show the solution alone");
+  // Both boards drawn large: the reveal board takes the space's full width and height, never a half-size copy.
+  check(/\.push-reveal-board \{ width: min\(100cqw, 100cqh, 400px\)/.test(src("src/polish-pattern/push.css")), "the reveal board isn't sized to the whole space");
+  const sol = decodePushSolution(live.solution ?? "");
+  check(sol.length === live.minPushes, "the stored solution isn't the minimum");
 }
 
 /* ---------------------------------------------------------------- 6. help */
@@ -155,6 +242,7 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
   const lines = help.how.map((h) => `${h.action} ${h.detail}`);
   check(lines.some((l) => /Undo and Reset give the push back/.test(l)), "the help doesn't say Undo gives the push back");
   check(lines.some((l) => /^Par is the fewest pushes, shown/.test(l)), "the help doesn't say par is shown");
+  check(lines.some((l) => /^A green tick marks a crate on a mark/.test(l)), "the help doesn't describe the crate-home tick");
   check(lines.some((l) => /game menu \(⋮\) or Settings → Game controls/.test(l)), "the help doesn't say where the arrows / swipe choice is");
   check(help.how.filter((h) => !h.helpOnly).length <= 4, "the intro shows more than four HOW lines");
   check(/\(par, shown\)/.test(PATTERN_STD_HELP.push), "the score help doesn't name par as shown");
@@ -173,12 +261,15 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
     const buf = readFileSync(url);
     total += buf.length;
     const riff = buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP";
-    const vp8x = buf.toString("ascii", 12, 16) === "VP8X";
+    const chunk = buf.toString("ascii", 12, 16);
+    const vp8x = chunk === "VP8X";
     const alpha = vp8x && (buf[20]! & 0x10) !== 0;
-    const w = vp8x ? 1 + buf.readUIntLE(24, 3) : 0;
-    const h = vp8x ? 1 + buf.readUIntLE(27, 3) : 0;
-    check(riff && alpha, `${name}.webp isn't a WebP with alpha`);
-    check(w === 120 && h === 120, `${name}.webp is ${w} × ${h}, not one 120 px cell`);
+    // A full tile (floor, wall) is opaque edge to edge, so the encoder writes a plain lossy WebP (VP8) without alpha.
+    const w = vp8x ? 1 + buf.readUIntLE(24, 3) : chunk === "VP8 " ? buf.readUInt16LE(26) & 0x3fff : 0;
+    const h = vp8x ? 1 + buf.readUIntLE(27, 3) : chunk === "VP8 " ? buf.readUInt16LE(28) & 0x3fff : 0;
+    const fullTile = name === "floor" || name === "wall";
+    check(riff && (alpha || fullTile), `${name}.webp isn't a WebP with alpha`);
+    check(w === 160 && h === 160, `${name}.webp is ${w} × ${h}, not one 160 px cell`);
     check(buf.length <= 25_000, `${name}.webp is ${buf.length} bytes (over 25 KB)`);
   }
   check(total <= 400_000, `the sprites total ${total} bytes`);

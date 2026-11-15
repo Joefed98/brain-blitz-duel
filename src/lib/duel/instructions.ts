@@ -682,6 +682,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
         // The Pattern overhaul (15 Nov 2026, display only): Pushes and Par shown in play; Undo was always a real undo.
         { action: "Par", detail: "is the fewest pushes, shown beside your pushes.", helpOnly: true },
+        { action: "A green tick", detail: "marks a crate on a mark; the gold crate goes on the gold mark.", helpOnly: true },
         { action: "Undo and Reset", detail: "give the push back: only the pushes left on the board count.", helpOnly: true },
         { action: "Arrows or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
       ],

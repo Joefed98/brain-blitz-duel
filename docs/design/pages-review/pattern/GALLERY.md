@@ -185,22 +185,39 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 <!-- heave:start -->
 ## Heave
 
-| Before (main) | After |
-|---|---|
-| <img src="../../game-reviews/img/pattern/push-1-start.webp" width="180" alt="Heave before, start"> | <img src="push-after-intro.webp" width="180" alt="Heave after, intro"> |
-| <img src="../../game-reviews/img/pattern/push-2-mid.webp" width="180" alt="Heave before, mid-play"> | <img src="push-after-play.webp" width="180" alt="Heave after, mid-play"> |
-| <img src="../../game-reviews/img/pattern/push-3-end.webp" width="180" alt="Heave before, end"> | <img src="push-after-reveal.webp" width="180" alt="Heave after, reveal"> |
+**The look: today | concept A | new** (390 × 844, mid-play)
 
-- **Look (A):** every tile and piece is a Blender render, one cell each (`docs/design/game-art/pattern/source/push.py`,
-  `public/pattern-art/push/`, 10 WebPs, 35 KB): brick wall tops whose courses run on from cell to cell, worn stone
-  flags, dark painted marks with light tape corners, wooden crates, and the gold crate and gold mark in real gold. The
-  worker (white hard hat, orange hi-vis vest, navy arms reaching to push) is rendered once per facing, so the light
-  stays top left as it turns. A crate on a mark carries a bold green tick; no glows anywhere.
+| Today | Concept A | New |
+|---|---|---|
+| <img src="../../game-reviews/img/pattern/push-2-mid.webp" width="180" alt="Heave today, mid-play"> | <img src="push-concept-A.webp" width="180" alt="Heave concept A"> | <img src="push-after-play.webp" width="180" alt="Heave new, mid-play"> |
+| <img src="../../game-reviews/img/pattern/push-1-start.webp" width="180" alt="Heave today, start"> | | <img src="push-after-intro.webp" width="180" alt="Heave new, intro"> |
+
+**The reveal: before | after**
+
+| Before (main) | After: Solution | After: Yours |
+|---|---|---|
+| <img src="push-reveal-before-unfinished.webp" width="180" alt="Heave reveal before, unfinished"> | <img src="push-reveal-after-unfinished-solution.webp" width="180" alt="Heave reveal after, unfinished, Solution"> | <img src="push-reveal-after-unfinished-yours.webp" width="180" alt="Heave reveal after, unfinished, Yours"> |
+| (solved: the same single board) | <img src="push-reveal-after-solved-solution.webp" width="180" alt="Heave reveal after, solved, Solution"> | <img src="push-reveal-after-solved-yours.webp" width="180" alt="Heave reveal after, solved, Yours"> |
+
+- **Look (A, the richness pass):** every tile and piece is a Blender render under the rich studio light, one cell each
+  at 160 px (`docs/design/game-art/pattern/source/push.py`, `public/pattern-art/push/`, 10 WebPs, 54,006 bytes):
+  bevelled brick with depth (whole bricks cropped at the cell edge, so courses run on from cell to cell), sandstone
+  flags with a worn surface, wooden crates with grain under a satin coat, the gold crate and gold mark in polished gold
+  that catches the light, dark marks with light tape corners. The worker (glossy white hard hat, orange hi-vis vest,
+  navy arms reaching to push) is rendered once per facing, so the light stays top left. A crate on a mark carries a
+  bold green tick; no glows anywhere.
+- **Beside concept A:** the same brick, sand floor, wooden crates and dark marks; the walls read as brick tops rather
+  than raised blocks, and the worker is a person where the concept had a gold token (so the gold crate stays the only
+  gold piece on the floor).
 - **Pushes and Par** are the pills during play (Pushes red once over par); par is the fewest pushes, looked up on the
   phone from the dealt layout (`pushPar.ts`, a count only, never the route). The Moves pill made way for it.
-- **Undo** always gave the push back; the help now says so, and where the arrows / swipe choice lives.
+- **Undo** always gave the push back; the help now says so, describes the crate-home tick, and says where the
+  arrows / swipe choice lives.
 - **Controls:** Undo and Reset in champagne gold on navy.
-- **Reveal:** under the minimum solution playing back, the player's own count reads "You: 0 / 5 home".
+- **Reveal:** the Solution / Yours switch, one board at a time at full size. Solution: the minimum solution plays back
+  with its pushes as a strip of arrow chips (the push just played in gold). Yours: the player's final warehouse, every
+  crate not on a mark outlined red and every empty mark ringed with a dashed red line. Key numbers as pills from the
+  stored grade: Par, You (pushes), Home, Gold crate, Time left (the player's own only under Yours).
 - **Sound:** the gold crate pushed off its mark (`push.goldOff`), a slot for the deadlock creak (`push.stuck`), and
   lines for the footstep, the crate's scrape and the lights coming on at the solve.
 - No stamp: nothing Heave deals or grades changed.
