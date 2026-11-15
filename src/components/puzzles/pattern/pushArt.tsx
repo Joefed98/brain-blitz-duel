@@ -4,19 +4,12 @@
  * crates, the gold crate and the worker, each image drawn inside its own cell and moved with CSS transforms between
  * the cells the shared push rules already decided. Nothing here reads or changes moves, pushes or the solved verdict.
  */
-import { useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import type { SlideDir } from "@/lib/duel/types";
+import { pushCrateHome, pushGoldDim, pushMarkGlow } from "./pushFx";
 
 const U = 20; // one cell in SVG units
-
-function reducedMotion(): boolean {
-  try {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
-}
 
 /** Heave's rendered sprites (docs/design/game-art/pattern/source/push.py; the Pattern overhaul, 15 Nov 2026). */
 export const PUSH_ART_BASE = "/pattern-art/push";
@@ -93,13 +86,15 @@ function WarehouseFloor({
       {lamps.map((x, index) => (
         <g key={`l${index}`}>
           <rect x={x - 5} y="0.8" width="10" height="3.4" rx="1.2" fill="#2a2d33" stroke="#0e0f12" strokeWidth="0.5" />
+          <rect x={x - 4} y="2.1" width="8" height="1.4" rx="0.7" className="push-lamp-bulb" />
+          {/* The lit bulb over it: unseen until the solve switches the lights on (its opacity only). */}
           <rect
             x={x - 4}
             y="2.1"
             width="8"
             height="1.4"
             rx="0.7"
-            className="push-lamp-bulb"
+            className="push-lamp-lit"
             style={{ "--lamp": index } as CSSProperties}
           />
         </g>
@@ -146,6 +141,9 @@ export function WarehouseBoard({
   solveFx = false,
   gold,
   missed,
+  lit = false,
+  goldOff = 0,
+  moveFx = false,
 }: {
   walls: number[];
   targets: number[];
@@ -160,6 +158,12 @@ export function WarehouseBoard({
   /** The answer reveal (the Pattern overhaul, 15 Nov 2026): a player's crates not home (indices into `crates`), outlined
    *  red, and the marks left empty (cells), ringed; display only. */
   missed?: { crates: number[]; marks: number[] } | undefined;
+  /** Stage 2: the warehouse lights stay on once the board is solved (the solve switches them on). */
+  lit?: boolean;
+  /** Stage 2: a new key dims the gold mark (the stage's moment: a push took the gold crate off it). */
+  goldOff?: number;
+  /** Stage 2: the last change was a push (a crate landing then thumps and its mark glows; not after Undo or Reset). */
+  moveFx?: boolean;
 }) {
   const id = useId().replace(/:/g, "");
   const rows = Math.ceil(cells / cols);
@@ -180,10 +184,14 @@ export function WarehouseBoard({
     lastPusher.current = pusher;
   }, [pusher]);
 
-  // A crate that lands on a marking thumps down with a puff of dust.
+  // A crate that lands on a marking thumps down (the kit's drop) with a puff of dust, and the mark glows.
   const crateNodes = useRef<(HTMLDivElement | null)[]>([]);
   const wasHome = useRef<boolean[] | null>(null);
   const [puffs, setPuffs] = useState<number[]>([]);
+  const [glows, setGlows] = useState<{ cell: number; key: number }[]>([]);
+  const glowKey = useRef(0);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const homeFlags = crates.map((cell) => targets.includes(cell));
   const homeKey = homeFlags.map((home) => (home ? 1 : 0)).join("");
   useLayoutEffect(() => {
@@ -191,16 +199,20 @@ export function WarehouseBoard({
     wasHome.current = homeFlags;
     if (!before) return;
     const landed = homeFlags.map((home, index) => home && !before[index]);
-    if (!landed.some(Boolean)) return;
-    landed.forEach((hit, index) => hit && thump(crateNodes.current[index], 120));
+    if (!moveFx || !landed.some(Boolean)) return;
+    landed.forEach((hit, index) => hit && pushCrateHome(crateNodes.current[index]));
     setPuffs((current) => homeFlags.map((_, index) => (current[index] ?? 0) + (landed[index] ? 1 : 0)));
+    const fresh = crates.flatMap((cell, index) => (landed[index] ? [{ cell, key: ++glowKey.current }] : []));
+    setGlows((current) => [...current, ...fresh]);
+    const keys = new Set(fresh.map((g) => g.key));
+    timers.current.push(setTimeout(() => setGlows((current) => current.filter((g) => !keys.has(g.key))), 900));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- homeKey summarises homeFlags
   }, [homeKey]);
 
-  // The solve: every crate thumps in turn, then the lights come on along the row.
+  // The solve: every crate thumps in turn (the kit's drop), then the lights come on along the row.
   useLayoutEffect(() => {
     if (!solveFx) return;
-    crateNodes.current.forEach((node, index) => thump(node, 140 + index * 90));
+    crateNodes.current.forEach((node, index) => timers.current.push(setTimeout(() => pushCrateHome(node), 140 + index * 90)));
     setPuffs((current) => crates.map((_, index) => (current[index] ?? 0) + 1));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per solve moment
   }, [solveFx]);
@@ -209,11 +221,26 @@ export function WarehouseBoard({
     <div
       className="push-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full overflow-hidden rounded-[6px]"
       data-solve-fx={solveFx ? "true" : undefined}
+      data-lit={solveFx || lit ? "true" : undefined}
     >
       {floor}
+      {/* The solve: the warehouse lights come on, a wash of light over the floor (under the pieces; opacity only). */}
+      {solveFx || lit ? (
+        <div className="push-lights pointer-events-none absolute inset-0" aria-hidden="true">
+          {lamps.map((x, index) => (
+            <span
+              key={index}
+              className="push-light-pool"
+              style={{ left: `${(x / (cols * U)) * 100}%`, "--lamp": index } as CSSProperties}
+            />
+          ))}
+        </div>
+      ) : null}
+      {gold && goldOff > 0 ? <GoldDim key={goldOff} style={pieceStyle(gold.target, cols, rows)} /> : null}
       {crates.map((cell, index) => (
         <div
           key={index}
+          data-push-crate=""
           className={`push-piece${gold?.crate === index ? " d4-gold-crate" : ""}`}
           data-gold-home={gold?.crate === index && cell === gold.target ? "" : undefined}
           data-push-missed={missed?.crates.includes(index) ? "" : undefined}
@@ -224,6 +251,10 @@ export function WarehouseBoard({
             {(puffs[index] ?? 0) > 0 && <DustPuff key={puffs[index]} />}
           </div>
         </div>
+      ))}
+      {/* A mark a crate just landed on lights up round the crate (over its edges, inside the cell). */}
+      {glows.map((g) => (
+        <MarkGlow key={g.key} style={pieceStyle(g.cell, cols, rows)} gold={g.cell === gold?.target} />
       ))}
       {missed?.marks.map((cell) => (
         <div key={`m${cell}`} className="push-piece push-missed-mark" data-push-empty-mark={cell} style={pieceStyle(cell, cols, rows)} aria-hidden="true" />
@@ -236,17 +267,6 @@ export function WarehouseBoard({
           <div className="push-piece-inner">
             <WorkerArt facing={facing} />
           </div>
-        </div>
-      )}
-      {solveFx && (
-        <div className="push-lights pointer-events-none absolute inset-0" aria-hidden="true">
-          {lamps.map((x, index) => (
-            <span
-              key={index}
-              className="push-light-pool"
-              style={{ left: `${(x / (cols * U)) * 100}%`, "--lamp": index } as CSSProperties}
-            />
-          ))}
         </div>
       )}
     </div>
@@ -271,15 +291,28 @@ function DustPuff() {
   );
 }
 
-function thump(node: HTMLDivElement | null | undefined, delay: number) {
-  if (!node?.animate || reducedMotion()) return;
-  node.animate(
-    [
-      { transform: "scale(1)" },
-      { transform: "scale(1.12)", offset: 0.35 },
-      { transform: "scale(0.93)", offset: 0.7 },
-      { transform: "scale(1)" },
-    ],
-    { duration: 300, delay, easing: "ease-out" },
+/** The glow of a mark a crate just landed on (pushMarkGlow on mount): a warm light round the crate's edges, inside the mark's cell. */
+function MarkGlow({ style, gold }: { style: CSSProperties; gold: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    pushMarkGlow(ref.current?.firstElementChild);
+  }, []);
+  return (
+    <div ref={ref} className="push-piece push-mark-glow-cell" style={style} aria-hidden="true">
+      <span className={`push-mark-glow${gold ? " is-gold" : ""}`} />
+    </div>
+  );
+}
+
+/** The gold mark dimming as the gold crate is pushed off it (pushGoldDim on mount: a shade over the mark, then gone). */
+function GoldDim({ style }: { style: CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    pushGoldDim(ref.current?.firstElementChild);
+  }, []);
+  return (
+    <div ref={ref} className="push-piece push-gold-dim-cell" style={style} aria-hidden="true">
+      <span className="push-gold-dim" />
+    </div>
   );
 }

@@ -384,7 +384,10 @@ stops:
 | Before (main) | After: Solution | After: Yours |
 |---|---|---|
 | <img src="push-reveal-before-unfinished.webp" width="180" alt="Heave reveal before, unfinished"> | <img src="push-reveal-after-unfinished-solution.webp" width="180" alt="Heave reveal after, unfinished, Solution"> | <img src="push-reveal-after-unfinished-yours.webp" width="180" alt="Heave reveal after, unfinished, Yours"> |
-| (solved: the same single board) | <img src="push-reveal-after-solved-solution.webp" width="180" alt="Heave reveal after, solved, Solution"> | <img src="push-reveal-after-solved-yours.webp" width="180" alt="Heave reveal after, solved, Yours"> |
+| <img src="push-reveal-before-solved.webp" width="180" alt="Heave reveal before, solved"> | <img src="push-reveal-after-solved-solution.webp" width="180" alt="Heave reveal after, solved, Solution"> | <img src="push-reveal-after-solved-yours.webp" width="180" alt="Heave reveal after, solved, Yours"> |
+
+(Main's solved reveal, shot on origin/main by solving the practice example: the same single board as the unfinished
+one, plus a "27 pushes · the minimum" line.)
 
 - **Look (A, the richness pass):** every tile and piece is a Blender render under the rich studio light, one cell each
   at 160 px (`docs/design/game-art/pattern/source/push.py`, `public/pattern-art/push/`, 10 WebPs, 54,006 bytes):
@@ -408,6 +411,29 @@ stops:
 - **Sound:** the gold crate pushed off its mark (`push.goldOff`), a slot for the deadlock creak (`push.stuck`), and
   lines for the footstep, the crate's scrape and the lights coming on at the solve.
 - No stamp: nothing Heave deals or grades changed.
+
+### Stage 2: the effects
+
+| The clip (4 s: the last crates of the practice example, a crate home, the solve's lights) | Still: a crate home, its mark glowing |
+|---|---|
+| <video src="push-fx-clip.mp4" width="180" controls muted loop playsinline poster="push-fx-still.webp"></video><br>[MP4, 4 s](push-fx-clip.mp4) | <img src="push-fx-still.webp" width="180"> |
+
+Every effect plays on a piece's own art or the floor's own light layers (`src/components/puzzles/pattern/pushFx.ts`, the
+effects kit's variants; transform and opacity only), never on the board, a cell box or a control; every step is taken
+at once, as before:
+
+- **A step:** a light footstep (`push.step`), nothing else.
+- **A push:** the heavy scrape (`push.push`), and the crate starts its glide 60 ms after the worker's, so the worker is
+  seen to lean in and heave it.
+- **A crate home:** the thump (`push.home`), the kit's drop on the crate (a small squash), the dust as before, and the
+  mark lighting up warm round the crate and fading back. Never when Undo or Reset puts a crate back on a mark.
+- **The gold crate pushed off its gold mark:** its sound (`push.goldOff`) and the gold mark dimming for a moment; no shake.
+- **A crate stuck where it can't leave:** not yet (it comes with the levels; `push.stuck` stays unfired).
+- **The solve:** the warehouse lights come on along the top wall (`push.solve`), each lamp's pool flickering on in turn
+  as a warm wash over the floor under the pieces, and they stay on; the reveal's result card plays the kit's win
+  (silent).
+- **Reduced motion:** each is a 120 ms crossfade (no movement, no dust); the lights are simply on.
+- The bulbs' old `fill` animation is gone: each lit bulb is its own layer, its opacity only.
 <!-- heave:end -->
 
 <!-- lightbender:start -->
