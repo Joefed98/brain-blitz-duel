@@ -28,7 +28,7 @@ import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_S
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE } from "@/lib/arcade/orbit";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
@@ -422,13 +422,22 @@ export function pinOrbitPreGrace(on: boolean): boolean {
   return setDealPin("orbitPreGrace", on);
 }
 
+/**
+ * Checks written for orbitRev 15 (grace): deal the fuel-bank course on orbitRev 15 as rooms did before the bigger planets
+ * (the Action overhaul's stage 3, 15 Nov 2026; returns the previous setting).
+ */
+export function pinOrbitPreBig(on: boolean): boolean {
+  return setDealPin("orbitPreBig", on);
+}
+
 export function generateOrbit(): OrbitPuzzleData {
   const seed = arcadeSeed();
   // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (zigzag,
   // proved on rev 14's rules: scripts/orbit-fuel-bank.ts), picked by the seed, with its holes and features.
   const fuel = dealPinned("orbitPreFuel") ? null : orbitFuelCourseForSeed(seed);
   // Rev 15 (grace, the Action overhaul, 15 Nov 2026): the same fuel-bank course; a slip respawns instead of ending the run.
-  if (fuel) return { type: "orbit", seed, orbitRev: dealPinned("orbitPreGrace") ? ORBIT_REV_FUEL : ORBIT_REV_GRACE, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
+  // Rev 16 (bigger planets, stage 3, 15 Nov 2026): rev 15's play on the same course, the planets drawn bigger.
+  if (fuel) return { type: "orbit", seed, orbitRev: dealPinned("orbitPreGrace") ? ORBIT_REV_FUEL : dealPinned("orbitPreBig") ? ORBIT_REV_GRACE : ORBIT_REV_BIG, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
   // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
   // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
   const xp = orbitXpCourseForSeed(seed);

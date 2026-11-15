@@ -46,7 +46,7 @@ import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
 import { tiltBankSeedFor } from "../../src/lib/duel/tiltBank.server";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, orbitXpRev } from "../../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, orbitXpRev } from "../../src/lib/arcade/orbit";
 import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "../../src/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "../../src/lib/duel/orbitFuelBank.server";
@@ -255,9 +255,10 @@ export const GAMES: GameSpec[] = [
     // whatever the mode (--rev=now included); every earlier revision keeps its seeds.
     // orbitRev 14 (the fuel meter): the fuel-bank course rooms deal for the n-th room seed.
     // orbitRev 15 (grace, the Action overhaul): the same fuel-bank course as orbitRev 14 for the same room seed.
-    seedForRev: (n, rev) => ((rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE) ? ORBIT_FUEL_BANK[roomSeed(n) % ORBIT_FUEL_BANK.length]!.seed : rev === ORBIT_REV_STD ? ORBIT_XP_BANK[roomSeed(n) % ORBIT_XP_BANK.length]!.seed : undefined),
+    // orbitRev 16 (bigger planets, stage 3): the same course again.
+    seedForRev: (n, rev) => ((rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG) ? ORBIT_FUEL_BANK[roomSeed(n) % ORBIT_FUEL_BANK.length]!.seed : rev === ORBIT_REV_STD ? ORBIT_XP_BANK[roomSeed(n) % ORBIT_XP_BANK.length]!.seed : undefined),
     gameFor: (rev, seed) => {
-      if ((rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE)) {
+      if ((rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG)) {
         const e = orbitFuelEntry(seed);
         const start = orbitRev3StartFor(rev, decodeOrbitExtras(e.extras))!;
         return { ...orbitRev3Game, init: () => start(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes)) };
@@ -268,7 +269,7 @@ export const GAMES: GameSpec[] = [
     checkpoint: orbitCheckpoint,
     encode: (run) => encodeOrbitRun(run),
     replay: (seed, raw, rev) =>
-      (rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE)
+      (rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG)
         ? replayOrbitRun(seed, raw, rev, orbitFuelEntry(seed).planets, orbitFuelEntry(seed).holes, orbitFuelEntry(seed).extras)
         : replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes, orbitXpRev(rev) ? orbitXpExtras(seed) : undefined),
   },

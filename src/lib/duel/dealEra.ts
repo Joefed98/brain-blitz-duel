@@ -80,6 +80,8 @@ export const DEAL_PINS = {
   flipPreGrace: { texts: false },
   /** arcade.server.ts: Moon Climb ricoRev 3, before the bigger ninja (the Action overhaul's stage 2, 15 Nov 2026). */
   ricoPreBig: { texts: false },
+  /** arcade.server.ts: Orbit orbitRev 15, before the bigger planets (the Action overhaul's stage 3, 15 Nov 2026). */
+  orbitPreBig: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

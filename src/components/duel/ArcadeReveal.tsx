@@ -367,13 +367,15 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
 
+        {/* The game's own picture of the run (the Action overhaul, stages 2–3): its big numbers and the run as one picture,
+            straight under the score, with the stored breakdown in the shared layout below it (15 Nov 2026: no block of
+            part lines between the score and the picture). */}
+        {myAnswer ? <GameRunPicture puzzle={puzzle} myAnswer={myAnswer} /> : null}
+
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
         {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}
         {summary && myReveal !== storedReveal && storedReveal ? <span hidden data-stored-lines={storedReveal.lines.join("\n")} /> : null}
-
-        {/* The game's own picture of the run (the Action overhaul, stage 2): one picture, under the score and breakdown. */}
-        {myAnswer ? <GameRunPicture puzzle={puzzle} myAnswer={myAnswer} /> : null}
 
         {/* The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot). */}
         {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}

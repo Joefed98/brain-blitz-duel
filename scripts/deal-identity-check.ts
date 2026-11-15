@@ -123,7 +123,8 @@ tasks.push({
     // skylinePreLives (skylineRev 11), 29.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): ricoPreBig (ricoRev 4), 30.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (swingRev 18), 31.
-    ok(names.size === 31, `31 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (orbitRev 16), 32.
+    ok(names.size === 32, `32 era switches (${names.size})`);
   },
 });
 

@@ -25,7 +25,7 @@ import { orbitArtGame, orbitDrawHFor, orbitEndHoldMs, orbitRev3ArtGame } from "@
 import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldWFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 import { ORBIT_INTRO_COURSE } from "./orbitIntroCourse.data";
-import { ORBIT_REV_GRACE, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
+import { ORBIT_REV_BIG, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 import { FxCountUp } from "@/components/fx/GameFx";
 import { preloadOrbitPlanetMaps } from "@/lib/arcade/orbitPlanets.renderer";
@@ -41,12 +41,12 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureP
 preloadOrbitPlanetMaps();
 
 /**
- * The intro still (the Action overhaul, 15 Nov 2026): the live renderer on the dealt revision (orbitRev 15), on the fixed
+ * The intro still (the Action overhaul, 15 Nov 2026): the live renderer on the dealt revision (orbitRev 16), on the fixed
  * intro example's course (ORBIT_INTRO_COURSE), two seconds in: the rendered planets, their orbits, the stardust ahead,
  * the HUD and the fuel meter, as a round opens.
  */
 const introGame = (() => {
-  const start = orbitStartForPuzzle({ orbitRev: ORBIT_REV_GRACE, ...(ORBIT_INTRO_COURSE as unknown as Pick<OrbitPuzzleData, "planets" | "holes" | "extras">) });
+  const start = orbitStartForPuzzle({ orbitRev: ORBIT_REV_BIG, ...(ORBIT_INTRO_COURSE as unknown as Pick<OrbitPuzzleData, "planets" | "holes" | "extras">) });
   return { ...orbitRev3ArtGame, init: () => start!() } as unknown as typeof orbitRev3ArtGame;
 })();
 
@@ -54,8 +54,8 @@ function IntroExample() {
   return (
     <ArtStill
       game={introGame as never}
-      worldW={orbitWorldWFor(ORBIT_REV_GRACE)}
-      worldH={orbitDrawHFor(ORBIT_REV_GRACE)}
+      worldW={orbitWorldWFor(ORBIT_REV_BIG)}
+      worldH={orbitDrawHFor(ORBIT_REV_BIG)}
       ticks={120}
       input={null as never}
       shownW={180}
@@ -339,6 +339,9 @@ export function OrbitRunPicture({ puzzle, myAnswer }: RunPictureProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "orbit") return null;
+  // The expansion's view (orbitRev 12+): the run's picture (stage 2), the same the arcade reveal draws, never the old
+  // block of text lines (15 Nov 2026). Earlier revisions keep their lines.
+  if (orbitXpRev(puzzle.orbitRev)) return myAnswer ? <OrbitRunPicture puzzle={puzzle} myAnswer={myAnswer} /> : null;
   const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">

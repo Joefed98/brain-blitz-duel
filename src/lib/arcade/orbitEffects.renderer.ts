@@ -1,6 +1,6 @@
 /**
  * Orbit's in-world effects (the Action overhaul, stage 2, 15 Nov 2026; display only, drawn by Orbit's own renderer on the
- * expansion's view, orbitRev 12–15). Each observes the sim (its ticks, counters and fuel) and never writes to it; no glow
+ * expansion's view, orbitRev 12–16). Each observes the sim (its ticks, counters and fuel) and never writes to it; no glow
  * halos or glare; reduced motion gets the calm version (a still mark, no movement); every motion is over within 900 ms.
  *
  *  - Launch: a thruster puff where the rocket left its orbit (orbit.launch, and the orbit.thrust hiss in flight).

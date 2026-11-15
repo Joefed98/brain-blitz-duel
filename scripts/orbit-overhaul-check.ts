@@ -12,8 +12,8 @@
  *     no input pattern ends a run before the sun or the buzzer; with no slip orbitRev 15 plays orbitRev 14 tick for tick.
  *  3. The bank: every fuel-bank course's witness replays through the server on orbitRev 15 to 200 with every feature;
  *     the dealt clock stays within 120 s; "Stargazer" (all stardust) is met by those runs as the server grades them.
- *  4. Dealing: rooms deal orbitRev 15 on a fuel-bank course; pinOrbitPreGrace deals orbitRev 14; LIVE_BANDS and
- *     ORBIT_STD carry 15; PRACTICE_STAMPS too.
+ *  4. Dealing: rooms dealt orbitRev 15 on a fuel-bank course (pinOrbitPreBig since stage 3); pinOrbitPreGrace deals
+ *     orbitRev 14; LIVE_BANDS, ORBIT_STD and PRACTICE_STAMPS carry the live 16.
  *  5. The checkpoint guard: the stage's SET CHECKPOINT (both placements) is the hold button, which sends only after
  *     ORBIT_CHECKPOINT_HOLD_MS (≥ 300 ms), never on press.
  *  6. Display: the HUD is at most two rows of at most two pills, 28 px or taller (no text under 12 px on a 375-wide
@@ -28,6 +28,12 @@
  *     sun with no slip, and a dry release as one out-of-fuel slip; the course map's four columns; the run picture with
  *     big numbers; the maps preloaded with the chunk; every effect within 900 ms, still under reduced motion and never
  *     writing state; the catch lock on every catch; the sun's bloom; Orbit edgeless with its own moment ring.
+ *  9. Stage 3 (15 Nov 2026): orbitRev 16's bigger planets: 120 runs on orbitRev 12–15 recorded on 329286de
+ *     (scripts/fixtures/orbit-big-legacy.json, scripts/orbit-big-record.ts) replay exactly, and the orbitRev 15 ones play
+ *     the same on 16; all 96 fuel-bank witnesses at 200 on 16 (re-proved, tick for tick as on 15); Stargazer; the bodies
+ *     140 % where the path leaves the rocket room, never smaller, clear of neighbours and features; dealing and the
+ *     orbitPreBig pin; the bigger planets drawn inside their circles; the reveal's picture under the score with the
+ *     breakdown below and no old lines; the sun's 1.5 s end hold.
  *
  *   bun scripts/orbit-overhaul-check.ts
  */
@@ -35,7 +41,7 @@ import { readFileSync } from "node:fs";
 import { createCanvas } from "@napi-rs/canvas";
 
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_TOTAL, innerLobe } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_TOTAL, innerLobe } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitExtras,
   decodeOrbitHoles,
@@ -54,7 +60,7 @@ import { orbitCheckpointHoldDone, ORBIT_CHECKPOINT_HOLD_MS } from "../src/lib/ar
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../src/lib/duel/orbitFuelBank.server";
-import { generateOrbit, pinOrbitPreGrace } from "../src/lib/duel/arcade.server";
+import { generateOrbit, pinOrbitPreBig, pinOrbitPreGrace } from "../src/lib/duel/arcade.server";
 import { gradeAnswer } from "../src/lib/duel/gradeAnswer.server";
 import { PRACTICE_CHALLENGES, goalMet } from "../src/lib/duel/practiceChallenges";
 import { PRACTICE_STAMPS } from "../src/lib/duel/practiceStamps.data";
@@ -236,17 +242,22 @@ const course = ORBIT_FUEL_BANK[0]!;
 /* 4. Dealing. */
 {
   let grace = 0;
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal orbitRev 16 (bigger
+  // planets, stage 3) since; orbitRev 15's deal is proved here through pinOrbitPreBig, and section 9 proves orbitRev 16's
+  // deal, LIVE_BANDS, ORBIT_STD and PRACTICE_STAMPS.
+  const wasBig = pinOrbitPreBig(true);
   for (let k = 0; k < 40; k++) {
     const p = generateOrbit();
     if (p.orbitRev === ORBIT_REV_GRACE && ORBIT_FUEL_BANK.some((e) => JSON.stringify(e.planets) === JSON.stringify(p.planets))) grace++;
   }
-  ok(grace === 40, `rooms deal orbitRev 15 on a fuel-bank course (${grace} / 40)`);
+  ok(grace === 40, `rooms dealt orbitRev 15 on a fuel-bank course (pinOrbitPreBig; ${grace} / 40)`);
   const was = pinOrbitPreGrace(true);
   const old = generateOrbit();
   pinOrbitPreGrace(was);
+  pinOrbitPreBig(wasBig);
   ok(old.orbitRev === ORBIT_REV_FUEL, "pinOrbitPreGrace deals orbitRev 14");
-  ok((LIVE_BANDS as Record<string, { rev: number }>).orbit!.rev === ORBIT_REV_GRACE && ORBIT_STD.rev === ORBIT_REV_GRACE, "LIVE_BANDS and ORBIT_STD carry orbitRev 15");
-  ok(String((PRACTICE_STAMPS as Record<string, string>).orbit).split(" ").includes(`orbitRev=${ORBIT_REV_GRACE}`), "PRACTICE_STAMPS carry orbitRev 15");
+  ok((LIVE_BANDS as Record<string, { rev: number }>).orbit!.rev === ORBIT_REV_BIG && ORBIT_STD.rev === ORBIT_REV_BIG, "LIVE_BANDS and ORBIT_STD carry orbitRev 16 (orbitRev 15's parts)");
+  ok(String((PRACTICE_STAMPS as Record<string, string>).orbit).split(" ").includes(`orbitRev=${ORBIT_REV_BIG}`), "PRACTICE_STAMPS carry orbitRev 16");
 }
 
 /* 5. The checkpoint guard. */
@@ -595,8 +606,211 @@ const popcount = (n: number) => { let c = 0; for (let v = n >>> 0; v; v &= v - 1
   }
 }
 
+/* 9. Stage 3 (15 Nov 2026): orbitRev 16's bigger planets, the reveal without its block of lines, the sun's end hold. */
+{
+  const big = await import("../src/lib/arcade/orbit");
+  const { initBigFrom } = await import("../src/lib/arcade/orbitRev3");
+  const FP = 256;
+  const { orbitExtent, orbitBeltRadius, orbitLobes, orbitBigPlanets, orbitPathClearance, ORBIT_BIG_PCT, ORBIT_BIG_AIR, ORBIT_EIGHT } = big;
+  const { ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_R } = await import("../src/lib/arcade/orbitRev3");
+  const { DEAL_PINS } = await import("../src/lib/duel/dealEra");
+  const bigStart = (e: OrbitFuelBankEntry) => initBigFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras));
+  /** Plays `events` on orbitRev 16 as the phone does and grades the log through the server's replay on `rev`. */
+  const bigRun = (e: OrbitFuelBankEntry, events: ArcadeInputEvent[], rev = ORBIT_REV_BIG) => {
+    const at = new Map(events.map((x) => [x.t, x]));
+    let s = bigStart(e);
+    const checkpoints: unknown[] = [];
+    while (!s.ended && s.tick < orbitRev3Game.runTicks) {
+      s = step(s, at.get(s.tick + 1) ?? null);
+      if (s.tick % 300 === 0) checkpoints.push(orbitCheckpoint(s as never));
+    }
+    const raw = encodeOrbitRun({ seed: e.seed, claimedScore: orbitRev3Game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
+    const r = replayOrbitRun(e.seed, raw, rev, e.planets, e.holes, e.extras);
+    return { raw, score: r.score, flagged: Boolean(r.flagged), state: r.state as OrbitRev3State };
+  };
+
+  // a. Older stamps replay exactly: 120 runs on orbitRev 12, 13, 14 and 15 recorded on 329286de, before this change.
+  {
+    type Run = { rev: number; seed: number; kind: string; events: ArcadeInputEvent[]; score: number; checkpoint: { checksum: number }; endTick: number };
+    const fx = JSON.parse(readFileSync("scripts/fixtures/orbit-big-legacy.json", "utf8")) as { recordedOn: string; runs: Run[] };
+    const revs = new Set(fx.runs.map((r) => r.rev));
+    const same = fx.runs.filter((run) => legacyXp(run)).length;
+    ok(fx.recordedOn === "329286de" && fx.runs.length === 120 && revs.size === 4 && revs.has(ORBIT_REV_GRACE), `the stage-3 fixture holds 120 runs on orbitRev 12–15 recorded on 329286de (${fx.runs.length})`);
+    ok(same === fx.runs.length, `every pre-stage-3 run replays to the same score, end tick and checksum (${same} / ${fx.runs.length})`);
+    // The same orbitRev 15 logs (bots, a random tapper with its slips and respawns, a checkpoint) on orbitRev 16: the same play.
+    let same16 = 0, n16 = 0;
+    for (const run of fx.runs.filter((r) => r.rev === ORBIT_REV_GRACE)) {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === run.seed);
+      if (!e) continue;
+      n16++;
+      const r = bigRun(e, run.events);
+      if (r.score === run.score && r.state.tick === run.endTick && orbitCheckpoint(r.state as never).checksum === run.checkpoint.checksum) same16++;
+    }
+    ok(n16 === 30 && same16 === n16, `every orbitRev 15 log plays the same on orbitRev 16: score, end tick and checksum (${same16} / ${n16})`);
+  }
+
+  // b. The bank re-proved once on orbitRev 16: every course's witness reaches 200 through the server replay with every
+  // feature, tick for tick as on orbitRev 15; Stargazer is met as the server grades it.
+  {
+    let full = 0, same = 0, star = 0;
+    const stargazer = PRACTICE_CHALLENGES.find((c) => c.type === "orbit" && c.name === "Stargazer");
+    for (const e of ORBIT_FUEL_BANK) {
+      const events = e.taps.map((t) => ev(t, ORBIT_INPUT_TAP));
+      const r = bigRun(e, events);
+      const c = orbitXpCounts(r.state);
+      if (!r.flagged && r.score === 200 && r.state.finished === 1 && r.state.big === 1 && c.dust === 30 && c.slings === 4 && c.threads === 3) full++;
+      const old = serverRun(e, events, ORBIT_REV_GRACE);
+      if (old.score === r.score && old.state.tick === r.state.tick && orbitCheckpoint(old.state as never).checksum === orbitCheckpoint(r.state as never).checksum) same++;
+      if (stargazer && star < 3) {
+        const puzzle = { type: "orbit", seed: e.seed, orbitRev: ORBIT_REV_BIG, planets: e.planets, holes: e.holes, extras: e.extras } as never;
+        const g = gradeAnswer(puzzle, r.raw, 0) as { score: number; extra?: Record<string, unknown> };
+        if (goalMet(stargazer!.goal, { score: g.score, extra: g.extra ?? null, level: "hard" })) star++;
+      }
+    }
+    ok(full === ORBIT_FUEL_BANK.length && ORBIT_FUEL_BANK.length === 96, `every fuel-bank witness reaches 200 on orbitRev 16 with every feature (${full} / ${ORBIT_FUEL_BANK.length})`);
+    ok(same === ORBIT_FUEL_BANK.length, `each plays orbitRev 15 tick for tick (${same} / ${ORBIT_FUEL_BANK.length})`);
+    ok(star === 3, `Stargazer (all the stardust) is met by orbitRev 16 runs as the server grades them (${star} / 3)`);
+  }
+
+  // c. The bodies: 140 % where the planet's own path leaves room for the rocket and 3 px, never smaller; the sun 140 %;
+  // nothing else in a planet changes; no body reaches a neighbour's path or belt, a mote, moon, rock or black hole.
+  {
+    let grown = 0, total = 0, airBad = 0, notSmaller = 0, otherFields = 0, crowd = 0, sunOk = 0;
+    const gains: number[] = [];
+    for (const e of ORBIT_FUEL_BANK) {
+      const old = decodeRev3Planets(e.planets);
+      const ps = orbitBigPlanets(old);
+      const ex = decodeOrbitExtras(e.extras);
+      const holes = decodeOrbitHoles(e.holes);
+      if (ps[ORBIT_TOTAL]!.r === Math.trunc((old[ORBIT_TOTAL]!.r * ORBIT_BIG_PCT) / 100)) sunOk++;
+      ps.forEach((p, i) => {
+        const o = old[i]!;
+        if (JSON.stringify({ ...p, r: 0 }) !== JSON.stringify({ ...o, r: 0 })) otherFields++;
+        if (i === ORBIT_TOTAL) return;
+        total++;
+        if (p.r >= o.r && p.r <= Math.trunc((o.r * ORBIT_BIG_PCT) / 100)) notSmaller++;
+        gains.push(p.r / o.r);
+        if (p.r === Math.trunc((o.r * ORBIT_BIG_PCT) / 100)) grown++;
+        const eight = p.kind === ORBIT_EIGHT;
+        const body = eight ? (p.r * 80) / 100 : p.r;
+        // Where it grew, its drawn body keeps the rocket's radius and 3 px from its own path.
+        if (p.r > o.r && body + ORBIT_BIG_AIR > orbitPathClearance(p) + 1) airBad++;
+        for (const c of eight ? [-orbitLobes(p), orbitLobes(p)] : [0]) {
+          const cx = p.x + c, cy = p.y;
+          ps.forEach((q, j) => {
+            if (j === i) return;
+            const d = Math.hypot(cx - q.x, cy - q.y);
+            if (d < body + orbitExtent(q) + 10 * FP || (q.hazard >= 0 && d < body + orbitBeltRadius(q) + 2 * FP)) crowd++;
+          });
+          const things: [number, number, number][] = [
+            ...ex.dust.map((m) => [m.x, m.y, ORBIT_DUST_R] as [number, number, number]),
+            ...ex.moons.map((m) => [m.x, m.y, ORBIT_MOON_R] as [number, number, number]),
+            ...ex.fields.flatMap((f) => f.rocks.map((r) => [r.x, r.y, r.r] as [number, number, number])),
+            ...holes.map((h) => [h.x, h.y, ORBIT_HOLE_R] as [number, number, number]),
+          ];
+          for (const [x, y, r] of things) if (Math.hypot(cx - x, cy - y) < body + r + 4 * FP) crowd++;
+        }
+      });
+    }
+    gains.sort((a, b) => a - b);
+    const median = gains[Math.floor(gains.length / 2)]!;
+    ok(notSmaller === total && otherFields === 0, `every body is between orbitRev 15's size and ${ORBIT_BIG_PCT} % of it, nothing else in a planet changed (${notSmaller} / ${total})`);
+    ok(grown / total >= 0.6 && median >= 1.35, `most planets are drawn ${ORBIT_BIG_PCT} % (${grown} / ${total}; median ×${median.toFixed(2)})`);
+    ok(airBad === 0, `a grown body keeps the rocket's radius and 3 px from its own orbit path (${airBad} too close)`);
+    ok(crowd === 0, `no grown body reaches a neighbour's path or belt, a mote, moon, rock or black hole (${crowd})`);
+    ok(sunOk === ORBIT_FUEL_BANK.length, `the sun is ${ORBIT_BIG_PCT} % on every course (${sunOk})`);
+    // The state carries them; orbitRev 15's start keeps the old ones.
+    const e = ORBIT_FUEL_BANK[0]!;
+    const s16 = bigStart(e), s15 = startOf(e, true);
+    ok(s16.big === 1 && s15.big === undefined && s16.planets[1]!.r > s15.planets[1]!.r && JSON.stringify(orbitCheckpoint(s16 as never)) === JSON.stringify(orbitCheckpoint(s15 as never)), "orbitRev 16's start carries the bigger bodies and the same checkpoint as orbitRev 15's");
+  }
+
+  // d. Dealing and stamps.
+  {
+    let dealt = 0;
+    for (let k = 0; k < 40; k++) {
+      const p = generateOrbit();
+      if (p.orbitRev === ORBIT_REV_BIG && ORBIT_FUEL_BANK.some((e) => JSON.stringify(e.planets) === JSON.stringify(p.planets))) dealt++;
+    }
+    ok(dealt === 40, `rooms deal orbitRev 16 on a fuel-bank course (${dealt} / 40)`);
+    const was = pinOrbitPreBig(true);
+    const old = generateOrbit();
+    pinOrbitPreBig(was);
+    ok(old.orbitRev === ORBIT_REV_GRACE && "orbitPreBig" in DEAL_PINS, "pinOrbitPreBig (DEAL_PINS orbitPreBig) deals orbitRev 15");
+    ok(big.orbitXpRev(ORBIT_REV_BIG) && !big.orbitXpRev(ORBIT_REV_BIG + 1), "orbitRev 16 keeps the expansion's view, features and corner");
+    const lib = readFileSync("scripts/deal-identity-lib.ts", "utf8");
+    ok(/POST_RECORDING_PINS[^\n]*"orbitPreBig"/.test(lib) && /roomDigestsNow\(seeds\), \[[^\]]*"orbitPreBig"/.test(lib), "the deal-identity recording pins orbitPreBig (whole puzzles and rooms)");
+  }
+
+  // e. Display: the renderer draws the state's bodies (a grown planet changes the frame), a radius-39 planet at the
+  // desktop's 2.84x stays inside its circle + 2 px, and the bake reaches it.
+  {
+    const planets = await import("../src/lib/arcade/orbitPlanets.renderer");
+    const maxR = Math.max(...ORBIT_FUEL_BANK.flatMap((e) => orbitBigPlanets(decodeRev3Planets(e.planets)).slice(0, ORBIT_TOTAL).map((p) => p.r / FP)));
+    ok(planets.SPHERE_MAX_PX >= Math.ceil(2 * maxR * (640 / 450) * 2), `the bake reaches orbitRev 16's largest planet on the desktop column at 2x (${planets.SPHERE_MAX_PX} px ≥ radius ${maxR})`);
+    let out = 0, drawn = 0;
+    for (const lk of [{ type: 0, colour: "#FF4D4D", ring: true, tilt: 0.3, h: 4 }, { type: 1, colour: "#4D8CFF", ring: false, tilt: -0.2, h: 9 }, { type: 2, colour: "#3DDC84", ring: true, tilt: 0.1, h: 13 }]) {
+      const scale = 2.84;
+      const W = Math.ceil(100 * scale);
+      const cv = createCanvas(W, W);
+      const ctx = cv.getContext("2d");
+      ctx.scale(scale, scale);
+      if (planets.drawRenderedPlanet(ctx as never, 50, 50, maxR, lk, 0.37)) drawn++;
+      if (lk.ring) planets.drawPlanetRing(ctx as never, 50, 50, maxR, lk);
+      const d = ctx.getImageData(0, 0, W, W).data;
+      for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) if (Math.hypot((x + 0.5) / scale - 50, (y + 0.5) / scale - 50) > maxR + 2 && d[(y * W + x) * 4 + 3]! > 0) out++;
+    }
+    ok(drawn === 3 && out === 0, `a radius-${maxR} planet (rings too) draws inside its circle + 2 px at 2.84x (${out} px outside)`);
+    const e = ORBIT_FUEL_BANK[0]!;
+    const frame = (s: OrbitRev3State) => {
+      const cv = createCanvas(450, 862);
+      renderer.orbitRev3ArtGame.draw(cv.getContext("2d") as never, s, { width: 450, height: 862 });
+      return cv.getContext("2d").getImageData(0, 0, 450, 862).data;
+    };
+    const s16 = bigStart(e), s15 = startOf(e, true);
+    const a = frame(s15), b = frame(s16);
+    let diff = 0;
+    for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i]! - b[i]!) + Math.abs(a[i + 1]! - b[i + 1]!) + Math.abs(a[i + 2]! - b[i + 2]!) > 30) diff++;
+    ok(diff > 500, `orbitRev 16's frame draws the bigger planets (${diff} px differ from orbitRev 15's at the start)`);
+  }
+
+  // f. The reveal (Joe, 15 Nov 2026): the big numbers and the run picture straight under the score, the stored breakdown
+  // in the shared layout below it; no block of text lines above the picture; Orbit's own Reveal is the picture too.
+  {
+    const { createElement } = await import("react");
+    const { renderToString } = await import("react-dom/server");
+    const { orbitPuzzle } = await import("../src/puzzles/orbit");
+    const ar = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
+    const pictureAt = ar.indexOf("<GameRunPicture puzzle={puzzle} myAnswer={myAnswer} />");
+    const breakdownAt = ar.indexOf("<RevealBreakdown lines={breakdownLines}");
+    const scoreAt = ar.indexOf("data-reveal-score={myScore}");
+    ok(scoreAt > 0 && pictureAt > scoreAt && breakdownAt > pictureAt, "the arcade reveal draws the run picture under the score and the stored breakdown below the picture");
+    const e = ORBIT_FUEL_BANK[0]!;
+    const r = bigRun(e, e.taps.map((t) => ev(t, ORBIT_INPUT_TAP)));
+    const puzzle = { type: "orbit", seed: e.seed, orbitRev: ORBIT_REV_BIG, planets: e.planets, holes: e.holes, extras: e.extras } as never;
+    const pic = renderToString(createElement(orbitPuzzle.RunPicture!, { puzzle, myAnswer: r.raw }));
+    ok(/data-orbit-run-summary/.test(pic) && /data-orbit-stat="Planets"/.test(pic) && /data-orbit-stat="Stardust"/.test(pic) && /data-orbit-run-map/.test(pic) && /data-orbit-all-planets/.test(pic), "the run picture: the big numbers, the course map and ALL 40 PLANETS on a full run");
+    ok(!/·|planets ·|Same planets for everyone|finished with/.test(pic), "the run picture holds no line of text from the old reveal");
+    const own = renderToString(createElement(orbitPuzzle.Reveal, { puzzle, myAnswer: r.raw } as never));
+    ok(/data-orbit-run-summary/.test(own) && !/Same planets for everyone/.test(own) && !/Stardust \d+\/\d+ · slingshots/.test(own), "Orbit's own Reveal on the expansion's view is the run picture, never the old lines");
+    const older = renderToString(createElement(orbitPuzzle.Reveal, { puzzle: { type: "orbit", seed: 7 } as never, myAnswer: "" } as never));
+    ok(/Same planets for everyone/.test(older) && !/data-orbit-run-summary/.test(older), "an unstamped round's Reveal keeps its lines");
+  }
+
+  // g. The sun's end hold (Joe, 15 Nov 2026): a finished orbitRev 16 run holds its submit ORBIT_SUN_HOLD_MS (about 1.5 s)
+  // so the bloom, ALL 40 PLANETS! and the count-up show before the reveal; the stage passes it.
+  {
+    const fx = await import("../src/lib/arcade/orbitEffects.renderer");
+    const e = ORBIT_FUEL_BANK[0]!;
+    const r = bigRun(e, e.taps.map((t) => ev(t, ORBIT_INPUT_TAP)));
+    ok(r.state.finished === 1 && renderer.orbitEndHoldMs(r.state) === fx.ORBIT_SUN_HOLD_MS && fx.ORBIT_SUN_HOLD_MS >= 1300 && fx.ORBIT_SUN_HOLD_MS <= 1700 && fx.ORBIT_SUN_HOLD_MS >= fx.ORBIT_BLOOM_MS, `a finished run holds its submit ${fx.ORBIT_SUN_HOLD_MS} ms for the sun moment`);
+    ok(renderer.orbitEndHoldMs(bigStart(e)) === 0, "a live run holds nothing");
+    ok(/endHoldMs=\{\(state\) => orbitEndHoldMs\(/.test(readFileSync("src/puzzles/orbit.tsx", "utf8")), "the stage passes the end hold");
+  }
+}
+
 if (failures.length) {
   console.log(`FAIL orbit-overhaul-check: ${failures.length} failed, ${checks - failures.length} passed`);
   process.exit(1);
 }
-console.log(`PASS orbit-overhaul-check: ${checks} checks — legacy replays, grace, the bank at 200 on orbitRev 15, dealing, the checkpoint guard, the HUD, the planets, edge to edge, and stage 2's effects and reveal`);
+console.log(`PASS orbit-overhaul-check: ${checks} checks — legacy replays, grace, the bank at 200 on orbitRev 15, dealing, the checkpoint guard, the HUD, the planets, edge to edge, stage 2's effects and reveal, and stage 3's bigger planets, reveal and end hold`);

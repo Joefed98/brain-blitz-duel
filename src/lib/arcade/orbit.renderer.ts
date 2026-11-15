@@ -1126,7 +1126,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
       const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
       bodies.forEach((bx, lobe) => {
         const r = (eight ? p.r * 0.8 : p.r) / FP;
-        // The Action overhaul (15 Nov 2026, display only): the expansion's view (orbitRev 12–15) draws each planet with
+        // The Action overhaul (15 Nov 2026, display only): the expansion's view (orbitRev 12–16) draws each planet with
         // its rendered look, its surface turning slowly (orbitPlanets.renderer.ts); earlier views keep the baked sprite.
         const look = planetLook(p, i, lobe);
         if (state.xp && drawRenderedPlanet(ctx, px + bx, py, r, look, orbitPlanetTurn(look, t))) {
