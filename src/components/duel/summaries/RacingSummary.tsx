@@ -67,11 +67,13 @@ export default function RacingSummary({ puzzle, myAnswer }: RunSummaryProps) {
         className="w-full max-w-xs"
         style={{ aspectRatio: "1 / 1" }}
       />
-      <div className="grid w-full grid-cols-2 gap-x-4 gap-y-3">
-        {run.lapTicks.slice(0, 2).map((t, i) => (
-          <Stat key={i} label={lapLabel(i)} value={secs(t)} />
-        ))}
-        {run.lapTicks.length < 2 ? <Stat label="Distance" value={`${Math.floor(run.covered * 100)}%`} /> : null}
+      {/* Two by two after a finish (each lap's time, the average speed, the clean sectors); three across otherwise. */}
+      <div className={`grid w-full gap-x-4 gap-y-3 ${run.lapTicks.length >= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+        {run.lapTicks.length >= 2 ? (
+          run.lapTicks.slice(0, 2).map((t, i) => <Stat key={i} label={lapLabel(i)} value={secs(t)} />)
+        ) : (
+          <Stat label="Distance" value={`${Math.floor(run.covered * 100)}%`} />
+        )}
         <Stat label="Average speed" value={`${(run.pace10 / 10).toFixed(1)} km/h`} />
         <Stat label="Clean sectors" value={`${run.clean} of ${RACING_SECTORS}`} />
       </div>

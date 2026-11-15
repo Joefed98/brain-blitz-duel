@@ -97,6 +97,17 @@ export function drawRacingRunMap(ctx: Ctx2D, track: RacingTrack, run: RacingRunM
     };
     for (const sd of run.offs) mark(sd, false);
     for (const sd of run.walls) mark(sd, true);
+    // An unfinished race: where the car was at the buzzer (a white disc with a dark edge).
+    if (!run.finished) {
+      const p = map(racingMapAt(pts, run.state.s));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(6, width * 0.5), 0, Math.PI * 2);
+      ctx.fillStyle = RACING_MAP_COLOURS.start;
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = RACING_MAP_COLOURS.edge;
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
