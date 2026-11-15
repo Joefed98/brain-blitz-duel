@@ -20,6 +20,9 @@ import { BURST_REV_AIM, BURST_REV_STD } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { SNAKE_REV_12 } from "@/lib/arcade/snake";
+import { POOL_REV } from "@/lib/arcade/pool";
+import { CURLING_REV } from "@/lib/arcade/curling";
+import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
@@ -197,6 +200,12 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // scores in new parts (its combo and warp windows are longer), so the demo stays stopped until one is recorded on snakeRev 11.
     // snakeRev 12 (1 Nov 2026): the HUD's star count counts gold stars twice, so only a demo recorded on snakeRev 12 plays.
     if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_12) return null;
+    // The Sports overhaul (15 Nov 2026): Cue Ball, Curl Champ and Apex demos play only when recorded on the stamp rooms
+    // deal (poolRev 4, curlRev 4 with its bigger house view and buttons, racingRev 4's three circuits), so an older
+    // recording never shows the old table, sheet or road under today's look.
+    if (data.type === "pool" && demo?.puzzle.type === "pool" && demo.puzzle.poolRev !== POOL_REV) return null;
+    if (data.type === "curling" && demo?.puzzle.type === "curling" && demo.puzzle.curlRev !== CURLING_REV) return null;
+    if (data.type === "racing" && demo?.puzzle.type === "racing" && demo.puzzle.racingRev !== RACING_REV_DEALT) return null;
     // x200 (26 Oct 2026, docs/expansions/x200-cross.md): Jaywalk crossRev 9 plays a taller 13-lane road with the island,
     // coins, buses and motorbikes; an older demo would show the 9-lane road, so it stays stopped until one is recorded there.
     // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md): crossRev 10 thins the first crossings'
