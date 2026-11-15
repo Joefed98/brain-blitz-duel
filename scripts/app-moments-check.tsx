@@ -203,10 +203,22 @@ const { setBatterySaver } = await import("../src/lib/battery");
   check(/keep\.push\(box\(el, "timer bar"\)\)/.test(read("scripts/room-extras-check.ts")), "room-extras-check keeps the strip off the timer bar");
 }
 
+/* 6. Short phones (15 Nov 2026, Joe): the shared rows go compact so the game's own reveal keeps its size. */
+{
+  const reveal = read("src/components/duel/AnswerReveal.tsx");
+  const gfx = read("src/polish-layout/game-fx.css");
+  check(/export const SHORT_REVEAL_QUERY = "\(max-height: 720px\)";/.test(reveal), "short reveals are the 720 px-tall class and below");
+  check(/const payoffInline = practice && shortReveal && !\(ARCADE_REVEAL_RENDERERS\[puzzle\.type\] && !PUZZLE_REVEAL_ENGINE_TYPES\.has\(puzzle\.type\)\);/.test(reveal), "only practice's puzzle reveals move their stars (rooms show none; arcade keeps its own layout)");
+  check(/answersReady && !payoffInline \? \(\s*<RevealPayoff/.test(reveal), "the stars' own row is left out where they move inline");
+  check(/<div data-reveal-lines="" className="reveal-lines shrink-0">\s*\{myScore !== null && answersReady \? \(\s*<RevealPayoff[^]*?\{revealLines\}\s*<\/div>\s*\) : \(\s*revealLines\s*\)\}/.test(reveal), "short: stars, score line and best in one block; tall: the lines exactly as before");
+  check(/\.reveal-lines \.fx-star \{\s*width: 18px;\s*height: 18px;/.test(gfx), "the inline stars are smaller");
+  check(/@media \(max-height: 720px\) \{[^}]*\[data-answer-reveal\]\[data-answer-reveal\],\s*\[data-answer-reveal\] > \.flex-col \{\s*gap: 6px;/.test(gfx), "the reveal's gaps tighten on short screens");
+}
+
 if (failures.length) {
   for (const f of failures) console.log(`  - ${f}`);
   console.log(`FAIL: app-moments-check: ${failures.length} of ${failures.length + passes}`);
   process.exit(1);
 }
-console.log(`PASS: app-moments-check: varied lightning, room moments, the reveal heading, entrances and app moments, the phone panel and the finished strip (${passes} assertions)`);
+console.log(`PASS: app-moments-check: varied lightning, room moments, the reveal heading, entrances and app moments, the phone panel, the finished strip and short-phone reveals (${passes} assertions)`);
 process.exit(0);

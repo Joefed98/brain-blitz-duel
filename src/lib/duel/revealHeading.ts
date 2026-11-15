@@ -1,7 +1,7 @@
 /**
  * The answer reveal's heading above a puzzle's board (15 Nov 2026, Joe: it said "The solution" even over the player's
  * own answer). The heading now says what the board actually draws: "Your answer", "The solution", or both when one board
- * carries both (the solution with the player's misses marked, or the player's board with the shortest route beside it).
+ * carries both, "Answer and solution" (the solution with the player's misses marked, or the player's board with the shortest route beside it).
  * Each game's Reveal is unchanged; this is the one place that knows what each draws (audited 15 Nov 2026, game by game).
  * Display only: no answer, score or solution is read beyond what the reveal already shows.
  */
@@ -10,7 +10,8 @@ import type { PuzzleData } from "./types";
 
 export const HEADING_YOURS = "Your answer";
 export const HEADING_SOLUTION = "The solution";
-export const HEADING_BOTH = "Your answer and the solution";
+// Short enough to stay whole beside the score on a 375 px phone ("Your answer and the solution" was cut off).
+export const HEADING_BOTH = "Answer and solution";
 
 export type RevealShows = "yours" | "solution" | "both";
 

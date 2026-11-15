@@ -903,3 +903,46 @@
 [data-round-layout][data-phone-status] [data-game-stage] [data-hud-pills][data-phone-mirrored] {
   visibility: hidden;
 }
+
+/* ------------------------------------------------------------------ 4b. short phones (15 Nov 2026, Joe)
+ * On a short screen (the 375 × 667 class) the shared rows above a puzzle's board went compact: the stars' own row pushed
+ * the game's reveal down until it was drawn smaller (Ballpark at about 85 %). Practice's stars join the score line and
+ * the best in one wrapped block (AnswerReveal `revealLines`), the stars smaller; the gaps, the verdict card's padding
+ * and its mark tighten. The game's own drawing is untouched. */
+.reveal-lines {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px var(--jz-space-12);
+}
+.reveal-lines .reveal-payoff {
+  min-height: 0;
+  gap: var(--jz-space-4) var(--jz-space-8);
+}
+.reveal-lines .fx-stars {
+  gap: var(--jz-space-4);
+}
+.reveal-lines .fx-star {
+  width: 18px;
+  height: 18px;
+}
+.reveal-lines .fx-newbest {
+  height: 22px;
+  padding: 0 var(--jz-space-8);
+  line-height: 22px;
+}
+@media (max-height: 720px) {
+  [data-answer-reveal][data-answer-reveal],
+  [data-answer-reveal] > .flex-col {
+    gap: 6px;
+  }
+  [data-answer-reveal] .reveal-result {
+    padding: var(--jz-space-8) var(--jz-space-12);
+  }
+  [data-answer-reveal] .reveal-result [data-verdict] > div,
+  [data-answer-reveal] .reveal-result > [data-verdict]:not([data-verdict="partial"]) {
+    width: 36px;
+    height: 36px;
+  }
+}
