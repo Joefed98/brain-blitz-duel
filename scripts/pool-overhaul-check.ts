@@ -24,7 +24,7 @@ const { poolArmPlacement, poolBlackStatus, drawPool, POOL_BALL_DRAW_R, POOL_BLAC
 const { poolCheckpoint, poolGameFor, POOL_BLACK, POOL_CB, POOL_CL, POOL_CR, POOL_CT, POOL_SPOTS } = await import("../src/lib/arcade/pool");
 const { replayPoolRun } = await import("../src/lib/duel/pool");
 const { poolRunEvents } = await import("../src/lib/arcade/poolRunEvents");
-const { drawPoolSummary, poolSummaryHeight } = await import("../src/lib/arcade/poolSummary.renderer");
+const { drawPoolSummary, poolSummaryHeight, poolSummarySizes } = await import("../src/lib/arcade/poolSummary.renderer");
 const { poolSummaryStats } = await import("../src/components/duel/summaries/PoolSummary");
 const { decodeSportsRun } = await import("../src/lib/arcade/sportsKit");
 const { checkInputEvents } = await import("../src/lib/arcade/engine");
@@ -197,6 +197,24 @@ const allRuns: { rev: number; seed: number; raw: string; label: string }[] = [..
     for (const s of poolSummaryStats(ev, run.rev)) if (/×|\bx\d/.test(`${s.label} ${s.value}`)) plain = false;
   }
   ok(drawn === 12, `the reveal's table summary draws the table for every run (${drawn} of 12)`);
+  // The table spans the reveal column's whole width (opaque at both side edges, half way down), at least 200 px tall at
+  // a 390 px phone's column, with pots, numbers and foul marks at least 1.6× the table's own ball size.
+  {
+    const w = 358;
+    const h = poolSummaryHeight(w);
+    const c = createCanvas(w, h);
+    drawPoolSummary(c.getContext("2d") as unknown as CanvasRenderingContext2D, w, h, poolRunEvents(allRuns[0]!.seed, allRuns[0]!.raw, allRuns[0]!.rev));
+    const alpha = (x: number) => c.getContext("2d").getImageData(x, Math.round(h / 2), 1, 1).data[3]!;
+    const z = poolSummarySizes(w);
+    ok(alpha(1) > 200 && alpha(w - 2) > 200 && h >= 200, `the summary's table fills the column's width (${w} px) and is ${h} px tall`);
+    ok(z.potR >= 1.6 * z.tableBallR && z.numberR * 2 >= 1.6 * z.tableBallR && z.foulR >= 1.6 * z.tableBallR, `pots (r ${z.potR.toFixed(1)}), order numbers (r ${z.numberR.toFixed(1)}) and foul marks (r ${z.foulR.toFixed(1)}) are at least 1.6× the table's balls (r ${z.tableBallR.toFixed(1)})`);
+  }
+  {
+    const ev = poolRunEvents(allRuns[0]!.seed, allRuns[0]!.raw, allRuns[0]!.rev);
+    const fouls = poolSummaryStats({ ...ev, fouls: [] }, 4).find((s) => s.label === "Fouls")?.value;
+    const streak = poolSummaryStats({ ...ev, streakBest: 3 }, 4).find((s) => s.label === "Best streak")?.value;
+    ok(fouls === "0" && streak === "3 pots", `the tiles read "Fouls ${fouls}" and "Best streak ${streak}"`);
+  }
   ok(plain, "the summary's stat labels and values are plain words (no ×)");
   // The rendered table sits exactly on the sim's table: every pocket's centre is dark, the cloth's middle is felt, and
   // the rails' outer edge is where the painted table draws it (opaque just inside, clear just outside).
