@@ -15,7 +15,6 @@
 
 /* Each tile is the rendered dark tile; the pipe sprite is laid over it, turned by a transform. */
 .pipe-tile {
-  overflow: hidden;
   background: #17151c url("/pattern-art/pipes/tile.webp") center / 100% 100% no-repeat;
   -webkit-touch-callout: none;
   user-select: none;
@@ -25,8 +24,18 @@
 .pipe-tile:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
 .pipe-art { position: absolute; inset: 0; display: block; pointer-events: none; }
-.pipe-turn { position: absolute; inset: 0; display: block; transform-origin: 50% 50%; }
-.pipe-sprite { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* The tube runs to half the board gap past the tile (the sprite is drawn 12 % past each edge, pipesArt.tsx
+   PIPE_BLEED, and cropped here), so it meets its neighbour's tube in the middle of the gap with no seam. The tile
+   button, and so the hit area, is unchanged (pointer-events none). */
+.pipe-turn {
+  position: absolute;
+  inset: calc(var(--pipe-gap, 6px) / -2);
+  display: block;
+  overflow: hidden;
+  transform-origin: 50% 50%;
+}
+.pipe-frame { position: absolute; inset: calc(var(--pipe-gap, 6px) / 2); display: block; }
+.pipe-sprite { position: absolute; left: -12%; top: -12%; width: 124%; height: 124%; max-width: none; display: block; }
 /* The wet set fades in over the dry one as the water reaches the pipe. */
 .pipe-sprite-wet { opacity: 0; transition: opacity 220ms ease-out; }
 .pipe-sprite-wet[data-wet] { opacity: 1; }

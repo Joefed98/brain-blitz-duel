@@ -1,7 +1,8 @@
 /**
  * Pipeline art (the Pattern overhaul, 15 Nov 2026; SVG since the 13 Oct polish until then). Presentation only: the
  * Blender sprites (docs/design/game-art/pattern/source/pipes.py: chrome pipes on dark tiles, water in the connected
- * network's sight glass, the red source valve, a spill at each open end of the network) and the solve-time rush.
+ * network's glass tube, the red source valve, a spill at each open end of the network) and the solve-time rush. Each
+ * pipe sprite runs past its tile into the board gap (PIPE_BLEED), so neighbouring tubes join seamlessly.
  * Nothing here reads or changes what the stage grades; water directions come from the presentation-only BFS.
  */
 import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
@@ -51,6 +52,13 @@ export const PIPE_TURNS: Record<PipeShape, number> = { end: 4, straight: 2, corn
 export function pipeSpriteUrl(shape: PipeShape, turns: number, wet: boolean): string {
   return `${PIPE_ART_BASE}/${shape}-${turns % PIPE_TURNS[shape]}-${wet ? "wet" : "dry"}.webp`;
 }
+
+/**
+ * How far each pipe sprite runs past every tile edge, as a share of the tile (pipes.py BLEED, 12 of 100). The board
+ * crops it at half its gap (`--pipe-gap`), so a tube meets its neighbour's in the middle of the gap with no seam.
+ * Presentation only: the tile button, its hit area and its box are unchanged.
+ */
+export const PIPE_BLEED = 0.12;
 
 /** Every sprite the board draws (checks and preloading). */
 export function pipeArtUrls(): string[] {
@@ -108,15 +116,17 @@ export const PipeArt = memo(function PipeArt({
     <span className="pipe-art" aria-hidden="true">
       {sprite ? (
         <span ref={turnRef} className="pipe-turn" data-pipe-turns={sprite.turns}>
-          <img className="pipe-sprite" src={pipeSpriteUrl(sprite.shape, sprite.turns, false)} alt="" draggable={false} decoding="async" />
-          <img
-            className="pipe-sprite pipe-sprite-wet"
-            data-wet={wet ? "true" : undefined}
-            src={pipeSpriteUrl(sprite.shape, sprite.turns, true)}
-            alt=""
-            draggable={false}
-            decoding="async"
-          />
+          <span className="pipe-frame">
+            <img className="pipe-sprite" src={pipeSpriteUrl(sprite.shape, sprite.turns, false)} alt="" draggable={false} decoding="async" />
+            <img
+              className="pipe-sprite pipe-sprite-wet"
+              data-wet={wet ? "true" : undefined}
+              src={pipeSpriteUrl(sprite.shape, sprite.turns, true)}
+              alt=""
+              draggable={false}
+              decoding="async"
+            />
+          </span>
         </span>
       ) : null}
       {PIPE_ARMS.filter((arm) => leakArms & arm.bit).map((arm) => (

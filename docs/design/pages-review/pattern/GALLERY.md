@@ -121,9 +121,13 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 | Unfinished | <img src="../../game-reviews/img/pattern/pipes-3-end.webp" width="180"> | <img src="pipes-reveal-after-unfinished.webp" width="180"> |
 
 - **Look**: Blender sprites (`docs/design/game-art/pattern/source/pipes.py`, `public/pattern-art/pipes/`, 33 files,
-  166 KB) under sprite.py's rich studio light: polished steel pipes with crisp highlights, chrome couplings, glossy blue
-  water behind clear sight glass, a deep red lacquered valve, dark lacquered tiles. Each shape is rendered in each of its
-  turns, so the key light stays top left on every tile; the turn only animates with a transform. No glow round the network.
+  210 KB) under the rich studio light (HDRI reflections, a crisp top-left key, fill and rim, as distant lights so a tube
+  shades the same along its whole length). Continuous pass (15 Nov 2026, after the captain's review of the knobbly first
+  set): every pipe is one smooth, thicker polished-chrome tube (a corner one bend, no collars, beads or rings); connected
+  pipes are a clear glass tube full of saturated glossy blue water with a crisp highlight along its whole length. Each
+  sprite runs past its tile and is cropped at half the board gap (`PIPE_BLEED`, `--pipe-gap`), so a connected run reads
+  as one continuous pipe across the gaps. Darker glossy tiles with a soft bevel. Each shape is rendered in each of its
+  turns, so the key light stays top left; the turn only animates with a transform. No glow round the network.
 - **Leaks live** (pipesRev 5): water spills from every open end the water reaches, in play, the intro and the reveal.
 - **Turns both ways** (pipesRev 5): a tap turns clockwise, a long press (380 ms), a swipe (14 px) or a right click
   anticlockwise; the log carries `-cell`; par is the fewest turns either way.

@@ -15,7 +15,7 @@ import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect } from "@/lib/sound";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 
 import {
   decodeSides,
@@ -230,7 +230,9 @@ export const PipesBoard = memo(function PipesBoard({
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${Math.ceil(tiles.length / cols)}, minmax(0, 1fr))`,
         gap,
-      }}
+        // The pipe sprites run into half the gap each side, so tubes join across it (presentation only).
+        "--pipe-gap": `${gap}px`,
+      } as CSSProperties}
     >
       {tiles.map((tile, cell) => (
         <PipeTileView
