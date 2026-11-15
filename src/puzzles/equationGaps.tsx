@@ -22,6 +22,8 @@ import type { EquationPuzzleData, EquationStage, Operator } from "@/lib/duel/typ
 import type { PuzzleRevealProps, PuzzleStageProps } from "./types";
 import "@/polish-layout/operator-gaps.css";
 import "@/polish-number/equation.css";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 /**
  * Operator's gaps (puzzle polish, 3 Nov 2026; rules in src/lib/duel/operatorGaps.ts): equation 1 takes signs, 2 takes

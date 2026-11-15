@@ -42,6 +42,8 @@ import { BALLPARK_STD_FULL, isStdBullseye } from "@/lib/duel/standard/number";
 import "@/polish-layout/batch-w-numline.css";
 import { NumberStage, numberArt } from "@/components/puzzles/number/overhaul";
 import { Button } from "@/design/components";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {

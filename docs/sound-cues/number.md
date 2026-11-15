@@ -148,3 +148,13 @@ takes the slot's name.
 | numpyramid.seam | a sum the player had a hand in comes out right: a faint gold seam | 200 ms soft chime |
 | numpyramid.crack | a sum the player had a hand in comes out wrong: a red crack between the three stones | 250 ms stone crack |
 
+### The remaining Number overhaul slots
+
+| Cue | Trigger | Length |
+|---|---|---|
+| checkout.wrong | a Throw that doesn't check out (the score bar shakes) | 300 ms |
+| measure.target | the water meets the target line (wired with the effects kit) | 200 ms |
+| measure.near | one move from the target (wired with the effects kit) | 250 ms |
+| numline.dragTick | the marker crosses a tenth of the line (wired with the effects kit) | 30 ms |
+| numline.bullseye | a bullseye lands at the payoff (wired with the effects kit) | 250 ms |
+| numpyramid.row | a full row of the pyramid right (wired with the effects kit) | 300 ms |

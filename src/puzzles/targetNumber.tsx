@@ -30,8 +30,9 @@ import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-target.css";
 import { EXACT_ELEGANT_TILES, usesNumberDepth } from "@/lib/duel/numberDepth";
 import { exactLockReady, toggleOperator } from "@/lib/duel/numberOverhaulInput";
-import { numberArt } from "@/components/puzzles/number/overhaul";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 /* -------------------------------------------------------------------------- */
 /*  Target Number — reach a three-digit target from six tiles.                 */

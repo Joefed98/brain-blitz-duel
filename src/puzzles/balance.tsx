@@ -38,6 +38,8 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { useGoalProgress } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-balance.css";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 const PEG_GAP = 0;
 const MIN_PEG_WIDTH = 44;

@@ -453,6 +453,13 @@ const ENTRIES = {
   "balance.lift": { channel: "effects", frequency: 0, ms: 260, url: null },
   "balance.level": { channel: "effects", frequency: 0, ms: 806, url: "/sounds/balance.level.mp3" },
   "balance.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.rising.mp3" },
+  // The Number overhaul's remaining slots (docs/sound-cues/number-elevenlabs.md): library stand-ins until Joe's files.
+  "checkout.wrong": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/wrong.mp3" },
+  "measure.target": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/sfx_spark_chime.mp3", volume: 0.6 },
+  "measure.near": { channel: "effects", frequency: 0, ms: 250, url: "/sounds/sfx_spark_chime.mp3", volume: 0.3 },
+  "numline.dragTick": { channel: "effects", frequency: 0, ms: 55, url: "/sounds/tick.mp3", volume: 0.3, gapMs: 40 },
+  "numline.bullseye": { channel: "effects", frequency: 0, ms: 250, url: "/sounds/sfx_spark_chime.mp3" },
+  "numpyramid.row": { channel: "effects", frequency: 0, ms: 160, url: "/sounds/stage_complete.mp3", volume: 0.6 },
   // The Number overhaul (15 Nov 2026): Counterweight's pick-up of a hung weight and the "Pick a weight first" nudge;
   // library stand-ins until Joe's files (docs/sound-cues/number-elevenlabs.md).
   "balance.pickup": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },

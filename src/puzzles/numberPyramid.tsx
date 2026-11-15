@@ -34,6 +34,8 @@ import "@/polish-number/numpyramid.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 const NO_TOUCH: CSSProperties = { touchAction: "none", userSelect: "none", WebkitUserSelect: "none" };
 

@@ -373,12 +373,16 @@ numline.stageClear,Ballpark,"a line of five is placed (not the last): the stage 
 numline.skip,Ballpark,kept for a skip this game may get: the stage slides away [number.md],,5–40 (per move),recorded sound,numline.skip,528,UI tap,numline.skip,
 numline.fail,Ballpark,kept for a failed stage this game may get: the stage slides away [number.md],,5–40 (per move),recorded sound,arc_wood_knock (shared),90,game event,numline.fail,
 numline.edge,Ballpark,a touch or drag past an end of the line: a short stop shows at that end (the marker clamps there) [number.md],,5–40 (per move),recorded sound,numline.edge,320,game event,numline.edge,
+numline.dragTick,Ballpark,the marker crosses a tenth of the line (wired with the effects kit) [number.md],,5–40 (per move),recorded sound,tick (shared),30,game event,numline.dragTick,
+numline.bullseye,Ballpark,a bullseye lands at the payoff (wired with the effects kit) [number.md],,5–40 (per move),recorded sound,numline.bullseye,250,game event,numline.bullseye,
 music.numline,Ballpark,Ballpark round bed: music_number_3 (number bed shared with other games),,loop,recorded sound,music_number_3 (shared),60000,music,music_number_numline,
 measure.select,Brimful,a jug is tapped to select it [number.md],,5–40 (per move),recorded sound,measure.select,150,UI tap,measure.select,
 measure.solve,Brimful,the last board is solved [number.md],,0–1,recorded sound,measure.solve,1100,success sting,measure.solve,public/sounds/measure.solve.mp3 (from done.corks.mp3)
 measure.stageClear,Brimful,"a jug reaches its target (not the last board): the stage lifts and slides away, the stage pip fills [number.md]",,1–5,recorded sound,stage_complete (shared),160,game event,measure.stageClear,
 measure.skip,Brimful,kept for a skip this game may get: the stage slides away [number.md],,5–40 (per move),recorded sound,measure.skip,528,UI tap,measure.skip,
 measure.fail,Brimful,a board runs out of moves: the stage slides away [number.md],,5–40 (per move),recorded sound,arc_wood_knock (shared),90,game event,measure.fail,
+measure.target,Brimful,the water meets the target line (wired with the effects kit) [number.md],,5–40 (per move),recorded sound,measure.target,200,game event,measure.target,
+measure.near,Brimful,one move from the target (wired with the effects kit) [number.md],,5–40 (per move),recorded sound,measure.near,250,game event,measure.near,
 music.measure,Brimful,Brimful round bed: music_number_1 (number bed shared with other games),,loop,recorded sound,music_number_1 (shared),60000,music,music_number_measure,
 checkout.aim,Checkout,a wedge or bull is selected [number.md],,5–40 (per move),recorded sound,checkout.aim,140,UI tap,checkout.aim,
 checkout.thud,Checkout,a ring button adds a dart [number.md],,5–40 (per move),recorded sound,checkout.thud,230,game event,checkout.thud,public/sounds/checkout.thud.mp3 (from checkout.thud.mp3)
@@ -392,6 +396,7 @@ checkout.undo,Checkout,Undo pulls the last dart: a light tug [number.md],,5–40
 checkout.nudge,Checkout,"a ring is tapped before a wedge is picked: ""Pick a wedge first"" [number.md]",,5–40 (per move),recorded sound,checkout.nudge,486,game event,checkout.nudge,
 checkout.switch,Checkout,another board's tab is chosen [number.md],,5–40 (per move),recorded sound,checkout.switch,486,UI tap,checkout.switch,
 checkout.bigFinish,Checkout,"a board checks out on a big finish that pays: the crowd's ""oh!"" [number.md]",,5–40 (per move),recorded sound,checkout.bigFinish,600,game event,checkout.bigFinish,
+checkout.wrong,Checkout,a Throw that doesn't check out (the score bar shakes) [number.md],,5–40 (per move),recorded sound,wrong (shared),300,fail sting,checkout.wrong,
 music.checkout,Checkout,Checkout round bed: music_number_2 (number bed shared with other games),,loop,recorded sound,music_number_2 (shared),60000,music,music_number_checkout,
 balance.select,Counterweight,a weight is selected [number.md],,5–40 (per move),recorded sound,balance.select,140,UI tap,balance.select,
 balance.level,Counterweight,"a non-final scale balances (until 15 Nov 2026; the Number overhaul plays balance.stageClear instead, older rounds included) [number.md]",,1–5,recorded sound,balance.level,760,success sting,balance.level,public/sounds/balance.level.mp3 (from balance.level.mp3)
@@ -419,6 +424,7 @@ numpyramid.swap,Integer Pyramid,a placed stone is dropped on another placed ston
 numpyramid.unplace,Integer Pyramid,a placed stone goes back to the tray (double tap or drag) [number.md],,5–40 (per move),recorded sound,numpyramid.unplace,140,game event,numpyramid.unplace,
 numpyramid.seam,Integer Pyramid,a sum the player had a hand in comes out right: a faint gold seam [number.md],,5–40 (per move),recorded sound,numpyramid.seam,200,game event,numpyramid.seam,
 numpyramid.crack,Integer Pyramid,a sum the player had a hand in comes out wrong: a red crack between the three stones [number.md],,5–40 (per move),recorded sound,numpyramid.crack,250,game event,numpyramid.crack,
+numpyramid.row,Integer Pyramid,a full row of the pyramid right (wired with the effects kit) [number.md],,5–40 (per move),recorded sound,stage_complete (shared),300,game event,numpyramid.row,
 music.numpyramid,Integer Pyramid,Integer Pyramid round bed: music_number_2 (number bed shared with other games),,loop,recorded sound,music_number_2 (shared),60000,music,music_number_numpyramid,
 kakuro.place,Kakuro,"a digit is entered in a square (not pencil marks, not clearing) [number.md]",,5–40 (per move),recorded sound,kakuro.place,80,UI tap,kakuro.place,
 kakuro.run,Kakuro,a run is full and adds to its clue with no repeat [number.md],,5–40 (per move),recorded sound,kakuro.run,200,game event,kakuro.run,

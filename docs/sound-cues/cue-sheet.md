@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 523 | 558 |
+| game event | 35 | 0 | 528 | 563 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 38 | 48 |
-| fail sting | 4 | 0 | 38 | 42 |
+| fail sting | 4 | 0 | 39 | 43 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 1028 | 1090 |
+| **all** | 61 | 1 | 1034 | 1096 |
 
 ## Silent and placeholder cues
 
@@ -805,6 +805,8 @@ Grouped by game or screen.
 | `numline.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `numline.skip` | 528 | UI tap | `numline.skip` |
 | `numline.fail` | kept for a failed stage this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `numline.fail` |
 | `numline.edge` | a touch or drag past an end of the line: a short stop shows at that end (the marker clamps there) [number.md] |  | 5–40 (per move) | recorded sound | `numline.edge` | 320 | game event | `numline.edge` |
+| `numline.dragTick` | the marker crosses a tenth of the line (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 30 | game event | `numline.dragTick` |
+| `numline.bullseye` | a bullseye lands at the payoff (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `numline.bullseye` | 250 | game event | `numline.bullseye` |
 | `music.numline` | Ballpark round bed: music_number_3 (number bed shared with other games) |  | loop | recorded sound | `music_number_3` (shared) | 60000 | music | `music_number_numline` |
 
 ### Brimful
@@ -816,6 +818,8 @@ Grouped by game or screen.
 | `measure.stageClear` | a jug reaches its target (not the last board): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `measure.stageClear` |
 | `measure.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `measure.skip` | 528 | UI tap | `measure.skip` |
 | `measure.fail` | a board runs out of moves: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `measure.fail` |
+| `measure.target` | the water meets the target line (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `measure.target` | 200 | game event | `measure.target` |
+| `measure.near` | one move from the target (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `measure.near` | 250 | game event | `measure.near` |
 | `music.measure` | Brimful round bed: music_number_1 (number bed shared with other games) |  | loop | recorded sound | `music_number_1` (shared) | 60000 | music | `music_number_measure` |
 
 ### Checkout
@@ -834,6 +838,7 @@ Grouped by game or screen.
 | `checkout.nudge` | a ring is tapped before a wedge is picked: "Pick a wedge first" [number.md] |  | 5–40 (per move) | recorded sound | `checkout.nudge` | 486 | game event | `checkout.nudge` |
 | `checkout.switch` | another board's tab is chosen [number.md] |  | 5–40 (per move) | recorded sound | `checkout.switch` | 486 | UI tap | `checkout.switch` |
 | `checkout.bigFinish` | a board checks out on a big finish that pays: the crowd's "oh!" [number.md] |  | 5–40 (per move) | recorded sound | `checkout.bigFinish` | 600 | game event | `checkout.bigFinish` |
+| `checkout.wrong` | a Throw that doesn't check out (the score bar shakes) [number.md] |  | 5–40 (per move) | recorded sound | `wrong` (shared) | 300 | fail sting | `checkout.wrong` |
 | `music.checkout` | Checkout round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_checkout` |
 
 ### Counterweight
@@ -876,6 +881,7 @@ Grouped by game or screen.
 | `numpyramid.unplace` | a placed stone goes back to the tray (double tap or drag) [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.unplace` | 140 | game event | `numpyramid.unplace` |
 | `numpyramid.seam` | a sum the player had a hand in comes out right: a faint gold seam [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.seam` | 200 | game event | `numpyramid.seam` |
 | `numpyramid.crack` | a sum the player had a hand in comes out wrong: a red crack between the three stones [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.crack` | 250 | game event | `numpyramid.crack` |
+| `numpyramid.row` | a full row of the pyramid right (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `stage_complete` (shared) | 300 | game event | `numpyramid.row` |
 | `music.numpyramid` | Integer Pyramid round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_numpyramid` |
 
 ### Kakuro
@@ -1971,16 +1977,16 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 |---|---|---|---|
 | `player_joined` | effects | `player_joined` | 110 |
 | `round_start` | effects | `round_start` | 180 |
-| `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid`, `bastion.dry` | 55 |
+| `tick` | effects | `tick`, `numline.sweepTick`, `numline.dragTick`, `symscan.revealGrid`, `bastion.dry` | 55 |
 | `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
 | `place` | effects | `place`, `numpyramid.swap`, `tendrop.apply` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
 | `correct` | effects | `correct` | 120 |
-| `wrong` | effects | `wrong`, `equation.tryCracked` | 140 |
+| `wrong` | effects | `wrong`, `checkout.wrong`, `equation.tryCracked` | 140 |
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
-| `stage_complete` | effects | `stage_complete`, `numline.stageClear`, `measure.stageClear`, `checkout.stageClear`, `balance.stageClear`, `numpyramid.stageClear`, `equation.stageClear`, `junction.complete` | 160 |
+| `stage_complete` | effects | `stage_complete`, `numline.stageClear`, `measure.stageClear`, `checkout.stageClear`, `balance.stageClear`, `numpyramid.stageClear`, `numpyramid.row`, `equation.stageClear`, `junction.complete` | 160 |
 | `complete` | effects | `complete` | 200 |
 | `combo` | effects | `combo` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
@@ -2362,6 +2368,12 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `balance.select` | effects | `balance.select` | 528 |
 | `balance.level` | effects | `balance.level` | 806 |
 | `balance.solve` | effects | `balance.solve` | 1080 |
+| `checkout.wrong` | effects | `checkout.wrong` | 300 |
+| `measure.target` | effects | `measure.target` | 200 |
+| `measure.near` | effects | `measure.near` | 250 |
+| `numline.dragTick` | effects | `numline.dragTick` | 55 |
+| `numline.bullseye` | effects | `numline.bullseye` | 250 |
+| `numpyramid.row` | effects | `numpyramid.row` | 160 |
 | `balance.pickup` | effects | `balance.pickup` | 528 |
 | `balance.nudge` | effects | `balance.nudge` | 486 |
 | `balance.stageClear` | effects | `balance.stageClear` | 160 |

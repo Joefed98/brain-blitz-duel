@@ -30,6 +30,8 @@ import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { usesNumberDepth } from "@/lib/duel/numberDepth";
 import "@/polish-layout/batch-w-measure.css";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -364,7 +366,7 @@ export function Jugs({
                   top: -JUG_SPRITE.inTop * k,
                   bottom: base - JUG_SPRITE.inBase * k,
                   borderWidth: `${JUG_SPRITE.lip * k}px ${JUG_SPRITE.wall * k}px ${JUG_SPRITE.base * k}px`,
-                  borderImage: `url(${numberArt("measure", "jug-front")}) ${JUG_SLICE} fill / ${JUG_SPRITE.lip * k}px ${JUG_SPRITE.wall * k}px ${JUG_SPRITE.base * k}px stretch`,
+                  borderImage: `url(${numberArt("measure", "jug-front")}) ${JUG_SLICE} / ${JUG_SPRITE.lip * k}px ${JUG_SPRITE.wall * k}px ${JUG_SPRITE.base * k}px stretch`,
                 }}
               />
             </div>

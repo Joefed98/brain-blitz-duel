@@ -13,6 +13,8 @@ import { playCorrect } from "@/lib/sound";
 import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 

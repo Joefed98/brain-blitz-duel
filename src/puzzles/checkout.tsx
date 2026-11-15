@@ -37,13 +37,15 @@ import {
   type CheckoutPuzzleData,
   type CheckoutStageData,
 } from "@/lib/duel/types";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playCorrect } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import "@/polish-layout/batch-w-checkout.css";
 import { StepChips } from "@/components/puzzles/number/StepChips";
 import { HudPills } from "@/components/puzzles/HudPills";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -589,7 +591,8 @@ function Stage({
   };
   const reject = () => {
     setShake(true);
-    playWrong();
+    // The Number overhaul: a Throw that doesn't check out has its own sound (one sound a moment).
+    soundCue("checkout.wrong");
     setTimeout(() => setShake(false), 320);
   };
   const throwDarts = () => {

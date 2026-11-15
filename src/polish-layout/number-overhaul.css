@@ -69,3 +69,25 @@
     animation: none;
   }
 }
+
+/*
+ * Controls: champagne gold and navy only (the style guide). The shared puzzle surface dyes secondary actions in the
+ * category's green (styles.css [data-puzzle-action]); in the Number games they are navy with light text and no
+ * outline, and the one primary action stays champagne gold.
+ */
+[data-puzzle-surface][data-category="number"] [data-puzzle-action]:not([data-puzzle-action="primary"]) {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text) !important;
+  box-shadow: none;
+}
+/* A HUD pill's "gold" value (a target, par) is the interface's champagne, never the category's green. */
+[data-category="number"] [data-game-stage] .jz-status[data-tone="accent"] .jz-status-value {
+  color: var(--jz-gold);
+}
+/* Icon actions (Exact's Undo and Reset) likewise: navy, no category-coloured outline. */
+[data-puzzle-surface][data-category="number"] .puzzle-secondary-control {
+  border-color: transparent !important;
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text) !important;
+  box-shadow: none !important;
+}
