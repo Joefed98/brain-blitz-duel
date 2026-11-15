@@ -17,7 +17,7 @@ import {
 import { scoreWordHuntDepth, wordHuntDepth, wordHuntValue } from "@/lib/duel/wordHunt";
 import type { CheckWord } from "@/puzzles/types";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { flyFrom, stepCue, wordFx } from "./wordFx";
+import { effectCue, flyFrom, stepCue, wordFx } from "./wordFx";
 
 /** Stage 2 effects: one soft note a letter while tracing, rising up the scale. */
 const TRACE_CUES = ["wordhunt.trace1", "wordhunt.trace2", "wordhunt.trace3", "wordhunt.trace4", "wordhunt.trace5", "wordhunt.trace6", "wordhunt.trace7", "wordhunt.trace8", "wordhunt.trace9"] as const;
@@ -187,7 +187,7 @@ export function WordHuntPuzzle({
     tracedLength.current = path.length;
     if (!grew || path.length === 0) return;
     const cell = path[path.length - 1]!;
-    wordCue(stepCue(TRACE_CUES, path.length - 1));
+    effectCue(stepCue(TRACE_CUES, path.length - 1));
     if (golden !== undefined && cell === golden) wordFx("combo", gridRef.current?.querySelector(`[data-cell="${cell}"]`), "wordhunt.golden", { count: 1, silent: true });
   }, [path, golden]);
   const [found, setFound] = useStageState<Found[]>(stateKey, "wordHuntFound", () => []);
@@ -297,7 +297,7 @@ export function WordHuntPuzzle({
       // Stage 2: the path flashes, the word flies up to the list from its last letter and its points pop; 7+ letters
       // a bigger chord.
       const from = gridRef.current?.querySelector(`[data-cell="${cells[cells.length - 1]}"]`)?.getBoundingClientRect();
-      wordCue(verdict.word.length >= 7 ? "wordhunt.long" : "wordhunt.word");
+      effectCue(verdict.word.length >= 7 ? "wordhunt.long" : "wordhunt.word");
       requestAnimationFrame(() => {
         const chip = gridRef.current?.closest("[data-stage-column]")?.querySelector(".accepted-word-chip");
         flyFrom(chip, from);

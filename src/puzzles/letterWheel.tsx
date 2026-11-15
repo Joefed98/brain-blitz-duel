@@ -12,7 +12,7 @@ import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { fx } from "@/lib/fx";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
-import { flyFrom, stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
+import { effectCue, flyFrom, stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
 
 /** Stage 2 effects: a note a letter while tracing, rising. */
 const LW_TRACE_CUES = ["letterwheel.trace1", "letterwheel.trace2", "letterwheel.trace3", "letterwheel.trace4", "letterwheel.trace5", "letterwheel.trace6", "letterwheel.trace7", "letterwheel.trace8"] as const;
@@ -365,13 +365,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   useEffect(() => {
     const grew = path.length > tracedLength.current;
     tracedLength.current = path.length;
-    if (grew) wordCue(stepCue(LW_TRACE_CUES, path.length - 1));
+    if (grew) effectCue(stepCue(LW_TRACE_CUES, path.length - 1));
   }, [path]);
 
   // Crossword complete: the wheel spins once, then the crossword lights corner to corner (display only).
   useWordFinish(slotCount > 0 && filledCount >= slotCount, () => {
     wordCue("letterwheel.finish");
-    wordCue("letterwheel.spin");
+    effectCue("letterwheel.spin");
     const root = stageRef.current;
     const cols = data?.cols ?? 1;
     const rows = data?.rows ?? 1;
@@ -462,7 +462,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         if (slot && !lockedNow.current) {
           const from = stageRef.current?.querySelector("[data-lw-wheel]")?.getBoundingClientRect();
           const cells = lwSlotCells(slot, data.cols);
-          wordCue("letterwheel.fly");
+          effectCue("letterwheel.fly");
           requestAnimationFrame(() => stagger(cells.length, 60, (k) => flyFrom(stageRef.current?.querySelector(`[data-lw-cell="${cells[k]}"]`), from)));
         }
       } else if (v.reason === "Not in this puzzle" && usesJar && !bonus.includes(v.word.toUpperCase())) {
@@ -493,7 +493,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         setShake(true);
         setTimeout(() => setShake(false), 350);
         if (v.reason === "Not a word") {
-          if (!lockedNow.current) wordCue("letterwheel.miss");
+          if (!lockedNow.current) effectCue("letterwheel.miss");
           setMissFlash(true);
           setTimeout(() => setMissFlash(false), 450);
           setFlash("Not a word");

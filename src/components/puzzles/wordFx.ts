@@ -51,3 +51,11 @@ export function comboWindow(times: number[], now: number, windowMs = 10_000): nu
   while (times.length > 0 && now - times[0]! > windowMs) times.shift();
   return times.length;
 }
+
+/**
+ * A game's own cue for an effect moment (a letter traced, a word made, a key pressed) with no kit effect of its own; the
+ * finish cues go through wordCue (wordFinish.ts). The same dispatch: Joe's recording once it is in, else nothing extra.
+ */
+export function effectCue(cue: string): void {
+  wordCue(cue);
+}

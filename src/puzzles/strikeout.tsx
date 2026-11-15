@@ -36,7 +36,7 @@ import { KeypadAction, LetterKeypad, type KeyTone } from "@/components/puzzles/L
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
-import { wordFx } from "@/components/puzzles/wordFx";
+import { effectCue, wordFx } from "@/components/puzzles/wordFx";
 
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-strikeout.css";
@@ -548,11 +548,11 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       }
       setAccepted((a) => ({ word: solvedWord, points: 30, serial: (a?.serial ?? 0) + 1 }));
       fx.onCorrect();
-      wordCue("strikeout.solve");
+      effectCue("strikeout.solve");
     } else if (next.last === "hit") {
       fx.onPlace();
       // Stage 2: each matching tile flips with a clack, one after another (the flip is the layout effect below).
-      wordCue("strikeout.flip");
+      effectCue("strikeout.flip");
     }
   });
 

@@ -35,7 +35,7 @@ import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/F
 import { prefersReducedMotion } from "@/lib/motion";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
-import { wordFx } from "@/components/puzzles/wordFx";
+import { effectCue, wordFx } from "@/components/puzzles/wordFx";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
@@ -250,7 +250,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           if (v.valid && !lockedNow.current && !openingWords.current?.has(word)) {
             fx.onCorrect();
             // Stage 2: a row becoming a word brightens with its own two-note.
-            wordCue("wordslide.word");
+            effectCue("wordslide.word");
             // Batch W (display only): the row that became a word gets the toolkit's right-move glow.
             rowWords.forEach((w, i) => {
               if (w !== word) return;
@@ -368,12 +368,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     if (parsed && typeof parsed === "object" && "swap" in parsed) {
       if (swapRow === null) return puzzleReject(board.current);
       lastSwap.current = [swapRow, parsed.swap[0], parsed.swap[1]];
-      wordCue("wordslide.swap");
+      effectCue("wordslide.swap");
     } else if (parsed && typeof parsed === "object" && !("lock" in parsed)) {
       if (parsed.axis === "r" && lockedRows.has(parsed.index)) return puzzleReject(board.current);
       lastShift.current = parsed;
       // Stage 2: the swipe slides its line with a tile rattle (the line's own slide is the layout effect above).
-      wordCue("wordslide.slide");
+      effectCue("wordslide.slide");
     } else if (parsed && typeof parsed === "object" && "lock" in parsed) {
       // Stage 2: the padlock snaps shut (or opens again) on its own art.
       const row = parsed.lock;

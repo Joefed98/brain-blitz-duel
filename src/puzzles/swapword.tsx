@@ -22,7 +22,7 @@ import { completeFx, fx } from "@/lib/fx";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
-import { flyFrom, wordFx } from "@/components/puzzles/wordFx";
+import { effectCue, flyFrom, wordFx } from "@/components/puzzles/wordFx";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/swapword.css";
@@ -190,7 +190,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
         fx.onPlace();
         // Stage 2: a tile turning gold is a bright plink; two in one swap a combo.
         if (prev) {
-          wordCue("swapword.gold");
+          effectCue("swapword.gold");
           if (newlyPlaced >= 2) wordFx("combo", boardRef.current?.querySelector(`[data-sw-tile="${view.marks.findIndex((m, t) => m === 2 && prev[t] !== 2)}"]`), "swapword.combo", { count: newlyPlaced });
         }
         // Batch W: the toolkit's right-move glow on each tile that just turned gold (display only; prev
@@ -249,7 +249,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   // Solved: a gold wave runs once round the figure-eight (display only).
   useWordFinish(result.solved, () => {
     wordCue("swapword.finish");
-    wordCue("swapword.scale");
+    effectCue("swapword.scale");
     const steps: FinishStep[] = FIGURE_EIGHT.flatMap((cells, i) =>
       cells.map((cell) => ({
         el: boardRef.current?.querySelector(`[data-sw-tile="${SW_TILE_CELLS.indexOf(cell)}"]`),
@@ -284,7 +284,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     const tileEl = (t: number) => boardRef.current?.querySelector(`[data-sw-tile="${t}"]`);
     const ra = tileEl(a)?.getBoundingClientRect();
     const rb = tileEl(b)?.getBoundingClientRect();
-    wordCue("swapword.swap");
+    effectCue("swapword.swap");
     requestAnimationFrame(() => {
       flyFrom(tileEl(a), rb);
       flyFrom(tileEl(b), ra);

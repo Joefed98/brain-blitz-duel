@@ -2617,6 +2617,13 @@ outside the repo.
   kit or game sound it stands in for); the round end in each reveal (`RevealChips drop`: words drop in with
   `shared.wordDrop` ticks, the longest `shared.wordLongest`; `RevealNumbers countAfterMs` counts the numbers up after).
   Clips in the gallery; `bun scripts/shots/capture.ts … --video=<dir>` records a run. Stage 3 (levels) follows.
+  *Intro demos* (15 Nov 2026, the merge captain's plan): every older Word demo is stopped (`WORD_OVERHAUL_PRESENTATION`
+  in wordInput.ts, and `wordDemoStampOk` in `src/lib/duel/wordDemoStamps.ts`: a demo plays only on the game's own stamp as
+  rooms deal it, read from the dealt signature; Strikeout's rev-4-only rule is gone); the runs to record are
+  `scripts/fixtures/word-demos.json` (`bun scripts/word-demos-record.ts`: the near-perfect kit on today's intro example),
+  proved by word-demos-check (each run scores exactly the server's grade). Nothing saves a demo; the manual "Save intro
+  demos" workflow does after the final merge. Effect moments' own cues go through `effectCue` (wordFx.ts), the finish
+  cues through `wordCue`.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

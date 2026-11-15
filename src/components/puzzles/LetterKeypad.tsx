@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import "@/polish-word/word-look.css";
 import "@/polish-word/keypad.css";
-import { wordCue } from "@/components/puzzles/wordFinish";
+import { effectCue } from "@/components/puzzles/wordFx";
 
 import { NO_SCROLL_STYLE } from "@/components/puzzles/noScroll";
 import { useGameKeys } from "@/lib/desktop";
@@ -59,7 +59,7 @@ export function LetterKeypad({ onLetter, tone, disabled, locked = false, left, r
   // The pop-up preview: the pressed key's letter, drawn above it while the finger is down.
   const [preview, setPreview] = useState<{ letter: string; x: number; y: number; w: number } | null>(null);
   const press = (letter: string) => {
-    if (keyCue) wordCue(keyCue);
+    if (keyCue) effectCue(keyCue);
     onLetter(letter);
   };
   // Desktop keys: typing a letter presses its key; Backspace (or Delete) presses the action left of the
@@ -167,7 +167,7 @@ export function KeypadAction({
       data-key-action=""
       disabled={disabled}
       onClick={() => {
-        if (keyCue) wordCue(keyCue);
+        if (keyCue) effectCue(keyCue);
         onPress();
       }}
       data-wa-btn={emphasis ? "gold" : "navy"}

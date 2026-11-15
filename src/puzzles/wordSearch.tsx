@@ -9,7 +9,7 @@ import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsHasBonus, wsSnapLine, wsSpl
 import { fx } from "@/lib/fx";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
-import { stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
+import { effectCue, stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
 
 /** Stage 2 effects: a found word's chime, pitched by its length (4 letters to 9+). */
 const FOUND_CUES = ["wordsearch.found4", "wordsearch.found5", "wordsearch.found6", "wordsearch.found7", "wordsearch.found8", "wordsearch.found9"] as const;
@@ -201,7 +201,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           const next = wsSnapLine(start.current, cell, size);
           if (next.join(".") !== current.current.join(".")) {
             // Stage 2: the marker squeaks as the loop grows (one short squeak a letter).
-            if (next.length > current.current.length && next.length > 1) wordCue("wordsearch.drag");
+            if (next.length > current.current.length && next.length > 1) effectCue("wordsearch.drag");
             current.current = next;
             setLine(next);
           }
@@ -230,7 +230,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         } else if (verdict.valid) {
           setFound((f) => (f.some((x) => x.word === verdict.word) ? f : [...f, { word: verdict.word, cells: path }]));
           // Stage 2: the loop inks in, the chip ticks with a pen stroke; the chime is pitched by the word's length.
-          if (!lockedNow.current) wordCue(stepCue(FOUND_CUES, verdict.word.length - 4));
+          if (!lockedNow.current) effectCue(stepCue(FOUND_CUES, verdict.word.length - 4));
           inkNext.current = true;
         } else if (verdict.reason === "Already found") {
           // Stage 2: re-dragging a found word is a gentle bump on its chip, never an error.
@@ -259,7 +259,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   useWordFinish(total > 0 && found.length >= total, () => {
     wordCue("wordsearch.finish");
     // Stage 2: the last word redraws every loop in order.
-    wordCue("wordsearch.redraw");
+    effectCue("wordsearch.redraw");
     const lines = stageRef.current?.querySelectorAll("[data-ws-line]") ?? [];
     stagger(lines.length, 90, (i) => inkLoop(lines[i]));
     const root = stageRef.current;

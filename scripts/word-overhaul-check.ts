@@ -277,7 +277,7 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
   const keypad = src("src/components/puzzles/LetterKeypad.tsx");
   ok(/export const KEY_HEIGHT = 52;/.test(keypad), "keyboards: 52 px keys");
   ok(/data-key-preview=/.test(keypad), "keyboards: a pop-up preview of the pressed letter");
-  ok(/if \(keyCue\) wordCue\(keyCue\);/.test(keypad), "keyboards: a key cue on every press");
+  ok(/if \(keyCue\) effectCue\(keyCue\);/.test(keypad), "keyboards: a key cue on every press");
   ok(/keyCue="strikeout\.key"/.test(src("src/puzzles/strikeout.tsx")) && /keyCue="codeword\.key"/.test(src("src/puzzles/codeword.tsx")), "keyboards: each game's own key cue");
   ok(!/keyHeight=\{42\}/.test(src("src/puzzles/codeword.tsx")), "cryptogrid: the keyboard is no longer the short 42 px one");
   ok(/max-height: none;/.test(src("src/polish-layout/polish-nov3-word.css")), "strikeout: the arena is no longer capped, so the keyboard sits at the bottom");
@@ -415,7 +415,7 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
   }
   // Joe (15 Nov 2026): the pangram's recording replaces the shared moment-card sting once it is in; never both.
   const nucleus = readFileSync("src/components/puzzles/WordsmithPuzzle.tsx", "utf8");
-  ok(/if \(cueHasFile\("wordsmith\.pangram"\)\) wordCue\("wordsmith\.pangram"\);\s*else \{\s*wordCue\(PANGRAM_CUE\);/.test(nucleus), "effects: the pangram plays its own recording or the shared sting, never both");
+  ok(/if \(cueHasFile\("wordsmith\.pangram"\)\) effectCue\("wordsmith\.pangram"\);\s*else \{\s*effectCue\(PANGRAM_CUE\);/.test(nucleus), "effects: the pangram plays its own recording or the shared sting, never both");
   const fxSource = readFileSync("src/components/puzzles/wordFx.ts", "utf8");
   ok(/from "@\/lib\/fx\/kit"/.test(fxSource) && !/navigator\.vibrate|haptic\(/.test(sources + fxSource), "effects: through the kit only (no vibrate or haptic call of their own)");
   // The round end: found words drop in (with their ticks), the numbers count up after them; every chip ends visible.

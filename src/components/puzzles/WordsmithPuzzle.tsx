@@ -9,7 +9,7 @@ import { toggleWordsmithTile } from "./wordInput";
 import { Shuffle } from "lucide-react";
 import { shuffleLetterOrder } from "./letterShuffle";
 import { playFinish, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
-import { comboWindow, flyFrom, stepCue, wordFx } from "./wordFx";
+import { comboWindow, effectCue, flyFrom, stepCue, wordFx } from "./wordFx";
 import { cueHasFile } from "@/lib/sound";
 import { scoreWordsmith, WORDSMITH_REV_DEPTH, WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 import { useStageState } from "@/lib/duel/stageState";
@@ -159,15 +159,15 @@ export function WordsmithPuzzle({
       // its length; three words inside 10 s is a combo on the counter; the pangram spins the ring once in gold.
       const from = wordBoxRef.current?.getBoundingClientRect();
       requestAnimationFrame(() => flyFrom(wordBoxRef.current?.parentElement?.querySelector(".accepted-word-chip"), from));
-      wordCue(stepCue(WORD_CUES, verdict.word.length - 4));
+      effectCue(stepCue(WORD_CUES, verdict.word.length - 4));
       const streak = comboWindow(wordTimes.current, Date.now());
       if (streak >= 3) wordFx("combo", counterRef.current, "wordsmith.combo", { count: streak - 1 });
       if (pangramRule && verdict.word.length >= letters.length && !pangramFound) {
         // Joe (15 Nov 2026): the pangram's own recording replaces the shared moment-card sting once it is in; never both.
-        if (cueHasFile("wordsmith.pangram")) wordCue("wordsmith.pangram");
+        if (cueHasFile("wordsmith.pangram")) effectCue("wordsmith.pangram");
         else {
-          wordCue(PANGRAM_CUE);
-          wordCue("wordsmith.pangram");
+          effectCue(PANGRAM_CUE);
+          effectCue("wordsmith.pangram");
         }
         // The letters turn against the ring, so they stay upright as it spins (as the end-of-run spin does).
         const timing = { duration: 900, easing: "cubic-bezier(.5,0,.2,1)" };

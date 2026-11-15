@@ -91,6 +91,12 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
           { id: "pangram", label: "Every-tile word", value: pangramFound ? "Found" : "Missed", tone: pangramFound ? "gold" : undefined },
         ]}
       />
+      <div data-wr-board="wordsmith" className="flex flex-col items-center gap-1">
+        <RevealLabel>The board</RevealLabel>
+        <div className="wordsmith-ring-example w-[132px] shrink-0">
+          <WordsmithRing letters={puzzle.letters} />
+        </div>
+      </div>
       {pangram ? (
         <div className="flex flex-col items-center gap-1">
           <RevealLabel>The every-tile word</RevealLabel>

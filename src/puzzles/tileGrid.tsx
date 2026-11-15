@@ -24,7 +24,7 @@ import { fx } from "@/lib/fx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
-import { stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
+import { effectCue, stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
 
 /** Stage 2 effects: a run becoming a word plays a chord that grows with it (3 letters to 7). */
 const TG_WORD_CUES = ["tilegrid.word3", "tilegrid.word4", "tilegrid.word5", "tilegrid.word6", "tilegrid.word7"] as const;
@@ -167,7 +167,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
             // Stage 2: the run lights tile by tile with a chord that grows with the word; two words at once a combo.
             stagger(run.cells.length, 45, (i) => wordFx("tap", boardSpace.current?.querySelector(`[data-tg-cell="${run.cells[i]}"]`), null, { silent: true }));
           }
-        wordCue(stepCue(TG_WORD_CUES, word.length - 3));
+        effectCue(stepCue(TG_WORD_CUES, word.length - 3));
         const at = Date.now();
         if (at - lastWordAt.current < 400) wordFx("combo", boardSpace.current?.querySelector("[data-word-cell]"), "tilegrid.combo", { count: 2 });
         lastWordAt.current = at;
