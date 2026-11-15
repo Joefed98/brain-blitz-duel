@@ -43,9 +43,9 @@ def board(quad):
     steel spider that catches the key. Highlights sit on the wire and the wood's polished edge, never across a wedge."""
     setup(200, 200, scale=4.5, samples=48).view_settings.exposure = -0.75
     # The wooden surround: turned walnut under a deep lacquer, its grain running round the ring, a polished rolled edge.
-    walnut = wood("walnut", "#6a3c1c", "#2c1608", rough=0.36, coat=0.35, scale=5, stretch=(1, 1, 1))
+    walnut = wood("walnut", "#6a3c1c", "#2c1608", rough=0.42, coat=0.18, scale=5, stretch=(1, 1, 1))
     # A satin lacquer: the key leaves a soft sheen along the rim, never a hard spot across the numbers.
-    walnut.node_tree.nodes["Principled BSDF"].inputs["Coat Roughness"].default_value = 0.45
+    walnut.node_tree.nodes["Principled BSDF"].inputs["Coat Roughness"].default_value = 0.5
     cyl(C, C, R_NUM - 0.4, 6, walnut, z=-6.5, bevel=2.4, verts=200)
     # A dark iron band where the sisal meets the wood.
     cyl(C, C, R_DO + 1.2, 1.0, mat("band", "#202024", 0.3, metal=1.0), z=-1.2, bevel=0.3, verts=180)
