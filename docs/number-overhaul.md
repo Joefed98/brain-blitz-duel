@@ -6,8 +6,10 @@ Ballpark and Kakuro. Sources: the reviews (docs/design/game-reviews/number.md), 
 
 ## Stage 1: the look and the game changes
 
-**The look.** Every piece and surface is rendered in Blender (Cycles, a soft even studio light, matte to satin
-materials, no glare) by `docs/design/number-overhaul/source/<game>.py` on the shared `sprites.py`, into
+**The look.** Every piece and surface is rendered in Blender (Cycles, a product-shot studio light, real materials matched
+to the chosen concept A: glass with a crisp highlight on its curve, glossy liquid, lacquer and enamel with depth, wood
+with grain, metal that shines; no highlight washing across a panel, tile face or number, and no glowing edges, Joe's
+clarification of 15 Nov 2026: "no glare" never means matte and flat) by `docs/design/number-overhaul/source/<game>.py` on the shared `sprites.py`, into
 `public/number/<game>/<piece>.webp` with alpha. Numbers are never baked in: the app draws them in bold Archivo over the
 art (`numberArt(game, piece)` in `src/components/puzzles/number/overhaul.tsx`). Controls are champagne gold (the one
 action that plays) and navy; the shared puzzle surface's category-green actions and pills are overridden for every

@@ -4,8 +4,10 @@ Each sprite is one object (a kettlebell, a tile, a stone, a jug, a dartboard...)
 transparent film, through an orthographic camera looking at the screen plane, so the app can place and animate it.
 Numbers are never baked in: the app draws them over the pieces in Archivo, bold and legible at any size.
 
-Lighting follows the art direction for game pieces: clean, even studio light (a large soft key from the top left,
-a soft fill, a low rim), matte-to-satin materials, no reflections across panels or numbers and no glowing edges.
+Lighting follows the art direction for game pieces (Joe, 15 Nov 2026): real materials with light on them, matched to
+the chosen concept: glass with a crisp highlight on its curve, glossy liquid, lacquer and enamel with depth, wood with
+grain, metal that shines. "No glare" means no highlight washing across a panel, tile face or number and no glowing
+edges; it never means matte and flat. setup()'s default "product" rig gives that; "even" is the first pass's flat light.
 
 Coordinates are sprite points: (0, 0) the sprite's top left, x right, y down, z towards the viewer; the sprite is
 `w` x `h` points and renders at `scale` pixels a point.
@@ -25,8 +27,14 @@ TMP = os.environ.get("JZ_TMP", "/tmp/jz-number")
 SPRITE_SAMPLES = int(os.environ.get("JZ_SAMPLES", "64"))
 
 
-def setup(w, h, scale=3, samples=None):
-    """A fresh scene framing a w x h point box; returns the scene."""
+def setup(w, h, scale=3, samples=None, rig="product", reflect=0.9):
+    """A fresh scene framing a w x h point box; returns the scene.
+
+    rig "product" (the default since Joe's clarification of 15 Nov 2026): a studio environment for reflections, a
+    crisp key from the top left that puts a clean highlight on curves and edges, a soft fill and a rim, so glass reads
+    as glass, lacquer has depth and metal shines. Highlights belong on a piece's curves and edges, never washed across
+    a face where a number sits. rig "even": the soft, flat light of the first pass.
+    """
     jzlib.W, jzlib.H = w, h
     jzlib._mats.clear(); jzlib._fonts.clear(); jzlib._meshes.clear()
     s = reset()
@@ -45,9 +53,24 @@ def setup(w, h, scale=3, samples=None):
     ob.location = (0, 0, 50)
     cam.clip_end = 200
     s.camera = ob
-    world("#06080f", 0.0, hdri=None)
-    even_lights()
+    if rig == "even":
+        world("#06080f", 0.0, hdri=None)
+        even_lights()
+    else:
+        # The camera sees the transparent film; reflections see the studio.
+        world("#06080f", 0.0, hdri="studio.exr", hdri_strength=reflect)
+        product_lights()
     return s
+
+
+def product_lights(key=1.0):
+    """A product-shot rig: a crisp key (small enough to leave a clean highlight), a large soft fill, a cool rim."""
+    W, H = jzlib.W, jzlib.H
+    span = max(W, H)
+    k = (span / 120) ** 2 / 9
+    area(-span * 0.5, -span * 0.6, span * 1.6, span * 0.5, 2600 * key * k, "#fff3df", target=(W / 2, H / 2, 0))
+    area(W + span * 0.9, H * 0.5, span * 1.2, span * 2.2, 650 * key * k, "#e4ecff", target=(W / 2, H / 2, 0))
+    area(W / 2, H + span * 1.0, span * 0.4, span * 2.0, 900 * key * k, "#ffffff", target=(W / 2, H / 2, 0))
 
 
 def even_lights(key=1.0):
@@ -89,7 +112,7 @@ def run(sprites):
         fn()
 
 
-# ------------------------------------------------------------------ shared matte materials (no glare)
+# ------------------------------------------------------------------ shared materials
 def satin(name, color, rough=0.55, metal=0.0):
     return mat(name, color, rough, metal=metal)
 
