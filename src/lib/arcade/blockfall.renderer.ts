@@ -150,12 +150,19 @@ export function drawBfSquare(ctx: CanvasRenderingContext2D, shape: number, x: nu
   const w = size - 2 * inset;
   const bev = Math.max(2, Math.round(size * 0.16));
   ctx.globalAlpha = alpha;
-  // The face: the shape's core tint lifted towards its rim colour.
-  ctx.fillStyle = c.core;
-  ctx.fillRect(x0, y0, w, w);
-  ctx.globalAlpha = alpha * 0.45;
+  // The Retro overhaul (15 Nov 2026): a solid, chunky block, never a hollow outline. Blockzone's glow is the brief's one
+  // exception to the minimal-glow rule: a soft halo of the block's own colour inside its cell, under the face.
+  ctx.globalAlpha = alpha * 0.35;
   ctx.fillStyle = c.rim;
-  ctx.fillRect(x0 + bev, y0 + bev, w - 2 * bev, w - 2 * bev);
+  ctx.fillRect(x, y, size, size);
+  ctx.globalAlpha = alpha;
+  // The face: the rim colour, solid, deepening towards the bottom (lacquer with depth).
+  ctx.fillStyle = c.rim;
+  ctx.fillRect(x0, y0, w, w);
+  ctx.globalAlpha = alpha * 0.35;
+  ctx.fillStyle = c.core;
+  ctx.fillRect(x0, y0 + Math.round(w * 0.55), w, w - Math.round(w * 0.55));
+  ctx.globalAlpha = alpha;
   // The bevel: light along the top and left, shade along the bottom and right.
   ctx.globalAlpha = alpha * 0.85;
   ctx.fillStyle = "#FFFFFF";
@@ -185,10 +192,14 @@ export function drawBfSquare(ctx: CanvasRenderingContext2D, shape: number, x: nu
   ctx.strokeStyle = c.rim;
   ctx.lineWidth = Math.max(1, size * 0.06);
   ctx.strokeRect(x0 + ctx.lineWidth / 2, y0 + ctx.lineWidth / 2, w - ctx.lineWidth, w - ctx.lineWidth);
-  ctx.globalAlpha = alpha * 0.7;
+  // A crisp gloss on the face: a bright streak across its upper part and a small hot spot at its left (light on a
+  // glossy surface, never a wash over the block).
+  ctx.globalAlpha = alpha * 0.45;
   ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(x0 + bev, y0 + bev, w - 2 * bev, Math.max(1, Math.round(size * 0.1)));
+  ctx.globalAlpha = alpha * 0.95;
   const g = Math.max(1.5, size * 0.14);
-  ctx.fillRect(x0 + bev + 1, y0 + bev + 1, g, Math.max(1, g * 0.45));
+  ctx.fillRect(x0 + bev + 1, y0 + bev + 1, g, Math.max(1, g * 0.6));
   ctx.globalAlpha = 1;
 }
 

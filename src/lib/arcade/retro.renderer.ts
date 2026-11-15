@@ -274,15 +274,62 @@ export function retroPaddle(
       pixelRect(ctx, left + w - inset - 2, top + r * 2, 2, 2, colour);
     }
   }
+  // Polished metal (the Retro overhaul, 15 Nov 2026): a lit band across the face just under the top edge, a crisp
+  // highlight a third of the way along it, and the lower body shaded, all inside the paddle's rect.
+  if (rows >= 3 && /^#[0-9a-f]{6}$/i.test(colour)) {
+    const inset1 = (rows - 2) * step;
+    pixelRect(ctx, left + inset1 + 2, top + 2, w - inset1 * 2 - 4, 2, retroMix(colour, "#FFFFFF", 0.35));
+    pixelRect(ctx, left + inset1 + 2 + Math.round((w - inset1 * 2) * 0.22), top + 2, Math.max(4, Math.round(w * 0.14)), 2, "#FFFFFF");
+    if (rows >= 4) pixelRect(ctx, left + 2, top + (rows - 2) * 2, w - 4, 2, "rgba(0,0,0,0.28)");
+  }
 }
 
-/** A bright pixel ball inside the sim's circle. */
+/** A hex colour mixed towards another by t (0…1); cached, so a frame's balls cost no string work after the first. */
+const mixCache = new Map<string, string>();
+export function retroMix(a: string, b: string, t: number): string {
+  const key = `${a}|${b}|${t}`;
+  const hit = mixCache.get(key);
+  if (hit) return hit;
+  const parse = (h: string) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(h.trim());
+    const n = m ? parseInt(m[1]!, 16) : 0xffffff;
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const [ar, ag, ab] = parse(a);
+  const [br, bg, bb] = parse(b);
+  const c = (x: number, y: number) => Math.round(x + (y - x) * t).toString(16).padStart(2, "0");
+  const out = `#${c(ar!, br!)}${c(ag!, bg!)}${c(ab!, bb!)}`;
+  if (mixCache.size > 512) mixCache.clear();
+  mixCache.set(key, out);
+  return out;
+}
+
+/**
+ * A ball inside the sim's circle, drawn as a lit pixel sphere (the Retro overhaul, 15 Nov 2026: a material with light on
+ * it, never a flat disc): the colour shaded from a lighter top-left to a darker rim at the bottom-right, a crisp white
+ * highlight on the curve at the top-left, and `core` (when it differs from the colour) as a hot inner light. Every block
+ * stays inside the circle (the bounds rule).
+ */
 export function retroBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, core = RETRO_WHITE): void {
   const block = r >= 6 ? 2 : 1;
+  const lit = /^#[0-9a-f]{6}$/i.test(colour);
+  const hot = core !== colour && /^#[0-9a-f]{6}$/i.test(core);
   pixelShape(ctx, x, y, r, block, (dx, dy) => {
     const d = dx * dx + dy * dy;
     if (d > r * r) return null;
-    return d < (r * 0.45) ** 2 ? core : colour;
+    if (!lit) return d < (r * 0.45) ** 2 ? core : colour;
+    // The light comes from the top-left: n·l on the sphere's surface, -1 (rim, away) … 1 (facing the light).
+    const nz = Math.sqrt(Math.max(0, 1 - d / (r * r)));
+    const shade = (-dx * 0.55 - dy * 0.65) / r + nz * 0.5;
+    // The crisp highlight: a small spot up and left of the centre.
+    const hx = dx + r * 0.38;
+    const hy = dy + r * 0.38;
+    if (hx * hx + hy * hy < (r * 0.26) ** 2) return RETRO_WHITE;
+    if (hot && d < (r * 0.42) ** 2) return retroMix(core, colour, 0.25);
+    if (shade > 0.55) return retroMix(colour, "#FFFFFF", 0.38);
+    if (shade > 0.15) return colour;
+    if (shade > -0.25) return retroMix(colour, "#000000", 0.25);
+    return retroMix(colour, "#000000", 0.45);
   });
 }
 

@@ -100,8 +100,11 @@ const FINISHES: readonly HullFinish[] = [
   { hi: "#555C69", mid: "#2A2F38", lo: "#0C0E12", edge: "#9AA2AF" },
 ];
 const STEEL_DARK = "#14171C";
-/** The neon edge lights, the furnace seams and the exhaust. */
-export const WAV_NEON = "#FF3FD0";
+/**
+ * The neon edge lights, the furnace seams and the exhaust. The Retro overhaul (15 Nov 2026, Joe: the enemy ships in a new
+ * palette with no pink): the edge lights are electric cyan (were magenta #FF3FD0) against the gunmetal and furnace orange.
+ */
+export const WAV_NEON = "#3FE6FF";
 export const WAV_FURNACE = "#FF8A2A";
 const FURNACE_HOT = "#FFC46B";
 const COCKPIT = "#5FF2FF";
@@ -624,7 +627,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
     const cy = y + h * 0.45;
     const halo = ctx.createRadialGradient(cx, cy, 1, cx, cy, 14);
     halo.addColorStop(0, `rgba(255,236,250,${pulse})`);
-    halo.addColorStop(0.35, `rgba(255,63,208,${0.85 * pulse})`);
+    halo.addColorStop(0.35, `rgba(63,230,255,${0.85 * pulse})`);
     halo.addColorStop(0.7, `rgba(255,138,42,${0.45 * pulse})`);
     halo.addColorStop(1, "rgba(255,138,42,0)");
     ctx.fillStyle = halo;
@@ -658,7 +661,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
 /**
  * wavRev 10 weak points, inside the boss's box: each cannon still firing glows amber in its 16 px column
  * (one pip per hit left; destroyed, a dark smoking stub), and the core is an iris that opens (bright,
- * pulsing pink-white, the hit box's 24 px) for half of each cycle and closes behind grey shutters.
+ * pulsing cyan-white, the hit box's 24 px) for half of each cycle and closes behind grey shutters.
  */
 function drawWeakPoints(ctx: CanvasRenderingContext2D, state: WavState, boss: NonNullable<WavState["boss"]>, x: number, y: number, w: number, h: number, t: number): void {
   const still = reducedMotion();
@@ -703,7 +706,7 @@ function drawWeakPoints(ctx: CanvasRenderingContext2D, state: WavState, boss: No
     if (light) {
       const bloom = ctx.createRadialGradient(cx, cy, 2, cx, cy, r + 4);
       bloom.addColorStop(0, `rgba(255,255,255,${0.95 * pulse})`);
-      bloom.addColorStop(0.5, `rgba(255,63,208,${0.8 * pulse})`);
+      bloom.addColorStop(0.5, `rgba(63,230,255,${0.8 * pulse})`);
       bloom.addColorStop(1, "rgba(255,138,42,0)");
       ctx.fillStyle = bloom;
       ctx.fillRect(cx - r - 4, cy - r - 4, 2 * r + 8, 2 * r + 8);
@@ -1035,7 +1038,7 @@ function drawSaucer(ctx: CanvasRenderingContext2D, x: number, t: number): void {
   for (let k = 0; k < 8; k++) {
     const a = (k / 8) * Math.PI * 2 + t * 3;
     const lit = Math.sin(a) > 0;
-    ctx.fillStyle = lit ? WAV_NEON : "rgba(255,63,208,0.25)";
+    ctx.fillStyle = lit ? WAV_NEON : "rgba(63,230,255,0.25)";
     ctx.beginPath();
     ctx.arc(x + Math.cos(a) * (rx - 2), y + Math.sin(a) * 2 + 1, 1.3, 0, Math.PI * 2);
     ctx.fill();
