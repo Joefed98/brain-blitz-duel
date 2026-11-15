@@ -72,6 +72,33 @@ floor: never a real engine, horn or tyre squeal.
 
 <!-- lightbender:start -->
 ## Lightbender
+
+Silvered glass mirrors, a violet glass prism, cut crystal gems, terracotta brick walls and a gunmetal emitter firing a
+golden beam. Glass and crystal, clean and precise; never a sci-fi blaster or a cartoon zap.
+
+- `laser.place` — a mirror (or the splitter) set down on a square: a small, bright glass click, a thick pane touching
+  down on stone, a hint of ring cut short; tidy and light; 80–120 ms. (Today the November placeholder `laser.place.mp3`,
+  behind `NEW_GAME_SOUNDS`; also plays when a piece is moved, or put back by Undo.)
+- `laser.turn` — a placed mirror turned to its other diagonal: a crisp, dry ratchet, two quick clicks of a small
+  geared mount, glass faintly chiming on the second; 90–130 ms. (Placeholder `laser.turn.mp3`; Undo of a turn plays it.)
+- `laser.fire` — the beam leaves the emitter and draws across the board: a clean rising "vwmm" that settles into a soft,
+  steady electric hum, warm and golden, no pew; fades out by itself; 1.2–2.0 s (the beam takes about that long).
+  (Placeholder `laser.fire.mp3`, 0.4 s.)
+- `laser.gem` / `pz_laser_gem` — **keep** (each gem the beam lights rings a rising note; the game raises the pitch gem
+  by gem: today's best moment).
+- `pz_laser_split` — **keep** if wanted, else replace: the splitter forks the beam: a soft glassy chord, two notes a
+  fifth apart opening outwards, bright and airy; 400–600 ms.
+- `laser.bomb` — the beam hits a bomb: a loud but very short blast, a dry crack with a quick low thump and a brief
+  crackle tail, no long rumble or debris; 300–400 ms. (Today's file is 0.49 s and a little soft; replace.)
+- `laser.nearMiss` — a shot lights every gem but one ("1 gem dark"): a gentle, slightly hopeful two-note glass hint, the
+  second note left hanging, quiet, clearly "so close", never a buzzer; 500–700 ms. (Placeholder: the library's
+  `arc_retro_blip.mp3`.)
+- `laser.outOfShots` — the third shot fades without a solve and the board locks: the emitter powering down, a soft
+  falling electric whine ending in a small mechanical clunk of a shutter closing; calm, final, not harsh; 500–700 ms.
+  (Placeholder: the library's `retro.powerDown.mp3`.)
+- `laser.solve` — **keep** for now (`laser.solve.mp3`); if replaced: every gem lit, the beam flares: a bright crystal
+  shimmer rising into a warm golden chord that blooms and fades, like light pouring through cut glass; 1.0–1.2 s.
+- Undo and Reset: no new sound; Undo plays the sound of the change it takes back (`laser.place` or `laser.turn`).
 <!-- lightbender:end -->
 
 <!-- topsy:start -->

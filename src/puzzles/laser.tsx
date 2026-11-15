@@ -21,6 +21,8 @@ import { useStageState } from "@/lib/duel/stageState";
 import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "@/lib/duel/actionLog";
 import { laserAction, replayLaserLog } from "@/lib/duel/laserLog";
 import { serverNow } from "@/lib/duel/clock";
+import { usesPatternNov15 } from "@/lib/duel/patternNov15";
+import { soundCue } from "@/lib/fx/patternFx";
 import {
   LASER_BEAM_MS,
   LASER_CELLS,
@@ -45,6 +47,7 @@ import {
   LaserGemBursts,
   LaserMirror,
   LaserSplitter,
+  laserArtUrl,
   useLaserCues,
 } from "@/components/puzzles/pattern/laserArt";
 import { useInFrame } from "@/components/puzzles/batchP/LiveSummary";
@@ -60,6 +63,42 @@ export { directionalChevronPoints };
 /** The Gems pill's count: the best shot so far, or the beam on screen if it lights more. */
 export function laserGemsShown(best: number, onScreen: number): number {
   return Math.max(best, onScreen);
+}
+
+/**
+ * One board change as laserRev 4's Undo (the Pattern overhaul, 15 Nov 2026) takes it back: a piece placed, turned,
+ * moved, taken back to the tray, or a Reset. Undo sends the ordinary verbs that put the board back as it was (a
+ * removal, a second turn, the reverse move, the piece put back, every piece put back), so the server's replay and its
+ * grading are those of any other board change.
+ */
+export type LaserUndo =
+  | { k: "place"; cell: number }
+  | { k: "turn"; cell: number }
+  | { k: "move"; from: number; to: number }
+  | { k: "remove"; cell: number; kind: MirrorKind }
+  | { k: "reset"; pieces: MirrorPlacement[] };
+
+/** The log verbs and the board an Undo of `last` gives (pure; the stage's Undo and the check use it). */
+export function laserUndoStep(placed: MirrorPlacement[], last: LaserUndo): { actions: string[]; placed: MirrorPlacement[] } {
+  if (last.k === "place") return { actions: [laserAction.remove(last.cell)], placed: placed.filter((p) => p.cell !== last.cell) };
+  if (last.k === "turn") {
+    return {
+      actions: [laserAction.turn(last.cell)],
+      placed: placed.map((p) => (p.cell === last.cell ? { cell: p.cell, kind: flipMirror(p.kind) } : p)),
+    };
+  }
+  if (last.k === "move") {
+    const piece = placed.find((p) => p.cell === last.to);
+    if (!piece) return { actions: [], placed };
+    return { actions: [laserAction.move(last.to, last.from)], placed: [...placed.filter((p) => p.cell !== last.to), { cell: last.from, kind: piece.kind }] };
+  }
+  if (last.k === "remove") return { actions: [laserAction.place(last.cell, last.kind)], placed: [...placed, { cell: last.cell, kind: last.kind }] };
+  return { actions: last.pieces.map((p) => laserAction.place(p.cell, p.kind)), placed: last.pieces.map((p) => ({ ...p })) };
+}
+
+/** laserRev 4 (the Pattern overhaul): Undo takes back any change, and the board locks once every shot is used. */
+export function laserOverhaul(puzzle: unknown): boolean {
+  return usesPatternNov15(puzzle, "laser");
 }
 
 /** Each fork starts when the travelling beam reaches its parent splitter. */
@@ -105,6 +144,7 @@ export function LaserBoard({
   gridRef,
   live = false,
   solved = false,
+  outOfShots = false,
 }: {
   source: number;
   dir: BeamDir;
@@ -130,6 +170,8 @@ export function LaserBoard({
   live?: boolean;
   /** The stage has submitted a solve (starts the completion effect). */
   solved?: boolean;
+  /** laserRev 4: every shot used without a solve; the board is locked and says so. */
+  outOfShots?: boolean;
 }) {
   const rows = Math.ceil(cells / cols);
   const wall = new Set(blocks);
@@ -152,8 +194,9 @@ export function LaserBoard({
     <div
       className={`laser-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none ${
         shake ? "animate-shake" : ""
-      } ${solveFx ? "laser-board-solved" : ""}`}
+      } ${solveFx ? "laser-board-solved" : ""} ${outOfShots ? "laser-board-spent" : ""}`}
       style={{ touchAction: "none" }}
+      data-laser-art=""
       onPointerDown={pointer?.onPointerDown}
     >
       <div
@@ -166,7 +209,7 @@ export function LaserBoard({
         }}
       >
         {Array.from({ length: cols * rows }, (_, cell) => {
-          if (wall.has(cell)) return <div key={cell} className="laser-block rounded-md bg-foreground/60" />;
+          if (wall.has(cell)) return <div key={cell} aria-label="Wall" className="laser-block rounded-md bg-foreground/60" />;
           const piece = mirrorAt.get(cell);
           if (piece && isSplitter(piece)) return <div key={cell} aria-label={`Splitter ${piece === "S|" ? "vertical" : "horizontal"} input`} className="laser-piece-cell flex items-center justify-center"><LaserSplitter kind={piece} /></div>;
           if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="laser-piece-cell flex items-center justify-center"><LaserSplitter /></div>;
@@ -246,6 +289,11 @@ export function LaserBoard({
           </>
         ) : null}
       </svg>
+      {outOfShots ? (
+        <div className="laser-spent pointer-events-none absolute inset-0 flex items-center justify-center" data-laser-spent="" role="status">
+          <span className="laser-spent-badge">Out of shots</span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -283,6 +331,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
   const [history, setHistory] = useStageState<number[]>(stateKey, "history", () => []);
   const [fires, setFires] = useStageState<number>(stateKey, "fires", () => 0);
+  // laserRev 4 (the Pattern overhaul): every board change, newest last, for Undo.
+  const overhaul = laserOverhaul(puzzle);
+  const [undoStack, setUndoStack] = useStageState<LaserUndo[]>(stateKey, "undo", () => []);
+  const pushUndo = useCallback(
+    (entry: LaserUndo) => {
+      if (overhaul) setUndoStack((stack) => [...stack, entry]);
+    },
+    [overhaul, setUndoStack],
+  );
   // Stamped rounds (alogRev 1) answer with every change and FIRE on the round clock (laserLog.ts).
   const logged = usesActionLog(puzzle);
   const [log, setLog] = useStageState<LoggedAction[]>(stateKey, "alog", () => []);
@@ -305,7 +362,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const ghostRef = useRef<number | null>(null);
   const dragRef = useRef<{ kind: "tray" | "move"; from: number | null; piece?: MirrorKind } | null>(null);
   const busyRef = useRef(false);
-  busyRef.current = Boolean(locked || submitted.current || shot);
+  // laserRev 4: once the last shot has faded without a solve the board locks (nothing left to fire it with).
+  const outOfShots = overhaul && fires >= LASER_MAX_FIRES && !submitted.current && !shot;
+  busyRef.current = Boolean(locked || submitted.current || shot || outOfShots);
 
   const clearTimers = () => {
     for (const id of timers.current) window.clearTimeout(id);
@@ -364,6 +423,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       // Dropped off the board — back to the tray.
       if (target === null) {
         record(laserAction.remove(drag.from));
+        const removed = current.find((mirror) => mirror.cell === drag.from);
+        if (removed) pushUndo({ k: "remove", cell: removed.cell, kind: removed.kind });
         setPlaced(current.filter((mirror) => mirror.cell !== drag.from));
         setHistory((order) => order.filter((cell) => cell !== drag.from));
         return;
@@ -371,6 +432,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       // Dropped where it started — a tap, so flip it.
       if (target === drag.from) {
         record(laserAction.turn(drag.from));
+        pushUndo({ k: "turn", cell: drag.from });
         setPlaced(
           current.map((mirror) =>
             mirror.cell === drag.from
@@ -386,6 +448,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       }
       const kind = current.find((mirror) => mirror.cell === drag.from)?.kind ?? "/";
       record(laserAction.move(drag.from, target));
+      pushUndo({ k: "move", from: drag.from, to: target });
       setPlaced([...current.filter((mirror) => mirror.cell !== drag.from), { cell: target, kind }]);
       setHistory((order) => order.map((cell) => (cell === drag.from ? target : cell)));
       return;
@@ -403,9 +466,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       return;
     }
     record(laserAction.place(target, kind));
+    pushUndo({ k: "place", cell: target });
     setPlaced([...current, { cell: target, kind }]);
     setHistory((order) => [...order.filter((cell) => cell !== target), target]);
-  }, [refuse, record, setHistory, setPlaced, taken, total, splitterTotal, selected]);
+  }, [refuse, record, pushUndo, setHistory, setPlaced, taken, total, splitterTotal, selected]);
 
   const trackDrag = useCallback(
     (clientX: number, clientY: number) => {
@@ -491,8 +555,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
             onSubmit(logged ? encodeActionLog(firedLog) : encodeLaserAnswer(placed, attempt));
             return;
           }
-          playWrong();
-          timers.current.push(window.setTimeout(() => setShot(null), LASER_FADE_MS));
+          // One sound for a miss: the bomb's own blast (laser.bomb, from the board's cues), the near miss's "1 gem
+          // dark", or the plain wrong; then, after the last shot on laserRev 4, "out of shots" as the beam fades.
+          if (verdict.trace.hitBomb) {
+            /* laser.bomb plays from the board */
+          } else if (verdict.gemsLit === gems.length - 1 && gems.length > 1) soundCue("laser.nearMiss");
+          else playWrong();
+          timers.current.push(
+            window.setTimeout(() => {
+              setShot(null);
+              if (overhaul && attempt >= LASER_MAX_FIRES) soundCue("laser.outOfShots");
+            }, LASER_FADE_MS),
+          );
         },
         per * Math.max(1, lastStep),
       ),
@@ -518,6 +592,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
     log,
     setLog,
     phaseStartedAt,
+    overhaul,
   ]);
 
   const onBoardDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -541,11 +616,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       return;
     }
     record(laserAction.place(cell, selected));
+    pushUndo({ k: "place", cell });
     setPlaced([...placed, { cell, kind: selected }]);
     setHistory((order) => [...order.filter((placedCell) => placedCell !== cell), cell]);
   };
 
   const undo = () => {
+    if (overhaul) {
+      // laserRev 4: take back the last change of any kind, with the verbs that put the board back.
+      const last = undoStack.at(-1);
+      if (!last) return;
+      const step = laserUndoStep(placed, last);
+      for (const action of step.actions) record(action);
+      setUndoStack((stack) => stack.slice(0, -1));
+      setPlaced(step.placed);
+      setHistory(step.placed.map((piece) => piece.cell));
+      return;
+    }
     if (!history.length) return;
     const last = history.at(-1);
     if (last === undefined) return;
@@ -555,10 +642,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   };
 
   const reset = () => {
+    if (placed.length) pushUndo({ k: "reset", pieces: placed.map((piece) => ({ ...piece })) });
     record(laserAction.reset());
     setPlaced([]);
     setHistory([]);
   };
+
+  const canUndo = overhaul ? undoStack.length > 0 : history.length > 0;
 
   // Desktop keys: Enter or Space = Fire, Z or Backspace = Undo, R = Reset, M = mirror, S = splitter.
   useGameKeys((kind, key, event) => {
@@ -574,8 +664,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
     } else if (key === "Enter" || key === " ") {
       if (!(locked || solved || firesLeft === 0 || Boolean(shot))) fire();
     } else if (key === "r") {
-      if (!(locked || solved || !placed.length || Boolean(shot))) reset();
-    } else if (!(locked || solved || !history.length || Boolean(shot))) undo();
+      if (!(locked || solved || !placed.length || Boolean(shot) || outOfShots)) reset();
+    } else if (!(locked || solved || !canUndo || Boolean(shot) || outOfShots)) undo();
     return true;
   });
 
@@ -613,6 +703,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
           pointer={{ onPointerDown: onBoardDown }}
           live
           solved={solved}
+          outOfShots={outOfShots}
         />
       </div>
 
@@ -645,14 +736,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
                 trackDrag(event.clientX, event.clientY);
               }}
               className={`h-11 min-w-11 gap-2 px-2 ${isSplitter(selected) === isSplitter(kind) ? "border-primary" : ""}`}>
-              <span className="flex h-7 w-7 items-center justify-center [&_svg]:size-6">{isSplitter(kind) ? <LaserSplitter kind={kind} /> : <span className="text-lg">/</span>}</span>
+              <span className="flex h-7 w-7 items-center justify-center [&_svg]:size-6">{isSplitter(kind) ? <LaserSplitter kind={kind} /> : <img src={laserArtUrl("mirror-slash")} alt="" draggable={false} className="laser-tray-mirror pointer-events-none h-7 w-7" />}</span>
               <span className="font-mono text-xs">{left}</span>
             </Button>
           );
         })}
         <Button
           type="button"
-          disabled={locked || solved || !placed.length || Boolean(shot)}
+          disabled={locked || solved || !placed.length || Boolean(shot) || outOfShots}
           onClick={reset}
           variant="outline"
           className="h-11 rounded-md border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
@@ -672,17 +763,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
         </Button>
         <Button
           type="button"
-          disabled={locked || solved || !history.length || Boolean(shot)}
+          disabled={locked || solved || !canUndo || Boolean(shot) || outOfShots}
           onClick={undo}
           variant="outline"
           className="h-12 shrink-0 rounded-md border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
         </Button>
-        <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Fires
-          <br />
-          left: {firesLeft}
+        {/* The Pattern overhaul (15 Nov 2026): the shots left as a big number, gold at none. */}
+        <span
+          className="laser-shots-left flex shrink-0 flex-col items-center text-[11px] font-semibold uppercase leading-tight tracking-wider"
+          data-laser-shots-left={firesLeft}
+          data-none={firesLeft === 0 ? "" : undefined}
+        >
+          Shots left
+          <span className="text-xl font-extrabold leading-none tabular-nums">{firesLeft}</span>
         </span>
       </div>
     </div>
@@ -712,11 +807,17 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const ordinal = mine.fires === 1 ? "1st" : mine.fires === 2 ? "2nd" : "3rd";
   const total = puzzle.gems.length;
+  // laserRev 4 (the Pattern overhaul): an unfinished round counts its best shot (as the score does), not the board left.
+  const bestShot = laserOverhaul(puzzle) && logReplay
+    ? logReplay.shotLog.filter((shot) => !shot.hitBomb).reduce((best, shot) => Math.max(best, shot.gemsLit), 0)
+    : null;
+  const lit = bestShot ?? myTrace.gemsLit.length;
+  // The Pattern overhaul: the line is the player's own ("You: …"), shown only under Yours.
   const result = myCorrect
-    ? `${total} of ${total} gems · ${ordinal} shot${elapsed === null ? "" : `, ${elapsed.toFixed(1)} s`}`
-    : myTrace.gemsLit.length >= 1
-      ? `${myTrace.gemsLit.length} of ${total} gems`
-      : "Missed";
+    ? `You: ${total} of ${total} gems · ${ordinal} shot${elapsed === null ? "" : `, ${elapsed.toFixed(1)} s`}`
+    : lit >= 1
+      ? `You: ${bestShot !== null ? "best shot " : ""}${lit} of ${total} gems`
+      : "You: missed";
 
   return (
     <div className="laser-reveal flex w-full min-h-0 flex-col items-center gap-3">
@@ -761,7 +862,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           </span>
         </div>
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">{result}</p>
+      <p data-yours-only="" className="laser-reveal-line font-mono text-base uppercase tracking-widest text-muted-foreground">{result}</p>
     </div>
   );
 }

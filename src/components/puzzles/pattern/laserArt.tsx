@@ -4,7 +4,7 @@
  * props the board already has, inside the cell (or the cell-sized overlay box)
  * it belongs to, so hit areas and what the tracer counts are unchanged.
  */
-import { memo, useEffect, useId, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 
 import { soundCue } from "@/lib/fx/patternFx";
 import type { BeamDir, MirrorKind, MirrorPlacement } from "@/lib/duel/types";
@@ -17,117 +17,88 @@ export function directionalChevronPoints(dir: BeamDir): string {
   return "10,21 12,18 14,21";
 }
 
-/* Facet shades for a cut diamond: top-left (lightest) to bottom-right (darkest). */
-const LIT_FACETS = ["#FFF1BD", "#F7CC55", "#E0A622", "#B07A0E"];
-const DIM_FACETS = ["#A9AEC4", "#7D8399", "#62687D", "#474C5E"];
-
-/** A cut diamond in a 24×24 box; dim crystal until the beam passes through it. */
-function GemShape({ lit }: { lit: boolean }) {
-  const f = lit ? LIT_FACETS : DIM_FACETS;
-  return (
-    <g className={lit ? "laser-gem-lit" : undefined} key={lit ? "lit" : "dim"}>
-      {lit ? <circle cx="12" cy="12" r="11" className="laser-gem-aura" /> : null}
-      <polygon points="12,1.5 12,12 1.5,12" fill={f[0]} />
-      <polygon points="12,1.5 22.5,12 12,12" fill={f[1]} />
-      <polygon points="1.5,12 12,12 12,22.5" fill={f[2]} />
-      <polygon points="12,12 22.5,12 12,22.5" fill={f[3]} />
-      {/* The table: a lighter kite across the crown. */}
-      <polygon points="12,5 17,10 12,12 7,10" fill="#FFFFFF" fillOpacity={lit ? 0.42 : 0.18} />
-      <polygon
-        points="12,1.5 22.5,12 12,22.5 1.5,12"
-        fill="none"
-        stroke={lit ? "#FFF6D8" : "#C9A24A"}
-        strokeOpacity={lit ? 0.95 : 0.55}
-        strokeWidth={1.3}
-        strokeLinejoin="round"
-      />
-      {lit ? (
-        <path className="laser-gem-sparkle" d="M19 2.2L19.7 4.3L21.8 5L19.7 5.7L19 7.8L18.3 5.7L16.2 5L18.3 4.3Z" fill="#FFFFFF" />
-      ) : null}
-    </g>
-  );
+/** The rendered sprites (docs/design/game-art/pattern/source/laser.py; public/pattern-art/laser/), one cell box each. */
+export const LASER_ART_BASE = "/pattern-art/laser";
+export const LASER_SPRITES = ["floor", "brick", "mirror-slash", "mirror-back", "splitter", "gem-dark", "gem-lit", "bomb", "bomb-hit", "emitter"] as const;
+export type LaserSprite = (typeof LASER_SPRITES)[number];
+export function laserArtUrl(name: LaserSprite): string {
+  return `${LASER_ART_BASE}/${name}.webp`;
+}
+/** Every sprite the board draws (checks and preloading). */
+export function laserArtUrls(): string[] {
+  return LASER_SPRITES.map(laserArtUrl);
 }
 
-/** A gem cell's art; directional gems are half size with the arrival chevron. */
+/** One sprite filling a 24×24 box (or the given box), never taking a pointer. */
+function Sprite({ name, x = 0, y = 0, size = 24 }: { name: LaserSprite; x?: number; y?: number; size?: number }) {
+  return <image href={laserArtUrl(name)} x={x} y={y} width={size} height={size} preserveAspectRatio="xMidYMid meet" pointerEvents="none" />;
+}
+
+/**
+ * A gem cell's art: the rendered cut crystal, dark until the beam passes through it, then the same stone burning gold
+ * (the Pattern overhaul, 15 Nov 2026). A gem that lights from one side only is drawn a little smaller with a bold
+ * arrow on the side the beam must arrive from, so it still shows which side, dark or lit.
+ */
 export const LaserGem = memo(function LaserGem({ lit, from }: { lit: boolean; from?: BeamDir | undefined }) {
+  const name: LaserSprite = lit ? "gem-lit" : "gem-dark";
   return (
-    <svg viewBox="0 0 24 24" className="laser-gem h-full w-full" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="laser-gem h-full w-full" aria-hidden="true" data-gem-state={lit ? "lit" : "dark"} data-gem-from={from}>
+      <g className={lit ? "laser-gem-lit" : undefined} key={lit ? "lit" : "dim"}>
+        {from ? <Sprite name={name} x={4} y={4} size={16} /> : <Sprite name={name} />}
+      </g>
       {from ? (
         <>
-          <g transform="translate(6 6) scale(.5)"><GemShape lit={lit} /></g>
-          <polyline points={directionalChevronPoints(from)} fill="none" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={directionalChevronPoints(from)} fill="none" stroke="#0b0a10" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={directionalChevronPoints(from)} fill="none" stroke={lit ? "#ffd36a" : "#ffffff"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </>
-      ) : (
-        <GemShape lit={lit} />
-      )}
+      ) : null}
     </svg>
   );
 });
 
-/** A classic round bomb with a lit fuse — red-hot when the beam touches it. */
+/** A round black bomb with a red band and a lit fuse; red hot when the beam touches it. */
 export const LaserBomb = memo(function LaserBomb({ flash }: { flash: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className={`laser-bomb h-full w-full ${flash ? "laser-bomb-hit" : ""}`} aria-hidden="true">
-      <circle cx="11" cy="13.5" r="9.2" className="laser-bomb-danger" />
-      <circle cx="11" cy="14" r="7.4" fill={flash ? "#5A1414" : "#1B1D24"} stroke={flash ? "#FF4D4D" : "#000000"} strokeOpacity={0.7} strokeWidth="0.8" />
-      <ellipse cx="8.4" cy="11.2" rx="2.6" ry="1.7" transform="rotate(-35 8.4 11.2)" fill="#FFFFFF" fillOpacity="0.32" />
-      <rect x="13.6" y="5.2" width="4" height="3.4" rx="0.8" transform="rotate(40 15.6 6.9)" fill="#6A6F7D" stroke="#2A2D36" strokeWidth="0.6" />
-      <path d="M16.6 5.2C17.6 3.6 18.8 3.2 20 3.4" fill="none" stroke="#C9A36B" strokeWidth="1.2" strokeLinecap="round" />
-      <g className="laser-bomb-spark">
-        <path d="M20.4 1.2L21 2.8L22.6 3.4L21 4L20.4 5.6L19.8 4L18.2 3.4L19.8 2.8Z" fill="#FFD25A" />
-        <circle cx="20.4" cy="3.4" r="0.9" fill="#FFFFFF" />
-      </g>
+      {flash ? <circle cx="12" cy="12" r="11" className="laser-bomb-danger" /> : null}
+      <Sprite name={flash ? "bomb-hit" : "bomb"} />
     </svg>
   );
 });
 
-/**
- * A glass prism splitter; its arrows show which way it splits the beam. Puzzle polish (3 Nov 2026, display only): a
- * violet prism (a filled diamond with a lit facet and white split arrows), so it never reads as a mirror (a thin pale
- * glass line) or a block (solid brick).
- */
+/** The splitter: a rendered violet glass prism; the arrows over it show which way it splits the beam. */
 export const LaserSplitter = memo(function LaserSplitter({ kind = "S-" }: { kind?: MirrorKind }) {
-  const id = `laser-prism-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const turn = kind === "S|" ? "" : "rotate(90 12 12)";
   return (
     <svg viewBox="0 0 24 24" className="laser-splitter h-full w-full" aria-hidden="true">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#E9D8FF" />
-          <stop offset="0.45" stopColor="#A97BFF" />
-          <stop offset="1" stopColor="#5B2FB8" />
-        </linearGradient>
-      </defs>
-      <polygon points="12,0.9 23.1,12 12,23.1 0.9,12" fill={`url(#${id})`} fillOpacity="0.9" stroke="#F3EAFF" strokeWidth="1.3" strokeLinejoin="round" />
-      <polygon points="12,2.6 21.4,12 2.6,12" fill="#FFFFFF" fillOpacity="0.22" />
-      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="#2A1260" strokeOpacity="0.55" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <Sprite name="splitter" />
+      <path transform={turn} d="M12 19V12M5 12H19M5 12L8 9M5 12L8 15M19 12L16 9M19 12L16 15" fill="none" stroke="#2a1260" strokeOpacity="0.7" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path transform={turn} d="M12 19V12M5 12H19M5 12L8 9M5 12L8 15M19 12L16 9M19 12L16 15" fill="none" stroke="#ffffff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 });
 
 const DIR_ANGLE: Record<BeamDir, number> = { R: 0, D: 90, L: 180, U: 270 };
 
-/** The emitter housing, nozzle facing the stored beam direction. */
+/** The emitter: the rendered gunmetal housing with its gold lens, nozzle facing the stored beam direction. */
 export const LaserEmitter = memo(function LaserEmitter({ dir, firing = false }: { dir: BeamDir; firing?: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" className={`laser-emitter h-full w-full ${firing ? "laser-emitter-firing" : ""}`} aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={`laser-emitter h-full w-full ${firing ? "laser-emitter-firing" : ""}`} aria-hidden="true" data-emitter-dir={dir}>
       <g transform={`rotate(${DIR_ANGLE[dir]} 12 12)`}>
-        <rect x="1.5" y="3" width="15" height="18" rx="3.5" fill="#2A2E39" stroke="#555B6B" strokeWidth="0.9" />
-        <rect x="2.6" y="4" width="12.8" height="3.2" rx="1.6" fill="#FFFFFF" fillOpacity="0.1" />
-        <rect x="15" y="8" width="7.5" height="8" rx="1.4" fill="#3A3F4D" stroke="#666C7D" strokeWidth="0.8" />
-        <circle cx="9" cy="12" r="5" fill="#120F08" stroke="#8A6A1E" strokeWidth="0.9" />
-        <circle cx="9" cy="12" r="3.4" className="laser-emitter-lens" />
-        <circle cx="8" cy="11" r="1" fill="#FFFFFF" fillOpacity="0.85" />
-        <polygon points="20,10.2 23,12 20,13.8" fill="var(--primary)" />
+        <Sprite name="emitter" />
       </g>
     </svg>
   );
 });
 
+/** A mirror's sprite for its diagonal. */
+export function mirrorSprite(kind: MirrorKind): LaserSprite {
+  return kind === "/" ? "mirror-slash" : "mirror-back";
+}
+
 /**
- * One placed mirror on its diagonal. Puzzle polish (3 Nov 2026, display only): a reflective glass line (a pale
- * blue-white pane with a bright edge, a thin dark silvered backing and a soft cold glow), clearly unlike a splitter's
- * violet prism and a block's solid brick.
+ * One placed mirror on its diagonal: the rendered silvered glass pane in its slim frame (the Pattern overhaul), drawn
+ * exactly on its cell's box (`unit` square round the centre), so nothing leaves the square.
  */
 export function LaserMirror({
   x,
@@ -142,26 +113,10 @@ export function LaserMirror({
   kind: MirrorKind;
   animate: boolean;
 }) {
-  const id = `laser-glass-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
-  const length = unit * 1.16;
-  const thick = Math.max(3, unit * 0.16);
-  const angle = kind === "/" ? -45 : 45;
   return (
-    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+    <g transform={`translate(${x} ${y})`} data-mirror={kind}>
       <g className={animate ? "laser-mirror-in" : undefined}>
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#BFE8FF" />
-            <stop offset="0.35" stopColor="#FFFFFF" />
-            <stop offset="0.55" stopColor="#9BD8FF" />
-            <stop offset="1" stopColor="#E6F7FF" />
-          </linearGradient>
-        </defs>
-        <rect className="laser-mirror-glow" x={-length / 2 - thick * 0.4} y={-thick * 1.1} width={length + thick * 0.8} height={thick * 2.2} rx={thick * 1.1} fill="#8FDBFF" fillOpacity="0.22" />
-        <rect x={-length / 2} y={-thick / 2} width={length} height={thick} rx={thick * 0.25} fill="#0F2A44" />
-        <rect x={-length / 2 + thick * 0.15} y={-thick / 2} width={length - thick * 0.3} height={thick * 0.68} rx={thick * 0.2} fill={`url(#${id})`} />
-        <rect x={-length / 2 + thick * 0.15} y={-thick / 2} width={length - thick * 0.3} height={Math.max(0.8, thick * 0.14)} fill="#FFFFFF" />
-        <rect x={-length / 2 + thick * 0.8} y={-thick / 2 + thick * 0.22} width={length * 0.3} height={thick * 0.16} rx={thick * 0.08} fill="#FFFFFF" fillOpacity="0.9" />
+        <image href={laserArtUrl(mirrorSprite(kind))} x={-unit / 2} y={-unit / 2} width={unit} height={unit} pointerEvents="none" />
       </g>
     </g>
   );
@@ -173,9 +128,9 @@ function pathData(points: { x: number; y: number }[]): string {
 }
 
 /**
- * The beam: a wide soft halo, a glow and a hot white core, as plain stroke
- * layers (no filters on the moving beam). `solved` adds a flare that brightens
- * the whole beam to full for the completion moment.
+ * The beam: a solid golden line with a pale core, as plain stroke layers (the Pattern overhaul, 15 Nov 2026: no
+ * blurred neon copy and no wide halo, so nothing glares over the board). `solved` adds a flare that brightens the
+ * whole beam for the completion moment.
  */
 export function LaserBeam({
   branches,
@@ -189,27 +144,17 @@ export function LaserBeam({
   solved: boolean;
 }) {
   const colour = danger ? "#FF4D4D" : "#F7C548";
-  const core = danger ? "#FFE1E1" : "#FFF8E0";
+  const core = danger ? "#FFE1E1" : "#FFF3C8";
   const lines = branches.filter((points) => points.length > 1).map(pathData);
-  const neon = `laser-neon-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   if (!lines.length) return null;
   return (
     <g className={`laser-beam ${solved ? "laser-beam-solved" : ""}`} strokeLinecap="round" strokeLinejoin="round" fill="none">
-      {/* Batch P (live round only, batch-p.css): a blurred wide copy, so the beam glows like neon. */}
-      <defs>
-        <filter id={neon} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation={Math.max(2, unit * 0.16)} />
-        </filter>
-      </defs>
-      {lines.map((d, i) => (
-        <path key={`n${i}`} d={d} className="laser-beam-neon" stroke={colour} strokeOpacity={0.85} strokeWidth={unit * 0.45} filter={`url(#${neon})`} />
-      ))}
       {solved
-        ? lines.map((d, i) => <path key={`f${i}`} d={d} className="laser-beam-flare" stroke={colour} strokeWidth={unit * 0.6} />)
+        ? lines.map((d, i) => <path key={`f${i}`} d={d} className="laser-beam-flare" stroke={colour} strokeWidth={unit * 0.45} />)
         : null}
-      {lines.map((d, i) => <path key={`h${i}`} d={d} stroke={colour} strokeOpacity={0.16} strokeWidth={unit * 0.4} />)}
-      {lines.map((d, i) => <path key={`g${i}`} d={d} stroke={colour} strokeOpacity={0.8} strokeWidth={Math.max(2, unit * 0.17)} />)}
-      {lines.map((d, i) => <path key={`c${i}`} d={d} className="laser-beam-core" stroke={core} strokeWidth={Math.max(1, unit * 0.065)} />)}
+      {lines.map((d, i) => <path key={`e${i}`} d={d} stroke="#3a2600" strokeOpacity={0.55} strokeWidth={Math.max(3, unit * 0.22)} />)}
+      {lines.map((d, i) => <path key={`g${i}`} d={d} stroke={colour} strokeWidth={Math.max(2, unit * 0.16)} />)}
+      {lines.map((d, i) => <path key={`c${i}`} d={d} className="laser-beam-core" stroke={core} strokeWidth={Math.max(1, unit * 0.055)} />)}
     </g>
   );
 }

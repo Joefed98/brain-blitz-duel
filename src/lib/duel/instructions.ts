@@ -21,7 +21,6 @@ import { operatorGapsDealt } from "./operatorGaps";
 import { prePatternNov15Pinned } from "./patternNov15";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
-import { prePatternNov15Pinned } from "./patternNov15";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -679,6 +678,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Two spare mirrors:", detail: "use fewer for an elegant beam." },
         { action: "The splitter", detail: "forks the beam across its input axis.", helpOnly: true },
         { action: "Gem arrows:", detail: "marked gems only light from that direction.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, laserRev 4): Undo takes back any change, free; out of shots locks the board.
+        ...(prePatternNov15Pinned()
+          ? []
+          : [
+              { action: "Undo is free:", detail: "it takes back your last change (a place, turn, move or Reset) and costs nothing; a shot isn’t given back.", helpOnly: true },
+              { action: "Out of shots:", detail: "after your third shot the board locks.", helpOnly: true },
+            ]),
       ],
       score: PATTERN_STD_HELP.laser,
     },

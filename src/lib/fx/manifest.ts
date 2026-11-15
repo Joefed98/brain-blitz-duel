@@ -515,6 +515,10 @@ const ENTRIES = {
   "laser.fire": { channel: "effects", frequency: 0, ms: 2000, url: null },
   "laser.gem": { channel: "effects", frequency: 0, ms: 260, url: null },
   "laser.bomb": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/laser.bomb.mp3", volume: 0.82 },
+  // The Pattern overhaul (15 Nov 2026): library placeholders until Joe's files (docs/sound-cues/pattern-elevenlabs.md):
+  // a shot that lights every gem but one, and the laser powering down after the last shot (laserRev 4).
+  "laser.nearMiss": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/arc_retro_blip.mp3", volume: 0.5 },
+  "laser.outOfShots": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/retro.powerDown.mp3", volume: 0.7 },
   "laser.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/laser.solve.mp3" },
   "pipes.rotate": { channel: "effects", frequency: 0, ms: 170, url: null },
   "pipes.flow": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pipes.flow.mp3", volume: 0.78 },
