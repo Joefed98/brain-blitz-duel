@@ -5,7 +5,7 @@ import { inkBridgeFxFor } from "./arcadeFxGames.renderer";
 import { reducedMotion } from "./art.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, inkClover, inkNoDrawZone, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, inkClover, inkNoDrawZone, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_REV_HILLS, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 import { artHash } from './art.renderer';
@@ -44,8 +44,21 @@ function birdFrame(c: CanvasRenderingContext2D, f: number): void {
 }
 /** A flock filling the obstacle box exactly, flapping in place. */
 function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: number }, h: number, tick: number): void {
+  const len = b.x1 - b.x0;
   // inkRev 14's thicker birds (10 px) keep the cell's shape: one bird every 24 px of the box (18 px at 6.5 px and below).
-  const len = b.x1 - b.x0, n = Math.max(1, Math.round(len / (h > 7 ? 24 : 18))), w = len / n;
+  // inkRev 15 (the Strategy overhaul, 14 px birds): bigger birds, one every 36 px or so, filling the box exactly
+  // (what is drawn is what collides), each flapping on its own beat so the flock reads loose, not as a row.
+  if (h > 12) {
+    const n15 = Math.max(1, Math.round(len / 36)), w15 = len / n15;
+    for (let i = 0; i < n15; i++) {
+      const f = Math.floor((tick + ((i * 11 + Math.round(b.x0)) % 13)) / 8) % 4;
+      const img = sprite(`bird${f}`, 64, 26, (m) => { m.scale(2, 2); birdFrame(m, f); });
+      if (img) c.drawImage(img, b.x0 + i * w15, b.y, w15, h);
+      else { c.save(); c.translate(b.x0 + i * w15, b.y); c.scale(w15 / 32, h / 13); birdFrame(c, f); c.restore(); }
+    }
+    return;
+  }
+  const n = Math.max(1, Math.round(len / (h > 7 ? 24 : 18))), w = len / n;
   for (let i = 0; i < n; i++) {
     const f = Math.floor((tick + i * 5) / 7) % 4;
     const img = sprite(`bird${f}`, 64, 26, (m) => { m.scale(2, 2); birdFrame(m, f); });
@@ -121,11 +134,29 @@ function drawClover(c: CanvasRenderingContext2D, x: number, y: number, r: number
 }
 export function pot(c: CanvasRenderingContext2D): void {
   // Exact body rectangle and opening width; only the authoritative rim caps protrude.
-  c.fillStyle = POT; c.beginPath(); c.moveTo(0,0); c.lineTo(64,0); c.lineTo(64,19); c.quadraticCurveTo(64,36,48,36); c.lineTo(16,36); c.quadraticCurveTo(0,36,0,19); c.closePath(); c.fill();
-  c.fillStyle = POT_EDGE; c.fillRect(2,8,2,16); c.fillRect(60,8,2,16);
-  c.fillStyle = GOLD_EDGE; c.fillRect(4,2,56,6);
-  for (let i=0;i<9;i++) { c.fillStyle = i%2 ? GOLD : SHINE; c.beginPath(); c.ellipse(7+i*6.2,4,3,2,0.2*(i%3),0,Math.PI*2); c.fill(); }
-  c.fillStyle = POT_EDGE; c.fillRect(0,0,64,2);
+  // The Strategy overhaul (15 Nov 2026, display only, every revision): a rendered cast-iron pot of gold: a rounded
+  // iron body lit from the upper left with a soft (never glaring) highlight, a thick rim band, and a heaped mound of
+  // gold coins, each with its own edge and shine, all inside the 64 × 36 body.
+  const body = c.createRadialGradient(18, 12, 2, 30, 20, 44);
+  body.addColorStop(0, '#5A606B'); body.addColorStop(0.35, '#2C3038'); body.addColorStop(1, '#0B0C10');
+  c.fillStyle = body; c.beginPath(); c.moveTo(0,0); c.lineTo(64,0); c.lineTo(64,19); c.quadraticCurveTo(64,36,48,36); c.lineTo(16,36); c.quadraticCurveTo(0,36,0,19); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.14)'; c.beginPath(); c.ellipse(15,20,4,9,0.15,0,Math.PI*2); c.fill();
+  c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(2,24,60,2);
+  // The heap of coins in the mouth: back row, then front row, each coin a lit ellipse with a darker edge.
+  const coinAt = (x: number, y: number, r: number, k: number) => {
+    const g = c.createLinearGradient(x - r, y - r, x + r, y + r);
+    g.addColorStop(0, '#FFF2B8'); g.addColorStop(0.45, k % 2 ? '#F2C24A' : '#FFD45E'); g.addColorStop(1, '#B07A1C');
+    c.fillStyle = g; c.beginPath(); c.ellipse(x, y, r, r * 0.62, 0.15 * (k % 3), 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(120,76,10,0.8)'; c.lineWidth = 0.6; c.stroke();
+  };
+  for (let i = 0; i < 8; i++) coinAt(8 + i * 6.8, 4.2 - (i % 2) * 0.8, 3.4, i);
+  for (let i = 0; i < 7; i++) coinAt(11 + i * 7, 6.6, 3.6, i + 1);
+  c.fillStyle = 'rgba(255,255,240,0.85)'; c.fillRect(26,3,2,1); c.fillRect(41,4,1.5,1);
+  // The rim band.
+  const rim = c.createLinearGradient(0, 7, 0, 11);
+  rim.addColorStop(0, '#4A505A'); rim.addColorStop(1, '#16181D');
+  c.fillStyle = rim; c.fillRect(0,8,64,3);
+  c.fillStyle = POT_EDGE; c.fillRect(0,0,64,1.5);
 }
 /** Polish A2: a soft round glow (cached once per colour), for the coin and the pot's gold. */
 function glowSprite(key: string, rgb: string): ArtCanvas | null {
@@ -316,8 +347,28 @@ function inkGroundPath(c: CanvasRenderingContext2D, base: number, x: number, H =
 }
 /** Sprite keys for the world-sized layers: the 620 world keeps its original keys. */
 const sizedKey = (key: string, H: number) => (H === INK_WORLD_H ? key : `${key}${H}`);
+/**
+ * The Strategy overhaul (inkRev 15, display only): the sky turns from day to sunset over the ten levels, the same for
+ * every player (from the level reached alone): 0 on level 1, 1 on level 10.
+ */
+export function inkSunset(state: { rev?: number | undefined; level: number }): number {
+  return state.rev === INK_REV_HILLS ? Math.max(0, Math.min(1, state.level / (INK_LEVELS - 1))) : 0;
+}
+/** The sunset wash over the sky (world y 0…H), at strength k (0–1): navy above, rose, then peach at the horizon. */
+export function inkSunsetWash(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, H: number, k: number): void {
+  if (k <= 0 || w <= 0 || h <= 0) return;
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `rgba(24,30,78,${0.78 * k})`);
+  g.addColorStop(0.45, `rgba(170,96,138,${0.5 * k})`);
+  g.addColorStop(0.8, `rgba(255,162,104,${0.55 * k})`);
+  g.addColorStop(1, `rgba(255,196,140,${0.5 * k})`);
+  c.fillStyle = g;
+  c.fillRect(x, y, w, h);
+}
+let sunsetNow = 0;
 function drawInkBackdrop(c: CanvasRenderingContext2D, H = INK_WORLD_H): void {
   stamp(c,sizedKey('inksky',H),INK_WORLD_W,H,0,0,(m)=>inkSky(m,H));
+  inkSunsetWash(c, 0, 0, INK_WORLD_W, H, H, sunsetNow);
   const t=countryClock();
   for(const [x,y,f,a] of [[38,100,0.55,0.75],[278,146,0.7,0.8],[152,218,0.4,0.6],[300,300,0.35,0.5],[70,350,0.3,0.45]] as const) {
     c.save();c.globalAlpha=a;c.translate(x+Math.sin(t*0.08+y)*5,y);c.scale(f,f);
@@ -479,6 +530,7 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   const scale=Math.min(size.width/INK_WORLD_W,size.height/H);
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);
   c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-H*scale)/2);c.scale(scale,scale);
+  sunsetNow = inkSunset(state);
   drawInkBackdrop(c,H);
   // Background only, below the pot opening and every level block; touchable art paints above it.
   const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
@@ -609,11 +661,13 @@ export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),
  * phone, the same sky, far hills and ground at this level's ground line, `groundY`). Grass,
  * clover and a few flowers only: no pot, coin, birds, blocks or rainbow, and nothing moves.
  */
-export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, groundY: number, H = INK_WORLD_H): void {
+export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, groundY: number, H = INK_WORLD_H, sunset = 0): void {
   const dy = H - INK_WORLD_H;
   for (const side of sceneSides(view)) {
     const left = side.x < 0;
     sceneFill(ctx, side, 0, H, INK_SKY_STOPS);
+    // inkRev 15: the same sunset wash as the world's sky, so the sides meet it with no seam.
+    inkSunsetWash(ctx, side.x, side.y, side.w, Math.min(side.h, H - side.y), H, sunset);
     ctx.fillStyle = 'rgba(132,186,196,0.55)';
     ctx.fillRect(side.x, (left ? 548 : 528) + dy, side.w, H);
     ctx.fillStyle = 'rgba(146,206,128,0.8)';

@@ -767,7 +767,8 @@ export function tiltSounds(): GameSounds<TiltState> {
         if (state.caught && !prev.caught) { sfx("tilt.caught", "arc_crash"); feel("impact"); }
         else if (state.ended === 2 && prev.ended !== 2) effectCue("tilt.pitFall");
         if (prev.chaser && !state.chaser && !state.caught && state.level === prev.level) effectCue("tilt.chaserFall");
-        if (state.mazes > prev.mazes) sfx("tilt.mazeDone", "arc_marble_clink");
+        // The Strategy overhaul (15 Nov 2026): a light success haptic as a marble reaches its cup.
+        if (state.mazes > prev.mazes) { sfx("tilt.mazeDone", "arc_marble_clink"); feel("success"); }
         else if ((state.cupped ?? 0) > (prev.cupped ?? 0)) sfx("tilt.cup", "arc_marble_clink", 0.7);
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("tilt.starTaken", "arc_leaf_collect", 0.8);
         // tiltRev 8: a quick star is the star's chime a little higher; a key opens its gate with the latch; a fall
@@ -797,7 +798,8 @@ export function ballTrackSounds(course?: BtCourse): GameSounds<BtState> {
       beginFrame("balltrack", state);
       toyRoll("balltrack.roll", running && state.balls.some((b) => b.cell >= 0));
       if (prev && state.tick > prev.tick) {
-        if (state.home > prev.home) sfx("balltrack.marbleHome", "arc_marble_clink");
+        // The Strategy overhaul (15 Nov 2026): a light success haptic for a marble home.
+        if (state.home > prev.home) { sfx("balltrack.marbleHome", "arc_marble_clink"); feel("success"); }
         if (state.wrong > prev.wrong) sfx("balltrack.wrong", "arc_wood_knock");
         if (state.actions > prev.actions) sfx("balltrack.switch", "arc_latch", 0.8, 1, true);
         if (state.next > prev.next) effectCue("balltrack.release");
@@ -900,6 +902,8 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         if (state.flashTick === state.tick || state.flashTick > prev.flashTick) {
           if (state.flashKind === 1) {
             sfx("inkbridge.pot", "arc_rainbow_pot");
+            // The Strategy overhaul (15 Nov 2026): a light success haptic for a coin in the pot.
+            feel("success");
           } else if (inkFailedOnBlock(state)) {
             sfx("inkbridge.bump", "arc_rainbow_bump");
           } else if (state.flashKind === 2) effectCue("inkbridge.fail");
@@ -951,6 +955,8 @@ export function bubbleSounds(): GameSounds<BubState> {
         // 8 or more cleared by one shot sends a rush of bubbles up; the reef reaching the gun ends the run.
         if (state.popped + state.dropped - (prev.popped + prev.dropped) >= 8) effectCue("bubble.rush");
         if (state.dead && !prev.dead) effectCue("bubble.reefLost");
+        // The Strategy overhaul (15 Nov 2026): a light success haptic when the reef is cleared.
+        if (state.cleared && !prev.cleared) feel("success");
         // A shot that sticks without popping, dropping or setting off a special.
         const special = (s: BubState) => (s.bombs ?? 0) + (s.lines ?? 0) + (s.jokers ?? 0);
         if (state.shots > prev.shots && state.popped === prev.popped && state.dropped === prev.dropped && special(state) === special(prev)) effectCue("bubble.stick");
@@ -1772,4 +1778,12 @@ export function mugginsSounds(): GameSounds<MgState> {
       prev = null;
     },
   };
+}
+
+/**
+ * Gemstone (the Strategy overhaul, 15 Nov 2026): a light success haptic on a cascade (a swap whose clear set off a
+ * second match by itself). The stage calls it each sim step with the state before and after.
+ */
+export function matchupCascadeFeel(prev: { cascades?: number }, state: { cascades?: number }): void {
+  if ((state.cascades ?? 0) > (prev.cascades ?? 0)) feel("success");
 }

@@ -675,7 +675,8 @@ export function tiltFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, wo
 export function tiltWalnutFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, worldW: number, worldH: number): void {
   const regions = around(view, true);
   for (const r of regions) {
-    ctx.fillStyle = "#2B1A10";
+    // The Strategy overhaul (15 Nov 2026): the shaded table at the world's edge (tiltArt's WALNUT_TABLE_EDGE).
+    ctx.fillStyle = "#0A0603";
     ctx.fillRect(r.x, r.y, r.w, r.h);
   }
   ctx.save();
@@ -685,7 +686,7 @@ export function tiltWalnutFill(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   for (let i = 0; i < 90; i++) {
     const h = artHash(i, 223);
     const y = view.top + (((h >>> 6) % 10007) / 10007) * (view.bottom - view.top);
-    ctx.strokeStyle = h % 3 ? "rgba(12,6,2,0.3)" : "rgba(160,104,60,0.10)";
+    ctx.strokeStyle = h % 3 ? "rgba(6,3,1,0.3)" : "rgba(160,104,60,0.05)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(view.left, y);

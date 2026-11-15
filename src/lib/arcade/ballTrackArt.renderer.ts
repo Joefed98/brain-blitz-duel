@@ -24,6 +24,11 @@ import { reducedMotion } from "./art.renderer";
 import { drawHudPill, drawHudPillRow, HUD_PILL_GAP, HUD_PILL_H, type HudPillOpts } from "./hudPill.renderer";
 
 const BALL_R = 22.5;
+/**
+ * The Strategy overhaul (15 Nov 2026, display only): marbles drawn bigger and brighter in their 67 px channels (the
+ * track, its tubes and every timing are unchanged; marbles never collide with anything drawn, they follow the track).
+ */
+const MARBLE_DRAW_R = 27;
 const SLOT = 100;
 const CHANNEL_FIXED = "#9C6B3E";
 const GROOVE = "#5A3519";
@@ -724,11 +729,12 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     ctx.strokeStyle = "rgba(255,235,200,0.5)";
     ctx.save();
     ctx.translate(0, 1);
-    symbol(ctx, tray, sx, sy, 8);
+    // The Strategy overhaul (15 Nov 2026): a bigger, clearer symbol on each cup.
+    symbol(ctx, tray, sx, sy, 11);
     ctx.stroke();
     ctx.restore();
     ctx.strokeStyle = TOY_INK;
-    symbol(ctx, tray, sx, sy, 8);
+    symbol(ctx, tray, sx, sy, 11);
     ctx.stroke();
   });
 
@@ -820,14 +826,14 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   if (!arcadeReducedEffects())
     for (const b of s.balls) {
       const p = btArtBallPoint(s, b, rot);
-      marbleShadow(ctx, p.x, p.y, BALL_R);
+      marbleShadow(ctx, p.x, p.y, MARBLE_DRAW_R);
     }
   for (const b of s.balls) {
     const p = btArtBallPoint(s, b, rot);
     // btRev 7: a boosted marble trails a short streak (behind it, along the way it came; decorative).
     if ((b.bst ?? 0) > 0 && b.cell >= 0 && b.cell < SLOT && !arcadeReducedEffects() && !reducedMotion()) boostStreak(ctx, s, b, p);
-    btMarble(ctx, p.x, p.y, BALL_R, BT_PALETTE[b.colour]!, b.colour);
-    if (btIsGold(course, b.id)) goldBand(ctx, p.x, p.y, BALL_R);
+    btMarble(ctx, p.x, p.y, MARBLE_DRAW_R, BT_PALETTE[b.colour]!, b.colour);
+    if (btIsGold(course, b.id)) goldBand(ctx, p.x, p.y, MARBLE_DRAW_R);
   }
   // btRev 7's home-in-a-row combo is shown in the stage's HUD pills (3 Nov 2026 polish), not on the shelf.
   const lastHome=[...s.landings].reverse().find(m=>m.ok);

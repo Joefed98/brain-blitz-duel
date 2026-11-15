@@ -351,6 +351,25 @@ function paintSpecial(value: number, directional: boolean) {
  * outer rim, a soft specular sheen high on the lit side and a thin bright line just inside the rim.
  */
 function bubbleGloss(c: CanvasRenderingContext2D, r: number): void {
+  // The Strategy overhaul (15 Nov 2026, display only): candy glass with depth: a shade low on the far side and the
+  // light that passes through the glass glowing softly near the bottom (no glare), under the shared sheen.
+  c.save();
+  const depth = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.2, r, r, r);
+  depth.addColorStop(0, "rgba(0,0,0,0)");
+  depth.addColorStop(0.75, "rgba(0,0,0,0)");
+  depth.addColorStop(1, "rgba(2,10,30,0.32)");
+  c.fillStyle = depth;
+  c.beginPath();
+  c.arc(r, r, r - 0.5, 0, Math.PI * 2);
+  c.fill();
+  const through = c.createRadialGradient(r * 1.22, r * 1.42, 0, r * 1.22, r * 1.42, r * 0.5);
+  through.addColorStop(0, "rgba(255,255,255,0.28)");
+  through.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = through;
+  c.beginPath();
+  c.arc(r, r, r - 0.5, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
   c.save();
   const fine = Math.max(0.8, r * 0.06);
   c.strokeStyle = "rgba(3,12,28,0.7)";
@@ -742,7 +761,7 @@ interface Memo {
   combos: number;
 }
 /** bubbleRev 8: a floating word (world px), coloured gold for treasure, sea glass for bank and combo shots. */
-interface Note { text: string; x: number; y: number; born: number; gold: boolean }
+interface Note { text: string; x: number; y: number; born: number; gold: boolean; held?: boolean }
 const NOTE_CAP = 4;
 const memos = new WeakMap<object, Memo>();
 const FX_CAP = 4;
@@ -803,7 +822,7 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
         const was = m.grid[i]!;
         if (!was || state.grid[i]) continue;
         // bubbleRev 8: a chest that fell with a cluster pays (one destroyed by a mine or torpedo is in `fx` only).
-        if (was === BUB_CHEST && state.reef && (state.chests ?? 0) > 0 && colour !== -1) note(m, "TREASURE", bubCellX(row, col), bubCellY(row, m.descents), now, true);
+        if (was === BUB_CHEST && state.reef && (state.chests ?? 0) > 0 && colour !== -1) note(m, "TREASURE", bubCellX(row, col), bubCellY(row, m.descents), now, true, state);
         if (m.fx.length >= FX_CAP) m.fx.shift();
         m.fx.push({
           kind: was === colour || colour === -1 ? 0 : 1,
@@ -821,8 +840,8 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
     const at = m.fx[m.fx.length - 1];
     const x = at?.x ?? state.x / 256;
     const y = at?.y ?? state.y / 256;
-    if ((state.banks ?? 0) > m.banks) note(m, "BANK", x, y + 18, now, false);
-    if ((state.combos ?? 0) > m.combos && (state.streak ?? 0) >= 2) note(m, `COMBO ×${state.streak}`, x, y - 4, now, false);
+    if ((state.banks ?? 0) > m.banks) note(m, "BANK", x, y + 18, now, false, state);
+    if ((state.combos ?? 0) > m.combos && (state.streak ?? 0) >= 2) note(m, `COMBO ×${state.streak}`, x, y - 4, now, false, state);
     m.banks = state.banks ?? 0;
     m.combos = state.combos ?? 0;
   }
@@ -831,8 +850,16 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
   m.descents = state.descents;
 }
 
-function note(m: Memo, text: string, x: number, y: number, born: number, gold: boolean): void {
+function note(m: Memo, text: string, x: number, y: number, born: number, gold: boolean, state?: BubState): void {
   if (m.notes.length >= NOTE_CAP) m.notes.shift();
+  // The Strategy overhaul (bubbleRev 12, display only): words sit beside the gun, never over the reef: the shot's
+  // words to its left, the treasure's to its right, one of each at a time.
+  if (state?.fast) {
+    const side = gold ? 1 : -1;
+    m.notes = m.notes.filter((n) => n.gold !== gold);
+    m.notes.push({ text, x: BUB_SHOOTER_X + side * 104, y: bubShooterY(state) + 4, born, gold, held: true });
+    return;
+  }
   m.notes.push({ text, x: Math.max(70, Math.min(BUB_WORLD_W - 70, x)), y, born, gold });
 }
 
@@ -1138,7 +1165,7 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     ctx.lineJoin = "round";
     for (const n of m.notes) {
       const k = (now - n.born) / (life * 1000);
-      const y = Y(n.y) - (still ? 0 : k * 26 * rs);
+      const y = Y(n.y) - (still || n.held ? 0 : k * 26 * rs);
       ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
       ctx.strokeStyle = "rgba(4,16,34,0.85)";
       ctx.lineWidth = Math.max(2, 4 * rs);

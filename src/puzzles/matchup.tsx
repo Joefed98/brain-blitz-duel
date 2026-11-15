@@ -1,4 +1,5 @@
 import { matchupFill } from "@/lib/arcade/arenaFills.renderer";
+import { matchupCascadeFeel } from "@/lib/fx/gameSounds";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -212,6 +213,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             state.current,
             inputAt(events.current, state.current.tick + 1),
           );
+          matchupCascadeFeel(before, state.current);
           if (constantPlay && (state.current.resolveSerial ?? 0) > (before.resolveSerial ?? 0)) {
             // One resolution step: the swap's own clear, or a cascade step on its own tick.
             const swapped = Boolean(applied && state.current.swaps > before.swaps);

@@ -419,6 +419,12 @@ export interface ArcadeFxSpec<S> {
    * caller has already applied the world transform.
    */
   fit?: "fit" | "stretch" | "world";
+  /**
+   * The Strategy overhaul (15 Nov 2026, display only): the world y every pop and banner's text is drawn at, a strip
+   * clear of the board (beside the counters), so no text lands over the board while a game runs. Particles, rings and
+   * lights still start where the event happened. Absent: text where each event says (the default for every other game).
+   */
+  textBand?: number;
 }
 
 export const ARCADE_FX_MAX_PARTICLES = 40;
@@ -749,10 +755,11 @@ function spawn<S>(
     : defaultLabel(event.kind, count, delta);
   if (text) {
     const banner = t.banner;
+    const band = spec.textBand;
     m.pops.push({
       text,
-      x: banner ? spec.width / 2 : point.x,
-      y: banner ? spec.height * (big ? 0.4 : 0.24) : point.y - 10,
+      x: banner ? spec.width / 2 : band !== undefined ? Math.max(spec.width * 0.25, Math.min(spec.width * 0.75, point.x)) : point.x,
+      y: band !== undefined ? band : banner ? spec.height * (big ? 0.4 : 0.24) : point.y - 10,
       born: now,
       life: event.molten && !banner ? ARCADE_FX_MOLTEN_MS : t.popLife,
       size: t.popSize * (event.textScale ?? 1),
@@ -770,6 +777,8 @@ function spawn<S>(
     if (banner) {
       for (let i = m.pops.length - 2; i >= 0; i--) if (m.pops[i]!.banner) m.pops.splice(i, 1);
     }
+    // A text strip holds one line at a time: the newest replaces the rest.
+    if (band !== undefined) m.pops.splice(0, m.pops.length - 1);
     if (m.pops.length > ARCADE_FX_MAX_POPS) m.pops.splice(0, m.pops.length - ARCADE_FX_MAX_POPS);
   }
   if (t.ring && !event.textOnly) {

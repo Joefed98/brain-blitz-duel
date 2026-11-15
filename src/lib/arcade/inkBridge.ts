@@ -147,6 +147,11 @@ export const INK_REV_BIG = 14;
  * every level is still drawable within its ink, its bonus line proved and its ink par above its proved line.
  */
 export const INK_REV_HILLS = 15;
+/**
+ * inkRev 15's birds: fewer and bigger (Joe's review: the rows of small birds cluttered the sky): each bird box 14 px
+ * thick (inkRev 14: 10) and no inkRev 13 extra birds, every level still proved drawable with them.
+ */
+export const INK_V15_BIRD_H_FP = 14 * 256;
 /** inkRev 14's coin radius, clover radius (px) and bird thickness (1/256 px). */
 export const INK_V14_BALL_R = 10;
 export const INK_V14_SHAMROCK_R = 12;
@@ -1415,7 +1420,7 @@ function buildLevelsRev3(
     // Every round under inkRev 3 draws white birds, never the old red blocks.
     const counts: readonly number[] = BIRD_COUNTS;
     // inkRev 14: thicker birds (drawn bigger, to the same box).
-    const h = rev === INK_REV_BIG || rev === INK_REV_HILLS ? INK_V14_BIRD_H_FP : INK_BIRD_H_FP;
+    const h = rev === INK_REV_HILLS ? INK_V15_BIRD_H_FP : rev === INK_REV_BIG ? INK_V14_BIRD_H_FP : INK_BIRD_H_FP;
     const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
     const extra = moreBirds?.[i] ?? 0;
     const count = counts[sourceLevel]! + extra;
@@ -2661,7 +2666,8 @@ function buildLevelsRev10(seed: number, spec: InkFeatureSpec = INK_SPEC_10): { l
       if (!hand) return null;
       return v13 ? withInkPar({ ...lvl, liveHand: [hand] }, level) : { ...lvl, liveHand: [hand] };
     },
-    v13 ? INK_V13_EXTRA_BIRDS : undefined,
+    // inkRev 15: fewer, bigger birds (no extra birds; INK_V15_BIRD_H_FP).
+    v13 && spec.rev !== INK_REV_HILLS ? INK_V13_EXTRA_BIRDS : undefined,
   );
   // inkRev 13: a level kept from the open fallback layout (no layout passed) still carries its ink par.
   return v13 ? { ...built, list: built.list.map((l, i) => (l.inkPar === undefined ? withInkPar(l, i) : l)) } : built;

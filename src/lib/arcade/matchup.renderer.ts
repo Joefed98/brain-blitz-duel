@@ -10,7 +10,7 @@
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import type { CanvasSize } from "./engine";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { MATCHUP_FX, fxSpecAt } from "./arcadeFxGames.renderer";
+import { MATCHUP_FX, STRATEGY_TEXT_BAND, fxSpecAt } from "./arcadeFxGames.renderer";
 import type { SoundId } from "@/lib/fx/manifest";
 import {
   matchupGame, matchupIndex, matchupShowHint, matchupTransform, matchupCellAt, matchupStdScore,
@@ -362,32 +362,64 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
     ctx.arc(cx, cy, radius - 0.8, 0, Math.PI * 2);
     ctx.stroke();
   } else if (kind === MATCHUP_TREASURE) {
-    // The treasure gem (matchupRev 9 on): a shiny bronze octagon medallion (no colour gem's cut) round a polished
-    // bronze boss, in a bright copper rim with a white glint (27 Oct 2026: bronze, was gold round a ruby; look only).
-    const pts: Array<[number, number]> = [];
-    for (let k = 0; k < 8; k++) {
-      const a = -Math.PI / 2 + Math.PI / 8 + (k * Math.PI) / 4;
-      pts.push([cx + Math.cos(a) * radius, cy + Math.sin(a) * radius]);
-    }
-    facetedGem(ctx, pts, cx, cy, radius, "#C8803E");
-    pathOf(ctx, pts);
-    ctx.strokeStyle = "#FFD3A1";
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
-    const boss = cutPoints("circle", cx, cy, radius * 0.42);
-    facetedGem(ctx, boss, cx, cy, radius * 0.42, "#E39A55");
-    ctx.strokeStyle = "rgba(255,255,255,0.85)";
-    ctx.lineWidth = Math.max(1, radius * 0.08);
+    // The treasure (the Strategy overhaul, 15 Nov 2026; look only, every revision): a treasure chest, never a gem's cut,
+    // so it reads at once: a domed lid and a deep box in dark cherry wood, champagne-gold bands and corners, a gold
+    // lock plate and a soft gold glint at the lid's seam. Drawn inside the cell's square (the clip above).
+    const w = radius * 1.84;
+    const left = cx - w / 2;
+    const lidTop = cy - radius * 0.86;
+    const seam = cy - radius * 0.12;
+    const bottom = cy + radius * 0.84;
+    const wood = ctx.createLinearGradient(0, lidTop, 0, bottom);
+    wood.addColorStop(0, "#9A3B22");
+    wood.addColorStop(0.45, "#6E2414");
+    wood.addColorStop(1, "#3E120A");
+    // Box.
+    ctx.fillStyle = wood;
     ctx.beginPath();
-    ctx.arc(cx, cy, radius * 0.62, -Math.PI * 0.85, -Math.PI * 0.55);
+    ctx.roundRect(left, seam, w, bottom - seam, radius * 0.12);
+    ctx.fill();
+    // Domed lid.
+    ctx.beginPath();
+    ctx.moveTo(left, seam);
+    ctx.lineTo(left, lidTop + radius * 0.34);
+    ctx.quadraticCurveTo(cx, lidTop - radius * 0.22, left + w, lidTop + radius * 0.34);
+    ctx.lineTo(left + w, seam);
+    ctx.closePath();
+    const lid = ctx.createLinearGradient(0, lidTop, 0, seam);
+    lid.addColorStop(0, "#B9502E");
+    lid.addColorStop(1, "#7A2A16");
+    ctx.fillStyle = lid;
+    ctx.fill();
+    // Gold bands: the seam, two uprights, the edges.
+    const gold = ctx.createLinearGradient(left, 0, left + w, 0);
+    gold.addColorStop(0, "#C9A24A");
+    gold.addColorStop(0.5, "#F6E3A6");
+    gold.addColorStop(1, "#B8903C");
+    ctx.fillStyle = gold;
+    ctx.fillRect(left, seam - radius * 0.08, w, radius * 0.16);
+    for (const fx of [0.24, 0.76]) ctx.fillRect(left + w * fx - radius * 0.07, lidTop + radius * 0.1, radius * 0.14, bottom - lidTop - radius * 0.1);
+    ctx.strokeStyle = "#E9CC7E";
+    ctx.lineWidth = Math.max(1, radius * 0.09);
+    ctx.beginPath();
+    ctx.roundRect(left + 0.5, seam, w - 1, bottom - seam - 0.5, radius * 0.12);
     ctx.stroke();
-    ctx.fillStyle = "#5C2F10";
-    for (let k = 0; k < 4; k++) {
-      const a = -Math.PI / 4 + (k * Math.PI) / 2;
-      ctx.beginPath();
-      ctx.arc(cx + Math.cos(a) * radius * 0.68, cy + Math.sin(a) * radius * 0.68, radius * 0.07, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    // Lock plate with a keyhole.
+    const lw = radius * 0.46;
+    ctx.fillStyle = gold;
+    ctx.beginPath();
+    ctx.roundRect(cx - lw / 2, seam - radius * 0.2, lw, radius * 0.56, radius * 0.08);
+    ctx.fill();
+    ctx.fillStyle = "#3A1A08";
+    ctx.beginPath();
+    ctx.arc(cx, seam + radius * 0.02, radius * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(cx - radius * 0.035, seam + radius * 0.04, radius * 0.07, radius * 0.18);
+    // A soft glint on the lid (no glare: small and warm).
+    ctx.fillStyle = "rgba(255,240,200,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(cx - w * 0.22, lidTop + radius * 0.3, radius * 0.22, radius * 0.07, -0.35, 0, Math.PI * 2);
+    ctx.fill();
   } else if (kind === MATCHUP_STAR) {
     const pts = cutPoints("star", cx, cy, radius);
     facetedGem(ctx, pts, cx, cy, radius, SPECIAL_WHITE);
@@ -416,6 +448,12 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
 const boardLayers = new WeakMap<CanvasRenderingContext2D, { canvas: ArtCanvas; cells: number[]; k: number; rows: number }>();
 
 /* ================================ Board =============================== */
+
+/** Gemstone's effects spec for a state: on matchupRev 12, every word in the strip between the board and its goals. */
+function matchupFxFor(state: MatchupState) {
+  const spec = fxSpecAt(MATCHUP_FX, matchupWorldH(state));
+  return state.six ? { ...spec, textBand: STRATEGY_TEXT_BAND.matchup } : spec;
+}
 
 const centre = (index: number) => ({
   x: MATCHUP_BOARD_X + ((index % MATCHUP_SIZE) + 0.5) * MATCHUP_CELL_PX,
@@ -1077,15 +1115,16 @@ function drawBanners(ctx: CanvasRenderingContext2D, state: MatchupState): void {
   m.banners = m.banners.filter((b) => state.tick - b.tick < life).slice(-2);
   m.banners.forEach((b, i) => {
     const p = (state.tick - b.tick) / life;
-    const cy = MATCHUP_BOARD_Y + L.boardH * 0.42 + i * 34 - (still ? 0 : p * 14);
+    // The Strategy overhaul (15 Nov 2026): in the strip between the board and the goals panel, never over the gems.
+    const cy = MATCHUP_BOARD_Y + L.boardH + 9 - i * 0 - (still ? 0 : p * 2);
     ctx.save();
-    ctx.globalAlpha = Math.min(1, (1 - p) * 3);
-    ctx.font = "800 26px Archivo, ui-sans-serif, sans-serif";
+    ctx.globalAlpha = Math.min(1, (1 - p) * 3) * (i === m.banners.length - 1 ? 1 : 0);
+    ctx.font = "800 16px Archivo, ui-sans-serif, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.lineJoin = "round";
     ctx.strokeStyle = "rgba(8,4,16,0.85)";
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 4;
     ctx.strokeText(b.text, MATCHUP_WORLD_W / 2, cy);
     ctx.fillStyle = b.gold ? MATCHUP_GOLD : "#BFE9FF";
     ctx.fillText(b.text, MATCHUP_WORLD_W / 2, cy);
@@ -1153,7 +1192,7 @@ function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: Can
   // matchupRev 9: the shared layer spans the taller world (fxSpecAt, as the other taller worlds do).
   // matchupRev 12 (3 Nov 2026 polish): the world and its effects drawn zoomed, then the HUD pills on top, unzoomed.
   useLayout(state);
-  withSixZoom(ctx, size, () => arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), state, () => drawSceneWorld(ctx, state, size, options), size));
+  withSixZoom(ctx, size, () => arcadeFx(ctx, matchupFxFor(state), state, () => drawSceneWorld(ctx, state, size, options), size));
   drawSixHudOver(ctx, state, size);
 }
 
@@ -1185,6 +1224,8 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
   const animating = animationMs != null && state.lastAnimation.length > 0;
   if (animating && animationMs != null) drawAnimated(ctx, state, animationMs, time);
   else drawSettled(ctx, options.cells ?? state.cells, time, options.skip);
+  // The Strategy overhaul (15 Nov 2026, display only): the treasure's fall trail and its rows-to-go hint.
+  if (!animating && !options.cells) drawTreasureTrail(ctx, state, time);
   // matchupRev 9: frozen cells over the gems, and the goals panel under the board.
   if (state.goals) {
     drawIce(ctx, state.ice);
@@ -1287,7 +1328,7 @@ export function drawMatchupSwap(
   // The two sliding gems are part of the world, so the shared layer's effects (a refused swap's
   // miss puff, Polish 1) paint over them, as over every other gem.
   useLayout(scene);
-  withSixZoom(ctx, size, () => arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), scene, () => {
+  withSixZoom(ctx, size, () => arcadeFx(ctx, matchupFxFor(state), scene, () => {
     drawSceneWorld(ctx, scene, size, options);
     const { scale, offsetX, offsetY } = matchupTransform(size, L.worldH);
     ctx.save();
@@ -1345,4 +1386,52 @@ export function matchupArenaScene(ctx: CanvasRenderingContext2D, view: ArenaScen
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+}
+
+/**
+ * The Strategy overhaul (15 Nov 2026, display only): the treasure chest's way down. A soft gold trail runs from the
+ * chest to the bottom row down its column, and, within three rows of home, a "↓ n" chip sits on the chest's own cell so
+ * the player sees how close it is. Read from the settled cells only; nothing here touches the sim.
+ */
+function drawTreasureTrail(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
+  const rows = L.rows;
+  const cells = state.cells;
+  for (let index = 0; index < cells.length; index++) {
+    if (cells[index] !== MATCHUP_TREASURE) continue;
+    const row = Math.floor(index / MATCHUP_SIZE);
+    const col = index % MATCHUP_SIZE;
+    const toGo = rows - 1 - row;
+    const x = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX;
+    const top = MATCHUP_BOARD_Y + (row + 1) * MATCHUP_CELL_PX;
+    const bottom = MATCHUP_BOARD_Y + rows * MATCHUP_CELL_PX;
+    if (toGo > 0) {
+      const pulse = 0.75 + 0.25 * Math.sin(time * 3);
+      const trail = ctx.createLinearGradient(0, top, 0, bottom);
+      trail.addColorStop(0, `rgba(242,212,138,${0.22 * pulse})`);
+      trail.addColorStop(1, "rgba(242,212,138,0.04)");
+      ctx.fillStyle = trail;
+      ctx.fillRect(x + MATCHUP_CELL_PX * 0.3, top, MATCHUP_CELL_PX * 0.4, bottom - top);
+    }
+    if (toGo >= 1 && toGo <= 3) {
+      const label = `↓ ${toGo}`;
+      ctx.save();
+      // On the chest's own cell (its top-right corner), never over a neighbouring gem.
+      ctx.font = "800 12px Archivo, ui-sans-serif, sans-serif";
+      const w = ctx.measureText(label).width + 8;
+      const cx = x + MATCHUP_CELL_PX - w / 2 - 1;
+      const cy = MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX + 9;
+      ctx.fillStyle = "rgba(14,20,44,0.92)";
+      ctx.beginPath();
+      ctx.roundRect(cx - w / 2, cy - 8, w, 16, 8);
+      ctx.fill();
+      ctx.strokeStyle = "#F2D48A";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.fillStyle = "#F2D48A";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, cx, cy + 0.5);
+      ctx.restore();
+    }
+  }
 }

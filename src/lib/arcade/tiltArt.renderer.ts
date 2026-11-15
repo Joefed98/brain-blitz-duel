@@ -787,7 +787,10 @@ let lastView = { rot: 0, zoom: 1 };
  * screen and only the board turns. Mazes 1–3 draw at about 0.98, 0.86 and 0.77 of their size; tiltRev 10's fourth maze
  * (19 cells of 16 px, a 336 px disc) at full size, a smaller disc on screen than maze 3's.
  */
-function tiltFixedZoom(R: number): number {
+function tiltFixedZoom(R: number, big = false): number {
+  // The Strategy overhaul (15 Nov 2026, display only; tiltRev 12): every maze's disc, rim included, fills the width
+  // (smaller mazes drawn larger, the largest maze no longer shrunk), so maze 4's paths read on a phone.
+  if (big) return (TILT_X_W / 2 - 3) / (R + 9);
   return Math.min(1, (TILT_X_W / 2 - 4) / (R + 10));
 }
 
@@ -1123,7 +1126,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
 
   // The camera stays on the disc's centre (display only): screen = centre + zoom · rotate(angle) · maze point.
   const cam = { x: 0, y: 0 };
-  const zoom = tiltFixedZoom(R);
+  const zoom = tiltFixedZoom(R, big);
   lastView = { rot, zoom };
   ctx.translate(W / 2, H / 2);
   ctx.scale(zoom, zoom);
@@ -1305,11 +1308,17 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   ctx.restore();
 }
 
+/** The world y of Tilt's text strip: between the HUD pills and the top of the disc (which fills the width). */
+export const TILT_X_TEXT_Y = 140;
+
 /** tiltRev 8's success layer: the old one's moments for three mazes, plus quick stars and keys. */
 export const TILT_X_FX: ArcadeFxSpec<TiltState> = {
   ...TILT_FX,
   width: TILT_X_W,
   height: TILT_X_H,
+  // The Strategy overhaul (15 Nov 2026, display only): "MAZE 3 DONE!" and every other word above the disc, under the
+  // counters, never on the maze.
+  textBand: TILT_X_TEXT_Y,
   // The old moments first, in their order (the replay moments read them by index), then the new ones.
   events: [
     // Each state lists its own mazes (3 on tiltRev 8 and 9, 4 on tiltRev 10).
@@ -1357,13 +1366,18 @@ const tiltBigArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tilt
  * are drawn at their (bigger) collision radius, the keys to their pickup reach and the cups TILT_B_CUP % of the marble;
  * the HUD is the shared pills ("Maze 1 / 4" first, then the par countdown, "Over par" only once the par has passed).
  */
-export const WALNUT_TABLE = "#2B1A10";
-const WALNUT_DISC = "#5A3721";
-const WALNUT_DISC_LIT = "#6E4529";
+export const WALNUT_TABLE = "#140C07";
+/** The table's shade beyond the lamp pool (the world's edges): its colour there is WALNUT_TABLE_EDGE. */
+export const TILT_TABLE_SHADE = 0.5;
+/** WALNUT_TABLE under TILT_TABLE_SHADE: the edge colour the arena fill continues. */
+export const WALNUT_TABLE_EDGE = "#0A0603";
+const WALNUT_DISC = "#4E2C18";
+const WALNUT_DISC_LIT = "#7A4A2B";
 const WALNUT_GRAIN = "#3A2213";
-const BRASS = "#C99A3E";
-const BRASS_LIT = "#F3D383";
-const BRASS_DARK = "#6E4C17";
+// The Strategy overhaul (15 Nov 2026): the walls stay gold, a brighter champagne gold that reads on the dark wood.
+const BRASS = "#D8B25A";
+const BRASS_LIT = "#F8E6AE";
+const BRASS_DARK = "#7A561C";
 /** The rim's margin round a tiltRev 12 grid (px; 16 before), so the bigger cups sit on the disc. */
 const TILT_B_RIM = 26;
 /** The key's drawn size (× a cell): its outline reaches about TILT_B_KEY_REACH % of a cell from the key's centre. */
@@ -1393,11 +1407,18 @@ function drawWalnutTable(c: CanvasRenderingContext2D, W: number, H: number): voi
     c.bezierCurveTo(W * 0.3, y + ((h >>> 5) % 9) - 4, W * 0.7, y - ((h >>> 9) % 7) + 3, W, y + 1);
     c.stroke();
   }
-  const pool = c.createRadialGradient(W / 2 - 20, H / 2 - 50, 20, W / 2 - 20, H / 2 - 50, Math.max(W, H) * 0.6);
-  pool.addColorStop(0, "rgba(255,190,120,0.22)");
-  pool.addColorStop(0.5, "rgba(255,170,100,0.08)");
-  pool.addColorStop(1, "rgba(0,0,0,0)");
+  // The Strategy overhaul (15 Nov 2026, display only): concept B's dark, shadowed table: one warm pool of light under
+  // the disc, falling to a shade that is the same at every edge of the world (so the fill outside it, which starts
+  // from that shade, meets it with no seam).
+  const pool = c.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, W / 2 - 10);
+  pool.addColorStop(0, "rgba(255,190,120,0.16)");
+  pool.addColorStop(1, "rgba(255,170,100,0)");
   c.fillStyle = pool;
+  c.fillRect(0, 0, W, H);
+  const shade = c.createRadialGradient(W / 2, H / 2, W * 0.3, W / 2, H / 2, W / 2);
+  shade.addColorStop(0, "rgba(0,0,0,0)");
+  shade.addColorStop(1, `rgba(0,0,0,${TILT_TABLE_SHADE})`);
+  c.fillStyle = shade;
   c.fillRect(0, 0, W, H);
   c.restore();
 }

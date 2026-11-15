@@ -71,7 +71,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "flip", field: "flipRev", rev: 12, batch: "C" },
   // Rainbow Bridge deals inkRev 14 since 3 Nov 2026 (inkRev 13's clovers, ink par and parts with a bigger coin, clovers and
   // birds, from a proved deal; ink-v14-check).
-  { type: "inkbridge", field: "inkRev", rev: 14, batch: "C" },
+  { type: "inkbridge", field: "inkRev", rev: 15, batch: "C" }, // inkRev 15 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
   { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
   { type: "swing", field: "swingRev", rev: 17, batch: "D" }, // swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40

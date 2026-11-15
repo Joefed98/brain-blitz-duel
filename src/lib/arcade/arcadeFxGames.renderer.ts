@@ -193,6 +193,7 @@ import {
   MATCHUP_V9_WORLD_H,
   MATCHUP_WORLD_W,
   type MatchupState,
+  MATCHUP_V9_PANEL_Y,
 } from "./matchup";
 
 /**
@@ -1691,7 +1692,27 @@ export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(
 export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
 /** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Slice sliceRev 9's world (as the renderer's own v9 spec). */
 export const SLICE_FX_V9: ArcadeFxSpec<SliceState> = { ...SLICE_FX, width: SLICE_V9_W, height: SLICE_V9_H };
-export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
+/**
+ * The Strategy overhaul (15 Nov 2026, display only): the text strip each Strategy game's words sit in while it runs,
+ * off the board (Coral Pop under the gun, Rainbow Bridge under the counters, Ball Tracker over its waiting row,
+ * Gemstone between the board and its goals). Tilt's is TILT_X_TEXT_Y (tiltArt.renderer.ts).
+ */
+export const STRATEGY_TEXT_BAND = {
+  bubble: (worldH: number) => worldH - 16,
+  inkbridge: 92,
+  balltrack: 14,
+  matchup: MATCHUP_V9_PANEL_Y - 9,
+} as const;
+const withBand = <S,>(spec: ArcadeFxSpec<S>, y: number): ArcadeFxSpec<S> => {
+  const key = `${spec.game}:${spec.height}:band${y}`;
+  let hit = specAtCache.get(key) as ArcadeFxSpec<S> | undefined;
+  if (!hit) {
+    hit = { ...spec, textBand: y };
+    specAtCache.set(key, hit as unknown as ArcadeFxSpec<never>);
+  }
+  return hit;
+};
+export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => (s.fast ? withBand(fxSpecAt(BUBBLE_FX, bubWorldH(s)), STRATEGY_TEXT_BAND.bubble(bubWorldH(s))) : fxSpecAt(BUBBLE_FX, bubWorldH(s)));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
 export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
@@ -1761,9 +1782,9 @@ const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, he
 export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: ORBIT_XP_DRAW_H_FX };
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
-export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
+export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => withBand(fxSpecAt(BALLTRACK_FX, btWorldH(s)), STRATEGY_TEXT_BAND.balltrack);
 /** x200 (Oct 2026): Rainbow Bridge inkRev 10's taller world draws through the spec at its own height. */
-export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => fxSpecAt(INKBRIDGE_FX, inkWorldH(s));
+export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => (inkWorldH(s) === INK_TALL_H ? withBand(fxSpecAt(INKBRIDGE_FX, inkWorldH(s)), STRATEGY_TEXT_BAND.inkbridge) : fxSpecAt(INKBRIDGE_FX, inkWorldH(s)));
 export const INKBRIDGE_FX_TALL = fxSpecAt(INKBRIDGE_FX, INK_TALL_H);
 export const BALLTRACK_FX_TALL = fxSpecAt(BALLTRACK_FX, BT_TALL_H);
 
