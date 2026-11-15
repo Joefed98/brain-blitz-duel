@@ -1,6 +1,27 @@
-# Pyramid on the arcade scoring standard (pyramidRev 2, 7 Nov 2026; pyramidRev 1, 1 Nov 2026)
+# Pyramid on the arcade scoring standard (pyramidRev 3, 15 Nov 2026; pyramidRev 2, 7 Nov 2026; pyramidRev 1, 1 Nov 2026)
 
-## pyramidRev 2 (7 Nov 2026, scoring audit issue 6: what rooms deal)
+## pyramidRev 3 (15 Nov 2026, the game reviews: what rooms deal)
+
+Joe's call on the review's "likely bug": on pyramidRev 1 and 2 a dead end (no pair, no King, the stock gone) ends the run
+at once (`ended = 3`), though Undo is unlimited, so a player could never undo out of it. Rev 3 (`PY_REV_UNDO_OUT`,
+`pyramidGameV3`) keeps rev 2's deals and parts exactly; only the end rule changes:
+
+- A dead end waits: the run carries on, so Undo or Reset can take the player out of it, and ends at a clear or the
+  buzzer.
+- The run ends stuck (`ended = 3`) only with nothing to undo (`pyTrulyStuck`: no move, no draw and an empty history,
+  which is the deal itself; no dealt seed is stuck at the deal, since its witness clears it).
+- Display only (every revision): between the piles, "NO MOVES / UNDO OR RESET" while a rev-3 dead end waits, and
+  "NO MOVES / LEFT" on a run that ended stuck (`pyDeadEnd`, `pyDeadEndLines`). The help says "Stuck? With no move left,
+  Undo or Reset to try another order; the run carries on to the buzzer."
+- A stuck run left alone scores what it would have scored on rev 2 (the same parts, read at the buzzer).
+
+Proof (arcade-review-fixes-check): 72 rev-1 and rev-2 runs recorded on the code before rev 3
+(`scripts/fixtures/arcade-review-fixes-pyramid-legacy.json`, `bun scripts/arcade-review-fixes-record.ts`; witness
+clears and random runs that end stuck) replay to the same score and end; on rev 3 the witness of every seed tried
+scores exactly 200 through the server replay, a stuck run carries on to the buzzer and an Undo out of it can still clear.
+arcade-standard-check's entry and the self-replay entry `pyramid/v3` follow the dealt stamp.
+
+## pyramidRev 2 (7 Nov 2026, scoring audit issue 6)
 
 The audit (`docs/audit-nov-2026/scoring.md`, issues 6 and 22) found that rev 1 locked 60 of the 200 behind a clear
 (cleared 10, speed 50), so a near miss and a clear sat far apart: elite bots clear 12 of 20 seeds, and the elite p10 was

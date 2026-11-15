@@ -112,6 +112,7 @@ import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } from "./trail";
 import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
 import { gradeMeasureBoards, scoreMeasure } from "./measure";
+import { measureBoardOut } from "./gameReviewNov15";
 import { gradeCheckoutStages, scoreCheckout } from "./checkout";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
@@ -2719,7 +2720,7 @@ function gradeUnderRev(
     case "measure": {
       // Each board's action list is replayed on the stored jugs; the minimums are the server's own.
       // measureRev 2: a board stops at its stored move limit (and so ends the run unfinished).
-      const results = gradeMeasureBoards(puzzle.boards, puzzle.minMoves ?? [], answer, measureMoveLimits(puzzle));
+      const results = gradeMeasureBoards(puzzle.boards, puzzle.minMoves ?? [], answer, measureMoveLimits(puzzle), measureBoardOut(puzzle));
       const solved = results.filter((r) => r.solved).length;
       isCorrect = solved === puzzle.boards.length;
       correctCount = solved;

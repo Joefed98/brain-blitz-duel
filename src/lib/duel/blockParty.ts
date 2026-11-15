@@ -276,3 +276,12 @@ export function offsetsSize(offsets: Offsets): { rows: number; cols: number } {
     cols: Math.max(...offsets.map(([, c]) => c)) + 1,
   };
 }
+
+/**
+ * A tray piece's pose after a tap (pattern review fixes, 15 Nov 2026; display only, the answer stores cells). A
+ * single tap turns it a quarter; the second tap of a double tap takes back the quarter turn the first tap gave and
+ * flips it instead, so a double tap only flips and a single tap only turns.
+ */
+export function tapPose(state: { rot: number; flip: boolean }, double: boolean): { rot: number; flip: boolean } {
+  return double ? { rot: (state.rot + 3) % 4, flip: !state.flip } : { ...state, rot: (state.rot + 1) % 4 };
+}

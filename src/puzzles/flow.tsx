@@ -6,7 +6,7 @@ import { FramePills } from "@/components/puzzles/pattern/framePills";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
-import { FLOW_COLOUR_HEX as GLYPH_COLOURS, encodeFlowPaths, flowAdjacent, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
+import { FLOW_COLOUR_HEX as GLYPH_COLOURS, encodeFlowPaths, flowDrawStep, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   FLOW_CELLS,
@@ -188,6 +188,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   const drawing = useRef<number | null>(null);
   const moved = useRef(false);
   const startedOnDot = useRef<number | null>(null);
+  /** The dot a drag began on: its path restarts from it on the drag's first real step. */
+  const restartFrom = useRef<number | null>(null);
   /** True from the first touch of a drag until the finger lifts. */
   const holding = useRef(false);
   const submitted = useRef(false);
@@ -224,13 +226,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
         // sliding on must never re-start the path from the dot it finished on.
         if (holding.current) return;
         holding.current = true;
-        // A dot starts its own path afresh…
+        // A dot starts its own path afresh, but only once the finger drags off it (pattern review fixes,
+        // 15 Nov 2026): a touch alone leaves a finished pair as it is; a still tap clears it on release.
         const pair = dotPair(cell);
         if (pair !== -1) {
           drawing.current = pair;
           moved.current = false;
           startedOnDot.current = pair;
-          setPaths((current) => current.map((path, index) => (index === pair ? [cell] : path)));
+          restartFrom.current = cell;
           return;
         }
         // …and the loose end of a path can be picked up to carry on from there.
@@ -239,41 +242,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
         drawing.current = loose;
         moved.current = false;
         startedOnDot.current = null;
+        restartFrom.current = null;
         return;
       }
 
+      const from = restartFrom.current;
       let completed = false;
       setPaths((current) => {
-        const path = current[active] ?? [];
-        const last = path[path.length - 1];
-        if (last === undefined || cell === last) return current;
-        // Backing up over the previous cell rubs the path out behind the finger.
-        if (path.length > 1 && cell === path[path.length - 2]) {
-          moved.current = true;
-          return current.map((value, index) => (index === active ? path.slice(0, -1) : value));
-        }
-        if (!flowAdjacent(last, cell)) { puzzleReject(); return current; }
-        if (path.includes(cell) || walls.includes(cell)) { puzzleReject(); return current; }
-
-        const pair = pairs[active]!;
-        // Its own partner dot is welcome; any other colour's dot is refused.
-        const ends = cell === pair.a || cell === pair.b;
-        const otherDot = pairs.some(
-          (other, index) => index !== active && (other.a === cell || other.b === cell),
-        );
-        if (otherDot) { puzzleReject(); return current; }
-        // Another colour's path is refused too — it is never cut back.
-        const crosses = current.some((value, index) => index !== active && value.includes(cell));
-        if (crosses) { puzzleReject(); return current; }
-
+        const step = flowDrawStep(current, active, cell, pairs, walls, from);
+        if (step.rejected) puzzleReject();
+        if (!step.moved) return current;
         moved.current = true;
-        const next = [...current];
-        next[active] = [...path, cell];
-        if (ends) {
+        restartFrom.current = null;
+        if (step.completed) {
           drawing.current = null;
           completed = true;
         }
-        return next;
+        return step.paths;
       });
       if (completed) playCorrect();
     },
@@ -286,6 +271,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
     const wasStill = !moved.current;
     drawing.current = null;
     startedOnDot.current = null;
+    restartFrom.current = null;
     holding.current = false;
     if (pair === null || !wasStill || locked || submitted.current) return;
     setPaths((current) => current.map((path, index) => (index === pair ? [] : path)));
@@ -351,7 +337,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
-          : `✗ ${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${verdict.pairsJoined} / ${puzzle.pairs.length} pairs`}`}
+          : `${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${verdict.pairsJoined} / ${puzzle.pairs.length} pairs`}`}
       </p>
     </div>
   );

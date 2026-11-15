@@ -104,7 +104,15 @@ function IntroExample() {
   );
 }
 
+/** The one sound a Lookout drag's verdict plays (game review fix, 15 Nov 2026): none for a word already found. */
+export function wordSearchVerdictSound(verdict: { valid: boolean; reason?: string }): "correct" | "wrong" | null {
+  if (verdict.valid) return "correct";
+  return verdict.reason === "Already found" ? null : "wrong";
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }: PuzzleStageProps) {
+  const lockedNow = useRef(locked);
+  lockedNow.current = locked;
   const data: WordSearchPuzzleData | null = puzzle.type === "wordsearch" ? puzzle : null;
   const key = stateKey ?? "wordsearch";
   const [selections, setSelections] = useStageState<number[][]>(key, "wsSelections", () => []);
@@ -158,8 +166,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       setSelections((s) => [...s, path]);
       const already = [...found.map((f) => f.word), ...(bonus ? [bonus.word] : [])];
       void checkWord("", already, path).then((verdict) => {
+        // Game review fix (15 Nov 2026): the checks are silent in FeedbackStage (silentWordChecks), so each drag plays
+        // exactly one sound here: one `correct` for a word or the bonus (was two for the bonus), one `wrong` for a
+        // drag that is not a word, and nothing for re-dragging a word already found (was `wrong`).
+        const sound = wordSearchVerdictSound(verdict);
+        if (sound === "correct" && !lockedNow.current) fx.onCorrect();
+        else if (sound === "wrong" && !lockedNow.current) fx.onWrong();
         if (verdict.valid && (verdict as { bonus?: boolean }).bonus) {
-          fx.onCorrect();
           setBonus((b) => b ?? { word: verdict.word, cells: path });
           rightMoveFlash(bonusChip.current);
         } else if (verdict.valid) {
@@ -317,3 +330,5 @@ export const wordSearchPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
+// Game review fix (15 Nov 2026): the stage plays each check's one sound itself (wordSearchVerdictSound).
+(Stage as { silentWordChecks?: boolean }).silentWordChecks = true;

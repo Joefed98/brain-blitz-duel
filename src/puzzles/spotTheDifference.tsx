@@ -355,6 +355,11 @@ function IntroExample() {
 /*  Play                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/** A tap that does nothing: a square already found, or one already tapped in this picture. */
+export function spotTapIgnored(sceneTaps: number[], foundCells: number[], hiddenFound: number[], cell: number): boolean {
+  return foundCells.includes(cell) || hiddenFound.includes(cell) || sceneTaps.includes(cell);
+}
+
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data = puzzle.type === "spotdiff" ? puzzle : null;
   const scenes = useMemo(() => (data ? spotScenes(data) : []), [data]);
@@ -446,7 +451,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
 
   const tap = (cell: number) => {
     if (locked || sceneFinished) return;
-    if (foundCells.includes(cell) || hiddenFound.includes(cell)) return;
+    // Attention review fixes (15 Nov 2026): a square already tapped (a find, or a miss that counted once) is ignored
+    // silently, so re-tapping a wrong square no longer replays the shake and sound for a miss that adds nothing.
+    if (spotTapIgnored(sceneTaps, foundCells, hiddenFound, cell)) return;
     const hit = groups.some((g) => g.includes(cell)) || hidden.includes(cell);
     const add = (prev: number[][]) => prev.map((t, i) => (i === scene && !t.includes(cell) ? [...t, cell] : t));
     if (hit) {

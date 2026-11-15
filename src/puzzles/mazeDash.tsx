@@ -33,7 +33,7 @@ import {
   mazeTrailWalk,
   usesMazeDepth,
 } from "@/lib/duel/depth/labyrinth";
-import { mazeColsOf } from "@/lib/duel/maze";
+import { mazeColsOf, mazeStraightFill } from "@/lib/duel/maze";
 import { MAZE_CELLS, MAZE_COLS, MAZE_TIME_MS, type MazePuzzleData } from "@/lib/duel/types";
 import { playCorrect, playSound } from "@/lib/sound";
 import { mazeStandard } from "@/lib/duel/standard/attention";
@@ -406,27 +406,39 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
    */
   const touch = (cell: number) => {
     if (locked || submitted.current || solved) return;
+    // A fast drag that jumped squares along a straight line fills them in, one step each (attention review fixes,
+    // 15 Nov 2026), stopping at the first wall; anything else is the single (refused) step it always was.
+    const lastOf = (route: number[]) => route[route.length - 1] ?? start;
     if (depth) {
       // Every step is kept, backtracks included (the server counts the stars from the trail).
       setTrail((current) => {
-        const route = mazeTrailRoute(current);
-        const last = route[route.length - 1] ?? start;
-        if (cell === last || current.length > LAB_TRAIL_MAX) return current;
-        if (!mazeOpen(cells, last, cell, cols)) {
-          puzzleReject();
-          return current;
+        const steps = mazeStraightFill(lastOf(mazeTrailRoute(current)), cell, cols) ?? [cell];
+        let next = current;
+        for (const target of steps) {
+          const last = lastOf(mazeTrailRoute(next));
+          if (target === last || next.length > LAB_TRAIL_MAX) break;
+          if (!mazeOpen(cells, last, target, cols)) {
+            puzzleReject();
+            break;
+          }
+          next = [...next, target];
         }
-        return [...current, cell];
+        return next;
       });
       return;
     }
     setPath((current) => {
-      const last = current[current.length - 1] ?? start;
-      if (cell === last) return current;
-      // Retracing one step backwards undoes a wrong turn.
-      if (current.length > 1 && cell === current[current.length - 2]) return current.slice(0, -1);
-      if (!mazeOpen(cells, last, cell)) { puzzleReject(); return current; }
-      return [...current, cell];
+      const steps = mazeStraightFill(lastOf(current), cell, cols) ?? [cell];
+      let next = current;
+      for (const target of steps) {
+        const last = lastOf(next);
+        if (target === last) break;
+        // Retracing one step backwards undoes a wrong turn.
+        if (next.length > 1 && target === next[next.length - 2]) { next = next.slice(0, -1); continue; }
+        if (!mazeOpen(cells, last, target)) { puzzleReject(); break; }
+        next = [...next, target];
+      }
+      return next;
     });
   };
 

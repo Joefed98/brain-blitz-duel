@@ -62,6 +62,19 @@ function beams(board: LightUpBoard, bulbs: readonly number[]) {
   return { h, v, redH, redV };
 }
 
+/**
+ * Whether a numbered wall shows its ✓ (Logic review, 15 Nov 2026; display only). A wall with exactly its bulbs ticks as
+ * before, except a 0: it has its bulbs from the start, so it ticks only once every open square beside it is lit or
+ * dotted (the board used to open with a tick on every 0).
+ */
+export function lightUpWallTicked(n: number, neighbours: readonly number[], bulbs: ReadonlySet<number>, lit: ReadonlySet<number>, marks: readonly number[], walls: ReadonlySet<number>): boolean {
+  if (n < 0) return false;
+  const touching = neighbours.filter((x) => bulbs.has(x)).length;
+  if (touching !== n) return false;
+  if (n > 0) return true;
+  return neighbours.every((x) => walls.has(x) || lit.has(x) || marks[x] === 2);
+}
+
 export function Board({
   board,
   marks,
@@ -86,6 +99,7 @@ export function Board({
   const status = lightUpStatus(board, bulbs);
   const beam = beams(board, bulbs);
   const wallIndex = new Map(board.walls.map((wall, i) => [wall, i]));
+  const wallSet = new Set(board.walls);
   const beamW = small ? 2 : 4;
   return (
     <div
@@ -100,7 +114,7 @@ export function Board({
           const n = board.wallNumbers[wi] ?? -1;
           const touching = orth(cell, size, height).filter((x) => bulbSet.has(x)).length;
           const over = n >= 0 && touching > n;
-          const done = n >= 0 && touching === n;
+          const done = lightUpWallTicked(n, orth(cell, size, height), bulbSet, status.lit, marks, wallSet);
           return (
             <div
               key={cell}

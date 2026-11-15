@@ -38,6 +38,7 @@ import {
   BUB_V8_CHESTS,
   type BubState,
   bubBombRadius,
+  bubMineNearest,
 } from "./bubble";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
@@ -712,7 +713,18 @@ function loadedHeading(state: BubState, value: number): number | undefined {
 }
 
 /** kind 0 pop, 1 drop; bubbleRev 2: 2 bomb blast, 3 torpedo row flash, 4 joker sparkle. */
-interface Fx { kind: 0 | 1 | 2 | 3 | 4; value: number; x: number; y: number; born: number; seed: number }
+interface Fx { kind: 0 | 1 | 2 | 3 | 4; value: number; x: number; y: number; born: number; seed: number; cells?: { x: number; y: number }[] }
+
+/**
+ * bubbleRev 11+ (display only, 15 Nov 2026): the mine pops only the `minePops` bubbles nearest where it lands, so its
+ * blast rings those bubbles (world px centres) rather than a ring of cells. `grid` is the board before the mine landed.
+ */
+export function bubMineBlastCells(grid: readonly number[], cell: number, minePops: number, descents: number): { x: number; y: number }[] {
+  return bubMineNearest(grid, cell, minePops).map((i) => {
+    const row = Math.floor(i / BUB_COLS);
+    return { x: bubCellX(row, i % BUB_COLS), y: bubCellY(row, descents) };
+  });
+}
 interface Memo {
   tick: number;
   grid: number[];
@@ -779,6 +791,7 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
     const row = Math.floor(cell / BUB_COLS);
     const kind = state.lastSpecial === BUB_BOMB ? 2 : state.lastSpecial === BUB_LINE ? 3 : 4;
     m.blast = { kind, value: state.lastSpecial ?? 0, x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, m.descents), born: now, seed: cell };
+    if (kind === 2 && state.minePops) m.blast.cells = bubMineBlastCells(m.grid, cell, state.minePops, m.descents);
   }
   m.specials = specialCount(state);
   if (special || drilling) colour = -1;
@@ -1031,12 +1044,20 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
       if (f.kind === 2) {
         ctx.strokeStyle = "#FFB347";
         ctx.lineWidth = Math.max(2, 5 * rs * (1 - k));
-        ctx.beginPath();
-        // bubbleRev 10: the ring reaches out over the mine's second ring (2.4 rows on one ring, 3.6 on two).
-        // bubbleRev 11: the mine pops only its 4 nearest bubbles (they pop in `fx`), so the ring stays over them (1.2 rows).
-        const reach = state.minePops ? 1.2 : 1.2 * (bubBombRadius(state) + 1);
-        ctx.arc(X(f.x), Y(f.y), (BUB_R + (still ? 2 : k * reach) * BUB_ROW_H) * rs, 0, Math.PI * 2);
-        ctx.stroke();
+        if (f.cells) {
+          // bubbleRev 11: a ring on each of the bubbles the mine pops (15 Nov 2026), not a ring of cells round it.
+          for (const c of f.cells) {
+            ctx.beginPath();
+            ctx.arc(X(c.x), Y(c.y), (BUB_R + (still ? 2 : k * 6)) * rs, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        } else {
+          ctx.beginPath();
+          // bubbleRev 10: the ring reaches out over the mine's second ring (2.4 rows on one ring, 3.6 on two).
+          const reach = state.minePops ? 1.2 : 1.2 * (bubBombRadius(state) + 1);
+          ctx.arc(X(f.x), Y(f.y), (BUB_R + (still ? 2 : k * reach) * BUB_ROW_H) * rs, 0, Math.PI * 2);
+          ctx.stroke();
+        }
         ctx.fillStyle = "rgba(255,240,200,0.5)";
         ctx.beginPath();
         ctx.arc(X(f.x), Y(f.y), BUB_R * rs * (1.2 - k * 0.6), 0, Math.PI * 2);

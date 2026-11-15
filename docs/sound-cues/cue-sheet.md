@@ -24,10 +24,10 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
 | fail sting | 4 | 0 | 37 | 41 |
-| success sting | 3 | 0 | 73 | 76 |
+| success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 63 | 1 | 982 | 1046 |
+| **all** | 61 | 1 | 984 | 1046 |
 
 ## Silent and placeholder cues
 
@@ -144,12 +144,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Gradient (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
 
-### Gridlock
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | silent | none | 1160 | success sting | `unblock.solve` |
-
 ### Heave
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -233,12 +227,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tubes.pour` | A pour lands [logic.md] |  | 5–40 (per move) | silent | none | 240 | game event | `tubes.pour` |
-
-### Safe Cracker
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `safe.solve` | A try satisfies every clue (the same test that submits) [logic.md] |  | 0–1 | silent | none | 1200 | success sting | `safe.solve` |
 
 ### Shikaku
 
@@ -436,7 +424,7 @@ Grouped by game or screen.
 | `shared.roundResults` | The room's Round results screen appears (RoundResult, RoundResultsTable, once on mount): every player but the round's top scorer, who hears round_won instead (never both). In a two-player room the loser's "round lost" or the tie's "tie" voice line follows it. Sound batch 4 (room.roundResults.mp3). [shared.md] |  | 5–40 (per move) | recorded sound | `shared.roundResults` | 900 | game event | `shared.roundResults` |
 | `shared.help.open` | An in-game "?" help sheet opens. [shared.md] |  | 0–2 | recorded sound | `shared.help.open` | 150 | UI tap | `shared.help.open` |
 | `shared.help.close` | An in-game "?" help sheet closes (close button, tap outside or Escape). [shared.md] |  | 0–2 | recorded sound | `shared.help.close` | 150 | UI tap | `shared.help.close` |
-| `shared.reject` | A puzzle refuses a move with the shared shake (puzzleReject(): Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid and the rest that call it), unless the move already plays wrong; never in an intro demo. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.reject` | 200 | fail sting | `shared.reject` |
+| `shared.reject` | Not played since 15 Nov 2026 (the November game reviews, [review-nov-2026.md](review-nov-2026.md)): every shake puzzleReject() paints (Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid, and every game's own animate-shake: Shikaku, Tents, Trail, Gridlock, Tessellate…) now sounds the quiet wrong once (playRejectWrong); the slot keeps its file for the other cues that share ui.nope.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.reject` | 200 | fail sting | `shared.reject` |
 | `shared.celebrate.zap` | Create a room (the Play tab's button) and GO (goStrike, with the thunder). sfx_joulz_zap.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.zap` | 380 | game event | `shared.celebrate.zap` |
 | `shared.celebrate.chime` | A spark burst: practice's New best!, the podium's "You win!" on the winner's phone, the lobby meter filling up. sfx_spark_chime.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.chime` | 600 | game event | `shared.celebrate.chime` |
 | `shared.celebrate.crackle1` | A lobby join (the charge meter rising): the three crackles rotate 1, 2, 3, so the same one never plays twice in a row. sfx_meter_crackle_1.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.crackle1` | 450 | game event | `shared.celebrate.crackle1` |
@@ -1030,8 +1018,8 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pz_car_escape` | Gridlock: The gold car drives out (solve) [core.md] |  | 0–1 | recorded sound | `pz_car_escape` | 2470 | game event | `pz_car_escape` |
 | `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
+| `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | recorded sound | `unblock.solve` | 2470 | success sting | `unblock.solve` |
 | `music.unblock` | Gridlock round bed: music_pattern_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_2` (shared) | 60000 | music | `music_pattern_unblock` |
 
 ### Heave
@@ -1154,6 +1142,7 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `fences.draw` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
 | `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
+| `fences.clear` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.clear` | 200 | game event | `fences.clear` |
 | `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
 | `music.fences` | Loopline round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
 
@@ -1199,8 +1188,8 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pz_safe_open` | Safe Cracker: The safe opens (solve) [core.md] |  | 0–1 | recorded sound | `pz_safe_open` | 2200 | game event | `pz_safe_open` |
 | `safe.click` | A dial turns one step (each repeat while held fires again) [logic.md] |  | 5–40 (per move) | recorded sound | `safe.click` | 130 | game event | `safe.click` |
+| `safe.solve` | A try satisfies every clue (the same test that submits) [logic.md] |  | 0–1 | recorded sound | `safe.solve` | 2200 | success sting | `safe.solve` |
 | `music.safe` | Safe Cracker round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_safe` |
 
 ### Shikaku
@@ -1249,7 +1238,7 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `balltrack.homeStreak` | Every 5th marble home [arcade-effects.md] | n HOME banner | 1–6 | recorded sound | `balltrack.homeStreak` | 479 | game event | `balltrack.homeStreak` |
-| `balltrack.allHome` | All 30 marbles home [arcade-effects.md] | ALL 30 HOME! banner, confetti | 0–1 | recorded sound | `balltrack.allHome` | 1200 | game event | `balltrack.allHome` |
+| `balltrack.allHome` | All the marbles home (36 on btRev 7+, 30 before) [arcade-effects.md] | ALL 36 HOME! banner (ALL 30 HOME! before btRev 7), confetti | 0–1 | recorded sound | `balltrack.allHome` | 1200 | game event | `balltrack.allHome` |
 | `balltrack.turnedHome` | A marble home off a turned tube [arcade-effects.md] | TURNED HOME! pop | 0–10 | recorded sound | `balltrack.turnedHome` | 300 | game event | `balltrack.turnedHome` |
 | `balltrack.switchedHome` | A marble home past a switch [arcade-effects.md] | SWITCHED HOME! pop | 0–10 | recorded sound | `balltrack.switchedHome` | 300 | game event | `balltrack.switchedHome` |
 | `balltrack.release` | A marble leaves the hopper [arcade-effects.md] | A marble drops in at the top | 30 | recorded sound | `balltrack.release` | 120 | game event | `balltrack.release` |
@@ -1272,7 +1261,8 @@ Grouped by game or screen.
 | `blockfall.clear` | Blockzone: One or two rows clear [arcade.md] |  | 5–25 | recorded sound | `blockfall.clear` | 120 | game event | `blockfall.clear` |
 | `blockfall.bigClear` | Blockzone: Three or four rows clear at once (with a success haptic) [arcade.md] |  | 0–6 | recorded sound | `blockfall.bigClear` | 100 | game event | `blockfall.bigClear` |
 | `blockfall.speedUp` | Blockzone: The speed rises (every 15 s) [arcade.md] |  | 3 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `blockfall.speedUp` |
-| `blockfall.topOut` | Blockzone: The stack reaches the top and the run ends early [arcade.md] |  | 0–1 | recorded sound | `blockfall.topOut` | 260 | game event | `blockfall.topOut` |
+| `blockfall.topOut` | Blockzone: The stack reaches the top and the run ends early (with an impact haptic) [arcade.md] |  | 0–1 | recorded sound | `blockfall.topOut` | 260 | game event | `blockfall.topOut` |
+| `blockfall.start` | Blockzone: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `blockfall.start` |
 | `music.blockfall` | Blockzone: music_blockfall (music_blockfall.mp3, Joe's recording, 3 Nov 2026) |  | loop | recorded sound | `music_blockfall` | 52900 | music | `music_blockfall` |
 
 ### Breaker
@@ -1965,7 +1955,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `racing.sector`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
+| `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
 | `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
 | `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
 | `arc_fair_thud` | effects | `bullseye.thud` | 160 |
@@ -2005,9 +1995,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pz_laser_gem` | effects | `pz_laser_gem` | 1012 |
 | `pz_laser_split` | effects | `pz_laser_split` | 1042 |
 | `pz_padlock` | effects | `pz_padlock` | 450 |
-| `pz_safe_open` | effects | `pz_safe_open` | 2200 |
 | `pz_bomb_explode` | effects | `pz_bomb_explode` | 1770 |
-| `pz_car_escape` | effects | `pz_car_escape` | 2470 |
 | `pz_clay_hit` | effects | `pz_clay_hit` | 780 |
 | `pz_gravity_pull` | effects | `pz_gravity_pull` | 1100 |
 | `prepareToDuel` | voice | `prepareToDuel` | 2837 |
@@ -2357,6 +2345,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `flow.connect` | effects | `flow.connect` | 486 |
 | `flow.solve` | effects | `flow.solve` | 1000 |
 | `unblock.slide` | effects | `unblock.slide` | 528 |
+| `unblock.solve` | effects | `unblock.solve` | 2470 |
 | `push.home` | effects | `push.home` | 486 |
 | `push.solve` | effects | `push.solve` | 1147 |
 | `tiles.solve` | effects | `tiles.solve` | 1000 |
@@ -2391,9 +2380,11 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `tubes.cork` | effects | `tubes.cork` | 486 |
 | `tubes.solve` | effects | `tubes.solve` | 1080 |
 | `safe.click` | effects | `safe.click` | 528 |
+| `safe.solve` | effects | `safe.solve` | 2200 |
 | `shikaku.solve` | effects | `shikaku.solve` | 1000 |
 | `fences.draw` | effects | `fences.draw` | 486 |
 | `fences.cross` | effects | `fences.cross` | 528 |
+| `fences.clear` | effects | `fences.clear` | 528 |
 | `fences.solve` | effects | `fences.solve` | 1000 |
 | `fillomino.place` | effects | `fillomino.place` | 528 |
 | `fillomino.region` | effects | `fillomino.region` | 528 |

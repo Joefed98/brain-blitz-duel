@@ -214,7 +214,8 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `blockfall.clear` | Blockzone | One or two rows clear | `arc_retro_coin` (0.8) | 5–25 | 120 ms |
 | `blockfall.bigClear` | Blockzone | Three or four rows clear at once (with a `success` haptic) | `arc_retro_pickup` (0.9) | 0–6 | 100 ms |
 | `blockfall.speedUp` | Blockzone | The speed rises (every 15 s) | `arc_retro_note` (0.6, rate 1.25) | 3 | 90 ms |
-| `blockfall.topOut` | Blockzone | The stack reaches the top and the run ends early | `arc_retro_explode` (0.8) | 0–1 | 260 ms |
+| `blockfall.topOut` | Blockzone | The stack reaches the top and the run ends early (with an `impact` haptic) | `arc_retro_explode` (0.8) | 0–1 | 260 ms |
+| `blockfall.start` | Blockzone | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `alleyroll.roll` | Ringer | A ball is rolled | `arc_wood_knock` (0.8) | 9 | 90 ms |
 | `alleyroll.ramp` | Ringer | The ball leaves the ramp | `arc_wood_knock` (0.6, rate 1.3) | 9 | 90 ms |
 | `alleyroll.ring` | Ringer | The ball drops into a 10–50 cup | `arc_fair_bucket` (0.8) | 0–9 | 200 ms |

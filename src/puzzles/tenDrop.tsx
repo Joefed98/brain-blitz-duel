@@ -35,7 +35,7 @@ import {
 } from "@/lib/arcade/tenDrop";
 import { encodeTenDropRun, replayTenDropRun } from "@/lib/duel/tenDrop";
 import { TENDROP_TIME_MS, type TenDropPuzzleData } from "@/lib/duel/types";
-import { playCorrect, playTick, playWrong } from "@/lib/sound";
+import { playCorrect, playRejectWrong, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { drawTenDropLive, tenDropArenaScene } from "@/lib/arcade/tenDrop.renderer";
@@ -270,7 +270,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       if (s.refused > seenRefused) {
         seenRefused = s.refused;
-        playTick();
+        // The refused tile shakes: the quiet wrong, as every wrong-move shake (it played the tap tick).
+        playRejectWrong();
         soundCue("tendrop.refused");
       }
       // The next target: the old lane's tiles fade out.

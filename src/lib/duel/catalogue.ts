@@ -232,6 +232,27 @@ export function typeTimeLimitMs(type: PuzzleType): number {
 }
 
 /**
+ * The clock every live deal of these games carries (its own `timeLimitMs`, which always wins over the type's
+ * default), where it differs from the definition's. The definition's value stays as it is, since it is the clock
+ * older stored puzzles without their own fall back to; screens that describe a game before it is dealt (the Games
+ * page) read `shownTimeLimitMs` so they show the clock players actually get. Bug and sound fixes, 15 Nov 2026
+ * (review docs/design/game-reviews/); clock-display-check deals each game and fails if this map drifts.
+ */
+export const DEALT_CLOCK_MS: Partial<Record<PuzzleType, number>> = {
+  balance: 120_000,
+  numline: 90_000,
+  gravity: 120_000,
+  spotdiff: 60_000,
+  countup: 60_000,
+  bomb: 90_000,
+};
+
+/** The clock a game is described with before it is dealt: today's dealt clock, else the definition's. */
+export function shownTimeLimitMs(type: PuzzleType): number {
+  return DEALT_CLOCK_MS[type] ?? typeTimeLimitMs(type);
+}
+
+/**
  * The clock length for a specific puzzle. A puzzle may carry its own limit —
  * Tower's five-disc variant does — which always wins over the type's default.
  */
