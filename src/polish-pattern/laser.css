@@ -1,64 +1,76 @@
-/* Pattern polish: laser (Lightbender). Presentation only. */
+/* Pattern polish: laser (Lightbender). Presentation only.
+   The Pattern overhaul (15 Nov 2026): the board is the Blender sprites (public/pattern-art/laser/, drawn by
+   laserArt.tsx and the cell rules below): graphite floor plates, terracotta brick walls, silvered glass mirrors, a
+   violet glass splitter, cut crystal gems (dark, then burning gold when the beam lights them), round black bombs and a
+   gunmetal emitter. The beam stays a vector line (golden, no glare). Every sprite fills its own cell box. */
 
-/* --- Board: a dark optical bench; tiles sit in it like recessed plates. --- */
+/* --- Board: a dark recess that shows through the gaps between the plates. --- */
 .laser-board {
   border-radius: 8px;
-  background:
-    radial-gradient(120% 90% at 50% 0%, rgba(245, 198, 76, 0.07), transparent 60%),
-    linear-gradient(180deg, #14161d, #0d0e13);
+  background: linear-gradient(180deg, #15131b, #0b0a0f);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 0 18px rgba(0, 0, 0, 0.6);
-  transition: box-shadow 400ms ease-out;
 }
-.laser-board .laser-cell,
-.laser-board .laser-cell[data-puzzle-cell],
-.laser-board .laser-piece-cell {
-  border-radius: 3px;
-  background-color: #1a1c24 !important;
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.18) 70%);
-  border-color: rgba(255, 255, 255, 0.07);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+.laser-board[data-laser-art] .laser-cell,
+.laser-board[data-laser-art] .laser-cell[data-puzzle-cell],
+.laser-board[data-laser-art] .laser-piece-cell,
+.laser-board[data-laser-art] .laser-piece-cell[data-puzzle-cell],
+.laser-board[data-laser-art] .laser-source-cell,
+.laser-board[data-laser-art] .laser-source-cell[data-puzzle-cell] {
+  border: 0 !important;
+  border-radius: 3px !important;
+  background: #17151d url("/pattern-art/laser/floor.webp") center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
 }
-.laser-board .laser-cell.border-primary\/50,
-.laser-board .laser-cell.border-primary\/50[data-puzzle-cell] {
-  border-color: color-mix(in oklab, var(--primary) 45%, transparent);
-}
-
-/* Blocks: bevelled slate, clearly solid. */
-.laser-board .laser-block,
-.laser-board .laser-block[data-puzzle-cell] {
-  background-color: #59607a !important;
-  background-image:
-    linear-gradient(150deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 42%),
-    linear-gradient(330deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 50%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 5px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
-    0 1px 2px rgba(0, 0, 0, 0.5);
+/* A cell holding a placed mirror: a thin champagne ring, so a placed piece reads as yours. */
+.laser-board[data-laser-art] .laser-cell.border-primary\/50,
+.laser-board[data-laser-art] .laser-cell.border-primary\/50[data-puzzle-cell] {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--jz-gold) 55%, transparent) !important;
 }
 
-/* The emitter cell: a dark bay the housing sits in. */
-.laser-board .laser-source-cell,
-.laser-board .laser-source-cell[data-puzzle-cell] {
-  background-color: #241e10 !important;
-  background-image: radial-gradient(circle at 50% 50%, rgba(245, 198, 76, 0.28), transparent 70%);
-  box-shadow: inset 0 0 0 1px rgba(245, 198, 76, 0.45);
-}
-.laser-emitter-lens {
-  fill: #f5c64c;
-  transition: fill 160ms ease-out, filter 160ms ease-out;
-}
-.laser-emitter-firing .laser-emitter-lens {
-  fill: #fff6d6;
-  filter: drop-shadow(0 0 2px #f7c548);
+/* Walls: the rendered terracotta brick block. */
+.laser-board[data-laser-art] .laser-block,
+.laser-board[data-laser-art] .laser-block[data-puzzle-cell] {
+  border: 0 !important;
+  border-radius: 3px !important;
+  background: #3a2418 url("/pattern-art/laser/brick.webp") center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
 }
 
-/* --- Gems --- */
+/* The emitter: the rendered housing on its plate; a little brighter while it fires (no glow). */
+.laser-emitter {
+  overflow: visible;
+  transition: filter 160ms ease-out;
+}
+.laser-emitter-firing {
+  filter: brightness(1.18);
+}
+
+/* Out of shots (laserRev 4): the board dims and says so plainly; it takes no more changes. */
+.laser-board-spent > .grid,
+.laser-board-spent > svg {
+  filter: saturate(0.55) brightness(0.7);
+  transition: filter 300ms ease-out;
+}
+.laser-spent-badge {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--jz-surface-2);
+  box-shadow: inset 0 0 0 1px var(--jz-gold);
+  color: var(--jz-gold-ink);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  animation: laser-spent-in 260ms ease-out both;
+}
+@keyframes laser-spent-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+
+/* --- Gems: the lit crystal pops in; a short, small warm rim only (no halo). --- */
 .laser-gem {
   overflow: visible;
-}
-.laser-gem-aura {
-  fill: rgba(247, 197, 72, 0.22);
 }
 .laser-gem-lit {
   transform-box: fill-box;
@@ -69,34 +81,17 @@
   from { transform: scale(0.7); }
   to { transform: scale(1); }
 }
-.laser-gem-sparkle {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: laser-gem-twinkle 1500ms ease-in-out infinite;
-}
-@keyframes laser-gem-twinkle {
-  0%, 100% { opacity: 0.25; transform: scale(0.55) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1) rotate(45deg); }
-}
 
-/* --- Bombs --- */
+/* --- Bombs: the rendered bomb; a hit flashes a red ring round it as the shell turns red hot. --- */
+.laser-bomb {
+  overflow: visible;
+}
 .laser-bomb-danger {
-  fill: rgba(255, 77, 77, 0.14);
-  stroke: rgba(255, 77, 77, 0.55);
+  fill: rgba(255, 77, 77, 0.35);
+  stroke: #ff4d4d;
   stroke-width: 0.9;
 }
-.laser-bomb-spark {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: laser-bomb-fizz 520ms steps(2, jump-none) infinite;
-}
-@keyframes laser-bomb-fizz {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0.55; transform: scale(0.7) rotate(30deg); }
-}
 .laser-bomb-hit .laser-bomb-danger {
-  fill: rgba(255, 77, 77, 0.5);
-  stroke: #ff4d4d;
   transform-box: fill-box;
   transform-origin: center;
   animation: laser-bomb-blast 420ms ease-out both;
@@ -105,6 +100,35 @@
   0% { transform: scale(0.6); opacity: 1; }
   60% { transform: scale(1.08); opacity: 1; }
   100% { transform: scale(1); opacity: 0.85; }
+}
+
+/* --- Controls: Undo and Reset in champagne gold on navy (Fire stays the gold primary). --- */
+[data-puzzle-surface] [data-polish="laser"] > [data-game-controls] [data-puzzle-action="secondary"] {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-gold-ink) !important;
+  box-shadow: inset 0 0 0 1px var(--jz-gold);
+}
+[data-puzzle-surface] [data-polish="laser"] > [data-game-controls] [data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-gold-ink);
+}
+[data-puzzle-surface] [data-polish="laser"] > [data-game-controls] [data-puzzle-action="secondary"]:disabled {
+  box-shadow: inset 0 0 0 1px var(--jz-surface-3);
+}
+[data-puzzle-surface] [data-polish="laser"] > [data-game-controls] [data-puzzle-action]:disabled [data-puzzle-icon]::before,
+[data-puzzle-surface] [data-polish="laser"] > [data-game-controls] [data-puzzle-action][data-puzzle-icon]:disabled::before {
+  -webkit-text-fill-color: var(--jz-text-3);
+}
+[data-polish="laser"] [data-game-controls="pieces"] button[aria-pressed] {
+  background-color: var(--jz-surface-2);
+}
+[data-polish="laser"] [data-game-controls="pieces"] button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--jz-gold);
+}
+.laser-shots-left {
+  color: var(--jz-text-2, inherit);
+}
+.laser-shots-left[data-none] {
+  color: var(--jz-gold-ink);
 }
 
 /* --- Mirrors: drop in and turn into place --- */
@@ -171,24 +195,93 @@
   height: min(100cqw, calc(100cqh - 138px));
 }
 
-/* --- Reveal: both boards as large as the space allows --- */
+/* --- Reveal (the Pattern overhaul, 15 Nov 2026): one board at a time, large (the Solution / Yours switch shows one
+   column at full width; with no switch the two share the row). The numbers sit above as pills; under Yours the
+   shot strip and a short key to the highlights. --- */
 .answer-reveal-content .reveal-card > .laser-reveal {
   flex: 1 1 0;
   min-height: 0;
   container-type: size;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .laser-reveal > .laser-reveal-boards {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .laser-reveal-board {
-  width: min(calc((100cqw - 12px) / 2), calc(100cqh - 76px));
+  width: min(100%, calc(100cqh - 132px));
+}
+.laser-reveal-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jz-text-2);
+}
+.laser-reveal-caption {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--jz-text-2);
+}
+.laser-reveal .hud-pills.laser-reveal-pills {
+  overflow: visible;
+  justify-content: center;
+  flex-wrap: wrap;
+  height: auto;
+  row-gap: 4px;
+}
+.laser-shot-strip {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.laser-shot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--jz-surface-2);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--jz-text-2);
+}
+.laser-shot-chip[data-best] {
+  box-shadow: inset 0 0 0 1.5px var(--jz-gold);
+  color: var(--jz-gold-ink);
+}
+.laser-shot-chip-gems {
+  display: inline-flex;
+  gap: 2px;
+}
+.laser-shot-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jz-surface-3);
+}
+.laser-shot-dot[data-lit] {
+  background: var(--jz-gold);
+}
+.laser-shot-chip-bomb {
+  width: 16px;
+  height: 16px;
+}
+.laser-reveal-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 10px;
+  font-size: 12px;
+  color: var(--jz-text-3);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .laser-gem-lit,
-  .laser-gem-sparkle,
-  .laser-bomb-spark,
+  .laser-spent-badge,
   .laser-bomb-hit .laser-bomb-danger,
   .laser-mirror-in,
   .laser-burst {

@@ -520,6 +520,10 @@ const ENTRIES = {
   "laser.fire": { channel: "effects", frequency: 0, ms: 2000, url: null },
   "laser.gem": { channel: "effects", frequency: 0, ms: 260, url: null },
   "laser.bomb": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/laser.bomb.mp3", volume: 0.82 },
+  // The Pattern overhaul (15 Nov 2026): library placeholders until Joe's files (docs/sound-cues/pattern-elevenlabs.md):
+  // a shot that lights every gem but one, and the laser powering down after the last shot (laserRev 4).
+  "laser.nearMiss": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/arc_retro_blip.mp3", volume: 0.5 },
+  "laser.outOfShots": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/retro.powerDown.mp3", volume: 0.7 },
   "laser.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/laser.solve.mp3" },
   "pipes.rotate": { channel: "effects", frequency: 0, ms: 170, url: null },
   "pipes.flow": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pipes.flow.mp3", volume: 0.78 },
@@ -550,7 +554,15 @@ const ENTRIES = {
   "blockparty.undo": { channel: "effects", frequency: 0, ms: 334, url: "/sounds/cards_pick.mp3", volume: 0.6 },
   "blockparty.reset": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3", volume: 0.8 },
   // ---- tessellate:end
-  "gravity.tilt": { channel: "effects", frequency: 0, ms: 200, url: null },
+  // ---- topsy:start (the Pattern overhaul, 15 Nov 2026): library stand-ins until Joe's files
+  // (docs/sound-cues/pattern-elevenlabs.md); each url becomes /sounds/<slot>.mp3 when its file lands. gravity.tilt is
+  // the roll's rumble, looped for exactly as long as the balls move (topsyBoard.tsx topsyTiltSounds).
+  "gravity.tilt": { channel: "effects", frequency: 0, ms: 3000, url: "/sounds/arc_marble_roll.mp3", loop: true, volume: 0.7 },
+  "gravity.stop": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/arc_marble_clink.mp3", volume: 0.45, gapMs: 30 },
+  "gravity.combo": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/combo.mp3" },
+  "gravity.boardClear": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.counterLock.mp3", volume: 0.79 },
+  "gravity.outOfTilts": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/checkout.thud.mp3", volume: 0.8 },
+  // ---- topsy:end
   "gravity.lock": { channel: "effects", frequency: 0, ms: 201, url: "/sounds/gravity.lock.mp3" },
   "gravity.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.rising.mp3" },
   "rings.turn": { channel: "effects", frequency: 0, ms: 210, url: null },

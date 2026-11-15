@@ -27,18 +27,25 @@ TMP = os.environ.get("JZ_TMP", "/tmp/jz-pattern-art")
 SPRITE_SAMPLES = int(os.environ.get("JZ_SPRITE_SAMPLES", "48"))
 
 
-def begin(size, px, pad=0.0, light=1.0, top_left=True):
-    """A fresh scene for one sprite: `size` points square drawn at `px` pixels (plus `pad` points each side)."""
+def begin(size, px, pad=0.0, light=1.0, top_left=True, rich=True, look="AgX - Punchy", reflect=0.5):
+    """A fresh scene for one sprite: `size` points square drawn at `px` pixels (plus `pad` points each side).
+
+    rich (the default, Joe 15 Nov 2026: "premium materials need light on them"): a studio HDRI that real materials
+    reflect (glass gets a crisp highlight on its curve, lacquer depth, metal shine), a small key light from the top left
+    for that crisp highlight, a soft fill and a rim; AgX Punchy. No glow is added: "minimal glow, no glare" means no
+    wash across a panel and no glowing edges, not matte. rich=False is the earlier flat studio (kept for comparison).
+    """
     s = jzlib.reset()
     jzlib._mats.clear()
     jzlib._meshes.clear() if hasattr(jzlib, "_meshes") else None
     s.cycles.samples = SPRITE_SAMPLES
+    s.cycles.blur_glossy = 0.0
     s.render.film_transparent = True
     full = size + 2 * pad
     s.render.resolution_x = s.render.resolution_y = int(round(px * full / size))
     s.render.resolution_percentage = 100
     s.view_settings.view_transform = "AgX"
-    s.view_settings.look = "AgX - Base Contrast"
+    s.view_settings.look = look if rich else "AgX - Base Contrast"
     s.render.threads_mode = "FIXED"
     s.render.threads = int(os.environ.get("JZ_THREADS", "2"))
     # Orthographic camera straight down over the sprite square (sprite coords: (0,0) top left, (size,size) bottom right).
@@ -52,13 +59,24 @@ def begin(size, px, pad=0.0, light=1.0, top_left=True):
     ob.location = jzlib.V(size / 2, size / 2, 2000)
     ob.rotation_euler = (0, 0, 0)
     s.camera = ob
-    # Even studio light, key from the top left; low world so nothing glares.
-    jzlib.world("#0a0a10", 0.0, hdri="studio.exr" if jzlib.STUDIO else None, hdri_strength=0.18)
     k = light
+    c = (size / 2, size / 2, 0)
     kx, ky = (-size * 0.8, -size * 0.8) if top_left else (size * 0.5, -size * 1.2)
-    jzlib.area(kx, ky, size * 2.4, size * 2.6, 0.03 * k * size * size, "#fff4e6", target=(size / 2, size / 2, 0))
-    jzlib.area(size * 1.9, size * 1.5, size * 1.6, size * 2.2, 0.008 * k * size * size, "#e4ecff", target=(size / 2, size / 2, 0))
-    jzlib.area(size / 2, size / 2, size * 3.0, size * 3.0, 0.01 * k * size * size, "#ffffff", target=(size / 2, size / 2, 0))
+    if not rich:
+        jzlib.world("#0a0a10", 0.0, hdri="studio.exr" if jzlib.STUDIO else None, hdri_strength=0.18)
+        jzlib.area(kx, ky, size * 2.4, size * 2.6, 0.03 * k * size * size, "#fff4e6", target=c)
+        jzlib.area(size * 1.9, size * 1.5, size * 1.6, size * 2.2, 0.008 * k * size * size, "#e4ecff", target=c)
+        jzlib.area(size / 2, size / 2, size * 3.0, size * 3.0, 0.01 * k * size * size, "#ffffff", target=c)
+        return s
+    # Reflections: the studio HDRI seen only in reflections (camera rays see nothing: transparent film).
+    jzlib.world("#0a0a10", 0.0, hdri="studio.exr" if jzlib.STUDIO else None, hdri_strength=reflect, rot=0.6)
+    # Key: small and fairly close, top left, so curved surfaces carry one crisp highlight.
+    jzlib.area(kx * 0.7, ky * 0.7, size * 1.6, size * 0.45, 0.022 * k * size * size, "#fff3e0", target=c)
+    # Fill: broad and cool from the lower right; top: soft overhead so flat tops read without washing out.
+    jzlib.area(size * 1.9, size * 1.6, size * 1.4, size * 2.0, 0.006 * k * size * size, "#dfe8ff", target=c)
+    jzlib.area(size / 2, size / 2, size * 3.0, size * 2.5, 0.002 * k * size * size, "#ffffff", target=c)
+    # Rim: low from the top right, a thin edge of light on rounded tops (not a glow).
+    jzlib.area(size * 1.8, -size * 0.6, size * 0.5, size * 1.2, 0.006 * k * size * size, "#ffffff", target=c)
     return s
 
 
