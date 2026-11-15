@@ -136,3 +136,53 @@ counted: 30 × min(perfect drops, 61) ÷ 61 (`SKYLINE_STD_SPEC_V10`). Up to 61 f
 scoring-audit-arcade-check proves the score never falls for another floor (perfect or not) over 0–160 floors.
 
 The table's medians (p10–p90) are 30 room seeds, measured with `bun scripts/arcade-skill-bands.ts cross wavefront burst skyline slice --rev=now --seeds=30 --levels=all` on main and on this branch.
+
+## skylineRev 11: lives and the wide-block rescue (15 Nov 2026, the Action overhaul)
+
+Rooms deal **`skylineRev 11`** (`SKYLINE_REV_LIVES`, `skylineLivesGame`; `docs/design/game-reviews/action.md`). It is
+skylineRev 10's play, gold blocks and parts exactly (Floors 140, Perfect drops 30, Perfect streak 10, Gold blocks 20;
+`SKYLINE_STD_SPEC_V11` is rev 10's parts under the new stamp), with two changes so no run ends on the first miss:
+
+- **Lives.** A run starts with 3 (`SKYLINE_V11_LIVES`). A block that misses the tower costs a life and falls away; the
+  run carries on with the same tower and the same block again (its kind and width) from the side it came from, the
+  streak broken. A tap in the half second after a lost life is ignored (`SKYLINE_V11_REARM_TICKS`, 30), so a double tap
+  can't cost two. The last life's miss ends the run as before. The score never reads the lives: a lost life costs its
+  time and the streak.
+- **The wide-block rescue.** After 5 placed drops in a row that were not perfect (`SKYLINE_V11_TRIM_RUN`), the next block
+  is a wide one (rev 7's wide block: the top's width + `SKYLINE_WIDE_GROW`, up to the start width; centred, it stays whole
+  and widens the tower) when the schedule has a normal block there and after it; the count starts again. The rule reads
+  only the drops, so it is the same for every player who drops the same.
+
+States add `lives`, `livesLost`, `trimRun` and `rescues` (folded into the checkpoint checksum last) and keep `expandRev: 9`
+and `perfectCount: 1`, so every rev 9/10 path (the parts, the HUD, the reveal) reads them. A run with no miss and no trim
+is skylineRev 10's run exactly (skyline-overhaul-check proves it on the perfect-drop player's runs). Every older stamp
+replays and scores as on main a3f40ff7 (60 runs, `scripts/fixtures/skyline-overhaul-legacy.json`).
+
+Medians, skill-band tool (`bun scripts/arcade-skill-bands.ts skyline --rev=now --levels=all --seeds=30`, the default
+fixed bots), skylineRev 10 → 11:
+
+| Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- |
+| 35 → 39 | 44 → 53 | 66 → 75 | 96 → 103 | 161 → 168 | 177 → 177 | 200 → 200 |
+
+The look (display only, every revision): the city from concept A behind the tower (three layers deep, lights coming on
+as night falls), the round starting at dusk and turning to night from the floors built (`skylineNightShare`, in 24 steps,
+`skylineNightStep`), a solid plaza the tower stands on (the tower drawn 22 px above the world's bottom; the sim has no
+heights), a LIVES chip in the HUD, a lost block falling away with "−1 LIFE". Edge to edge: the screen's fill
+(`skylineSceneFill`, painted once per size and night step) paints the still scene beside the world and the quay and river
+below it, and the world blends its side edges into that same still scene (`drawEdgeRamps`) and settles its bottom rows to
+the quay's colour, so no seam shows at its edges however the camera has moved.
+
+### Levels (stage 3, from Joe's table; not built yet)
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Slide speed | slower | today's (768 → 1536) | faster | fastest |
+| Perfect tolerance | 5 px | 3 px | 3 px | 2 px |
+| Wind from block | 30 | 20 | 15 | 10 |
+| Lives | 3 | 3 | 2 | 2 |
+
+Levers in the sim: `skylineSpeed` (`SKYLINE_SPEED_START`, `SKYLINE_SPEED_STEP`, `SKYLINE_SPEED_MAX`),
+`SKYLINE_PERFECT_TOL`, `SKYLINE_WIND_FROM`, `SKYLINE_V11_LIVES`; each level a stamp of its own, rated rooms on Normal.
+"Skyscraper" (61 floors on Expert) must stay possible: the run stays 60 s with no time lost for a life, and today a
+perfect-drop player builds 61 floors on 21 of 24 seeds (13 of 24 after losing two lives early).

@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 59 | 0 | 491 | 550 |
+| game event | 62 | 0 | 491 | 553 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 37 | 41 |
+| fail sting | 5 | 0 | 37 | 42 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 1 | 1 | 22 | 24 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 86 | 1 | 987 | 1074 |
+| **all** | 90 | 1 | 987 | 1078 |
 
 ## Silent and placeholder cues
 
@@ -265,6 +265,15 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `swing.ropeSnap` | Action overhaul: every grab, on top of swing.vineCreak (swingRev 17) [arcade-effects.md] | The vine pulled taut at the grab point | 20–60 | silent | none | 200 | game event | `swing.ropeSnap` |
 | `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) [arcade-effects.md] | The hero flying off the vine | 0–20 | silent | none | 450 | game event | `swing.speedWhoosh` |
 | `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) [arcade-effects.md] | COURSE CLEARED! banner | 0–1 | silent | none | 1600 | game event | `swing.courseCleared` |
+
+### High Rise
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) [arcade-effects.md] | The block falls away, "−1 LIFE", the LIVES chip rings | 0–2 | silent | none | 600 | fail sting | `skyline.lifeLost` |
+| `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) [arcade-effects.md] | The NEXT panel shows WIDE | 0–3 | silent | none | 400 | game event | `skyline.wideBlock` |
+| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) [arcade-effects.md] | The overhang falls away spinning | 10–40 | silent | none | 700 | game event | `skyline.trim` |
+| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) [arcade-effects.md] | A thin floor on the tower | 0–5 | silent | none | 700 | game event | `skyline.sliver` |
 
 ### Hot Floor
 

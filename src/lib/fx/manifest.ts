@@ -730,6 +730,12 @@ const ENTRIES = {
   "racing.grass": { channel: "effects", frequency: 0, ms: 150, url: null },
   "racing.finish": { channel: "effects", frequency: 0, ms: 1357, url: "/sounds/racing_flag.mp3" },
   "skyline.miss": { channel: "effects", frequency: 0, ms: 200, url: null },
+  // The Action overhaul (15 Nov 2026, docs/sound-cues/action-elevenlabs.md): High Rise's new moments, wired with a library
+  // stand-in until Joe's files arrive (drop each in as public/sounds/<slot>.mp3 and set its url).
+  "skyline.lifeLost": { channel: "effects", frequency: 0, ms: 600, url: null, fallback: "arc_lose_life" },
+  "skyline.wideBlock": { channel: "effects", frequency: 0, ms: 400, url: null, fallback: "arc_pickup" },
+  "skyline.trim": { channel: "effects", frequency: 0, ms: 700, url: null, fallback: "arc_wood_knock" },
+  "skyline.sliver": { channel: "effects", frequency: 0, ms: 700, url: null, fallback: "arc_clank" },
   "hover.start": { channel: "effects", frequency: 0, ms: 120, url: null },
   "hover.crash": { channel: "effects", frequency: 0, ms: 260, url: null },
   "hover.gate": { channel: "effects", frequency: 0, ms: 90, url: null },

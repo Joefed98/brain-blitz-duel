@@ -55,12 +55,17 @@ const kit = await auditKit(new URL("..", import.meta.url).pathname.replace(/\/$/
 
 /* 1. Wiring. */
 section("1. rooms deal the new stamps; each keeps the previous stamp's play");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): High Rise moved on to skylineRev 11
+// (lives, skyline-overhaul-check), so rooms and LIVE_BANDS now carry the stamp after the audit's; the audit's stamp still
+// replays and scores as proved below.
+const LATER_DEALT: Partial<Record<string, number>> = { skyline: 11 };
 for (const g of AUDIT_GAMES) {
+  const want = LATER_DEALT[g.type] ?? g.rev;
   for (let k = 0; k < 5; k++) {
     const dealt = (generatePuzzle(g.type) as unknown as Record<string, unknown>)[g.field];
-    ok(dealt === g.rev, `${g.type}: rooms deal ${g.field} ${g.rev} (got ${String(dealt)})`);
+    ok(dealt === want, `${g.type}: rooms deal ${g.field} ${want} (got ${String(dealt)})`);
   }
-  ok((LIVE_BANDS as any)[g.type].rev === g.rev, `${g.type}: LIVE_BANDS reads ${g.field} ${g.rev}`);
+  ok((LIVE_BANDS as any)[g.type].rev === want, `${g.type}: LIVE_BANDS reads ${g.field} ${want}`);
   ok(playRevOf(g.type, g.rev) === playRevOf(g.type, g.old), `${g.type}: ${g.field} ${g.rev} keeps ${g.field} ${g.old}'s play (playRevOf ${String(playRevOf(g.type, g.rev))})`);
   // The intro demo's gate names the stamp the demo was recorded on (the old one): the same play, so it still plays.
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");

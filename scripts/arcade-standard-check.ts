@@ -54,7 +54,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "snake", field: "snakeRev", rev: 12, batch: "A" },
   { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted, so more floors never score less.
-  { type: "skyline", field: "skylineRev", rev: 10, batch: "B" },
+  // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul).
+  { type: "skyline", field: "skylineRev", rev: 11, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
   { type: "pinball", field: "pinRev", rev: 6, batch: "B" },

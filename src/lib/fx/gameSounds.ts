@@ -898,6 +898,12 @@ export function skylineSounds(): GameSounds<SkylineState> {
         if (state.blocks.length > prev.blocks.length) {
           sfx("skyline.drop", "arc_clank", 0.8, 1, true);
           if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct");
+          else {
+            // The Action overhaul (15 Nov 2026): a trim crumbles; a sliver (under a quarter of the block on the tower) creaks.
+            const top = state.blocks[state.blocks.length - 1]!;
+            if (top.w * 4 < prev.w) ownCue("skyline.sliver", "arc_clank", 0.6);
+            else if (top.w < prev.w) ownCue("skyline.trim", "arc_wood_knock", 0.5);
+          }
           // skylineRev 2: a streak bonus drop (3rd perfect in a row or later).
           if ((state.streakPoints ?? 0) > (prev.streakPoints ?? 0)) sfx("skyline.streakDrop", "arc_retro_coin", 0.7);
           // skylineRev 7+ (the expansion, existing sounds only): a new streak multiplier tier dings, a gold block
@@ -911,6 +917,9 @@ export function skylineSounds(): GameSounds<SkylineState> {
           }
         }
         if (state.missed && !prev.missed) { sfx("skyline.miss", "arc_crash"); feel("impact"); }
+        // skylineRev 11 (lives): a miss that costs a life and the run carries on; the wide-block rescue arriving.
+        else if ((state.livesLost ?? 0) > (prev.livesLost ?? 0)) ownCue("skyline.lifeLost", "arc_lose_life");
+        else if ((state.rescues ?? 0) > (prev.rescues ?? 0)) ownCue("skyline.wideBlock", "arc_pickup", 0.8);
         else if (skylineGustAt(state, state.tick) !== 0 && skylineGustAt(prev, prev.tick) === 0) effectCue("skyline.gust");
         // The flag streams a second before a gust blows.
         else if (skylineFlagAt(state, state.tick) !== 0 && skylineFlagAt(prev, prev.tick) === 0) effectCue("skyline.gustWarn");

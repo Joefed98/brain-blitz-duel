@@ -396,6 +396,10 @@ Already sounded: switch and tube turn (`balltrack.switch`), marble home and cup 
 | `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `skyline.floors.mp3` (volume 0.8; Joe's phone notes, 27 Oct 2026: the old every-10-floors sound on every perfect drop; `skyline.perfectFit.mp3` retired) | 0–5 | 483 ms |
 | `skyline.gust` | A gust starts blowing | Gust streaks cross the sky | `sky.gust.mp3` | 2–8 | 600 ms |
 | `skyline.gustWarn` | The flag streams a second before a gust blows | The flag streams and ripples | `ui.warn.mp3` | 2–8 | 500 ms |
+| `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) | The block falls away, "−1 LIFE", the LIVES chip rings | none yet (silent until it has a file; `arc_lose_life` plays meanwhile) | 0–2 | 600 ms |
+| `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) | The NEXT panel shows WIDE | none yet (silent until it has a file; `arc_pickup` plays meanwhile) | 0–3 | 400 ms |
+| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) | The overhang falls away spinning | none yet (silent until it has a file; `arc_wood_knock` plays meanwhile) | 10–40 | 700 ms |
+| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) | A thin floor on the tower | none yet (silent until it has a file; `arc_clank` plays meanwhile) | 0–5 | 700 ms |
 
 Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (`skyline.perfect`), streak drop (`skyline.streakDrop`), miss (`skyline.miss`).
 

@@ -122,7 +122,8 @@ if (want("skyline")) {
   // stored rounds play, keeps the band play and curve (Tuning E's taller view only).
   // The arcade scoring standard (29 Oct 2026) moved them on to skylineRev 9 (skyline-standard-check covers it).
   // The scoring audit (Nov 2026): skylineRev 10, skylineRev 9's play with perfect drops counted (scoring-audit-arcade-check).
-  ok(generateSkyline().skylineRev === SKYLINE_REV_STD + 1, "new High Rise rounds are dealt skylineRev 10 (skylineRev 9's play, the arcade scoring standard)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal skylineRev 11 (lives).
+  ok(generateSkyline().skylineRev === SKYLINE_REV_STD + 2, "new High Rise rounds are dealt skylineRev 11 (skylineRev 9's play with lives, the arcade scoring standard)");
   ok(skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "High Rise skylineRev 4 keeps the band play and curve (Tuning E's taller view only)");
   // Prompt R (23 Oct 2026): the manifest holds the new icon in three files (192, 512, maskable); the flag draws its
   // 512 px "any" icon (APP_FLAG_LOGO_URL), so the PWA icon and the flag are still one logo file.

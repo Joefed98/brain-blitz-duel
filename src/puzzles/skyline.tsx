@@ -8,6 +8,8 @@ import { recordTap, tapAt } from "@/lib/arcade/engine";
 import { auditTapAt } from "@/lib/arcade/auditInput";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import type { ArcadeGame } from "@/lib/arcade/engine";
 
 import {
   MAX_CATCH_UP_TICKS,
@@ -18,11 +20,9 @@ import {
 import {
   skylineCheckpoint,
   skylineGameFor,
-  SKYLINE_BG,
   SKYLINE_CHECKPOINT_INTERVAL,
   SKYLINE_COLOURS,
-  SKYLINE_FLASH,
-  SKYLINE_REV_COUNT,
+  SKYLINE_REV_LIVES,
   skylineWorldHFor,
   SKYLINE_RUN_TICKS,
   type SkylineState,
@@ -30,39 +30,36 @@ import {
 } from "@/lib/arcade/skyline";
 import { decodeSkylineRun, encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { ARCADE_CRASH_FREEZE_MS, type SkylinePuzzleData } from "@/lib/duel/types";
-import { drawSkylineArt, SKYLINE_ART_BG, skylineRiverFill } from "@/lib/arcade/skyline.renderer";
+import { drawSkylineArt, SKYLINE_ART_BG, SKYLINE_NIGHT_STEPS, skylineNightStep, skylineSceneFill } from "@/lib/arcade/skyline.renderer";
 import { skylineSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
-/** Fixed intro still: a three-block tower with one overhang. */
+/**
+ * The intro still (the Action overhaul, 15 Nov 2026): the dealt stamp's own art, a fixed seed's tower a few floors up
+ * at dusk, built by a steady drop (tap when the block lines up). Display only: the sim runs here only for the picture.
+ */
+const stillGame = (() => {
+  const g = skylineGameFor(SKYLINE_REV_LIVES);
+  return {
+    ...g,
+    step: (s: SkylineState) => g.step(s, Math.abs(s.x - s.blocks[s.blocks.length - 1]!.x) <= 1_400),
+    draw: drawSkylineArt,
+  } as unknown as ArcadeGame<SkylineState, null>;
+})();
+
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 195 110"
-        width={195}
-        height={110}
-        aria-hidden="true"
-        style={{ background: SKYLINE_BG, borderRadius: 10 }}
-      >
-        <rect x="55" y="86" width="85" height="20" fill={SKYLINE_COLOURS[0]} />
-        <rect x="62" y="64" width="78" height="20" fill={SKYLINE_COLOURS[1]} />
-        <rect x="76" y="42" width="78" height="20" fill={SKYLINE_COLOURS[2]} />
-        <rect x="140" y="42" width="14" height="20" fill={SKYLINE_FLASH} opacity="0.35" />
-        <rect x="30" y="14" width="64" height="20" fill={SKYLINE_COLOURS[3]} opacity="0.8" />
-        {/* skylineRev 7: the next-block preview, showing a gold block coming. */}
-        <rect x="140" y="6" width="50" height="18" rx="9" fill="#060A1C" opacity="0.85" />
-        <text x="146" y="18" fontSize="7" fontWeight="700" fill="#E5EDFF" fontFamily="ui-monospace, monospace">NEXT</text>
-        <rect x="167" y="10" width="18" height="10" fill="#FFD24A" />
-        <rect x="167" y="10" width="18" height="2" fill="#FFF1B8" />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        The overhang is cut away. Line blocks up for perfect drops; the preview shows the next block: gold, narrow or wide.
-      </p>
-    </div>
+    <ArtStill
+      game={stillGame}
+      worldW={SKYLINE_WORLD_W}
+      worldH={skylineWorldHFor(SKYLINE_REV_LIVES)}
+      ticks={330}
+      input={null}
+      caption="Tap to drop each floor. Line it up for a perfect drop. A miss costs one of your 3 lives."
+    />
   );
 }
 
@@ -81,6 +78,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitted = useRef(false);
   const missedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
+  // Edge to edge: the night step the screen's fill is painted at (it changes a few times a round).
+  const nightRef = useRef(0);
+  const [nightKey, setNightKey] = useState(0);
 
   const lockedRef = useRef(locked);
   const submitRef = useRef(onSubmit);
@@ -168,6 +168,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
 
+      // Edge to edge: the screen's fill follows the night's step (repainted only when the step changes).
+      const step = Math.round(skylineNightStep(state.current.placed) * SKYLINE_NIGHT_STEPS);
+      if (step !== nightRef.current) {
+        nightRef.current = step;
+        setNightKey(step);
+      }
+
       reportArcadeTick(state.current.tick, skylineGame.isOver(state.current));
       feedback(state.current, skylineGame.isOver(state.current));
       sounds.frame(state.current, !skylineGame.isOver(state.current) && !lockedRef.current);
@@ -237,7 +244,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} scene={skylineRiverFill}>
+    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} scene={skylineSceneFill(nightKey / SKYLINE_NIGHT_STEPS)} sceneKey={nightKey}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas role="img"
           ref={canvas}
@@ -276,7 +283,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.blocks} blocks · {result.perfects} perfect
         {puzzle.skylineRev ? ` · best streak ${result.bestStreak}` : ""} ·{" "}
-        {result.survived ? "survived" : `missed at ${result.endedSeconds.toFixed(1)}s`}
+        {result.survived ? "survived" : `${result.state.lives !== undefined ? "out of lives" : "missed"} at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         Same tower for everyone
@@ -292,7 +299,7 @@ export const skylinePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (SKYLINE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_COUNT }) satisfies SkylinePuzzleData,
+  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_LIVES }) satisfies SkylinePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

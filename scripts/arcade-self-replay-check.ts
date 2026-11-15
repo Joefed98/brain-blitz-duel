@@ -1044,6 +1044,9 @@ const GAMES: Game[] = [
       return replayOrbitRun(seed, raw, ORBIT_REV_GRACE, e.planets, e.holes, e.extras);
     },
   },
+  // High Rise skylineRev 11 (15 Nov 2026, the Action overhaul: lives and the wide-block rescue), appended so every earlier
+  // entry keeps its stream.
+  { key: "skyline/lives", game: skylineGameFor(11), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 11) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

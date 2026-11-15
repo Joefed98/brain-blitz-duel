@@ -92,6 +92,8 @@ export interface SkylineResult {
   golds: number;
   bestMult: number;
   milestones: number;
+  /** skylineRev 11: lives lost (0 on older rounds). */
+  livesLost: number;
   survived: boolean;
   /** Seconds into the run when the tower was missed, or the full run length. */
   endedSeconds: number;
@@ -152,6 +154,7 @@ export function replaySkylineRun(seed: number, raw: string, rev?: number | null)
     golds: state.golds ?? 0,
     bestMult: state.bestMult ?? 1,
     milestones: state.milestones ?? 0,
+    livesLost: state.livesLost ?? 0,
     survived,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,
