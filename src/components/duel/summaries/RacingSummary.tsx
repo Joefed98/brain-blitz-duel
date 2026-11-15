@@ -12,19 +12,33 @@ import { racingCircuitOf, RACING_CIRCUITS, RACING_REV_4, RACING_SECTORS, racingT
 import { racingRunMoments } from "@/lib/arcade/racingMap";
 import { drawRacingRunMap } from "@/lib/arcade/racingMap.renderer";
 import { decodeRacingRun } from "@/lib/duel/racing";
+import { countUpText } from "@/lib/fx/kit";
 
 const SIZE = 300;
 const secs = (ticks: number) => `${(ticks / 60).toFixed(1)} s`;
 
-function Stat({ label, value }: { label: string; value: string }) {
+/**
+ * One number and its label. A decimal with a unit (a lap's seconds, the average speed) counts up with the effects kit
+ * (stage 2: the reveal's numbers arriving), its markup holding the final figure; only the first plays the kit's ticks.
+ */
+function Stat({ label, value, sound = false }: { label: string; value: string; sound?: boolean }) {
   const unit = /^(\S+) (s|km\/h)$/.exec(value);
+  const numRef = useRef<HTMLSpanElement | null>(null);
+  const tenths = unit && /^\d+(\.\d)?$/.test(unit[1]!) ? Math.round(Number(unit[1]) * 10) : null;
+  useEffect(() => {
+    const el = numRef.current;
+    if (!el || tenths === null) return;
+    return countUpText(el, 0, tenths, { silent: !sound, format: (n) => (n / 10).toFixed(1) });
+  }, [tenths, sound]);
   return (
     <div data-run-stat={label} className="flex min-w-0 flex-col items-center">
       {/* The number big and its unit smaller on the same line ("54.0 km/h" never wraps in three columns). */}
       <span className="whitespace-nowrap text-2xl font-extrabold tabular-nums text-foreground">
         {unit ? (
           <>
-            {unit[1]}
+            <span ref={numRef} data-run-count={tenths ?? undefined}>
+              {unit[1]}
+            </span>
             <span className="ml-1 text-base font-bold">{unit[2]}</span>
           </>
         ) : (
@@ -81,7 +95,7 @@ export default function RacingSummary({ puzzle, myAnswer }: RunSummaryProps) {
       {/* Two by two after a finish (each lap's time, the average speed, the clean sectors); three across otherwise. */}
       <div className={`grid w-full gap-x-4 gap-y-3 ${run.lapTicks.length >= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
         {run.lapTicks.length >= 2 ? (
-          run.lapTicks.slice(0, 2).map((t, i) => <Stat key={i} label={lapLabel(i)} value={secs(t)} />)
+          run.lapTicks.slice(0, 2).map((t, i) => <Stat key={i} label={lapLabel(i)} value={secs(t)} sound={i === 0} />)
         ) : (
           <Stat label="Distance" value={`${Math.floor(run.covered * 100)}%`} />
         )}
