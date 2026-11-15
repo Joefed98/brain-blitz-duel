@@ -511,16 +511,35 @@ function DivisionNext({ rank }: { rank: NonNullable<RatedPlayer["rank"]> }) {
  * to the one after, the kit's count-up with its ticks. The markup holds the final rating; nothing with the celebrations off.
  */
 function RatingCountUp({ to, change }: { to: number; change: number }) {
-  const ref = useRef<HTMLSpanElement>(null);
+  // The real value never changes (screen readers, checks); a decorative copy laid over it counts up from the rating
+  // before the match, then leaves (the effects pass, 15 Nov 2026).
+  const ghost = useRef<HTMLSpanElement>(null);
   const on = useCelebrationsOn();
+  const [counting, setCounting] = useState(false);
   useEffect(() => {
-    const el = ref.current;
-    if (!on || !el || !change) return;
-    return countUpText(el, Math.round(to - change), Math.round(to), { format: ratingText, ms: 900 });
+    if (!on || !change) return;
+    setCounting(true);
   }, [on, to, change]);
+  useEffect(() => {
+    const el = ghost.current;
+    if (!counting || !el) return;
+    const stop = countUpText(el, Math.round(to - change), Math.round(to), { format: ratingText, ms: 900 });
+    const done = window.setTimeout(() => setCounting(false), 1100);
+    return () => {
+      stop();
+      window.clearTimeout(done);
+    };
+  }, [counting]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <span ref={ref} className="rt-rating-value" data-joulz-rating data-one-line>
-      {ratingText(to)}
+    <span className="rt-rating-count">
+      <span className="rt-rating-value" data-joulz-rating data-one-line data-counting={counting ? "" : undefined}>
+        {ratingText(to)}
+      </span>
+      {counting ? (
+        <span ref={ghost} className="rt-rating-value rt-rating-ghost" aria-hidden="true">
+          {ratingText(Math.round(to - change))}
+        </span>
+      ) : null}
     </span>
   );
 }
