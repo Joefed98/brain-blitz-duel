@@ -324,7 +324,7 @@ function IntroExample() {
       width={NINJA_WORLD_W}
       height={NINJA_WORLD_H}
       draw={(ctx, size) => drawNinjaFrame(ctx, moonIntroState(), size)}
-      caption="Tap to leap wall to wall, again in the air to double jump. Grab a sky lantern to ride it up."
+      caption="Tap to leap wall to wall, again in the air to double jump. Ride sky lanterns up; rides and scrolls count at the top."
     />
   );
 }
