@@ -171,6 +171,36 @@ lit), then a legend with the best streak. Before is today's reveal lines; an ave
 
 <img src="swing/reveal-s2-flawless.webp" width="720">
 
+### Stage 3: the canopy and a readable reveal (15 Nov 2026)
+
+Today (main e0aa53f2, swingRev 17) | Concept A | New (swingRev 18, dealt course 0, its oracle's witness;
+`bun scripts/shots/swing-overhaul-frames.ts --rev=18 --course=0`), at the start, two thirds and near the end:
+
+<img src="swing/compare-s3-1.webp" width="720">
+
+<img src="swing/compare-s3-2.webp" width="720">
+
+<img src="swing/compare-s3-3.webp" width="720">
+
+- **A dense canopy** (every jungle revision, display only): four rows of lit leaf clusters packed back into the canopy
+  mass (`paintCanopyLeaves`: hundreds of leaves on screen, the front row brightest along the underside, each row behind
+  darker), seeded by world x so it never swims; the screen fill beside the world draws the same rows. Its underside is
+  still exactly the sim's ceiling line (nothing drawn below it), and it sinks into the deepening jungle with the backdrop.
+- **Leaves down the trunks**: each near trunk carries a crown of leaves under the canopy, a spray of clusters on its
+  branch part way up (concept A's band across the view) and five sprigs down its length, in the shade's own greens
+  (no midribs or sheen), so the vines, rings and hero still read first.
+- **Still calm**: the far trunks' sides now fade into the haze, and the backdrop's luminance spread and edge energy stay
+  at most 60 % of stage 1's at every camera (swing-overhaul-check 13d). No image shipped: all drawn in code and cached.
+
+**The reveal at phone size.** Today the 51 stretches were 17 to a row, 16 px each on a 375-wide phone, and read as a
+squiggle. Now the path folds into rows that keep every stretch at least 34 px wide (8 a row at 375 × 667, 9 at
+390 × 844), 46 px apart, with 6 px lines, 11 px drops, 12 px gate posts, a 14 px catch wedge, a 13 px fall count and a
+14 px legend. The picture as it sits on each phone (the reveal column's real width, 319 and 334 px), before | after:
+
+<img src="swing/reveal-s3.webp" width="900">
+
+Frames: `bun scripts/shots/swing-reveal-shots.ts [--old=<renderer file>] [--tag=before]`.
+
 
 ## Moon Climb
 
@@ -391,6 +421,17 @@ lives, the best streak bracketed). Drawn on the reveal's gradient at the reveal'
 text (the picture itself is the real `drawSkylineRunPicture`).
 
 <img src="skyline/reveal-s2.webp" width="640">
+
+### Stage 3: the reveal's order (15 Nov 2026)
+
+Joe: no block of text lines above the run picture. The shot above drew the stored breakdown as plain lines over the
+picture; in the app the breakdown is the shared list (`RevealBreakdown`), and it sat above the picture for every game
+with a run picture. Now the shared arcade reveal (`ArcadeReveal`) draws the score, then the game's big numbers and run
+picture, then the stored breakdown in the shared list below (in a room, the summary line with See breakdown); the same
+for Roofbound, Grappler, Moon Climb, Iron Wall and Orbit, and no change for games without a picture. Practice, the same
+154-point run, before (stage 2) | after (`bun scripts/shots/skyline-stage2-shots.ts <dir>`, reveal-s3.png):
+
+<img src="skyline/reveal-s3.webp" width="640">
 
 ## Orbit
 

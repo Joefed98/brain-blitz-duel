@@ -252,7 +252,7 @@ export function SwingRunPicture({ puzzle, myAnswer }: RunPictureProps) {
           aria-label={`The course: ${trace.cleared} of ${trace.total} stretches cleared, ${trace.underPar} under par, ${trace.falls} ${trace.falls === 1 ? "fall" : "falls"}, ${trace.gates} of ${trace.gateTotal} gates`}
         />
       </div>
-      <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-semibold text-muted-foreground">
+      <div data-swing-legend="" className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-sm font-semibold text-muted-foreground">
         <Legend kind="line" colour={SWING_RUN_COLOURS.under} label="Under par" />
         <Legend kind="line" colour={SWING_RUN_COLOURS.cleared} label="Cleared" />
         {trace.finished ? null : <Legend kind="dash" colour={SWING_RUN_COLOURS.current} label="Ended here" />}

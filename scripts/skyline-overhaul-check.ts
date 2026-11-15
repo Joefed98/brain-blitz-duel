@@ -23,6 +23,10 @@
  * 10. Stage 2's reveal: the run picture agrees with the server's replay on every legacy run and a rev-11 run with trims,
  *     a rescue and two lost lives; the drawing (gold perfects, red losses, transparent); the component's three big
  *     numbers and legend, no stray symbols; ArcadeReveal draws it in place of the tiles.
+ * 11. Stage 3 (15 Nov 2026, Joe: no block of text lines above the run picture): the shared arcade reveal, mounted in
+ *     happy-dom on that run's stored reveal in practice and in a room, reads the score, then the big numbers and the
+ *     picture, then the stored breakdown in the shared layout (every stored part line a row of the shared list, none
+ *     above the picture), with no stat tiles; Roofbound's reveal reads in the same order (the shared layout).
  */
 import { readFileSync } from "node:fs";
 
@@ -585,6 +589,7 @@ section("9. Stage 2: the effects (a drop, a perfect drop, a trim, a sliver, a lo
 }
 
 /* 10. Stage 2: the answer reveal's picture of the run. */
+let s10Raw = "";
 section("10. Stage 2: the reveal's picture of the run (the stored log through the real sim)");
 {
   const { skylineRunSummary } = await import("../src/lib/duel/skylineSummary");
@@ -623,6 +628,7 @@ section("10. Stage 2: the reveal's picture of the run (the stored log through th
     if (s.tick % SKYLINE_CHECKPOINT_INTERVAL === 0) checkpoints.push(skylineCheckpoint(s));
   }
   const raw = encodeSkylineRun({ seed: 13, claimedScore: g.score(s), inputs: taps, endTick: s.tick, checkpoints });
+  s10Raw = raw;
   const replay = replaySkylineRun(13, raw, SKYLINE_REV_LIVES);
   const sum = skylineRunSummary(13, raw, SKYLINE_REV_LIVES);
   ok(replay.livesLost === 2 && sum.livesLost === 2 && sum.losses.length === 2, `the run lost two lives (${sum.livesLost})`);
@@ -660,6 +666,94 @@ section("10. Stage 2: the reveal's picture of the run (the stored log through th
   ok(!/[×→·]/.test(text) && !/\bcore\b|\bunits\b/i.test(text), "no stray ×, arrows or jargon in the picture's text");
   const arcadeReveal = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
   ok(/<GameRunPicture puzzle=\{puzzle\} myAnswer=\{myAnswer\} \/>/.test(arcadeReveal) && /ownPicture \? \[\]/.test(arcadeReveal), "the shared arcade reveal draws the game's picture, its numbers in place of the tiles");
+}
+
+/* 11. Stage 3: the reveal reads as Roofbound's, Moon Climb's and Iron Wall's. */
+section("11. Stage 3: the shared reveal: the score, then the big numbers and the picture, then the breakdown");
+{
+  const { Window } = await import("happy-dom");
+  const win = new Window({ url: "https://joulz.uk/", width: 390, height: 844 });
+  for (const key of ["window", "document", "navigator", "HTMLElement", "HTMLCanvasElement", "Element", "Node", "Event", "MouseEvent", "PointerEvent", "getComputedStyle", "matchMedia", "requestAnimationFrame", "cancelAnimationFrame", "localStorage", "sessionStorage", "MutationObserver", "CustomEvent", "location", "history"] as const) {
+    const value = (win as unknown as Record<string, unknown>)[key];
+    const bind = typeof value === "function" && !/^[A-Z]/.test(key);
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: bind ? (value as (...a: unknown[]) => unknown).bind(win) : value });
+  }
+  (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const React = await import("react");
+  const { act } = await import("react");
+  const { createRoot } = await import("react-dom/client");
+  const { ArcadeReveal } = await import("../src/components/duel/ArcadeReveal");
+  const { loadGameDef } = await import("../src/lib/duel/gameLoader");
+  const { buildArcadeReveal } = await import("../src/lib/arcade/reveal");
+  await loadGameDef("skyline");
+  await loadGameDef("flip");
+  /** The reveal column's parts in document order. */
+  const order = (host: HTMLElement): string[] => {
+    const names: string[] = [];
+    const walk = (el: Element) => {
+      for (const child of Array.from(el.children)) {
+        if (child.hasAttribute("data-reveal-score")) names.push("score");
+        else if (child.hasAttribute("data-reveal-run-picture")) {
+          names.push("picture");
+          continue;
+        } else if (child.hasAttribute("data-reveal-breakdown")) names.push(child.hasAttribute("hidden") ? "breakdown(folded)" : "breakdown");
+        else if (child.hasAttribute("data-reveal-summary")) names.push("summary");
+        else if (child.hasAttribute("data-reveal-tiles")) names.push("tiles");
+        else if (child.hasAttribute("data-chart-panel")) names.push("chart");
+        walk(child);
+      }
+    };
+    const col = host.querySelector("[data-reveal-column]");
+    if (col) walk(col);
+    return names;
+  };
+  const mount = async (puzzle: unknown, answer: string, score: number, reveal: unknown, practice: boolean) => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host as unknown as Element);
+    await act(async () => {
+      root.render(React.createElement(ArcadeReveal, { puzzle, myAnswer: answer, myScore: score, myReveal: reveal, practice, players: [{ slot: 0, name: "You", isMe: true, score }], round: 1 } as never));
+    });
+    await act(async () => void (await new Promise((r) => setTimeout(r, 20))));
+    return { host, root };
+  };
+  const run = replaySkylineRun(13, s10Raw, SKYLINE_REV_LIVES);
+  const reveal = buildArcadeReveal("skyline", run, run.score)!;
+  const parts = reveal.lines.filter((l) => !/^Total → /.test(l));
+  for (const practice of [true, false]) {
+    const { host, root } = await mount({ type: "skyline", seed: 13, skylineRev: SKYLINE_REV_LIVES }, s10Raw, run.score, reveal, practice);
+    const where = practice ? "practice" : "a room";
+    const seen = order(host);
+    const want = practice ? ["score", "picture", "breakdown"] : ["score", "picture", "summary", "breakdown(folded)", "chart"];
+    ok(seen.join() === want.join(), `${where}: the reveal reads ${want.join(" → ")} (${seen.join(" → ")})`);
+    const pic = host.querySelector("[data-reveal-run-picture] [data-skyline-run-picture]");
+    ok(Boolean(pic) && pic!.querySelectorAll("[data-skyline-stat]").length === 3 && pic!.querySelectorAll("canvas").length === 1, `${where}: the three big numbers and the picture straight under the score`);
+    ok(!host.querySelector("[data-reveal-tiles]"), `${where}: no stat tiles (the picture's numbers say them)`);
+    const rows = Array.from(host.querySelectorAll("[data-reveal-breakdown] li[data-line]")).map((li) => li.getAttribute("data-line"));
+    ok(parts.length >= 4 && parts.every((l) => rows.includes(l)), `${where}: every stored part line is a row of the shared breakdown (${rows.length} rows for ${parts.length} parts)`);
+    const above = host.querySelector("[data-reveal-column]")!.innerHTML.split("data-reveal-run-picture")[0]!;
+    const loose = parts.filter((l) => above.includes(l.split(":")[0]! + ":") || above.includes(l));
+    ok(loose.length === 0, `${where}: no breakdown line above the picture (${loose.join(" | ")})`);
+    await act(async () => root.unmount());
+    host.remove();
+  }
+  // Roofbound's reveal reads the same way: the shared layout, not a High Rise special case.
+  const { encodeFlipLog } = await import("./flip-x200-record");
+  const { FLIP_DEAL_V13 } = await import("../src/lib/duel/flipDealV13.server");
+  const { replayFlipRun } = await import("../src/lib/duel/flip");
+  const flipSeed = FLIP_DEAL_V13[0]!;
+  const { raw: flipRaw } = encodeFlipLog(13, flipSeed, []);
+  const flipRun = replayFlipRun(flipSeed, flipRaw, 13);
+  const flipReveal = buildArcadeReveal("flip", flipRun, flipRun.score);
+  ok(Boolean(flipReveal), "Roofbound's stored reveal builds");
+  if (flipReveal) {
+    const { host, root } = await mount({ type: "flip", seed: flipSeed, flipRev: 13 }, flipRaw, flipRun.score, flipReveal, true);
+    const seen = order(host);
+    ok(seen.join() === "score,picture,breakdown" && Boolean(host.querySelector("[data-reveal-run-picture] [data-run-picture='flip']")), `Roofbound's reveal reads the same: ${seen.join(" → ")}`);
+    await act(async () => root.unmount());
+    host.remove();
+  }
 }
 
 if (failures.length) {
