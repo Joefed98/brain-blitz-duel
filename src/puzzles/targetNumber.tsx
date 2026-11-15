@@ -79,7 +79,7 @@ export const EXACT_CSS = `
 [data-polish="target"] .exact-tile[data-hit="true"] { color: #1a1406; background: linear-gradient(180deg, #ffd56a, #F5B82E 60%, #d99a14); box-shadow: inset 0 0 0 1px #ffe69a, inset 0 -4px 0 rgba(120,80,0,.35), 0 0 18px rgba(245,184,46,.55); }
 [data-polish="target"][data-locked="true"] .exact-tile:not([data-hit="true"]):not([data-state="consumed"]) { opacity: .5; }
 [data-polish="target"] .exact-face { position: relative; display: inline-block; }
-[data-polish="target"] .exact-elegant { color: #F5B82E; }
+[data-polish="target"] .exact-elegant { color: var(--jz-gold); }
 [data-polish="target"] .exact-face[data-pop="true"] { animation: exact-pop 240ms cubic-bezier(.2,1.5,.4,1) both; }
 [data-polish="target"] .exact-ring { position: absolute; inset: 3px; border-radius: 13px; box-shadow: inset 0 0 0 2px #F5B82E; pointer-events: none; animation: exact-ring 260ms ease-out both; }
 @keyframes exact-pop { 0% { scale: .7; opacity: .4; } 60% { scale: 1.14; opacity: 1; } 100% { scale: 1; } }
@@ -111,6 +111,34 @@ export const EXACT_CSS = `
 .game-column [data-polish="target"] .exact-history { flex: 1 1 0; height: auto; min-height: 0; max-height: 148px; }
 @container (min-height: 330px) { .game-column [data-polish="target"] .exact-line { font-size: 20px; line-height: 30px; } .game-column [data-polish="target"] .exact-history { max-height: 168px; } }
 
+/* ---- The Number overhaul (15 Nov 2026): Blender-rendered tiles, keys and the gold target plate (public/number/target),
+   bold Archivo numbers, champagne gold and navy, no glows or glare. Display only: every control keeps its place. */
+[data-polish="target"] .exact-board { background: linear-gradient(180deg, var(--jz-surface), var(--jz-bg)); box-shadow: inset 0 0 0 1px var(--jz-line), 0 8px 18px rgba(0,0,0,.4); }
+[data-polish="target"] .exact-rings { display: none; }
+[data-polish="target"] .exact-plaque { padding: 8px 34px 10px; min-width: 62%; background: url("/number/target/target.webp") center / 100% 100% no-repeat; filter: drop-shadow(0 6px 8px rgba(0,0,0,.45)); }
+[data-polish="target"] .exact-label { color: var(--jz-on-gold); opacity: .72; font-family: var(--jz-font); font-weight: 800; }
+[data-polish="target"] .exact-number, [data-puzzle-play] .game-column [data-polish="target"] .exact-number { font-family: var(--jz-font); font-weight: 900; color: var(--jz-on-gold); text-shadow: none; }
+[data-polish="target"] .exact-history-card { background: var(--jz-well); box-shadow: inset 0 0 0 1px var(--jz-line); }
+[data-polish="target"] .exact-line { font-family: var(--jz-font); font-weight: 700; color: var(--jz-text); }
+[data-polish="target"] .exact-line b { color: var(--jz-gold); font-weight: 800; }
+[data-polish="target"] .exact-tile, [data-polish="target"] .exact-tile[data-large="true"] {
+  font-family: var(--jz-font); font-weight: 800; font-size: 30px; color: var(--jz-white); box-shadow: 0 4px 8px rgba(0,0,0,.45);
+  background: url("/number/target/tile.webp") center / 100% 100% no-repeat; }
+[data-polish="target"] .exact-tile[data-large="true"] { color: var(--jz-gold); background-image: url("/number/target/tile-large.webp"); }
+[data-polish="target"] .exact-tile[data-state="selected"], [data-polish="target"] .exact-tile[data-hit="true"] {
+  translate: 0 -3px; color: var(--jz-on-gold); background: url("/number/target/tile-picked.webp") center / 100% 100% no-repeat; box-shadow: 0 6px 10px rgba(0,0,0,.5); }
+[data-polish="target"] .exact-tile[data-state="consumed"] { opacity: .4; color: var(--jz-text-3); background: var(--jz-well); box-shadow: inset 0 2px 6px rgba(0,0,0,.6); }
+[data-polish="target"] .exact-ring { box-shadow: inset 0 0 0 2px var(--jz-gold); }
+[data-polish="target"] .exact-op { font-family: var(--jz-font); font-weight: 800; font-size: 26px; color: var(--jz-white); box-shadow: 0 3px 6px rgba(0,0,0,.4);
+  background: url("/number/target/op.webp") center / 100% 100% no-repeat; }
+[data-polish="target"] .exact-op[data-on="true"] { color: var(--jz-gold); box-shadow: inset 0 0 0 2px var(--jz-gold), 0 3px 6px rgba(0,0,0,.4); }
+[data-polish="target"] .exact-lock { min-height: 48px; padding: 0 20px; border-radius: 12px; font-family: var(--jz-font); font-size: 15px; font-weight: 800;
+  color: var(--jz-text-2); background: var(--jz-surface-2); box-shadow: 0 4px 0 var(--jz-bg); }
+[data-polish="target"] .exact-lock[data-ready] { color: var(--jz-on-gold); background: var(--jz-gold); box-shadow: 0 4px 0 var(--jz-gold-ledge); }
+[data-polish="target"] .exact-lock:disabled { opacity: .6; }
+[data-polish="target"] .exact-ghost { font-family: var(--jz-font); font-weight: 900; color: var(--jz-on-gold); background: url("/number/target/tile-picked.webp") center / 100% 100% no-repeat; box-shadow: none; }
+[data-polish="target"] .exact-burst { box-shadow: 0 0 0 3px var(--jz-gold); }
+@keyframes exact-target-pulse { 0% { scale: 1; } 30% { scale: 1.12; } 100% { scale: 1; } }
 @media (prefers-reduced-motion: reduce) {
   [data-polish="target"] :is(.exact-line, .exact-face, .exact-ring, .exact-tile .exact-face) { animation: none !important; }
   [data-polish="target"] .exact-ghost, [data-polish="target"] .exact-burst { display: none; }
@@ -528,12 +556,13 @@ function Reveal(props: PuzzleRevealProps) {
 }
 
 const EXACT_REVEAL_CSS = `
-.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-family: var(--font-mono); font-size: 16px; }
+.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-family: var(--jz-font); font-weight: 600; font-size: 16px; }
+.exact-reveal .exact-rings { display: none; }
 .exact-reveal-card { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 4px; padding: 12px 12px 14px; border-radius: 16px; overflow: hidden;
   background: radial-gradient(120% 80% at 50% 0%, rgba(245,184,46,.12), transparent 62%), linear-gradient(180deg, #17171f, #101016); box-shadow: inset 0 0 0 1px rgba(245,184,46,.18), 0 6px 18px rgba(0,0,0,.3); }
 .exact-reveal-card .exact-rings { position: absolute; left: 50%; top: 52%; width: 180px; height: 180px; translate: -50% -50%; pointer-events: none; opacity: .5; }
 .exact-reveal-target { position: relative; font-size: 15px; color: #b4b4be; }
-.exact-reveal-value { position: relative; font-size: 48px; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; color: #F5B82E; text-shadow: 0 0 18px rgba(245,184,46,.28); }
+.exact-reveal-value { position: relative; font-family: var(--jz-font); font-size: 52px; line-height: 1.1; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--jz-gold); }
 .exact-reveal-verdict { position: relative; font-weight: 700; color: #f4f4f7; }
 .exact-reveal-way { display: flex; width: 100%; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px; background: #15151c; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); color: #d4d4dc; }
 .exact-reveal-way > p:first-child { font-size: 14px; color: #b4b4be; }
@@ -562,7 +591,7 @@ function TargetReveal({
         <p className="exact-reveal-value">{replay.value ?? "—"}</p>
         <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Spot on" : away === null ? "No number locked" : `${away} away from the target`}</p>
         {used !== null && (
-          <p className="exact-reveal-target" style={used <= EXACT_ELEGANT_TILES ? { color: "#F5B82E" } : undefined}>
+          <p className="exact-reveal-target" style={used <= EXACT_ELEGANT_TILES ? { color: "var(--jz-gold)" } : undefined}>
             {used <= EXACT_ELEGANT_TILES ? `✦ Elegant: ${used} numbers` : `${used} numbers used (${EXACT_ELEGANT_TILES} is elegant)`}
           </p>
         )}

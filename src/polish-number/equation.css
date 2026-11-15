@@ -23,7 +23,7 @@
   box-shadow: none;
 }
 [data-number-overhaul] .opg-caption {
-  font-family: var(--jz-font, var(--font-display));
+  font-family: var(--jz-font);
   font-size: 13px;
   font-weight: 600;
   color: var(--jz-text-2);
@@ -33,7 +33,7 @@
 [data-number-overhaul] .opg-equation,
 [data-puzzle-play] [data-number-overhaul] .opg-equation {
   padding: 10px 6px;
-  font-family: var(--jz-font, var(--font-display));
+  font-family: var(--jz-font);
   font-weight: 800;
   color: var(--jz-text);
   background: none;
@@ -125,7 +125,7 @@
 [data-puzzle-play] [data-number-overhaul] .opg-key {
   height: 56px;
   border-radius: 12px;
-  font-family: var(--jz-font, var(--font-display));
+  font-family: var(--jz-font);
   font-size: 28px;
   font-weight: 800;
   color: var(--jz-text);
@@ -162,7 +162,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  font-family: var(--jz-font, var(--font-display));
+  font-family: var(--jz-font);
   font-size: 15px;
   font-weight: 800;
   color: var(--jz-text-2);
@@ -227,7 +227,7 @@
 [data-number-overhaul] .opg-next {
   height: 52px;
   border-radius: 12px;
-  font-family: var(--jz-font, var(--font-display));
+  font-family: var(--jz-font);
   font-size: 17px;
   font-weight: 800;
   text-transform: uppercase;

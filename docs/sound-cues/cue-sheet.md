@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 500 | 535 |
+| game event | 35 | 0 | 523 | 558 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
-| UI tap | 10 | 0 | 36 | 46 |
-| fail sting | 4 | 0 | 37 | 41 |
+| UI tap | 10 | 0 | 38 | 48 |
+| fail sting | 4 | 0 | 38 | 42 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 1002 | 1064 |
+| **all** | 61 | 1 | 1028 | 1090 |
 
 ## Silent and placeholder cues
 
@@ -804,6 +804,7 @@ Grouped by game or screen.
 | `numline.stageClear` | a line of five is placed (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `numline.stageClear` |
 | `numline.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `numline.skip` | 528 | UI tap | `numline.skip` |
 | `numline.fail` | kept for a failed stage this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `numline.fail` |
+| `numline.edge` | a touch or drag past an end of the line: a short stop shows at that end (the marker clamps there) [number.md] |  | 5–40 (per move) | recorded sound | `numline.edge` | 320 | game event | `numline.edge` |
 | `music.numline` | Ballpark round bed: music_number_3 (number bed shared with other games) |  | loop | recorded sound | `music_number_3` (shared) | 60000 | music | `music_number_numline` |
 
 ### Brimful
@@ -828,6 +829,11 @@ Grouped by game or screen.
 | `checkout.stageClear` | a board checks out (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `checkout.stageClear` |
 | `checkout.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `checkout.skip` | 528 | UI tap | `checkout.skip` |
 | `checkout.fail` | a dart busts the board (checkoutRev 3): the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `checkout.fail` |
+| `checkout.bust` | a dart busts the board (checkoutRev 3): "Bust", the darts drop out [number.md] |  | 5–40 (per move) | recorded sound | `pz_clash_wrong` (shared) | 250 | game event | `checkout.bust` |
+| `checkout.undo` | Undo pulls the last dart: a light tug [number.md] |  | 5–40 (per move) | recorded sound | `checkout.undo` | 528 | game event | `checkout.undo` |
+| `checkout.nudge` | a ring is tapped before a wedge is picked: "Pick a wedge first" [number.md] |  | 5–40 (per move) | recorded sound | `checkout.nudge` | 486 | game event | `checkout.nudge` |
+| `checkout.switch` | another board's tab is chosen [number.md] |  | 5–40 (per move) | recorded sound | `checkout.switch` | 486 | UI tap | `checkout.switch` |
+| `checkout.bigFinish` | a board checks out on a big finish that pays: the crowd's "oh!" [number.md] |  | 5–40 (per move) | recorded sound | `checkout.bigFinish` | 600 | game event | `checkout.bigFinish` |
 | `music.checkout` | Checkout round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_checkout` |
 
 ### Counterweight
@@ -835,11 +841,13 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `balance.select` | a weight is selected [number.md] |  | 5–40 (per move) | recorded sound | `balance.select` | 140 | UI tap | `balance.select` |
-| `balance.level` | a non-final scale balances [number.md] |  | 1–5 | recorded sound | `balance.level` | 760 | success sting | `balance.level` |
+| `balance.level` | a non-final scale balances (until 15 Nov 2026; the Number overhaul plays balance.stageClear instead, older rounds included) [number.md] |  | 1–5 | recorded sound | `balance.level` | 760 | success sting | `balance.level` |
 | `balance.solve` | the final scale balances [number.md] |  | 0–1 | recorded sound | `balance.solve` | 1100 | success sting | `balance.solve` |
 | `balance.stageClear` | a scale balances (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `balance.stageClear` |
 | `balance.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `balance.skip` | 528 | UI tap | `balance.skip` |
 | `balance.fail` | out of hangs: the scale greys and slides away: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `balance.fail` |
+| `balance.pickup` | balanceRev 4: one tap picks a hung kettlebell up off its notch [number.md] |  | 5–40 (per move) | recorded sound | `balance.pickup` | 150 | game event | `balance.pickup` |
+| `balance.nudge` | a free notch tapped with no weight picked: the tray nudges, "Pick a weight first" [number.md] |  | 5–40 (per move) | recorded sound | `balance.nudge` | 300 | game event | `balance.nudge` |
 | `music.balance` | Counterweight round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_balance` |
 
 ### Exact
@@ -849,6 +857,10 @@ Grouped by game or screen.
 | `target.select` | a tile becomes selected (lift) [number.md] |  | 5–40 (per move) | recorded sound | `target.select` | 150 | UI tap | `target.select` |
 | `target.combine` | a valid combine (pop, sink, history line) [number.md] |  | 5–40 (per move) | recorded sound | `target.combine` | 240 | game event | `target.combine` |
 | `target.solve` | exact hit: flight, pulse, rings [number.md] |  | 0–1 | recorded sound | `target.solve` | 1150 | success sting | `target.solve` |
+| `target.operator` | an operator key picked, or the picked one tapped again to drop it [number.md] |  | 5–40 (per move) | recorded sound | `target.operator` | 120 | game event | `target.operator` |
+| `target.undo` | Undo takes the last step back [number.md] |  | 5–40 (per move) | recorded sound | `target.undo` | 200 | game event | `target.undo` |
+| `target.reset` | Reset puts every number back [number.md] |  | 5–40 (per move) | recorded sound | `target.reset` | 300 | fail sting | `target.reset` |
+| `target.lock` | Lock pressed with a step made (not the exact hit, which plays target.solve) [number.md] |  | 5–40 (per move) | recorded sound | `target.lock` | 400 | game event | `target.lock` |
 | `music.target` | Exact round bed: music_number_1 (number bed shared with other games) |  | loop | recorded sound | `music_number_1` (shared) | 60000 | music | `music_number_target` |
 
 ### Integer Pyramid
@@ -859,6 +871,11 @@ Grouped by game or screen.
 | `numpyramid.stageClear` | a pyramid is complete and right (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `numpyramid.stageClear` |
 | `numpyramid.skip` | Skip moves on from a pyramid: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.skip` | 528 | UI tap | `numpyramid.skip` |
 | `numpyramid.fail` | kept for a failed stage this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `numpyramid.fail` |
+| `numpyramid.pick` | a stone is picked up (a tap on a tray tile or a placed stone) [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.pick` | 120 | game event | `numpyramid.pick` |
+| `numpyramid.swap` | a placed stone is dropped on another placed stone and they swap [number.md] |  | 5–40 (per move) | recorded sound | `place` (shared) | 150 | game event | `numpyramid.swap` |
+| `numpyramid.unplace` | a placed stone goes back to the tray (double tap or drag) [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.unplace` | 140 | game event | `numpyramid.unplace` |
+| `numpyramid.seam` | a sum the player had a hand in comes out right: a faint gold seam [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.seam` | 200 | game event | `numpyramid.seam` |
+| `numpyramid.crack` | a sum the player had a hand in comes out wrong: a red crack between the three stones [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.crack` | 250 | game event | `numpyramid.crack` |
 | `music.numpyramid` | Integer Pyramid round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_numpyramid` |
 
 ### Kakuro
@@ -868,6 +885,11 @@ Grouped by game or screen.
 | `kakuro.place` | a digit is entered in a square (not pencil marks, not clearing) [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.place` | 80 | UI tap | `kakuro.place` |
 | `kakuro.run` | a run is full and adds to its clue with no repeat [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.run` | 200 | game event | `kakuro.run` |
 | `kakuro.solve` | every run is right [number.md] |  | 0–1 | recorded sound | `kakuro.solve` | 1200 | success sting | `kakuro.solve` |
+| `kakuro.select` | another square is tapped [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.select` | 486 | UI tap | `kakuro.select` |
+| `kakuro.pencil` | a pencil mark is set or taken off [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.pencil` | 486 | game event | `kakuro.pencil` |
+| `kakuro.clear` | Clear empties a square that held a digit or marks [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.clear` | 528 | game event | `kakuro.clear` |
+| `kakuro.broken` | a run newly breaks a rule (a repeat, past its clue, out of reach): its clue turns red [number.md] |  | 5–40 (per move) | recorded sound | `pz_clash_wrong` (shared) | 250 | game event | `kakuro.broken` |
+| `kakuro.combo` | one digit completes two runs at once (in place of kakuro.run) [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.combo` | 600 | game event | `kakuro.combo` |
 | `music.kakuro` | Kakuro round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_kakuro` |
 
 ### Operator
@@ -879,6 +901,10 @@ Grouped by game or screen.
 | `equation.stageClear` | an equation comes out true (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `equation.stageClear` |
 | `equation.skip` | Next skips an equation: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `equation.skip` | 528 | UI tap | `equation.skip` |
 | `equation.fail` | an equation runs out of tries: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `equation.fail` |
+| `equation.tryCracked` | a new full line is wrong and uses a try: a try pip cracks (gapsRev 2: a fill already tried uses none) [number.md] |  | 5–40 (per move) | recorded sound | `wrong` (shared) | 140 | game event | `equation.tryCracked` |
+| `equation.chooseGap` | an empty gap is tapped to fill it next (tapped again lets go) [number.md] |  | 5–40 (per move) | recorded sound | `equation.chooseGap` | 120 | game event | `equation.chooseGap` |
+| `equation.clearGap` | a filled gap is tapped and empties [number.md] |  | 5–40 (per move) | recorded sound | `equation.clearGap` | 120 | game event | `equation.clearGap` |
+| `equation.goBack` | gapsRev 2: an earlier equation's chip is tapped to go back to it [number.md] |  | 5–40 (per move) | recorded sound | `equation.goBack` | 300 | game event | `equation.goBack` |
 | `music.equation` | Operator round bed: music_number_1 (number bed shared with other games) |  | loop | recorded sound | `music_number_1` (shared) | 60000 | music | `music_number_equation` |
 
 ### Ascend
@@ -1947,10 +1973,10 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `round_start` | effects | `round_start` | 180 |
 | `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid`, `bastion.dry` | 55 |
 | `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
-| `place` | effects | `place`, `tendrop.apply` | 50 |
+| `place` | effects | `place`, `numpyramid.swap`, `tendrop.apply` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
 | `correct` | effects | `correct` | 120 |
-| `wrong` | effects | `wrong` | 140 |
+| `wrong` | effects | `wrong`, `equation.tryCracked` | 140 |
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
@@ -2028,7 +2054,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_orchard_miss` | effects | `snip.miss` | 399 |
 | `pz_clash_lane` | effects | `stroop.lane` | 100 |
 | `pz_clash_right` | effects | `stroop.right` | 301 |
-| `pz_clash_wrong` | effects | `stroop.wrong` | 250 |
+| `pz_clash_wrong` | effects | `checkout.bust`, `kakuro.broken`, `stroop.wrong` | 250 |
 | `round1` | voice | `round1` | 1298 |
 | `round2` | voice | `round2` | 1532 |
 | `round3` | voice | `round3` | 1399 |
@@ -2321,15 +2347,23 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `swapword.finish` | effects | `swapword.finish` | 1000 |
 | `numline.solve` | effects | `numline.solve` | 1000 |
 | `numline.sweepTick` | effects | `numline.sweepTick` | 55 |
+| `numline.edge` | effects | `numline.edge` | 486 |
 | `measure.select` | effects | `measure.select` | 528 |
 | `measure.solve` | effects | `measure.solve` | 1080 |
 | `checkout.aim` | effects | `checkout.aim` | 528 |
 | `checkout.thud` | effects | `checkout.thud` | 606 |
 | `checkout.stage` | effects | `checkout.stage` | 486 |
 | `checkout.solve` | effects | `checkout.solve` | 1000 |
+| `checkout.bust` | effects | `checkout.bust` | 250 |
+| `checkout.undo` | effects | `checkout.undo` | 528 |
+| `checkout.nudge` | effects | `checkout.nudge` | 486 |
+| `checkout.switch` | effects | `checkout.switch` | 486 |
+| `checkout.bigFinish` | effects | `checkout.bigFinish` | 600 |
 | `balance.select` | effects | `balance.select` | 528 |
 | `balance.level` | effects | `balance.level` | 806 |
 | `balance.solve` | effects | `balance.solve` | 1080 |
+| `balance.pickup` | effects | `balance.pickup` | 528 |
+| `balance.nudge` | effects | `balance.nudge` | 486 |
 | `balance.stageClear` | effects | `balance.stageClear` | 160 |
 | `balance.skip` | effects | `balance.skip` | 528 |
 | `balance.fail` | effects | `balance.fail` | 90 |
@@ -2351,9 +2385,22 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `target.select` | effects | `target.select` | 528 |
 | `target.combine` | effects | `target.combine` | 528 |
 | `target.solve` | effects | `target.solve` | 1000 |
+| `target.operator` | effects | `target.operator` | 486 |
+| `target.undo` | effects | `target.undo` | 528 |
+| `target.reset` | effects | `target.reset` | 528 |
+| `target.lock` | effects | `target.lock` | 486 |
 | `numpyramid.solve` | effects | `numpyramid.solve` | 1000 |
 | `equation.correct` | effects | `equation.correct` | 486 |
 | `equation.solve` | effects | `equation.solve` | 1000 |
+| `equation.tryCracked` | effects | `equation.tryCracked` | 140 |
+| `equation.chooseGap` | effects | `equation.chooseGap` | 486 |
+| `equation.clearGap` | effects | `equation.clearGap` | 486 |
+| `equation.goBack` | effects | `equation.goBack` | 528 |
+| `numpyramid.swap` | effects | `numpyramid.swap` | 50 |
+| `numpyramid.pick` | effects | `numpyramid.pick` | 528 |
+| `numpyramid.unplace` | effects | `numpyramid.unplace` | 486 |
+| `numpyramid.seam` | effects | `numpyramid.seam` | 486 |
+| `numpyramid.crack` | effects | `numpyramid.crack` | 528 |
 | `tendrop.apply` | effects | `tendrop.apply` | 50 |
 | `tendrop.clear` | effects | `tendrop.clear` | 486 |
 | `tendrop.reset` | effects | `tendrop.reset` | 486 |
@@ -2431,6 +2478,11 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `kakuro.place` | effects | `kakuro.place` | 528 |
 | `kakuro.run` | effects | `kakuro.run` | 1000 |
 | `kakuro.solve` | effects | `kakuro.solve` | 1000 |
+| `kakuro.select` | effects | `kakuro.select` | 486 |
+| `kakuro.pencil` | effects | `kakuro.pencil` | 486 |
+| `kakuro.clear` | effects | `kakuro.clear` | 528 |
+| `kakuro.broken` | effects | `kakuro.broken` | 250 |
+| `kakuro.combo` | effects | `kakuro.combo` | 600 |
 | `tents.clear` | effects | `tents.clear` | 528 |
 | `tents.solve` | effects | `tents.solve` | 1000 |
 | `music_bastion` | music | `music.bastion` | loop |

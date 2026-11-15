@@ -22,6 +22,8 @@ import { dealPinned, setDealPin } from "./dealEra";
 
 /** Counterweight's stamp before the overhaul (moveLimits.ts, the hang limits 9 / 12 / 15 / 18). */
 export const BALANCE_REV_LIMITS = 3;
+/** Counterweight's depthRev on the scoring standard (standard/stamps.ts, one above its live 1). */
+export const BALANCE_DEPTH_STANDARD = 2;
 /** Counterweight: moving a hung weight is free, the balance is shown. */
 export const BALANCE_REV_FREE_MOVES = 4;
 /** Operator's gaps stamp before the overhaul (operatorGaps.ts). */
@@ -55,7 +57,10 @@ type Stamped = { type: string; balanceRev?: number; gapsRev?: number; checkoutRe
 export function dealNumberOverhaul<T extends { type: string }>(puzzle: T): T {
   if (dealPinned("preNumberOverhaul")) return puzzle;
   const p = puzzle as unknown as Stamped;
-  if (p.type === "balance" && p.balanceRev === BALANCE_REV_LIMITS) return { ...puzzle, balanceRev: BALANCE_REV_FREE_MOVES };
+  // Counterweight over the standard's balance (depthRev 2) only, so checks that deal the stamps before the standard
+  // (pinPreStandard) keep balanceRev 3.
+  if (p.type === "balance" && p.balanceRev === BALANCE_REV_LIMITS && (puzzle as { depthRev?: number }).depthRev === BALANCE_DEPTH_STANDARD)
+    return { ...puzzle, balanceRev: BALANCE_REV_FREE_MOVES };
   if (p.type === "equation" && p.gapsRev === GAPS_REV_FIRST) return { ...puzzle, gapsRev: GAPS_REV_FAIR_TRIES };
   if (p.type === "checkout" && p.checkoutRev === CHECKOUT_REV_DEPTH) return { ...puzzle, checkoutRev: CHECKOUT_REV_BUST };
   if (p.type === "kakuro" && p.kakuroRev === KAKURO_REV_FIRST) return { ...puzzle, kakuroRev: KAKURO_REV_RULE_MISTAKES };

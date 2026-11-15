@@ -17,6 +17,7 @@ import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
+import { preNumberOverhaulPinned } from "./numberOverhaul";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
 import { standardNumberHelp } from "./standard/numberText";
@@ -430,7 +431,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     equation: {
       goal: "Fill the gaps so each equation is true.",
       // Operator's gaps (puzzle polish, 3 Nov 2026, operatorGaps.ts): sign gaps, number gaps, then both.
-      how: operatorGapsDealt()
+      how: operatorGapsDealt() && !preNumberOverhaulPinned()
+        ? [
+              // gapsRev 2 (the Number overhaul, 15 Nov 2026): a try only for a new fill; any open equation can be gone back to.
+              { action: "Gold circles", detail: "take a sign; navy squares take a number from the tray." },
+              { action: "Work left to right,", detail: "in the order shown. Any answer that’s true counts." },
+              { action: "Four equations:", detail: "signs, then numbers, then both. Next skips; tap an equation’s number to go back." },
+              { action: "Each tray number", detail: "can be used once; some are decoys. Tap an empty gap to fill it next, a filled one to empty it.", helpOnly: true },
+              { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
+              { action: "The last one", detail: "uses division in a harder mix; every step must stay a whole number, never below 0. 90 seconds for all four.", helpOnly: true },
+              { action: "3 tries each:", detail: "each new full fill is a try; the same fill again is free. After the third wrong one the equation locks.", helpOnly: true },
+            ]
+        : operatorGapsDealt()
         ? [
               { action: "Gold circles", detail: "take a sign; teal squares take a number from the tray." },
               { action: "Work left to right,", detail: "in the order shown. Any answer that’s true counts." },
@@ -1854,14 +1866,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     checkout: {
       goal: "Score exactly the target with your darts.",
       how: [
-        { action: "Tap a number,", detail: "then x1, x2 or x3." },
-        { action: "Hit zero exactly", detail: "and finish in the ring shown." },
+        { action: "Tap a number,", detail: "then Single, Double or Treble." },
+        { action: "Hit zero exactly", detail: "and finish in the ring shown. Go past it and it's bust: the board starts again." },
         { action: "Tap Throw", detail: "to check." },
         { action: "Big finish:", detail: "end a board of 100+ on the Bull or a treble for a bonus." },
         { action: "Outer bull = 25,", detail: "inner bull = 50 (a double).", helpOnly: true },
         { action: "The ring shown", detail: "is a double or a treble.", helpOnly: true },
         { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
         { action: "Board 4", detail: "has a gold x4 ring. Board 5 has two minus numbers and must finish in exactly 4 darts.", helpOnly: true },
+        { action: "Bust:", detail: "below zero, zero off the finishing ring, or 1 left when the finish is a double. The darts drop out and that board starts again.", helpOnly: true },
       ],
       score: standardNumberHelp("checkout"),
     },
@@ -1871,6 +1884,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a square", detail: "then a number from 1 to 9." },
         { action: "Each run", detail: "adds to the clue before it; no digit twice in a run." },
         { action: "Pencil", detail: "keeps notes; they never count." },
+        { action: "A mistake", detail: "is only a digit that breaks a rule: a repeat in a run, or a run that can no longer make its clue.", helpOnly: true },
       ],
       score: gridStandardHelp("kakuro"),
     },

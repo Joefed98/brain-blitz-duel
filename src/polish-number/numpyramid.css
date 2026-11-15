@@ -1,0 +1,141 @@
+/*
+ * Integer Pyramid, the Number overhaul (15 Nov 2026; src/puzzles/numberPyramid.tsx): display only.
+ * Blender pieces from docs/design/number-overhaul/source/numpyramid.py (public/number/numpyramid/): pale limestone
+ * blocks for the given stones, the same limestone with a champagne-gold cap for a stone the player set, a sunk socket for
+ * an empty one, oak tray tiles and a stone plinth. The numbers are drawn over the pieces in Archivo, a touch bolder.
+ * No glows: the earlier speckle gradients, bevel shadows and the accent glow behind the pyramid give way to the art.
+ */
+.np-art .np-stone {
+  font-family: var(--jz-font);
+  font-weight: 900;
+}
+.np-art .np-given,
+[data-bw-live] .np-art .np-given {
+  color: var(--jz-ink-gold);
+  text-shadow: none;
+  background: url("/number/numpyramid/given.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.np-art .np-socket,
+[data-bw-live] .np-art .np-socket {
+  background: url("/number/numpyramid/socket.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.np-art .np-socket::after {
+  display: none;
+}
+.np-art .np-block,
+[data-bw-live] .np-art .np-block {
+  color: var(--jz-ink-gold);
+  text-shadow: none;
+  background: url("/number/numpyramid/placed.webp") center / 100% 100% no-repeat !important;
+  box-shadow: none;
+  padding-top: 6%;
+}
+.np-art .np-block.np-wrong {
+  color: var(--jz-loss);
+}
+[data-bw-live] .np-art .np-row,
+.np-art .np-row {
+  background: transparent;
+  box-shadow: none;
+}
+.np-art .np-plinth {
+  background: url("/number/numpyramid/plinth.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+[data-bw-live] [data-game-arena="board"] > .relative::before,
+[data-bw-live] [data-game-arena="board"] .relative::before {
+  display: none;
+}
+
+/* The seams: a faint champagne line under a right sum, a red crack through a wrong one. Over the stones, no glow. */
+.np-seams {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 6;
+  overflow: visible;
+  pointer-events: none;
+}
+.np-seam {
+  stroke: var(--jz-gold);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.7;
+  animation: np-seam-in 260ms ease-out both;
+}
+.np-crack {
+  fill: none;
+  stroke: var(--jz-loss);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  animation: np-crack-in 220ms ease-out both;
+}
+@keyframes np-seam-in {
+  from { opacity: 0; }
+  to { opacity: 0.7; }
+}
+@keyframes np-crack-in {
+  from { stroke-dasharray: 0 80; }
+  to { stroke-dasharray: 80 0; }
+}
+
+/* Oak tray tiles in a dark well, two even rows on a phone; a picked tile lifts with a champagne outline. */
+[data-polish="numpyramid"] .np-quarry,
+[data-bw-live] .np-quarry {
+  background: var(--jz-well);
+  box-shadow: var(--jz-well-shadow);
+}
+[data-puzzle-surface] [data-polish] .pyramid-tray-tile.np-loose,
+[data-polish] .pyramid-tray-tile.np-loose,
+[data-puzzle-surface] [data-bw-live] .pyramid-tray-tile.np-loose:not(.np-picked),
+.np-loose,
+.np-ghost {
+  font-family: var(--jz-font);
+  font-weight: 900 !important;
+  color: var(--jz-ink-bronze) !important;
+  text-shadow: none !important;
+  background: url("/number/numpyramid/tile.webp") center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
+}
+[data-puzzle-surface] [data-polish="numpyramid"] .pyramid-tray-tile.np-loose.np-picked,
+[data-polish="numpyramid"] .pyramid-tray-tile.np-loose.np-picked {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 2px var(--jz-gold) !important;
+}
+[data-polish="numpyramid"] [data-np-cell].ring-2 {
+  box-shadow: 0 0 0 2px var(--jz-gold);
+}
+
+/* The reveal's switcher: one pyramid at a time. */
+.np-reveal-switch {
+  display: flex;
+  gap: 8px;
+}
+.np-reveal-tab {
+  display: inline-flex;
+  min-width: 52px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--jz-text-2);
+  background: var(--jz-surface-2);
+}
+.np-reveal-tab[aria-selected="true"] {
+  color: var(--jz-on-gold);
+  background: var(--jz-gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .np-seam,
+  .np-crack {
+    animation: none;
+  }
+}

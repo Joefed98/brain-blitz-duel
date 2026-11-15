@@ -10,8 +10,10 @@ import {
   npDecodeRound,
   npEncodeRound,
   npFilled,
+  npBrokenCells,
   npIndex,
   npSeams,
+  npSkipLabel,
   npTrayPerRow,
   NP_SET_SIZE,
   type NpPlacements,
@@ -23,7 +25,7 @@ import { NUMPYRAMID_TIME_MS, type NumberPyramidPuzzleData } from "@/lib/duel/typ
 import { Button } from "@/components/ui/button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
-import { NumberStage } from "@/components/puzzles/number/overhaul";
+import { NUMBER_STAGE_MOMENT_SOUND, NumberStage } from "@/components/puzzles/number/overhaul";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { GoalLineContext } from "@/components/duel/GameFrame";
@@ -136,7 +138,7 @@ export function Pyramid({
   /** Block set-in on a new placement (off for the static reveal). */
   animate?: boolean;
   /** The Number overhaul (display only): the judged sums, a faint gold seam if right, a red crack if wrong. */
-  seams?: readonly NpSeam[];
+  seams?: readonly NpSeam[] | undefined;
 }) {
   const size = fontSize ?? Math.round(Math.min(cellH * 0.5, cellW * 0.36));
   const bottomW = rows * cellW + (rows - 1) * gap;
@@ -290,6 +292,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   // sum in red and gets the shared wrong-move shake with its quiet reject sound, once per arrangement.
   const fullValues = board ? npFilled(board.givens, board.tray, placements) : [];
   const fullWrong = !!board && !complete && fullValues.every((v) => v != null);
+  const broken = fullWrong && board ? npBrokenCells(board.givens, fullValues, board.rows) : [];
   // The Number overhaul (display only): each judged sum shows as a gold seam or a red crack as soon as it can be judged.
   const seams = board ? npSeams(board.givens, fullValues, board.rows) : [];
   const rightSeams = seams.filter((x) => x.state === "right").length;
@@ -385,7 +388,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         }
       }
       if (selected && selected.tray !== d.tray && d.from !== null) { drop(selected.tray, selected.from, d.from); setSelected(null); }
-      else setSelected(selected?.tray === d.tray ? null : { tray: d.tray, from: d.from });
+      else {
+        if (selected?.tray !== d.tray) soundCue("numpyramid.pick");
+        setSelected(selected?.tray === d.tray ? null : { tray: d.tray, from: d.from });
+      }
       return;
     }
     const target = targetAt(event.clientX, event.clientY);
@@ -404,8 +410,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   return (
     <div ref={box} data-polish="numpyramid" data-bw-live={framed ? "" : undefined} data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
       {column && <div className="np-spacer" aria-hidden />}
-      {/* The shared stage moment plays its own sound (NumberStage), so the bar stays quiet. */}
-      <StageProgress stage={stage} total={NP_SET_SIZE} quiet />
+      {/* A skip moves on quietly; a completed pyramid's moment is the shared NumberStage's, with its own sound. */}
+      <StageProgress stage={stage} total={NP_SET_SIZE} quiet={stage > 0 && !!data.pyramids[stage - 1] && !npComplete(data.pyramids[stage - 1]!.givens, data.pyramids[stage - 1]!.tray, allPlacements[stage - 1] ?? {}, data.pyramids[stage - 1]!.rows) || NUMBER_STAGE_MOMENT_SOUND} />
       <div className="flex h-11 w-full shrink-0 items-center justify-between">
         {framed ? (
           <div className="min-w-0 flex-1">
@@ -421,12 +427,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         ) : (
           <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
         )}
-        <Button type="button" variant="ghost" size="sm" className="h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip"}</Button>
+        <Button type="button" variant="ghost" size="sm" className="h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{npSkipLabel(stage)}</Button>
       </div>
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
         <NumberStage type="numpyramid" index={stage} exit={holding ? "clear" : null} className="justify-center">
         <div className="relative" style={NO_TOUCH}>
-          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
+          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} {...(broken.length ? { marks: Object.fromEntries(broken.map((cell) => [cell, false])) } : {})} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
           {/* The pick-up layer sits above the placed blocks (.np-block is z-index 1): below them, taps on a
               placed tile never reached it, so tiles could not be double-tapped back or dragged to another cell. */}
           <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4, zIndex: 3 }}>

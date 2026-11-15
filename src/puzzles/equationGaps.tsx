@@ -4,14 +4,16 @@ import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { useGameKeys } from "@/lib/desktop";
-import { GoalLineContext, useGoalProgress } from "@/components/duel/GameFrame";
+import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { FitLine, useFitOneLine } from "@/components/puzzles/useFitOneLine";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
+import { playSound } from "@/lib/sound";
+import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
-import { NumberStage } from "@/components/puzzles/number/overhaul";
+import { NUMBER_STAGE_MOMENT_SOUND, NumberStage } from "@/components/puzzles/number/overhaul";
 import { operatorFairTries } from "@/lib/duel/numberOverhaul";
-import { countTry, nextOpenStage, targetGap } from "@/lib/duel/operatorFairTries";
+import { countTry, nextOpenStage, operatorNextLabel, targetGap } from "@/lib/duel/operatorFairTries";
 import { useStageState } from "@/lib/duel/stageState";
 import { equationTryLimit, joinCountSuffix, limitText, splitCountSuffix } from "@/lib/duel/moveLimits";
 import { joinStages, splitStages } from "@/lib/duel/stagedRounds";
@@ -146,9 +148,6 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
 
-  // The frame's goal line: one pip a solved equation (the shared stage moment fills it), "Stage n of N".
-  const framed = useGoalProgress({ done: solvedCount, total, text: `Stage ${Math.min(stage + 1, total)} of ${total}` });
-
   const box = useRef<HTMLDivElement>(null);
   const line = useRef<HTMLSpanElement>(null);
   useFitOneLine(box, line, inFrame ? EQ_FRAME_PX : EQ_PX, EQ_MIN_PX, `${stage}:${current?.numbers.join(",")}=${current?.target}`);
@@ -186,12 +185,13 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
       const usedNow = triesUsed + (counted.uses ? 1 : 0);
       if (counted.uses) setTries(tries.map((n, i) => (i === stage ? usedNow : n)));
       if (!gapStageCorrect(current, seg)) {
-        wrongMoveFlash(box.current);
+        // A new wrong line cracks a try pip with its own sound (the last one the out-of-tries thunk); the same fill
+        // again uses no try and gets the shared reject only.
+        wrongMoveFlash(box.current, !counted.uses);
         if (counted.uses) {
           setCracked(usedNow - 1);
-          soundCue("equation.tryCracked");
-          if (usedNow >= tryLimit) soundCue("equation.fail");
-        } else soundCue("equation.triedBefore");
+          soundCue(usedNow >= tryLimit ? "equation.fail" : "equation.tryCracked");
+        }
       }
     }
   };
@@ -237,9 +237,12 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   };
   const advance = (seg: string) => {
     if (!data) return;
-    // Skip (Next on an equation not solved and with tries left): its own flat swish, never a solve's sound.
-    if (!gapStageCorrect(data.stages[stage]!, seg) && !outOfTries && nextOpen !== null) soundCue("equation.skip");
     goTo(seg, nextOpen);
+    if (nextOpen === null) return;
+    soundCue("equation.advance");
+    // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) gets the neutral move tick, never a
+    // solve's sound; StageProgress stays quiet for it.
+    if (!gapStageCorrect(data.stages[stage]!, seg)) playSound("move");
   };
   const goBack = (to: number) => {
     if (!fair || frozen || to === stage || !openAt(to)) return;
@@ -284,17 +287,11 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
 
   if (!data || !current) return null;
   const caption = hasSigns && hasNumbers ? "Signs in the circles, numbers in the squares" : hasNumbers ? "Fill the squares from the numbers below" : "Fill the circles with signs";
-  const finishing = nextOpen === null;
 
   return (
     <div data-polish="equation" data-operator-gaps="" data-number-overhaul="" data-stage-column="3" className="opg-stage flex min-h-0 flex-1 flex-col gap-3">
-      {!framed ? (
-        <div className="flex h-3 w-full shrink-0 gap-1.5" aria-label={`Stage ${stage + 1} of ${total}`}>
-          {Array.from({ length: total }, (_, i) => (
-            <span key={i} className={`h-3 flex-1 rounded-full ${solvedAt(i) ? "bg-category-accent" : i === stage ? "bg-category-accent/35" : "bg-border"}`} />
-          ))}
-        </div>
-      ) : null}
+      {/* A skip moves on quietly; a true equation's moment is the shared NumberStage's, with its own sound. */}
+      <StageProgress stage={stage} total={total} quiet={stage > 0 && !gapStageCorrect(data.stages[stage - 1]!, answers[stage - 1] ?? "") || NUMBER_STAGE_MOMENT_SOUND} />
       {column ? <div className="opg-spacer" aria-hidden /> : null}
       <div data-game-arena="fixed" className="op-board opg-board">
         {fair ? (
@@ -385,7 +382,7 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
         disabled={frozen}
         className="opg-next tap-target w-full"
       >
-        {fair ? (finishing ? "Finish" : "Next") : stage >= total - 1 ? "Submit" : "Next"}
+        {operatorNextLabel(fair, nextOpen, stage, total)}
       </Button>
     </div>
   );

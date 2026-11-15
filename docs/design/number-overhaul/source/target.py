@@ -9,19 +9,23 @@
 Run:  /opt/blender/venv/bin/python docs/design/number-overhaul/source/target.py [sprite ...]
 """
 import os, sys
+import bpy
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sprites import *  # noqa: F401,F403
 
 G = "target"
 
 
-def studio(w, h, scale=3):
+def studio(w, h, scale=3, key=0.55):
     setup(w, h, scale)
+    for ob in bpy.data.objects:
+        if ob.type == "LIGHT":
+            ob.data.energy *= key
     world("#06080f", 0.0, hdri="studio.exr", hdri_strength=0.5)
 
 
 def gold(name="gold", rough=0.42):
-    m = mat(name, "#dcb86e", rough, metal=1.0)
+    m = mat(name, "#c9a25e", rough, metal=1.0)
     return add_bump(m, 70, 0.025, distance=0.0012)
 
 
@@ -42,11 +46,11 @@ def tile_base(name, face, edge=None):
 
 
 def tile():
-    tile_base("tile", lambda: slate("tileface", "#1d2436"))
+    tile_base("tile", lambda: slate("tileface", "#0c111d"))
 
 
 def tile_large():
-    tile_base("tile-large", lambda: slate("tilelg", "#232435"), edge=lambda: gold("tileedge", 0.45))
+    tile_base("tile-large", lambda: slate("tilelg", "#121320"), edge=lambda: gold("tileedge", 0.45))
 
 
 def tile_picked():
@@ -55,7 +59,7 @@ def tile_picked():
 
 def op():
     studio(90, 52, scale=3)
-    box(2, 2, 86, 48, 8, slate("opface", "#1a2440"), r=10)
+    box(2, 2, 86, 48, 8, slate("opface", "#101a33"), r=10)
     write(G, "op")
 
 

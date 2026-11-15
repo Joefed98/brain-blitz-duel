@@ -32,6 +32,7 @@ import {
 } from "../../src/lib/duel/measure";
 import {
   CHECKOUT_BULL,
+  checkoutBustFreeOrder,
   checkoutOptions,
   checkoutValid,
   decodeCheckoutDarts,
@@ -39,6 +40,7 @@ import {
   joinCheckoutRound,
   type CheckoutDart,
 } from "../../src/lib/duel/checkout";
+import { checkoutBust } from "../../src/lib/duel/numberOverhaul";
 import { encodeNumline, numlineShare, numlineValue, NUMLINE_SCALE, NUMLINE_TOTAL, NUMLINE_ITEMS } from "../../src/lib/duel/numline";
 import { thinkMs, type PuzzleKit, type Rng, type SpamPlay, type Step } from "./kit";
 
@@ -791,7 +793,7 @@ const checkoutKit: PuzzleKit = {
         darts.push(rng.pick(options.filter((d) => d.ring === s.finish)));
         t += (2 * count + 1) * TAP_MS;
         if (t > limitMs) break;
-        if (checkoutValid(s, darts)) { solved[stage] = encodeCheckoutDarts(darts); t += 900; }
+        if (checkoutValid(s, darts, checkoutBust(puzzle))) { solved[stage] = encodeCheckoutDarts(darts); t += 900; }
         else t += count * TAP_MS + TAP_MS; // Undo each dart, then tap the next board's tab
         stage = (stage + 1) % puzzle.stages.length;
       }
@@ -807,7 +809,7 @@ const checkoutKit: PuzzleKit = {
         for (const d of finishers) {
           t += 4 * TAP_MS;
           if (t > limitMs) break outer;
-          if (checkoutValid(s, [d])) { solved[i] = encodeCheckoutDarts([d]); t += 900; break; }
+          if (checkoutValid(s, [d], checkoutBust(puzzle))) { solved[i] = encodeCheckoutDarts([d]); t += 900; break; }
         }
         t += TAP_MS;
       }
@@ -828,7 +830,7 @@ const checkoutKit: PuzzleKit = {
         }
         const fin = options.find((d) => d.ring === s.finish && value(d) === left);
         if (fin) darts.push(fin);
-        return checkoutValid(s, darts) ? encodeCheckoutDarts(darts) : "";
+        return checkoutValid(s, darts, checkoutBust(puzzle)) ? encodeCheckoutDarts(darts) : "";
       });
       out.push({ label: "greedy", answer: joinCheckoutRound(solved) });
     }
@@ -842,7 +844,9 @@ const checkoutKit: PuzzleKit = {
     const solved: string[] = puzzle.stages.map(() => "");
     for (let i = 0; i < puzzle.stages.length; i++) {
       const s = puzzle.stages[i]!;
-      const route = decodeCheckoutDarts(puzzle.routes?.[i] ?? "", s.maxDarts);
+      // checkoutRev 3 (the Number overhaul): a player throws the route in an order that never busts.
+      const stored = decodeCheckoutDarts(puzzle.routes?.[i] ?? "", s.maxDarts);
+      const route = checkoutBust(puzzle) ? checkoutBustFreeOrder(s, stored) : stored;
       const options = checkoutOptions(s);
       let guard = 0;
       while (!solved[i] && guard++ < 10) {
@@ -853,7 +857,7 @@ const checkoutKit: PuzzleKit = {
           rec.push(joinCheckoutRound(solved));
         }
         rec.wait(TAP_MS); // Throw
-        if (checkoutValid(s, darts)) {
+        if (checkoutValid(s, darts, checkoutBust(puzzle))) {
           solved[i] = encodeCheckoutDarts(darts);
           rec.push(joinCheckoutRound(solved));
         } else {

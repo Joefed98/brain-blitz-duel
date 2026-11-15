@@ -35,6 +35,12 @@ export const stageClearCue = (type: NumberStageGame) => `${type}.stageClear`;
 export const stageSkipCue = (type: NumberStageGame) => `${type}.skip`;
 export const stageFailCue = (type: NumberStageGame) => `${type}.fail`;
 
+/**
+ * True: a stage game that draws NumberStage plays the stage moment's own sound, so StageProgress's generic
+ * stage-complete moment stays quiet for it (its `quiet`), whether the stage was completed or skipped.
+ */
+export const NUMBER_STAGE_MOMENT_SOUND = true;
+
 /** How the finished stage leaves: cleared (lift and slide away), skipped or failed (a plain slide). */
 export type StageExit = "clear" | "skip" | "fail" | null;
 
@@ -54,14 +60,16 @@ export function useNumberStageMoment(type: NumberStageGame, exit: StageExit): vo
  * One stage's box: keyed by the stage index by the caller, so each new stage slides in from the right; while `exit`
  * is set the finished stage leaves (`clear` lifts first). Plays the moment's sound.
  */
-export function NumberStage({ type, index, exit, className, children }: {
+export function NumberStage({ type, index, exit, className, quiet = false, children }: {
   type: NumberStageGame;
   index: number;
   exit: StageExit;
   className?: string;
+  /** The game plays this exit's sound itself (e.g. Brimful's out of moves keeps its `wrong`): the slide only. */
+  quiet?: boolean;
   children: ReactNode;
 }) {
-  useNumberStageMoment(type, exit);
+  useNumberStageMoment(type, quiet ? null : exit);
   return (
     <div
       key={index}

@@ -85,6 +85,11 @@ export function npSeams(givens: readonly (number | null)[], values: readonly (nu
   return out;
 }
 
+/** The pyramid's move-on button: Skip, and Finish on the last pyramid (it ends the round). */
+export function npSkipLabel(stage: number): "Skip" | "Finish" {
+  return stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip";
+}
+
 /** The tray's tiles a row: the tray in two even rows on a phone (at most `max` a row). */
 export function npTrayPerRow(count: number, max = 8): number {
   return Math.max(1, Math.min(max, Math.ceil(count / 2)));

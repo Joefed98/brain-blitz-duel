@@ -11,6 +11,7 @@ import {
   FAIR_SKY_TOP,
 } from "@/lib/arcade/fairground.renderer";
 import {
+  checkoutBustFreeOrder,
   checkoutBustsAt,
   checkoutDartAllowed,
   checkoutDartLabel,
@@ -159,8 +160,8 @@ export function BoardArt({ wedges, quad, bare }: { wedges: readonly number[]; qu
 export function Dart({ x, y, n, fresh, final }: { x: number; y: number; n: number; fresh: boolean; final: boolean }) {
   const dx = Math.cos((-55 * Math.PI) / 180) * 20.5;
   const dy = Math.sin((-55 * Math.PI) / 180) * 20.5;
-  // The sprite is 64 × 120 points with its tip at (12, 108) (checkout.py `dart`), drawn 0.19 units a point.
-  const k = 0.19;
+  // The sprite is 64 × 120 points with its tip at (12, 108) (checkout.py `dart`), drawn 0.25 units a point.
+  const k = 0.25;
   return (
     <g transform={`translate(${x.toFixed(2)} ${y.toFixed(2)})`} pointerEvents="none">
       {fresh ? <circle r={4} className="co-impact" fill="none" stroke={FAIR_CHALK} strokeWidth={0.8} /> : null}
@@ -484,7 +485,9 @@ function Stage({
   const bustTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
-    for (const t of [advanceTimer, bustTimer, nudgeTimer]) if (t.current) clearTimeout(t.current);
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    if (bustTimer.current) clearTimeout(bustTimer.current);
+    if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
   }, []);
   /** "stage:count" of the dart that just landed, so only that dart thuds. */
   const [landed, setLanded] = useState<string | null>(null);
@@ -722,8 +725,9 @@ function Stage({
             <>
               {current.target}
               {darts.map((d, i) => (
-                <span key={`${stage}-${i}`} className={i === fresh ? "co-term" : undefined}>
-                  {" "}{checkoutDartTerm(current, d)}
+                <span key={`${stage}-${i}`}>
+                  {" "}
+                  <span className={i === fresh ? "co-term" : undefined}>{checkoutDartTerm(current, d)}</span>
                 </span>
               ))}
             </>
@@ -789,7 +793,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       {puzzle.stages.map((stage, index) => {
         const mine = decodeCheckoutDarts(parts[index] ?? "", stage.maxDarts);
         const ok = checkoutValid(stage, mine, checkoutBust(puzzle));
-        const best = decodeCheckoutDarts(puzzle.routes?.[index] ?? "", stage.maxDarts);
+        const stored = decodeCheckoutDarts(puzzle.routes?.[index] ?? "", stage.maxDarts);
+        // checkoutRev 3: the fewest-darts route shown in an order that never busts on the way.
+        const best = checkoutBust(puzzle) ? checkoutBustFreeOrder(stage, stored) : stored;
         return (
           <div
             key={index}

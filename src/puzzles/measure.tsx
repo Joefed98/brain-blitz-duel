@@ -519,8 +519,8 @@ function Stage({
     // short beat, with the fail sound (never a solve's).
     if (boardOut && stage < MEASURE_BOARDS - 1) {
       setSelected(null);
-      // The Number overhaul: the board's fail sound (`measure.fail`, a dull thunk) plays with its slide-away
-      // (NumberStage below), never a solve's.
+      // The fail sound (never a solve's); the Number overhaul's slide-away (NumberStage, quiet for this exit) goes with it.
+      playWrong();
       const timer = setTimeout(() => {
         setFlow(null);
         setStage(stage + 1);
@@ -677,7 +677,7 @@ function Stage({
         data-game-arena="board"
         className="flex min-h-0 w-full flex-1 items-center justify-center"
       >
-        <NumberStage type="measure" index={stage} exit={exit} className="justify-center">
+        <NumberStage type="measure" index={stage} exit={exit} quiet={exit === "fail"} className="justify-center">
         <Jugs
           key={stage}
           board={board}

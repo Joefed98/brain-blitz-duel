@@ -72,7 +72,7 @@ export const DEAL_PINS = {
   preGameReviewNov15: { texts: false },
   /** numberOverhaul.ts: Counterweight balanceRev 3, Operator gapsRev 1, Checkout checkoutRev 2 and Kakuro kakuroRev 1,
    * before the Number overhaul (15 Nov 2026). */
-  preNumberOverhaul: { texts: false },
+  preNumberOverhaul: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

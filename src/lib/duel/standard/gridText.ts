@@ -22,7 +22,7 @@ const MISTAKE: Record<GridStandardType, string> = {
   fences: "no line ever drawn off the loop",
   fillomino: "no wrong number ever entered (erased ones too)",
   bridges: "no wrong bridge ever built",
-  kakuro: "no wrong digit ever entered (erased ones too)",
+  kakuro: "no digit ever entered that broke a rule (erased ones too)",
 };
 
 const FINISH: Record<GridStandardType, string> = {
@@ -50,7 +50,7 @@ const INTRO: Record<GridStandardType, string> = {
   fences: "Draw the whole loop; bonuses for speed and no wrong lines.",
   fillomino: "Fill every region; bonuses for speed and no wrong numbers.",
   bridges: "Link every island; bonuses for speed and no wrong bridges.",
-  kakuro: "Fill the grid; bonuses for speed and no wrong digits.",
+  kakuro: "Fill the grid; bonuses for speed and no rule broken.",
 };
 
 export function gridStandardIntro(type: GridStandardType): string {

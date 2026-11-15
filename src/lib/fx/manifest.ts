@@ -491,6 +491,17 @@ const ENTRIES = {
   "equation.correct": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.counterLock.mp3", volume: 0.79 },
   "equation.advance": { channel: "effects", frequency: 0, ms: 240, url: null },
   "equation.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
+  // The Number overhaul (15 Nov 2026): Operator's and Integer Pyramid's new moments, library stand-ins until Joe's
+  // ElevenLabs files (docs/sound-cues/number-elevenlabs.md).
+  "equation.tryCracked": { channel: "effects", frequency: 0, ms: 140, url: "/sounds/wrong.mp3" },
+  "equation.chooseGap": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.5 },
+  "equation.clearGap": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.45 },
+  "equation.goBack": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
+  "numpyramid.swap": { channel: "effects", frequency: 0, ms: 50, url: "/sounds/place.mp3" },
+  "numpyramid.pick": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3", volume: 0.6 },
+  "numpyramid.unplace": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.5 },
+  "numpyramid.seam": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.4, gapMs: 120 },
+  "numpyramid.crack": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.nope.mp3", volume: 0.6 },
   "tendrop.apply": { channel: "effects", frequency: 0, ms: 50, url: "/sounds/place.mp3" },
   "tendrop.clear": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/tendrop.clear.mp3", volume: 0.77 },
   "tendrop.reset": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/tendrop.reset.mp3", volume: 0.99 },

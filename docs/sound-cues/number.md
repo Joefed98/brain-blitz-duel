@@ -128,3 +128,23 @@ takes the slot's name.
 | kakuro.clear | Clear empties a square that held a digit or marks | 528 ms |
 | kakuro.broken | a run newly breaks a rule (a repeat, past its clue, out of reach): its clue turns red | 250 ms low tick |
 | kakuro.combo | one digit completes two runs at once (in place of kakuro.run) | 600 ms |
+
+### Operator (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| equation.tryCracked | a new full line is wrong and uses a try: a try pip cracks (gapsRev 2: a fill already tried uses none) | 140 ms dry crack |
+| equation.chooseGap | an empty gap is tapped to fill it next (tapped again lets go) | 120 ms soft tick |
+| equation.clearGap | a filled gap is tapped and empties | 120 ms soft lift |
+| equation.goBack | gapsRev 2: an earlier equation's chip is tapped to go back to it | 300 ms slide-back tick |
+
+### Integer Pyramid (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| numpyramid.pick | a stone is picked up (a tap on a tray tile or a placed stone) | 120 ms wooden lift |
+| numpyramid.swap | a placed stone is dropped on another placed stone and they swap | 150 ms double knock |
+| numpyramid.unplace | a placed stone goes back to the tray (double tap or drag) | 140 ms wooden lift |
+| numpyramid.seam | a sum the player had a hand in comes out right: a faint gold seam | 200 ms soft chime |
+| numpyramid.crack | a sum the player had a hand in comes out wrong: a red crack between the three stones | 250 ms stone crack |
+

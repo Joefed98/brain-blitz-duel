@@ -100,6 +100,20 @@ export function checkoutBustIndex(stage: CheckoutStageData, darts: readonly Chec
 }
 
 /**
+ * The same darts in an order that never busts on the way (checkoutRev 3), the finishing dart kept last: the earlier
+ * darts in the first of their orderings with no bust, or the darts as given when none has one. Display and tools only
+ * (the fewest-darts route shown on the reveal, the fairness kits); the order of the earlier darts never changes a sum.
+ */
+export function checkoutBustFreeOrder(stage: CheckoutStageData, darts: readonly CheckoutDart[]): CheckoutDart[] {
+  if (darts.length < 2 || checkoutBustIndex(stage, darts.slice(0, -1)) < 0) return [...darts];
+  const last = darts[darts.length - 1]!;
+  const perms = (list: readonly CheckoutDart[]): CheckoutDart[][] =>
+    list.length <= 1 ? [[...list]] : list.flatMap((d, i) => perms([...list.slice(0, i), ...list.slice(i + 1)]).map((rest) => [d, ...rest]));
+  for (const order of perms(darts.slice(0, -1))) if (checkoutBustIndex(stage, order) < 0) return [...order, last];
+  return [...darts];
+}
+
+/**
  * True when these darts check out: exactly zero, right count, last dart in the finishing ring (or a big finish).
  * With `bust` (checkoutRev 3) no dart on the way may bust: a list the phone could only have thrown past a bust is
  * never a checkout (the phone clears a busted board, so the list it sends starts after the last bust).

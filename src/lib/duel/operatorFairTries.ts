@@ -35,3 +35,9 @@ export function targetGap(kinds: readonly ("number" | "sign")[], fills: readonly
   if (chosen !== null && kinds[chosen] === kind && !fills[chosen]) return chosen;
   return kinds.findIndex((k, i) => k === kind && !fills[i]);
 }
+
+/** The Next button's word: gapsRev 2 says Finish when no other equation is open; gapsRev 1 Submit on the last. */
+export function operatorNextLabel(fairTries: boolean, nextOpen: number | null, stage: number, total: number): "Next" | "Finish" | "Submit" {
+  if (fairTries) return nextOpen === null ? "Finish" : "Next";
+  return stage >= total - 1 ? "Submit" : "Next";
+}
