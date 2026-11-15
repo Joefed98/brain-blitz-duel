@@ -130,7 +130,7 @@ export function cardsRevealPicture(puzzle: PuzzleData, answer: string): Picture 
         draw: (ctx) => drawMahjong(ctx, r.state, { width: MAHJONG_WORLD_W, height: MAHJONG_WORLD_H }),
         facts: [
           { label: "Pairs", value: `${r.pairs}/${MAHJONG_PAIRS}`, best: r.cleared },
-          { label: "Shuffles", value: `${r.shuffles}`, best: r.shuffles === 0 },
+          { label: "Shuffles", value: `${r.shuffles}`, best: r.cleared && r.shuffles === 0 },
           r.cleared ? { label: "Time", value: secs(r.clearedSeconds) } : { label: "Tiles left", value: `${(MAHJONG_PAIRS - r.pairs) * 2}` },
         ],
         marks: { label: "Pairs taken", filled: r.pairs, of: MAHJONG_PAIRS },
@@ -170,7 +170,7 @@ export function CardsRevealPicture({ puzzle, answer }: { puzzle: PuzzleData; ans
   const picture = useMemo(() => (answer ? cardsRevealPicture(puzzle, answer) : null), [puzzle, answer]);
   if (!picture) return null;
   return (
-    <div data-cards-reveal={puzzle.type} className="flex w-full shrink-0 flex-col items-stretch gap-2">
+    <div data-cards-reveal={puzzle.type} className="flex w-full max-w-[380px] shrink-0 flex-col items-stretch gap-2 self-center">
       <div data-cards-reveal-facts="" className="flex w-full items-stretch justify-center gap-2">
         {picture.facts.map((f) => (
           <div key={f.label} data-fact={f.label} className={`flex min-w-0 flex-1 flex-col items-center rounded-xl px-2 py-1.5 ${f.best ? "bg-[var(--jz-gold)] text-[var(--jz-on-gold)]" : "bg-black/35 text-foreground"}`}>

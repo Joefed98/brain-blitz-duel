@@ -41,7 +41,7 @@ export const FC_BTN_ROW_H = 46;
 export const FC_COL_BOTTOM = FC_BTN_ROW_Y - 10;
 const COL_GAP = (FC_WORLD_W - FC_COLS * FC_COL_W) / (FC_COLS + 1);
 /** The most a column's cards step down: nearly the whole card shows (its index, its suit and most of its body). */
-const STEP_MAX = 62;
+const STEP_MAX = 72;
 
 /** Free cell `i`'s x: the top row's first four places, over columns 0–3. */
 export function fcBigX(i: number): number {

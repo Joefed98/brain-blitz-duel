@@ -2587,6 +2587,20 @@ outside the repo.
   `public/tournaments-art/` (`TournamentArt`, `KIND_ART`). Styles `src/polish-layout/tournaments-pages.css`. Screens:
   `scripts/screens/tournaments.ts` (`TOURNAMENT_PAGES_SCREENS`, dark and light at every size; harness modes
   `tournament`, `tournamentrules`, `dailyarchive`); theme-check in sixths and no-wrap-check in elevenths.
+- **Cards & Board overhaul, stage 1** (15 Nov 2026, phase 2 step 4; `docs/design/pages-review/cards-board/GALLERY.md`;
+  display, input mapping, sound and haptics only, no stamps): Free Cell, Summit, Five Hands and Thirteen draw real
+  cards and Mahjong real tiles, Blender renders (`scripts/cards-board-art/`: `textures.ts` paints the faces,
+  `render.py` renders them with the pip `bpy` module, `pack.py` writes `public/cards-board/*.webp`; **re-run all three
+  after changing `cardFace.renderer.ts` or Mahjong's faces**), drawn by `src/lib/arcade/cards/realArt.renderer.ts`
+  (`drawRealCard`, `drawRealFelt`, `drawRealTile`; the flat faces until the images load and in node). On the live stage
+  cards slide and flip (`CardMotion` / `CardLayer`, held by each game's view; reveals and replays draw still; reduced
+  motion places at once). Reset asks first (`confirmBoxes`, Mahjong's footer question); Free Cell's Undo and Reset are
+  labelled buttons under the columns; Five Hands' POINTS is the score; a light `cardFeel()` touch on pick up, place and
+  match (haptics-check counts it). The arcade reveal draws `CardsRevealPicture` for the five (final table, three key
+  numbers, a run summary). The shared `drawCard` (Full House and the retired games) is unchanged.
+  cards-board-overhaul-check (~1 s); skins-default-check pins the four redesigned card games to
+  `scripts/fixtures/skins-default-frames-cards.json`; sound slots for Joe's recordings in
+  `docs/sound-cues/cards-board-elevenlabs.md`. Stages 2 (effects, with the kit) and 3 (levels and hints) follow.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
