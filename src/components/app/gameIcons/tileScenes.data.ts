@@ -12,7 +12,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   beat: "1231bc6a90",
   bintoss: "44e1e3e30f",
   blockfall: "ba34f92299",
-  blockparty: "baae6a071e",
+  blockparty: "d6aac9b03b",
   bomb: "762a6c57c9",
   breaker: "906fea913d",
   bridges: "20cfa09489",

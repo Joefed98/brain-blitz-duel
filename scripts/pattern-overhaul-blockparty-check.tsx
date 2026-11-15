@@ -15,6 +15,15 @@
  *    spot and dashed marks on empty squares (unfinished only), and pills whose numbers are the stored grade's, on the
  *    new stamp, an older stamp and a round with no stored extra; no stray "×"; nothing under Solution but the board.
  * 6. The new sound slots exist in the manifest and each has its ElevenLabs line.
+ * 9. Stage 2 (Joe's fixes and the effects, happy-dom): the studs are plain domes (no collar or cap in the source),
+ *    the tray draws its own glossy render of the blocks; each effect goes through the effects kit, silent, on the
+ *    piece's own element, on its moment only: a turn (spin + the kit's tap, blockparty.turn), a pick-up (the kit's
+ *    pickUp on the piece under the finger, blockparty.pickup), a drop (the kit's drop on the placed piece and a
+ *    one-shot flash on exactly its squares, blockparty.place), an illegal drop (the kit's slide home and wrong,
+ *    blockparty.illegal, no place sound), a tray piece let go off the board (slides home, no sound), Undo (no drop
+ *    effect), the solve (the shine across the board, each piece pulsing as it passes) and the reveal's result (the
+ *    kit's win on a solve only); the next move is taken during an effect; reduced motion gives the kit's crossfades
+ *    and cuts the flash and the sweep to a still glow; no other animation in the game's files but transform/opacity.
  */
 import { readFileSync, statSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -150,7 +159,7 @@ function solveAt(p: Block, sol: NonNullable<Block["solution"]>, drops: number): 
 
 /* 5. Art, stage and reveal. */
 {
-  const names = [...BLOCK_SPRITE_COLOURS.map((c) => `block-${c}`), "well", "peg"];
+  const names = [...BLOCK_SPRITE_COLOURS.map((c) => `block-${c}`), ...BLOCK_SPRITE_COLOURS.map((c) => `tray-${c}`), "well", "peg"];
   let total = 0;
   for (const name of names) {
     const file = `public/pattern-art/blockparty/${name}.webp`;
@@ -178,7 +187,8 @@ function solveAt(p: Block, sol: NonNullable<Block["solution"]>, drops: number): 
 
   const stageProps = { phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => {}, onDraftAnswer: () => {} };
   const stage = renderToStaticMarkup(<BlockPartyPuzzle puzzle={live[0]!} {...stageProps} />);
-  check(/block-red\.webp/.test(stage) && /block-white\.webp/.test(stage), "art: the tray draws no block sprites");
+  // Stage 2 (Joe): the tray draws its own glossy render of the same blocks (changed with the tray sprites).
+  check(/tray-red\.webp/.test(stage) && /tray-white\.webp/.test(stage), "art: the tray draws no block sprites");
   check(stage.includes('data-testid="blockparty-undo"') && stage.includes('data-testid="blockparty-reset"'), "stage: blockRev 4 has no Undo / Reset");
   check(/data-variant="secondary"/.test(stage), "stage: Undo / Reset are not the design system's buttons");
   const oldStage = renderToStaticMarkup(<BlockPartyPuzzle puzzle={{ ...live[0]!, blockRev: 3 }} {...stageProps} />);
@@ -308,6 +318,292 @@ check(puzzlePresentation("blockparty") === BLOCKPARTY_NOV15_PRESENTATION, "demo:
   }
   const doc = readFileSync("docs/sound-cues/pattern.md", "utf8");
   for (const slot of ["pickup", "illegal", "undo", "reset"]) check(doc.includes(`\`blockparty.${slot}\``), `sound: blockparty.${slot} not in pattern.md`);
+}
+
+/* 9. Stage 2: Joe's fixes and the effects. */
+{
+  // The studs: one plain dome on a short base (no collar, no polished cap: they read as engraved coins).
+  const py = readFileSync("docs/design/game-art/pattern/source/blockparty.py", "utf8");
+  const pegFn = py.slice(py.indexOf("def peg():"), py.indexOf("SPRITES = "));
+  check(/ellipsoid\(/.test(pegFn) && !/brass_dot|brass_base|collar/.test(pegFn.replace(/#.*$/gm, "")), "studs: the peg is not one plain dome");
+  check(/def tray_block\(/.test(py) && /tray-\{name\}/.test(py), "tray: no tray render of the blocks in the source");
+
+  // No animation in the game's files but transform and opacity; the effects go through the kit.
+  const files = [
+    "src/components/puzzles/BlockPartyPuzzle.tsx",
+    "src/components/puzzles/pattern/blockPartyArt.tsx",
+    "src/puzzles/blockParty.tsx",
+  ].map((f) => [f, readFileSync(f, "utf8")] as const);
+  for (const [f, text] of files) check(!/\.animate\(/.test(text), `kit: ${f} calls element.animate itself`);
+  const css = readFileSync("src/polish-pattern/blockparty.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const m of css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*)\s*\}/g)) {
+    const props = [...m[2]!.matchAll(/([\w-]+)\s*:/g)].map((p) => p[1]);
+    check(props.every((p) => p === "transform" || p === "opacity"), `css: @keyframes ${m[1]} animates ${props.join(", ")}`);
+  }
+  check(!/transition\s*:/.test(css), "css: a transition in blockparty.css");
+  check(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.bp-drop-flash, \.bp-peg-glint \{ animation: none; \}[\s\S]*\.bp-drop-flash, \.bp-peg-glint \{ display: none; \}/.test(css), "reduced: the drop flash or the glints still play under reduced motion");
+  check(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.bp-sweep-band \{[^}]*bp-shine-still/.test(css), "reduced: the sweep isn't a still glow under reduced motion");
+
+  // A page for the stage (happy-dom).
+  const { Window } = await import("happy-dom");
+  const win = new Window({ url: "http://localhost/", width: 390, height: 844 });
+  const g = globalThis as Record<string, unknown>;
+  for (const key of ["window", "document", "navigator", "Node", "Element", "HTMLElement", "SVGElement", "Text", "Event", "CustomEvent", "PointerEvent", "MouseEvent", "getComputedStyle", "MutationObserver", "ResizeObserver", "requestAnimationFrame", "cancelAnimationFrame", "IS_REACT_ACT_ENVIRONMENT"]) {
+    const value = (win as unknown as Record<string, unknown>)[key];
+    g[key] = typeof value === "function" && /^[a-z]/.test(key) && key !== "window" ? (value as (...a: unknown[]) => unknown).bind(win) : key === "window" ? win : value;
+  }
+  g["ResizeObserver"] = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+  g["IS_REACT_ACT_ENVIRONMENT"] = true;
+  let reducedMotion = false;
+  const matchMedia = (query: string) => ({ matches: query.includes("prefers-reduced-motion") ? reducedMotion : false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+  Object.defineProperty(win, "matchMedia", { configurable: true, writable: true, value: matchMedia });
+
+  // The board measures 350 × 350 at the page's top left; everything else measures nothing.
+  const BOARD = 350;
+  const proto = (win as unknown as { HTMLElement: { prototype: object } }).HTMLElement.prototype;
+  const isBoard = (el: Element) => el.classList?.contains("bp-board");
+  const rectOf = (el: Element) => (isBoard(el) ? { left: 0, top: 0, right: BOARD, bottom: BOARD, width: BOARD, height: BOARD, x: 0, y: 0 } : { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 });
+  Object.defineProperty(proto, "getBoundingClientRect", { configurable: true, value(this: Element) { return { ...rectOf(this), toJSON() {} }; } });
+  for (const k of ["clientWidth", "clientHeight", "offsetWidth", "offsetHeight"])
+    Object.defineProperty(proto, k, { configurable: true, get(this: Element) { return isBoard(this) ? BOARD : 0; } });
+
+  // Every kit call (its plan) with the element it animated, and every sound cue.
+  type Rec = { kind: string; variant: string; silent: boolean; frames: unknown[]; el: Element | null };
+  const fx: Rec[] = [];
+  const { setGameFxSink } = await import("../src/lib/fx/kit");
+  setGameFxSink((plan) => fx.push({ kind: plan.kind, variant: plan.variant, silent: plan.sound === null, frames: plan.frames, el: null }));
+  const elementProto = (win as unknown as { Element: { prototype: object } }).Element.prototype;
+  Object.defineProperty(elementProto, "animate", {
+    configurable: true,
+    writable: true,
+    value(this: Element) {
+      const last = fx[fx.length - 1];
+      if (last && last.el === null) last.el = this;
+      return { cancel() {}, finish() {}, finished: Promise.resolve() };
+    },
+  });
+  const cues: string[] = [];
+  win.addEventListener("duelz-sound", (e) => cues.push(String((e as unknown as CustomEvent<{ cue: string }>).detail?.cue)));
+
+  const React = await import("react");
+  const { createRoot } = await import("react-dom/client");
+  const { act } = React;
+  const { orientationOffsets, absoluteCells } = await import("../src/lib/duel/blockParty");
+  const { DOUBLE_TAP_MS } = await import("../src/components/puzzles/BlockPartyPuzzle");
+
+  const p = live[4]!;
+  const geo = blockGeometry(p);
+  const n = geo.cols;
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const root = createRoot(host as unknown as Element);
+  const submits: string[] = [];
+  await act(async () => {
+    root.render(<BlockPartyPuzzle puzzle={p} phaseStartedAt={Date.now()} now={Date.now()} locked={false} onSubmit={(a) => submits.push(a)} onDraftAnswer={() => {}} />);
+  });
+  const fire = (target: EventTarget, type: string, x: number, y: number) => {
+    const Ctor = (type.startsWith("pointer") ? win.PointerEvent : win.MouseEvent) as unknown as typeof MouseEvent;
+    target.dispatchEvent(new Ctor(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, pointerId: 1 } as MouseEventInit) as unknown as Event);
+  };
+  const slot = (piece: number) => host.querySelector(`[data-bp-tray-piece="${piece}"]`) as unknown as HTMLElement | null;
+  const hitCell = (piece: number) => slot(piece)?.querySelector("[data-bp-lift] > div > div") as unknown as HTMLElement | null;
+  const placedCount = () => host.querySelectorAll("[data-bp-piece]").length;
+  const taken = new Set<number>(p.blockers);
+  /** A legal spot for a piece in its first pose, avoiding pegs and pieces placed so far. */
+  const legalSpot = (piece: number) => {
+    const offsets = orientationOffsets(piece, 0, false, geo.pieces);
+    for (let row = 0; row < n; row++)
+      for (let col = 0; col < n; col++) {
+        const cells = absoluteCells(offsets, row, col, n);
+        if (cells && cells.every((c) => !taken.has(c))) return { cells, offsets, row, col };
+      }
+    return null;
+  };
+  const centre = (r: number, c: number) => [((c + 0.5) * BOARD) / n, ((r + 0.5) * BOARD) / n] as const;
+  const START = [120, 600] as const;
+  /** Drags a tray piece by its first square from START to (x, y) and lets go. */
+  const dragTo = async (piece: number, x: number, y: number) => {
+    await act(async () => fire(hitCell(piece)!, "pointerdown", START[0], START[1]));
+    await act(async () => fire(win, "pointermove", START[0] + 12, START[1] - 12));
+    await act(async () => fire(win, "pointermove", x, y));
+    await act(async () => fire(win, "pointerup", x, y));
+  };
+  const since = (mark: number) => fx.slice(mark);
+  const cuesSince = (mark: number) => cues.slice(mark);
+
+  // Turn: one tap, the turn shown after the double-tap window, with its click and the kit's tap on the lift.
+  {
+    const a = fx.length;
+    const c = cues.length;
+    await act(async () => fire(hitCell(0)!, "pointerdown", START[0], START[1]));
+    await act(async () => fire(win, "pointerup", START[0], START[1]));
+    check(cuesSince(c).length === 0 && since(a).length === 0, `turn: something played before the double-tap window passed (${cuesSince(c)})`);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, DOUBLE_TAP_MS + 60));
+    });
+    const tap = since(a).find((r) => r.kind === "tap");
+    check(cuesSince(c).join() === "blockparty.turn", `turn: sounds ${cuesSince(c).join()}`);
+    check(!!tap && tap.silent && tap.el !== null && (tap.el as Element).hasAttribute("data-bp-lift"), "turn: no silent kit tap on the piece's lift wrapper");
+    check(!!slot(0)?.querySelector(".bp-glyph-turn"), "turn: the glyph doesn't spin");
+    check(since(a).every((r) => r.kind === "tap"), `turn: other effects ${since(a).map((r) => r.kind)}`);
+    // Back to its first pose for the drags below (three more turns).
+    for (let i = 0; i < 3; i++) {
+      await act(async () => fire(hitCell(0)!, "pointerdown", START[0], START[1]));
+      await act(async () => fire(win, "pointerup", START[0], START[1]));
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, DOUBLE_TAP_MS + 40));
+      });
+    }
+  }
+
+  // Pick-up and a legal drop.
+  const legalPiece = geo.pieces.map((_, i) => i).find((i) => legalSpot(i));
+  const spot = legalPiece === undefined ? null : legalSpot(legalPiece);
+  check(spot !== null, "drop: no legal spot to test with");
+  if (spot && legalPiece !== undefined) {
+    const [gr, gc] = spot.offsets[0]!;
+    const [x, y] = centre(spot.row + gr, spot.col + gc);
+    const a = fx.length;
+    const c = cues.length;
+    await act(async () => fire(hitCell(legalPiece)!, "pointerdown", START[0], START[1]));
+    await act(async () => fire(win, "pointermove", START[0] + 12, START[1] - 12));
+    const pick = since(a).find((r) => r.kind === "pickUp");
+    check(!!pick && pick.silent && (pick.el as Element | null)?.hasAttribute("data-bp-lift") === true, "pick-up: no silent kit pickUp on the piece under the finger");
+    check(cuesSince(c).join() === "blockparty.pickup", `pick-up: sounds ${cuesSince(c).join()}`);
+    await act(async () => fire(win, "pointermove", x, y));
+    await act(async () => fire(win, "pointerup", x, y));
+    const dropRec = since(a).find((r) => r.kind === "drop");
+    check(cuesSince(c).join() === "blockparty.pickup,blockparty.place", `drop: sounds ${cuesSince(c).join()}`);
+    check(!!dropRec && dropRec.silent && (dropRec.el as Element | null)?.getAttribute("data-bp-piece") === String(legalPiece), "drop: no silent kit drop on the placed piece's own group");
+    const flash = host.querySelector("[data-bp-flash]");
+    check(flash?.getAttribute("data-bp-flash") === spot.cells.join(","), `drop: the flash covers ${flash?.getAttribute("data-bp-flash")}, the piece ${spot.cells.join(",")}`);
+    check(!since(a).some((r) => r.kind === "wrong" || r.kind === "slide"), "drop: a refused-move effect on a legal drop");
+    for (const cell of spot.cells) taken.add(cell);
+  }
+
+  // An illegal drop onto a peg: a thud, the piece slides home and its slot shakes; no place sound or drop effect.
+  const other = geo.pieces.map((_, i) => i).find((i) => i !== legalPiece && slot(i));
+  if (other !== undefined) {
+    const peg = p.blockers[0]!;
+    const [x, y] = centre(Math.floor(peg / n), peg % n);
+    const a = fx.length;
+    const c = cues.length;
+    const before = placedCount();
+    await dragTo(other, x, y);
+    check(placedCount() === before, "illegal: the piece was placed on a peg");
+    check(cuesSince(c).join() === "blockparty.pickup,blockparty.illegal", `illegal: sounds ${cuesSince(c).join()}`);
+    const slide = since(a).find((r) => r.kind === "slide");
+    const wrong = since(a).find((r) => r.kind === "wrong");
+    check(!!slide && slide.silent && (slide.el as Element | null)?.hasAttribute("data-bp-move") === true, "illegal: the piece doesn't slide home (kit slide on its move wrapper)");
+    check(JSON.stringify(slide?.frames[0]) === JSON.stringify({ transform: `translate(${x - START[0]}px, ${y - START[1]}px)` }), `illegal: the slide starts at ${JSON.stringify(slide?.frames[0])}`);
+    check(!!wrong && wrong.silent && (wrong.el as Element | null)?.getAttribute("data-bp-tray-piece") === String(other), "illegal: no silent kit wrong on the piece's slot");
+    check(!since(a).some((r) => r.kind === "drop"), "illegal: a drop effect on a refused move");
+
+    // Never blocks input: the next move, made at once while the refusal plays, is taken.
+    const next = legalSpot(other);
+    if (next) {
+      const [gr, gc] = next.offsets[0]!;
+      const [nx, ny] = centre(next.row + gr, next.col + gc);
+      await dragTo(other, nx, ny);
+      check(placedCount() === before + 1, "input: the move right after a refusal was not taken");
+      for (const cell of next.cells) taken.add(cell);
+    }
+
+    // A tray piece let go off the board goes home with no sound.
+    const third = geo.pieces.map((_, i) => i).find((i) => slot(i));
+    if (third !== undefined) {
+      const a2 = fx.length;
+      const c2 = cues.length;
+      await dragTo(third, 200, 780);
+      check(cuesSince(c2).join() === "blockparty.pickup", `off the board: sounds ${cuesSince(c2).join()}`);
+      check(since(a2).some((r) => r.kind === "slide") && !since(a2).some((r) => r.kind === "wrong" || r.kind === "drop"), "off the board: not a quiet slide home");
+    }
+  }
+
+  // Undo: the move given back, no drop effect or flash.
+  {
+    const a = fx.length;
+    const c = cues.length;
+    const undoBtn = host.querySelector('[data-testid="blockparty-undo"]') as unknown as HTMLElement;
+    await act(async () => undoBtn.click());
+    check(cuesSince(c).join() === "blockparty.undo" && !since(a).some((r) => r.kind === "drop"), `undo: ${cuesSince(c).join()} / ${since(a).map((r) => r.kind)}`);
+    check(!host.querySelector("[data-bp-flash]"), "undo: the last drop's flash is still on the board");
+  }
+
+  // Reduced motion: every kit effect is its crossfade (opacity only).
+  {
+    reducedMotion = true;
+    const a = fx.length;
+    const piece = geo.pieces.map((_, i) => i).find((i) => slot(i) && legalSpot(i));
+    const s2 = piece === undefined ? null : legalSpot(piece);
+    if (s2 && piece !== undefined) {
+      const [gr, gc] = s2.offsets[0]!;
+      const [x, y] = centre(s2.row + gr, s2.col + gc);
+      await dragTo(piece, x, y);
+    }
+    const recs = since(a);
+    check(recs.some((r) => r.kind === "drop") && recs.every((r) => r.variant === "reduced" && r.frames.every((f) => !("transform" in (f as object)))), `reduced: effects ${recs.map((r) => `${r.kind}/${r.variant}`)}`);
+    reducedMotion = false;
+  }
+  await act(async () => root.unmount());
+
+  // The solve: the shine across the board, each piece pulsing as it passes (left columns first).
+  {
+    const sol = p.solution ?? [];
+    const html = renderToStaticMarkup(<BlockBoard blockers={p.blockers} placements={sol} cols={n} celebrate />);
+    check(/data-bp-sweep=""/.test(html) && /bp-sweep-band/.test(html), "solve: no shine across the board");
+    check(p.blockers.every((peg) => html.includes(`data-bp-glint="${peg}"`)), "solve: a stud doesn't catch the light");
+    const delays = sol.map((pl) => ({ left: Math.min(...pl.cells.map((c) => c % n)), ms: Number(new RegExp(`data-bp-piece="${pl.piece}"><g class="bp-piece-lock" style="animation-delay:(\\d+)ms`).exec(html)?.[1]) }));
+    check(delays.every((d) => Number.isFinite(d.ms)) && delays.every((d) => delays.every((e) => d.left <= e.left || d.ms >= e.ms)), `solve: the pulse doesn't follow the shine ${JSON.stringify(delays)}`);
+    const plain = renderToStaticMarkup(<BlockBoard blockers={p.blockers} placements={sol} cols={n} />);
+    check(!/data-bp-sweep|bp-piece-lock/.test(plain), "solve: the shine on a board that isn't solving");
+    const stageSrc = readFileSync("src/components/puzzles/BlockPartyPuzzle.tsx", "utf8");
+    check(/useSolveMoment\(covered >= geo\.free, "blockparty\.solve"\)/.test(stageSrc), "solve: the shine's cue isn't blockparty.solve");
+  }
+
+  // The reveal's result: the kit's win on a solve, never on an unfinished round, never on a board.
+  {
+    const Reveal = blockPartyPuzzle.Reveal;
+    const sol = p.solution ?? [];
+    const draw = async (answer: string, msLeft: number) => {
+      const gr = gradeAnswer(p, answer, msLeft);
+      const a = fx.length;
+      const h = document.createElement("div");
+      document.body.appendChild(h);
+      const r = createRoot(h as unknown as Element);
+      await act(async () => {
+        r.render(<Reveal puzzle={p} myAnswer={answer} myCorrect={gr.isCorrect} myReactionAvgMs={null} myMsRemaining={msLeft} timeLimitMs={60_000} myExtra={gr.extra as Record<string, unknown>} />);
+      });
+      await act(async () => {
+        await new Promise((res) => setTimeout(res, 60));
+      });
+      await act(async () => r.unmount());
+      return since(a);
+    };
+    // As the reveal's switch leaves it: the Solution column shown, Yours hidden (display: none has no boxes).
+    Object.defineProperty(elementProto, "getClientRects", {
+      configurable: true,
+      value(this: Element) {
+        return this.closest("[data-reveal-view=\"yours\"]") ? [] : [{ width: 1, height: 1 }];
+      },
+    });
+    const won = await draw(encodeBlockAnswer(sol, 0), 30_000);
+    const wins = won.filter((r) => r.kind === "win");
+    const w = wins[0];
+    check(wins.length === 1 && !!w && w.silent && (w.el as Element | null)?.getAttribute("data-bp-result") === "solved" && (w.el as Element).getAttribute("data-bp-result-view") === "solution" && !(w.el as Element).querySelector("[data-reveal-board]"), `reveal: not one silent kit win on the solved result in view (${wins.length})`);
+    const lost = await draw(encodeBlockAnswer(sol.slice(0, 2), 0), 0);
+    check(!lost.some((r) => r.kind === "win"), "reveal: a win on an unfinished round");
+  }
+
+  setGameFxSink(null);
+  // The stage's own timers (a piece gliding home) settle before the page goes.
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 500));
+  });
 }
 
 if (failures.length) {

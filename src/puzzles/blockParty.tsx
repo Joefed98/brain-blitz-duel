@@ -1,3 +1,6 @@
+import { useEffect, useRef } from "react";
+
+import { gameFx } from "@/lib/fx/kit";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { BlockBoard, BlockPartyPuzzle } from "@/components/puzzles/BlockPartyPuzzle";
 import { blockGeometry, decodePlacements, verifyPlacements } from "@/lib/duel/blockParty";
@@ -81,6 +84,29 @@ export function blockRevealMarks(puzzle: BlockPartyPuzzleData, placements: reado
 
 const pctOf = (v: number, n: number) => `${(v * 100) / n}%`;
 
+/**
+ * The result lines under each board (stage 2): on a solve, the effects kit's `win` lands on the one in view (scale
+ * in with a gold burst; silent, the reveal plays its own sounds; no haptic outside a live round). Asked a frame after
+ * mount, once the reveal's Solution / Yours switch has hidden the other column, so the burst never comes from a hidden
+ * box. It never wraps a board: the reveal's fit measures and scales the boards themselves.
+ */
+function RevealResult({ solved, view, children }: { solved: boolean; view: "solution" | "yours"; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!solved || typeof window === "undefined") return;
+    const frame = window.requestAnimationFrame(() => {
+      const el = ref.current;
+      if (el && el.getClientRects().length > 0) gameFx("win", el, { silent: true, inGame: false });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [solved]);
+  return (
+    <div ref={ref} className="bp-reveal-result flex w-full flex-col items-center gap-2" data-bp-result={solved ? "solved" : "unfinished"} data-bp-result-view={view}>
+      {children}
+    </div>
+  );
+}
+
 /** One reveal board, drawn as the reveal's fit target (`data-reveal-board`: scaled as itself, never its column). */
 function RevealBoard({
   puzzle,
@@ -154,18 +180,22 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
           {puzzle.solution?.length ? (
             <div className="bp-reveal-col flex flex-col items-center gap-2" data-reveal-view="solution">
               <RevealBoard puzzle={puzzle} placements={puzzle.solution} />
-              <span className="bp-reveal-label">Solution</span>
-              {/* A line under the solution (the switch hides the label): with only a board in the shown view the
-                  reveal's fit drew it at half size (the stage-1 finding), so the solution keeps a caption of its own. */}
-              <p className="bp-reveal-caption" data-solution-caption="">
-                One way to fill every square
-              </p>
+              <RevealResult solved={myCorrect} view="solution">
+                <span className="bp-reveal-label">Solution</span>
+                {/* A line under the solution (the switch hides the label): with only a board in the shown view the
+                    reveal's fit drew it at half size (the stage-1 finding), so the solution keeps a caption of its own. */}
+                <p className="bp-reveal-caption" data-solution-caption="">
+                  One way to fill every square
+                </p>
+              </RevealResult>
             </div>
           ) : null}
           <div className="bp-reveal-col flex flex-col items-center gap-2" data-reveal-view="yours">
             <RevealBoard puzzle={puzzle} placements={facts.placements} marks={marks} />
-            <span className="bp-reveal-label">Yours</span>
-            <HudPills testId="blockparty-reveal" items={items} className="bp-reveal-pills" />
+            <RevealResult solved={myCorrect} view="yours">
+              <span className="bp-reveal-label">Yours</span>
+              <HudPills testId="blockparty-reveal" items={items} className="bp-reveal-pills" />
+            </RevealResult>
             {marks.wrong.length || marks.gaps.length ? (
               <p className="bp-reveal-key">
                 {marks.wrong.length ? <span className="bp-key bp-key--wrong">Red: not in a solution spot</span> : null}

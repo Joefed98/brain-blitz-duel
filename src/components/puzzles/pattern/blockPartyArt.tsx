@@ -2,8 +2,9 @@
  * Tessellate (blockparty) art, pattern polish 13 Oct 2026; the Pattern overhaul's look A (15 Nov 2026): Blender
  * sprites (public/pattern-art/blockparty/, docs/design/game-art/pattern/source/blockparty.py), one image per board
  * cell: brass studs for the pegs, satin recesses for the free squares and a glossy lacquered block per piece square.
- * Presentation only: every image is exactly its cell's box, so what you see is what the drop counts; the placement
- * snap and the completion shine are unchanged.
+ * Presentation only: every image is exactly its cell's box, so what you see is what the drop counts. Stage 2 (the
+ * effects): the drop's flash on the covered squares and the completion shine across the board; the pieces' own
+ * movement (pick-up, drop, a refused move) goes through the effects kit (src/lib/fx/kit.ts) in BlockPartyPuzzle.
  */
 import { createContext, memo, useContext, useId, useMemo } from "react";
 
@@ -186,17 +187,15 @@ export const BlockBoardArt = memo(function BlockBoardArt({ blockers }: { blocker
   );
 });
 
-/** Placed pieces on the board, with an optional click-in on each new placement. */
+/** Placed pieces on the board, with the lock-tight pulse on each piece when the board is solved. */
 export function BlockPiecesArt({
   placements,
   colourFor,
-  snap,
   wave,
 }: {
   placements: BlockPlacement[];
   colourFor: (piece: number) => string;
-  snap?: boolean | undefined;
-  /** Completion: delay (ms) per piece for the lock-tight pulse. */
+  /** Completion: delay (ms) per piece for the lock-tight pulse, timed to the shine passing over it. */
   wave?: Map<number, number> | null | undefined;
 }) {
   const n = useContext(BlockColsContext);
@@ -207,7 +206,6 @@ export function BlockPiecesArt({
           key={`${placement.piece}:${placement.cells.join("-")}`}
           placement={placement}
           colour={colourFor(placement.piece)}
-          snap={snap}
           delay={wave?.get(placement.piece)}
         />
       ))}
@@ -217,76 +215,81 @@ export function BlockPiecesArt({
 
 function PlacedPiece({
   placement,
-  snap,
   delay,
 }: {
   placement: BlockPlacement;
   /** The piece's colour (the sprite carries it; kept for callers). */
   colour?: string | undefined;
-  snap?: boolean | undefined;
   delay?: number | undefined;
 }) {
   const n = useContext(BlockColsContext);
   const cells = useMemo(() => placement.cells.map((cell) => rowCol(cell, n)), [placement.cells, n]);
-  const outline = useMemo(() => pieceOutline(cells, GAP), [cells]);
+  // The outer group is the piece's own element for the effects kit (pick-up, drop, a refused move: stage 2); the
+  // inner one carries the completion pulse, so the two never fight over one transform.
   return (
-    <g className={snap ? "bp-piece bp-piece--snap" : "bp-piece"}>
+    <g className="bp-piece" data-bp-piece={placement.piece}>
       <g
         className={delay !== undefined ? "bp-piece-lock" : undefined}
         style={delay !== undefined ? { animationDelay: `${delay}ms` } : undefined}
       >
         <PieceArt cells={cells} piece={placement.piece} />
-        {snap && <path className="bp-snap-ring" d={outline} fill="none" stroke="#fff" strokeWidth="5" />}
       </g>
     </g>
   );
 }
 
-/** Steps (Chebyshev) from each cell to its nearest peg. */
-export function pegDistances(blockers: number[], n: number = N): number[] {
-  return Array.from({ length: n * n }, (_, cell) => {
-    const [r, c] = rowCol(cell, n);
-    let best = n;
-    for (const peg of blockers) {
-      const [pr, pc] = rowCol(peg, n);
-      best = Math.min(best, Math.max(Math.abs(pr - r), Math.abs(pc - c)));
-    }
-    return best;
-  });
+/**
+ * The drop's flash (stage 2): the squares the piece just covered light once, as one shape inside the piece's outline,
+ * so it sits on the piece itself and nowhere else. Opacity only; keyed by the drop, so each drop flashes once.
+ */
+export function BlockDropFlash({ cells }: { cells: number[] }) {
+  const n = useContext(BlockColsContext);
+  const outline = useMemo(() => pieceOutline(cells.map((cell) => rowCol(cell, n)), GAP), [cells, n]);
+  return (
+    <svg className="bp-drop-flash" viewBox={`0 0 ${n * U} ${n * U}`} aria-hidden="true" data-bp-flash={cells.join(",")}>
+      <path d={outline} />
+    </svg>
+  );
 }
 
-/** Ms per step of the shine as it travels out from the pegs. */
-export const SHINE_STEP_MS = 120;
+/** How long the completion shine takes to cross the board (ms): quick, since practice can open its reveal within a
+ * quarter of a second of the solving drop (the stage locks in 200 ms after it; the shine never delays that). */
+export const SWEEP_MS = 480;
+/** The shine's start after the solve moment (ms). */
+export const SWEEP_DELAY_MS = 0;
 
-/** The completion shine: rings leave every peg, then the cells light up outwards. */
-export function BlockSolveFx({ blockers }: { blockers: number[] }) {
-  const ids = useContext(IdsContext);
+/** When the shine passes a piece: its leftmost column's share of the crossing, so the pulse rides the light. */
+export function sweepDelay(cells: readonly number[], n: number = N): number {
+  const left = Math.min(...cells.map((cell) => cell % n));
+  return Math.round(SWEEP_DELAY_MS + (left / n) * SWEEP_MS * 0.8);
+}
+
+/**
+ * The completion shine (stage 2, Joe's spec: "last gap filled: a shine across the board"): one soft diagonal band
+ * of light sweeping left to right across the board, clipped to it. Transform and opacity only; drawn only for the
+ * solve moment (useSolveMoment), when the stage has stopped taking moves.
+ */
+export function BlockSweepFx({ blockers }: { blockers: number[] }) {
   const n = useContext(BlockColsContext);
-  const distance = useMemo(() => pegDistances(blockers, n), [blockers, n]);
-  const pegs = new Set(blockers);
+  const step = 100 / n;
   return (
-    <svg className="bp-solve-fx" viewBox={`0 0 ${n * U} ${n * U}`} aria-hidden="true">
-      {blockers.map((peg) => {
-        const [r, c] = rowCol(peg, n);
-        return <circle key={`ring-${peg}`} className="bp-peg-ring" cx={c * U + 50} cy={r * U + 50} r="28" />;
-      })}
-      {distance.map((steps, cell) => {
-        if (pegs.has(cell)) return null;
-        const [r, c] = rowCol(cell, n);
-        return (
-          <rect
-            key={cell}
-            className="bp-shine-cell"
-            x={c * U + GAP}
-            y={r * U + GAP}
-            width={U - 2 * GAP}
-            height={U - 2 * GAP}
-            rx={RADIUS}
-            fill={ids ? `url(#${ids.shine})` : "var(--primary)"}
-            style={{ animationDelay: `${60 + (steps - 1) * SHINE_STEP_MS}ms` }}
-          />
-        );
-      })}
-    </svg>
+    <div className="bp-sweep" aria-hidden="true" data-bp-sweep="">
+      <span className="bp-sweep-band" />
+      {/* Each stud glints as the light reaches it (its column's share of the crossing, as the pieces' pulse). */}
+      {blockers.map((peg) => (
+        <span
+          key={peg}
+          className="bp-peg-glint"
+          data-bp-glint={peg}
+          style={{
+            left: `${(peg % n) * step + step * 0.2}%`,
+            top: `${Math.floor(peg / n) * step + step * 0.2}%`,
+            width: `${step * 0.6}%`,
+            height: `${step * 0.6}%`,
+            animationDelay: `${sweepDelay([peg], n)}ms`,
+          }}
+        />
+      ))}
+    </div>
   );
 }
