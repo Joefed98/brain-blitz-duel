@@ -294,8 +294,9 @@ try {
   ok(serve(seed, ev, 150, 2).out.flagged, "rev 2: a claimed score the replay does not give is flagged");
   ok(serve(seed, ev, undefined, 1).out.score < 200, "the rev-2 oracle's aim is not rev 1's (the same log on rev 1 misses signs)");
   const help = `${PUZZLE_INSTRUCTIONS.homerun?.goal ?? ""} ${(PUZZLE_INSTRUCTIONS.homerun?.how ?? []).map((h) => `${h.action} ${h.detail}`).join(" ")}`;
-  // homerunRev 4 (3 Nov 2026) shows every pitch plainly in flight with no tell: the help says so (rev 2's radar wording is gone).
-  ok(!/chip at the top names/i.test(help) && /no tells/i.test(help), "the help says the pitches are read from the ball itself, with no tells");
+  // homerunRev 4 (3 Nov 2026) showed every pitch plainly in flight with no tell. Since 15 Nov 2026 the help describes the
+  // dealt homerunRev 5, whose wind-up shows the pitch (routine consequence of the Home Run and Top Bins overhaul).
+  ok(!/chip at the top names/i.test(help) && /wind-up show/i.test(help), "the help says the pitcher's wind-up shows the pitch (rev 2's radar wording gone)");
 }
 
 /* 9. homerunRev 3. */
@@ -575,7 +576,8 @@ try {
   ok(serve(HOMERUN_DEAL_V4[5]!, ev, 150, 4).out.flagged, "rev 4: a claimed score the replay does not give is flagged");
   ok(serve(HOMERUN_DEAL_V4[5]!, ev, undefined, 3).out.score < 50, "the rev-4 oracle's log means nothing on rev 3 (its kinds are not rev 3's)");
   const help = `${PUZZLE_INSTRUCTIONS.homerun?.goal ?? ""} ${(PUZZLE_INSTRUCTIONS.homerun?.how ?? []).map((h) => `${h.action} ${h.detail}`).join(" ")}`;
-  ok(/spot/i.test(help) && /ring/i.test(help) && /fielder/i.test(help) && /lit sign/i.test(help) && !/Contact/.test(help), "the help names the spot, the ring, the fielders and the lit sign (and no Contact / Power)");
+  // Since 15 Nov 2026 the help describes homerunRev 5 (routine consequence of the Home Run and Top Bins overhaul).
+  ok(/swipe/i.test(help) && /strike zone/i.test(help) && /fielder/i.test(help) && /Contact/.test(help) && /runner/i.test(help) && !/lit sign/i.test(help), "the help names the swipe, the strike zone, the fielders, Contact / Power and the runners (and no lit sign)");
 }
 
 if (failures.length) {

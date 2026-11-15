@@ -418,6 +418,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 const KICK_WORD: Record<number, string> = { 1: "Goal", 2: "Saved", 3: "Wall", 4: "Missed", 5: "Short", 6: "No kick" };
 
+/** Each crossing as a dot on the picture, nudged apart (a few relaxation passes) so no number hides another. */
+function spread(kicks: readonly FreekickKickSummary[]) {
+  const K = 44;
+  const pts = kicks
+    .map((k, i) => (k.at ? { k, i, x: Math.max(10, Math.min(370, 190 + k.at.x * K)), y: Math.max(10, Math.min(150, 140 - k.at.y * K)) } : null))
+    .filter((p): p is { k: FreekickKickSummary; i: number; x: number; y: number } => p !== null);
+  for (let pass = 0; pass < 30; pass++)
+    for (const a of pts)
+      for (const b of pts) {
+        if (a === b) continue;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d = Math.hypot(dx, dy);
+        if (d >= 19) continue;
+        const push = (19 - d) / 2;
+        const ux = d > 0.01 ? dx / d : b.i > a.i ? 1 : -1;
+        const uy = d > 0.01 ? dy / d : 0.3;
+        a.x = Math.max(10, Math.min(370, a.x - ux * push));
+        a.y = Math.max(10, Math.min(150, a.y - uy * push));
+        b.x = Math.max(10, Math.min(370, b.x + ux * push));
+        b.y = Math.max(10, Math.min(150, b.y + uy * push));
+      }
+  return pts;
+}
+
 /** freekickRev 5's reveal picture: the goal frame with every kick where it crossed the line, numbered. */
 function KicksOnGoal({ kicks }: { kicks: readonly FreekickKickSummary[] }) {
   const K = 44;
@@ -429,16 +454,21 @@ function KicksOnGoal({ kicks }: { kicks: readonly FreekickKickSummary[] }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxWidth: 440, maxHeight: "24vh" }} role="img" aria-label="Where each kick crossed the goal line">
       <rect x={0} y={140} width={W} height={30} fill="var(--jz-surface-2)" />
-      <rect x={gx(-half)} y={gy(2.44)} width={2 * half * K} height={2.44 * K} fill="var(--jz-surface)" stroke="var(--jz-white)" strokeWidth={4} />
-      {kicks.map((k, i) => {
-        if (!k.at) return null;
-        const x = Math.max(8, Math.min(W - 8, gx(k.at.x)));
-        const y = Math.max(10, Math.min(150, gy(k.at.y)));
+      <rect x={gx(-half)} y={gy(2.44)} width={2 * half * K} height={2.44 * K} fill="var(--jz-surface)" />
+      {/* The net: a fine mesh behind the frame. */}
+      {Array.from({ length: 23 }, (_, i) => (
+        <line key={`v${i}`} x1={gx(-half) + (i + 1) * 14} y1={gy(2.44)} x2={gx(-half) + (i + 1) * 14} y2={140} stroke="var(--jz-line)" strokeWidth={1} />
+      ))}
+      {Array.from({ length: 7 }, (_, i) => (
+        <line key={`h${i}`} x1={gx(-half)} y1={gy(2.44) + (i + 1) * 13.4} x2={gx(half)} y2={gy(2.44) + (i + 1) * 13.4} stroke="var(--jz-line)" strokeWidth={1} />
+      ))}
+      <path d={`M${gx(-half)},140 L${gx(-half)},${gy(2.44)} L${gx(half)},${gy(2.44)} L${gx(half)},140`} fill="none" stroke="var(--jz-white)" strokeWidth={5} />
+      {spread(kicks).map(({ k, i, x, y }) => {
         const goal = k.out === 1;
         return (
           <g key={i}>
-            <circle cx={x} cy={y} r={10} fill={goal ? "var(--jz-gold)" : "none"} stroke={goal ? "var(--jz-gold)" : "var(--jz-red)"} strokeWidth={2.5} />
-            <text x={x} y={y + 4.5} textAnchor="middle" fontSize={12} fontWeight={900} fill={goal ? "var(--jz-on-gold)" : "var(--jz-text)"}>
+            <circle cx={x} cy={y} r={9} fill={goal ? "var(--jz-gold)" : "var(--jz-bg)"} stroke={goal ? "var(--jz-on-gold)" : "var(--jz-red)"} strokeWidth={2} />
+            <text x={x} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={900} fill={goal ? "var(--jz-on-gold)" : "var(--jz-text)"}>
               {i + 1}
             </text>
           </g>

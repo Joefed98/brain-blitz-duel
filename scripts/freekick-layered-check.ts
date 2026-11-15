@@ -98,13 +98,18 @@ const ok = (cond: boolean, label: string) => {
   ok(fkHoopRFor(FREEKICK_REV_4, 9) === Math.trunc((FK_HOOP_R * 700) / 1000), "rev 4's hoop still shrinks to 70 %");
 }
 
-const fly = (k: FkKick, shot: { x: number; y: number; b: number; st: number }, calm = false) => {
-  const kk = calm ? fkCalm(k) : k;
+const fly = (k: FkKick, shot: { x: number; y: number; b: number; st: number }, ghost = false) => {
   const sol = fkV3Solve(fkCalm(k), shot.x, shot.y, shot.b, shot.st);
+  const kk = ghost ? fkCalm(k) : k;
   const f = fkV5Strike(kk, sol.a, shot.b, sol.c, shot.st);
+  // A ghost flight (still air, no wall, no keeper, no woodwork): the strike's own path.
+  if (ghost) {
+    f.wallSide = 2;
+    f.kx = 1000 * FK_M;
+  }
   let crossT = -1;
-  while (f.out === FK_OUT_NONE) {
-    fkFlightStep(kk, f);
+  while (f.out === FK_OUT_NONE && f.t < 200) {
+    fkFlightStep(kk, f, !ghost, !ghost);
     if (crossT < 0 && f.z >= FK_GOAL_Z) crossT = f.t;
   }
   return { f, crossT };
@@ -203,7 +208,7 @@ const fly = (k: FkKick, shot: { x: number; y: number; b: number; st: number }, c
 /* 8. The bands. */
 {
   const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
-  const band = (level: FkLevel, skill: SkillLevel, n = FULL ? 30 : 8) => {
+  const band = (level: FkLevel, skill: SkillLevel, n = FULL ? 30 : 16) => {
     const game = freekickGameFor(FREEKICK_REV_5, level);
     return med(FREEKICK_DEAL_V5[level].slice(0, n).map((seed) => storedScoreFkV5(seed, botV5({ game, seed, rev: 5, human: new Human("freekick", seed, skill) }).events, level)));
   };

@@ -1134,13 +1134,16 @@ function paintV3Bar(ctx: Ctx, state: FreekickState): void {
   ctx.fillText(label, W / 2, y - 13);
   // The bar: dark well, a fill to the needle, the gold zone.
   ctx.globalAlpha = aiming && state.aimed !== 1 ? 0.45 : 1;
-  ctx.fillStyle = "rgba(6,9,18,0.72)";
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, h / 2);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.22)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  if (state.freekickRev >= FREEKICK_REV_5) glassPill(ctx, x, y, w, h);
+  else {
+    ctx.fillStyle = "rgba(6,9,18,0.72)";
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, h / 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
   const at = (v: number) => x + 4 + ((w - 8) * v) / 1000;
   ctx.fillStyle = "rgba(255,255,255,0.2)";
   ctx.fillRect(x + 4, y + 5, at(value) - x - 4, h - 10);
@@ -1484,7 +1487,7 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   if (v5 && state.phase === FK_AIM && (state.strikeM ?? -1) < 0) {
     const live = freekickV4Ui.live;
     const type = live && live.length > 2 ? strikeFromStroke(live, liveCurl(live)) : state.aimed === 1 ? (state.strike ?? 0) : -1;
-    if (type >= 0) chipUi(ctx, W / 2, FK_V3_BAR.y - 62, STRIKE_LABEL[type]!.toUpperCase(), type !== 0, "center", 96);
+    if (type >= 0) chipUi(ctx, FK_V3_BAR.x + FK_V3_BAR.w, FK_V3_BAR.y - 56, STRIKE_LABEL[type]!.toUpperCase(), type !== 0, "right", 96);
   }
   if (v5 && state.phase === FK_OVER) paintKickDots(ctx, cam, state);
   for (let i = 0; i < FREEKICK_KICKS; i++) {
