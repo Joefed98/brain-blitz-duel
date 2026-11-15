@@ -13,6 +13,7 @@
  * start, 1 at planet 40), a low gradient that never washes over the play (minimal glow, no glare).
  */
 import { ORBIT_TOTAL } from "./orbit";
+import { ORBIT_PLANET_MAPS } from "./orbitPlanetMaps.data";
 
 /** The look a planet is drawn with (orbit.renderer.ts planetLook). */
 export interface OrbitPlanetLook {
@@ -257,6 +258,191 @@ export function orbitPlanetTurn(look: OrbitPlanetLook, t: number): number {
  * available (the caller then draws its flat fallback).
  */
 export function drawRenderedPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, look: OrbitPlanetLook, turn: number): boolean {
+  // The materials pass: a sphere projected from its surface map, once the map has loaded; the strip look until then.
+  const sphere = planetSphereFrame(look, r, turn);
+  if (sphere) {
+    ctx.drawImage(sphere, x - r, y - r, 2 * r, 2 * r);
+    return true;
+  }
+  return drawStripPlanet(ctx, x, y, r, look, turn);
+}
+
+/* ===================== The materials pass: projected spheres (15 Nov 2026) ===================== */
+/*
+ * Joe's materials note: premium materials need light on them. Each planet is a true sphere projected from one of six
+ * surface maps (public/orbit/planets, scripts/orbit-planet-maps.py: two banded gas giants, two cratered rocks, an icy
+ * world, an ocean world), tinted with its seeded colour (the ocean world keeps its own), lit by one sun from the upper
+ * left with a soft terminator into a deep night side, a thin lit atmosphere rim inside the disc (no glow past it), and a
+ * crisp specular highlight on water and ice (a broad, faint sheen on gas). Each rotation frame is baked once into a
+ * small canvas (SPHERE_FRAMES a turn) and kept in a bounded cache; nothing is drawn past the collision circle.
+ */
+type MapName = keyof typeof ORBIT_PLANET_MAPS;
+export interface OrbitMapPixels {
+  w: number;
+  h: number;
+  data: Uint8ClampedArray;
+}
+const mapStore = new Map<MapName, OrbitMapPixels | "loading" | "failed">();
+/** Frames a full turn (3° a frame). */
+export const SPHERE_FRAMES = 120;
+/** Baked at this many device px a world px (crisp on 2x screens). */
+const SPHERE_BAKE = 2;
+/** At most this many baked frames kept (about 8 MB at the largest planets). */
+const SPHERE_CACHE_MAX = 180;
+const sphereCache = new Map<string, HTMLCanvasElement>();
+
+/** Hands the renderer a decoded map (the review-frame tool and checks, which run without an Image). */
+export function setOrbitPlanetMap(name: MapName, pixels: OrbitMapPixels): void {
+  mapStore.set(name, pixels);
+}
+
+function loadMap(name: MapName): OrbitMapPixels | null {
+  const got = mapStore.get(name);
+  if (got && got !== "loading" && got !== "failed") return got;
+  if (got) return null;
+  if (typeof Image === "undefined" || typeof document === "undefined") {
+    mapStore.set(name, "failed");
+    return null;
+  }
+  mapStore.set(name, "loading");
+  const img = new Image();
+  img.decoding = "async";
+  img.onload = () => {
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const g = c.getContext("2d", { willReadFrequently: true });
+    if (!g) return void mapStore.set(name, "failed");
+    g.drawImage(img, 0, 0);
+    mapStore.set(name, { w: c.width, h: c.height, data: g.getImageData(0, 0, c.width, c.height).data });
+  };
+  img.onerror = () => mapStore.set(name, "failed");
+  img.src = ORBIT_PLANET_MAPS[name];
+  return null;
+}
+
+/** Which map a planet wears: gas giants one of two band patterns, rocky worlds two crater fields or (one in five) an ocean world. */
+export function orbitPlanetMapFor(look: OrbitPlanetLook): MapName {
+  if (look.type === 1) return (look.h >>> 5) & 1 ? "gas-a" : "gas-b";
+  if (look.type === 2) return "ice";
+  return look.h % 5 === 0 ? "ocean" : (look.h >>> 7) & 1 ? "rock-a" : "rock-b";
+}
+
+function planetSphereFrame(look: OrbitPlanetLook, r: number, turn: number): HTMLCanvasElement | null {
+  if (typeof document === "undefined" || r <= 0) return null;
+  const name = orbitPlanetMapFor(look);
+  const map = loadMap(name);
+  if (!map) return null;
+  const frame = ((Math.floor(turn * SPHERE_FRAMES) % SPHERE_FRAMES) + SPHERE_FRAMES) % SPHERE_FRAMES;
+  const key = `${look.h}:${look.colour}:${Math.round(r * 4)}:${frame}`;
+  const hit = sphereCache.get(key);
+  if (hit) {
+    sphereCache.delete(key);
+    sphereCache.set(key, hit);
+    return hit;
+  }
+  const canvas = bakeSphere(map, name, look, r, frame / SPHERE_FRAMES);
+  if (!canvas) return null;
+  sphereCache.set(key, canvas);
+  if (sphereCache.size > SPHERE_CACHE_MAX) sphereCache.delete(sphereCache.keys().next().value!);
+  return canvas;
+}
+
+/** The light: from the upper left and a little towards the viewer. */
+const LX = -0.56, LY = -0.6, LZ = 0.57;
+const LN = Math.hypot(LX, LY, LZ);
+const LIGHT = [LX / LN, LY / LN, LZ / LN] as const;
+/** The half vector between the light and the viewer, for the specular highlight. */
+const HN = Math.hypot(LIGHT[0], LIGHT[1], LIGHT[2] + 1);
+const HALF = [LIGHT[0] / HN, LIGHT[1] / HN, (LIGHT[2] + 1) / HN] as const;
+
+function bakeSphere(map: OrbitMapPixels, name: MapName, look: OrbitPlanetLook, r: number, turn: number): HTMLCanvasElement | null {
+  const S = Math.max(4, Math.min(132, Math.ceil(2 * r * SPHERE_BAKE)));
+  const c = makeCanvas(S, S);
+  const g = c?.getContext("2d") ?? null;
+  if (!c || !g) return null;
+  const img = g.createImageData(S, S);
+  const out = img.data;
+  const R = S / 2;
+  const [cr, cg, cb] = rgbOf(look.colour);
+  const ocean = name === "ocean";
+  const icy = name === "ice";
+  const gasy = name === "gas-a" || name === "gas-b";
+  const tilt = look.tilt * 0.35;
+  const ct = Math.cos(tilt), st = Math.sin(tilt);
+  const spin = turn * Math.PI * 2;
+  // The atmosphere rim's colour: the planet's own, much lighter.
+  const ar = cr + (255 - cr) * 0.7, ag = cg + (255 - cg) * 0.7, ab = cb + (255 - cb) * 0.75;
+  for (let py = 0; py < S; py++) {
+    for (let px = 0; px < S; px++) {
+      const x = (px + 0.5 - R) / R;
+      const y = (py + 0.5 - R) / R;
+      const d2 = x * x + y * y;
+      const cover = Math.max(0, Math.min(1, (1 - Math.sqrt(d2)) * R + 0.5));
+      if (cover <= 0) continue;
+      const z = Math.sqrt(Math.max(0, 1 - Math.min(1, d2)));
+      const tx = x * ct + y * st;
+      const ty = -x * st + y * ct;
+      const lon = Math.atan2(tx, z) + spin;
+      const lat = Math.asin(Math.max(-1, Math.min(1, ty)));
+      let u = lon / (Math.PI * 2);
+      u -= Math.floor(u);
+      const mx = Math.min(map.w - 1, Math.floor(u * map.w));
+      const my = Math.min(map.h - 1, Math.floor((lat / Math.PI + 0.5) * map.h));
+      const i = (my * map.w + mx) * 4;
+      let br: number, bg: number, bb: number;
+      if (ocean) {
+        br = map.data[i]!;
+        bg = map.data[i + 1]!;
+        bb = map.data[i + 2]!;
+      } else {
+        // The tint: a dark shade, the planet's colour, then a light shade, along the map's brightness.
+        // The map's detail, with its contrast lifted so bands and craters read at the planets' small sizes.
+        const t = Math.max(0, Math.min(1, 0.5 + (map.data[i]! / 255 - 0.5) * 1.6));
+        if (t < 0.5) {
+          const k = t / 0.5;
+          br = cr * (0.22 + 0.78 * k);
+          bg = cg * (0.22 + 0.78 * k);
+          bb = cb * (0.28 + 0.72 * k);
+        } else {
+          const k = (t - 0.5) / 0.5;
+          const w = icy ? 0.5 : 0.28;
+          br = cr + (255 - cr) * k * w;
+          bg = cg + (255 - cg) * k * w;
+          bb = cb + (255 - cb) * k * w;
+        }
+      }
+      // Diffuse light with a soft terminator into a deep (never black) night side.
+      const dot = x * LIGHT[0] + y * LIGHT[1] + z * LIGHT[2];
+      const lit = dot <= -0.12 ? 0 : dot >= 0.35 ? 1 : ((dot + 0.12) / 0.47) ** 1.4;
+      const diffuse = 0.06 + 1.02 * lit * (0.55 + 0.45 * Math.max(0, dot));
+      let rr = br * diffuse, gg = bg * diffuse, b2 = bb * diffuse;
+      // The atmosphere rim: a thin lit band just inside the edge on the day side (no glow past the disc).
+      // A fainter back-lit edge on the night side keeps the sphere's outline against black space.
+      const rim = Math.pow(1 - z, 3) * Math.max(0, Math.min(1, dot + 0.45)) * (gasy ? 0.55 : 0.75) + Math.pow(1 - z, 5) * 0.22;
+      rr += (ar - rr) * rim;
+      gg += (ag - gg) * rim;
+      b2 += (ab - b2) * rim;
+      // A crisp specular highlight on water and ice, a broad faint sheen on gas and rock.
+      const ndh = Math.max(0, x * HALF[0] + y * HALF[1] + z * HALF[2]);
+      const water = ocean ? (map.data[i + 2]! > map.data[i + 1]! + 20 ? 1 : 0.15) : icy ? 0.6 : 0;
+      const spec = water ? Math.pow(ndh, 46) * 0.85 * water : gasy ? Math.pow(ndh, 12) * 0.12 : Math.pow(ndh, 24) * 0.1;
+      rr += (255 - rr) * spec;
+      gg += (255 - gg) * spec;
+      b2 += (255 - b2) * spec;
+      const o = (py * S + px) * 4;
+      out[o] = rr;
+      out[o + 1] = gg;
+      out[o + 2] = b2;
+      out[o + 3] = cover * 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+
+/** The strip look (before the materials pass), kept while a map loads. */
+function drawStripPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, look: OrbitPlanetLook, turn: number): boolean {
   const surface = planetSurface(look, r);
   const shade = planetShade(look.colour, r);
   if (!surface || !shade) return false;

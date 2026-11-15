@@ -282,6 +282,31 @@ const planets = await import("../src/lib/arcade/orbitPlanets.renderer");
     if (!drawn) outside += 1e6;
   }
   ok(outside === 0, `a rendered planet draws nothing past its collision circle + 2 px (${outside} px)`);
+  // The materials pass: the six surface maps shipped are small and every projected sphere keeps inside its circle too.
+  const { ORBIT_PLANET_MAPS, ORBIT_PLANET_MAP_BYTES } = await import("../src/lib/arcade/orbitPlanetMaps.data");
+  const { loadImage } = await import("@napi-rs/canvas");
+  let bytes = 0, sphereOut = 0, sphereDrawn = 0;
+  for (const name of Object.keys(ORBIT_PLANET_MAPS) as (keyof typeof ORBIT_PLANET_MAPS)[]) {
+    const file = `public/orbit/planets/${name}.webp`;
+    bytes += readFileSync(file).length;
+    const img = await loadImage(file);
+    const mc = createCanvas(img.width, img.height);
+    const mx = mc.getContext("2d");
+    mx.drawImage(img, 0, 0);
+    planets.setOrbitPlanetMap(name, { w: img.width, h: img.height, data: mx.getImageData(0, 0, img.width, img.height).data as unknown as Uint8ClampedArray });
+  }
+  for (const [type, h] of [[1, 32], [1, 0], [0, 5], [0, 128], [0, 1], [2, 7]] as const) {
+    const lk = { ...look, type, h };
+    const cv = createCanvas(120, 120);
+    const ctx = cv.getContext("2d");
+    if (planets.drawRenderedPlanet(ctx as never, 60, 60, 30, lk, 0.61)) sphereDrawn++;
+    const data = ctx.getImageData(0, 0, 120, 120).data;
+    for (let y = 0; y < 120; y++)
+      for (let x = 0; x < 120; x++) if (Math.hypot(x + 0.5 - 60, y + 0.5 - 60) > 32 && data[(y * 120 + x) * 4 + 3]! > 0) sphereOut++;
+  }
+  const maps = new Set([[1, 32], [1, 0], [0, 5], [0, 128], [0, 1], [2, 7]].map(([type, h]) => planets.orbitPlanetMapFor({ ...look, type: type!, h: h! })));
+  ok(bytes === ORBIT_PLANET_MAP_BYTES && bytes <= 400_000, `the planet maps ship ${bytes} bytes (at most 400 KB; the data file says ${ORBIT_PLANET_MAP_BYTES})`);
+  ok(sphereDrawn === 6 && maps.size === 6 && sphereOut === 0, `every surface map projects a sphere inside its collision circle (${sphereDrawn} drawn, ${maps.size} maps, ${sphereOut} px outside)`);
   ok(planets.orbitPlanetTurn(look, 0) === 0 && planets.orbitPlanetTurn(look, 10) !== planets.orbitPlanetTurn(look, 20), "the surface turns with the round clock and stands at t = 0 (reduced motion)");
 }
 
