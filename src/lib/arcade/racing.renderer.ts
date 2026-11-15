@@ -32,6 +32,9 @@ import {
   NEON_NIGHT_NEAR,
   NEON_NIGHT_TREE,
   neonNightChase,
+  neonNightLayerKey,
+  paintNeonNear,
+  paintNeonTower,
   paintNeonCity,
   paintNeonNightSky,
   paintNeonNightStars,
@@ -353,7 +356,7 @@ const STAND_H = 120;
 
 function layersFor(scale: number): Layers {
   const s = Math.max(1, Math.min(3, Math.round(scale * 2) / 2));
-  const key = lookKey(SK);
+  const key = lookKey(SK) + (SK.world ? neonNightLayerKey() : "");
   const cacheKey = key ? `${s}|${key}` : s;
   const hit = layerCache.get(cacheKey);
   if (hit) return hit;
@@ -371,7 +374,7 @@ function layersFor(scale: number): Layers {
     far: surf(HILL_W, FAR_H, (c) => (SK.world ? paintNeonCity(c, HILL_W, FAR_H) : paintHillStrip(c, HILL_W, FAR_H, 3, "#8A5A7A", "#5E4466", "rgba(255,190,150,0.55)", 52, false))),
     near: surf(HILL_W, NEAR_H, (c) =>
       SK.world
-        ? paintHillStrip(c, HILL_W, NEAR_H, 11, NEON_NIGHT_NEAR.top, NEON_NIGHT_NEAR.bottom, NEON_NIGHT_NEAR.rim, 40, false)
+        ? paintNeonNear(c, HILL_W, NEAR_H) || paintHillStrip(c, HILL_W, NEAR_H, 11, NEON_NIGHT_NEAR.top, NEON_NIGHT_NEAR.bottom, NEON_NIGHT_NEAR.rim, 40, false)
         : paintHillStrip(c, HILL_W, NEAR_H, 11, "#4A3B48", "#2E2A30", "rgba(255,170,110,0.6)", 40, true),
     ),
     car: surf(CAR_SPRITE_W, CAR_SPRITE_H, (c) => paintRacingCar(c, CAR_SPRITE_W / 2, CAR_SPRITE_H - 2, CAR_SPRITE_W, false)),
@@ -388,6 +391,7 @@ function layersFor(scale: number): Layers {
 
 /** A roadside tree (silhouette with a warm rim from the low sun), its trunk's foot at (x, y). */
 function paintTree(ctx: Ctx2D, x: number, y: number, h: number, variant: number): void {
+  if (SK.world && paintNeonTower(ctx as CanvasRenderingContext2D, x, y, h, variant)) return;
   ctx.fillStyle = SK.world ? NEON_NIGHT_TREE.trunk : "#2B1E18";
   ctx.fillRect(x - h * 0.025, y - h * 0.3, h * 0.05, h * 0.3);
   const body = SK.world ? NEON_NIGHT_TREE.body : variant === 0 ? "#22301F" : variant === 1 ? "#283522" : "#1E2A20";
