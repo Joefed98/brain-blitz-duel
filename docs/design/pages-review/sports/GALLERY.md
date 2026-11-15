@@ -42,6 +42,11 @@ The Captain's cue arm, gripping the butt and drawing back with the pull, the int
 
 <img src="pool-fx-2.webp" width="580">
 
+Close-up clips at phone size (stage 3's start): the strike, a contact flash (gold rays and a ring, no glare), a jaw rattle
+(the ball shivers along the jaw, with two short arcs where it struck) and a pot flying to the rack.
+
+<img src="clip-pool-strike.webp" width="180"> <img src="clip-pool-contact.webp" width="180"> <img src="clip-pool-rattle.webp" width="180"> <img src="clip-pool-pot.webp" width="300">
+
 **Answer reveal: today, then new.** The new reveal draws the table full width on its side. Each potted ball sits by its
 pocket in order, fouls show where they happened, and four plain tiles sit under the table (spots potted, the black,
 best streak, fouls), above the parts breakdown. In stage 2 the pots land on the table one by one and the tiles count up.
@@ -122,3 +127,10 @@ Today's track beside the three circuits after stage 2:
 The right-hand shot is an unfinished race. In stage 2 the lap times and the average speed count up.
 
 <img src="racing-reveal.webp" width="760">
+
+## Practice tiles
+
+The three tiles, today and new, drawn with the rendered art: Cue Ball's table, Curl Champ's granite stones and Apex's
+car with the Captain at the wheel.
+
+<img src="tiles.webp" width="560">
