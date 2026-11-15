@@ -22,7 +22,7 @@ export function poolSummaryStats(ev: PoolRunEvents, rev: number): { label: strin
     { label: "Best streak", value: ev.streakBest === 1 ? "1 pot" : `${ev.streakBest} pots` },
   ];
   const fouls = ev.fouls.length;
-  out.push({ label: "Fouls", value: fouls === 0 ? "None" : `${fouls} (−${poolPenalty(ev.state)})`, ...(fouls > 0 ? { tone: "bad" as const } : {}) });
+  out.push({ label: "Fouls", value: fouls === 0 ? "0" : `${fouls} (−${poolPenalty(ev.state)})`, ...(fouls > 0 ? { tone: "bad" as const } : {}) });
   return out;
 }
 
