@@ -467,7 +467,9 @@ function useHostSpace(fallback: { w: number; h: number }) {
   const root = useRef<HTMLDivElement | null>(null);
   const [space, setSpace] = useState(fallback);
   useBeforePaint(() => {
-    const host = root.current?.parentElement;
+    // The Number overhaul's reveal: the board's own box (flex-filled, min-height 0), so the pyramid is sized to the space
+    // the reveal really has, never to a parent that grows with what it holds.
+    const host = root.current;
     if (!host) return;
     const read = () => setSpace({ w: host.clientWidth, h: host.clientHeight });
     const ro = new ResizeObserver(read);
@@ -548,7 +550,9 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
   const gap = 4;
   const pyramidW = Math.min(space.w, 420) - 12;
   const cellW = Math.max(28, Math.min(68, Math.floor((pyramidW - (rows - 1) * gap) / rows)));
-  const room = space.h - 52 - (both ? 56 : 0) - 34 - 40 - (dev ? 16 : 0);
+  // Under the pyramid: the tabs (44 + 12), the switch (44 + 10), the note (24 + 10) and the facts (two rows on a small
+  // phone, 52 + 12).
+  const room = space.h - 56 - (both ? 54 : 0) - 34 - 64 - (dev ? 16 : 0);
   const cellH = Math.max(26, Math.min(58, Math.floor((room - (rows - 1) * gap) / rows), Math.round(cellW * 0.86)));
   const fontSize = Math.max(14, Math.min(26, Math.floor(Math.min(cellH * 0.56, cellW * 0.44))));
   const done = boards.filter((b) => b.mark === "right").length;

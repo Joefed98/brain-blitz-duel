@@ -140,7 +140,8 @@
   flex: 1 1 auto;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Never spill above the tabs when a board is taller than the space (it scrolls down instead). */
+  justify-content: safe center;
   gap: 10px;
 }
 .nrv-view {

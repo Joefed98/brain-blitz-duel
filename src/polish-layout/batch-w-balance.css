@@ -49,3 +49,19 @@
   display: inline-flex;
   gap: 6px;
 }
+/* Every part keeps its height; the panel scrolls rather than squeezing one part over another. */
+.bal-reveal .nrv-tabs,
+.bal-reveal .nrv-view,
+.bal-reveal-stage,
+.bal-reveal-note,
+.bal-reveal-tray,
+.bal-reveal .nrv-facts,
+.bal-reveal-torque {
+  flex-shrink: 0;
+}
+/* The reveal's balance plaque sits in the flow under the scale (the live one is placed on the beam). */
+[data-polish="balance"] .bal-reveal-torque {
+  position: static;
+  translate: none;
+  margin-top: -2px;
+}

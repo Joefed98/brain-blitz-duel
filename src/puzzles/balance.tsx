@@ -534,8 +534,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   );
 }
 
-/** The reveal's beam: as large as the panel allows, one scale at a time. */
-const REVEAL_BEAM_HEIGHT = 250;
+/** The reveal's beam height: about a quarter of the screen's height, 170–250 px (a 375 × 667 phone fits it all). */
+const revealBeamHeight = (screenHeight: number) => Math.round(Math.min(250, Math.max(170, screenHeight * 0.27)));
 
 /**
  * The answer reveal (the Number overhaul, 15 Nov 2026): one scale at a time, drawn large with its rendered art, on
@@ -564,6 +564,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   const stageWidth = useWidth(stage);
   const pegs = scale ? scalePegs(scale) : 8;
   const spacing = stageWidth > 0 ? Math.max(30, Math.min(44, Math.floor((stageWidth - 12) / pegs))) : 36;
+  const [beamHeight, setBeamHeight] = useState(250);
+  useBeforePaint(() => setBeamHeight(revealBeamHeight(window.innerHeight)), []);
   const solution = data?.solutions?.[index] ?? null;
   const right = !!okAt[index];
   const [side, setSide] = useState<RevealSide>("solution");
@@ -584,9 +586,17 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
       <RevealBoards noun="Scale" marks={marks} index={index} onIndex={(i) => { setIndex(i); setSide("solution"); }}>
         {canSwitch ? <RevealView value={showing} onChange={setSide} /> : null}
         <div ref={stage} className="bal-reveal-stage" data-reveal-side={showing}>
-          <Beam scale={scale} placement={shown} spacing={spacing} height={REVEAL_BEAM_HEIGHT}
-            torque={balanceTorqueText(scale, shown)} {...(moved ? { marks: moved } : {})} />
+          <Beam scale={scale} placement={shown} spacing={spacing} height={beamHeight} {...(moved ? { marks: moved } : {})} />
         </div>
+        {/* The balance, left | right, under the scale (in the flow, so a short screen never draws it over the note). */}
+        {(() => {
+          const [l, r] = balanceTorqueText(scale, shown).split(" | ");
+          return (
+            <div data-balance-torque="" className="bal-torque bal-reveal-torque" aria-label={`Left ${l}, right ${r}`}>
+              <span>{l}</span><i aria-hidden="true">|</i><span>{r}</span>
+            </div>
+          );
+        })()}
         {showing === "solution" && moved && moved.size > 0 ? (
           <p className="bal-reveal-note"><span className="bal-reveal-ring" aria-hidden="true" /> Hung differently from yours</p>
         ) : null}

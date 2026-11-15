@@ -559,20 +559,20 @@ function Reveal(props: PuzzleRevealProps) {
 }
 
 const EXACT_REVEAL_CSS = `
-.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 12px; text-align: center; font-family: var(--jz-font); }
+.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-family: var(--jz-font); }
 .exact-rv-head { display: grid; width: 100%; grid-template-columns: 1fr 1fr; gap: 10px; }
-.exact-rv-plate { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 112px; padding: 10px 6px; border-radius: 16px; }
+.exact-rv-plate { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 96px; padding: 8px 6px; border-radius: 16px; }
 .exact-rv-plate[data-plate="target"] { background: url("/number/target/target.webp") center / 100% 100% no-repeat; color: var(--jz-on-gold); }
 .exact-rv-plate[data-plate="yours"] { background: var(--jz-surface-2); color: var(--jz-text); }
 .exact-rv-plate-label { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
-.exact-rv-plate-value { font-size: 46px; line-height: 1.05; font-weight: 900; font-variant-numeric: tabular-nums; }
+.exact-rv-plate-value { font-size: 42px; line-height: 1.05; font-weight: 900; font-variant-numeric: tabular-nums; }
 .exact-rv-plate-note { font-size: 15px; font-weight: 700; color: var(--jz-text-2); }
 .exact-rv-plate[data-hit] .exact-rv-plate-note { color: var(--jz-gold); }
-.exact-rv-route { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 8px; }
+.exact-rv-route { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; }
 .exact-rv-caption { font-size: 14px; font-weight: 600; color: var(--jz-text-2); }
 .exact-rv-step { display: flex; align-items: center; justify-content: center; gap: 6px; }
-.exact-rv-tile { display: inline-flex; min-width: 56px; height: 46px; align-items: center; justify-content: center; padding: 0 8px; border-radius: 10px;
-  background: url("/number/target/tile.webp") center / 100% 100% no-repeat; color: #fff; font-size: 21px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.exact-rv-tile { display: inline-flex; min-width: 54px; height: 42px; align-items: center; justify-content: center; padding: 0 8px; border-radius: 10px;
+  background: url("/number/target/tile.webp") center / 100% 100% no-repeat; color: #fff; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .exact-rv-tile[data-made] { background-image: url("/number/target/tile-large.webp"); }
 .exact-rv-tile[data-hit] { background-image: url("/number/target/tile-picked.webp"); color: var(--jz-on-gold); }
 .exact-rv-op { min-width: 18px; font-size: 22px; font-weight: 800; color: var(--jz-text); }
