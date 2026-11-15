@@ -29,7 +29,8 @@ import {
   BT2_WORLD_W,
   type BastionTankState,
 } from "@/lib/arcade/bastionTank";
-import { bastionScene, bastionTankArtGameFor, BT2_ART_BG } from "@/lib/arcade/bastionTank.renderer";
+import { bastionScene, bastionSceneKey, bastionIronArtGame, bastionTankArtGameFor, BT2_ART_BG } from "@/lib/arcade/bastionTank.renderer";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { bastionTankSounds } from "@/lib/fx/gameSounds";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { BASTION_TIME_MS, type BastionPuzzleData } from "@/lib/duel/types";
@@ -187,64 +188,21 @@ function LegacyReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /* ============================== bastionRev 2 ============================== */
 
-/** Fixed intro still (the mockup's look): the road at dusk, a drone in the sky, a scout far off, a heavy close with its orange weak spot under the crosshair, the bottom panel. */
+/**
+ * The intro still (Action overhaul, 15 Nov 2026): Iron Wall's own art (bastionRev 3) on a fixed seed a few seconds in
+ * with no input, so the intro shows the real road, tanks and panel rather than a drawing of them.
+ */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 200 150" width={200} height={150} aria-hidden="true" style={{ background: BT2_ART_BG, borderRadius: 10 }}>
-        <defs>
-          <linearGradient id="bt2-sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#2A3240" />
-            <stop offset="1" stopColor="#46515F" />
-          </linearGradient>
-        </defs>
-        <rect width="200" height="50" fill="url(#bt2-sky)" />
-        <path d="M0 50 L0 42 L14 34 L28 44 L44 28 L60 42 L76 32 L92 44 L110 26 L126 40 L144 30 L162 44 L178 34 L200 42 L200 50 Z" fill="#262B33" />
-        {/* A drone crossing the sky (Iron Wall, bastionRev 3). */}
-        <g transform="translate(150 20)">
-          <rect x="-6" y="-1.6" width="12" height="1" fill="#1B1E24" />
-          <ellipse cx="-6" cy="-3" rx="2.4" ry="0.8" fill="#D7E1EE" opacity="0.6" />
-          <ellipse cx="6" cy="-3" rx="2.4" ry="0.8" fill="#D7E1EE" opacity="0.6" />
-          <path d="M-5 0 L4 -2.2 L5.5 0 L4 2 Z" fill="#3E4450" stroke="#E1E8F2" strokeWidth="0.5" />
-          <circle cx="-4.5" cy="-0.3" r="1" fill="#FF4A3D" />
-        </g>
-        <rect y="50" width="200" height="66" fill="#665640" />
-        <path d="M97 50 L103 50 L164 116 L36 116 Z" fill="#96806052" />
-        <path d="M99 52 L78 116 M101 52 L122 116" stroke="#E1D2B48C" strokeWidth="1.2" strokeDasharray="5 6" />
-        {/* A scout far off, left lane. */}
-        <rect x="62" y="66" width="18" height="8" fill="#5A6340" />
-        <rect x="62" y="71" width="18" height="3" fill="#1C1E22" />
-        <rect x="67" y="62" width="8" height="4" fill="#66704A" />
-        <circle cx="71" cy="71" r="2" fill="#F29A2E" />
-        <rect x="68" y="58" width="6" height="2" fill="#FF7A3C" />
-        {/* A heavy close in the centre lane, its weak spot under the crosshair. */}
-        <rect x="74" y="92" width="52" height="22" fill="#7A4434" />
-        <rect x="74" y="106" width="52" height="8" fill="#1C1E22" />
-        <rect x="87" y="80" width="26" height="12" fill="#8A5141" />
-        <circle cx="100" cy="86" r="2.6" fill="#121317" />
-        <circle cx="108" cy="89" r="4" fill="#F29A2E" />
-        <circle cx="108" cy="89" r="2.2" fill="#FFD36A" />
-        {[0, 1, 2, 3].map((i) => (
-          <rect key={i} x={87 + i * 7} y={74} width={6} height={2.6} fill={i < 3 ? "#FF7A3C" : "#33373F"} />
-        ))}
-        <circle cx="108" cy="89" r="8" fill="none" stroke="#fff" strokeWidth="1.2" />
-        <path d="M108 77 v5 M108 96 v5 M96 89 h5 M115 89 h5" stroke="#fff" strokeWidth="1.2" />
-        <circle cx="108" cy="89" r="1.6" fill="#FFB547" />
-        <rect y="116" width="200" height="8" fill="#22262E" />
-        <path d="M96 124 L98 104 L104 104 L106 124 Z" fill="#3B4250" />
-        <rect y="124" width="200" height="26" fill="#14171D" />
-        {[0, 1, 2, 3, 4].map((i) => (
-          <rect key={i} x={52 + i * 28} y={128} width={24} height={7} rx={2} fill={i < 3 ? "#FFB547" : "#2A2E36"} />
-        ))}
-        <rect x="52" y="140" width="136" height="4" rx="2" fill="#2A2E36" />
-        <rect x="52" y="140" width="56" height="4" rx="2" fill="#8FD6A0" />
-        <text x="8" y="134" fontSize="6" fill="#BDBDCC" fontWeight="700">SHELLS</text>
-        <text x="8" y="144" fontSize="6" fill="#BDBDCC" fontWeight="700">RELOAD</text>
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks, hit the glowing weak spot while it is open for double damage, and shoot down the drones.
-      </p>
-    </div>
+    <ArtStill
+      game={bastionIronArtGame}
+      worldW={BT2_WORLD_W}
+      worldH={BT2_WORLD_H}
+      seed={7}
+      ticks={330}
+      input={null}
+      caption="Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks, hit the glowing weak spot while it is open for double damage, and shoot down the drones."
+    />
   );
 }
 
@@ -296,6 +254,7 @@ function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps
       background={BT2_ART_BG}
       fitWorld
       scene={bastionScene}
+      sceneKey={bastionSceneKey}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

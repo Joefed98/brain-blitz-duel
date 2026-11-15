@@ -343,6 +343,16 @@ Already sounded: gate (`tilt.gate`), maze done (`tilt.mazeDone`), cup (`tilt.cup
 | Cue | When | Looks like | File | Per run | Length |
 | --- | --- | --- | --- | --- | --- |
 | `bastion.drone` | bastionRev 3: while a drone is in the sky and not yet downed (faded out when it is downed, flies off or the run ends) | A small dark drone with a blinking red light crosses the sky | none yet (silent until it has a file) | loop | loop |
+| `bastion.weakTing` | Action overhaul: a shell hits an open weak spot (on top of `bastion.weak`; also a weak-spot kill) | The gold flash on the weak spot | none yet (silent until it has a file) | 0–36 | 260 ms |
+| `bastion.shellIn` | Action overhaul: a fast reload ends and the shells snap back in | The five shell slots refill | none yet (silent until it has a file) | 0–15 | 90 ms |
+| `bastion.jamGrind` | Action overhaul: the gun jams (on top of `bastion.jam`) | The needle turns red | none yet (silent until it has a file) | 0–10 | 700 ms |
+| `bastion.debris` | Action overhaul: a tank is destroyed (after `bastion.kill`) | The burst and smoke where the tank was | none yet (silent until it has a file) | 0–30 | 600 ms |
+| `bastion.nearMiss` | Action overhaul: a shell lands on open ground within a tank-length of a tank's hull | The dust puff where it landed | none yet (silent until it has a file) | 0–40 | 350 ms |
+| `bastion.panelCrack` | Action overhaul: the base is hit (after `bastion.baseHit`) | The red edge flash | none yet (silent until it has a file) | 0–3 | 500 ms |
+| `bastion.wallHeld` | Action overhaul: the run ends with the base standing (the clock out or every tank gone) | WALL HELD (stage 2) | none yet (silent until it has a file) | 0–1 | 1800 ms |
+| `bastion.tip` | Action overhaul: the one-time reload tip appears (the first time the magazine runs dry) | "Tip: swipe down to reload early" on the panel | none yet (silent until it has a file) | 0–1 | 300 ms |
+| `bastion.dustWind` | Action overhaul: waves 3–4, the dusty desert setting (an ambience bed under the music) | Amber haze and sand hills | none yet (silent until it has a file) | loop | loop |
+| `bastion.stormFire` | Action overhaul: wave 5, the battle-smoke storm (an ambience bed under the music) | Smoke columns and fires on the skyline | none yet (silent until it has a file) | loop | loop |
 
 Already sounded: the drone shot down (`bastion.droneDown`, arcade.md), every shell, hit, reload and wave (arcade.md).
 

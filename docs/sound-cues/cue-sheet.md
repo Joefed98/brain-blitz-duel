@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 45 | 0 | 488 | 533 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 71 | 1 | 984 | 1056 |
 
 ## Silent and placeholder cues
 
@@ -259,6 +259,21 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
+
+### Iron Wall
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bastion.weakTing` |  [arcade-effects.md] | The gold flash on the weak spot | 5–40 (per move) | silent | none | 260 | game event | `bastion.weakTing` |
+| `bastion.shellIn` |  [arcade-effects.md] | The five shell slots refill | 5–40 (per move) | silent | none | 90 | game event | `bastion.shellIn` |
+| `bastion.jamGrind` |  [arcade-effects.md] | The needle turns red | 5–40 (per move) | silent | none | 700 | game event | `bastion.jamGrind` |
+| `bastion.debris` |  [arcade-effects.md] | The burst and smoke where the tank was | 5–40 (per move) | silent | none | 600 | game event | `bastion.debris` |
+| `bastion.nearMiss` |  [arcade-effects.md] | The dust puff where it landed | 5–40 (per move) | silent | none | 350 | game event | `bastion.nearMiss` |
+| `bastion.panelCrack` |  [arcade-effects.md] | The red edge flash | 5–40 (per move) | silent | none | 500 | game event | `bastion.panelCrack` |
+| `bastion.wallHeld` |  [arcade-effects.md] | WALL HELD (stage 2) | 5–40 (per move) | silent | none | 1800 | game event | `bastion.wallHeld` |
+| `bastion.tip` |  [arcade-effects.md] | "Tip: swipe down to reload early" on the panel | 5–40 (per move) | silent | none | 300 | game event | `bastion.tip` |
+| `bastion.dustWind` |  [arcade-effects.md] | Amber haze and sand hills | 5–40 (per move) | silent | none | loop | game event | `bastion.dustWind` |
+| `bastion.stormFire` |  [arcade-effects.md] | Smoke columns and fires on the skyline | 5–40 (per move) | silent | none | loop | game event | `bastion.stormFire` |
 
 ### Rooftop Run
 

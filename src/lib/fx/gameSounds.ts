@@ -6,6 +6,7 @@
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
 import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
+import { bastionNearMiss, bastionSettingNow, bastionSwipeHint } from "@/lib/arcade/bastionLook";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, isMusicMuted, musicVolume, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import { haptic, type HapticPattern } from "@/lib/haptics";
@@ -1235,27 +1236,52 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
         if (state.dry > prev.dry) sfx("bastion.dry", "tick", 0.5);
         if (state.reloads > prev.reloads) sfx("bastion.reload", "arc_latch", 0.7);
         if (state.fast > prev.fast) sfx("bastion.fastReload", "arc_retro_coin", 0.8);
-        if (state.jams > prev.jams) sfx("bastion.jam", "arc_clank", 0.9);
+        if (state.jams > prev.jams) {
+          sfx("bastion.jam", "arc_clank", 0.9);
+          effectCue("bastion.jamGrind");
+        }
+        // The one-time reload tip (Action overhaul): a soft cue as it appears.
+        if (bastionSwipeHint(state) && !bastionSwipeHint(prev)) effectCue("bastion.tip");
+        // A fast reload's shells snapping back in as the reload ends.
+        if (prev.reloadAt >= 0 && state.reloadAt < 0 && prev.reloadTap === 1) effectCue("bastion.shellIn");
         if (prev.reloadAt >= 0 && state.reloadAt < 0) sfx("bastion.loaded", "arc_latch", 0.5, 1.3);
         const fresh = state.impacts.filter((m) => m.t > prev!.tick);
         for (const m of fresh) {
           if (m.r === 5) sfx("bastion.droneDown", "arc_retro_explode", 0.85);
-          else if (m.r >= 3) sfx("bastion.kill", "arc_big_explode", 0.9);
-          else if (m.r === 2) sfx("bastion.weak", "arc_pickup", 0.8);
+          else if (m.r >= 3) {
+            sfx("bastion.kill", "arc_big_explode", 0.9);
+            effectCue("bastion.debris");
+            if (m.r === 4) effectCue("bastion.weakTing");
+          } else if (m.r === 2) {
+            sfx("bastion.weak", "arc_pickup", 0.8);
+            effectCue("bastion.weakTing");
+          }
           else if (m.r === 1) sfx("bastion.hit", "arc_retro_hit", 0.8);
-          else sfx("bastion.miss", "arc_fair_thud", 0.5);
+          else {
+            sfx("bastion.miss", "arc_fair_thud", 0.5);
+            if (bastionNearMiss(state, m)) effectCue("bastion.nearMiss");
+          }
         }
         if (state.breached > prev.breached) {
           sfx("bastion.baseHit", "arc_crash", 1);
+          effectCue("bastion.panelCrack");
           feel("impact");
         }
         if (bastionWave(state) !== bastionWave(prev) || (prev.tick < BT2_WAVE_START[0] && state.tick >= BT2_WAVE_START[0])) sfx("bastion.wave", "arc_horn", 0.6);
+        // The wall held: the clock ran out or every tank is gone with the base standing.
+        if (prev.ended === 0 && (state.ended === 1 || state.ended === 3)) effectCue("bastion.wallHeld");
       }
       loopCue("bastion.drone", running && state.ended === 0 && bastionDroneUp(state));
+      // The setting's ambience (Action overhaul): desert wind in waves 3–4, the storm's fires in wave 5.
+      const setting = bastionSettingNow(state);
+      ambienceCue("bastion.dustWind", running && state.ended === 0 && setting === 1);
+      ambienceCue("bastion.stormFire", running && state.ended === 0 && setting === 2);
       prev = state;
     },
     stop() {
       loopCue("bastion.drone", false);
+      loopCue("bastion.dustWind", false);
+      loopCue("bastion.stormFire", false);
       prev = null;
     },
   };
