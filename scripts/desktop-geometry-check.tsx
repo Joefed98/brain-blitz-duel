@@ -67,7 +67,13 @@ const RAIL_COMPACT = 76;
 const ROOM_PANEL = 380;
 /** A room page's column beside the compact rail (and the panel). */
 const PAGE_MAX = 760;
-const PUZZLE_MAX_W = 760;
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): the arena's puzzle column is
+// 85 % of the screen's height, between 760 (as before) and 960 px, between the rail and the 320 px arena panel
+// (lib/gameFrame/arena.ts, polish-layout/game-fx.css).
+const PUZZLE_MAX_W = 960;
+const puzzleMaxW = (innerH: number) => Math.min(PUZZLE_MAX_W, Math.max(760, 0.85 * innerH));
+/** The arena's side panel outside a room (lib/gameFrame/arena.ts ARENA_PANEL_W). */
+const ARENA_PANEL = 320;
 const PUZZLE_MAX_H = 1100;
 /** An arcade column's width by desktop mode (desktop-layout.css); no height cap but the screen's. */
 const ARCADE_MAX_W = { tall: 640, wide: 960, rotate: 1000 } as const;
@@ -196,7 +202,9 @@ function playProbe() {
   const arena = slot?.querySelector(":scope > [data-game-arena]") ?? stage?.querySelector("[data-game-arena]") ?? null;
   const canvas = arena?.querySelector("canvas") ?? null;
   const header = document.querySelector("[data-arcade-header]");
-  const timer = header?.querySelector("[role='timer']") ?? null;
+  // The arena (15 Nov 2026): the timer is in the side panel, the header not drawn.
+  const arenaPanel = document.querySelector("[data-arena-panel], [data-arena-mount]");
+  const timer = (arenaPanel ?? header)?.querySelector("[role='timer']") ?? null;
   const scene = shell?.querySelector(":scope > [data-arena-scene]") ?? null;
   const slotStyle = slot ? getComputedStyle(slot) : null;
   return {
@@ -211,9 +219,13 @@ function playProbe() {
     arena: box(arena),
     canvas: canvas ? { css: box(canvas), w: canvas.width, h: canvas.height } : null,
     header: box(header),
+    arenaPanel: box(document.querySelector("[data-arena-panel]") ?? document.querySelector(".dk-room-panel")),
     timer: box(timer),
     ring: box(timer?.querySelector("svg") ?? null),
     seconds: timer?.querySelector("span") ? parseFloat(getComputedStyle(timer.querySelector("span")!).fontSize) : 0,
+    timerLook: timer?.querySelector("[data-timer-look]")?.getAttribute("data-timer-look") ?? null,
+    timerLabel: timer?.querySelector("[role='timer']")?.getAttribute("aria-label") ?? null,
+    timerBar: box(timer?.querySelector(".game-timer-bar") ?? null),
     scene: box(scene),
     controls: controls.map((el) => ({ what: el.getAttribute("aria-label") ?? el.getAttribute("data-game-controls") ?? (el.textContent ?? "").trim().slice(0, 16), ...box(el)! })),
     scrollX: document.documentElement.scrollWidth - window.innerWidth,
@@ -247,14 +259,18 @@ function judgePage(m: ReturnType<typeof pageProbe>, problems: string[]) {
 function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: string[], type?: PuzzleType) {
   if (!m.column || !m.stage) return void problems.push("no live round");
   const mode = type ? DESKTOP_MODES[type].mode : "wide";
-  const space = m.innerW - RAIL_COMPACT;
-  const maxW = arcade ? ARCADE_MAX_W[mode] : PUZZLE_MAX_W;
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): the column sits between
+  // the rail and the arena's side panel (which carries the header's timer, score and menu), centred there.
+  const right = m.innerW - (m.arenaPanel ? m.arenaPanel.w : ARENA_PANEL);
+  const space = right - RAIL_COMPACT;
+  const maxW = arcade ? ARCADE_MAX_W[mode] : puzzleMaxW(m.innerH);
   const maxH = arcade ? m.innerH : PUZZLE_MAX_H;
   if (m.arcade !== arcade) problems.push(`arcade play screen ${m.arcade}, expected ${arcade}`);
   if (m.column.w > maxW + 0.5) problems.push(`column ${m.column.w.toFixed(1)}px wide (max ${maxW})`);
   if (m.column.w < Math.min(maxW, space) - 0.5) problems.push(`column ${m.column.w.toFixed(1)}px wide (should be ${Math.min(maxW, space)})`);
   if (m.column.h > maxH + 0.5) problems.push(`column ${m.column.h.toFixed(1)}px tall (max ${maxH})`);
-  if (!near(m.column.x - RAIL_COMPACT, m.innerW - m.column.r)) problems.push(`column not centred beside the rail (${(m.column.x - RAIL_COMPACT).toFixed(1)} | ${(m.innerW - m.column.r).toFixed(1)})`);
+  if (!m.arenaPanel || !near(m.arenaPanel.r, m.innerW)) problems.push(`no arena panel down the right edge (${fmt(m.arenaPanel)})`);
+  if (!near(m.column.x - RAIL_COMPACT, right - m.column.r)) problems.push(`column not centred between the rail and the panel (${(m.column.x - RAIL_COMPACT).toFixed(1)} | ${(right - m.column.r).toFixed(1)})`);
   if (!near(m.column.y, m.innerH - m.column.b)) problems.push(`column not centred down (${m.column.y.toFixed(1)} | ${(m.innerH - m.column.b).toFixed(1)})`);
   if (m.column.y < -0.5 || m.column.b > m.innerH + 0.5) problems.push(`column off screen (${fmt(m.column)})`);
   if (m.scrollX > 0 || m.scrollY > 0) problems.push(`page scrolls (${m.scrollX}, ${m.scrollY})`);
@@ -263,11 +279,17 @@ function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: s
   }
   if (m.arena && (m.arena.x < m.column.x - 0.5 || m.arena.r > m.column.r + 0.5 || m.arena.b > m.innerH + 0.5)) problems.push(`board outside the column (${fmt(m.arena)})`);
   if (!arcade) return;
-  // The game frame (Polish 2): the same 60px header, 48px ring and 15px seconds as on a phone.
-  if (!m.header || !near(m.header.h, 60, 0.5)) problems.push(`header ${m.header?.h ?? "missing"}px tall (want 60)`);
-  if (!m.ring || !near(m.ring.w, 48, 0.5)) problems.push(`timer ring ${m.ring?.w ?? "missing"}px (want 48)`);
-  if (!near(m.seconds, 15, 0.5)) problems.push(`timer seconds ${m.seconds}px (want 15)`);
-  if (m.timer && m.header && !near(m.timer.x + m.timer.w / 2, m.header.x + m.header.w / 2, 24)) problems.push("timer not centred in the header");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): in the arena the header is
+  // not drawn; the one timer is in the side panel (its seconds at least the phone's 15 px), never beside a header copy.
+  if (m.header) problems.push("a header drawn in the arena (the panel carries it; no doubled timer)");
+  if (!m.timer || !m.arenaPanel || m.timer.x < m.arenaPanel.x - 0.5) problems.push(`the timer is not in the arena panel (${fmt(m.timer)})`);
+  // Changed with Joe's approval, 15 Nov 2026 (timer bar only by default): the default bar shows its seconds only in the
+  // last 10 s, so it may instead show the bar with its accessible label ("N seconds remaining"); the ring and chip keep
+  // their seconds (at least 15 px). Exactly one timer still.
+  if (m.timerLook === "bar") {
+    if (!m.timerLabel || !/\d+ seconds? remaining/.test(m.timerLabel)) problems.push(`the timer bar has no accessible label (${m.timerLabel})`);
+    if (!m.timerBar || m.timerBar.w < 100 || m.timerBar.h < 4) problems.push(`the timer bar is not drawn (${fmt(m.timerBar)})`);
+  } else if (m.seconds < 15 - 0.5) problems.push(`timer seconds ${m.seconds}px (at least 15)`);
   if (!m.slot || !m.arena || !m.worldW) return void problems.push("no arena slot / world");
   // A rotate game's world is turned in its rotor (desktop-layout-check and desktop-fairness-check judge it).
   if (mode === "rotate") return;
@@ -455,7 +477,8 @@ try {
     await report("keys drive Nucleus and Gemstone", problems);
   }
 
-  // A touch screen of the same size keeps the phone layout.
+  // A touch screen of the same size: changed with Joe's approval, 15 Nov 2026 (sideways tablets get the arena): its live
+  // round is the arena (no header; the column beside the panel; the timer in the panel) and it still takes no keys.
   {
     const { page, close } = await open("practice", { size: [1440, 900], touch: true, game: "matchup" });
     try {
@@ -467,12 +490,14 @@ try {
       await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
       await page.waitForTimeout(4200);
       const m = await page.evaluate(playProbe);
-      if (!m.column || m.column.w < 1440 - 1) problems.push(`the column is ${m.column?.w ?? "missing"}px (a touch screen keeps the full-width phone layout)`);
-      if (!m.header || !near(m.header.h, 60, 0.5)) problems.push(`the header is ${m.header?.h ?? "missing"}px (a touch screen keeps the 60px phone header)`);
+      if (!m.arenaPanel || !near(m.arenaPanel.r, 1440)) problems.push(`no arena panel on the sideways tablet (${fmt(m.arenaPanel)})`);
+      if (!m.column || (m.arenaPanel && m.column.r > m.arenaPanel.x + 0.5)) problems.push(`the column ${fmt(m.column)} runs under the arena panel`);
+      if (m.header) problems.push("the sideways tablet's round still draws the header");
+      if (!m.timer || !m.arenaPanel || m.timer.x < m.arenaPanel.x - 0.5) problems.push("the sideways tablet's timer is not in the arena panel");
       await page.keyboard.press("ArrowRight");
       await page.waitForTimeout(150);
       if (await page.locator("[data-key-cursor]").count()) problems.push("a touch screen took a game key");
-      await report("touch screen 1440x900 keeps the phone layout", problems, page);
+      await report("touch screen 1440x900 plays in the arena", problems, page);
     } finally {
       await close();
     }

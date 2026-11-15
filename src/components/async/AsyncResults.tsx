@@ -1,4 +1,5 @@
 import { JoulesLine } from "@/components/pass/JoulesLine";
+import { FxCountUp } from "@/components/fx/GameFx";
 import { VerdictLabel } from "@/components/duel/VerdictLabel";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -117,8 +118,8 @@ export function AsyncResults({
       <div data-async-results className="flex flex-1 flex-col gap-4 animate-phase-in">
         <header className="flex flex-col items-center gap-1 text-center">
           <p className="th-kicker">{title}, results</p>
-          <p className="th-score text-6xl tabular-nums text-foreground animate-pop-in">
-            {view.total}
+          <p className="th-score text-6xl tabular-nums text-foreground">
+            <FxCountUp value={view.total} />
           </p>
           <p
             className="whitespace-nowrap text-[15px] font-semibold text-foreground"
