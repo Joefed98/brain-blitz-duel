@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 40 | 0 | 488 | 528 |
+| game event | 62 | 0 | 488 | 550 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 7 | 0 | 37 | 44 |
+| fail sting | 9 | 0 | 37 | 46 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 69 | 1 | 984 | 1054 |
+| **all** | 93 | 1 | 984 | 1078 |
 
 ## Silent and placeholder cues
 
@@ -254,12 +254,25 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
 
+### Five Hands
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fivehands.flip` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.flip` |
+| `fivehands.stamp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.stamp` |
+| `fivehands.bigStamp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.bigStamp` |
+| `fivehands.columnTick` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.columnTick` |
+| `fivehands.countUp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.countUp` |
+
 ### Free Cell
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `freecell.undo` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.undo` |
 | `freecell.reset` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `freecell.reset` |
+| `freecell.wobble` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.wobble` |
+| `freecell.combo` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.combo` |
+| `freecell.bounce` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.bounce` |
 
 ### Hot Floor
 
@@ -273,6 +286,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `mahjong.undo` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.undo` |
 | `mahjong.reset` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `mahjong.reset` |
+| `mahjong.pairFly` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.pairFly` |
+| `mahjong.wrongPair` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `mahjong.wrongPair` |
+| `mahjong.blockers` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.blockers` |
+| `mahjong.spin` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.spin` |
+| `mahjong.nearEnd` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.nearEnd` |
+| `mahjong.shower` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.shower` |
 
 ### Rooftop Run
 
@@ -291,6 +310,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tripeaks.flip` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.flip` |
+| `tripeaks.ladderBreak` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.ladderBreak` |
+| `tripeaks.peakFly` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.peakFly` |
+| `tripeaks.nudge` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.nudge` |
+| `tripeaks.stuck` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.stuck` |
+| `tripeaks.peaksLight` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.peaksLight` |
 
 ### Swerve
 
@@ -316,6 +340,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `pyramid.undo` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.undo` |
 | `pyramid.reset` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `pyramid.reset` |
+| `pyramid.pairFly` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.pairFly` |
+| `pyramid.kingFlourish` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.kingFlourish` |
+| `pyramid.wrongPair` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `pyramid.wrongPair` |
+| `pyramid.uncover` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.uncover` |
+| `pyramid.outline` | Thirteen [cards-board-elevenlabs.md] |  | 1–5 | silent | none | 200 | game event | `pyramid.outline` |
 
 ### cards
 

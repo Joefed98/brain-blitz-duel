@@ -255,6 +255,212 @@ check(FC.FC_REV === 5 && TP.TP_REV === 3 && PY.PY_REV === 3 && FH.FH_REV === 3 &
   check(/export function freecellPick\(\): void \{[^}]*cardFeel\(\)/.test(gs), "Free Cell: the light touch on pick up");
 }
 
+/* 9. Stage 2: the effects (renderer-side, started from what the sim's state did, never writing to it) */
+{
+  const { createCanvas, Path2D: NapiPath2D } = await import("@napi-rs/canvas");
+  // The renderers' sprite caches use OffscreenCanvas where there is one (as scripts/skins/frames.ts stands it in).
+  (globalThis as unknown as { Path2D: unknown }).Path2D = NapiPath2D;
+  (globalThis as unknown as { OffscreenCanvas: unknown }).OffscreenCanvas = class {
+    constructor(w: number, h: number) {
+      return createCanvas(Math.max(1, w), Math.max(1, h));
+    }
+  };
+  const FX = await import("../src/lib/arcade/cards/cardsFx.renderer");
+  const MJR = await import("../src/lib/arcade/mahjong.renderer");
+  const ctxOf = () => createCanvas(414, 772).getContext("2d") as unknown as CanvasRenderingContext2D;
+  const size = { width: 414, height: 772 };
+  let t = 0;
+  const clocked = <V extends { fx?: InstanceType<typeof FX.FxTimeline> }>(view: V) => {
+    view.fx!.now = () => t;
+    return view;
+  };
+  const frozen = (x: unknown) => JSON.stringify(x);
+
+  // The timeline itself.
+  {
+    const tl = new FX.FxTimeline();
+    tl.now = () => t;
+    t = 1000;
+    check(tl.start("a", 200, 7) && tl.at<number>("a")?.data === 7 && tl.busy(), "the timeline starts an effect and reads it back");
+    t = 1100;
+    check(Math.abs((tl.at("a")?.k ?? 0) - 0.5) < 1e-9, "an effect's progress runs 0 → 1 over its length");
+    t = 1201;
+    check(tl.at("a") === null && !tl.busy(), "an effect ends on time and nothing keeps running");
+    tl.start("b", 100, null, 50);
+    check(tl.at("b") === null, "a delayed effect waits for its delay");
+    const off = new FX.FxTimeline();
+    off.enabled = false;
+    check(!off.start("x", 100) && off.at("x") === null, "with effects off (reduced motion) nothing starts: only the state change is drawn");
+    check(FX.shakeX(1) === 0 && FX.shakeX(0) === 0, "a shake ends where it began");
+  }
+
+  // Free Cell: a refused move wobbles back, two or more home at once stamp ×n, the clear's cascade.
+  {
+    const view = clocked(FCR.fcNewView());
+    const st = FC.freecellGameFor(5).init(7);
+    t = 0;
+    FCR.drawFreecell(ctxOf(), st, size, view);
+    view.lastTry = { pile: 2, index: 4 };
+    const refused = { ...st, tick: st.tick + 1, rejects: st.rejects + 1 };
+    const before = frozen(refused);
+    FCR.drawFreecell(ctxOf(), refused, size, view);
+    check(frozen(refused) === before, "Free Cell: drawing with effects never changes the sim's state");
+    check(JSON.stringify(view.fx!.at("wobble")?.data) === JSON.stringify({ pile: 2, index: 4 }), "Free Cell: a refused move wobbles the card it moved");
+    const batch = { ...refused, tick: refused.tick + 1, fly: [0, 0, 0, 13, 1, 0], flyTick: refused.tick + 1 };
+    FCR.drawFreecell(ctxOf(), batch, size, view);
+    check(view.fx!.at<number>("combo")?.data === 2, "Free Cell: two cards home at once stamp ×2");
+    FCR.drawFreecell(ctxOf(), { ...batch, tick: batch.tick + 1, ended: 1 }, size, view);
+    check(!!view.fx!.at("cascade"), "Free Cell: the clear starts the bouncing cards");
+    t = 2000;
+    check(!view.fx!.busy(), "Free Cell: every effect is over within 900 ms (the cascade's length)");
+    const SND = await import("../src/lib/fx/gameSounds");
+    const rates = Array.from({ length: 10 }, (_, r) => SND.fcHomeRate({ home: [r + 1, 0, 0, 0] }, { home: [r, 0, 0, 0] }));
+    check(rates.every((r, i) => i === 0 || r > rates[i - 1]!), "Free Cell: each card home sounds a step higher up its suit's scale");
+  }
+
+  // Summit: the run ladder grows, crumbles on a stock turn, a peak top flies, a refused card nudges, the clear lights the peaks.
+  {
+    const view = clocked(TPR.tpNewView());
+    const st = TP.tripeaksGameFor(3).init(5);
+    t = 0;
+    TPR.drawTripeaks(ctxOf(), st, size, view);
+    const run3 = { ...st, tick: st.tick + 1, run: 3 };
+    TPR.drawTripeaks(ctxOf(), run3, size, view);
+    check(view.fx!.at<number>("rung")?.data === 3, "Summit: a card played adds a rung to the ladder");
+    const turned = { ...run3, tick: run3.tick + 1, run: 0, turns: run3.turns + 1 };
+    TPR.drawTripeaks(ctxOf(), turned, size, view);
+    check(view.fx!.at<number>("crumble")?.data === 3, "Summit: a stock turn crumbles a run of three");
+    const peak = { ...turned, tick: turned.tick + 1, peaks: 1, lastPlay: 1 };
+    TPR.drawTripeaks(ctxOf(), peak, size, view);
+    check(view.fx!.at<{ index: number }>("peak")?.data.index === 1, "Summit: a peak's top card flies up with a sparkle");
+    view.lastTry = 20;
+    TPR.drawTripeaks(ctxOf(), { ...peak, tick: peak.tick + 1, rejects: peak.rejects + 1 }, size, view);
+    check(view.fx!.at<number>("nudge")?.data === 20, "Summit: a refused card leans to the discard and springs back");
+    TPR.drawTripeaks(ctxOf(), { ...peak, tick: peak.tick + 2, rejects: peak.rejects + 1, ended: 1 }, size, view);
+    t = 600;
+    check(!!view.fx!.at("light0") && !!view.fx!.at("light2"), "Summit: the clear lights the three peaks in turn");
+  }
+
+  // Thirteen: a pair flies off with 13, a King spins away, a wrong pair shakes, a card brightens, the outline lights.
+  {
+    const view = clocked(PYR.pyNewView());
+    const st = PY.pyramidGameFor(3).init(5);
+    t = 0;
+    PYR.drawPyramid(ctxOf(), st, size, view);
+    const gone = st.gone.slice();
+    gone[21] = 1;
+    gone[22] = 1;
+    const paired = { ...st, tick: st.tick + 1, gone, pairs: 1, ppPairs: 1, removed: 2, lastA: 21, lastB: 22 };
+    const before = frozen(paired);
+    PYR.drawPyramid(ctxOf(), paired, size, view);
+    check(frozen(paired) === before, "Thirteen: drawing with effects never changes the sim's state");
+    const pair = view.fx!.at<{ card: number }[]>("pair");
+    check(!!pair && pair.data.length === 2 && pair.data[0]!.card === st.tab[21] && pair.data[1]!.card === st.tab[22], "Thirteen: the pair taken flies from where its cards were drawn");
+    check(!!view.fx!.at("uncover15"), "Thirteen: the card the pair uncovered brightens");
+    const gone2 = gone.slice();
+    gone2[23] = 1;
+    PYR.drawPyramid(ctxOf(), { ...paired, tick: paired.tick + 1, gone: gone2, kings: 1, removed: 3, lastA: 23, lastB: -1 }, size, view);
+    check(view.fx!.at<{ card: number }>("king")?.data.card === st.tab[23], "Thirteen: a King spins off alone");
+    view.lastTry = 24;
+    PYR.drawPyramid(ctxOf(), { ...paired, tick: paired.tick + 2, gone: gone2, kings: 1, removed: 3, rejects: 1, sel: -1 }, size, view);
+    check((view.fx!.at<number[]>("wrong")?.data ?? []).includes(24), "Thirteen: a wrong pair shakes the card tapped");
+    PYR.drawPyramid(ctxOf(), { ...paired, tick: paired.tick + 3, gone: gone2, kings: 1, removed: 3, rejects: 1, ended: 1 }, size, view);
+    t = 600;
+    check(!!view.fx!.at("row6") && !!view.fx!.at("row0"), "Thirteen: the clear lights the pyramid's outline from the bottom row up");
+  }
+
+  // Five Hands: a hand made flashes and stamps, the column pick lifts and flies its points, the score counts up.
+  {
+    const run = fiveHandsFlawless(4, 20, 3);
+    const end = run.state;
+    const view = clocked(FHR.fhNewView());
+    t = 0;
+    // A modest board (the flawless rows already reach 200, so a column could not move the score): column 0 holds a pair.
+    const C = await import("../src/lib/arcade/cards/cards");
+    const ranks = [[1, 3, 6, 9, 12], [1, 4, 7, 10, 13], [5, 8, 11, 2, 6], [9, 12, 3, 7, 10], [11, 2, 5, 8, 13]];
+    const modest = ranks.map((row, r) => row.map((rank, k) => C.cardOf((r + k) % 4, rank)));
+    const noPick = { ...end, rows: modest, pick: -1, ended: 0, tick: end.tick - 5 };
+    FHR.drawFiveHands(ctxOf(), noPick, size, view);
+    // A column whose hand scores, so the score moves.
+    const col = [0, 1, 2, 3, 4].find((k) => FH.fhPickedHand({ ...noPick, pick: k }).points > 0) ?? 2;
+    FHR.drawFiveHands(ctxOf(), { ...noPick, tick: noPick.tick + 1, pick: col }, size, view);
+    check(view.fx!.at<number>("column")?.data === col, "Five Hands: the picked column's cards lift");
+    check(FH.fhPickedHand({ ...noPick, pick: col }).points === 0 || !!view.fx!.at<[number, number]>("count"), "Five Hands: the POINTS chip counts up to the new score");
+    t = 700;
+    check(!!view.fx!.at("columnPoints") && !!view.fx!.at<string>("sum") && view.fx!.at<string>("sum")!.data.includes("× 1.4"), "Five Hands: the column's points fly to the total, then the bonus counts in");
+    const st = FH.fiveHandsGameFor(3).init(4);
+    const v2 = clocked(FHR.fhNewView());
+    t = 0;
+    FHR.drawFiveHands(ctxOf(), st, size, v2);
+    const rows = st.rows.map((r) => r.slice());
+    rows[0] = [0, 13, 26, 39, 1];
+    FHR.drawFiveHands(ctxOf(), { ...st, tick: st.tick + 1, rows, lastRow: 0 }, size, v2);
+    check(v2.fx!.at<{ row: number }>("hand")?.data.row === 0, "Five Hands: a hand made flashes its cards and stamps its badge");
+  }
+
+  // Mahjong: the pair flies, a wrong pair shakes, blockers flash, the shuffle spins, six left brightens, the shower.
+  {
+    const view = MJR.mahjongNewView();
+    view.fx.now = () => t;
+    const g = MJ.mahjongGameFor(2);
+    let st = g.init(3);
+    t = 0;
+    const mctx = createCanvas(356, 608).getContext("2d") as unknown as CanvasRenderingContext2D;
+    const msize = { width: 356, height: 608 };
+    MJR.drawMahjong(mctx, st, msize, view);
+    const moves = MJ.mahjongMoves(st.face);
+    const [a, b] = moves[0]!;
+    const face = st.face.slice();
+    const fa = face[a]!;
+    face[a] = -1;
+    face[b] = -1;
+    st = { ...st, tick: st.tick + 1, face, pairs: 1, lastA: a, lastB: b };
+    MJR.drawMahjong(mctx, st, msize, view);
+    const pair = view.fx.at<{ fa: number }>("pair");
+    check(pair?.data.fa === fa, "Mahjong: the pair taken slides together and flies off with its faces");
+    st = { ...st, tick: st.tick + 1, misses: 1, sel: 5 };
+    MJR.drawMahjong(mctx, st, msize, view);
+    check(!!view.fx.at("wrong"), "Mahjong: a second tile that doesn't match shakes both tiles");
+    const blockedSlot = st.face.findIndex((f, i) => f >= 0 && !MJ.mahjongFree(st.face, i));
+    st = { ...st, tick: st.tick + 1, blocked: 1, lastBlocked: blockedSlot };
+    MJR.drawMahjong(mctx, st, msize, view);
+    const blockers = view.fx.at<number[]>("blockers")?.data ?? [];
+    check(blockers.length > 0 && blockers.every((x) => st.face[x]! >= 0), "Mahjong: a blocked tile flashes the tiles that block it");
+    st = { ...st, tick: st.tick + 1, shuffles: 1 };
+    MJR.drawMahjong(mctx, st, msize, view);
+    check(!!view.fx.at("spin"), "Mahjong: a Shuffle spins the tiles and lands them again");
+    const few = st.face.map((f, i) => (i < 6 && f >= 0 ? f : -1));
+    st = { ...st, tick: st.tick + 1, face: few, pairs: MJ.MAHJONG_PAIRS - 3 };
+    MJR.drawMahjong(mctx, st, msize, view);
+    check(!!view.fx.at("brighten"), "Mahjong: the mat brightens with six tiles left");
+    st = { ...st, tick: st.tick + 1, face: st.face.map(() => -1), pairs: MJ.MAHJONG_PAIRS, clearedTick: st.tick + 1 };
+    const before = frozen(st);
+    MJR.drawMahjong(mctx, st, msize, view);
+    check(frozen(st) === before, "Mahjong: drawing with effects never changes the sim's state");
+    check(!!view.fx.at("shower"), "Mahjong: the clear rains tiles");
+    check(MJ.mahjongBlockers(g.init(3).face, MJ.mahjongMoves(g.init(3).face)[0]![0]).length === 0, "Mahjong: a free tile has no blockers");
+    const mj = read("src/puzzles/mahjong.tsx");
+    check(/useMemo\(\(\) => mahjongArtGameFor\(data\?\.mahjongRev, view\)/.test(mj), "Mahjong: one game object per revision and view (the run never restarts)");
+  }
+
+  // The reveal and replays draw no effect: without a view nothing is tracked.
+  {
+    const st = FC.freecellGameFor(5).init(7);
+    FCR.drawFreecell(ctxOf(), { ...st, rejects: 3 }, size);
+    check(true, "drawing without a view (reveals, replays, the intro's still) runs no effect");
+  }
+
+  // Sound slots for stage 2, each taking over from today's sound once its file is set.
+  {
+    const manifest = read("src/lib/fx/manifest.ts");
+    const doc = read("docs/sound-cues/cards-board-elevenlabs.md");
+    const slots = ["freecell.wobble", "freecell.combo", "freecell.bounce", "mahjong.pairFly", "mahjong.wrongPair", "mahjong.blockers", "mahjong.spin", "mahjong.nearEnd", "mahjong.shower", "tripeaks.ladderBreak", "tripeaks.peakFly", "tripeaks.nudge", "tripeaks.stuck", "tripeaks.peaksLight", "fivehands.flip", "fivehands.stamp", "fivehands.bigStamp", "fivehands.columnTick", "fivehands.countUp", "pyramid.pairFly", "pyramid.kingFlourish", "pyramid.wrongPair", "pyramid.uncover", "pyramid.outline"];
+    check(slots.every((x) => manifest.includes(`"${x}":`) && doc.includes(`\`${x}\``)), `the ${slots.length} stage-2 sound slots are in the manifest and on Joe's list`);
+    const gs = read("src/lib/fx/gameSounds.ts");
+    check(/function overCue\(cue: string, before: \(\) => void, rate\?: number\): void \{\s*if \(cueHasFile\(cue\)\) effectCue\(cue, 0, rate\);\s*else before\(\);/.test(gs), "a stage-2 slot plays its own file once set, today's sound until then");
+  }
+}
+
 if (failures.length) {
   for (const f of failures) console.log(`  FAIL ${f}`);
   console.log(`FAIL cards-board-overhaul-check: ${failures.length} failed, ${passes} passed`);

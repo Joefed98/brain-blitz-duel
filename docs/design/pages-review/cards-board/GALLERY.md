@@ -79,3 +79,37 @@ Intro: <img src="img/pyramid-intro.webp" width="300"> · Clip: <img src="img/pyr
 
 - Cards grow to 56 × 82, with larger piles. A stock card slides to the waste and flips. Reset asks first.
 - The reveal shows the final pyramid, Removed, Kings, and Time or Undos, with the pyramid pairs as pips.
+
+# Stage 2: the effects (15 Nov 2026)
+
+Each game's effects are drawn by its own renderer, inside the canvas (the kit's rule for canvas games: board effects
+come from the game's art; the kit, `src/lib/fx/kit.ts`, serves the result screens, here the Five Hands reveal's
+count-up). Each effect starts when the renderer sees the sim's state change and only draws: no state, input, tick or
+score is touched. Reduced motion shows the state change alone. The clips come from
+`bun scripts/shots/cards-board-fx-clips.ts`: each game's proved flawless line played through its real renderer on a
+virtual clock with the Blender art, at 15 frames a second, half size. Each game has a stretch of play and its finish.
+
+| Game | Play | Finish |
+|---|---|---|
+| Free Cell | <img src="img/freecell-fx-play.webp" width="200"> | <img src="img/freecell-fx-finish.webp" width="200"> |
+| Mahjong Solitaire | <img src="img/mahjong-fx-play.webp" width="200"> | <img src="img/mahjong-fx-finish.webp" width="200"> |
+| Summit | <img src="img/tripeaks-fx-play.webp" width="200"> | <img src="img/tripeaks-fx-finish.webp" width="200"> |
+| Five Hands | <img src="img/fivehands-fx-play.webp" width="200"> | <img src="img/fivehands-fx-finish.webp" width="200"> |
+| Thirteen | <img src="img/pyramid-fx-play.webp" width="200"> | <img src="img/pyramid-fx-finish.webp" width="200"> |
+
+- **Free Cell:** a refused move wobbles back from where it started; two or more cards home in one go stamp "×n" over
+  the home row; the clear sends the home piles' top cards bouncing down the felt (900 ms) as "ALL HOME!" arrives; each
+  card home climbs its suit's major scale.
+- **Mahjong Solitaire:** the picked tile lifts with a deeper shadow; a pair slides together, clicks and flies off in an
+  arc, a step higher in pitch for each quick pair; a wrong pair shakes both tiles; a blocked tile flashes the tiles that
+  block it; Shuffle turns every tile on its centre and lands it again; the mat brightens with six tiles left; the clear
+  rains tiles before "CLEARED!".
+- **Summit:** a "×n" ladder beside the discard grows with each card of a run and crumbles when a stock turn breaks it; a
+  peak's top card flies up with a sparkle; a refused card leans to the discard and springs back; "No plays left" has a
+  held tone; the clear lights the three peaks in turn.
+- **Five Hands:** a hand made flashes its five cards left to right, then stamps its points on the badge (bigger for a
+  straight or better); the picked column's cards lift one by one with ticks, its points fly to POINTS, which counts up,
+  and "+15 × 1.4" counts into the score; the reveal's sum counts up to the score.
+- **Thirteen:** a pair slides together, overlaps and flies off with "13" between them, rising in pitch through a quick
+  chain; a King spins off alone; a wrong pair shakes both cards; a card whose last cover goes brightens out of its dim;
+  the clear lights the pyramid's empty outline from the bottom row up.

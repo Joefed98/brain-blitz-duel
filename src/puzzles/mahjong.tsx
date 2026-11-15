@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
@@ -22,7 +22,7 @@ import {
   MAHJONG_WORLD_W,
   type MahjongState,
 } from "@/lib/arcade/mahjong";
-import { MAHJONG_ART, mahjongArtGameFor, mahjongMovesShown, paintMahjongFace, paintMahjongTable, paintMahjongTile } from "@/lib/arcade/mahjong.renderer";
+import { MAHJONG_ART, mahjongArtGameFor, mahjongNewView, mahjongMovesShown, paintMahjongFace, paintMahjongTable, paintMahjongTile } from "@/lib/arcade/mahjong.renderer";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -86,7 +86,9 @@ function mahjongSounds(onState: (s: MahjongState) => void) {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MahjongPuzzleData | null = puzzle.type === "mahjong" ? puzzle : null;
-  const game = mahjongArtGameFor(data?.mahjongRev);
+  // The live stage's view (stage 2's effects); one game object per revision and view, so the run never restarts.
+  const view = useMemo(() => mahjongNewView(), []);
+  const game = useMemo(() => mahjongArtGameFor(data?.mahjongRev, view), [data?.mahjongRev, view]);
   /** mahjongRev 2: Undo and Reset beside Shuffle. */
   const undo = (data?.mahjongRev ?? 1) >= MAHJONG_REV_UNDO;
   /** The board the player is looking at (the last drawn frame), so a tap picks the tile they saw on top. */

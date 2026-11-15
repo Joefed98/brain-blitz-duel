@@ -13,7 +13,8 @@ import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { rankOf } from "./cards";
 import { CARD_FONT, drawChip, drawSlot, roundRect } from "./cards.renderer";
 import { drawCardButton, drawResetConfirm, inButton, type CardButtonBox } from "./cardButtons.renderer";
-import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
+import { CardLayer, CardMotion, drawRealCard, drawRealFelt } from "./realArt.renderer";
+import { drawOutline, drawSparks, drawStamp, easeInOut, FxTimeline, shakeX } from "./cardsFx.renderer";
 import {
   PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyDeadEnd, pyFree, pyramidGameFor, pyRowOf, pyWasteTop, type PyState,
 } from "./pyramid";
@@ -75,10 +76,24 @@ export interface PyView {
   confirmHeld?: "ok" | "cancel" | null;
   /** The live stage's card motion; none on reveals and replays. */
   motion?: CardMotion;
+  /** Stage 2's effects (the overhaul): the timeline, the last place tapped, where each card was drawn last frame, the state seen. */
+  fx?: FxTimeline;
+  lastTry?: number;
+  boxes?: Map<number, PyBox>;
+  seen?: { pairs: number; kings: number; rejects: number; ended: number; tick: number; sel: number; free: boolean[] };
+}
+
+/** A card as drawn last frame (a pair taken this frame flies from there). */
+interface PyBox {
+  card: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 export function pyNewView(): PyView {
-  return { pressed: -1, button: 0, confirm: false, confirmHeld: null, motion: new CardMotion() };
+  return { pressed: -1, button: 0, confirm: false, confirmHeld: null, motion: new CardMotion(), fx: new FxTimeline(), lastTry: -1, boxes: new Map() };
 }
 
 const wasteAt = () => ({ x: PY_WASTE_X + PY_PILE_W / 2, y: PY_PILE_Y + PY_PILE_H / 2 });
@@ -115,6 +130,10 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   ctx.scale(size.width / W, size.height / H);
   drawRealFelt(ctx, W, H);
   const cards = new CardLayer(ctx, view?.motion ?? null);
+  noticePyramid(state, view);
+  const fx = view?.fx ?? null;
+  const wrong = fx?.at<number[]>("wrong") ?? null;
+  const shake = (i: number) => (wrong && wrong.data.includes(i) ? shakeX(wrong.k, 4) : 0);
 
   drawChip(ctx, 10, 9, "REMOVED", `${state.removed}/${PY_CARDS}`, { gold: state.removed === PY_CARDS });
   drawChip(ctx, W - 10, 9, "PAIRS", `${Math.min(state.ppPairs, PY_PAIR_FULL)}/${PY_PAIR_FULL}`, { align: "right", gold: state.ppPairs >= PY_PAIR_FULL });
@@ -129,7 +148,11 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
     const card = state.tab[i]!;
     const up = state.sel === i || view?.pressed === i;
     const glow = up ? 1 : free && (partner(card) || (live && rankOf(card) === 13)) ? 0.55 : 0;
-    cards.card(card, card, b.x, b.y - (up ? 3 : 0), PY_CARD_W, PY_CARD_H, { glow, dim: free ? 0 : 0.36, lift: up ? 1 : 0 });
+    // A card whose last cover just went brightens from its dimmed look (stage 2).
+    const uncover = fx?.at(`uncover${i}`);
+    const dim = free ? (uncover ? 0.36 * (1 - uncover.k) : 0) : 0.36;
+    const sx = shake(i);
+    cards.card(card, card, b.x + sx, b.y - (up ? 3 : 0), PY_CARD_W, PY_CARD_H, { glow: uncover ? Math.max(glow, 0.6 * (1 - uncover.k)) : glow, dim, lift: up ? 1 : 0 }, sx !== 0);
   }
 
   // (The rules line "ONE PASS · PAIRS ADD TO 13 · K ALONE" lived here until 3 Nov 2026; it is in How to play.)
@@ -156,9 +179,12 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
     if (state.pos > 1) cards.card(state.pile[state.pos - 2]!, state.pile[state.pos - 2]!, PY_WASTE_X - 4, PY_PILE_Y + 3, PY_PILE_W, PY_PILE_H, { dim: 0.4 });
     const up = state.sel === PY_WASTE_PILE || view?.pressed === PY_WASTE_PILE;
     const glow = up ? 1 : partner(top) || (live && rankOf(top) === 13) ? 0.55 : 0;
-    cards.card(top, top, PY_WASTE_X, PY_PILE_Y - (up ? 3 : 0), PY_PILE_W, PY_PILE_H, { glow, lift: up ? 1 : 0 });
+    const sx = shake(PY_WASTE_PILE);
+    cards.card(top, top, PY_WASTE_X + sx, PY_PILE_Y - (up ? 3 : 0), PY_PILE_W, PY_PILE_H, { glow, lift: up ? 1 : 0 }, sx !== 0);
   } else drawSlot(ctx, PY_WASTE_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, -1, "WASTE");
   cards.flush();
+  if (fx) drawPyramidFx(ctx, fx);
+  if (view?.boxes) rememberBoxes(state, view.boxes);
 
   // Between the piles, only while a card is selected: the rank its partner needs (3 Nov 2026; until then a large "13"
   // over "TAP TWO" whenever nothing was selected).
@@ -187,6 +213,85 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   }
   if (view?.confirm && live) drawResetConfirm(ctx, W, H, "Every pair goes back to the deal.", view.confirmHeld ?? null);
   ctx.restore();
+}
+
+/** Where each pyramid card and the waste's top are drawn (index 0–27, PY_WASTE_PILE), for next frame's flights. */
+function rememberBoxes(state: PyState, boxes: Map<number, PyBox>): void {
+  boxes.clear();
+  for (let i = 0; i < PY_CARDS; i++) {
+    if (state.gone[i]) continue;
+    const b = pyCardBox(i);
+    boxes.set(i, { card: state.tab[i]!, x: b.x, y: b.y, w: PY_CARD_W, h: PY_CARD_H });
+  }
+  const top = pyWasteTop(state);
+  if (top >= 0) boxes.set(PY_WASTE_PILE, { card: top, x: PY_WASTE_X, y: PY_PILE_Y, w: PY_PILE_W, h: PY_PILE_H });
+}
+
+/** Starts stage 2's effects from what changed since the last frame (display only; the live stage's view alone). */
+function noticePyramid(state: PyState, view?: PyView): void {
+  const fx = view?.fx;
+  if (!view || !fx) return;
+  const free = Array.from({ length: PY_CARDS }, (_, i) => !state.gone[i] && pyFree(state, i));
+  const seen = view.seen;
+  view.seen = { pairs: state.pairs, kings: state.kings, rejects: state.rejects, ended: state.ended, tick: state.tick, sel: state.sel, free };
+  if (!seen || state.tick < seen.tick) return;
+  const boxes = view.boxes ?? new Map<number, PyBox>();
+  if (state.pairs > seen.pairs) {
+    const a = boxes.get(state.lastA);
+    const b = boxes.get(state.lastB);
+    if (a && b) fx.start("pair", 560, [a, b]);
+  } else if (state.kings > seen.kings) {
+    const k = boxes.get(state.lastA);
+    if (k) fx.start("king", 700, k);
+  }
+  // A refused pair: both cards shake (the one held and the one just tapped).
+  if (state.rejects > seen.rejects) fx.start("wrong", 300, [seen.sel, view.lastTry ?? -1].filter((i) => i >= 0));
+  // Cards whose last cover just went (not after an undo or reset, which put covers back).
+  if (state.pairs + state.kings > seen.pairs + seen.kings) for (let i = 0; i < PY_CARDS; i++) if (free[i] && !seen.free[i]) fx.start(`uncover${i}`, 320);
+  if (state.ended === 1 && seen.ended !== 1) for (let row = 6; row >= 0; row--) fx.start(`row${row}`, 700, row, (6 - row) * 90);
+}
+
+/** A pair flying off with "13" between, a King spinning away, and the finish's outline lighting from the bottom. */
+function drawPyramidFx(ctx: CanvasRenderingContext2D, fx: FxTimeline): void {
+  const pair = fx.at<PyBox[]>("pair");
+  if (pair) {
+    const [a, b] = pair.data as [PyBox, PyBox];
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    const k = pair.k;
+    const meet = easeInOut(Math.min(1, k / 0.45));
+    const fly = Math.max(0, (k - 0.45) / 0.55);
+    ctx.save();
+    ctx.globalAlpha = 1 - fly;
+    for (const [c, side] of [[a, -1], [b, 1]] as const) {
+      const x = c.x + (mx + side * 9 - c.x) * meet + fly * 60;
+      const y = c.y + (my - c.y) * meet - fly * fly * 220;
+      drawRealCard(ctx, c.card, x, y, PY_CARD_W, PY_CARD_H, { lift: 1 });
+    }
+    ctx.restore();
+    if (k > 0.3) drawStamp(ctx, "13", mx + PY_CARD_W / 2, my - 8, (k - 0.3) / 0.7, 26);
+  }
+  const king = fx.at<PyBox>("king");
+  if (king) {
+    const c = king.data;
+    const k = king.k;
+    ctx.save();
+    ctx.globalAlpha = 1 - k;
+    ctx.translate(c.x + PY_CARD_W / 2, c.y + PY_CARD_H / 2 - k * k * 200);
+    ctx.rotate(k * Math.PI * 2);
+    drawRealCard(ctx, c.card, -PY_CARD_W / 2, -PY_CARD_H / 2, PY_CARD_W, PY_CARD_H, { glow: 1 });
+    ctx.restore();
+    drawSparks(ctx, c.x + PY_CARD_W / 2, c.y + PY_CARD_H / 2, k, 50, 14);
+  }
+  for (let row = 0; row < 7; row++) {
+    const lit = fx.at(`row${row}`);
+    if (!lit) continue;
+    const a = Math.sin(Math.PI * lit.k);
+    for (let pos = 0; pos <= row; pos++) {
+      const b = pyCardBox(row * (row + 1) / 2 + pos);
+      drawOutline(ctx, b.x, b.y, PY_CARD_W, PY_CARD_H, a, 6);
+    }
+  }
 }
 
 /** The dead-end note between the piles (display only), two short lines, or null. */

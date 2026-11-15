@@ -11,12 +11,14 @@
  */
 import { deviceLayer } from "./cache.renderer";
 import { drawRealTile, mahjongTableImage, realArtReady } from "./cards/realArt.renderer";
+import { drawOutline, drawSparks, easeInOut, FxTimeline, shakeX } from "./cards/cardsFx.renderer";
 import { drawHudPillRow } from "./hudPill.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { MAHJONG_FX } from "./arcadeFxGames.renderer";
 import { reducedMotion } from "./art.renderer";
 import { TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import {
+  mahjongBlockers,
   mahjongCleared,
   mahjongFree,
   mahjongGameFor,
@@ -335,13 +337,38 @@ const ORDER: readonly number[] = MAHJONG_SLOTS.map((_, i) => i).sort((a, b) => {
   return sa.z - sb.z || sa.y2 - sb.y2 || sa.x2 - sb.x2;
 });
 
-function paintBoard(ctx: CanvasRenderingContext2D, s: MahjongState): void {
+/**
+ * The live stage's view (the overhaul's stage 2; display only): the effects' timeline, the board as it was last frame
+ * (a pair taken flies from there) and the state seen. Reveals, replays and the intro's still pass none.
+ */
+export interface MahjongView {
+  fx: FxTimeline;
+  face: readonly number[] | null;
+  seen: { pairs: number; misses: number; blocked: number; shuffles: number; sel: number; cleared: boolean; tick: number } | null;
+}
+
+export function mahjongNewView(): MahjongView {
+  return { fx: new FxTimeline(), face: null, seen: null };
+}
+
+/** One tile with its shadow (the real render, or the code tile until it loads). */
+function paintOneTile(ctx: CanvasRenderingContext2D, face: number, x: number, y: number, w: number, h: number, shadow = 1): void {
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.3 * shadow})`;
+  roundRect(ctx, x + 8, y + 10, w, h, Math.max(3, w * 0.1));
+  ctx.fill();
+  if (!drawRealTile(ctx, face, x, y, w, h)) {
+    paintMahjongTile(ctx, x, y, w, h);
+    paintMahjongFace(ctx, face, x, y, w, h);
+  }
+}
+
+function paintBoard(ctx: CanvasRenderingContext2D, s: MahjongState, skip: ReadonlySet<number> = new Set()): void {
   const table = mahjongTableImage();
   if (table) ctx.drawImage(table, 0, 0, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
   else paintMahjongTable(ctx, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
   for (const slot of ORDER) {
     const face = s.face[slot]!;
-    if (face < 0) continue;
+    if (face < 0 || skip.has(slot)) continue;
     const r = mahjongSlotRect(slot);
     // The tile's shadow on the layer (or mat) below, then the rendered tile, or the code tile until it loads.
     ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
@@ -382,13 +409,90 @@ function paintHud(ctx: CanvasRenderingContext2D, s: MahjongState): void {
 }
 
 /** The board, the HUD and the moving effects, under the shared success layer (MAHJONG_FX). */
-export function drawMahjong(ctx: CanvasRenderingContext2D, s: MahjongState, size: CanvasSize): void {
-  arcadeFx(ctx, MAHJONG_FX, s, () => drawMahjongWorld(ctx, s), size);
+export function drawMahjong(ctx: CanvasRenderingContext2D, s: MahjongState, size: CanvasSize, view?: MahjongView): void {
+  arcadeFx(ctx, MAHJONG_FX, s, () => drawMahjongWorld(ctx, s, view), size);
 }
 
-function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState): void {
+/** Starts stage 2's effects from what changed since the last frame. */
+function noticeMahjong(s: MahjongState, view: MahjongView): void {
+  const fx = view.fx;
+  const before = view.face;
+  const seen = view.seen;
+  view.face = s.face;
+  view.seen = { pairs: s.pairs, misses: s.misses, blocked: s.blocked, shuffles: s.shuffles, sel: s.sel, cleared: mahjongCleared(s), tick: s.tick };
+  if (!seen || !before || s.tick < seen.tick) return;
+  // A pair taken: the two tiles slide together, click and fly off.
+  if (s.pairs > seen.pairs && s.lastA >= 0 && s.lastB >= 0) {
+    fx.start("pair", 560, { a: s.lastA, b: s.lastB, fa: before[s.lastA]!, fb: before[s.lastB]! });
+  }
+  // A second tile that doesn't match: both shake once.
+  if (s.misses > seen.misses) fx.start("wrong", 300, [seen.sel, s.sel].filter((x) => x >= 0));
+  // A blocked tile: the tiles keeping it blocked flash.
+  if (s.blocked > seen.blocked && s.lastBlocked >= 0) fx.start("blockers", 520, mahjongBlockers(s.face, s.lastBlocked));
+  if (s.shuffles > seen.shuffles) fx.start("spin", 620);
+  if (mahjongCleared(s) && !seen.cleared) fx.start("shower", 1400);
+  const left = (MAHJONG_PAIRS - s.pairs) * 2;
+  const leftBefore = (MAHJONG_PAIRS - seen.pairs) * 2;
+  if (left <= 6 && leftBefore > 6) fx.start("brighten", 700);
+}
+
+/** The mat's soft light once six tiles or fewer are left (held; fading in over the "brighten" run). */
+function drawNearEnd(ctx: CanvasRenderingContext2D, s: MahjongState, view?: MahjongView): void {
+  const left = (MAHJONG_PAIRS - s.pairs) * 2;
+  if (left > 6 || left === 0) return;
+  const b = view?.fx.at("brighten");
+  const a = 0.16 * (b ? b.k : 1);
+  const cx = MAHJONG_BOARD_X + MAHJONG_BOARD_W / 2;
+  const cy = MAHJONG_BOARD_Y + MAHJONG_BOARD_H / 2;
+  const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, MAHJONG_BOARD_W * 0.75);
+  g.addColorStop(0, `rgba(255, 244, 210, ${a})`);
+  g.addColorStop(1, "rgba(255, 244, 210, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, MAHJONG_BOARD_Y - 30, MAHJONG_WORLD_W, MAHJONG_BOARD_H + 40);
+}
+
+function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState, view?: MahjongView): void {
   const art = (realArtReady("tiles") ? 1 : 0) + (realArtReady("mahjongTable") ? 2 : 0);
-  deviceLayer(ctx, `mahjong|${art}|${s.seed}|${s.face.join(",")}`, (c) => paintBoard(c, s));
+  if (view) noticeMahjong(s, view);
+  const fx = view?.fx ?? null;
+  const spin = fx?.at("spin") ?? null;
+  const wrong = fx?.at<number[]>("wrong") ?? null;
+  // Tiles drawn on their own this frame (lifted, shaking or spinning) are left out of the cached board.
+  const own = new Set<number>();
+  if (view && s.sel >= 0 && s.face[s.sel]! >= 0) own.add(s.sel);
+  if (wrong) for (const t of wrong.data) if (s.face[t]! >= 0) own.add(t);
+  if (spin) {
+    const table = mahjongTableImage();
+    if (table) ctx.drawImage(table, 0, 0, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
+    else paintMahjongTable(ctx, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
+    // The Shuffle: every tile turns on its centre and lands again, face by face.
+    for (const slot of ORDER) {
+      const face = s.face[slot]!;
+      if (face < 0) continue;
+      const r = mahjongSlotRect(slot);
+      const turn = Math.abs(Math.cos(Math.PI * easeInOut(spin.k)));
+      ctx.save();
+      ctx.translate(r.x + r.w / 2, r.y + r.h / 2);
+      ctx.scale(Math.max(0.06, turn), 1);
+      paintOneTile(ctx, face, -r.w / 2, -r.h / 2, r.w, r.h, turn);
+      ctx.restore();
+    }
+  } else deviceLayer(ctx, `mahjong|${art}|${s.seed}|${s.face.join(",")}|${[...own].join(".")}`, (c) => paintBoard(c, s, own));
+  drawNearEnd(ctx, s, view);
+  // The tiles drawn on their own: the selected one lifted, a wrong pair shaking.
+  if (!spin) {
+    for (const t of own) {
+      const r = mahjongSlotRect(t);
+      const lifted = t === s.sel ? 3 : 0;
+      const sx = wrong && wrong.data.includes(t) ? shakeX(wrong.k, 4) : 0;
+      paintOneTile(ctx, s.face[t]!, r.x + sx - lifted * 0.6, r.y - lifted, r.w, r.h, 1.3);
+      if (!mahjongFree(s.face, t)) {
+        ctx.fillStyle = "rgba(22, 18, 10, 0.46)";
+        roundRect(ctx, r.x + sx - lifted * 0.6, r.y - lifted, r.w, r.h, Math.max(3, r.w * 0.1));
+        ctx.fill();
+      }
+    }
+  }
   paintHud(ctx, s);
   const still = reducedMotion();
   // The selected tile glows gold.
@@ -410,7 +514,7 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState): void 
   // The pair just taken: both tiles lift and fade in gold.
   const age = s.tick - s.lastPairTick;
   const life = TICKS_PER_SECOND * 0.4;
-  if (s.lastA >= 0 && age >= 0 && age < life && s.lastPairTick > 0) {
+  if (!view && s.lastA >= 0 && age >= 0 && age < life && s.lastPairTick > 0) {
     const k = age / life;
     for (const slot of [s.lastA, s.lastB]) {
       const r = mahjongSlotRect(slot);
@@ -437,6 +541,7 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState): void 
     ctx.stroke();
     ctx.restore();
   }
+  if (fx) drawMahjongFx(ctx, fx);
   // A Shuffle: a gold wash over the mat.
   const sAge = s.tick - s.lastShuffleTick;
   if (s.lastShuffleTick > 0 && sAge >= 0 && sAge < TICKS_PER_SECOND * 0.5) {
@@ -448,11 +553,58 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState): void 
   }
 }
 
+/** The pair flying off, the blockers' flash and the finish's tile shower. */
+function drawMahjongFx(ctx: CanvasRenderingContext2D, fx: FxTimeline): void {
+  const pair = fx.at<{ a: number; b: number; fa: number; fb: number }>("pair");
+  if (pair) {
+    const ra = mahjongSlotRect(pair.data.a);
+    const rb = mahjongSlotRect(pair.data.b);
+    const mx = (ra.x + rb.x) / 2;
+    const my = (ra.y + rb.y) / 2;
+    const meet = easeInOut(Math.min(1, pair.k / 0.4));
+    const fly = Math.max(0, (pair.k - 0.4) / 0.6);
+    ctx.save();
+    ctx.globalAlpha = 1 - fly;
+    for (const [r, face, side] of [[ra, pair.data.fa, -1], [rb, pair.data.fb, 1]] as const) {
+      const x = r.x + (mx + side * (r.w / 2 + 1) - r.x) * meet + fly * 70;
+      const y = r.y + (my - r.y) * meet - fly * fly * 240;
+      paintOneTile(ctx, face, x, y, r.w, r.h, 1.4);
+    }
+    ctx.restore();
+    if (pair.k > 0.35 && pair.k < 0.7) drawSparks(ctx, mx + ra.w / 2, my + ra.h / 2, (pair.k - 0.35) / 0.35, 40, 10);
+  }
+  const blockers = fx.at<number[]>("blockers");
+  if (blockers) {
+    const a = Math.abs(Math.sin(Math.PI * 2 * blockers.k)) * (1 - blockers.k * 0.5);
+    for (const t of blockers.data) {
+      const r = mahjongSlotRect(t);
+      drawOutline(ctx, r.x, r.y, r.w, r.h, a, 6, "255,140,100");
+    }
+  }
+  const shower = fx.at("shower");
+  if (shower) {
+    for (let i = 0; i < 18; i++) {
+      const delay = (i % 6) * 0.06 + Math.floor(i / 6) * 0.1;
+      const t = (shower.k - delay) / (1 - delay);
+      if (t <= 0) continue;
+      const x = 20 + ((i * 53) % (MAHJONG_WORLD_W - 60));
+      const y = -80 + t * t * (MAHJONG_WORLD_H + 120);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (1 - t) * 3);
+      ctx.translate(x + MAHJONG_TILE_W / 2, y + MAHJONG_TILE_H / 2);
+      ctx.rotate((i % 2 ? 1 : -1) * t * Math.PI * (0.5 + (i % 3) * 0.3));
+      paintOneTile(ctx, (i * 7) % 34, -MAHJONG_TILE_W / 2, -MAHJONG_TILE_H / 2, MAHJONG_TILE_W, MAHJONG_TILE_H, 0.6);
+      ctx.restore();
+    }
+  }
+}
+
 /** One object per revision (a stage resets its run when its game object changes). */
 const MAHJONG_ART_GAME: ArcadeGame<MahjongState, ArcadeInputEvent | null> = { ...mahjongGameFor(1), draw: drawMahjong };
 const MAHJONG_ART_GAME_V2: ArcadeGame<MahjongState, ArcadeInputEvent | null> = { ...mahjongGameFor(2), draw: drawMahjong };
-export function mahjongArtGameFor(rev?: number | null): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
-  return (rev ?? 1) >= 2 ? MAHJONG_ART_GAME_V2 : MAHJONG_ART_GAME;
+export function mahjongArtGameFor(rev?: number | null, view?: MahjongView): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
+  const base = (rev ?? 1) >= 2 ? MAHJONG_ART_GAME_V2 : MAHJONG_ART_GAME;
+  return view ? { ...base, draw: (ctx, s, size) => drawMahjong(ctx, s, size, view) } : base;
 }
 
 export { MAHJONG_TILES, MAHJONG_TILE_W, MAHJONG_TILE_H };

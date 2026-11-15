@@ -84,6 +84,19 @@ export function mahjongFree(face: readonly number[], slot: number): boolean {
   return true;
 }
 
+/**
+ * The tiles keeping a place from being free (display only: the overhaul's stage 2 flashes them when a blocked tile is
+ * tapped): the tiles lying on it, or else the tiles both sides of it. Empty when the place is free or taken.
+ */
+export function mahjongBlockers(face: readonly number[], slot: number): number[] {
+  if ((face[slot] ?? -1) < 0) return [];
+  const on = COVERERS[slot]!.filter((c) => face[c]! >= 0);
+  if (on.length) return on;
+  const left = LEFTS[slot]!.filter((l) => face[l]! >= 0);
+  const right = RIGHTS[slot]!.filter((r) => face[r]! >= 0);
+  return left.length && right.length ? [...left, ...right] : [];
+}
+
 /* ================================ Faces ================================ */
 
 /** 34 faces: dots 1–9 (0–8), bamboo 1–9 (9–17), characters 1–9 (18–26), winds E S W N (27–30), dragons red, green, white (31–33). */

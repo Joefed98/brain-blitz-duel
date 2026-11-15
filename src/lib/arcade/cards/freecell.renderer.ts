@@ -13,7 +13,8 @@ import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { NO_CARD } from "./cards";
 import { CARD_FONT, drawChip, drawSlot, roundRect } from "./cards.renderer";
 import { drawCardButton, drawResetConfirm, inButton, type CardButtonBox } from "./cardButtons.renderer";
-import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
+import { CardLayer, CardMotion, drawRealFelt, drawRealCard } from "./realArt.renderer";
+import { drawStamp, FxTimeline, shakeX } from "./cardsFx.renderer";
 import {
   FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcCardsFor, fcHomeCount, fcNoMovesText, fcNoteText, freecellGameFor, type FcState } from "./freecell";
 import { cardOf, rankOf, suitOf } from "./cards";
@@ -126,10 +127,14 @@ export interface FcView {
   confirmHeld?: "ok" | "cancel" | null;
   /** The live stage's card motion (slides and flips); none on reveals and replays. */
   motion?: CardMotion;
+  /** Stage 2's effects (the overhaul): the timeline, the last move the phone sent (for the wobble) and the state seen. */
+  fx?: FxTimeline;
+  lastTry?: { pile: number; index: number } | null;
+  seen?: { rejects: number; flyTick: number; ended: number; tick: number };
 }
 
 export function fcNewView(): FcView {
-  return { pressed: null, drag: null, button: 0, confirm: false, confirmHeld: null, motion: new CardMotion() };
+  return { pressed: null, drag: null, button: 0, confirm: false, confirmHeld: null, motion: new CardMotion(), fx: new FxTimeline(), lastTry: null };
 }
 
 function drawButtons(ctx: CanvasRenderingContext2D, state: FcState, view?: FcView): void {
@@ -273,6 +278,9 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   ctx.scale(size.width / W, size.height / H);
   drawRealFelt(ctx, W, H);
   const cards = new CardLayer(ctx, view?.motion ?? null);
+  noticeFreecell(state, view);
+  const wobble = view?.fx?.at<{ pile: number; index: number } | null>("wobble") ?? null;
+  const wobbleX = (pile: number, index: number) => (wobble?.data && wobble.data.pile === pile && index >= wobble.data.index ? shakeX(wobble.k, 5) : 0);
 
   // HUD chips.
   const home = fcHomeCount(state);
@@ -312,7 +320,8 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     const card = state.cells[i]!;
     if (card === NO_CARD || (dragging && dragging.pile === FC_PILE_CELL + i)) continue;
     const up = held(FC_PILE_CELL + i, 0);
-    cards.card(card, card, fcBigX(i), FC_CELL_Y - (up ? 3 : 0), FC_BIG_W, FC_BIG_H, { lift: up ? 1 : 0, glow: up ? 0.8 : state.lastTo === FC_PILE_CELL + i ? fresh * 0.8 : 0 });
+    const wx = wobbleX(FC_PILE_CELL + i, 0);
+    cards.card(card, card, fcBigX(i) + wx, FC_CELL_Y - (up ? 3 : 0), FC_BIG_W, FC_BIG_H, { lift: up ? 1 : 0, glow: up ? 0.8 : state.lastTo === FC_PILE_CELL + i ? fresh * 0.8 : 0 }, wx !== 0);
   }
 
   // The columns.
@@ -325,7 +334,8 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
       if (dragging && dragging.pile === c && i >= dragging.index) break;
       const up = held(c, i);
       const glow = up ? 0.8 : state.lastTo === c && i >= col.length - state.lastCount ? fresh * 0.8 : 0;
-      cards.card(col[i]!, col[i]!, x, FC_COL_Y + i * step - (up ? 3 : 0), FC_COL_W, FC_COL_H, { glow, lift: up ? 1 : 0 });
+      const wx = wobbleX(c, i);
+      cards.card(col[i]!, col[i]!, x + wx, FC_COL_Y + i * step - (up ? 3 : 0), FC_COL_W, FC_COL_H, { glow, lift: up ? 1 : 0 }, wx !== 0);
     }
   }
 
@@ -335,6 +345,13 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     cards.card(f.card, f.card, f.x, f.y, FC_BIG_W, FC_BIG_H, { glow: 0.5, lift: 0.6 }, true);
   }
   cards.flush();
+
+  // Two or more cards home in one go: "×n" stamped over the home row.
+  const combo = view?.fx?.at<number>("combo");
+  if (combo) drawStamp(ctx, `×${combo.data}`, fcHomeX(2) - COL_GAP / 2, FC_HOME_Y + FC_BIG_H + 18, combo.k, 24);
+  // The finish: the home piles' cards bounce down the table (900 ms) as "ALL HOME!" arrives.
+  const cascade = view?.fx?.at("cascade");
+  if (cascade) drawCascade(ctx, cascade.k);
 
   // The dragged run follows the finger, lifted off the table.
   if (dragging) {
@@ -357,6 +374,56 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   drawNoMoves(ctx, state);
   if (view?.confirm && state.ended === 0) drawResetConfirm(ctx, W, H, "Every card goes back. It counts as a move.", view.confirmHeld ?? null);
   ctx.restore();
+}
+
+/** Starts stage 2's effects from what changed since the last frame (display only; the live stage's view alone). */
+function noticeFreecell(state: FcState, view?: FcView): void {
+  const fx = view?.fx;
+  if (!view || !fx) return;
+  const seen = view.seen;
+  view.seen = { rejects: state.rejects, flyTick: state.flyTick ?? 0, ended: state.ended, tick: state.tick };
+  if (!seen || state.tick < seen.tick) return;
+  // A refused move: the card (and the run on it) wobbles back where it came from.
+  if (state.rejects > seen.rejects && view.lastTry) fx.start("wobble", 320, view.lastTry);
+  // An auto-move batch of two or more cards home.
+  const n = (state.fly?.length ?? 0) / 3;
+  if ((state.flyTick ?? 0) !== seen.flyTick && n >= 2) fx.start("combo", 800, n);
+  if (state.ended === 1 && seen.ended !== 1) fx.start("cascade", 900);
+}
+
+/** The bouncing cards: each suit's top cards leave its home pile in turn and bounce down the felt, fading out. */
+function drawCascade(ctx: CanvasRenderingContext2D, k: number): void {
+  const floor = FC_BTN_ROW_Y - 8 - FC_BIG_H;
+  for (let s = 0; s < 4; s++) {
+    for (let j = 0; j < 3; j++) {
+      const delay = (s * 3 + j) * 0.045;
+      const t = (k - delay) / (1 - delay);
+      if (t <= 0) continue;
+      const ms = t * 900;
+      const x0 = fcHomeX(s);
+      const vx = (s < 2 ? -1 : 1) * (0.06 + 0.02 * j) - (s === 1 ? 0.05 : 0) + (s === 2 ? 0.05 : 0);
+      // A falling card bouncing off the floor with half its speed each time.
+      let y = FC_HOME_Y;
+      let vy = -0.15;
+      let rest = ms;
+      const g = 0.0016;
+      for (let step = 0; step < 6 && rest > 0; step++) {
+        const tHit = (vy + Math.sqrt(vy * vy + 2 * g * (floor - y))) / g;
+        if (rest < tHit) {
+          y = y + vy * rest + 0.5 * g * rest * rest;
+          rest = 0;
+        } else {
+          rest -= tHit;
+          y = floor;
+          vy = -(vy + g * tHit) * 0.55;
+        }
+      }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, t - 0.6) / 0.4);
+      drawRealCard(ctx, cardOf(s, 10 - j), x0 + vx * ms, y, FC_BIG_W, FC_BIG_H);
+      ctx.restore();
+    }
+  }
 }
 
 /** The art game for a stage: the revision's sim with this draw (the view, when given, is the phone's press and drag). */

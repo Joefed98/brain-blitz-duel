@@ -101,6 +101,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     start.current = null;
     view.pressed = null;
     view.drag = null;
+    // The move sent (stage 2: a refused one wobbles back from here; display only).
+    view.lastTry = { pile: s.pile, index: s.index };
     if (!s.moved) return { k: FC_INPUT_TAP, a: s.pile, b: s.index, c: 0 };
     const dest = fcDropPile(x, y);
     if (dest < 0 || dest === s.pile) return null;

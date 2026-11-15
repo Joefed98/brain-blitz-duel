@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { canvasRatio } from "@/lib/battery";
+import { FxCountUp } from "@/components/fx/GameFx";
 import { replayFiveHandsRun, replayFreecellRun, replayPyramidRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { replayMahjongRun } from "@/lib/duel/mahjong";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -41,6 +42,8 @@ interface Picture {
   /** The visual summary: a labelled row of filled / empty marks, or a sum. */
   marks?: { label: string; filled: number; of: number };
   sum?: string | undefined;
+  /** The number the sum lands on (counted up by the effects kit). */
+  sumTo?: number | undefined;
 }
 
 const seedOf = (p: PuzzleData): number => ("seed" in p ? Number(p.seed) : 1);
@@ -119,6 +122,7 @@ export function cardsRevealPicture(puzzle: PuzzleData, answer: string): Picture 
           v3 ? { label: "Column", value: picked.column >= 0 ? `+${picked.points}` : "not picked" } : { label: "Points", value: `${rows.total}` },
         ],
         sum: v3 ? `(${rows.total}${picked.column >= 0 ? ` + ${picked.points}` : ""}) × 1.4 = ${fhPointsShown(s)}` : undefined,
+        sumTo: v3 ? fhPointsShown(s) : undefined,
       };
     }
     case "mahjong": {
@@ -192,7 +196,15 @@ export function CardsRevealPicture({ puzzle, answer }: { puzzle: PuzzleData; ans
       ) : null}
       {picture.sum ? (
         <p data-cards-reveal-sum="" className="text-center text-[17px] font-extrabold tabular-nums text-foreground">
-          {picture.sum}
+          {/* The sum counts up to the score (the effects kit's count-up, silent: the reveal's score has its own). */}
+          {picture.sumTo !== undefined ? (
+            <>
+              {picture.sum.slice(0, picture.sum.lastIndexOf("=") + 2)}
+              <FxCountUp value={picture.sumTo} silent />
+            </>
+          ) : (
+            picture.sum
+          )}
         </p>
       ) : null}
     </div>

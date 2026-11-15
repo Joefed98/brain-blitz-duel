@@ -16,6 +16,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { CARD_FONT, drawChip, drawSlot, roundRect } from "./cards.renderer";
 import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
+import { drawOutline, drawStamp, easeOut, FxTimeline } from "./cardsFx.renderer";
 import {
   fhScoreV3,
   fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhPickedHand, fhPicking, fhTotalV3, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
@@ -87,10 +88,13 @@ export interface FhView {
   pressedCol?: number;
   /** The live stage's card motion; none on reveals and replays. */
   motion?: CardMotion;
+  /** Stage 2's effects (the overhaul): the timeline and the state seen last frame. */
+  fx?: FxTimeline;
+  seen?: { made: number; pick: number; points: number; tick: number };
 }
 
 export function fhNewView(): FhView {
-  return { pressed: -1, drag: null, pressedCol: -1, motion: new CardMotion() };
+  return { pressed: -1, drag: null, pressedCol: -1, motion: new CardMotion(), fx: new FxTimeline() };
 }
 
 /** The POINTS chip's figure: rev 3's score (hand points × 1.4, capped at 200), earlier revisions' hand points. */
@@ -174,7 +178,12 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
 
   const { made } = fhTotals(state.rows, state.rev);
   const total = (state.rev ?? 1) >= 3 ? fhTotalV3(state) : fhTotals(state.rows, state.rev).total;
-  drawChip(ctx, 10, 9, "POINTS", `${fhPointsShown(state)}`, { gold: total >= fhCoreFullFor(state.rev) });
+  noticeFiveHands(state, view);
+  const fx = view?.fx ?? null;
+  // The POINTS chip counts up to a new score (a hand made, the column added).
+  const count = fx?.at<[number, number]>("count");
+  const shownPoints = count ? Math.round(count.data[0] + (count.data[1] - count.data[0]) * easeOut(count.k)) : fhPointsShown(state);
+  drawChip(ctx, 10, 9, "POINTS", `${shownPoints}`, { gold: total >= fhCoreFullFor(state.rev) });
   drawChip(ctx, W / 2, 9, "TURN", `${Math.min(FH_TURNS, state.turn + (state.turn < FH_TURNS ? 1 : 0))}/${FH_TURNS}`, { align: "center" });
   drawChip(ctx, W - 10, 9, "HANDS", `${made}/${FH_ROWS}`, { align: "right", gold: made === FH_ROWS });
 
@@ -198,10 +207,31 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
           ctx.lineWidth = hot ? 2.5 : 1.5;
           ctx.stroke();
         }
-      } else cards.card(card, card, b.x, b.y, FH_CELL_W, FH_CELL_H, { glow: state.lastRow === r && k === row.length - 1 ? fresh : 0 });
+      } else {
+        // The picked column's cards lift one after another (stage 2).
+        const col = fx?.at<number>("column");
+        const lift = col && col.data === k ? Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, (col.k - r * 0.09) / 0.45)))) * 7 : 0;
+        cards.card(card, card, b.x, b.y - lift, FH_CELL_W, FH_CELL_H, { glow: state.lastRow === r && k === row.length - 1 ? fresh : 0, lift: lift > 0 ? 0.8 : 0 }, lift > 0);
+      }
     }
     const hand = fhRowHand(row, state.rev);
-    badge(ctx, BADGE_X, fhSlotBox(r, 0).y, BADGE_W, FH_CELL_H, hand.name, hand.points);
+    // A hand just made: its five cards flash left to right, then its name stamps onto the badge (stage 2).
+    const made = fx?.at<{ row: number; big: boolean }>("hand");
+    if (made && made.data.row === r) {
+      for (let k = 0; k < row.length; k++) {
+        const t = (made.k - k * 0.08) / 0.22;
+        if (t > 0 && t < 1) {
+          const b = fhSlotBox(r, k);
+          drawOutline(ctx, b.x - 1, b.y - 1, FH_CELL_W + 2, FH_CELL_H + 2, Math.sin(Math.PI * t), 6);
+        }
+      }
+    }
+    const stamping = made && made.data.row === r && made.k < 0.5;
+    badge(ctx, BADGE_X, fhSlotBox(r, 0).y, BADGE_W, FH_CELL_H, stamping ? "" : hand.name, stamping ? 0 : hand.points);
+    if (made && made.data.row === r && made.k >= 0.45) {
+      const k2 = (made.k - 0.45) / 0.55;
+      drawStamp(ctx, String(hand.points), BADGE_X + BADGE_W / 2, fhSlotBox(r, 0).y + FH_CELL_H / 2, k2 < 0.6 ? k2 : 0.6, made.data.big ? 30 : 24, "#FFE7A3", made.data.big ? 2.4 : 1.7);
+    }
     // Rows already filled for this round: greyed out.
     if (running && !isOpen) {
       const top = fhSlotBox(r, 0).y;
@@ -247,11 +277,45 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   }
   cards.flush();
 
+  // The column's points fly to the POINTS chip; at the finish the bonus counts into the score (stage 2).
+  const flyPts = fx?.at<{ column: number; points: number }>("columnPoints");
+  if (flyPts) {
+    const from = fhSlotBox(2, flyPts.data.column);
+    const e = easeOut(flyPts.k);
+    drawStamp(ctx, `+${flyPts.data.points}`, from.x + FH_CELL_W / 2 + (40 - from.x - FH_CELL_W / 2) * e, from.y + (22 - from.y) * e, Math.min(0.6, flyPts.k), 22);
+  }
+  const sum = fx?.at<string>("sum");
+  if (sum) drawStamp(ctx, sum.data, W / 2, FH_NEXT_Y - 14, sum.k, 20, "#FFE7A3", 1.3);
+
   if (view?.drag && running) {
     const yours = fhYours(state.deck, state.turn);
     new CardLayer(ctx, view.motion ?? null).card(yours, yours, view.drag.x - FH_CELL_W / 2, view.drag.y - FH_CELL_H / 2 - 4, FH_CELL_W, FH_CELL_H, { glow: 1, lift: 1 }, true);
   }
   ctx.restore();
+}
+
+/** Starts stage 2's effects from what changed since the last frame (display only; the live stage's view alone). */
+function noticeFiveHands(state: FhState, view?: FhView): void {
+  const fx = view?.fx;
+  if (!view || !fx) return;
+  const { made } = fhTotals(state.rows, state.rev);
+  const points = fhPointsShown(state);
+  const seen = view.seen;
+  view.seen = { made, pick: state.pick ?? -1, points, tick: state.tick };
+  if (!seen || state.tick < seen.tick) return;
+  if (made > seen.made && state.lastRow >= 0) {
+    const hand = fhRowHand(state.rows[state.lastRow]!, state.rev);
+    fx.start("hand", 900, { row: state.lastRow, big: hand.points >= 30 });
+  }
+  const pick = state.pick ?? -1;
+  if (pick >= 0 && seen.pick < 0) {
+    const col = fhPickedHand(state);
+    fx.start("column", 700, pick);
+    fx.start("columnPoints", 650, { column: pick, points: col.points }, 450);
+    if ((state.rev ?? 1) >= 3) fx.start("sum", 1600, `+${col.points} × 1.4`, 600);
+  }
+  // The chip counts from the old score to the new (slower after the pick, while its points fly over).
+  if (points !== seen.points) fx.start("count", pick >= 0 && seen.pick < 0 ? 1500 : 450, [seen.points, points]);
 }
 
 /**

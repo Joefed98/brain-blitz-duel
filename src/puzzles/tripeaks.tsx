@@ -63,6 +63,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     start.current = null;
     view.pressed = -1;
     view.drag = null;
+    // The card tried (stage 2: a refused one leans to the discard and back; display only).
+    view.lastTry = s.hit;
     // A tap plays (or turns the stock); a drag plays only when dropped on the discard.
     if (!s.moved || tpOverDiscard(x, y)) return { k: TP_INPUT_TAP, a: s.hit, b: 0, c: 0 };
     return null;

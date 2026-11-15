@@ -85,6 +85,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       return { k: held, a: 0, b: 0, c: 0 };
     }
     if (hit < 0 || pyHit(state, x, y) !== hit) return null;
+    // The card tapped (stage 2: a refused pair shakes it; display only).
+    view.lastTry = hit;
     return { k: PY_INPUT_TAP, a: hit, b: 0, c: 0 };
   };
 

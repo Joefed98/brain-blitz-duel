@@ -44,7 +44,7 @@ import { MG_AIM, MG_BALL_R, MG_ROLL, MG_STOP_V, type MinigolfState } from "@/lib
 import { POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, type PoolState } from "@/lib/arcade/pool";
 import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
 import type { MinesState } from "@/lib/arcade/minesweeper";
-import type { MahjongState } from "@/lib/arcade/mahjong";
+import { MAHJONG_PAIRS, type MahjongState } from "@/lib/arcade/mahjong";
 import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import { tpFree, type TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
@@ -1453,19 +1453,29 @@ const MINES_CASCADE_AT = 6;
 /** Mahjong: a tile selected, a pair taken, no match or a tile that can't move, Undo and Reset, the Shuffle and the clear. */
 export function mahjongSounds(): GameSounds<MahjongState> {
   let prev: MahjongState | null = null;
+  let chain = 0;
+  let lastPairAt = -1e9;
   return {
     frame(state) {
       beginFrame("mahjong", state);
       if (prev && state.tick > prev.tick) {
-        if (state.pairs > prev.pairs) { ownCue("mahjong.match", "shared.celebrate.countDing", 0.7); cardFeel(); }
-        else if (state.misses > prev.misses) effectCue("mahjong.invalid");
+        if (state.pairs > prev.pairs) {
+          // The pair flies off (stage 2), a step higher for each pair taken quickly after the last.
+          const now = typeof performance !== "undefined" ? performance.now() : 0;
+          chain = now - lastPairAt < 1600 ? Math.min(7, chain + 1) : 0;
+          lastPairAt = now;
+          overCue("mahjong.pairFly", () => ownCue("mahjong.match", "shared.celebrate.countDing", 0.7), 2 ** (chain / 12));
+          cardFeel();
+        }
+        else if (state.misses > prev.misses) overCue("mahjong.wrongPair", () => effectCue("mahjong.invalid"));
         else if (state.sel >= 0 && state.sel !== prev.sel) { effectCue("mahjong.select"); cardFeel(); }
-        if (state.blocked > prev.blocked) sfx("mahjong.blocked", "tick", 0.4);
-        if (state.shuffles > prev.shuffles) ownCue("mahjong.shuffle", "shared.celebrate.zap");
+        if (state.blocked > prev.blocked) overCue("mahjong.blockers", () => sfx("mahjong.blocked", "tick", 0.4));
+        if (state.shuffles > prev.shuffles) overCue("mahjong.spin", () => ownCue("mahjong.shuffle", "shared.celebrate.zap"));
+        if ((MAHJONG_PAIRS - state.pairs) * 2 <= 6 && (MAHJONG_PAIRS - prev.pairs) * 2 > 6 && state.pairs < MAHJONG_PAIRS) effectCue("mahjong.nearEnd");
         // mahjongRev 2's Undo and Reset: their own slots (the overhaul), the sounds they had (tick and zap) until set.
         if ((state.undos ?? 0) > (prev.undos ?? 0)) ownCue("mahjong.undo", "tick", 0.6);
         if ((state.resets ?? 0) > (prev.resets ?? 0)) ownCue("mahjong.reset", "shared.celebrate.zap", 0.6);
-        if (state.clearedTick > 0 && prev.clearedTick === 0) ownCue("mahjong.clear", "shared.celebrate.chime");
+        if (state.clearedTick > 0 && prev.clearedTick === 0) overCue("mahjong.shower", () => ownCue("mahjong.clear", "shared.celebrate.chime"));
       }
       prev = state;
     },
@@ -1492,10 +1502,10 @@ export function freecellSounds(): GameSounds<FcState> {
         else if (state.moves > prev.moves) sfx("freecell.place", "place", 0.8);
         if (state.moves > prev.moves) cardFeel();
         const home = fcHomeCount(state) - fcHomeCount(prev);
-        if (state.autos - prev.autos >= 2) sfx("freecell.cascade", "correct", 0.55, 1 + Math.min(0.5, fcHomeCount(state) / 104));
-        else if (home > 0) sfx("freecell.home", "correct", 0.55, 1 + Math.min(0.5, fcHomeCount(state) / 104));
-        if (state.rejects > prev.rejects) sfx("freecell.invalid", "wrong", 0.5);
-        if (state.ended === 1 && prev.ended === 0) sfx("freecell.win", "complete");
+        if (state.autos - prev.autos >= 2) overCue("freecell.combo", () => sfx("freecell.cascade", "correct", 0.55, 1 + Math.min(0.5, fcHomeCount(state) / 104)));
+        else if (home > 0) sfx("freecell.home", "correct", 0.55, fcHomeRate(state, prev));
+        if (state.rejects > prev.rejects) overCue("freecell.wobble", () => sfx("freecell.invalid", "wrong", 0.5));
+        if (state.ended === 1 && prev.ended === 0) overCue("freecell.bounce", () => sfx("freecell.win", "complete"));
       }
       prev = state;
     },
@@ -1503,6 +1513,26 @@ export function freecellSounds(): GameSounds<FcState> {
       prev = null;
     },
   };
+}
+
+/**
+ * A card home climbs its suit's own scale (the overhaul's stage 2): the Ace on the root, each rank a step of the major
+ * scale higher, so a whole suit going home plays a scale. The highest suit that grew sets the note.
+ */
+const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21];
+export function fcHomeRate(state: Pick<FcState, "home">, prev: Pick<FcState, "home">): number {
+  let rank = 1;
+  for (let s = 0; s < 4; s++) if ((state.home[s] ?? 0) > (prev.home[s] ?? 0)) rank = Math.max(rank, state.home[s]!);
+  return 2 ** (MAJOR_STEPS[Math.min(12, rank - 1)]! / 12) * 0.8;
+}
+
+/**
+ * A stage-2 moment's own slot (the Cards & Board overhaul): once Joe's file is set it plays in place of the sound that
+ * played there before (`before`), at the same pitch.
+ */
+function overCue(cue: string, before: () => void, rate?: number): void {
+  if (cueHasFile(cue)) effectCue(cue, 0, rate);
+  else before();
 }
 
 /** Reset's question opening (Free Cell, Mahjong, Thirteen; the stage calls it; silent until its file is set). */
@@ -1536,12 +1566,16 @@ export function tripeaksSounds(): GameSounds<TpState> {
           if (cueHasFile("tripeaks.run")) sfx("tripeaks.run", "place", 0.8, 2 ** (Math.min(12, Math.max(0, state.run - 1)) / 12), false, true);
           else sfx("tripeaks.run", state.run >= 3 ? "combo" : "place", 0.8, 1 + Math.min(0.6, state.run * 0.05));
         }
-        if (state.turns > prev.turns) sfx("tripeaks.deal", "move", 0.8);
+        if (state.turns > prev.turns) {
+          sfx("tripeaks.deal", "move", 0.8);
+          if (prev.run >= 2) effectCue("tripeaks.ladderBreak");
+        }
         // A peak card turned face up by the play (the overhaul's flip; silent until its file is set).
         if (tpFaceUpCount(state) > tpFaceUpCount(prev)) effectCue("tripeaks.flip");
-        if (state.peaks > prev.peaks) sfx("tripeaks.peak", "correct", 0.7);
-        if (state.rejects > prev.rejects) sfx("tripeaks.invalid", "wrong", 0.5);
-        if (state.ended === 1 && prev.ended === 0) sfx("tripeaks.clear", "complete");
+        if (state.peaks > prev.peaks) overCue("tripeaks.peakFly", () => sfx("tripeaks.peak", "correct", 0.7));
+        if (state.rejects > prev.rejects) overCue("tripeaks.nudge", () => sfx("tripeaks.invalid", "wrong", 0.5));
+        if (state.ended === 1 && prev.ended === 0) overCue("tripeaks.peaksLight", () => sfx("tripeaks.clear", "complete"));
+        if (state.ended === 3 && prev.ended === 0) overCue("tripeaks.stuck", () => playCueSlot("wrong", 0.35));
       }
       prev = state;
     },
@@ -1601,10 +1635,16 @@ export function fiveHandsSounds(): GameSounds<FhState> {
             const after = psHand(row).points;
             if (after > psHand(prev!.rows[r] ?? []).points) best = Math.max(best, after);
           });
-          if (best >= PS_BIG_HAND) sfx("fivehands.bigHand", "correct", 0.8);
-          else if (best > 0) sfx("fivehands.hand", "correct", 0.8);
+          if (best >= PS_BIG_HAND) overCue("fivehands.bigStamp", () => sfx("fivehands.bigHand", "correct", 0.8));
+          else if (best > 0) overCue("fivehands.stamp", () => sfx("fivehands.hand", "correct", 0.8));
           else if (fhTotals(state.rows).total > fhTotals(prev.rows).total) sfx("fivehands.place", "combo", 0.8);
           else sfx("fivehands.place", "place", 0.8);
+        }
+        if (state.turn > prev.turn) effectCue("fivehands.flip");
+        // The column pick: a tick as each of its five cards lifts, then its points count in (stage 2).
+        if ((state.pick ?? -1) >= 0 && (prev.pick ?? -1) < 0 && typeof setTimeout !== "undefined") {
+          for (let k = 0; k < 5; k++) setTimeout(() => overCue("fivehands.columnTick", () => playCueSlot("tick", 0.5)), k * 90);
+          setTimeout(() => effectCue("fivehands.countUp"), 900);
         }
         if (state.rejects > prev.rejects) sfx("fivehands.invalid", "wrong", 0.5);
         if (state.ended === 1 && prev.ended === 0) ownCue("fivehands.final", "complete");
@@ -1734,23 +1774,33 @@ export function alleyRollSounds(): GameSounds<ArState> {
 /** Pyramid: a card chosen, a pair of 13, a King alone, a stock card turned, the waste turned back, a refused tap, the clear. */
 export function pyramidSounds(): GameSounds<PyState> {
   let prev: PyState | null = null;
+  let chain = 0;
+  let lastPairAt = -1e9;
   return {
     frame(state) {
       beginFrame("pyramid", state);
       if (prev && state.tick > prev.tick) {
         if (prev.tick === 0) effectCue("pyramid.shuffle");
-        if (state.pairs > prev.pairs) { sfx("pyramid.pair", "correct", 0.8); cardFeel(); }
-        else if (state.kings > prev.kings) { sfx("pyramid.king", "place", 0.8); cardFeel(); }
+        if (state.pairs > prev.pairs) {
+          // The pair flies off (stage 2), a step higher for each pair in a quick chain.
+          const now = typeof performance !== "undefined" ? performance.now() : 0;
+          chain = now - lastPairAt < 1600 ? Math.min(7, chain + 1) : 0;
+          lastPairAt = now;
+          overCue("pyramid.pairFly", () => sfx("pyramid.pair", "correct", 0.8, 2 ** (chain / 12)), 2 ** (chain / 12));
+          cardFeel();
+        }
+        else if (state.kings > prev.kings) { overCue("pyramid.kingFlourish", () => sfx("pyramid.king", "place", 0.8)); cardFeel(); }
         // A refused pair moves the selection too; it plays only its refusal (one sound, 15 Nov 2026).
         else if (state.sel >= 0 && state.sel !== prev.sel && state.rejects === prev.rejects) effectCue("pyramid.select");
         // The light touch on picking a card (a pair and a King feel theirs above).
         if (state.pairs === prev.pairs && state.kings === prev.kings && state.sel >= 0 && state.sel !== prev.sel && state.rejects === prev.rejects) cardFeel();
         if (state.draws > prev.draws) sfx("pyramid.deal", "move", 0.8);
         if (state.pass > prev.pass) effectCue("pyramid.turn");
-        if (state.rejects > prev.rejects) sfx("pyramid.invalid", "wrong", 0.5);
+        if (state.rejects > prev.rejects) overCue("pyramid.wrongPair", () => sfx("pyramid.invalid", "wrong", 0.5));
+        if (state.pairs + state.kings > prev.pairs + prev.kings && state.removed < 28) effectCue("pyramid.uncover", 120);
         if (state.undos > prev.undos) ownCue("pyramid.undo", "tick", 0.6);
         if (state.resets > prev.resets) ownCue("pyramid.reset", "shared.celebrate.zap", 0.6);
-        if (state.ended === 1 && prev.ended === 0) sfx("pyramid.clear", "complete");
+        if (state.ended === 1 && prev.ended === 0) overCue("pyramid.outline", () => sfx("pyramid.clear", "complete"));
       }
       prev = state;
     },

@@ -10,7 +10,9 @@
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { CARD_FONT, drawChip, drawSlot } from "./cards.renderer";
-import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
+import { CardLayer, CardMotion, drawRealCard, drawRealFelt } from "./realArt.renderer";
+import { arcPoint, drawOutline, drawSparks, FxTimeline } from "./cardsFx.renderer";
+import { roundRect } from "./cards.renderer";
 import { TP_CARDS, TP_STOCK, TP_STOCK_PILE, tpFree, tpPlayable, tripeaksGameFor, type TpState } from "./tripeaks";
 
 export const TP_WORLD_W = 414;
@@ -80,10 +82,14 @@ export interface TpView {
   motion?: CardMotion;
   /** The discard as last drawn (its top, and the card under it while a new top slides in). */
   discard?: { top: number; under: number };
+  /** Stage 2's effects (the overhaul): the timeline, the card the phone last tried and the state seen last frame. */
+  fx?: FxTimeline;
+  lastTry?: number;
+  seen?: { run: number; turns: number; peaks: number; rejects: number; ended: number; tick: number; top: number };
 }
 
 export function tpNewView(): TpView {
-  return { pressed: -1, drag: null, motion: new CardMotion(), discard: { top: -1, under: -1 } };
+  return { pressed: -1, drag: null, motion: new CardMotion(), discard: { top: -1, under: -1 }, fx: new FxTimeline(), lastTry: -1 };
 }
 
 
@@ -119,6 +125,8 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
   ctx.scale(size.width / W, size.height / TP_WORLD_H);
   drawRealFelt(ctx, W, TP_WORLD_H);
   const cards = new CardLayer(ctx, view?.motion ?? null);
+  noticeTripeaks(state, view);
+  const nudge = view?.fx?.at<number>("nudge") ?? null;
 
   drawChip(ctx, 10, 9, "CLEARED", `${state.clearedCount}/${TP_CARDS}`, { gold: state.clearedCount === TP_CARDS });
   drawChip(ctx, W - 10, 9, "PEAKS", `${state.peaks}/3`, { align: "right", gold: state.peaks === 3 });
@@ -156,14 +164,26 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
     const free = tpFree(state, i);
     const playable = state.ended === 0 && tpPlayable(state, i);
     const up = view?.pressed === i;
-    cards.card(state.tab[i]!, state.tab[i]!, b.x, b.y - (up ? 3 : 0), TP_CARD_W, TP_CARD_H, {
+    // A refused card leans towards the discard and springs back.
+    let nx = 0;
+    let ny = 0;
+    if (nudge && nudge.data === i) {
+      const dx = TP_DISCARD_X - b.x;
+      const dy = TP_PILE_Y - b.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const push = Math.sin(Math.PI * nudge.k) * 12;
+      nx = (dx / d) * push;
+      ny = (dy / d) * push;
+    }
+    cards.card(state.tab[i]!, state.tab[i]!, b.x + nx, b.y - (up ? 3 : 0) + ny, TP_CARD_W, TP_CARD_H, {
       down: !free,
       glow: up ? 1 : playable ? 0.7 : 0,
       lift: up ? 1 : 0,
-    });
+    }, nx !== 0 || ny !== 0);
   }
   cards.card(state.top, state.top, TP_DISCARD_X, TP_PILE_Y, TP_PILE_W, TP_PILE_H, { glow: fresh * 0.9 });
   cards.flush();
+  if (view?.fx) drawTripeaksFx(ctx, state, view.fx);
 
   // The run readout (3 Nov 2026: one chip, "Run 3 (best 5)", gold from a run of five).
   drawChip(ctx, W / 2, TP_FLAME_Y - 13, "Run", `${state.run} (best ${state.bestRun})`, { align: "center", gold: state.run >= 5 });
@@ -183,6 +203,90 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
     lifted.card(state.tab[drag.index]!, state.tab[drag.index]!, drag.x - drag.ox, drag.y - drag.oy - 4, TP_CARD_W, TP_CARD_H, { glow: 1, lift: 1 }, true);
   }
   ctx.restore();
+}
+
+/** Starts stage 2's effects from what changed since the last frame (display only; the live stage's view alone). */
+function noticeTripeaks(state: TpState, view?: TpView): void {
+  const fx = view?.fx;
+  if (!view || !fx) return;
+  const seen = view.seen;
+  view.seen = { run: state.run, turns: state.turns, peaks: state.peaks, rejects: state.rejects, ended: state.ended, tick: state.tick, top: state.top };
+  if (!seen || state.tick < seen.tick) return;
+  if (state.run > seen.run) fx.start("rung", 260, state.run);
+  // A stock turn breaks a run of two or more: the ladder crumbles.
+  if (state.turns > seen.turns && seen.run >= 2) fx.start("crumble", 520, Math.min(10, seen.run));
+  // A peak's top card: it flies up from its peak with a sparkle (the card itself still lands on the discard).
+  if (state.peaks > seen.peaks && state.lastPlay >= 0 && state.lastPlay < 3) fx.start("peak", 700, { index: state.lastPlay, card: state.top });
+  if (state.rejects > seen.rejects && (view.lastTry ?? -1) >= 0 && (view.lastTry ?? -1) < TP_CARDS) fx.start("nudge", 300, view.lastTry);
+  if (state.ended === 1 && seen.ended !== 1) for (let p = 0; p < 3; p++) fx.start(`light${p}`, 800, p, p * 260);
+}
+
+/** The ladder chip size and place: beside the discard, growing upwards. */
+const RUNG_H = 13;
+const RUNG_W = 38;
+const LADDER_X = TP_DISCARD_X + TP_PILE_W + 14;
+
+function rung(ctx: CanvasRenderingContext2D, n: number, x: number, y: number, alpha: number, scale = 1): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x + RUNG_W / 2, y + RUNG_H / 2);
+  ctx.scale(scale, scale);
+  roundRect(ctx, -RUNG_W / 2, -RUNG_H / 2, RUNG_W, RUNG_H, RUNG_H / 2);
+  ctx.fillStyle = n >= 5 ? "rgba(233,196,106,0.95)" : "rgba(5,12,30,0.72)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(233,196,106,0.6)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = n >= 5 ? "#231503" : "#F6EBD0";
+  ctx.font = `800 10px ${CARD_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`×${n}`, 0, 0.5);
+  ctx.restore();
+}
+
+/** The run ladder (growing, or crumbling after a stock turn), the peak top's flight and the finish's lit peaks. */
+function drawTripeaksFx(ctx: CanvasRenderingContext2D, state: TpState, fx: FxTimeline): void {
+  const base = TP_PILE_Y + TP_PILE_H - RUNG_H;
+  const crumble = fx.at<number>("crumble");
+  if (crumble) {
+    for (let n = 1; n <= crumble.data; n++) {
+      const fall = crumble.k * crumble.k * (60 + n * 8);
+      const drift = (n % 2 ? 1 : -1) * crumble.k * (6 + n);
+      ctx.save();
+      ctx.translate(drift, fall);
+      rung(ctx, n, LADDER_X, base - (n - 1) * (RUNG_H + 1), 1 - crumble.k);
+      ctx.restore();
+    }
+  } else if (state.ended === 0 || state.run > 0) {
+    const pop = fx.at<number>("rung");
+    const shown = Math.min(10, state.run);
+    for (let n = 1; n <= shown; n++) {
+      const fresh = pop && n === shown ? 1.5 - 0.5 * pop.k : 1;
+      rung(ctx, n, LADDER_X, base - (n - 1) * (RUNG_H + 1), 1, fresh);
+    }
+  }
+  const peak = fx.at<{ index: number; card: number }>("peak");
+  if (peak) {
+    const b = tpCardBox(peak.data.index);
+    const p = arcPoint(b.x, b.y, b.x, b.y - 70, peak.k, 0);
+    ctx.save();
+    ctx.globalAlpha = 1 - peak.k;
+    drawRealCard(ctx, peak.data.card, p.x, p.y, TP_CARD_W, TP_CARD_H, { glow: 1 });
+    ctx.restore();
+    drawSparks(ctx, b.x + TP_CARD_W / 2, b.y + TP_CARD_H / 2, peak.k, 46, 12);
+  }
+  for (let p = 0; p < 3; p++) {
+    const light = fx.at(`light${p}`);
+    if (!light) continue;
+    // The cleared peak's outline, from its top card down to its base, lit gold.
+    const top = tpCardBox(p);
+    const left = tpCardBox(18 + 3 * p);
+    const right = tpCardBox(18 + 3 * p + 3);
+    const a = Math.sin(Math.PI * light.k);
+    drawOutline(ctx, left.x - 4, top.y - 4, right.x + TP_CARD_W - left.x + 8, left.y + TP_CARD_H - top.y + 8, a, 14);
+    drawSparks(ctx, top.x + TP_CARD_W / 2, top.y + 6, light.k, 30, 8);
+  }
 }
 
 /** The note for a run that ended stuck (`ended` 3: the stock is gone and no card plays), or null. Display only. */

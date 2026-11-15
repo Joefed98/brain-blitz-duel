@@ -2601,6 +2601,15 @@ outside the repo.
   cards-board-overhaul-check (~1 s); skins-default-check pins the four redesigned card games to
   `scripts/fixtures/skins-default-frames-cards.json`; sound slots for Joe's recordings in
   `docs/sound-cues/cards-board-elevenlabs.md`. Stages 2 (effects, with the kit) and 3 (levels and hints) follow.
+- **Cards & Board overhaul, stage 2** (15 Nov 2026; the effects, `docs/design/pages-review/cards-board/GALLERY.md`
+  "Stage 2"; display and sound only, no stamps): each game's renderer starts its effects from what changed in the sim's
+  state (`src/lib/arcade/cards/cardsFx.renderer.ts`: `FxTimeline` on the wall clock, held by the live stage's view, so
+  reveals, replays and stills draw none; nothing starts under reduced motion). Mahjong's stage now holds a view
+  (`mahjongNewView`, `mahjongArtGameFor(rev, view)`, one game object per revision and view); `mahjongBlockers` (mahjong.ts)
+  names the tiles keeping a place blocked. 24 new sound slots (`overCue` in gameSounds.ts: a slot's own file once set,
+  the sound that played there before until then; listed in `docs/sound-cues/cards-board-elevenlabs.md`); Free Cell's
+  home chime climbs a major scale per rank (`fcHomeRate`). Clips: `bun scripts/shots/cards-board-fx-clips.ts` (the
+  flawless lines through the real renderers on a virtual clock; `CardMotion.clock`). cards-board-overhaul-check section 9.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

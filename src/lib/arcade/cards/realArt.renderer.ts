@@ -282,8 +282,11 @@ export class CardMotion {
   /** Set false to draw every card at its place (reduced motion is also read on each frame). */
   enabled = true;
 
-  /** Starts a frame (the stage's clock; performance.now() by default). */
-  frame(now = typeof performance !== "undefined" ? performance.now() : 0): void {
+  /** The clock frames read when given none (performance.now(); the gallery's clip tool plays a virtual one). */
+  clock: () => number = () => (typeof performance !== "undefined" ? performance.now() : 0);
+
+  /** Starts a frame (the stage's clock by default). */
+  frame(now = this.clock()): void {
     this.now = now;
     this.frameNo++;
   }
