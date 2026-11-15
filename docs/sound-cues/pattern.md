@@ -88,7 +88,9 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 | `laser.turn` | A placed mirror is flipped | 180 ms |
 | `laser.fire` | The beam starts | As long as the shot travels (about 2 s on the intro example) |
 | `laser.gem` | One or more gems light during a shot | 260 ms |
-| `laser.bomb` | The beam hits a bomb | 420 ms |
+| `laser.bomb` | The beam hits a bomb (the miss's one sound) | 420 ms |
+| `laser.nearMiss` | A shot ends with every gem but one lit and no bomb ("1 gem dark", in place of `wrong`) | 600 ms |
+| `laser.outOfShots` | laserRev 4: the third shot fades without a solve; the board locks and says "Out of shots" | 528 ms |
 | `laser.solve` | The beam flares to full and the gems burst with light in beam order | 1,150 ms |
 
 ## Chroma Lines (`flow`)
