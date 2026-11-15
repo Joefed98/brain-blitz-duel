@@ -15,11 +15,20 @@
  *     reach after losing two lives. The run is 60 s (the 120 s rule).
  *  6. Runs replay identically (the same log twice, the same checksum) and a lives run replays unflagged.
  *  7. The look: dusk turns to night from the floors built (the same for every player), the plaza and the lives chip.
+ *  8. Edge to edge: the world meets the screen's fill without a seam.
+ *  9. Stage 2's effects (display only): the fall and the 2 px squash, the sliver's wobble within 2 px, the perfect drop's
+ *     gold ring at the join (drawn, then gone), the tock rising with the streak, the end's count and pull-back and the
+ *     stage's hold, and no edge glow for the six Action games (the shared layer's edge glow and the success layer's
+ *     milestone frame), the `moment` hook called at the event's point, and every other game keeping its edge glow.
+ * 10. Stage 2's reveal: the run picture agrees with the server's replay on every legacy run and a rev-11 run with trims,
+ *     a rescue and two lost lives; the drawing (gold perfects, red losses, transparent); the component's three big
+ *     numbers and legend, no stray symbols; ArcadeReveal draws it in place of the tiles.
  */
 import { readFileSync } from "node:fs";
 
 import {
   skylineCheckpoint,
+  SKYLINE_CHECKPOINT_INTERVAL,
   skylineGameFor,
   skylineKindAt,
   skylineLivesGame,
@@ -407,6 +416,250 @@ section("8. Edge to edge: the world meets the screen's fill without a seam");
     }
   }
   console.log(`  largest 8-row band step at the sides: ${worst.toFixed(1)} (row ${worstRow})`);
+}
+
+
+/* 9. Stage 2: the effects (display only). */
+section("9. Stage 2: the effects (a drop, a perfect drop, a trim, a sliver, a lost life, the end)");
+{
+  const { createCanvas } = await import("@napi-rs/canvas");
+  let clockMs = 50_000;
+  Object.defineProperty(globalThis, "performance", { configurable: true, value: { now: () => clockMs } });
+  const R = await import("../src/lib/arcade/skyline.renderer");
+  const FX = await import("../src/lib/arcade/arcadeFx.renderer");
+  const SR = await import("../src/lib/arcade/success.renderer");
+  const SPECS = await import("../src/lib/arcade/arcadeFxGames.renderer");
+  const { skylineWorldHFor, SKYLINE_WORLD_W } = await import("../src/lib/arcade/skyline");
+  const sounds = readFileSync("src/lib/fx/gameSounds.ts", "utf8");
+  const WH = skylineWorldHFor(SKYLINE_REV_LIVES);
+  const size = { width: SKYLINE_WORLD_W, height: WH };
+  // Every physical action within 900 ms and no more than 2 px off the sim's blocks.
+  ok(R.DROP_FALL_TICKS * (1000 / 60) <= 900, "the drop's fall is under 900 ms");
+  let squashMax = 0;
+  for (let a = 0; a < 40; a++) squashMax = Math.max(squashMax, Math.abs(R.skylineSquashPx(a)));
+  ok(squashMax <= 2 && squashMax >= 1.9 && R.skylineSquashPx(18) === 0 && R.skylineSquashPx(-1) === 0, `the tower squashes about 2 px and settles (${squashMax.toFixed(2)} px, gone after 18 ticks = 300 ms)`);
+  let tiltMax = 0;
+  for (let a = 0; a < 80; a++) tiltMax = Math.max(tiltMax, Math.abs(R.skylineSliverTilt(a)));
+  ok(tiltMax * 36 <= 2 && tiltMax > 0 && R.skylineSliverTilt(60) === 0, `a sliver wobbles at most 2 px at its corners (${(tiltMax * 36).toFixed(2)} px) and stops within a second`);
+  ok(R.PERFECT_RING_TICKS * (1000 / 60) <= 900 && R.SKYLINE_END_COUNT_MS <= 900, "the ring and the count-up each end within 900 ms");
+  // The perfect drop's tock rises with the streak.
+  const { skylinePerfectRate } = await import("../src/lib/fx/gameSounds");
+  ok(skylinePerfectRate(1) === 1 && skylinePerfectRate(0) === 1 && Math.abs(skylinePerfectRate(8) - 2 ** (7 / 12)) < 1e-9 && skylinePerfectRate(30) === skylinePerfectRate(8), "the perfect tock rises a semitone a drop in the streak, up to seven");
+  ok(/sfx\("skyline\.perfect", "correct", 1, skylinePerfectRate\(state\.streak \?\? 1\), false, true\)/.test(sounds), "the perfect drop plays skyline.perfect at the streak's pitch");
+  ok(/ownCue\("skyline\.trim"/.test(sounds) && /ownCue\("skyline\.sliver"/.test(sounds) && /ownCue\("skyline\.lifeLost"/.test(sounds) && /sfx\("shared\.celebrate\.chime"/.test(sounds), "trim, sliver, lost life and the gold block keep their slots");
+
+  /** Plays to a state with `floors` perfect drops, drawing every tick on `ctx` (the renderer's memory sees each landing). */
+  function playPerfect(ctx: CanvasRenderingContext2D, seed: number, floors: number, extraTicks: number): SkylineState {
+    let s = g.init(seed);
+    for (let t = 0; t < 3000 && s.placed < floors; t++) {
+      s = g.step(s, g.step(s, true).perfects > s.perfects);
+      clockMs += 1000 / 60;
+      R.drawSkylineArt(ctx, s, size);
+    }
+    for (let k = 0; k < extraTicks; k++) {
+      s = g.step(s, false);
+      clockMs += 1000 / 60;
+      R.drawSkylineArt(ctx, s, size);
+    }
+    return s;
+  }
+  const gold = (d: Uint8ClampedArray, i: number) => d[i]! > 190 && d[i + 1]! > 140 && d[i + 2]! < 140 && d[i]! - d[i + 2]! > 90;
+  /** Gold pixels in the band of rows round y, outside the columns [x0, x1] (the ring reaches past the block). */
+  function goldBeside(ctx: CanvasRenderingContext2D, y: number, x0: number, x1: number): number {
+    const d = ctx.getImageData(0, 0, size.width, size.height).data;
+    let n = 0;
+    for (let yy = Math.max(0, Math.round(y) - 14); yy < Math.min(size.height, Math.round(y) + 14); yy++) {
+      for (let xx = 0; xx < size.width; xx++) {
+        if (xx >= x0 - 2 && xx <= x1 + 2) continue;
+        if (gold(d, (yy * size.width + xx) * 4)) n++;
+      }
+    }
+    return n;
+  }
+  const perfectCanvas = createCanvas(size.width, size.height);
+  const pc = perfectCanvas.getContext("2d") as unknown as CanvasRenderingContext2D;
+  const sP = playPerfect(pc, 77, 3, 0);
+  // Ten ticks after the third perfect drop: the ring has spread past the block's edges at the join.
+  let sRing = sP;
+  for (let k = 0; k < 10; k++) {
+    sRing = g.step(sRing, false);
+    clockMs += 1000 / 60;
+    R.drawSkylineArt(pc, sRing, size);
+  }
+  const join = R.skylineJoinAt({ x: 0, y: 0 });
+  const top = sRing.blocks[sRing.blocks.length - 1]!;
+  const blockH = 36;
+  const ringNow = goldBeside(pc, join.y + blockH, top.x / 256, (top.x + top.w) / 256);
+  for (let k = 0; k < 60; k++) {
+    sRing = g.step(sRing, false);
+    clockMs += 1000 / 60;
+    R.drawSkylineArt(pc, sRing, size);
+  }
+  const ringLater = goldBeside(pc, join.y + blockH, top.x / 256, (top.x + top.w) / 256);
+  ok(ringNow > 20 && ringLater < ringNow / 4, `a perfect drop draws a gold ring at the join, beyond the block (${ringNow} gold px), gone a second later (${ringLater})`);
+  ok(join.y > 0 && join.y < size.height && Math.abs(join.x - (top.x + top.w / 2) / 256) < 2, "the success layer's burst point is the tower's top join, not mid-screen");
+
+  // The edge glow is gone for the Action games: a perfect moment paints nothing along the world's edge.
+  const edgeSpec = R.SKYLINE_FX_EXPAND;
+  ok(FX.arcadeFxEdgeless(edgeSpec) && SR.edgelessGame("skyline"), "High Rise's success layer is edgeless");
+  for (const id of ["flip", "swing", "ricochet", "bastion", "orbit", "orbit3", "skyline"]) ok(SR.edgelessGame(id), `${id}: no edge glow`);
+  for (const id of ["breaker", "hover", "rally", "pinball", "slice", "inkbridge", "tilt"]) ok(!SR.edgelessGame(id), `${id}: keeps its edge glow (other categories' sessions own theirs)`);
+  for (const [name, spec] of Object.entries(SPECS.ARCADE_FX_SPECS as Record<string, { game: string }>)) {
+    const action = ["flip", "swing", "ricochet", "bastion", "skyline", "orbit"].includes(name);
+    ok(FX.arcadeFxEdgeless(spec) === action, `${name}: edgeless ${action}`);
+  }
+  // Painting: an edgeless spec's perfect moment leaves the world's edge untouched and calls its moment hook at the event's
+  // point; the same spec with the edge glow on paints the edge.
+  const W = 200;
+  const H = 300;
+  const moments: { x: number; y: number; kind: string }[] = [];
+  const mk = (game: string, edgeGlow?: boolean) => ({
+    game,
+    world: "realworld" as const,
+    width: W,
+    height: H,
+    fit: "world" as const,
+    ...(edgeGlow === undefined ? {} : { edgeGlow }),
+    moment: (_c: CanvasRenderingContext2D, m: { x: number; y: number; kind: string }) => moments.push({ x: m.x, y: m.y, kind: m.kind }),
+    events: [{ kind: "perfect" as const, count: (s: { n: number }) => s.n, at: () => ({ x: 120, y: 200 }), label: () => null, textOnly: true }],
+  });
+  function edgeAlpha(spec: ReturnType<typeof mk>): number {
+    const c = createCanvas(W, H);
+    const cx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    FX.arcadeFx(cx, spec as never, { tick: 1, n: 0 }, () => {}, { width: W, height: H });
+    clockMs += 16;
+    FX.arcadeFx(cx, spec as never, { tick: 2, n: 1 }, () => {}, { width: W, height: H });
+    clockMs += 250;
+    cx.clearRect(0, 0, W, H);
+    FX.arcadeFx(cx, spec as never, { tick: 3, n: 1 }, () => {}, { width: W, height: H });
+    const stats = FX.arcadeFxMomentStats(cx, spec);
+    ok(stats.live && stats.at?.x === 120 && stats.at?.y === 200, `${spec.game}: the moment is live at the event's point`);
+    const d = cx.getImageData(0, 0, W, H).data;
+    let a = 0;
+    for (let y = 0; y < H; y++) for (const x of [3, 4, 5, W - 5, W - 4]) a += d[(y * W + x) * 4 + 3]!;
+    return a;
+  }
+  moments.length = 0;
+  const edgeless = edgeAlpha(mk("skyline"));
+  ok(edgeless === 0, `an Action game's perfect moment paints nothing on the world's edge (alpha ${edgeless})`);
+  ok(moments.length > 0 && moments.every((m) => m.x === 120 && m.y === 200 && m.kind === "perfect"), `the edgeless spec's moment hook is called at the event's point (${moments.length} frames)`);
+  moments.length = 0;
+  const edged = edgeAlpha(mk("not-action"));
+  ok(edged > 1000 && moments.length === 0, `a game outside the Action group keeps its edge glow (alpha ${edged}) and no hook is called`);
+  ok(edgeAlpha(mk("not-action-off", false)) === 0, "edgeGlow: false turns any game's edge glow off");
+  // The success layer's milestone frame (every 5th success) draws no edge on an Action id, and still does on another.
+  function milestoneEdge(id: string): number {
+    const c = createCanvas(W, H);
+    const cx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    for (let k = 0; k <= 5; k++) SR.successFrame(cx, { id, tick: 10 + k, count: k, colour: "#FFD84A", width: W, height: H, point: { x: 100, y: 150 } });
+    cx.clearRect(0, 0, W, H);
+    SR.successFrame(cx, { id, tick: 22, count: 5, colour: "#FFD84A", width: W, height: H, point: { x: 100, y: 150 } });
+    const d = cx.getImageData(0, 0, W, H).data;
+    let a = 0;
+    for (let y = 20; y < H - 20; y++) a += d[(y * W + 5) * 4 + 3]!;
+    return a;
+  }
+  ok(milestoneEdge("skyline") === 0 && milestoneEdge("orbit3") === 0, "the success layer's milestone frame is off for the Action games");
+  ok(milestoneEdge("breaker") > 0, "the milestone frame still draws for other games");
+
+  // The end: the camera pulls back over the whole tower and the floor count counts up from 0.
+  ok(R.skylineEndCountAt(40, 0) === 0 && R.skylineEndCountAt(40, R.SKYLINE_END_COUNT_MS) === 40 && R.skylineEndCountAt(40, 450) < 40 && R.skylineEndCountAt(40, 450) > 20, "the floor count counts up to the floors built");
+  const endCanvas = createCanvas(size.width, size.height);
+  const ec = endCanvas.getContext("2d") as unknown as CanvasRenderingContext2D;
+  let sEnd = playPerfect(ec, 31, 45, 0);
+  for (let t = 0; t < 4000 && !g.isOver(sEnd); t++) {
+    sEnd = g.step(sEnd, false);
+    if (t % 50 === 0) R.drawSkylineArt(ec, sEnd, size);
+  }
+  for (let k = 0; k < 90; k++) {
+    clockMs += 1000 / 60;
+    R.drawSkylineArt(ec, sEnd, size);
+  }
+  const endTop = R.skylineJoinAt({ x: 0, y: -1 }).y;
+  ok(g.isOver(sEnd) && endTop > WH * 0.14 + 44 && endTop < WH * 0.5, `at the end the whole tower is in view under the count (its top at ${endTop.toFixed(0)} of ${WH})`);
+  ok(/time - missedAt\.current >= Math\.max\(SKYLINE_END_HOLD_MS/.test(def) && R.SKYLINE_END_HOLD_MS >= 1000 && R.SKYLINE_END_HOLD_MS <= 1500, "the stage holds its submit while the end plays (drafts carry the same run)");
+  if (process.env.EFFECT_SHOTS) {
+    const fs = await import("node:fs");
+    fs.writeFileSync(`${process.env.EFFECT_SHOTS}/end.png`, endCanvas.toBuffer("image/png"));
+  }
+}
+
+/* 10. Stage 2: the answer reveal's picture of the run. */
+section("10. Stage 2: the reveal's picture of the run (the stored log through the real sim)");
+{
+  const { skylineRunSummary } = await import("../src/lib/duel/skylineSummary");
+  const R = await import("../src/lib/arcade/skyline.renderer");
+  const { createCanvas } = await import("@napi-rs/canvas");
+  // Every legacy run's picture agrees with the server's replay (floors, perfect drops, the end).
+  let agree = 0;
+  for (const r of legacy.runs) {
+    const now = replaySkylineRun(r.seed, r.raw, r.rev);
+    const sum = skylineRunSummary(r.seed, r.raw, r.rev);
+    const perfectFloors = sum.floors.filter((f) => f.kind === "perfect" || f.kind === "gold").length;
+    if (sum.placed === now.blocks && sum.floors.length === now.blocks + 1 && sum.perfects === now.perfects && perfectFloors === now.perfects && sum.survived === now.survived) agree++;
+    else failures.push(`summary rev ${r.rev} seed ${r.seed}: ${sum.placed}/${sum.perfects} vs ${now.blocks}/${now.perfects}`);
+    checks++;
+  }
+  console.log(`  ${agree} of ${legacy.runs.length} legacy runs: the picture matches the replay`);
+  // A rev-11 run with trims, two lost lives and a wide-block rescue.
+  let s = g.init(13);
+  const taps: number[] = [];
+  const lostAt: number[] = [];
+  const checkpoints: ReturnType<typeof skylineCheckpoint>[] = [];
+  for (let t = 1; t <= SKYLINE_RUN_TICKS && !g.isOver(s); t++) {
+    const top = s.blocks[s.blocks.length - 1]!;
+    const off = s.x - top.x;
+    const overlap = Math.min(s.x + s.w, top.x + top.w) - Math.max(s.x, top.x);
+    const rearmed = !s.lostTick || t - s.lostTick > SKYLINE_V11_REARM_TICKS;
+    let tap = false;
+    // Five trims (floors 3–7: the rescue follows), a miss on floors 10 and 17, perfect drops otherwise.
+    if (s.placed >= 2 && s.placed < 7) tap = off > 6_000 && off < 8_000;
+    else if ((s.placed === 9 || s.placed === 16) && (s.livesLost ?? 0) < (s.placed === 9 ? 1 : 2)) tap = rearmed && overlap <= 0;
+    else tap = Math.abs(off) <= 700;
+    if (tap) taps.push(t);
+    const before = s.livesLost ?? 0;
+    s = g.step(s, tap);
+    if ((s.livesLost ?? 0) > before) lostAt.push(s.placed);
+    if (s.tick % SKYLINE_CHECKPOINT_INTERVAL === 0) checkpoints.push(skylineCheckpoint(s));
+  }
+  const raw = encodeSkylineRun({ seed: 13, claimedScore: g.score(s), inputs: taps, endTick: s.tick, checkpoints });
+  const replay = replaySkylineRun(13, raw, SKYLINE_REV_LIVES);
+  const sum = skylineRunSummary(13, raw, SKYLINE_REV_LIVES);
+  ok(replay.livesLost === 2 && sum.livesLost === 2 && sum.losses.length === 2, `the run lost two lives (${sum.livesLost})`);
+  ok(sum.losses.map((l) => l.floor - 1).join() === lostAt.join(), `each loss is drawn at the floor it happened on (${sum.losses.map((l) => l.floor - 1).join()})`);
+  ok(sum.rescues >= 1 && sum.floors.some((f) => f.kind === "wide"), `the wide-block rescue shows as a wide floor (${sum.rescues} rescues)`);
+  ok(sum.floors.some((f) => f.kind === "trim") && sum.bestStreak === replay.bestStreak && sum.bestRun !== null && sum.bestRun.to - sum.bestRun.from + 1 === sum.bestStreak, `trims show, and the best streak (${sum.bestStreak}) is the bracketed run`);
+  ok(sum.placed === replay.blocks && sum.perfects === replay.perfects && !replay.flagged, "the picture's numbers are the replay's (an unflagged run)");
+  // The drawing: transparent, every floor painted, the loss in red.
+  const W = 340;
+  const c = createCanvas(W, 240);
+  const cx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+  R.drawSkylineRunPicture(cx, sum, { width: W, height: 240 });
+  const d = cx.getImageData(0, 0, W, 240).data;
+  let red = 0;
+  let goldPx = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i]! > 220 && d[i + 1]! < 140 && d[i + 2]! < 150 && d[i + 3]! > 200) red++;
+    if (d[i]! > 200 && d[i + 1]! > 150 && d[i + 2]! < 110 && d[i + 3]! > 200) goldPx++;
+  }
+  ok(red > 30 && goldPx > 500, `the picture shows the lost lives in red (${red} px) and the perfect drops in gold (${goldPx} px)`);
+  ok(d[3] === 0 && d[(10 * W + W - 2) * 4 + 3] === 0, "the picture is drawn on the reveal's own gradient (transparent around the tower)");
+  ok(R.skylineRunFloorPx(72, 240) >= 3 && R.skylineRunFloorPx(5, 240) === 14, "floors are as tall as fit, 3 to 14 px");
+  if (process.env.EFFECT_SHOTS) (await import("node:fs")).writeFileSync(`${process.env.EFFECT_SHOTS}/picture.png`, c.toBuffer("image/png"));
+  // The component: three big numbers, a legend with short plain labels, one picture; wired into the shared reveal.
+  const React = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { skylinePuzzle } = await import("../src/puzzles/skyline");
+  ok(typeof skylinePuzzle.RunPicture === "function", "High Rise declares its run picture");
+  const html = renderToStaticMarkup(React.createElement(skylinePuzzle.RunPicture!, { puzzle: { type: "skyline", seed: 13, skylineRev: SKYLINE_REV_LIVES } as never, myAnswer: raw }));
+  const stat = (name: string) => new RegExp(`data-skyline-stat="${name}"[^>]*><span[^>]*>(\\d+)</span>`).exec(html)?.[1];
+  ok(stat("floors") === String(replay.blocks) && stat("perfects") === String(replay.perfects) && stat("streak") === String(replay.bestStreak), `the big numbers are floors, perfect drops and the best streak (${stat("floors")}, ${stat("perfects")}, ${stat("streak")})`);
+  ok(/text-4xl/.test(html) && (html.match(/<canvas/g) ?? []).length === 1, "big type and one picture");
+  for (const name of ["perfect", "trim", "wide", "lost"]) ok(html.includes(`data-skyline-legend="${name}"`), `the legend names ${name}`);
+  const text = html.replace(/<[^>]+>/g, " ");
+  ok(!/[×→·]/.test(text) && !/\bcore\b|\bunits\b/i.test(text), "no stray ×, arrows or jargon in the picture's text");
+  const arcadeReveal = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
+  ok(/<GameRunPicture puzzle=\{puzzle\} myAnswer=\{myAnswer\} \/>/.test(arcadeReveal) && /ownPicture \? \[\]/.test(arcadeReveal), "the shared arcade reveal draws the game's picture, its numbers in place of the tiles");
 }
 
 if (failures.length) {

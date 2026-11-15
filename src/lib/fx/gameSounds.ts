@@ -908,6 +908,11 @@ export function junctionSounds(): GameSounds<JuncState> {
   };
 }
 
+/** High Rise's perfect-drop tock (stage 2, 15 Nov 2026): a semitone higher for each perfect drop in a row after the first, up to seven. */
+export function skylinePerfectRate(streak: number): number {
+  return 2 ** (Math.max(0, Math.min(7, streak - 1)) / 12);
+}
+
 export function skylineSounds(): GameSounds<SkylineState> {
   let prev: SkylineState | null = null;
   return {
@@ -916,7 +921,8 @@ export function skylineSounds(): GameSounds<SkylineState> {
       if (prev && state.tick > prev.tick) {
         if (state.blocks.length > prev.blocks.length) {
           sfx("skyline.drop", "arc_clank", 0.8, 1, true);
-          if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct");
+          // Stage 2: the tock rises with the perfect streak (streak is absent on unstamped rounds: the base pitch).
+          if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct", 1, skylinePerfectRate(state.streak ?? 1), false, true);
           else {
             // The Action overhaul (15 Nov 2026): a trim crumbles; a sliver (under a quarter of the block on the tower) creaks.
             const top = state.blocks[state.blocks.length - 1]!;
