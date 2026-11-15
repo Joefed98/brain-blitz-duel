@@ -114,43 +114,94 @@ def gem_mesh(shape):
     return ob
 
 
-def gem_material(colour):
-    # A cut stone at sprite size: a saturated body with a little subsurface glow, a hard clear coat, and flat facets
-    # (each catching or missing the small lights, so the cut sparkles); no see-through glass, which reads muddy small.
+def softbox(location, target, size, strength, colour=(1, 1, 1), size_y=None):
+    """An emissive panel the camera never sees: only its reflection in a facet or on glass."""
+    bpy.ops.mesh.primitive_plane_add(size=1, location=location)
+    ob = bpy.context.object
+    ob.scale = (size, size_y or size, 1)
+    lib.look_at(ob, target)
+    ob.rotation_euler.rotate_axis("X", math.pi)  # the plane's normal faces the target
+    m = bpy.data.materials.new("softbox")
+    m.use_nodes = True
+    nt = m.node_tree
+    for n in list(nt.nodes):
+        nt.nodes.remove(n)
+    em = nt.nodes.new("ShaderNodeEmission")
+    em.inputs[0].default_value = (*colour, 1)
+    em.inputs[1].default_value = strength
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    nt.links.new(em.outputs[0], out.inputs[0])
+    ob.data.materials.append(m)
+    ob.visible_camera = False
+    ob.visible_shadow = False
+    return ob
+
+
+def gem_material(colour, shade=1.0):
+    # A cut stone that reads at 40 px (Joe, 15 Nov: "cut, faceted, lit gems from the concept"): a deep saturated body
+    # (diffuse colour from a key light) under a mirror-hard surface, so every flat facet shows either a bright softbox
+    # or the dark studio: the alternating light and dark facets are what make a cut read as a cut.
     m = bpy.data.materials.new("gem")
     m.use_nodes = True
     p = m.node_tree.nodes["Principled BSDF"]
-    p.inputs["Base Color"].default_value = (*hex_rgb(colour), 1)
-    p.inputs["Roughness"].default_value = 0.02
-    p.inputs["IOR"].default_value = 2.0
-    p.inputs["Transmission Weight"].default_value = 0.65
-    p.inputs["Subsurface Weight"].default_value = 0.15
-    p.inputs["Subsurface Radius"].default_value = (0.3, 0.3, 0.3)
-    p.inputs["Coat Weight"].default_value = 1.0
+    r, g, b = hex_rgb(colour)
+    p.inputs["Base Color"].default_value = (r * 0.5 * shade, g * 0.5 * shade, b * 0.5 * shade, 1)
+    p.inputs["Roughness"].default_value = 0.03
+    p.inputs["IOR"].default_value = 2.4
+    # Reflections tinted by the stone (a gem's facets flash its own colour, light, not plain white).
+    p.inputs["Specular Tint"].default_value = (min(1, r * 0.5 + 0.55), min(1, g * 0.5 + 0.55), min(1, b * 0.5 + 0.55), 1)
+    p.inputs["Coat Weight"].default_value = 0.15
     p.inputs["Coat Roughness"].default_value = 0.0
+    p.inputs["Subsurface Weight"].default_value = 0.25
+    p.inputs["Subsurface Radius"].default_value = (0.4, 0.4, 0.4)
     return m
 
 
 def gems():
     for colour, shape in zip(GEM_COLOURS, GEM_SHAPES):
-        s = lib.reset(256, 256, samples=96, transparent=True)
-        s.cycles.film_transparent_glass = False
-        lib.world((0.012, 0.01, 0.018), 1.0)
-        ob = gem_mesh(shape)
-        ob.data.materials.append(gem_material(colour))
-        # Small, sharp lights all round (a jeweller's lamp): each facet catches one and sparkles; no flat fill.
+        s = lib.reset(256, 256, samples=128, transparent=True)
         s.view_settings.view_transform = "Standard"
-        s.view_settings.look = "None"
-        for i, (x, y) in enumerate([(-1.6, 1.8), (1.9, 1.2), (-1.2, -1.9), (1.5, -1.6), (0.0, 2.4)]):
-            lib.area_light((x, y, 2.4), (0, 0, 0), 420 if i == 0 else 18, 0.3, (1.0, 0.97, 0.92))
-        # Glints: small hard lights low on the upper left and right, where the crown facets mirror them to the camera.
-        lib.area_light((-3.0, 3.0, 0.9), (0, 0, 0), 2200, 0.12, (1.0, 1.0, 1.0))
-        lib.area_light((3.2, 2.2, 1.1), (0, 0, 0), 700, 0.12, (0.9, 0.95, 1.0))
+        s.view_settings.look = "Medium High Contrast"
+        lib.world((0.0, 0.0, 0.0), 0.0)
+        ob = gem_mesh(shape)
+        # Three bodies on the facets, as a jeweller's drawing shades a cut: the table and every other crown facet light,
+        # the rest dark, the star facets between (gem_mesh's face order: five faces a girdle edge, then the table).
+        for shade in (1.55, 0.55, 1.0):
+            ob.data.materials.append(gem_material(colour, shade))
+        for f in ob.data.polygons:
+            if f.index == len(ob.data.polygons) - 1:
+                f.material_index = 0
+            else:
+                edge, kind = divmod(f.index, 5)
+                if kind == 3:
+                    f.material_index = 2
+                elif kind in (1, 2):
+                    f.material_index = 0 if (edge + kind) % 2 == 0 else 1
+                elif kind == 0:
+                    f.material_index = 1 if edge % 2 == 0 else 0
+                else:
+                    f.material_index = 1
+        # The colour: a soft key from the upper left and a weak fill (the diffuse body).
+        lib.area_light((-1.5, 1.5, 3.0), (0, 0, 0), 150, 2.0, (1.0, 0.97, 0.92))
+        lib.area_light((1.5, -1.5, 2.5), (0, 0, 0), 50, 2.0, (0.8, 0.9, 1.0))
+        # The sparkle: a ring of twelve narrow softboxes, alternately bright and dark, round and above the stone, and one
+        # softbox overhead for the table. Each crown facet mirrors a different one.
+        # Three tiers of narrow softboxes, alternately lit and dark round the stone: a crown facet (about 40 degrees)
+        # mirrors the horizon tier, a star facet the middle one, the table the overhead box; each tier is turned half a
+        # step from the next, so neighbouring facets differ.
+        for tier, (elev, rr, gain) in enumerate(((84, 3.0, 1.0), (62, 3.0, 0.8), (40, 3.0, 0.6))):
+            for k in range(16):
+                if k % 2:
+                    continue
+                a = (k + tier * 0.5) / 16 * math.pi * 2 + 0.2
+                e = math.radians(elev)
+                softbox((math.cos(a) * rr * math.sin(e), math.sin(a) * rr * math.sin(e), rr * math.cos(e)), (0, 0, 0), 0.5, 4.0 * gain, size_y=0.6)
+        softbox((-0.4, 0.4, 4.0), (0, 0, 0), 1.1, 2.2)
         round_lights()
         top_camera(2.02)
         png = os.path.join(lib.TMP, f"gem-{shape}.png")
         lib.render(png)
-        save(png, f"gem-{shape}", quality=88, size=128)
+        save(png, f"gem-{shape}", quality=90, size=128)
 
 
 # ------------------------------------------------------------------ spheres (marbles, bubbles)
@@ -172,9 +223,10 @@ def sphere(colour, kind):
         p.inputs["IOR"].default_value = 1.5
         p.inputs["Subsurface Weight"].default_value = 0.35
     else:  # bubble: candy glass
-        p.inputs["Transmission Weight"].default_value = 0.35
-        p.inputs["IOR"].default_value = 1.45
-        p.inputs["Subsurface Weight"].default_value = 0.5
+        p.inputs["Transmission Weight"].default_value = 0.15
+        p.inputs["IOR"].default_value = 1.5
+        p.inputs["Subsurface Weight"].default_value = 0.6
+        p.inputs["Subsurface Radius"].default_value = (0.5, 0.5, 0.5)
     ob.data.materials.append(m)
     return ob
 
@@ -194,9 +246,20 @@ def sphere_render(name, colour, kind, gloss_only=False):
         p.inputs["Subsurface Weight"].default_value = 0.0
         lib.world((0, 0, 0), 0.0)
     # One soft key upper left (the crisp curve of light on the glass), a cool rim lower right, a dim top fill.
-    lib.area_light((-1.6, 1.8, 3.0), (0, 0, 0), 260, 0.6, (1.0, 0.97, 0.92))
-    lib.area_light((2.2, -1.4, 1.2), (0, 0, 0), 120, 0.8, (0.6, 0.8, 1.0))
-    lib.area_light((0, 0, 4.0), (0, 0, 0), 40, 3.0, (1, 1, 1))
+    if kind == "bubble":
+        lib.area_light((-1.6, 1.8, 3.0), (0, 0, 0), 220, 4.0, (1.0, 0.97, 0.92))
+        lib.area_light((0, 0, 4.0), (0, 0, 0), 30, 8.0, (1, 1, 1))
+        mat = ob.data.materials[0].node_tree.nodes["Principled BSDF"]
+        mat.inputs["Coat Roughness"].default_value = 0.12
+    else:
+        lib.area_light((-1.6, 1.8, 3.0), (0, 0, 0), 260, 0.6, (1.0, 0.97, 0.92))
+        lib.area_light((2.2, -1.4, 1.2), (0, 0, 0), 120, 0.8, (0.6, 0.8, 1.0))
+        lib.area_light((0, 0, 4.0), (0, 0, 0), 40, 3.0, (1, 1, 1))
+    if kind == "bubble":
+        # Candy glass that reads at 30 px (Joe, 15 Nov): a big bright window reflected high on the upper left (the
+        # crescent of light the concept shows) and a soft rim of light low on the far side.
+        softbox((-1.3, 1.3, 1.9), (0, 0, 0), 3.4, 5.0, (1, 1, 1), size_y=1.4)
+        softbox((1.8, -1.8, 0.4), (0, 0, 0), 4.0, 1.2, (0.85, 0.95, 1.0), size_y=0.8)
     round_lights()
     top_camera(2.0)
     png = os.path.join(lib.TMP, f"{name}.png")
@@ -234,7 +297,7 @@ def bubbles():
 
 
 def walnut_material():
-    # Walnut: long grain lines bent by a slow noise (the figure), dark heartwood streaks, a warm reddish lacquered tone.
+    # Walnut: long, gently bent grain lines (calmed 15 Nov 2026) (the figure), dark heartwood streaks, a warm reddish lacquered tone.
     m = bpy.data.materials.new("walnut")
     m.use_nodes = True
     nt = m.node_tree
@@ -245,14 +308,14 @@ def walnut_material():
     bend.inputs["Detail"].default_value = 2.0
     mixv = nt.nodes.new("ShaderNodeMix")
     mixv.data_type = "VECTOR"
-    mixv.inputs["Factor"].default_value = 0.35
+    mixv.inputs["Factor"].default_value = 0.2
     mapping = nt.nodes.new("ShaderNodeMapping")
     mapping.inputs["Scale"].default_value = (0.3, 3.2, 1.0)
     wave = nt.nodes.new("ShaderNodeTexWave")
     wave.wave_type = "BANDS"
     wave.bands_direction = "Y"
-    wave.inputs["Scale"].default_value = 2.6
-    wave.inputs["Distortion"].default_value = 4.0
+    wave.inputs["Scale"].default_value = 1.3
+    wave.inputs["Distortion"].default_value = 2.2
     wave.inputs["Detail"].default_value = 3.0
     fine = nt.nodes.new("ShaderNodeTexNoise")
     fine.inputs["Scale"].default_value = 120.0
@@ -266,9 +329,10 @@ def walnut_material():
     mix2.inputs["Factor"].default_value = 0.3
     ramp = nt.nodes.new("ShaderNodeValToRGB")
     el = ramp.color_ramp.elements
-    el[0].position, el[0].color = 0.2, (*hex_rgb("#4A1C0A"), 1)
-    el[1].position, el[1].color = 0.85, (*hex_rgb("#A65A2C"), 1)
-    el.new(0.5).color = (*hex_rgb("#6E3016"), 1)
+    # Calm (Joe, 15 Nov: "stripy and busy"): the grain a narrow step of tone round the walnut, so the gold walls lead.
+    el[0].position, el[0].color = 0.1, (*hex_rgb("#3A180A"), 1)
+    el[1].position, el[1].color = 0.95, (*hex_rgb("#7A3E1A"), 1)
+    el.new(0.55).color = (*hex_rgb("#5A2A12"), 1)
     nt.links.new(coord.outputs["Object"], mixv.inputs["A"])
     nt.links.new(bend.outputs["Color"], mixv.inputs["B"])
     nt.links.new(mixv.outputs["Result"], mapping.inputs["Vector"])
@@ -289,19 +353,47 @@ def round_lights():
             light.shape = "DISK"
 
 
+def value_noise(shape, cells, rng):
+    """Smooth value noise on a grid of `cells` (cubic-smoothed bilinear), 0..1."""
+    h, w = shape
+    gy, gx = cells
+    grid = rng.random((gy + 2, gx + 2))
+    ys = np.linspace(0, gy, h, endpoint=False)
+    xs = np.linspace(0, gx, w, endpoint=False)
+    y0, x0 = ys.astype(int), xs.astype(int)
+    ty, tx = ys - y0, xs - x0
+    ty, tx = ty * ty * (3 - 2 * ty), tx * tx * (3 - 2 * tx)
+    a = grid[y0][:, x0]
+    b = grid[y0][:, x0 + 1]
+    c = grid[y0 + 1][:, x0]
+    d = grid[y0 + 1][:, x0 + 1]
+    top = a + (b - a) * tx[None, :]
+    bot = c + (d - c) * tx[None, :]
+    return top + (bot - top) * ty[:, None]
+
+
 def disc():
-    # The face: an even, soft light (the screen-fixed gloss is its own layer, so the texture can turn with the maze).
-    s = lib.reset(1024, 1024, samples=64, transparent=True)
-    s.view_settings.view_transform = "Standard"
-    s.view_settings.look = "None"
-    lib.world((0.02, 0.018, 0.016), 1.0)
-    bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.0, depth=0.05, location=(0, 0, 0))
-    ob = bpy.context.object
-    ob.data.materials.append(walnut_material())
-    lib.area_light((0, 0, 4), (0, 0, 0), 330, 8.0, (1, 0.95, 0.88))
-    top_camera(2.0)
+    # The face (Joe, 15 Nov: "calm the grain; keep the walnut, make the walls the focus"): painted, not rendered, so the
+    # grain is a quiet step of tone. Long fine lines bent by a slow figure, a broad soft figure over them, the lacquered
+    # walnut's warm browns, a touch darker at the rim. Seeded: the same bytes every run.
+    size = 800
+    rng = np.random.default_rng(7)
+    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32) / size
+    bend = value_noise((size, size), (3, 2), rng) * 0.9 + value_noise((size, size), (8, 5), rng) * 0.25
+    lines = np.sin((yy + bend * 0.22) * math.pi * 2 * 34)
+    fine = value_noise((size, size), (160, 12), rng)
+    figure = value_noise((size, size), (5, 3), rng)
+    t = 0.5 + 0.07 * lines + 0.08 * (fine - 0.5) + 0.32 * (figure - 0.5)
+    t = np.clip(t, 0, 1)
+    dark = np.array([0x3E, 0x1C, 0x0D], np.float32) / 255
+    light = np.array([0x86, 0x47, 0x22], np.float32) / 255
+    rgb = dark[None, None, :] + (light - dark)[None, None, :] * t[..., None]
+    r = np.hypot(xx - 0.5, yy - 0.5) * 2
+    rgb *= (1 - 0.18 * np.clip((r - 0.55) / 0.45, 0, 1) ** 1.5)[..., None]
+    alpha = np.clip((1 - r) * size / 2, 0, 1)
+    out = np.dstack([np.clip(rgb, 0, 1), alpha])
     png = os.path.join(lib.TMP, "tilt-disc.png")
-    lib.render(png)
+    Image.fromarray((out * 255).astype(np.uint8), "RGBA").save(png)
     save(png, "tilt-disc", quality=84, size=800)
     # The lacquer's reflection of a lamp above and to the upper left, screen-fixed: highlights only, as alpha.
     s = lib.reset(1024, 1024, samples=64, transparent=True)
@@ -343,8 +435,9 @@ def captain_art():
         img = Image.open(png).convert("RGBA")
         img = img.crop(img.getbbox())
         w, h = img.size
-        scale = 120 / h
-        img = img.resize((max(1, round(w * scale)), 120), Image.LANCZOS)
+        # 160 px tall: drawn about 70 world px tall (Joe, 15 Nov), sharp at a phone's 2x.
+        scale = 160 / h
+        img = img.resize((max(1, round(w * scale)), 160), Image.LANCZOS)
         path = os.path.join(OUT, f"inkbridge-captain-{pose}.webp")
         img.save(path, "WEBP", quality=88, method=6)
         print(f"inkbridge-captain-{pose}: {img.size}, {os.path.getsize(path) / 1024:.1f} KB")
@@ -438,6 +531,54 @@ def reveal_chest():
     print(f"matchup-chest: {os.path.getsize(path) / 1024:.1f} KB")
 
 
-JOBS = {"gems": gems, "marbles": marbles, "bubbles": bubbles, "disc": disc, "captain": captain_art, "coin": reveal_coin, "chest": reveal_chest}
+# ------------------------------------------------------------------ Ball Tracker's wood (concept A)
+
+
+def tile_noise(size, cells, rng):
+    """Value noise that tiles: the grid wraps, so the texture repeats with no seam."""
+    gy, gx = cells
+    grid = rng.random((gy, gx))
+    ys = np.arange(size) / size * gy
+    xs = np.arange(size) / size * gx
+    y0, x0 = ys.astype(int), xs.astype(int)
+    ty, tx = ys - y0, xs - x0
+    ty, tx = ty * ty * (3 - 2 * ty), tx * tx * (3 - 2 * tx)
+    y1, x1 = (y0 + 1) % gy, (x0 + 1) % gx
+    a, b = grid[y0][:, x0], grid[y0][:, x1]
+    c, d = grid[y1][:, x0], grid[y1][:, x1]
+    top = a + (b - a) * tx[None, :]
+    bot = c + (d - c) * tx[None, :]
+    return top + (bot - top) * ty[:, None]
+
+
+def wood_tile(name, dark, light, lines, contrast, seed):
+    """A 256 px tileable plank texture: fine grain lines along x bent by a slow figure (each a whole number of waves
+    across the tile, so it repeats), a soft broad figure, warm tones."""
+    size = 256
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32) / size
+    bend = tile_noise(size, (2, 3), rng) * 0.8 + tile_noise(size, (4, 6), rng) * 0.2
+    grain = np.sin((yy + bend * 0.07) * math.pi * 2 * lines)
+    fine = tile_noise(size, (128, 4), rng)
+    figure = tile_noise(size, (3, 2), rng)
+    t = np.clip(0.5 + contrast * (0.55 * grain + 0.5 * (fine - 0.5)) + 0.25 * (figure - 0.5), 0, 1)
+    d = np.array(dark, np.float32) / 255
+    l = np.array(light, np.float32) / 255
+    rgb = d[None, None, :] + (l - d)[None, None, :] * t[..., None]
+    png = os.path.join(lib.TMP, f"{name}.png")
+    Image.fromarray((np.clip(rgb, 0, 1) * 255).astype(np.uint8), "RGB").save(png)
+    img = Image.open(png).convert("RGB")
+    path = os.path.join(OUT, f"{name}.webp")
+    img.save(path, "WEBP", quality=82, method=6)
+    print(f"{name}: {os.path.getsize(path) / 1024:.1f} KB")
+
+
+def bt_wood():
+    # The board: warm light oak (concept A's face); the channels: deep oiled walnut (concept A's grooves).
+    wood_tile("bt-board", (0xB0, 0x7E, 0x4C), (0xD8, 0xAA, 0x72), 16, 0.22, 11)
+    wood_tile("bt-walnut", (0x3A, 0x1E, 0x0C), (0x6E, 0x3E, 0x1E), 12, 0.35, 12)
+
+
+JOBS = {"gems": gems, "marbles": marbles, "bubbles": bubbles, "disc": disc, "captain": captain_art, "coin": reveal_coin, "chest": reveal_chest, "btwood": bt_wood}
 for job in sys.argv[1:] or list(JOBS):
     JOBS[job]()

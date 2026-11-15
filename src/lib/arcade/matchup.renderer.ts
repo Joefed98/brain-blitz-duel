@@ -8,6 +8,7 @@
  * mapped back through matchupCellAtShown).
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
 import { strategyArtVersion, strategyImage, type StrategyArtName } from "./strategyArt";
 import type { CanvasSize } from "./engine";
 import { arcadeFx } from "./arcadeFx.renderer";
@@ -1222,6 +1223,96 @@ function drawClearBursts(ctx: CanvasRenderingContext2D, state: MatchupState): vo
   ctx.restore();
 }
 
+/**
+ * The Strategy overhaul, stage 2 (display only; the kit's variants, lib/arcade/strategyFx.ts). On matchupRev 12:
+ * a spark flies from each cleared gem of a goal colour still wanted down to that colour's goal under the board; an ice
+ * cell broken cracks first (white fault lines over the ice), then shatters into falling shards. Read from the sim's
+ * cells and ice each tick, compared with the previous tick's (memory per canvas).
+ */
+function drawStrategyGemFx(ctx: CanvasRenderingContext2D, state: MatchupState): void {
+  if (!state.six) return;
+  const m = fxMemory(ctx, "gem-strategy", state.tick, () => ({ tick: -1, cells: [] as number[], ice: [] as number[], sparks: [] as { tick: number; from: number; kind: number }[], cracks: [] as { tick: number; cell: number }[] }));
+  if (state.tick !== m.tick) {
+    if (m.cells.length && m.tick >= 0) {
+      for (const cell of state.lastCleared) {
+        const kind = m.cells[cell] ?? -1;
+        if (kind >= 0 && kind < MATCHUP_V12_GOALS && state.cells[cell] !== kind && m.sparks.length < 18) m.sparks.push({ tick: state.tick, from: cell, kind });
+      }
+      (state.ice ?? []).forEach((v, cell) => {
+        if (!v && m.ice[cell]) m.cracks.push({ tick: state.tick, cell });
+      });
+    }
+    m.cells = state.cells.slice();
+    m.ice = (state.ice ?? []).slice();
+    m.tick = state.tick;
+  }
+  const sparkFx = strategyFx("match");
+  const crackFx = strategyFx("wrong");
+  const SPARK_T = sparkFx === "full" ? 26 : 16;
+  const CRACK_T = 20;
+  m.sparks = m.sparks.filter((sp) => state.tick - sp.tick < SPARK_T);
+  m.cracks = m.cracks.filter((c) => state.tick - c.tick < CRACK_T);
+  if (sparkFx !== "reduced") {
+    const px = MATCHUP_BOARD_X - 5, pw = MATCHUP_BOARD_W + 10, cellW = (pw - 16) / MATCHUP_V12_GOALS;
+    for (const sp of m.sparks) {
+      const u = (state.tick - sp.tick) / SPARK_T;
+      const a = centre(sp.from);
+      const b = { x: px + 8 + cellW * sp.kind + cellW / 2 - 12, y: MATCHUP_V9_PANEL_Y + 47 };
+      const e = u * u * (3 - 2 * u);
+      const x = a.x + (b.x - a.x) * e;
+      const y = a.y + (b.y - a.y) * e - Math.sin(e * Math.PI) * 30;
+      ctx.globalAlpha = u < 0.85 ? 1 : (1 - u) / 0.15;
+      ctx.fillStyle = MATCHUP_COLOURS[sp.kind] ?? MATCHUP_GOLD;
+      ctx.beginPath();
+      ctx.arc(x, y, sparkFx === "full" ? 3.2 : 2.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(x - 0.8, y - 0.8, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  for (const c of m.cracks) {
+    const age = state.tick - c.tick;
+    const x = MATCHUP_BOARD_X + (c.cell % MATCHUP_SIZE) * MATCHUP_CELL_PX;
+    const y = MATCHUP_BOARD_Y + Math.floor(c.cell / MATCHUP_SIZE) * MATCHUP_CELL_PX;
+    const s = MATCHUP_CELL_PX;
+    ctx.save();
+    if (crackFx === "reduced" || age < 8) {
+      // First the crack: the ice still there, faulted with white lines from its centre.
+      ctx.globalAlpha = crackFx === "reduced" ? 1 - age / CRACK_T : 0.85;
+      ctx.fillStyle = "rgba(200,236,255,0.35)";
+      ctx.fillRect(x + 2, y + 2, s - 4, s - 4);
+      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (const [dx, dy] of [[-0.4, -0.35], [0.38, -0.3], [0.32, 0.4], [-0.36, 0.32]] as const) {
+        ctx.moveTo(x + s / 2, y + s / 2);
+        ctx.lineTo(x + s / 2 + dx * s * 0.45 + 2, y + s / 2 + dy * s * 0.45 - 1);
+        ctx.lineTo(x + s / 2 + dx * s * 0.9, y + s / 2 + dy * s * 0.9);
+      }
+      ctx.stroke();
+    } else {
+      // Then the shards: four slivers falling away and fading, inside the cell's own square.
+      const u = (age - 8) / (CRACK_T - 8);
+      ctx.globalAlpha = 1 - u;
+      ctx.fillStyle = "rgba(214,242,255,0.9)";
+      const drop = fxAmount(crackFx) * u * u * s * 0.4;
+      for (const [dx, dy] of [[0.25, 0.25], [0.75, 0.25], [0.25, 0.7], [0.72, 0.72]] as const) {
+        const cx = x + s * dx + (dx - 0.5) * u * s * 0.3, cy = y + s * dy + drop;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 5);
+        ctx.lineTo(cx + 4, cy + 3);
+        ctx.lineTo(cx - 4, cy + 3);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+}
+
 /** The board drawing through the shared success layer (presentation only). */
 function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
   // matchupRev 9: the shared layer spans the taller world (fxSpecAt, as the other taller worlds do).
@@ -1296,7 +1387,10 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
     ctx.fillStyle = "rgba(247,247,248,0.62)";
     ctx.fillText("pts", 12 + w + 5, 37);
   });
-  if (!options.cells) drawClearBursts(ctx, state);
+  if (!options.cells) {
+    drawClearBursts(ctx, state);
+    drawStrategyGemFx(ctx, state);
+  }
   if (state.goals && !options.cells) drawBanners(ctx, state);
   ctx.restore();
 }

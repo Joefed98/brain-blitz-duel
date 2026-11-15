@@ -65,3 +65,25 @@ The slots below either have **no file** today (`url: null`, so they fall back to
 **Count:** 16 most-heard slots without a file today, 24 new actions: 40 prompts in all. Until each file lands, the
 16 most-heard moments play the library sound they play today. The 24 new actions are wired with their effects in the
 overhaul's second stage (the effects kit, PR #422, once it is on main); each stays silent until its file lands.
+
+## Wired in stage 2 (15 Nov 2026)
+
+The new actions now fire their own slots from each game's sound observer (`src/lib/fx/gameSounds.ts`, Gemstone's from
+its stage); each is silent until its file lands, except the ice crack, which plays today's crackle until then.
+`bubble.thup` is not wired: the squash plays the kept stick recording (`bubble.stick`), so a second sound would double it.
+
+| Cue | Game | Trigger | Plays today | Per round | Length |
+|---|---|---|---|---|---|
+| `tilt.rimTick` | Tilt | The disc's rim passes one of its 48 notches (at most one per 45 ms) | silent until recorded | 50–300 | 40 ms |
+| `tilt.pitWobble` | Tilt | A marble arrives on a black hole's lip | silent until recorded | 0–15 | 250 ms |
+| `tilt.discSwap` | Tilt | A maze is finished; it spins away as the next drops in | silent until recorded | 3–4 | 800 ms |
+| `matchup.goalSpark` | Gemstone | A clear counts towards a colour goal (sparks fly to it) | silent until recorded | 20–60 | 300 ms |
+| `matchup.iceCrack` | Gemstone | An ice cell cracks and shatters | `shared.celebrate.crackle2` (0.55) | 0–10 | 300 ms |
+| `bubble.reefRumble` | Coral Pop | The reef shifts down a row | silent until recorded | 5–12 | 600 ms |
+| `bubble.warning` | Coral Pop | The reef's lowest row comes within two rows of the line (at most every 1.5 s) | silent until recorded | 0–5 | 500 ms |
+| `inkbridge.coinWobble` | Rainbow Bridge | The coin is released and wobbles | silent until recorded | 10–20 | 300 ms |
+| `inkbridge.birdFlap` | Rainbow Bridge | The coin passes close to a flock | silent until recorded | 0–20 | 400 ms |
+| `inkbridge.missWhistle` | Rainbow Bridge | The coin falls past the pot's rim (a miss) | silent until recorded | 0–10 | 900 ms |
+| `balltrack.booster` | Ball Tracker | A marble rolls onto a booster | silent until recorded | 5–20 | 200 ms |
+| `balltrack.combo` | Ball Tracker | The home-in-a-row combo steps up (a step higher each time) | silent until recorded | 0–30 | 300 ms |
+| `balltrack.cupPulse` | Ball Tracker | One second before the cups move | silent until recorded | 2 | 400 ms |

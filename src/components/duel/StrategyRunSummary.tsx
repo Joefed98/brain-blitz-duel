@@ -212,7 +212,7 @@ const BT_PIECES: StrategyArtName[] = ["bt-marble-red", "bt-marble-blue", "bt-mar
 function BallTrackSummary({ reveal }: { reveal: ArcadeRevealData }) {
   const all = reveal.axis.max ?? 36;
   const home = reveal.axis.value;
-  const wrong = num(tile(reveal, "Wrong tray"));
+  const wrong = num(tile(reveal, "Wrong cup") ?? tile(reveal, "Wrong tray"));
   const lost = num(tile(reveal, "Lost"));
   return (
     <div className="srs-stack" data-strategy-summary="balltrack">

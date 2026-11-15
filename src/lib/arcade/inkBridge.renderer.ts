@@ -1,5 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { strategyImage } from "./strategyArt";
+import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { inkBridgeFxFor } from "./arcadeFxGames.renderer";
@@ -44,7 +45,7 @@ function birdFrame(c: CanvasRenderingContext2D, f: number): void {
   c.fillStyle = 'rgba(38,49,63,0.16)'; c.beginPath(); c.ellipse(16, 9.2, 3.6, 2.2, 0, 0, Math.PI * 2); c.fill();
 }
 /** A flock filling the obstacle box exactly, flapping in place. */
-function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: number }, h: number, tick: number): void {
+function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: number }, h: number, tick: number, scared?: (i: number, cx: number, cy: number, w: number) => number): void {
   const len = b.x1 - b.x0;
   // inkRev 14's thicker birds (10 px) keep the cell's shape: one bird every 24 px of the box (18 px at 6.5 px and below).
   // inkRev 15 (the Strategy overhaul, 14 px birds): bigger birds, one every 36 px or so, filling the box exactly
@@ -52,9 +53,14 @@ function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: 
   if (h > 12) {
     const n15 = Math.max(1, Math.round(len / 36)), w15 = len / n15;
     for (let i = 0; i < n15; i++) {
-      const f = Math.floor((tick + ((i * 11 + Math.round(b.x0)) % 13)) / 8) % 4;
+      // The Strategy overhaul, stage 2: a bird the coin passed close to beats its wings fast for a moment and lifts
+      // a pixel (inside the arcade bounds rule), shedding a feather (scared: 0 calm, up to 1 just passed).
+      const fright = scared ? scared(i, b.x0 + i * w15 + w15 / 2, b.y + h / 2, w15) : 0;
+      const f = Math.floor((tick + ((i * 11 + Math.round(b.x0)) % 13)) / (fright > 0 ? 3 : 8)) % 4;
+      const lift = fright * 1.5;
+      if (fright > 0.2) { c.fillStyle = `rgba(255,255,255,${0.7 * fright})`; c.beginPath(); c.ellipse(b.x0 + i * w15 + w15 * 0.5 + (1 - fright) * 6, b.y + h + (1 - fright) * 10, 2.2, 1, 0.6, 0, Math.PI * 2); c.fill(); }
       const img = sprite(`bird${f}`, 64, 26, (m) => { m.scale(2, 2); birdFrame(m, f); });
-      if (img) c.drawImage(img, b.x0 + i * w15, b.y, w15, h);
+      if (img) c.drawImage(img, b.x0 + i * w15, b.y - lift, w15, h);
       else { c.save(); c.translate(b.x0 + i * w15, b.y); c.scale(w15 / 32, h / 13); birdFrame(c, f); c.restore(); }
     }
     return;
@@ -91,7 +97,7 @@ function stamp(c: CanvasRenderingContext2D, key: string, w: number, h: number, x
   else { c.save(); c.translate(x, y); draw(c); c.restore(); }
 }
 /** Captain Joulz by the pot: his drawn height (world px) and how long he cheers after a coin lands in the pot (ticks). */
-export const INK_CAPTAIN_H = 36;
+export const INK_CAPTAIN_H = 70;
 export const INK_CAPTAIN_CHEER_TICKS = 75;
 function leprechaun(c:CanvasRenderingContext2D):void {
  c.fillStyle='#183F36';c.fillRect(6,14,10,10);c.fillRect(5,27,6,3);c.fillRect(13,27,6,3);
@@ -540,18 +546,37 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
   drawInkGround(c,base,bx,H);
   const lx=Math.min(INK_WORLD_W-24,Math.max(2,bx+40));
+  // Captain Joulz stands just clear of the pot (Joe, 15 Nov: about 70 px tall), on its right, or on its left where the
+  // pot is near the right edge; the old figure keeps its place.
+  const capW=INK_CAPTAIN_H*0.5,capRight=bx+INK_BUCKET_W/2+6+capW/2<=INK_WORLD_W-capW/2-2;
+  const capX=capRight?bx+INK_BUCKET_W/2+6+capW/2:bx-INK_BUCKET_W/2-6-capW/2;
   // Polish A2: his soft shadow on the grass.
-  c.fillStyle='rgba(20,60,25,0.28)';c.beginPath();c.ellipse(lx+11,base+2.5,11,2.6,0,0,Math.PI*2);c.fill();
+  const shadowX=strategyImage("inkbridge-captain-ready")?capX:lx+11,shadowR=strategyImage("inkbridge-captain-ready")?17:11;
+  c.fillStyle='rgba(20,60,25,0.28)';c.beginPath();c.ellipse(shadowX,base+2.5,shadowR,3,0,0,Math.PI*2);c.fill();
   // The Strategy overhaul (stage 2, Joe: Captain Joulz by the pot): the 3D Captain (PR #423's model, rendered by
   // strategy_art.py) waits by the pot and cheers, arms up, for 1.25 s after the coin lands in it; display only, every
   // revision. The old figure is drawn only until his images have loaded (and in checks, where there is no Image).
   const cheering=state.flashKind===1&&state.tick-state.flashTick>=0&&state.tick-state.flashTick<INK_CAPTAIN_CHEER_TICKS;
   const captain=strategyImage(cheering?"inkbridge-captain-win":"inkbridge-captain-ready");
-  if(captain){const h=INK_CAPTAIN_H,w=h*captain.naturalWidth/captain.naturalHeight;c.drawImage(captain,lx+11-w/2,base+2-h,w,h);}
+  if(captain){const h=INK_CAPTAIN_H,w=h*captain.naturalWidth/captain.naturalHeight;c.save();if(!capRight){c.translate(capX*2,0);c.scale(-1,1);}c.drawImage(captain,capX-w/2,base+2-h,w,h);c.restore();}
   else stamp(c,"leprechaun",22,30,lx,base-27,leprechaun);
   countryStamp(c,'inkcloud',48,26,lvl.spoutX-24,19,inkCloud);
+  // The Strategy overhaul, stage 2 (display only; the kit's variants, strategyFx.ts): memory of this drop for the coin's
+  // wobble on release, the birds it passes close to, and a miss falling away.
+  const fxm=fxMemory(c,"ink-strategy",state.tick,()=>({tick:-1,dropping:0,release:-1000,passes:new Map<string,number>()}));
+  if(state.tick!==fxm.tick){ if(state.dropping&&!fxm.dropping)fxm.release=state.tick; fxm.dropping=state.dropping?1:0; fxm.tick=state.tick; }
+  const birdFx=strategyFx("nearMiss");
   for(const b of lvl.blocks) {
-    if(b.h){drawBirds(c,b,inkBlockH(b),state.tick);continue;}
+    if(b.h){
+      const bh=inkBlockH(b);
+      drawBirds(c,b,bh,state.tick,birdFx==="reduced"?undefined:(i,cx,cy,w)=>{
+        const key=`${b.x0},${b.y},${i}`;
+        if(state.dropping&&Math.hypot(state.ball.x/FP-cx,state.ball.y/FP-cy)<w/2+26)fxm.passes.set(key,state.tick);
+        const at=fxm.passes.get(key);const age=at===undefined?99:state.tick-at;
+        return age<40?(1-age/40)*fxAmount(birdFx):0;
+      });
+      continue;
+    }
     // Fully fill all 4px of every hazard, never an inset silhouette.
     c.fillStyle=RED;c.fillRect(b.x0,b.y,b.x1-b.x0,INK_BLOCK_H);
     c.fillStyle=RED_EDGE;c.fillRect(b.x0,b.y+INK_BLOCK_H-1,b.x1-b.x0,1);
@@ -563,7 +588,7 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   // The Strategy overhaul, stage 2 (display only): a potted coin sends a small burst of rainbow coins up out of the pot
   // for half a second (fixed arcs, the same every time), then they fall back in.
   if(state.flashKind===1&&state.tick-state.flashTick>=0&&state.tick-state.flashTick<30&&!reducedMotion()&&!arcadeReducedEffects()){
-    const age=state.tick-state.flashTick,px=inkBucketX(lvl,state.tick)+INK_BUCKET_W/2,py=lvl.bucketY+4;
+    const age=state.tick-state.flashTick,px=inkBucketX(lvl,state.tick),py=lvl.bucketY+4;
     const hues=['#FF5A5A','#FFB23E','#FFE14D','#5BD66B','#4DA6FF','#9C6BFF'];
     for(let i=0;i<6;i++){
       const vx=(i-2.5)*0.9,vy=-3.4-(i%3)*0.5,x=px+vx*age,y=py+vy*age+0.16*age*age;
@@ -584,7 +609,16 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   }
   const ballR=lvl.ballR??BALL_R;
   drawGlow(c,'gold','255,214,80',state.ball.x/FP,state.ball.y/FP,ballR*2.4,ballR*2.4,0.7);
-  drawCoin(c,state.ball.x/FP,state.ball.y/FP,ballR);
+  {
+    const bx0=state.ball.x/FP,by0=state.ball.y/FP,coinFx=strategyFx("drop"),amt=fxAmount(coinFx),age=state.tick-fxm.release;
+    // A miss: once the coin is below the pot's rim and still falling, pale speed lines over it as it falls away.
+    const falling=state.dropping&&by0>lvl.bucketY+INK_BUCKET_H+8;
+    if(falling&&amt){c.strokeStyle='rgba(255,255,255,0.45)';c.lineWidth=1.5;c.lineCap='round';for(const dx of [-ballR*0.6,0,ballR*0.6]){c.beginPath();c.moveTo(bx0+dx,by0-ballR-4);c.lineTo(bx0+dx,by0-ballR-4-10*amt);c.stroke();}}
+    // On release the coin wobbles on its edge for a moment (turned about its centre: what collides is unchanged).
+    const wob=state.dropping&&age>=0&&age<14?Math.sin(age*1.5)*0.35*amt*(1-age/14):falling?state.tick*0.25*amt:0;
+    if(wob){c.save();c.translate(bx0,by0);c.rotate(wob);c.translate(-bx0,-by0);drawCoin(c,bx0,by0,ballR);c.restore();}
+    else drawCoin(c,bx0,by0,ballR);
+  }
   // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
   // no-draw ring where the next draft point would be rejected.
   if (inkIsLive(state.level,state.rev)&&state.dropping) {

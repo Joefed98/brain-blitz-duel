@@ -3,9 +3,9 @@
  * hash, put on its URL so a redrawn still is never served from an old cache.
  */
 export const STRATEGY_STILLS: Record<"tilt" | "matchup" | "bubble" | "inkbridge" | "balltrack", string> = {
-  tilt: "9f11375f36",
-  matchup: "fb4eb0a492",
-  bubble: "84ac3c112a",
-  inkbridge: "78e025f678",
-  balltrack: "17881e5c3a",
+  tilt: "8a5227d887",
+  matchup: "de472e9370",
+  bubble: "3571ca1cd7",
+  inkbridge: "eca71d835b",
+  balltrack: "97af699520",
 };

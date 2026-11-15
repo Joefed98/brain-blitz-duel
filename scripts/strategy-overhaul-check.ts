@@ -276,7 +276,7 @@ section("Rendered materials: present, hashed, within budget, code art without th
     matchup: ["gem-", "matchup-"],
     bubble: ["bubble-"],
     inkbridge: ["inkbridge-"],
-    balltrack: ["bt-marble-", "marble-gloss"],
+    balltrack: ["bt-", "marble-gloss"],
   };
   for (const [type, prefixes] of Object.entries(budget)) {
     const bytes = files.filter((f) => prefixes.some((p) => f.startsWith(p))).reduce((a, f) => a + size(`public/strategy/${f}`), 0) + size(`public/intro/${type}.webp`);
@@ -312,7 +312,7 @@ section("Answer reveals: one picture of the run in the shared layout");
   ok(/62%/.test(bub) && />40</.test(bub) && />13</.test(bub) && /scaleX\(0\.62\)/.test(bub), "Coral Pop: the reef meter and the bubbles popped and dropped");
   const ink = draw("inkbridge", { axis: { value: 7, max: 10, label: "Levels" }, lines: [], tiles: [{ label: "Within ink par", value: "5 / 7" }], outcome: "time" });
   ok(count(ink, /<img src="\/strategy\/inkbridge-coin/g) === 10 && count(ink, /data-dim=""/g) === 3 && /5 of 7/.test(ink), "Rainbow Bridge: ten level coins, seven potted, five within ink par");
-  const bt = draw("balltrack", { axis: { value: 30, max: 36, label: "Marbles home" }, lines: [], tiles: [{ label: "Wrong tray", value: "4" }, { label: "Lost", value: "1" }], outcome: "time" });
+  const bt = draw("balltrack", { axis: { value: 30, max: 36, label: "Marbles home" }, lines: [], tiles: [{ label: "Wrong cup", value: "4" }, { label: "Lost", value: "1" }], outcome: "time" });
   ok(count(bt, /data-kind="home"/g) === 30 && count(bt, /data-kind="wrong"/g) === 4 && count(bt, /data-kind="lost"/g) === 1 && count(bt, /data-kind="none"/g) === 1, "Ball Tracker: every marble, home, wrong cup or lost");
   for (const [type, html] of [["tilt", tilt], ["matchup", gem], ["bubble", bub], ["inkbridge", ink], ["balltrack", bt]] as const)
     ok(!/→|·/.test(html.replace(/<[^>]+>/g, " ")), `${type}: plain labels (no arrows or dot lists)`);
@@ -334,6 +334,57 @@ section("Effects: drawn from the sim, never over the board's words");
   ok(/state\.flashKind===1&&state\.tick-state\.flashTick>=0&&state\.tick-state\.flashTick<30/.test(ink), "Rainbow Bridge: a burst of rainbow coins from the pot");
   const gem = readFileSync("src/lib/arcade/matchup.renderer.ts", "utf8");
   ok(/function shatter\(/.test(gem) && /drawTreasureTrail/.test(gem), "Gemstone: matches shatter in the gems' colour; the treasure's trail and chip");
+}
+
+/* ------------------------------------------------------------------ 5f. Stage 2 follow-up (Joe, 15 Nov 2026) */
+section("Stage 2 follow-up: materials, every agreed effect through the kit's variants, sounds, one wording");
+{
+  const { strategyFx, fxAmount, fxMemory, bubbleNearLine } = await import("../src/lib/arcade/strategyFx");
+  const { tiltPitLip } = await import("../src/lib/arcade/tiltLip");
+  const { planGameFx } = await import("../src/lib/fx/kit");
+  // The kit's variants: full movement, half in lite, none when reduced; in Bun (no window) every effect is "full".
+  ok(fxAmount("full") === 1 && fxAmount("lite") === 0.5 && fxAmount("reduced") === 0 && strategyFx("slide") === "full", "effects take the kit's variants (full, lite at a half, still when reduced)");
+  ok(typeof planGameFx === "function", "the variants come from the #422 kit (lib/fx/kit.ts)");
+  // Memory per canvas, fresh when the tick goes back (a replay, a demo loop).
+  const fake = { canvas: {} } as unknown as CanvasRenderingContext2D;
+  const a = fxMemory(fake, "k", 10, () => ({ tick: 10, n: 1 }));
+  a.n = 5;
+  ok(fxMemory(fake, "k", 11, () => ({ tick: 11, n: 1 })).n === 5 && fxMemory(fake, "k", 3, () => ({ tick: 3, n: 1 })).n === 1, "an effect's memory is per canvas and starts again when the tick goes back");
+  // Tilt's lip: on the pit's edge, not in it, not far from it.
+  const maze = { cs: 40 * 256, n: 5, pits: [12], br: 8 * 256 } as never;
+  ok(tiltPitLip(maze, 0, 0, 8) === -1 && tiltPitLip(maze, 12, 0, 8) === 12 && tiltPitLip(maze, 30, 0, 8) === -1, "Tilt: a marble on a black hole's lip, not in it or clear of it, is found");
+  // Coral Pop's warning line: near only once the lowest row is within two rows of it.
+  const s12 = bubbleGameFor(BUB_REV_FAST).init(7) as BubState;
+  ok(!bubbleNearLine(s12), "Coral Pop: a fresh reef is not near the warning line");
+  const low = { ...s12, grid: s12.grid.map((v, i) => (i === s12.grid.length - 1 ? 1 : v)) } as BubState;
+  ok(bubbleNearLine(low), "Coral Pop: a bubble in the reef's last row is near the line");
+  const read = (f: string) => readFileSync(f, "utf8");
+  const tilt = read("src/lib/arcade/tiltArt.renderer.ts"), gem = read("src/lib/arcade/matchup.renderer.ts"), bub = read("src/lib/arcade/bubble.renderer.ts"), ink = read("src/lib/arcade/inkBridge.renderer.ts"), bt = read("src/lib/arcade/ballTrackArt.renderer.ts");
+  ok(/blitX\(ctx, `dial:\$\{R\}`/.test(tilt) && /k < 48/.test(tilt), "Tilt: the rim's 48 notches turn with the disc past a fixed pointer");
+  ok(/fxm\.knock = state\.tick/.test(tilt) && /ctx\.translate\(fxm\.kx \* 1\.5 \* nudge/.test(tilt), "Tilt: a knock nudges the disc 1.5 px (lite a half, reduced none)");
+  ok(/tiltPitLip\(m, mx, my, mr\) >= 0/.test(tilt) && /\* 1\.2 \* wobble/.test(tilt), "Tilt: the marble wobbles on a pit's lip (within the 2 px bounds rule)");
+  ok(/ctx\.rotate\(swapU \* 1\.6 \* swapFx\)/.test(tilt) && /0\.86 \+ 0\.14 \* e/.test(tilt), "Tilt: a finished maze spins away as the next drops in");
+  ok(/drawStrategyGemFx\(ctx, state\)/.test(gem) && /m\.sparks\.push/.test(gem) && /MATCHUP_V9_PANEL_Y \+ 47/.test(gem), "Gemstone: a spark flies from each cleared gem to its colour's goal");
+  ok(/m\.cracks\.push/.test(gem) && /age < 8/.test(gem), "Gemstone: broken ice cracks first, then shatters");
+  ok(/fxm\.stuck = fresh/.test(bub) && /ctx\.scale\(1 \+ k, 1 - k\)/.test(bub) && /0\.1 \* squash/.test(bub), "Coral Pop: a shot that sticks squashes (at most 10 %)");
+  ok(/fxm\.rumbleTick = state\.tick/.test(bub) && /warnOn \? "rgba\(255,92,80,0\.85\)"/.test(bub), "Coral Pop: the reef rumbles down; the warning line flashes red as the reef nears it");
+  ok(/fxm\.release=state\.tick/.test(ink) && /Math\.sin\(age\*1\.5\)\*0\.35\*amt/.test(ink), "Rainbow Bridge: the coin wobbles on release");
+  ok(/fxm\.passes\.set\(key,state\.tick\)/.test(ink) && /const lift = fright \* 1\.5/.test(ink), "Rainbow Bridge: a bird passed close flaps away (lifting 1.5 px at most)");
+  ok(/const falling=state\.dropping&&by0>lvl\.bucketY\+INK_BUCKET_H\+8/.test(ink), "Rainbow Bridge: a miss falls away with speed lines");
+  ok(/export const INK_CAPTAIN_H = 70;/.test(ink), "Rainbow Bridge: Captain Joulz about 70 px tall");
+  ok(/ctx\.arc\(c\.x, c\.y, r, a1 - sign \* 0\.9, a1, sign < 0\)/.test(bt), "Ball Tracker: the turning tube's marble draws the arc it is carried through");
+  ok(/drawBooster\(ctx, cell, s\.tick, strategyFx\("combo"\) !== "reduced" && s\.balls\.some/.test(bt), "Ball Tracker: a booster's chevrons flash as a marble crosses");
+  ok(/now\.lastIndexOf\(-1\)/.test(bt) && /`×\$\{cm\.streak\}`/.test(bt), "Ball Tracker: the combo steps up beside the cups, in an empty cup slot");
+  ok(/woodPattern\(ctx, "bt-walnut"\)/.test(bt) && /woodPattern\(c, "bt-board"\)/.test(bt), "Ball Tracker: oak board and walnut grooves (concept A) as rendered wood");
+  // Every new moment has its own slot (silent until recorded) and is fired where it happens.
+  const manifest = read("src/lib/fx/manifest.ts"), sounds = read("src/lib/fx/gameSounds.ts"), gemStage = read("src/puzzles/matchup.tsx");
+  for (const slot of ["tilt.rimTick", "tilt.pitWobble", "tilt.discSwap", "matchup.goalSpark", "matchup.iceCrack", "bubble.reefRumble", "bubble.warning", "inkbridge.coinWobble", "inkbridge.birdFlap", "inkbridge.missWhistle", "balltrack.booster", "balltrack.combo", "balltrack.cupPulse"]) {
+    ok(new RegExp(`"${slot.replace(".", "\\.")}": \\{ channel: "effects"`).test(manifest), `${slot}: a manifest slot`);
+    ok((sounds + gemStage).includes(`"${slot}"`), `${slot}: fired by the game's sound observer`);
+  }
+  // One wording for Ball Tracker: "Wrong cup" (stored "Wrong tray" reveals shown the same).
+  ok(/label: "Wrong cup"/.test(read("src/lib/arcade/reveal.ts")) && !/label: "Wrong tray"/.test(read("src/lib/arcade/reveal.ts")), "Ball Tracker's reveal says \"Wrong cup\"");
+  ok(/label === "Wrong tray" \? "Wrong cup"/.test(read("src/components/duel/ArcadeReveal.tsx")), "a stored \"Wrong tray\" is shown as \"Wrong cup\"");
 }
 
 /* ------------------------------------------------------------------ 6. Older stamps */

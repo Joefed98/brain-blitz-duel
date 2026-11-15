@@ -33,3 +33,18 @@ for game in GAMES:
 
 total = sum(p.stat().st_size for p in OUT.iterdir())
 print(f"gallery images: {total / 1e6:.2f} MB in {OUT}")
+
+# Stage 2: the effect clips (scripts/shots/strategy-fx-clips.ts frames, `<game>-<effect>-NN.png`), one animated WebP each.
+if len(sys.argv) > 2:
+    FX = Path(sys.argv[2])
+    groups = {}
+    for f in sorted(FX.glob("*-[0-9][0-9].png")):
+        groups.setdefault(f.stem.rsplit("-", 1)[0], []).append(f)
+    for name, files in sorted(groups.items()):
+        ims = []
+        for f in files:
+            im = Image.open(f).convert("RGB")
+            ims.append(im.resize((220, round(im.height * 220 / im.width)), Image.LANCZOS))
+        ims[0].save(OUT / f"fx-{name}.webp", "WEBP", save_all=True, append_images=ims[1:], duration=66, loop=0, quality=62, method=6)
+    total = sum(p.stat().st_size for p in OUT.iterdir())
+    print(f"gallery images with effect clips: {total / 1e6:.2f} MB")

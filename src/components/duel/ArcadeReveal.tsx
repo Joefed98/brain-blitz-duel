@@ -296,6 +296,8 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   const summary = shown ? revealSummary(shown.lines, myScore) : null;
   // The stats card keeps only what the breakdown doesn't already say (4 Nov 2026): no part repeated as "n / max".
   const partLabels = standardPartLabels(puzzle as unknown as { type: string } & Record<string, unknown>);
+  // Ball Tracker's stored reveals before 15 Nov 2026 say "Wrong tray"; shown as "Wrong cup", the one wording (display only).
+  const tileLabel = (label: string) => (puzzle.type === "balltrack" && label === "Wrong tray" ? "Wrong cup" : label);
   const tiles = shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label)).slice(0, 4), ...costRows] : [];
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
@@ -390,7 +392,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           >
             {tiles.map((tile) => (
               <div key={tile.label} className="reveal-breakdown-row">
-                <span className="reveal-breakdown-name">{tile.label}</span>
+                <span className="reveal-breakdown-name">{tileLabel(tile.label)}</span>
                 <span className="reveal-breakdown-points">{tile.value}</span>
               </div>
             ))}

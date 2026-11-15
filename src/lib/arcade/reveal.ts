@@ -918,7 +918,8 @@ const BUILDERS: Record<string, Builder> = {
       lines: [head(`${n(r, "home")} / ${all} home`, s, done)],
       tiles: [
         { label: "Marbles home", value: `${n(r, "home")} / ${all}` },
-        { label: "Wrong tray", value: String(n(r, "wrong")) },
+        // One wording for Ball Tracker (Joe, 15 Nov 2026): the cups are "cups" everywhere.
+        { label: "Wrong cup", value: String(n(r, "wrong")) },
         { label: "Lost", value: String(n(r, "lost")) },
       ],
       outcome: done ? "finish" : "time",

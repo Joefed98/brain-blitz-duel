@@ -7,7 +7,7 @@ const STRATEGY_ART_PREFIXES: Partial<Record<string, readonly string[]>> = {
   matchup: ["gem-"],
   bubble: ["bubble-"],
   inkbridge: ["inkbridge-"],
-  balltrack: ["bt-marble-", "marble-gloss"],
+  balltrack: ["bt-", "marble-gloss"],
 };
 import { useGameDef } from "@/lib/duel/gameLoader";
 import { GameIntroExample } from "@/components/duel/GameParts";

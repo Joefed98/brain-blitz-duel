@@ -48,7 +48,7 @@ import {
   drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
   matchupStepOffsets, matchupStepSound, MATCHUP_SWAP_MS, type MatchupSwapTween, matchupCellAtShown, matchupShownPoint, SIX_ZOOM,
 } from "@/lib/arcade/matchup.renderer";
-import { playSound } from "@/lib/sound";
+import { playSlotOr, playSound } from "@/lib/sound";
 import type { SoundId } from "@/lib/fx/manifest";
 
 /** Cascade pitch ladder: chain depth 1-4 (capped) rises through these rates. */
@@ -150,6 +150,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let ticksThisSecond = 0;
     let hintShown = false;
     // matchupRev 9: the features sound from the shared set (a goal's chime, ice cracking, a treasure's ding, a deep cascade's zap).
+    let goalLeftSeen = (state.current.goalLeft ?? []).reduce((a: number, b: number) => a + b, 0);
     let goalsSeen = { levels: state.current.levels ?? 0, ice: state.current.iceBroken ?? 0, treasures: state.current.treasures ?? 0, swaps: state.current.swaps };
 
     const finish = () => {
@@ -230,7 +231,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const now = state.current;
         if ((now.levels ?? 0) > goalsSeen.levels) playSound("shared.celebrate.chime", 0.7);
         if ((now.treasures ?? 0) > goalsSeen.treasures) playSound("shared.celebrate.countDing", 0.8);
-        if ((now.iceBroken ?? 0) > goalsSeen.ice) playSound("shared.celebrate.crackle2", 0.55);
+        // The Strategy overhaul, stage 2: the ice's own crack (today's crackle until Joe's recording), and a goal's spark.
+        if ((now.iceBroken ?? 0) > goalsSeen.ice) playSlotOr("matchup.iceCrack", "shared.celebrate.crackle2", 0.55);
+        if (now.six && (now.goalLeft ?? []).reduce((a, b) => a + b, 0) < goalLeftSeen) liveCue("matchup.goalSpark", 150);
+        goalLeftSeen = (now.goalLeft ?? []).reduce((a, b) => a + b, 0);
         if (now.swaps > goalsSeen.swaps && (now.lastMult ?? 0) >= 3) playSound("shared.celebrate.zap", 0.45);
         goalsSeen = { levels: now.levels ?? 0, ice: now.iceBroken ?? 0, treasures: now.treasures ?? 0, swaps: now.swaps };
       }

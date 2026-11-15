@@ -43,6 +43,7 @@ import {
 } from "./bubble";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { bubbleNearLine, fxAmount, fxMemory, strategyFx } from "./strategyFx";
 
 /** The shot trail's memory per canvas (display only; the Strategy overhaul, stage 2). */
 const shotTrails = new WeakMap<object, { shots: number; tick: number; pts: { x: number; y: number }[] }>();
@@ -1020,8 +1021,31 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   lip.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 1) : ctx.moveTo(x, y - 1)));
   ctx.stroke();
 
-  // Shooter line, faint.
-  ctx.strokeStyle = "rgba(245,197,66,0.28)";
+  // The Strategy overhaul, stage 2 (display only; the kit's variants): a shot that sticks without popping squashes for a
+  // moment; the reef rumbles as it shifts down; the warning line flashes once the reef's lowest row is near it.
+  const fxm = fxMemory(ctx, "bubble-strategy", state.tick, () => ({ tick: -1, grid: [] as number[], flight: 0, descents: state.descents, stuck: -1, stuckTick: -1000, rumbleTick: -1000 }));
+  if (state.tick !== fxm.tick) {
+    if (fxm.flight && !state.flightColour && fxm.grid.length) {
+      const fresh = state.grid.findIndex((v, i) => v && !fxm.grid[i]);
+      if (fresh >= 0) {
+        fxm.stuck = fresh;
+        fxm.stuckTick = state.tick;
+      }
+    }
+    if (state.descents > fxm.descents) fxm.rumbleTick = state.tick;
+    fxm.descents = state.descents;
+    fxm.grid = state.grid.slice();
+    fxm.flight = state.flightColour;
+    fxm.tick = state.tick;
+  }
+  const rumble = fxAmount(strategyFx("drop"));
+  const rumbleAge = state.tick - fxm.rumbleTick;
+  const shakeX = rumble && rumbleAge < 16 ? Math.sin(rumbleAge * 2.4) * 1.5 * rumble * (1 - rumbleAge / 16) * rs : 0;
+  const near = bubbleNearLine(state);
+  const warnOn = near && (strategyFx("nearMiss") === "reduced" || Math.floor(state.tick / 15) % 2 === 0);
+
+  // Shooter line, faint (red, flashing, while the reef is close).
+  ctx.strokeStyle = warnOn ? "rgba(255,92,80,0.85)" : "rgba(245,197,66,0.28)";
   ctx.setLineDash([6 * rs, 6 * rs]);
   ctx.lineWidth = Math.max(1, 1.5 * rs);
   ctx.beginPath();
@@ -1033,11 +1057,25 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
 
   // Field.
   const radius = (BUB_R - 1) * rs;
+  const squash = fxAmount(strategyFx("drop"));
   for (let row = 0; row < bubRowsOf(state.grid); row++) {
     for (let col = 0; col < bubRowCols(row); col++) {
-      const value = state.grid[row * BUB_COLS + col]!;
+      const index = row * BUB_COLS + col;
+      const value = state.grid[index]!;
       if (!value) continue;
-      blitBubble(ctx, value, X(bubCellX(row, col)), Y(bubCellY(row, state.descents)), radius, dpr);
+      const age = state.tick - fxm.stuckTick;
+      if (index === fxm.stuck && squash && age < 10) {
+        // Squashed flat against what it hit, springing back: at most 10 % wider (inside the arcade bounds rule).
+        const k = 0.1 * squash * (1 - age / 10);
+        const cx = X(bubCellX(row, col)) + shakeX, cy = Y(bubCellY(row, state.descents));
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(1 + k, 1 - k);
+        blitBubble(ctx, value, 0, 0, radius, dpr);
+        ctx.restore();
+        continue;
+      }
+      blitBubble(ctx, value, X(bubCellX(row, col)) + shakeX, Y(bubCellY(row, state.descents)), radius, dpr);
     }
   }
 

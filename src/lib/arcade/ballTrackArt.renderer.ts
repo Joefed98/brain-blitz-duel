@@ -1,5 +1,6 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
-import { strategyImage, type StrategyArtName } from "./strategyArt";
+import { strategyArtVersion, strategyImage, type StrategyArtName } from "./strategyArt";
+import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { balltrackFxFor } from "./arcadeFxGames.renderer";
@@ -177,7 +178,7 @@ function btBoardLayer(ctx: CanvasRenderingContext2D, masks: readonly number[], B
   const k = deviceScale(ctx);
   const pw = Math.max(1, Math.round(BT_W * k));
   const ph = Math.max(1, Math.round(BT_H * k));
-  const id = `${pw}x${ph}|${BT_ROWS}`;
+  const id = `${pw}x${ph}|${BT_ROWS}|v${strategyArtVersion()}`;
   let layer = layers.get(id);
   if (layer === undefined) {
     if (layers.size >= 4) layers.clear();
@@ -230,8 +231,21 @@ function btBoardLayer(ctx: CanvasRenderingContext2D, masks: readonly number[], B
  * a soft drop shadow, dark rim, bevelled walls (lit lip, shaded inner edge),
  * the bed with a polished centre and the carved groove.
  */
+/**
+ * The Strategy overhaul, stage 2 (display only): a rendered wood texture as a repeating fill (public/strategy/, painted by
+ * strategy_art.py), 256 px a tile drawn over 128 world px; null until the image has loaded (the code colours are drawn).
+ */
+function woodPattern(c: CanvasRenderingContext2D, name: "bt-board" | "bt-walnut"): CanvasPattern | null {
+  const img = strategyImage(name);
+  if (!img || typeof c.createPattern !== "function") return null;
+  const pattern = c.createPattern(img, "repeat");
+  if (!pattern) return null;
+  if (typeof DOMMatrix !== "undefined" && typeof pattern.setTransform === "function") pattern.setTransform(new DOMMatrix().scaleSelf(0.5, 0.5));
+  return pattern;
+}
+
 export function strokeChannels(ctx: CanvasRenderingContext2D, trace: (c: CanvasRenderingContext2D) => void, movable: boolean): void {
-  const pass = (width: number, colour: string, dx = 0, dy = 0) => {
+  const pass = (width: number, colour: string | CanvasPattern, dx = 0, dy = 0) => {
     ctx.strokeStyle = colour;
     ctx.lineWidth = width;
     ctx.beginPath();
@@ -264,6 +278,19 @@ export function strokeChannels(ctx: CanvasRenderingContext2D, trace: (c: CanvasR
   }
   pass(BALL_R * 3 + 6, "rgba(40,20,6,0.22)", 0, 4);
   pass(BALL_R * 3 + 6, TOY_WOOD_DEEP);
+  // Concept A (Joe, 15 Nov 2026): the fixed tracks are deep grooves of oiled walnut cut into the oak board, the same
+  // widths as before: the walnut bed, a shaded wall under the upper lip, a lit lower lip and a darker centre groove.
+  const walnut = woodPattern(ctx, "bt-walnut");
+  if (walnut) {
+    pass(BALL_R * 3, walnut);
+    pass(BALL_R * 3 - 2, "rgba(255,214,160,0.16)", 0, 2);
+    pass(BALL_R * 3 - 4, walnut);
+    pass(BALL_R * 3 - 6, "rgba(20,8,2,0.28)", 0, -2);
+    pass(BALL_R * 2, walnut);
+    pass(BALL_R * 1.3, "rgba(18,6,0,0.32)");
+    pass(BALL_R * 0.9, "rgba(255,220,170,0.08)");
+    return;
+  }
   pass(BALL_R * 3, CHANNEL_FIXED);
   pass(BALL_R * 3 - 6, "#B88A5A");
   pass(BALL_R * 2 + 6, "#6E4A2A");
@@ -403,6 +430,12 @@ function queueShelf(c: CanvasRenderingContext2D): void {
 /** Board, bevelled tiles, shelves, settled channels and the overhead light (cached by btLayer). */
 function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], BT_ROWS = BT_BASE_ROWS, BT_H = BT_BASE_H): void {
   toyBoard(c, 0, 0, BT_W, BT_H, 14);
+  // Concept A's warm oak face over the board (the tiles' bevels and tones lie on it as before).
+  const oak = woodPattern(c, "bt-board");
+  if (oak) {
+    c.fillStyle = oak;
+    c.fillRect(0, 0, BT_W, BT_H);
+  }
   const gridY = BT_HOPPER_H;
   for (let row = 0; row < BT_ROWS; row++)
     for (let col = 0; col < BT_COLS; col++) bevelTile(c, col * BT_TILE, gridY + row * BT_TILE, tileTone(row * BT_COLS + col), col === 0, col === BT_COLS - 1);
@@ -534,18 +567,19 @@ function drawCrossPlate(ctx: CanvasRenderingContext2D, cell: number): void {
  * btRev 7: a speed booster's chevrons, burnt orange in the channel bed pointing the way marbles run along
  * the row, the lead chevron lit in turn (held still under reduced motion and reduced effects).
  */
-function drawBooster(ctx: CanvasRenderingContext2D, cell: number, tick: number): void {
+function drawBooster(ctx: CanvasRenderingContext2D, cell: number, tick: number, hot = false): void {
   const { x, y } = cellCentre(cell);
   const dir = rowDir(Math.floor(cell / BT_COLS));
   const still = arcadeReducedEffects() || reducedMotion();
-  const lit = still ? -1 : Math.floor(tick / 8) % 3;
+  const lit = still ? -1 : Math.floor(tick / (hot ? 3 : 8)) % 3;
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   for (let k = 0; k < 3; k++) {
     const cx = x + dir * (k - 1) * 18;
-    ctx.strokeStyle = k === lit ? "#FFD27A" : "#E2702A";
-    ctx.lineWidth = 6;
+    // The Strategy overhaul, stage 2: while a marble crosses the booster its chevrons flash bright and fast.
+    ctx.strokeStyle = hot ? (k === lit ? "#FFFFFF" : "#FFE2A0") : k === lit ? "#FFD27A" : "#E2702A";
+    ctx.lineWidth = hot ? 7 : 6;
     ctx.beginPath();
     ctx.moveTo(cx - dir * 6, y - 11);
     ctx.lineTo(cx + dir * 5, y);
@@ -668,7 +702,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
 
   // btRev 7: crossover plates and booster chevrons, over the channels.
   for (const cell of course.cross ?? []) drawCrossPlate(ctx, cell);
-  for (const cell of course.boost ?? []) drawBooster(ctx, cell, s.tick);
+  for (const cell of course.boost ?? []) drawBooster(ctx, cell, s.tick, strategyFx("combo") !== "reduced" && s.balls.some((b) => b.cell === cell));
 
   if (v2) for (let col = 1; col < BT_COLS; col++) {
     const cell = (BT_ROWS - 1) * BT_COLS + col;
@@ -866,6 +900,28 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
       const p = btArtBallPoint(s, b, rot);
       marbleShadow(ctx, p.x, p.y, MARBLE_DRAW_R);
     }
+  // The Strategy overhaul, stage 2 (the kit's "slide"): a marble carried round by its turning tube draws the arc it
+  // swings through, a gold trail behind it, so the carry reads.
+  const carry = fxAmount(strategyFx("slide"));
+  if (carry && s.rev === BT_REV)
+    for (const b of s.balls) {
+      if (b.cell < 0 || b.cell >= SLOT || !rot.has(b.cell)) continue;
+      const p = btArtBallPoint(s, b, rot);
+      const p0 = btBallPoint(s, b);
+      if (Math.hypot(p.x - p0.x, p.y - p0.y) < 1 || turnOf(s, b.cell).u >= 1) continue;
+      const c = cellCentre(b.cell);
+      const r = Math.hypot(p.x - c.x, p.y - c.y);
+      const a1 = Math.atan2(p.y - c.y, p.x - c.x);
+      const { sign } = turnOf(s, b.cell);
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,214,110,${0.55 * carry})`;
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, r, a1 - sign * 0.9, a1, sign < 0);
+      ctx.stroke();
+      ctx.restore();
+    }
   for (const b of s.balls) {
     const p = btArtBallPoint(s, b, rot);
     // btRev 7: a boosted marble trails a short streak (behind it, along the way it came; decorative).
@@ -873,7 +929,39 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     btMarble(ctx, p.x, p.y, MARBLE_DRAW_R, BT_PALETTE[b.colour]!, b.colour);
     if (btIsGold(course, b.id)) goldBand(ctx, p.x, p.y, MARBLE_DRAW_R);
   }
-  // btRev 7's home-in-a-row combo is shown in the stage's HUD pills (3 Nov 2026 polish), not on the shelf.
+  // btRev 7's home-in-a-row combo is shown in the stage's HUD pills (3 Nov 2026 polish), not on the shelf. The Strategy
+  // overhaul, stage 2: as it steps up (two or more in a row), the count also pops up beside the cups, in the first cup
+  // slot with no cup, for a second (never over the board).
+  const cm = fxMemory(ctx, "bt-combo", s.tick, () => ({ tick: -1, streak: 0, at: -1000 }));
+  if (s.tick !== cm.tick) {
+    if ((s.streak ?? 0) > cm.streak && (s.streak ?? 0) >= 2) cm.at = s.tick;
+    cm.streak = s.streak ?? 0;
+    cm.tick = s.tick;
+  }
+  const comboAge = s.tick - cm.at;
+  const free = now.lastIndexOf(-1);
+  if (comboAge >= 0 && comboAge < 60 && free >= 0 && cm.streak >= 2) {
+    const v = strategyFx("combo");
+    const pop = v === "reduced" ? 1 : 1 + 0.25 * fxAmount(v) * Math.max(0, 1 - comboAge / 8);
+    const cx = free * BT_TILE + BT_TILE / 2, cy = trayY + BT_TRAY_H / 2 - 4;
+    ctx.save();
+    ctx.globalAlpha = comboAge < 45 ? 1 : (60 - comboAge) / 15;
+    ctx.translate(cx, cy);
+    ctx.scale(pop, pop);
+    ctx.fillStyle = "rgba(24,12,4,0.82)";
+    ctx.beginPath();
+    ctx.roundRect(-34, -17, 68, 34, 17);
+    ctx.fill();
+    ctx.strokeStyle = "#F2C75C";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#F2C75C";
+    ctx.font = "800 20px Archivo, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`×${cm.streak}`, 0, 1);
+    ctx.restore();
+  }
   const lastHome=[...s.landings].reverse().find(m=>m.ok);
   successFrame(ctx,{id:'balltrack',tick:s.tick,count:s.home,eventTick:lastHome?.tick,misses:s.wrong+s.lost,colour:TOY_BRASS,width:BT_W,height:BT_H,point:{x:(lastHome?.cell??0)*BT_TILE+BT_TILE/2,y:trayY+BT_TRAY_H/2,shape:'ring',radius:20}});
   void TOY_WOOD_DARK;

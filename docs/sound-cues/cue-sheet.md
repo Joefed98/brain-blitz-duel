@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 47 | 0 | 488 | 535 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 37 | 41 |
+| fail sting | 5 | 0 | 37 | 42 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 74 | 1 | 984 | 1059 |
 
 ## Silent and placeholder cues
 
@@ -248,17 +248,47 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
 
+### Ball Tracker
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `balltrack.booster` | Ball Tracker: A marble rolls onto a booster [strategy-elevenlabs.md] |  | 5–20 | silent | none | 200 | game event | `balltrack.booster` |
+| `balltrack.combo` | Ball Tracker: The home-in-a-row combo steps up (a step higher each time) [strategy-elevenlabs.md] |  | 0–30 | silent | none | 300 | game event | `balltrack.combo` |
+| `balltrack.cupPulse` | Ball Tracker: One second before the cups move [strategy-elevenlabs.md] |  | 2 | silent | none | 400 | game event | `balltrack.cupPulse` |
+
+### Coral Pop
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bubble.reefRumble` | Coral Pop: The reef shifts down a row [strategy-elevenlabs.md] |  | 5–12 | silent | none | 600 | game event | `bubble.reefRumble` |
+| `bubble.warning` | Coral Pop: The reef's lowest row comes within two rows of the line (at most every 1.5 s) [strategy-elevenlabs.md] |  | 0–5 | silent | none | 500 | game event | `bubble.warning` |
+
 ### Dual
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
 
+### Gemstone
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `matchup.goalSpark` | Gemstone: A clear counts towards a colour goal (sparks fly to it) [strategy-elevenlabs.md] |  | 20–60 | silent | none | 300 | game event | `matchup.goalSpark` |
+| `matchup.iceCrack` | Gemstone: An ice cell cracks and shatters [strategy-elevenlabs.md] |  | 0–10 | silent | none | 300 | game event | `matchup.iceCrack` |
+
 ### Hot Floor
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
+
+### Rainbow Bridge
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `inkbridge.coinWobble` | Rainbow Bridge: The coin is released and wobbles [strategy-elevenlabs.md] |  | 10–20 | silent | none | 300 | game event | `inkbridge.coinWobble` |
+| `inkbridge.birdFlap` | Rainbow Bridge: The coin passes close to a flock [strategy-elevenlabs.md] |  | 0–20 | silent | none | 400 | game event | `inkbridge.birdFlap` |
+| `inkbridge.missWhistle` | Rainbow Bridge: The coin falls past the pot's rim (a miss) [strategy-elevenlabs.md] |  | 0–10 | silent | none | 900 | fail sting | `inkbridge.missWhistle` |
 
 ### Rooftop Run
 
@@ -289,6 +319,14 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `beat.backing` | Tempo: The synthesised 120 BPM backing beat, one step per eighth note (no slot); since sound batch 4 only until music_beat has decoded, or if it fails [core.md] |  | loop | synthesised placeholder | none | loop | ambience | none |
+
+### Tilt
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `tilt.rimTick` | Tilt: The disc's rim passes one of its 48 notches (at most one per 45 ms) [strategy-elevenlabs.md] |  | 50–300 | silent | none | 40 | game event | `tilt.rimTick` |
+| `tilt.pitWobble` | Tilt: A marble arrives on a black hole's lip [strategy-elevenlabs.md] |  | 0–15 | silent | none | 250 | game event | `tilt.pitWobble` |
+| `tilt.discSwap` | Tilt: A maze is finished; it spins away as the next drops in [strategy-elevenlabs.md] |  | 3–4 | silent | none | 800 | game event | `tilt.discSwap` |
 
 ## Music by screen and game
 

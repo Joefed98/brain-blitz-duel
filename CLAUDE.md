@@ -2620,7 +2620,21 @@ outside the repo.
   Bridge's pot coin burst, Ball Tracker's red wrong cup and the cups' pulse before they move. Reveals:
   `StrategyRunSummary` under the score in ArcadeReveal (the stored reveal's axis and tiles; Tilt's times and Gemstone's
   goals from the player's own run replayed on the phone, loaded on demand), styles `polish-layout/strategy-reveal.css`.
-  Tiles and intro stills redrawn with the renders (`tile-scenes` waits for them). strategy-overhaul-check sections 5c–5e.
+  Tiles and intro stills redrawn with the renders (`tile-scenes` waits for them). strategy-overhaul-check sections 5c–5f.
+  *Follow-up (Joe, 15 Nov 2026)*: gems re-cut (alternate light and dark facets, softbox glints), bubbles re-lit (a big
+  window of light and a rim light), Tilt's walnut face painted calm (numpy, not Cycles), Ball Tracker's oak board and
+  walnut grooves (tileable textures `bt-board` / `bt-walnut`, pattern fills in its board layer, keyed on the art
+  version), Captain Joulz 70 px (`INK_CAPTAIN_H`, beside the pot, left of it near the right edge). Every agreed effect
+  is drawn by its renderer in the #422 kit's variant (`src/lib/arcade/strategyFx.ts`: `strategyFx(kind)` →
+  full / lite / reduced, `fxAmount`, `fxMemory` per canvas; pure helpers `tiltPitLip` in `tiltLip.ts` and
+  `bubbleNearLine`, shared by renderers and sound observers): Tilt's rim dial, knock nudge, pit-lip wobble and maze
+  spin-away; Gemstone's goal sparks and two-step ice crack; Coral Pop's stick squash, reef rumble and flashing warning
+  line; Rainbow Bridge's coin wobble, birds flapping away and a miss falling away; Ball Tracker's carry arc, booster
+  flash and combo beside the cups. Their 13 sound slots are in the manifest (`url: null`, silent until recorded; the
+  ice crack falls back to today's crackle), on the cue sheet through `docs/sound-cues/strategy-elevenlabs.md`'s
+  "Wired in stage 2" table. Ball Tracker says "Wrong cup" everywhere (a stored "Wrong tray" is shown the same).
+  Effect clips: `bun scripts/shots/strategy-fx-clips.ts` (frames from the real renderer round each moment), joined by
+  `python3 -I scripts/shots/strategy-gallery.py <shots dir> <fx dir>`.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

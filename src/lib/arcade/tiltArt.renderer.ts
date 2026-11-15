@@ -5,6 +5,8 @@
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { strategyArtVersion, strategyImage } from "./strategyArt";
+import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
+import { tiltPitLip } from "./tiltLip";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
@@ -1147,6 +1149,24 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   ctx.translate(W / 2, H / 2);
   ctx.scale(zoom, zoom);
   ctx.rotate(rot);
+  // The Strategy overhaul, stage 2 (tiltRev 12; display only; the kit's variants, strategyFx.ts): a knock on a wall nudges
+  // the disc a pixel and a half the way the marble was going; a finished maze spins away as the next one drops in.
+  const fxm = fxMemory(ctx, "tilt-strategy", state.tick, () => ({ tick: -1, vx: 0, vy: 0, level: state.level, knock: -1000, kx: 0, ky: 0 }));
+  if (state.tick !== fxm.tick) {
+    if (state.level === fxm.level) {
+      const hitX = Math.abs(fxm.vx) > 100 && state.vx === 0, hitY = Math.abs(fxm.vy) > 100 && state.vy === 0;
+      if (hitX || hitY) { fxm.knock = state.tick; fxm.kx = hitX ? Math.sign(fxm.vx) : 0; fxm.ky = hitY ? Math.sign(fxm.vy) : 0; }
+    }
+    fxm.vx = state.vx; fxm.vy = state.vy; fxm.level = state.level; fxm.tick = state.tick;
+  }
+  const prevFinish = finish.before as { level: number } | undefined;
+  const swapU = big && prevFinish && prevFinish.level !== state.level && finish.age < 500 ? finish.age / 500 : 1;
+  const swapFx = fxAmount(strategyFx("slide"));
+  if (big) {
+    const nudge = fxAmount(strategyFx("tap")), age = state.tick - fxm.knock;
+    if (nudge && age >= 0 && age < 6) ctx.translate(fxm.kx * 1.5 * nudge * (1 - age / 6), fxm.ky * 1.5 * nudge * (1 - age / 6));
+    if (swapU < 1 && swapFx) { const e = swapU * swapU * (3 - 2 * swapU); ctx.scale(0.86 + 0.14 * e, 0.86 + 0.14 * e); }
+  }
 
   // The groove and rim, turned with the disc (their light stays screen-fixed: drawn unrotated about the centre).
   ctx.save();
@@ -1154,6 +1174,34 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   if (big) blitX(ctx, `bed-brass:${R}`, R + 26, (c) => drawBrassBed(c, R));
   else blitX(ctx, `bed:${R}`, R + 26, (c) => drawDiscBed(c, R));
   ctx.restore();
+  if (big) {
+    // The rim ticks like a dial (stage 2): 48 brass notches turning with the disc past a fixed pointer at the top.
+    blitX(ctx, `dial:${R}`, R + 26, (c) => {
+      c.lineCap = "round";
+      for (let k = 0; k < 48; k++) {
+        const a = (k / 48) * Math.PI * 2, long = k % 4 === 0;
+        c.strokeStyle = long ? "rgba(255,226,150,0.75)" : "rgba(255,226,150,0.42)";
+        c.lineWidth = long ? 2 : 1.3;
+        c.beginPath();
+        c.moveTo(Math.cos(a) * (R + 6), Math.sin(a) * (R + 6));
+        c.lineTo(Math.cos(a) * (R + (long ? 15 : 11)), Math.sin(a) * (R + (long ? 15 : 11)));
+        c.stroke();
+      }
+    });
+    ctx.save();
+    ctx.rotate(-rot);
+    ctx.fillStyle = "#F2C75C";
+    ctx.strokeStyle = "rgba(40,20,4,0.8)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-6, -R - 24);
+    ctx.lineTo(6, -R - 24);
+    ctx.lineTo(0, -R - 13);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
   ctx.save();
   ctx.beginPath();
   ctx.arc(0, 0, R + 2, 0, Math.PI * 2);
@@ -1189,6 +1237,24 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     ctx.restore();
   }
 
+  if (big && swapU < 1 && prevFinish && swapFx) {
+    // The maze just finished, spinning away and shrinking as it fades, over the new one dropping in.
+    const old = state.list[prevFinish.level];
+    const sprite = old ? mazeSpriteX(ctx, old, lite, big) : null;
+    const oldR = old ? discRadiusX(old, big) : R;
+    if (sprite) {
+      ctx.save();
+      ctx.globalAlpha = 1 - swapU;
+      ctx.rotate(swapU * 1.6 * swapFx);
+      const k = 1 - 0.55 * swapU;
+      ctx.scale(k, k);
+      ctx.beginPath();
+      ctx.arc(0, 0, oldR + 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(sprite as CanvasImageSource, -oldR - 1, -oldR - 1, oldR * 2 + 2, oldR * 2 + 2);
+      ctx.restore();
+    }
+  }
   drawBigCup(ctx, cupAt(m.exit, m.exitDir), TILT_MARBLE_BLUE, CUP_GLASS, !!state.aHome);
   if ((m.exit2 ?? -1) >= 0) drawBigCup(ctx, cupAt(m.exit2!, m.exitDir2!), TILT_MARBLE_AMBER, CUP_AMBER_GLASS, !!state.bHome);
   (m.stars ?? []).forEach((_c, k) => {
@@ -1257,7 +1323,13 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     const cup = cupAt(m.exit, m.exitDir);
     tiltMarbleArt(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
   } else if (!done) {
-    const mx = state.x / FP - o, my = state.y / FP - o;
+    let mx = state.x / FP - o, my = state.y / FP - o;
+    // On a black hole's lip (stage 2): the marble wobbles a pixel either way (inside the arcade bounds rule).
+    const wobble = big ? fxAmount(strategyFx("nearMiss")) : 0;
+    if (wobble && tiltPitLip(m, mx, my, mr) >= 0) {
+      mx += Math.sin(state.tick * 1.3) * 1.2 * wobble;
+      my += Math.cos(state.tick * 1.7) * 0.6 * wobble;
+    }
     ctx.save();
     ctx.globalAlpha = holdAlpha(state.holdA);
     marbleShadow(ctx, mx, my, mr, rot);
