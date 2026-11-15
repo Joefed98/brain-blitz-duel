@@ -16,7 +16,7 @@ import {
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
 import { isSeat } from "@/lib/duel/seatKey";
 import { roomRoundCount } from "@/lib/duel/selection";
-import { readRoomSettings, roomSettingsUnlocked, settingsFacts, type RoomSettings } from "@/lib/duel/roomSettings";
+import { levelFact, readRoomSettings, roomSettingsUnlocked, settingsFacts, type RoomSettings } from "@/lib/duel/roomSettings";
 
 import { ChargeMeter } from "@/components/fx/ChargeMeter";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
@@ -302,6 +302,12 @@ export function RoomLobby({
       {/* Under the room code: the room's settings in one line for everyone, the host's Room settings button. */}
       <section aria-label="Room settings" className="-mt-2 flex flex-col items-start gap-2.5">
         <MetaChips data-room-summary facts={settingsFacts(settings)} />
+        {/* The room's level (difficulty framework): shown only when it isn't Normal. */}
+        {levelFact(settings) ? (
+          <p data-room-level-summary={settings.level} className="rs-summary -mt-2">
+            Difficulty: {levelFact(settings)}
+          </p>
+        ) : null}
         {scoringChoice ? (
           <p data-room-scoring={scoringShown} className="rs-summary -mt-2">
             Scoring: {scoringLabel(scoringShown)}

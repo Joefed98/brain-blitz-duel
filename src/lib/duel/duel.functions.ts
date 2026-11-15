@@ -8,7 +8,8 @@ import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { dealRoomRounds } from "./roomDeal";
 import { resultColumns } from "@/lib/round/result";
-import { encodeRoomSettings, readRoomSettings } from "./roomSettings";
+import { encodeRoomSettings, readRoomSettings, roomLevelOf } from "./roomSettings";
+import { NORMAL, puzzleLevel, type Level } from "@/lib/levels/levels";
 import type { ScoringMode } from "./scoringMode";
 import { puzzleRevealMs, typesInCategory } from "./catalogue";
 import { puzzleCloseReason } from "./roomClose";
@@ -578,6 +579,8 @@ export const startRoomFn = createServerFn({ method: "POST" })
 
     let roundOrder: StoredPuzzleType[];
     let puzzles: PuzzleData[];
+    // The room's level as the host set it (analytics' room_started; each round carries the level it was dealt at).
+    let roomLevel: Level = NORMAL;
     try {
       const { buildRoomPuzzles } = await import("./generate.server");
       const { drawUnblockRow } = await import("./unblock.server");
@@ -607,7 +610,10 @@ export const startRoomFn = createServerFn({ method: "POST" })
         unblockRow,
         recentBankKeys: recentBanked,
         roundOrder: dealt,
+        // The host's level for the room (room settings; Normal for a legacy room): every player's rounds at it.
+        level: stored.legacy ? undefined : roomLevelOf(stored.settings),
       }));
+      roomLevel = stored.legacy ? NORMAL : roomLevelOf(stored.settings);
       console.log(
         `[room-selection] room=${room.room_code} ${stored.legacy ? `categories=${categories.join(",")}` : `settings=${encodeRoomSettings(stored.settings).join(",")}`} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
       );
@@ -668,7 +674,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
         playerId: context.userId,
         mode: "room",
         roomId: room.id,
-        props: { players: players.length, rounds: roundOrder.length, game_index: gameIndexOf(room) },
+        props: { players: players.length, rounds: roundOrder.length, game_index: gameIndexOf(room), level: roomLevel },
       });
     }
     return { ok: true as const };
@@ -718,9 +724,9 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
  */
 export const setRoomSettingsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; picks: string[]; rounds: number; scoring?: string }) => {
+  .inputValidator((input: { roomId: string; picks: string[]; rounds: number; scoring?: string; level?: string }) => {
     const b = record(input);
-    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), picks: listOf(b["picks"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "picks"), rounds: numIn(b["rounds"], -NUMBER_MAX, NUMBER_MAX, "rounds"), scoring: optional(b["scoring"], (x) => text(x, SHORT_MAX, "scoring")) });  })
+    return compact({ roomId: text(b["roomId"], ID_MAX, "roomId"), picks: listOf(b["picks"], LIST_MAX, (x, f) => text(x, SHORT_MAX, f), "picks"), rounds: numIn(b["rounds"], -NUMBER_MAX, NUMBER_MAX, "rounds"), scoring: optional(b["scoring"], (x) => text(x, SHORT_MAX, "scoring")), level: optional(b["level"], (x) => text(x, SHORT_MAX, "level")) });  })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -728,6 +734,8 @@ export const setRoomSettingsFn = createServerFn({ method: "POST" })
     const result = await changeRoomSettings(client, data.roomId, context.userId, {
       picks: data.picks,
       rounds: data.rounds,
+      // The room's level (validated in roomSettings.ts validateRoomSettings).
+      ...(data.level !== undefined ? { level: data.level } : {}),
       ...(data.scoring !== undefined ? { scoring: data.scoring } : {}),
     });
     return result.ok ? { ok: true as const } : result;
@@ -926,7 +934,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
               game: puzzle?.type ?? null,
               mode: "room" as const,
               roomId: room.id,
-              props: { round },
+              props: { round, level: puzzleLevel(puzzle) },
             })),
           );
       }
@@ -1075,7 +1083,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
         durationMs: playedMs(puzzleTimeLimitMs(puzzle), msLeft, graded.extra as Record<string, unknown> | null | undefined),
         roomId: room.id,
         inputType: data.inputType,
-        props: { round: data.roundNumber },
+        props: { round: data.roundNumber, level: puzzleLevel(puzzle) },
       });
     }
     // The live "finished" ping: only the round number, after the result is stored, and only for a
