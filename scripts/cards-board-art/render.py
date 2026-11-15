@@ -48,8 +48,11 @@ def reset():
     world = bpy.data.worlds.new("w")
     world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
-    bg.inputs["Color"].default_value = (0.18, 0.18, 0.2, 1)
-    bg.inputs["Strength"].default_value = 0.55
+    # A dim warm studio (Joe, 15 Nov 2026: real materials need light on them, never a glare across a face): what a
+    # flat face reflects straight up is this dim world, so faces stay clear; the softbox and sun (studio()) give the
+    # bevels, curves and metals their highlights.
+    bg.inputs["Color"].default_value = (0.20, 0.18, 0.16, 1)
+    bg.inputs["Strength"].default_value = 0.28
     scene.world = world
     return scene
 
@@ -90,7 +93,7 @@ def rounded_outline(w, h, r, seg=10):
     return pts
 
 
-def slab(name, w, h, r, z0, z1, shear=(0.0, 0.0), uv_top=True):
+def slab(name, w, h, r, z0, z1, shear=(0.0, 0.0), uv_top=True, bevel=None, segments=3):
     """A rounded slab from z0 to z1; the bottom outline shifted by `shear` (x, y) per unit of depth below z1."""
     mesh = bpy.data.meshes.new(name)
     bm = bmesh.new()
@@ -112,15 +115,69 @@ def slab(name, w, h, r, z0, z1, shear=(0.0, 0.0), uv_top=True):
     bm.to_mesh(mesh)
     bm.free()
     for p in mesh.polygons:
-        p.use_smooth = False
+        p.use_smooth = True
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.scene.collection.objects.link(obj)
     mod = obj.modifiers.new("bevel", "BEVEL")
-    mod.width = min(1.2, depth * 0.45)
-    mod.segments = 2
+    mod.width = bevel if bevel is not None else min(1.2, depth * 0.45)
+    mod.segments = segments
     mod.limit_method = "ANGLE"
     mod.angle_limit = math.radians(50)
+    mod.harden_normals = True
+    mod.profile = 0.5
     return obj
+
+
+def studio(scene, W, H, key=2.2, box=14.0, rim_k=0.35):
+    """The key sun from the top left (35° off the vertical, so its mirror image on a flat face misses the camera) and a
+    large softbox panel up and to the left, out of the camera's sight, whose crisp reflection lands only on surfaces
+    turned towards it: bevels, rounded tile edges, the gold leaf's relief."""
+    sun = bpy.data.lights.new("sun", "SUN")
+    sun.energy = key
+    sun.angle = math.radians(8)
+    sobj = bpy.data.objects.new("sun", sun)
+    sobj.rotation_euler = (math.radians(28), math.radians(-24), 0)
+    scene.collection.objects.link(sobj)
+    mesh = bpy.data.meshes.new("softbox")
+    bm = bmesh.new()
+    s = max(W, H) * 0.9
+    vs = [bm.verts.new(p) for p in ((-s / 2, -s / 6, 0), (s / 2, -s / 6, 0), (s / 2, s / 6, 0), (-s / 2, s / 6, 0))]
+    bm.faces.new(vs)
+    bm.to_mesh(mesh)
+    bm.free()
+    box_obj = bpy.data.objects.new("softbox", mesh)
+    box_obj.location = (-W * 0.55, H * 1.45, max(W, H) * 0.95)
+    box_obj.rotation_euler = (math.radians(-55), math.radians(-30), 0)
+    em = bpy.data.materials.new("box")
+    em.use_nodes = True
+    nt = em.node_tree
+    for n in list(nt.nodes):
+        if n.type == "BSDF_PRINCIPLED":
+            nt.nodes.remove(n)
+    emit = nt.nodes.new("ShaderNodeEmission")
+    emit.inputs["Color"].default_value = (1.0, 0.97, 0.92, 1)
+    emit.inputs["Strength"].default_value = box
+    nt.links.new(emit.outputs["Emission"], nt.nodes["Material Output"].inputs["Surface"])
+    box_obj.data.materials.append(em)
+    box_obj.visible_camera = False
+    scene.collection.objects.link(box_obj)
+    # The rim light: a narrow strip low on the horizon at the top left, aimed at the middle. A flat face can't mirror
+    # anything that low, so it lands only on rims and rounded edges, as a crisp line.
+    rim = bpy.data.lights.new("rim", "AREA")
+    rim.shape = "RECTANGLE"
+    rim.size = max(W, H) * 1.2
+    rim.size_y = max(W, H) * 0.05
+    rim.energy = W * H * rim_k
+    robj = bpy.data.objects.new("rim", rim)
+    robj.location = (-W * 0.6, H * 1.6, max(W, H) * 0.35)
+    scene.collection.objects.link(robj)
+    target = bpy.data.objects.new("rim_target", None)
+    target.location = (W / 2, H / 2, 0)
+    scene.collection.objects.link(target)
+    track = robj.constraints.new("TRACK_TO")
+    track.target = target
+    track.track_axis = "TRACK_NEGATIVE_Z"
+    track.up_axis = "UP_Y"
 
 
 def image_node(nodes, path, non_color=False):
@@ -164,12 +221,14 @@ def card_material(name, face_path):
     links.new(gold.outputs[0], metal.inputs[0])
     links.new(metal.outputs[0], bsdf.inputs["Metallic"])
     rough = nodes.new("ShaderNodeMapRange")
-    rough.inputs["To Min"].default_value = 0.62
-    rough.inputs["To Max"].default_value = 0.4
+    rough.inputs["To Min"].default_value = 0.5
+    rough.inputs["To Max"].default_value = 0.3
     links.new(gold.outputs[0], rough.inputs["Value"])
     links.new(rough.outputs["Result"], bsdf.inputs["Roughness"])
-    bsdf.inputs["Specular IOR Level"].default_value = 0.22
-    bsdf.inputs["Coat Weight"].default_value = 0.0
+    bsdf.inputs["Specular IOR Level"].default_value = 0.35
+    # A satin varnish over the stock: its highlight runs along the bevelled rim, never across the face.
+    bsdf.inputs["Coat Weight"].default_value = 0.3
+    bsdf.inputs["Coat Roughness"].default_value = 0.16
     # Linen grain plus the printed ink, as one gentle bump.
     noise = nodes.new("ShaderNodeTexWave")
     noise.wave_type = "BANDS"
@@ -189,8 +248,8 @@ def card_material(name, face_path):
     mix = nodes.new("ShaderNodeMath"); mix.operation = "MULTIPLY_ADD"; mix.inputs[1].default_value = 0.08
     links.new(add.outputs[0], mix.inputs[0]); links.new(inv.outputs[0], mix.inputs[2])
     bump = nodes.new("ShaderNodeBump")
-    bump.inputs["Strength"].default_value = 0.12
-    bump.inputs["Distance"].default_value = 0.4
+    bump.inputs["Strength"].default_value = 0.22
+    bump.inputs["Distance"].default_value = 0.5
     links.new(mix.outputs[0], bump.inputs["Height"])
     links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
     return mat
@@ -204,6 +263,20 @@ def plain_material(name, rgb, rough=0.6, metallic=0.0):
     bsdf.inputs["Roughness"].default_value = rough
     bsdf.inputs["Metallic"].default_value = metallic
     bsdf.inputs["Specular IOR Level"].default_value = 0.25
+    return mat
+
+
+def glossy_material(name, rgb, rough=0.35, coat=0.6, coat_rough=0.08, sss=0.0, metallic=0.0):
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (*rgb, 1)
+    bsdf.inputs["Roughness"].default_value = rough
+    bsdf.inputs["Metallic"].default_value = metallic
+    bsdf.inputs["Specular IOR Level"].default_value = 0.4
+    bsdf.inputs["Coat Weight"].default_value = coat
+    bsdf.inputs["Coat Roughness"].default_value = coat_rough
+    bsdf.inputs["Subsurface Weight"].default_value = sss
     return mat
 
 
@@ -233,18 +306,13 @@ def cards():
         col, row = k % COLS, k // COLS
         x0 = GAP + col * (CW + GAP)
         y0 = GAP + (ROWS - 1 - row) * (CH + GAP)
-        obj = slab(f"c{k}", CW, CH, CR, 0, CT)
+        obj = slab(f"c{k}", CW, CH, CR, 0, CT, bevel=1.0, segments=3)
         obj.location = (x0, y0, 0)
         assign(obj, card_material(f"m{k}", os.path.join(TEX, n)), edge)
     W = GAP + COLS * (CW + GAP)
     H = GAP + ROWS * (CH + GAP)
-    # One even sun, a little from the top left (every card in the sheet lit the same), soft-edged.
-    sun = bpy.data.lights.new("sun", "SUN")
-    sun.energy = 2.6
-    sun.angle = math.radians(22)
-    sobj = bpy.data.objects.new("sun", sun)
-    sobj.rotation_euler = (math.radians(14), math.radians(-10), 0)
-    scene.collection.objects.link(sobj)
+    # The studio: one key sun and one softbox for the whole sheet, so every card is lit the same.
+    studio(scene, W, H, key=3.4, box=2.5, rim_k=0.5)
     ortho_camera(scene, W / 2, H / 2, W, H, 1)
     render(scene, "cards-raw.png")
 
@@ -255,16 +323,16 @@ def tiles():
     D = 6 * 4  # depth drawn to the bottom right
     gap = 40
     cols = 6
-    ivory_side = plain_material("ivs", srgb("#E4D9BC"), 0.5)
-    jade = plain_material("jade", srgb("#1E7A58"), 0.4)
+    ivory_side = glossy_material("ivs", srgb("#E8DEC4"), 0.35, coat=0.7, coat_rough=0.06, sss=0.12)
+    jade = glossy_material("jade", srgb("#1B7553"), 0.3, coat=0.85, coat_rough=0.05, sss=0.05)
     for k in range(34):
         col, row = k % cols, k // cols
         rows = 6
         x0 = gap + col * (TW + D + gap)
         y0 = gap + D + (rows - 1 - row) * (TH + D + gap)
         # Jade back (lower), then the ivory slab with the face on top; both sheared so the camera sees the sides.
-        back = slab(f"j{k}", TW, TH, TR, 0, D * 0.45, shear=(1.0, -1.0))
-        back.location = (x0 + D * 0.55, y0 - D * 0.55, 0)
+        back = slab(f"j{k}", TW, TH, TR, 0, D * 0.6, shear=(1.0, -1.0), bevel=4.0, segments=4)
+        back.location = (x0 + D * 0.4, y0 - D * 0.4, 0)
         back.data.materials.append(jade)
         face_mat = bpy.data.materials.new(f"t{k}")
         face_mat.use_nodes = True
@@ -272,28 +340,27 @@ def tiles():
         bsdf = nt.nodes["Principled BSDF"]
         tex = image_node(nt.nodes, os.path.join(TEX, f"tile-{k}.png"))
         nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-        bsdf.inputs["Roughness"].default_value = 0.42
-        bsdf.inputs["Specular IOR Level"].default_value = 0.25
-        bsdf.inputs["Subsurface Weight"].default_value = 0.08
+        # Polished ivory: a clear coat whose highlight sits on the rounded rim, a little light through the body.
+        bsdf.inputs["Roughness"].default_value = 0.35
+        bsdf.inputs["Specular IOR Level"].default_value = 0.4
+        bsdf.inputs["Subsurface Weight"].default_value = 0.12
+        bsdf.inputs["Coat Weight"].default_value = 0.7
+        bsdf.inputs["Coat Roughness"].default_value = 0.06
         bw = nt.nodes.new("ShaderNodeRGBToBW")
         nt.links.new(tex.outputs["Color"], bw.inputs["Color"])
         bump = nt.nodes.new("ShaderNodeBump")
-        bump.inputs["Strength"].default_value = 0.35
-        bump.inputs["Distance"].default_value = 1.2
+        # The faces engraved into the ivory: the ink sits a little below the polished surface.
+        bump.inputs["Strength"].default_value = 0.6
+        bump.inputs["Distance"].default_value = 1.6
         bump.invert = False
         nt.links.new(bw.outputs["Val"], bump.inputs["Height"])
         nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
-        top = slab(f"i{k}", TW, TH, TR, D * 0.45, D, shear=(1.0, -1.0))
+        top = slab(f"i{k}", TW, TH, TR, D * 0.6, D, shear=(1.0, -1.0), bevel=5.0, segments=5)
         top.location = (x0, y0, 0)
         assign(top, face_mat, ivory_side)
     W = gap + cols * (TW + D + gap)
     H = gap + 6 * (TH + D + gap) + D
-    sun = bpy.data.lights.new("sun", "SUN")
-    sun.energy = 2.4
-    sun.angle = math.radians(25)
-    sobj = bpy.data.objects.new("sun", sun)
-    sobj.rotation_euler = (math.radians(18), math.radians(-14), 0)
-    scene.collection.objects.link(sobj)
+    studio(scene, W, H, key=2.6, box=3.0, rim_k=0.5)
     ortho_camera(scene, W / 2, H / 2, W, H, 1)
     render(scene, "tiles-raw.png")
 
@@ -391,12 +458,27 @@ def mahjong_table():
     wave.inputs["Distortion"].default_value = 8.0
     wave.inputs["Detail"].default_value = 3.0
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].color = (*srgb("#1E120A"), 1)
-    ramp.color_ramp.elements[1].color = (*srgb("#4A2E1A"), 1)
-    nt.links.new(wave.outputs["Fac"], ramp.inputs["Fac"])
+    # Walnut: long grain bands with finer figure, under a lacquer coat.
+    wave.bands_direction = "Y"
+    ramp.color_ramp.elements[0].color = (*srgb("#24130A"), 1)
+    ramp.color_ramp.elements[1].color = (*srgb("#6E4527"), 1)
+    mid = ramp.color_ramp.elements.new(0.55)
+    mid.color = (*srgb("#4A2A16"), 1)
+    fine = nt.nodes.new("ShaderNodeTexNoise")
+    fine.inputs["Scale"].default_value = 40
+    fine.inputs["Detail"].default_value = 8
+    mixf = nt.nodes.new("ShaderNodeMath"); mixf.operation = "MULTIPLY_ADD"; mixf.inputs[1].default_value = 0.25
+    nt.links.new(fine.outputs["Fac"], mixf.inputs[0]); nt.links.new(wave.outputs["Fac"], mixf.inputs[2])
+    nt.links.new(mixf.outputs[0], ramp.inputs["Fac"])
     nt.links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
-    bsdf.inputs["Roughness"].default_value = 0.55
-    bsdf.inputs["Specular IOR Level"].default_value = 0.15
+    bsdf.inputs["Roughness"].default_value = 0.45
+    bsdf.inputs["Specular IOR Level"].default_value = 0.3
+    bsdf.inputs["Coat Weight"].default_value = 0.5
+    bsdf.inputs["Coat Roughness"].default_value = 0.12
+    gbump = nt.nodes.new("ShaderNodeBump")
+    gbump.inputs["Strength"].default_value = 0.15
+    nt.links.new(mixf.outputs[0], gbump.inputs["Height"])
+    nt.links.new(gbump.outputs["Normal"], bsdf.inputs["Normal"])
     wood.data.materials.append(wm)
     m = 8
     y_top = H - mat_y0 * 2

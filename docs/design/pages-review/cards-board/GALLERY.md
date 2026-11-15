@@ -1,21 +1,28 @@
 # Cards & Board overhaul: gallery (phase 2, step 4)
 
-Stage 1 (15 Nov 2026): the look and the game changes. Each image shows **main on the left** and **the branch on the
-right**: a practice round at 390 × 844 on a dev server running against the server-function harness, played with the
+Stage 1 (15 Nov 2026): the look and the game changes. Each **Play** image shows **today**, **the concept Joe chose**
+(PR #426: B for Free Cell, A for the others) and **the new frame**, side by side; the reveal and intro images show
+today and the new screen. Frames come from a practice round at 390 × 844 on a dev server running against the server-function harness, played with the
 same scripted taps (`bun scripts/shots/cards-board-gallery.ts --tag=before|after`). The clips show a move on the branch:
 cards slide along a short arc, a turned card flips, and a played card lands on the discard. The finishing effects
 ("ALL HOME!", the tile shower, the lit peaks) come with the effects kit in stage 2; their clips will be added then.
 
+Materials (Joe's clarification, 15 Nov 2026: real materials with light on them, no glare across a face): the cards are
+cream linen stock under a satin varnish whose highlight runs only along the bevelled rim, with gold-leaf court frames
+and Ace rings; the tiles are polished ivory with rounded rims catching a crisp edge light, engraved faces and jade
+backs; Mahjong's table is lacquered walnut. A low grazing rim light gives the edges their highlight, and a flat face
+only ever mirrors the dim studio above, so no glare crosses a face, a number or a panel.
+
 Art: Free Cell, Summit, Five Hands and Thirteen draw real cards rendered in Blender (`scripts/cards-board-art/`) on
 the royal-blue baize. Mahjong draws real ivory tiles over jade backs on the green mat inside a wooden edge. Every card
 has a big rank and suit across its top strip, and the court cards keep their portraits. Images per game: a card game
-185 KB (the shared 176 KB card sheet and the 9 KB felt), Mahjong 116 KB (109 KB of tiles and the 7 KB table).
+194 KB (the shared 184 KB card sheet and the 10 KB felt), Mahjong 124 KB (116 KB of tiles and the 8 KB table).
 
 ## Free Cell
 
-| Play: before · after | Reveal: before · after |
+| Play: today · concept · new | Reveal: today · new |
 |---|---|
-| <img src="img/freecell-play.webp" width="300"> | <img src="img/freecell-reveal.webp" width="300"> |
+| <img src="img/freecell-play.webp" width="450"> | <img src="img/freecell-reveal.webp" width="300"> |
 
 Intro: <img src="img/freecell-intro.webp" width="300"> · Clip: <img src="img/freecell-clip.webp" width="130">
 
@@ -27,9 +34,9 @@ Intro: <img src="img/freecell-intro.webp" width="300"> · Clip: <img src="img/fr
 
 ## Mahjong Solitaire
 
-| Play: before · after | Reveal: before · after |
+| Play: today · concept · new | Reveal: today · new |
 |---|---|
-| <img src="img/mahjong-play.webp" width="300"> | <img src="img/mahjong-reveal.webp" width="300"> |
+| <img src="img/mahjong-play.webp" width="450"> | <img src="img/mahjong-reveal.webp" width="300"> |
 
 Intro: <img src="img/mahjong-intro.webp" width="300"> · Clip: <img src="img/mahjong-clip.webp" width="130">
 
@@ -39,9 +46,9 @@ Intro: <img src="img/mahjong-intro.webp" width="300"> · Clip: <img src="img/mah
 
 ## Summit
 
-| Play: before · after | Reveal: before · after |
+| Play: today · concept · new | Reveal: today · new |
 |---|---|
-| <img src="img/tripeaks-play.webp" width="300"> | <img src="img/tripeaks-reveal.webp" width="300"> |
+| <img src="img/tripeaks-play.webp" width="450"> | <img src="img/tripeaks-reveal.webp" width="300"> |
 
 Intro: <img src="img/tripeaks-intro.webp" width="300"> · Clip: <img src="img/tripeaks-clip.webp" width="130">
 
@@ -52,9 +59,9 @@ Intro: <img src="img/tripeaks-intro.webp" width="300"> · Clip: <img src="img/tr
 
 ## Five Hands
 
-| Play: before · after | Reveal: before · after |
+| Play: today · concept · new | Reveal: today · new |
 |---|---|
-| <img src="img/fivehands-play.webp" width="300"> | <img src="img/fivehands-reveal.webp" width="300"> |
+| <img src="img/fivehands-play.webp" width="450"> | <img src="img/fivehands-reveal.webp" width="300"> |
 
 Intro: <img src="img/fivehands-intro.webp" width="300"> · Clip: <img src="img/fivehands-clip.webp" width="130">
 
@@ -64,9 +71,9 @@ Intro: <img src="img/fivehands-intro.webp" width="300"> · Clip: <img src="img/f
 
 ## Thirteen
 
-| Play: before · after | Reveal: before · after |
+| Play: today · concept · new | Reveal: today · new |
 |---|---|
-| <img src="img/pyramid-play.webp" width="300"> | <img src="img/pyramid-reveal.webp" width="300"> |
+| <img src="img/pyramid-play.webp" width="450"> | <img src="img/pyramid-reveal.webp" width="300"> |
 
 Intro: <img src="img/pyramid-intro.webp" width="300"> · Clip: <img src="img/pyramid-clip.webp" width="130">
 
