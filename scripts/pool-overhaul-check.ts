@@ -456,6 +456,104 @@ const allRuns: { rev: number; seed: number; raw: string; label: string }[] = [..
     ok(spot.y <= 80 && spot.x <= 200, `the streak's count pops by the rack (${spot.x}, ${spot.y}), not mid-table`);
     ok((fin.label as (s: unknown) => string)(s) === "CLEARED! 41.2 s", `the clear reads "${(fin.label as (s: unknown) => string)(s)}"`);
   }
+  // j. Readable at phone size (stage 3, Joe: "the contact flash and the jaw rattle are barely visible"). Drawn at 2× (a
+  // 390 × 844 phone at DPR 2 draws the 390-wide world about 1:1). The flash must light a real patch of pixels round the
+  // contact point (rays, ring, the balls' rims) and nothing beyond it (no glare across the felt or the numbers); the
+  // rattle's ball must move at least 2 px, only in its window, and the sim stays as it was.
+  {
+    const SC = 2;
+    const NEAR = 14; // world px round the contact point: the rays (11) and ring (9) with the line width
+    const FLOOR = 150; // device px brighter than the frame without the flash, at ages 1 and 3
+    const frame2 = (st: unknown) => {
+      const c = createCanvas(P.POOL_W * SC, P.POOL_H * SC);
+      const ctx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+      ctx.scale(SC, SC);
+      R.drawPool(ctx, st as never, null);
+      return c.getContext("2d").getImageData(0, 0, P.POOL_W * SC, P.POOL_H * SC).data;
+    };
+    const lum = (d: Uint8ClampedArray, i: number) => 0.2126 * d[i]! + 0.7152 * d[i + 1]! + 0.0722 * d[i + 2]!;
+    let contacts = 0;
+    let readable = 0;
+    let spread = 0;
+    const notes: string[] = [];
+    let rattles = 0;
+    let rattleWeak = 0;
+    let rattleOutside = 0;
+    let rattleOther = 0;
+    let mutated2 = 0;
+    for (const run of allRuns.filter((r) => r.rev === 4).slice(0, 3)) {
+      const game = P.poolGameFor(run.rev);
+      const dec = decodeSportsRun(run.raw, game.runTicks);
+      const events = new Map(checkInputEvents(dec.events, game.runTicks, game.inputRanges ?? []).events.map((e) => [e.t, e]));
+      let s = game.init(run.seed);
+      let open: { id: number; from: number; max: number } | null = null;
+      let flashesHere = 0;
+      for (let t = 1; t <= game.runTicks; t++) {
+        s = game.step(s, events.get(t) ?? null);
+        // The rattle, read every tick as the stage's every frame does.
+        const r = R.poolRattleNow(s);
+        if (r && r.age === 0) {
+          // A new rattle before the last one's window ended closes that one.
+          if (open) {
+            rattles++;
+            if (open.max < 2) rattleWeak++;
+          }
+          open = { id: r.id, from: s.tick, max: 0 };
+        }
+        for (const b of s.balls) {
+          if (b.down) continue;
+          const before = JSON.stringify(s);
+          const sh = R.poolShiver(s, b.id);
+          if (JSON.stringify(s) !== before) mutated2++;
+          const mag = Math.hypot(sh.dx, sh.dy);
+          const inWindow = !!open && open.id === b.id && s.tick - open.from < fx.POOL_FX_SHIVER_TICKS;
+          if (mag > 0 && !inWindow) {
+            if (open && open.id === b.id) rattleOutside++;
+            else rattleOther++;
+          }
+          if (inWindow && open) open.max = Math.max(open.max, mag);
+        }
+        if (open && s.tick - open.from >= fx.POOL_FX_SHIVER_TICKS) {
+          rattles++;
+          if (open.max < 2) rattleWeak++;
+          open = null;
+        }
+        // The flash: its first three contacts per run, at ages 1 and 3.
+        const c = fx.poolContactPoint(s);
+        if (c && (c.age === 1 || c.age === 3) && flashesHere < 6) {
+          flashesHere++;
+          contacts++;
+          const lit = frame2(s);
+          const dark = frame2({ ...s, hitTick: -100000 });
+          const balls = [c.a, c.b].map((id) => s.balls.find((b) => b.id === id)!).filter(Boolean);
+          let near = 0;
+          let far = 0;
+          for (let y = 0; y < P.POOL_H * SC; y++) {
+            for (let x = 0; x < P.POOL_W * SC; x++) {
+              const i = (y * P.POOL_W * SC + x) * 4;
+              if (Math.abs(lum(lit, i) - lum(dark, i)) <= 40) continue;
+              const wx = x / SC;
+              const wy = y / SC;
+              if (Math.hypot(wx - c.x, wy - c.y) <= NEAR) near++;
+              else if (!balls.some((b) => Math.hypot(wx - b.x / 256, wy - b.y / 256) <= R.POOL_BALL_DRAW_R + 2)) far++;
+            }
+          }
+          if (near >= FLOOR) readable++;
+          else notes.push(`seed ${run.seed} tick ${s.tick} age ${c.age}: ${near} px lit`);
+          if (far > 0) {
+            spread++;
+            notes.push(`seed ${run.seed} tick ${s.tick}: ${far} px changed beyond ${NEAR} px of the contact`);
+          }
+        }
+        if (game.isOver(s)) break;
+      }
+    }
+    for (const n of notes.slice(0, 4)) console.log(`    ${n}`);
+    ok(contacts >= 6 && readable === contacts, `the contact flash lights at least ${FLOOR} device px round the contact at phone scale (${readable} of ${contacts} flashes, ages 1 and 3)`);
+    ok(contacts > 0 && spread === 0, `the flash changes nothing beyond ${NEAR} px of the contact but the two balls' rims (no glare across the felt or the numbers)`);
+    ok(rattles > 0 && rattleWeak === 0 && rattleOutside === 0 && rattleOther === 0, `a jaw rattle shivers its ball at least 2 px, only in its ${fx.POOL_FX_SHIVER_TICKS} ticks, and no other ball (${rattles} rattles)`);
+    ok(mutated2 === 0, "reading the rattle and the shiver never changes a state (the sim is identical)");
+  }
 }
 
 if (failures.length) {

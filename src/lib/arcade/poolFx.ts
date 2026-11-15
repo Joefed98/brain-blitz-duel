@@ -38,10 +38,10 @@ const R = POOL_BALL_R;
 export const POOL_FX_DROP_TICKS = 18;
 export const POOL_FX_FLIGHT_TICKS = 22;
 /** How long each effect shows (ticks). */
-export const POOL_FX_FLASH_TICKS = 6;
+export const POOL_FX_FLASH_TICKS = 9;
 export const POOL_FX_THRUST_TICKS = 9;
 export const POOL_FX_PUFF_TICKS = 16;
-export const POOL_FX_SHIVER_TICKS = 14;
+export const POOL_FX_SHIVER_TICKS = 16;
 export const POOL_FX_FOUL_TICKS = 72;
 /** A jaw contact is a ball within this many px of a jaw segment on a tick a cushion or jaw was struck. */
 export const POOL_FX_JAW_REACH = R + 2.5;
@@ -64,10 +64,10 @@ function moving(b: PoolBall): boolean {
  * Where two balls just met (world px): within POOL_FX_FLASH_TICKS of the sim's last ball-on-ball tick, the touching pair
  * (gap ≤ 3 px) with the smallest gap and at least one ball moving; null otherwise.
  */
-export function poolContactPoint(s: PoolState): { x: number; y: number; age: number } | null {
+export function poolContactPoint(s: PoolState): { x: number; y: number; age: number; a: number; b: number } | null {
   const age = s.tick - s.hitTick;
   if (s.hits === 0 || age < 0 || age >= POOL_FX_FLASH_TICKS) return null;
-  let best: { x: number; y: number } | null = null;
+  let best: { x: number; y: number; a: number; b: number } | null = null;
   let bestScore = Infinity;
   const live = s.balls.filter((b) => !b.down);
   for (let i = 0; i < live.length; i++) {
@@ -82,41 +82,52 @@ export function poolContactPoint(s: PoolState): { x: number; y: number; age: num
       if (gap <= 3 + parting && score < bestScore) {
         bestScore = score;
         // The meeting point: the pair's midpoint walked back along their mean velocity.
-        best = { x: px(a.x + b.x - (a.vx + b.vx) * age) / 2, y: px(a.y + b.y - (a.vy + b.vy) * age) / 2 };
+        best = { x: px(a.x + b.x - (a.vx + b.vx) * age) / 2, y: px(a.y + b.y - (a.vy + b.vy) * age) / 2, a: a.id, b: b.id };
       }
     }
   }
   return best ? { ...best, age } : null;
 }
 
-function segDist(x: number, y: number, s: Seg): number {
+/** The closest point of a segment to (x, y), and its distance (world px). */
+function segNearest(x: number, y: number, s: Seg): { x: number; y: number; d: number } {
   const x1 = px(s.ax);
   const y1 = px(s.ay);
   const dx = px(s.bx) - x1;
   const dy = px(s.by) - y1;
   const l2 = dx * dx + dy * dy;
   const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / l2)) : 0;
-  return Math.hypot(x - (x1 + dx * t), y - (y1 + dy * t));
+  const nx = x1 + dx * t;
+  const ny = y1 + dy * t;
+  return { x: nx, y: ny, d: Math.hypot(x - nx, y - ny) };
 }
 
-/** The ball (its id) bouncing off a pocket's jaw on this tick (the sim struck a cushion or jaw this tick), else null. */
-export function poolJawContact(s: PoolState): number | null {
+/**
+ * The ball bouncing off a pocket's jaw on this tick (the sim struck a cushion or jaw this tick) and where on the jaw (the
+ * jaw's nearest point to it, world px), else null.
+ */
+export function poolJawHit(s: PoolState): { id: number; x: number; y: number } | null {
   if (s.phase !== POOL_ROLL || s.cushionTick !== s.tick) return null;
-  let best: number | null = null;
+  let best: { id: number; x: number; y: number } | null = null;
   let bestD = POOL_FX_JAW_REACH;
   for (const b of s.balls) {
     if (b.down) continue;
     const x = px(b.x);
     const y = px(b.y);
     for (const j of POOL_JAWS) {
-      const d = segDist(x, y, j);
-      if (d <= bestD) {
-        bestD = d;
-        best = b.id;
+      const n = segNearest(x, y, j);
+      if (n.d <= bestD) {
+        bestD = n.d;
+        best = { id: b.id, x: n.x, y: n.y };
       }
     }
   }
   return best;
+}
+
+/** The ball (its id) bouncing off a pocket's jaw on this tick, else null (poolJawHit's ball). */
+export function poolJawContact(s: PoolState): number | null {
+  return poolJawHit(s)?.id ?? null;
 }
 
 /**
