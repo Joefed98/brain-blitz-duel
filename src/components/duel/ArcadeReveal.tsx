@@ -13,6 +13,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
+import { StrategyRunSummary } from "./StrategyRunSummary";
 import { RevealBreakdown } from "./RevealBreakdown";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
@@ -360,6 +361,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           ) : null}
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
+
+        {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces under the score. */}
+        {myScore !== null ? <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} /> : null}
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}

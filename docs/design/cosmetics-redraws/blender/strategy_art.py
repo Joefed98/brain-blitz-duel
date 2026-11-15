@@ -350,6 +350,94 @@ def captain_art():
         print(f"inkbridge-captain-{pose}: {img.size}, {os.path.getsize(path) / 1024:.1f} KB")
 
 
-JOBS = {"gems": gems, "marbles": marbles, "bubbles": bubbles, "disc": disc, "captain": captain_art}
+# ------------------------------------------------------------------ reveal pieces (the redesigned answer reveals)
+
+
+def reveal_coin():
+    """Rainbow Bridge's level coin (the reveal's ten level dots): a gold coin face on, a raised rim and a bolt."""
+    s = lib.reset(256, 256, samples=96, transparent=True)
+    s.view_settings.view_transform = "Standard"
+    s.view_settings.look = "None"
+    lib.world((0.05, 0.05, 0.06), 1.0)
+    gold = lib.material("gold", base=hex_rgb("#C98A1E"), metallic=1.0, roughness=0.32)
+    deep = lib.material("deep", base=hex_rgb("#8A5A12"), metallic=1.0, roughness=0.45)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=96, radius=1.0, depth=0.14, location=(0, 0, 0))
+    bpy.context.object.data.materials.append(gold)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.86, minor_radius=0.07, location=(0, 0, 0.07))
+    bpy.ops.object.shade_smooth()
+    bpy.context.object.data.materials.append(gold)
+    # A small embossed bolt (the app's mark, simplified).
+    verts = [(-0.12, 0.5), (0.3, 0.5), (0.06, 0.08), (0.28, 0.08), (-0.18, -0.55), (-0.02, -0.06), (-0.26, -0.06)]
+    mesh = bpy.data.meshes.new("bolt")
+    mesh.from_pydata([(x, y, 0.07) for x, y in verts], [], [list(range(len(verts)))])
+    ob = bpy.data.objects.new("bolt", mesh)
+    bpy.context.scene.collection.objects.link(ob)
+    bpy.context.view_layer.objects.active = ob
+    ob.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, 0, 0.1)})
+    bpy.ops.object.mode_set(mode="OBJECT")
+    ob.scale = (1.3, 1.3, 1)
+    ob.data.materials.append(deep)
+    lib.area_light((-1.6, 1.8, 3.0), (0, 0, 0), 150, 0.9, (1.0, 0.95, 0.85))
+    lib.area_light((2.2, -1.4, 1.6), (0, 0, 0), 60, 1.0, (1.0, 0.9, 0.7))
+    lib.area_light((0, 0, 4.0), (0, 0, 0), 12, 3.0, (1, 1, 1))
+    round_lights()
+    top_camera(2.08)
+    png = os.path.join(lib.TMP, "inkbridge-coin.png")
+    lib.render(png)
+    save(png, "inkbridge-coin", quality=86, size=96)
+
+
+def reveal_chest():
+    """Gemstone's treasure chest (the reveal's treasure row): dark wood, bronze bands, a gold lock, three-quarter view."""
+    s = lib.reset(320, 320, samples=96, transparent=True)
+    s.view_settings.view_transform = "Standard"
+    s.view_settings.look = "None"
+    lib.world((0.05, 0.05, 0.06), 1.0)
+    wood = walnut_material()
+    bronze = lib.material("bronze", base=hex_rgb("#C2843E"), metallic=1.0, roughness=0.28)
+    gold = lib.material("gold", base=hex_rgb("#F2C75C"), metallic=1.0, roughness=0.2)
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0.35))
+    body = bpy.context.object
+    body.scale = (1.4, 0.9, 0.7)
+    body.data.materials.append(wood)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.45, depth=1.36, location=(0, 0, 0.7), rotation=(0, math.pi / 2, 0))
+    lid = bpy.context.object
+    lid.scale = (1, 1, 1)
+    lid.data.materials.append(wood)
+    for x in (-0.5, 0.5):
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(x, 0, 0.35))
+        band = bpy.context.object
+        band.scale = (0.1, 0.94, 0.72)
+        band.data.materials.append(bronze)
+        bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.48, depth=0.1, location=(x, 0, 0.7), rotation=(0, math.pi / 2, 0))
+        bpy.ops.object.shade_smooth()
+        bpy.context.object.data.materials.append(bronze)
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, -0.46, 0.62))
+    lock = bpy.context.object
+    lock.scale = (0.2, 0.06, 0.24)
+    lock.data.materials.append(gold)
+    lib.area_light((-2.4, -2.6, 3.2), (0, 0, 0.5), 260, 2.0, (1.0, 0.95, 0.88))
+    lib.area_light((2.6, 1.6, 2.2), (0, 0, 0.5), 260, 1.2, (0.6, 0.8, 1.0))
+    lib.area_light((0, -3, 0.6), (0, 0, 0.4), 50, 3, (1.0, 0.85, 0.65))
+    lib.area_light((3.0, -1.6, 0.9), (0.7, 0, 0.6), 120, 1.5, (1.0, 0.9, 0.8))
+    lib.camera((2.2, -3.4, 2.0), (0, 0, 0.5), lens=50)
+    png = os.path.join(lib.TMP, "matchup-chest.png")
+    lib.render(png)
+    img = Image.open(png).convert("RGBA")
+    img = img.crop(img.getbbox())
+    w, h = img.size
+    side = max(w, h)
+    sq = Image.new("RGBA", (side, side))
+    sq.paste(img, ((side - w) // 2, (side - h) // 2))
+    sq = sq.resize((112, 112), Image.LANCZOS)
+    path = os.path.join(OUT, "matchup-chest.webp")
+    sq.save(path, "WEBP", quality=86, method=6)
+    print(f"matchup-chest: {os.path.getsize(path) / 1024:.1f} KB")
+
+
+JOBS = {"gems": gems, "marbles": marbles, "bubbles": bubbles, "disc": disc, "captain": captain_art, "coin": reveal_coin, "chest": reveal_chest}
 for job in sys.argv[1:] or list(JOBS):
     JOBS[job]()

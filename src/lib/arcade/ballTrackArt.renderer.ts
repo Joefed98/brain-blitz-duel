@@ -755,6 +755,25 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     ctx.strokeStyle = TOY_INK;
     symbol(ctx, tray, sx, sy, 11);
     ctx.stroke();
+    // The Strategy overhaul, stage 2 (display only): a wrong cup flashes red as the marble bounces out, and every cup
+    // pulses softly in the second before the cups move (a relay or the shuffle), so the move is never a surprise.
+    const wrongAt = s.landings.find((m) => m.cell === landed && !m.ok && s.tick - m.tick < 24);
+    if (wrongAt) {
+      ctx.globalAlpha = 0.85 * (1 - (s.tick - wrongAt.tick) / 24);
+      ctx.strokeStyle = "#FF3B3B";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x - 2, trayY - 2, w + 4, h + 4);
+      ctx.globalAlpha = 1;
+    }
+    const ahead = [course.relay, course.shuffle].find((e) => e && e.tick > s.tick && e.tick - s.tick <= 60);
+    if (ahead && !reduced) {
+      const left = ahead.tick - s.tick;
+      ctx.globalAlpha = 0.35 * (0.5 + 0.5 * Math.cos(((60 - left) / 15) * Math.PI));
+      ctx.strokeStyle = "#FFF4D8";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x - 1, trayY - 1, w + 2, h + 2);
+      ctx.globalAlpha = 1;
+    }
   });
 
   // Landings: a settle wobble in the cup (right) or a grey marble bouncing out (wrong). Animation only.

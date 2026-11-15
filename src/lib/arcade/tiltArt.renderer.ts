@@ -114,6 +114,15 @@ export function drawBigCup(ctx: CanvasRenderingContext2D, cup: { x: number; y: n
   ctx.beginPath();
   ctx.arc(cup.x, cup.y, cup.r + 1.8, Math.PI * 0.95, Math.PI * 1.6);
   ctx.stroke();
+  // The Strategy overhaul, stage 2 (display only): a filled cup lights in its marble's colour, a crisp ring on the
+  // brass (no glow), so a marble home reads at a glance.
+  if (filled) {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cup.x, cup.y, cup.r + 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 }
 
 /**

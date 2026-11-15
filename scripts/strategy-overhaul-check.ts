@@ -273,7 +273,7 @@ section("Rendered materials: present, hashed, within budget, code art without th
   const size = (p: string) => statSync(p).size;
   const budget: Record<string, string[]> = {
     tilt: ["tilt-", "marble-gloss"],
-    matchup: ["gem-"],
+    matchup: ["gem-", "matchup-"],
     bubble: ["bubble-"],
     inkbridge: ["inkbridge-"],
     balltrack: ["bt-marble-", "marble-gloss"],
@@ -290,6 +290,50 @@ section("Rendered materials: present, hashed, within budget, code art without th
   ok(/ctx\.drawImage\(body, x - r, y - r, r \* 2, r \* 2\)/.test(sources[2]!) && /toyMarble\(ctx, x, y, r, colour, 0, seed\)/.test(sources[2]!), "Ball Tracker: the rendered marble at the marble's radius, the code marble otherwise");
   ok(/ctx\.drawImage\(body, -r, -r, r \* 2, r \* 2\)/.test(sources[3]!) && /strategyImage\("tilt-disc"\)/.test(sources[3]!), "Tilt: rendered marbles at the marble's radius and the lacquered disc");
   ok(/inkbridge-captain-win/.test(sources[4]!) && /INK_CAPTAIN_CHEER_TICKS/.test(sources[4]!), "Rainbow Bridge: Captain Joulz waits by the pot and cheers when the coin lands");
+}
+
+/* ------------------------------------------------------------------ 5d. The redesigned reveals (stage 2) */
+section("Answer reveals: one picture of the run in the shared layout");
+{
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { StrategyRunSummary, STRATEGY_SUMMARY_TYPES } = await import("../src/components/duel/StrategyRunSummary");
+  const arcadeReveal = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
+  ok(/<StrategyRunSummary puzzle=\{puzzle\} myAnswer=\{myAnswer\} reveal=\{myReveal\} \/>/.test(arcadeReveal), "ArcadeReveal (#422's shared layout) draws the picture under the score");
+  ok([...STRATEGY_SUMMARY_TYPES].sort().join() === "balltrack,bubble,inkbridge,matchup,tilt", "the five Strategy games, and only they");
+  const draw = (type: string, reveal: unknown) =>
+    renderToStaticMarkup(createElement(StrategyRunSummary, { puzzle: { type, seed: 1 } as never, myAnswer: null, reveal: reveal as never }));
+  const count = (html: string, re: RegExp) => (html.match(re) ?? []).length;
+  const tilt = draw("tilt", { axis: { value: 3, max: 4, label: "Mazes" }, lines: [], tiles: [], outcome: "time" });
+  ok(count(tilt, /class="srs-cell"/g) === 4 && count(tilt, /data-done=""/g) === 3, "Tilt: four discs, three ticked");
+  const gem = draw("matchup", { axis: { value: 240, max: 360, label: "Gems cleared" }, lines: [], tiles: [{ label: "Treasure", value: "2 / 6" }, { label: "Goals", value: "4 / 6" }], outcome: "time" });
+  ok(count(gem, /<img src="\/strategy\/gem-/g) === 6 && count(gem, /<img src="\/strategy\/matchup-chest/g) === 6 && count(gem, />Met</g) === 4, "Gemstone: six goals (four met) and six chests");
+  const bub = draw("bubble", { axis: { value: 62, max: 100, label: "% cleared" }, lines: [], tiles: [{ label: "Popped", value: "40" }, { label: "Dropped", value: "13" }, { label: "Shots", value: "30" }], outcome: "time" });
+  ok(/62%/.test(bub) && />40</.test(bub) && />13</.test(bub) && /scaleX\(0\.62\)/.test(bub), "Coral Pop: the reef meter and the bubbles popped and dropped");
+  const ink = draw("inkbridge", { axis: { value: 7, max: 10, label: "Levels" }, lines: [], tiles: [{ label: "Within ink par", value: "5 / 7" }], outcome: "time" });
+  ok(count(ink, /<img src="\/strategy\/inkbridge-coin/g) === 10 && count(ink, /data-dim=""/g) === 3 && /5 of 7/.test(ink), "Rainbow Bridge: ten level coins, seven potted, five within ink par");
+  const bt = draw("balltrack", { axis: { value: 30, max: 36, label: "Marbles home" }, lines: [], tiles: [{ label: "Wrong tray", value: "4" }, { label: "Lost", value: "1" }], outcome: "time" });
+  ok(count(bt, /data-kind="home"/g) === 30 && count(bt, /data-kind="wrong"/g) === 4 && count(bt, /data-kind="lost"/g) === 1 && count(bt, /data-kind="none"/g) === 1, "Ball Tracker: every marble, home, wrong cup or lost");
+  for (const [type, html] of [["tilt", tilt], ["matchup", gem], ["bubble", bub], ["inkbridge", ink], ["balltrack", bt]] as const)
+    ok(!/→|·/.test(html.replace(/<[^>]+>/g, " ")), `${type}: plain labels (no arrows or dot lists)`);
+  ok(draw("snake", { axis: { value: 1, max: 1, label: "" }, lines: [], tiles: [], outcome: "time" }) === "", "other games draw nothing here");
+  const css = readFileSync("src/polish-layout/strategy-reveal.css", "utf8");
+  ok(!/#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(css), "the reveal's styles use tokens only");
+}
+
+/* ------------------------------------------------------------------ 5e. Effects (stage 2) */
+section("Effects: drawn from the sim, never over the board's words");
+{
+  const bt = readFileSync("src/lib/arcade/ballTrackArt.renderer.ts", "utf8");
+  ok(/!m\.ok && s\.tick - m\.tick < 24/.test(bt) && /e\.tick - s\.tick <= 60/.test(bt), "Ball Tracker: a wrong cup flashes red; the cups pulse in the second before they move");
+  const tilt = readFileSync("src/lib/arcade/tiltArt.renderer.ts", "utf8");
+  ok(/if \(filled\) \{\s*ctx\.strokeStyle = colour;/.test(tilt), "Tilt: a filled cup lights in its marble's colour");
+  const bub = readFileSync("src/lib/arcade/bubble.renderer.ts", "utf8");
+  ok(/shotTrails/.test(bub) && /t\.shots !== state\.shots/.test(bub), "Coral Pop: a faint trail behind the shot, reset each shot");
+  const ink = readFileSync("src/lib/arcade/inkBridge.renderer.ts", "utf8");
+  ok(/state\.flashKind===1&&state\.tick-state\.flashTick>=0&&state\.tick-state\.flashTick<30/.test(ink), "Rainbow Bridge: a burst of rainbow coins from the pot");
+  const gem = readFileSync("src/lib/arcade/matchup.renderer.ts", "utf8");
+  ok(/function shatter\(/.test(gem) && /drawTreasureTrail/.test(gem), "Gemstone: matches shatter in the gems' colour; the treasure's trail and chip");
 }
 
 /* ------------------------------------------------------------------ 6. Older stamps */

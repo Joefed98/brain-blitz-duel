@@ -2608,6 +2608,19 @@ outside the repo.
   `docs/sound-cues/strategy-elevenlabs.md`. strategy-overhaul-check (~1 min); screens `scripts/screens/strategy.ts`;
   shots `bun scripts/shots/strategy-shots.ts --url=<origin> [--reveal]`. Effects (PR #422) and difficulty levels come in
   stages 2 and 3.
+- **The Strategy overhaul, stage 2: rendered materials, effects, reveals** (15 Nov 2026; display only, no stamps;
+  gallery `docs/design/pages-review/strategy/GALLERY.md`). Cycles renders (`docs/design/cosmetics-redraws/blender/
+  strategy_art.py`, bpy 5.3) in `public/strategy/` (25 WebPs, ~170 KB; hashes in `strategyArt.data.ts` from
+  `bun scripts/strategy-art-data.ts [--check]`; **re-run it after re-rendering**): Gemstone's gems, Coral Pop's bubbles,
+  Tilt's and Ball Tracker's marbles, Tilt's walnut disc and its lacquer reflection, Captain Joulz by Rainbow Bridge's pot
+  (`inkbridge-captain-ready` / `-win`, cheering `INK_CAPTAIN_CHEER_TICKS` after a pot), and the reveal's coin and chest.
+  `strategyImage(name)` (`src/lib/arcade/strategyArt.ts`) answers null until loaded and always in Bun, so the code art is
+  drawn there and every pixel digest is unchanged; caches key on `strategyArtVersion()`; RoundIntro preloads a game's
+  images. Effects (renderers, display only): Tilt's filled cup ringed in its colour, Coral Pop's shot trail, Rainbow
+  Bridge's pot coin burst, Ball Tracker's red wrong cup and the cups' pulse before they move. Reveals:
+  `StrategyRunSummary` under the score in ArcadeReveal (the stored reveal's axis and tiles; Tilt's times and Gemstone's
+  goals from the player's own run replayed on the phone, loaded on demand), styles `polish-layout/strategy-reveal.css`.
+  Tiles and intro stills redrawn with the renders (`tile-scenes` waits for them). strategy-overhaul-check sections 5c–5e.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

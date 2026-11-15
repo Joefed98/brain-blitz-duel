@@ -43,6 +43,9 @@ import {
 } from "./bubble";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+
+/** The shot trail's memory per canvas (display only; the Strategy overhaul, stage 2). */
+const shotTrails = new WeakMap<object, { shots: number; tick: number; pts: { x: number; y: number }[] }>();
 import {
   seaClock,
   seaCoral,
@@ -1278,6 +1281,30 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     ctx.restore();
   }
   if (state.flightColour) {
+    // The Strategy overhaul, stage 2 (display only): a faint trail behind the shot in flight, from this canvas's own
+    // memory of where the sim's shot has been (reset each shot), so a bank shot's bounce reads.
+    if (!reducedMotion() && !arcadeReducedEffects()) {
+      const key = ctx.canvas as object;
+      let t = shotTrails.get(key);
+      if (!t || t.shots !== state.shots || state.tick < t.tick) t = { shots: state.shots, tick: -1, pts: [] };
+      if (state.tick !== t.tick) {
+        t.pts.push({ x: state.x / 256, y: state.y / 256 });
+        if (t.pts.length > 14) t.pts.shift();
+        t.tick = state.tick;
+      }
+      shotTrails.set(key, t);
+      ctx.save();
+      ctx.fillStyle = "#FFFFFF";
+      for (let i = 0; i < t.pts.length - 1; i++) {
+        const p = t.pts[i]!;
+        const k = (i + 1) / t.pts.length;
+        ctx.globalAlpha = 0.22 * k;
+        ctx.beginPath();
+        ctx.arc(X(p.x), Y(p.y), Math.max(1, radius * 0.32 * k), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
     const heading = drillingNow ? Math.atan2(state.vy * sy, state.vx * sx) : undefined;
     blitBubble(ctx, state.flightColour, X(state.x / 256), Y(state.y / 256), radius, dpr, 1, heading);
   }

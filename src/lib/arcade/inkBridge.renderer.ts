@@ -560,6 +560,19 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   if(lvl.wind)drawWind(c,lvl.wind,state.tick);
   if(lvl.clouds)drawBounceClouds(c,lvl.clouds,state);
   drawPot(c,inkBucketX(lvl,state.tick),lvl.bucketY,state.flashKind===1&&state.tick-state.flashTick<20);
+  // The Strategy overhaul, stage 2 (display only): a potted coin sends a small burst of rainbow coins up out of the pot
+  // for half a second (fixed arcs, the same every time), then they fall back in.
+  if(state.flashKind===1&&state.tick-state.flashTick>=0&&state.tick-state.flashTick<30&&!reducedMotion()&&!arcadeReducedEffects()){
+    const age=state.tick-state.flashTick,px=inkBucketX(lvl,state.tick)+INK_BUCKET_W/2,py=lvl.bucketY+4;
+    const hues=['#FF5A5A','#FFB23E','#FFE14D','#5BD66B','#4DA6FF','#9C6BFF'];
+    for(let i=0;i<6;i++){
+      const vx=(i-2.5)*0.9,vy=-3.4-(i%3)*0.5,x=px+vx*age,y=py+vy*age+0.16*age*age;
+      if(y>py+2)continue;
+      c.globalAlpha=Math.max(0,1-age/30);c.fillStyle=hues[i]!;c.beginPath();c.arc(x,y,3,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,0.7)';c.beginPath();c.arc(x-0.9,y-0.9,1,0,Math.PI*2);c.fill();
+    }
+    c.globalAlpha=1;
+  }
   // Rev 4: this level's gold star, until the coin in flight touches it (then it rides as a glow).
   if(lvl.star){ if(!state.starGot) stamp(c,'star',INK_STAR_R*2,INK_STAR_R*2,lvl.star.x-INK_STAR_R,lvl.star.y-INK_STAR_R,goldStar); else { c.save();c.globalAlpha=0.5;c.strokeStyle=GOLD;c.lineWidth=2;c.beginPath();c.arc(state.ball.x/FP,state.ball.y/FP,BALL_R+4,0,Math.PI*2);c.stroke();c.restore(); } }
   // inkRev 10: silver coins and the shamrock, until the coin in flight takes them.

@@ -57,3 +57,8 @@ export function setStrategyImageForShots(name: StrategyArtName, img: { width: nu
   images.set(name, el);
   version++;
 }
+
+/** The URL of a rendered piece for DOM use (the redesigned answer reveals draw these as <img>). */
+export function strategyArtUrl(name: StrategyArtName): string {
+  return `/strategy/${name}.webp?v=${STRATEGY_ART[name]}`;
+}
