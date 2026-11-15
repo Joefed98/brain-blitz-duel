@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 34 | 0 | 512 | 546 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 37 | 41 |
+| fail sting | 4 | 0 | 39 | 43 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 60 | 1 | 1010 | 1071 |
 
 ## Silent and placeholder cues
 
@@ -164,19 +164,13 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pipes.rotate` | Each tile tap (a quarter turn) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | silent | none | 170 | game event | `pipes.rotate` |
+| `pipes.rotate` | Each tile turn, either way (a quarter turn) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | silent | none | 170 | game event | `pipes.rotate` |
 
 ### Skid
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `iceslide.slide` | A slide starts (the ball and its frost trail move) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | silent | none | 100 | game event | `iceslide.slide` |
-
-### Topsy-Turvy
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `gravity.tilt` | An arrow press tilts the tray and the balls roll [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | silent | none | 200 | game event | `gravity.tilt` |
+| `iceslide.slide` | A slide of up to four squares starts (the ball and its frost trail move) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | silent | none | 100 | game event | `iceslide.slide` |
 
 ### Turntable
 
@@ -1003,7 +997,10 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.connect` | 460 | game event | `flow.connect` |
+| `flow.draw` | The line grows by a square (a soft liquid tone, played a little higher as the line grows; the move tick until it has a file) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `arc_sea_bubble` (shared) | 140 | game event | `flow.draw` |
+| `flow.cut` | flowRev 3: drawing over another colour cuts that line back [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `arc_sea_pop` (shared) | 180 | game event | `flow.cut` |
+| `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join; the only sound for a join since the Pattern overhaul) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.connect` | 460 | game event | `flow.connect` |
+| `flow.nearMiss` | The board first reaches one pair short, or every pair joined with squares still empty (a soft hint) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `arc_retro_blip` (shared) | 600 | game event | `flow.nearMiss` |
 | `flow.solve` | Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))] |  | 0–1 | recorded sound | `flow.solve` | 1150 | success sting | `flow.solve` |
 | `music.flow` | Chroma Lines round bed: music_logic_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_pattern_flow` |
 
@@ -1018,7 +1015,10 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `unblock.slide` | A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
+| `unblock.slide` | A car settles into a new bay one or two bays away (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
+| `unblock.slideLong` | A car slides three or more bays (since 15 Nov 2026; move.slide.mp3 until its own file) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slideLong` | 170 | game event | `unblock.slideLong` |
+| `unblock.blocked` | A drag pushed into the car or wall in the way: the car shakes and stays (a plain tap keeps the shake's quiet wrong; since 15 Nov 2026, arc_wood_knock.mp3 until its own file) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 320 | game event | `unblock.blocked` |
+| `unblock.laneClear` | A move leaves nothing between the gold car and the exit, short of the solve (since 15 Nov 2026, gem.glint.mp3 until its own file) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.laneClear` | 200 | game event | `unblock.laneClear` |
 | `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | recorded sound | `unblock.solve` | 2470 | success sting | `unblock.solve` |
 | `music.unblock` | Gridlock round bed: music_pattern_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_2` (shared) | 60000 | music | `music_pattern_unblock` |
 
@@ -1028,6 +1028,8 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `push.home` | A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.home` | 300 | game event | `push.home` |
 | `push.solve` | The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))] |  | 0–1 | recorded sound | `push.solve` | 1200 | success sting | `push.solve` |
+| `push.goldOff` | The gold crate pushed off its gold mark (since 15 Nov 2026, retro.powerDown.mp3 until its own file) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.goldOff` | 200 | game event | `push.goldOff` |
+| `push.stuck` | A crate pushed where it can never leave: a warning creak (slot only: fired by the deadlock hint, which comes with the levels; swing.vineCreak.mp3 until its own file) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.stuck` | 200 | game event | `push.stuck` |
 | `music.push` | Heave round bed: music_logic_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_pattern_push` |
 
 ### Lightbender
@@ -1036,7 +1038,9 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `pz_laser_gem` | Lightbender: The beam reaches a gem (pitched up gem by gem) [core.md] |  | 3–8 | recorded sound | `pz_laser_gem` | 1012 | game event | `pz_laser_gem` |
 | `pz_laser_split` | Lightbender: The beam reaches a splitter [core.md] |  | 0–4 | recorded sound | `pz_laser_split` | 1042 | game event | `pz_laser_split` |
-| `laser.bomb` | The beam hits a bomb [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.bomb` | 420 | game event | `laser.bomb` |
+| `laser.bomb` | The beam hits a bomb (the miss's one sound) [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.bomb` | 420 | game event | `laser.bomb` |
+| `laser.nearMiss` | A shot ends with every gem but one lit and no bomb ("1 gem dark", in place of wrong) [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `arc_retro_blip` (shared) | 600 | game event | `laser.nearMiss` |
+| `laser.outOfShots` | laserRev 4: the third shot fades without a solve; the board locks and says "Out of shots" [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.outOfShots` | 528 | game event | `laser.outOfShots` |
 | `laser.solve` | The beam flares to full and the gems burst with light in beam order [pattern.md (Lightbender (laser))] |  | 0–1 | recorded sound | `laser.solve` | 1150 | success sting | `laser.solve` |
 | `music.laser` | Lightbender round bed: music_pattern_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_3` (shared) | 60000 | music | `music_pattern_laser` |
 
@@ -1045,13 +1049,20 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pipes.flow` | Water reaches more pipes after a turn (not on the solve) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.flow` | 220 | game event | `pipes.flow` |
+| `pipes.combo` | Water reaches 6 or more pipes in one turn, in place of pipes.flow (pipesRev 5) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `combo` (shared) | 486 | game event | `pipes.combo` |
+| `pipes.drain` | A turn cuts pipes off the water (pipesRev 5) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.drain` | 486 | game event | `pipes.drain` |
 | `pipes.solve` | Water rushes from the source through every pipe [pattern.md (Pipeline (pipes))] |  | 0–1 | recorded sound | `pipes.solve` | 1200 | success sting | `pipes.solve` |
+| `pipes.bubble` | The source bubbles as the solve fills the network (pipesRev 5) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `arc_sea_bubble` (shared) | 486 | game event | `pipes.bubble` |
 | `music.pipes` | Pipeline round bed: music_logic_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_pattern_pipes` |
 
 ### Skid
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `iceslide.slideLong` | A slide of five squares or more starts (since 15 Nov 2026, move.slide.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.slideLong` | 100 | game event | `iceslide.slideLong` |
+| `iceslide.stop` | The ball comes to rest against what stopped it (not a fall or the exit; since 15 Nov 2026, arc_fair_thud.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `arc_fair_thud` (shared) | 160 | game event | `iceslide.stop` |
+| `iceslide.bump` | A slide straight into a wall or the edge: nothing moves and nothing counts (since 15 Nov 2026, arc_wood_knock.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | fail sting | `iceslide.bump` |
+| `iceslide.nearExit` | The ball rests one slide from the exit with the finish still at par: the exit glows softly (since 15 Nov 2026, gem.glint.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.nearExit` | 300 | game event | `iceslide.nearExit` |
 | `iceslide.portal` | The ball comes out of a portal; both cells of the pair flare [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.portal` | 450 | game event | `iceslide.portal` |
 | `iceslide.crack` | Thin ice breaks as the ball leaves it (shards fly) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.crack` | 520 | game event | `iceslide.crack` |
 | `iceslide.fall` | The ball reaches a hole and spins down [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.fall` | 400 | game event | `iceslide.fall` |
@@ -1063,8 +1074,12 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `blockparty.place` | A piece dropped legally on the board pops into place [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.place` | 260 | UI tap | `blockparty.place` |
-| `blockparty.turn` | A single tap rotates a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.turn` | 180 | game event | `blockparty.turn` |
-| `blockparty.flip` | A double tap flips a tray piece [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.flip` | 180 | game event | `blockparty.flip` |
+| `blockparty.turn` | A single tap rotates a tray piece (shown once the double-tap window has passed, 260 ms; Pattern overhaul) [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.turn` | 180 | game event | `blockparty.turn` |
+| `blockparty.flip` | A double tap flips a tray piece (it no longer turns first) [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.flip` | 180 | game event | `blockparty.flip` |
+| `blockparty.pickup` | A piece lifted: the first drag movement of a tray or board piece, or a tap that takes a placed piece back [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.pickup` | 200 | game event | `blockparty.pickup` |
+| `blockparty.illegal` | A piece let go over the board where it doesn't fit: it slides back (blockRev 4 counts it) [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.illegal` | 300 | game event | `blockparty.illegal` |
+| `blockparty.undo` | Undo (blockRev 4): the last move given back [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.undo` | 200 | game event | `blockparty.undo` |
+| `blockparty.reset` | Reset (blockRev 4): every piece back to the tray [pattern.md (Tessellate (blockparty))] |  | 5–40 (per move) | recorded sound | `blockparty.reset` | 300 | fail sting | `blockparty.reset` |
 | `blockparty.solve` | All squares covered: rings leave the pegs, then a shine sweeps outwards [pattern.md (Tessellate (blockparty))] |  | 0–1 | recorded sound | `blockparty.solve` | 1100 | success sting | `blockparty.solve` |
 | `music.blockparty` | Tessellate round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_blockparty` |
 
@@ -1073,8 +1088,13 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pz_gravity_pull` | Topsy-Turvy: The board tilts [core.md] |  | 5–30 | recorded sound | `pz_gravity_pull` | 1100 | game event | `pz_gravity_pull` |
-| `gravity.lock` | A ball locks onto its target (not on the solving tilt) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.lock` | 460 | game event | `gravity.lock` |
-| `gravity.solve` | The solving tilt: the four balls light up on their targets one after another [pattern.md (Topsy-Turvy (gravity))] |  | 0–1 | recorded sound | `gravity.solve` | 1150 | success sting | `gravity.solve` |
+| `gravity.tilt` | A tilt that moves a ball: the balls' rolling rumble, looped for exactly as long as any ball moves (since the Pattern overhaul, 15 Nov 2026; arc_marble_roll.mp3 until its own file). A tilt that moves nothing is silent (a small lean only) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `arc_marble_roll` (shared) | 45 | game event | `gravity.tilt` |
+| `gravity.stop` | A ball comes to rest at the end of its roll (one each; since 15 Nov 2026, arc_marble_clink.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `arc_marble_clink` (shared) | 120 | game event | `gravity.stop` |
+| `gravity.lock` | A ball drops into its own hole, as it reaches it (not on the solving tilt's last board sound) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.lock` | 201 | game event | `gravity.lock` |
+| `gravity.combo` | Two or more balls drop home in one tilt, after their pips (since 15 Nov 2026, combo.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `combo` (shared) | 486 | game event | `gravity.combo` |
+| `gravity.boardClear` | A board cleared, short of the round's solve: the next board comes (since 15 Nov 2026, in place of the generic correct; ui.counterLock.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.boardClear` | 486 | game event | `gravity.boardClear` |
+| `gravity.outOfTilts` | The tilt that used the board's last one: a closing clunk (since 15 Nov 2026, silent before; checkout.thud.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.outOfTilts` | 606 | game event | `gravity.outOfTilts` |
+| `gravity.solve` | The solving tilt: the balls light up on their holes one after another [pattern.md (Topsy-Turvy (gravity))] |  | 0–1 | recorded sound | `gravity.solve` | 1150 | success sting | `gravity.solve` |
 | `music.gravity` | Topsy-Turvy round bed: music_pattern_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_3` (shared) | 60000 | music | `music_pattern_gravity` |
 
 ### Turntable
@@ -1938,7 +1958,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
 | `stage_complete` | effects | `stage_complete`, `junction.complete` | 160 |
 | `complete` | effects | `complete` | 200 |
-| `combo` | effects | `combo` | 90 |
+| `combo` | effects | `combo`, `pipes.combo`, `gravity.combo` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
 | `warning_tick` | effects | `warning_tick` | 120 |
 | `warning_tick_final` | effects | `warning_tick_final` | 250 |
@@ -1954,24 +1974,24 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
-| `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
+| `arc_retro_blip` | effects | `flow.nearMiss`, `laser.nearMiss`, `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
 | `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
 | `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
 | `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
-| `arc_fair_thud` | effects | `bullseye.thud` | 160 |
+| `arc_fair_thud` | effects | `iceslide.stop`, `bullseye.thud` | 160 |
 | `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `bintoss.basket` | 200 |
 | `arc_fair_sting` | effects | `bullseye.perfect`, `bintoss.perfect` | 300 |
-| `arc_marble_roll` | effects | `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
+| `arc_marble_roll` | effects | `gravity.tilt`, `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
 | `arc_siren` | effects | `swing.dragon`, `junction.siren` | 600 |
-| `arc_wood_knock` | effects | `balltrack.wrong`, `swing.rockLand`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
+| `arc_wood_knock` | effects | `unblock.blocked`, `iceslide.bump`, `balltrack.wrong`, `swing.rockLand`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
 | `arc_clank` | effects | `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
 | `arc_horn` | effects | `junction.horn` | 400 |
 | `arc_latch` | effects | `balltrack.switch`, `pinball.bankReset`, `tilt.gate` | 100 |
-| `arc_marble_clink` | effects | `balltrack.marbleHome`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
-| `arc_sea_pop` | effects | `bubble.pop`, `bullseye.balloonPop` | 80 |
+| `arc_marble_clink` | effects | `gravity.stop`, `balltrack.marbleHome`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
+| `arc_sea_pop` | effects | `flow.cut`, `bubble.pop`, `bullseye.balloonPop` | 80 |
 | `arc_sea_waves` | effects | `bubble.waves` | 600 |
-| `arc_sea_bubble` | effects | `bubble.load` | 120 |
+| `arc_sea_bubble` | effects | `flow.draw`, `pipes.bubble`, `bubble.load` | 120 |
 | `arc_leaf_collect` | effects | `arc_leaf_collect` | 840 |
 | `arc_rainbow` | effects | `inkbridge.draw` | 910 |
 | `arc_rope_cut` | effects | `snip.cut` | 230 |
@@ -2342,25 +2362,51 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `countup.countersTick` | effects | `countup.countersTick` | 1000 |
 | `countup.countersLock` | effects | `countup.countersLock` | 486 |
 | `countup.trayIn` | effects | `countup.trayIn` | 486 |
+| `flow.draw` | effects | `flow.draw` | 140 |
+| `flow.cut` | effects | `flow.cut` | 180 |
+| `flow.nearMiss` | effects | `flow.nearMiss` | 600 |
 | `flow.connect` | effects | `flow.connect` | 486 |
 | `flow.solve` | effects | `flow.solve` | 1000 |
 | `unblock.slide` | effects | `unblock.slide` | 528 |
+| `unblock.slideLong` | effects | `unblock.slideLong` | 528 |
+| `unblock.blocked` | effects | `unblock.blocked` | 90 |
+| `unblock.laneClear` | effects | `unblock.laneClear` | 300 |
 | `unblock.solve` | effects | `unblock.solve` | 2470 |
 | `push.home` | effects | `push.home` | 486 |
 | `push.solve` | effects | `push.solve` | 1147 |
+| `push.goldOff` | effects | `push.goldOff` | 528 |
+| `push.stuck` | effects | `push.stuck` | 480 |
 | `tiles.solve` | effects | `tiles.solve` | 1000 |
 | `laser.bomb` | effects | `laser.bomb` | 486 |
+| `laser.nearMiss` | effects | `laser.nearMiss` | 600 |
+| `laser.outOfShots` | effects | `laser.outOfShots` | 528 |
 | `laser.solve` | effects | `laser.solve` | 1080 |
 | `pipes.flow` | effects | `pipes.flow` | 486 |
 | `pipes.solve` | effects | `pipes.solve` | 1200 |
+| `pipes.combo` | effects | `pipes.combo` | 486 |
+| `pipes.drain` | effects | `pipes.drain` | 486 |
+| `pipes.bubble` | effects | `pipes.bubble` | 486 |
 | `iceslide.portal` | effects | `iceslide.portal` | 486 |
 | `iceslide.crack` | effects | `iceslide.crack` | 486 |
 | `iceslide.fall` | effects | `iceslide.fall` | 486 |
 | `iceslide.solve` | effects | `iceslide.solve` | 1200 |
+| `iceslide.slideLong` | effects | `iceslide.slideLong` | 528 |
+| `iceslide.stop` | effects | `iceslide.stop` | 160 |
+| `iceslide.bump` | effects | `iceslide.bump` | 90 |
+| `iceslide.nearExit` | effects | `iceslide.nearExit` | 300 |
 | `blockparty.place` | effects | `blockparty.place` | 528 |
 | `blockparty.turn` | effects | `blockparty.turn` | 528 |
 | `blockparty.flip` | effects | `blockparty.flip` | 528 |
 | `blockparty.solve` | effects | `blockparty.solve` | 1000 |
+| `blockparty.pickup` | effects | `blockparty.pickup` | 334 |
+| `blockparty.illegal` | effects | `blockparty.illegal` | 606 |
+| `blockparty.undo` | effects | `blockparty.undo` | 334 |
+| `blockparty.reset` | effects | `blockparty.reset` | 528 |
+| `gravity.tilt` | effects | `gravity.tilt` | 3000 |
+| `gravity.stop` | effects | `gravity.stop` | 120 |
+| `gravity.combo` | effects | `gravity.combo` | 486 |
+| `gravity.boardClear` | effects | `gravity.boardClear` | 486 |
+| `gravity.outOfTilts` | effects | `gravity.outOfTilts` | 606 |
 | `gravity.lock` | effects | `gravity.lock` | 201 |
 | `gravity.solve` | effects | `gravity.solve` | 1080 |
 | `rings.solve` | effects | `rings.solve` | 1080 |
