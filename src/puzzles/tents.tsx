@@ -8,12 +8,14 @@ import {
   lineCounts,
   tentsHeightOf,
   tentsLayoutValid,
+  orthNeighbours,
   tentsTouch,
 } from "@/lib/duel/tents";
 import { TENTS_TIME_MS, type TentsPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { logicArt, logicArtVars } from "./logicArt";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-logic.css";
@@ -71,6 +73,8 @@ function TuftIcon() {
 
 type Mark = 0 | 1 | 2;
 
+const TENTS_ART = logicArtVars(["tents-turf", "tents-sign", "tents-sign-met"]);
+
 export function Board({
   size,
   height = size,
@@ -85,6 +89,8 @@ export function Board({
   gap = 2,
   pitched,
   dimDone = true,
+  lit = false,
+  wrongTents,
 }: {
   size: number;
   /** Rows (the depth revision's 8 × 9 field); `size` when square. */
@@ -100,16 +106,24 @@ export function Board({
   gap?: number;
   /** The cell where a tent was just pitched (it pops up). */
   pitched?: number | null;
-  /** Live play dims a sign once its line is complete; the reveal keeps every sign at full contrast. */
+  /** Live play turns a sign gold once its line is complete; the reveal keeps every sign wooden. */
   dimDone?: boolean;
+  /** The solve: lanterns light in every tent. */
+  lit?: boolean;
+  /** Reveal: tents that are not in the solution (a red ring). */
+  wrongTents?: ReadonlySet<number>;
 }) {
   const treeSet = new Set(trees);
   const tents = marks.flatMap((mark, cell) => (mark === 1 ? [cell] : []));
   const { rows, cols } = lineCounts(tents, size, height);
+  // The Logic overhaul (15 Nov 2026): a tent with no tree beside it gets a red ring (live play only).
+  const lonely = new Set(onTap ? tents.filter((cell) => !orthNeighbours(cell, size, height).some((n) => treeSet.has(n))) : []);
   return (
     <div
-      className="logic-camp grid w-full"
+      className="logic-camp logic2-camp grid w-full"
+      data-logic2="tents"
       style={{
+        ...TENTS_ART,
         gridTemplateColumns: `${countSize}px repeat(${size}, minmax(0, 1fr))`,
         gap,
       }}
@@ -118,9 +132,8 @@ export function Board({
       {colCounts.map((count, c) => (
         <span
           key={`c${c}`}
-          className={`camp-sign logic-sign mx-auto mb-px w-[78%] text-center font-mono text-sm font-bold ${
-            dimDone && count >= 0 && cols[c] === count ? "opacity-40" : ""
-          }`}
+          className="camp-sign logic-sign logic2-sign mx-auto mb-px w-[86%] text-center"
+          data-met={dimDone && count >= 0 && cols[c] === count ? "" : undefined}
         >
           {count < 0 ? "?" : count}
         </span>
@@ -128,9 +141,8 @@ export function Board({
       {Array.from({ length: height }, (_, r) => [
         <span
           key={`r${r}`}
-          className={`camp-sign logic-sign my-[12%] flex items-center justify-center font-mono text-sm font-bold ${
-            dimDone && (rowCounts[r] ?? -1) >= 0 && rows[r] === rowCounts[r] ? "opacity-40" : ""
-          }`}
+          className="camp-sign logic-sign logic2-sign my-[10%] flex items-center justify-center"
+          data-met={dimDone && (rowCounts[r] ?? -1) >= 0 && rows[r] === rowCounts[r] ? "" : undefined}
         >
           {(rowCounts[r] ?? -1) < 0 ? "?" : rowCounts[r]}
         </span>,
@@ -146,15 +158,17 @@ export function Board({
               disabled={!onTap || tree}
               onClick={onTap && !tree ? () => onTap(cell) : undefined}
               style={{ "--logic-i": tentIndex, "--logic-grass": (cell * 37) % 7 } as CSSProperties}
-              className={`flex aspect-square items-center justify-center rounded-md border border-border camp-cell logic-camp-cell ${flash === cell ? "animate-shake" : ""} ${pitched === cell && mark === 1 ? "logic-tent-pitch" : ""}`}
-              aria-label={tree ? "Tree" : mark === 1 ? "Tent" : mark === 2 ? "Grass" : "Empty"}
+              className={`flex aspect-square items-center justify-center rounded-md camp-cell logic-camp-cell logic2-cell ${flash === cell ? "animate-shake" : ""} ${pitched === cell && mark === 1 ? "logic-tent-pitch" : ""}`}
+              data-lonely={lonely.has(cell) ? "" : undefined}
+              data-wrong={wrongTents?.has(cell) || (tentColour && mark === 1 && tentColour(cell) === "var(--destructive)") ? "" : undefined}
+              aria-label={tree ? "Tree" : mark === 1 ? (lonely.has(cell) ? "Tent with no tree beside it" : "Tent") : mark === 2 ? "Grass" : "Empty"}
             >
               {tree ? (
-                <TreeIcon cell={cell} />
+                <img className="logic2-piece logic2-tree" src={logicArt(((cell * 7 + (cell >> 3)) % 3) !== 0 ? "tents-tree-a" : "tents-tree-b")} alt="" draggable={false} />
               ) : mark === 1 ? (
-                <TentIcon colour={tentColour?.(cell)} />
+                <img className="logic-tent logic2-piece logic2-tent" src={logicArt(lit ? "tents-tent-lit" : "tents-tent")} alt="" draggable={false} />
               ) : mark === 2 ? (
-                <TuftIcon />
+                <img className="logic2-piece logic2-tuft" src={logicArt("tents-tuft")} alt="" draggable={false} />
               ) : null}
             </button>
           );
@@ -212,6 +226,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   }, [encoded, locked]);
 
   if (!data) return null;
+  const treeCells = new Set(data.trees);
+  const lonelyTents = tents.filter((cell) => !orthNeighbours(cell, size, height).some((n) => treeCells.has(n))).length;
 
   const tap = (cell: number) => {
     if (locked || submitted.current) return;
@@ -245,12 +261,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             onTap={locked ? undefined : tap}
             flash={flash}
             pitched={pitched}
-            countSize={22}
+            countSize={26}
             gap={1}
+            lit={solving}
           />
         </div>
+        {lonelyTents > 0 ? (
+          <p className="logic2-warn" role="status" data-tents-lonely={lonelyTents}>
+            {lonelyTents === 1 ? "A tent has no tree beside it" : `${lonelyTents} tents have no tree beside them`}
+          </p>
+        ) : null}
         {inFrame ? (
-          <HudPills testId="tents" className="logic-hud-pills" items={[{ id: "grass", label: "Grass marked", value: marks.filter((mark) => mark === 2).length }]} />
+          <HudPills testId="tents" className="logic-hud-pills" items={[{ id: "tents", label: "Tents", value: `${tents.length} / ${data.trees.length}` }]} />
         ) : null}
       </div>
     </div>

@@ -342,16 +342,11 @@ async function newRun(
     }
     return route.continue();
   });
+  // The Games pages (14 Nov 2026) replaced the Practice list's Puzzles | Arcade switch: open the catalogue (so the
+  // seed can be stored), then the game's own full intro through /practice?game=<id>.
   await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
-  // The Practice tab's Puzzles | Arcade switch (30 Oct 2026): an arcade game's button is on the Arcade side.
-  const { puzzleDef } = await import("../../src/lib/duel/registry");
-  const side = page.locator(`[data-practice-side='${puzzleDef(game).category === "arcade" ? "arcade" : "puzzles"}']`);
-  await side.waitFor({ timeout: 90_000 });
+  await page.locator("[data-practice-game]").first().waitFor({ timeout: 90_000 });
   await page.waitForTimeout(1200); // hydration
-  await side.click();
-  const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
-  await button.waitFor({ timeout: 90_000 });
-  await page.waitForTimeout(1500); // hydration
   if (opts.seed) {
     await page.evaluate(async (values) => {
       const seed = (await import(/* @vite-ignore */ "/scripts/shots/seed.tsx")) as {
@@ -360,7 +355,7 @@ async function newRun(
       seed.seedStageState(["practice-1", "practice-2", "practice-3"], values);
     }, opts.seed);
   }
-  await button.click();
+  await page.goto(`${origin}/practice?game=${game}`, { waitUntil: "domcontentloaded" });
   await page
     .getByRole("button", { name: /^Ready/ })
     .first()

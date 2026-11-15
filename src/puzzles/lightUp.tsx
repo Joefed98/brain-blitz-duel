@@ -19,10 +19,16 @@ import { LIGHTUP_TIME_MS, type LightUpPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { logicArt, logicArtVars } from "./logicArt";
+
+const LIGHTUP_ART = logicArtVars(["logic-cell", "lightup-cell-lit", "lightup-wall"]);
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-logic.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+
+/** The live round names the squares still dark once this few are left (the Logic overhaul, 15 Nov 2026). */
+export const LIGHTUP_DARK_HINT = 6;
 
 /** 0 empty, 1 bulb, 2 dot (a note: no bulb here). */
 type Mark = 0 | 1 | 2;
@@ -91,8 +97,9 @@ export function Board({
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
-      className={`logic-lamps grid w-full select-none ${small ? "logic-lamps-small" : ""}`}
-      style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
+      className={`logic-lamps logic2-lamps grid w-full select-none ${small ? "logic-lamps-small" : ""}`}
+      data-logic2="lightup"
+      style={{ ...LIGHTUP_ART, ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
       {Array.from({ length: size * height }, (_, cell) => {
         const wi = wallIndex.get(cell);
@@ -100,17 +107,21 @@ export function Board({
           const n = board.wallNumbers[wi] ?? -1;
           const touching = orth(cell, size, height).filter((x) => bulbSet.has(x)).length;
           const over = n >= 0 && touching > n;
-          const done = n >= 0 && touching === n;
+          // The Logic overhaul (15 Nov 2026): a 0 is ticked only once every square beside it is lit or dotted (it
+          // opened ticked before, nothing yet beside it); any other number once its lamps are all there.
+          const done = n >= 0 && touching === n && (n > 0 || orth(cell, size, height).every((x) => wallIndex.has(x) || status.lit.has(x) || marks[x] === 2));
           return (
             <div
               key={cell}
-              className={`lightup-wall logic-wall relative flex aspect-square items-center justify-center rounded-sm ${over ? "bg-destructive" : ""}`}
+              className="logic2-wall relative flex aspect-square items-center justify-center rounded-sm"
+              data-over={over ? "" : undefined}
+              data-met={done ? "" : undefined}
             >
               {n >= 0 && (
-                <span className={`font-mono font-bold ${over ? "text-destructive-foreground" : "text-foreground"} ${small ? "text-xs" : "text-lg"}`}>{n}</span>
+                <span className={`logic2-num ${small ? "text-xs" : "logic2-wall-num"}`}>{n}</span>
               )}
               {done && !small && (
-                <span className="absolute right-0.5 top-0 text-xs font-bold leading-none text-primary">✓</span>
+                <span className="logic2-tick absolute right-0.5 top-0 leading-none" aria-hidden="true">✓</span>
               )}
             </div>
           );
@@ -126,9 +137,8 @@ export function Board({
           <div
             key={cell}
             style={{ "--logic-diag": r + c } as CSSProperties}
-            className={`lightup-cell logic-lamp-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm border ${
-              lit ? "lightup-cell-lit border-transparent" : "border-dotted border-muted-foreground/50 bg-card"
-            }`}
+            className="lightup-cell logic2-lamp-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm"
+            data-lit={lit ? "" : undefined}
           >
             {reach >= 0 && (
               <span key={spread?.key} aria-hidden="true" className="logic-light-in" style={{ animationDelay: `${reach * 40}ms` }} />
@@ -146,9 +156,12 @@ export function Board({
               />
             )}
             {mark === 1 ? (
-              <span
-                className={`logic-lamp relative block h-1/2 w-1/2 rounded-full ${bad ? "animate-pulse bg-destructive" : "bg-primary"}`}
-                style={{ boxShadow: bad ? undefined : "0 0 10px var(--primary)" }}
+              <img
+                className={`logic-lamp logic2-piece logic2-bulb relative ${bad ? "animate-pulse" : ""}`}
+                data-clash={bad ? "" : undefined}
+                src={logicArt("lightup-lamp")}
+                alt=""
+                draggable={false}
               />
             ) : mark === 2 ? (
               <span className="relative h-1.5 w-1.5 rounded-full bg-muted-foreground" />
@@ -239,6 +252,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const inFrame = useFrameProgress(liveStatus?.lit.size ?? 0, liveStatus?.whites ?? 0, "lit");
   if (!data || !liveStatus) return null;
   const status = liveStatus;
+  const darkLeft = status.whites - status.lit.size;
 
   return (
     <div data-logic-stage="lightup" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
@@ -255,6 +269,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         >
           <Board board={data} marks={marks} pointer={pointer} spread={spread} />
         </div>
+        {darkLeft > 0 && darkLeft <= LIGHTUP_DARK_HINT && bulbs.length > 0 ? (
+          <p className="logic2-hint" role="status" data-lightup-dark={darkLeft}>
+            {darkLeft === 1 ? "1 square dark" : `${darkLeft} squares dark`}
+          </p>
+        ) : null}
         {inFrame ? (
           <HudPills
             testId="lightup"

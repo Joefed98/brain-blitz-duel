@@ -48,6 +48,8 @@ export const DEAL_PINS = {
   prePartialCredit: { texts: true },
   /** wordNov7.ts: Interlock, Slider and Lookout before the Word scoring fix (7 Nov 2026). */
   preWordNov7: { texts: true },
+  /** logicOverhaul2.ts: Trail depthRev 2 and Regions fillominoRev 1, before the Logic overhaul (15 Nov 2026). */
+  preLogic2: { texts: true },
   /** arcade.server.ts: Free Cell 4, Summit 2, Thirteen 1, before the card games' share fix. */
   cardsPreShare: { texts: false },
   /** arcade.server.ts: Rainbow Bridge inkRev 12. */

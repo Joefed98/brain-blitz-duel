@@ -93,7 +93,7 @@ export function useSolveFlourish(
     if (type === "lightsout") selector = ".lightsout-bulb";
     if (type === "unblock") selector = '[aria-label="Gold block"]';
     if (type === "safe") selector = ".solve-safe-door";
-    if (type === "lightup") selector = ".lightup-cell-lit";
+    if (type === "lightup") selector = ".lightup-cell-lit, [data-logic2=\"lightup\"] [data-lit]";
     if (type === "tower") selector = ".hanoi-disc";
     const targets = Array.from(root.querySelectorAll(selector)).slice(0, 144);
     if (type === "tiles")

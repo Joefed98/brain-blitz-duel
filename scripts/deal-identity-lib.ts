@@ -101,8 +101,11 @@ export function digest(value: unknown): string {
 export function dealDigest(type: PuzzleType, seed: number, banked: boolean, options?: DealOptions): string {
   // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 (13 Nov 2026) is a deliberate deal change after main's recording, so every deal here
   // pins its check-only minesPreLogic switch: each game still deals exactly as main did.
-  const opts: DealOptions | undefined = options ? { ...options, pins: [...(options.pins ?? []), "minesPreLogic"] } : undefined;
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): Trail depthRev 3 and Regions
+  // fillominoRev 2 are deliberate deal changes after main's recording, so every deal here also pins preLogic2.
+  const opts: DealOptions | undefined = options ? { ...options, pins: [...(options.pins ?? []), "minesPreLogic", "preLogic2"] } : undefined;
   const was = opts ? false : setDealPin("minesPreLogic", true);
+  const wasLogic2 = opts ? false : setDealPin("preLogic2", true);
   try {
     return digest(
       withSeededRandom(seed, () =>
@@ -112,7 +115,10 @@ export function dealDigest(type: PuzzleType, seed: number, banked: boolean, opti
   } catch (error) {
     return `ERR ${String((error as Error)?.message ?? error).split("\n")[0]}`;
   } finally {
-    if (!opts) setDealPin("minesPreLogic", was);
+    if (!opts) {
+      setDealPin("minesPreLogic", was);
+      setDealPin("preLogic2", wasLogic2);
+    }
   }
 }
 
@@ -146,6 +152,16 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
  * (its seed as the bank seed, the tie-break stamp) on a stream of its own.
  */
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): rooms pin preLogic2 too.
+  const wasLogic2 = setDealPin("preLogic2", true);
+  try {
+    return roomDigestsPinned(seeds);
+  } finally {
+    setDealPin("preLogic2", wasLogic2);
+  }
+}
+
+function roomDigestsPinned(seeds: readonly number[]): Record<string, string> {
   const rooms: Record<string, string> = {};
   for (const seed of seeds) {
     try {

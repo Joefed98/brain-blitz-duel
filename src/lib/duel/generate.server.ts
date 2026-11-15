@@ -16,6 +16,7 @@ import { dealPuzzleNotes } from "./puzzleNotes";
 import { dealParMoves } from "./parMoves";
 import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps } from "./operatorGaps.server";
+import { dealLogic2 } from "./logicOverhaul2";
 import { dealWordNov7 } from "./wordNov7";
 import { withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
@@ -165,6 +166,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "partialCredit", deal: dealPartialCredit },
   // The Word scoring fix (7 Nov 2026, wordNov7.ts): Interlock, Slider and Lookout one stamp above (Slider above the notes).
   { name: "wordNov7", deal: dealWordNov7 },
+  // The Logic overhaul, session 2 (15 Nov 2026, logicOverhaul2.ts): Trail's per-undo cost and Regions' stroke rule.
+  { name: "logic2", deal: dealLogic2 },
 ];
 
 /**

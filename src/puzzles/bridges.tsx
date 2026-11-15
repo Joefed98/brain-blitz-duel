@@ -19,6 +19,7 @@ import { playCorrect } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { logicArt } from "./logicArt";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -67,9 +68,12 @@ export function BridgesBoard({
     <svg
       ref={boardRef}
       viewBox={`0 0 ${span} ${span}`}
-      className={`bridges-board block h-full w-full select-none ${small ? "bridges-board-small" : ""}`}
+      className={`bridges-board logic2-bridges block h-full w-full select-none ${small ? "bridges-board-small" : ""}`}
+      data-logic2="bridges"
       {...handlers}
     >
+      {/* The Logic overhaul (15 Nov 2026): dark navy slate (a Blender render) under the board. */}
+      <image href={logicArt("bridges-slate")} x={0} y={0} width={span} height={span} preserveAspectRatio="none" />
       <g className="bridges-dots">
         {Array.from({ length: size * size }, (_, cell) => {
           const [x, y] = centre(size, cell);
@@ -89,6 +93,13 @@ export function BridgesBoard({
         const [x, y] = centre(size, isl.cell);
         return (
           <g key={isl.cell} className={`bridges-island bridges-island-${tone(i)}`} style={{ "--logic-i": i } as CSSProperties}>
+            <image
+              href={logicArt(tone(i) === "done" ? "bridges-coin-met" : "bridges-coin")}
+              x={x - RADIUS - 4}
+              y={y - RADIUS - 4}
+              width={2 * RADIUS + 8}
+              height={2 * RADIUS + 8}
+            />
             <circle cx={x} cy={y} r={RADIUS} />
             <text x={x} y={y} dy="0.35em" textAnchor="middle">
               {isl.n}
@@ -138,6 +149,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const submitted = useRef(false);
   const svg = useRef<SVGSVGElement | null>(null);
   const drag = useRef<Drag | null>(null);
+  const bridgeTap = useRef<{ bridge: number; x: number; y: number } | null>(null);
   const [preview, setPreview] = useState<number | null>(null);
   /** Boards before each change (a built or removed bridge, a reset), newest last; device memory only. */
   const [history, setHistory] = useState<number[][]>([]);
@@ -230,6 +242,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     setCounts(current.map((v, j) => (j === i ? next : v)));
   };
 
+  /** The built bridge nearest a point (board units), within a third of a cell of its line; null for none. */
+  const bridgeAt = (x: number, y: number): number | null => {
+    let best: number | null = null;
+    let bestD = CELL * 0.3;
+    pairs.forEach((p, i) => {
+      if ((current[i] ?? 0) === 0) return;
+      const [x1, y1] = centre(size, islands[p.a]!.cell);
+      const [x2, y2] = centre(size, islands[p.b]!.cell);
+      const inside = p.horizontal ? x > Math.min(x1, x2) + RADIUS && x < Math.max(x1, x2) - RADIUS : y > Math.min(y1, y2) + RADIUS && y < Math.max(y1, y2) - RADIUS;
+      if (!inside) return;
+      const d = p.horizontal ? Math.abs(y - y1) : Math.abs(x - x1);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    return best;
+  };
+
+  /** The Logic overhaul (15 Nov 2026): a tap on a bridge cycles it, one → two → none (a double can't cross anything new). */
+  const cycleBridge = (i: number) => {
+    if (!active || submitted.current) return;
+    const next = ((current[i] ?? 0) + 1) % 3;
+    soundCue(next === 0 ? "bridges.remove" : "bridges.build");
+    setHistory((h) => [...h, current]);
+    setCounts(current.map((v, j) => (j === i ? next : v)));
+  };
+
   const built = current.some((v) => v > 0);
   const canUndo = active && !submitted.current && history.length > 0;
   const canReset = active && !submitted.current && built;
@@ -264,7 +304,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           const at = toBoard(event.clientX, event.clientY);
           if (!at) return;
           const island = islandAt(at[0], at[1]);
-          if (island === null) return;
+          if (island === null) {
+            const bridge = bridgeAt(at[0], at[1]);
+            if (bridge !== null) {
+              event.preventDefault();
+              bridgeTap.current = { bridge, x: at[0], y: at[1] };
+            }
+            return;
+          }
           event.preventDefault();
           try {
             event.currentTarget.setPointerCapture(event.pointerId);
@@ -275,17 +322,27 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           drag.current = { island, x: cx, y: cy, pair: null, reached: false };
         },
         onPointerMove: (event) => {
+          const tap = bridgeTap.current;
+          if (tap) {
+            const at = toBoard(event.clientX, event.clientY);
+            if (at && Math.hypot(at[0] - tap.x, at[1] - tap.y) > CELL * 0.25) bridgeTap.current = null;
+            return;
+          }
           if (!drag.current) return;
           const at = toBoard(event.clientX, event.clientY);
           if (at) track(at[0], at[1]);
         },
         onPointerUp: (event) => {
+          const tap = bridgeTap.current;
+          bridgeTap.current = null;
+          if (tap) return cycleBridge(tap.bridge);
           if (!drag.current) return;
           const at = toBoard(event.clientX, event.clientY);
           if (at) track(at[0], at[1]);
           commit();
         },
         onPointerCancel: () => {
+          bridgeTap.current = null;
           drag.current = null;
           setPreview(null);
         },
@@ -316,7 +373,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           ]}
         />
       </div>
-      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-3">
+      <div data-game-controls="actions" data-logic2-actions="" className="flex shrink-0 gap-3 px-3">
         <Button variant="outline"
           type="button"
           disabled={!canUndo}

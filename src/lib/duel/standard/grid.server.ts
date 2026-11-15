@@ -9,6 +9,7 @@
 import type { PuzzleData, PuzzleType } from "../types";
 import { fencesProgress, fencesWrongKeys } from "../fences";
 import { fillominoProgress, fillominoWrongKeys } from "../fillomino";
+import { fillominoStrokes } from "../logicOverhaul2";
 import { bridgesProgress, bridgesWrongKeys } from "../bridges";
 import { kakuroProgress, kakuroWrongKeys } from "../kakuro";
 import { cleanPoints, speedPoints } from "./shape";
@@ -55,6 +56,27 @@ function everWrong(game: GridGame, input: StandardInput): number | null {
   return seen.size;
 }
 
+/**
+ * Regions fillominoRev 2 (the Logic overhaul, 15 Nov 2026): the drafts that brought in a wrong item not seen before.
+ * The stage reports one draft a stroke (or tap), so a stroke over several wrong squares is one mistake.
+ */
+function wrongChanges(game: GridGame, input: StandardInput): number | null {
+  if (!input.drafts) return null;
+  const seen = new Set<string>();
+  let changes = 0;
+  for (const d of input.drafts) {
+    let fresh = false;
+    for (const k of game.wrongKeys(input.puzzle, d.draft)) {
+      if (!seen.has(k)) {
+        seen.add(k);
+        fresh = true;
+      }
+    }
+    if (fresh) changes++;
+  }
+  return changes;
+}
+
 function gridGame(type: GridStandardType): StandardGame {
   const game = GAMES[type];
   const rule = GRID_STANDARD[type];
@@ -65,7 +87,7 @@ function gridGame(type: GridStandardType): StandardGame {
     },
     grade(input, ctx) {
       if (input.graded.isCorrect) {
-        const mistakes = everWrong(game, input);
+        const mistakes = fillominoStrokes(input.puzzle) ? wrongChanges(game, input) : everWrong(game, input);
         const speed = speedPoints(rule.speed, input.msLeft, input.limitMs, rule.fullByS * 1000);
         const bonus = mistakes === null ? 0 : cleanPoints(rule.bonus, rule.per, mistakes);
         return { finished: true, speed, bonus, measure: "clean", facts: { mistakes } };

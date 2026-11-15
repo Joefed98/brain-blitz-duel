@@ -20,6 +20,13 @@ import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { logicArtVars } from "./logicArt";
+import { fillominoStrokes } from "@/lib/duel/logicOverhaul2";
+
+const FILLOMINO_ART = logicArtVars([
+  "fillomino-tile-0", "fillomino-tile-1", "fillomino-tile-2", "fillomino-tile-3", "fillomino-tile-4", "fillomino-tile-5",
+  "fillomino-tile-6", "fillomino-tile-7", "fillomino-tile-8", "fillomino-tile-9", "fillomino-tile-clash",
+]);
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-logic.css";
@@ -114,8 +121,10 @@ export function FillominoBoard({
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
       data-fillomino-board=""
-      className="fillomino-board logic-glass grid h-full w-full select-none overflow-hidden"
+      className="fillomino-board logic-glass logic2-fillomino grid h-full w-full select-none overflow-hidden"
+      data-logic2="fillomino"
       style={{
+        ...FILLOMINO_ART,
         ...(pointer?.handlers.style ?? {}),
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,
@@ -138,6 +147,7 @@ export function FillominoBoard({
             data-edge-r={thickR ? "" : undefined}
             data-edge-b={thickB ? "" : undefined}
             data-shade={shade && shade[cell]! >= 0 ? shade[cell] : undefined}
+            data-size={shade && shade[cell]! >= 0 ? v : undefined}
             className={`fillomino-cell flex min-h-0 min-w-0 items-center justify-center ${shade && shade[cell]! >= 0 ? "fillomino-done" : ""} ${over.has(cell) || tone === "wrong" ? "fillomino-over" : ""} ${cell === selected ? "fillomino-selected" : ""}`}
             style={{
               borderRightWidth: right === null ? 0 : thickR ? 3 : 1,
@@ -147,8 +157,8 @@ export function FillominoBoard({
           >
             {v ? (
               <span
-                className={`fillomino-num font-display font-bold leading-none ${tone === "given" ? "fillomino-given" : "fillomino-entry"}`}
-                style={{ fontSize: small ? `max(9px, calc(100cqw / ${size} * 0.5))` : `calc(100cqw / ${size} * 0.52)` }}
+                className={`fillomino-num logic2-num leading-none ${tone === "given" ? "fillomino-given" : "fillomino-entry"}`}
+                style={{ fontSize: small ? `max(9px, calc(100cqw / ${size} * 0.5))` : `calc(100cqw / ${size} * 0.58)` }}
               >
                 {v}
               </span>
@@ -237,9 +247,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const inFrame = useFrameProgress(filled, blanks, "filled");
   const doneCount = fillominoComplete(size, values).size;
 
+  // fillominoRev 2 (the Logic overhaul, 15 Nov 2026): the draft is reported once a stroke ends, so one stroke over
+  // wrong squares is one mistake; older stamps report every square as before.
+  const strokes = fillominoStrokes(data);
   useEffect(() => {
+    if (strokes && stroke.current) return;
     onDraftAnswer?.(encoded);
-  }, [encoded, onDraftAnswer]);
+  }, [encoded, onDraftAnswer, strokes]);
 
   useEffect(() => {
     if (!data || locked || submitted.current || !solved) return;
@@ -279,7 +293,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const end = () => {
     const s = stroke.current;
     stroke.current = null;
-    if (s && s.before.some((v, c) => v !== (live.current[c] ?? 0))) setHistory((h) => [...h, s.before]);
+    if (s && s.before.some((v, c) => v !== (live.current[c] ?? 0))) {
+      setHistory((h) => [...h, s.before]);
+      if (strokes) onDraftAnswer?.(encodeFillomino(full(live.current)));
+    }
   };
 
   const pointer = useGridPointer({
@@ -393,7 +410,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           <EraserIcon />
         </button>
       </div>
-      <div data-game-controls="actions" className="fillomino-actions flex shrink-0 gap-3">
+      <div data-game-controls="actions" data-logic2-actions="" className="fillomino-actions flex shrink-0 gap-3">
         <Button
           variant="outline"
           type="button"

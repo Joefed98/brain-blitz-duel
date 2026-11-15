@@ -25,6 +25,7 @@ import { FENCES_SIZE, FENCES_TIME_MS, type FencesPuzzleData } from "@/lib/duel/t
 import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { logicArt } from "./logicArt";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -105,13 +106,16 @@ export function FencesBoard({
     <svg
       ref={svgRef}
       viewBox={`0 0 ${vb} ${vb}`}
-      className={`fences-board block h-full w-full select-none ${small ? "fences-small" : ""}`}
+      className={`fences-board logic2-fences block h-full w-full select-none ${small ? "fences-small" : ""}`}
+      data-logic2="fences"
       data-fences-solved={solved ? "" : undefined}
       style={handlers ? { touchAction: "none", overscrollBehavior: "none" } : undefined}
       {...(handlers ?? {})}
       role="img"
       aria-label="Loopline board"
     >
+      {/* The Logic overhaul (15 Nov 2026): a black slate board (a Blender render) under everything. */}
+      <image href={logicArt("fences-slate")} x={0} y={0} width={vb} height={vb} preserveAspectRatio="none" className="fences-slate" />
       {/* Cell wells. */}
       {Array.from({ length: size * size }, (_, cell) => (
         <rect
@@ -161,7 +165,8 @@ export function FencesBoard({
       {/* Dots. */}
       {Array.from({ length: dots }, (_, d) => {
         const [x, y] = dotXY(size, d);
-        return <circle key={`d${d}`} className="fences-dot" cx={x} cy={y} r={small ? 8 : 7} />;
+        const r = small ? 12 : 11;
+        return <image key={`d${d}`} className="fences-dot logic2-peg" href={logicArt("fences-peg")} x={x - r} y={y - r} width={2 * r} height={2 * r} />;
       })}
       {/* Numbers. */}
       {clues.map((n, cell) => {
@@ -177,7 +182,7 @@ export function FencesBoard({
             y={PAD + Math.floor(cell / size) * U + U / 2}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={small ? 58 : 50}
+            fontSize={small ? 66 : 60}
           >
             {n}
           </text>
@@ -406,7 +411,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         </div>
         <LiveSummary inArena className="logic-status" items={[<SummaryItem key="lines" label="Lines" value={lineCount} />]} />
       </div>
-      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-3">
+      <div data-game-controls="actions" data-logic2-actions="" className="flex shrink-0 gap-3 px-3">
         <Button variant="outline"
           type="button"
           disabled={!canUndo}

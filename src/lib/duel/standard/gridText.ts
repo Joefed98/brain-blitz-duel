@@ -3,6 +3,7 @@
  * intro's SCORE line, from the numbers the server grades with, written with the game's maximum (roundMax.ts). The intro
  * stays within two phone lines with no scoring terms (intro-score-text-check). Shared and pure.
  */
+import { preLogic2Pinned } from "../logicOverhaul2";
 import { roundMaxFor } from "../roundMax";
 import { GRID_STANDARD, type GridStandardType } from "./gridRules";
 import { puzzleScoreList } from "../scoreList";
@@ -25,6 +26,12 @@ const MISTAKE: Record<GridStandardType, string> = {
   kakuro: "no wrong digit ever entered (erased ones too)",
 };
 
+/** Regions fillominoRev 2 (the Logic overhaul, 15 Nov 2026): one stroke over wrong squares is one mistake. */
+function mistakeText(type: GridStandardType): string {
+  if (type === "fillomino" && !preLogic2Pinned()) return "no wrong number ever entered (one stroke or tap counts once, erased ones too)";
+  return MISTAKE[type];
+}
+
 const FINISH: Record<GridStandardType, string> = {
   fences: "draw the whole loop",
   fillomino: "fill every region correctly",
@@ -39,7 +46,7 @@ export function gridStandardHelp(type: GridStandardType): string {
   return puzzleScoreList({
     finish: FINISH[type],
     speed: { max: r.speed, fullByS: r.fullByS },
-    bonuses: [{ label: word, how: `${MISTAKE[type]}, ${fmt(r.per)} less for each`, max: r.bonus }],
+    bonuses: [{ label: word, how: `${mistakeText(type)}, ${fmt(r.per)} less for each`, max: r.bonus }],
     unfinished: UNFINISHED[type],
     total: roundMaxFor(type),
   });

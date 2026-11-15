@@ -74,7 +74,8 @@ tasks.push({
 // 2. Explicit options deal exactly what the old pins did.
 // Changed with Joe's approval, 13 Nov 2026: minesPreLogic is newer than main's recording and every deal here already
 // pins it (deal-identity-lib.ts dealDigest), so it has no recorded variant of its own.
-const optionNames = Object.keys(OPTIONS_FOR).filter((name) => name !== "minesPreLogic");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): preLogic2 likewise.
+const optionNames = Object.keys(OPTIONS_FOR).filter((name) => name !== "minesPreLogic" && name !== "preLogic2");
 for (let half = 0; half < 2; half++) {
   tasks.push({
     name: `options ${half + 1}/2`,
@@ -109,10 +110,11 @@ tasks.push({
     }
     ok(activeDealPins().length === 0, "nothing left pinned after a throw");
     ok(withDealOptions(undefined, () => 7) === 7 && withDealOptions({}, () => 8) === 8, "no options run as they are");
-    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7", "the layers in their order");
+    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 logic2", "the layers in their order");
     const names = new Set<DealPin>(DEAL_PIN_NAMES);
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesPreLogic is the 24th era switch.
-    ok(names.size === 24, `24 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): preLogic2 is the 25th.
+    ok(names.size === 25, `25 era switches (${names.size})`);
   },
 });
 

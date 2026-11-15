@@ -16,6 +16,9 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { useGoalProgress } from "@/components/duel/GameFrame";
 import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
 import "@/polish-layout/batch-w-trail.css";
+import { logicArtVars } from "./logicArt";
+
+const TRAIL_ART = logicArtVars(["trail-cell", "trail-given", "trail-stone"]);
 
 const NO_TOUCH: CSSProperties = {
   touchAction: "none",
@@ -85,6 +88,7 @@ export function Grid({
   gap = GAP,
   glow = false,
   animate = true,
+  cellH = cell,
 }: {
   size: number;
   givens: readonly (number | null)[];
@@ -98,39 +102,44 @@ export function Grid({
   /** Completion: a glowing line draws the whole path from 1 to 36. */
   glow?: boolean;
   animate?: boolean;
+  /** The Logic overhaul (15 Nov 2026): cells may be taller than wide, so the board fills the phone's height. */
+  cellH?: number;
 }) {
   const stepOf = new Map<number, number>();
   path.forEach((c, i) => { if (c >= 0) stepOf.set(c, i + 1); });
   const end = endCell ?? path[path.length - 1];
   const centre = (c: number) => ({
     x: (c % size) * (cell + gap) + cell / 2,
-    y: Math.floor(c / size) * (cell + gap) + cell / 2,
+    y: Math.floor(c / size) * (cellH + gap) + cellH / 2,
   });
   const span = size * cell + (size - 1) * gap;
+  const spanH = size * cellH + (size - 1) * gap;
   const segments = path.slice(1).flatMap((c, i) => {
     const previous = path[i];
     return previous === undefined || previous < 0 || c < 0 ? [] : [{ from: previous, to: c, i }];
   });
   const draw = animate ? "tr-seg tr-draw" : "tr-seg";
   const disc = cell < 34 ? 0.9 : 0.74;
-  const font = Math.max(12, Math.round(cell * 0.4));
+  const discPx = Math.round(Math.min(cell, cellH) * disc);
+  // The Logic overhaul (15 Nov 2026): bigger, bolder numbers.
+  const font = Math.max(13, Math.round(cell * 0.44));
   // The ground layer never changes for a board size: build it once per size.
   const ground = useMemo(
-    () => Array.from({ length: size * size }, (_, c) => <div key={c} className="tr-ground" style={{ width: cell, height: cell }} />),
-    [size, cell],
+    () => Array.from({ length: size * size }, (_, c) => <div key={c} className="tr-ground" style={{ width: cell, height: cellH }} />),
+    [size, cell, cellH],
   );
   const layer: CSSProperties = { display: "grid", gridTemplateColumns: `repeat(${size}, ${cell}px)`, gap };
   return (
-    <div className={`relative${glow ? " tr-lit" : ""}`} style={{ width: span, height: span }}>
+    <div className={`relative logic2-trail${glow ? " tr-lit" : ""}`} data-logic2="trail" style={{ ...TRAIL_ART, width: span, height: spanH }}>
       <PolishStyle id="trail" css={TR_CSS} />
       <div aria-hidden className="pointer-events-none absolute inset-0" style={layer}>{ground}</div>
-      <svg aria-hidden className="pointer-events-none absolute inset-0" width={span} height={span}>
+      <svg aria-hidden className="pointer-events-none absolute inset-0" width={span} height={spanH}>
         {segments.map((s) => <Capsule key={`e${s.from}-${s.to}-${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.42} className={draw} fill="#4a3a26" />)}
         {segments.map((s) => <Capsule key={`t${s.from}-${s.to}-${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.3} className={draw} fill="#8f7451" />)}
       </svg>
       {/* Completion glow runs along the footpath, under the stones, so every number stays readable. */}
       {glow && (
-        <svg aria-hidden className="tr-glow pointer-events-none absolute inset-0" width={span} height={span}>
+        <svg aria-hidden className="tr-glow pointer-events-none absolute inset-0" width={span} height={spanH}>
           {segments.map((s) => <Capsule key={`h${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.62} className="tr-seg" fill="rgba(255,196,72,.45)" delay={s.i * 16} />)}
           {segments.map((s) => <Capsule key={`c${s.i}`} a={centre(s.from)} b={centre(s.to)} width={Math.max(4, cell * 0.2)} className="tr-seg" fill="#ffe7a3" delay={s.i * 16} />)}
         </svg>
@@ -144,10 +153,10 @@ export function Grid({
             <div
               key={c}
               className={`tr-cell ${g != null ? "tr-milestone" : ""} ${isEnd && g != null ? "tr-end" : ""} ${shakeCell === c ? "animate-shake" : ""}`}
-              style={{ width: cell, height: cell, fontSize: font }}
+              style={{ width: cell, height: cellH, fontSize: font }}
             >
               {g != null ? g : step !== undefined ? (
-                <span key={`${c}:${step}`} className={`tr-step ${animate ? "tr-pop" : ""} ${wrong ? "tr-wrong" : ""} ${isEnd ? "tr-end" : ""}`} style={{ width: Math.round(cell * disc), height: Math.round(cell * disc), ["--tr-delay" as string]: `${(step - 1) * 16}ms` }}>{step}</span>
+                <span key={`${c}:${step}`} className={`tr-step ${animate ? "tr-pop" : ""} ${wrong ? "tr-wrong" : ""} ${isEnd ? "tr-end" : ""}`} style={{ width: discPx, height: discPx, ["--tr-delay" as string]: `${(step - 1) * 16}ms` }}>{step}</span>
               ) : ""}
             </div>
           );
@@ -257,7 +266,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const nextNumber = Math.min(data.givens.length, trDragPath(data.givens, path).length + 1);
   // Count, two gaps, top inset and 44px controls; no tray. Keep 36px squares.
   const fit = Math.min(space.w - 8, space.h - 84);
-  const cell = Math.max(44, Math.min(68, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
+  // The Logic overhaul (15 Nov 2026): up to 90 px a square where there is room, and on a narrow phone the squares
+  // grow up to a third taller into the space above the controls (the board is otherwise width-bound).
+  const cell = Math.max(44, Math.min(90, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
+  const cellH = Math.max(cell, Math.min(Math.round(cell * 4 / 3), Math.floor((space.h - 84 - (TR_SIZE - 1) * GAP) / TR_SIZE)));
 
   const refuse = (c: number) => {
     if (lastRefused.current === c) return;
@@ -275,13 +287,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     const px = (x - rect.left) / scale;
     const py = (y - rect.top) / scale;
     const pitch = cell + GAP;
+    const pitchH = cellH + GAP;
     const col = Math.floor(px / pitch);
-    const row = Math.floor(py / pitch);
+    const row = Math.floor(py / pitchH);
     if (col < 0 || row < 0 || col >= TR_SIZE || row >= TR_SIZE) return null;
     if (strict) {
-      const dx = px - (col * pitch + cell / 2);
-      const dy = py - (row * pitch + cell / 2);
-      if (dx * dx + dy * dy > (cell * 0.42) ** 2) return null;
+      // Near the centre only (an ellipse on a tall square), so diagonals are easy to hit.
+      const dx = (px - (col * pitch + cell / 2)) / (cell * 0.42);
+      const dy = (py - (row * pitchH + cellH / 2)) / (cellH * 0.42);
+      if (dx * dx + dy * dy > 1) return null;
     }
     return row * TR_SIZE + col;
   };
@@ -374,7 +388,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         onPointerCancel={cancel}
         onPointerLeave={cancel}
       >
-        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} glow={glow} />
+        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} cellH={cellH} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} glow={glow} />
       </div>
       {column && <div className="tr-spacer" aria-hidden />}
       {framed ? (
@@ -383,7 +397,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           parts={complete ? ["Trail complete"] : [`Next ${nextNumber}`, `${26 - placedTiles} to go`]}
         />
       ) : null}
-      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
+      <div data-game-controls="actions" data-logic2-actions="" className="flex shrink-0 gap-3 px-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
         <Button variant="outline"
           type="button"
           disabled={busy || slots.every((c, i) => c < 0 || data.givens.includes(i + 1))}
