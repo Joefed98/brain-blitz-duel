@@ -85,7 +85,7 @@ def band():
     bm.to_mesh(me)
     o = bpy.data.objects.new("band", me)
     bpy.context.scene.collection.objects.link(o)
-    o.data.materials.append(gold_material("gold", 0.16))
+    o.data.materials.append(gold_material("gold", 0.08))
     o.data.materials.append(engraved_material())
     return o
 
@@ -140,7 +140,7 @@ def diamond(x, y, r):
     glass = lib.material("diamond", base=(0.92, 0.96, 1.0), roughness=0.0, transmission=1.0, ior=2.42)
     # A small light just above each stone, so its facets catch fire.
     l = bpy.data.lights.new("spark", "POINT")
-    l.energy = 1400
+    l.energy = 3200
     l.shadow_soft_size = 1.5
     lo = bpy.data.objects.new("spark", l)
     bpy.context.scene.collection.objects.link(lo)
@@ -251,7 +251,7 @@ def studio():
     coord = nt.nodes.new("ShaderNodeTexCoord")
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    stops = [(0.0, 0.02), (0.5, 0.02), (0.575, 2.0), (0.63, 0.06), (0.82, 0.02), (1.0, 0.06)]
+    stops = [(0.0, 0.03), (0.5, 0.04), (0.57, 3.4), (0.635, 0.14), (0.82, 0.04), (1.0, 0.2)]  # brighter (15 Nov: luminous)
     ramp.color_ramp.elements[0].position, ramp.color_ramp.elements[0].color = stops[0][0], (stops[0][1],) * 3 + (1,)
     ramp.color_ramp.elements[1].position, ramp.color_ramp.elements[1].color = stops[-1][0], (stops[-1][1],) * 3 + (1,)
     for pos, v in stops[1:-1]:
@@ -281,5 +281,13 @@ cam = lib.camera(card_to_world(150, 56, 400), card_to_world(150, 56, 0), ortho_s
 png = os.path.join(lib.TMP, "frame-founding.png")
 secs = lib.render(png)
 img = Image.open(png).convert("RGBA")
-path, size = lib.save_webp(img, "frame.founding", quality=90)
+# Joe, 15 Nov 2026: the special frames glow, shine and sparkle (frames.radiate: luminous gold, star glints, an aura).
+import frames as F  # noqa: E402
+
+img = F.radiate(img, 1.0, (1.0, 0.8, 0.42), sparkles=14, protect=F.NAME_ZONE)
+quality = 90
+path, size = lib.save_webp(img, "frame.founding", quality=quality)
+while size > 78 * 1024 and quality > 60:
+    quality -= 6
+    path, size = lib.save_webp(img, "frame.founding", quality=quality)
 print(f"founding: {secs:.1f} s render, {size / 1024:.1f} KB -> {path}")

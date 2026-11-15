@@ -27,6 +27,8 @@ export interface V2Frame {
   plaque?: readonly [string, number, number, number, string][];
   /** A light running over the metal (the frame's own alpha masks it). */
   glint?: boolean;
+  /** Twinkling sparkles on the frame's gems (15 Nov 2026, Joe: the special frames sparkle): [x, y, size] in card units. */
+  twinkle?: readonly [number, number, number][];
 }
 
 const IMG = (piece: string) => `/cosmetics/redrawn/${piece}.webp`;
@@ -75,16 +77,25 @@ export function v2FrameMarkup(id: string, d: V2Frame): string {
     )
     .join("");
   const glint = d.glint
-    ? `<defs><mask id="${p}fm" style="mask-type: alpha">${img}</mask><linearGradient id="${p}gl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0"></stop><stop offset="0.5" stop-color="#FFF6DA" stop-opacity="0.75"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient></defs><g mask="url(#${p}fm)"><g class="rd2-glint"><rect x="-40" y="-20" width="34" height="160" fill="url(#${p}gl)" transform="skewX(-20)"></rect></g></g>`
+    ? `<defs><mask id="${p}fm" style="mask-type: alpha">${img}</mask><linearGradient id="${p}gl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0"></stop><stop offset="0.5" stop-color="#FFF6DA" stop-opacity="0.95"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient></defs><g mask="url(#${p}fm)"><g class="rd2-glint"><rect x="-40" y="-20" width="40" height="160" fill="url(#${p}gl)" transform="skewX(-20)"></rect></g></g>`
     : "";
-  return img + glint + plaque;
+  const twinkle = (d.twinkle ?? [])
+    .map(([x, y, r], i) => {
+      const q = r * 0.22;
+      return `<path class="rd2-tw" style="animation-delay:${((i * 0.73) % 2.9).toFixed(2)}s;transform-origin:${x}px ${y}px" d="M${x} ${y - r}L${x + q} ${y - q}L${x + r} ${y}L${x + q} ${y + q}L${x} ${y + r}L${x - q} ${y + q}L${x - r} ${y}L${x - q} ${y - q}Z" fill="#FFF8E6"></path>`;
+    })
+    .join("");
+  return img + glint + twinkle + plaque;
 }
 
 export function v2FrameCss(d: V2Frame): string {
   return [
     STRIP_CSS,
     d.glint
-      ? `.pcard .rd2-glint{animation:pc-rd2Glint 5.5s ease-in-out infinite}@keyframes pc-rd2Glint{0%{transform:translateX(-40px)}55%,100%{transform:translateX(420px)}}@media (prefers-reduced-motion: reduce){.pcard .rd2-glint{animation:none;opacity:0}}`
+      ? `.pcard .rd2-glint{animation:pc-rd2Glint 4.6s ease-in-out infinite}@keyframes pc-rd2Glint{0%{transform:translateX(-40px)}55%,100%{transform:translateX(420px)}}@media (prefers-reduced-motion: reduce){.pcard .rd2-glint{animation:none;opacity:0}}`
+      : "",
+    d.twinkle?.length
+      ? `.pcard .rd2-tw{opacity:0;animation:pc-rd2Tw 2.9s ease-in-out infinite}@keyframes pc-rd2Tw{0%,62%,100%{opacity:0;transform:scale(.3) rotate(0deg)}74%{opacity:1;transform:scale(1) rotate(22deg)}86%{opacity:0;transform:scale(.4) rotate(45deg)}}@media (prefers-reduced-motion: reduce){.pcard .rd2-tw{animation:none;opacity:0}}`
       : "",
   ].join("");
 }

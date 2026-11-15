@@ -50,8 +50,8 @@ def hexagon(r=1.0):
 
 
 def top_500():
-    F.studio(horizon=2.8, zenith=0.3)
-    dg = F.metal("darkgold", F.METALS["dark-gold"], 0.13)
+    F.studio(horizon=3.7, zenith=0.42)
+    dg = F.metal("darkgold", F.METALS["dark-gold"], 0.09)
     F.band("band", [dg, F.engraved("filigree", F.METALS["dark-gold"], "scroll", 0.28, 0.8), F.enamel("crimson", CRIMSON_ENAMEL)], F.INLAY_PROFILE, scale=(1.85, 1.5), inset=6.4, radius=5.0)
     # A fine black-enamel line inside the band.
     F.band("line", [F.enamel("black", (0.01, 0.01, 0.012))], [(-0.5, 0.2, 0), (-0.4, 0.7, 0), (0.4, 0.7, 0), (0.5, 0.2, 0)], scale=(1.0, 1.0), inset=13.6, radius=2.5)
@@ -85,9 +85,9 @@ def top_500():
 
 
 def championship():
-    F.studio(horizon=3.0, zenith=0.36, warm=False)
-    plat = F.metal("plat", F.METALS["platinum"], 0.1)
-    gold = F.metal("gold", F.METALS["gold"], 0.12)
+    F.studio(horizon=3.9, zenith=0.46, warm=False)
+    plat = F.metal("plat", F.METALS["platinum"], 0.07)
+    gold = F.metal("gold", F.METALS["gold"], 0.08)
     F.band("outer", [plat, F.engraved("platfield", F.METALS["platinum"], "lines", 0.25, 0.4)], F.BASE_PROFILE, scale=(1.35, 1.5), inset=4.2, radius=6.0)
     F.band("inner", [gold, F.engraved("goldfield", F.METALS["gold"], "guilloche", 0.28), F.enamel("navy", NAVY)], F.INLAY_PROFILE, scale=(1.05, 1.15), inset=12.2, radius=2.2)
     # Corners: platinum stars set with diamonds.
@@ -127,15 +127,15 @@ SEASON = {
 
 def season(tier):
     metal_name, enamel_c, gem_c, scale, cr, extra, double, burst = SEASON[tier]
-    F.studio(horizon=2.7, zenith=0.32, warm=metal_name not in ("platinum",))
-    met = F.metal("m", F.METALS[metal_name], 0.13)
+    F.studio(horizon=2.9 + 0.8 * RADIANCE[f"frame.s1-{tier}"], zenith=0.32 + 0.12 * RADIANCE[f"frame.s1-{tier}"], warm=metal_name not in ("platinum",))
+    met = F.metal("m", F.METALS[metal_name], 0.09)
     en = F.enamel("e", enamel_c)
     F.band("band", [met, F.engraved("f", F.METALS[metal_name], "guilloche", 0.3), en], F.INLAY_PROFILE, scale=scale, inset=5.6, radius=5.0)
     if double:
         F.band("inner", [met], F.PLAIN_PROFILE, scale=(0.32, 0.55), inset=13.2, radius=2.0)
     ior = 2.42 if gem_c == DIAMOND else 1.77
     for x, y in CORNERS:
-        F.stone(x, y, cr + 0.8, gem_c, met, ior=ior, spark=2800)
+        F.stone(x, y, cr + 0.8, gem_c, met, ior=ior, spark=4200)
     if extra:
         xs = (80, 220) if extra == 2 else (60, 105, 195, 240)
         for x in xs:
@@ -196,8 +196,32 @@ BUILDERS = {
     "frame.bronze": bronze,
 }
 
+#: The radiance ladder (Joe, 15 Nov 2026: the special frames glow, shine and sparkle): Season 1 steps up by tier,
+#: Top 500 and Championship the most special; the calm frames none.
+RADIANCE = {
+    "frame.s1-spark": 0.35,
+    "frame.s1-charge": 0.45,
+    "frame.s1-volt": 0.55,
+    "frame.s1-surge": 0.65,
+    "frame.s1-storm": 0.75,
+    "frame.s1-lightning": 0.85,
+    "frame.s1-top-500": 0.95,
+    "frame.top-500": 1.0,
+    "frame.championship": 1.0,
+}
+#: Each aura's light: warm gold, or the tier's own light on Season 1's silver-metal tiers.
+AURA = {
+    "frame.s1-spark": (1.0, 0.62, 0.36),
+    "frame.s1-charge": (0.55, 1.0, 0.72),
+    "frame.s1-volt": (0.6, 0.94, 1.0),
+    "frame.s1-surge": (0.78, 0.82, 1.0),
+    "frame.s1-storm": (0.88, 0.72, 1.0),
+    "frame.s1-lightning": (1.0, 0.86, 0.4),
+    "frame.championship": (0.96, 0.9, 0.78),
+}
+
 ids = sys.argv[1:] or list(BUILDERS)
 for item in ids:
     F.begin()
     BUILDERS[item]()
-    F.finish(item)
+    F.finish(item, radiance=RADIANCE.get(item, 0.0), aura=AURA.get(item, (1.0, 0.8, 0.42)))

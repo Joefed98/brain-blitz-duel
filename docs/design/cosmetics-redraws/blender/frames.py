@@ -298,14 +298,95 @@ def begin(samples=None):
     return s
 
 
-def finish(item_id, quality=90):
+def finish(item_id, quality=90, radiance=0.0, aura=(1.0, 0.8, 0.42)):
     lib.camera(card_to_world(150, 56, 400), card_to_world(150, 56, 0), ortho_scale=W + 2 * M)
     png = os.path.join(lib.TMP, f"{item_id}.png")
     secs = lib.render(png)
     img = Image.open(png).convert("RGBA")
+    if radiance:
+        img = radiate(img, radiance, aura, sparkles=8 + int(8 * radiance), protect=NAME_ZONE)
     path, size = lib.save_webp(img, item_id, quality=quality)
     while size > 78 * 1024 and quality > 60:
         quality -= 6
         path, size = lib.save_webp(img, item_id, quality=quality)
     print(f"{item_id}: {secs:.1f} s render, {size / 1024:.1f} KB (q{quality})")
     return secs, size
+
+
+# ------------------------------------------------------------------ radiance (the special frames, 15 Nov 2026)
+
+
+def radiate(img, level, aura=(1.0, 0.8, 0.42), sparkles=10, protect=None):
+    """Joe's polish for the special frames: luminous metal, sparkling gems, a soft aura. `level` 0..1 is the rarity
+    ladder (the Season 1 family steps up by tier; Founding, Top 500 and Championship are 1). On the RGBA render:
+
+    - a luminous lift: the metal's midtones raised and warmed (screen towards its own colour), so gold reads bright;
+    - star glints: four-point stars on the brightest highlights (the gems' facets and the crest), long thin rays;
+    - an aura: a warm bloom from the bright metal, spilling softly into the 10-unit margin and a little over the card.
+
+    `protect` (x0, y0, x1, y1 in card units) keeps glints and most of the aura off a region (the name's).
+    """
+    import numpy as np
+    from scipy.ndimage import gaussian_filter, maximum_filter
+
+    a = np.asarray(img.convert("RGBA")).astype(np.float32) / 255
+    rgb, al = a[..., :3], a[..., 3:4]
+    h, w = al.shape[:2]
+    k = w / (W + 2 * M)  # px per card unit
+    lum = rgb @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    # 1. Luminous lift on the metal (opaque pixels): gamma up, warm.
+    lift = 0.32 * level
+    lifted = 1 - (1 - rgb) ** (1 + lift * 1.6)
+    warm = np.array([1.0, 0.94, 0.84], np.float32) if aura[2] < 0.7 else np.array([0.96, 0.98, 1.0], np.float32)
+    # Only the metal's lit faces lift (dark enamels and stones keep their depth).
+    wgt = (lift * np.clip((lum - 0.28) / 0.45, 0, 1))[..., None]
+    rgb = rgb * (1 - wgt) + np.clip(lifted * (1 + 0.12 * level) * warm, 0, 1) * wgt
+    lum = rgb @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    mask = np.ones((h, w), np.float32)
+    if protect:
+        x0, y0, x1, y1 = [(v + M) * k for v in protect]
+        yy, xx = np.mgrid[0:h, 0:w]
+        inside = (xx > x0) & (xx < x1) & (yy > y0) & (yy < y1)
+        mask = np.where(inside, 0.15, 1.0).astype(np.float32)
+    # 2. The aura: a warm bloom of the bright metal.
+    bright = np.clip((lum - 0.45) / 0.55, 0, 1) * al[..., 0]
+    glow = sum(gaussian_filter(bright, r * k) * wt for r, wt in ((1.5, 0.45), (4.0, 0.45), (8.0, 0.4)))
+    glow = np.clip(glow * (1.2 + 1.4 * level), 0, 1) * mask
+    glow_rgb = glow[..., None] * np.array(aura, np.float32)
+    out_a = np.clip(al[..., 0] + glow * 0.8 * level * (1 - al[..., 0]), 0, 1)
+    # Composite: the glow under the metal where it is transparent, over it (screen) where opaque.
+    premul = rgb * al + glow_rgb * 0.8 * level * (1 - al)
+    screen = 1 - (1 - premul) * (1 - glow_rgb * 0.35 * level * al)
+    # 3. Star glints on the brightest local maxima (facets, crest highlights).
+    peaks = (lum * al[..., 0] * mask >= maximum_filter(lum * al[..., 0] * mask, size=int(10 * k))) & (lum * al[..., 0] * mask > 0.82)
+    ys, xs = np.nonzero(peaks)
+    order = np.argsort(-lum[ys, xs])
+    chosen = []
+    for i in order:
+        y, x = int(ys[i]), int(xs[i])
+        if all((y - cy) ** 2 + (x - cx) ** 2 > (14 * k) ** 2 for cy, cx in chosen):
+            chosen.append((y, x))
+        if len(chosen) >= sparkles:
+            break
+    star = np.zeros((h, w), np.float32)
+    yy, xx = np.mgrid[0:h, 0:w]
+    for n, (y, x) in enumerate(chosen):
+        L = (6 + 6 * level) * k * (1.0 if n < 4 else 0.6)
+        t = 0.55 * k
+        dy, dx = yy - y, xx - x
+        near = (np.abs(dy) < L * 1.2) & (np.abs(dx) < L * 1.2)
+        if not near.any():
+            continue
+        ray = np.exp(-(dx**2) / (2 * t * t)) * np.exp(-np.abs(dy) / (L * 0.32)) + np.exp(-(dy**2) / (2 * t * t)) * np.exp(-np.abs(dx) / (L * 0.32))
+        core = np.exp(-(dx**2 + dy**2) / (2 * (1.1 * k) ** 2))
+        star = np.maximum(star, np.where(near, (ray * 0.8 + core) * (0.6 + 0.4 * level), 0))
+    star = np.clip(star, 0, 1)
+    final_rgb_premul = 1 - (1 - screen) * (1 - star[..., None] * np.array([1.0, 0.98, 0.92], np.float32))
+    out_a = np.clip(np.maximum(out_a, star), 0, 1)
+    out_rgb = np.where(out_a[..., None] > 1e-4, final_rgb_premul / np.maximum(out_a[..., None], 1e-4), 0)
+    out = np.concatenate([np.clip(out_rgb, 0, 1), out_a[..., None]], axis=2)
+    return Image.fromarray((out * 255).astype(np.uint8), "RGBA")
+
+
+#: Where the name, title and pill sit (card units): the glints and most of the aura stay off it.
+NAME_ZONE = (80, 24, 262, 90)
