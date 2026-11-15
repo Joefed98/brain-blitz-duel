@@ -135,7 +135,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
   const marks = blockRevealMarks(puzzle, facts.placements, myCorrect);
   const pieces = geo.pieces.length;
   const seconds = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.floor(myMsRemaining / 1000)) : null;
-  const items: HudPillItem[] = [
+  const items: Array<HudPillItem | null> = [
     { id: "pieces", label: "Pieces placed", value: `${facts.placements.length}/${pieces}`, tone: facts.placements.length === pieces ? "good" : undefined },
     marks.wrong.length ? { id: "wrong", label: "Off the solution", value: `${marks.wrong.length}`, tone: "warn" } : null,
     !myCorrect ? { id: "gaps", label: "Squares empty", value: `${Math.max(0, geo.free - facts.covered)}` } : null,
@@ -145,7 +145,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
         ? { id: "first", label: "Right first time", value: `${facts.rightFirstTime}/${pieces}` }
         : null,
     seconds !== null ? { id: "time", label: "Time left", value: `${seconds} s` } : null,
-  ].filter((p): p is HudPillItem => !!p);
+  ];
 
   return (
     <div className="bp-reveal flex w-full flex-col items-center gap-3">
