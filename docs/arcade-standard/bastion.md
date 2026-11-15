@@ -20,7 +20,7 @@ From Joe's review (`docs/design/game-reviews/action.md`). Play, deal and scoring
 - **The reload tip**: the first time the magazine runs dry, and only if the run's first reload was that one, the panel
   shows "Tip: swipe down to reload early" in gold for that reload (`bastionSwipeHint`, from the sim's own counters, so
   replays draw it the same); never again in the run.
-- **Intro**: the still is the game's own art (bastionRev 3, seed 7, 5.5 s in, `ArtStill`).
+- **Intro**: the still is the game's own art (bastionRev 3, seed 7, 10.7 s in, `ArtStill`).
 - **Sounds**: new slots waiting for files (`docs/sound-cues/action-elevenlabs.md`): weak-spot ting, shells snapping in,
   jam grind, debris, near miss (a shell on open ground within a tank-length of a hull, `bastionNearMiss`), panel crack,
   WALL HELD, the tip, and the desert wind and storm-fire ambience beds.

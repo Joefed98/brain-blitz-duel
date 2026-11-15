@@ -347,11 +347,19 @@ const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0]! - 
         const i = (y * box.w + x) * 4;
         return [img[i]!, img[i + 1]!, img[i + 2]!];
       };
-      /** The average colour step across an edge: the 4 px inside against the 4 px outside, averaged along it. */
+      /**
+       * The colour step across an edge: the 4 px inside against the 4 px outside, averaged along each 40 px band of
+       * the edge (sky, ridge, field and wall read separately), the worst band's.
+       */
       const step = (inside: (n: number, d: number) => [number, number], outside: (n: number, d: number) => [number, number], len: number) => {
+        let worst = 0;
+        for (let from = 0; from < len; from += 40) worst = Math.max(worst, band(inside, outside, from, Math.min(len, from + 40)));
+        return worst;
+      };
+      const band = (inside: (n: number, d: number) => [number, number], outside: (n: number, d: number) => [number, number], from: number, to: number) => {
         let sum = 0;
         let n = 0;
-        for (let i = 0; i < len; i += 2) {
+        for (let i = from; i < to; i += 2) {
           const a = [0, 0, 0];
           const b = [0, 0, 0];
           for (let d = 1; d <= 4; d++) {

@@ -199,7 +199,7 @@ function IntroExample() {
       worldW={BT2_WORLD_W}
       worldH={BT2_WORLD_H}
       seed={7}
-      ticks={330}
+      ticks={640}
       input={null}
       caption="Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks, hit the glowing weak spot while it is open for double damage, and shoot down the drones."
     />
