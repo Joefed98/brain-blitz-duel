@@ -182,3 +182,19 @@
 .unblock-key::first-letter { text-transform: uppercase; }
 .unblock-key-value { font-weight: 800; color: var(--foreground); font-variant-numeric: tabular-nums; }
 .unblock-reveal-pair > div > .unblock-reveal-note { flex-shrink: 0; }
+
+/* ---- Stage 2 (15 Nov 2026): the lane-cleared glint, on the lot's art layer under the cars ---------------- */
+/* A light band run along the exit lane by UnblockLaneGlint (Web Animations: transform and opacity only); at rest it is
+   invisible, so it never covers anything; the lane it runs along is clear by definition. */
+.unblock-lane-glint { position: absolute; right: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.unblock-lane-glint-band {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  left: 0;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--jz-gold) 85%, transparent) 40%, var(--jz-white) 58%, color-mix(in oklab, var(--jz-gold) 70%, transparent) 72%, transparent);
+  opacity: 0;
+  will-change: transform, opacity;
+}

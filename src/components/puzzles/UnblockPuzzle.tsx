@@ -11,6 +11,7 @@ import { UnblockCarArt, UnblockExitFx, UnblockLot } from "@/components/puzzles/p
 import { useInFrame } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
+import { gameFx } from "@/lib/fx/kit";
 import { clampSlide, encodeMoves, isSolved, occupancy, position, type UnblockMove } from "@/lib/duel/unblock";
 import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import {
@@ -31,6 +32,29 @@ export function goldLaneClear(vehicles: UnblockVehicle[]): boolean {
   return true;
 }
 
+/**
+ * The car standing in a refused drag's way (stage 2, display only): the vehicle on the first cell past the dragged
+ * car's nose (or tail) in the way it was pushed; null when it was the kerb. Never used by grading.
+ */
+export function blockingCar(vehicles: UnblockVehicle[], vehicle: UnblockVehicle, forward: boolean): number | null {
+  const at = forward ? position(vehicle) + vehicle.len : position(vehicle) - 1;
+  if (at < 0 || at >= N) return null;
+  const cell = vehicle.axis === "h" ? vehicle.row * N + at : at * N + vehicle.col;
+  for (const other of vehicles) {
+    if (other.id === vehicle.id) continue;
+    for (let i = 0; i < other.len; i++) {
+      const c = other.axis === "h" ? other.row * N + other.col + i : (other.row + i) * N + other.col;
+      if (c === cell) return other.id;
+    }
+  }
+  return null;
+}
+
+/** A car's drawn art (its sprite), never the vehicle box the drag reads: the kit animates only this. */
+export function carArt(board: HTMLElement | null, id: number): HTMLElement | null {
+  return (board?.querySelector(`[data-unblock-car="${id}"] .unblock-car-sprite`) as HTMLElement | null) ?? null;
+}
+
 /** A slide just released by a drag: where the car was drawn when the finger let go. */
 interface Release {
   id: number;
@@ -48,6 +72,7 @@ function Vehicle({
   escaping,
   lifted,
   release,
+  settle,
 }: {
   vehicle: UnblockVehicle;
   style?: React.CSSProperties;
@@ -58,6 +83,8 @@ function Vehicle({
   escaping?: boolean;
   lifted?: boolean;
   release?: Release | null;
+  /** The live stage (stage 2): a soft bump on the car's art as its glide ends (the kit's `tap`, silent). */
+  settle?: boolean;
 }) {
   const gold = vehicle.id === 0;
   const ref = useRef<HTMLDivElement>(null);
@@ -69,7 +96,12 @@ function Vehicle({
     const from = last.current;
     last.current = { col: vehicle.col, row: vehicle.row };
     const node = ref.current;
-    if (!node || reduced || (from.col === vehicle.col && from.row === vehicle.row)) return;
+    if (!node || (from.col === vehicle.col && from.row === vehicle.row)) return;
+    const glideMs = release && release.id === vehicle.id ? 170 : 210;
+    // The bump as the car stops: the kit's settle on the car's own art (never the box the drag reads), started where
+    // the glide ends; silent, the slide's own scrape ends in the bump. Reduced motion: no glide, the kit's crossfade.
+    if (settle) gameFx("tap", node.querySelector(".unblock-car-sprite"), { silent: true, delayMs: reduced ? 0 : glideMs });
+    if (reduced) return;
     const cell = (node.parentElement?.clientWidth ?? 0) / N;
     if (!cell) return;
     let x = (from.col - vehicle.col) * cell;
@@ -81,15 +113,16 @@ function Vehicle({
       lift = " scale(1.06)";
     }
     node.animate([{ transform: `translate(${x}px, ${y}px)${lift}` }, { transform: "none" }], {
-      duration: lift ? 170 : 210,
+      duration: glideMs,
       easing: "cubic-bezier(0.2, 0.8, 0.25, 1)",
     });
-  }, [vehicle.col, vehicle.row, release, reduced, vehicle.axis, vehicle.id]);
+  }, [vehicle.col, vehicle.row, release, reduced, vehicle.axis, vehicle.id, settle]);
 
   return (
     <div
       ref={ref}
       onPointerDown={onPointerDown}
+      data-unblock-car={vehicle.id}
       data-quiet-shake={quietShake ? "" : undefined}
       className={`unblock-car absolute ${gold ? "unblock-car--gold" : ""} ${
         lifted ? "is-lifted" : ""
@@ -160,6 +193,8 @@ export function UnblockPuzzle({
   const [ghost, setGhost] = useState<{ vehicle: UnblockVehicle; to: number } | null>(null);
   const [release, setRelease] = useState<Release | null>(null);
   const [knocked, setKnocked] = useState<number | null>(null);
+  /** The lane-cleared glint (stage 2): bumps each time a move opens the gold car's lane short of the solve. */
+  const [glint, setGlint] = useState(0);
   const celebrating = useSolveMoment(escaping, "unblock.solve");
   const gold = vehicles.find((vehicle) => vehicle.id === 0);
   const submitted = useRef(false);
@@ -215,6 +250,12 @@ export function UnblockPuzzle({
         const blocked = wanted !== position(vehicle);
         setKnocked(blocked ? vehicle.id : null);
         if (blocked) soundCue("unblock.blocked");
+        if (blocked) {
+          // The kit's wrong shake on the car in the way too (its art only; silent: the knock is the sound; no haptic:
+          // refused moves give none). The kerb has no car to shake.
+          const other = blockingCar(vehicles, vehicle, wanted > position(vehicle));
+          if (other !== null) gameFx("wrong", carArt(boardRef.current, other), { silent: true, noHaptic: true });
+        }
         return false;
       }
       const next = vehicles.map((entry) =>
@@ -231,7 +272,10 @@ export function UnblockPuzzle({
       setMoves(nextMoves);
       // Sound only: a short scrape for one or two bays, a longer one for three or more, each ending in a soft bump.
       soundCue(Math.abs(to - position(vehicle)) >= 3 ? "unblock.slideLong" : "unblock.slide");
-      if (!isSolved(next) && goldLaneClear(next) && !goldLaneClear(vehicles)) soundCue("unblock.laneClear");
+      if (!isSolved(next) && goldLaneClear(next) && !goldLaneClear(vehicles)) {
+        soundCue("unblock.laneClear");
+        setGlint((n) => n + 1);
+      }
       if (isSolved(next)) {
         setEscaping(true);
         // The drive-out's one sound is `unblock.solve` (useSolveMoment, the next render): its slot plays pz_car_escape
@@ -287,7 +331,7 @@ export function UnblockPuzzle({
       )}
 
       <div data-game-arena="board" className="unblock-arena flex min-h-0 flex-1 items-center justify-center">
-        <UnblockLot gridRef={boardRef} celebrate={celebrating}>
+        <UnblockLot gridRef={boardRef} celebrate={celebrating} glint={glint > 0 && gold ? { key: glint, fromCol: gold.col + gold.len } : null}>
           {ghost && (
             <div
               aria-hidden="true"
@@ -317,6 +361,7 @@ export function UnblockPuzzle({
                 escaping={escaping && vehicle.id === 0 && !reduced}
                 lifted={dragging}
                 release={release}
+                settle
                 {...(dragging ? { style: { ...liftStyle(dx, dy, reduced), boxShadow: undefined } } : {})}
               />
             );
