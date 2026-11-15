@@ -18,7 +18,7 @@ export const CATALOGUE_DATA: Record<PuzzleType, CatalogueEntry> = {
   stopwatch: { name: "Bang On", category: "speed", timeLimitMs: 60000, revealHeading: "Your stops", goal: "Stop the marker in the gold zone, ten times." },
   countup: { name: "Tally", category: "attention", timeLimitMs: 45000, goal: "Count the shapes each question asks for." },
   wordhunt: { name: "Forage", category: "word", timeLimitMs: 100000, revealHeading: "Your words", goal: "Find as many words as you can." },
-  unblock: { name: "Gridlock", category: "pattern", timeLimitMs: 60000, revealHeading: "The shortest solution", goal: "Slide the gold block out through the exit." },
+  unblock: { name: "Gridlock", category: "pattern", timeLimitMs: 60000, revealHeading: "The shortest solution", goal: "Slide the gold car out through the exit." },
   blockparty: { name: "Tessellate", category: "pattern", timeLimitMs: 60000, revealHeading: "The solution", goal: "Fit every piece into the free squares." },
   lightsout: { name: "Blackout", category: "logic", timeLimitMs: 75000, revealHeading: "The shortest solution", goal: "Turn every light off." },
   pipes: { name: "Pipeline", category: "pattern", timeLimitMs: 120000, revealMs: 8000, revealHeading: "The connected network", goal: "Connect every pipe to the source." },
