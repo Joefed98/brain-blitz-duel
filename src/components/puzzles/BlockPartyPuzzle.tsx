@@ -1,20 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   BlockArtDefs,
   BlockBoardArt,
+  BlockDropFlash,
   BlockPiecesArt,
-  BlockSolveFx,
+  BlockSweepFx,
   BlockColsContext,
   PieceArt,
-  pegDistances,
-  SHINE_STEP_MS,
+  sweepDelay,
 } from "@/components/puzzles/pattern/blockPartyArt";
+import { gameFx, releaseGameFx } from "@/lib/fx/kit";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import {
   gridColRowAt,
+  type DragInfo,
   liftStyle,
   useDragSnap,
   usePrefersReducedMotion,
@@ -108,7 +110,7 @@ function PieceGlyph({
         viewBox={`0 0 ${cols * 100} ${rows * 100}`}
         aria-hidden="true"
       >
-        <PieceArt cells={offsets} piece={piece} />
+        <PieceArt cells={offsets} piece={piece} tray />
       </svg>
     </div>
   );
@@ -121,7 +123,7 @@ export function BlockBoard({
   size,
   children,
   boardRef,
-  snap,
+  flash,
   celebrate,
   cols = N,
 }: {
@@ -132,21 +134,15 @@ export function BlockBoard({
   size?: number;
   children?: React.ReactNode;
   boardRef?: React.Ref<HTMLDivElement>;
-  /** Stage only: pieces click into place as they land. */
-  snap?: boolean;
+  /** Stage only (stage 2): the last drop, whose covered squares flash once (`n` counts drops). */
+  flash?: { cells: number[]; n: number } | null | undefined;
   /** Stage only: the completion shine is running. */
   celebrate?: boolean;
 }) {
   const wave = useMemo(() => {
     if (!celebrate) return null;
-    const distance = pegDistances(blockers, cols);
-    return new Map(
-      placements.map((placement) => [
-        placement.piece,
-        60 + (Math.min(...placement.cells.map((cell) => distance[cell] ?? 1)) - 1) * SHINE_STEP_MS,
-      ]),
-    );
-  }, [celebrate, blockers, placements, cols]);
+    return new Map(placements.map((placement) => [placement.piece, sweepDelay(placement.cells, cols)]));
+  }, [celebrate, placements, cols]);
   return (
     <BlockColsContext.Provider value={cols}>
     <BlockArtDefs>
@@ -157,8 +153,9 @@ export function BlockBoard({
         style={size ? { width: size, height: size } : undefined}
       >
         <BlockBoardArt blockers={blockers} />
-        <BlockPiecesArt placements={placements} colourFor={pieceColour} snap={snap} wave={wave} />
-        {celebrate && <BlockSolveFx blockers={blockers} />}
+        <BlockPiecesArt placements={placements} colourFor={pieceColour} wave={wave} />
+        {flash ? <BlockDropFlash key={flash.n} cells={flash.cells} /> : null}
+        {celebrate && <BlockSweepFx blockers={blockers} />}
         {children}
       </div>
     </BlockArtDefs>
@@ -221,6 +218,9 @@ export function BlockPartyPuzzle({
   const [ghost, setGhost] = useState<{ cells: number[]; legal: boolean } | null>(null);
   const lastTap = useRef<{ piece: number; at: number } | null>(null);
   const lifted = useRef<number | null>(null);
+  // The last legal drop (stage 2): the piece's drop effect and its squares' flash play once for each.
+  const [returning, setReturning] = useState<number | null>(null);
+  const [drop, setDrop] = useState<{ piece: number; cells: number[]; n: number } | null>(null);
   const submitted = useRef(false);
   const placedRef = useRef<BlockPlacement[]>([]);
   placedRef.current = placed;
@@ -323,11 +323,72 @@ export function BlockPartyPuzzle({
     [placed, puzzle.blockers],
   );
 
-  /** An illegal drop: a dull thud as the piece goes back, and (blockRev 4) one off the clean-drops bonus. */
-  const refuse = useCallback(() => {
-    soundCue("blockparty.illegal");
-    if (overhaul) setIllegal((current) => current + 1);
-  }, [overhaul]);
+  /*
+   * The effects (stage 2, the effects kit; presentation only: they observe the moves this stage already decided and
+   * never hold a move up). Every effect animates a piece's own element: a tray piece's slot (`data-bp-tray-piece`),
+   * the wrapper that follows the finger (`data-bp-move`), the lift wrapper inside it (`data-bp-lift`), or the placed
+   * piece's group on the board (`data-bp-piece`), never the board, the arena or the tray holding the hit areas. The
+   * game plays its own cue for each moment, so every kit call is `silent`.
+   */
+  const trayPart = useCallback((piece: number, part?: "move" | "lift"): HTMLElement | null => {
+    const slot = trayRef.current?.querySelector<HTMLElement>(`[data-bp-tray-piece="${piece}"]`) ?? null;
+    return part ? (slot?.querySelector<HTMLElement>(`[data-bp-${part}]`) ?? null) : slot;
+  }, []);
+  const boardPiece = useCallback(
+    (piece: number): Element | null => boardRef.current?.querySelector(`[data-bp-piece="${piece}"]`) ?? null,
+    [],
+  );
+  /** The element that rises under the finger for a dragged piece. */
+  const liftOf = useCallback(
+    (item: DragItem) => (item.from === "tray" ? trayPart(item.piece, "lift") : boardPiece(item.piece)),
+    [trayPart, boardPiece],
+  );
+
+  // Turn and flip: the CSS spin on the glyph (bp-glyph-turn / -flip) with the kit's tap on the lift wrapper, the
+  // click; under reduced motion the spin is cut and the tap is the kit's 120 ms crossfade.
+  useLayoutEffect(() => {
+    // Not while that piece is up under the finger (a held turn shown by the drag): the pick-up keeps its lift.
+    if (turned && lifted.current !== turned.piece) gameFx("tap", trayPart(turned.piece, "lift"), { silent: true });
+  }, [turned, trayPart]);
+  // A legal drop: the piece comes down with the kit's squash (its BlockDropFlash lights the covered squares).
+  useLayoutEffect(() => {
+    if (drop) gameFx("drop", boardPiece(drop.piece), { silent: true });
+  }, [drop, boardPiece]);
+
+  /** A tray piece let go where it can't stay glides back into its slot from where the finger left it (FLIP). */
+  const returnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (returnTimer.current) clearTimeout(returnTimer.current);
+  }, []);
+  const slideHome = useCallback(
+    (info: DragInfo<DragItem>) => {
+      setReturning(info.item.piece);
+      if (returnTimer.current) clearTimeout(returnTimer.current);
+      returnTimer.current = setTimeout(() => setReturning(null), 400);
+      gameFx("slide", trayPart(info.item.piece, "move"), { from: { x: info.dx, y: info.dy }, silent: true });
+    },
+    [trayPart],
+  );
+
+  /**
+   * An illegal drop: a dull thud as the piece goes back, and (blockRev 4) one off the clean-drops bonus. A tray piece
+   * slides back to its slot from where it was let go (the kit's slide, FLIP) and its slot gives the kit's refused
+   * shake; a placed piece, which never left the board, shakes where it is.
+   */
+  const refuse = useCallback(
+    (info?: DragInfo<DragItem>) => {
+      soundCue("blockparty.illegal");
+      if (overhaul) setIllegal((current) => current + 1);
+      if (!info) return;
+      if (info.item.from === "tray") {
+        slideHome(info);
+        gameFx("wrong", trayPart(info.item.piece), { silent: true, delayMs: 150 });
+      } else {
+        gameFx("wrong", boardPiece(info.item.piece), { silent: true });
+      }
+    },
+    [overhaul, trayPart, boardPiece, slideHome],
+  );
 
   const drag = useDragSnap<DragItem>({
     disabled: locked,
@@ -337,6 +398,8 @@ export function BlockPartyPuzzle({
         lifted.current = info.item.piece;
         if (held?.piece === info.item.piece) releaseHeld(true);
         soundCue("blockparty.pickup");
+        // The kit's pick-up: the piece rises and grows a touch under the finger, and stays up until it lands.
+        gameFx("pickUp", liftOf(info.item), { silent: true });
       }
       const { cells } = landing(info.item, info.x, info.y);
       if (!cells) {
@@ -348,6 +411,8 @@ export function BlockPartyPuzzle({
     },
     onDrop: (info) => {
       setGhost(null);
+      // Whatever happens next, the lifted piece comes down (a legal drop then plays the kit's drop on its new spot).
+      if (lifted.current !== null) releaseGameFx(liftOf(info.item));
       lifted.current = null;
       const moved = Math.abs(info.dx) + Math.abs(info.dy);
 
@@ -390,7 +455,7 @@ export function BlockPartyPuzzle({
       if (!cells) {
         if (over) {
           // Let go over the board where it doesn't fit (off its edge): an illegal drop.
-          refuse();
+          refuse(info);
           return false;
         }
         // Dropped off the board: the piece goes back to the tray.
@@ -398,11 +463,13 @@ export function BlockPartyPuzzle({
           commit(placed.filter((entry) => entry.piece !== info.item.piece));
           return true;
         }
+        // A tray piece let go off the board glides home (no move, no sound).
+        slideHome(info);
         return false;
       }
       const taken = blockedCells(info.item.piece);
       if (cells.some((cell) => taken.has(cell))) {
-        refuse();
+        refuse(info);
         return false;
       }
 
@@ -411,6 +478,7 @@ export function BlockPartyPuzzle({
         { piece: info.item.piece, cells },
       ];
       commit(next);
+      setDrop((current) => ({ piece: info.item.piece, cells, n: (current?.n ?? 0) + 1 }));
       soundCue("blockparty.place");
       if (next.reduce((sum, entry) => sum + entry.cells.length, 0) >= geo.free) {
         setTimeout(() => lockIn(next), 200);
@@ -424,12 +492,14 @@ export function BlockPartyPuzzle({
     if (locked || history.length === 0) return;
     setPlaced(history[history.length - 1]!);
     setHistory((current) => current.slice(0, -1));
+    setDrop(null);
     soundCue("blockparty.undo");
   }, [locked, history]);
   /** Reset (blockRev 4): every piece back to the tray; Undo brings the board back. */
   const reset = useCallback(() => {
     if (locked || placedRef.current.length === 0) return;
     commit([]);
+    setDrop(null);
     soundCue("blockparty.reset");
   }, [locked, commit]);
 
@@ -446,6 +516,8 @@ export function BlockPartyPuzzle({
     (piece) => !placed.some((entry) => entry.piece === piece),
   );
   const draggedPiece = drag.drag?.item.piece;
+  // A tray piece under the finger, or gliding home after a refused drop (the tray stops clipping meanwhile).
+  const trayCarrying = drag.drag?.item.from === "tray" || returning !== null;
 
   useBeforePaint(() => {
     const layout = layoutRef.current;
@@ -539,7 +611,7 @@ export function BlockPartyPuzzle({
           boardRef={boardRef}
           size={boardSize}
           cols={n}
-          snap
+          flash={drop}
           celebrate={celebrating}
         >
           {ghost && draggedPiece !== undefined && (
@@ -589,10 +661,13 @@ export function BlockPartyPuzzle({
         </BlockBoard>
       </div>
 
-      {/* Tray: every remaining piece, at a reduced scale. */}
+      {/* Tray: every remaining piece, at a reduced scale. While a tray piece is under the finger or gliding home
+          (stage 2) the tray stops clipping, so the lifted piece is seen over the board, not cut off at the tray's top. */}
       <div
         ref={trayRef}
-        data-game-controls="tray" className="block-party-tray grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl px-2.5 py-2.5"
+        data-game-controls="tray"
+        data-bp-carrying={trayCarrying ? "" : undefined}
+        className={`block-party-tray grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 ${trayCarrying ? "overflow-visible" : "overflow-hidden"} rounded-xl px-2.5 py-2.5`}
       >
         {inTray.length === 0 ? (
           <p className="col-span-3 text-center font-mono text-xs uppercase tracking-widest text-primary">
@@ -608,23 +683,26 @@ export function BlockPartyPuzzle({
             return (
               <div
                 key={piece}
-                className={`relative flex min-h-0 items-center justify-center ${
-                  drag.rejected?.piece === piece ? "animate-shake" : ""
-                }`}
-                style={{ minWidth: cols * trayCell, minHeight: rows * trayCell }}
+                data-bp-tray-piece={piece}
+                className="relative flex min-h-0 items-center justify-center"
+                // A piece gliding home after a refused drop stays above its neighbours on the way (stage 2).
+                style={{ minWidth: cols * trayCell, minHeight: rows * trayCell, zIndex: returning === piece ? 30 : undefined }}
                 aria-label={`Piece ${piece + 1}`}
               >
                 <div
+                  data-bp-move=""
                   style={
                     dragInfo
                       ? {
                           ...liftStyle(dragInfo.dx, dragInfo.dy, reduced),
                           boxShadow: undefined,
-                          transform: `translate3d(${dragInfo.dx}px, ${dragInfo.dy - (reduced ? 0 : 6)}px, 0) scale(${boardCell / trayCell})`,
+                          // The rise under the finger is the kit's pick-up on the lift wrapper below (stage 2).
+                          transform: `translate3d(${dragInfo.dx}px, ${dragInfo.dy}px, 0) scale(${boardCell / trayCell})`,
                         }
                       : { touchAction: "none" }
                   }
                 >
+                  <div data-bp-lift="" className="bp-lift">
                   <PieceGlyph
                     key={turned?.piece === piece ? `t${turned.n}` : "rest"}
                     turn={turned?.piece === piece ? turned.kind : undefined}
@@ -635,6 +713,7 @@ export function BlockPartyPuzzle({
                       drag.start({ piece, from: "tray", grabR, grabC })(event)
                     }
                   />
+                  </div>
                 </div>
               </div>
             );

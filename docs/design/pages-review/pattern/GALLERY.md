@@ -73,9 +73,11 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 
 **The answer reveal** (390 × 844)
 
-| Before, unfinished | After, unfinished (Yours) | After, solved (Yours) | After, Solution |
-|---|---|---|---|
-| <img src="blockparty-reveal-before-unfinished.webp" width="160"> | <img src="blockparty-reveal-after-unfinished.webp" width="160"> | <img src="blockparty-reveal-after-solved.webp" width="160"> | <img src="blockparty-after-reveal.webp" width="160"> |
+| Before, solved | Before, unfinished | After, unfinished (Yours) | After, solved (Yours) | After, Solution |
+|---|---|---|---|---|
+| <img src="blockparty-reveal-before-solved.webp" width="160"> | <img src="blockparty-reveal-before-unfinished.webp" width="160"> | <img src="blockparty-reveal-after-unfinished.webp" width="160"> | <img src="blockparty-reveal-after-solved.webp" width="160"> | <img src="blockparty-after-reveal.webp" width="160"> |
+
+"Before, solved" is main's reveal of the solved intro example (main 36ea802, played in a worktree with real taps and drags).
 
 - The solution drawn at full width (each board the reveal fit's own target, and a caption under it: with only a
   board in the shown view the fit had drawn it at half size).
@@ -95,6 +97,54 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 - **Reveal**: see the answer reveal above.
 - **Tray**: the widest piece fits its own column (a four-long bar used to run over its neighbour once pieces were placed).
 - **Sounds**: pick-up, illegal drop (a dull thud as the piece goes back; it was silent), Undo and Reset now sound.
+
+### Stage 2: Joe's fixes and the effects
+
+**Studs and tray** (390 × 844): stage 1 | concept A | now
+
+| Stage 1 | Concept A | Now |
+|---|---|---|
+| <img src="blockparty-after-play.webp" width="180"> | <img src="blockparty-concept-A.webp" width="180"> | <img src="blockparty-fx-after-play.webp" width="180"> |
+
+<img src="blockparty-fx-closeup.webp" width="360">
+
+Close-up at a phone's 3× (stud at the board's cell size, a block at the tray's): stage 1's stud, now; stage 1's tray
+block, now.
+
+- **Studs**: one plain low brass dome on a short base, polished to a soft sheen and lit by the studio lights alone (no
+  reflected studio pattern), so it carries one crisp highlight top left; the collar and polished cap that read as an
+  engraved coin are gone.
+- **Tray**: the tray draws its own render of the same lacquered block (`tray-<colour>.webp`): a rounder, deeper bevel
+  and a little more clear coat, so the gloss and its highlight survive at the tray's third-size cells.
+- **The lifted piece** is seen under the finger over the board: the tray stopped clipping it at its top edge while it
+  is carried or gliding home (it vanished as it left the tray).
+
+**The effects** (the effects kit, `src/lib/fx/kit.ts`; every kit call silent, the game's own cue plays)
+
+| Moves: turn, illegal drop, legal drop | The last gap filled |
+|---|---|
+| <video src="blockparty-fx-moves.mp4" width="180" controls muted loop playsinline poster="blockparty-fx-moves-still.webp"></video><br><img src="blockparty-fx-moves-still.webp" width="180"> | <video src="blockparty-fx-solve.mp4" width="180" controls muted loop playsinline poster="blockparty-fx-solve-still.webp"></video><br><img src="blockparty-fx-solve-still.webp" width="180"> |
+
+| After, solved reveal (the kit's win on the result line) |
+|---|
+| <img src="blockparty-fx-after-reveal.webp" width="180"> |
+
+- **Turn**: the quick spin (the glyph's CSS turn) with the kit's tap on the piece, a click (`blockparty.turn`); a
+  flip the same with `blockparty.flip`.
+- **Pick up**: the kit's `pickUp` on the piece under the finger: it rises and grows a touch and stays up until it
+  lands (`blockparty.pickup`).
+- **Drop**: the kit's `drop` squash on the placed piece and a one-shot flash on exactly the squares it covered
+  (`blockparty.place`).
+- **Illegal**: a dull thud (`blockparty.illegal`); the piece glides back into its tray slot from where it was let go
+  (the kit's `slide`) and the slot gives the kit's `wrong` shake. A placed piece dragged somewhere it won't fit shakes
+  where it is. A tray piece let go off the board glides home silently (no move happened).
+- **Solve**: a soft band of light sweeps across the board in 480 ms, each piece pulsing and each stud glinting as it
+  passes (`blockparty.solve`); quick, because practice opens its reveal about a quarter of a second after the
+  solving drop. On the reveal the kit's `win` lands on the result line in view.
+- **Reduced motion**: every kit effect is its 120 ms crossfade; the spin, flash, glints and pulse are cut and the
+  shine is a still glow that fades.
+- Never in the way: the next move is taken during any effect (no input waits on one); effects animate only the piece's
+  own elements, never the board, arena or tray holding the hit areas.
 <!-- tessellate:end -->
 
 <!-- pipeline:start -->

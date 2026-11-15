@@ -25,10 +25,10 @@ function poseFor(placement: BlockPlacement, full: FullPuzzle) {
   throw new Error(`no pose for piece ${placement.piece}`);
 }
 
-/** Centre of glyph cell `index` of a tray piece (container > lift wrapper > glyph > cells). */
+/** Centre of glyph cell `index` of a tray piece (container > move wrapper > lift wrapper > glyph > cells). */
 async function trayCell(page: Page, piece: number, index: number) {
   const box = await page
-    .locator(`[aria-label="Piece ${piece + 1}"] > div > div > div:nth-child(${index + 1})`)
+    .locator(`[aria-label="Piece ${piece + 1}"] [data-bp-lift] > div > div:nth-child(${index + 1})`)
     .first()
     .boundingBox();
   if (!box) throw new Error(`no tray cell ${piece}/${index}`);
