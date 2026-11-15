@@ -1,5 +1,30 @@
 # Moon Climb: the stage-2 look pass and ricoRev 4, the bigger ninja (15 Nov 2026)
 
+## Stage 2: effects and the reveal (display only, no stamp)
+
+Drawn by `ricochetNinja.renderer.ts` from the sim (`moonFxEvents` notices them by comparing each drawn state with the
+last one drawn on the same canvas; ages in sim ticks; every physical action within 900 ms; reduced motion and reduced
+effects get calm versions):
+
+| Effect | Sim moment | Sound slot |
+|---|---|---|
+| Dust off the wall or ledge pushed off (slate grit, moss or ice flecks and a soft puff, 30 ticks) | a leap from a cling (`leaps` up) | `ricochet.leap` |
+| A ring of air under the feet (24 ticks) | a double jump (`djs` up) | `ricochet.doubleJump` |
+| Scuff gouges down moss or ice beside the face (hands' and feet's tracks), red from where the slide passes `MOON_FLOW_SLIDE` with a streak running; a left trail fades over 30 ticks, all red if the streak broke | clinging and sliding on moss or ice (`moonScuff`) | `ricochet.scuff` (loop), `ricochet.flowBreak` |
+| The grabbed lantern flares and sways about the hands, settling over the ride (`moonLanternSway`) | a ride starts | `ricochet.lanternSway` |
+| The scroll flies into the HUD's SCROLLS chip (24 ticks), the chip flashing as it lands | a scroll taken | `ricochet.scrollTally` (on the landing) |
+| The ninja tumbles one turn through the knock-down's fall (20 ticks), a red "−3 m" beside HEIGHT for a second | a hit | `ricochet.fallWhistle` |
+
+No edge glow (Moon Climb is one of `ACTION_EDGELESS_GAMES`); the red miss pulse stays.
+
+**The reveal** (`RunPicture` on the puzzle definition, drawn by the shared arcade reveal in place of the stat tiles):
+`moonRunSummary` (`src/lib/duel/moonSummary.ts`) replays the stored log through the real sim exactly as
+`replayMoonRun` does and `drawMoonRunPicture` draws the shaft: the climb as a column to the height reached (labelled),
+the longest Flow streak's stretch in gold, each hit a red mark with its drop and metres lost, lanterns ridden and scrolls
+taken beside it at their heights, the core's full height dashed and a ruler every 50 m; above it Height, Best flow,
+Rides n/6 and Scrolls n/3 in big type; a legend under it. ricoRev 2 rounds show their four numbers; the stage-1 hits line
+stays in the breakdown. No score or grade change.
+
 Joe's ask (the Action overhaul's stage 2; concept ricochet-A: carved slate with moss, steel katanas with gold guards
 and wrapped hilts, a cratered warm moon, a paper lantern rising across it, the pagoda in mist), and a visible step up
 from stage 1. Gallery: `docs/design/pages-review/action/GALLERY.md` "Moon Climb", "Stage 2 look pass".

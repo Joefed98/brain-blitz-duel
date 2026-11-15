@@ -10,8 +10,6 @@ The sounds to generate for them are in `action-elevenlabs.md`.
 | `swing.outOfReach` | Action overhaul (stage 2): a press with the nearest vine just out of reach | The vine glowing red for a beat | none yet (silent until it has a file) | 0–20 | 300 ms |
 | `swing.pteroShadow` | Action overhaul (stage 2): the pterodactyl's shadow sweeping across before it appears | A shadow crossing the screen | none yet (silent until it has a file) | 0–1 | 1200 ms |
 | `swing.stretchTally` | Action overhaul (stage 2): the end screen counting the stretches up | The stretch count ticking up | none yet (silent until it has a file) | 0–51 | 90 ms |
-| `ricochet.scrollTally` | Moon Climb (ricoRev 3): a taken scroll lands on the HUD's SCROLLS count | The scroll flies up into the count | none yet (silent until it has a file) | 0–3 | 400 ms |
-| `ricochet.lanternSway` | Moon Climb (ricoRev 3): a sky lantern brightens and sways as the ninja grabs it | The lantern flares and swings under the ninja's hands | none yet (silent until it has a file) | 0–6 | 500 ms |
 | `flip.nearMiss` | The runner passes a spike within a few pixels (stage 2) | A white glint on the spike | none yet (silent until it has a file) | 0–10 | 250 ms |
 | `flip.sweetGold` | A sweet-spot landing's gold dust puff (stage 2; the chime stays `flip.sweetLanding`) | A gold puff at the landing spot | none yet (silent until it has a file) | 0–8 | 350 ms |
 | `flip.flowCount` | The end card's flow best counting up (stage 2) | SURVIVED! with the flow best counting up | none yet (silent until it has a file) | 0–1 | 800 ms |

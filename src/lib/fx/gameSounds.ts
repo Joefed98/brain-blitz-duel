@@ -1691,6 +1691,8 @@ export function fiveHandsSounds(): GameSounds<FhState> {
  * lantern (library sounds; their slots were retired with Moon Climb). Rev 3: a sky lantern grabbed, its ride (a quiet
  * loop) and each Flow step. Every slot plays a library sound until Joe's file is set.
  */
+/** A scroll's flight to the HUD (ticks): MOON_FX_SCROLL_TICKS in ricochetNinja.renderer.ts (ricochet-overhaul-check holds them equal). */
+export const MOON_SCROLL_TALLY_TICKS = 24;
 export function ninjaSounds(): GameSounds<NinjaState> {
   let prev: NinjaState | null = null;
   return {
@@ -1719,9 +1721,15 @@ export function ninjaSounds(): GameSounds<NinjaState> {
             else if (ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE) sfx("ricochet.slip", "arc_retro_blip", 0.35, 0.8);
             else sfx("ricochet.land", "arc_retro_hit", 0.3);
           }
-          if (moon && moon.rides > (was.rides ?? 0)) sfx("ricochet.lanternGrab", "arc_pickup", 0.8);
+          if (moon && moon.rides > (was.rides ?? 0)) {
+            sfx("ricochet.lanternGrab", "arc_pickup", 0.8);
+            // Stage 2's effects: the grabbed lantern brightens and sways (silent until its file is set).
+            effectCue("ricochet.lanternSway");
+          }
           if (moon && moon.flow > (was.flow ?? 0)) sfx("ricochet.flow", "combo", 0.75);
         }
+        // Stage 2's effects: a taken scroll lands on the HUD's SCROLLS count MOON_SCROLL_TALLY_TICKS later (silent until its file is set).
+        if (moon && moon.scrolls > 0 && prev.tick - moon.pickTick < MOON_SCROLL_TALLY_TICKS && state.tick - moon.pickTick >= MOON_SCROLL_TALLY_TICKS) effectCue("ricochet.scrollTally");
         if (state.scrolls > prev.scrolls) sfx("ricochet.scroll", "correct", 0.9);
         else if (state.lanterns > prev.lanterns) sfx("combo", "combo", 0.85);
         else if (state.coins > prev.coins) sfx("arc_pickup", "arc_pickup", 0.8);

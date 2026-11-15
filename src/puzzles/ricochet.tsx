@@ -5,7 +5,7 @@ import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordTap, tapAt } from "@/lib/arcade/engine";
 import { auditTapAt } from "@/lib/arcade/auditInput";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import {
   MAX_CATCH_UP_TICKS,
@@ -30,11 +30,11 @@ import { haptic } from "@/lib/haptics";
 import { playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
-import { encodeMoonRun, encodeNinjaRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun } from "@/lib/duel/ricochet";
+import { encodeMoonRun, encodeNinjaRun, isMoonRev, isNinjaRev, replayNinjaRun } from "@/lib/duel/ricochet";
 import {
   ninjaCheckpoint,
   ninjaDeal,
@@ -54,7 +54,8 @@ import {
   type MoonState,
   type NinjaState,
 } from "@/lib/arcade/ricochetNinja";
-import { drawNinjaFrame, moonArtGameFor, ninjaArtGame, NINJA_BG } from "@/lib/arcade/ricochetNinja.renderer";
+import { drawMoonRunPicture, drawNinjaFrame, moonArtGameFor, MOON_RUN_COLOURS, ninjaArtGame, NINJA_BG } from "@/lib/arcade/ricochetNinja.renderer";
+import { moonRunSummary } from "@/lib/duel/moonSummary";
 import { ninjaScene } from "@/lib/arcade/ricochetNinjaScene.renderer";
 import { ninjaSounds } from "@/lib/fx/gameSounds";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
@@ -381,22 +382,113 @@ export function moonLine(r: { metres: number; rides: number; bestFlow: number; s
 
 function NinjaReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "ricochet") return null;
-  if (isMoonRev(puzzle.ricoRev)) {
-    const m = replayMoonRun(puzzle.seed, myAnswer ?? "", puzzle.ricoRev);
-    return (
-      <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-        <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{moonLine(m)}</p>
-        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{m.hits === 1 ? "1 hit" : `${m.hits} hits`} · {m.djs} double jumps</p>
-        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same tower for everyone</p>
-      </div>
-    );
-  }
+  // Moon Climb: the climb's picture (stage 2), the same the arcade reveal draws.
+  if (isMoonRev(puzzle.ricoRev)) return myAnswer ? <RunPicture puzzle={puzzle} myAnswer={myAnswer} /> : null;
   const r = replayNinjaRun(puzzle.seed, myAnswer ?? "");
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{ninjaLine(r)}</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{r.hits === 1 ? "1 hit" : `${r.hits} hits`} · {r.djs} double jumps</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same tower for everyone</p>
+    </div>
+  );
+}
+
+/* ===================== The answer reveal's run picture (stage 2) ===================== */
+
+/** The run picture's canvas height (CSS px): the shaft drawn tall. */
+const MOON_PICTURE_H = 360;
+
+/** One big number with its short label. */
+function MoonStat({ value, label, name }: { value: string; label: string; name: string }) {
+  return (
+    <div data-moon-stat={name} className="flex min-w-0 flex-1 flex-col items-center">
+      <span className="text-3xl font-extrabold leading-none tabular-nums text-foreground">{value}</span>
+      <span className="mt-1 whitespace-nowrap text-sm font-semibold text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+/** A legend entry: its mark and a short plain label. */
+function MoonLegend({ name, label, children }: { name: string; label: string; children: ReactNode }) {
+  return (
+    <span data-moon-legend={name} className="flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-foreground">
+      <span aria-hidden="true" className="inline-flex h-4 w-5 items-center justify-center">
+        {children}
+      </span>
+      {label}
+    </span>
+  );
+}
+
+/**
+ * The answer reveal's picture of the climb (the Action overhaul, stage 2, 15 Nov 2026; display only): the stored log
+ * replayed through the real sim (moonRunSummary), drawn as the shaft with the route, the hits and what was taken
+ * (drawMoonRunPicture), with the four numbers that explain the score big above it and a legend under it. Never a
+ * grade: the score is the stored one. ricoRev 2 rounds show their four numbers alone; the original shaft nothing.
+ */
+export function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const moon = puzzle.type === "ricochet" && isMoonRev(puzzle.ricoRev);
+  const summary = useMemo(() => (puzzle.type === "ricochet" && moon ? moonRunSummary(puzzle.seed, myAnswer, puzzle.ricoRev) : null), [puzzle, myAnswer, moon]);
+  const ninja = useMemo(() => (puzzle.type === "ricochet" && !moon && isNinjaRev(puzzle.ricoRev) ? replayNinjaRun(puzzle.seed, myAnswer) : null), [puzzle, myAnswer, moon]);
+  useEffect(() => {
+    const node = canvas.current;
+    if (!node || !summary) return;
+    const width = Math.max(220, Math.min(380, Math.round(wrap.current?.getBoundingClientRect().width || 320)));
+    const ratio = arcadeCanvasRatio();
+    node.width = Math.round(width * ratio);
+    node.height = Math.round(MOON_PICTURE_H * ratio);
+    node.style.width = `${width}px`;
+    node.style.height = `${MOON_PICTURE_H}px`;
+    const ctx = node.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    drawMoonRunPicture(ctx, summary, { width, height: MOON_PICTURE_H });
+  }, [summary]);
+  if (ninja) {
+    return (
+      <div data-moon-run-picture="rev2" className="flex w-full shrink-0 items-start justify-center gap-2">
+        <MoonStat name="height" value={`${ninja.metres} m`} label="Height" />
+        <MoonStat name="coins" value={String(ninja.coins)} label="Coins" />
+        <MoonStat name="lanterns" value={String(ninja.lanterns)} label="Lanterns" />
+        <MoonStat name="scrolls" value={String(ninja.scrolls)} label="Scrolls" />
+      </div>
+    );
+  }
+  if (!summary) return null;
+  return (
+    <div data-moon-run-picture="" className="flex w-full shrink-0 flex-col items-center gap-3">
+      <div className="flex w-full items-start justify-center gap-1">
+        <MoonStat name="height" value={`${summary.metres} m`} label="Height" />
+        <MoonStat name="flow" value={String(summary.bestStreak)} label="Best flow" />
+        <MoonStat name="rides" value={`${summary.rideCount}/${summary.rideTotal}`} label={summary.rideTotal === 1 ? "Ride" : "Rides"} />
+        <MoonStat name="scrolls" value={`${summary.scrollCount}/${summary.scrollTotal}`} label="Scrolls" />
+      </div>
+      <div ref={wrap} className="flex w-full justify-center">
+        <canvas
+          ref={canvas}
+          role="img"
+          data-moon-shaft
+          className="block rounded-xl"
+          style={{ height: MOON_PICTURE_H, width: "100%", maxWidth: 380 }}
+          aria-label={`Your climb: ${summary.metres} metres, ${summary.hitCount} ${summary.hitCount === 1 ? "hit" : "hits"}, ${summary.rideCount} lantern ${summary.rideCount === 1 ? "ride" : "rides"}, ${summary.scrollCount} ${summary.scrollCount === 1 ? "scroll" : "scrolls"}`}
+        />
+      </div>
+      <div className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+        <MoonLegend name="flow" label="Best flow">
+          <span className="block h-[3px] w-5 rounded" style={{ background: MOON_RUN_COLOURS.flow }} />
+        </MoonLegend>
+        {summary.hitCount > 0 ? (
+          <MoonLegend name="hit" label={summary.hitCount === 1 ? "1 hit" : `${summary.hitCount} hits`}>
+            <span className="block h-2.5 w-2.5 rounded-full" style={{ background: MOON_RUN_COLOURS.hit }} />
+          </MoonLegend>
+        ) : null}
+        <MoonLegend name="full" label={`Full height ${summary.fullM} m`}>
+          <span className="block w-5 border-t-2 border-dashed" style={{ borderColor: MOON_RUN_COLOURS.full }} />
+        </MoonLegend>
+      </div>
     </div>
   );
 }
@@ -424,4 +516,5 @@ export const ricochetPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
+  RunPicture,
 };
