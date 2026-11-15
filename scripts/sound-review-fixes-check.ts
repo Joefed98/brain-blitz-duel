@@ -121,6 +121,8 @@ const text = walk("src")
   .join("\n");
 const solveTemplate = new Set([...text.matchAll(/useSolveFx\(\s*"([a-z0-9]+)"/g)].map((m) => `${m[1]}.solve`));
 const played = (id: string) => text.includes(`"${id}"`) || text.includes(`'${id}'`) || solveTemplate.has(id);
+/** The Action overhaul's slots waiting for Joe's recordings: listed one a line in docs/sound-cues/action-elevenlabs.md. */
+const ACTION_ELEVENLABS = "waits for Joe's ElevenLabs recording (docs/sound-cues/action-elevenlabs.md); silent until its file is set";
 /** Played keys with no file of their own that keep it so, and why. */
 const EXEMPT: Record<string, string> = {
   "laser.gem": "Lightbender's gem plays its own pz_laser_gem recording on the same beam step",
@@ -134,6 +136,18 @@ const EXEMPT: Record<string, string> = {
   "tendrop.refused": "a wrong-move shake: the quiet wrong (job 2's rule; it played the tap tick)",
   "equation.advance": "a stage moment: keeps the shared stage_complete (one sound for every stage game, a decision for Joe)",
   "numline.line": "a stage moment: keeps the shared stage_complete (one sound for every stage game, a decision for Joe)",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Iron Wall's new slots wait
+  // for Joe's ElevenLabs files (each entry fails here once its url is set, so it is removed with the file).
+  "bastion.weakTing": ACTION_ELEVENLABS,
+  "bastion.shellIn": ACTION_ELEVENLABS,
+  "bastion.jamGrind": ACTION_ELEVENLABS,
+  "bastion.debris": ACTION_ELEVENLABS,
+  "bastion.nearMiss": ACTION_ELEVENLABS,
+  "bastion.panelCrack": ACTION_ELEVENLABS,
+  "bastion.wallHeld": ACTION_ELEVENLABS,
+  "bastion.tip": ACTION_ELEVENLABS,
+  "bastion.dustWind": ACTION_ELEVENLABS,
+  "bastion.stormFire": ACTION_ELEVENLABS,
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {
