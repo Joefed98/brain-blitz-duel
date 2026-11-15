@@ -3,9 +3,10 @@
 Lit as product shots (Joe's clarification, 15 Nov 2026: premium materials need light on them, highlights on curves
 and edges, never washed across a face or a number):
 
-  ruler       a polished chrome rail with rounded ends: a crisp highlight line along its top curve and a fainter one
-              along its underside, the steel reflecting a dark studio between them. The app stretches it to the line's
-              width (it is lit evenly along its length) and draws the bold end labels, the notches and the markers.
+  ruler       a flat ruler bar (360 x 80 points): a dark enamel face, even and clean, between polished bevelled chrome
+              edges and chrome end caps, the crisp highlights only on those; cut into ruler-l, ruler-m and ruler-r so
+              the app stretches only the plain middle, sideways (never vertically), and draws the ticks, end labels
+              and markers.
   card        the number card: deep navy lacquer under a clear coat, its rounded rim catching the light (a bright top
               edge, a soft lower one); the face itself stays dark and clean for the number. Drawn 9-slice by the app.
   pin         the live marker's head: polished champagne gold, a crisp highlight on its upper left.
@@ -51,18 +52,42 @@ def clear_lights():
 
 
 def ruler():
-    """360 x 36 points; the rail's body runs 6–30 down (the app maps that to the tape's thickness)."""
-    setup(360, 36, scale=3, samples=96)
-    world("#06080f", 0.0, hdri="studio.exr", hdri_strength=0.35)
+    """A flat ruler bar, 360 x 80 points at its largest display: a dark enamel face, even and clean so the app's ticks
+    and pins read, between polished bevelled chrome edges top and bottom and chrome end caps; the crisp highlights
+    sit only on those edges and caps. Written whole (ruler.webp) and cut into three slices the app draws so only the
+    plain middle stretches, and only sideways: ruler-l and ruler-r (the end caps, 24 points wide) and ruler-m (a
+    4-point slice of the plain middle)."""
+    setup(360, 80, scale=3, samples=128)
+    world("#06080f", 0.0, hdri="studio.exr", hdri_strength=0.12)
     clear_lights()
-    chrome = mat("chrome", "#d9dde4", 0.12, metal=1.0)
-    add_bump(chrome, 400, 0.01, stretch=(1, 30, 1), distance=0.0004)     # a faint polish grain along the rail
-    xcyl(6, 18, 348, 12, chrome, z=0, bevel=4, verts=96)
-    # A crisp line along the top curve and a softer one under it; a warm glint on the ends from the key.
-    strip(180, -260, 150, (180, 18, 0), 4, 1400, 2600)
-    strip(180, 280, 120, (180, 18, 0), 10, 1400, 700, color="#dbe5ff")
-    area(-40, -80, 120, 40, 260, "#fff4e2", target=(20, 18, 0))
-    write(GAME, "ruler")
+    chrome = mat("chrome", "#dfe3ea", 0.1, metal=1.0)
+    enamel = mat("enamel", "#0c1220", 0.55, coat=0.12, coat_rough=0.35, spec=0.25)
+    add_bump(enamel, 300, 0.006, distance=0.0003)
+    # The face, sunk a little between the edges.
+    box(10, 9, 340, 62, 6, enamel, r=1.5, z=0)
+    # Bevelled chrome edges: rounded rails along the top and the bottom, a little proud of the face.
+    xcyl(8, 8.5, 344, 6, chrome, z=3, bevel=2, verts=64)
+    xcyl(8, 71.5, 344, 6, chrome, z=3, bevel=2, verts=64)
+    # End caps: chrome blocks with bevels across the ends.
+    box(2, 2, 14, 76, 12, chrome, r=4, z=-1)
+    box(344, 2, 14, 76, 12, chrome, r=4, z=-1)
+    # Long lights along the rails: the top rail's upper curve and the bottom rail's lower curve take a crisp line; a
+    # low raking key glints on the caps. Nothing faces the enamel square on.
+    strip(180, -320, 150, (180, 8, 0), 4, 1400, 2400)
+    strip(180, 420, 130, (180, 72, 0), 8, 1400, 900, color="#dbe5ff")
+    area(-30, 40, 40, 16, 120, "#fff4e2", target=(8, 40, 0))
+    area(390, 40, 40, 16, 80, "#dbe5ff", target=(352, 40, 0))
+    # A soft, even fill straight down the face's length, so the enamel reads as a dark surface, not a void.
+    strip(180, 40, 400, (180, 40, 0), 60, 900, 35, color="#c9d4ff")
+    out = write(GAME, "ruler")
+    from PIL import Image
+    im = Image.open(out).convert("RGBA")
+    k = im.height / 80
+    cap, mid = round(24 * k), im.width // 2
+    im.crop((0, 0, cap, im.height)).save(out.replace("ruler.webp", "ruler-l.webp"), "WEBP", quality=88, method=6)
+    im.crop((im.width - cap, 0, im.width, im.height)).save(out.replace("ruler.webp", "ruler-r.webp"), "WEBP", quality=88, method=6)
+    im.crop((mid - round(2 * k), 0, mid + round(2 * k), im.height)).save(out.replace("ruler.webp", "ruler-m.webp"), "WEBP", quality=92, method=6)
+    print("cut ruler-l, ruler-m, ruler-r")
 
 
 def card():

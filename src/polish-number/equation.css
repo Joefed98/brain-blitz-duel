@@ -349,9 +349,10 @@
 }
 [data-puzzle-play] [data-number-overhaul] .opg-board > .nov-stage {
   flex: 0 0 auto;
+  align-self: stretch;
 }
-[data-puzzle-play] [data-number-overhaul] .opg-caption {
-  font-size: 15px;
+[data-puzzle-play] [data-number-overhaul] .opg-board > .nov-stage > .opg-equation {
+  align-self: stretch;
 }
 [data-puzzle-play] [data-number-overhaul] .opg-stage-chip {
   width: 56px;

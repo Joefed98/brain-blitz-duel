@@ -236,11 +236,11 @@ interface TapeGeom {
  * A live round's sizes (the Number overhaul's layout pass, Joe 15 Nov 2026): the line is the big element, a tall,
  * clear ruler with bold end labels and a big pin, and the number card above it small and compact. `arenaH` is the
  * arena's height; the card, the caption over it and the gaps take `NUMLINE_CARD_H` + 56 of it, the line box the rest (within
- * 250–380; the group is centred in the arena). Intros and demos keep their older sizes (140 high, a 24 px tape), so recorded touches still land.
+ * 250–520, so the card and line fill the arena; the group is centred). Intros and demos keep their older sizes (140 high, a 24 px tape), so recorded touches still land.
  */
 export const NUMLINE_CARD_H = 56;
 export function numlineLiveSizes(arenaH: number) {
-  const lineH = Math.max(250, Math.min(380, Math.round(arenaH - NUMLINE_CARD_H - 56)));
+  const lineH = Math.max(250, Math.min(520, Math.round(arenaH - NUMLINE_CARD_H - 56)));
   // The tape thickens with the room it has (72 to 92 px), the end labels with it.
   const t = Math.max(72, Math.min(92, Math.round(lineH * 0.24)));
   const label = t >= 84 ? 40 : 36;
@@ -248,8 +248,17 @@ export function numlineLiveSizes(arenaH: number) {
     lineH,
     t,
     label,
-    /** The tape's centre, a share of the box: under it the end labels, above it the pins and their labels. */
-    yShare: (lineH - (t / 2 + 8 + label + 12)) / lineH,
+    /**
+     * The tape's centre, a share of the box: above it the pins and their labels (the live pin's head and three levels
+     * of placed labels), under it the end labels; the three together sit centred in the box, so any spare height is
+     * shared above the pins and below the labels.
+     */
+    yShare: (() => {
+      const above = 88 + 2 * 24 + 24;
+      const below = t / 2 + 8 + label + 12;
+      const margin = Math.max(0, (lineH - (above + t / 2 + below)) / 2);
+      return (lineH - below - margin) / lineH;
+    })(),
     pinR: 24,
     pinRise: 88,
     placedR: 13,
@@ -293,40 +302,44 @@ export function Line({
       style={{ display: "block", overflow: "visible", ...svgStyle }}
     >
       <TapeDefs id={id} />
-      {/* The Number overhaul: the rendered satin-steel rule (docs/design/number-overhaul/source/numline.py), stretched
-          to the tape; the sprite is 360 x 36 points with the rule's body 6–30 down, so the image runs t / 24 · 36 tall. */}
-      <image
-        href={numberArt("numline", "ruler")}
-        x={left}
-        y={y - t / 2 - (6 * t) / 24}
-        width={right - left}
-        height={(36 * t) / 24}
-        preserveAspectRatio="none"
-      />
+      {/* The Number overhaul: the rendered ruler (docs/design/number-overhaul/source/numline.py), a flat bar the tape's
+          thickness tall: a dark enamel face between polished chrome edges and end caps. Drawn in three slices so only
+          the plain middle stretches, sideways; the caps keep their shape (24 x 80 points scaled to the tape). */}
+      {(() => {
+        const cap = (24 * t) / 80;
+        const top = y - t / 2;
+        return (
+          <g data-numline-ruler>
+            <image href={numberArt("numline", "ruler-m")} x={left + cap - 0.5} y={top} width={Math.max(0, right - left - 2 * cap + 1)} height={t} preserveAspectRatio="none" />
+            <image href={numberArt("numline", "ruler-l")} x={left} y={top} width={cap} height={t} preserveAspectRatio="none" />
+            <image href={numberArt("numline", "ruler-r")} x={right - cap} y={top} width={cap} height={t} preserveAspectRatio="none" />
+          </g>
+        );
+      })()}
       {minor > 0
         ? Array.from({ length: minor - 1 }, (_, i) => (i + 1) / minor).map((share) => (
             <line
               key={`m${share}`}
               data-numline-minor
               x1={x(share)}
-              y1={y - t / 2 + t * (share === 0.5 ? 0.18 : 0.3)}
+              y1={y - t / 2 + t * 0.14}
               x2={x(share)}
-              y2={y + t / 2 - t * (share === 0.5 ? 0.18 : 0.3)}
-              stroke="#14151a"
-              strokeOpacity={0.9}
+              y2={y - t / 2 + t * (share === 0.5 ? 0.6 : 0.4)}
+              stroke={share === 0.5 ? "var(--jz-gold)" : "var(--jz-white)"}
               strokeWidth={share === 0.5 ? 4 : 3}
+              strokeLinecap="square"
             />
           ))
         : null}
       {tickLabels(stage).map((tick) => (
         <g key={tick.share}>
-          {/* A crisp notch across the tape, continued below it to the label. */}
+          {/* A crisp notch down the ruler's face (white, so it reads on the enamel), continued below it to the label. */}
           <line
             x1={x(tick.share)}
-            y1={y - t / 2 - 3}
+            y1={y - t / 2 + t * 0.14}
             x2={x(tick.share)}
             y2={y + t / 2 + 6}
-            stroke="#14151a"
+            stroke="var(--jz-white)"
             strokeWidth={3}
             strokeLinecap="square"
           />
