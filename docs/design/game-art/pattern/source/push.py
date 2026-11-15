@@ -12,44 +12,44 @@ import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sprite import *  # noqa: F401,F403
 
-PX = 120  # a cell is ~40–50 css px on a phone
-LIGHT = float(os.environ.get("PUSH_LIGHT", "0.5"))
+PX = 160  # a cell is ~40–50 css px on a phone: 3–4× so the grain and brick faces stay crisp at DPR 3
+LIGHT = float(os.environ.get("PUSH_LIGHT", "0.62"))
 
 
-def tile(light=LIGHT):
-    return begin(100, PX, pad=0, light=light)
+def tile(light=LIGHT, reflect=0.5):
+    return begin(100, PX, pad=0, light=light, reflect=reflect)
 
 
 def floor():
-    """A worn stone flag, grout round its edge, filling the whole cell."""
+    """A worn sandstone flag (concept A's sand floor), grout round its edge, filling the whole cell."""
     tile()
-    grout = mat("grout", "#4a443c", 0.95)
-    stone = mat("stone", "#968a76", 0.85)
-    add_bump(stone, 40, 1.0, distance=0.03)
+    grout = mat("grout", "#5a4c3c", 0.95)
+    stone = mat("stone", "#b29f7e", 0.72, coat=0.1, coat_rough=0.4)
+    add_bump(stone, 40, 0.9, distance=0.03)
     box(0, 0, 100, 100, 4, grout, r=0)
-    box(2.5, 2.5, 95, 95, 6, stone, r=2.2)
+    box(2.5, 2.5, 95, 95, 6, stone, r=3.0)
 
 
 def wall():
     """The top of a brick wall: three courses of bricks, joints offset by a quarter cell, so neighbours line up."""
     tile(LIGHT * 0.95)
-    mortar = mat("mortar", "#3a2a22", 0.95)
-    brick = mat("brick", "#94492f", 0.78)
-    add_bump(brick, 14, 0.3, distance=0.003)
-    brick2 = mat("brick2", "#82402a", 0.8)
-    add_bump(brick2, 14, 0.3, distance=0.003)
-    box(0, 0, 100, 100, 18, mortar, r=0)
+    mortar = mat("mortar", "#3a2418", 0.95)
+    brick = mat("brick", "#7e3f28", 0.62, coat=0.15, coat_rough=0.35)
+    add_bump(brick, 26, 0.45, distance=0.01)
+    brick2 = mat("brick2", "#6e3622", 0.66, coat=0.15, coat_rough=0.35)
+    add_bump(brick2, 26, 0.45, distance=0.01)
+    box(-50, -10, 200, 120, 14, mortar, r=1)
     ch = 100 / 3
     for k in range(3):
         off = 25 if k % 2 else 0
         for j in range(-1, 3):
             x0 = off + j * 50
-            a, b = max(x0 + 1.6, 0), min(x0 + 50 - 1.6, 100)
+            a, b = x0 + 2.0, x0 + 50 - 2.0  # whole bricks; the camera crops at the cell edge
             if b - a < 2:
                 continue
             m = brick if (j + k) % 2 else brick2
-            # Bricks cut by the cell edge run flush to it (no bevel there) so the next cell continues them.
-            box(a, k * ch + 1.6, b - a, ch - 3.2, 22, m, r=1.2 if (a > 0.5 and b < 99.5) else 0.0)
+            # Whole bevelled bricks run past the cell edge; the camera crops them, so the next cell continues them.
+            box(a, k * ch + 2.0, b - a, ch - 4.0, 22, m, r=2.6)
 
 
 def mark():
@@ -68,8 +68,8 @@ def mark():
 
 def gold_mark():
     """The gold crate's own mark: a gold plate with a dark diamond inset, flat on the floor."""
-    tile()
-    gold = mat("goldplate", "#d39b25", 0.35, metal=0.9)
+    tile(reflect=1.6)
+    gold = mat("goldplate", "#f0b838", 0.28, metal=1.0, coat=0.4, coat_rough=0.12)
     dark = mat("golddark", "#4a320a", 0.6)
     box(9, 9, 82, 82, 1.0, gold, r=4)
     box(16, 16, 68, 68, 1.4, dark, r=3)
@@ -97,19 +97,19 @@ def crate_body(face, frame, brace, nails, gold=False):
 def crate():
     tile()
     crate_body(
-        wood("crateface", "#cf7a2c", "#7e3f12", scale=4, coat=0.15),
-        wood("crateframe", "#7a4018", "#3a1c08", scale=4, coat=0.15),
-        wood("cratebrace", "#94521e", "#4a260a", scale=4, coat=0.15),
-        mat("nail", "#8a8a88", 0.35, metal=1.0),
+        wood("crateface", "#c07a3e", "#6a4220", scale=5, coat=0.45),
+        wood("crateframe", "#8a5a30", "#4a2a12", scale=5, coat=0.45),
+        wood("cratebrace", "#9a6636", "#4e2e14", scale=5, coat=0.45),
+        mat("nail", "#b0b0ae", 0.25, metal=1.0),
     )
 
 
 def gold_crate():
-    tile()
+    tile(reflect=1.6)
     crate_body(
-        mat("goldface", "#e0a92e", 0.32, metal=0.85),
-        mat("goldframe", "#9a6a12", 0.4, metal=0.85),
-        mat("goldbrace", "#b9851c", 0.35, metal=0.85),
+        mat("goldface", "#f0b838", 0.28, metal=1.0, coat=0.5, coat_rough=0.12),
+        mat("goldframe", "#b07a18", 0.26, metal=1.0, coat=0.5, coat_rough=0.12),
+        mat("goldbrace", "#c8901e", 0.22, metal=1.0, coat=0.5, coat_rough=0.12),
         mat("goldnail", "#f3d27a", 0.3, metal=1.0),
         gold=True,
     )
@@ -138,10 +138,10 @@ def worker(facing):
         ellipsoid(cx, cy, rx, ry, rz, m, z=z)
 
     shirt = mat("shirt", "#26324a", 0.7)
-    vest = mat("vest", "#f06a1c", 0.6)
+    vest = mat("vest", "#f06a1c", 0.5, coat=0.2, coat_rough=0.3)
     stripe = mat("reflect", "#e8ece6", 0.45)
     skin = mat("skin", "#c98b62", 0.6)
-    hat = mat("hat", "#f2f0ea", 0.35, coat=0.4, coat_rough=0.25)
+    hat = mat("hat", "#f2f0ea", 0.3, coat=0.8, coat_rough=0.1)
     hatrim = mat("hatrim", "#c9c4b6", 0.45)
     boot = mat("boot", "#2a201a", 0.8)
     # Boots peeping out behind, arms forward to push, the body, the vest and its stripes, then the hat.

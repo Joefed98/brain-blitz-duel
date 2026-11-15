@@ -145,6 +145,7 @@ export function WarehouseBoard({
   facing,
   solveFx = false,
   gold,
+  missed,
 }: {
   walls: number[];
   targets: number[];
@@ -156,6 +157,9 @@ export function WarehouseBoard({
   solveFx?: boolean;
   /** pushRev 1 (depth batch 4): the gold crate (an index into `crates`) and its gold mark. */
   gold?: { crate: number; target: number } | undefined;
+  /** The answer reveal (the Pattern overhaul, 15 Nov 2026): a player's crates not home (indices into `crates`), outlined
+   *  red, and the marks left empty (cells), ringed; display only. */
+  missed?: { crates: number[]; marks: number[] } | undefined;
 }) {
   const id = useId().replace(/:/g, "");
   const rows = Math.ceil(cells / cols);
@@ -212,6 +216,7 @@ export function WarehouseBoard({
           key={index}
           className={`push-piece${gold?.crate === index ? " d4-gold-crate" : ""}`}
           data-gold-home={gold?.crate === index && cell === gold.target ? "" : undefined}
+          data-push-missed={missed?.crates.includes(index) ? "" : undefined}
           style={pieceStyle(cell, cols, rows)}
         >
           <div ref={(node) => void (crateNodes.current[index] = node)} className="push-piece-inner">
@@ -219,6 +224,9 @@ export function WarehouseBoard({
             {(puffs[index] ?? 0) > 0 && <DustPuff key={puffs[index]} />}
           </div>
         </div>
+      ))}
+      {missed?.marks.map((cell) => (
+        <div key={`m${cell}`} className="push-piece push-missed-mark" data-push-empty-mark={cell} style={pieceStyle(cell, cols, rows)} aria-hidden="true" />
       ))}
       {!crates.includes(pusher) && (
         <div
