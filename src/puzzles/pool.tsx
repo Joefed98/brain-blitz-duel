@@ -36,6 +36,7 @@ import {
 } from "@/lib/arcade/pool";
 import { drawPool, drawPoolHud, drawPoolPowerPanel, poolBallColour, poolSceneFor, POOL_BG, type PoolAim } from "@/lib/arcade/pool.renderer";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
+import { preloadSportsSprites } from "@/lib/arcade/sportsSprites";
 import { poolSounds } from "@/lib/fx/gameSounds";
 import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
 import type { PoolPuzzleData } from "@/lib/duel/types";
@@ -59,17 +60,26 @@ interface Spin {
   y: number;
 }
 
-/** Fixed intro still: a corner of the table, the cue behind the cue ball lined up through the ghost ball, the meter. */
+/**
+ * Fixed intro still (the Sports overhaul: concept C): the walnut table with brass pockets on the green felt, the cue
+ * behind the cue ball lined up through the ghost ball, the black dimmed with its lock (not yet: pot your seven first),
+ * and the walnut-and-brass meter.
+ */
 function IntroExample() {
+  // The Captain's arm (the Sports overhaul) loads while the intro is up, so the first aim already has it.
+  useEffect(() => {
+    preloadSportsSprites("pool", ["arm"], true);
+    preloadSportsSprites("pool", ["table"]);
+  }, []);
   const segs = Array.from({ length: 12 }, (_, i) => i);
   const segColour = (k: number) => ["#3FB25A", "#8FC93E", "#E9D23A", "#EFA52C", "#E8692A", "#D8322E"][Math.min(5, Math.floor((k / 12) * 6))]!;
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg viewBox="0 0 196 120" width={196} height={120} aria-hidden="true" style={{ background: POOL_BG, borderRadius: 10 }}>
-        <rect x={4} y={4} width={188} height={112} rx={10} fill="#4A2814" />
-        <rect x={16} y={16} width={164} height={88} fill="#1F6B45" />
-        <circle cx={18} cy={18} r={9} fill="#000" stroke="#C9CED3" strokeWidth={2} />
-        <circle cx={178} cy={18} r={9} fill="#000" stroke="#C9CED3" strokeWidth={2} />
+        <rect x={4} y={4} width={188} height={112} rx={10} fill="#3E2010" />
+        <rect x={16} y={16} width={164} height={88} fill="#1B6342" />
+        <circle cx={18} cy={18} r={9} fill="#000" stroke="#C99A4E" strokeWidth={2} />
+        <circle cx={178} cy={18} r={9} fill="#000" stroke="#C99A4E" strokeWidth={2} />
         <line x1={150} y1={16} x2={150} y2={104} stroke="rgba(240,240,230,0.3)" />
         <line x1={46} y1={46} x2={22} y2={22} stroke="#fff" strokeOpacity={0.8} strokeWidth={1.4} />
         <circle cx={52} cy={52} r={6} fill={poolBallColour(3)} />
@@ -77,7 +87,11 @@ function IntroExample() {
         <line x1={66} y1={66} x2={140} y2={84} stroke="#fff" strokeOpacity={0.75} strokeDasharray="2 4" strokeWidth={1.4} />
         <circle cx={96} cy={36} r={6} fill="#F4F1E8" />
         <rect x={90} y={33} width={12} height={6} fill={poolBallColour(10)} />
-        <circle cx={120} cy={60} r={6} fill="#111114" />
+        {/* The black, dimmed and locked until the seven are down. */}
+        <circle cx={120} cy={60} r={6} fill="#111114" opacity={0.5} />
+        <circle cx={126} cy={54} r={4.6} fill="#0C0906" stroke="#F2C75C" strokeWidth={0.8} />
+        <path d="M124.6 54 v-1 a1.4 1.4 0 0 1 2.8 0 v1" fill="none" stroke="#F2C75C" strokeWidth={0.8} />
+        <rect x={124} y={54} width={4} height={2.8} fill="#F2C75C" />
         {/* The cue behind the cue ball, along the aim. */}
         <g transform="translate(146 86) rotate(16.4)">
           <rect x={10} y={-1.4} width={60} height={2.8} fill="#E6D1A8" />
@@ -88,8 +102,8 @@ function IntroExample() {
         <circle cx={146} cy={86} r={6} fill="#F4F1E8" />
       </svg>
       <svg viewBox="0 0 196 26" width={196} height={26} aria-hidden="true">
-        <rect x={0} y={0} width={160} height={26} rx={8} fill="#7D838A" />
-        <rect x={1.5} y={1.5} width={157} height={23} rx={7} fill="#121217" />
+        <rect x={0} y={0} width={160} height={26} rx={8} fill="#C99A4E" />
+        <rect x={1.5} y={1.5} width={157} height={23} rx={7} fill="#2A1508" />
         {segs.map((k) => (
           <rect key={k} x={148 - (k + 1) * 11.5 + 1} y={7} width={9.5} height={12} fill={segColour(k)} opacity={k < 8 ? 1 : 0.22} />
         ))}
@@ -220,6 +234,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const last = useRef<PoolState | null>(null);
   const panel = useRef<HTMLCanvasElement | null>(null);
   const pullStart = useRef<{ id: number; x: number } | null>(null);
+  useEffect(() => {
+    preloadSportsSprites("pool", ["arm"], true);
+    preloadSportsSprites("pool", ["table"]);
+  }, []);
 
   /** The cue's angle this shot: the player's, else straight at the nearest ball still to play. */
   const currentAngle = (s: PoolState): number | null => {

@@ -1152,7 +1152,9 @@ export function poolSounds(): GameSounds<PoolState> {
           if (state.pots > prev.pots) feel("success");
         }
         if (state.fouls > prev.fouls) { ownCue("pool.foul", "shared.celebrate.zap", 0.7); feel("error"); }
-        if (state.black === 1 && prev.black !== 1) ownCue("pool.blackWin", "shared.celebrate.chime");
+        // The Sports overhaul's haptics: the black down legally (the clear) and the black down too soon.
+        if (state.black === 1 && prev.black !== 1) { ownCue("pool.blackWin", "shared.celebrate.chime"); feel("celebrate"); }
+        if (state.black === 2 && prev.black !== 2) feel("error");
       }
       prev = state;
     },
