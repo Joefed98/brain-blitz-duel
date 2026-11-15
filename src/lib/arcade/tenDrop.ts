@@ -547,7 +547,7 @@ export function tdGoldPlan(seed: number, plan: TenDropPlan): number[] {
  */
 export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0, goldTens = 0, earlyTicks = 0): number {
   const n = clampInt(cleared, 0, TD_TARGETS);
-  if (scoreRev >= TEN_DROP_STANDARD_REV) return tdStandardScore(n, clearTick, resets, goldTens, earlyTicks);
+  if (scoreRev >= TEN_DROP_STANDARD_REV) return tdStandardScore(n, clearTick, resets, goldTens, earlyTicks, scoreRev >= TEN_DROP_RESET_REV);
   if (scoreRev >= TEN_DROP_SCORE_REV) {
     if (n >= TD_TARGETS) {
       const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
@@ -659,14 +659,29 @@ export function tdStandardGold(goldTens: number): number {
   return Math.min(TD_STD_GOLD_MAX, TD_STD_GOLD_POINTS * clampInt(goldTens, 0, TD_TARGETS));
 }
 
-function tdStandardScore(n: number, clearTick: number, resets: number, goldTens: number, earlyTicks: number): number {
+/**
+ * tenRev 6 (the Speed overhaul, 15 Nov 2026, docs/design/game-reviews/speed.md "Tenfall"): tenRev 5's play, plan, gold
+ * tiles and every number, except that resets cost on a finished run too (tenRev 5 charged them only when the run was
+ * unfinished, so mashing to the last target cost nothing): all ten = 150 + speed + gold − tenRev 3's reset cost (5 per
+ * reset after the first 4), never below TD_RESET_FINISH_FLOOR, one above the best unfinished run.
+ */
+export const TEN_DROP_RESET_REV = 6;
+export const TD_RESET_FINISH_FLOOR = TD_STD_UNFINISHED_CAP + 1;
+
+/** tenRev 3's reset cost (5 per reset after the first 4), the one every standard stamp charges. */
+export function tdResetCost(resets: number): number {
+  return TD_REV3_RESET_COST * Math.max(0, resets - TD_REV3_FREE_RESETS);
+}
+
+function tdStandardScore(n: number, clearTick: number, resets: number, goldTens: number, earlyTicks: number, finishCost = false): number {
   const gold = tdStandardGold(goldTens);
   if (n >= TD_TARGETS) {
     const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
-    return clampInt(TD_STD_FINISH + tdStandardSpeed(left) + gold, 0, TD_DEPTH_MAX);
+    const full = TD_STD_FINISH + tdStandardSpeed(left) + gold;
+    return finishCost ? clampInt(full - tdResetCost(resets), TD_RESET_FINISH_FLOOR, TD_DEPTH_MAX) : clampInt(full, 0, TD_DEPTH_MAX);
   }
   const early = clampInt(earlyTicks, 0, n * TD_RUN_TICKS);
-  const cost = TD_REV3_RESET_COST * Math.max(0, resets - TD_REV3_FREE_RESETS);
+  const cost = tdResetCost(resets);
   const credit = Math.floor((TD_STD_TARGET_POINTS * n * TD_RUN_TICKS + early) / TD_RUN_TICKS) + gold - cost;
   return clampInt(credit, 0, TD_STD_UNFINISHED_CAP);
 }

@@ -7,6 +7,17 @@ import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { BONK_BODY, BONK_HAT, BONK_SPIKES } from './bonkShapes.renderer';
 import { SCENE_TUCK, sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 import { arcadeFx, type ArcadeFxSpec } from './arcadeFx.renderer';
+import { speedArtImage, speedArtReady, type SpeedArtName } from '@/lib/fx/speedArt';
+
+/**
+ * The Speed overhaul (15 Nov 2026, docs/design/speed-art/README.md; display only): Blender-rendered gophers in gold
+ * and red hard hats, the hedgehog, dark burrows and a darker dusk lawn. Each target sprite is drawn into the same
+ * circle the drawn target used (radius 0.3 × cell; every visible pixel inside it, speed-overhaul-check), so what is
+ * drawn is still exactly what the game counts. Until the images load (and in checks, with no DOM image) the drawn art
+ * below is used.
+ */
+const BONK_TARGET_ART: Partial<Record<number, SpeedArtName>> = { 0: 'bonk-gopher-gold', 1: 'bonk-gopher-red', 2: 'bonk-hedgehog' };
+const BONK_GROUND_ART: readonly SpeedArtName[] = ['bonk-lawn', 'bonk-burrow'];
 
 /**
  * Bonk art (Polish, 13 Oct 2026): a meadow with earth burrows, hard-hatted gophers and
@@ -147,12 +158,16 @@ export function paintMeadow(c: Ctx, width: number, height: number): void {
 }
 
 function ground(width: number, height: number, scale: number): ArtCanvas | null {
-  const key = `${width}x${height}@${scale}`;
+  // Rebuilt once when the overhaul's lawn and burrow have loaded.
+  const art = speedArtReady(BONK_GROUND_ART);
+  const key = `${width}x${height}@${scale}${art ? ':art' : ''}`;
   if (backdrop?.key === key) return backdrop.canvas;
   const canvas = artCanvas(Math.ceil(width * scale), Math.ceil(height * scale)), c = canvas ? artContext(canvas) : null;
   if (!canvas || !c) return null;
   c.scale(scale, scale);
-  paintMeadow(c, width, height);
+  const lawn = art ? speedArtImage('bonk-lawn') : null, burrow = art ? speedArtImage('bonk-burrow') : null;
+  if (lawn && burrow) paintLawn(c, width, height, lawn, burrow);
+  else paintMeadow(c, width, height);
   backdrop = { key, canvas };
   return canvas;
 }
@@ -230,7 +245,32 @@ function target(kind: number): ArtCanvas | null {
   }
   sprites.set(kind, canvas); return canvas;
 }
-export function drawTarget(c: CanvasRenderingContext2D, x: number, y: number, r: number, kind: number): void { const sprite = target(kind); if (sprite) c.drawImage(sprite, x - r, y - r, r * 2, r * 2); }
+export function drawTarget(c: CanvasRenderingContext2D, x: number, y: number, r: number, kind: number): void {
+  const name = BONK_TARGET_ART[kind];
+  const art = name ? speedArtImage(name) : null;
+  if (art) { c.drawImage(art, x - r, y - r, r * 2, r * 2); return; }
+  const sprite = target(kind); if (sprite) c.drawImage(sprite, x - r, y - r, r * 2, r * 2);
+}
+
+/**
+ * The overhaul's ground: the rendered lawn (scaled to cover the board) and a rendered burrow filling each hole's
+ * ellipse plus its earth lip (inside the cell). Nothing outside the sixteen burrows looks like one.
+ */
+function paintLawn(c: Ctx, width: number, height: number, lawn: HTMLImageElement, burrow: HTMLImageElement): void {
+  const s = Math.max(width / lawn.naturalWidth, height / lawn.naturalHeight);
+  c.drawImage(lawn, (width - lawn.naturalWidth * s) / 2, (height - lawn.naturalHeight * s) / 2, lawn.naturalWidth * s, lawn.naturalHeight * s);
+  const { cellW, cellH, origin } = grid(width, height);
+  for (let h = 0; h < WHACK_HOLES; h++) {
+    const o = origin(h), cx = o.x + cellW / 2, cy = o.y + cellH / 2;
+    // The sprite's hole (r 66 of its 80 × 75 half-box, squashed to 0.92) lands on the hole's ellipse; its thin
+    // earth lip reaches just past the cell into the gap, never a neighbour's.
+    const bw = cellW * 0.47 * (80 / 66), bh = cellH * 0.45 * (75 / (66 * 0.92));
+    c.drawImage(burrow, cx - bw, cy - bh, bw * 2, bh * 2);
+  }
+  const vignette = c.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.45, width / 2, height / 2, Math.hypot(width, height) * 0.62);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)'); vignette.addColorStop(1, 'rgba(0,0,0,0.32)');
+  c.fillStyle = vignette; c.fillRect(0, 0, width, height);
+}
 
 function pixelScale(ctx: CanvasRenderingContext2D): number {
   const t = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null;

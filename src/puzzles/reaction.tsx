@@ -1,6 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { speedArtCss } from "@/lib/fx/speedArt";
 
 import { serverNow } from "@/lib/duel/clock";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
@@ -41,6 +42,13 @@ import { SpeedRevealList } from "@/components/puzzles/SpeedRevealList";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const DECOY_COLOURS = REACTION_PLAIN_DECOYS;
+
+/** The Speed overhaul's Blender art (speedArt.ts), one style object for every render. */
+const FLASH_ART_STYLE = {
+  "--flash-wait-art": speedArtCss("flash-wait"),
+  "--flash-gold-art": speedArtCss("flash-gold"),
+  "--flash-frame-art": speedArtCss("flash-frame"),
+} as CSSProperties;
 
 /**
  * tapRev 3: every gold-like decoy (amber, border, word, half) appears at least
@@ -366,8 +374,11 @@ function ReactionArena({
         data-flash-cue={cue}
         data-flash-decoy-kind={decoy && !live ? (decoyKind ?? undefined) : undefined}
         data-game-arena="tall" className={`flash-arena relative overflow-hidden flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
+        style={FLASH_ART_STYLE}
       >
         <span aria-hidden="true" className="flash-art" />
+        {/* The Speed overhaul (15 Nov 2026): the polished walnut frame round the screen (display only). */}
+        <span aria-hidden="true" className="flash-frame" />
         {overlay && !(overlay === "word" && lastShown) && <DecoyOverlay kind={overlay} />}
         {ripple && <span key={ripple.id} aria-hidden="true" className="reaction-tap-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />}
         {live ? null : lastShown ? (
@@ -377,7 +388,11 @@ function ReactionArena({
             {lastShown.text}
           </span>
         ) : done ? (
-          <span className="relative text-base text-muted-foreground">All flashes done</span>
+          // The Speed overhaul (15 Nov 2026): a clear "Done" moment at the end (the flash count stays hidden till then).
+          <span data-flash-done="" className="flash-done relative flex flex-col items-center gap-1">
+            <span className="font-display text-5xl font-black uppercase tracking-widest text-primary">Done</span>
+            <span className="text-base text-muted-foreground">All flashes done</span>
+          </span>
         ) : decoy ? null : (
           <span className="flash-wait relative px-3 text-center font-display text-3xl font-bold uppercase tracking-widest text-muted-foreground">Wait for gold…</span>
         )}

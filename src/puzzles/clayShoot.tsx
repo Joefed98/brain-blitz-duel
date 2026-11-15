@@ -1,3 +1,4 @@
+import { HudPills } from "@/components/puzzles/HudPills";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { clayArtGameFor } from '@/lib/arcade/clayShoot.renderer';
@@ -37,6 +38,7 @@ import {
   clayStreakMultiplier,
   CLAY_DOUBLES,
   CLAY_REV_DEPTH,
+  CLAY_REV_WIDE,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
 import { CLAY_WAITING, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV } from "@/lib/arcade/clayShoot";
@@ -56,6 +58,10 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { preloadSpeedArt, speedArtFor } from "@/lib/fx/speedArt";
+
+// The Speed overhaul's Blender sprites start loading with the game's chunk (during the round intro).
+preloadSpeedArt(speedArtFor("pull"));
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
@@ -366,13 +372,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} data-stage-column="1" data-polish="clayshoot" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
-      {data.clayRev === CLAY_REV_DEPTH ? (
-        // clayRev 9: the same one line, with the hit streak's multiplier and the doubles made.
-        <p data-clay-depth className="shrink-0 whitespace-nowrap text-center font-mono text-xs font-semibold leading-none text-foreground">
-          <span className="text-primary">{hud.hits}</span>/{CLAY_COUNT} · {hud.goldHits} gold · {hud.birdHits} birds · Streak{" "}
-          <span data-clay-streak={hud.streak} className={hud.streak > 1 ? "text-primary" : undefined}>×{hud.streak}</span> · Doubles{" "}
-          <span data-clay-doubles className={hud.doubles > 0 ? "text-primary" : undefined}>{hud.doubles}/{CLAY_DOUBLES}</span>
-        </p>
+      {data.clayRev === CLAY_REV_DEPTH || data.clayRev === CLAY_REV_WIDE ? (
+        // The Speed overhaul (15 Nov 2026): the two numbers that matter mid-shot as pills (clays hit, the hit
+        // streak); gold, birds and doubles are on the reveal. clayRev 9 and 10 alike (display only).
+        <HudPills
+          testId="clayshoot"
+          className="clay-hud-pills"
+          items={[
+            { id: "clays", label: "Clays", value: `${hud.hits}/${CLAY_COUNT}`, tone: "gold" },
+            { id: "streak", label: "Streak", value: `×${hud.streak}`, ...(hud.streak > 1 ? { tone: "gold" as const } : {}) },
+          ]}
+        />
       ) : (
         <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
           <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds

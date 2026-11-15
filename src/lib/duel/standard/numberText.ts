@@ -3,6 +3,7 @@
  * the round intro SCORE line for the rounds rooms deal today. Every figure comes from number.ts (Tenfall: tenDrop.ts);
  * the maximum is the game's own (roundMaxFor).
  */
+import { preSpeedOverhaulPinned } from "../speedOverhaul";
 import { operatorGapsDealt } from "../operatorGaps";
 import { partialCreditDealt } from "../partialCredit";
 import {
@@ -125,7 +126,7 @@ export function standardNumberHelp(type: PuzzleType): string {
         { label: "Speed", how: `clear the last within ${TD_STD_FULL_BY_TICKS / 60} s for all of it, falling to 0 when the ${TD_RUN_TICKS / 60} s run ends`, max: TD_STD_SPEED_POINTS },
         { label: "Gold tiles", how: `${TD_STD_GOLD_POINTS} for each target hit with a gold tile, finished or not`, max: TD_STD_GOLD_MAX },
         { label: "Not finished", how: `${TD_STD_TARGET_POINTS} for each target hit, more for hitting it early`, max: TD_STD_UNFINISHED_CAP },
-      ], { penalties: [`After the first ${TD_REV3_FREE_RESETS} resets, each costs ${TD_REV3_RESET_COST}`], total: max });
+      ], { penalties: [`After the first ${TD_REV3_FREE_RESETS} resets, each costs ${TD_REV3_RESET_COST}${preSpeedOverhaulPinned() ? "" : ", finished or not"}`], total: max });
     default:
       return "";
   }

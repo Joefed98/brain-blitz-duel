@@ -1,5 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { speedArtCss, speedArtUrl, type SpeedArtName } from "@/lib/fx/speedArt";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { fireChainFinish } from "@/components/puzzles/chainFx";
@@ -65,6 +66,19 @@ const CHARM_GLYPH = 50;
 const BREAK_HOLD_MS = 1_000;
 const CYCLE_HIGHLIGHT_MS = 650;
 
+/** The colours with a rendered gem charm (speedArt.ts), by the drawn colour. */
+const CHARM_ART: Record<string, string> = {
+  [GLYPH_COLOURS.RED]: "red",
+  [GLYPH_COLOURS.BLUE]: "blue",
+  [GLYPH_COLOURS.GREEN]: "green",
+  [GLYPH_COLOURS.YELLOW]: "yellow",
+  [GLYPH_COLOURS.PURPLE]: "purple",
+  [GLYPH_COLOURS.ORANGE]: "orange",
+};
+
+/** The chain board's Blender art as a CSS variable (speed-overhaul.css). */
+const CHAIN_ART_STYLE = { "--chain-board-art": speedArtCss("chain-board") } as CSSProperties;
+
 /**
  * Shared gradients for the charms and links (Polish, 13 Oct 2026; display only). Rendered
  * once per screen; every charm and link references them by id.
@@ -102,6 +116,13 @@ export function ChainDefs() {
  */
 export function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; colour?: string }) {
   const inner = Math.round(size * 0.74);
+  // The Speed overhaul (15 Nov 2026): the Blender gem charm in its champagne bezel, the same footprint as the drawn
+  // charm (the sprite's bezel is 112 of its 128 px; the drawn shape 20 of 24). Unknown colours keep the drawn charm.
+  const art = colour ? CHARM_ART[colour] : undefined;
+  if (art) {
+    const px = Math.round((inner * 20 * 128) / (24 * 112));
+    return <img src={speedArtUrl(`chain-${shape}-${art}` as SpeedArtName)} width={px} height={px} alt="" aria-hidden="true" draggable={false} data-charm-art={`${shape}-${art}`} className="chain-charm chain-charm-art" />;
+  }
   const bezel = { fill: "none", stroke: "url(#chainz-bezel)", strokeWidth: 1.3, strokeLinejoin: "round" as const };
   return (
     <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden="true" className="chain-charm" style={colour ? { color: colour } : undefined}>
@@ -445,6 +466,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     <div
       ref={rootRef}
       data-polish="chain"
+      data-chain-art=""
+      style={CHAIN_ART_STYLE}
       data-stage-column="1.5" className={`relative flex min-h-0 flex-1 flex-col gap-1.5 rounded-xl pt-3 transition-colors duration-500 ${
         tier === 2 ? "bg-warn/10" : tier === 1 ? "bg-primary/10" : ""
       }`}
@@ -467,7 +490,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
           </span>
         ) : null}
       </p>
-      <ChainLinks links={links} total={rules.length} broken={broken} />
+      {/* The Speed overhaul (15 Nov 2026): "Chain broken" sits on the chain strip at the top, never over the board
+          while the round still runs. Display only. */}
+      <div data-chain-strip="" className="relative shrink-0">
+        <ChainLinks links={links} total={rules.length} broken={broken} />
+        {broken && (
+          <div data-chain-broken="" className="pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center">
+            <p className="chain-broken-strip flex h-6 items-center gap-2 whitespace-nowrap rounded-full border-2 border-warn bg-background px-3 text-xs animate-scale-in">
+              <span className="font-display font-black uppercase tracking-wider text-warn">Chain broken</span>
+              <span className="font-mono text-foreground">
+                at link {links + 1} · {ended === "momentum" ? "too slow" : "wrong tap"}
+              </span>
+            </p>
+          </div>
+        )}
+      </div>
       <div ref={arenaRef} data-play-area data-game-arena="tall" className={`relative min-h-0 w-full flex-1 ${broken ? "animate-shake" : ""}`}>
         <ChainLine nodes={board} path={path} broken={broken} />
         {board.map((node, index) => {
@@ -521,16 +558,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
                 {milestoneFlash.points > 0 ? `${milestoneFlash.at} in a row · +${milestoneFlash.points}` : `${milestoneFlash.at} in a row`}
               </span>
             ) : null}
-          </div>
-        )}
-        {broken && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="rounded-xl border-2 border-warn bg-background/90 px-4 py-3 text-center animate-scale-in">
-              <p className="font-display text-2xl font-black uppercase tracking-wider text-warn">Chain broken</p>
-              <p className="font-mono text-sm text-foreground">
-                at link {links + 1} · {ended === "momentum" ? "too slow" : "wrong tap"}
-              </p>
-            </div>
           </div>
         )}
       </div>

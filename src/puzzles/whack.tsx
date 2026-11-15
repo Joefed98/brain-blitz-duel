@@ -48,6 +48,10 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { preloadSpeedArt, speedArtFor } from "@/lib/fx/speedArt";
+
+// The Speed overhaul's Blender sprites start loading with the game's chunk (during the round intro).
+preloadSpeedArt(speedArtFor("bonk"));
 
 /** The rule box. Live (14 Oct 2026): a bigger box, outlined in the rule's colour; the intro still keeps the small pill. */
 function Banner({ red, flash, small = false }: { red: boolean; flash: boolean; small?: boolean }) {

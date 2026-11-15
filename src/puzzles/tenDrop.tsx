@@ -46,6 +46,10 @@ import { HudPills } from "@/components/puzzles/HudPills";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { preloadSpeedArt, speedArtFor } from "@/lib/fx/speedArt";
+
+// The Speed overhaul's Blender sprites start loading with the game's chunk (during the round intro).
+preloadSpeedArt(speedArtFor("tenfall"));
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 

@@ -138,12 +138,12 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE;
 }
 
 /** rev 4 and later: shots that hit nothing cost points beyond the free allowance. */
 export function clayChargesEmptyShots(rev?: number | null): boolean {
-  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH;
+  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE;
 }
 
 /** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
@@ -414,6 +414,11 @@ export interface ClayState {
    * score on CLAY_QUICK_HIT_MAP plus the quick-shot part (`qk`). Absent on older rounds.
    */
   sb?: number;
+  /**
+   * clayRev 10 only (absent before): 1 = the wider quick window (clayWideQuickCredit). Outside the checkpoint checksum,
+   * as `qk` and `sb` are.
+   */
+  qw?: 1;
   /** clayRev 8 only: the hits' quick credit, CLAY_QUICK_STEPS for a clay hit within CLAY_QUICK_FULL_TICKS of its launch. */
   qk?: number;
   /** clayRev 9 only (depth to 200): the hit streak (ClayDepth); doubles are read from the clays' status. Absent on older rounds. */
@@ -619,7 +624,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       else next.orangeHits += 1;
       next.shotHit = 1;
       next.log = pushLog(next.log, tick, CLAY_LOG_HIT, best);
-      if (state.sb === CLAY_SB_QUICK) next.qk = (state.qk ?? 0) + clayQuickCredit(tick - state.schedule.launch[best]!);
+      if (state.sb === CLAY_SB_QUICK) next.qk = (state.qk ?? 0) + (state.qw ? clayWideQuickCredit : clayQuickCredit)(tick - state.schedule.launch[best]!);
       if (state.dp) next.dp = clayStreakHit(next.dp ?? state.dp);
     } else {
       next.shotHit = 0;
@@ -880,6 +885,7 @@ export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ..
 export const clayRev5Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV5) };
 
 export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  if (rev === CLAY_REV_WIDE) return clayWideGame;
   if (rev === CLAY_REV_DEPTH) return clayDepthGame;
   if (rev === CLAY_REV_QUICK) return clayQuickGame;
   if (rev === CLAY_REV_BANDS) return clayBandsGame;
@@ -938,7 +944,7 @@ export const clayTallGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
 
 /** The sky's height (px) a stored round's clayRev plays in. */
 export function clayWorldHFor(rev?: number | null): number {
-  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH ? CLAY_TALL_H : CLAY_H;
+  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE ? CLAY_TALL_H : CLAY_H;
 }
 
 /* ================= Score bands (clayRev 7, 19 Oct 2026) ================= */
@@ -1084,4 +1090,28 @@ export function clayDepthScore(state: ClayState): ClayDepthScore {
 export const clayDepthGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
   ...clayTallGame,
   init: (seed) => ({ ...clayQuickGame.init(seed), dp: { streak: 0, best: 0, pips: 0 } }),
+};
+
+/* ============== The wider quick window (clayRev 10, 15 Nov 2026) ============== */
+
+/**
+ * clayRev 10 (the Speed overhaul, docs/design/game-reviews/speed.md "Pull!"): clayRev 9's play, schedule, doubles,
+ * streak and every number, except the quick-hit window: full credit for a clay hit within CLAY_WIDE_FULL_TICKS
+ * (0.4 s) of its launch, falling evenly to none at CLAY_WIDE_NONE_TICKS (0.6 s). clayRev 8 and 9 asked for 0.25 s,
+ * which meant a hit near the screen's edge. The credit keeps CLAY_QUICK_STEPS steps, so every part's maximum is
+ * clayRev 9's; the state adds `qw: 1` (outside the checksum).
+ */
+export const CLAY_REV_WIDE = 10;
+export const CLAY_WIDE_FULL_TICKS = 24;
+export const CLAY_WIDE_NONE_TICKS = 36;
+
+/** clayRev 10: one hit's quick credit (0–CLAY_QUICK_STEPS) on the wider window. */
+export function clayWideQuickCredit(ticksSinceLaunch: number): number {
+  const span = CLAY_WIDE_NONE_TICKS - CLAY_WIDE_FULL_TICKS;
+  return clampInt(Math.floor(((CLAY_WIDE_NONE_TICKS - ticksSinceLaunch) * CLAY_QUICK_STEPS) / span), 0, CLAY_QUICK_STEPS);
+}
+
+export const clayWideGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
+  ...clayDepthGame,
+  init: (seed) => ({ ...clayDepthGame.init(seed), qw: 1 }),
 };

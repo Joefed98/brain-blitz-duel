@@ -1,3 +1,4 @@
+import { clayQuickWindowText } from "./speedOverhaul";
 import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
 import { gridStandardHelp } from "./standard/gridText";
@@ -1497,7 +1498,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       score: scoreList([
         { label: "Clays", how: "more for each clay hit, a gold one worth double, and a bonus for all 25 with no bird hit", max: bandMapTotal(CLAY_QUICK_HIT_MAP, 150) },
-        { label: "Quick hits", how: "hit each clay within a quarter of a second of its launch (none after about 0.37 s)", max: CLAY_QUICK_POINTS },
+        // clayRev 10 (the Speed overhaul): the wider window; the pinned clayRev 9 keeps its words.
+        { label: "Quick hits", how: `hit each clay within ${clayQuickWindowText().full} of its launch (none after ${clayQuickWindowText().none})`, max: CLAY_QUICK_POINTS },
         { label: "Doubles", how: `hit both clays of each of the ${CLAY_DOUBLES} doubles, more for quick hits`, max: CLAY_DOUBLE_POINTS * CLAY_DOUBLES },
         { label: "Streak", how: "hit all 25 in one unbroken streak, more for quick hits", max: CLAY_STREAK_POINTS },
       ], { penalties: ["Each bird hit costs 10", "After 30 shots, every 20 that hit nothing cost 1"], total: "{max}" as unknown as number }),

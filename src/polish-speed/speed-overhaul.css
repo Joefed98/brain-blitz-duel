@@ -1,0 +1,61 @@
+/* The Speed overhaul (phase 2 step 4, 15 Nov 2026, docs/design/speed-art/README.md): presentation only.
+   Blender-rendered surfaces and pieces (public/speed-art/, URLs through src/lib/fx/speedArt.ts as CSS variables on
+   each game's own element), Speed's warm wood and orange on darker backgrounds, clean even light: no reflections,
+   glare or glowing edges. Nothing here changes the size or place of anything a player taps. */
+
+/* ------------------------------------------------------------ Flash */
+/* Waiting: the dark smoked glass with its faint etched rings. */
+.flash-arena[data-flash-cue="idle"] .flash-art {
+  background: var(--flash-wait-art) center / cover no-repeat, #0d0b0a;
+  box-shadow: inset 0 14px 34px rgba(0, 0, 0, 0.5);
+}
+/* The flash: the glass flooding an even warm gold (decoys keep their own flat colours, never this image). */
+.flash-arena[data-flash-cue="gold"] .flash-art {
+  background: var(--flash-gold-art) center / cover no-repeat;
+  box-shadow: none;
+}
+/* The polished walnut frame, a border image over the screen's edge (no glow, no sheen). */
+.flash-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 2 !important;
+  pointer-events: none;
+  border: 14px solid transparent;
+  border-image: var(--flash-frame-art) 80 / 14px stretch;
+  border-radius: inherit;
+}
+.flash-arena { border-color: transparent; }
+/* The "Done" moment: one gentle scale-in, then still. */
+.flash-done { animation: flash-done-in 320ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes flash-done-in { from { transform: scale(0.82); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .flash-done { animation: none; } }
+.flash-readout { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
+
+/* ------------------------------------------------------------ Ascend */
+.ascend-board[data-ascend-art] {
+  background: var(--ascend-board-art) center / cover no-repeat, #1a0f07;
+  border-color: rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+[data-ascend-art] .ascend-disc {
+  border: 0;
+  background: var(--ascend-disc-art) center / 100% 100% no-repeat;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.55);
+  color: #fffaf0;
+  text-shadow: none;
+  letter-spacing: -0.02em;
+}
+[data-ascend-art] .ascend-disc::after { display: none; }
+[data-ascend-art] .ascend-disc[data-disc="done"] { background-image: var(--ascend-disc-done-art); color: #13213a; }
+[data-ascend-art] .ascend-disc[data-disc="wrong"] { background-image: var(--ascend-disc-art); color: #fffaf0; box-shadow: 0 0 0 3px var(--warn), 0 3px 6px rgba(0, 0, 0, 0.55); }
+
+/* ------------------------------------------------------------ Don't Break the Chain */
+[data-polish="chain"][data-chain-art] [data-game-arena] {
+  background: var(--chain-board-art) center / cover no-repeat, #120903;
+  border-radius: 14px;
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.chain-charm-art { display: block; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.55)); user-select: none; -webkit-user-drag: none; }
+
+/* ------------------------------------------------------------ Pull! */
+[data-polish="clayshoot"] .clay-hud-pills { justify-content: center; }

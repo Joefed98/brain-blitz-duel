@@ -15,6 +15,7 @@
  * shimmer band is one sprite. Frames only blit, stroke and fill flat colours.
  */
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { speedArtImage, speedArtReady, type SpeedArtName } from "@/lib/fx/speedArt";
 import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -49,6 +50,22 @@ import {
 } from "./toybox.renderer";
 
 const FONT = "'Space Grotesk', 'Inter', ui-rounded, system-ui, sans-serif";
+
+/**
+ * The Speed overhaul (15 Nov 2026, docs/design/speed-art/README.md; display only): the board is Blender-rendered
+ * dark oiled wood with its four lanes (the lanes on the sim's 90 px columns), and every tile face a rendered satin
+ * enamel tile filling exactly the sprite box the drawn face used (the tile rectangle at (2, 2), so the bounds rule
+ * holds); the label is drawn in code over it, bold and flat (no gloss, no highlight), operators bigger. Until the
+ * images load (and in checks) the drawn art below is used.
+ */
+const TILE_ART: Record<Look, SpeedArtName> = {
+  digit: "tenfall-tile-digit",
+  op: "tenfall-tile-op",
+  minus: "tenfall-tile-minus",
+  refused: "tenfall-tile-refused",
+  gold: "tenfall-tile-gold",
+};
+const TILE_ART_NAMES = Object.values(TILE_ART);
 const TILE_W = TD_CONFIG.tileW;
 const TILE_H = TD_CONFIG.tileH;
 const TILE_X = (TD_COL_W - TILE_W) / 2;
@@ -89,12 +106,24 @@ let spriteSize = "";
 let band: ArtCanvas | null = null;
 
 function boardCanvas(wPx: number, hPx: number, ratio: number): ArtCanvas | null {
-  const key = `${wPx}x${hPx}@${ratio}`;
+  const art = speedArtImage("tenfall-board");
+  const key = `${wPx}x${hPx}@${ratio}${art ? ":art" : ""}`;
   if (board?.key === key) return board.canvas;
   const canvas = artCanvas(Math.max(1, Math.round(wPx * ratio)), Math.max(1, Math.round(hPx * ratio)));
   const c = canvas && artContext(canvas);
   if (!canvas || !c) return null;
   c.scale(ratio, ratio);
+  if (art) {
+    // The rendered board, stretched to the world as the sim's view is (the lanes stay on the columns).
+    c.drawImage(art, 0, 0, wPx, hPx);
+    const v = c.createRadialGradient(wPx / 2, hPx * 0.45, Math.min(wPx, hPx) * 0.35, wPx / 2, hPx / 2, Math.max(wPx, hPx) * 0.75);
+    v.addColorStop(0, "rgba(0,0,0,0)");
+    v.addColorStop(1, "rgba(0,0,0,0.32)");
+    c.fillStyle = v;
+    c.fillRect(0, 0, wPx, hPx);
+    board = { key, canvas };
+    return canvas;
+  }
   const sx = wPx / TD_W;
   // Oak, lamp-lit from above.
   const oak = c.createLinearGradient(0, 0, 0, hPx);
@@ -161,9 +190,25 @@ function boardCanvas(wPx: number, hPx: number, ratio: number): ArtCanvas | null 
   return canvas;
 }
 
+/** The chute's mouth: TD_CHUTE_PX of dark wood with a soft shadow below it. */
+export const TD_CHUTE_PX = 6;
+function drawChuteMouth(ctx: CanvasRenderingContext2D, width: number): void {
+  const g = ctx.createLinearGradient(0, 0, 0, TD_CHUTE_PX);
+  g.addColorStop(0, "#1A0D05");
+  g.addColorStop(1, "#2B170A");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, width, TD_CHUTE_PX);
+  const sh = ctx.createLinearGradient(0, TD_CHUTE_PX, 0, TD_CHUTE_PX + 10);
+  sh.addColorStop(0, "rgba(0,0,0,0.45)");
+  sh.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = sh;
+  ctx.fillRect(0, TD_CHUTE_PX, width, 10);
+}
+
 /** A tile face: (w + 4) × (h + 4) px, the tile rectangle at (2, 2), a 2 px drop shadow under it. */
 export function tileSprite(label: string, look: Look, w: number, h: number, ratio: number, fontReady: boolean): ArtCanvas | null {
-  const sizeKey = `${w.toFixed(1)}x${h.toFixed(1)}@${ratio}${fontReady ? "f" : ""}`;
+  const artReady = speedArtReady(TILE_ART_NAMES);
+  const sizeKey = `${w.toFixed(1)}x${h.toFixed(1)}@${ratio}${fontReady ? "f" : ""}${artReady ? "a" : ""}`;
   if (sizeKey !== spriteSize) {
     sprites.clear();
     spriteSize = sizeKey;
@@ -176,6 +221,19 @@ export function tileSprite(label: string, look: Look, w: number, h: number, rati
   if (!canvas || !c) return null;
   c.scale(ratio, ratio);
   const [faceTop, faceLow, edge, ink] = LOOKS[look];
+  const face = artReady ? speedArtImage(TILE_ART[look]) : null;
+  if (face) {
+    c.drawImage(face, 0, 0, w + 4, h + 4);
+    const op = look === "op" || look === "minus";
+    const big = Math.round(Math.min(h * (label.length > 1 ? 0.56 : 0.66), w * (label.length > 1 ? 0.46 : 0.56)) * (op ? 1.12 : 1));
+    c.font = `${op ? 900 : 800} ${big}px ${FONT}`;
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillStyle = ink;
+    c.fillText(label, 2 + w / 2, 2 + h / 2 + 1);
+    sprites.set(key, canvas);
+    return canvas;
+  }
   const r = Math.min(11, h * 0.2);
   // Drop shadow (2 px down, inside the 2 px allowance).
   c.fillStyle = "rgba(43,26,14,0.5)";
@@ -435,6 +493,10 @@ export function drawTenDrop(ctx: CanvasRenderingContext2D, s: TenDropState, size
     }
     ctx.restore();
   }
+  // The Speed overhaul (15 Nov 2026; display only): the chute's mouth, a dark wooden lip across the board's top
+  // edge that tiles slide out from under, so they come out of the board below the counters rather than from under
+  // the counters' strip. A tile's top 6 px are under it for a moment (taps still land where the tile is).
+  if (speedArtImage("tenfall-board")) drawChuteMouth(ctx, size.width);
 
   // Clear / reset rings from the tapped tile.
   if (!reduced) {

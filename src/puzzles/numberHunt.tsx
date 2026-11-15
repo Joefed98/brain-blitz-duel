@@ -1,5 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { speedArtCss } from "@/lib/fx/speedArt";
 
 import { serverNow } from "@/lib/duel/clock";
 import { randInt } from "@/lib/duel/random";
@@ -40,6 +41,51 @@ const AREA_W = 340;
 const AREA_H = 320;
 const MIN_GAP_PX = NUMHUNT_CIRCLE_PX + 6;
 const CONSECUTIVE_GAP_PX = 120;
+
+/** The Speed overhaul's Blender art (speedArt.ts): the walnut board and the two counters, as CSS variables. */
+const ASCEND_ART_STYLE = {
+  "--ascend-board-art": speedArtCss("ascend-board"),
+  "--ascend-disc-art": speedArtCss("ascend-disc"),
+  "--ascend-disc-done-art": speedArtCss("ascend-disc-done"),
+} as CSSProperties;
+
+/** The disc's size range (px): 44 as before, up to ASCEND_DISC_MAX where the board has the room. */
+export const ASCEND_DISC_MIN = 44;
+export const ASCEND_DISC_MAX = 60;
+/** Space kept between the two closest discs (px). */
+export const ASCEND_DISC_GAP = 6;
+
+/**
+ * The disc size for a board of w × h px: the closest pair of centres less ASCEND_DISC_GAP, within 44–60 (44 until
+ * the board is measured). Display only: the positions are the dealt ones.
+ */
+export function ascendDiscSize(spots: readonly { x: number; y: number }[], w: number, h: number): number {
+  if (w <= 0 || h <= 0 || spots.length < 2) return ASCEND_DISC_MIN;
+  let closest = Infinity;
+  for (let i = 0; i < spots.length; i++) {
+    for (let j = i + 1; j < spots.length; j++) {
+      const dx = ((spots[i]!.x - spots[j]!.x) / 100) * w;
+      const dy = ((spots[i]!.y - spots[j]!.y) / 100) * h;
+      closest = Math.min(closest, Math.hypot(dx, dy));
+    }
+  }
+  return Math.max(ASCEND_DISC_MIN, Math.min(ASCEND_DISC_MAX, Math.floor(closest - ASCEND_DISC_GAP)));
+}
+
+function useBoardSize(ref: RefObject<HTMLDivElement | null>): { w: number; h: number } {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setSize((prev) => (prev.w === el.clientWidth && prev.h === el.clientHeight ? prev : { w: el.clientWidth, h: el.clientHeight }));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return size;
+}
 
 function distancePx(a: HuntSpot, b: HuntSpot): number {
   const dx = ((a.x - b.x) / 100) * AREA_W;
@@ -87,7 +133,7 @@ export function Circle({
   return (
     <span
       data-disc={wrong ? "wrong" : done ? "done" : "todo"}
-      className={`ascend-disc flex items-center justify-center rounded-full border-2 font-mono font-bold ${
+      className={`ascend-disc flex items-center justify-center rounded-full border-2 font-display font-black ${
         wrong
           ? "border-warn bg-warn/25 text-warn"
           : done
@@ -250,6 +296,10 @@ function AscendBoard({
 }) {
   const spotsRef = useRef(spots);
   spotsRef.current = spots;
+  // The Speed overhaul (15 Nov 2026; display only): the discs grow into the room the board really has (never more
+  // than the closest pair allows, so no two ever touch); each disc's button is the disc, as before.
+  const board = useBoardSize(arenaRef);
+  const discSize = ascendDiscSize(spots, board.w, board.h);
   useEffect(() => registerFxPreview("numhunt", () => fireAscendFinish(arenaRef.current, spotsRef.current)), [arenaRef]);
   return (
     <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
@@ -268,7 +318,7 @@ function AscendBoard({
         <MoveTimer elapsed={elapsed} />
       </div>
 
-      <div ref={arenaRef} data-game-arena="tall" className={`ascend-board relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${pulse ? "animate-pulse" : ""}`}>
+      <div ref={arenaRef} data-game-arena="tall" data-ascend-art="" style={ASCEND_ART_STYLE} className={`ascend-board relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${pulse ? "animate-pulse" : ""}`}>
         {spots.map((spot, index) => (
           <button
             key={index}
@@ -279,7 +329,7 @@ function AscendBoard({
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
-            <Circle n={spot.n} done={index < next} wrong={flash === index} size={44} />
+            <Circle n={spot.n} done={index < next} wrong={flash === index} size={discSize} />
           </button>
         ))}
       </div>

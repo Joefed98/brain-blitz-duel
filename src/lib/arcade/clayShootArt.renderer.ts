@@ -35,6 +35,7 @@ import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import type { CanvasSize } from "./engine";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { reducedMotion } from "./art.renderer";
+import { speedArtImage } from "@/lib/fx/speedArt";
 import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 
 type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
@@ -303,13 +304,17 @@ const sceneryCache = new Map<string, ArtCanvas | null>();
 function scenery(kx: number, ky: number, worldH: number): ArtCanvas | null {
   const pw = Math.max(1, Math.min(2048, Math.round(W * kx)));
   const ph = Math.max(1, Math.min(2048, Math.round(worldH * ky)));
-  const key = `${pw}x${ph}:${worldH}`;
+  // The Speed overhaul (15 Nov 2026; display only): the taller sky (clayRev 6 and later) is the Blender range in late
+  // afternoon, the sun toned right down (no glare across the sky); the original 400 px sky keeps its drawn scenery.
+  const sky = worldH > H ? speedArtImage("pull-sky") : null;
+  const key = `${pw}x${ph}:${worldH}${sky ? ":art" : ""}`;
   if (sceneryCache.has(key)) return sceneryCache.get(key) ?? null;
   const surface = artCanvas(pw, ph);
   const c = surface ? artContext(surface) : null;
   if (surface && c) {
     c.scale(pw / W, ph / worldH);
-    paintScenery(c, worldH);
+    if (sky) c.drawImage(sky, 0, 0, W, worldH);
+    else paintScenery(c, worldH);
   }
   if (sceneryCache.size > 4) sceneryCache.delete(sceneryCache.keys().next().value as string);
   sceneryCache.set(key, c ? surface : null);
@@ -449,8 +454,12 @@ function star(c: CanvasRenderingContext2D, x: number, y: number, s: number): voi
 }
 
 export function drawClay(c: CanvasRenderingContext2D, x: number, y: number, gold: boolean, i: number, tick: number, k: number, still: boolean): void {
-  const body = clayBodySprite(gold, k);
-  if (body) c.drawImage(body.canvas as CanvasImageSource, x - R, y - RY, R * 2, RY * 2);
+  // The Speed overhaul (15 Nov 2026; display only): the Blender clay, satin orange or brushed gold, filling exactly
+  // the same footprint box (2R × 1.1R) as the drawn one.
+  const art = speedArtImage(gold ? "pull-clay-gold" : "pull-clay-orange");
+  const body = art ? null : clayBodySprite(gold, k);
+  if (art) c.drawImage(art, x - R, y - RY, R * 2, RY * 2);
+  else if (body) c.drawImage(body.canvas as CanvasImageSource, x - R, y - RY, R * 2, RY * 2);
   else {
     c.fillStyle = gold ? "#F5B82E" : "#E8762C";
     c.beginPath();
@@ -579,6 +588,13 @@ function drawMissPuff(c: CanvasRenderingContext2D, state: ClayState, age: number
 
 /** Bird facing +x, centred on its collision ellipse (±15 × ±9; art within ±17 × ±11). */
 export function drawBird(c: CanvasRenderingContext2D, flap: number): void {
+  // The Speed overhaul (15 Nov 2026; display only): the Blender gull, one of three wing frames by the flap, drawn in
+  // the bird's hit box plus 2 px (34 × 22, the frame's own size).
+  const frame = speedArtImage(flap > 0.33 ? "pull-bird-0" : flap < -0.33 ? "pull-bird-2" : "pull-bird-1");
+  if (frame) {
+    c.drawImage(frame, -(CLAY_BIRD_RX + 2), -(CLAY_BIRD_RY + 2), (CLAY_BIRD_RX + 2) * 2, (CLAY_BIRD_RY + 2) * 2);
+    return;
+  }
   const outline = "rgba(14,20,32,0.82)";
   const wing = (f: number, fill: string, tipFill: string) => {
     const r1x = 3;
