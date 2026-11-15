@@ -780,6 +780,9 @@ const ENTRIES = {
   "ricochet.fallWhistle": { channel: "effects", frequency: 0, ms: 900, url: null },
   "ricochet.flowBreak": { channel: "effects", frequency: 0, ms: 350, url: null },
   "ricochet.scuff": { channel: "effects", frequency: 0, ms: 2000, url: null, loop: true },
+  // Stage 2's effects (docs/sound-cues/action-overhaul-stage2.md): nothing fires them yet.
+  "ricochet.scrollTally": { channel: "effects", frequency: 0, ms: 400, url: null },
+  "ricochet.lanternSway": { channel: "effects", frequency: 0, ms: 500, url: null },
   "snip.cut": { channel: "effects", frequency: 0, ms: 230, url: null },
   "snip.springBounce": { channel: "effects", frequency: 0, ms: 80, url: null },
   "snip.hook": { channel: "effects", frequency: 0, ms: 110, url: null },

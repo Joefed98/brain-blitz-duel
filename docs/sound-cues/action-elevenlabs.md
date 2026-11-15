@@ -35,9 +35,9 @@ ring of air, so neither needs a new file. New or better sounds:
   koto string plucked and damped, a short downward bend, disappointed not harsh; 0.3 s.
 - `ricochet.scuff` (new loop, wired, silent until set): sliding down moss or ice. Soft cloth-and-sandal scrape on wet
   stone with a faint gritty hiss, seamless loop, quiet; 2 s loop.
-- `ricochet.scrollTally` (stage 2, the slot added with the fly-in): the taken scroll landing on the SCROLLS count. A
+- `ricochet.scrollTally` (registered, fired by the stage-2 fly-in): the taken scroll landing on the SCROLLS count. A
   tiny temple bell "ting" with a paper tap, bright and short; 0.4 s.
-- `ricochet.lanternSway` (stage 2): the lantern brightening and swaying as the ninja grabs it. A soft paper creak with
+- `ricochet.lanternSway` (registered, fired by the stage-2 lantern flare): the lantern brightening and swaying as the ninja grabs it. A soft paper creak with
   a warm flame flutter, gentle; 0.5 s.
 - `ricochet.heightStreak` (better, replace the shared banner file): every 50 m climbed. A single deep temple bell,
   calm, with a long soft tail; 0.9 s.

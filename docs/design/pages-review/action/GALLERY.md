@@ -28,10 +28,11 @@ the moon rises and the sky deepens with the height climbed. The HUD's second row
 
 Clip (6 s, the whole minute at 10×): <img src="ricochet/clip-moonrise.webp" width="200">
 
-Edge to edge, the play screen at 390 × 844 (practice, the run frozen at the start, as arcade-fill-check draws it):
-the slate floor carries on below the world to the screen's bottom.
+Edge to edge, the play screen at 390 × 844 below the 52 px header (the world and the play screen's fill as the stage
+composes them; left at the start, right at 173 m): the slate floor carries on below the world to the screen's bottom,
+no step at the world's edge (ricochet-overhaul-check measures it at 414 × 896, 390 × 844, 375 × 667 and a desktop size).
 
-<img src="ricochet/edge-390x844.webp" width="200">
+<img src="ricochet/edge-390x844.webp" width="360">
 
 
 ## Iron Wall
