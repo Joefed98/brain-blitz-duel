@@ -89,3 +89,121 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
 /* The arena holds the ring row and the board: no width cap on its height, so the board keeps the column's full
    width wherever the height allows (the ring row comes out of the spare height, not the board). */
 .game-column [data-polish="gravity"][data-topsy][data-stage-column] > [data-game-arena="board"] { max-height: none; }
+
+/* ---- The Pattern overhaul (15 Nov 2026, look A): rendered art (public/pattern-art/gravity/, gravity.py) ----------
+   Grey stone blocks, a dark slate floor, glossy glass marbles and cups rimmed in each ball's colour, inside a gunmetal
+   tray frame. Every image fills the box the board already gives its piece, so no square, roll or tilt changes.
+   Minimal glow: no coloured halos round balls or holes. */
+.grav-tray.topsy-tray[data-topsy-board] {
+  background: #0b0e16 url("/pattern-art/gravity/frame.webp") center / 100% 100% no-repeat;
+  box-shadow: 0 8px 16px -6px rgba(0, 0, 0, 0.7);
+}
+.grav-tray.topsy-tray[data-topsy-board] .grav-well {
+  background: #0b0e16;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+.grav-tray.topsy-tray[data-topsy-board] .grav-floor {
+  background: url("/pattern-art/gravity/floor.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.grav-tray.topsy-tray[data-topsy-board] .grav-block {
+  background: url("/pattern-art/gravity/block.webp") center / 100% 100% no-repeat;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.55);
+}
+/* The hole: the rendered cup in the ball's colour fills the socket's box; the mark sits in the dark pit, in the colour. */
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole {
+  background: none;
+  box-shadow: none;
+  width: 92%;
+  height: 92%;
+}
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole::before { content: none; }
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole > .topsy-cup {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole .topsy-mark {
+  position: relative;
+  width: 40%;
+  height: 40%;
+  fill: color-mix(in srgb, var(--ball) 85%, #fff);
+  opacity: 1;
+}
+/* A ball home sits sunk in its cup (a little smaller, the rim round it); its mark white over the marble. */
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home { background: none; box-shadow: none; }
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole > .topsy-sunk {
+  position: absolute;
+  inset: 14%;
+  width: 72%;
+  height: 72%;
+  pointer-events: none;
+}
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home .topsy-mark {
+  fill: #ffffff;
+  stroke: rgba(12, 13, 26, 0.8);
+  stroke-width: 1.6px;
+  paint-order: stroke fill;
+  width: 34%;
+  height: 34%;
+}
+/* The marble: the sphere is 88 of the image's 108 points across, so the image runs 11.4 % past the ball's box. */
+.grav-tray.topsy-tray[data-topsy-board] .topsy-ball {
+  background: none;
+  box-shadow: none;
+}
+.grav-tray.topsy-tray[data-topsy-board] .topsy-ball > .topsy-marble {
+  position: absolute;
+  inset: -11.4%;
+  width: 122.8%;
+  height: 122.8%;
+  pointer-events: none;
+  user-select: none;
+}
+.grav-tray.topsy-tray[data-topsy-board] .topsy-ball .topsy-mark {
+  position: relative;
+  width: 46%;
+  height: 46%;
+  fill: #ffffff;
+  stroke: rgba(12, 13, 26, 0.8);
+  stroke-width: 1.6px;
+  paint-order: stroke fill;
+}
+/* No glow round a ball or a cup (a contact shadow only). */
+[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-ball,
+[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-ball.is-locked {
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6));
+}
+[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-block {
+  background: url("/pattern-art/gravity/block.webp") center / 100% 100% no-repeat;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-floor {
+  background: url("/pattern-art/gravity/floor.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-well {
+  background: #0b0e16;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+.grav-tray.topsy-tray[data-topsy-board].is-solving .grav-ball-glow { display: none; }
+.topsy-ring.is-home { box-shadow: inset 0 0 0 2px var(--ball); }
+
+/* A tilt that moves nothing: a small lean only (a third of a real tilt's), back at once. */
+.grav-tray.topsy-tray[data-nudge][data-lean="U"] { transform: perspective(700px) rotateX(2deg); }
+.grav-tray.topsy-tray[data-nudge][data-lean="D"] { transform: perspective(700px) rotateX(-2deg); }
+.grav-tray.topsy-tray[data-nudge][data-lean="L"] { transform: perspective(700px) rotateY(-2deg); }
+.grav-tray.topsy-tray[data-nudge][data-lean="R"] { transform: perspective(700px) rotateY(2deg); }
+
+/* Undo and Reset in champagne gold on navy (the Pattern overhaul's controls). */
+[data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-gold) !important;
+  box-shadow: inset 0 0 0 1px var(--jz-gold-ledge);
+}
+[data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-icon]::before { -webkit-text-fill-color: var(--jz-gold); }
+[data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action]:disabled { box-shadow: inset 0 0 0 1px var(--jz-line); }
+[data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action]:disabled::before { -webkit-text-fill-color: var(--jz-text-3); }

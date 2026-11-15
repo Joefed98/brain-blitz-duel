@@ -764,7 +764,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "Fewest tilts", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Roll through a star", detail: "for bonus points." },
         { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
-        { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don’t give a tilt back; out of tilts, the next board comes.", helpOnly: true },
+        // ---- topsy:start (the Pattern overhaul, 15 Nov 2026, gravityRev 8): limits from the fewest tilts; Undo gives back.
+        prePatternNov15Pinned()
+          ? { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don’t give a tilt back; out of tilts, the next board comes.", helpOnly: true }
+          : { action: "Tilts are limited", detail: "on each board: its par plus 8. Undo and Reset give the tilt back; out of tilts, the next board comes.", helpOnly: true },
+        { action: "Arrows or a joystick:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+        // ---- topsy:end
       ],
       score: parMovesDealt() ? parMovesPatternHelp("gravity") : PATTERN_STD_HELP.gravity,
     },

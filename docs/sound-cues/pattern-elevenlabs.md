@@ -88,4 +88,23 @@ Look A: glossy lacquered blocks on a dark slab with brass studs. Today `turn` an
 
 <!-- topsy:start -->
 ## Topsy-Turvy
+
+Look A: glossy glass marbles rolling across a grey stone-and-slate tray, each dropping into a cup rimmed in its own
+colour. Every sound is small glass marbles on a hard stone tray: never a pinball, a bowling alley or a casino.
+
+- `gravity.tilt` — the balls rolling after a tilt: a low, even rumble of several glass marbles rolling across a smooth
+  stone tray, no start or end accents (it is looped and faded for exactly as long as the balls move, 0.1–0.5 s), seamless
+  loop; 1.5–3 s file. (Today the library's `arc_marble_roll.mp3`; the tray's lean itself needs no sound.)
+- `gravity.stop` — one marble coming to rest against a stone block or another marble: a tiny, dry glass-on-stone click,
+  bright but soft, no ring-out (several may sound a few ms apart, so it must stay light); 60–100 ms.
+- `gravity.lock` — **keep** (`gravity.lock.mp3`, the bright pip as a ball drops home); replace only if the new one is a
+  marble dropping into a small cup: a short hollow "plip" with a bright top, 150–220 ms.
+- `gravity.combo` — two or more balls home in one tilt: a quick rising pair of glassy pips with a soft sparkle on top,
+  playful, not a fanfare; 350–500 ms.
+- `gravity.boardClear` — a board cleared, the next one coming: the tray settling, a light wooden-stone knock and a short
+  rising three-note glass chime; satisfying, smaller than the solve; 400–600 ms.
+- `gravity.outOfTilts` — the board's last tilt used without clearing it: a closing clunk, a heavy stone lid sliding shut
+  with a dull low thud at the end; clearly "that's it", never a buzzer; 400–600 ms.
+- `gravity.solve` — **keep** (`done.rising.mp3`, every ball lighting in its cup in turn).
+- A tilt that moves nothing has no sound (a small lean only). Undo and Reset add no sound of their own.
 <!-- topsy:end -->

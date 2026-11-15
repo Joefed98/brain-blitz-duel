@@ -32,7 +32,7 @@ export const CATALOGUE_DATA: Record<PuzzleType, CatalogueEntry> = {
   tubes: { name: "Polypotions", category: "logic", timeLimitMs: 90000, revealMs: 8000, revealHeading: "Your flasks", goal: "Sort the potions so each flask is one colour." },
   safe: { name: "Safe Cracker", category: "logic", timeLimitMs: 75000, revealMs: 8000, revealHeading: "The combination", goal: "Find the four-digit code that fits every clue." },
   bomb: { name: "Bomb Defusal", category: "attention", timeLimitMs: 75000, revealMs: 8000, revealHeading: "The right moves", goal: "Defuse the bomb in six steps." },
-  gravity: { name: "Topsy-Turvy", category: "pattern", timeLimitMs: 90000, revealMs: 8000, revealHeading: "Shortest routes", goal: "Tilt to roll every ball into its own hole, three boards in a row." },
+  gravity: { name: "Topsy-Turvy", category: "pattern", timeLimitMs: 120000, revealMs: 8000, revealHeading: "Shortest routes", goal: "Tilt to roll every ball into its own hole, three boards in a row." },
   chain: { name: "Don’t Break the Chain", category: "speed", timeLimitMs: 45000, revealMs: 5000, revealHeading: "Your chain", goal: "Tap 40 charms, following the cycle." },
   nonogram: { name: "Mosaic", category: "logic", timeLimitMs: 120000, revealMs: 8000, revealHeading: "The picture", goal: "Fill cells so every line matches its numbers." },
   pairmatch: { name: "Matchmaker", category: "attention", timeLimitMs: 90000, revealMs: 5000, revealHeading: "The board", goal: "Find all fifteen pairs." },

@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { ArrowPad, gridCellCentre, useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
+import { TopsyCup, TopsyMarble } from "@/components/puzzles/pattern/topsyArt";
 import { Button } from "@/components/ui/button";
 import { useGameKeys } from "@/lib/desktop";
 import { decodeGravityTilts, encodeGravityTilts } from "@/lib/duel/gravity";
@@ -21,15 +22,17 @@ import {
   TOPSY_SIZE,
   TOPSY_STARS,
   replayTopsyPuzzle,
+  topsyBoardPar,
   topsyStart,
   topsyTilt,
   type TopsyBoard as TopsyBoardData,
   type TopsyReplay,
   type TopsyState,
+  type TopsyTilt,
 } from "@/lib/duel/topsy";
 import type { GravityDir, GravityPuzzleData } from "@/lib/duel/types";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
-import { playCorrect, playLock, playSound, playTick } from "@/lib/sound";
+import { cueHasFile, ensureLoop, playSound, playTick, stopLoop } from "@/lib/sound";
 import type { PuzzleRevealProps, PuzzleStageProps } from "@/puzzles/types";
 
 import "@/polish-pattern/topsy.css";
@@ -65,6 +68,8 @@ export interface TopsyBoardProps {
   state: TopsyState;
   size?: number | undefined;
   lean?: GravityDir | null;
+  /** The lean is a tilt that moves nothing: a smaller lean (topsy.css), the board otherwise unchanged. */
+  nudge?: boolean;
   /** The board was just cleared (or the round solved): the holes light in turn. */
   cleared?: boolean;
 }
@@ -93,7 +98,7 @@ function useRollDurations(board: TopsyBoardData, balls: readonly number[]): numb
   return ms;
 }
 
-export function TopsyBoardView({ board, state, size, lean, cleared = false }: TopsyBoardProps) {
+export function TopsyBoardView({ board, state, size, lean, nudge = false, cleared = false }: TopsyBoardProps) {
   const gridRef = useRef<HTMLDivElement | null>(null);
   const rollMs = useRollDurations(board, state.balls);
   const metrics = useGridMetrics(gridRef, TOPSY_SIZE, TOPSY_SIZE);
@@ -105,6 +110,7 @@ export function TopsyBoardView({ board, state, size, lean, cleared = false }: To
     <div
       className={`gravity-board grav-tray topsy-tray relative shrink-0${cleared ? " is-solving" : ""}`}
       data-lean={leanName}
+      data-nudge={nudge && leanName !== "none" ? "" : undefined}
       data-topsy-board=""
       style={{ width: size ?? "100%", height: size ?? "auto", aspectRatio: "1 / 1", ["--grav-cols" as string]: TOPSY_SIZE }}
     >
@@ -126,6 +132,8 @@ export function TopsyBoardView({ board, state, size, lean, cleared = false }: To
                     className={`grav-socket topsy-hole${state.balls[hole] === TOPSY_HOME ? " is-locked is-home" : ""}`}
                     style={{ ["--ball" as string]: TOPSY_COLOURS[hole], ["--order" as string]: hole }}
                   >
+                    <TopsyCup index={hole} />
+                    {state.balls[hole] === TOPSY_HOME ? <TopsyMarble index={hole} className="topsy-marble topsy-sunk" /> : null}
                     <BallMark index={hole} />
                   </span>
                 ) : null}
@@ -153,6 +161,7 @@ export function TopsyBoardView({ board, state, size, lean, cleared = false }: To
                     ["--roll-ms" as string]: `${rollMs[index]}ms`,
                   }}
                 >
+                  <TopsyMarble index={index} />
                   <BallMark index={index} />
                 </span>
               );
@@ -176,6 +185,56 @@ export function TopsyRings({ state, label }: { state: TopsyState; label?: string
   );
 }
 
+/* ------------------------------------------------------------------ sounds of a tilt */
+
+/** The rumble's loop volume (gravity.tilt, a loop slot): quiet, under the clicks and pips. */
+const RUMBLE_VOLUME = 0.42;
+let rumbleStop: ReturnType<typeof setTimeout> | null = null;
+
+/** Starts (or keeps) the roll's rumble and stops it `ms` from now, with a short fade. */
+function playTopsyRumble(ms: number): void {
+  if (rumbleStop) clearTimeout(rumbleStop);
+  if (cueHasFile("gravity.tilt")) ensureLoop("gravity.tilt", RUMBLE_VOLUME, 30);
+  // Until the loop has decoded: the library's one-shot marble roll (ensureLoop has asked for the file).
+  else playSound("arc_marble_roll", 0.6);
+  rumbleStop = setTimeout(() => stopTopsyRumble(), Math.max(60, ms - 60));
+}
+
+export function stopTopsyRumble(): void {
+  if (rumbleStop) clearTimeout(rumbleStop);
+  rumbleStop = null;
+  stopLoop("gravity.tilt", 90);
+}
+
+/** A ball's roll time on the board (the same rule as useRollDurations: squares × ROLL_MS_PER_CELL). */
+function rollTimeMs(path: readonly number[]): number {
+  return Math.max(ROLL_MIN_MS, (path.length - 1) * ROLL_MS_PER_CELL);
+}
+
+/**
+ * The sounds of one tilt that moved something, timed on the roll the board draws (display only): the rumble while any
+ * ball moves (`gravity.tilt`), a click as each ball comes to rest (`gravity.stop`), a bright pip as each drops home
+ * (`gravity.lock`; two or more in the tilt add `gravity.combo`), then the board-cleared sound (`gravity.boardClear`)
+ * or, when the tilt used the board's last one, the closing clunk (`gravity.outOfTilts`). Returns the timers.
+ */
+export function topsyTiltSounds(out: TopsyTilt, boardCleared: boolean, outOfTilts: boolean): ReturnType<typeof setTimeout>[] {
+  const timers: ReturnType<typeof setTimeout>[] = [];
+  const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+  const moving = out.paths.filter((p) => p.length > 1);
+  const longest = Math.max(0, ...moving.map(rollTimeMs));
+  playTopsyRumble(longest);
+  const dropped = new Set(out.dropped);
+  out.paths.forEach((path, ball) => {
+    if (path.length < 2) return;
+    if (dropped.has(ball)) at(rollTimeMs(path), () => soundCue("gravity.lock"));
+    else at(rollTimeMs(path), () => soundCue("gravity.stop"));
+  });
+  if (out.dropped.length >= 2) at(Math.max(...out.dropped.map((b) => rollTimeMs(out.paths[b]!))) + 60, () => soundCue("gravity.combo"));
+  if (boardCleared) at(longest + 220, () => soundCue("gravity.boardClear"));
+  else if (outOfTilts) at(longest + 120, () => soundCue("gravity.outOfTilts"));
+  return timers;
+}
+
 /* ------------------------------------------------------------------ the live stage */
 
 /** The ring row's height and its gap to the board. */
@@ -194,6 +253,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   const data = puzzle as GravityPuzzleData & { boards: TopsyBoardData[] };
   const [tilts, setTilts] = useStageState<GravityDir[]>(stateKey, "topsyTilts", () => []);
   const [lean, setLean] = useState<GravityDir | null>(null);
+  const [nudge, setNudge] = useState(false);
   const submitted = useRef(false);
   const reduced = usePrefersReducedMotion();
   const boardSpaceRef = useRef<HTMLDivElement | null>(null);
@@ -221,18 +281,22 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   const limitHere = limits[shown] ?? 0;
   const over = replay.over;
 
-  // Sounds: a ball home, a star, a cleared board (a tilt plays on press).
-  const seen = useRef({ home: replay.home, stars: replay.stars, cleared: replay.cleared });
+  // Sounds (the Pattern overhaul, 15 Nov 2026): every sound of a tilt is timed from the press, on the board's own roll
+  // (topsyTiltSounds): the rumble while balls move, a click as each stops, a pip as each drops home (a combo for two or
+  // more), the board-cleared sound, the closing clunk when the board runs out of tilts. Stars (older stamps) tick here.
+  const seenStars = useRef(replay.stars);
   useEffect(() => {
-    const before = seen.current;
-    if (replay.cleared > before.cleared && !replay.solved) playCorrect();
-    else if (replay.home > before.home) {
-      playLock();
-      soundCue("gravity.lock");
-    }
-    if (replay.stars > before.stars) playTick(0.8);
-    seen.current = { home: replay.home, stars: replay.stars, cleared: replay.cleared };
-  }, [replay]);
+    if (replay.stars > seenStars.current) playTick(0.8);
+    seenStars.current = replay.stars;
+  }, [replay.stars]);
+  const soundTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(
+    () => () => {
+      for (const t of soundTimers.current) clearTimeout(t);
+      stopTopsyRumble();
+    },
+    [],
+  );
 
   useEffect(() => {
     onDraftAnswer?.(encodeGravityTilts(tilts));
@@ -272,12 +336,23 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   }, []);
   const press = (dir: GravityDir) => {
     if (blocked) return;
-    playSound("pz_gravity_pull");
-    soundCue("gravity.tilt");
-    setLean(dir);
+    const index = replay.current;
+    const playing = data.boards[index];
+    if (!playing) return;
+    const out = topsyTilt(playing, new Set(playing.walls), currentBoardState(data, replay, index), dir);
     if (leanTimer.current) clearTimeout(leanTimer.current);
-    leanTimer.current = setTimeout(() => setLean(null), 200);
-    setTilts((current) => [...current, dir]);
+    setLean(dir);
+    // A tilt that moves nothing: a small lean and nothing else (no sound, no draft; the server never counted it).
+    setNudge(!out.moved);
+    leanTimer.current = setTimeout(() => setLean(null), out.moved ? 200 : 140);
+    if (!out.moved) return;
+    const next = [...tilts, dir];
+    const nextReplay = replayTopsyPuzzle(data, next);
+    const after = nextReplay.boards[index];
+    // The solving tilt's last sound is the solve's own (useSolveMoment's gravity.solve), not the board-cleared one.
+    for (const t of topsyTiltSounds(out, Boolean(after?.cleared) && !nextReplay.solved, Boolean(after?.outOfTilts))) soundTimers.current.push(t);
+    soundTimers.current = soundTimers.current.slice(-64);
+    setTilts(next);
   };
 
   const starsHere = board.stars.filter((_, i) => state.starMask & (1 << i)).length;
@@ -285,6 +360,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   const tiltText = limitHere ? `${tiltsHere} / ${limitHere}` : `${tiltsHere}`;
   const outOfTilts = Boolean(boardResult?.outOfTilts);
   const par = shownPar(data);
+  const boardPar = topsyBoardPar(data, shown);
 
   return (
     <div data-stage-column="2" data-polish="gravity" data-topsy="" className="flex min-h-0 flex-1 flex-col gap-2">
@@ -304,6 +380,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
             board={board}
             state={state}
             lean={lean}
+            nudge={nudge}
             cleared={solving || Boolean(boardResult?.cleared)}
             size={Math.max(0, Math.floor(Math.min(boardSpace.width, boardSpace.height - TOPSY_HEAD_PX)))}
           />
@@ -315,7 +392,14 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
           board's tilts left (red from five; the move-limit counter, `limit`). */}
       <FramePills
         testId="gravity"
-        items={par !== null
+        items={boardPar !== null
+          ? [
+              // gravityRev 8 (the Pattern overhaul): the board's own tilts (undone ones given back) against its par.
+              ...parPills("Tilts", tiltsHere, boardPar),
+              { id: "home", label: "Home", value: `${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}` },
+              limitHere ? { id: "left", label: "Left", value: Math.max(0, limitHere - tiltsHere), limit: limitHere, ...(limitHere - tiltsHere <= 3 ? { tone: "warn" as const } : {}) } : null,
+            ]
+          : par !== null
           ? [
               ...parPills("Tilts", replay.tilts, par),
               { id: "home", label: "Home", value: `${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}` },
@@ -382,15 +466,17 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) 
           ))}
         </p>
       ) : null}
-      <p className="font-display text-2xl font-bold">
+      {/* The Pattern overhaul (15 Nov 2026): the routes above are the solution; these lines are the player's own, labelled
+          "You:" so they never read as the solution's (no stray mark between a count and its unit). */}
+      <p className="font-display text-2xl font-bold" data-own-count="">
+        <span className="mr-2 font-mono text-base uppercase tracking-widest text-muted-foreground">You:</span>
         <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
-          {replay.cleared} / {TOPSY_BOARDS}
+          {replay.cleared} of {TOPSY_BOARDS}
         </span>
-        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">boards</span>
+        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">boards cleared</span>
       </p>
-      <p className="font-mono text-base text-muted-foreground">
-        {replay.home} / {TOPSY_BALLS * TOPSY_BOARDS} home{usesParMoves(data) ? "" : ` · ${replay.stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars`} · {replay.tilts} tilts
+      <p className="font-mono text-base text-muted-foreground" data-own-count="">
+        {replay.home} of {TOPSY_BALLS * TOPSY_BOARDS} balls home{usesParMoves(data) ? "" : ` · ${replay.stars} of ${TOPSY_BOARDS * TOPSY_STARS} stars`} · {replay.tilts} {replay.tilts === 1 ? "tilt" : "tilts"}
       </p>
     </div>
   );
