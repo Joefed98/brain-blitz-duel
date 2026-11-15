@@ -313,7 +313,11 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
     const info = webpInfo(n);
     total += info.bytes;
     check(info.riff && info.alpha, `${n}.webp isn't a WebP with alpha`);
-    check(info.bytes <= 25_000, `${n}.webp is ${info.bytes} bytes (over 25 KB)`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): the richness pass gives
+    // the rink (the whole 12 × 12 sheet, not a piece) real depth, scratches and bubbles, so it has its own 120 KB
+    // budget; every piece keeps 25 KB and the game its 400 KB total.
+    const limit = n === "rink" ? 120_000 : 25_000;
+    check(info.bytes <= limit, `${n}.webp is ${info.bytes} bytes (over ${limit / 1000} KB)`);
     check(info.w === info.h, `${n}.webp is ${info.w}×${info.h}, not its square cell's shape`);
     check(info.w >= (n === "rink" ? 640 : 90), `${n}.webp is only ${info.w} px`);
   }
