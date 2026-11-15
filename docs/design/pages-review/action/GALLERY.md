@@ -201,6 +201,27 @@ climbs: <img src="skyline/clip-dusk-to-night.webp" width="240">
 Before (main), for reference: <img src="skyline/before-start.webp" width="120"> <img src="skyline/before-mid.webp" width="120"> <img src="skyline/before-end.webp" width="120">
 
 
+
+### Stage 2: effects and reveal
+
+Joe's effects list (docs/arcade-standard/skyline.md "Stage 2"), drawn by the game's own renderer on one scripted skylineRev
+11 run (five trims, a rescue, two lost lives, a sliver), in @napi-rs/canvas (`bun scripts/shots/skyline-stage2-shots.ts
+<dir>`): the block falling the last floor, the perfect drop's gold ring at the join and the lit grown strip, the trimmed
+overhang spinning off with crumbs at the cut, a sliver tipping on its foot, a lost block tumbling under "−1 LIFE", and the
+end's count over the whole tower. No edge glow on any of them (the shared layer draws none for the Action games).
+
+<img src="skyline/effects-s2.webp" width="900">
+
+The end, a frame every 100 ms: the hook goes, the camera pulls back over the tower and the count rises to the floors
+built. <img src="skyline/clip-s2-end.webp" width="200">
+
+The answer reveal, the same run: today's breakdown and stat tiles | the new picture of the run under the same breakdown,
+with Floors, Perfect drops and Best streak big and a legend (gold perfect drops, glass trims, teal wide blocks, red lost
+lives, the best streak bracketed). Drawn on the reveal's gradient at the reveal's type sizes; the app's own CSS sets the
+text (the picture itself is the real `drawSkylineRunPicture`).
+
+<img src="skyline/reveal-s2.webp" width="640">
+
 ## Orbit
 
 <!-- orbit -->

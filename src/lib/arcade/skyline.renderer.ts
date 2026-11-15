@@ -10,7 +10,7 @@ import type { ArcadeFxSpec } from "./arcadeFx.renderer";
  * is the same render-only eased zoom/scroll as skyline.ts.
  */
 import { px, type CanvasSize } from "./engine";
-import { skylineFlagAt, skylineGustAt, skylineWorldH, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
+import { skylineFlagAt, skylineGustAt, skylineWorldH, SKYLINE_RUN_TICKS, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
 import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import {
   skylineKindAt,
@@ -48,16 +48,24 @@ const GROUND_LIFT = 22;
 const SKYLINE_WORLD_RIGHT_FP = SKYLINE_WORLD_W * 256;
 const JIB_Y = 30;
 const CHUNK_MS = 900;
+/** Turns (radians over the chunk's 900 ms) a trimmed overhang and a lost block spin as they fall (stage 2). */
+const TRIM_SPIN = 2.2;
+const LOST_SPIN = 3.4;
 const SPARK_TICKS = 18;
 
 const zoomMemo = new WeakMap<CanvasRenderingContext2D, number>();
 
-interface Chunk { x: number; w: number; top: number; dir: number; at: number; colour: number }
-interface Memory { tick: number; len: number; x: number; w: number; missed: boolean; lost: number; chunks: Chunk[]; placementTicks: number[] }
+interface Chunk { x: number; w: number; top: number; dir: number; at: number; colour: number; spin: number; drift: number }
+/**
+ * The last landing (stage 2's effects, 15 Nov 2026; display only): the sim tick it landed, what kind of drop it was,
+ * and the block below's span (for the perfect drop's grown strip and the trim's cut edges).
+ */
+interface Landing { tick: number; kind: "perfect" | "trim" | "sliver" | "whole"; belowX: number; belowW: number; slideX: number; slideW: number }
+interface Memory { tick: number; len: number; x: number; w: number; missed: boolean; lost: number; chunks: Chunk[]; placementTicks: number[]; landing: Landing | null; endAt: number }
 const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
 
 function remember(ctx: CanvasRenderingContext2D, s: SkylineState): Memory {
-  const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, lost: s.livesLost ?? 0, chunks: [], placementTicks: new Array(s.blocks.length).fill(-1e9) }));
+  const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, lost: s.livesLost ?? 0, chunks: [], placementTicks: new Array(s.blocks.length).fill(-1e9), landing: null, endAt: -1 }));
   const blockH = px(SKYLINE_BLOCK_H);
   // The tower stands on the plaza (GROUND_LIFT px above the world's bottom; display only).
   const SKYLINE_WORLD_H = skylineWorldH(s) - GROUND_LIFT;
@@ -65,23 +73,29 @@ function remember(ctx: CanvasRenderingContext2D, s: SkylineState): Memory {
   if (s.tick !== m.tick) {
     if (s.blocks.length > m.len) {
       for (let i = m.len; i < s.blocks.length; i++) m.placementTicks[i] = s.tick;
+      const top = s.blocks[s.blocks.length - 1]!;
+      const below = s.blocks[s.blocks.length - 2] ?? top;
+      // A perfect drop since the last frame drawn (frames can carry several ticks), else a trim, a sliver or a whole block.
+      const perfect = s.perfectTick > m.tick;
+      const kind = perfect ? "perfect" : top.w * 4 < m.w ? "sliver" : top.w < m.w ? "trim" : "whole";
+      m.landing = { tick: perfect ? s.perfectTick : s.tick, kind, belowX: below.x, belowW: below.w, slideX: m.x, slideW: m.w };
     }
     if (s.blocks.length > m.len && s.perfectTick !== s.tick) {
       const top = s.blocks[s.blocks.length - 1]!;
       const y = SKYLINE_WORLD_H - (s.blocks.length - 1) * blockH - blockH;
       const idx = s.blocks.length - 1;
-      if (top.x > m.x) m.chunks.push({ x: m.x, w: top.x - m.x, top: y, dir: -1, at: now, colour: idx });
+      if (top.x > m.x) m.chunks.push({ x: m.x, w: top.x - m.x, top: y, dir: -1, at: now, colour: idx, spin: TRIM_SPIN, drift: 40 });
       const r0 = top.x + top.w;
       const r1 = m.x + m.w;
-      if (r1 > r0) m.chunks.push({ x: r0, w: r1 - r0, top: y, dir: 1, at: now, colour: idx });
+      if (r1 > r0) m.chunks.push({ x: r0, w: r1 - r0, top: y, dir: 1, at: now, colour: idx, spin: TRIM_SPIN, drift: 40 });
     }
     if (s.missed && !m.missed) {
       const y = SKYLINE_WORLD_H - s.blocks.length * blockH - blockH;
-      m.chunks.push({ x: m.x, w: m.w, top: y, dir: s.dir, at: now, colour: s.blocks.length });
+      m.chunks.push({ x: m.x, w: m.w, top: y, dir: s.dir, at: now, colour: s.blocks.length, spin: LOST_SPIN, drift: 70 });
     } else if ((s.livesLost ?? 0) > m.lost && s.lostW) {
       // skylineRev 11: a life lost; the missed block falls away from where it hung.
       const y = SKYLINE_WORLD_H - s.blocks.length * blockH - blockH;
-      m.chunks.push({ x: s.lostX ?? m.x, w: s.lostW, top: y, dir: s.lostX !== undefined && s.lostX > 0 ? 1 : -1, at: now, colour: s.blocks.length });
+      m.chunks.push({ x: s.lostX ?? m.x, w: s.lostW, top: y, dir: s.lostX !== undefined && s.lostX > 0 ? 1 : -1, at: now, colour: s.blocks.length, spin: LOST_SPIN, drift: 70 });
     }
     m.lost = s.livesLost ?? 0;
     m.tick = s.tick;
@@ -91,6 +105,10 @@ function remember(ctx: CanvasRenderingContext2D, s: SkylineState): Memory {
     m.missed = s.missed;
   }
   m.chunks = m.chunks.filter((c) => now - c.at < CHUNK_MS);
+  // The run's end (stage 2): the moment the camera starts pulling back and the floor count starts counting up.
+  const over = s.missed || s.tick >= SKYLINE_RUN_TICKS;
+  if (over && m.endAt < 0) m.endAt = now;
+  else if (!over) m.endAt = -1;
   return m;
 }
 
@@ -691,12 +709,18 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   const middle = SKYLINE_WORLD_H * (expand ? EXPAND_CLIMB : 0.5);
   let target = towerH + blockH <= middle ? 1 : Math.max(expand ? EXPAND_MIN_ZOOM : SKYLINE_MIN_ZOOM, middle / (towerH + blockH));
   if (expand && milestoneAge(state) < MILESTONE_TICKS) target = Math.min(target, Math.max(MILESTONE_ZOOM_MIN, (SKYLINE_WORLD_H * 0.55) / (towerH + blockH * 3)));
+  // Stage 2: the run's end pulls the camera back over the whole tower (display only).
+  const ended = mem.endAt >= 0;
+  if (ended) target = Math.min(target, Math.max(END_ZOOM_MIN, (SKYLINE_WORLD_H * END_FIT) / (towerH + blockH + GROUND_LIFT)));
   const prev = zoomMemo.get(ctx);
-  const ease = expand ? (reducedMotion() ? 1 : 0.09) : 0.12;
+  const ease = ended ? (reducedMotion() ? 1 : END_EASE) : expand ? (reducedMotion() ? 1 : 0.09) : 0.12;
   const zoom = prev === undefined || state.tick < 2 ? target : prev + (target - prev) * ease;
   zoomMemo.set(ctx, zoom);
   const visibleH = SKYLINE_WORLD_H / zoom;
-  const camScroll = Math.max(0, towerH + blockH + GROUND_LIFT - visibleH * (expand ? EXPAND_CLIMB : 0.5));
+  const camScroll = Math.max(0, towerH + blockH + GROUND_LIFT - visibleH * (ended ? END_FIT : expand ? EXPAND_CLIMB : 0.5));
+  const landing = mem.landing;
+  const landAge = landing ? state.tick - landing.tick : Infinity;
+  const still = reducedMotion();
 
   drawBackdrop(ctx, SKYLINE_WORLD_H, night);
 
@@ -705,8 +729,29 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   ctx.scale(zoom, zoom);
   ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H + camScroll);
 
+  // Stage 2: the tower squashes about 2 px as a block lands and settles (a damped spring from the plaza; display only).
+  const squash = !still && landAge >= DROP_FALL_TICKS ? skylineSquashPx(landAge - DROP_FALL_TICKS) : 0;
+  ctx.save();
+  if (squash !== 0 && towerH > 0) {
+    ctx.translate(0, floorH);
+    ctx.scale(1, 1 - squash / towerH);
+    ctx.translate(0, -floorH);
+  }
+  const lastIndex = state.blocks.length - 1;
   state.blocks.forEach((block, index) => {
-    const top = floorH - index * blockH - blockH;
+    let top = floorH - index * blockH - blockH;
+    // Stage 2: the block just dropped falls the last floor's height from the hook (5 ticks, display only).
+    const falling = index === lastIndex && index > 0 && !still && landAge < DROP_FALL_TICKS;
+    if (falling) top -= blockH * (1 - (landAge / DROP_FALL_TICKS) ** 2);
+    // Stage 2: a sliver (under a quarter of the block on the tower) wobbles on its foot, at most 2 px at its corners.
+    const wobble = index === lastIndex && landing?.kind === "sliver" && !still ? skylineSliverTilt(landAge - DROP_FALL_TICKS) : 0;
+    if (wobble !== 0) {
+      ctx.save();
+      const fx = px(block.x + block.w / 2);
+      ctx.translate(fx, top + blockH);
+      ctx.rotate(wobble);
+      ctx.translate(-fx, -(top + blockH));
+    }
     if (index > 0) {
       const below = state.blocks[index - 1]!;
       // Soft shadow on the block below, inside its own rectangle.
@@ -718,7 +763,13 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     drawBlock(ctx, px(block.x), top, px(block.w), blockH, index, state.tick - (mem.placementTicks[index] ?? state.tick), night);
     // skylineRev 7: a special block keeps its look once placed (block 0 is the base).
     if (expand && index > 0) drawKindMark(ctx, skylineKindAt(state, index - 1), px(block.x), top, px(block.w), blockH, state.tick, false);
+    if (wobble !== 0) ctx.restore();
   });
+  // Stage 2: a perfect drop's gold ring at the join and the grown strip lit (the tower's own transform, so they squash with it).
+  if (landing?.kind === "perfect" && lastIndex > 0 && landAge >= DROP_FALL_TICKS) drawPerfectJoin(ctx, state.blocks[lastIndex]!, landing, floorH - lastIndex * blockH, landAge - DROP_FALL_TICKS, still);
+  // Stage 2: a trim crumbles at the cut edges.
+  if ((landing?.kind === "trim" || landing?.kind === "sliver") && lastIndex > 0 && !still) drawTrimCrumbs(ctx, state.blocks[lastIndex]!, landing, floorH - lastIndex * blockH - blockH, landAge);
+  ctx.restore();
 
   const hangTop = floorH - state.blocks.length * blockH - blockH;
   // skylineRev 2: the flag flies from the top block once the wind can blow.
@@ -727,7 +778,8 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     drawFlag(ctx, px(top.x + top.w / 2), hangTop + blockH, skylineFlagAt(state, state.tick), state.tick, zoom);
   }
   let hookX = SKYLINE_WORLD_W / 2;
-  if (!state.missed) {
+  // The hanging block and its cable (gone at the run's end, while the camera pulls back over the tower).
+  if (!state.missed && !ended) {
     const bx = px(state.x);
     const bw = px(state.w);
     hookX = bx + bw / 2;
@@ -762,10 +814,6 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
         ctx.fillRect(ex + vx * age, seamY + vy * age + 0.06 * age * age, 2, 2);
       }
     }
-  } else if (state.perfectTick > 0 && age < SPARK_TICKS) {
-    const seamY = floorH - (state.blocks.length - 1) * blockH;
-    ctx.fillStyle = REAL_GOLD;
-    ctx.fillRect(-SKYLINE_WORLD_W, seamY - 1, SKYLINE_WORLD_W * 3, 2);
   }
 
   void SKYLINE_PERFECT_GROW;
@@ -777,8 +825,8 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     const fall = 900 * k * k;
     ctx.save();
     ctx.globalAlpha = 1 - k;
-    ctx.translate(px(c.x) + px(c.w) / 2 + c.dir * 40 * k, c.top + blockH / 2 + fall);
-    ctx.rotate(c.dir * k * 1.4);
+    ctx.translate(px(c.x) + px(c.w) / 2 + c.dir * c.drift * k, c.top + blockH / 2 + fall);
+    ctx.rotate(c.dir * k * (still ? 0 : c.spin));
     drawBlock(ctx, -px(c.w) / 2, -blockH / 2, px(c.w), blockH, c.colour, Infinity, night);
     ctx.restore();
   }
@@ -794,6 +842,8 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   const perfectTop=state.blocks.at(-1);
   const popX=perfectTop?(px(perfectTop.x+perfectTop.w/2)-SKYLINE_WORLD_W/2)*zoom+SKYLINE_WORLD_W/2:0;
   const popY=SKYLINE_WORLD_H+(-(state.blocks.length-1)*blockH-GROUND_LIFT+camScroll)*zoom;
+  // The next join (the top block's top edge) in the success layer's coordinates, where its next perfect burst goes.
+  if (perfectTop) skylineJoin = { x: popX, y: SKYLINE_WORLD_H + (-state.blocks.length * blockH - GROUND_LIFT + camScroll) * zoom };
   if(perfectTop)successFrame(ctx,{id:'skyline',tick:state.tick,count:state.perfects,eventTick:state.perfectTick,colour:REAL_GOLD,width:SKYLINE_WORLD_W,height:SKYLINE_WORLD_H,point:{x:popX,y:popY,shape:'spark'},hud:{x:12,y:12,text:`Blocks ${state.placed}`}});
   if(perfectTop)drawPerfectPop(ctx,state,popX,popY);
   if (expand && perfectTop) {
@@ -829,6 +879,8 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     ctx.fillStyle = "rgba(229, 72, 77, 0.18)";
     ctx.fillRect(0, 0, SKYLINE_WORLD_W, SKYLINE_WORLD_H);
   }
+  // Stage 2: the run's end, the floor count counting up while the camera pulls back.
+  if (ended) drawEndCount(ctx, state, realNow() - mem.endAt, still);
   ctx.restore();
 }
 
@@ -977,6 +1029,144 @@ export function skylineSceneFill(night: number): (ctx: CanvasRenderingContext2D,
     sceneFills.set(night, fill);
   }
   return fill;
+}
+
+
+/* ============================ Stage 2: effects (15 Nov 2026) ============================ */
+/*
+ * Joe's list for High Rise, each tied to the sim moment it observes (display only; nothing here writes state). Tick ages
+ * come from the renderer's memory of the landing (the sim tick a block landed), so every effect is the same for the same
+ * run; the chunks and the end's count-up run on the presentation clock as before.
+ *  - A drop: the block falls the last floor from the hook (DROP_FALL_TICKS), then the tower squashes ~2 px and settles.
+ *  - A perfect drop: a gold ring at the join and the strip the block grew by lit gold (the tock rises with the streak,
+ *    gameSounds.ts skylineSounds).
+ *  - A trim: the overhang spins away (TRIM_SPIN) and the cut edges crumble.
+ *  - A sliver: it wobbles on its foot (SKYLINE_SLIVER_TILT, at most 2 px at its corners) and creaks.
+ *  - A lost life: the block tumbles away (LOST_SPIN) under "−1 LIFE".
+ *  - The end: the camera pulls back over the whole tower while the floor count counts up (drawEndCount; the stage holds
+ *    its submit for SKYLINE_END_HOLD_MS so it is seen).
+ * Reduced motion: no fall, squash, wobble, spin or crumbs; the ring and the strip shown still, fading; the count at once.
+ */
+
+/** Sim ticks the dropped block takes to fall the last floor (about 80 ms). */
+export const DROP_FALL_TICKS = 5;
+/** The squash's depth (px) and how long it rings (ticks). */
+export const SKYLINE_SQUASH_PX = 2;
+const SQUASH_TICKS = 18;
+/** The tower squashes SKYLINE_SQUASH_PX on landing and springs back (a damped cosine), 0 after SQUASH_TICKS. */
+export function skylineSquashPx(age: number): number {
+  if (age < 0 || age >= SQUASH_TICKS) return 0;
+  return SKYLINE_SQUASH_PX * Math.exp(-age / 5) * Math.cos(age * 0.6);
+}
+/** A sliver's wobble: the largest tilt (radians; 0.05 × a 36 px floor = 1.8 px at its top corners) and its length. */
+export const SKYLINE_SLIVER_TILT = 0.05;
+const SLIVER_TICKS = 60;
+export function skylineSliverTilt(age: number): number {
+  if (age < 0 || age >= SLIVER_TICKS) return 0;
+  return SKYLINE_SLIVER_TILT * Math.exp(-age / 18) * Math.sin(age * 0.45 + 0.6);
+}
+/** The perfect drop's ring and the lit grown strip, in ticks after the landing. */
+export const PERFECT_RING_TICKS = 28;
+const GROWN_TICKS = 34;
+const CRUMB_TICKS = 32;
+/** The end: the camera's fit (share of the view the whole tower fills), its smallest zoom, its ease and the count-up. */
+const END_FIT = 0.7;
+const END_ZOOM_MIN = 0.1;
+const END_EASE = 0.06;
+export const SKYLINE_END_COUNT_MS = 900;
+/** How long the stage holds its submit after the run ends, so the pull-back and the count are seen. */
+export const SKYLINE_END_HOLD_MS = 1300;
+
+/** Where the next perfect drop's join is on screen (the top block's top edge; the success layer's burst goes there). */
+let skylineJoin: { x: number; y: number } | null = null;
+export function skylineJoinAt(fallback: { x: number; y: number }): { x: number; y: number } {
+  return skylineJoin ?? fallback;
+}
+
+/** The perfect drop: a flattened gold ring spreading from the join and the strip the block grew by lit gold. */
+function drawPerfectJoin(ctx: CanvasRenderingContext2D, top: { x: number; w: number }, landing: Landing, joinY: number, age: number, still: boolean): void {
+  const x = px(top.x);
+  const w = px(top.w);
+  ctx.save();
+  if (age < PERFECT_RING_TICKS) {
+    const q = age / PERFECT_RING_TICKS;
+    const e = still ? 0.3 : 1 - (1 - q) * (1 - q);
+    ctx.globalAlpha = (1 - q) * 0.95;
+    ctx.strokeStyle = REAL_GOLD;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, joinY, w / 2 + 4 + 22 * e, 3 + 9 * e, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // The join itself, a crisp gold seam on the block's own width.
+    ctx.fillStyle = "#FFE7A3";
+    ctx.fillRect(x, joinY - 1, w, 2);
+  }
+  // The strip the perfect drop grew the block by (beyond the block below), lit gold then fading into the glass.
+  const grownL = px(landing.belowX + landing.belowW);
+  const grownR = x + w;
+  if (age < GROWN_TICKS && grownR - grownL >= 1) {
+    const q = age / GROWN_TICKS;
+    const top0 = joinY - px(SKYLINE_BLOCK_H);
+    ctx.globalAlpha = 0.8 * (1 - q);
+    const g = ctx.createLinearGradient(0, top0, 0, joinY);
+    g.addColorStop(0, "#FFE7A3");
+    g.addColorStop(1, "#C9932E");
+    ctx.fillStyle = g;
+    ctx.fillRect(grownL, top0, grownR - grownL, px(SKYLINE_BLOCK_H));
+    ctx.globalAlpha = 1 - q;
+    ctx.fillStyle = "#FFF6D8";
+    ctx.fillRect(grownR - 1, top0, 1, px(SKYLINE_BLOCK_H));
+  }
+  ctx.restore();
+}
+
+/** A trim's crumble: small chips of glass and concrete falling from the cut edge(s) of the new floor. */
+function drawTrimCrumbs(ctx: CanvasRenderingContext2D, top: { x: number; w: number }, landing: Landing, floorTop: number, age: number): void {
+  if (age < 0 || age >= CRUMB_TICKS) return;
+  const edges: { x: number; dir: number }[] = [];
+  if (top.x > landing.slideX) edges.push({ x: px(top.x), dir: -1 });
+  if (landing.slideX + landing.slideW > top.x + top.w) edges.push({ x: px(top.x + top.w), dir: 1 });
+  const q = age / CRUMB_TICKS;
+  ctx.save();
+  ctx.globalAlpha = 1 - q * q;
+  for (const edge of edges) {
+    for (let k = 0; k < 7; k++) {
+      const h = artHash(landing.tick, k + (edge.dir > 0 ? 20 : 0));
+      const vx = edge.dir * (0.3 + (h % 7) * 0.12);
+      const vy = -0.4 + ((h >>> 4) % 5) * 0.15;
+      const y0 = floorTop + 4 + ((h >>> 8) % 28);
+      const size = 1.5 + ((h >>> 12) % 3) * 0.75;
+      ctx.fillStyle = k % 3 === 0 ? "#9FB3CC" : k % 3 === 1 ? "#6E7F96" : "#C8D3E2";
+      ctx.fillRect(edge.x + vx * age, y0 + vy * age + 0.07 * age * age, size, size);
+    }
+  }
+  ctx.restore();
+}
+
+/** The run's end: a big floor count counting up over SKYLINE_END_COUNT_MS while the camera pulls back. */
+function drawEndCount(ctx: CanvasRenderingContext2D, state: SkylineState, ms: number, still: boolean): void {
+  const shown = still ? state.placed : skylineEndCountAt(state.placed, ms);
+  const fade = still ? 1 : Math.min(1, ms / 180);
+  const cx = SKYLINE_WORLD_W / 2;
+  const cy = Math.round(skylineWorldH(state) * 0.14);
+  ctx.save();
+  ctx.globalAlpha = fade;
+  hudPill(ctx, cx - 96, cy - 44, 192, 88);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `800 48px ${ARCADE_FX_DISPLAY_FONT}`;
+  ctx.fillStyle = REAL_GOLD;
+  ctx.fillText(String(shown), cx, cy - 8);
+  ctx.font = `700 15px ${ARCADE_FX_DISPLAY_FONT}`;
+  ctx.fillStyle = "#FFF1C8";
+  ctx.fillText(state.placed === 1 ? "FLOOR" : "FLOORS", cx, cy + 27);
+  ctx.restore();
+}
+
+/** Checks only: the end count's number at a moment after the end. */
+export function skylineEndCountAt(placed: number, ms: number): number {
+  const q = Math.max(0, Math.min(1, ms / SKYLINE_END_COUNT_MS));
+  return Math.round(placed * (1 - (1 - q) ** 3));
 }
 
 /** How long "−1 LIFE" shows after a life is lost, in sim ticks. */
@@ -1236,7 +1426,7 @@ function drawSkylineActionHud(ctx: CanvasRenderingContext2D, state: SkylineState
       right: [{ label: "STREAK", value: String(streak), tone: streak >= SKYLINE_V9_STREAK_MAX ? "gold" : streak > 0 ? "plain" : "dim" }],
     },
   ]);
-  if (state.missed) return;
+  if (state.missed || state.tick >= SKYLINE_RUN_TICKS) return;
   const nextKind = skylineKindAt(state, state.placed + 1);
   const look = KIND_LOOK[nextKind];
   const named = Boolean(look && nextKind !== SKYLINE_KIND_NORMAL);
@@ -1430,7 +1620,8 @@ export const SKYLINE_FX_EXPAND: ArcadeFxSpec<SkylineState> = {
   // skylineRev 11 (lives): every lost life is a miss moment (the red edge pulse), not just the last.
   misses: [{ count: (s) => s.livesLost ?? (s.missed ? 1 : 0) }],
   events: [
-    { kind: "perfect", count: (s) => s.perfects, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.42 }), label: () => null },
+    // Stage 2 (15 Nov 2026): the burst at the join the block lands on, not mid-screen (no edge glow: ACTION_EDGELESS_GAMES).
+    { kind: "perfect", count: (s) => s.perfects, at: () => skylineJoinAt({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.42 }), label: () => null },
     // The milestone's banner is the game's own; this adds the edge glow and burst only.
     { kind: "streak", count: (s) => s.milestones ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.3 }), label: () => null },
     // skylineRev 9: no multiplier; the banner counts the perfect streak from its 3rd drop.
@@ -1441,7 +1632,119 @@ export const SKYLINE_FX_EXPAND: ArcadeFxSpec<SkylineState> = {
       label: (s, n) => (s.expandRev === SKYLINE_REV_STD ? `STREAK ${n}` : `STREAK ×${n}`),
     },
     { kind: "pop", count: (s) => (s.rev && s.placed >= 20 ? 1 : 0), at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.3 }), label: () => "FLAG UP: WATCH THE WIND!" },
-    { kind: "perfect", count: (s) => s.golds ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.36 }), label: () => null, lights: ["#FFD24A", "#FFF1B8"] },
-    { kind: "perfect", count: (s) => s.gustPerfects ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.36 }), label: () => "PERFECT IN THE WIND!" },
+    { kind: "perfect", count: (s) => s.golds ?? 0, at: () => skylineJoinAt({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.36 }), label: () => null, lights: ["#FFD24A", "#FFF1B8"] },
+    { kind: "perfect", count: (s) => s.gustPerfects ?? 0, at: () => skylineJoinAt({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.36 }), label: () => "PERFECT IN THE WIND!" },
   ],
 };
+
+/* ============================ Stage 2: the run picture on the answer reveal ============================ */
+
+/** The run picture's floor colours (and the legend's swatches): a glass floor, a perfect drop, a wide block, a gold block. */
+export const SKYLINE_RUN_COLOURS = {
+  base: "#424F60",
+  trim: "#3B5A86",
+  perfect: "#F2C14E",
+  wide: "#3FC7B4",
+  gold: "#FFE27A",
+  lost: "#FF6B74",
+} as const;
+
+export interface SkylineRunPictureFloor { x: number; w: number; kind: "base" | "trim" | "perfect" | "wide" | "gold" }
+export interface SkylineRunPicture {
+  floors: readonly SkylineRunPictureFloor[];
+  losses: readonly { floor: number; x: number; w: number }[];
+  bestRun: { from: number; to: number } | null;
+}
+
+/** The picture's floor height (CSS px) for this many floors in this height: as tall as fits, 3 to 14 px. */
+export function skylineRunFloorPx(floors: number, height: number): number {
+  return Math.max(3, Math.min(14, Math.floor((height - 30) / Math.max(1, floors))));
+}
+
+/**
+ * The answer reveal's picture of the run (display only): the tower as built, floor by floor at its real width and place
+ * (the world's 390 px across the picture), perfect drops in gold, gold blocks brighter, wide blocks teal, trims the
+ * tower's glass; each lost life the missed block tipping off where it missed, in red; the best streak bracketed in gold
+ * beside the tower. Drawn once (no motion), on a transparent canvas over the reveal's gradient.
+ */
+export function drawSkylineRunPicture(ctx: CanvasRenderingContext2D, run: SkylineRunPicture, size: CanvasSize): void {
+  const { width, height } = size;
+  ctx.clearRect(0, 0, width, height);
+  const pad = 18;
+  // Across: the span the run used (every floor and every missed block), fitted to the width, at most 2.5× the world's scale.
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const b of [...run.floors, ...run.losses]) {
+    lo = Math.min(lo, px(b.x));
+    hi = Math.max(hi, px(b.x + b.w));
+  }
+  const sx = Math.min(((width - pad * 2) / SKYLINE_WORLD_W) * 2.5, (width - pad * 2) / Math.max(1, hi - lo));
+  const x0 = width / 2 - ((lo + hi) / 2) * sx;
+  const fh = skylineRunFloorPx(run.floors.length, height);
+  const ground = height - 8;
+  const yOf = (index: number) => ground - (index + 1) * fh;
+  ctx.save();
+  // The plaza: a soft dark band under the tower with a lit kerb.
+  ctx.fillStyle = "rgba(4,8,18,0.55)";
+  ctx.fillRect(0, ground, width, 8);
+  ctx.fillStyle = "rgba(169,190,208,0.6)";
+  ctx.fillRect(0, ground, width, 1);
+  run.floors.forEach((floor, index) => {
+    const x = x0 + px(floor.x) * sx;
+    const w = Math.max(1, px(floor.w) * sx);
+    const y = yOf(index);
+    const colour = SKYLINE_RUN_COLOURS[floor.kind];
+    const g = ctx.createLinearGradient(0, y, 0, y + fh);
+    g.addColorStop(0, colour);
+    g.addColorStop(1, shadeOf(colour));
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y, w, fh);
+    // A crisp lit top edge (the floor's material catching the light) and a dark slab line under it.
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.fillRect(x, y, w, 1);
+    if (fh >= 5) {
+      ctx.fillStyle = "rgba(4,8,18,0.6)";
+      ctx.fillRect(x, y + fh - 1, w, 1);
+    }
+  });
+  // The best streak: a gold bracket to the right of the tower over its floors.
+  if (run.bestRun && run.bestRun.to > run.bestRun.from) {
+    let right = 0;
+    for (let i = run.bestRun.from; i <= run.bestRun.to; i++) right = Math.max(right, x0 + px(run.floors[i]!.x + run.floors[i]!.w) * sx);
+    const bx = Math.min(width - 4, right + 8);
+    const top = yOf(run.bestRun.to);
+    const bottom = yOf(run.bestRun.from) + fh;
+    ctx.strokeStyle = SKYLINE_RUN_COLOURS.perfect;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bx - 5, top + 1);
+    ctx.lineTo(bx, top + 1);
+    ctx.lineTo(bx, bottom - 1);
+    ctx.lineTo(bx - 5, bottom - 1);
+    ctx.stroke();
+  }
+  // Each lost life: the missed block, outlined in red and tipped as it falls, where it missed.
+  const lh = Math.max(5, fh);
+  for (const loss of run.losses) {
+    const w = Math.max(6, px(loss.w) * sx);
+    const cx = x0 + px(loss.x) * sx + w / 2;
+    const cy = yOf(loss.floor) + fh / 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(cx < width / 2 ? -0.32 : 0.32);
+    ctx.fillStyle = "rgba(255,107,116,0.28)";
+    ctx.fillRect(-w / 2, -lh / 2, w, lh);
+    ctx.strokeStyle = SKYLINE_RUN_COLOURS.lost;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-w / 2, -lh / 2, w, lh);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/** A colour 35 % darker, for the foot of a floor's gradient. */
+function shadeOf(hex: string): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const f = (c: number) => Math.round(c * 0.65);
+  return `rgb(${f((n >> 16) & 255)},${f((n >> 8) & 255)},${f(n & 255)})`;
+}
