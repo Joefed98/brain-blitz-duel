@@ -26,7 +26,9 @@ def _shade(hexs, t):
 
 def glass_marble(name, colour):
     """A glossy glass marble: the colour with soft deeper swirls inside, under a clear coat (one small soft highlight)."""
-    m = jzlib.mat(name, colour, 0.28, coat=1.0, coat_rough=0.08, spec=0.3)
+    # Richness pass (Joe, 15 Nov 2026): real glass: a clear glossy coat that takes a crisp highlight on its curve, a
+    # little transmission and subsurface for colour depth.
+    m = jzlib.mat(name, colour, 0.12, coat=1.0, coat_rough=0.02, spec=0.6, trans=0.04, sss=0.08)
     n, l = jzlib._nodes(m)
     b = jzlib._bsdf(m)
     tc = n.new("ShaderNodeTexCoord")
@@ -38,12 +40,12 @@ def glass_marble(name, colour):
     wv.bands_direction = "DIAGONAL"
     l.new(tc.outputs["Object"], wv.inputs[0])
     cr = n.new("ShaderNodeValToRGB")
-    cr.color_ramp.elements[0].color = jzlib.hexc(_shade(colour, -0.2))
+    cr.color_ramp.elements[0].color = jzlib.hexc(_shade(colour, -0.38))
     cr.color_ramp.elements[1].color = jzlib.hexc(colour)
     cr.color_ramp.elements[0].position = 0.28
     cr.color_ramp.elements[1].position = 0.6
     e = cr.color_ramp.elements.new(0.92)
-    e.color = jzlib.hexc(_shade(colour, 0.18))
+    e.color = jzlib.hexc(_shade(colour, 0.06))
     l.new(wv.outputs["Fac"], cr.inputs[0])
     l.new(cr.outputs[0], b.inputs["Base Color"])
     return m
@@ -51,15 +53,14 @@ def glass_marble(name, colour):
 
 def marble(colour):
     def make():
-        sc = begin(100, 112, pad=4, light=0.55)
-        sc.view_settings.look = "AgX - Punchy"
+        begin(100, 128, pad=4, light=0.9)
         sphere(50, 50, 44, glass_marble(f"marble{colour}", colour), z=44)
     return make
 
 
 def stone_mat():
     """Grey honed stone: a fine mottle in the colour and a faint pitted bump, satin, never shiny."""
-    m = jzlib.mat("stone", "#9aa0aa", 0.62, spec=0.35)
+    m = jzlib.mat("stone", "#9aa0aa", 0.48, spec=0.45, coat=0.25, coat_rough=0.35)
     n, l = jzlib._nodes(m)
     b = jzlib._bsdf(m)
     tc = n.new("ShaderNodeTexCoord")
@@ -69,28 +70,28 @@ def stone_mat():
     nz.inputs["Roughness"].default_value = 0.6
     l.new(tc.outputs["Object"], nz.inputs[0])
     cr = n.new("ShaderNodeValToRGB")
-    cr.color_ramp.elements[0].color = jzlib.hexc("#737883")
-    cr.color_ramp.elements[1].color = jzlib.hexc("#959aa3")
+    cr.color_ramp.elements[0].color = jzlib.hexc("#5c616b")
+    cr.color_ramp.elements[1].color = jzlib.hexc("#8d929b")
     cr.color_ramp.elements[0].position = 0.35
     cr.color_ramp.elements[1].position = 0.68
     l.new(nz.outputs["Fac"], cr.inputs[0])
     l.new(cr.outputs[0], b.inputs["Base Color"])
-    jzlib.add_bump(m, scale=60, strength=0.12, detail=6)
+    jzlib.add_bump(m, scale=45, strength=0.28, detail=8)
     return m
 
 
 def block():
     """A raised grey stone block with softly chamfered edges: plainly a wall."""
-    begin(100, 104, pad=0, light=0.34)
-    box(3, 3, 94, 94, 26, stone_mat(), r=12)
+    begin(100, 128, pad=0, light=0.6)
+    box(3, 3, 94, 94, 26, stone_mat(), r=14)
 
 
 def floor():
     """A dark slate floor square, slightly recessed inside a fine lighter lip."""
-    begin(100, 96, pad=0, light=0.32)
-    lip = mat("floorlip", "#232835", 0.7)
-    slate = mat("floorslate", "#10131b", 0.8)
-    jzlib.add_bump(slate, scale=30, strength=0.05)
+    begin(100, 96, pad=0, light=0.55)
+    lip = mat("floorlip", "#262b38", 0.45, coat=0.4, coat_rough=0.25)
+    slate = mat("floorslate", "#12151e", 0.55, coat=0.3, coat_rough=0.3)
+    jzlib.add_bump(slate, scale=30, strength=0.12)
     box(1, 1, 98, 98, 2, slate, r=5)
     for x, y, w, h in ((1, 1, 98, 5), (1, 94, 98, 5), (1, 1, 5, 98), (94, 1, 5, 98)):
         box(x, y, w, h, 3.2, lip, r=2)
@@ -100,9 +101,9 @@ def hole(colour):
     """A cup sunk into the floor, its raised rim in the ball's colour (satin lacquer), dark inside with the colour's
     shade on the cup's walls, so each hole plainly belongs to one ball."""
     def make():
-        sc = begin(100, 104, pad=0, light=0.45)
-        sc.view_settings.look = "AgX - Punchy"
-        rim = mat(f"rim{colour}", colour, 0.3, coat=0.8, coat_rough=0.12, spec=0.35)
+        begin(100, 128, pad=0, light=0.85)
+        # Glossy enamel in the ball's colour (a deep coat that takes the key light on the curve of the rim).
+        rim = mat(f"rim{colour}", _shade(colour, -0.12), 0.18, coat=1.0, coat_rough=0.03, spec=0.55)
         wall = mat(f"cup{colour}", _shade(colour, -0.62), 0.6)
         pit = mat("pit", "#050608", 0.9)
         # The cup's inner wall (a short dark tube in the colour's deep shade), the pit and the rim on top.
@@ -115,8 +116,8 @@ def hole(colour):
 
 def frame():
     """The tray frame: a dark gunmetal rim round the board, satin, a soft bevel; the middle is empty."""
-    begin(100, 640, pad=0, light=0.55)
-    metal = mat("trayframe", "#3b4152", 0.42, metal=0.6, spec=0.4)
+    begin(100, 640, pad=0, light=0.9)
+    metal = mat("trayframe", "#4a5266", 0.26, metal=0.85, spec=0.5)
     inner = mat("trayinner", "#1c2029", 0.6, metal=0.4)
     t = 2.2
     for x, y, w, h in ((0.3, 0.3, 99.4, t), (0.3, 100 - t - 0.3, 99.4, t), (0.3, 0.3, t, 99.4), (100 - t - 0.3, 0.3, t, 99.4)):

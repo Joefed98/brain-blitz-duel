@@ -234,7 +234,7 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 | Reveal, unfinished | <img src="laser-reveal-before-unfinished.webp" width="180"> | <img src="laser-reveal-after-unfinished-yours.webp" width="180"> |
 | Reveal, solved | (no solved "before" in the review) | <img src="laser-reveal-after-solved.webp" width="180"> <img src="laser-reveal-after-solved-yours.webp" width="180"> |
 
-- **Look (A):** Blender sprites (`docs/design/game-art/pattern/source/laser.py`, `public/pattern-art/laser/`, 10 files,
+- **Look (A), richness pass:** the rich studio light (crisp key highlight, HDRI reflections). Blender sprites (`docs/design/game-art/pattern/source/laser.py`, `public/pattern-art/laser/`, 10 files,
   34 KB): graphite floor plates, terracotta brick walls, silvered glass mirrors on both diagonals, a violet glass
   splitter under its white split arrows, cut crystal gems (cool smoky crystal dark, burning gold when lit; a gem lit
   from one side only is drawn smaller with a bold arrow on its side), round black bombs with a red band (red hot when
@@ -258,11 +258,14 @@ pieces render on the Standard view transform at a lower key, since AgX turned th
 <!-- topsy:start -->
 ## Topsy-Turvy
 
-| | Before (main) | After |
+| Today | Concept A | New |
 |---|---|---|
-| Mid-play | <img src="../../game-reviews/img/pattern/gravity-2-mid.webp" width="180"> | <img src="gravity-after-play.webp" width="180"> |
-| Reveal, unfinished | <img src="../../game-reviews/img/pattern/gravity-3-end.webp" width="180"> | <img src="gravity-reveal-after-unfinished.webp" width="180"> |
-| Reveal, solved | (no solved shot on main: its dev server would not start here) | <img src="gravity-reveal-after-solved.webp" width="180"> |
+| <img src="../../game-reviews/img/pattern/gravity-2-mid.webp" width="180"> | <img src="gravity-concept-A.webp" width="180"> | <img src="gravity-after-play.webp" width="180"> |
+
+| Reveal | Before (main) | After |
+|---|---|---|
+| Solved | <img src="gravity-reveal-before-solved.webp" width="180"> | <img src="gravity-reveal-after-solved.webp" width="180"> |
+| Unfinished | <img src="gravity-reveal-before-unfinished.webp" width="180"> | <img src="gravity-reveal-after-unfinished.webp" width="180"> |
 
 - **Look (A):** Blender sprites (`docs/design/game-art/pattern/source/gravity.py`, `public/pattern-art/gravity/`): grey
   honed-stone blocks, a dark slate floor, a glossy glass marble per ball colour and a cup rimmed in each ball's own
