@@ -65,6 +65,17 @@ The world as drawn on main (before) and on this branch (after), at the same mome
 seed 4100 (the skill-band bot, through the real sim; 390 × 730 world, shown 360 wide). The sim and score are unchanged;
 the moon rises and the sky deepens with the height climbed. The HUD's second row shows lantern rides and scrolls.
 
+**Materials pass** (today | concept A | new, at 107 m, 197 m and the end): carved moonlit slate (each block's lit
+bevel, grain, strata, chipped corners and cracks), wet moss with crisp highlights, glassy ice, polished steel katanas
+with a temper line, gold guards and wrapped hilts, blued-steel shurikens with a sheen, paper lanterns lit from within,
+a cratered moon and the pagoda in layered mist.
+
+<img src="ricochet/compare-1.webp" width="560">
+
+<img src="ricochet/compare-2.webp" width="560">
+
+<img src="ricochet/compare-3.webp" width="560">
+
 | | Start (13 m) | 107 m | 197 m | End (235 m) |
 |---|---|---|---|---|
 | Before | <img src="ricochet/before-start.webp" width="170"> | <img src="ricochet/before-quarter-way.webp" width="170"> | <img src="ricochet/before-high.webp" width="170"> | <img src="ricochet/before-end.webp" width="170"> |
@@ -73,7 +84,7 @@ the moon rises and the sky deepens with the height climbed. The HUD's second row
 Clip (6 s, the whole minute at 10×): <img src="ricochet/clip-moonrise.webp" width="200">
 
 Edge to edge, the play screen at 390 × 844 below the 52 px header (the world and the play screen's fill as the stage
-composes them; left at the start, right at 173 m): the slate floor carries on below the world to the screen's bottom,
+composes them; left at the start, right at 173 m): the walls' carved slate and the shaft's floor carry on below the world to the screen's bottom,
 no step at the world's edge (ricochet-overhaul-check measures it at 414 × 896, 390 × 844, 375 × 667 and a desktop size).
 
 <img src="ricochet/edge-390x844.webp" width="360">

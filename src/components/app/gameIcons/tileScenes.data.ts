@@ -72,7 +72,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   racing: "228b760843",
   rally: "e1d66a7d52",
   reaction: "d6a6b1f58e",
-  ricochet: "04ae65f5a6",
+  ricochet: "9082b1d7e9",
   rings: "f1d2eaa454",
   rooftop: "0b2ef030d8",
   safe: "03cc4b8719",

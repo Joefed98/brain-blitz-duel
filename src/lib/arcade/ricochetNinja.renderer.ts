@@ -9,7 +9,7 @@
  * the HUD are drawn each frame.
  */
 import { drawActionHud, type ActionHudRow } from "./actionHud.renderer";
-import { deviceLayer } from "./cache.renderer";
+import { artCanvas, artContext, deviceLayer } from "./cache.renderer";
 import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
 import { artHash } from "./art.renderer";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT, type ArcadeFxSpec } from "./arcadeFx.renderer";
@@ -190,7 +190,28 @@ function paintMoonSky(ctx: CanvasRenderingContext2D): void {
 function paintMoonRidge(ctx: CanvasRenderingContext2D): void {
   const W = NINJA_WORLD_W;
   const H = NINJA_WORLD_H;
-  // Two ridges, the far one paler.
+  // Misty layers (the materials pass; concept A): a far range and a small far pagoda in haze, a mist band, the
+  // nearer ridge, another band, then the near ridge and the temple's pagoda, mist rising off the valley.
+  const band = (y: number, h: number, a: number) => {
+    const g = ctx.createLinearGradient(0, y - h, 0, y + h);
+    g.addColorStop(0, "rgba(140,160,225,0)");
+    g.addColorStop(0.5, `rgba(140,160,225,${a})`);
+    g.addColorStop(1, "rgba(140,160,225,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, y - h, W, 2 * h);
+  };
+  ctx.fillStyle = "#26386E";
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.8);
+  for (let x = 0; x <= W; x += 15) ctx.lineTo(x, H * 0.79 + 12 * Math.sin(x / 29 + 2) + 5 * Math.sin(x / 7));
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.fill();
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  drawPagoda(ctx, W * 0.28, Math.round(H * 0.8), 0.55);
+  ctx.restore();
+  band(H * 0.82, 16, 0.18);
   ctx.fillStyle = "#1B2A5C";
   ctx.beginPath();
   ctx.moveTo(0, H * 0.86);
@@ -198,6 +219,7 @@ function paintMoonRidge(ctx: CanvasRenderingContext2D): void {
   ctx.lineTo(W, H);
   ctx.lineTo(0, H);
   ctx.fill();
+  band(H * 0.875, 12, 0.16);
   ctx.fillStyle = "#101A3E";
   ctx.beginPath();
   ctx.moveTo(0, H * 0.9);
@@ -249,13 +271,34 @@ function drawMoonNight(ctx: CanvasRenderingContext2D, p: number, tick: number): 
   ctx.beginPath();
   ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
   ctx.fill();
-  // Maria and craters, scaled to the moon.
-  ctx.fillStyle = `rgba(${Math.round(170 + 20 * warm)},${Math.round(160 - 10 * warm)},${Math.round(140 - 30 * warm)},0.33)`;
+  // Maria (soft, broad) and craters (the materials pass): each crater shadowed inside on its upper-left wall and lit on
+  // its lower-right rim, so the surface reads cratered, scaled to the moon.
   const k = m.r / 56;
-  for (const [x, y, r] of [[-18, -10, 11], [16, 14, 8], [8, -24, 6], [-10, 24, 5], [26, -8, 4], [-28, 10, 3.5]] as const) {
+  const tint = (a: number) => `rgba(${Math.round(160 + 20 * warm)},${Math.round(150 - 10 * warm)},${Math.round(132 - 30 * warm)},${a})`;
+  ctx.fillStyle = tint(0.24);
+  for (const [x, y, rx, ry] of [[-14, -8, 18, 13], [14, 12, 13, 10], [-6, 22, 10, 7]] as const) {
     ctx.beginPath();
-    ctx.arc(m.x + x * k, m.y + y * k, r * k, 0, Math.PI * 2);
+    ctx.ellipse(m.x + x * k, m.y + y * k, rx * k, ry * k, 0.4, 0, Math.PI * 2);
     ctx.fill();
+  }
+  for (const [x, y, r] of [[-18, -10, 6], [16, 14, 5], [8, -24, 4.5], [-10, 24, 3.5], [26, -8, 4], [-28, 10, 3.2], [30, 18, 2.6], [-2, 4, 2.4], [20, -26, 2.8], [-30, -16, 2.4]] as const) {
+    const cx = m.x + x * k;
+    const cy = m.y + y * k;
+    const cr = r * k;
+    ctx.fillStyle = tint(0.38);
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = tint(0.55);
+    ctx.lineWidth = Math.max(0.8, cr * 0.28);
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr * 0.82, Math.PI * 0.95, Math.PI * 1.75);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,252,240,0.7)";
+    ctx.lineWidth = Math.max(0.7, cr * 0.22);
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, Math.PI * 0.05, Math.PI * 0.75);
+    ctx.stroke();
   }
 }
 
@@ -276,6 +319,14 @@ export function drawPagoda(ctx: CanvasRenderingContext2D, x: number, base: numbe
     ctx.quadraticCurveTo(x + w * 0.42, y - h - 2 * s, x + w * 0.62, y - h + 1 * s);
     ctx.closePath();
     ctx.fill();
+    // Moonlight along the roof's top edge (the materials pass).
+    ctx.strokeStyle = "rgba(170,190,240,0.45)";
+    ctx.lineWidth = Math.max(0.6, 0.9 * s);
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.3, y - h - 6 * s);
+    ctx.lineTo(x + w * 0.3, y - h - 6 * s);
+    ctx.quadraticCurveTo(x + w * 0.42, y - h - 2 * s, x + w * 0.62, y - h + 1 * s);
+    ctx.stroke();
     if (i < 3) {
       ctx.fillStyle = "rgba(255,190,90,0.55)";
       ctx.fillRect(x - 2 * s, y - h * 0.7, 3 * s, 5 * s);
@@ -290,55 +341,160 @@ export function drawPagoda(ctx: CanvasRenderingContext2D, x: number, base: numbe
 
 export const NINJA_STONE_ROW = 30;
 const ROW = NINJA_STONE_ROW;
-function drawWall(ctx: CanvasRenderingContext2D, wall: number, cam: number): void {
-  const x0 = wall === 0 ? 0 : NINJA_WALL_R;
-  const x1 = wall === 0 ? NINJA_WALL_L : NINJA_WORLD_W;
-  const w = x1 - x0;
-  ctx.fillStyle = MORTAR;
-  ctx.fillRect(x0, 0, w, NINJA_WORLD_H);
-  // Courses of stone scroll with the climb; each block's shade comes from its own place.
-  const topPx = cam + EYE;
-  const firstRow = Math.floor((topPx - NINJA_WORLD_H - ROW) / ROW);
-  for (let r = firstRow; r <= Math.ceil(topPx / ROW) + 1; r++) {
-    if (r < 0) continue;
-    const sy = ninjaScreenY(cam, (r + 1) * ROW);
-    const off = r % 2 === 0 ? 0 : 22;
-    for (let bx = x0 - off; bx < x1; bx += 44) {
-      const h = artHash(r * 7 + wall, Math.round(bx));
+/** The slate strip's period: this many courses, then the pattern repeats (960 px, 24 m). */
+const SLATE_ROWS = 32;
+const SLATE_H = SLATE_ROWS * ROW;
+
+/*
+ * Carved moonlit slate (the materials pass, 15 Nov 2026; concept A): each block a slate tone falling off to its foot,
+ * fine grain and a strata line, a crisp lit bevel on its top edge and on the side facing the moonlit gap, a shadowed
+ * bottom and far side, the odd chipped corner (lit on its broken face) and crack; mortar sunk dark between. Painted
+ * once per wall and device scale into a strip SLATE_ROWS courses tall and copied in place each frame (where no
+ * offscreen canvas exists, painted straight onto the frame). Shared with the play screen's fill (ricochetNinjaScene).
+ */
+const SLATE_TONES = ["#434C64", "#3B4359", "#4B5570", "#363E52", "#454E67", "#3F475E"] as const;
+/** Paints courses r0 … r0 + n − 1 of one wall between x0 and x1; `rowAt(r)` is course r's top edge (y grows down). */
+export function paintSlate(c: CanvasRenderingContext2D, wall: number, x0: number, x1: number, rowAt: (r: number) => number, r0: number, n: number): void {
+  c.fillStyle = MORTAR;
+  c.fillRect(x0, rowAt(r0 + n - 1), x1 - x0, n * ROW);
+  const inner = wall === 0 ? 1 : -1;
+  for (let k = 0; k < n; k++) {
+    const r = r0 + k;
+    const m = ((r % SLATE_ROWS) + SLATE_ROWS) % SLATE_ROWS;
+    const sy = rowAt(r);
+    const off = m % 2 === 0 ? 0 : 22;
+    const start = wall === 0 ? x0 - off : x0 - off - 4;
+    for (let bx = start; bx < x1; bx += 44) {
+      const h = artHash(m * 7 + wall, Math.round(bx));
       const a = Math.max(x0, bx + 1);
       const b = Math.min(x1, bx + 43);
       if (b <= a) continue;
-      // Each block bevelled (the Action overhaul): a moonlit top edge, a shadowed bottom, now and then a crack.
-      ctx.fillStyle = h % 5 === 0 ? STONE_LIT : h % 7 === 0 ? STONE_DARK : STONE;
-      ctx.fillRect(a, sy + 1, b - a, ROW - 2);
-      ctx.fillStyle = "rgba(190,205,255,0.16)";
-      ctx.fillRect(a, sy + 1, b - a, 1.5);
-      ctx.fillStyle = "rgba(0,0,0,0.32)";
-      ctx.fillRect(a, sy + ROW - 3, b - a, 2);
+      const top = sy + 1;
+      const bh = ROW - 2;
+      const g = c.createLinearGradient(0, top, 0, top + bh);
+      g.addColorStop(0, SLATE_TONES[h % SLATE_TONES.length]!);
+      g.addColorStop(1, "#2A3043");
+      c.fillStyle = g;
+      c.fillRect(a, top, b - a, bh);
+      // Grain: fine light and dark flecks from the block's own place, and a faint strata line.
+      for (let i = 0; i < 10; i++) {
+        const q = artHash(h, i + 3);
+        c.fillStyle = q % 3 === 0 ? "rgba(205,215,245,0.10)" : "rgba(5,7,14,0.22)";
+        c.fillRect(a + 2 + (q % Math.max(1, b - a - 4)), top + 3 + ((q >>> 8) % (bh - 6)), 1 + ((q >>> 16) % 3), 1);
+      }
+      c.fillStyle = "rgba(10,12,22,0.28)";
+      c.fillRect(a + 1, top + 8 + ((h >>> 4) % 12), b - a - 2, 1);
+      // The bevel: lit top edge and the side facing the gap, shadowed bottom and far side.
+      c.fillStyle = "rgba(200,214,255,0.34)";
+      c.fillRect(a, top, b - a, 1.5);
+      c.fillStyle = "rgba(200,214,255,0.2)";
+      if (inner === 1) c.fillRect(b - 1.5, top, 1.5, bh);
+      else c.fillRect(a, top, 1.5, bh);
+      c.fillStyle = "rgba(0,0,0,0.42)";
+      c.fillRect(a, top + bh - 2, b - a, 2);
+      if (inner === 1) c.fillRect(a, top, 1.5, bh);
+      else c.fillRect(b - 1.5, top, 1.5, bh);
+      // A chipped corner now and then, lit on its broken face.
+      if (h % 6 === 0 && b - a > 14) {
+        const cx = (h >>> 6) % 2 === 0 ? a : b;
+        const d = cx === a ? 1 : -1;
+        c.fillStyle = MORTAR;
+        c.beginPath();
+        c.moveTo(cx, top);
+        c.lineTo(cx + d * 7, top);
+        c.lineTo(cx, top + 6);
+        c.closePath();
+        c.fill();
+        c.strokeStyle = "rgba(200,214,255,0.3)";
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(cx + d * 7, top + 0.5);
+        c.lineTo(cx + d * 0.5, top + 6);
+        c.stroke();
+      }
       if (h % 9 === 0 && b - a > 20) {
-        ctx.strokeStyle = "rgba(8,10,20,0.55)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
         const cx = a + 6 + ((h >>> 5) % (b - a - 12));
-        ctx.moveTo(cx, sy + 3);
-        ctx.lineTo(cx + 3, sy + 11);
-        ctx.lineTo(cx - 1, sy + 19);
-        ctx.stroke();
+        c.strokeStyle = "rgba(6,8,16,0.7)";
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(cx, top + 2);
+        c.lineTo(cx + 3, top + 10);
+        c.lineTo(cx - 1, top + bh - 2);
+        c.stroke();
+        c.strokeStyle = "rgba(200,214,255,0.14)";
+        c.beginPath();
+        c.moveTo(cx + 1, top + 2);
+        c.lineTo(cx + 4, top + 10);
+        c.stroke();
       }
     }
   }
-  // The inner face: a moonlit rim on the stone towards the gap, and the wall's own shade further out.
+}
+
+/** The wall's light: a moonlit rim on its inner face and the wall's own shade further out (over the stone). */
+function wallLight(c: CanvasRenderingContext2D, wall: number, y: number, h: number): void {
+  const x0 = wall === 0 ? 0 : NINJA_WALL_R;
+  const x1 = wall === 0 ? NINJA_WALL_L : NINJA_WORLD_W;
   const edge = wall === 0 ? NINJA_WALL_L - 4 : NINJA_WALL_R;
-  const rim = ctx.createLinearGradient(edge, 0, edge + 4, 0);
-  rim.addColorStop(0, wall === 0 ? "rgba(150,170,235,0.06)" : "rgba(170,190,250,0.38)");
-  rim.addColorStop(1, wall === 0 ? "rgba(170,190,250,0.38)" : "rgba(150,170,235,0.06)");
-  ctx.fillStyle = rim;
-  ctx.fillRect(edge, 0, 4, NINJA_WORLD_H);
-  const shade = ctx.createLinearGradient(x0, 0, x1, 0);
-  shade.addColorStop(wall === 0 ? 0 : 1, "rgba(0,0,10,0.35)");
+  const rim = c.createLinearGradient(edge, 0, edge + 4, 0);
+  rim.addColorStop(0, wall === 0 ? "rgba(150,170,235,0.06)" : "rgba(175,195,255,0.42)");
+  rim.addColorStop(1, wall === 0 ? "rgba(175,195,255,0.42)" : "rgba(150,170,235,0.06)");
+  c.fillStyle = rim;
+  c.fillRect(edge, y, 4, h);
+  const shade = c.createLinearGradient(x0, 0, x1, 0);
+  shade.addColorStop(wall === 0 ? 0 : 1, "rgba(0,0,10,0.38)");
   shade.addColorStop(wall === 0 ? 1 : 0, "rgba(0,0,10,0)");
-  ctx.fillStyle = shade;
-  ctx.fillRect(x0, 0, w, NINJA_WORLD_H);
+  c.fillStyle = shade;
+  c.fillRect(x0, y, x1 - x0, h);
+}
+
+/** Cached slate strips, by wall and device scale. */
+const slateStrips = new Map<string, CanvasImageSource>();
+function slateStrip(wall: number, k: number): CanvasImageSource | null {
+  const key = `${wall}|${k.toFixed(3)}`;
+  const hit = slateStrips.get(key);
+  if (hit) return hit;
+  const x0 = wall === 0 ? 0 : NINJA_WALL_R;
+  const x1 = wall === 0 ? NINJA_WALL_L : NINJA_WORLD_W;
+  const surface = artCanvas(Math.ceil((x1 - x0) * k), Math.ceil(SLATE_H * k));
+  const c = surface ? (artContext(surface) as CanvasRenderingContext2D | null) : null;
+  if (!surface || !c) return null;
+  c.scale(k, k);
+  c.translate(-x0, 0);
+  // Course m (0 at the strip's bottom) has its top edge at SLATE_H − (m + 1) × ROW.
+  paintSlate(c, wall, x0, x1, (r) => SLATE_H - (r + 1) * ROW, 0, SLATE_ROWS);
+  wallLight(c, wall, 0, SLATE_H);
+  if (slateStrips.size > 8) slateStrips.clear();
+  slateStrips.set(key, surface as CanvasImageSource);
+  return surface as CanvasImageSource;
+}
+
+function drawWall(ctx: CanvasRenderingContext2D, wall: number, cam: number): void {
+  const x0 = wall === 0 ? 0 : NINJA_WALL_R;
+  const x1 = wall === 0 ? NINJA_WALL_L : NINJA_WORLD_W;
+  // Courses of carved slate scroll with the climb: course r's top edge is on screen at ninjaScreenY(cam, (r + 1) × ROW).
+  const topPx = cam + EYE;
+  const lowRow = Math.floor((topPx - NINJA_WORLD_H) / ROW) - 1;
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const k = t ? Math.max(0.5, Math.min(4, Math.hypot(t.a, t.b))) : 1;
+  const strip = t ? slateStrip(wall, k) : null;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, 0, x1 - x0, NINJA_WORLD_H);
+  ctx.clip();
+  if (strip) {
+    // Each copy of the strip holds courses base … base + SLATE_ROWS − 1; its top edge is the last one's top edge.
+    for (let base = Math.floor(lowRow / SLATE_ROWS) * SLATE_ROWS; ; base += SLATE_ROWS) {
+      const y = ninjaScreenY(cam, (base + SLATE_ROWS) * ROW);
+      if (y < NINJA_WORLD_H) ctx.drawImage(strip, x0, y, x1 - x0, SLATE_H);
+      if (y <= 0) break;
+    }
+  } else {
+    const hiRow = Math.ceil(topPx / ROW) + 1;
+    paintSlate(ctx, wall, x0, x1, (r) => ninjaScreenY(cam, (r + 1) * ROW), lowRow, hiRow - lowRow + 1);
+    wallLight(ctx, wall, 0, NINJA_WORLD_H);
+  }
+  ctx.restore();
 }
 
 function drawFloor(ctx: CanvasRenderingContext2D, cam: number): void {
@@ -347,11 +503,11 @@ function drawFloor(ctx: CanvasRenderingContext2D, cam: number): void {
   // The temple's slate floor (the Action overhaul): the play screen's fill below the world carries on in the same
   // colour (MOON_FLOOR, ricochetNinjaScene.renderer.ts), so there is no step at the world's bottom edge.
   ctx.fillStyle = MOON_FLOOR;
-  ctx.fillRect(0, sy, NINJA_WORLD_W, NINJA_WORLD_H - sy + 2);
+  ctx.fillRect(NINJA_WALL_L, sy, NINJA_WALL_R - NINJA_WALL_L, NINJA_WORLD_H - sy + 2);
   ctx.fillStyle = "#3A4466";
-  ctx.fillRect(0, sy, NINJA_WORLD_W, 3);
+  ctx.fillRect(NINJA_WALL_L, sy, NINJA_WALL_R - NINJA_WALL_L, 3);
   ctx.fillStyle = "rgba(0,0,0,0.25)";
-  for (let x = 30; x < NINJA_WORLD_W; x += 60) ctx.fillRect(x, sy + 3, 1.5, NINJA_WORLD_H - sy);
+  for (let x = NINJA_WALL_L + 30; x < NINJA_WALL_R; x += 60) ctx.fillRect(x, sy + 3, 1.5, NINJA_WORLD_H - sy);
 }
 /** The floor's slate, shared with the play screen's fill below the world. */
 export const MOON_FLOOR = "#1E2540";
@@ -370,15 +526,27 @@ export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: num
   const h = bottom - top;
   const inward = wall === 0 ? 1 : -1;
   if (kind === SURF_MOSS) {
-    ctx.fillStyle = MOSS;
+    // Wet moss (the materials pass): deep in the stone, brighter at the lip, in rounded clumps each lit on its upper
+    // side and catching a crisp wet highlight; never like ice.
+    const mg = ctx.createLinearGradient(x, 0, x + depth, 0);
+    mg.addColorStop(wall === 0 ? 0 : 1, "#1F4A19");
+    mg.addColorStop(wall === 0 ? 1 : 0, MOSS);
+    ctx.fillStyle = mg;
     ctx.fillRect(x, top, depth, h);
-    // Damp, dark clumps in the moss (the Action overhaul): moss reads soft and green, never like ice.
-    ctx.fillStyle = "#2B5C20";
-    for (let i = 0; i * 11 < h; i++) {
+    for (let i = 0; i * 9 < h; i++) {
       const hh = artHash(i, Math.round(top) * 5 + wall);
+      const cx = x + 3 + (hh % (depth - 6));
+      const cy = top + 4 + i * 9;
+      ctx.fillStyle = "#24521C";
       ctx.beginPath();
-      ctx.ellipse(x + 3 + (hh % (depth - 6)), top + 5 + i * 11, 3, 2.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy + 1, 3.6, 3, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = "#5A9A3E";
+      ctx.beginPath();
+      ctx.ellipse(cx - 0.6, cy - 0.4, 2.6, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(225,255,205,0.85)";
+      ctx.fillRect(cx - 1.6, cy - 1.6, 1.2, 1);
     }
     ctx.fillStyle = "#6FB04E";
     for (let y = top + 4; y < bottom - 2; y += 9) ctx.fillRect(wall === 0 ? face - 4 : face + 1, y, 3, 4);
@@ -388,11 +556,16 @@ export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: num
     ctx.fillStyle = "#3C6E2C";
     for (let i = 0; i < 3; i++) ctx.fillRect(wall === 0 ? face : face - 2, top + ((i + 1) * h) / 4, 2, 5);
   } else {
+    // Glassy ice (the materials pass): a clear sheet, deep blue where it meets the stone and pale at its rounded lip,
+    // the slate faintly through it, a long crisp highlight on the curve.
     const g = ctx.createLinearGradient(x, 0, x + depth, 0);
-    g.addColorStop(0, wall === 0 ? "#9FD3EC" : "#E4F6FF");
-    g.addColorStop(1, wall === 0 ? "#E4F6FF" : "#9FD3EC");
+    g.addColorStop(wall === 0 ? 0 : 1, "rgba(70,140,190,0.78)");
+    g.addColorStop(0.55, "rgba(160,215,240,0.86)");
+    g.addColorStop(wall === 0 ? 1 : 0, "rgba(235,250,255,0.96)");
     ctx.fillStyle = g;
     ctx.fillRect(x, top, depth, h);
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.fillRect(wall === 0 ? face - 7 : face + 5, top + 3, 1.2, Math.max(0, h - 6));
     // Frost: white speckles and slanted crystal streaks, from the patch's own place.
     ctx.fillStyle = "rgba(255,255,255,0.9)";
     for (let i = 0; i * 7 < h; i++) {
@@ -430,22 +603,53 @@ export function drawPatch(ctx: CanvasRenderingContext2D, wall: number, kind: num
 export function drawKatana(ctx: CanvasRenderingContext2D, wall: number, sy: number, tick: number, seed: number): void {
   const dir = wall === 0 ? 1 : -1;
   const face = wall === 0 ? NINJA_WALL_L : NINJA_WALL_R;
-  // The blade: steel with a dark outline (so it reads on any stone), a bright cutting edge and a long sharp tip
-  // (the Action overhaul, 15 Nov 2026); inside the sim's KATANA_LEN × 2·KATANA_HALF box.
+  // The wrapped hilt against the wall (the materials pass; concept A): dark cord diamonds over red, a steel pommel.
+  // A short stub inside the stone, never more than 8 px from the face.
+  const hx = wall === 0 ? face - 6.5 : face + 1;
+  ctx.fillStyle = "#7A1420";
+  ctx.fillRect(hx, sy - 2.5, 5.5, 5);
+  ctx.fillStyle = "#14161E";
+  for (let i = 0; i < 2; i++) {
+    const cx = hx + 0.3 + i * 2.6;
+    ctx.beginPath();
+    ctx.moveTo(cx, sy);
+    ctx.lineTo(cx + 1.3, sy - 2.5);
+    ctx.lineTo(cx + 2.6, sy);
+    ctx.lineTo(cx + 1.3, sy + 2.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = "#AEB6C4";
+  ctx.fillRect(wall === 0 ? hx - 1.5 : hx + 5.5, sy - 2.5, 1.5, 5);
+  // The blade: polished steel inside the sim's KATANA_LEN × 2·KATANA_HALF box, dark at the spine and bright to the
+  // cutting edge, a pale temper line, a crisp specular edge and a long sharp tip, outlined so it reads on any stone.
   ctx.beginPath();
   ctx.moveTo(face + dir * 6, sy - KATANA_HALF + 0.5);
   ctx.lineTo(face + dir * (KATANA_LEN - 12), sy - KATANA_HALF + 0.5);
   ctx.lineTo(face + dir * (KATANA_LEN - 0.5), sy + KATANA_HALF - 1);
   ctx.lineTo(face + dir * 6, sy + KATANA_HALF - 0.5);
   ctx.closePath();
-  ctx.fillStyle = STEEL;
+  const steel = ctx.createLinearGradient(0, sy - KATANA_HALF, 0, sy + KATANA_HALF);
+  steel.addColorStop(0, "#5D6676");
+  steel.addColorStop(0.45, "#C3CBD8");
+  steel.addColorStop(0.75, "#EEF2F8");
+  steel.addColorStop(1, "#9AA4B4");
+  ctx.fillStyle = steel;
   ctx.fill();
   ctx.lineJoin = "miter";
   ctx.lineWidth = 1;
   ctx.strokeStyle = "#0B0D16";
   ctx.stroke();
-  ctx.fillStyle = "#8D97A8";
-  ctx.fillRect(Math.min(face + dir * 6, face + dir * (KATANA_LEN - 14)), sy - KATANA_HALF + 1.5, KATANA_LEN - 20, 2);
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  for (let i = 0; i <= 8; i++) {
+    const px = face + dir * (8 + i * ((KATANA_LEN - 22) / 8));
+    const py = sy + 0.6 + (i % 2 === 0 ? -0.6 : 0.6);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(Math.min(face + dir * 7, face + dir * (KATANA_LEN - 4)), sy + KATANA_HALF - 2, KATANA_LEN - 11, 1);
   // A glint running along it every couple of seconds.
@@ -455,11 +659,18 @@ export function drawKatana(ctx: CanvasRenderingContext2D, wall: number, sy: numb
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.fillRect(gx - 2, sy - KATANA_HALF + 1, 4, 3);
   }
-  // The gold guard at the wall.
-  ctx.fillStyle = NINJA_GOLD;
-  ctx.fillRect(wall === 0 ? face + 2 : face - 6, sy - 6, 4, 12);
-  ctx.fillStyle = "#9A6B1E";
-  ctx.fillRect(wall === 0 ? face : face - 2, sy - 2, 2, 4);
+  // The gold guard at the wall: polished, lit along its top, shadowed underneath, a crisp highlight.
+  const gx0 = wall === 0 ? face + 1.5 : face - 5.5;
+  const gold = ctx.createLinearGradient(0, sy - 6, 0, sy + 6);
+  gold.addColorStop(0, "#FFE9A3");
+  gold.addColorStop(0.4, NINJA_GOLD);
+  gold.addColorStop(1, "#8A5E16");
+  ctx.fillStyle = gold;
+  ctx.beginPath();
+  ctx.roundRect(gx0, sy - 6, 4, 12, 1.5);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillRect(gx0 + 0.8, sy - 5, 1, 4);
 }
 
 /** A shuriken: steel grey with a dark outline and a red centre ring, its four points turning (the sim's radius at the points). */
@@ -481,14 +692,19 @@ export function drawShuriken(ctx: CanvasRenderingContext2D, x: number, y: number
     ctx.lineTo(Math.cos(a + Math.PI / 4) * 2.9, Math.sin(a + Math.PI / 4) * 2.9);
   }
   ctx.closePath();
-  ctx.fillStyle = "#A3ACBB";
+  // Blued steel with a sheen across it (the materials pass): the sheen turns with the star, so it flashes as it spins.
+  const sheen = ctx.createLinearGradient(-r, -r, r, r);
+  sheen.addColorStop(0, "#4E5868");
+  sheen.addColorStop(0.5, "#B9C2D0");
+  sheen.addColorStop(1, "#5F6A7C");
+  ctx.fillStyle = sheen;
   ctx.fill();
   ctx.lineJoin = "round";
   ctx.lineWidth = 1.4;
   ctx.strokeStyle = "#14161E";
   ctx.stroke();
   // A bright bevel on one side of each point, so the turning reads.
-  ctx.fillStyle = "#D7DDE8";
+  ctx.fillStyle = "#E6EBF3";
   for (let i = 0; i < 4; i++) {
     const a = (i * Math.PI) / 2;
     ctx.beginPath();
@@ -607,32 +823,42 @@ export function drawLedge(ctx: CanvasRenderingContext2D, x: number, top: number,
  * centre), a dark cap and base and a short tassel; the glow round it is light only.
  */
 export function drawSkyLantern(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, ridden = false): void {
-  const flick = 0.06 * Math.sin(tick / 7 + x);
-  const glow = ctx.createRadialGradient(x, y, 3, x, y, 34);
-  glow.addColorStop(0, `rgba(255,150,60,${(ridden ? 0.5 : 0.4) + flick})`);
-  glow.addColorStop(1, "rgba(255,150,60,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(x - 34, y - 34, 68, 68);
+  // Translucent paper lit from within (the materials pass; no glow round it): bright where the flame sits low in the
+  // body, deepening to orange at the curved edge, the bamboo ribs dark against the light, lacquered caps.
+  const flick = Math.sin(tick / 7 + x) * 0.8;
   const r = MOON_SKY_R;
-  const body = ctx.createLinearGradient(x - r, 0, x + r, 0);
-  body.addColorStop(0, "#E86A1E");
-  body.addColorStop(0.45, "#FFB259");
-  body.addColorStop(1, "#D9581A");
+  const body = ctx.createRadialGradient(x, y + 3 + flick * 0.5, 1, x, y, r);
+  body.addColorStop(0, ridden ? "#FFF4D6" : "#FFEBC0");
+  body.addColorStop(0.35, "#FFC066");
+  body.addColorStop(0.8, "#F07A2A");
+  body.addColorStop(1, "#B9461A");
   ctx.fillStyle = body;
   ctx.beginPath();
   ctx.ellipse(x, y, r - 3, r - 1, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(140,50,10,0.55)";
-  ctx.lineWidth = 1;
-  for (const dx of [-5, 0, 5]) {
+  ctx.strokeStyle = "rgba(110,38,8,0.6)";
+  ctx.lineWidth = 0.9;
+  for (const dx of [-7, -3.5, 0, 3.5, 7]) {
     ctx.beginPath();
-    ctx.moveTo(x + dx * 0.9, y - r + 3);
-    ctx.quadraticCurveTo(x + dx * 1.35, y, x + dx * 0.9, y + r - 3);
+    ctx.moveTo(x + dx * 0.55, y - r + 3);
+    ctx.quadraticCurveTo(x + dx * 1.05, y, x + dx * 0.55, y + r - 3);
     ctx.stroke();
   }
-  ctx.fillStyle = "#3A2210";
+  // The flame inside, soft through the paper.
+  ctx.fillStyle = "rgba(255,250,225,0.75)";
+  ctx.beginPath();
+  ctx.ellipse(x, y + 4 + flick * 0.5, 2, 3.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Lacquered caps with a thin highlight, and the tassel.
+  const cap = ctx.createLinearGradient(0, y - r, 0, y - r + 3);
+  cap.addColorStop(0, "#6A3418");
+  cap.addColorStop(1, "#2A140A");
+  ctx.fillStyle = cap;
   ctx.fillRect(x - 6, y - r, 12, 3);
+  ctx.fillStyle = "#2A140A";
   ctx.fillRect(x - 5, y + r - 3, 10, 3);
+  ctx.fillStyle = "rgba(255,210,160,0.7)";
+  ctx.fillRect(x - 5, y - r, 10, 0.8);
   ctx.fillStyle = NINJA_RED;
   ctx.fillRect(x - 1, y + r - 1, 2, 2);
 }

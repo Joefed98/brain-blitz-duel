@@ -23,6 +23,12 @@ recorded before it and the 12 ricoRev 2 runs recorded on main to the same scores
 - **Edge to edge**: the world's floor is the temple's slate (`MOON_FLOOR`) and the play screen's fill below carries it
   on to the screen's bottom; beside the world (wide screens) the slate wall continues, shaded as the world's walls are
   at their outer edge (`ricochetNinjaScene.renderer.ts`).
+- **Materials pass** (15 Nov 2026, concept A as the bar): the walls are carved moonlit slate painted once per wall and
+  device scale into a 32-course strip (`paintSlate`, `slateStrip`; lit bevels, grain, strata, chipped corners, cracks),
+  wet moss with crisp highlights, glassy ice, polished steel katanas (temper line, specular edge, gold guards, a wrapped
+  hilt stub in the stone), blued-steel shurikens with a sheen, paper sky lanterns lit from within (no glow round them),
+  a cratered moon and the pagoda in layered mist with a far pagoda. The floor runs between the walls only, and the
+  play screen's fill continues the walls' slate under them (`paintSlate` again). No images shipped (all painted in code).
 - **Sounds**: new silent-until-recorded slots `ricochet.fallWhistle` (a hit), `ricochet.flowBreak` (a streak of 3+
   broken by a slide) and the loop `ricochet.scuff` (sliding on moss or ice); briefs in
   `docs/sound-cues/action-elevenlabs.md`. Every earlier slot keeps Joe's recording.
