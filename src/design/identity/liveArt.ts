@@ -38,3 +38,27 @@ export const TILE_STYLES = liveMap(approved.TILE_STYLES, redrawn.REDRAWN_TILE_ST
 export const COSMETICS_MOTION_CSS = liveCss(approved.COSMETICS_MOTION_CSS, redrawn.REDRAWN_COSMETICS_CSS);
 export const PODIUM_ENTRANCES = approved.PODIUM_ENTRANCES;
 export type { FinishArt } from "./cosmeticsArt.data";
+
+/**
+ * Checks only (identity-motion-check proves the approved sources' cut against their approved stills): every item draws
+ * its approved art again, whatever its switch, in this process. The app never calls this.
+ */
+export function showApprovedArtForChecks(): void {
+  const pairs: [Record<string, unknown>, Record<string, unknown>, Record<string, unknown>][] = [
+    [CARD_ARTS, card.CARD_ARTS, redrawn.REDRAWN_CARD_ARTS],
+    [FRAMES, card.FRAMES, redrawn.REDRAWN_FRAMES],
+    [NAME_COLOURS, card.NAME_COLOURS, redrawn.REDRAWN_NAME_COLOURS],
+    [FINISHES, approved.FINISHES, redrawn.REDRAWN_FINISHES],
+    [ACCESSORIES, approved.ACCESSORIES, redrawn.REDRAWN_ACCESSORIES],
+    [REACTIONS, approved.REACTIONS, redrawn.REDRAWN_REACTIONS],
+    [CELEBRATIONS, approved.CELEBRATIONS, redrawn.REDRAWN_CELEBRATIONS],
+    [TILE_STYLES, approved.TILE_STYLES, redrawn.REDRAWN_TILE_STYLES],
+  ];
+  for (const [live, base, redraws] of pairs) {
+    if (live === base) continue;
+    for (const id of Object.keys(redraws)) {
+      if (id in base) live[id] = base[id];
+      else delete live[id];
+    }
+  }
+}
