@@ -15,6 +15,7 @@
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { artHash } from "./art.renderer";
 import { lookKey, NO_LOOK, type GameLook } from "./skins/look";
+import { SPORTS_SPRITES, sportsSprite } from "./sportsSprites";
 import { paintPoolSkinBall, paintNeonTable, drawNeonCue, poolBallKind, POOL_NEON_SCENE } from "./skins/pool.skins";
 import {
   poolSecondsLeft,
@@ -41,8 +42,12 @@ import {
 } from "./pool";
 
 export const POOL_BG = "#07070A";
-const CLOTH = "#1F6B45";
-const CLOTH_DEEP = "#0F3F28";
+/** The deep green felt (concept C, the Sports overhaul): the bed's centre and edges, and the cushions' nose. */
+export const POOL_CLOTH = "#1B6342";
+export const POOL_CLOTH_EDGE = "#14523A";
+const CLOTH = POOL_CLOTH;
+const CLOTH_EDGE = POOL_CLOTH_EDGE;
+const CLOTH_DEEP = "#0C3524";
 const FONT = "'Archivo', system-ui, sans-serif";
 
 /** Standard ball colours, 1–7 (9–15 repeat them on stripes); 8 is the black. */
@@ -102,6 +107,74 @@ function scaleOf(ctx: CanvasRenderingContext2D): number {
   return t ? Math.max(0.5, Math.min(4, Math.hypot(t.a, t.b))) : 1;
 }
 
+/**
+ * The parlour floor round the table (concept C, the Sports overhaul; display only): a warm walnut herringbone parquet
+ * under a soft window light from the top left, painted in world px so the world's own margins and the play screen's
+ * scene fill (poolScene) are one continuous floor, with no border between them.
+ */
+export function paintPoolParquet(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, y0, x1 - x0, y1 - y0);
+  ctx.clip();
+  ctx.fillStyle = "#1B110A";
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  // Herringbone: 36 × 9 px blocks at 45°, each a slightly different warm brown, laid round the world's centre.
+  const BL = 36;
+  const BW = 9;
+  ctx.save();
+  ctx.translate(POOL_W / 2, POOL_H / 2);
+  ctx.rotate(Math.PI / 4);
+  const far = Math.max(Math.abs(x0 - POOL_W / 2), Math.abs(x1 - POOL_W / 2)) + Math.max(Math.abs(y0 - POOL_H / 2), Math.abs(y1 - POOL_H / 2));
+  const n = Math.ceil(far / BL) + 2;
+  for (let i = -n; i <= n; i++) {
+    for (let j = -n; j <= n; j++) {
+      const h = artHash((i + 500) * 977 + (j + 500), 211);
+      const lift = (h % 9) - 4;
+      const r = 62 + lift * 3;
+      const g = 38 + lift * 2;
+      const b = 22 + lift;
+      const cx = i * BL;
+      const cy = j * BL;
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(cx + 0.5, cy + 0.5, BL - 1, BW - 1);
+      ctx.fillStyle = `rgb(${r - 6},${g - 4},${b - 3})`;
+      ctx.fillRect(cx + 0.5, cy + BW + 0.5, BW - 1, BL - BW - 1);
+      ctx.fillRect(cx + BW + 0.5, cy + BW + 0.5, BL - BW - 1, BW - 1);
+      ctx.fillStyle = `rgb(${r - 3},${g - 2},${b - 2})`;
+      ctx.fillRect(cx + BW + 0.5, cy + 2 * BW + 0.5, BL - BW - 1, BL - 2 * BW - 1);
+    }
+  }
+  ctx.restore();
+  // The room's light: a warm window glow from the top left, the far corners falling into shade (no glare).
+  const lx = POOL_W * 0.25;
+  const ly = POOL_H * 0.2;
+  const glow = ctx.createRadialGradient(lx, ly, 40, lx, ly, Math.max(POOL_W, POOL_H) * 1.1);
+  glow.addColorStop(0, "rgba(255,214,160,0.16)");
+  glow.addColorStop(0.5, "rgba(255,214,160,0.04)");
+  glow.addColorStop(1, "rgba(0,0,0,0.38)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.fillStyle = "rgba(8,5,3,0.35)";
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.restore();
+}
+
+/** Brass, lit from the top left (the corner castings, the middle plates, the sights). */
+function brass(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): CanvasGradient {
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  g.addColorStop(0, "#F3D9A0");
+  g.addColorStop(0.35, "#C99A4E");
+  g.addColorStop(0.65, "#8E6427");
+  g.addColorStop(1, "#5E3F15");
+  return g;
+}
+
+/**
+ * The table (concept C, the Sports overhaul, 15 Nov 2026; display only): carved walnut rails with a raised bead and a
+ * sunk channel, brass corner castings and middle plates, brass sights, a deep green felt under a soft window light,
+ * leather-lined pockets, on a parquet floor. Every rail, cushion, jaw and pocket is where it always was (today's shapes).
+ */
 function paintTable(ctx: CanvasRenderingContext2D): void {
   if (L.world) {
     paintNeonTable(ctx, roundRect);
@@ -111,15 +184,25 @@ function paintTable(ctx: CanvasRenderingContext2D): void {
   const rr = POOL_CR + POOL_RAIL;
   const rt = POOL_CT - POOL_RAIL;
   const rb = POOL_CB + POOL_RAIL;
-  // Shadow under the table.
-  ctx.fillStyle = "rgba(0,0,0,0.55)";
-  roundRect(ctx, rl - 3, rt + 4, rr - rl + 6, rb - rt + 4, 18);
+  // The parlour floor under the whole world (the scene fill carries it on past the world's edges).
+  paintPoolParquet(ctx, 0, 0, POOL_W, POOL_H);
+  // The table's shadow on the floor, thrown down and right by the window light.
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  roundRect(ctx, rl + 2, rt + 6, rr - rl + 2, rb - rt + 2, 18);
   ctx.fill();
-  // Walnut rails: a warm gradient, then fine grain lines.
-  const wood = ctx.createLinearGradient(rl, 0, rr, 0);
-  wood.addColorStop(0, "#3A1E0F");
-  wood.addColorStop(0.5, "#5A3019");
-  wood.addColorStop(1, "#3A1E0F");
+  // The rendered table (Blender, public/sports/pool/table.webp: lacquered walnut, brass, felt under the lamp, built
+  // from the sim's own rails and pockets), with the chalk marks, jaws and chalk cube painted over it as below.
+  const rendered = sportsSprite("pool", "table");
+  if (rendered) {
+    ctx.drawImage(rendered, 0, 0, POOL_W, POOL_H);
+    paintTableMarks(ctx);
+    return;
+  }
+  // Carved walnut rails: a deep warm body, darker away from the window.
+  const wood = ctx.createLinearGradient(rl, rt, rr, rb);
+  wood.addColorStop(0, "#5A3118");
+  wood.addColorStop(0.45, "#3E2010");
+  wood.addColorStop(1, "#2A1508");
   ctx.fillStyle = wood;
   roundRect(ctx, rl, rt, rr - rl, rb - rt, 16);
   ctx.fill();
@@ -132,9 +215,9 @@ function paintTable(ctx: CanvasRenderingContext2D): void {
     ctx.beginPath();
     ctx.rect(x0, y0, x1 - x0, y1 - y0);
     ctx.clip();
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 34; i++) {
       const h = artHash(i, salt);
-      ctx.strokeStyle = `rgba(${h % 3 ? "24,10,3" : "130,78,42"},${0.1 + ((h >> 4) % 10) / 110})`;
+      ctx.strokeStyle = `rgba(${h % 3 ? "18,8,2" : "150,92,48"},${0.1 + ((h >> 4) % 10) / 100})`;
       ctx.lineWidth = 0.5 + ((h >> 8) % 3) * 0.3;
       ctx.beginPath();
       const f = ((h >> 3) % 1000) / 1000;
@@ -156,69 +239,90 @@ function paintTable(ctx: CanvasRenderingContext2D): void {
   grain(rl, POOL_CB, rr, rb, "x", 72);
   grain(rl, POOL_CT, POOL_CL, POOL_CB, "y", 73);
   grain(POOL_CR, POOL_CT, rr, POOL_CB, "y", 74);
-  // A lacquer sheen along the top of the rails.
-  const sheen = ctx.createLinearGradient(0, rt, 0, rt + 18);
-  sheen.addColorStop(0, "rgba(255,220,180,0.18)");
-  sheen.addColorStop(1, "rgba(255,220,180,0)");
+  // The carving: a raised bead round the outside (lit top left) and a sunk channel part way across the rail.
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,206,150,0.16)";
+  roundRect(ctx, rl + 2, rt + 2, rr - rl - 4, rb - rt - 4, 14);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  roundRect(ctx, rl + 4.5, rt + 4.5, rr - rl - 9, rb - rt - 9, 12);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(0,0,0,0.42)";
+  ctx.lineWidth = 1.4;
+  roundRect(ctx, rl + 9, rt + 9, rr - rl - 18, rb - rt - 18, 9);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,206,150,0.1)";
+  ctx.lineWidth = 0.8;
+  roundRect(ctx, rl + 10.2, rt + 10.2, rr - rl - 20.4, rb - rt - 20.4, 8);
+  ctx.stroke();
+  // A soft lacquer sheen along the top rail (no glare: a low, wide fall-off).
+  const sheen = ctx.createLinearGradient(0, rt, 0, rt + 20);
+  sheen.addColorStop(0, "rgba(255,214,170,0.12)");
+  sheen.addColorStop(1, "rgba(255,214,170,0)");
   ctx.fillStyle = sheen;
-  ctx.fillRect(rl, rt, rr - rl, 18);
+  ctx.fillRect(rl, rt, rr - rl, 20);
   ctx.restore();
-  // The cushions' rubber nose (a slightly darker cloth band) and the bed.
+  // The cushions' rubber nose (a darker cloth band), then the deep green bed.
   ctx.fillStyle = CLOTH_DEEP;
   ctx.fillRect(POOL_CL - 6, POOL_CT - 6, POOL_CR - POOL_CL + 12, POOL_CB - POOL_CT + 12);
   const bed = ctx.createLinearGradient(0, POOL_CT, 0, POOL_CB);
-  bed.addColorStop(0, "#1A5E3C");
+  bed.addColorStop(0, CLOTH_EDGE);
   bed.addColorStop(0.5, CLOTH);
-  bed.addColorStop(1, "#1A5E3C");
+  bed.addColorStop(1, CLOTH_EDGE);
   ctx.fillStyle = bed;
   ctx.fillRect(POOL_CL, POOL_CT, POOL_CR - POOL_CL, POOL_CB - POOL_CT);
-  // Cloth nap: a faint weave.
   ctx.save();
   ctx.beginPath();
   ctx.rect(POOL_CL, POOL_CT, POOL_CR - POOL_CL, POOL_CB - POOL_CT);
   ctx.clip();
-  for (let i = 0; i < 900; i++) {
+  // Cloth nap: a fine, even weave.
+  for (let i = 0; i < 1400; i++) {
     const h = artHash(i, 13);
-    ctx.fillStyle = h % 2 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.05)";
-    ctx.fillRect(POOL_CL + (h % (POOL_CR - POOL_CL)), POOL_CT + ((h >> 9) % (POOL_CB - POOL_CT)), 1.2, 1.2);
+    ctx.fillStyle = h % 2 ? "rgba(255,255,255,0.022)" : "rgba(0,0,0,0.05)";
+    ctx.fillRect(POOL_CL + (h % (POOL_CR - POOL_CL)), POOL_CT + ((h >> 9) % (POOL_CB - POOL_CT)), 1, 1);
   }
-  // Three overhead lamps' pools of light.
-  for (const f of [0.2, 0.5, 0.8]) {
-    const cy = POOL_CT + (POOL_CB - POOL_CT) * f;
-    const cx = (POOL_CL + POOL_CR) / 2;
-    const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 190);
-    g.addColorStop(0, "rgba(255,246,214,0.22)");
-    g.addColorStop(0.55, "rgba(255,246,214,0.07)");
-    g.addColorStop(1, "rgba(255,246,214,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(POOL_CL, cy - 200, POOL_CR - POOL_CL, 400);
-  }
-  // The table's edges fall into shade.
+  // The window's light across the cloth from the top left, falling off to the far corner: warm, low, no hot spot.
+  const lx = POOL_CL + (POOL_CR - POOL_CL) * 0.28;
+  const ly = POOL_CT + (POOL_CB - POOL_CT) * 0.3;
+  const light = ctx.createRadialGradient(lx, ly, 20, lx, ly, 520);
+  light.addColorStop(0, "rgba(255,232,190,0.12)");
+  light.addColorStop(0.5, "rgba(255,232,190,0.04)");
+  light.addColorStop(1, "rgba(0,0,0,0.16)");
+  ctx.fillStyle = light;
+  ctx.fillRect(POOL_CL, POOL_CT, POOL_CR - POOL_CL, POOL_CB - POOL_CT);
+  // The cushions throw a narrow shade onto the cloth.
   const edge = ctx.createLinearGradient(POOL_CL, 0, POOL_CR, 0);
-  edge.addColorStop(0, "rgba(0,0,0,0.28)");
-  edge.addColorStop(0.12, "rgba(0,0,0,0)");
-  edge.addColorStop(0.88, "rgba(0,0,0,0)");
-  edge.addColorStop(1, "rgba(0,0,0,0.28)");
+  edge.addColorStop(0, "rgba(0,0,0,0.3)");
+  edge.addColorStop(0.06, "rgba(0,0,0,0)");
+  edge.addColorStop(0.94, "rgba(0,0,0,0)");
+  edge.addColorStop(1, "rgba(0,0,0,0.3)");
   ctx.fillStyle = edge;
   ctx.fillRect(POOL_CL, POOL_CT, POOL_CR - POOL_CL, POOL_CB - POOL_CT);
-  // The baulk line (no D).
-  ctx.strokeStyle = "rgba(240,240,230,0.35)";
+  const ends = ctx.createLinearGradient(0, POOL_CT, 0, POOL_CB);
+  ends.addColorStop(0, "rgba(0,0,0,0.26)");
+  ends.addColorStop(0.035, "rgba(0,0,0,0)");
+  ends.addColorStop(0.965, "rgba(0,0,0,0)");
+  ends.addColorStop(1, "rgba(0,0,0,0.26)");
+  ctx.fillStyle = ends;
+  ctx.fillRect(POOL_CL, POOL_CT, POOL_CR - POOL_CL, POOL_CB - POOL_CT);
+  // The baulk line (no D) and the black's spot, chalk-faint.
+  ctx.strokeStyle = "rgba(240,236,220,0.3)";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(POOL_CL, POOL_BAULK_Y);
   ctx.lineTo(POOL_CR, POOL_BAULK_Y);
   ctx.stroke();
-  // The black's spot.
-  ctx.fillStyle = "rgba(240,240,230,0.35)";
+  ctx.fillStyle = "rgba(240,236,220,0.35)";
   ctx.beginPath();
   ctx.arc((POOL_CL + POOL_CR) / 2, POOL_CT + (POOL_CB - POOL_CT) * 0.22, 1.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   // Cushion lips: a light bevel on the cloth side.
-  ctx.strokeStyle = "rgba(170,230,190,0.18)";
+  ctx.strokeStyle = "rgba(150,220,175,0.16)";
   ctx.lineWidth = 1;
   ctx.strokeRect(POOL_CL + 0.5, POOL_CT + 0.5, POOL_CR - POOL_CL - 1, POOL_CB - POOL_CT - 1);
-  // Pockets: corner pockets with chrome caps, middle pockets half-round with a chrome plate.
+  // Pockets (today's shapes): brass corner castings and brass middle plates, leather-lined holes.
   for (const p of POOL_POCKETS) {
     const x = px(p.x);
     const y = px(p.y);
@@ -226,35 +330,51 @@ function paintTable(ctx: CanvasRenderingContext2D): void {
     if (p.corner) {
       const sx = x < POOL_W / 2 ? -1 : 1;
       const sy = y < POOL_MID_Y ? -1 : 1;
-      // Chrome cap round the outside of the corner (on the rails only, never over the cloth).
+      // The casting round the outside of the corner (on the rails only, never over the cloth).
       ctx.save();
       ctx.beginPath();
       ctx.rect(0, 0, POOL_W, POOL_H);
       ctx.rect(POOL_CL - 6, POOL_CT - 6, POOL_CR - POOL_CL + 12, POOL_CB - POOL_CT + 12);
       ctx.clip("evenodd");
-      const chrome = ctx.createLinearGradient(x - 22, y - 22, x + 22, y + 22);
-      chrome.addColorStop(0, "#F4F6F8");
-      chrome.addColorStop(0.45, "#8E959C");
-      chrome.addColorStop(0.6, "#DADFE3");
-      chrome.addColorStop(1, "#5F666C");
-      ctx.fillStyle = chrome;
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.beginPath();
+      ctx.arc(x + sx * 2 + 1, y + sy * 2 + 2, r + 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = brass(ctx, x - 22, y - 22, x + 22, y + 22);
       ctx.beginPath();
       ctx.arc(x + sx * 2, y + sy * 2, r + 7, 0, Math.PI * 2);
       ctx.fill();
+      // The casting's engraved ring and three studs.
+      ctx.strokeStyle = "rgba(60,36,8,0.55)";
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.arc(x + sx * 2, y + sy * 2, r + 4.2, 0, Math.PI * 2);
+      ctx.stroke();
+      for (const a of [0.25, 0.5, 0.75]) {
+        const ang = Math.atan2(sy, sx) + (a - 0.5) * 1.9;
+        ctx.fillStyle = "#FBE7B8";
+        ctx.beginPath();
+        ctx.arc(x + sx * 2 + Math.cos(ang) * (r + 5.6) - 0.3, y + sy * 2 + Math.sin(ang) * (r + 5.6) - 0.3, 1.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     } else {
       const sx = x < POOL_W / 2 ? -1 : 1;
-      const chrome = ctx.createLinearGradient(x, y - 20, x, y + 20);
-      chrome.addColorStop(0, "#5F666C");
-      chrome.addColorStop(0.5, "#EEF1F3");
-      chrome.addColorStop(1, "#5F666C");
-      ctx.fillStyle = chrome;
-      ctx.fillRect(x + sx * 2 - (sx > 0 ? 0 : 12), y - 21, 12, 42);
+      const plateX = x + sx * 2 - (sx > 0 ? 0 : 12);
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.fillRect(plateX + 1, y - 20, 12, 42);
+      ctx.fillStyle = brass(ctx, x, y - 21, x + sx * 6, y + 21);
+      ctx.fillRect(plateX, y - 21, 12, 42);
+      ctx.strokeStyle = "rgba(60,36,8,0.5)";
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(plateX + 2, y - 19, 8, 38);
     }
+    // The hole: black at the bottom, the leather lining's brown at the mouth.
     const hole = ctx.createRadialGradient(x, y, 1, x, y, r + 1);
     hole.addColorStop(0, "#000");
-    hole.addColorStop(0.75, "#050505");
-    hole.addColorStop(1, "#1A1A1A");
+    hole.addColorStop(0.66, "#060403");
+    hole.addColorStop(0.9, "#2A170C");
+    hole.addColorStop(1, "#3E2414");
     ctx.fillStyle = hole;
     ctx.beginPath();
     if (p.corner) ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -266,7 +386,7 @@ function paintTable(ctx: CanvasRenderingContext2D): void {
     ctx.fill();
   }
   // The jaws: the cushions' rubber noses angled into each pocket.
-  ctx.strokeStyle = "#0B3321";
+  ctx.strokeStyle = "#0A3020";
   ctx.lineWidth = 3;
   ctx.lineCap = "round";
   for (const j of POOL_JAWS) {
@@ -275,19 +395,15 @@ function paintTable(ctx: CanvasRenderingContext2D): void {
     ctx.lineTo(px(j.bx), px(j.by));
     ctx.stroke();
   }
-  // Mother-of-pearl sights: three a side between pockets on the long rails, three on each end.
+  // Brass sights: three a side between pockets on the long rails, three on each end.
   const sight = (x: number, y: number) => {
-    const g = ctx.createRadialGradient(x - 0.6, y - 0.6, 0.2, x, y, 3);
-    g.addColorStop(0, "#FFFFFF");
-    g.addColorStop(0.5, "#E6E2F2");
-    g.addColorStop(1, "#B7C7D2");
-    ctx.fillStyle = g;
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.beginPath();
-    ctx.moveTo(x, y - 3);
-    ctx.lineTo(x + 2, y);
-    ctx.lineTo(x, y + 3);
-    ctx.lineTo(x - 2, y);
-    ctx.closePath();
+    ctx.arc(x + 0.5, y + 0.7, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = brass(ctx, x - 2, y - 2, x + 2, y + 2);
+    ctx.beginPath();
+    ctx.arc(x, y, 2.2, 0, Math.PI * 2);
     ctx.fill();
   };
   const half = (POOL_CB - POOL_CT) / 2;
@@ -323,9 +439,45 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
+/** The marks painted over the rendered table: the baulk line, the black's spot, the jaws and the chalk cube. */
+function paintTableMarks(ctx: CanvasRenderingContext2D): void {
+  ctx.save();
+  ctx.strokeStyle = "rgba(240,236,220,0.3)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(POOL_CL, POOL_BAULK_Y);
+  ctx.lineTo(POOL_CR, POOL_BAULK_Y);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(240,236,220,0.35)";
+  ctx.beginPath();
+  ctx.arc((POOL_CL + POOL_CR) / 2, POOL_CT + (POOL_CB - POOL_CT) * 0.22, 1.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#0A3020";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  for (const j of POOL_JAWS) {
+    ctx.beginPath();
+    ctx.moveTo(px(j.ax), px(j.ay));
+    ctx.lineTo(px(j.bx), px(j.by));
+    ctx.stroke();
+  }
+  const cx = POOL_CR - 40;
+  const cy = POOL_CB + POOL_RAIL / 2 + 1;
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.fillRect(cx - 4, cy - 2, 10, 9);
+  ctx.fillStyle = "#2E6FD8";
+  ctx.fillRect(cx - 5, cy - 5, 10, 10);
+  ctx.fillStyle = "#5C95F0";
+  ctx.fillRect(cx - 5, cy - 5, 10, 3);
+  ctx.fillStyle = "#1B4FA6";
+  ctx.fillRect(cx - 2, cy - 2, 4, 4);
+  ctx.restore();
+}
+
 function drawTable(ctx: CanvasRenderingContext2D): void {
   const scale = scaleOf(ctx);
-  const key = L.world ?? "";
+  // Repainted once when the rendered table arrives (sportsSprite answers null until then; the painted table meanwhile).
+  const key = `${L.world ?? ""}|${L.world ? 0 : sportsSprite("pool", "table") ? 1 : 0}`;
   if (!tableCache || Math.abs(tableCache.scale - scale) > 0.01 || tableCache.key !== key) {
     const c = offscreen(POOL_W * scale, POOL_H * scale);
     if (!c) {
@@ -387,19 +539,35 @@ function paintBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numb
       } else ctx.fillText(String(id), x, y + r * 0.04);
     }
   }
-  // Shading from the lamp above: a soft dark rim and a sharp highlight.
+  // Shading from the window light (top left; the Sports overhaul's rendered look): a soft core light, the body
+  // falling into shade towards the bottom right, the felt's green bounced into the lower rim, a sharp window
+  // highlight and a faint secondary glint. All inside the ball's radius.
   const shade = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r * 1.05);
-  shade.addColorStop(0, "rgba(255,255,255,0.32)");
-  shade.addColorStop(0.35, "rgba(255,255,255,0.04)");
-  shade.addColorStop(0.8, "rgba(0,0,0,0.18)");
-  shade.addColorStop(1, "rgba(0,0,0,0.5)");
+  shade.addColorStop(0, "rgba(255,248,236,0.34)");
+  shade.addColorStop(0.35, "rgba(255,248,236,0.05)");
+  shade.addColorStop(0.75, "rgba(0,0,0,0.2)");
+  shade.addColorStop(1, "rgba(0,0,0,0.55)");
   ctx.fillStyle = shade;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  const bounce = ctx.createRadialGradient(x + r * 0.45, y + r * 0.6, 0, x + r * 0.45, y + r * 0.6, r * 0.75);
+  bounce.addColorStop(0, "rgba(60,150,100,0.28)");
+  bounce.addColorStop(1, "rgba(60,150,100,0)");
+  ctx.fillStyle = bounce;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  ctx.fillStyle = "rgba(255,252,244,0.92)";
   ctx.beginPath();
-  ctx.ellipse(x - r * 0.38, y - r * 0.42, r * 0.2, r * 0.14, -0.6, 0, Math.PI * 2);
+  ctx.ellipse(x - r * 0.38, y - r * 0.42, r * 0.22, r * 0.15, -0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,252,244,0.35)";
+  ctx.beginPath();
+  ctx.arc(x + r * 0.42, y + r * 0.36, r * 0.07, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+}
+
+/** A ball (with its contact shadow) at any radius, in the default look: the reveal's run summary (display only). */
+export function drawPoolBallAt(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, r: number): void {
+  drawBall(ctx, id, x, y, r);
 }
 
 function drawBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, r = POOL_BALL_DRAW_R): void {
@@ -620,6 +788,63 @@ function drawCueStick(ctx: CanvasRenderingContext2D, cx: number, cy: number, ux:
   ctx.restore();
 }
 
+/* ============================ The Captain's arm ============================ */
+
+/** How faint the black is drawn while it is locked (the Sports overhaul). */
+export const POOL_BLACK_LOCKED_ALPHA = 0.5;
+/** Where the Captain's hand grips the cue, from its tip (world px), and the arm's length from the hand to the shoulder. */
+export const POOL_ARM_GRIP = Math.round(CUE_LEN * 0.85);
+export const POOL_ARM_LEN = 104;
+/** The arm leaves the cue backwards, turned this far (radians) to the cue's right, as a player's grip arm does. */
+export const POOL_ARM_TURN = 0.48;
+/** The arm sprite's size and anchors (render_sports.py): the hand (where the cue sits) and the shoulder, in image px. */
+const ARM = SPORTS_SPRITES.pool.arm as unknown as { w: number; h: number; hand: [number, number]; shoulder: [number, number] };
+
+/**
+ * Where the Captain's arm sits for a cue ball at (cx, cy), the aim (ux, uy) and the pull (display only, world px):
+ * the hand on the cue's butt (moving with the pull) and the shoulder behind it, the arm's direction and its scale.
+ */
+export function poolArmPlacement(cx: number, cy: number, ux: number, uy: number, pull: number): { hx: number; hy: number; sx: number; sy: number; angle: number; k: number; halfW: number } {
+  const gap = R + 3 + CUE_PULL * Math.max(0, Math.min(1, pull));
+  const hx = cx - ux * (gap + POOL_ARM_GRIP);
+  const hy = cy - uy * (gap + POOL_ARM_GRIP);
+  const back = Math.atan2(-uy, -ux) + POOL_ARM_TURN;
+  const sx = hx + Math.cos(back) * POOL_ARM_LEN;
+  const sy = hy + Math.sin(back) * POOL_ARM_LEN;
+  const a = ARM;
+  const len = Math.hypot(a.shoulder[0] - a.hand[0], a.shoulder[1] - a.hand[1]);
+  const k = POOL_ARM_LEN / len;
+  return { hx, hy, sx, sy, angle: back, k, halfW: (a.h * k) / 2 };
+}
+
+/**
+ * Captain Joulz's arm from above (the Sports overhaul; Blender render public/sports/pool/arm.webp, his skin's set):
+ * the gold-gauntleted hand closed round the cue's butt, the arm leaving behind and to the side, drawn back with the
+ * pull. Always ~250 px behind the cue ball, so never over the ball, the aim, the ghost ball or the target. Nothing is
+ * drawn until the image has loaded.
+ */
+function drawCaptainArm(ctx: CanvasRenderingContext2D, cx: number, cy: number, ux: number, uy: number, pull: number): void {
+  const img = sportsSprite("pool", "arm", true);
+  if (!img) return;
+  const a = ARM;
+  const p = poolArmPlacement(cx, cy, ux, uy, pull);
+  const spriteAngle = Math.atan2(a.shoulder[1] - a.hand[1], a.shoulder[0] - a.hand[0]);
+  ctx.save();
+  // A soft shadow on the cloth, offset away from the window light.
+  ctx.strokeStyle = "rgba(0,0,0,0.28)";
+  ctx.lineCap = "round";
+  ctx.lineWidth = p.halfW * 1.3;
+  ctx.beginPath();
+  ctx.moveTo(p.hx + 3, p.hy + 4);
+  ctx.lineTo(p.sx + 3, p.sy + 4);
+  ctx.stroke();
+  ctx.translate(p.hx, p.hy);
+  ctx.rotate(p.angle - spriteAngle);
+  ctx.scale(p.k, p.k);
+  ctx.drawImage(img, -a.hand[0], -a.hand[1], a.w, a.h);
+  ctx.restore();
+}
+
 /* ============================ Potted balls ============================ */
 
 /** A potted ball's drop: this many ticks rolling into the mouth, shrinking and darkening into the hole. */
@@ -676,63 +901,140 @@ function drawDropping(ctx: CanvasRenderingContext2D, s: PoolState): void {
 
 /* ================================= HUD ================================= */
 
+/** The HUD's chip height and type (the Sports overhaul: bigger and legible, 13 px Archivo 800 on a 26 px chip). */
+export const POOL_HUD_CHIP_H = 26;
+const HUD_FONT = `800 13px ${FONT}`;
+
+/** A chip's width for its label at the HUD's type. */
+function chipW(ctx: CanvasRenderingContext2D, label: string): number {
+  ctx.font = HUD_FONT;
+  return Math.ceil(ctx.measureText(label).width) + 22;
+}
+
 function chip(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, label: string, tone: "plain" | "gold" | "red" = "plain"): void {
-  ctx.fillStyle = tone === "red" ? "rgba(120,20,24,0.85)" : "rgba(14,14,18,0.82)";
-  roundRect(ctx, x, y, w, 20, 10);
+  const h = POOL_HUD_CHIP_H;
+  ctx.fillStyle = tone === "red" ? "rgba(120,20,24,0.9)" : "rgba(12,9,6,0.86)";
+  roundRect(ctx, x, y, w, h, h / 2);
   ctx.fill();
-  ctx.strokeStyle = tone === "gold" ? "rgba(242,199,92,0.8)" : tone === "red" ? "rgba(255,120,120,0.6)" : "rgba(255,255,255,0.14)";
+  ctx.strokeStyle = tone === "gold" ? "rgba(242,199,92,0.85)" : tone === "red" ? "rgba(255,120,120,0.65)" : "rgba(255,236,210,0.16)";
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.fillStyle = tone === "gold" ? "#F2C75C" : "#F3F1EC";
-  ctx.font = `700 10.5px ${FONT}`;
+  ctx.font = HUD_FONT;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(label, x + w / 2, y + 10.5);
+  ctx.fillText(label, x + w / 2, y + h / 2 + 0.5);
+}
+
+/**
+ * The black's rule on the table (the Sports overhaul; display only, from the sim's own counters): while fewer than
+ * seven of the player's set are down the black is "not yet", dimmed with a small lock; once the seven are down it is
+ * the next ball ("NOW THE BLACK" in the HUD, a thin gold ring on the ball). Never once the black is down.
+ */
+export type PoolBlackStatus = "locked" | "open" | "down" | "early";
+
+export function poolBlackStatus(s: Pick<PoolState, "spotsDown" | "black">): PoolBlackStatus {
+  if (s.black === 1) return "down";
+  if (s.black === 2) return "early";
+  return s.spotsDown >= POOL_SPOTS ? "open" : "locked";
+}
+
+/** The lock badge beside a dimmed black: a small padlock on a dark disc, up and right of the ball (inside 16 px). */
+function drawBlackLock(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  const bx = x + POOL_BALL_DRAW_R * 0.85;
+  const by = y - POOL_BALL_DRAW_R * 0.85;
+  ctx.save();
+  ctx.fillStyle = "rgba(12,9,6,0.9)";
+  ctx.beginPath();
+  ctx.arc(bx, by, 6.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(242,199,92,0.9)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // The padlock: a shackle and a body.
+  ctx.strokeStyle = "#F2C75C";
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.arc(bx, by - 0.8, 1.9, Math.PI, 0);
+  ctx.stroke();
+  ctx.fillStyle = "#F2C75C";
+  ctx.fillRect(bx - 2.8, by - 0.8, 5.6, 4);
+  ctx.restore();
+}
+
+/** The open black's thin gold ring (no glow): the next ball to pot. */
+function drawBlackOpen(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.save();
+  ctx.strokeStyle = "rgba(242,199,92,0.95)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(x, y, POOL_BALL_DRAW_R + 2.2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
-  const y = 6;
+  const y = 4;
+  const h = POOL_HUD_CHIP_H;
   // The rack: the player's seven, lit once potted. poolRev 4 names the set (SPOTS or STRIPES) inside the pill, in gold.
   const set = s.set ?? POOL_SET_SPOTS;
   const named = s.rev >= 4;
   const label = poolSetName(set).toUpperCase();
-  ctx.font = `800 9px ${FONT}`;
-  const lw = named ? Math.ceil(ctx.measureText(label).width) + 10 : 0;
-  ctx.fillStyle = "rgba(14,14,18,0.82)";
-  roundRect(ctx, 8, y, 7 * 15 + 10 + lw, 20, 10);
+  ctx.font = HUD_FONT;
+  const lw = named ? Math.ceil(ctx.measureText(label).width) + 12 : 0;
+  const step = 18;
+  const rackW = 7 * step + 12 + lw;
+  ctx.fillStyle = "rgba(12,9,6,0.86)";
+  roundRect(ctx, 8, y, rackW, h, h / 2);
   ctx.fill();
+  ctx.strokeStyle = named ? "rgba(242,199,92,0.85)" : "rgba(255,236,210,0.16)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
   if (named) {
-    ctx.strokeStyle = "rgba(242,199,92,0.8)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
     ctx.fillStyle = "#F2C75C";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, 8 + 9, y + 10.5);
+    ctx.fillText(label, 8 + 11, y + h / 2 + 0.5);
   }
   for (let id = 1; id <= POOL_SPOTS; id++) {
     const down = s.balls.find((b) => b.id === id)?.down === 1;
-    ctx.globalAlpha = down ? 1 : 0.28;
-    drawBall(ctx, poolShownId(id, set), 8 + lw + 5 + 7.5 + (id - 1) * 15, y + 10, 5.5);
+    ctx.globalAlpha = down ? 1 : 0.3;
+    drawBall(ctx, poolShownId(id, set), 8 + lw + 6 + step / 2 + (id - 1) * step, y + h / 2, 7);
     ctx.globalAlpha = 1;
   }
-  let x = 8 + lw + 7 * 15 + 16;
-  const allDown = s.spotsDown >= POOL_SPOTS;
-  if (allDown && s.black === 0) {
-    chip(ctx, x, y, 64, "THE BLACK", "gold");
-    x += 70;
+  let x = 8 + rackW + 6;
+  const room = (w: number) => x + w <= POOL_W - 8;
+  const status = poolBlackStatus(s);
+  if (status === "open") {
+    const w = chipW(ctx, "NOW THE BLACK");
+    if (room(w)) {
+      chip(ctx, x, y, w, "NOW THE BLACK", "gold");
+      x += w + 6;
+    }
   }
-  if (s.streak >= 2 && x + 76 <= POOL_W - 8) {
-    chip(ctx, x, y, 76, `${s.streak} IN A ROW`, "gold");
-    x += 82;
+  if (s.streak >= 2) {
+    const text = `${s.streak} IN A ROW`;
+    const w = chipW(ctx, text);
+    if (room(w)) {
+      chip(ctx, x, y, w, text, "gold");
+      x += w + 6;
+    }
   }
-  if (s.fouls > 0 && x + 62 <= POOL_W - 8) {
-    chip(ctx, x, y, 62, `FOULS ${s.fouls}`, s.tick - s.foulTick < 60 ? "red" : "plain");
-    x += 68;
+  if (s.fouls > 0) {
+    const text = `FOULS ${s.fouls}`;
+    const w = chipW(ctx, text);
+    if (room(w)) {
+      chip(ctx, x, y, w, text, s.tick - s.foulTick < 60 ? "red" : "plain");
+      x += w + 6;
+    }
   }
-  if (s.scratches > 0 && s.tick - s.scratchTick < 120) chip(ctx, POOL_W - 70, y, 62, "−5 S", "red");
+  if (s.scratches > 0 && s.tick - s.scratchTick < 120) {
+    const w = chipW(ctx, "−5 S");
+    chip(ctx, POOL_W - 8 - w, y, w, "−5 S", "red");
+  }
   void poolSecondsLeft;
 }
+
 
 /* ================================ Public ================================ */
 
@@ -787,14 +1089,31 @@ function drawPoolLooked(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAi
   }
   drawDropping(ctx, s);
   const set = s.set ?? POOL_SET_SPOTS;
-  for (const b of s.balls) if (!b.down && b.id !== POOL_CUE) drawBall(ctx, poolShownId(b.id, set), px(b.x), px(b.y));
+  const blackStatus = poolBlackStatus(s);
+  for (const b of s.balls) {
+    if (b.down || b.id === POOL_CUE) continue;
+    // The black's rule on the table (the Sports overhaul): dimmed with a lock until the seven are down, then ringed.
+    if (b.id === POOL_BLACK && blackStatus === "locked") {
+      ctx.save();
+      ctx.globalAlpha = POOL_BLACK_LOCKED_ALPHA;
+      drawBall(ctx, poolShownId(b.id, set), px(b.x), px(b.y));
+      ctx.restore();
+      drawBlackLock(ctx, px(b.x), px(b.y));
+      continue;
+    }
+    drawBall(ctx, poolShownId(b.id, set), px(b.x), px(b.y));
+    if (b.id === POOL_BLACK && blackStatus === "open") drawBlackOpen(ctx, px(b.x), px(b.y));
+  }
   const cue = s.balls.find((b) => b.id === POOL_CUE && !b.down);
   const aiming = aim && s.phase === 0 && !s.over;
   if (aiming) drawAim(ctx, s, aim);
   if (cue) drawBall(ctx, POOL_CUE, px(cue.x), px(cue.y));
   if (aiming && cue) {
     const l = Math.hypot(aim.dx, aim.dy);
-    if (l > 1e-6) drawCueStick(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
+    if (l > 1e-6) {
+      drawCueStick(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
+      drawCaptainArm(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
+    }
   }
   if (!turned) drawHud(ctx, s);
   // poolRev 4: the deal's set, shown big over the table until the first shot (never on the turned desktop table: its
@@ -831,7 +1150,7 @@ function drawSetBanner(ctx: CanvasRenderingContext2D, s: PoolState): void {
   ctx.restore();
 }
 
-/** The room round the table on the play screen: a dark floor under the lamps' spill (display only). */
+/** The room round the table on the play screen: the parlour's parquet floor (display only). */
 export function poolScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   paintPoolScene(ctx, view, NO_LOOK);
 }
@@ -848,25 +1167,8 @@ function paintPoolScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, loo
     POOL_NEON_SCENE(ctx, view);
     return;
   }
-  ctx.fillStyle = "#0A0807";
-  ctx.fillRect(view.left, view.top, w, h);
-  const cx = POOL_W / 2;
-  const cy = POOL_H / 2;
-  const g = ctx.createRadialGradient(cx, cy, 80, cx, cy, Math.max(w, h) * 0.75);
-  g.addColorStop(0, "rgba(70,48,30,0.55)");
-  g.addColorStop(0.6, "rgba(30,20,14,0.35)");
-  g.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(view.left, view.top, w, h);
-  // Floorboards, faint.
-  ctx.strokeStyle = "rgba(255,220,180,0.04)";
-  ctx.lineWidth = 1;
-  for (let x = Math.floor(view.left / 26) * 26; x < view.right; x += 26) {
-    ctx.beginPath();
-    ctx.moveTo(x, view.top);
-    ctx.lineTo(x, view.bottom);
-    ctx.stroke();
-  }
+  // The parlour floor (concept C): the same parquet as the world's own margins, in world px, so they meet with no seam.
+  paintPoolParquet(ctx, view.left, view.top, view.left + w, view.top + h);
 }
 
 /* ============================== The power meter ============================== */
@@ -902,17 +1204,17 @@ function bandColour(f: number, alpha: number): string {
 export function drawPoolPowerPanel(ctx: CanvasRenderingContext2D, w: number, h: number, pull: number, _spin?: unknown): void {
   ctx.clearRect(0, 0, w, h);
   const p = Math.max(0, Math.min(1, pull));
-  // The frame: a dark body inside a brushed-metal rim.
+  // The frame (concept C, the Sports overhaul): a dark walnut body inside a brass rim.
   const rim = ctx.createLinearGradient(0, 0, 0, h);
-  rim.addColorStop(0, "#9AA0A7");
-  rim.addColorStop(0.5, "#3C4046");
-  rim.addColorStop(1, "#7D838A");
+  rim.addColorStop(0, "#E9C98A");
+  rim.addColorStop(0.5, "#8E6427");
+  rim.addColorStop(1, "#C99A4E");
   ctx.fillStyle = rim;
   roundRect(ctx, 0, 0, w, h, 14);
   ctx.fill();
   const bodyFill = ctx.createLinearGradient(0, 2, 0, h - 2);
-  bodyFill.addColorStop(0, "#1C1C23");
-  bodyFill.addColorStop(1, "#0B0B0F");
+  bodyFill.addColorStop(0, "#3A2010");
+  bodyFill.addColorStop(1, "#1A0D05");
   ctx.fillStyle = bodyFill;
   roundRect(ctx, 2, 2, w - 4, h - 4, 12);
   ctx.fill();

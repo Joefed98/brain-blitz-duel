@@ -1162,7 +1162,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     pool: {
       goal: "Pot your seven, spots or stripes, then the black, without a miss.",
       how: [
-        { action: "Your set:", detail: "each table deals you spots or stripes; the banner and the top bar show which." },
+        { action: "Your set:", detail: "each table deals you spots or stripes; the banner and the top bar show which. The black stays locked until they’re down." },
         { action: "Drag anywhere on the table", detail: "to turn the cue round the cue ball; drag further from the ball for finer aim." },
         { action: "Pull the cue back", detail: "in the power meter at the bottom and let go to shoot." },
         { action: "Your balls first:", detail: "hitting the other set first, potting one of theirs or touching no ball at all is a foul (−10)." },
@@ -1171,7 +1171,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Power:", detail: "the further you pull the cue, the harder the shot; green is soft, red full power.", helpOnly: true },
         { action: "Spin:", detail: "tap the spin ball, bottom right, and place the red dot anywhere on it: high for top spin (follow), low for back spin (draw, which pulls the cue ball back), left or right for side, which bends the bounce off a cushion.", helpOnly: true },
         { action: "Cue ball potted:", detail: "it comes back to its spot and costs you time.", helpOnly: true },
-        { action: "The black too early", detail: "ends your run with no black or speed points.", helpOnly: true },
+        { action: "The black is locked", detail: "(dimmed, with a padlock) until your seven are down; then NOW THE BLACK lights up and a gold ring marks it.", helpOnly: true },
+        { action: "The black too early", detail: "(while it is locked) ends your run with no black or speed points.", helpOnly: true },
         { action: "Every layout is proved clearable", detail: "without a miss. The same table and set for everyone.", helpOnly: true },
       ],
       score: liveStdHelp("pool", "Each foul costs 10."),
