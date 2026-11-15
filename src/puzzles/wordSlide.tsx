@@ -471,9 +471,14 @@ function RevealOverhaul({ puzzle, myAnswer, myCorrect, validRows }: PuzzleReveal
       />
       <BoardPair
         solution={<Board grid={[...words.join("")]} cell={cell} good={new Set()} shut />}
-        yours={<Board grid={replay.grid} cell={cell} good={good} />}
+        // Joe (15 Nov 2026): the key belongs to Yours only (the solution is all locked gold).
+        yours={
+          <>
+            <Board grid={replay.grid} cell={cell} good={good} />
+            <RevealKey items={[{ tone: "teal", label: "A real word" }, { tone: "black", label: "Not a word" }]} />
+          </>
+        }
       />
-      <RevealKey items={[{ tone: "teal", label: "A real word" }, { tone: "black", label: "Not a word" }]} />
     </div>
   );
 }

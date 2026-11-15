@@ -69,8 +69,8 @@
 
 /* Roundabout: the crossword takes the height the wheel gave up (main capped it at 260 px tall and 334 px across). */
 .game-column [data-polish="letterwheel"][data-word-polish] > [data-arena-part="letterwheel-board"][data-arena-part] {
-  height: min(420px, calc(100cqh - var(--lw-wheel) - 80px));
-  max-height: min(440px, 100cqw);
+  height: min(380px, calc(100cqh - var(--lw-wheel) - 80px));
+  max-height: min(400px, 100cqw);
 }
 /* Its word count and misses: two compact pills stacked inside the 44 px row. */
 [data-word-polish="letterwheel"] [data-lw-count] .hud-pills {

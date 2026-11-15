@@ -242,6 +242,9 @@ def palette():
         well=mat("well", hexc("#0E1630"), rough=0.45, coat=0.4, coat_rough=0.15),
         tray=mat("tray", hexc("#0C1530"), rough=0.3, coat=0.8, coat_rough=0.07, bump=0.012),
         well_plate=mat("well_plate", hexc("#18223F"), rough=0.3, coat=0.8, coat_rough=0.06, bump=0.012),
+        # Roundabout's empty crossword squares: a slate glaze a step lighter than the board, so every square reads
+        # clearly before it is filled (Joe, 15 Nov 2026: today's squares were easier to see than dark wells).
+        slate=mat("glaze_slate", hexc("#2C3448"), rough=0.3, coat=0.8, coat_rough=0.06, spec=0.5, dome=0.35),
         # Cryptogrid's picked number: the dark glaze tinted gold (concept A's tinted, gold-ringed square).
         amber=mat("glaze_amber", hexc("#4A3A1A"), rough=0.3, coat=0.85, coat_rough=0.05, spec=0.5, dome=0.35),
         # Metals that shine.
@@ -502,6 +505,7 @@ PIECES = {
     "tile-dim": (64, 64, tile("dim")),
     "tile-sapphire": (64, 64, tile("sapphire")),
     "tile-amber": (64, 64, tile("amber")),
+    "tile-slate": (64, 64, tile("slate", d=6)),
     # Small tiles for dense grids (Lookout 10x10 and 12x12, Cryptogrid 9x9): a lower slab and tighter bevel.
     "tile-small-black": (36, 36, tile("black", 36, 6, 6)),
     "tile-small-gold": (36, 36, tile("gold", 36, 6, 6)),

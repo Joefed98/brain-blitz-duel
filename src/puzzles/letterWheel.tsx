@@ -58,8 +58,9 @@ export function Crossword({
           <div
             key={cell}
             data-lw-cell={cell}
-            data-wa={art ? (ch ? "tile" : miss ? "tile" : "well") : undefined}
-            data-wa-tone={art ? (ch ? "black" : miss ? "dim" : undefined) : undefined}
+            // Empty squares are low slate tiles (Joe, 15 Nov 2026: as readable as today's, never near-black wells).
+            data-wa={art ? "tile" : undefined}
+            data-wa-tone={art ? (ch ? "black" : miss ? "dim" : "slate") : undefined}
             className={`word-letter-tile flex items-center justify-center rounded-sm font-mono font-bold ${
               ch ? "bg-primary text-primary-foreground" : miss ? "bg-card text-muted-foreground ring-1 ring-inset ring-destructive" : "bg-card"
             }`}
@@ -495,8 +496,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       // 3 Nov 2026 (Joe's audit: tiny crossword cells under a large wheel): the wheel gives the crossword about 80 px,
       // 172–220 px plus growth up to 280 px only past a 380 px crossword (100cqh - 460 px); the crossword's cap is
       // 380 px tall (polish-nov3-word.css) and 400 px wide.
-      // The Word overhaul (15 Nov 2026): the crossword gets more of the height again (the wheel 156–200 px).
-      style={{ "--lw-wheel": "max(clamp(156px, calc(100cqh - 430px), 200px), min(260px, calc(100cqw - 24px), calc(100cqh - 500px)))" } as CSSProperties}
+      // The Word overhaul (Joe, 15 Nov 2026): a bigger wheel than today's (180–224 px, up to 290 px on tall screens).
+      style={{ "--lw-wheel": "max(clamp(180px, calc(100cqh - 400px), 224px), min(290px, calc(100cqw - 24px), calc(100cqh - 450px)))" } as CSSProperties}
     >
       <div data-arena-part="letterwheel-board" data-word-first="" className="flex min-h-0 w-full flex-[7] items-center justify-center" style={{ containerType: "size" }}>
         <div

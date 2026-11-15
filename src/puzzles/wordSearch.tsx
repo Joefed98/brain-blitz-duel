@@ -74,7 +74,10 @@ export function Grid({
             data-ws-cell={cell}
             data-bw-live={live?.has(cell) && !bad?.has(cell) ? "" : undefined}
             data-wa="tile-sm"
-            data-wa-tone={bad?.has(cell) ? "red" : live?.has(cell) ? "sapphire" : gold.has(cell) ? "gold" : missedOnly ? "dim" : "black"}
+            // Joe (15 Nov 2026): a found word keeps its glazed tiles and is circled by the gold capsule loop, like a pen
+            // ring round it (concept A); its tiles are no longer filled gold.
+            data-wa-tone={bad?.has(cell) ? "red" : live?.has(cell) ? "sapphire" : gold.has(cell) ? "black" : missedOnly ? "dim" : "black"}
+            data-ws-found={gold.has(cell) && !bad?.has(cell) && !live?.has(cell) ? "" : undefined}
             className={`word-letter-tile flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
             style={{ fontSize: small ? "max(9px, 5.6cqw)" : `clamp(16px, calc(min(100cqw, 100cqh) * ${(0.6 / size).toFixed(4)}), 28px)` }}
           >

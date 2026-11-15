@@ -35,17 +35,17 @@ Concept A: glazed tiles, the traced word in sapphire glaze with a fine line betw
 <img src="img/wordhunt-compare.webp" width="760">
 
 ### Lookout
-Concept A: small glazed tiles, found words in enamel gold inside a fine capsule line, the chips below as tags; on `wordSearchRev 6` the round goes on after the sixth word for the bonus, with Done.
+Concept A: small glazed tiles, a found word circled by a gold capsule loop like a pen ring (its letters gold, the tiles never filled gold; Joe, 15 Nov 2026), the chips below as tags; on `wordSearchRev 6` the round goes on after the sixth word for the bonus, with Done.
 
 <img src="img/wordsearch-compare.webp" width="760">
 
 ### Roundabout
-Concept A: the crossword as dark recessed wells and glazed tiles, the letter wheel a turned lacquer tray, the bonus jar real glass (a crisp line down its curve) filling with polished coins. A miss and a repeat look different; boards without odd or many three-letter words (`wheelRev 5`).
+Concept A: the crossword's empty squares as low slate glazed tiles (as readable as today's; Joe, 15 Nov 2026) and filled ones glazed tiles, the letter wheel a bigger turned lacquer tray, the bonus jar real glass (a crisp line down its curve) filling with polished coins. A miss and a repeat look different; boards without odd or many three-letter words (`wheelRev 5`).
 
 <img src="img/letterwheel-compare.webp" width="760">
 
 ### Strikeout
-Concept A: strike counters as gold enamel pips turning to red studs, the word as tiles in a dark slot, the keyboard real keys with depth at the bottom (52 px, with a letter preview), Solve gold.
+Concept A: strike counters as gold enamel pips turning to red studs, the word as tall tiles in a dark slot with the solved words just above them, the two centred together in the space the keyboard left (Joe, 15 Nov 2026), the keyboard real keys with depth at the bottom (52 px, with a letter preview), Solve gold.
 
 <img src="img/strikeout-compare.webp" width="760">
 

@@ -8,7 +8,7 @@
  *
  * Used through attributes, so every game keeps its own markup and hit areas:
  *   data-wa="tile" | "tile-sm" | "disc" | "well" | "key" | "pip"   the piece
- *   data-wa-tone="gold" | "teal" | "grey" | "red" | "dim" | "sapphire" | "amber" | "black"   its material (black by default)
+ *   data-wa-tone="gold" | "teal" | "grey" | "red" | "dim" | "sapphire" | "amber" | "slate" | "black"   its material (black by default)
  *   data-wa-ring                                                  picked: a fine gold ring inside the edge
  *   data-wa-btn="gold" | "navy"                                   a control
  * Imported once by every Word game's module (and its reveal), after the game's own styles.
@@ -53,6 +53,7 @@
 [data-wa="tile"][data-wa-tone="dim"] { --wa-img: url(/word-art/tile-dim.webp); }
 [data-wa="tile"][data-wa-tone="sapphire"] { --wa-img: url(/word-art/tile-sapphire.webp); }
 [data-wa="tile"][data-wa-tone="amber"] { --wa-img: url(/word-art/tile-amber.webp); }
+[data-wa="tile"][data-wa-tone="slate"] { --wa-img: url(/word-art/tile-slate.webp); }
 [data-wa="tile-sm"][data-wa-tone="gold"] { --wa-img: url(/word-art/tile-small-gold.webp); }
 [data-wa="tile-sm"][data-wa-tone="dim"] { --wa-img: url(/word-art/tile-small-dim.webp); }
 [data-wa="tile-sm"][data-wa-tone="sapphire"] { --wa-img: url(/word-art/tile-sapphire.webp); }

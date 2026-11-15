@@ -101,6 +101,7 @@ export function Row({
   tileH,
   rowIndex,
   art = false,
+  fontScale,
 }: {
   /** The live stage's rendered tiles (reveals keep their markup; strikeout.css styles them by their look). */
   art?: boolean;
@@ -113,6 +114,8 @@ export function Row({
   /** Tile height when it differs from its width (batch W: Strikeout's live row is a little taller than wide). */
   tileH?: string | undefined;
   rowIndex: number;
+  /** Letter size as a share of the tile's width (0.55 unless a taller live tile asks for more). */
+  fontScale?: number | undefined;
 }) {
   const side = typeof tile === "number" ? `${tile}px` : tile;
   const height = tileH ?? side;
@@ -131,7 +134,7 @@ export function Row({
           data-wa={art ? WA_LOOK[looks[i] ?? "hidden"][0] : undefined}
           data-wa-tone={art ? WA_LOOK[looks[i] ?? "hidden"][1] : undefined}
           className={`so-tile flex items-center justify-center rounded-md font-display font-bold ${TILE[looks[i] ?? "hidden"]}`}
-          style={{ width: side, height, fontSize: `calc(${side} * 0.55)` }}
+          style={{ width: side, height, fontSize: `calc(${side} * ${fontScale ?? 0.55})` }}
         >
           {ch || "\u00a0"}
         </span>
@@ -658,7 +661,9 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   const tileCount = Math.max(1, pattern.length || 8);
   // The Word overhaul: the keyboard sits at the bottom and the tiles take the room it left (up to 72 × 96 px).
   const tileSize = `min(72px, calc((100cqw - ${8 + (tileCount - 1) * 4}px) / ${tileCount}), calc((100cqh - 56px) / 1.6))`;
-  const tileHeight = "min(max(calc(var(--so-tile) * 1.45), 72px), 96px, calc((100cqh - 40px) / 1.25))";
+  // Joe (15 Nov 2026): the band the keyboard left is the word's: tall tiles (up to 128 px) and the solved words with
+  // the clue held just above them as one group, centred in the arena (never a clue floating alone).
+  const tileHeight = "min(max(calc(var(--so-tile) * 2), 72px), 128px, calc((100cqh - 96px) * 0.8))";
   let k = 0;
   const letters = [...shown].map((ch) => (ch === "_" ? (isSolving ? (typed[k++] ?? "") : "") : ch));
   k = 0;
@@ -693,18 +698,15 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
         <VowelsLeft left={vowelsLeft} max={rules.maxVowels} />
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div ref={board} className="flex h-full w-full flex-col items-center" style={{ ["--so-tile" as string]: tileSize }}>
-          {/* The words already solved (Joe's phone notes, 27 Oct 2026; display only) sit centred in the space between
-              the top bar and the tiles (his notes of 28 Oct 2026). The tiles keep their place: this space takes what
-              the arena leaves above them, and the words float in it (absolute), so the board tray still hugs the tiles. */}
-          <div data-so-solved-space="" className="relative w-full min-h-0 flex-1">
-            <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 flex-wrap justify-center gap-1" aria-label="Solved words">
-              {solvedWords.map((w, i) => (
-                <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary-foreground">
-                  {w}
-                </span>
-              ))}
-            </div>
+        <div ref={board} className="flex h-full w-full flex-col items-center justify-center gap-3" style={{ ["--so-tile" as string]: tileSize }}>
+          {/* The words already solved (Joe's phone notes, 27 Oct 2026; display only) sit just above the tiles, the two
+              centred together in the arena (Joe, 15 Nov 2026: no clue floating alone in the space the keyboard left). */}
+          <div data-so-solved-space="" className="flex w-full shrink-0 flex-wrap justify-center gap-1 px-2 pt-2" aria-label="Solved words">
+            {solvedWords.map((w, i) => (
+              <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-2 py-0.5 font-mono text-[13px] font-bold tracking-wider text-primary-foreground">
+                {w}
+              </span>
+            ))}
           </div>
           <Row
             letters={letters}
@@ -713,6 +715,7 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
             rowIndex={cur}
             tile="var(--so-tile)"
             tileH={tileHeight}
+            fontScale={0.68}
             onTap={done ? undefined : toggleSolve}
             art
           />

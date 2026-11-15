@@ -1,15 +1,17 @@
 /*
  * Lookout's look (the Word overhaul, 15 Nov 2026): concept A. A grid of small glazed tiles (word-look.css); a found
- * word circled by a gold capsule loop with a faint gold wash, its letters readable inside; the line being dragged in
- * sapphire glaze. Word chips show whole words (they wrap rather than cut). Display only.
+ * word keeps its tiles and is circled by a gold capsule loop, like a pen ring round it (Joe, 15 Nov 2026: never filled
+ * gold tiles), its letters in gold inside; the line being dragged in sapphire glaze. Word chips show whole words (they wrap rather than cut). Display only.
  */
 [data-polish="wordsearch"] [data-game-arena] [data-play-area] { border-radius: 10px; }
 .lookout-loop {
   fill: none;
-  stroke: var(--jz-gold-ledge);
-  stroke-width: 0.07;
+  stroke: var(--jz-gold);
+  stroke-width: 0.1;
   stroke-linejoin: round;
 }
+/* A found word's letters inside its loop: gold on the glazed tile, so the word reads as found with no filled tiles. */
+[data-ws-found][data-wa][data-wa][data-wa][data-wa] { color: var(--jz-gold-ink) !important; }
 
 /* Chips: found ones champagne gold with the whole word; open ones a recessed well with the letter count. */
 .lookout-word-chip, .lookout-word-placeholder {
