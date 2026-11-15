@@ -359,7 +359,9 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   const src = read("src/lib/duel/introDemo.functions.ts");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the rule names brkRev 12.
   ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== (BRK_REV_TALL|BRK_REV_DEEP|BRK_REV_PHONE|BRK_REV_STD|BRK_REV_CLEAR)\) return null/.test(src), "Breaker's demo plays only on brkRev 6 (brkRev 9 since expansion E3, brkRev 10 since the phone notes, brkRev 11 since the arcade scoring standard, brkRev 12 since the Retro overhaul)");
-  ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== (RALLY_REV_TALL|RALLY_REV_BONUS|RALLY_REV_CURVE|RALLY_REV_STD)\) return null/.test(src), "Rally's demo plays only on rallyRev 6 (rallyRev 10 since expansion E9, rallyRev 11 since the phone notes, rallyRev 12 since the arcade scoring standard)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13 plays rallyRev 12 until the first miss, so the guard reads the
+  // accepted pair (demoRevAccepted, its stamps pinned exactly by arcade-review-fixes-check).
+  ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && !demoRevAccepted\("rally", demo\.puzzle\.rallyRev\)\) return null/.test(src), "Rally's demo plays only on rallyRev 6 (rallyRev 10 since expansion E9, rallyRev 11 since the phone notes, rallyRev 12 since the arcade scoring standard, 12 or 13 since the Retro overhaul)");
   // The 200 expansion: Wavefront's demo now plays only on wavRev 10 (none is recorded yet, so the intro shows its still).
   // Changed with Joe's approval, 15 Nov 2026 (intro demos accept the previous stamp): the intro-demo stop rule accepts the
   // dealt stamp and the stamp whose play it keeps, SAME_PLAY_DEMO_REVS; arcade-review-fixes-check proves older demos stay stopped).

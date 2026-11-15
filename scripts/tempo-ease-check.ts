@@ -75,7 +75,9 @@ const spec = GAME_BY_TYPE.get("beat" as never)!;
 ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_FLOOR && BEAT_REV_FLOOR === BEAT_REV_STD + 1 && BEAT_REV_STD === BEAT_REV_EASE + 1 && BEAT_REV_EASE === BEAT_REV_200 + 1, "rooms deal beatRev 11 (beatRev 10, one above beatRev 9, before the scoring standard)");
 ok(LIVE_BANDS.beat.rev === BEAT_REV_FLOOR && LIVE_BANDS.beat.std === BEAT_STD_SPEC_V12 && BEAT_STD_SPEC_V12.parts.length === BEAT_STD_SPEC.parts.length && BEAT_V10_BAND_CURVE === BEAT_V9_BAND_CURVE, "beatRev 10 scored on beatRev 9's curve; the help reads beatRev 11's standard");
 ok(ROUND_MAX.beat === 200, "Tempo's round maximum stays 200");
-ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_STD\) return null/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "Tempo's intro demo is stopped until recorded on beatRev 11 (beatRev 10 before the scoring standard)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): beatRev 12 plays beatRev 11 exactly, so the guard reads the accepted pair
+// (demoRevAccepted, its stamps pinned exactly by arcade-review-fixes-check).
+ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && !demoRevAccepted\("beat", demo\.puzzle\.beatRev\)\) return null/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "Tempo's intro demo is stopped until recorded on beatRev 11 or 12 (beatRev 10 before the scoring standard)");
 ok(beatGameFor(BEAT_REV_EASE).runTicks === BEAT_V9_RUN_TICKS, "beatRev 10 keeps the 75 s song");
 
 /* 2. The windows. */

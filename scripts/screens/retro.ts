@@ -5,12 +5,38 @@
  * core sizes. Drawn after the core list (scripts/area-screens.ts finds this file).
  */
 import { gamesChallengesFixture, gamesProgressFixture } from "./games";
-import type { ThemeScreen } from "../theme-screens";
+import { readFileSync } from "node:fs";
+import { room, type ThemeScreen } from "../theme-screens";
+import type { PuzzleData } from "../../src/lib/duel/types";
 
 /** The ten Retro games, in the review's order (docs/design/game-reviews/retro.md). */
 export const RETRO_GAMES = ["hover", "breaker", "rally", "wavefront", "burst", "beat", "snake", "cross", "pinball", "blockfall"] as const;
 
 export default function retroScreens(): ThemeScreen[] {
   const globals = { __harnessProgress: gamesProgressFixture(), __DUELZ_CHALLENGES__: gamesChallengesFixture() };
-  return RETRO_GAMES.map((type) => ({ name: `retro: game page, ${type}`, mode: "practice", plain: true, search: { page: type }, globals, waitMs: 900 }));
+  return [...RETRO_GAMES.map((type): ThemeScreen => ({ name: `retro: game page, ${type}`, mode: "practice", plain: true, search: { page: type }, globals, waitMs: 900 })), ...retroRevealScreens()];
+}
+
+/**
+ * Stage 2 (15 Nov 2026): each Retro game's answer reveal in a two-player room after its round, this device's result a
+ * real stored run on the dealt stamp (scripts/fixtures/replay-runs.json) scored as the server stored it, so the run
+ * summary (RetroRunSummary.tsx: key numbers, the timeline, the final frame) draws with real data.
+ */
+export function retroRevealScreens(): ThemeScreen[] {
+  const runs = (JSON.parse(readFileSync("scripts/fixtures/replay-runs.json", "utf8")) as { runs: { type: string; puzzle: PuzzleData; answer: string }[] }).runs;
+  const out: ThemeScreen[] = [];
+  for (const type of RETRO_GAMES) {
+    const run = runs.filter((r) => r.type === type).at(-1);
+    if (!run) continue;
+    const score = Math.max(1, Math.min(200, Number.parseInt(run.answer.split("|")[1] ?? "0", 10) || 1));
+    out.push({
+      name: `retro: reveal, ${type}`,
+      mode: "room",
+      room: room("in_progress", "reveal", { arcade: true, arcadeType: type, arcadeRun: run, players: 2, scores: (slot) => (slot === 1 ? score : Math.max(1, score - 23)) }),
+      waitMs: 1600,
+      // The answer reveal has no card of its own (as the core list's reveal screens).
+      plain: true,
+    });
+  }
+  return out;
 }

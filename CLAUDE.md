@@ -2621,7 +2621,16 @@ outside the repo.
   stamps to their play; `ARCADE_STANDARD` entries may carry `specFor(rev)` (Rally's rev-12 rounds keep their three part
   names). retro-overhaul-check proves it; `scripts/screens/retro.ts` draws the ten Retro game pages;
   `bun scripts/shots/retro-frames.ts` draws the gallery's frames; Joe's sound list is
-  `docs/sound-cues/retro-elevenlabs.md`.
+  `docs/sound-cues/retro-elevenlabs.md`. **Stage 2** (15 Nov 2026; display, sound and the reveal only, no stamps): the
+  text floor is on screen (`src/lib/arcade/retroScale.ts`: no Retro text under 11 px on a 390 × 844 phone, each world's
+  floor in its own pixels, `withRetroTextFloor`; retro-overhaul-check measures it at that phone's scale); every Retro
+  game's in-world effects go through `retroFx.renderer.ts` and `retroMoments.ts` (near-misses shared with the sound
+  observers), 32 new sound slots silent or on their old stand-in until Joe's files (arcade.md / arcade-effects.md,
+  retro-elevenlabs.md); the answer reveal shows `RetroRunSummary` (key numbers, the run's timeline, the final board for
+  Breaker, Meteor and Blockzone), worked out by replaying the stored run on the phone after the first paint
+  (`src/lib/replay/retroSummary.ts`; retro-summary-check); the demo rules accept the new stamps (`SAME_PLAY_DEMO_REVS`
+  rally, beat, blockfall); the reveals are `retro: reveal, <game>` screens in theme-check and no-wrap-check (the room
+  harness's `arcadeRun`), drawn for review by `bun scripts/shots/retro-reveal-shots.ts`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

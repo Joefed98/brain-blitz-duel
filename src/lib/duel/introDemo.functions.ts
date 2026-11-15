@@ -14,11 +14,12 @@ import { CROSS_REV_FLOW, CROSS_REV_KEEP } from "@/lib/arcade/cross";
 import { FLIP_REV_DEAL, FLIP_REV_FLOW } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
-import { RALLY_REV_STD } from "@/lib/arcade/rally";
+import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { WAV_REV_CHARGE, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
 import { BURST_REV_BIG } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
-import { BEAT_REV_STD } from "@/lib/arcade/beat";
+import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
+import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
 import { SNAKE_REV_SIZES } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
@@ -49,6 +50,12 @@ export const SAME_PLAY_DEMO_REVS = {
   // 12 played burstRev 11 exactly; its demos and 11's are stopped now).
   burst: [BURST_REV_BIG],
   cross: [CROSS_REV_FLOW, CROSS_REV_KEEP],
+  // rallyRev 13 (the Retro overhaul) plays rallyRev 12 tick for tick until the first miss, so a demo on either plays.
+  rally: [RALLY_REV_STD, RALLY_REV_LIVES],
+  // beatRev 12 (the Retro overhaul) plays beatRev 11 exactly (a miss scores 0, not less), so a demo on either plays.
+  beat: [BEAT_REV_STD, BEAT_REV_FLOOR],
+  // Blockzone blockfallRev 2: only a demo recorded on it plays (blockfallRev 1 had the hold and the pads).
+  blockfall: [BLOCKFALL_REV_ZONE],
   skyline: [SKYLINE_REV_STD, SKYLINE_REV_COUNT],
 } as const;
 
@@ -177,7 +184,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Rally rallyRev 11 (phone notes, 27 Oct 2026): spin shots now curve visibly and targets last 5 s, so an older demo
     // would play differently; it stays stopped until one is recorded on rallyRev 11. rallyRev 12 (the arcade scoring
     // standard, 29 Oct 2026) reverses the spin and scores 200 on the standard, so only a rallyRev 12 demo plays.
-    if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_STD) return null;
+    if (data.type === "rally" && demo?.puzzle.type === "rally" && !demoRevAccepted("rally", demo.puzzle.rallyRev)) return null;
     // The 200 expansion (wavRev 10), then Joe's phone notes (wavRev 11: power-ups from carriers, no streak, the mothership
     // only after wave 5): an older demo shows other play, so it stays stopped until one is recorded on wavRev 11. wavRev 12 (the
     // arcade scoring standard, 29 Oct 2026) keeps wavRev 11 play in new parts; its HUD shows the run's score, so only a demo
@@ -217,7 +224,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Phone notes (27 Oct 2026): Tempo's beatRev 10 plays a lighter chart with wider windows; stopped until one is recorded on it.
     // The arcade scoring standard (beatRev 11, 29 Oct 2026): beatRev 10's play, but its HUD shows the standard's points
     // (no "FEVER x2"), so only a demo recorded on beatRev 11 plays.
-    if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_STD) return null;
+    if (data.type === "beat" && demo?.puzzle.type === "beat" && !demoRevAccepted("beat", demo.puzzle.beatRev)) return null;
+    if (data.type === "blockfall" && demo?.puzzle.type === "blockfall" && !demoRevAccepted("blockfall", demo.puzzle.blockfallRev)) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
     // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
     // Phone notes (27 Oct 2026): bubbleRev 10's mine blasts two rings, so the demo stays stopped until one is recorded on it.

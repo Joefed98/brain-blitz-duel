@@ -16,6 +16,13 @@ replay exactly; at most 120 s at every level.
 
 ## The answer reveal (Joe, 15 Nov 2026; built in stage 2, inside #422's shared reveal layout)
 
+Built (stage 2): `RetroRunSummary` (src/components/duel/RetroRunSummary.tsx) under the score on every Retro reveal,
+practice and rooms: up to three key numbers in plain words, a timeline of the run's moments along the clock (Tempo's
+notes coloured Perfect, Good, OK, Missed; the unplayed part of an early ending hatched), and the final board for
+Breaker, Meteor and Blockzone. Worked out on the phone by replaying the stored run exactly as the server does
+(src/lib/replay/retroSummary.ts), after the reveal's first paint, in space reserved from the start; the score stays the
+stored one. retro-summary-check proves it.
+
 Each Retro game's own reveal, clear, big and legible on a phone: the key numbers that explain the score, short plain
 labels (no stray "×", no counts that read as if they describe a solution), and a short visual summary of the run instead
 of dense text lists. Before and after reveal shots for every game go in the gallery.
@@ -93,13 +100,13 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Game | Item | Status |
 |---|---|---|
 | All ten | Intro stills from a real frame of today's game | done (stage 1, `ArtStill`) |
-| All ten | Intro demos recorded on the new stamps, none left as a still | stage 2 (the recorder; see "For Joe") |
+| All ten | Intro demos recorded on the new stamps, none left as a still | Joe (the rules accept the new stamps; recording is the app's keyed Save demo, see "For Joe") |
 | All ten | The core moments recorded (the most-heard sounds) | Joe's files (prompts in retro-elevenlabs.md) |
 | All ten | No text below 11 px on a 390 × 844 phone, counters and labels | done (measured on screen by retro-overhaul-check) |
 | All ten | "Physical" feedback on the thing that moved (squash, puff, flash) | done (`retroFx.renderer.ts`, every game below) |
 | All ten | Retro, but visibly premium: lit pixel materials, no glare | done (looks in the gallery; Joe to approve) |
-| All ten | Each game's own answer reveal with a visual run summary | stage 2 |
-| All ten | Round-end payoffs (fly-off, WALL CLEARED!, tallies, counter roll) | stage 2 (with the reveal) |
+| All ten | Each game's own answer reveal with a visual run summary | done (`RetroRunSummary`: key numbers, the run's timeline, the final board for Breaker, Meteor and Blockzone) |
+| All ten | Round-end payoffs in the world (fly-off, WALL CLEARED!, the boss's staged explosion, counter roll) | not done in stage 2: carried to stage 3 (the reveal's count-up and run summary stand in) |
 | All ten | Easy, Normal, Hard, Expert | stage 3 |
 | Hover | Tap: thrust flame, puff, tilt | done |
 | Hover | Gate chime rising along a run of clean gates | done |
@@ -230,9 +237,12 @@ spin, so no bot run here earns a spin shot. The level tuning (stage 3) re-measur
 - **Fission's wave clears**: Normal's quick time stays 0.6 s an atom (the level table keeps it), so the tuning is the
   tail: the bonus now runs out at three times the quick time instead of twice.
 - **Tempo's misses** score 0 (the review's "never under 0 per note"); taps on no note still cost nothing.
-- **Intro demos**: Tempo's demos recorded on beatRev 11 still play (the same play); Fission's and Meteor's stay stopped
-  until recorded on burstRev 13 and snakeRev 14 (the atoms and rocks change the play); Rally's rule still plays rallyRev
-  12 demos until one is recorded on rallyRev 13 (it plays the same until the first miss).
+- **Intro demos** (stage 2): every Retro game's rule now plays a demo recorded on its dealt stamp (Rally 12 or 13, Tempo
+  11 or 12, Blockzone 2 only, the rest as before: Hover 10, Breaker 12, Wavefront 13 or 14, Fission 13, Meteor 14,
+  Spacewalk 11 or 12, Pinball 6 or 7). Recording them is the app's own keyed save, which this branch can't reach (no live
+  database, and CLAUDE.md rule 4 forbids a script that writes demos): in practice with `?dev=1&key=<demo key>`, play a
+  good run of each game, then Save demo (production also needs `INTRO_DEMO_SAVES=1` on the Worker). Until then each
+  shows its still.
 - **The 11 px floor** is measured on screen (Joe, 15 Nov 2026): every world draws its text big enough to be at least 11 px
   on a 390 × 844 phone (`retroScale.ts`: Breaker and Rally need 12 world px, Wavefront 12, Meteor 14), and
   retro-overhaul-check renders each game at that phone's scale and measures it. Smaller phones go slightly under.

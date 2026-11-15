@@ -36,13 +36,22 @@ for (const type of list) {
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
   const H = Math.round((WIDTH * 760) / 390);
-  frames.forEach((s, i) => {
-    const canvas = createCanvas(WIDTH, H);
-    const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
+  // One canvas for the whole clip (stage 2 of the Retro overhaul): the in-world effects are logged per canvas and aged
+  // by the sim tick (retroFx.renderer.ts), so a fresh canvas each frame would draw none. The state just before the clip
+  // is drawn first (not saved), so the effects' counters start from the run as it was.
+  const canvas = createCanvas(WIDTH, H);
+  const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
+  const paint = (s: { tick: number }) => {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#070709";
     ctx.fillRect(0, 0, WIDTH, H);
     ctx.scale(WIDTH / 390, H / 760);
     draw(ctx, s, { width: 390, height: 760 });
+  };
+  const before = run.states.filter((s) => s.tick < from).at(-1);
+  if (before) paint(before);
+  frames.forEach((s, i) => {
+    paint(s);
     writeFileSync(join(tmp, `${String(i).padStart(4, "0")}.png`), canvas.toBuffer("image/png"));
   });
   const file = join(OUT, `${type}-clip.webp`);
