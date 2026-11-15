@@ -4,9 +4,51 @@
  * draft answer or the submission. Every tube runs through measured cell
  * centres, so it stays inside the cells the grader counts.
  */
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { soundCue } from "@/lib/fx/patternFx";
+import type { FlowColour } from "@/lib/duel/types";
+
+/**
+ * The Pattern overhaul (15 Nov 2026, look A): each dot is a glossy marble bead rendered in Blender
+ * (docs/design/game-art/pattern/source/flow.py, public/pattern-art/flow/bead-<colour>.webp), one per line colour.
+ */
+export function flowBeadUrl(colour: FlowColour): string {
+  return `/pattern-art/flow/bead-${colour.toLowerCase()}.webp`;
+}
+export const FLOW_WALL_URL = "/pattern-art/flow/wall.webp";
+export const FLOW_CELL_URL = "/pattern-art/flow/cell.webp";
+
+/**
+ * A small symbol in each bead, so colours close to each other (white and silver, yellow and lime) are told apart
+ * at a glance. Paths on a 20 x 20 box, drawn white over a dark outline so they read on every bead.
+ */
+export const FLOW_SYMBOL_PATH: Record<FlowColour, string> = {
+  RED: "M10 3 L17.5 16 H2.5 Z",
+  BLUE: "M4 4 H16 V16 H4 Z",
+  GREEN: "M8 3 H12 V8 H17 V12 H12 V17 H8 V12 H3 V8 H8 Z",
+  PURPLE: "M10 2.5 L17.5 10 L10 17.5 L2.5 10 Z",
+  PINK: "M10 2.5 L12.2 7.4 L17.5 7.9 L13.5 11.4 L14.7 16.6 L10 13.9 L5.3 16.6 L6.5 11.4 L2.5 7.9 L7.8 7.4 Z",
+  ORANGE: "M3.5 4 H16.5 L10 10 L16.5 16 H3.5 L10 10 Z",
+  BROWN: "M3 7.5 H17 V12.5 H3 Z",
+  YELLOW: "M10 3.5 A6.5 6.5 0 1 1 9.99 3.5 Z",
+  TEAL: "M3 5 L10 12 L17 5 L17 9.5 L10 16.5 L3 9.5 Z",
+  WHITE: "M5 3 L10 8 L15 3 L17 5 L12 10 L17 15 L15 17 L10 12 L5 17 L3 15 L8 10 L3 5 Z",
+  LIME: "M3 4 H17 L10 16.5 Z",
+  SILVER: "M10 3 A7 7 0 1 1 9.99 3 Z M10 6.6 A3.4 3.4 0 1 0 10.01 6.6 Z",
+};
+
+/** One bead: the rendered marble, its symbol on top; it fills its box (the dot's 64 % of a cell, as before). */
+export function FlowBead({ colour }: { colour: FlowColour }) {
+  return (
+    <>
+      <img className="flow-bead" src={flowBeadUrl(colour)} alt="" aria-hidden="true" draggable={false} />
+      <svg className="flow-symbol" viewBox="0 0 20 20" aria-hidden="true">
+        <path d={FLOW_SYMBOL_PATH[colour]} fillRule="evenodd" />
+      </svg>
+    </>
+  );
+}
 
 /** `hex` mixed towards black (amount < 0) or white (amount > 0). */
 export function shadeHex(hex: string, amount: number): string {
@@ -31,8 +73,8 @@ export interface FlowTube {
 }
 
 /**
- * The drawn paths as glossy rounded tubes: a dark rim, the colour body and a
- * soft specular streak. A loose end gets a small glowing cap so it reads as
+ * The drawn paths as rich rounded tubes in their vivid colours: a dark rim, the colour body and a soft
+ * specular streak (no glow since the Pattern overhaul). A loose end gets a small cap so it reads as
  * "carry on from here". `pulse` lists tubes that just joined; `solved` runs a
  * light pulse end to end along every tube.
  */
@@ -48,27 +90,20 @@ export function FlowTubes({
   solved: boolean;
 }) {
   const step = tubes.length > 1 ? Math.min(40, 300 / (tubes.length - 1)) : 0;
-  const neon = `flow-neon-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
     <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-      {/* Batch P (live round only): a blurred copy under each path, so the lines glow like neon. */}
-      <defs>
-        <filter id={neon} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation={Math.max(2, width * 0.45)} />
-        </filter>
-      </defs>
       {tubes.map((tube, index) => {
         if (tube.points.length < 2) return null;
         const d = pathData(tube.points);
         const end = tube.points[tube.points.length - 1]!;
         return (
           <g key={index} className="flow-tube">
-            <path d={d} className="flow-halo" stroke={tube.colour} strokeOpacity={tube.joined ? 0.95 : 0.55} strokeWidth={width * 1.5} filter={`url(#${neon})`} />
-            <path d={d} stroke={shadeHex(tube.colour, -0.55)} strokeOpacity={0.85} strokeWidth={width + 3} />
-            <path d={d} stroke={tube.colour} strokeWidth={width} />
-            <path d={d} stroke={shadeHex(tube.colour, 0.6)} strokeOpacity={0.55} strokeWidth={Math.max(1, width * 0.3)} />
+            <path d={d} stroke={shadeHex(tube.colour, -0.6)} strokeOpacity={0.9} strokeWidth={width + 3} />
+            <path d={d} stroke={shadeHex(tube.colour, -0.18)} strokeWidth={width} />
+            <path d={d} stroke={tube.colour} strokeWidth={width * 0.72} />
+            <path d={d} stroke={shadeHex(tube.colour, 0.55)} strokeOpacity={0.5} strokeWidth={Math.max(1, width * 0.2)} transform={`translate(${(-width * 0.12).toFixed(2)} ${(-width * 0.12).toFixed(2)})`} />
             {!tube.joined ? (
-              <circle cx={end.x} cy={end.y} r={width * 0.62} className="flow-loose-end" fill={tube.colour} stroke={shadeHex(tube.colour, 0.7)} strokeWidth={1.2} />
+              <circle cx={end.x} cy={end.y} r={width * 0.62} className="flow-loose-end" fill={tube.colour} stroke={shadeHex(tube.colour, -0.6)} strokeWidth={1.5} />
             ) : null}
             {solved || pulse.has(index) ? (
               <path

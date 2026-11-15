@@ -41,6 +41,11 @@ floor: never a real engine, horn or tyre squeal.
 
 <!-- chroma:start -->
 ## Chroma Lines
+- `flow.draw` — the line grows one square: a single soft liquid "bloop", like a drop of thick paint pushed through a glass tube; round, warm, no click at the start; the game plays it a little higher with every square, so record it at a low-middle pitch; 120–150 ms.
+- `flow.cut` — drawing over another colour cuts that line back: a quick soft snip of a rubber tube, wet and short, a little lower than the draw tone, never harsh; 150–200 ms.
+- `flow.connect` — a pair joined (the one sound for it; today's file is a placeholder): a glass marble settling into a cup with a short liquid "plip" rising a fifth, satisfying and clean; 400–500 ms.
+- `flow.nearMiss` — the board is one pair short (or every pair joined with squares empty): a gentle two-note hint, a soft glassy "almost", the second note left unresolved, quiet; 500–700 ms.
+- `flow.solve` — every square filled: liquid colour rushing through every tube at once, then a bright glass-marble chime chord that blooms and fades; 1.0–1.2 s.
 <!-- chroma:end -->
 
 <!-- skid:start -->

@@ -4,7 +4,27 @@
  * no stored answers.
  */
 
+import { prePatternNov15Pinned, usesPatternNov15 } from "./patternNov15";
 import { FLOW_CELLS, FLOW_COLS as N, type FlowColour, type FlowPair } from "./types";
+
+/**
+ * flowRev 3 (the Pattern overhaul, 15 Nov 2026): drawing over another colour's line cuts that line back to the
+ * square before the crossing, and a still tap on a dot no longer clears its line (only a drag restarts it). Older
+ * stamps keep the old rule: another colour's line refuses the step, and a still tap on a dot clears its line.
+ */
+export function flowCutsLines(puzzle: unknown): boolean {
+  return usesPatternNov15(puzzle, "flow");
+}
+
+/** A still tap on a dot clears its line only before flowRev 3 (from it a stray touch leaves a finished pair alone). */
+export function flowTapClears(puzzle: unknown): boolean {
+  return !flowCutsLines(puzzle);
+}
+
+/** Whether today's deal is on flowRev 3 (help and intro texts; checks pinning the stamps before read the old rule). */
+export function flowCutsDealt(): boolean {
+  return !prePatternNov15Pinned();
+}
 
 /** Twelve distinct path colours, so up to twelve pairs never share a hue. */
 export const FLOW_COLOUR_HEX: Record<FlowColour, string> = {
@@ -153,12 +173,23 @@ export interface FlowDrawStep {
   completed: boolean;
   /** The step was refused (not a neighbour, a wall, its own path, another colour). */
   rejected: boolean;
+  /** flowRev 3: the pair whose line the step cut back (null when none). */
+  cut: number | null;
+}
+
+/** `path` cut back to the squares before `cell` (empty when only its dot would be left). */
+export function flowCutBack(path: readonly number[], cell: number): number[] {
+  const at = path.indexOf(cell);
+  if (at < 0) return [...path];
+  return at <= 1 ? [] : path.slice(0, at);
 }
 
 /**
  * One step of a drag on pair `active` onto `cell`. `restartFrom` is the dot a drag began on (pattern review fixes,
  * 15 Nov 2026): touching a dot no longer wipes its path at once, so a stray touch on a finished pair leaves it
- * alone; the path restarts from that dot only on the drag's first real step off it.
+ * alone; the path restarts from that dot only on the drag's first real step off it. With `cut` (flowRev 3,
+ * `flowCutsLines`) a step onto another colour's line cuts that line back to the square before the crossing (a dot is
+ * still refused); without it the step is refused, as before.
  */
 export function flowDrawStep(
   current: number[][],
@@ -167,8 +198,9 @@ export function flowDrawStep(
   pairs: { a: number; b: number }[],
   walls: number[],
   restartFrom: number | null = null,
+  cut = false,
 ): FlowDrawStep {
-  const same = { paths: current, moved: false, completed: false, rejected: false };
+  const same = { paths: current, moved: false, completed: false, rejected: false, cut: null };
   const path = restartFrom !== null ? [restartFrom] : (current[active] ?? []);
   const last = path[path.length - 1];
   if (last === undefined || cell === last) return same;
@@ -183,9 +215,11 @@ export function flowDrawStep(
   // Its own partner dot is welcome; any other colour's dot is refused.
   const ends = cell === pair.a || cell === pair.b;
   if (pairs.some((other, index) => index !== active && (other.a === cell || other.b === cell))) return reject;
-  // Another colour's path is refused too — it is never cut back.
-  if (current.some((value, index) => index !== active && value.includes(cell))) return reject;
+  // Another colour's path: refused before flowRev 3; from it, that line is cut back to the square before the crossing.
+  const crossed = current.findIndex((value, index) => index !== active && value.includes(cell));
+  if (crossed !== -1 && !cut) return reject;
   const next = [...current];
+  if (crossed !== -1) next[crossed] = flowCutBack(current[crossed]!, cell);
   next[active] = [...path, cell];
-  return { paths: next, moved: true, completed: ends, rejected: false };
+  return { paths: next, moved: true, completed: ends, rejected: false, cut: crossed === -1 ? null : crossed };
 }

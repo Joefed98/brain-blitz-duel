@@ -49,6 +49,7 @@ import { JUMBLED_SKILLS, TOPSY_READ_S, TOPSY_SKILLS, TOPSY_TILT_S } from "./d5-r
 import { pinPreParMoves } from "../src/lib/duel/parMoves";
 import { pinPreNov7 } from "../src/lib/duel/speedPipesNov7";
 import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
+import { pinPrePatternNov15 } from "../src/lib/duel/patternNov15";
 
 // Written for the standard's stamps: the partial-credit fixes of 7 Nov 2026 (partialCredit.ts) deal
 // Gridlock, Turntable and Gradient one stamp above, so new deals here keep the standard's (partial-credit-check proves the new stamps).
@@ -59,6 +60,10 @@ pinPrePartialCredit(true);
 pinPreParMoves(true);
 // 7 Nov 2026 (speedPipesNov7.ts) deals Pipeline pipesRev 4: pinned to pipesRev 3 here (speed-pipes-nov7-check proves it).
 pinPreNov7(true);
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): patternNov15.ts deals the
+// Pattern games one stamp above, so new deals here keep the stamps before it (each game's pattern-overhaul check
+// proves its new stamp).
+pinPrePatternNov15(true);
 
 const failures: string[] = [];
 let checks = 0;
