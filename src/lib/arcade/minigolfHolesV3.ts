@@ -510,7 +510,7 @@ export const V3_LEVEL_BUILD: Readonly<Record<MgLevel, { mill: MillSpeed; extras:
   easy: { mill: "slow", extras: false, slopeScale256: 256 },
   normal: { mill: "normal", extras: false, slopeScale256: 256 },
   hard: { mill: "normal", extras: true, slopeScale256: 358 },
-  expert: { mill: "fast", extras: true, slopeScale256: 563 },
+  expert: { mill: "fast", extras: true, slopeScale256: 461 },
 };
 /** A loop's side rails stand MG_LOOP_LANE ÷ 2 either side of its line, 3 px thick (minigolf.ts MG_LOOP_LANE: 26). */
 export const V3_LOOP_HALF = 13;

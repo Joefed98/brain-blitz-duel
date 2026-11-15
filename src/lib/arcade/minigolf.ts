@@ -96,7 +96,7 @@ export const MG_LEVELS: Readonly<Record<MgLevel, MgLevelRules>> = {
   easy: { over: 4, mill: "slow", fullByS: 60, preview: 1, bounce: true, parIsBest: false, parOver: 2, extras: false, slopeScale: 1 },
   normal: { over: 3, mill: "normal", fullByS: 53, preview: 1, bounce: false, parIsBest: false, parOver: 2, extras: false, slopeScale: 1 },
   hard: { over: 3, mill: "normal", fullByS: 24, preview: 0.35, bounce: false, parIsBest: true, parOver: 0, extras: true, slopeScale: 1.4 },
-  expert: { over: 2, mill: "fast", fullByS: 22, preview: 0.2, bounce: false, parIsBest: true, parOver: 0, extras: true, slopeScale: 2.2 },
+  expert: { over: 2, mill: "fast", fullByS: 22, preview: 0.2, bounce: false, parIsBest: true, parOver: 0, extras: true, slopeScale: 1.8 },
 };
 /** A stored puzzle's level (no field: Normal). */
 export function mgLevelOf(raw: unknown): MgLevel {
