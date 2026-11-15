@@ -2,9 +2,7 @@
 
 Phase 2, step 4. 9 live games. Screenshots are phone size (390 × 844, shown at 360 px): **start** of play,
 **mid-play** after a few moves, and the **round end** (a part-played run that ran out of time). Taken on a local
-dev server through each game's `?game=` practice link; nothing in the app was changed. Word games ask the server
-to check words, which the cloud container can't reach, so a few mid-play frames show fewer accepted words than a
-real phone would.
+dev server through each game's `?game=` practice link; nothing in the app was changed.
 
 Effects kit words used below: **tap, pick up, drop/place, slide, pour/flow, match/clear, wrong, combo/streak,
 score count-up, near-miss, round-end payoff.** A physical action takes 900 ms at most and the next input is taken
