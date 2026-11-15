@@ -8,7 +8,7 @@ import { puzzleScoreRevOf } from "@/lib/duel/puzzleScoreRev";
 import { useStageState } from "@/lib/duel/stageState";
 import { SAFE_DIALS, SAFE_TIME_MS, SAFE_TRIES, type SafePuzzleData } from "@/lib/duel/types";
 import { directionOf, useGameKeys } from "@/lib/desktop";
-import { playSound, playWrong } from "@/lib/sound";
+import { playWrong } from "@/lib/sound";
 
 import { soundCue, usePrevious, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -153,7 +153,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
     const opened = puzzle.clues.every((clue) => clueHolds(clue, dials));
     if (opened) {
       submitted.current = true;
-      playSound("pz_safe_open");
+      // The opening's one sound is `safe.solve` (useSolveFx, this same render): its slot plays pz_safe_open and stands in
+      // for the generic lock / correct of that moment (sound.ts ownMomentReplaces; 15 Nov 2026, Joe).
       onSubmit(encodeSafeTries(next));
       return;
     }

@@ -148,3 +148,4 @@ placed on any screen.
 - `docs/sound-cues/core.md`: the app's own recorded sounds, voice lines and the synthesised placeholders.
 - `docs/sound-cues/music.md`: music per screen and per game.
 - `scripts/sound-manifest-check.ts`: proves the manifest, the sheet and the players agree.
+- `docs/sound-cues/review-nov-2026.md`: the November reviews' sound fixes (one sound on solve, the quiet `wrong` on every shake) and the 97 synthesised game sounds behind `NEW_GAME_SOUNDS` (`src/config/soundConfig.ts`, off by default; `src/lib/fx/newGameSounds.ts`; heard on `/dev-design` → Sounds).

@@ -350,7 +350,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </div>
       <p className="shrink-0 text-center font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {mine.moves}{pourLimit !== null ? "" : ` ${myCorrect ? "✓" : "✗"}`}
+          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
+          {mine.moves}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
           {pourLimit !== null ? `of ${pourLimit} pours used` : "moves"}{puzzle.minMoves ? ` · ${usesDepth(puzzle) ? "par" : "min"} ${puzzle.minMoves}` : ""}

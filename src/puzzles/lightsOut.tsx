@@ -268,7 +268,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
         </div>
       </div>
       <p className="logic-reveal-text text-center font-mono uppercase tracking-widest text-muted-foreground">
-        {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · {usesDepth(puzzle) ? "par" : "min"}{" "}
+        your presses <span className="text-primary">{mine}</span> · {usesDepth(puzzle) ? "par" : "min"}{" "}
         {min}
       </p>
       {/* The moves line above says the presses and the par (6 Nov 2026: "12 moves (fewest 12)" under it said it again);

@@ -75,9 +75,7 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `pz_laser_gem` | Lightbender | The beam reaches a gem (pitched up gem by gem) | 3–8 | 1012 ms |
 | `pz_laser_split` | Lightbender | The beam reaches a splitter | 0–4 | 1042 ms |
 | `pz_padlock` | Slider | A row locks as a word | 5 | 450 ms |
-| `pz_safe_open` | Safe Cracker | The safe opens (solve) | 0–1 | 2200 ms |
 | `pz_bomb_explode` | reveal (Bomb Defusal) | The bomb explodes on a wrong answer | 0–1 | 1770 ms |
-| `pz_car_escape` | Gridlock | The gold car drives out (solve) | 0–1 | 2470 ms |
 | `pz_clay_hit` | Pull! | A clay is hit | 10–25 | 780 ms |
 | `pz_gravity_pull` | Topsy-Turvy | The board tilts | 5–30 | 1100 ms |
 | `chain.linkTone` | Don't Break the Chain | A link is tapped: a synthesised tone a semitone higher per link | 10–40 | 110 ms |

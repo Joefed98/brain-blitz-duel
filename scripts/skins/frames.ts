@@ -187,7 +187,7 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
     } else if (game === "pyramid") {
       const R = await import("../../src/lib/arcade/cards/pyramid.renderer");
       const P = await import("../../src/lib/arcade/cards/pyramid");
-      [w, h, revs, artFor, seeds] = [R.PY_WORLD_W, R.PY_WORLD_H, [1, P.PY_REV], (rev) => R.pyramidArtGame(undefined, rev) as unknown as Art, [[3, 0], [21, 150]]];
+      [w, h, revs, artFor, seeds] = [R.PY_WORLD_W, R.PY_WORLD_H, [1, 2], (rev) => R.pyramidArtGame(undefined, rev) as unknown as Art, [[3, 0], [21, 150]]];
     } else {
       const R = await import("../../src/lib/arcade/cards/fiveHands.renderer");
       const F = await import("../../src/lib/arcade/cards/fiveHands");

@@ -27,6 +27,7 @@ import type { StandardContext, StandardGame, StandardInput, StandardResult } fro
 import { PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
 import { rev3Progress } from "../puzzleProgress";
 import { tubesSolverProgress } from "../solverProgress.server";
+import { leftWrongKeys, listLessOne, usesNotesFree } from "../notesFree";
 import { LOGIC_EARLY_POINTS, LOGIC_SHARE_POINTS, LOGIC_STANDARD, type LogicStandardType, floodSpareMoves } from "./logicRules";
 
 type Of<T extends PuzzleData["type"]> = Extract<PuzzleData, { type: T }>;
@@ -249,7 +250,11 @@ const nonogram: StandardGame = {
     const pattern = p.pattern ?? [];
     if (input.graded.isCorrect) {
       // Each distinct cell ever filled that is not in the picture.
-      const wrong = everWrong(input, (d) => decodeNonoCells(d, nonoSizeOf(p)), (cell) => (pattern[cell] ? null : String(cell)));
+      const wrongOf = (d: string) => decodeNonoCells(d, nonoSizeOf(p)).filter((cell) => !pattern[cell]).map(String);
+      // notesRev 1 (notesFree.ts): a wrong fill the very next tap turns into a × costs nothing.
+      const wrong = usesNotesFree(p) && input.drafts
+        ? leftWrongKeys(input.drafts, wrongOf, listLessOne((d) => decodeNonoCells(d, nonoSizeOf(p))))
+        : everWrong(input, (d) => decodeNonoCells(d, nonoSizeOf(p)), (cell) => (pattern[cell] ? null : String(cell)));
       return cleanFinish("nonogram", input, wrong);
     }
     const r = nonoReplay(p, input.answer);
@@ -301,7 +306,10 @@ const tents: StandardGame = {
     const p = input.puzzle as Of<"tents">;
     const sol = new Set(p.solution ?? []);
     if (input.graded.isCorrect) {
-      const wrong = everWrong(input, (d) => tentCells(p, d), (cell) => (sol.has(cell) ? null : String(cell)));
+      // notesRev 1 (notesFree.ts): a wrong tent the very next tap turns into grass costs nothing.
+      const wrong = usesNotesFree(p) && input.drafts
+        ? leftWrongKeys(input.drafts, (d) => tentCells(p, d).filter((c) => !sol.has(c)).map(String), listLessOne((d) => tentCells(p, d)))
+        : everWrong(input, (d) => tentCells(p, d), (cell) => (sol.has(cell) ? null : String(cell)));
       return cleanFinish("tents", input, wrong);
     }
     const cells = tentCells(p, input.answer);
@@ -346,7 +354,10 @@ const lightup: StandardGame = {
     const p = input.puzzle as Of<"lightup">;
     const sol = new Set(p.solution ?? []);
     if (input.graded.isCorrect) {
-      const wrong = everWrong(input, (d) => decodeBulbs(d, p), (cell) => (sol.has(cell) ? null : String(cell)));
+      // notesRev 1 (notesFree.ts): a wrong lamp the very next tap turns into a dot costs nothing.
+      const wrong = usesNotesFree(p) && input.drafts
+        ? leftWrongKeys(input.drafts, (d) => decodeBulbs(d, p).filter((c) => !sol.has(c)).map(String), listLessOne((d) => decodeBulbs(d, p)))
+        : everWrong(input, (d) => decodeBulbs(d, p), (cell) => (sol.has(cell) ? null : String(cell)));
       return cleanFinish("lightup", input, wrong);
     }
     const { right, other } = lightUpBulbCounts(p.solution ?? [], decodeBulbs(input.answer, p));

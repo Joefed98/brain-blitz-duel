@@ -167,9 +167,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   }, [grid, onDraftAnswer]);
 
   const solving = useSolveFx("sudoku", puzzle.type === "sudoku" && sudokuSolved(grid, givens));
-  // The player's own cells only (the givens aren't progress): "1 / 22", not "14 / 36".
-  const blanks = givens.filter((given) => !given).length;
-  const inFrame = useFrameProgress(entries.filter((value, cell) => value && !givens[cell]).length, blanks, "filled");
+  // The player's own cells only ("1 / 22 filled"), never the givens (Logic review, 15 Nov 2026).
+  const filled = sudokuEntryCount(givens, grid);
+  const inFrame = useFrameProgress(filled.done, filled.total, "filled");
   // Logic overhaul 1: clashes are shown while playing (the clean bonus still counts every wrong digit typed).
   const clashes = useMemo(() => sudokuClashes(grid), [grid]);
   const clashCount = clashes.size;
@@ -306,27 +306,46 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
+/** The player's cells filled out of the blanks (the givens never count). */
+export function sudokuEntryCount(givens: readonly number[], grid: readonly number[]): { done: number; total: number } {
+  let done = 0;
+  let total = 0;
+  givens.forEach((given, cell) => {
+    if (given) return;
+    total += 1;
+    if (grid[cell]) done += 1;
+  });
+  return { done, total };
+}
+
+/**
+ * The reveal's cells: givens as given, the player's right digits as entries, wrong digits as wrong, and a blank the
+ * player left empty drawn empty (it used to show the solution's digit in the givens' colour, so it looked given).
+ */
+export function sudokuRevealCells(givens: readonly number[], solution: readonly number[], mine: readonly number[]): { values: number[]; tones: CellTone[]; correct: number } {
+  let correct = 0;
+  const tones: CellTone[] = [];
+  const values: number[] = [];
+  solution.forEach((value, cell) => {
+    if (givens[cell]) {
+      tones.push("given");
+      values.push(value);
+      return;
+    }
+    const entry = mine[cell] ?? 0;
+    if (entry && entry === value) correct += 1;
+    tones.push(entry && entry !== value ? "wrong" : "entry");
+    values.push(entry);
+  });
+  return { values, tones, correct };
+}
+
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "sudoku") return null;
   const solution = puzzle.solution ?? puzzle.givens;
   const mine = decodeSudoku(myAnswer ?? "");
   const blanks = puzzle.givens.filter((given) => !given).length;
-  let correct = 0;
-
-  const tones = solution.map((value, cell) => {
-    if (puzzle.givens[cell]) return "given" as CellTone;
-    const entry = mine[cell] ?? 0;
-    if (entry && entry === value) {
-      correct += 1;
-      return "entry" as CellTone;
-    }
-    // A cell the player left empty shows its digit faintly (missed), never in the givens' colour.
-    return entry ? ("wrong" as CellTone) : ("missed" as CellTone);
-  });
-
-  const values = solution.map((value, cell) =>
-    tones[cell] === "wrong" ? (mine[cell] ?? value) : value,
-  );
+  const { values, tones, correct } = sudokuRevealCells(puzzle.givens, solution, mine);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 

@@ -30,7 +30,6 @@ symscan.mark,Eagle Eye,Eagle Eye: A cell is marked (pop) [speed-attention.md],,5
 symscan.unmark,Eagle Eye,Eagle Eye: A cell is unmarked [speed-attention.md],,5–40 (per move),silent,,150,UI tap,symscan.unmark,
 stroop.gatePulse,Mixed Signals,"Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md]",,5–40 (per move),silent,,300,game event,stroop.gatePulse,
 tiles.slide,Gradient,A tile changes cell (a slide or an undo) [pattern.md (Gradient (tiles))],,5–40 (per move),silent,,160,game event,tiles.slide,
-unblock.solve,Gridlock,The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))],,0–1,silent,,1160,success sting,unblock.solve,
 push.step,Heave,A walking step [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.step,
 push.push,Heave,A step that pushes a crate [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.push,
 laser.place,Lightbender,A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))],,5–40 (per move),silent,,180,UI tap,laser.place,
@@ -55,7 +54,6 @@ nonogram.paint,Mosaic,A drag paints one more square (fill) [logic.md],,5–40 (p
 tubes.pour,Polypotions,A pour lands [logic.md],,5–40 (per move),silent,,240,game event,tubes.pour,
 tubes.undo,Polypotions,Undo is tapped (tubesRev 3 gives the pour back) [logic.md],,5–40 (per move),silent,,200,game event,tubes.undo,
 tubes.outOfPours,Polypotions,The last allowed pour leaves the board unsorted [logic.md],,5–40 (per move),silent,,1100,game event,tubes.outOfPours,
-safe.solve,Safe Cracker,A try satisfies every clue (the same test that submits) [logic.md],,0–1,silent,,1200,success sting,safe.solve,
 safe.wrongTry,Safe Cracker,A try that breaks a clue (the broken clues flash red) [logic.md],,5–40 (per move),silent,,520,fail sting,safe.wrongTry,
 shikaku.place,Shikaku,A rectangle is accepted [logic.md],,5–40 (per move),silent,,180,UI tap,shikaku.place,
 shikaku.remove,Shikaku,A rectangle is tapped away [logic.md],,5–40 (per move),silent,,200,game event,shikaku.remove,
@@ -75,7 +73,7 @@ shared.perfect,Shared screens and effects,The reveal shows a stored score of 150
 shared.roundResults,Shared screens and effects,"The room's Round results screen appears (RoundResult, RoundResultsTable, once on mount): every player but the round's top scorer, who hears round_won instead (never both). In a two-player room the loser's ""round lost"" or the tie's ""tie"" voice line follows it. Sound batch 4 (room.roundResults.mp3). [shared.md]",,5–40 (per move),recorded sound,shared.roundResults,900,game event,shared.roundResults,
 shared.help.open,Shared screens and effects,"An in-game ""?"" help sheet opens. [shared.md]",,0–2,recorded sound,shared.help.open,150,UI tap,shared.help.open,public/sounds/shared.help.open.mp3 (from ui.sheet.open.mp3)
 shared.help.close,Shared screens and effects,"An in-game ""?"" help sheet closes (close button, tap outside or Escape). [shared.md]",,0–2,recorded sound,shared.help.close,150,UI tap,shared.help.close,public/sounds/shared.help.close.mp3 (from ui.sheet.close.mp3)
-shared.reject,Shared screens and effects,"A puzzle refuses a move with the shared shake (puzzleReject(): Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid and the rest that call it), unless the move already plays wrong; never in an intro demo. [shared.md]",,5–40 (per move),recorded sound,shared.reject,200,fail sting,shared.reject,
+shared.reject,Shared screens and effects,"Not played since 15 Nov 2026 (the November game reviews, [review-nov-2026.md](review-nov-2026.md)): every shake puzzleReject() paints (Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid, and every game's own animate-shake: Shikaku, Tents, Trail, Gridlock, Tessellate…) now sounds the quiet wrong once (playRejectWrong); the slot keeps its file for the other cues that share ui.nope.mp3. [shared.md]",,5–40 (per move),recorded sound,shared.reject,200,fail sting,shared.reject,
 shared.celebrate.zap,Shared screens and effects,"Create a room (the Play tab's button) and GO (goStrike, with the thunder). sfx_joulz_zap.mp3. [shared.md]",,5–40 (per move),recorded sound,shared.celebrate.zap,380,game event,shared.celebrate.zap,
 shared.celebrate.chime,Shared screens and effects,"A spark burst: practice's New best!, the podium's ""You win!"" on the winner's phone, the lobby meter filling up. sfx_spark_chime.mp3. [shared.md]",,5–40 (per move),recorded sound,shared.celebrate.chime,600,game event,shared.celebrate.chime,
 shared.celebrate.crackle1,Shared screens and effects,"A lobby join (the charge meter rising): the three crackles rotate 1, 2, 3, so the same one never plays twice in a row. sfx_meter_crackle_1.mp3. [shared.md]",,5–40 (per move),recorded sound,shared.celebrate.crackle1,450,game event,shared.celebrate.crackle1,
@@ -474,8 +472,8 @@ flow.solve,Chroma Lines,"Each path pulses end to end in its colour, then the boa
 music.flow,Chroma Lines,Chroma Lines round bed: music_logic_2 (pattern bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_pattern_flow,
 tiles.solve,Gradient,"The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Gradient (tiles))]",,0–1,recorded sound,tiles.solve,980,success sting,tiles.solve,public/sounds/tiles.solve.mp3 (from done.glowSweep.mp3)
 music.tiles,Gradient,"Gradient round bed (retired, practice): music_pattern_1 (pattern bed shared with other games)",,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_tiles,
-pz_car_escape,Gridlock,Gridlock: The gold car drives out (solve) [core.md],,0–1,recorded sound,pz_car_escape,2470,game event,pz_car_escape,
 unblock.slide,Gridlock,"A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))]",,5–40 (per move),recorded sound,unblock.slide,170,game event,unblock.slide,
+unblock.solve,Gridlock,The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))],,0–1,recorded sound,unblock.solve,2470,success sting,unblock.solve,
 music.unblock,Gridlock,Gridlock round bed: music_pattern_2 (pattern bed shared with other games),,loop,recorded sound,music_pattern_2 (shared),60000,music,music_pattern_unblock,
 push.home,Heave,A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))],,5–40 (per move),recorded sound,push.home,300,game event,push.home,public/sounds/push.home.mp3 (from push.home.mp3)
 push.solve,Heave,The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))],,0–1,recorded sound,push.solve,1200,success sting,push.solve,public/sounds/push.solve.mp3 (from done.crates.mp3)
@@ -523,6 +521,7 @@ lightup.solve,Lamplighter,Every square is lit with no clash and every number met
 music.lightup,Lamplighter,Lamplighter round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_lightup,
 fences.draw,Loopline, [grid.md],,5–40 (per move),recorded sound,fences.draw,200,game event,fences.draw,
 fences.cross,Loopline, [grid.md],,5–40 (per move),recorded sound,fences.cross,200,game event,fences.cross,
+fences.clear,Loopline, [grid.md],,5–40 (per move),recorded sound,fences.clear,200,game event,fences.clear,
 fences.solve,Loopline, [grid.md],,0–1,recorded sound,fences.solve,1000,success sting,fences.solve,
 music.fences,Loopline,Loopline round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_fences,
 minesweeper.reveal,Minefield,Minefield: A tap opens a square (or a few) [arcade.md],,20–80,recorded sound,minesweeper.reveal,80,game event,minesweeper.reveal,
@@ -543,8 +542,8 @@ fillomino.place,Regions, [grid.md],,5–40 (per move),recorded sound,fillomino.p
 fillomino.region,Regions, [grid.md],,5–40 (per move),recorded sound,fillomino.region,200,game event,fillomino.region,
 fillomino.solve,Regions, [grid.md],,0–1,recorded sound,fillomino.solve,1000,success sting,fillomino.solve,
 music.fillomino,Regions,Regions round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_fillomino,
-pz_safe_open,Safe Cracker,Safe Cracker: The safe opens (solve) [core.md],,0–1,recorded sound,pz_safe_open,2200,game event,pz_safe_open,
 safe.click,Safe Cracker,A dial turns one step (each repeat while held fires again) [logic.md],,5–40 (per move),recorded sound,safe.click,130,game event,safe.click,
+safe.solve,Safe Cracker,A try satisfies every clue (the same test that submits) [logic.md],,0–1,recorded sound,safe.solve,2200,success sting,safe.solve,
 music.safe,Safe Cracker,Safe Cracker round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_safe,
 shikaku.solve,Shikaku,Every square is covered by a valid rectangle [logic.md],,0–1,recorded sound,shikaku.solve,1200,success sting,shikaku.solve,public/sounds/shikaku.solve.mp3 (from done.glowSweep.mp3)
 music.shikaku,Shikaku,Shikaku round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_shikaku,
@@ -568,7 +567,7 @@ racing.grassLoop,Apex,Apex: While off on the grass or gravel (0.25; with its fil
 racing.roar,Apex,Apex: The finish line after lap 2 [batch6-sports-cards.md],,0–1,recorded sound,racing.roar,3477,game event,racing.roar,
 music.racing,Apex,Apex: music_racing,,loop,recorded sound,music_racing,56000,music,music_racing,
 balltrack.homeStreak,Ball Tracker,Every 5th marble home [arcade-effects.md],n HOME banner,1–6,recorded sound,balltrack.homeStreak,479,game event,balltrack.homeStreak,
-balltrack.allHome,Ball Tracker,All 30 marbles home [arcade-effects.md],"ALL 30 HOME! banner, confetti",0–1,recorded sound,balltrack.allHome,1200,game event,balltrack.allHome,
+balltrack.allHome,Ball Tracker,"All the marbles home (36 on btRev 7+, 30 before) [arcade-effects.md]","ALL 36 HOME! banner (ALL 30 HOME! before btRev 7), confetti",0–1,recorded sound,balltrack.allHome,1200,game event,balltrack.allHome,
 balltrack.turnedHome,Ball Tracker,A marble home off a turned tube [arcade-effects.md],TURNED HOME! pop,0–10,recorded sound,balltrack.turnedHome,300,game event,balltrack.turnedHome,
 balltrack.switchedHome,Ball Tracker,A marble home past a switch [arcade-effects.md],SWITCHED HOME! pop,0–10,recorded sound,balltrack.switchedHome,300,game event,balltrack.switchedHome,
 balltrack.release,Ball Tracker,A marble leaves the hopper [arcade-effects.md],A marble drops in at the top,30,recorded sound,balltrack.release,120,game event,balltrack.release,
@@ -586,7 +585,8 @@ blockfall.lock,Blockzone,Blockzone: A piece lands and locks without clearing a r
 blockfall.clear,Blockzone,Blockzone: One or two rows clear [arcade.md],,5–25,recorded sound,blockfall.clear,120,game event,blockfall.clear,
 blockfall.bigClear,Blockzone,Blockzone: Three or four rows clear at once (with a success haptic) [arcade.md],,0–6,recorded sound,blockfall.bigClear,100,game event,blockfall.bigClear,
 blockfall.speedUp,Blockzone,Blockzone: The speed rises (every 15 s) [arcade.md],,3,recorded sound,arc_retro_note (shared),90,game event,blockfall.speedUp,
-blockfall.topOut,Blockzone,Blockzone: The stack reaches the top and the run ends early [arcade.md],,0–1,recorded sound,blockfall.topOut,260,game event,blockfall.topOut,
+blockfall.topOut,Blockzone,Blockzone: The stack reaches the top and the run ends early (with an impact haptic) [arcade.md],,0–1,recorded sound,blockfall.topOut,260,game event,blockfall.topOut,
+blockfall.start,Blockzone,Blockzone: The run starts [arcade.md],,1,recorded sound,arc_retro_coin (shared),120,game event,blockfall.start,
 music.blockfall,Blockzone,"Blockzone: music_blockfall (music_blockfall.mp3, Joe's recording, 3 Nov 2026)",,loop,recorded sound,music_blockfall,52900,music,music_blockfall,
 breaker.brickBreak,Breaker,A brick is destroyed (at most one per 40 ms) [arcade-effects.md],The brick bursts into coloured pixels,40–120,recorded sound,breaker.brickBreak,120,game event,breaker.brickBreak,
 breaker.bricksStreak,Breaker,Every 10th brick destroyed [arcade-effects.md],STREAK banner with cool lights over the wall,5–12,recorded sound,breaker.bricksStreak,450,game event,breaker.bricksStreak,

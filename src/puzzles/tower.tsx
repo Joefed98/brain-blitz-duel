@@ -79,9 +79,12 @@ export function Pegs({
           >
             {/* The lifted ring hovers above its post. */}
             <div
-              className="flex w-full flex-col items-center justify-end"
+              className="relative flex w-full flex-col items-center justify-end"
               style={{ height: `calc(${discs + 1} * (var(--hanoi-ring) + var(--hanoi-gap)) + ${compact ? 8 : 16}px)`, maxHeight: "100%", minHeight: 0 }}
             >
+              {/* The post spans this fixed box below the lift row, so an empty post stands as tall as the others (it
+                  used to take its height from the empty stack column and showed as a short stub in the reveal). */}
+              <div aria-hidden="true" data-hanoi-post="" className="logic-hanoi-post absolute bottom-0 rounded-t-full" style={{ top: `calc(var(--hanoi-ring) + ${compact ? 6 : 12}px)`, height: "auto" }} />
               <div className="flex w-full shrink-0 items-center justify-center" style={{ height: `calc(var(--hanoi-ring) + ${compact ? 6 : 12}px)` }}>
                 {isLifted && liftedDisc !== null && (
                   <div
@@ -96,7 +99,6 @@ export function Pegs({
               </div>
 
               <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-end" style={{ gap: "var(--hanoi-gap)" }}>
-                <div aria-hidden="true" className="logic-hanoi-post absolute bottom-0 rounded-t-full" />
                 {target && <span aria-hidden="true" className="logic-hanoi-sparkle" style={{ bottom: `calc(${stack.length} * (var(--hanoi-ring) + var(--hanoi-gap)))` }}><i /><i /><i /></span>}
                 {/* The stack is bottom-to-top from index 0, so the column is drawn
                     in reverse: the smallest disc is the topmost element. */}
@@ -324,7 +326,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </div>
       <p className="shrink-0 text-center font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {mine.moves} {myCorrect ? "✓" : "✗"}
+          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
+          {mine.moves}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
           moves · {usesDepth(puzzle) ? (mine.moves <= puzzle.minMoves && myCorrect ? "perfect solve, par" : "par") : "min"} {puzzle.minMoves}

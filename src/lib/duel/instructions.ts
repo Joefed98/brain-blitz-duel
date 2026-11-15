@@ -383,7 +383,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every run", detail: "must be a real word of 3+ letters." },
         { action: "Tap Done", detail: "to check. All tiles must connect." },
         { action: "Double-tap a placed tile", detail: "to take it back. Clear empties the grid.", helpOnly: true },
-        { action: "Red runs", detail: "need fixing.", helpOnly: true },
+        { action: "After Done,", detail: "runs that are not words flash red for a moment: fix them and tap Done again.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
       score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : wordNov7Dealt("tilegrid") ? WORD_NOV7_HELP.tilegrid : WORD_STANDARD_HELP.tilegrid,
@@ -394,7 +394,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a kettlebell,", detail: "then a notch on the beam." },
         { action: "Further out", detail: "counts for more." },
         { action: "Double-tap a kettlebell", detail: "to put it back." },
-        { action: "A 2 on peg 3", detail: "equals a 3 on peg 2.", helpOnly: true },
+        { action: "A 2 on notch 3", detail: "equals a 3 on notch 2.", helpOnly: true },
         { action: "Dark iron weights", detail: "with a lock are fixed.", helpOnly: true },
         { action: "The fourth scale", detail: "is wider: 10 notches, 5 each side, and five weights to hang.", helpOnly: true },
         { action: "Hangs are limited:", detail: "9 / 12 / 15 / 18 hangs on the four scales (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
@@ -466,9 +466,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     numhunt: {
       goal: "Tap all 24 numbers from smallest to largest.",
       how: [
-        { action: "Find the smallest", detail: "number left and tap it." },
-        { action: "Keep going", detail: "until every number is gone." },
-        { action: "Untapped numbers", detail: "move every 15 seconds." },
+        // Speed review fixes (15 Nov 2026): tapped numbers stay (gold), and every number moves.
+        { action: "Find the smallest", detail: "number not yet tapped and tap it." },
+        { action: "Keep going", detail: "until every number is gold." },
+        { action: "All the numbers", detail: "move every 15 seconds." },
         { action: "Flow:", detail: "right taps in a row, with no wrong tap, build a bonus." },
         { action: "The timer above the board", detail: "counts up to 15 s, then the numbers move and it starts again from 0.", helpOnly: true },
       ],
@@ -547,7 +548,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Let go or tap Submit", detail: "to enter a word.", helpOnly: true },
         { action: "Long words:", detail: "6 letters ×1.5, 7 or more ×2. A word through the glowing gold tile scores double (both can stack).", helpOnly: true },
         { action: "Diagonals count.", detail: "Don’t reuse a tile in one word.", helpOnly: true },
-        { action: "Tapping the last letter again", detail: "also submits the word.", helpOnly: true },
+        { action: "Tapping the last letter again", detail: "takes it off the word.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
       // wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): base points on their curve, the features' extras on theirs.
@@ -561,7 +562,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag a block", detail: "along its own direction." },
         { action: "Clear a path", detail: "for the gold block." },
-        { action: "Par", detail: "is the fewest moves; the bar’s gold mark shows it." },
+        // Pattern review fixes (15 Nov 2026): the screen shows Moves and Par pills, and Undo keeps the move counted.
+        { action: "Par", detail: "is the fewest moves, shown beside your moves." },
+        { action: "Undo and Reset", detail: "don’t give a move back: every slide counts.", helpOnly: true },
       ],
       // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
       score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.unblock : PATTERN_STD_HELP.unblock,
@@ -570,6 +573,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Fit every piece into the free squares.",
       how: [
         { action: "Tap a piece", detail: "to rotate it." },
+        // Pattern review fixes (15 Nov 2026): the double tap's flip was never in the help.
+        { action: "Double-tap it", detail: "to flip it over." },
         { action: "Drag it", detail: "onto the board." },
         { action: "Fit every piece", detail: "around the fixed pegs." },
         { action: "Drag a piece’s anchor", detail: "onto a free board square.", helpOnly: true },
@@ -711,7 +716,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Read every clue:", detail: "together they fix six steps in one order." },
         { action: "Do the six steps,", detail: "then tap DEFUSE." },
-        { action: "One wrong step", detail: "and it explodes." },
+        // Attention review fixes (15 Nov 2026): nothing happens live; Reset clears the steps, and the order is
+        // judged when DEFUSE is pressed.
+        { action: "Reset", detail: "clears your steps; a wrong order explodes at DEFUSE." },
         { action: "Clues say", detail: "which step an action is, what comes before or straight after what, and what not to do. “Before” means any time earlier.", helpOnly: true },
         { action: "Only one order fits:", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
         { action: "Wires", detail: "are numbered 1–7 from the left.", helpOnly: true },
@@ -776,7 +783,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a colour", detail: "to repaint your region." },
         { action: "Your region grows", detail: "into touching cells of it." },
         { action: "You start", detail: "from the top-left corner." },
-        { action: "Moves are limited:", detail: `par + ${FLOOD_STANDARD_SPARE_MOVES} (the counter). Out of moves, the board ends and scores for the squares you flooded.`, helpOnly: true },
+        { action: "Moves are limited:", detail: `par + ${FLOOD_STANDARD_SPARE_MOVES} (the counter). Out of moves, the board ends and scores 0.`, helpOnly: true },
       ],
       score: logicStandardHelp("flood"),
     },
@@ -1194,12 +1201,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
       how: [
-        { action: "Hold left or right", detail: "to flip; tap to plunge." },
+        { action: "Hold left or right", detail: "to flip; any press plunges." },
         { action: "Ramps, J-O-U-L-Z and jackpots", detail: "score bonuses." },
         { action: "Lock 3 balls", detail: "for multiball and a jackpot." },
         { action: "Hold the left or right half", detail: "of the screen to raise that flipper; two thumbs raise both.", helpOnly: true },
         { action: "Three balls, 90 seconds:", detail: "a lost ball comes back on the plunger.", helpOnly: true },
-        { action: "Skill shot:", detail: `the power meter in the right-hand lane rises and falls; tap to plunge. Soft drops the ball into Z, full power into J. Plunge into the flashing letter for ${P4_PTS_SKILL.toLocaleString("en-GB")}.`, helpOnly: true },
+        { action: "Skill shot:", detail: `the power meter in the right-hand lane rises and falls; any press, left or right, launches the ball at that power (it goes by itself if you wait). Soft drops the ball into Z, full power into J. Plunge into the flashing letter for ${P4_PTS_SKILL.toLocaleString("en-GB")}.`, helpOnly: true },
         { action: "J-O-U-L-Z lanes:", detail: `a ball through a lane lights its letter (lit letters stay lit from ball to ball). Each flipper press shifts the lit letters, so line a dark one up under the ball. All five: ${P4_PTS_JOULZ.toLocaleString("en-GB")} table points and a J-O-U-L-Z bonus.`, helpOnly: true },
         { action: "Two ramps:", detail: `roll the ball up a ramp fast enough for ${P4_PTS_RAMP.toLocaleString("en-GB")}. The left ramp drops the ball onto the U lane; the right one brings it back through the spinner. A ramp shot within 4 seconds of the last one is a combo: ${P4_PTS_COMBO.toLocaleString("en-GB")} more and a combo bonus.`, helpOnly: true },
         { action: "Multiball:", detail: `a ramp shot lights the lock; with it lit, each ramp shot sinks the ball in the lock hole and a new one comes up. The third releases all three for 20 seconds with the jackpot lit: the target behind the drop targets, ${P4_PTS_JACKPOT.toLocaleString("en-GB")} a hit from below. A ball lost while another is in play costs nothing.`, helpOnly: true },
@@ -1304,6 +1311,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap the stock", detail: "to turn a card onto the waste; the waste’s top card pairs too." },
         { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time." },
         { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on.", helpOnly: true },
+        { action: "Stuck?", detail: "With no move left, Undo or Reset to try another order; the run carries on to the buzzer.", helpOnly: true },
         { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },
         { action: "Every deal", detail: "can be cleared with pyramid pairs and Kings alone, but only in the right order: look before you pair.", helpOnly: true },
         { action: "Same deal", detail: "for everyone.", helpOnly: true },
@@ -1773,6 +1781,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag corner to corner", detail: "to draw a rectangle." },
         { action: "Each number", detail: "is its rectangle’s size." },
         { action: "Cover", detail: "every square." },
+        { action: "Tap a rectangle", detail: "to remove it.", helpOnly: true },
       ],
       score: logicStandardHelp("shikaku"),
     },
@@ -1802,7 +1811,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     bridges: {
       goal: "Join every island so each has its number of bridges.",
       how: [
-        { action: "Drag island to island", detail: "to build a bridge; again for two, again to remove." },
+        // Logic review (15 Nov 2026): a bridge builds once the drag passes halfway, so the player drags towards an island.
+        { action: "Drag towards an island", detail: "to build a bridge; again for two, again to remove." },
         { action: "Bridges run straight,", detail: "never cross, and at most two join a pair." },
         { action: "Every island", detail: "must end up connected." },
         { action: "Undo", detail: "takes back your last move; Reset clears the board.", helpOnly: true },
@@ -1835,12 +1845,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a jug, then another", detail: "to pour." },
         { action: "Fill and Empty", detail: "use the tap and drain." },
-        { action: "Every action", detail: "is a move." },
+        { action: "Every pour, Fill or Empty", detail: "is a move." },
         { action: "Par pours:", detail: "solve the puzzles in their fewest moves for a bonus." },
         { action: "A pour", detail: "stops when the first jug is empty or the second is full.", helpOnly: true },
         { action: "Puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
-        { action: "Reset", detail: "starts the puzzle again; moves keep counting.", helpOnly: true },
-        { action: "Moves are limited", detail: "to about 4½× the fewest (the counter). Out of moves, the run ends there.", helpOnly: true },
+        { action: "Reset", detail: "starts the puzzle again; it costs no move, and the moves so far still count.", helpOnly: true },
+        { action: "Moves are limited", detail: "to about 4½× the fewest (the counter). Out of moves, that puzzle ends and the next one starts.", helpOnly: true },
       ],
       score: standardNumberHelp("measure"),
     },
@@ -1922,7 +1932,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag in a straight line", detail: "through the letters." },
         { action: "Words run", detail: "any way, backwards too." },
         { action: "A seventh theme word hides unlisted:", detail: "find it for a bonus." },
-        { action: "A found word", detail: "is struck through.", helpOnly: true },
+        { action: "A found word", detail: "turns gold on the grid, with a line along it.", helpOnly: true },
         { action: "Each chip shows", detail: "a hidden word’s letter count until you find it; the word then fills it.", helpOnly: true },
         { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
@@ -2000,6 +2010,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tents never touch,", detail: "even diagonally." },
         { action: "Signposts", detail: "give each row’s and column’s tents." },
         { action: "Tap a third time", detail: "to clear the cell.", helpOnly: true },
+        { action: "A ? sign", detail: "hides that row’s or column’s count; work it out from the rest.", helpOnly: true },
       ],
       score: logicStandardHelp("tents"),
     },

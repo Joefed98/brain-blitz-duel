@@ -1,6 +1,6 @@
 import { generateChain, generateChainV2 } from "../src/lib/duel/chain.server";
 import { withPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
-import { CHAIN_CYCLE_REV_CREDIT, chainLongCycles, chainReversedAt, chainRules, chainScore, chainDemoCompatible, chainBoardIndex, chainCycleAt, chainRequiredAt, chainRuleStep, chainWindowMs, decodeChainAnswer, encodeChainAnswer, replayChain, type ChainTap } from "../src/lib/duel/chain";
+import { CHAIN_CYCLE_REV_CREDIT, chainLongCycles, chainReversedAt, chainRules, chainScore, chainDemoCompatible, chainBoardIndex, chainCycleAt, chainRequiredAt, chainRuleStep, chainWindowMs, chainWindowShrinksAfter, decodeChainAnswer, encodeChainAnswer, replayChain, type ChainTap } from "../src/lib/duel/chain";
 import { gradeSubmission } from "../src/lib/duel/grade";
 import { CHAIN_BLOCK, CHAIN_BOARDS, CHAIN_CYCLE, CHAIN_CYCLE_LONG, CHAIN_REVERSE_AT, CHAIN_REVERSE_LINKS, CHAIN_FASTER_AT, CHAIN_LENGTH, CHAIN_TIME_MS, CHAIN_BOARD_H_PX, CHAIN_BOARD_W_PX, CHAIN_NODE_GAP_PX, CHAIN_NODE_PX, type ChainPuzzleData, type ChainRuleItem } from "../src/lib/duel/types";
 import { withSeededRandom } from "../src/lib/duel/random";
@@ -140,7 +140,10 @@ for (let seed = 0; seed < 200; seed++) {
 
 }
 check(CHAIN_LENGTH === 40 && CHAIN_BLOCK === 5 && CHAIN_BOARDS === 8 && CHAIN_TIME_MS === 45000, "Chain configuration incorrect");
-check(JSON.stringify(CHAIN_FASTER_AT) === "[10,20,30]", "FASTER prompts incorrect");
+// Changed with Joe's approval, 15 Nov 2026 (FASTER shows where the window really shrinks): CHAIN_FASTER_AT is now only the
+// "10 in a row" milestone links; the FASTER banner shows after links 13 and 26 (chainWindowShrinksAfter, chainTap.tsx).
+check(JSON.stringify(CHAIN_FASTER_AT) === "[10,20,30]", "milestone links incorrect");
+check(Array.from({ length: 40 }, (_, i) => i).filter((made) => chainWindowShrinksAfter(made)).join() === "13,26", "FASTER prompts incorrect (after links 13 and 26)");
 check([1,13,14,26,27,40].map((link) => chainWindowMs(link)).join() === "3000,3000,2500,2500,2000,2000", "Momentum changed");
 for (let links = 0; links < 40; links++) check(chainScore(links, 45000) === Math.floor(3.5 * links), "Unfinished formula changed");
 for (let ms = 0; ms <= 45000; ms++) check(chainScore(40, ms) === 140 + Math.round(10 * Math.min(1, ms / 22500)), "Finish bonus mismatch (speed par)");

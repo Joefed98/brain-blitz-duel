@@ -211,6 +211,11 @@ export function gradeMeasureBoards(
   raw: string,
   /** Per-board move limits (measureRev 2); null on stored rounds. */
   moveLimits: readonly number[] | null = null,
+  /**
+   * measureRev 4 (gameReviewNov15.ts): a board out of its moves ends only itself, so the next board is still open.
+   * False (measureRev 3 and older): the first unsolved board closes every later one, as before.
+   */
+  boardOut = false,
 ): MeasureBoardResult[] {
   const parts = splitMeasureRound(raw);
   const out: MeasureBoardResult[] = [];
@@ -226,7 +231,7 @@ export function gradeMeasureBoards(
       decodeMeasureActions(parts[index] ?? "", board.caps.length),
       moveLimits?.[index] ?? null,
     );
-    if (!replay.solved) open = false;
+    if (!replay.solved && !(boardOut && replay.outOfMoves)) open = false;
     out.push({
       solved: replay.solved,
       moves: replay.moves,

@@ -11,6 +11,8 @@ import {
   MINES_INPUT_TAP,
   MINES_MODE_FLAG,
   MINES_MODE_REVEAL,
+  MINES_HIDDEN,
+  MINES_FLAG,
   MINES_REV_LOGIC,
   MINES_RUN_TICKS,
   minesSafeFor,
@@ -68,8 +70,31 @@ function IntroExample() {
   );
 }
 
+/**
+ * Whether the phone sends a tap (Logic review, 15 Nov 2026): Flag mode, and a long press, only flag. The sim chords a
+ * tap on an open number whatever the mode, so a flag tap on a number used to open its neighbours; the phone now sends
+ * no flag tap on a square that isn't hidden or flagged (input only: the sim and its replay are unchanged).
+ */
+export function minesSendsTap(open: readonly number[] | null, cell: number, mode: number): boolean {
+  if (mode !== MINES_MODE_FLAG || !open) return true;
+  const state = open[cell];
+  return state === MINES_HIDDEN || state === MINES_FLAG;
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MinesweeperPuzzleData | null = puzzle.type === "minesweeper" ? puzzle : null;
+  /** The squares as last drawn (the sound observer sees every frame), for minesSendsTap. */
+  const openRef = useRef<readonly number[] | null>(null);
+  const [sounds] = useState(() => () => {
+    const inner = minesweeperSounds();
+    return {
+      frame: (s: MinesState, running: boolean) => {
+        openRef.current = s.open;
+        inner.frame(s, running);
+      },
+      stop: () => inner.stop(),
+    };
+  });
   const [mode, setMode] = useState<number>(MINES_MODE_REVEAL);
   const modeRef = useRef(mode);
   modeRef.current = mode;
@@ -92,8 +117,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       held.timer = setTimeout(() => {
         if (press.current !== held) return;
         held.flagged = true;
-        // A long press flags (or unflags) whatever the switch says.
-        sendRef.current?.({ k: MINES_INPUT_TAP, a: cell, b: MINES_MODE_FLAG, c: 0 });
+        // A long press flags (or unflags) whatever the switch says, and never opens anything.
+        if (minesSendsTap(openRef.current, cell, MINES_MODE_FLAG)) sendRef.current?.({ k: MINES_INPUT_TAP, a: cell, b: MINES_MODE_FLAG, c: 0 });
       }, LONG_PRESS_MS);
       press.current = held;
       return null;
@@ -106,6 +131,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const held = press.current;
     clearPress();
     if (!held || held.flagged || minesCellAt(x, y) !== held.cell) return null;
+    if (!minesSendsTap(openRef.current, held.cell, modeRef.current)) return null;
     return { k: MINES_INPUT_TAP, a: held.cell, b: modeRef.current, c: 0 };
   };
 
@@ -140,7 +166,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         worldW={MINES_WORLD_W}
         worldH={MINES_WORLD_H}
         game={game}
-        sounds={minesweeperSounds}
+        sounds={sounds}
         checkpoint={minesCheckpoint}
         interval={MINES_CHECKPOINT_INTERVAL}
         encodeRun={encodeMinesweeperRun}

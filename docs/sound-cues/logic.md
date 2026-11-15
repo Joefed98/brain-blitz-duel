@@ -9,7 +9,8 @@ window.dispatchEvent(new CustomEvent("duelz-sound", { detail: { cue: "<gameId>.<
 
 The helper is `soundCue()` in `src/puzzles/logicFx.ts`. Game ids are the stored `PuzzleType` ids. Cues are fired
 on the phone only, never by the server, and never change input, timing or grading. Existing sounds
-(`playCorrect`, `playLock`, `playWrong`, `pz_safe_open`) are unchanged and still play where they did.
+(`playCorrect`, `playLock`, `playWrong`) are unchanged and still play where they did; Safe Cracker's opening recording
+(`pz_safe_open.mp3`) plays through the `safe.solve` slot since 15 Nov 2026 (one sound on opening).
 
 Each `<game>.solve` cue fires once, at the solve moment (the same render that submits), from `useSolveFx`. The
 completion effect it marks runs for at most 1.2 s and never delays submission, the reveal or the clock.
@@ -30,7 +31,7 @@ shared screens.
 | `tubes.cork` | A pour fills a flask with one colour (it gets a cork) | Existing 380 ms cork pop |
 | `tubes.solve` | Every flask is sorted | ~1.14 s: corks pop in turn (80 ms apart), liquid shimmer follows |
 | `safe.click` | A dial turns one step (each repeat while held fires again) | 130 ms drum roll |
-| `safe.solve` | A try satisfies every clue (the same test that submits) | 1.2 s: drums click in turn (0–505 ms), door swings open (430–950 ms) |
+| `safe.solve` | A try satisfies every clue (the same test that submits) | `pz_safe_open.mp3` (2.2 s); placeholder `safe.solve.mp3` with NEW_GAME_SOUNDS on |
 | `bomb.cut` | A wire is cut | 220 ms recoil, 300 ms sparks |
 | `bomb.press` | Button A or B is pressed | 200 ms press |
 | `bomb.defuse` | DEFUSE is tapped (the submission; not a verdict) | LED timer freezes and blinks (640 ms), fuse spark dies (360 ms) |

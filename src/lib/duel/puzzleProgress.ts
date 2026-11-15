@@ -42,6 +42,7 @@ import { balanceScaleCount, balanceScalesSolved, decodeBalance } from "./balance
 import { balancePlaceLimits, equationTryLimit, measureMoveLimits, splitCountSuffix } from "./moveLimits";
 import { equationStageCorrect, parseOperators, splitStages } from "./stagedRounds";
 import { decodeMeasureActions, measureActions, measureApply, measureSolved, splitMeasureRound } from "./measure";
+import { measureBoardOut } from "./gameReviewNov15";
 import { decodeStrikeout2, replayStrikeout2, so2Rules, so2Tally, STRIKEOUT_REV2, strikeoutRevOf } from "./strikeout";
 import { isCommonPrefix, isWord } from "./dictionary.server";
 import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
@@ -317,6 +318,7 @@ function measureProgress(puzzle: Extract<PuzzleData, { type: "measure" }>, answe
   if (!boards.length) return 0;
   const limits = measureMoveLimits(puzzle);
   const parts = splitMeasureRound(answer);
+  const boardOut = measureBoardOut(puzzle);
   let solved = 0;
   let within = 0;
   for (let i = 0; i < boards.length; i++) {
@@ -340,6 +342,8 @@ function measureProgress(puzzle: Extract<PuzzleData, { type: "measure" }>, answe
       solved++;
       continue;
     }
+    // measureRev 4 (gameReviewNov15.ts): a puzzle out of its moves ends only itself; play went on to the next.
+    if (boardOut && limit !== null && moves >= limit) continue;
     // The first open puzzle: how much closer its jugs came (it ends the run here, as in the grader).
     const min = puzzle.minMoves?.[i] ?? 0;
     const dist = measureDistances(board);
