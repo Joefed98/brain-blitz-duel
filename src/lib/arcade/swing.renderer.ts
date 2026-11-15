@@ -78,6 +78,8 @@ import {
   drawJungleSqueeze,
   drawJungleVinePaths,
   drawPterodactyl,
+  swingJungleDepthStep,
+  SWING_DEPTH_STEPS,
 } from "./swingJungle.renderer";
 
 /** Grappler's hero pose (stick figure joints, 3.4 px head, 2.4 px stick), refilled every frame. */
@@ -1623,6 +1625,34 @@ function drawLedgeDim(ctx: CanvasRenderingContext2D, state: SwingState, width: n
 const jungleHero = heroGrow(Object.assign(heroPose(), { headR: 4.2, stick: 3 }), GRAPPLER_HERO_GROW);
 /** The "PTERODACTYL N m" label's full size (world px); its scale is swingDragonLabelScale's. */
 export const SWING_PTERO_LABEL_PX = 15;
+/**
+ * The Action overhaul (15 Nov 2026; display only): the held vine 1.35× as thick, the HUD chips 1.3× (their 10 px label
+ * was about 8.7 px on a 390-wide phone; now about 11.3, the values about 17), the platform's PAR label 14 px (was 11).
+ */
+export const SWING_JUNGLE_ROPE_W = 1.35;
+export const SWING_HUD_SCALE = 1.3;
+export const SWING_PAR_LABEL_PX = 14;
+
+/**
+ * What the screen fill beside and below the world must match (edge to edge, 15 Nov 2026; display only): the depth step,
+ * whether the deep shade of a platform run covers the world's right edge, and whether the platform-run dim is on (at
+ * half or more). The stage's sceneKey turns it into a key, so the static fill is repainted only when one of them changes.
+ */
+export interface SwingJungleScene {
+  step: number;
+  darkRight: boolean;
+  dim: boolean;
+}
+export function swingJungleScene(state: SwingState): SwingJungleScene {
+  const W = swingWorldW(state);
+  const from = state.dark ? swingDarkFrom(state) : SWING_NO_DARK;
+  const darkRight = from !== SWING_NO_DARK && (from - state.camX) / FP + DARK_EDGE <= W;
+  return { step: swingJungleDepthStep(state, W), darkRight, dim: swingLedgeDim(state) >= 0.5 };
+}
+/** The scene's key (ArcadeArenaSlot sceneKey). */
+export function swingJungleSceneKey(scene: SwingJungleScene): number {
+  return scene.step + (scene.darkRight ? 100 : 0) + (scene.dim ? 1000 : 0);
+}
 
 /**
  * Grappler on swingRev 17 (3 Nov 2026; display only): the jungle canopy of swingJungle.renderer.ts on the sim's own
@@ -1648,9 +1678,11 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   const first = Math.max(0, Math.min(state.ceil.length - 2, Math.trunc(state.camX / COL) - 1));
   const last = Math.min(state.ceil.length - 1, first + Math.ceil(W / 40) + 2);
 
-  drawJungleBackdrop(ctx, cam, W, H, t, lite);
-  drawJungleCanopy(ctx, state, first, last, sx, W, t, lite);
-  drawJungleRiver(ctx, state, cam, W, H, t, still, lite);
+  // The setting deepens through the course (the Action overhaul, 15 Nov 2026): from the camera, the same for everyone.
+  const depth = swingJungleDepthStep(state, W) / SWING_DEPTH_STEPS;
+  drawJungleBackdrop(ctx, cam, W, H, t, lite, depth);
+  drawJungleCanopy(ctx, state, first, last, sx, W, t, lite, depth);
+  drawJungleRiver(ctx, state, cam, W, H, t, still, lite, depth);
 
   // Squeezes: a hanging trunk over the roof rectangle and a boulder stack over the floor one.
   for (const sq of state.squeezes ?? []) {
@@ -1681,7 +1713,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
     if (kind === 0) {
       const par = swingSectionPar(state, l.section);
       if (par.par > 0 && par.flag <= 0) {
-        ctx.font = `700 11px ${ARCADE_FX_DISPLAY_FONT}`;
+        ctx.font = `700 ${SWING_PAR_LABEL_PX}px ${ARCADE_FX_DISPLAY_FONT}`;
         ctx.textAlign = "center";
         ctx.fillStyle = "rgba(255,236,160,0.8)";
         ctx.fillText(`PAR ${(par.par / 60).toFixed(1)} s`, x, l.top / FP - 8);
@@ -1711,7 +1743,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
     const a = swingAnchorAt(state, state.rope, state.tick);
     const ax = sx(a.x);
     const ay = a.y / FP;
-    drawJungleRope(ctx, ax, ay, fx, fy - 4);
+    drawJungleRope(ctx, ax, ay, fx, fy - 4, SWING_JUNGLE_ROPE_W);
     const d = Math.hypot(ax - fx, ay - fy) || 1;
     armX = (ax - fx) / d;
     armY = (ay - fy) / d;
@@ -1745,8 +1777,11 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   hero.face = speed > 0 ? vx / speed : 0;
   hero.core = state.ended === 2 ? "#FF4D5E" : null;
   hero.gentle = still;
-  // A soft light round the hero so it reads against the leaves.
-  if (!lite) drawJungleGlow(ctx, fx, fy, 24, "rgba(255,230,150,0.36)", "rgba(255,230,150,0.12)");
+  // A soft light round the hero so it reads against the leaves, then (the Action overhaul, 15 Nov 2026) a dark pool
+  // under the figure itself, so its gold and black read at once against leaves, trunks, water or the deep shade: a
+  // backlit silhouette. The figure is already as large as its 10 px hit circle allows (art-check's Grappler allowance).
+  if (!lite) drawJungleGlow(ctx, fx, fy, 30, "rgba(255,230,150,0.3)", "rgba(255,230,150,0.1)");
+  drawJungleGlow(ctx, fx, fy - 2, 20, "rgba(3,10,6,0.62)", "rgba(3,10,6,0.36)");
   const blink = (state.respawn ?? 0) > 0 && !still && Math.floor(state.tick / 4) % 2 === 1;
   if (blink) ctx.globalAlpha = 0.35;
   drawHero(ctx, hero);
@@ -1807,8 +1842,12 @@ function drawSwingActionHud(ctx: CanvasRenderingContext2D, state: SwingState, W:
     const under = clock.elapsed < clock.par;
     row2.push({ label: "PAR", value: `${(clock.elapsed / 60).toFixed(1)} / ${(clock.par / 60).toFixed(1)} s`, tone: under ? "gold" : "dim", meter: Math.min(1, clock.elapsed / clock.par) });
   }
-  drawActionHud(ctx, W, [
+  // 1.3× (the Action overhaul): the helper's chips drawn larger, laid out on the narrower width that scale leaves.
+  ctx.save();
+  ctx.scale(SWING_HUD_SCALE, SWING_HUD_SCALE);
+  drawActionHud(ctx, W / SWING_HUD_SCALE, [
     { left: [{ label: "STRETCH", value: `${shown} / ${c.sectionTotal}`, pulse: { id: "swing", tick: state.tick } }], right: [{ label: "STREAK", value: `×${streak}`, tone: streak >= SWING_V17_STREAK_BLOCK ? "gold" : "plain" }] },
     { left: row2, right: [{ label: "GATES", value: `${c.gates} / ${c.gateTotal}`, tone: c.gates > 0 ? "gold" : "plain" }] },
   ]);
+  ctx.restore();
 }

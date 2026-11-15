@@ -20,6 +20,7 @@
  * a sim: scores, timing, inputs and replays are untouched.
  */
 import { SWING_REV_SLIDE } from "./swing";
+import { jungleDeepWater, paintJungleSides } from "./swingJungle.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { SCENE_TUCK, type ArenaAmbient, type ArenaSceneView } from "./arenaScene.renderer";
 import { METEOR_BORDER_COLOURS } from "./snake.renderer";
@@ -29,7 +30,7 @@ import { paintMahjongWood } from "./mahjong.renderer";
 /** Games whose fill moves (slowly); everything else is painted once per size. */
 export const ARENA_FILL_MOVING = ["pinball", "rally", "beat", "snake", "cross", "flip", "burst"] as const;
 /** Games whose fill also runs down their sides when the world is narrower than the screen. */
-export const ARENA_FILL_SIDES = ["wavefront", "snake", "balltrack", "beat", "matchup", "clayshoot", "minesweeper", "mahjong", "freecell", "tripeaks", "pokersquares", "fivehands", "blockfall", "alleyroll", "ricochet", "pyramid", "golfsol", "muggins"] as const;
+export const ARENA_FILL_SIDES = ["wavefront", "swing", "snake", "balltrack", "beat", "matchup", "clayshoot", "minesweeper", "mahjong", "freecell", "tripeaks", "pokersquares", "fivehands", "blockfall", "alleyroll", "ricochet", "pyramid", "golfsol", "muggins"] as const;
 /** Games centred on the play screen (item 23), their world's size unchanged. */
 export const ARENA_FILL_CENTRED = ["pinball", "snake", "snip", "matchup", "whack"] as const;
 
@@ -549,26 +550,59 @@ export function swingFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): 
  * 19b. Grappler on swingRev 17 (the jungle canopy, 3 Nov 2026): the river's deep water carried on under the world (from
  * its bottom colour), a few faint current streaks, settling to near-black.
  */
-export function swingJungleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+/** What the jungle fill matches in the world (swing.renderer.ts swingJungleScene): depth 0–1, the shade, the dim. */
+export interface SwingFillScene {
+  depth: number;
+  darkRight?: boolean;
+  dim?: boolean;
+}
+/** The deep shade's alpha (swing.renderer.ts DARK_ALPHA) and the platform-run dim's at the world's sides. */
+const SWING_FILL_SHADE = "2,10,6";
+const SWING_FILL_DARK = 0.9;
+const SWING_FILL_DIM = 0.34;
+
+export function swingJungleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, scene: SwingFillScene = { depth: 0 }): void {
+  // Edge to edge (15 Nov 2026): the jungle carried on beside the world (far crowns, canopy band, river) at the world's
+  // depth, so the evolving setting meets the world's edge without a step; a platform run's deep shade carried on to the
+  // right of the world while it covers the world's right edge, and its dim over the whole fill while it is on.
+  const depth = scene.depth;
+  for (const side of fillSides(view)) {
+    paintJungleSides(ctx, side, view.worldH, depth);
+    if (scene.darkRight && side.x >= view.worldW - SCENE_TUCK - 0.01) {
+      ctx.fillStyle = `rgba(${SWING_FILL_SHADE},${SWING_FILL_DARK})`;
+      ctx.fillRect(side.x, side.y, side.w, side.h);
+    }
+  }
   const r = fillBelow(view);
-  if (!r) return;
-  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#0B3A4A"], [Math.min(0.6, 24 / r.h), "#082C38"], [Math.min(0.9, 60 / r.h), "#06202A"], [1, "#04141A"]]);
-  ctx.lineWidth = 1;
-  for (let k = 0; k < 7; k++) {
-    const h = artHash(k, 211);
-    const x = r.x + ((h % 1000) / 1000) * r.w;
-    const y = r.y + 6 + (((h >>> 10) % 1000) / 1000) * Math.max(4, Math.min(r.h, 60) - 12);
-    ctx.strokeStyle = "rgba(200,245,240,0.12)";
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + 12 + (h % 16), y);
-    ctx.stroke();
+  if (r) {
+    const top = jungleDeepWater(depth);
+    fillGradient(ctx, r, r.y, r.y + r.h, [[0, top], [Math.min(0.6, 24 / r.h), "#082C38"], [Math.min(0.9, 60 / r.h), "#06202A"], [1, "#04141A"]]);
+    ctx.lineWidth = 1;
+    for (let k = 0; k < 7; k++) {
+      const h = artHash(k, 211);
+      const x = r.x + ((h % 1000) / 1000) * r.w;
+      const y = r.y + 6 + (((h >>> 10) % 1000) / 1000) * Math.max(4, Math.min(r.h, 60) - 12);
+      ctx.strokeStyle = "rgba(200,245,240,0.12)";
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 12 + (h % 16), y);
+      ctx.stroke();
+    }
+    if (scene.darkRight) {
+      // Under the world's shaded part too (the world's own shade runs to its bottom edge on the right).
+      ctx.fillStyle = `rgba(${SWING_FILL_SHADE},${SWING_FILL_DARK})`;
+      ctx.fillRect(view.worldW - SCENE_TUCK, r.y, view.right - view.worldW + SCENE_TUCK, r.h);
+    }
+  }
+  if (scene.dim) {
+    ctx.fillStyle = `rgba(${SWING_FILL_SHADE},${SWING_FILL_DIM})`;
+    for (const rect of around(view, true)) ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
   }
 }
 
-/** Grappler's fill for a stored revision: the jungle's river on swingRev 17, the cave's lava before. */
-export function swingFillFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
-  return rev === SWING_REV_SLIDE ? swingJungleFill : swingFill;
+/** Grappler's fill for a stored revision: the jungle's river on swingRev 17 (at the world's scene), the cave's lava before. */
+export function swingFillFor(rev?: number | null, scene: () => SwingFillScene = () => ({ depth: 0 })): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  return rev === SWING_REV_SLIDE ? (ctx, view) => swingJungleFill(ctx, view, scene()) : swingFill;
 }
 
 /** 17. Fission: under the arena's floor, a dark teal ground (the floor's soft edge) that settles into the dark under the arrows. */

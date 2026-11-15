@@ -100,7 +100,8 @@ function swingParts(s: SwingState): StdPart[] | null {
     const p = swingSlideParts(s);
     const paid = s.streakPaid ?? 0;
     return [
-      stdPart(SWING_V17_SPEC, "core", p.core, `${Math.trunc(p.permille / 10)} % of the course`),
+      // The Action overhaul (15 Nov 2026): one plain line, the course share and the stretches cleared (the HUD's count).
+      stdPart(SWING_V17_SPEC, "core", p.core, `${Math.trunc(p.permille / 10)} % of the course, ${c.sections} of ${c.sectionTotal} stretches cleared`),
       stdPart(SWING_V17_SPEC, "par", p.par, pars),
       stdPart(SWING_V17_SPEC, "gates", p.gates, of(c.gates, SWING_V17_GATES, "gates")),
       stdPart(SWING_V17_SPEC, "streak", p.streak, `${n(paid, "run", "runs")} of ${SWING_V17_STREAK_BLOCK} clean grabs`),

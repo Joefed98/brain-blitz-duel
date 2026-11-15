@@ -12,7 +12,7 @@ import { haptic, type HapticPattern } from "@/lib/haptics";
 import type { SoundId } from "@/lib/fx/manifest";
 import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
-import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, swingAnchorAt, swingJetAt, type SwingState } from "@/lib/arcade/swing";
+import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, SWING_V15_GATE_SPEED, swingAnchorAt, swingJetAt, type SwingState } from "@/lib/arcade/swing";
 import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
 import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_KIND_BUS, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, crossKindCrossed, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
@@ -198,9 +198,23 @@ export function swingSounds(): GameSounds<SwingState> {
           else sfx("swing.splash", "arc_crash");
           feel("impact");
         } else if (prev.rope < 0 && state.rope >= 0) {
-          if (jungle) sfx("swing.vineCreak", "arc_grapple");
-          else sfx("swing.grapple", "arc_grapple");
-        } else if (jungle && prev.rope >= 0 && state.rope < 0 && state.ended === 0) effectCue("swing.release");
+          if (jungle) {
+            sfx("swing.vineCreak", "arc_grapple");
+            // The Action overhaul (15 Nov 2026): the rope snapping taut over the creak (silent until Joe's file).
+            effectCue("swing.ropeSnap");
+          } else sfx("swing.grapple", "arc_grapple");
+        } else if (jungle && prev.rope >= 0 && state.rope < 0 && state.ended === 0) {
+          // Pitched by the release speed (the overhaul): 0.85× slow to 1.25× at twice the gate speed.
+          const fly = Math.hypot(state.vx, state.vy) / 256;
+          effectCue("swing.release", 0, 0.85 + 0.4 * Math.min(1, fly / (2 * SWING_V15_GATE_SPEED)));
+          // A release fast enough to light a gate (rev 15+'s 3.5 px a tick): the speed whoosh on top (silent until Joe's file).
+          if (Math.hypot(state.vx, state.vy) >= SWING_V15_GATE_SPEED * 256) effectCue("swing.speedWhoosh");
+        }
+        // The whole course cleared (the overhaul's "COURSE CLEARED!"; silent until Joe's file).
+        if (jungle) {
+          const total = state.sections?.length ?? 0;
+          if (total > 0 && (state.sec ?? 0) >= total && (prev.sec ?? 0) < total) effectCue("swing.courseCleared");
+        }
         // The jungle: landing on a tree platform (never the restart's placing), and each block of the clean-swing streak.
         if (jungle && (state.restarts ?? 0) === (prev.restarts ?? 0) && (prev.ledgeOn ?? -1) < 0 && (state.ledgeOn ?? -1) >= 0) effectCue("swing.land");
         if (jungle && (state.streakPaid ?? 0) > (prev.streakPaid ?? 0)) effectCue("swing.streak");

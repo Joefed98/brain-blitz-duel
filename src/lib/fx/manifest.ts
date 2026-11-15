@@ -1179,6 +1179,16 @@ const ENTRIES = {
   "swing.streak": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/swing.streak.mp3" },
   "swing.slideVine": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/swing.slideVine.mp3", loop: true },
   "swing.wings": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/swing.wings.mp3", loop: true },
+  // The Action overhaul (15 Nov 2026; docs/sound-cues/action-elevenlabs.md): Grappler's new slots, silent until Joe's
+  // ElevenLabs files arrive (save as public/sounds/<slot>.mp3 and set the url). ropeSnap, speedWhoosh and courseCleared
+  // play at their moments already; outOfReach, pteroShadow, streakMeter and stretchTally come with stage 2's effects.
+  "swing.ropeSnap": { channel: "effects", frequency: 0, ms: 220, url: null },
+  "swing.speedWhoosh": { channel: "effects", frequency: 0, ms: 450, url: null, gapMs: 120 },
+  "swing.courseCleared": { channel: "effects", frequency: 0, ms: 1600, url: null },
+  "swing.outOfReach": { channel: "effects", frequency: 0, ms: 300, url: null, gapMs: 250 },
+  "swing.pteroShadow": { channel: "effects", frequency: 0, ms: 1200, url: null },
+  "swing.streakMeter": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 60 },
+  "swing.stretchTally": { channel: "effects", frequency: 0, ms: 90, url: null, gapMs: 40 },
   "slice.chilli": { channel: "effects", frequency: 0, ms: 485, url: "/sounds/slice.chilli.mp3" },
   "symscan.eagle": { channel: "effects", frequency: 0, ms: 807, url: "/sounds/symscan.eagle.mp3" },
   "bintoss.wind": { channel: "effects", frequency: 0, ms: 800, url: "/sounds/bintoss.wind.mp3" },

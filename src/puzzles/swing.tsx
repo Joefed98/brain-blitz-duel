@@ -19,65 +19,36 @@ import {
   SWING_CHECKPOINT_INTERVAL,
   SWING_GOLD,
   SWING_INPUT_HOLD,
+  type SwingState,
 } from "@/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
 import { SWING_TIME_MS, type SwingPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { swingArtGameFor } from "@/lib/arcade/swing.renderer";
+import { swingArtGameFor, swingJungleScene, swingJungleSceneKey, type SwingJungleScene } from "@/lib/arcade/swing.renderer";
+import { SWING_DEPTH_STEPS } from "@/lib/arcade/swingJungle.renderer";
 import { swingSounds } from "@/lib/fx/gameSounds";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
+/** The intro still's course: the first course rooms deal on swingRev 17 (swingSlideDeal.server.ts), built in the sim. */
+const SWING_INTRO_SEED = 80672385;
+
 /**
- * Fixed intro still (the jungle canopy of swingRev 17, 3 Nov 2026): vine-to-vine swinging over the river with a speed
- * gate on the way, then a short platform run with a squeeze between a trunk and a rock.
+ * The intro still (the Action overhaul, 15 Nov 2026): swingRev 17's own jungle drawn by the game's renderer on a fixed
+ * course a second and a half in, the hero swinging from the first vine (no placeholder drawing). Display only.
  */
 function IntroExample() {
-  const vine = "#5E8F33";
-  const loop = "#CDEB7A";
-  const knot = "#F2C75C";
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: "linear-gradient(#0E2A1C, #24604A)", borderRadius: 10 }}>
-        <defs>
-          <radialGradient id="swing-intro-glow">
-            <stop offset="0" stopColor="rgba(255,236,140,0.75)" />
-            <stop offset="1" stopColor="rgba(220,255,130,0)" />
-          </radialGradient>
-        </defs>
-        {/* Distant crowns, the canopy overhead and the river below. */}
-        <circle cx={30} cy={78} r={22} fill="#1E5440" />
-        <circle cx={96} cy={72} r={26} fill="#1E5440" />
-        <circle cx={150} cy={80} r={20} fill="#1E5440" />
-        <path d="M0 0 H168 V12 Q150 22 132 14 Q112 22 94 13 Q74 22 56 14 Q36 22 18 13 Q8 18 0 14 Z" fill="#1C4A2A" />
-        <path d="M0 14 Q8 18 18 13 Q36 22 56 14 Q74 22 94 13 Q112 22 132 14 Q150 22 168 12" fill="none" stroke="#8FD15A" strokeWidth={1.2} />
-        <path d="M0 116 Q20 112 42 116 T84 116 T126 116 T168 116 V130 H0 Z" fill="#2F9FB0" />
-        <path d="M0 116 Q20 112 42 116 T84 116 T126 116 T168 116" fill="none" stroke="#D8F6F2" strokeWidth={1.4} />
-        {/* Swinging: the hero on the first vine, the flight to the next (through a speed gate). */}
-        {([[22, 36], [78, 32], [112, 38]] as const).map(([x, y]) => (
-          <g key={x}>
-            <line x1={x} y1={16} x2={x} y2={y - 6} stroke={vine} strokeWidth={2} />
-            <circle cx={x} cy={y} r={10} fill="url(#swing-intro-glow)" />
-            <circle cx={x} cy={y} r={5} fill="none" stroke={loop} strokeWidth={2.2} />
-            <circle cx={x} cy={y - 5} r={2} fill={knot} />
-          </g>
-        ))}
-        <line x1={22} y1={36} x2={34} y2={76} stroke="#A7DB6A" strokeWidth={2.4} />
-        <rect x={28} y={72} width={12} height={20} rx={6} fill="var(--ice-wall)" stroke="var(--grappler-rim)" strokeWidth={1} />
-        <path d="M 40 76 Q 56 44 72 58" fill="none" stroke={knot} strokeOpacity={0.5} strokeDasharray="3 4" />
-        <line x1={52} y1={46} x2={52} y2={66} stroke="#FFE08A" strokeWidth={1.2} strokeDasharray="3 3" />
-        <rect x={50} y={34} width={4} height={12} fill="#7E8E3A" />
-        <rect x={50} y={66} width={4} height={12} fill="#7E8E3A" />
-        {/* A short platform run: a tree platform, then a squeeze between a hanging trunk and a rock. */}
-        <rect x={129} y={90} width={6} height={26} fill="#4A3322" />
-        <rect x={120} y={84} width={24} height={6} rx={1} fill="#A47A4C" stroke={knot} strokeWidth={0.8} />
-        <rect x={152} y={14} width={10} height={40} fill="#4A3322" />
-        <rect x={152} y={80} width={10} height={36} fill="#5B5E52" />
-        <rect x={152} y={80} width={10} height={3} fill="#4D7A2E" />
-        <rect x={152} y={52} width={10} height={2} fill="rgba(200,240,140,0.8)" />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Swing vine to vine: let go to fly, hold to grab the next. Tree platforms and squeezes between. Miss: back to your last vine.</p>
-    </div>
+    <ArtStill
+      game={swingArtGameFor(SWING_REV_SLIDE)}
+      worldW={swingWorldWFor(SWING_REV_SLIDE)}
+      worldH={swingWorldHFor(SWING_REV_SLIDE)}
+      seed={SWING_INTRO_SEED}
+      ticks={90}
+      input={null}
+      caption="Swing vine to vine: let go to fly, hold to grab the next. Tree platforms and squeezes between. Miss: back to your last vine."
+    />
   );
 }
 
@@ -85,10 +56,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SwingPuzzleData | null = puzzle.type === "swing" ? puzzle : null;
   const start = useRef<{ y: number } | null>(null);
   const spaceHeld = useRef(false);
+  // Edge to edge (15 Nov 2026): the screen fill follows the jungle's depth step, a platform run's shade and its dim
+  // (sceneKey repaints the static fill only when one changes: a few dozen times a run, never per frame).
+  const scene = useRef<SwingJungleScene>({ step: 0, darkRight: false, dim: false });
   return (
     <ArcadeCanvasStage
       diagKey="swing"
-      scene={swingFillFor(data?.swingRev)}
+      scene={swingFillFor(data?.swingRev, () => ({ depth: scene.current.step / SWING_DEPTH_STEPS, darkRight: scene.current.darkRight, dim: scene.current.dim }))}
+      sceneKey={(s: SwingState) => (data?.swingRev === SWING_REV_SLIDE ? swingJungleSceneKey((scene.current = swingJungleScene(s))) : 0)}
       label={gameDisplayName("swing")}
       background="transparent"
       fitWorld

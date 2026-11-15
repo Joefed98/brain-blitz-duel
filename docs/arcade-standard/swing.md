@@ -1,5 +1,55 @@
 # Grappler: the swinging course (swingRev 15)
 
+## The Action overhaul (15 Nov 2026, phase 2 step 4; display only, swingRev 17)
+
+Joe's review (`docs/design/game-reviews/action.md`). No stamp: the course, rules, timings and scores are unchanged
+(swing-overhaul-check replays the dealt courses' witnesses at 200 and the runs recorded for rev 17 to the same score).
+
+- **One stretch count.** Every dealt course has **51 stretches** (`swingAssaultCounts(state).sectionTotal`; the 45 in the
+  scoring table is only the pars' divisor, `SWING_V17_PAR_STRETCHES`). The HUD shows the stretch in play ("STRETCH 23 /
+  51"); the reveal's course line says the share and the stretches cleared in one line ("85 % of the course, 44 of 51
+  stretches cleared"); the separate "7 stretches left to clear" line is gone on swingRev 17 (`nearMiss.ts`), so the
+  reveal no longer shows two counts side by side.
+- **The setting deepens.** `swingJungleDepth` (0 at the start, 1 by the finish platform, from the sim's camera and the
+  course's last ledge, so the same for every player and replay) darkens and cools the backdrop only (a veil over the far
+  crowns and mid trunks, hanging moss curtains from a third of the way), dims the canopy's leaves a little and takes the
+  river darker. Every vine, platform, gate and the hero are drawn over it at full contrast.
+- **Calmer backdrop.** Softer light shafts, crowns closer to the haze with a low mist over them, mid trunks half as
+  strong, so the vines and the hero stand out.
+- **Better water.** Three waves (at most 1.45 px off the sim's floor line), a lit band under the surface, ripple lines
+  drifting with the current at two depths, and small glints travelling along the surface that twinkle; still under
+  reduced motion.
+- **Hooks more obvious, less glow.** The grab loop is 12 px (was 10): a dark centre, a thick dark rim and a bright
+  cream ring, a gold knot with an outline; the glow round it is smaller and fainter (`JUNGLE_LOOP_R`). A grab is by
+  reach, so the loop's size changes nothing in play.
+- **The hero and rope.** The held vine is 1.35× as thick (`SWING_JUNGLE_ROPE_W`). The figure is already as large as its
+  10 px hit circle and art-check's approved Grappler allowance allow (its hands reach ±15.25 px, its head 19.25 px up);
+  instead it gets a dark pool under the figure inside a smaller warm glow, so its gold and black read at once against
+  leaves, trunks, water and the deep shade. Drawing it larger needs Joe's decision (a larger allowance, or a larger hit
+  circle on a new stamp with a re-proved deal).
+- **Bigger HUD.** The Action HUD's chips drawn 1.3× (`SWING_HUD_SCALE`: the 10 px label was about 8.7 px on a 390-wide
+  phone, now about 11.3; values about 17); the platform's PAR label 14 px (was 11).
+- **Intro.** A real still from the game's renderer: swingRev 17's first dealt course a second and a half in (`ArtStill`).
+- **Sounds.** The release is pitched by its speed (0.85× to 1.25×); new slots, silent until Joe's files
+  (`docs/sound-cues/action-elevenlabs.md`): `swing.ropeSnap` on every grab, `swing.speedWhoosh` on a release fast enough
+  to light a gate, `swing.courseCleared` when the course is cleared (all three wired now), and `swing.streakMeter`,
+  `swing.outOfReach`, `swing.pteroShadow`, `swing.stretchTally` for stage 2's effects.
+- Frames: `bun scripts/shots/swing-overhaul-frames.ts [--root=<main checkout>] [--tag=before|after] [--clip]`.
+
+### Levels (stage 3: the levers)
+
+Normal is today's swingRev 17. Each level that changes play is its own stamp with its own proved deal
+(`scripts/swing-slide-deal.ts`), all at most 120 s, rated rooms on Normal; "King of the swingers" (70 % of the course on
+Expert) must stay possible.
+
+| Lever | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Reach (`REACH`) | longer (about 260 px) | 220 px | 220 px | slightly shorter (about 205 px) |
+| Sliding vines (per quarter) | few (0, 1, 2, 2) | 0, 4, 6, 8 | more (2, 6, 8, 10) | a few more than Hard (3, 7, 9, 11) |
+| Streak stall limit (`SWING_V17_STALL`) | relaxed (about 200 ticks) | 150 | tighter (about 130) | a little tighter (about 120) |
+| Pterodactyl | none | last quarter | last quarter, faster | last quarter, faster |
+| Dark ledge runs | all lit | 6 dark | 6 dark | 7 dark |
+
 ## The jungle canopy (3 Nov 2026, the Action polish; display only, swingRev 17)
 
 Joe's audit: the hooks were tiny yellow dots on a mostly black screen, the rope and player small, and it looked like
@@ -317,7 +367,7 @@ the dealt courses are ones a flawless line clears cleanly, a little kinder on av
 | Part | Points | How |
 |---|---|---|
 | Course (core) | 110 | A straight line on the share of the course behind the hero (as rev 15), **full at 700 per mille** (`SWING_V17_FULL`, about the great level's median; `SWING_V17_BAND_CURVE`). |
-| Pars | 40 | Each stretch cleared pays by how far under par (full at 30 ticks under), counted over **45 stretches** (`SWING_V17_PAR_STRETCHES`; every dealt course has **51**, the HUD's STRETCH x / 51 and the reveal's stretches left, so the pars are full with 45 cleared well under par), so the pars keep paying for every stretch after the core is full. |
+| Pars | 40 | Each stretch cleared pays by how far under par (full at 30 ticks under), counted over **45 stretches** (`SWING_V17_PAR_STRETCHES`; every dealt course has **51**, the HUD's STRETCH x / 51 and the reveal's "n of 51 stretches cleared", so the pars are full with 45 cleared well under par), so the pars keep paying for every stretch after the core is full. |
 | Gates | 10 | 2 each for the 5 (banked as before: put back on a miss since the last hook). |
 | Clean-swing streak | 40 | 2 for every 8 clean grabs in a row (summed over the run's streaks), up to 40. |
 | **Total** | **200** | No input 0; any input at least 1 (`stdFinal`). Earning a feature never costs core. |
@@ -371,7 +421,7 @@ home), the arcade-standard entry (four parts), the self-replay list (`swing/slid
 
 ## Follow-ups
 
-- The intro demo needs recording on swingRev 17 (until then the intro shows its still).
+- The intro demo needs recording on swingRev 17 (until then the intro shows its still, since 15 Nov 2026 drawn by the game's own renderer).
 - Sounds: the library only when swingRev 17 shipped (3 Nov 2026); since 6 Nov 2026 the streak (`swing.streak`) and the
   sliding vines (the `swing.slideVine` loop) have recordings of their own (docs/sound-cues/retheme-nov-2026.md).
 - Screenshots: `screenshots/grappler-slide-nov-2026/` (`bun scripts/shots/swing-slide-shots.ts`): a sliding hook at
