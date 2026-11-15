@@ -24,6 +24,7 @@ const runFor = (rev: number) =>
     checkpoint: racingCheckpoint,
     keys: RACING_CHECKPOINT_KEYS,
     interval: RACING_CHECKPOINT_INTERVAL,
+    emptyIsZero: true,
   });
 const run = runFor(1);
 /** racingRev 2: the same wire format, the lights longer (its own run length and checkpoint count). */
