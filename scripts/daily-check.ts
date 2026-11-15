@@ -612,7 +612,8 @@ else {
   check(/createRoomSender/.test(run) && /createDraftKeeper/.test(run) && /persistStageState/.test(run), "the run keeps the room's one-answer sender, the stored draft and the stage state");
   check(/autoStart=\{false\}/.test(run), "the round intro waits for READY (the player's clock starts when they do)");
   const home = readFileSync("src/routes/index.tsx", "utf8");
-  check(/<DailyCard/.test(home) && /status\?\.available/.test(readFileSync("src/components/daily/DailyCard.tsx", "utf8")), "the Play card shows only once the daily is available");
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Home's Daily card is the Daily hero, in the daily PlaySlot shown only once the daily is available.
+  check(/<DailyHero/.test(home) && /<PlaySlot id="daily" state=\{slotState\(daily\.settled, !!daily\.status\?\.available\)\}>/.test(home), "the Play card shows only once the daily is available");
 }
 
 console.warn = quietWarn;

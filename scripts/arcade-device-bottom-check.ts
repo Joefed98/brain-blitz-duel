@@ -90,7 +90,7 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip, type DeviceConfig } from "./device-emulation";
-import { showPracticeSide } from "./practice-side-lib";
+import { practiceGameUrl, showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -401,12 +401,9 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
   page.on("pageerror", (e) => errors.push(e.message));
   await page.clock.install();
   try {
-    await gotoRetried(page, `${origin}/practice`, "snake", { waitUntil: "domcontentloaded" });
-    await showPracticeSide(page, "snake");
-    const button = page.getByRole("button", { name: gameDisplayName("snake"), exact: true }).first();
-    await button.waitFor({ timeout: 90_000 });
-    await page.waitForTimeout(1200);
-    await button.click();
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: a tile opens the game's page,
+    // so the round's full intro is opened by its ?game= link, practiceGameUrl).
+    await gotoRetried(page, practiceGameUrl(origin, "snake"), "snake", { waitUntil: "domcontentloaded" });
     const ready = page.getByRole("button", { name: /^Ready/ }).first();
     await ready.waitFor({ timeout: 90_000 });
     await emulateDevice(page, IPHONE11_APP);
@@ -751,12 +748,9 @@ async function main() {
       });
       const before = failures.length;
       try {
-        await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
-        await showPracticeSide(page, game);
-        const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
-        await button.waitFor({ timeout: 90_000 });
-        await page.waitForTimeout(1200);
-        await button.click();
+        // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: a tile opens the game's page,
+        // so the round's full intro is opened by its ?game= link, practiceGameUrl).
+        await gotoRetried(page, practiceGameUrl(origin, game), game, { waitUntil: "domcontentloaded" });
         const ready = page.getByRole("button", { name: /^Ready/ }).first();
         await ready.waitFor({ timeout: 90_000 });
         await page.waitForTimeout(600);

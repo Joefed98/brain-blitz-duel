@@ -7,7 +7,7 @@
  *    existing token's value changed, the route list (every route file is reached from the navigation, or is a page's own
  *    link, or is dev only).
  * 2. The real app on a dev server (an iPhone 11 home-screen app's geometry, a guest), end to end: every tab opens its
- *    screen; the gold Play bar is on Home and Games only, above the tab bar, and opens Home's play section; More's rows
+ *    screen; the gold Play bar is on Home and Games only, above the tab bar, and opens the Play page; More's rows
  *    open Profile, Friends (the save-your-progress sheet for a guest), Leaderboards, Challenges (Games, scrolled to the
  *    full list), Daily, Settings (/settings) and Support; the avatar opens the save-your-progress sheet for a guest.
  *    Back (Android's back button or gesture: the browser's history back): one screen at a time, and from any main tab
@@ -107,10 +107,14 @@ const check = (ok: boolean, what: string) => {
     "daily.tsx": "More: Daily; Home's Daily cards",
     "account.tsx": "the save-your-progress sheet (avatar, More: Friends); Settings → Account",
     "customise.tsx": "Profile: Customise card",
-    "challenge.tsx": "Home: Challenge a friend; a challenge link",
-    "duel.$code.tsx": "Home: Create a room, Join, Rejoin; a room link",
-    "rated.tsx": "Home: rated play's Play card (where rated play is open)",
-    "tiers.tsx": "Home: rated play's rank panel",
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create,
+    // Join, Rejoin and Challenge a friend moved from Home to the Rooms page; rated play's Play to the Play page.
+    "challenge.tsx": "Rooms: Challenge a friend; Profile: Your challenges; a challenge link",
+    "duel.$code.tsx": "Rooms: Create a room, Join, Rejoin; Play: Create a room; a room link",
+    "rated.tsx": "Play: Find a match (where rated play is open)",
+    "tiers.tsx": "Home: Ratings' All ratings; Profile's rating",
+    "play.tsx": "the gold Play bar on Home and Games; the rail's Play",
+    "rooms.tsx": "Play: Rooms",
     "tournament.tsx": "Tournaments: an event (players with tournaments)",
     "tournament-rules.tsx": "an event's rules link",
     "daily-board.tsx": "the Daily screens' Top 100; Leaderboards",
@@ -125,6 +129,8 @@ const check = (ok: boolean, what: string) => {
     // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Profile session's two new pages).
     "badges.tsx": "Profile: the Badges row's See all",
     "card.tsx": "Profile: a tap on your card",
+    // Added 14 Nov 2026 (the Games session): the full challenges list, its own page.
+    "challenges.tsx": "More: Challenges",
   };
   for (const file of readdirSync("src/routes").filter((f) => f.endsWith(".tsx")))
     check(file in ROUTES, `route ${file} has an entry point (${ROUTES[file] ?? "none"})`);
@@ -263,25 +269,32 @@ try {
     check(!!avatar && avatar.x < 40 && avatar.y < 80 && avatar.width >= 44 && avatar.height >= 44, `the avatar is top left and 44 px (${JSON.stringify(avatar)})`);
     check(!!(await page.locator("[data-app-header] [data-nav-avatar]").getAttribute("aria-label")), "the avatar has a screen-reader label");
 
-    // The Play bar opens Home's play section.
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Play page, phase 2 step 3): the Play bar opens
+    // the Play page (was Home's play section), and Back returns to the screen it was tapped on.
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(300);
     await page.locator("[data-nav-play='bar']").click();
-    await page.waitForTimeout(900);
-    const hero = await box(page, "[data-play-hero]");
-    check(!!hero && hero.y >= -2 && hero.y < 200, `the Play bar brings Home's play section into view (${hero?.y})`);
+    await waitPath(page, "/play");
+    await page.getByRole("heading", { level: 1, name: "Play" }).waitFor({ timeout: 60_000 });
+    check((await page.locator("[data-play-mode]").count()) === 4, "the Play page: Arena, Rooms, Practice and Daily");
+    await page.goBack();
+    await waitPath(page, "/");
 
     // Every tab opens its screen; Back from them returns to Home once, then leaves.
     await tapTab(page, "practice");
     await waitPath(page, "/practice");
-    await page.getByRole("heading", { level: 1, name: "Practice" }).waitFor({ timeout: 60_000 });
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: titled "Games").
+    await page.getByRole("heading", { level: 1, name: "Games" }).waitFor({ timeout: 60_000 });
     check((await page.locator("[data-nav-play='bar']").count()) === 1, "Games has the Play bar");
     await page.locator("[data-nav-play='bar']").click();
-    await waitPath(page, "/");
-    await page.waitForTimeout(900);
-    const heroFromGames = await box(page, "[data-play-hero]");
-    check(!!heroFromGames && heroFromGames.y >= -2 && heroFromGames.y < 200, `the Play bar on Games opens Home's play section (${heroFromGames?.y})`);
-    for (const [tab, to, heading] of [["practice", "/practice", "Practice"], ["tournaments", "/tournaments", "Tournaments"], ["shop", "/shop", null], ["more", "/more", "More"]] as const) {
+    await waitPath(page, "/play");
+    await page.getByRole("heading", { level: 1, name: "Play" }).waitFor({ timeout: 60_000 });
+    check(path(page) === "/play", "the Play bar on Games opens the Play page");
+    await page.goBack();
+    await waitPath(page, "/practice");
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: the tab's page is titled
+    // "Games", was "Practice").
+    for (const [tab, to, heading] of [["practice", "/practice", "Games"], ["tournaments", "/tournaments", "Tournaments"], ["shop", "/shop", null], ["more", "/more", "More"]] as const) {
       await tapTab(page, tab);
       await waitPath(page, to);
       if (heading) await page.getByRole("heading", { level: 1, name: heading }).waitFor({ timeout: 30_000 });
@@ -332,12 +345,14 @@ try {
       check(path(page) === "/more", `Back from ${row} returns to More`);
       await page.locator("[data-more-row='profile']").waitFor();
     }
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games session moving the full challenges
+    // list from the Games tab to its own page, /challenges): the row's target follows it.
     await page.locator("[data-more-row='challenges']").click();
-    await waitPath(page, "/practice");
-    await page.locator("[data-practice-challenges]").waitFor({ timeout: 60_000 });
+    await waitPath(page, "/challenges");
+    await page.locator("[data-challenges-page]").waitFor({ timeout: 60_000 });
     await page.waitForTimeout(1200);
-    const list = await box(page, "[data-practice-challenges]");
-    check(!!list && list.y >= -2 && list.y < 220, `More → Challenges opens Games at the full list (${list?.y})`);
+    const list = await box(page, "[data-challenges-page]");
+    check(!!list && list.y >= -2 && list.y < 220, `More → Challenges opens the full list (${list?.y})`);
     await page.goBack();
     await waitPath(page, "/more");
     // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): More →

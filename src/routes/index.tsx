@@ -1,59 +1,45 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { HomeScreenHint } from "@/components/beta/HomeScreenHint";
-import { TermsScreen } from "@/components/beta/TermsScreen";
-import { Dots } from "@/components/duel/Dots";
-import { Button, CodeInput, GameTile, Icon, Input, Panel, SectionHeader } from "@/design/components";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { PageAside } from "@/components/app/PageAside";
 import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
-import { PublicGameCard } from "@/components/app/PublicGameCard";
-import { DailyCard, shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
-import { ChallengeCard } from "@/components/challenge/ChallengeCard";
+import { shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
 import { PlaySlot } from "@/components/app/PlaySlot";
-import { RatedHome } from "@/components/rated/RatedHome";
 import { IntroCard } from "@/components/app/IntroCard";
-import { PlayerBadge } from "@/components/duel/PlayerBadge";
-import { MyMiniCard } from "@/components/identity/MyMiniCard";
-import { PUBLIC_GAMES } from "@/config/publicGames";
-import { termsAgreed } from "@/lib/beta/terms";
-import { readPlayCards, releaseSlot, writePlayCards } from "@/lib/playCards";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
+import { WeekPanel } from "@/components/app/PageAside";
+import { HeaderLead } from "@/components/app/AppHeader";
 import { useClock } from "@/components/app/useClock";
+import { useNavPlacement } from "@/components/nav/navigation";
+import { DailyHero, FriendsRow, NextMatch, RatingTiles, RecentlyPlayed, WeeklyCard, openFromHome } from "@/components/home/HomeSections";
+import { Icon } from "@/design/components";
+import { OnlineOnly } from "@/components/offline/OnlineOnly";
+import { pushForPlayer, pushPublicKey } from "@/config/pushConfig";
+import { HOME_BELL } from "@/config/homeConfig";
+import { releaseSlot } from "@/lib/playCards";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
 import { isShareRef } from "@/lib/share/shareRef";
-import { createRoom, fetchDuelByCode, fetchPlayers, joinRoomByCode } from "@/lib/duel/api";
-import { isSeat, myKeyAmong, myPublicId } from "@/lib/duel/seatKey";
-import { MAX_PLAYERS } from "@/lib/duel/types";
-import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session";
-import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
-import { readLastRoom } from "@/lib/duel/deviceHistory";
+import { isPlayable } from "@/lib/duel/catalogue";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
 import { useDailyRecord } from "@/lib/badges/badgesApi";
 import { bestOf } from "@/lib/practice/progress";
 import { usePracticeProgress } from "@/lib/practice/useProgress";
 import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
-import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
 import { screenMusic, unlockAudio } from "@/lib/sound";
-import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
-import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
 import { useHomeBed } from "@/lib/useScreenMusic";
-import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { GUEST_NAME_MAX } from "@/lib/names/username";
-import { NameSuggestions, reasonFrom, suggestionsFrom } from "@/components/account/AccountParts";
-import { useAccountName } from "@/lib/account/accountApi";
-import { PassHomeCard } from "@/components/pass/PassHomeCard";
+import { useAccount } from "@/lib/account/accountApi";
 import { useShopOn } from "@/lib/identity/shopSwitch";
-
-const GAME_COUNTS = gameCounts();
-/** Every game rooms deal (the Warm up's "All 72 games"). */
-const ACTIVE_GAMES = GAME_COUNTS.puzzle + GAME_COUNTS.arcade;
+import { useRatedStatus } from "@/lib/rated/ratedApi";
+import { defaultPick } from "@/lib/rated/rules";
+import type { RatedPick } from "@/lib/rated/backend";
+import { friendsByRecent, useDailyPlayedToday, useFriendsOverview } from "@/lib/home/homeData";
+import { cachedPass } from "@/lib/pass/passApi";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -85,221 +71,132 @@ function OfflineHome() {
   );
 }
 
-const CODE_LENGTH = ROOM_CODE_LENGTH;
-
-/** The device's last room, when it is still open and this device is still in it. */
-interface OpenRoom {
-  code: string;
-  players: number;
-  lobby: boolean;
-}
-
-/**
- * The device's last room while it is still open with this device in it: `shown` is what the card
- * draws now (the last known state from playCards.ts until the server answers), `settled` once it has.
- */
-function useLastOpenRoom(): { shown: OpenRoom | null; settled: boolean; open: boolean } {
-  const [state, setState] = useState<{ shown: OpenRoom | null; settled: boolean; open: boolean }>({
-    shown: null,
-    settled: false,
-    open: false,
-  });
-  useBeforePaint(() => {
-    const last = readLastRoom();
-    if (!last) return setState({ shown: null, settled: true, open: false });
-    const cached = readPlayCards().rejoin;
-    const known = cached?.code === last.code ? cached.open : null;
-    setState({ shown: known ?? { code: last.code, players: 0, lobby: false }, settled: false, open: false });
-    let live = true;
-    const done = (room: OpenRoom | null) => {
-      writePlayCards({ rejoin: { code: last.code, open: room } });
-      if (live) setState((current) => ({ shown: room ?? current.shown, settled: true, open: !!room }));
-    };
-    void (async () => {
-      try {
-        const duel = await fetchDuelByCode(last.code);
-        if (!duel || duel.disbanded_at || duel.status === "finished") return done(null);
-        const [players, uid] = await Promise.all([fetchPlayers(duel.id), currentUserId()]);
-        // This device's seat by its public id (Security C1b: phones read no account ids).
-        const carries = players.some((p) => !!p.public_id);
-        const key = uid ? myKeyAmong(players, { publicId: carries ? await myPublicId(uid) : null, userId: uid }) : null;
-        const mine = players.find((p) => isSeat(p, key));
-        if (!mine || mine.status === "left") return done(null);
-        done({
-          code: duel.room_code,
-          players: players.filter((p) => p.status !== "left").length,
-          lobby: duel.status === "waiting",
-        });
-      } catch {
-        /* no row: nothing to rejoin */
-        done(null);
-      }
-    })();
-    return () => {
-      live = false;
-    };
-  }, []);
-  return state;
-}
-
 const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const slotState = (settled: boolean, show: boolean) => (!settled ? "pending" : show ? "show" : "hide");
 
+/** How many games Recently played shows. */
+const RECENT_MAX = 8;
+const PICK_KEY = "duelz-rated-pick:v1";
+
+/** The rated pick this device last played (RatedHome's key), read only. */
+function lastPick(): RatedPick | null {
+  try {
+    return (localStorage.getItem(PICK_KEY) as RatedPick | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Home (phase 2 step 3, 14 Nov 2026; docs/design/style-guide/phone/home.png, home-scrolled.png, desktop/home.png):
+ * the avatar, the Daily streak and coins in the header (the notifications bell waits for the inbox, HOME_BELL); the Daily hero; Your next match; Ratings (rated
+ * play only); Recently played; This week (the pass); Friends. Rooms (create, join, rejoin, public games, Challenge a
+ * friend) live on the Rooms page, reached from Play; the gold Play bar opens Play. The first-time intro card, the share
+ * welcome and the Add to Home Screen hint keep their PlaySlots (playCards.ts), reserved before the first paint.
+ */
 function Home() {
-  const navigate = useNavigate();
   const router = useRouter();
+  const account = useAccount();
   const shopOn = useShopOn();
-  const [name, setName] = useState("");
-  const [editingName, setEditingName] = useState(false);
-  const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  // A refused name's three suggestions (names.server.ts); a signed-in player plays under their username.
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const accountName = useAccountName();
-  const [shake, setShake] = useState(0);
-  const [busy, setBusy] = useState<"create" | "join" | null>(null);
-  const nameRef = useRef<HTMLInputElement | null>(null);
+  const placement = useNavPlacement();
   // The first-time intro's three panels (Onboarding), from "How it works".
   const [intro, setIntro] = useState(false);
-  // The first-time intro card (lib/onboarding: once per device on a plain visit; reserved before the
-  // first paint, playCards.ts): "pending" until the page is up, then shown or collapsed.
   const [introCard, setIntroCard] = useState<"pending" | "show" | "hide">("pending");
-  // This device's look (the name row's badge), Warm up's bests and the daily streak: device storage.
-  const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
-  // Warm up's bests: the account's (the server's, useProgress.ts), shown once they have come.
   const progress = usePracticeProgress();
   const [streak, setStreak] = useState(0);
-  // The streak on the account (src/lib/badges/badgesApi.ts): the server's once it answers, the device's until then.
   const dailyView = useDailyRecord();
-  // The beta terms come before the first room (lib/beta/terms.ts): Create or Join waits for I AGREE.
-  const [termsFor, setTermsFor] = useState<"create" | "join" | null>(null);
-  // The Add to Home Screen hint (iPhone Safari, first visit; reserved before the first paint, playCards.ts).
   const [homeHint, setHomeHint] = useState<"show" | "hide">("show");
-  // Device-only values (practice history, the schedule against this device's clock) are read after
-  // mount, so the server-rendered page and the first client render agree.
-  const [recent, setRecent] = useState<PuzzleType[] | null>(null);
-  // Read before the first client paint; its card's height is reserved from the last visit, or from the
-  // schedule on a first visit (playCards.ts). Until then a quiet card of the same kind stands in.
+  const [recent, setRecent] = useState<PuzzleType[]>([]);
+  const [warm, setWarm] = useState<PuzzleType[]>([]);
   const [games, setGames] = useState<PublicGame[]>([]);
   const [welcome, setWelcome] = useState<boolean | null>(null);
-  // Set after mount: until then the name row keeps the height reserved before the first paint.
   const [mounted, setMounted] = useState(false);
-  const publicSlot = useRef<HTMLDivElement | null>(null);
+  const [pick, setPick] = useState<RatedPick | null>(null);
 
-  // Before the first client paint (the page's layout is already reserved from device storage).
   useBeforePaint(() => {
-    const stored = getStoredName();
-    setName(stored);
-    setEditingName(stored.trim() === "");
-    const types = warmUpTypes(recentPracticeTypes());
-    setRecent(types);
-    const remembered = rememberedLook();
-    setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });
-    const record = readDailyRecord();
-    setStreak(dailyStreak(record.days, ukDayKey(Date.now())));
+    const played = recentPracticeTypes();
+    setRecent(played.filter((t): t is PuzzleType => isPlayable(t)).slice(0, RECENT_MAX));
+    setWarm(warmUpTypes(played));
+    setStreak(dailyStreak(readDailyRecord().days, ukDayKey(Date.now())));
     setGames(scheduledGames());
     setMounted(true);
   }, []);
   useEffect(() => {
     // Shown once on a plain visit: seen as soon as it is up, so leaving without closing it still counts.
     const fresh = !isShareRef(window.location.search) && !onboardingSeen();
-    // A shared link's arrival is welcomed by the share card instead (as a room link marks it seen).
     if (isShareRef(window.location.search)) markOnboardingSeen();
     else if (fresh) markOnboardingSeen();
     setIntroCard(fresh ? "show" : "hide");
-    // Seen now: the next visit to the tab (this page load's reservation stays on <html>) never reserves it.
     return () => releaseSlot("intro");
   }, []);
   // The app-wide home bed (docs/sound-cues/music.md): held here, carried on unbroken to the other tabs and the lobby.
   useHomeBed(true, screenMusic("music_home"));
 
-  const lastRoom = useLastOpenRoom();
-  // Today's dailies (hidden until the daily tables exist: DailyCard).
   const daily = useDailyStatus();
-  // The last known status is device storage: read only once mounted (before its first paint), so the
-  // server-rendered page and the first client render agree.
   const dailyShown = useMemo(() => (mounted ? shownDailyStatus(daily) : shownDailyStatus({ status: daily.status }, Date.now(), false)), [daily, mounted]);
-  // Friend challenges (hidden until their tables exist: ChallengeCard): the daily status call answers
-  // for both; null until it has.
-  const challenges = daily.settled ? daily.status?.challenges === true : null;
+  const counts = useDailyPlayedToday();
+  const rated = useRatedStatus();
   useEffect(() => {
-    if (challenges !== null) writePlayCards({ challenges });
-  }, [challenges]);
+    if (rated) setPick(defaultPick(rated.options, lastPick()));
+  }, [rated]);
+  const accountId = account.kind === "account" ? account.userId : null;
+  const overview = useFriendsOverview(accountId);
+  const friends = useMemo(() => friendsByRecent(overview?.friends ?? []), [overview]);
+  const playerNumber = account.kind === "account" ? account.playerNumber : null;
+  const passAsk = shopOn || cachedPass(playerNumber);
   const now = useClock(games.flatMap((g) => [g.lobbyAt, g.startsAt]));
   const nextGame = upcomingGames(now, games)[0] ?? null;
-  // The public game card's height, for the next visit's first paint (0: none).
-  useEffect(() => {
-    if (!mounted) return;
-    writePlayCards({ publicH: nextGame ? Math.round(publicSlot.current?.getBoundingClientRect().height ?? 0) : 0 });
-  }, [mounted, nextGame]);
-  const warmUp = recent ?? warmUpTypes([]);
-
-  const fail = (message: string) => {
-    setError(message);
-    setShake((n) => n + 1);
-  };
-
-  const start = async (mode: "create" | "join") => {
-    unlockAudio();
-    setSuggestions([]);
-    const trimmed = (accountName ?? name).trim();
-    if (trimmed.length === 0) {
-      setEditingName(true);
-      fail("Enter a display name.");
-      requestAnimationFrame(() => nameRef.current?.focus());
-      return;
-    }
-    if (mode === "join" && code.trim().length !== CODE_LENGTH) {
-      fail("Room codes are 4 characters.");
-      return;
-    }
-
-    if (!termsAgreed()) {
-      setTermsFor(mode);
-      return;
-    }
-
-    setBusy(mode);
-    setError(null);
-    try {
-      setStoredName(trimmed);
-      const duel =
-        mode === "create"
-          ? await createRoom(trimmed)
-          : await joinRoomByCode(code.trim().toUpperCase(), trimmed, "code");
-      await navigate({ to: "/duel/$code", params: { code: duel.roomCode } });
-    } catch (err) {
-      setBusy(null);
-      const picks = suggestionsFrom(err);
-      setSuggestions(picks);
-      if (picks.length) setEditingName(true);
-      fail(err instanceof Error ? reasonFrom(err.message) : "That didn’t work. Try again.");
-    }
-  };
+  const streakNow = dailyView?.source === "server" ? dailyView.streak : streak;
+  // Off until the notifications inbox exists (src/config/homeConfig.ts); then only where notifications are on.
+  const bell = HOME_BELL && !!pushPublicKey() && account.kind === "account" && pushForPlayer(account.playerNumber);
+  const warmUp = warm[0] ?? null;
 
   if (intro) return <Onboarding onDone={() => setIntro(false)} />;
-  if (termsFor)
-    return (
-      <TermsScreen
-        onAgree={() => {
-          setTermsFor(null);
-          void start(termsFor);
-        }}
-      />
-    );
+
+  const practiceFirst = () => {
+    unlockAudio();
+    goToTab(router, "play", "practice", warmUp ? { game: warmUp } : undefined);
+  };
+
+  const streakChip =
+    streakNow > 0 ? (
+      <button type="button" className="hp-streak press" onClick={() => openFromHome(router, "/daily")} aria-label={`Daily streak: ${streakNow} ${streakNow === 1 ? "day" : "days"}`} data-hp-streak={streakNow}>
+        <Icon name="streak" size={20} tone="gold" />
+        <span>{streakNow}</span>
+      </button>
+    ) : null;
+  const bellButton = bell ? (
+    <button type="button" className="hp-bell press" aria-label="Notifications" onClick={() => void router.navigate({ to: "/settings", search: { section: "notifications" }, state: { fromPlayTab: true } as never } as never)} data-hp-bell>
+      <Icon name="notifications" size={22} />
+    </button>
+  ) : null;
 
   return (
-    <PhoneShell tabs="play" aside={<PageAside panels={["public", "week"]} />}>
-      <div className="ap-stack">
+    <HeaderLead.Provider value={placement === "bar" ? streakChip : null}>
+    <PhoneShell
+      tabs="play"
+      headerAction={placement === "bar" ? bellButton : undefined}
+      aside={
+        <aside aria-label="More" data-page-aside className="dk-aside hp-aside">
+          <WeeklyCard eligible={passAsk} />
+          <FriendsRow friends={friends} />
+          {/* Your week in practice, the column's existing panel, under them (and alone for a guest). */}
+          <WeekPanel />
+        </aside>
+      }
+    >
+      <div className="ap-stack hp-home" data-home>
+        {placement === "rail" && (streakChip || bellButton) ? (
+          <div className="hp-railhead">
+            {streakChip}
+            {bellButton}
+          </div>
+        ) : null}
         <PlaySlot id="intro" state={introCard}>
           <IntroCard
             onClose={() => setIntroCard("hide")}
-            onPractice={() => {
-              unlockAudio();
-              const first = warmUp[0];
-              goToTab(router, "play", "practice", first ? { game: first } : undefined);
-            }}
+            onPractice={practiceFirst}
             onHowItWorks={() => {
               unlockAudio();
               setIntro(true);
@@ -307,270 +204,36 @@ function Home() {
           />
         </PlaySlot>
         <PlaySlot id="welcome" state={slotState(welcome !== null, welcome === true)}>
-        <ShareWelcomeCard
-          assumeDue
-          onDue={setWelcome}
-          nextGame={nextGame}
-          now={now}
-          onPractice={() => {
-            unlockAudio();
-            const first = warmUp[0];
-            goToTab(router, "play", "practice", first ? { game: first } : undefined);
-          }}
-          onPublic={() => goToTab(router, "play", "tournaments")}
-        />
+          <ShareWelcomeCard assumeDue onDue={setWelcome} nextGame={nextGame} now={now} onPractice={practiceFirst} onPublic={() => goToTab(router, "play", "tournaments")} />
         </PlaySlot>
 
-        {/* Rated play (wave 3): testers only while rated play is testers only; nothing at all for anyone else. */}
-        <RatedHome />
-
-        <div data-play-hero>
-          <h1 className="ap-title" aria-label="Play live with friends">
-            <span>Play live</span> <span>with friends</span>
-          </h1>
-          <p className="ap-sub">Up to {MAX_PLAYERS} players. Same games, same moment.</p>
-        </div>
-
-        {/* Quick play: create a room, or join one with its code. */}
-        <Panel as="section" pad aria-label="Quick play" className="flex flex-col gap-3">
-          {/* Its height is set before the first paint from whether a name is stored (app-shell.css), so
-              the name loading after mount never moves anything. */}
-          <div data-name-row data-editing={mounted ? String(editingName && !accountName) : undefined}>
-          {editingName && !accountName ? (
-            <Input
-              id="name"
-              aria-label="Display name"
-              ref={nameRef}
-              value={name}
-              maxLength={GUEST_NAME_MAX}
-              placeholder="Your name"
-              autoComplete="nickname"
-              onChange={(e) => {
-                setError(null);
-                setName(e.target.value);
-              }}
-            />
-          ) : (
-            <p className="flex h-11 items-center justify-between gap-2.5 text-muted-foreground jz-body">
-              <MyMiniCard guestLook={look} guestName={accountName ?? name} size={28} />
-              <span className="min-w-0 flex-1 truncate">
-                Playing as <span className="th-name font-semibold jz-em-name">{accountName ?? name}</span>
-              </span>
-              {accountName ? null : <button
-                type="button"
-                onClick={() => {
-                  setEditingName(true);
-                  requestAnimationFrame(() => nameRef.current?.focus());
-                }}
-                className="ap-link press h-11 shrink-0 px-1"
-              >
-                Change
-              </button>}
-            </p>
-          )}
-          </div>
-          <Button
-            variant="gold"
-            size={58}
-            block
-            onClick={() => {
-              // Celebrations: the signature zap (lib/fx/celebrations.ts; silent while they're off or muted).
-              if (celebrationsOn()) {
-                unlockAudio();
-                celebrationSound("zap");
-              }
-              void start("create");
-            }}
-            disabled={busy !== null}
-          >
-            {busy === "create" ? (
-              <>
-                <span>Making your room</span>
-                <Dots className="bg-primary-foreground" />
-              </>
-            ) : (
-              <span>Create a room</span>
-            )}
-          </Button>
-          <div className="flex flex-col gap-1.5">
-          <label htmlFor="code" className="jz-label text-muted-foreground">
-            Room code
-          </label>
-          <div key={shake} className={`flex gap-2 ${error ? "animate-shake" : ""}`}>
-            <CodeInput
-              id="code"
-              value={code}
-              length={ROOM_CODE_LENGTH}
-              inputMode="text"
-              autoCapitalize="characters"
-              aria-label="Room code"
-              onChange={(e) => {
-                setError(null);
-                setCode(codeFromInput(e.target.value));
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void start("join");
-              }}
-              className="flex-1"
-            />
-            <Button variant="secondary" size={50} onClick={() => void start("join")} disabled={busy !== null} className="w-22 shrink-0">
-              {busy === "join" ? <Dots className="bg-foreground" /> : "Join"}
-            </Button>
-          </div>
-          </div>
-          {error && (
-            <p role="alert" className="text-sm text-warn">
-              {error}
-            </p>
-          )}
-          <NameSuggestions
-            names={suggestions}
-            onPick={(picked) => {
-              setName(picked);
-              setError(null);
-              setSuggestions([]);
+        {/* Today's dailies: the hero carousel. */}
+        <PlaySlot id="daily" state={slotState(daily.settled, !!daily.status?.available)}>
+          <DailyHero
+            status={dailyShown}
+            counts={counts}
+            onOpen={(kind) => {
+              unlockAudio();
+              void router.navigate({ to: "/daily", search: { kind }, state: { fromPlayTab: true } as never });
             }}
           />
-        </Panel>
+        </PlaySlot>
+
+        <NextMatch rated={rated} pick={pick} friend={friends[0] ?? null} practice={warmUp} practiceBest={warmUp ? bestOf(progress, warmUp) : null} nowMs={now} />
+
+        {rated ? <RatingTiles status={rated} /> : null}
+
+        <RecentlyPlayed types={recent} />
 
         <PlaySlot id="homescreen" state={homeHint}>
           <HomeScreenHint onDismiss={() => setHomeHint("hide")} />
         </PlaySlot>
 
-        <PlaySlot id="rejoin" state={slotState(lastRoom.settled, lastRoom.open)}>
-        {(() => {
-          // Until the device's last room is read (the server-rendered page): a quiet row of the same size.
-          const shown = lastRoom.shown ?? { code: "····", players: 0, lobby: false };
-          return (
-          <button
-            type="button"
-            data-rejoin-room={shown.code}
-            onClick={() => lastRoom.shown && void navigate({ to: "/duel/$code", params: { code: lastRoom.shown.code } })}
-            data-icon="sq"
-            className="jz-panel jz-row press"
-          >
-            <span className="ap-icon-sq">
-              <Icon name="rejoin" size={20} style={{ width: 21, height: 21 }} />
-            </span>
-            <span className="jz-row-text">
-              <span className="jz-row-title">Rejoin your last room</span>
-              <span data-ellipsis className="jz-row-sub">
-                <span className="tracking-[0.12em] text-foreground">{shown.code}</span>,{" "}{/* design-lint-ignore: the room code’s existing tracking; only its separator changed */}
-                {shown.players === 0
-                  ? "Checking the room"
-                  : shown.lobby
-                    ? `${shown.players} ${shown.players === 1 ? "player" : "players"} in the lobby`
-                    : "Game in progress"}
-              </span>
-            </span>
-            <Icon name="chevron-right" size={20} className="ap-chevron" />
-          </button>
-          );
-        })()}
-        </PlaySlot>
-
-        {/* Its last height is reserved before the first paint (playCards.ts): the schedule is read on the phone. */}
-        <div
-          ref={publicSlot}
-          data-public-slot
-          data-ready={mounted || undefined}
-          data-empty={(mounted && !nextGame) || undefined}
-          className="play-public-slot"
-        >
-        {nextGame || (!mounted && PUBLIC_GAMES.length > 0) ? (
-          // Before the page is up (the server-rendered page and the first client render, which can't know the
-          // phone's clock): a quiet stand-in with no day or time, inside the height reserved for the card.
-          <PublicGameCard
-            game={nextGame}
-            now={now}
-            heading="Next public game"
-            onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })}
-            link={
-              <button
-                type="button"
-                onClick={() => goToTab(router, "play", "tournaments")}
-                className="ap-link press -my-2.5 -mr-1 h-11 px-1"
-              >
-                All public games
-              </button>
-            }
-          />
-        ) : null}
+        {/* On a phone the pass's weekly challenges and friends follow here; wider screens draw them in the side column. */}
+        <div className="hp-narrow">
+          <WeeklyCard eligible={passAsk} />
+          <FriendsRow friends={friends} />
         </div>
-
-        {/* Today: the dailies, with Challenge a friend joining their panel (app-pages.css). */}
-        <PlaySlot id="daily" state={slotState(daily.settled, !!daily.status?.available)}>
-        <DailyCard
-          status={dailyShown}
-          streak={dailyView?.source === "server" ? dailyView.streak : streak}
-          onOpen={(kind) => {
-            unlockAudio();
-            void router.navigate({
-              to: "/daily",
-              search: { kind },
-              state: { fromPlayTab: true } as never,
-            });
-          }}
-        />
-        </PlaySlot>
-
-        <PlaySlot id="challenge" state={slotState(challenges !== null, challenges === true)}>
-        <ChallengeCard
-          available
-          onOpen={() => {
-            unlockAudio();
-            void router.navigate({ to: "/challenge", search: {}, state: { fromPlayTab: true } as never } as never);
-          }}
-        />
-        </PlaySlot>
-
-        <section aria-label="Warm up" className="ap-section">
-          <SectionHeader
-            title="Warm up"
-            right={
-              <button
-                type="button"
-                onClick={() => goToTab(router, "play", "practice")}
-                className="ap-link press -my-2.5 -mr-1 h-11 px-1"
-              >
-                All {ACTIVE_GAMES} games
-              </button>
-            }
-          />
-          {/* Three games in one panel, each with this device's best (or "Not played"). */}
-          <div data-warm-panel data-warm="" data-divided="" className="jz-panel ap-game-strip" style={{ ["--ap-strip" as string]: 3 }}>
-            {warmUp.map((type) => (
-              <button
-                key={type}
-                type="button"
-                data-warm-up={type}
-                aria-label={PUZZLE_REGISTRY[type].name}
-                onClick={() => {
-                  unlockAudio();
-                  goToTab(router, "play", "practice", { game: type });
-                }}
-                className="press"
-              >
-                <GameTile type={type} iconSize={60} />
-                <span aria-hidden="true" className="ap-strip-name">
-                  {PUZZLE_REGISTRY[type].name}
-                </span>
-                <span aria-hidden="true" data-warm-best={bestOf(progress, type) ?? ""} data-none={bestOf(progress, type) === null || undefined} className="ap-strip-best">
-                  {bestOf(progress, type) === null ? (
-                    "Not played"
-                  ) : (
-                    <>
-                      Best <b>{bestOf(progress, type)}</b>
-                    </>
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* The Season pass's progress card (wave 2 D2): where the pass is on (testers until Season 1), last on the page. */}
-        <PassHomeCard eligible={shopOn} />
 
         <div className="flex justify-center pb-1">
           <button
@@ -587,5 +250,6 @@ function Home() {
         </div>
       </div>
     </PhoneShell>
+    </HeaderLead.Provider>
   );
 }

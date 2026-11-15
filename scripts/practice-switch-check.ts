@@ -7,7 +7,8 @@
  *    the --group-* tokens in src/design/tokens.css, and ids the registry lacks (the new Sports and Cards & Board
  *    games) are skipped;
  * and in headless Chromium (the real Practice route through scripts/theme-screens.ts) at 414×896 as an
- * iPhone 11 home-screen app and at 375×667:
+ * iPhone 11 home-screen app and at 375×667 (since 14 Nov 2026 the Games catalogue's chips, which replace the switch:
+ * see the browser half; the list below is the switch's, kept as history):
  *  - the page opens on Puzzles, the switch flips sides (aria-pressed, the gold half) and back;
  *  - the side is remembered on this device across a reload;
  *  - the switch's counts on screen match the registry;
@@ -27,7 +28,7 @@ import { ARCADE_GROUPS, arcadeGroupOf, arcadeGroupTypes, isRegisteredType } from
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { alsoInOf, typesAlsoIn } from "../src/lib/duel/alsoIn";
 import { ACTIVE_PUZZLE_TYPES, PUZZLE_REGISTRY, gameCounts, typesInCategory } from "../src/lib/duel/registry";
-import { PRACTICE_SIDE_KEY, practiceSideCounts } from "../src/lib/duel/practiceSide";
+import { practiceSideCounts } from "../src/lib/duel/practiceSide";
 import { startSafeAreaServer } from "./safe-area-server";
 import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen } from "./theme-screens";
 
@@ -111,13 +112,19 @@ if (!CHROMIUM) {
   console.log("FAIL: environment: no Chromium (set PLAYWRIGHT_CHROMIUM)");
   process.exit(1);
 }
-const RECENT = ["hover", "unblock", "breaker", "lightsout", "matchup", "sudoku"];
+// Changed with Joe's approval, 14 Nov 2026 (the Games catalogue, phase 2 step 3, Joe's brief: "category chips in place of
+// today's Puzzles | Arcade switch"): the switch, its counts, its remembered side and the per-side search, chips grid
+// and Recently played are gone, so this browser half proves the chips that replace them (the data half above is
+// unchanged). What it proves now: the chips are All, each live puzzle category, then each live arcade group, with
+// today's names and their colours; All lists every playable game once; each chip lists exactly its category's or
+// group's games (and the games listed also in it); arcade tiles keep their group's border and Retro's glow; the search
+// finds games by name only; no sideways page scrolling; and the chip chosen holds while browsing.
 const listed = (page: Page) => page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")!));
-const recent = (page: Page) => page.locator("[data-practice-recent]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-recent")!));
-const side = (page: Page) => page.locator("[data-practice-switch]").getAttribute("data-practice-switch");
-const pressed = (page: Page, s: string) => page.locator(`[data-practice-side='${s}']`).getAttribute("aria-pressed");
 const settle = (page: Page) => page.waitForTimeout(350);
 const isArcade = (t: string) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "arcade";
+const CATEGORIES = ["word", "number", "speed", "attention", "pattern", "logic"].filter((c) => typesInCategory(c as never).length > 0);
+const GROUPS = ARCADE_GROUPS.filter((g) => groupRows(g.id).length > 0);
+const shelfOf = (id: string) => (CATEGORIES.includes(id) ? [...typesInCategory(id as never), ...typesAlsoIn(id as never)] : groupRows(id as never));
 
 fixThemeClock();
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-practice-switch", buildId: "practice-switch-check" });
@@ -126,183 +133,73 @@ try {
   const screen = THEME_SCREENS.find((s) => s.name === "practice list")!;
   for (const viewport of VIEWPORTS.filter((v) => !v.desktop)) {
     const at = viewport.name;
-    const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport, async (ctx) => {
-      await ctx.addInitScript((r) => localStorage.setItem("duelz-practice-recent:v1", JSON.stringify(r)), RECENT);
-    });
+    const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport);
     try {
-      // Puzzles first.
-      check((await side(page)) === "puzzles" && (await pressed(page, "puzzles")) === "true" && (await pressed(page, "arcade")) === "false", `${at}: a new device opens on Puzzles`);
-      const shownCounts = await page.locator("[data-practice-side]").evaluateAll((els) => els.map((el) => [el.getAttribute("data-practice-side"), (el.textContent ?? "").replace(/\s+/g, " ").trim()]));
-      check(
-        JSON.stringify(shownCounts) === JSON.stringify([["puzzles", `Puzzles ${counts.puzzles}`], ["arcade", `Arcade ${counts.arcade}`]]),
-        `${at}: the switch reads "Puzzles ${counts.puzzles}" | "Arcade ${counts.arcade}" (${shownCounts.map((c) => c[1]).join(" | ")})`,
+      check((await page.locator("[data-practice-switch], [data-practice-side]").count()) === 0, `${at}: no Puzzles | Arcade switch`);
+      const chips = await page.locator("[data-practice-filter]").evaluateAll((els) =>
+        els.map((el) => ({ id: el.getAttribute("data-practice-filter")!, text: (el.textContent ?? "").trim(), pressed: el.getAttribute("aria-pressed") })),
       );
-      // Changed with Joe's approval, 14 Nov 2026 (the components step: the switch is the style guide's segmented control,
-      // the selected half a raised panel with bright text and no gold; was "the active half has the gold shine"). It
-      // still proves the active half is clearly distinct: its edge at least 3:1 against the other half, its text 4.5:1.
-      const look = await page.locator("[data-practice-side]").evaluateAll((els) =>
-        els.map((el) => {
-          const cs = getComputedStyle(el);
-          const edge = /rgba?\([^)]*\)/.exec(cs.boxShadow)?.[0] ?? "";
-          const parent = getComputedStyle(el.parentElement!).backgroundColor;
-          return { bg: cs.backgroundColor, image: cs.backgroundImage, text: cs.color, edge, parent };
-        }),
+      const wantIds = ["all", ...CATEGORIES, ...GROUPS.map((g) => g.id)];
+      check(JSON.stringify(chips.map((c) => c.id)) === JSON.stringify(wantIds), `${at}: the chips are All, the live categories, then the live arcade groups (${chips.map((c) => c.id).join(",")})`);
+      const labelOf = (id: string) => (id === "all" ? "All" : (ARCADE_GROUPS.find((g) => g.id === id)?.label ?? id.charAt(0).toUpperCase() + id.slice(1)));
+      check(chips.every((c) => c.text === labelOf(c.id)), `${at}: each chip shows today's name (${chips.map((c) => c.text).join(", ")})`);
+      check(chips[0]?.pressed === "true" && chips.slice(1).every((c) => c.pressed === "false"), `${at}: a new visit opens on All`);
+      // Each chip's dot is its category's or group's colour.
+      const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
+      const dots = await page.locator("[data-practice-filter][data-cat]").evaluateAll((els) =>
+        els.map((el) => [el.getAttribute("data-cat"), getComputedStyle(el).getPropertyValue("--cat").trim()]),
       );
-      const channels = (c: string) => (c.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
-      const segLum = (c: string) => {
-        const [r, g, b] = channels(c).map((v) => {
-          const x = v / 255;
-          return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
-        });
-        return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-      };
-      const segRatio = (x: string, y: string) => {
-        const [hi, lo] = [segLum(x), segLum(y)].sort((m, n) => n - m);
-        return (hi! + 0.05) / (lo! + 0.05);
-      };
-      const [on, off] = look;
-      // The other half is unfilled: what shows behind it is the control's track.
-      const offFill = off && !/rgba\(0, 0, 0, 0\)/.test(off.bg) ? off.bg : (off?.parent ?? "");
-      const edgeRatio = on && on.edge ? segRatio(on.edge, offFill) : 0;
-      const textRatio = on ? segRatio(on.text, on.bg) : 0;
-      const goldish = (c: string) => {
-        const [r, g, b] = channels(c);
-        return r! > 200 && g! > 170 && b! < 150;
-      };
-      check(
-        !!on && !!off && !on.image.includes("gradient") && !goldish(on.bg) && on.bg !== off.bg && edgeRatio >= 3 && textRatio >= 4.5,
-        `${at}: the active half is the guide's selected segment, no gold, its edge ${edgeRatio.toFixed(2)}:1 against the other half, its text ${textRatio.toFixed(2)}:1 (${JSON.stringify(look)})`,
-      );
-      const puzzleRows = await listed(page);
-      check(puzzleRows.length > 0 && puzzleRows.every((t) => !isArcade(t)), `${at}: Puzzles lists no arcade game (${puzzleRows.length} rows)`);
-      check(puzzleActive.every((t) => puzzleRows.includes(t)), `${at}: Puzzles lists every active puzzle`);
-      const chips = await page.locator("[data-practice-filter]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-filter")));
-      check(JSON.stringify(chips) === JSON.stringify(["all", "word", "number", "speed", "attention", "pattern", "logic"]), `${at}: Puzzles' chips are All games and the six categories, no Arcade (${chips.join(",")})`);
-      const puzzleGroups = await page.locator("[data-practice-group]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-group")));
-      check(!puzzleGroups.includes("arcade") && puzzleGroups.length === 6, `${at}: Puzzles has a section per puzzle category (${puzzleGroups.join(",")})`);
-      // Changed with Joe's approval, 13 Nov 2026: Blackout is retired, so Recently played leaves it out.
-      check(JSON.stringify(await recent(page)) === JSON.stringify(["unblock", "sudoku"]), `${at}: Recently played on Puzzles shows only live puzzles (${(await recent(page)).join(",")})`);
-      const puzzleSearch = page.getByRole("searchbox", { name: "Search puzzles" });
-      check((await puzzleSearch.count()) === 1 && (await puzzleSearch.getAttribute("placeholder")) === "Search puzzles", `${at}: Puzzles' search is "Search puzzles"`);
-      await puzzleSearch.fill("r");
-      await settle(page);
-      const rSearch = await listed(page);
-      check(rSearch.length > 0 && rSearch.every((t) => !isArcade(t)), `${at}: searching "r" on Puzzles finds no arcade game (${rSearch.length})`);
-      await puzzleSearch.fill("Breaker");
-      await settle(page);
-      check((await listed(page)).length === 0, `${at}: searching an arcade game's name on Puzzles finds nothing`);
-      await puzzleSearch.fill("");
-
-      // Flip to Arcade.
-      await page.locator("[data-practice-side='arcade']").click();
-      await settle(page);
-      check((await side(page)) === "arcade" && (await pressed(page, "arcade")) === "true" && (await pressed(page, "puzzles")) === "false", `${at}: the switch flips to Arcade`);
-      const stored = await page.evaluate((k) => localStorage.getItem(k), PRACTICE_SIDE_KEY);
-      check(stored === "arcade", `${at}: the side is stored on the device (${stored})`);
-      const arcadeRows = await listed(page);
-      const activeArcadeRows = arcadeRows.filter((t) => !PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.retired);
-      // ...and the games listed also in an arcade group (Pull!, a Speed game, in Sports since 3 Nov 2026).
-      check(arcadeRows.every((t) => isArcade(t) || alsoInOf(t) !== null), `${at}: Arcade lists only arcade games and those also in a group`);
-      check(arcadeRows.includes("clayshoot"), `${at}: Pull! is listed on the Arcade side (Sports)`);
-      check(JSON.stringify(activeArcadeRows) === JSON.stringify(grouped), `${at}: Arcade's sections list exactly the mapped games in order`);
-      const sections = await page.locator("[data-practice-group]").evaluateAll((els) =>
-        els.map((el) => ({
-          id: el.getAttribute("data-practice-group")!,
-          title: el.querySelector("h2")?.textContent ?? "",
-          meta: el.querySelector(".ap-meta")?.textContent ?? "",
-          dot: el.querySelector(".ap-dot")?.getAttribute("data-dot") ?? "",
-          games: [...el.querySelectorAll("[data-practice-game]")].map((b) => b.getAttribute("data-practice-game")),
-        })),
-      );
-      const expected = ARCADE_GROUPS.filter((g) => arcadeGroupTypes(g.id).length > 0);
-      check(
-        JSON.stringify(sections.map((s) => s.id)) === JSON.stringify(expected.map((g) => g.id)),
-        `${at}: one section per group with registered games (${sections.map((s) => s.id).join(",")})`,
-      );
-      for (const g of expected) {
-        const s = sections.find((x) => x.id === g.id);
-        const n = groupRows(g.id).length;
-        check(
-          !!s && s.title === g.label && s.meta === `${n} ${n === 1 ? "game" : "games"}` && s.dot === g.id && JSON.stringify(s.games) === JSON.stringify(groupRows(g.id)),
-          `${at}: "${g.label} · ${n} games" lists exactly ${groupRows(g.id).join(", ")}`,
-        );
-      }
+      const badGroupDot = dots.filter(([id, cat]) => {
+        const g = ARCADE_GROUPS.find((x) => x.id === id);
+        return g ? g.id !== "action" && !cat.toUpperCase().includes(g.colour.toUpperCase()) && !cat.includes("--group-") : !cat;
+      });
+      check(dots.length === wantIds.length - 1 && badGroupDot.length === 0, `${at}: every chip but All carries its colour (${dots.length} dots)`);
+      void rgb;
+      // All: every playable game once.
+      const allRows = await listed(page);
+      check(new Set(allRows).size === allRows.length, `${at}: All lists each game once (${allRows.length})`);
+      check(ACTIVE_PUZZLE_TYPES.every((t) => allRows.includes(t)) && allRows.every((t) => (ACTIVE_PUZZLE_TYPES as readonly string[]).includes(t)), `${at}: All lists every active game and nothing else`);
       // Group-coloured tile borders.
-      const borders = await page.locator("[data-practice-group] [data-game-icon]").evaluateAll((els) =>
+      const borders = await page.locator("[data-practice-game] [data-game-icon]").evaluateAll((els) =>
         els.map((el) => [el.getAttribute("data-game-icon"), el.getAttribute("data-group"), getComputedStyle(el).borderTopColor]),
       );
-      const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
-      // A game listed also in a group keeps its main category's border (Pull!: Speed's, no data-group).
       const badBorder = borders.filter(([t, g, colour]) => {
-        if (alsoInOf(t!) !== null && !isArcade(t!)) return g !== null;
+        if (!isArcade(t!)) return g !== null;
         const info = ARCADE_GROUPS.find((x) => x.id === g);
         return !info || info.id !== arcadeGroupOf(t!) || colour !== rgb(info.colour);
       });
       check(badBorder.length === 0, `${at}: every arcade tile's border is its group's colour${badBorder.length ? `: ${badBorder.map((b) => b.join(" ")).join("; ")}` : ""}`);
       const retroGlow = await page.locator("[data-group='retro']").first().evaluate((el) => getComputedStyle(el).boxShadow);
       check(/54, 226, 245/.test(retroGlow), `${at}: Retro tiles carry the cyan glow`);
-      // Chips: four across, Cards & Board and Strategy over two columns each, no sideways scrolling.
-      const chipBoxes = await page.locator("[data-practice-filter]").evaluateAll((els) =>
-        els.map((el) => {
-          const r = el.getBoundingClientRect();
-          return { id: el.getAttribute("data-practice-filter")!, text: (el.textContent ?? "").trim(), x: r.left, y: r.top, w: r.width, right: r.right };
-        }),
-      );
-      check(
-        JSON.stringify(chipBoxes.map((c) => c.text)) === JSON.stringify(["All games", "Retro", "Sports", "Action", "Cards & Board", "Strategy"]),
-        `${at}: Arcade's chips are All games, Retro, Sports, Action, Cards & Board, Strategy (${chipBoxes.map((c) => c.text).join(", ")})`,
-      );
-      const [all, retro, sports, action, cards, strategy] = chipBoxes;
-      const row1 =
-        !!all && !!retro && !!sports && !!action &&
-        [retro, sports, action].every((c) => Math.abs(c.y - all.y) < 1) && all.x < retro.x && retro.x < sports.x && sports.x < action.x;
-      const row2 = !!cards && !!strategy && Math.abs(cards.y - strategy.y) < 1 && cards.y > all!.y + 10 && Math.abs(cards.x - all!.x) < 1 && Math.abs(strategy.x - sports!.x) < 1;
-      const span = !!cards && !!all && cards.w > all.w * 1.9 && strategy!.w > all.w * 1.9 && Math.abs(strategy!.right - action!.right) < 1;
-      check(row1 && row2 && span, `${at}: chips in a 4-column grid, Cards & Board and Strategy spanning two columns each`);
-      const overflow = await page.evaluate(() => {
-        const grid = document.querySelector("[data-practice-filter]")!.parentElement!;
-        return { grid: grid.scrollWidth - grid.clientWidth, page: document.documentElement.scrollWidth - document.documentElement.clientWidth };
-      });
-      check(overflow.grid <= 0 && overflow.page <= 0 && chipBoxes.every((c) => c.right <= viewport.w), `${at}: no sideways scrolling on the Arcade side (grid ${overflow.grid}, page ${overflow.page})`);
-      check(JSON.stringify(await recent(page)) === JSON.stringify(["hover", "breaker", "matchup"]), `${at}: Recently played on Arcade shows only arcade games (${(await recent(page)).join(",")})`);
-      const arcadeSearch = page.getByRole("searchbox", { name: "Search arcade games" });
-      check((await arcadeSearch.count()) === 1 && (await arcadeSearch.getAttribute("placeholder")) === "Search arcade games", `${at}: Arcade's search is "Search arcade games"`);
-      await arcadeSearch.fill("r");
-      await settle(page);
-      const arSearch = await listed(page);
-      check(arSearch.length > 0 && arSearch.every((t) => isArcade(t) || alsoInOf(t) !== null), `${at}: searching "r" on Arcade finds only arcade games and those also in a group (${arSearch.length})`);
-      check((await recent(page)).length === 0, `${at}: Recently played hides while searching`);
-      await arcadeSearch.fill("Gridlock");
-      await settle(page);
-      check((await listed(page)).length === 0, `${at}: searching a puzzle's name on Arcade finds nothing`);
-      await arcadeSearch.fill("");
-      // Group chips.
-      await page.locator("[data-practice-filter='retro']").click();
-      await settle(page);
-      check(JSON.stringify(await listed(page)) === JSON.stringify(arcadeGroupTypes("retro")), `${at}: the Retro chip shows only Retro's games`);
-      await page.locator("[data-practice-filter='cards']").click();
-      await settle(page);
-      // A group with registered games lists exactly them; one with none yet shows "coming soon" and no rows.
-      const cardsTypes = arcadeGroupTypes("cards");
-      if (cardsTypes.length)
-        check(JSON.stringify(await listed(page)) === JSON.stringify(cardsTypes) && (await page.locator("[data-practice-empty-group='cards']").count()) === 0, `${at}: the Cards & Board chip shows only its registered games (${cardsTypes.join(", ")})`);
-      else
-        check((await listed(page)).length === 0 && (await page.locator("[data-practice-empty-group='cards']").count()) === 1, `${at}: Cards & Board (no registered games yet) shows coming soon and no rows`);
+      // Each chip lists exactly its shelf.
+      for (const id of wantIds.slice(1)) {
+        await page.locator(`[data-practice-filter='${id}']`).click();
+        await settle(page);
+        const rows = await listed(page);
+        const want = shelfOf(id);
+        check(JSON.stringify([...rows].sort()) === JSON.stringify([...new Set(want)].sort()), `${at}: the ${labelOf(id)} chip lists exactly its ${want.length} games`);
+        check((await page.locator(`[data-practice-filter='${id}']`).getAttribute("aria-pressed")) === "true", `${at}: the ${labelOf(id)} chip shows as chosen`);
+        if (id === "sports") check(rows.includes("clayshoot"), `${at}: Pull! is listed under Sports too`);
+      }
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      check(overflow <= 0, `${at}: no sideways page scrolling (${overflow})`);
       await page.locator("[data-practice-filter='all']").click();
       await settle(page);
-
-      // Remembered across a reload.
-      await page.reload();
-      await page.locator("[data-practice-game]").first().waitFor({ timeout: 60_000 });
+      // The search: by name only.
+      await page.locator("[data-games-search-toggle]").click();
+      const search = page.locator("#games-search");
+      check((await search.getAttribute("placeholder")) === "Search games" && (await search.getAttribute("aria-label")) === "Search games", `${at}: the search is "Search games"`);
+      await search.fill("ball");
       await settle(page);
-      check((await side(page)) === "arcade" && (await listed(page)).every((t) => isArcade(t) || alsoInOf(t) !== null), `${at}: after a reload the device opens on Arcade again`);
-      await page.locator("[data-practice-side='puzzles']").click();
+      const ball = await listed(page);
+      check(ball.length > 0 && ball.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY].name.toLowerCase().includes("ball")), `${at}: "ball" finds only names with "ball" (${ball.join(",")})`);
+      await search.fill("logic");
       await settle(page);
-      check((await side(page)) === "puzzles" && (await listed(page)).every((t) => !isArcade(t)), `${at}: the switch flips back to Puzzles`);
-      await page.reload();
-      await page.locator("[data-practice-game]").first().waitFor({ timeout: 60_000 });
+      const byCategory = await listed(page);
+      check(byCategory.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY].name.toLowerCase().includes("logic")), `${at}: the search reads names only, not categories (${byCategory.length})`);
+      await search.fill("");
       await settle(page);
-      check((await side(page)) === "puzzles", `${at}: after a reload the device opens on Puzzles again`);
+      check((await listed(page)).length === allRows.length, `${at}: an empty search lists every game again`);
     } finally {
       await context.close();
     }

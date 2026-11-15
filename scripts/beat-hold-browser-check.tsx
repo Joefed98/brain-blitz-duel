@@ -331,8 +331,9 @@ async function play(opts: {
   await gotoRetried(page, `${origin}/beat-hold.html?mode=${opts.mode}`, `${opts.mode} ${type}`);
 
   if (opts.mode === "practice") {
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): the tile opens the game's page and its Play starts the round (the intro counts down, no Ready).
     await page.getByRole("button", { name: puzzleDef(type).name, exact: true }).click();
-    await page.getByRole("button", { name: "Ready", exact: true }).click({ timeout: 20_000 });
+    await page.locator(`[data-game-page-play="${type}"]`).first().click({ timeout: 20_000 });
   }
   await page.waitForSelector("[data-game-stage]", { timeout: 30_000 });
   await page.waitForTimeout(700);

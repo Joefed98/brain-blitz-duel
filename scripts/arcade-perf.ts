@@ -361,9 +361,12 @@ export async function measure(browser: import("playwright").Browser, origin: str
       await button.waitFor({ timeout: 90_000 });
       await page.waitForTimeout(1500);
       await button.click();
-      const ready = page.getByRole("button", { name: /^Ready/ });
-      await ready.waitFor({ timeout: 90_000 });
-      await ready.click();
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): the tile opens the game's page and its Play starts the round (the intro counts down, no Ready).
+      // It waits for the stage, where Ready's press used to start it at once, so the measuring below starts on the round.
+      const play = page.locator(`[data-game-page-play="${game}"]`).first();
+      await play.waitFor({ timeout: 90_000 });
+      await play.click();
+      await page.locator("[data-game-stage]").first().waitFor({ timeout: 90_000 });
       if (o.stallMs && runs === 1)
         await page.evaluate((ms) => {
           setTimeout(() => {

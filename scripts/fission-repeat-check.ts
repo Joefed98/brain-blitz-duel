@@ -74,7 +74,9 @@ try {
   // Back from the last reveal to the Practice list: no game screen is left, so no lock at all.
   if (!failures.length) {
     await page.getByRole("button", { name: "Back", exact: true }).click();
-    await page.locator("[data-practice-game]").first().waitFor({ timeout: 30_000 });
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue): Back from a reveal lands on
+    // the game's page (gamePage.ts), a page like the catalogue (no game screen).
+    await page.locator("[data-game-page]").first().waitFor({ timeout: 30_000 });
     const locks = await page.evaluate(() => document.documentElement.dataset["gameLocks"] ?? "0");
     if (locks !== "0") failures.push(`back on the Practice list, ${locks} game lock(s) left`);
   }

@@ -1,23 +1,24 @@
 import { useRouter } from "@tanstack/react-router";
 
-import { goToTab, type AppTab } from "@/components/app/AppTabBar";
+import type { AppTab } from "@/components/app/AppTabBar";
 import { unlockAudio } from "@/lib/sound";
 
-/** Home's play section (its "Play live with friends" heading, Quick play under it): what the Play bar opens. */
-export const PLAY_SECTION = "[data-play-hero]";
+/** The Play page (phase 2 step 3, src/routes/play.tsx): what the Play bar and the rail's Play open. */
+export const PLAY_PATH = "/play";
 
 /**
  * The gold Play bar (phase 2 step 1, 14 Nov 2026): full width, the angled cuts, flat champagne on its 4 px ledge,
- * fixed just above the tab bar on Home and Games only (never a Play tab). It opens the existing Play screen, Home's
- * play section (create or join a room, and rated play's Play card where that is open), until the Play screen of the
- * Home redesign replaces it. `rail`: the rail's gold Play button (the same action, a computer or a sideways tablet).
+ * fixed just above the tab bar on Home and Games only (never a Play tab). It opens the Play page (phase 2 step 3:
+ * Find a match or Create a room, then Arena, Rooms, Practice and Daily), pushed so Back returns to the screen it was
+ * tapped on. `rail`: the rail's gold Play button (the same action, a computer or a sideways tablet).
  */
 export function PlayBar({ from, variant = "bar", compact = false }: { from: AppTab | undefined; variant?: "bar" | "rail"; compact?: boolean }) {
   const router = useRouter();
   const open = () => {
     unlockAudio();
-    if (from) goToTab(router, from, "play", undefined, PLAY_SECTION);
-    else void router.navigate({ to: "/", state: { navScroll: PLAY_SECTION } as never });
+    if (typeof window !== "undefined" && window.location.pathname === PLAY_PATH) return;
+    // From a main tab: pushed with the tab's back-state, so Back returns to it (and from it to Home).
+    void router.navigate({ to: PLAY_PATH as never, state: { fromPlayTab: true, playFrom: from ?? null } as never });
   };
   if (variant === "rail")
     return (

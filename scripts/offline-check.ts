@@ -49,6 +49,13 @@ import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { ONLINE_ONLY_TYPES, PACK_MAX_DEALS } from "../src/lib/offline/offlineStatus";
 import { PACK_FIRST_DEALS, PACK_GROWTH_STEP, PACK_LEVEL_KEY } from "../src/lib/offline/packGrowth";
 import { showPracticeSide } from "./practice-side-lib";
+
+/**
+ * The Practice screen showing (the old switch, `[data-practice-switch]`, was its marker). Changed with Joe's approval,
+ * 14 Nov 2026 (routine consequence of the Games catalogue): the catalogue, or a game's page (where Back from a result
+ * and a reload of it land).
+ */
+const PRACTICE_SCREEN = "[data-games-catalogue], [data-game-page]";
 import { ANON_KEY, SERVICE_KEY, postgresBin, startLocalDb, startRestServer, userToken, type LocalDb, type RestServer } from "./server-fn-harness";
 
 const args = process.argv.slice(2);
@@ -374,7 +381,12 @@ async function shot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: resolve(SHOTS, `${name}.png`) });
 }
 
-/** Opens a game from the Practice list and presses Ready (the list must be showing). */
+/**
+ * Opens a game from the Games catalogue and starts it (the catalogue must be showing).
+ * Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): a tile opens
+ * the game's page, whose Play opens the round's intro already counting down (no Ready to press); offline it is the
+ * same page, drawn on the phone.
+ */
 async function startGame(page: Page, game: PuzzleType): Promise<void> {
   await showPracticeSide(page, game);
   // Changed with Joe's approval, 13 Nov 2026: a retired game gets no pack and isn't listed (the list has no Retired section).
@@ -382,9 +394,9 @@ async function startGame(page: Page, game: PuzzleType): Promise<void> {
   const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
   await button.waitFor({ timeout: 30_000 });
   await button.click();
-  const ready = page.getByRole("button", { name: /^Ready/ }).first();
-  await ready.waitFor({ timeout: 30_000 });
-  await ready.click();
+  const play = page.locator(`[data-game-page-play="${game}"]`).first();
+  await play.waitFor({ timeout: 30_000 });
+  await play.click();
   await page.locator("[data-game-stage], [data-arcade-play]").first().waitFor({ timeout: 30_000 });
 }
 
@@ -424,7 +436,10 @@ async function playOffline(page: Page, game: PuzzleType, timeoutMs: number): Pro
 
 async function backToList(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Back", exact: true }).first().click();
-  await page.locator("[data-practice-switch]").waitFor({ timeout: 10_000 });
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue): Back from a result lands on
+  // the game's page; its own back returns to the catalogue.
+  await page.locator("[data-game-page-back]").first().click({ timeout: 10_000 });
+  await page.locator("[data-games-catalogue]").waitFor({ timeout: 10_000 });
 }
 
 /* ------------------------------------------------------------------------------------------------------------ */
@@ -585,7 +600,7 @@ async function fullPass(browser: Browser): Promise<void> {
   // 2. Offline: the app opens from the cache.
   await ctx.setOffline(true);
   await page.reload();
-  await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
+  await page.locator(PRACTICE_SCREEN).waitFor({ timeout: 30_000 });
   check(await page.locator("[data-offline-banner]").isVisible(), `${tag}: offline banner on Practice`);
   check((await page.locator("[data-offline-banner]").innerText()).includes("You’re offline. Practice still works."), "banner text");
   await showPracticeSide(page, "wordsmith");
@@ -651,7 +666,7 @@ async function fullPass(browser: Browser): Promise<void> {
     check(shown, `${path}: offline state with a way to Practice`);
   }
   await page.locator("[data-offline-practice]").first().click();
-  await page.locator("[data-practice-switch]").waitFor({ timeout: 15_000 });
+  await page.locator(PRACTICE_SCREEN).waitFor({ timeout: 15_000 });
   check(true, "offline page's button opens Practice");
 
   // 4c. The sign-in expires while offline.
@@ -696,7 +711,7 @@ async function fullPass(browser: Browser): Promise<void> {
   );
   // Bests, markers, the rejected line.
   await page.reload();
-  await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
+  await page.locator(PRACTICE_SCREEN).waitFor({ timeout: 30_000 });
   await showPracticeSide(page, "snake");
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): bests are the account's per game and level, so the old-stamp run counts too; was
   // `r.status === "confirmed" && r.stamp === stampSignature(deal.puzzle)` (the check line and message unchanged).
@@ -757,11 +772,11 @@ async function fullPass(browser: Browser): Promise<void> {
   // "frame was detached"; build-health audit, 7 Nov 2026).
   if (tookOver)
     await until("the app reloads itself onto the new worker", async () => loads > loadsBeforeBack, 30_000);
-  await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
+  await page.locator(PRACTICE_SCREEN).waitFor({ timeout: 30_000 });
   check(true, "Practice list after the takeover");
   await ctx.setOffline(true);
   await page.reload();
-  check(await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 }).then(() => true, () => false), "offline open on the new build's worker");
+  check(await page.locator(PRACTICE_SCREEN).waitFor({ timeout: 30_000 }).then(() => true, () => false), "offline open on the new build's worker");
   await ctx.setOffline(false);
   publishNext = false;
 
@@ -788,7 +803,7 @@ async function smallPass(browser: Browser): Promise<void> {
   await until(`${tag}: Meteor's pack`, async () => (await idbAll<IdbPack>(page, "packs")).some((p) => p.type === "snake" && p.deals.length > 0), 120_000);
   await ctx.setOffline(true);
   await page.reload();
-  await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
+  await page.locator(PRACTICE_SCREEN).waitFor({ timeout: 30_000 });
   check(await page.locator("[data-offline-banner]").isVisible(), `${tag}: offline banner on Practice`);
   const bannerBox = await page.locator("[data-offline-banner]").boundingBox();
   check(!!bannerBox && bannerBox.x >= 0 && bannerBox.x + bannerBox.width <= W && bannerBox.height <= 40, `${tag}: banner one slim line`, JSON.stringify(bannerBox));
@@ -817,7 +832,7 @@ async function smallPass(browser: Browser): Promise<void> {
     await stubAuth(c, { signups: [], refreshes: [] });
     const p = await c.newPage();
     await p.goto(`${ORIGIN}/practice`);
-    await p.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
+    await p.locator(PRACTICE_SCREEN).waitFor({ timeout: 30_000 });
     const card = p.locator("[data-offline-install-card]");
     check(await card.isVisible(), `${w}x${h}: install card on iPhone Safari`);
     const box = await card.boundingBox();
@@ -826,7 +841,7 @@ async function smallPass(browser: Browser): Promise<void> {
     await card.getByRole("button", { name: "Dismiss" }).click();
     check(!(await card.isVisible()), `${w}x${h}: install card dismissed`);
     await p.reload();
-    await p.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
+    await p.locator(PRACTICE_SCREEN).waitFor({ timeout: 30_000 });
     check(!(await card.isVisible()), `${w}x${h}: install card stays dismissed`);
     await c.close();
   }
@@ -835,7 +850,7 @@ async function smallPass(browser: Browser): Promise<void> {
   await stubAuth(desktop, { signups: [], refreshes: [] });
   const dp = await desktop.newPage();
   await dp.goto(`${ORIGIN}/practice`);
-  await dp.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
+  await dp.locator(PRACTICE_SCREEN).waitFor({ timeout: 30_000 });
   check(!(await dp.locator("[data-offline-install-card]").isVisible()), "no install card off iPhone Safari");
   await desktop.close();
 }

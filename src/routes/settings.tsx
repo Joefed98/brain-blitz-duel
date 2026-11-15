@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AccountDeleted } from "@/components/account/AccountSettings";
 import { Onboarding } from "@/components/duel/Onboarding";
@@ -14,8 +14,13 @@ import { useHomeBed } from "@/lib/useScreenMusic";
  * works opens the first-time intro over the page; Back returns to wherever Settings was opened from (More when it was
  * opened directly).
  */
+/** `?section=notifications` (Home's bell): Settings opens scrolled to that group. */
+const SECTIONS = { notifications: "[data-push-settings]" } as const;
+
 export const Route = createFileRoute("/settings")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>): { section?: keyof typeof SECTIONS } =>
+    search["section"] === "notifications" ? { section: "notifications" } : {},
   head: () => ({
     meta: [
       { title: `${APP_NAME} settings` },
@@ -37,6 +42,12 @@ function SettingsRoute() {
   const [intro, setIntro] = useState(false);
   const [deleted, setDeleted] = useState<string | null>(null);
   const back = () => backFromSettings(router as never);
+  const section = Route.useSearch().section;
+  useEffect(() => {
+    if (!section) return;
+    const frame = requestAnimationFrame(() => document.querySelector(SECTIONS[section])?.scrollIntoView({ block: "start" }));
+    return () => cancelAnimationFrame(frame);
+  }, [section]);
   if (intro) return <Onboarding onDone={() => setIntro(false)} />;
   if (deleted) return <AccountDeleted purgeAt={deleted} onBack={() => void router.navigate({ to: "/" })} />;
   return <SettingsScreen onBack={back} onHowItWorks={() => setIntro(true)} router={router} onDeleted={setDeleted} />;

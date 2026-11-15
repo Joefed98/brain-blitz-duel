@@ -27,6 +27,9 @@ import { SHOP_SCREENS } from "./screens/shop";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
 import { roomsRatedScreens } from "./screens/rooms-rated";
 import { PROFILE_SCREENS } from "./screens/profile";
+import { GAMES_SCREENS } from "./screens/games";
+import { TOURNAMENT_PAGES_SCREENS } from "./screens/tournaments";
+import { HOME_PLAY_SCREENS } from "./screens/home-play";
 import { SETTINGS_ACCOUNT_SCREENS } from "./screens/settings-account";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
@@ -178,7 +181,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "badges" | "card" | "settings" | "onboarding";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass" | "more" | "launch" | "components" | "shop" | "badges" | "card" | "challenges" | "tournament" | "tournamentrules" | "dailyarchive" | "play" | "rooms" | "settings" | "onboarding";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -826,13 +829,14 @@ export const LIGHT_SCREENS = (): ThemeScreen[] =>
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
-  // Practice's Arcade side (30 Oct 2026: the Puzzles | Arcade switch).
+  // Practice's Arcade side (30 Oct 2026: the Puzzles | Arcade switch). Changed with Joe's approval, 14 Nov 2026 (routine
+  // consequence of the Games catalogue: its chips replace the switch): the Retro chip chosen, an arcade group.
   {
     name: "practice list, arcade side",
     mode: "practice",
     go: async (page) => {
-      await page.locator("[data-practice-side='arcade']").click();
-      await page.locator("[data-practice-switch='arcade']").waitFor({ timeout: 10_000 });
+      await page.locator("[data-practice-filter='retro']").click();
+      await page.locator("[data-practice-filter='retro'][aria-pressed='true']").waitFor({ timeout: 10_000 });
       await page.waitForTimeout(400);
     },
   },
@@ -1000,6 +1004,9 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...SHOP_SCREENS(),
   ...roomsRatedScreens({ room, sizes: ALL_SIZES }),
   ...PROFILE_SCREENS(),
+  ...GAMES_SCREENS(NAV_SIZES, ALL_SIZES),
+  ...TOURNAMENT_PAGES_SCREENS(ALL_SIZES),
+  ...HOME_PLAY_SCREENS(ALL_SIZES),
   ...SETTINGS_ACCOUNT_SCREENS(),
 ];
 
@@ -1176,8 +1183,9 @@ export async function openThemeScreen(
     if (!/Timeout \d+ms exceeded/.test(String((error as Error).message))) throw error;
     await page.goto(url, { timeout: 90_000 });
   }
+  // The Games session (14 Nov 2026): the catalogue's tiles, or a game's page (?page=).
   if (screen.mode === "practice")
-    await page.locator("[data-practice-game]").first().waitFor({ timeout: 60_000 });
+    await page.locator("[data-practice-game], [data-game-page]").first().waitFor({ timeout: 60_000 });
   else await page.waitForSelector("#root *", { timeout: 60_000 });
   if (viewport.app) await emulateDevice(page, IPHONE11_APP);
   await page.waitForTimeout(800);

@@ -14,7 +14,20 @@ const SHOWN = 4;
  * sees the empty state (wave 1, 10 Nov 2026: Captain Joulz, one line, Challenge a friend); a server error
  * (e.g. before the migration) hides the section.
  */
-export function YourChallenges({ onOpen, onNew }: { onOpen: (code: string) => void; onNew?: () => void }) {
+export function YourChallenges({
+  onOpen,
+  onNew,
+  variant = "section",
+}: {
+  onOpen: (code: string) => void;
+  onNew?: () => void;
+  /**
+   * `tab` (the Challenges page's Friends tab, 14 Nov 2026): the list with no heading of its own, and, with nothing to
+   * show (none made or sent, none returned, or a server error), one line and a Challenge a friend link. `section` (the
+   * default) is Profile's section exactly as before.
+   */
+  variant?: "section" | "tab";
+}) {
   const [list, setList] = useState<ChallengeSummary[] | null>(null);
   const [none, setNone] = useState(false);
   useEffect(() => {
@@ -34,6 +47,20 @@ export function YourChallenges({ onOpen, onNew }: { onOpen: (code: string) => vo
       live = false;
     };
   }, []);
+  if (variant === "tab") {
+    if (!none && list === null) return null;
+    if (none || !list || list.length === 0)
+      return (
+        <p data-your-challenges-empty className="gm-empty">
+          No friend challenges yet.{" "}
+          {onNew ? (
+            <button type="button" onClick={onNew} data-challenge-a-friend className="ap-link press -my-3 inline-flex h-11 items-center align-middle">
+              Challenge a friend
+            </button>
+          ) : null}
+        </p>
+      );
+  }
   if (none && onNew)
     return (
       <section aria-label="Your challenges" className="ap-section">
@@ -51,7 +78,7 @@ export function YourChallenges({ onOpen, onNew }: { onOpen: (code: string) => vo
   const now = Date.now();
   return (
     <section aria-label="Your challenges" data-your-challenges className="ap-section">
-      <SectionHeader title="Your challenges" />
+      {variant === "tab" ? null : <SectionHeader title="Your challenges" />}
       <ul className="jz-panel">
         {list.map((c) => (
           <li key={c.code}>

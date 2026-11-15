@@ -96,14 +96,19 @@ export async function harnessPage(browser: Browser, origin: string, mode: "pract
   return page;
 }
 
-/** From the practice list (or a result screen's Play again) through Ready to the live round. */
+/**
+ * From the Games catalogue (or a result screen's Play again) to the live round.
+ * Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): a game's tile
+ * opens its page, whose Play (like the reveal's Play again) opens the round's intro already counting down, so the round
+ * starts after the 3-2-1 with no Ready to press.
+ */
 export async function startPractice(page: Page, type: string, again = false): Promise<void> {
   if (again) await page.getByRole("button", { name: "Play again" }).click({ timeout: 60_000 });
   else {
     await showPracticeSide(page, type, 120_000);
     await page.getByRole("button", { name: gameDisplayName(type), exact: true }).first().click({ timeout: 120_000 });
+    await page.locator(`[data-game-page-play="${type}"]`).first().click({ timeout: 60_000 });
   }
-  await page.getByRole("button", { name: /^Ready/ }).first().click({ timeout: 60_000 });
   await page.waitForSelector("[data-arcade-play] [data-game-stage]", { timeout: 60_000 });
 }
 

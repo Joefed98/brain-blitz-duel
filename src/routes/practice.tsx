@@ -1,9 +1,12 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
-import { Chip, GameTile, Icon, Input, Segmented, Stars } from "@/design/components";
+import { Icon } from "@/design/components";
+import { CatalogueHeaderTools, GamesCatalogue, tileDescriptionId, type CatalogueFilter } from "@/components/games/GamesCatalogue";
+import { GamePage } from "@/components/games/GamePage";
+import { gamePageLink } from "@/lib/nav/gamePage";
 import { useMyIdentity } from "@/lib/identity/identityApi";
 import { useEarlyAccessHeld } from "@/lib/plus/plusApi";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
@@ -31,10 +34,7 @@ import { practiceUpdateGate, useUpdateGate } from "@/lib/appUpdate";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 import { DevKeyStatus, SaveDemoButton, useDemoKey } from "@/components/duel/SaveDemoButton";
 import {
-  ACTIVE_PUZZLE_TYPES,
   PUZZLE_REGISTRY,
-  PREVIEW_PUZZLE_TYPES,
-  puzzleCategories,
   puzzleDef,
   puzzleDurationMs,
   puzzleName,
@@ -42,7 +42,6 @@ import {
   puzzleShowsTimer,
   puzzleTimeLimitMs,
   puzzleRunMs,
-  typesInCategory,
   isPlayable,
 } from "@/lib/duel/catalogue";
 import { clearStageState } from "@/lib/duel/stageState";
@@ -62,12 +61,11 @@ import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import { useHomeBed, useScreenMusic } from "@/lib/useScreenMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
-import { readGoals, recordPracticeGoals, type GoalsRecord } from "@/lib/duel/practiceGoals";
+import { recordPracticeGoals } from "@/lib/duel/practiceGoals";
 import { SaveProgressOffer } from "@/components/account/SaveProgress";
 import { cachedAccount, useAccount } from "@/lib/account/accountApi";
 import {
   bestOf,
-  levelStarsOf,
   practiceRunRecord,
   runStarLine,
   starCountOf,
@@ -80,25 +78,14 @@ import {
   practiceProgressNow,
   usePracticeProgress,
 } from "@/lib/practice/useProgress";
-import { ChallengeMoments, PracticeChallenges } from "@/components/app/PracticeChallenges";
+import { ChallengeMoments } from "@/components/app/PracticeChallenges";
 import { queueChallengeMoments, useServerChallenges } from "@/lib/challenges/challengesClient";
 import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
-import { notePracticePlayed, recentPracticeTypes } from "@/lib/duel/practiceRecent";
-import { useLayoutMode } from "@/lib/layoutMode";
+import { notePracticePlayed } from "@/lib/duel/practiceRecent";
 import { inputTypeField } from "@/lib/inputType";
 import { PageAside } from "@/components/app/PageAside";
-import type { PuzzleCategory } from "@/lib/duel/types";
-import { ARCADE_GROUPS, arcadeGroupInfo, arcadeGroupOf, arcadeGroupTypes, type ArcadeGroup } from "@/lib/duel/arcadeGroups";
-import { alsoInOf, typesAlsoIn } from "@/lib/duel/alsoIn";
-import {
-  practiceSideCounts,
-  practiceSideOf,
-  readPracticeSide,
-  rememberPracticeSide,
-  type PracticeSide,
-} from "@/lib/duel/practiceSide";
 
 import { OfflineInstallCard } from "@/components/offline/OfflineInstallCard";
 import { OfflineRunResult } from "@/components/offline/OfflineRunResult";
@@ -134,8 +121,10 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
 export const Route = createFileRoute("/practice")({
   ssr: false,
   // ?game=<type>: open that game's round at once (the Play tab's Warm up tiles).
-  validateSearch: (search: Record<string, unknown>): { game?: string; q?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { game?: string; q?: string; page?: string } => ({
     ...(typeof search["game"] === "string" ? { game: search["game"] } : {}),
+    // ?page=<type>: that game's page (src/lib/nav/gamePage.ts, phase 2 step 3).
+    ...(typeof search["page"] === "string" && search["page"] ? { page: search["page"] } : {}),
     // The desktop rail's search (AppRail) opens the list with its words typed.
     ...(typeof search["q"] === "string" && search["q"] ? { q: search["q"] } : {}),
   }),
@@ -192,11 +181,7 @@ function useTicker(active: boolean): number {
  * Kept out of the row's accessible name (aria-hidden; the button points at it with aria-describedby),
  * so the button is always named exactly the game, before and after a best.
  */
-/** Offline practice: the games with a run waiting for the server (their rows' best carries the clock). */
-const PendingTypes = createContext<ReadonlySet<PuzzleType>>(new Set());
 
-/** Practice goals: this device's challenge record (C1b moves challenges to the account), read once per draw of the list. */
-const GoalsOnList = createContext<GoalsRecord | null>(null);
 
 /**
  * The list's last line: an account's stars and bests are saved to it; a guest is offered the save-your-progress
@@ -219,90 +204,26 @@ function PracticeFooter() {
   );
 }
 
-/** The player's practice progress from the server (useProgress.ts): every row's stars and best. */
-const ProgressOnList = createContext<PracticeProgressView | null>(null);
 
-/** A row's stars, one per level (Easy, Classic, Hard), named in the row's description with its best. */
-function RowStars({ type }: { type: PuzzleType }) {
-  return <Stars levels={levelStarsOf(useContext(ProgressOnList), type)} label={false} />;
-}
-
-function RowBest({ type }: { type: PuzzleType }) {
-  const best = bestOf(useContext(ProgressOnList), type);
-  const pending = useContext(PendingTypes).has(type);
-  const tier = starCountOf(useContext(ProgressOnList), type);
+/**
+ * A tile's description: its stars (the tile is named exactly its game; Joe, 14 Nov 2026: the catalogue shows stars and
+ * the best lives on the game's page). Not drawn. `data-card-best` / `data-none` / `data-pending` still carry the
+ * account's best and a queued run's clock for the checks that read them.
+ */
+function TileBest({ type, pending, progress }: { type: PuzzleType; pending: boolean; progress: PracticeProgressView | null }) {
+  const best = bestOf(progress, type);
   return (
     <span
-      id={cardBestId(type)}
-      aria-hidden="true"
+      id={tileDescriptionId(type)}
       data-card-best={best ?? undefined}
       data-none={best === null || undefined}
       data-pending={pending || undefined}
-      className="ap-best"
+      className="sr-only"
     >
-      {/* Offline practice: a run of this game is waiting for the server (the best may still change). */}
       {pending ? <PendingClock /> : null}
-      {best ?? "–"}
-      {/* The row's stars, for the button's description (RowStars draws them). */}
-      <span className="sr-only">{`, ${tier} of 3 stars`}</span>
+      {`${starCountOf(progress, type)} of 3 stars`}
     </span>
   );
-}
-
-/** The id the row's button describes itself by (its best). */
-function cardBestId(type: PuzzleType): string {
-  return `practice-best-${type}`;
-}
-
-/** "Word", "Arcade"… */
-function categoryLabel(category: PuzzleCategory): string {
-  return category.charAt(0).toUpperCase() + category.slice(1);
-}
-
-type PracticeFilter = PuzzleCategory | "all";
-type ArcadeFilter = ArcadeGroup | "all";
-
-/** The switch's counts (practiceSide.ts, from the registry: the active games on each side). */
-const SIDE_COUNTS = practiceSideCounts();
-
-/**
- * The Arcade side's chips in the Puzzles side's 4-column grid: All games, Retro, Sports, Action, then
- * Cards & Board and Strategy over two columns each (no sideways scrolling at 375 px).
- */
-const ARCADE_CHIPS: { id: ArcadeFilter; label: string; span?: 2 }[] = [
-  { id: "all", label: "All games" },
-  { id: "retro", label: arcadeGroupInfo("retro").label },
-  { id: "sports", label: arcadeGroupInfo("sports").label },
-  { id: "action", label: arcadeGroupInfo("action").label },
-  { id: "cards", label: arcadeGroupInfo("cards").label, span: 2 },
-  { id: "strategy", label: arcadeGroupInfo("strategy").label, span: 2 },
-];
-
-/**
- * The list's chips and search, scoped to the side shown: the game's name or category (on the Arcade
- * side also its group), any case. A game on the other side never matches.
- */
-const isArcadeGroupId = (id: string) => ARCADE_GROUPS.some((g) => g.id === id);
-
-function matchesFilter(type: PuzzleType, side: PracticeSide, filter: PracticeFilter | ArcadeFilter, query: string): boolean {
-  // Retired games are out of the app (13 Nov 2026): never listed or found by a search.
-  if (!isPlayable(type)) return false;
-  // A game listed also in a pick on this side (alsoIn.ts: Pull! in Sports) is shown here too, under that pick.
-  const also = alsoInOf(type);
-  const alsoHere = also !== null && (side === "arcade") === isArcadeGroupId(also);
-  if (practiceSideOf(type) !== side && !alsoHere) return false;
-  const definition = PUZZLE_REGISTRY[type];
-  const home = practiceSideOf(type) === side;
-  const group = home ? arcadeGroupOf(type) : side === "arcade" ? (also as ArcadeGroup) : null;
-  const category = home ? definition.category : (also as string);
-  if (filter !== "all") {
-    if (side === "puzzles" && category !== filter && !(alsoHere && also === filter)) return false;
-    if (side === "arcade" && group !== filter && !(alsoHere && also === filter)) return false;
-  }
-  const q = query.trim().toLowerCase();
-  if (q === "") return true;
-  if (definition.name.toLowerCase().includes(q) || category.includes(q)) return true;
-  return group !== null && arcadeGroupInfo(group).label.toLowerCase().includes(q);
 }
 
 /** The signature verdict for a graded practice run. */
@@ -319,29 +240,57 @@ function practiceVerdict(graded: Graded) {
 
 function PracticeScreen() {
   const [stage, setStage] = useState<Stage>("list");
-  const [side, setSideState] = useState<PracticeSide>(readPracticeSide);
-  const [puzzleFilter, setPuzzleFilter] = useState<PracticeFilter>("all");
-  const [arcadeFilter, setArcadeFilter] = useState<ArcadeFilter>("all");
-  const layoutMode = useLayoutMode();
-  const desktop = layoutMode === "desktop";
+  // The catalogue's chip (All, a category or an arcade group) and its search (phase 2 step 3).
+  const [catalogueFilter, setCatalogueFilter] = useState<CatalogueFilter>("all");
   // Wave 2 E2: the player's own tile style on their game tiles, and the games early access holds back (Joulz Plus).
   const myTileStyle = useMyIdentity().loadout?.slots["tile-style"] ?? null;
   const heldBack = useEarlyAccessHeld();
   const railQuery = (Route.useSearch() as { q?: string }).q;
   const [query, setQuery] = useState(() => railQuery ?? "");
+  const [searchOpen, setSearchOpen] = useState(() => Boolean(railQuery));
   useEffect(() => {
-    if (railQuery !== undefined) setQuery(railQuery);
+    if (railQuery === undefined) return;
+    setQuery(railQuery);
+    setSearchOpen(true);
   }, [railQuery]);
-  // The switch: remembered on this device; the search starts empty on the other side.
-  const setSide = useCallback((next: PracticeSide) => {
-    rememberPracticeSide(next);
-    setSideState((was) => {
-      if (was !== next) setQuery("");
-      return next;
+  const toggleSearch = useCallback(() => {
+    setSearchOpen((open) => {
+      if (open) setQuery("");
+      return !open;
     });
   }, []);
-  const search = Route.useSearch() as { game?: string };
+  const search = Route.useSearch() as { game?: string; page?: string };
   const navigate = useNavigate();
+  const router = useRouter();
+  // A game's page (?page=<type>, gamePage.ts): shown on the list stage in place of the catalogue. Opening one from the
+  // catalogue pushes it (Back returns to the catalogue); the URL's parameter drives it, and this state follows.
+  const [pageType, setPageType] = useState<PuzzleType | null>(() => (isPlayable(search.page) ? search.page : null));
+  const pushedPage = useRef(false);
+  useEffect(() => {
+    setPageType(isPlayable(search.page) ? search.page : null);
+  }, [search.page]);
+  const isAccountNow = useAccount().kind === "account";
+  const openPage = useCallback(
+    (next: PuzzleType) => {
+      unlockAudio();
+      setNotice(null);
+      setPageType(next);
+      pushedPage.current = true;
+      void navigate({ ...gamePageLink(next), state: (prev: unknown) => prev as never });
+    },
+    [navigate],
+  );
+  const closePage = useCallback(() => {
+    setNotice(null);
+    setPageType(null);
+    const history = (router as { history?: { back?: () => void } }).history;
+    if (pushedPage.current && history?.back) {
+      pushedPage.current = false;
+      history.back();
+      return;
+    }
+    void navigate({ to: "/practice", search: {}, replace: true, state: (prev: unknown) => prev as never });
+  }, [navigate, router]);
   // A new version reloads only on the list, never mid-run (lib/appUpdate).
   useUpdateGate(practiceUpdateGate(stage));
   // The first finished round's top-up, once back on the list (after the gate above has opened).
@@ -450,7 +399,12 @@ function PracticeScreen() {
   useScreenMusic("music_reveal", stage === "reveal");
 
   const load = useCallback(
-    async (next: PuzzleType) => {
+    /**
+     * Deals a round of `next` and opens its intro. `quick` (Play on a game's page, or Play again): the intro opens
+     * already in its 3-2-1 (Joe, 14 Nov 2026), since the page has just shown the game's goal and how to play; the
+     * intro itself is unchanged. Otherwise (a ?game= link) the full intro, Goal / How / Ready, as before.
+     */
+    async (next: PuzzleType, quick = false) => {
       unlockAudio();
       introCancelled.current = false;
       grading.current = false;
@@ -516,7 +470,7 @@ function PracticeScreen() {
       setDeviceBest(bestOf(practiceProgressNow(), next, levelOf((made.puzzle as { level?: unknown }).level)));
       setSealed(made.sealed);
       await code;
-      setStartedAt(Date.now());
+      setStartedAt(quick ? Date.now() - (INTRO_MS - INTRO_COUNTDOWN_MS) : Date.now());
       setStage("intro");
     },
     [exampleMode],
@@ -530,9 +484,10 @@ function PracticeScreen() {
     if (openedFromSearch.current || !wanted || !isPlayable(wanted)) return;
     openedFromSearch.current = true;
     void load(wanted as PuzzleType);
+    // Back from the round lands on the game's page (gamePage.ts), not straight on the catalogue.
     void navigate({
       to: "/practice",
-      search: {},
+      search: { page: wanted },
       replace: true,
       state: (prev: unknown) => prev as never,
     });
@@ -733,19 +688,6 @@ function PracticeScreen() {
   // Practice's reveal stays until Play again or Back (27 Oct 2026): no separate result page.
 
   if (stage === "list") {
-    const filter = side === "puzzles" ? puzzleFilter : arcadeFilter;
-    const visible = (key: PuzzleType) => matchesFilter(key, side, filter, query) && !heldBack.includes(key);
-    // Puzzles: one section per category (Arcade is the other side). Arcade: one section per group.
-    const groups: { id: string; label: string; dot: string; rows: PuzzleType[] }[] =
-      side === "puzzles"
-        ? puzzleCategories()
-            .filter((category) => category !== "arcade")
-            .map((category) => ({ id: category, label: categoryLabel(category), dot: category, rows: [...typesInCategory(category), ...typesAlsoIn(category)].filter(visible) }))
-        : ARCADE_GROUPS.map((group) => ({ id: group.id, label: group.label, dot: group.id, rows: [...arcadeGroupTypes(group.id), ...typesAlsoIn(group.id)].filter(visible) }));
-    const shown = groups.filter((group) => group.rows.length > 0);
-    // A game listed in two sections on this side counts once (none today: Pull!'s sections are on different sides).
-    const matches = [...new Set(shown.flatMap((group) => group.rows))];
-    const previewRows = PREVIEW_PUZZLE_TYPES.filter(visible);
     // Offline practice: which games wait on the server, and (with no connection) which can't be played now.
     const pendingTypes = new Set(offlineStore.runs.filter((r) => r.status === "queued").map((r) => r.type));
     const offlineMark = (key: PuzzleType) => {
@@ -766,87 +708,62 @@ function PracticeScreen() {
         );
       return null;
     };
-    // One row per game: a tap opens its round. The best sits in one fixed-width BEST column.
-    const row = (key: PuzzleType) => (
-      <button
-        key={key}
-        type="button"
-        onClick={() => void load(key)}
-        aria-label={PUZZLE_REGISTRY[key].name}
-        aria-describedby={cardBestId(key)}
-        data-practice-game={key}
-        data-icon="game"
-        className="jz-row press"
-      >
-        <GameTile type={key} iconSize={44} tileStyle={myTileStyle} />
-        <span data-ellipsis aria-hidden="true" className="jz-row-title min-w-0 flex-1">
-          {PUZZLE_REGISTRY[key].name}
-        </span>
-        {offlineMark(key)}
-        <RowStars type={key} />
-        <RowBest type={key} />
-      </button>
-    );
-    // A heading over a list: the category's (or group's) dot, its name and count, and the BEST label over the column.
-    const listHead = (title: string, count: number, dot?: string) => (
-      <div className="ap-col-head">
-        {dot ? <span aria-hidden="true" data-dot={dot} data-size="10" className="ap-dot" /> : null}
-        <h2 className="ap-section-title">{title}</h2>
-        <span className="ap-meta">
-          {count} {count === 1 ? "game" : "games"}
-        </span>
-        <span aria-hidden="true" className="ap-col-label">
-          BEST
-        </span>
-      </div>
-    );
-    // Recently played (practiceRecent.ts), with All and no search: up to four of this side's games, each with its best.
-    const recentRows =
-      filter === "all" && query.trim() === ""
-        ? recentPracticeTypes()
-            .filter(isPlayable)
-            .filter((key) => practiceSideOf(key) === side)
-            .slice(0, 4)
-        : [];
-    const searchLabel = side === "puzzles" ? "Search puzzles" : "Search arcade games";
-    // A chosen group with no games yet (Cards & Board until its games are registered).
-    const emptyGroup =
-      side === "arcade" && arcadeFilter !== "all" && query.trim() === "" && matches.length === 0 ? arcadeGroupInfo(arcadeFilter) : null;
-    // Puzzles | Arcade: one tab, two sides; the counts are the registry's active games. On the desktop
-    // layout it joins the search and chips in one row (data-practice-tools, polish-layout/desktop-layout.css).
-    const switchRow = (
-      <Segmented
-        label="Game type"
-        tone="gold"
-        data={{ "data-practice-switch": side }}
-        value={side}
-        onChange={setSide}
-        options={(["puzzles", "arcade"] as const).map((option) => ({
-          value: option,
-          label: option === "puzzles" ? "Puzzles" : "Arcade",
-          count: SIDE_COUNTS[option],
-          data: { "data-practice-side": option, "data-count": SIDE_COUNTS[option] },
-        }))}
-      />
-    );
-    // Practice goals: the account's star total (the server's), the device's challenge record once for this draw, and the
-    // challenges of this side's games (always shown, so typing a search never moves the box being typed in).
-    const goalsRecord = readGoals();
+    // A game's page (phase 2 step 3): opened from a tile, the hero, Home's Recently played or Challenges.
+    if (pageType && isPlayable(pageType)) {
+      const pageMark = offlineMark(pageType);
+      return (
+        <PhoneShell skin="practice" railTab="practice">
+              <GamePage
+                type={pageType}
+                name={PUZZLE_REGISTRY[pageType].name}
+                progress={progressView}
+                server={serverChallenges}
+                account={serverChallenges?.account ?? isAccountNow}
+                notice={notice}
+                mark={pageMark}
+                onBack={closePage}
+                onPlay={() => void load(pageType, true)}
+              />
+        </PhoneShell>
+      );
+    }
     const stars = { earned: progressView?.stars ?? 0, total: STAR_TOTAL_MAX };
-    const sideTypes = new Set(ACTIVE_PUZZLE_TYPES.filter((key) => practiceSideOf(key) === side));
     return (
-      <PhoneShell tabs="practice" title="Practice" aside={<PageAside panels={["public", "daily", "week"]} />}>
-        <ProgressOnList.Provider value={progressView}>
-        <GoalsOnList.Provider value={goalsRecord}>
-        <PendingTypes.Provider value={pendingTypes}>
-          <div className="ap-stack">
-            <div className="flex flex-col gap-3">
-              <p data-practice-stars={stars.earned} className="pg-total">
-                <Stars levels={{ easy: true, classic: true, hard: true }} label={false} />
-                <span>
-                  <span className="pg-total-earned">{stars.earned}</span> / {stars.total} stars
-                </span>
-              </p>
+      <PhoneShell
+        tabs="practice"
+        title="Games"
+        headerAction={
+          <CatalogueHeaderTools stars={stars.earned} total={stars.total} searchOpen={searchOpen} onSearch={toggleSearch} />
+        }
+        aside={<PageAside panels={["public", "daily", "week"]} />}
+      >
+        <GamesCatalogue
+          progress={progressView}
+          query={query}
+          onQuery={setQuery}
+          searchOpen={searchOpen}
+          filter={catalogueFilter}
+          onFilter={setCatalogueFilter}
+          hidden={heldBack}
+          tileStyle={myTileStyle}
+          onOpen={openPage}
+          tileExtra={(key) => {
+            const mark = offlineMark(key);
+            const pending = pendingTypes.has(key);
+            return (
+              <>
+                {mark || pending ? (
+                  <span aria-hidden={mark ? undefined : true} className="gm-tile-badge">
+                    {/* Offline practice: a run of this game is waiting for the server (the best may still change). */}
+                    {mark ?? <PendingClock />}
+                  </span>
+                ) : null}
+                <TileBest type={key} pending={pending} progress={progressView} />
+              </>
+            );
+          }}
+          before={
+            <>
               {/* The fresh start (10 Nov 2026): a one-time note, once per player (the server remembers it). */}
               {progressView && !progressView.noteSeen ? (
                 <p role="status" data-practice-refresh-note className="jz-panel ap-empty">
@@ -854,154 +771,42 @@ function PracticeScreen() {
                 </p>
               ) : null}
               <DevKeyStatus status={demoStatus} />
-              {desktop ? null : switchRow}
-            </div>
-
-            {/* Offline practice: Add to Home Screen (iPhone Safari only, shown from <html data-offline-install>). */}
-            <OfflineInstallCard />
-            {notice ? (
-              <p role="status" data-practice-notice className="jz-panel ap-empty">
-                {notice}
-              </p>
-            ) : null}
-
-            {demoKey ? (
-              <label className="jz-panel jz-row">
-                <span className="jz-row-text">
-                  <span className="jz-row-title">Intro examples</span>
-                  <span className="jz-row-sub whitespace-normal">
-                    Each game loads its fixed intro example, for recording demos.
+              {/* Offline practice: Add to Home Screen (iPhone Safari only, shown from <html data-offline-install>). */}
+              <OfflineInstallCard />
+              {notice ? (
+                <p role="status" data-practice-notice className="jz-panel ap-empty">
+                  {notice}
+                </p>
+              ) : null}
+              {demoKey ? (
+                <label className="jz-panel jz-row">
+                  <span className="jz-row-text">
+                    <span className="jz-row-title">Intro examples</span>
+                    <span className="jz-row-sub whitespace-normal">
+                      Each game loads its fixed intro example, for recording demos.
+                    </span>
                   </span>
-                </span>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  checked={exampleMode}
-                  onChange={(e) => setExampleMode(e.target.checked)}
-                  className="h-5 w-5 shrink-0 accent-[var(--primary)]"
-                />
-              </label>
-            ) : null}
-
-            <ChallengeMoments />
-            <PracticeChallenges
-              key={side}
-              types={sideTypes}
-              record={goalsRecord}
-              server={serverChallenges}
-              nameOf={(key) => PUZZLE_REGISTRY[key].name}
-              onPlay={(key) => void load(key)}
-            />
-
-            <div data-practice-tools={desktop ? "" : undefined} className="flex flex-col gap-3">
-              {desktop ? switchRow : null}
-              <div data-practice-search={desktop ? "" : undefined} className="contents">
-              <Input
-                  search
-                  size={44}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={searchLabel}
-                  aria-label={searchLabel}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              {side === "puzzles" ? (
-                // All games and the six puzzle categories in the 4-column grid: none is cut off at 375 px.
-                <div role="group" aria-label="Category" className="ap-chip-grid">
-                  {(["all", ...puzzleCategories().filter((category) => category !== "arcade")] as const).map((chip) => {
-                    const on = puzzleFilter === chip;
-                    return (
-                      <Chip
-                        key={chip}
-                        selected={on}
-                        cat={chip === "all" ? undefined : chip}
-                        data-practice-filter={chip}
-                        onClick={() => setPuzzleFilter(chip)}
-                      >
-                        {chip === "all" ? "All games" : categoryLabel(chip)}
-                      </Chip>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div role="group" aria-label="Arcade group" className="ap-chip-grid">
-                  {ARCADE_CHIPS.map((chip) => (
-                    <Chip
-                      key={chip.id}
-                      selected={arcadeFilter === chip.id}
-                      cat={chip.id === "all" ? undefined : chip.id}
-                      data-practice-filter={chip.id}
-                      data-span={chip.span}
-                      onClick={() => setArcadeFilter(chip.id)}
-                    >
-                      {chip.label}
-                    </Chip>
-                  ))}
-                </div>
-              )}
-              </div>
-            </div>
-
-            {recentRows.length > 0 ? (
-              <section aria-label="Recently played" data-practice-recent-list className="ap-section">
-                <h2 className="ap-section-title">Recently played</h2>
-                <div className="jz-panel ap-game-strip">
-                  {recentRows.map((key) => {
-                    const best = bestOf(progressView, key);
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        data-practice-recent={key}
-                        aria-label={`${PUZZLE_REGISTRY[key].name}, recently played`}
-                        onClick={() => void load(key)}
-                        className="press"
-                      >
-                        <GameTile type={key} iconSize={52} tileStyle={myTileStyle} />
-                        <span aria-hidden="true" className="ap-strip-name">
-                          {PUZZLE_REGISTRY[key].name}
-                        </span>
-                        <span aria-hidden="true" data-none={best === null || undefined} className="ap-strip-best">
-                          {best ?? "–"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-
-            <OfflineRuns runs={offlineStore.runs} now={Date.now()} />
-
-            {shown.map(({ id, label, dot, rows }) => (
-              <section key={id} aria-label={label} data-practice-group={id} className="ap-section">
-                {listHead(label, rows.length, dot)}
-                <div className="jz-panel">{rows.map((key) => row(key))}</div>
-              </section>
-            ))}
-            {emptyGroup ? (
-              <p data-practice-empty-group={emptyGroup.id} className="jz-panel ap-empty">
-                {emptyGroup.label} games are coming soon
-              </p>
-            ) : matches.length === 0 && previewRows.length === 0 ? (
-              <p className="jz-panel ap-empty">Nothing matches that</p>
-            ) : null}
-
-            {previewRows.length > 0 && (
-              <section aria-label="Practice only" className="ap-section">
-                {listHead("New, practice only", previewRows.length)}
-                <div className="jz-panel">{previewRows.map((key) => row(key))}</div>
-              </section>
-            )}
-
-            {/* No Retired section (13 Nov 2026, Joe's rule): retired games are out of the app (catalogue.ts isPlayable). */}
-
-            <PracticeFooter />
-          </div>
-        </PendingTypes.Provider>
-        </GoalsOnList.Provider>
-        </ProgressOnList.Provider>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={exampleMode}
+                    onChange={(e) => setExampleMode(e.target.checked)}
+                    className="h-5 w-5 shrink-0"
+                    style={{ accentColor: "var(--primary)" }}
+                  />
+                </label>
+              ) : null}
+              <ChallengeMoments />
+            </>
+          }
+          after={
+            <>
+              <OfflineRuns runs={offlineStore.runs} now={Date.now()} />
+              {/* No Retired section (13 Nov 2026, Joe's rule): retired games are out of the app (catalogue.ts isPlayable). */}
+              <PracticeFooter />
+            </>
+          }
+        />
       </PhoneShell>
     );
   }
@@ -1009,7 +814,7 @@ function PracticeScreen() {
   if (stage === "offline" && type) {
     return (
       <PhoneShell skin="room">
-        <OfflineRunResult runId={offlineRunId} type={type} onPlayAgain={() => void load(type)} onBack={() => setStage("list")} />
+        <OfflineRunResult runId={offlineRunId} type={type} onPlayAgain={() => void load(type, true)} onBack={() => setStage("list")} />
       </PhoneShell>
     );
   }
@@ -1066,7 +871,7 @@ function PracticeScreen() {
           starLine={earnedStar}
           startedAt={startedAt}
           now={now}
-          onPlayAgain={() => void load(type)}
+          onPlayAgain={() => void load(type, true)}
           onBack={() => setStage("list")}
         />
         <SaveDemoButton

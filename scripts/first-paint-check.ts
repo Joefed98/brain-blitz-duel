@@ -43,7 +43,6 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
-import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -315,6 +314,12 @@ async function open(
   room: unknown,
   where: string,
   late = false,
+  /**
+   * Practice: open this game's round at once, as its ?game= link does (the harness's route search). Changed with Joe's
+   * approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): a tile opens the game's page,
+   * whose Play starts the intro counting down, so the round's full intro (scrolled to Ready) is opened by its link.
+   */
+  game: string | null = null,
 ): Promise<{ page: Page; close: () => Promise<void> }> {
   const device = late ? LATE_START : IPHONE11_APP;
   const context = await browser.newContext({
@@ -347,6 +352,7 @@ async function open(
         submissions: [],
         verdictAt: null,
         room: r.room,
+        ...(r.game ? { search: { game: r.game } } : {}),
       };
       try {
         localStorage.setItem(r.key, "1");
@@ -354,7 +360,7 @@ async function open(
         /* ignore */
       }
     },
-    { puzzles, room, key: ONBOARDING_KEY },
+    { puzzles, room, key: ONBOARDING_KEY, game },
   );
   const page = await context.newPage();
   const errors: string[] = [];
@@ -403,13 +409,8 @@ function report(where: string, problems: string[], frames: Frame[]) {
 
 async function practiceRound(game: PuzzleType, late: boolean) {
   const where = `${late ? "standalone late " : ""}practice ${game} (${gameDisplayName(game)})`;
-  const { page, close } = await open("practice", null, where, late);
+  const { page, close } = await open("practice", null, where, late, game);
   try {
-    await showPracticeSide(page, game);
-    const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
-    await button.waitFor({ timeout: 60_000 });
-    await page.waitForTimeout(600);
-    await button.click();
     const ready = page.getByRole("button", { name: /^Ready/ }).first();
     await ready.waitFor({ timeout: 60_000 });
     await page.evaluate(() => document.fonts.ready);

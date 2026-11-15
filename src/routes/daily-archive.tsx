@@ -11,6 +11,7 @@ import { APP_NAME } from "@/lib/brand";
 import { asyncAttempt } from "@/lib/duel/asyncApi";
 import type { AsyncAttemptView } from "@/lib/duel/asyncRoom";
 import { DAILY_KINDS, DAILY_TITLE, type DailyKind } from "@/lib/duel/daily";
+import { TournamentArt } from "@/components/tournaments/TournamentArt";
 import { dailyArchive, startDailyArchive, type ArchiveDay } from "@/lib/plus/plusApi";
 
 /**
@@ -108,15 +109,15 @@ function ArchiveScreen() {
 
   return (
     <PhoneShell skin="play">
-      <div data-daily-archive className="flex flex-1 flex-col gap-4">
+      <div data-daily-archive className="dl-page">
         <div className="flex items-center justify-between gap-2">
           <Button variant="quiet" size={44} onClick={() => router.history.back()}>
             <Icon name="back" size={18} className="-m-px" /> Plus
           </Button>
         </div>
-        <div>
-          <h1 className="ap-title">Daily archive</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Play any past Daily, just for fun. Unrated: never on a board or your streak.</p>
+        <div className="dl-head">
+          <h1 className="dl-title">Daily archive</h1>
+          <p className="dl-sub">Play any past Daily, just for fun. Unrated: never on a board or your streak.</p>
         </div>
         {refused ? (
           <EmptyState layout="card" tone="cool" title="Part of Joulz Plus" body={refused} />
@@ -139,7 +140,8 @@ function ArchiveScreen() {
               {days
                 .filter((d) => d.kind === kind)
                 .map((d) => (
-                  <li key={`${d.kind}:${d.day}`} className="jz-row" data-archive-day={d.day}>
+                  <li key={`${d.kind}:${d.day}`} className="jz-row" data-icon="44" data-archive-day={d.day} data-available={d.available ? "" : undefined}>
+                    <TournamentArt name={d.kind === "puzzle" ? "puzzles" : "arcade"} className="dl-archive-art" />
                     <span className="jz-row-text">
                       <span className="jz-row-title">{dayLabel(d.day)}</span>
                       <span className="jz-row-sub">
@@ -147,7 +149,7 @@ function ArchiveScreen() {
                       </span>
                     </span>
                     {d.available ? (
-                      <Button variant={d.replay?.finished ? "secondary" : "gold"} size={44} disabled={busy !== null} onClick={() => void open(d)} data-archive-play={d.day}>
+                      <Button variant="secondary" size={44} disabled={busy !== null} onClick={() => void open(d)} data-archive-play={d.day}>
                         {d.replay?.finished ? "Results" : d.replay ? "Continue" : "Play"}
                       </Button>
                     ) : null}

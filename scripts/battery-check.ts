@@ -136,8 +136,10 @@ interface Screen {
 }
 
 const playPuzzle = async (page: Page) => {
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): a game's tile
+  // opens its page, whose Play opens the round's intro already counting down (no Ready to press).
   await page.getByRole("button", { name: "Box Six", exact: true }).first().click();
-  await page.getByRole("button", { name: /^Ready/ }).first().click({ timeout: 30_000 });
+  await page.locator("[data-game-page-play]").first().click({ timeout: 30_000 });
   await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
 };
 
@@ -241,8 +243,10 @@ try {
     };
     const play = async (page: Page, game: string) => {
       await showPracticeSide(page, game);
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): a game's tile
+      // opens its page, whose Play opens the round's intro already counting down (no Ready to press).
       await page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first().click();
-      await page.getByRole("button", { name: /^Ready/ }).first().click({ timeout: 30_000 });
+      await page.locator("[data-game-page-play]").first().click({ timeout: 30_000 });
       await page.locator("[data-arcade-play] canvas").first().waitFor({ timeout: 30_000 });
       await page.waitForTimeout(1500);
     };
@@ -384,8 +388,10 @@ try {
     const { context, page } = await open({ mode: "practice" }, REPORT_DPR);
     try {
       await showPracticeSide(page, game);
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): a game's tile
+      // opens its page, whose Play opens the round's intro already counting down (no Ready to press).
       await page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first().click();
-      await page.getByRole("button", { name: /^Ready/ }).first().click({ timeout: 30_000 });
+      await page.locator("[data-game-page-play]").first().click({ timeout: 30_000 });
       await page.locator("[data-arcade-play] canvas").first().waitFor({ timeout: 30_000 });
       await page.waitForTimeout(1500);
       const box = (await page.locator("[data-game-arena]").first().boundingBox())!;

@@ -23,7 +23,7 @@ import { unlockAudio } from "@/lib/sound";
  *
  * - Friends and rivals: Profile, Friends (accounts; a guest gets the save-your-progress sheet, as Profile's Friends
  *   button does), Leaderboards.
- * - Compete: Challenges (the full list, on Games), Daily.
+ * - Compete: Challenges (the full list, /challenges, phase 2 step 3), Daily.
  * - Joulz: Joulz Plus (only where the Shop is on), Settings (/settings), Support (the support address, else
  *   the feedback form; no row while neither is set).
  */
@@ -37,8 +37,6 @@ export const Route = createFileRoute("/more")({
   component: MoreScreen,
 });
 
-/** Where Challenges' row lands on Games: the full challenges list (PracticeChallenges). */
-export const CHALLENGES_SECTION = "[data-practice-challenges]";
 
 function MoreScreen() {
   useHomeBed();
@@ -78,7 +76,7 @@ function MoreScreen() {
         </Group>
 
         <Group title="Compete">
-          <Row art="challenges" title="Challenges" data="challenges" onClick={push("/practice", { state: { navScroll: CHALLENGES_SECTION } })} />
+          <Row art="challenges" title="Challenges" data="challenges" onClick={push("/challenges")} />
           <Row art="daily" title="Daily" detail="Puzzle and Arcade" data="daily" onClick={push("/daily", { search: { kind: "puzzle" } })} />
         </Group>
 

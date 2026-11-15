@@ -49,6 +49,11 @@ interface PhoneShellProps {
   topAction?: ReactNode;
   /** A tab page's title, drawn in its header beside the avatar (the components step, 14 Nov 2026). */
   title?: string;
+  /**
+   * A page pushed from a tab (phase 2 step 3: a game's page from Games): where the rail is drawn, it is drawn full
+   * with this tab current (as the tab's own page), not compact. No effect on a phone or without a rail.
+   */
+  railTab?: AppTab;
   /** One control on the right of a tab page's header (Profile's settings). */
   headerAction?: ReactNode;
   /**
@@ -421,7 +426,7 @@ function useGeometryHold(ref: { current: HTMLElement | null }, active: boolean) 
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, reveal = false, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, title, headerAction, play = false, tabs, skin, aside }: PhoneShellProps) {
+export function PhoneShell({ children, reveal = false, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, title, headerAction, play = false, tabs, skin, aside, railTab }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
   // The computer layout (31 Oct 2026, presentation only): every slot below is null on a phone, so a
   // phone's markup is exactly as before; children keep their place in the tree on every layout, so
@@ -495,7 +500,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
           : undefined
       }
     >
-      {railHere ? <AppRail current={tabPage ? tabs : undefined} compact={!tabPage} /> : null}
+      {railHere ? <AppRail current={tabPage ? tabs : (railTab && !gameScreen ? railTab : undefined)} compact={!tabPage && !(railTab && !gameScreen)} /> : null}
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>
       {/* Desktop arcade play (31 Oct 2026): the game's scenery fades out at the edges of the centre (one static layer over it). */}
       {desktop && arcadePlay ? <div aria-hidden="true" data-dk-fade="" /> : null}

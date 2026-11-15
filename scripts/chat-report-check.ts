@@ -161,7 +161,8 @@ async function flow(browser: Browser, origin: string, db: LocalDb, w: number, h:
       { timeout },
     );
 
-  await page.goto(`${origin}/`, { timeout: 180_000, waitUntil: "load" });
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create a room is on the Rooms page.
+  await page.goto(`${origin}/rooms`, { timeout: 180_000, waitUntil: "load" });
   await ready("#name");
   const me = `Rep${w}`;
   await page.fill("#name", me);

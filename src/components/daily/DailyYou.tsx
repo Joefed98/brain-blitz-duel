@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 
 import type { DailyBoardView } from "@/lib/duel/daily";
 import { dailyTopPlaceLine, type DailyTopPlace } from "@/lib/leaderboards/dailyPlace";
-import { Icon, Panel } from "@/design/components";
+import { Icon, Panel, Row } from "@/design/components";
+import { TournamentArt } from "@/components/tournaments/TournamentArt";
 
 /**
  * Your own Daily line (13 Nov 2026, one identity everywhere): the old public board of everyone's names is retired for
@@ -32,25 +33,25 @@ export function DailyYou({
 }) {
   const me = board.me;
   return (
-    <div data-daily-you={board.open ? "open" : "locked"} className="flex flex-col gap-2">
+    <div data-daily-you={board.open ? "open" : "locked"} className="dl-you">
       {me ? (
-        <Panel as="section" aria-label="You" data-daily-me className="th-card flex flex-col gap-2 px-3.5 py-3" /* design-lint-ignore: moved unchanged from the old DailyBoard */>
-          <div className="flex items-center gap-2">
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="th-name truncate text-[15px] font-semibold leading-tight text-foreground" /* design-lint-ignore: moved unchanged from the old DailyBoard */ data-ellipsis="">
+        <Panel as="section" pad aria-label="You" data-daily-me className="dl-me">
+          <div className="dl-me-head">
+            <span className="dl-me-text">
+              <span className="dl-me-name" data-ellipsis="">
                 {me.name} <span className="rs-you">(you)</span>
               </span>
-              <span className="whitespace-nowrap text-[13px] font-semibold text-[var(--ap-text-2)]" /* design-lint-ignore: moved unchanged from the old DailyBoard */ data-daily-rank>
+              <span className="dl-me-rank" data-daily-rank>
                 {!me.finished ? "You, not finished" : place?.rank ? `You, ${dailyTopPlaceLine(place.rank)}` : "You, finished"}
               </span>
             </span>
-            <span className="th-score shrink-0 text-3xl tabular-nums text-foreground">{me.total}</span>
+            <span className="dl-me-total">{me.total}</span>
           </div>
-          <div className="grid grid-flow-col gap-1" style={ROUND_COLUMNS} aria-label="Round scores">
+          <div className="dl-rounds" style={ROUND_COLUMNS} aria-label="Round scores">
             {me.rounds.map((score, i) => (
-              <span key={i} className="flex min-w-0 flex-col items-center rounded-lg bg-[var(--ap-input)] py-1" /* design-lint-ignore: moved unchanged from the old DailyBoard */>
-                <span className="text-[10.5px] leading-tight text-muted-foreground" /* design-lint-ignore: moved unchanged from the old DailyBoard */>R{i + 1}</span>
-                <span className="text-sm font-bold tabular-nums leading-tight text-foreground">{score ?? "–"}</span>
+              <span key={i} className="dl-round">
+                <span className="dl-round-label">R{i + 1}</span>
+                <span className="dl-round-score">{score ?? "–"}</span>
               </span>
             ))}
           </div>
@@ -62,20 +63,27 @@ export function DailyYou({
           {me.finished && share ? <div className="flex">{share}</div> : null}
         </Panel>
       ) : !board.open ? (
-        <p className="jz-panel flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground" data-daily-locked>
+        <p className="jz-panel dl-locked" data-daily-locked>
           <Icon name="lock" size={18} className="-m-px" />
           <span className="min-w-0">{lockedNote}</span>
         </p>
       ) : null}
-      <button type="button" data-open-daily-board className="press tap-target jz-panel flex items-center justify-between gap-2 px-4 py-3 text-left" onClick={onTop100}>
-        <span className="flex min-w-0 flex-col">
-          <span className="rs-name">Daily top 100</span>
-          <span className="rs-sub">Today and earlier days</span>
-        </span>
-        <Icon name="chevron-right" size={20} className="shrink-0" />
-      </button>
+      <Panel>
+        <Row
+          as="button"
+          icon="44"
+          data-open-daily-board
+          onClick={onTop100}
+          leading={<TournamentArt name="board" />}
+          title="Daily top 100"
+          sub="Today and earlier days"
+        >
+          <Icon name="chevron-right" size={20} tone="text-3" />
+        </Row>
+      </Panel>
     </div>
   );
 }
 
 const ROUND_COLUMNS = { gridAutoColumns: "minmax(0, 1fr)" } as const;
+

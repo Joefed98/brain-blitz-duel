@@ -318,6 +318,130 @@ await section("a guest", async () => {
   await draw(React.createElement("ol", null));
 });
 
+/* ------------------------------------------------------------------ 3b. the podium on both event boards */
+// Added with Joe's approval, 14 Nov 2026 (the boards' top three as compact cards, phase 2 step 3): the real Arena and
+// Score Attack boards (TournamentEvent's ArenaLive and ScoreAttackPlay) drawn on a stand-in backend, every call and
+// fetch counted. A hidden player shows "Hidden player" with no initial, colour, card art or username and opens nothing;
+// a guest keeps colour and initial and opens nothing; an account's mini card comes from the board's own plate.
+
+const { ArenaLive, ScoreAttackPlay } = await import("../src/components/tournaments/TournamentEvent");
+const { setTournamentsBackend } = await import("../src/lib/tournaments/tournamentsApi");
+const { createMemoryHistory, createRootRoute, createRouter, RouterContextProvider } = await import("@tanstack/react-router");
+
+/** A hidden row whose stored name is a username: the podium must draw only the plate ("Hidden player"). */
+const SECRET = "Kiddo_Secret";
+const ROWS = [
+  { place: 1, plate: HIDDEN, name: SECRET },
+  { place: 2, plate: GUEST_PLATE, name: "Gus" },
+  { place: 3, plate: CARD, name: "Ana_Gold" },
+  { place: 4, plate: { ...CARD, name: "Bo_Fourth" } as PlateView, name: "Bo_Fourth" },
+];
+const calls: string[] = [];
+let fetches = 0;
+const realFetch = globalThis.fetch;
+const board = {
+  arena: {
+    eventId: "arena:2026-12-04:1300", endsAt: Date.now() + 600_000, status: "live", players: 4, underReview: false, me: null,
+    rows: ROWS.map((r, i) => ({ ...r, playerId: `pub-${i}`, points: 20 - i * 2, wins: 4 - i, streak: 0, played: 4, isMe: false })),
+  },
+  scoreAttack: {
+    eventId: "score_attack:2026-12-04", open: true, count: 4, underReview: false, me: null,
+    rows: ROWS.map((r, i) => ({ ...r, total: 900 - i * 50, isMe: false })),
+  },
+};
+const notCalled = (name: string) => async () => {
+  calls.push(name);
+  throw new Error(`${name} isn't part of the board`);
+};
+setTournamentsBackend({
+  hub: notCalled("hub"),
+  event: notCalled("event"),
+  enter: notCalled("enter"),
+  remind: notCalled("remind"),
+  arenaReady: notCalled("arenaReady"),
+  arenaPoll: notCalled("arenaPoll"),
+  arenaLeave: async () => void calls.push("arenaLeave"),
+  arenaBoard: async () => (calls.push("arenaBoard"), board.arena) as never,
+  scoreAttackStart: notCalled("scoreAttackStart"),
+  scoreAttackBoard: async () => (calls.push("scoreAttackBoard"), board.scoreAttack) as never,
+  trophies: notCalled("trophies"),
+} as never);
+
+const eventView = (id: string, kind: string) =>
+  ({ id, kind, status: "live", startsAt: Date.now() - 60_000, endsAt: Date.now() + 600_000, rounds: 5, pickLabel: "Mixed", title: "Test" }) as never;
+
+/** One board in a memory router (ArenaLive navigates to its duel), with its own NameplateSheet. */
+async function drawBoard(which: "arena" | "scoreAttack") {
+  const ev = eventView(which === "arena" ? board.arena.eventId : board.scoreAttack.eventId, which === "arena" ? "arena" : "score_attack");
+  const el =
+    which === "arena"
+      ? React.createElement(ArenaLive, { ev, now: Date.now() })
+      : React.createElement(ScoreAttackPlay, { ev, onPlay: () => undefined });
+  const router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory({ initialEntries: ["/"] }) });
+  await act(async () => root.render(React.createElement(RouterContextProvider, { router } as never, el)));
+  for (let i = 0; i < 20 && !document.querySelector(".tn-podium"); i++) await act(async () => new Promise((r) => setTimeout(r, 25)));
+}
+
+for (const which of ["arena", "scoreAttack"] as const) {
+  const label = which === "arena" ? "the Arena board" : "the Score Attack board";
+  await section(`podium, ${label}`, async () => {
+    calls.length = 0;
+    fetches = 0;
+    globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+      fetches++;
+      return realFetch(...args);
+    }) as typeof fetch;
+    await drawBoard(which);
+    const podium = $(".tn-podium");
+    check(!!podium && podium.querySelectorAll(".tn-pod-step").length === 3, `${label}: the top three as the podium`);
+    const steps = [...(podium?.querySelectorAll(".tn-pod-step") ?? [])] as unknown as HTMLElement[];
+    const hidden = steps.find((x) => x.hasAttribute("data-hidden-player"));
+    const guest = steps.find((x) => x.textContent?.includes("Gus"));
+    const account = steps.find((x) => !!x.querySelector("[data-mini-card]"));
+
+    // A hidden player: "Hidden player", no initial, colour, card art or username, nothing to open.
+    const disc = hidden?.querySelector("[data-hidden-disc]") as HTMLElement | null;
+    check(!!hidden && hidden.querySelector(".tn-pod-name")?.textContent === HIDDEN_PLAYER_NAME, `${label}: a hidden player's podium place says Hidden player`);
+    check(!!disc && (disc.textContent ?? "") === "" && !disc.getAttribute("style"), `${label}: a hidden player's podium place: a plain disc, no initial and no colour`);
+    // The player's part of the place (everything but the medal and points under it) carries nothing of the account.
+    const playerPart = hidden ? [...hidden.querySelectorAll("*")].filter((x) => !x.closest(".tn-pod-foot")) : [];
+    check(
+      !!hidden &&
+        playerPart.every((x) => !x.matches("[data-player-badge], [data-initial], [data-mini-card], [data-card-art], [data-frame], [data-avatar], [data-avatar-colour], [data-card-strip], [data-jz='emblem'], svg, img")) &&
+        !hidden.querySelector(".tn-pod-foot [data-player-badge], .tn-pod-foot [data-mini-card], .tn-pod-foot [data-card-art]"),
+      `${label}: a hidden player's podium place has no colour, card art, frame, avatar or emblem (the medal alone under it)`,
+    );
+    check(!!podium && !podium.innerHTML.includes(SECRET) && !document.body.innerHTML.includes(SECRET), `${label}: no username of a hidden player anywhere in the markup (the plate alone is drawn)`);
+    check(!!hidden && !hidden.querySelector("button, [data-open-card]"), `${label}: a hidden player's podium place opens nothing`);
+    await act(async () => void (hidden?.querySelector(".tn-pod-card") as HTMLElement | null)?.click());
+    check(!document.querySelector("[data-card-sheet]"), `${label}: a tap on a hidden player's podium place opens no card`);
+
+    // A guest: colour and initial, nothing to open.
+    const badge = guest?.querySelector("[data-player-badge]") as HTMLElement | null;
+    check(badge?.getAttribute("data-player-badge") === "9" && (badge?.textContent ?? "").includes("G"), `${label}: a guest's podium place keeps colour and initial`);
+    check(!!guest && !guest.querySelector("[data-mini-card], [data-card-art], [data-frame], [data-card-strip]"), `${label}: a guest's podium place has no card`);
+    check(!!guest && !guest.querySelector("button, [data-open-card]"), `${label}: a guest's podium place opens nothing`);
+
+    // An account: the mini card from the board's own plate, no other call or fetch.
+    const mini = account?.querySelector("[data-mini-card]") as HTMLElement | null;
+    check(
+      mini?.getAttribute("data-card-art") === "card-art.grid" && mini?.getAttribute("data-frame") === "frame.gold" && mini?.getAttribute("data-avatar") === "captain-joulz" && mini?.getAttribute("data-avatar-colour") === "7",
+      `${label}: an account's mini card is the board plate's card art, frame and avatar`,
+    );
+    const boardCall = which === "arena" ? "arenaBoard" : "scoreAttackBoard";
+    check(calls.length > 0 && calls.every((c) => c === boardCall) && fetches === 0, `${label}: the podium fetches nothing of its own (only ${boardCall}; calls ${calls.join(", ") || "none"}, fetches ${fetches})`);
+    await act(async () => void (account?.querySelector("button[data-open-card]") as HTMLElement | null)?.click());
+    check(document.querySelector("[data-card-sheet] [data-player-card]")?.getAttribute("data-frame") === "frame.gold", `${label}: a tap on an account's podium card opens their full card`);
+
+    // Nobody twice: the rows start after the podium.
+    const rowNames = [...document.querySelectorAll(".tn-who")].map((x) => x.textContent ?? "");
+    check(rowNames.length === 1 && rowNames[0]!.includes("Bo_Fourth"), `${label}: the rows below start at 4th (${rowNames.join(" | ")})`);
+    globalThis.fetch = realFetch;
+    await act(async () => root.render(React.createElement("ol", null)));
+  });
+}
+setTournamentsBackend(null);
+
 /* ------------------------------------------------------------------ 4. statically */
 
 await section("wiring", async () => {

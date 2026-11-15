@@ -265,7 +265,8 @@ async function pureChecks(): Promise<void> {
     const files = walk("src").filter((f) => /\.(tsx|ts)$/.test(f));
     const fourteen = files.filter((f) => /maxLength=\{14\}/.test(readFileSync(f, "utf8")));
     check(fourteen.length === 0, `no name box still stops at 14 characters (${fourteen.join(", ") || "none"})`);
-    const boxes = ["src/routes/index.tsx", "src/components/duel/JoinFromLink.tsx", "src/routes/daily.tsx", "src/routes/challenge.tsx", "src/components/challenge/ChallengeCreate.tsx", "src/routes/profile.tsx"];
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): the guest name box moved to the Rooms page.
+    const boxes = ["src/routes/rooms.tsx", "src/components/duel/JoinFromLink.tsx", "src/routes/daily.tsx", "src/routes/challenge.tsx", "src/components/challenge/ChallengeCreate.tsx", "src/routes/profile.tsx"];
     check(boxes.every((f) => readFileSync(f, "utf8").includes("maxLength={GUEST_NAME_MAX}")), "every guest name box takes GUEST_NAME_MAX");
     check(/slice\(0, GUEST_NAME_MAX\)/.test(readFileSync("src/lib/duel/useRoomChat.ts", "utf8")), "chat names keep 16 characters");
   });
