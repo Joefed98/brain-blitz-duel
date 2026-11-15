@@ -8,9 +8,11 @@ import type { ArenaSceneView } from "../arenaScene.renderer";
 import { px } from "../engine";
 import { MG_CUP_R, MINIGOLF_H, MINIGOLF_W, type MgHole } from "../minigolf";
 import type { BallArt } from "./ballArt";
-import { BALL_ART_COLOURS } from "./ballArt";
+import { BALL_ART_COLOURS, BALL_ART_COLOURS_V2, ballArtRedrawn } from "./ballArt";
 import { type ContrastPair, type GameLook } from "./look";
 import { skinTime } from "./motion.renderer";
+import { skinRedrawn } from "./redrawPreview";
+import { sceneImage, sceneImagesVersion } from "./sceneImages";
 
 const BALLS: Readonly<Record<string, BallArt>> = {
   "game-skin.crazy-golf.watermelon": "watermelon",
@@ -78,6 +80,10 @@ export interface NeonHoleParts {
 
 /** The whole static hole under the Neon Course (cached per hole like the default). */
 export function neonCourseHole(ctx: CanvasRenderingContext2D, h: MgHole, parts: NeonHoleParts): void {
+  if (skinRedrawn(NEON_COURSE_ITEM)) {
+    neonCourseHoleV2(ctx, h, parts);
+    return;
+  }
   ctx.fillStyle = NEON_COURSE.bg;
   ctx.fillRect(0, 0, MINIGOLF_W, MINIGOLF_H);
   specks(ctx, 0, 0, MINIGOLF_W, MINIGOLF_H, h.index * 31);
@@ -193,6 +199,11 @@ export function neonCourseFlag(ctx: CanvasRenderingContext2D, x: number, y: numb
 
 /** The night beyond the course: deep violet with faint specks. */
 export function neonCourseScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  if (skinRedrawn(NEON_COURSE_ITEM)) {
+    sceneImage("course.turf"); // asked for early, so it has arrived by the time the hole is painted
+    neonCourseSceneV2(ctx, view);
+    return;
+  }
   const { left, top, right, bottom } = view;
   ctx.fillStyle = NEON_COURSE.bg;
   ctx.fillRect(left, top, right - left, bottom - top);
@@ -202,7 +213,142 @@ export function neonCourseScene(ctx: CanvasRenderingContext2D, view: ArenaSceneV
 /** What each Crazy Golf look must keep visible: the ball on the turf. */
 export function minigolfContrast(look: GameLook): ContrastPair[] {
   const art = minigolfBallArt(look);
-  const colours = art ? [...BALL_ART_COLOURS[art], "#06080F"] : look.world ? [NEON_COURSE.ball] : ["#FFFFFF", "#E4E7EA"];
+  const colours = art ? [...((ballArtRedrawn(art) && BALL_ART_COLOURS_V2[art]) || BALL_ART_COLOURS[art]), "#06080F"] : look.world ? [NEON_COURSE.ball] : ["#FFFFFF", "#E4E7EA"];
   const backgrounds = look.world ? [NEON_COURSE.turf] : ["#2F7A3A", "#2A6F35"];
   return [{ object: "ball", colours, backgrounds }];
+}
+
+/* ============================== The redraw (phase 2 step 4) ============================== */
+
+const NEON_COURSE_ITEM = "world-theme.crazy-golf.neon-course";
+
+/**
+ * Extra cache-key text for a hole under the Neon Course's redraw: it changes when the turf image arrives, so a cached
+ * hole is painted again once with it ("" with the switch off). Part of minigolf.renderer.ts's hole cache key.
+ */
+export function neonCourseCacheTag(): string {
+  if (!skinRedrawn(NEON_COURSE_ITEM)) return "";
+  sceneImage("course.turf");
+  return `:v${sceneImagesVersion()}`;
+}
+
+/** A lit tube along the path just built: a dark bed under it, the colour, a white core on the lit side. */
+function tube(ctx: CanvasRenderingContext2D, colour: string, width: number): void {
+  ctx.save();
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = width + 2;
+  ctx.translate(0.8, 1.2);
+  ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = width;
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  ctx.lineWidth = Math.max(0.6, width * 0.25);
+  ctx.translate(-width * 0.18, -width * 0.18);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** The redrawn Neon Course: the same hole, lit night turf with depth, the rails and hazards as lit tubes. */
+function neonCourseHoleV2(ctx: CanvasRenderingContext2D, h: MgHole, parts: NeonHoleParts): void {
+  const bg = ctx.createRadialGradient(MINIGOLF_W * 0.2, 0, 0, MINIGOLF_W * 0.5, MINIGOLF_H * 0.5, MINIGOLF_H);
+  bg.addColorStop(0, "#1A1240");
+  bg.addColorStop(1, "#05030F");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, MINIGOLF_W, MINIGOLF_H);
+  specks(ctx, 0, 0, MINIGOLF_W, MINIGOLF_H, h.index * 31);
+  ctx.save();
+  polyPath(ctx, h.poly);
+  ctx.clip();
+  const turf = ctx.createLinearGradient(h.box.x, h.box.y, h.box.x + h.box.w, h.box.y + h.box.h);
+  turf.addColorStop(0, "#0E4A34");
+  turf.addColorStop(0.5, "#083024");
+  turf.addColorStop(1, "#041A12");
+  ctx.fillStyle = turf;
+  ctx.fillRect(h.box.x - 4, h.box.y - 4, h.box.w + 8, h.box.h + 8);
+  // The second pass: the night turf rendered in Blender (blades and nap), laid over the lit gradient.
+  const turfImg = sceneImage("course.turf");
+  const turfPattern = turfImg ? ctx.createPattern(turfImg, "repeat") : null;
+  if (turfPattern) {
+    ctx.save();
+    ctx.globalAlpha = 0.78;
+    ctx.globalCompositeOperation = "overlay";
+    ctx.scale(0.5, 0.5);
+    ctx.fillStyle = turfPattern;
+    ctx.fillRect((h.box.x - 4) * 2, (h.box.y - 4) * 2, (h.box.w + 8) * 2, (h.box.h + 8) * 2);
+    ctx.restore();
+  }
+  // The mown stripes, faint, and the turf's fine grain.
+  for (let x = Math.floor(h.box.x / 22) * 22; x < h.box.x + h.box.w + 4; x += 22) {
+    ctx.fillStyle = (x / 22) % 2 ? "rgba(61,255,154,0.05)" : "rgba(0,0,0,0.08)";
+    ctx.fillRect(x, h.box.y - 4, 11, h.box.h + 8);
+  }
+  ctx.restore();
+  parts.slopes();
+  ctx.save();
+  polyPath(ctx, h.poly);
+  ctx.clip();
+  ctx.fillStyle = "rgba(4,20,22,0.55)";
+  for (const sl of h.slopes) ctx.fillRect(px(sl.x0), px(sl.y0), px(sl.x1) - px(sl.x0), px(sl.y1) - px(sl.y0));
+  ctx.restore();
+  parts.floor();
+  const tx = px(h.tee.x);
+  const ty = px(h.tee.y);
+  ctx.beginPath();
+  ctx.roundRect(tx - 18, ty - 12, 36, 24, 5);
+  ctx.fillStyle = "rgba(61,255,154,0.1)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(61,255,154,0.6)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // The cup's hole, with its lip lit on the far side.
+  const cx = px(h.cup.x);
+  const cy = px(h.cup.y);
+  const cupG = ctx.createRadialGradient(cx - 1.5, cy - 1.5, 0, cx, cy, MG_CUP_R);
+  cupG.addColorStop(0, "#000000");
+  cupG.addColorStop(0.75, "#04060A");
+  cupG.addColorStop(1, "#1C2A30");
+  ctx.fillStyle = cupG;
+  ctx.beginPath();
+  ctx.arc(cx, cy, MG_CUP_R, 0, Math.PI * 2);
+  ctx.fill();
+  // The rails: a lit green tube on the rails' own line.
+  polyPath(ctx, h.poly);
+  tube(ctx, NEON_COURSE.edge, 4.5);
+  parts.pieces();
+  for (const c of [...h.rocks, ...h.planters]) {
+    ctx.beginPath();
+    ctx.arc(px(c.x), px(c.y), Math.max(1, px(c.r) - 0.75), 0, Math.PI * 2);
+    tube(ctx, NEON_COURSE.pink, 1.6);
+  }
+  for (const l of h.logs) {
+    const ax = px(l.ax);
+    const ay = px(l.ay);
+    const bx = px(l.bx);
+    const by = px(l.by);
+    const r = px(l.r) - 0.75;
+    const a = Math.atan2(by - ay, bx - ax);
+    ctx.beginPath();
+    ctx.arc(ax, ay, r, a + Math.PI / 2, a + (Math.PI * 3) / 2);
+    ctx.arc(bx, by, r, a - Math.PI / 2, a + Math.PI / 2);
+    ctx.closePath();
+    tube(ctx, NEON_COURSE.pink, 1.6);
+  }
+}
+
+/** The redrawn night beyond the course: deep violet, lit from the top left, faint specks. */
+function neonCourseSceneV2(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const { left, top, right, bottom } = view;
+  const g = ctx.createRadialGradient(left + (right - left) * 0.2, top, 0, (left + right) / 2, (top + bottom) / 2, bottom - top);
+  g.addColorStop(0, "#1A1240");
+  g.addColorStop(1, "#05030F");
+  ctx.fillStyle = g;
+  ctx.fillRect(left, top, right - left, bottom - top);
+  specks(ctx, left, top, right, bottom, 977);
 }
