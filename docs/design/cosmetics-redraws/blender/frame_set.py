@@ -8,7 +8,7 @@
                       the corners
   frame.s1-<tier>     Season 1, one family: the tier's metal and enamel inlay, the season's hexagonal "1" medallion
                       (its shared motif), tier stones at the corners, richer tier by tier (wider bands, more stones, a
-                      second band from Storm, a sunburst behind the medallion on Top 500)
+                      second band from Storm; Top 500 the Joulz black and gold with diamonds and a sunburst behind the medallion)
   frame.obsidian      black volcanic glass with a violet light along its inner edge, obsidian shards at the corners
   frame.silver        polished silver, finely engraved, silver studs (calm)
   frame.bronze        warm satin bronze, plain studs (everyday: calm)
@@ -121,7 +121,7 @@ SEASON = {
     "surge": ("gold", (0.06, 0.15, 0.64), (0.25, 0.4, 1.0), (1.45, 1.3), 3.8, 2, False, False),
     "storm": ("gold", (0.3, 0.08, 0.64), (0.62, 0.36, 1.0), (1.5, 1.35), 4.0, 2, True, False),
     "lightning": ("gold", (0.8, 0.58, 0.04), (1.0, 0.85, 0.2), (1.6, 1.4), 4.4, 4, True, False),
-    "top-500": ("dark-gold", (0.28, 0.04, 0.44), DIAMOND, (1.7, 1.45), 4.8, 4, True, True),
+    "top-500": ("gold", (0.008, 0.008, 0.012), DIAMOND, (1.7, 1.45), 4.8, 4, True, True),
 }
 
 
