@@ -150,7 +150,8 @@ ok(FLIP_V11.parts.reduce((a, p) => a + p.max, 0) === 200 && FLIP_V11_SAVE_COST =
   const line = INTRO_SCORE.flip;
   ok(line.length <= 90 && /crashes cost time/.test(line) && line.includes("sweet spots") && line.includes("flow") && line.endsWith("Up to 200."), `the intro states the parts and the top in ≤ 90 characters: ${line}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(demo.includes("demo.puzzle.flipRev !== FLIP_REV_FLOW && demo.puzzle.flipRev !== FLIP_REV_DEAL && demo.puzzle.flipRev !== FLIP_REV_GRACE) return null;"), "the intro demo plays only when recorded on flipRev 11, 12 or 13 (the same look)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
+  ok(demo.includes('demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_GRACE) return null;'), "the intro demo plays only when recorded on flipRev 13 (the stamp rooms deal)");
   const art = readFileSync("src/lib/arcade/flipArt.renderer.ts", "utf8");
   // The Action HUD (3 Nov 2026): the flow streak as a chip.
   ok(art.includes("if (state.flow) drawFlowHud(ctx, state);") && art.includes('{ label: "FLOW", value: String(streak)'), "the HUD shows the flow streak on flipRev 11");

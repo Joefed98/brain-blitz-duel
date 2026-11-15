@@ -53,7 +53,8 @@ section("1. wiring");
   ok(entry.rev === FLIP_REV_GRACE && entry.before === FLIP_REV_DEAL, "the arcade-standard entry is flipRev 13, after 12");
   ok(playRevOf("flip", FLIP_REV_DEAL) === playRevOf("flip", FLIP_REV_FLOW) && playRevOf("flip", FLIP_REV_DEAL) === 8, "playRevOf maps flipRev 12 to flipRev 11's play (flipRev 8's)");
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/demo\.puzzle\.flipRev !== FLIP_REV_FLOW && demo\.puzzle\.flipRev !== FLIP_REV_DEAL && demo\.puzzle\.flipRev !== FLIP_REV_GRACE\) return null/.test(demo), "the intro demo plays one recorded on flipRev 11, 12 or 13");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
+  ok(/demo\?\.puzzle\.type === "flip" && demo\.puzzle\.flipRev !== FLIP_REV_GRACE\) return null/.test(demo), "the intro demo plays one recorded on flipRev 13 (the stamp rooms deal)");
 }
 
 section("2. the same game as flipRev 11");
