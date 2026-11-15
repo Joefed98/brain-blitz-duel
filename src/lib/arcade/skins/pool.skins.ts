@@ -11,6 +11,7 @@ import type { ArenaSceneView } from "../arenaScene.renderer";
 import { POOL_BAULK_Y, POOL_CB, POOL_CL, POOL_CR, POOL_CT, POOL_CUE, POOL_JAWS, POOL_POCKETS, POOL_RAIL, POOL_W, POOL_H } from "../pool";
 import { glossSphere } from "./gloss.renderer";
 import type { ContrastPair, GameLook } from "./look";
+import { sceneImage } from "./sceneImages";
 import { skinRedrawn } from "./redrawPreview";
 
 const FONT = "'Archivo', system-ui, sans-serif";
@@ -295,7 +296,46 @@ export function paintPoolSkinBall(ctx: CanvasRenderingContext2D, kind: PoolBallK
   if (kind === "pixel") pixelBall(ctx, id, x, y, r, turn);
   else if (kind === "galaxy") galaxyBall(ctx, id, x, y, r, turn);
   else neonBall(ctx, kind, id, x, y, r, turn, darkCloth);
-  if (skinRedrawn(POOL_KIND_ITEMS[kind])) poolBallFinish(ctx, kind, id, x, y, r, darkCloth);
+  if (!skinRedrawn(POOL_KIND_ITEMS[kind])) return;
+  // The second pass: the Blender-rendered light of a real ball (clear-coated resin, or glass for the neon sets) laid
+  // over the ball's own face with hard-light (its mid-grey leaves the colour as it is); the first pass's finish while
+  // the image loads.
+  const glass = kind === "neon" || kind === "neon8";
+  const light = kind === "neontable" ? null : sceneImage(glass ? "pool.glass" : kind === "pixel" ? "pool.pixel" : "pool.gloss");
+  if (light) {
+    ctx.save();
+    ctx.beginPath();
+    if (kind === "pixel") {
+      // The pixel set keeps its pixels: its light is one value a cell of its 10 × 10 grid, clipped to the grid's rows.
+      const pr = r / ((4 * Math.SQRT2) / 5);
+      const p = (pr * 2) / 10;
+      for (let row = 0; row < 10; row++) {
+        const [a, b] = MASK[row]!;
+        ctx.rect(x - pr + a * p, y - pr + row * p, (b - a + 1) * p, p);
+      }
+      ctx.clip();
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalCompositeOperation = "hard-light";
+      ctx.drawImage(light, x - pr, y - pr, pr * 2, pr * 2);
+    } else {
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.globalCompositeOperation = "hard-light";
+      ctx.drawImage(light, x - r, y - r, r * 2, r * 2);
+    }
+    ctx.restore();
+    if (glass) {
+      // The neon rim, bright again over the light.
+      const lw = Math.max(1, (r * 2) / 19);
+      ctx.strokeStyle = poolNeonColour(kind, id, darkCloth);
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    return;
+  }
+  poolBallFinish(ctx, kind, id, x, y, r, darkCloth);
 }
 
 /* ============================== The redraws (phase 2 step 4) ============================== */
