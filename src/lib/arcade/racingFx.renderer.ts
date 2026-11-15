@@ -135,8 +135,10 @@ export function racingSparks(s: RacingState, carW: number): FxParticle[] {
   const out: FxParticle[] = [];
   for (let k = 0; k < n; k++) {
     const r = h(s.tick * 31 + k);
+    const r2 = h(s.tick * 17 + k * 7);
     const age = (k % 6) / 6;
-    out.push({ x: side * (carW * 0.5 + 2 + age * 22 * r), y: -carW * 0.18 + age * 26 + r * 6, r: 1.2 + (1 - age) * 1.4, a: 1 - age * 0.8 });
+    // Thrown out from the touching side and back towards us, longer and fainter as they age.
+    out.push({ x: side * (carW * 0.46 + 4 + age * 46 * (0.4 + r)), y: -carW * 0.22 + age * 52 * (0.5 + r2) - r * 10, r: 1.8 + (1 - age) * 2.6, a: 1 - age * 0.7 });
   }
   return out;
 }
@@ -286,8 +288,11 @@ export function drawParticles(ctx: Ctx2D, cx: number, cy: number, list: readonly
       ctx.arc(cx + p.x, cy + p.y, p.r, 0, Math.PI * 2);
       ctx.fill();
     } else {
-      ctx.fillStyle = `rgba(255,${200 + Math.round(40 * p.a)},120,${p.a})`;
-      ctx.fillRect(cx + p.x - p.r, cy + p.y - p.r * 0.5, p.r * 2.4, p.r);
+      // A hot streak (gold to white at its head), angled along its flight.
+      ctx.fillStyle = `rgba(255,${190 + Math.round(50 * p.a)},${90 + Math.round(90 * p.a)},${p.a})`;
+      ctx.fillRect(cx + p.x - p.r, cy + p.y - p.r * 0.45, p.r * 3.2, p.r * 0.9);
+      ctx.fillStyle = `rgba(255,252,230,${p.a})`;
+      ctx.fillRect(cx + p.x - p.r * 0.4, cy + p.y - p.r * 0.3, p.r * 0.9, p.r * 0.6);
     }
   }
   ctx.restore();
