@@ -18,7 +18,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Fit every piece around the pegs. Tap to rotate.
+        Fit every piece around the pegs. Tap to turn, double-tap to flip.
       </p>
       <BlockBoard blockers={EXAMPLE_BLOCKERS} placements={EXAMPLE_PLACED} size={150} />
       <p className="text-xs text-muted-foreground">
@@ -70,9 +70,13 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           </div>
         </div>
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+      {/* The player's own count, labelled as theirs (Pattern overhaul): under the Solution / Yours switch it never
+          reads as the solution's. It stays under both views: hiding it under Solution left the card no width of its
+          own and the reveal's fit drew the solution at half size. */}
+      <p data-own-count="" className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+        You:{" "}
         {myCorrect ? (
-          <span className="text-primary">Solved</span>
+          <span className="text-primary">solved</span>
         ) : (
           (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${geo.free} covered`)
         )}

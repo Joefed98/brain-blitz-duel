@@ -34,6 +34,18 @@ floor: never a real engine, horn or tyre squeal.
 
 <!-- tessellate:start -->
 ## Tessellate
+
+Look A: glossy lacquered blocks on a dark slab with brass studs. Today `turn` and `flip` share the generic UI select,
+`place` a generic block pop and `solve` the shared pops; the four new slots play library stand-ins.
+
+- `blockparty.turn` — a tray piece spun a quarter turn: a quick, light lacquered-wood spin with a crisp click at the end; snappy, satisfying; 120–180 ms.
+- `blockparty.flip` — a tray piece flipped over: a short flick and a light clack as the block lands on its other face; 150–200 ms.
+- `blockparty.pickup` — a piece lifted off the tray or board: a soft upward lift, a faint lacquer-on-felt slide with a small airy rise; gentle; 120–180 ms.
+- `blockparty.place` — a piece dropped where it fits: a firm, solid snap of a lacquered block seating into a recessed board, one dense click with a short low body; confident; 120–200 ms.
+- `blockparty.illegal` — a piece let go where it doesn't fit and sliding back to the tray: a dull, muted wooden thud followed by a short soft slide; not harsh, clearly "no"; 250–350 ms.
+- `blockparty.undo` — Undo, the last move given back: a quick reversed lift, a soft click as the piece returns; light; 120–180 ms.
+- `blockparty.reset` — Reset, every piece back to the tray: a short soft sweep of several blocks sliding together, ending in a light settle; 300–450 ms.
+- `blockparty.solve` — the last gap filled: a bright, clean shine, a glassy shimmer rising across the board with a soft brass chime at the top; rewarding, not loud; 900–1,100 ms.
 <!-- tessellate:end -->
 
 <!-- pipeline:start -->
@@ -64,10 +76,54 @@ floor: never a real engine, horn or tyre squeal.
 
 <!-- skid:start -->
 ## Skid
+
+A glossy steel-cored ball on a frosted ice sheet between dark granite blocks. Every sound is ice and stone: cold,
+crisp and clean, never a cartoon whoosh or a game-show chime.
+
+- `iceslide.slide` — a short slide (one to four squares): a smooth, glassy hiss of a hard ball gliding over frosted
+  ice, starting at once and fading at the end; light and quick; 0.4 s. (Today silent; `iceslide.slide.mp3`, a 0.17 s
+  swish, stands in only behind `NEW_GAME_SOUNDS`.)
+- `iceslide.slideLong` — a long slide (five squares or more): the same glassy ice hiss held longer with a faint
+  rising whistle of speed, fading at the end; 0.9 s. (Today the library's generic slide stands in.)
+- `iceslide.stop` — the ball comes to rest against a granite block or the rink's edge: a short, solid, muffled
+  thump of a heavy ball meeting stone, a tiny ice tick after it; firm, never booming; 0.15 s. (Today the library's
+  fair thud stands in.)
+- `iceslide.bump` — a slide straight into a wall (nothing moves, nothing counts): a tiny dull tap of the ball nudging
+  stone, barely a knock, no ring; clearly "can't go that way"; 0.08 s. (Today the library's wood knock stands in.)
+- `iceslide.nearExit` — the ball rests one slide from the gold exit with the finish still at par: a soft, airy
+  shimmer of frost catching light, one rising sparkle, quiet and short; 0.3 s. (Today the library's gem glint stands
+  in.)
+- `iceslide.crack` — **keep** (thin ice cracking and giving way as the ball leaves it).
+- `iceslide.portal` — **keep** (the ball flares through a portal).
+- `iceslide.fall` — **keep** (the ball spins down into a hole).
+- `iceslide.solve` — **keep** (the ice frosts over and shatters at the exit).
+- Undo and Reset: no new sound; they play the shared `move` tick as today.
 <!-- skid:end -->
 
 <!-- heave:start -->
 ## Heave
+
+A brick warehouse with a stone floor, wooden crates and one gold crate; the worker in work boots. Every sound is
+close, dry and indoors: never a factory alarm, a forklift or a cartoon "boing".
+
+- `push.step` — the worker takes one step: a light, soft work-boot footstep on a dusty stone floor, a faint grit
+  scuff, no echo; quick, it repeats often, so keep it quiet and neutral; 80–110 ms. (Today silent; the November
+  placeholder `push.step.mp3` plays behind `NEW_GAME_SOUNDS`.)
+- `push.push` — a step that shoves a crate one square: a heavy wooden crate dragged across stone, a short gritty
+  scrape with weight behind it, a beat after the footstep, ending in a dull settle; satisfying, not loud; 150–220 ms.
+  (Today silent; the November placeholder `push.push.mp3` plays behind `NEW_GAME_SOUNDS`.)
+- `push.home` — **keep** (the crate thumps down on its mark with a puff of dust).
+- `push.goldOff` — the gold crate pushed off its gold mark: a soft metallic "un-clink" falling a few notes, like a
+  brass plate lifting off and losing its ring; a gentle "oh no", never a buzzer; 300–400 ms. (Today
+  `retro.powerDown.mp3` stands in.)
+- `push.stuck` — a crate pushed where it can never leave (a corner, or against a wall with no mark on it): a low
+  warning creak of strained timber, slow and short, as if the crate groans in place; a hint, not an error; 350–500 ms.
+  (Slot only for now: the deadlock hint comes with the levels; `swing.vineCreak.mp3` stands in.)
+- `push.solve` — every crate home, the warehouse lights come on: three or four big industrial light switches clunking
+  on one after another left to right, each with a short electric hum swelling under it, ending on a warm, settled hum
+  that fades; 1.1–1.3 s. (Replaces today's `push.solve.mp3`, which has the crates' thumps but no lights.)
+- The gold crate onto its gold mark: no new sound; it keeps the shared `correct`.
+- Undo and Reset: no new sound (the worker steps back silently, as today).
 <!-- heave:end -->
 
 <!-- lightbender:start -->

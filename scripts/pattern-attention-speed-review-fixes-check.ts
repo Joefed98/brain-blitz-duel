@@ -117,8 +117,11 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   check(!stage.includes("value: `${litGems.length}/${gems.length}`") && !stage.includes("value: `${litGems.length} / ${gems.length}`"), "Lightbender: a Gems pill still counts only the beam on screen");
 }
 
-// Heave: no par is shown during play, so the help names none.
-check(!/\bpar\b/i.test(PATTERN_STD_HELP.push), "Heave: the help still mentions par, which the screen never shows");
+// Heave: the help names par only while the screen shows it.
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Heave now shows Pushes and
+// Par during play (pushPar.ts), so the help names par again; the assertion keeps the rule "par in the help only when
+// the stage shows it" (pattern-overhaul-push-check proves the pill).
+check(/\bpar\b/i.test(PATTERN_STD_HELP.push) === src("src/puzzles/push.tsx").includes(`parPills("Pushes"`), "Heave: the help names par but the screen doesn't show it (or the other way round)");
 
 // The ✓ / ✗ between a count and its unit ("17 ✗ moves · par 34") read as a typo, app-wide.
 {

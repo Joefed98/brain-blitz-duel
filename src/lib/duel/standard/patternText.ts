@@ -54,8 +54,8 @@ export const PATTERN_STD_HELP: Record<PatternStdType, string> = {
   pipes: help("pipes", "join every pipe to the source", [parLine("pipes", "Taps", "finish in the fewest taps (par)", P("pipes"))], "the share of the pipes joined to the source, more for doing it early"),
   push: help("push", "push every crate onto a mark", [
     { label: "Gold crate", how: "the gold crate on the gold mark", max: PUSH_STD.gold },
-    // Pattern review fixes (15 Nov 2026): Heave shows no par during play, so the help no longer names one.
-    parLine("push", "Pushes", "finish in the fewest pushes the warehouse allows", P("push")),
+    // The Pattern overhaul (15 Nov 2026): Heave shows Pushes and Par during play, so the help names par again.
+    parLine("push", "Pushes", "finish in the fewest pushes (par, shown)", P("push")),
   ], `${PUSH_STD.perCrate} for each crate on a mark, more for getting it there early, plus the gold crate; wasted pushes take it down`),
 };
 
@@ -126,8 +126,21 @@ export const PIPES_TWO_WAY_INTRO = "Join every pipe to the source; bonuses for s
 export const pipesPatternHelp = (): string =>
   preNov7Pinned() ? PATTERN_STD_HELP.pipes : prePatternNov15Pinned() ? PIPES_PLACED_HELP : PIPES_TWO_WAY_HELP;
 
+// ---- tessellate:start (the Pattern overhaul, 15 Nov 2026; patternNov15.ts)
+/**
+ * Tessellate on blockRev 4: the bonus counts clean drops (moving a placed piece costs nothing; a drop where a piece
+ * won't fit costs one piece's share).
+ */
+export const BLOCK_NOV15_INTRO = "Fill the board; bonuses for speed and clean drops. Up to {max}.";
+export const BLOCK_NOV15_HELP = help("blockparty", "fill the board", [{ label: "Clean drops", how: "every piece placed with no drop where it won’t fit (moving a placed piece costs nothing)", max: BLOCK_STD.firstTime }], `${BLOCK_STD.perPiece} for each piece on its spot in the solution, more for placing it early`);
+/** Tessellate's help and intro for the stamp dealt now. */
+export const blockPatternHelp = (): string => (prePatternNov15Pinned() ? PATTERN_STD_HELP.blockparty : BLOCK_NOV15_HELP);
+export const blockPatternIntro = (): string => (prePatternNov15Pinned() ? PATTERN_STD_INTRO.blockparty : BLOCK_NOV15_INTRO);
+// ---- tessellate:end
+
 /** The help as shown ({max} filled in: the game's maximum, 200). */
 export function patternStdHelp(type: PatternStdType): string {
+  if (type === "blockparty") return fillMax(blockPatternHelp(), type);
   if (isPartialPatternType(type) && partialCreditDealt()) return fillMax(PARTIAL_PATTERN_HELP[type], type);
   if (type === "pipes") return fillMax(pipesPatternHelp(), type);
   // Skid and Topsy-Turvy state the puzzle batch's stamps while rooms deal them (parMoves.ts).
@@ -137,6 +150,7 @@ export function patternStdHelp(type: PatternStdType): string {
 
 /** The intro line as shown ({max} filled in). */
 export function patternStdIntro(type: PatternStdType): string {
+  if (type === "blockparty") return fillMax(blockPatternIntro(), type);
   if (isPartialPatternType(type) && partialCreditDealt()) return fillMax(PARTIAL_PATTERN_INTRO[type], type);
   if ((type === "iceslide" || type === "gravity") && parMovesDealt()) return fillMax(PAR_MOVES_PATTERN_INTRO[type], type);
   // Pipeline pipesRev 5 (patternNov15.ts): turns both ways.

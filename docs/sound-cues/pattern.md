@@ -32,15 +32,23 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 | Cue | Trigger | Length |
 |---|---|---|
 | `blockparty.place` | A piece dropped legally on the board pops into place | 260 ms (outline 320 ms) |
-| `blockparty.turn` | A single tap rotates a tray piece | 180 ms |
-| `blockparty.flip` | A double tap flips a tray piece | 180 ms |
+| `blockparty.turn` | A single tap rotates a tray piece (shown once the double-tap window has passed, 260 ms; Pattern overhaul) | 180 ms |
+| `blockparty.flip` | A double tap flips a tray piece (it no longer turns first) | 180 ms |
+| `blockparty.pickup` | A piece lifted: the first drag movement of a tray or board piece, or a tap that takes a placed piece back | lift |
+| `blockparty.illegal` | A piece let go over the board where it doesn't fit: it slides back (blockRev 4 counts it) | ~300 ms |
+| `blockparty.undo` | Undo (blockRev 4): the last move given back | short |
+| `blockparty.reset` | Reset (blockRev 4): every piece back to the tray | short |
 | `blockparty.solve` | All squares covered: rings leave the pegs, then a shine sweeps outwards | ~1,100 ms |
 
 ## Skid (`iceslide`)
 
 | Cue | Trigger | Length |
 |---|---|---|
-| `iceslide.slide` | A slide starts (the ball and its frost trail move) | ~100 ms per cell crossed |
+| `iceslide.slide` | A slide of up to four squares starts (the ball and its frost trail move) | ~100 ms per cell crossed |
+| `iceslide.slideLong` | A slide of five squares or more starts (since 15 Nov 2026, `move.slide.mp3` until its own file) | ~100 ms per cell crossed |
+| `iceslide.stop` | The ball comes to rest against what stopped it (not a fall or the exit; since 15 Nov 2026, `arc_fair_thud.mp3` until its own file) | 160 ms |
+| `iceslide.bump` | A slide straight into a wall or the edge: nothing moves and nothing counts (since 15 Nov 2026, `arc_wood_knock.mp3` until its own file) | 90 ms |
+| `iceslide.nearExit` | The ball rests one slide from the exit with the finish still at par: the exit glows softly (since 15 Nov 2026, `gem.glint.mp3` until its own file) | 300 ms |
 | `iceslide.portal` | The ball comes out of a portal; both cells of the pair flare | 450 ms |
 | `iceslide.crack` | Thin ice breaks as the ball leaves it (shards fly) | 520 ms |
 | `iceslide.fall` | The ball reaches a hole and spins down | 400 ms |
@@ -110,3 +118,5 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 | `push.push` | A step that pushes a crate | 120 ms |
 | `push.home` | A crate lands on a marking: it thumps and kicks up dust (not on the solving push) | 300 ms thump, 520 ms dust |
 | `push.solve` | The crates thump in turn and the warehouse lights switch on in a row | 1,200 ms |
+| `push.goldOff` | The gold crate pushed off its gold mark (since 15 Nov 2026, `retro.powerDown.mp3` until its own file) | — |
+| `push.stuck` | A crate pushed where it can never leave: a warning creak (slot only: fired by the deadlock hint, which comes with the levels; `swing.vineCreak.mp3` until its own file) | — |

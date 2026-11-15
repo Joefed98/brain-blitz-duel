@@ -48,8 +48,8 @@ import { gradeSteps, median, sentAnswer } from "./standard-lib";
 import { JUMBLED_SKILLS, TOPSY_READ_S, TOPSY_SKILLS, TOPSY_TILT_S } from "./d5-remodels/bots";
 import { pinPreParMoves } from "../src/lib/duel/parMoves";
 import { pinPreNov7 } from "../src/lib/duel/speedPipesNov7";
-import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
 import { pinPrePatternNov15 } from "../src/lib/duel/patternNov15";
+import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
 
 // Written for the standard's stamps: the partial-credit fixes of 7 Nov 2026 (partialCredit.ts) deal
 // Gridlock, Turntable and Gradient one stamp above, so new deals here keep the standard's (partial-credit-check proves the new stamps).

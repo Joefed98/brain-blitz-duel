@@ -30,6 +30,25 @@ clips of the hero effects. Images are in this folder.
 
 <!-- tessellate:start -->
 ## Tessellate
+
+| | Before | After |
+|---|---|---|
+| Start / intro | <img src="../../game-reviews/img/pattern/blockparty-1-start.webp" width="180"> | <img src="blockparty-after-intro.webp" width="180"> |
+| Mid-play | <img src="../../game-reviews/img/pattern/blockparty-2-mid.webp" width="180"> | <img src="blockparty-after-play.webp" width="180"> |
+| Round end | <img src="../../game-reviews/img/pattern/blockparty-3-end.webp" width="180"> | <img src="blockparty-after-reveal.webp" width="180"> |
+
+- **Look A** in Blender sprites (`public/pattern-art/blockparty/`, source `docs/design/game-art/pattern/source/blockparty.py`):
+  brass studs for the pegs, satin recesses for the free squares, a glossy lacquered block for every square of a piece
+  in today's nine colours, on a dark slab and tray. One image per board cell, exactly the cell's box (no hit area moved).
+- **A double tap only flips**: a tap's turn waits out the 260 ms double-tap window, so the piece never turns first.
+- **Undo and Reset** (blockRev 4), navy with champagne-gold icons: Undo gives the last move back, Reset sends every
+  piece to the tray (Undo brings the board back).
+- **Clean drops** (blockRev 4): moving a placed piece no longer costs the bonus; only a drop where a piece won't fit
+  does (one piece's share each).
+- **Help**: the flip, Undo and Reset are explained; "Drag a piece's anchor" is gone.
+- **Reveal**: the player's count reads "You: 0/9 pieces in place", so under Solution it never reads as the solution's.
+- **Tray**: the widest piece fits its own column (a four-long bar used to run over its neighbour once pieces were placed).
+- **Sounds**: pick-up, illegal drop (a dull thud as the piece goes back; it was silent), Undo and Reset now sound.
 <!-- tessellate:end -->
 
 <!-- pipeline:start -->
@@ -76,10 +95,57 @@ clips of the hero effects. Images are in this folder.
 
 <!-- skid:start -->
 ## Skid
+
+| Before (main) | After |
+|---|---|
+| <img src="../../game-reviews/img/pattern/iceslide-1-start.webp" width="180"> | <img src="iceslide-after-intro.webp" width="180"> |
+| <img src="../../game-reviews/img/pattern/iceslide-2-mid.webp" width="180"> | <img src="iceslide-after-play.webp" width="180"> |
+| <img src="../../game-reviews/img/pattern/iceslide-3-end.webp" width="180"> | <img src="iceslide-after-reveal-solution.webp" width="180"> <img src="iceslide-after-reveal-yours.webp" width="180"> |
+
+- **Look (A):** every piece is a Blender render (`docs/design/game-art/pattern/source/iceslide.py`,
+  `public/pattern-art/iceslide/`, 13 images, 31 KB): a pale frosted ice sheet with faint frost lines between squares,
+  dark granite blocks, a glossy deep-blue ball (90 % of a square, was 92 % in CSS), round black holes with a crushed-ice
+  rim, a magenta and a teal portal pair (enamel rings round a dark well; the second pair was orange, too near the gold
+  exit), a bold navy chevron on a frosted plate per direction, grey thin ice with white cracks, a jagged broken hole,
+  and the gold exit plate with its door-and-arrow mark. Each image is exactly its cell. The old CSS sheet's glints,
+  sheen, scratches, the exit's pulsing glow and the ball's glow are gone.
+- **Controls:** the arrow pad, Undo and Reset in champagne gold on navy (`--jz-gold`, `--jz-surface-2`).
+- **Undo gives the slide back (slideRev 5):** the Slides pill, the par bonus and the stored figure count the slides
+  still standing; unfinished credit still counts every slide played (wandering and undoing never earns credit). The help
+  says so, and that the arrow pad or swipe is chosen in the game menu (⋮) or Settings → Game controls. Older stamps
+  grade as before.
+- **A slide into a wall** still does nothing and costs nothing; it now gives a tiny bump (`iceslide.bump`).
+- **Near the exit:** resting one slide from the exit with the finish still at par, the exit glows softly
+  (`iceslide.nearExit`).
+- **Reveal:** a Solution / Yours switch: "shortest route · n slides" under Solution; under Yours the player's own final
+  board (the ball where it stopped, the standing route, the ice it broke) and "your slides: n · par p" (the after shot:
+  three slides standing, then the clock ran out).
+- **Sound:** a short or long ice hiss by distance (`iceslide.slide`, `iceslide.slideLong`), a thump when the ball
+  stops (`iceslide.stop`), the bump and the near-exit shimmer; crack, portal, fall and the exit shatter kept.
 <!-- skid:end -->
 
 <!-- heave:start -->
 ## Heave
+
+| Before (main) | After |
+|---|---|
+| <img src="../../game-reviews/img/pattern/push-1-start.webp" width="180" alt="Heave before, start"> | <img src="push-after-intro.webp" width="180" alt="Heave after, intro"> |
+| <img src="../../game-reviews/img/pattern/push-2-mid.webp" width="180" alt="Heave before, mid-play"> | <img src="push-after-play.webp" width="180" alt="Heave after, mid-play"> |
+| <img src="../../game-reviews/img/pattern/push-3-end.webp" width="180" alt="Heave before, end"> | <img src="push-after-reveal.webp" width="180" alt="Heave after, reveal"> |
+
+- **Look (A):** every tile and piece is a Blender render, one cell each (`docs/design/game-art/pattern/source/push.py`,
+  `public/pattern-art/push/`, 10 WebPs, 35 KB): brick wall tops whose courses run on from cell to cell, worn stone
+  flags, dark painted marks with light tape corners, wooden crates, and the gold crate and gold mark in real gold. The
+  worker (white hard hat, orange hi-vis vest, navy arms reaching to push) is rendered once per facing, so the light
+  stays top left as it turns. A crate on a mark carries a bold green tick; no glows anywhere.
+- **Pushes and Par** are the pills during play (Pushes red once over par); par is the fewest pushes, looked up on the
+  phone from the dealt layout (`pushPar.ts`, a count only, never the route). The Moves pill made way for it.
+- **Undo** always gave the push back; the help now says so, and where the arrows / swipe choice lives.
+- **Controls:** Undo and Reset in champagne gold on navy.
+- **Reveal:** under the minimum solution playing back, the player's own count reads "You: 0 / 5 home".
+- **Sound:** the gold crate pushed off its mark (`push.goldOff`), a slot for the deadlock creak (`push.stuck`), and
+  lines for the footstep, the crate's scrape and the lights coming on at the solve.
+- No stamp: nothing Heave deals or grades changed.
 <!-- heave:end -->
 
 <!-- lightbender:start -->

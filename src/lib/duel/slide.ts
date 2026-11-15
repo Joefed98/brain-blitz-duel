@@ -143,6 +143,18 @@ export interface SlideReplay {
   visited: SlideState[];
   /** Cells crossed by each slide, for drawing. */
   paths: number[][];
+  /**
+   * The slides still standing: every slide played less those Undo or Reset took back (slideRev 5, the Pattern
+   * overhaul: Undo gives the slide back). Older stamps count `moves`.
+   */
+  net: number;
+  /** Cells crossed by each standing slide, in order (the route the player's board shows). */
+  standing: number[][];
+}
+
+/** The slides a stamp counts: slideRev 5 (the Pattern overhaul) the standing slides, older stamps every slide played. */
+export function countedSlides(replay: Pick<SlideReplay, "moves" | "net">, undoGivesBack: boolean): number {
+  return undoGivesBack ? replay.net : replay.moves;
 }
 
 /** Replays a move list from the stored start. X = undo, Y = reset; no-op slides are dropped. */
@@ -153,14 +165,19 @@ export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
   const visited: SlideState[] = [state];
   const history: SlideState[] = [state];
   const paths: number[][] = [];
+  const standing: number[][] = [];
   for (const dir of moves) {
     if (dir === "X") {
-      if (history.length > 1) history.pop();
+      if (history.length > 1) {
+        history.pop();
+        standing.pop();
+      }
       state = history[history.length - 1]!;
       continue;
     }
     if (dir === "Y") {
       history.length = 1;
+      standing.length = 0;
       state = history[0]!;
       continue;
     }
@@ -171,11 +188,12 @@ export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
     history.push(state);
     visited.push(state);
     paths.push(out.path);
+    standing.push(out.path);
     count += 1;
     if (out.fell) falls += 1;
     if (state.cell === board.exit) break;
   }
-  return { ...state, moves: count, solved: state.cell === board.exit, falls, visited, paths };
+  return { ...state, moves: count, solved: state.cell === board.exit, falls, visited, paths, net: history.length - 1, standing };
 }
 
 /** Breadth-first search over (cell, broken mask): fewest slides and one shortest route. */
@@ -213,6 +231,15 @@ export function slideSearch(
     }
   }
   return null;
+}
+
+/** True when one slide from this resting state reaches the exit (display and sound only: the exit's near-miss glow). */
+export function oneSlideFromExit(board: SlideBoard, from: SlideState): boolean {
+  if (from.cell === board.exit) return false;
+  return SLIDE_DIRS.some((dir) => {
+    const out = slideOutcome(board, from.cell, from.mask, dir);
+    return !out.fell && out.cell === board.exit;
+  });
 }
 
 export function slideDistance(board: SlideBoard, from: SlideState): number | null {

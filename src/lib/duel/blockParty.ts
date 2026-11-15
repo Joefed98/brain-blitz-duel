@@ -285,3 +285,24 @@ export function offsetsSize(offsets: Offsets): { rows: number; cols: number } {
 export function tapPose(state: { rot: number; flip: boolean }, double: boolean): { rot: number; flip: boolean } {
   return double ? { rot: (state.rot + 3) % 4, flip: !state.flip } : { ...state, rot: (state.rot + 1) % 4 };
 }
+
+/**
+ * blockRev 4 (the Pattern overhaul, 15 Nov 2026; patternNov15.ts): moving a placed piece no longer costs the "right
+ * first time" bonus; only illegal drops do (a piece let go over the board where it doesn't fit, sliding back to the
+ * tray). The phone counts them and sends the count as the answer's last entry, `!n` (no entry for 0). Every reader of
+ * placements skips it (decodePlacements keeps only entries that start with a piece number), so older readers and
+ * older stamps are unchanged; the phone adds it only on blockRev 4.
+ */
+export const BLOCK_ILLEGAL_MAX = 999;
+
+export function encodeBlockAnswer(placements: BlockPlacement[], illegal: number): string {
+  const body = encodePlacements(placements);
+  const n = Math.max(0, Math.min(BLOCK_ILLEGAL_MAX, Math.floor(illegal)));
+  return n > 0 ? `${body}${body ? ";" : ""}!${n}` : body;
+}
+
+/** The illegal drops a blockRev 4 answer reports (its last `!n` entry; 0 without one). */
+export function blockIllegalDrops(answer: string): number {
+  const m = /(?:^|;)!(\d{1,3})$/.exec(answer ?? "");
+  return m ? Math.min(BLOCK_ILLEGAL_MAX, Number.parseInt(m[1]!, 10)) : 0;
+}

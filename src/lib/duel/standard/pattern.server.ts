@@ -13,7 +13,8 @@ import type { PuzzleData, UnblockVehicle, PuzzleType } from "../types";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
 import { UNBLOCK_COLS } from "../types";
 import { applyMove, decodeMoves, isSolved as unblockSolved, vehicleCells } from "../unblock";
-import { blockGeometry, decodePlacements, verifyPlacements } from "../blockParty";
+import { blockGeometry, blockIllegalDrops, decodePlacements, verifyPlacements } from "../blockParty";
+import { usesPatternNov15 } from "../patternNov15";
 import { blockPartyCounts, flowRouteCounts } from "../progressFigures";
 import { decodeSlideMoves, replaySlide, slideBoard, slideDistance, type SlideBoard, type SlideState } from "../slide";
 import { replayGems } from "../depth4/iceGems";
@@ -26,7 +27,6 @@ import { decodeSides, rotateMask, tileOpenings } from "../logic";
 import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
 import { decodePipesTurns, pipesAfterTurns } from "../depth4/pipesTaps";
-import { usesPatternNov15 } from "../patternNov15";
 import { cratesOnTargets, decodePushMoves, replayPush } from "../push";
 import { FLOW_PAIRS, LASER_MAX_FIRES, RINGS_SEGMENTS } from "../types";
 import { GRADIENT_WASTE_WEIGHT, PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
@@ -245,10 +245,29 @@ export function blockRightFirstTime(puzzle: Of<"blockparty">, answer: string, dr
   return n;
 }
 
+/**
+ * blockRev 4 (the Pattern overhaul, 15 Nov 2026): the bonus counts clean drops, not first placements. Moving a placed
+ * piece costs nothing; each illegal drop the answer reports (its `!n` entry, blockIllegalDrops) takes one piece's
+ * share. On a finish every piece counts, unfinished the pieces on their solution spot. Needs no timeline.
+ */
+export function blockCleanDrops(puzzle: Of<"blockparty">, answer: string, finished: boolean): number {
+  const legal = blockLegal(puzzle, answer);
+  const counted = finished ? legal.length : blockPartyCounts(puzzle.solution ?? [], legal).inSpot;
+  return Math.max(0, counted - blockIllegalDrops(answer));
+}
+
 const tessellate: StandardGame = {
   grade(input, ctx) {
     const p = input.puzzle as Of<"blockparty">;
     const pieces = blockGeometry(p).pieces.length;
+    if (usesPatternNov15(p, "blockparty")) {
+      const clean = blockCleanDrops(p, input.answer, input.graded.isCorrect);
+      const bonus = pieces > 0 ? (BLOCK_STD.firstTime * clean) / pieces : 0;
+      const facts = { cleanDrops: clean, illegalDrops: blockIllegalDrops(input.answer) };
+      if (input.graded.isCorrect) return { finished: true, speed: speed("blockparty", input), bonus, measure: "clean drops", facts };
+      const net = blockNet(p, input.answer);
+      return { finished: false, credit: BLOCK_STD.perPiece * net + ctx.early(BLOCK_STD.earlyPerPiece, net) + bonus, facts: { ...facts, piecesRight: net } };
+    }
     const right = blockRightFirstTime(p, input.answer, input.drafts, input.graded.isCorrect);
     const firstTime = pieces > 0 ? (BLOCK_STD.firstTime * (right ?? 0)) / pieces : 0;
     const facts = { rightFirstTime: right };
@@ -260,6 +279,10 @@ const tessellate: StandardGame = {
 };
 
 /* ------------------------------------------------------------------ Skid (iceslide) */
+
+// The Pattern overhaul (15 Nov 2026): Skid's slideRev 5 (imported here, beside its game, so per-game work stays apart).
+import { countedSlides } from "../slide";
+import { usesPatternNov15 as usesSkidOverhaul } from "../patternNov15";
 
 const SLIDE_BOARDS = new WeakMap<object, SlideBoard>();
 const SLIDE_DIST = new WeakMap<object, Map<number, number | null>>();
@@ -291,12 +314,15 @@ const skid: StandardGame = {
     const p = input.puzzle as Of<"iceslide">;
     // slideRev 3 (the puzzle batch of 3 Nov 2026, parMoves.ts): no gems; a finish is 150 + speed + par slides.
     if (usesParMoves(p)) {
+      // slideRev 5 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the slide back, so the par counts the
+      // slides still standing; the unfinished waste rule still counts every slide played (undoing never earns credit).
+      const overhaul = usesSkidOverhaul(p, "iceslide");
       if (input.graded.isCorrect) {
-        const slides = replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)).moves;
+        const slides = countedSlides(replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)), overhaul);
         return { finished: true, speed: parMovesSpeed("iceslide", input), bonus: parMovesPar(p, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
       }
       const { closed, total } = skidClosed(p, input.answer);
-      const w = waste(num(input.graded.extra, "moves"), p.minMoves);
+      const w = waste(num(input.graded.extra, overhaul ? "slidesPlayed" : "moves"), p.minMoves);
       return { finished: false, credit: shareCredit(ctx, closed, total) * w, facts: { routeClosed: closed, route: total, waste: w } };
     }
     const gems = p.gems ?? [];

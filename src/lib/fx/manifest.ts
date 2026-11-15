@@ -508,6 +508,11 @@ const ENTRIES = {
   "push.push": { channel: "effects", frequency: 0, ms: 120, url: null },
   "push.home": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/push.home.mp3", volume: 0.88 },
   "push.solve": { channel: "effects", frequency: 0, ms: 1147, url: "/sounds/push.solve.mp3" },
+  // The Pattern overhaul (15 Nov 2026, docs/sound-cues/pattern-elevenlabs.md): library stand-ins until Joe's
+  // recordings (push.goldOff.mp3, push.stuck.mp3) replace them. push.stuck has no trigger yet (the deadlock hint
+  // comes with the levels).
+  "push.goldOff": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/retro.powerDown.mp3", volume: 0.5 },
+  "push.stuck": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/swing.vineCreak.mp3", volume: 0.6 },
   "tiles.slide": { channel: "effects", frequency: 0, ms: 160, url: null },
   "tiles.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "laser.place": { channel: "effects", frequency: 0, ms: 180, url: null },
@@ -532,10 +537,23 @@ const ENTRIES = {
   "iceslide.crack": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.crack.mp3" },
   "iceslide.fall": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.fall.mp3", volume: 0.78 },
   "iceslide.solve": { channel: "effects", frequency: 0, ms: 1200, url: "/sounds/iceslide.solve.mp3" },
+  // The Pattern overhaul (15 Nov 2026, docs/sound-cues/pattern-elevenlabs.md): library stand-ins until Joe's
+  // recordings (iceslide.slideLong.mp3, iceslide.stop.mp3, iceslide.bump.mp3, iceslide.nearExit.mp3) replace them.
+  "iceslide.slideLong": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3", volume: 0.5 },
+  "iceslide.stop": { channel: "effects", frequency: 0, ms: 160, url: "/sounds/arc_fair_thud.mp3", volume: 0.55 },
+  "iceslide.bump": { channel: "effects", frequency: 0, ms: 90, url: "/sounds/arc_wood_knock.mp3", volume: 0.45 },
+  "iceslide.nearExit": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/gem.glint.mp3", volume: 0.5 },
   "blockparty.place": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/block.place.mp3" },
   "blockparty.turn": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "blockparty.flip": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "blockparty.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.pops.mp3" },
+  // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026): library placeholders until Joe's files
+  // (docs/sound-cues/pattern-elevenlabs.md); each url becomes /sounds/<slot>.mp3 when its file lands.
+  "blockparty.pickup": { channel: "effects", frequency: 0, ms: 334, url: "/sounds/cards_pick.mp3", volume: 0.7 },
+  "blockparty.illegal": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/checkout.thud.mp3", volume: 0.8 },
+  "blockparty.undo": { channel: "effects", frequency: 0, ms: 334, url: "/sounds/cards_pick.mp3", volume: 0.6 },
+  "blockparty.reset": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3", volume: 0.8 },
+  // ---- tessellate:end
   "gravity.tilt": { channel: "effects", frequency: 0, ms: 200, url: null },
   "gravity.lock": { channel: "effects", frequency: 0, ms: 201, url: "/sounds/gravity.lock.mp3" },
   "gravity.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.rising.mp3" },

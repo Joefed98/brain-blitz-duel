@@ -21,6 +21,7 @@ import { operatorGapsDealt } from "./operatorGaps";
 import { prePatternNov15Pinned } from "./patternNov15";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
+import { blockPatternHelp } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -576,14 +577,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     blockparty: {
       goal: "Fit every piece into the free squares.",
       how: [
-        { action: "Tap a piece", detail: "to rotate it." },
+        // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026: a double tap only flips; Undo and Reset)
+        { action: "Tap a piece", detail: "to turn it." },
         // Pattern review fixes (15 Nov 2026): the double tap's flip was never in the help.
-        { action: "Double-tap it", detail: "to flip it over." },
-        { action: "Drag it", detail: "onto the board." },
+        { action: "Double-tap it", detail: "to flip it over (it doesn’t turn first)." },
+        { action: "Drag it", detail: "onto the board to place or move it." },
         { action: "Fit every piece", detail: "around the fixed pegs." },
-        { action: "Drag a piece’s anchor", detail: "onto a free board square.", helpOnly: true },
+        { action: "Hold any square of a piece:", detail: "the piece lands with that square under your finger.", helpOnly: true },
+        ...(prePatternNov15Pinned()
+          ? []
+          : [{ action: "Undo", detail: "gives your last move back; Reset sends every piece back to the tray.", helpOnly: true }]),
+        // ---- tessellate:end
       ],
-      score: PATTERN_STD_HELP.blockparty,
+      score: blockPatternHelp(),
     },
     lightsout: {
       goal: "Turn every light off.",
@@ -655,6 +661,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "Fewest slides", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, slideRev 5): Undo and Reset give the slide back; the arrow pad or swipe is
+        // chosen in the game menu (the pinned era keeps the lines before).
+        ...(prePatternNov15Pinned()
+          ? []
+          : [
+              { action: "Undo and Reset", detail: "give the slide back: only the slides left standing count.", helpOnly: true },
+              { action: "Arrow pad or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+            ]),
       ],
       score: parMovesDealt() ? parMovesPatternHelp("iceslide") : PATTERN_STD_HELP.iceslide,
     },
@@ -666,6 +680,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Crates can’t be pulled,", detail: "so plan ahead." },
         { action: "The gold crate", detail: "on the gold mark scores a bonus." },
         { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, display only): Pushes and Par shown in play; Undo was always a real undo.
+        { action: "Par", detail: "is the fewest pushes, shown beside your pushes.", helpOnly: true },
+        { action: "Undo and Reset", detail: "give the push back: only the pushes left on the board count.", helpOnly: true },
+        { action: "Arrows or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
       ],
       score: PATTERN_STD_HELP.push,
     },
