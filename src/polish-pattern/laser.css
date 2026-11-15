@@ -195,18 +195,87 @@
   height: min(100cqw, calc(100cqh - 138px));
 }
 
-/* --- Reveal: both boards as large as the space allows --- */
+/* --- Reveal (the Pattern overhaul, 15 Nov 2026): one board at a time, large (the Solution / Yours switch shows one
+   column at full width; with no switch the two share the row). The numbers sit above as pills; under Yours the
+   shot strip and a short key to the highlights. --- */
 .answer-reveal-content .reveal-card > .laser-reveal {
   flex: 1 1 0;
   min-height: 0;
   container-type: size;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .laser-reveal > .laser-reveal-boards {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .laser-reveal-board {
-  width: min(calc((100cqw - 12px) / 2), calc(100cqh - 76px));
+  width: min(100%, calc(100cqh - 132px));
+}
+.laser-reveal-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jz-text-2);
+}
+.laser-reveal-caption {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--jz-text-2);
+}
+.laser-reveal-pills {
+  justify-content: center;
+  flex-wrap: wrap;
+  height: auto;
+  row-gap: 4px;
+}
+.laser-shot-strip {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.laser-shot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--jz-surface-2);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--jz-text-2);
+}
+.laser-shot-chip[data-best] {
+  box-shadow: inset 0 0 0 1.5px var(--jz-gold);
+  color: var(--jz-gold-ink);
+}
+.laser-shot-chip-gems {
+  display: inline-flex;
+  gap: 2px;
+}
+.laser-shot-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jz-surface-3);
+}
+.laser-shot-dot[data-lit] {
+  background: var(--jz-gold);
+}
+.laser-shot-chip-bomb {
+  width: 16px;
+  height: 16px;
+}
+.laser-reveal-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 10px;
+  font-size: 12px;
+  color: var(--jz-text-3);
 }
 
 @media (prefers-reduced-motion: reduce) {

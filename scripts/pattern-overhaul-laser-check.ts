@@ -349,21 +349,6 @@ const p4 = live[0]!;
   check(board({ outOfShots: true }).includes("Out of shots"), "art: the board can't say out of shots");
   const intro = renderToStaticMarkup(React.createElement(laserPuzzle.IntroExample!));
   check(intro.includes("/pattern-art/laser/gem-lit.webp") && intro.includes("/pattern-art/laser/splitter.webp"), "art: the intro doesn't draw the sprites");
-  const reveal = renderToStaticMarkup(React.createElement(laserPuzzle.Reveal, { timeLimitMs: 60_000, puzzle: p4, myAnswer: "", myCorrect: false, myMsRemaining: 0 } as never));
-  check(reveal.includes("/pattern-art/laser/"), "reveal: no sprites");
-  const own = reveal.match(/<p data-yours-only=""[^>]*>([^<]*)<\/p>/);
-  check(!!own && /^You: /.test(own[1]!), `reveal: the player's line isn't Yours-only "You: …": ${own?.[1]}`);
-  check(!/×/.test(reveal), "reveal: a stray × is drawn");
-  // A rev 4 unfinished reveal counts the best shot, as the score does.
-  const sol = p4.solution ?? [];
-  let l: ReturnType<typeof decodeActionLog>["actions"] = [];
-  let tt = 300;
-  for (const m of sol) l = appendAction(l, laserAction.place(m.cell, m.kind), (tt += 400));
-  l = appendAction(l, laserAction.turn(sol[0]!.cell), (tt += 400));
-  l = appendAction(l, laserAction.fire(), (tt += 400));
-  const best = replayLaserLog(p4, encodeActionLog(l), 60_000).shotLog[0]!;
-  const r4 = renderToStaticMarkup(React.createElement(laserPuzzle.Reveal, { timeLimitMs: 60_000, puzzle: p4, myAnswer: encodeActionLog(l), myCorrect: false, myMsRemaining: 0 } as never));
-  if (!best.hitBomb && best.gemsLit > 0) check(r4.includes(`You: best shot ${best.gemsLit} of ${p4.gems.length} gems`), "reveal: laserRev 4 doesn't count the best shot");
   // The Gems pill keeps the best shot; Par is shown in play.
   check(laserGemsShown(5, 0) === 5, "pills: the Gems count falls back when the beam fades");
   const stage = src("src/puzzles/laser.tsx");
@@ -385,6 +370,99 @@ const p4 = live[0]!;
     check(!!e?.url, `sound: ${slot} has no library placeholder`);
   }
   check(section.includes("`pz_laser_split`") && section.includes("`pz_laser_gem`"), "sound: the splitter chord and gem notes aren't listed");
+}
+
+/* 9. The answer reveal (Joe, 15 Nov 2026): one large board at a time, the player's against the solution with what
+   was wrong or missed highlighted, short labels, the numbers from the stored grade, the shots as a strip. */
+{
+  const reveal = async (puzzle: LaserPuzzleData, answer: string, msLeft: number) => {
+    const graded = gradeAnswer(puzzle, answer, msLeft);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host as unknown as Element);
+    await act(async () => {
+      root.render(React.createElement(laserPuzzle.Reveal, {
+        timeLimitMs: 60_000, puzzle, myAnswer: answer, myCorrect: graded.isCorrect, myMsRemaining: graded.isCorrect ? msLeft : 0,
+        myReactionAvgMs: null, myExtra: graded.extra ?? null,
+      } as never));
+    });
+    await settle();
+    const live = host;
+    const snap = live.cloneNode(true) as typeof live;
+    const html = live.innerHTML;
+    const text = (sel: string) => (snap.querySelector(sel)?.textContent ?? "").trim();
+    const pill = (id: string) => text(`[data-hud-pill="${id}"]`);
+    const marks = (kind: string) => Array.from(snap.querySelectorAll(`[data-mark="${kind}"]`)).map((n) => Number((n as unknown as Element).getAttribute("data-cell")));
+    const out = { graded, html, text, pill, marks, host: snap };
+    await act(async () => root.unmount());
+    return out;
+  };
+  const common = (label: string, r: Awaited<ReturnType<typeof reveal>>) => {
+    const leaves = Array.from(r.host.querySelectorAll("span")).map((n) => (n.textContent ?? "").trim());
+    check(leaves.includes("Solution") && leaves.includes("Yours"), `reveal ${label}: no Solution / Yours labels for the switch`);
+    check(/^You: /.test(r.text("[data-laser-result]")), `reveal ${label}: the player's line isn't "You: …" (${r.text("[data-laser-result]")})`);
+    check(!!r.host.querySelector("[data-laser-yours] [data-laser-result]") && !r.host.querySelector("[data-laser-solution] [data-laser-result]"), `reveal ${label}: the player's line sits under the solution`);
+    check(!/×/.test(r.html), `reveal ${label}: a stray × is drawn`);
+    check(r.html.includes("/pattern-art/laser/"), `reveal ${label}: no sprites`);
+    check(r.html.includes("laser-beam"), `reveal ${label}: no beam path drawn`);
+  };
+  // laserRev 4, solved by the kit's near-perfect player.
+  const { KITS } = await import("./puzzle-fairness/kits");
+  const { SKILLS, makeRng } = await import("./puzzle-fairness/kit");
+  const { laserBestGems } = await import("../src/lib/duel/standard/pattern.server");
+  const solvedPlay = KITS.laser!.play(p4, makeRng(7), { ...SKILLS.near, err: 0 }, 60_000);
+  const solvedAnswer = solvedPlay.steps.at(-1)!.answer;
+  const rs = await reveal(p4, solvedAnswer, 30_000);
+  check(rs.graded.isCorrect, "reveal: the kit's flawless run doesn't solve");
+  common("solved", rs);
+  const ex = rs.graded.extra as Record<string, unknown>;
+  check(rs.marks("wrong").length + rs.marks("missing").length + rs.marks("unlit").length === 0, "reveal solved: a solve is marked wrong");
+  check(rs.pill("gems") === `Your gems${p4.gems.length}/${p4.gems.length}`, `reveal solved: gems pill "${rs.pill("gems")}"`);
+  check(rs.pill("shots") === `Shots used${(ex["shots"] as unknown[]).length}/3`, `reveal solved: shots pill "${rs.pill("shots")}"`);
+  check(rs.pill("mirrors") === `Your mirrors${ex["solveMirrors"]}` && rs.pill("par") === `Par${ex["par"]}`, `reveal solved: mirrors / par "${rs.pill("mirrors")}" "${rs.pill("par")}"`);
+  check(rs.pill("time") === "Time left30 s", `reveal solved: time pill "${rs.pill("time")}"`);
+  // laserRev 4, unfinished: the solution with one mirror turned, fired once, then twice more after turning another.
+  const sol = p4.solution ?? [];
+  const mirrorsOnly = sol.filter((m) => m.kind === "/" || m.kind === "\\");
+  let l: ReturnType<typeof decodeActionLog>["actions"] = [];
+  let tt = 300;
+  for (const m of sol) l = appendAction(l, laserAction.place(m.cell, m.kind), (tt += 400));
+  const turned = mirrorsOnly[0]!.cell;
+  l = appendAction(l, laserAction.turn(turned), (tt += 400));
+  l = appendAction(l, laserAction.fire(), (tt += 400));
+  const ru = await reveal(p4, encodeActionLog(l), 0);
+  check(!ru.graded.isCorrect, "reveal unfinished: the turned layout solves");
+  common("unfinished", ru);
+  const exu = ru.graded.extra as Record<string, unknown>;
+  const stored = laserBestGems(exu, 60_000, 3).gems;
+  check(ru.pill("gems") === `Your gems${stored}/${p4.gems.length}`, `reveal unfinished: gems pill "${ru.pill("gems")}" (stored grade ${stored})`);
+  check(ru.pill("shots") === "Shots used1/3", `reveal unfinished: shots pill "${ru.pill("shots")}"`);
+  check(!ru.pill("mirrors") && !ru.pill("time"), "reveal unfinished: a solve's numbers on an unfinished round");
+  check(JSON.stringify(ru.marks("wrong")) === JSON.stringify([turned]) && JSON.stringify(ru.marks("missing")) === JSON.stringify([turned]), `reveal unfinished: wrong ${JSON.stringify(ru.marks("wrong"))} missing ${JSON.stringify(ru.marks("missing"))} (turned ${turned})`);
+  const shot = replayLaserLog(p4, encodeActionLog(l), 60_000).shotLog[0]!;
+  if (!shot.hitBomb) check(ru.marks("unlit").length === p4.gems.length - shot.gemsLit, `reveal unfinished: ${ru.marks("unlit").length} gems marked dark, the shot lit ${shot.gemsLit}`);
+  check(ru.host.querySelectorAll("[data-shot]").length === 1 && !!ru.host.querySelector("[data-laser-key]"), "reveal unfinished: no shot strip or highlight key");
+  // Nothing at all.
+  const rn = await reveal(p4, "", 0);
+  common("empty", rn);
+  check(rn.pill("gems") === `Your gems0/${p4.gems.length}`, `reveal empty: gems pill "${rn.pill("gems")}"`);
+  // Older stamps read their stored data: every rev3 and rev2 fixture case renders, its gems pill matching the stored grade.
+  let older = 0;
+  for (const c of fx.cases.filter((x) => ["average", "near", "spam random-layout-x3", "half unfired"].includes(x.label) && (x.seed === 8100 || x.seed === 8134))) {
+    const p = fx.puzzles.find((x) => x.era === c.era && x.seed === c.seed)!.puzzle;
+    const r = await reveal(p, c.answer, c.msLeft);
+    const ext = c.extra as Record<string, unknown>;
+    const want = c.isCorrect ? p.gems.length : c.era === "rev3" ? laserBestGems(ext, 60_000, 3).gems : (ext["gemsLit"] as number);
+    if (r.pill("gems") !== `Your gems${want}/${p.gems.length}`) failures.push(`reveal ${c.era} ${c.seed} ${c.label}: gems pill "${r.pill("gems")}", stored ${want}`);
+    else older++;
+    if (!/^You: /.test(r.text("[data-laser-result]"))) failures.push(`reveal ${c.era} ${c.label}: no "You: …" line`);
+    if (c.isCorrect && r.marks("wrong").length) failures.push(`reveal ${c.era} ${c.label}: a solve is marked wrong`);
+  }
+  check(older >= 12, `reveal: only ${older} older-stamp reveals matched their stored grade`);
+  // Drawn large: one column at a time at the reveal's full width.
+  const css = src("src/polish-pattern/laser.css");
+  check(/\.laser-reveal-board \{\s*width: min\(100%, calc\(100cqh - \d+px\)\);/.test(css), "reveal: the board isn't sized to the full width");
+  check(!/data-yours-only/.test(src("src/puzzles/laser.tsx").split("function Reveal(")[1] ?? ""), "reveal: data-yours-only would leave the card without a width");
 }
 
 if (failures.length) {

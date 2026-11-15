@@ -18,10 +18,12 @@ import {
 } from "@/lib/duel/laser";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
-import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "@/lib/duel/actionLog";
-import { laserAction, replayLaserLog } from "@/lib/duel/laserLog";
+import { appendAction, decodeActionLog, encodeActionLog, usesActionLog, type LoggedAction } from "@/lib/duel/actionLog";
+import { laserAction, replayLaserActions, replayLaserLog } from "@/lib/duel/laserLog";
+import { HudPills } from "@/components/puzzles/HudPills";
 import { serverNow } from "@/lib/duel/clock";
 import { usesPatternNov15 } from "@/lib/duel/patternNov15";
+import { usesStandard } from "@/lib/duel/standard/stamps";
 import { soundCue } from "@/lib/fx/patternFx";
 import {
   LASER_BEAM_MS,
@@ -145,6 +147,7 @@ export function LaserBoard({
   live = false,
   solved = false,
   outOfShots = false,
+  marks = null,
 }: {
   source: number;
   dir: BeamDir;
@@ -172,6 +175,8 @@ export function LaserBoard({
   solved?: boolean;
   /** laserRev 4: every shot used without a solve; the board is locked and says so. */
   outOfShots?: boolean;
+  /** The reveal's highlights on the player's board (presentation only). */
+  marks?: LaserMarks | null;
 }) {
   const rows = Math.ceil(cells / cols);
   const wall = new Set(blocks);
@@ -273,6 +278,7 @@ export function LaserBoard({
               );
             })}
             {burstOrder.length ? <LaserGemBursts centres={burstOrder.map(at)} unit={unit} /> : null}
+            {marks ? <LaserRevealMarks marks={marks} at={at} unit={unit} /> : null}
             {ghostCell !== null ? (
               <rect
                 x={at(ghostCell).x - unit * 0.44}
@@ -784,85 +790,244 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
-  const isLaser = puzzle.type === "laser";
-  if (!isLaser) return null;
-  const solution = puzzle.solution ?? [];
-  const logReplay = usesActionLog(puzzle) ? replayLaserLog(puzzle, myAnswer ?? "", timeLimitMs) : null;
-  const mine = logReplay
-    ? { mirrors: logReplay.layout, fires: logReplay.solvedShot ?? logReplay.shots }
-    : decodeLaserAnswer(myAnswer ?? "", puzzle.mirrors + (puzzle.splitterPieces ?? 0));
-  const solutionTrace = traceBeam(
-    puzzle.source,
-    puzzle.dir,
-    solution,
-    puzzle.blocks,
-    puzzle.bombs,
-    puzzle.gems,
-    puzzle.splitters,
-    puzzle.directionalGems,
+/** The reveal's highlights on the player's board: their pieces off the solution, the solution's pieces they lack, gems left dark. */
+export interface LaserMarks {
+  wrong: number[];
+  missing: MirrorPlacement[];
+  unlit: number[];
+}
+
+/** What the reveal's Yours board shows and the numbers that explain the score (the Pattern overhaul, 15 Nov 2026). */
+export interface LaserRevealView {
+  /** The layout drawn on Yours: the solving shot, else the best shot (or the board at the buzzer when it counted more). */
+  layout: MirrorPlacement[];
+  trace: BeamTrace;
+  /** Which shot that layout was fired on (1–3), or null for a board never fired. */
+  shot: number | null;
+  solved: boolean;
+  /** Gems the score counts: all on a solve, else the best shot without a bomb (as the grader). */
+  gems: number;
+  shotsUsed: number;
+  /** Each shot: gems lit, bomb. */
+  shots: { gems: number; bomb: boolean }[];
+  /** On a solve: the mirrors used and the par. */
+  mirrors: number | null;
+  par: number;
+  marks: LaserMarks | null;
+}
+
+function numberOf(extra: Record<string, unknown> | null | undefined, key: string): number | null {
+  const v = extra?.[key];
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/** Pure: the player's pieces against the stored solution, and the gems the drawn shot left dark (never on a solve). */
+export function laserRevealMarks(solution: MirrorPlacement[], layout: MirrorPlacement[], gems: number[], lit: number[], solved: boolean): LaserMarks | null {
+  if (solved) return null;
+  const want = new Map(solution.map((m) => [m.cell, m.kind]));
+  const have = new Map(layout.map((m) => [m.cell, m.kind]));
+  return {
+    wrong: layout.filter((m) => want.get(m.cell) !== m.kind).map((m) => m.cell),
+    missing: solution.filter((m) => have.get(m.cell) !== m.kind),
+    unlit: gems.filter((g) => !lit.includes(g)),
+  };
+}
+
+/**
+ * The reveal's view of the player's round. Action-log rounds replay the log on the stored board: a solve shows the
+ * solving shot; otherwise the best shot without a bomb (its layout is the board as it stood at that FIRE), or the
+ * board at the buzzer when it lit more and a shot was left (the grader counts that layout then). Older "fires|layout"
+ * answers show their one layout. The numbers come from the stored grade (`myExtra`) where it has them.
+ */
+export function laserRevealView(
+  puzzle: LaserPuzzleData,
+  answer: string,
+  correct: boolean,
+  timeLimitMs: number,
+  extra?: Record<string, unknown> | null,
+): LaserRevealView {
+  const trace = (layout: MirrorPlacement[], shot: number) => verifyLaser(puzzle, layout, shot).trace;
+  const par = numberOf(extra, "par") ?? puzzle.par ?? 0;
+  const mirrorCount = (layout: MirrorPlacement[]) => layout.filter((m) => !isSplitter(m.kind)).length;
+  const finish = (layout: MirrorPlacement[], shot: number | null, gems: number, shotsUsed: number, shots: { gems: number; bomb: boolean }[]): LaserRevealView => {
+    const t = trace(layout, shot ?? 1);
+    return {
+      layout,
+      trace: t,
+      shot,
+      solved: correct,
+      gems,
+      shotsUsed,
+      shots,
+      mirrors: correct ? (numberOf(extra, "solveMirrors") ?? mirrorCount(layout)) : null,
+      par,
+      marks: laserRevealMarks(puzzle.solution ?? [], layout, puzzle.gems, t.gemsLit, correct),
+    };
+  };
+  if (!usesActionLog(puzzle)) {
+    const mine = decodeLaserAnswer(answer, puzzle.mirrors + (puzzle.splitterPieces ?? 0));
+    const lit = verifyLaser(puzzle, mine.mirrors, mine.fires).gemsLit;
+    const used = numberOf(extra, "fires") ?? mine.fires;
+    return finish(mine.mirrors, mine.fires, correct ? puzzle.gems.length : (numberOf(extra, "gemsLit") ?? lit), used, []);
+  }
+  const replay = replayLaserLog(puzzle, answer, timeLimitMs);
+  const storedShots = Array.isArray(extra?.["shots"])
+    ? (extra!["shots"] as { gems?: unknown; bomb?: unknown }[]).filter((s) => typeof s.gems === "number").map((s) => ({ gems: s.gems as number, bomb: s.bomb === true }))
+    : replay.shotLog.map((s) => ({ gems: s.gemsLit, bomb: s.hitBomb }));
+  const used = storedShots.length;
+  // The board as it stood at FIRE number k (1-based).
+  const layoutAtShot = (k: number): MirrorPlacement[] => {
+    const { actions, diag } = decodeActionLog(answer, timeLimitMs);
+    let fires = 0;
+    const prefix: LoggedAction[] = [];
+    for (const a of actions) {
+      prefix.push(a);
+      if (a.a === "f" && ++fires === k) break;
+    }
+    return replayLaserActions(puzzle, prefix, diag).layout;
+  };
+  if (correct && replay.solvedShot !== null) return finish(replay.layout, replay.solvedShot, puzzle.gems.length, used, storedShots);
+  // Before the scoring standard the unfinished credit counted the board at the buzzer (grade.ts's gemsLit).
+  if (!usesStandard(puzzle)) return finish(replay.layout, null, numberOf(extra, "gemsLit") ?? replay.gemsLit, used, storedShots);
+  let best = -1;
+  storedShots.forEach((s, i) => {
+    if (!s.bomb && (best < 0 || s.gems > storedShots[best]!.gems)) best = i;
+  });
+  const bestGems = best >= 0 ? storedShots[best]!.gems : 0;
+  const finalGems = numberOf(extra, "gemsLit") ?? replay.gemsLit;
+  const finalHitBomb = extra?.["hitBomb"] === true || replay.hitBomb;
+  // The grader also counts the layout at the buzzer when a shot was left (laserBestGems).
+  if (used < LASER_MAX_FIRES && !finalHitBomb && finalGems > bestGems) return finish(replay.layout, null, finalGems, used, storedShots);
+  if (best >= 0) return finish(layoutAtShot(best + 1), best + 1, bestGems, used, storedShots);
+  // Every shot hit a bomb, or none was fired: the last shot's board (else the board at the buzzer).
+  return finish(used ? layoutAtShot(used) : replay.layout, used || null, 0, used, storedShots);
+}
+
+/** Draws the reveal's highlights over the board (inside each cell's own box). */
+function LaserRevealMarks({ marks, at, unit }: { marks: LaserMarks; at: (cell: number) => { x: number; y: number }; unit: number }) {
+  const half = unit * 0.46;
+  return (
+    <g className="laser-reveal-marks" aria-hidden="true">
+      {marks.missing.map((m) => {
+        const c = at(m.cell);
+        return (
+          <g key={`m${m.cell}`} data-mark="missing" data-cell={m.cell}>
+            {isSplitter(m.kind) ? null : (
+              <image href={laserArtUrl(m.kind === "/" ? "mirror-slash" : "mirror-back")} x={c.x - unit / 2} y={c.y - unit / 2} width={unit} height={unit} opacity={0.4} pointerEvents="none" />
+            )}
+            <rect x={c.x - half} y={c.y - half} width={half * 2} height={half * 2} rx={unit * 0.1} fill="none" stroke="var(--jz-gold)" strokeWidth={Math.max(1.5, unit * 0.06)} strokeDasharray={`${unit * 0.14} ${unit * 0.1}`} />
+          </g>
+        );
+      })}
+      {marks.wrong.map((cell) => {
+        const c = at(cell);
+        return <rect key={`w${cell}`} data-mark="wrong" data-cell={cell} x={c.x - half} y={c.y - half} width={half * 2} height={half * 2} rx={unit * 0.1} fill="rgba(255, 77, 77, 0.14)" stroke="#ff5a5a" strokeWidth={Math.max(2, unit * 0.08)} />;
+      })}
+      {marks.unlit.map((cell) => {
+        const c = at(cell);
+        return <circle key={`u${cell}`} data-mark="unlit" data-cell={cell} cx={c.x} cy={c.y} r={unit * 0.47} fill="none" stroke="#ff5a5a" strokeWidth={Math.max(1.5, unit * 0.07)} strokeDasharray={`${unit * 0.12} ${unit * 0.09}`} />;
+      })}
+    </g>
   );
-  const myTrace = verifyLaser(puzzle, mine.mirrors, mine.fires).trace;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
-  const ordinal = mine.fires === 1 ? "1st" : mine.fires === 2 ? "2nd" : "3rd";
+}
+
+const ORDINAL = ["1st", "2nd", "3rd"];
+
+/** One shot as a chip: its gems as dots (lit gold, dark grey), a bomb marked. */
+function ShotChip({ index, gems, bomb, total, best }: { index: number; gems: number; bomb: boolean; total: number; best: boolean }) {
+  return (
+    <span className="laser-shot-chip" data-shot={index + 1} data-best={best ? "" : undefined} data-bomb={bomb ? "" : undefined}>
+      <span className="laser-shot-chip-label">{ORDINAL[index] ?? `${index + 1}th`}</span>
+      {bomb ? (
+        <img src={laserArtUrl("bomb-hit")} alt="Bomb" className="laser-shot-chip-bomb" draggable={false} />
+      ) : (
+        <span className="laser-shot-chip-gems" aria-label={`${gems} of ${total} gems`}>
+          {Array.from({ length: total }, (_, i) => (
+            <span key={i} className="laser-shot-dot" data-lit={i < gems ? "" : undefined} />
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "laser") return null;
+  const solution = puzzle.solution ?? [];
+  const solutionTrace = traceBeam(puzzle.source, puzzle.dir, solution, puzzle.blocks, puzzle.bombs, puzzle.gems, puzzle.splitters, puzzle.directionalGems);
+  const view = laserRevealView(puzzle, myAnswer ?? "", myCorrect, timeLimitMs, myExtra);
   const total = puzzle.gems.length;
-  // laserRev 4 (the Pattern overhaul): an unfinished round counts its best shot (as the score does), not the board left.
-  const bestShot = laserOverhaul(puzzle) && logReplay
-    ? logReplay.shotLog.filter((shot) => !shot.hitBomb).reduce((best, shot) => Math.max(best, shot.gemsLit), 0)
-    : null;
-  const lit = bestShot ?? myTrace.gemsLit.length;
-  // The Pattern overhaul: the line is the player's own ("You: …"), shown only under Yours.
-  const result = myCorrect
-    ? `You: ${total} of ${total} gems · ${ordinal} shot${elapsed === null ? "" : `, ${elapsed.toFixed(1)} s`}`
-    : lit >= 1
-      ? `You: ${bestShot !== null ? "best shot " : ""}${lit} of ${total} gems`
-      : "You: missed";
+  const timeLeft = myCorrect && myMsRemaining !== undefined ? Math.round(myMsRemaining / 1000) : null;
+  const solutionMirrors = solution.filter((m) => !isSplitter(m.kind)).length;
+  const board = (layout: MirrorPlacement[], trace: BeamTrace, marks: LaserMarks | null) => (
+    <LaserBoard
+      source={puzzle.source}
+      dir={puzzle.dir}
+      gems={puzzle.gems}
+      bombs={puzzle.bombs}
+      blocks={puzzle.blocks}
+      splitters={puzzle.splitters ?? []}
+      directionalGems={puzzle.directionalGems ?? []}
+      placed={layout}
+      beam={trace.paths.some((path) => path.length > 1) ? trace.paths : null}
+      litGems={trace.gemsLit}
+      bombFlash={trace.hitBomb}
+      marks={marks}
+    />
+  );
+  // The player's line: the shot drawn and what it lit ("You: …", shown only under Yours).
+  const result = view.solved
+    ? `You: all ${total} gems · ${ORDINAL[(view.shot ?? 1) - 1] ?? ""} shot`
+    : view.shot === null
+      ? view.gems > 0
+        ? `You: ${view.gems} of ${total} gems at the buzzer`
+        : "You: no shot fired"
+      : view.trace.hitBomb
+        ? `You: ${ORDINAL[view.shot - 1]} shot hit a bomb`
+        : `You: best shot ${ORDINAL[view.shot - 1]}, ${view.gems} of ${total} gems`;
 
   return (
-    <div className="laser-reveal flex w-full min-h-0 flex-col items-center gap-3">
-      <div className="laser-reveal-boards flex min-h-0 w-full flex-1 items-center justify-center gap-3">
-        <div className="flex flex-col items-center gap-1">
-          <div className="laser-reveal-board aspect-square">
-            <LaserBoard
-              source={puzzle.source}
-              dir={puzzle.dir}
-              gems={puzzle.gems}
-              bombs={puzzle.bombs}
-              blocks={puzzle.blocks}
-              splitters={puzzle.splitters ?? []}
-              directionalGems={puzzle.directionalGems ?? []}
-              placed={solution}
-              beam={solutionTrace.paths}
-              litGems={solutionTrace.gemsLit}
-            />
-          </div>
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            solution
+    <div className="laser-reveal flex w-full min-h-0 flex-col items-center gap-2" data-laser-reveal="">
+      {/* The numbers that explain the score, from the stored grade. */}
+      <HudPills
+        testId="laser-reveal"
+        className="laser-reveal-pills"
+        items={[
+          { id: "gems", label: "Your gems", value: `${view.gems}/${total}`, tone: view.solved ? "good" : undefined },
+          { id: "shots", label: "Shots used", value: `${view.shotsUsed}/${LASER_MAX_FIRES}` },
+          view.mirrors !== null ? { id: "mirrors", label: "Your mirrors", value: view.mirrors, tone: view.par > 0 && view.mirrors > view.par ? "warn" : undefined } : null,
+          view.par > 0 ? { id: "par", label: "Par", value: view.par, tone: "gold" } : null,
+          timeLeft !== null ? { id: "time", label: "Time left", value: `${timeLeft} s` } : null,
+        ]}
+      />
+      <div className="laser-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
+        <div className="laser-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-laser-solution="">
+          <div className="laser-reveal-board aspect-square">{board(solution, solutionTrace, null)}</div>
+          <span className="laser-reveal-label">Solution</span>
+          <span className="laser-reveal-caption">
+            Lights all {total} gems with {solutionMirrors} mirror{solutionMirrors === 1 ? "" : "s"}
           </span>
         </div>
-        <div className="flex flex-col items-center gap-1">
-          <div className="laser-reveal-board aspect-square">
-            <LaserBoard
-              source={puzzle.source}
-              dir={puzzle.dir}
-              gems={puzzle.gems}
-              bombs={puzzle.bombs}
-              blocks={puzzle.blocks}
-              splitters={puzzle.splitters ?? []}
-              directionalGems={puzzle.directionalGems ?? []}
-              placed={mine.mirrors}
-              beam={mine.mirrors.length ? myTrace.paths : null}
-              litGems={myTrace.gemsLit}
-              bombFlash={myTrace.hitBomb}
-            />
-          </div>
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            yours
-          </span>
+        <div className="laser-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-laser-yours="">
+          <div className="laser-reveal-board aspect-square">{board(view.layout, view.trace, view.marks)}</div>
+          <span className="laser-reveal-label">Yours</span>
+          <span className="laser-reveal-caption" data-laser-result="">{result}</span>
+          {view.shots.length ? (
+            <span className="laser-shot-strip" aria-label="Your shots">
+              {view.shots.map((s, i) => (
+                <ShotChip key={i} index={i} gems={s.gems} bomb={s.bomb} total={total} best={view.shot === i + 1} />
+              ))}
+            </span>
+          ) : null}
+          {view.marks && (view.marks.wrong.length || view.marks.missing.length || view.marks.unlit.length) ? (
+            <span className="laser-reveal-key" data-laser-key="">
+              {view.marks.wrong.length ? <span data-key="wrong">Red square: not in the solution</span> : null}
+              {view.marks.missing.length ? <span data-key="missing">Gold dashes: the solution’s mirror</span> : null}
+              {view.marks.unlit.length ? <span data-key="unlit">Red ring: gem left dark</span> : null}
+            </span>
+          ) : null}
         </div>
       </div>
-      <p data-yours-only="" className="laser-reveal-line font-mono text-base uppercase tracking-widest text-muted-foreground">{result}</p>
     </div>
   );
 }
