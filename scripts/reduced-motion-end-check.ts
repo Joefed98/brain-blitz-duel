@@ -59,10 +59,12 @@ const EFFECTS: Record<string, string> = {
   sparkle: "Polypotions' and Hanoi's solve sparkles",
   "potion-rise": "Polypotions' rising bubbles",
   // Pattern puzzles (src/polish-pattern).
-  "bp-peg-ring": "Block Party peg ring flash",
+  // Changed with Joe's approval, 15 Nov 2026 (description only): the Pattern overhaul's Tessellate effects reuse these
+  // two names for the stud glint and the covered cells' flash.
+  "bp-peg-ring": "Tessellate stud glint as the solve shine passes",
   "bp-shine": "Block Party solve shine (bp-shine-still under reduced motion)",
   "bp-shine-still": "Block Party solve shine, reduced-motion version",
-  "bp-snap-ring": "Block Party snap ring",
+  "bp-snap-ring": "Tessellate covered cells' one-time flash on a drop",
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Chroma Lines' CSS solve glow
   // (flow-board-glow) and line pulse (flow-pulse) are gone (Joe's no-glow fix); its effects are the kit's, whose reduced
   // variants pattern-overhaul-flow-check proves. The check's own rule (a stale entry fails) removed the two entries.
