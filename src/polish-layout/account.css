@@ -14,11 +14,7 @@
   background: var(--jz-bg);
   color: var(--jz-text);
 }
-.acct-page[data-striped] {
-  background: var(--jz-stripes), var(--jz-bg);
-  background-size: auto 360px, auto;
-  background-repeat: repeat-x, no-repeat;
-}
+/* Plain page (the style guide: no decorative backgrounds); data-striped is kept as a marker only. */
 
 .acct-head {
   display: grid;
@@ -29,9 +25,7 @@
 .acct-head-title {
   text-align: center;
   color: var(--jz-text-2);
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: var(--jz-weight-medium);
+  font: var(--jz-type-label);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -51,31 +45,30 @@
   background: var(--jz-gold);
 }
 
+/* The style guide's type roles: Title for the step's question, Label for the line under it, Caption for notes. */
 .acct-h1 {
-  font-size: 30px;
-  line-height: 34px;
-  font-weight: var(--jz-weight-bold);
-  font-stretch: 112%;
+  margin: 0;
   color: var(--jz-text);
+  font: var(--jz-type-title);
+  letter-spacing: 0;
+  text-transform: none;
 }
 .acct-lede {
+  margin: 0;
   color: var(--jz-text-2);
-  font-size: 15px;
-  line-height: 21px;
+  font: var(--jz-type-label);
 }
 .acct-hint {
+  margin: 0;
   color: var(--jz-text-3);
-  font-size: 14px;
-  line-height: 18px;
+  font: var(--jz-type-caption);
 }
 .acct-label {
   display: flex;
   justify-content: space-between;
   gap: var(--jz-space-8);
   color: var(--jz-text-2);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: var(--jz-weight-medium);
+  font: var(--jz-type-caption);
 }
 .acct-label > span:last-child {
   color: var(--jz-text-3);
@@ -87,9 +80,9 @@
   gap: var(--jz-space-8);
 }
 .acct-error {
-  color: var(--jz-red);
-  font-size: 14px;
-  line-height: 18px;
+  margin: 0;
+  color: var(--jz-loss-text);
+  font: var(--jz-type-caption);
 }
 .acct-ok {
   display: inline-flex;
@@ -116,9 +109,9 @@
   gap: var(--jz-space-12);
 }
 .acct-small {
+  margin: 0;
   color: var(--jz-text-3);
-  font-size: 14px;
-  line-height: 20px;
+  font: var(--jz-type-caption);
   text-align: center;
 }
 
@@ -162,6 +155,10 @@
 .acct-colour[aria-checked="true"] {
   box-shadow: 0 0 0 3px var(--jz-bg), 0 0 0 5px var(--jz-gold);
 }
+.acct-colour:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 5px;
+}
 /* A 44 px target round a dot smaller than it. */
 .acct-colour::after {
   content: "";
@@ -174,14 +171,11 @@
   flex-direction: column;
   gap: var(--jz-space-12);
   padding: var(--jz-space-16);
-  background: var(--jz-stripes), var(--jz-surface);
+  background: var(--jz-surface);
   border: 2px solid var(--jz-gold);
 }
 .acct-card-name {
-  font-size: 22px;
-  line-height: 26px;
-  font-weight: var(--jz-weight-bold);
-  font-stretch: 108%;
+  font: var(--jz-type-heading);
   color: var(--jz-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -189,9 +183,7 @@
 }
 .acct-card-sub {
   color: var(--jz-gold-ink);
-  font-size: 14px;
-  line-height: 18px;
-  font-weight: var(--jz-weight-medium);
+  font: var(--jz-type-caption);
 }
 
 .acct-dob {
@@ -203,20 +195,18 @@
   width: 100%;
   height: 50px;
   padding: 0 var(--jz-space-12);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-md);
   border: 1.5px solid var(--jz-surface-2);
   background: var(--jz-well);
   box-shadow: var(--jz-well-shadow);
   color: var(--jz-text);
-  font: inherit;
-  font-size: 18px;
-  font-weight: var(--jz-weight-bold);
+  font: var(--jz-type-body);
   appearance: none;
   text-align: center;
 }
 .acct-select:focus-visible {
-  outline: 2px solid var(--jz-gold);
-  outline-offset: 2px;
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
 }
 
 .acct-mail-disc {
@@ -225,8 +215,8 @@
   width: 56px;
   height: 56px;
   border-radius: var(--jz-round);
-  background: var(--jz-cyan-panel);
-  color: var(--jz-cyan);
+  background: var(--jz-surface-2);
+  color: var(--jz-gold-ink);
 }
 .acct-code {
   letter-spacing: 0.4em;
@@ -243,10 +233,9 @@
 }
 
 .acct-kicker {
-  color: var(--jz-cyan);
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: var(--jz-weight-medium);
+  margin: 0;
+  color: var(--jz-gold-ink);
+  font: var(--jz-type-label);
 }
 .acct-founder {
   width: 40px;
@@ -335,7 +324,7 @@
   white-space: nowrap;
 }
 .acct-danger {
-  color: var(--jz-red);
+  color: var(--jz-loss-text);
 }
 .acct-confirm {
   display: flex;
@@ -357,4 +346,34 @@
   content: "";
   position: absolute;
   inset: -15px -6px;
+}
+
+/*
+ * Tablets and computers (the Settings, account and onboarding session, 14 Nov 2026): the sign-in and sign-up steps
+ * are a centred panel on the page instead of a full screen; their own lists inside it are outlined, not filled, so no
+ * card sits inside a card. /account's settings (no data-account-flow) keep the page.
+ */
+@media (min-width: 700px) {
+  .acct-page[data-account-flow] {
+    width: 100%;
+    max-width: 480px;
+    min-height: 0;
+    margin: max(24px, 6vh) auto var(--jz-space-24);
+    padding: var(--jz-space-24) var(--jz-space-32) var(--jz-space-32);
+    border-radius: var(--jz-radius-lg);
+    background: var(--jz-surface);
+  }
+  .acct-page[data-account-flow] .acct-grow {
+    flex: 0 0 var(--jz-space-8);
+  }
+  .acct-page[data-account-flow] .jz-panel {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--jz-line);
+  }
+  .acct-page[data-account-flow] .acct-card {
+    background: var(--jz-surface-2);
+  }
+  .acct-page[data-account-flow] :is(.jz-input, .acct-select) {
+    background: var(--jz-bg);
+  }
 }
