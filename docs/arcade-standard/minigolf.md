@@ -68,7 +68,22 @@ Each level's pars are proven at its own sail speed. The levels are ready for the
 **Parts** (200, as golfRev 2): Holes 120, Par 40 (falling to 0 at the level's stroke limit), Under par 20, Speed 20
 (full by the level's time, 0 at 90 s).
 
-MEASURED_V3
+**Measured** (15 Nov 2026, `bun scripts/crazy-golf-levels.ts --courses=24`: the golfRev 3 bot,
+`scripts/arcade-skill-bands/bots/minigolfV3.ts`, under the skill-band tool's human limits, on 24 courses dealt from the
+bank as the server deals them, every run scored through the server's replay; the aim preview modelled as a scale on the
+power error, Easy 0.6, Normal 1, Hard 1.35, Expert 1.7). Median score (all five holed of 24; median finish):
+
+| | Good | Great | Near-perfect | Elite |
+|---|---|---|---|---|
+| Easy | 179.5 (20; 53.7 s) | 184 (21; 44.6 s) | 186 (23; 39.3 s) | 189 (24; 34.9 s) |
+| Normal | 170.5 (19; 57.1 s) | 171.5 (19; 47.8 s) | 184.5 (21; 37.6 s) | 186 (23; 32.9 s) |
+| Hard | 164.5 (17; 54.6 s) | 176.5 (20; 46.7 s) | 181 (22; 38.3 s) | 188.5 (21; 32.3 s) |
+| Expert | 144.5 (12; 57.7 s) | 174 (16; 44.3 s) | 178 (14; 34.6 s) | 188 (21; 35.8 s) |
+
+About 1.1–1.5 chips a run. Expert is humanly possible (the elite bot holes all five on 21 of 24 courses, median 188;
+every course's witness scores 200 on Expert). The brief's targets (about 198, 160 and 140) are not met as measured: the
+levels' rules are the brief's table, which separates the levels mostly by the stroke limit and the sails; see the PR's
+"Needs Joe".
 
 **Proofs.** crazy-golf-v3-check (the catalogue, the bank, 600 composed courses at 200, the deal, the chip, the swells, the
 levels, the reveal's trace; `CHECKS_FULL=1` also rebuilds the bank byte for byte, about 20 min), minigolf-sync-check

@@ -1657,7 +1657,7 @@ export function paintMinigolfTile(c: CanvasRenderingContext2D, size: number): vo
  */
 
 /** The Captain sprite's world size (px) and where the ball sits in it (sprite px of 256: ahead of the club's face). */
-export const MG_CAPTAIN_PX = 64;
+export const MG_CAPTAIN_PX = 80;
 const CAPTAIN_BALL = { x: 152, y: 198 };
 const CAPTAIN_HOLD = 70;
 

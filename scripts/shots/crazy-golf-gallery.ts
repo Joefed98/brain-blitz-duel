@@ -62,7 +62,8 @@ async function open(browser: Browser, origin: string, audit: unknown[] | null): 
   const page = await ctx.newPage();
   await page.route("**/_serverFn/**", async (route) => {
     const body = route.request().postData() ?? "";
-    if (/practiceGenerate/.test(route.request().url()) || /practiceGenerate/.test(body))
+    // The deal request (its name is base64 in the URL): its data carries "type" and "example".
+    if (body.includes(`"k":["type","example"]`))
       return route.continue({ postData: body.replace(/("k":\["type","example"\],"v":\[\{"t":1,"s":"\w+"\},)\{"t":2,"s":3\}/, '$1{"t":2,"s":2}') });
     return route.continue();
   });

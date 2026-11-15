@@ -1090,16 +1090,16 @@ export function minigolfSounds(): GameSounds<MinigolfState> {
       if (prev && state.tick > prev.tick) {
         if (prev.phase === MG_AIM && state.phase === MG_ROLL) {
           // golfRev 3: a chip's crisp lofted click, a putt's short tock; both a light tap in the hand.
-          if (state.rev >= 3 && state.shot === 2) effectCue("minigolf.chip");
+          if (state.rev >= 3 && state.shot === 2) sfx("minigolf.chip", "arc_wood_knock", 0.9);
           else sfx("minigolf.putt", "arc_wood_knock", 0.8);
           if (state.rev >= 3) feel("tick");
         }
         if (state.rev >= 3) {
-          if (state.landTick > prev.landTick && state.landTick === state.tick) effectCue("minigolf.land", 80);
-          if (state.lips > prev.lips) effectCue("minigolf.rattle", 150);
-          if (state.sandStops > prev.sandStops) effectCue("minigolf.sand", 120);
+          if (state.landTick > prev.landTick && state.landTick === state.tick) sfx("minigolf.land", "arc_bounce", 0.4);
+          if (state.lips > prev.lips) sfx("minigolf.rattle", "arc_marble_clink", 0.6);
+          if (state.sandStops > prev.sandStops) sfx("minigolf.sand", "arc_bounce", 0.3);
           if (state.waters > prev.waters) {
-            effectCue("minigolf.plip");
+            sfx("minigolf.plip", "arc_sea_pop", 0.8);
             feel("impact");
           }
         }

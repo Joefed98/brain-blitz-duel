@@ -40,12 +40,12 @@ export function groundHeight(h: MgHole, x: number, y: number): number {
     const p0 = Math.min(x0 * ux + y0 * uy, x1 * ux + y1 * uy, x0 * ux + y1 * uy, x1 * ux + y0 * uy);
     const p1 = Math.max(x0 * ux + y0 * uy, x1 * ux + y1 * uy, x0 * ux + y1 * uy, x1 * ux + y0 * uy);
     const p = Math.max(p0, Math.min(p1, x * ux + y * uy));
-    z += (p - p0) * k * 0.012;
+    z += (p - p0) * k * 0.0065;
   }
   for (const hl of h.hills ?? []) {
     const r = px(hl.r);
     const d = Math.hypot(x - px(hl.x), y - px(hl.y));
-    if (d < r) z += (hl.k * (r * r - d * d)) / (2 * r) * 0.1;
+    if (d < r) z += (hl.k * (r * r - d * d)) / (2 * r) * 0.005;
   }
   for (const w of h.swells ?? []) {
     const r = px(w.r);
@@ -53,7 +53,7 @@ export function groundHeight(h: MgHole, x: number, y: number): number {
     if (d >= r) continue;
     // ∫ from d to r of 4k·t(r − t)/r² dt.
     const F = (t: number) => (4 * w.k * (r * t * t / 2 - (t * t * t) / 3)) / (r * r);
-    z += (F(r) - F(d)) * 0.1;
+    z += (F(r) - F(d)) * 0.0028;
   }
   return z;
 }
@@ -96,7 +96,8 @@ export function paintGroundLight(ctx: CanvasRenderingContext2D, h: MgHole, res =
   const lx = -0.62;
   const ly = -0.78;
   const STRIPE = 18;
-  const BEND = 7;
+  /** World px a stripe moves a unit of height: a mound bends its stripes by about one stripe's width. */
+  const BEND = 6;
   const e = 1.2;
   for (let j = 0; j < H; j++) {
     const y = b.y - 4 + j / res;
@@ -106,7 +107,7 @@ export function paintGroundLight(ctx: CanvasRenderingContext2D, h: MgHole, res =
       const gx = (groundHeight(h, x + e, y) - groundHeight(h, x - e, y)) / (2 * e);
       const gy = (groundHeight(h, x, y + e) - groundHeight(h, x, y - e)) / (2 * e);
       // Lambert from the top left: a face tipped towards the light brightens, away from it darkens.
-      const lit = Math.max(-1, Math.min(1, (gx * lx + gy * ly) * 6));
+      const lit = Math.max(-1, Math.min(1, (gx * lx + gy * ly) * 16));
       // The stripes, laid on the ground: their phase follows the height, so they bend over it.
       const phase = (y - z * BEND) / STRIPE;
       const f = phase - Math.floor(phase);
@@ -122,12 +123,12 @@ export function paintGroundLight(ctx: CanvasRenderingContext2D, h: MgHole, res =
         r = 255;
         g = 246;
         bl = 200;
-        a = lit * 0.34;
+        a = lit * 0.4;
       } else if (lit < 0) {
         r = 0;
         g = 18;
         bl = 6;
-        a = -lit * 0.42;
+        a = -lit * 0.5;
       }
       const sa = Math.abs(stripe) * 0.1;
       if (sa > 0) {
@@ -196,116 +197,141 @@ function centre(cs: readonly { x: number; y: number; r: number }[]): { x: number
   return { x, y, r };
 }
 
+/** A union's bounding box (world px) grown by `pad`. */
+function bboxOf(cs: readonly { x: number; y: number; r: number }[], pad: number) {
+  const x0 = Math.min(...cs.map((c) => c.x - c.r)) - pad;
+  const y0 = Math.min(...cs.map((c) => c.y - c.r)) - pad;
+  const x1 = Math.max(...cs.map((c) => c.x + c.r)) + pad;
+  const y1 = Math.max(...cs.map((c) => c.y + c.r)) + pad;
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
 /**
- * A bunker: the union of its circles, a darker lip just outside, sand (the rendered sand tile when given), shaded from
- * the top left, with rake lines in arcs round its middle and a soft rim shadow inside the lip.
+ * Fills (the union grown by `grow`) less (the union grown by `cut`, moved by dx, dy) with `fill`, through an off-screen
+ * mask, so a union of circles gets a crisp lip, rim or crescent with no seam where its circles overlap.
+ */
+function unionBand(ctx: CanvasRenderingContext2D, cs: readonly { x: number; y: number; r: number }[], grow: number, cut: number, dx: number, dy: number, fill: string | CanvasPattern): void {
+  const m = ctx.getTransform();
+  const k = Math.max(1, Math.min(4, Math.hypot(m.a, m.b)));
+  const b = bboxOf(cs, Math.max(grow, cut) + Math.abs(dx) + Math.abs(dy) + 2);
+  const sc = scratch(Math.ceil(b.w * k), Math.ceil(b.h * k));
+  if (!sc) return;
+  const t = sc.ctx;
+  t.scale(k, k);
+  t.translate(-b.x, -b.y);
+  unionPath(t, cs, grow);
+  t.fillStyle = fill;
+  t.fill();
+  t.globalCompositeOperation = "destination-out";
+  t.translate(dx, dy);
+  unionPath(t, cs, cut);
+  t.fillStyle = "#000";
+  t.fill();
+  ctx.drawImage(sc.canvas as CanvasImageSource, b.x, b.y, b.w, b.h);
+}
+
+/**
+ * A bunker (a hollow in the turf): the turf's dark lip just outside the union, the sand (the rendered sand tile when
+ * given) inside it, then the hollow's light: the inner wall on the top-left in shade (the lip casting onto the sand),
+ * the far inner wall lit, rake lines in arcs round its middle, and a crisp lit crest on the turf lip's far side. Every
+ * band is a mask of the whole union, so the circles' overlaps leave no seam.
  */
 export function paintBunkersV3(ctx: CanvasRenderingContext2D, h: MgHole, sand: CanvasPattern | string | null): void {
   for (const cs of groups(h.sands ?? [], h.sandGroups)) {
     const c = centre(cs);
+    // The turf lip: a dark band all round, its far (bottom-right) crest catching the light.
+    unionBand(ctx, cs, 2.6, 0, 0, 0, "rgba(28,22,8,0.62)");
+    unionBand(ctx, cs, 2.6, 2.6, -1.4, -1.6, "rgba(196,230,150,0.38)");
     ctx.save();
-    unionPath(ctx, cs, 2.2);
-    ctx.fillStyle = "rgba(36,26,8,0.55)";
-    ctx.fill();
     unionPath(ctx, cs);
     ctx.fillStyle = sand ?? "#DCC07E";
     ctx.fill();
     ctx.clip();
-    // Light across the sand from the top left; the far side in the lip's shade.
-    const g = ctx.createRadialGradient(c.x - c.r * 0.4, c.y - c.r * 0.45, c.r * 0.1, c.x, c.y, c.r * 1.05);
-    g.addColorStop(0, "rgba(255,250,228,0.22)");
-    g.addColorStop(0.7, "rgba(0,0,0,0)");
-    g.addColorStop(1, "rgba(70,44,10,0.32)");
+    // Warm sun across the sand from the top left.
+    const g = ctx.createLinearGradient(c.x - c.r, c.y - c.r, c.x + c.r, c.y + c.r);
+    g.addColorStop(0, "rgba(120,86,30,0.20)");
+    g.addColorStop(0.55, "rgba(255,246,214,0.10)");
+    g.addColorStop(1, "rgba(255,250,232,0.22)");
     ctx.fillStyle = g;
     ctx.fillRect(c.x - c.r - 4, c.y - c.r - 4, c.r * 2 + 8, c.r * 2 + 8);
-    // Rake lines: concentric arcs, a darker groove and a lit ridge beside it.
-    ctx.lineWidth = 0.8;
-    for (let rr = 4; rr < c.r + 4; rr += 3.2) {
-      ctx.strokeStyle = "rgba(110,80,30,0.28)";
+    // Rake lines: grooves (shaded on their near side, lit on their far side).
+    for (let rr = 5; rr < c.r + 4; rr += 3.4) {
+      ctx.lineWidth = 0.9;
+      ctx.strokeStyle = "rgba(112,80,28,0.34)";
       ctx.beginPath();
       ctx.arc(c.x, c.y, rr, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.strokeStyle = "rgba(255,246,214,0.22)";
+      ctx.lineWidth = 0.7;
+      ctx.strokeStyle = "rgba(255,248,222,0.40)";
       ctx.beginPath();
-      ctx.arc(c.x - 0.5, c.y - 0.6, rr + 0.9, 0, Math.PI * 2);
+      ctx.arc(c.x + 0.45, c.y + 0.55, rr + 0.9, 0, Math.PI * 2);
       ctx.stroke();
     }
-    // The inner rim shade (the turf's lip casting onto the sand).
-    unionPath(ctx, cs, 1.4);
-    ctx.strokeStyle = "rgba(60,38,8,0.35)";
-    ctx.lineWidth = 3;
-    ctx.stroke();
     ctx.restore();
+    // The hollow: shade on the near (top-left) inner wall, light on the far one.
+    unionBand(ctx, cs, 0, 0, 3, 3.6, "rgba(70,44,10,0.42)");
+    unionBand(ctx, cs, 0, 0, -2, -2.4, "rgba(255,248,226,0.30)");
   }
 }
 
 /**
- * A pond: a dressed stone edge round the union (its outer 3 px, outside the sim's circles), deep water shading to a
- * shallower rim, the sky's highlight from the top left and a few still ripples. The sim's water is the circles less
- * 2 px (a ball must be over the water to drop), so the stone sits on dry ground.
+ * A pond: a ring of dressed stone round the union (outside the sim's circles, on dry ground), bevelled (its top-left
+ * crest lit, a crisp line; its lower edge in shade), deep water shading from a dark middle to a shallower rim with the
+ * sky's reflection laid across it, the stone's shadow on the water, a crisp specular highlight on the near curve and a
+ * few still ripples. Glossy without any glow: every highlight is a hard-edged shape.
  */
 export function paintPondsV3(ctx: CanvasRenderingContext2D, h: MgHole, stone: CanvasPattern | string | null): void {
   for (const cs of groups(h.ponds, h.pondGroups)) {
     const c = centre(cs);
+    // The stone ring's cast shadow on the turf, the stones, their bevel.
+    unionBand(ctx, cs, 5.5, 0, 0, 0, "rgba(0,0,0,0.38)");
+    unionBand(ctx, cs, 4.2, 0, 0, 0, stone ?? "#9A8C74");
+    unionBand(ctx, cs, 4.2, 4.2, 1.2, 1.4, "rgba(255,246,226,0.55)");
+    unionBand(ctx, cs, 4.2, 4.2, -1.1, -1.3, "rgba(30,22,12,0.5)");
     ctx.save();
-    // The stone edge's cast shadow, then the stones.
-    ctx.save();
-    ctx.translate(1.2, 1.8);
-    unionPath(ctx, cs, 4);
-    ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.fill();
-    ctx.restore();
-    unionPath(ctx, cs, 3.5);
-    ctx.fillStyle = stone ?? "#9A8C74";
-    ctx.fill();
-    unionPath(ctx, cs, 3.5);
-    ctx.strokeStyle = "rgba(255,244,222,0.25)";
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-    // Stone joints: short ticks round the edge.
-    ctx.strokeStyle = "rgba(40,30,20,0.45)";
-    ctx.lineWidth = 0.7;
-    for (const k of cs) {
-      const n = Math.max(6, Math.round(k.r / 3));
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(k.x + Math.cos(a) * (k.r + 0.2), k.y + Math.sin(a) * (k.r + 0.2));
-        ctx.lineTo(k.x + Math.cos(a) * (k.r + 3.4), k.y + Math.sin(a) * (k.r + 3.4));
-        ctx.stroke();
-      }
-    }
-    // The water.
     unionPath(ctx, cs);
     ctx.clip();
-    const g = ctx.createRadialGradient(c.x + c.r * 0.15, c.y + c.r * 0.2, 2, c.x, c.y, c.r * 1.1);
-    g.addColorStop(0, "#0E3F5C");
-    g.addColorStop(0.7, "#1B6A86");
-    g.addColorStop(1, "#3E95A8");
+    // Deep water: dark at its heart, clearer towards the rim.
+    const g = ctx.createRadialGradient(c.x + c.r * 0.12, c.y + c.r * 0.18, 1, c.x, c.y, c.r * 1.05);
+    g.addColorStop(0, "#082C42");
+    g.addColorStop(0.6, "#0F4D6A");
+    g.addColorStop(1, "#2B7E92");
     ctx.fillStyle = g;
     ctx.fillRect(c.x - c.r - 6, c.y - c.r - 6, c.r * 2 + 12, c.r * 2 + 12);
-    // The edge's own shadow on the water.
-    unionPath(ctx, cs, 1);
-    ctx.strokeStyle = "rgba(0,20,30,0.45)";
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    // Sky highlight and still ripples.
-    const hl = ctx.createRadialGradient(c.x - c.r * 0.45, c.y - c.r * 0.45, 1, c.x - c.r * 0.45, c.y - c.r * 0.45, c.r * 0.7);
-    hl.addColorStop(0, "rgba(220,245,255,0.28)");
-    hl.addColorStop(1, "rgba(220,245,255,0)");
-    ctx.fillStyle = hl;
+    // The sky reflected: a broad diagonal band, lighter towards the top left.
+    const sky = ctx.createLinearGradient(c.x - c.r, c.y - c.r, c.x + c.r * 0.6, c.y + c.r * 0.6);
+    sky.addColorStop(0, "rgba(190,226,240,0.34)");
+    sky.addColorStop(0.45, "rgba(190,226,240,0.10)");
+    sky.addColorStop(0.46, "rgba(190,226,240,0)");
+    ctx.fillStyle = sky;
     ctx.fillRect(c.x - c.r - 6, c.y - c.r - 6, c.r * 2 + 12, c.r * 2 + 12);
-    ctx.strokeStyle = "rgba(210,240,255,0.22)";
-    ctx.lineWidth = 0.9;
-    for (let i = 0; i < 3; i++) {
-      const rx = c.x + Math.cos(i * 2.1 + c.x) * c.r * 0.4;
-      const ry = c.y + Math.sin(i * 1.7 + c.y) * c.r * 0.35;
-      for (const rr of [3, 6, 9]) {
+    // Still ripples: thin, hard lines.
+    ctx.strokeStyle = "rgba(214,240,250,0.30)";
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 2; i++) {
+      const rx = c.x + Math.cos(i * 2.4 + c.x) * c.r * 0.35;
+      const ry = c.y + Math.sin(i * 1.9 + c.y) * c.r * 0.3;
+      for (const rr of [3.5, 7]) {
         ctx.beginPath();
-        ctx.ellipse(rx, ry, rr, rr * 0.55, 0, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.ellipse(rx, ry, rr, rr * 0.55, 0, Math.PI * 1.15, Math.PI * 1.85);
         ctx.stroke();
       }
     }
+    ctx.restore();
+    // The stone's shadow on the water along its near edge, then a crisp specular glint on the far curve (glass-like).
+    unionBand(ctx, cs, 0, 0, 2.8, 3.2, "rgba(0,18,28,0.55)");
+    const big = cs.reduce((a, b) => (b.r > a.r ? b : a));
+    ctx.save();
+    unionPath(ctx, cs);
+    ctx.clip();
+    ctx.fillStyle = "rgba(244,252,255,0.85)";
+    ctx.beginPath();
+    ctx.ellipse(big.x - big.r * 0.42, big.y - big.r * 0.5, Math.max(2.4, big.r * 0.32), Math.max(0.9, big.r * 0.07), -0.62, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,252,255,0.6)";
+    ctx.beginPath();
+    ctx.arc(big.x - big.r * 0.12, big.y - big.r * 0.68, Math.max(0.9, big.r * 0.05), 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 }

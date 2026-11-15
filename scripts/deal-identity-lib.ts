@@ -167,8 +167,9 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
  */
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
-  // arcade deal, unpinned here as before).
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree"]);
+  // arcade deal, unpinned here as before). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy
+  // Golf overhaul): rooms deal Crazy Golf's hole bank, so minigolfPreCourse is pinned for the rooms too.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "minigolfPreCourse"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

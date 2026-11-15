@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 35 | 0 | 493 | 528 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 61 | 1 | 989 | 1051 |
 
 ## Silent and placeholder cues
 
@@ -1317,6 +1317,11 @@ Grouped by game or screen.
 | `minigolf.water` | Crazy Golf: The ball goes in a pond [arcade.md] |  | 0–6 | recorded sound | `minigolf.water` | 200 | game event | `minigolf.water` |
 | `minigolf.holed` | Crazy Golf: The ball drops in the cup [arcade.md] |  | 0–5 | recorded sound | `minigolf.holed` | 200 | game event | `minigolf.holed` |
 | `minigolf.birdie` | Crazy Golf: A hole holed under par [arcade.md] |  | 0–5 | recorded sound | `minigolf.birdie` | 300 | game event | `minigolf.birdie` |
+| `minigolf.chip` | Crazy Golf: golfRev 3: a chip is struck (a crisp lofted click; the putt keeps minigolf.putt's tock) [arcade.md] |  | 0–15 | recorded sound | `minigolf.chip` | 120 | game event | `minigolf.chip` |
+| `minigolf.land` | Crazy Golf: golfRev 3: a chip lands [arcade.md] |  | 0–15 | recorded sound | `minigolf.land` | 80 | game event | `minigolf.land` |
+| `minigolf.rattle` | Crazy Golf: golfRev 3: the ball runs over the cup's lip without dropping [arcade.md] |  | 0–10 | recorded sound | `minigolf.rattle` | 150 | game event | `minigolf.rattle` |
+| `minigolf.plip` | Crazy Golf: golfRev 3: the ball drops into water (with minigolf.water's splash) [arcade.md] |  | 0–6 | recorded sound | `minigolf.plip` | 200 | game event | `minigolf.plip` |
+| `minigolf.sand` | Crazy Golf: golfRev 3: a chip stops dead in a bunker [arcade.md] |  | 0–6 | recorded sound | `minigolf.sand` | 120 | game event | `minigolf.sand` |
 | `minigolf.stone` | Crazy Golf: The ball bounces off a boulder or a planter [arcade.md] |  | 0–20 | recorded sound | `minigolf.stone` | 300 | game event | `minigolf.stone` |
 | `minigolf.roll` | Crazy Golf: While the ball rolls (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `minigolf.roll` | loop | ambience | `minigolf.roll` |
 | `minigolf.bush` | Crazy Golf: The ball strikes a planter's bush (with minigolf.stone; at most one per 120 ms) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minigolf.bush` | 439 | game event | `minigolf.bush` |
@@ -2713,6 +2718,11 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `mahjong.clear` | effects | `mahjong.clear` | 1806 |
 | `minigolf.roll` | effects | `minigolf.roll` | 1375 |
 | `minigolf.bush` | effects | `minigolf.bush` | 439 |
+| `minigolf.chip` | effects | `minigolf.chip` | 120 |
+| `minigolf.land` | effects | `minigolf.land` | 200 |
+| `minigolf.rattle` | effects | `minigolf.rattle` | 120 |
+| `minigolf.plip` | effects | `minigolf.plip` | 80 |
+| `minigolf.sand` | effects | `minigolf.sand` | 200 |
 | `pool.chalk` | effects | `pool.chalk` | 733 |
 | `pool.cueSoft` | effects | `pool.cueSoft` | 400 |
 | `pool.cueHard` | effects | `pool.cueHard` | 400 |
