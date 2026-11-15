@@ -33,7 +33,7 @@ import {
   BRK_TEAL,
   breakerWorldHFor,
   breakerWorldWFor,
-  BRK_REV_STD,
+  BRK_REV_CLEAR,
   brkWallSize,
   type BrkState,
 } from "@/lib/arcade/breaker";
@@ -411,7 +411,7 @@ export const breakerPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BRK_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_STD }) satisfies BreakerPuzzleData,
+  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_CLEAR }) satisfies BreakerPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

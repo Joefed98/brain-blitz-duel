@@ -9,7 +9,7 @@ export const PRACTICE_STAMPS = {
   "blockfall": "blockfallRev=2 puzzleScoreRev=3 speedPar=1",
   "blockparty": "blockRev=3 puzzleScoreRev=3 speedPar=1",
   "bomb": "bombVersion=3 depthRev=2 puzzleScoreRev=3 speedPar=1",
-  "breaker": "brkRev=11 puzzleScoreRev=3 speedPar=1",
+  "breaker": "brkRev=12 puzzleScoreRev=3 speedPar=1",
   "bridges": "bridgesRev=1 notesRev=1 puzzleScoreRev=3 speedPar=1",
   "bubble": "bubbleRev=11 puzzleScoreRev=3 speedPar=1",
   "bullseye": "bullRev=9 puzzleScoreRev=3 speedPar=1",

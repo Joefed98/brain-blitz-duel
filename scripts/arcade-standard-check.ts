@@ -42,7 +42,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // sliceRev 12 (3 Nov 2026, the Action polish): bigger food, the core from half the food (slice-food-check).
   // sliceRev 13 (Nov 2026, the scoring audit): sliceRev 12's food and play; core and combo on straight lines from 0.
   { type: "slice", field: "sliceRev", rev: 13, batch: "A" },
-  { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): brkRev 12, the clearable wall.
+  { type: "breaker", field: "brkRev", rev: 12, batch: "A" },
   // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts with bigger marbles and keys, from its proved deal (tilt-rev12-check).
   { type: "tilt", field: "tiltRev", rev: 12, batch: "A" },

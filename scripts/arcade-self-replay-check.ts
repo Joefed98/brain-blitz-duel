@@ -148,7 +148,7 @@ import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_R
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_STANDARD, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BRK_REV_BAND, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
+import { BRK_REV_BAND, BRK_REV_CLEAR, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
 import { pin4Checkpoint, pinball5Game, pinball6Game, pinball7Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 // The arcade scoring standard, batch B (29 Oct 2026): each game's standard stamp.
@@ -1033,6 +1033,8 @@ const GAMES: Game[] = [
   { key: "pinball/joulz", game: pinball7Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_JOULZ) },
   // Meteor snakeRev 13 (15 Nov 2026, the Retro overhaul: wrap-around edges), appended so every earlier entry keeps its stream.
   { key: "snake/wrap", game: snakeGameFor(SNAKE_REV_WRAP), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_WRAP) },
+  // Breaker brkRev 12 (15 Nov 2026, the Retro overhaul: the clearable wall), appended so every earlier entry keeps its stream.
+  { key: "breaker/clear", game: breakerGameFor(BRK_REV_CLEAR), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_CLEAR) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

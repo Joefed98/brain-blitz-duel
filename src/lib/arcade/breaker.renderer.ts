@@ -42,6 +42,7 @@ import {
   BRK_REV_DEEP,
   BRK_REV_PHONE,
   BRK_REV_STD,
+  BRK_REV_CLEAR,
   brkAllDestroyed,
   brkGoldDealt,
   BRK_V9_SKILL_MAX,
@@ -534,8 +535,11 @@ const breakerArtGameStrict: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ..
 const breakerArtGameDeep: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_DEEP), draw };
 const breakerArtGamePhone: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_PHONE), draw };
 const breakerArtGameStd: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_STD), draw };
+/** brkRev 12 (the Retro overhaul): the 9-row wall, drawn by the same art. */
+const breakerArtGameClear: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_CLEAR), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_CLEAR) return breakerArtGameClear;
   if (rev === BRK_REV_STD) return breakerArtGameStd;
   if (rev === BRK_REV_PHONE) return breakerArtGamePhone;
   if (rev === BRK_REV_DEEP) return breakerArtGameDeep;

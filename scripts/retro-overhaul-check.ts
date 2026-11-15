@@ -28,6 +28,9 @@
  *  Meteor snakeRev 13 (wrap-around edges, the core full at 36): wiring; the wrap on a built state (out the right edge,
  *  in at the left in the same row; out the top, in at the bottom); the bots' logs play tick for tick as on snakeRev 12
  *  until snakeRev 12's wall crash, and on past it; the server replay; nobody crashes into a wall.
+ *  Breaker brkRev 12 (the clearable wall): wiring; every board is brkRev 11's with rows 3–5 taken out (81 bricks, the
+ *  3 gold bricks kept, every power brick kept, the lost ones in the lower rows); a quicker ball; a stronger multi-ball;
+ *  the elite bot clears the wall on most seeds (it cleared 4 of 12 on brkRev 11); the server replay.
  *  The shared Retro HUD: every count it draws is at least 11 px (retroHudFloorPx).
  *
  *   bun scripts/retro-overhaul-check.ts
@@ -79,6 +82,9 @@ import { PIN_REV_JOULZ, PIN_REV_STD } from "../src/lib/arcade/pinball";
 import { bot as snakeBot } from "./arcade-skill-bands/bots/snake";
 import { replaySnakeRun } from "../src/lib/duel/snake";
 import { snakeColsOf, snakeGameFor, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, type SnakeState } from "../src/lib/arcade/snake";
+import { bot as breakerBot } from "./arcade-skill-bands/bots/breaker";
+import { replayBreakerRun } from "../src/lib/duel/breaker";
+import { breakerGameFor, brkGoldDealt, BRK_REV_CLEAR, BRK_REV_STD, type BrkState } from "../src/lib/arcade/breaker";
 import { RETRO_HUD_MIN_PX, retroHudFloorPx } from "../src/lib/arcade/retro.renderer";
 
 let checks = 0;
@@ -417,6 +423,58 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   ok(walled >= 2, `snake: ${walled} wall crashes turned into wraps`);
 }
 
+/* ============================ Breaker brkRev 12 ============================ */
+{
+  ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_CLEAR && BRK_REV_CLEAR === BRK_REV_STD + 1, "breaker: rooms deal brkRev 12");
+  pinPreRetro(true);
+  ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_STD, "breaker: preRetro deals brkRev 11");
+  pinPreRetro(false);
+  ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR, "breaker: the help reads brkRev 12");
+  ok(/multi-ball/i.test(JSON.stringify(PUZZLE_INSTRUCTIONS.breaker)) && /9 rows/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.breaker)), "breaker: the help describes the 9-row wall and the multi-ball");
+  const g11 = breakerGameFor(BRK_REV_STD);
+  const g12 = breakerGameFor(BRK_REV_CLEAR);
+  ok(g12.runTicks <= 120 * TICKS_PER_SECOND, "breaker: the run is at most 120 s");
+  for (const seed of [1, 77, 4242, 99991, 123456]) {
+    const a = g11.init(seed) as BrkState;
+    const b = g12.init(seed) as BrkState;
+    const count = (st: BrkState, kind?: number) => st.gold.filter((g) => (kind === undefined ? g > 0 : g === kind)).length;
+    ok(b.bricks.length === 81 && a.bricks.length === 108, `breaker seed ${seed}: 81 bricks (brkRev 11: 108)`);
+    ok(brkGoldDealt(b) === brkGoldDealt(a) && brkGoldDealt(b) === 3, `breaker seed ${seed}: the 3 gold bricks kept`);
+    ok(count(b) === count(a), `breaker seed ${seed}: every power brick kept (${count(a)} → ${count(b)})`);
+    const keptRows = [0, 1, 2, 6, 7, 8, 9, 10, 11];
+    ok(keptRows.every((row, r) => JSON.stringify(a.bricks.slice(row * 9, row * 9 + 9)) === JSON.stringify(b.bricks.slice(r * 9, r * 9 + 9))), `breaker seed ${seed}: the kept rows' bricks as brkRev 11 dealt them`);
+    ok(b.gold.slice(0, 27).every((g, i) => g === a.gold[i]), `breaker seed ${seed}: the top three rows' power bricks unchanged`);
+    ok((b.slide ?? []).every((r) => r >= 0 && r < 9) && new Set(b.slide).size === (b.slide ?? []).length, `breaker seed ${seed}: two distinct sliding rows on the wall`);
+    ok(b.speed > a.speed, `breaker seed ${seed}: the ball starts quicker (${a.speed} → ${b.speed})`);
+    ok(sorted(g12.init(seed)) === sorted(b), `breaker seed ${seed}: the same board twice (identical for every player)`);
+  }
+  const spec = GAME_BY_TYPE.get("breaker" as never)!;
+  const clears = [0, 0];
+  for (let n = 0; n < 6; n++) {
+    const seed = spec.seedFor(n);
+    for (const [k, rev] of [[0, BRK_REV_STD], [1, BRK_REV_CLEAR]] as const) {
+      const game = breakerGameFor(rev);
+      const out = breakerBot({ game, seed, rev, human: new Human("breaker", seed, "elite" as never), fixes: true });
+      const events = out.events ?? [];
+      const by = new Map(events.map((e: any) => [e.t, e]));
+      let st = game.init(seed) as BrkState;
+      const checkpoints: unknown[] = [];
+      while (!game.isOver(st)) {
+        st = game.step(st, by.get(st.tick + 1) ?? null) as BrkState;
+        if (st.tick % 300 === 0) checkpoints.push(spec.checkpoint(st));
+      }
+      if (st.cleared) clears[k]!++;
+      if (rev === BRK_REV_CLEAR) {
+        const score = game.score(st);
+        const raw = spec.encode({ seed, claimedScore: score, events, endTick: st.tick, checkpoints }, rev, seed);
+        const res = replayBreakerRun(seed, raw, rev);
+        ok(!res.flagged && res.score === score, `breaker elite seed ${seed}: replays through the server to ${score} (got ${res.score}${res.flagged ? ", flagged" : ""})`);
+      }
+    }
+  }
+  ok(clears[1]! >= 5 && clears[1]! > clears[0]!, `breaker: the elite bot clears the wall on ${clears[1]} of 6 seeds (brkRev 11: ${clears[0]})`);
+}
+
 /* ============================ The shared Retro HUD ============================ */
 {
   ok(RETRO_HUD_MIN_PX === 11, `the Retro HUD's smallest count is 11 px (${RETRO_HUD_MIN_PX})`);
@@ -431,4 +489,4 @@ if (failures.length) {
   console.log(`FAIL retro-overhaul-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; the Retro HUD floor)`);
+console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; Breaker's clearable wall; the Retro HUD floor)`);

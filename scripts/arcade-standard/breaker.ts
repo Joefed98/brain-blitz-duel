@@ -6,21 +6,24 @@
  * perfect(): a flawless skill-band bot run on brkRev 11 (scripts/fixtures/breaker-standard-perfect.json: every brick,
  * all 3 gold, the wall cleared at 35 s), replayed by the server (replayBreakerRun) and split into parts with the sim's
  * own breakerStdParts.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the entry moved to the dealt
+ * stamp, brkRev 12 (the 9-row wall, 81 bricks), its perfect run scripts/fixtures/breaker-clear-perfect.json (a flawless
+ * bot run at 200, recorded by scripts/breaker-clear-perfect-record.ts).
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { BRK_REV_STD, BRK_V11_CLEAR_POINTS, BRK_V11_CORE_MAX, BRK_V11_GOLD_MAX, BRK_V11_SPEED_MAX, breakerStdParts } from "../../src/lib/arcade/breaker";
+import { BRK_REV_CLEAR, BRK_V11_CLEAR_POINTS, BRK_V11_CORE_MAX, BRK_V11_GOLD_MAX, BRK_V11_SPEED_MAX, breakerStdParts } from "../../src/lib/arcade/breaker";
 import { replayBreakerRun } from "../../src/lib/duel/breaker";
 import type { StdEntry, StdRun } from "./entry";
 
-const FIXTURE = new URL("../fixtures/breaker-standard-perfect.json", import.meta.url);
+const FIXTURE = new URL("../fixtures/breaker-clear-perfect.json", import.meta.url);
 
 export const entry: StdEntry = {
   type: "breaker",
   field: "brkRev",
-  rev: BRK_REV_STD,
+  rev: BRK_REV_CLEAR,
   parts: [
-    { key: "core", label: "Bricks destroyed (of all 108, gold included)", max: BRK_V11_CORE_MAX },
+    { key: "core", label: "Bricks destroyed (of all 81, gold included)", max: BRK_V11_CORE_MAX },
     { key: "clear", label: "Wall cleared", max: BRK_V11_CLEAR_POINTS },
     { key: "speed", label: "Speed (cleared with half the time left: full)", max: BRK_V11_SPEED_MAX },
     { key: "gold", label: "Gold bricks (10 each)", max: BRK_V11_GOLD_MAX },
