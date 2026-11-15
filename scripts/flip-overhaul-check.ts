@@ -17,7 +17,16 @@
  *     the world's outer rows and columns are the bedrock colour FLIP_DEEP, and the scene round it at 414×896 (home-screen
  *     app), 390×844, 375×667 and 1366×768 steps by at most EDGE_STEP_MAX per channel across every edge it meets.
  *
- *   bun scripts/flip-overhaul-check.ts      # ~40 s
+ *  8. Stage 2 effects (display only, 15 Nov 2026): flipRev 13's world is the 730 px cave; near misses are spikes within
+ *     FLIP_NEAR_MISS_PX at a take-off or landing, never a crash, at most 10 a run; a glint lasts its ticks; every landing
+ *     puffs at its spot, gold on exactly the sweet spots (drawn: gold pixels there); each double flip's ring and each crash's
+ *     flash start on their ticks; the flow counter ticks up on each clean landing, never rides ahead of the runner and is
+ *     never under PERFECT; the stretch keeps inside the bounds rule; the end count and the stage's hold; earlier revisions
+ *     draw none of it; drawing never writes to the state.
+ *  9. The answer reveal: Roofbound's RunPicture (the shared hook ArcadeReveal draws); its moments are the server replay's (weak,
+ *     average and elite runs on six courses), one mark each, the four numbers with plain labels, no "×", big type.
+ *
+ *   bun scripts/flip-overhaul-check.ts      # ~60 s
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
@@ -267,6 +276,188 @@ section("7. edge to edge");
       ok(edges.length > 0 || size.w === 390, `${size.name}: the scene meets the world somewhere`);
     }
   }
+}
+
+section("8. stage 2 effects (display only)");
+{
+  const FX = await import("../src/lib/arcade/flipFx");
+  const { flipFlowChipAt, flipStretch, FLIP_STRETCH_Y, FLIP_STRETCH_X } = await import("../src/lib/arcade/flipArt.renderer");
+  const { FLIP_FX } = await import("../src/lib/arcade/arcadeFxGames.renderer");
+  ok(F.flipWorldHFor(FLIP_REV_GRACE) === F.FLIP_V8_WORLD_H, "flipRev 13's stage and replay world is the 730 px cave (flipWorldHFor)");
+  // Every moment comes from one state and the effects never write to it.
+  const seed = FLIP_DEAL_V13[0]!;
+  const taps = witnesses.get(seed)!.taps.map(flipTap);
+  const elite: FlipState[] = [game13.init(seed) as FlipState];
+  play(FLIP_REV_GRACE, seed, taps, (s) => elite.push(s));
+  const weakOut = bot({ game: game13, seed, rev: FLIP_REV_GRACE, human: new Human("flip", seed, "weak"), fixes: true } as any);
+  const weak: FlipState[] = [game13.init(seed) as FlipState];
+  play(FLIP_REV_GRACE, seed, (weakOut.events ?? []) as any, (s) => weak.push(s));
+  // Near misses: a spike just ahead at take-off or just behind at landing, never on a crash, within the slot's 0–10 a round.
+  for (const level of ["weak", "average", "good", "elite"] as const) {
+    let most = 0;
+    for (let n = 0; n < 6; n++) {
+      const sd = FLIP_DEAL_V13[n * 23]!;
+      const out = level === "elite" ? { events: witnesses.get(sd)!.taps.map(flipTap) } : bot({ game: game13, seed: sd, rev: FLIP_REV_GRACE, human: new Human("flip", sd, level), fixes: true } as any);
+      const seen = new Set<number>();
+      let bad = 0;
+      play(FLIP_REV_GRACE, sd, (out.events ?? []) as any, (s) => {
+        const m = FX.flipNearMiss(s);
+        if (!m) return;
+        seen.add(m.tick);
+        const seg = s.segs[m.seg]!;
+        const x = s.v8!.xs[m.tick]!;
+        const half = F.FLIP_RUNNER_HALF_PX_V2 * 256;
+        const d = F.flipSegShift(seg, m.tick);
+        const gap = m.kind === "off" ? seg.x0 + d - (x + half) : x - half - (seg.x1 + d);
+        if (seg.kind !== F.FLIP_SPIKE || gap < 0 || gap > FX.FLIP_NEAR_MISS_PX * 256) bad++;
+        const crash = FX.flipCrashTick(s);
+        if (crash !== null && crash >= m.tick) bad++;
+      });
+      most = Math.max(most, seen.size);
+      ok(bad === 0, `${level} on course ${sd}: every near miss is a spike within ${FX.FLIP_NEAR_MISS_PX} px, never a crash`);
+    }
+    ok(most <= 10, `${level}: at most 10 near misses a run (the slot's 0–10; most ${most})`);
+  }
+  const shown = elite.map((s) => FX.flipNearMissShown(s));
+  const firstMiss = shown.findIndex(Boolean);
+  ok(firstMiss > 0 && shown.slice(firstMiss, firstMiss + FX.FLIP_NEAR_GLINT_TICKS).every(Boolean) && !shown[firstMiss + FX.FLIP_NEAR_GLINT_TICKS], `a near miss's glint lasts ${FX.FLIP_NEAR_GLINT_TICKS} ticks (from tick ${firstMiss})`);
+  // Landings: a dust puff at every landing, gold exactly on the sweet-spot landings, for FLIP_PUFF_TICKS.
+  let sweetPuffs = 0;
+  let puffs = 0;
+  for (let i = 1; i < elite.length; i++) {
+    const s = elite[i]!;
+    const p = elite[i - 1]!;
+    const puff = FX.flipLandingPuff(s);
+    if (p.flipT === 1 && s.flipT === 0) {
+      puffs++;
+      ok(puff !== null && puff.age === 0 && puff.x === s.x, `tick ${s.tick}: a landing puffs at the landing spot`);
+      if ((s.sweetT ?? 0) > (p.sweetT ?? 0)) {
+        sweetPuffs++;
+        ok(Boolean(puff?.sweet), `tick ${s.tick}: a sweet-spot landing's puff is gold`);
+      } else ok(puff !== null && !puff.sweet, `tick ${s.tick}: an ordinary landing's puff is dust`);
+    }
+  }
+  ok(puffs > 50 && sweetPuffs === 8, `every landing puffs (${puffs}), gold on all 8 sweet spots (${sweetPuffs})`);
+  // Double flips: the ring shows on each double flip's arc and only then.
+  const doubles = elite.filter((s, i) => i > 0 && (s.combos ?? 0) > (elite[i - 1]!.combos ?? 0));
+  ok(doubles.length > 0 && doubles.every((s) => FX.flipIsDouble(s) && FX.flipTakeoffTick(s) === s.tick), `each double flip's ring starts at its take-off (${doubles.length})`);
+  ok(elite.every((s) => !FX.flipIsDouble(s) || (s.flipT > 0 && (s.chain ?? 0) > 0)), "no ring outside a double flip's arc");
+  // Crashes: the flash sits on the crash tick, then the blink.
+  const crashes = weak.filter((s, i) => i > 0 && (s.saves ?? 0) > (weak[i - 1]!.saves ?? 0));
+  ok(crashes.length > 0 && crashes.every((s) => FX.flipCrashTick(s) === s.tick), `each crash's flash starts on its tick (${crashes.length})`);
+  // The flow counter's tick-up follows each clean landing; its spot rides over the head and never ahead of the runner.
+  const pops = elite.filter((s, i) => i > 0 && (s.streak ?? 0) > (elite[i - 1]!.streak ?? 0));
+  ok(pops.length > 0 && pops.every((s) => FX.flipFlowPopAge(s) === 0), `the flow counter ticks up on each clean landing (${pops.length})`);
+  const perfectAt = FLIP_FX.events.find((e) => e.label?.({} as any, 1, 1) === "PERFECT")!.at!;
+  let ahead = 0;
+  let overlap = 0;
+  for (const s of elite) {
+    const p = F.flipRunnerPoint(s);
+    const chip = flipFlowChipAt(s, p.y);
+    if (chip.x > p.x + 4.5) ahead++;
+    if (s.sweetT === s.tick) {
+      const word = perfectAt(s)!;
+      // The PERFECT pop (about 80 × 18 px about its spot, 10 px above it) against the chip (≤ 48 × 22).
+      const dx = Math.abs(word.x - chip.x);
+      const dy = Math.abs(word.y - 10 - chip.y);
+      if (dx < 40 + 24 && dy < 9 + 11) overlap++;
+    }
+  }
+  ok(ahead === 0, `the flow counter never rides ahead of the runner, where the hazards come from (${ahead} frames)`);
+  ok(overlap === 0, `PERFECT at the landing never covers the flow counter (${overlap})`);
+  // Over the head on the floor (above), under it on the roof (below), 4 px off centre either way.
+  ok(elite.every((s) => { const c = flipFlowChipAt(s, 300, true); return Math.abs(Math.abs(c.x - F.flipRunnerX(s)) - 4) < 1e-9 && Math.abs(c.y - 300 - (s.side === 0 ? -44 : 44)) < 1e-9; }), "reduced motion: the counter holds over the head on the cave side (no swing)");
+  // The stretch stays inside the bounds rule: at most 2 px past the runner's 32 × 36 box.
+  ok(elite.every((s) => flipStretch(s) >= 0 && flipStretch(s) <= 1) && (36 * FLIP_STRETCH_Y) / 2 <= 2 && FLIP_STRETCH_X > 0, "the flip's stretch is at most 1.3 px past the box (the bounds rule allows 2)");
+  // The end card's count, and the stage's hold for it (inside the 3 s between the run and the clock).
+  ok(FX.flipFlowCountShown(92, 0, false) === 0 && FX.flipFlowCountShown(92, FX.FLIP_FLOW_COUNT_MS, false) === 92 && FX.flipFlowCountShown(92, 0, true) === 92, "the flow best counts up over 800 ms (shown whole under reduced motion)");
+  const end = elite[elite.length - 1]!;
+  ok(FX.flipEndHoldMs(end) === FX.FLIP_END_HOLD_MS && FX.FLIP_END_HOLD_MS <= FLIP_TIME_MS - FLIP_RUN_TICKS * (1000 / 60) - 1000, "a survived flow run holds its answer 1.2 s for SURVIVED! (inside the clock's 3 s)");
+  ok(FX.flipEndHoldMs({ ...end, ended: 0 } as FlipState) === 0 && FX.flipEndHoldMs(flipGameFor(8).init(seed) as FlipState) === 0, "no hold mid-run or on earlier revisions");
+  ok([2, 8, 10].every((rev) => { const s0 = flipGameFor(rev).init(seed) as FlipState; return FX.flipNearMiss(s0) === null && FX.flipLandingPuff(s0) === null && !FX.flipIsDouble(s0); }), "earlier revisions draw none of it");
+  // Drawing never writes to the state, and the effects show: a gold puff, the end card counting.
+  const art = flipArtGameFor(FLIP_REV_GRACE);
+  const W = F.FLIP_WORLD_W;
+  const H = F.FLIP_V8_WORLD_H;
+  const at = (list: FlipState[], i: number) => list[Math.min(list.length - 1, i)]!;
+  const sweetI = elite.findIndex((s, i) => i > 0 && (s.sweetT ?? 0) > (elite[i - 1]!.sweetT ?? 0));
+  const frame = (s: FlipState) => {
+    const c = createCanvas(W, H);
+    const cx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    const before = JSON.stringify(s);
+    art.draw(cx, s, { width: W, height: H });
+    ok(JSON.stringify(s) === before, `tick ${s.tick}: drawing leaves the state as it was`);
+    return cx.getImageData(0, 0, W, H).data as unknown as Uint8ClampedArray;
+  };
+  const sweetState = at(elite, sweetI + 4);
+  const gold = frame(sweetState);
+  const plain = frame({ ...sweetState, sweetT: 1 });
+  const p = F.flipRunnerPoint(sweetState);
+  let goldPx = 0;
+  for (let y = Math.round(p.y); y < Math.round(p.y) + 30; y++)
+    for (let x = 0; x < 110; x++) {
+      const i = (y * W + x) * 4;
+      if (gold[i]! > 220 && gold[i + 1]! > 160 && gold[i + 2]! < 140 && !(plain[i]! > 220 && plain[i + 1]! > 160 && plain[i + 2]! < 140)) goldPx++;
+    }
+  ok(goldPx > 12, `a sweet-spot landing's gold puff is drawn at the landing spot (${goldPx} gold px)`);
+  for (const s of [at(elite, firstMiss + 2), at(elite, doubles[0]!.tick + 5), at(weak, crashes[0]!.tick + 3)]) frame(s);
+  // No edge glow (the shared hook, ACTION_EDGELESS_GAMES): its replacement draws on the moment, not round the edge.
+  const { edgelessGame } = await import("../src/lib/arcade/success.renderer");
+  const { arcadeFxEdgeless } = await import("../src/lib/arcade/arcadeFx.renderer");
+  const { flipMoment, flipFxFor } = await import("../src/lib/arcade/arcadeFxGames.renderer");
+  ok(edgelessGame("flip") && arcadeFxEdgeless(FLIP_FX) && FLIP_FX.moment === flipMoment && flipFxFor(end).moment === flipMoment, "Roofbound draws no edge glow; the taller cave's spec carries the moment hook");
+  const momentPx = (kind: string, p: number, still = false) => {
+    const c = createCanvas(W, H);
+    const cx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    flipMoment(cx, { kind: kind as any, x: W / 2, y: H / 2, colour: "#fff", ageMs: p * 600, p, still, lite: false });
+    const d = cx.getImageData(0, 0, W, H).data;
+    let lit = 0;
+    let edge = 0;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        if (d[(y * W + x) * 4 + 3]! === 0) continue;
+        lit++;
+        if (x < 6 || x >= W - 6 || y < 6 || y >= H - 6) edge++;
+      }
+    return { lit, edge };
+  };
+  for (const kind of ["streak", "final", "perfect"]) {
+    const m = momentPx(kind, 0.4);
+    ok(m.lit > 100 && m.edge === 0, `a ${kind} moment draws on the moment, never at the world's edge (${m.lit} px, ${m.edge} at the edge)`);
+  }
+  ok(momentPx("combo", 0.4).lit === 0, "a double flip's moment draws nothing here (the renderer's ring follows the runner)");
+  ok(momentPx("streak", 0, true).lit > 100, "reduced motion: the rule shows whole at once");
+}
+
+section("9. the answer reveal: a picture of the run");
+{
+  const { flipRunTimeline } = await import("../src/lib/duel/flipTimeline");
+  const { FlipRunPicture } = await import("../src/components/puzzles/FlipRunPicture");
+  const React = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { flipPuzzle } = await import("../src/puzzles/flip");
+  ok(Boolean(flipPuzzle.RunPicture) && /<GameRunPicture/.test(readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8")), "Roofbound's definition has a RunPicture, which the arcade reveal draws (GameRunPicture)");
+  ok(/function RunPicture[\s\S]{0,600}<FlipRunPicture/.test(readFileSync("src/puzzles/flip.tsx", "utf8")), "the RunPicture draws the run picture from the stored answer");
+  ok(/if \(timeline\) return <FlipRunPicture/.test(readFileSync("src/puzzles/flip.tsx", "utf8")), "Roofbound's Reveal draws the run picture on the flow revisions");
+  for (const seed of FLIP_DEAL_V13.slice(0, 6)) {
+    for (const level of ["weak", "average", "elite"] as const) {
+      const events = level === "elite" ? witnesses.get(seed)!.taps.map(flipTap) : (bot({ game: game13, seed, rev: FLIP_REV_GRACE, human: new Human("flip", seed, level), fixes: true } as any).events ?? []);
+      const { raw } = encodeFlipLog(FLIP_REV_GRACE, seed, events);
+      const r = replayFlipRun(seed, raw, FLIP_REV_GRACE);
+      const t = flipRunTimeline(seed, raw, FLIP_REV_GRACE)!;
+      const s = r.state as FlipState;
+      const tag = `${level} on course ${seed}`;
+      ok(Boolean(t) && t.crashes.length === r.saves && t.perfects.length === r.sweets && t.doubles.length === r.combos && t.best.count === (r.streak ?? -1) && t.endTick === s.tick, `${tag}: the picture's moments are the server replay's (${t?.crashes.length} crashes, ${t?.perfects.length} perfect, ${t?.doubles.length} doubles, best ${t?.best.count})`);
+      ok(t.cleanSeconds === Math.floor(F.flipGraceUnits(s) / 2) && t.best.from <= t.best.to && t.best.to <= t.endTick, `${tag}: clean time is the score's (${t.cleanSeconds} s) and the best streak lies inside the run`);
+      const html = renderToStaticMarkup(React.createElement(FlipRunPicture, { timeline: t }));
+      const count = (re: RegExp) => (html.match(re) ?? []).length;
+      ok(count(/data-flip-run-crash=""/g) === t.crashes.length && count(/data-flip-run-perfect=""/g) === t.perfects.length && count(/data-flip-run-double=""/g) === t.doubles.length, `${tag}: one mark a crash, perfect landing and double flip on the strip`);
+      ok(html.includes(`data-flip-stat="clean"`) && html.includes(`>${t.cleanSeconds} s<`) && html.includes(`>Best flow<`) && html.includes(`>Perfect landings<`) && html.includes(`>Double flips<`) && html.includes(`>Clean time<`), `${tag}: the four numbers the score is made of, each with its plain label`);
+      ok(!html.includes("×") && !/core|features|units|full at/i.test(html), `${tag}: no stray "×" and no jargon in the picture`);
+      ok(/font-size:34px/.test(html) && !/font-size:(?:[0-9]|1[0-2])px/.test(html) && !/font-size="(?:[0-9]|1[0-2])"/.test(html), `${tag}: big numbers (34 px) and nothing under 13 px`);
+    }
+  }
+  ok(flipRunTimeline(FLIP_DEAL_V13[0]!, "", FLIP_REV_DEAL - 4) === null, "earlier revisions (no flow streak) keep their lines: no picture");
 }
 
 console.log(
