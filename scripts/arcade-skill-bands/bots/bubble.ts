@@ -15,12 +15,14 @@
  * jitter over the drag length, larger for bank shots.
  */
 import { dragLaunch, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
-import { bubDangerLine, bubIsSpecial, bubRemaining, bubRowsOf, bubCellY, bubV8FeaturePoints, bubStdFeaturePoints, BUB_COLS, BUB_INPUT_SHOT, BUB_R, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
+import { bubDangerLine, bubIsSpecial, bubRemaining, bubRowsOf, bubCellY, bubV8FeaturePoints, bubStdFeaturePoints, BUB_COLS, BUB_INPUT_SHOT, BUB_R, BUB_SPEED, bubSpeed, bubFastLevel, type BubState } from "../../../src/lib/arcade/bubble";
 import type { SkillLevel } from "../human";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Typical drag length when aiming, phone px (the world is 390 px wide, so 1 world px = 1 phone px). */
 const DRAG_PX = 150;
+/** bubbleRev 12: the drag a player aims for, phone px (beyond 110 px is a faster shot, beyond 190 the fastest). */
+const FAST_DRAG: Record<SkillLevel, number> = { weak: 140, average: 160, good: 180, great: 205, near: 215, elite: 220, perfect: 225 };
 /** Bank shots are harder to read off the trail: extra pointing error per bounce (fraction). */
 const BANK_ERR = 0.6;
 /** Chance a bank-shot target is noticed at all, per level. */
@@ -183,11 +185,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       let angle = choice.angle + sdRad * human.normal();
       if (human.slip(0.3)) angle += 4 * sdRad * human.normal(); // fumbled release
       angle = Math.max((8 * Math.PI) / 180, Math.min((172 * Math.PI) / 180, angle));
-      const len = Math.max(40, Math.min(220, DRAG_PX * human.power(4)));
+      // bubbleRev 12 (the fast shot): stronger players drag further down the aim line on purpose for a quicker shot.
+      const reach = s.fast ? FAST_DRAG[human.level] : DRAG_PX;
+      const len = Math.max(40, Math.min(240, reach * human.power(4)));
+      const fast = s.fast ? bubFastLevel(len) : 0;
       const shot = dragLaunch(Math.cos(angle) * len, -Math.sin(angle) * len, BUB_SPEED);
       if (!shot || shot.vy >= 0) return null;
       const think = human.thinkTicks(THINK_MS + (special ? SPECIAL_THINK_MS : 0) + (choice.o.bank ? 250 : 0));
-      plan.at(t + human.reactTicks() + think, { k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: 0, d: 0 });
+      plan.at(t + human.reactTicks() + think, { k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: fast, d: 0 });
     }
     return plan.take(t) as Omit<ArcadeInputEvent, "t"> | null;
   }, init);

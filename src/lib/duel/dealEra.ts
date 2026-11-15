@@ -70,6 +70,10 @@ export const DEAL_PINS = {
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
+  /** arcade.server.ts: Coral Pop bubbleRev 11, before the Strategy overhaul's fast shot (15 Nov 2026). */
+  bubblePreFast: { texts: false },
+  /** arcade.server.ts: Rainbow Bridge inkRev 14 from its deal, before the Strategy overhaul's pot placements (15 Nov 2026). */
+  inkPreHills: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

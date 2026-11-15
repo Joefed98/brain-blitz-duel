@@ -12,7 +12,7 @@ import {
   bubOccupied,
   bubSurvived,
   BUB_CHECKPOINT_INTERVAL,
-  BUB_INPUT_RANGES,
+  bubbleInputRangesFor,
   BUB_RUN_TICKS,
   type BubCheckpoint,
   type BubState,
@@ -122,7 +122,7 @@ export function replayBubbleRun(seed: number, raw: string, rev?: number | null):
   const run = decodeBubbleRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BUB_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BUB_RUN_TICKS;
-  const check = checkInputEvents(run.events, BUB_RUN_TICKS, BUB_INPUT_RANGES);
+  const check = checkInputEvents(run.events, BUB_RUN_TICKS, bubbleInputRangesFor(rev));
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : BUB_RUN_TICKS;

@@ -76,7 +76,7 @@ import {
   TILT_S_MAZES,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
-import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS } from "@/lib/arcade/bubble";
+import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS, BUB_V12_REEF } from "@/lib/arcade/bubble";
 import {
   MATCHUP_V3_PAR_RAW,
   MATCHUP_V9_FEATURE_MAX,
@@ -1402,7 +1402,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     bubble: {
       goal: "Pop threes and free the treasure.",
       how: [
-        { action: "Drag to aim,", detail: "let go to shoot." },
+        { action: "Drag to aim,", detail: "let go to shoot. Drag further for a faster shot." },
         { action: "Chests pay", detail: "only when they fall with a cluster." },
         { action: "Bank off walls;", detail: "pop back to back for combos." },
         { action: "Crown Joker", detail: "matches any colour. Mines blast; torpedoes drill where aimed.", helpOnly: true },
@@ -1412,6 +1412,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: `joins every colour it touches and pops each group that reaches three. A mine pops the ${BUB_V11_MINE_POPS} bubbles nearest where it lands; bubbles left hanging then fall.`, helpOnly: true },
         { action: "A torpedo never sticks:", detail: `it flies where you aim it, bank shots included, and destroys up to ${BUB_TORPEDO_HITS} bubbles it runs into on the way up. Bubbles left hanging then fall.`, helpOnly: true },
         { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
+        { action: "A faster shot", detail: "comes from dragging further down the aim line: gold chevrons over the gun show its speed. It follows exactly the same path, only quicker.", helpOnly: true },
+        { action: `${BUB_V12_REEF} bubbles`, detail: "make the reef. Clear it all for a bonus, and more for clearing it fast.", helpOnly: true },
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
       ],
       // bubbleRev 11 (the arcade scoring standard): every part, its maximum and how it pays, 200 in all.

@@ -50,6 +50,7 @@ import {
   BUB_REV_REEF,
   BUB_REV_CREDIT,
   BUB_REV_BLAST,
+  BUB_REV_FAST,
   BUB_REV_STD,
   BUB_V10_BOMB_RADIUS,
   BUB_V8_BAND_CURVE,
@@ -143,7 +144,8 @@ for (const file of ["scripts/fixtures/e6-legacy.json", "scripts/fixtures/e6-runs
 section("Rooms deal the new stamps; the maximum is 200; demos stay stopped");
 const dealt = (type: PuzzleType) => generatePuzzle(type) as unknown as Record<string, unknown>;
 // Coral Pop moved on to bubbleRev 11 (29 Oct 2026, the arcade scoring standard; bubble-standard-check); bubbleRev 10 replays here as before.
-ok(dealt("bubble").bubbleRev === BUB_REV_STD, "Coral Pop: rooms deal bubbleRev 11 (bubbleRev 10's successor)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): rooms deal bubbleRev 12.
+ok(dealt("bubble").bubbleRev === BUB_REV_FAST, "Coral Pop: rooms deal bubbleRev 12 (bubbleRev 11's successor, the Strategy overhaul)");
 // Gemstone moved on to matchupRev 10 (27 Oct 2026, phone-test notes; gemstone-rev10-check); matchupRev 9 replays here as before.
 // The arcade scoring standard then moved it on to matchupRev 11 (gemstone-standard-check), and six goals and six treasures to
 // matchupRev 12 (gemstone-rev12-check).
@@ -157,7 +159,7 @@ ok(dealt("matchup").matchupRev === MATCHUP_REV_SIX, "Gemstone: rooms deal matchu
 for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/bubbleRev !== BUB_REV_STD\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 11 (its successor to 10)");
+  ok(/bubbleRev !== BUB_REV_FAST\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 12 (the Strategy overhaul's stamp)");
   ok(/matchupRev !== MATCHUP_REV_SIX\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 12 (a successor of 9)");
   // btRev 8 (the arcade scoring standard) keeps btRev 7's play: a demo recorded on either plays.
   ok(/!btIsV7Play\(demo\.puzzle\.btRev\)\) return null/.test(demo), "Ball Tracker's demo stays stopped until recorded on btRev 7 (or 8, the same play)");

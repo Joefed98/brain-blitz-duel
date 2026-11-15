@@ -26,6 +26,8 @@ import {
   BUB_CHECKPOINT_INTERVAL,
   BUB_GOLD,
   BUB_INPUT_SHOT,
+  BUB_REV_FAST,
+  bubFastLevel,
   BUB_R,
   BUB_RUN_TICKS,
   BUB_SHOOTER_X,
@@ -108,7 +110,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pending = useRef<ArcadeInputEvent[]>([]);
   /** Where the finger went down; the aim is measured from there. */
   const anchor = useRef<{ x: number; y: number } | null>(null);
-  const aim = useRef<{ vx: number; vy: number } | null>(null);
+  const aim = useRef<{ vx: number; vy: number; fast?: number } | null>(null);
+  // bubbleRev 12: dragging further down the aim line shoots faster (the same path, only quicker).
+  const fastShots = data?.bubbleRev === BUB_REV_FAST;
   const submitted = useRef(false);
   const deadAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -326,7 +330,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             if (!start) return;
             const point = worldPoint(event);
             const preview = dragLaunch(point.x - start.x, point.y - start.y, BUB_SPEED);
-            aim.current = preview && preview.vy < 0 ? { vx: preview.vx, vy: preview.vy } : null;
+            const fast = fastShots ? bubFastLevel(Math.hypot(point.x - start.x, point.y - start.y)) : 0;
+            aim.current = preview && preview.vy < 0 ? { vx: preview.vx, vy: preview.vy, fast } : null;
           }}
           onPointerUp={(event) => {
             const start = anchor.current;
@@ -337,7 +342,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               event.currentTarget.releasePointerCapture(event.pointerId);
             }
             if (!start || !shot || locked || submitted.current) return;
-            pending.current.push({ t: 0, k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: 0, d: 0 });
+            pending.current.push({ t: 0, k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: shot.fast ?? 0, d: 0 });
           }}
           onPointerCancel={(event) => {
             anchor.current = null;

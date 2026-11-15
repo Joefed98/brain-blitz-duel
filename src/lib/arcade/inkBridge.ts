@@ -140,17 +140,24 @@ export const INK_REV_CLOVER = 13;
  * bounds. Every level is built and proved with them (the sizes ride on each level as `ballR` / `cloverR`).
  */
 export const INK_REV_BIG = 14;
+/**
+ * inkRev 15 (the Strategy overhaul, 15 Nov 2026; docs/arcade-standard/inkbridge.md "inkRev 15"): inkRev 14's rules,
+ * sizes and parts with the pot and its hill moved level by level: each level takes one of four seeded placements
+ * (INK_V15_POT_PLANS: lower, higher, further from the spout, closer to it), laid out and proved exactly as before, so
+ * every level is still drawable within its ink, its bonus line proved and its ink par above its proved line.
+ */
+export const INK_REV_HILLS = 15;
 /** inkRev 14's coin radius, clover radius (px) and bird thickness (1/256 px). */
 export const INK_V14_BALL_R = 10;
 export const INK_V14_SHAMROCK_R = 12;
 export const INK_V14_BIRD_H_FP = 10 * 256;
 /** inkRev 10, 11, 12, 13 and 14: the taller world and its features (x200). */
 export function inkX(rev?: number | null): boolean {
-  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER || rev === INK_REV_BIG;
+  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS;
 }
 /** inkRev 13 and 14: clovers, ink par, more birds, failed drops that never end the run, the standard's parts (INK_V13_STD). */
 export function inkClover(rev?: number | null): boolean {
-  return rev === INK_REV_CLOVER || rev === INK_REV_BIG;
+  return rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS;
 }
 export const INK_TALL_H = 674;
 /** How much lower every inkRev 10 pot sits (the extra sky): INK_TALL_H − INK_WORLD_H. */
@@ -824,6 +831,48 @@ function blockOverlaps(a: InkBlock, b: InkBlock): boolean {
   return a.x0 < b.x1 + 16 && b.x0 < a.x1 + 16 && Math.abs(a.y - b.y) < 30;
 }
 
+/** inkRev 15's four pot placements: 0 lower, 1 higher, 2 further from the spout, 3 closer to it. */
+export const INK_V15_POT_PLANS = ["lower", "higher", "further", "closer"] as const;
+/** inkRev 15: each level's placement (by the run's level 0–9), set only while an inkRev 15 run is built; the level laid out. */
+let potPlan: readonly number[] | null = null;
+let potLevel = 0;
+
+/** inkRev 15: the run's seeded placements: the four in a seeded order, repeated (each used two or three times, never the same twice running). */
+export function inkV15PotPlan(seed: number): number[] {
+  let rng = (seed ^ 0x5a17e5) | 0;
+  const order = [0, 1, 2, 3];
+  for (let i = order.length - 1; i > 0; i--) {
+    const r = rngBelow(rng, i + 1);
+    rng = r.state;
+    [order[i], order[r.value]] = [order[r.value]!, order[i]!];
+  }
+  return Array.from({ length: INK_LEVELS }, (_, level) => order[level % 4]!);
+}
+
+/** inkRev 15: where a placement puts the pot (rim centre x, rim y), from the layout's own spout and drawn pot. */
+function placePot(plan: number, spoutX: number, x: number, y: number, drop: number, draw: Draw): { x: number; y: number } {
+  const side = x >= spoutX ? 1 : -1;
+  if (plan === 0) return { x, y: 548 + drop + draw(22) };
+  if (plan === 1) return { x, y: 382 + drop + draw(40) };
+  if (plan === 2) {
+    // As far across as the world allows (the side with more room).
+    const far = spoutX < INK_WORLD_W / 2 ? INK_WORLD_W - 52 - draw(20) : 52 + draw(20);
+    return { x: far, y };
+  }
+  return { x: clampInt(spoutX + side * (100 + draw(24)), 46, INK_WORLD_W - 46), y };
+}
+
+/** Runs `fn` with inkRev 15's pot plan for `seed` in force (restored after, even on a throw). */
+function withPotPlan<T>(seed: number, fn: () => T): T {
+  const saved = potPlan;
+  potPlan = inkV15PotPlan(seed);
+  try {
+    return fn();
+  } finally {
+    potPlan = saved;
+  }
+}
+
 function layout(
   level: number,
   count: number,
@@ -838,7 +887,14 @@ function layout(
     bucketX =
       spoutX < 195 ? Math.min(340, spoutX + 100 + draw(60)) : Math.max(50, spoutX - 100 - draw(60));
   // inkRev 10 (drop > 0): the pot sits lower in the taller world, so the fall (and every bird range) is longer.
-  const bucketY = 470 + drop + draw(81);
+  let bucketY = 470 + drop + draw(81);
+  // inkRev 15: the level's seeded pot placement (potPlan, set only while an inkRev 15 run is built).
+  const plan = potPlan ? potPlan[potLevel] : undefined;
+  if (plan !== undefined) {
+    const placed = placePot(plan, spoutX, bucketX, bucketY, drop, draw);
+    bucketX = placed.x;
+    bucketY = placed.y;
+  }
   let slideAmp = 0;
   let slidePeriod = 1;
   let slidePhase = 0;
@@ -1359,7 +1415,7 @@ function buildLevelsRev3(
     // Every round under inkRev 3 draws white birds, never the old red blocks.
     const counts: readonly number[] = BIRD_COUNTS;
     // inkRev 14: thicker birds (drawn bigger, to the same box).
-    const h = rev === INK_REV_BIG ? INK_V14_BIRD_H_FP : INK_BIRD_H_FP;
+    const h = rev === INK_REV_BIG || rev === INK_REV_HILLS ? INK_V14_BIRD_H_FP : INK_BIRD_H_FP;
     const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
     const extra = moreBirds?.[i] ?? 0;
     const count = counts[sourceLevel]! + extra;
@@ -1368,6 +1424,7 @@ function buildLevelsRev3(
     let made: InkLevel | null = null;
     for (let attempt = 0; attempt < (accept ? INK_ATTEMPTS_10 : live ? 48 : 120) && !made; attempt++) {
       const c = Math.max(fewest, count - Math.trunc(attempt / 20));
+      potLevel = i;
       let lvl = layout(sourceLevel, c, draw, h, forceSlide, drop);
       if (drop) lvl.gravity = live ? INK_TALL_LIVE_GRAVITY : INK_TALL_GRAVITY;
       if (live) {
@@ -1844,6 +1901,7 @@ const INK_SPEC_11: InkFeatureSpec = { rev: INK_REV_SPREAD, windLevels: INK_V11_W
 export const INK_V13_CLOVERS = 2;
 const INK_SPEC_13: InkFeatureSpec = { rev: INK_REV_CLOVER, windLevels: 0, silverPerLevel: 0, spread: true, clovers: INK_V13_CLOVERS };
 const INK_SPEC_14: InkFeatureSpec = { ...INK_SPEC_13, rev: INK_REV_BIG };
+const INK_SPEC_15: InkFeatureSpec = { ...INK_SPEC_13, rev: INK_REV_HILLS };
 /** Silver coins a level and wind levels a run on this revision (inkRev 10 or 11; inkRev 13 has neither). */
 export function inkSilverPerLevel(rev?: number | null): number {
   if (inkClover(rev)) return 0;
@@ -2798,6 +2856,11 @@ function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: numbe
   if (rev === INK_REV_EXPAND) return buildLevelsRev10(seed);
   if (rev === INK_REV_SPREAD || rev === INK_REV_STD) return buildLevelsRev10(seed, INK_SPEC_11);
   if (rev === INK_REV_CLOVER) return buildLevelsRev10(seed, INK_SPEC_13);
+  if (rev === INK_REV_HILLS) {
+    // inkRev 15: inkRev 14's build (sizes and proofs) with the run's pot placements in force.
+    const built = withPotPlan(seed, () => withSizes(INK_V14_BALL_R, INK_V14_SHAMROCK_R, () => buildLevelsRev10(seed, INK_SPEC_15)));
+    return { ...built, list: built.list.map((l) => ({ ...l, ballR: INK_V14_BALL_R, cloverR: INK_V14_SHAMROCK_R })) };
+  }
   if (rev === INK_REV_BIG) {
     // inkRev 14: built and proved with the bigger coin and clover; every level carries their sizes for play and art.
     const built = withSizes(INK_V14_BALL_R, INK_V14_SHAMROCK_R, () => buildLevelsRev10(seed, INK_SPEC_14));
@@ -3594,6 +3657,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_HILLS) return inkBridgeHillsGame;
   if (rev === INK_REV_BIG) return inkBridgeBigGame;
   if (rev === INK_REV_CLOVER) return inkBridgeCloverGame;
   if (rev === INK_REV_STD) return inkBridgeStdGame;
@@ -3882,13 +3946,21 @@ export function inkLevelSizes(lvl: InkLevel): { ball: number; cloverReach: numbe
 
 /** inkRev 14's standard: inkRev 13's parts exactly (levels 120, ink par 30, trick shots 20, clovers 10, speed 20). */
 export const INK_V14_STD: StdSpec = { ...INK_V13_STD, rev: INK_REV_BIG };
+/** inkRev 15's standard: inkRev 14's parts exactly (only where the pot sits changed). */
+export const INK_V15_STD: StdSpec = { ...INK_V13_STD, rev: INK_REV_HILLS };
 /** The standard spec a clover revision (13 or 14) scores on. */
 export function inkStdSpecFor(rev?: number | null): StdSpec {
-  return rev === INK_REV_BIG ? INK_V14_STD : INK_V13_STD;
+  return rev === INK_REV_HILLS ? INK_V15_STD : rev === INK_REV_BIG ? INK_V14_STD : INK_V13_STD;
 }
 
 /** inkRev 14: inkRev 13's rules and parts with the bigger coin, clovers and birds (INK_V14_*). */
 export const inkBridgeBigGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
   ...inkBridgeExpandGame,
   init: (seed) => ({ ...initWith(seed, INK_REV_BIG), band: BAND_STRICT_MARK, acted: 0, std: 1 }),
+};
+
+/** inkRev 15: inkRev 14's rules, sizes and parts with the pot and its hill placed level by level (inkV15PotPlan). */
+export const inkBridgeHillsGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
+  ...inkBridgeExpandGame,
+  init: (seed) => ({ ...initWith(seed, INK_REV_HILLS), band: BAND_STRICT_MARK, acted: 0, std: 1 }),
 };

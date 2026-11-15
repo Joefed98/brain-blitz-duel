@@ -1257,10 +1257,12 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
 export function drawBubbleAimTrail(
   ctx: CanvasRenderingContext2D,
   size: CanvasSize,
-  shot: { vx: number; vy: number } | null,
+  shot: { vx: number; vy: number; fast?: number } | null,
   state: BubState,
 ): void {
   if (!shot || state.flightColour !== 0) return;
+  // bubbleRev 12: the fast-shot level (0–2) the drag would send, shown as chevrons over the gun and a warmer trail.
+  const fast = Math.max(0, Math.min(2, shot.fast ?? 0));
   const BUB_WORLD_H = bubWorldH(state);
   const BUB_SHOOTER_Y = bubShooterY(state);
   const sx = size.width / BUB_WORLD_W;
@@ -1275,10 +1277,11 @@ export function drawBubbleAimTrail(
   let travelled = 0;
   let next = 10;
   ctx.save();
-  ctx.fillStyle = "rgba(225,242,255,0.5)";
+  ctx.fillStyle = fast === 0 ? "rgba(225,242,255,0.5)" : fast === 1 ? "rgba(255,226,160,0.6)" : "rgba(255,196,110,0.72)";
   ctx.strokeStyle = "rgba(255,255,255,0.7)";
   ctx.lineWidth = Math.max(0.8, rs);
   const stepLen = Math.hypot(vx, vy);
+  if (fast > 0) drawFastChevrons(ctx, BUB_SHOOTER_X * sx, (BUB_SHOOTER_Y - BUB_R - 12) * sy, rs, fast);
   for (let i = 0; i < 160 && y > 0; i++) {
     x += vx;
     y += vy;
@@ -1298,6 +1301,24 @@ export function drawBubbleAimTrail(
       ctx.fill();
       ctx.stroke();
     }
+  }
+  ctx.restore();
+}
+
+/** bubbleRev 12: one champagne-gold chevron per fast-shot level, stacked over the gun (display only). */
+function drawFastChevrons(ctx: CanvasRenderingContext2D, cx: number, cy: number, rs: number, level: number): void {
+  ctx.save();
+  ctx.strokeStyle = "#F2D48A";
+  ctx.lineWidth = Math.max(2, 3 * rs);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (let k = 0; k < level; k++) {
+    const y = cy - k * 9 * rs;
+    ctx.beginPath();
+    ctx.moveTo(cx - 9 * rs, y + 5 * rs);
+    ctx.lineTo(cx, y - 2 * rs);
+    ctx.lineTo(cx + 9 * rs, y + 5 * rs);
+    ctx.stroke();
   }
   ctx.restore();
 }

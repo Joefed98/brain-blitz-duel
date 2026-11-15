@@ -7,10 +7,11 @@ import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } f
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
 import { flipDealSeed } from "./flipDeal.server";
 import { CROSS_REV_KEEP } from "@/lib/arcade/cross";
-import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
+import { inkHillsDealSeed } from "./inkHillsDeal.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
-import { BUB_REV_STD } from "@/lib/arcade/bubble";
+import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
@@ -282,7 +283,9 @@ export function generateBubble(): BubblePuzzleData {
   // bubbleRev 9: bubbleRev 8's deeper reef (expansion E6) with credit for bubbles burst (no zero for a played run).
   // bubbleRev 10 (phone notes, 27 Oct 2026): bubbleRev 9 with the mine's bigger blast (two rings).
   // bubbleRev 11 (the arcade scoring standard, 29 Oct 2026): the mine pops the 4 nearest bubbles; scored on the standard.
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STD };
+  // bubbleRev 12 (the Strategy overhaul, 15 Nov 2026): an 86-bubble reef and the fast shot (drag further, same path).
+  if (dealPinned("bubblePreFast")) return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STD };
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_FAST };
 }
 
 export function generateBeat(): BeatPuzzleData {
@@ -359,6 +362,16 @@ export function pinInkPreBig(on: boolean): boolean {
   return setDealPin("inkPreBig", on);
 }
 
+/** Checks written for inkRev 14: deal it from its own deal as rooms did before inkRev 15 (returns the previous setting). */
+export function pinInkPreHills(on: boolean): boolean {
+  return setDealPin("inkPreHills", on);
+}
+
+/** Checks written for Coral Pop bubbleRev 11: deal it as rooms did before bubbleRev 12 (returns the previous setting). */
+export function pinBubblePreFast(on: boolean): boolean {
+  return setDealPin("bubblePreFast", on);
+}
+
 export function generateInkBridge(): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
   // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
@@ -367,7 +380,10 @@ export function generateInkBridge(): InkBridgePuzzleData {
   // proved deal (every level proved and the perfect run 200 through the server replay on each seed; inkBigDeal.server.ts).
   if (dealPinned("inkPreClover")) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
   if (dealPinned("inkPreBig")) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_CLOVER };
-  return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
+  // inkRev 15 (the Strategy overhaul, 15 Nov 2026): inkRev 14 with the pot and hill placed level by level, from its own
+  // proved deal (inkHillsDeal.server.ts: every level proved and the perfect run 200 through the server replay).
+  if (dealPinned("inkPreHills")) return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
+  return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: INK_REV_HILLS };
 }
 
 export function generateBurst(): BurstPuzzleData {

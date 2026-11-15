@@ -157,7 +157,7 @@ import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { PIN_REV_STD } from "@/lib/arcade/pinball";
 import { RALLY_REV_STD } from "@/lib/arcade/rally";
-import { BUB_REV_STD } from "@/lib/arcade/bubble";
+import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { minesCheckpoint, minesweeperGameFor, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
@@ -1025,6 +1025,8 @@ const GAMES: Game[] = [
   // Minefield minesRev 2 (13 Nov 2026: a Logic game with 20 mines), appended so every earlier entry keeps its stream.
   { key: "minesweeper/v2", game: minesweeperGameFor(MINES_REV_LOGIC), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_LOGIC) },  // Thirteen pyramidRev 3 (15 Nov 2026: a dead end waits for Undo), appended so every earlier entry keeps its stream.
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
+  // Coral Pop bubbleRev 12 (the Strategy overhaul, 15 Nov 2026: the fast shot), appended so every earlier entry keeps its stream.
+  { key: "bubble/fast", game: bubbleGameFor(BUB_REV_FAST), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_FAST) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

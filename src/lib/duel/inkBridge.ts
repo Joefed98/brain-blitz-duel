@@ -8,7 +8,7 @@ import {
   INK_REV,
   INK_REV_BAND,
   INK_REV_TUNEC,
-  INK_REV_TARGET, INK_REV_STRICT, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER, INK_REV_BIG, inkClover,
+  INK_REV_TARGET, INK_REV_STRICT, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER, INK_REV_BIG, INK_REV_HILLS, inkClover,
   inkBridgeGameFor,
   INK_REV3,
   INK_REV4,
@@ -130,6 +130,15 @@ const bigRun = makeArcadeRun<InkState, InkCheckpoint>({
   interval: INK_CHECKPOINT_INTERVAL,
 });
 
+/** inkRev 15 (the Strategy overhaul, 15 Nov 2026): inkRev 14 with the pot and hill placed level by level. */
+const hillsRun = makeArcadeRun<InkState, InkCheckpoint>({
+  tag: "inkbridge",
+  game: inkBridgeGameFor(INK_REV_HILLS),
+  checkpoint: inkCheckpoint,
+  keys: INK_CHECKPOINT_KEYS,
+  interval: INK_CHECKPOINT_INTERVAL,
+});
+
 export interface InkBridgeResult extends FlatReplay<InkState, InkCheckpoint> {
   levels: number;
   total: number;
@@ -157,7 +166,7 @@ export const decodeInkBridgeRun = run.decode;
 
 /** The single place an Ink Bridge score is worked out. */
 export function replayInkBridgeRun(seed: number, raw: string, rev?: number | null): InkBridgeResult {
-  const picked = rev === INK_REV_BIG ? bigRun : rev === INK_REV_CLOVER ? cloverRun : rev === INK_REV_STD ? stdRun : rev === INK_REV_SPREAD ? spreadRun : rev === INK_REV_EXPAND ? expandRun : rev === INK_REV_STRICT ? strictRun : rev === INK_REV_TARGET ? targetRun : rev === INK_REV_TUNEC ? tunecRun : rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
+  const picked = rev === INK_REV_HILLS ? hillsRun : rev === INK_REV_BIG ? bigRun : rev === INK_REV_CLOVER ? cloverRun : rev === INK_REV_STD ? stdRun : rev === INK_REV_SPREAD ? spreadRun : rev === INK_REV_EXPAND ? expandRun : rev === INK_REV_STRICT ? strictRun : rev === INK_REV_TARGET ? targetRun : rev === INK_REV_TUNEC ? tunecRun : rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
   const result = picked.replay(seed, raw);
   const s = result.state;
   return {

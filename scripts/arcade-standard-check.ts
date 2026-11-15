@@ -59,7 +59,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
   { type: "pinball", field: "pinRev", rev: 6, batch: "B" },
   { type: "rally", field: "rallyRev", rev: 12, batch: "B" },
-  { type: "bubble", field: "bubbleRev", rev: 11, batch: "B" },
+  { type: "bubble", field: "bubbleRev", rev: 12, batch: "B" }, // bubbleRev 12 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
   { type: "beat", field: "beatRev", rev: 11, batch: "B" },
   // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.

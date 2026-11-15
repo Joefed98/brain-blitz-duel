@@ -187,6 +187,9 @@ export interface BubState extends BandFields {
   bestStreak?: number;
   bounce?: number;
   shotBase?: number;
+  /** bubbleRev 12 only (absent otherwise): the fast-shot rule's mark, and the shot in flight's extra flight steps a tick (0–2). */
+  fast?: number;
+  boost?: number;
 }
 
 function cellIndex(row: number, col: number): number {
@@ -814,6 +817,8 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
   if (state.bombR) extra.push(state.bombR);
   // bubbleRev 11 (the arcade scoring standard): the mine's pop count, last.
   if (state.minePops) extra.push(state.minePops);
+  // bubbleRev 12 (the Strategy overhaul): the fast-shot mark and the shot in flight's level, last.
+  if (state.fast) extra.push(state.fast, state.boost ?? 0);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -998,6 +1003,7 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_FAST) return bubbleFastGame;
   if (rev === BUB_REV_STD) return bubbleStdGame;
   if (rev === BUB_REV_BLAST) return bubbleBlastGame;
   if (rev === BUB_REV_CREDIT) return bubbleCreditGame;
@@ -1206,14 +1212,16 @@ export function bubV8FeatureBonus(state: BubState): number {
   return clampInt(bandPoints(BUB_V8_FEATURE_CURVE, bubV8FeaturePoints(state)), 0, BUB_V8_FEATURE_MAX);
 }
 
-function initReef(seed: number): BubState {
+function initReef(seed: number, reefRows = BUB_V8_START_ROWS): BubState {
   const base = initRev2(seed, true, true);
   // Chests from the PRNG after the specials: rows 3–9, never two touching.
+  // bubbleRev 12 (reefRows 9): the tenth row is left empty first and the chests are drawn on rows 3–8.
   let rng = base.rng;
   const grid = [...base.grid];
+  for (let row = reefRows; row < BUB_V8_START_ROWS; row++) for (let col = 0; col < bubRowCols(row); col++) grid[cellIndex(row, col)] = 0;
   const chestAt: number[] = [];
   for (let guard = 0; chestAt.length < BUB_V8_CHESTS && guard < 400; guard++) {
-    const rowDraw = rngBelow(rng, BUB_V8_START_ROWS - 3);
+    const rowDraw = rngBelow(rng, reefRows - 3);
     rng = rowDraw.state;
     const row = 3 + rowDraw.value;
     const colDraw = rngBelow(rng, bubRowCols(row));
@@ -1226,6 +1234,7 @@ function initReef(seed: number): BubState {
   }
   return {
     ...bandInit(base),
+    ...(reefRows === BUB_V8_START_ROWS ? {} : { startCount: grid.filter((cell) => cell !== 0).length }),
     rng,
     grid,
     lineRev: BUB_REV_TORPEDO,
@@ -1401,7 +1410,7 @@ export function bubStdCleared(state: BubState): number {
 /** bubbleRev 11's standard parts (null for any other revision's state). */
 export function bubbleStdParts(state: BubState): StdPart[] | null {
   if (!state?.std) return null;
-  const spec = BUB_V11_STD_SPEC;
+  const spec = state.fast ? BUB_V12_STD_SPEC : BUB_V11_STD_SPEC;
   const start = Math.max(1, state.startCount);
   const cleared = bubStdCleared(state);
   const left = state.cleared ? BUB_RUN_TICKS - clampInt(state.endedTick, 0, BUB_RUN_TICKS) : 0;
@@ -1456,4 +1465,74 @@ export const bubbleStdGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
   ...bubbleCreditGame,
   init: (seed) => ({ ...initReef(seed), credit: 1, minePops: BUB_V11_MINE_POPS, std: 1 }),
   score: (state) => (state.std ? stdScore(bubbleStdParts(state) ?? [], Boolean(state.acted)) : bubbleCreditGame.score(state)),
+};
+
+/* ================= The Strategy overhaul (bubbleRev 12, 15 Nov 2026) ================= */
+
+/**
+ * bubbleRev 12 (the Strategy overhaul, docs/arcade-standard/bubble.md "bubbleRev 12"): bubbleRev 11's game and parts
+ * with two changes, both from the seed or the input log only.
+ *  - **A smaller reef**: nine rows (86 bubbles) instead of ten, the chests drawn on rows 3–8, so a strong player
+ *    clears it in the 90 s (Near-perfect play left about 20 of 95 on bubbleRev 11).
+ *  - **The fast shot**: the release's `c` (0, 1 or 2, set by how far down the aim line the finger was dragged) runs the
+ *    shot's flight 1, 2 or 3 times a tick. Each run is the same flight step every older revision uses, so the bubble
+ *    follows exactly the same path (the same sub-steps, wall bounces and landing cell) and only arrives sooner.
+ * Older stamps never read `c` (their input range clamps it to 0) and play exactly as before.
+ */
+export const BUB_REV_FAST = 12;
+export const BUB_V12_REEF_ROWS = 9;
+/** Reef bubbles on every bubbleRev 12 seed (rows of 10 and 9 alternating: 5 × 10 + 4 × 9). */
+export const BUB_V12_REEF = 86;
+/** The highest fast-shot level a release may carry; the flight runs `level + 1` steps a tick. */
+export const BUB_V12_FAST_MAX = 2;
+/** Drag length (world px from the finger's start) at which each fast level begins, on the phone. */
+export const BUB_V12_FAST_DRAG: readonly number[] = [0, 110, 190];
+
+export const BUB_INPUT_RANGES_V12: readonly InputRange[] = [
+  inputRange(BUB_INPUT_SHOT, [-BUB_V_MAX, BUB_V_MAX], [-BUB_V_MAX, 0], [0, BUB_V12_FAST_MAX]),
+];
+
+/** The input ranges a stored round's bubbleRev replays with (only bubbleRev 12 reads `c`). */
+export function bubbleInputRangesFor(rev?: number | null): readonly InputRange[] {
+  return rev === BUB_REV_FAST ? BUB_INPUT_RANGES_V12 : BUB_INPUT_RANGES;
+}
+
+/** The fast-shot level for a drag of `dragPx` world px (the phone's mapping; the sim only reads the level sent). */
+export function bubFastLevel(dragPx: number): number {
+  let level = 0;
+  for (let k = 1; k < BUB_V12_FAST_DRAG.length; k++) if (dragPx >= BUB_V12_FAST_DRAG[k]!) level = k;
+  return Math.min(level, BUB_V12_FAST_MAX);
+}
+
+export const BUB_V12_STD_SPEC: StdSpec = {
+  ...BUB_V11_STD_SPEC,
+  rev: BUB_REV_FAST,
+  parts: BUB_V11_STD_SPEC.parts.map((part) =>
+    part.key === "core" ? { ...part, how: `pop or drop the ${BUB_V12_REEF} reef bubbles, each worth the same` } : part,
+  ),
+};
+
+/** bubbleRev 12's core line (0 → 120 at the whole 86-bubble reef). */
+export const BUB_V12_BAND_CURVE = bandCurve([0, BUB_V12_REEF], [0, BUB_V11_CORE_MAX]);
+
+function fastStep(state: BubState, input: ArcadeInputEvent | null): BubState {
+  const firing = Boolean(input && input.k === BUB_INPUT_SHOT && state.flightColour === 0 && input.b < 0 && state.queueAt < state.queue.length);
+  let next = bubbleStdGame.step(state, input);
+  if (next === state) return next;
+  if (firing && next.flightColour !== 0) next = { ...next, boost: clampInt(input!.c | 0, 0, BUB_V12_FAST_MAX) };
+  const extra = next.flightColour !== 0 ? (next.boost ?? 0) : 0;
+  for (let k = 0; k < extra && next.flightColour !== 0 && !isOver(next); k++) {
+    // The same flight step, on the same tick: the shot covers its path sooner, never a different one.
+    const again = bubbleStdGame.step({ ...next, tick: next.tick - 1 }, null);
+    next = again;
+  }
+  if (next.flightColour === 0 && next.boost) next = { ...next, boost: 0 };
+  return next;
+}
+
+export const bubbleFastGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+  ...bubbleStdGame,
+  init: (seed) => ({ ...initReef(seed, BUB_V12_REEF_ROWS), credit: 1, minePops: BUB_V11_MINE_POPS, std: 1, fast: 1, boost: 0 }),
+  step: fastStep,
+  inputRanges: BUB_INPUT_RANGES_V12,
 };
