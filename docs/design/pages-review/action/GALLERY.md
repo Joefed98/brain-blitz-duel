@@ -368,3 +368,36 @@ Every world type in each of the eight seeded colours at the desktop column's sca
 - **Rings:** three touching ringlets (a darker middle one reading as the gap), lit on the sun's side, the near half
   casting a thin shadow on the globe, all inside 0.88 of the radius.
 
+### Stage 2: effects and reveal
+
+Drawn by Orbit's own renderer in @napi-rs/canvas on the fixed intro example's course, the skill-band bots playing (elite
+to the sun, weak for the slips): `bun scripts/shots/orbit-stage2-shots.ts <out>`.
+
+<img src="orbit/effects-s2.webp" width="760">
+
+- **Launch:** a thruster puff where the rocket leaves its orbit (300 ms), with `orbit.launch` and the `orbit.thrust` hiss
+  falling in pitch as the fuel drops.
+- **Low fuel** (a quarter or less, in flight): the gauge pulses red at 3 Hz, the flame stutters, `orbit.lowFuel` beeps
+  every half second while it keeps falling.
+- **Every catch:** a crisp lock ring in the planet's colour closing onto it in 180 ms, four white clamps pressing in, gone
+  by 520 ms (no glow), with `orbit.planetCaught`'s clunk-whirr.
+- **Out of fuel:** the cough (the flame flickering), a fizzle of dying sparks, then the rocket drifting on along its
+  heading and turning slowly (it used to fall away); `orbit.outOfFuel`. During orbitRev 15's hold the card says OUT OF
+  FUEL once (the words no longer repeat over it).
+- **The hold:** a gold arc round the planet draining over the 3 s beside the BACK IN n card, then GO over the planet;
+  `orbit.respawnReady`.
+- **Stardust:** the existing sparkle per mote, `orbit.stardust` a soft tick each.
+- **The sun:** a bloom of warm light from the sun (up in 200 ms, gone by 900), ALL 40 PLANETS! with the planets counting
+  up to 40, held; `orbit.sunBloom`. The success layer's own final banner is left out on this view so it isn't said twice.
+- **No edge glow** (Orbit is in `ACTION_EDGELESS_GAMES`): every tenth planet and a black hole's jump draw a crisp ring
+  opening from where it happened (the spec's `moment` hook), gold or violet. Reduced motion: still marks, no movement.
+
+The answer reveal, before (main: the breakdown and four stat tiles, "Planets 24" being the catches) and after (the run
+picture: the key numbers big, then the course map folded into four columns of ten planets, start bottom left and the sun
+top right: planets reached in their colours, the flights in gold, a red cross where the tank ran dry, an orange star where
+the rocket crashed, stardust and slingshot moons bright where taken):
+
+<img src="orbit/reveal-s2-slips.webp" width="560">
+
+<img src="orbit/reveal-s2-sun.webp" width="560">
+

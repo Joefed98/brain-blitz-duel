@@ -356,6 +356,20 @@ export function setOrbitPlanetMap(name: MapKey, pixels: OrbitMapPixels): void {
   mapStore.set(name, pixels);
 }
 
+/**
+ * Starts loading every planet map and height map (stage 2): called once when Orbit's game chunk loads in a browser
+ * (src/puzzles/orbit.tsx), so the maps arrive during the intro and the first frame of play draws the Blender planets.
+ * Does nothing outside a browser (a server render leaves the maps to the page).
+ */
+export function preloadOrbitPlanetMaps(): void {
+  if (typeof window === "undefined" || typeof Image === "undefined" || typeof document === "undefined") return;
+  for (const name of Object.keys(ORBIT_PLANET_MAPS) as MapName[]) {
+    const m = ORBIT_PLANET_MAPS[name];
+    loadMap(name, m.url);
+    if (m.height) loadMap(`${name}-h`, m.height);
+  }
+}
+
 function loadMap(key: MapKey, url: string): OrbitMapPixels | null {
   const got = mapStore.get(key);
   if (got && got !== "loading" && got !== "failed") return got;

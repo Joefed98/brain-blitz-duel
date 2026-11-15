@@ -32,7 +32,7 @@ export const encodeOrbitRun = run.encode;
 export const decodeOrbitRun = run.decode;
 
 /** The single place a Orbit score is worked out; rev3 replays against the stamped puzzle's own proved planets, never re-proving the course. */
-export function replayOrbitRun(seed: number, raw: string, orbitRev?: number, planets?: OrbitRev3CompactPlanet[], holes?: OrbitHoleRow[], extras?: OrbitExtrasRow): OrbitResult {
+export function replayOrbitRun(seed: number, raw: string, orbitRev?: number, planets?: OrbitRev3CompactPlanet[], holes?: OrbitHoleRow[], extras?: OrbitExtrasRow, observe?: (state: OrbitRev3State) => void): OrbitResult {
   // orbitRev 12 (world expansion) and 13 (its play scored on the arcade standard): the stamped bank course, holes and features; every earlier revision below is untouched.
   if (orbitXpRev(orbitRev)) {
     const start = orbitStartForPuzzle({ orbitRev, planets, holes, extras });
@@ -43,7 +43,7 @@ export function replayOrbitRun(seed: number, raw: string, orbitRev?: number, pla
       keys: ORBIT_CHECKPOINT_KEYS,
       interval: ORBIT_CHECKPOINT_INTERVAL,
     });
-    const result = xpRun.replay(seed, raw);
+    const result = xpRun.replay(seed, raw, observe);
     return { ...result, ...orbitRev3Extra(result.state), xp: orbitXpCounts(result.state) };
   }
   if (orbitRev === ORBIT_REV3 || orbitRev === ORBIT_REV4 || orbitRev === ORBIT_REV_BAND || orbitRev === ORBIT_REV_TUNED || orbitRev === ORBIT_REV_SWEPT || orbitRev === ORBIT_REV_TALL || orbitRev === ORBIT_REV_TARGET || orbitRev === ORBIT_REV_STRICT) {
