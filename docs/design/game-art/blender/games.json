@@ -1,0 +1,449 @@
+[
+ {
+  "id": "wordsmith",
+  "name": "Nucleus",
+  "cat": "word"
+ },
+ {
+  "id": "tilegrid",
+  "name": "Interlock",
+  "cat": "word"
+ },
+ {
+  "id": "wordslide",
+  "name": "Slider",
+  "cat": "word"
+ },
+ {
+  "id": "balance",
+  "name": "Counterweight",
+  "cat": "number"
+ },
+ {
+  "id": "target",
+  "name": "Exact",
+  "cat": "number"
+ },
+ {
+  "id": "equation",
+  "name": "Operator",
+  "cat": "number"
+ },
+ {
+  "id": "reaction",
+  "name": "Flash",
+  "cat": "speed"
+ },
+ {
+  "id": "numhunt",
+  "name": "Ascend",
+  "cat": "speed"
+ },
+ {
+  "id": "symscan",
+  "name": "Eagle Eye",
+  "cat": "attention"
+ },
+ {
+  "id": "spotdiff",
+  "name": "Double Take",
+  "cat": "attention"
+ },
+ {
+  "id": "countup",
+  "name": "Tally",
+  "cat": "attention"
+ },
+ {
+  "id": "wordhunt",
+  "name": "Forage",
+  "cat": "word"
+ },
+ {
+  "id": "unblock",
+  "name": "Gridlock",
+  "cat": "pattern"
+ },
+ {
+  "id": "blockparty",
+  "name": "Tessellate",
+  "cat": "pattern"
+ },
+ {
+  "id": "pipes",
+  "name": "Pipeline",
+  "cat": "pattern"
+ },
+ {
+  "id": "sudoku",
+  "name": "Box Six",
+  "cat": "logic"
+ },
+ {
+  "id": "flow",
+  "name": "Chroma Lines",
+  "cat": "pattern"
+ },
+ {
+  "id": "iceslide",
+  "name": "Skid",
+  "cat": "pattern"
+ },
+ {
+  "id": "push",
+  "name": "Heave",
+  "cat": "pattern"
+ },
+ {
+  "id": "laser",
+  "name": "Lightbender",
+  "cat": "pattern"
+ },
+ {
+  "id": "tower",
+  "name": "Hanoi",
+  "cat": "logic"
+ },
+ {
+  "id": "maze",
+  "name": "Labyrinth",
+  "cat": "attention"
+ },
+ {
+  "id": "tubes",
+  "name": "Polypotions",
+  "cat": "logic"
+ },
+ {
+  "id": "safe",
+  "name": "Safe Cracker",
+  "cat": "logic"
+ },
+ {
+  "id": "bomb",
+  "name": "Bomb Defusal",
+  "cat": "attention"
+ },
+ {
+  "id": "gravity",
+  "name": "Topsy-Turvy",
+  "cat": "pattern"
+ },
+ {
+  "id": "chain",
+  "name": "Don’t Break the Chain",
+  "cat": "speed"
+ },
+ {
+  "id": "nonogram",
+  "name": "Mosaic",
+  "cat": "logic"
+ },
+ {
+  "id": "pairmatch",
+  "name": "Matchmaker",
+  "cat": "attention"
+ },
+ {
+  "id": "flood",
+  "name": "Colour Flood",
+  "cat": "logic"
+ },
+ {
+  "id": "hover",
+  "name": "Hover",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "skyline",
+  "name": "High Rise",
+  "cat": "arcade",
+  "group": "action"
+ },
+ {
+  "id": "matchup",
+  "name": "Gemstone",
+  "cat": "arcade",
+  "group": "strategy"
+ },
+ {
+  "id": "breaker",
+  "name": "Breaker",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "pinball",
+  "name": "Pinball",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "minesweeper",
+  "name": "Minefield",
+  "cat": "logic"
+ },
+ {
+  "id": "mahjong",
+  "name": "Mahjong Solitaire",
+  "cat": "arcade",
+  "group": "cards"
+ },
+ {
+  "id": "homerun",
+  "name": "Home Run",
+  "cat": "arcade",
+  "group": "sports"
+ },
+ {
+  "id": "freekick",
+  "name": "Top Bins",
+  "cat": "arcade",
+  "group": "sports"
+ },
+ {
+  "id": "racing",
+  "name": "Apex",
+  "cat": "arcade",
+  "group": "sports"
+ },
+ {
+  "id": "freecell",
+  "name": "Free Cell",
+  "cat": "arcade",
+  "group": "cards"
+ },
+ {
+  "id": "tripeaks",
+  "name": "Summit",
+  "cat": "arcade",
+  "group": "cards"
+ },
+ {
+  "id": "fivehands",
+  "name": "Five Hands",
+  "cat": "arcade",
+  "group": "cards"
+ },
+ {
+  "id": "pyramid",
+  "name": "Thirteen",
+  "cat": "arcade",
+  "group": "cards"
+ },
+ {
+  "id": "minigolf",
+  "name": "Crazy Golf",
+  "cat": "arcade",
+  "group": "sports"
+ },
+ {
+  "id": "pool",
+  "name": "Cue Ball",
+  "cat": "arcade",
+  "group": "sports"
+ },
+ {
+  "id": "curling",
+  "name": "Curl Champ",
+  "cat": "arcade",
+  "group": "sports"
+ },
+ {
+  "id": "blockfall",
+  "name": "Blockzone",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "rally",
+  "name": "Rally",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "bubble",
+  "name": "Coral Pop",
+  "cat": "arcade",
+  "group": "strategy"
+ },
+ {
+  "id": "beat",
+  "name": "Tempo",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "snake",
+  "name": "Meteor",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "cross",
+  "name": "Spacewalk",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "ricochet",
+  "name": "Moon Climb",
+  "cat": "arcade",
+  "group": "action"
+ },
+ {
+  "id": "whack",
+  "name": "Bonk",
+  "cat": "speed"
+ },
+ {
+  "id": "tents",
+  "name": "Tents and Trees",
+  "cat": "logic"
+ },
+ {
+  "id": "shikaku",
+  "name": "Shikaku",
+  "cat": "logic"
+ },
+ {
+  "id": "lightup",
+  "name": "Lamplighter",
+  "cat": "logic"
+ },
+ {
+  "id": "wavefront",
+  "name": "Wavefront",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "bastion",
+  "name": "Iron Wall",
+  "cat": "arcade",
+  "group": "action"
+ },
+ {
+  "id": "flip",
+  "name": "Roofbound",
+  "cat": "arcade",
+  "group": "action"
+ },
+ {
+  "id": "inkbridge",
+  "name": "Rainbow Bridge",
+  "cat": "arcade",
+  "group": "strategy"
+ },
+ {
+  "id": "burst",
+  "name": "Fission",
+  "cat": "arcade",
+  "group": "retro"
+ },
+ {
+  "id": "orbit",
+  "name": "Orbit",
+  "cat": "arcade",
+  "group": "action"
+ },
+ {
+  "id": "swing",
+  "name": "Grappler",
+  "cat": "arcade",
+  "group": "action"
+ },
+ {
+  "id": "tilt",
+  "name": "Tilt",
+  "cat": "arcade",
+  "group": "strategy"
+ },
+ {
+  "id": "balltrack",
+  "name": "Ball Tracker",
+  "cat": "arcade",
+  "group": "strategy"
+ },
+ {
+  "id": "wordsearch",
+  "name": "Lookout",
+  "cat": "word"
+ },
+ {
+  "id": "letterwheel",
+  "name": "Roundabout",
+  "cat": "word"
+ },
+ {
+  "id": "strikeout",
+  "name": "Strikeout",
+  "cat": "word"
+ },
+ {
+  "id": "codeword",
+  "name": "Cryptogrid",
+  "cat": "word"
+ },
+ {
+  "id": "swapword",
+  "name": "Swapword",
+  "cat": "word"
+ },
+ {
+  "id": "tendrop",
+  "name": "Tenfall",
+  "cat": "speed"
+ },
+ {
+  "id": "clayshoot",
+  "name": "Pull!",
+  "cat": "speed"
+ },
+ {
+  "id": "numpyramid",
+  "name": "Integer Pyramid",
+  "cat": "number"
+ },
+ {
+  "id": "trail",
+  "name": "Trail",
+  "cat": "logic"
+ },
+ {
+  "id": "measure",
+  "name": "Brimful",
+  "cat": "number"
+ },
+ {
+  "id": "checkout",
+  "name": "Checkout",
+  "cat": "number"
+ },
+ {
+  "id": "numline",
+  "name": "Ballpark",
+  "cat": "number"
+ },
+ {
+  "id": "fences",
+  "name": "Loopline",
+  "cat": "logic"
+ },
+ {
+  "id": "fillomino",
+  "name": "Regions",
+  "cat": "logic"
+ },
+ {
+  "id": "bridges",
+  "name": "Island Link",
+  "cat": "logic"
+ },
+ {
+  "id": "kakuro",
+  "name": "Kakuro",
+  "cat": "number"
+ }
+]
