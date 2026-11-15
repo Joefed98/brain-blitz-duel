@@ -36,6 +36,18 @@ Drawn by the game's own renderer on a dealt swingRev 17 course played by its ora
 (`bun scripts/shots/swing-overhaul-frames.ts [--root=<main checkout>] [--tag=before|after] [--size=WxH] [--clip]`),
 in the play screen's geometry (a 52 px header stand-in). Display only: the same course, rules and score.
 
+**Materials pass** (Today | Concept A | New; all procedural, painted once into cached tiles and sprites, no shipped
+images): a three-deep forest (pale far trunks in the haze, mid trunks fading into it, near trunks with bark grooves,
+knots and moss streaks, carrying clusters of real lit leaves), leaf clusters along the canopy's underside, twisted
+lime vine ropes, enamelled cream-metal grab rings with a specular arc and a gold bead (gold just after a grab, no glow),
+a glossy river (the near trunks reflected, a sheen where the light falls, glints), wood-grained platforms on barked posts.
+
+<img src="swing/compare-1.webp" width="720">
+
+<img src="swing/compare-2.webp" width="720">
+
+<img src="swing/compare-3.webp" width="720"> (375 × 667, near the end: the darkened jungle carried on beside the world)
+
 | | Start | Two thirds | Near the end |
 |---|---|---|---|
 | Before (main) | <img src="swing/swing-start-before.webp" width="200"> | <img src="swing/swing-two-thirds-before.webp" width="200"> | <img src="swing/swing-late-before.webp" width="200"> |
