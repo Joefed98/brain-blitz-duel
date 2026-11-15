@@ -58,7 +58,13 @@ for (const piece of R.REDRAWN_PIECES) {
 const gameRefs = [...readdirSync(join(ROOT, "src/lib/arcade"), { recursive: true }) as string[]]
   .filter((f) => /\.tsx?$/.test(f))
   .flatMap((f) => [...readFileSync(join(ROOT, "src/lib/arcade", f), "utf8").matchAll(/sceneImage\(\s*[`"']([\w.-]+)(\$\{)?/g)].map((m) => ({ name: m[1]!, prefix: !!m[2] })));
-const used = (piece: string) => referenced.has(piece) || gameRefs.some((r) => (r.prefix ? piece.startsWith(r.name) : piece === r.name));
+// …or named in a list a renderer passes to sceneImage (e.g. minigolfCourse.ts's COURSE_IMAGES).
+const arcadeText = ([...readdirSync(join(ROOT, "src/lib/arcade"), { recursive: true })] as string[])
+  .filter((f) => /\.tsx?$/.test(f))
+  .map((f) => readFileSync(join(ROOT, "src/lib/arcade", f), "utf8"))
+  .join("\n");
+const used = (piece: string) =>
+  referenced.has(piece) || gameRefs.some((r) => (r.prefix ? piece.startsWith(r.name) : piece === r.name)) || arcadeText.includes(`"${piece}"`);
 const unused = files.map((f) => f.replace(/\.webp$/, "")).filter((p) => !used(p));
 check(unused.length === 0, `no unused piece in public/cosmetics/redrawn (${unused.join(", ") || "none"})`);
 for (const r of gameRefs.filter((g) => !g.prefix)) check(existsSync(join(PIECES, `${r.name}.webp`)), `${r.name}.webp (drawn by a game look) exists`);
