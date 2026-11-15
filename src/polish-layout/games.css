@@ -613,9 +613,10 @@
   text-align: left;
   cursor: pointer;
 }
+/* The chosen tile: a ring in its colour (its text stays on the tile's own tint, readable in both themes). */
 .gm-cat-tile[aria-pressed="true"] {
-  background: var(--cat, var(--jz-surface-3));
-  color: var(--jz-bg);
+  border-width: 3px;
+  box-shadow: 0 0 0 2px var(--cat, var(--jz-surface-3));
 }
 .gm-cat-tile-name {
   font: var(--jz-type-label);
