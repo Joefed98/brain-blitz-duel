@@ -211,7 +211,9 @@ async function openFromCard(page: Page) {
   await page.locator("[data-intro-how]").click();
   await page.locator("[data-onboarding]").waitFor({ timeout: 10_000 });
 }
-const homeUp = (page: Page) => page.getByRole("button", { name: "Create a room" }).count().then((n) => n > 0);
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create a
+// room moved to the Rooms page, so Home is known by its own marker.
+const homeUp = (page: Page) => page.locator("[data-home]").count().then((n) => n > 0);
 const currentPanel = (page: Page) =>
   page.evaluate(() => {
     const dots = Array.from(document.querySelectorAll("[data-onboarding-dot]"));

@@ -1,0 +1,588 @@
+/*
+ * Home, Play and Rooms (phase 2 step 3, 14 Nov 2026; docs/design/style-guide/phone/home.png, play.png, sheet.png and
+ * desktop/home.png, play.png). Tokens only (src/design/tokens.css); the Daily Puzzle card is Joulz navy in both themes
+ * (the theme-fixed obsidian metal stops, white text from the theme-fixed silver stops). Angled cuts only on the hero
+ * card and the gold buttons; rounded corners everywhere else.
+ */
+
+/* ------------------------------------------------------------------ shared */
+.hp-art {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  user-select: none;
+}
+.hp-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-24);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.hp-lead {
+  margin-top: calc(-1 * var(--jz-space-12));
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+}
+.hp-code {
+  color: var(--jz-text);
+  letter-spacing: 0.12em;
+}
+.hp-subhead {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  min-height: 52px;
+  margin-inline: -6px;
+}
+.hp-subhead-title {
+  overflow: hidden;
+  color: var(--jz-text);
+  font: var(--jz-type-title);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-subhead-right {
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+/* ------------------------------------------------------------------ Home's header */
+.hp-streak,
+.hp-bell {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--jz-space-4);
+  border-radius: var(--jz-radius-sm);
+  color: var(--jz-text);
+  font: var(--jz-type-body);
+  font-variant-numeric: tabular-nums;
+}
+.hp-streak {
+  padding-inline: var(--jz-space-8);
+}
+.hp-streak:focus-visible,
+.hp-bell:focus-visible,
+.hp-recent-game:focus-visible,
+.hp-select:focus-visible,
+.hp-option:focus-visible,
+.hp-week-head:focus-visible,
+.hp-friend:focus-visible,
+.hp-daily-cover:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
+}
+.hp-railhead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--jz-space-8);
+  margin-bottom: calc(-1 * var(--jz-space-12));
+}
+
+/* ------------------------------------------------------------------ the Daily hero carousel */
+.hp-hero {
+  margin-inline: calc(-1 * var(--jz-gutter, 16px));
+}
+.hp-hero-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 80%;
+  gap: var(--jz-space-12);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-inline: var(--jz-gutter, 16px);
+  scroll-padding-inline: var(--jz-gutter, 16px);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.hp-hero-track::-webkit-scrollbar {
+  display: none;
+}
+.hp-daily {
+  position: relative;
+  display: grid;
+  min-height: 188px;
+  min-width: 0;
+  grid-template-rows: auto 1fr auto;
+  padding: var(--jz-space-20) var(--jz-space-20) var(--jz-space-20);
+  overflow: hidden;
+  border-radius: 0;
+  scroll-snap-align: start;
+}
+.hp-daily[data-hp-daily="puzzle"] {
+  background: linear-gradient(160deg, var(--jz-metal-obsidian-2) 0%, var(--jz-metal-obsidian-3) 100%);
+}
+.hp-daily[data-hp-daily="arcade"] {
+  border-radius: var(--jz-radius-lg);
+  clip-path: none;
+  background: var(--jz-surface);
+}
+.hp-daily-art {
+  position: absolute;
+  right: -18px;
+  bottom: 10px;
+  width: 58%;
+  max-width: 220px;
+  pointer-events: none;
+}
+.hp-daily[data-hp-daily="arcade"] .hp-daily-art {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  grid-row: 1;
+  width: 64px;
+}
+.hp-daily-text {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+}
+.hp-daily[data-hp-daily="arcade"] .hp-daily-text {
+  max-width: none;
+  grid-row: 3;
+}
+.hp-daily-title {
+  overflow: hidden;
+  font: var(--jz-type-heading);
+  color: var(--jz-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-daily[data-hp-daily="puzzle"] .hp-daily-title {
+  font: var(--jz-type-title);
+  color: var(--jz-metal-silver-1);
+}
+.hp-daily-line {
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-daily[data-hp-daily="puzzle"] .hp-daily-line {
+  color: var(--jz-metal-silver-2);
+}
+.hp-daily-play {
+  position: relative;
+  grid-row: 3;
+  width: min(172px, 52%);
+}
+.hp-daily-cover {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+/* ------------------------------------------------------------------ your next match */
+.hp-next {
+  display: flex;
+  min-height: 88px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+}
+.hp-next-art {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: var(--jz-radius-md);
+}
+.hp-next-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.hp-next-title {
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--jz-type-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-next-sub {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-tag {
+  margin-top: 2px;
+  padding: 1px var(--jz-space-8);
+  border-radius: var(--jz-radius-sm);
+  background: var(--jz-surface-2);
+  color: var(--jz-win);
+  font: var(--jz-type-caption);
+}
+.hp-next .jz-btn {
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ ratings */
+.hp-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.hp-tile {
+  min-height: 132px;
+  padding: var(--jz-space-12) var(--jz-space-8);
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+
+/* ------------------------------------------------------------------ recently played */
+.hp-recent {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 88px;
+  gap: var(--jz-space-12);
+  margin-inline: calc(-1 * var(--jz-gutter, 16px));
+  overflow-x: auto;
+  padding: 2px var(--jz-gutter, 16px) 4px;
+  list-style: none;
+  scrollbar-width: none;
+}
+.hp-recent::-webkit-scrollbar {
+  display: none;
+}
+.hp-recent-game {
+  display: flex;
+  min-height: 44px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-8);
+  border-radius: var(--jz-radius-md);
+  color: var(--jz-text);
+  text-decoration: none;
+}
+.hp-recent-icon {
+  display: inline-flex;
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.hp-recent-name {
+  max-width: 88px;
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ this week */
+.hp-week {
+  display: flex;
+  flex-direction: column;
+  padding: var(--jz-space-8) var(--jz-space-16) var(--jz-space-16);
+}
+.hp-week-head {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  border-radius: var(--jz-radius-md);
+  text-align: left;
+}
+.hp-week-titles {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.hp-week-title,
+.hp-week-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-week-title {
+  font: var(--jz-type-heading);
+}
+.hp-week-sub {
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+}
+.hp-week-list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+.hp-week-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--jz-space-12);
+  row-gap: var(--jz-space-8);
+  padding-block: var(--jz-space-12);
+  border-top: 1px solid var(--jz-line);
+}
+.hp-week-goal {
+  font: var(--jz-type-body);
+}
+.hp-week-joules {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--jz-joules);
+  font: var(--jz-type-body);
+  font-variant-numeric: tabular-nums;
+}
+.hp-week-bar {
+  width: 100%;
+}
+.hp-week-count {
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ------------------------------------------------------------------ friends */
+.hp-friends {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 112px;
+  gap: var(--jz-space-12);
+  margin-inline: calc(-1 * var(--jz-gutter, 16px));
+  overflow-x: auto;
+  padding: 2px var(--jz-gutter, 16px) 4px;
+  list-style: none;
+  scrollbar-width: none;
+}
+.hp-friends::-webkit-scrollbar {
+  display: none;
+}
+.hp-friend {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+  padding: var(--jz-space-12) var(--jz-space-8);
+  color: var(--jz-text);
+}
+.hp-friend-name {
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--jz-type-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-friend-status {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--jz-text-3);
+  font: var(--jz-type-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The phone draws This week and Friends in the page; wider layouts in the side column (data-page-aside). */
+.hp-narrow {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.hp-narrow:empty {
+  display: none;
+}
+[data-layout] .hp-narrow {
+  display: none;
+}
+.hp-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-24);
+}
+.hp-aside .hp-friends {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-columns: auto;
+  margin-inline: 0;
+  padding-inline: 0;
+  overflow: visible;
+}
+
+/* ------------------------------------------------------------------ Play */
+.hp-play-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+}
+.hp-play-art {
+  display: flex;
+  justify-content: center;
+}
+.hp-play-hero {
+  width: min(300px, 78vw);
+}
+.hp-play-actions {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-24);
+}
+.hp-primary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.hp-select {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding-inline: var(--jz-space-16);
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface-2);
+  box-shadow: var(--jz-elev-1);
+  color: var(--jz-text);
+  font: var(--jz-type-body);
+  text-align: left;
+}
+.hp-select:disabled {
+  cursor: default;
+}
+.hp-select-text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-stakes {
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.hp-win {
+  color: var(--jz-win);
+  font-weight: 800;
+}
+.hp-loss {
+  color: var(--jz-loss-text);
+  font-weight: 800;
+}
+.hp-error {
+  color: var(--jz-loss-text);
+}
+.hp-modes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+
+/* The match sheet. */
+.hp-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-24);
+  padding-bottom: var(--jz-space-8);
+}
+.hp-sheet-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.hp-sheet-head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+  color: var(--jz-text-2);
+  font: var(--jz-type-body);
+}
+.hp-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.hp-option {
+  display: flex;
+  min-height: 64px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--jz-space-8);
+  border: 2px solid transparent;
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface-2);
+  color: var(--jz-text);
+}
+.hp-option[aria-checked="true"] {
+  border-color: var(--jz-gold);
+}
+.hp-option-title {
+  font: var(--jz-type-body);
+}
+.hp-option-note {
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+}
+.hp-sheet-note {
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ wider screens */
+@media (min-width: 700px) and (min-height: 500px) {
+  [data-layout] .hp-hero {
+    margin-inline: 0;
+  }
+  [data-layout] .hp-hero-track {
+    grid-auto-flow: row;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    overflow: visible;
+    padding-inline: 0;
+  }
+  [data-layout] .hp-recent {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+/* A computer: the art panel beside the actions (desktop/play.png); a tablet keeps the phone's one column. */
+@media (min-width: 1024px) and (min-height: 500px) {
+  [data-layout="desktop"] .hp-play-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--jz-space-24);
+  }
+  [data-layout="desktop"] .hp-play-art {
+    align-items: center;
+    min-height: 360px;
+    border-radius: var(--jz-radius-lg);
+    background: var(--jz-surface);
+  }
+  [data-layout="desktop"] .hp-play-hero {
+    width: 100%;
+  }
+}
+
+/* Sentence case (the style guide: capitals only for the wordmark and room codes), over the skin's older heading rule. */
+/* The share welcome and first-time intro cards keep their own type (share-check pins the welcome's capitals). */
+:is(.hp-home, .hp-page, .hp-sheet, .hp-aside) :is(h1, h2, h3):not(:where([data-share-welcome], [data-intro-card]) *) {
+  letter-spacing: normal;
+  text-transform: none;
+}

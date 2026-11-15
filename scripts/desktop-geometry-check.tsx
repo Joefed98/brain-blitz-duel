@@ -39,10 +39,8 @@ import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { DESKTOP_KEYS } from "../src/lib/desktopKeys";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
-import { showPracticeSide } from "./practice-side-lib";
 import { DESKTOP_MODES } from "../src/lib/duel/desktopModes";
 import { DESKTOP_LAYOUT_QUERY } from "../src/lib/layoutMode";
 
@@ -295,20 +293,25 @@ const failures: string[] = [];
 let judged = 0;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
-async function open(mode: string, opts: { room?: unknown; size: readonly [number, number]; dpr?: number; touch?: boolean }): Promise<{ page: Page; close: () => Promise<void> }> {
+/**
+ * `game`: practice opens that game's round at once, as its ?game= link does (the harness's route search). Changed with
+ * Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): a tile opens the game's
+ * page, whose Play starts the intro counting down, so the round's full intro (keys, Ready) is opened by its link.
+ */
+async function open(mode: string, opts: { room?: unknown; size: readonly [number, number]; dpr?: number; touch?: boolean; game?: string }): Promise<{ page: Page; close: () => Promise<void> }> {
   const context = await browser.newContext({ viewport: { width: opts.size[0], height: opts.size[1] }, deviceScaleFactor: opts.dpr ?? 1, hasTouch: opts.touch ?? false });
   await context.addInitScript(
     (r) => {
       // Full effects, as every geometry proof: the low-end governor must not resize a canvas mid-proof.
       (window as unknown as { __duelzEffects: string }).__duelzEffects = "full";
-      (window as unknown as { __harness: unknown }).__harness = { puzzles: r.puzzles, verdict: { isCorrect: true, score: 150 }, latencyMs: 50, submissions: [], verdictAt: null, room: r.room };
+      (window as unknown as { __harness: unknown }).__harness = { puzzles: r.puzzles, verdict: { isCorrect: true, score: 150 }, latencyMs: 50, submissions: [], verdictAt: null, room: r.room, ...(r.game ? { search: { game: r.game } } : {}) };
       try {
         localStorage.setItem(r.key, "1");
       } catch {
         /* ignore */
       }
     },
-    { room: opts.room ?? null, puzzles: PUZZLE_DATA, key: ONBOARDING_KEY },
+    { room: opts.room ?? null, puzzles: PUZZLE_DATA, key: ONBOARDING_KEY, game: opts.game ?? null },
   );
   const page = await context.newPage();
   page.on("pageerror", (e) => failures.push(`page error (${mode}): ${String(e.message ?? e).slice(0, 160)}`));
@@ -331,10 +334,10 @@ async function report(where: string, problems: string[], page?: Page) {
   if (problems.length || VERBOSE) console.log(`${problems.length ? "FAIL" : "PASS"} ${where}${problems.length ? `: ${problems[0]}` : ""}`);
 }
 
-/** Opens a game from the practice list and starts its live round; checks the intro's keys on the way. */
+/** Starts the live round of the game the page was opened on (open's `game`); checks the intro's keys on the way. */
 async function startRound(page: Page, type: PuzzleType, problems: string[]) {
-  await showPracticeSide(page, type);
-  await page.getByRole("button", { name: gameDisplayName(type), exact: true }).first().click();
+  // The page was opened on the game (open's `game`): its round's intro comes up at once.
+  void type;
   const ready = page.getByRole("button", { name: /^Ready/ }).first();
   await ready.waitFor({ timeout: 30_000 });
   await page.waitForTimeout(300);
@@ -382,10 +385,8 @@ try {
   for (const type of [...PUZZLES, ...ARCADE]) {
     const arcade = ARCADE.includes(type);
     for (const dpr of arcade && HIGH_DPI.includes(type) ? [1, 2] : [1]) {
-      const { page, close } = await open("practice", { size: SIZES[0], dpr });
+      const { page, close } = await open("practice", { size: SIZES[0], dpr, game: type });
       try {
-        await showPracticeSide(page, type);
-        await page.getByRole("button", { name: gameDisplayName(type), exact: true }).first().waitFor({ timeout: 60_000 });
         const intro: string[] = [];
         await startRound(page, type, intro);
         await report(`${type} intro ${SIZES[0][0]}x${SIZES[0][1]} DPR ${dpr}`, intro);
@@ -404,10 +405,8 @@ try {
 
   // Resizing one arcade round through every size, a phone-layout window and back, frame by frame.
   {
-    const { page, close } = await open("practice", { size: [1920, 1080] });
+    const { page, close } = await open("practice", { size: [1920, 1080], game: "burst" });
     try {
-      await showPracticeSide(page, "burst");
-      await page.getByRole("button", { name: gameDisplayName("burst"), exact: true }).first().waitFor({ timeout: 60_000 });
       await startRound(page, "burst", []);
       const steps: [number, number][] = [];
       for (let w = 1920, h = 1080; w >= 1280; w -= 80, h = Math.max(720, h - 45)) steps.push([w, h]);
@@ -428,11 +427,9 @@ try {
 
   // Keys drive the games through their own handlers: Nucleus's letters and Backspace, Gemstone's cursor.
   {
-    const { page, close } = await open("practice", { size: [1440, 900] });
+    const { page, close } = await open("practice", { size: [1440, 900], game: "wordsmith" });
     const problems: string[] = [];
     try {
-      await showPracticeSide(page, "wordsmith");
-      await page.getByRole("button", { name: gameDisplayName("wordsmith"), exact: true }).first().waitFor({ timeout: 60_000 });
       await startRound(page, "wordsmith", []);
       const letter = ((await page.locator(".wordsmith-ring-letter").first().textContent()) ?? "").trim();
       const word = page.locator("[aria-label='Current word']");
@@ -445,10 +442,8 @@ try {
     } finally {
       await close();
     }
-    const gem = await open("practice", { size: [1440, 900] });
+    const gem = await open("practice", { size: [1440, 900], game: "matchup" });
     try {
-      await showPracticeSide(gem.page, "matchup");
-      await gem.page.getByRole("button", { name: gameDisplayName("matchup"), exact: true }).first().waitFor({ timeout: 60_000 });
       await startRound(gem.page, "matchup", []);
       if (await gem.page.locator("[data-key-cursor]").count()) problems.push("Gemstone: the key cursor shows before any key");
       await gem.page.keyboard.press("ArrowRight");
@@ -462,13 +457,9 @@ try {
 
   // A touch screen of the same size keeps the phone layout.
   {
-    const { page, close } = await open("practice", { size: [1440, 900], touch: true });
+    const { page, close } = await open("practice", { size: [1440, 900], touch: true, game: "matchup" });
     try {
-      await showPracticeSide(page, "matchup");
-      await page.getByRole("button", { name: gameDisplayName("matchup"), exact: true }).first().waitFor({ timeout: 60_000 });
       const problems: string[] = [];
-      await showPracticeSide(page, "matchup");
-      await page.getByRole("button", { name: gameDisplayName("matchup"), exact: true }).first().click();
       const ready = page.getByRole("button", { name: /^Ready/ }).first();
       await ready.waitFor({ timeout: 30_000 });
       if (await page.locator("[data-desktop-keys]").count()) problems.push("a touch screen shows the desktop keys");

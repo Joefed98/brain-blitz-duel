@@ -351,7 +351,14 @@ check(/recordPracticeGoals\(puzzle\.type, result\.score, extra, record\.best\)/.
 // Wave 2 C1a: the star line is the server's (175+ on Classic).
 // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): was /setEarnedStar\(starLine\(reached\)\)/ (message unchanged).
 check(/starLine=\{earnedStar\}/.test(practice) && /setEarnedStar\(runStarLine\(result\.progress\)\)/.test(practice), "the reveal gets the run's star line");
-check(/<RowStars type=\{key\} \/>/.test(practice) && /data-practice-stars/.test(practice) && /<PracticeChallenges/.test(practice), "rows, the total and the Challenges section are drawn");
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games session, phase 2 step 3: stars on the
+// catalogue's tiles, the total in its header, challenges on each game's page and the full Challenges page, Joe's rule
+// that Practice stays uncluttered); was /<RowStars type=\{key\} \/>/, /data-practice-stars/ and /<PracticeChallenges/
+// in practice.tsx.
+const catalogue = readFileSync("src/components/games/GamesCatalogue.tsx", "utf8");
+const gamePage = readFileSync("src/components/games/GamePage.tsx", "utf8");
+const challengesPage = readFileSync("src/routes/challenges.tsx", "utf8");
+check(/<GamesCatalogue/.test(practice) && /stars=\{levelStarsOf\(progress, type\)\}/.test(catalogue) && /data-practice-stars/.test(catalogue) && /<ChallengeRows/.test(gamePage) && /<ChallengeRows/.test(challengesPage), "rows, the total and the Challenges section are drawn");
 const queue = readFileSync("src/lib/offline/queue.ts", "utf8");
 check(/recordPracticeGoals\(run\.type, score, extra, best\.best\)/.test(queue), "the offline queue records confirmed runs' goals");
 const reveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");

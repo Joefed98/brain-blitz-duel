@@ -312,9 +312,13 @@ async function shot(page: Page, name: string) {
 try {
   // Warm the cold dev server once, unmeasured.
   {
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create a room moved to the Rooms page; Home is waited for by its marker.
     const { context, page } = await open("home");
-    await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 180_000 });
+    await page.locator("[data-home]").waitFor({ timeout: 180_000 });
     await context.close();
+    const rooms = await open("rooms");
+    await rooms.page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 180_000 });
+    await rooms.context.close();
   }
 
   /* The terms come first: Create a room. */
@@ -322,7 +326,7 @@ try {
     // The lobby the room link below opens (the home screen doesn't draw it).
     const lobby = screenNamed("lobby, 2 players").room!();
     // CONTACT_EMAIL stood in as empty: the contact line must be left out (the set case is below).
-    const { context, page } = await open("home", { query: "terms=0", beta: { CONTACT_EMAIL: "" }, harness: { room: lobby } });
+    const { context, page } = await open("rooms", { query: "terms=0", beta: { CONTACT_EMAIL: "" }, harness: { room: lobby } });
     try {
       await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 60_000 });
       await page.locator("#name").fill("Jo");
@@ -390,8 +394,8 @@ try {
         check(drawn && (await page.locator("[data-terms]").count()) === 0, `a room in progress (${label}): the room, never the terms`);
         check((await page.evaluate((k) => localStorage.getItem(k), TERMS_KEY)) === null, `a room in progress (${label}): still not agreed, so the next entry point asks`);
         if (label === "live round") {
-          // The next entry point: Create a room from the Play tab shows the terms first.
-          await page.goto(`${server.origin}/safe-area.html?mode=home&terms=0`);
+          // The next entry point: Create a room (the Rooms page) shows the terms first.
+          await page.goto(`${server.origin}/safe-area.html?mode=rooms&terms=0`);
           await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 60_000 });
           await page.locator("#name").fill("Jo");
           await page.getByRole("button", { name: "Create a room" }).click();
@@ -471,7 +475,7 @@ try {
       await page.waitForTimeout(600);
       check((await page.locator("[data-home-hint]").count()) === 0, "the ✕ collapses it");
       const second = await open("home", { context });
-      await second.page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 60_000 });
+      await second.page.locator("[data-home]").waitFor({ timeout: 60_000 });
       await second.page.waitForTimeout(500);
       check((await second.page.locator("[data-home-hint]").count()) === 0, "once per device: not on the next visit");
     } finally {
@@ -486,7 +490,7 @@ try {
   ] as const) {
     const { context, page } = await open("home", opts);
     try {
-      await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 60_000 });
+      await page.locator("[data-home]").waitFor({ timeout: 60_000 });
       await page.waitForTimeout(500);
       check((await page.locator("[data-home-hint]").count()) === 0, `${label}: no hint`);
     } finally {

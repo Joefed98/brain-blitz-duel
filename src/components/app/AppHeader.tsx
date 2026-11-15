@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 import { AvatarButton } from "@/components/nav/AvatarButton";
 import { useNavPlacement } from "@/components/nav/navigation";
@@ -13,9 +13,13 @@ import { CoinCounter, useCoinCount } from "./CoinCounter";
  * (CoinCounter) stays on the right where the Shop switch is on, and a page may add one control there (`action`,
  * Profile's settings). Drawn by PhoneShell on every screen with `tabs`. Where the rail is drawn (a computer, a
  * sideways tablet) the rail carries the avatar, so the header is the title alone (no data-app-header). The header
- * takes no theme scope of its own (no .jz-nav), so the title is always the page's own text colour.
+ * takes no theme scope of its own (no .jz-nav), so the title is always the page's own text colour. A page may put one
+ * item after the avatar and title through HeaderLead (Home's Daily streak, phase 2 step 3), on the phone header only.
  */
+export const HeaderLead = createContext<ReactNode>(null);
+
 export function AppHeader({ title, action }: { title?: string | undefined; action?: ReactNode }) {
+  const lead = useContext(HeaderLead);
   const placement = useNavPlacement();
   const coins = useCoinCount();
   if (placement === "rail") {
@@ -43,6 +47,7 @@ export function AppHeader({ title, action }: { title?: string | undefined; actio
             {title}
           </h1>
         ) : null}
+        {lead ?? null}
       </span>
       {coins === null && !action ? null : (
         <span className="ap-header-tools">

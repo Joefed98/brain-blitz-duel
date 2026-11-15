@@ -159,9 +159,13 @@ interface Screen {
   settleAt?: number;
   /** A selector that must still be on screen after the last screenshot (the screen didn't move on). */
   expect?: string;
+  /** The route's search, as the harness's useSearch answers it (?game= opens a game's full intro). */
+  search?: Record<string, string>;
 }
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): a tile now opens the game's page, whose Play starts the intro already counting down
+// (no Ready), so a screen that judges the intro opens it as a ?game= link does (practice-side-lib.ts practiceGameUrl):
+// the full intro with Ready, as the tile did.
 const openGame = async (page: Page) => {
-  await page.getByRole("button", { name: "Box Six", exact: true }).first().click();
   await page
     .getByRole("button", { name: /^Ready/ })
     .first()
@@ -173,7 +177,7 @@ const ALL_SCREENS: Screen[] = [
   { name: "practice list", mode: "practice" },
   { name: "tournaments", mode: "tournaments" },
   { name: "profile", mode: "profile" },
-  { name: "practice round intro", mode: "practice", go: openGame },
+  { name: "practice round intro", mode: "practice", search: { game: "sudoku" }, go: openGame },
   { name: "room lobby, 2 players", mode: "room", room: room("waiting", "starting") },
   {
     name: "room lobby, 10 players",
@@ -412,6 +416,8 @@ try {
           submissions: [],
           verdictAt: null,
           room: r.room,
+          // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point).
+          search: r.search,
         };
         try {
           if (r.seen) localStorage.setItem(r.key, "1");
@@ -419,16 +425,18 @@ try {
           /* ignore */
         }
       },
-      { room: screen.room?.() ?? null, puzzle: PUZZLE, seen: !screen.fresh, key: ONBOARDING_KEY, schedule: FIXED_SCHEDULE },
+      { room: screen.room?.() ?? null, puzzle: PUZZLE, seen: !screen.fresh, key: ONBOARDING_KEY, schedule: FIXED_SCHEDULE, search: screen.search },
     );
     const page = await context.newPage();
     const problems: string[] = [];
     const positions: string[] = [];
     try {
       await goto(page, `${server.origin}/safe-area.html?mode=${screen.mode}`, where);
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): a ?game= screen may be on its intro (Ready) by then.
       if (screen.mode === "practice")
         await page
           .getByRole("button", { name: "Box Six", exact: true })
+          .or(page.getByRole("button", { name: /^Ready/ }))
           .first()
           .waitFor({ timeout: 60_000 });
       else await page.waitForSelector("#root *", { timeout: 60_000 });

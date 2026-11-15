@@ -25,7 +25,7 @@ import { TournamentHubSections } from "@/components/tournaments/TournamentHub";
 import { tournamentsBackend, useTournamentHub } from "@/lib/tournaments/tournamentsApi";
 import { HallOfFame } from "@/components/tournaments/BigEventLive";
 import { TOURNAMENT_KINDS_ON } from "@/config/tournamentConfig";
-import { NavArt } from "@/components/nav/NavArt";
+import { TournamentArt } from "@/components/tournaments/TournamentArt";
 import { useTournamentsAccess } from "@/components/nav/navigation";
 
 export const Route = createFileRoute("/tournaments")({
@@ -77,16 +77,17 @@ function TournamentsTab() {
   return <TournamentsScreen soon={!access.open} />;
 }
 
-/** The coming-soon page's top: the trophy, a quiet tag and two lines (the navigation's own look, nav.css). */
+/**
+ * The coming-soon page's top (restyled in phase 2 step 3 to match the hub): the art kit's trophy, a quiet tag, the
+ * title and one line, on one flat panel.
+ */
 function ComingSoon() {
   return (
-    <section aria-label="Tournaments are coming" data-tournaments-soon className="th-card jz-nav jz-nav-soon">
-      <NavArt name="trophyHero" size={96} />
-      <span className="jz-nav-soon-tag">Coming soon</span>
-      <h2 className="jz-nav-soon-title">Compete for trophies</h2>
-      <p className="jz-nav-soon-body">
-        Arenas, daily Score Attacks and cups, with trophies for your Profile. They open here soon.
-      </p>
+    <section aria-label="Tournaments are coming" data-tournaments-soon className="jz-panel tn-soon">
+      <TournamentArt name="trophy" size={96} />
+      <span className="tn-soon-tag">Coming soon</span>
+      <h2 className="tn-soon-title">Compete for trophies</h2>
+      <p className="tn-soon-body">Arenas, daily Score Attacks and cups, with trophies for your Profile. They open here soon.</p>
     </section>
   );
 }
@@ -116,121 +117,126 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
     refresh();
   };
 
-  return (
-    <PhoneShell tabs="tournaments" title="Tournaments" aside={<PageAside panels={["daily", "week"]} />}>
-      <div className="ap-stack">
-        {soon ? null : (
-        <div className="flex items-start gap-2.5">
-          <span className="ap-beta">Beta</span>
-          <p className="ap-sub">
-            Public games on set dates. Join when the lobby opens, and everyone plays the same rounds.
-          </p>
+  const nextSection = next ? (
+    <section aria-label="Next up" className="ap-section">
+      <SectionHeader title="Next public game" />
+      <div className="jz-panel overflow-hidden">
+        <PublicGameNext game={next} now={now} onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })} />
+      </div>
+    </section>
+  ) : null;
+  // Nothing scheduled (T-TournamentsEmpty; wave 1's empty-state card, E2): what to do meanwhile; the Discord button
+  // only with its link. Not on the coming-soon page.
+  const noneSection =
+    next || soon ? null : (
+      <section aria-label="No public games" className="ap-section">
+        <EmptyState
+          data-public-none
+          layout="card"
+          title="No public games on the calendar"
+          body={`${discord ? "New dates are posted in the beta Discord." : "New dates are posted here."} Until then, start a room with friends or sharpen up in Practice.`}
+          action={
+            discord
+              ? { label: "Open the beta Discord", href: discord, external: true, data: { "data-discord-link": "" } }
+              : { label: "Go to Practice", onClick: () => goToTab(router, "tournaments", "practice") }
+          }
+          secondary={discord ? { label: "Go to Practice", onClick: () => goToTab(router, "tournaments", "practice") } : undefined}
+        />
+      </section>
+    );
+  const laterSection =
+    later.length > 0 ? (
+      <section aria-label="Coming up" className="ap-section">
+        <SectionHeader title="Coming up" />
+        <div className="jz-panel">
+          {later.map((game) => (
+            <div key={`${game.roomCode}-${game.startsAt}`} data-public-later>
+              <PublicGameRow game={game} />
+            </div>
+          ))}
         </div>
-        )}
+      </section>
+    ) : null;
+  const resultsEmpty = (
+    // Wave 1's empty-state card (E3's words for a results list): the button goes to playing.
+    <EmptyState
+      data-public-results-empty
+      layout="card"
+      title="No results yet"
+      body="Play a public game and your place, medal and points land here."
+      action={{ label: "Play with friends", onClick: () => goToTab(router, "tournaments", "play") }}
+    />
+  );
+  const resultsList =
+    results.length > 0 ? (
+      <section aria-label="Your results" className="ap-section">
+        <SectionHeader
+          title="Public games"
+          right={
+            <span className="ap-meta">
+              {results.length} {results.length === 1 ? "game" : "games"}
+            </span>
+          }
+        />
+        <ul className="jz-panel">
+          {results.map((r) => {
+            const title = gameForResult(r, games)?.title ?? "Public game";
+            // "2nd of 14" where the room's size is recorded; the place alone if it isn't.
+            const place =
+              r.place === null ? "Left" : r.players > 0 ? `${ordinal(r.place)} of ${r.players}` : ordinal(r.place);
+            return (
+              <li key={r.key} data-public-result data-icon="place" className="jz-row">
+                {r.place === null ? (
+                  <span role="img" aria-label="Left before the end" data-place-disc="n" className="ap-place">
+                    <span aria-hidden="true">–</span>
+                  </span>
+                ) : (
+                  <PlaceDisc place={r.place} label={`${ordinal(r.place)} place`} />
+                )}
+                <span className="jz-row-text">
+                  <span data-ellipsis className="jz-row-title">
+                    {title}
+                  </span>
+                  <span data-ellipsis className="jz-row-sub">
+                    {ukDay(r.at, now)}, {place}
+                  </span>
+                </span>
+                <span className="ap-points">{r.points.toLocaleString("en-GB")}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ) : null;
+
+  return (
+    <PhoneShell
+      tabs="tournaments"
+      title="Tournaments"
+      headerAction={soon ? undefined : <span className="ap-beta">Beta</span>}
+      aside={<PageAside panels={["daily", "week"]} />}
+    >
+      <div className="ap-stack tn-tab" data-tournaments-tab={soon ? "soon" : "open"}>
         {soon ? <ComingSoon /> : null}
 
-        {hub ? <TournamentHubSections hub={hub} onOpen={openEvent} onRemind={(id, on) => void remind(id, on)} /> : null}
+        {/* A player with tournaments: the hub's two views, with the public games in each (the style guide's list). */}
+        {hub ? <TournamentHubSections hub={hub} onOpen={openEvent} onRemind={(id, on) => void remind(id, on)} upcoming={<>{nextSection}{laterSection}{noneSection}</>} results={resultsList} resultsEmpty={hub.entries.length === 0 ? resultsEmpty : undefined} /> : null}
         {/* The Joulz Championship's hall of fame (W4c): nothing while the Championship is off or nobody has won. */}
         {hub ? <HallOfFame on={TOURNAMENT_KINDS_ON.championship} /> : null}
 
-        {next ? (
-          <section aria-label="Next up" className="ap-section">
-            <SectionHeader title="Next up" />
-            <div className="jz-panel overflow-hidden">
-              <PublicGameNext
-                game={next}
-                now={now}
-                onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })}
-              />
-            </div>
-          </section>
-        ) : soon ? null : (
-          // Nothing scheduled (T-TournamentsEmpty; wave 1's empty-state card, E2): what to do meanwhile; the
-          // Discord button only with its link.
-          <section aria-label="No public games" className="ap-section">
-            <EmptyState
-              data-public-none
-              layout="card"
-              title="No public games on the calendar"
-              body={`${discord ? "New dates are posted in the beta Discord." : "New dates are posted here."} Until then, start a room with friends or sharpen up in Practice.`}
-              action={
-                discord
-                  ? { label: "Open the beta Discord", href: discord, external: true, data: { "data-discord-link": "" } }
-                  : { label: "Go to Practice", onClick: () => goToTab(router, "tournaments", "practice") }
-              }
-              secondary={discord ? { label: "Go to Practice", onClick: () => goToTab(router, "tournaments", "practice") } : undefined}
-            />
-          </section>
-        )}
-
-        {later.length > 0 ? (
-          <section aria-label="Coming up" className="ap-section">
-            <SectionHeader title="Coming up" />
-            <div className="jz-panel">
-              {later.map((game) => (
-                <div key={`${game.roomCode}-${game.startsAt}`} data-public-later>
-                  <PublicGameRow game={game} />
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {/* Coming soon: the results only where public games are scheduled or this device has played one. */}
-        {soon && !next && results.length === 0 ? null : (
-        <section aria-label="Your results" className="ap-section">
-          <SectionHeader
-            title="Your results"
-            right={
-              <>
-                {results.length > 0 ? (
-                  <span className="ap-meta">
-                    {results.length} {results.length === 1 ? "game" : "games"}
-                  </span>
-                ) : null}
-              </>
-            }
-          />
-          {results.length === 0 ? (
-            // Wave 1's empty-state card (E3's words for a results list): the button goes to playing.
-            <EmptyState
-              data-public-results-empty
-              layout="card"
-              title="No results yet"
-              body="Play a public game and your place, medal and points land here."
-              action={{ label: "Play with friends", onClick: () => goToTab(router, "tournaments", "play") }}
-            />
-          ) : (
-            <ul className="jz-panel">
-              {results.map((r) => {
-                const title = gameForResult(r, games)?.title ?? "Public game";
-                // "2nd of 14" where the room's size is recorded; the place alone if it isn't.
-                const place =
-                  r.place === null ? "Left" : r.players > 0 ? `${ordinal(r.place)} of ${r.players}` : ordinal(r.place);
-                return (
-                  <li key={r.key} data-public-result data-icon="place" className="jz-row">
-                    {r.place === null ? (
-                      <span role="img" aria-label="Left before the end" data-place-disc="n" className="ap-place">
-                        <span aria-hidden="true">–</span>
-                      </span>
-                    ) : (
-                      <PlaceDisc place={r.place} label={`${ordinal(r.place)} place`} />
-                    )}
-                    <span className="jz-row-text">
-                      <span data-ellipsis className="jz-row-title">
-                        {title}
-                      </span>
-                      <span data-ellipsis className="jz-row-sub">
-                        {ukDay(r.at, now)}, {place}
-                      </span>
-                    </span>
-                    <span className="ap-points">{r.points.toLocaleString("en-GB")}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+        {hub ? null : (
+          <>
+            {nextSection}
+            {noneSection}
+            {laterSection}
+            {/* Coming soon: the results only where public games are scheduled or this device has played one. */}
+            {soon && !next && results.length === 0 ? null : (resultsList ?? (
+              <section aria-label="Your results" className="ap-section">
+                <SectionHeader title="Your results" />
+                {resultsEmpty}
+              </section>
+            ))}
+          </>
         )}
       </div>
     </PhoneShell>

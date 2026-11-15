@@ -88,7 +88,7 @@ import { isPlayable } from "../src/lib/duel/catalogue";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
-import { showPracticeSide } from "./practice-side-lib";
+import { practiceGameUrl, showPracticeSide } from "./practice-side-lib";
 import { allowedCoreCount, procCpu } from "./arcade-perf";
 
 const args = process.argv.slice(2);
@@ -763,10 +763,9 @@ async function layoutProof(browser: import("playwright").Browser, origin: string
   await page.clock.install();
   await throttle(page);
   try {
-    await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
-    const button = await practiceGameButton(page, game, 60_000);
-    await page.waitForTimeout(1500); // hydration
-    await button.click();
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: a tile opens the game's
+    // page, so the round's full intro is opened by its ?game= link, practiceGameUrl).
+    await gotoRetried(page, practiceGameUrl(origin, game), game, { waitUntil: "domcontentloaded" });
     const ready = page.getByRole("button", { name: /^Ready/ });
     await ready.waitFor({ timeout: 60_000 });
     await readyFits(page, problems);
@@ -860,10 +859,9 @@ async function desktopPlay(browser: import("playwright").Browser, origin: string
     await page.addInitScript(INIT);
     await page.addInitScript(DEVICE_INIT);
     try {
-      await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
-      const button = await practiceGameButton(page, game, 60_000);
-      await page.waitForTimeout(1500); // hydration
-      await button.click();
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: a tile opens the game's
+      // page, so the round's full intro is opened by its ?game= link, practiceGameUrl).
+      await gotoRetried(page, practiceGameUrl(origin, game), game, { waitUntil: "domcontentloaded" });
       const ready = page.getByRole("button", { name: /^Ready/ });
       await ready.waitFor({ timeout: 60_000 });
       await page.evaluate((g) => {
@@ -994,10 +992,9 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
   try {
     await layoutProof(browser, origin, game, problems);
     for (let segment = 0; segment < MAX_SEGMENTS && liveTotal < PLAY_MS; segment++) {
-      await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
-      const button = await practiceGameButton(page, game, 60_000);
-      await page.waitForTimeout(1500); // hydration
-      await button.click();
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: a tile opens the game's
+      // page, so the round's full intro is opened by its ?game= link, practiceGameUrl).
+      await gotoRetried(page, practiceGameUrl(origin, game), game, { waitUntil: "domcontentloaded" });
       const ready = page.getByRole("button", { name: /^Ready/ });
       await ready.waitFor({ timeout: 60_000 });
       await page.evaluate(async ({ src, g }) => {

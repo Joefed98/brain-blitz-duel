@@ -160,9 +160,13 @@ interface Screen {
   fits?: boolean;
   /** A fresh device: the first-time intro is up (every other screen has seen it, src/lib/onboarding.ts). */
   fresh?: boolean;
+  /** The route's search, as the harness's useSearch answers it (?game= opens a game's full intro). */
+  search?: Record<string, string>;
 }
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): a tile now opens the game's page, whose Play starts the intro already counting down
+// (no Ready), so a screen that judges the intro opens it as a ?game= link does (practice-side-lib.ts practiceGameUrl):
+// the full intro with Ready, as the tile did.
 const openGame = async (page: Page) => {
-  await page.getByRole("button", { name: "Box Six", exact: true }).first().click();
   await page
     .getByRole("button", { name: /^Ready/ })
     .first()
@@ -191,17 +195,15 @@ const ALL_SCREENS: Screen[] = [
       await page.getByRole("dialog").first().waitFor({ timeout: 10_000 });
     },
   },
-  { name: "practice round intro", mode: "practice", go: openGame, fits: true },
+  { name: "practice round intro", mode: "practice", search: { game: "sudoku" }, go: openGame, fits: true },
   {
     name: "help sheet",
     mode: "practice",
     overlay: true,
     go: async (page) => {
-      await openGame(page);
-      await page
-        .getByRole("button", { name: /^Ready/ })
-        .first()
-        .click();
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): the tile opens the game's page and its Play starts the round (the intro counts down, no Ready).
+      await page.getByRole("button", { name: "Box Six", exact: true }).first().click();
+      await page.locator('[data-game-page-play="sudoku"]').first().click({ timeout: 30_000 });
       await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
       // The help is in the game menu since 6 Nov 2026: the ⋮, then How to play.
       await page.getByRole("button", { name: "Game menu" }).first().click();
@@ -612,17 +614,21 @@ try {
             submissions: [],
             verdictAt: null,
             room: r.room,
+            // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point).
+            search: r.search,
           };
           if (r.seen) localStorage.setItem(r.key, "1");
         },
-        { room: screen.room?.() ?? null, puzzle: PUZZLE, seen: !screen.fresh, key: ONBOARDING_KEY },
+        { room: screen.room?.() ?? null, puzzle: PUZZLE, seen: !screen.fresh, key: ONBOARDING_KEY, search: screen.search },
       );
       const where = `${screen.name} ${w}x${h}`;
       try {
         await gotoRetried(page, `${origin}/safe-area.html?mode=${screen.mode}`, where);
+        // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): a ?game= screen may be on its intro (Ready) by then.
         if (screen.mode === "practice")
           await page
             .getByRole("button", { name: "Box Six", exact: true })
+            .or(page.getByRole("button", { name: /^Ready/ }))
             .first()
             .waitFor({ timeout: 60_000 });
         else await page.waitForSelector("#root *", { timeout: 60_000 });

@@ -121,7 +121,9 @@ function probe() {
   const panel = document.querySelector("[data-room-panel-body]");
   const arena = document.querySelector("[data-game-arena]") as HTMLElement | null;
   const turned = Boolean(arena?.closest("[data-arena-rotor]"));
-  const practiceRows = [...document.querySelectorAll("[data-practice-group] .jz-panel")].map((p) => {
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue, phase 2 step 3): one grid of
+  // game tiles (data-games-grid) in place of a panel per category.
+  const practiceRows = [...document.querySelectorAll("[data-games-grid]")].map((p) => {
     const tops = [...p.querySelectorAll("[data-practice-game]")].map((b) => Math.round(b.getBoundingClientRect().top));
     return { count: tops.length, firstRow: tops.filter((t) => t === tops[0]).length };
   });
@@ -150,10 +152,12 @@ function probe() {
     aside: box(document.querySelector("[data-page-aside]")),
     column: box(document.querySelector("[data-shell-column]")),
     tools: (() => {
-      const sw = box(document.querySelector("[data-practice-tools] [data-practice-switch]"));
-      const search = box(document.querySelector("[data-practice-tools] input[type='search']"));
-      const chips = box(document.querySelector("[data-practice-tools] [role='group'][aria-label]:not([data-practice-switch])"));
-      const firstGame = box(document.querySelector("[data-practice-group]"));
+      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue): the chips replace the
+      // switch, and the search opens from the title row's search button.
+      const sw = box(document.querySelector("[data-games-search-toggle]"));
+      const search = box(document.querySelector("[data-page-title]"));
+      const chips = box(document.querySelector("[data-games-chips]"));
+      const firstGame = box(document.querySelector("[data-games-grid]"));
       return { sw, search, chips, firstGame };
     })(),
     practiceRows,
@@ -225,10 +229,12 @@ function judgeTabPage(m: Probe, name: string, banner: boolean, withBanners: bool
   }
   if (name === "practice list") {
     const t = m.tools;
-    if (!t.sw || !t.search || !t.chips) problems.push("practice: the switch, search or chips are missing from the tools row");
+    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue): the title and its search
+    // button are the one row, the chips under it (the switch is gone).
+    if (!t.sw || !t.search || !t.chips) problems.push("practice: the title, search button or chips are missing");
     else {
-      if (Math.abs(t.sw.y + t.sw.h / 2 - (t.search.y + t.search.h / 2)) > 6) problems.push("practice: the switch and search are not one row");
-      if (t.chips.y < t.search.b - 0.5) problems.push("practice: the chips are not under the switch and search");
+      if (Math.abs(t.sw.y + t.sw.h / 2 - (t.search.y + t.search.h / 2)) > 6) problems.push("practice: the title and search button are not one row");
+      if (t.chips.y < t.search.b - 0.5) problems.push("practice: the chips are not under the title and search");
       if (t.firstGame && t.firstGame.y < t.chips.b - 0.5) problems.push("practice: the games start above the tools row");
     }
     if (!m.practiceRows.length) problems.push("practice: no game sections");

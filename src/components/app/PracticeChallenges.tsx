@@ -4,7 +4,7 @@ import { Coin } from "@/components/app/CoinCounter";
 import { Icon } from "@/design/components";
 import { Button, GameTile, Progress, SectionHeader, Segmented } from "@/design/components";
 import { takeChallengeMoments, type ChallengeMoment, type ServerChallenges } from "@/lib/challenges/challengesClient";
-import { challengeState, type ChallengeState, type GoalsRecord } from "@/lib/duel/practiceGoals";
+import { challengeState, readGoals, type ChallengeState, type GoalsRecord } from "@/lib/duel/practiceGoals";
 import { PRACTICE_CHALLENGES, challengeById, challengeLive } from "@/lib/duel/practiceChallenges";
 import type { PuzzleType } from "@/lib/duel/types";
 
@@ -15,6 +15,17 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "new", label: "New" },
   { value: "done", label: "Done" },
 ];
+
+/**
+ * For the Games session's challenge rows (src/components/games/ChallengeRows.tsx, 14 Nov 2026): every live challenge
+ * (challengeLive: retired games' hidden) and each one's state, the server's answer over this device's record.
+ */
+export type { ChallengeState };
+export const LIVE_CHALLENGES = PRACTICE_CHALLENGES.filter(challengeLive);
+export function liveChallengeStates(server: ServerChallenges | null, type?: PuzzleType): ChallengeState[] {
+  const record = readGoals();
+  return LIVE_CHALLENGES.filter((c) => type === undefined || c.type === type).map((c) => withServer(challengeState(c, record), server));
+}
 
 /** Rows shown before "Show all". */
 const FIRST_ROWS = 3;

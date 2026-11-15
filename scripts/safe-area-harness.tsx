@@ -25,6 +25,7 @@ import { TERMS_KEY, TERMS_VERSION, termsAgreed } from "@/lib/beta/terms";
 import { Route as DuelRoute } from "@/routes/duel.$code";
 import { Route as HomeRoute } from "@/routes/index";
 import { Route as PracticeRoute } from "@/routes/practice";
+import { Route as ChallengesRoute } from "@/routes/challenges";
 import { Route as TournamentsRoute } from "@/routes/tournaments";
 import { Route as ProfileRoute } from "@/routes/profile";
 import { Route as DailyRoute } from "@/routes/daily";
@@ -33,6 +34,9 @@ import { Route as TermsRoute } from "@/routes/terms";
 import { Route as FriendsRoute } from "@/routes/friends";
 import { Route as CustomiseRoute } from "@/routes/customise";
 import { Route as MoreRoute } from "@/routes/more";
+import { Route as DailyArchiveRoute } from "@/routes/daily-archive";
+import { TournamentEventScreen } from "@/components/tournaments/TournamentEvent";
+import { TournamentRulesScreen } from "@/components/tournaments/TournamentRules";
 import { LaunchSplash } from "@/components/nav/LaunchSplash";
 import { setAccount } from "@/lib/account/accountApi";
 import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
@@ -57,6 +61,8 @@ import { setIdentityBackend } from "@/lib/identity/backend";
 import { setBadgesBackend } from "@/lib/badges/badgesApi";
 import { Route as BadgesRoute } from "@/routes/badges";
 import { Route as CardRoute } from "@/routes/card";
+import { Route as PlayRoute } from "@/routes/play";
+import { Route as RoomsRoute } from "@/routes/rooms";
 
 interface Verdict {
   isCorrect: boolean;
@@ -470,7 +476,8 @@ const ECONOMY: Record<string, (...args: never[]) => Promise<unknown>> = {
     const r = i as Record<string, unknown>;
     return { ...r, priceCoins: r["shop_price_coins"] ?? null };
   }) ?? null,
-  getMyWallet: async () => (customiseFixture() ? { account: true, balance: 1240 } : null),
+  // Home's header (phase 2 step 3): window.__harnessWallet stands in a balance too.
+  getMyWallet: async () => (customiseFixture() || (window as unknown as { __harnessWallet?: boolean }).__harnessWallet ? { account: true, balance: 1240 } : null),
   getMyInventory: async () => customiseFixture()?.owned.map((id) => ({ id })) ?? null,
   getMyLoadout: async () => (customiseFixture() ? customiseLoadout() : null),
   getAvatarOptions: async () => (customiseFixture() ? {} : null),
@@ -482,9 +489,16 @@ async function roomCardsFn() {
 }
 
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  // Home and Play (phase 2 step 3): today's Daily play counts (window.__harnessDailyCounts); null when unset.
+  dailyPlayedTodayFn: async () => (window as unknown as { __harnessDailyCounts?: unknown }).__harnessDailyCounts ?? null,
   // The navigation step's checks: a player with tournaments (window.__harnessTournamentHub, with
   // __DUELZ_ALLOW_TOURNAMENTS__ so the tab asks); null otherwise, as for everyone else.
   tournamentHubFn: async () => (window as unknown as { __harnessTournamentHub?: unknown }).__harnessTournamentHub ?? null,
+  // The Tournaments pages (phase 2 step 3, scripts/screens/tournaments.ts): an event, its boards and the Daily archive.
+  tournamentEventFn: async () => (window as unknown as { __harnessTournamentEvent?: unknown }).__harnessTournamentEvent ?? null,
+  arenaBoardFn: async () => (window as unknown as { __harnessArenaBoard?: unknown }).__harnessArenaBoard ?? null,
+  scoreAttackBoardFn: async () => (window as unknown as { __harnessScoreAttackBoard?: unknown }).__harnessScoreAttackBoard ?? null,
+  dailyArchiveFn: async () => (window as unknown as { __harnessArchive?: unknown }).__harnessArchive ?? { ok: false, message: "The Daily archive is part of Joulz Plus." },
   ...ECONOMY,
   roomCardsFn,
   friendsOverviewFn,
@@ -524,6 +538,9 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   submitAnswer,
   practiceGenerateFn,
   practiceGradeFn,
+  // The Games session (14 Nov 2026): the account's practice progress for the catalogue and a game's page
+  // (window.__harnessProgress; none: the server's "no answer", as before).
+  getMyPracticeProgressFn: async () => (window as unknown as { __harnessProgress?: unknown }).__harnessProgress ?? null,
   supabase: SUPABASE,
   fetchDuelByCode,
   fetchPlayers,
@@ -593,7 +610,8 @@ if (mode === "customise") {
 }
 // The Pass (the Shop tab's Pass part; Joules rework, 13 Nov 2026): window.__harnessPass's account and its pass view,
 // set before the first render (no server call: the pass's own reads stay off under automation).
-if (mode === "pass") {
+// The Games session (14 Nov 2026): the same stand-in on the catalogue, a game's page and Challenges (their Joules).
+if (mode === "pass" || mode === "practice" || mode === "challenges") {
   const fixture = (window as unknown as { __harnessPass?: HarnessPass }).__harnessPass;
   if (fixture) {
     setAccount(fixture.account as never, null);
@@ -662,8 +680,30 @@ if (mode === "shop") {
     };
   }
 }
+// Home and Play (phase 2 step 3): a player with rated play, from window.__harnessRatedStatus (a RatedStatus), served by
+// a stand-in rated backend; unset, rated play is closed as for everyone else.
+{
+  const w2 = window as unknown as { __harnessRatedStatus?: unknown; __harnessRatedStakes?: unknown; __DUELZ_RATED_BACKEND__?: unknown };
+  if (w2.__harnessRatedStatus) {
+    const status = w2.__harnessRatedStatus;
+    // The Play page's stakes (stakesEstimate, #411) from window.__harnessRatedStakes; none when unset.
+    const stakes = w2.__harnessRatedStakes ?? null;
+    w2.__DUELZ_RATED_BACKEND__ = { status: async () => status, stakesEstimate: async () => stakes };
+  }
+  // The pass's account and its weekly challenges on Home and Play (the Pass screen's own block is above).
+  const pass = (window as unknown as { __harnessPass?: HarnessPass }).__harnessPass;
+  if (pass && (mode === "home" || mode === "play")) {
+    setAccount(pass.account as never, null);
+    standInPass(pass.account["userId"] as string, { state: "open", view: pass.view });
+  }
+}
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
+  // The Games session (14 Nov 2026): the full challenges page (src/routes/challenges.tsx).
+  challenges: () => {
+    const Challenges = ChallengesRoute.options.component as () => JSX.Element;
+    return <Challenges />;
+  },
   notfound: () => <NotFoundPage />,
   error: () => <RouteErrorScreen error={new Error("harness")} onRefresh={() => undefined} />,
   // The components sheet (the components step, 14 Nov 2026): every shared component in every state.
@@ -719,6 +759,17 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
     const Shop = ShopRoute.options.component as () => JSX.Element;
     return <Shop />;
   },
+  // The Tournaments pages (phase 2 step 3): an event page from window.__harnessTournamentEvent, the Arena's rules and the
+  // Daily archive (src/routes/daily-archive.tsx).
+  tournament: () => {
+    const ev = (window as unknown as { __harnessTournamentEvent?: { id: string } }).__harnessTournamentEvent;
+    return <TournamentEventScreen eventId={ev?.id ?? "arena:2026-10-26:2000"} onBack={() => undefined} onRules={() => undefined} onPlayScoreAttack={() => undefined} />;
+  },
+  tournamentrules: () => <TournamentRulesScreen kind="arena" onBack={() => undefined} />,
+  dailyarchive: () => {
+    const Archive = DailyArchiveRoute.options.component as () => JSX.Element;
+    return <Archive />;
+  },
   // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
   saveprogress: () => {
     const Profile = ProfileRoute.options.component as () => JSX.Element;
@@ -732,6 +783,15 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   card: () => {
     const Card = CardRoute.options.component as () => JSX.Element;
     return <Card />;
+  },
+  // Home and Play (phase 2 step 3): the Play page and the Rooms page as their routes draw them.
+  play: () => {
+    const Play = PlayRoute.options.component as () => JSX.Element;
+    return <Play />;
+  },
+  rooms: () => {
+    const Rooms = RoomsRoute.options.component as () => JSX.Element;
+    return <Rooms />;
   },
 };
 const Screen = ROOT_SCREENS[mode ?? ""] ?? (

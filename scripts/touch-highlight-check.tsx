@@ -79,19 +79,24 @@ interface Screen {
   room?: () => ReturnType<typeof roomNow>;
   go?: (page: Page) => Promise<void>;
   waitMs?: number;
+  /** The route's search, as the harness's useSearch answers it (?game= opens a game's full intro). */
+  search?: Record<string, string>;
 }
+// Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): a tile now opens the game's page, whose Play starts the intro already counting down
+// (no Ready), so a screen that judges the intro opens it as a ?game= link does (practice-side-lib.ts practiceGameUrl):
+// the full intro with Ready, as the tile did.
 const openIntro = async (page: Page) => {
-  await page.getByRole("button", { name: "Box Six", exact: true }).first().click();
   await page.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 30_000 });
 };
 const openBoard = async (page: Page) => {
-  await openIntro(page);
-  await page.getByRole("button", { name: /^Ready/ }).first().click();
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): the tile opens the game's page and its Play starts the round (the intro counts down, no Ready).
+  await page.getByRole("button", { name: "Box Six", exact: true }).first().click();
+  await page.locator('[data-game-page-play="sudoku"]').first().click({ timeout: 30_000 });
   await page.waitForSelector("[data-game-stage]", { timeout: 30_000 });
 };
 const ALL: Screen[] = [
   { name: "practice list", mode: "practice" },
-  { name: "practice round intro", mode: "practice", go: openIntro },
+  { name: "practice round intro", mode: "practice", search: { game: "sudoku" }, go: openIntro },
   { name: "practice puzzle board", mode: "practice", go: openBoard, waitMs: 1500 },
   { name: "room lobby", mode: "room", room: () => roomNow("waiting", "starting") },
   { name: "room live puzzle round", mode: "room", room: () => roomNow("in_progress", "puzzle"), waitMs: 1500 },
@@ -195,6 +200,8 @@ async function open(screen: Screen, touch: boolean) {
     (r) => {
       (window as unknown as { __harness: unknown }).__harness = {
         puzzles: { sudoku: r.puzzle }, verdict: { isCorrect: true, score: 150 }, latencyMs: 50, submissions: [], verdictAt: null, room: r.room,
+        // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point).
+        search: r.search,
       };
       try {
         localStorage.setItem(r.key, "1");
@@ -202,7 +209,7 @@ async function open(screen: Screen, touch: boolean) {
         /* ignore */
       }
     },
-    { room: screen.room?.() ?? null, puzzle: PUZZLE, key: ONBOARDING_KEY },
+    { room: screen.room?.() ?? null, puzzle: PUZZLE, key: ONBOARDING_KEY, search: screen.search },
   );
   const page = await context.newPage();
   const url = `${server.origin}/safe-area.html?mode=${screen.mode}`;
@@ -212,7 +219,8 @@ async function open(screen: Screen, touch: boolean) {
     if (!/Timeout \d+ms exceeded/.test(String((error as Error).message))) throw error;
     await page.goto(url, { timeout: 90_000 });
   }
-  if (screen.mode === "practice") await page.getByRole("button", { name: "Box Six", exact: true }).first().waitFor({ timeout: 60_000 });
+  // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): a ?game= screen may be on its intro (Ready) by then.
+  if (screen.mode === "practice") await page.getByRole("button", { name: "Box Six", exact: true }).or(page.getByRole("button", { name: /^Ready/ })).first().waitFor({ timeout: 60_000 });
   else await page.waitForSelector("#root *", { timeout: 60_000 });
   await page.waitForTimeout(600);
   if (screen.go) await screen.go(page);
