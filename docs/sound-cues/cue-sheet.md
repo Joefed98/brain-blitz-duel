@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 45 | 0 | 488 | 533 |
+| game event | 52 | 0 | 488 | 540 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 71 | 1 | 984 | 1056 |
+| **all** | 78 | 1 | 984 | 1063 |
 
 ## Silent and placeholder cues
 
@@ -253,6 +253,18 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
+
+### Grappler
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `swing.streakMeter` | Action overhaul (stage 2): each clean grab filling the streak meter [action-overhaul-stage2.md] | The streak meter's arc filling | 0–60 | silent | none | 120 | game event | `swing.streakMeter` |
+| `swing.outOfReach` | Action overhaul (stage 2): a press with the nearest vine just out of reach [action-overhaul-stage2.md] | The vine glowing red for a beat | 0–20 | silent | none | 300 | game event | `swing.outOfReach` |
+| `swing.pteroShadow` | Action overhaul (stage 2): the pterodactyl's shadow sweeping across before it appears [action-overhaul-stage2.md] | A shadow crossing the screen | 0–1 | silent | none | 1200 | game event | `swing.pteroShadow` |
+| `swing.stretchTally` | Action overhaul (stage 2): the end screen counting the stretches up [action-overhaul-stage2.md] | The stretch count ticking up | 0–51 | silent | none | 90 | game event | `swing.stretchTally` |
+| `swing.ropeSnap` | Action overhaul: every grab, on top of swing.vineCreak (swingRev 17) [arcade-effects.md] | The vine pulled taut at the grab point | 20–60 | silent | none | 200 | game event | `swing.ropeSnap` |
+| `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) [arcade-effects.md] | The hero flying off the vine | 0–20 | silent | none | 450 | game event | `swing.speedWhoosh` |
+| `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) [arcade-effects.md] | COURSE CLEARED! banner | 0–1 | silent | none | 1600 | game event | `swing.courseCleared` |
 
 ### Hot Floor
 

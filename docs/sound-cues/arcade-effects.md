@@ -203,6 +203,9 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.assaultStar` | A star taken on a tighter swing (swingRev 14; a miss puts it back) | STAR! burst in gold | `sfx_spark_chime.mp3` (shared recording, volume 0.8) | 0–4 | 600 ms |
 | `swing.assaultClear` | A section's landing ledge reached (swingRev 14) | CLEAR! (or "−0.4 s UNDER PAR") pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.6) | 0–36 | 487 ms |
 | `swing.assaultCourse` | The last section cleared (swingRev 14) | COURSE CLEARED! banner | `banner.fullClear.mp3` (shared recording) | 0–1 | 1200 ms |
+| `swing.ropeSnap` | Action overhaul: every grab, on top of `swing.vineCreak` (swingRev 17) | The vine pulled taut at the grab point | none yet (silent until it has a file) | 20–60 | 200 ms |
+| `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) | The hero flying off the vine | none yet (silent until it has a file) | 0–20 | 450 ms |
+| `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) | COURSE CLEARED! banner | none yet (silent until it has a file) | 0–1 | 1600 ms |
 
 Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.starTaken`), dragon (`swing.dragon`), stalactite shake (`swing.rockShake`), stalactite lands and the replays' "dodged" pop (`swing.rockLand`), crash (`swing.crash`).
 
