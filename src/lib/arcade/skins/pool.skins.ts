@@ -9,7 +9,9 @@
  */
 import type { ArenaSceneView } from "../arenaScene.renderer";
 import { POOL_BAULK_Y, POOL_CB, POOL_CL, POOL_CR, POOL_CT, POOL_CUE, POOL_JAWS, POOL_POCKETS, POOL_RAIL, POOL_W, POOL_H } from "../pool";
+import { glossSphere } from "./gloss.renderer";
 import type { ContrastPair, GameLook } from "./look";
+import { skinRedrawn } from "./redrawPreview";
 
 const FONT = "'Archivo', system-ui, sans-serif";
 const px = (u: number) => u / 256;
@@ -293,6 +295,79 @@ export function paintPoolSkinBall(ctx: CanvasRenderingContext2D, kind: PoolBallK
   if (kind === "pixel") pixelBall(ctx, id, x, y, r, turn);
   else if (kind === "galaxy") galaxyBall(ctx, id, x, y, r, turn);
   else neonBall(ctx, kind, id, x, y, r, turn, darkCloth);
+  if (skinRedrawn(POOL_KIND_ITEMS[kind])) poolBallFinish(ctx, kind, id, x, y, r, darkCloth);
+}
+
+/* ============================== The redraws (phase 2 step 4) ============================== */
+
+/** The catalogue item each painter belongs to (the Neon Table's own balls are the Keep world theme's). */
+const POOL_KIND_ITEMS: Readonly<Record<PoolBallKind, string>> = {
+  pixel: "game-skin.cue-ball.pixel-pool",
+  galaxy: "game-skin.cue-ball.galaxy-set",
+  neon: "game-skin.cue-ball.neon-ball-set",
+  neon8: "game-skin.cue-ball.neon-8-ball",
+  neontable: "world-theme.cue-ball.neon-table",
+};
+
+/**
+ * The art kit's finish over a skinned ball, inside its draw radius: the gloss (a broad diffuse lit from the top left,
+ * one tight highlight, a soft rim); the pixel set takes it in whole pixels (stepped shade and a pixel highlight).
+ */
+function poolBallFinish(ctx: CanvasRenderingContext2D, kind: PoolBallKind, id: number, x: number, y: number, rDraw: number, darkCloth: boolean): void {
+  if (kind === "neon" || kind === "neon8") {
+    // A glass ball lit from inside: its neon colour carried through to the far side, then the gloss.
+    const c = poolNeonColour(kind, id, darkCloth);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, rDraw, 0, Math.PI * 2);
+    ctx.clip();
+    const g = ctx.createRadialGradient(x + rDraw * 0.3, y + rDraw * 0.35, 0, x + rDraw * 0.3, y + rDraw * 0.35, rDraw * 0.95);
+    g.addColorStop(0, c);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = g;
+    ctx.fillRect(x - rDraw, y - rDraw, rDraw * 2, rDraw * 2);
+    ctx.restore();
+  }
+  if (kind !== "pixel") {
+    glossSphere(ctx, x, y, rDraw, kind === "galaxy" ? 1 : 0.6);
+    if (kind === "neon" || kind === "neon8") {
+      // The neon rim, bright again over the shade, with a white core on its lit side.
+      const lw = Math.max(1, (rDraw * 2) / 19);
+      ctx.strokeStyle = poolNeonColour(kind, id, darkCloth);
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.arc(x, y, rDraw - lw / 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
+      ctx.lineWidth = Math.max(0.5, lw * 0.35);
+      ctx.beginPath();
+      ctx.arc(x, y, rDraw - lw / 2, Math.PI * 0.95, Math.PI * 1.55);
+      ctx.stroke();
+    }
+    return;
+  }
+  const r = rDraw / ((4 * Math.SQRT2) / 5);
+  const p = (r * 2) / 10;
+  const x0 = x - r;
+  const y0 = y - r;
+  for (let row = 0; row < 10; row++) {
+    const [a, b] = MASK[row]!;
+    for (let col = a; col <= b; col++) {
+      // Distance from the key light's spot (cell 3, 2), in cells: three shade steps away from it.
+      const d = Math.hypot(col - 3, row - 2.5);
+      const shade = d > 7 ? 0.42 : d > 5.5 ? 0.26 : d > 4 ? 0.12 : 0;
+      if (shade) {
+        ctx.fillStyle = `rgba(0,0,0,${shade})`;
+        ctx.fillRect(x0 + col * p, y0 + row * p, p, p);
+      }
+    }
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.fillRect(x0 + 2 * p, y0 + 2 * p, p, p);
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.fillRect(x0 + 3 * p, y0 + 2 * p, p, p);
+  ctx.fillRect(x0 + 2 * p, y0 + 3 * p, p, p);
 }
 
 /* ============================== The Neon Table ============================== */
