@@ -39,7 +39,7 @@ import {
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { NO_LOOK, type GameLook } from "./skins/look";
 import { paintBallArt } from "./skins/ballArt";
-import { minigolfBallArt, neonCourseCup, neonCourseFlag, neonCourseHole, neonCourseScene, NEON_COURSE } from "./skins/minigolf.skins";
+import { minigolfBallArt, neonCourseCacheTag, neonCourseCup, neonCourseFlag, neonCourseHole, neonCourseScene, NEON_COURSE } from "./skins/minigolf.skins";
 import { courseArt, courseArtKey, type CourseArt } from "./skins/minigolfCourse";
 
 /** The look this draw uses (wave 2 skins): set by the public draw calls for their length, the default otherwise. */
@@ -1219,7 +1219,7 @@ const holeCache: { key: string; canvas: HTMLCanvasElement | OffscreenCanvas | nu
 function cachedHole(ctx: CanvasRenderingContext2D, h: MgHole, seed: number): CanvasImageSource | null {
   const m = ctx.getTransform();
   const scale = Math.max(0.5, Math.min(4, Math.hypot(m.a, m.b)));
-  const key = `${h.rev ?? 1}:${seed}:${h.index}:${scale.toFixed(3)}${L.world ? `:${L.world}` : courseArtKey()}`;
+  const key = `${h.rev ?? 1}:${seed}:${h.index}:${scale.toFixed(3)}${L.world ? `:${L.world}${neonCourseCacheTag()}` : courseArtKey()}`;
   if (holeCache.key === key && holeCache.canvas) return holeCache.canvas;
   const w = Math.ceil(MINIGOLF_W * scale);
   const hh = Math.ceil(MINIGOLF_H * scale);

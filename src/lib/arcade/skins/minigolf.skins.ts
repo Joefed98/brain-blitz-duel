@@ -224,8 +224,7 @@ const NEON_COURSE_ITEM = "world-theme.crazy-golf.neon-course";
 
 /**
  * Extra cache-key text for a hole under the Neon Course's redraw: it changes when the turf image arrives, so a cached
- * hole is painted again once with it ("" with the switch off). For minigolf.renderer.ts's hole cache key (not wired
- * here: that file belongs to the default-course session).
+ * hole is painted again once with it ("" with the switch off). Part of minigolf.renderer.ts's hole cache key.
  */
 export function neonCourseCacheTag(): string {
   if (!skinRedrawn(NEON_COURSE_ITEM)) return "";
