@@ -93,9 +93,9 @@ payoff is motion, so see the effects clips below.
 
 | Variant | Clip |
 |---|---|
-| Full | [effects-full.webm](effects-full.webm) |
-| Lite (reduced effects, battery saver) | [effects-lite.webm](effects-lite.webm) |
-| Reduced motion | [effects-reduced.webm](effects-reduced.webm) |
-| Calm (celebrations off; payoff kinds only) | [effects-calm.webm](effects-calm.webm) |
+| Full | [effects-full.mp4](effects-full.mp4) |
+| Lite (reduced effects, battery saver) | [effects-lite.mp4](effects-lite.mp4) |
+| Reduced motion | [effects-reduced.mp4](effects-reduced.mp4) |
+| Calm (celebrations off; payoff kinds only) | [effects-calm.mp4](effects-calm.mp4) |
 
 ![The showcase](effects-showcase.webp)
