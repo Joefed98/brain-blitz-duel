@@ -1,324 +1,368 @@
-"""Logic overhaul session 1 (phase 2 step 4): the piece and surface art for Box Six, Polypotions, Hanoi, Safe Cracker,
-Mosaic, Colour Flood and Minefield, rendered in Blender (Cycles) and exported as WebP sprites the app lays out and
-animates (`public/logic-art/`). The materials come from the concept renders' helpers (`jzlib.py`, copied from
-docs/design/game-concepts/source/ in PR #429); the looks follow docs/design/game-concepts/logic.md (Box Six A with B's
-light, Polypotions A + B with C's cork, Hanoi A with B's rings, Safe Cracker A, Minefield A, and new ceramic Mosaic and
-enamel Flood art).
+"""Logic overhaul, session 1: the piece and surface art for Box Six, Polypotions, Hanoi, Safe Cracker, Mosaic, Colour
+Flood and Minefield (public/logic-art/*.webp), the app laying them out and animating them.
 
-Pieces whose colour the game picks (Hanoi's rings, the flood pots) are rendered as neutral *shading maps*: a grey
-object whose body sits at mid-grey, so CSS lays it over the colour with `background-blend-mode: hard-light` and every
-colour gets the same glass or glaze.
+Second pass (Joe, 15 Nov 2026: match the concept A renders Joe picked, Box Six with B's lighting; real materials with
+light on them, no glare washing across panels, tiles or numbers). Every piece is built in its concept's own scene:
+the same stage lights (kit.py `stage`, A or B), the same materials (logic.py's: lacquer, thin glass, B's potions, turned
+oak, B's candy-glass rings, brushed steel and gold drums, A's glazed tiles, enamel, steel-and-stone plates, iron) and
+the same place on the 390 x 844 screen, with an orthographic camera framed on that one piece and a transparent film,
+so each sprite carries the concept's light exactly. Numerals are never rendered: the app draws them sharp.
 
-Run (Blender as a Python module, `pip install bpy pillow` in a Python 3.13 venv, working copies outside the repo):
+Glass and highlights that sit in front of app-drawn content (Polypotions' tube, the paint pots' glass) are rendered on
+black and keyed by their own brightness (alpha = brightest channel), so only the glass's highlights and edges remain.
 
-    JZ_SAMPLES=64 python scripts/logic-art/render.py [name ...]
+Run (Blender as a Python module: `pip install bpy pillow` in a Python 3.13 venv; Archivo is not needed: no text):
 
-No name renders every sprite. Output: public/logic-art/<name>.webp (lossless alpha, quality 90).
+    JZ_SAMPLES=128 python scripts/logic-art/render.py [name ...]
+
+No name renders every sprite. Output: public/logic-art/<name>.webp.
 """
 import bpy, math, os, sys, tempfile
-from mathutils import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from jzlib import *  # noqa: F401,F403,E402  (V, P, W, H, mat, box, cyl, sphere, ... from the concepts)
 import jzlib as J  # noqa: E402
-
-# Sprites are centred on the origin, so points map straight to Blender units (no 390 x 844 screen offset).
-J.V = lambda x, y, z=0.0: Vector((x * J.P, -y * J.P, z * J.P))
+from kit import CAT, GOLD, PIECE, cellm, gold_m, test_tube  # noqa: E402
 
 OUT = os.path.abspath(os.path.join(HERE, "..", "..", "public", "logic-art"))
-SAMPLES = int(os.environ.get("JZ_SAMPLES", "64"))
+SAMPLES = int(os.environ.get("JZ_SAMPLES", "128"))
 TMP = os.environ.get("JZ_TMP", tempfile.gettempdir())
-P = J.P
+C = "logic"
+ACC = CAT[C]["accent"]
 
 
-def scene(px_w, px_h, span_w, view="top", tilt=0.0, glass_alpha=False):
-    """A fresh scene with an orthographic camera `span_w` points wide, rendering px_w x px_h with a transparent film.
-    view "top": looking down at the z=0 plane (x right, y down in points, centred on 0, 0).
-    view "front": looking along +y at the x/z plane (x right, z up)."""
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    s = bpy.context.scene
-    s.render.engine = "CYCLES"; s.cycles.device = "CPU"; s.cycles.samples = SAMPLES
-    s.cycles.use_denoising = True; s.cycles.max_bounces = 12; s.cycles.transmission_bounces = 12
-    s.cycles.transparent_max_bounces = 12
-    s.render.resolution_x = px_w; s.render.resolution_y = px_h; s.render.resolution_percentage = 100
-    s.render.film_transparent = True
-    s.cycles.film_transparent_glass = glass_alpha
-    s.view_settings.view_transform = "AgX"; s.view_settings.look = "AgX - Punchy"
-    cam = bpy.data.cameras.new("cam"); cam.type = "ORTHO"; cam.ortho_scale = span_w * P * max(1, px_h / px_w) if px_h > px_w else span_w * P
-    cam.sensor_fit = "AUTO"; cam.clip_end = 100
-    ob = bpy.data.objects.new("cam", cam); s.collection.objects.link(ob)
-    if view == "top":
-        t = math.radians(tilt)
-        ob.location = (0, -10 * math.sin(t), 10 * math.cos(t)); ob.rotation_euler = (t, 0, 0)
+def lights(bold=False, key=1.0):
+    """kit.py's stage() without its backdrop: the concept's world and lights, the film left transparent."""
+    c = CAT[C]
+    world("#020304", 0.3, "studio.exr", 0.22 if not bold else 0.16)
+    if not bold:
+        area(-260, -260, 900, 700, 3400 * key, "#fff3e2", sx=900, sy=500)
+        area(760, 520, 520, 600, 600 * key, "#d6e6ff")
+        area(195, 1500, 260, 800, 400 * key, "#ffffff", sx=1200, sy=200)
     else:
-        ob.location = (0, -10, 0); ob.rotation_euler = (math.radians(90), 0, 0)
-    s.camera = ob
+        area(-220, -160, 820, 500, 1500 * key, "#fff0dc", sx=520, sy=380)
+        sp = spot(60, 120, 900, 6000 * key, "#fff1dc", target=(195, 430, 0), angle=50, blend=0.9, radius=260)
+        sp.visible_glossy = False
+        area(560, 980, 140, 700, 700 * key, c["accent"], sx=900, sy=160)
+        area(-170, 520, 140, 700, 350 * key, c["accent"], sx=160, sy=900)
+
+
+def strip(cx, cy, key=1.0):
+    """A long, narrow light parallel to a tube's axis, up and to the left: a cylinder (liquid, glass, a drum) takes one
+    clean highlight down its curve instead of the studio's square windows."""
+    area(cx - 120, cy, 260, 30, 900 * key, "#fff6ea", sx=900, sy=24, target=(cx, cy, 0))
+
+
+def frame(cx, cy, w, h, px_w, px_h, tilt=0.0, black=False, bold=False, key=1.0):
+    """A fresh scene: the concept's lights, an orthographic camera looking down on (cx, cy) in screen points covering
+    w x h points, rendering px_w x px_h. `tilt` leans the camera forward (degrees) to see a piece's side."""
+    reset()
     J._mats.clear(); J._meshes.clear()
-    w = bpy.data.worlds.new("w"); s.world = w; w.use_nodes = True
-    nt = w.node_tree
-    if J.STUDIO:
-        env = nt.nodes.new("ShaderNodeTexEnvironment"); env.image = bpy.data.images.load(os.path.join(J.STUDIO, "studio.exr"))
-        nt.links.new(env.outputs[0], nt.nodes["Background"].inputs[0])
-    nt.nodes["Background"].inputs[1].default_value = 0.12
-    return s
+    s = bpy.context.scene
+    s.cycles.samples = SAMPLES
+    s.render.resolution_x, s.render.resolution_y = px_w, px_h
+    s.render.film_transparent = not black
+    lights(bold, key)
+    if black:
+        nt = s.world.node_tree; n = nt.nodes
+        lp = n.new("ShaderNodeLightPath"); bg2 = n.new("ShaderNodeBackground"); bg2.inputs[0].default_value = (0, 0, 0, 1)
+        out = n["World Output"].inputs[0]
+        prev = out.links[0].from_socket if out.links else n["Background"].outputs[0]
+        mix = n.new("ShaderNodeMixShader")
+        nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs[0]); nt.links.new(prev, mix.inputs[1])
+        nt.links.new(bg2.outputs[0], mix.inputs[2]); nt.links.new(mix.outputs[0], out)
+    cam = bpy.data.cameras.new("cam"); cam.type = "ORTHO"
+    cam.ortho_scale = max(w, h) * P; cam.sensor_fit = "AUTO"; cam.clip_end = 100
+    ob = bpy.data.objects.new("cam", cam); s.collection.objects.link(ob)
+    t = math.radians(tilt)
+    target = V(cx, cy, 0)
+    ob.location = (target.x, target.y - 10 * math.sin(t), 10 * math.cos(t))
+    ob.rotation_euler = (t, 0, 0)
+    s.camera = ob
 
 
-def light(loc, energy, size=4.0, color="#ffffff", target=(0, 0, 0)):
-    d = bpy.data.lights.new("a", "AREA"); d.energy = energy; d.size = size; d.color = J.hexc(color)[:3]
-    ob = bpy.data.objects.new("a", d); bpy.context.scene.collection.objects.link(ob); ob.location = loc
-    ob.rotation_euler = (Vector(target) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
-    return ob
-
-
-def key_lights(view="top", k=1.0):
-    """Clean, even studio light (Joe, 15 Nov 2026: minimal glow, no glare): one large soft overhead and two broad
-    fills, so no hard reflection runs across a panel, tile or numeral."""
-    if view == "top":
-        light((0, 0, 8), 1100 * k, 16, "#fff6ea"); light((-6, 4, 5), 260 * k, 14); light((6, -4, 5), 260 * k, 14)
-    else:
-        light((0, -6, 6), 1000 * k, 16, "#fff6ea"); light((-6, -5, 0), 260 * k, 14); light((6, -5, 0), 260 * k, 14)
-
-
-def black_world():
-    """Camera rays see black (the sprite is a highlight layer laid on with `mix-blend-mode: screen`)."""
-    s = bpy.context.scene; s.render.film_transparent = False
-    nt = s.world.node_tree; n = nt.nodes
-    lp = n.new("ShaderNodeLightPath"); bg2 = n.new("ShaderNodeBackground"); bg2.inputs[0].default_value = (0, 0, 0, 1)
-    mix = n.new("ShaderNodeMixShader")
-    nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs[0]); nt.links.new(n["Background"].outputs[0], mix.inputs[1])
-    nt.links.new(bg2.outputs[0], mix.inputs[2]); nt.links.new(mix.outputs[0], n["World Output"].inputs[0])
-
-
-def write(name, shading=False, mid=None):
+def write(name, key_glass=False, shading=False, quality=88, saturate=1.0, crop=None):
     s = bpy.context.scene
     png = os.path.join(TMP, f"logic-art-{name}.png"); s.render.filepath = png
     s.render.image_settings.file_format = "PNG"; s.render.image_settings.color_mode = "RGBA"
     bpy.ops.render.render(write_still=True)
     from PIL import Image, ImageOps
     im = Image.open(png).convert("RGBA")
+    if crop:
+        im = im.crop(crop)
+    if key_glass:
+        # Keep only what the glass adds: alpha = its brightest channel, colour normalised by it.
+        px = im.load()
+        for y in range(im.height):
+            for x in range(im.width):
+                r, g, b, _ = px[x, y]
+                a = max(r, g, b)
+                px[x, y] = (min(255, r * 255 // a), min(255, g * 255 // a), min(255, b * 255 // a), a) if a else (0, 0, 0, 0)
     if shading:
-        # A shading map: grey, with the body's median brought to mid-grey (128) for hard-light blending.
+        # A shading map for hard-light tinting: grey, the body's median at mid-grey.
         r, g, b, a = im.split()
         lum = ImageOps.grayscale(Image.merge("RGB", (r, g, b)))
-        px = [v for v, al in zip(lum.getdata(), a.getdata()) if al > 200]
-        px.sort(); med = px[len(px) // 2] if px else 128
-        target = mid or 128
-        lum = lum.point(lambda v: max(0, min(255, round(v * target / max(1, med)))) if v <= med else
-                        max(0, min(255, round(target + (v - med) * (255 - target) / max(1, 255 - med)))))
+        vals = sorted(v for v, al in zip(lum.getdata(), a.getdata()) if al > 200)
+        med = vals[len(vals) // 2] if vals else 128
+        lum = lum.point(lambda v: round(v * 128 / max(1, med)) if v <= med else min(255, round(128 + (v - med) * 127 / max(1, 255 - med))))
         im = Image.merge("RGBA", (lum, lum, lum, a))
+    if saturate != 1.0:
+        # AgX's tone mapping desaturates strong colours; give the concept's colour back (alpha untouched).
+        from PIL import ImageEnhance
+        a = im.getchannel("A")
+        im = ImageEnhance.Color(im.convert("RGB")).enhance(saturate).convert("RGBA")
+        im.putalpha(a)
     os.makedirs(OUT, exist_ok=True)
-    im.save(os.path.join(OUT, f"{name}.webp"), "WEBP", quality=90, method=6)
-    print("wrote", name, im.size)
+    im.save(os.path.join(OUT, f"{name}.webp"), "WEBP", quality=quality, method=6)
+    print("wrote", name, im.size, os.path.getsize(os.path.join(OUT, f"{name}.webp")))
 
 
-# ------------------------------------------------------------------------------------------------- the sprites
-def box_tile(given=False):
-    """Box Six: a lacquered black tile (A) under B's single pool of light. Numerals stay app text."""
-    scene(192, 192, 100)
-    key_lights(k=0.45)
-    m = J.mat("lacq", "#050608" if not given else "#0c0b09", 0.42, coat=0.25, coat_rough=0.35)
-    J.add_bump(m, 80, 0.008)
-    J.cbox(0, 0, 92, 92, 10, m, r=7.0, z=-10)
+# ------------------------------------------------------------------ Box Six: lacquered tiles under B's light
+def box_tile(given):
+    cs = 60
+    x, y = 195 - cs / 2, 380 - cs / 2
+    frame(195, 380, cs, cs, 240, 240, bold=True)
+    tile = mat("sdkB", "#0f1d1c" if not given else "#141c1a", 0.12, coat=1.0, coat_rough=0.04)
+    box(x + 2, y + 2, cs - 4, cs - 4, 5, tile, r=3, z=9)
     write("box-tile-given" if given else "box-tile")
 
 
-def flask_glass():
-    """Polypotions: a thin-walled test tube, front glass only (the liquid is app-drawn behind it)."""
-    scene(160, 512, 50, view="front")
-    black_world()
-    key_lights("front", 1.2)
-    g = J.mat("glass", "#ffffff", 0.12, trans=1.0, ior=1.45)
-    # One lathed wall: a round bottom rising into a straight tube (no seam inside the glass).
-    import bmesh
-    prof = [(0.0, -0.765)] + [(0.21 * math.sin(math.radians(a)), -0.555 - 0.21 * math.cos(math.radians(a))) for a in range(6, 91, 6)] + [(0.21, 0.795)]
-    me = bpy.data.meshes.new("flask"); bm = bmesh.new()
-    rings = []
-    for i in range(64):
-        t = i * 2 * math.pi / 64
-        rings.append([bm.verts.new((r * math.cos(t), r * math.sin(t), z)) for r, z in prof])
-    for i in range(64):
-        a, b = rings[i], rings[(i + 1) % 64]
-        for k in range(len(prof) - 1):
-            if k == 0:
-                bm.faces.new((a[0], a[1], b[1])) if a[0] is not b[0] else None
-            else:
-                bm.faces.new((a[k], a[k + 1], b[k + 1], b[k]))
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
-    bm.to_mesh(me); bm.free()
-    tube = bpy.data.objects.new("flask", me); bpy.context.scene.collection.objects.link(tube)
-    for p in me.polygons: p.use_smooth = True
-    tube.data.materials.append(g)
-    sol = tube.modifiers.new("s", "SOLIDIFY"); sol.thickness = 0.012
-    # the rolled lip
-    bpy.ops.mesh.primitive_torus_add(major_radius=0.215, minor_radius=0.018, location=(0, 0, 0.795))
-    lip = bpy.context.object; lip.data.materials.append(g); bpy.ops.object.shade_smooth()
-    write("flask-glass")
+# ------------------------------------------------------------------ Polypotions: A's glass, B's liquids, C's cork
+TUBE_X, TUBE_TOP, TUBE_LEN, TUBE_R = 195, 300, 300, 25
+SEG = 50
+POTION_COLOURS = {  # the app's eight (ShapeGlyph GLYPH_COLOURS order in sortTubes BALL_COLOURS), B's richer glazes
+    "red": "#FF4D4D", "blue": "#4D8CFF", "green": "#3DDC84", "purple": "#B26BFF",
+    "pink": "#FF6BD6", "orange": "#FF8A3D", "brown": "#9a5a34", "yellow": "#FFE600",
+}
+
+
+def tube_glass():
+    """The empty test tube, glass only (keyed), 2 x the tube's points wide plus a margin."""
+    w, h = 2 * TUBE_R + 16, TUBE_LEN + 16
+    frame(TUBE_X, TUBE_TOP + TUBE_LEN / 2, w, h, 264, round(264 * h / w), black=True, key=0.5)
+    strip(TUBE_X, TUBE_TOP + TUBE_LEN / 2, 1.6)
+    glass_ = thin_glass("tube", "#f6fbff", 0.02, 1.0)
+    test_tube(TUBE_X, TUBE_TOP, TUBE_LEN, TUBE_R, glass_, z=TUBE_R + 6)
+    ycyl(TUBE_X, TUBE_TOP - 2, 5, TUBE_R + 1.8, glass_, z=TUBE_R + 6, bevel=2)
+    write("flask-glass", key_glass=True)
+
+
+def liquid(colour, bottom):
+    """One liquid layer (B's potion), as wide as the tube's inside: the round-bottomed first layer or a straight one."""
+    r = TUBE_R - 3.5
+    w, h = 2 * r + 4, SEG + (r if bottom else 0) + 2
+    yb = 500
+    frame(TUBE_X, yb - h / 2, w, h, 200, round(200 * h / w), key=0.35)
+    strip(TUBE_X, yb - h / 2, 1.4)
+    # B's richer liquid: deep, saturated colour with a little light coming through, a glossy coat.
+    lm = mat(f"pot{colour}", POTION_COLOURS[colour], 0.08, coat=1.0, coat_rough=0.08, trans=0.12, ior=1.33, sss=0.15,
+             emit=POTION_COLOURS[colour], emit_strength=0.3)
+    if bottom:
+        ycyl(TUBE_X, yb - h + 1, SEG - 1, r, lm, z=TUBE_R + 6, bevel=0.5)
+        sphere(TUBE_X, yb - r - 1, r, lm, z=TUBE_R + 6)
+    else:
+        ycyl(TUBE_X, yb - SEG - 1, SEG, r, lm, z=TUBE_R + 6, bevel=0.6)
+    write(f"potion-{colour}{'-bottom' if bottom else ''}", saturate=1.45)
+
+
+def meniscus():
+    """The liquid's top: a gentle curved surface catching the light (keyed, laid on the top layer)."""
+    r = TUBE_R - 3.5
+    frame(TUBE_X, 400, 2 * r + 4, 16, 200, 76, tilt=0, black=True)
+    surf = mat("surf", "#ffffff", 0.05, coat=1.0, trans=0.6, ior=1.33)
+    ob = ellipsoid(TUBE_X, 400, r, 5, 3, surf, z=TUBE_R + 6)
+    write("potion-meniscus", key_glass=True)
 
 
 def cork():
-    scene(128, 96, 40, view="front")
-    key_lights("front")
-    m = J.mat("cork", "#b98a55", 0.75)
-    J.add_bump(m, 260, 0.35, kind="voronoi")
-    bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=0.15, radius2=0.18, depth=0.2, location=(0, 0, 0))
-    ob = bpy.context.object; ob.data.materials.append(m); bpy.ops.object.shade_smooth()
+    """C's cork, side on (it pops into the tube's mouth)."""
+    frame(TUBE_X, 281, 2 * TUBE_R, 26, 200, 104)
+    ck = mat("cork", "#b08a5a", 0.85); add_bump(ck, 220, 0.4, kind="voronoi", distance=0.003)
+    ycyl(TUBE_X, 270, 22, TUBE_R - 3, ck, z=TUBE_R, bevel=3)
     write("cork")
 
 
-def ring_shading():
-    """Hanoi: a candy-glass ring seen from the front (a long capsule), as a shading map for any colour."""
-    scene(512, 72, 360, view="front")
-    key_lights("front", 1.1)
-    m = J.mat("candy", "#c8c8c8", 0.35, coat=0.2, coat_rough=0.4, sss=0.25)
-    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.22, depth=3.1, rotation=(0, math.radians(90), 0))
-    body = bpy.context.object; body.data.materials.append(m); bpy.ops.object.shade_smooth()
-    for x in (-1.55, 1.55):
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=0.22, location=(x, 0, 0))
-        e = bpy.context.object; e.data.materials.append(m); bpy.ops.object.shade_smooth()
-    write("hanoi-ring", shading=True)
+# ------------------------------------------------------------------ Hanoi: turned oak, gold plate, B's candy-glass rings
+HANOI_SHADES = ["#FFE14D", "#FFC23D", "#FF9A3D", "#F2675E", "#E0508F", "#B85CD6", "#7E6BF0", "#4D8CFF", "#34B3E4"]
 
 
-def oak_post():
-    scene(48, 512, 40, view="front")
-    key_lights("front")
-    w = J.wood("oak", "#a8743f", "#5a3618", rough=0.55, coat=0.15, stretch=(1, 1, 8))
-    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.12, depth=3.6, location=(0, 0, -0.1))
-    ob = bpy.context.object; ob.data.materials.append(w); bpy.ops.object.shade_smooth()
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=0.135, location=(0, 0, 1.7))
-    t = bpy.context.object; t.data.materials.append(w); bpy.ops.object.shade_smooth()
+def hanoi_post():
+    frame(150, 410, 16, 312, 48, 936)
+    oak = wood("oak", "#b07a45", "#6e4422", rough=0.35, coat=0.8, scale=4)
+    ycyl(150, 260, 310, 6, oak, z=26, bevel=5.5)
     write("hanoi-post")
 
 
-def plate(gold=False):
-    scene(512, 64, 420, view="front")
-    key_lights("front")
-    m = J.brushed("gold", "#d7b46a", 0.48) if gold else J.wood("oakb", "#9a6a3a", "#4f2f15", rough=0.55, coat=0.15, rot=math.radians(90))
-    J.cbox(0, 0, 410, 30, 46, m, r=6.0, z=-23)
-    obj = [o for o in bpy.context.scene.objects if o.type == "MESH"][0]
-    obj.rotation_euler = (math.radians(90), 0, 0); obj.location = (0, 0, 0)
+def hanoi_plate(gold):
+    frame(195, 576, 350, 24, 1050, 72)
+    m = gold_m(False, "gpost") if gold else wood("oakbase", "#8a5a30", "#4e2e14", scale=3)
+    box(24, 566, 342, 20, 12, m, r=5, z=8)
     write("hanoi-plate-gold" if gold else "hanoi-plate")
 
 
+def hanoi_ring(i):
+    """B's candy-glass ring (coat, a little transmission, a soft inner glow), one per shade, a medium width (the app
+    slices its rounded ends with border-image, so any width keeps round ends)."""
+    rh, w = 26, 110
+    frame(195, 500, w + 6, w + 6, 456, 456, bold=True)
+    col = HANOI_SHADES[i]
+    m = mat(f"ring{i}", col, 0.08, coat=1.0, coat_rough=0.03, trans=0.25, emit=col, emit_strength=0.45)
+    box(195 - w / 2, 500 - (rh - 3) / 2, w, rh - 3, 26, m, r=11.5, z=12)
+    write(f"hanoi-ring-{i + 1}", saturate=1.2, crop=(0, round(456 * (0.5 - (rh + 2) / 2 / (w + 6))), 456, round(456 * (0.5 + (rh + 2) / 2 / (w + 6)))))
+
+
+# ------------------------------------------------------------------ Safe Cracker: A's steel door and gold drums
 def safe_door():
-    """Safe Cracker: brushed steel with rivets (A); the clue card and drums sit on it."""
-    scene(512, 512, 300)
-    key_lights(k=0.9)
-    st = J.brushed("steel", "#8d949e", 0.5, aniso=0.0, stretch=(1, 90, 1))
-    J.cbox(0, 0, 296, 296, 12, st, r=10, z=-12)
-    rv = J.mat("rivet", "#b9c0c9", 0.5, metal=1.0)
-    for x in (-130, 130):
-        for y in (-130, 130):
-            J.sphere(x, y, 5, rv, z=0)
+    frame(195, 525, 346, 214, 1038, 642)
+    steel = brushed("steel", "#3a3f44", 0.38, aniso=0.0, stretch=(60, 1, 1))
+    box(22, 418, 346, 214, 19, steel, r=9)
+    for i in range(4):
+        cyl([32, 358][i % 2], [428, 622][i // 2], 4, 21, mat("rivet", "#9aa0a6", 0.25, metal=1), bevel=1.5)
     write("safe-door")
 
 
 def safe_drum():
-    """A brass drum (numerals stay app text, inked dark on the brass so reflections never hide them)."""
-    scene(120, 168, 60, view="front")
-    key_lights("front", 1.3)
-    br = J.brushed("brass", "#d1ad62", 0.6, aniso=0.0, stretch=(90, 1, 1))
-    bpy.ops.mesh.primitive_cylinder_add(vertices=96, radius=0.38, depth=0.52, rotation=(0, math.radians(90), 0))
-    ob = bpy.context.object; ob.data.materials.append(br); bpy.ops.object.shade_smooth()
-    ob.scale = (1, 1, 1)
+    x = 152
+    frame(x, 524, 68, 100, 204, 300, key=0.6)
+    area(x, 380, 300, 30, 500, "#fff6ea", sx=24, sy=900, target=(x, 524, 0))
+    box(x - 34, 474, 68, 100, 21, mat("well", "#050607", 0.5), r=6)
+    drum = mat("drum", GOLD, 0.5, metal=1.0, emit="#7a5410", emit_strength=0.3)
+    add_bump(drum, 40, 0.06, stretch=(1, 30, 1), distance=0.003)
+    xcyl(x - 29, 524, 58, 36, drum, z=4, bevel=2)
     write("safe-drum")
 
 
+# ------------------------------------------------------------------ Mosaic: A's glazed tiles in dark wells
 def mosaic_tile():
-    """Mosaic: a glazed ceramic tile (cream glaze, a hand-made ripple), pressed in when filled."""
-    scene(160, 160, 100)
-    key_lights()
-    m = J.mat("glaze", "#efe3c8", 0.4, coat=0.2, coat_rough=0.4, sss=0.1)
-    J.add_bump(m, 6, 0.06)
-    J.cbox(0, 0, 90, 90, 9, m, r=8.0, z=-9)
+    cs = 36
+    x, y = 84 + 3 * cs, 342 + 2 * cs
+    frame(x + cs / 2, y + cs / 2, cs, cs, 192, 192)
+    tile = mat("mtileA", ACC, 0.12, coat=1.0, coat_rough=0.02, emit=ACC, emit_strength=0.25)
+    add_bump(tile, 14, 0.05, distance=0.01)
+    box(x + 2, y + 2, cs - 4, cs - 4, 9, tile, r=4, z=8)
     write("mosaic-tile")
 
 
 def mosaic_well():
-    scene(160, 160, 100)
-    key_lights(k=0.8)
-    grout = J.mat("grout", "#1c2126", 0.9)
-    J.add_bump(grout, 140, 0.25)
-    J.cbox(0, 0, 100, 100, 4, grout, r=0.5, z=-14)
-    slate = J.mat("slate", "#1a2229", 0.7)
-    J.add_bump(slate, 30, 0.12)
-    J.cbox(0, 0, 88, 88, 6, slate, r=4.0, z=-14)
+    cs = 36
+    x, y = 84 + 3 * cs, 342 + 2 * cs
+    frame(x + cs / 2, y + cs / 2, cs, cs, 192, 192)
+    box(x - 2, y - 2, cs + 4, cs + 4, 8, mat("slatebed", "#070b0b", 0.6), r=0.5, z=0)
+    slate = cellm(C, "cell", False)
+    add_bump(slate, 40, 0.12, distance=0.004)
+    box(x + 2.5, y + 2.5, cs - 5, cs - 5, 3, slate, r=3, z=8)
     write("mosaic-well")
 
 
-def flood_pot():
-    """Colour Flood: a glass paint pot seen from above, as a shading map for each colour."""
-    scene(160, 160, 100, tilt=0)
-    key_lights(k=1.1)
-    m = J.mat("pot", "#c2c2c2", 0.38, coat=0.2, coat_rough=0.4)
-    J.cyl(0, 0, 44, 20, m, z=-20, bevel=6)
-    rim = J.mat("potrim", "#e0e0e0", 0.4, coat=0.1)
-    J.disc_ring(0, 0, 46, 6, 3, rim, z=0)
-    write("flood-pot", shading=True)
+# ------------------------------------------------------------------ Colour Flood: enamel, glass paint pots
+FLOOD = ["#E0508F", "#3D7BFF", "#5EE6C8", "#FFE14D", "#FF8A1F"]
+
+
+def flood_enamel():
+    """A glazed enamel surface (A's hand-glazed ripple), as a shading map the app tints per region."""
+    frame(195, 400, 120, 120, 384, 384)
+    m = mat("enamel", "#9a9a9a", 0.35, coat=0.6, coat_rough=0.4)
+    add_bump(m, 14, 0.06, detail=3, distance=0.01)
+    box(195 - 70, 400 - 70, 140, 140, 6, m, r=0, z=5)
+    write("flood-enamel", shading=True)
+
+
+def flood_pot(i):
+    """A glass paint pot with its paint, seen from above and a little in front."""
+    x, y = 195, 788
+    frame(x, y + 2, 64, 64, 192, 192, tilt=28)
+    g = thin_glass("potglass", "#f6fbff", 0.02, 1.3)
+    paint = mat(f"paint{i}", FLOOD[i], 0.12, coat=1.0, coat_rough=0.12, emit=FLOOD[i], emit_strength=0.15)
+    cyl(x, y, 25, 30, g, z=0, bevel=2)
+    disc_ring(x, y, 25, 2.2, 31, mat("potrim", "#e8eef2", 0.2, metal=1.0), z=0)
+    cyl(x, y, 23, 20, paint, z=1, bevel=1)
+    write(f"flood-pot-{i + 1}")
+
+
+# ------------------------------------------------------------------ Minefield: stone plates, slate, iron
+def stone_mat(name, c1, c2, rough, scale, bump):
+    m = mat(name, c1, rough)
+    n = m.node_tree.nodes; l = m.node_tree.links; b = n["Principled BSDF"]
+    tc = n.new("ShaderNodeTexCoord"); nz = n.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = scale; nz.inputs["Detail"].default_value = 12; nz.inputs["Roughness"].default_value = 0.7
+    l.new(tc.outputs["Object"], nz.inputs[0])
+    cr = n.new("ShaderNodeValToRGB")
+    cr.color_ramp.elements[0].color = hexc(c2); cr.color_ramp.elements[1].color = hexc(c1)
+    cr.color_ramp.elements[0].position = 0.35; cr.color_ramp.elements[1].position = 0.7
+    l.new(nz.outputs["Fac"], cr.inputs[0]); l.new(cr.outputs[0], b.inputs["Base Color"])
+    vor = n.new("ShaderNodeTexVoronoi"); vor.inputs["Scale"].default_value = scale * 6
+    l.new(tc.outputs["Object"], vor.inputs[0])
+    bp = n.new("ShaderNodeBump"); bp.inputs["Strength"].default_value = bump; bp.inputs["Distance"].default_value = 0.004
+    mx = n.new("ShaderNodeMath"); mx.operation = "ADD"
+    l.new(nz.outputs["Fac"], mx.inputs[0]); l.new(vor.outputs["Distance"], mx.inputs[1])
+    l.new(mx.outputs[0], bp.inputs["Height"]); l.new(bp.outputs[0], b.inputs["Normal"])
+    return m
+
+
+MINE_CELL = 37.8
 
 
 def mine_raised():
-    """Minefield A: an unopened square, raised silver stone."""
-    scene(128, 128, 100)
-    key_lights()
-    m = J.mat("silverstone", "#9aa1a8", 0.62, metal=0.2)
-    J.add_bump(m, 22, 0.18)
-    J.cbox(0, 0, 92, 92, 14, m, r=9.0, z=-14)
+    x, y = 6 + 4 * MINE_CELL, 104 + 3 * MINE_CELL
+    cs = MINE_CELL
+    frame(x + cs / 2, y + cs / 2, cs, cs, 168, 168)
+    raised = stone_mat("stone", "#a3a8ad", "#5d6368", 0.55, 22, 0.35)
+    box(x + 1.2, y + 1.2, cs - 2.4, cs - 2.4, 9, raised, r=3.5, z=4)
     write("mine-raised")
 
 
 def mine_open():
-    scene(128, 128, 100)
-    key_lights(k=0.7)
-    m = J.mat("slate2", "#1b2128", 0.78)
-    J.add_bump(m, 18, 0.14)
-    J.cbox(0, 0, 100, 100, 6, m, r=1.0, z=-20)
+    x, y = 6 + 4 * MINE_CELL, 104 + 9 * MINE_CELL
+    cs = MINE_CELL
+    frame(x + cs / 2, y + cs / 2, cs, cs, 168, 168)
+    box(x - 1, y - 1, cs + 2, cs + 2, 3, mat("slatebed2", "#0c1012", 0.6), r=0.3, z=1)
+    sunk = stone_mat("slate", "#283035", "#151a1d", 0.6, 9, 0.18)
+    box(x + 0.6, y + 0.6, cs - 1.2, cs - 1.2, 3, sunk, r=1.5, z=4)
     write("mine-open")
 
 
 def mine_mine():
-    scene(128, 128, 100)
-    key_lights(k=1.0)
-    iron = J.mat("iron", "#2a2c30", 0.55, metal=1.0)
-    J.sphere(0, 0, 26, iron, z=0)
-    for i in range(8):
-        a = i * math.pi / 4
-        bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=0.05, depth=0.2,
-                                            location=(math.cos(a) * 0.32, math.sin(a) * 0.32, 0),
-                                            rotation=(0, math.radians(90), a))
-        s = bpy.context.object; s.data.materials.append(iron); bpy.ops.object.shade_smooth()
+    x, y = 6 + 6 * MINE_CELL + MINE_CELL / 2, 104 + 12 * MINE_CELL + MINE_CELL / 2
+    frame(x, y, MINE_CELL, MINE_CELL, 168, 168)
+    iron = mat("iron", "#2a2c2f", 0.38, metal=1.0)
+    add_bump(iron, 120, 0.15, distance=0.002)
+    sphere(x, y, 9.5, iron, z=14)
+    for a in range(8):
+        ang = a * math.pi / 4
+        ob = cone(x, y, 2.4, 0.7, 8, iron, z=14)
+        ob.rotation_euler = (0, math.pi / 2, ang)
+        ob.location = V(x + math.cos(ang) * 8.5, y - math.sin(ang) * 8.5, 14)
+    cyl(x, y, 3.2, 26, mat("cap", "#4a4d52", 0.3, metal=1.0), z=0, bevel=1)
     write("mine-mine")
 
 
 def mine_flag():
-    scene(128, 128, 100, view="front")
-    key_lights("front")
-    pin = J.mat("pin", "#c9ccd1", 0.2, metal=1.0)
-    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=0.025, depth=0.8, location=(-0.08, 0, -0.02))
-    p = bpy.context.object; p.data.materials.append(pin); bpy.ops.object.shade_smooth()
-    cloth = J.mat("cloth", "#c8322b", 0.8, sheen=0.6)
-    J.add_bump(cloth, 90, 0.2)
-    bpy.ops.mesh.primitive_plane_add(size=0.34, location=(0.1, 0, 0.24), rotation=(math.radians(90), 0, 0))
-    f = bpy.context.object; f.scale = (1, 0.72, 1); f.data.materials.append(cloth)
-    wave = f.modifiers.new("w", "SIMPLE_DEFORM"); wave.deform_method = "BEND"; wave.angle = math.radians(25)
-    sol = f.modifiers.new("s", "SOLIDIFY"); sol.thickness = 0.01
-    base = J.mat("pinbase", "#3a3e44", 0.4, metal=0.8)
-    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.12, depth=0.05, location=(-0.08, 0, -0.42))
-    b = bpy.context.object; b.data.materials.append(base); bpy.ops.object.shade_smooth()
+    x, y = 6 + 6 * MINE_CELL, 104 + 5 * MINE_CELL
+    cs = MINE_CELL
+    frame(x + cs / 2, y + cs / 2, cs, cs, 168, 168, tilt=25)
+    ycyl(x + cs / 2 - 4, y + 7, 22, 1.4, mat("pin", "#d9dde0", 0.2, metal=1), z=14.5, bevel=0.5)
+    cloth = mat("flag", "#e8414a", 0.6, sheen=0.5, emit="#e8414a", emit_strength=0.2)
+    add_bump(cloth, 60, 0.2, distance=0.002)
+    box(x + cs / 2 - 3, y + 7, 13, 10, 1.5, cloth, r=1, z=15)
+    cyl(x + cs / 2 - 4, y + 29, 4, 2, mat("pinbase", "#3a3e44", 0.4, metal=0.8), z=4, bevel=0.5)
     write("mine-flag")
 
 
 SPRITES = {
     "box-tile": lambda: box_tile(False), "box-tile-given": lambda: box_tile(True),
-    "flask-glass": flask_glass, "cork": cork,
-    "hanoi-ring": ring_shading, "hanoi-post": oak_post, "hanoi-plate": lambda: plate(False),
-    "hanoi-plate-gold": lambda: plate(True),
+    "flask-glass": tube_glass, "potion-meniscus": meniscus, "cork": cork,
+    **{f"potion-{c}": (lambda c=c: liquid(c, False)) for c in POTION_COLOURS},
+    **{f"potion-{c}-bottom": (lambda c=c: liquid(c, True)) for c in POTION_COLOURS},
+    "hanoi-post": hanoi_post, "hanoi-plate": lambda: hanoi_plate(False), "hanoi-plate-gold": lambda: hanoi_plate(True),
+    **{f"hanoi-ring-{i + 1}": (lambda i=i: hanoi_ring(i)) for i in range(9)},
     "safe-door": safe_door, "safe-drum": safe_drum,
     "mosaic-tile": mosaic_tile, "mosaic-well": mosaic_well,
-    "flood-pot": flood_pot,
+    "flood-enamel": flood_enamel, **{f"flood-pot-{i + 1}": (lambda i=i: flood_pot(i)) for i in range(5)},
     "mine-raised": mine_raised, "mine-open": mine_open, "mine-mine": mine_mine, "mine-flag": mine_flag,
 }
 
 if __name__ == "__main__":
     names = [a for a in sys.argv[1:] if not a.startswith("-")] or list(SPRITES)
-    for n in names:
-        SPRITES[n]()
+    for name in names:
+        SPRITES[name]()

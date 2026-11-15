@@ -120,6 +120,9 @@ export function Tubes({
                     className={`potion-layer logic-potion flex w-full shrink-0 items-center justify-center ${compact ? "" : "tubes-play-layer"} ${arriving ? "logic-potion-fill" : ""}`}
                     // Presentation only: a same-colour layer above joins this one with a faint line, so one colour reads as one body of liquid.
                     data-same-above={tube[ball + 1] === colour ? "" : undefined}
+                    // The rendered liquid (public/logic-art/potion-<colour>[-bottom].webp; display only).
+                    data-potion={BALL_COLOURS[colour % BALL_COLOURS.length]!.toLowerCase()}
+                    data-bottom={ball === 0 ? "" : undefined}
                     style={{
                       ...(compact ? { height: layerHeight ?? ballSize + 3 } : {}),
                       backgroundColor: ballColour(colour),

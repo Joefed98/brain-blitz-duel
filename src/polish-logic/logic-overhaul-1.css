@@ -47,12 +47,14 @@
   font-size: 1.12em;
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="given"] .logic-sudoku-digit {
-  color: #f2efe8;
-  text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
+  /* Concept A / B: glowing gold numerals on the lacquer (a soft glow, never a glare across the digit). */
+  color: #f2c14e;
+  text-shadow: 0 0 8px rgb(242 193 78 / 0.45), 0 1px 0 rgb(0 0 0 / 0.8);
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell.text-primary .logic-sudoku-digit {
-  color: var(--jz-gold);
-  text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
+  /* The player's own digits: pale champagne, so they read apart from the given gold. */
+  color: #fff0c8;
+  text-shadow: 0 0 6px rgb(255 240 200 / 0.3), 0 1px 0 rgb(0 0 0 / 0.8);
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="missed"] {
   /* The reveal's solution: a cell you missed or got wrong, ringed so it stands out. */
@@ -82,36 +84,74 @@
   font-weight: 800;
 }
 
-/* ------------------------------------------------------------------ Polypotions: real glass, richer liquid, corks */
+/* ------------------------------------------------------------------ Polypotions: A's glass, B's liquid, C's cork */
+/* Wide, clear tubes: no outline, the glass a rendered highlight layer over the liquid; each liquid layer a rendered
+   slab of B's potion (round-bottomed for the first), one clean highlight down its curve; a meniscus on the top layer. */
+:is(#logic-overhaul-1, html) .logic-potions.logic-potions { column-gap: 6px; }
 :is(#logic-overhaul-1, html) [data-logic-stage="tubes"] .logic-flask.flask,
 :is(#logic-overhaul-1, html) .logic-potions .logic-flask.flask {
   border-color: transparent;
-  background: linear-gradient(90deg, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0.01) 50%, rgb(255 255 255 / 0.05));
-  box-shadow: 0 4px 10px rgb(0 0 0 / 0.45);
+  padding: 2px 3px 3px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.015) 45%, rgb(255 255 255 / 0.06));
+  box-shadow: 0 6px 12px rgb(0 0 0 / 0.35);
 }
+:is(#logic-overhaul-1, html) .logic-potions .logic-flask.flask.border-primary {
+  box-shadow: 0 0 0 2px var(--jz-gold), 0 6px 12px rgb(0 0 0 / 0.35);
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-liquid { border-radius: 0 0 999px 999px; }
+:is(#logic-overhaul-1, html) .logic-potions .logic-liquid::before { display: none; }
 :is(#logic-overhaul-1, html) .logic-potions .logic-flask-shine {
-  inset: -2px;
-  top: -2px;
-  bottom: -2px;
-  left: -2px;
+  inset: 0;
+  top: -3px;
+  bottom: 0;
+  left: 0;
   width: auto;
   max-width: none;
-  border-radius: 0 0 16px 16px;
+  border-radius: 0;
   background: url("/logic-art/flask-glass.webp") center / 100% 100% no-repeat;
-  mix-blend-mode: screen;
+  mix-blend-mode: normal;
   z-index: 4;
 }
-.logic-potions .logic-flask-rim { opacity: 0.55; }
+:is(#logic-overhaul-1, html) .logic-potions .logic-flask-rim { display: none; }
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion.potion-layer {
-  /* B's richer liquid colour under even light: a soft depth shade, no glossy streak or inner glow (Joe, 15 Nov 2026). */
-  background-image:
-    linear-gradient(90deg, rgb(255 255 255 / 0.1) 0 10%, transparent 35%, rgb(0 0 0 / 0.16) 85%, rgb(0 0 0 / 0.24));
-  filter: saturate(1.15);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="red"] { background-image: url("/logic-art/potion-red.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="red"][data-bottom] { background-image: url("/logic-art/potion-red-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="blue"] { background-image: url("/logic-art/potion-blue.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="blue"][data-bottom] { background-image: url("/logic-art/potion-blue-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="green"] { background-image: url("/logic-art/potion-green.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="green"][data-bottom] { background-image: url("/logic-art/potion-green-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="purple"] { background-image: url("/logic-art/potion-purple.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="purple"][data-bottom] { background-image: url("/logic-art/potion-purple-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pink"] { background-image: url("/logic-art/potion-pink.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pink"][data-bottom] { background-image: url("/logic-art/potion-pink-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="orange"] { background-image: url("/logic-art/potion-orange.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="orange"][data-bottom] { background-image: url("/logic-art/potion-orange-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="brown"] { background-image: url("/logic-art/potion-brown.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="brown"][data-bottom] { background-image: url("/logic-art/potion-brown-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="yellow"] { background-image: url("/logic-art/potion-yellow.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="yellow"][data-bottom] { background-image: url("/logic-art/potion-yellow-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion-surface {
+  top: -4px;
+  height: 9px;
+  border-radius: 50%;
+  background: url("/logic-art/potion-meniscus.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion-glyph {
+  font-size: 15px;
+  color: #ffffff;
+  opacity: 0.6;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.35);
 }
 :is(#logic-overhaul-1, html) .logic-potions .logic-cork,
 :is(#logic-overhaul-1, html) .logic-potions .potion-cork {
   background: url("/logic-art/cork.webp") center / 100% 100% no-repeat !important;
-  height: 12px;
+  height: 14px;
   border-radius: 2px;
   animation: logic-cork-in 260ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
 }
@@ -150,8 +190,13 @@
 
 /* ------------------------------------------------------------------ Hanoi: turned oak posts, gold plate, candy-glass rings */
 :is(#logic-overhaul-1, html) .logic-hanoi-post.logic-hanoi-post {
+  /* Turned oak with its grain, thicker than before. */
+  width: clamp(9px, calc(var(--hanoi-ring) * 0.85), 14px);
   background: url("/logic-art/hanoi-post.webp") center / 100% 100% no-repeat;
   box-shadow: 2px 0 4px rgb(0 0 0 / 0.45);
+}
+:is(#logic-overhaul-1, html) .logic-hanoi[style] .logic-hanoi-post.logic-hanoi-post {
+  width: clamp(9px, calc(var(--hanoi-ring) * 0.85), 14px);
 }
 :is(#logic-overhaul-1, html) .logic-hanoi-base.logic-hanoi-base {
   background: url("/logic-art/hanoi-plate.webp") center / 100% 100% no-repeat;
@@ -161,13 +206,26 @@
   background: url("/logic-art/hanoi-plate-gold.webp") center / 100% 100% no-repeat;
   box-shadow: 0 4px 6px rgb(0 0 0 / 0.55);
 }
-/* The ring keeps its colour (background-color) and takes the rendered glass's light and shade through hard-light. */
+/* B's candy-glass rings: one rendered ring per shade, its rounded ends kept whole at any width (border-image slices). */
 :is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring.logic-hanoi-ring {
-  background-image: url("/logic-art/hanoi-ring.webp");
-  background-size: 100% 100%;
-  background-blend-mode: hard-light;
-  box-shadow: 0 2px 3px rgb(0 0 0 / 0.45);
+  background: transparent !important;
+  border-style: solid;
+  border-width: 0;
+  border-image-slice: 0 55 fill;
+  border-image-width: 0 calc(var(--hanoi-ring) * 0.5);
+  border-image-repeat: stretch;
+  box-shadow: 0 3px 4px rgb(0 0 0 / 0.35);
+  border-radius: 999px;
 }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="1"] { border-image-source: url("/logic-art/hanoi-ring-1.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="2"] { border-image-source: url("/logic-art/hanoi-ring-2.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="3"] { border-image-source: url("/logic-art/hanoi-ring-3.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="4"] { border-image-source: url("/logic-art/hanoi-ring-4.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="5"] { border-image-source: url("/logic-art/hanoi-ring-5.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="6"] { border-image-source: url("/logic-art/hanoi-ring-6.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="7"] { border-image-source: url("/logic-art/hanoi-ring-7.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="8"] { border-image-source: url("/logic-art/hanoi-ring-8.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="9"] { border-image-source: url("/logic-art/hanoi-ring-9.webp"); }
 :is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring.hanoi-lifted {
   box-shadow: 0 0 0 2px var(--jz-gold), 0 8px 8px rgb(0 0 0 / 0.4);
 }
@@ -241,20 +299,27 @@
   box-shadow: 0 10px 26px rgb(0 0 0 / 0.55);
 }
 :is(#logic-overhaul-1, html) .logic-flood-sheen.logic-flood-sheen {
-  opacity: 1;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.05), transparent 40%, rgb(0 0 0 / 0.1));
+  /* One rendered enamel glaze over the whole board (its ripple and soft gloss), tinting nothing: hard-light keeps each
+     region's colour and lays the glaze's light and shade on it. */
+  opacity: 0.85;
+  background: url("/logic-art/flood-enamel.webp") center / 100% 100% no-repeat;
+  mix-blend-mode: hard-light;
 }
 :is(#logic-overhaul-1, html) .logic-paint-pot.logic-paint-pot {
   border-radius: 50%;
-  background-image: url("/logic-art/flood-pot.webp");
-  background-size: 100% 100%;
-  background-blend-mode: hard-light;
+  background-color: transparent !important;
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
   border: 0;
-  box-shadow: 0 4px 8px rgb(0 0 0 / 0.5);
+  box-shadow: none;
 }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Magenta"] { background-image: url("/logic-art/flood-pot-1.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Blue"] { background-image: url("/logic-art/flood-pot-2.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Mint"] { background-image: url("/logic-art/flood-pot-3.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Yellow"] { background-image: url("/logic-art/flood-pot-4.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Orange"] { background-image: url("/logic-art/flood-pot-5.webp") !important; }
 :is(#logic-overhaul-1, html) .logic-paint-pot.logic-paint-pot-current {
-  box-shadow: 0 0 0 3px var(--jz-gold), 0 4px 8px rgb(0 0 0 / 0.5);
+  box-shadow: 0 0 0 3px var(--jz-gold);
 }
 :is(#logic-overhaul-1, html) .logic-flood-reveal-board {
   width: min(100%, 300px);

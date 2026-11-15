@@ -26,9 +26,13 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 /** Graduated by size, smallest (light yellow) to largest (sky blue); equal sizes share a colour. */
 const HANOI_SHADES = 9;
 
-function discColour(size: number, discs = TOWER_DISCS): string {
+function discShade(size: number, discs = TOWER_DISCS): number {
   const step = discs <= 1 ? 1 : Math.round(((size - 1) * (HANOI_SHADES - 1)) / (discs - 1)) + 1;
-  return `var(--hanoi-${Math.max(1, Math.min(HANOI_SHADES, step))})`;
+  return Math.max(1, Math.min(HANOI_SHADES, step));
+}
+
+function discColour(size: number, discs = TOWER_DISCS): string {
+  return `var(--hanoi-${discShade(size, discs)})`;
 }
 
 /** Three or four wooden posts; the target post stands on a gold plate. */
@@ -90,6 +94,7 @@ export function Pegs({
                 {isLifted && liftedDisc !== null && (
                   <div
                     className="hanoi-disc hanoi-lifted logic-hanoi-ring logic-hanoi-hover"
+                    data-shade={discShade(liftedDisc, discs)}
                     style={{
                       height: "var(--hanoi-ring)",
                       width: `${30 + (liftedDisc / discs) * 65}%`,
@@ -110,6 +115,7 @@ export function Pegs({
                     <div
                       key={landed ? `${size}-${dropped?.key}` : size}
                       className={`hanoi-disc logic-hanoi-ring relative z-10 shrink-0 ${shake === peg ? "animate-shake" : ""} ${landed ? "logic-hanoi-drop" : ""}`}
+                      data-shade={discShade(size, discs)}
                       style={{
                         height: "var(--hanoi-ring)",
                         width: `${30 + (size / discs) * 65}%`,

@@ -368,11 +368,28 @@ const press = (el: Element | null | undefined) =>
 }
 
 /* ------------------------------------------------------------------ 5. The art */
-const SPRITES = ["box-tile", "box-tile-given", "flask-glass", "cork", "hanoi-ring", "hanoi-post", "hanoi-plate", "hanoi-plate-gold",
-  "safe-door", "safe-drum", "mosaic-tile", "mosaic-well", "flood-pot", "mine-raised", "mine-open", "mine-mine", "mine-flag"];
+const POTIONS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow"];
+const SPRITES = ["box-tile", "box-tile-given", "flask-glass", "potion-meniscus", "cork",
+  ...POTIONS.flatMap((c) => [`potion-${c}`, `potion-${c}-bottom`]),
+  "hanoi-post", "hanoi-plate", "hanoi-plate-gold", ...Array.from({ length: 9 }, (_, i) => `hanoi-ring-${i + 1}`),
+  "safe-door", "safe-drum", "mosaic-tile", "mosaic-well", "flood-enamel", ...Array.from({ length: 5 }, (_, i) => `flood-pot-${i + 1}`),
+  "mine-raised", "mine-open", "mine-mine", "mine-flag"];
+// Joe's budget (15 Nov 2026): about 400 KB of images a game at most.
+{
+  const { statSync } = await import("node:fs");
+  const GAMES: Record<string, (n: string) => boolean> = {
+    "Box Six": (n) => n.startsWith("box-"), Polypotions: (n) => n.startsWith("potion-") || n === "flask-glass" || n === "cork",
+    Hanoi: (n) => n.startsWith("hanoi-"), "Safe Cracker": (n) => n.startsWith("safe-"), Mosaic: (n) => n.startsWith("mosaic-"),
+    "Colour Flood": (n) => n.startsWith("flood-"), Minefield: (n) => n.startsWith("mine-"),
+  };
+  for (const [game, owns] of Object.entries(GAMES)) {
+    const bytes = SPRITES.filter(owns).reduce((sum, n) => sum + (existsSync(`public/logic-art/${n}.webp`) ? statSync(`public/logic-art/${n}.webp`).size : 0), 0);
+    ok(bytes > 0 && bytes <= 400 * 1024, `art: ${game} ${Math.round(bytes / 1024)} KB, within 400 KB`);
+  }
+}
 for (const s of SPRITES) ok(existsSync(`public/logic-art/${s}.webp`), `art: ${s}.webp exists`);
 const css = readFileSync("src/polish-logic/logic-overhaul-1.css", "utf8");
-for (const m of css.matchAll(/\/logic-art\/([a-z-]+)\.webp/g)) ok(SPRITES.includes(m[1]!), `art: the stylesheet's ${m[1]} is a rendered sprite`);
+for (const m of css.matchAll(/\/logic-art\/([a-z0-9-]+)\.webp/g)) ok(SPRITES.includes(m[1]!), `art: the stylesheet's ${m[1]} is a rendered sprite`);
 ok(/@import "\.\/polish-logic\/logic-overhaul-1\.css";/.test(readFileSync("src/styles.css", "utf8")), "art: styles.css imports the overhaul");
 {
   const { logicSprite } = await import("../src/lib/arcade/logicArt.renderer");
