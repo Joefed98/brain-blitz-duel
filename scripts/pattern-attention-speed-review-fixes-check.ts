@@ -118,7 +118,7 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
 }
 
 // Heave: the help names par only while the screen shows it.
-// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Heave now shows Pushes and
+// Changed with Joe's approval, 15 Nov 2026 (Heave shows par): Heave now shows Pushes and
 // Par during play (pushPar.ts), so the help names par again; the assertion keeps the rule "par in the help only when
 // the stage shows it" (pattern-overhaul-push-check proves the pill).
 check(/\bpar\b/i.test(PATTERN_STD_HELP.push) === src("src/puzzles/push.tsx").includes(`parPills("Pushes"`), "Heave: the help names par but the screen doesn't show it (or the other way round)");
