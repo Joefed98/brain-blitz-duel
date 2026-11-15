@@ -195,6 +195,12 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
         ctx.fillStyle = fill;
         ctx.fill();
         if (edge) neonStroke(ctx, edge, Math.max(1, 5 * P(offset, cy).k));
+        else if (!L.world) {
+          // A crisp painted rim (the default rink), seen through the ice.
+          ctx.strokeStyle = "rgba(16,28,52,0.32)";
+          ctx.lineWidth = Math.max(0.5, 1.4 * P(offset, cy).k);
+          ctx.stroke();
+        }
       }
     }
   }
@@ -243,8 +249,10 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
     ctx.fillStyle = i % 3 ? pal.pebble[0] : pal.pebble[1];
     ctx.fillRect(p.sx, p.sy, Math.max(0.5, p.k * 1.4), Math.max(0.5, p.k * 1.1));
   }
-  // The roof lights' reflections: long soft streaks down the ice.
-  for (const lx of pal.reflections ? [-120, 120] : []) {
+  // The main sheet's depth (the default rink): the sheen and the roof lights' long reflections (iceDepth).
+  if (!L.world && offset === 0) iceDepth(ctx, offset, v, far, near);
+  // The neighbouring sheets' roof-light reflections: soft streaks down the ice.
+  for (const lx of pal.reflections && (L.world || offset !== 0) ? [-120, 120] : []) {
     for (const ly of [300, 1300, 2300]) {
       const p = P(offset + lx, ly);
       const r = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, 70 * p.k + 6);
@@ -261,19 +269,39 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
   }
   if (dim > 0) {
     ctx.fillStyle = `rgba(10,16,28,${dim})`;
-    ctx.fillRect(0, 0, v.w, v.h);
+    // Clipped to this sheet: the whole of it, out past the world's edges (the scene beyond) as well.
+    ctx.fillRect(-400, -400, v.w + 800, v.h + 800);
   }
   ctx.restore();
-  // The side boards and their LED strips.
+  // The side boards and their LED strips (the default rink: a solid dark board, its lit top edge, so the sheet glows
+  // by contrast).
+  for (const side of L.world ? [] : [-1, 1]) {
+    const e0 = offset + side * (SHEET_HALF_W + 1);
+    const e1 = offset + side * (SHEET_HALF_W + 18);
+    const qa = [P(e0, far), P(e1, far), P(e1, near), P(e0, near)];
+    ctx.fillStyle = "#070A11";
+    ctx.beginPath();
+    qa.forEach((pt, i) => (i ? ctx.lineTo(pt.sx, pt.sy) : ctx.moveTo(pt.sx, pt.sy)));
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(190,212,236,0.42)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(qa[0]!.sx, qa[0]!.sy);
+    ctx.lineTo(qa[3]!.sx, qa[3]!.sy);
+    ctx.stroke();
+  }
   for (const side of [-1, 1]) {
     const a = P(offset + side * (SHEET_HALF_W + 4), far);
     const b = P(offset + side * (SHEET_HALF_W + 4), near);
-    ctx.strokeStyle = pal.board;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(a.sx, a.sy);
-    ctx.lineTo(b.sx, b.sy);
-    ctx.stroke();
+    if (L.world) {
+      ctx.strokeStyle = pal.board;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(a.sx, a.sy);
+      ctx.lineTo(b.sx, b.sy);
+      ctx.stroke();
+    }
     ctx.save();
     ctx.shadowColor = pal.led;
     ctx.shadowBlur = L.world ? 6 : 2;
@@ -285,6 +313,75 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
     ctx.stroke();
     ctx.restore();
   }
+}
+
+/**
+ * The main sheet's depth (the Sports overhaul, 15 Nov 2026; the default rink): polished ice, a sheen darkening towards
+ * the boards and the roof lights reflected as long soft highlights running down the sheet (several nested bands, each
+ * faint, brightest a third of the way down and gone before the near end: no glare over the stones or the HUD).
+ * Drawn inside the sheet's clip, under the stones; geometry and projection unchanged.
+ */
+function iceDepth(ctx: CanvasRenderingContext2D, offset: number, v: CurlView, far: number, near: number): void {
+  const P = (x: number, y: number) => curlProject(x, y, v);
+  const quad = (x0: number, x1: number, y0: number, y1: number) => {
+    const a = P(offset + x0, y0);
+    const b = P(offset + x1, y0);
+    const c = P(offset + x1, y1);
+    const d = P(offset + x0, y1);
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy);
+    ctx.lineTo(b.sx, b.sy);
+    ctx.lineTo(c.sx, c.sy);
+    ctx.lineTo(d.sx, d.sy);
+    ctx.closePath();
+  };
+  // The sheen across: the middle of the sheet brightest, darker towards the boards.
+  const strips = 28;
+  for (let i = 0; i < strips; i++) {
+    const u0 = -1 + (2 * i) / strips;
+    const u1 = u0 + 2 / strips;
+    const m = Math.abs((u0 + u1) / 2);
+    quad(u0 * SHEET_HALF_W, u1 * SHEET_HALF_W, far, near);
+    ctx.fillStyle = `rgba(30,50,82,${(0.3 * m ** 2).toFixed(3)})`;
+    ctx.fill();
+  }
+  // A cool sheen falling off with distance (the far end catches less of the lights).
+  const top = P(offset, far).sy;
+  const bottom = Math.min(v.h + 40, P(offset, near).sy);
+  const fall = ctx.createLinearGradient(0, top, 0, bottom);
+  fall.addColorStop(0, "rgba(120,146,176,0.22)");
+  fall.addColorStop(0.35, "rgba(120,146,176,0.06)");
+  fall.addColorStop(0.7, "rgba(60,82,108,0.04)");
+  fall.addColorStop(1, "rgba(60,82,108,0.1)");
+  quad(-SHEET_HALF_W, SHEET_HALF_W, far, near);
+  ctx.fillStyle = fall;
+  ctx.fill();
+  // The roof lights' reflections: long, gentle highlights down the sheet.
+  for (const lx of [-150, -58, 58, 150]) {
+    for (const [half, a] of [
+      [30, 0.08],
+      [15, 0.1],
+      [6, 0.12],
+    ] as const) {
+      const g = ctx.createLinearGradient(0, top, 0, bottom);
+      g.addColorStop(0, "rgba(255,255,255,0)");
+      g.addColorStop(0.12, `rgba(255,255,255,${a * 0.6})`);
+      g.addColorStop(0.38, `rgba(255,255,255,${a})`);
+      g.addColorStop(0.72, `rgba(255,255,255,${a * 0.45})`);
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      quad(lx - half, lx + half, far + 60, near);
+      ctx.fillStyle = g;
+      ctx.fill();
+    }
+  }
+  // The glossy veil: a faint brighter band where the lights' glow pools mid-sheet.
+  const pool = ctx.createLinearGradient(0, top, 0, bottom);
+  pool.addColorStop(0, "rgba(255,255,255,0)");
+  pool.addColorStop(0.45, "rgba(255,255,255,0.05)");
+  pool.addColorStop(1, "rgba(255,255,255,0)");
+  quad(-SHEET_HALF_W * 0.7, SHEET_HALF_W * 0.7, far, near);
+  ctx.fillStyle = pool;
+  ctx.fill();
 }
 
 /**
@@ -372,7 +469,7 @@ function paintStatic(ctx: CanvasRenderingContext2D, v: CurlView): void {
   ctx.closePath();
   ctx.fill();
   // The neighbouring sheets recede into the dark (concept A); the Neon Rink keeps its own dimming.
-  const nd = L.world ? v.dim : Math.max(v.dim, 0.64);
+  const nd = L.world ? v.dim : Math.max(v.dim, 0.8);
   for (const off of [-2 * SHEET_PITCH, 2 * SHEET_PITCH, -SHEET_PITCH, SHEET_PITCH]) sheet(ctx, off, nd, v);
   sheet(ctx, 0, 0, v);
 }
@@ -445,12 +542,32 @@ function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolea
   // The rendered stone (polished granite, a gold or red handle; display only), its body exactly the sim's radius.
   const img = L.world ? null : sportsSprite("curling", mine ? "stone-gold" : "stone-red");
   if (img) {
-    ctx.fillStyle = "#0B1A2A2E";
-    ctx.beginPath();
-    ctx.ellipse(p.sx + rx * 0.06, p.sy + ry * 0.35, rx * 1.04, ry * 1.05, 0, 0, Math.PI * 2);
-    ctx.fill();
     const sc = rx / STONE_FRAME.radius;
-    ctx.drawImage(img, p.sx - (STONE_FRAME.size / 2) * sc, p.sy - STONE_FRAME.base * sc, STONE_FRAME.size * sc, STONE_FRAME.size * sc);
+    const ix = p.sx - (STONE_FRAME.size / 2) * sc;
+    const iy = p.sy - STONE_FRAME.base * sc;
+    const is = STONE_FRAME.size * sc;
+    // A faint reflection in the polished ice: the stone mirrored about its contact line, squashed and faded.
+    ctx.save();
+    ctx.globalAlpha = 0.14;
+    ctx.translate(0, p.sy);
+    ctx.scale(1, -0.55);
+    ctx.translate(0, -p.sy);
+    ctx.drawImage(img, ix, iy, is, is);
+    ctx.restore();
+    // A soft contact shadow.
+    const sh = ctx.createRadialGradient(p.sx, p.sy + ry * 0.2, 0, p.sx, p.sy + ry * 0.2, rx * 1.15);
+    sh.addColorStop(0, "rgba(10,22,40,0.32)");
+    sh.addColorStop(1, "rgba(10,22,40,0)");
+    ctx.save();
+    ctx.translate(p.sx, p.sy + ry * 0.2);
+    ctx.scale(1, Math.max(0.2, (ry * 1.3) / (rx * 1.15)));
+    ctx.translate(-p.sx, -(p.sy + ry * 0.2));
+    ctx.fillStyle = sh;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy + ry * 0.2, rx * 1.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.drawImage(img, ix, iy, is, is);
     if (moving) {
       ctx.strokeStyle = "#FFFFFF66";
       ctx.lineWidth = 0.8;
