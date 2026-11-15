@@ -335,7 +335,10 @@ try {
       // tile opens its page, whose Play opens the round's intro already counting down (no Ready to press).
       await page.getByRole("heading", { level: 1, name: "Games" }).waitFor({ timeout: 60_000 });
       await page.waitForTimeout(800);
-      // Every active, playable game is on the catalogue's one page.
+      // Changed with Joe's approval, 15 Nov 2026 (Puzzles | Arcade switch restored): the page shows one side at a time,
+      // with no All chip, so every game's icon and exact name are gathered on both sides combined (Puzzles, then Arcade);
+      // each side lists only its own games, and between them every active game. Was: every game on the one page, "the
+      // filter chips start with All".
       const sideRows = async () => page.locator("[data-practice-game]").evaluateAll((els) =>
         els.map((el) => {
           const icon = el.querySelector("[data-game-icon]");
@@ -363,8 +366,23 @@ try {
         }
         return out;
       };
-      const rows = await sideRows();
-      const named = await sideNames();
+      const pressSide = async (side: "puzzles" | "arcade") => {
+        await page.locator(`[data-practice-side='${side}']`).click();
+        await page.locator(`[data-practice-side='${side}'][aria-pressed='true']`).waitFor({ timeout: 10_000 });
+        await page.waitForTimeout(500);
+      };
+      const isArcadeType = (t: string | null) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "arcade";
+      await pressSide("puzzles");
+      const puzzleRows = await sideRows();
+      const puzzleNames = await sideNames();
+      await pressSide("arcade");
+      const arcadeRows = await sideRows();
+      const arcadeNames = await sideNames();
+      check(puzzleRows.length > 0 && puzzleRows.every((r) => !isArcadeType(r.type)), `the Puzzles side lists only puzzles (${puzzleRows.length})`);
+      check(arcadeRows.length > 0 && arcadeRows.every((r) => isArcadeType(r.type)), `the Arcade side lists only arcade games (${arcadeRows.length})`);
+      const rows = [...puzzleRows, ...arcadeRows];
+      const named = [...new Set([...puzzleNames, ...arcadeNames])];
+      check(new Set(rows.map((r) => r.type)).size === rows.length, "no game is listed on both sides");
       const byType = new Map(rows.map((r) => [r.type, r]));
       const missing: string[] = [];
       for (const type of ACTIVE_PUZZLE_TYPES) {
@@ -376,11 +394,13 @@ try {
       check(missing.length === 0, `every active game (${ACTIVE_PUZZLE_TYPES.length}) has its own icon, drawn, with no text${missing.length ? `: ${missing.join(", ")}` : ""}`);
       const names = ACTIVE_PUZZLE_TYPES.map((type) => PUZZLE_REGISTRY[type].name).filter((name) => !named.includes(name));
       check(names.length === 0, `every practice button is named exactly its game${names.length ? `: ${names.join(", ")}` : ""}`);
-      check((await page.locator("[data-practice-filter]").first().textContent()) === "All", "the filter chips start with All");
+      check((await page.locator("[data-practice-filter='all']").count()) === 0, "no All chip (one side at a time)");
+      await pressSide("puzzles");
       await page.locator("[data-practice-filter='logic']").click();
       const logic = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
       check(logic.length > 0 && logic.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "logic"), "the Logic chip shows only logic games");
-      await page.locator("[data-practice-filter='all']").click();
+      // A second tap on the chosen tile shows the whole side again (there is no All chip).
+      await page.locator("[data-practice-filter='logic']").click();
       await page.locator("[data-games-search-toggle]").click();
       await page.getByRole("searchbox", { name: "Search games" }).fill("grid");
       const found = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));

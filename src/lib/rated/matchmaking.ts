@@ -4,6 +4,7 @@
  * a deal, a grade, a score or a stamp: rated matches are ordinary rooms dealt from the room picks with today's live
  * stamps ("Classic"), and every result is the server's own grading.
  */
+import { NORMAL, puzzleLevel, type Level } from "@/lib/levels/levels";
 import { RATED_CHOICES_ON, RATED_FORMATS_ON } from "@/config/matchmakingConfig";
 import { RATED_PLAY_FOR_EVERYONE } from "@/config/ratedConfig";
 import { isPlayable, puzzleInfo } from "@/lib/duel/catalogue";
@@ -218,6 +219,8 @@ export interface RecordedGame {
   timeline: ScoreTimeline | null;
   /** The server's replay flagged the stored run (its `extra.flagged`): the whole run is never played against. */
   flagged?: boolean;
+  /** The level the game was dealt at (src/lib/levels/; left out: Normal). Only Normal runs are played against. */
+  level?: Level;
 }
 
 /** A run that could be played against. */
@@ -253,10 +256,13 @@ export interface RecordedContext {
 
 /** A game's version: its stamps with the room's tie stamp left out (a room puzzle carries tieRev, practice none). */
 export function gameVersionOf(puzzle: object): string {
-  return stampSignature(puzzle)
+  const parts = stampSignature(puzzle)
     .split(" ")
-    .filter((part) => part && !part.startsWith("tieRev="))
-    .join(" ");
+    .filter((part) => part && !part.startsWith("tieRev="));
+  // A game dealt at another level is another version (difficulty framework, 15 Nov 2026): it never matches today's
+  // Normal deal, so ratings never mix levels. A Normal deal's version is exactly what it was before levels.
+  const level = puzzleLevel(puzzle);
+  return (level === NORMAL ? parts : [...parts, `level=${level}`]).join(" ");
 }
 
 /** Why a run can't be played against (null: it can). */
@@ -271,6 +277,8 @@ export function recordedRefusal(c: RecordedCandidate, ctx: RecordedContext): str
   if (c.games.length !== games) return "wrong_length";
   // A run holding a retired game is never played against (catalogue.ts isPlayable, 13 Nov 2026).
   if (!c.games.every((g) => isPlayable(g.type))) return "retired";
+  // Rated play is always Normal (src/lib/levels/modes.ts): a run dealt at another level is never played against.
+  if (!c.games.every((g) => (g.level ?? NORMAL) === NORMAL)) return "level";
   if (c.source === "rated" && (c.format !== ctx.format || c.choice !== ctx.choice)) return "other_format";
   if (!c.games.every((g) => typeFitsChoice(g.type, ctx.choice))) return "other_choice";
   if (!c.games.every((g) => g.signature === live(g.type))) return "old_version";
