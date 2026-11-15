@@ -27,7 +27,7 @@ export const PRACTICE_STAMPS = {
   "fences": "fencesRev=1 notesRev=1 puzzleScoreRev=3 speedPar=1",
   "fillomino": "fillominoRev=1 puzzleScoreRev=3 speedPar=1",
   "fivehands": "fiveHandsRev=3 puzzleScoreRev=3 speedPar=1",
-  "flip": "flipRev=12 puzzleScoreRev=3 speedPar=1",
+  "flip": "flipRev=13 puzzleScoreRev=3 speedPar=1",
   "flood": "depthRev=4 floodRev=3 puzzleScoreRev=3 speedPar=1",
   "flow": "flowRev=2 puzzleScoreRev=3 speedPar=1",
   "freecell": "freecellRev=5 puzzleScoreRev=3 speedPar=1",

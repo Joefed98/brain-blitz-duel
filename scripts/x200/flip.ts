@@ -8,9 +8,9 @@
  * never whether one was taken) and the course's guaranteed counts (flipV8Opportunities).
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { flipGameFor, flipV8Opportunities, FLIP_REV_DEAL, FLIP_V8_CHECKPOINTS, type FlipState } from "../../src/lib/arcade/flip";
+import { flipGameFor, flipV8Opportunities, FLIP_REV_GRACE, FLIP_V8_CHECKPOINTS, type FlipState } from "../../src/lib/arcade/flip";
 import { generateFlip } from "../../src/lib/duel/arcade.server";
-import { flipDealSeed } from "../../src/lib/duel/flipDeal.server";
+import { flipDealSeedV13 } from "../../src/lib/duel/flipDealV13.server";
 import { bot, randomBot } from "../arcade-skill-bands/bots/flip";
 import { roomSeed } from "../arcade-skill-bands/games";
 import { Human } from "../arcade-skill-bands/human";
@@ -20,19 +20,21 @@ export const x200Room: X200Room = {
   type: "flip",
   // flipRev 11 since 3 Nov 2026 (no star pickups, the flow streak; docs/arcade-standard/flip.md); flipRev 12 since the
   // Action polish (flipRev 11's game, dealt only on the proved courses of flipDeal.server.ts).
-  rev: FLIP_REV_DEAL,
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal flipRev 13 (grace)
+  // from flipDealV13.server.ts, so the room proof follows the live deal.
+  rev: FLIP_REV_GRACE,
   deals: 6,
   deal(n) {
     const puzzle = generateFlip();
-    if (puzzle.flipRev !== FLIP_REV_DEAL) throw new Error(`rooms deal flipRev ${puzzle.flipRev}, not ${FLIP_REV_DEAL}`);
+    if (puzzle.flipRev !== FLIP_REV_GRACE) throw new Error(`rooms deal flipRev ${puzzle.flipRev}, not ${FLIP_REV_GRACE}`);
     // The generator draws its room seed at random; the n-th room seed through the same deal map (a proved course).
-    const seed = flipDealSeed(roomSeed(n));
+    const seed = flipDealSeedV13(roomSeed(n));
     return { seed, game: flipGameFor(puzzle.flipRev) };
   },
   play(deal, style) {
     if (style === "idle") return { events: [] };
     const human = new Human("flip", deal.seed, style === "random" ? "weak" : style);
-    const out = (style === "random" ? randomBot : bot)({ game: deal.game, seed: deal.seed, rev: FLIP_REV_DEAL, human });
+    const out = (style === "random" ? randomBot : bot)({ game: deal.game, seed: deal.seed, rev: FLIP_REV_GRACE, human });
     return { events: out.events ?? [] };
   },
   schedule(state: FlipState) {

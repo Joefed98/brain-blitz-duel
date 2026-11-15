@@ -1047,6 +1047,8 @@ const GAMES: Game[] = [
   // High Rise skylineRev 11 (15 Nov 2026, the Action overhaul: lives and the wide-block rescue), appended so every earlier
   // entry keeps its stream.
   { key: "skyline/lives", game: skylineGameFor(11), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 11) },
+  // Roofbound flipRev 13 (15 Nov 2026, the Action overhaul: grace), appended so every earlier entry keeps its stream.
+  { key: "flip/grace", game: flipGameFor(13), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 13), seedFor: (n: number) => FLIP_DEAL[n % FLIP_DEAL.length]! },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

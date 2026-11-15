@@ -1269,8 +1269,9 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
       at: (s) => flipRunnerPoint(s),
       label: (s) => ((s.chain ?? 0) <= 1 ? "DOUBLE FLIP!" : (s.chain ?? 0) === 2 ? "TRIPLE FLIP!" : `FLIP ×${(s.chain ?? 0) + 1}`),
     },
-    { kind: "streak", count: (s) => s.cpPassed ?? 0, label: () => "CHECKPOINT" },
-    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: () => "SAVED!" },
+    // flipRev 13 (grace, 15 Nov 2026): every crash is caught, so no checkpoint banner; a crash shows its cost.
+    { kind: "streak", count: (s) => (s.grace ? 0 : s.cpPassed ?? 0), label: () => "CHECKPOINT" },
+    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: (s) => (s.grace ? "−10 s" : "SAVED!") },
     { kind: "streak", count: flipZonesEntered, label: () => "SPEED ZONE!" },
     // flipRev 8's sweet spots: a perfect landing. Since 3 Nov 2026 (display only, every revision with sweet spots: flipRev
     // 8–11) a small molten "PERFECT" at the runner's feet, neon orange and dripping, gone in about 0.6 s; no burst

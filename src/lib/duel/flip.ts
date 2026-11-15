@@ -8,9 +8,10 @@ import {
   FLIP_REV,
   FLIP_REV_BAND,
   FLIP_REV_TUNEC,
-  FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_STD, FLIP_REV_FLOW, FLIP_REV_DEAL,
+  FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_STD, FLIP_REV_FLOW, FLIP_REV_DEAL, FLIP_REV_GRACE,
   flipStdFeatures,
   flipFlowFeatures,
+  flipGraceFeatures,
   flipTrailStars,
   flipSweetsTaken,
   flipV8Features,
@@ -45,6 +46,8 @@ const runLift = runFor(FLIP_REV_LIFT);
 const runStd = runFor(FLIP_REV_STD);
 /** flipRev 11: flipRev 8's play with no star pickups, the flow streak counted, scored on clean time + perfect landings, double flips and the flow streak. */
 const runFlow = runFor(FLIP_REV_FLOW);
+/** flipRev 13: flipRev 12 with grace (no crash ends the run), scored on FLIP_V13. */
+const runGrace = runFor(FLIP_REV_GRACE);
 
 export interface FlipResult extends FlatReplay<FlipState, FlipCheckpoint> {
   survived: boolean;
@@ -66,6 +69,9 @@ export interface FlipResult extends FlatReplay<FlipState, FlipCheckpoint> {
   /** flipRev 11: true (with `std`), `skill` the features' points (perfect landings, double flips, flow streak) and `streak` the longest flow streak. */
   flow?: boolean;
   streak?: number;
+  /** flipRev 13: true (with `flow`): no crash ends the run; `saves` counts every crash and `respawns` those with no checkpoint save. */
+  grace?: boolean;
+  respawns?: number;
 }
 
 export const encodeFlipRun = run.encode;
@@ -74,10 +80,10 @@ export const decodeFlipRun = run.decode;
 /** The single place a Flip score is worked out. */
 export function replayFlipRun(seed: number, raw: string, rev?: number | null): FlipResult {
   // flipRev 12 is flipRev 11's game (only its deal differs).
-  const result = (rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL ? runFlow : rev === FLIP_REV_STD ? runStd : rev === FLIP_REV_LIFT ? runLift : rev === FLIP_REV_EXPAND ? runExpand : rev === FLIP_REV_STRICT || rev === FLIP_REV_STRICT + 1 ? runStrict : rev === FLIP_REV_TARGET ? runTarget : rev === FLIP_REV_TUNEC ? runTunec : rev === FLIP_REV_BAND ? runBand : rev === FLIP_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === FLIP_REV_GRACE ? runGrace : rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL ? runFlow : rev === FLIP_REV_STD ? runStd : rev === FLIP_REV_LIFT ? runLift : rev === FLIP_REV_EXPAND ? runExpand : rev === FLIP_REV_STRICT || rev === FLIP_REV_STRICT + 1 ? runStrict : rev === FLIP_REV_TARGET ? runTarget : rev === FLIP_REV_TUNEC ? runTunec : rev === FLIP_REV_BAND ? runBand : rev === FLIP_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return { ...result, survived: s.ended !== 2, survivedSeconds: s.tick / 60, stars: flipStarsTaken(s), starsTotal: s.stars?.length ?? 0,
     trailStars: flipTrailStars(s).stars, trailTotal: (s.trailGot?.length ?? 0) * 5, combos: s.combos ?? 0, saves: s.saves ?? 0,
-    sweets: flipSweetsTaken(s), sweetsTotal: s.v8?.sweets.length ?? 0, skill: s.flow ? flipFlowFeatures(s) : s.std ? flipStdFeatures(s) : s.exp ? flipV8Features(s).total : 0, ...(s.std ? { std: true } : {}),
-    ...(s.flow ? { flow: true, streak: s.bestStreak ?? 0 } : {}) };
+    sweets: flipSweetsTaken(s), sweetsTotal: s.v8?.sweets.length ?? 0, skill: s.grace ? flipGraceFeatures(s) : s.flow ? flipFlowFeatures(s) : s.std ? flipStdFeatures(s) : s.exp ? flipV8Features(s).total : 0, ...(s.std ? { std: true } : {}),
+    ...(s.flow ? { flow: true, streak: s.bestStreak ?? 0 } : {}), ...(s.grace ? { grace: true, respawns: s.respawns ?? 0 } : {}) };
 }

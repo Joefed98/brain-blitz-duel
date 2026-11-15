@@ -70,7 +70,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "wavefront", field: "wavRev", rev: 13, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
   // flipRev 12 (3 Nov 2026): flipRev 11's game dealt only on its proved courses (flip-deal-check).
-  { type: "flip", field: "flipRev", rev: 12, batch: "C" },
+  // flipRev 13 (15 Nov 2026, the Action overhaul): grace, the retuned parts, its own proved deal (flip-overhaul-check).
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the roster line follows the stamp.
+  { type: "flip", field: "flipRev", rev: 13, batch: "C" },
   // Rainbow Bridge deals inkRev 14 since 3 Nov 2026 (inkRev 13's clovers, ink par and parts with a bigger coin, clovers and
   // birds, from a proved deal; ink-v14-check).
   { type: "inkbridge", field: "inkRev", rev: 14, batch: "C" },

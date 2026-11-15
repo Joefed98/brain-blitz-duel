@@ -383,8 +383,27 @@ export function flipSounds(): GameSounds<FlipState> {
       beginFrame("flip", state);
       void running;
       if (prev && state.tick > prev.tick) {
-        if (state.ended === 2 && prev.ended !== 2) { sfx("flip.crash", "arc_crash"); feel("impact"); }
-        else if (state.flipT > prev.flipT) sfx("flip.flip", "arc_gravity_flip", 0.7);
+        // flipRev 13 (grace): a crash respawns the runner instead of ending the run; the same crash sound and haptic, then
+        // the rewind of the blink back (silent until its file).
+        const respawned = Boolean(state.grace) && (state.saves ?? 0) > (prev.saves ?? 0);
+        if ((state.ended === 2 && prev.ended !== 2) || respawned) { sfx("flip.crash", "arc_crash"); feel("impact"); if (respawned) effectCue("flip.respawn"); }
+        // The Action overhaul (flipRev 11–13): the flip's whoosh rises to the roof or falls to the floor (the library
+        // flip until Joe's files); older revisions keep the one flip.
+        else if (state.flipT > prev.flipT) {
+          if (state.flow && state.side === 1) sfx("flip.flipUp", "arc_gravity_flip", 0.7);
+          else if (state.flow) sfx("flip.flipDown", "arc_gravity_flip", 0.7);
+          else sfx("flip.flip", "arc_gravity_flip", 0.7);
+        }
+        // flipRev 11–13: a landing's thud, each clean landing's rising flow note (a brighter one every 10th) and the
+        // streak's break (all silent until their files).
+        if (state.flow && state.ended === 0) {
+          if (prev.flipT === 1 && state.flipT === 0) effectCue("flip.land", 60);
+          const streak = state.streak ?? 0;
+          const was = prev.streak ?? 0;
+          if (streak > was && streak % 10 === 0) effectCue("flip.flowTen");
+          else if (streak > was) effectCue("flip.flowTick", 0, 1 + (streak % 10) * 0.06);
+          else if (streak === 0 && was >= 3) effectCue("flip.flowBreak");
+        }
         if (state.ended === 0) {
           // The tunnel speeds up a step (every 3 s); only every third step is sounded (9, 18, 27, 36, 45 s).
           if (flipSpeed(state.tick) > flipSpeed(prev.tick) && Math.trunc(state.tick / FLIP_STEP_TICKS) % 3 === 0) effectCue("flip.speedUp");

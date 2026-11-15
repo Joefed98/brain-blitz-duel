@@ -624,12 +624,17 @@ const BUILDERS: Record<string, Builder> = {
   flip: (r, s) => b(r, "flow") ? {
     // flipRev 11 (3 Nov 2026): no stars; clean time, perfect landings, double flips and the longest flow streak.
     axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
-    lines: [`${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
+    // flipRev 13 (grace): no crash ends the run, so the line counts crashes (each costs clean time) and the first tile
+    // is always the minute. The Action overhaul (15 Nov 2026) dropped the "Bonuses" tile: the parts above add up already.
+    lines: [b(r, "grace")
+      ? `${sec(n(r, "survivedSeconds"))} run${n(r, "saves") > 0 ? ` · ${n(r, "saves")} crash${n(r, "saves") === 1 ? "" : "es"}` : " · no crashes"} · best streak ${n(r, "streak")} → ${s}`
+      : `${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
     tiles: [
-      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
+      b(r, "grace")
+        ? { label: "Crashes", value: String(n(r, "saves")) }
+        : { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
       { label: "Perfect landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` },
       { label: "Best streak", value: String(n(r, "streak")) },
-      { label: "Bonuses", value: `+${n(r, "skill")}` },
     ],
     outcome: b(r, "survived") ? "finish" : "crash",
   } : ({

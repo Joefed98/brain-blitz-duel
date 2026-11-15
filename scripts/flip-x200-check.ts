@@ -43,7 +43,8 @@ import {
   flipWorldHFor,
   FLIP_REV_EXPAND,
   FLIP_V9_BAND_CURVE,
-  FLIP_V11_BAND_CURVE,
+  FLIP_V13_BAND_CURVE,
+  FLIP_REV_GRACE,
   FLIP_REV_STRICT,
   FLIP_RUN_TICKS,
   FLIP_STARS,
@@ -66,6 +67,7 @@ import {
   type FlipState,
 } from "../src/lib/arcade/flip";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
+import { pinFlipPreGrace } from "../src/lib/duel/arcade.server";
 import { decodeFlipRun, replayFlipRun } from "../src/lib/duel/flip";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
@@ -121,12 +123,19 @@ const gz = <T>(url: URL): T => JSON.parse(gunzipSync(readFileSync(url)).toString
 
 /* 2. Stamp and wiring. */
 // Since 27 Oct 2026 rooms deal flipRev 9, flipRev 8's play on lifted curves (arcade-phone-notes-check proves it and its curve).
-ok(playRevOf("flip", LIVE_BANDS.flip.rev) === FLIP_REV_EXPAND && liveStrictRev("flip") === FLIP_REV_STRICT, "LIVE_BANDS deals flipRev 8's play and keeps flipRev 6 as its strict revision");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal flipRev 13 (flipRev 8's
+// course and moves with grace: a crash no longer ends the run), so the flipRev 8 play and curve are read on flipRev 12,
+// its deal with the pin, and LIVE_BANDS names flipRev 13 on its own line (flip-overhaul-check).
+ok(playRevOf("flip", FLIP_REV_GRACE - 1) === FLIP_REV_EXPAND && LIVE_BANDS.flip.rev === FLIP_REV_GRACE && liveStrictRev("flip") === FLIP_REV_STRICT, "LIVE_BANDS deals flipRev 13 (flipRev 12, flipRev 8's play, before 15 Nov 2026) and keeps flipRev 6 as its strict revision");
 // Since 29 Oct 2026 rooms deal flipRev 10 (the arcade scoring standard, arcade-standard-check proves its parts): LIVE_BANDS
 // lists its core's straight line; flipRev 9's lifted curve stays on flipRev 8's units.
 // Since 3 Nov 2026 rooms deal flipRev 11 (flipRev 8's course and moves, no star pickups, the flow streak; flip-rev11-check).
-ok(LIVE_BANDS.flip.curve === FLIP_V11_BAND_CURVE && FLIP_V9_BAND_CURVE.units.join() === FLIP_V8_BAND_CURVE.units.join(), "LIVE_BANDS' curve is the dealt one (flipRev 11's; flipRev 10's before 3 Nov 2026); flipRev 9's is on flipRev 8's units");
-ok(playRevOf("flip", (generatePuzzle("flip") as { flipRev?: number }).flipRev) === FLIP_REV_EXPAND, "rooms deal flipRev 8's play");
+ok(LIVE_BANDS.flip.curve === FLIP_V13_BAND_CURVE && FLIP_V9_BAND_CURVE.units.join() === FLIP_V8_BAND_CURVE.units.join(), "LIVE_BANDS' curve is the dealt one (flipRev 13's; flipRev 11's until 15 Nov 2026, flipRev 10's before 3 Nov 2026); flipRev 9's is on flipRev 8's units");
+{
+  const was = pinFlipPreGrace(true);
+  ok(playRevOf("flip", (generatePuzzle("flip") as { flipRev?: number }).flipRev) === FLIP_REV_EXPAND, "rooms deal flipRev 8's play (on flipRev 12, before the grace of 15 Nov 2026)");
+  pinFlipPreGrace(was);
+}
 ok(roundMaxFor("flip") === 200, "Roofbound's round maximum is 200");
 ok(flipWorldHFor(FLIP_REV_EXPAND) === FLIP_V8_WORLD_H && FLIP_V8_WORLD_H === 730, "flipRev 8: the 730 px world");
 ok(flipWorldHFor(FLIP_REV_STRICT) === FLIP_WORLD_H && flipWorldHFor(undefined) === FLIP_WORLD_H, "earlier revisions keep 620 px");

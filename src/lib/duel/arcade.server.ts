@@ -4,8 +4,9 @@ import { MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE } from "@/lib/arcade/flip";
 import { flipDealSeed } from "./flipDeal.server";
+import { flipDealSeedV13 } from "./flipDealV13.server";
 import { CROSS_REV_KEEP } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
@@ -338,7 +339,15 @@ export function generateFlip(): FlipPuzzleData {
   // flipRev 11 (3 Nov 2026): no star pickups and the flow streak; clean time 100, perfect landings 60, double flips 20,
   // flow streak 20 (docs/arcade-standard/flip.md "flipRev 11").
   // flipRev 12 (3 Nov 2026): flipRev 11's game, dealt only on the courses proved to reach 200 (flipDeal.server.ts).
-  return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
+  // flipRev 13 (15 Nov 2026, the Action overhaul): grace, dealt from its own proved courses (flipDealV13.server.ts).
+  // Checks written for flipRev 12 pin it (pinFlipPreGrace).
+  if (dealPinned("flipPreGrace")) return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
+  return { type: "flip", seed: flipDealSeedV13(arcadeSeed()), flipRev: FLIP_REV_GRACE };
+}
+
+/** Checks written for flipRev 12 (before the Action overhaul's grace, 15 Nov 2026) pin it; returns the previous setting. */
+export function pinFlipPreGrace(on: boolean): boolean {
+  return setDealPin("flipPreGrace", on);
 }
 
 export function generateJunction(): JunctionPuzzleData {

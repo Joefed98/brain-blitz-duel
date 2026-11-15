@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 62 | 0 | 491 | 553 |
+| game event | 70 | 0 | 493 | 563 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 1 | 1 | 22 | 24 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 90 | 1 | 987 | 1078 |
+| **all** | 98 | 1 | 989 | 1088 |
 
 ## Silent and placeholder cues
 
@@ -313,6 +313,19 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `orbit.thrust` | The rocket flies (orbitRev 14+, the Action overhaul) [arcade-effects.md] | The flame; the loop's rate falls with the fuel left | loop | silent | none | loop | ambience | `orbit.thrust` |
 | `orbit.stardust` | A stardust mote is taken (orbitRev 12+) [arcade-effects.md] | The mote's glitter | 0–30 | silent | none | 120 | game event | `orbit.stardust` |
 | `orbit.sunBloom` | The sun is reached (orbitRev 14+) [arcade-effects.md] | The sun's bloom (stage 2 of the Action overhaul) | 0–1 | silent | none | 2500 | game event | `orbit.sunBloom` |
+
+### Roofbound
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `flip.nearMiss` | The runner passes a spike within a few pixels (stage 2) [action-overhaul-stage2.md] | A white glint on the spike | 0–10 | silent | none | 250 | game event | `flip.nearMiss` |
+| `flip.sweetGold` | A sweet-spot landing's gold dust puff (stage 2; the chime stays flip.sweetLanding) [action-overhaul-stage2.md] | A gold puff at the landing spot | 0–8 | silent | none | 350 | game event | `flip.sweetGold` |
+| `flip.flowCount` | The end card's flow best counting up (stage 2) [action-overhaul-stage2.md] | SURVIVED! with the flow best counting up | 0–1 | silent | none | 800 | game event | `flip.flowCount` |
+| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) [arcade-effects.md] | The runner blinks for its second of shield; a "−10 s" pop | 0–5 | silent | none | 450 | game event | `flip.respawn` |
+| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) [arcade-effects.md] | The runner touches down on the lip | 20–60 | silent | none | 180 | game event | `flip.land` |
+| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) [arcade-effects.md] | The FLOW chip ticks up | 20–60 | silent | none | 160 | game event | `flip.flowTick` |
+| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) [arcade-effects.md] | The FLOW chip ticks up | 0–6 | silent | none | 300 | game event | `flip.flowTen` |
+| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) [arcade-effects.md] | The FLOW chip drops to 0 | 0–5 | silent | none | 350 | game event | `flip.flowBreak` |
 
 ### Rooftop Run
 
@@ -1805,6 +1818,8 @@ Grouped by game or screen.
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) [arcade-effects.md] | The scroll speeds up | 5 | recorded sound | `flip.speedUp` | 390 | game event | `flip.speedUp` |
 | `flip.crash` | Roofbound: The run ends in a crash [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `flip.crash` |
 | `flip.flip` | Roofbound: Gravity flips [arcade.md] |  | 20–60 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `flip.flip` |
+| `flip.flipUp` | Roofbound: Gravity flips and the runner rises to the roof (flipRev 11–13; the Action overhaul, Joe's file to come) [arcade.md] |  | 10–30 | recorded sound | `arc_gravity_flip` (shared) | 300 | game event | `flip.flipUp` |
+| `flip.flipDown` | Roofbound: Gravity flips and the runner drops to the floor (flipRev 11–13; Joe's file to come) [arcade.md] |  | 10–30 | recorded sound | `arc_gravity_flip` (shared) | 300 | game event | `flip.flipDown` |
 | `music.flip` | Roofbound: music_flip |  | loop | recorded sound | `music_flip` | loop | music | `music_flip` |
 
 ### Scrumper
@@ -2033,7 +2048,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_rainbow` | effects | `inkbridge.draw` | 910 |
 | `arc_rope_cut` | effects | `snip.cut` | 230 |
 | `arc_grapple` | effects | `swing.grapple` | 450 |
-| `arc_gravity_flip` | effects | `flip.flip` | 330 |
+| `arc_gravity_flip` | effects | `flip.flip`, `flip.flipUp`, `flip.flipDown` | 330 |
 | `arc_hover_tap` | effects | `homerun.swing`, `arc_hover_tap` | 110 |
 | `arc_gem_match` | effects | `arc_gem_match` | 400 |
 | `arc_ketchup` | effects | `arc_ketchup` | 230 |
