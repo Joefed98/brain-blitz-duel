@@ -3,7 +3,8 @@
  *
  *   1. scripts/fixtures/speed-demos.json holds one row for each Speed engine game (Bonk, Tenfall, Pull!), each exactly the
  *      intro_demos columns saveIntroDemoFn writes (game type, seed, the public half, { run }, start and length ticks).
- *   2. Each row's puzzle is the live deal: the stamps rooms deal today (generatePuzzle), with only the seed chosen.
+ *   2. Each row's puzzle is the server's fixed intro example deal (the live deal under INTRO_EXAMPLE_SEED, what
+ *      practiceGenerateFn answers with example: true), so the save can get it sealed: the stamps rooms deal today.
  *   3. Each run scores exactly what the server's replay says: gradeAnswer's stored score equals the fixture's figure and
  *      the run's own claimed score, and the replay flags nothing (no desync, no bad input).
  *   4. Each run shows play inside the intro's window (taps before length_ticks) and fits the save's size limit.
@@ -22,7 +23,7 @@ import { decodeInputEvents } from "../src/lib/arcade/engine";
 import { WHACK_REV_NOTES } from "../src/lib/arcade/whack";
 import { TEN_DROP_RESET_REV } from "../src/lib/arcade/tenDrop";
 import { CLAY_REV_WIDE } from "../src/lib/arcade/clayShoot";
-import { SPEED_DEMO_FIXTURE, SPEED_DEMO_GAMES, recordSpeedDemos, speedDemoText, type SpeedDemoFixture } from "./speed-demos-record";
+import { SPEED_DEMO_FIXTURE, SPEED_DEMO_GAMES, demoPuzzle, recordSpeedDemos, speedDemoText, type SpeedDemoFixture } from "./speed-demos-record";
 import type { PuzzleData } from "../src/lib/duel/types";
 
 let checks = 0;
@@ -54,8 +55,9 @@ for (const row of fixture.rows) {
   ok(fixture.proof[row.game_type]?.bot === "elite", `${row.game_type}: the proof names its bot`);
 }
 
-section("2. Each puzzle is the live deal");
+section("2. Each puzzle is the server's intro example, on the live stamps");
 for (const row of fixture.rows) {
+  ok(JSON.stringify(row.puzzle) === JSON.stringify(splitPuzzle(demoPuzzle(row.game_type as (typeof SPEED_DEMO_GAMES)[number])).pub), `${row.game_type}: the intro example deal (INTRO_EXAMPLE_SEED)`);
   const live = splitPuzzle(generatePuzzle(row.game_type as PuzzleData["type"], {})).pub;
   ok(withoutSeed(row.puzzle) === withoutSeed(live), `${row.game_type}: the stamps rooms deal today (${withoutSeed(live)})`);
   const [field, rev] = STAMP[row.game_type]!;

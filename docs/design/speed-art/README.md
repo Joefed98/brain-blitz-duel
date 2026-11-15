@@ -65,8 +65,12 @@ docs/sound-cues/speed-elevenlabs.md.
 
 Bonk, Tenfall and Pull! play a saved run on their intros. `scripts/fixtures/speed-demos.json` holds one elite-bot run each
 on the stamps rooms deal (whackRev 4, tenRev 6, clayRev 10; `bun scripts/speed-demos-record.ts`), as the intro_demos
-columns, and speed-demos-check proves each scores exactly what the server's replay says, unflagged. Nobody saves them to
-the database by hand: the manual "Save intro demos" workflow does after the final merge. The demo rules
+columns, each on the server's fixed intro example deal (the one deal the save can get sealed again), and
+speed-demos-check proves each scores exactly what the server's replay says, unflagged. Nobody saves them to the database
+by hand: the manual "Save intro demos" workflow runs `scripts/speed-demos-save.ts` against a dev server after the final
+merge (`DEMOS_URL`, `INTRO_DEMO_KEY`, optional `DEMOS_GAMES=a,b`, `DEMOS_DRY=1` or `--dry`; flags win; OK or FAIL a game,
+exit 0 / 1 / 2 for all saved / any failed / URL or key missing; it opens the dev server in headless Chromium and calls the
+app's own practiceGenerateFn and saveIntroDemoFn from the page). The demo rules
 (`introDemo.functions.ts`) now play only those stamps, so a demo recorded on clayRev 9 or tenRev 4–5 stops (the still
 shows) until the saved run arrives. Flash, Ascend and Don't Break the Chain use touch demos on the fixed intro example, not
 server-replayed runs, so they are not in the file. To get these runs the shared bot kit
