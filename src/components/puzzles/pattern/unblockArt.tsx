@@ -6,7 +6,9 @@
  * box (the drag target), and the 7 × 7 grid box is exactly what the drag maths
  * measures.
  */
-import { memo, useId } from "react";
+import { memo, useId, useLayoutEffect, useRef } from "react";
+
+import { gameFxVariant } from "@/lib/fx/kit";
 
 import { UNBLOCK_COLS as N, UNBLOCK_EXIT_ROW } from "@/lib/duel/types";
 
@@ -75,11 +77,14 @@ export function UnblockLot({
   size,
   gridRef,
   celebrate,
+  glint,
   children,
 }: {
   size?: number | undefined;
   gridRef?: React.Ref<HTMLDivElement> | undefined;
   celebrate?: boolean | undefined;
+  /** The lane-cleared glint (stage 2): a new key plays it once, from the gold car's nose to the exit. */
+  glint?: { key: number; fromCol: number } | null | undefined;
   children?: React.ReactNode;
 }) {
   const base = cleanId(useId());
@@ -90,6 +95,7 @@ export function UnblockLot({
       style={size ? { width: size, height: size } : undefined}
     >
       <LotArt base={base} />
+      {glint ? <UnblockLaneGlint key={glint.key} fromCol={glint.fromCol} /> : null}
       <div ref={gridRef} className="unblock-grid">
         {children}
       </div>
@@ -141,5 +147,52 @@ export function UnblockExitFx({ fromCol }: { fromCol: number }) {
       <span className="unblock-streak" style={{ top: "78%", animationDelay: "120ms" }} />
       <span className="unblock-exit-burst" />
     </div>
+  );
+}
+
+/** The glint's length in each effects-kit variant (≤ 900 ms; reduced motion a crossfade with no movement). */
+export const UNBLOCK_GLINT_MS = { full: 560, lite: 340, reduced: 240 } as const;
+
+/**
+ * The gold car's lane just cleared (stage 2, display only): a light band runs along the exit lane, from the gold car's
+ * nose out through the gap, on the lot's art layer under the cars (pointer-events none; nothing in the lane to cover,
+ * it is clear). Transform and opacity only (Web Animations), the variant from the effects kit: lite shorter, reduced
+ * motion a still glow along the lane fading in and out. Plays once a key (UnblockLot keys it on the clearing move).
+ */
+function UnblockLaneGlint({ fromCol }: { fromCol: number }) {
+  const band = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = band.current;
+    if (!el || typeof el.animate !== "function") return;
+    const variant = gameFxVariant("slide");
+    try {
+      if (variant === "reduced") {
+        el.style.width = "100%"; // a still glow along the whole lane (set once, never animated)
+        el.animate([{ opacity: 0 }, { opacity: 0.7, offset: 0.5 }, { opacity: 0 }], { duration: UNBLOCK_GLINT_MS.reduced, easing: "ease-out" });
+      } else {
+        el.animate(
+          [
+            { transform: "translateX(-100%)", opacity: 0 },
+            { transform: "translateX(40%)", opacity: 1, offset: 0.3 },
+            { transform: "translateX(260%)", opacity: 0 },
+          ],
+          { duration: variant === "full" ? UNBLOCK_GLINT_MS.full : UNBLOCK_GLINT_MS.lite, easing: "cubic-bezier(0.3, 0, 0.4, 1)" },
+        );
+      }
+    } catch {
+      /* presentation only */
+    }
+  }, []);
+  // The lane in lot units: the bays sit inside the kerb (UNBLOCK_WALL each side), the band runs to the lot's edge.
+  const bay = (100 - 2 * UNBLOCK_WALL) / N;
+  return (
+    <span
+      className="unblock-lane-glint"
+      aria-hidden="true"
+      data-unblock-glint={fromCol}
+      style={{ top: `${UNBLOCK_WALL + UNBLOCK_EXIT_ROW * bay}%`, height: `${bay}%`, left: `${UNBLOCK_WALL + Math.min(N, fromCol) * bay}%` }}
+    >
+      <span ref={band} className="unblock-lane-glint-band" />
+    </span>
   );
 }

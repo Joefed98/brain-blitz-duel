@@ -1,6 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { gameFx } from "@/lib/fx/kit";
 
 import { UnblockBoard, UnblockPuzzle } from "@/components/puzzles/UnblockPuzzle";
 import { applyMove, countedMoves, decodeMoves, position, replayUnblock, vehicleCells } from "@/lib/duel/unblock";
@@ -171,6 +173,19 @@ function RouteStrip({ chips, step }: { chips: RouteChip[]; step: number }) {
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts, myExtra }: PuzzleRevealProps) {
   const solution = decodeMoves(puzzle.type === "unblock" ? (puzzle.solution ?? "") : "");
   const [step, setStep] = useState(0);
+  const keysRef = useRef<HTMLDivElement>(null);
+
+  // Stage 2: on a solve, the effects kit's `win` lands on the result (the key numbers row; scale in with a gold burst;
+  // silent, the reveal plays its own sounds; no haptic outside a live round). Asked a frame after mount, so the burst
+  // comes from the row's laid-out box; it never wraps a board (the reveal's fit measures the boards).
+  useEffect(() => {
+    if (!myCorrect || typeof window === "undefined") return;
+    const frame = window.requestAnimationFrame(() => {
+      const el = keysRef.current;
+      if (el && el.getClientRects().length > 0) gameFx("win", el, { silent: true, inGame: false });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [myCorrect]);
 
   // The reveal plays the stored shortest solution back (about three seconds, after a short pause on the start).
   useEffect(() => {
@@ -275,7 +290,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
         </div>
       ) : null}
       {!available && <p className="unblock-reveal-note">Solution unavailable</p>}
-      <div className="unblock-reveal-keys" data-unblock-keys="">
+      <div ref={keysRef} className="unblock-reveal-keys" data-unblock-keys="" data-unblock-result={myCorrect ? "solved" : "unfinished"}>
         {min > 0 ? (
           <span className="unblock-key" data-unblock-key="par">
             {parLabel} <span className="unblock-key-value">{min}</span>

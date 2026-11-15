@@ -19,7 +19,11 @@
  *  8. Sound: unblock.slideLong, unblock.blocked and unblock.laneClear are manifest slots with a file, fired by the stage
  *     (the lane-cleared glint only when a move opens the gold car's lane short of the solve), and listed with the
  *     other Gridlock lines in docs/sound-cues/pattern-elevenlabs.md.
- *
+ *  9. Effects (stage 2, the effects kit): a slide's silent kit settle on the moved car's art as its glide ends; a
+ *     blocked drag's knock with the kit's wrong on the blocking car's art (none for the kerb, nothing for a tap); the
+ *     lane-cleared glint along the exit lane on the lot's art layer (only on the clearing move); the drive-out kept;
+ *     the kit's silent win on the solved reveal's result; never on a hit box; the next drag taken at once; transform
+ *     and opacity only; the reduced-motion crossfades.
  *   bun scripts/pattern-overhaul-unblock-check.ts
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -342,6 +346,222 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
     check(section.includes(`\`${slot}\``), `pattern-elevenlabs.md's Gridlock section doesn't list ${slot}`);
   const cues = src("docs/sound-cues/pattern.md");
   for (const slot of ["unblock.slideLong", "unblock.blocked", "unblock.laneClear"]) check(cues.includes(`\`${slot}\``), `docs/sound-cues/pattern.md doesn't list ${slot}`);
+}
+
+/* ---------------------------------------------------------------- 9. effects (stage 2) */
+{
+  g["IS_REACT_ACT_ENVIRONMENT"] = true;
+  // The stage dispatches its cues with the page's own CustomEvent (Bun has its own, which happy-dom refuses).
+  g["CustomEvent"] = (win as unknown as Record<string, unknown>)["CustomEvent"];
+  for (const key of ["PointerEvent", "MouseEvent", "requestAnimationFrame", "cancelAnimationFrame"]) {
+    if (g[key] === undefined) g[key] = (win as unknown as Record<string, unknown>)[key];
+  }
+  let reducedMotion = false;
+  const matchMedia = (query: string) => ({ matches: query.includes("prefers-reduced-motion") ? reducedMotion : false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+  Object.defineProperty(win, "matchMedia", { configurable: true, writable: true, value: matchMedia });
+
+  // Every kit call (its plan, the element it animated) and every Web Animation in the page (its keyframes).
+  type Rec = { kind: string; variant: string; silent: boolean; haptic: string | null; frames: Record<string, unknown>[]; el: Element | null; ms: number };
+  const fx: Rec[] = [];
+  const anims: { el: Element; frames: Record<string, unknown>[]; delay: number }[] = [];
+  const { setGameFxSink } = await import("../src/lib/fx/kit");
+  setGameFxSink((plan) => fx.push({ kind: plan.kind, variant: plan.variant, silent: plan.sound === null, haptic: plan.haptic, frames: plan.frames as Record<string, unknown>[], el: null, ms: plan.ms }));
+  const elementProto = (win as unknown as { Element: { prototype: object } }).Element.prototype;
+  Object.defineProperty(elementProto, "animate", {
+    configurable: true,
+    writable: true,
+    value(this: Element, frames: Record<string, unknown>[], opts?: { delay?: number }) {
+      anims.push({ el: this, frames, delay: opts?.delay ?? 0 });
+      const last = fx[fx.length - 1];
+      if (last && last.el === null) last.el = this;
+      return { cancel() {}, finish() {}, finished: Promise.resolve() };
+    },
+  });
+  const cues: string[] = [];
+  win.addEventListener("duelz-sound", (e) => cues.push(String((e as unknown as CustomEvent<{ cue: string }>).detail?.cue)));
+
+  const { createRoot } = await import("react-dom/client");
+  const { act } = React;
+  const { blockingCar } = await import("../src/components/puzzles/UnblockPuzzle");
+  const { UNBLOCK_GLINT_MS } = await import("../src/components/puzzles/pattern/unblockArt");
+
+  // The gold car (row 2) behind car 1 (vertical, across its lane at column 3); car 2 against the left kerb; car 3 a
+  // van stacked under car 1 in column 3 (so car 1 can't go down past row 1 + 2 = 3 … it can: rows 3-4 free until 5).
+  const board = (): UnblockVehicle[] => [
+    { id: 0, axis: "h", len: 2, row: 2, col: 0 },
+    { id: 1, axis: "v", len: 2, row: 1, col: 3 },
+    { id: 2, axis: "h", len: 2, row: 5, col: 0 },
+    { id: 3, axis: "h", len: 2, row: 6, col: 2 },
+  ];
+  const puzzle = { type: "unblock", vehicles: board(), minMoves: 2, par: 2, unblockRev: 4, solution: "1:3,0:5" } as unknown as UnblockPuzzleData;
+  const pct = (v: number) => `${(v * 100) / 7}%`;
+  const CELL = 52; // happy-dom measures nothing: the stage steps by its 52 px default
+  const fire = (target: EventTarget, type: string, x: number, y: number) => {
+    const Ctor = (type.startsWith("pointer") ? win.PointerEvent : win.MouseEvent) as unknown as typeof MouseEvent;
+    target.dispatchEvent(new Ctor(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, pointerId: 1 } as MouseEventInit) as unknown as Event);
+  };
+
+  const mount = async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host as unknown as Element);
+    const submits: string[] = [];
+    await act(async () => {
+      root.render(React.createElement(UnblockPuzzle, { puzzle, phaseStartedAt: Date.now(), now: Date.now(), locked: false, onSubmit: (a: string) => submits.push(a), onDraftAnswer: () => {} }));
+    });
+    const car = (id: number) => host.querySelector(`[data-unblock-car="${id}"]`) as unknown as HTMLElement;
+    const art = (id: number) => car(id)?.querySelector(".unblock-car-sprite") as unknown as HTMLElement;
+    const at = (id: number) => ({ left: car(id)?.style.left, top: car(id)?.style.top });
+    /** Drags a car by (dx, dy) bays and lets go; returns what the drop played. */
+    const drag = async (id: number, dx: number, dy: number) => {
+      const f = fx.length;
+      const c = cues.length;
+      const a = anims.length;
+      await act(async () => fire(car(id), "pointerdown", 100, 100));
+      await act(async () => fire(win, "pointermove", 100 + dx * CELL, 100 + dy * CELL));
+      await act(async () => fire(win, "pointerup", 100 + dx * CELL, 100 + dy * CELL));
+      return { fx: fx.slice(f), cues: cues.slice(c), anims: anims.slice(a) };
+    };
+    return { host, root, submits, car, art, at, drag };
+  };
+
+  // Pure: the car in the way.
+  const vs = board();
+  check(blockingCar(vs, { ...vs[0]!, col: 1 }, true) === 1, "blockingCar: the gold car pushed into car 1 doesn't name it");
+  check(blockingCar(vs, vs[2]!, false) === null, "blockingCar: the kerb names a car");
+  check(blockingCar(vs, vs[1]!, false) === null && blockingCar(vs, { ...vs[1]!, row: 4 }, true) === 3, "blockingCar: a vertical car's way is wrong");
+
+  const fullRun = async () => {
+    const m = await mount();
+    const kitsOn = (r: { fx: Rec[] }, kind: string) => r.fx.filter((x) => x.kind === kind);
+
+    // A plain tap: nothing moves, no knock, no kit effect.
+    const tap = await m.drag(2, 0, 0);
+    check(tap.fx.length === 0 && !tap.cues.includes("unblock.blocked") && !tap.cues.some((c) => c.startsWith("unblock.slide")), `a tap that moves nothing played ${JSON.stringify(tap.cues)} / ${tap.fx.map((x) => x.kind)}`);
+    // Into the kerb: the knock, no car to shake (only the dragged car's own shared shake).
+    const kerb = await m.drag(2, -2, 0);
+    check(kerb.cues.includes("unblock.blocked") && kitsOn(kerb, "wrong").length === 0 && !kerb.cues.some((c) => c.startsWith("unblock.slide")), "into the kerb: not the knock alone");
+
+    // A legal slide: one bay right; the scrape, then the kit's silent settle on the car's own art as the glide ends.
+    const one = await m.drag(0, 1, 0);
+    const settles = kitsOn(one, "tap");
+    check(one.cues.includes("unblock.slide") && !one.cues.includes("unblock.laneClear") && !one.cues.includes("unblock.blocked"), `one bay: cues ${JSON.stringify(one.cues)}`);
+    check(settles.length === 1 && settles[0]!.silent && !settles[0]!.haptic && settles[0]!.el === m.art(0), "one bay: no silent kit settle on the gold car's art");
+    const settleAnim = one.anims.find((x) => x.el === m.art(0));
+    check(settleAnim?.delay === 170, `one bay: the settle doesn't start as the glide ends (delay ${settleAnim?.delay})`);
+    check(!one.fx.some((x) => x.el === m.car(0) || x.el?.contains(m.car(0))), "one bay: a kit effect on the car's box (the drag's hit area) or its container");
+    check(m.at(0).left === pct(1), "one bay: the car isn't in its new bay at once");
+
+    // Blocked by car 1: the knock, the kit's wrong on car 1's art (silent, no haptic), no scrape.
+    const block = await m.drag(0, 3, 0);
+    const wrongs = kitsOn(block, "wrong");
+    check(block.cues.includes("unblock.blocked") && !block.cues.some((c) => c.startsWith("unblock.slide")), `blocked: cues ${JSON.stringify(block.cues)}`);
+    check(wrongs.length === 1 && wrongs[0]!.el === m.art(1) && wrongs[0]!.silent && wrongs[0]!.haptic === null, "blocked: the kit's wrong isn't on the blocking car's art (silent, no haptic)");
+    check(!block.fx.some((x) => x.el === m.art(0) && x.kind === "wrong"), "blocked: the kit shook the dragged car too (its shake is the shared one)");
+    // Never blocks input: the next drag, while the shake runs, moves car 2 at once.
+    const during = await m.drag(2, 1, 0);
+    check(m.at(2).left === pct(1) && during.cues.includes("unblock.slide"), "a drag during the blocked shake wasn't taken at once");
+
+    // Car 1 down two bays clears the gold car's lane: the glint along the exit lane, from the gold car's nose.
+    const clear = await m.drag(1, 0, 2);
+    check(clear.cues.includes("unblock.laneClear") && clear.cues.includes("unblock.slide"), `lane clear: cues ${JSON.stringify(clear.cues)}`);
+    const glint = m.host.querySelector("[data-unblock-glint]") as unknown as HTMLElement | null;
+    check(glint?.getAttribute("data-unblock-glint") === "3", `lane clear: no glint from the gold car's nose (${glint?.getAttribute("data-unblock-glint")})`);
+    const band = glint?.querySelector(".unblock-lane-glint-band");
+    const bandAnim = clear.anims.find((x) => x.el === band);
+    check(!!bandAnim && !!glint && !glint.closest("[data-unblock-car]") && !m.host.querySelector(".unblock-grid")!.contains(glint), "lane clear: the band isn't animated on the lot's art layer (outside the cars' grid)");
+    check(m.host.querySelector(".unblock-lot")!.firstElementChild !== glint && glint?.nextElementSibling?.classList.contains("unblock-grid") === true, "lane clear: the glint isn't drawn under the cars");
+    // Its keyframes move it (transform) along the lane, no longer than the kit's 900 ms.
+    check(!!bandAnim && bandAnim.frames.some((f) => typeof f["transform"] === "string" && /translateX/.test(String(f["transform"]))), "lane clear: the band doesn't run along the lane");
+    check(UNBLOCK_GLINT_MS.full <= 900 && UNBLOCK_GLINT_MS.lite <= UNBLOCK_GLINT_MS.full, "the glint is longer than 900 ms");
+    // A move that keeps the lane clear plays no second glint.
+    const after = await m.drag(2, 1, 0);
+    check(!after.cues.includes("unblock.laneClear") && m.host.querySelectorAll("[data-unblock-glint]").length === 1 && m.host.querySelector("[data-unblock-glint]")!.parentElement !== null && !after.anims.some((x) => x.el === m.host.querySelector(".unblock-lane-glint-band")), "a second move replayed the glint");
+    // Never blocks input: the gold car drives out at once (the drive-out kept).
+    const out = await m.drag(0, 4, 0);
+    check(m.at(0).left === pct(5) && m.car(0)?.className.includes("unblock-car--escape"), "the gold car's drive-out wasn't taken at once after the glint");
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 480));
+    });
+    check(m.submits.length === 1 && !out.cues.includes("unblock.laneClear"), "the solve didn't lock in once (or replayed the glint)");
+    check(!!m.host.querySelector(".unblock-exit-fx .unblock-streak"), "the drive-out lost its streaks");
+    await act(async () => m.root.unmount());
+    m.host.remove();
+  };
+
+  fx.length = 0;
+  anims.length = 0;
+  await fullRun();
+  check(fx.every((x) => x.variant === "full"), "full: a kit effect played in another variant");
+
+  // Every animation in the stage's run (the glide, the kit's, the glint) is transform and opacity only.
+  const allowed = new Set(["transform", "opacity", "offset", "easing", "composite"]);
+  const badAnim = anims.find((a) => a.frames.some((f) => Object.keys(f).some((k) => !allowed.has(k))));
+  check(!badAnim, `an animation with another property: ${JSON.stringify(badAnim?.frames)}`);
+  // …and none of the game's files animates anything else (a source scan of every .animate( keyframe list).
+  for (const file of ["src/components/puzzles/UnblockPuzzle.tsx", "src/components/puzzles/pattern/unblockArt.tsx", "src/puzzles/unblock.tsx"]) {
+    const text = src(file);
+    const props = [...text.matchAll(/\.animate\(([\s\S]*?)\],\s*\{/g)].flatMap((m) => [...m[1]!.matchAll(/\b([a-zA-Z]+):/g)].map((x) => x[1]!));
+    check(props.every((p) => allowed.has(p)), `${file}: .animate( with ${props.filter((p) => !allowed.has(p)).join(", ")}`);
+    check(!/transition:\s*(?!filter|opacity|transform)/.test(text), `${file}: an inline layout transition`);
+  }
+
+  // Reduced motion: no glide, every effect still shows the state change as the kit's crossfade (opacity only).
+  reducedMotion = true;
+  fx.length = 0;
+  anims.length = 0;
+  {
+    const m = await mount();
+    const one = await m.drag(0, 1, 0);
+    const settle = one.fx.find((x) => x.kind === "tap");
+    check(!!settle && settle.variant === "reduced" && settle.frames.every((f) => !("transform" in f)), "reduced: the settle isn't the kit's crossfade");
+    check(one.anims.find((x) => x.el === m.art(0))?.delay === 0, "reduced: the crossfade waits for a glide that isn't there");
+    check(!one.anims.some((x) => x.el === m.car(0)), "reduced: the car still glides");
+    const block = await m.drag(0, 3, 0);
+    const wrong = block.fx.find((x) => x.kind === "wrong");
+    check(!!wrong && wrong.variant === "reduced" && wrong.frames.every((f) => !("transform" in f)), "reduced: the blocking car's wrong isn't the dim flicker");
+    const clear = await m.drag(1, 0, 2);
+    const band = m.host.querySelector(".unblock-lane-glint-band");
+    const glow = clear.anims.find((x) => x.el === band);
+    check(!!glow && glow.frames.every((f) => !("transform" in f)) && glow.frames.some((f) => Number(f["opacity"]) > 0), "reduced: the glint isn't a still glow fading in and out");
+    check(UNBLOCK_GLINT_MS.reduced <= 240, "reduced: the glow is longer than a crossfade in and out");
+    await act(async () => m.root.unmount());
+    m.host.remove();
+  }
+  reducedMotion = false;
+
+  // The reveal's result: the kit's win (silent) on the key numbers row on a solve; never on an unfinished round,
+  // never on a board.
+  {
+    const Reveal = unblockPuzzle.Reveal;
+    Object.defineProperty(elementProto, "getClientRects", { configurable: true, value() { return [{ width: 1, height: 1 }]; } });
+    const draw = async (answer: string, correct: boolean) => {
+      const a = fx.length;
+      const h = document.createElement("div");
+      document.body.appendChild(h);
+      const r = createRoot(h as unknown as Element);
+      const gr = gradeAnswer(puzzle, answer, 30_000);
+      await act(async () => {
+        r.render(React.createElement(Reveal, { puzzle, myAnswer: answer, myCorrect: correct && gr.isCorrect, myReactionAvgMs: null, myMsRemaining: 30_000, timeLimitMs: 60_000, myExtra: gr.extra as Record<string, unknown> } as never));
+      });
+      await act(async () => {
+        await new Promise((res) => setTimeout(res, 60));
+      });
+      const got = fx.slice(a);
+      await act(async () => r.unmount());
+      h.remove();
+      return got;
+    };
+    const won = (await draw("1:3,0:5", true)).filter((x) => x.kind === "win");
+    const w = won[0];
+    check(won.length === 1 && !!w && w.silent && w.el?.getAttribute("data-unblock-result") === "solved" && !w.el?.querySelector(".unblock-lot"), `reveal: not one silent kit win on the solved result (${won.length})`);
+    const lost = await draw("2:2", false);
+    check(!lost.some((x) => x.kind === "win"), "reveal: a win on an unfinished round");
+  }
+  // The reveal's playback board never plays the stage's effects (UnblockBoard has no settle).
+  check(!/<Vehicle key=\{vehicle\.id\} vehicle=\{vehicle\} settle/.test(src("src/components/puzzles/UnblockPuzzle.tsx")), "the reveal's board plays the stage's settle");
+
+  setGameFxSink(null);
 }
 
 void statSync;
