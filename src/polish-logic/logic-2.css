@@ -203,6 +203,7 @@
 .logic2-lamps .logic2-bulb[data-clash] {
   box-shadow: 0 0 0 2px var(--jz-loss, #ff5a6e);
 }
+.logic2-hint[data-hint-hidden] { visibility: hidden; }
 .logic2-hint {
   margin: 6px auto 0;
   width: fit-content;

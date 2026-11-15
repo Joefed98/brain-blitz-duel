@@ -9,6 +9,12 @@
 /** Which fixed intro example a demo belongs to. Bump to re-roll every example. */
 export const INTRO_EXAMPLE_ID = "intro-1";
 export const INTRO_EXAMPLE_SEED = 0x1d7e0001;
+/**
+ * Banked games whose fixed intro example is the live deal at the example seed, not the bank's first board, so it carries
+ * the stamps rooms deal: Skid, Chroma Lines and Tessellate (puzzle polish, 3 Nov 2026) and Lamplighter (the Logic
+ * overhaul's intro demo, 15 Nov 2026: the bank's board had no notesRev).
+ */
+export const LIVE_INTRO_EXAMPLE_TYPES: ReadonlySet<string> = new Set(["iceslide", "flow", "blockparty", "lightup"]);
 /** The solved state holds this long before the loop restarts. */
 export const PUZZLE_DEMO_HOLD_MS = 1500;
 export const PUZZLE_DEMO_MAX_CHARS = 400_000;

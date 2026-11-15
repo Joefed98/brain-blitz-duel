@@ -368,11 +368,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             <Board board={data} marks={marks} pointer={pointer} spread={spread} />
           </div>
         </div>
+        {/* The hint's line is kept from the start (hidden until it shows), so the board never moves when it appears. */}
         {darkLeft > 0 && darkLeft <= LIGHTUP_DARK_HINT && bulbs.length > 0 ? (
           <p className="logic2-hint" role="status" data-lightup-dark={darkLeft}>
             {darkLeft === 1 ? "1 square dark" : `${darkLeft} squares dark`}
           </p>
-        ) : null}
+        ) : (
+          <p className="logic2-hint" aria-hidden="true" data-hint-hidden="">
+            0 squares dark
+          </p>
+        )}
         {inFrame ? (
           <HudPills
             testId="lightup"

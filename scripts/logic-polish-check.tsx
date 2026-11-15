@@ -18,7 +18,7 @@ import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { LOGIC_SOLVE_FX_MS } from "../src/puzzles/logicFx";
-import { LOGIC_POLISH_DEMOS, OCT14_BATCH_DEMOS, puzzleInputDemoCompatible, puzzlePresentation, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
+import { LOGIC_POLISH_DEMOS, LOGIC2_DEMOS, OCT14_BATCH_DEMOS, puzzleInputDemoCompatible, puzzlePresentation, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
 
 const GAMES: { type: PuzzleType; file: string }[] = [
   { type: "lightsout", file: "lightsOut" },
@@ -62,7 +62,9 @@ for (const { type } of GAMES) {
     assert.ok(LOGIC_POLISH_DEMOS.has(type));
     assert.equal(puzzleInputDemoCompatible(type, { presentation: "oct10-polish-b" }), false);
     // Polypotions and Colour Flood moved again on 14 Oct 2026 (OCT14_BATCH_DEMOS): logic-polish demos are rejected too.
-    assert.equal(puzzleInputDemoCompatible(type, { presentation: LOGIC_POLISH_PRESENTATION }), !OCT14_BATCH_DEMOS.has(type));
+    // Tents and Trees, Shikaku and Lamplighter moved again in the Logic overhaul (15 Nov 2026, LOGIC2_DEMOS). Changed with
+    // Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
+    assert.equal(puzzleInputDemoCompatible(type, { presentation: LOGIC_POLISH_PRESENTATION }), !OCT14_BATCH_DEMOS.has(type) && !LOGIC2_DEMOS.has(type));
     assert.equal(puzzleInputDemoCompatible(type, { presentation: puzzlePresentation(type) }), true);
   });
 }

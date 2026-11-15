@@ -14,6 +14,14 @@ export const WORD_POLISH_PRESENTATION = "oct13-word-polish";
 /** Logic polish (13 Oct 2026) centred and resized these boards; older coordinate demos are rejected. */
 export const LOGIC_POLISH_DEMOS = new Set(["lightsout", "sudoku", "tower", "tubes", "safe", "bomb", "nonogram", "flood", "tents", "shikaku", "lightup"]);
 export const LOGIC_POLISH_PRESENTATION = "oct13-logic-polish";
+/**
+ * Logic overhaul 2 (15 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions and Island Link have
+ * new boards (taller Trail cells, Island Link's tap-to-cycle, Regions' number pad and strokes), so older coordinate demos
+ * would touch the wrong squares; they are rejected (the intro shows its still) until re-recorded
+ * (scripts/fixtures/logic-demos.json, saved by the "Save intro demos" workflow).
+ */
+export const LOGIC2_DEMOS = new Set(["tents", "shikaku", "lightup", "trail", "fences", "fillomino", "bridges"]);
+export const LOGIC2_PRESENTATION = "nov15-logic-overhaul-2";
 /** Number polish (13 Oct 2026) moved these boards and controls; older coordinate demos are rejected. */
 export const NUMBER_POLISH_DEMOS = new Set(["target", "equation", "balance", "numpyramid", "trail", "measure", "checkout", "numline"]);
 export const NUMBER_POLISH_PRESENTATION = "oct13-number-polish";
@@ -103,6 +111,7 @@ export const DEPTH_D3_ATTENTION_PRESENTATION = "oct25-depth-d3-attention";
 export const DEPTH_D3_SPEED_DEMOS = new Set(["reaction", "stopwatch", "numhunt"]);
 export const DEPTH_D3_SPEED_PRESENTATION = "oct25-depth-d3-speed";
 export function puzzlePresentation(type: string): string {
+  if (LOGIC2_DEMOS.has(type)) return LOGIC2_PRESENTATION;
   if (ROUNDABOUT_DEPTH_DEMOS.has(type)) return ROUNDABOUT_DEPTH_PRESENTATION;
   if (FORAGE_DEPTH_DEMOS.has(type)) return FORAGE_DEPTH_PRESENTATION;
   if (LOOKOUT_DEPTH_DEMOS.has(type)) return LOOKOUT_DEPTH_PRESENTATION;
@@ -122,7 +131,7 @@ export function puzzlePresentation(type: string): string {
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...NUMBER_DEPTH_DEMOS, ...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...LOGIC2_DEMOS, ...NUMBER_DEPTH_DEMOS, ...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {

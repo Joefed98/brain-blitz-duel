@@ -46,7 +46,7 @@ import { Board as TentsBoard, tentTreePairs } from "../src/puzzles/tents";
 import { Board as ShikakuBoard } from "../src/puzzles/shikaku";
 import { trailStepRate } from "../src/puzzles/trail";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
-import { Board as LampBoard } from "../src/puzzles/lightUp";
+import { Board as LampBoard, lightUpPuzzle } from "../src/puzzles/lightUp";
 import { FencesBoard } from "../src/puzzles/fences";
 import { BridgesBoard } from "../src/puzzles/bridges";
 import { FillominoBoard } from "../src/puzzles/fillomino";
@@ -196,6 +196,10 @@ function trailRuns(p: TrailPuzzleData, undos: number) {
   const lit = html(createElement(LampBoard, { board, marks: [1, 0, 0, 0, 0, 0, 0, 0, 1] }));
   ok(/logic2-tick/.test(lit), "Lamplighter: a 0 is ticked once its neighbours are lit");
   ok(/data-lit/.test(lit) && /lightup-lamp/.test(lit), "Lamplighter: lit squares fill and lamps are the bulb sprite");
+  // The "N squares dark" hint's line is held (hidden) from the first frame, so the board never moves when it shows
+  // (the intro demo's taps landed a row off when it pushed the board up, 15 Nov 2026).
+  const stage = html(createElement(lightUpPuzzle.Stage, { puzzle: { type: "lightup", size: 3, walls: [4], wallNumbers: [0] } as never, phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => {}, stateKey: "logic2-check-lightup" }));
+  ok(/class="logic2-hint"[^>]*data-hint-hidden/.test(stage), "Lamplighter: the dark-squares hint's line is kept from the start");
   // The light is one soft glow layer under the squares (Joe, 15 Nov 2026): a pool for every lit square, at its falloff.
   const glow = lit.match(/class="logic2-glow"[^>]*>(.*?)<\/i><\/i>/)?.[1] ?? "";
   const pools = (glow.match(/<i /g) ?? []).length;
