@@ -345,7 +345,9 @@ if (want("orbit")) {
   // Superseded 15 Oct 2026 (arcade play screen): the 44 px row ends 16 px above the visible bottom, as every arcade control row.
   // (orbitRev 12 since 27 Oct 2026, Joe's phone notes: the button sits in the world's reserved corner instead;
   // play-control-clearance-check proves it. This revision and the others before 12 keep the row.)
-  ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /className="h-11 px-3 text-\[11px\] /.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall, narrower since 15 Oct 2026");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the button is the hold-to-set
+  // CheckpointHoldButton, the same 44 px tall, 12 px sides and 11 px text (its class and inline font size).
+  ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /<CheckpointHoldButton onSet=/.test(footer) && /className=\{`relative h-11 overflow-hidden px-3 font-bold \$\{className \?\? ""\}`\}\s*style=\{\{ fontSize: 11 \}\}/.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall, narrower since 15 Oct 2026");
 }
 
 /* =============================== 2d. Grappler =============================== */
