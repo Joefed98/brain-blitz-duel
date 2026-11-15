@@ -5,7 +5,6 @@ import { useContext, useEffect, useRef, useState, type CSSProperties } from "rea
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import {
   npComplete,
-  npCorrectCells,
   npDecode,
   npDecodeRound,
   npEncodeRound,
@@ -25,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { NUMBER_STAGE_MOMENT_SOUND, NumberStage } from "@/components/puzzles/number/overhaul";
+import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type BoardMark, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { GoalLineContext } from "@/components/duel/GameFrame";
@@ -120,6 +120,8 @@ export function Pyramid({
   plinth = false,
   animate = true,
   seams,
+  missed,
+  fix,
 }: {
   rows: number;
   givens: readonly (number | null)[];
@@ -140,6 +142,10 @@ export function Pyramid({
   animate?: boolean;
   /** The Number overhaul (display only): the judged sums, a faint gold seam if right, a red crack if wrong. */
   seams?: readonly NpSeam[] | undefined;
+  /** Reveal: empty stones the player left (a dashed red outline). */
+  missed?: ReadonlySet<number> | undefined;
+  /** Reveal, the solution: stones the player didn't have right (a champagne outline). */
+  fix?: ReadonlySet<number> | undefined;
 }) {
   const size = fontSize ?? Math.round(Math.min(cellH * 0.5, cellW * 0.36));
   const bottomW = rows * cellW + (rows - 1) * gap;
@@ -160,11 +166,12 @@ export function Pyramid({
               <div
                 key={c}
                 data-np-cell={given ? undefined : cell}
-                className={`np-stone ${given ? "np-given" : "np-socket"} ${dragFrom === cell ? "opacity-30" : ""}`}
+                data-np-missed={missed?.has(cell) ? "" : undefined}
+                className={`np-stone ${given ? "np-given" : "np-socket"} ${dragFrom === cell ? "opacity-30" : ""}${missed?.has(cell) ? " np-missed" : ""}`}
                 style={{ width: cellW, height: cellH, fontSize: size }}
               >
                 {given ? value : value != null ? (
-                  <span key={`${cell}:${value}`} className={`np-stone np-block${animate ? " np-set" : ""}${mark === false ? " np-wrong" : ""}`}>{value}</span>
+                  <span key={`${cell}:${value}`} data-np-wrong={mark === false ? "" : undefined} data-np-fix={fix?.has(cell) ? "" : undefined} className={`np-stone np-block${animate ? " np-set" : ""}${mark === false ? " np-wrong" : ""}${fix?.has(cell) ? " np-fix" : ""}`}>{value}</span>
                 ) : null}
                 {lit && <span className="np-glow" style={{ animationDelay: `${(rows - 1 - r) * 90}ms` }} />}
                 {gold && (
@@ -470,55 +477,106 @@ function useHostSpace(fallback: { w: number; h: number }) {
   return [root, space] as const;
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+/** One pyramid's reveal state (the Number overhaul). */
+export interface NpRevealBoard {
+  mark: BoardMark;
+  mine: (number | null)[];
+  solution: (number | null)[] | null;
+  /** Placed stones right (true) or wrong (false), by cell. */
+  marks: Record<number, boolean>;
+  wrong: number;
+  empty: number;
+  /** The stones the player didn't have right: wrong or empty (for the solution's outline). */
+  fix: Set<number>;
+  missed: Set<number>;
+}
+
+/** Each pyramid's reveal state from the stored answer (solutions where the reveal has them). */
+export function npRevealBoards(puzzle: NumberPyramidPuzzleData, myAnswer: string | null): NpRevealBoard[] {
+  const decoded = npDecodeRound(myAnswer ?? "");
+  return puzzle.pyramids.map((board, index) => {
+    const solution = puzzle.solutions?.[index] ?? null;
+    const placements = npDecode(decoded.boards[index] ?? "", board.givens, board.tray.length);
+    const mine = npFilled(board.givens, board.tray, placements);
+    const complete = npComplete(board.givens, board.tray, placements, board.rows);
+    const marks: Record<number, boolean> = {};
+    const fix = new Set<number>();
+    const missed = new Set<number>();
+    let wrong = 0;
+    // Without a solution the reveal can still judge the sums: a stone in a broken sum is wrong, the rest unmarked.
+    const broken = solution ? null : new Set(npBrokenCells(board.givens, mine, board.rows));
+    board.givens.forEach((g, cell) => {
+      if (g != null) return;
+      if (mine[cell] == null) {
+        missed.add(cell);
+        fix.add(cell);
+        return;
+      }
+      const ok = solution ? mine[cell] === solution[cell] : !broken!.has(cell);
+      if (solution || !ok) marks[cell] = ok;
+      if (!ok) { wrong++; fix.add(cell); }
+    });
+    const placed = board.givens.filter((g, cell) => g == null && mine[cell] != null).length;
+    return { mark: complete ? "right" : placed ? "wrong" : "open", mine, solution, marks, wrong, empty: missed.size, fix, missed };
+  });
+}
+
+function npRevealNote(b: NpRevealBoard, side: RevealSide): string {
+  if (b.mark === "right") return "Complete";
+  if (side === "solution") return "The solution";
+  if (b.mark === "open") return "Not reached";
+  const parts = [b.wrong ? `${b.wrong} wrong` : null, b.empty ? `${b.empty} empty` : null].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Not complete";
+}
+
+function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
   const [root, space] = useHostSpace({ w: 343, h: 440 });
-  // The Number overhaul (display only): one pyramid at a time, big, with a switcher (the first one not complete first).
-  const [shown, setShown] = useState<number | null>(null);
-  if (puzzle.type !== "numpyramid") return null;
-  const decoded = npDecodeRound(myAnswer ?? "");
-  let completed = 0;
-  let totalRight = 0;
-  let totalEmpty = 0;
-  const boards = puzzle.pyramids.map((board, index) => {
-    const solution = puzzle.solutions?.[index] ?? [];
-    const placements = npDecode(decoded.boards[index] ?? "", board.givens, board.tray.length);
-    const mine = npFilled(board.givens, board.tray, placements);
-    const right = npCorrectCells(board.givens, board.tray, solution, placements);
-    const empties = board.givens.filter((g) => g == null).length;
-    const complete = npComplete(board.givens, board.tray, placements, board.rows);
-    if (complete) completed++; totalRight += right; totalEmpty += empties;
-    const marks: Record<number, boolean> = {};
-    board.givens.forEach((g, cell) => { if (g == null && mine[cell] != null) marks[cell] = mine[cell] === solution[cell]; });
-    return { board, solution, mine, marks, complete };
-  });
-  const firstOpen = boards.findIndex((b) => !b.complete);
-  const at = shown ?? (firstOpen >= 0 ? firstOpen : 0);
-  const cur = boards[at]!;
-  // Brick sizes for one pyramid at the reveal's full width (the reveal's Solution / Yours switch shows one column, so
-  // each is sized to the whole width) under the switcher; text never below 12px.
-  const rows = cur.board.rows;
-  const gap = 3;
-  const pyramidW = space.w - 20;
-  const cellW = Math.max(24, Math.min(56, Math.floor((pyramidW - (rows - 1) * gap) / rows)));
-  const room = space.h - 18 - 28 - 52 - (dev ? 16 : 0);
-  const cellH = Math.max(18, Math.min(50, Math.floor((room - (rows - 1) * gap) / rows), Math.round(cellW * 0.9)));
-  const fontSize = Math.max(12, Math.min(22, Math.floor(Math.min(cellH * 0.55, cellW * 0.44))));
-  // Two columns, the solution and yours (4 Nov 2026): the reveal's Solution / Yours switch shows one.
-  return <div ref={root} className="flex w-full flex-col items-center gap-1.5" data-np-reveal>
-    <div className="np-reveal-switch" role="tablist" aria-label="Pyramids">
-      {boards.map((b, i) => (
-        <button key={i} type="button" role="tab" aria-selected={i === at} data-np-reveal-tab={i} data-done={b.complete ? "true" : undefined} className="np-reveal-tab" onClick={() => setShown(i)}>
-          {i + 1}<span aria-hidden="true">{b.complete ? " ✓" : ""}</span>
-        </button>
-      ))}
+  const data = puzzle.type === "numpyramid" ? puzzle : null;
+  const boards = data ? npRevealBoards(data, myAnswer) : [];
+  // The Number overhaul: one pyramid at a time, big, opening on the first not complete.
+  const [index, setIndex] = useRevealBoard(boards.map((b) => b.mark));
+  const [side, setSide] = useState<RevealSide>("solution");
+  if (!data || !boards.length) return null;
+  const cur = boards[index]!;
+  const board = data.pyramids[index]!;
+  const both = cur.mark !== "right" && cur.solution !== null;
+  const view: RevealSide = both ? side : "yours";
+  // Brick sizes for one pyramid at the reveal's full width, in the height left by the tabs, switch, note and facts.
+  const rows = board.rows;
+  const gap = 4;
+  const pyramidW = Math.min(space.w, 420) - 12;
+  const cellW = Math.max(28, Math.min(68, Math.floor((pyramidW - (rows - 1) * gap) / rows)));
+  const room = space.h - 52 - (both ? 56 : 0) - 34 - 40 - (dev ? 16 : 0);
+  const cellH = Math.max(26, Math.min(58, Math.floor((room - (rows - 1) * gap) / rows), Math.round(cellW * 0.86)));
+  const fontSize = Math.max(14, Math.min(26, Math.floor(Math.min(cellH * 0.56, cellW * 0.44))));
+  const done = boards.filter((b) => b.mark === "right").length;
+  const wrongTotal = boards.reduce((n, b) => n + b.wrong, 0);
+  const used = myMsRemaining === undefined ? null : Math.max(0, (timeLimitMs - myMsRemaining) / 1000);
+  return (
+    <div ref={root} className="np-rv flex w-full min-h-0 flex-1 flex-col items-center gap-3" data-np-reveal>
+      <RevealBoards noun="Pyramid" marks={boards.map((b) => b.mark)} index={index} onIndex={(i) => { setIndex(i); setSide("solution"); }}>
+        {both ? <RevealView value={view} onChange={setSide} /> : null}
+        <div aria-label={`Pyramid ${index + 1}, ${view === "solution" ? "solution" : "yours"}`} data-np-reveal-view={view}>
+          {view === "solution" ? (
+            <Pyramid rows={rows} givens={board.givens} values={cur.solution!} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} animate={false} fix={cur.fix} />
+          ) : (
+            <Pyramid rows={rows} givens={board.givens} values={cur.mine} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} marks={cur.marks} missed={cur.missed} animate={false} gold={cur.mark === "right"} />
+          )}
+        </div>
+        <p className="np-rv-note" data-mark={view === "yours" ? cur.mark : "right"} data-np-reveal-note>{npRevealNote(cur, view)}</p>
+      </RevealBoards>
+      <RevealFacts
+        facts={[
+          { label: "Complete", value: `${done} of ${boards.length}`, ...(done === boards.length ? { tone: "good" as const } : {}) },
+          { label: "Wrong stones", value: wrongTotal, ...(wrongTotal ? { tone: "miss" as const } : {}) },
+          used !== null && { label: "Time", value: `${used.toFixed(1)} s` },
+        ]}
+      />
+      {dev && <p className="font-mono text-[10px] text-muted-foreground">dev · every solution shown</p>}
     </div>
-    <div className="flex w-full items-start justify-center gap-3">
-      <div className="flex flex-col items-center gap-1.5" aria-label={`Pyramid ${at + 1}, solution`}><span className="np-reveal-label text-center text-xs uppercase tracking-widest">Solution</span><Pyramid rows={rows} givens={cur.board.givens} values={cur.solution} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} animate={false} /></div>
-      <div className="flex flex-col items-center gap-1.5" aria-label={`Pyramid ${at + 1}, yours`}><span className="np-reveal-label text-center text-xs uppercase tracking-widest">Yours</span><Pyramid rows={rows} givens={cur.board.givens} values={cur.mine} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} marks={cur.marks} animate={false} /></div>
-    </div>
-    <p className="font-mono text-base text-primary">{myCorrect ? "4 / 4 complete" : `${completed} complete · ${totalRight} / ${totalEmpty} cells right`}</p>{dev && <p className="font-mono text-[10px] text-muted-foreground">dev · all four solutions shown</p>}</div>;
+  );
 }
 export const numberPyramidPuzzle: PuzzleDefinition = {
   key: "numpyramid",

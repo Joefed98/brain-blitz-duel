@@ -4,6 +4,15 @@ import { useContext, useEffect, useMemo, useRef, useState, type CSSProperties } 
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { NumberStage, numberArt, type StageExit } from "@/components/puzzles/number/overhaul";
+import {
+  RevealBoards,
+  RevealFacts,
+  RevealView,
+  firstBoardToShow,
+  useRevealBoard,
+  type BoardMark,
+  type RevealSide,
+} from "@/components/puzzles/number/RevealParts";
 import { Button } from "@/design/components";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import {
@@ -133,15 +142,20 @@ export const MEASURE_CSS = `
 [data-polish="measure"] .mj-row[data-solved] { border-left-color: var(--jz-gold); }
 [data-polish="measure"] .mj-par { color: var(--jz-gold); font-weight: 700; }
 /* The reveal's best line: small jug pictures, one per move. */
-[data-polish="measure"] .mj-line-pics { display: flex; flex-wrap: wrap; gap: 6px 4px; margin: 4px 0 2px; padding: 0; list-style: none; }
-[data-polish="measure"] .mj-pic { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 40px; }
-[data-polish="measure"] .mj-pic-jugs { display: flex; align-items: flex-end; gap: 3px; height: 30px; }
-[data-polish="measure"] .mj-pic-jug { position: relative; width: 16px; min-height: 14px; overflow: hidden; border: 1.5px solid color-mix(in srgb, var(--jz-text) 55%, transparent); border-top-width: 1px; border-radius: 2px 2px 4px 4px; }
+[data-polish="measure"] .mj-line-pics { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 10px; width: 100%; margin: 2px 0 0; padding: 0; list-style: none; }
+[data-polish="measure"] .mj-pic { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; }
+[data-polish="measure"] .mj-pic-jugs { display: flex; align-items: flex-end; gap: 4px; }
+[data-polish="measure"] .mj-pic-jug { position: relative; width: 24px; min-height: 22px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--jz-text) 60%, transparent); border-top-width: 1px; border-radius: 3px 3px 6px 6px; }
 [data-polish="measure"] .mj-pic-jug[data-hit] { border-color: var(--jz-gold); }
 [data-polish="measure"] .mj-pic-water { position: absolute; left: 0; right: 0; bottom: 0; background: var(--mj-water); }
-[data-polish="measure"] .mj-pic-n { position: absolute; left: 0; right: 0; bottom: 1px; text-align: center; font-family: var(--jz-font); font-weight: 800; font-size: 11px; line-height: 12px; color: var(--jz-text); text-shadow: 0 0 2px var(--jz-bg); }
-[data-polish="measure"] .mj-pic-label { font-family: var(--jz-font); font-size: 11px; font-weight: 700; color: var(--jz-text-2); white-space: nowrap; }
+[data-polish="measure"] .mj-pic-n { position: absolute; left: 0; right: 0; bottom: 2px; text-align: center; font-family: var(--jz-font); font-weight: 800; font-size: 14px; line-height: 15px; color: var(--jz-text); text-shadow: 0 0 3px var(--jz-bg); }
+[data-polish="measure"] .mj-pic-label { font-family: var(--jz-font); font-size: 13px; font-weight: 700; color: var(--jz-text-2); white-space: nowrap; }
 [data-polish="measure"] .mj-pic[data-last] .mj-pic-label { color: var(--jz-gold); }
+[data-polish="measure"] .mj-pic[data-miss] .mj-pic-label { color: var(--jz-red); }
+[data-polish="measure"] .mj-pic[data-miss] .mj-pic-jug { border-color: color-mix(in srgb, var(--jz-red) 70%, transparent); }
+[data-polish="measure"] .mj-reveal-goal { font-family: var(--jz-font); font-size: 22px; font-weight: 800; line-height: 1.2; color: var(--jz-gold); text-align: center; }
+[data-polish="measure"] .mj-reveal-jugs { font-family: var(--jz-font); font-size: 15px; font-weight: 600; color: var(--jz-text-2); text-align: center; }
+[data-polish="measure"] .mj-reveal-note { font-family: var(--jz-font); font-size: 15px; color: var(--jz-text-2); }
 [data-polish="measure"] .mj-dim { color: rgba(220, 228, 240, 0.8); }
 @media (prefers-reduced-motion: reduce) {
   [data-polish="measure"] .mj-water, [data-polish="measure"] .mj-surface, [data-polish="measure"] .mj-glass { transition: none; }
@@ -761,32 +775,85 @@ export function measureMoveLabel(board: MeasureBoardData, a: MeasureAction | nul
         : "Reset";
 }
 
+/** One puzzle's verdict and lines for the reveal (display only; the server grades). */
+export interface MeasureRevealBoard {
+  board: MeasureBoardData;
+  mark: BoardMark;
+  /** The player's own moves on it (encoded), "" when not reached. */
+  mine: string;
+  /** Their move count, when they played it. */
+  moves: number | null;
+  solved: boolean;
+  outOfMoves: boolean;
+  /** The fewest moves possible, when the reveal knows it. */
+  fewest: number | null;
+  /** The best line (encoded), when the reveal has it (the server's private half). */
+  best: string | null;
+}
+
 /**
- * The Number overhaul's reveal (15 Nov 2026, display only): the board's best line as a row of small jug pictures,
- * the jugs after each move (measureLineStates), the last one with its target jug in gold.
+ * Each puzzle's verdict, in order, as the server counts them: a puzzle is played only while every one before it was
+ * solved (measureRev 4: or ran out of its moves). Works for every stamp: older rounds carry no limits or minimums.
  */
-function BestLine({ board, raw }: { board: MeasureBoardData; raw: string }) {
+export function measureRevealBoards(puzzle: MeasurePuzzleData, answer: string | null): MeasureRevealBoard[] {
+  const parts = splitMeasureRound(answer ?? "");
+  const limits = measureMoveLimits(puzzle);
+  let open = true;
+  return puzzle.boards.map((board, index) => {
+    const raw = open ? (parts[index] ?? "") : "";
+    const replay = open ? replayMeasure(board, decodeMeasureActions(raw, board.caps.length), limits?.[index] ?? null) : null;
+    const reached = open;
+    if (!replay?.solved && !(measureBoardOut(puzzle) && replay?.outOfMoves)) open = false;
+    const played = reached && (replay?.moves ?? 0) > 0;
+    return {
+      board,
+      mark: replay?.solved ? "right" : played || (reached && replay?.outOfMoves) ? "wrong" : "open",
+      mine: reached ? raw : "",
+      moves: reached ? (replay?.moves ?? 0) : null,
+      solved: !!replay?.solved,
+      outOfMoves: !!replay?.outOfMoves,
+      fewest: puzzle.minMoves?.[index] ?? null,
+      best: puzzle.solutions?.[index] ?? null,
+    };
+  });
+}
+
+/** The puzzle's goal in plain words. */
+function revealGoal(board: MeasureBoardData): string {
+  return board.goal === "split" ? `Split into ${(board.split ?? []).join(" and ")} L` : `Make ${board.target} L in any jug`;
+}
+
+/**
+ * A line of moves as jug pictures (the Number overhaul's reveal, 15 Nov 2026): the jugs at the start and after each
+ * move, the move's name under each; the last picture's target jug in gold when it is solved, or marked "Not solved".
+ */
+function LinePictures({ board, raw, kind, solved }: { board: MeasureBoardData; raw: string; kind: "best" | "yours"; solved: boolean }) {
   const states = measureLineStates(board, raw);
   const maxCap = Math.max(...board.caps);
-  const H = 30;
+  const H = 56;
   return (
-    <ol className="mj-line-pics" data-measure-best={states.length - 1} aria-label={`Best line: ${states.slice(1).map((st) => measureMoveLabel(board, st.action)).join(", ")}`}>
+    <ol
+      className="mj-line-pics"
+      data-measure-line={kind}
+      data-measure-best={kind === "best" ? states.length - 1 : undefined}
+      aria-label={`${kind === "best" ? "Fewest moves" : "Your moves"}: ${states.slice(1).map((st) => measureMoveLabel(board, st.action)).join(", ") || "none"}`}
+    >
       {states.map((st, i) => {
         const last = i === states.length - 1;
         return (
-          <li key={i} className="mj-pic" data-last={last ? "" : undefined}>
-            <span className="mj-pic-jugs" aria-hidden="true">
+          <li key={i} className="mj-pic" data-last={last ? "" : undefined} data-miss={last && !solved ? "" : undefined}>
+            <span className="mj-pic-jugs" aria-hidden="true" style={{ height: H }}>
               {board.caps.map((cap, jug) => {
-                const hit = last && measureSolvedJug(board, st.amounts[jug] ?? 0, jug);
+                const hit = last && solved && measureSolvedJug(board, st.amounts[jug] ?? 0, jug);
                 return (
-                  <span key={jug} className="mj-pic-jug" data-hit={hit ? "" : undefined} style={{ height: Math.max(14, Math.round((cap / maxCap) * H)) }}>
+                  <span key={jug} className="mj-pic-jug" data-hit={hit ? "" : undefined} style={{ height: Math.max(22, Math.round((cap / maxCap) * H)) }}>
                     <span className="mj-pic-water" style={{ height: `${((st.amounts[jug] ?? 0) / cap) * 100}%` }} />
                     <span className="mj-pic-n">{st.amounts[jug] ?? 0}</span>
                   </span>
                 );
               })}
             </span>
-            <span className="mj-pic-label">{measureMoveLabel(board, st.action)}</span>
+            <span className="mj-pic-label">{last && !solved && i > 0 ? "Not solved" : measureMoveLabel(board, st.action)}</span>
           </li>
         );
       })}
@@ -794,49 +861,53 @@ function BestLine({ board, raw }: { board: MeasureBoardData; raw: string }) {
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+/**
+ * The reveal (the Number overhaul, 15 Nov 2026): one puzzle at a time with numbered tabs (each marked solved, not
+ * solved or not reached), opening on the first not solved; the puzzle's goal and jugs; your moves against the fewest,
+ * as jug pictures, with "Yours" and "Fewest moves" to switch between them; the numbers behind the score.
+ */
+function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
+  const boards = puzzle.type === "measure" ? measureRevealBoards(puzzle, myAnswer) : [];
+  const marks = boards.map((b) => b.mark);
+  const [index, setIndex] = useRevealBoard(marks);
+  const [side, setSide] = useState<RevealSide>(() => (boards[firstBoardToShow(marks)]?.best ? "solution" : "yours"));
   if (puzzle.type !== "measure") return null;
-  const parts = splitMeasureRound(myAnswer);
-  let open = true;
+  const b = boards[index]!;
+  const solved = boards.filter((x) => x.solved).length;
+  const limitMs = timeLimitMs;
+  const seconds = solved === boards.length && myMsRemaining !== undefined ? ((limitMs - myMsRemaining) / 1000).toFixed(1) : null;
+  const atPar = boards.filter((x) => x.solved && x.fewest !== null && x.moves !== null && x.moves <= x.fewest).length;
+  const view: RevealSide = b.best ? side : "yours";
   return (
-    <div className="flex w-full flex-col items-stretch gap-1.5 px-1" data-polish="measure">
+    <div className="mj-reveal flex w-full flex-col items-center gap-3 px-1" data-polish="measure" data-number-reveal="measure">
       <PolishStyle id="measure" css={MEASURE_CSS} />
-      {puzzle.boards.map((board, index) => {
-        const mine = open
-          ? replayMeasure(board, decodeMeasureActions(parts[index] ?? "", board.caps.length), measureMoveLimits(puzzle)?.[index] ?? null)
-          : null;
-        // measureRev 4: a puzzle out of its moves ends only itself, so the next one was still played.
-        if (!mine?.solved && !(measureBoardOut(puzzle) && mine?.outOfMoves)) open = false;
-        const min = puzzle.minMoves?.[index];
-        return (
-          <div
-            key={index}
-            data-puzzle-cell={index}
-            data-solved={mine?.solved ? "" : undefined}
-            className="mj-row rounded-lg border border-border px-2 py-1"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-x-2 font-mono text-xs">
-              <span className="mj-dim whitespace-nowrap">
-                {index + 1}. Jugs {board.caps.join(", ")} ·{" "}
-                {board.goal === "split"
-                  ? `split ${(board.split ?? []).join("-")}`
-                  : `${board.target} L`}
-              </span>
-              <span
-                className={`ml-auto whitespace-nowrap ${mine?.solved ? "font-bold text-primary" : "text-warn"}`}
-              >
-                {mine?.solved ? `✓ ${mine.moves} moves` : mine ? (mine.outOfMoves ? "✗ out of moves" : "✗ unsolved") : "—"}
-                {usesNumberDepth(puzzle) && mine?.solved && min !== undefined && mine.moves <= min ? (
-                  <span className="mj-par"> · ★ par</span>
-                ) : (
-                  <span className="mj-dim"> · best {min ?? "?"}</span>
-                )}
-              </span>
-            </div>
-            {puzzle.solutions?.[index] ? <BestLine board={board} raw={puzzle.solutions[index]!} /> : null}
-          </div>
-        );
-      })}
+      <RevealFacts
+        facts={[
+          { label: "Solved", value: `${solved} of ${boards.length}`, tone: solved === boards.length ? "good" : undefined },
+          usesNumberDepth(puzzle) && { label: "At fewest moves", value: `${atPar} of ${boards.length}` },
+          seconds ? { label: "Time", value: `${seconds} s` } : null,
+        ]}
+      />
+      <RevealBoards noun="Puzzle" marks={marks} index={index} onIndex={setIndex}>
+        <p className="mj-reveal-goal" data-measure-goal-text>{revealGoal(b.board)}</p>
+        <p className="mj-reveal-jugs">Jugs {b.board.caps.map((c) => `${c} L`).join(" · ")}{b.board.tap ? " · a tap" : ""}</p>
+        <RevealFacts
+          facts={[
+            b.moves !== null
+              ? { label: "Your moves", value: b.solved ? b.moves : b.outOfMoves ? "Ran out" : b.moves ? `${b.moves}, not solved` : "None", tone: b.solved ? "good" : "miss" }
+              : { label: "Your moves", value: "Not reached", tone: "miss" },
+            b.fewest !== null && { label: "Fewest possible", value: b.fewest },
+          ]}
+        />
+        {b.best ? <RevealView value={view} onChange={setSide} /> : null}
+        {view === "solution" && b.best ? (
+          <LinePictures key={`best-${index}`} board={b.board} raw={b.best} kind="best" solved />
+        ) : b.moves !== null ? (
+          <LinePictures key={`mine-${index}`} board={b.board} raw={b.mine} kind="yours" solved={b.solved} />
+        ) : (
+          <p className="mj-reveal-note">You didn’t reach this puzzle.</p>
+        )}
+      </RevealBoards>
     </div>
   );
 }

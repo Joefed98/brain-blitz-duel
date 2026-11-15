@@ -31,3 +31,24 @@ export function exactLockReady(steps: number): boolean {
 export function toggleOperator(current: Operator | null, tapped: Operator): Operator | null {
   return current === tapped ? null : tapped;
 }
+
+/* ---- The reveals (15 Nov 2026, Joe: clear, big reveals; display only). ---- */
+
+/** A scale's mark on the reveal's tabs: balanced (and within its limit), tried, or nothing hung. */
+export function balanceRevealMarks(placements: readonly Placement[], ok: readonly boolean[]): ("right" | "wrong" | "open")[] {
+  return ok.map((right, s) => (right ? "right" : (placements[s] ?? []).some((p) => p !== null && p !== undefined) ? "wrong" : "open"));
+}
+
+/** The tray weights a balanced arrangement hangs somewhere other than you did (the solution view's gold rings). */
+export function balanceMovedWeights(mine: Placement, solution: Placement): Set<number> {
+  const moved = new Set<number>();
+  solution.forEach((peg, i) => {
+    if ((peg ?? null) !== (mine[i] ?? null)) moved.add(i);
+  });
+  return moved;
+}
+
+/** The tray weights you left unhung (your view's "Still on the tray" row). */
+export function balanceLeftOnTray(mine: Placement, trayLength: number): number[] {
+  return Array.from({ length: trayLength }, (_, i) => i).filter((i) => mine[i] === null || mine[i] === undefined);
+}

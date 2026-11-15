@@ -94,7 +94,7 @@ export interface RevealFact {
   label: string;
   value: ReactNode;
   /** "good" for a part earned in full, "miss" for one missed. */
-  tone?: "good" | "miss";
+  tone?: "good" | "miss" | undefined;
 }
 
 /** The numbers that explain the score, in plain words. */

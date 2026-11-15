@@ -46,7 +46,8 @@ NUMBER_REVEAL_ANSWERS.equation = (full) => {
   const wrong = joinGapSegment([...two].reverse());
   return joinCountSuffix(joinStages([right[0] ?? "", wrong, right[2] ?? "", ""], full.stages.length), [1, 3, 1, 0]);
 };
-// Integer Pyramid: pyramid 1 complete, pyramid 2 with half its stones set, 3 and 4 untouched.
+// Integer Pyramid: pyramid 1 complete, pyramid 2 with half its stones set (its first two swapped, so two are wrong),
+// 3 and 4 untouched.
 NUMBER_REVEAL_ANSWERS.numpyramid = (full) => {
   if (full.type !== "numpyramid") return "";
   const placed = (b: number, share: number): NpPlacements => {
@@ -64,7 +65,12 @@ NUMBER_REVEAL_ANSWERS.numpyramid = (full) => {
     });
     return out;
   };
-  return npEncodeRound(1, [placed(0, 1), placed(1, 0.5), {}, {}]);
+  const second = placed(1, 0.5);
+  const cells = Object.keys(second).map(Number);
+  const [a, b] = cells;
+  const tray = full.pyramids[1]!.tray;
+  if (a !== undefined && b !== undefined && tray[second[a]!] !== tray[second[b]!]) [second[a], second[b]] = [second[b]!, second[a]!];
+  return npEncodeRound(1, [placed(0, 1), second, {}, {}]);
 };
 
 // Brimful: puzzle 1 solved on its best line, puzzle 2 part-played (one fill), the rest untouched.
@@ -76,8 +82,14 @@ NUMBER_REVEAL_ANSWERS.measure = (full) => {
 // Ballpark: seven numbers placed, the first line and two of the second (near the middle of the line).
 NUMBER_REVEAL_ANSWERS.numline = () => encodeNumline([4100, 2600, 7400, 1300, 8800, 5200, 3300]);
 
-// Checkout: boards 1 and 2 checked out on their fewest-darts routes, the rest not.
-NUMBER_REVEAL_ANSWERS.checkout = (full) => (full.type === "checkout" ? [full.routes?.[0] ?? "", full.routes?.[1] ?? "", "", "", ""].join("|") : "");
+// Checkout: boards 1 and 2 checked out on their fewest-darts routes, board 3 with one dart of its route (not checked
+// out), the rest not reached.
+NUMBER_REVEAL_ANSWERS.checkout = (full) => {
+  if (full.type !== "checkout") return "";
+  const third = full.routes?.[2] ?? "";
+  // One dart of board 3's route: a route's darts are fixed-width pairs, so its first two characters.
+  return [full.routes?.[0] ?? "", full.routes?.[1] ?? "", third.length > 2 ? third.slice(0, 2) : "", "", ""].join("|");
+};
 // Kakuro: every other white square of the solution filled, and one square with a digit that is not the solution's.
 NUMBER_REVEAL_ANSWERS.kakuro = (full) => {
   if (full.type !== "kakuro") return "";

@@ -122,3 +122,47 @@
   background-color: var(--jz-gold) !important;
   color: var(--jz-on-gold) !important;
 }
+
+/* ---- The reveal (the Number overhaul): a wrong digit red with a red outline, a missed square dashed, its digit faint. */
+[data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-wrong {
+  box-shadow: inset 0 0 0 2px var(--jz-loss);
+}
+[data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-wrong .kakuro-digit {
+  color: var(--jz-loss);
+  text-decoration: none;
+}
+[data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-missed {
+  outline: 1.5px dashed var(--jz-text-3);
+  outline-offset: -4px;
+}
+[data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-missed .kakuro-digit {
+  color: var(--jz-text-3);
+  opacity: 0.85;
+  font-weight: 700;
+}
+[data-kakuro-reveal] {
+  gap: 10px;
+}
+.kakuro-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-family: var(--jz-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.kakuro-legend:empty { display: none; }
+.kakuro-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.kakuro-legend-item > i {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.kakuro-key-wrong { box-shadow: inset 0 0 0 2px var(--jz-loss); }
+.kakuro-key-missed { outline: 1.5px dashed var(--jz-text-3); outline-offset: -1.5px; }

@@ -30,6 +30,7 @@ import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-target.css";
 import { EXACT_ELEGANT_TILES, usesNumberDepth } from "@/lib/duel/numberDepth";
 import { exactLockReady, toggleOperator } from "@/lib/duel/numberOverhaulInput";
+import { RevealFacts, RevealView, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 // The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
 import "@/polish-layout/number-overhaul.css";
@@ -558,19 +559,50 @@ function Reveal(props: PuzzleRevealProps) {
 }
 
 const EXACT_REVEAL_CSS = `
-.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-family: var(--jz-font); font-weight: 600; font-size: 16px; }
-.exact-reveal .exact-rings { display: none; }
-.exact-reveal-card { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 4px; padding: 12px 12px 14px; border-radius: 16px; overflow: hidden;
-  background: radial-gradient(120% 80% at 50% 0%, rgba(245,184,46,.12), transparent 62%), linear-gradient(180deg, #17171f, #101016); box-shadow: inset 0 0 0 1px rgba(245,184,46,.18), 0 6px 18px rgba(0,0,0,.3); }
-.exact-reveal-card .exact-rings { position: absolute; left: 50%; top: 52%; width: 180px; height: 180px; translate: -50% -50%; pointer-events: none; opacity: .5; }
-.exact-reveal-target { position: relative; font-size: 15px; color: #b4b4be; }
-.exact-reveal-value { position: relative; font-family: var(--jz-font); font-size: 52px; line-height: 1.1; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--jz-gold); }
-.exact-reveal-verdict { position: relative; font-weight: 700; color: #f4f4f7; }
-.exact-reveal-way { display: flex; width: 100%; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px; background: #15151c; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); color: #d4d4dc; }
-.exact-reveal-way > p:first-child { font-size: 14px; color: #b4b4be; }
-.exact-reveal-way > p + p { font-size: 17px; line-height: 24px; font-variant-numeric: tabular-nums; }
+.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 12px; text-align: center; font-family: var(--jz-font); }
+.exact-rv-head { display: grid; width: 100%; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exact-rv-plate { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 112px; padding: 10px 6px; border-radius: 16px; }
+.exact-rv-plate[data-plate="target"] { background: url("/number/target/target.webp") center / 100% 100% no-repeat; color: var(--jz-on-gold); }
+.exact-rv-plate[data-plate="yours"] { background: var(--jz-surface-2); color: var(--jz-text); }
+.exact-rv-plate-label { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.exact-rv-plate-value { font-size: 46px; line-height: 1.05; font-weight: 900; font-variant-numeric: tabular-nums; }
+.exact-rv-plate-note { font-size: 15px; font-weight: 700; color: var(--jz-text-2); }
+.exact-rv-plate[data-hit] .exact-rv-plate-note { color: var(--jz-gold); }
+.exact-rv-route { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 8px; }
+.exact-rv-caption { font-size: 14px; font-weight: 600; color: var(--jz-text-2); }
+.exact-rv-step { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.exact-rv-tile { display: inline-flex; min-width: 56px; height: 46px; align-items: center; justify-content: center; padding: 0 8px; border-radius: 10px;
+  background: url("/number/target/tile.webp") center / 100% 100% no-repeat; color: #fff; font-size: 21px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.exact-rv-tile[data-made] { background-image: url("/number/target/tile-large.webp"); }
+.exact-rv-tile[data-hit] { background-image: url("/number/target/tile-picked.webp"); color: var(--jz-on-gold); }
+.exact-rv-op { min-width: 18px; font-size: 22px; font-weight: 800; color: var(--jz-text); }
+.exact-rv-empty { font-size: 16px; font-weight: 600; color: var(--jz-text-2); }
 `;
 
+/** One step of a route as tiles: a op b = result (the result gold when it is the target). */
+function RouteStep({ step, target, made }: { step: TargetStep; target: number; made: ReadonlySet<number> }) {
+  const symbol = step.operator === "-" ? "\u2212" : step.operator;
+  return (
+    <div className="exact-rv-step" data-route-step aria-label={formatStep(step)}>
+      <span className="exact-rv-tile" data-made={made.has(step.a) ? "" : undefined}>{step.a}</span>
+      <span className="exact-rv-op" aria-hidden="true">{symbol}</span>
+      <span className="exact-rv-tile" data-made={made.has(step.b) ? "" : undefined}>{step.b}</span>
+      <span className="exact-rv-op" aria-hidden="true">=</span>
+      <span className="exact-rv-tile" data-made="" data-hit={step.result === target ? "" : undefined}>{step.result}</span>
+    </div>
+  );
+}
+
+/** A route's tiles: each step's result is a number made, drawn on the made tile where a later step uses it. */
+function Route({ steps, target }: { steps: readonly TargetStep[]; target: number }) {
+  const made = new Set(steps.map((s) => s.result));
+  return <div className="exact-rv-route">{steps.map((step, i) => <RouteStep key={i} step={step} target={target} made={made} />)}</div>;
+}
+
+/**
+ * The answer reveal (the Number overhaul, 15 Nov 2026): the target plate beside your closest number (how far off),
+ * then your route against a way to the target, each drawn as tiles (a step a row), and the numbers behind the score.
+ */
 function TargetReveal({
   puzzle,
   myAnswer,
@@ -581,26 +613,47 @@ function TargetReveal({
     [puzzle.tiles, puzzle.target, myAnswer],
   );
   const away = replay.distance;
-  // depthRev 1: the hit's numbers, for the elegance line.
+  const hit = myCorrect || away === 0;
+  // depthRev 1: the hit's numbers, for the elegance fact.
   const depth = usesNumberDepth(puzzle);
   const used = depth && away === 0 ? exactTilesUsedPhone(puzzle.tiles, puzzle.target, myAnswer ?? "") : null;
+  const way = puzzle.solution ?? [];
+  const canSwitch = way.length > 0;
+  const [side, setSide] = useState<RevealSide>(hit ? "yours" : "solution");
+  const showing: RevealSide = canSwitch ? side : "yours";
+  const madeSteps = replay.steps.length;
   return (
-    <div className="exact-reveal">
+    <div className="exact-reveal" data-exact-reveal>
       <PolishStyle id="target-reveal" css={EXACT_REVEAL_CSS} />
-      <div className="exact-reveal-card">
-        {EXACT_RINGS}
-        <p className="exact-reveal-target">Target {puzzle.target}</p>
-        <p className="exact-reveal-value">{replay.value ?? "—"}</p>
-        <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Spot on" : away === null ? "No number locked" : `${away} away from the target`}</p>
-        {used !== null && (
-          <p className="exact-reveal-target" style={used <= EXACT_ELEGANT_TILES ? { color: "var(--jz-gold)" } : undefined}>
-            {used <= EXACT_ELEGANT_TILES ? `✦ Elegant: ${used} numbers` : `${used} numbers used (${EXACT_ELEGANT_TILES} is elegant)`}
-          </p>
+      <div className="exact-rv-head">
+        <div className="exact-rv-plate" data-plate="target">
+          <span className="exact-rv-plate-label">Target</span>
+          <span className="exact-rv-plate-value">{puzzle.target}</span>
+        </div>
+        <div className="exact-rv-plate" data-plate="yours" data-hit={hit ? "" : undefined}>
+          <span className="exact-rv-plate-label">Yours</span>
+          <span className="exact-rv-plate-value">{madeSteps > 0 && replay.value !== null ? replay.value : "–"}</span>
+          <span className="exact-rv-plate-note">{hit ? "Spot on" : madeSteps === 0 ? "No steps made" : `${away} away`}</span>
+        </div>
+      </div>
+      {canSwitch ? <RevealView value={showing} onChange={setSide} yoursLabel="Your route" /> : null}
+      <div data-reveal-side={showing} className="exact-rv-route">
+        {showing === "solution" ? (
+          <>
+            <p className="exact-rv-caption">{depth ? `A way with ${EXACT_ELEGANT_TILES} numbers` : "A way to the target"}</p>
+            <Route steps={way} target={puzzle.target} />
+          </>
+        ) : madeSteps > 0 ? (
+          <Route steps={replay.steps} target={puzzle.target} />
+        ) : (
+          <p className="exact-rv-empty">No steps made</p>
         )}
       </div>
-      {(puzzle.solution ?? []).length > 0 && (
-        <div className="exact-reveal-way"><p>{depth ? `An elegant way (${EXACT_ELEGANT_TILES} numbers):` : "One way:"}</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>
-      )}
+      <RevealFacts facts={[
+        madeSteps > 0 ? { label: "Off by", value: away ?? "–", ...(hit ? { tone: "good" as const } : {}) } : null,
+        { label: "Your steps", value: madeSteps },
+        used !== null ? { label: "Numbers used", value: used, ...(used <= EXACT_ELEGANT_TILES ? { tone: "good" as const } : {}) } : null,
+      ]} />
     </div>
   );
 }

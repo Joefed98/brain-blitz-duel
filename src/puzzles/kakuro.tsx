@@ -1,10 +1,10 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { solutionProgress } from "@/lib/duel/progressFigures";
-import { useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { useStageState } from "@/lib/duel/stageState";
 import { decodeKakuro, encodeKakuro, kakuroNextEmpty, kakuroRunBroken, kakuroRuns, kakuroRunState, kakuroSolvedGrid, type KakuroRun } from "@/lib/duel/kakuro";
 import { numberArt } from "@/components/puzzles/number/overhaul";
+import { RevealFacts, RevealView, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import "@/polish-layout/number-kakuro.css";
 import { KAKURO_SIZE, KAKURO_TIME_MS, type KakuroPuzzleData } from "@/lib/duel/types";
 import { directionOf, useGameKeys } from "@/lib/desktop";
@@ -19,7 +19,7 @@ import "@/polish-layout/number-overhaul.css";
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 type Board = Pick<KakuroPuzzleData, "size" | "white" | "clues">;
-type Tone = "entry" | "wrong" | "missing" | "given";
+type Tone = "entry" | "wrong" | "missing" | "missed" | "given";
 
 /** Per white cell: the runs through it (across first). */
 function runsByCell(runs: readonly KakuroRun[]): Map<number, number[]> {
@@ -344,36 +344,83 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
-  if (puzzle.type !== "kakuro") return null;
-  const solution = puzzle.solution ?? [];
-  const mine = decodeKakuro(myAnswer ?? "", puzzle);
-  // The solution's digits, with each wrong digit of the player's shown in its place (red) and blanks dimmed.
-  const tones: Tone[] = new Array<Tone>(puzzle.size * puzzle.size).fill("entry");
-  const values = solution.map((v, cell) => {
+/**
+ * The reveal's two boards (the Number overhaul, 15 Nov 2026; display only): "Yours" draws the player's digits, a wrong
+ * one in red with a red outline and an empty square marked missed (the solution's digit faint in a dashed square);
+ * "Solution" draws the solved grid. Without the solution (a room's public half before its reveal), a digit is wrong
+ * when its run breaks a rule. Pure: the reveal and kakuro's checks share it.
+ */
+export function kakuroRevealBoard(
+  puzzle: Pick<KakuroPuzzleData, "size" | "white" | "clues" | "solution">,
+  mine: readonly number[],
+  side: RevealSide,
+): { values: number[]; tones: Tone[]; right: number; wrong: number; missed: number } {
+  const n = puzzle.size * puzzle.size;
+  const white = new Set(puzzle.white);
+  const solution = puzzle.solution && puzzle.solution.length === n ? puzzle.solution : null;
+  const values = new Array<number>(n).fill(0);
+  const tones = new Array<Tone>(n).fill("entry");
+  let right = 0, wrong = 0, missed = 0;
+  // Without the solution: a digit in a broken run is shown wrong (the rule the stage shows during play).
+  const brokenCells = new Set<number>();
+  if (!solution) for (const run of kakuroRuns(puzzle)) if (kakuroRunBroken(run, mine)) run.cells.forEach((c) => brokenCells.add(c));
+  for (let cell = 0; cell < n; cell++) {
+    if (!white.has(cell)) continue;
     const entry = mine[cell] ?? 0;
-    if (!puzzle.white.includes(cell)) return 0;
-    if (entry && entry !== v) {
-      tones[cell] = "wrong";
-      return entry;
+    const want = solution?.[cell] ?? 0;
+    const isWrong = entry !== 0 && (solution ? entry !== want : brokenCells.has(cell));
+    if (!entry) missed++;
+    else if (isWrong) wrong++;
+    else right++;
+    if (side === "solution" && solution) {
+      values[cell] = want;
+      tones[cell] = "entry";
+    } else if (!entry) {
+      values[cell] = want;
+      tones[cell] = "missed";
+    } else {
+      values[cell] = entry;
+      tones[cell] = isWrong ? "wrong" : "entry";
     }
-    tones[cell] = entry ? "entry" : "missing";
-    return v;
-  });
-  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
+  }
+  return { values, tones, right, wrong, missed };
+}
+
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
+  const [side, setSide] = useState<RevealSide>("yours");
+  if (puzzle.type !== "kakuro") return null;
+  const mine = decodeKakuro(myAnswer ?? "", puzzle);
+  const hasSolution = !!puzzle.solution && puzzle.solution.length === puzzle.size * puzzle.size;
+  const shown = kakuroRevealBoard(puzzle, mine, hasSolution ? side : "yours");
+  const counts = kakuroRevealBoard(puzzle, mine, "yours");
+  const runs = kakuroRuns(puzzle);
+  const runsDone = runs.filter((run) => kakuroRunState(run, mine) === "done").length;
+  // The graded mistakes (the clean bonus's count, kakuroRev 2 rule-breaking digits only); a round with no stored
+  // count shows the wrong digits left on the board.
+  const stored = typeof myExtra?.["mistakes"] === "number" ? (myExtra["mistakes"] as number) : null;
+  const elapsed = myCorrect && myMsRemaining !== undefined ? Math.max(0, timeLimitMs - myMsRemaining) / 1000 : null;
   return (
-    <div className="logic-reveal">
-      <div className="logic-reveal-board">
-        <div className="logic-square-bare kakuro-frame" style={{ maxWidth: 320 }}>
-          <KakuroBoard board={puzzle} values={values} tones={tones} />
+    <div className="logic-reveal" data-kakuro-reveal>
+      {hasSolution ? <RevealView value={side} onChange={setSide} /> : null}
+      <div className="logic-reveal-board" data-kakuro-reveal-side={hasSolution ? side : "yours"}>
+        <div className="logic-square-bare kakuro-frame" style={{ maxWidth: 360, width: "100%" }}>
+          <KakuroBoard board={puzzle} values={shown.values} tones={shown.tones} />
         </div>
       </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026: no repeated "Solved · 1.6s"). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text text-center font-mono text-primary">
-          {solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${mine.filter(Boolean).length} / ${puzzle.white.length} filled`}
-        </p>
-      )}
+      {side === "yours" || !hasSolution ? (
+        <div className="kakuro-legend" aria-hidden="true">
+          {counts.wrong ? <span className="kakuro-legend-item"><i className="kakuro-key-wrong" />Wrong</span> : null}
+          {counts.missed ? <span className="kakuro-legend-item"><i className="kakuro-key-missed" />Missed</span> : null}
+        </div>
+      ) : null}
+      <RevealFacts
+        facts={[
+          { label: "Squares right", value: `${counts.right} / ${puzzle.white.length}`, tone: counts.right === puzzle.white.length ? "good" : undefined },
+          { label: "Runs complete", value: `${runsDone} / ${runs.length}` },
+          { label: "Mistakes", value: stored ?? counts.wrong, tone: (stored ?? counts.wrong) > 0 ? "miss" : undefined },
+          elapsed !== null && { label: "Time", value: `${elapsed.toFixed(1)} s` },
+        ]}
+      />
     </div>
   );
 }

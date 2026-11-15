@@ -22,8 +22,8 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "tilegrid",
   // Gridlock (3 Nov 2026, puzzle polish): the shortest solution playing back, and a solved player's own board.
   "unblock",
-  // 4 Nov 2026 (Joe's review): the three that still drew "Solution" / "Yours" headings without the switch.
-  "numpyramid",
+  // 4 Nov 2026 (Joe's review): the three that still drew "Solution" / "Yours" headings without the switch. Integer
+  // Pyramid left on 15 Nov 2026: its reveal draws its own Yours / Solution switch (the Number overhaul, RevealParts.tsx).
   "bomb",
   "trail",
 ]);

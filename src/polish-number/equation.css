@@ -243,3 +243,82 @@
     animation: none;
   }
 }
+
+/*
+ * Operator's answer reveal (the Number overhaul, 15 Nov 2026; GapsReveal): one equation at a time, big, with the
+ * shared switcher (RevealParts.tsx). A wrong piece is outlined in the loss red, an empty gap gets a dashed red
+ * outline, and on the solution the pieces the player didn't have are outlined in champagne.
+ */
+.opr-reveal {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.opr-kind {
+  font-family: var(--jz-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.opr-line {
+  display: flex;
+  align-self: stretch;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: var(--fit-fs, var(--fit-base)) !important;
+}
+.opr-note {
+  font-family: var(--jz-font);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--jz-text);
+}
+.opr-note[data-mark="right"] {
+  color: var(--jz-gold);
+}
+.opr-note[data-mark="wrong"] {
+  color: var(--jz-loss);
+}
+.opr-note[data-mark="open"] {
+  color: var(--jz-text-2);
+}
+.opr-tries {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.opr-tries-label {
+  font-family: var(--jz-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+[data-operator-reveal] .opg-gap[data-mark] {
+  position: relative;
+}
+[data-operator-reveal] .opg-gap[data-mark="bad"]::after,
+[data-operator-reveal] .opg-gap[data-mark="miss"]::after,
+[data-operator-reveal] .opg-gap[data-mark="fix"]::after {
+  content: "";
+  position: absolute;
+  inset: -0.1em;
+  border-radius: 0.3em;
+  pointer-events: none;
+}
+[data-operator-reveal] .opg-gap[data-kind="sign"][data-mark]::after {
+  border-radius: 999px;
+}
+[data-operator-reveal] .opg-gap[data-mark="bad"]::after {
+  border: 0.08em solid var(--jz-loss);
+}
+[data-operator-reveal] .opg-gap[data-mark="miss"]::after {
+  border: 0.07em dashed var(--jz-loss);
+}
+[data-operator-reveal] .opg-gap[data-mark="fix"]::after {
+  border: 0.08em solid var(--jz-gold);
+}

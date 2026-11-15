@@ -1,7 +1,8 @@
 import { BALANCE_CSS, BALANCE_DEFS, IronKettlebell, ScalesLevelFx } from "@/components/puzzles/balanceArt";
 import { NumberStage, numberArt, type StageExit } from "@/components/puzzles/number/overhaul";
 import { balanceFreeMoves } from "@/lib/duel/numberOverhaul";
-import { balanceHangCost, balanceTorqueText } from "@/lib/duel/numberOverhaulInput";
+import { balanceHangCost, balanceLeftOnTray, balanceMovedWeights, balanceRevealMarks, balanceTorqueText } from "@/lib/duel/numberOverhaulInput";
+import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
@@ -81,7 +82,9 @@ const NUDGE_MS = 1400;
 
 const TILT_EASE = "transform 260ms cubic-bezier(.34,1.4,.55,1)";
 
-export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyNotch, torque, selected, showControls = false, height, compact = false, solving = false }: {
+export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyNotch, torque, marks, selected, showControls = false, height, compact = false, solving = false }: {
+  /** The reveal: tray weights ringed in gold (hung somewhere other than in your arrangement). */
+  marks?: ReadonlySet<number> | undefined;
   scale: BalanceScale; placement: Placement; spacing: number;
   onWeightTap?: (tray: number) => void; onPlace?: (peg: number) => void;
   /** A free notch tapped with no weight picked (the Number overhaul's "Pick a weight first" nudge). */
@@ -169,7 +172,7 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
           className="balance-notch h-11 w-full min-w-0 px-0 font-mono text-sm">
           <span className={available ? 'bal-notch-label bal-notch-active' : 'bal-notch-label'} style={{ width: labelW }}>{pegDistance(peg, pegs)}</span>
         </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm"><span className="bal-notch-label" style={{ width: labelW }}>{pegDistance(peg, pegs)}</span></div>}
-        {item && <div key={item.fixed ? 'f' : `t${item.tray}`} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}>
+        {item && <div key={item.fixed ? 'f' : `t${item.tray}`} data-reveal-mark={!item.fixed && item.tray !== undefined && marks?.has(item.tray) ? "moved" : undefined} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}>
           <svg className="bal-hook" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0V3.2a2.1 2.1 0 1 1-2.1 2.1" fill="none" stroke="#D9A940" strokeWidth="1.6" strokeLinecap="round"/></svg>
           {item.fixed ? <Disc value={item.w} fixed width={bellW} height={bellH} spill={spill} /> : <Button variant="ghost" style={big ? { height: bellH } : undefined} className={`min-w-0 p-0 ${big ? '' : 'h-11'} w-full hover:bg-transparent ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} width={bellW} height={bellH} spill={spill}/></Button>}
         </div>}
@@ -516,48 +519,75 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   );
 }
 
-/** Reveal notch width: three scales at 36 px; four (balanceRev 2) a little tighter so all four fit a 375 × 667 screen. */
-const revealSpacing = (scale: BalanceScale, total: number) => (total > 3 ? (scalePegs(scale) > 8 ? 27 : 32) : 36);
+/** The reveal's beam: as large as the panel allows, one scale at a time. */
+const REVEAL_BEAM_HEIGHT = 250;
 
-const SIDE = (peg: number, pegs: number) => `${pegIsLeft(peg, pegs) ? "left" : "right"} ${pegDistance(peg, pegs)}`;
-
+/**
+ * The answer reveal (the Number overhaul, 15 Nov 2026): one scale at a time, drawn large with its rendered art, on
+ * numbered tabs marked balanced, not balanced or nothing hung (opening on the first not balanced). A scale not
+ * balanced switches between your weights (the balance under the beam, the weights left on the tray) and a balanced
+ * arrangement (the weights hung somewhere other than yours ringed in gold); a balanced scale shows yours. Under it,
+ * the numbers behind the score: scales balanced, your hangs on this scale against its limit, and the time on a full
+ * set. Every stamp's stored answer reads the same way (decodeBalance, the hang counts where the stamp has them).
+ */
 function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
-  if (puzzle.type !== "balance") return null;
-  const placements = decodeBalance(myAnswer ?? "", puzzle.scales);
-  const placeLimits = balancePlaceLimits(puzzle);
+  const data = puzzle.type === "balance" ? puzzle : null;
+  const scales = data?.scales ?? [];
+  const placements = data ? decodeBalance(myAnswer ?? "", scales) : [];
+  const placeLimits = data ? balancePlaceLimits(data) : null;
   const hangs = placeLimits ? splitCountSuffix(myAnswer).counts : [];
   // Limited rounds credit each scale on its own (hung within its limit); stored rounds count scales in order.
-  const okAt = placeLimits ? balanceScalesSolved(puzzle.scales, placements).map((ok, s) => ok && (hangs[s] ?? 0) <= (placeLimits[s] ?? 0)) : null;
-  const solved = okAt ? okAt.filter(Boolean).length : balanceSolvedCount(puzzle.scales, placements);
-  const total = balanceScaleCount(puzzle);
+  const solvedInOrder = data ? balanceSolvedCount(scales, placements) : 0;
+  const okAt = placeLimits
+    ? balanceScalesSolved(scales, placements).map((ok, s) => ok && (hangs[s] ?? 0) <= (placeLimits[s] ?? 0))
+    : scales.map((_, s) => s < solvedInOrder);
+  const marks = balanceRevealMarks(placements, okAt);
+  const [index, setIndex] = useRevealBoard(marks);
+  const root = useRef<HTMLDivElement | null>(null);
+  const scale = scales[index];
+  const spacing = useSpacing(root, scale ? scalePegs(scale) : 8, 44);
+  const solution = data?.solutions?.[index] ?? null;
+  const right = !!okAt[index];
+  const [side, setSide] = useState<RevealSide>("solution");
+  if (!data || !scale) return null;
+  const solved = okAt.filter(Boolean).length;
+  const total = balanceScaleCount(data);
+  const mine = placements[index] ?? scale.tray.map(() => null);
+  // A balanced scale needs no switch (yours is a balanced arrangement); without the stored solution, yours alone.
+  const canSwitch = !right && !!solution;
+  const showing: RevealSide = canSwitch ? side : "yours";
+  const shown = showing === "solution" && solution ? solution : mine;
+  const moved = showing === "solution" && solution ? balanceMovedWeights(mine, solution) : undefined;
+  const left = showing === "yours" ? balanceLeftOnTray(mine, scale.tray.length) : [];
   const elapsed = myMsRemaining === undefined ? null : ((timeLimitMs - myMsRemaining) / 1000).toFixed(1);
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto py-1">
+    <div ref={root} data-balance-reveal className="bal-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3 py-1">
       <BalanceArt />
-      <div className="bal-panel flex w-full max-w-[360px] shrink-0 flex-col items-center gap-2 px-2 py-2">
-        {puzzle.scales.map((scale, s) => {
-          const ok = okAt ? !!okAt[s] : s < solved;
-          const solution = puzzle.solutions?.[s];
-          return (
-            <div key={s} className="flex shrink-0 flex-col items-center gap-0.5">
-              <div className="flex items-center gap-2">
-                <span className={`w-4 font-mono text-base font-bold ${ok ? "text-primary" : "text-warn"}`}>{ok ? "✓" : "✗"}</span>
-                <Beam scale={scale} placement={placements[s] ?? []} spacing={revealSpacing(scale, total)} compact />
-                <span className="w-4" />
-              </div>
-              {!ok && solution && (
-                <p className="px-2 text-center text-sm leading-snug text-foreground">
-                  <span className="text-[#E8D9B0]">One balanced way: </span>
-                  {solution.map((peg, i) => peg === null ? null : `${scale.tray[i]} on ${SIDE(peg, scalePegs(scale))}`).filter(Boolean).join(" · ")}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <p className={`text-center font-mono text-base font-bold ${solved === total ? "text-primary" : "text-foreground"}`}>
-        {solved === total ? `${total} / ${total}${elapsed ? ` · ${elapsed}s` : ""}` : `${solved} / ${total}`}
-      </p>
+      <RevealBoards noun="Scale" marks={marks} index={index} onIndex={(i) => { setIndex(i); setSide("solution"); }}>
+        {canSwitch ? <RevealView value={showing} onChange={setSide} /> : null}
+        <div className="bal-reveal-stage" data-reveal-side={showing}>
+          <Beam scale={scale} placement={shown} spacing={spacing} height={REVEAL_BEAM_HEIGHT}
+            torque={balanceTorqueText(scale, shown)} {...(moved ? { marks: moved } : {})} />
+        </div>
+        {showing === "solution" && moved && moved.size > 0 ? (
+          <p className="bal-reveal-note"><span className="bal-reveal-ring" aria-hidden="true" /> Hung differently from yours</p>
+        ) : null}
+        {left.length > 0 ? (
+          <div className="bal-reveal-tray" aria-label={`Still on the tray: ${left.map((i) => scale.tray[i]).join(", ")}`}>
+            <span className="bal-reveal-tray-label">Still on the tray</span>
+            <span className="bal-reveal-tray-bells">
+              {left.map((i) => <Disc key={i} value={scale.tray[i] ?? 0} fixed={false} width={36} height={43} />)}
+            </span>
+          </div>
+        ) : null}
+      </RevealBoards>
+      <RevealFacts facts={[
+        { label: "Balanced", value: `${solved} of ${total}`, ...(solved === total ? { tone: "good" as const } : {}) },
+        placeLimits && showing === "yours" && hangs[index] !== undefined
+          ? { label: `Your hangs, scale ${index + 1}`, value: `${hangs[index]} of ${placeLimits[index] ?? 0}`, ...((hangs[index] ?? 0) > (placeLimits[index] ?? 0) ? { tone: "miss" as const } : {}) }
+          : null,
+        solved === total && elapsed ? { label: "Time", value: `${elapsed} s` } : null,
+      ]} />
     </div>
   );
 }

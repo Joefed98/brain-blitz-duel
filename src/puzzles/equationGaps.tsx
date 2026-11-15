@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState, type CSSProperties } from "rea
 
 import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
+import { soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { useGameKeys } from "@/lib/desktop";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
@@ -12,12 +12,13 @@ import { playSound } from "@/lib/sound";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { NUMBER_STAGE_MOMENT_SOUND, NumberStage } from "@/components/puzzles/number/overhaul";
+import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type BoardMark, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { operatorFairTries } from "@/lib/duel/numberOverhaul";
 import { countTry, nextOpenStage, operatorNextLabel, targetGap } from "@/lib/duel/operatorFairTries";
 import { useStageState } from "@/lib/duel/stageState";
 import { equationTryLimit, joinCountSuffix, limitText, splitCountSuffix } from "@/lib/duel/moveLimits";
 import { joinStages, splitStages } from "@/lib/duel/stagedRounds";
-import { gapSlots, gapStageCorrect, gapStageFull, joinGapSegment, splitGapSegment, type GapSlot } from "@/lib/duel/operatorGaps";
+import { gapSlots, gapStageCorrect, gapStageFull, gapStageValue, joinGapSegment, splitGapSegment, type GapSlot } from "@/lib/duel/operatorGaps";
 import type { EquationPuzzleData, EquationStage, Operator } from "@/lib/duel/types";
 import type { PuzzleRevealProps, PuzzleStageProps } from "./types";
 import "@/polish-layout/operator-gaps.css";
@@ -54,7 +55,10 @@ function usedChips(tray: readonly number[], slots: readonly GapSlot[], fills: re
 }
 
 /** One equation drawn left to right: given numbers and signs as text, gaps as their marked shapes. */
-function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark }: {
+/** A reveal mark on one gap (GapLine `marks`). */
+export type GapMark = "ok" | "bad" | "miss" | "fix";
+
+function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark, marks }: {
   stage: EquationStage;
   fills: readonly (string | null)[];
   onGap?: ((k: number) => void) | undefined;
@@ -64,6 +68,11 @@ function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark }: {
   fresh?: number | null;
   /** Reveal: colour the filled gaps as right ("ok") or wrong ("bad"). */
   mark?: "ok" | "bad";
+  /**
+   * Reveal (the Number overhaul), one mark per gap, over `mark`: "bad" a wrong piece, "miss" a gap left empty, "fix" a
+   * piece of the true fill the player didn't have.
+   */
+  marks?: readonly (GapMark | undefined)[];
 }) {
   const slots = gapSlots(stage);
   const at = (kind: GapSlot["kind"], index: number) => slots.findIndex((s) => s.kind === kind && s.index === index);
@@ -79,7 +88,7 @@ function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark }: {
         data-filled={value ? "true" : undefined}
         data-next={nextGap === k ? "true" : undefined}
         data-chosen={chosen === k ? "true" : undefined}
-        data-mark={mark}
+        data-mark={marks?.[k] ?? mark}
         disabled={!onGap}
         onClick={onGap ? () => onGap(k) : undefined}
         aria-label={value ? `${slot.kind === "sign" ? "Sign" : "Number"} ${signText(value)}, tap to clear` : slot.kind === "sign" ? "Empty sign gap, tap to fill it next" : "Empty number gap, tap to fill it next"}
@@ -422,51 +431,104 @@ export function GapsIntroExample() {
   );
 }
 
-const GAPS_REVEAL_CSS = `
-.op-reveal { display: flex; min-height: 0; width: 100%; flex: 1 1 auto; flex-direction: column; justify-content: center; gap: 8px; }
-.op-reveal-row { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 4px; padding: 8px 10px 9px; border-radius: 14px;
-  background: linear-gradient(180deg, #1c1c25, #15151c); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), inset 0 -3px 0 rgba(0,0,0,.25); }
-.op-reveal-row[data-ok="true"] { box-shadow: inset 3px 0 0 #3DDC84, inset 0 0 0 1px rgba(61,220,132,.22), inset 0 -3px 0 rgba(0,0,0,.25); }
-.op-reveal-row[data-ok="false"] { box-shadow: inset 3px 0 0 #ff7a70, inset 0 0 0 1px rgba(255,122,112,.22), inset 0 -3px 0 rgba(0,0,0,.25); }
-.op-reveal-label { font-size: 14px; color: #b4b4be; }
-.op-reveal-label .ok { color: #5fe69c; font-weight: 700; }
-.op-reveal-label .bad { color: #ff7a70; font-weight: 700; }
-.opg-reveal-line { align-self: stretch; display: flex; justify-content: center; white-space: nowrap; font-size: var(--fit-fs, var(--fit-base)) !important; }
-.op-fit-line { display: inline-flex; align-items: center; white-space: nowrap; }
-`;
+/** One equation's reveal state (the Number overhaul): its verdict, the player's fill and a true fill to show. */
+export interface GapsRevealBoard {
+  mark: BoardMark;
+  mine: string[];
+  /** A true fill: the player's own when right, else the stored answer's (absent where the reveal has no answers). */
+  truth: string[] | null;
+  /** The value the player's full line makes, worked left to right (null: not full, or not a whole number). */
+  makes: number | null;
+  tries: number | null;
+  kind: "Signs" | "Numbers" | "Signs and numbers";
+}
 
-export function GapsReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "equation") return null;
+/** Each equation's reveal state, from the stored answer; any stamp with gaps (gapsRev 1 and 2). */
+export function gapsRevealBoards(puzzle: EquationPuzzleData, myAnswer: string | null): GapsRevealBoard[] {
   const tryLimit = equationTryLimit(puzzle);
   const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(myAnswer) : { body: myAnswer ?? "", counts: [] as number[] };
   const parts = splitStages(body, puzzle.stages.length);
+  return puzzle.stages.map((stage, i) => {
+    const n = gapSlots(stage).length;
+    const segment = parts[i] ?? "";
+    const mine = splitGapSegment(segment, n);
+    const ok = gapStageCorrect(stage, segment) && (tryLimit === null || (tries[i] ?? 0) <= tryLimit);
+    const stored = puzzle.gapAnswers?.[i];
+    const truth = ok ? mine : stored ? splitGapSegment(stored, n) : null;
+    const signsGap = stage.signs?.some((x) => x === null) ?? !stage.tray;
+    const kind = stage.tray ? (signsGap ? "Signs and numbers" : "Numbers") : "Signs";
+    return {
+      mark: ok ? "right" : mine.some(Boolean) || (tries[i] ?? 0) > 0 ? "wrong" : "open",
+      mine,
+      truth,
+      makes: gapStageFull(stage, segment) ? gapStageValue(stage, segment) : null,
+      tries: tryLimit === null ? null : (tries[i] ?? 0),
+      kind,
+    };
+  });
+}
+
+/** Per-gap marks: on "yours", wrong pieces and empty gaps; on "solution", the pieces the player didn't have. */
+export function gapsRevealMarks(board: GapsRevealBoard, side: RevealSide): (GapMark | undefined)[] {
+  return board.mine.map((m, k) => {
+    const t = board.truth?.[k] ?? null;
+    if (board.mark === "right") return "ok";
+    if (side === "yours") return !m ? "miss" : t !== null && m !== t ? "bad" : board.truth ? "ok" : "bad";
+    return t !== null && m !== t ? "fix" : "ok";
+  });
+}
+
+/** The line under the equation, in plain words. */
+function gapsRevealNote(board: GapsRevealBoard, stage: EquationStage, side: RevealSide): string {
+  if (board.mark === "right") return board.tries !== null && board.tries <= 1 ? "True first try" : "True";
+  if (board.mark === "open") return side === "solution" ? "One way to make it true" : "Not reached";
+  if (side === "solution") return "One way to make it true";
+  const empty = board.mine.filter((m) => !m).length;
+  if (empty) return `${empty} ${empty === 1 ? "gap" : "gaps"} left empty`;
+  return board.makes === null ? `Doesn't make a whole number` : `Makes ${board.makes}, not ${stage.target}`;
+}
+
+export function GapsReveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
+  const data = puzzle.type === "equation" ? puzzle : null;
+  const boards = data ? gapsRevealBoards(data, myAnswer) : [];
+  const [index, setIndex] = useRevealBoard(boards.map((b) => b.mark));
+  const [side, setSide] = useState<RevealSide>("solution");
+  if (!data || !boards.length) return null;
+  const board = boards[index]!;
+  const stage = data.stages[index]!;
+  const tryLimit = equationTryLimit(data);
+  // Right: the player's own true fill, nothing to compare. Otherwise both sides where a true fill is known.
+  const both = board.mark !== "right" && board.truth !== null;
+  const view: RevealSide = board.mark === "right" || !board.truth ? "yours" : side;
+  const fills = view === "solution" ? board.truth! : board.mine;
+  const right = boards.filter((b) => b.mark === "right").length;
+  const triesUsed = boards.reduce((sum, b) => sum + (b.tries ?? 0), 0);
+  const used = myMsRemaining === undefined ? null : Math.max(0, (timeLimitMs - myMsRemaining) / 1000);
   return (
-    <div className="op-reveal" data-operator-gaps="" data-number-overhaul="">
-      <PolishStyle id="equation-gaps-reveal" css={GAPS_REVEAL_CSS} />
-      {puzzle.stages.map((stage, i) => {
-        const n = gapSlots(stage).length;
-        const mine = splitGapSegment(parts[i] ?? "", n);
-        const ok = gapStageCorrect(stage, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit);
-        const full = mine.every(Boolean);
-        const kind = stage.tray && stage.signs?.some((s) => s === null) ? "Mixed" : stage.tray ? "Numbers" : "Signs";
-        // Right: the player's own true fill. Otherwise one true fill (any true fill counts), then theirs if complete.
-        const shown = ok ? mine : splitGapSegment(puzzle.gapAnswers?.[i] ?? "", n);
-        return (
-          <div key={i} className="op-reveal-row" data-ok={ok ? "true" : "false"}>
-            <p className="op-reveal-label">
-              Equation {i + 1} · {kind} · <span className={ok ? "ok" : "bad"}>{ok ? "✓" : full ? "✗" : mine.some(Boolean) ? "Incomplete ✗" : "Skipped ✗"}</span>
-            </p>
-            <FitLine className="opg-reveal-line opg-equation" basePx={20} fitKey={`${i}:${shown.join(",")}`}>
-              <GapLine stage={stage} fills={shown} mark="ok" />
-            </FitLine>
-            {!ok && full ? (
-              <FitLine className="opg-reveal-line opg-equation" basePx={17} fitKey={`${i}:m:${mine.join(",")}`}>
-                <GapLine stage={stage} fills={mine} mark="bad" />
-              </FitLine>
-            ) : null}
-          </div>
-        );
-      })}
+    <div className="opr-reveal" data-operator-gaps="" data-number-overhaul="" data-operator-reveal="">
+      <RevealBoards noun="Equation" marks={boards.map((b) => b.mark)} index={index} onIndex={(i) => { setIndex(i); setSide("solution"); }}>
+        <p className="opr-kind" data-operator-reveal-kind>{board.kind}</p>
+        {both ? <RevealView value={view} onChange={setSide} /> : null}
+        <FitLine className="opr-line opg-equation" basePx={36} minPx={16} fitKey={`${index}:${view}:${fills.join(",")}`}>
+          <GapLine stage={stage} fills={fills} marks={gapsRevealMarks(board, view)} />
+        </FitLine>
+        <p className="opr-note" data-mark={view === "yours" ? board.mark : "right"} data-operator-reveal-note>
+          {gapsRevealNote(board, stage, view)}
+        </p>
+        {tryLimit !== null && board.tries !== null ? (
+          <span className="opr-tries">
+            <span className="opr-tries-label">Tries</span>
+            <TryPips used={Math.min(board.tries, tryLimit)} limit={tryLimit} cracked={null} />
+          </span>
+        ) : null}
+      </RevealBoards>
+      <RevealFacts
+        facts={[
+          { label: "Right", value: `${right} of ${boards.length}`, ...(right === boards.length ? { tone: "good" as const } : {}) },
+          tryLimit !== null && { label: "Tries used", value: triesUsed },
+          used !== null && { label: "Time", value: `${used.toFixed(1)} s` },
+        ]}
+      />
     </div>
   );
 }

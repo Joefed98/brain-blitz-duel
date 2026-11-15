@@ -42,7 +42,7 @@ import { playCorrect } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import "@/polish-layout/batch-w-checkout.css";
-import { StepChips } from "@/components/puzzles/number/StepChips";
+import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type BoardMark, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { HudPills } from "@/components/puzzles/HudPills";
 // The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
 import "@/polish-layout/number-overhaul.css";
@@ -784,57 +784,118 @@ function Stage({
   );
 }
 
-const REVEAL_LABEL = "#CFC8BA";
+/** One board's reveal (the Number overhaul, 15 Nov 2026): its verdict, the player's darts and the fewest-darts route. */
+export interface CheckoutRevealBoard {
+  mark: BoardMark;
+  mine: CheckoutDart[];
+  /** The fewest-darts route, in an order that never busts on the way (checkoutRev 3); [] without the private half. */
+  best: CheckoutDart[];
+  fewest: number | null;
+  big: boolean;
+}
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "checkout") return null;
-  const parts = splitCheckoutRound(myAnswer);
+/** Each board's verdict and darts from the stored answer (any stamp). Pure: the reveal and its check share it. */
+export function checkoutRevealBoards(puzzle: CheckoutPuzzleData, answer: string | null): CheckoutRevealBoard[] {
+  const parts = splitCheckoutRound(answer);
+  const bust = checkoutBust(puzzle);
   const pays = usesStandard(puzzle) ? checkoutBigBoards(puzzle.stages) : puzzle.stages.map(() => true);
+  return puzzle.stages.map((stage, index) => {
+    const mine = decodeCheckoutDarts(parts[index] ?? "", stage.maxDarts);
+    const ok = checkoutValid(stage, mine, bust);
+    const stored = decodeCheckoutDarts(puzzle.routes?.[index] ?? "", stage.maxDarts);
+    const best = bust ? checkoutBustFreeOrder(stage, stored) : stored;
+    return {
+      mark: ok ? "right" : mine.length ? "wrong" : "open",
+      mine,
+      best,
+      fewest: puzzle.minDarts?.[index] ?? (best.length || null),
+      big: ok && !!pays[index] && checkoutBigFinish(stage, mine[mine.length - 1]),
+    };
+  });
+}
+
+/** The darts as chips: the ring and number in bold, the points under; the finishing dart in gold. */
+function DartChips({ stage, darts, finished }: { stage: CheckoutStageData; darts: readonly CheckoutDart[]; finished: boolean }) {
+  if (!darts.length) return <p className="co-rv-none">No darts thrown</p>;
   return (
-    <div className="flex w-full flex-col items-stretch gap-1.5 px-1" data-checkout-root>
-      <PolishStyle id="checkout" css={CHECKOUT_CSS} />
-      {puzzle.stages.map((stage, index) => {
-        const mine = decodeCheckoutDarts(parts[index] ?? "", stage.maxDarts);
-        const ok = checkoutValid(stage, mine, checkoutBust(puzzle));
-        const stored = decodeCheckoutDarts(puzzle.routes?.[index] ?? "", stage.maxDarts);
-        // checkoutRev 3: the fewest-darts route shown in an order that never busts on the way.
-        const best = checkoutBust(puzzle) ? checkoutBustFreeOrder(stage, stored) : stored;
+    <ol className="co-rv-darts" aria-label="Darts">
+      {darts.map((dart, i) => {
+        const value = checkoutDartValue(stage, dart);
+        const last = finished && i === darts.length - 1;
         return (
-          <div
-            key={index}
-            data-puzzle-cell={index}
-            className="flex items-center gap-2 rounded-lg border px-1.5 py-1 font-mono"
-            style={{
-              borderColor: ok ? `color-mix(in srgb, ${GOLD} 55%, transparent)` : "rgba(255,255,255,0.14)",
-              background: "linear-gradient(90deg, rgba(59,44,99,0.45), rgba(13,24,56,0.25))",
-            }}
-          >
-            <div className="shrink-0 rounded-full" aria-hidden="true">
-              <Board stage={stage} darts={ok ? mine : []} size={44} bare finish={stage.finish} />
-            </div>
-            <div className="min-w-0 flex-1">
-              {/* Each column keeps its own text (6 Nov 2026, Joe's review: "★ big finish" ran into the darts): the label
-                  wraps inside its column, the darts never shrink. */}
-              <div className="flex items-start justify-between gap-2 text-sm">
-                <span className="min-w-0 flex-1 text-xs" style={{ color: REVEAL_LABEL }}>
-                  {index + 1}. {stage.target} · {finishWord(stage)}
-                  {ok && pays[index] && checkoutBigFinish(stage, mine[mine.length - 1]) ? <span className="block whitespace-nowrap" style={{ color: GOLD }}>★ big finish</span> : null}
-                </span>
-                <span className={`shrink-0 text-right ${ok ? "font-bold text-primary" : "text-warn"}`}>
-                  {ok
-                    ? `✓ ${mine.map((d) => checkoutDartLabel(stage, d)).join(" ")} (${mine.length})`
-                    : "✗ not checked out"}
-                </span>
-              </div>
-              <StepChips
-                testId="checkout"
-                label={`Fewest ${puzzle.minDarts?.[index] ?? "?"}`}
-                steps={best.map((d) => `${checkoutDartLabel(stage, d)} (${checkoutDartValue(stage, d)})`)}
-              />
-            </div>
-          </div>
+          <li key={i} className="co-rv-dart" data-finish={last ? "" : undefined}>
+            <b>{checkoutDartLabel(stage, dart)}</b>
+            <span>{value < 0 ? `−${-value}` : value}</span>
+          </li>
         );
       })}
+    </ol>
+  );
+}
+
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
+  const checkout = puzzle.type === "checkout" ? puzzle : null;
+  const boards = useMemo(() => (checkout ? checkoutRevealBoards(checkout, myAnswer) : []), [checkout, myAnswer]);
+  const marks = boards.map((b) => b.mark);
+  const [index, setIndex] = useRevealBoard(marks);
+  const [side, setSide] = useState<RevealSide>("yours");
+  const box = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(300);
+  useBeforePaint(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => setWidth(Math.max(200, Math.min(320, Math.floor(el.clientWidth))));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  if (!checkout) return null;
+  const stage = checkout.stages[index]!;
+  const board = boards[index]!;
+  const hasBest = board.best.length > 0;
+  const view: RevealSide = hasBest ? side : "yours";
+  const darts = view === "yours" ? board.mine : board.best;
+  const solved = boards.filter((b) => b.mark === "right");
+  const used = solved.reduce((n, b) => n + b.mine.length, 0);
+  const fewestKnown = solved.every((b) => b.fewest !== null);
+  const fewest = solved.reduce((n, b) => n + (b.fewest ?? 0), 0);
+  const big = boards.filter((b) => b.big).length;
+  const elapsed = myCorrect && myMsRemaining !== undefined ? Math.max(0, timeLimitMs - myMsRemaining) / 1000 : null;
+  return (
+    <div className="co-rv flex w-full flex-col items-center gap-2.5" data-checkout-root data-checkout-reveal>
+      <PolishStyle id="checkout" css={CHECKOUT_CSS} />
+      <RevealFacts
+        facts={[
+          { label: "Checked out", value: `${solved.length} / ${checkout.stages.length}`, tone: solved.length === checkout.stages.length ? "good" : undefined },
+          solved.length > 0 && { label: "Darts", value: used },
+          solved.length > 0 && fewestKnown && { label: "Fewest", value: fewest, tone: used <= fewest ? "good" : undefined },
+          big > 0 && { label: "Big finishes", value: big },
+          elapsed !== null && { label: "Time", value: `${elapsed.toFixed(1)} s` },
+        ]}
+      />
+      <RevealBoards noun="Board" marks={marks} index={index} onIndex={setIndex}>
+        <div className="co-rv-head">
+          <span className="co-rv-target" data-checkout-reveal-target>{stage.target}</span>
+          <span className="co-rv-rule">Finish on a {finishWord(stage)}</span>
+        </div>
+        {hasBest ? <RevealView value={side} onChange={setSide} /> : null}
+        <div ref={box} className="co-rv-board" data-checkout-reveal-side={view}>
+          <Board stage={stage} darts={darts} size={width} finish={stage.finish} lit={view === "solution" || board.mark === "right" ? "stage" : null} />
+        </div>
+        <DartChips stage={stage} darts={darts} finished={view === "solution" || board.mark === "right"} />
+        <p className="co-rv-verdict" data-mark={view === "solution" ? "right" : board.mark}>
+          {view === "solution"
+            ? `Fewest darts: ${board.best.length}`
+            : board.mark === "right"
+              ? board.big
+                ? `Checked out in ${board.mine.length} · big finish`
+                : `Checked out in ${board.mine.length}`
+              : board.mark === "wrong"
+                ? "Not checked out"
+                : "Not reached"}
+        </p>
+      </RevealBoards>
     </div>
   );
 }

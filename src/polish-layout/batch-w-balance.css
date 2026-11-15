@@ -1,3 +1,51 @@
 /* Polish batch W (25 Oct 2026, display only): Counterweight. Imported only from src/puzzles/balance.tsx.
    The Number overhaul (15 Nov 2026) replaced its lit wall, table, glows and rack with the Blender-rendered pieces
    (BALANCE_CSS in src/components/puzzles/balanceArt.tsx, public/number/balance): champagne gold and navy, no glows. */
+
+/* ---- The answer reveal (the Number overhaul, 15 Nov 2026): one large scale at a time on the rendered wall. ---- */
+.bal-reveal-stage {
+  position: relative;
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  padding: 10px 0 6px;
+  border-radius: 16px;
+  background: url("/number/balance/wall.webp") center / cover;
+}
+/* A weight a balanced arrangement hangs somewhere other than you did: a champagne ring round it. */
+.bal-reveal [data-reveal-mark="moved"] {
+  border-radius: 14px;
+  outline: 2px solid var(--jz-gold);
+  outline-offset: 1px;
+}
+.bal-reveal-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.bal-reveal-ring {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 5px;
+  outline: 2px solid var(--jz-gold);
+}
+.bal-reveal-tray {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.bal-reveal-tray-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.bal-reveal-tray-bells {
+  display: inline-flex;
+  gap: 6px;
+}

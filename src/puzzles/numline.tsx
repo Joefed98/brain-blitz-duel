@@ -36,11 +36,12 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { horizontalOf, useGameKeys } from "@/lib/desktop";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
-import { ballparkStreak, isBullseye, usesNumberDepth } from "@/lib/duel/numberDepth";
+import { isBullseye, usesNumberDepth } from "@/lib/duel/numberDepth";
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import { BALLPARK_STD_FULL, isStdBullseye } from "@/lib/duel/standard/number";
 import "@/polish-layout/batch-w-numline.css";
 import { NumberStage, numberArt } from "@/components/puzzles/number/overhaul";
+import { RevealBoards, RevealFacts, useRevealBoard, type BoardMark } from "@/components/puzzles/number/RevealParts";
 import { Button } from "@/design/components";
 // The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
 import "@/polish-layout/number-overhaul.css";
@@ -55,7 +56,6 @@ const ROOT_STYLE: CSSProperties = {
 const SIDE = 22;
 const ZOOM = 4;
 const LENS = 84;
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
 /** The Number overhaul (15 Nov 2026): labels and numbers in the app's one font, bold. */
 const ARCHIVO = "var(--jz-font)";
 /** The overhaul's beat for a finished line to lift and slide away before the next one comes in (display only). */
@@ -112,6 +112,18 @@ const NUMLINE_CSS = `
   .numline-line-in, .numline-item-in, .numline-drop, .numline-tick, .numline-ring, .numline-edge { animation: none; }
   .numline-glint { display: none; }
 }
+/* The reveal (the Number overhaul): the line large, then the five numbers with how far off each was. */
+.nl-reveal-key { font-family: var(--jz-font); font-size: 13px; font-weight: 600; color: var(--jz-text-2); }
+.nl-reveal-key .nl-key-true { color: var(--jz-gold); }
+.nl-reveal-key .nl-key-yours { color: var(--jz-text); margin-left: 10px; }
+.nl-reveal-rows { display: flex; width: 100%; max-width: 420px; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.nl-reveal-row { display: flex; min-height: 40px; align-items: center; gap: 10px; padding: 4px 12px; border-radius: 12px; background: var(--jz-surface-2); }
+.nl-reveal-n { display: inline-flex; width: 26px; height: 26px; flex: none; align-items: center; justify-content: center; border-radius: 50%; background: var(--jz-gold); color: var(--jz-on-gold); font-family: var(--jz-font); font-size: 14px; font-weight: 800; }
+.nl-reveal-item { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--jz-font); font-size: 20px; font-weight: 800; color: var(--jz-text); }
+.nl-reveal-off { flex: none; font-family: var(--jz-font); font-size: 16px; font-weight: 700; color: var(--jz-red); font-variant-numeric: tabular-nums; }
+.nl-reveal-row[data-close] .nl-reveal-off { color: var(--jz-text); }
+.nl-reveal-off[data-bull] { color: var(--jz-gold); }
+.nl-reveal-row:not([data-placed]) .nl-reveal-off { color: var(--jz-text-3); }
 `;
 
 const fmt = (n: number) =>
@@ -823,129 +835,146 @@ const REVEAL_W = 340;
 /** The tape's end inset (Line's SIDE) and a reveal number label's width with its gap, in drawing px. */
 const REVEAL_SIDE = SIDE;
 const REVEAL_LABEL_W = 8;
+const REVEAL_H = 150;
+/** The rule's height in the reveal's drawing, and where it sits (its centre, as a share of the height). */
+const REVEAL_T = 14;
+const REVEAL_Y = 0.42;
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "numline") return null;
-  const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], myAnswer, puzzle.numlineRev);
-  // The scoring standard: full accuracy within 2 % (green), bullseyes within 1 %, no streak.
+/** One number on a line, for the reveal (display only; the server grades). */
+export interface NumlineRevealRow {
+  item: string;
+  truth: number;
+  placement: number | null;
+  error: number | null;
+  /** Within the bullseye distance the round's stamp scores (none on stamps without bullseyes). */
+  bull: boolean;
+  /** Within the full-accuracy distance. */
+  close: boolean;
+}
+
+/**
+ * Each line's numbers and verdict: right when all five are placed within the full-accuracy distance, not reached
+ * when none is placed, else not right. Works on every stamp (numlineRev 1–2, before and after the standard).
+ */
+export function numlineRevealLines(puzzle: NumlinePuzzleData, answer: string | null): { stage: NumlineStageData; rows: NumlineRevealRow[]; mark: BoardMark }[] {
+  const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], answer, puzzle.numlineRev);
   const standard = usesStandard(puzzle);
   const full = standard ? BALLPARK_STD_FULL : numlineFullError(puzzle.numlineRev);
-  const placed = decodeNumline(myAnswer).length;
-  // depthRev 1: bullseyes (within a hair of exact) and the best run of them.
   const depth = usesNumberDepth(puzzle);
-  const streak = depth && !standard ? ballparkStreak(results.map((r) => r.error)) : null;
-  const bulls = standard ? results.filter((r) => isStdBullseye(r.error)).length : 0;
+  const placements = decodeNumline(answer);
+  return puzzle.stages.map((stage, s) => {
+    const rows = stage.items.map((item, i) => {
+      const r = results[s * NUMLINE_ITEMS + i]!;
+      const placement = placements[s * NUMLINE_ITEMS + i] ?? null;
+      return {
+        item,
+        truth: r.truth,
+        placement,
+        error: r.error,
+        bull: standard ? isStdBullseye(r.error) : depth && isBullseye(r.error),
+        close: r.error !== null && r.error <= full,
+      };
+    });
+    const placed = rows.filter((r) => r.placement !== null).length;
+    const mark: BoardMark = placed === 0 ? "open" : rows.every((r) => r.close) ? "right" : "wrong";
+    return { stage, rows, mark };
+  });
+}
+
+/** How far off a number was, in plain words. */
+export function numlineOffText(row: Pick<NumlineRevealRow, "placement" | "error" | "bull">): string {
+  if (row.placement === null) return "Not placed";
+  if (row.error === null) return "Placed";
+  if (row.bull) return "Bullseye";
+  return `${(row.error * 100).toFixed(1)}% off`;
+}
+
+/**
+ * The reveal (the Number overhaul, 15 Nov 2026): one line at a time with numbered tabs (each marked all close, not
+ * all close or not reached), opening on the first not all close; the line drawn large, each true spot a numbered gold
+ * tick above the rule and each of your markers a numbered pin below it, joined by a line (gold when close, red when
+ * not), bullseyes ringed; under it the five numbers with how far off each was; above, the numbers behind the score.
+ */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+  const lines = puzzle.type === "numline" ? numlineRevealLines(puzzle, myAnswer) : [];
+  const marks = lines.map((l) => l.mark);
+  const [index, setIndex] = useRevealBoard(marks);
+  if (puzzle.type !== "numline") return null;
+  const all = lines.flatMap((l) => l.rows);
+  const placed = all.filter((r) => r.error !== null);
+  const avg = placed.length ? placed.reduce((sum, r) => sum + r.error!, 0) / placed.length : null;
+  const worst = placed.reduce<NumlineRevealRow | null>((w, r) => (!w || r.error! > w.error! ? r : w), null);
+  const bullseyes = usesStandard(puzzle) || usesNumberDepth(puzzle);
+  const line = lines[index]!;
+  const truthLevels = labelLevels(
+    line.rows.map((r) => REVEAL_SIDE + (r.truth / NUMLINE_SCALE) * (REVEAL_W - 2 * REVEAL_SIDE)),
+    line.rows.map(() => "0"),
+    REVEAL_LABEL_W + 10,
+  );
+  const pinLevels = labelLevels(
+    line.rows.map((r) => REVEAL_SIDE + ((r.placement ?? 0) / NUMLINE_SCALE) * (REVEAL_W - 2 * REVEAL_SIDE)),
+    line.rows.map(() => "0"),
+    REVEAL_LABEL_W + 10,
+  );
   return (
-    <div className="flex w-full flex-col items-stretch gap-1.5 px-1">
+    <div className="nl-reveal flex w-full flex-col items-center gap-3 px-1" data-number-reveal="numline">
       <PolishStyle id="numline" css={NUMLINE_CSS} />
-      {puzzle.stages.map((stage, s) => {
-        const rows = results.slice(s * NUMLINE_ITEMS, s * NUMLINE_ITEMS + NUMLINE_ITEMS);
-        // Close true spots: their number labels step up a level so they never print over each other.
-        const levels = labelLevels(
-          rows.map((r) => REVEAL_SIDE + (r.truth / NUMLINE_SCALE) * (REVEAL_W - 2 * REVEAL_SIDE)),
-          rows.map((_, i) => `${i + 1}`),
-          REVEAL_LABEL_W,
-        );
-        return (
-          <div key={s} className="flex flex-col items-center gap-1">
-            <Line
-              stage={stage}
-              width={REVEAL_W}
-              height={60}
-              t={10}
-              label={12}
-              yShare={0.6}
-              svgStyle={{ width: "100%", maxWidth: 400, height: "auto" }}
-            >
-              {(x, y) => (
-                <>
-                  {rows.map((r, i) => (
-                    <g key={i}>
-                      {r.placement !== null ? (
-                        <line
-                          x1={x(r.placement / NUMLINE_SCALE)}
-                          y1={y}
-                          x2={x(r.truth / NUMLINE_SCALE)}
-                          y2={y}
-                          stroke="var(--warn)"
-                          strokeWidth={4}
-                          strokeOpacity={0.85}
-                        />
-                      ) : null}
-                      <line
-                        x1={x(r.truth / NUMLINE_SCALE)}
-                        y1={y - 9}
-                        x2={x(r.truth / NUMLINE_SCALE)}
-                        y2={y + 9}
-                        stroke="var(--ok, #3DDC84)"
-                        strokeWidth={3}
-                      />
-                      {r.placement !== null ? (
-                        <circle
-                          cx={x(r.placement / NUMLINE_SCALE)}
-                          cy={y}
-                          r={5}
-                          fill="var(--primary)"
-                          stroke="#1a1b21"
-                          strokeWidth={1.25}
-                        />
-                      ) : null}
-                      <text
-                        x={x(r.truth / NUMLINE_SCALE)}
-                        y={y - 12 - levels[i]! * 13}
-                        textAnchor="middle"
-                        fontSize={12}
-                        fontWeight={700}
-                        fill="var(--foreground)"
-                        fontFamily={MONO}
-                      >
-                        {i + 1}
-                      </text>
-                    </g>
-                  ))}
-                </>
-              )}
-            </Line>
-            <div className="grid w-full grid-cols-5 gap-1">
-              {rows.map((r, i) => (
-                <div
-                  key={i}
-                  data-puzzle-cell={s * NUMLINE_ITEMS + i}
-                  className="flex flex-col items-center justify-between rounded-md border border-border bg-card px-0.5 py-0.5 leading-tight"
-                >
-                  <span className="max-w-full break-words text-center text-[12px] leading-tight text-foreground">
-                    {`${i + 1}. ${stage.items[i]}`}
-                  </span>
-                  <span
-                    className={`font-mono text-[14px] font-bold ${r.error === null ? "text-muted-foreground" : r.error <= full ? "text-primary" : "text-warn"}`}
-                    style={
-                      r.error !== null && r.error > full
-                        ? { color: "color-mix(in oklab, var(--warn) 80%, white)" }
-                        : undefined
-                    }
-                  >
-                    {(standard ? isStdBullseye(r.error) : depth && isBullseye(r.error)) ? <span style={{ color: "#F5B82E" }}>◎ </span> : null}
-                    {numlineErrorLabel(r.error)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      <p className="text-center font-mono text-[13px] text-muted-foreground">
-        {placed} / {NUMLINE_TOTAL} placed · tick = true spot, dot = yours
-      </p>
-      {streak ? (
-        <p className="text-center font-mono text-[13px]" style={{ color: "#F5B82E" }} data-bullseye-streak={streak.best}>
-          ◎ {streak.runs.filter((r) => r > 0).length} bullseye{streak.runs.filter((r) => r > 0).length === 1 ? "" : "s"} · best streak {streak.best}
-        </p>
-      ) : null}
-      {standard ? (
-        <p className="text-center font-mono text-[13px]" style={{ color: "#F5B82E" }} data-bullseyes={bulls}>
-          ◎ {bulls} bullseye{bulls === 1 ? "" : "s"} (within 1%)
-        </p>
-      ) : null}
+      <RevealFacts
+        facts={[
+          { label: "Average off", value: avg === null ? "–" : `${(avg * 100).toFixed(1)}%` },
+          bullseyes && { label: "Bullseyes", value: all.filter((r) => r.bull).length },
+          worst && worst.error !== null && !worst.bull && { label: "Worst miss", value: `${worst.item}, ${(worst.error * 100).toFixed(1)}%`, tone: worst.close ? undefined : "miss" },
+          placed.length < NUMLINE_TOTAL && { label: "Placed", value: `${placed.length} of ${NUMLINE_TOTAL}`, tone: "miss" },
+        ]}
+      />
+      <RevealBoards noun="Line" marks={marks} index={index} onIndex={setIndex}>
+        <Line
+          stage={line.stage}
+          width={REVEAL_W}
+          height={REVEAL_H}
+          t={REVEAL_T}
+          label={18}
+          yShare={REVEAL_Y}
+          svgStyle={{ width: "100%", maxWidth: 420, height: "auto" }}
+        >
+          {(x, y) => (
+            <>
+              {line.rows.map((r, i) => {
+                const tx = x(r.truth / NUMLINE_SCALE);
+                const ty = y - REVEAL_T / 2 - 18 - truthLevels[i]! * 22;
+                const px = r.placement === null ? null : x(r.placement / NUMLINE_SCALE);
+                const py = y + REVEAL_T / 2 + 40 + pinLevels[i]! * 22;
+                const tone = r.close ? "var(--jz-gold)" : "var(--jz-red)";
+                return (
+                  <g key={i} data-reveal-pair={i} data-close={r.close ? "" : undefined} data-bull={r.bull ? "" : undefined}>
+                    {px !== null ? <line x1={px} y1={py - 9} x2={tx} y2={y} stroke={tone} strokeWidth={2.5} strokeOpacity={0.9} /> : null}
+                    <line x1={tx} y1={y - REVEAL_T / 2 - 4} x2={tx} y2={y + REVEAL_T / 2 + 2} stroke="var(--jz-gold)" strokeWidth={3} />
+                    {r.bull ? <circle cx={tx} cy={y} r={11} fill="none" stroke="var(--jz-gold)" strokeWidth={2.5} /> : null}
+                    <circle cx={tx} cy={ty} r={10} fill="var(--jz-gold)" />
+                    <text x={tx} y={ty + 4.5} textAnchor="middle" fontSize={13} fontWeight={800} fill="var(--jz-on-gold)" fontFamily="var(--jz-font)">{i + 1}</text>
+                    {px !== null ? (
+                      <>
+                        <circle cx={px} cy={py} r={10} fill="var(--jz-surface-2)" stroke={tone} strokeWidth={2} />
+                        <text x={px} y={py + 4.5} textAnchor="middle" fontSize={13} fontWeight={800} fill="var(--jz-text)" fontFamily="var(--jz-font)">{i + 1}</text>
+                      </>
+                    ) : null}
+                  </g>
+                );
+              })}
+            </>
+          )}
+        </Line>
+        <p className="nl-reveal-key"><span className="nl-key-true">●</span> true spot <span className="nl-key-yours">●</span> your marker</p>
+        <ol className="nl-reveal-rows">
+          {line.rows.map((r, i) => (
+            <li key={i} data-puzzle-cell={index * NUMLINE_ITEMS + i} data-close={r.close ? "" : undefined} data-placed={r.placement !== null ? "" : undefined} className="nl-reveal-row">
+              <span className="nl-reveal-n">{i + 1}</span>
+              <span className="nl-reveal-item">{r.item}</span>
+              <span className="nl-reveal-off" data-bull={r.bull ? "" : undefined}>{numlineOffText(r)}</span>
+            </li>
+          ))}
+        </ol>
+      </RevealBoards>
     </div>
   );
 }
