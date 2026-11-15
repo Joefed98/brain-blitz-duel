@@ -148,7 +148,7 @@ golden beam. Glass and crystal, clean and precise; never a sci-fi blaster or a c
   crackle tail, no long rumble or debris; 300–400 ms. (Today's file is 0.49 s and a little soft; replace.)
 - `laser.nearMiss` — a shot lights every gem but one ("1 gem dark"): a gentle, slightly hopeful two-note glass hint, the
   second note left hanging, quiet, clearly "so close", never a buzzer; 500–700 ms. (Placeholder: the library's
-  `arc_retro_blip.mp3`.)
+  `arc_retro_blip.mp3`. On screen since stage 2: the dark gem pulses twice and "1 gem dark" shows by the Gems pill.)
 - `laser.outOfShots` — the third shot fades without a solve and the board locks: the emitter powering down, a soft
   falling electric whine ending in a small mechanical clunk of a shutter closing; calm, final, not harsh; 500–700 ms.
   (Placeholder: the library's `retro.powerDown.mp3`.)

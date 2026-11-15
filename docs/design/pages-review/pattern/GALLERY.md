@@ -420,6 +420,29 @@ and the solve.
   dots, a bomb). The "Missed" line under the solution is gone; the player's line is "You: …" under Yours.
 - **Sound:** a near miss (5 of 6) plays `laser.nearMiss` in place of `wrong`, a bomb only `laser.bomb`, out of shots
   `laser.outOfShots` (library stand-ins); place, turn and fire keep their November placeholders; the gem notes kept.
+
+### Stage 2: effects
+
+**Hero: the beam** ([MP4, 3.7 s](laser-hero.mp4)): Fire on the intro example's solution; the beam draws along its path
+with a hot leading point (today's timing), forks at the splitter, each gem lights in turn with a pop and a few gold
+sparks, then the solve flare.
+
+<video src="laser-hero.mp4" width="300" autoplay loop muted playsinline></video> <img src="laser-hero.webp" width="300">
+
+- **Place** (`laser.place`): the kit's drop on the mirror's own sprite (a small squash and settle).
+- **Turn** (`laser.turn`): a two-click ratchet, the new diagonal swinging in from the old one with a small overshoot
+  (170 ms).
+- **Fire** (`laser.fire`): the emitter pulses; the beam draws step by step with a bright head on each branch.
+- **Gems** (`pz_laser_gem`, rising): each gem the beam reaches lights up with the kit's combo pop (growing gem by gem)
+  and gold sparks; the splitter pulses as it forks the beam (`pz_laser_split`).
+- **Bomb** (`laser.bomb`): the hit bomb jolts (the kit's wrong, silent) under its red-hot blast.
+- **Near miss** (`laser.nearMiss`, Joe's approval): a shot lighting all but one gem pulses the dark gem twice and shows
+  a gold "1 gem dark" pill beside the Gems pill for 2.2 s (never over the board; the next press is taken meanwhile).
+- **Out of shots** (`laser.outOfShots`): a dark veil fades over the board and the badge eases up into place (no bounce).
+- **Solve** (`laser.solve`): the flare and gem bursts as before, then the kit's win on the reveal's result card.
+- **Refused drop**: the kit's shake on that square's own art, in place of the whole-board shake.
+- Transform and opacity only (the beam's colour animation and the filter transitions are gone); reduced motion is the
+  kit's 120 ms crossfade on every piece.
 <!-- lightbender:end -->
 
 <!-- topsy:start -->

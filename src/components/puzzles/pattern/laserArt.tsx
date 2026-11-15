@@ -105,17 +105,18 @@ export function LaserMirror({
   y,
   unit,
   kind,
-  animate,
+  cell,
 }: {
   x: number;
   y: number;
   unit: number;
   kind: MirrorKind;
-  animate: boolean;
+  /** The square it sits on (the effects find its art by it: laserFx.ts). */
+  cell?: number | undefined;
 }) {
   return (
     <g transform={`translate(${x} ${y})`} data-mirror={kind}>
-      <g className={animate ? "laser-mirror-in" : undefined}>
+      <g className="laser-mirror-art" data-mirror-cell={cell}>
         <image href={laserArtUrl(mirrorSprite(kind))} x={-unit / 2} y={-unit / 2} width={unit} height={unit} pointerEvents="none" />
       </g>
     </g>
@@ -137,11 +138,14 @@ export function LaserBeam({
   unit,
   danger,
   solved,
+  drawing = false,
 }: {
   branches: { x: number; y: number }[][];
   unit: number;
   danger: boolean;
   solved: boolean;
+  /** The beam is still travelling (stage 2 effects): a hot point leads each branch as it draws, step by step. */
+  drawing?: boolean;
 }) {
   const colour = danger ? "#FF4D4D" : "#FFB21E";
   const core = danger ? "#FFE1E1" : "#FFFBEA";
@@ -157,6 +161,17 @@ export function LaserBeam({
       {lines.map((d, i) => <path key={`g${i}`} d={d} stroke={colour} strokeWidth={Math.max(2, unit * 0.18)} />)}
       {lines.map((d, i) => <path key={`t${i}`} d={d} stroke={danger ? "#FF9A9A" : "#FFD866"} strokeWidth={Math.max(1.5, unit * 0.11)} />)}
       {lines.map((d, i) => <path key={`c${i}`} d={d} className="laser-beam-core" stroke={core} strokeWidth={Math.max(1, unit * 0.075)} />)}
+      {drawing
+        ? branches.filter((points) => points.length > 1).map((points, i) => {
+            const tip = points[points.length - 1]!;
+            return (
+              <g key={`h${i}`} className="laser-beam-head" data-beam-head="" transform={`translate(${tip.x.toFixed(1)} ${tip.y.toFixed(1)})`}>
+                <circle r={Math.max(2.5, unit * 0.16)} fill={colour} />
+                <circle r={Math.max(1.5, unit * 0.09)} fill={core} />
+              </g>
+            );
+          })
+        : null}
     </g>
   );
 }

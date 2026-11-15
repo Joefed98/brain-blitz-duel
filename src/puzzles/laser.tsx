@@ -53,6 +53,16 @@ import {
   useLaserCues,
 } from "@/components/puzzles/pattern/laserArt";
 import { useInFrame } from "@/components/puzzles/batchP/LiveSummary";
+import {
+  LASER_NEAR_MISS_MS,
+  laserCellArt,
+  laserDarkGem,
+  laserNearMissFx,
+  laserRefuseFx,
+  laserSplitterCells,
+  laserWinFx,
+  useLaserPieceFx,
+} from "@/components/puzzles/pattern/laserFx";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 
@@ -148,6 +158,7 @@ export function LaserBoard({
   solved = false,
   outOfShots = false,
   marks = null,
+  beamDrawing = false,
 }: {
   source: number;
   dir: BeamDir;
@@ -177,6 +188,8 @@ export function LaserBoard({
   outOfShots?: boolean;
   /** The reveal's highlights on the player's board (presentation only). */
   marks?: LaserMarks | null;
+  /** The live beam is still travelling (its leading point drawn; stage 2 effects). */
+  beamDrawing?: boolean;
 }) {
   const rows = Math.ceil(cells / cols);
   const wall = new Set(blocks);
@@ -193,10 +206,23 @@ export function LaserBoard({
   const solveFx = useSolveMoment(live && solved, "laser.solve");
   const firing = Boolean(beam);
   useLaserCues({ live, placed, firing, litCount: litGems.length, bombHit: bombFlash });
+  // Stage 2 effects (laserFx.ts): the pieces' own art moves; nothing here touches the board's state.
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  useLaserPieceFx({
+    live,
+    board: boardRef,
+    placed,
+    firing,
+    litGems,
+    reached: beam ? [...new Set(beam.flat())].join(",") : "",
+    splitterCells: laserSplitterCells(splitters, placed).join(","),
+    bombHit: bombFlash,
+  });
   const burstOrder = solveFx && beam ? gemsInBeamOrder(beam, beamBranchOffsets(beam), litGems) : [];
 
   return (
     <div
+      ref={boardRef}
       className={`laser-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none ${
         shake ? "animate-shake" : ""
       } ${solveFx ? "laser-board-solved" : ""} ${outOfShots ? "laser-board-spent" : ""}`}
@@ -216,13 +242,14 @@ export function LaserBoard({
         {Array.from({ length: cols * rows }, (_, cell) => {
           if (wall.has(cell)) return <div key={cell} aria-label="Wall" className="laser-block rounded-md bg-foreground/60" />;
           const piece = mirrorAt.get(cell);
-          if (piece && isSplitter(piece)) return <div key={cell} aria-label={`Splitter ${piece === "S|" ? "vertical" : "horizontal"} input`} className="laser-piece-cell flex items-center justify-center"><LaserSplitter kind={piece} /></div>;
-          if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="laser-piece-cell flex items-center justify-center"><LaserSplitter /></div>;
+          if (piece && isSplitter(piece)) return <div key={cell} data-laser-cell={cell} aria-label={`Splitter ${piece === "S|" ? "vertical" : "horizontal"} input`} className="laser-piece-cell flex items-center justify-center"><LaserSplitter kind={piece} /></div>;
+          if (splitters.includes(cell)) return <div key={cell} data-laser-cell={cell} aria-label="Splitter" className="laser-piece-cell flex items-center justify-center"><LaserSplitter /></div>;
           if (gemSet.has(cell)) {
             const directional = directionalGems.find((gem) => gem.cell === cell);
             return (
               <div
                 key={cell}
+                data-laser-cell={cell}
                 aria-label={litSet.has(cell) ? "Gem lit" : "Gem"}
                 className="laser-piece-cell flex items-center justify-center"
               >
@@ -234,7 +261,7 @@ export function LaserBoard({
           }
           if (bombSet.has(cell)) {
             return (
-              <div key={cell} aria-label="Bomb" className="laser-piece-cell flex items-center justify-center">
+              <div key={cell} data-laser-cell={cell} aria-label="Bomb" className="laser-piece-cell flex items-center justify-center">
                 <LaserBomb flash={bombFlash} />
               </div>
             );
@@ -245,6 +272,7 @@ export function LaserBoard({
           return (
             <div
               key={cell}
+              data-laser-cell={cell}
               className={`laser-cell rounded-[3px] border bg-card ${
                 mirrorAt.has(cell) ? "border-primary/50" : "border-border/50"
               }`}
@@ -262,6 +290,7 @@ export function LaserBoard({
                 unit={unit}
                 danger={bombFlash}
                 solved={solveFx}
+                drawing={live && beamDrawing}
               />
             ) : null}
             {placed.filter((piece) => !isSplitter(piece.kind)).map((mirror) => {
@@ -273,7 +302,7 @@ export function LaserBoard({
                   y={centre.y}
                   unit={unit}
                   kind={mirror.kind}
-                  animate={live}
+                  cell={mirror.cell}
                 />
               );
             })}
@@ -357,7 +386,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   );
   const [shot, setShot] = useState<{ trace: BeamTrace; step: number; done: boolean } | null>(null);
   const [ghost, setGhost] = useState<number | null>(null);
-  const [shake, setShake] = useState(0);
+  // The near miss (Joe, 15 Nov 2026): the gem a shot left dark and the moment, shown as "1 gem dark" for a moment.
+  const [nearMiss, setNearMiss] = useState<{ gem: number; at: number } | null>(null);
   const submitted = useRef(false);
   const timers = useRef<number[]>([]);
   const gridRef = useRef<HTMLDivElement | null>(null);
@@ -398,11 +428,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const solved = submitted.current;
   const firesLeft = Math.max(0, LASER_MAX_FIRES - fires);
   const inFrame = useInFrame();
+  // The near miss's moment: two soft pulses on the dark gem (a piece, so allowed over the board) and on the pill.
+  useEffect(() => {
+    if (!nearMiss) return;
+    const pill = typeof document === "undefined" ? null : document.querySelector('[data-hud-pills="laser"] [data-hud-pill="nearMiss"]');
+    laserNearMissFx(laserCellArt(gridRef.current?.parentElement, nearMiss.gem), pill);
+  }, [nearMiss]);
 
-  const refuse = useCallback(() => {
+  // A refused drop: the quiet wrong and the kit's shake on that square's own art (never the board, which takes the
+  // presses).
+  const refuse = useCallback((cell: number | null) => {
     playWrong();
-    setShake((count) => count + 1);
-    window.setTimeout(() => setShake((count) => Math.max(0, count - 1)), 320);
+    if (cell !== null) laserRefuseFx(laserCellArt(gridRef.current?.parentElement, cell));
   }, []);
 
   const taken = useCallback(
@@ -449,7 +486,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
         return;
       }
       if (taken(target) || current.some((mirror) => mirror.cell === target)) {
-        refuse();
+        refuse(target);
         return;
       }
       const kind = current.find((mirror) => mirror.cell === drag.from)?.kind ?? "/";
@@ -463,12 +500,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
     // From the tray onto the board.
     if (target === null) return;
     if (taken(target) || current.some((mirror) => mirror.cell === target)) {
-      refuse();
+      refuse(target);
       return;
     }
     const kind = drag.piece ?? selected;
     if (current.filter((piece) => isSplitter(piece.kind) === isSplitter(kind)).length >= (isSplitter(kind) ? splitterTotal : total)) {
-      refuse();
+      refuse(target);
       return;
     }
     record(laserAction.place(target, kind));
@@ -522,6 +559,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
     const firedLog = logged ? appendAction(log, laserAction.fire(), serverNow() - phaseStartedAt) : log;
     if (logged) setLog(firedLog);
     clearTimers();
+    setNearMiss(null);
     setShot({ trace: verdict.trace, step: 0, done: false });
 
     const offsets = beamBranchOffsets(verdict.trace.paths);
@@ -565,8 +603,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
           // dark", or the plain wrong; then, after the last shot on laserRev 4, "out of shots" as the beam fades.
           if (verdict.trace.hitBomb) {
             /* laser.bomb plays from the board */
-          } else if (verdict.gemsLit === gems.length - 1 && gems.length > 1) soundCue("laser.nearMiss");
-          else playWrong();
+          } else if (verdict.gemsLit === gems.length - 1 && gems.length > 1) {
+            soundCue("laser.nearMiss");
+            const dark = laserDarkGem(gems, verdict.trace.gemsLit, verdict.trace.hitBomb);
+            if (dark !== null) {
+              setNearMiss({ gem: dark, at: Date.now() });
+              timers.current.push(window.setTimeout(() => setNearMiss(null), LASER_NEAR_MISS_MS));
+            }
+          } else playWrong();
           timers.current.push(
             window.setTimeout(() => {
               setShot(null);
@@ -614,11 +658,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
       return;
     }
     if (taken(cell)) {
-      refuse();
+      refuse(cell);
       return;
     }
     if (placed.filter((piece) => isSplitter(piece.kind) === isSplitter(selected)).length >= (isSplitter(selected) ? splitterTotal : total)) {
-      refuse();
+      refuse(cell);
       return;
     }
     record(laserAction.place(cell, selected));
@@ -704,7 +748,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
           litGems={litGems}
           bombFlash={bombFlash}
           ghostCell={dragRef.current ? ghost : null}
-          shake={shake > 0}
+          beamDrawing={Boolean(shot && !shot.done)}
           gridRef={gridRef}
           pointer={{ onPointerDown: onBoardDown }}
           live
@@ -721,11 +765,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
               ...parPills("Mirrors", mirrorsPlaced, elegantPar, "mirrors"),
               splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced}/${splitterTotal}` } : null,
               { id: "gems", label: "Gems", value: `${gemsShown}/${gems.length}` },
+              nearMiss ? { id: "nearMiss", value: "1 gem dark", tone: "gold" as const } : null,
             ]
           : [
               { id: "mirrors", label: "Mirrors", value: `${mirrorsPlaced} / ${total}` },
               splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced} / ${splitterTotal}` } : null,
               { id: "gems", label: "Gems lit", value: `${gemsShown} / ${gems.length}` },
+              nearMiss ? { id: "nearMiss", value: "1 gem dark", tone: "gold" as const } : null,
             ]}
       />
       <div data-game-controls="pieces" className="flex shrink-0 items-center justify-center gap-2">
@@ -952,6 +998,14 @@ function ShotChip({ index, gems, bomb, total, best }: { index: number; gems: num
 }
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
+  // The solve's payoff (stage 2): the kit's win on the reveal's own result card, once (silent: laser.solve played at
+  // the solve and the reveal plays its score sound).
+  const winRef = useRef<HTMLDivElement>(null);
+  const won = Boolean(myCorrect && puzzle.type === "laser");
+  useEffect(() => {
+    if (!won) return;
+    laserWinFx(winRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]"));
+  }, [won]);
   if (puzzle.type !== "laser") return null;
   const solution = puzzle.solution ?? [];
   const solutionTrace = traceBeam(puzzle.source, puzzle.dir, solution, puzzle.blocks, puzzle.bombs, puzzle.gems, puzzle.splitters, puzzle.directionalGems);
@@ -987,7 +1041,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
         : `You: best shot ${ORDINAL[view.shot - 1]}, ${view.gems} of ${total} gems`;
 
   return (
-    <div className="laser-reveal flex w-full min-h-0 flex-col items-center gap-2" data-laser-reveal="">
+    <div ref={winRef} className="laser-reveal flex w-full min-h-0 flex-col items-center gap-2" data-laser-reveal="">
       <div className="laser-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
         <div className="laser-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-laser-solution="">
           <div className="laser-reveal-board aspect-square">{board(solution, solutionTrace, null)}</div>
