@@ -31,11 +31,33 @@ clips of the hero effects. Images are in this folder.
 <!-- tessellate:start -->
 ## Tessellate
 
+**The look: today | concept A | new** (mid-play, same scale)
+
+| Today | Concept A | New |
+|---|---|---|
+| <img src="../../game-reviews/img/pattern/blockparty-2-mid.webp" width="180"> | <img src="blockparty-concept-A.webp" width="180"> | <img src="blockparty-after-play.webp" width="180"> |
+
+The richness pass (sprite.py's rich studio): polished brass studs with a mirror highlight on the dome, lacquered
+blocks with a hard clear coat (one crisp highlight on the bevel, depth down the sides, today's saturated colours: the
+pieces render on the Standard view transform at a lower key, since AgX turned them pastel), satin recessed wells.
+
 | | Before | After |
 |---|---|---|
 | Start / intro | <img src="../../game-reviews/img/pattern/blockparty-1-start.webp" width="180"> | <img src="blockparty-after-intro.webp" width="180"> |
 | Mid-play | <img src="../../game-reviews/img/pattern/blockparty-2-mid.webp" width="180"> | <img src="blockparty-after-play.webp" width="180"> |
 | Round end | <img src="../../game-reviews/img/pattern/blockparty-3-end.webp" width="180"> | <img src="blockparty-after-reveal.webp" width="180"> |
+
+**The answer reveal** (390 × 844)
+
+| Before, unfinished | After, unfinished (Yours) | After, solved (Yours) | After, Solution |
+|---|---|---|---|
+| <img src="blockparty-reveal-before-unfinished.webp" width="160"> | <img src="blockparty-reveal-after-unfinished.webp" width="160"> | <img src="blockparty-reveal-after-solved.webp" width="160"> | <img src="blockparty-after-reveal.webp" width="160"> |
+
+- The solution drawn at full width (each board the reveal fit's own target, and a caption under it: with only a
+  board in the shown view the fit had drawn it at half size).
+- Under Yours: pieces off every solution spot outlined red, squares left empty dashed, a one-line key; pills from the
+  stored grade: Pieces placed, Off the solution, Squares empty, Illegal drops (blockRev 4; Right first time on older
+  rounds), Time left on a solve. No stray "×"; nothing under Solution but the board and its caption.
 
 - **Look A** in Blender sprites (`public/pattern-art/blockparty/`, source `docs/design/game-art/pattern/source/blockparty.py`):
   brass studs for the pegs, satin recesses for the free squares, a glossy lacquered block for every square of a piece
@@ -46,7 +68,7 @@ clips of the hero effects. Images are in this folder.
 - **Clean drops** (blockRev 4): moving a placed piece no longer costs the bonus; only a drop where a piece won't fit
   does (one piece's share each).
 - **Help**: the flip, Undo and Reset are explained; "Drag a piece's anchor" is gone.
-- **Reveal**: the player's count reads "You: 0/9 pieces in place", so under Solution it never reads as the solution's.
+- **Reveal**: see the answer reveal above.
 - **Tray**: the widest piece fits its own column (a four-long bar used to run over its neighbour once pieces were placed).
 - **Sounds**: pick-up, illegal drop (a dull thud as the piece goes back; it was silent), Undo and Reset now sound.
 <!-- tessellate:end -->
