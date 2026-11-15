@@ -14,6 +14,7 @@ import {
   type ArcadeInputEvent,
   type InputDiag,
 } from "@/lib/arcade/engine";
+import { isEmptyRunAnswer } from "@/lib/arcade/sportsKit";
 
 export interface FlatRun<C> {
   seed: number;
@@ -43,8 +44,15 @@ export function makeArcadeRun<S, C extends { tick: number; checksum: number }>(o
   checkpoint: (state: S) => C;
   keys: readonly (keyof C & string)[];
   interval: number;
+  /**
+   * The Sports games only (Home Run, Top Bins, Apex; 15 Nov 2026): an answer with no run in it (isEmptyRunAnswer) is
+   * graded as the genuine 0 its replay gives, unflagged. Every other game leaves it off and judges such an answer as
+   * before.
+   */
+  emptyIsZero?: boolean;
 }) {
   const { game, checkpoint, keys, interval, tag } = opts;
+  const emptyIsZero = opts.emptyIsZero === true;
   const runTicks = game.runTicks;
   const ranges = game.inputRanges ?? [];
 
@@ -97,6 +105,7 @@ export function makeArcadeRun<S, C extends { tick: number; checksum: number }>(o
     for (const event of check.events) events.set(event.t, event);
     const lastTick = clientLag ? endTick : runTicks;
     const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
+    const empty = emptyIsZero && isEmptyRunAnswer(raw);
 
     let state = game.init(seed);
     let reached = 0;
@@ -109,7 +118,7 @@ export function makeArcadeRun<S, C extends { tick: number; checksum: number }>(o
         const serverState = checkpoint(state);
         serverCheckpoints.push(serverState);
         const clientState = clientCheckpoints.get(tick);
-        if ((!clientState || clientState.checksum !== serverState.checksum) && desyncTick === null) {
+        if (!empty && (!clientState || clientState.checksum !== serverState.checksum) && desyncTick === null) {
           desyncTick = tick;
           console.error(`[${tag}] client/server desync`, {
             tick,
@@ -122,7 +131,7 @@ export function makeArcadeRun<S, C extends { tick: number; checksum: number }>(o
     }
 
     const replayScore = game.score(state);
-    const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
+    const mismatch = run.claimedScore !== replayScore || (run.seed !== seed && !(empty && replayScore === 0));
     const result: FlatReplay<S, C> = {
       score: replayScore,
       flagged: !check.ok || mismatch || desyncTick !== null,

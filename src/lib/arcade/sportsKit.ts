@@ -230,6 +230,20 @@ export function decodeSportsRun(raw: string, runTicks: number): SportsRun {
   };
 }
 
+/**
+ * An answer with no run in it (empty Sports runs score 0, 15 Nov 2026): no inputs, no checkpoints, no end tick and no
+ * claimed points, whatever seed it names. An empty string is one, and so is a draft made before the first tick
+ * (`seed|0||0|`). The six Sports games' replays grade it as the genuine 0 the server's replay gives, unflagged; any run
+ * with an input, a checkpoint, an end tick or a claim is judged as before, so a real mismatch stays flagged. Grading
+ * only: stored results are never regraded.
+ */
+export function isEmptyRunAnswer(raw: string | null | undefined): boolean {
+  const parts = (String(raw ?? "").split("~")[0] ?? "").split("|");
+  if (parts.length > 5) return false;
+  const [, score = "", events = "", tick = "", checkpoints = ""] = parts;
+  return events === "" && checkpoints === "" && (tick === "" || tick === "0") && (score === "" || score === "0");
+}
+
 export interface SportsResult<S> {
   score: number;
   state: S;
@@ -265,6 +279,7 @@ export function replaySportsRun<S extends { tick: number }>(
   const clientLag = endTick > 0 && endTick < game.runTicks;
   const lastTick = clientLag ? endTick : game.runTicks;
   const client = new Map((run.checkpoints ?? []).map((c) => [c.tick, c]));
+  const empty = isEmptyRunAnswer(raw);
   let state = game.init(seed);
   let reached = 0;
   let desyncTick: number | null = null;
@@ -276,7 +291,7 @@ export function replaySportsRun<S extends { tick: number }>(
       const mine = checkpoint(state);
       server.push(mine);
       const theirs = client.get(state.tick);
-      if ((!theirs || theirs.checksum !== mine.checksum) && desyncTick === null && state.tick <= (endTick || lastTick)) {
+      if (!empty && (!theirs || theirs.checksum !== mine.checksum) && desyncTick === null && state.tick <= (endTick || lastTick)) {
         desyncTick = state.tick;
         console.error(`[${label}] client/server desync`, { tick: state.tick, client: theirs, server: mine });
       }
@@ -284,7 +299,8 @@ export function replaySportsRun<S extends { tick: number }>(
     if (game.isOver(state)) break;
   }
   const score = game.score(state);
-  const mismatch = run.claimedScore !== score || run.seed !== seed;
+  // An empty answer is a genuine 0 (its seed is irrelevant: nothing was played); any other answer must name the seed.
+  const mismatch = run.claimedScore !== score || (run.seed !== seed && !(empty && score === 0));
   const result: SportsResult<S> = {
     score,
     state,
