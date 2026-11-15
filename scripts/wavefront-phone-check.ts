@@ -72,7 +72,7 @@ import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { decodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
-import { generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateWavefront, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { wavefrontPuzzle } from "../src/puzzles/wavefront";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { playRevOf } from "./scoring-targets-revs";
@@ -81,6 +81,11 @@ import { LEGACY_REVS, stateDigest } from "./wavefront-expand-record";
 import { PHONE_RECORDED_SEEDS } from "./wavefront-phone-bands";
 import { botLog, randomLog, roomIdentity, scheduleOf } from "./room-identity/wavefront";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -97,8 +102,10 @@ section("Rooms deal wavRev 11's play (since 29 Oct 2026 as wavRev 12), scored to
 // proves its scoring, section 2 below that wavRev 11 logs replay on it tick for tick); wavRev 11 rounds replay as before.
 // The scoring audit (Nov 2026): rooms deal wavRev 13, wavRev 12's play and parts (scoring-audit-arcade-check).
 ok(WAV_REV_PHONE === 11 && WAV_REV_STD === 12 && generateWavefront().wavRev === WAV_REV_STD + 1 && playRevOf("wavefront", WAV_REV_STD) === WAV_REV_PHONE, "rooms deal wavRev 13 (wavRev 12's scoring parts), wavRev 11's play");
-ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_STD + 1, "practice's definition deals wavRev 13");
-ok(LIVE_BANDS.wavefront.rev === WAV_REV_STD + 1 && LIVE_BANDS.wavefront.curve === WAV_V12_BAND_CURVE && LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT, "LIVE_BANDS: wavRev 13 on WAV_V12_BAND_CURVE, wavRev 8 its strictRev");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the practice deal and the help read
+// wavRev 14 (wavRev 13 plus the charged shot).
+ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_STD + 2, "practice's definition deals wavRev 14 (wavRev 13 plus the charged shot)");
+ok(LIVE_BANDS.wavefront.rev === WAV_REV_STD + 2 && LIVE_BANDS.wavefront.curve === WAV_V12_BAND_CURVE && LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT, "LIVE_BANDS: wavRev 13 on WAV_V12_BAND_CURVE, wavRev 8 its strictRev");
 ok(wavefrontWorldHFor(WAV_REV_STD) === WAV_X_H && wavefrontGameFor(WAV_REV_STD).runTicks === game.runTicks, "wavRev 12 plays in the same 390 × 800 world for the same 90 s");
 for (const rev of [...LEGACY_REVS, WAV_REV_EXPAND, WAV_REV_PHONE]) ok(!("std" in (wavefrontGameFor(rev).init(1) as object)) && !("coresHit" in (wavefrontGameFor(rev).init(1) as object)), `wavRev ${rev ?? "-"} starts with no wavRev 12 field`);
 ok(roundMaxFor("wavefront") === 200, "Wavefront's round maximum is 200");

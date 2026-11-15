@@ -15,7 +15,7 @@ import { FLIP_REV_DEAL, FLIP_REV_FLOW } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
 import { RALLY_REV_STD } from "@/lib/arcade/rally";
-import { WAV_REV_KEEP, WAV_REV_STD } from "@/lib/arcade/wavefront";
+import { WAV_REV_CHARGE, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
 import { BURST_REV_AIM, BURST_REV_WIDE } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
@@ -43,7 +43,8 @@ import type { PuzzleDemoLog } from "./puzzleDemo";
  * the rules named only the older one, so a demo recorded on the dealt stamp was refused).
  */
 export const SAME_PLAY_DEMO_REVS = {
-  wavefront: [WAV_REV_STD, WAV_REV_KEEP],
+  // wavRev 14 (the Retro overhaul) plays wavRev 13 exactly until a charged shot is fired; a demo on either plays.
+  wavefront: [WAV_REV_KEEP, WAV_REV_CHARGE],
   // burstRev 12 (the Retro overhaul, 15 Nov 2026) plays burstRev 11 exactly (its wave clears scored more kindly).
   burst: [BURST_REV_AIM, BURST_REV_WIDE],
   cross: [CROSS_REV_FLOW, CROSS_REV_KEEP],

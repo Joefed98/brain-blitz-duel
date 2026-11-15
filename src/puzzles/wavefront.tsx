@@ -6,7 +6,9 @@ import {
   wavCheckpoint,
   WAV_BG,
   WAV_CHECKPOINT_INTERVAL,
-  WAV_REV_KEEP,
+  WAV_REV_CHARGE,
+  WAV_V14_HOLD,
+  WAV_V14_LIFT,
   wavDragZoneTop,
   wavefrontWorldHFor,
   WAV_WORLD_W,
@@ -27,12 +29,12 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 function IntroExample() {
   return (
     <ArtStill
-      game={wavefrontArtGameFor(WAV_REV_KEEP)}
+      game={wavefrontArtGameFor(WAV_REV_CHARGE)}
       worldW={WAV_WORLD_W}
-      worldH={wavefrontWorldHFor(WAV_REV_KEEP)}
+      worldH={wavefrontWorldHFor(WAV_REV_CHARGE)}
       ticks={150}
       input={null}
-      caption="Your ship fires on its own. Shoot the glowing carriers for power-ups, hit the bosses’ weak points."
+      caption="Your ship fires on its own. Hold a second and lift for a heavy blast that cracks armour."
     />
   );
 }
@@ -61,7 +63,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       encodeRun={encodeWavefrontRun}
       pointer={(kind, x, y) => {
         if (kind === "down" && y < wavDragZoneTop(worldH)) return null;
-        return { a: x, b: 0, c: 0 };
+        // wavRev 14: the touch starts the charged shot's hold and the lift ends it (a lift after 1 s fires the blast).
+        const charged = (data?.wavRev ?? 0) >= WAV_REV_CHARGE;
+        return { a: x, b: 0, c: charged && kind === "down" ? WAV_V14_HOLD : charged && kind === "up" ? WAV_V14_LIFT : 0 };
       }}
       // Desktop keys: ←/→ (A/D) slide the aim, the same absolute x a drag sets, 6 px a tick.
       tickInput={(state) => {
@@ -114,7 +118,7 @@ export const wavefrontPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_KEEP }) satisfies WavefrontPuzzleData,
+  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_CHARGE }) satisfies WavefrontPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

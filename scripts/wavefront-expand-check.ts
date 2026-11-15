@@ -66,13 +66,12 @@ import {
   WAV_X_SKILL_SAUCER,
   WAV_X_STREAK_CAP,
   WAV_X_STREAK_STEP,
-  type WavState,
-} from "../src/lib/arcade/wavefront";
+  type WavState, WAV_REV_CHARGE } from "../src/lib/arcade/wavefront";
 import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { replayWavefrontRun } from "../src/lib/duel/wavefront";
-import { generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateWavefront, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { wavefrontPuzzle } from "../src/puzzles/wavefront";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { LEGACY_REVS, stateDigest } from "./wavefront-expand-record";
@@ -81,6 +80,11 @@ import { ALL_LEVELS } from "./arcade-skill-bands/human";
 import { playRevOf } from "./scoring-targets-revs";
 import { botLog, randomLog, scheduleOf } from "./room-identity/wavefront";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -142,7 +146,9 @@ section("Old rounds replay unchanged on every older revision");
 section("Rooms deal wavRev 11 (after wavRev 10), scored to 200");
 // Since 29 Oct 2026 rooms deal wavRev 12, wavRev 11's play on the arcade scoring standard (playRevOf maps it to 11).
 ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_PHONE && WAV_REV_EXPAND === 10 && WAV_REV_PHONE === 11, "rooms deal wavRev 11's play (wavRev 12 since 29 Oct 2026), the revision after wavRev 10");
-ok(playRevOf("wavefront", (wavefrontPuzzle.generate() as { wavRev?: number }).wavRev) === WAV_REV_PHONE, "practice's definition deals wavRev 11's play");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the practice deal and the help read
+// wavRev 14 (wavRev 13 plus the charged shot).
+ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_CHARGE, "practice's definition deals wavRev 14 (wavRev 11's play on the standard, plus the charged shot)");
 ok(LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT && WAV_V10_BAND_CURVE.points.at(-1) === 140, "LIVE_BANDS: wavRev 8 is still the strictRev; wavRev 10's base curve still tops at 140");
 ok(roundMaxFor("wavefront") === 200, "Wavefront's round maximum is 200");
 ok(wavefrontWorldHFor(WAV_REV_EXPAND) === WAV_X_H && WAV_X_H === 800, "wavRev 10 plays in the 390 × 800 world");

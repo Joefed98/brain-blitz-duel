@@ -203,6 +203,8 @@ export interface WavBolt {
   /** Piercing bolts: hits left (0/undefined = ordinary), and whether the armour was already struck. */
   p?: number;
   a?: number;
+  /** wavRev 14: a heavy blast (the charged shot): it deals this many hits to armour, cannons and the open core. */
+  hv?: number;
   /** wavRev 10: a spread bolt's sideways speed (1/256 px a tick) and mark, and 1 once a bolt has hit something (or was fired during a fly-in). */
   v?: number;
   sd?: number;
@@ -331,6 +333,13 @@ export interface WavState extends BandFields {
   coresHit?: number;
   /** wavRev 13 (the scoring audit): 1 = the life that ends the run is not charged, lives take at most half the core. Outside the checksum. */
   keep?: number;
+  /**
+   * wavRev 14 only (the Retro overhaul, 15 Nov 2026): 1 = the charged shot; the tick the current hold began (0 none) and
+   * heavy blasts fired.
+   */
+  charge?: number;
+  chargeAt?: number;
+  heavies?: number;
   /** wavRev 2: ships that rammed the player while diving (destroyed, no points), and divers shot down. */
   rammed?: number;
   diversDown?: number;
@@ -1076,6 +1085,11 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
       extra.push(state.r11, state.pickupsMade ?? 0, ...(state.carry ?? []));
       for (const p of state.pickups ?? []) extra.push(p.x, p.y, p.k, p.i);
     }
+    // wavRev 14 (the Retro overhaul): the charged shot's hold and blasts, last.
+    if (state.charge) {
+      extra.push(state.charge, state.chargeAt ?? 0, state.heavies ?? 0);
+      for (const b of state.bolts) extra.push(b.hv ?? 0);
+    }
     for (const value of extra) {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1302,6 +1316,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_CHARGE) return wavefrontChargeGame;
   if (rev === WAV_REV_KEEP) return wavefrontKeepGame;
   if (rev === WAV_REV_STD) return wavefrontStdGame;
   if (rev === WAV_REV_PHONE) return wavefrontPhoneGame;
@@ -1485,7 +1500,7 @@ export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 
 /** The world height (px) a stored round's wavRev plays in. */
 export function wavefrontWorldHFor(rev?: number | null): number {
-  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD || rev === WAV_REV_KEEP) return WAV_X_H;
+  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD || rev === WAV_REV_KEEP || rev === WAV_REV_CHARGE) return WAV_X_H;
   return rev === WAV_REV_TALL || rev === WAV_REV_TARGET || rev === WAV_REV_STRICT ? WAV_TALL_H : WAV_WORLD_H;
 }
 
@@ -1778,6 +1793,18 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
   s.shipX = clampInt(s.aimX, SHIP_MIN_X, SHIP_MAX_X);
   if (s.invuln > 0) s.invuln -= 1;
   if ((s.shield ?? 0) > 0) s.shield = (s.shield ?? 0) - 1;
+  // wavRev 14: the charged shot. A touch starts the hold (c = 1), lifting ends it (c = 2); held WAV_V14_CHARGE_TICKS or
+  // more, the lift fires one heavy blast from the ship. Automatic fire carries on throughout.
+  if (s.charge && input && input.k === ARCADE_INPUT_DRAG) {
+    if (input.c === WAV_V14_HOLD) s.chargeAt = tick;
+    else if (input.c === WAV_V14_LIFT) {
+      if ((s.chargeAt ?? 0) > 0 && tick - (s.chargeAt ?? 0) >= WAV_V14_CHARGE_TICKS) {
+        s.bolts.push({ x: s.shipX * FP, y: (shipY - 14 - WAV_BOLT_H) * FP, p: WAV_V14_HEAVY_HITS, hv: WAV_V14_HEAVY_HITS });
+        s.heavies = (s.heavies ?? 0) + 1;
+      }
+      s.chargeAt = 0;
+    }
+  }
 
   const entering = (s.enter ?? 0) > 0;
   if (entering) {
@@ -1955,8 +1982,10 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
         streakHit(s);
         if (code === WAV_ARMOUR_CODE && s.armour) {
           bolt.a = 1;
-          s.armour.hp -= 1;
-          s.armourHits += 1;
+          // wavRev 14: a heavy blast cracks several plates at once.
+          const plates = bolt.hv ? Math.min(bolt.hv, s.armour.hp) : 1;
+          s.armour.hp -= plates;
+          s.armourHits += plates;
           if (s.armour.hp <= 0) {
             for (let j = 0; j < n; j++) if (s.shapes[j] === WAV_ARMOUR_CODE) s.shapes[j] = 0;
             const ab = wavShapeBox(s, s.armour.row * WAV_COLS + s.armour.col);
@@ -2007,7 +2036,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
           // A cannon: its own hit points; the boss takes the usual one too. Nearer its centre pays more.
           streakHit(s);
           s.precise = (s.precise ?? 0) + wavPrecision(Math.abs(bx - wavCannonX(boss, side)));
-          guns[side] = guns[side]! - 1;
+          guns[side] = Math.max(0, guns[side]! - (bolt.hv ? WAV_V14_HEAVY_BOSS : 1));
           if (guns[side]! <= 0) {
             s.cannonsDown = (s.cannonsDown ?? 0) + 1;
             s.bursts.push({ x: boss.x + wavCannonX(boss, side), y: WAV_BOSS_Y + WAV_BOSS_H - 8, t: tick, c: 3 });
@@ -2015,7 +2044,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
           boss.guns = guns;
         } else if (Math.abs(bx - w / 2) <= WAV_X_CORE_W / 2 && wavCoreOpen(boss, tick)) {
           streakHit(s);
-          dmg = WAV_X_CORE_DAMAGE;
+          dmg = WAV_X_CORE_DAMAGE * (bolt.hv ? WAV_V14_HEAVY_BOSS : 1);
           s.weakHits = (s.weakHits ?? 0) + 1;
           // wavRev 12: which bosses' cores were hit (scoring only).
           if (s.std) s.coresHit = (s.coresHit ?? 0) | (boss.mid ? 1 : 2);
@@ -2502,4 +2531,31 @@ export const WAVEFRONT_STD_KEEP: StdSpec = { ...WAVEFRONT_STD, rev: WAV_REV_KEEP
 export const wavefrontKeepGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
   ...wavefrontStdGame,
   init: (seed: number) => ({ ...initStd(seed), keep: 1 }),
+};
+
+/* ================= The Retro overhaul: the charged shot (wavRev 14, 15 Nov 2026) ================= */
+
+/**
+ * wavRev 14 (the Retro overhaul, docs/design/game-reviews/retro.md "Wavefront", docs/arcade-standard/wavefront.md "wavRev
+ * 14"): firing is automatic, so one drag then idling scored 15–37 and weak to flawless spanned only 52 points. wavRev 13's
+ * world, waves, bosses, power-ups, parts and scoring exactly, plus a charged shot: a touch starts a hold, and a lift after
+ * at least WAV_V14_CHARGE_TICKS (1 s) fires one heavy blast from the ship, which passes through WAV_V14_HEAVY_HITS ships
+ * and cracks that many armour plates at once, and on a boss takes WAV_V14_HEAVY_BOSS times a cannon's or the open core's
+ * damage. Automatic fire carries on throughout; nothing else changes (the same bolts, ships and drops tick for tick while
+ * no blast is fired). States add `charge: 1`, `chargeAt` and `heavies`, folded into the checkpoint checksum last; the
+ * drag's `c` carries the hold (1) and the lift (2).
+ */
+export const WAV_REV_CHARGE = 14;
+export const WAV_V14_CHARGE_TICKS = 60;
+export const WAV_V14_HEAVY_HITS = 3;
+export const WAV_V14_HEAVY_BOSS = 2;
+export const WAV_V14_HOLD = 1;
+export const WAV_V14_LIFT = 2;
+export const WAV_V14_INPUT_RANGES: readonly InputRange[] = [inputRange(ARCADE_INPUT_DRAG, [0, WAV_WORLD_W], [0, 0], [0, WAV_V14_LIFT])];
+export const WAVEFRONT_STD_CHARGE: StdSpec = { ...WAVEFRONT_STD_KEEP, rev: WAV_REV_CHARGE };
+
+export const wavefrontChargeGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontKeepGame,
+  init: (seed: number) => ({ ...wavefrontKeepGame.init(seed), charge: 1, chargeAt: 0, heavies: 0 }),
+  inputRanges: WAV_V14_INPUT_RANGES,
 };

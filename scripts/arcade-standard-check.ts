@@ -73,7 +73,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.
   { type: "cross", field: "crossRev", rev: 12, batch: "C" },
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
-  { type: "wavefront", field: "wavRev", rev: 13, batch: "C" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): wavRev 14, the charged shot.
+  { type: "wavefront", field: "wavRev", rev: 14, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
   // flipRev 12 (3 Nov 2026): flipRev 11's game dealt only on its proved courses (flip-deal-check).
   { type: "flip", field: "flipRev", rev: 12, batch: "C" },

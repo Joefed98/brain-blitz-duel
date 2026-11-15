@@ -140,8 +140,7 @@ import {
   WAV_STD_CORE_FULL,
   WAV_STD_LIFE_COST,
   WAVEFRONT_STD,
-  WAVEFRONT_STD_KEEP,
-} from "@/lib/arcade/wavefront";
+  WAVEFRONT_STD_KEEP, WAV_V14_HEAVY_HITS } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
   INK_V13_CLOVERS,
@@ -1528,7 +1527,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to move;", detail: "you fire on your own." },
         { action: "Shoot glowing carriers;", detail: "catch what they drop." },
-        { action: "Bosses:", detail: "hit the cannons and the open core." },
+        { action: "Hold, then lift:", detail: "a heavy blast." },
+        { action: "Bosses:", detail: "hit the cannons and the open core.", helpOnly: true },
+        { action: "The charged shot:", detail: `keep your finger down at least a second, then lift it: a heavy blast flies up through ${WAV_V14_HEAVY_HITS} ships, cracks ${WAV_V14_HEAVY_HITS} armour plates at once and does double damage to a boss's cannons and open core. Your ship keeps firing on its own all the while.`, helpOnly: true },
         { action: "Red bolts and divers cost a life:", detail: `you have 3. Each life but your last costs ${WAV_STD_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don’t let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },

@@ -44,7 +44,7 @@ import {
   wavShipY,
   wavWorldH,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP, WAV_REV_CHARGE,
   wavBossW,
   wavCannonX,
   wavCoreOpen,
@@ -1272,7 +1272,10 @@ const wavefrontArtGameStd = { ...wavefrontGameFor(WAV_REV_STD), draw: drawWavefr
 /** The art game for a stored wavRev; one cached object per revision. */
 /** wavRev 13: wavRev 12's play and look (the scoring audit's lives rule). */
 const wavefrontArtGameKeep = { ...wavefrontGameFor(WAV_REV_KEEP), draw: drawWavefrontArt };
+/** wavRev 14 (the Retro overhaul): the charged shot, drawn by the same art. */
+const wavefrontArtGameCharge = { ...wavefrontGameFor(WAV_REV_CHARGE), draw: drawWavefrontArt };
 export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_CHARGE) return wavefrontArtGameCharge;
   if (rev === WAV_REV_KEEP) return wavefrontArtGameKeep;
   if (rev === WAV_REV_STD) return wavefrontArtGameStd;
   if (rev === WAV_REV_PHONE) return wavefrontArtGamePhone;

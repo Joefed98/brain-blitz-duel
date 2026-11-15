@@ -42,6 +42,12 @@ import {
 import { skylineGameFor, skylineStdParts, SKYLINE_REV_COUNT, SKYLINE_REV_STD, SKYLINE_V9_FULL_AT, type SkylineState } from "../src/lib/arcade/skyline";
 import { sliceGameFor, sliceV11Parts, SLICE_REV_FOOD, SLICE_REV_LINE, SLICE_V11_COMBO_CAP, SLICE_V11_CORE, SLICE_V12_COMBO_FULL, type SliceState } from "../src/lib/arcade/slice";
 import { stdSum } from "../src/lib/arcade/arcadeStandard";
+import { pinPreRetro } from "../src/lib/duel/arcade.server";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -62,7 +68,10 @@ for (const g of AUDIT_GAMES) {
     // burstRev 11's play with kinder wave clears, so the dealt stamp is compared by the play it keeps.
     ok(playRevOf(g.type, dealt as number) === playRevOf(g.type, g.rev), `${g.type}: rooms deal ${g.field} ${g.rev} (got ${String(dealt)})`);
   }
-  ok(playRevOf(g.type, (LIVE_BANDS as any)[g.type].rev) === playRevOf(g.type, g.rev), `${g.type}: LIVE_BANDS reads ${g.field} ${g.rev}`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Wavefront's help reads wavRev 14,
+  // wavRev 13 plus the charged shot (one above the audit's stamp).
+  const liveRev = (LIVE_BANDS as any)[g.type].rev;
+  ok(playRevOf(g.type, liveRev) === playRevOf(g.type, g.rev) || (g.type === "wavefront" && liveRev === g.rev + 1), `${g.type}: LIVE_BANDS reads ${g.field} ${g.rev}`);
   ok(playRevOf(g.type, g.rev) === playRevOf(g.type, g.old), `${g.type}: ${g.field} ${g.rev} keeps ${g.field} ${g.old}'s play (playRevOf ${String(playRevOf(g.type, g.rev))})`);
   // The intro demo's gate names the stamp the demo was recorded on (the old one): the same play, so it still plays.
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");

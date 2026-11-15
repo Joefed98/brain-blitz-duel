@@ -4,6 +4,8 @@
  * replay, and a built state with every part full. Played: one drag, random drags and a run that loses every life
  * at once, each at least 1. Idle: no input at all, 0. wavefront-phone-check proves the core's full figure (294, the
  * units at the mothership's arrival), the five saucers a run flies and that wavRev 11 logs replay tick for tick.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the entry moved to the dealt
+ * stamp, wavRev 14 (wavRev 13 plus the charged shot; the recorded flawless runs, which never charge, replay on it).
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -12,7 +14,9 @@ import {
   wavCheckpoint,
   wavefrontGameFor,
   WAVEFRONT_STD_KEEP,
+  WAV_REV_CHARGE,
   WAV_REV_KEEP,
+  WAVEFRONT_STD_CHARGE,
   WAV_REV_STD,
   WAV_STD_CORE_FULL,
   WAV_STD_KILL_FULL,
@@ -22,12 +26,12 @@ import {
   WAV_WORLD_W,
   type WavState,
 } from "../../src/lib/arcade/wavefront";
-import { encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
+import { decodeWavefrontRun, encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
 import { roomSeed } from "../arcade-skill-bands/games";
 import { randomLog } from "../room-identity/wavefront";
 import type { StdEntry, StdRun } from "./entry";
 
-const game = wavefrontGameFor(WAV_REV_KEEP);
+const game = wavefrontGameFor(WAV_REV_CHARGE);
 
 /** A log played on wavRev 12, checkpointed as the phone does, through the server's encode + replay. */
 function serverRun(seed: number, events: ArcadeInputEvent[]): number {
@@ -39,7 +43,7 @@ function serverRun(seed: number, events: ArcadeInputEvent[]): number {
     if (s.tick % 300 === 0) checkpoints.push(wavCheckpoint(s));
   }
   const raw = encodeWavefrontRun({ seed, claimedScore: game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
-  const r = replayWavefrontRun(seed, raw, WAV_REV_KEEP);
+  const r = replayWavefrontRun(seed, raw, WAV_REV_CHARGE);
   if (r.flagged) throw new Error(`seed ${seed}: the server replay flagged the run (${r.reason})`);
   return r.score;
 }
@@ -48,14 +52,26 @@ export const entry: StdEntry = {
   type: "wavefront",
   field: "wavRev",
   // wavRev 13 since Nov 2026 (the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
-  rev: WAV_REV_KEEP,
-  before: WAV_REV_STD,
-  parts: WAVEFRONT_STD_KEEP.parts,
-  spec: WAVEFRONT_STD_KEEP,
+  // wavRev 14 since 15 Nov 2026 (the Retro overhaul): wavRev 13 and its parts plus the charged shot.
+  rev: WAV_REV_CHARGE,
+  before: WAV_REV_KEEP,
+  parts: WAVEFRONT_STD_CHARGE.parts,
+  spec: WAVEFRONT_STD_CHARGE,
   perfect: (): StdRun[] => {
     const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-std-runs.json.gz")).toString()) as { runs: { n: number; seed: number; raw: string }[] };
     const runs: StdRun[] = data.runs.map((r) => {
-      const res = replayWavefrontRun(r.seed, r.raw, WAV_REV_KEEP);
+      // The recorded runs were checkpointed on wavRev 12; their inputs (which never charge) are checkpointed again on
+      // wavRev 14, whose checksum also folds in the charged shot's state, and sent through the server replay.
+      const events = (decodeWavefrontRun(r.raw) as unknown as { events: ArcadeInputEvent[] }).events;
+      const byTick = new Map(events.map((e) => [e.t, e]));
+      let st = game.init(r.seed) as WavState;
+      const checkpoints: unknown[] = [];
+      while (!game.isOver(st) && st.tick < game.runTicks) {
+        st = game.step(st, byTick.get(st.tick + 1) ?? null) as WavState;
+        if (st.tick % 300 === 0) checkpoints.push(wavCheckpoint(st));
+      }
+      const raw = encodeWavefrontRun({ seed: r.seed, claimedScore: game.score(st), events, inputs: [], taps: [], endTick: st.tick, checkpoints } as never);
+      const res = replayWavefrontRun(r.seed, raw, WAV_REV_CHARGE);
       const s = res.state as WavState;
       // A clean replay of a run that took everything: no life lost, all five saucers, all four cannons and both cores.
       const clean = !res.flagged && s.lives === 3 && (s.bossKilled ?? 0) === 1 && s.tick - (s.bossAt ?? 0) <= WAV_STD_KILL_FULL && (s.cannonsDown ?? 0) === 4 && s.coresHit === 3;

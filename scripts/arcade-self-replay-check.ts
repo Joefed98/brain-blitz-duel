@@ -1035,6 +1035,8 @@ const GAMES: Game[] = [
   { key: "snake/wrap", game: snakeGameFor(SNAKE_REV_WRAP), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_WRAP) },
   // Breaker brkRev 12 (15 Nov 2026, the Retro overhaul: the clearable wall), appended so every earlier entry keeps its stream.
   { key: "breaker/clear", game: breakerGameFor(BRK_REV_CLEAR), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_CLEAR) },
+  // Wavefront wavRev 14 (15 Nov 2026, the Retro overhaul: the charged shot), appended so every earlier entry keeps its stream.
+  { key: "wavefront/charge", game: wavefrontGameFor(14), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 14) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

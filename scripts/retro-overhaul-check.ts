@@ -31,6 +31,9 @@
  *  Breaker brkRev 12 (the clearable wall): wiring; every board is brkRev 11's with rows 3–5 taken out (81 bricks, the
  *  3 gold bricks kept, every power brick kept, the lost ones in the lower rows); a quicker ball; a stronger multi-ball;
  *  the elite bot clears the wall on most seeds (it cleared 4 of 12 on brkRev 11); the server replay.
+ *  Wavefront wavRev 14 (the charged shot): wiring; a log that never charges plays tick for tick as on wavRev 13; a touch
+ *  held a second and lifted fires one heavy blast (a shorter hold none); repeated blasts crack armour faster; the
+ *  server replay of a charged run.
  *  The shared Retro HUD: every count it draws is at least 11 px (retroHudFloorPx).
  *
  *   bun scripts/retro-overhaul-check.ts
@@ -85,6 +88,10 @@ import { snakeColsOf, snakeGameFor, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAK
 import { bot as breakerBot } from "./arcade-skill-bands/bots/breaker";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
 import { breakerGameFor, brkGoldDealt, BRK_REV_CLEAR, BRK_REV_STD, type BrkState } from "../src/lib/arcade/breaker";
+import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../src/lib/arcade/engine";
+import { bot as wavefrontBot } from "./arcade-skill-bands/bots/wavefront";
+import { encodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
+import { wavCheckpoint, wavefrontGameFor, wavShapeBox, WAV_REV_CHARGE, WAV_REV_KEEP, WAV_V14_CHARGE_TICKS, WAV_V14_HEAVY_HITS, WAV_V14_HOLD, WAV_V14_LIFT, WAV_WORLD_W, type WavState } from "../src/lib/arcade/wavefront";
 import { RETRO_HUD_MIN_PX, retroHudFloorPx } from "../src/lib/arcade/retro.renderer";
 
 let checks = 0;
@@ -475,6 +482,86 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   ok(clears[1]! >= 5 && clears[1]! > clears[0]!, `breaker: the elite bot clears the wall on ${clears[1]} of 6 seeds (brkRev 11: ${clears[0]})`);
 }
 
+/* ============================ Wavefront wavRev 14 ============================ */
+{
+  ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_CHARGE && WAV_REV_CHARGE === WAV_REV_KEEP + 1, "wavefront: rooms deal wavRev 14");
+  pinPreRetro(true);
+  ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_KEEP, "wavefront: preRetro deals wavRev 13");
+  pinPreRetro(false);
+  ok(LIVE_BANDS.wavefront.rev === WAV_REV_CHARGE, "wavefront: the help reads wavRev 14");
+  ok(/heavy blast/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.wavefront)), "wavefront: the intro and help teach the charged shot");
+  const g13 = wavefrontGameFor(WAV_REV_KEEP);
+  const g14 = wavefrontGameFor(WAV_REV_CHARGE);
+  ok(g14.runTicks <= 120 * TICKS_PER_SECOND, "wavefront: the run is at most 120 s");
+  const play = (game: typeof g14, seed: number, events: ArcadeInputEvent[]) => {
+    const by = new Map(events.map((e) => [e.t, e]));
+    let st = game.init(seed) as WavState;
+    const trace: string[] = [];
+    const checkpoints: unknown[] = [];
+    while (!game.isOver(st)) {
+      st = game.step(st, by.get(st.tick + 1) ?? null) as WavState;
+      trace.push(`${st.shipX}|${st.shapesDown}|${st.armourHits}|${st.lives}|${st.bolts.length}|${st.rng}`);
+      if (st.tick % 300 === 0) checkpoints.push(wavCheckpoint(st));
+    }
+    return { state: st, trace, checkpoints, score: game.score(st) };
+  };
+  // A sweeping drag log (never lifted): the same play on both stamps.
+  const sweep = (charge: boolean): ArcadeInputEvent[] => {
+    const out: ArcadeInputEvent[] = [];
+    for (let t = 1; t < g14.runTicks; t += 6) {
+      const x = 40 + ((t * 7) % (WAV_WORLD_W - 80));
+      const phase = t % 120;
+      const c = !charge ? 0 : phase === 1 ? WAV_V14_HOLD : phase === 85 ? WAV_V14_LIFT : 0;
+      out.push({ t, k: ARCADE_INPUT_DRAG, a: x, b: 0, c, d: 0 });
+    }
+    return out;
+  };
+  for (const seed of [3, 41, 777]) {
+    const a = play(g13, seed, sweep(false));
+    const b = play(g14, seed, sweep(false));
+    ok(JSON.stringify(a.trace) === JSON.stringify(b.trace) && a.score === b.score, `wavefront seed ${seed}: with no charge wavRev 14 plays tick for tick as wavRev 13`);
+    const c = play(g14, seed, sweep(true));
+    ok((c.state.heavies ?? 0) > 0, `wavefront seed ${seed}: holds of 84 ticks fire heavy blasts (${c.state.heavies})`);
+    const raw = encodeWavefrontRun({ seed, claimedScore: c.score, events: sweep(true), inputs: [], taps: [], endTick: c.state.tick, checkpoints: c.checkpoints } as never);
+    const res = replayWavefrontRun(seed, raw, WAV_REV_CHARGE);
+    ok(!res.flagged && res.score === c.score, `wavefront seed ${seed}: a charged run replays through the server to ${c.score} (got ${res.score}${res.flagged ? ", flagged" : ""})`);
+  }
+  // A heavy blast on armour cracks three plates at once, an ordinary bolt one (the same bolt placed under the armour).
+  {
+    const wspec = GAME_BY_TYPE.get("wavefront" as never)!;
+    const wseed = wspec.seedFor(0);
+    let st = g14.init(wseed) as WavState;
+    const ev = (wavefrontBot({ game: g13, seed: wseed, rev: WAV_REV_KEEP, human: new Human("wavefront", wseed, "elite" as never), fixes: true }).events ?? []) as ArcadeInputEvent[];
+    const by = new Map(ev.map((e) => [e.t, e]));
+    while (!g14.isOver(st) && !(st.armour && st.armour.hp >= WAV_V14_HEAVY_HITS && !(st.enter ?? 0))) st = g14.step(st, by.get(st.tick + 1) ?? null) as WavState;
+    ok(!!st.armour, "wavefront: a wave with armour comes up");
+    if (st.armour) {
+      const box = wavShapeBox(st, st.armour.row * 9 + st.armour.col);
+      const shot = (hv: boolean): WavState => {
+        let t = { ...st, bolts: [{ x: (box.x + 10) * 256, y: (box.y + 40) * 256, ...(hv ? { p: WAV_V14_HEAVY_HITS, hv: WAV_V14_HEAVY_HITS } : {}) }], fireIn: 999 } as WavState;
+        for (let k = 0; k < 8; k++) t = g14.step(t, null) as WavState;
+        return t;
+      };
+      const plain = shot(false).armourHits - st.armourHits;
+      const heavy = shot(true).armourHits - st.armourHits;
+      ok(plain === 1 && heavy === WAV_V14_HEAVY_HITS, `wavefront: one bolt cracks ${plain} plate, a heavy blast ${heavy}`);
+    }
+  }
+  // The hold's length: under a second fires nothing; a second or more fires one blast from the ship.
+  const hold = (len: number) => {
+    let st = g14.init(9) as WavState;
+    const events: Record<number, ArcadeInputEvent> = {
+      5: { t: 5, k: ARCADE_INPUT_DRAG, a: 200, b: 0, c: WAV_V14_HOLD, d: 0 },
+      [5 + len]: { t: 5 + len, k: ARCADE_INPUT_DRAG, a: 200, b: 0, c: WAV_V14_LIFT, d: 0 },
+    };
+    while (st.tick < 5 + len) st = g14.step(st, events[st.tick + 1] ?? null) as WavState;
+    return st;
+  };
+  ok((hold(WAV_V14_CHARGE_TICKS - 1).heavies ?? 0) === 0, "wavefront: a hold under a second fires no blast");
+  const fired = hold(WAV_V14_CHARGE_TICKS);
+  ok((fired.heavies ?? 0) === 1 && fired.bolts.some((bolt) => bolt.hv === WAV_V14_HEAVY_HITS), "wavefront: a one-second hold fires one heavy blast");
+}
+
 /* ============================ The shared Retro HUD ============================ */
 {
   ok(RETRO_HUD_MIN_PX === 11, `the Retro HUD's smallest count is 11 px (${RETRO_HUD_MIN_PX})`);
@@ -489,4 +576,4 @@ if (failures.length) {
   console.log(`FAIL retro-overhaul-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; Breaker's clearable wall; the Retro HUD floor)`);
+console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; Breaker's clearable wall; Wavefront's charged shot; the Retro HUD floor)`);
