@@ -8,6 +8,17 @@ clips of the hero effects. Images are in this folder.
 <!-- gridlock:start -->
 ## Gridlock
 
+**Today | concept A | new** (play, the same scale):
+
+| Today (main) | Concept A (PR #429) | New |
+|---|---|---|
+| <img src="../../game-reviews/img/pattern/unblock-2-mid.webp" width="180"> | <img src="unblock-concept-A.webp" width="180"> | <img src="unblock-after-play.webp" width="180"> |
+
+The richness pass (sprite.py's rich studio light): glossy lacquered bodies with a clear-coat highlight on their rounded
+edges, dark reflective glass, cabins and lamps, the gold car metallic with a glint on its curves; deeper muted bodies
+(none near gold); a near-black asphalt lot. Against the concept: the same top-down toy cars, our gold car brighter and
+unmistakable (the concept's was mustard), no glowing lamps, the exit kept as gold markings.
+
 | Before (main) | After |
 |---|---|
 | <img src="../../game-reviews/img/pattern/unblock-1-start.webp" width="180"> | <img src="unblock-after-intro.webp" width="180"> |

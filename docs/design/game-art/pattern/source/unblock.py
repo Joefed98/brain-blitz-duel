@@ -14,18 +14,18 @@ import bpy
 import jzlib
 
 PX_PER_CELL = 120
-LIGHT = float(os.environ.get("UB_LIGHT", "0.45"))  # a cell is ~45 css px on a phone; ~2.7× for DPR 2–3
+LIGHT = float(os.environ.get("UB_LIGHT", "1.0"))  # a cell is ~45 css px on a phone; ~2.7× for DPR 2–3
 
 # Muted body colours, none near the gold car's (the gold car is the only gold thing on the lot).
 BODIES = {
-    "blue": "#3f67a8",
-    "teal": "#2a807b",
-    "red": "#a63a4a",
-    "violet": "#6a58ad",
-    "green": "#477f45",
-    "silver": "#6c727d",
+    "blue": "#2f5aa6",
+    "teal": "#1f7a72",
+    "red": "#a82c3e",
+    "violet": "#5a46a8",
+    "green": "#357a3a",
+    "silver": "#565c66",
 }
-GOLD_PAINT = "#d6961a"
+GOLD_PAINT = "#ecb032"
 
 
 def frame(long_pts, short_pts, axis):
@@ -53,13 +53,13 @@ def car(colour, length, axis, gold=False):
     paint = mat(
         f"paint-{colour}",
         GOLD_PAINT if gold else BODIES[colour],
-        0.28 if gold else 0.42,
-        metal=1.0 if gold else 0.2,
-        coat=0.45,
-        coat_rough=0.22,
+        0.24 if gold else 0.34,
+        metal=1.0 if gold else 0.35,
+        coat=1.0,
+        coat_rough=0.03,
     )
     cabin_paint = paint
-    glass_m = mat("glass-dark", "#0b1119", 0.35, metal=0.0)
+    glass_m = mat("glass-dark", "#0a1018", 0.05, metal=0.3, coat=1.0, coat_rough=0.02)
     tyre = mat("tyre", "#111216", 0.85)
     head = mat("headlamp", "#f3ecd6", 0.25, emit="#fff4dc", emit_strength=0.25)
     tail = mat("taillamp", "#b8202a", 0.3, emit="#ff3030", emit_strength=0.2)
@@ -76,32 +76,32 @@ def car(colour, length, axis, gold=False):
         b(cx - 13, 9, 26, 82, 10, tyre, r=4)
     if length == 2 or gold:
         # Saloon: one body, a raised cabin with glass at both ends.
-        b(8, 13, L - 16, 74, 22, paint, r=16)
+        b(8, 13, L - 16, 74, 30, paint, r=15)
         cab0, cab1 = L * 0.27, L * 0.70
-        b(cab0, 21, cab1 - cab0, 58, 10, cabin_paint, r=11, z=20)
-        b(cab0 + 2, 25, 15, 50, 2, glass_m, r=4, z=29.5)       # rear window
-        b(cab1 - 22, 23, 18, 54, 2, glass_m, r=5, z=29.5)      # windscreen
-        b(cab0 + 22, 21, cab1 - cab0 - 48, 3, 2, glass_m, r=1, z=28.5)   # side windows
-        b(cab0 + 22, 76, cab1 - cab0 - 48, 3, 2, glass_m, r=1, z=28.5)
+        b(cab0, 21, cab1 - cab0, 58, 12, cabin_paint, r=10, z=24)
+        b(cab0 + 2, 25, 15, 50, 2, glass_m, r=4, z=35.5)       # rear window
+        b(cab1 - 22, 23, 18, 54, 2, glass_m, r=5, z=35.5)      # windscreen
+        b(cab0 + 22, 21, cab1 - cab0 - 48, 3, 2, glass_m, r=1, z=34.5)   # side windows
+        b(cab0 + 22, 76, cab1 - cab0 - 48, 3, 2, glass_m, r=1, z=34.5)
         if gold:
             # Two dark pinstripes along the bonnet and boot: the gold car reads even without colour.
             for yy in (41, 53):
-                b(12, yy, cab0 - 14, 6, 1.2, stripe, r=1, z=21.5)
-                b(cab1 + 2, yy, L - cab1 - 14, 6, 1.2, stripe, r=1, z=21.5)
+                b(12, yy, cab0 - 14, 6, 1.2, stripe, r=1, z=29.6)
+                b(cab1 + 2, yy, L - cab1 - 14, 6, 1.2, stripe, r=1, z=29.6)
     else:
         # Van: cargo box at the back, a lower cab at the front.
         cab = 92
-        b(8, 12, L - cab - 12, 76, 34, paint, r=10)
+        b(8, 12, L - cab - 12, 76, 40, paint, r=12)
         for k in range(1, int((L - cab - 30) // 34) + 1):
-            b(8 + k * 34, 15, 3, 70, 0.8, trim, r=1, z=33.6)
-        b(L - cab - 2, 15, cab - 6, 70, 22, paint, r=14)
-        b(L - cab + 8, 22, cab - 40, 56, 8, cabin_paint, r=10, z=20)
-        b(L - 38, 24, 16, 52, 2, glass_m, r=5, z=27.5)         # windscreen
+            b(8 + k * 34, 15, 3, 70, 0.8, trim, r=1, z=39.6)
+        b(L - cab - 2, 15, cab - 6, 70, 30, paint, r=14)
+        b(L - cab + 8, 22, cab - 40, 56, 8, cabin_paint, r=10, z=28)
+        b(L - 38, 24, 16, 52, 2, glass_m, r=5, z=35.5)         # windscreen
     # Lamps: headlamps at the front, tail lamps at the back (soft, not glowing).
     van = length == 3 and not gold
-    tz = 33 if van else 21
-    b(L - 17, 19, 7, 15, 2.5, head, r=2, z=20.5)
-    b(L - 17, 66, 7, 15, 2.5, head, r=2, z=20.5)
+    tz = 39 if van else 29
+    b(L - 17, 19, 7, 15, 2.5, head, r=2, z=28.5)
+    b(L - 17, 66, 7, 15, 2.5, head, r=2, z=28.5)
     b(10, 20, 6, 13, 2.5, tail, r=1.5, z=tz)
     b(10, 67, 6, 13, 2.5, tail, r=1.5, z=tz)
 
@@ -109,14 +109,14 @@ def car(colour, length, axis, gold=False):
 def lot():
     """The car park: concrete kerb, dark asphalt, worn white bay lines and the exit gap in the right kerb (row 2)."""
     V = 1000
-    begin(V, 760, pad=0, light=LIGHT)
+    begin(V, 900, pad=0, light=LIGHT * 0.8)
     W0 = 45
     CELL = (V - 2 * W0) / 7
-    kerb = mat("kerb", "#2a2c33", 0.8)
+    kerb = mat("kerb", "#23252b", 0.7)
     add_bump(kerb, 90, 0.08, distance=0.004)
-    asphalt = mat("asphalt", "#121317", 0.88)
-    add_bump(asphalt, 220, 0.35, distance=0.003)
-    paintm = mat("baypaint", "#55544f", 0.8)
+    asphalt = mat("asphalt", "#0d0e11", 0.72)
+    add_bump(asphalt, 320, 0.8, distance=0.004)
+    paintm = mat("baypaint", "#4a4944", 0.6)
     box(0, 0, V, V, 10, kerb, r=26)
     box(W0 - 2, W0 - 2, V - 2 * W0 + 4, V - 2 * W0 + 4, 10.6, asphalt, r=8)
     ey = W0 + 2 * CELL
