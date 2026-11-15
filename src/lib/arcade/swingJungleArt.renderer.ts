@@ -30,7 +30,7 @@ export function jungleArtScale(ctx: Ctx): number {
 /* ---------------- Leaves ---------------- */
 
 /** One pointed leaf at (x, y), `len` long, turned `a` radians; lit face from the top left. */
-function leaf(ctx: Ctx, x: number, y: number, len: number, a: number, light: number, dark: string, lit: string): void {
+function leaf(ctx: Ctx, x: number, y: number, len: number, a: number, light: number, dark: string, lit: string, soft = false): void {
   const w = len * 0.42;
   ctx.save();
   ctx.translate(x, y);
@@ -48,6 +48,11 @@ function leaf(ctx: Ctx, x: number, y: number, len: number, a: number, light: num
   ctx.fillStyle = g;
   ctx.fill();
   ctx.globalAlpha = base;
+  // The backdrop's soft leaves (stage 3) stop at the lit silhouette: no midrib or sheen to busy the shade.
+  if (soft) {
+    ctx.restore();
+    return;
+  }
   // Midrib and a short sheen along the upper half.
   ctx.strokeStyle = "rgba(10,30,12,0.45)";
   ctx.lineWidth = Math.max(0.6, len * 0.035);
@@ -68,12 +73,14 @@ function leaf(ctx: Ctx, x: number, y: number, len: number, a: number, light: num
 
 const LEAF_DARK = ["#123A1C", "#1A4A22", "#22582A"];
 const LEAF_LIT = ["#5FA544", "#79BE52", "#9BD465"];
+/** The backdrop's soft leaves (stage 3): lit in the shade's own greens, so they shape the dark without busying it. */
+const LEAF_LIT_SOFT = ["#30632F", "#3D773A", "#4C8B45"];
 
 /**
  * A cluster of lit leaves round (cx, cy), radius r, from `seed`: about 1 leaf per 18 px², the back ones darker, the
  * front ones on top and lit from the top left. `dim` (0–1) takes it darker (deeper in the jungle).
  */
-export function paintLeafCluster(ctx: Ctx, cx: number, cy: number, r: number, seed: number, dim = 0): void {
+export function paintLeafCluster(ctx: Ctx, cx: number, cy: number, r: number, seed: number, dim = 0, soft = false): void {
   const n = Math.max(10, Math.min(60, Math.round((r * r) / 18)));
   const leaves: { x: number; y: number; a: number; len: number; z: number }[] = [];
   for (let i = 0; i < n; i++) {
@@ -88,7 +95,7 @@ export function paintLeafCluster(ctx: Ctx, cx: number, cy: number, r: number, se
     // Lit from the top left: leaves up and left of the centre are brighter.
     const light = Math.max(0, Math.min(1, 0.35 + depth * 0.45 + ((cx - l.x) / r) * 0.15 + ((cy - l.y) / r) * 0.25)) * (1 - dim * 0.6);
     const k = Math.min(2, Math.floor(depth * 3));
-    leaf(ctx, l.x, l.y, l.len, l.a, light, LEAF_DARK[k]!, LEAF_LIT[k]!);
+    leaf(ctx, l.x, l.y, l.len, l.a, light, LEAF_DARK[k]!, (soft ? LEAF_LIT_SOFT : LEAF_LIT)[k]!, soft);
   }
 }
 
@@ -108,11 +115,45 @@ export function drawLeafClusterSprite(ctx: Ctx, x: number, y: number, r: number,
       paintLeafCluster(c as Ctx, size / 2, size / 2, r, 7919 * (variant + 1), step / 4);
       sprite = { canvas, size };
     } else sprite = null;
-    if (clusterCache.size > 64) clusterCache.clear();
+    // Stage 3's dense canopy (15 Nov 2026) holds about 6 variants × 6 radii × 5 dim steps: room for them all, so the
+    // cache never empties while a frame draws.
+    if (clusterCache.size > 192) clusterCache.clear();
     clusterCache.set(key, sprite);
   }
   if (sprite) ctx.drawImage(sprite.canvas as CanvasImageSource, x - sprite.size / 2, y - sprite.size / 2, sprite.size, sprite.size);
   else paintLeafCluster(ctx, x, y, r, 7919 * (variant + 1), step / 4);
+}
+
+/**
+ * The dense canopy (stage 3 of the Action overhaul, 15 Nov 2026, Joe: "closer to concept A's dense canopy"; display
+ * only): rows of leaf clusters packed along the canopy's underside over world x0…x1, drawn at screen x = wx − cam.
+ * `under(wx)` is the underside's screen y at world x. The rows go back into the mass: the front row (along the
+ * underside) the brightest, each row behind darker and larger, the back rows into shadow, so the band reads as
+ * hundreds of lit leaves catching the light from above while staying deep green, never bright. Positions are seeded by
+ * world x (artHash), so the canopy never swims as the camera moves and the screen fill beside the world (the same
+ * function, the same seeds) meets it without a seam. Callers clip to the canopy mass: nothing here collides.
+ */
+export const CANOPY_ROWS = [
+  // [step (world px), back from the underside (px), radius, extra dim]
+  [44, 70, 26, 0.85],
+  [30, 46, 22, 0.55],
+  [22, 26, 19, 0.3],
+  [16, 9, 16, 0],
+] as const;
+export function paintCanopyLeaves(ctx: Ctx, x0: number, x1: number, cam: number, under: (wx: number) => number, depth: number): number {
+  let drawn = 0;
+  CANOPY_ROWS.forEach(([step, back, r, dim], row) => {
+    for (let k = Math.floor((x0 - r * 1.4) / step); k <= Math.ceil((x1 + r * 1.4) / step); k++) {
+      const h = artHash(k, 811 + row * 37);
+      const wx = k * step + (h % Math.max(1, Math.round(step * 0.5))) - step * 0.25;
+      const y = under(wx) - back - ((h >>> 6) % 9);
+      // A radius from three sizes (the cached sprites), the front rows a little smaller.
+      const rad = r + ((h >>> 11) % 3) * 2 - 2;
+      drawLeafClusterSprite(ctx, wx - cam, y, rad, (h >>> 15) % 6, Math.min(1, dim + depth * 0.8));
+      drawn++;
+    }
+  });
+  return drawn;
 }
 
 /* ---------------- Bark ---------------- */
@@ -209,17 +250,40 @@ function paintTrunkTile(ctx: Ctx, layer: TrunkLayer, H: number): void {
       if (x + t.w < 0 || x > layer.tileW) continue;
       if (layer.id === "mid") {
         // Stage 2 (calmer, 15 Nov 2026): the mid trunks low in contrast and well into the haze.
-        paintTrunk(ctx, x, 0, H, t.w, t.seed, "#1C3628", "#264634", "#132619", 0.2);
+        paintTrunk(ctx, x, 0, H, t.w, t.seed, "#1C3628", "#264634", "#132619", 0.12);
         ctx.fillStyle = "rgba(36,76,60,0.55)";
         ctx.fillRect(x, 0, t.w, H);
       } else {
         // Stage 2: the near trunks dark and quiet (concept A's dark columns), their bark detail half as strong, one
         // dim leaf cluster each part way up, so the vines, rings and hero in front read first.
-        paintTrunk(ctx, x, 0, H, t.w, t.seed, "#182E20", "#243E2E", "#0E1A13", 0.3);
+        paintTrunk(ctx, x, 0, H, t.w, t.seed, "#182E20", "#243E2E", "#0E1A13", 0.18);
         const h = t.seed;
         const cy = H * (0.26 + ((h >>> 5) % 18) / 100);
-        ctx.globalAlpha = 0.55;
-        paintLeafCluster(ctx, x + t.w / 2 - 14, cy, 30 + (h % 10), h, 1);
+        const mid = x + t.w / 2;
+        // Stage 3 (15 Nov 2026, Joe: concept A's leaves "in clusters across the top and down the trunks"): each near
+        // trunk carries a crown of leaves under the canopy, a spray of clusters on its branch part way up (the band
+        // across the view in concept A) and small sprigs down its length, all deep in the shade (dim 1, part alpha) so
+        // the course in front still reads first (section 10g's calm-backdrop limits hold).
+        ctx.globalAlpha = 0.6;
+        for (let i = 0; i < 4; i++) {
+          const hh = artHash(i, h);
+          paintLeafCluster(ctx, mid + (i - 1.5) * 28 + ((hh >>> 3) % 12) - 6, 70 + (i % 2) * 22 + ((hh >>> 9) % 30), 26 + (hh % 10), hh, 1, true);
+        }
+        ctx.globalAlpha = 0.85;
+        paintLeafCluster(ctx, mid - 14, cy, 30 + (h % 10), h, 1, true);
+        ctx.globalAlpha = 0.5;
+        for (let i = 0; i < 3; i++) {
+          const hh = artHash(i, h ^ 0x5bd1);
+          const side = i % 2 === 0 ? -1 : 1;
+          paintLeafCluster(ctx, mid + side * (34 + ((hh >>> 4) % 22)), cy + 10 - ((hh >>> 8) % 26), 20 + (hh % 8), hh, 1, true);
+        }
+        ctx.globalAlpha = 0.35;
+        for (let i = 0; i < 5; i++) {
+          const hh = artHash(i, h ^ 0x2c9f);
+          const side = i % 2 === 0 ? -1 : 1;
+          const sy = H * (0.44 + i * 0.085) + ((hh >>> 5) % 24) - 12;
+          paintLeafCluster(ctx, mid + side * (t.w / 2 + 4), sy, 9 + (hh % 5), hh, 1, true);
+        }
         ctx.globalAlpha = 1;
         // A shade down the whole trunk so its top and foot sink into the haze.
         const fade = ctx.createLinearGradient(0, 0, 0, H);
