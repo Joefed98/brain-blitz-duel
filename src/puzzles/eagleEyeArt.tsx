@@ -110,9 +110,11 @@ export function playEagleTakeoff(area: Element, birds: { cell: Element; dir: Arr
     return { x: r.cx, y: r.cy, size: Math.min(r.w, r.h) * 0.66, angle, turn: eagleTurn(dir), delay: i * 45 };
   });
   // quiet (the Attention overhaul: a grid cleared mid-round): the caller plays its own short whoosh, no cry.
-  if (!quiet) soundCue("symscan.takeoff");
-  // Joe's eagle cry (6 Nov 2026) over the wingbeats as the flock lifts off.
-  if (!quiet) soundCue("symscan.eagle");
+  if (!quiet) {
+    soundCue("symscan.takeoff");
+    // Joe's eagle cry (6 Nov 2026) over the wingbeats as the flock lifts off.
+    soundCue("symscan.eagle");
+  }
   playOverlayFx({
     rect,
     ms: 1100,

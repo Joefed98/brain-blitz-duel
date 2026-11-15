@@ -18,7 +18,7 @@ import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { LOGIC_SOLVE_FX_MS } from "../src/puzzles/logicFx";
-import { LOGIC_POLISH_DEMOS, OCT14_BATCH_DEMOS, puzzleInputDemoCompatible, puzzlePresentation, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
+import { ATTENTION_OVERHAUL_DEMOS, LOGIC_POLISH_DEMOS, OCT14_BATCH_DEMOS, puzzleInputDemoCompatible, puzzlePresentation, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
 
 const GAMES: { type: PuzzleType; file: string }[] = [
   { type: "lightsout", file: "lightsOut" },
@@ -62,7 +62,9 @@ for (const { type } of GAMES) {
     assert.ok(LOGIC_POLISH_DEMOS.has(type));
     assert.equal(puzzleInputDemoCompatible(type, { presentation: "oct10-polish-b" }), false);
     // Polypotions and Colour Flood moved again on 14 Oct 2026 (OCT14_BATCH_DEMOS): logic-polish demos are rejected too.
-    assert.equal(puzzleInputDemoCompatible(type, { presentation: LOGIC_POLISH_PRESENTATION }), !OCT14_BATCH_DEMOS.has(type));
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): Bomb Defusal's board moved,
+    // so its logic-polish demos are rejected too (ATTENTION_OVERHAUL_DEMOS).
+    assert.equal(puzzleInputDemoCompatible(type, { presentation: LOGIC_POLISH_PRESENTATION }), !OCT14_BATCH_DEMOS.has(type) && !ATTENTION_OVERHAUL_DEMOS.has(type));
     assert.equal(puzzleInputDemoCompatible(type, { presentation: puzzlePresentation(type) }), true);
   });
 }
@@ -108,7 +110,8 @@ check("docs/sound-cues/logic.md matches the code", () => {
   const doc = readFileSync("docs/sound-cues/logic.md", "utf8");
   const listed = new Set([...doc.matchAll(/^\| `([a-z]+\.[a-z]+)` \|/gm)].map((m) => m[1]!));
   assert.deepEqual([...fired].sort(), [...listed].sort());
-  assert.equal(fired.size, 34);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): bomb.step's pip click.
+  assert.equal(fired.size, 35);
 });
 
 if (failures) {

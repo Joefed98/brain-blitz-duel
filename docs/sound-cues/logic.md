@@ -34,6 +34,7 @@ shared screens.
 | `safe.solve` | A try satisfies every clue (the same test that submits) | `pz_safe_open.mp3` (2.2 s); placeholder `safe.solve.mp3` with NEW_GAME_SOUNDS on |
 | `bomb.cut` | A wire is cut | 220 ms recoil, 300 ms sparks |
 | `bomb.press` | Button A or B is pressed | 200 ms press |
+| `bomb.step` | Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) | 50 ms |
 | `bomb.defuse` | DEFUSE is tapped (the submission; not a verdict) | LED timer freezes and blinks (640 ms), fuse spark dies (360 ms) |
 | `bomb.solve` | The reveal shows a verified defuse | 700 ms status lamp turns red to green |
 | `nonogram.fill` | A cell is filled | 170 ms tile pop |

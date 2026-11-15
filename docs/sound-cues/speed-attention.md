@@ -37,7 +37,6 @@ Completion effects last at most 1.2 s. Most of the motion is done by about 0.9 s
 | `maze.bump` | Labyrinth | A step into a wall: the trail end flashes | 120 ms |
 | `maze.back` | Labyrinth | A step back along the trail (it retracts) | 40 ms |
 | `maze.deadEnd` | Labyrinth | The trail reaches the tip of a dead end | 300 ms |
-| `bomb.step` | Bomb Defusal | Each step fills a pip in the step counter | 50 ms |
 | `pairmatch.flip` | Matchmaker | A card turned over | 100 ms |
 | `pairmatch.match` | Matchmaker | A match: both cards lift and lock face up (from a streak of two, the kit's rising combo tone instead) | 350 ms |
 | `pairmatch.miss` | Matchmaker | A miss: the cards flip back | 150 ms |

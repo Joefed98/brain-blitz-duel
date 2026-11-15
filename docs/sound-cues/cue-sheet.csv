@@ -24,7 +24,7 @@ clayshoot.shatter,Pull!,Pull!: An orange clay is hit (new shard shatter) [speed-
 clayshoot.goldShatter,Pull!,Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.goldShatter,
 tendrop.refused,Tenfall,a ÷ or − tile is refused [number.md],,5–40 (per move),silent,,300,fail sting,tendrop.refused,
 bomb.press,Bomb Defusal,Button A or B is pressed [logic.md],,5–40 (per move),silent,,200,game event,bomb.press,
-bomb.step,Bomb Defusal,Bomb Defusal: Each step fills a pip in the step counter [speed-attention.md],,5–40 (per move),silent,,50,game event,bomb.step,
+bomb.step,Bomb Defusal,"Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) [logic.md]",,5–40 (per move),silent,,50,game event,bomb.step,
 spotdiff.hidden,Double Take,Double Take: The hidden seventh found [speed-attention.md],,5–40 (per move),silent,,600,game event,spotdiff.hidden,
 spotdiff.pictureOut,Double Take,Double Take: A picture done: it slides out as the next comes in [speed-attention.md],,5–40 (per move),silent,,350,game event,spotdiff.pictureOut,
 spotdiff.found,Double Take,Double Take: A difference found (ring draws in) [speed-attention.md],,5–40 (per move),silent,,260,game event,spotdiff.found,

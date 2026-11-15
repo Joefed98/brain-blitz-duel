@@ -117,7 +117,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `bomb.press` | Button A or B is pressed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `bomb.press` |
-| `bomb.step` | Bomb Defusal: Each step fills a pip in the step counter [speed-attention.md] |  | 5–40 (per move) | silent | none | 50 | game event | `bomb.step` |
+| `bomb.step` | Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) [logic.md] |  | 5–40 (per move) | silent | none | 50 | game event | `bomb.step` |
 
 ### Double Take
 

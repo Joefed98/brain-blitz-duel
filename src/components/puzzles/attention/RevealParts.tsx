@@ -8,7 +8,7 @@
  */
 import type { ReactNode } from "react";
 
-import { Segmented } from "@/design/components";
+import { Segmented } from "@/design/components/Segmented";
 import "@/polish-attention/attention-overhaul.css";
 
 export interface RevealStat {
