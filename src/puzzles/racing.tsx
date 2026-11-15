@@ -40,6 +40,7 @@ import { RACING_CAR_SPRITE_NAMES } from "@/lib/arcade/racingCar.renderer";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { canvasRatio } from "@/lib/battery";
+import { racingFinishHoldMs } from "@/lib/arcade/racingFx.renderer";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 
 const STILL = 200;
@@ -215,6 +216,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
+      // Stage 2: a finished race holds its chequered flag and count-up before the reveal (display only; the finished
+      // run is the draft meanwhile, as Orbit's sputter).
+      endHoldMs={(state) => racingFinishHoldMs(state as unknown as RacingState)}
     />
   );
 }

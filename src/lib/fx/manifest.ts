@@ -716,6 +716,10 @@ const ENTRIES = {
   "racing.sector": { channel: "effects", frequency: 0, ms: 200, url: null },
   "racing.wall": { channel: "effects", frequency: 0, ms: 604, url: "/sounds/racing_bump.mp3" },
   "racing.grass": { channel: "effects", frequency: 0, ms: 150, url: null },
+  // The Sports overhaul, stage 2 (docs/sound-cues/sports-elevenlabs.md): the wall scrape and the chequered flag, until
+  // their recordings arrive.
+  "racing.scrape": { channel: "effects", frequency: 0, ms: 800, url: null },
+  "racing.chequer": { channel: "effects", frequency: 0, ms: 2500, url: null },
   "racing.finish": { channel: "effects", frequency: 0, ms: 1357, url: "/sounds/racing_flag.mp3" },
   "skyline.miss": { channel: "effects", frequency: 0, ms: 200, url: null },
   "hover.start": { channel: "effects", frequency: 0, ms: 120, url: null },
@@ -1098,6 +1102,7 @@ const ENTRIES = {
   "racing.squeal": { channel: "effects", frequency: 0, ms: 1197, url: "/sounds/racing_squeal.mp3" },
   "racing.kerb": { channel: "effects", frequency: 0, ms: 672, url: "/sounds/racing_kerb_loop.mp3", loop: true },
   "racing.grassLoop": { channel: "effects", frequency: 0, ms: 726, url: "/sounds/racing_grass_loop.mp3", loop: true },
+  "racing.speedRush": { channel: "effects", frequency: 0, ms: 1500, url: null, loop: true },
   "racing.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
   "minesweeper.unflag": { channel: "effects", frequency: 0, ms: 350, url: "/sounds/mines_unflag.mp3" },
   "mahjong.select": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/mahjong_select.mp3" },

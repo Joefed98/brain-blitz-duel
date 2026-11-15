@@ -28,7 +28,7 @@ import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_
 import type { TiltState } from "@/lib/arcade/tilt";
 import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
-import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrackOf, type RacingState } from "@/lib/arcade/racing";
+import { RACING_CAR_HALF, RACING_KMH_AT_VMAX, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrackOf, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
@@ -1387,6 +1387,9 @@ export function racingSounds(): GameSounds<RacingState> {
       const onKerb = !state.off && !state.wall && Math.abs(state.x) + RACING_CAR_HALF > RACING_ROAD_X;
       loopCue("racing.kerb", driving && onKerb && state.v > 0, 0.25);
       loopCue("racing.grassLoop", driving && state.off === 1 && state.v > 0, 0.25);
+      // Stage 2 (the Sports overhaul): the wind past the cockpit with the speed lines, above 200 km/h (silent until
+      // racing.speedRush has a file).
+      loopCue("racing.speedRush", driving && state.v * RACING_KMH_AT_VMAX > RACING_VMAX * 200, 0.2);
       if (prev && state.tick > prev.tick) {
         // racingRev 2 (T2): a light as each of the five red lights comes on, the horn's slot at lights out;
         // racingRev 1: the horn on the first throttle, as it always was.
@@ -1399,6 +1402,8 @@ export function racingSounds(): GameSounds<RacingState> {
           feel("go");
         }
         if (state.wallHits > prev.wallHits) { sfx("racing.wall", "arc_crash", 0.8); feel("impact"); }
+        // A scrape along the tyre wall, still moving (stage 2's sparks): its own slot, silent until it has a file.
+        else if (state.wall && prev.wall && state.v >= RACING_VMAX / 8) effectCue("racing.scrape", 800);
         else if (state.off && !prev.off) {
           if (!cueHasFile("racing.grassLoop")) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
           feel("error");
@@ -1418,12 +1423,14 @@ export function racingSounds(): GameSounds<RacingState> {
           sfx("racing.finish", "arc_fair_sting", 0.9);
           feel("celebrate");
           effectCue("racing.roar");
+          // The chequered flag (stage 2): the crowd and an air horn, silent until racing.chequer has a file.
+          effectCue("racing.chequer");
         } else if (Math.floor(state.s / RACING_LAP) > Math.floor(prev.s / RACING_LAP)) sfx("racing.lap", "arc_fair_bell", 0.8);
       } else if (prev && state.tick < prev.tick) started = false;
       prev = state;
     },
     stop() {
-      for (const loop of ["racing.idle", "racing.drive", "racing.kerb", "racing.grassLoop"]) loopCue(loop, false);
+      for (const loop of ["racing.idle", "racing.drive", "racing.kerb", "racing.grassLoop", "racing.speedRush"]) loopCue(loop, false);
       prev = null;
       started = false;
       squealing = false;
