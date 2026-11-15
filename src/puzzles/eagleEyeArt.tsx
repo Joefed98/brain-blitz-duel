@@ -98,7 +98,7 @@ function cssVar(name: string, fallback: string): string {
  * it faces, wings beating, rising (growing) and fading by 1.1 s. Reduced motion: the same
  * eagles glow gold in place and fade, nothing moves.
  */
-export function playEagleTakeoff(area: Element, birds: { cell: Element; dir: ArrowDir }[]): void {
+export function playEagleTakeoff(area: Element, birds: { cell: Element; dir: ArrowDir }[], quiet = false): void {
   const shapes = eaglePaths();
   if (!shapes || birds.length === 0) return;
   const rect = area.getBoundingClientRect();
@@ -109,9 +109,10 @@ export function playEagleTakeoff(area: Element, birds: { cell: Element; dir: Arr
     const angle = (EAGLE_ANGLES[dir] * Math.PI) / 180;
     return { x: r.cx, y: r.cy, size: Math.min(r.w, r.h) * 0.66, angle, turn: eagleTurn(dir), delay: i * 45 };
   });
-  soundCue("symscan.takeoff");
+  // quiet (the Attention overhaul: a grid cleared mid-round): the caller plays its own short whoosh, no cry.
+  if (!quiet) soundCue("symscan.takeoff");
   // Joe's eagle cry (6 Nov 2026) over the wingbeats as the flock lifts off.
-  soundCue("symscan.eagle");
+  if (!quiet) soundCue("symscan.eagle");
   playOverlayFx({
     rect,
     ms: 1100,

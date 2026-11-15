@@ -4,6 +4,9 @@ import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { tallySprite } from "@/components/puzzles/attention/attentionArt";
 import { tallySpread } from "@/lib/duel/attentionOverhaul";
 import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
+import { FxCountUp } from "@/components/fx/GameFx";
 import { fireTallyFinish } from "@/components/puzzles/countUpFx";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
@@ -289,7 +292,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   );
   // The next tray slides onto the shelf (CSS, display only).
   useEffect(() => {
-    if (stage > 0 && stage < trays) soundCue("countup.trayIn");
+    if (stage > 0 && stage < trays) {
+      soundCue("countup.trayIn");
+      // The Attention overhaul: the next tray slides in from the right as the last one goes (the tray, never the arena).
+      const tray = spaceRef.current?.querySelector("[data-tally-spread]");
+      if (tray) gameFx("slide", tray, { from: { x: (tray as HTMLElement).clientWidth, y: 0 }, silent: true });
+    }
   }, [stage, trays]);
 
   // countRev 7: shapes tapped as counted on this tray (cleared when the next tray comes in; never sent).
@@ -298,7 +306,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   const spread = tallySpread(data);
   const mark = (index: number) => {
     if (locked || done.current) return;
-    soundCue(marks.includes(index) ? "countup.unmark" : "countup.mark");
+    attnSound(marks.includes(index) ? "countup.unmark" : "countup.mark", { volume: 0.5 });
+    gameFx("tap", spaceRef.current?.querySelector(`[data-tally-shape="${index}"]`), { silent: true });
     setMarks((m) => (m.includes(index) ? m.filter((i) => i !== index) : [...m, index]));
   };
 
@@ -315,6 +324,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
 
   const submitStage = (value: string) => {
     if (done.current) return;
+    if (stage < trays - 1) attnSound("countup.trayOut", { volume: 0.5 });
     const next = Array.from({ length: trays }, (_, i) => (i === stage ? value : (answers[i] ?? "")));
     setAnswers(next);
     if (stage >= trays - 1) {
@@ -338,6 +348,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
         keypad
         compactKeypad
         onSubmit={submitStage}
+        onKey={(_key, el) => {
+          attnSound("countup.key", { volume: 0.45 });
+          gameFx("tap", el, { silent: true });
+        }}
       >
         <StageProgress stage={stage} total={trays} />
         <div ref={spaceRef} data-tally-space="" className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
@@ -354,7 +368,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const [shown, setShown] = useState<number | null>(null);
-  if (puzzle.type !== "countup") return null;
+  return puzzle.type === "countup" ? <TallyReveal puzzle={puzzle} myAnswer={myAnswer} shown={shown} setShown={setShown} /> : null;
+}
+
+function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuzzleData; myAnswer: string | null | undefined; shown: number | null; setShown: (n: number) => void }) {
+  const revealRef = useRef<HTMLDivElement>(null);
   const rev2 = usesCountRev2(puzzle);
   const parts = splitStages(myAnswer, rev2 ? puzzle.stages.length : STAGE_COUNT);
   const trays = puzzle.stages.map((stage, i) => {
@@ -371,9 +389,29 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const tray = trays[open]!;
   const right = trays.filter((t) => t.exact).length;
   const off = tray.truth !== null && tray.given !== null ? Math.abs(tray.given - tray.truth) : null;
-  const verdict = tray.given === null ? "No answer" : tray.exact ? "Exact" : off === 1 ? "So close: off by 1" : `Off by ${off}`;
+  const verdict = tray.given === null ? "No answer" : tray.exact ? "Exact" : off === 1 ? `So close: ${tray.truth}, you said ${tray.given}` : `Off by ${off}`;
+  // The Attention overhaul (stage 2): the counted shapes light one by one while the right count ticks up; one off
+  // pulses its verdict softly. Display only, when a tray opens.
+  useEffect(() => {
+    const lit = Array.from(revealRef.current?.querySelectorAll("[data-tally-lit]") ?? []);
+    const step = Math.max(18, Math.min(60, 600 / Math.max(1, lit.length)));
+    const timers = lit.map((el, i) =>
+      window.setTimeout(() => {
+        el.setAttribute("data-lit-on", "");
+        attnSound("countup.revealTick", { volume: 0.35, rate: 1 + Math.min(i, 20) * 0.02 });
+      }, i * step),
+    );
+    const near = off === 1 ? window.setTimeout(() => {
+      attnSound("countup.soClose", { volume: 0.6 });
+      gameFx("nearMiss", revealRef.current?.querySelector('[data-attn-stat="verdict"]'), { inGame: false, silent: true, noHaptic: true });
+    }, lit.length * step + 120) : 0;
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+      window.clearTimeout(near);
+    };
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div data-polish-reveal="countup" className="attn-rv" data-attn-reveal="countup">
+    <div ref={revealRef} data-polish-reveal="countup" className="attn-rv" data-attn-reveal="countup">
       <RevealTabs
         label="Trays"
         value={open}
@@ -394,7 +432,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <RevealStats
         game="countup"
         items={[
-          { id: "answer", label: "Right count", value: tray.truth ?? "—", tone: "good" },
+          { id: "answer", label: "Right count", value: tray.truth === null ? "—" : <FxCountUp key={open} value={tray.truth} silent />, tone: "good" },
           { id: "you", label: "You said", value: tray.given ?? "—", tone: tray.exact ? "good" : "bad" },
           { id: "verdict", label: "This tray", value: <span className="text-base">{verdict}</span>, tone: tray.exact ? "good" : tray.near ? undefined : "bad" },
         ]}

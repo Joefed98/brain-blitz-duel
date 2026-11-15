@@ -47,3 +47,21 @@ number tiles).
 | Labyrinth | <img src="img/maze-reveal-before.webp" width="220"> | <img src="img/maze-reveal-after.webp" width="220"> | The maze large, your trail in gold over the dashed shortest route, a key; How far / Steps walked / Par as tiles. |
 | Bomb Defusal | <img src="img/bomb-reveal-before.webp" width="220"> | <img src="img/bomb-reveal-after.webp" width="220"> | One step track: the right action beside yours on each row, each a picture of the wire (its colour, cut) or the button cap; the first wrong step ringed red, later ones dimmed; Steps right / Steps made as tiles. |
 | Matchmaker | <img src="img/pairmatch-reveal-before.webp" width="220"> | <img src="img/pairmatch-reveal-after.webp" width="220"> | The whole board face up and large: pairs you matched bright with a gold edge, the rest dimmed; Pairs / Flips / Best streak / Gold as tiles. |
+
+## Stage 2: the effects
+
+Short clips (390 × 844 practice, MP4) of each game's key moments, played through the shared effects kit
+(`src/lib/fx/kit.ts`) on the piece that was tapped. The moments are confirmed with small, quiet sounds, and there's one
+proper moment at the end. Nothing shakes the board.
+
+| Game | Clip | What happens |
+|---|---|---|
+| Eagle Eye | [symscan.mp4](clips/symscan.mp4) | Each marked eagle gets a soft press and its feather tick (`symscan.mark`); unmarking plays a lighter one. Submitting a grid flies its matching eagles off with a whoosh (`symscan.gridClear`). A grid with no wrong marks gets a quiet sparkle on the target (`symscan.cleanGrid`). The reveal pulses the missed eagles once (`symscan.missed`). |
+| Double Take | [spotdiff.mp4](clips/spotdiff.mp4) | A find draws a pen circle on both pictures with its own chime (`spotdiff.found`). Two finds within 2 s step the tone up (the kit's combo). A miss is a short wrong on that square only (`spotdiff.miss`). The hidden 7th sparkles (`spotdiff.hidden`). Next slides the new picture in (`spotdiff.pictureOut`). |
+| Tally | [countup.mp4](clips/countup.mp4) | Each key gives a click and a press (`countup.key`). A mark gets a tick and a dot (`countup.mark`). ENTER slides the next tray in (`countup.trayOut`). In the reveal, the counted shapes light one by one while the right count ticks up (`countup.revealTick`). One off reads "So close: 11, you said 12" and pulses softly (`countup.soClose`). |
+| Labyrinth | [maze.mp4](clips/maze.mp4) | Each step makes a soft tick, a little higher past each junction (`maze.step`). Stepping back makes a lighter tick as the trail retracts (`maze.back`). A wall gives a dull bump and the trail's end flashes, with no board shake (`maze.bump`). A dead end's tip plays a falling note (`maze.deadEnd`). The exit traces the route (`maze.trace`). |
+| Bomb Defusal | [bomb.mp4](clips/bomb.mp4) | A cut snips with sparks (`bomb.cut`). A press is a heavy click on the cap (`bomb.press`). Each step fills the next pip of the step bar in champagne with a relay tick (`bomb.step`). DEFUSE stops the timer with its tone (`bomb.defuse`). In the reveal, the right order explodes or defuses. |
+| Matchmaker | [pairmatch.mp4](clips/pairmatch.mp4) | Each turn gives a card flick (`pairmatch.flip`). A match lifts both cards with a chime (`pairmatch.match`), and from the second match in a row the kit's combo tone climbs. A miss is one soft wrong with a red outline on that card (`pairmatch.miss`). The gold pair has its own shimmer (`pairmatch.gold`). The finish is the card wave. In the reveal, Pairs and Best streak count up. |
+
+The sounds without Joe's files yet play a library stand-in (`ATTENTION_SOUND_FALLBACKS` in
+`src/components/puzzles/attention/attentionFx.ts`). A recording dropped in under its slot name replaces it.

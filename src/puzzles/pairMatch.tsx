@@ -1,4 +1,4 @@
-import { rightMoveFlash, wrongMoveFlash } from "@/lib/fx/gameToolkit";
+import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { useGoalProgress } from "@/components/duel/GameFrame";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef } from "react";
@@ -17,7 +17,6 @@ import {
   type PairCard,
   type PairPuzzleData,
 } from "@/lib/duel/types";
-import { playCorrect, playCueSlot, playTone, playWrong } from "@/lib/sound";
 import { PAIR_GOLD_WINDOW_MS, isGoldCard, joinPairGoldTime, pairDepthReplay, pairGoldTimed, pairUsesDepth, splitPairGoldTime } from "@/lib/duel/depth/matchmaker";
 import { serverNow } from "@/lib/duel/clock";
 import { pairGoldPoints, pairStandard } from "@/lib/duel/standard/attention";
@@ -28,6 +27,9 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { pairSprite } from "@/components/puzzles/attention/attentionArt";
 import { pairClear } from "@/lib/duel/attentionOverhaul";
 import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
+import { FxCountUp } from "@/components/fx/GameFx";
 
 /**
  * pairRev 4 (the Attention overhaul): the card's symbol is a Blender-rendered enamel inlay with a champagne-gold rim,
@@ -178,6 +180,8 @@ function Stage({
   const submitted = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  // Matches in a row since the last miss (the climbing tone; display only, the server walks its own streak).
+  const streak = useRef(0);
   useEffect(() => registerFxPreview("pairmatch", () => firePairWave(boardRef.current, 6)), []);
 
   const replay = data ? replayPairs(data.cards, flips) : null;
@@ -224,23 +228,27 @@ function Stage({
     const nextOpen = [...showing, index];
     setFlips(nextFlips);
     setOpen(nextOpen);
+    // The Attention overhaul (stage 2): every turn a quiet card flick.
+    attnSound("pairmatch.flip", { volume: 0.45 });
     if (nextOpen.length < 2) return;
 
     const [first, second] = nextOpen as [number, number];
+    const cardEl = (i: number) => boardRef.current?.querySelectorAll("[data-pair-card]")[i] ?? null;
     let nextGoldMs = goldMs;
     if (sameCard(data.cards[first], data.cards[second])) {
-      playCorrect();
-      rightMoveFlash(card);
       if (timedGold && nextGoldMs === null && isGoldCard(data, data.cards[second])) {
         nextGoldMs = Math.max(0, Math.round(serverNow() - phaseStartedAt));
         setGoldMs(nextGoldMs);
       }
-      if (pairUsesDepth(data)) {
-        const after = pairDepthReplay(data, nextFlips, nextGoldMs);
-        // The streak's pip climbs with the multiplier; the gold pair plays the board's own wave.
-        if (after.streak >= 2) playTone(523 * Math.pow(2, (2 * (Math.min(after.streak, 5) - 2)) / 12), 90, "triangle", 0.16);
-        if (isGoldCard(data, data.cards[second])) playCueSlot("pairmatch.cardWave", 0.6);
-      }
+      // A match: both cards lift and lock face up with a chime; from the second match in a row the kit's combo tone
+      // climbs a step with each; the gold pair has its own shimmer.
+      streak.current += 1;
+      const gold = pairUsesDepth(data) && !!data.gold && isGoldCard(data, data.cards[second]);
+      if (gold) attnSound("pairmatch.gold");
+      else if (streak.current < 2) attnSound("pairmatch.match");
+      gameFx("combo", cardEl(first), { count: 1, silent: true });
+      gameFx("combo", cardEl(second), { count: Math.max(1, streak.current - 1), silent: gold || streak.current < 2 });
+      if (gold) gameFx("win", cardEl(second), { silent: true, noHaptic: true });
       setOpen([]);
       if (replayPairs(data.cards, nextFlips).solved) {
         submitted.current = true;
@@ -250,9 +258,10 @@ function Stage({
       }
       return;
     }
-    playWrong();
-    // The shared wrong-move shake and red outline on the card just turned; no reject cue (attention review fixes,
-    // 15 Nov 2026): playWrong above is the miss's one sound.
+    // A miss: one soft wrong on the card just turned, then both flip back (a third card skips the wait on pairRev 4).
+    streak.current = 0;
+    attnSound("pairmatch.miss", { volume: 0.5 });
+    // The shared wrong-move shake and red outline on that card only, silent (pairmatch.miss above is the one sound).
     wrongMoveFlash(card ?? null, false);
     timer.current = setTimeout(() => setOpen([]), PAIR_FLIP_BACK_MS);
   };
@@ -338,9 +347,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
       <RevealStats
         game="pairmatch"
         items={[
-          { id: "pairs", label: "Pairs", value: `${replay.pairs} of ${PAIR_PAIRS}`, tone: replay.solved ? "good" : undefined },
+          { id: "pairs", label: "Pairs", value: <><FxCountUp value={replay.pairs} silent /> of {PAIR_PAIRS}</>, tone: replay.solved ? "good" : undefined },
           { id: "flips", label: "Flips", value: replay.flips },
-          depth ? { id: "streak", label: "Best streak", value: depth.bestStreak } : null,
+          depth ? { id: "streak", label: "Best streak", value: <FxCountUp value={depth.bestStreak} /> } : null,
           depth ? { id: "gold", label: "Gold", value: goldText, tone: depth.goldTry !== null ? "good" : undefined } : null,
         ]}
       />

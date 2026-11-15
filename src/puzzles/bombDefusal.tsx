@@ -2,6 +2,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { capSprite, wireSprite } from "@/components/puzzles/attention/attentionArt";
 import { RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -318,7 +320,15 @@ function Stage({
     if (locked || submitted.current) return;
     // The Attention overhaul (15 Nov 2026, input only): no more steps than the bomb needs, and a button presses once.
     if (!bombActionAllowed(actions, action, stepTotal)) return;
-    soundCue(isCut(action) ? "bomb.cut" : "bomb.press");
+    // The Attention overhaul (stage 2): a cut snips (its recording, with the sparks); a press is a heavy click on the
+    // cap itself; each step fills the next pip of the frame's step bar with a small relay tick. Nothing reacts beyond
+    // that: the order is judged at DEFUSE.
+    if (isCut(action)) soundCue("bomb.cut");
+    else {
+      attnSound("bomb.press", { volume: 0.75 });
+      gameFx("tap", document.querySelector(`[aria-label^="Button ${action.slice(1)},"]`), { silent: true });
+    }
+    window.setTimeout(() => attnSound("bomb.step", { volume: 0.35, rate: 1 + actions.length * 0.04 }), 90);
     const next = [...actions, action];
     setActions(next);
   };

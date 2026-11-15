@@ -469,3 +469,46 @@ html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="missed"] {
   --maze-wall-top: #e3e8ef;
   --maze-wall-shadow: rgb(0 0 0 / 0.7);
 }
+
+/* Double Take (stage 2): a find draws its pen circle round the piece, on both pictures, in 320 ms (it ends drawn). */
+html body .dt-ring-found.dt-ring-found {
+  stroke-dasharray: 1 1;
+  animation: attn-pen-circle 320ms cubic-bezier(.3, .7, .3, 1) both;
+  filter: none;
+}
+@keyframes attn-pen-circle {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .dt-ring-found.dt-ring-found { animation: none; stroke-dashoffset: 0; }
+}
+
+/* Tally's reveal (stage 2): each counted shape's ring pulses in turn as the count ticks up (the ring is drawn from the
+   start, so screenshots and reduced motion show the end state). */
+[data-lit-on] > .tally-lit {
+  animation: attn-tally-lit 280ms cubic-bezier(.2, .8, .3, 1) both;
+}
+@keyframes attn-tally-lit {
+  from { transform: scale(1.6); opacity: 0.25; }
+  to { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-lit-on] > .tally-lit { animation: none; }
+}
+
+/* Stage 2: in every Attention game the frame's step pips fill in champagne gold as each step or grid is done, without
+   a glow (Bomb Defusal's steps, Eagle Eye's grids, Tally's trays, Double Take's pictures). */
+[data-category="attention"] .game-goal-bar > span[data-done] {
+  background: var(--jz-gold);
+  box-shadow: none;
+  animation: attn-pip-fill 320ms cubic-bezier(.2, .8, .2, 1) both;
+  transform-origin: left center;
+}
+@keyframes attn-pip-fill {
+  from { transform: scaleX(0.15); }
+  to { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-category="attention"] .game-goal-bar > span[data-done] { animation: none; }
+}

@@ -27,6 +27,8 @@ import { scanStandard } from "@/lib/duel/standard/attention";
 import { playEagleTakeoff } from "./eagleEyeArt";
 import { eagleSprite } from "@/components/puzzles/attention/attentionArt";
 import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
@@ -185,6 +187,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   const goalLine = useContext(GoalLineContext);
   const takeoff = useRef<() => void>(() => undefined);
   useEffect(() => registerFxPreview("symscan", () => takeoff.current()), []);
+  // The Attention overhaul: all sixteen eagle sprites are fetched when the round starts, so a new grid never shows a
+  // blank tile while a facing it hasn't drawn yet loads.
+  useEffect(() => {
+    for (const dir of DIRECTIONS) for (const gold of [false, true]) new Image().src = eagleSprite(dir, gold);
+  }, []);
 
   useBeforePaint(() => {
     const el = stageRef.current;
@@ -251,7 +258,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (!prefersReducedMotion()) setFlown(true);
   };
 
+  /** The Attention overhaul: a grid submitted mid-round: its marked matching eagles fly off; a clean grid sparkles. */
+  const gridCleared = (marked: number[]) => {
+    const grid = gridRef.current;
+    const area = stageRef.current;
+    if (!grid || !area) return;
+    const kids = Array.from(grid.children);
+    const facing = matchesOf(current);
+    const birds = current.cells.flatMap((dir, i) => (facing.includes(i) && marked.includes(i) && kids[i] ? [{ cell: kids[i]!, dir }] : []));
+    if (birds.length > 0) {
+      playEagleTakeoff(area, birds, true);
+      attnSound("symscan.gridClear");
+    }
+    if (marked.length > 0 && marked.every((i) => facing.includes(i))) {
+      attnSound("symscan.cleanGrid", { volume: 0.55 });
+      gameFx("combo", area.querySelector("[data-eye-targets], .eye-target"), { count: 1, silent: true });
+    }
+  };
+
   const advance = (all: number[][]) => {
+    if (stage < STAGE_COUNT - 1) gridCleared(all[stage] ?? []);
     if (stage >= STAGE_COUNT - 1) {
       done.current = true;
       takeoff.current();
@@ -265,6 +291,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (frozen) return;
     const nextSel = selected.includes(index) ? selected.filter((i) => i !== index) : [...selected, index];
     soundCue(selected.includes(index) ? "symscan.unmark" : "symscan.mark");
+    // The Attention overhaul: the tapped eagle alone answers (a soft press; the gold ring is its marked state).
+    gameFx("tap", gridRef.current?.children[index], { silent: true });
     if (selected.includes(index)) setCorrections(corrections + 1);
     const all = selections.map((sel, i) => (i === stage ? nextSel : sel));
     setSelections(all);
@@ -323,7 +351,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const [shown, setShown] = useState<number | null>(null);
-  if (puzzle.type !== "symscan") return null;
+  const revealRef = useRef<HTMLDivElement>(null);
+  return puzzle.type === "symscan" ? <EagleReveal puzzle={puzzle} myAnswer={myAnswer} shown={shown} setShown={setShown} revealRef={revealRef} /> : null;
+}
+
+function EagleReveal({
+  puzzle,
+  myAnswer,
+  shown,
+  setShown,
+  revealRef,
+}: {
+  puzzle: SymbolScanPuzzleData;
+  myAnswer: string | null | undefined;
+  shown: number | null;
+  setShown: (s: number) => void;
+  revealRef: { current: HTMLDivElement | null };
+}) {
   const parts = splitStages(myAnswer);
   const grids = puzzle.stages.map((stage, s) => {
     const targets = usesScanRev1(puzzle) ? matchesOf(stage) : (puzzle.targets?.[s] ?? matchesOf(stage));
@@ -335,8 +379,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const open = shown ?? Math.max(0, grids.findIndex((g) => !g.result.perfect));
   const grid = grids[open]!;
   const missed = Math.max(0, grid.result.targets - grid.result.found);
+  // The Attention overhaul: the eagles you missed pulse once when their grid opens (never in the round itself).
+  useEffect(() => {
+    const cells = Array.from(revealRef.current?.querySelectorAll('[data-eye-state="missed"]') ?? []);
+    if (cells.length === 0) return;
+    attnSound("symscan.missed", { volume: 0.5 });
+    cells.forEach((cell, i) => gameFx("nearMiss", cell, { inGame: false, silent: true, noHaptic: true, delayMs: Math.min(i, 8) * 40 }));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className="eye-reveal attn-rv" data-attn-reveal="symscan">
+    <div ref={revealRef} className="eye-reveal attn-rv" data-attn-reveal="symscan">
       <RevealTabs
         label="Grids"
         value={open}

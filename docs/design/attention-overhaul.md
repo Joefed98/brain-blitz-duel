@@ -69,3 +69,14 @@ Labyrinth and Bomb Defusal play exactly as before in stage 1. The Classic star s
 Compressed WebP, sized for the largest display (3–5× the piece's box): Eagle Eye 76 KB, Double Take 304 KB, Tally
 97 KB, Labyrinth 4 KB, Bomb Defusal 57 KB, Matchmaker 111 KB; 649 KB in all. attention-overhaul-check fails any game over
 400 KB.
+
+## Effects (stage 2, after #422)
+
+Every moment goes through the shared effects kit (`gameFx`) on the tapped piece only, or the game's own small helper
+(`src/components/puzzles/attention/attentionFx.ts`: each moment's own sound slot, with a library stand-in until Joe's
+file lands). The board never shakes: Double Take's arena shake and Labyrinth's board shake are gone, so a miss or a wall
+answers on that square or the trail's end alone. Moments that the kit already sounds (the rising combo tone, the
+count-up ticks) use the kit's shared sound and have no slot of their own. Every frame step pip in the Attention games
+fills in champagne gold. The reveals' numbers count up (`FxCountUp`), Eagle Eye's missed eagles pulse once, and Tally's
+counted shapes light in turn with "So close: 11, you said 12" for one off. Clips: the gallery's "Stage 2" section.
+attention-overhaul-check section 11 proves the slots, the moments and the removed shakes.

@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 49 | 0 | 488 | 537 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 12 | 0 | 30 | 42 |
-| fail sting | 4 | 0 | 37 | 41 |
+| fail sting | 8 | 0 | 37 | 45 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 63 | 1 | 984 | 1048 |
+| **all** | 81 | 1 | 984 | 1066 |
 
 ## Silent and placeholder cues
 
@@ -117,11 +117,14 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `bomb.press` | Button A or B is pressed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `bomb.press` |
+| `bomb.step` | Bomb Defusal: Each step fills a pip in the step counter [speed-attention.md] |  | 5–40 (per move) | silent | none | 50 | game event | `bomb.step` |
 
 ### Double Take
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `spotdiff.hidden` | Double Take: The hidden seventh found [speed-attention.md] |  | 5–40 (per move) | silent | none | 600 | game event | `spotdiff.hidden` |
+| `spotdiff.pictureOut` | Double Take: A picture done: it slides out as the next comes in [speed-attention.md] |  | 5–40 (per move) | silent | none | 350 | game event | `spotdiff.pictureOut` |
 | `spotdiff.found` | Double Take: A difference found (ring draws in) [speed-attention.md] |  | 5–40 (per move) | silent | none | 260 | game event | `spotdiff.found` |
 | `spotdiff.miss` | Double Take: A wrong tap (the existing shake) [speed-attention.md] |  | 5–40 (per move) | silent | none | 250 | fail sting | `spotdiff.miss` |
 
@@ -129,8 +132,29 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `symscan.gridClear` | Eagle Eye: A grid submitted: its matching eagles fly off [speed-attention.md] |  | 5–40 (per move) | silent | none | 600 | game event | `symscan.gridClear` |
+| `symscan.cleanGrid` | Eagle Eye: A grid submitted with no wrong marks: a quiet sparkle [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `symscan.cleanGrid` |
+| `symscan.missed` | Eagle Eye: The reveal pulses the eagles that were missed [speed-attention.md] |  | 5–40 (per move) | silent | none | 200 | fail sting | `symscan.missed` |
 | `symscan.mark` | Eagle Eye: A cell is marked (pop) [speed-attention.md] |  | 5–40 (per move) | silent | none | 200 | UI tap | `symscan.mark` |
 | `symscan.unmark` | Eagle Eye: A cell is unmarked [speed-attention.md] |  | 5–40 (per move) | silent | none | 150 | UI tap | `symscan.unmark` |
+
+### Labyrinth
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `maze.step` | Labyrinth: Each step of the trail (a little higher past each junction) [speed-attention.md] |  | 5–40 (per move) | silent | none | 50 | game event | `maze.step` |
+| `maze.bump` | Labyrinth: A step into a wall: the trail end flashes [speed-attention.md] |  | 5–40 (per move) | silent | none | 120 | fail sting | `maze.bump` |
+| `maze.back` | Labyrinth: A step back along the trail (it retracts) [speed-attention.md] |  | 5–40 (per move) | silent | none | 40 | game event | `maze.back` |
+| `maze.deadEnd` | Labyrinth: The trail reaches the tip of a dead end [speed-attention.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `maze.deadEnd` |
+
+### Matchmaker
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pairmatch.flip` | Matchmaker: A card turned over [speed-attention.md] |  | 5–40 (per move) | silent | none | 100 | game event | `pairmatch.flip` |
+| `pairmatch.match` | Matchmaker: A match: both cards lift and lock face up (from a streak of two, the kit's rising combo tone instead) [speed-attention.md] |  | 5–40 (per move) | silent | none | 350 | game event | `pairmatch.match` |
+| `pairmatch.miss` | Matchmaker: A miss: the cards flip back [speed-attention.md] |  | 5–40 (per move) | silent | none | 150 | fail sting | `pairmatch.miss` |
+| `pairmatch.gold` | Matchmaker: The gold pair matched: its own shimmer [speed-attention.md] |  | 5–40 (per move) | silent | none | 700 | game event | `pairmatch.gold` |
 
 ### Mixed Signals
 
@@ -144,6 +168,10 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `countup.mark` | Tally: countRev 7: a shape tapped to mark it as counted (the Attention overhaul, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | silent | none | 120 | UI tap | `countup.mark` |
 | `countup.unmark` | Tally: countRev 7: a mark taken off a shape [speed-attention.md] |  | 5–40 (per move) | silent | none | 100 | UI tap | `countup.unmark` |
+| `countup.key` | Tally: A keypad key pressed (the Attention overhaul's stage 2, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | silent | none | 60 | game event | `countup.key` |
+| `countup.trayOut` | Tally: ENTER: the tray slides away and the next comes in [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `countup.trayOut` |
+| `countup.revealTick` | Tally: The reveal lights each counted shape in turn (pitched up a little each time) [speed-attention.md] |  | 5–40 (per move) | silent | none | 40 | game event | `countup.revealTick` |
+| `countup.soClose` | Tally: The reveal: a tray one off ("So close") [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `countup.soClose` |
 
 ### Gradient
 

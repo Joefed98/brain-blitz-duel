@@ -19,6 +19,9 @@
  *   7. The 120 s rule: every Attention game's live deal is at most 120 s.
  *   8. Every sprite the games ask for exists in public/attention/.
  *   9. The help says what changed; Labyrinth's switch is in the game menu, not beside the pad.
+ *  11. Stage 2, the effects: every moment's sound slot is in the manifest with a library stand-in, named in the
+ *      ElevenLabs list and fired by its game; each game's moments go through the effects kit on the piece itself; no
+ *      board shake or doubled wrong sound is left; Tally's reveal says "So close: 11, you said 12".
  *  10. Every Classic practice challenge of Double Take, Tally and Matchmaker (the three new stamps) is still met by a
  *      perfect run on the new Normal, through the real grader and the real challenge checker.
  *
@@ -63,6 +66,8 @@ const { SPOT_BONUS_SCALE } = await import("../src/lib/duel/depth/doubleTake");
 const art = await import("../src/components/puzzles/attention/attentionArt");
 
 const failures: string[] = [];
+const joinStagesFor = (p: import("../src/lib/duel/types").CountUpPuzzleData, first: number) =>
+  p.stages.map((st, i) => String(i === 0 ? first : countUpStageTruth(st))).join("|");
 let passes = 0;
 const check = (ok: boolean, message: string) => {
   if (ok) passes++;
@@ -347,6 +352,37 @@ for (const type of ["symscan", "spotdiff", "countup", "maze", "bomb", "pairmatch
       }
     }
   }
+}
+
+/* ------------------------------------------------------------------ 11. stage 2: the effects */
+{
+  const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
+  const { ATTENTION_SOUND_FALLBACKS } = await import("../src/components/puzzles/attention/attentionFx");
+  const list = readFileSync(new URL("../docs/sound-cues/attention-elevenlabs.md", import.meta.url), "utf8");
+  const files = ["symbolScan", "spotTheDifference", "countUp", "mazeDash", "bombDefusal", "pairMatch"].map((f) => readFileSync(new URL(`../src/puzzles/${f}.tsx`, import.meta.url), "utf8"));
+  const code = files.join("\n");
+  for (const [slot, fallback] of Object.entries(ATTENTION_SOUND_FALLBACKS)) {
+    check(slot in SOUND_MANIFEST, `${slot}: not a manifest slot`);
+    check(fallback in SOUND_MANIFEST && !!(SOUND_MANIFEST as Record<string, { url: string | null }>)[fallback]!.url, `${slot}: its stand-in ${fallback} has no file`);
+    check(list.includes(`\`${slot}\``), `${slot}: missing from the ElevenLabs list`);
+    check(code.includes(`"${slot}"`) || (slot.endsWith("unmark") && code.includes(slot.replace("unmark", "mark"))), `${slot}: no game fires it`);
+  }
+  const [eagle, spot, tally, maze, bomb, pair] = files as [string, string, string, string, string, string];
+  check(/gameFx\("tap"/.test(eagle) && /gameFx\("nearMiss"/.test(eagle) && /symscan\.gridClear/.test(eagle), "Eagle Eye: the mark tap, the grid's flight or the reveal's missed pulse is missing");
+  check(/gameFx\("combo"/.test(spot) && /gameFx\("wrong"/.test(spot) && /gameFx\("slide"/.test(spot), "Double Take: the combo, the wrong square or the picture slide is missing");
+  check(!/animate-shake/.test(spot) && !/playWrong\(\)/.test(spot), "Double Take: the arena still shakes or plays a second wrong");
+  check(/gameFx\("tap"/.test(tally) && /gameFx\("slide"/.test(tally) && /FxCountUp/.test(tally) && /gameFx\("nearMiss"/.test(tally), "Tally: the key, the tray slide, the count-up or the near miss is missing");
+  check(!/puzzleReject\(\)/.test(maze) && /gameFx\("wrong"/.test(maze) && /maze\.deadEnd/.test(maze) && /maze\.back/.test(maze), "Labyrinth: the board still shakes, or the bump, back or dead-end moment is missing");
+  check(/gameFx\("tap"/.test(bomb) && /bomb\.step/.test(bomb), "Bomb Defusal: the cap press or the step tick is missing");
+  check(/gameFx\("combo"/.test(pair) && /wrongMoveFlash\(card \?\? null, false\)/.test(pair) && /pairmatch\.gold/.test(pair) && !/playWrong\(\)/.test(pair), "Matchmaker: the match lift, the silent wrong flash or the gold shimmer is missing, or a second wrong remains");
+  const css = readFileSync(new URL("../src/polish-attention/attention-overhaul.css", import.meta.url), "utf8");
+  for (const kf of css.matchAll(/@keyframes ([\w-]+)/g)) check(new RegExp(`prefers-reduced-motion[\\s\\S]*${kf[1]!.replace("attn-", "")}|prefers-reduced-motion[\\s\\S]*animation: none`).test(css), `${kf[1]}: no reduced-motion rule`);
+  // Tally's one-off verdict, drawn from a real deal.
+  const { countUpPuzzle } = await import("../src/puzzles/countUp");
+  const tp = deal("countup", 21) as unknown as import("../src/lib/duel/types").CountUpPuzzleData;
+  const truth0 = countUpStageTruth(tp.stages[0]!);
+  const html = renderToStaticMarkup(React.createElement(countUpPuzzle.Reveal, { puzzle: tp, myAnswer: joinStagesFor(tp, truth0 + 1), myCorrect: false, timeLimitMs: 60_000 } as never));
+  check(html.includes(`So close: ${truth0}, you said ${truth0 + 1}`), `Tally: the one-off verdict doesn't read "So close: ${truth0}, you said ${truth0 + 1}"`);
 }
 
 if (failures.length) {

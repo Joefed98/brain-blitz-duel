@@ -2,7 +2,6 @@ import { SWEET_NAMES } from "@/components/puzzles/refreshIcons";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { useGoalProgress } from "@/components/duel/GameFrame";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { playCorrect, playWrong } from "@/lib/sound";
 import { useGameKeys } from "@/lib/desktop";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,6 +23,8 @@ import {
 import { playDifferenceGlow } from "./doubleTakeArt";
 import { attentionArt, spotSprite } from "@/components/puzzles/attention/attentionArt";
 import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
 import { spotWaitsForNext } from "@/lib/duel/attentionOverhaul";
 import { SPOT_BONUS_SCALE, SPOT_DEPTH_REV } from "@/lib/duel/depth/doubleTake";
 import { ATTENTION_REWORK_TIME_MS, SPOT_TWO_WRONG_LIMIT, parseSpotTaps, spotScenes, type SpotTheme } from "@/lib/duel/attentionRev";
@@ -208,6 +209,7 @@ export function Panel({
           <ellipse
             key={`f${cell}`}
             className="dt-ring-found"
+            pathLength={1}
             cx={x}
             cy={y}
             rx={CELL_W / 2 - 2}
@@ -222,7 +224,7 @@ export function Panel({
       {hidden.map((cell) => {
         const { x, y } = cellCentre(cell);
         return (
-          <g key={`h${cell}`} className="dt-ring-hidden" data-dt-hidden-found={cell} style={{ filter: "drop-shadow(0 0 3px var(--primary))" }}>
+          <g key={`h${cell}`} className="dt-ring-hidden" data-dt-hidden-found={cell} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
             <ellipse cx={x} cy={y} rx={CELL_W / 2 - 2} ry={CELL_H / 2 - 2} fill="none" stroke="var(--primary)" strokeWidth="2.5" />
             <ellipse cx={x} cy={y} rx={CELL_W / 2 - 6} ry={CELL_H / 2 - 6} fill="none" stroke="var(--primary)" strokeWidth="1.75" strokeDasharray="3 2.5" />
           </g>
@@ -233,6 +235,7 @@ export function Panel({
             const { x, y } = cellCentre(wrongCell);
             return (
               <ellipse
+                data-dt-wrong=""
                 cx={x}
                 cy={y}
                 rx={CELL_W / 2 - 2}
@@ -240,6 +243,7 @@ export function Panel({
                 fill="none"
                 stroke="var(--warn)"
                 strokeWidth="2.5"
+                style={{ transformBox: "fill-box", transformOrigin: "center" }}
               />
             );
           })()
@@ -385,6 +389,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   const [taps, setTaps] = useState<number[][]>(() => scenes.map(() => []));
   const [wrong, setWrong] = useState<number | null>(null);
   const submitted = useRef("");
+  // Two finds within 2 s step the tone up (the Attention overhaul's stage 2).
+  const combo = useRef(0);
+  const lastFind = useRef(-Infinity);
+  const hudFoundRef = useRef<HTMLSpanElement>(null);
   const arenaRef = useRef<HTMLDivElement>(null);
   const groups = allGroups[scene] ?? [];
   // spotRev 2: the hidden seventh difference (a shape drawn smaller), found from the panels for feedback only.
@@ -475,22 +483,41 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     if (spotTapIgnored(sceneTaps, foundCells, hiddenFound, cell)) return;
     const hit = groups.some((g) => g.includes(cell)) || hidden.includes(cell);
     const add = (prev: number[][]) => prev.map((t, i) => (i === scene && !t.includes(cell) ? [...t, cell] : t));
-    if (hit) {
-      playCorrect();
-      soundCue("spotdiff.found");
+    // The Attention overhaul (stage 2): every moment on the tapped square alone, small and quiet.
+    const after = (fn: () => void) => requestAnimationFrame(() => requestAnimationFrame(fn));
+    if (hit && hidden.includes(cell)) {
+      // The hidden seventh: its own sparkle on its double ring.
+      attnSound("spotdiff.hidden");
+      setTaps(add);
+      after(() => arenaRef.current?.querySelectorAll(`[data-dt-hidden-found="${cell}"]`).forEach((el) => gameFx("combo", el, { count: 3, silent: true })));
+    } else if (hit) {
+      // A find: the pen circle draws on both pictures (CSS) with its own chime; a second find within 2 s steps up.
+      const now = performance.now();
+      combo.current = now - lastFind.current <= 2000 ? combo.current + 1 : 1;
+      lastFind.current = now;
+      if (combo.current >= 2) gameFx("combo", hudFoundRef.current, { count: combo.current - 1 });
+      else attnSound("spotdiff.found");
       setTaps(add);
     } else {
-      playWrong();
-      soundCue("spotdiff.miss");
+      // A miss: a short wrong on that square only (the board never shakes).
+      attnSound("spotdiff.miss", { volume: 0.5 });
       setTaps(add);
       setWrong(cell);
+      combo.current = 0;
+      after(() => arenaRef.current?.querySelectorAll("[data-dt-wrong]").forEach((el) => gameFx("wrong", el, { silent: true })));
     }
   };
 
   const skip = () => {
     if (locked || lastScene) return;
-    soundCue("spotdiff.nextPicture");
+    attnSound("spotdiff.pictureOut");
     setScene(scene + 1);
+    combo.current = 0;
+    // The next picture slides in from the right (the arena itself never moves: its panels do).
+    requestAnimationFrame(() => {
+      const panels = arenaRef.current?.querySelector("[data-dt-panels]");
+      gameFx("slide", panels, { from: { x: (panels as HTMLElement | null)?.clientWidth ?? 300, y: 0 }, silent: true });
+    });
   };
 
   /** spotRev 4: Done on the last picture once its six are found: the round locks in now (the clock stops). */
@@ -505,7 +532,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     <div data-stage-column="2" data-polish="spotdiff" className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
       <div className="flex w-full shrink-0 items-center justify-center gap-3 font-mono text-sm uppercase tracking-widest">
         {twoPictures && !framed ? <span className="text-muted-foreground" data-dt-picture={scene + 1}>Picture {scene + 1} / {scenes.length}</span> : null}
-        <span className="text-primary">{foundGroups.length} / {total} found</span>
+        <span ref={hudFoundRef} className="inline-block text-primary">{foundGroups.length} / {total} found</span>
         {twoPictures ? (
           <span className={misses > SPOT_TWO_WRONG_LIMIT ? "text-warn" : "text-muted-foreground"} data-dt-misses={misses}>
             {waits ? `Misses ${misses} of ${SPOT_TWO_WRONG_LIMIT} allowed` : `Misses ${misses} / ${SPOT_TWO_WRONG_LIMIT}`}
@@ -527,16 +554,16 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
         ref={arenaRef}
         key={scene}
         data-dt-theme={current.theme}
-        data-game-arena="tall" className={`dt-arena flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card ${
-          scene > 0 ? "dt-scene-in" : ""
-        }`}
+        data-game-arena="tall" className="dt-arena flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card"
       >
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          <Panel shapes={current.top} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
-        </div>
-        <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          <Panel shapes={current.bottom} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
+        <div data-dt-panels="" className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <Panel shapes={current.top} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
+          </div>
+          <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <Panel shapes={current.bottom} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
+          </div>
         </div>
       </div>
       {twoPictures && !lastScene ? (

@@ -2,7 +2,6 @@ import { shownPar, usesParMoves } from "@/lib/duel/parMoves";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-speedatt.css";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { memo, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -12,6 +11,8 @@ import { registerFxPreview } from "@/components/puzzles/speedFx";
 import { ArrowPad, gridCellAt } from "@/components/puzzles/GridDrag";
 import { attentionArt } from "@/components/puzzles/attention/attentionArt";
 import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
 
 import {
   MAZE_E,
@@ -382,6 +383,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     [par, depth, cells, start, exit, trail, cols],
   );
 
+  // The Attention overhaul (stage 2): each step a soft tick, a little higher for every junction passed; a step back a
+  // lighter tick as the trail retracts; the tip of a dead end a short falling note (a cue to turn back).
+  const stepsSeen = useRef(path.length);
+  useEffect(() => {
+    const before = stepsSeen.current;
+    stepsSeen.current = path.length;
+    if (path.length === before || before === 0) return;
+    if (path.length < before) {
+      attnSound("maze.back", { volume: 0.4 });
+      return;
+    }
+    const open = (cell: number) => [MAZE_N, MAZE_E, MAZE_S, MAZE_W].filter((side) => ((cells[cell] ?? 0) & side) !== 0).length;
+    const junctions = path.filter((cell) => open(cell) >= 3).length;
+    attnSound("maze.step", { volume: 0.4, rate: 1 + Math.min(junctions, 12) * 0.025 });
+    const head = path[path.length - 1]!;
+    if (head !== exit && head !== start && open(head) === 1) attnSound("maze.deadEnd", { volume: 0.55 });
+  }, [path.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const answerNow = depth ? encodeMazeTrail(trail, cols) : encodeMazePath(path);
   useEffect(() => {
     onDraftAnswer?.(answerNow);
@@ -405,6 +424,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   }, [solved, path, locked, onSubmit, answerNow]);
 
   /**
+   * The Attention overhaul (stage 2): a wall stops the route with a dull bump and the trail's end flashes; the board
+   * never shakes. Throttled so a held arrow against a wall stays quiet.
+   */
+  const lastBump = useRef(0);
+  const bump = () => {
+    const now = performance.now();
+    if (now - lastBump.current < 300) return;
+    lastBump.current = now;
+    attnSound("maze.bump", { volume: 0.55 });
+    gameFx("wrong", arenaRef.current?.querySelector("[data-maze-ball] circle:nth-of-type(2)"), { silent: true });
+  };
+
+  /**
    * One cell touched by the finger: the route grows only into a cell next to its
    * end with no wall between, and retraces when the finger goes back. Anything
    * else is ignored — the route is never reset by a stray touch.
@@ -423,7 +455,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
           const last = lastOf(mazeTrailRoute(next));
           if (target === last || next.length > LAB_TRAIL_MAX) break;
           if (!mazeOpen(cells, last, target, cols)) {
-            puzzleReject();
+            bump();
             break;
           }
           next = [...next, target];
@@ -440,7 +472,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
         if (target === last) break;
         // Retracing one step backwards undoes a wrong turn.
         if (next.length > 1 && target === next[next.length - 2]) { next = next.slice(0, -1); continue; }
-        if (!mazeOpen(cells, last, target)) { puzzleReject(); break; }
+        if (!mazeOpen(cells, last, target)) { bump(); break; }
         next = [...next, target];
       }
       return next;
@@ -452,10 +484,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     const last = path[path.length - 1] ?? start;
     const col = last % cols;
     const row = Math.floor(last / cols);
-    if (dir === "U" && row === 0) return puzzleReject();
-    if (dir === "D" && row >= Math.floor((cells.length - 1) / cols)) return puzzleReject();
-    if (dir === "L" && col === 0) return puzzleReject();
-    if (dir === "R" && col === cols - 1) return puzzleReject();
+    if (dir === "U" && row === 0) return bump();
+    if (dir === "D" && row >= Math.floor((cells.length - 1) / cols)) return bump();
+    if (dir === "L" && col === 0) return bump();
+    if (dir === "R" && col === cols - 1) return bump();
     const next =
       dir === "U"
         ? last - cols
