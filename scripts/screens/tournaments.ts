@@ -4,15 +4,14 @@
  * Attack before entry), the rules page, the leaderboards' board picker, the Daily page and the Daily archive. Each is
  * drawn dark and light at every size (VIEWPORTS plus ALL_SIZES). The stand-in answers are served by the screen
  * harness (scripts/safe-area-harness.tsx: window.__harnessTournamentHub, __harnessTournamentEvent,
- * __harnessArenaBoard, __harnessScoreAttackBoard, __harnessArchive). Appended last in THEME_SCREENS, so every earlier
- * screen keeps its place.
+ * __harnessArenaBoard, __harnessScoreAttackBoard, __harnessArchive). Drawn by theme-check and no-wrap-check after the core list (scripts/area-screens.ts finds this file, 14 Nov 2026).
  */
 import type { Page } from "playwright";
 
 import { FIXED_NOW } from "../fixed-clock";
 import { dailyFixture } from "../daily-fixture";
 import { boardsFixture } from "../leaderboards-fixture";
-import type { ThemeScreen, ThemeViewport } from "../theme-screens";
+import { ALL_SIZES, type ThemeScreen, type ThemeViewport } from "../theme-screens";
 import { entryOptionsFor, prizeLines, scheduledEvent } from "../../src/lib/tournaments/rules";
 import type { ArenaBoard, ScoreAttackBoard, TournamentEventView, TournamentHub } from "../../src/lib/tournaments/types";
 import type { PlateView } from "../../src/lib/identity/plates";
@@ -178,3 +177,6 @@ export const TOURNAMENT_PAGES_SCREENS = (sizes: ThemeViewport[]): ThemeScreen[] 
   ...DARK.map((s) => ({ ...s, sizes })),
   ...DARK.map((s) => ({ ...s, name: `${s.name}, light`, globals: { ...(s.globals ?? {}), __harnessTheme: "light" }, sizes })),
 ];
+
+/** This area's screens for theme-check and no-wrap-check (the area-file shape, scripts/area-screens.ts). */
+export default (): ThemeScreen[] => TOURNAMENT_PAGES_SCREENS(ALL_SIZES);

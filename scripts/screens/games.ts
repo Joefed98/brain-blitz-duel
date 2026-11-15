@@ -3,7 +3,7 @@
  * and no-wrap-check: the Games catalogue (All, a chip chosen, the search open), a game's page (a puzzle and an arcade
  * game, with their challenges and, for a tester whose pass is on, each challenge's Joules) and the full Challenges page,
  * in the dark theme at every size and the sideways tablet, and the catalogue, a game's page and Challenges again in
- * light at every size. Appended last to THEME_SCREENS (theme-screens.ts), so every earlier draw keeps its place.
+ * light at every size. Drawn by theme-check and no-wrap-check after the core list (scripts/area-screens.ts finds this file, 14 Nov 2026).
  */
 import type { Page } from "playwright";
 
@@ -12,7 +12,7 @@ import { passFixture } from "../pass-fixture";
 import { PRACTICE_CHALLENGES, challengeLive } from "../../src/lib/duel/practiceChallenges";
 import type { ServerChallenges } from "../../src/lib/challenges/challengesClient";
 import type { PracticeProgressView } from "../../src/lib/practice/progress";
-import type { ThemeScreen, ThemeViewport } from "../theme-screens";
+import { ALL_SIZES, NAV_SIZES, type ThemeScreen, type ThemeViewport } from "../theme-screens";
 
 /** A player part-way through: stars and bests on a spread of games, every level drawn. */
 export function gamesProgressFixture(): PracticeProgressView {
@@ -92,3 +92,6 @@ export const GAMES_SCREENS = (sizes: ThemeViewport[], allSizes: ThemeViewport[])
     { name: "games: challenges, friends, none", mode: "challenges", plain: true, records: false, globals: data, sizes, waitMs: 600, go: friendsTab },
   ];
 };
+
+/** This area's screens for theme-check and no-wrap-check (the area-file shape, scripts/area-screens.ts). */
+export default (): ThemeScreen[] => GAMES_SCREENS(NAV_SIZES, ALL_SIZES);

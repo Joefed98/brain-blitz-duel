@@ -372,8 +372,8 @@ outside the repo.
   now an alias of a `--jz-*` token). Game screens, round intros and room moments are not skinned. Game
   icon tiles are black with their category's colour as the border (27 Oct 2026). Round leaderboard rows keep time · verdict · summary
   on one line under the name (ellipsis; a tap opens the detail). theme-check (fonts, tokens, contrast ≥ 4.5:1,
-  targets ≥ 44 px; in thirds since 14 Nov 2026, on `play16`, `play17` and `play15`, `--list` printing a part's draws) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
-  375×667 and desktop; eighths since 14 Nov 2026, two on `play16`, three on `play17` and one each on `play23`, `play6` and `play10`, `--list` printing a part's draws) prove it; run both after changing a skinned screen.
+  targets ≥ 44 px; `--list` printing a part's draws; its own jobs since 14 Nov 2026, see "Page screens and their checks" under Checks) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
+  375×667 and desktop; `--list` printing a part's draws; its own jobs too) prove it; run both after changing a skinned screen.
 - **Daily challenge and async rooms** (21 Oct 2026, the beta's daily; no game's rules, scoring or grading changed, no
   version stamps): an *async room* (`src/lib/duel/asyncRoom.ts` timings, `asyncRoom.server.ts` engine,
   `asyncRoom.functions.ts` calls, `src/components/async/AsyncRun.tsx` / `AsyncResults.tsx`) is a set of rounds dealt once
@@ -2178,7 +2178,7 @@ outside the repo.
   public Daily board is gone for the Daily top 100 (`DailyYou` keeps your own line; `dailyBoardFn` answers only the
   caller's row, `ownDailyLine`); the LiveTag's text is `--jz-bg` on its red (≥ 4.5:1). identity-everywhere-check (~10 s,
   shard `e`, PostgreSQL + happy-dom); the screens are `ROOM_IDENTITY_SCREENS` in theme-check and no-wrap-check, drawn at
-  every size (`sizes: ALL_SIZES`); theme-check runs in halves (`--part`, play16 and play17).
+  every size (`sizes: ALL_SIZES`).
 - **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
   deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
   placement players live only with placement players, else a beginner's run at 8 s), live and recorded rated matches as ordinary rooms the server makes already
@@ -2664,6 +2664,18 @@ outside the repo.
     limit stands.
   - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
     shard in `.github/ci/shards.ts` if it is slow.
+  - **Page screens and their checks** (14 Nov 2026, check plumbing, Joe's rules for every session):
+    - New screens go in their own `scripts/screens/<area>.ts` (default export: a function returning that area's
+      `ThemeScreen[]`; helpers end in `-fixture.ts`). `scripts/area-screens.ts` finds every area file (name order) and
+      theme-check and no-wrap-check draw them after the core list. **Never edit `THEME_SCREENS`** (closed at
+      `APPEARANCE_SCREENS`) **or the theme / no-wrap parts in `.github/ci/shards.ts`**: their jobs (`play-theme-*`,
+      `play-nowrap-*`) and fixed part counts come from `PAGE_CHECK_SPLITS`, parts are split by draw count at run time, and
+      ci-shards-check fails once any part passes its draw ceiling (40). Then raise that check's `parts` (and `jobs` if
+      needed) in `PAGE_CHECK_SPLITS`: a pre-approved routine consequence for any session or the captain, marked "Changed with
+      Joe's approval, 14 Nov 2026 (routine: page-check growth)".
+    - Run every new or changed check 10 times before opening the PR: `bun scripts/repeat-check.ts <check>[@k/n] [times=10]`.
+    - Write assertions about what matters (presence, relations, behaviour), never exact positions in shared lists or
+      counts other areas will change.
 - **Migrations from GitHub** (Wave 0, 9 Nov 2026, `docs/supabase-move/migrations-ci.md`): every push to `main`
   proves all of `supabase/migrations` on a fresh local PostgreSQL, then, right before `wrangler deploy`,
   `bun scripts/migrate.ts --live` applies the files not yet in the London project's

@@ -2,8 +2,7 @@
  * Home, Play and Rooms (phase 2 step 3, 14 Nov 2026; docs/design/style-guide/phone/home.png, play.png, sheet.png):
  * the redesigned Home for an account with everything on (rated play, the Shop and pass, friends, recently played,
  * today's dailies), the Play page with and without rated play and with the match sheet open, and the Rooms page, in
- * the dark theme at every size and the light theme at every size. Imported once by scripts/theme-screens.ts and
- * appended last there, so every earlier screen keeps its place in the parts.
+ * the dark theme at every size and the light theme at every size. Drawn by theme-check and no-wrap-check after the core list (scripts/area-screens.ts finds this file, 14 Nov 2026).
  */
 import type { Page } from "playwright";
 
@@ -12,7 +11,7 @@ import type { RankView } from "../../src/lib/rated/tierDisplay";
 import { tierFor } from "../../src/lib/rated/tiers";
 import { dailyFixture } from "../daily-fixture";
 import { passFixture } from "../pass-fixture";
-import type { ThemeScreen, ThemeViewport } from "../theme-screens";
+import { ALL_SIZES, type ThemeScreen, type ThemeViewport } from "../theme-screens";
 
 const rankAt = (r: number): RankView => ({ ...tierFor(r, null), rating: r });
 const LOOK = { cardArt: "card-art.joulz-navy", frame: "frame.plain", nameColour: null, avatar: { id: "captain-joulz", colour: 4, gem: null } };
@@ -98,3 +97,6 @@ export const HOME_PLAY_SCREENS = (ALL_SIZES: ThemeViewport[]): ThemeScreen[] => 
   ];
   return screens.map((s) => ({ ...s, sizes: ALL_SIZES }));
 };
+
+/** This area's screens for theme-check and no-wrap-check (the area-file shape, scripts/area-screens.ts). */
+export default (): ThemeScreen[] => HOME_PLAY_SCREENS(ALL_SIZES);

@@ -14,6 +14,10 @@ const LAUNCHES = /chromium\.launch|from\s+["'](?:@playwright\/test|playwright(?:
 /** A check that starts another script as a process. */
 const SPAWNS = /\bspawn(?:Sync)?\(|Bun\.spawn|execSync\(|execFileSync\(/;
 
+// Changed with Joe's approval, 14 Nov 2026 (check plumbing): a whole type-only import (`import type … from "playwright";`)
+// is erased when the script runs, so it launches nothing and is skipped. Mixed imports (`import { type X, y }`) still count.
+const TYPE_ONLY = /^\s*import\s+type\s[^;]*;/gm;
+
 const memo = new Map<string, boolean>();
 
 function localImport(from: string, spec: string): string | null {
@@ -28,7 +32,7 @@ function launchesBrowser(file: string, seen: Set<string>): boolean {
   if (known !== undefined) return known;
   if (seen.has(file)) return false;
   seen.add(file);
-  const src = readFileSync(file, "utf8");
+  const src = readFileSync(file, "utf8").replace(TYPE_ONLY, "");
   let hit = LAUNCHES.test(src);
   if (!hit) {
     const next: string[] = [];

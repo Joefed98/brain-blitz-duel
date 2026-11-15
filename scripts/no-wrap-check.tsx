@@ -25,7 +25,8 @@
 import { existsSync } from "node:fs";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, themeDraws } from "./theme-screens";
+import { CHROMIUM_PATHS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, themeDraws } from "./theme-screens";
+import { allThemeScreens } from "./area-screens";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -35,6 +36,8 @@ if (!CHROMIUM) {
   console.log("FAIL: environment: no Chromium (set PLAYWRIGHT_CHROMIUM)");
   process.exit(1);
 }
+// The core screens, then every area file's in scripts/screens/ (scripts/area-screens.ts, 14 Nov 2026).
+const THEME_SCREENS = await allThemeScreens();
 const SCREENS = ONLY.length
   ? THEME_SCREENS.filter((s) => ONLY.some((o) => s.name.includes(o)))
   : THEME_SCREENS;
