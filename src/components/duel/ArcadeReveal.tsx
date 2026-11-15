@@ -14,6 +14,7 @@ import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
 import { RevealBreakdown } from "./RevealBreakdown";
+import { CardsRevealPicture, CARDS_REVEAL_TYPES } from "./CardsRevealPicture";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
 
@@ -360,6 +361,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           ) : null}
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
+
+        {/* Cards & Board (the overhaul, 15 Nov 2026): the final table large, the key numbers and a run summary. */}
+        {CARDS_REVEAL_TYPES.has(puzzle.type) && myScore !== null ? <CardsRevealPicture puzzle={puzzle} answer={myAnswer ?? null} /> : null}
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}

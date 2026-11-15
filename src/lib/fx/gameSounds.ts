@@ -1742,7 +1742,9 @@ export function pyramidSounds(): GameSounds<PyState> {
         if (state.pairs > prev.pairs) { sfx("pyramid.pair", "correct", 0.8); cardFeel(); }
         else if (state.kings > prev.kings) { sfx("pyramid.king", "place", 0.8); cardFeel(); }
         // A refused pair moves the selection too; it plays only its refusal (one sound, 15 Nov 2026).
-        else if (state.sel >= 0 && state.sel !== prev.sel && state.rejects === prev.rejects) { effectCue("pyramid.select"); cardFeel(); }
+        else if (state.sel >= 0 && state.sel !== prev.sel && state.rejects === prev.rejects) effectCue("pyramid.select");
+        // The light touch on picking a card (a pair and a King feel theirs above).
+        if (state.pairs === prev.pairs && state.kings === prev.kings && state.sel >= 0 && state.sel !== prev.sel && state.rejects === prev.rejects) cardFeel();
         if (state.draws > prev.draws) sfx("pyramid.deal", "move", 0.8);
         if (state.pass > prev.pass) effectCue("pyramid.turn");
         if (state.rejects > prev.rejects) sfx("pyramid.invalid", "wrong", 0.5);
