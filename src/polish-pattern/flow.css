@@ -117,18 +117,136 @@
   height: min(100cqw, calc(100cqh - 48px));
 }
 
-/* --- Reveal: both boards as large as the space allows --- */
+/* --- Reveal (the Pattern overhaul, 15 Nov 2026): one board at a time (SolutionSwitch), drawn large --- */
 .answer-reveal-content .reveal-card > .flow-reveal {
   flex: 1 1 0;
   min-height: 0;
   container-type: size;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .flow-reveal > .flow-reveal-boards {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
+/* Each column is shown alone, so its board takes the whole width; the space kept below it is that column's own
+   (the Solution's caption; the Yours caption, pills, pair strip and key). */
 .flow-reveal-board {
-  width: min(calc((100cqw - 12px) / 2), calc(100cqh - 76px));
+  width: min(100%, calc(100cqh - 44px));
+}
+.flow-reveal-board.flow-reveal-board-yours {
+  width: min(100%, calc(100cqh - 150px));
+}
+.flow-reveal-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jz-text-2);
+}
+.flow-reveal-caption {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--jz-text-2);
+}
+.flow-reveal .hud-pills.flow-reveal-pills {
+  overflow: visible;
+  justify-content: center;
+  flex-wrap: wrap;
+  height: auto;
+  row-gap: 4px;
+}
+/* Each pair as its bead with a small mark: joined on the solution's route, joined another way, or not joined. */
+.flow-pair-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.flow-pair-chip {
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+}
+.flow-pair-bead {
+  position: absolute;
+  inset: 2px;
+  display: block;
+}
+.flow-pair-bead > .flow-bead {
+  position: absolute;
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+}
+.flow-pair-bead > .flow-symbol {
+  position: absolute;
+  left: 27%;
+  top: 27%;
+  width: 46%;
+  height: 46%;
+}
+.flow-pair-bead > .flow-symbol path {
+  fill: #ffffff;
+  stroke: rgba(12, 13, 26, 0.85);
+  stroke-width: 2.2px;
+  paint-order: stroke fill;
+}
+.flow-pair-mark {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--jz-bg);
+  background: var(--jz-text-2);
+}
+.flow-pair-chip[data-state="route"] .flow-pair-mark { background: #3ddc84; }
+.flow-pair-chip[data-state="other"] .flow-pair-mark { background: #f2b33d; }
+.flow-pair-chip[data-state="open"] .flow-pair-mark { background: #ff4d4d; color: #ffffff; }
+.flow-pair-chip[data-state="open"] .flow-pair-bead { opacity: 0.55; }
+.flow-reveal-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 10px;
+  font-size: 12px;
+  color: var(--jz-text-3);
+}
+
+/* The reveal's highlights on the player's board: a red ring round each dot of a pair not joined, a red dot in each
+   square left empty (rings and dots, no glow). */
+.flow-dot[data-flow-missed]::after {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  border-radius: 999px;
+  border: 2.5px solid #ff4d4d;
+  pointer-events: none;
+}
+.flow-cell[data-flow-empty] {
+  position: relative;
+}
+.flow-cell[data-flow-empty]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22%;
+  height: 22%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: #ff4d4d;
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

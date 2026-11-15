@@ -11,9 +11,12 @@
  *     (scripts/fixtures/pattern-overhaul-flow-legacy.json.gz, scripts/pattern-overhaul-flow-record.ts).
  *  5. The help says what changed (and keeps the old lines for the stamps before).
  *  6. The sprites exist, are WebP with alpha and within budget, and the board draws them (beads with their symbols,
- *     the wall and cell tiles; no glow filter); the live pills show Pairs and Filled; the reveal's own count is
- *     marked for Yours only.
+ *     the wall and cell tiles; no glow filter); the live pills show Pairs and Filled.
  *  7. Sounds: the new slots exist, the stage fires them, and a join plays one sound (no generic `correct`).
+ *  8. The answer reveal (Joe, 15 Nov 2026): the Solution and Yours columns each drawn full width (one at a time under
+ *     the switch, never half size), the player's board with unjoined pairs ringed and empty squares dotted, each pair
+ *     as a bead chip (on route / another way / not joined), the numbers from the stored grade, plain labels, no "×";
+ *     on the new stamp and an older one. Demos recorded before flowRev 3 stay stopped.
  *
  *   bun scripts/pattern-overhaul-flow-check.ts
  */
@@ -203,12 +206,6 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
   const stageSrc = readFileSync("src/puzzles/flow.tsx", "utf8");
   check(/id: "pairs", label: "Pairs"/.test(stageSrc) && /id: "filled", label: "Filled"/.test(stageSrc), "the live pills show Pairs and Filled");
 
-  const Reveal = flowPuzzle.Reveal!;
-  const reveal = renderToStaticMarkup(
-    createElement(Reveal, { puzzle: live, myAnswer: encodeFlowPaths(live.pairs.map(() => [])), myCorrect: false, timeLimitMs: 75_000 } as never),
-  );
-  check(/data-yours-only=""[^>]*>You: 0\/\d+ pairs on route/.test(reveal), "the reveal's own count reads \"You: 0/n pairs on route\" and shows only under Yours");
-  check(!/×/.test(reveal), "no stray × in the reveal");
 }
 
 /* ------------------------------------------------------------------ 7. sounds */
@@ -224,6 +221,70 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
   const lines = readFileSync("docs/sound-cues/pattern-elevenlabs.md", "utf8");
   const section = lines.slice(lines.indexOf("<!-- chroma:start -->"), lines.indexOf("<!-- chroma:end -->"));
   for (const slot of ["flow.draw", "flow.cut", "flow.connect", "flow.nearMiss", "flow.solve"]) check(section.includes(`\`${slot}\``), `an ElevenLabs line for ${slot}`);
+}
+
+/* ------------------------------------------------------------------ 8. the answer reveal */
+{
+  const { flowPuzzle, flowRevealView } = await import("../src/puzzles/flow");
+  const Reveal = flowPuzzle.Reveal!;
+  const render = (p: Flow, answer: string, correct: boolean, extra: unknown, msLeft?: number) =>
+    renderToStaticMarkup(createElement(Reveal, { puzzle: p, myAnswer: answer, myCorrect: correct, myReactionAvgMs: null, myMsRemaining: msLeft, timeLimitMs: 75_000, myExtra: extra } as never));
+  const count = (html: string, attr: string) => (html.match(new RegExp(attr, "g")) ?? []).length;
+  const prior = pinPrePatternNov15(true);
+  let older: Flow;
+  try {
+    older = roomPuzzle("flow", 777) as Flow;
+  } finally {
+    pinPrePatternNov15(prior);
+  }
+  for (const p of [live, older, roomPuzzle("flow", 778) as Flow]) {
+    const era = `flowRev ${p.flowRev}`;
+    const sol = p.solution!;
+    // Solved, as the server graded it.
+    const solvedAnswer = encodeFlowPaths(sol);
+    const gs = gradeAnswer(p, solvedAnswer, 30_000);
+    const done = render(p, solvedAnswer, gs.isCorrect, gs.extra, 30_000);
+    check(gs.isCorrect, `${era}: the solution grades as solved`);
+    check(/data-flow-solution/.test(done) && /data-flow-yours/.test(done), `${era}: Solution and Yours columns`);
+    check(/>Solution</.test(done) && />Yours</.test(done), `${era}: the switch's plain labels`);
+    check(!/data-yours-only/.test(done), `${era}: no data-yours-only (the Solution board is never shrunk by it)`);
+    check(/You: every pair joined in 45\.0 s/.test(done), `${era}: the solved line`);
+    check(new RegExp(`Pairs[\\s\\S]*?${p.pairs.length}/${p.pairs.length}`).test(done), `${era}: Pairs pill from the stored grade`);
+    const redraws = (gs.extra as { redraws?: number } | undefined)?.redraws;
+    check(typeof redraws === "number" ? /Redraws/.test(done) : !/Redraws/.test(done), `${era}: Redraws pill only when the grade stores a count`);
+    const withRedraws = render(p, solvedAnswer, true, { ...(gs.extra as object), redraws: 2 }, 30_000);
+    check(/Redraws[\s\S]*?>2</.test(withRedraws), `${era}: a stored redraw count shows in its pill`);
+    check(/Time left[\s\S]*?30 s/.test(done), `${era}: Time left pill`);
+    check(count(done, "data-flow-missed") === 0 && count(done, "data-flow-empty") === 0, `${era}: a solved board has no highlights`);
+    check(count(done, 'data-state="route"') === p.pairs.length, `${era}: every pair chip on route`);
+    check(!/×/.test(done), `${era}: no stray × (solved)`);
+    // Unfinished: two pairs left off; the stored grade's numbers are shown, and the misses are marked.
+    const left = sol.map((path, i) => (i < 2 ? [] : path));
+    const answer = encodeFlowPaths(left);
+    const gu = gradeAnswer(p, answer, 0);
+    const extra = gu.extra as { pairsJoined: number; filled: number };
+    const part = render(p, answer, gu.isCorrect, gu.extra);
+    check(!gu.isCorrect, `${era}: two pairs left off is unfinished`);
+    check(count(part, "data-flow-missed") === 4, `${era}: both dots of each unjoined pair are ringed (${count(part, "data-flow-missed")})`);
+    const emptyWant = sol[0]!.length - 2 + sol[1]!.length - 2;
+    check(count(part, "data-flow-empty") === emptyWant, `${era}: every square left empty is marked (${count(part, "data-flow-empty")} of ${emptyWant})`);
+    check(count(part, 'data-state="open"') === 2, `${era}: two pair chips not joined`);
+    check(part.includes(`You: ${extra.pairsJoined} of ${p.pairs.length} pairs, ${extra.filled} of ${81 - (p.walls ?? []).length} squares`), `${era}: the unfinished line from the stored grade`);
+    check(part.includes(`${extra.pairsJoined}/${p.pairs.length}`) && part.includes(`${extra.filled}/${81 - (p.walls ?? []).length}`), `${era}: pills read the stored pairs and filled`);
+    check(/Red ring: pair not joined/.test(part) && /Red dot: square left empty/.test(part), `${era}: the key explains the highlights`);
+    check(!/×/.test(part), `${era}: no stray × (unfinished)`);
+    // A round stored without those numbers still reads its answer.
+    const bare = flowRevealView(p, answer, null);
+    check(bare.pairsJoined === extra.pairsJoined && bare.filled === extra.filled, `${era}: with no stored numbers, the answer gives the same counts`);
+    // The stored numbers win over the phone's reading.
+    check(flowRevealView(p, answer, { pairsJoined: 3, filled: 9 }).pairsJoined === 3, `${era}: the stored grade's numbers are the ones shown`);
+  }
+  const noAnswer = render(live, "", false, null);
+  check(/You: no lines drawn/.test(noAnswer), "no answer: \"You: no lines drawn\"");
+  const css = readFileSync("src/polish-pattern/flow.css", "utf8");
+  check(/\.flow-reveal-board \{\s*width: min\(100%/.test(css) && !/flow-reveal-board[^}]*\/ 2\)/.test(css), "each reveal board is sized to the full column, never half width");
+  const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
+  check(/data\.type === "flow"[^\n]*flowRev \?\? 0\) < 3\) return null/.test(demos), "demos recorded before flowRev 3 stay stopped");
 }
 
 if (failures) {
