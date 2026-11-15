@@ -7,8 +7,11 @@
  * oracle proved, per slot and level; a course is five of them, one from each slot.
  *
  * Slots grow as golfRev 2's holes did (an opening hole, a dogleg family, a tricky middle, then two holes on uneven
- * ground). Bunkers and ponds are unions of overlapping circles (natural shapes, the same physics as golfRev 2's
- * circles), and the last two slots carry swells: broad, gentle mounds and hollows that bend a rolling ball (MgSwell).
+ * ground). Every layout is crazy golf (Joe, 15 Nov 2026): windmills, castle gates, tunnels, ramps, loop-the-loops,
+ * bridges over water, bowls round the cup, domes and banked curves, each placed in the line of play. Bunkers and ponds
+ * are smooth shapes (minigolf.ts mgMetaSum: the level set of a field over their circles, never a cluster of circles),
+ * and the last two slots carry swells: broad, gentle mounds and hollows that bend a rolling ball (MgSwell). Hard and
+ * Expert add each template's extra hazards and make its slopes, domes and swells stronger (MG_LEVELS).
  *
  * Imports nothing from minigolf.ts but types, so minigolf.ts can import this file without a cycle at load time; the
  * few shared numbers are repeated here and pinned equal by crazy-golf-v3-check.
@@ -18,7 +21,7 @@
 import { fp } from "./engine";
 import { idiv, ilen, NORM_ONE, type Seg } from "./sportsKit";
 import { ANG_FULL, icos, isin, TRIG_ONE } from "./trig";
-import type { MgCircle, MgCurve, MgGate, MgHill, MgHole, MgTunnel, MgWindmill } from "./minigolf";
+import type { MgBridge, MgCircle, MgCurve, MgGate, MgHill, MgHole, MgLevel, MgLoop, MgTunnel, MgWindmill } from "./minigolf";
 
 /** The world every hole is laid out in (px); equal to MINIGOLF_W × MINIGOLF_H. */
 const WORLD_W = 390;
@@ -44,6 +47,8 @@ export interface MgSwell {
   y: number;
   r: number;
   k: number;
+  /** A bowl round the cup (drawn with a rim), else uneven ground. */
+  bowl?: boolean;
 }
 
 type P2 = [number, number];
@@ -74,6 +79,14 @@ export interface HoleTemplate {
   curves?: [number, number, number, number, number][];
   /** Swells (slots 3 and 4 only): centre, radius (px) and k. */
   swells?: [number, number, number, number][];
+  /** Loop-the-loops: end A (px), the heading into it from A (degrees) and its length (end B = A + length along it). */
+  loops?: [number, number, number, number][];
+  /** Bridges over water: the deck's box (px); no water on it, low rails along its long sides. */
+  bridges?: [number, number, number, number][];
+  /** Bowls: a hollow round the cup (centre, radius px, k < 0), the swells' push, at every level and slot. */
+  bowls?: [number, number, number, number][];
+  /** Hard and Expert only: more hazards. */
+  extra?: { rocks?: C3[]; sands?: C3[][]; ponds?: C3[][]; walls?: [number, number, number, number][] };
 }
 
 const SLOT_SIZE: readonly P2[] = [
@@ -87,129 +100,147 @@ const SLOT_SIZE: readonly P2[] = [
 const OCT = (w: number, h: number, c: number) => [0, c, c, 0, w - c, 0, w, c, w, h - c, w - c, h, c, h, 0, h - c];
 
 /**
- * The twenty templates. Slot 0: a lane past a bunker, a windmill lane, a pond to carry or walk round, a banked bowl.
- * Slot 1: a dogleg round a pond, a zigzag of timber walls, a castle gate, a tunnel past a long wall. Slot 2: the
- * S-bend, an island green on a bridge, a windmill and a castle, a stream with one bridge. Slots 3 and 4 (uneven
- * ground): a rolling green, the split round an island pond, a windmill valley, a lake; the switchback, a crater, three
- * ridges, a water finale.
+ * The twenty templates, every one crazy golf. Slot 0: a windmill over a bowl, a loop-the-loop through a timber wall, a
+ * pond with a bridge, a castle over a bowl. Slot 1: a dogleg with a tunnel shortcut, a zigzag with a windmill, a castle
+ * behind its moat and drawbridge, a loop through a long wall. Slot 2: the S-bend, an island green on a bridge, a
+ * windmill and a castle, a stream under a windmill. Slots 3 and 4 (uneven ground): a windmill on a rolling green, a
+ * split round a bridged pond, a loop in a valley, a lake with a bridge and a castle; the switchback, a crater, ridges
+ * with a windmill, a water finale with two bridges and a loop.
  */
 export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
-  /* ------------------------------ slot 0 ------------------------------ */
+  /* ------------------------------ slot 0 (300 × 520) ------------------------------ */
   {
-    name: "Bunker lane",
-    slot: 0,
-    shape: "straight",
-    w: 300,
-    h: 520,
-    poly: OCT(300, 520, 40),
-    tees: [[150, 482], [96, 476], [204, 476]],
-    cups: [[150, 70], [100, 92], [206, 88]],
-    rocks: [[70, 180, 12], [236, 352, 13]],
-    sands: [[[122, 250, 22], [150, 262, 26], [182, 246, 18], [204, 258, 12]]],
-    slopes: [[0, 330, 300, 410, 0, 1, 2]],
-  },
-  {
-    name: "Windmill lane",
+    name: "Windmill bowl",
     slot: 0,
     shape: "straight",
     w: 300,
     h: 520,
     poly: OCT(300, 520, 40),
     tees: [[150, 482], [100, 478], [200, 478]],
-    cups: [[150, 70], [104, 96], [200, 92]],
-    rocks: [[88, 176, 12]],
-    planters: [[112, 40, 12], [188, 40, 12]],
+    cups: [[150, 96], [124, 110], [178, 108]],
     gates: [["mill", 0, 260, 300, 260, 150, V3_MILL_HALF]],
-    sands: [[[214, 150, 16], [232, 166, 20], [246, 186, 12]]],
-    slopes: [[0, 320, 300, 400, 0, 1, 2]],
+    slopes: [[0, 330, 300, 410, 0, 1, 2]],
+    bowls: [[150, 102, 62, -14]],
+    sands: [[[54, 176, 18], [72, 190, 14], [86, 198, 10]]],
+    rocks: [[236, 190, 12]],
+    extra: { sands: [[[226, 420, 16], [240, 432, 12]]], rocks: [[96, 336, 11]] },
   },
   {
-    name: "Pond carry",
+    name: "Loop lane",
+    slot: 0,
+    shape: "straight",
+    w: 300,
+    h: 520,
+    poly: OCT(300, 520, 40),
+    tees: [[150, 482], [100, 478], [200, 478]],
+    cups: [[150, 82], [100, 98], [200, 96]],
+    walls: [[0, 300, 137, 300], [163, 300, 300, 300]],
+    loops: [[150, 356, -90, 96]],
+    slopes: [[0, 384, 300, 440, 0, 1, 2]],
+    bowls: [[150, 90, 56, -12]],
+    sands: [[[214, 156, 16], [230, 170, 14], [242, 184, 9]]],
+    rocks: [[88, 168, 12]],
+    planters: [[150, 160, 11]],
+    extra: { sands: [[[88, 410, 16], [104, 422, 12]]], rocks: [[210, 380, 11]] },
+  },
+  {
+    name: "Bridge pond",
     slot: 0,
     shape: "straight",
     w: 300,
     h: 540,
     poly: OCT(300, 540, 36),
     tees: [[150, 504], [222, 500], [86, 500]],
-    cups: [[150, 72], [94, 86], [214, 80]],
-    ponds: [[[124, 278, 36], [170, 266, 42], [222, 280, 38], [262, 270, 28], [96, 292, 22]]],
-    rocks: [[44, 148, 11], [250, 410, 12]],
-    sands: [[[58, 404, 14], [76, 418, 18]]],
+    cups: [[150, 80], [94, 92], [210, 88]],
+    ponds: [[[30, 272, 42], [88, 262, 46], [150, 270, 46], [212, 262, 46], [270, 272, 42]]],
+    bridges: [[133, 204, 167, 336]],
+    rocks: [[52, 150, 11]],
+    sands: [[[230, 160, 15], [246, 172, 11]]],
+    hills: [[150, 420, 34, 9]],
+    extra: { rocks: [[118, 160, 10]], sands: [[[70, 410, 15], [84, 422, 11]]] },
   },
   {
-    name: "Banked bowl",
+    name: "Castle bowl",
     slot: 0,
     shape: "straight",
     w: 300,
     h: 520,
     poly: OCT(300, 520, 46),
     tees: [[150, 482], [92, 470], [208, 470]],
-    cups: [[150, 112], [112, 136], [190, 134]],
-    curves: [[150, 150, 100, 200, 340]],
-    sands: [[[66, 160, 18], [56, 182, 14]], [[236, 168, 16], [246, 190, 13]]],
-    hills: [[150, 330, 38, 9]],
-    rocks: [[236, 420, 11]],
+    cups: [[150, 112], [128, 124], [172, 122]],
+    gates: [["castle", 0, 280, 300, 280, 150, 22]],
+    bowls: [[150, 118, 70, -12]],
+    slopes: [[0, 300, 300, 380, 0, 1, 2]],
+    sands: [[[54, 152, 16], [64, 172, 12]], [[246, 152, 16], [236, 172, 12]]],
+    extra: { rocks: [[150, 214, 10]], sands: [[[90, 430, 15], [104, 440, 11]]] },
   },
-  /* ------------------------------ slot 1 ------------------------------ */
+  /* ------------------------------ slot 1 (340 × 580) ------------------------------ */
   {
-    name: "Pond dogleg",
+    name: "Tunnel dogleg",
     slot: 1,
     shape: "dogleg",
     w: 340,
     h: 580,
     poly: [0, 0, 300, 0, 340, 40, 340, 170, 300, 205, 150, 205, 150, 580, 0, 580],
     tees: [[75, 545], [40, 540], [110, 540]],
-    cups: [[292, 72], [300, 150], [244, 52]],
-    ponds: [[[196, 132, 22], [222, 148, 18], [176, 150, 14]]],
-    sands: [[[60, 84, 18], [84, 70, 14]]],
-    rocks: [[60, 320, 13]],
-    slopes: [[0, 380, 150, 480, 0, 1, 2]],
+    cups: [[292, 72], [300, 150], [250, 60]],
+    ponds: [[[196, 128, 22], [222, 146, 18], [178, 150, 14]]],
+    sands: [[[60, 84, 18], [82, 72, 14]]],
+    slopes: [[0, 360, 150, 470, 0, 1, 2]],
     curves: [[80, 80, 80, 180, 270]],
+    tunnels: [[34, 300, 236, 48, 0]],
+    bowls: [[292, 100, 46, -12]],
+    extra: { rocks: [[100, 300, 11]], sands: [[[110, 150, 14], [126, 164, 10]]] },
   },
   {
-    name: "Zigzag",
+    name: "Zigzag mill",
     slot: 1,
     shape: "dogleg",
     w: 340,
     h: 580,
     poly: OCT(340, 580, 36),
     tees: [[80, 540], [170, 544], [258, 540]],
-    cups: [[260, 70], [80, 70], [170, 60]],
-    walls: [[0, 200, 220, 200], [120, 380, 340, 380]],
-    sands: [[[262, 280, 20], [286, 294, 16]], [[60, 470, 16], [80, 482, 13]]],
-    rocks: [[176, 130, 12], [108, 300, 12]],
-    slopes: [[0, 210, 340, 290, 0, 1, 1]],
+    cups: [[260, 74], [80, 74], [170, 64]],
+    walls: [[0, 200, 220, 200]],
+    gates: [["mill", 0, 380, 340, 380, 236, V3_MILL_HALF]],
+    sands: [[[268, 280, 20], [290, 294, 15]], [[60, 470, 16], [78, 482, 12]]],
+    rocks: [[176, 128, 12]],
+    hills: [[110, 290, 40, 9]],
+    extra: { rocks: [[236, 440, 10]], sands: [[[120, 120, 14], [134, 132, 10]]] },
   },
   {
-    name: "Castle gate",
+    name: "Moat castle",
     slot: 1,
     shape: "dogleg",
     w: 340,
     h: 580,
     poly: OCT(340, 580, 40),
     tees: [[170, 544], [100, 540], [240, 540]],
-    cups: [[170, 70], [96, 90], [250, 86]],
+    cups: [[170, 80], [96, 96], [250, 92]],
     gates: [["castle", 0, 300, 340, 300, 230, 22]],
-    sands: [[[132, 352, 18], [158, 366, 22], [186, 354, 14]], [[262, 196, 16], [280, 212, 13]]],
-    ponds: [[[72, 190, 22], [92, 210, 16]]],
-    rocks: [[230, 440, 12]],
+    ponds: [[[28, 352, 26], [76, 348, 28], [126, 352, 28], [176, 348, 28], [226, 352, 28], [276, 348, 28], [320, 352, 24]]],
+    bridges: [[214, 316, 246, 390]],
+    sands: [[[262, 196, 16], [280, 212, 12]]],
+    bowls: [[170, 88, 48, -12]],
+    extra: { rocks: [[120, 200, 11]], sands: [[[80, 450, 15], [96, 462, 11]]] },
   },
   {
-    name: "Long wall",
+    name: "Loop wall",
     slot: 1,
     shape: "dogleg",
     w: 340,
     h: 580,
     poly: OCT(340, 580, 36),
-    tees: [[60, 540], [140, 544], [230, 540]],
-    cups: [[60, 72], [140, 66], [250, 90]],
-    walls: [[0, 300, 270, 300]],
-    tunnels: [[40, 360, 40, 230, -90]],
-    sands: [[[150, 186, 18], [176, 196, 16]]],
-    ponds: [[[250, 430, 22], [276, 446, 18]]],
-    rocks: [[300, 220, 12]],
+    tees: [[60, 540], [150, 544], [240, 540]],
+    cups: [[70, 82], [170, 70], [280, 92]],
+    walls: [[0, 300, 277, 300], [303, 300, 340, 300]],
+    loops: [[290, 352, -90, 104]],
+    tunnels: [[40, 376, 60, 226, -90]],
+    sands: [[[150, 186, 18], [176, 196, 14]]],
+    rocks: [[300, 210, 12]],
+    extra: { rocks: [[150, 420, 11]], sands: [[[220, 110, 14], [236, 122, 10]]] },
   },
-  /* ------------------------------ slot 2 ------------------------------ */
+  /* ------------------------------ slot 2 (370 × 620) ------------------------------ */
   {
     name: "S-bend",
     slot: 2,
@@ -218,13 +249,15 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     h: 620,
     poly: [0, 230, 220, 230, 220, 30, 250, 0, 340, 0, 370, 30, 370, 390, 150, 390, 150, 620, 0, 620],
     tees: [[75, 585], [40, 580], [110, 580]],
-    cups: [[300, 52], [262, 64], [336, 80]],
+    cups: [[300, 60], [262, 70], [334, 86]],
     walls: [[0, 304, 74, 304], [362, 330, 318, 382]],
     rocks: [[105, 470, 14], [312, 290, 12]],
     slopes: [[220, 110, 370, 230, 0, 1, 2]],
     tunnels: [[32, 262, 296, 214, -112]],
     hills: [[180, 312, 42, 10]],
-    sands: [[[290, 140, 16], [312, 152, 14]]],
+    bowls: [[298, 66, 42, -12]],
+    sands: [[[288, 150, 16], [310, 162, 12]]],
+    extra: { rocks: [[260, 300, 11]], sands: [[[90, 520, 14], [104, 532, 10]]] },
   },
   {
     name: "Island green",
@@ -234,12 +267,13 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     h: 620,
     poly: OCT(370, 620, 44),
     tees: [[185, 584], [100, 576], [270, 576]],
-    cups: [[185, 196], [160, 186], [212, 188]],
-    ponds: [
-      [[120, 150, 30], [150, 118, 30], [185, 108, 30], [220, 118, 30], [250, 150, 30], [258, 196, 28], [112, 196, 28], [124, 242, 26], [246, 242, 26]],
-    ],
-    sands: [[[70, 420, 18], [92, 434, 16]], [[300, 360, 16], [318, 374, 14]]],
-    rocks: [[185, 400, 13], [120, 500, 11]],
+    cups: [[185, 188], [177, 180], [193, 180]],
+    ponds: [[[118, 150, 30], [146, 116, 30], [185, 104, 30], [224, 116, 30], [252, 150, 30], [260, 196, 28], [110, 196, 28], [122, 240, 27], [248, 240, 27], [160, 262, 22], [210, 262, 22], [185, 268, 20]]],
+    bridges: [[171, 230, 199, 300]],
+    bowls: [[185, 184, 34, -12]],
+    gates: [["mill", 0, 420, 370, 420, 185, V3_MILL_HALF]],
+    sands: [[[70, 470, 18], [92, 484, 14]]],
+    extra: { rocks: [[260, 500, 11]], sands: [[[290, 340, 15], [306, 352, 11]]] },
   },
   {
     name: "Mill and castle",
@@ -249,14 +283,17 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     h: 620,
     poly: OCT(370, 620, 40),
     tees: [[185, 584], [96, 578], [274, 578]],
-    cups: [[185, 70], [96, 86], [280, 84]],
+    cups: [[185, 76], [96, 92], [280, 90]],
     gates: [
       ["mill", 0, 420, 370, 420, 185, V3_MILL_HALF],
       ["castle", 0, 220, 370, 220, 90, 22],
     ],
+    slopes: [[0, 450, 370, 530, 0, 1, 2]],
     sands: [[[262, 300, 20], [290, 312, 16], [240, 318, 12]]],
     rocks: [[110, 320, 12]],
     ponds: [[[300, 140, 18], [320, 158, 14]]],
+    bowls: [[185, 84, 44, -10]],
+    extra: { rocks: [[200, 140, 11]], sands: [[[120, 370, 14], [134, 380, 10]]] },
   },
   {
     name: "Stream",
@@ -266,70 +303,85 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     h: 620,
     poly: OCT(370, 620, 40),
     tees: [[90, 584], [185, 588], [280, 584]],
-    cups: [[280, 72], [185, 64], [90, 80]],
-    ponds: [[[16, 250, 20], [48, 268, 20], [80, 286, 20], [112, 304, 20], [208, 356, 20], [240, 374, 20], [272, 392, 20], [304, 410, 20], [340, 428, 22]]],
-    sands: [[[240, 210, 18], [262, 224, 16]]],
-    rocks: [[110, 160, 12], [290, 520, 12]],
-    planters: [[160, 330, 10]],
+    cups: [[280, 76], [185, 66], [90, 82]],
+    // A meandering stream (x every 17 px, y = 340 + 22·sin(2πx ÷ 370), written out as integers).
+    ponds: [[[-4, 340, 19], [13, 346, 19], [30, 352, 19], [47, 357, 19], [64, 360, 19], [81, 362, 19], [98, 362, 19], [115, 360, 19], [132, 356, 19], [149, 351, 19], [166, 346, 19], [183, 339, 19], [200, 333, 19], [217, 327, 19], [234, 323, 19], [251, 320, 19], [268, 318, 19], [285, 318, 19], [302, 321, 19], [319, 324, 19], [336, 329, 19], [353, 335, 19], [370, 341, 19]]],
+    bridges: [[169, 300, 201, 404]],
+    gates: [["mill", 0, 200, 370, 200, 185, V3_MILL_HALF]],
+    sands: [[[262, 470, 16], [280, 482, 12]]],
+    rocks: [[110, 140, 12]],
+    planters: [[290, 260, 11]],
+    extra: { rocks: [[90, 450, 11]], sands: [[[240, 120, 14], [254, 132, 10]]] },
   },
-  /* ------------------------------ slot 3 ------------------------------ */
+  /* ------------------------------ slot 3 (390 × 650), uneven ------------------------------ */
   {
-    name: "Rolling green",
+    name: "Rolling mill",
     slot: 3,
     shape: "split",
     w: 390,
     h: 650,
     poly: OCT(390, 650, 50),
     tees: [[195, 612], [110, 604], [280, 604]],
-    cups: [[195, 80], [112, 104], [282, 100]],
-    sands: [[[150, 200, 20], [176, 212, 18]], [[260, 330, 22], [286, 346, 18], [236, 346, 12]]],
-    ponds: [[[80, 380, 20], [100, 398, 16]]],
-    swells: [[120, 470, 90, 12], [270, 470, 80, -9], [195, 300, 100, 9], [120, 190, 80, -9], [280, 180, 70, 9]],
+    cups: [[195, 86], [118, 106], [272, 104]],
+    gates: [["mill", 0, 330, 390, 330, 195, V3_MILL_HALF]],
+    sands: [[[150, 210, 20], [176, 220, 16]], [[264, 420, 20], [286, 434, 15]]],
+    ponds: [[[80, 430, 20], [100, 446, 15]]],
+    swells: [[120, 500, 90, 12], [270, 500, 80, -9], [120, 190, 80, -9], [280, 190, 70, 9]],
+    bowls: [[195, 92, 50, -12]],
+    extra: { rocks: [[300, 260, 11]], sands: [[[90, 250, 14], [104, 262, 10]]] },
   },
   {
-    name: "Island pond",
+    name: "Bridged pond",
     slot: 3,
     shape: "split",
     w: 390,
     h: 650,
     poly: OCT(390, 650, 60),
     tees: [[195, 615], [120, 606], [270, 606]],
-    cups: [[195, 64], [140, 80], [250, 80]],
-    walls: [[195, 180, 195, 262], [195, 430, 195, 530]],
-    ponds: [[[195, 346, 54], [170, 312, 28], [222, 382, 28]]],
-    sands: [[[96, 96, 20], [114, 110, 14]]],
-    rocks: [[300, 330, 14]],
+    cups: [[195, 70], [140, 84], [250, 84]],
+    walls: [[195, 160, 195, 250], [195, 444, 195, 540]],
+    ponds: [[[150, 346, 46], [195, 340, 50], [240, 346, 46], [195, 386, 34], [195, 300, 34]]],
+    bridges: [[181, 284, 209, 410]],
+    tunnels: [[60, 560, 70, 160, -90]],
+    sands: [[[96, 100, 20], [114, 112, 14]]],
     swells: [[80, 330, 110, 12], [310, 330, 110, -12], [195, 140, 90, 9]],
+    extra: { rocks: [[300, 480, 11]], sands: [[[290, 150, 14], [304, 162, 10]]] },
   },
   {
-    name: "Windmill valley",
+    name: "Loop valley",
     slot: 3,
     shape: "grand",
     w: 390,
     h: 650,
     poly: OCT(390, 650, 44),
     tees: [[195, 612], [110, 604], [280, 604]],
-    cups: [[195, 76], [110, 96], [280, 96]],
-    gates: [["mill", 0, 340, 390, 340, 195, V3_MILL_HALF]],
-    sands: [[[96, 200, 18], [118, 214, 16]], [[290, 470, 18], [312, 486, 14]]],
-    swells: [[80, 470, 100, -12], [310, 200, 100, -12], [195, 520, 70, 9], [195, 190, 80, 9]],
+    cups: [[195, 82], [110, 100], [280, 100]],
+    walls: [[0, 380, 182, 380], [208, 380, 390, 380]],
+    loops: [[195, 436, -90, 112]],
+    bowls: [[195, 88, 48, -12]],
+    hills: [[195, 250, 36, 9]],
+    sands: [[[96, 200, 18], [118, 214, 14]], [[300, 520, 18], [318, 534, 13]]],
+    swells: [[80, 500, 100, -12], [310, 200, 100, -12], [195, 190, 80, 9]],
     rocks: [[300, 260, 12]],
+    extra: { rocks: [[110, 300, 11]], sands: [[[300, 176, 14], [312, 188, 10]]] },
   },
   {
-    name: "Lake",
+    name: "Lake castle",
     slot: 3,
     shape: "dogleg",
     w: 390,
     h: 650,
     poly: OCT(390, 650, 44),
     tees: [[300, 612], [230, 610], [340, 590]],
-    cups: [[90, 80], [150, 70], [70, 140]],
-    ponds: [[[170, 330, 60], [130, 290, 44], [210, 380, 44], [110, 380, 34], [230, 270, 34]]],
-    sands: [[[300, 180, 20], [320, 196, 16]], [[60, 520, 18], [80, 536, 14]]],
-    rocks: [[300, 420, 12]],
-    swells: [[320, 300, 80, 12], [90, 180, 80, -9], [190, 540, 90, 9]],
+    cups: [[90, 80], [150, 72], [70, 136]],
+    ponds: [[[170, 330, 56], [126, 290, 42], [214, 376, 42], [110, 380, 32], [232, 270, 32]]],
+    bridges: [[110, 314, 240, 346]],
+    gates: [["castle", 0, 200, 390, 200, 120, 22]],
+    sands: [[[300, 150, 20], [320, 166, 15]], [[60, 520, 18], [80, 534, 13]]],
+    swells: [[320, 300, 80, 12], [90, 470, 80, -9], [200, 540, 90, 9]],
+    extra: { rocks: [[300, 440, 11]], sands: [[[180, 120, 14], [194, 132, 10]]] },
   },
-  /* ------------------------------ slot 4 ------------------------------ */
+  /* ------------------------------ slot 4 (390 × 690), uneven ------------------------------ */
   {
     name: "Switchback",
     slot: 4,
@@ -348,8 +400,10 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
       ["castle", 0, 230, 390, 230, 75, 20],
     ],
     sands: [[[178, 598, 22], [204, 610, 16]]],
-    swells: [[200, 560, 90, 9], [220, 120, 90, -9], [210, 340, 70, 9]],
+    swells: [[200, 560, 90, 9], [210, 340, 70, 9]],
+    bowls: [[330, 106, 40, -12]],
     curves: [[80, 80, 80, 180, 270]],
+    extra: { rocks: [[250, 520, 11]], sands: [[[200, 130, 14], [214, 142, 10]]] },
   },
   {
     name: "Crater",
@@ -359,25 +413,32 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     h: 690,
     poly: OCT(390, 690, 52),
     tees: [[195, 652], [110, 644], [280, 644]],
-    cups: [[195, 160], [168, 150], [222, 152]],
-    sands: [[[120, 160, 20], [130, 196, 16]], [[270, 160, 20], [262, 196, 16]], [[195, 250, 16], [172, 252, 12], [218, 252, 12]]],
+    cups: [[195, 160], [174, 150], [216, 152]],
+    sands: [[[120, 168, 20], [128, 200, 16]], [[270, 168, 20], [262, 200, 16]], [[176, 250, 14], [195, 254, 16], [214, 250, 14]]],
     ponds: [[[90, 400, 22], [110, 420, 16]], [[300, 420, 22], [280, 440, 16]]],
-    rocks: [[195, 470, 13]],
-    swells: [[195, 160, 110, -12], [100, 300, 80, 9], [290, 300, 80, 9], [195, 560, 100, 9]],
+    tunnels: [[60, 560, 330, 270, -100]],
+    hills: [[195, 470, 44, 10]],
+    bowls: [[195, 160, 96, -14]],
+    swells: [[100, 300, 80, 9], [290, 300, 80, 9], [195, 580, 100, 9]],
+    extra: { rocks: [[140, 330, 11]], sands: [[[260, 560, 14], [274, 572, 10]]] },
   },
   {
-    name: "Ridges",
+    name: "Ridges mill",
     slot: 4,
     shape: "grand",
     w: 390,
     h: 690,
     poly: OCT(390, 690, 44),
     tees: [[195, 652], [80, 644], [310, 644]],
-    cups: [[195, 72], [96, 90], [294, 90]],
-    walls: [[0, 230, 150, 230], [240, 230, 390, 230], [100, 460, 290, 460]],
-    sands: [[[195, 300, 18], [218, 312, 14]], [[60, 560, 16], [78, 574, 13]]],
+    cups: [[195, 80], [96, 96], [294, 96]],
+    walls: [[0, 230, 150, 230], [240, 230, 390, 230]],
+    gates: [["mill", 0, 460, 390, 460, 195, V3_MILL_HALF]],
+    slopes: [[0, 480, 390, 560, 0, 1, 2]],
+    sands: [[[195, 300, 18], [218, 312, 14]], [[60, 580, 16], [78, 594, 13]]],
     rocks: [[330, 360, 12], [60, 360, 12]],
-    swells: [[195, 360, 120, 12], [195, 150, 100, -9], [195, 570, 100, 12]],
+    swells: [[195, 360, 120, 12], [195, 150, 100, -9]],
+    bowls: [[195, 86, 44, -12]],
+    extra: { rocks: [[260, 600, 11]], sands: [[[300, 140, 14], [314, 152, 10]]] },
   },
   {
     name: "Water finale",
@@ -387,15 +448,17 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     h: 690,
     poly: OCT(390, 690, 44),
     tees: [[195, 652], [100, 644], [290, 644]],
-    cups: [[195, 72], [110, 92], [282, 92]],
+    cups: [[195, 76], [110, 96], [282, 96]],
     ponds: [
-      [[50, 470, 24], [84, 484, 24], [118, 496, 22], [152, 504, 18]],
-      [[240, 300, 22], [274, 286, 24], [308, 274, 22], [342, 262, 20]],
+      [[-6, 486, 26], [40, 490, 28], [88, 494, 28], [136, 496, 26], [180, 498, 24], [224, 496, 24]],
+      [[166, 290, 24], [212, 284, 26], [258, 280, 28], [306, 278, 28], [354, 276, 28], [398, 276, 26]],
     ],
+    bridges: [[96, 456, 126, 534], [270, 238, 300, 318]],
     gates: [["castle", 0, 170, 390, 170, 195, 22]],
-    sands: [[[110, 260, 18], [132, 272, 14]], [[280, 560, 18], [300, 574, 14]]],
-    rocks: [[195, 380, 13]],
-    swells: [[110, 360, 100, 12], [290, 420, 80, -9], [195, 560, 80, 9]],
+    loops: [[330, 430, -90, 90]],
+    sands: [[[110, 260, 18], [132, 272, 14]], [[280, 580, 18], [300, 594, 14]]],
+    swells: [[110, 360, 100, 12], [195, 590, 80, 9]],
+    extra: { rocks: [[195, 380, 11]], sands: [[[300, 120, 14], [314, 132, 10]]] },
   },
 ];
 
@@ -439,10 +502,43 @@ const degAng = (deg: number) => idiv(deg * ANG_FULL, 360);
  * Builds hole `id` for course slot `index` (0–4), its windmills turning at `mill` speed (the level's). Throws on an id
  * the catalogue doesn't hold.
  */
-export function buildHoleV3(id: number, index: number, mill: MillSpeed = "normal"): MgHole & { swells: MgSwell[]; tall: Seg[]; pondGroups: number[]; sandGroups: number[]; holeId: number } {
+/**
+ * Each level's sails, extra hazards and slope strength, as MG_LEVELS in minigolf.ts states them (repeated here so this
+ * file imports no values from it; crazy-golf-v3-check pins them equal).
+ */
+export const V3_LEVEL_BUILD: Readonly<Record<MgLevel, { mill: MillSpeed; extras: boolean; slopeScale256: number }>> = {
+  easy: { mill: "slow", extras: false, slopeScale256: 256 },
+  normal: { mill: "normal", extras: false, slopeScale256: 256 },
+  hard: { mill: "normal", extras: true, slopeScale256: 358 },
+  expert: { mill: "fast", extras: true, slopeScale256: 563 },
+};
+/** A loop's side rails stand MG_LOOP_LANE ÷ 2 either side of its line, 3 px thick (minigolf.ts MG_LOOP_LANE: 26). */
+export const V3_LOOP_HALF = 13;
+const LOOP_RAIL_R = 3;
+/** A bridge's low rails (a chip flies over them). */
+export const V3_BRIDGE_RAIL_R = 2;
+
+export function buildHoleV3(
+  id: number,
+  index: number,
+  level: MgLevel = "normal",
+): MgHole & { swells: MgSwell[]; tall: Seg[]; pondGroups: number[]; sandGroups: number[]; holeId: number; loops: MgLoop[]; bridges: MgBridge[]; bowls: MgSwell[] } {
   const d = decodeHoleId(id);
   if (!d) throw new Error(`minigolf: no hole ${id}`);
-  const t = HOLE_TEMPLATES[d.template]!;
+  const t0 = HOLE_TEMPLATES[d.template]!;
+  const lv = V3_LEVEL_BUILD[level];
+  const mill = lv.mill;
+  const scale = (k: number) => Math.trunc((k * lv.slopeScale256) / 256);
+  // Hard and Expert: the template's extra hazards join its own.
+  const t: HoleTemplate = lv.extras && t0.extra
+    ? {
+        ...t0,
+        rocks: [...(t0.rocks ?? []), ...(t0.extra.rocks ?? [])],
+        sands: [...(t0.sands ?? []), ...(t0.extra.sands ?? [])],
+        ponds: [...(t0.ponds ?? []), ...(t0.extra.ponds ?? [])],
+        walls: [...(t0.walls ?? []), ...(t0.extra.walls ?? [])],
+      }
+    : t0;
   const mirror = d.mirror;
   const ox = Math.floor((WORLD_W - t.w) / 2);
   const oy = Math.floor((WORLD_H - t.h) / 2);
@@ -475,17 +571,56 @@ export function buildHoleV3(id: number, index: number, mill: MillSpeed = "normal
   (t.sands ?? []).forEach((blob, g) => blob.forEach((c) => (sands.push(circ(c)), sandGroups.push(g))));
   const hills: MgHill[] = (t.hills ?? []).map(([x, y, r, k]) => {
     const p = P(x, y);
-    return { x: p.x, y: p.y, r: fp(r), k };
+    return { x: p.x, y: p.y, r: fp(r), k: scale(k) };
   });
-  const swells: MgSwell[] = (t.swells ?? []).map(([x, y, r, k]) => {
+  const bowls: MgSwell[] = (t.bowls ?? []).map(([x, y, r, k]) => {
     const p = P(x, y);
-    return { x: p.x, y: p.y, r: fp(r), k };
+    return { x: p.x, y: p.y, r: fp(r), k, bowl: true };
   });
+  // The swells push as the sim reads them; a bowl is a swell too (a hollow round the cup), unscaled by the level.
+  const swells: MgSwell[] = [
+    ...(t.swells ?? []).map(([x, y, r, k]) => {
+      const p = P(x, y);
+      return { x: p.x, y: p.y, r: fp(r), k: scale(k) };
+    }),
+    ...bowls,
+  ];
+  const bridges: MgBridge[] = (t.bridges ?? []).map(([x0, y0, x1, y1]) => {
+    const a = P(x0, y0);
+    const b = P(x1, y1);
+    return { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) };
+  });
+  // A bridge's low rails along its long sides.
+  const bridgeRails: Seg[] = [];
+  for (const b of bridges) {
+    const r = fp(V3_BRIDGE_RAIL_R);
+    if (b.x1 - b.x0 >= b.y1 - b.y0) bridgeRails.push({ ax: b.x0, ay: b.y0, bx: b.x1, by: b.y0, r }, { ax: b.x0, ay: b.y1, bx: b.x1, by: b.y1, r });
+    else bridgeRails.push({ ax: b.x0, ay: b.y0, bx: b.x0, by: b.y1, r }, { ax: b.x1, ay: b.y0, bx: b.x1, by: b.y1, r });
+  }
+  logs.push(...bridgeRails);
+  const loops: MgLoop[] = (t.loops ?? []).map(([x, y, deg, len]) => {
+    const a = degAng(deg);
+    const ux = idiv(icos(a) * NORM_ONE, TRIG_ONE);
+    const uy = idiv(isin(a) * NORM_ONE, TRIG_ONE);
+    const A = P(x, y);
+    const dx = mirror ? -ux : ux;
+    const B = { x: A.x + idiv(dx * fp(len), NORM_ONE), y: A.y + idiv(uy * fp(len), NORM_ONE) };
+    return { ax: A.x, ay: A.y, bx: B.x, by: B.y, dx, dy: uy };
+  });
+  // Each loop's lane is closed by two tall rails between its ends.
+  const loopRails: Seg[] = [];
+  for (const l of loops) {
+    const nx = -l.dy;
+    const ny = l.dx;
+    const off = (v: number) => idiv(v * fp(V3_LOOP_HALF), NORM_ONE);
+    for (const side of [-1, 1]) loopRails.push({ ax: l.ax + side * off(nx), ay: l.ay + side * off(ny), bx: l.bx + side * off(nx), by: l.by + side * off(ny), r: fp(LOOP_RAIL_R) });
+  }
   const slopes = (t.slopes ?? []).map(([x0, y0, x1, y1, dx, dy, k]) => {
     const a = P(x0, y0);
     const b = P(x1, y1);
     const strength = 3 + k * 2;
-    return { x0: Math.min(a.x, b.x), y0: a.y, x1: Math.max(a.x, b.x), y1: b.y, ax: (mirror ? -dx : dx) * strength, ay: dy * strength };
+    const st = scale(strength);
+    return { x0: Math.min(a.x, b.x), y0: a.y, x1: Math.max(a.x, b.x), y1: b.y, ax: (mirror ? -dx : dx) * st, ay: dy * st };
   });
   const gates: MgGate[] = (t.gates ?? []).map(([kind, ax, ay, bx, by, along, half]) => {
     const across = ay === by;
@@ -539,10 +674,10 @@ export function buildHoleV3(id: number, index: number, mill: MillSpeed = "normal
     rails.push({ ax: poly[i]!, ay: poly[i + 1]!, bx: poly[j]!, by: poly[j + 1]!, r: 0 });
   }
   // Tall things a lofted chip still meets: the fence, the gates and windmill houses, the banked curves.
-  const tall: Seg[] = [...rails];
+  const tall: Seg[] = [...rails, ...loopRails];
   for (const g of gates) tall.push(...g.segs);
   for (const c of curves) tall.push(...c.segs);
-  const segs: Seg[] = [...rails, ...logs];
+  const segs: Seg[] = [...rails, ...logs, ...loopRails];
   for (const g of gates) segs.push(...g.segs);
   for (const c of curves) segs.push(...c.segs);
   return {
@@ -571,6 +706,9 @@ export function buildHoleV3(id: number, index: number, mill: MillSpeed = "normal
     pondGroups,
     sandGroups,
     holeId: id,
+    loops,
+    bridges,
+    bowls,
   };
 }
 

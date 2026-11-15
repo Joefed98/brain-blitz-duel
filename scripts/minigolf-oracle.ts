@@ -31,6 +31,7 @@ import {
   type MgHole,
 } from "../src/lib/arcade/minigolf";
 import { insidePoly } from "../src/lib/arcade/sportsKit";
+import { mgInSandV3, mgInWaterV3 } from "../src/lib/arcade/minigolf";
 
 export interface Putt {
   a: number;
@@ -121,6 +122,11 @@ function openCell(h: MgHole, cx: number, cy: number): boolean {
     if (Math.hypot(ex, ey) < br + s.r) return false;
   }
   for (const c of [...h.rocks, ...h.planters]) if (Math.hypot(c.x - x, c.y - y) < c.r + br) return false;
+  // golfRev 3: water is its smooth shape (bridges excepted), the walk kept a ball's width off it.
+  if (h.rev === 3) {
+    for (const [ox, oy] of [[0, 0], [br, 0], [-br, 0], [0, br], [0, -br]] as const) if (mgInWaterV3(h, x + ox, y + oy)) return false;
+    return true;
+  }
   for (const c of h.ponds) if (Math.hypot(c.x - x, c.y - y) < c.r + br) return false;
   return true;
 }
@@ -129,6 +135,7 @@ function openCell(h: MgHole, cx: number, cy: number): boolean {
 function sandCell(h: MgHole, cx: number, cy: number): boolean {
   const x = fp(cx * CELL + CELL / 2);
   const y = fp(cy * CELL + CELL / 2);
+  if (h.rev === 3) return mgInSandV3(h, x, y);
   return (h.sands ?? []).some((c) => Math.hypot(c.x - x, c.y - y) < c.r);
 }
 
@@ -143,6 +150,14 @@ export function pathField(h: MgHole): PathField {
   // golfRev 2's tunnels: an exit's cell leads back to its entrance's cells (the walk from the entrance is the exit's).
   const cellOf = (x: number, y: number) => Math.max(0, Math.min(GH - 1, Math.floor(y / 256 / CELL))) * GW + Math.max(0, Math.min(GW - 1, Math.floor(x / 256 / CELL)));
   const viaTunnel = new Map<number, number[]>();
+  // golfRev 3's loops: each end leads to the other (a loop is two ways).
+  for (const l of h.loops ?? []) {
+    for (const [fx, fy, tx, ty] of [[l.ax, l.ay, l.bx, l.by], [l.bx, l.by, l.ax, l.ay]] as const) {
+      const list = viaTunnel.get(cellOf(tx, ty)) ?? [];
+      list.push(cellOf(fx, fy));
+      viaTunnel.set(cellOf(tx, ty), list);
+    }
+  }
   for (const t of h.tunnels ?? []) {
     const exit = cellOf(t.ox, t.oy);
     const list = viaTunnel.get(exit) ?? [];

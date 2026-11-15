@@ -173,11 +173,115 @@ function groups(circles: readonly { x: number; y: number; r: number }[], group: 
   return out.filter(Boolean);
 }
 
+/**
+ * A hazard's smooth outline (Joe, 15 Nov 2026: "never clusters of circles"): the level set of the sim's own field over
+ * its circles, Σ (r²/d²)² (minigolf.ts mgMetaSum, here in floats for drawing), traced by marching squares on a 1 px grid
+ * and joined into closed loops. `grow` > 0 traces it that far outside (the threshold a lone circle of the group's typical
+ * radius would have `grow` px out), < 0 inside. Cached per shape and offset (the hole is painted once).
+ */
+const outlineCache = new Map<string, number[][]>();
+function metaField(cs: readonly { x: number; y: number; r: number }[], x: number, y: number): number {
+  let f = 0;
+  for (const c of cs) {
+    const d2 = (x - c.x) * (x - c.x) + (y - c.y) * (y - c.y);
+    const r2 = c.r * c.r;
+    if (d2 >= 9 * r2) continue;
+    const q = Math.min(r2 / Math.max(d2, 1e-6), 64);
+    f += q * q;
+  }
+  return f;
+}
+export function metaOutline(cs: readonly { x: number; y: number; r: number }[], grow = 0): number[][] {
+  const key = `${cs.map((c) => `${c.x},${c.y},${c.r}`).join(";")}|${grow}`;
+  const hit = outlineCache.get(key);
+  if (hit) return hit;
+  const radii = cs.map((c) => c.r).sort((a, b) => a - b);
+  const R = radii[Math.floor(radii.length / 2)]!;
+  const thr = Math.pow(R / Math.max(1, R + grow), 4);
+  const pad = Math.max(0, grow) + 3;
+  const x0 = Math.floor(Math.min(...cs.map((c) => c.x - c.r)) - pad);
+  const y0 = Math.floor(Math.min(...cs.map((c) => c.y - c.r)) - pad);
+  const x1 = Math.ceil(Math.max(...cs.map((c) => c.x + c.r)) + pad);
+  const y1 = Math.ceil(Math.max(...cs.map((c) => c.y + c.r)) + pad);
+  const W = x1 - x0 + 1;
+  const H = y1 - y0 + 1;
+  const v = new Float64Array(W * H);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) v[j * W + i] = metaField(cs, x0 + i, y0 + j) - thr;
+  // Marching squares: each cell's edge crossings, joined into loops by their shared edge points.
+  const at = (i: number, j: number) => v[j * W + i]!;
+  const pt = (i0: number, j0: number, i1: number, j1: number): [number, number, string] => {
+    const a = at(i0, j0);
+    const b = at(i1, j1);
+    const t = a / (a - b);
+    const key2 = i0 === i1 ? `v${i0},${Math.min(j0, j1)}` : `h${Math.min(i0, i1)},${j0}`;
+    return [x0 + i0 + (i1 - i0) * t, y0 + j0 + (j1 - j0) * t, key2];
+  };
+  // Undirected: each crossing point joins the (at most two) segments through it, so loops close whatever way each
+  // cell's segment was written.
+  const links = new Map<string, string[]>();
+  const pos = new Map<string, [number, number]>();
+  const link = (a: string, b: string) => {
+    (links.get(a) ?? links.set(a, []).get(a)!).push(b);
+    (links.get(b) ?? links.set(b, []).get(b)!).push(a);
+  };
+  for (let j = 0; j < H - 1; j++)
+    for (let i = 0; i < W - 1; i++) {
+      const c = (at(i, j) > 0 ? 8 : 0) | (at(i + 1, j) > 0 ? 4 : 0) | (at(i + 1, j + 1) > 0 ? 2 : 0) | (at(i, j + 1) > 0 ? 1 : 0);
+      if (c === 0 || c === 15) continue;
+      const T = () => pt(i, j, i + 1, j);
+      const Rr = () => pt(i + 1, j, i + 1, j + 1);
+      const B = () => pt(i, j + 1, i + 1, j + 1);
+      const L = () => pt(i, j, i, j + 1);
+      const segs: [() => [number, number, string], () => [number, number, string]][] = [];
+      switch (c) {
+        case 1: segs.push([L, B]); break;
+        case 2: segs.push([B, Rr]); break;
+        case 3: segs.push([L, Rr]); break;
+        case 4: segs.push([Rr, T]); break;
+        case 5: segs.push([L, T], [Rr, B]); break;
+        case 6: segs.push([B, T]); break;
+        case 7: segs.push([L, T]); break;
+        case 8: segs.push([T, L]); break;
+        case 9: segs.push([T, B]); break;
+        case 10: segs.push([T, Rr], [B, L]); break;
+        case 11: segs.push([T, Rr]); break;
+        case 12: segs.push([Rr, L]); break;
+        case 13: segs.push([Rr, B]); break;
+        case 14: segs.push([B, L]); break;
+      }
+      for (const [fa, fb] of segs) {
+        const a = fa();
+        const b = fb();
+        pos.set(a[2], [a[0], a[1]]);
+        pos.set(b[2], [b[0], b[1]]);
+        link(a[2], b[2]);
+      }
+    }
+  const loops: number[][] = [];
+  const used = new Set<string>();
+  for (const startKey of links.keys()) {
+    if (used.has(startKey)) continue;
+    const loop: number[] = [];
+    let k: string | undefined = startKey;
+    while (k !== undefined && !used.has(k)) {
+      used.add(k);
+      const p = pos.get(k)!;
+      loop.push(p[0], p[1]);
+      k = (links.get(k) ?? []).find((n) => !used.has(n));
+    }
+    if (loop.length >= 6) loops.push(loop);
+  }
+  outlineCache.set(key, loops);
+  return loops;
+}
+
+/** The smooth outline as a path (every loop, so a ring's inner shore is a hole in it under nonzero filling). */
 function unionPath(ctx: CanvasRenderingContext2D, cs: readonly { x: number; y: number; r: number }[], grow = 0): void {
   ctx.beginPath();
-  for (const c of cs) {
-    ctx.moveTo(c.x + c.r + grow, c.y);
-    ctx.arc(c.x, c.y, Math.max(0.5, c.r + grow), 0, Math.PI * 2);
+  for (const loop of metaOutline(cs, grow)) {
+    ctx.moveTo(loop[0]!, loop[1]!);
+    for (let i = 2; i < loop.length; i += 2) ctx.lineTo(loop[i]!, loop[i + 1]!);
+    ctx.closePath();
   }
 }
 
@@ -207,75 +311,135 @@ function bboxOf(cs: readonly { x: number; y: number; r: number }[], pad: number)
 }
 
 /**
- * Fills (the union grown by `grow`) less (the union grown by `cut`, moved by dx, dy) with `fill`, through an off-screen
- * mask, so a union of circles gets a crisp lip, rim or crescent with no seam where its circles overlap.
+ * A hazard's field sampled once at the canvas's own resolution (k device px a world px) over its box: the sim's field,
+ * Σ (r²/d²)², in floats. Its masks (the shape grown or shrunk, shifted) are thresholds of this one grid, so every band,
+ * fill and clip of a pond or bunker follows the sim's exact smooth shape, anti-aliased, with no path to assemble.
  */
-function unionBand(ctx: CanvasRenderingContext2D, cs: readonly { x: number; y: number; r: number }[], grow: number, cut: number, dx: number, dy: number, fill: string | CanvasPattern): void {
+interface FieldGrid {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  k: number;
+  W: number;
+  H: number;
+  f: Float32Array;
+  R: number;
+}
+function fieldGrid(ctx: CanvasRenderingContext2D, cs: readonly { x: number; y: number; r: number }[], pad: number): FieldGrid {
   const m = ctx.getTransform();
-  const k = Math.max(1, Math.min(4, Math.hypot(m.a, m.b)));
-  const b = bboxOf(cs, Math.max(grow, cut) + Math.abs(dx) + Math.abs(dy) + 2);
-  const sc = scratch(Math.ceil(b.w * k), Math.ceil(b.h * k));
-  if (!sc) return;
+  const k = Math.max(1, Math.min(3, Math.hypot(m.a, m.b)));
+  const b = bboxOf(cs, pad);
+  const W = Math.ceil(b.w * k);
+  const H = Math.ceil(b.h * k);
+  const f = new Float32Array(W * H);
+  for (let j = 0; j < H; j++) {
+    const y = b.y + (j + 0.5) / k;
+    for (let i = 0; i < W; i++) f[j * W + i] = metaField(cs, b.x + (i + 0.5) / k, y);
+  }
+  const radii = cs.map((c) => c.r).sort((a, c) => a - c);
+  return { ...b, k, W, H, f, R: radii[Math.floor(radii.length / 2)]! };
+}
+/** The shape grown by `grow` world px (the threshold a lone circle of the group's typical radius would have there), moved by dx, dy. */
+function gridMask(g: FieldGrid, grow: number, dx = 0, dy = 0): CanvasImageSource | null {
+  const sc = scratch(g.W, g.H);
+  if (!sc) return null;
+  const img = sc.ctx.createImageData(g.W, g.H);
+  const thr = Math.pow(g.R / Math.max(1, g.R + grow), 4);
+  const si = Math.round(dx * g.k);
+  const sj = Math.round(dy * g.k);
+  for (let j = 0; j < g.H; j++) {
+    const jj = j - sj;
+    if (jj < 0 || jj >= g.H) continue;
+    for (let i = 0; i < g.W; i++) {
+      const ii = i - si;
+      if (ii < 0 || ii >= g.W) continue;
+      const v = g.f[jj * g.W + ii]!;
+      // A soft edge about a device pixel wide: the field changes ~4·f/d a world px near its edge.
+      const a = Math.max(0, Math.min(1, 0.5 + ((v - thr) / thr) * (g.R / 4) * g.k * 0.5));
+      img.data[(j * g.W + i) * 4 + 3] = Math.round(a * 255);
+    }
+  }
+  sc.ctx.putImageData(img, 0, 0);
+  return sc.canvas as CanvasImageSource;
+}
+/** Draws `draw` (world coordinates) inside the shape grown by `grow`. */
+function inShape(ctx: CanvasRenderingContext2D, g: FieldGrid, grow: number, draw: (t: CanvasRenderingContext2D) => void, dx = 0, dy = 0): void {
+  const sc = scratch(g.W, g.H);
+  const mask = gridMask(g, grow, dx, dy);
+  if (!sc || !mask) return;
   const t = sc.ctx;
-  t.scale(k, k);
-  t.translate(-b.x, -b.y);
-  unionPath(t, cs, grow);
+  t.scale(g.k, g.k);
+  t.translate(-g.x, -g.y);
+  draw(t);
+  t.setTransform(1, 0, 0, 1, 0, 0);
+  t.globalCompositeOperation = "destination-in";
+  t.drawImage(mask, 0, 0);
+  ctx.drawImage(sc.canvas as CanvasImageSource, g.x, g.y, g.w, g.h);
+}
+/**
+ * Fills (the shape grown by `grow`) less (the shape grown by `cut`, moved by dx, dy) with `fill`: a crisp lip, rim or
+ * crescent of the whole smooth shape.
+ */
+function band(ctx: CanvasRenderingContext2D, g: FieldGrid, grow: number, cut: number, dx: number, dy: number, fill: string | CanvasPattern): void {
+  const sc = scratch(g.W, g.H);
+  const keep = gridMask(g, grow);
+  const away = gridMask(g, cut, dx, dy);
+  if (!sc || !keep || !away) return;
+  const t = sc.ctx;
+  t.save();
+  t.scale(g.k, g.k);
+  t.translate(-g.x, -g.y);
   t.fillStyle = fill;
-  t.fill();
+  t.fillRect(g.x, g.y, g.w, g.h);
+  t.restore();
+  t.globalCompositeOperation = "destination-in";
+  t.drawImage(keep, 0, 0);
   t.globalCompositeOperation = "destination-out";
-  t.translate(dx, dy);
-  unionPath(t, cs, cut);
-  t.fillStyle = "#000";
-  t.fill();
-  ctx.drawImage(sc.canvas as CanvasImageSource, b.x, b.y, b.w, b.h);
+  t.drawImage(away, 0, 0);
+  ctx.drawImage(sc.canvas as CanvasImageSource, g.x, g.y, g.w, g.h);
 }
 
 /**
- * A bunker (a hollow in the turf): the turf's dark lip just outside the union, the sand (the rendered sand tile when
- * given) inside it, then the hollow's light: the inner wall on the top-left in shade (the lip casting onto the sand),
- * the far inner wall lit, rake lines in arcs round its middle, and a crisp lit crest on the turf lip's far side. Every
- * band is a mask of the whole union, so the circles' overlaps leave no seam.
+ * A bunker (a hollow in the turf): the turf's dark lip just outside its smooth shape, the sand (the rendered sand tile
+ * when given) inside it, then the hollow's light: the inner wall on the top-left in shade (the lip casting onto the
+ * sand), the far inner wall lit, rake lines in arcs round its middle, and a crisp lit crest on the lip's far side.
  */
 export function paintBunkersV3(ctx: CanvasRenderingContext2D, h: MgHole, sand: CanvasPattern | string | null): void {
   for (const cs of groups(h.sands ?? [], h.sandGroups)) {
     const c = centre(cs);
-    // The turf lip: a dark band all round, its far (bottom-right) crest catching the light.
-    unionBand(ctx, cs, 2.6, 0, 0, 0, "rgba(28,22,8,0.62)");
-    unionBand(ctx, cs, 2.6, 2.6, -1.4, -1.6, "rgba(196,230,150,0.38)");
-    ctx.save();
-    unionPath(ctx, cs);
-    ctx.fillStyle = sand ?? "#DCC07E";
-    ctx.fill();
-    ctx.clip();
-    // Warm sun across the sand from the top left.
-    const g = ctx.createLinearGradient(c.x - c.r, c.y - c.r, c.x + c.r, c.y + c.r);
-    g.addColorStop(0, "rgba(120,86,30,0.20)");
-    g.addColorStop(0.55, "rgba(255,246,214,0.10)");
-    g.addColorStop(1, "rgba(255,250,232,0.22)");
-    ctx.fillStyle = g;
-    ctx.fillRect(c.x - c.r - 4, c.y - c.r - 4, c.r * 2 + 8, c.r * 2 + 8);
-    // Rake lines: grooves (shaded on their near side, lit on their far side).
-    for (let rr = 5; rr < c.r + 4; rr += 3.4) {
-      ctx.lineWidth = 0.9;
-      ctx.strokeStyle = "rgba(112,80,28,0.34)";
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, rr, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.lineWidth = 0.7;
-      ctx.strokeStyle = "rgba(255,248,222,0.40)";
-      ctx.beginPath();
-      ctx.arc(c.x + 0.45, c.y + 0.55, rr + 0.9, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.restore();
-    // The hollow: shade on the near (top-left) inner wall, light on the far one.
-    unionBand(ctx, cs, 0, 0, 3, 3.6, "rgba(70,44,10,0.42)");
-    unionBand(ctx, cs, 0, 0, -2, -2.4, "rgba(255,248,226,0.30)");
+    const g = fieldGrid(ctx, cs, 8);
+    band(ctx, g, 2.6, -99, 0, 0, "rgba(28,22,8,0.62)");
+    band(ctx, g, 2.6, 2.6, -1.4, -1.6, "rgba(196,230,150,0.38)");
+    inShape(ctx, g, 0, (t) => {
+      t.fillStyle = sand ?? "#DCC07E";
+      t.fillRect(g.x, g.y, g.w, g.h);
+      const lg = t.createLinearGradient(c.x - c.r, c.y - c.r, c.x + c.r, c.y + c.r);
+      lg.addColorStop(0, "rgba(120,86,30,0.20)");
+      lg.addColorStop(0.55, "rgba(255,246,214,0.10)");
+      lg.addColorStop(1, "rgba(255,250,232,0.22)");
+      t.fillStyle = lg;
+      t.fillRect(g.x, g.y, g.w, g.h);
+      for (let rr = 5; rr < c.r + 6; rr += 3.4) {
+        t.lineWidth = 0.9;
+        t.strokeStyle = "rgba(112,80,28,0.34)";
+        t.beginPath();
+        t.arc(c.x, c.y, rr, 0, Math.PI * 2);
+        t.stroke();
+        t.lineWidth = 0.7;
+        t.strokeStyle = "rgba(255,248,222,0.40)";
+        t.beginPath();
+        t.arc(c.x + 0.45, c.y + 0.55, rr + 0.9, 0, Math.PI * 2);
+        t.stroke();
+      }
+    });
+    band(ctx, g, 0, 0, 3, 3.6, "rgba(70,44,10,0.42)");
+    band(ctx, g, 0, 0, -2, -2.4, "rgba(255,248,226,0.30)");
   }
 }
 
 /**
- * A pond: a ring of dressed stone round the union (outside the sim's circles, on dry ground), bevelled (its top-left
+ * A pond: a ring of dressed stone round its smooth shape (outside the water, on dry ground), bevelled (its top-left
  * crest lit, a crisp line; its lower edge in shade), deep water shading from a dark middle to a shallower rim with the
  * sky's reflection laid across it, the stone's shadow on the water, a crisp specular highlight on the near curve and a
  * few still ripples. Glossy without any glow: every highlight is a hard-edged shape.
@@ -283,55 +447,45 @@ export function paintBunkersV3(ctx: CanvasRenderingContext2D, h: MgHole, sand: C
 export function paintPondsV3(ctx: CanvasRenderingContext2D, h: MgHole, stone: CanvasPattern | string | null): void {
   for (const cs of groups(h.ponds, h.pondGroups)) {
     const c = centre(cs);
-    // The stone ring's cast shadow on the turf, the stones, their bevel.
-    unionBand(ctx, cs, 5.5, 0, 0, 0, "rgba(0,0,0,0.38)");
-    unionBand(ctx, cs, 4.2, 0, 0, 0, stone ?? "#9A8C74");
-    unionBand(ctx, cs, 4.2, 4.2, 1.2, 1.4, "rgba(255,246,226,0.55)");
-    unionBand(ctx, cs, 4.2, 4.2, -1.1, -1.3, "rgba(30,22,12,0.5)");
-    ctx.save();
-    unionPath(ctx, cs);
-    ctx.clip();
-    // Deep water: dark at its heart, clearer towards the rim.
-    const g = ctx.createRadialGradient(c.x + c.r * 0.12, c.y + c.r * 0.18, 1, c.x, c.y, c.r * 1.05);
-    g.addColorStop(0, "#082C42");
-    g.addColorStop(0.6, "#0F4D6A");
-    g.addColorStop(1, "#2B7E92");
-    ctx.fillStyle = g;
-    ctx.fillRect(c.x - c.r - 6, c.y - c.r - 6, c.r * 2 + 12, c.r * 2 + 12);
-    // The sky reflected: a broad diagonal band, lighter towards the top left.
-    const sky = ctx.createLinearGradient(c.x - c.r, c.y - c.r, c.x + c.r * 0.6, c.y + c.r * 0.6);
-    sky.addColorStop(0, "rgba(190,226,240,0.34)");
-    sky.addColorStop(0.45, "rgba(190,226,240,0.10)");
-    sky.addColorStop(0.46, "rgba(190,226,240,0)");
-    ctx.fillStyle = sky;
-    ctx.fillRect(c.x - c.r - 6, c.y - c.r - 6, c.r * 2 + 12, c.r * 2 + 12);
-    // Still ripples: thin, hard lines.
-    ctx.strokeStyle = "rgba(214,240,250,0.30)";
-    ctx.lineWidth = 0.8;
-    for (let i = 0; i < 2; i++) {
-      const rx = c.x + Math.cos(i * 2.4 + c.x) * c.r * 0.35;
-      const ry = c.y + Math.sin(i * 1.9 + c.y) * c.r * 0.3;
-      for (const rr of [3.5, 7]) {
-        ctx.beginPath();
-        ctx.ellipse(rx, ry, rr, rr * 0.55, 0, Math.PI * 1.15, Math.PI * 1.85);
-        ctx.stroke();
-      }
-    }
-    ctx.restore();
-    // The stone's shadow on the water along its near edge, then a crisp specular glint on the far curve (glass-like).
-    unionBand(ctx, cs, 0, 0, 2.8, 3.2, "rgba(0,18,28,0.55)");
+    const g = fieldGrid(ctx, cs, 10);
+    band(ctx, g, 5.5, -99, 0, 0, "rgba(0,0,0,0.38)");
+    band(ctx, g, 4.2, -99, 0, 0, stone ?? "#9A8C74");
+    band(ctx, g, 4.2, 4.2, 1.2, 1.4, "rgba(255,246,226,0.55)");
+    band(ctx, g, 4.2, 4.2, -1.1, -1.3, "rgba(30,22,12,0.5)");
     const big = cs.reduce((a, b) => (b.r > a.r ? b : a));
-    ctx.save();
-    unionPath(ctx, cs);
-    ctx.clip();
-    ctx.fillStyle = "rgba(244,252,255,0.85)";
-    ctx.beginPath();
-    ctx.ellipse(big.x - big.r * 0.42, big.y - big.r * 0.5, Math.max(2.4, big.r * 0.32), Math.max(0.9, big.r * 0.07), -0.62, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "rgba(244,252,255,0.6)";
-    ctx.beginPath();
-    ctx.arc(big.x - big.r * 0.12, big.y - big.r * 0.68, Math.max(0.9, big.r * 0.05), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    inShape(ctx, g, 0, (t) => {
+      const rg = t.createRadialGradient(c.x + c.r * 0.12, c.y + c.r * 0.18, 1, c.x, c.y, c.r * 1.05);
+      rg.addColorStop(0, "#082C42");
+      rg.addColorStop(0.6, "#0F4D6A");
+      rg.addColorStop(1, "#2B7E92");
+      t.fillStyle = rg;
+      t.fillRect(g.x, g.y, g.w, g.h);
+      const sky = t.createLinearGradient(c.x - c.r, c.y - c.r, c.x + c.r * 0.6, c.y + c.r * 0.6);
+      sky.addColorStop(0, "rgba(190,226,240,0.34)");
+      sky.addColorStop(0.45, "rgba(190,226,240,0.10)");
+      sky.addColorStop(0.46, "rgba(190,226,240,0)");
+      t.fillStyle = sky;
+      t.fillRect(g.x, g.y, g.w, g.h);
+      t.strokeStyle = "rgba(214,240,250,0.30)";
+      t.lineWidth = 0.8;
+      for (const k of cs.filter((_, i) => i % 3 === 0)) {
+        for (const rr of [3.5, 7]) {
+          t.beginPath();
+          t.ellipse(k.x + k.r * 0.15, k.y + k.r * 0.1, rr, rr * 0.55, 0, Math.PI * 1.15, Math.PI * 1.85);
+          t.stroke();
+        }
+      }
+    });
+    band(ctx, g, 0, 0, 2.8, 3.2, "rgba(0,18,28,0.55)");
+    inShape(ctx, g, -1.5, (t) => {
+      t.fillStyle = "rgba(244,252,255,0.85)";
+      t.beginPath();
+      t.ellipse(big.x - big.r * 0.42, big.y - big.r * 0.5, Math.max(2.4, big.r * 0.32), Math.max(0.9, big.r * 0.07), -0.62, 0, Math.PI * 2);
+      t.fill();
+      t.fillStyle = "rgba(244,252,255,0.6)";
+      t.beginPath();
+      t.arc(big.x - big.r * 0.12, big.y - big.r * 0.68, Math.max(0.9, big.r * 0.05), 0, Math.PI * 2);
+      t.fill();
+    });
   }
 }

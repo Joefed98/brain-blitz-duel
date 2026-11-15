@@ -1097,6 +1097,8 @@ export function minigolfSounds(): GameSounds<MinigolfState> {
         if (state.rev >= 3) {
           if (state.landTick > prev.landTick && state.landTick === state.tick) sfx("minigolf.land", "arc_bounce", 0.4);
           if (state.lips > prev.lips) sfx("minigolf.rattle", "arc_marble_clink", 0.6);
+          if (state.loops > prev.loops) sfx("minigolf.loop", "arc_marble_roll", 0.7);
+          if (state.loopBacks > prev.loopBacks) sfx("minigolf.loopBack", "arc_bounce", 0.5);
           if (state.sandStops > prev.sandStops) sfx("minigolf.sand", "arc_bounce", 0.3);
           if (state.waters > prev.waters) {
             sfx("minigolf.plip", "arc_sea_pop", 0.8);

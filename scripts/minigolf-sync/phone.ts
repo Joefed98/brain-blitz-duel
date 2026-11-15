@@ -27,7 +27,9 @@ export type ShotPlan =
   /** A stored witness's putts on their own ticks (the oracle's 200-point routes). */
   | "witness"
   /** golfRev 3: lofted chips only, any direction and carry (over water, sand and low walls; into them too). */
-  | "chip";
+  | "chip"
+  /** golfRev 3: at a loop's nearer end with a power from soft to hard (some go round, some stall and roll back). */
+  | "loop";
 
 export interface SyncCase {
   name: string;
@@ -97,7 +99,16 @@ function acePutt(game: Game, s: MinigolfState): { a: number; b: number; c: numbe
 
 /** golfRev 3: a shot is a putt or a chip; the case's own stream decides (chips only on the "chip" plan, a third elsewhere). */
 function pickShot(plan: ShotPlan, s: MinigolfState, next: () => number, game: Game): { k: number; a: number; b: number; c: number } {
-  const p = pickPutt(plan === "chip" ? "random" : plan, s, next, game);
+  const loops = s.course[s.hole]!.loops ?? [];
+  if (plan === "loop" && loops.length) {
+    // Towards the nearer end of the hole's first loop, a little short of its mouth, at a power from 120 to 720.
+    const l = loops[0]!;
+    const da = ilen(l.ax - s.x, l.ay - s.y);
+    const db = ilen(l.bx - s.x, l.by - s.y);
+    const [ex, ey] = da <= db ? [l.ax, l.ay] : [l.bx, l.by];
+    return { k: MG_INPUT_PUTT, ...dir4000(ex - s.x, ey - s.y), c: 120 + (next() % 600) };
+  }
+  const p = pickPutt(plan === "chip" || plan === "loop" ? "random" : plan, s, next, game);
   if (s.rev < 3) return { k: MG_INPUT_PUTT, ...p };
   const chip = plan === "chip" || (plan !== "ace" && next() % 3 === 0);
   return { k: chip ? MG_INPUT_CHIP : MG_INPUT_PUTT, ...p };

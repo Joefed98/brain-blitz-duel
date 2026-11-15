@@ -619,7 +619,7 @@ challenges never count. How the checks read a run:
 | Birdie | Hole one under par. | Classic | Par | line “Under par” ≥ 4 |  | `minigolf.birdie` |
 | Par for the course | Hole all five in par or better. | Classic | Par | line “Par” = 40 of 40 |  | `minigolf.par-for-the-course` |
 | Quick round | Hole all five within 53 s. | Classic | Speed | line “Speed” = 20 of 20 |  | `minigolf.quick-round` |
-| Under, under | Hole all five under par on Hard. | Hard | Par | line “Under par” = 20 of 20 | ● | `minigolf.under-under` |
+| Under, under | Hole all five in par on Hard, where par is the best route. | Hard | Par | line “Under par” = 20 of 20 | ● | `minigolf.under-under` |
 
 #### Cue Ball (`pool`)
 

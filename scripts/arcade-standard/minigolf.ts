@@ -33,6 +33,7 @@ import { replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK } from "../../src/lib/duel/minigolfBank.server";
 import { MINIGOLF_BANK_V2 } from "../../src/lib/duel/minigolfBankV2.server";
 import { MINIGOLF_HOLES_BANK } from "../../src/lib/duel/minigolfHolesBank.server";
+import { pickMinigolfHoles } from "../../src/lib/duel/sports.server";
 import { MG_LEVEL_NAMES, MINIGOLF_REV_COURSE, MINIGOLF_STD_SPEC_V3 } from "../../src/lib/arcade/minigolf";
 import { encodeSportsRun } from "../../src/lib/arcade/sportsKit";
 import { playCourseV3, WITNESS_FILE, type WitnessFile } from "../minigolf-holes-bank";
@@ -68,7 +69,9 @@ function perfectV3() {
   const out = [];
   for (const level of MG_LEVEL_NAMES)
     for (let n = 0; n < 12; n++) {
-      const holes = MINIGOLF_HOLES_BANK.map((slot, i) => slot[(n * 7 + i * 13 + MG_LEVEL_NAMES.indexOf(level) * 5) % slot.length]!.id);
+      let x = (n * 7919 + MG_LEVEL_NAMES.indexOf(level) * 104729 + 1) >>> 0;
+      const draw = () => ((x = (Math.imul(x, 1103515245) + 12345) >>> 0), (Math.imul(x ^ (x >>> 15), 0x2c1b3c6d) >>> 0) ^ (x >>> 7));
+      const holes = pickMinigolfHoles(level, () => draw() >>> 0).map((e) => e.id);
       const pars = holes.map((id, i) => MINIGOLF_HOLES_BANK[i]!.find((e) => e.id === id)!.pars[MG_LEVEL_NAMES.indexOf(level)]!);
       const { events, state, checkpoints } = playCourseV3(holes, pars, level, w);
       const g = minigolfGameFor(pars, MINIGOLF_REV_COURSE, { holes, level });

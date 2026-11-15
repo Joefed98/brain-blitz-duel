@@ -430,7 +430,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("minigolf", "Birdie", "Hole one under par.", "C", "par", false, all(line("Under par", "gte", 4))),
   ch("minigolf", "Par for the course", "Hole all five in par or better.", "C", "par", false, part("Par", 40)),
   ch("minigolf", "Quick round", "Hole all five within 53 s.", "C", "speed", false, part("Speed", 20)),
-  ch("minigolf", "Under, under", "Hole all five under par on Hard.", "H", "par", true, part("Under par", 20)),
+  // golfRev 3 (15 Nov 2026): Hard's par is the best route, so its under-par bonus is for holing in par.
+  ch("minigolf", "Under, under", "Hole all five in par on Hard, where par is the best route.", "H", "par", true, part("Under par", 20)),
   // Cue Ball (pool): your balls 140 + black 10 + pots in a row 30 + speed 20 (69 s).
   ch("pool", "Behind the eight", "Pot the black.", "C", "finish", false, part("Black", 10), "pool.black"),
   ch("pool", "Clean break", "Pot the black without a foul.", "C", "clean", false, all(full("Black", 10), f("fouls", "eq", 0))),

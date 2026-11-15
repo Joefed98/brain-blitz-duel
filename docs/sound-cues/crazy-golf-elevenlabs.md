@@ -15,6 +15,8 @@ Each row is the one-line description to give ElevenLabs' sound effects generator
 | A soft puff of a golf ball dropping into fine dry bunker sand, a gentle hiss of grains. | `minigolf.sand` | 0.3 s | `move.softFall.mp3` |
 | A light flagstick being lifted out of a putting cup, a soft metallic slide and a cloth flutter. | `minigolf.flag` | 0.4 s | (silent) |
 | A short cheerful party-popper pop with fluttering paper confetti, playful, not loud. | `minigolf.confetti` | 0.6 s | (silent; `minigolf.birdie` plays) |
+| A golf ball whizzing round a metal loop-the-loop track, a rising then falling whirr, under a second. | `minigolf.loop` | 0.6 s | `arrow.whoosh.mp3` |
+| A golf ball stalling halfway up a metal loop and rattling back down, a short clatter. | `minigolf.loopBack` | 0.4 s | `arc_bounce.mp3` |
 | A clean sine "tick" for an aim meter, one note, very short, to be played rising in pitch. | `minigolf.aim` | 0.05 s | synthesised tone (`playTone`) |
 
 The aim's rising tone is synthesised today (240–860 Hz, one step every twelfth of the pull); a recording would be

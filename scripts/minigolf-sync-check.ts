@@ -18,8 +18,8 @@
  *  5. golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): every hole in the proven hole bank is rolled at every level
  *     (Easy's slow sails, Normal and Hard, Expert's fast ones), with putts and lofted chips (chips over water, sand
  *     and low walls, chips into water and sand, chips off the fence and through the windmills), rolls over the
- *     swells of the last two holes, the composed witnesses' 200-point routes and time-out cuts, all identical phone
- *     to server and Bun to Chromium.
+ *     swells of the last two holes, loop-the-loops gone round and stalled in, bridges crossed, bowls, the composed
+ *     witnesses' 200-point routes and time-out cuts, all identical phone to server and Bun to Chromium.
  *
  *   bun scripts/minigolf-sync-check.ts
  */
@@ -94,6 +94,17 @@ for (let j = 0; j < SLOT_MAX; j++) {
     }
 }
 
+// golfRev 3's loops: every loop hole at Normal and Expert on the "loop" plan (rolled at the loop's mouth, soft to hard).
+for (const slot of [0, 1, 2, 3, 4]) {
+  MINIGOLF_HOLES_BANK[slot]!.filter((e) => e.id % 6 === 0).forEach((e, k) => {
+    const holes = MINIGOLF_HOLES_BANK.map((sl, i) => (i === slot ? e.id : sl[0]!.id));
+    for (const level of ["normal", "expert"] as const) {
+      // The plan rolls at the loop on its hole and plays at random on the others.
+      add({ seed: 9500 + slot * 100 + k, pars: v3Pars(holes, level), rev: 3, plan: "loop", rng: 0x700 + slot * 31 + k, cut: 0, holes, level });
+    }
+  });
+}
+
 /* ------------------------------------------------- 1. the phone in Bun vs the server */
 
 const started = Date.now();
@@ -144,8 +155,13 @@ interface Seen {
   chipSand: number;
   chipBank: number;
   swell: number;
+  /** golfRev 3's crazy-golf pieces: loops gone round, loops rolled back out of, bridges crossed, bowls rolled through. */
+  loop: number;
+  loopBack: number;
+  bridge: number;
+  bowl: number;
 }
-const seen: Seen = { holes: new Set(), bank: 0, slope: 0, hill: 0, sand: 0, tunnel: 0, mill: 0, water: 0, dropped: 0, slow: 0, witness: 0, cut: 0, chip: 0, chipOverWater: 0, chipOverSand: 0, chipWet: 0, chipSand: 0, chipBank: 0, swell: 0 };
+const seen: Seen = { holes: new Set(), bank: 0, slope: 0, hill: 0, sand: 0, tunnel: 0, mill: 0, water: 0, dropped: 0, slow: 0, witness: 0, cut: 0, chip: 0, chipOverWater: 0, chipOverSand: 0, chipWet: 0, chipSand: 0, chipBank: 0, swell: 0, loop: 0, loopBack: 0, bridge: 0, bowl: 0 };
 const seenIds = new Set<string>();
 
 /** Steps the server's game over a run and notes what its rolls went through (observation only). */
@@ -154,7 +170,7 @@ function observe(c: SyncCase, p: PhoneRun) {
   const events = new Map<number, ArcadeInputEvent>(decodeInputEvents(p.answer.split("|")[2] ?? "").map((e) => [e.t, e]));
   let s: MinigolfState = game.init(c.seed);
   let slowPutt = false;
-  const flags = { bank: false, slope: false, hill: false, sand: false, tunnel: false, mill: false, water: false, one: false, slow: false, chip: false, chipOverWater: false, chipOverSand: false, chipWet: false, chipSand: false, chipBank: false, swell: false };
+  const flags = { bank: false, slope: false, hill: false, sand: false, tunnel: false, mill: false, water: false, one: false, slow: false, chip: false, chipOverWater: false, chipOverSand: false, chipWet: false, chipSand: false, chipBank: false, swell: false, loop: false, loopBack: false, bridge: false, bowl: false };
   while (!game.isOver(s) && s.tick < p.tick) {
     const prev = s;
     const ev = events.get(s.tick + 1) ?? null;
@@ -174,7 +190,11 @@ function observe(c: SyncCase, p: PhoneRun) {
           if (s.waters > prev.waters) flags.chipWet = true;
           if (s.sandStops > prev.sandStops) flags.chipSand = true;
         }
-        if (!flying && (h.swells ?? []).some((w) => ilen(s.x - w.x, s.y - w.y) < w.r)) flags.swell = true;
+        if (!flying && (h.swells ?? []).some((w) => !w.bowl && ilen(s.x - w.x, s.y - w.y) < w.r)) flags.swell = true;
+        if (!flying && (h.swells ?? []).some((w) => w.bowl && ilen(s.x - w.x, s.y - w.y) < w.r)) flags.bowl = true;
+        if (s.loops > prev.loops) flags.loop = true;
+        if (s.loopBacks > prev.loopBacks) flags.loopBack = true;
+        if (!flying && (h.bridges ?? []).some((b) => s.x >= b.x0 && s.x <= b.x1 && s.y >= b.y0 && s.y <= b.y1)) flags.bridge = true;
       }
       if (s.bounces > prev.bounces) flags.bank = true;
       if (s.waters > prev.waters) flags.water = true;
@@ -200,7 +220,7 @@ function observe(c: SyncCase, p: PhoneRun) {
   if (flags.water) seen.water++;
   if (flags.one) seen.dropped++;
   if (flags.slow) seen.slow++;
-  for (const k of ["chip", "chipOverWater", "chipOverSand", "chipWet", "chipSand", "chipBank", "swell"] as const) if (flags[k]) seen[k]++;
+  for (const k of ["chip", "chipOverWater", "chipOverSand", "chipWet", "chipSand", "chipBank", "swell", "loop", "loopBack", "bridge", "bowl"] as const) if (flags[k]) seen[k]++;
   if (c.plan === "witness") seen.witness++;
   if (c.cut > 0) seen.cut++;
 }
@@ -231,6 +251,10 @@ const want: [keyof Omit<Seen, "holes">, number, string][] = [
   ["chipSand", 5, "chips stopped dead in sand"],
   ["chipBank", 20, "chips off the fence, a gate or a sail"],
   ["swell", 60, "rolls over the last holes' swells"],
+  ["loop", 20, "loop-the-loops gone round"],
+  ["loopBack", 10, "loops stalled in and rolled back out of"],
+  ["bridge", 20, "bridges crossed"],
+  ["bowl", 60, "rolls through a bowl round the cup"],
 ];
 for (const [key, min, what] of want) ok(seen[key] >= min, `coverage: ${seen[key]} runs with ${what} (want ${min}+)`);
 

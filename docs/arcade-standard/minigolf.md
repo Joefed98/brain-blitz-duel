@@ -23,8 +23,23 @@ the same five; about 72⁵ ≈ 1.9 billion courses. Any five composed (each firs
 up with the tick its route was proved from, `playCourseV3`) score exactly 200 through the server's replay at every
 level, all five under par (crazy-golf-v3-check: 600 courses).
 
-**Bunkers and ponds** are unions of overlapping circles (natural kidney and drop shapes, the same physics as before),
-bigger than golfRev 2's; drawn raked inside a turf lip, and water with ripples inside a dressed stone edge.
+**Every layout is crazy golf** (Joe, 15 Nov 2026): windmills, castle gates, tunnels, ramps, loop-the-loops, bridges over
+water, bowls round the cup, domes and banked curves, at least two on every template and placed in the line of play
+(crazy-golf-v3-check counts them). Three pieces are new:
+
+- **Loop-the-loops** (`MgLoop`): two ends and tall rails closing the lane between them. A ball within `MG_LOOP_R` (10 px)
+  of an end, moving into the loop at `MG_LOOP_MIN_V` (4.2 px a tick) or faster, comes out of the other end heading on with
+  13/16 of its speed; slower, it stalls and rolls back out at half speed. A loop works both ways.
+- **Bridges** (`MgBridge`): a deck box with no water on it and low timber rails along its long sides (a chip flies over
+  them).
+- **Bowls**: a hollow round the cup (a swell with k −10 to −14, at every level and slot) that gathers a ball in.
+
+**Bunkers and ponds are smooth shapes** (Joe, 15 Nov 2026: "never clusters of circles"): each is the level set of a field
+over its circles, Σ (r²/d²)² (`mgMetaSum`, integer, 4096ths). A lone circle is exactly its circle and overlapping ones
+melt into one outline; the fourth power keeps a ring of circles from flooding its middle, so an island green stays an
+island. A ball is in a bunker at a sum of 1, and in water at 6/5 (about 2 px inside the drawn edge of a 40 px pond), except
+on a bridge's deck. The art samples the same field at the canvas's own resolution and draws through its masks, so what
+is drawn is exactly the shape that plays: a raked bunker in a bevelled turf lip, glossy water in a bevelled stone ring.
 
 **The chip** (input kind 2, `MG_INPUT_CHIP`; chosen on the Putt | Chip switch under the course, or C on a keyboard):
 the same pull-back, but the ball is lofted. It carries `MG_CHIP_MIN_PX`–`MG_CHIP_MAX_PX` (40–180 px) by power over
@@ -56,12 +71,19 @@ lifts, with confetti on a birdie or better; water a splash ring and a "plip"; sa
 
 | | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
+| Par | best route + 1 | best route + 1 | the best route | the best route |
+| Under par (4 a hole) | under par | under par | in par | in par |
 | Stroke limit | par + 4 | par + 3 | par + 3 | par + 2 |
 | Windmill sails | slower (128) | 256 | 256 | faster (512) |
-| Aim preview (display) | the line to its first bounce | the full line | 60 % | 35 % |
-| Speed full by | 60 s | 53 s | 50 s | 45 s |
+| Extra hazards | | | each template's | each template's |
+| Slopes, domes, swells | | | 1.4× | 1.8× |
+| Aim preview (display) | the line to its first bounce | the full line | 45 % | 25 % |
+| Speed full by | 60 s | 53 s | 42 s | 36 s |
 
-Each level's pars are proven at its own sail speed. The levels are ready for the difficulty framework (#432): its
+Each level builds its own hole (`buildHoleV3(id, slot, level)`: its sails, extras and slope strength) and each level's
+par is proven on that hole: the bank holds four witnesses a hole. Holing in par earns the under-par bonus on Hard and
+Expert, where par is the best route itself, so 200 stays reachable on every level (every composed course's witness
+scores 200 at every level). The levels are ready for the difficulty framework (#432): its
 `GAME_LEVELS` entry is `minigolf: { levels: { easy: { settings: {} }, hard: { settings: {} }, expert: { settings: {} } } }`
 (the deal reads `context.level`; `generateMinigolf` already takes it).
 

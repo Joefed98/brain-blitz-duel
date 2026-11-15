@@ -110,6 +110,8 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `minigolf.rattle` | Crazy Golf | golfRev 3: the ball runs over the cup's lip without dropping | `arc_marble_clink` (0.6) | 0–10 | 150 ms |
 | `minigolf.plip` | Crazy Golf | golfRev 3: the ball drops into water (with `minigolf.water`'s splash) | `arc_sea_pop` (0.8) | 0–6 | 200 ms |
 | `minigolf.sand` | Crazy Golf | golfRev 3: a chip stops dead in a bunker | `arc_bounce` (0.3) | 0–6 | 120 ms |
+| `minigolf.loop` | Crazy Golf | golfRev 3: the ball goes round a loop-the-loop | `arc_marble_roll` (0.7) | 0–6 | 300 ms |
+| `minigolf.loopBack` | Crazy Golf | golfRev 3: the ball stalls in a loop and rolls back out | `arc_bounce` (0.5) | 0–6 | 120 ms |
 | `bintoss.basket` | Swish | A throw goes in | `arc_fair_bucket` | 3–10 | 200 ms |
 | `bintoss.allBaskets` | Swish | The last throw goes in with every throw in | `arc_fair_bell` | 0–1 | 400 ms |
 | `bintoss.missBounce` | Swish | A throw misses | `arc_bounce` (0.7) | 0–7 | 80 ms |

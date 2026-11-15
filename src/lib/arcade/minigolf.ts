@@ -30,6 +30,7 @@ import { STD_MAX, stdFinal, stdLine, stdPart, stdSpeed, type StdPart, type StdSp
 import { bounceOff, bounceSeg, closestOnSeg, idiv, ilen, NORM_ONE, rollFriction, sumInts, type Seg, type SportsCheckpoint } from "./sportsKit";
 import { ANG_FULL, icos, isin, TRIG_ONE } from "./trig";
 import { buildHoleV3, type MgSwell, type MillSpeed } from "./minigolfHolesV3";
+export type { MgSwell };
 
 /* ================================ Constants ================================ */
 
@@ -78,6 +79,13 @@ export interface MgLevelRules {
   /** The aim preview drawn while aiming (display only): its share of the full line, and whether it shows the first bounce. */
   preview: number;
   bounce: boolean;
+  /** Par is the best route itself (Hard, Expert); holing in a best-route par earns "Under par". */
+  parIsBest: boolean;
+  /** Par = the best route's strokes + parOver (Easy and Normal 2, Hard and Expert 0). */
+  parOver: number;
+  /** Extra hazards from the hole's template, and the slopes, hills and swells made stronger by this share (display and sim). */
+  extras: boolean;
+  slopeScale: number;
 }
 /**
  * Each level's rules (docs/design/game-reviews/sports.md, Crazy Golf "Difficulty"; tuned in docs/arcade-standard/minigolf.md
@@ -85,10 +93,10 @@ export interface MgLevelRules {
  * Hard par + 3 and a shorter line; Expert par + 2, faster sails and the shortest line.
  */
 export const MG_LEVELS: Readonly<Record<MgLevel, MgLevelRules>> = {
-  easy: { over: 4, mill: "slow", fullByS: 60, preview: 1, bounce: true },
-  normal: { over: 3, mill: "normal", fullByS: 53, preview: 1, bounce: false },
-  hard: { over: 3, mill: "normal", fullByS: 50, preview: 0.6, bounce: false },
-  expert: { over: 2, mill: "fast", fullByS: 45, preview: 0.35, bounce: false },
+  easy: { over: 4, mill: "slow", fullByS: 60, preview: 1, bounce: true, parIsBest: false, parOver: 2, extras: false, slopeScale: 1 },
+  normal: { over: 3, mill: "normal", fullByS: 53, preview: 1, bounce: false, parIsBest: false, parOver: 2, extras: false, slopeScale: 1 },
+  hard: { over: 3, mill: "normal", fullByS: 24, preview: 0.35, bounce: false, parIsBest: true, parOver: 0, extras: true, slopeScale: 1.4 },
+  expert: { over: 2, mill: "fast", fullByS: 22, preview: 0.2, bounce: false, parIsBest: true, parOver: 0, extras: true, slopeScale: 2.2 },
 };
 /** A stored puzzle's level (no field: Normal). */
 export function mgLevelOf(raw: unknown): MgLevel {
@@ -118,7 +126,7 @@ export function mgChipLaunch(dx: number, dy: number, power: number): { vx: numbe
 
 /** The five holes of a golfRev 3 course: the puzzle's hole ids, one per slot, with the level's windmills. */
 export function minigolfCourseV3(holes: readonly number[], level: MgLevel = "normal"): MgHole[] {
-  return holes.slice(0, MINIGOLF_HOLES).map((id, i) => buildHoleV3(id, i, MG_LEVELS[level].mill));
+  return holes.slice(0, MINIGOLF_HOLES).map((id, i) => buildHoleV3(id, i, level));
 }
 
 /** A golfRev 3 ball: position and velocity (units) and the ticks of flight left (0 on the ground). */
@@ -202,8 +210,8 @@ export function mgRollTickV3(h: MgHole, b: MgBallV3, rollTicks: number, tick: nu
     // Landing.
     b.vx = idiv(b.vx * MG_CHIP_LAND_KEEP, 256);
     b.vy = idiv(b.vy * MG_CHIP_LAND_KEEP, 256);
-    for (const p of h.ponds) if (inCircle(p, b.x, b.y, fp(2))) return { hits, end: MG_END_WATER, sail, tunnel: false, landed: true, lip: false, sand: false };
-    if ((h.sands ?? []).some((c) => inCircle(c, b.x, b.y))) {
+    if (inWater(h, b.x, b.y)) return { hits, end: MG_END_WATER, sail, tunnel: false, landed: true, lip: false, sand: false };
+    if (inSand(h, b.x, b.y)) {
       b.vx = 0;
       b.vy = 0;
       mgApron(h, b);
@@ -313,7 +321,13 @@ export const MINIGOLF_STD_SPEC: StdSpec = {
 export const MINIGOLF_STD_SPEC_V3: StdSpec = {
   ...MINIGOLF_STD_SPEC,
   rev: 3,
-  parts: MINIGOLF_STD_SPEC.parts.map((p) => (p.key === "speed" ? { ...p, how: `hole all five within 53 s for all of it, falling to 0 at the buzzer` } : p)),
+  parts: MINIGOLF_STD_SPEC.parts.map((p) =>
+    p.key === "speed"
+      ? { ...p, how: `hole all five within 53 s for all of it, falling to 0 at the buzzer` }
+      : p.key === "under"
+        ? { ...p, how: `${MG_UNDER_PTS} for each hole under par (on Hard and Expert, in par: par there is the best route)` }
+        : p,
+  ),
 };
 
 /* ================================= Course ================================= */
@@ -380,6 +394,93 @@ export interface MgHole {
   sandGroups?: number[];
   /** The hole's catalogue id (minigolfHolesV3.ts). */
   holeId?: number;
+  /** Loop-the-loops (golfRev 3): two ends; a ball rolling into either fast enough comes out of the other. */
+  loops?: MgLoop[];
+  /** Bridges over water (golfRev 3): no water inside their deck; their low side rails are in `segs`. */
+  bridges?: MgBridge[];
+}
+
+/**
+ * A loop-the-loop (golfRev 3): its two ends (units) and the heading from end A into it (NORM_ONE; from end B it is the
+ * opposite). A ball whose centre comes within MG_LOOP_R of an end, moving into the loop at MG_LOOP_MIN_V or faster,
+ * goes round and comes out of the other end, heading on, keeping 13/16 of its speed; slower, it climbs, stalls and
+ * rolls back out, half its speed, reversed. Tall side rails (in `segs` and `tall`) close its lane between the ends.
+ */
+export interface MgLoop {
+  ax: number;
+  ay: number;
+  bx: number;
+  by: number;
+  dx: number;
+  dy: number;
+}
+/** A bridge's deck (units): no water inside it. `across`: the deck runs along x (its rails along its long sides). */
+export interface MgBridge {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+export const MG_LOOP_R = 10;
+export const MG_LOOP_MIN_V = fp(4.2);
+/** A loop's lane is this wide (px): its rails sit half of it either side of the line between the ends. */
+export const MG_LOOP_LANE = 26;
+
+/**
+ * golfRev 3's hazards are smooth shapes (Joe, 15 Nov 2026: "never clusters of circles"): each pond and bunker is the
+ * level set of a field over its circles, Σ (r²/d²)² (a circle alone is exactly its circle; overlapping ones melt into
+ * one smooth outline; the fourth power keeps far circles from flooding a ring's middle), the same integer sum for the sim
+ * and the art. A ball is in a bunker at a sum of 1 (4096ths) or more, and in water at 6/5 (about 2 px inside the drawn
+ * edge of a 40 px pond, as golfRev 2's water was 2 px inside its circle), except on a bridge's deck. Each circle reaches
+ * 3 radii (contributing nothing past it).
+ */
+export const MG_META_ONE = 4096;
+export const MG_META_WATER = 4915;
+export function mgMetaSum(cs: readonly MgCircle[], groups: readonly number[] | undefined, g: number, x: number, y: number): number {
+  let sum = 0;
+  for (let i = 0; i < cs.length; i++) {
+    if ((groups?.[i] ?? i) !== g) continue;
+    const c = cs[i]!;
+    const dx = x - c.x;
+    const dy = y - c.y;
+    const d2 = dx * dx + dy * dy;
+    const r2 = c.r * c.r;
+    if (d2 >= 9 * r2) continue;
+    // q = r²/d² in 4096ths (capped well inside 2^53 when squared); the circle's part is q² in 4096ths.
+    const q = Math.min(Math.trunc((r2 * MG_META_ONE) / Math.max(d2, 1)), 64 * MG_META_ONE);
+    sum += Math.trunc((q * q) / MG_META_ONE);
+    if (sum > 8 * MG_META_ONE) return sum;
+  }
+  return sum;
+}
+function metaIn(cs: readonly MgCircle[], groups: readonly number[] | undefined, x: number, y: number, at: number): boolean {
+  const seen: number[] = [];
+  for (let i = 0; i < cs.length; i++) {
+    const g = groups?.[i] ?? i;
+    if (seen.includes(g)) continue;
+    seen.push(g);
+    if (mgMetaSum(cs, groups, g, x, y) >= at) return true;
+  }
+  return false;
+}
+/** golfRev 3: is (x, y) in water (a pond's smooth shape, not on a bridge)? */
+export function mgInWaterV3(h: MgHole, x: number, y: number): boolean {
+  for (const b of h.bridges ?? []) if (x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1) return false;
+  return metaIn(h.ponds, h.pondGroups, x, y, MG_META_WATER);
+}
+/** golfRev 3: is (x, y) in a bunker (its smooth shape)? */
+export function mgInSandV3(h: MgHole, x: number, y: number): boolean {
+  return metaIn(h.sands ?? [], h.sandGroups, x, y, MG_META_ONE);
+}
+/** A hole's water and sand tests: golfRev 3's smooth shapes, else golfRev 1 and 2's circles (unchanged). */
+function inWater(h: MgHole, x: number, y: number): boolean {
+  if (h.rev === 3) return mgInWaterV3(h, x, y);
+  for (const p of h.ponds) if (inCircle(p, x, y, fp(2))) return true;
+  return false;
+}
+function inSand(h: MgHole, x: number, y: number): boolean {
+  if (h.rev === 3) return mgInSandV3(h, x, y);
+  return (h.sands ?? []).some((c) => inCircle(c, x, y));
 }
 
 /** A wall from a to b (units) with one opening of half-width `half` centred at c; its two pieces are in `segs`. */
@@ -1060,6 +1161,10 @@ export interface MinigolfState {
   lipOn: number;
   sandStops: number;
   sandTick: number;
+  /** Display only: loops gone round, loops rolled back out of, and the last one's tick. */
+  loops: number;
+  loopBacks: number;
+  loopTick: number;
 }
 
 function initState(seed: number, pars: readonly number[], rev: number, holes: readonly number[] = [], level: MgLevel = "normal"): MinigolfState {
@@ -1070,7 +1175,8 @@ function initState(seed: number, pars: readonly number[], rev: number, holes: re
     rev,
     seed,
     course,
-    pars: Array.from({ length: MINIGOLF_HOLES }, (_, i) => clampInt(pars[i] ?? 3, 2, MINIGOLF_STROKE_LIMIT - 1)),
+    // golfRev 3's Hard and Expert pars are the best route itself, so a par can be 1 (an ace); earlier revisions 2–5.
+    pars: Array.from({ length: MINIGOLF_HOLES }, (_, i) => (rev >= MINIGOLF_REV_COURSE ? clampInt(pars[i] ?? 3, 1, 6) : clampInt(pars[i] ?? 3, 2, MINIGOLF_STROKE_LIMIT - 1))),
     hole: 0,
     phase: MG_AIM,
     x: first.tee.x,
@@ -1106,6 +1212,9 @@ function initState(seed: number, pars: readonly number[], rev: number, holes: re
     lipOn: 0,
     sandStops: 0,
     sandTick: 0,
+    loops: 0,
+    loopBacks: 0,
+    loopTick: 0,
   };
 }
 
@@ -1213,6 +1322,8 @@ export interface MgRollV2 {
   end: number;
   sail: boolean;
   tunnel: boolean;
+  /** golfRev 3: a loop went round or rolled back this tick. */
+  loop?: "round" | "back" | null;
 }
 
 /**
@@ -1248,6 +1359,7 @@ export function mgRollTickV2(h: MgHole, b: { x: number; y: number; vx: number; v
   let hits = 0;
   let sail = false;
   let tunnel = false;
+  let loop: "round" | "back" | null = null;
   const cupR = fp(MG_CUP_R - 2);
   const br = fp(MG_BALL_R);
   const mills = h.windmills ?? [];
@@ -1276,10 +1388,18 @@ export function mgRollTickV2(h: MgHole, b: { x: number; y: number; vx: number; v
       tunnel = true;
       break;
     }
+    // golfRev 3's loops (golfRev 1 and 2's holes have none).
+    for (const l of h.loops ?? []) {
+      const r = loopTick(l, b);
+      if (r) {
+        loop = r;
+        break;
+      }
+    }
     const dx = b.x - h.cup.x;
     const dy = b.y - h.cup.y;
-    if (dx * dx + dy * dy <= cupR * cupR && ilen(b.vx, b.vy) <= MG_CAPTURE_V) return { hits, end: MG_END_HOLED, sail, tunnel };
-    for (const p of h.ponds) if (inCircle(p, b.x, b.y, fp(2))) return { hits, end: MG_END_WATER, sail, tunnel };
+    if (dx * dx + dy * dy <= cupR * cupR && ilen(b.vx, b.vy) <= MG_CAPTURE_V) return { hits, end: MG_END_HOLED, sail, tunnel, loop };
+    if (inWater(h, b.x, b.y)) return { hits, end: MG_END_WATER, sail, tunnel, loop };
   }
   const slope = slopeAt(h, b.x, b.y);
   if (slope) {
@@ -1296,7 +1416,7 @@ export function mgRollTickV2(h: MgHole, b: { x: number; y: number; vx: number; v
   }
   // golfRev 3's uneven ground (golfRev 2's holes have no swells, so their roll is unchanged).
   if (h.swells) swellPush(h, b);
-  const sandy = (h.sands ?? []).some((c) => inCircle(c, b.x, b.y));
+  const sandy = inSand(h, b.x, b.y);
   const f = sandy ? rollFriction(b.vx, b.vy, MG_SAND_DRAG, MG_SAND_DECEL) : rollFriction(b.vx, b.vy, MG_DRAG, MG_DECEL);
   b.vx = f.vx;
   b.vy = f.vy;
@@ -1304,9 +1424,46 @@ export function mgRollTickV2(h: MgHole, b: { x: number; y: number; vx: number; v
     b.vx = 0;
     b.vy = 0;
     mgApron(h, b);
-    return { hits, end: MG_END_REST, sail, tunnel };
+    return { hits, end: MG_END_REST, sail, tunnel, loop };
   }
-  return { hits, end: MG_END_NONE, sail, tunnel };
+  return { hits, end: MG_END_NONE, sail, tunnel, loop };
+}
+
+/**
+ * A loop's ends (mutates b): a ball within MG_LOOP_R of an end, moving into the loop, goes round to the other end if
+ * fast enough ("round"), else stalls and rolls back out ("back"). Null when it touches neither end moving in.
+ */
+function loopTick(l: MgLoop, b: { x: number; y: number; vx: number; vy: number }): "round" | "back" | null {
+  const r = fp(MG_LOOP_R);
+  for (const end of [0, 1] as const) {
+    const ex = end === 0 ? l.ax : l.bx;
+    const ey = end === 0 ? l.ay : l.by;
+    const dx = b.x - ex;
+    const dy = b.y - ey;
+    if (dx * dx + dy * dy > r * r) continue;
+    // Into the loop from this end: along its heading from A, against it from B.
+    const inx = end === 0 ? l.dx : -l.dx;
+    const iny = end === 0 ? l.dy : -l.dy;
+    if (b.vx * inx + b.vy * iny <= 0) continue;
+    const speed = ilen(b.vx, b.vy);
+    const out = fp(MG_LOOP_R + 3);
+    if (speed >= MG_LOOP_MIN_V) {
+      const ox = end === 0 ? l.bx : l.ax;
+      const oy = end === 0 ? l.by : l.ay;
+      const keep = idiv(speed * 13, 16);
+      b.x = ox + idiv(inx * out, NORM_ONE);
+      b.y = oy + idiv(iny * out, NORM_ONE);
+      b.vx = idiv(inx * keep, NORM_ONE);
+      b.vy = idiv(iny * keep, NORM_ONE);
+      return "round";
+    }
+    b.x = ex - idiv(inx * out, NORM_ONE);
+    b.y = ey - idiv(iny * out, NORM_ONE);
+    b.vx = -idiv(b.vx, 2);
+    b.vy = -idiv(b.vy, 2);
+    return "back";
+  }
+  return null;
 }
 
 /**
@@ -1411,6 +1568,11 @@ function stepState(prev: MinigolfState, input: ArcadeInputEvent | null): Minigol
         s.sandStops += 1;
         s.sandTick = s.tick;
       }
+      if (r3.loop) {
+        if (r3.loop === "round") s.loops += 1;
+        else s.loopBacks += 1;
+        s.loopTick = s.tick;
+      }
       if (r3.lip && !s.lipOn) {
         s.lips += 1;
         s.lipTick = s.tick;
@@ -1486,7 +1648,8 @@ export function minigolfStdParts(s: MinigolfState): StdPart[] | null {
       const pp = strokes <= p ? MG_PAR_PTS : stdLine(MG_PAR_PTS, limit - strokes, limit - p);
       par += pp;
       if (strokes <= p) pars++;
-      if (strokes < p) {
+      // golfRev 3's Hard and Expert: par is the best route itself, so holing in par earns the under-par bonus.
+      if (strokes < p || (s.rev >= MINIGOLF_REV_COURSE && MG_LEVELS[s.level].parIsBest && strokes === p)) {
         under += MG_UNDER_PTS;
         unders++;
       }

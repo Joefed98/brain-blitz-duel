@@ -7,13 +7,25 @@ example; the played runs are the near-perfect skill-band bot's log through the d
 course (built from concept A, "Today, upgraded", docs/design/game-concepts/sports.md on #426); concept A is shown
 beside each for the step up.
 
-## The tee: today · concept A · new
+## The tee: today · the #423 course · concept A · new
 
-![today, concept A and new on the first tee](compare-tee.webp)
+![today, the #423 course, concept A and new on the first tee](compare-tee.webp)
 
-New: the Blender turf with light and shadow carrying the slope (no arrows; the stripes compress over the ramp and bend
-over mounds), a raked bunker in a natural shape with a lit turf lip and its shaded inner wall, Captain Joulz beside the
-ball, the larger HUD (14 px) and the Putt | Chip switch under the course.
+Today is main's live look, the #423 Blender course on golfRev 2's holes (the #423 sample beside it). New (second round,
+15 Nov 2026): the opening "Loop lane": a loop-the-loop through a low timber wall, a ramp up to it and a bowl round the
+cup, the slopes carried by light and shadow and bending mowing stripes (no arrows), a raked bunker in a smooth natural
+shape, Captain Joulz half as big again beside the ball, the larger HUD and the Putt | Chip switch under the course.
+
+## Every layout: today's five holes · the twenty new layouts
+
+![today's five golfRev 2 holes](course-sheet-today.webp)
+
+![the twenty golfRev 3 layouts](course-sheet.webp)
+
+Every new layout is crazy golf: windmills, castle gates, tunnels, ramps, loop-the-loops, plank bridges over water, bowls
+round the cup, domes and banked curves, each in the line of play. Sand and water are smooth, natural shapes drawn from
+the same field the sim plays (the Stream meanders under its bridge; the island green is ringed by one pond). Each
+template has 18 variants (three tees, three cups, mirrored): 357 holes proven at all four levels.
 
 ## Aiming: today · new putt · new chip
 
@@ -38,12 +50,6 @@ against par: gold under, green at par, white over, grey not holed; it fills in h
 the chosen hole drawn large with every stroke on it (putts white, chips' flights dotted blue, each resting spot
 numbered in order, water red, the drop ringed gold); the hole in plain words ("Hole 3 · Birdie in 2"); and the key
 numbers (strokes, against par or holes holed, chips, water). It opens on the hole that cost the most.
-
-## The course sheet
-
-![every template](course-sheet.webp)
-
-The twenty templates (each one's first variant; 360 holes with their tees, cups and mirrors), drawn by the real renderer.
 
 ## Clips
 

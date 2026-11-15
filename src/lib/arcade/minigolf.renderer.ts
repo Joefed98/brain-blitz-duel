@@ -1260,6 +1260,8 @@ function paintHoleV3(ctx: CanvasRenderingContext2D, h: MgHole, salt: number, art
   });
   paintTee(ctx, h);
   paintPondsV3(ctx, h, art ? tilePattern(ctx, art.stone, 0.5) : null);
+  (h.bridges ?? []).forEach((b) => paintBridge(ctx, b));
+  (h.swells ?? []).filter((w) => w.bowl).forEach((w) => paintBowlRim(ctx, px(w.x), px(w.y), px(w.r)));
   if (art) paintCupRedrawn(ctx, h);
   else paintCup(ctx, h);
   if (art) paintRailsRedrawn(ctx, h, art);
@@ -1268,6 +1270,7 @@ function paintHoleV3(ctx: CanvasRenderingContext2D, h: MgHole, salt: number, art
   h.logs.forEach((l) => paintLog(ctx, px(l.ax), px(l.ay), px(l.bx), px(l.by), px(l.r)));
   (h.curves ?? []).forEach((c) => paintCurve(ctx, c));
   (h.gates ?? []).forEach((g) => paintGate(ctx, g));
+  (h.loops ?? []).forEach((l) => paintLoop(ctx, l));
   if (art) {
     h.rocks.forEach((c, i) => drawFootprint(ctx, art.boulders[(i + h.index) % art.boulders.length]!, px(c.x), px(c.y), px(c.r), i + h.index * 7));
     h.planters.forEach((c, i) => drawFootprint(ctx, art.planter, px(c.x), px(c.y), px(c.r), i + h.index));
@@ -1276,6 +1279,167 @@ function paintHoleV3(ctx: CanvasRenderingContext2D, h: MgHole, salt: number, art
     h.planters.forEach((c, i) => paintPlanter(ctx, px(c.x), px(c.y), px(c.r), i + h.index));
   }
   paintLamps(ctx, MINIGOLF_W, MINIGOLF_H);
+}
+
+/**
+ * A bridge over water (golfRev 3): its shadow on the water, a deck of oiled planks laid across it (grain, joints, the
+ * near edge lit and the far edge shaded), the low timber rails along its long sides drawn by the logs pass on their own
+ * segments.
+ */
+function paintBridge(ctx: CanvasRenderingContext2D, b: NonNullable<MgHole["bridges"]>[number]): void {
+  const x0 = px(b.x0);
+  const y0 = px(b.y0);
+  const w = px(b.x1) - x0;
+  const hgt = px(b.y1) - y0;
+  const along = w >= hgt;
+  ctx.save();
+  ctx.fillStyle = "rgba(0,12,20,0.45)";
+  ctx.fillRect(x0 + 2.5, y0 + 3.5, w, hgt);
+  const g = along ? ctx.createLinearGradient(0, y0, 0, y0 + hgt) : ctx.createLinearGradient(x0, 0, x0 + w, 0);
+  g.addColorStop(0, "#B98A55");
+  g.addColorStop(0.5, "#9C6C3C");
+  g.addColorStop(1, "#7A5129");
+  ctx.fillStyle = g;
+  ctx.fillRect(x0, y0, w, hgt);
+  // Planks across the deck: a dark joint and a lit edge each, and a fine grain.
+  const n = Math.max(3, Math.round((along ? w : hgt) / 7));
+  for (let i = 1; i < n; i++) {
+    const t = i / n;
+    ctx.strokeStyle = "rgba(48,28,10,0.55)";
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    if (along) {
+      ctx.moveTo(x0 + w * t, y0);
+      ctx.lineTo(x0 + w * t, y0 + hgt);
+    } else {
+      ctx.moveTo(x0, y0 + hgt * t);
+      ctx.lineTo(x0 + w, y0 + hgt * t);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,226,180,0.30)";
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    if (along) {
+      ctx.moveTo(x0 + w * t + 0.9, y0);
+      ctx.lineTo(x0 + w * t + 0.9, y0 + hgt);
+    } else {
+      ctx.moveTo(x0, y0 + hgt * t + 0.9);
+      ctx.lineTo(x0 + w, y0 + hgt * t + 0.9);
+    }
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(60,36,14,0.22)";
+  ctx.lineWidth = 0.5;
+  for (let k = 0; k < 6; k++) {
+    ctx.beginPath();
+    if (along) {
+      const yy = y0 + hgt * (0.15 + k * 0.14);
+      ctx.moveTo(x0, yy);
+      ctx.bezierCurveTo(x0 + w * 0.3, yy - 1, x0 + w * 0.6, yy + 1, x0 + w, yy);
+    } else {
+      const xx = x0 + w * (0.15 + k * 0.14);
+      ctx.moveTo(xx, y0);
+      ctx.bezierCurveTo(xx - 1, y0 + hgt * 0.3, xx + 1, y0 + hgt * 0.6, xx, y0 + hgt);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/**
+ * A loop-the-loop (golfRev 3): the lane between its rails a dark steel trough, the rails polished chrome on posts (the
+ * sim's tall rail segments, within the bounds rule), and the loop itself standing over the lane's middle: a glossy red
+ * tube in a tall ellipse with a crisp white highlight down its near side, casting its shadow to the lower right.
+ */
+function paintLoop(ctx: CanvasRenderingContext2D, l: NonNullable<MgHole["loops"]>[number]): void {
+  const ax = px(l.ax);
+  const ay = px(l.ay);
+  const bx = px(l.bx);
+  const by = px(l.by);
+  const dx = l.dx / 4096;
+  const dy = l.dy / 4096;
+  const len = Math.hypot(bx - ax, by - ay);
+  const half = 13;
+  const nx = -dy;
+  const ny = dx;
+  ctx.save();
+  // The trough.
+  ctx.fillStyle = "rgba(20,24,28,0.55)";
+  ctx.beginPath();
+  ctx.moveTo(ax + nx * half, ay + ny * half);
+  ctx.lineTo(bx + nx * half, by + ny * half);
+  ctx.lineTo(bx - nx * half, by - ny * half);
+  ctx.lineTo(ax - nx * half, ay - ny * half);
+  ctx.closePath();
+  ctx.fill();
+  // The chrome rails (their posts first).
+  for (const side of [-1, 1]) {
+    const sx = nx * half * side;
+    const sy = ny * half * side;
+    for (let k = 0; k <= 4; k++) {
+      const t = k / 4;
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.beginPath();
+      ctx.arc(ax + (bx - ax) * t + sx + 1.2, ay + (by - ay) * t + sy + 1.6, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const g = ctx.createLinearGradient(ax + sx - nx * 3, ay + sy - ny * 3, ax + sx + nx * 3, ay + sy + ny * 3);
+    g.addColorStop(0, "#5E666E");
+    g.addColorStop(0.45, "#F4F7FA");
+    g.addColorStop(1, "#7C858E");
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(ax + sx, ay + sy);
+    ctx.lineTo(bx + sx, by + sy);
+    ctx.stroke();
+  }
+  // The loop standing over the middle of the lane.
+  const mx = (ax + bx) / 2;
+  const my = (ay + by) / 2;
+  const rot = Math.atan2(dy, dx);
+  const rx = len * 0.32;
+  const ry = half + 9;
+  ctx.translate(mx, my);
+  ctx.rotate(rot);
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.ellipse(4, 6, rx, ry, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  const tube = ctx.createLinearGradient(0, -ry - 4, 0, ry + 4);
+  tube.addColorStop(0, "#7A0E14");
+  tube.addColorStop(0.35, "#D7262E");
+  tube.addColorStop(0.65, "#B81B23");
+  tube.addColorStop(1, "#5A0A0E");
+  ctx.strokeStyle = tube;
+  ctx.lineWidth = 6.5;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  // The gloss: a crisp highlight along the near (upper-left) side of the tube.
+  ctx.strokeStyle = "rgba(255,240,236,0.85)";
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.ellipse(-0.8, -1.2, rx - 1.6, ry - 1.6, 0, Math.PI * 1.05, Math.PI * 1.55);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A bowl's rim (golfRev 3): the light pass shades the hollow; the rim's crest is a fine lit line on its far side. */
+function paintBowlRim(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  ctx.save();
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = "rgba(230,255,200,0.30)";
+  ctx.beginPath();
+  ctx.arc(x, y, r, Math.PI * 0.05, Math.PI * 0.95);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(0,24,8,0.30)";
+  ctx.beginPath();
+  ctx.arc(x, y, r, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** Beyond the world: more of the paved garden, darker towards the edges. */
@@ -1608,6 +1772,68 @@ function paintMinigolfScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView,
  * The game tile's scene (scripts/shots/tile-scenes/sports.tsx; display only): a corner of a hole on the night
  * terrace, its striped turf inside a timber rail, a boulder, the cup and flag, and the ball with its dotted aim.
  */
+/**
+ * The tile (15 Nov 2026, the overhaul's look): a golfRev 3 corner built for the tile in a 208-unit square and drawn by
+ * the game's own painters: the lit turf, a stone-edged pond under a plank bridge, a red loop-the-loop over its chrome
+ * rails, the cup in its bowl with the flag, and the ball with Captain Joulz addressing it.
+ */
+export function paintMinigolfTileV3(c: CanvasRenderingContext2D, size: number): void {
+  const f = (v: number) => v * 256;
+  const poly = [10, 12, 198, 12, 198, 198, 10, 198].map(f);
+  const segs = [];
+  for (let i = 0; i < poly.length; i += 2) {
+    const j = (i + 2) % poly.length;
+    segs.push({ ax: poly[i]!, ay: poly[i + 1]!, bx: poly[j]!, by: poly[j + 1]!, r: 0 });
+  }
+  const loop = { ax: f(162), ay: f(176), bx: f(162), by: f(112), dx: 0, dy: -4096 };
+  const bridge = { x0: f(55), y0: f(116), x1: f(79), y1: f(190) };
+  const hole = {
+    index: 0,
+    shape: "straight",
+    poly,
+    tee: { x: f(118), y: f(186) },
+    cup: { x: f(146), y: f(50) },
+    logs: [
+      { ax: bridge.x0, ay: bridge.y0, bx: bridge.x0, by: bridge.y1, r: f(2) },
+      { ax: bridge.x1, ay: bridge.y0, bx: bridge.x1, by: bridge.y1, r: f(2) },
+    ],
+    rocks: [{ x: f(108), y: f(84), r: f(9) }],
+    planters: [],
+    ponds: [
+      { x: f(30), y: f(146), r: f(22) },
+      { x: f(64), y: f(154), r: f(24) },
+      { x: f(98), y: f(162), r: f(20) },
+    ],
+    pondGroups: [0, 0, 0],
+    sands: [
+      { x: f(52), y: f(56), r: f(14) },
+      { x: f(70), y: f(66), r: f(11) },
+    ],
+    sandGroups: [0, 0],
+    slopes: [],
+    swells: [{ x: f(146), y: f(54), r: f(34), k: -14, bowl: true }],
+    segs,
+    reach: 1,
+    box: { x: 10, y: 12, w: 188, h: 186 },
+    rev: 3,
+    loops: [loop],
+    bridges: [bridge],
+  } as unknown as MgHole;
+  c.save();
+  c.scale(size / 208, size / 208);
+  paintHoleV3(c, hole, 7, courseArt());
+  drawFlag(c, hole, 9, false);
+  for (let i = 0; i < 5; i++) {
+    c.fillStyle = `rgba(255,255,255,${0.88 - i * 0.14})`;
+    c.beginPath();
+    c.arc(121 + i * 3.2, 172 - i * 12, 2.2, 0, Math.PI * 2);
+    c.fill();
+  }
+  drawCaptain(c, 118, 186, 0.26, -0.97, "address", 1);
+  drawBall(c, 118, 186);
+  c.restore();
+}
+
 export function paintMinigolfTile(c: CanvasRenderingContext2D, size: number): void {
   const k = size / 104;
   c.save();
@@ -1657,7 +1883,7 @@ export function paintMinigolfTile(c: CanvasRenderingContext2D, size: number): vo
  */
 
 /** The Captain sprite's world size (px) and where the ball sits in it (sprite px of 256: ahead of the club's face). */
-export const MG_CAPTAIN_PX = 80;
+export const MG_CAPTAIN_PX = 120;
 const CAPTAIN_BALL = { x: 152, y: 198 };
 const CAPTAIN_HOLD = 70;
 
@@ -1915,6 +2141,25 @@ function drawCourseV3(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: Mini
     }
   }
   for (const w of h.windmills ?? []) drawWindmill(ctx, w, t);
+  // A loop gone round: a white streak running round its tube for a quarter second; stalled: a scuff at its mouth.
+  if (s.loopTick > 0 && t - s.loopTick < 16 && (h.loops ?? []).length) {
+    const l = (h.loops ?? []).reduce((a, b) => (Math.hypot(px(b.bx) - bx, px(b.by) - by) < Math.hypot(px(a.bx) - bx, px(a.by) - by) ? b : a));
+    const k = (t - s.loopTick) / 16;
+    const mx = (px(l.ax) + px(l.bx)) / 2;
+    const my = (px(l.ay) + px(l.by)) / 2;
+    const len = Math.hypot(px(l.bx) - px(l.ax), px(l.by) - px(l.ay));
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(Math.atan2(l.dy, l.dx));
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - k)})`;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    const a0 = Math.PI + k * Math.PI * 2;
+    ctx.ellipse(0, 0, len * 0.32, 22, 0, a0, a0 + 1.2);
+    ctx.stroke();
+    ctx.restore();
+  }
   if (aim && s.phase === MG_AIM) drawAimV3(ctx, s, h, bx, by, aim);
 }
 

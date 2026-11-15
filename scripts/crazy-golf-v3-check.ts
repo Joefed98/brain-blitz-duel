@@ -24,6 +24,9 @@ import { readFileSync } from "node:fs";
 import { fp } from "../src/lib/arcade/engine";
 import {
   mgChipLaunch,
+  mgInSandV3,
+  mgInWaterV3,
+  MG_LOOP_MIN_V,
   mgRollTickV3,
   mgStrokeLimit,
   minigolfCheckpoint,
@@ -54,15 +57,15 @@ import {
   MINIGOLF_RUN_TICKS,
   MINIGOLF_RUN_TICKS_V3,
 } from "../src/lib/arcade/minigolf";
-import { buildHoleV3, decodeHoleId, HOLE_TEMPLATES, holeIdsForSlot, V3_CURVE_R, V3_GATE_R, V3_MILL_HALF, V3_MILL_SPINS, variantCount } from "../src/lib/arcade/minigolfHolesV3";
+import { buildHoleV3, decodeHoleId, HOLE_TEMPLATES, holeIdsForSlot, V3_CURVE_R, V3_GATE_R, V3_LEVEL_BUILD, V3_MILL_HALF, V3_MILL_SPINS, variantCount } from "../src/lib/arcade/minigolfHolesV3";
 import { encodeSportsRun, insidePoly } from "../src/lib/arcade/sportsKit";
 import { minigolfShotTrace, replayMinigolfRun } from "../src/lib/duel/minigolf";
 import { MINIGOLF_HOLES_BANK } from "../src/lib/duel/minigolfHolesBank.server";
 import { MINIGOLF_BANK_V2 } from "../src/lib/duel/minigolfBankV2.server";
-import { generateMinigolf } from "../src/lib/duel/sports.server";
+import { generateMinigolf, pickMinigolfHoles } from "../src/lib/duel/sports.server";
 import { setDealPin } from "../src/lib/duel/dealEra";
 import { withSeededRandom } from "../src/lib/duel/random";
-import { playCourseV3, PROOF_TICK, WITNESS_FILE, witnessKey, type WitnessFile } from "./minigolf-holes-bank";
+import { playCourseV3, PROOF_TICK, WITNESS_FILE, witnessKey, witnessTicks, type WitnessFile } from "./minigolf-holes-bank";
 import { rollShotV3 } from "./minigolf-oracle";
 
 let checks = 0;
@@ -85,26 +88,40 @@ ok(V3_MILL_HALF === MG_MILL_HALF && V3_GATE_R === MG_GATE_R && V3_CURVE_R === MG
 let variants = 0;
 HOLE_TEMPLATES.forEach((t, ti) => {
   ok(variantCount(t) <= 100, `${t.name}: under 100 variants (ids stay in their hundred)`);
-  ok((t.swells?.length ?? 0) > 0 === t.slot >= 3, `${t.name}: swells exactly on the last two slots`);
+  ok((t.swells?.length ?? 0) > 0 === t.slot >= 3, `${t.name}: swells (uneven ground) exactly on the last two slots`);
+  // Every layout is crazy golf (Joe, 15 Nov 2026): at least two of windmills, castles, tunnels, ramps, loops, bridges,
+  // bowls, domes and banked curves.
+  const crazy = [t.gates?.some((g) => g[0] === "mill"), t.gates?.some((g) => g[0] === "castle"), t.tunnels?.length, t.slopes?.length, t.loops?.length, t.bridges?.length, t.bowls?.length, t.hills?.length, t.curves?.length].filter(Boolean).length;
+  ok(crazy >= 2, `${t.name}: at least two crazy-golf features (${crazy})`);
   for (let v = 0; v < variantCount(t); v++) {
     variants++;
     const id = ti * 100 + v;
     const d = decodeHoleId(id);
     ok(d && d.template === ti, `hole ${id} decodes to its template`);
-    const h = buildHoleV3(id, t.slot);
+    for (const lv of MG_LEVEL_NAMES) {
+    const h = buildHoleV3(id, t.slot, lv);
     for (const [name, p] of [["tee", h.tee], ["cup", h.cup]] as const) {
-      ok(insidePoly(h.poly, p.x, p.y), `hole ${id}: the ${name} is on the fairway`);
-      const near = [...h.ponds, ...(h.sands ?? []), ...h.rocks, ...h.planters].some((c) => Math.hypot(c.x - p.x, c.y - p.y) < c.r + fp(8));
-      ok(!near, `hole ${id}: the ${name} is clear of every hazard`);
+      ok(insidePoly(h.poly, p.x, p.y), `hole ${id} ${lv}: the ${name} is on the fairway`);
+      let near = [...h.rocks, ...h.planters].some((c) => Math.hypot(c.x - p.x, c.y - p.y) < c.r + fp(8));
+      for (let a = 0; a < 16 && !near; a++)
+        for (const d of [0, 6, 10]) {
+          const qx = p.x + Math.round(Math.cos((a * Math.PI) / 8) * fp(d));
+          const qy = p.y + Math.round(Math.sin((a * Math.PI) / 8) * fp(d));
+          if (mgInWaterV3(h, qx, qy) || mgInSandV3(h, qx, qy)) near = true;
+        }
+      ok(!near, `hole ${id} ${lv}: the ${name} is clear of every hazard`);
       const wall = h.segs.some((s) => {
         const dx = s.bx - s.ax;
         const dy = s.by - s.ay;
         const u = Math.max(0, Math.min(1, ((p.x - s.ax) * dx + (p.y - s.ay) * dy) / (dx * dx + dy * dy || 1)));
         return Math.hypot(s.ax + dx * u - p.x, s.ay + dy * u - p.y) < s.r + fp(9);
       });
-      ok(!wall, `hole ${id}: the ${name} is clear of every wall`);
+      ok(!wall, `hole ${id} ${lv}: the ${name} is clear of every wall`);
     }
-    ok(JSON.stringify(buildHoleV3(id, t.slot)) === JSON.stringify(h), `hole ${id}: built the same twice`);
+    for (const b of h.bridges) ok(mgInWaterV3({ ...h, bridges: [] }, (b.x0 + b.x1) >> 1, (b.y0 + b.y1) >> 1) && !mgInWaterV3(h, (b.x0 + b.x1) >> 1, (b.y0 + b.y1) >> 1), `hole ${id} ${lv}: a bridge crosses water and its deck is dry`);
+    for (const l of h.loops) ok(insidePoly(h.poly, l.ax, l.ay) && insidePoly(h.poly, l.bx, l.by), `hole ${id} ${lv}: both loop ends on the fairway`);
+    ok(JSON.stringify(buildHoleV3(id, t.slot, lv)) === JSON.stringify(h), `hole ${id} ${lv}: built the same twice`);
+    }
   }
 });
 ok(decodeHoleId(99) === null && decodeHoleId(-1) === null && decodeHoleId(2100) === null, "ids outside the catalogue decode to nothing");
@@ -119,20 +136,20 @@ MINIGOLF_HOLES_BANK.forEach((slot, i) => {
   const ids = new Set(holeIdsForSlot(i));
   for (const e of slot) {
     ok(ids.has(e.id), `hole ${e.id} is a slot ${i + 1} hole`);
-    ok(e.pars.length === 4 && e.pars.every((p) => p >= 2 && p <= 5), `hole ${e.id}: pars 2–5 at every level (${e.pars.join(" ")})`);
+    ok(e.pars.length === 4 && e.pars.every((p) => p >= 1 && p <= 6), `hole ${e.id}: pars 1–6 at every level, the sim's range (${e.pars.join(" ")})`);
     MG_LEVEL_NAMES.forEach((lv, k) => {
       const w = witness[witnessKey(e.id, lv)];
-      ok(!!w && w.shots.length + 1 === e.pars[k], `hole ${e.id} ${lv}: par is its witness's strokes + 1`);
+      const extra = MG_LEVELS[lv].parOver;
+      ok(!!w && w.shots.length + extra === e.pars[k], `hole ${e.id} ${lv}: par is its witness's strokes ${extra ? `+ ${extra}` : "(the best route)"}`);
     });
   }
 });
 let routes = 0;
 for (const e of MINIGOLF_HOLES_BANK.flat()) {
-  const speeds = new Set(MG_LEVEL_NAMES.map((lv) => witnessKey(e.id, lv)));
-  for (const key of speeds) {
+  for (const lv of MG_LEVEL_NAMES) {
+    const key = witnessKey(e.id, lv);
     const w = witness[key]!;
-    const speed = key.split(":")[1] as "slow" | "normal" | "fast" | "any";
-    const h = buildHoleV3(e.id, 0, speed === "any" ? "normal" : speed);
+    const h = buildHoleV3(e.id, 0, lv);
     let x = h.tee.x;
     let y = h.tee.y;
     let tick = PROOF_TICK;
@@ -152,12 +169,15 @@ for (const e of MINIGOLF_HOLES_BANK.flat()) {
 
 /* ------------------------------------------------------------------ 3. composed courses */
 
-function courseN(n: number): number[] {
-  return MINIGOLF_HOLES_BANK.map((slot, i) => {
-    let x = Math.imul((n + 7) * 2246822519 + i * 3266489917, 0x2c1b3c6d) >>> 0;
-    x ^= x >>> 13;
-    return slot[(x >>> 0) % slot.length]!.id;
-  });
+/** A course the server could deal at `lv` (pickMinigolfHoles on a seeded draw). */
+function courseN(n: number, lv: (typeof MG_LEVEL_NAMES)[number] = "normal"): number[] {
+  let x = (n * 2654435761 + 7) >>> 0;
+  const draw = () => {
+    x = (Math.imul(x, 1103515245) + 12345) >>> 0;
+    const t = Math.imul(x ^ (x >>> 15), 0x2c1b3c6d) >>> 0;
+    return (t ^ (t >>> 13)) >>> 0;
+  };
+  return pickMinigolfHoles(lv, draw).map((e) => e.id);
 }
 const parsAt = (holes: number[], lv: string) => holes.map((id, i) => MINIGOLF_HOLES_BANK[i]!.find((e) => e.id === id)!.pars[MG_LEVEL_NAMES.indexOf(lv as never)]!);
 for (const lv of MG_LEVEL_NAMES) {
@@ -165,18 +185,29 @@ for (const lv of MG_LEVEL_NAMES) {
   let worst = 0;
   const N = 150;
   for (let n = 0; n < N; n++) {
-    const holes = courseN(n + MG_LEVEL_NAMES.indexOf(lv) * 1000);
+    const holes = courseN(n + MG_LEVEL_NAMES.indexOf(lv) * 1000, lv);
     const pars = parsAt(holes, lv);
     const { events, state, checkpoints } = playCourseV3(holes, pars, lv, witness);
     const g = minigolfGameFor(pars, MINIGOLF_REV_COURSE, { holes, level: lv });
     const raw = encodeSportsRun({ seed: 7, claimedScore: g.score(state), events, endTick: state.tick, checkpoints });
     const r = replayMinigolfRun(7, raw, pars, MINIGOLF_REV_COURSE, { holes, level: lv });
-    if (r.score === 200 && !r.flagged && r.birdies === 5) two++;
+    // On Easy and Normal the witness birdies every hole; on Hard and Expert it holes every one in par (the best route).
+    const fiveUnder = MG_LEVELS[lv].parIsBest ? r.pars === 5 : r.birdies === 5;
+    if (r.score === 200 && !r.flagged && fiveUnder) two++;
     worst = Math.max(worst, state.finishTick);
   }
-  ok(two === N, `${lv}: every composed course scores 200 through the server's replay, all five under par (${two} of ${N})`);
+  ok(two === N, `${lv}: every composed course scores 200 through the server's replay, all five ${MG_LEVELS[lv].parIsBest ? "in par" : "under par"} (${two} of ${N})`);
   ok(worst > 0 && worst <= minigolfFullByS(MINIGOLF_REV_COURSE, lv) * 60, `${lv}: every witness finishes by Speed's full-by (${(worst / 60).toFixed(1)} s ≤ ${minigolfFullByS(MINIGOLF_REV_COURSE, lv)} s)`);
 }
+
+// The deal's budget: each hole's stored time is its witness's worst inside a course, a dealt course's five fit the
+// level's Speed time, and each slot's quickest five always fit (the deal's fallback).
+for (const e of MINIGOLF_HOLES_BANK.flat())
+  MG_LEVEL_NAMES.forEach((lv, k) => ok(e.t[k] === witnessTicks(witness, e.id, lv), `hole ${e.id} ${lv}: its stored witness time`));
+MG_LEVEL_NAMES.forEach((lv, k) => {
+  const quickest = MINIGOLF_HOLES_BANK.reduce((a, slot) => a + Math.min(...slot.map((e) => e.t[k]!)), 0);
+  ok(quickest <= minigolfFullByS(MINIGOLF_REV_COURSE, lv) * 60, `${lv}: each slot's quickest hole fits Speed's ${minigolfFullByS(MINIGOLF_REV_COURSE, lv)} s (${(quickest / 60).toFixed(1)} s)`);
+});
 
 /* ------------------------------------------------------------------ 4. the deal */
 
@@ -189,6 +220,9 @@ for (const lv of MG_LEVEL_NAMES) {
       ok(!!e && p.pars[k] === e.pars[MG_LEVEL_NAMES.indexOf(lv)], `${lv}: hole ${k + 1} is a slot ${k + 1} bank hole with its par at the level`);
     });
     ok(lv === "normal" ? !("level" in p) : p.level === lv, `${lv}: the level is stored only off Normal`);
+    const k = MG_LEVEL_NAMES.indexOf(lv);
+    const sum = (p.holes ?? []).reduce((a, id, s) => a + MINIGOLF_HOLES_BANK[s]!.find((e) => e.id === id)!.t[k]!, 0);
+    ok(sum <= minigolfFullByS(MINIGOLF_REV_COURSE, lv) * 60, `${lv}: the dealt five fit Speed's time (${(sum / 60).toFixed(1)} s)`);
   }
 }
 ok(generateMinigolf("nonsense").level === undefined && generateMinigolf(undefined).golfRev === 3, "an unknown level deals Normal");
@@ -214,7 +248,8 @@ ok(generateMinigolf("nonsense").level === undefined && generateMinigolf(undefine
   const pond = h.ponds;
   const top = Math.min(...pond.map((c) => c.y - c.r));
   const bottom = Math.max(...pond.map((c) => c.y + c.r));
-  const x = fp(195);
+  // Beside the bridge (Bridge pond's deck is the middle of the hole), where the water is.
+  const x = fp(h.box.x + 90);
   const start = { x, y: bottom + fp(14), vx: 0, vy: 0, air: 0 };
   const carry = (bottom - top) / 256 + 50;
   const c = Math.round(((carry - MG_CHIP_MIN_PX) * MG_POWER_MAX) / (MG_CHIP_MAX_PX - MG_CHIP_MIN_PX));
@@ -225,7 +260,7 @@ ok(generateMinigolf("nonsense").level === undefined && generateMinigolf(undefine
   let landed = false;
   for (let t = 1; t < 400 && end === MG_END_NONE; t++) {
     const r = mgRollTickV3(h, ball, t, t);
-    if (ball.air > 0 && pond.some((p) => Math.hypot(ball.x - p.x, ball.y - p.y) < p.r - fp(2))) overWater = true;
+    if (ball.air > 0 && mgInWaterV3(h, ball.x, ball.y)) overWater = true;
     if (r.landed) {
       landed = true;
       ok(Math.abs(Math.hypot(ball.vx, ball.vy) - Math.trunc((Math.hypot(v.vx, v.vy) * MG_CHIP_LAND_KEEP) / 256)) <= 2, "a chip lands keeping MG_CHIP_LAND_KEEP/256 of its speed");
@@ -244,7 +279,7 @@ ok(generateMinigolf("nonsense").level === undefined && generateMinigolf(undefine
   let we = MG_END_NONE;
   for (let t = 1; t < 400 && we === MG_END_NONE; t++) we = mgRollTickV3(h, wb, t, t).end;
   ok(we === MG_END_WATER, "a chip landing in the pond is water");
-  // A chip landing in a bunker stops dead (Bunker lane, template 0).
+  // A chip landing in a bunker stops dead (Windmill bowl, template 0).
   const hs = buildHoleV3(0, 0);
   const sc = hs.sands![1]!;
   const sb = { x: sc.x, y: sc.y + fp(60), vx: 0, vy: 0, air: 0 };
@@ -309,24 +344,67 @@ ok(generateMinigolf("nonsense").level === undefined && generateMinigolf(undefine
     ok(Math.abs(w.k) <= 15 && Math.abs(w.k) * 2 < 22 + 6, `swell k ${w.k}: gentle (|k| ≤ 15: a resting ball stays put)`);
   }
   // A ball rolling across the rolling green bends; the same roll on a flat copy runs straight.
+  // On the open fairway: the hole without its gates, sails, walls or hazards, then without its swells too.
+  Object.assign(h, { windmills: [], gates: [], loops: [], segs: h.segs.filter((sg) => sg.r === 0), sands: [], ponds: [], rocks: [], planters: [] });
   const flat = { ...h, swells: [] };
   const roll = (hole: typeof h) => {
-    const b = { x: h.tee.x, y: h.tee.y, vx: 0, vy: -fp(6), air: 0 };
+    const b = { x: h.tee.x - fp(40), y: h.tee.y, vx: 0, vy: -fp(6), air: 0 };
     for (let t = 1; t < 600; t++) if (mgRollTickV3(hole, b, t, t).end !== MG_END_NONE) break;
     return b;
   };
-  ok(roll(flat).x === h.tee.x && roll(h).x !== h.tee.x, "the swells bend a straight roll; flat ground doesn't");
+  ok(roll(flat).x === h.tee.x - fp(40) && roll(h).x !== h.tee.x - fp(40), "the swells bend a straight roll; flat ground doesn't");
   ok(minigolfCourseV2(MINIGOLF_BANK_V2[0]!.seed).every((x) => !x.swells), "golfRev 2's holes have no swells");
+}
+
+/* ------------------------------------------------------------------ 6b. loops and bridges */
+
+{
+  const h = buildHoleV3(100, 0); // Loop lane: a loop through a low timber wall.
+  const l = h.loops[0]!;
+  const fast = { x: l.ax + fp(0) , y: l.ay + fp(20), vx: 0, vy: -fp(7), air: 0 };
+  let round = false;
+  for (let t = 1; t < 200; t++) {
+    const r = mgRollTickV3(h, fast, t, t);
+    if (r.loop === "round") round = true;
+    if (r.end !== MG_END_NONE) break;
+  }
+  ok(round && fast.y < l.by, "a fast ball goes round the loop and comes out of its far end");
+  const slow = { x: l.ax, y: l.ay + fp(16), vx: 0, vy: -fp(3), air: 0 };
+  let back = false;
+  for (let t = 1; t < 200; t++) {
+    const r = mgRollTickV3(h, slow, t, t);
+    if (r.loop === "back") back = true;
+    if (r.end !== MG_END_NONE) break;
+  }
+  ok(back && slow.y > l.ay, `a ball slower than ${MG_LOOP_MIN_V / 256} px a tick stalls and rolls back out`);
+  const b = buildHoleV3(200, 0); // Bridge pond.
+  const br = b.bridges[0]!;
+  const over = { x: (br.x0 + br.x1) >> 1, y: br.y1 + fp(14), vx: 0, vy: -fp(6), air: 0 };
+  let end = MG_END_NONE;
+  for (let t = 1; t < 300 && end === MG_END_NONE; t++) end = mgRollTickV3(b, over, t, t).end;
+  ok(end !== MG_END_WATER && over.y < br.y0, "a putt along the bridge crosses the water dry");
 }
 
 /* ------------------------------------------------------------------ 7. the levels */
 
+// The catalogue builds each level as MG_LEVELS says (its own copy of the sails, extras and slope strength).
+for (const lv of MG_LEVEL_NAMES)
+  ok(V3_LEVEL_BUILD[lv].mill === MG_LEVELS[lv].mill && V3_LEVEL_BUILD[lv].extras === MG_LEVELS[lv].extras && Math.abs(V3_LEVEL_BUILD[lv].slopeScale256 / 256 - MG_LEVELS[lv].slopeScale) < 0.01, `${lv}: the catalogue builds the level's sails, extras and slopes`);
+ok(MG_LEVELS.hard.parIsBest && MG_LEVELS.expert.parIsBest && !MG_LEVELS.normal.parIsBest && !MG_LEVELS.easy.parIsBest && MG_LEVELS.hard.parOver === 0 && MG_LEVELS.expert.parOver === 0 && MG_LEVELS.normal.parOver === 2 && MG_LEVELS.easy.parOver === 2, "par is the best route on Hard and Expert, the best route + 2 on Easy and Normal");
+ok(MG_LEVELS.hard.preview < MG_LEVELS.normal.preview && MG_LEVELS.expert.preview < MG_LEVELS.hard.preview, "the aim preview shortens on Hard and again on Expert");
+{
+  // Hard and Expert build their template's extra hazards and stronger slopes.
+  const n = buildHoleV3(0, 0, "normal");
+  const x = buildHoleV3(0, 0, "expert");
+  ok(x.rocks.length > n.rocks.length && (x.sands?.length ?? 0) > (n.sands?.length ?? 0), "Expert adds the template's extra hazards");
+  ok(Math.abs(x.slopes[0]!.ay) > Math.abs(n.slopes[0]!.ay), "Expert's ramps pull harder");
+}
 ok(mgStrokeLimit(3, 3, "easy") === 7 && mgStrokeLimit(3, 3, "normal") === 6 && mgStrokeLimit(3, 3, "hard") === 6 && mgStrokeLimit(3, 3, "expert") === 5, "stroke limits: par + 4, + 3, + 3, + 2");
 ok(mgStrokeLimit(2, 4) === 7 && mgStrokeLimit(1, 4) === 6, "golfRev 1 and 2's limits unchanged");
 ok(MG_LEVELS.easy.mill === "slow" && MG_LEVELS.normal.mill === "normal" && MG_LEVELS.hard.mill === "normal" && MG_LEVELS.expert.mill === "fast", "the sails: slower on Easy, faster on Expert");
 {
   const mill = HOLE_TEMPLATES.findIndex((t) => t.gates?.some((g) => g[0] === "mill")) * 100;
-  const spins = (["slow", "normal", "fast"] as const).map((sp) => Math.abs(buildHoleV3(mill, 0, sp).windmills![0]!.spin));
+  const spins = (["easy", "normal", "expert"] as const).map((lv) => Math.abs(buildHoleV3(mill, 0, lv).windmills![0]!.spin));
   ok(spins[0]! < spins[1]! && spins[1]! < spins[2]!, `the sails turn ${spins.join(" < ")}`);
 }
 ok(MG_LEVEL_NAMES.every((lv, i, a) => i === 0 || minigolfFullByS(3, lv) <= minigolfFullByS(3, a[i - 1]!)), "Speed's full-by shortens level by level");

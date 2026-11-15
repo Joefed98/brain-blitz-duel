@@ -1079,6 +1079,8 @@ const ENTRIES = {
   "minigolf.rattle": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/arc_marble_clink.mp3", volume: 0.7 },
   "minigolf.plip": { channel: "effects", frequency: 0, ms: 80, url: "/sounds/arc_sea_pop.mp3" },
   "minigolf.sand": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/move.softFall.mp3", volume: 0.5 },
+  "minigolf.loop": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/arrow.whoosh.mp3", volume: 0.7 },
+  "minigolf.loopBack": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/arc_bounce.mp3", volume: 0.5 },
   "pool.chalk": { channel: "effects", frequency: 0, ms: 733, url: "/sounds/pool_chalk.mp3" },
   "pool.cueSoft": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/pool_cue_soft.mp3" },
   "pool.cueHard": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/pool_cue_hard.mp3" },

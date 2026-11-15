@@ -10,10 +10,11 @@
  * A tool, not a check; docs/arcade-standard/minigolf.md "golfRev 3" holds the numbers it printed.
  */
 import { writeFileSync } from "node:fs";
-import { minigolfCheckpoint, minigolfGameFor, MG_LEVEL_NAMES, MINIGOLF_REV_COURSE, type MgLevel } from "../src/lib/arcade/minigolf";
+import { minigolfCheckpoint, minigolfGameFor, minigolfStdParts, MG_LEVEL_NAMES, MINIGOLF_REV_COURSE, type MgLevel } from "../src/lib/arcade/minigolf";
 import { encodeSportsRun, SPORTS_CHECKPOINT_INTERVAL } from "../src/lib/arcade/sportsKit";
 import { replayMinigolfRun } from "../src/lib/duel/minigolf";
 import { MINIGOLF_HOLES_BANK } from "../src/lib/duel/minigolfHolesBank.server";
+import { pickMinigolfHoles } from "../src/lib/duel/sports.server";
 import { Human, type SkillLevel } from "./arcade-skill-bands/human";
 import { botV3 } from "./arcade-skill-bands/bots/minigolfV3";
 
@@ -25,13 +26,16 @@ const COURSES = Number(arg("courses", "40"));
 const JOBS = Number(arg("jobs", "4"));
 const FROM = Number(arg("from", "0"));
 
-/** A fixed course for index n: one hole per slot, picked by a fixed spread (the server picks by its CSPRNG). */
-export function courseFor(n: number): number[] {
-  return MINIGOLF_HOLES_BANK.map((slot, i) => {
-    let x = Math.imul((n + 1) * 2654435761 + i * 40503, 0x7feb352d) >>> 0;
-    x ^= x >>> 15;
-    return slot[(x >>> 0) % slot.length]!.id;
-  });
+/** A fixed course for index n at a level, picked as the server picks (pickMinigolfHoles) on a seeded draw. */
+export function courseFor(n: number, level: MgLevel = "normal"): number[] {
+  let x = (n + 1) >>> 0;
+  const draw = () => {
+    x = (Math.imul(x, 1103515245) + 12345) >>> 0;
+    let t = Math.imul(x ^ (x >>> 15), 0x7feb352d) >>> 0;
+    t ^= t >>> 13;
+    return t >>> 0;
+  };
+  return pickMinigolfHoles(level, draw).map((e) => e.id);
 }
 export function parsFor(holes: readonly number[], level: MgLevel): number[] {
   const at = MG_LEVEL_NAMES.indexOf(level);
@@ -46,10 +50,12 @@ interface Row {
   holed: number;
   finish: number;
   chips: number;
+  /** Each part's points (Holes, Par, Under par, Speed). */
+  parts: number[];
 }
 
 function play(level: MgLevel, skill: SkillLevel, n: number): Row {
-  const holes = courseFor(n);
+  const holes = courseFor(n, level);
   const pars = parsFor(holes, level);
   const game = minigolfGameFor(pars, MINIGOLF_REV_COURSE, { holes, level });
   const seed = 1000 + n;
@@ -66,7 +72,7 @@ function play(level: MgLevel, skill: SkillLevel, n: number): Row {
   void state;
   const raw = encodeSportsRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints: cps });
   const r = replayMinigolfRun(seed, raw, pars, MINIGOLF_REV_COURSE, { holes, level });
-  return { level, skill, n, score: r.flagged ? -1 : r.score, holed: r.holed, finish: r.state.finishTick, chips: r.state.chips };
+  return { level, skill, n, score: r.flagged ? -1 : r.score, holed: r.holed, finish: r.state.finishTick, chips: r.state.chips, parts: (minigolfStdParts(r.state) ?? []).map((p) => p.points) };
 }
 
 const median = (v: number[]) => {
@@ -87,14 +93,14 @@ if (import.meta.main && args.includes("--child")) {
     }),
   );
   const rows = outs.flatMap((o) => o.split("\n").filter((l) => l.startsWith("{")).map((l) => JSON.parse(l) as Row));
-  console.log(`level    skill   median  mean   all-holed  finish(median s)  chips/run  flagged`);
+  console.log(`level    skill   median  mean   all-holed  finish(median s)  chips/run  flagged   mean parts (holes par under speed)`);
   for (const level of LEVELS)
     for (const skill of SKILLS) {
       const r = rows.filter((x) => x.level === level && x.skill === skill);
       const sc = r.map((x) => x.score);
       const fin = r.filter((x) => x.holed === 5 && x.finish > 0).map((x) => x.finish / 60);
       console.log(
-        `${level.padEnd(8)} ${skill.padEnd(7)} ${String(median(sc)).padStart(6)} ${(sc.reduce((a, b) => a + b, 0) / sc.length).toFixed(1).padStart(6)}   ${String(r.filter((x) => x.holed === 5).length).padStart(3)}/${r.length}      ${median(fin).toFixed(1).padStart(6)}           ${(r.reduce((a, x) => a + x.chips, 0) / r.length).toFixed(1).padStart(4)}     ${r.filter((x) => x.score < 0).length}`,
+        `${level.padEnd(8)} ${skill.padEnd(7)} ${String(median(sc)).padStart(6)} ${(sc.reduce((a, b) => a + b, 0) / sc.length).toFixed(1).padStart(6)}   ${String(r.filter((x) => x.holed === 5).length).padStart(3)}/${r.length}      ${median(fin).toFixed(1).padStart(6)}           ${(r.reduce((a, x) => a + x.chips, 0) / r.length).toFixed(1).padStart(4)}     ${r.filter((x) => x.score < 0).length}        ${[0, 1, 2, 3].map((k) => (r.reduce((a, x) => a + (x.parts[k] ?? 0), 0) / r.length).toFixed(1)).join(" ")}`,
       );
     }
   const json = args.find((a) => a.startsWith("--json="))?.slice(7);

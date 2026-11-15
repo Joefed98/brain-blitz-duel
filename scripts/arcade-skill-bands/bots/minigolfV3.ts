@@ -9,8 +9,8 @@
  * mis-hit, and the windmill's timing.
  *
  * The level's aim preview (display only in the game) is what a player reads the power from, so it is modelled as a
- * scale on the power error: Easy's line to the first bounce 0.6, Normal's full line 1, Hard's shorter one 1.35,
- * Expert's shortest 1.7 (docs/arcade-standard/minigolf.md "golfRev 3", with the measurements).
+ * scale on the power error: Easy's line to the first bounce 0.6, Normal's full line 1, Hard's shorter one (35 %) 1.75,
+ * Expert's shortest (20 %) 2.3 (docs/arcade-standard/minigolf.md "golfRev 3", with the measurements).
  *
  * The bot never looks at the score.
  */
@@ -24,7 +24,7 @@ const KNOWS_ROUTE: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.2
 const THINK_MS = 1500;
 const TEE_MS = 1400;
 /** The aim preview's effect on reading the power (see the header). */
-export const PREVIEW_POWER_SCALE = { easy: 0.6, normal: 1, hard: 1.35, expert: 1.7 } as const;
+export const PREVIEW_POWER_SCALE = { easy: 0.6, normal: 1, hard: 1.75, expert: 2.3 } as const;
 
 type Witness = Record<string, { shots: [number, number, number, number, number][]; holed: number }>;
 let witness: Witness | null = null;
@@ -46,7 +46,7 @@ export const botV3: SkillBot = ({ game, seed, human }) => {
   const firstShot = (s: MinigolfState, at: number): { shot: Shot; at: number } | null => {
     const h = s.course[s.hole]!;
     const id = h.holeId ?? -1;
-    const key = (h.windmills?.length ?? 0) > 0 ? `${id}:${MG_LEVELS[level].mill}` : `${id}:any`;
+    const key = `${id}:${level}`;
     const w = witnessOf()[key];
     if (!w) return null;
     const [k, a, b, c, wait] = w.shots[0]!;

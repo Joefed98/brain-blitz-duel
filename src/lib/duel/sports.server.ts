@@ -13,9 +13,9 @@ import { arcadeSeed } from "./arcade.server";
 import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
 import { racingDealSeedV3 } from "./racingDealV3.server";
-import { MINIGOLF_REV, MINIGOLF_REV_COURSE, mgLevelOf, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
+import { MINIGOLF_REV, MINIGOLF_REV_COURSE, mgLevelOf, MG_LEVELS, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
 import { dealPinned } from "./dealEra";
-import { MINIGOLF_HOLES_BANK } from "./minigolfHolesBank.server";
+import { MINIGOLF_HOLES_BANK, type MinigolfHoleEntry } from "./minigolfHolesBank.server";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V4 } from "./curlingBankV4.server";
@@ -41,6 +41,22 @@ export function generateRacing(): RacingPuzzleData {
   return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_DEALT };
 }
 
+/**
+ * golfRev 3's five holes at a level, one per slot, drawn with `draw` (the server's CSPRNG; checks pass a seeded one):
+ * five whose witnesses fit the level's Speed time together (their worst times summed, the bank's `t`), so a perfect run
+ * always scores 200. A fresh draw until one fits (at least half of all draws do at every level), else each slot's
+ * quickest hole, which always fits (crazy-golf-v3-check).
+ */
+export function pickMinigolfHoles(level: MgLevel, draw: () => number): MinigolfHoleEntry[] {
+  const at = MG_LEVEL_NAMES.indexOf(level);
+  const budget = MG_LEVELS[level].fullByS * 60;
+  const sum = (p: readonly MinigolfHoleEntry[]) => p.reduce((a, e) => a + e.t[at]!, 0);
+  let picks = MINIGOLF_HOLES_BANK.map((slot) => slot[draw() % slot.length]!);
+  for (let tries = 0; tries < 64 && sum(picks) > budget; tries++) picks = MINIGOLF_HOLES_BANK.map((slot) => slot[draw() % slot.length]!);
+  if (sum(picks) > budget) picks = MINIGOLF_HOLES_BANK.map((slot) => slot.reduce((a, e) => (e.t[at]! < a.t[at]! ? e : a)));
+  return picks;
+}
+
 export function generateMinigolf(level: unknown = "normal"): MinigolfPuzzleData {
   if (dealPinned("minigolfPreCourse")) {
     // golfRev 2 (crazy golf, 31 Oct 2026) deals from its own proven bank; golfRev 1's bank (minigolfBank.server.ts) still replays.
@@ -52,7 +68,7 @@ export function generateMinigolf(level: unknown = "normal"): MinigolfPuzzleData 
   const lv: MgLevel = mgLevelOf(level);
   const at = MG_LEVEL_NAMES.indexOf(lv);
   const seed = arcadeSeed();
-  const picks = MINIGOLF_HOLES_BANK.map((slot) => slot[arcadeSeed() % slot.length]!);
+  const picks = pickMinigolfHoles(lv, arcadeSeed);
   return {
     type: "minigolf",
     seed,

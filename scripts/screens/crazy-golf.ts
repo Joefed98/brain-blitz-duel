@@ -10,12 +10,14 @@ import type { Page } from "playwright";
 import { minigolfGameFor, MINIGOLF_REV_COURSE } from "../../src/lib/arcade/minigolf";
 import { encodeSportsRun } from "../../src/lib/arcade/sportsKit";
 import { MINIGOLF_HOLES_BANK } from "../../src/lib/duel/minigolfHolesBank.server";
+import { pickMinigolfHoles } from "../../src/lib/duel/sports.server";
 import { playCourseV3, WITNESS_FILE, type WitnessFile } from "../minigolf-holes-bank";
 import { ALL_SIZES, room, type ThemeScreen } from "../theme-screens";
 
 /** A room at the reveal of one Crazy Golf round, my own answer a played run (or none). */
 function golfRoom(played: boolean) {
-  const holes = MINIGOLF_HOLES_BANK.map((slot, i) => slot[(i * 11) % slot.length]!.id);
+  let x = 11;
+  const holes = pickMinigolfHoles("normal", () => ((x = (Math.imul(x, 1103515245) + 12345) >>> 0), x >>> 3)).map((e) => e.id);
   const pars = holes.map((id, i) => MINIGOLF_HOLES_BANK[i]!.find((e) => e.id === id)!.pars[1]!);
   const puzzle = { type: "minigolf", seed: 4242, golfRev: MINIGOLF_REV_COURSE, holes, pars };
   let answer = "";
