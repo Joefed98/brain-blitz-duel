@@ -19,7 +19,7 @@ import { join } from "node:path";
     return createCanvas(Math.max(1, w), Math.max(1, h));
   }
 };
-(globalThis as unknown as { document: unknown }).document = { createElement: () => createCanvas(1, 1) };
+(globalThis as unknown as { document: unknown }).document = { createElement: () => createCanvas(1, 1), documentElement: { dataset: {} } };
 
 const { setSportsSpriteForShots } = await import("../../src/lib/arcade/sportsSprites");
 const { GAMES } = await import("../arcade-skill-bands/games");

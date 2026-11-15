@@ -115,9 +115,11 @@ export const POOL_FX: ArcadeFxSpec<PoolState> = {
   fit: "world",
   shake: false,
   events: [
-    { kind: "combo", count: (s) => s.follows, at: () => ({ x: POOL_W / 2, y: 120 }), label: (s) => `${s.streak} IN A ROW` },
+    // The run's count by the rack (the Sports overhaul, stage 2), just under the HUD row, not mid-table.
+    { kind: "combo", count: (s) => s.follows, at: () => ({ x: 104, y: 52 }), label: (s) => `${s.streak} IN A ROW` },
     { kind: "clear", count: (s) => (s.spotsDown >= POOL_SPOTS ? 1 : 0), label: () => "NOW THE BLACK" },
-    { kind: "final", count: (s) => (s.black === 1 ? 1 : 0), label: () => "CLEARED!" },
+    // The black has dropped (the shot ends once every ball is still): CLEARED! with the clear's time on the clock.
+    { kind: "final", count: (s) => (s.black === 1 ? 1 : 0), label: (s) => `CLEARED! ${(Math.round(s.finishAt / 6) / 10).toFixed(1)} s` },
   ],
   misses: [{ count: (s) => s.fouls + s.scratches }],
 };

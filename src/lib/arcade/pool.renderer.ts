@@ -13,7 +13,23 @@
  * rolls into the pocket's mouth and drops away (shrinking and darkening into the hole, from the sim's drop tick).
  */
 import type { ArenaSceneView } from "./arenaScene.renderer";
-import { artHash } from "./art.renderer";
+import { artHash, reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import {
+  POOL_FX_FLASH_TICKS,
+  POOL_FX_FOUL_TICKS,
+  POOL_FX_PUFF_TICKS,
+  POOL_FX_SHIVER_TICKS,
+  POOL_FX_THRUST_TICKS,
+  poolContactPoint,
+  poolFlight,
+  poolFoulLabel,
+  poolInRack,
+  poolJawContact,
+  poolPocketOf,
+  poolSideBend,
+  poolStrikePoint,
+} from "./poolFx";
 import { lookKey, NO_LOOK, type GameLook } from "./skins/look";
 import { SPORTS_SPRITES, sportsSprite } from "./sportsSprites";
 import { paintPoolSkinBall, paintNeonTable, drawNeonCue, poolBallKind, POOL_NEON_SCENE } from "./skins/pool.skins";
@@ -643,6 +659,7 @@ function drawAim(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim): voi
   const cx = px(cue.x);
   const cy = px(cue.y);
   const hit = aimHit(s.balls, cx, cy, ux, uy);
+  const side = poolAimSide(aim, s.rev);
   ctx.save();
   ctx.lineCap = "round";
   // The dotted line to the ghost ball.
@@ -690,7 +707,12 @@ function drawAim(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim): voi
       ctx.lineTo(hit.x + (tx / tl) * reach * 0.5, hit.y + (ty / tl) * reach * 0.5);
       ctx.stroke();
       ctx.setLineDash([]);
+      // Side spin (stage 2): the cue ball runs on to its first cushion and bends there as the sim bends it.
+      if (side !== 0) drawSideBend(ctx, hit.x, hit.y, tx / tl, ty / tl, side, s.rev, reach);
     }
+  } else if (side !== 0) {
+    // Off the cushion with side: the bounce bent by the spin, as the sim bends it.
+    drawSideBend(ctx, cx, cy, ux, uy, side, s.rev, reach, true);
   } else {
     // Off the cushion: a faint reflected line.
     const vertical = Math.abs(hit.x - (POOL_CL + R)) < 0.5 || Math.abs(hit.x - (POOL_CR - R)) < 0.5;
@@ -705,6 +727,48 @@ function drawAim(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim): voi
     ctx.setLineDash([]);
   }
   ctx.restore();
+}
+
+/** The aim's side spin in the sim's own units (poolRev 2+: the dot's x, −100…100; poolRev 1: −2…2). */
+export function poolAimSide(aim: Pick<PoolAim, "spinX">, rev: number): number {
+  const x = Math.max(-100, Math.min(100, Math.round(aim.spinX)));
+  return rev >= 2 ? x : Math.round(x / 50);
+}
+
+/** Where a path from (x, y) along (ux, uy) meets a cushion line (world px), and the plain reflected direction there. */
+export function poolCushionBounce(x: number, y: number, ux: number, uy: number): { x: number; y: number; rx: number; ry: number; d: number } {
+  const tx = ux > 0 ? (POOL_CR - R - x) / ux : ux < 0 ? (POOL_CL + R - x) / ux : Infinity;
+  const ty = uy > 0 ? (POOL_CB - R - y) / uy : uy < 0 ? (POOL_CT + R - y) / uy : Infinity;
+  const d = Math.min(tx, ty);
+  return { x: x + ux * d, y: y + uy * d, rx: tx <= ty ? -ux : ux, ry: tx <= ty ? uy : -uy, d };
+}
+
+/**
+ * The preview's spun bounce (stage 2): the run on to the first cushion, then the reflected line turned by the side spin
+ * exactly as the sim turns the cue ball's velocity there (poolSideBend), in the cue's gold. `fromCue`: the line to the
+ * cushion is the aim's own (already drawn).
+ */
+function drawSideBend(ctx: CanvasRenderingContext2D, x: number, y: number, ux: number, uy: number, side: number, rev: number, reach: number, fromCue = false): void {
+  const b = poolCushionBounce(x, y, ux, uy);
+  if (!Number.isFinite(b.d) || b.d > 260) return;
+  const bent = poolSideBend(b.rx, b.ry, side, rev);
+  const bl = Math.hypot(bent.vx, bent.vy) || 1;
+  ctx.setLineDash([3, 4]);
+  if (!fromCue) {
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(242,199,92,0.8)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(b.x, b.y);
+  ctx.lineTo(b.x + (bent.vx / bl) * reach * 0.55, b.y + (bent.vy / bl) * reach * 0.55);
+  ctx.stroke();
+  ctx.setLineDash([]);
 }
 
 /* ================================ The cue ================================ */
@@ -899,6 +963,187 @@ function drawDropping(ctx: CanvasRenderingContext2D, s: PoolState): void {
   }
 }
 
+/* ============================ Stage-2 effects ============================ */
+/*
+ * The Sports overhaul's effects (phase 2 step 4; display only): each read off the sim's own state by poolFx.ts, so a
+ * replay, a reveal or a live run draws them alike; nothing here writes to a state. Under reduced motion every transient
+ * flourish (the thrust, the puff, the flash, the shiver, the flight, the pop) is left out and the state is drawn still;
+ * reduced effects and the battery saver draw them lighter (fewer particles).
+ */
+
+/** No moving flourishes (prefers-reduced-motion): the state change still shows, drawn still. */
+function stillFx(): boolean {
+  return reducedMotion();
+}
+/** Fewer particles (a slow phone, the battery saver). */
+function liteFx(): boolean {
+  return arcadeReducedEffects();
+}
+
+/** Jaw rattles seen (display only): the ball, the tick and the run (a rattle shivers for POOL_FX_SHIVER_TICKS). */
+let rattle: { seed: number; shots: number; tick: number; id: number } | null = null;
+
+/** The ball shivering after a jaw rattle, and its offset (world px) this frame; 0, 0 otherwise. */
+export function poolShiver(s: PoolState, id: number): { dx: number; dy: number } {
+  if (stillFx()) return { dx: 0, dy: 0 };
+  const now = poolJawContact(s);
+  if (now !== null) rattle = { seed: s.seed, shots: s.shots, tick: s.tick, id: now };
+  if (!rattle || rattle.id !== id || rattle.seed !== s.seed || rattle.shots !== s.shots) return { dx: 0, dy: 0 };
+  const age = s.tick - rattle.tick;
+  if (age < 0 || age >= POOL_FX_SHIVER_TICKS) return { dx: 0, dy: 0 };
+  const fall = 1 - age / POOL_FX_SHIVER_TICKS;
+  return { dx: Math.sin(age * 2.6) * 1.2 * fall, dy: Math.cos(age * 3.3) * 0.8 * fall };
+}
+
+/** The cue's thrust through the ball at the strike, and the chalk puff off its tip. */
+function drawStrike(ctx: CanvasRenderingContext2D, s: PoolState): void {
+  if (stillFx()) return;
+  const st = poolStrikePoint(s);
+  if (!st) return;
+  if (st.age < POOL_FX_THRUST_TICKS) {
+    // The tip runs on through where the ball sat (6 px of follow-through), then the cue fades away.
+    const t = st.age / POOL_FX_THRUST_TICKS;
+    const through = 6 * Math.min(1, t * 2.4);
+    ctx.save();
+    ctx.globalAlpha = t < 0.5 ? 1 : 1 - (t - 0.5) * 2;
+    drawCueStick(ctx, st.x + st.ux * through, st.y + st.uy * through, st.ux, st.uy, 0);
+    drawCaptainArm(ctx, st.x + st.ux * through, st.y + st.uy * through, st.ux, st.uy, 0);
+    ctx.restore();
+  }
+  // The chalk puff: a few pale blue motes off the tip, drifting back and fading.
+  const n = liteFx() ? 2 : 6;
+  const t = st.age / POOL_FX_PUFF_TICKS;
+  const tipX = st.x - st.ux * (R + 2);
+  const tipY = st.y - st.uy * (R + 2);
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    const h = artHash(s.shots * 31 + i, s.seed);
+    const a = Math.atan2(-st.uy, -st.ux) + (((h & 255) / 255) - 0.5) * 2.2;
+    const d = 2 + (6 + ((h >> 8) & 7)) * t;
+    ctx.globalAlpha = 0.55 * (1 - t);
+    ctx.fillStyle = i % 2 ? "#CFE2FF" : "#7FA8E6";
+    ctx.beginPath();
+    ctx.arc(tipX + Math.cos(a) * d, tipY + Math.sin(a) * d, 1.1 + 1.4 * t, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** A tiny flash where two balls meet: a short white star at the contact point, gone in a few frames. */
+function drawContactFlash(ctx: CanvasRenderingContext2D, s: PoolState): void {
+  if (stillFx()) return;
+  const c = poolContactPoint(s);
+  if (!c) return;
+  const t = c.age / POOL_FX_FLASH_TICKS;
+  ctx.save();
+  ctx.globalAlpha = 0.9 * (1 - t);
+  ctx.strokeStyle = "#FFF6DC";
+  ctx.lineWidth = 1.2;
+  ctx.lineCap = "round";
+  const r = 3 + 5 * t;
+  for (let k = 0; k < (liteFx() ? 2 : 4); k++) {
+    const a = (k * Math.PI) / 4 + 0.4;
+    ctx.beginPath();
+    ctx.moveTo(c.x + Math.cos(a) * r * 0.35, c.y + Math.sin(a) * r * 0.35);
+    ctx.lineTo(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r);
+    ctx.moveTo(c.x - Math.cos(a) * r * 0.35, c.y - Math.sin(a) * r * 0.35);
+    ctx.lineTo(c.x - Math.cos(a) * r, c.y - Math.sin(a) * r);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** How much of a foul's moment is left showing (1 → 0 over its last quarter), or 0 with none. */
+function foulFade(s: PoolState): number {
+  const lab = poolFoulLabel(s);
+  if (!lab) return 0;
+  const t = lab.age / POOL_FX_FOUL_TICKS;
+  return t < 0.75 ? 1 : 1 - (t - 0.75) / 0.25;
+}
+
+/** A foul's red glow round the cue ball, drawn under the ball (a ring from its edge out 6 px). */
+function drawFoulGlow(ctx: CanvasRenderingContext2D, s: PoolState, cx: number, cy: number): void {
+  const fade = foulFade(s);
+  if (fade <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = fade;
+  const g = ctx.createRadialGradient(cx, cy, POOL_BALL_DRAW_R - 0.5, cx, cy, POOL_BALL_DRAW_R + 6);
+  g.addColorStop(0, "rgba(232,56,64,0.6)");
+  g.addColorStop(1, "rgba(232,56,64,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(cx, cy, POOL_BALL_DRAW_R + 6, 0, Math.PI * 2);
+  ctx.arc(cx, cy, POOL_BALL_DRAW_R - 0.5, 0, Math.PI * 2, true);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A foul: the cue ball ringed in red and "FOUL −10" beside it, inside the table (the glow is drawFoulGlow, under it). */
+function drawFoul(ctx: CanvasRenderingContext2D, s: PoolState): void {
+  const lab = poolFoulLabel(s);
+  if (!lab) return;
+  const cue = s.balls.find((b) => b.id === POOL_CUE && !b.down);
+  if (!cue) return;
+  const fade = foulFade(s);
+  const cx = px(cue.x);
+  const cy = px(cue.y);
+  ctx.save();
+  ctx.globalAlpha = fade;
+  ctx.strokeStyle = "rgba(255,92,96,0.95)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, POOL_BALL_DRAW_R + 1.5, 0, Math.PI * 2);
+  ctx.stroke();
+  // The label: a red pill beside the ball (it rises 4 px as it arrives, still under reduced motion).
+  const rise = stillFx() ? 0 : 4 * Math.max(0, 1 - lab.age / 8);
+  ctx.font = `800 12px ${FONT}`;
+  const w = Math.ceil(ctx.measureText(lab.text).width) + 16;
+  const h = 20;
+  ctx.fillStyle = "rgba(120,20,24,0.94)";
+  roundRect(ctx, lab.x - w / 2, lab.y - h / 2 + rise, w, h, h / 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,140,140,0.7)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = "#FFF1F0";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(lab.text, lab.x, lab.y + rise + 0.5);
+  ctx.restore();
+}
+
+/** Potted balls of the player's set flying up to their rack slot after the drop (an arc, growing to the rack's size). */
+function drawFlights(ctx: CanvasRenderingContext2D, s: PoolState): void {
+  if (stillFx()) return;
+  const set = s.set ?? POOL_SET_SPOTS;
+  for (const b of s.balls) {
+    const f = poolFlight(s, b);
+    if (f === null) continue;
+    const from = poolPocketOf(b);
+    const to = poolRackSlot(ctx, s, b.id);
+    const e = 1 - (1 - f) * (1 - f);
+    // A gentle arc, as high as a third of the trip (at most 40 px), never above the screen's top.
+    const lift = Math.min(40, Math.hypot(to.x - from.x, to.y - from.y) / 3);
+    const x = from.x + (to.x - from.x) * e;
+    const y = Math.max(8, from.y + (to.y - from.y) * e - Math.sin(f * Math.PI) * lift);
+    const r = 4 + (7 - 4) * e;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, f * 4);
+    drawBall(ctx, poolShownId(b.id, set), x, y, r);
+    ctx.restore();
+  }
+}
+
+/** The streak chip's pop: the tick the run last grew (display only), so the count swells as it changes. */
+let streakSeen: { seed: number; streak: number; tick: number } | null = null;
+function streakPop(s: PoolState): number {
+  if (!streakSeen || streakSeen.seed !== s.seed || s.streak < streakSeen.streak || s.tick < streakSeen.tick) streakSeen = { seed: s.seed, streak: s.streak, tick: -999 };
+  if (s.streak > streakSeen.streak) streakSeen = { seed: s.seed, streak: s.streak, tick: s.tick };
+  if (stillFx()) return 1;
+  const age = s.tick - streakSeen.tick;
+  return age >= 0 && age < 14 ? 1 + 0.22 * Math.sin((age / 14) * Math.PI) : 1;
+}
+
 /* ================================= HUD ================================= */
 
 /** The HUD's chip height and type (the Sports overhaul: bigger and legible, 13 px Archivo 800 on a 26 px chip). */
@@ -973,6 +1218,21 @@ function drawBlackOpen(ctx: CanvasRenderingContext2D, x: number, y: number): voi
   ctx.restore();
 }
 
+/** The HUD rack's geometry: its label width, step and width (world px). */
+function rackLayout(ctx: CanvasRenderingContext2D, s: PoolState): { lw: number; step: number; rackW: number } {
+  const named = s.rev >= 4;
+  ctx.font = HUD_FONT;
+  const lw = named ? Math.ceil(ctx.measureText(poolSetName(s.set ?? POOL_SET_SPOTS).toUpperCase()).width) + 12 : 0;
+  const step = 18;
+  return { lw, step, rackW: 7 * step + 12 + lw };
+}
+
+/** Where ball `id` (1…7) sits in the HUD rack (world px): a flight's landing spot. */
+export function poolRackSlot(ctx: CanvasRenderingContext2D, s: PoolState, id: number): { x: number; y: number } {
+  const { lw, step } = rackLayout(ctx, s);
+  return { x: 8 + lw + 6 + step / 2 + (id - 1) * step, y: 4 + POOL_HUD_CHIP_H / 2 };
+}
+
 function drawHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
   const y = 4;
   const h = POOL_HUD_CHIP_H;
@@ -980,10 +1240,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
   const set = s.set ?? POOL_SET_SPOTS;
   const named = s.rev >= 4;
   const label = poolSetName(set).toUpperCase();
+  const { lw, step, rackW } = rackLayout(ctx, s);
   ctx.font = HUD_FONT;
-  const lw = named ? Math.ceil(ctx.measureText(label).width) + 12 : 0;
-  const step = 18;
-  const rackW = 7 * step + 12 + lw;
   ctx.fillStyle = "rgba(12,9,6,0.86)";
   roundRect(ctx, 8, y, rackW, h, h / 2);
   ctx.fill();
@@ -997,7 +1255,10 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
     ctx.fillText(label, 8 + 11, y + h / 2 + 0.5);
   }
   for (let id = 1; id <= POOL_SPOTS; id++) {
-    const down = s.balls.find((b) => b.id === id)?.down === 1;
+    // Lit once the potted ball has flown up to its slot (stage 2); at once where nothing flies (reduced motion, the
+    // desktop's upright HUD strip, poolRev 1).
+    const ball = s.balls.find((b) => b.id === id);
+    const down = ball?.down === 1 && (hudStrip || stillFx() || poolInRack(s, ball));
     ctx.globalAlpha = down ? 1 : 0.3;
     drawBall(ctx, poolShownId(id, set), 8 + lw + 6 + step / 2 + (id - 1) * step, y + h / 2, 7);
     ctx.globalAlpha = 1;
@@ -1012,11 +1273,20 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
       x += w + 6;
     }
   }
+  const pop = streakPop(s);
   if (s.streak >= 2) {
     const text = `${s.streak} IN A ROW`;
     const w = chipW(ctx, text);
     if (room(w)) {
+      // The count swells as the run grows (stage 2), about the chip's own centre, beside the rack.
+      ctx.save();
+      if (pop !== 1) {
+        ctx.translate(x + w / 2, y + h / 2);
+        ctx.scale(pop, pop);
+        ctx.translate(-(x + w / 2), -(y + h / 2));
+      }
       chip(ctx, x, y, w, text, "gold");
+      ctx.restore();
       x += w + 6;
     }
   }
@@ -1048,12 +1318,17 @@ let numberTurn = 0;
 /** The HUD chips alone, in world px, for the upright strip beside a turned table (ArcadeCanvasStage `hud`). */
 export function drawPoolHud(ctx: CanvasRenderingContext2D, s: PoolState, look: GameLook = NO_LOOK): void {
   L = look;
+  hudStrip = true;
   try {
     drawHud(ctx, s);
   } finally {
     L = NO_LOOK;
+    hudStrip = false;
   }
 }
+
+/** True while the HUD is drawn on the turned table's upright strip (no flights land there: the rack lights at once). */
+let hudStrip = false;
 
 /**
  * The table, the balls, the aim preview (while aiming) and the HUD chips, in world px. `turned` (the desktop
@@ -1092,22 +1367,34 @@ function drawPoolLooked(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAi
   const blackStatus = poolBlackStatus(s);
   for (const b of s.balls) {
     if (b.down || b.id === POOL_CUE) continue;
+    // A ball off a pocket's jaw shivers for a moment (stage 2; drawn only, the sim's position is untouched).
+    const sh = poolShiver(s, b.id);
+    const bx = px(b.x) + sh.dx;
+    const by = px(b.y) + sh.dy;
     // The black's rule on the table (the Sports overhaul): dimmed with a lock until the seven are down, then ringed.
     if (b.id === POOL_BLACK && blackStatus === "locked") {
       ctx.save();
       ctx.globalAlpha = POOL_BLACK_LOCKED_ALPHA;
-      drawBall(ctx, poolShownId(b.id, set), px(b.x), px(b.y));
+      drawBall(ctx, poolShownId(b.id, set), bx, by);
       ctx.restore();
-      drawBlackLock(ctx, px(b.x), px(b.y));
+      drawBlackLock(ctx, bx, by);
       continue;
     }
-    drawBall(ctx, poolShownId(b.id, set), px(b.x), px(b.y));
-    if (b.id === POOL_BLACK && blackStatus === "open") drawBlackOpen(ctx, px(b.x), px(b.y));
+    drawBall(ctx, poolShownId(b.id, set), bx, by);
+    if (b.id === POOL_BLACK && blackStatus === "open") drawBlackOpen(ctx, bx, by);
   }
   const cue = s.balls.find((b) => b.id === POOL_CUE && !b.down);
   const aiming = aim && s.phase === 0 && !s.over;
   if (aiming) drawAim(ctx, s, aim);
-  if (cue) drawBall(ctx, POOL_CUE, px(cue.x), px(cue.y));
+  // The strike (stage 2): the cue's thrust through the ball and the chalk puff, under the moving cue ball.
+  if (!aiming) drawStrike(ctx, s);
+  if (cue) {
+    const sh = poolShiver(s, POOL_CUE);
+    drawFoulGlow(ctx, s, px(cue.x) + sh.dx, px(cue.y) + sh.dy);
+    drawBall(ctx, POOL_CUE, px(cue.x) + sh.dx, px(cue.y) + sh.dy);
+  }
+  drawContactFlash(ctx, s);
+  drawFoul(ctx, s);
   if (aiming && cue) {
     const l = Math.hypot(aim.dx, aim.dy);
     if (l > 1e-6) {
@@ -1115,7 +1402,11 @@ function drawPoolLooked(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAi
       drawCaptainArm(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
     }
   }
-  if (!turned) drawHud(ctx, s);
+  if (!turned) {
+    drawHud(ctx, s);
+    // Potted balls fly up into the rack (stage 2), over the HUD so they land in their slot.
+    drawFlights(ctx, s);
+  }
   // poolRev 4: the deal's set, shown big over the table until the first shot (never on the turned desktop table: its
   // HUD strip names the set upright).
   if (!turned && s.rev >= 4) drawSetBanner(ctx, s);
