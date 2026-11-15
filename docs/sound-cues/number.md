@@ -58,3 +58,31 @@ belongs to Rotation and shared screens.
 | tendrop.reset | the total overshoots and resets | 360 ms ring, 24-tick frame flash |
 | tendrop.refused | a ÷ or − tile is refused | 18-tick shake |
 | tendrop.solve | all ten targets cleared: last target bursts, remaining tiles shimmer | 1200 ms |
+
+## The Number overhaul's stage moments (15 Nov 2026)
+
+One "stage complete" moment for the six stage games (`src/components/puzzles/number/overhaul.tsx`): the finished
+stage lifts and slides away with a rising two-note, and the stage pip fills. Skip and fail have their own, clearly
+different sounds. Each plays a library stand-in until Joe's ElevenLabs file (docs/sound-cues/number-elevenlabs.md)
+takes the slot's name.
+
+| Cue | Trigger | Length |
+|---|---|---|
+| balance.stageClear | a scale balances (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| balance.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
+| balance.fail | out of hangs: the scale greys and slides away: the stage slides away | 90 ms dull thunk |
+| equation.stageClear | an equation comes out true (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| equation.skip | Next skips an equation: the stage slides away | 528 ms flat swish |
+| equation.fail | an equation runs out of tries: the stage slides away | 90 ms dull thunk |
+| numpyramid.stageClear | a pyramid is complete and right (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| numpyramid.skip | Skip moves on from a pyramid: the stage slides away | 528 ms flat swish |
+| numpyramid.fail | kept for a failed stage this game may get: the stage slides away | 90 ms dull thunk |
+| measure.stageClear | a jug reaches its target (not the last board): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| measure.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
+| measure.fail | a board runs out of moves: the stage slides away | 90 ms dull thunk |
+| checkout.stageClear | a board checks out (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| checkout.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
+| checkout.fail | a dart busts the board (checkoutRev 3): the stage slides away | 90 ms dull thunk |
+| numline.stageClear | a line of five is placed (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| numline.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
+| numline.fail | kept for a failed stage this game may get: the stage slides away | 90 ms dull thunk |

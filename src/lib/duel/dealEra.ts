@@ -70,6 +70,9 @@ export const DEAL_PINS = {
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
+  /** numberOverhaul.ts: Counterweight balanceRev 3, Operator gapsRev 1, Checkout checkoutRev 2 and Kakuro kakuroRev 1,
+   * before the Number overhaul (15 Nov 2026). */
+  preNumberOverhaul: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

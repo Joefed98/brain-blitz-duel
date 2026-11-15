@@ -113,12 +113,14 @@ tasks.push({
     ok(withDealOptions(undefined, () => 7) === 7 && withDealOptions({}, () => 8) === 8, "no options run as they are");
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 layers: notesFree and the game
     // review fixes' gameReviewNov15).
-    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15", "the layers in their order");
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): numberOverhaul last.
+    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15 numberOverhaul", "the layers in their order");
     const names = new Set<DealPin>(DEAL_PIN_NAMES);
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesPreLogic is the 24th era switch.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
     // preGameReviewNov15): 26.
-    ok(names.size === 26, `26 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): preNumberOverhaul is the 27th.
+    ok(names.size === 27, `27 era switches (${names.size})`);
   },
 });
 

@@ -21,6 +21,7 @@ import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
+import { dealNumberOverhaul } from "./numberOverhaul";
 import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -171,6 +172,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "notesFree", deal: dealNotesFree },
   // The game review fixes (15 Nov 2026, gameReviewNov15.ts): Brimful measureRev 4 (out of moves ends only that puzzle).
   { name: "gameReviewNov15", deal: dealGameReviewNov15 },
+  // The Number overhaul (15 Nov 2026, numberOverhaul.ts): Counterweight, Operator, Checkout and Kakuro one stamp up.
+  { name: "numberOverhaul", deal: dealNumberOverhaul },
 ];
 
 /**

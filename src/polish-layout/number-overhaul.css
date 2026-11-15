@@ -1,0 +1,71 @@
+/*
+ * The Number overhaul (15 Nov 2026, docs/number-overhaul.md): shared by the eight Number games. Display only.
+ * Tokens only (DESIGN.md): champagne gold and navy controls, no glows, darker backgrounds.
+ */
+
+/* A darker Number background: the category's colour kept, at about half the strength. Checkout keeps its cabinet. */
+[data-puzzle-play][data-category="number"] > .screen-background {
+  background:
+    radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 10%, transparent), transparent 65%),
+    radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 7%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--frame-deep) 0%, var(--jz-bg) 40%, var(--jz-bg) 62%, var(--frame-deep) 100%);
+}
+
+/* The stage pip fills in as the stage clears (the frame's goal bar), in champagne gold, without a glow. */
+[data-category="number"] .game-goal-bar > span[data-done] {
+  background: var(--jz-gold);
+  box-shadow: none;
+  animation: nov-pip-fill 360ms var(--jz-ease-out, cubic-bezier(.2, .8, .2, 1)) both;
+  transform-origin: left center;
+}
+@keyframes nov-pip-fill {
+  from { transform: scaleX(0.15); }
+  to { transform: scaleX(1); }
+}
+
+/* One stage's box: the next stage slides in from the right; the finished one lifts and slides away to the left. */
+.nov-stage {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+}
+.nov-stage[data-stage-enter] {
+  animation: nov-stage-in 320ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.nov-stage[data-stage-exit="clear"] {
+  animation: nov-stage-clear 620ms cubic-bezier(.5, 0, .75, 0) 320ms both;
+  pointer-events: none;
+}
+.nov-stage[data-stage-exit="skip"],
+.nov-stage[data-stage-exit="fail"] {
+  animation: nov-stage-leave 420ms cubic-bezier(.5, 0, .75, 0) 420ms both;
+  pointer-events: none;
+}
+@keyframes nov-stage-in {
+  from { opacity: 0; transform: translateX(28%); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nov-stage-clear {
+  0% { opacity: 1; transform: none; }
+  30% { opacity: 1; transform: translateY(-12px); }
+  100% { opacity: 0; transform: translate(-60%, -12px); }
+}
+@keyframes nov-stage-leave {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(-45%); }
+}
+/* Reduced motion: no movement; the finished stage simply stays until the next one replaces it. */
+@media (prefers-reduced-motion: reduce) {
+  .nov-stage[data-stage-enter],
+  .nov-stage[data-stage-exit="clear"],
+  .nov-stage[data-stage-exit="skip"],
+  .nov-stage[data-stage-exit="fail"] {
+    animation: none;
+  }
+  [data-category="number"] .game-goal-bar > span[data-done] {
+    animation: none;
+  }
+}
