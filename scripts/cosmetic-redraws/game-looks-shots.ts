@@ -8,14 +8,15 @@
  *
  *   bun scripts/cosmetic-redraws/game-looks-shots.ts [item…]      writes docs/design/cosmetics-redraws/gallery/game-looks/
  */
-import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas";
+import { createCanvas, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { drawFrames, type Frame, type SkinGame } from "../skins/frames";
 import { setSkinReducedMotion } from "../../src/lib/arcade/skins/motion.renderer";
 import { setRedrawPreview } from "../../src/lib/arcade/skins/redrawPreview";
+import { setSceneImageForShots } from "../../src/lib/arcade/skins/sceneImages";
 
 const ROOT = join(import.meta.dir, "../..");
 const OUT = join(ROOT, "docs/design/cosmetics-redraws/gallery/game-looks");
@@ -111,7 +112,12 @@ function frameCanvas(f: Frame) {
 
 async function pass(tag: "before" | "after", only: string[]): Promise<void> {
   setSkinReducedMotion(true);
-  if (tag === "after") setRedrawPreview("all");
+  if (tag === "after") {
+    setRedrawPreview("all");
+    // The second pass's Blender pieces: handed straight to the loader (there is no browser Image in Bun).
+    const dir = join(ROOT, "public/cosmetics/redrawn");
+    for (const f of readdirSync(dir).filter((n) => n.endsWith(".webp"))) setSceneImageForShots(f.slice(0, -5), await loadImage(join(dir, f)));
+  }
   mkdirSync(OUT, { recursive: true });
   for (const it of await items()) {
     if (only.length && !only.includes(it.id)) continue;

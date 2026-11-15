@@ -37,3 +37,15 @@ export function sceneImage(name: string): HTMLImageElement | null {
 export function sceneImagesVersion(): number {
   return version;
 }
+
+/**
+ * Scripts only (the gallery's shots in Bun, where there is no browser Image): hand a scene image in directly, e.g. an
+ * @napi-rs/canvas Image loaded from public/cosmetics/redrawn. The app never calls this.
+ */
+export function setSceneImageForShots(name: string, img: { width: number; height: number }): void {
+  const el = img as unknown as HTMLImageElement;
+  if (el.naturalWidth === undefined) Object.defineProperty(el, "naturalWidth", { value: img.width });
+  if (el.complete === undefined) Object.defineProperty(el, "complete", { value: true });
+  images.set(name, el);
+  version++;
+}
