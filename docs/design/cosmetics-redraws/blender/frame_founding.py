@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lib  # noqa: E402
 
 W, H, M = 300.0, 112.0, 10.0
-GOLD = (1.0, 0.74, 0.34)
+GOLD = (1.0, 0.70, 0.29)
 CHAMPAGNE = (0.95, 0.74, 0.42)
 NAVY = (0.012, 0.022, 0.07)
 
@@ -173,22 +173,22 @@ def bolt_mesh(cx, cy, scale, z, height):
 
 def crest(cx, cy):
     """The medallion: a gold rim, a navy enamel field, a raised gold bolt."""
-    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=17.5, depth=4.0, location=card_to_world(cx, cy, 1.6))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=17.5, depth=4.0, location=card_to_world(cx, cy, 2.0))
     rim = bpy.context.object
     bev = rim.modifiers.new("bevel", "BEVEL")
     bev.width = 0.9
     bev.segments = 4
     rim.data.materials.append(gold_material("rim", 0.13))
     bpy.ops.object.shade_smooth()
-    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=13.9, depth=0.6, location=card_to_world(cx, cy, 3.25))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=13.9, depth=0.6, location=card_to_world(cx, cy, 3.85))
     enamel = bpy.context.object
     enamel.data.materials.append(lib.material("enamel", base=NAVY, roughness=0.08, coat=1.0))
     bpy.ops.object.shade_smooth()
     # A fine gold ring inside the rim.
-    bpy.ops.mesh.primitive_torus_add(major_radius=14.6, minor_radius=0.45, location=card_to_world(cx, cy, 3.4))
+    bpy.ops.mesh.primitive_torus_add(major_radius=14.6, minor_radius=0.5, location=card_to_world(cx, cy, 4.15))
     bpy.context.object.data.materials.append(gold_material("ring", 0.1))
     bpy.ops.object.shade_smooth()
-    b = bolt_mesh(cx, cy, 11.0, 3.4, 1.8)
+    b = bolt_mesh(cx, cy, 11.0, 4.0, 1.8)
     b.data.materials.append(gold_material("boltgold", 0.12))
 
 
@@ -251,7 +251,7 @@ def studio():
     coord = nt.nodes.new("ShaderNodeTexCoord")
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    stops = [(0.0, 0.03), (0.5, 0.04), (0.57, 2.6), (0.64, 0.14), (0.82, 0.05), (1.0, 0.34)]
+    stops = [(0.0, 0.02), (0.5, 0.02), (0.575, 2.0), (0.63, 0.06), (0.82, 0.02), (1.0, 0.06)]
     ramp.color_ramp.elements[0].position, ramp.color_ramp.elements[0].color = stops[0][0], (stops[0][1],) * 3 + (1,)
     ramp.color_ramp.elements[1].position, ramp.color_ramp.elements[1].color = stops[-1][0], (stops[-1][1],) * 3 + (1,)
     for pos, v in stops[1:-1]:
