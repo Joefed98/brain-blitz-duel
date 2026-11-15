@@ -20,7 +20,7 @@
  */
 import type { CanvasSize } from "./engine";
 import { NO_LOOK, type GameLook } from "./skins/look";
-import { curlStoneSkin, DEFAULT_RINK, NEON_RINK, neonRinkArena, neonStroke, paintSkinStone } from "./skins/curling.skins";
+import { curlStoneSkin, DEFAULT_RINK, neonRinkArena, neonRinkCacheTag, neonRinkIce, neonRinkPalette, neonStroke, paintSkinStone } from "./skins/curling.skins";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { artHash } from "./art.renderer";
 import {
@@ -145,7 +145,7 @@ let cache: { canvas: HTMLCanvasElement; w: number; h: number; rev: number; key: 
 /** The look this draw uses (wave 2 skins): set by drawCurling / curlingScene for their length, the default otherwise. */
 let L: GameLook = NO_LOOK;
 /** The sheet's colours: the default's, or the Neon Rink's. */
-const sheetPal = () => (L.world ? NEON_RINK : DEFAULT_RINK);
+const sheetPal = () => (L.world ? neonRinkPalette() : DEFAULT_RINK);
 
 /** One sheet's ice, rings and lines, centred `offset` cm across. */
 function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: CurlView): void {
@@ -165,6 +165,7 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
   ctx.fillStyle = g;
   ctx.fill();
   ctx.clip();
+  if (L.world) neonRinkIce(ctx, q[0]!.sy, v.w, v.h);
   // Both houses, their rings about this sheet's centre line.
   {
     for (const cy of [0, TEE_NEAR]) {
@@ -360,7 +361,7 @@ function staticLayer(ctx: CanvasRenderingContext2D, v: CurlView): HTMLCanvasElem
   const t = ctx.getTransform();
   const w = Math.max(1, Math.round(v.w * t.a));
   const h = Math.max(1, Math.round(v.h * t.d));
-  const key = L.world ?? "";
+  const key = (L.world ?? "") + (L.world ? neonRinkCacheTag() : "");
   if (cache && cache.w === w && cache.h === h && cache.rev === v.rev && cache.key === key) return cache.canvas;
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -484,7 +485,7 @@ function inset(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | nu
   ctx.fill();
   ctx.stroke();
   ctx.clip();
-  const neon = L.world ? NEON_RINK : null;
+  const neon = L.world ? neonRinkPalette() : null;
   ctx.fillStyle = neon ? neon.ice : "#DCE7EF";
   ctx.fillRect(i.x, i.y, i.w, i.h);
   for (const [r, fill, edge] of [
