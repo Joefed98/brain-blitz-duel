@@ -148,10 +148,12 @@ export const SHARDS: Record<string, string[]> = {
   // desktop modes at 1440x900, ~3-4 min each with its dev server), desktop-fairness-check (~2 min), and
   // arcade-play-check's desktop pass in halves (arcade-play-desktop-check: every arcade game at 1440x900 and
   // 1920x1080, ~6 min each).
-  play22: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts"],
-  play23: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3"],
-  play24: ["arcade-play-desktop-check.ts@1/2"],
-  play25: ["arcade-play-desktop-check.ts@2/2"],
+  // arena-world-check (15 Nov 2026, the arena's fairness rule: every arcade play screen on a phone, a sideways tablet
+  // and a computer, ~13 min whole) in quarters, one beside each of these four (~3.5 min a part).
+  play22: ["desktop-layout-check.ts@1/3", "desktop-fairness-check.ts", "arena-world-check.ts@1/4"],
+  play23: ["desktop-layout-check.ts@2/3", "desktop-layout-check.ts@3/3", "arena-world-check.ts@2/4"],
+  play24: ["arcade-play-desktop-check.ts@1/2", "arena-world-check.ts@3/4"],
+  play25: ["arcade-play-desktop-check.ts@2/2", "arena-world-check.ts@4/4"],
   // theme-check and no-wrap-check: their own jobs, worked out from PAGE_CHECK_SPLITS (above). Never list their parts by hand.
   ...pageCheckJobs(),
   // Non-browser checks. puzzle-bank-check's every-entry verification and

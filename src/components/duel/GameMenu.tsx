@@ -1,4 +1,6 @@
 import { lazy, memo, Suspense, useEffect, useState } from "react";
+import { SchemeChooser } from "./ArenaGamePanel";
+import { useDesktop } from "@/lib/desktop";
 import { createPortal } from "react-dom";
 
 import { VolumeSliders } from "@/components/app/VolumeSliders";
@@ -25,6 +27,7 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
   const [open, setOpen] = useState(false);
   const [ownHelp, setOwnHelp] = useState(false);
   const sound = useSoundSwitches();
+  const desktop = useDesktop();
   const showHelp = onHelp ?? (type ? () => setOwnHelp(true) : undefined);
   // The Attention overhaul: Labyrinth's arrows / joystick switch lives here (and in Settings), not beside the pad.
   const [direction, setDirection] = useDirectionControls();
@@ -74,6 +77,12 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
                   on={direction === "joystick"}
                   onChange={(on) => setDirection(on ? "joystick" : "arrows")}
                 />
+              ) : null}
+              {/* Game controls on a computer (lib/gameControls.ts): where the game offers a choice. */}
+              {type && desktop ? (
+                <div data-game-menu-controls className="px-4 py-3">
+                  <SchemeChooser type={type} />
+                </div>
               ) : null}
               {showHelp ? (
                 <Row

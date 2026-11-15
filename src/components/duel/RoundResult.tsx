@@ -14,6 +14,7 @@ import {
 } from "@/lib/duel/resultPresentation";
 
 import { AnimatedScore } from "./AnimatedScore";
+import { useGameFxOnce } from "@/components/fx/GameFx";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 import { RoomMiniCard } from "./RoomPlayer";
 import { youStyle } from "./Standings";
@@ -99,7 +100,11 @@ export function RoundResult({
     playVoice(theyWon ? "roundLost" : "voice.tie", cueDurationMs("shared.roundResults"));
   }, [iWon, theyWon]);
 
-  const bar = (score: number) => `${Math.round((score / roundMaxFor(gameType)) * 100)}%`;
+  // The bars fill by scale (fx-bar, polish-layout/game-fx.css), never by width: no layout animation.
+  const bar = (score: number) => ({ ["--fx-bar" as string]: Math.max(0, Math.min(1, score / roundMaxFor(gameType))).toFixed(3) });
+  const mine = useRef<HTMLDivElement>(null);
+  // The kit's payoff on the round's winner (its own round_won cue already plays, so silent).
+  useGameFxOnce("win", mine, iWon, { silent: true, noHaptic: true });
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-5 pt-1 animate-phase-in">
@@ -116,6 +121,7 @@ export function RoundResult({
 
         <div className="flex gap-3">
           <Panel
+            ref={mine}
             data-you=""
             style={youStyle(myLook)}
             data-round-dim={theyWon ? "" : undefined}
@@ -132,10 +138,7 @@ export function RoundResult({
               <AnimatedScore value={myRoundScore} />
             </p>
             <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-background">
-              <div
-                className="h-full rounded-full transition-[width] duration-500 ease-out"
-                style={{ width: bar(myRoundScore), background: colourOf(myLook) }}
-              />
+              <span className="fx-bar" style={{ ...bar(myRoundScore), background: colourOf(myLook) }} />
             </div>
             <SummaryLine verdict={myVerdict} summary={mySummary} />
             {iWon && (
@@ -155,10 +158,7 @@ export function RoundResult({
               <AnimatedScore value={opponentRoundScore} />
             </p>
             <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-background">
-              <div
-                className="ml-auto h-full rounded-full transition-[width] duration-500 ease-out"
-                style={{ width: bar(opponentRoundScore), background: colourOf(opponentLook) }}
-              />
+              <span data-from-right="" className="fx-bar" style={{ ...bar(opponentRoundScore), background: colourOf(opponentLook) }} />
             </div>
             <SummaryLine verdict={opponentVerdict} summary={opponentSummary} />
             {theyWon && (
