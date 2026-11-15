@@ -265,6 +265,10 @@ export function replaySportsRun<S extends { tick: number }>(
   const clientLag = endTick > 0 && endTick < game.runTicks;
   const lastTick = clientLag ? endTick : game.runTicks;
   const client = new Map((run.checkpoints ?? []).map((c) => [c.tick, c]));
+  // An answer with no run in it (an empty answer, another player's withheld answer read as "", or a draft made before
+  // the first tick: no events, no checkpoints, no end tick) has nothing to compare. It replays and is judged exactly as
+  // before (desyncTick and flagged unchanged); only the diagnostic line is skipped, so the log names real disagreements.
+  const noRun = endTick === 0 && client.size === 0 && run.events.length === 0;
   let state = game.init(seed);
   let reached = 0;
   let desyncTick: number | null = null;
@@ -278,7 +282,7 @@ export function replaySportsRun<S extends { tick: number }>(
       const theirs = client.get(state.tick);
       if ((!theirs || theirs.checksum !== mine.checksum) && desyncTick === null && state.tick <= (endTick || lastTick)) {
         desyncTick = state.tick;
-        console.error(`[${label}] client/server desync`, { tick: state.tick, client: theirs, server: mine });
+        if (!noRun) console.error(`[${label}] client/server desync`, { tick: state.tick, client: theirs, server: mine });
       }
     }
     if (game.isOver(state)) break;
