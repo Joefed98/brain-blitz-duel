@@ -1,7 +1,12 @@
 import { directionOf } from "@/lib/desktop";
 import { swingFillFor } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { noteSwingPress } from "@/lib/arcade/swingPress";
+import { SWING_END_HOLD_MS } from "@/lib/arcade/swingEffects.renderer";
+import { traceSwingRun } from "@/lib/duel/swingRunTrace";
+import { drawSwingRunPicture, swingRunPictureHeight, SWING_RUN_COLOURS } from "@/lib/arcade/swingReveal.renderer";
 
 import {
   SWING_INPUT_REEL,
@@ -29,7 +34,7 @@ import { SWING_DEPTH_STEPS } from "@/lib/arcade/swingJungle.renderer";
 import { swingSounds } from "@/lib/fx/gameSounds";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 
 /** The intro still's course: the first course rooms deal on swingRev 18 (swingBigDeal.server.ts), built in the sim. */
 const SWING_INTRO_SEED = 1560728537;
@@ -76,6 +81,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldH={swingWorldHFor(data?.swingRev)}
       game={swingArtGameFor(data?.swingRev)}
       sounds={swingSounds}
+      // Stage 2: the end banner and the stretches tallying are seen before the answer goes (the jungle only).
+      endHoldMs={(s: SwingState) => (s.slide ? SWING_END_HOLD_MS : 0)}
       checkpoint={swingCheckpoint}
       interval={SWING_CHECKPOINT_INTERVAL}
       encodeRun={encodeSwingRun}
@@ -84,6 +91,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       pointer={(kind, _x, y) => {
         if (kind === "down") {
           start.current = { y };
+          // Display only: the out-of-reach moment judges this press a few ticks on (swingPress.ts).
+          noteSwingPress();
           return { a: 1, b: 0, c: 0 };
         }
         if (kind === "up") {
@@ -103,6 +112,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (event.repeat) return true;
           if (kind === "down" && !spaceHeld.current) {
             spaceHeld.current = true;
+            noteSwingPress();
             send({ a: 1, b: 0, c: 0 });
           } else if (kind === "up" && spaceHeld.current) {
             spaceHeld.current = false;
@@ -161,6 +171,99 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
+/** A big number with its short label (the run picture's key numbers). */
+function BigStat({ name, label, value, of, unit }: { name: string; label: string; value: number; of?: number; unit?: string }) {
+  return (
+    <div data-swing-stat={name} className="flex min-w-0 flex-col items-center rounded-xl bg-white/5 px-1.5 py-2">
+      <span className="text-2xl font-extrabold leading-tight tabular-nums text-foreground">
+        {value}
+        {unit ? <span className="text-base font-bold">{unit}</span> : null}
+        {of !== undefined ? <span className="text-base font-bold text-muted-foreground">/{of}</span> : null}
+      </span>
+      <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+function Legend({ colour, label, kind }: { colour: string; label: string; kind: "line" | "drop" | "wedge" | "dash" }) {
+  const mark =
+    kind === "line" ? (
+      <span aria-hidden className="inline-block h-1 w-4 rounded" style={{ background: colour }} />
+    ) : kind === "dash" ? (
+      <span aria-hidden className="inline-block h-0 w-4 border-t-2 border-dashed" style={{ borderColor: colour }} />
+    ) : kind === "drop" ? (
+      <span aria-hidden className="inline-block h-2.5 w-2 rounded-full" style={{ background: colour }} />
+    ) : (
+      <span aria-hidden className="text-sm font-black leading-none" style={{ color: colour }}>▼</span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      {mark}
+      {label}
+    </span>
+  );
+}
+
+/**
+ * The arcade reveal's run picture (PuzzleDefinition.RunPicture; the Action overhaul, stage 2, 15 Nov 2026; display
+ * only): the jungle course (swingRev 17+) as a path of its stretches from the stored run replayed by the server's own
+ * replay (traceSwingRun), drawn by drawSwingRunPicture, with the four numbers that explain the score big above it and a
+ * legend under it. Older stamps draw nothing here.
+ */
+export function SwingRunPicture({ puzzle, myAnswer }: RunPictureProps) {
+  const trace = useMemo(
+    () => (puzzle.type === "swing" && (puzzle.swingRev ?? 0) >= SWING_REV_SLIDE && myAnswer ? traceSwingRun(puzzle.seed, myAnswer, puzzle.swingRev) : null),
+    [puzzle, myAnswer],
+  );
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const wrap = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = canvas.current;
+    if (!node || !trace) return;
+    const width = Math.max(240, Math.round(wrap.current?.getBoundingClientRect().width || 340));
+    const height = swingRunPictureHeight(width);
+    const ratio = arcadeCanvasRatio();
+    node.width = Math.round(width * ratio);
+    node.height = Math.round(height * ratio);
+    node.style.width = `${width}px`;
+    node.style.height = `${height}px`;
+    const ctx = node.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    drawSwingRunPicture(ctx, trace, { width, height });
+  }, [trace]);
+  if (!trace) return null;
+  return (
+    <div data-swing-run-picture="" className="flex w-full shrink-0 flex-col items-center gap-3">
+      {trace.finished ? <p data-swing-course-cleared="" className="text-xl font-extrabold text-foreground">Course cleared!</p> : null}
+      <div className="grid w-full max-w-sm grid-cols-4 gap-2">
+        <BigStat name="course" label="Course" value={trace.percent} unit="%" />
+        <BigStat name="stretches" label="Stretches" value={trace.cleared} of={trace.total} />
+        <BigStat name="pars" label="Under par" value={trace.underPar} />
+        <BigStat name="gates" label="Gates" value={trace.gates} of={trace.gateTotal} />
+      </div>
+      <div ref={wrap} className="w-full">
+        <canvas
+          ref={canvas}
+          role="img"
+          data-swing-course-path=""
+          className="block w-full"
+          aria-label={`The course: ${trace.cleared} of ${trace.total} stretches cleared, ${trace.underPar} under par, ${trace.falls} ${trace.falls === 1 ? "fall" : "falls"}, ${trace.gates} of ${trace.gateTotal} gates`}
+        />
+      </div>
+      <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-semibold text-muted-foreground">
+        <Legend kind="line" colour={SWING_RUN_COLOURS.under} label="Under par" />
+        <Legend kind="line" colour={SWING_RUN_COLOURS.cleared} label="Cleared" />
+        {trace.finished ? null : <Legend kind="dash" colour={SWING_RUN_COLOURS.current} label="Ended here" />}
+        {trace.falls > 0 ? <Legend kind="drop" colour={SWING_RUN_COLOURS.fall} label={trace.falls === 1 ? "Fell once" : `Fell ${trace.falls} times`} /> : null}
+        {trace.caught > 0 ? <Legend kind="wedge" colour={SWING_RUN_COLOURS.caught} label="Caught" /> : null}
+        <span data-swing-best-streak="" className="whitespace-nowrap">Best streak {trace.bestStreak}</span>
+      </div>
+    </div>
+  );
+}
+
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const swingPuzzle: PuzzleDefinition = {
   key: "swing",
@@ -174,4 +277,5 @@ export const swingPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
+  RunPicture: SwingRunPicture,
 };

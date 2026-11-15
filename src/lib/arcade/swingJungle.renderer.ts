@@ -732,7 +732,7 @@ export const JUNGLE_LOOP_R = 14;
  * more obvious with less glow: a bigger loop with a dark centre, a thick dark rim and a bright cream ring, so it reads
  * against leaves, trunks and water alike.
  */
-export function drawJungleGrabPoints(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: number) => number, W: number, t: number, still: boolean, lite: boolean): void {
+export function drawJungleGrabPoints(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: number) => number, W: number, t: number, still: boolean, lite: boolean, missed: { hook: number; age: number } | null = null): void {
   const slider = new Map((state.sliders ?? []).map((sl) => [sl.i, sl] as const));
   const R = JUNGLE_LOOP_R;
   state.anchors.forEach((home, i) => {
@@ -762,6 +762,23 @@ export function drawJungleGrabPoints(ctx: CanvasRenderingContext2D, state: Swing
     const flash = held && state.tick - state.grabTick < 12;
     void still;
     drawGrabRing(ctx, x, y, R, flash);
+    // Stage 2: the vine just out of reach of a press tinted red for a beat (its rope and ring, never a glowing edge).
+    if (missed && missed.hook === i) {
+      const red = 0.62 * (1 - missed.age);
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.strokeStyle = `rgba(255,70,80,${red.toFixed(3)})`;
+      ctx.lineWidth = 4.2;
+      ctx.beginPath();
+      ctx.moveTo(topX, topY);
+      ctx.quadraticCurveTo((topX + x) / 2 + 4, (topY + y) / 2, x, y - R - 1);
+      ctx.stroke();
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(x, y, R, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   });
 }
 
@@ -769,12 +786,17 @@ export function drawJungleGrabPoints(ctx: CanvasRenderingContext2D, state: Swing
  * The vine the hero holds: taut from the anchor to the hands, a twisted rope (swingJungleArt's strokeVineRope). `w`
  * scales its width (the game draws it 1.35× since the Action overhaul, 15 Nov 2026; the tile keeps 1).
  */
-export function drawJungleRope(ctx: CanvasRenderingContext2D, ax: number, ay: number, hx: number, hy: number, w = 1): void {
+export function drawJungleRope(ctx: CanvasRenderingContext2D, ax: number, ay: number, hx: number, hy: number, w = 1, bend = 0): void {
   strokeVineRope(
     ctx,
     () => {
       ctx.moveTo(ax, ay);
-      ctx.lineTo(hx, hy);
+      if (bend === 0) ctx.lineTo(hx, hy);
+      else {
+        // Stage 2's grab flex: a bow `bend` px across the vine at its middle (the ends stay on the anchor and the hands).
+        const d = Math.hypot(hx - ax, hy - ay) || 1;
+        ctx.quadraticCurveTo((ax + hx) / 2 - ((hy - ay) / d) * bend * 2, (ay + hy) / 2 + ((hx - ax) / d) * bend * 2, hx, hy);
+      }
     },
     w,
   );

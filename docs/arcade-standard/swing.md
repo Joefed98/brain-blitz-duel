@@ -58,6 +58,21 @@ hooks, a calmer background. Gallery: `docs/design/pages-review/action/GALLERY.md
 - Frames: `bun scripts/shots/swing-overhaul-frames.ts --rev=18 [--course=0] [--tag=after] [--clip]`.
 - The intro still is swingRev 18's first dealt course; **the intro demo stays stopped until recorded on swingRev 18**.
 
+## Stage 2: effects and the reveal (15 Nov 2026; display and sound only, no stamp)
+
+Each effect is drawn from the sim moment it observes (`swingEffects.renderer.ts`; the out-of-reach press in
+`swingPress.ts`), at most 900 ms, never holding an input back, calm under reduced motion or effects: the grab's vine
+flex (`swingGrabFlex`, from `grabTick`), the speed streak while flying at gate speed or faster, the streak meter under
+STREAK (eight segments, `swingStreakMeter`; the burst on the grab that pays a block), the out-of-reach tint (the stage
+notes each press, `noteSwingPress`; the sound observer judges it three ticks on, `observeSwingPress`), the pterodactyl's
+shadow (`swingChaseAge`, from the clear tick of the stretch before `chaseFrom`; its screech and wingbeats wait
+`PTERO_SHADOW_TICKS`), and the end banner with the stretches tallying (`drawSwingEnd`; the stage holds its submit
+`SWING_END_HOLD_MS`, 1.6 s). Sounds: `swing.ropeSnap`, `speedWhoosh`, `streakMeter` (a pentatonic step a grab),
+`streak`, `outOfReach`, `pteroShadow`, `courseCleared`, `stretchTally` (rows in `docs/sound-cues/arcade-effects.md`).
+The reveal's run picture (`SwingRunPicture`, `traceSwingRun` through `replaySwingRun`'s observe, `drawSwingRunPicture`):
+course %, stretches (the one count, 51), under par and gates big over the course drawn as a path of its stretches. Older
+stamps draw no run picture (their reveal lines remain in `Reveal`).
+
 ## The Action overhaul (15 Nov 2026, phase 2 step 4; display only, swingRev 17)
 
 Joe's review (`docs/design/game-reviews/action.md`). No stamp: the course, rules, timings and scores are unchanged

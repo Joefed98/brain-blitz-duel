@@ -505,6 +505,150 @@ for (const w of sample.slice(0, 3)) {
   }
 }
 
+/*
+ * 11. Stage 2's effects and reveal (15 Nov 2026): each effect tied to its sim moment, at most 900 ms, calm under reduced
+ * motion; drawing them never writes the state; the sounds wired to their slots (the stage-2 list emptied for Grappler);
+ * the reveal's run picture from the stored run replayed by the server's own replay, its numbers the replay's own.
+ */
+{
+  const E = await import("../src/lib/arcade/swingEffects.renderer");
+  const P = await import("../src/lib/arcade/swingPress");
+  const RV = await import("../src/lib/arcade/swingReveal.renderer");
+  const { traceSwingRun } = await import("../src/lib/duel/swingRunTrace");
+  const { encodeSwingRun } = await import("../src/lib/duel/swing");
+  const big = S.swingGameFor(S.SWING_REV_BIG);
+  const ms = (ticks: number) => (ticks * 1000) / 60;
+  // The moments' lengths.
+  ok(ms(E.GRAB_FLEX_TICKS) <= 900 && ms(E.STREAK_BURST_TICKS) <= 900 && ms(P.SWING_OUT_OF_REACH_TICKS) <= 900, "the grab's flex, the streak burst and the out-of-reach tint each last at most 900 ms");
+  ok(E.swingGrabFlex(4, false) !== 0 && E.swingGrabFlex(E.GRAB_FLEX_TICKS, false) === 0 && E.swingGrabFlex(4, true) === 0, "the vine flexes after a grab, settles by GRAB_FLEX_TICKS and stays straight with reduced motion");
+  let flexMax = 0;
+  for (let a = 0; a < E.GRAB_FLEX_TICKS; a++) flexMax = Math.max(flexMax, Math.abs(E.swingGrabFlex(a, false)));
+  ok(flexMax <= E.GRAB_FLEX_PX, `the flex's bow is at most ${E.GRAB_FLEX_PX} px (${flexMax.toFixed(2)})`);
+  ok(E.SWING_END_HOLD_MS <= 2000 && E.SWING_TALLY_MS < E.SWING_END_HOLD_MS && ms(E.PTERO_SHADOW_TICKS) <= 1200, "the end hold, the tally inside it and the shadow's 1.2 s");
+  // Along a dealt rev-18 run: the meter follows the streak, the shadow the chase's start, and drawing writes nothing.
+  const bigW = (JSON.parse(gunzipSync(readFileSync("scripts/fixtures/swing-big-deal-witness.json.gz")).toString()) as { witnesses: { seed: number; events: (Ev & { k: number; a: number; b: number; c: number; d: number })[] }[] }).witnesses;
+  const w = bigW[0]!;
+  const by = new Map(w.events.map((e) => [e.t, e]));
+  let s = big.init(w.seed);
+  const art = SR.swingArtGameFor(S.SWING_REV_BIG);
+  let meterOk = true, bursts = 0, paid = 0, shadowSeen = 0, flexSeen = 0, fastSeen = 0, untouched = true;
+  const cv = createCanvas(225, 422);
+  const cx = cv.getContext("2d") as unknown as CanvasRenderingContext2D;
+  while (!big.isOver(s)) {
+    const prev = s;
+    s = big.step(s, (by.get(s.tick + 1) ?? null) as never);
+    const m = E.swingStreakMeter(s);
+    const now = S.swingStreakNow(s);
+    if (m.burst < 0 && m.lit !== now % S.SWING_V17_STREAK_BLOCK) meterOk = false;
+    if (m.burst === 0) bursts++;
+    if ((s.streakPaid ?? 0) > (prev.streakPaid ?? 0)) paid++;
+    if (E.swingChaseAge(s) === 1) shadowSeen++;
+    if (s.rope >= 0 && E.swingGrabFlex(s.tick - s.grabTick, false) !== 0) flexSeen++;
+    if (E.swingFastFlight(s)) fastSeen++;
+    if (s.tick % 400 === 0 || E.swingChaseAge(s) === 20 || m.burst === 3) {
+      const before = JSON.stringify(s);
+      art.draw(cx, s, { width: 225, height: 422 });
+      if (JSON.stringify(s) !== before) untouched = false;
+    }
+  }
+  ok(meterOk, "the streak meter lights one segment per clean grab of the block of eight");
+  ok(bursts === paid && paid > 0, `the meter bursts exactly when a block of the streak pays (${bursts} bursts, ${paid} blocks)`);
+  ok(shadowSeen === 1, "the pterodactyl's shadow starts once, as the chase starts");
+  ok(flexSeen > 0 && fastSeen > 0, "the run shows grab flexes and fast flights");
+  ok(untouched, "drawing the effects never writes the state");
+  // Out of reach: a press in the air that grabs nothing tints the nearest vine ahead for SWING_OUT_OF_REACH_TICKS.
+  {
+    let t = big.init(w.seed);
+    let found = false;
+    while (!big.isOver(t) && !found) {
+      const p = t;
+      t = big.step(t, (by.get(t.tick + 1) ?? null) as never);
+      if (t.tick > 300 && t.rope < 0 && p.rope >= 0 && (t.ledgeOn ?? -1) < 0) {
+        P.noteSwingPress();
+        P.observeSwingPress(t);
+        let u = t;
+        let hit = false;
+        for (let i = 0; i < 4; i++) {
+          u = big.step(u, null);
+          hit = P.observeSwingPress(u) || hit;
+        }
+        const miss = P.swingOutOfReach(u);
+        ok(hit && miss !== null && miss.age < 0.2, "a press in the air that grabbed nothing is out of reach (its vine tinted)");
+        let v = u;
+        for (let i = 0; i < P.SWING_OUT_OF_REACH_TICKS; i++) v = big.step(v, null);
+        ok(P.swingOutOfReach(v) === null, "the tint is gone after its beat");
+        found = true;
+      }
+    }
+    ok(found, "an out-of-reach press was tried");
+    const g = big.init(w.seed);
+    P.noteSwingPress();
+    P.observeSwingPress(g);
+    let h = g;
+    let hit = false;
+    for (let i = 0; i < 4; i++) {
+      h = big.step(h, null);
+      hit = P.observeSwingPress(h) || hit;
+    }
+    ok(!hit, "a press while hanging from a vine is never out of reach");
+  }
+  // The end tally.
+  const total = S.swingAssaultCounts(s).sections;
+  let mono = true;
+  let lastN = 0;
+  for (let t = 0; t <= E.SWING_TALLY_MS + 100; t += 50) {
+    const n = E.swingEndTally(s, t, false);
+    if (n < lastN) mono = false;
+    lastN = n;
+  }
+  ok(mono && lastN === total && E.swingEndTally(s, 0, true) === total && E.swingEndTally(s, 0, false) === 0, `the stretches tally from 0 to ${total} (at once with reduced motion)`);
+  // The sounds: every stage-2 slot fired from the observer, none left on the waiting list.
+  const gs = readFileSync("src/lib/fx/gameSounds.ts", "utf8");
+  for (const cue of ["swing.ropeSnap", "swing.speedWhoosh", "swing.streakMeter", "swing.streak", "swing.outOfReach", "swing.pteroShadow", "swing.courseCleared", "swing.stretchTally"])
+    ok(gs.includes(`"${cue}"`), `${cue} is fired by the sound observer`);
+  const waiting = readFileSync("docs/sound-cues/action-overhaul-stage2.md", "utf8");
+  const effects = readFileSync("docs/sound-cues/arcade-effects.md", "utf8");
+  ok(!/\| `swing\./.test(waiting) && ["streakMeter", "outOfReach", "pteroShadow", "stretchTally"].every((c) => effects.includes(`| \`swing.${c}\``)), "Grappler's stage-2 slots moved from the waiting list to arcade-effects.md");
+  // The reveal: the run picture from the stored run, its numbers the replay's own.
+  const raw = (seed: number, events: unknown[]) => {
+    const byT = new Map((events as { t: number }[]).map((e) => [e.t, e]));
+    let st = big.init(seed);
+    const cps: unknown[] = [];
+    while (!big.isOver(st)) {
+      st = big.step(st, (byT.get(st.tick + 1) ?? null) as never);
+      if (st.tick % S.SWING_CHECKPOINT_INTERVAL === 0) cps.push(S.swingCheckpoint(st));
+    }
+    return encodeSwingRun({ seed, claimedScore: big.score(st), events, inputs: [], taps: [], endTick: st.tick, checkpoints: cps } as never);
+  };
+  const full = traceSwingRun(w.seed, raw(w.seed, w.events), S.SWING_REV_BIG)!;
+  ok(full !== null && full.total === 51 && full.cleared === 51 && full.finished && full.percent === 100 && full.falls === 0 && full.stretches.every((x) => x.state === "under" || x.state === "cleared"), `a flawless run's picture: 51 of 51 stretches, 100 %, no falls (${full?.cleared}, ${full?.percent} %)`);
+  ok(full.underPar === full.stretches.filter((x) => x.state === "under").length && full.result.score === 200, "its under-par count is the gold stretches, its score the stored 200");
+  {
+    const { Human } = await import("./arcade-skill-bands/human");
+    const { bot } = await import("./arcade-skill-bands/bots/swing");
+    const seed = bigW[3]!.seed;
+    const ev = (bot({ game: big, seed, rev: S.SWING_REV_BIG, human: new Human("swing", seed, "average" as never) } as never).events ?? []) as unknown[];
+    const tr = traceSwingRun(seed, raw(seed, ev), S.SWING_REV_BIG)!;
+    const c = S.swingAssaultCounts(tr.result.state);
+    ok(tr.stretches.filter((x) => x.state === "under" || x.state === "cleared").length === tr.cleared && tr.cleared === c.sections, `an average run: ${tr.cleared} stretches drawn cleared, the replay's ${c.sections}`);
+    ok(tr.stretches.reduce((n, x) => n + x.falls, 0) === tr.falls && tr.falls + tr.caught === c.restarts, `its ${tr.falls} falls and ${tr.caught} catches are the replay's ${c.restarts} restarts, each on its stretch`);
+    ok(tr.finished || tr.stretches.filter((x) => x.state === "current").length === 1, "an unfinished run ends on exactly one stretch");
+    ok(tr.percent === Math.trunc(S.swingSlideParts(tr.result.state).permille / 10) && tr.gates === c.gates, "its course % and gates are the score's own");
+    const pc = createCanvas(358, RV.swingRunPictureHeight(358));
+    const px = pc.getContext("2d") as unknown as CanvasRenderingContext2D;
+    RV.drawSwingRunPicture(px, tr, { width: 358, height: RV.swingRunPictureHeight(358) });
+    const d = (px as unknown as { getImageData: (a: number, b: number, c: number, d: number) => { data: Uint8ClampedArray } }).getImageData(0, 0, pc.width, pc.height).data;
+    let inked = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i]! > 40) inked++;
+    ok(inked > 2000, `the course picture draws (${inked} px inked)`);
+    ok(RV.swingRunPictureHeight(358) >= 150, "the picture is at least 150 px tall on a phone");
+  }
+  const src = readFileSync("src/puzzles/swing.tsx", "utf8");
+  ok(/RunPicture: SwingRunPicture/.test(src) && /name="course" label="Course"/.test(src) && /name="stretches" label="Stretches"/.test(src) && /name="pars" label="Under par"/.test(src) && /name="gates" label="Gates"/.test(src), "the reveal's run picture is registered with its four big numbers: course, stretches, under par, gates");
+  const labels = (src.match(/label="[^"]*"|label=\{[^}]*\}/g) ?? []).join(" ");
+  ok(!labels.includes("×"), "no stray × in the run picture's labels");
+}
+
 console.log(`swing-overhaul-check: ${passes} passed, ${fails} failed`);
 if (fails) {
   console.log(`FAIL swing-overhaul-check: ${fails} failed`);

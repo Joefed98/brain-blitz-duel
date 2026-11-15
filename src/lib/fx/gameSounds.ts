@@ -13,6 +13,9 @@ import { haptic, type HapticPattern } from "@/lib/haptics";
 import type { SoundId } from "@/lib/fx/manifest";
 import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
+import { observeSwingPress } from "@/lib/arcade/swingPress";
+import { PTERO_SHADOW_TICKS, swingChaseAge, swingEndAt, swingEndTally } from "@/lib/arcade/swingEffects.renderer";
+import { reducedMotion as swingStill } from "@/lib/arcade/art.renderer";
 import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, SWING_V15_GATE_SPEED, swingAnchorAt, swingJetAt, type SwingState } from "@/lib/arcade/swing";
 import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
 import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_KIND_BUS, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, crossKindCrossed, type CrossState } from "@/lib/arcade/cross";
@@ -207,11 +210,29 @@ function swingVineSliding(s: SwingState): boolean {
   });
 }
 
+/** The streak meter's notes (semitones above the slot's own pitch): a rising pentatonic arpeggio over the block of eight. */
+const SWING_STREAK_STEPS = [0, 2, 4, 7, 9, 12, 14, 16] as const;
+
 export function swingSounds(): GameSounds<SwingState> {
   let prev: SwingState | null = null;
+  // Stage 2: the end's tally (the count last sounded) and the pterodactyl's screech held for its shadow to cross.
+  let tallied = -1;
+  let screechDue = -1;
   return {
     frame(state, running) {
       beginFrame("swing", state);
+      // Stage 2 (15 Nov 2026): a press that grabbed nothing (swingPress.ts judges it a few ticks on).
+      if (running && observeSwingPress(state)) effectCue("swing.outOfReach");
+      // The end: one tick of the tally for each stretch counted up (the renderer's count, swingEndTally).
+      if (state.slide && state.ended !== 0) {
+        const at = swingEndAt(state);
+        const n = swingEndTally(state, (typeof performance === "undefined" ? 0 : performance.now()) - at, swingStill());
+        if (tallied < 0) tallied = 0;
+        if (n > tallied) {
+          effectCue("swing.stretchTally", 0, 0.9 + 0.3 * Math.min(1, n / Math.max(1, state.sections?.length ?? 1)));
+          tallied = n;
+        }
+      } else tallied = -1;
       // swingRev 17 is the jungle canopy (3 Nov 2026): no lava bed; the jungle's own bed (silent until recorded), a vine
       // creak on a grab, a splash on a miss (the pterodactyl's screech when it caught you) and its screech as it swoops in.
       const jungle = Boolean(state.slide);
@@ -220,7 +241,8 @@ export function swingSounds(): GameSounds<SwingState> {
       ambienceCue("swing.jungle", live && jungle);
       // Joe's jungle recordings (6 Nov 2026): the pterodactyl's wingbeats while it chases, the sliding vines' rails
       // while one still slides on screen.
-      loopCue("swing.wings", live && jungle && (state.chaseX ?? 0) !== 0);
+      // Stage 2: the wingbeats start once the pterodactyl's shadow has crossed (PTERO_SHADOW_TICKS after the chase starts).
+      loopCue("swing.wings", live && jungle && (state.chaseX ?? 0) !== 0 && !(swingChaseAge(state) >= 0 && swingChaseAge(state) < PTERO_SHADOW_TICKS));
       loopCue("swing.slideVine", live && jungle && swingVineSliding(state));
       if (prev && state.tick > prev.tick) {
         const caught = (state.caught ?? 0) > (prev.caught ?? 0);
@@ -248,6 +270,16 @@ export function swingSounds(): GameSounds<SwingState> {
         if (jungle) {
           const total = state.sections?.length ?? 0;
           if (total > 0 && (state.sec ?? 0) >= total && (prev.sec ?? 0) < total) effectCue("swing.courseCleared");
+          // Stage 2: each clean grab fills a segment of the streak meter, a note a step higher up the block of eight.
+          if ((state.bestHook ?? -1) > (prev.bestHook ?? -1) && (state.streak ?? 0) > 0) {
+            const step = SWING_STREAK_STEPS[((state.streak ?? 1) - 1) % SWING_STREAK_STEPS.length]!;
+            effectCue("swing.streakMeter", 0, Math.pow(2, step / 12));
+          }
+          // The pterodactyl's shadow crosses first; its screech once the shadow has gone (PTERO_SHADOW_TICKS).
+          if (screechDue >= 0 && state.tick >= screechDue) {
+            sfx("swing.pterodactyl", "arc_siren", 0.6);
+            screechDue = -1;
+          }
         }
         // The jungle: landing on a tree platform (never the restart's placing), and each block of the clean-swing streak.
         if (jungle && (state.restarts ?? 0) === (prev.restarts ?? 0) && (prev.ledgeOn ?? -1) < 0 && (state.ledgeOn ?? -1) >= 0) effectCue("swing.land");
@@ -255,8 +287,10 @@ export function swingSounds(): GameSounds<SwingState> {
         // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("swing.starTaken", "arc_pickup", 0.9);
         if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) {
-          if (jungle) sfx("swing.pterodactyl", "arc_siren", 0.6);
-          else sfx("swing.dragon", "arc_siren", 0.6);
+          if (jungle) {
+            effectCue("swing.pteroShadow");
+            screechDue = state.tick + PTERO_SHADOW_TICKS;
+          } else sfx("swing.dragon", "arc_siren", 0.6);
         }
         if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) sfx("swing.rockShake", "arc_clank", 0.5);
         if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) sfx("swing.rockLand", "arc_wood_knock", 0.5);
