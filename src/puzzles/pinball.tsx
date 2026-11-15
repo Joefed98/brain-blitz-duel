@@ -1,4 +1,5 @@
 import { pinball4Ambient, pinballAmbient } from "@/lib/arcade/arenaFills.renderer";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -33,22 +34,20 @@ import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: two flippers under a bumper, a drop target row and a ball. */
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, the table before the launch.
+ */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 120" width={168} height={120} aria-hidden="true" style={{ background: "#000000", borderRadius: 10 }}>
-        <circle cx={84} cy={30} r={13} fill={PIN_COLOURS.bumperCap} stroke={PIN_COLOURS.bumper} strokeWidth={3} />
-        {[58, 74, 90, 106].map((x) => (
-          <rect key={x} x={x - 6} y={55} width={12} height={5} rx={2.5} fill={PIN_COLOURS.target} />
-        ))}
-        <line x1={44} y1={96} x2={74} y2={88} stroke={PIN_COLOURS.flipper} strokeWidth={6} strokeLinecap="round" />
-        <line x1={124} y1={96} x2={94} y2={106} stroke={PIN_COLOURS.flipper} strokeWidth={6} strokeLinecap="round" />
-        <line x1={12} y1={70} x2={40} y2={92} stroke={PIN_COLOURS.wall} strokeWidth={3} strokeLinecap="round" />
-        <line x1={156} y1={70} x2={128} y2={92} stroke={PIN_COLOURS.wall} strokeWidth={3} strokeLinecap="round" />
-        <circle cx={70} cy={78} r={5} fill={PIN_COLOURS.ball} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Hold the left or right half of the screen to flip. Tap to plunge.</p>
-    </div>
+    <ArtStill
+      game={pinballArtGameForAny(PIN_REV_JOULZ)}
+      worldW={PIN_WORLD_W}
+      worldH={pinballWorldHFor(PIN_REV_JOULZ)}
+      ticks={30}
+      input={null}
+      caption="Hold either side to flip. Light J-O-U-L-Z, lock balls on the ramps, start multiball."
+    />
   );
 }
 

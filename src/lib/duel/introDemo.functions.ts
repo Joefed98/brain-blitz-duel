@@ -16,10 +16,10 @@ import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
 import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { WAV_REV_CHARGE, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
-import { BURST_REV_AIM, BURST_REV_WIDE } from "@/lib/arcade/burst";
+import { BURST_REV_BIG } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
-import { SNAKE_REV_WRAP } from "@/lib/arcade/snake";
+import { SNAKE_REV_SIZES } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
@@ -45,8 +45,9 @@ import type { PuzzleDemoLog } from "./puzzleDemo";
 export const SAME_PLAY_DEMO_REVS = {
   // wavRev 14 (the Retro overhaul) plays wavRev 13 exactly until a charged shot is fired; a demo on either plays.
   wavefront: [WAV_REV_KEEP, WAV_REV_CHARGE],
-  // burstRev 12 (the Retro overhaul, 15 Nov 2026) plays burstRev 11 exactly (its wave clears scored more kindly).
-  burst: [BURST_REV_AIM, BURST_REV_WIDE],
+  // burstRev 13 (the Retro overhaul, 15 Nov 2026) has bigger atoms, so only a demo recorded on burstRev 13 plays (burstRev
+  // 12 played burstRev 11 exactly; its demos and 11's are stopped now).
+  burst: [BURST_REV_BIG],
   cross: [CROSS_REV_FLOW, CROSS_REV_KEEP],
   skyline: [SKYLINE_REV_STD, SKYLINE_REV_COUNT],
 } as const;
@@ -189,7 +190,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The arcade scoring standard (29 Oct 2026): burstRev 10's run is five waves with a golden atom that hurts, so an
     // older demo stays stopped until one is recorded on burstRev 10.
     // burstRev 11 (the scoring audit) plays burstRev 10 exactly, so a demo recorded on either plays; burstRev 12 (the Retro
-    // overhaul) plays burstRev 11 exactly, so since 15 Nov 2026 a demo recorded on 11 or 12 plays.
+    // overhaul) plays burstRev 11 exactly, so on 15 Nov 2026 a demo recorded on 11 or 12 played; burstRev 13's bigger atoms
+    // change the play, so only a demo recorded on burstRev 13 plays.
     if (data.type === "burst" && demo?.puzzle.type === "burst" && !demoRevAccepted("burst", demo.puzzle.burstRev)) return null;
     // Expansion E9 (26 Oct 2026, docs/expansions/e9.md): Flightpath bullRev 8 too (Rally and Fission above).
     // bullRev 9 (the arcade scoring standard, 29 Oct 2026) plays as bullRev 8 but a dead-centre dart shows +2, not +7, so
@@ -200,8 +202,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Meteor demo stays stopped until one is recorded on snakeRev 10. The arcade scoring standard (29 Oct 2026): snakeRev 11
     // scores in new parts (its combo and warp windows are longer), so the demo stays stopped until one is recorded on snakeRev 11.
     // snakeRev 12 (1 Nov 2026): the HUD's star count counts gold stars twice, so only a demo recorded on snakeRev 12 plays.
-    // snakeRev 13 (the Retro overhaul): the edges wrap, so a demo stays stopped until recorded on snakeRev 13.
-    if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_WRAP) return null;
+    // snakeRev 13 (the Retro overhaul): the edges wrap; snakeRev 14 adds rocks in three sizes, so a demo stays stopped
+    // until recorded on snakeRev 14.
+    if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_SIZES) return null;
     // x200 (26 Oct 2026, docs/expansions/x200-cross.md): Jaywalk crossRev 9 plays a taller 13-lane road with the island,
     // coins, buses and motorbikes; an older demo would show the 9-lane road, so it stays stopped until one is recorded there.
     // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md): crossRev 10 thins the first crossings'

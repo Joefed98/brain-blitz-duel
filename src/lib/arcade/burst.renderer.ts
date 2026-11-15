@@ -12,7 +12,7 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   burstFloorY,
-  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM, BURST_REV_WIDE,
+  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM, BURST_REV_WIDE, BURST_REV_BIG,
   BURST_V9_GOLDEN_LIFE,
   burstV9ClearNow,
   burstV10ClearNow,
@@ -26,7 +26,7 @@ import {
   BURST_ICON_DOUBLE,
   BURST_GOLD_R,
   BURST_LIVES,
-  BURST_RADIUS,
+  burstRadius,
   BURST_SHORT_LEN,
   BURST_WORLD_W,
   type BurstState,
@@ -204,7 +204,7 @@ function particles(ctx: CanvasRenderingContext2D, state: BurstState): void {
       state.balls.length <= BURST_FX_ENEMY_THRESHOLD && state.shots.length <= BURST_FX_SHOT_THRESHOLD &&
       memo.pops.length * 8 + 8 <= popBudget(state)) {
       memo.pops.push({ tick: state.popTick, x: state.popX / FP, y: state.popY / FP,
-        colour: retroNeon(BURST_COLOURS[state.popSize] ?? RETRO_WHITE), spread: BURST_RADIUS[state.popSize] ?? 16 });
+        colour: retroNeon(BURST_COLOURS[state.popSize] ?? RETRO_WHITE), spread: burstRadius(state, state.popSize) });
     }
   }
   popMemo.set(ctx, memo);
@@ -228,7 +228,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   backdrop(ctx, "fission-space", BURST_WORLD_W, BURST_FLOOR_Y, (c) => paintSpace(c, BURST_FLOOR_Y));
 
   // Ceiling and side walls as neon; the ceiling flashes while a ball touches it.
-  const touching = state.balls.some((b) => b.y / FP - (BURST_RADIUS[b.size] ?? 8) <= ceil + 2);
+  const touching = state.balls.some((b) => b.y / FP - (burstRadius(state, b.size)) <= ceil + 2);
   pixelRect(ctx, 0, 0, BURST_WORLD_W, ceil, "rgba(180,156,255,0.05)");
   // The ceiling, walls and floor are real (atoms bounce off them): soft edges at rest, not a neon frame
   // (17 Oct 2026, display only); the ceiling still flashes while a ball touches it.
@@ -271,7 +271,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
 
   // Atoms fill the authoritative circle; electron rings never exceed it.
   for (const ball of state.balls) {
-    const r = BURST_RADIUS[ball.size] ?? 8;
+    const r = burstRadius(state, ball.size);
     const colour = retroNeon(BURST_COLOURS[ball.size] ?? RETRO_WHITE);
     const stamp = cachedArt(`atom:${ball.size}`, r * 2, r * 2, colour, 0,
       c => paintAtom(c, r, colour, ball.size));
@@ -282,7 +282,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     else { ctx.save(); ctx.translate(x - r, y - r); paintAtom(ctx, r, colour, ball.size, false); ctx.restore(); }
     // A bounded, short flash at the existing split event; daughters are sim objects.
     const age = tick - state.popTick;
-    if (age >= 0 && age < 8 && Math.hypot(x - state.popX / FP, y - state.popY / FP) < (BURST_RADIUS[state.popSize] ?? 8) * 2) {
+    if (age >= 0 && age < 8 && Math.hypot(x - state.popX / FP, y - state.popY / FP) < burstRadius(state, state.popSize) * 2) {
       ctx.globalAlpha = .65 * (1 - age / 8);
       ctx.fillStyle = RETRO_WHITE; ctx.beginPath(); ctx.arc(x, y, r - .6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     }
@@ -292,7 +292,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   if (freeze > 0) {
     const glaze = Math.min(1, freeze / 60);
     for (const ball of state.balls) {
-      const r = BURST_RADIUS[ball.size] ?? 8;
+      const r = burstRadius(state, ball.size);
       const x = ball.x / FP, y = ball.y / FP;
       ctx.globalAlpha = 0.45 * glaze;
       ctx.fillStyle = ICE;
@@ -389,7 +389,7 @@ function splitPop(ctx: CanvasRenderingContext2D, state: BurstState, key: object)
   if (fresh && state.balls.length <= BURST_FX_ENEMY_THRESHOLD && state.shots.length <= BURST_FX_SHOT_THRESHOLD) {
     const x = state.popX / FP, y = state.popY / FP;
     const colour = retroNeon(BURST_COLOURS[state.popSize] ?? RETRO_WHITE);
-    const r = BURST_RADIUS[state.popSize] ?? 8;
+    const r = burstRadius(state, state.popSize);
     addShatter(key, x, y, [colour, RETRO_WHITE, colour], state.popSize < 3 ? 12 : 8, r + 10);
     if (state.popSize < 3) addPop(key, x, y - r - 8, "SPLIT!", colour, 9, 3);
   }
@@ -454,7 +454,10 @@ const burstArtGameV10: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...bu
 const burstArtGameV11: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_AIM), draw };
 /** burstRev 12: burstRev 11's play and look, its wave clears kinder. */
 const burstArtGameV12: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_WIDE), draw };
+/** burstRev 13: burstRev 12 with bigger atoms (drawn from the state, burstRadius). */
+const burstArtGameV13: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_BIG), draw };
 export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_BIG) return burstArtGameV13;
   if (rev === BURST_REV_WIDE) return burstArtGameV12;
   if (rev === BURST_REV_AIM) return burstArtGameV11;
   if (rev === BURST_REV_STD) return burstArtGameV10;

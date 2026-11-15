@@ -16,13 +16,14 @@ import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWIN
 import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
 import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_KIND_BUS, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, crossKindCrossed, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
-import { HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
+import { HOVER_IMPULSE, HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
+import { hoverScrape } from "@/lib/arcade/retroMoments";
 import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
 import { BRK_SLIDE_STARTS, brkDestroyed, brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
 import { RALLY_BUMPER2_FROM, RALLY_BUMPER_FROM, type RallyState } from "@/lib/arcade/rally";
 import { PIN_BALLS, pinRunTicksOf, type PinState } from "@/lib/arcade/pinball";
 import type { Pin4State } from "@/lib/arcade/pinball4";
-import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/arcade/burst";
+import { burstRadius, burstCeiling, burstFloorY, type BurstState } from "@/lib/arcade/burst";
 import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
@@ -379,14 +380,26 @@ function retroStart(cue: SoundId) {
 export function hoverSounds(): GameSounds<HoverState> {
   let prev: HoverState | null = null;
   const start = retroStart("hover.start");
+  // The Retro overhaul (stage 2): the gate chime steps up a semitone for each gate in a row passed without a scrape
+  // or a shield breaking (at most an octave), and a scrape (retroMoments' hoverScrape, the renderer's sparks) zings.
+  let clean = 0;
+  let scraped = -1;
   return {
     frame(state, running) {
       beginFrame("hover", state);
       start(running);
+      if (prev && state.tick < prev.tick) { clean = 0; scraped = -1; }
       if (prev && state.tick > prev.tick) {
         if (state.crashed && !prev.crashed) { sfx("hover.crash", "arc_retro_explode"); feel("impact"); }
         else {
-          if (state.gates > prev.gates) sfx("hover.gate", "arc_retro_note");
+          if (state.vy === HOVER_IMPULSE && prev.vy !== HOVER_IMPULSE) sfx("hover.thrust", "arc_retro_blip", 0.18, 0.7, true);
+          const scrape = hoverScrape(state);
+          if (scrape && scrape.index > scraped) { scraped = scrape.index; clean = 0; sfx("hover.scrape", "arc_retro_blip", 0.45, 1.9, true); }
+          if ((state.shieldBreaks ?? 0) > (prev.shieldBreaks ?? 0)) clean = 0;
+          if (state.gates > prev.gates) {
+            sfx("hover.gate", "arc_retro_note", 1, Math.pow(2, Math.min(clean, 12) / 12), true, true);
+            clean += 1;
+          }
           // hoverRev 2: a gold star collected.
           if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("hover.star", "arc_retro_coin", 0.8);
           // hoverRev 9 (the 200 expansion), existing sounds only: a chain star (a quieter coin), a whole chain or a tight
@@ -395,9 +408,13 @@ export function hoverSounds(): GameSounds<HoverState> {
           if (state.xp) {
             if ((state.chainsDone ?? 0) > (prev.chainsDone ?? 0) || (state.tight ?? 0) > (prev.tight ?? 0)) sfx("hover.star", "arc_retro_coin", 1, 1.25);
             else if ((state.chainHits?.length ?? 0) > (prev.chainHits?.length ?? 0)) sfx("hover.star", "arc_retro_coin", 0.5, 1.12);
-            if ((state.ctrLog?.length ?? 0) > (prev.ctrLog?.length ?? 0)) sfx("hover.star", "arc_retro_coin", 0.45, 1.3 + 0.1 * ((state.ctrLog!.at(-1) ?? 0) & 3), true);
+            if ((state.ctrLog?.length ?? 0) > (prev.ctrLog?.length ?? 0)) {
+              const grade = (state.ctrLog!.at(-1) ?? 0) & 3;
+              if (grade === 3) sfx("hover.deadCentre", "arc_retro_coin", 0.6, 1.6, true);
+              else sfx("hover.star", "arc_retro_coin", 0.45, 1.3 + 0.1 * grade, true);
+            }
             if ((state.pickupsTaken?.length ?? 0) > (prev.pickupsTaken?.length ?? 0)) sfx("hover.star", "arc_retro_pickup", 0.8);
-            if ((state.shieldBreaks ?? 0) > (prev.shieldBreaks ?? 0)) sfx("hover.crash", "arc_retro_hit", 0.9);
+            if ((state.shieldBreaks ?? 0) > (prev.shieldBreaks ?? 0)) sfx("hover.shieldShatter", "arc_retro_hit", 0.9);
           }
           // hoverRev 2: the first two-gap and the first moving barrier scroll into view.
           if (state.rev) {
@@ -620,7 +637,7 @@ export function rallySounds(): GameSounds<RallyState> {
 const BURST_BOUNCE_RATES = [0.7, 0.85, 1.05, 1.25];
 function burstTouching(s: BurstState): boolean {
   const ceil = burstCeiling(s.wave, burstFloorY(s));
-  return s.balls.some((b) => b.y / 256 - (BURST_RADIUS[b.size] ?? 8) <= ceil + 2);
+  return s.balls.some((b) => b.y / 256 - burstRadius(s, b.size) <= ceil + 2);
 }
 
 export function burstSounds(): GameSounds<BurstState> {

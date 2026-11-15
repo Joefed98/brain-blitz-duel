@@ -1,5 +1,26 @@
 # Fission under the arcade scoring standard (`burstRev 10`)
 
+## burstRev 13: bigger atoms (the Retro overhaul, 15 Nov 2026)
+
+Joe (15 Nov 2026): "bigger Fission atoms, with their stamps". New stamp **burstRev 13** (`BURST_REV_BIG`): burstRev
+12's waves, lives, beams, power-ups, golden atoms, parts and kinder wave clears, with every atom drawn and collided at
+`BURST_RADIUS_BIG` (38, 26, 17 and 10 px; were 32, 22, 14 and 8): the smallest grow the most, since they were the
+hardest to read. One radius function, `burstRadius(state, size)`, serves the sim, the renderer, the sound observer and
+the bot. States add `big: 1`, folded into the checkpoint checksum last. Rooms deal it; checks written for the stamps
+before pin `preRetro` (burstRev 11). Only an intro demo recorded on burstRev 13 plays (the atoms' size changes the
+play). The standard's perfect run is the same oracle on a seed found again on burstRev 13 (`PERFECT_SEED` 489736026;
+it scores 194 on burstRev 12's 1453580015).
+
+Medians (p10–p90) on 20 room seeds, `bun scripts/arcade-skill-bands.ts burst --rev=now --seeds=20 --levels=all`:
+
+| Stamp | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| burstRev 12 | 23 (10–52) | 82 (29–125) | 147 (74–174) | 159 (115–182) | 181 (145–188) | 181 (162–189) | 188 (181–193) |
+| burstRev 13 | 34 (14–55) | 102 (40–143) | 162 (129–178) | 178 (165–185) | 178 (159–190) | 181 (169–189) | 189 (183–194) |
+
+Bigger targets lift the weaker levels most; the top is unchanged. The level tuning (stage 3) re-measures under human
+limits.
+
 ## burstRev 12: kinder wave clears (the Retro overhaul, 15 Nov 2026)
 
 Joe's review (docs/design/game-reviews/retro.md "Fission"): tune the wave-clear bonuses so a good wave earns them more

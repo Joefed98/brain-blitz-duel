@@ -15,7 +15,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { fillAbove, fillBelow, fillGradient, fillSides } from "./arenaFills.renderer";
-import { retroHud, RETRO_FONT, RETRO_WHITE } from "./retro.renderer";
+import { retroHud, RETRO_FONT, RETRO_HUD_MIN_PX, RETRO_WHITE } from "./retro.renderer";
 import {
   BF_H, BF_HIDDEN, BF_PREVIEW, BF_W, BF_ZONE_MULTI_MAX, BF_ZONE_PIECES_MAX, BLOCKFALL_REV_ZONE, bfCells, bfCoreFullFor, bfGhostY, bfGravityFor, bfLevelFor,
   bfMultiPoints, blockfallGame, blockfallGameFor, type BfState,
@@ -380,7 +380,7 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   ctx.strokeRect(bx - 1, by - 1, L.bw + 2, L.bh + 2);
 
   // Next three, top right.
-  ctx.font = `8px ${RETRO_FONT}`;
+  ctx.font = `${RETRO_HUD_MIN_PX}px ${RETRO_FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = RETRO_WHITE;

@@ -59,21 +59,24 @@ today's frame, three across, so the step up is visible, plus before and after re
 3. **Image budget**: under about 400 KB of images a game. Today each Retro game ships one tile (3–6 KB); stage 1 has added
    no images so far (the art is drawn in code). Each game's total is reported with every push.
 
-## Stage 1 status
+## Stage 1 status (complete but for the intro demos)
 
-| Game | Done on this branch | Still to do in stage 1 |
+| Game | Stamps and game changes | Look |
 |---|---|---|
-| Hover | (stage 3 gives the shields) | Concept B's deep-space starfield; the saucer's material |
-| Breaker | **brkRev 12**: a 9-row wall (81 bricks), a ball about 10 % quicker, multi-ball triples (elite bot clears 12 of 12 seeds, was 4); enamel bricks, gold-framed power bricks, metal paddle, lit ball | Each special brick's own icon (they have symbols; the Fireball keeps its star) |
-| Rally | **rallyRev 13**: 2 lives, spin shots; lit balls, metal paddle | A richer court surface |
-| Wavefront | **wavRev 14**: the charged shot; enemy edge lights cyan (no pink) | Edge-to-edge check in the app |
-| Fission | **burstRev 12**: kinder wave clears; glass atoms; 11 px HUD band | Bigger atoms (a stamp: the hit circles grow) |
-| Tempo | **beatRev 12**: a missed note scores 0 | Concept A's cleaner lanes and big tap buttons |
-| Meteor | **snakeRev 13**: wrap-around edges, core full at 36 | Varied rock sizes (a stamp); the glowing tail (concepts A/B) |
-| Spacewalk | (stage 3: Normal lighter than today) | A richer starfield, a bigger astronaut (inside its hit box) |
-| Pinball | **pinRev 7**: one J-O-U-L-Z set fills its part | (today's chrome ball and table kept) |
-| Blockzone | solid, glossy, chunky blocks with an in-cell glow | |
-| All ten | the 11 px HUD floor | Intro stills from real frames; play clips |
+| Hover | (stage 3 gives the shields) | Concept B kept retro: a pixel nebula (dithered value noise in 3 px blocks), a nearer parallax star layer, a glass dome and polished metal hull |
+| Breaker | **brkRev 12**: a 9-row wall, a quicker ball, multi-ball triples | Enamel bricks; gold-framed power bricks each with its own icon (the Fireball's own burning ball); capsules show the icons; metal paddle; lit ball |
+| Rally | **rallyRev 13**: 2 lives, spin shots | A two-tone court with a dithered floodlight, grain, shadowed lines and a sheen; lit balls; metal paddle |
+| Wavefront | **wavRev 14**: the charged shot | Enemy edge lights cyan (no pink); the purple nebula kept |
+| Fission | **burstRev 12**: kinder wave clears; **burstRev 13**: bigger atoms | Glass atoms, bigger and bolder |
+| Tempo | **beatRev 12**: a missed note scores 0 | Concept A kept retro: one rail a lane edge, round glass lane buttons that light when struck, a dark glass floor, the FEVER bar taller |
+| Meteor | **snakeRev 13**: the edges wrap, core full at 36; **snakeRev 14**: rocks in three sizes | Concepts A/B's glowing tail: a halo round the head, a light band and a ribbon along the body |
+| Spacewalk | (stage 3: Normal lighter than today) | A pixel nebula and a distant planet behind translucent lanes, ships of lit metal, a bigger astronaut (42 × 26 px, the hit box's full width) |
+| Pinball | **pinRev 7**: one J-O-U-L-Z set fills its part | Today's chrome table; labels at 11 px, the jackpot insert widened |
+| Blockzone | (stage 3) | Solid, glossy, chunky blocks with an in-cell glow |
+| All ten | | **No text below 11 px** anywhere, labels and pops included; intro stills are real frames; every arena edge to edge (arcade-fill-check) |
+
+Not done in stage 1: intro **demos** (none recorded: a demo needs a recording session in the app; each game's demo rule
+plays only a demo recorded on its dealt stamp, so the stills show until one is recorded).
 
 Every new stamp is dealt by rooms and practice; checks written for the stamps before it pin `preRetro`
 (`src/lib/duel/dealEra.ts`), which deals Tempo beatRev 11, Rally rallyRev 12 and Fission burstRev 11.
@@ -129,5 +132,15 @@ spin, so no bot run here earns a spin shot. The level tuning (stage 3) re-measur
 - **Tempo's misses** score 0 (the review's "never under 0 per note"); taps on no note still cost nothing.
 - **Table and lane labels** on Pinball's inserts, Tempo's FEVER bar and Blockzone's NEXT are labels, not counters, and
   stay at their sizes (8–10 px) where the art leaves no room; every counter is at least 11 px.
-- **Intro demos**: Tempo and Fission demos recorded on the previous stamp still play (the same play); Rally's rule still
-  plays rallyRev 12 demos until one is recorded on rallyRev 13 (it plays the same until the first miss).
+- **Intro demos**: Tempo's demos recorded on beatRev 11 still play (the same play); Fission's and Meteor's stay stopped
+  until recorded on burstRev 13 and snakeRev 14 (the atoms and rocks change the play); Rally's rule still plays rallyRev
+  12 demos until one is recorded on rallyRev 13 (it plays the same until the first miss).
+- **The 11 px floor** is in the renderer's world pixels, as the HUD floor was: on Joe's 390 × 844 review phone a 390-wide
+  world draws 1:1; on a 375 × 667 phone the taller worlds draw at about 0.82, so the smallest text is about 9 screen px
+  there. A floor in screen pixels at that size would need about 13–14 world px. Joe to choose.
+- **Fission's bigger atoms** are 38, 26, 17 and 10 px (+19 % to +25 %, the smallest most). The level table's Easy "+25 %"
+  would come on top in stage 3.
+- **Meteor's middle rocks**: four of the single-square slots grow into 2 × 1 or 1 × 2 rocks (every seed tried gets four);
+  the rock count and timing are unchanged.
+- **Hover's in-world effects** (the scrape sparks, the shield's shards, the dead-centre rims, the tilt and the rising gate
+  chime) are stage 2's, begun after #422 reached main; the other nine games' effects follow.

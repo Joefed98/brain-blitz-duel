@@ -207,7 +207,11 @@ check(!/W\/S the power/.test(read("src/puzzles/minigolf.tsx")), "Crazy Golf: the
   for (const [game, rev] of Object.entries(dealt) as [keyof typeof SAME_PLAY_DEMO_REVS, number | undefined][]) {
     const pair = SAME_PLAY_DEMO_REVS[game] as readonly number[];
     check(demoRevAccepted(game, rev), `${game}: a demo recorded on the dealt stamp (${rev}) plays`);
-    check(pair.length === 2 && pair[1] === rev && pair[0] === (rev ?? 0) - 1, `${game}: the accepted pair is the dealt stamp and the one before it (${pair})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Fission's dealt burstRev 13
+    // changes the play (bigger atoms), so its list is exactly the dealt stamp; every other game's is exactly the dealt
+    // stamp and the one before it (whose play it keeps).
+    const want = game === "burst" ? [rev] : [(rev ?? 0) - 1, rev];
+    check(pair.length === want.length && want.every((r, i) => pair[i] === r), `${game}: the accepted stamps are exactly ${want.join(" and ")} (${pair})`);
     check(!demoRevAccepted(game, (rev ?? 0) - 2) && !demoRevAccepted(game, undefined) && !demoRevAccepted(game, (rev ?? 0) + 1), `${game}: an older (or unstamped) demo stays stopped`);
   }
   const src = read("src/lib/duel/introDemo.functions.ts");

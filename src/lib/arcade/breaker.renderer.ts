@@ -89,19 +89,6 @@ export const RAINBOW = [
 const FIRE = "#FF6A2B";
 const powerColour = (power: number): string =>
   power === BRK_POWER_LASER ? LASER : power === BRK_POWER_FIRE ? FIRE : BRK_POWER_COLOURS[power] ?? PADDLE;
-/** Capsule text says what it holds: ×2 balls, ×5 (×3 on brkRev 2) shots, L laser; the Fireball draws a flame. */
-function capsuleLabel(state: BrkState, kind: number): string {
-  if (kind === BRK_POWER_MULTI) return "x2";
-  if (kind === BRK_POWER_SPAM) return state.rev === BRK_REV ? "x3" : "x5";
-  return "L";
-}
-/** A small pixel flame centred on (cx, cy), inside a 10 × 10 box. */
-function pixelFlame(ctx: CanvasRenderingContext2D, cx: number, cy: number, colour: string): void {
-  const rows = ["..X..", ".XX..", ".XXX.", "XXXX.", "XX.XX", ".XXX."];
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) if (row[x] === "X") pixelRect(ctx, cx - 5 + x * 2, cy - 6 + y * 2, 2, 2, colour);
-  });
-}
 const BURST_MS = 320;
 
 /** Draws a 2 px pixel-art pattern (X white, o the brick's colour) centred on the 44 × 20 brick. */
@@ -115,6 +102,8 @@ function pixelPattern(ctx: CanvasRenderingContext2D, rows: readonly string[], co
       const ch = row[x];
       if (ch === "X") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, "#FFFFFF");
       else if (ch === "o") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, colour);
+      else if (ch === "f") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, FIRE);
+      else if (ch === "y") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, "#FFD84A");
     }
   });
 }
@@ -148,13 +137,53 @@ const SYMBOL_LASER = [
   "..XXXXX..",
   ".XXXXXXX.",
 ] as const;
-/** The symbol for a power-up brick; false (the star stays) for the Fireball, which draws its flame over it. */
+/**
+ * A burning ball streaking left, its flames trailing behind (white-hot core, gold, then fire): the Fireball brick's own
+ * symbol (the Retro overhaul, 15 Nov 2026, Joe: "the Fireball needs its own"; it used to keep the plain star with a
+ * flame over it).
+ */
+const SYMBOL_FIRE = [
+  "........ff.yy....",
+  "....ff.fyyyXXX...",
+  "..ffffyyyXXXXXX..",
+  "ffffyyyyXXXXXXX..",
+  "..ffffyyyXXXXXX..",
+  "....ff.fyyyXXX...",
+  "........ff.yy....",
+] as const;
+/** The symbol for a power-up brick (every power has one since the Retro overhaul). */
 function powerSymbol(ctx: CanvasRenderingContext2D, power: number, colour: string): boolean {
   if (power === BRK_POWER_MULTI) pixelPattern(ctx, SYMBOL_MULTI, colour);
   else if (power === BRK_POWER_SPAM) pixelPattern(ctx, SYMBOL_SPAM, colour);
   else if (power === BRK_POWER_LASER) pixelPattern(ctx, SYMBOL_LASER, colour);
+  else if (power === BRK_POWER_FIRE) pixelPattern(ctx, SYMBOL_FIRE, colour);
   else return false;
   return true;
+}
+
+/**
+ * A falling capsule's icon (the Retro overhaul, 15 Nov 2026): the brick's symbol in 1 px blocks, dark on the capsule's
+ * colour, inside its 16 × 10 pill (it used to print 7 px letters, under the Retro 11 px text floor).
+ */
+const CAPSULE_ICONS: Record<number, readonly string[]> = {
+  [BRK_POWER_MULTI]: ["..XX....XX..", ".XXXX..XXXX.", ".XXXX..XXXX.", "..XX....XX.."],
+  [BRK_POWER_SPAM]: [".XX..XX..XX.", ".XX..XX..XX.", "............", ".X...X...X..", ".X...X...X.."],
+  [BRK_POWER_LASER]: [".....XX.....", ".....XX.....", ".....XX.....", "...XXXXXX...", "..XXXXXXXX.."],
+  [BRK_POWER_FIRE]: ["......yXX...", "..f.yyXXXX..", "ffyyyXXXXX..", "..f.yyXXXX..", "......yXX..."],
+};
+function drawCapsuleIcon(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number): void {
+  const rows = CAPSULE_ICONS[kind];
+  if (!rows) return;
+  const x0 = Math.round(cx - rows[0]!.length / 2);
+  const y0 = Math.round(cy - rows.length / 2);
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x];
+      if (ch === ".") continue;
+      ctx.fillStyle = ch === "X" ? (kind === BRK_POWER_FIRE ? "#FFFFFF" : "#0A0A12") : ch === "y" ? "#FFD84A" : "#FF6A2A";
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+    }
+  });
 }
 
 const memo = new WeakMap<CanvasRenderingContext2D, { tick: number; bricks: number[]; deaths: { index: number; at: number }[] }>();
@@ -317,7 +346,6 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     if (sprite) {
       ctx.drawImage(sprite, x, y);
     }
-    if (power === BRK_POWER_FIRE) pixelFlame(ctx, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2 + 1, FIRE);
   });
   ctx.restore();
 
@@ -347,12 +375,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const cy = px(capsule.y);
     pixelRect(ctx, cx - BRK_CAPSULE_W / 2, cy - BRK_CAPSULE_H / 2, BRK_CAPSULE_W, BRK_CAPSULE_H, colour, bloom);
     if (capsule.kind === BRK_POWER_FIRE) {
-      // Fireball capsule: dark-red body, flame on it, pulsing rim.
+      // Fireball capsule: a dark-red body under the burning ball.
       pixelRect(ctx, cx - BRK_CAPSULE_W / 2 + 2, cy - BRK_CAPSULE_H / 2 + 2, BRK_CAPSULE_W - 4, BRK_CAPSULE_H - 4, "#5A1206");
-      pixelFlame(ctx, cx, cy + 1, "#FFD84A");
-      continue;
     }
-    retroText(ctx, capsuleLabel(state, capsule.kind), cx, cy - 3, 7, "#000000", "center");
+    // A highlight along the pill's top edge (the lit-material pass), then its icon.
+    pixelRect(ctx, cx - BRK_CAPSULE_W / 2 + 2, cy - BRK_CAPSULE_H / 2, BRK_CAPSULE_W - 4, 1, "rgba(255,255,255,0.55)");
+    drawCapsuleIcon(ctx, capsule.kind, cx, cy);
   }
 
   const changed=state.bricks.findIndex((hp,i)=>hp<(m.bricks[i]??hp));

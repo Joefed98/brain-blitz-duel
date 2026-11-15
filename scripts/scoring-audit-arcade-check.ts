@@ -26,13 +26,14 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { stdCappedPenalty, stdLivesCharged } from "../src/lib/arcade/arcadeStandard";
 import { crossFlowScore, crossGameFor, CROSS_LIVES, CROSS_REV_FLOW, CROSS_REV_KEEP, CROSS_V11_HIT_COST, type CrossState } from "../src/lib/arcade/cross";
-import { wavefrontGameFor, wavStdScore, WAV_LIVES, WAV_REV_KEEP, WAV_REV_STD, WAV_STD_LIFE_COST, type WavState } from "../src/lib/arcade/wavefront";
+import { wavefrontGameFor, wavStdScore, WAV_LIVES, WAV_REV_CHARGE, WAV_REV_KEEP, WAV_REV_STD, WAV_STD_LIFE_COST, type WavState } from "../src/lib/arcade/wavefront";
 import {
   burstGameFor,
   burstStdParts,
   burstV11Charged,
   BURST_LIVES,
   BURST_REV_AIM,
+  BURST_REV_BIG,
   BURST_REV_STD,
   BURST_V10_LIFE_COST,
   BURST_V11_FREE_MISSES,
@@ -48,6 +49,8 @@ import { pinPreRetro } from "../src/lib/duel/arcade.server";
 // (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins
 // preRetro.
 pinPreRetro(true);
+/** The Retro overhaul's live stamps for the audit games it moved on (the help reads these exactly). */
+const RETRO_LIVE_STAMPS: Record<string, number> = { wavefront: WAV_REV_CHARGE, burst: BURST_REV_BIG };
 
 let checks = 0;
 const failures: string[] = [];
@@ -64,14 +67,13 @@ section("1. rooms deal the new stamps; each keeps the previous stamp's play");
 for (const g of AUDIT_GAMES) {
   for (let k = 0; k < 5; k++) {
     const dealt = (generatePuzzle(g.type) as unknown as Record<string, unknown>)[g.field];
-    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Fission deals burstRev 12,
-    // burstRev 11's play with kinder wave clears, so the dealt stamp is compared by the play it keeps.
-    ok(playRevOf(g.type, dealt as number) === playRevOf(g.type, g.rev), `${g.type}: rooms deal ${g.field} ${g.rev} (got ${String(dealt)})`);
+    ok(dealt === g.rev, `${g.type}: rooms deal ${g.field} ${g.rev} (got ${String(dealt)})`);
   }
-  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Wavefront's help reads wavRev 14,
-  // wavRev 13 plus the charged shot (one above the audit's stamp).
-  const liveRev = (LIVE_BANDS as any)[g.type].rev;
-  ok(playRevOf(g.type, liveRev) === playRevOf(g.type, g.rev) || (g.type === "wavefront" && liveRev === g.rev + 1), `${g.type}: LIVE_BANDS reads ${g.field} ${g.rev}`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the "?" help reads the stamp
+  // rooms deal live, which for Wavefront and Fission is now the Retro overhaul's (wavRev 14, burstRev 13); every other
+  // audit game's live stamp is still the audit's own. The comparison stays exact.
+  const liveStamp = RETRO_LIVE_STAMPS[g.type] ?? g.rev;
+  ok((LIVE_BANDS as any)[g.type].rev === liveStamp, `${g.type}: LIVE_BANDS reads ${g.field} ${liveStamp} (got ${String((LIVE_BANDS as any)[g.type].rev)})`);
   ok(playRevOf(g.type, g.rev) === playRevOf(g.type, g.old), `${g.type}: ${g.field} ${g.rev} keeps ${g.field} ${g.old}'s play (playRevOf ${String(playRevOf(g.type, g.rev))})`);
   // The intro demo's gate names the stamp the demo was recorded on (the old one): the same play, so it still plays.
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");

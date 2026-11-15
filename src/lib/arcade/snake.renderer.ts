@@ -6,7 +6,7 @@ import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_W,
   SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS,
   SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, snakeRowsOf, snakeWorldHFor, type SnakeState,
-  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, snakeCoreStars, SNAKE_GOLD_LIFE, snakeRockBig, SNAKE_STD_COMBO_TICKS,
+  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, snakeCoreStars, SNAKE_GOLD_LIFE, snakeRockBig, snakeRockShape, snakeRockSpan, SNAKE_STD_COMBO_TICKS,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -67,18 +67,21 @@ const point = (cell: number) => ({ x: BX + snakeCol(cell, COLS) * SNAKE_CELL + S
 const direction = (dir: number) => ({ x: dir === 1 ? 1 : dir === 3 ? -1 : 0, y: dir === 2 ? 1 : dir === 0 ? -1 : 0 });
 
 /** Fixed DPR-2 sprites: only cache creation draws pixel planes and pays for blur. */
-export function stamp(kind: "bead" | "head" | "star" | "rock" | "bigrock", level = 0, dir = 0, tail = 0): ArtCanvas | null {
+export function stamp(kind: "bead" | "head" | "star" | "rock" | "bigrock" | "midrock", level = 0, dir = 0, tail = 0): ArtCanvas | null {
   const id = `${kind}:${level}:${kind === "head" ? dir : 0}:${tail}`;
   const old = stamps.get(id);
   if (old) return old;
   // snakeRev 10's 2 × 2 rock: one sprite over its whole block.
   const side = kind === "bigrock" ? SNAKE_CELL * 2 : SNAKE_CELL;
-  const canvas = artCanvas(side * SPRITE_RATIO, side * SPRITE_RATIO);
+  // snakeRev 14's middle rock: one sprite over its 2 × 1 block (turned a quarter for the 1 × 2 ones).
+  const wide = kind === "midrock" ? SNAKE_CELL * 2 : side;
+  const canvas = artCanvas(wide * SPRITE_RATIO, side * SPRITE_RATIO);
   const c = canvas && artContext(canvas);
   if (!canvas || !c) return null;
   c.scale(SPRITE_RATIO, SPRITE_RATIO);
   c.imageSmoothingEnabled = false;
   if (kind === "bigrock") paintBigRock(c as CanvasRenderingContext2D);
+  else if (kind === "midrock") paintMidRock(c as CanvasRenderingContext2D);
   else paintStamp(c as CanvasRenderingContext2D, kind, level, dir, tail, SPRITE_RATIO);
   // Canvas itself clips every glow to the full-cell envelope.
   stamps.set(id, canvas);
@@ -202,6 +205,60 @@ function paintComet(c: CanvasRenderingContext2D, kind: "bead" | "head", level: n
 }
 
 /**
+ * The comet's glowing tail (the Retro overhaul, 15 Nov 2026, concepts A/B, kept retro; display only): under the
+ * segments, a bloom along the body that is brightest at the head and fades to the tip, and a light ribbon joining each
+ * segment to the next in the tail's colours (whole-pixel bands between adjacent cell centres, so the body reads as one
+ * glowing comet rather than separate balls). Everything stays inside the body's own cells (the arcade bounds rule); a
+ * step that wraps across an edge (snakeRev 13) is left as a gap. Reduced effects: the ribbon only.
+ */
+function drawCometGlow(ctx: CanvasRenderingContext2D, state: SnakeState, tail: number, point: (cell: number) => { x: number; y: number }): void {
+  const colours = COMET_TAILS[tail % COMET_TAILS.length]!;
+  const n = state.body.length;
+  const colourAt = (along: number) => {
+    const at = Math.min(1, along) * (colours.length - 1);
+    const step = Math.min(colours.length - 2, Math.floor(at));
+    return rgbHex(mixRgb(colours[step]!, colours[step + 1]!, at - step));
+  };
+  const lite = arcadeReducedEffects();
+  ctx.save();
+  if (!lite) {
+    for (let i = n - 1; i >= 0; i--) {
+      const p = point(state.body[i]!);
+      const along = i / Math.max(1, n - 1);
+      glow(ctx, i === 0 ? COMET_HEAD.halo : colourAt(along), p.x, p.y, SNAKE_CELL * (i === 0 ? 1.1 : 0.85), SNAKE_CELL * (i === 0 ? 1.1 : 0.85), (state.dead ? 0.25 : 0.62) * (1 - 0.7 * along));
+    }
+  }
+  // The head's halo: a soft white-gold light round it.
+  if (!lite && n > 0 && typeof ctx.createRadialGradient === "function") {
+    const h = point(state.body[0]!);
+    const halo = ctx.createRadialGradient(h.x, h.y, 4, h.x, h.y, SNAKE_CELL * 1.25) as CanvasGradient | undefined;
+    if (halo) {
+      halo.addColorStop(0, `rgba(255,236,170,${state.dead ? 0.15 : 0.5})`);
+      halo.addColorStop(1, "rgba(255,200,90,0)");
+      ctx.fillStyle = halo;
+      ctx.fillRect(h.x - SNAKE_CELL * 1.25, h.y - SNAKE_CELL * 1.25, SNAKE_CELL * 2.5, SNAKE_CELL * 2.5);
+    }
+  }
+  // Two passes: a wide soft band (the tail's light, inside the cells) and the brighter ribbon over it.
+  for (const [wide, peak] of [[!lite, 0.26], [true, 0.55]] as const) {
+    if (!wide) continue;
+    for (let i = 0; i < n - 1; i++) {
+      const a = point(state.body[i]!);
+      const b = point(state.body[i + 1]!);
+      if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) > SNAKE_CELL + 1) continue;
+      const along = (i + 0.5) / Math.max(1, n - 1);
+      const half = peak < 0.5 ? Math.max(4, Math.round(11 - 5 * along)) : Math.max(2, Math.round(5 - 3 * along));
+      ctx.globalAlpha = (state.dead ? 0.45 : 1) * peak * (1 - 0.7 * along);
+      ctx.fillStyle = colourAt(along);
+      const x0 = Math.min(a.x, b.x), y0 = Math.min(a.y, b.y);
+      if (a.y === b.y) ctx.fillRect(Math.round(x0), Math.round(a.y) - half, Math.round(Math.abs(a.x - b.x)), half * 2);
+      else ctx.fillRect(Math.round(a.x) - half, Math.round(y0), half * 2, Math.round(Math.abs(a.y - b.y)));
+    }
+  }
+  ctx.restore();
+}
+
+/**
  * snakeRev 10's 2 × 2 rock: the asteroid's look (shaded orange, lit from the top left, craters) as one
  * lumpy boulder filling its whole 48 px block, the head's collision area for all four squares.
  */
@@ -229,6 +286,37 @@ export function paintBigRock(c: CanvasRenderingContext2D): void {
   c.globalAlpha = 0.75;
   c.fillRect(middle - 12, middle - 14, 4, 2);
   c.fillRect(middle - 14, middle - 12, 2, 4);
+  c.globalAlpha = 1;
+}
+
+/**
+ * snakeRev 14's middle rock (the Retro overhaul, 15 Nov 2026): the asteroid's look as one long lumpy boulder filling its
+ * 2 × 1 block (48 × 24 px, the head's collision area for both squares), lit from the top left with two craters.
+ */
+export function paintMidRock(c: CanvasRenderingContext2D): void {
+  const w = SNAKE_CELL * 2;
+  const h = SNAKE_CELL;
+  const mx = w / 2, my = h / 2;
+  for (let y = 0; y < h; y += 2) {
+    for (let x = 0; x < w; x += 2) {
+      const dx = x + 1 - mx, dy = y + 1 - my;
+      const bump = ((x * 7 + y * 3) >> 2) % 3 === 0 ? 0.92 : 1;
+      const e = (dx / (mx - 1)) ** 2 + (dy / (my - 1)) ** 2;
+      if (e > bump) continue;
+      const light = -(dx / mx + dy / my) / 2;
+      const crater = (dx - 9) ** 2 + (dy + 2) ** 2 < 20 || (dx + 12) ** 2 + (dy - 3) ** 2 < 13;
+      const rim = e > 0.7 * bump;
+      c.fillStyle = crater
+        ? (dx + dy < 0 ? "#6A2A10" : "#4A1C0C")
+        : light > 0.3 ? ROCK_LIT : light > 0.04 ? ROCK_MID : light > -0.28 ? ROCK_BASE : ROCK_DARK;
+      if (rim && light < -0.1) c.fillStyle = "#3E170A";
+      if (!crater && (x + y) % 14 === 0 && light > -0.3) c.fillStyle = ROCK_SPECK;
+      c.fillRect(x, y, 2, 2);
+    }
+  }
+  c.fillStyle = "#FFE2B8";
+  c.globalAlpha = 0.75;
+  c.fillRect(mx - 16, my - 8, 4, 2);
   c.globalAlpha = 1;
 }
 
@@ -305,6 +393,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   if (headCell !== undefined) {
     const head = point(headCell);
     const tail = cometTail(state.eaten);
+    drawCometGlow(ctx, state, tail, point);
     for (let i = state.body.length - 1; i >= 0; i--) {
       const cell = state.body[i];
       if (cell === undefined) continue;
@@ -378,7 +467,14 @@ function drawRocks(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boo
   const falling: [number, number][] = [];
   if ((state.rockWarn ?? -1) >= 0) falling.push([state.rockWarn!, state.rockLandTick ?? 0]);
   for (const cell of state.showerWarn ?? []) falling.push([cell, state.showerLandTick ?? 0]);
+  // snakeRev 14: a falling middle rock shows a single rock's warning on each of its two squares.
+  const expanded: [number, number][] = [];
   for (const [warn, landTick] of falling) {
+    const [w, h] = warn === state.rockWarn ? shapeOf(state, warn) : [1, 1];
+    if (w * h === 2) for (const c of snakeRockSpan(state, warn)) expanded.push([c, landTick]);
+    else expanded.push([warn, landTick]);
+  }
+  for (const [warn, landTick] of expanded) {
     // snakeRev 10: a 2 × 2 rock's shadow covers its whole block (centred on the block).
     const big = snakeRockBig(state, warn) && warn === state.rockWarn;
     const p0 = point(warn);
@@ -413,8 +509,25 @@ function drawRocks(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boo
       const x = Math.round(p.x - SNAKE_CELL / 2), y = Math.round(p.y - SNAKE_CELL / 2);
       if (sprite) ctx.drawImage(sprite, x, y, SNAKE_CELL * 2, SNAKE_CELL * 2);
       else { ctx.fillStyle = ROCK_BASE; ctx.fillRect(x + 1, y + 1, SNAKE_CELL * 2 - 2, SNAKE_CELL * 2 - 2); }
-    } else blit(ctx, stamp("rock"), p.x, p.y, ROCK_BASE);
+    } else if (shapeOf(state, rock)[0] * shapeOf(state, rock)[1] === 2) drawMidRock(ctx, state, rock);
+    else blit(ctx, stamp("rock"), p.x, p.y, ROCK_BASE);
   }
+}
+
+const shapeOf = (state: SnakeState, rock: number) => snakeRockShape(state, rock);
+/** A landed middle rock (snakeRev 14) over its two squares, the 1 × 2 ones turned a quarter. */
+function drawMidRock(ctx: CanvasRenderingContext2D, state: SnakeState, rock: number): void {
+  const p = point(rock);
+  const [w] = shapeOf(state, rock);
+  const cx = w === 2 ? p.x + SNAKE_CELL / 2 : p.x;
+  const cy = w === 2 ? p.y : p.y + SNAKE_CELL / 2;
+  const sprite = stamp("midrock");
+  ctx.save();
+  ctx.translate(Math.round(cx), Math.round(cy));
+  if (w !== 2) ctx.rotate(Math.PI / 2);
+  if (sprite) ctx.drawImage(sprite, -SNAKE_CELL, -SNAKE_CELL / 2, SNAKE_CELL * 2, SNAKE_CELL);
+  else { ctx.fillStyle = ROCK_BASE; ctx.fillRect(-SNAKE_CELL + 1, -SNAKE_CELL / 2 + 1, SNAKE_CELL * 2 - 2, SNAKE_CELL - 2); }
+  ctx.restore();
 }
 
 /** A dashed ring of 2 px pixels (two on, one off) round (x, y), turned by `turn` radians. */

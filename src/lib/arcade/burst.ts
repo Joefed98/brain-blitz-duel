@@ -83,6 +83,12 @@ export const BURST_MOVE_SNAP = 1;
 
 /** Sizes: 0 L, 1 M, 2 S, 3 XS. */
 export const BURST_RADIUS = [32, 22, 14, 8] as const;
+/** burstRev 13 (the Retro overhaul, 15 Nov 2026): bigger, bolder atoms (the smallest grow the most). */
+export const BURST_RADIUS_BIG = [38, 26, 17, 10] as const;
+/** An atom's radius (px) on this state's revision: burstRev 13's bigger atoms, or the original table. */
+export function burstRadius(state: { big?: number | undefined }, size: number): number {
+  return (state.big ? BURST_RADIUS_BIG : BURST_RADIUS)[size] ?? 8;
+}
 const APEX_PCT = [75, 60, 45, 30] as const;
 const SPEED_X = [410, 495, 580, 666] as const; // 1.6 → 2.6 px a tick
 const GRAVITY = 32; // 0.125 px/tick²
@@ -252,6 +258,8 @@ export interface BurstState extends BandFields {
   clearPts?: number;
   /** burstRev 12 only (the Retro overhaul, 15 Nov 2026): 1 = a wave's clear bonus tapers to 0 at three times its quick time. */
   wide?: number;
+  /** burstRev 13 only (the Retro overhaul, 15 Nov 2026): 1 = bigger atoms (BURST_RADIUS_BIG), folded into the checksum last. */
+  big?: number;
   /** The last wave cleared's time bonus and clean bonus (render only: the pop). */
   lastClear?: number;
   lastClean?: number;
@@ -371,8 +379,8 @@ function isOver(state: BurstState): boolean {
 }
 
 /** Circle against the player's box, all in 1/256 px. */
-function touches(ball: BurstBall, px: number, floor: number): boolean {
-  const r = BURST_RADIUS[ball.size]! * FP;
+function touches(ball: BurstBall, px: number, floor: number, big?: number): boolean {
+  const r = burstRadius({ big }, ball.size) * FP;
   const left = px - PLAYER_HALF_W * FP;
   const right = px + PLAYER_HALF_W * FP;
   const top = (floor - PLAYER_H) * FP;
@@ -439,7 +447,7 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     s.wave += 1;
     const ceil = s.exp ? burstCeilingV8(s.wave, FLOOR_Y) : burstCeiling(s.wave, FLOOR_Y);
     s.waves[s.wave - 1]!.forEach((spawn, index) => {
-      const r = BURST_RADIUS[spawn.size]!;
+      const r = burstRadius(s, spawn.size);
       const y = Math.min(FLOOR_Y - r - 40, ceil + r + 20 + spawn.lift);
       s.balls.push({
         size: spawn.size,
@@ -464,7 +472,7 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   if (s.std) burstGoldenStepV10(s, tick, geo, ceil, frozen);
   else if (s.carry) burstGoldenStepV9(s, tick, geo, ceil, frozen);
   for (const ball of frozen ? [] : s.balls) {
-    const r = BURST_RADIUS[ball.size]! * FP;
+    const r = burstRadius(s, ball.size) * FP;
     ball.vy += GRAVITY;
     ball.y += ball.vy;
     ball.x += ball.vx;
@@ -508,7 +516,7 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     let hit = -1;
     for (let i = 0; i < s.balls.length; i++) {
       const ball = s.balls[i]!;
-      const r = BURST_RADIUS[ball.size]! * FP;
+      const r = burstRadius(s, ball.size) * FP;
       if (Math.abs(ball.x - shot.x) <= r && ball.y + r >= shot.top && ball.y - r <= bottom) {
         hit = i;
         break;
@@ -581,7 +589,7 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
 
   // Touching the player costs a life and the BURST shots.
   // burstRev 10: the golden atom hurts like any other atom.
-  if (s.invuln === 0 && (s.balls.some((ball) => touches(ball, s.x, FLOOR_Y)) || (s.std && burstGoldenTouchesV10(s, FLOOR_Y)))) {
+  if (s.invuln === 0 && (s.balls.some((ball) => touches(ball, s.x, FLOOR_Y, s.big)) || (s.std && burstGoldenTouchesV10(s, FLOOR_Y)))) {
     if (s.shield) {
       // The shield takes the hit and vanishes; no life lost.
       s.shield = 0;
@@ -702,6 +710,8 @@ export function burstCheckpoint(state: BurstState): BurstCheckpoint {
     values.push(state.std, state.gUntil ?? 0, state.done ?? 0);
     for (const due of state.gDue ?? []) values.push(due);
   }
+  // burstRev 13 (the Retro overhaul): the bigger atoms' marker, last, so every earlier checksum is unchanged.
+  if (state.big) values.push(state.big);
   let checksum = 0x811c9dc5;
   for (const value of values) {
     checksum ^= value | 0;
@@ -856,6 +866,7 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_BIG) return burstBigGame;
   if (rev === BURST_REV_WIDE) return burstWideGame;
   if (rev === BURST_REV_AIM) return burstAimGame;
   if (rev === BURST_REV_STD) return burstStdGame;
@@ -915,7 +926,7 @@ export const burstTallGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { 
 
 /** The drawn world's height (the floor, px) a stored round's burstRev plays in. */
 export function burstWorldHFor(rev?: number | null): number {
-  return rev === BURST_REV_WIDE || rev === BURST_REV_AIM || rev === BURST_REV_STD || rev === BURST_REV_CARRY || rev === BURST_REV_CLEAN || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
+  return rev === BURST_REV_BIG || rev === BURST_REV_WIDE || rev === BURST_REV_AIM || rev === BURST_REV_STD || rev === BURST_REV_CARRY || rev === BURST_REV_CLEAN || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
 }
 
 /* ================= Scoring targets (burstRev 5, 18 Oct 2026) ================= */
@@ -1803,4 +1814,16 @@ export const BURST_V12_CLEAR_ZERO = 3;
 export const burstWideGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
   ...burstAimGame,
   init: (seed: number) => ({ ...burstAimGame.init(seed), wide: 1 }),
+};
+
+/**
+ * burstRev 13 (the Retro overhaul, Joe, 15 Nov 2026: "bigger Fission atoms"; docs/arcade-standard/burst.md "burstRev
+ * 13"): burstRev 12's waves, lives, beams, power-ups, golden atoms, parts and kinder wave clears, with every atom drawn
+ * and collided at BURST_RADIUS_BIG (38, 26, 17 and 10 px; were 32, 22, 14 and 8): easier to read and to hit, and as much
+ * bigger to dodge. States add `big: 1`, folded into the checkpoint checksum last.
+ */
+export const BURST_REV_BIG = 13;
+export const burstBigGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
+  ...burstWideGame,
+  init: (seed: number) => ({ ...burstWideGame.init(seed), big: 1 }),
 };

@@ -43,7 +43,7 @@ import {
   snakeGameFor, snakeStdParts, snakeCoreStars, snakeV12Core, snakeStdCore, snakeRow, snakeWorldHForRev, snakeWorldWForRev,
   SNAKE_REV_STD, SNAKE_REV_12, SNAKE_V12_BAND_CURVE, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE, SNAKE_V9_COLS, SNAKE_V9_ROWS,
   SNAKE_STD_CAPS, SNAKE_STD_CORE_MAX, SNAKE_INPUT_TURN,
-  type SnakeState, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE } from "../src/lib/arcade/snake";
+  type SnakeState, SNAKE_REV_SIZES, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS } from "../src/lib/arcade/snake";
 
 const RECORD = process.argv.includes("--record");
 const LEGACY = "scripts/fixtures/snake-rev12-legacy.json.gz";
@@ -84,8 +84,8 @@ const without = (s: SnakeState) => {
 /* 1. Wiring. */
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 13 (the edges
 // wrap, the core full at 36), one above snakeRev 12; the help reads its core line.
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_WRAP && SNAKE_REV_WRAP === SNAKE_REV_12 + 1 && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
-ok(LIVE_BANDS.snake.rev === SNAKE_REV_WRAP && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE && SNAKE_V12_BAND_CURVE.points.at(-1) === SNAKE_V13_BAND_CURVE.points.at(-1), "the help reads snakeRev 12's core line");
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_SIZES && SNAKE_REV_SIZES === SNAKE_REV_12 + 2 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 14 (13's wrap, rocks in three sizes) */ && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
+ok(LIVE_BANDS.snake.rev === SNAKE_REV_SIZES && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE && SNAKE_V12_BAND_CURVE.points.at(-1) === SNAKE_V13_BAND_CURVE.points.at(-1), "the help reads snakeRev 12's core line");
 ok(JSON.stringify(SNAKE_V12_BAND_CURVE.units) === JSON.stringify([0, 28]) && JSON.stringify(SNAKE_V12_BAND_CURVE.points) === JSON.stringify([0, 120]), "the help's curve is the straight line 0 → 0, 20 → 120");
 ok(SNAKE_V12_CORE_STARS === 28 && SNAKE_V12_GOLD_CORE === 2, "the core is full at 28 core stars; a gold star counts 2");
 ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
@@ -94,7 +94,9 @@ ok(playRevOf("snake", SNAKE_REV_12) === 10 && playRevOf("snake", SNAKE_REV_STD) 
 {
   const help = PUZZLE_INSTRUCTIONS.snake.score;
   // Text pass (4 Nov 2026): the help is a list, one line a part, then the total; the intro names the bonuses.
-  ok(help.includes("a big gold star counts 2") && hasScorePart(help, "Stars", 120) && help.includes("all of it at 28 stars"), `the help says a gold star counts 2 and the stars part is full at 28: ${help}`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the help describes the dealt
+  // snakeRev 14, whose stars line is full at 36 (snakeRev 13's); a gold star still counts 2.
+  ok(help.includes("a big gold star counts 2") && hasScorePart(help, "Stars", 120) && help.includes(`all of it at ${SNAKE_V13_CORE_STARS} stars`), `the help says a gold star counts 2 and the stars part is full at 36: ${help}`);
   ok(hasScorePart(help, "Gold stars", 40) && hasScorePart(help, "Combos", 20) && hasScorePart(help, "Lane rides", 10) && hasScorePart(help, "Warp stars", 10) && help.endsWith("Total 200."), "the help lists every part and their 200");
   const gold = PUZZLE_INSTRUCTIONS.snake.how.find((l) => l.action.startsWith("Gold comet stars"));
   ok(Boolean(gold?.detail.includes("counts as 2 stars")), "the help's gold-star line says it counts as 2 stars");
@@ -102,13 +104,15 @@ ok(playRevOf("snake", SNAKE_REV_12) === 10 && playRevOf("snake", SNAKE_REV_STD) 
   ok(intro.length <= 90 && /stars/.test(intro) && intro.includes("gold stars") && intro.endsWith("Up to 200."), `the intro states the stars, the gold stars and the top: ${intro}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the rule names the dealt snakeRev 13.
-  ok(demo.includes('demo.puzzle.snakeRev !== SNAKE_REV_WRAP) return null;'), "the intro demo plays only when recorded on the dealt stamp (snakeRev 13)");
+  ok(demo.includes('demo.puzzle.snakeRev !== SNAKE_REV_SIZES) return null;'), "the intro demo plays only when recorded on the dealt stamp (snakeRev 14)");
   const renderer = readFileSync("src/lib/arcade/snake.renderer.ts", "utf8");
   ok(renderer.includes("`STARS ${snakeCoreStars(state)}`") && !renderer.includes("`STARS ${state.eaten}`"), "the HUD counts the core's stars");
 }
 {
   const perfect = (entry.perfect() as StdRun[])[0]!;
-  ok(entry.type === "snake" && entry.field === "snakeRev" && entry.rev === SNAKE_REV_12, "the standard module names snakeRev 12");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the standard entry follows the
+  // stamp rooms deal (arcade-standard-check proves an entry for it), so it names snakeRev 14.
+  ok(entry.type === "snake" && entry.field === "snakeRev" && entry.rev === SNAKE_REV_SIZES, "the standard module names snakeRev 14, the dealt stamp (snakeRev 12 before the Retro overhaul)");
   ok(entry.parts.reduce((a, p) => a + p.max, 0) === 200, "the parts' maxima add up to 200");
   ok(JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 120], ["gold", 40], ["combo", 20], ["lane", 10], ["warp", 10]]), "parts: core 120, gold 40, combo 20, lane 10, warp 10 (unchanged)");
   ok(perfect.score === 200, `the perfect run scores 200 (got ${perfect.score})`);

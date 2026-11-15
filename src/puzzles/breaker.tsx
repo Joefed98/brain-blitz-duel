@@ -1,4 +1,6 @@
 import { heldHorizontal, useGameKeys } from "@/lib/desktop";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import { brkWorldH, brkWorldW } from "@/lib/arcade/breaker";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { breakerFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -46,42 +48,22 @@ import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still (brkRev 9; text brkRev 11): the wall with its gold bricks behind armour, a shot up a cleared lane (combos pay nothing since brkRev 11). */
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, the ball just launched at the full wall.
+ */
 function IntroExample() {
-  const gold = (row: number, col: number) => row === 0 && (col === 1 || col === 4);
-  const armour = (row: number, col: number) => row === 1 && (col === 1 || col === 4);
-  const gone = (row: number, col: number) => (col === 4 && row >= 1) || (row === 3 && col === 2);
+  const game = breakerArtGameFor(BRK_REV_CLEAR);
+  const start = game.init(7);
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 168 120"
-        width={168}
-        height={120}
-        aria-hidden="true"
-        style={{ background: BRK_BG, borderRadius: 10 }}
-      >
-        {Array.from({ length: 4 }, (_, row) =>
-          Array.from({ length: 6 }, (_, col) =>
-            gone(row, col) ? null : (
-              <rect
-                key={`${row}-${col}`}
-                x={12 + col * 24}
-                y={14 + row * 14}
-                width={22}
-                height={10}
-                fill={gold(row, col) ? "#FFD84A" : armour(row, col) ? "#2857AA" : BRK_TEAL[row % BRK_TEAL.length]}
-                stroke={gold(row, col) ? "#FFF3B0" : armour(row, col) ? "#0B0B0F" : "none"}
-              />
-            ),
-          ),
-        )}
-        <path d="M108 94 L108 26" stroke="#FFD84A" strokeWidth={1.5} strokeDasharray="3 3" />
-        <circle cx={108} cy={70} r={4} fill="#F7F7F8" />
-        <rect x={86} y={100} width={44} height={7} rx={2} fill={BRK_GOLD} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Every brick scores; gold bricks break after 4 hits and add 10 each.
-      </p>
-    </div>
+    <ArtStill
+      game={game}
+      worldW={brkWorldW(start)}
+      worldH={brkWorldH(start)}
+      ticks={70}
+      input={null}
+      caption="Clear the 9-row wall. Each special brick shows what it fires; gold bricks take four hits."
+    />
   );
 }
 

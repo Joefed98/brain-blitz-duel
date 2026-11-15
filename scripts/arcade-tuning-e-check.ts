@@ -490,7 +490,9 @@ if (want("hover")) ok(hasScorePart(PUZZLE_INSTRUCTIONS.hover.score, "Barriers", 
 // The arcade scoring standard (29 Oct 2026) moved Meteor on to snakeRev 11: stars on a straight line to 120 at 27, then the
 // feature parts to 200 (snake-standard-check). snakeRev 12 (1 Nov 2026): the core full at 28 stars, a gold star counting 2
 // (snake-rev12-check), so a good run counts 24 (snakeRev 11: eats 23).
-if (want("snake")) ok(hasScorePart(PUZZLE_INSTRUCTIONS.snake.score, "Stars", 120) && PUZZLE_INSTRUCTIONS.snake.score.includes("all of it at 28 stars") && PUZZLE_INSTRUCTIONS.snake.score.endsWith("Total 200."), "Meteor's help states the stars part and the total rooms deal (snakeRev 12 since 1 Nov 2026, snake-rev12-check)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 14, whose stars
+// line is full at 36 (snakeRev 13's), and the help describes the dealt game.
+if (want("snake")) ok(hasScorePart(PUZZLE_INSTRUCTIONS.snake.score, "Stars", 120) && PUZZLE_INSTRUCTIONS.snake.score.includes("all of it at 36 stars") && PUZZLE_INSTRUCTIONS.snake.score.endsWith("Total 200."), "Meteor's help states the stars part and the total rooms deal (snakeRev 12 since 1 Nov 2026, snake-rev12-check)");
 
 if (failures.length) {
   console.log(failures.slice(0, 60).join("\n"));

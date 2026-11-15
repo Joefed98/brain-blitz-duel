@@ -60,8 +60,12 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `ricochet.flow` | Moon Climb | Each Flow step (every 7 clean leaps in a row, ricoRev 3) | `combo` (0.75) | 0–16 | 120 ms |
 | `hover.start` | Hover | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `hover.crash` | Hover | The craft crashes | `arc_retro_explode` | 0–1 | 260 ms |
-| `hover.gate` | Hover | A barrier is passed | `arc_retro_note` | 20–60 | 90 ms |
+| `hover.gate` | Hover | A barrier is passed; since the Retro overhaul (15 Nov 2026) a semitone higher for each gate in a row passed without a scrape or a shield breaking, at most an octave | `arc_retro_note` | 20–60 | 90 ms |
 | `hover.star` | Hover | A gold star is collected (hoverRev 2+) | `arc_retro_coin` (0.8) | 3–10 | 120 ms |
+| `hover.thrust` | Hover | Each tap: the thrust puff under the saucer (the Retro overhaul) | `arc_retro_blip` (0.18) | every tap | 60 ms |
+| `hover.scrape` | Hover | The saucer's edge passes within 3 px of a gap's edge: sparks off the barrier (the Retro overhaul; `hoverScrape` in retroMoments.ts) | `arc_retro_blip` (0.45) | 0–20 | 150 ms |
+| `hover.deadCentre` | Hover | A tight gate threaded dead centre: its rims flash gold (hoverRev 9+, the Retro overhaul) | `arc_retro_coin` (0.6) | 0–10 | 250 ms |
+| `hover.shieldShatter` | Hover | A shield shatters in place of a crash: glass shards round the saucer (hoverRev 9+, the Retro overhaul; was `hover.crash`) | `arc_retro_hit` (0.9) | 0–3 | 450 ms |
 | `snake.start` | Meteor | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `snake.dead` | Meteor | The snake dies | `arc_retro_explode` | 0–1 | 260 ms |
 | `snake.eat` | Meteor | A star is eaten | `arc_retro_blip` | 10–40 | 50 ms |

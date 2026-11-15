@@ -236,7 +236,8 @@ export function retroText(
   align: CanvasTextAlign = "left",
   glow = 0,
 ): void {
-  ctx.font = `${Math.round(px)}px ${RETRO_FONT}`;
+  // The Retro overhaul (Joe, 15 Nov 2026): no Retro text below RETRO_HUD_MIN_PX (11 px), labels included.
+  ctx.font = `${retroHudFloorPx(Math.round(px))}px ${RETRO_FONT}`;
   ctx.textAlign = align;
   ctx.textBaseline = "top";
   ctx.fillStyle = colour;

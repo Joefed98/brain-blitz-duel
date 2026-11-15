@@ -20,6 +20,7 @@ import {
   HOVER_TALL_H,
   HOVER_WORLD_W,
   HOVER_SHIELD_INVULN,
+  HOVER_TERMINAL,
   HOVER_SHIELD_R,
   hoverCentreGrade,
   hoverCentreY,
@@ -44,6 +45,8 @@ import {
   RETRO_RED,
   RETRO_WHITE,
 } from "./retro.renderer";
+import { fxFlash, fxShards, fxSparks, retroFx } from "./retroFx.renderer";
+import { hoverScrape } from "./retroMoments";
 
 const FP = 256;
 const px = (v: number) => v / FP;
@@ -171,7 +174,48 @@ function paintNight(c: CanvasRenderingContext2D, H: number): void {
   c.fillRect(-HOVER_WORLD_W, -90, HOVER_WORLD_W * 2, 180);
   spaceStars(c, -HOVER_WORLD_W, -70, HOVER_WORLD_W * 2, 140, 77, 1.1, 0.5);
   c.restore();
+  paintNebula(c, H);
   spaceStars(c, 0, 0, HOVER_WORLD_W, H, 41, 0.9, 0.55);
+}
+
+/**
+ * The deep-space nebula (the Retro overhaul, 15 Nov 2026, concept B, kept retro): blue and indigo gas clouds sweeping
+ * across the sky, painted once into the sky layer as pixel art: smooth value noise on a coarse lattice, quantised into
+ * a few colour steps with a 4 × 4 ordered dither between them and drawn in 3 px blocks, so the clouds are chunky and
+ * crisp rather than a soft photo. Seeded: every phone and the reveal draw the same sky. Kept dark under the barriers,
+ * the saucer and the stars.
+ */
+const NEB_BLOCK = 3;
+const NEB_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
+const NEB_STEPS = ["rgba(24,42,110,0.32)", "rgba(34,62,150,0.38)", "rgba(58,74,178,0.42)", "rgba(110,120,220,0.38)"] as const;
+function nebulaNoise(x: number, y: number, cell: number, seed: number): number {
+  const gx = Math.floor(x / cell);
+  const gy = Math.floor(y / cell);
+  const fx = x / cell - gx;
+  const fy = y / cell - gy;
+  const v = (i: number, j: number) => (hash(gx + i + seed, gy + j) % 1000) / 1000;
+  const sx = fx * fx * (3 - 2 * fx);
+  const sy = fy * fy * (3 - 2 * fy);
+  const top = v(0, 0) + (v(1, 0) - v(0, 0)) * sx;
+  const bottom = v(0, 1) + (v(1, 1) - v(0, 1)) * sx;
+  return top + (bottom - top) * sy;
+}
+function paintNebula(c: CanvasRenderingContext2D, H: number): void {
+  for (let y = 0; y < H; y += NEB_BLOCK) {
+    for (let x = 0; x < HOVER_WORLD_W; x += NEB_BLOCK) {
+      // Two octaves of noise, strongest along a band sweeping from the upper left to the lower right (concept B).
+      const n = 0.62 * nebulaNoise(x, y, 120, 907) + 0.38 * nebulaNoise(x, y, 46, 131);
+      const along = (y - H * 0.18 - x * 0.75) / (H * 0.42);
+      const band = Math.exp(-along * along);
+      const level = Math.max(0, (n * band - 0.24) * 6);
+      const step = Math.floor(level);
+      const frac = level - step;
+      const k = step + (frac * 16 > NEB_BAYER[((y / NEB_BLOCK) & 3) * 4 + ((x / NEB_BLOCK) & 3)]! ? 1 : 0);
+      if (k <= 0) continue;
+      c.fillStyle = NEB_STEPS[Math.min(NEB_STEPS.length, k) - 1]!;
+      c.fillRect(x, y, NEB_BLOCK, NEB_BLOCK);
+    }
+  }
 }
 function drawNight(ctx: CanvasRenderingContext2D, H: number): void {
   deviceLayer(ctx, `hover-space-${H}`, (c) => paintNight(c, H));
@@ -199,6 +243,33 @@ const STARS = (() => {
   };
   return Array.from({ length: STAR_COUNT }, (_, i) => ({ x: next() * HOVER_WORLD_W, y: next(), big: i % 9 === 0, a: 0.16 + next() * 0.16 }));
 })();
+/**
+ * A nearer star layer (the Retro overhaul, 15 Nov 2026): fewer, brighter stars drifting at three times the far layer's
+ * pace, so the sky has depth as the course scrolls (parallax). Display only, keyed to the sim's distance.
+ */
+const NEAR_STARS = (() => {
+  let v = 0x0b5e_ed77 | 0;
+  const next = () => {
+    v = (Math.imul(v, 1103515245) + 12345) | 0;
+    return ((v >>> 8) % 10000) / 10000;
+  };
+  return Array.from({ length: 26 }, () => ({ x: next() * HOVER_WORLD_W, y: next(), a: 0.45 + next() * 0.35 }));
+})();
+function drawNearStars(ctx: CanvasRenderingContext2D, state: HoverState, H: number): void {
+  const drift = (state.distance / FP) * 0.15;
+  ctx.save();
+  for (const star of NEAR_STARS) {
+    const x = Math.round((((star.x - drift) % HOVER_WORLD_W) + HOVER_WORLD_W) % HOVER_WORLD_W);
+    const y = Math.round(star.y * (H - 4));
+    ctx.globalAlpha = star.a;
+    ctx.fillStyle = "#EAF0FF";
+    ctx.fillRect(x, y, 2, 2);
+    ctx.globalAlpha = star.a * 0.4;
+    ctx.fillRect(x - 2, y, 1, 2);
+    ctx.fillRect(x + 3, y, 1, 2);
+  }
+  ctx.restore();
+}
 function drawStarField(ctx: CanvasRenderingContext2D, state: HoverState, H: number): void {
   const drift = (state.distance / FP) * 0.05;
   ctx.save();
@@ -216,6 +287,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   const HOVER_WORLD_H = hoverWorldH(state);
   drawNight(ctx, HOVER_WORLD_H);
   drawStarField(ctx, state, HOVER_WORLD_H);
+  drawNearStars(ctx, state, HOVER_WORLD_H);
   const bloom = retroBloom();
   const discLeft = HOVER_DISC_X - HOVER_DISC_R;
   const width = px(HOVER_PILLAR_W);
@@ -282,6 +354,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   drawSaucer(ctx, state, crashIndicator);
   ctx.globalAlpha = 1;
   if (state.xp) drawShield(ctx, state);
+  hoverEffects(ctx, state);
   // One Retro HUD (3 Nov 2026): barriers top left, stars and chains top right, two rows at most.
   const totals = state.xp ? hoverFeatureTotals(state) : null;
   retroHud(
@@ -547,12 +620,33 @@ export function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState, cra
   const t = retroClock();
   const blink = Math.floor(t / 160) % 3;
   const body = state.crashed && crashIndicator ? RETRO_RED : SAUCER;
+  // The Retro overhaul (stage 2): the saucer tilts nose up as a tap lifts it and nose down as it falls (a shear about
+  // its centre, at most hoverTiltSlope's 0.12, so no block moves more than about 1.3 px: inside the disc's 2 px rule).
+  const slope = state.crashed || reducedMotion() ? 0 : hoverTiltSlope(state.vy);
+  ctx.save();
+  if (slope !== 0) ctx.transform(1, slope, 0, 1, 0, -slope * cx);
+  drawSaucerBody(ctx, state, crashIndicator, cx, cy, r, blink, body);
+  ctx.restore();
+}
+
+/** The saucer's tilt (the slope of its shear) for a vertical speed: nose up rising, nose down falling. */
+export function hoverTiltSlope(vy: number): number {
+  return Math.max(-0.12, Math.min(0.12, (vy / HOVER_TERMINAL) * 0.12));
+}
+
+function drawSaucerBody(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator: boolean, cx: number, cy: number, r: number, blink: number, body: string): void {
   pixelShape(ctx, cx, cy, r, 2, (dx, dy) => {
     if (dx * dx + dy * dy > r * r) return null;
     // Dome above the hull. Since 3 Nov 2026 (Joe's audit, display only) the craft fills more of its round
     // collision disc: a taller hull and a larger dome, still inside the disc's radius, so it reads larger.
     const domeY = dy + r * 0.12;
-    if (domeY < 0 && dx * dx + domeY * domeY <= (r * 0.66) ** 2) return state.crashed && crashIndicator ? RETRO_RED : DOME;
+    if (domeY < 0 && dx * dx + domeY * domeY <= (r * 0.66) ** 2) {
+      if (state.crashed && crashIndicator) return RETRO_RED;
+      // The Retro overhaul (15 Nov 2026): a glass dome, a crisp highlight on its upper-left curve and a darker rim.
+      if (dx < -r * 0.08 && dx > -r * 0.5 && domeY < -r * 0.22 && domeY > -r * 0.52) return "#E9FBFF";
+      if (dx * dx + domeY * domeY > (r * 0.5) ** 2) return "#2E8FC4";
+      return DOME;
+    }
     // Hull ellipse.
     const ey = (dy - r * 0.18) / (r * 0.52);
     const ex = dx / r;
@@ -561,6 +655,9 @@ export function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState, cra
       const slot = Math.floor((dx + r) / 4);
       return slot % 3 === blink ? RETRO_WHITE : SAUCER_DARK;
     }
+    // Polished metal: a bright band along the hull's upper curve, its shade beneath (the crash red stays flat).
+    if (body === SAUCER && ey < -0.45) return "#FFF1B0";
+    if (body === SAUCER && ey > 0.1) return "#E2B32E";
     return body;
   });
 }
@@ -874,4 +971,40 @@ function drawCentreLine(ctx: CanvasRenderingContext2D, state: HoverState, index:
     }
   }
   ctx.restore();
+}
+
+/**
+ * The Retro overhaul's in-world moments (stage 2; display only, retroFx.renderer.ts): sparks where the saucer scrapes
+ * a barrier's gap edge (hoverScrape, the same read the "zing" plays on), glass shards as a shield shatters, and the
+ * dead-centre gate's rims flashing gold.
+ */
+function hoverEffects(ctx: CanvasRenderingContext2D, state: HoverState): void {
+  const fx = retroFx(ctx, "hover", state.tick);
+  const scrape = hoverScrape(state);
+  if (scrape && scrape.index > fx.get("scraped", -1)) {
+    fx.set("scraped", scrape.index);
+    fx.log("scrape", { x: scrape.x + px(HOVER_DISC_R) * 0.4, y: scrape.y, n: scrape.index });
+  }
+  fx.each("scrape", 18, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, "#FFE9A8", { n: 6, spread: 10, seed: e.n * 31 + 7 }));
+  fx.rise("shatter", state.shieldBreaks ?? 0, () => ({ x: px(HOVER_DISC_X), y: px(state.y), n: state.shieldBreaks ?? 0 }));
+  fx.each("shatter", 30, (e, age) => {
+    fxShards(fx, ctx, e.x, e.y, age, SHIELD_CYAN, { n: 12, r: px(HOVER_DISC_R) + 2, seed: e.n * 13, size: 3 });
+    fxShards(fx, ctx, e.x, e.y, Math.min(0.99, age * 1.2), RETRO_WHITE, { n: 6, r: px(HOVER_DISC_R), seed: e.n * 13 + 5, size: 2 });
+  });
+  fx.rise("centre", state.ctrLog?.length ?? 0, () => {
+    const last = state.ctrLog?.at(-1) ?? 0;
+    return (last & 3) === 3 ? { x: 0, y: 0, n: last >> 2 } : null;
+  });
+  fx.each("centre", 24, (e, age) => {
+    const pillar = state.pillars[e.n];
+    if (!pillar || pillar.tightTop === undefined) return;
+    const left = px(pillarX(pillar, state.distance));
+    const w = px(HOVER_PILLAR_W);
+    const top = px(pillar.tightTop);
+    const bottom = top + px(pillar.tightH ?? 0);
+    const on = fx.still || Math.floor(age * 6) % 2 === 0;
+    if (!on) return;
+    fxFlash(ctx, left - 1, top - 3, w + 2, 3, age, STAR_GOLD, 0.9);
+    fxFlash(ctx, left - 1, bottom, w + 2, 3, age, STAR_GOLD, 0.9);
+  });
 }

@@ -20,7 +20,7 @@ import { CROSS_REV_KEEP, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross"
 import { MINES_REV_LOGIC, MINES_STD_SPEC_V2, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
 import { RALLY_REV_LIVES, RALLY_REV_STRICT, RALLY_STD_SPEC_V13, RALLY_V13_BAND_CURVE } from "./rally";
-import { SNAKE_REV_WRAP, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake";
+import { SNAKE_REV_SIZES, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
@@ -33,7 +33,7 @@ import { ORBIT_REV_STRICT, ORBIT_REV_FUEL } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_FLOOR, BEAT_REV_STRICT, BEAT_STD_SPEC_V12, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice";
-import { BURST_REV_WIDE, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
+import { BURST_REV_BIG, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
 import { SWING_REV_SLIDE, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_JOULZ, PIN_STD_SPEC_V7, PIN_V6_BAND_CURVE } from "./pinball4";
@@ -111,7 +111,7 @@ export const LIVE_BANDS = {
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides
   // and warp stars pay up to 80 more (the help says so). snakeRev 11: 120 at 27 stars (SNAKE_V11_BAND_CURVE).
   // snakeRev 13 (the Retro overhaul, 15 Nov 2026): wrap-around edges; the core full at 36 core stars.
-  snake: { field: "snakeRev", rev: SNAKE_REV_WRAP, curve: SNAKE_V13_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
+  snake: { field: "snakeRev", rev: SNAKE_REV_SIZES, curve: SNAKE_V13_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_STD, curve: BINTOSS_V9_BAND_CURVE, strictRev: BINTOSS_REV_STRICT, std: BINTOSS_STD_SPEC },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).
@@ -138,7 +138,7 @@ export const LIVE_BANDS = {
   slice: { field: "sliceRev", rev: SLICE_REV_LINE, curve: SLICE_V13_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   // burstRev 10 (the arcade scoring standard): the core's straight line (140 at all 87 atoms); wave clears, golden atoms and lives on top (the help says so).
   // burstRev 12 (the Retro overhaul, 15 Nov 2026): burstRev 11 with the wave-clear bonus running out at 3× the quick time.
-  burst: { field: "burstRev", rev: BURST_REV_WIDE, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
+  burst: { field: "burstRev", rev: BURST_REV_BIG, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 17 (the sliding hooks and the clean-swing streak, 90 s): the course's straight line to 140, full at SWING_V17_FULL
   // per mille; pars, gates and the streak pay up to 60 more (the help says so).
   swing: { field: "swingRev", rev: SWING_REV_SLIDE, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },

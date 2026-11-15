@@ -53,10 +53,10 @@ Kept as they are (checked, already good, Joe's earlier recordings or the batch f
 | Game | Slot | When it plays | ElevenLabs prompt | Length | Status |
 |---|---|---|---|---|---|
 | Hover | `hover.start` | The run starts | "Short 8-bit start jingle, three rising square-wave notes" | 400 ms | wired |
-| Hover | `hover.thrust` | Each tap (a thrust puff under the saucer) | "Soft chiptune puff, tiny noise breath with a low blip" | 60 ms | stage 2 |
-| Hover | `hover.deadCentre` | A gate passed dead centre ("DEAD CENTRE!") | "Bright 8-bit bullseye ding, crisp bell with a sparkle" | 250 ms | stage 2 |
-| Hover | `hover.scrape` | A near scrape past a barrier (within 3 px) | "Quick metallic 8-bit zing, short bright scrape" | 150 ms | stage 2 |
-| Hover | `hover.shieldShatter` | A shield breaks and saves a crash | "Glassy chiptune shatter, bright crystal break into falling blips" | 450 ms | stage 2 |
+| Hover | `hover.thrust` | Each tap (a thrust puff under the saucer) | "Soft chiptune puff, tiny noise breath with a low blip" | 60 ms | wired (stage 2 begun) |
+| Hover | `hover.deadCentre` | A gate passed dead centre ("DEAD CENTRE!") | "Bright 8-bit bullseye ding, crisp bell with a sparkle" | 250 ms | wired (stage 2 begun) |
+| Hover | `hover.scrape` | A near scrape past a barrier (within 3 px) | "Quick metallic 8-bit zing, short bright scrape" | 150 ms | wired (stage 2 begun) |
+| Hover | `hover.shieldShatter` | A shield breaks and saves a crash | "Glassy chiptune shatter, bright crystal break into falling blips" | 450 ms | wired (stage 2 begun) |
 | Hover | `hover.flyOff` | The end: the saucer flies off the top | "Retro whoosh up, rising square-wave sweep fading out" | 700 ms | stage 2 |
 | Breaker | `breaker.start` | The run starts | "Short 8-bit start jingle, bright square-wave fanfare, three notes" | 400 ms | wired |
 | Breaker | `breaker.powerUp` | A power-up capsule is caught | "Chiptune power-up, quick rising arpeggio, bright and happy" | 400 ms | wired |

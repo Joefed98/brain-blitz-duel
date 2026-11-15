@@ -134,6 +134,13 @@ const EXEMPT: Record<string, string> = {
   "tendrop.refused": "a wrong-move shake: the quiet wrong (job 2's rule; it played the tap tick)",
   "equation.advance": "a stage moment: keeps the shared stage_complete (one sound for every stage game, a decision for Joe)",
   "numline.line": "a stage moment: keeps the shared stage_complete (one sound for every stage game, a decision for Joe)",
+  "rally.lifeLost": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
+  "rally.serve": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
+  "rally.spinShot": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
+  "hover.thrust": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
+  "hover.scrape": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
+  "hover.deadCentre": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
+  "hover.shieldShatter": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

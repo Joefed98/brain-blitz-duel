@@ -1,4 +1,6 @@
 import { heldHorizontal, useGameKeys } from "@/lib/desktop";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import { RALLY_REV_LIVES } from "@/lib/arcade/rally";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { rallyAmbient, rallyFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -46,31 +48,21 @@ import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still (rallyRev 10): the pink pads, a gold bonus target with its countdown ring, a return aimed at it. */
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, with no input, the first balls in play.
+ */
 function IntroExample() {
+  const game = { ...rallyGameFor(RALLY_REV_LIVES), draw: rallyArtGame.draw };
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 168 120"
-        width={168}
-        height={120}
-        aria-hidden="true"
-        style={{ background: RALLY_BG, borderRadius: 10 }}
-      >
-        <path d="M120 98 L104 44" stroke={RALLY_GOLD} strokeWidth={1.5} fill="none" strokeDasharray="4 3" />
-        <circle cx={120} cy={94} r={6} fill={RALLY_BALL} />
-        <rect x={98} y={102} width={44} height={8} rx={3} fill="#3DFFE0" />
-        <circle cx={102} cy={38} r={9} fill="#2A1E05" stroke={RALLY_GOLD} strokeWidth={1.5} />
-        <circle cx={102} cy={38} r={5} fill="none" stroke={RALLY_GOLD} strokeWidth={1.5} />
-        <circle cx={102} cy={38} r={1.8} fill={RALLY_GOLD} />
-        <path d="M102 26 A12 12 0 1 1 90 38" stroke={RALLY_GOLD} strokeWidth={1.5} fill="none" />
-        <circle cx={48} cy={70} r={6} fill={RALLY_GOLD} />
-        <rect x={30} y={6} width={26} height={4} fill="#FF6FD8" />
-        <rect x={112} y={6} width={26} height={4} fill="#FF6FD8" />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Hit the gold target before its ring runs out; gold balls score on the pink pads.
-      </p>
-    </div>
+    <ArtStill
+      game={game}
+      worldW={rallyWorldWFor(RALLY_REV_LIVES)}
+      worldH={rallyWorldHFor(RALLY_REV_LIVES)}
+      ticks={150}
+      input={null}
+      caption="Return the balls; gold balls score on the pink pads. Swipe as you hit to curl a shot. Two lives."
+    />
   );
 }
 

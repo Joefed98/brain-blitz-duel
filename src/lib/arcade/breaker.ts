@@ -1025,13 +1025,13 @@ export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's brkRev plays in. */
 export function breakerWorldHFor(rev?: number | null): number {
-  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD) return BRK_V9_H;
+  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD || rev === BRK_REV_CLEAR) return BRK_V9_H;
   return rev === BRK_REV_TALL || rev === BRK_REV_TARGET || rev === BRK_REV_STRICT ? BRK_TALL_H : BRK_WORLD_H;
 }
 
 /** The court width (px) a stored round's brkRev plays in. */
 export function breakerWorldWFor(rev?: number | null): number {
-  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD ? BRK_V9_W : BRK_WORLD_W;
+  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD || rev === BRK_REV_CLEAR ? BRK_V9_W : BRK_WORLD_W;
 }
 
 /* ================= Scoring targets (brkRev 7, 18 Oct 2026) ================= */

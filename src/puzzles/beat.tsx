@@ -1,4 +1,6 @@
 import { beatAmbient, beatFill } from "@/lib/arcade/arenaFills.renderer";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import { beatWorldH, BEAT_REV_FLOOR } from "@/lib/arcade/beat";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -64,39 +66,21 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 /** Rev 2: the sideways finger travel (screen px) that counts as a swipe. */
 const SWIPE_MIN_PX = 24;
 
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, with no input, the first notes falling to the lane buttons.
+ */
 function IntroExample() {
+  const game = { ...beatGameFor(BEAT_REV_FLOOR), draw: beatArtGame.draw };
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 168 120"
-        width={168}
-        height={120}
-        aria-hidden="true"
-        style={{ background: BEAT_BG, borderRadius: 10 }}
-      >
-        {[0, 1, 2, 3].map((lane) => (
-          <rect
-            key={lane}
-            x={12 + lane * 36}
-            y={6}
-            width={32}
-            height={108}
-            fill="rgba(255,255,255,0.04)"
-            rx={4}
-          />
-        ))}
-        <line x1={8} y1={92} x2={160} y2={92} stroke="rgba(255,255,255,0.4)" strokeWidth={2} />
-        <rect x={48} y={86} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[1]} />
-        <rect x={120} y={40} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[3]} />
-        {/* beatRev 9: a golden note and the fever meter. */}
-        <rect x={12} y={30} width={32} height={12} rx={4} fill="#FFF2B0" stroke="#FFD84A" strokeWidth={2} />
-        <rect x={12} y={8} width={144} height={6} rx={3} fill="rgba(255,255,255,0.12)" />
-        <rect x={12} y={8} width={100} height={6} rx={3} fill="#FF4FD8" />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Tap the lane as its note meets the line; fill the meter and tap it for FEVER.
-      </p>
-    </div>
+    <ArtStill
+      game={game}
+      worldW={BEAT_WORLD_W}
+      worldH={beatWorldH(game.init(7))}
+      ticks={300}
+      input={null}
+      caption="Tap a lane as its note reaches the button on the line. Swipe the arrow notes; hold the long ones."
+    />
   );
 }
 

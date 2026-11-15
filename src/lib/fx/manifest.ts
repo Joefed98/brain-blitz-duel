@@ -722,6 +722,11 @@ const ENTRIES = {
   "hover.crash": { channel: "effects", frequency: 0, ms: 260, url: null },
   "hover.gate": { channel: "effects", frequency: 0, ms: 90, url: null },
   "hover.star": { channel: "effects", frequency: 0, ms: 120, url: null },
+  // The Retro overhaul (stage 2, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): library stand-ins until Joe's files.
+  "hover.thrust": { channel: "effects", frequency: 0, ms: 60, url: null },
+  "hover.scrape": { channel: "effects", frequency: 0, ms: 150, url: null },
+  "hover.deadCentre": { channel: "effects", frequency: 0, ms: 250, url: null },
+  "hover.shieldShatter": { channel: "effects", frequency: 0, ms: 450, url: null },
   "cross.lifeLost": { channel: "effects", frequency: 0, ms: 350, url: "/sounds/cross.lifeLost.mp3" },
   "cross.crossed": { channel: "effects", frequency: 0, ms: 607, url: "/sounds/cross.crossed.mp3" },
   "cross.hop": { channel: "effects", frequency: 0, ms: 487, url: "/sounds/cross.hop.mp3", gapMs: 90 },

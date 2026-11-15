@@ -9,7 +9,7 @@ import { flipDealSeed } from "./flipDeal.server";
 import { CROSS_REV_KEEP } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
-import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_WRAP } from "@/lib/arcade/snake";
+import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_SIZES } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
@@ -21,7 +21,7 @@ import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_WIDE } from "@/lib/arcade/burst";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_JOULZ } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
@@ -196,8 +196,9 @@ export function generateSnake(): SnakePuzzleData {
   // snakeRev 10 (Joe's phone notes, 27 Oct 2026): longer gold stars, a third wormhole pair, a second vertical lane, 2 × 2 rocks.
   // snakeRev 11 (the arcade scoring standard, 29 Oct 2026): snakeRev 10's play, scored in straight-line parts to 200.
   // snakeRev 12 (1 Nov 2026): snakeRev 11 with gold stars counting 2 towards the core, full at 20.
-  // snakeRev 13 (the Retro overhaul, 15 Nov 2026): the edges wrap; the core full at 36 (preRetro: snakeRev 12).
-  return { type: "snake", seed: arcadeSeed(), snakeRev: dealPinned("preRetro") ? SNAKE_REV_12 : SNAKE_REV_WRAP };
+  // snakeRev 14 (the Retro overhaul, 15 Nov 2026): snakeRev 13's wrapping edges and core full at 36, with rocks in three
+  // sizes (preRetro: snakeRev 12).
+  return { type: "snake", seed: arcadeSeed(), snakeRev: dealPinned("preRetro") ? SNAKE_REV_12 : SNAKE_REV_SIZES };
 }
 
 export function generateCross(): CrossPuzzleData {
@@ -389,8 +390,8 @@ export function generateBurst(): BurstPuzzleData {
   // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
   // burstRev 11 (the scoring audit, Nov 2026): burstRev 10's play; the last life not charged, wasted beams beyond one an atom cost.
   // burstRev 12 (the Retro overhaul, 15 Nov 2026): burstRev 11's play; the wave-clear bonus runs out at three times the
-  // quick time (checks written for burstRev 11 pin preRetro).
-  return { type: "burst", seed: arcadeSeed(), burstRev: dealPinned("preRetro") ? BURST_REV_AIM : BURST_REV_WIDE };
+  // quick time; burstRev 13 adds bigger atoms (checks written for burstRev 11 pin preRetro).
+  return { type: "burst", seed: arcadeSeed(), burstRev: dealPinned("preRetro") ? BURST_REV_AIM : BURST_REV_BIG };
 }
 
 /**

@@ -540,8 +540,9 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
   });
   // The jackpot standup's insert, lit through multiball.
   if (p4JackpotLit(s)) {
-    if (glow) pool(ctx, P4_MID_X + 9, JACKPOT_INSERT_Y, 30, "rgba(255,77,255,A)", 0.35 + 0.1 * pulse);
-    ovalPath(ctx, P4_MID_X + 9, JACKPOT_INSERT_Y, 30, 7);
+    if (glow) pool(ctx, P4_MID_X + 9, JACKPOT_INSERT_Y, 42, "rgba(255,77,255,A)", 0.35 + 0.1 * pulse);
+    // 42 wide each side since the Retro overhaul (15 Nov 2026): the 11 px JACKPOT label sits inside the lit insert.
+    ovalPath(ctx, P4_MID_X + 9, JACKPOT_INSERT_Y, 42, 8);
     ctx.fillStyle = blink(t, 200) ? "#FF9BFF" : "#FF4DFF";
     ctx.fill();
   }

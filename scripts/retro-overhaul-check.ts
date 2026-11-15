@@ -77,17 +77,17 @@ import {
 import { bot as burstBot } from "./arcade-skill-bands/bots/burst";
 import { replayBurstRun } from "../src/lib/duel/burst";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { burstGameFor, burstV10ClearPoints, BURST_CHECKPOINT_INTERVAL, BURST_REV_AIM, BURST_REV_WIDE, type BurstState } from "../src/lib/arcade/burst";
+import { burstGameFor, burstRadius, burstV10ClearPoints, BURST_CHECKPOINT_INTERVAL, BURST_RADIUS, BURST_RADIUS_BIG, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_WIDE, type BurstState } from "../src/lib/arcade/burst";
 import { bot as pinballBot } from "./arcade-skill-bands/bots/pinball";
 import { replayPinballRun } from "../src/lib/duel/pinball";
 import { pinballGameForAny } from "../src/lib/arcade/pinball4";
 import { PIN_REV_JOULZ, PIN_REV_STD } from "../src/lib/arcade/pinball";
 import { bot as snakeBot } from "./arcade-skill-bands/bots/snake";
 import { replaySnakeRun } from "../src/lib/duel/snake";
-import { snakeColsOf, snakeGameFor, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, type SnakeState } from "../src/lib/arcade/snake";
+import { snakeCol, snakeColsOf, snakeGameFor, snakeRockShape, snakeRockSpan, snakeRow, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_SIZES, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS, SNAKE_V14_MID_ROCKS, type SnakeState } from "../src/lib/arcade/snake";
 import { bot as breakerBot } from "./arcade-skill-bands/bots/breaker";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
-import { breakerGameFor, brkGoldDealt, BRK_REV_CLEAR, BRK_REV_STD, type BrkState } from "../src/lib/arcade/breaker";
+import { breakerGameFor, breakerWorldHFor, breakerWorldWFor, brkGoldDealt, BRK_REV_CLEAR, BRK_REV_STD, type BrkState } from "../src/lib/arcade/breaker";
 import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { bot as wavefrontBot } from "./arcade-skill-bands/bots/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
@@ -277,11 +277,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 
 /* ============================ Fission burstRev 12 ============================ */
 {
-  ok((generatePuzzle("burst") as any).burstRev === BURST_REV_WIDE && BURST_REV_WIDE === BURST_REV_AIM + 1, "burst: rooms deal burstRev 12");
+  // Rooms deal burstRev 13 (bigger atoms, its own section below); burstRev 12's rules stay proved here on its own stamp.
+  ok((generatePuzzle("burst") as any).burstRev === BURST_REV_BIG && BURST_REV_BIG === BURST_REV_WIDE + 1 && BURST_REV_WIDE === BURST_REV_AIM + 1, "burst: rooms deal burstRev 13 (burstRev 12 one below it)");
   pinPreRetro(true);
   ok((generatePuzzle("burst") as any).burstRev === BURST_REV_AIM, "burst: preRetro deals burstRev 11");
   pinPreRetro(false);
-  ok(LIVE_BANDS.burst.rev === BURST_REV_WIDE && playRevOf("burst", BURST_REV_WIDE) === playRevOf("burst", BURST_REV_AIM), "burst: LIVE_BANDS reads burstRev 12, burstRev 11's play");
+  ok(LIVE_BANDS.burst.rev === BURST_REV_BIG && playRevOf("burst", BURST_REV_WIDE) === playRevOf("burst", BURST_REV_AIM), "burst: LIVE_BANDS reads burstRev 13; burstRev 12 keeps burstRev 11's play");
   ok(/down to 0 at three times that/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.burst)), "burst: the help says the bonus runs out at three times the quick time");
   ok(burstGameFor(BURST_REV_WIDE).runTicks <= 120 * TICKS_PER_SECOND, "burst: the run is at most 120 s");
   const q = 200;
@@ -369,11 +370,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 
 /* ============================ Meteor snakeRev 13 ============================ */
 {
-  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_WRAP && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 13");
+  // Rooms deal snakeRev 14 (rocks in three sizes, its own section below); snakeRev 13's wrap stays proved here on its own stamp.
+  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_SIZES && SNAKE_REV_SIZES === SNAKE_REV_WRAP + 1 && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 14 (snakeRev 13 one below it)");
   pinPreRetro(true);
   ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_12, "snake: preRetro deals snakeRev 12");
   pinPreRetro(false);
-  ok(LIVE_BANDS.snake.rev === SNAKE_REV_WRAP && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 13's core line");
+  ok(LIVE_BANDS.snake.rev === SNAKE_REV_SIZES && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 14, on snakeRev 13's core line");
   ok(/edges wrap/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)) && !/Hit a wall/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)), "snake: the help says the edges wrap, not that a wall ends the run");
   const g12 = snakeGameFor(SNAKE_REV_12);
   const g13 = snakeGameFor(SNAKE_REV_WRAP);
@@ -430,6 +432,138 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   ok(walled >= 2, `snake: ${walled} wall crashes turned into wraps`);
 }
 
+/* ============================ Meteor snakeRev 14: rocks in three sizes ============================ */
+{
+  const g13 = snakeGameFor(SNAKE_REV_WRAP);
+  const g14 = snakeGameFor(SNAKE_REV_SIZES);
+  ok(g14.runTicks <= 120 * TICKS_PER_SECOND && g14.runTicks === g13.runTicks, "snake 14: the run is snakeRev 13's, at most 120 s");
+  ok(/three sizes/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)) && JSON.stringify(PUZZLE_INSTRUCTIONS.snake).includes(`all of it at ${SNAKE_V13_CORE_STARS} stars`), "snake 14: the help says the rocks come in three sizes, and the stars part fills at 36");
+  const shapes = new Map<string, number>();
+  for (let n = 0; n < 200; n++) {
+    const seed = 1000 + n * 7919;
+    const a = g13.init(seed) as SnakeState;
+    const b = g14.init(seed) as SnakeState;
+    const again = g14.init(seed) as SnakeState;
+    if (JSON.stringify(b) !== JSON.stringify(again)) ok(false, `snake 14 seed ${seed}: the deal is the same every time`);
+    const { midRocks, midRocksV, rockSlots, rng, ...rest14 } = b;
+    const { rockSlots: slots13, rng: rng13, ...rest13 } = a;
+    if (sorted(rest14) !== sorted(rest13)) ok(false, `snake 14 seed ${seed}: everything but the rock slots is snakeRev 13's world`);
+    void rng; void rng13;
+    const mids = [...(midRocks ?? []), ...(midRocksV ?? [])];
+    if (mids.length !== SNAKE_V14_MID_ROCKS) ok(false, `snake 14 seed ${seed}: ${mids.length} middle rocks (want ${SNAKE_V14_MID_ROCKS})`);
+    const cols = snakeColsOf(b);
+    const rows = snakeRowsOf(b);
+    const stars = new Set(b.queue);
+    const gold = new Set((b.golds ?? []).map((g) => g.cell));
+    const all = (rockSlots ?? []).map((sl) => snakeRockSpan(b, sl.cell));
+    for (let i = 0; i < (rockSlots ?? []).length; i++) {
+      const before = slots13![i]!;
+      const after = rockSlots![i]!;
+      ok(after.tick === before.tick, `snake 14 seed ${seed}: slot ${i} lands on the same tick`);
+      if (!mids.includes(after.cell) && after.cell !== before.cell) ok(false, `snake 14 seed ${seed}: slot ${i} keeps its square unless it grew`);
+      if (mids.includes(after.cell) && !snakeRockSpan(b, after.cell).includes(before.cell)) ok(false, `snake 14 seed ${seed}: middle rock ${i} covers its slot's square`);
+    }
+    for (const m of mids) {
+      const [w, h] = snakeRockShape(b, m);
+      shapes.set(`${w}x${h}`, (shapes.get(`${w}x${h}`) ?? 0) + 1);
+      const span = snakeRockSpan(b, m);
+      ok(span.length === 2, `snake 14 seed ${seed}: a middle rock covers two squares`);
+      for (const c of span) {
+        const r = snakeRow(c, cols), col = snakeCol(c, cols);
+        if (r < 1 || col < 1 || r > rows - 2 || col > cols - 2) ok(false, `snake 14 seed ${seed}: middle rock square ${c} is off the border`);
+        if (stars.has(c) || gold.has(c) || (b.warps ?? []).includes(c)) ok(false, `snake 14 seed ${seed}: middle rock square ${c} is clear of stars, gold stars and mouths`);
+      }
+      for (const other of all) {
+        if (other.includes(m)) continue;
+        for (const c of span) for (const o of other)
+          if (Math.abs(snakeRow(c, cols) - snakeRow(o, cols)) <= 1 && Math.abs(snakeCol(c, cols) - snakeCol(o, cols)) <= 1) ok(false, `snake 14 seed ${seed}: middle rock touches another rock`);
+      }
+    }
+  }
+  ok((shapes.get("2x1") ?? 0) > 100 && (shapes.get("1x2") ?? 0) > 100, `snake 14: both middle shapes are dealt (${JSON.stringify([...shapes])})`);
+  // The rule: a landed middle rock blocks both its squares, as a wall the head may not enter.
+  {
+    const s0 = g14.init(4242) as SnakeState;
+    const cols = snakeColsOf(s0);
+    const m = (s0.midRocks ?? [])[0] ?? -1;
+    ok(m >= 0, "snake 14: seed 4242 has a 2 × 1 rock");
+    if (m >= 0) {
+      const second = m + 1;
+      // The head two squares left of the rock's second square would step into its first; one square above the second
+      // square, heading down, steps into the second.
+      const above = second - cols;
+      const st = { ...s0, rocks: [m], body: [above, above - cols, above - 2 * cols], dir: 2, nextDir: 2, sinceMove: 1_000 } as SnakeState;
+      let x = st;
+      for (let k = 0; k < 60 && !x.dead && x.body[0] === above; k++) x = g14.step(x, null) as SnakeState;
+      ok(x.dead && x.rockHit === 1, `snake 14: stepping into a 2 × 1 rock's second square ends the run (dead ${x.dead}, rockHit ${x.rockHit})`);
+    }
+  }
+  const spec = GAME_BY_TYPE.get("snake" as never)!;
+  for (const level of ["weak", "average", "good", "near", "elite"] as const)
+    for (let n = 0; n < 4; n++) {
+      const seed = spec.seedFor(n);
+      const tag = `snake 14 ${level} seed ${seed}`;
+      const out = snakeBot({ game: g14, seed, rev: SNAKE_REV_SIZES, human: new Human("snake", seed, level as never), fixes: true });
+      const events = out.events ?? [];
+      const by = new Map(events.map((e: any) => [e.t, e]));
+      let s = g14.init(seed) as SnakeState;
+      const checkpoints: unknown[] = [];
+      while (!g14.isOver(s)) {
+        s = g14.step(s, by.get(s.tick + 1) ?? null) as SnakeState;
+        if (s.tick % 300 === 0) checkpoints.push(spec.checkpoint(s));
+      }
+      const score = g14.score(s);
+      const raw = spec.encode({ seed, claimedScore: score, events, endTick: s.tick, checkpoints }, SNAKE_REV_SIZES, seed);
+      const res = replaySnakeRun(seed, raw, SNAKE_REV_SIZES);
+      ok(!res.flagged && res.score === score, `${tag}: replays through the server to ${score} (got ${res.score}${res.flagged ? ", flagged" : ""})`);
+    }
+}
+
+/* ============================ Fission burstRev 13: bigger atoms ============================ */
+{
+  const g12 = burstGameFor(BURST_REV_WIDE);
+  const g13 = burstGameFor(BURST_REV_BIG);
+  ok(g13.runTicks <= 120 * TICKS_PER_SECOND && g13.runTicks === g12.runTicks, "burst 13: the run is burstRev 12's, at most 120 s");
+  for (const seed of [1, 99, 4242]) {
+    const { big, ...rest } = g13.init(seed) as BurstState;
+    ok(big === 1 && sorted(rest) === sorted(g12.init(seed)), `burst 13 seed ${seed}: burstRev 13 starts from burstRev 12's exact start`);
+  }
+  ok(BURST_RADIUS_BIG.every((r, i) => r > BURST_RADIUS[i]!), "burst 13: every atom size is bigger");
+  ok(burstRadius({ big: 1 }, 0) === BURST_RADIUS_BIG[0] && burstRadius({}, 0) === BURST_RADIUS[0], "burst 13: burstRadius reads the state's size table");
+  // A beam just inside the bigger radius hits on burstRev 13 and passes by on burstRev 12.
+  {
+    const base = g12.init(4242) as BurstState;
+    const size = 2;
+    const off = BURST_RADIUS[size]! + 2;
+    const ball = { size, x: 200 * 256, y: 300 * 256, vx: 0, vy: 0 } as BurstState["balls"][number];
+    const shot = { x: 200 * 256 + off * 256, top: 300 * 256, short: 0 } as BurstState["shots"][number];
+    const mk = (big: boolean) => ({ ...base, ...(big ? { big: 1 } : {}), balls: [{ ...ball }], shots: [{ ...shot }], freeze: 1_000, invuln: 1_000 }) as BurstState;
+    const after12 = g12.step(mk(false), null) as BurstState;
+    const after13 = g13.step(mk(true), null) as BurstState;
+    ok(after12.hits === base.hits, "burst 13: a beam 2 px outside the old radius misses on burstRev 12");
+    ok(after13.hits > base.hits, `burst 13: the same beam hits on burstRev 13 (hits ${base.hits} → ${after13.hits})`);
+  }
+  const spec = GAME_BY_TYPE.get("burst" as never)!;
+  for (const level of ["weak", "average", "good", "near", "elite"] as const)
+    for (let n = 0; n < 3; n++) {
+      const seed = spec.seedFor(n);
+      const tag = `burst 13 ${level} seed ${seed}`;
+      const out = burstBot({ game: g13, seed, rev: BURST_REV_BIG, human: new Human("burst", seed, level as never), fixes: true });
+      const events = out.events ?? [];
+      const by = new Map(events.map((e: any) => [e.t, e]));
+      let s = g13.init(seed) as BurstState;
+      const checkpoints: unknown[] = [];
+      while (!g13.isOver(s)) {
+        s = g13.step(s, by.get(s.tick + 1) ?? null) as BurstState;
+        if (s.tick % BURST_CHECKPOINT_INTERVAL === 0) checkpoints.push(spec.checkpoint(s));
+      }
+      const score = g13.score(s);
+      const raw = spec.encode({ seed, claimedScore: score, events, endTick: s.tick, checkpoints }, BURST_REV_BIG, seed);
+      const res = replayBurstRun(seed, raw, BURST_REV_BIG);
+      ok(!res.flagged && res.score === score, `${tag}: replays through the server to ${score} (got ${res.score}${res.flagged ? ", flagged" : ""})`);
+    }
+}
+
 /* ============================ Breaker brkRev 12 ============================ */
 {
   ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_CLEAR && BRK_REV_CLEAR === BRK_REV_STD + 1, "breaker: rooms deal brkRev 12");
@@ -437,6 +571,8 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_STD, "breaker: preRetro deals brkRev 11");
   pinPreRetro(false);
   ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR, "breaker: the help reads brkRev 12");
+  // The stage's arena and its tap mapping read the stamp's world (brkRev 12 plays brkRev 11's 420 × 784 court).
+  ok(breakerWorldWFor(BRK_REV_CLEAR) === breakerWorldWFor(BRK_REV_STD) && breakerWorldHFor(BRK_REV_CLEAR) === breakerWorldHFor(BRK_REV_STD) && breakerWorldWFor(BRK_REV_CLEAR) === 420, "breaker: brkRev 12's arena is brkRev 11's 420 × 784 world");
   ok(/multi-ball/i.test(JSON.stringify(PUZZLE_INSTRUCTIONS.breaker)) && /9 rows/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.breaker)), "breaker: the help describes the 9-row wall and the multi-ball");
   const g11 = breakerGameFor(BRK_REV_STD);
   const g12 = breakerGameFor(BRK_REV_CLEAR);
@@ -571,9 +707,36 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   }
 }
 
+/* ============ No Retro text below 11 px (Joe, 15 Nov 2026), labels and pops included ============ */
+{
+  // Every text draw each Retro game's renderer makes over a weak and a near-perfect bot's run (a frame every 30 ticks,
+  // on any canvas, cached layers included), measured in the units it draws in (world pixels, as the HUD floor).
+  const { createCanvas, retroArtFor, retroRun, RETRO_TYPES, textRecorder } = await import("./retro-render-lib");
+  const rec = textRecorder();
+  for (const type of RETRO_TYPES) {
+    let draws = 0;
+    const small = new Set<string>();
+    for (const level of ["weak", "near"]) {
+      const run = await retroRun(type, { level, every: 30 });
+      const draw = await retroArtFor(type, run.rev);
+      for (const st of run.states) {
+        const ctx = createCanvas(390, 760).getContext("2d") as unknown as CanvasRenderingContext2D;
+        rec.start();
+        draw(ctx, st, { width: 390, height: 760 });
+        for (const t of rec.stop()) {
+          draws += 1;
+          if (!(t.px >= RETRO_HUD_MIN_PX)) small.add(`"${t.text}" at ${t.px} px`);
+        }
+      }
+    }
+    ok(draws > 0, `${type}: its renderer draws text (${draws} draws seen)`);
+    ok(small.size === 0, `${type}: no text below ${RETRO_HUD_MIN_PX} px${small.size ? ` (${[...small].slice(0, 6).join(", ")})` : ""}`);
+  }
+}
+
 if (failures.length) {
   for (const f of failures) console.log(`  ✗ ${f}`);
   console.log(`FAIL retro-overhaul-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; Breaker's clearable wall; Wavefront's charged shot; the Retro HUD floor)`);
+console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; Meteor's wrap; Breaker's clearable wall; Wavefront's charged shot; the Retro HUD floor; no Retro text below 11 px)`);

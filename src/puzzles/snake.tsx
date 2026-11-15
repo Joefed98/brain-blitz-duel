@@ -1,4 +1,6 @@
 import { useGameKeys, directionOf } from "@/lib/desktop";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import { SNAKE_REV_SIZES } from "@/lib/arcade/snake";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { snakeAmbient, snakeFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -44,57 +46,21 @@ import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: a short trail about to reach the star, and a rock's shadow. */
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, with no input, the comet heading off.
+ */
 function IntroExample() {
-  const body = [
-    [3, 2],
-    [3, 3],
-    [3, 4],
-  ];
+  const game = { ...snakeGameFor(SNAKE_REV_SIZES), draw: snakeArtGame.draw };
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 168 120"
-        width={168}
-        height={120}
-        aria-hidden="true"
-        style={{ background: SNAKE_BG, borderRadius: 10 }}
-      >
-        {Array.from({ length: 7 }, (_, col) =>
-          Array.from({ length: 5 }, (_, row) => (
-            <rect
-              key={`${col}-${row}`}
-              x={col * 24}
-              y={row * 24}
-              width={24}
-              height={24}
-              fill="none"
-              stroke="rgba(255,255,255,0.07)"
-            />
-          )),
-        )}
-        {body.map(([col, row], index) => (
-          <rect
-            key={index}
-            x={(col ?? 0) * 24 + 3}
-            y={(row ?? 0) * 24 + 3}
-            width={18}
-            height={18}
-            fill={index === 0 ? SNAKE_HEAD : SNAKE_BODY}
-          />
-        ))}
-        <path d="M84 30 L86 34 L91 36 L86 38 L84 42 L82 38 L77 36 L82 34 Z" fill="#FFD84A" />
-        <rect x={5 * 24 + 3} y={2 * 24 + 3} width={18} height={18} rx={4} fill="rgba(255,77,77,0.28)" stroke="rgba(255,77,77,0.7)" strokeDasharray="3 2" />
-        <rect x={5 * 24 + 2} y={4 * 24 + 2} width={20} height={20} rx={6} fill="#4A4750" stroke="#77747B" />
-        {/* snakeRev 9: a speed lane along the bottom row, a wormhole mouth and a gold star. */}
-        <rect x={0} y={4 * 24} width={4 * 24} height={24} fill="rgba(159,139,255,0.14)" stroke="rgba(159,139,255,0.5)" />
-        <circle cx={0 * 24 + 12} cy={1 * 24 + 12} r={9} fill="#05030C" stroke="#3DFFE0" strokeWidth={2} strokeDasharray="3 2" />
-        <path d="M156 56 L162 60 L156 64 L150 60 Z" fill="#E39A10" />
-        <path d="M156 54 L157 59 L161 60 L157 61 L156 66 L155 61 L151 60 L155 59 Z" fill="#FFF3C4" />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Swipe up for the star. Keep off the red shadows; wormholes, lanes and gold stars are your shortcuts.
-      </p>
-    </div>
+    <ArtStill
+      game={game}
+      worldW={snakeWorldWForRev(SNAKE_REV_SIZES)}
+      worldH={snakeWorldHForRev(SNAKE_REV_SIZES)}
+      ticks={140}
+      input={null}
+      caption="Swipe to turn. Eat the stars; the edges wrap, but rocks and your own tail don't."
+    />
   );
 }
 

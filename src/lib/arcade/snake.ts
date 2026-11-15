@@ -192,6 +192,12 @@ export interface SnakeState extends BandFields {
   gold2?: number;
   /** snakeRev 13 only (the Retro overhaul, 15 Nov 2026): 1 = the edges wrap (out one side, in the other in the same line). */
   wrap?: number;
+  /**
+   * snakeRev 14 only (the Retro overhaul, 15 Nov 2026): the room's middle-sized rocks, top-left squares of the 2 × 1
+   * (`midRocks`) and 1 × 2 (`midRocksV`) rocks; each is a rock slot's cell. Absent on every earlier round.
+   */
+  midRocks?: number[];
+  midRocksV?: number[];
 }
 
 /** Grid rows a state plays on: Tuning E's taller grid, or the original 20. */
@@ -609,6 +615,8 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
   if (state.gold2) extra.push(state.gold2);
   // snakeRev 13 (the Retro overhaul): the wrap marker and its core figure, last.
   if (state.wrap) extra.push(state.wrap);
+  // snakeRev 14: the middle-sized rocks after that, so every snakeRev 13 checksum is unchanged.
+  if (state.midRocks) extra.push(state.midRocks.length, ...state.midRocks, ...(state.midRocksV ?? []));
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -727,6 +735,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_SIZES) return snakeV14Game;
   if (rev === SNAKE_REV_WRAP) return snakeV13Game;
   if (rev === SNAKE_REV_12) return snakeV12Game;
   if (rev === SNAKE_REV_STD) return snakeStdGame;
@@ -780,7 +789,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP) return SNAKE_V9_H;
+  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES) return SNAKE_V9_H;
   return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET || rev === SNAKE_REV_STRICT ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
@@ -887,7 +896,7 @@ export function snakeWorldWOf(state: { cols?: number }): number {
 }
 /** The world width (px) a stored round's snakeRev plays in. */
 export function snakeWorldWForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
+  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
 }
 
 /** The other mouth of a wormhole, or the square itself when it is not a mouth. */
@@ -1131,7 +1140,10 @@ export const SNAKE_V10_BIG_ROCKS = 5;
 export const SNAKE_V10_PLAYED_MIN = 1;
 
 /** The squares a rock covers: its own, or (snakeRev 10's 2 × 2 rocks) its block's four. */
-export function snakeRockSpan(state: { bigRocks?: number[]; cols?: number }, rock: number): number[] {
+export function snakeRockSpan(state: { bigRocks?: number[]; cols?: number; midRocks?: number[]; midRocksV?: number[] }, rock: number): number[] {
+  // snakeRev 14: a middle-sized rock covers its square and the one beside (2 × 1) or below (1 × 2).
+  if (state.midRocks?.includes(rock)) return [rock, rock + 1];
+  if (state.midRocksV?.includes(rock)) return [rock, rock + snakeColsOf(state)];
   if (!state.bigRocks || !state.bigRocks.includes(rock)) return [rock];
   const cols = snakeColsOf(state);
   return [rock, rock + 1, rock + cols, rock + cols + 1];
@@ -1414,3 +1426,91 @@ export function snakeV13Core(stars: number): number {
 }
 
 export const snakeV13Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeV12Game, init: (seed) => ({ ...initV12(seed), wrap: 1 }) };
+
+/* ================= The Retro overhaul: rocks in three sizes (snakeRev 14, 15 Nov 2026) ================= */
+
+/**
+ * snakeRev 14 (the Retro overhaul, Joe, 15 Nov 2026: "varied Meteor rock sizes"; docs/arcade-standard/snake.md
+ * "snakeRev 14"): snakeRev 13's world, wrap, parts and scoring exactly, with the rocks in three sizes. After everything
+ * snakeRev 13 draws from the room seed, SNAKE_V14_MID_ROCKS of the single-square rock slots (from the second on, not the
+ * 2 × 2 ones) grow into a 2 × 1 or 1 × 2 rock where it fits: none on a star, gold star, mouth or the border, none
+ * touching the shower squares or another rock (snakeRev 10's rule for the 2 × 2 rocks). So a run holds small (1 × 1),
+ * middle (2 × 1 and 1 × 2) and large (2 × 2) rocks, the same for every player. Like every rock, one lands only for a
+ * meteor that has earned a rock and counts as one rock; its shadow shows on every square it will cover, and the head
+ * may not enter (or be under) any of them.
+ *
+ * States add `midRocks` and `midRocksV`, folded into the checkpoint checksum last.
+ */
+export const SNAKE_REV_SIZES = 14;
+export const SNAKE_V14_MID_ROCKS = 4;
+
+/** A rock's size in squares, [across, down]: 1 × 1, 2 × 1, 1 × 2 or 2 × 2. */
+export function snakeRockShape(state: { bigRocks?: number[]; midRocks?: number[]; midRocksV?: number[] }, rock: number): [number, number] {
+  if (state.midRocks?.includes(rock)) return [2, 1];
+  if (state.midRocksV?.includes(rock)) return [1, 2];
+  if (state.bigRocks?.includes(rock)) return [2, 2];
+  return [1, 1];
+}
+
+function initV14(seed: number): SnakeState {
+  const base = snakeV13Game.init(seed);
+  const cols = snakeColsOf(base);
+  const rows = snakeRowsOf(base);
+  let rng = base.rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const rowOf = (c: number) => snakeRow(c, cols);
+  const colOf = (c: number) => snakeCol(c, cols);
+  const touching = (a: number, b: number) => Math.abs(rowOf(a) - rowOf(b)) <= 1 && Math.abs(colOf(a) - colOf(b)) <= 1;
+  const stars = new Set(base.queue);
+  const warps = base.warps ?? [];
+  const goldCells = new Set((base.golds ?? []).map((g) => g.cell));
+  const shower = base.showerCells ?? [];
+  const big = new Set(base.bigRocks ?? []);
+  const slots = (base.rockSlots ?? []).map((slot) => ({ ...slot }));
+  const blocks = new Map<number, number[]>();
+  const cellsOf = (i: number): number[] => blocks.get(i) ?? (big.has(slots[i]!.cell) ? snakeRockSpan(base, slots[i]!.cell) : [slots[i]!.cell]);
+  const order = slots.map((_, i) => i).slice(1).filter((i) => !big.has(slots[i]!.cell));
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = draw(i + 1);
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  const midRocks: number[] = [];
+  const midRocksV: number[] = [];
+  for (const i of order) {
+    if (midRocks.length + midRocksV.length >= SNAKE_V14_MID_ROCKS) break;
+    const cell = slots[i]!.cell;
+    // Each of the four placements (across or down, the slot's square first or second), from a seeded start, as
+    // snakeRev 10 grows its 2 × 2 rocks.
+    const turn = draw(4);
+    for (let k = 0; k < 4; k++) {
+      const o = (turn + k) & 3;
+      const across = (o & 1) === 0;
+      const back = o >> 1;
+      const anchor = across ? cell - back : cell - back * cols;
+      const block = across ? [anchor, anchor + 1] : [anchor, anchor + cols];
+      const fits = block.every((b) => {
+        const r = rowOf(b);
+        const c = colOf(b);
+        return r >= 1 && c >= 1 && r <= rows - 2 && c <= cols - 2 && (across ? rowOf(anchor) === r : colOf(anchor) === c);
+      });
+      if (!fits) continue;
+      const clear = block.every(
+        (b) =>
+          !stars.has(b) && !goldCells.has(b) && !warps.includes(b) && !shower.some((sh) => touching(sh, b)) &&
+          slots.every((_, j) => j === i || cellsOf(j).every((o2) => !touching(o2, b))),
+      );
+      if (!clear) continue;
+      slots[i] = { ...slots[i]!, cell: anchor };
+      blocks.set(i, block);
+      (across ? midRocks : midRocksV).push(anchor);
+      break;
+    }
+  }
+  return { ...base, rng, rockSlots: slots, midRocks, midRocksV };
+}
+
+export const snakeV14Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeV13Game, init: initV14 };

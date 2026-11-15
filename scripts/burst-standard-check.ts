@@ -29,7 +29,8 @@ import { createHash } from "node:crypto";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human, ALL_LEVELS, type SkillLevel } from "./arcade-skill-bands/human";
 import { bot as burstBot } from "./arcade-skill-bands/bots/burst";
-import { entry, playOracle } from "./arcade-standard/burst";
+import { entry, playOracle, PERFECT_SEED } from "./arcade-standard/burst";
+import { BURST_REV_BIG } from "../src/lib/arcade/burst";
 import type { StdRun } from "./arcade-standard/entry";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
@@ -109,9 +110,11 @@ section("Rooms and practice deal burstRev 10");
 // The scoring audit (Nov 2026): rooms deal burstRev 11, burstRev 10's play and parts (scoring-audit-arcade-check).
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal burstRev 12, burstRev
 // 11's play with kinder wave clears (retro-overhaul-check), so the dealt stamp is compared by the play it keeps.
-ok(playRevOf("burst", generateBurst().burstRev) === playRevOf("burst", BURST_REV_STD + 1) && playRevOf("burst", (generatePuzzle("burst") as { burstRev?: number }).burstRev) === playRevOf("burst", BURST_REV_STD + 1), "rooms deal burstRev 11 (burstRev 10's play)");
-ok(playRevOf("burst", (burstPuzzle.generate() as { burstRev?: number }).burstRev) === playRevOf("burst", BURST_REV_STD + 1), "the practice definition deals burstRev 11 (burstRev 10's play)");
-ok(playRevOf("burst", LIVE_BANDS.burst.rev) === playRevOf("burst", BURST_REV_STD + 1) && LIVE_BANDS.burst.curve === BURST_V10_BAND_CURVE && roundMaxFor("burst") === 200, "LIVE_BANDS reads burstRev 10's core line, dealt as burstRev 11; ROUND_MAX 200");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal burstRev 13 (burstRev 12's
+// rules with bigger atoms, a new play), so the deal, the practice definition and the help compare exactly with it.
+ok(generateBurst().burstRev === BURST_REV_BIG && (generatePuzzle("burst") as { burstRev?: number }).burstRev === BURST_REV_BIG, "rooms deal burstRev 13 (burstRev 11 before the Retro overhaul)");
+ok((burstPuzzle.generate() as { burstRev?: number }).burstRev === BURST_REV_BIG, "the practice definition deals burstRev 13");
+ok(LIVE_BANDS.burst.rev === BURST_REV_BIG && LIVE_BANDS.burst.curve === BURST_V10_BAND_CURVE && roundMaxFor("burst") === 200, "LIVE_BANDS reads burstRev 10's core line, dealt as burstRev 13; ROUND_MAX 200");
 ok(burstWorldHFor(BURST_REV_STD) === BURST_TALL_H, "the 390 × 650 world");
 {
   const src = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
@@ -321,10 +324,13 @@ section("A perfect run scores 200");
 {
   const perfect = STANDARD.perfect();
   // The scoring audit (Nov 2026): the module names the dealt burstRev 11 (burstRev 10's play and parts).
-  ok(STANDARD.id === "burst" && STANDARD.stampKey === "burstRev" && STANDARD.stamp === BURST_REV_STD + 1, "the standard module names burstRev 11 (burstRev 10's play)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the standard entry follows the
+  // stamp rooms deal (arcade-standard-check proves an entry for it), so it names burstRev 13 (burstRev 10's parts), and
+  // its oracle's perfect seed was found again on burstRev 13's bigger atoms (PERFECT_SEED).
+  ok(STANDARD.id === "burst" && STANDARD.stampKey === "burstRev" && STANDARD.stamp === BURST_REV_BIG, "the standard module names burstRev 13, the dealt stamp (burstRev 10's parts)");
   ok(STANDARD.parts.reduce((a, p) => a + p.max, 0) === 200, "the parts' maxima add up to 200");
   ok(perfect.score === 200 && STANDARD.parts.every((p) => perfect.parts[p.key] === p.max), `the oracle's run scores 200 through the server replay, every part at its maximum (${JSON.stringify(perfect)})`);
-  const { state } = playOracle(1453580015);
+  const { state } = playOracle(PERFECT_SEED);
   ok(state.done === 1 && state.lives === BURST_LIVES && state.hits === BURST_V10_ATOMS && burstGoldenCount(state) === 5 && state.clearPts === BURST_V10_CLEAR_PER_WAVE * 5, "a complete run: 87 atoms, five quick waves, five golden atoms, no life lost");
 }
 

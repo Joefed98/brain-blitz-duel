@@ -1,4 +1,5 @@
 import { useMemo, useRef } from "react";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
@@ -26,13 +27,19 @@ export function blockzoneIntroState(): BfState {
   return { ...s, piece: { ...s.piece, y: s.piece.y + 6 }, clearTick: -100 };
 }
 
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, with no input, the first pieces landing.
+ */
 function IntroExample() {
   return (
-    <CardStill
-      width={BF_WORLD_W}
-      height={BF_WORLD_H}
-      draw={(ctx, size) => drawBlockfall(ctx, blockzoneIntroState(), size)}
-      caption="Drag sideways to move, tap to turn, drag down to speed it up, flick down to drop. Fill rows to clear them."
+    <ArtStill
+      game={blockfallArtGame(undefined, BLOCKFALL_REV_ZONE)}
+      worldW={BF_WORLD_W}
+      worldH={BF_WORLD_H}
+      ticks={520}
+      input={null}
+      caption="Drag to move, tap to turn, drag down to drop faster, flick to drop. Fill a row to clear it."
     />
   );
 }

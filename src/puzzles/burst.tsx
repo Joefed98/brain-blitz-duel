@@ -1,4 +1,5 @@
 import { heldHorizontal } from "@/lib/desktop";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { burstAmbient, burstFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useRef } from "react";
@@ -14,7 +15,7 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV_WIDE,
+  BURST_REV_BIG,
   BURST_V8_GOLDENS,
   BURST_V10_GOLDENS,
   burstStdParts,
@@ -50,27 +51,20 @@ import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/Arc
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Fixed intro still: the player, one large ball mid-bounce and a shot line. */
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, with no input, the first wave's atoms bouncing.
+ */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: BURST_BG, borderRadius: 10 }}>
-        <line x1={0} y1={116} x2={168} y2={116} stroke={BURST_TEAL} strokeWidth={2} />
-        <circle cx={104} cy={46} r={18} fill={BURST_COLOURS[0]} fillOpacity={.12} stroke={BURST_COLOURS[0]} strokeWidth={1} />
-        <ellipse cx={104} cy={46} rx={16.5} ry={7} transform="rotate(-30 104 46)" fill="none" stroke={BURST_COLOURS[0]} strokeWidth={1} />
-        <ellipse cx={104} cy={46} rx={16.5} ry={7} transform="rotate(45 104 46)" fill="none" stroke={BURST_COLOURS[0]} strokeWidth={1} />
-        <circle cx={104} cy={46} r={5} fill={BURST_COLOURS[0]} />
-        <path d="M60 50 Q84 0 104 28" fill="none" stroke={BURST_COLOURS[0]} strokeOpacity={0.3} strokeDasharray="3 4" />
-        <line x1={96} y1={116} x2={96} y2={70} stroke={BURST_GOLD} strokeWidth={2} />
-        <path d="M96 70 L99 74" stroke={BURST_GOLD} strokeWidth={2} />
-        <rect x={90} y={102} width={12} height={14} rx={5} fill={BURST_GOLD} />
-        <circle cx={96} cy={98} r={3} fill={BURST_GOLD} />
-        {/* burstRev 8: a golden atom with its countdown ring, and the clean counter. */}
-        <circle cx={34} cy={30} r={6} fill="#FFD84A" stroke="#FFF2B0" strokeWidth={1} />
-        <path d="M34 20 A10 10 0 1 1 24 30" fill="none" stroke="#FFD84A" strokeWidth={1.5} strokeDasharray="2 2" />
-        <text x={162} y={10} textAnchor="end" fontSize={8} fontFamily="monospace" fill="#7CFFB0">CLEAN 3/3</text>
-      </svg>
-       <p className="text-center text-xs text-muted-foreground">Fire straight up to split the atoms; clear a wave without a miss for a bonus.</p>
-    </div>
+    <ArtStill
+      game={burstArtGameFor(BURST_REV_BIG)}
+      worldW={BURST_WORLD_W}
+      worldH={burstWorldHFor(BURST_REV_BIG)}
+      ticks={150}
+      input={null}
+      caption="Fire straight up to split the atoms. Clear each wave quickly for a bonus; don't let one touch you."
+    />
   );
 }
 
@@ -188,7 +182,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_WIDE }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_BIG }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

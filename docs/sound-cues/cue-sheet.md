@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 37 | 0 | 488 | 525 |
+| game event | 37 | 0 | 491 | 528 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 38 | 42 |
+| fail sting | 4 | 0 | 39 | 43 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 63 | 1 | 985 | 1049 |
+| **all** | 63 | 1 | 989 | 1053 |
 
 ## Silent and placeholder cues
 
@@ -1547,8 +1547,12 @@ Grouped by game or screen.
 | `hover.newHazard` | The first two-gap barrier and the first moving barrier scroll into view (hoverRev 2+) [arcade-effects.md] | The new kind of barrier enters from the right | 0–2 | recorded sound | `hover.newHazard` | 600 | game event | `hover.newHazard` |
 | `hover.start` | Hover: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `hover.start` |
 | `hover.crash` | Hover: The craft crashes [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `hover.crash` |
-| `hover.gate` | Hover: A barrier is passed [arcade.md] |  | 20–60 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `hover.gate` |
+| `hover.gate` | Hover: A barrier is passed; since the Retro overhaul (15 Nov 2026) a semitone higher for each gate in a row passed without a scrape or a shield breaking, at most an octave [arcade.md] |  | 20–60 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `hover.gate` |
 | `hover.star` | Hover: A gold star is collected (hoverRev 2+) [arcade.md] |  | 3–10 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `hover.star` |
+| `hover.thrust` | Hover: Each tap: the thrust puff under the saucer (the Retro overhaul) [arcade.md] |  | every tap | recorded sound | `arc_retro_blip` (shared) | 60 | game event | `hover.thrust` |
+| `hover.scrape` | Hover: The saucer's edge passes within 3 px of a gap's edge: sparks off the barrier (the Retro overhaul; hoverScrape in retroMoments.ts) [arcade.md] |  | 0–20 | recorded sound | `arc_retro_blip` (shared) | 150 | game event | `hover.scrape` |
+| `hover.deadCentre` | Hover: A tight gate threaded dead centre: its rims flash gold (hoverRev 9+, the Retro overhaul) [arcade.md] |  | 0–10 | recorded sound | `arc_retro_coin` (shared) | 250 | fail sting | `hover.deadCentre` |
+| `hover.shieldShatter` | Hover: A shield shatters in place of a crash: glass shards round the saucer (hoverRev 9+, the Retro overhaul; was hover.crash) [arcade.md] |  | 0–3 | recorded sound | `arc_retro_hit` (shared) | 450 | game event | `hover.shieldShatter` |
 | `arc_hover_tap` | Hover: Each tap that lifts the craft [core.md] |  | 50–200 | recorded sound | `arc_hover_tap` | 110 | UI tap | `arc_hover_tap` |
 | `music.hover` | Hover: music_hover |  | loop | recorded sound | `music_hover` | loop | music | `music_hover` |
 
@@ -1962,10 +1966,10 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
-| `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
+| `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `hover.thrust`, `hover.scrape`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
+| `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `hover.deadCentre`, `snake.start`, `rally.start`, `beat.start` | 120 |
 | `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead`, `rally.lifeLost` | 260 |
-| `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
+| `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `hover.shieldShatter`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
 | `arc_fair_thud` | effects | `bullseye.thud` | 160 |
 | `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `bintoss.basket` | 200 |
