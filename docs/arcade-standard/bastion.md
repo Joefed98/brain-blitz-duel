@@ -43,6 +43,13 @@ oracle proof of 200 (`scripts/bastion-oracle.ts` on every level's seeds):
 Every level keeps the 60 s clock (under the 120 s rule), the grace (a run never ends on the first base hit) and Normal
 for rated rooms.
 
+**Challenges and the star after stage 3.** Stage 1 leaves play unchanged, so Iron Wall's four Classic challenges
+(Drone strike: all three drones; Hold the wall: the base untouched; Quick hands: ten fast reloads; Weak at the knees:
+30 weak-spot hits) and the 175 star were re-checked against today's game and stand as they are (practice-goals-check;
+the Near-perfect median is 180 on bastionRev 3, so a strong player can earn the star). Stage 3's Normal will be easier
+than today (today becomes Expert), so every challenge and the star are re-checked then against the new Normal, and any
+that must change get new text and number together (`bun scripts/challenge-catalogue-doc.ts`).
+
 ## The view (3 Nov 2026, the Action polish; display and input mapping only, no stamp)
 
 Joe's audit: about half the screen was sky, so the tanks, pips and weak spots were small and far. The view

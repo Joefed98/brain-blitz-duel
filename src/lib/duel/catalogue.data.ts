@@ -78,7 +78,7 @@ export const CATALOGUE_DATA: Record<PuzzleType, CatalogueEntry> = {
   shikaku: { name: "Shikaku", category: "logic", timeLimitMs: 90000, revealMs: 8000, revealHeading: "The solution", goal: "Cut the grid into rectangles, one number each." },
   lightup: { name: "Lamplighter", category: "logic", timeLimitMs: 90000, revealMs: 8000, revealHeading: "The solution", goal: "Place bulbs so every white square is lit." },
   wavefront: { name: "Wavefront", category: "arcade", timeLimitMs: 93000, revealMs: 6000, revealHeading: "Your run", goal: "Five waves and two bosses in 90 s." },
-  bastion: { name: "Iron Wall", category: "arcade", timeLimitMs: 63000, revealMs: 6000, revealHeading: "Your run", goal: "Hold the wall against five waves of tanks, and shoot down the drones." },
+  bastion: { name: "Iron Wall", category: "arcade", timeLimitMs: 63000, revealMs: 6000, revealHeading: "Your run", goal: "Hold the wall against five waves of tanks as the battlefield turns to smoke." },
   rooftop: { name: "Rooftop Run", category: "arcade", timeLimitMs: 63000, revealMs: 6000, revealHeading: "Your run", goal: "Survive the rooftops as long as you can." },
   flip: { name: "Roofbound", category: "arcade", timeLimitMs: 63000, revealMs: 6000, revealHeading: "Your run", goal: "Run the cave – flip to the other side to dodge, and land clean flips in a row." },
   junction: { name: "Junction", category: "arcade", timeLimitMs: 63000, revealMs: 6000, revealHeading: "Your run", goal: "Keep traffic moving, no crashes." },
