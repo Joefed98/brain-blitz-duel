@@ -206,10 +206,10 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   pinball: (p) => ({ game: pinballGameForAny(rev(p, "pinRev")) as AnyGame }),
   minesweeper: (p) => ({ game: minesweeperGameFor(rev(p, "minesRev")) as AnyGame }),
   mahjong: (p) => ({ game: mahjongGameFor(rev(p, "mahjongRev")) as AnyGame }),
-  homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev")) as AnyGame }),
+  homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev"), (p as { level?: string }).level) as AnyGame }),
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
   bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGameFor(rev(p, "bastionRev")) : bastionGame) as AnyGame }),
-  freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev")) as AnyGame }),
+  freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev"), (p as { level?: string }).level) as AnyGame }),
   racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
   freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
   tripeaks: (p) => ({ game: tripeaksGameFor(rev(p, "tripeaksRev")) as AnyGame }),

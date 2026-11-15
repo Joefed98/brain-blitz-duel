@@ -12,7 +12,9 @@ import {
   FREEKICK_REV_2,
   FREEKICK_REV_3,
   FREEKICK_REV_4,
+  FREEKICK_REV_5,
   FREEKICK_REV_STD,
+  fkLevelOf,
   type FreekickCheckpoint,
   type FreekickState,
 } from "@/lib/arcade/freekick";
@@ -32,6 +34,24 @@ const run = runFor(FREEKICK_REV_STD);
 const runV2 = runFor(FREEKICK_REV_2);
 const runV3 = runFor(FREEKICK_REV_3);
 const runV4 = runFor(FREEKICK_REV_4);
+/** freekickRev 5's run at each level. */
+const runsV5 = new Map<string, ReturnType<typeof runFor>>();
+function runV5(level?: string | null) {
+  const l = fkLevelOf(level);
+  let r = runsV5.get(l);
+  if (!r) {
+    r = makeArcadeRun<FreekickState, FreekickCheckpoint>({
+      tag: "freekick",
+      game: freekickGameFor(FREEKICK_REV_5, l),
+      checkpoint: freekickCheckpoint,
+      keys: FREEKICK_CHECKPOINT_KEYS,
+      interval: FREEKICK_CHECKPOINT_INTERVAL,
+      emptyIsZero: true,
+    });
+    runsV5.set(l, r);
+  }
+  return r;
+}
 
 export interface FreekickResult extends FlatReplay<FreekickState, FreekickCheckpoint> {
   /** Goals scored, kicks taken, targets hit, goals curled round the wall, the best run of goals. */
@@ -51,10 +71,13 @@ export interface FreekickResult extends FlatReplay<FreekickState, FreekickCheckp
 export const encodeFreekickRun = run.encode;
 export const decodeFreekickRun = run.decode;
 
-/** The single place a Top Bins score is worked out (freekickRev 4 and above play rev 4, 3 rev 3, 2 rev 2; anything else rev 1). */
-export function replayFreekickRun(seed: number, raw: string, rev?: number | null): FreekickResult {
+/**
+ * The single place a Top Bins score is worked out (freekickRev 5 at the stored level, 4 rev 4, 3 rev 3, 2 rev 2;
+ * anything else rev 1).
+ */
+export function replayFreekickRun(seed: number, raw: string, rev?: number | null, level?: string | null): FreekickResult {
   const r = rev ?? FREEKICK_REV_STD;
-  const result = (r >= FREEKICK_REV_4 ? runV4 : r >= FREEKICK_REV_3 ? runV3 : r >= FREEKICK_REV_2 ? runV2 : run).replay(seed, raw);
+  const result = (r >= FREEKICK_REV_5 ? runV5(level) : r >= FREEKICK_REV_4 ? runV4 : r >= FREEKICK_REV_3 ? runV3 : r >= FREEKICK_REV_2 ? runV2 : run).replay(seed, raw);
   const s = result.state;
   const taken = s.outs.filter((o) => o >= 0 && o !== FK_OUT_UNTAKEN).length;
   return {

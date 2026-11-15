@@ -2055,6 +2055,11 @@ export interface HomerunPuzzleData {
   seed: number;
   /** Rules revision (1 = the first run, on the arcade scoring standard). */
   homerunRev?: number;
+  /**
+   * The difficulty level it was dealt at (15 Nov 2026, homerunRev 5): absent for Normal (the rated level and every round
+   * before levels), else "easy" | "hard" | "expert" (the difficulty framework's stored form).
+   */
+  level?: string;
 }
 
 export interface FreekickPuzzleData {
@@ -2063,6 +2068,11 @@ export interface FreekickPuzzleData {
   seed: number;
   /** Rules revision (1 = the first run, on the arcade scoring standard). */
   freekickRev?: number;
+  /**
+   * The difficulty level it was dealt at (15 Nov 2026, freekickRev 5): absent for Normal (the rated level and every round
+   * before levels), else "easy" | "hard" | "expert" (the difficulty framework's stored form).
+   */
+  level?: string;
 }
 
 export interface RacingPuzzleData {

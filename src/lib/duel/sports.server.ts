@@ -10,8 +10,10 @@ import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
 import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
 import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { arcadeSeed } from "./arcade.server";
-import { homerunDealSeedV4 } from "./homerunDealV4.server";
-import { freekickDealSeedV4 } from "./freekickDealV4.server";
+import { homerunDealSeedV5 } from "./homerunDealV5.server";
+import { freekickDealSeedV5 } from "./freekickDealV5.server";
+import { hrLevelOf } from "@/lib/arcade/homerunInnings";
+import { fkLevelOf } from "@/lib/arcade/freekick";
 import { racingDealSeedV3 } from "./racingDealV3.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
@@ -22,15 +24,20 @@ import { POOL_BANK_V3 } from "./poolBankV3.server";
 import { ALLEYROLL_REV_DEALT } from "@/lib/arcade/alleyroll";
 import type { AlleyRollPuzzleData, CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
-export function generateHomerun(): HomerunPuzzleData {
-  // homerunRev 4 (3 Nov 2026, pick your spot): rev 4's own proved deal (homerunDealV4.server.ts); rev-3, rev-2 and rev-1
-  // rounds replay on their own revisions (their deal files stay as they were).
-  return { type: "homerun", seed: homerunDealSeedV4(arcadeSeed()), homerunRev: HOMERUN_REV_DEALT };
+/**
+ * homerunRev 5 (15 Nov 2026, the innings): the level's own proved deal (homerunDealV5.server.ts). `level` is the
+ * difficulty framework's (absent or "normal": Normal, stamped with no `level` field); rev 1–4 rounds replay on their own
+ * revisions (their deal files stay as they were).
+ */
+export function generateHomerun(level?: string | null): HomerunPuzzleData {
+  const l = hrLevelOf(level);
+  return { type: "homerun", seed: homerunDealSeedV5(arcadeSeed(), l), homerunRev: HOMERUN_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
-export function generateFreekick(): FreekickPuzzleData {
-  // Top Bins deals freekickRev 4 (3 Nov 2026, the drawn shot) from its own proved deal; rev-1 to rev-3 rounds replay on their own.
-  return { type: "freekick", seed: freekickDealSeedV4(arcadeSeed()), freekickRev: FREEKICK_REV_DEALT };
+/** Top Bins deals freekickRev 5 (15 Nov 2026, the layered kick) from the level's proved deal; rev 1–4 rounds replay on their own. */
+export function generateFreekick(level?: string | null): FreekickPuzzleData {
+  const l = fkLevelOf(level);
+  return { type: "freekick", seed: freekickDealSeedV5(arcadeSeed(), l), freekickRev: FREEKICK_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
 export function generateRacing(): RacingPuzzleData {

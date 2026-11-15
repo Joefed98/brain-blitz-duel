@@ -225,8 +225,9 @@ try {
 {
   const help = PUZZLE_INSTRUCTIONS.homerun?.score ?? "";
   ok(help.includes("Total 200."), `the help ends "Total 200." (${help})`);
-  // The help states the dealt revision's parts (homerunRev 4 since 3 Nov 2026).
-  for (const [label, max] of [["Distance", 120], ["Home runs", 40], ["Bonus signs", 20], ["Perfect streak", 20]] as const) ok(hasScorePart(help, label, max), `the help states "${label}: …, up to ${max}."`);
+  // The help states the dealt revision's parts (homerunRev 5 since 15 Nov 2026; routine consequence of the Home Run and
+  // Top Bins overhaul: the dealt revision moved, so its parts are the ones stated).
+  for (const [label, max] of [["Runs", 100], ["Home runs", 40], ["Perfect streak", 40], ["Good eye", 20]] as const) ok(hasScorePart(help, label, max), `the help states "${label}: …, up to ${max}."`);
 }
 
 /* 7. homerunRev 1 replays exactly as before. */
@@ -416,8 +417,10 @@ try {
 {
   const g4 = homerunGameFor(4);
   ok(g4.init(5).rev === HOMERUN_REV_4 && homerunGameFor(3).init(5).rev === 3, "homerunGameFor: rev 4 on 4, rev 3 on 3");
+  // Rooms deal homerunRev 5 since 15 Nov 2026 (homerun-innings-check proves that deal); rev 4's deal file is unchanged
+  // and every one of its seeds still a proved rev-4 seed (routine consequence of the Home Run and Top Bins overhaul).
   const dealt = generateHomerun();
-  ok(dealt.homerunRev === 4 && HOMERUN_DEAL_V4.includes(dealt.seed), "rooms deal homerunRev 4 from rev 4's proved deal");
+  ok(dealt.homerunRev === 5 && HOMERUN_DEAL_V4.length === 300, "rooms deal homerunRev 5; rev 4's proved deal is kept whole");
   // Rev 3's runs replay exactly as before (recorded on main 6326101 before rev 4).
   const fx = JSON.parse(readFileSync("scripts/fixtures/sports-nov3-legacy.json", "utf8")) as { runs: { type: string; rev: number; seed: number; label: string; raw: string; score: number; checksum: number; tick: number }[] };
   const runs = fx.runs.filter((r) => r.type === "homerun");

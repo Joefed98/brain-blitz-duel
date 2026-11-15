@@ -32,7 +32,8 @@
  *   - the meter and the slips as rev 3.
  */
 import { FK_AIM, FREEKICK_AIM_MAX, FREEKICK_CURL_MAX, FREEKICK_POWER_MAX, FREEKICK_REV_STD, fkSeedPlan, type FreekickState } from "../../../src/lib/arcade/freekick";
-import { FK_M, FREEKICK_FOCAL, FREEKICK_CAM_BACK, FREEKICK_REV_3, FREEKICK_REV_4 } from "../../../src/lib/arcade/freekick";
+import { FK_M, FREEKICK_FOCAL, FREEKICK_CAM_BACK, FREEKICK_REV_3, FREEKICK_REV_4, FREEKICK_REV_5, freekickGameLevel } from "../../../src/lib/arcade/freekick";
+import { fkPlanKickV5, fkV5CleanTicks, oracleRunV5, playShotsV5, type FkShot5 } from "../../freekick-oracle";
 import { fkPlanKick, fkPlanKickV3, fkPlanKickV4, FK_V3_CLEAN_TICKS, oracleRun, oracleShots, playShots, playShotsV3, playShotsV4, type FkPlans, type FkPlans3, type FkPlans4, type FkShot, type FkShot3, type FkTiming3, type FkTiming4 } from "../../freekick-oracle";
 import type { SkillLevel } from "../human";
 import type { SkillBot } from "../bot";
@@ -154,6 +155,7 @@ const botV4: SkillBot = (ctx) => {
 export const bot: SkillBot = (ctx) => {
   const h = ctx.human;
   const rev = ctx.rev ?? FREEKICK_REV_STD;
+  if (rev >= FREEKICK_REV_5) return botV5(ctx);
   if (rev >= FREEKICK_REV_4) return botV4(ctx);
   if (rev >= FREEKICK_REV_3) return botV3(ctx);
   if (h.level === "perfect") return { events: playShots(ctx.seed, oracleShots(ctx.seed, rev), [], rev).events };
@@ -189,6 +191,7 @@ export const bot: SkillBot = (ctx) => {
 export const randomBot: SkillBot = (ctx) => {
   const h = ctx.human;
   const rev = ctx.rev ?? FREEKICK_REV_STD;
+  if (rev >= FREEKICK_REV_5) return randomBotV5(ctx);
   if (rev >= FREEKICK_REV_4) {
     const n = fkSeedPlan(ctx.seed, rev).kicks.length;
     const shots = Array.from({ length: n }, () => ({ x: h.int(-372, 372), y: h.int(11, 250), b: h.int(-100, 100) }));
@@ -207,3 +210,66 @@ export const randomBot: SkillBot = (ctx) => {
 
 export type { FreekickState };
 void FK_AIM;
+
+/* ------------------------------------------------------------ freekickRev 5 */
+
+/** freekickRev 5: how well a level reads the wind flag (the share of the needed aim-off it gets wrong, sd). */
+const WIND_READ5: Record<SkillLevel, number> = { weak: 0.7, average: 0.5, good: 0.32, great: 0.2, near: 0.1, elite: 0.06, perfect: 0 };
+/** freekickRev 5: how often a stroke reads as another strike type than meant (a hook that went straight, a flick missed). */
+const STROKE_SLIP5: Record<SkillLevel, number> = { weak: 0.25, average: 0.15, good: 0.08, great: 0.04, near: 0.015, elite: 0.008, perfect: 0 };
+/** The aim-off a wind unit needs at the goal, cm (what the oracle's nudge comes to on a 25-yard kick). */
+const WIND_CM5 = 35;
+const plan5Cache = new Map<string, ReturnType<typeof fkPlanKickV5>[]>();
+
+/**
+ * freekickRev 5's kicker: plays the full shot with the level's chance (GO_FULL4), else the best-placed safe goal; the
+ * stroke's end lands with the pointing error, its bend with the curl error, the wind's aim-off misjudged by
+ * WIND_READ5 of it, the strike type misread by STROKE_SLIP5, and the meter struck with the timing spread.
+ */
+export const botV5: SkillBot = (ctx) => {
+  const h = ctx.human;
+  const level = freekickGameLevel(ctx.game);
+  if (h.level === "perfect") return { events: oracleRunV5(ctx.seed, level) };
+  const key = `${ctx.seed}:${level}`;
+  const kicks = fkSeedPlan(ctx.seed, FREEKICK_REV_5, level).kicks;
+  let plans = plan5Cache.get(key);
+  if (!plans) {
+    plans = kicks.map((k, i) => fkPlanKickV5(k, i, level, true));
+    if (plan5Cache.size > 200) plan5Cache.clear();
+    plan5Cache.set(key, plans);
+  }
+  const shots: (FkShot5 | null)[] = [];
+  const timing: FkTiming4[] = [];
+  const clean = fkV5CleanTicks(level);
+  kicks.forEach((k, i) => {
+    const p = plans![i]!;
+    const safe = [...p.goals].sort((a, b) => b.place - a.place)[0];
+    const goFull = p.full && h.chance(GO_FULL4[h.level]);
+    const base = (goFull ? p.full : safe ?? p.full ?? p.best)?.shot ?? { x: 0, y: 120, b: 0, st: 0 };
+    const cmPerPx = (100 * (Math.hypot(k.bx, k.bz) / FK_M + FREEKICK_CAM_BACK)) / FREEKICK_FOCAL;
+    let x = base.x + DRAW_END * h.aim(cmPerPx) + AIM_READ[h.level] * h.normal() + k.wind * WIND_CM5 * WIND_READ5[h.level] * h.normal();
+    const y = base.y + DRAW_END * h.aim(cmPerPx) + AIM_READ[h.level] * 0.6 * h.normal();
+    let b = base.b + h.aim(CURL_PER_PX) + CURL_READ4[h.level] * h.normal();
+    let st = base.st;
+    if (h.chance(STROKE_SLIP5[h.level])) st = (st + 1 + h.int(0, 1)) % 3;
+    let strike = clean + h.timingTicks();
+    if (h.slip()) {
+      const which = h.int(0, 2);
+      if (which === 0) x += (h.chance(0.5) ? 1 : -1) * (60 + 80 * h.u());
+      else if (which === 1) b += (h.chance(0.5) ? 1 : -1) * (30 + 40 * h.u());
+      else strike += (h.chance(0.5) ? 1 : -1) * (3 + h.int(0, 4));
+    }
+    shots.push({ x: Math.round(x), y: Math.round(y), b: Math.round(Math.max(-FREEKICK_CURL_MAX, Math.min(FREEKICK_CURL_MAX, b))), st });
+    timing.push({ think: Math.min(150, h.thinkTicks(1800)), powerGap: Math.min(60, h.thinkTicks(600)), strike: Math.max(1, strike) });
+  });
+  return { events: playShotsV5(ctx.seed, shots, level, timing).events };
+};
+
+/** freekickRev 5's random strokes. */
+export const randomBotV5: SkillBot = (ctx) => {
+  const h = ctx.human;
+  const level = freekickGameLevel(ctx.game);
+  const shots = Array.from({ length: 10 }, () => ({ x: h.int(-372, 372), y: h.int(11, 250), b: h.int(-100, 100), st: h.int(0, 2) }));
+  const timing = shots.map(() => ({ strike: h.int(1, 96) }));
+  return { events: playShotsV5(ctx.seed, shots, level, timing).events };
+};
