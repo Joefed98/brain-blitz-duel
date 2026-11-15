@@ -58,7 +58,7 @@ the server's enforcement all read the registry.
   `duels.selected_categories` after the others, and only when it isn't Normal, so every room saved before levels reads
   as it did. The room's start deals every round at that level (`buildRoomPuzzles` → `dealRounds`), so every player gets
   the same deal; a game without the level plays Normal. Only the host writes it (`changeRoomSettings`, validated).
-- **Tournaments**: `tournament_events.level` (default `normal`, migration `20261118100000_difficulty_levels.sql`). The
+- **Tournaments**: `tournament_events.level` (default `normal`, migration `20261118200000_difficulty_levels.sql`). The
   Score Attack deal reads it; no tournament rule changed, and the Arena and the Category Cup's matches deal Normal
   through the rated match builder.
 - **Rated matches and the Daily: always Normal.** Their deals name `modeLevel("rated" | "daily", …)`, which is Normal
