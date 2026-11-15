@@ -58,7 +58,7 @@ function usedChips(tray: readonly number[], slots: readonly GapSlot[], fills: re
 /** A reveal mark on one gap (GapLine `marks`). */
 export type GapMark = "ok" | "bad" | "miss" | "fix";
 
-function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark, marks }: {
+export function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark, marks }: {
   stage: EquationStage;
   fills: readonly (string | null)[];
   onGap?: ((k: number) => void) | undefined;

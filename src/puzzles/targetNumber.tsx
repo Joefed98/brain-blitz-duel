@@ -164,28 +164,22 @@ export const EXACT_RINGS = (
 
 function IntroExample() {
   const tiles = [75, 4, 6, 2, 10, 3];
+  // The Number overhaul (15 Nov 2026): the intro's still shows the round's own rendered plate and tiles.
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      <p className="text-center text-sm text-muted-foreground">
-        Use the six numbers to reach the target. Each number once; every step must be a whole
-        number.
-      </p>
-      <p className="font-mono text-5xl font-bold text-primary">462</p>
-      <div className="grid w-full max-w-[260px] grid-cols-3 gap-2">
+    <div data-polish="target" className="flex w-full flex-col items-center gap-3">
+      <PolishStyle id="target" css={EXACT_CSS} />
+      <div className="exact-plaque">
+        <p className="exact-label">Target</p>
+        <p className="exact-number" style={{ fontSize: 48 }}>462</p>
+      </div>
+      <div className="grid w-full max-w-[280px] grid-cols-3 gap-2">
         {tiles.map((tile, index) => (
-          <div
-            key={`${tile}-${index}`}
-            className={`flex h-12 items-center justify-center rounded-xl border border-border bg-card font-mono text-lg font-bold tabular-nums ${
-              isLarge(tile) ? "text-primary" : "text-foreground"
-            }`}
-          >
+          <div key={`${tile}-${index}`} className="exact-tile" data-large={isLarge(tile) ? "true" : undefined} style={{ height: 52, fontSize: 24 }}>
             {tile}
           </div>
         ))}
       </div>
-      <p className="text-center font-mono text-xs text-muted-foreground">
-        75 × 6 = 450 · 450 + 10 = 460 · 460 + 2 = 462
-      </p>
+      <p className="text-center text-sm font-semibold text-foreground">75 × 6 = 450 · 450 + 10 = 460 · 460 + 2 = 462</p>
       <p className="text-center text-xs text-muted-foreground">
         Hitting it scores 150, with more for speed and for using fewer numbers. Not exact: what you built towards it, or about 120 one away.
       </p>

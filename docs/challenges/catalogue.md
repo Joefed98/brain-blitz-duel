@@ -446,7 +446,7 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Sum total | Fill the grid with no wrong digits. | Classic | Clean | finish, `mistakes` = 0 |  | `kakuro.sum-total` |
+| Sum total | Fill the grid without breaking a rule. | Classic | Clean | finish, `mistakes` = 0 |  | `kakuro.sum-total` |
 | Mental arithmetic | Fill a Hard grid. | Hard | Finish | finish |  | `kakuro.mental-arithmetic` |
 | Human calculator | Fill the grid within 60 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 60 s) |  | `kakuro.human-calculator` |
 

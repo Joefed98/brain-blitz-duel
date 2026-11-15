@@ -335,7 +335,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("tendrop", "No overshoot", "Hit all ten without a reset.", "C", "clean", false, all(f("cleared", "gte", 10), f("resets", "eq", 0))),
   ch("tendrop", "Gold tens", "Hit all ten targets with a gold tile.", "C", "maxout", false, all(f("cleared", "gte", 10), f("goldTens", "gte", 10))),
   // Kakuro (kakuro): 150 + speed 40 (60 s) + clean grid 10.
-  ch("kakuro", "Sum total", "Fill the grid with no wrong digits.", "C", "clean", false, all(FIN, f("mistakes", "eq", 0))),
+  ch("kakuro", "Sum total", "Fill the grid without breaking a rule.", "C", "clean", false, all(FIN, f("mistakes", "eq", 0))),
   ch("kakuro", "Mental arithmetic", "Fill a Hard grid.", "H", "finish", false, all(FIN)),
   ch("kakuro", "Human calculator", "Fill the grid within 60 s.", "C", "speed", false, speed(40, 60)),
 
