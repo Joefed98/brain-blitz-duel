@@ -24,7 +24,7 @@ import { ratingText, tierColour, type RankView } from "@/lib/rated/tierDisplay";
 
 import { avatarKey, avatarMarkup, DEFAULT_AVATAR } from "./avatars";
 import { ensureCosmeticStyles, hasCosmetics, type AvatarCosmetics } from "./cosmetics";
-import { CARD_ARTS, CARD_CHROME_CSS, CARD_MOTION_CSS, FRAMES, NAME_COLOURS } from "./playerCardArt.data";
+import { CARD_ARTS, CARD_CHROME_CSS, CARD_MOTION_CSS, FRAMES, NAME_COLOURS } from "./liveArt";
 
 export const DEFAULT_CARD_ART = "card-art.joulz-navy";
 export const DEFAULT_FRAME = "frame.plain";

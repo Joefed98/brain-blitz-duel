@@ -19,6 +19,7 @@ import {
   type MinigolfState,
 } from "@/lib/arcade/minigolf";
 import { drawMinigolfCourse, drawMinigolfPlay, minigolfSceneFor, MINIGOLF_BG, MINIGOLF_VIEW_H, type MinigolfAim } from "@/lib/arcade/minigolf.renderer";
+import { courseArtKey } from "@/lib/arcade/skins/minigolfCourse";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
 import { MINIGOLF_FX } from "@/lib/arcade/sportsFx.renderer";
@@ -120,7 +121,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         background={MINIGOLF_BG}
         fitWorld
         scene={scene}
-        sceneKey={() => lookKey(lookRef.current)}
+        sceneKey={() => lookKey(lookRef.current) + courseArtKey()}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}
