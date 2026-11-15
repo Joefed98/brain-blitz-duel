@@ -20,6 +20,13 @@
  *      gem facets, neon beam and glows are gone; the reveal's own line is Yours-only "You: …" with no "×"; the Gems
  *      pill keeps the best shot; Par is shown in play.
  *   8. The sounds: every slot is in the manifest and fired by the game; each has a line in the ElevenLabs list.
+ *   9. The answer reveal.
+ *  10. The effects (stage 2, laserFx.ts on the kit): place = the kit's drop on the mirror's art, turn = a two-click
+ *      ratchet, a refused square shaken on its own art (never the board), Fire pulses the emitter and the beam draws
+ *      with a leading point, gems light in turn, the splitter pulses when reached, a bomb hit jolts the bomb, the near
+ *      miss pulses the dark gem and shows "1 gem dark" beside the Gems pill (not over the board) for its moment, out
+ *      of shots sounds and settles, the solve's win on the reveal's result card; each on its own moment only, the next
+ *      press taken during an effect, reduced motion the kit's crossfade, transform and opacity only.
  */
 import { readFileSync, statSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -464,6 +471,241 @@ const p4 = live[0]!;
   const css = src("src/polish-pattern/laser.css");
   check(/\.laser-reveal-board \{\s*width: min\(100%, calc\(100cqh - \d+px\)\);/.test(css), "reveal: the board isn't sized to the full width");
   check(!/data-yours-only/.test(src("src/puzzles/laser.tsx").split("function Reveal(")[1] ?? ""), "reveal: data-yours-only would leave the card without a width");
+}
+
+/* 10. The effects (stage 2, 15 Nov 2026; laserFx.ts on the effects kit). Each moment fires its effect on the piece's
+   own art and not on other moments; transform and opacity only; the next press is taken during an effect; reduced
+   motion is the kit's crossfade. */
+{
+  const { forceGameFxVariant, setGameFxSink } = await import("../src/lib/fx/kit");
+  const { LASER_NEAR_MISS_MS, LASER_TURN_MS, laserDarkGem } = await import("../src/components/puzzles/pattern/laserFx");
+  const { GoalLineContext } = await import("../src/components/duel/GameFrame");
+  type Rec = { el: Element; frames: Keyframe[]; options: KeyframeAnimationOptions };
+  const recs: Rec[] = [];
+  const eproto = (win as unknown as { Element: { prototype: Record<string, unknown> } }).Element.prototype;
+  const realAnimate = eproto["animate"];
+  eproto["animate"] = function (this: Element, frames: Keyframe[], options: KeyframeAnimationOptions | number) {
+    recs.push({ el: this, frames, options: typeof options === "number" ? { duration: options } : options });
+    return { cancel() {}, addEventListener() {}, finished: Promise.resolve() };
+  };
+  const kit: { kind: string; variant: string; silent: boolean }[] = [];
+  setGameFxSink((r) => kit.push({ kind: r.kind, variant: r.variant, silent: r.sound === null }));
+  const allowed = new Set(["transform", "opacity", "offset", "easing", "composite"]);
+  const onlyTransformOpacity = () => recs.every((r) => r.frames.every((f) => Object.keys(f).every((k) => allowed.has(k))));
+  const onPieces = () => !recs.some((r) => r.el.matches?.("[data-game-arena], [data-game-stage], .laser-board, .laser-board > .grid, button"));
+  const kinds = () => kit.map((k) => k.kind);
+  const clear = () => {
+    recs.length = 0;
+    kit.length = 0;
+    cues.length = 0;
+  };
+  // The near miss's pill clear (and only it) is held, so the pill can be read while it shows.
+  const held: (() => void)[] = [];
+  const zero = (win as unknown as { setTimeout: (fn: () => void, ms?: number) => number }).setTimeout;
+  (win as unknown as { setTimeout: unknown }).setTimeout = (fn: () => void, ms?: number) => {
+    if (ms === LASER_NEAR_MISS_MS) {
+      held.push(fn);
+      return 0;
+    }
+    return zero(fn, ms);
+  };
+  forceGameFxVariant("full");
+
+  // The stage, in a frame (the pills draw only there).
+  const stageIn = async (puzzle: LaserPuzzleData, key: string) => {
+    clearStageState(key);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host as unknown as Element);
+    await act(async () => {
+      root.render(React.createElement(GoalLineContext.Provider, { value: () => {} },
+        React.createElement(laserPuzzle.Stage, { puzzle, locked: false, onSubmit: () => {}, onDraftAnswer: () => {}, stateKey: key, phaseStartedAt: Date.now() } as never)));
+    });
+    const board = () => host.querySelector(".laser-board") as unknown as HTMLElement;
+    const down = async (cell: number) => act(async () => {
+      board().dispatchEvent(new win.PointerEvent("pointerdown", { bubbles: true, cancelable: true, ...centre(cell) }) as unknown as Event);
+    });
+    const up = async (cell: number) => act(async () => {
+      win.dispatchEvent(new win.PointerEvent("pointerup", { bubbles: true, ...centre(cell) }));
+    });
+    const button = (name: RegExp) => Array.from(host.querySelectorAll("button")).find((b) => name.test(b.textContent?.trim() ?? "")) as unknown as HTMLButtonElement;
+    const click = async (b: HTMLButtonElement) => {
+      await act(async () => {
+        b.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }) as unknown as Event);
+      });
+      await settle();
+    };
+    return { host, root, board, down, up, button, click };
+  };
+
+  // Place, turn, refuse, and a second press during the effect.
+  {
+    const s = await stageIn(p4, "fx-rev4");
+    const fixed = new Set([p4.source, ...p4.gems, ...p4.bombs, ...p4.blocks, ...(p4.splitters ?? [])]);
+    const free = Array.from({ length: 100 }, (_, i) => i).filter((c) => !fixed.has(c));
+    check(recs.length === 0 && kit.length === 0, `fx: the first draw animates (${recs.length}, ${kinds()})`);
+    clear();
+    await s.down(free[0]!);
+    const art0 = s.host.querySelector(`[data-mirror-cell="${free[0]}"]`);
+    check(kinds().join() === "drop" && kit[0]!.silent, `fx: a placement isn't the kit's silent drop (${kinds()})`);
+    check(!!art0 && recs.length === 1 && recs[0]!.el === art0, "fx: the drop isn't on the mirror's own art");
+    check(cues.includes("laser.place") && !cues.includes("laser.turn"), `fx: the placement's sound (${cues})`);
+    // The next press at once, while the drop still runs: taken.
+    await s.down(free[1]!);
+    check(s.host.querySelectorAll("[data-mirror]").length === 2, "fx: a press during the drop wasn't taken");
+    clear();
+    await s.down(free[0]!);
+    await s.up(free[0]!);
+    const turn = recs.filter((r) => r.el === s.host.querySelector(`[data-mirror-cell="${free[0]}"]`));
+    check(kit.length === 0 && turn.length === 1 && String(turn[0]!.frames[0]!.transform) === "rotate(-90deg)", `fx: the turn isn't the ratchet on the mirror's art (${kinds()}, ${turn.length})`);
+    check(turn[0]!.frames.length >= 4 && Number(turn[0]!.options.duration) === LASER_TURN_MS && LASER_TURN_MS <= 900, "fx: the turn isn't a two-click ratchet under 900 ms");
+    check(cues.includes("laser.turn") && !cues.includes("laser.place"), `fx: the turn's sound (${cues})`);
+    // A refused drop: the kit's shake on that square's art, never the board; no placement sound.
+    clear();
+    await s.down(p4.gems[0]!);
+    check(kinds().join() === "wrong" && kit[0]!.silent && recs[0]?.el.closest?.(`[data-laser-cell="${p4.gems[0]}"]`), `fx: a refused square isn't shaken on its own art (${kinds()})`);
+    check(!s.board().className.includes("animate-shake"), "fx: a refusal still shakes the whole board");
+    check(!cues.includes("laser.place"), "fx: a refused press sounds as a placement");
+    // A press that changes nothing (a drag dropped off the board from the tray) plays nothing.
+    clear();
+    await act(async () => {
+      s.button(/^Fire$/); // present
+    });
+    check(recs.length === 0 && kit.length === 0 && cues.length === 0, "fx: a redraw with nothing changed plays something");
+    // Undo of the turn turns it back (the ratchet again), Undo of a placement plays nothing.
+    await s.click(s.button(/^Undo$/));
+    check(recs.some((r) => String(r.frames[0]?.transform) === "rotate(-90deg)") && cues.includes("laser.turn"), "fx: Undo of a turn doesn't turn back");
+    clear();
+    await s.click(s.button(/^Undo$/));
+    check(kit.length === 0 && !cues.includes("laser.place"), "fx: taking a piece back plays a placement");
+    check(onPieces() && onlyTransformOpacity(), "fx: an effect moves the board, a button, or something other than transform and opacity");
+    // Fire: the emitter pulses (the hum is laser.fire), the beam draws.
+    clear();
+    await s.click(s.button(/^Fire$/));
+    check(cues.filter((c) => c === "laser.fire").length === 1, `fx: Fire's hum (${cues})`);
+    check(kit.some((k) => k.kind === "tap" && k.silent) && recs.some((r) => r.el.matches?.(".laser-emitter")), "fx: the emitter doesn't pulse as the beam leaves it");
+    check(onPieces() && onlyTransformOpacity(), "fx: the shot's effects move the board or something other than transform and opacity");
+    await act(async () => s.root.unmount());
+  }
+
+  // The board's moments on their own: gems lighting in turn, the splitter reached, a bomb hit, the beam's head.
+  {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host as unknown as Element);
+    const base = { source: 0, dir: "R", gems: [3, 6, 9], bombs: [44], blocks: [], splitters: [5], directionalGems: [], placed: [], live: true };
+    const draw = (props: Record<string, unknown>) => act(async () => {
+      root.render(React.createElement(LaserBoard, { ...base, ...props } as never));
+    });
+    await draw({ beam: null, litGems: [] });
+    clear();
+    await draw({ beam: [[0, 1, 2, 3, 4]], litGems: [3], beamDrawing: true });
+    check(kit.filter((k) => k.kind === "combo").length === 1 && recs.some((r) => r.el.closest?.('[data-laser-cell="3"]')), `fx: the first gem doesn't light up on its own art (${kinds()})`);
+    check(host.querySelectorAll("[data-beam-head]").length === 1, "fx: the drawing beam has no leading point");
+    clear();
+    await draw({ beam: [[0, 1, 2, 3, 4, 5]], litGems: [3], beamDrawing: true });
+    check(kinds().join() === "tap" && recs.some((r) => r.el.closest?.('[data-laser-cell="5"]')), `fx: the splitter doesn't pulse when the beam reaches it (${kinds()})`);
+    clear();
+    await draw({ beam: [[0, 1, 2, 3, 4, 5]], litGems: [3], beamDrawing: true });
+    check(kit.length === 0 && recs.length === 0, "fx: a step with nothing new plays something");
+    await draw({ beam: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]], litGems: [3, 6, 9], beamDrawing: false });
+    check(kit.filter((k) => k.kind === "combo").length === 2, `fx: gems 2 and 3 don't light in turn (${kinds()})`);
+    check(host.querySelectorAll("[data-beam-head]").length === 0, "fx: the finished beam still has a leading point");
+    clear();
+    await draw({ beam: [[0, 1, 2, 3, 4, 5, 15, 25, 35, 45]], litGems: [3], bombFlash: true });
+    check(kit.some((k) => k.kind === "wrong" && k.silent) && recs.some((r) => r.el.matches?.(".laser-bomb-hit")), `fx: the bomb hit doesn't jolt the bomb (${kinds()})`);
+    check(onPieces() && onlyTransformOpacity(), "fx: the board's effects move the board or something other than transform and opacity");
+    // Reduced motion: each change still shows, as the kit's crossfade (no particles, nothing moves).
+    forceGameFxVariant("reduced");
+    await draw({ beam: null, litGems: [], bombFlash: false, placed: [] });
+    clear();
+    await draw({ beam: null, litGems: [], placed: [{ cell: 22, kind: "/" }] });
+    await draw({ beam: null, litGems: [], placed: [{ cell: 22, kind: "\\" }] });
+    await draw({ beam: [[0, 1, 2, 3]], litGems: [3], placed: [{ cell: 22, kind: "\\" }] });
+    check(kinds().join() === "drop,tap,tap,combo" && kit.every((k) => k.variant === "reduced"), `fx: reduced motion isn't the kit's crossfade (${kit.map((k) => `${k.kind}:${k.variant}`)})`);
+    check(recs.length === 4 && recs.every((r) => r.frames.every((f) => f.transform === undefined) && Number(r.options.duration) <= 160), "fx: reduced motion still moves something, or runs long");
+    forceGameFxVariant("full");
+    await act(async () => root.unmount());
+  }
+
+  // The near miss: a shot that lights every gem but one: the dark gem's two soft pulses, "1 gem dark" by the Gems pill.
+  {
+    check(laserDarkGem([2, 15], [2], false) === 15 && laserDarkGem([2, 15, 30], [2], false) === null && laserDarkGem([2, 15], [2], true) === null, "fx: the dark gem isn't found");
+    const near = { ...p4, source: 0, dir: "R", gems: [3, 15], bombs: [], blocks: [], splitters: [], directionalGems: [], splitterPieces: 0, solution: [] } as unknown as LaserPuzzleData;
+    const s = await stageIn(near, "fx-near");
+    clear();
+    held.length = 0;
+    await s.click(s.button(/^Fire$/));
+    const pill = s.host.querySelector('[data-hud-pill="nearMiss"]');
+    check(cues.includes("laser.nearMiss") && !cues.includes("laser.bomb"), `fx: the near miss's sound (${cues})`);
+    check(!!pill && /1 gem dark/.test(pill.textContent ?? ""), "fx: no \"1 gem dark\" beside the Gems pill");
+    check(!s.host.querySelector(".laser-board")?.textContent?.includes("1 gem dark"), "fx: \"1 gem dark\" sits over the board");
+    const pulses = recs.filter((r) => kit.some((k) => k.kind === "nearMiss"));
+    check(kit.filter((k) => k.kind === "nearMiss").length === 2 && kit.filter((k) => k.kind === "nearMiss").every((k) => k.silent) && pulses.some((r) => r.el.closest?.('[data-laser-cell="15"]')) && recs.some((r) => r.el === pill), `fx: the dark gem and the pill don't pulse (${kinds()})`);
+    // The board takes the next press while the pill still shows.
+    const fixed = new Set([0, 3, 15]);
+    const cell = Array.from({ length: 100 }, (_, i) => i).find((c) => !fixed.has(c))!;
+    await s.down(cell);
+    check(s.host.querySelectorAll("[data-mirror]").length === 1 && !!s.host.querySelector('[data-hud-pill="nearMiss"]'), "fx: a press during the near miss wasn't taken");
+    for (const fn of held.splice(0)) await act(async () => fn());
+    check(!s.host.querySelector('[data-hud-pill="nearMiss"]'), "fx: \"1 gem dark\" stays after its moment");
+    // A shot that lights none of the two isn't a near miss.
+    await act(async () => s.root.unmount());
+    const far = { ...near, gems: [15, 25] } as unknown as LaserPuzzleData;
+    const f = await stageIn(far, "fx-far");
+    clear();
+    await f.click(f.button(/^Fire$/));
+    check(!cues.includes("laser.nearMiss") && !kit.some((k) => k.kind === "nearMiss") && !f.host.querySelector('[data-hud-pill="nearMiss"]'), "fx: a plain miss shows a near miss");
+    // Out of shots after the third: laser.outOfShots and the calm settle (no extra effect on the board).
+    await f.click(f.button(/^Fire$/));
+    clear();
+    await f.click(f.button(/^Fire$/));
+    check(cues.filter((c) => c === "laser.outOfShots").length === 1 && !!f.host.querySelector("[data-laser-spent]"), "fx: out of shots doesn't sound or settle");
+    await act(async () => f.root.unmount());
+  }
+
+  // The solve: laser.solve at the solve, the kit's win on the reveal's result card.
+  {
+    const host = document.createElement("div");
+    host.setAttribute("data-reveal-screen", "");
+    const row = document.createElement("div");
+    row.setAttribute("data-verdict-row", "");
+    host.appendChild(row);
+    const slot = document.createElement("div");
+    host.appendChild(slot);
+    document.body.appendChild(host);
+    const root = createRoot(slot as unknown as Element);
+    const { KITS } = await import("./puzzle-fairness/kits");
+    const { SKILLS, makeRng } = await import("./puzzle-fairness/kit");
+    const sol = KITS.laser!.play(p4, makeRng(7), { ...SKILLS.near, err: 0 }, 60_000).steps.at(-1)!.answer;
+    clear();
+    await act(async () => {
+      root.render(React.createElement(laserPuzzle.Reveal, { timeLimitMs: 60_000, puzzle: p4, myAnswer: sol, myCorrect: true, myMsRemaining: 30_000, myReactionAvgMs: null, myExtra: gradeAnswer(p4, sol, 30_000).extra ?? null } as never));
+    });
+    check(kit.filter((k) => k.kind === "win").length === 1 && kit.find((k) => k.kind === "win")!.silent && recs.some((r) => r.el === row), `fx: the solve's win isn't on the result card (${kinds()})`);
+    clear();
+    await act(async () => {
+      root.render(React.createElement(laserPuzzle.Reveal, { timeLimitMs: 60_000, puzzle: p4, myAnswer: "", myCorrect: false, myMsRemaining: 0, myReactionAvgMs: null, myExtra: null } as never));
+    });
+    check(!kit.some((k) => k.kind === "win"), "fx: a missed round plays the win");
+    await act(async () => root.unmount());
+    const board = src("src/puzzles/laser.tsx");
+    check(/useSolveMoment\(live && solved, "laser\.solve"\)/.test(board), "fx: laser.solve isn't sounded at the solve");
+  }
+
+  // Only laserFx.ts calls animate (transform only), and every keyframe in laser.css is transform or opacity.
+  for (const file of ["src/puzzles/laser.tsx", "src/components/puzzles/pattern/laserArt.tsx"]) check(!/\.animate\(/.test(src(file)), `fx: ${file} animates outside laserFx.ts`);
+  check(/from "@\/lib\/fx\/kit"/.test(src("src/components/puzzles/pattern/laserFx.ts")), "fx: laserFx.ts doesn't use the kit");
+  const css = src("src/polish-pattern/laser.css");
+  check(!/transition:|stroke-dashoffset/.test(css), "fx: laser.css transitions or animates a stroke");
+  for (const [, body] of css.matchAll(/@keyframes [\w-]+ \{((?:[^{}]*\{[^{}]*\})*)[^{}]*\}/g)) {
+    const props = [...body!.matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]);
+    check(props.every((p) => p === "transform" || p === "opacity"), `fx: a laser.css keyframe animates ${props.join(", ")}`);
+  }
+  forceGameFxVariant(null);
+  setGameFxSink(null);
+  eproto["animate"] = realAnimate;
+  (win as unknown as { setTimeout: unknown }).setTimeout = zero;
 }
 
 if (failures.length) {
