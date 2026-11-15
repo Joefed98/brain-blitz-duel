@@ -110,3 +110,15 @@
   border-color: var(--jz-gold);
 }
 [data-logic-stage="kakuro"] .logic-calm-glow { display: none; }
+
+/* The shared puzzle surface dyes action buttons in the category colour (styles.css [data-puzzle-action]); Kakuro's
+   Pencil and Clear stay navy, Pencil champagne while it is on. */
+[data-puzzle-surface] [data-logic-stage="kakuro"] .kakuro-tool[data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text-2) !important;
+  box-shadow: none;
+}
+[data-puzzle-surface] [data-logic-stage="kakuro"] .kakuro-pencil[data-puzzle-action][aria-pressed="true"] {
+  background-color: var(--jz-gold) !important;
+  color: var(--jz-on-gold) !important;
+}

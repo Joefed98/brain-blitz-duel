@@ -15,7 +15,7 @@ import bmesh
 import jzlib
 
 GAME = "measure"
-# The jug sprite: 120 x 300 points at 3 px a point. Its 9-slice insets (points): lip 10, walls 9, base 24.
+# The jug sprite: 120 x 300 points at 2 px a point. Its 9-slice insets (points): lip 10, walls 9, base 24.
 JW, JH = 120, 300
 WALL, LIP, BASE = 9, 10, 24
 
@@ -50,7 +50,7 @@ def lathe(profile, m, segs=96):
 
 
 def jug_front():
-    setup(JW, JH, scale=3, samples=64)
+    setup(JW, JH, scale=2, samples=64)
     s = bpy.context.scene
     # A dark room for the glass to reflect, with two tall soft panels: the walls read as thin light edges, the
     # middle stays clear (no glare across the water or the litre numbers).
@@ -67,8 +67,8 @@ def jug_front():
     inner = [(0.01, bot - 11), (R - t - 6, bot - 12.5), (R - t - 1, bot - 18), (R - t, bot - 26), (R - t, top + 3)]
     lathe(prof + inner, glass_m)
     # Tall panels well past the jug's ends, so the walls are lit evenly top to bottom (the app stretches the middle).
-    area(-60, JH / 2, 60, 40, 230, "#ffffff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
-    area(JW + 70, JH / 2, 60, 40, 130, "#dfe8ff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
+    area(-60, JH / 2, 60, 40, 150, "#ffffff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
+    area(JW + 70, JH / 2, 60, 40, 90, "#dfe8ff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
     area(JW / 2, -80, 40, 80, 90, "#ffffff", target=(JW / 2, 0, 0))
     write(GAME, "jug-front")
 

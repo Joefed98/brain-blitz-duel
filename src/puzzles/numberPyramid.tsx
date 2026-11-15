@@ -13,7 +13,6 @@ import {
   npBrokenCells,
   npIndex,
   npSeams,
-  npSkipLabel,
   npTrayPerRow,
   NP_SET_SIZE,
   type NpPlacements,
@@ -427,7 +426,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         ) : (
           <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
         )}
-        <Button type="button" variant="ghost" size="sm" className="h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{npSkipLabel(stage)}</Button>
+        <Button type="button" variant="ghost" size="sm" className="np-skip h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip"}</Button>
       </div>
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
         <NumberStage type="numpyramid" index={stage} exit={holding ? "clear" : null} className="justify-center">
@@ -495,14 +494,15 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const firstOpen = boards.findIndex((b) => !b.complete);
   const at = shown ?? (firstOpen >= 0 ? firstOpen : 0);
   const cur = boards[at]!;
-  // Brick sizes for one pyramid a column (solution, yours) under the switcher; text never below 12px.
+  // Brick sizes for one pyramid at the reveal's full width (the reveal's Solution / Yours switch shows one column, so
+  // each is sized to the whole width) under the switcher; text never below 12px.
   const rows = cur.board.rows;
   const gap = 3;
-  const pyramidW = (space.w - 12 - 8) / 2;
-  const cellW = Math.max(24, Math.min(46, Math.floor((pyramidW - (rows - 1) * gap) / rows)));
+  const pyramidW = space.w - 20;
+  const cellW = Math.max(24, Math.min(56, Math.floor((pyramidW - (rows - 1) * gap) / rows)));
   const room = space.h - 18 - 28 - 52 - (dev ? 16 : 0);
-  const cellH = Math.max(18, Math.min(40, Math.floor((room - (rows - 1) * gap) / rows), Math.round(cellW * 0.9)));
-  const fontSize = Math.max(12, Math.min(18, Math.floor(Math.min(cellH * 0.6, cellW * 0.44))));
+  const cellH = Math.max(18, Math.min(50, Math.floor((room - (rows - 1) * gap) / rows), Math.round(cellW * 0.9)));
+  const fontSize = Math.max(12, Math.min(22, Math.floor(Math.min(cellH * 0.55, cellW * 0.44))));
   // Two columns, the solution and yours (4 Nov 2026): the reveal's Solution / Yours switch shows one.
   return <div ref={root} className="flex w-full flex-col items-center gap-1.5" data-np-reveal>
     <div className="np-reveal-switch" role="tablist" aria-label="Pyramids">

@@ -550,9 +550,10 @@ function Stage({
   );
   // The overhaul: in a live round the line gets the space (taller box, a thicker rule, bigger end labels); intros
   // and demos keep 140.
-  const lineH = framed ? 176 : 140;
-  /* The tape sits low in its box: markers and labels above, end labels just below. */
-  const lineY = (lineH - 40) / lineH;
+  const lineH = framed ? Math.max(176, Math.min(250, size.height - 200)) : 140;
+  /* The tape sits low in its box: markers and labels above, end labels just below (the live round's bigger labels
+     take more room under it). */
+  const lineY = (lineH - (framed ? 58 : 40)) / lineH;
   const levels = labelLevels(
     placedHere.map((p) => SIDE + (p / NUMLINE_SCALE) * span),
     stage.items,
@@ -604,7 +605,7 @@ function Stage({
           <div ref={lineBox} key={shownStage} className="numline-line-in relative w-full" data-edge-bump={edge?.side}>
             {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged.
                 The overhaul: 32 and bold 22 px end labels in a live round. */}
-            <Line stage={stage} width={size.width} height={lineH} t={framed ? 32 : 24} label={framed ? 22 : 18} yShare={lineY}>
+            <Line stage={stage} width={size.width} height={lineH} t={framed ? 40 : 24} label={framed ? 26 : 18} yShare={lineY}>
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (
@@ -612,7 +613,7 @@ function Stage({
                       <Pin
                         cx={x(p / NUMLINE_SCALE)}
                         geom={geom}
-                        r={7.5}
+                        r={framed ? 9.5 : 7.5}
                         rise={12 + levels[i]! * 28}
                         fill={`url(#${geom.id}-placed)`}
                         needle="#c9cbd6"
@@ -644,10 +645,10 @@ function Stage({
                       <Pin
                         cx={x(share)}
                         geom={geom}
-                        r={14}
-                        rise={40}
+                        r={framed ? 17 : 14}
+                        rise={framed ? 56 : 40}
                         fill={`url(#${geom.id}-pin)`}
-                        needle="var(--primary)"
+                        needle="var(--jz-gold)"
                       />
                     </g>
                   ) : busy ? null : (
@@ -730,8 +731,8 @@ function Stage({
       {dragging && share !== null ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed z-50 overflow-hidden rounded-full border-2 border-primary bg-background shadow-lg"
-          style={{ width: LENS, height: LENS, left: dragging.x - LENS / 2, top: lensTop }}
+          className="pointer-events-none fixed z-50 overflow-hidden rounded-full border-2 bg-background shadow-lg"
+          style={{ width: LENS, height: LENS, left: dragging.x - LENS / 2, top: lensTop, borderColor: "var(--jz-gold)" }}
         >
           <svg width={LENS} height={LENS} viewBox={`0 0 ${LENS} ${LENS}`}>
             {/* The tape around the marker at four times scale; the needle stays centred. */}
@@ -778,7 +779,7 @@ function Stage({
               y1={LENS / 2 - 22}
               x2={LENS / 2}
               y2={LENS / 2 + 10}
-              stroke="var(--primary)"
+              stroke="var(--jz-gold)"
               strokeWidth={2.5}
             />
           </svg>

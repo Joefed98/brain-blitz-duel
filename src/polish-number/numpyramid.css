@@ -109,6 +109,20 @@
   box-shadow: 0 0 0 2px var(--jz-gold);
 }
 
+/* Skip / Finish: a navy secondary button (gold is for the one main action). */
+[data-polish="numpyramid"] .np-skip,
+[data-puzzle-surface] [data-polish="numpyramid"] .np-skip {
+  min-width: 76px;
+  border: 0 !important;
+  border-radius: 12px;
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--jz-text) !important;
+  background: var(--jz-surface-2) !important;
+  box-shadow: none !important;
+}
+
 /* The reveal's switcher: one pyramid at a time. */
 .np-reveal-switch {
   display: flex;

@@ -60,9 +60,13 @@ export const BALANCE_DEFS = (
  * (docs/design/number-overhaul/source/balance.py) with its weight drawn over the face in Archivo. `fixed` weights
  * are bolted on (iron handle, steel face, a lock); yours carry a brass handle and a champagne face.
  */
-export function IronKettlebell({ value, fixed, width, height }: { value: number; fixed: boolean; width: number; height: number }) {
-  // The art is 60 × 72; it is drawn as large as the box allows, centred at the box's foot.
-  const scale = Math.min(width / 60, height / 72);
+export function IronKettlebell({ value, fixed, width, height, spill = 1 }: {
+  value: number; fixed: boolean; width: number; height: number;
+  /** How much wider than its box the art may draw (a live beam's bells spill a little past their notch). */
+  spill?: number;
+}) {
+  // The art is 60 × 72; it is drawn as large as the box allows (times `spill` across), centred at the box's foot.
+  const scale = Math.min((width * spill) / 60, height / 72);
   const w = Math.round(60 * scale), h = Math.round(72 * scale);
   return (
     <span role="img" aria-label={`${value}${fixed ? " fixed" : ""}`} className="bal-bell" data-fixed={fixed ? "" : undefined}
@@ -188,7 +192,7 @@ export const BALANCE_CSS = `
 
 /* ---- The Number overhaul (15 Nov 2026): the Blender-rendered pieces (public/number/balance), bold Archivo numbers,
    champagne gold and navy, no glows. Display only: every notch, weight and button keeps its place and size. */
-[data-polish="balance"] .bal-panel {
+.bal-panel {
   border: 1px solid color-mix(in srgb, var(--jz-gold) 18%, transparent);
   background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.42)), url("/number/balance/wall.webp") center / cover no-repeat, var(--jz-bg);
   box-shadow: inset 0 0 40px rgba(0,0,0,.55);
@@ -197,7 +201,7 @@ export const BALANCE_CSS = `
   background: url("/number/balance/bench.webp") center top / 100% 100% no-repeat;
   box-shadow: 0 -8px 16px rgba(0,0,0,.4);
 }
-[data-polish="balance"] .bal-notch-label {
+.bal-notch-label {
   font-family: var(--jz-font); font-weight: 800; font-size: 16px; color: var(--jz-on-gold); text-shadow: none;
   background: url("/number/balance/tag.webp") center / 100% 100% no-repeat; background-color: transparent;
   border: 0; box-shadow: 0 2px 3px rgba(0,0,0,.45);
@@ -208,13 +212,13 @@ export const BALANCE_CSS = `
   background: url("/number/balance/tag.webp") center / 100% 100% no-repeat;
   box-shadow: 0 0 0 2px var(--jz-white), 0 3px 4px rgba(0,0,0,.5);
 }
-[data-polish="balance"] .bal-bell { position: relative; display: inline-block; flex: none; filter: drop-shadow(0 4px 3px rgba(0,0,0,.55)); }
-[data-polish="balance"] .bal-bell-art { position: absolute; left: 50%; bottom: 0; width: var(--bell-w); height: var(--bell-h); translate: -50% 0; pointer-events: none; user-select: none; }
-[data-polish="balance"] .bal-bell-num {
+.bal-bell { position: relative; display: inline-block; flex: none; filter: drop-shadow(0 4px 3px rgba(0,0,0,.55)); }
+.bal-bell-art { position: absolute; left: 50%; bottom: 0; width: var(--bell-w); height: var(--bell-h); translate: -50% 0; pointer-events: none; user-select: none; }
+.bal-bell-num {
   position: absolute; left: 0; right: 0; bottom: calc(var(--bell-h) * 0.347); translate: 0 50%; text-align: center;
   font-family: var(--jz-font); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--jz-on-gold); pointer-events: none;
 }
-[data-polish="balance"] .bal-bell-lock { position: absolute; right: 0; top: calc(100% - var(--bell-h)); width: 10px; height: 12px; color: var(--jz-silver); }
+.bal-bell-lock { position: absolute; right: 0; top: calc(100% - var(--bell-h)); width: 10px; height: 12px; color: var(--jz-silver); }
 [data-polish="balance"] .bal-tray-cup { background: transparent !important; box-shadow: none !important; }
 [data-polish="balance"] .bal-tray-cup[data-selected="true"] { transform: translateY(-6px); box-shadow: 0 0 0 2px var(--jz-gold) !important; }
 [data-polish="balance"] .balance-instrument .ring-primary { --tw-ring-color: var(--jz-gold); border-radius: 12px; box-shadow: 0 0 0 2px var(--jz-gold) !important; }

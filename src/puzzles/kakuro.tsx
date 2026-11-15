@@ -69,7 +69,7 @@ export function KakuroBoard({
 
   return (
     <div
-      className={`kakuro-board logic-glass grid w-full shrink-0 select-none ${small ? "kakuro-small" : ""}`}
+      className={`kakuro-board grid w-full shrink-0 select-none ${small ? "kakuro-small" : ""}`}
       data-number-kakuro=""
       style={{
         "--kakuro-cell-art": `url(${numberArt("kakuro", "cell")})`,
@@ -115,7 +115,7 @@ export function KakuroBoard({
             type="button"
             disabled={!onSelect}
             onClick={onSelect ? () => onSelect(cell) : undefined}
-            className={`kakuro-cell logic-glass-cell press relative flex min-h-0 min-w-0 items-center justify-center ${isSelected ? "kakuro-selected" : inLit ? "kakuro-lit" : ""} ${done && !tones ? "kakuro-done" : ""} ${bad && !tones ? "kakuro-bad" : ""} kakuro-tone-${tone}`}
+            className={`kakuro-cell press relative flex min-h-0 min-w-0 items-center justify-center ${isSelected ? "kakuro-selected" : inLit ? "kakuro-lit" : ""} ${done && !tones ? "kakuro-done" : ""} ${bad && !tones ? "kakuro-bad" : ""} kakuro-tone-${tone}`}
             style={{ ...place, "--kakuro-i": row + col } as CSSProperties}
             // 7 Nov 2026 (accessibility audit #16): the clue cells are hidden, so each white cell names its run sums
             // (and whether a run is complete or broken), the digit or its notes.
@@ -292,7 +292,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             filled <span className="text-primary">{filled}</span> / {board.white.length}
           </p>
         )}
-        <div className="logic-square logic-glass-frame kakuro-frame">
+        <div className="logic-square kakuro-frame">
           <KakuroBoard
             board={board}
             values={values}
@@ -362,7 +362,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   return (
     <div className="logic-reveal">
       <div className="logic-reveal-board">
-        <div className="logic-square-bare logic-glass-frame kakuro-frame" style={{ maxWidth: 320 }}>
+        <div className="logic-square-bare kakuro-frame" style={{ maxWidth: 320 }}>
           <KakuroBoard board={puzzle} values={values} tones={tones} />
         </div>
       </div>

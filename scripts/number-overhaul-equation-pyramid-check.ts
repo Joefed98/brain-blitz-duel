@@ -8,7 +8,8 @@
  *      the same (the server's arithmetic is unchanged: each equation on its own fill, the phone's try counts).
  *   3. Tries: on gapsRev 2 the same full fill again uses no try; on gapsRev 1 it does (countTry), and in the live
  *      screen (happy-dom) entering the same wrong fill twice leaves the try counter at 1.
- *   4. Going back: Next goes to the next open equation round to the start, Finish when none is left; a skipped equation
+ *   4. Going back: Next goes to the next open equation after this one (Finish with none after), a solve moves on round
+ *      to the start, and the chips go back to any open equation; a skipped equation
  *      solved later counts on the server like any other (all four right is a finish).
  *   5. Gaps: a chosen empty gap takes the next tile of its kind.
  *   6. Integer Pyramid: the sum check (right / wrong / unknown), the seams only where the player had a hand, the
@@ -122,7 +123,9 @@ if (RECORD) {
 {
   const open = new Set([0, 2]);
   ok(nextOpenStage(1, 4, (i) => open.has(i)) === 2, "Next goes forward to the next open equation");
-  ok(nextOpenStage(2, 4, (i) => open.has(i)) === 0, "Next goes round to an earlier skipped equation");
+  ok(nextOpenStage(2, 4, (i) => open.has(i)) === 0, "after a solve, play goes round to an earlier skipped equation");
+  ok(nextOpenStage(2, 4, (i) => open.has(i), false) === null, "Next on the last open equation: no wrap, so the round can finish (Finish)");
+  ok(nextOpenStage(1, 4, (i) => open.has(i), false) === 2, "Next goes forward without wrapping");
   ok(nextOpenStage(0, 4, (i) => i === 0) === null, "no other open equation: the round can finish");
   ok(operatorNextLabel(true, null, 1, 4) === "Finish" && operatorNextLabel(true, 3, 1, 4) === "Next", "gapsRev 2: Finish when no other equation is open");
   ok(operatorNextLabel(false, null, 3, 4) === "Submit" && operatorNextLabel(false, 2, 1, 4) === "Next", "gapsRev 1: Submit on the last equation, as before");

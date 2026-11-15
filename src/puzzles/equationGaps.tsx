@@ -135,14 +135,16 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   const solvedAt = (i: number) => !!data?.stages[i] && gapStageCorrect(data.stages[i]!, liveAnswers[i] ?? "");
   const outAt = (i: number) => tryLimit !== null && !solvedAt(i) && (tries[i] ?? 0) >= tryLimit;
   const openAt = (i: number) => !solvedAt(i) && !outAt(i);
+  // After a solve: the next open equation, round to the start; Next: the next open one after this, or the round ends.
   const nextOpen = fair ? nextOpenStage(stage, total, openAt) : stage >= total - 1 ? null : stage + 1;
+  const nextOnNext = fair ? nextOpenStage(stage, total, openAt, false) : nextOpen;
   const solvedCount = data ? data.stages.filter((_, i) => solvedAt(i)).length : 0;
   const holding = useStageCorrectHold({
     complete,
     finalStage: nextOpen === null,
     locked: locked || done.current,
     stateKey,
-    onAdvance: () => advance(segment),
+    onAdvance: () => advance(segment, true),
   });
   useEffect(() => {
     onDraftAnswer?.(draft);
@@ -235,10 +237,11 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
     const st = data.stages[to];
     if (st) setFills(splitGapSegment(next[to] ?? "", gapSlots(st).length).map((f) => f || null));
   };
-  const advance = (seg: string) => {
+  const advance = (seg: string, solved = false) => {
     if (!data) return;
-    goTo(seg, nextOpen);
-    if (nextOpen === null) return;
+    const to = solved ? nextOpen : nextOnNext;
+    goTo(seg, to);
+    if (to === null) return;
     soundCue("equation.advance");
     // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) gets the neutral move tick, never a
     // solve's sound; StageProgress stays quiet for it.
@@ -382,7 +385,7 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
         disabled={frozen}
         className="opg-next tap-target w-full"
       >
-        {operatorNextLabel(fair, nextOpen, stage, total)}
+        {operatorNextLabel(fair, nextOnNext, stage, total)}
       </Button>
     </div>
   );

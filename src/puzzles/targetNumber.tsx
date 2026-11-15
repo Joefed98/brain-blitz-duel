@@ -131,7 +131,8 @@ export const EXACT_CSS = `
 [data-polish="target"] .exact-ring { box-shadow: inset 0 0 0 2px var(--jz-gold); }
 [data-polish="target"] .exact-op { font-family: var(--jz-font); font-weight: 800; font-size: 26px; color: var(--jz-white); box-shadow: 0 3px 6px rgba(0,0,0,.4);
   background: url("/number/target/op.webp") center / 100% 100% no-repeat; }
-[data-polish="target"] .exact-op[data-on="true"] { color: var(--jz-gold); box-shadow: inset 0 0 0 2px var(--jz-gold), 0 3px 6px rgba(0,0,0,.4); }
+[data-polish="target"] .exact-op[data-on="true"] { color: var(--jz-gold); background: url("/number/target/op.webp") center / 100% 100% no-repeat; box-shadow: inset 0 0 0 2px var(--jz-gold), 0 3px 6px rgba(0,0,0,.4); }
+[data-polish="target"] .puzzle-secondary-control { color: var(--jz-text) !important; border-color: var(--jz-line) !important; background: var(--jz-surface-2) !important; }
 [data-polish="target"] .exact-lock { min-height: 48px; padding: 0 20px; border-radius: 12px; font-family: var(--jz-font); font-size: 15px; font-weight: 800;
   color: var(--jz-text-2); background: var(--jz-surface-2); box-shadow: 0 4px 0 var(--jz-bg); }
 [data-polish="target"] .exact-lock[data-ready] { color: var(--jz-on-gold); background: var(--jz-gold); box-shadow: 0 4px 0 var(--jz-gold-ledge); }

@@ -15,7 +15,7 @@ GAME = "numline"
 
 def ruler():
     setup(360, 36, scale=3, samples=48)
-    steel = brushed("rulersteel", "#8f96a2", rough=0.5, aniso=0.5, stretch=(60, 1, 1))
+    steel = brushed("rulersteel", "#767d8a", rough=0.55, aniso=0.5, stretch=(60, 1, 1))
     edge = mat("ruleredge", "#5d636e", 0.5, metal=1.0)
     box(4, 6, 352, 24, 4, edge, r=6)
     box(5, 7, 350, 21, 6, steel, r=5)

@@ -18,3 +18,14 @@
 [data-checkout-root] .co-darts {
   color: var(--jz-text-2);
 }
+
+/* The shared puzzle surface dyes Undo in the category colour (styles.css [data-puzzle-action], its ↶ icon): Checkout's
+   Undo stays navy with a light arrow. */
+[data-puzzle-surface] [data-checkout-root] .co-undo[data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text-2) !important;
+  box-shadow: 0 3px 0 var(--jz-ledge-2);
+}
+[data-puzzle-surface] [data-checkout-root] .co-undo[data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-text);
+}

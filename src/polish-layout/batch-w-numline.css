@@ -10,8 +10,8 @@
 
 /* The number card: a matte navy card, the number big and bold but the card no taller than it needs. */
 [data-puzzle-play] [data-polish="numline"] .numline-card {
-  height: clamp(76px, 15cqh, 120px);
-  font-size: clamp(42px, 9cqh, 68px);
+  height: clamp(72px, 12cqh, 100px);
+  font-size: clamp(40px, 8cqh, 60px);
   border-color: var(--jz-line);
   background-image: none;
   background-color: var(--jz-surface);
@@ -29,4 +29,11 @@
   border-radius: 16px;
   background: color-mix(in srgb, var(--jz-bg) 45%, transparent);
   box-shadow: inset 0 0 0 1px var(--jz-line);
+}
+
+/* Place: the screen's one gold button, flat champagne (never the surface layer's colours). */
+[data-puzzle-surface] [data-polish="numline"] [data-game-controls] [data-jz="button"][data-puzzle-action] {
+  background-color: var(--jz-gold) !important;
+  color: var(--jz-on-gold) !important;
+  box-shadow: none !important;
 }

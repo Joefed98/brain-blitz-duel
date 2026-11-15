@@ -4,7 +4,6 @@
 - gap-number: an empty number gap, a navy square sunk into the panel
 - gap-sign:   an empty sign gap, a champagne-gold ring round a sunk navy well
 - sign:       a sign key and a filled sign gap, a champagne-gold disc
-- panel:      the equation's shelf, dark navy lacquer
 
 Faces are blank: the app draws numbers and signs in Archivo over them.
 Run:  /opt/blender/venv/bin/python docs/design/number-overhaul/source/equation.py [sprite ...]
@@ -72,13 +71,5 @@ def sign():
     write(G, "sign")
 
 
-def panel():
-    setup(360, 120, scale=2)
-    relief(-1.2)
-    lac = mat("lacquer", "#121a2e", 0.55)
-    box(2, 2, 356, 116, 6, lac, r=16)
-    write(G, "panel")
-
-
 if __name__ == "__main__":
-    run({"num": num, "gap-number": gap_number, "gap-sign": gap_sign, "sign": sign, "panel": panel})
+    run({"num": num, "gap-number": gap_number, "gap-sign": gap_sign, "sign": sign})

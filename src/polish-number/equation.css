@@ -19,7 +19,7 @@
   padding: 16px 10px 12px;
   border-radius: 18px;
   overflow: visible;
-  background: url("/number/equation/panel.webp") center / 100% 100% no-repeat;
+  background: none;
   box-shadow: none;
 }
 [data-number-overhaul] .opg-caption {

@@ -55,8 +55,8 @@ const STREAM_TOP = 22;
  * the sprite's sides, the inside of the thick base 17.5 up from its bottom and the lip's top 6 above the inside.
  */
 const JUG_SPRITE = { w: 120, lip: 10, wall: 9, base: 24, inWall: 7.2, inBase: 17.5, inTop: 6 } as const;
-/** The jug sprite's 9-slice in image pixels (rendered at 3 px a point). */
-const JUG_SLICE = `${JUG_SPRITE.lip * 3} ${JUG_SPRITE.wall * 3} ${JUG_SPRITE.base * 3} ${JUG_SPRITE.wall * 3}`;
+/** The jug sprite's 9-slice in image pixels (rendered at 2 px a point). */
+const JUG_SLICE = `${JUG_SPRITE.lip * 2} ${JUG_SPRITE.wall * 2} ${JUG_SPRITE.base * 2} ${JUG_SPRITE.wall * 2}`;
 /** Height under a jug's water for its glass base, at this jug width. */
 export const measureGlassBase = (width: number) => Math.round((JUG_SPRITE.inBase * width) / JUG_SPRITE.w);
 const NO_ACTIONS: MeasureAction[] = [];
@@ -100,14 +100,14 @@ export const MEASURE_CSS = `
   -webkit-mask: ${WAVE_MASK} repeat-x 0 0 / 40px 6px; mask: ${WAVE_MASK} repeat-x 0 0 / 40px 6px; animation: mj-wave 2.4s linear infinite; will-change: transform; }
 [data-polish="measure"] .mj-wave-back { top: -1px; opacity: 0.5; background: color-mix(in oklab, var(--mj-water-top) 70%, white); animation-duration: 3.7s; animation-direction: reverse; }
 @keyframes mj-wave { from { transform: translateX(0); } to { transform: translateX(-40px); } }
-[data-polish="measure"] .mj-ticks { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+[data-polish="measure"] .mj-ticks { position: absolute; inset: 0 0 0 4px; z-index: 5; pointer-events: none; }
 [data-polish="measure"] .mj-tick { position: absolute; left: 0; display: flex; align-items: center; color: var(--jz-text); }
 [data-polish="measure"] .mj-tick-n { margin-left: 3px; font-family: var(--jz-font); font-weight: 800; font-variant-numeric: tabular-nums;
   text-shadow: 0 0 2px var(--jz-bg), 0 0 2px var(--jz-bg), 0 1px 1px var(--jz-bg); }
 [data-polish="measure"] .mj-tick > i { display: block; height: 2px; border-radius: 0 1px 1px 0; background: currentColor; box-shadow: 0 1px 0 color-mix(in srgb, var(--jz-bg) 50%, transparent); }
 [data-polish="measure"] .mj-tick-r { position: absolute; right: 0; width: 5px; height: 1px; background: color-mix(in srgb, var(--jz-text) 40%, transparent); }
-[data-polish="measure"] .mj-line { position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none; height: 0; border-top: 3px solid var(--jz-gold); }
-[data-polish="measure"] .mj-line-tag { position: absolute; right: 3px; top: -10px; transform: translateY(-50%); padding: 1px 5px; border-radius: 6px;
+[data-polish="measure"] .mj-line { position: absolute; left: 0; right: 0; z-index: 5; pointer-events: none; height: 0; border-top: 3px solid var(--jz-gold); }
+[data-polish="measure"] .mj-line-tag { position: absolute; right: 8px; top: -10px; transform: translateY(-50%); padding: 1px 5px; border-radius: 6px;
   background: var(--jz-gold); color: var(--jz-on-gold); font-family: var(--jz-font); font-weight: 800; font-size: 12px; line-height: 15px; }
 [data-polish="measure"] .mj-stream { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 5; }
 [data-polish="measure"] .mj-stream .mj-flow { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: mj-flow ${FLOW_MS}ms ease-out forwards; }
@@ -668,7 +668,7 @@ function Stage({
             },
           ]}
         />
-        <p className="font-display text-sm font-bold text-primary" data-measure-goal>
+        <p className="font-display text-sm font-bold" style={{ color: "var(--jz-gold)" }} data-measure-goal>
           {goalText(board)}
         </p>
       </div>

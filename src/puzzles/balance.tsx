@@ -46,8 +46,8 @@ const LIVE_PEG_WIDTH = 50;
 /** balanceRev 2's 10-notch scale: ten notches must fit a 375 px phone, so each may narrow to this. */
 const MIN_WIDE_PEG_WIDTH = 32;
 
-function Disc({ value, fixed, width, height }: { value: number; fixed: boolean; width: number; height: number }) {
-  return <IronKettlebell value={value} fixed={fixed} width={width} height={height} />;
+function Disc({ value, fixed, width, height, spill }: { value: number; fixed: boolean; width: number; height: number; spill?: number }) {
+  return <IronKettlebell value={value} fixed={fixed} width={width} height={height} {...(spill ? { spill } : {})} />;
 }
 
 export function BalanceArt() {
@@ -103,8 +103,11 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
   // A weight's art is exactly its button: 44 × 52 on the live beam, 44 × 44 in the old layout.
   const bellW = big ? spacing : weight;
   // A wider live notch (3 Nov 2026) grows the hung kettlebell with it, keeping its 44 × 52 shape.
-  const bellH = big ? Math.max(52, Math.round(spacing * 52 / 44)) : showControls ? weight : Math.round(weight * 52 / 44);
-  const beamY = height !== undefined ? Math.max(32, Math.round(height * 0.36)) : compact ? 24 : 32;
+  // The Number overhaul: a live beam's bells half as big again, spilling a little past their notch (the button is the notch).
+  const bellH = big ? Math.max(72, Math.round(spacing * 52 / 44 * 1.4)) : showControls ? weight : Math.round(weight * 52 / 44);
+  const spill = big ? 1.3 : 1;
+  // The Number overhaul: a live beam sits a little lower on its column, so the wall below it isn't left empty.
+  const beamY = height !== undefined ? Math.max(32, Math.round(height * 0.42)) : compact ? 24 : 32;
   const H = height ?? (compact ? beamY + 12 + 8 + bellH + 6 : showControls ? 144 : 126);
   // The Number overhaul (15 Nov 2026): a live round's instrument half as big again where the width allows: a thicker
   // beam, column and foot, wider notch tags (the notches' places and widths are unchanged).
@@ -166,7 +169,7 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
         </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm"><span className="bal-notch-label" style={{ width: labelW }}>{pegDistance(peg, pegs)}</span></div>}
         {item && <div key={item.fixed ? 'f' : `t${item.tray}`} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}>
           <svg className="bal-hook" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0V3.2a2.1 2.1 0 1 1-2.1 2.1" fill="none" stroke="#D9A940" strokeWidth="1.6" strokeLinecap="round"/></svg>
-          {item.fixed ? <Disc value={item.w} fixed width={bellW} height={bellH} /> : <Button variant="ghost" style={big ? { height: bellH } : undefined} className={`min-w-0 p-0 ${big ? '' : 'h-11'} w-full hover:bg-transparent ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} width={bellW} height={bellH}/></Button>}
+          {item.fixed ? <Disc value={item.w} fixed width={bellW} height={bellH} spill={spill} /> : <Button variant="ghost" style={big ? { height: bellH } : undefined} className={`min-w-0 p-0 ${big ? '' : 'h-11'} w-full hover:bg-transparent ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} width={bellW} height={bellH} spill={spill}/></Button>}
         </div>}
       </div>;
     })}

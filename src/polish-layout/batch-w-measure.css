@@ -16,9 +16,19 @@
   position: absolute;
   left: -18px;
   right: -18px;
-  bottom: 8px;
-  height: 18px;
+  bottom: 19px;
+  height: 9px;
   background: url("/number/measure/shelf.webp") center / 100% 100% no-repeat;
   pointer-events: none;
   z-index: -1;
+}
+
+/* The overhaul's buttons: navy secondary faces with light text, never the surface layer's category-colour outline. */
+[data-puzzle-surface] [data-polish="measure"] [data-game-controls] [data-jz="button"][data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text) !important;
+  box-shadow: none !important;
+}
+[data-puzzle-surface] [data-polish="measure"] [data-game-controls] [data-jz="button"][data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-text);
 }
