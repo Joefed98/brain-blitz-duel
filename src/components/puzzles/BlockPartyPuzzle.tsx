@@ -108,7 +108,7 @@ function PieceGlyph({
         viewBox={`0 0 ${cols * 100} ${rows * 100}`}
         aria-hidden="true"
       >
-        <PieceArt cells={offsets} piece={piece} />
+        <PieceArt cells={offsets} piece={piece} tray />
       </svg>
     </div>
   );

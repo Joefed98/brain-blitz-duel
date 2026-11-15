@@ -119,6 +119,12 @@ export const BLOCK_ART_DIR = "/pattern-art/blockparty";
 export const BLOCK_SPRITE_COLOURS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow", "white"] as const;
 export const blockSprite = (piece: number) =>
   `${BLOCK_ART_DIR}/block-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}.webp`;
+/**
+ * The tray's own render of the same lacquered block (stage 2, Joe: the tray read flatter than the board): a rounder,
+ * deeper bevel so the gloss and its highlight still read at the tray's third-size cells.
+ */
+export const trayBlockSprite = (piece: number) =>
+  `${BLOCK_ART_DIR}/tray-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}.webp`;
 export const BLOCK_WELL_SPRITE = `${BLOCK_ART_DIR}/well.webp`;
 export const BLOCK_PEG_SPRITE = `${BLOCK_ART_DIR}/peg.webp`;
 
@@ -126,8 +132,18 @@ export const BLOCK_PEG_SPRITE = `${BLOCK_ART_DIR}/peg.webp`;
  * One piece (the Pattern overhaul, 15 Nov 2026; look A): a glossy lacquered block in each of its squares, drawn
  * exactly inside that square's box (the sprite is the cell; its block and shadow sit within it).
  */
-export const PieceArt = memo(function PieceArt({ cells, piece }: { cells: Pt[]; /** The piece's index (its colour). */ piece: number }) {
-  const href = blockSprite(piece);
+export const PieceArt = memo(function PieceArt({
+  cells,
+  piece,
+  tray,
+}: {
+  cells: Pt[];
+  /** The piece's index (its colour). */
+  piece: number;
+  /** Drawn in the tray: the tray's render of the same block (stage 2). */
+  tray?: boolean | undefined;
+}) {
+  const href = tray ? trayBlockSprite(piece) : blockSprite(piece);
   return (
     <>
       {cells.map(([r, c]) => (
