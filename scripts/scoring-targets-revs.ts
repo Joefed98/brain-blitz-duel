@@ -106,6 +106,8 @@ export const RETRO_REVS: Partial<Record<LiveBandGame, readonly [rev: number, pla
   beat: [12, 11],
   // Fission burstRev 12: burstRev 11's play tick for tick; its wave-clear bonus runs out at three times the quick time.
   burst: [12, 11],
+  // Pinball pinRev 7: pinRev 6's play tick for tick; one J-O-U-L-Z set fills its part.
+  pinball: [7, 6],
 };
 
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {

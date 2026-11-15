@@ -6,7 +6,7 @@ import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming"
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { pinballGlowFill, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
 import { pinball4GlowFill, pinballArtGameForAny, pinballWorldHFor } from "@/lib/arcade/pinball4.renderer";
-import { pinballGameForAny, pinCheckpointAny, PIN_REV_STD, type Pin4State } from "@/lib/arcade/pinball4";
+import { pinballGameForAny, pinCheckpointAny, PIN_REV_JOULZ, type Pin4State } from "@/lib/arcade/pinball4";
 import { pinballSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { inputAt, recordInput } from "@/lib/arcade/engine";
@@ -267,7 +267,7 @@ export const pinballPuzzle: PuzzleDefinition = {
   // pinRev 5's 90 s run (older rounds run 60 s and end there; their clock shows the extra 30 s unused, as Tempo's beatRev 9).
   timeLimitMs: (PIN_V5_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_STD }) satisfies PinballPuzzleData,
+  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_JOULZ }) satisfies PinballPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

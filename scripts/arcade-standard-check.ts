@@ -58,7 +58,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "skyline", field: "skylineRev", rev: 10, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
-  { type: "pinball", field: "pinRev", rev: 6, batch: "B" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7, one J-O-U-L-Z set.
+  { type: "pinball", field: "pinRev", rev: 7, batch: "B" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13, two lives and spin
   // shots.
   { type: "rally", field: "rallyRev", rev: 13, batch: "B" },

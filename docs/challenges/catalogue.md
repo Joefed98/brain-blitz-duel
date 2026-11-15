@@ -561,7 +561,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Multiball madness | Start multiball. | Classic | Target | line “Multiball” = 20 of 20 |  | `pinball.multiball` |
-| Spell it out | Spell J-O-U-L-Z twice. | Classic | Max-out | line “J-O-U-L-Z” = 20 of 20 |  | `pinball.joulz` |
+| Spell it out | Spell J-O-U-L-Z in one game. | Classic | Max-out | line “J-O-U-L-Z” = 20 of 20 |  | `pinball.joulz` |
 | Jackpot | Hit three jackpots. | Classic | Full set | line “Jackpots” = 15 of 15 | ● | `pinball.jackpot` |
 
 #### Rally (`rally`)

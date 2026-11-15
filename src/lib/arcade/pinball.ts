@@ -1007,15 +1007,17 @@ export const PIN_V5_RUN_TICKS = PIN_V5_RUN_SECONDS * TICKS_PER_SECOND;
 
 /** pinRev 6: pinRev 5's table and 90 s play, scored on the arcade scoring standard (pinball4.ts, PIN_STD_SPEC). */
 export const PIN_REV_STD = 6;
+/** pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6's table and play; one J-O-U-L-Z set fills its part (20). */
+export const PIN_REV_JOULZ = 7;
 
 /** The taller table (pinball4.ts) plays on pinRev 4 and every later revision. */
 export function pinIsExpanded(rev?: number | null): boolean {
-  return rev === PIN_REV_EXPAND || rev === PIN_REV_LONG || rev === PIN_REV_STD;
+  return rev === PIN_REV_EXPAND || rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ;
 }
 
 /** The run length of a stored pinRev: 90 s on pinRev 5 and 6, 60 s on every older revision. */
 export function pinRunTicksFor(rev?: number | null): number {
-  return rev === PIN_REV_LONG || rev === PIN_REV_STD ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
+  return rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
 }
 
 /** The run length of a live state (pinRev 5's and 6's states carry `rev5`). */

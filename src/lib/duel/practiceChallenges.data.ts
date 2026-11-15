@@ -398,7 +398,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("hover", "All the way", "Pass every barrier.", "C", "finish", true, all(f("gates", "gte", "@totalGates"), f("totalGates", "gte", 1))),
   // Pinball (pinball): table points 130 + J-O-U-L-Z 20 + multiball 20 + jackpots 15 + ramp combos 15.
   ch("pinball", "Multiball madness", "Start multiball.", "C", "target", false, part("Multiball", 20), "pinball.multiball"),
-  ch("pinball", "Spell it out", "Spell J-O-U-L-Z twice.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
+  ch("pinball", "Spell it out", "Spell J-O-U-L-Z in one game.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
   ch("pinball", "Jackpot", "Hit three jackpots.", "C", "fullset", true, part("Jackpots", 15)),
   // Rally (rally): gold-ball hits 140 + pink pads 30 + gold targets 30.
   ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(line("Pink pads", "gte", 15))),

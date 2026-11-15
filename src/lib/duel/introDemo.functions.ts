@@ -27,7 +27,7 @@ import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
-import { PIN_REV_STD } from "@/lib/arcade/pinball";
+import { PIN_REV_JOULZ, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
@@ -270,7 +270,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // pinRev 6 (29 Oct 2026, the arcade scoring standard): the same play with no multiplier, so an older demo's table
     // would light multiplier inserts and count table points the help no longer states; only a pinRev 6 demo plays
     // (as High Rise's skylineRev 8), and until one is recorded the intro shows its still.
-    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_STD) return null;
+    // pinRev 7 (the Retro overhaul) plays pinRev 6 exactly: a demo recorded on either plays.
+    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_STD && demo.puzzle.pinRev !== PIN_REV_JOULZ) return null;
     // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
     // play in larger worlds with new features; an older demo would show the old world (and its touches would land
     // elsewhere), so each shows its still until a demo is recorded on its new revision.

@@ -91,6 +91,8 @@ import {
   PIN_REV_EXPAND,
   PIN_REV_LONG,
   PIN_REV_STD,
+  PIN_REV_JOULZ,
+  pinball7Game,
   type P4Ball,
   type Pin4State,
 } from "./pinball4";
@@ -851,7 +853,11 @@ export const pinball5ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
 export const pinball6ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball6Game, draw: (ctx, state, size) => draw(ctx, state, size) };
 
 /** The art game for any stored pinRev: pinRev 6, 5 and 4 this table, older ones pinball.renderer's. */
+/** pinRev 7 (the Retro overhaul): pinRev 6's run, one J-O-U-L-Z set filling its part. */
+export const pinball7ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball7Game, draw: (ctx, state, size) => draw(ctx, state, size) };
+
 export function pinballArtGameForAny(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_JOULZ) return pinball7ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_STD) return pinball6ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_LONG) return pinball5ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   return rev === PIN_REV_EXPAND ? (pinball4ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>) : pinballArtGameFor(rev);

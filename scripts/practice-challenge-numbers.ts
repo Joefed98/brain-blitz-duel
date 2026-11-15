@@ -47,6 +47,7 @@ const BULLSEYE_DEAD_DOC = /whose centre ring is the 10/.test(readSrc("src/lib/ar
 import { PAR_MOVES_STD } from "../src/lib/duel/parMoves";
 import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
+import { PIN_V7_JOULZ_EACH } from "../src/lib/arcade/pinball4";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { PRACTICE_CHALLENGES, type ChallengeCond, type PracticeChallenge } from "../src/lib/duel/practiceChallenges";
 
@@ -222,7 +223,9 @@ function expectations(): Record<string, Expect> {
     "hover.tight-squeeze": { say: [[5, helpCount("hover", "tight gates") || 5]] },
     "hover.chain-gang": { say: [[5, 5]], th: [[30, HOVER_STD_CHAINS]] },
     "hover.all-the-way": { th: [[1, 1]] },
-    "pinball.joulz": { say: [[2, maxOf("pinball", "J-O-U-L-Z") / 10]] },
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7 pays the whole
+    // J-O-U-L-Z part for one set (pinRev 6: 10 a set, two sets), so the goal reads "in one game" against the live spec.
+    "pinball.joulz": { say: [[1, maxOf("pinball", "J-O-U-L-Z") / PIN_V7_JOULZ_EACH]] },
     "pinball.jackpot": { say: [[3, maxOf("pinball", "Jackpots") / 5]] },
     "rally.pink-pong": { say: [[5, 15 / 3]], th: [[15, 5 * Number(/(\d+) each time/.exec(specPart("rally", "Pink pads")?.how ?? "")?.[1])]] },
     "rally.target-practice": { say: [[6, Number(/of the (\d+) gold targets/.exec(specPart("rally", "Gold targets")?.how ?? "")?.[1])]] },

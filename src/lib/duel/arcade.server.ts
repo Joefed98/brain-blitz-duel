@@ -23,7 +23,7 @@ import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/a
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_WIDE } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_JOULZ } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
@@ -223,7 +223,8 @@ export function generateBreaker(): BreakerPuzzleData {
 export function generatePinball(): PinballPuzzleData {
   // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s (PIN_REV_LONG).
   // pinRev 6 (29 Oct 2026): pinRev 5's play on the arcade scoring standard (docs/arcade-standard/pinball.md).
-  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_STD };
+  // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6's play; one J-O-U-L-Z set fills its part (preRetro: pinRev 6).
+  return { type: "pinball", seed: arcadeSeed(), pinRev: dealPinned("preRetro") ? PIN_REV_STD : PIN_REV_JOULZ };
 }
 
 /**

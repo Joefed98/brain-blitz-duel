@@ -68,6 +68,7 @@ import {
   PIN_REV_EXPAND,
   PIN_REV_LONG,
   PIN_REV_STD,
+  PIN_REV_JOULZ,
   PIN_RIGHT,
   PIN_RUN_TICKS,
   PIN_V5_RUN_TICKS,
@@ -91,7 +92,7 @@ import {
   type Seg,
 } from "./pinball";
 
-export { PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD };
+export { PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_JOULZ };
 
 /* ============================== Constants ============================== */
 
@@ -361,6 +362,8 @@ export interface Pin4State extends PinState, BandFields {
    * combo award, so table points are a straight count of what the ball did; `combos` counts back-to-back ramp shots.
    */
   rev6?: number;
+  /** pinRev 7 only (the Retro overhaul): 1 = one J-O-U-L-Z set fills its part (outside the checksum). */
+  rev7?: number;
   combos?: number;
   seed: number;
   /** The main ball's ramp ride (as P4Ball). */
@@ -1265,12 +1268,14 @@ export function pinballStdParts(state: Pin4State): StdPart[] | null {
   if (!state || !state.rev6) return null;
   const points = Math.max(0, state.points);
   const combos = state.combos ?? 0;
+  const spec = state.rev7 ? PIN_STD_SPEC_V7 : PIN_STD_SPEC;
+  const joulzEach = state.rev7 ? PIN_V7_JOULZ_EACH : PIN_V6_JOULZ_EACH;
   return [
-    stdPart(PIN_STD_SPEC, "core", stdLine(PIN_V6_CORE_MAX, points, PIN_V6_FULL_AT), `${fmt(points)} table points`),
-    stdPart(PIN_STD_SPEC, "joulz", stdEach(state.laneSets, PIN_V6_JOULZ_EACH, PIN_V6_JOULZ_MAX), plural(state.laneSets, "set", "sets")),
-    stdPart(PIN_STD_SPEC, "multiball", state.multiballs > 0 ? PIN_V6_MULTIBALL : 0, state.multiballs > 0 ? plural(state.multiballs, "multiball", "multiballs") : "not started"),
-    stdPart(PIN_STD_SPEC, "jackpots", stdEach(state.jackpots, PIN_V6_JACKPOT_EACH, PIN_V6_JACKPOT_MAX), plural(state.jackpots, "jackpot", "jackpots")),
-    stdPart(PIN_STD_SPEC, "combos", stdEach(combos, PIN_V6_COMBO_EACH, PIN_V6_COMBO_MAX), plural(combos, "combo", "combos")),
+    stdPart(spec, "core", stdLine(PIN_V6_CORE_MAX, points, PIN_V6_FULL_AT), `${fmt(points)} table points`),
+    stdPart(spec, "joulz", stdEach(state.laneSets, joulzEach, PIN_V6_JOULZ_MAX), plural(state.laneSets, "set", "sets")),
+    stdPart(spec, "multiball", state.multiballs > 0 ? PIN_V6_MULTIBALL : 0, state.multiballs > 0 ? plural(state.multiballs, "multiball", "multiballs") : "not started"),
+    stdPart(spec, "jackpots", stdEach(state.jackpots, PIN_V6_JACKPOT_EACH, PIN_V6_JACKPOT_MAX), plural(state.jackpots, "jackpot", "jackpots")),
+    stdPart(spec, "combos", stdEach(combos, PIN_V6_COMBO_EACH, PIN_V6_COMBO_MAX), plural(combos, "combo", "combos")),
   ];
 }
 
@@ -1289,6 +1294,27 @@ export const pinball6Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
   score: (state) => stdScore(pinballStdParts(state) ?? [], Boolean(state.acted)),
 };
 
+/* ================= The Retro overhaul: one J-O-U-L-Z set (pinRev 7, 15 Nov 2026) ================= */
+
+/**
+ * pinRev 7 (the Retro overhaul, docs/design/game-reviews/retro.md "Pinball", docs/arcade-standard/pinball.md "pinRev 7"):
+ * pinRev 6's table, play, timings and parts exactly, but one J-O-U-L-Z set fills its part (20; pinRev 6 paid 10 a set and
+ * a second set seldom fits in 90 s, so even the flawless bot's median was 190). States add `rev7: 1`, outside the
+ * checkpoint checksum (playRevOf maps 7 to 6's play).
+ */
+export const PIN_V7_JOULZ_EACH = PIN_V6_JOULZ_MAX;
+
+export const PIN_STD_SPEC_V7: StdSpec = {
+  ...PIN_STD_SPEC,
+  rev: PIN_REV_JOULZ,
+  parts: PIN_STD_SPEC.parts.map((p) => (p.key === "joulz" ? { ...p, how: "light all five letters once" } : p)),
+};
+
+export const pinball7Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
+  ...pinball6Game,
+  init: (seed) => ({ ...pinball6Game.init(seed), rev7: 1 }),
+};
+
 /** Max speed note for the reveal and checks: the cap is pinRev 1's. */
 export const P4_MAX_SPEED = PIN_MAX_SPEED;
 
@@ -1296,6 +1322,7 @@ export const P4_MAX_SPEED = PIN_MAX_SPEED;
 
 /** The game for any stored pinRev: pinRev 6 the standard, pinRev 5 the 90-second table, pinRev 4 this table, anything else pinball.ts's (pinballGameFor). */
 export function pinballGameForAny(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_JOULZ) return pinball7Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_STD) return pinball6Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_LONG) return pinball5Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   return rev === PIN_REV_EXPAND ? (pinball4Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>) : pinballGameFor(rev);

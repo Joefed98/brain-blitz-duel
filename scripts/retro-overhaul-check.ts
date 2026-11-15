@@ -23,6 +23,8 @@
  *   wiring (rooms 12, preRetro 11, playRevOf 12 → 11, the help's words); the bots' logs at every level play tick for
  *   tick as on burstRev 11 (atoms, ship, lives, beams); the clear points never fall and rise for the good levels; the
  *   server replay scores every bot run to its sim score.
+ *  Pinball pinRev 7 (one J-O-U-L-Z set fills its part): wiring; the bots' logs play checkpoint for checkpoint as on
+ *  pinRev 6, never score less, and replay through the server; a flawless-level run reaches 200 more often.
  *  The shared Retro HUD: every count it draws is at least 11 px (retroHudFloorPx).
  *
  *   bun scripts/retro-overhaul-check.ts
@@ -67,6 +69,10 @@ import { bot as burstBot } from "./arcade-skill-bands/bots/burst";
 import { replayBurstRun } from "../src/lib/duel/burst";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { burstGameFor, burstV10ClearPoints, BURST_CHECKPOINT_INTERVAL, BURST_REV_AIM, BURST_REV_WIDE, type BurstState } from "../src/lib/arcade/burst";
+import { bot as pinballBot } from "./arcade-skill-bands/bots/pinball";
+import { replayPinballRun } from "../src/lib/duel/pinball";
+import { pinballGameForAny } from "../src/lib/arcade/pinball4";
+import { PIN_REV_JOULZ, PIN_REV_STD } from "../src/lib/arcade/pinball";
 import { RETRO_HUD_MIN_PX, retroHudFloorPx } from "../src/lib/arcade/retro.renderer";
 
 let checks = 0;
@@ -295,6 +301,53 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
   ok(rose >= 4, `burst: wave clears earn more on ${rose} of 18 runs`);
 }
 
+/* ============================ Pinball pinRev 7 ============================ */
+{
+  ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_JOULZ && PIN_REV_JOULZ === PIN_REV_STD + 1, "pinball: rooms deal pinRev 7");
+  pinPreRetro(true);
+  ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_STD, "pinball: preRetro deals pinRev 6");
+  pinPreRetro(false);
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_JOULZ && ARCADE_STANDARD.pinball.spec?.rev === PIN_REV_JOULZ && playRevOf("pinball", PIN_REV_JOULZ) === playRevOf("pinball", PIN_REV_STD), "pinball: the help reads pinRev 7, pinRev 6's play");
+  ok(pinballGameForAny(PIN_REV_JOULZ).runTicks <= 120 * TICKS_PER_SECOND, "pinball: the run is at most 120 s");
+  const spec = GAME_BY_TYPE.get("pinball" as never)!;
+  const play = (rev: number, seed: number, events: any[]) => {
+    const game = pinballGameForAny(rev);
+    const by = new Map(events.map((e: any) => [e.t, e]));
+    let s = game.init(seed);
+    const sums: number[] = [];
+    const checkpoints: unknown[] = [];
+    while (!game.isOver(s)) {
+      s = game.step(s, by.get(s.tick + 1) ?? null);
+      if (s.tick % 300 === 0) {
+        const c = spec.checkpoint(s) as any;
+        checkpoints.push(c);
+        sums.push(c.checksum);
+      }
+    }
+    return { state: s as any, sums, checkpoints, score: game.score(s) };
+  };
+  let at200 = [0, 0];
+  for (const level of ["average", "great", "near", "elite", "perfect"] as const)
+    for (let n = 0; n < 4; n++) {
+      const seed = spec.seedFor(n);
+      const tag = `pinball ${level} seed ${seed}`;
+      const out = pinballBot({ game: pinballGameForAny(PIN_REV_STD), seed, rev: PIN_REV_STD, human: new Human("pinball", seed, level as never), fixes: true });
+      const events = out.events ?? [];
+      const a = play(PIN_REV_STD, seed, events);
+      const b = play(PIN_REV_JOULZ, seed, events);
+      ok(JSON.stringify(a.sums) === JSON.stringify(b.sums), `${tag}: every checkpoint checksum the same on pinRev 6 and 7`);
+      ok(b.score >= a.score, `${tag}: pinRev 7 never scores less (${a.score} → ${b.score})`);
+      if (level === "perfect" || level === "elite") {
+        if (a.score === 200) at200[0]++;
+        if (b.score === 200) at200[1]++;
+      }
+      const raw = spec.encode({ seed, claimedScore: b.score, events, endTick: b.state.tick, checkpoints: b.checkpoints }, PIN_REV_JOULZ, seed);
+      const res = replayPinballRun(seed, raw, PIN_REV_JOULZ);
+      ok(!res.flagged && res.score === b.score, `${tag}: replays through the server to ${b.score} (got ${res.score}${res.flagged ? ", flagged" : ""})`);
+    }
+  ok(at200[1] >= at200[0], `pinball: elite and flawless runs at 200 on pinRev 6 / 7: ${at200[0]} / ${at200[1]} of 8`);
+}
+
 /* ============================ The shared Retro HUD ============================ */
 {
   ok(RETRO_HUD_MIN_PX === 11, `the Retro HUD's smallest count is 11 px (${RETRO_HUD_MIN_PX})`);
@@ -309,4 +362,4 @@ if (failures.length) {
   console.log(`FAIL retro-overhaul-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; the Retro HUD floor)`);
+console.log(`PASS retro-overhaul-check: ${checks} checks (Tempo beatRev 12 plays as beatRev 11, never scores less; Rally's lives and spin shots; Fission's kinder wave clears; Pinball's one J-O-U-L-Z set; the Retro HUD floor)`);

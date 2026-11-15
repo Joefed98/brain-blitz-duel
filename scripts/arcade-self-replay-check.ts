@@ -150,12 +150,12 @@ import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_STANDARD, HOVER_REV_TALL, H
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
-import { pin4Checkpoint, pinball5Game, pinball6Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
+import { pin4Checkpoint, pinball5Game, pinball6Game, pinball7Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 // The arcade scoring standard, batch B (29 Oct 2026): each game's standard stamp.
 import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
-import { PIN_REV_STD } from "@/lib/arcade/pinball";
+import { PIN_REV_JOULZ, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
@@ -1029,6 +1029,8 @@ const GAMES: Game[] = [
   { key: "beat/floor", game: beatGameFor(BEAT_REV_FLOOR), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_FLOOR) },
   // Rally rallyRev 13 (15 Nov 2026, the Retro overhaul: two lives, spin shots), appended so every earlier entry keeps its stream.
   { key: "rally/lives", game: rallyGameFor(RALLY_REV_LIVES), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_LIVES) },
+  // Pinball pinRev 7 (15 Nov 2026, the Retro overhaul: one J-O-U-L-Z set), appended so every earlier entry keeps its stream.
+  { key: "pinball/joulz", game: pinball7Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_JOULZ) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
