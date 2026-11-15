@@ -34,6 +34,51 @@ From Joe's review (`docs/design/game-reviews/action.md`). Play, deal and scoring
 - The crosshair floats **120 px** above the thumb (`FINGER_LIFT` in `src/puzzles/bastion.tsx`; the review read an
   older 100 px note).
 
+### Stage 2: effects and the answer reveal (15 Nov 2026; display and sound only, no stamp)
+
+Every effect observes the sim (its counters, cooldown, reload fields and the last second's landings) and never writes
+to it; a replay draws and sounds it the same. Rules and timings in `bastionLook.ts`, art in `bastionTank.renderer.ts`.
+
+- **Firing**: the barrel alone kicks 3 px back along its line for 80 ms (`bastionKick`, from the fire cooldown; the
+  mount, world and arena never move, and no kick under reduced motion) and a crisp four-point muzzle star shows for 3
+  ticks (`bastionFlashAge`), no glow. Sound `bastion.cannon`.
+- **A shell in flight**: a brass tracer with a short trail, and its shadow sliding over the road from the wall to the very
+  point it will land on, darker as it closes (`bastionShellShadow`); none for a shot into the sky.
+- **A hit**: sparks off the armour (14 ticks) and a dent pressed into the hull's upper plates for each hit point lost
+  (`paintDents`, at fixed places for that tank, inside its rectangles); the tank's white hit wash is now at most a third.
+- **A weak-spot hit**: the vent flashes gold every time (a disc, then a ring opening out; 14 ticks), on top of
+  `bastion.weak` the higher `bastion.weakTing`.
+- **A kill**: a burst of flame petals, armour chunks in the tank's livery flung out and falling (none under reduced
+  motion; half under reduced effects), the smoke, and "+n" rising off it, 20 px (n the tank's armour on the Armour line,
+  `bastionKillPoints`: 2, 3 or 7 on Iron Wall; gold on a weak-spot kill). Sounds `bastion.kill`, `bastion.debris`.
+- **A near miss** (a ground landing within a tank-length of a hull, `bastionNearMiss`, decided once per landing): a
+  bigger, dustier puff and CLOSE rising, 14 px. Sound `bastion.nearMiss`.
+- **A fast reload**: the needle turns green with a thin ring; as the reload ends the five shells snap in one by one, 4
+  ticks apart, a click each (`bastionSnapLit`, `bastion.shellIn` played per shell, a step higher each), while the green
+  needle fades at the half-way mark. The sim's magazine is already full: the next shot is taken at once.
+- **A jam**: the needle turns red and shakes for 18 ticks (no shake under reduced motion). Sounds `bastion.jam`,
+  `bastion.jamGrind`.
+- **A base hit**: the heavy `bastion.baseHit`, the impact haptic, the red edge flash, and a crack across the bottom
+  panel's glass from where that tank came through (`bastionCrackPath`, starting 126 / 236 / 336 px by lane, clear of the
+  labels; it flashes white as it splits and stays all run). Sound `bastion.panelCrack`.
+- **The end card**: the stage holds its submit 1.8 s (`bastionEndHoldMs`; the finished run is the draft meanwhile); the
+  field dims, the five waves tally one by one 150 ms apart (WAVE n, a pip for each of its tanks: orange destroyed, red
+  reached the wall, dark not stopped; "4 / 5"; `bastion.tally` a step higher each), then WALL HELD in gold
+  (`bastion.wallHeld`) or BASE DOWN in red. The tally comes from the art's memory of the run (`observeRun`, a ledger of
+  each tank's fate, `bastionLedgerStep`); a lone frame of a finished run shows its total only. Reduced motion: the whole
+  card at once.
+- **The answer reveal** (the shared `RunPicture` hook, drawn by ArcadeReveal under the score and breakdown in place of the stat tiles;
+  `Reveal` draws the same): four big numbers with plain labels (armour knocked out of 63, weak-spot hits, fast
+  reloads, drones down), then the run in one picture (`paintBastionSummary`): each wave's tanks in the order they rolled
+  on, drawn by the game's own art (in colour with their dents: destroyed; faded: not stopped; on a red plate: reached
+  the wall), a gold dot under a tank for each weak-spot hit on it, the wave's kills big on the right; then the drones and
+  the base's three blocks, cracked for each hit, and a two-line key. It comes from the stored log replayed tick by tick
+  through the real sim (`bastionTankLedger`, `src/lib/duel/bastionLedger.ts`), whose end is the server replay's; the score
+  shown is the stored one.
+- **No edge glow**: Iron Wall is on the shared edgeless list (`ACTION_EDGELESS_GAMES`); the effects above, drawn by its own
+  renderer from the sim's landings and reload fields, replace the success layer's edge frame (the red miss pulse stays).
+- Review frames: `bun scripts/shots/bastion-fx-shots.ts [--out=<dir>]`. bastion-overhaul-check sections 9 and 10.
+
 ### Levels (stage 3, with the difficulty framework; not built yet)
 
 Joe finds today's game much too hard: **today's game becomes Expert**. The levers, each a new stamp with its own

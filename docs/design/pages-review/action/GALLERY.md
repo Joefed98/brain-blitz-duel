@@ -190,6 +190,46 @@ wave by wave.
 
 The clip is made by `bun scripts/shots/bastion-overhaul-clip.ts <dir>` (frames) and encoded as an animated WebP.
 
+### Stage 2: effects and reveal
+
+Display and sound only (no stamp). Each pair is the same tick of a recorded run (bastion-overhaul-rev3.json) drawn by
+main's art (5737bbc5, left) and this branch's (right) with `@napi-rs/canvas`; the effects come from the sim's own
+state (its cooldown, reload fields, counters and landings), so replays draw them the same. Every one is under 900 ms
+and has its sound slot (`docs/sound-cues/arcade-effects.md` "Iron Wall").
+
+Firing (the barrel alone kicks 3 px for 80 ms, a crisp muzzle star for 3 ticks) and a shell in flight (its shadow slides
+over the road to the exact landing point):
+
+<img src="bastion/s2-fx-1.webp" width="640">
+
+A weak-spot hit (the vent flashes gold every time, sparks; the tank's hit wash is now a third, so nothing glares) and a
+kill (flame petals, armour debris, smoke and "+n" rising; gold on a weak-spot kill):
+
+<img src="bastion/s2-fx-2.webp" width="640">
+
+A near miss (a dustier puff, CLOSE), a fast reload's end (the green needle, the shells snapping in one by one with a
+click each), a jam (the needle red and shaking) and a base hit (a crack across the panel's glass where the tank came
+through, kept all run):
+
+<img src="bastion/s2-fx-3.webp" width="640">
+
+The end card: the field dims, the five waves tally 150 ms apart, then WALL HELD (BASE DOWN if the base fell); the stage
+holds the reveal 1.8 s for it. Clip (1.8 s):
+
+| Frames | Clip |
+| --- | --- |
+| <img src="bastion/s2-end.webp" width="420"> | <img src="bastion/s2-end-clip.webp" width="200"> |
+
+The answer reveal: today the arcade reveal shows the score and the part lines only; now Iron Wall adds its own picture
+under the score and breakdown (the shared `RunPicture` hook, in place of the stat tiles): four big numbers, then each wave's tanks drawn by the
+game's art (in colour: destroyed; faded: not stopped; red plate: reached the wall; a gold dot per weak-spot hit), the
+drones and the base. The picture is the real `paintBastionSummary`; the score row and the four numbers are drawn here to
+match the reveal's CSS (their markup is proved by bastion-overhaul-check section 10).
+
+<img src="bastion/s2-reveal.webp" width="640">
+
+Frames: `bun scripts/shots/bastion-fx-shots.ts --out=<dir>`.
+
 
 ## High Rise
 
