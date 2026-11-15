@@ -16,6 +16,15 @@
  *  6. The 120 s rule and the grace: a 60 s run on a 63 s clock; three base hits allowed, a run going on after the first.
  *  7. Readable text: the panel's labels and hints are 13 px, the badge's letter 11 px; the intro still is the game's own
  *     art; the new sound slots are registered (silent until their files) and wired.
+ *  8. Edge to edge: the scene beyond the world continues it with no seam.
+ *  9. Stage 2's effects (display and sound only): the barrel's 3 px, 80 ms kick and the 3-tick muzzle flash (the mount
+ *     never moves); the shell's shadow ending on its landing point; dents inside the hull; every kill's "+n", every
+ *     weak-spot hit's gold, every near miss's CLOSE, the fast reload's shells snapping in 4 ticks apart, the jam's red
+ *     needle, a crack on the panel for each base hit (clear of its labels); every effect under 900 ms; the end card
+ *     (the hold, the rows 150 ms apart, WALL HELD or BASE DOWN, the rows adding up to the kills) and its sounds.
+ * 10. Stage 2's reveal: on every recorded rev-2 and rev-3 run the picture's ledger ends where the server's replay ends
+ *     and puts every kill, base hit, weak-spot hit and drone on its tank and wave; the rows, text sizes and big numbers;
+ *     the arcade reveal shows it (tank revisions only), open in practice and with the breakdown in a room.
  *
  *   bun scripts/bastion-overhaul-check.ts      # ~5 s
  */
@@ -28,7 +37,11 @@ import {
   bastionTankCheckpoint,
   bastionTankGame,
   bastionTankRects,
+  bastionPlan,
   BT2_BASE,
+  BT2_HP,
+  BT2_MAG,
+  BT2_WALL_Y,
   BT2_FAR,
   BT2_INPUT_FIRE,
   BT2_INPUT_RELOAD,
@@ -55,7 +68,45 @@ import {
   paintTankBadge,
   paintTankOutline,
 } from "../src/lib/arcade/bastionTank.renderer";
-import { bastionNearMiss } from "../src/lib/arcade/bastionLook";
+import {
+  bastionEndHoldMs,
+  bastionFlashAge,
+  bastionKick,
+  bastionKillPoints,
+  bastionNearMiss,
+  bastionSnapLit,
+  bastionTallyRows,
+  bastionWaveTallies,
+  BT_END_HOLD_MS,
+  BT_FLASH_TICKS,
+  BT_HELD_AT_MS,
+  BT_JAM_SHAKE_TICKS,
+  BT_KICK_PX,
+  BT_KICK_TICKS,
+  BT_SNAP_STEP,
+  BT_TALLY_FIRST_MS,
+  BT_TALLY_STEP_MS,
+} from "../src/lib/arcade/bastionLook";
+import {
+  bastionCrackPath,
+  bastionShellShadow,
+  bastionSummaryHeight,
+  bastionSummaryRows,
+  BT_CRACK_X,
+  BT_FX_TICKS,
+  BT2_PANEL_Y,
+  observeRun,
+  paintBastionSummary,
+  paintDents,
+  setBastionEndClock,
+} from "../src/lib/arcade/bastionTank.renderer";
+import { btViewX, btViewY } from "../src/lib/arcade/bastionView";
+import { arcadeOwnReveal } from "../src/lib/arcade/ownReveal";
+import { decodeBastionTankRun } from "../src/lib/duel/bastion";
+import { bastionTankLedger } from "../src/lib/duel/bastionLedger";
+import { bastionPuzzle, bastionSummaryOf } from "../src/puzzles/bastion";
+import { createElement } from "react";
+import { renderToString } from "react-dom/server";
 import { replayBastionTankRun } from "../src/lib/duel/bastion";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { BASTION_TIME_MS } from "../src/lib/duel/types";
@@ -394,6 +445,291 @@ const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0]! - 
         }
       ok(black === 0, `${box.name} tick ${tick}: the scene fills the screen round the world (${black} black samples)`);
     }
+}
+
+/* 9. Stage 2: the effects (display and sound only; every one observes the sim). */
+{
+  const g = bastionIronGame;
+  // Firing: the barrel kicks 3 px on the shot's tick, eases back to 0 by 80 ms (5 ticks); the muzzle flash 3 ticks.
+  {
+    let s = g.init(21);
+    for (let t = 1; t < 100; t++) s = g.step(s, null);
+    s = g.step(s, { t: 100, k: BT2_INPUT_FIRE, a: 195, b: 420, c: 1 });
+    const kicks: number[] = [];
+    const flashes: (number | null)[] = [];
+    let k = s;
+    for (let i = 0; i < 8; i++) {
+      kicks.push(bastionKick(k));
+      flashes.push(bastionFlashAge(k));
+      k = g.step(k, null);
+    }
+    ok(kicks[0] === BT_KICK_PX && BT_KICK_PX >= 2 && BT_KICK_PX <= 3 && kicks.every((v) => v <= 3) && kicks[BT_KICK_TICKS] === 0 && (BT_KICK_TICKS * 1000) / 60 <= 84, `the barrel kicks 3 px and is back by 80 ms (${kicks.map((v) => v.toFixed(1)).join(" ")})`);
+    ok(flashes.slice(0, BT_FLASH_TICKS).every((v, i) => v === i) && flashes[BT_FLASH_TICKS] === null, `the muzzle flash lasts 3 ticks (${flashes.join(",")})`);
+    ok(bastionKick(g.init(21)) === 0 && bastionFlashAge(g.init(21)) === null, "no kick or flash before a shot");
+    const art = readFileSync(new URL("../src/lib/arcade/bastionTank.renderer.ts", import.meta.url), "utf8");
+    const gun = art.slice(art.indexOf("function paintGun"), art.indexOf("function paintMuzzleFlash"));
+    ok(/const recoil = still \? 0 : bastionKick\(state\);/.test(gun) && /GUN_X - 46, BT2_PANEL_Y - 22/.test(gun), "only the barrel kicks: the mount stays where it is (and no kick under reduced motion)");
+    ok(!/arcadeShake|shake\(/.test(gun), "firing never shakes the world or the arena");
+  }
+  // The shell's shadow: from the wall to the exact landing point (in the view), shrinking; none for a shot into the sky.
+  {
+    let bad = 0;
+    for (const [x, y] of [[195, 420], [80, 330], [320, 560], [200, 270]] as const) {
+      const sh = { x, y, from: 10, at: 10 + 24 };
+      const start = bastionShellShadow(sh, 10)!;
+      const end = bastionShellShadow(sh, 34)!;
+      const mid = bastionShellShadow(sh, 22)!;
+      if (Math.hypot(end.x - btViewX(x, y), end.y - btViewY(y)) > 0.5) bad++;
+      if (Math.abs(start.y - BT2_WALL_Y) > 0.5) bad++;
+      if (!(mid.y < start.y && end.y <= mid.y && end.a > start.a)) bad++;
+    }
+    ok(bad === 0, `the shadow slides from the wall to the very point the shell lands, darkening (${bad} wrong)`);
+    ok(bastionShellShadow({ x: 195, y: 150, from: 0, at: 30 }, 15) === null, "no shadow for a shot into the sky");
+  }
+  // Every effect is a short physical action: at most 900 ms, inside the sim's 60-tick impact memory.
+  ok(Object.values(BT_FX_TICKS).every((t) => t <= 54 && t < 60), `every landing effect lasts at most 900 ms (${Object.entries(BT_FX_TICKS).map(([k, v]) => `${k} ${v}`).join(", ")})`);
+  ok(BT_JAM_SHAKE_TICKS <= 54 && BT_SNAP_STEP * BT2_MAG <= 54, "the jam's shake and the shells' snap each under 900 ms");
+  // Dents: one for each hit point lost, drawn inside the hull (the 2 px bounds rule), none on an unhurt tank.
+  {
+    let outside = 0;
+    let dentFills = 0;
+    for (const kind of [0, 1, 2])
+      for (const z of [0, 300, 900]) {
+        const r = bastionTankRects(kind, 1, z * 256);
+        const fills = (hp: number) => {
+          const pts: [number, number][] = [];
+          let n = 0;
+          const ctx = new Proxy(
+            {},
+            {
+              get(_, k) {
+                if (k === "ellipse") return (x: number, y: number, rx: number, ry: number) => (n++, pts.push([x - rx, y - ry], [x + rx, y + ry]));
+                if (k === "createLinearGradient" || k === "createRadialGradient") return () => ({ addColorStop() {} });
+                return () => {};
+              },
+              set: () => true,
+            },
+          ) as unknown as CanvasRenderingContext2D;
+          paintDents(ctx, r.hull[0], r.hull[1], r.hull[2], r.hull[3], r.s256 / 256, BT2_HP[kind]! - hp, kind);
+          return { pts, n };
+        };
+        const hurt = fills(0);
+        if (fills(BT2_HP[kind]!).n !== 0) outside++;
+        dentFills += hurt.n;
+        for (const [x, y] of hurt.pts) if (x < r.hull[0] - 2 || x > r.hull[2] + 2 || y < r.hull[1] - 2 || y > r.hull[3] + 2) outside++;
+      }
+    ok(dentFills > 0 && outside === 0, `dents sit inside the hull (${outside} out of bounds, ${dentFills} drawn)`);
+  }
+  // Recorded runs drawn tick by tick: every effect appears at its moment (kills' "+n", near misses' CLOSE, the weak spot's
+  // gold, the green and red needles, the cracks), from the sim's own state.
+  {
+    type Run = { seed: number; raw: string; score: number };
+    const runs = (JSON.parse(readFileSync(new URL("./fixtures/bastion-overhaul-rev3.json", import.meta.url), "utf8")) as { runs: Run[] }).runs;
+    const run = [...runs].sort((a, b) => a.score - b.score)[Math.floor(runs.length / 2)]!;
+    const events = new Map(decodeBastionTankRun(run.raw).events.map((e) => [e.t, e]));
+    // One context for the whole run (the art keeps its memory per canvas, as on the phone).
+    let out: { text: string; font: string; fill: string }[] = [];
+    let font = "";
+    let fill = "";
+    let fills: string[] = [];
+    let stops: string[] = [];
+    const ctx = new Proxy({}, {
+        get(_, k) {
+          if (k === "fillText") return (t: string) => out.push({ text: t, font, fill });
+          if (k === "fill" || k === "fillRect") return () => fills.push(fill);
+          if (k === "createLinearGradient" || k === "createRadialGradient") return () => ({ addColorStop: (_o: number, c: string) => stops.push(c) });
+          return () => ({ addColorStop() {}, width: 10 });
+        },
+        set(_, k, v) {
+          if (k === "font") font = String(v);
+          if (k === "fillStyle") fill = String(v);
+          return true;
+        },
+      }) as unknown as CanvasRenderingContext2D;
+    const texts = (s: BastionTankState) => {
+      out = [];
+      fills = [];
+      stops = [];
+      bastionIronArtGame.draw(ctx, s, { width: W, height: H });
+      return { out, fills, stops };
+    };
+    let s = g.init(run.seed);
+    let kills = 0;
+    let risers = 0;
+    let goldFrames = 0;
+    let weakFrames = 0;
+    let fastSeen = 0;
+    let snapOk = true;
+    let jamRed = 0;
+    let jams = 0;
+    let near = 0;
+    let closeDrawn = 0;
+    const nearSeen = new Set<string>();
+    for (let t = 1; t <= g.runTicks && !g.isOver(s); t++) {
+      const prev = s;
+      s = g.step(s, events.get(t) ?? null);
+      const fresh = s.impacts.filter((m) => m.t === s.tick);
+      const kill = fresh.find((m) => m.r === 3 || m.r === 4);
+      const weak = fresh.find((m) => m.r === 2 || m.r === 4);
+      const nm = fresh.find((m) => m.r === 0 && bastionNearMiss(s, m));
+      if (nm) nearSeen.add(`${nm.t}`);
+      const snap = bastionSnapLit(s, BT2_MAG);
+      if (snap !== null && snap !== Math.min(BT2_MAG, Math.floor((s.tick - s.reloadEnd) / BT_SNAP_STEP) + 1)) snapOk = false;
+      const jamNow = s.jams > prev.jams;
+      // Draw every frame (the art's memory is built frame by frame, as on the phone), judge the ones that matter.
+      const { out, fills, stops } = texts(s);
+      if (kill) {
+        kills++;
+        if (out.some((x) => x.text === `+${bastionKillPoints(kill.kind, 3)}` && Number(/(\d+)px/.exec(x.font)?.[1]) >= 14)) risers++;
+      }
+      if (weak) {
+        weakFrames++;
+        if (fills.some((f) => /rgba\(255,209,92/.test(f))) goldFrames++;
+      }
+      if (nm) {
+        near++;
+        if (out.some((x) => x.text === "CLOSE")) closeDrawn++;
+      }
+      if (snap !== null) fastSeen++;
+      if (jamNow) {
+        jams++;
+        if (stops.includes("#FFC2B8")) jamRed++;
+      }
+    }
+    ok(kills > 10 && risers === kills, `every kill shows its "+n" (at least 14 px) on its tick (${risers} of ${kills})`);
+    ok(weakFrames > 0 && goldFrames === weakFrames, `every weak-spot hit flashes gold (${goldFrames} of ${weakFrames})`);
+    ok(near > 0 && closeDrawn === near, `every near miss shows CLOSE (${closeDrawn} of ${near})`);
+    ok(fastSeen > 0 && snapOk, `a fast reload's shells snap in one by one, 4 ticks apart (${fastSeen} snap frames)`);
+    ok(jams > 0 && jamRed === jams, `a jam turns the needle red (${jamRed} of ${jams})`);
+    ok(bastionKillPoints(0, 3) === 2 && bastionKillPoints(1, 3) === 3 && bastionKillPoints(2, 3) === 7 && bastionKillPoints(2, 2) === 9, "a kill's +n is its armour on the Armour line (2 / 3 / 7 on Iron Wall)");
+  }
+  // The panel's cracks: inside the panel, clear of its labels, one for each base hit, kept all run.
+  {
+    let bad = 0;
+    for (let k = 0; k < 3; k++)
+      for (const lane of [0, 1, 2])
+        for (const line of bastionCrackPath(k, lane)) for (const [x, y] of line) if (x < 0 || x > W || y < BT2_PANEL_Y || y > H || (x < 100 && y < 690)) bad++;
+    ok(bad === 0 && BT_CRACK_X.every((x) => x >= 110), `the cracks stay on the panel, clear of its labels (${bad} points out)`);
+    let s = g.init(5);
+    let first = -1;
+    while (!g.isOver(s)) {
+      s = g.step(s, null);
+      if (s.breached === 1 && first < 0) first = s.tick;
+    }
+    const strokes = (st: BastionTankState) => {
+      let n = 0;
+      const ctx = new Proxy({}, { get: (_, k) => (k === "stroke" ? () => n++ : () => ({ addColorStop() {}, width: 10 })), set: () => true }) as unknown as CanvasRenderingContext2D;
+      bastionIronArtGame.draw(ctx, st, { width: W, height: H });
+      return n;
+    };
+    const before = strokes({ ...s, breached: 0, ended: 0 });
+    const after = strokes({ ...s, ended: 0 });
+    ok(after - before === 2 * s.breached, `a crack (dark line and lit edge) for each of the ${s.breached} base hits (${after - before} strokes)`);
+  }
+  // The end card: the stage holds its submit while the waves tally, then WALL HELD (or BASE DOWN).
+  {
+    ok(bastionEndHoldMs({ ended: 0 }) === 0 && bastionEndHoldMs({ ended: 1 }) === BT_END_HOLD_MS && BT_END_HOLD_MS <= 2000, `the stage holds an ended run ${BT_END_HOLD_MS} ms for the end card`);
+    ok([0, 119, 120, 269, 270, 719, 720, 2000].map((ms) => bastionTallyRows(ms)).join() === "0,0,1,1,2,4,5,5", "the wave rows land 150 ms apart");
+    ok(BT_HELD_AT_MS > BT_TALLY_FIRST_MS + 4 * BT_TALLY_STEP_MS && BT_HELD_AT_MS < BT_END_HOLD_MS, "the stamp comes after the last row and before the hold ends");
+    const stage = readFileSync(new URL("../src/puzzles/bastion.tsx", import.meta.url), "utf8");
+    ok(/endHoldMs=\{bastionEndHoldMs\}/.test(stage), "the stage holds its submit for the end card");
+    type Run = { seed: number; raw: string; score: number };
+    const runs = (JSON.parse(readFileSync(new URL("./fixtures/bastion-overhaul-rev3.json", import.meta.url), "utf8")) as { runs: Run[] }).runs;
+    const best = [...runs].sort((a, b) => b.score - a.score)[0]!;
+    const events = new Map(decodeBastionTankRun(best.raw).events.map((e) => [e.t, e]));
+    let now = 0;
+    setBastionEndClock(() => now);
+    let got: string[] = [];
+    const key = new Proxy({}, { get: (_, k) => (k === "fillText" ? (t: string) => got.push(t) : () => ({ addColorStop() {}, width: 10 })), set: () => true }) as unknown as CanvasRenderingContext2D;
+    const read = (st: BastionTankState) => {
+      got = [];
+      bastionIronArtGame.draw(key, st, { width: W, height: H });
+      return got;
+    };
+    let s = g.init(best.seed);
+    read(s);
+    for (let t = 1; t <= g.runTicks && !g.isOver(s); t++) {
+      s = g.step(s, events.get(t) ?? null);
+      observeRun(key, s);
+    }
+    const at = (ms: number) => ((now = ms), read(s));
+    at(0);
+    const mid = at(BT_TALLY_FIRST_MS + BT_TALLY_STEP_MS + 10);
+    const end = at(BT_END_HOLD_MS);
+    const rows = bastionWaveTallies(observeRun(key, s).ledger, bastionPlan(best.seed));
+    ok(mid.includes("WAVE 2") && !mid.includes("WAVE 3") && !mid.includes("WALL HELD"), `part way: two rows, no stamp yet (${mid.filter((t) => t.startsWith("WAVE")).join(", ")})`);
+    ok([1, 2, 3, 4, 5].every((w) => end.includes(`WAVE ${w}`)) && end.includes("WALL HELD") && rows.every((r) => end.includes(`${r.kills} / ${r.tanks.length}`)), "complete: five rows with each wave's kills, then WALL HELD");
+    ok(rows.reduce((a, r) => a + r.kills, 0) === s.kills, "the end card's rows add up to the run's kills");
+    // A run the base fell in: BASE DOWN, never WALL HELD.
+    let fell = g.init(5);
+    const fr: string[] = [];
+    const fk = new Proxy({}, { get: (_, k) => (k === "fillText" ? (t: string) => fr.push(t) : () => ({ addColorStop() {}, width: 10 })), set: () => true }) as unknown as CanvasRenderingContext2D;
+    now = 0;
+    observeRun(fk, fell);
+    while (!g.isOver(fell)) (fell = g.step(fell, null)), observeRun(fk, fell);
+    now = BT_END_HOLD_MS;
+    bastionIronArtGame.draw(fk, fell, { width: W, height: H });
+    ok(fell.ended === 2 && fr.includes("BASE DOWN") && !fr.includes("WALL HELD"), "a fallen base reads BASE DOWN");
+    setBastionEndClock(null);
+    const sounds = readFileSync(new URL("../src/lib/fx/gameSounds.ts", import.meta.url), "utf8");
+    ok(/effectCue\("bastion\.tally", 0, 1 \+ 0\.06 \* tallied\+\+\)/.test(sounds) && /ms >= BT_HELD_AT_MS/.test(sounds) && /effectCue\("bastion\.shellIn", 0, 1 \+ 0\.04 \* n\)/.test(sounds), "the tally ticks rise a step a row, the sting lands with the stamp, a click for each shell");
+    const manifest = readFileSync(new URL("../src/lib/fx/manifest.ts", import.meta.url), "utf8");
+    ok(/"bastion\.tally": \{/.test(manifest), "slot bastion.tally registered");
+  }
+}
+
+/* 10. Stage 2: the answer reveal (the run in one picture, from the stored log through the real sim). */
+{
+  type Run = { seed: number; raw: string; score: number; checksum: number };
+  const rev2 = JSON.parse(readFileSync(new URL("./fixtures/bastion-rev2-legacy.json", import.meta.url), "utf8")) as { runs: Run[] };
+  const rev3 = JSON.parse(readFileSync(new URL("./fixtures/bastion-overhaul-rev3.json", import.meta.url), "utf8")) as { runs: Run[] };
+  let bad = 0;
+  const why: string[] = [];
+  for (const [rev, runs] of [[2, rev2.runs], [3, rev3.runs]] as const)
+    for (const r of runs) {
+      const { ledger, state } = bastionTankLedger(r.seed, r.raw, rev);
+      const replay = replayBastionTankRun(r.seed, r.raw, rev);
+      const tallies = bastionWaveTallies(ledger, bastionPlan(r.seed));
+      const sameEnd = bastionTankCheckpoint(state).checksum === bastionTankCheckpoint(replay.state).checksum && state.tick === replay.state.tick;
+      const killsAdd = tallies.reduce((a, w) => a + w.kills, 0) === state.kills;
+      const throughAdd = tallies.reduce((a, w) => a + w.through, 0) === state.breached && ledger.breaches.length === state.breached;
+      const weakAdd = tallies.reduce((a, w) => a + w.weak, 0) === state.weak && ledger.weakLoose === 0;
+      const dronesAdd = ledger.drones.filter((t) => t !== null).length === (state.drones ?? 0);
+      const hpAdd = tallies.reduce((a, w) => a + w.tanks.filter((t) => t.fate === 1).reduce((b, t) => b + BT2_HP[t.kind]!, 0), 0) <= state.destroyedHp;
+      const counts = tallies.map((w) => w.tanks.length).join() === "5,5,5,7,8";
+      if (!(sameEnd && killsAdd && throughAdd && weakAdd && dronesAdd && hpAdd && counts)) {
+        bad++;
+        if (why.length < 3) why.push(`rev ${rev} seed ${r.seed}: end ${sameEnd} kills ${killsAdd} through ${throughAdd} weak ${weakAdd} drones ${dronesAdd}`);
+      }
+    }
+  ok(bad === 0, `the reveal's picture is the stored run exactly: same end as the server's replay, every kill, base hit, weak-spot hit and drone on its tank and wave (${bad} wrong ${why.join("; ")})`);
+  // The picture's rows and the big numbers, from a recorded run; text at least 13 px.
+  const r = [...rev3.runs].sort((a, b) => a.score - b.score)[0]!;
+  const sum = bastionSummaryOf(r.seed, r.raw, 3);
+  const rows = bastionSummaryRows(sum.data);
+  ok(rows.length === 7 && rows[0]!.startsWith("WAVE 1 ") && rows[5]!.startsWith("DRONES ") && rows[6]!.startsWith("BASE "), `the picture: five waves, the drones, the base (${rows.join(" | ")})`);
+  ok(bastionSummaryRows(bastionSummaryOf(rev2.runs[0]!.seed, rev2.runs[0]!.raw, 2).data).length === 6, "rev 2's picture has no drones row");
+  const fonts: number[] = [];
+  const ctx = new Proxy(
+    {},
+    {
+      get: (_, k) => (k === "measureText" ? () => ({ width: 60 }) : () => ({ addColorStop() {}, width: 10 })),
+      set(_, k, v) {
+        if (k === "font") fonts.push(Number(/(\d+)px/.exec(String(v))?.[1] ?? 0));
+        return true;
+      },
+    },
+  ) as unknown as CanvasRenderingContext2D;
+  paintBastionSummary(ctx, sum.data);
+  ok(fonts.length > 0 && fonts.every((f) => f >= 13) && fonts.includes(20), `the picture's text is 13 px and up, the counts 20 px (${[...new Set(fonts)].join(", ")})`);
+  ok(bastionSummaryHeight(3) === bastionSummaryHeight(2) + 52, "rev 3 adds one row");
+  // The component: big numbers with short plain labels, no "×", and the picture.
+  const html = renderToString(createElement(bastionPuzzle.Reveal, { puzzle: { type: "bastion", seed: r.seed, bastionRev: 3 } as never, myAnswer: r.raw, myCorrect: false, myReactionAvgMs: null, timeLimitMs: BASTION_TIME_MS }));
+  ok(html.includes(`${sum.destroyedHp} / 63`) && html.includes("Armour knocked out") && html.includes("Drones down") && /Weak-spot hits?/.test(html) && /Fast reloads?/.test(html), "the reveal shows armour, weak spots, fast reloads and drones big");
+  ok(!/×/.test(html) && /data-bastion-rows="WAVE 1/.test(html) && /role="img"/.test(html), "no stray ×, and the picture carries its rows for screen readers");
+  ok(arcadeOwnReveal({ type: "bastion", bastionRev: 3 }) && arcadeOwnReveal({ type: "bastion", bastionRev: 2 }) && !arcadeOwnReveal({ type: "bastion" }) && !arcadeOwnReveal({ type: "orbit", orbitRev: 15 }), "the arcade reveal draws Iron Wall's picture (tank revisions only)");
+  const arcadeReveal = readFileSync(new URL("../src/components/duel/ArcadeReveal.tsx", import.meta.url), "utf8");
+  ok(/hidden=\{!practice && !open\}[^\n]*\n\s*<GameReveal/.test(arcadeReveal), "open in practice, with the breakdown in a room");
 }
 
 console.log(

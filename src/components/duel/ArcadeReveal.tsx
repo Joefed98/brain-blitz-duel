@@ -17,6 +17,9 @@ import { RevealBreakdown } from "./RevealBreakdown";
 import { moonHitsLine } from "@/lib/duel/moonRevealHits";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
+import { arcadeOwnReveal } from "@/lib/arcade/ownReveal";
+import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
+import { GameReveal } from "./GameParts";
 
 /** One player in the room for the reveal chart. `reveal` and `score` are null until their result lands. */
 export interface RevealPlayer {
@@ -364,6 +367,13 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
 
+        {/* A game's own picture of the run (ownReveal.ts; Iron Wall since the Action overhaul's stage 2): the stored log
+            replayed, open in practice and with the breakdown in a room. */}
+        {arcadeOwnReveal(puzzle as unknown as { type: string } & Record<string, unknown>) && myAnswer !== null && myScore !== null ? (
+          <div data-reveal-own={puzzle.type} hidden={!practice && !open} className="w-full shrink-0 animate-fade-in">
+            <GameReveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={false} myReactionAvgMs={null} timeLimitMs={puzzleTimeLimitMs(puzzle)} />
+          </div>
+        ) : null}
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
         {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}

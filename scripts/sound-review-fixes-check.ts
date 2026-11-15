@@ -148,6 +148,9 @@ const EXEMPT: Record<string, string> = {
   "bastion.tip": ACTION_ELEVENLABS,
   "bastion.dustWind": ACTION_ELEVENLABS,
   "bastion.stormFire": ACTION_ELEVENLABS,
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): stage 2's end-card tally
+  // slot, listed in action-elevenlabs.md, waits for its file the same way.
+  "bastion.tally": ACTION_ELEVENLABS,
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

@@ -11,7 +11,7 @@ import {
   BAS_WORLD_H,
   BAS_WORLD_W,
 } from "@/lib/arcade/bastion";
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 
 import { BAS_TURRET_X, BAS_TURRET_Y, BAS_STEP_DEG_X256, type BasState } from "@/lib/arcade/bastion";
 import { encodeBastionRun, encodeBastionTankRun, isBastionTank, replayBastionRun, replayBastionTankRun } from "@/lib/duel/bastion";
@@ -29,7 +29,11 @@ import {
   BT2_WORLD_W,
   type BastionTankState,
 } from "@/lib/arcade/bastionTank";
-import { bastionScene, bastionSceneKey, bastionIronArtGame, bastionTankArtGameFor, BT2_ART_BG } from "@/lib/arcade/bastionTank.renderer";
+import { bastionScene, bastionSceneKey, bastionIronArtGame, bastionSummaryHeight, bastionSummaryRows, bastionTankArtGameFor, BT2_ART_BG, BT_SUMMARY_W, paintBastionSummary, type BtSummaryData } from "@/lib/arcade/bastionTank.renderer";
+import { bastionEndHoldMs, bastionWaveTallies } from "@/lib/arcade/bastionLook";
+import { bastionPlan, BT2_TOTAL_HP, BT2_WAVE_COUNT, BT3_DRONES } from "@/lib/arcade/bastionTank";
+import { bastionTankLedger } from "@/lib/duel/bastionLedger";
+import { canvasRatio } from "@/lib/battery";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 import { bastionTankSounds } from "@/lib/fx/gameSounds";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -265,6 +269,7 @@ function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps
       checkpoint={bastionTankCheckpoint}
       interval={BT2_CHECKPOINT_INTERVAL}
       encodeRun={encodeBastionTankRun}
+      endHoldMs={bastionEndHoldMs}
       tickInput={(state) => {
         live.current = state;
         return actions.current.shift() ?? null;
@@ -337,20 +342,75 @@ function Reveal(props: PuzzleRevealProps) {
   const { puzzle, myAnswer } = props;
   if (puzzle.type !== "bastion") return null;
   if (!isBastionTank(puzzle.bastionRev)) return <LegacyReveal {...props} />;
-  const result = replayBastionTankRun(puzzle.seed, myAnswer ?? "", puzzle.bastionRev);
-  // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
-  const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
+  return <TankReveal seed={puzzle.seed} answer={myAnswer ?? ""} rev={puzzle.bastionRev} />;
+}
+
+/** The reveal's picture data from a stored run (the real sim, tick by tick; display only). */
+export function bastionSummaryOf(seed: number, answer: string, rev?: number | null): { data: BtSummaryData; destroyedHp: number; weak: number; fast: number; drones: number } {
+  const { ledger, state } = bastionTankLedger(seed, answer, rev);
+  const iron = state.rev >= 3;
+  return {
+    data: { rev: state.rev, waves: bastionWaveTallies(ledger, bastionPlan(seed), BT2_WAVE_COUNT), drones: iron ? ledger.drones : [], base: state.base, fell: state.ended === 2 },
+    destroyedHp: state.destroyedHp,
+    weak: state.weak,
+    fast: state.fast,
+    drones: state.drones ?? 0,
+  };
+}
+
+/**
+ * Iron Wall's own reveal (Action overhaul stage 2, 15 Nov 2026): the numbers the score is made of, big, then the run
+ * in one picture (paintBastionSummary: each wave's tanks and what became of them, the drones and the base), drawn from
+ * the stored log replayed through the real sim. No score or grade is worked out here; the stored score is the reveal's.
+ */
+function TankReveal({ seed, answer, rev }: { seed: number; answer: string; rev?: number | null | undefined }) {
+  const run = useMemo(() => bastionSummaryOf(seed, answer, rev), [seed, answer, rev]);
+  const box = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [width, setWidth] = useState(BT_SUMMARY_W);
+  const height = bastionSummaryHeight(run.data.rev);
+  useLayoutEffect(() => {
+    const node = box.current;
+    if (!node) return;
+    const measure = () => setWidth(Math.max(240, Math.round(node.clientWidth || BT_SUMMARY_W)));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const watch = new ResizeObserver(measure);
+    watch.observe(node);
+    return () => watch.disconnect();
+  }, []);
+  const cssH = Math.round((height * width) / BT_SUMMARY_W);
+  useLayoutEffect(() => {
+    const node = canvas.current;
+    const ctx = node?.getContext("2d");
+    if (!node || !ctx) return;
+    const ratio = canvasRatio();
+    node.width = Math.round(width * ratio);
+    node.height = Math.round(cssH * ratio);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, node.width, node.height);
+    const k = (width * ratio) / BT_SUMMARY_W;
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    paintBastionSummary(ctx, run.data);
+  }, [run, width, cssH]);
+  const stats: { value: string; label: string }[] = [
+    { value: `${run.destroyedHp} / ${BT2_TOTAL_HP}`, label: "Armour knocked out" },
+    { value: `${run.weak}`, label: run.weak === 1 ? "Weak-spot hit" : "Weak-spot hits" },
+    { value: `${run.fast}`, label: run.fast === 1 ? "Fast reload" : "Fast reloads" },
+  ];
+  if (run.data.rev >= 3) stats.push({ value: `${run.drones} / ${BT3_DRONES}`, label: "Drones down" });
+  const rows = bastionSummaryRows(run.data);
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.kills} of {BT2_TANKS} tanks · {result.fell ? `base fell at ${result.endedSeconds.toFixed(1)}s` : `base ${result.base} / ${BT2_BASE}`}
-      </p>
-      {lines.map((line) => (
-        <p key={line} className="shrink-0 text-center font-mono text-sm text-foreground">
-          {line}
-        </p>
-      ))}
-      <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">{result.state.rev >= 3 ? "Same five waves and drones for everyone" : "Same five waves for everyone"}</p>
+    <div ref={box} data-bastion-run="" className="reveal-run">
+      <div className="reveal-stats" data-reveal-stats="">
+        {stats.map((stat) => (
+          <div key={stat.label} className="reveal-stat" data-reveal-stat={stat.label}>
+            <span className="reveal-stat-value">{stat.value}</span>
+            <span className="reveal-stat-label">{stat.label}</span>
+          </div>
+        ))}
+      </div>
+      <canvas ref={canvas} className="reveal-run-picture" style={{ height: cssH }} role="img" aria-label={rows.join(", ")} data-bastion-rows={rows.join("|")} />
     </div>
   );
 }

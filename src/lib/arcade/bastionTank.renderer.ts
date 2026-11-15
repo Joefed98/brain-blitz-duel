@@ -34,8 +34,24 @@ import {
   bastionSettingNow,
   bastionSettingOf,
   bastionSwipeHint,
+  bastionFlashAge,
+  bastionKick,
+  bastionKillPoints,
+  bastionLedgerStart,
+  bastionLedgerStep,
+  bastionNearMiss,
+  bastionSnapLit,
+  bastionTallyRows,
+  bastionWaveTallies,
+  BT_END_HOLD_MS,
+  BT_HELD_AT_MS,
+  BT_JAM_SHAKE_TICKS,
+  BT_SNAP_STEP,
+  BT_TALLY_STEP_MS,
+  type BtLedger,
   type BtSetting,
 } from "./bastionLook";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 export {
   BT_PANEL_HINT_Y,
   BT_PANEL_RELOAD_Y,
@@ -80,6 +96,7 @@ import {
   BT2_WALL_Y,
   BT2_WAVE_COUNT,
   BT2_WAVE_START,
+  BT2_TANKS,
   BT2_WORLD_H,
   BT2_WORLD_W,
   type BastionTankState,
@@ -992,7 +1009,7 @@ function rect(ctx: CanvasRenderingContext2D, r: Bt2Rect): void {
  * spot (a round orange vent on its square while exposed, a dark plate while closed), a hit's flash, haze on far ones and
  * the orange health pips above.
  */
-export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, hp: number, flash: number, tick: number, still: boolean, open = true, pips = true): void {
+export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, hp: number, flash: number, tick: number, still: boolean, open = true, pips = true, mark = 0): void {
   const r = bastionTankRects(kind, lane, z);
   const s = r.s256 / 256;
   const live = LIVERY[kind]!;
@@ -1072,6 +1089,10 @@ export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: num
   ctx.beginPath();
   ctx.arc((tx0 + tx1) / 2, (ty0 + ty1) / 2, mr, 0, Math.PI * 2);
   ctx.fill();
+  // Dents (stage 2): one for each hit point it has lost, a pressed crater with a lit lower rim and a scorch, at fixed
+  // places for this tank (its plan index `mark`), all inside the hull's upper plates.
+  const lost = Math.max(0, BT2_HP[kind]! - hp);
+  if (lost > 0 && hw > 6) paintDents(ctx, hx0, hy0, hx1, ty, s, lost, kind * 7 + mark * 13);
   // The weak spot: a round vent filling its square.
   const [wx0, wy0, wx1, wy1] = r.weak;
   const cx = (wx0 + wx1) / 2;
@@ -1101,7 +1122,8 @@ export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: num
     ctx.stroke();
   }
   if (flash > 0) {
-    ctx.fillStyle = `rgba(255,255,255,${0.12 * flash})`;
+    // A brief pale wash (stage 2: at most a third, so the sparks, the dents and the gold read through it; no glare).
+    ctx.fillStyle = `rgba(255,248,232,${0.04 * flash})`;
     rect(ctx, [hx0, ty0, hx1, hy1]);
   }
   // Haze on the far ones.
@@ -1127,9 +1149,167 @@ export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: num
   }
 }
 
+/** The dents on a hull's upper plates (x0…x1, y0…y1 the plate band): inside it whatever the scale. */
+export function paintDents(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, s: number, n: number, seed: number): void {
+  const w = x1 - x0;
+  const h = y1 - y0;
+  const rx = Math.min(w * 0.12, 3.6 * s + 0.7);
+  const ry = Math.min(h * 0.32, rx * 0.62);
+  if (rx < 0.6 || ry < 0.4) return;
+  for (let k = 0; k < n; k++) {
+    const fx = 0.2 + 0.6 * hash01(seed * 31 + k * 7 + 1);
+    const fy = 0.3 + 0.4 * hash01(seed * 31 + k * 7 + 2);
+    const cx = x0 + rx + (w - 2 * rx) * fx;
+    const cy = y0 + ry + (h - 2 * ry) * fy;
+    // Scorch round the crater, the pressed hollow (darker at its top, lit along its lower rim where the light catches).
+    ctx.fillStyle = "rgba(16,12,10,0.32)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const g = ctx.createLinearGradient(0, cy - ry * 0.7, 0, cy + ry * 0.7);
+    g.addColorStop(0, "rgba(10,8,8,0.78)");
+    g.addColorStop(0.65, "rgba(40,34,30,0.6)");
+    g.addColorStop(1, "rgba(236,220,190,0.55)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * 0.62, ry * 0.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 /* -------------------------------------------------------------- effects */
 
-function paintImpact(ctx: CanvasRenderingContext2D, m: Bt2Impact, tick: number, still: boolean): void {
+/**
+ * How long each landing's effect lasts (ticks; every one inside the sim's 60-tick impact memory and under 900 ms):
+ * a hull hit's sparks 14, a weak-spot hit's gold flash 14, a kill's burst 16 with its debris 44 and "+n" 48, a miss's
+ * puff 30 (a near miss's dusty puff and CLOSE 36).
+ */
+export const BT_FX_TICKS = { sparks: 14, gold: 14, burst: 16, debris: 44, points: 48, puff: 30, close: 36 } as const;
+/** The weak spot's gold (every weak-spot hit flashes it, a kill on one too). */
+export const BT_WEAK_GOLD = "#FFD15C";
+
+/** Sparks off armour: short bright streaks flying out from the landing, shortening as they fade. */
+function paintSparks(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, age: number, still: boolean, n: number, seed: number): void {
+  const life = BT_FX_TICKS.sparks;
+  if (age >= life) return;
+  const k = age / life;
+  const u = 0.5 + s;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineWidth = Math.max(0.8, 1.4 * s + 0.4);
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (hash01(seed + i * 3) - 0.5) * Math.PI * 1.6;
+    const v = (2.2 + 2.4 * hash01(seed + i * 3 + 1)) * u;
+    const d0 = still ? 3 * u : v * age;
+    const len = (still ? 5 : 6 * (1 - k) + 1.5) * u;
+    const gy = still ? 0 : 0.06 * age * age * u;
+    const x0 = x + Math.cos(a) * d0;
+    const y0 = y + Math.sin(a) * d0 + gy;
+    ctx.strokeStyle = `rgba(255,${226 - Math.round(k * 80)},${170 - Math.round(k * 120)},${1 - k})`;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0 - Math.cos(a) * len, y0 - Math.sin(a) * len);
+    ctx.stroke();
+  }
+  // The strike itself: a small white-hot point for the first few ticks.
+  if (age < 4) {
+    ctx.fillStyle = `rgba(255,250,236,${1 - age / 4})`;
+    ctx.beginPath();
+    ctx.arc(x, y, (2.6 - age * 0.4) * u, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** A weak-spot hit: the vent flashes gold (a solid disc, then a ring opening out), every time. */
+function paintGoldFlash(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, age: number, still: boolean): void {
+  const life = BT_FX_TICKS.gold;
+  if (age >= life) return;
+  const k = age / life;
+  const r0 = Math.max(3, 7 * s + 1.5);
+  ctx.save();
+  ctx.fillStyle = `rgba(255,209,92,${(1 - k) * 0.95})`;
+  ctx.beginPath();
+  ctx.arc(x, y, r0 * (still ? 1 : 1 - 0.4 * k), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(255,248,214,${(1 - k) * 0.9})`;
+  ctx.beginPath();
+  ctx.arc(x, y, r0 * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = `rgba(255,209,92,${1 - k})`;
+  ctx.lineWidth = Math.max(1, 2 * s);
+  ctx.beginPath();
+  ctx.arc(x, y, r0 * (still ? 1.5 : 1.2 + 1.4 * k), 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A tank destroyed: a short burst of flame petals, armour debris flung out and falling, then the smoke. */
+function paintKillBurst(ctx: CanvasRenderingContext2D, m: Bt2Impact, age: number, still: boolean, lite: boolean): void {
+  const s = m.s256 / 256;
+  const u = 0.45 + s;
+  if (age < BT_FX_TICKS.burst) {
+    const k = age / BT_FX_TICKS.burst;
+    const petals = 9;
+    const reach = (still ? 16 : 8 + 18 * Math.sqrt(k)) * u;
+    ctx.save();
+    for (let i = 0; i < petals; i++) {
+      const a = (i / petals) * Math.PI * 2 + hash01(m.t + i) * 0.5;
+      const len = reach * (0.7 + 0.5 * hash01(m.t * 3 + i));
+      const w = 4.2 * u * (1 - k * 0.6);
+      ctx.fillStyle = i % 2 ? `rgba(255,150,60,${1 - k})` : `rgba(255,206,110,${1 - k})`;
+      ctx.beginPath();
+      ctx.moveTo(m.x + Math.cos(a + 1.57) * w, m.y + Math.sin(a + 1.57) * w);
+      ctx.lineTo(m.x + Math.cos(a) * len, m.y + Math.sin(a) * len * 0.8);
+      ctx.lineTo(m.x + Math.cos(a - 1.57) * w, m.y + Math.sin(a - 1.57) * w);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = `rgba(255,246,222,${1 - k})`;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, 6 * u * (1 - k * 0.5), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  // Debris: chunks of armour plate in the tank's livery, spinning out on arcs and falling (none under reduced motion).
+  if (!still && age < BT_FX_TICKS.debris) {
+    const k = age / BT_FX_TICKS.debris;
+    const n = lite ? 4 : 8;
+    const live = LIVERY[m.kind] ?? LIVERY[0];
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (hash01(m.t * 7 + i) - 0.5) * Math.PI * 1.5;
+      const v = (1.4 + 1.8 * hash01(m.t * 7 + i + 50)) * u;
+      const x = m.x + Math.cos(a) * v * age;
+      const y = m.y + Math.sin(a) * v * age + 0.05 * age * age * u;
+      const sz = (2 + 2.5 * hash01(m.t + i * 11)) * u;
+      ctx.save();
+      ctx.globalAlpha = 1 - k * k;
+      ctx.translate(x, y);
+      ctx.rotate(age * (0.25 + 0.2 * hash01(i + 9)) * (i % 2 ? 1 : -1));
+      ctx.fillStyle = i % 3 === 0 ? live.turret : i % 3 === 1 ? live.shade : "#2A2C31";
+      ctx.fillRect(-sz / 2, -sz * 0.35, sz, sz * 0.7);
+      // Lit along its top edge: painted plate, not a dot.
+      ctx.fillStyle = "rgba(255,240,210,0.45)";
+      ctx.fillRect(-sz / 2, -sz * 0.35, sz, Math.max(0.5, sz * 0.18));
+      ctx.restore();
+    }
+  }
+  // The wreck's smoke rising after the flash.
+  if (age > 8) {
+    const k = age / 50;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 0.55 - k * 0.55);
+    ctx.fillStyle = "#2A2228";
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(m.x + (i - 1) * 6 * s, m.y - (still ? 6 : (age - 8) * 0.6 * (0.5 + s)) - i * 4, (6 + (still ? 4 : age * 0.2)) * (0.4 + s), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function paintImpact(ctx: CanvasRenderingContext2D, m: Bt2Impact, tick: number, still: boolean, near = false, lite = false): void {
   const age = tick - m.t;
   if (age < 0 || age > 50) return;
   const s = m.s256 / 256;
@@ -1173,41 +1353,47 @@ function paintImpact(ctx: CanvasRenderingContext2D, m: Bt2Impact, tick: number, 
       ctx.fill();
     }
   } else if (m.r === 0) {
-    // A miss: a dust puff where it landed.
-    ctx.globalAlpha = (1 - k) * 0.7;
-    ctx.fillStyle = "#8C6E58";
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2 + 0.3;
-      const d = (still ? 4 : 3 + age * 0.5) * (0.6 + s);
-      ctx.beginPath();
-      ctx.arc(m.x + Math.cos(a) * d, m.y - Math.abs(Math.sin(a)) * d * 0.7, (3 + age * 0.15) * (0.5 + s), 0, Math.PI * 2);
-      ctx.fill();
-    }
-  } else {
-    const kill = m.r >= 3;
-    const weak = m.r === 2 || m.r === 4;
-    const radius = (kill ? 26 : 12) * (0.4 + s) * (still ? 1 : 0.6 + k * 0.8);
-    ctx.globalCompositeOperation = "lighter";
-    const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, radius);
-    g.addColorStop(0, `rgba(255,248,220,${(1 - k) * 0.95})`);
-    g.addColorStop(0.35, weak ? `rgba(255,190,70,${(1 - k) * 0.8})` : `rgba(255,140,60,${(1 - k) * 0.7})`);
-    g.addColorStop(1, "rgba(255,90,40,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(m.x, m.y, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-    if (kill && age > 8) {
-      // Smoke rising from the wreck.
-      ctx.globalAlpha = Math.max(0, 0.55 - k * 0.55);
-      ctx.fillStyle = "#2A2228";
-      for (let i = 0; i < 3; i++) {
+    // A miss: a dust puff where it landed; a near miss (within a tank-length of a tank) a bigger, dustier one.
+    const life = near ? BT_FX_TICKS.close : BT_FX_TICKS.puff;
+    if (age < life) {
+      const kk = age / life;
+      ctx.globalAlpha = (1 - kk) * (near ? 0.85 : 0.7);
+      const puffs = near ? 8 : 5;
+      for (let i = 0; i < puffs; i++) {
+        const a = (i / puffs) * Math.PI * 2 + 0.3;
+        const d = (still ? 4 : 3 + age * (near ? 0.65 : 0.5)) * (0.6 + s) * (near ? 1.3 : 1);
+        ctx.fillStyle = near && i % 2 ? "#A88A6C" : "#8C6E58";
         ctx.beginPath();
-        ctx.arc(m.x + (i - 1) * 6 * s, m.y - (age - 8) * 0.6 * (0.5 + s) - i * 4, (6 + age * 0.2) * (0.4 + s), 0, Math.PI * 2);
+        ctx.arc(m.x + Math.cos(a) * d, m.y - Math.abs(Math.sin(a)) * d * 0.7, (3 + age * (near ? 0.2 : 0.15)) * (0.5 + s) * (near ? 1.25 : 1), 0, Math.PI * 2);
         ctx.fill();
       }
     }
+  } else {
+    const weak = m.r === 2 || m.r === 4;
+    if (m.r >= 3) paintKillBurst(ctx, m, age, still, lite);
+    else paintSparks(ctx, m.x, m.y, s, age, still, lite ? 4 : 8, m.t * 5 + Math.round(m.x));
+    if (weak) paintGoldFlash(ctx, m.x, m.y, s, age, still);
   }
+  void k;
+  ctx.restore();
+}
+
+/** Words that rise off a landing in view px (a kill's "+n", a near miss's CLOSE): never under 14 px, on a dark outline. */
+export function paintRiser(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, age: number, life: number, still: boolean, colour: string, size: number): void {
+  if (age < 0 || age >= life) return;
+  const fade = Math.min(1, (life - age) / 14);
+  const rise = still ? 0 : 26 * (1 - (1 - age / life) ** 2);
+  ctx.save();
+  ctx.globalAlpha = fade;
+  ctx.font = `800 ${size}px ${DISPLAY}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(10,12,16,0.85)";
+  ctx.strokeText(text, x, y - rise);
+  ctx.fillStyle = colour;
+  ctx.fillText(text, x, y - rise);
   ctx.restore();
 }
 
@@ -1217,13 +1403,15 @@ function paintImpact(ctx: CanvasRenderingContext2D, m: Bt2Impact, tick: number, 
 const BAR_X = 96;
 const BAR_W = 278;
 
-function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState): void {
+function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState, memory: BtMemory | null = null, still = false): void {
   const wave = bastionWave(state);
   // The Action HUD (3 Nov 2026): WAVE (the main count) and, on Iron Wall, DRONES left; BASE right.
   const left: ActionChip[] = [{ label: "WAVE", value: `${wave + 1} / ${BT2_WAVE_COUNT}`, pulse: { id: "bastion", tick: state.tick } }];
   if (state.rev >= BASTION_REV_IRON) left.push({ label: "DRONES", value: `${state.drones} / ${BT3_DRONES}`, tone: state.drones > 0 ? "hot" : "plain" });
   drawActionHud(ctx, W, [{ left, right: [{ label: "BASE", value: `${state.base} / ${BT2_BASE}`, tone: state.base >= 2 ? "good" : "bad" }] }]);
 
+  // Stage 2: a crack across the panel's glass for each base hit, where that tank came through; it stays all run.
+  paintPanelCracks(ctx, state, memory, still);
   // The bottom panel: SHELLS, RELOAD and the hint lines (labels 13 px in champagne gold, the hints 13 px).
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
@@ -1236,7 +1424,14 @@ function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState): void 
   const gap = 6;
   const sw = (BAR_W - gap * (BT2_MAG - 1)) / BT2_MAG;
   const reloading = state.reloadAt >= 0;
-  for (let i = 0; i < BT2_MAG; i++) paintShellSlot(ctx, BAR_X + i * (sw + gap), shellsY - 9, sw, 18, !reloading && i < state.mag);
+  // A fast reload's shells snap in one by one as it ends (the magazine is already full in the sim).
+  const snap = bastionSnapLit(state, BT2_MAG);
+  for (let i = 0; i < BT2_MAG; i++) {
+    const lit = snap === null ? i < state.mag : i < Math.min(snap, state.mag);
+    const fresh = snap !== null && !still && i === snap - 1 && state.tick - state.reloadEnd - BT_SNAP_STEP * i < 2;
+    const grow = fresh ? 1.5 : 0;
+    paintShellSlot(ctx, BAR_X + i * (sw + gap) - grow, shellsY - 9 - grow, sw + grow * 2, 18 + grow * 2, !reloading && lit);
+  }
   // The reload gauge's track: a recessed channel, shaded at its top, a thin lit lip at its bottom.
   const track = ctx.createLinearGradient(0, reloadY - 5, 0, reloadY + 5);
   track.addColorStop(0, "#0A0F1C");
@@ -1261,13 +1456,10 @@ function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState): void 
       ctx.fillStyle = state.reloadTap === 2 ? "rgba(255,107,91,0.55)" : "#9BE3AE";
       ctx.fillRect(BAR_X + (BAR_W * state.zone) / 1000, reloadY - 7, (BAR_W * bastionZoneW(state.rev)) / 1000, 14);
     }
-    // The needle: polished steel, lit on its left edge.
-    const nx0 = BAR_X + (BAR_W * needle) / 1000 - 1.5;
-    const ng = ctx.createLinearGradient(nx0, 0, nx0 + 3, 0);
-    ng.addColorStop(0, "#FFFFFF");
-    ng.addColorStop(1, "#AEB6C4");
-    ctx.fillStyle = ng;
-    ctx.fillRect(nx0, reloadY - 9, 3, 18);
+    // The needle: polished steel, lit on its left edge; green once a fast reload is in, red and shaking on a jam.
+    const jamAge = memory && state.reloadTap === 2 && memory.jamAt >= 0 ? state.tick - memory.jamAt : -1;
+    const shake = !still && jamAge >= 0 && jamAge < BT_JAM_SHAKE_TICKS ? Math.sin(jamAge * 1.9) * 2.6 * (1 - jamAge / BT_JAM_SHAKE_TICKS) : 0;
+    paintNeedle(ctx, BAR_X + (BAR_W * needle) / 1000 + shake, reloadY, state.reloadTap === 1 ? "fast" : state.reloadTap === 2 ? "jam" : "steel", 1);
     const left = Math.max(0, state.reloadEnd - state.tick) / 60;
     ctx.font = `700 13px ${DISPLAY}`;
     ctx.textAlign = "right";
@@ -1284,6 +1476,12 @@ function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState): void 
     ctx.beginPath();
     ctx.roundRect(BAR_X, reloadY - 5, BAR_W, 10, 5);
     ctx.fill();
+    // A fast reload's green needle stays at the half-way mark while the shells snap in, fading out.
+    if (snap !== null) {
+      paintNeedle(ctx, BAR_X + BAR_W / 2, reloadY, "fast", 1 - (state.tick - state.reloadEnd) / (BT_SNAP_STEP * BT2_MAG));
+      hint = "Fast reload!";
+      hintColour = GREEN;
+    }
   }
   ctx.font = `600 13px ${DISPLAY}`;
   ctx.textAlign = "center";
@@ -1295,6 +1493,87 @@ function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState): void 
     ctx.fillStyle = GOLD;
     ctx.fillText(BT_SWIPE_HINT, W / 2, BT_PANEL_TIP_Y);
   }
+}
+
+/** The reload needle: steel, green (a fast reload) with a soft green ring, or red (a jam). */
+function paintNeedle(ctx: CanvasRenderingContext2D, x: number, y: number, look: "steel" | "fast" | "jam", alpha: number): void {
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  const x0 = x - 1.5;
+  if (look === "fast") {
+    // The green needle's ring: a thin halo hugging it (no bloom across the panel).
+    ctx.fillStyle = "rgba(143,214,160,0.32)";
+    ctx.beginPath();
+    ctx.roundRect(x0 - 3, y - 12, 9, 24, 4);
+    ctx.fill();
+  }
+  const ng = ctx.createLinearGradient(x0, 0, x0 + 3, 0);
+  if (look === "fast") {
+    ng.addColorStop(0, "#E4FFE9");
+    ng.addColorStop(1, "#5FCB7E");
+  } else if (look === "jam") {
+    ng.addColorStop(0, "#FFC2B8");
+    ng.addColorStop(1, RED);
+  } else {
+    ng.addColorStop(0, "#FFFFFF");
+    ng.addColorStop(1, "#AEB6C4");
+  }
+  ctx.fillStyle = ng;
+  ctx.fillRect(x0, y - 9, 3, 18);
+  ctx.restore();
+}
+
+/** Where base hit n's crack starts on the panel's top edge (by the lane its tank came down), clear of the labels. */
+export const BT_CRACK_X = [126, 236, 336] as const;
+
+/**
+ * The cracks across the panel (stage 2): one for each base hit, from the panel's top edge down where that tank came
+ * through, a dark fracture line with a lit edge and two short branches; it stays for the rest of the run. The newest
+ * flashes white for 6 ticks as it splits.
+ */
+function paintPanelCracks(ctx: CanvasRenderingContext2D, state: BastionTankState, memory: BtMemory | null, still: boolean): void {
+  const n = Math.min(BT2_BASE, state.breached);
+  for (let k = 0; k < n; k++) {
+    const lane = memory?.breachLanes[k] ?? [2, 0, 1][k]!;
+    const path = bastionCrackPath(k, lane);
+    const fresh = !still && k === n - 1 && state.tick - state.breachAt < 6;
+    for (const [w, colour, dx] of [
+      [2.2, "rgba(4,6,12,0.78)", 0],
+      [0.8, fresh ? "rgba(255,255,255,0.95)" : "rgba(196,210,240,0.42)", 0.9],
+    ] as const) {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = w;
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      for (const line of path) {
+        ctx.moveTo(line[0]![0] + dx, line[0]![1] + dx);
+        for (const [x, y] of line.slice(1)) ctx.lineTo(x + dx, y + dx);
+      }
+      ctx.stroke();
+    }
+  }
+}
+
+/** Crack k's lines (world px): the main fracture and two branches, fixed for that hit and lane. */
+export function bastionCrackPath(k: number, lane: number): [number, number][][] {
+  const x0 = BT_CRACK_X[lane] ?? BT_CRACK_X[1];
+  const main: [number, number][] = [[x0, BT2_PANEL_Y + 1]];
+  let x = x0;
+  let y = BT2_PANEL_Y + 1;
+  for (let i = 1; i <= 6; i++) {
+    x += (hash01(k * 41 + lane * 7 + i) - 0.5) * 22;
+    y += 9 + hash01(k * 41 + lane * 7 + i + 20) * 7;
+    main.push([Math.max(4, Math.min(W - 4, x)), Math.min(H - 2, y)]);
+  }
+  const branch = (at: number, dir: number): [number, number][] => {
+    const [bx, by] = main[at]!;
+    return [
+      [bx, by],
+      [bx + dir * (10 + 8 * hash01(k + at)), by + 6],
+      [bx + dir * (18 + 10 * hash01(k + at + 3)), by + 9 + 4 * hash01(k + at + 5)],
+    ];
+  };
+  return [main, branch(2, -1), branch(4, 1)];
 }
 
 /**
@@ -1333,7 +1612,8 @@ function paintGun(ctx: CanvasRenderingContext2D, state: BastionTankState, still:
   const len = Math.hypot(dx, dy) || 1;
   const ux = dx / len;
   const uy = dy / len;
-  const recoil = still ? 0 : Math.max(0, state.cool - 9) * 2.5;
+  // Stage 2: the barrel kicks back 3 px for 80 ms when it fires (the barrel only; the mount, world and arena stay put).
+  const recoil = still ? 0 : bastionKick(state);
   const mx = GUN_X + ux * (GUN_LEN - recoil);
   const my = GUN_Y + uy * (GUN_LEN - recoil);
   const nx = -uy;
@@ -1370,20 +1650,8 @@ function paintGun(ctx: CanvasRenderingContext2D, state: BastionTankState, still:
   ctx.lineTo(mx - nx * 13, my - ny * 13);
   ctx.closePath();
   ctx.fill();
-  if (!still && state.cool > 10) {
-    const fx = mx + ux * 14;
-    const fy = my + uy * 14;
-    ctx.globalCompositeOperation = "lighter";
-    const fl = ctx.createRadialGradient(fx, fy, 0, fx, fy, 30);
-    fl.addColorStop(0, "rgba(255,240,200,0.95)");
-    fl.addColorStop(0.4, "rgba(255,170,70,0.6)");
-    fl.addColorStop(1, "rgba(255,120,40,0)");
-    ctx.fillStyle = fl;
-    ctx.beginPath();
-    ctx.arc(fx, fy, 30, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-  }
+  const flash = bastionFlashAge(state);
+  if (flash !== null) paintMuzzleFlash(ctx, mx + ux * 12, my + uy * 12, ux, uy, flash, still);
   // The gun's base on the parapet: a cast mount lit along its top.
   const mount = ctx.createLinearGradient(0, BT2_PANEL_Y - 22, 0, BT2_PANEL_Y);
   mount.addColorStop(0, "#5B6472");
@@ -1394,6 +1662,97 @@ function paintGun(ctx: CanvasRenderingContext2D, state: BastionTankState, still:
   ctx.roundRect(GUN_X - 46, BT2_PANEL_Y - 22, 92, 22, [8, 8, 0, 0]);
   ctx.fill();
   ctx.restore();
+}
+
+/**
+ * The muzzle flash (stage 2): a crisp four-point star and a white core at the muzzle for 3 ticks (50 ms), its long
+ * points along the barrel; no glow round it. Reduced motion: the same star, smaller, for the same three ticks.
+ */
+function paintMuzzleFlash(ctx: CanvasRenderingContext2D, x: number, y: number, ux: number, uy: number, age: number, still: boolean): void {
+  const k = 1 - age / 3;
+  const big = (still ? 0.6 : 1) * (0.65 + 0.35 * k);
+  const nx = -uy;
+  const ny = ux;
+  ctx.save();
+  ctx.fillStyle = `rgba(255,186,80,${0.9 * k + 0.1})`;
+  ctx.beginPath();
+  ctx.moveTo(x + ux * 26 * big, y + uy * 26 * big);
+  ctx.lineTo(x + nx * 7 * big, y + ny * 7 * big);
+  ctx.lineTo(x - ux * 6 * big, y - uy * 6 * big);
+  ctx.lineTo(x - nx * 7 * big, y - ny * 7 * big);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + nx * 15 * big, y + ny * 15 * big);
+  ctx.lineTo(x + ux * 5 * big, y + uy * 5 * big);
+  ctx.lineTo(x - nx * 15 * big, y - ny * 15 * big);
+  ctx.lineTo(x - ux * 5 * big, y - uy * 5 * big);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#FFF6DC";
+  ctx.beginPath();
+  ctx.arc(x, y, 5.5 * big, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * A shell in flight (stage 2): the round itself, a brass tracer with a short trail, flying from the muzzle, and its
+ * shadow sliding over the road from the wall to the very point it will land on, darker and smaller as it closes, so
+ * where a shot comes down can be learnt. No shadow for a shot into the sky (a drone's).
+ */
+export function bastionShellShadow(sh: { x: number; y: number; from: number; at: number }, tick: number): { x: number; y: number; rx: number; ry: number; a: number } | null {
+  if (sh.y < BT2_HORIZON_Y) return null;
+  const u = Math.max(0, Math.min(1, (tick - sh.from) / Math.max(1, sh.at - sh.from)));
+  const ease = 1 - (1 - u) * (1 - u);
+  const tx = btViewX(sh.x, sh.y);
+  const ty = btViewY(sh.y);
+  const x = GUN_X + (tx - GUN_X) * ease;
+  const y = BT2_WALL_Y + (ty - BT2_WALL_Y) * ease;
+  const sv = Math.max(0.05, Math.min(1, (y - HY) / (BT2_WALL_Y - HY)));
+  const rx = 2.5 + 7 * sv * (1 - 0.35 * u);
+  return { x, y, rx, ry: rx * 0.38, a: 0.2 + 0.3 * u };
+}
+
+function paintShells(ctx: CanvasRenderingContext2D, state: BastionTankState): void {
+  for (const sh of state.shells) {
+    const shadow = bastionShellShadow(sh, state.tick);
+    if (!shadow) continue;
+    ctx.fillStyle = `rgba(12,10,8,${shadow.a})`;
+    ctx.beginPath();
+    ctx.ellipse(shadow.x, shadow.y, shadow.rx, shadow.ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const sh of state.shells) {
+    const u = Math.min(1, (state.tick - sh.from) / Math.max(1, sh.at - sh.from));
+    const ease = 1 - (1 - u) * (1 - u);
+    const x0 = GUN_X;
+    const y0 = GUN_Y - GUN_LEN;
+    const tx = btViewX(sh.x, sh.y);
+    const ty = btViewY(sh.y);
+    const x = x0 + (tx - x0) * ease;
+    const y = y0 + (ty - y0) * ease;
+    const r = 4.6 - 3 * u;
+    // A short trail back toward the muzzle, then the brass round with a lit top.
+    const back = Math.max(0, ease - 0.12);
+    const bx = x0 + (tx - x0) * back;
+    const by = y0 + (ty - y0) * back;
+    ctx.strokeStyle = "rgba(255,214,140,0.45)";
+    ctx.lineWidth = r * 1.1;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.fillStyle = "#E7A642";
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#FFF0C8";
+    ctx.beginPath();
+    ctx.arc(x - r * 0.25, y - r * 0.3, r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function paintCrosshair(ctx: CanvasRenderingContext2D, state: BastionTankState): void {
@@ -1433,6 +1792,7 @@ function paintCrosshair(ctx: CanvasRenderingContext2D, state: BastionTankState):
 
 function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState): void {
   const still = reducedMotion();
+  const memory = observeRun(ctx, state);
   // The setting (clear, dust, storm) by wave, one cross-fading into the next (display only).
   const set = bastionSettingMix(state);
   const world = { x0: 0, x1: W, y0: 0, y1: H };
@@ -1451,7 +1811,7 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
     const tr = bastionTankRects(t.kind, t.lane, t.z);
     btViewTransform(ctx, tr.cx, (tr.turret[1] + tr.ground) / 2);
     paintTankShadow(ctx, t.kind, t.lane, t.z);
-    paintTank(ctx, t.kind, t.lane, t.z, t.hp, t.flash, state.tick, still, p ? bastionWeakOpen(p, state.tick) : true);
+    paintTank(ctx, t.kind, t.lane, t.z, t.hp, t.flash, state.tick, still, p ? bastionWeakOpen(p, state.tick) : true, true, t.i);
     paintTankOutline(ctx, t.kind, t.lane, t.z);
     ctx.restore();
     paintTankBadge(ctx, t.kind, t.lane, t.z);
@@ -1464,28 +1824,22 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
       if (at) paintDrone(ctx, at.x, at.y - BT_VIEW_SKY_SHIFT, ds[n]!.dir, state.tick, still);
     }
   }
+  const lite = arcadeReducedEffects();
   for (const m of state.impacts) {
     ctx.save();
     btViewTransform(ctx, m.x, m.y);
-    paintImpact(ctx, m, state.tick, still);
+    paintImpact(ctx, m, state.tick, still, m.r === 0 && memory.near.get(impactKey(m)) === true, lite);
     ctx.restore();
   }
-  // Shells in flight: from the muzzle, shrinking toward the point they land on.
-  for (const sh of state.shells) {
-    const u = Math.min(1, (state.tick - sh.from) / Math.max(1, sh.at - sh.from));
-    const ease = 1 - (1 - u) * (1 - u);
-    const x0 = GUN_X;
-    const y0 = GUN_Y - GUN_LEN;
-    const x = x0 + (btViewX(sh.x, sh.y) - x0) * ease;
-    const y = y0 + (btViewY(sh.y) - y0) * ease;
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.fillStyle = "rgba(255,200,110,0.9)";
-    ctx.beginPath();
-    ctx.arc(x, y, 5 - 3.2 * u, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+  // The words off a landing, in view px: a kill's "+n" (gold on a weak-spot kill) and a near miss's CLOSE.
+  for (const m of state.impacts) {
+    const age = state.tick - m.t;
+    const vx = btViewX(m.x, m.y);
+    const vy = btViewY(m.y);
+    if (m.r === 3 || m.r === 4) paintRiser(ctx, `+${bastionKillPoints(m.kind, state.rev)}`, vx, vy - 14 * (0.45 + m.s256 / 256), age, BT_FX_TICKS.points, still, m.r === 4 ? BT_WEAK_GOLD : "#FFFFFF", 20);
+    else if (m.r === 0 && memory.near.get(impactKey(m)) === true) paintRiser(ctx, "CLOSE", vx, vy - 18, age, BT_FX_TICKS.close, still, "#F3E4C8", 14);
   }
+  paintShells(ctx, state);
   paintGun(ctx, state, still);
   paintCrosshair(ctx, state);
   // A base hit: a red flash round the edges.
@@ -1515,7 +1869,312 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
     ctx.fillText(text, W / 2, 170);
     ctx.restore();
   }
-  paintHud(ctx, state);
+  paintHud(ctx, state, memory, still);
+  if (state.ended !== 0) paintEndCard(ctx, state, memory, still);
+}
+
+/* ------------------------------------------------------------ the run's memory (display only) */
+
+/**
+ * What the art remembers between frames of one run (stage 2; per canvas, never read by the sim): the ledger of each
+ * tank's fate (for the end card's tally), when the last jam came (its shake), which landings were near misses (decided
+ * once, as the sound observer does), the lanes the base hits came through (the panel's cracks) and when the run ended
+ * (the end card's clock). A replay drawn frame by frame builds the same memory; a lone frame of a finished run (no
+ * history) shows the end card's totals only.
+ */
+export interface BtMemory {
+  seed: number;
+  tick: number;
+  prev: BastionTankState;
+  ledger: BtLedger;
+  /** The ledger saw the run from its start (the end card can tally each wave). */
+  whole: boolean;
+  jams: number;
+  jamAt: number;
+  near: Map<string, boolean>;
+  breachLanes: number[];
+  endAt: number | null;
+}
+const memories = new WeakMap<object, BtMemory>();
+let endClock: () => number = () => (typeof performance !== "undefined" ? performance.now() : 0);
+/** Screenshot and check hook: the clock the end card is timed on (null restores the presentation clock). */
+export function setBastionEndClock(clock: (() => number) | null): void {
+  endClock = clock ?? (() => (typeof performance !== "undefined" ? performance.now() : 0));
+}
+const impactKey = (m: Bt2Impact) => `${m.t}:${m.x}:${m.y}`;
+
+export function observeRun(ctx: object, state: BastionTankState): BtMemory {
+  let m = memories.get(ctx);
+  if (!m || m.seed !== state.seed || state.tick < m.tick) {
+    m = { seed: state.seed, tick: state.tick, prev: state, ledger: bastionLedgerStart(state.seed, BT2_TANKS, BT3_DRONES), whole: state.tick <= 1, jams: state.jams, jamAt: -1, near: new Map(), breachLanes: [], endAt: state.ended !== 0 ? endClock() - BT_END_HOLD_MS : null };
+    m.ledger.tick = state.tick;
+    memories.set(ctx, m);
+  }
+  if (state.tick > m.tick) {
+    bastionLedgerStep(m.ledger, m.prev, state);
+    if (state.jams > m.jams) m.jamAt = state.tick;
+    m.jams = state.jams;
+    const plan = bastionPlan(state.seed);
+    while (m.breachLanes.length < m.ledger.breaches.length) m.breachLanes.push(plan[m.ledger.breaches[m.breachLanes.length]!]?.lane ?? 1);
+    for (const imp of state.impacts) if (imp.r === 0 && imp.t > m.tick && !m.near.has(impactKey(imp))) m.near.set(impactKey(imp), bastionNearMiss(state, imp));
+    if (m.near.size > 40) for (const key of [...m.near.keys()].slice(0, m.near.size - 40)) m.near.delete(key);
+    m.prev = state;
+    m.tick = state.tick;
+  }
+  if (state.ended !== 0 && m.endAt === null) m.endAt = endClock();
+  return m;
+}
+
+/**
+ * The end card (stage 2): the field dims, then the five waves tally one by one (WAVE n, a pip for each of its tanks,
+ * lit for each destroyed, red for one that reached the wall, and "4 / 5"), then WALL HELD (the clock ran out or every
+ * tank is gone with the base standing) or BASE DOWN. Reduced motion: the whole card at once. Without the run's history
+ * (a lone frame) it shows the run's tanks destroyed in one row.
+ */
+function paintEndCard(ctx: CanvasRenderingContext2D, state: BastionTankState, memory: BtMemory, still: boolean): void {
+  const ms = still ? BT_END_HOLD_MS : Math.max(0, endClock() - (memory.endAt ?? endClock()));
+  ctx.save();
+  ctx.fillStyle = `rgba(8,11,22,${Math.min(0.68, ms / 300)})`;
+  ctx.fillRect(0, 0, W, BT2_PANEL_Y);
+  const rows = memory.whole ? bastionWaveTallies(memory.ledger, bastionPlan(state.seed), BT2_WAVE_COUNT) : null;
+  const shown = still ? BT2_WAVE_COUNT : bastionTallyRows(ms, BT2_WAVE_COUNT);
+  const top = 176;
+  const rowH = 50;
+  ctx.textBaseline = "middle";
+  const drawRow = (y: number, label: string, pips: { fate: number }[], count: string, appear: number) => {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, appear);
+    const lift = still ? 0 : 8 * (1 - Math.min(1, appear));
+    // The row's plate: navy, a champagne rule under it.
+    ctx.fillStyle = "rgba(18,26,49,0.92)";
+    ctx.beginPath();
+    ctx.roundRect(28, y - 20 + lift, W - 56, 40, 10);
+    ctx.fill();
+    ctx.fillStyle = "rgba(226,192,122,0.35)";
+    ctx.fillRect(40, y + 19 + lift, W - 80, 1);
+    ctx.font = `800 15px ${DISPLAY}`;
+    ctx.textAlign = "left";
+    ctx.fillStyle = GOLD;
+    ctx.fillText(label, 42, y + lift);
+    const pw = 14;
+    const gapX = 5;
+    const x0 = 128;
+    pips.forEach((p, i) => {
+      const px = x0 + i * (pw + gapX);
+      ctx.fillStyle = p.fate === 1 ? ORANGE : p.fate === 2 ? RED : SLOT;
+      ctx.beginPath();
+      ctx.roundRect(px, y - 7 + lift, pw, 14, 3);
+      ctx.fill();
+      if (p.fate === 1) {
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.fillRect(px + 2, y - 5 + lift, pw - 4, 2);
+      }
+    });
+    ctx.font = `800 20px ${DISPLAY}`;
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#F3F1EC";
+    ctx.fillText(count, W - 42, y + lift);
+    ctx.restore();
+  };
+  if (rows) {
+    for (let w = 0; w < shown; w++) {
+      const row = rows[w]!;
+      const appear = still ? 1 : (ms - (120 + w * BT_TALLY_STEP_MS)) / 120;
+      drawRow(top + w * rowH, `WAVE ${w + 1}`, row.tanks, `${row.kills} / ${row.tanks.length}`, appear);
+    }
+  } else if (shown > 0) {
+    drawRow(top + 2 * rowH, "TANKS", [], `${state.kills} / ${BT2_TANKS}`, 1);
+  }
+  if (ms >= BT_HELD_AT_MS || still) {
+    const held = state.ended !== 2;
+    const k = still ? 1 : Math.min(1, (ms - BT_HELD_AT_MS) / 160);
+    const y = top + BT2_WAVE_COUNT * rowH + 26;
+    const scale = still ? 1 : 1.15 - 0.15 * k;
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.translate(W / 2, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "rgba(11,15,28,0.96)";
+    ctx.beginPath();
+    ctx.roundRect(-128, -28, 256, 56, 12);
+    ctx.fill();
+    ctx.strokeStyle = held ? GOLD : RED;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.font = `900 32px ${DISPLAY}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = held ? GOLD : RED;
+    ctx.fillText(held ? "WALL HELD" : "BASE DOWN", 0, 1);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/* ----------------------------------------------------------- the answer reveal's picture of the run */
+
+/** The reveal picture's logical width (it is drawn to fit its box's width) and its rows' heights. */
+export const BT_SUMMARY_W = 360;
+const SUM_ROW = 52;
+const SUM_LEGEND = 44;
+/** The reveal picture's logical height for a revision (rev 3 adds the drones' row). */
+export function bastionSummaryHeight(rev: number): number {
+  return 8 + BT2_WAVE_COUNT * SUM_ROW + (rev >= BASTION_REV_IRON ? SUM_ROW : 0) + SUM_ROW + SUM_LEGEND;
+}
+/** What the picture shows, all from the stored log's replay (bastionTankLedger): every number the server's score reads. */
+export interface BtSummaryData {
+  rev: number;
+  waves: ReturnType<typeof bastionWaveTallies>;
+  /** Each drone's tick downed (null: missed); empty on rev 2. */
+  drones: (number | null)[];
+  base: number;
+  fell: boolean;
+}
+/** The text each row shows, for checks and screen readers: "WAVE 1 4 / 5" etc. */
+export function bastionSummaryRows(d: BtSummaryData): string[] {
+  const rows = d.waves.map((w) => `WAVE ${w.wave + 1} ${w.kills} / ${w.tanks.length}`);
+  if (d.rev >= BASTION_REV_IRON) rows.push(`DRONES ${d.drones.filter((t) => t !== null).length} / ${d.drones.length}`);
+  rows.push(`BASE ${d.base} / ${BT2_BASE}`);
+  return rows;
+}
+
+/**
+ * The run in one picture (Action overhaul stage 2; the reveal's own drawing, display only): a strip for each wave with
+ * each of its tanks drawn by the game's own art in the order it rolled on (full colour: destroyed; on a red plate:
+ * reached the wall; faded: never stopped), a gold dot under a tank for each weak-spot hit on it and the wave's kills
+ * big on the right; then the drones (rev 3) and the base's three blocks, cracked for each hit. Logical size
+ * BT_SUMMARY_W × bastionSummaryHeight(rev); every label 14 px and every count 20 px at that size.
+ */
+export function paintBastionSummary(ctx: CanvasRenderingContext2D, d: BtSummaryData): void {
+  const w = BT_SUMMARY_W;
+  ctx.save();
+  ctx.textBaseline = "middle";
+  let y = 8;
+  const plate = (top: number) => {
+    ctx.fillStyle = "rgba(14,20,38,0.78)";
+    ctx.beginPath();
+    ctx.roundRect(0, top + 3, w, SUM_ROW - 6, 10);
+    ctx.fill();
+  };
+  const label = (text: string, top: number) => {
+    ctx.font = `800 14px ${DISPLAY}`;
+    ctx.textAlign = "left";
+    ctx.fillStyle = GOLD;
+    ctx.fillText(text, 12, top + SUM_ROW / 2);
+  };
+  const count = (text: string, top: number, colour = "#F3F1EC") => {
+    ctx.font = `800 20px ${DISPLAY}`;
+    ctx.textAlign = "right";
+    ctx.fillStyle = colour;
+    ctx.fillText(text, w - 12, top + SUM_ROW / 2);
+  };
+  const k = 0.25;
+  const slot = 26;
+  const x0 = 82;
+  for (const wave of d.waves) {
+    plate(y);
+    label(`WAVE ${wave.wave + 1}`, y);
+    wave.tanks.forEach((t, i) => {
+      const cx = x0 + slot * (i + 0.5);
+      const ground = y + SUM_ROW / 2 + 8;
+      if (t.fate === 2) {
+        ctx.fillStyle = "rgba(255,107,91,0.30)";
+        ctx.strokeStyle = RED;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(cx - slot / 2 + 1.5, y + 8, slot - 3, SUM_ROW - 16, 6);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.save();
+      if (t.fate === 0) ctx.globalAlpha = 0.3;
+      ctx.translate(cx, ground);
+      ctx.scale(k, k);
+      ctx.translate(-BT2_VP_X, -BT2_WALL_Y);
+      paintTank(ctx, t.kind, 1, 0, t.fate === 1 ? 0 : BT2_HP[t.kind]!, 0, 0, true, t.weak > 0 || t.fate !== 1, false, t.i);
+      ctx.restore();
+      for (let n = 0; n < t.weak; n++) {
+        ctx.fillStyle = BT_WEAK_GOLD;
+        ctx.beginPath();
+        ctx.arc(cx + (n - (t.weak - 1) / 2) * 7, ground + 7, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+    count(`${wave.kills} / ${wave.tanks.length}`, y);
+    y += SUM_ROW;
+  }
+  if (d.rev >= BASTION_REV_IRON) {
+    plate(y);
+    label("DRONES", y);
+    d.drones.forEach((t, i) => {
+      ctx.save();
+      if (t === null) ctx.globalAlpha = 0.3;
+      const cx = x0 + 28 + i * 48;
+      ctx.translate(cx, y + SUM_ROW / 2);
+      ctx.scale(1.5, 1.5);
+      paintDrone(ctx, 0, 0, 1, 0, true);
+      ctx.restore();
+    });
+    count(`${d.drones.filter((t) => t !== null).length} / ${d.drones.length}`, y);
+    y += SUM_ROW;
+  }
+  plate(y);
+  label("BASE", y);
+  for (let i = 0; i < BT2_BASE; i++) {
+    const bx = x0 + 6 + i * 52;
+    const by = y + 14;
+    const hit = i >= d.base;
+    const g = ctx.createLinearGradient(0, by, 0, by + 24);
+    g.addColorStop(0, hit ? "#5A2A26" : "#8A93A2");
+    g.addColorStop(0.2, hit ? "#40201E" : "#3A404B");
+    g.addColorStop(1, hit ? "#2A1614" : "#20242B");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, 44, 24, 4);
+    ctx.fill();
+    if (hit) {
+      ctx.strokeStyle = RED;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(bx + 14, by);
+      ctx.lineTo(bx + 20, by + 9);
+      ctx.lineTo(bx + 16, by + 15);
+      ctx.lineTo(bx + 24, by + 24);
+      ctx.moveTo(bx + 20, by + 9);
+      ctx.lineTo(bx + 31, by + 12);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = "rgba(226,192,122,0.55)";
+      ctx.fillRect(bx + 4, by + 2, 36, 1.5);
+    }
+  }
+  count(`${d.base} / ${BT2_BASE}`, y, d.fell ? RED : "#F3F1EC");
+  y += SUM_ROW;
+  // The key, two short lines: a tank in colour, a faded one, a red plate and a gold dot.
+  ctx.font = `600 13px ${DISPLAY}`;
+  ctx.textAlign = "left";
+  const miniTank = (x: number, cy: number, alpha: number) => {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x + 8, cy + 5);
+    ctx.scale(0.22, 0.22);
+    ctx.translate(-BT2_VP_X, -BT2_WALL_Y);
+    paintTank(ctx, 0, 1, 0, 1, 0, 0, true, false, false);
+    ctx.restore();
+  };
+  const keys: [string, (x: number, cy: number) => void][] = [
+    ["Destroyed", (x, cy) => miniTank(x, cy, 1)],
+    ["Not stopped", (x, cy) => miniTank(x, cy, 0.3)],
+    ["Reached the wall", (x, cy) => ((ctx.fillStyle = "rgba(255,107,91,0.45)"), (ctx.strokeStyle = RED), (ctx.lineWidth = 1.4), ctx.beginPath(), ctx.roundRect(x + 2, cy - 6, 13, 12, 3), ctx.fill(), ctx.stroke())],
+    ["Weak-spot hit", (x, cy) => ((ctx.fillStyle = BT_WEAK_GOLD), ctx.beginPath(), ctx.arc(x + 8, cy, 3, 0, Math.PI * 2), ctx.fill())],
+  ];
+  keys.forEach(([text, mark], i) => {
+    const kx = 4 + (i % 2) * 180;
+    const ky = y + 10 + Math.floor(i / 2) * 20;
+    mark(kx, ky);
+    ctx.fillStyle = "#C9CEDA";
+    ctx.fillText(text, kx + 22, ky);
+  });
+  ctx.restore();
 }
 
 /** The miss moments: base hits and jams. */
