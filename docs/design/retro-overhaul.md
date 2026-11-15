@@ -63,17 +63,17 @@ today's frame, three across, so the step up is visible, plus before and after re
 
 | Game | Done on this branch | Still to do in stage 1 |
 |---|---|---|
-| Tempo | **beatRev 12**: a missed note scores 0, not −2 (docs/arcade-standard/beat.md) | Concept A's cleaner lanes and big tap buttons on the line |
-| Rally | **rallyRev 13**: 2 lives (a missed blue ball serves again after 1.5 s), spin shots (+2 each, up to 10), the intro teaches the swipe (docs/arcade-standard/rally.md) | Crisper court art, keeping its pink and green neon |
-| Fission | **burstRev 12**: the wave-clear bonus runs out at three times the quick time, not twice (docs/arcade-standard/burst.md); its slim HUD band at 11 px | Bigger, bolder atoms (a stamp: the hit circles grow) |
-| All ten | The shared Retro HUD never draws a count under 11 px (`RETRO_HUD_MIN_PX`; side counts were 10 stepping to 8, Fission's band 10 and 8) | Intro stills from real frames; edge-to-edge backgrounds where a border shows (Wavefront) |
-| Hover | (stage 3 gives the shields) | Concept B's deep-space starfield behind today's pixel style |
-| Breaker | | A clearable wall at Normal (about 9 rows, faster ball, special bricks lower, stronger multi-ball; a stamp); special bricks with their own icon and shine |
-| Wavefront | | The charged shot (hold to charge, release a heavy blast; a stamp); concept A's purple nebula; a new enemy palette with no pink |
-| Meteor | | Wrap-around edges at Easy and Normal (a stamp); varied rock sizes; the core spread so skill shows; concepts A/B's glowing tail |
-| Spacewalk | | A richer starfield, a bigger astronaut |
-| Pinball | | Tuned so a great game reaches 200 (a stamp) |
-| Blockzone | | Solid chunky blocks with the emphasised glow (Blockzone's exception) |
+| Hover | (stage 3 gives the shields) | Concept B's deep-space starfield; the saucer's material |
+| Breaker | **brkRev 12**: a 9-row wall (81 bricks), a ball about 10 % quicker, multi-ball triples (elite bot clears 12 of 12 seeds, was 4); enamel bricks, gold-framed power bricks, metal paddle, lit ball | Each special brick's own icon (they have symbols; the Fireball keeps its star) |
+| Rally | **rallyRev 13**: 2 lives, spin shots; lit balls, metal paddle | A richer court surface |
+| Wavefront | **wavRev 14**: the charged shot; enemy edge lights cyan (no pink) | Edge-to-edge check in the app |
+| Fission | **burstRev 12**: kinder wave clears; glass atoms; 11 px HUD band | Bigger atoms (a stamp: the hit circles grow) |
+| Tempo | **beatRev 12**: a missed note scores 0 | Concept A's cleaner lanes and big tap buttons |
+| Meteor | **snakeRev 13**: wrap-around edges, core full at 36 | Varied rock sizes (a stamp); the glowing tail (concepts A/B) |
+| Spacewalk | (stage 3: Normal lighter than today) | A richer starfield, a bigger astronaut (inside its hit box) |
+| Pinball | **pinRev 7**: one J-O-U-L-Z set fills its part | (today's chrome ball and table kept) |
+| Blockzone | solid, glossy, chunky blocks with an in-cell glow | |
+| All ten | the 11 px HUD floor | Intro stills from real frames; play clips |
 
 Every new stamp is dealt by rooms and practice; checks written for the stamps before it pin `preRetro`
 (`src/lib/duel/dealEra.ts`), which deals Tempo beatRev 11, Rally rallyRev 12 and Fission burstRev 11.
