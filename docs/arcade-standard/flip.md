@@ -65,9 +65,11 @@ ahead, or a landing with one's trailing edge within 24 px behind; never a crash;
 a white flash for 8 ticks, then the respawn blink. The end: BEST FLOW counting up under SURVIVED! over 800 ms; the stage
 holds a survived run's answer 1.2 s (`flipEndHoldMs`). Sound slots: `flip.flipUp` / `flipDown`, `land`, `sweetGold`,
 `flowTick`, `flowTen`, `flowBreak`, `nearMiss`, `respawn`, `flowCount` (docs/sound-cues/arcade-effects.md). flipRev 13's
-world box is the 730 px cave (`flipWorldHFor`; until now the stage and replay boxed it at 620, shrinking the cave).
+world box is the 730 px cave (`flipWorldHFor`; until now the stage and replay boxed it at 620, shrinking the cave). No edge
+glow (`ACTION_EDGELESS_GAMES`): the spec's `moment` hook `flipMoment` draws a gold rule under a banner moment and a ring at a
+point one (a double flip's ring is the renderer's).
 
-The answer reveal draws the run as a picture (`FlipRunPicture`, via `ARCADE_RUN_PICTURES` in ArcadeReveal): the minute as
+The answer reveal draws the run as a picture (`FlipRunPicture`, the definition's `RunPicture`, which ArcadeReveal draws through `GameRunPicture` in place of the stat tiles): the minute as
 one strip of the cave with the best flow streak lit gold, perfect landings as gold diamonds, double flips as rings and
 crashes as red marks, then clean time, perfect landings, double flips and best flow in big type. It replays the stored
 log with the real sim (`flipRunTimeline`, the server replay's validated inputs); flip-overhaul-check section 9 proves its

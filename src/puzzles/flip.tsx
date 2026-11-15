@@ -21,7 +21,7 @@ import { flipRunTimeline } from "@/lib/duel/flipTimeline";
 import { FlipRunPicture } from "@/components/puzzles/FlipRunPicture";
 import { useMemo } from "react";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 
 /**
  * The intro still (the Action overhaul, 15 Nov 2026; was a flat drawing that looked nothing like the cave): the live
@@ -84,6 +84,22 @@ export function flipLine(r: { survived: boolean; survivedSeconds: number }): str
   return r.survived ? "Survived the minute" : `Survived ${r.survivedSeconds.toFixed(1)}s`;
 }
 
+/**
+ * The arcade reveal's run picture (stage 2 of the Action overhaul, ArcadeReveal's GameRunPicture): the stored run replayed
+ * with the real sim (flipRunTimeline) and drawn as one strip of the cave with the four numbers the score is made of.
+ * Earlier revisions (no flow streak) draw nothing here and keep the reveal's tiles.
+ */
+function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
+  const flip = puzzle.type === "flip" ? puzzle : null;
+  const timeline = useMemo(() => (flip ? flipRunTimeline(flip.seed, myAnswer, flip.flipRev) : null), [flip, myAnswer]);
+  if (!timeline) return null;
+  return (
+    <div data-run-picture="flip" className="flex w-full shrink-0 justify-center animate-fade-in">
+      <FlipRunPicture timeline={timeline} />
+    </div>
+  );
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const flip = puzzle.type === "flip" ? puzzle : null;
   // Stage 2 of the Action overhaul (15 Nov 2026): the flow revisions (flipRev 11–13) draw the run as a picture, replayed
@@ -123,4 +139,5 @@ export const flipPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
+  RunPicture,
 };

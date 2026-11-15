@@ -67,13 +67,17 @@ nothing writes to it, no stamp.
 - **Crash**: a short white flash, then the respawn blink (`flip.respawn`, the impact haptic as before).
 - **End**: SURVIVED! with BEST FLOW counting up under it over 800 ms (`flip.flowCount`); the stage holds the answer
   1.2 s so it lands before the reveal.
+- **No edge glow** (the shared `ACTION_EDGELESS_GAMES`): Roofbound's `moment` hook (`flipMoment`) draws on the moment
+  instead: a crisp gold rule drawing out under a banner (10 SECONDS, SURVIVED!) with a bead at each end, a gold ring at
+  a point moment; a double flip's ring is the renderer's, following the runner.
 - Reduced motion: no trail, stretch or swing; the puffs, glints and rings hold still and fade; the count shows whole.
   Reduced effects: one trail frame and half the dust.
 
 A few seconds of play (a 20th clean landing, a double flip, then a Weak run's crash and break):
 <img src="flip/effects-s2-clip.webp" width="240">
 
-**The reveal**: a picture of the run in place of a list. The minute is one strip of the cave: the best flow streak lit
+**The reveal**: a picture of the run (the definition's `RunPicture`, drawn by the arcade reveal under the breakdown in
+place of the stat tiles). The minute is one strip of the cave: the best flow streak lit
 gold where it ran, perfect landings as gold diamonds on the top rail, double flips as rings on the lower rail, crashes
 as red marks; under it the four numbers the score is made of, big. Replayed from the stored log with the real sim
 (`src/lib/duel/flipTimeline.ts`, the server replay's inputs); the score stays the server's. Before (today) and after,

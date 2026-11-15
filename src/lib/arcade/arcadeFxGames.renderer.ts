@@ -11,7 +11,7 @@
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
 import { CURLING_FX_V4, MINIGOLF_FX, POOL_FX } from "./sportsFx.renderer";
-import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
+import type { ArcadeFxMiss, ArcadeFxMoment, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { minesCellX, minesCellY, minesCleared, MINES_CELL, MINES_WORLD_H, MINES_WORLD_W, type MinesState } from "./minesweeper";
 import { mahjongCleared, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
 import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
@@ -1244,6 +1244,46 @@ function flipPerfectAt(s: FlipState): { x: number; y: number } {
   return { x: p.x + 16, y: s.side === 0 ? p.y - 24 : p.y + 38 };
 }
 
+/**
+ * Roofbound's edge-glow replacement (the Action overhaul stage 2, 15 Nov 2026; Joe: no glowing edges). A banner moment
+ * (10 SECONDS, CHECKPOINT, SPEED ZONE, SURVIVED!) gets a gold rule that draws out from under its words, crisp, with a
+ * bright bead at each end; a perfect moment at a point (STAR TRAIL, ALL 10 STARS) a gold ring opening there. A double
+ * flip draws nothing here: the renderer's ring follows the runner (flipRev 11–13). The banners take no `at`, so the
+ * moment's point is the world's centre: a streak banner sits at 0.24 of the height (0.48 of that y), the final at 0.4.
+ */
+export function flipMoment(ctx: CanvasRenderingContext2D, m: ArcadeFxMoment): void {
+  if (m.kind === "combo") return;
+  const fade = 1 - m.p * m.p;
+  ctx.save();
+  ctx.strokeStyle = "#F5B82E";
+  ctx.fillStyle = "#FFE4A1";
+  if (m.kind === "perfect") {
+    ctx.globalAlpha = 0.9 * fade;
+    ctx.lineWidth = 3 * (1 - m.p) + 1;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.still ? 26 : 14 + 30 * (1 - (1 - m.p) * (1 - m.p)), 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    const y = m.y * (m.kind === "final" ? 0.8 : 0.48) + (m.kind === "final" ? 24 : 18);
+    const half = (m.kind === "final" ? 110 : 80) * (m.still ? 1 : Math.min(1, m.p * 2.5));
+    ctx.globalAlpha = fade;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(m.x - half, y);
+    ctx.lineTo(m.x + half, y);
+    ctx.stroke();
+    if (!m.lite) {
+      for (const dx of [-half, half]) {
+        ctx.beginPath();
+        ctx.arc(m.x + dx, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+}
+
 export const FLIP_FX: ArcadeFxSpec<FlipState> = {
   game: "flip",
   world: "cavelava",
@@ -1283,6 +1323,7 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
     { kind: "pop", count: flipSweetsTaken, at: flipPerfectAt, label: () => "PERFECT", textOnly: true, molten: true, textScale: 1.2 },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
+  moment: flipMoment,
 };
 /** flipRev 8's taller cave draws its effects on the 730 px world. */
 export const flipFxFor = (s: FlipState): ArcadeFxSpec<FlipState> => (s.exp ? fxSpecAt(FLIP_FX, FLIP_V8_WORLD_H) : FLIP_FX);

@@ -23,7 +23,7 @@
  *     flash start on their ticks; the flow counter ticks up on each clean landing, never rides ahead of the runner and is
  *     never under PERFECT; the stretch keeps inside the bounds rule; the end count and the stage's hold; earlier revisions
  *     draw none of it; drawing never writes to the state.
- *  9. The answer reveal: the arcade reveal draws Roofbound's run picture; its moments are the server replay's (weak,
+ *  9. The answer reveal: Roofbound's RunPicture (the shared hook ArcadeReveal draws); its moments are the server replay's (weak,
  *     average and elite runs on six courses), one mark each, the four numbers with plain labels, no "×", big type.
  *
  *   bun scripts/flip-overhaul-check.ts      # ~60 s
@@ -401,16 +401,43 @@ section("8. stage 2 effects (display only)");
     }
   ok(goldPx > 12, `a sweet-spot landing's gold puff is drawn at the landing spot (${goldPx} gold px)`);
   for (const s of [at(elite, firstMiss + 2), at(elite, doubles[0]!.tick + 5), at(weak, crashes[0]!.tick + 3)]) frame(s);
+  // No edge glow (the shared hook, ACTION_EDGELESS_GAMES): its replacement draws on the moment, not round the edge.
+  const { edgelessGame } = await import("../src/lib/arcade/success.renderer");
+  const { arcadeFxEdgeless } = await import("../src/lib/arcade/arcadeFx.renderer");
+  const { flipMoment, flipFxFor } = await import("../src/lib/arcade/arcadeFxGames.renderer");
+  ok(edgelessGame("flip") && arcadeFxEdgeless(FLIP_FX) && FLIP_FX.moment === flipMoment && flipFxFor(end).moment === flipMoment, "Roofbound draws no edge glow; the taller cave's spec carries the moment hook");
+  const momentPx = (kind: string, p: number, still = false) => {
+    const c = createCanvas(W, H);
+    const cx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    flipMoment(cx, { kind: kind as any, x: W / 2, y: H / 2, colour: "#fff", ageMs: p * 600, p, still, lite: false });
+    const d = cx.getImageData(0, 0, W, H).data;
+    let lit = 0;
+    let edge = 0;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        if (d[(y * W + x) * 4 + 3]! === 0) continue;
+        lit++;
+        if (x < 6 || x >= W - 6 || y < 6 || y >= H - 6) edge++;
+      }
+    return { lit, edge };
+  };
+  for (const kind of ["streak", "final", "perfect"]) {
+    const m = momentPx(kind, 0.4);
+    ok(m.lit > 100 && m.edge === 0, `a ${kind} moment draws on the moment, never at the world's edge (${m.lit} px, ${m.edge} at the edge)`);
+  }
+  ok(momentPx("combo", 0.4).lit === 0, "a double flip's moment draws nothing here (the renderer's ring follows the runner)");
+  ok(momentPx("streak", 0, true).lit > 100, "reduced motion: the rule shows whole at once");
 }
 
 section("9. the answer reveal: a picture of the run");
 {
   const { flipRunTimeline } = await import("../src/lib/duel/flipTimeline");
   const { FlipRunPicture } = await import("../src/components/puzzles/FlipRunPicture");
-  const { ARCADE_RUN_PICTURES } = await import("../src/lib/arcade/runPictures");
   const React = await import("react");
   const { renderToStaticMarkup } = await import("react-dom/server");
-  ok(ARCADE_RUN_PICTURES.has("flip") && /ARCADE_RUN_PICTURES\.has\(puzzle\.type\)[\s\S]{0,400}<GameReveal/.test(readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8")), "the arcade reveal draws Roofbound's own picture under the score");
+  const { flipPuzzle } = await import("../src/puzzles/flip");
+  ok(Boolean(flipPuzzle.RunPicture) && /<GameRunPicture/.test(readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8")), "Roofbound's definition has a RunPicture, which the arcade reveal draws (GameRunPicture)");
+  ok(/function RunPicture[\s\S]{0,600}<FlipRunPicture/.test(readFileSync("src/puzzles/flip.tsx", "utf8")), "the RunPicture draws the run picture from the stored answer");
   ok(/if \(timeline\) return <FlipRunPicture/.test(readFileSync("src/puzzles/flip.tsx", "utf8")), "Roofbound's Reveal draws the run picture on the flow revisions");
   for (const seed of FLIP_DEAL_V13.slice(0, 6)) {
     for (const level of ["weak", "average", "elite"] as const) {
