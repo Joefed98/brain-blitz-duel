@@ -1,4 +1,39 @@
 {
- "why": "",
- "games": {}
+ "why": "Defaults redrawn on purpose (routine consequence of the Sports overhaul, phase 2 step 4, Joe's approval of 15 Nov 2026); drawn on this branch with no look argument.",
+ "games": {
+  "pool": {
+   "r1-s3-t0@1": "67b45780c42163e89d760d9a",
+   "r1-s3-t0@2": "393f35158e7daf1e0984cc07",
+   "r1-s3-turned": "78a1a96a7c10045e33af4cf3",
+   "r1-s11-t200@1": "77bce213d080983f0d4a149e",
+   "r1-s11-t200@2": "dc0863e7ef5191e24a83a0d9",
+   "r1-s11-turned": "ed39ae0d006a19cd6d17d4ed",
+   "r4-s3-t0@1": "1530d5536a7527058e522c26",
+   "r4-s3-t0@2": "9c53419010654ea6f5a1e1bd",
+   "r4-s3-turned": "2c3e5e448be2cb555bd344a5",
+   "r4-s11-t200@1": "f33359d5b023391ace716f17",
+   "r4-s11-t200@2": "25fbab4963d9ae2e7b490434",
+   "r4-s11-turned": "ed39ae0d006a19cd6d17d4ed",
+   "scene": "6c5e59ac6a403d1b6148f7e2"
+  },
+  "curling": {
+   "r1-s2-t0@1": "42b8e78b8bed9b6bd1d8b969",
+   "r1-s2-t0@2": "ffc3fb6d95675623802b3eca",
+   "r1-s8-t260@1": "5b68d913a8dd7ef99e4ac11c",
+   "r1-s8-t260@2": "38dd6db4653c685572d1de5d",
+   "scene-r1": "423190f1b99c220d7959a6ad",
+   "r4-s2-t0@1": "dd69e7e2f6cfa493ba2a7222",
+   "r4-s2-t0@2": "1b3e4c05bece72ec279e2085",
+   "r4-s8-t260@1": "e1a386736bf97de314881802",
+   "r4-s8-t260@2": "802f898f2b4193fb93e36f0e",
+   "scene-r4": "db7fdae12461b6469f208dbe"
+  },
+  "racing": {
+   "r1-s4-t0": "0dd15e83bcddce3077176ec6",
+   "r1-s6-t900": "d025dcf0d1d6f33c4abd90c3",
+   "r4-s4-t0": "5c85621778ea63c030c09b43",
+   "r4-s6-t900": "41b7ff53d2d591fb06ad6056",
+   "scene": "e66f8fc6e11c08a5bbc1e134"
+  }
+ }
 }
