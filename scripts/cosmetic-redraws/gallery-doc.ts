@@ -25,81 +25,82 @@ const withdrawn = (id: string) => !RESTORED.has(id) && (verdicts[id] ?? "Keep") 
 
 /** What each redraw is, one line. */
 const WHAT: Record<string, string> = {
-  "card-art.joulz-navy": "A glossy gold bolt on lit navy.",
-  "card-art.bolt-stripes": "Raised navy bars in perspective with a gold bolt among them.",
-  "card-art.grid": "A field of glossy tiles in perspective, a few lit cyan.",
-  "card-art.waves": "Three glossy wave ribbons, blue and teal.",
-  "card-art.hexes": "Raised hex tiles at varying heights, a few lit pink.",
-  "card-art.dots": "A field of glossy domes, a few lit pink.",
-  "card-art.sunburst": "A gold sun with rays fanning out, on warm amber.",
-  "card-art.tier.spark": "The Spark tier: a copper bolt with sparks, in the tier's colour.",
-  "card-art.tier.charge": "The Charge tier: a glossy cell with its bolt.",
-  "card-art.tier.volt": "The Volt tier: a bolt through a ring.",
-  "card-art.tier.surge": "The Surge tier: a bolt over two waves.",
-  "card-art.tier.storm": "The Storm tier: a cloud with its bolt.",
-  "card-art.tier.lightning": "The Lightning tier: twin bolts.",
-  "card-art.tier.top-500": "Top 500: a gold crown with a jewel, with a slow light sweep.",
-  "card-art.crimson": "Crimson blades fanned out, glossy red.",
-  "card-art.royal": "A gold crown on a violet cushion.",
-  "card-art.emerald": "An emerald with two small stones.",
-  "card-art.lava": "Glossy molten blobs with drops of gold.",
-  "card-art.diamond-plate": "Gold tread plate with pink and ice gems, with a slow light sweep.",
-  "card-art.frost": "An ice-crystal cluster on frosty blue, nothing near the name.",
-  "card-art.neon-skyline": "A lit city at dusk with a gold moon, on the right only, with a slow light sweep.",
-  "card-art.static": "A field of grey blocks at random heights, a few lit cyan.",
-  "frame.bronze": "Bevelled bronze lit from the top left, bronze studs.",
-  "frame.silver": "Bevelled silver, silver studs.",
-  "frame.obsidian": "Dark glass bevel with a violet edge and an inner line, obsidian studs.",
-  "frame.founding": "Gold double bevel, a gold bolt crest, a light running round. The FOUNDER plaque is gone (unreadable on the strip).",
-  "frame.top-500": "Gold double bevel, a crown crest, gem studs, a light running round; nothing outside the card.",
-  "frame.championship": "Gold double bevel, a trophy crest, a light running round (today it has no art and draws Plain).",
-  "frame.s1-spark": "Season 1 Spark: tier-coloured bevel, the tier's gem as crest. No unreadable SEASON 1 tab.",
-  "frame.s1-charge": "Season 1 Charge: as Spark, in green.",
-  "frame.s1-volt": "Season 1 Volt: as Spark, in cyan.",
-  "frame.s1-surge": "Season 1 Surge: as Spark, in blue.",
-  "frame.s1-storm": "Season 1 Storm: double bevel in violet, a light running round.",
-  "frame.s1-lightning": "Season 1 Lightning: double bevel in gold-yellow, a light running round.",
-  "frame.s1-top-500": "Season 1 Top 500: double gold bevel, a light running round.",
-  "name-colour.chrome": "True chrome: a bright horizon band and a dark edge.",
-  "name-colour.neon-pink": "Glossy pink with a dark edge.",
-  "name-colour.neon-cyan": "Glossy cyan with a dark edge.",
-  "name-colour.neon-red": "Glossy red with a dark edge.",
-  "name-colour.electric-orange": "Glossy orange to gold in Archivo (the pixel face lost letters on the strip).",
-  "avatar-finish.chrome": "Mirror chrome on the avatar, a gloss highlight and a chrome rim round the circle.",
+  "card-art.galaxy": "A spiral galaxy of ~300,000 star particles, a filamentary nebula, stars at three depths with depth of field.",
+  "card-art.joulz-navy": "Navy lacquer with a champagne-gold bolt inlay under soft studio light.",
+  "card-art.bolt-stripes": "Diagonal gold inlay stripes in navy lacquer.",
+  "card-art.grid": "A floor of navy glass tiles in perspective.",
+  "card-art.waves": "Navy satin in soft waves.",
+  "card-art.hexes": "Raised hex tiles in perspective.",
+  "card-art.dots": "A halftone of gold studs fading across navy.",
+  "card-art.sunburst": "A dusk sun over a sea of cloud.",
+  "card-art.tier.spark": "Spark: an anvil with a white-hot bar, sparks spraying in the forge's glow.",
+  "card-art.tier.charge": "Charge: a glass cell holding a green plasma column, steel caps, cables.",
+  "card-art.tier.volt": "Volt: two copper coils with cyan arcs between them.",
+  "card-art.tier.surge": "Surge: a dark wave rolling in, its crest lit blue, spray.",
+  "card-art.tier.storm": "Storm: a violet storm cloud base, forks of lightning, a ground strike; a flash every few seconds.",
+  "card-art.tier.lightning": "Lightning: storm clouds lit from inside by a branching gold strike over a dark sea; a flash every few seconds.",
+  "card-art.tier.top-500": "Top 500: a jewelled gold crown on velvet on a pedestal, gold light through haze; a slow light sweep.",
+  "card-art.crimson": "Deep crimson satin folds with a gold ruby ring.",
+  "card-art.royal": "A gold orb and sceptre on royal-blue velvet.",
+  "card-art.emerald": "Raw emerald crystals growing from dark rock, with a cut stone.",
+  "card-art.lava": "Black crust with glowing cracks and a molten channel, steam and embers.",
+  "card-art.diamond-plate": "Gold tread plate with cut diamonds; a slow light sweep.",
+  "card-art.frost": "Crystal spires on a frozen lake at dawn, mountains in mist.",
+  "card-art.neon-skyline": "A dusk city from a height, lit windows and neon trims; a slow light sweep.",
+  "card-art.static": "Cyan discharges over carbon.",
+  "frame.founding": "Cast champagne gold: engraved band, four set diamonds, an enamel crest with a raised bolt between laurels, and a plaque with the player's own number (full card only); a light runs over the metal.",
+  "frame.top-500": "Heavy dark gold with filigree and a crimson enamel inlay, a gold coronet with pearls and a ruby, ruby cabochons; a TOP 500 plaque; a light runs over it.",
+  "frame.championship": "Platinum outer band and gold inner band with navy enamel, a gold trophy on a platinum sunburst inside a laurel wreath, diamond-set stars; a CHAMPION plaque; a light runs over it.",
+  "frame.s1-top-500": "Season 1 Top 500: black and gold enamel, diamonds, a sunburst behind the hexagonal 1 medallion; a light runs over it.",
+  "frame.s1-lightning": "Season 1 Lightning: gold with gold-yellow enamel, a double band, extra stones; a light runs over it.",
+  "frame.s1-storm": "Season 1 Storm: gold with amethyst enamel, a double band; a light runs over it.",
+  "frame.s1-surge": "Season 1 Surge: gold with sapphire enamel, extra stones.",
+  "frame.s1-volt": "Season 1 Volt: platinum with cyan enamel.",
+  "frame.s1-charge": "Season 1 Charge: platinum with emerald enamel.",
+  "frame.s1-spark": "Season 1 Spark: copper with copper enamel (the calmest of the family).",
+  "frame.obsidian": "Black volcanic glass with violet light along the inner edge, glass shards at the corners.",
+  "frame.silver": "Polished silver with fine engraved lines.",
+  "frame.bronze": "Warm satin bronze, plain (everyday).",
+  "name-colour.chrome": "Letters filled with rendered polished chrome, a dark edge.",
+  "name-colour.neon-pink": "Candy pink lacquer over metal flake, a dark edge.",
+  "name-colour.neon-cyan": "Candy cyan lacquer over metal flake, a dark edge.",
+  "name-colour.neon-red": "Candy red lacquer over metal flake, a dark edge.",
+  "name-colour.electric-orange": "Anodised orange metal in Archivo (the pixel face lost letters on the strip).",
+  "avatar-finish.chrome": "Rendered chrome on the avatar's shapes, a matching rim round the circle.",
   "avatar-finish.carbon": "Woven carbon under a clear coat, a carbon rim.",
-  "avatar-finish.holographic": "Pastel foil with moving light bands, a foil rim.",
-  "avatar-finish.neon-glow": "The player's own colour lit as a tube, with a ring of the same light.",
-  "avatar-accessory.neon-bolt": "A 3D cyan bolt above the circle.",
-  "reaction.spark": "A glossy gold star.",
-  "reaction.zap": "A glossy cyan bolt.",
-  "reaction.clutch": "A gold plaque reading CLUTCH!",
-  "reaction.captains-calls": "Glossy speech bubbles, each phrase on one line.",
-  "reaction.retro-arcade": "Four glossy key caps: a heart, 1UP, LAG!!, GLHF.",
-  "reaction.neon-signs": "Four framed sign boards, each word in its own colour.",
-  "celebration.spotlight": "A gold podium drum under two swaying beams and a pool of light.",
-  "celebration.shockwave": "Rings bursting out from the podium drum.",
-  "celebration.circuit-overload": "Gold circuit traces with pulses running in, gold bolts above.",
-  "tile-style.circuit-trace": "Raised gold traces and pads on a dark green board.",
-  "card-back.royal-damask": "Gold-ink damask, a lit gold frame with studs, a gold medallion with a raised bolt.",
-  "card-back.holo-foil": "Pearl foil with prism bands, a silver frame, a white star.",
-  "card-back.neon": "Dark glass with a fine grid, a cyan frame, pink traces, a white-cored bolt.",
-  "game-skin.crazy-golf.watermelon": "A glossy watermelon ball: ragged rind stripes.",
-  "game-skin.crazy-golf.disco": "Lit mirror tiles, brighter to the top left.",
-  "game-skin.crazy-golf.neon-glow": "A translucent cyan ball with shaded dimples.",
-  "game-skin.crazy-golf.plasma": "A violet ball with a glowing core and white-cored arcs.",
-  "game-skin.cue-ball.pixel-pool": "Pixel balls shaded in whole pixels, a pixel highlight.",
-  "game-skin.cue-ball.galaxy-set": "The galaxy balls with full gloss.",
-  "game-skin.cue-ball.neon-8-ball": "The 8 as glass lit from inside, gloss and a bright rim.",
-  "game-skin.cue-ball.neon-ball-set": "Every ball as glass lit from inside in its colour.",
-  "game-skin.curl-champ.glacier": "Polished granite with an icy top.",
-  "game-skin.curl-champ.aurora": "Polished granite with an aurora disc.",
-  "game-skin.curl-champ.neon-stones": "Polished granite with lit tube inlays.",
-  "game-skin.full-house.midnight-felt": "Woven midnight cloth with nap, a lit rail, stitching.",
-  "game-skin.full-house.crimson-velvet": "Crimson velvet with nap, a lit rail, stitching.",
-  "game-skin.full-house.neon-felt": "Dark cloth with a lit cyan tube edge.",
-  "world-theme.apex.neon-night": "A deep sky with a horizon glow, a moon, lit towers; the road unchanged.",
-  "world-theme.crazy-golf.neon-course": "Lit night turf; rails and hazards as lit tubes on the same lines.",
-  "world-theme.curl-champ.neon-rink": "Ice with depth and a lit arena; every ring and line where it was.",
+  "avatar-finish.holographic": "Iridescent foil, a foil rim.",
+  "avatar-finish.neon-glow": "The player's own colour with glass-tube reflections and a ring in that colour.",
+  "avatar-accessory.neon-bolt": "A glass bolt with a lit cyan core above the circle.",
+  "reaction.spark": "A gold four-point star.",
+  "reaction.zap": "A glass bolt with a gold core.",
+  "reaction.clutch": "A gold plaque with CLUTCH! engraved.",
+  "reaction.captains-calls": "White ceramic speech bubbles, each phrase on one line.",
+  "reaction.retro-arcade": "Key caps (the first a red glass heart), 1UP, LAG!!, GLHF.",
+  "reaction.neon-signs": "Dark sign boxes ringed with lit neon tubes.",
+  "celebration.spotlight": "Two spotlights through haze onto a gold-rimmed navy drum, dust drifting.",
+  "celebration.shockwave": "Rings of light across a glass floor round the drum.",
+  "celebration.circuit-overload": "The drum on a lit gold circuit board, a pulsing surge.",
+  "tile-style.circuit-trace": "A rendered circuit board round the game's tile scene.",
+  "card-back.royal-damask": "Gold-foil damask, a medallion with a raised bolt.",
+  "card-back.holo-foil": "Diagonal prism foil with a pearl star.",
+  "card-back.neon": "Dark glass with a cyan tube, pink traces, a white bolt.",
+  "game-skin.crazy-golf.watermelon": "A clear-coated sphere with ragged rind stripes.",
+  "game-skin.crazy-golf.disco": "A mirror-tile ball lit by coloured lights.",
+  "game-skin.crazy-golf.neon-glow": "A lit glass ball with dimples.",
+  "game-skin.crazy-golf.plasma": "Plasma filaments inside violet glass.",
+  "game-skin.cue-ball.pixel-pool": "The pixel balls lit cell by cell, a pixel highlight.",
+  "game-skin.cue-ball.galaxy-set": "The galaxy balls under rendered resin light.",
+  "game-skin.cue-ball.neon-8-ball": "The 8 under rendered glass light.",
+  "game-skin.cue-ball.neon-ball-set": "Every ball under rendered glass light in its colour.",
+  "game-skin.curl-champ.glacier": "Icy granite tops with a frost disc.",
+  "game-skin.curl-champ.aurora": "Dark granite with a pink and cyan inlay.",
+  "game-skin.curl-champ.neon-stones": "Granite with lit tube inlays.",
+  "game-skin.full-house.midnight-felt": "Rendered midnight twill.",
+  "game-skin.full-house.crimson-velvet": "Rendered crimson velvet nap.",
+  "game-skin.full-house.neon-felt": "Rendered dark twill with its neon edge.",
+  "world-theme.apex.neon-night": "The track through a rendered neon city: a night sky, a 360\u00b0 far skyline in haze, a near band of lit towers, skyscrapers along the road.",
+  "world-theme.crazy-golf.neon-course": "Grained night turf under the lit tubes.",
+  "world-theme.curl-champ.neon-rink": "Rendered ice with depth under the lit rink.",
 };
 
 const ORDER = ["card-art", "frame", "name-colour", "avatar-finish", "avatar-accessory", "reaction", "celebration", "tile-style", "card-back", "game-skin", "world-theme"];
@@ -110,7 +111,12 @@ const TITLE: Record<string, string> = {
 const pic = (id: string, side: "before" | "after") => {
   const kind = items.get(id)!.kind;
   const game = ["game-skin", "world-theme", "card-back"].includes(kind);
-  const rel = game ? `gallery/game-looks/${id}--${side}.png` : `gallery/${kind}/${id}--${side}.webp`;
+  const rel =
+    id === "world-theme.apex.neon-night"
+      ? `samples/apex/${side === "before" ? "today" : "redraw"}.png`
+      : game
+        ? `gallery/game-looks/${id}--${side}.png`
+        : `gallery/${kind}/${id}--${side}.webp`;
   if (!existsSync(join(DOC, rel))) throw new Error(`missing ${rel}`);
   return rel;
 };
@@ -131,7 +137,7 @@ let bytes = 0;
 const walk = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
 for (const f of walk(join(DOC, "gallery"))) bytes += statSync(f).size;
 
-const md = `# Cosmetics redraws: gallery (phase 2 step 4, 15 Nov 2026)
+const md = `# Cosmetics redraws: gallery (second pass, 15 Nov 2026)
 
 Every redrawn item, today's art beside the redraw, drawn by the app's own components and renderers at phone size
 under Reduce Motion (stills: the Legendaries' sweeps and the frames' running light don't show). The audit that chose
@@ -142,12 +148,13 @@ them: [AUDIT.md](AUDIT.md).
 stay withdrawn whatever their switch says: restoring one is its own line, \`economy.restore_item\`
 (docs/economy/withdrawn.md). Nothing here changes who owns an item, what is offered, or any price.
 
-**How they are made.** The art kit's pipeline and finish: every object is a 3D scene in the kit's raymarcher (one
-gloss material, one key light from the top left, a soft contact shadow), \`docs/design/cosmetics-redraws/source/\`
-(\`render.html\` the renderer, \`scenes.ts\` every piece's scene, colours and camera, \`render.ts\` writes
-\`public/cosmetics/redrawn/<piece>.webp\`); the compositions are \`scripts/cosmetic-redraws/\` (\`card.ts\`, \`cosmetics.ts\`),
-built by \`bun scripts/cosmetic-redraws.ts\` into \`src/design/identity/redrawnArt.data.ts\`; the in-game looks are canvas
-painters in \`src/lib/arcade/skins/\` (the shared gloss in \`gloss.renderer.ts\`). Pictures:
+**How they are made** (the second pass, [ART-DIRECTION.md](ART-DIRECTION.md); the five first samples in
+[SAMPLES.md](SAMPLES.md)): every item is rendered in Blender (Cycles, \`bpy\` 5.3, physically based materials, studio or
+scene light, depth of field, atmosphere) by its script in \`docs/design/cosmetics-redraws/blender/\` into
+\`public/cosmetics/redrawn/\`; card pieces are composed by \`scripts/cosmetic-redraws/v2/\` (the name side shaded, a strip
+veil under the name on the leaderboard strip, plaque words on the full card only) and built by
+\`bun scripts/cosmetic-redraws.ts\` into \`src/design/identity/redrawnArt.data.ts\`; the in-game looks paint their renders
+into the games' cached layers (\`src/lib/arcade/skins/\`, through \`sceneImages.ts\`). Pictures:
 \`bun scripts/cosmetic-redraws/identity-shots.tsx\` and \`bun scripts/cosmetic-redraws/game-looks-shots.ts\`; this page
 \`bun scripts/cosmetic-redraws/gallery-doc.ts\`. Gallery pictures: ${(bytes / 1024 / 1024).toFixed(2)} MB.
 

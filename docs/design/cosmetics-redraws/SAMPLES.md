@@ -63,6 +63,21 @@ Switch: `"world-theme.apex.neon-night": true,`.
 
 ## 5. Crazy Golf's default course (every player's look, not a cosmetic)
 
-See [samples/crazy-golf/](samples/crazy-golf/) (filled in below once its pictures are made).
+The course every player sees, redrawn from Blender renders: a seamless mown turf with grain and stripes (procedural
+blades), dressed-stone coping on exactly the rails' lines and width, sandstone paving round the course, rendered
+boulders and planters sized to their collision circles with soft contact shadows, shrubs, sand. The ball, cup, tee,
+slopes, ramps, logs, gates, tunnels and windmills keep today's geometry and art. Painted once into the existing
+per-hole cache, so a frame costs what it did (16.7 ms a frame with it on, 16.8 ms today, in arcade-play-check).
+Script `blender/crazy_golf.py`; ten images, 72 KB in all; wired by `src/lib/arcade/skins/minigolfCourse.ts`.
+
+| Today | Redrawn |
+|---|---|
+| <img src="samples/crazy-golf/today.png" width="300"> | <img src="samples/crazy-golf/redraw.png" width="300"> |
+| <img src="samples/crazy-golf/today.webp" width="300"> | <img src="samples/crazy-golf/redraw.webp" width="300"> |
 
 Switch: `"default.crazy-golf.course": true,` in `REDRAWN_DEFAULT_LOOKS` (`src/config/cosmeticRedraws.ts`).
+
+## The rest of the 75
+
+Joe approved the Blender standard on 15 Nov 2026; every other redraw followed it the same night, prestige first. All 76
+items (the 75 and Galaxy), before and after: [GALLERY.md](GALLERY.md).

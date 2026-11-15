@@ -1,4 +1,4 @@
-# Cosmetics redraws: gallery (phase 2 step 4, 15 Nov 2026)
+# Cosmetics redraws: gallery (second pass, 15 Nov 2026)
 
 Every redrawn item, today's art beside the redraw, drawn by the app's own components and renderers at phone size
 under Reduce Motion (stills: the Legendaries' sweeps and the frames' running light don't show). The audit that chose
@@ -9,20 +9,21 @@ them: [AUDIT.md](AUDIT.md).
 stay withdrawn whatever their switch says: restoring one is its own line, `economy.restore_item`
 (docs/economy/withdrawn.md). Nothing here changes who owns an item, what is offered, or any price.
 
-**How they are made.** The art kit's pipeline and finish: every object is a 3D scene in the kit's raymarcher (one
-gloss material, one key light from the top left, a soft contact shadow), `docs/design/cosmetics-redraws/source/`
-(`render.html` the renderer, `scenes.ts` every piece's scene, colours and camera, `render.ts` writes
-`public/cosmetics/redrawn/<piece>.webp`); the compositions are `scripts/cosmetic-redraws/` (`card.ts`, `cosmetics.ts`),
-built by `bun scripts/cosmetic-redraws.ts` into `src/design/identity/redrawnArt.data.ts`; the in-game looks are canvas
-painters in `src/lib/arcade/skins/` (the shared gloss in `gloss.renderer.ts`). Pictures:
+**How they are made** (the second pass, [ART-DIRECTION.md](ART-DIRECTION.md); the five first samples in
+[SAMPLES.md](SAMPLES.md)): every item is rendered in Blender (Cycles, `bpy` 5.3, physically based materials, studio or
+scene light, depth of field, atmosphere) by its script in `docs/design/cosmetics-redraws/blender/` into
+`public/cosmetics/redrawn/`; card pieces are composed by `scripts/cosmetic-redraws/v2/` (the name side shaded, a strip
+veil under the name on the leaderboard strip, plaque words on the full card only) and built by
+`bun scripts/cosmetic-redraws.ts` into `src/design/identity/redrawnArt.data.ts`; the in-game looks paint their renders
+into the games' cached layers (`src/lib/arcade/skins/`, through `sceneImages.ts`). Pictures:
 `bun scripts/cosmetic-redraws/identity-shots.tsx` and `bun scripts/cosmetic-redraws/game-looks-shots.ts`; this page
-`bun scripts/cosmetic-redraws/gallery-doc.ts`. Gallery pictures: 1.69 MB.
+`bun scripts/cosmetic-redraws/gallery-doc.ts`. Gallery pictures: 1.85 MB.
 
-## Card arts (22)
+## Card arts (23)
 
 ### Joulz Navy
 
-`card-art.joulz-navy` · no rarity · free starter · **withdrawn**. A glossy gold bolt on lit navy.
+`card-art.joulz-navy` · no rarity · free starter · **withdrawn**. Navy lacquer with a champagne-gold bolt inlay under soft studio light.
 
 | Today | Redrawn |
 |---|---|
@@ -33,7 +34,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.joulz-navy',
 
 ### Bolt Stripes
 
-`card-art.bolt-stripes` · no rarity · free starter · **withdrawn**. Raised navy bars in perspective with a gold bolt among them.
+`card-art.bolt-stripes` · no rarity · free starter · **withdrawn**. Diagonal gold inlay stripes in navy lacquer.
 
 | Today | Redrawn |
 |---|---|
@@ -44,7 +45,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.bolt-stripes
 
 ### Grid
 
-`card-art.grid` · no rarity · free starter · **withdrawn**. A field of glossy tiles in perspective, a few lit cyan.
+`card-art.grid` · no rarity · free starter · **withdrawn**. A floor of navy glass tiles in perspective.
 
 | Today | Redrawn |
 |---|---|
@@ -55,7 +56,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.grid', 'redr
 
 ### Waves
 
-`card-art.waves` · no rarity · free starter · **withdrawn**. Three glossy wave ribbons, blue and teal.
+`card-art.waves` · no rarity · free starter · **withdrawn**. Navy satin in soft waves.
 
 | Today | Redrawn |
 |---|---|
@@ -66,7 +67,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.waves', 'red
 
 ### Hexes
 
-`card-art.hexes` · no rarity · free starter · **withdrawn**. Raised hex tiles at varying heights, a few lit pink.
+`card-art.hexes` · no rarity · free starter · **withdrawn**. Raised hex tiles in perspective.
 
 | Today | Redrawn |
 |---|---|
@@ -77,7 +78,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.hexes', 'red
 
 ### Dots
 
-`card-art.dots` · no rarity · free starter · **withdrawn**. A field of glossy domes, a few lit pink.
+`card-art.dots` · no rarity · free starter · **withdrawn**. A halftone of gold studs fading across navy.
 
 | Today | Redrawn |
 |---|---|
@@ -88,7 +89,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.dots', 'redr
 
 ### Sunburst
 
-`card-art.sunburst` · no rarity · free starter · **withdrawn**. A gold sun with rays fanning out, on warm amber.
+`card-art.sunburst` · no rarity · free starter · **withdrawn**. A dusk sun over a sea of cloud.
 
 | Today | Redrawn |
 |---|---|
@@ -99,7 +100,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.sunburst', '
 
 ### Spark
 
-`card-art.tier.spark` · no rarity · earned season peak tier · **withdrawn**. The Spark tier: a copper bolt with sparks, in the tier's colour.
+`card-art.tier.spark` · no rarity · earned season peak tier · **withdrawn**. Spark: an anvil with a white-hot bar, sparks spraying in the forge's glow.
 
 | Today | Redrawn |
 |---|---|
@@ -110,7 +111,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.spark',
 
 ### Charge
 
-`card-art.tier.charge` · no rarity · earned season peak tier · **withdrawn**. The Charge tier: a glossy cell with its bolt.
+`card-art.tier.charge` · no rarity · earned season peak tier · **withdrawn**. Charge: a glass cell holding a green plasma column, steel caps, cables.
 
 | Today | Redrawn |
 |---|---|
@@ -121,7 +122,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.charge'
 
 ### Volt
 
-`card-art.tier.volt` · no rarity · earned season peak tier · **withdrawn**. The Volt tier: a bolt through a ring.
+`card-art.tier.volt` · no rarity · earned season peak tier · **withdrawn**. Volt: two copper coils with cyan arcs between them.
 
 | Today | Redrawn |
 |---|---|
@@ -132,7 +133,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.volt', 
 
 ### Surge
 
-`card-art.tier.surge` · no rarity · earned season peak tier · **withdrawn**. The Surge tier: a bolt over two waves.
+`card-art.tier.surge` · no rarity · earned season peak tier · **withdrawn**. Surge: a dark wave rolling in, its crest lit blue, spray.
 
 | Today | Redrawn |
 |---|---|
@@ -143,7 +144,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.surge',
 
 ### Storm
 
-`card-art.tier.storm` · no rarity · earned season peak tier · **withdrawn**. The Storm tier: a cloud with its bolt.
+`card-art.tier.storm` · no rarity · earned season peak tier · **withdrawn**. Storm: a violet storm cloud base, forks of lightning, a ground strike; a flash every few seconds.
 
 | Today | Redrawn |
 |---|---|
@@ -154,7 +155,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.storm',
 
 ### Lightning
 
-`card-art.tier.lightning` · no rarity · earned season peak tier · live. The Lightning tier: twin bolts.
+`card-art.tier.lightning` · no rarity · earned season peak tier · live. Lightning: storm clouds lit from inside by a branching gold strike over a dark sea; a flash every few seconds.
 
 | Today | Redrawn |
 |---|---|
@@ -164,7 +165,7 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.tier.lightning":
 
 ### Top 500
 
-`card-art.tier.top-500` · no rarity · earned season peak tier · **withdrawn**. Top 500: a gold crown with a jewel, with a slow light sweep.
+`card-art.tier.top-500` · no rarity · earned season peak tier · **withdrawn**. Top 500: a jewelled gold crown on velvet on a pedestal, gold light through haze; a slow light sweep.
 
 | Today | Redrawn |
 |---|---|
@@ -175,7 +176,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.top-500
 
 ### Crimson
 
-`card-art.crimson` · Epic · Shop, 1,000 coins · live. Crimson blades fanned out, glossy red.
+`card-art.crimson` · Epic · Shop, 1,000 coins · live. Deep crimson satin folds with a gold ruby ring.
 
 | Today | Redrawn |
 |---|---|
@@ -183,9 +184,19 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.tier.top-500
 
 Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.crimson": true,`
 
+### Galaxy
+
+`card-art.galaxy` · Epic · Shop, 1,000 coins · live. A spiral galaxy of ~300,000 star particles, a filamentary nebula, stars at three depths with depth of field.
+
+| Today | Redrawn |
+|---|---|
+| <img src="gallery/card-art/card-art.galaxy--before.webp" width="330"> | <img src="gallery/card-art/card-art.galaxy--after.webp" width="330"> |
+
+Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.galaxy": true,`
+
 ### Royal
 
-`card-art.royal` · Epic · Shop, 1,000 coins · **withdrawn**. A gold crown on a violet cushion.
+`card-art.royal` · Epic · Shop, 1,000 coins · **withdrawn**. A gold orb and sceptre on royal-blue velvet.
 
 | Today | Redrawn |
 |---|---|
@@ -196,7 +207,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.royal', 'red
 
 ### Emerald
 
-`card-art.emerald` · Epic · Shop, 1,000 coins · live. An emerald with two small stones.
+`card-art.emerald` · Epic · Shop, 1,000 coins · live. Raw emerald crystals growing from dark rock, with a cut stone.
 
 | Today | Redrawn |
 |---|---|
@@ -206,7 +217,7 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-art.emerald": true,`
 
 ### Lava
 
-`card-art.lava` · Epic · Shop, 1,000 coins · **withdrawn**. Glossy molten blobs with drops of gold.
+`card-art.lava` · Epic · Shop, 1,000 coins · **withdrawn**. Black crust with glowing cracks and a molten channel, steam and embers.
 
 | Today | Redrawn |
 |---|---|
@@ -217,7 +228,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.lava', 'redr
 
 ### Diamond Plate
 
-`card-art.diamond-plate` · Legendary · Shop, 2,800 coins · **withdrawn**. Gold tread plate with pink and ice gems, with a slow light sweep.
+`card-art.diamond-plate` · Legendary · Shop, 2,800 coins · **withdrawn**. Gold tread plate with cut diamonds; a slow light sweep.
 
 | Today | Redrawn |
 |---|---|
@@ -228,7 +239,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.diamond-plat
 
 ### Frost
 
-`card-art.frost` · Elite · Shop, 1,600 coins · **withdrawn**. An ice-crystal cluster on frosty blue, nothing near the name.
+`card-art.frost` · Elite · Shop, 1,600 coins · **withdrawn**. Crystal spires on a frozen lake at dawn, mountains in mist.
 
 | Today | Redrawn |
 |---|---|
@@ -239,7 +250,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.frost', 'red
 
 ### Neon Skyline
 
-`card-art.neon-skyline` · Legendary · Pass free level 60 · **withdrawn**. A lit city at dusk with a gold moon, on the right only, with a slow light sweep.
+`card-art.neon-skyline` · Legendary · Pass free level 60 · **withdrawn**. A dusk city from a height, lit windows and neon trims; a slow light sweep.
 
 | Today | Redrawn |
 |---|---|
@@ -250,7 +261,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.neon-skyline
 
 ### Static
 
-`card-art.static` · Rare · Pass premium level 14 · **withdrawn**. A field of grey blocks at random heights, a few lit cyan.
+`card-art.static` · Rare · Pass premium level 14 · **withdrawn**. Cyan discharges over carbon.
 
 | Today | Redrawn |
 |---|---|
@@ -263,7 +274,7 @@ Restore it (offer it again): `SELECT economy.restore_item('card-art.static', 're
 
 ### Bronze
 
-`frame.bronze` · Common · Pass free level 6 · **withdrawn**. Bevelled bronze lit from the top left, bronze studs.
+`frame.bronze` · Common · Pass free level 6 · **withdrawn**. Warm satin bronze, plain (everyday).
 
 | Today | Redrawn |
 |---|---|
@@ -274,7 +285,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.bronze', 'redra
 
 ### Silver
 
-`frame.silver` · Rare · Pass free level 26 · **withdrawn**. Bevelled silver, silver studs.
+`frame.silver` · Rare · Pass free level 26 · **withdrawn**. Polished silver with fine engraved lines.
 
 | Today | Redrawn |
 |---|---|
@@ -285,7 +296,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.silver', 'redra
 
 ### Obsidian
 
-`frame.obsidian` · Elite · Shop, 1,600 coins · **withdrawn**. Dark glass bevel with a violet edge and an inner line, obsidian studs.
+`frame.obsidian` · Elite · Shop, 1,600 coins · **withdrawn**. Black volcanic glass with violet light along the inner edge, glass shards at the corners.
 
 | Today | Redrawn |
 |---|---|
@@ -296,7 +307,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.obsidian', 'red
 
 ### Founding
 
-`frame.founding` · no rarity · earned founding player · **withdrawn**. Gold double bevel, a gold bolt crest, a light running round. The FOUNDER plaque is gone (unreadable on the strip).
+`frame.founding` · no rarity · earned founding player · **withdrawn**. Cast champagne gold: engraved band, four set diamonds, an enamel crest with a raised bolt between laurels, and a plaque with the player's own number (full card only); a light runs over the metal.
 
 | Today | Redrawn |
 |---|---|
@@ -307,7 +318,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.founding', 'red
 
 ### Top 500
 
-`frame.top-500` · no rarity · earned top 500 · **withdrawn**. Gold double bevel, a crown crest, gem studs, a light running round; nothing outside the card.
+`frame.top-500` · no rarity · earned top 500 · **withdrawn**. Heavy dark gold with filigree and a crimson enamel inlay, a gold coronet with pearls and a ruby, ruby cabochons; a TOP 500 plaque; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
@@ -318,7 +329,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.top-500', 'redr
 
 ### Championship
 
-`frame.championship` · no rarity · tournament · **withdrawn**. Gold double bevel, a trophy crest, a light running round (today it has no art and draws Plain).
+`frame.championship` · no rarity · tournament · **withdrawn**. Platinum outer band and gold inner band with navy enamel, a gold trophy on a platinum sunburst inside a laurel wreath, diamond-set stars; a CHAMPION plaque; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
@@ -329,7 +340,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.championship', 
 
 ### Season 1 Spark
 
-`frame.s1-spark` · no rarity · earned season peak tier · **withdrawn**. Season 1 Spark: tier-coloured bevel, the tier's gem as crest. No unreadable SEASON 1 tab.
+`frame.s1-spark` · no rarity · earned season peak tier · **withdrawn**. Season 1 Spark: copper with copper enamel (the calmest of the family).
 
 | Today | Redrawn |
 |---|---|
@@ -340,7 +351,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.s1-spark', 'red
 
 ### Season 1 Charge
 
-`frame.s1-charge` · no rarity · earned season peak tier · **withdrawn**. Season 1 Charge: as Spark, in green.
+`frame.s1-charge` · no rarity · earned season peak tier · **withdrawn**. Season 1 Charge: platinum with emerald enamel.
 
 | Today | Redrawn |
 |---|---|
@@ -351,7 +362,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.s1-charge', 're
 
 ### Season 1 Volt
 
-`frame.s1-volt` · no rarity · earned season peak tier · **withdrawn**. Season 1 Volt: as Spark, in cyan.
+`frame.s1-volt` · no rarity · earned season peak tier · **withdrawn**. Season 1 Volt: platinum with cyan enamel.
 
 | Today | Redrawn |
 |---|---|
@@ -362,7 +373,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.s1-volt', 'redr
 
 ### Season 1 Surge
 
-`frame.s1-surge` · no rarity · earned season peak tier · **withdrawn**. Season 1 Surge: as Spark, in blue.
+`frame.s1-surge` · no rarity · earned season peak tier · **withdrawn**. Season 1 Surge: gold with sapphire enamel, extra stones.
 
 | Today | Redrawn |
 |---|---|
@@ -373,7 +384,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.s1-surge', 'red
 
 ### Season 1 Storm
 
-`frame.s1-storm` · no rarity · earned season peak tier · **withdrawn**. Season 1 Storm: double bevel in violet, a light running round.
+`frame.s1-storm` · no rarity · earned season peak tier · **withdrawn**. Season 1 Storm: gold with amethyst enamel, a double band; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
@@ -384,7 +395,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.s1-storm', 'red
 
 ### Season 1 Lightning
 
-`frame.s1-lightning` · no rarity · earned season peak tier · **withdrawn**. Season 1 Lightning: double bevel in gold-yellow, a light running round.
+`frame.s1-lightning` · no rarity · earned season peak tier · **withdrawn**. Season 1 Lightning: gold with gold-yellow enamel, a double band, extra stones; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
@@ -395,7 +406,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.s1-lightning', 
 
 ### Season 1 Top 500
 
-`frame.s1-top-500` · no rarity · earned season peak tier · **withdrawn**. Season 1 Top 500: double gold bevel, a light running round.
+`frame.s1-top-500` · no rarity · earned season peak tier · **withdrawn**. Season 1 Top 500: black and gold enamel, diamonds, a sunburst behind the hexagonal 1 medallion; a light runs over it.
 
 | Today | Redrawn |
 |---|---|
@@ -408,7 +419,7 @@ Restore it (offer it again): `SELECT economy.restore_item('frame.s1-top-500', 'r
 
 ### Chrome
 
-`name-colour.chrome` · Epic · Shop, 1,000 coins · **withdrawn**. True chrome: a bright horizon band and a dark edge.
+`name-colour.chrome` · Epic · Shop, 1,000 coins · **withdrawn**. Letters filled with rendered polished chrome, a dark edge.
 
 | Today | Redrawn |
 |---|---|
@@ -419,7 +430,7 @@ Restore it (offer it again): `SELECT economy.restore_item('name-colour.chrome', 
 
 ### Neon Pink
 
-`name-colour.neon-pink` · Common · Pass free level 10 · **withdrawn**. Glossy pink with a dark edge.
+`name-colour.neon-pink` · Common · Pass free level 10 · **withdrawn**. Candy pink lacquer over metal flake, a dark edge.
 
 | Today | Redrawn |
 |---|---|
@@ -430,7 +441,7 @@ Restore it (offer it again): `SELECT economy.restore_item('name-colour.neon-pink
 
 ### Neon Cyan
 
-`name-colour.neon-cyan` · Rare · Pass premium level 3 · **withdrawn**. Glossy cyan with a dark edge.
+`name-colour.neon-cyan` · Rare · Pass premium level 3 · **withdrawn**. Candy cyan lacquer over metal flake, a dark edge.
 
 | Today | Redrawn |
 |---|---|
@@ -441,7 +452,7 @@ Restore it (offer it again): `SELECT economy.restore_item('name-colour.neon-cyan
 
 ### Neon Red
 
-`name-colour.neon-red` · Rare · Pass premium level 18 · **withdrawn**. Glossy red with a dark edge.
+`name-colour.neon-red` · Rare · Pass premium level 18 · **withdrawn**. Candy red lacquer over metal flake, a dark edge.
 
 | Today | Redrawn |
 |---|---|
@@ -452,7 +463,7 @@ Restore it (offer it again): `SELECT economy.restore_item('name-colour.neon-red'
 
 ### Electric Orange
 
-`name-colour.electric-orange` · Epic · Pass premium level 35 · **withdrawn**. Glossy orange to gold in Archivo (the pixel face lost letters on the strip).
+`name-colour.electric-orange` · Epic · Pass premium level 35 · **withdrawn**. Anodised orange metal in Archivo (the pixel face lost letters on the strip).
 
 | Today | Redrawn |
 |---|---|
@@ -476,7 +487,7 @@ Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.carbon'
 
 ### Chrome
 
-`avatar-finish.chrome` · Epic · Shop, 1,000 coins · **withdrawn**. Mirror chrome on the avatar, a gloss highlight and a chrome rim round the circle.
+`avatar-finish.chrome` · Epic · Shop, 1,000 coins · **withdrawn**. Rendered chrome on the avatar's shapes, a matching rim round the circle.
 
 | Today | Redrawn |
 |---|---|
@@ -487,7 +498,7 @@ Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.chrome'
 
 ### Holographic
 
-`avatar-finish.holographic` · Elite · Shop, 1,600 coins · **withdrawn**. Pastel foil with moving light bands, a foil rim.
+`avatar-finish.holographic` · Elite · Shop, 1,600 coins · **withdrawn**. Iridescent foil, a foil rim.
 
 | Today | Redrawn |
 |---|---|
@@ -498,7 +509,7 @@ Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.hologra
 
 ### Neon Glow
 
-`avatar-finish.neon-glow` · Elite · Pass premium level 40 · **withdrawn**. The player's own colour lit as a tube, with a ring of the same light.
+`avatar-finish.neon-glow` · Elite · Pass premium level 40 · **withdrawn**. The player's own colour with glass-tube reflections and a ring in that colour.
 
 | Today | Redrawn |
 |---|---|
@@ -511,7 +522,7 @@ Restore it (offer it again): `SELECT economy.restore_item('avatar-finish.neon-gl
 
 ### Neon Bolt
 
-`avatar-accessory.neon-bolt` · Epic · Pass premium level 52 · **withdrawn**. A 3D cyan bolt above the circle.
+`avatar-accessory.neon-bolt` · Epic · Pass premium level 52 · **withdrawn**. A glass bolt with a lit cyan core above the circle.
 
 | Today | Redrawn |
 |---|---|
@@ -524,7 +535,7 @@ Restore it (offer it again): `SELECT economy.restore_item('avatar-accessory.neon
 
 ### Spark
 
-`reaction.spark` · Common · Pass free level 22 · **withdrawn**. A glossy gold star.
+`reaction.spark` · Common · Pass free level 22 · **withdrawn**. A gold four-point star.
 
 | Today | Redrawn |
 |---|---|
@@ -535,7 +546,7 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.spark', 'red
 
 ### Zap
 
-`reaction.zap` · Rare · Pass premium level 8 · **withdrawn**. A glossy cyan bolt.
+`reaction.zap` · Rare · Pass premium level 8 · **withdrawn**. A glass bolt with a gold core.
 
 | Today | Redrawn |
 |---|---|
@@ -546,7 +557,7 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.zap', 'redra
 
 ### Clutch
 
-`reaction.clutch` · Rare · Pass premium level 28 · **withdrawn**. A gold plaque reading CLUTCH!
+`reaction.clutch` · Rare · Pass premium level 28 · **withdrawn**. A gold plaque with CLUTCH! engraved.
 
 | Today | Redrawn |
 |---|---|
@@ -557,7 +568,7 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.clutch', 're
 
 ### Captain's Calls
 
-`reaction.captains-calls` · Epic · Shop, 1,000 coins · **withdrawn**. Glossy speech bubbles, each phrase on one line.
+`reaction.captains-calls` · Epic · Shop, 1,000 coins · **withdrawn**. White ceramic speech bubbles, each phrase on one line.
 
 | Today | Redrawn |
 |---|---|
@@ -568,7 +579,7 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.captains-cal
 
 ### Retro Arcade
 
-`reaction.retro-arcade` · Epic · Shop, 1,000 coins · **withdrawn**. Four glossy key caps: a heart, 1UP, LAG!!, GLHF.
+`reaction.retro-arcade` · Epic · Shop, 1,000 coins · **withdrawn**. Key caps (the first a red glass heart), 1UP, LAG!!, GLHF.
 
 | Today | Redrawn |
 |---|---|
@@ -579,7 +590,7 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.retro-arcade
 
 ### Neon Signs
 
-`reaction.neon-signs` · Epic · Pass premium level 22 · **withdrawn**. Four framed sign boards, each word in its own colour.
+`reaction.neon-signs` · Epic · Pass premium level 22 · **withdrawn**. Dark sign boxes ringed with lit neon tubes.
 
 | Today | Redrawn |
 |---|---|
@@ -592,7 +603,7 @@ Restore it (offer it again): `SELECT economy.restore_item('reaction.neon-signs',
 
 ### Spotlight
 
-`celebration.spotlight` · Epic · Shop, 1,000 coins · **withdrawn**. A gold podium drum under two swaying beams and a pool of light.
+`celebration.spotlight` · Epic · Shop, 1,000 coins · **withdrawn**. Two spotlights through haze onto a gold-rimmed navy drum, dust drifting.
 
 | Today | Redrawn |
 |---|---|
@@ -603,7 +614,7 @@ Restore it (offer it again): `SELECT economy.restore_item('celebration.spotlight
 
 ### Shockwave
 
-`celebration.shockwave` · Elite · Shop, 1,600 coins · **withdrawn**. Rings bursting out from the podium drum.
+`celebration.shockwave` · Elite · Shop, 1,600 coins · **withdrawn**. Rings of light across a glass floor round the drum.
 
 | Today | Redrawn |
 |---|---|
@@ -614,7 +625,7 @@ Restore it (offer it again): `SELECT economy.restore_item('celebration.shockwave
 
 ### Circuit Overload
 
-`celebration.circuit-overload` · Elite · Pass premium level 58 · **withdrawn**. Gold circuit traces with pulses running in, gold bolts above.
+`celebration.circuit-overload` · Elite · Pass premium level 58 · **withdrawn**. The drum on a lit gold circuit board, a pulsing surge.
 
 | Today | Redrawn |
 |---|---|
@@ -627,7 +638,7 @@ Restore it (offer it again): `SELECT economy.restore_item('celebration.circuit-o
 
 ### Circuit Trace
 
-`tile-style.circuit-trace` · Common · Pass free level 16 · **withdrawn**. Raised gold traces and pads on a dark green board.
+`tile-style.circuit-trace` · Common · Pass free level 16 · **withdrawn**. A rendered circuit board round the game's tile scene.
 
 | Today | Redrawn |
 |---|---|
@@ -640,7 +651,7 @@ Restore it (offer it again): `SELECT economy.restore_item('tile-style.circuit-tr
 
 ### Royal Damask
 
-`card-back.royal-damask` · Epic · Shop, 1,000 coins · live. Gold-ink damask, a lit gold frame with studs, a gold medallion with a raised bolt.
+`card-back.royal-damask` · Epic · Shop, 1,000 coins · live. Gold-foil damask, a medallion with a raised bolt.
 
 | Today | Redrawn |
 |---|---|
@@ -650,7 +661,7 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.royal-damask": 
 
 ### Holo Foil
 
-`card-back.holo-foil` · Elite · Shop, 1,600 coins · live. Pearl foil with prism bands, a silver frame, a white star.
+`card-back.holo-foil` · Elite · Shop, 1,600 coins · live. Diagonal prism foil with a pearl star.
 
 | Today | Redrawn |
 |---|---|
@@ -660,7 +671,7 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.holo-foil": tru
 
 ### Neon card back
 
-`card-back.neon` · Epic · Pass premium level 4 · live. Dark glass with a fine grid, a cyan frame, pink traces, a white-cored bolt.
+`card-back.neon` · Epic · Pass premium level 4 · live. Dark glass with a cyan tube, pink traces, a white bolt.
 
 | Today | Redrawn |
 |---|---|
@@ -672,7 +683,7 @@ Use the new art: in `src/config/cosmeticRedraws.ts`, `"card-back.neon": true,`
 
 ### Watermelon
 
-`game-skin.crazy-golf.watermelon` · Epic · Shop, 1,000 coins · **withdrawn**. A glossy watermelon ball: ragged rind stripes.
+`game-skin.crazy-golf.watermelon` · Epic · Shop, 1,000 coins · **withdrawn**. A clear-coated sphere with ragged rind stripes.
 
 | Today | Redrawn |
 |---|---|
@@ -683,7 +694,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.
 
 ### Disco
 
-`game-skin.crazy-golf.disco` · Epic · Shop, 1,000 coins · **withdrawn**. Lit mirror tiles, brighter to the top left.
+`game-skin.crazy-golf.disco` · Epic · Shop, 1,000 coins · **withdrawn**. A mirror-tile ball lit by coloured lights.
 
 | Today | Redrawn |
 |---|---|
@@ -694,7 +705,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.
 
 ### Neon Glow
 
-`game-skin.crazy-golf.neon-glow` · Rare · Pass free level 14 · **withdrawn**. A translucent cyan ball with shaded dimples.
+`game-skin.crazy-golf.neon-glow` · Rare · Pass free level 14 · **withdrawn**. A lit glass ball with dimples.
 
 | Today | Redrawn |
 |---|---|
@@ -705,7 +716,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.
 
 ### Plasma
 
-`game-skin.crazy-golf.plasma` · Epic · Pass premium level 32 · **withdrawn**. A violet ball with a glowing core and white-cored arcs.
+`game-skin.crazy-golf.plasma` · Epic · Pass premium level 32 · **withdrawn**. Plasma filaments inside violet glass.
 
 | Today | Redrawn |
 |---|---|
@@ -716,7 +727,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.crazy-golf.
 
 ### Pixel Pool
 
-`game-skin.cue-ball.pixel-pool` · Epic · Shop, 1,000 coins · **withdrawn**. Pixel balls shaded in whole pixels, a pixel highlight.
+`game-skin.cue-ball.pixel-pool` · Epic · Shop, 1,000 coins · **withdrawn**. The pixel balls lit cell by cell, a pixel highlight.
 
 | Today | Redrawn |
 |---|---|
@@ -727,7 +738,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.pi
 
 ### Galaxy Set
 
-`game-skin.cue-ball.galaxy-set` · Elite · Shop, 1,600 coins · **withdrawn**. The galaxy balls with full gloss.
+`game-skin.cue-ball.galaxy-set` · Elite · Shop, 1,600 coins · **withdrawn**. The galaxy balls under rendered resin light.
 
 | Today | Redrawn |
 |---|---|
@@ -738,7 +749,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.ga
 
 ### Neon 8-ball
 
-`game-skin.cue-ball.neon-8-ball` · Rare · Pass free level 36 · **withdrawn**. The 8 as glass lit from inside, gloss and a bright rim.
+`game-skin.cue-ball.neon-8-ball` · Rare · Pass free level 36 · **withdrawn**. The 8 under rendered glass light.
 
 | Today | Redrawn |
 |---|---|
@@ -749,7 +760,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.ne
 
 ### Neon ball set
 
-`game-skin.cue-ball.neon-ball-set` · Epic · Pass premium level 42 · **withdrawn**. Every ball as glass lit from inside in its colour.
+`game-skin.cue-ball.neon-ball-set` · Epic · Pass premium level 42 · **withdrawn**. Every ball under rendered glass light in its colour.
 
 | Today | Redrawn |
 |---|---|
@@ -760,7 +771,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.cue-ball.ne
 
 ### Glacier
 
-`game-skin.curl-champ.glacier` · Epic · Shop, 1,000 coins · **withdrawn**. Polished granite with an icy top.
+`game-skin.curl-champ.glacier` · Epic · Shop, 1,000 coins · **withdrawn**. Icy granite tops with a frost disc.
 
 | Today | Redrawn |
 |---|---|
@@ -771,7 +782,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.
 
 ### Aurora
 
-`game-skin.curl-champ.aurora` · Elite · Shop, 1,600 coins · **withdrawn**. Polished granite with an aurora disc.
+`game-skin.curl-champ.aurora` · Elite · Shop, 1,600 coins · **withdrawn**. Dark granite with a pink and cyan inlay.
 
 | Today | Redrawn |
 |---|---|
@@ -782,7 +793,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.
 
 ### Neon stones
 
-`game-skin.curl-champ.neon-stones` · Epic · Pass premium level 25 · **withdrawn**. Polished granite with lit tube inlays.
+`game-skin.curl-champ.neon-stones` · Epic · Pass premium level 25 · **withdrawn**. Granite with lit tube inlays.
 
 | Today | Redrawn |
 |---|---|
@@ -793,7 +804,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.curl-champ.
 
 ### Midnight Felt
 
-`game-skin.full-house.midnight-felt` · Epic · Shop, 1,000 coins · **withdrawn**. Woven midnight cloth with nap, a lit rail, stitching.
+`game-skin.full-house.midnight-felt` · Epic · Shop, 1,000 coins · **withdrawn**. Rendered midnight twill.
 
 | Today | Redrawn |
 |---|---|
@@ -804,7 +815,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.
 
 ### Crimson Velvet
 
-`game-skin.full-house.crimson-velvet` · Epic · Shop, 1,000 coins · **withdrawn**. Crimson velvet with nap, a lit rail, stitching.
+`game-skin.full-house.crimson-velvet` · Epic · Shop, 1,000 coins · **withdrawn**. Rendered crimson velvet nap.
 
 | Today | Redrawn |
 |---|---|
@@ -815,7 +826,7 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.
 
 ### Neon felt
 
-`game-skin.full-house.neon-felt` · Epic · Pass premium level 12 · **withdrawn**. Dark cloth with a lit cyan tube edge.
+`game-skin.full-house.neon-felt` · Epic · Pass premium level 12 · **withdrawn**. Rendered dark twill with its neon edge.
 
 | Today | Redrawn |
 |---|---|
@@ -828,18 +839,18 @@ Restore it (offer it again): `SELECT economy.restore_item('game-skin.full-house.
 
 ### Apex: Neon Night
 
-`world-theme.apex.neon-night` · Legendary · Pass premium level 45 · **withdrawn**. A deep sky with a horizon glow, a moon, lit towers; the road unchanged.
+`world-theme.apex.neon-night` · Legendary · Pass premium level 45 · **withdrawn**. The track through a rendered neon city: a night sky, a 360° far skyline in haze, a near band of lit towers, skyscrapers along the road.
 
 | Today | Redrawn |
 |---|---|
-| <img src="gallery/game-looks/world-theme.apex.neon-night--before.png" width="330"> | <img src="gallery/game-looks/world-theme.apex.neon-night--after.png" width="330"> |
+| <img src="samples/apex/today.png" width="330"> | <img src="samples/apex/redraw.png" width="330"> |
 
 Use the new art: in `src/config/cosmeticRedraws.ts`, `"world-theme.apex.neon-night": true,`  
 Restore it (offer it again): `SELECT economy.restore_item('world-theme.apex.neon-night', 'redrawn, approved <date>');`
 
 ### Crazy Golf: Neon Course
 
-`world-theme.crazy-golf.neon-course` · Legendary · Pass free level 50 · **withdrawn**. Lit night turf; rails and hazards as lit tubes on the same lines.
+`world-theme.crazy-golf.neon-course` · Legendary · Pass free level 50 · **withdrawn**. Grained night turf under the lit tubes.
 
 | Today | Redrawn |
 |---|---|
@@ -850,7 +861,7 @@ Restore it (offer it again): `SELECT economy.restore_item('world-theme.crazy-gol
 
 ### Curl Champ: Neon Rink
 
-`world-theme.curl-champ.neon-rink` · Elite · Pass premium level 24 · **withdrawn**. Ice with depth and a lit arena; every ring and line where it was.
+`world-theme.curl-champ.neon-rink` · Elite · Pass premium level 24 · **withdrawn**. Rendered ice with depth under the lit rink.
 
 | Today | Redrawn |
 |---|---|
