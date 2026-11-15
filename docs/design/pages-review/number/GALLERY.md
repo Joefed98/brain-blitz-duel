@@ -19,14 +19,34 @@ Phase 2, step 4 (15 Nov 2026; docs/number-overhaul.md). Before (the game reviews
 
 More frames:
 
-| Checkout's bust (checkoutRev 3) | Brimful's reveal: the best line as jug pictures |
-|---|---|
-| <img src="img/checkout-bust-after.webp" width="200" alt="Checkout bust"> | <img src="img/measure-reveal-after.webp" width="200" alt="Brimful reveal"> |
+| Checkout's bust (checkoutRev 3) |
+|---|
+| <img src="img/checkout-bust-after.webp" width="200" alt="Checkout bust"> |
 
 Clips (stage 1 plays the existing motion; the effects kit's pour and dart arc come in stage 2):
 
 - [Brimful's pour](clips/measure-pour.mp4)
 - [Checkout's dart](clips/checkout-dart.webp)
+
+## The answer reveals
+
+Each game's own reveal, redesigned (Joe, 15 Nov 2026): the solution drawn large, one board at a time with numbered
+tabs (right, not right, not reached; it opens on the first not right), Yours against the Solution with what you missed
+or got wrong highlighted, short plain labels, the numbers that explain the score as chips, and pictures in place of
+text lists (Brimful's moves as jugs, Exact's route as tiles, Checkout's darts as chips, Ballpark's markers joined to
+their true spots). Built on `src/components/puzzles/number/RevealParts.tsx`. Before: today's main (Ballpark's from the
+game review's round-end frame); after: a part-played practice round at 390 × 844.
+
+| Game | Before | After |
+|---|---|---|
+| Counterweight | <img src="img/balance-reveal-before.webp" width="200" alt="Counterweight reveal before"> | <img src="img/balance-reveal-after.webp" width="200" alt="Counterweight reveal after"> |
+| Exact | <img src="img/target-reveal-before.webp" width="200" alt="Exact reveal before"> | <img src="img/target-reveal-after.webp" width="200" alt="Exact reveal after"> |
+| Operator | <img src="img/equation-reveal-before.webp" width="200" alt="Operator reveal before"> | <img src="img/equation-reveal-after.webp" width="200" alt="Operator reveal after"> |
+| Integer Pyramid | <img src="img/numpyramid-reveal-before.webp" width="200" alt="Integer Pyramid reveal before"> | <img src="img/numpyramid-reveal-after.webp" width="200" alt="Integer Pyramid reveal after"> |
+| Brimful | <img src="img/measure-reveal-before.webp" width="200" alt="Brimful reveal before"> | <img src="img/measure-reveal-after.webp" width="200" alt="Brimful reveal after"> |
+| Checkout | <img src="img/checkout-reveal-before.webp" width="200" alt="Checkout reveal before"> | <img src="img/checkout-reveal-after.webp" width="200" alt="Checkout reveal after"> |
+| Ballpark | <img src="img/numline-reveal-before.webp" width="200" alt="Ballpark reveal before"> | <img src="img/numline-reveal-after.webp" width="200" alt="Ballpark reveal after"> |
+| Kakuro | <img src="img/kakuro-reveal-before.webp" width="200" alt="Kakuro reveal before"> | <img src="img/kakuro-reveal-after.webp" width="200" alt="Kakuro reveal after"> |
 
 ## Stage 2: effects
 

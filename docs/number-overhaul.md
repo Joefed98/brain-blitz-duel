@@ -43,6 +43,16 @@ pencil marks at 11 px or more; after a digit, the next empty square in its run.
 number-overhaul-measure-numline-check, number-overhaul-checkout-kakuro-check; the screens in scripts/screens/number.ts
 (theme-check, no-wrap-check: each game's answer reveal at every size).
 
+## The answer reveals
+
+Every Number game's own reveal is built from `src/components/puzzles/number/RevealParts.tsx`: one board at a time,
+large, with numbered tabs (✓ right, ● not right, ○ not reached; it opens on the first not right), Yours | Solution
+where the game has both (missed or wrong pieces highlighted: red for wrong, a dashed outline for empty, champagne for
+what the solution has that yours didn't), a plain note under the board, and the numbers that explain the score as
+chips. Pictures in place of lists: Brimful's moves as jugs, Exact's route as tiles, Checkout's darts as chips on the
+rendered board, Ballpark's markers joined to their true spots, Counterweight's scale on its wall with the balance.
+Every older stamp's stored answer still reveals; a room's public half (no solutions) shows yours alone. Display only.
+
 ## Stage 2: effects (with the effects kit)
 
 To come.

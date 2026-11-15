@@ -832,8 +832,8 @@ function LinePictures({ board, raw, kind, solved }: { board: MeasureBoardData; r
   const states = measureLineStates(board, raw);
   const maxCap = Math.max(...board.caps);
   // As large as the line allows: a short line's pictures are drawn bigger.
-  const H = states.length <= 6 ? 80 : states.length <= 10 ? 66 : 56;
-  const jugW = states.length <= 6 ? 24 : 22;
+  const H = states.length <= 6 ? 112 : states.length <= 10 ? 80 : 60;
+  const jugW = states.length <= 6 ? (board.caps.length > 2 ? 18 : 25) : 20;
   return (
     <ol
       className="mj-line-pics"
