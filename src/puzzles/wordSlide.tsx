@@ -220,7 +220,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       void checkWord(word, [])
         .then((v) => {
           setVerdicts((c) => ({ ...c, [word]: v.valid }));
-          if (v.valid) setAccepted(previous => ({ word: v.word, points: 22, serial: (previous?.serial ?? 0) + 1 }));
+          // Game review fix (15 Nov 2026): a row that already read as a word when the stage opened (a reload) is not
+          // announced again in the found-word chip.
+          if (v.valid && !openingWords.current?.has(word)) setAccepted(previous => ({ word: v.word, points: 22, serial: (previous?.serial ?? 0) + 1 }));
           // A row the player made into a word: the shared "correct" and its small burst, like the other word games.
           if (v.valid && !lockedNow.current && !openingWords.current?.has(word)) {
             fx.onCorrect();
@@ -391,7 +393,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           aria-label="Undo last move"
           title="Undo last move"
           disabled={frozen || !canUndo}
-          onPointerDown={() => push("U")}
+          onClick={() => push("U")}
           className="h-11 w-28 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           <Undo2 className="h-4 w-4" aria-hidden="true" />
@@ -403,7 +405,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           aria-label="Reset the board"
           title="Reset the board"
           disabled={frozen || !canUndo}
-          onPointerDown={() => push("X")}
+          onClick={() => push("X")}
           className="h-11 w-28 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           <RotateCcw className="h-4 w-4" aria-hidden="true" />

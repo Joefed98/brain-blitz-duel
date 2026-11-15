@@ -141,6 +141,14 @@ function gridResult(puzzle: SymbolScanPuzzleData, s: number, selected: number[],
   return usesScanRev1(puzzle) ? scanRev1StageResult(s, selected, targets) : scanStageResult(s, selected, targets);
 }
 
+/** How long Submit waits after a grid appears (attention review fixes, 15 Nov 2026). */
+export const SCAN_SUBMIT_HOLD_MS = 400;
+
+/** Submit takes a grid only once it has been up SCAN_SUBMIT_HOLD_MS and has at least one mark. */
+export function scanSubmitAllowed(frozen: boolean, marks: number, holding: boolean): boolean {
+  return !frozen && !holding && marks > 0;
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }: PuzzleStageProps) {
   const data = puzzle.type === "symscan" ? puzzle : null;
   const [stage, setStage] = useStageState<number>(stateKey, "scanStage", () => 0);
@@ -185,10 +193,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
 
   const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
 
+  // Attention review fixes (15 Nov 2026, input only): Submit waits SCAN_SUBMIT_HOLD_MS after each grid appears, so
+  // a double tap can't skip the next grid unseen, and needs at least one eagle marked.
+  const [holding, setHolding] = useState(true);
+  useEffect(() => {
+    setHolding(true);
+    const id = window.setTimeout(() => setHolding(false), SCAN_SUBMIT_HOLD_MS);
+    return () => window.clearTimeout(id);
+  }, [stage]);
+
   // Desktop keys: Enter = Submit (this grid, then the next).
   useGameKeys((kind, key, event) => {
     if (!data || !current || key !== "Enter") return false;
-    if (kind === "down" && !event.repeat && !frozen) advance(selections);
+    if (kind === "down" && !event.repeat && scanSubmitAllowed(frozen, (selections[stage] ?? []).length, holding)) advance(selections);
     return true;
   });
 
@@ -271,8 +288,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
       <Button
         ref={submitRef}
         type="button"
-        onClick={() => !frozen && advance(selections)}
-        disabled={frozen}
+        onClick={() => scanSubmitAllowed(frozen, selected.length, holding) && advance(selections)}
+        disabled={!scanSubmitAllowed(frozen, selected.length, holding)}
         data-game-controls="actions" className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
         Submit

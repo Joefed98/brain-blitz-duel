@@ -10,7 +10,7 @@ Cues for moments every game shares. Convention: [README.md](README.md). No audio
 | `shared.roundResults` | The room's Round results screen appears (`RoundResult`, `RoundResultsTable`, once on mount): every player but the round's top scorer, who hears `round_won` instead (never both). In a two-player room the loser's "round lost" or the tie's "tie" voice line follows it. Sound batch 4 (`room.roundResults.mp3`). | 0.9 s |
 | `shared.help.open` | An in-game "?" help sheet opens. | instant |
 | `shared.help.close` | An in-game "?" help sheet closes (close button, tap outside or Escape). | instant |
-| `shared.reject` | A puzzle refuses a move with the shared shake (`puzzleReject()`: Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid and the rest that call it), unless the move already plays `wrong`; never in an intro demo. | 200 ms |
+| `shared.reject` | Not played since 15 Nov 2026 (the November game reviews, [review-nov-2026.md](review-nov-2026.md)): every shake `puzzleReject()` paints (Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid, and every game's own `animate-shake`: Shikaku, Tents, Trail, Gridlock, Tessellate…) now sounds the quiet `wrong` once (`playRejectWrong`); the slot keeps its file for the other cues that share `ui.nope.mp3`. | 200 ms |
 
 Where they fire: `src/lib/fx/signature.ts` (beat and perfect burst), `src/lib/fx/useSignature.ts` (the rooms and practice verdict point), `src/lib/fx/arcade.ts` (the arcade run-end point), `src/components/duel/PuzzleInstructions.tsx` (help sheet).
 

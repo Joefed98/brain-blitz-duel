@@ -224,8 +224,9 @@ function Stage({
       return;
     }
     playWrong();
-    // The shared wrong-move shake and red outline (and its reject cue, as before), on the card just turned.
-    wrongMoveFlash(card ?? null);
+    // The shared wrong-move shake and red outline on the card just turned; no reject cue (attention review fixes,
+    // 15 Nov 2026): playWrong above is the miss's one sound.
+    wrongMoveFlash(card ?? null, false);
     timer.current = setTimeout(() => setOpen([]), PAIR_FLIP_BACK_MS);
   };
 

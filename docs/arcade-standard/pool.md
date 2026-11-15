@@ -147,10 +147,10 @@ depend on it).
 
 | Part | Max | How |
 | --- | --- | --- |
-| Spots (core) | 140 | 20 a spot potted |
-| Black | 10 | the black after every spot (ends the run) |
+| Your balls (core) | 140 | poolRev 4 (dealt): 28 for each of your set (spots or stripes) potted, full at 5 of your 7. poolRev 1–3: Spots, 20 a spot potted |
+| Black | 10 | the black after all seven of yours (every spot on poolRev 1–3; ends the run) |
 | Pots in a row | 30 | 5 for each pot straight after another pot, full at 6 |
-| Speed | 20 | the black potted: full by **58 s** on poolRev 2 (**67 s** on poolRev 1), 0 at the buzzer |
+| Speed | 20 | the black potted: full by **69 s** on poolRev 4, **73 s** on poolRev 3, **58 s** on poolRev 2, **67 s** on poolRev 1, 0 at the buzzer |
 
 Fouls cost 10 each; any played run scores at least 1, no input 0. `poolStdParts` scores both revisions;
 `POOL_STD_SPEC` is the dealt revision's (`poolStdSpecFor(rev)`, Speed's full-by time `poolFullByS(rev)`).

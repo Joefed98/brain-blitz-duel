@@ -4,6 +4,7 @@ import { useContext, useEffect, useRef, useState, type CSSProperties } from "rea
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import {
+  npBrokenCells,
   npComplete,
   npCorrectCells,
   npDecode,
@@ -22,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
+import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
 import "@/polish-layout/batch-w-numpyramid.css";
@@ -255,6 +257,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   // Completion: the final board's sums light from the bottom row up (display only, after the submit).
   const lit = useSolveFx(complete && stage >= NP_SET_SIZE - 1, "numpyramid.solve", 1100);
   const busy = locked || submitted.current || complete;
+  // Game review fix (15 Nov 2026, display only): a full pyramid that isn't right marks the stones that break a
+  // sum in red and gets the shared wrong-move shake with its quiet reject sound, once per arrangement.
+  const fullValues = board ? npFilled(board.givens, board.tray, placements) : [];
+  const fullWrong = !!board && !complete && fullValues.every((v) => v != null);
+  const broken = fullWrong && board ? npBrokenCells(board.givens, fullValues, board.rows) : [];
+  const fullWrongKey = fullWrong ? `${stage}:${npEncodeRound(stage, [placements])}` : "";
+  useEffect(() => {
+    if (fullWrongKey && !locked && !submitted.current) wrongMoveFlash(box.current?.querySelector("[data-game-arena]") ?? box.current);
+  }, [fullWrongKey, locked]);
 
   const updatePlacements = (next: NpPlacements) => {
     const boards = [...allPlacements]; boards[stage] = next; setAllPlacements(boards);
@@ -348,7 +359,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   return (
     <div ref={box} data-polish="numpyramid" data-bw-live={framed ? "" : undefined} data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
       {column && <div className="np-spacer" aria-hidden />}
-      <StageProgress stage={stage} total={NP_SET_SIZE} />
+      <StageProgress stage={stage} total={NP_SET_SIZE} quiet={stage > 0 && !!data.pyramids[stage - 1] && !npComplete(data.pyramids[stage - 1]!.givens, data.pyramids[stage - 1]!.tray, allPlacements[stage - 1] ?? {}, data.pyramids[stage - 1]!.rows)} />
       <div className="flex h-11 w-full shrink-0 items-center justify-between">
         {framed ? (
           <div className="min-w-0 flex-1">
@@ -364,12 +375,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         ) : (
           <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
         )}
-        <Button type="button" variant="ghost" size="sm" className="h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>Skip</Button>
+        <Button type="button" variant="ghost" size="sm" className="h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip"}</Button>
       </div>
       <StageCorrect visible={holding} />
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
         <div className="relative" style={NO_TOUCH}>
-          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
+          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} {...(broken.length ? { marks: Object.fromEntries(broken.map((cell) => [cell, false])) } : {})} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
           {/* The pick-up layer sits above the placed blocks (.np-block is z-index 1): below them, taps on a
               placed tile never reached it, so tiles could not be double-tapped back or dragged to another cell. */}
           <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4, zIndex: 3 }}>

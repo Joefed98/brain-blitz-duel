@@ -131,6 +131,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [turn, setTurn] = useState(0);
   /** The sim state the last frame drew (presentation only: where the moving stone is, for sweeping). */
   const seen = useRef<CurlingState | null>(null);
+  /** Whether the sim is waiting for a throw (curlRev 4's Throw is greyed out while a stone travels); set on a change only. */
+  const [aiming, setAiming] = useState(true);
+  const aimingRef = useRef(true);
   const gesture = useRef<{ mode: "broom" | "inset" | "pending" | "slide" | "swipe" | "sweep" | "power" | "none"; x: number; y: number; bx: number; by: number; samples: { y: number; t: number }[]; lastAt: number; lastX: number; lastY: number } | null>(null);
 
   // The sim as rooms deal it; its draw shows the arena, the stones and what the stage holds (broom, turn, swipe, start).
@@ -144,6 +147,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       ...base,
       draw: (ctx, state) => {
         seen.current = state;
+        if ((state.phase === CURL_AIM) !== aimingRef.current) {
+          aimingRef.current = state.phase === CURL_AIM;
+          setAiming(aimingRef.current);
+        }
         if (rev >= 3 && state.phase === CURL_AIM) {
           // The meter's draw zone and the aim line, worked out again only when the sheet or the aim changes.
           const a = aim.current;
@@ -369,7 +376,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               <button
                 type="button"
                 aria-label="Throw"
-                disabled={locked || setWeight === null}
+                disabled={locked || !curlThrowLive(setWeight, aiming)}
                 onPointerDown={(event) => {
                   event.preventDefault();
                   const s = seen.current;
@@ -377,7 +384,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                   if (s && s.phase === CURL_AIM && w != null) send(throwPayload(w));
                 }}
                 className={`pointer-events-auto h-12 rounded-xl border text-base font-bold tracking-wide transition-colors ${
-                  setWeight === null ? "border-white/20 bg-[#0B1222]/80 text-white/45" : "border-[#E8B53A] bg-[#E8B53A] text-[#1A1205]"
+                  !curlThrowLive(setWeight, aiming) ? "border-white/20 bg-[#0B1222]/80 text-white/45" : "border-[#E8B53A] bg-[#E8B53A] text-[#1A1205]"
                 }`}
               >
                 Throw
@@ -386,6 +393,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           </div>
     );
   }
+}
+
+/** curlRev 4's Throw is live only with a weight set and the sim waiting for a throw (greyed out while a stone travels). */
+export function curlThrowLive(setWeight: number | null, aiming: boolean): boolean {
+  return setWeight !== null && aiming;
 }
 
 /** curlRev 4's turn row (display only): its centre between the near hog line and the near house, as a share of the world's height. */

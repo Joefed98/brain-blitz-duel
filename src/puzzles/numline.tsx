@@ -14,7 +14,7 @@ import {
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { StageProgress } from "@/components/puzzles/StageProgress";
-import { fx } from "@/lib/fx";
+import { visualFx } from "@/lib/fx";
 import {
   decodeNumline,
   encodeNumline,
@@ -30,7 +30,6 @@ import {
 import { useStageState } from "@/lib/duel/stageState";
 import { NUMLINE_TIME_MS, type NumlinePuzzleData, type NumlineStageData } from "@/lib/duel/types";
 import { useReducedMotion } from "@/lib/motion";
-import { playTick } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -92,6 +91,24 @@ const fmt = (n: number) =>
   Math.abs(n) >= 1000 ? n.toLocaleString("en-GB") : n < 0 ? `−${-n}` : String(n);
 
 /** End labels, plus 0 when it sits inside the line. */
+/**
+ * Game review fix (15 Nov 2026, input only): a pointer-down places the marker only on the line or below it, never on
+ * the number card or the header above the line. `lineTop` is the line box's top (null before it is laid out).
+ */
+export function numlinePointerAllowed(target: Element | null, clientY: number, lineTop: number | null): boolean {
+  if (target?.closest?.("[data-numline-item]")) return false;
+  return lineTop === null || clientY >= lineTop;
+}
+
+/**
+ * One sound a place (game review fix, 15 Nov 2026; was tick + place + move): the draft change already plays the shared
+ * `move` (FeedbackStage), so the place adds only its pop and the game's own cue, which plays only once it has a file.
+ */
+export function numlinePlaceSound(): void {
+  soundCue("numline.place");
+  visualFx("onPlace");
+}
+
 function tickLabels(
   stage: Pick<NumlineStageData, "lo" | "hi">,
 ): { share: number; label: string }[] {
@@ -475,6 +492,9 @@ function Stage({
   };
   const down = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (busy) return;
+    // Game review fix (15 Nov 2026): only the line takes placement input; a touch on the number card (or anything
+    // above the line) never moves the marker.
+    if (!numlinePointerAllowed(event.target as Element | null, event.clientY, lineBox.current?.getBoundingClientRect().top ?? null)) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setMarker(Math.round(shareAt(event.clientX) * NUMLINE_SCALE));
@@ -491,9 +511,9 @@ function Stage({
     const next = [...placements, marker];
     setPlacements(next);
     setMarker(null);
-    playTick();
-    fx.onPlace();
-    soundCue("numline.place");
+    // Game review fix (15 Nov 2026): one sound a place (was tick + place + the game's cue): the game's own cue once it
+    // has a file, else the shared place sound.
+    numlinePlaceSound();
     if (next.length >= NUMLINE_TOTAL) {
       submitted.current = true;
       setJustSolved(true);

@@ -28,7 +28,7 @@ import {
 import { useStageState } from "@/lib/duel/stageState";
 import { balancePlaceLimits, joinCountSuffix, limitText, splitCountSuffix } from "@/lib/duel/moveLimits";
 import type { BalancePuzzleData, BalanceScale } from "@/lib/duel/types";
-import { playCorrect, playLock } from "@/lib/sound";
+import { playCorrect, playLock, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -264,7 +264,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   useEffect(() => {
     // Out of hangs on a scale before the last: it ends unbalanced and the next scale starts.
     if (!outOfHangs || current >= total - 1 || locked || submitted.current) return;
-    soundCue("balance.level");
+    // Game review fix (15 Nov 2026): out of hangs is a failed scale, so it plays the fail sound, never the
+    // balanced one.
+    playWrong();
     setCurrentStage(current + 1);
   }, [outOfHangs, current, total, locked, setCurrentStage]);
 

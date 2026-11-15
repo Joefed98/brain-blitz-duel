@@ -157,3 +157,22 @@ export function verifyMazePath(
     progress: Math.min(1, (furthest + 1) / length),
   };
 }
+
+/**
+ * The squares a fast drag skipped (attention review fixes, 15 Nov 2026; phone input only): from `from` to `to` in
+ * the same row or column, every square after `from` up to and including `to`, in order. Null for any other pair, so a
+ * diagonal or a jump across rows stays one (refused) step. The phone feeds them in one at a time, so the answer is the
+ * same one-square-a-step route the server has always read.
+ */
+export function mazeStraightFill(from: number, to: number, cols = N): number[] | null {
+  if (from === to) return null;
+  const sameRow = mazeRow(from, cols) === mazeRow(to, cols);
+  const sameCol = mazeCol(from, cols) === mazeCol(to, cols);
+  if (!sameRow && !sameCol) return null;
+  const stride = sameRow ? (to > from ? 1 : -1) : to > from ? cols : -cols;
+  const out: number[] = [];
+  for (let cell = from + stride; ; cell += stride) {
+    out.push(cell);
+    if (cell === to) return out;
+  }
+}

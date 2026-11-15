@@ -8,6 +8,7 @@ import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { FitLine, useFitOneLine } from "@/components/puzzles/useFitOneLine";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
+import { playSound } from "@/lib/sound";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { useStageState } from "@/lib/duel/stageState";
@@ -196,6 +197,9 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
     setEntered(true);
     setFresh(null);
     soundCue("equation.advance");
+    // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) gets the neutral move tick, never a
+    // solve's sound; StageProgress stays quiet for it.
+    if (!gapStageCorrect(data.stages[stage]!, seg)) playSound("move");
     const st = data.stages[nextStage];
     if (st) setFills(Array(gapSlots(st).length).fill(null));
   };
@@ -243,7 +247,7 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   return (
     <div data-polish="equation" data-operator-gaps="" data-stage-column="3" className={`flex min-h-0 flex-1 flex-col gap-3 ${column ? "" : "justify-between"}`}>
       <div data-game-arena="fixed" className="op-board opg-board">
-        <StageProgress stage={stage} total={total} />
+        <StageProgress stage={stage} total={total} quiet={stage > 0 && !gapStageCorrect(data.stages[stage - 1]!, answers[stage - 1] ?? "")} />
         <p className="opg-caption">{caption} · left to right</p>
         <div
           key={stage}

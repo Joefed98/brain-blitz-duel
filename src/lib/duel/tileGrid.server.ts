@@ -31,7 +31,7 @@ export function tileGridValid(cells: string[]): boolean {
   return runs.every((run) => run.word.length >= 3 && isWord(run.word));
 }
 
-type Placement = { word: string; row: number; col: number; horizontal: boolean };
+export type Placement = { word: string; row: number; col: number; horizontal: boolean };
 
 function layout(parts: Placement[]): string[] | null {
   const cells = Array.from({ length: TG_CELLS }, () => "");
@@ -58,11 +58,22 @@ function layout(parts: Placement[]): string[] | null {
   return cells;
 }
 
-const FALLBACK: Placement[] = [
-  { word: "planets", row: 2, col: 0, horizontal: true },
-  { word: "complex", row: 0, col: 0, horizontal: false },
-  { word: "bent", row: 0, col: 3, horizontal: false },
+/**
+ * The board dealt if 3,000 tries find no H (game review fix, 15 Nov 2026). The old fallback (PLANETS across row 2,
+ * COMPLEX down column 0) crossed P with M, so `layout` returned null and the deal threw: it never dealt a board, so
+ * replacing it changes no stored or dealt puzzle. This one is an H of fifteen tiles: PLANETS across, APPLE down
+ * through its P, GREEN down through its E.
+ */
+export const TILEGRID_FALLBACK: readonly Placement[] = [
+  { word: "planets", row: 0, col: 0, horizontal: true },
+  { word: "apple", row: -1, col: 0, horizontal: false },
+  { word: "green", row: -2, col: 4, horizontal: false },
 ];
+
+/** The fallback board's cells (offset at random inside the grid, as every deal is). */
+export function tileGridFallbackCells(): string[] | null {
+  return layout([...TILEGRID_FALLBACK]);
+}
 
 /** Three interlocking words (4–7 letters) in an H: one across, two down through it, fifteen tiles in all. */
 export function generateTileGrid(): TileGridPuzzleData {
@@ -88,7 +99,7 @@ export function generateTileGrid(): TileGridPuzzleData {
     if (!cells || placedCount(cells) !== TG_TILES || !tileGridValid(cells)) continue;
     return { type: "tilegrid", tray: shuffled(cells.filter(Boolean)), solution: cells };
   }
-  const cells = layout(FALLBACK)!;
+  const cells = tileGridFallbackCells()!;
   return { type: "tilegrid", tray: shuffled(cells.filter(Boolean)), solution: cells };
 }
 
