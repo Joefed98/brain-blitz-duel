@@ -49,6 +49,8 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `cross.closeCall` | Spacewalk | A close call (crossRev 9+; Joe's recording since 6 Nov 2026, was `arc_retro_pickup` at 0.6) | `arc_retro_pickup` (0.6) | 0–12 | 220 ms |
 | `flip.crash` | Roofbound | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `flip.flip` | Roofbound | Gravity flips | `arc_gravity_flip` (0.7) | 20–60 | 330 ms |
+| `flip.flipUp` | Roofbound | Gravity flips and the runner rises to the roof (flipRev 11–13; the Action overhaul, Joe's file to come) | `arc_gravity_flip` (0.7) | 10–30 | 300 ms |
+| `flip.flipDown` | Roofbound | Gravity flips and the runner drops to the floor (flipRev 11–13; Joe's file to come) | `arc_gravity_flip` (0.7) | 10–30 | 300 ms |
 | `ricochet.leap` | Moon Climb | The ninja leaps off a wall, a ledge or a sky lantern (ricoRev 2–3) | `arc_gravity_flip` (0.5) | 80–140 | 330 ms |
 | `ricochet.doubleJump` | Moon Climb | The double jump in the air (ricoRev 2–3) | `arc_gravity_flip` (0.6, ×1.25) | 10–60 | 330 ms |
 | `ricochet.hit` | Moon Climb | A katana or shuriken knocks the ninja down (ricoRev 2–3) | `arc_crash` | 0–20 | 200 ms |

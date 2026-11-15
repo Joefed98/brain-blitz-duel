@@ -5,17 +5,57 @@
  * flipRev 12 (the minute with no crash saved, all eight sweet spots, eight double flips, a flow streak of 50) and scores
  * exactly 200 through the server replay. The rest are left out of the deal.
  *
- *   bun scripts/flip-deal.ts [--check]     (--check rebuilds in memory and fails unless the file is identical)
+ *   bun scripts/flip-deal.ts [--rev=13] [--check]     (--check rebuilds in memory and fails unless the file is identical)
+ *
+ * flipRev 13 (15 Nov 2026, the Action overhaul): `--rev=13` writes src/lib/duel/flipDealV13.server.ts, the same witness
+ * routes replayed on flipRev 13 (grace and the retuned parts), kept when every flipRev 13 part is at its maximum.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { FLIP_REV_DEAL } from "../src/lib/arcade/flip";
+import { FLIP_REV_DEAL, FLIP_REV_GRACE, flipSweetsTaken, FLIP_V13_SWEETS_FULL, FLIP_V11_DOUBLES, FLIP_V11_STREAK_FULL, type FlipState } from "../src/lib/arcade/flip";
 import { replayFlipRun } from "../src/lib/duel/flip";
 import { flipTakesAll } from "./arcade-standard/flip";
 import { encodeFlipLog, FLIP_WITNESS_FIXTURE, type FlipWitness } from "./flip-x200-record";
 import { flipTap } from "./flip-x200-plan";
 
 export const FLIP_DEAL_FILE = "src/lib/duel/flipDeal.server.ts";
+/** flipRev 13's deal (15 Nov 2026, the Action overhaul: grace, retuned parts). */
+export const FLIP_DEAL_FILE_V13 = "src/lib/duel/flipDealV13.server.ts";
+
+/** A witness on flipRev 13 that takes every part's maximum: the minute with no crash, 5+ perfect landings, 8+ double flips, a streak of 50+. */
+export const flipTakesAllV13 = (s: FlipState) =>
+  s.ended === 1 && !(s.saves ?? 0) && flipSweetsTaken(s) >= FLIP_V13_SWEETS_FULL && (s.combos ?? 0) >= FLIP_V11_DOUBLES && (s.bestStreak ?? 0) >= FLIP_V11_STREAK_FULL;
+
+/** flipRev 13's deal: every witness course whose route takes every flipRev 13 part's maximum and scores exactly 200. */
+export function buildFlipDealV13(): { kept: number[]; dropped: string[]; total: number } {
+  const witnesses = JSON.parse(gunzipSync(readFileSync(FLIP_WITNESS_FIXTURE)).toString()) as FlipWitness[];
+  const kept: number[] = [];
+  const dropped: string[] = [];
+  for (const w of witnesses) {
+    const { raw, state } = encodeFlipLog(FLIP_REV_GRACE, w.seed, w.taps.map(flipTap));
+    const r = replayFlipRun(w.seed, raw, FLIP_REV_GRACE);
+    if (flipTakesAllV13(state) && !r.flagged && r.score === 200) kept.push(w.seed);
+    else dropped.push(`${w.seed} (${r.flagged ? "flagged" : r.score}; sweet spots ${r.sweets}/${r.sweetsTotal})`);
+  }
+  return { kept, dropped, total: witnesses.length };
+}
+
+export function flipDealSourceV13(kept: readonly number[], total: number): string {
+  return `/**
+ * Roofbound's deal on flipRev 13 (the Action overhaul, 15 Nov 2026; built by \`bun scripts/flip-deal.ts --rev=13\`, do not
+ * edit): ${kept.length} course seeds, each one whose stored witness route (scripts/fixtures/flip-x200-witness.json.gz)
+ * takes every part's maximum on flipRev 13 and scores exactly 200 through the server replay. ${total - kept.length} of the
+ * ${total} witnesses' courses are left out.
+ */
+export const FLIP_DEAL_V13: readonly number[] = [${kept.join(",")}];
+
+/** The course a room seed deals on flipRev 13. */
+export function flipDealSeedV13(roomSeed: number): number {
+  const n = FLIP_DEAL_V13.length;
+  return FLIP_DEAL_V13[((Math.trunc(roomSeed) % n) + n) % n]!;
+}
+`;
+}
 
 /** The seeds kept and those left out (with why), in the witness file's order. */
 export function buildFlipDeal(): { kept: number[]; dropped: string[]; total: number } {
@@ -48,14 +88,16 @@ export function flipDealSeed(roomSeed: number): number {
 }
 
 if (import.meta.main) {
-  const { kept, dropped, total } = buildFlipDeal();
-  const src = flipDealSource(kept, total);
+  const v13 = process.argv.includes("--rev=13");
+  const { kept, dropped, total } = v13 ? buildFlipDealV13() : buildFlipDeal();
+  const src = v13 ? flipDealSourceV13(kept, total) : flipDealSource(kept, total);
+  const FILE = v13 ? FLIP_DEAL_FILE_V13 : FLIP_DEAL_FILE;
   console.log(`${kept.length} of ${total} courses kept; left out: ${dropped.join(", ")}`);
   if (process.argv.includes("--check")) {
-    const same = readFileSync(FLIP_DEAL_FILE, "utf8") === src;
-    console.log(same ? `${FLIP_DEAL_FILE} is up to date` : `FAIL ${FLIP_DEAL_FILE} differs from a rebuild`);
+    const same = readFileSync(FILE, "utf8") === src;
+    console.log(same ? `${FILE} is up to date` : `FAIL ${FILE} differs from a rebuild`);
     process.exit(same ? 0 : 1);
   }
-  writeFileSync(FLIP_DEAL_FILE, src);
-  console.log(`wrote ${FLIP_DEAL_FILE}`);
+  writeFileSync(FILE, src);
+  console.log(`wrote ${FILE}`);
 }

@@ -464,7 +464,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Double or nothing | Land eight double flips. | Classic | Combo | line “Double flips” = 20 of 20 |  | `flip.double-or-nothing` |
-| Sweet spot | Land every sweet spot. | Classic | Full set | line “Perfect landings” = 60 of 60 |  | `flip.sweet-spot` |
+| Sweet spot | Land five sweet spots. | Classic | Full set | line “Perfect landings” = 60 of 60 |  | `flip.sweet-spot` |
 | Flow rider | Make 50 clean jumps in a row. | Classic | Streak | line “Flow streak” = 20 of 20 | ● | `flip.flow-rider` |
 
 #### Grappler (`swing`)

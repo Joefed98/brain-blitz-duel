@@ -31,6 +31,7 @@ import {
   FLIP_V9_SKILL_PAY,
   flipWorldHFor,
   FLIP_V8_WORLD_H,
+  FLIP_V13_BAND_CURVE,
 } from "../src/lib/arcade/flip";
 import {
   tiltCheckpoint,
@@ -52,6 +53,7 @@ import { HOVER_STAR_R } from "../src/lib/arcade/hover";
 import { BT_BALLS, BT_V7_BALLS } from "../src/lib/arcade/ballTrack";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { replayFlipRun } from "../src/lib/duel/flip";
+import { pinFlipPreGrace } from "../src/lib/duel/arcade.server";
 import { replayTiltRun } from "../src/lib/duel/tilt";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
@@ -159,12 +161,19 @@ lifts("Tilt skill pay", TILT_X_SKILL_PAY, TILT_V9_SKILL_PAY);
 // Since 29 Oct 2026 rooms deal flipRev 10, flipRev 9's play (flipRev 8's) on the arcade scoring standard (arcade-standard-check);
 // since 3 Nov 2026 flipRev 11 (no star pickups, the flow streak; flip-rev11-check). flipRev 9 and 10 stay proved here.
 // And later on 3 Nov 2026 flipRev 12 (flipRev 11's game, dealt from its proved courses; flip-deal-check).
-ok((generatePuzzle("flip") as { flipRev?: number }).flipRev === FLIP_REV_FLOW + 1, "rooms deal flipRev 12, flipRev 11's game (flipRev 10 before 3 Nov 2026, flipRev 9's play)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal flipRev 13 (grace;
+// flip-overhaul-check), so flipRev 12's deal is read with its pin; LIVE_BANDS, the help's spec and the demo rule name
+// flipRev 13.
+{
+  const was = pinFlipPreGrace(true);
+  ok((generatePuzzle("flip") as { flipRev?: number }).flipRev === FLIP_REV_FLOW + 1, "rooms deal flipRev 12, flipRev 11's game (flipRev 10 before 3 Nov 2026, flipRev 9's play; flipRev 13 since 15 Nov 2026)");
+  pinFlipPreGrace(was);
+}
 // Tilt moved on again on 29 Oct 2026 (tiltRev 10, the arcade scoring standard; tilt-standard-check); tiltRev 9 replays here as before.
 // And on 3 Nov 2026 (tiltRev 11: no gold stars, par times and a clean run; tilt-rev11-check).
 // And on 3 Nov 2026 again (tiltRev 12: tiltRev 11 with bigger marbles and keys; tilt-rev12-check).
 ok((generatePuzzle("tilt") as { tiltRev?: number }).tiltRev === TILT_REV_BIG, "rooms deal tiltRev 12 (tiltRev 11's successor)");
-ok(LIVE_BANDS.flip.rev === FLIP_REV_FLOW + 1 && LIVE_BANDS.flip.curve === FLIP_V11_BAND_CURVE, "LIVE_BANDS: Roofbound on flipRev 11's curve, dealt as flipRev 12 (flipRev 10's before 3 Nov 2026)");
+ok(LIVE_BANDS.flip.rev === FLIP_REV_FLOW + 2 && LIVE_BANDS.flip.curve === FLIP_V13_BAND_CURVE, "LIVE_BANDS: Roofbound on flipRev 13's curve (flipRev 11's, dealt as flipRev 12, until 15 Nov 2026; flipRev 10's before 3 Nov 2026)");
 ok(LIVE_BANDS.tilt.rev === TILT_REV_BIG && LIVE_BANDS.tilt.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: Tilt tiltRev 12 on tiltRev 11's core line");
 ok(roundMaxFor("flip") === 200 && roundMaxFor("tilt") === 200, "both round maximums stay 200");
 ok(flipWorldHFor(FLIP_REV_LIFT) === FLIP_V8_WORLD_H && tiltWorldHFor(TILT_REV_LIFT) === TILT_X_H && tiltIsExpand(TILT_REV_LIFT), "the new stamps play in the expansions' worlds");
@@ -178,13 +187,13 @@ ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND
   // The text pass (F2, 4 Nov 2026) lists each part on its own line: Roofbound's from FLIP_V11's spec (listFromSpec), Tilt's four
   // parts each with its maximum, ending "Total 200." (scoreList).
   ok(
-    /listFromSpec\(FLIP_V11,/.test(help) &&
+    /listFromSpec\(FLIP_V13,/.test(help) &&
       ["TILT_P_CORE_MAX", "TILT_P_PAR_MAX", "TILT_P_CLEAN_POINTS", "TILT_P_SPEED_POINTS"].every((max) => new RegExp(`max: ${max} \\}`).test(help)) &&
       /max: TILT_P_SPEED_POINTS \},\n\s*\], \{ total: 200 \}\)/.test(help),
     "the help states the dealt parts (Roofbound's and Tilt's standard parts)",
   );
   const demos = read("src/lib/duel/introDemo.functions.ts");
-  ok(/flipRev !== FLIP_REV_FLOW && demo\.puzzle\.flipRev !== FLIP_REV_DEAL\) return null/.test(demos) && /tiltRev !== TILT_REV_BIG\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 11, Tilt tiltRev 12, since 3 Nov 2026)");
+  ok(/flipRev !== FLIP_REV_FLOW && demo\.puzzle\.flipRev !== FLIP_REV_DEAL && demo\.puzzle\.flipRev !== FLIP_REV_GRACE\) return null/.test(demos) && /tiltRev !== TILT_REV_BIG\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 11, Tilt tiltRev 12, since 3 Nov 2026)");
 }
 
 /* 4. Ball Tracker's counts. */

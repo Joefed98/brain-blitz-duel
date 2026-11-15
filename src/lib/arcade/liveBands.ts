@@ -12,7 +12,7 @@ import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./score
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_KEEP, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
-import { FLIP_REV_DEAL, FLIP_REV_STRICT, FLIP_V11_BAND_CURVE } from "./flip";
+import { FLIP_REV_GRACE, FLIP_REV_STRICT, FLIP_V13_BAND_CURVE } from "./flip";
 import { INK_REV_BIG, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
@@ -92,7 +92,8 @@ export const LIVE_BANDS = {
   // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
   // double flips and the flow streak up to 100 more. flipRev 10: half seconds survived → 150 (FLIP_V10_BAND_CURVE).
   // flipRev 12 (3 Nov 2026): flipRev 11's game and core line, dealt from the proved courses.
-  flip: { field: "flipRev", rev: FLIP_REV_DEAL, curve: FLIP_V11_BAND_CURVE, strictRev: FLIP_REV_STRICT },
+  // flipRev 13 (15 Nov 2026, the Action overhaul): grace (no crash ends the run, each costs 10 s); the core full at 55 s.
+  flip: { field: "flipRev", rev: FLIP_REV_GRACE, curve: FLIP_V13_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   // inkRev 14 (3 Nov 2026: inkRev 13's rules and parts with a bigger coin, clovers and birds; inkRev 13 before it, clovers,
   // ink par, more birds): levels on a straight line to 120; ink par, trick shots, clovers and speed add up to 80 more.
   inkbridge: { field: "inkRev", rev: INK_REV_BIG, curve: INK_V13_BAND_CURVE, strictRev: INK_REV_STRICT },

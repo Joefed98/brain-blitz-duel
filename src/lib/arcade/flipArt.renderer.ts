@@ -7,7 +7,7 @@ import type { CanvasSize } from "./engine";
 import {
   flipCrackTick, flipGame, flipSpeed, flipGameFor, flipWarpAt, FLIP_ARC_TICKS, FLIP_CEIL_Y, FLIP_CRUMBLE, FLIP_CRUMBLE_TICKS,
   FLIP_FLOOR_Y, FLIP_GAP, FLIP_RED, FLIP_REV, FLIP_RUNNER_H_PX, FLIP_RUNNER_H_PX_V2, FLIP_RUNNER_HALF_PX,
-  FLIP_RUNNER_HALF_PX_V2, FLIP_SPIKE, FLIP_STAR_R, FLIP_WORLD_H, FLIP_WORLD_W,
+  FLIP_RUNNER_HALF_PX_V2, FLIP_RUN_TICKS, FLIP_SPIKE, FLIP_STAR_R, FLIP_WORLD_H, FLIP_WORLD_W,
   FLIP_V8_CHECKPOINTS, FLIP_V8_TRAIL_STARS, flipRunnerX, FLIP_V8_WORLD_H, flipWorldHFor, flipRunnerBaseY, flipSegShift, flipSurfaceBase, flipV8InZone, flipWorldH,
   type FlipSeg, type FlipState,
 } from "./flip";
@@ -24,7 +24,7 @@ let RUNNER_X = 90;
 const SPIKE_HEIGHT = 22;
 const OVERHANG_DEPTH = 34;
 /** flipRev 11/12's taller hazards (display only, the taller cave): their heights; their x-spans are the sim's. */
-const FLIP_FLOW_SPIKE_H = 30;
+const FLIP_FLOW_SPIKE_H = 38;
 const FLIP_FLOW_OVERHANG_H = 46;
 /** Canvas-only material tokens shared by every part of this renderer. */
 export const MATERIAL = {
@@ -214,7 +214,290 @@ function rockTile(ctx: CanvasRenderingContext2D): ArtCanvas | null {
   return tile && c ? tile : null;
 }
 
+/* ============ The Action overhaul's cave (15 Nov 2026; flipRev 11–13, display only) ============ */
+
+/**
+ * How deep into the cave the run is, 0 at the start to 1 at the minute (display only: from the sim's tick, so the same
+ * for every player and every replay). The rock darkens and warms, the lava runs hotter and brighter and the tunnel air
+ * takes more of its glow as it rises. Nothing here collides.
+ */
+export function flipCaveHeat(state: Pick<FlipState, "tick" | "ended">): number {
+  return Math.max(0, Math.min(1, state.tick / FLIP_RUN_TICKS));
+}
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+/** A lava colour at a heat (0 deep red-orange → 1 yellow-white), alpha `a`. */
+function lavaRgb(heat: number, hot: number, a = 1): string {
+  // hot: 0 = the river's body, 1 = its core.
+  const r = 255;
+  const g = Math.round(lerp(lerp(70, 120, heat), lerp(170, 236, heat), hot));
+  const b = Math.round(lerp(lerp(26, 40, heat), lerp(80, 170, heat), hot));
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/** A cave side's path offset `d` px into the rock from the tunnel surface. */
+function insetPath(ctx: CanvasRenderingContext2D, at: Surface, outward: number, d: (x: number) => number): void {
+  ctx.beginPath();
+  for (let x = -6; x <= FLIP_WORLD_W + 6; x += 6) {
+    const y = at(x) + outward * d(x);
+    if (x === -6) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+}
+
+/**
+ * The rock of the taller cave on flipRev 11–13: basalt columns lit from the tunnel, fading into deep rock with no seam,
+ * and rivers of lava flowing through it (bright beads running along each channel); the heat rises with the run.
+ */
+function drawRichRock(ctx: CanvasRenderingContext2D, state: FlipState, side: number, at: Surface, still: boolean): void {
+  const cam = state.x / FP;
+  const heat = flipCaveHeat(state);
+  const outward = side === 0 ? 1 : -1;
+  const lite = arcadeReducedEffects();
+  // Deep rock: one smooth gradient from the lit edge to the dark, warming with the heat.
+  const edgeY = at(RUNNER_X);
+  const deep = ctx.createLinearGradient(0, edgeY, 0, edgeY + outward * 420);
+  deep.addColorStop(0, `rgb(${Math.round(lerp(52, 64, heat))},${Math.round(lerp(46, 40, heat))},${Math.round(lerp(56, 44, heat))})`);
+  deep.addColorStop(0.35, `rgb(${Math.round(lerp(33, 42, heat))},${Math.round(lerp(30, 24, heat))},${Math.round(lerp(38, 28, heat))})`);
+  deep.addColorStop(1, FLIP_DEEP);
+  ctx.fillStyle = deep;
+  ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
+  // Basalt columns: slanted joints at the rock's slow parallax, each column's near face lit, crisp dark seams.
+  const par = still ? 0 : cam * 0.4;
+  const colW = 30;
+  const k0 = Math.floor(par / colW) - 1;
+  for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / colW) + 3; k++) {
+    const h = artHash(k, 907 + side);
+    const x = k * colW - par + (h % 8);
+    const w = colW - 2 + ((h >>> 4) % 10);
+    const lean = (((h >>> 9) % 9) - 4) * 0.08;
+    const top = (xx: number) => at(xx) + outward * (6 + ((h >>> 12) % 10));
+    const len = 150 + ((h >>> 16) % 120);
+    ctx.fillStyle = h % 3 === 0 ? "rgba(255,240,225,0.035)" : "rgba(0,0,0,0.10)";
+    ctx.beginPath();
+    ctx.moveTo(x, top(x));
+    ctx.lineTo(x + w, top(x + w));
+    ctx.lineTo(x + w + lean * len, top(x + w) + outward * len);
+    ctx.lineTo(x + lean * len, top(x) + outward * len);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(6,5,8,0.55)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, top(x));
+    ctx.lineTo(x + lean * len, top(x) + outward * len);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(255,${Math.round(lerp(200, 170, heat))},150,0.10)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + 1.5, top(x) + outward * 2);
+    ctx.lineTo(x + 1.5 + lean * len * 0.6, top(x) + outward * len * 0.6);
+    ctx.stroke();
+    // Cross joints, a few to a column.
+    for (let j = 1; j < 4; j++) {
+      const jh = artHash(k, j + 33);
+      if (jh % 2) continue;
+      const d = 30 + j * 46 + (jh % 18);
+      ctx.strokeStyle = "rgba(6,5,8,0.4)";
+      ctx.beginPath();
+      ctx.moveTo(x + lean * d, top(x) + outward * d);
+      ctx.lineTo(x + w + lean * d, top(x + w) + outward * (d + ((jh >>> 3) % 7) - 3));
+      ctx.stroke();
+    }
+  }
+  // Lava rivers flowing through the rock: three channels a side, each a dark crust, a molten body and a hot core, with
+  // bright beads running along it (the flow); wider, brighter and hotter as the run goes deeper.
+  const rivers = lite ? 1 : 3;
+  for (let r = 0; r < rivers; r++) {
+    const rh = artHash(r, 1301 + side * 17);
+    const depth = 78 + r * 82 + (rh % 20);
+    const amp = 22 + (rh % 14);
+    const wave = 60 + ((rh >>> 5) % 50);
+    const phase = ((rh >>> 11) % 100) / 16;
+    const rpar = still ? 0 : cam * (0.4 - r * 0.06);
+    const d = (x: number) => depth + Math.sin((x + rpar) / wave + phase) * amp + Math.sin((x + rpar) / (wave * 0.43) + phase * 2.3) * amp * 0.45 + Math.sin((x + rpar) / (wave * 2.7) + phase * 0.7) * amp * 0.8;
+    const width = (3.2 + r * 0.6) * (1 + heat * 0.45);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    insetPath(ctx, at, outward, d);
+    ctx.strokeStyle = "rgba(14,6,5,0.85)";
+    ctx.lineWidth = width + 5;
+    ctx.stroke();
+    if (!lite) {
+      ctx.strokeStyle = lavaRgb(heat, 0, 0.16 + heat * 0.12);
+      ctx.lineWidth = width + 12;
+      ctx.stroke();
+    }
+    ctx.strokeStyle = lavaRgb(heat, 0, 0.95);
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.strokeStyle = lavaRgb(heat, 1, 0.9);
+    ctx.lineWidth = Math.max(1, width * 0.35);
+    ctx.stroke();
+    // The flow: bright beads running along the channel (still under reduced motion).
+    ctx.setLineDash([3 + r, 16 + r * 5]);
+    ctx.lineDashOffset = still ? 0 : -(state.tick * (0.9 + r * 0.25)) - cam * 0.4;
+    ctx.strokeStyle = `rgba(255,${Math.round(lerp(236, 250, heat))},${Math.round(lerp(180, 225, heat))},0.95)`;
+    ctx.lineWidth = Math.max(1, width * 0.55);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.lineCap = "butt";
+  // Edge to edge (Joe, 15 Nov 2026): the rock reaches the world's top and bottom edges as the deep bedrock colour the
+  // arena scene paints beyond them (FLIP_DEEP), so the world meets the fill with no step or line.
+  const fade = ctx.createLinearGradient(0, side === 0 ? worldH - FLIP_EDGE_FADE : 0, 0, side === 0 ? worldH : FLIP_EDGE_FADE);
+  fade.addColorStop(0, side === 0 ? "rgba(18,18,22,0)" : FLIP_DEEP);
+  fade.addColorStop(1, side === 0 ? FLIP_DEEP : "rgba(18,18,22,0)");
+  ctx.fillStyle = fade;
+  if (side === 0) ctx.fillRect(0, worldH - FLIP_EDGE_FADE, FLIP_WORLD_W, FLIP_EDGE_FADE);
+  else ctx.fillRect(0, 0, FLIP_WORLD_W, FLIP_EDGE_FADE);
+}
+
+/** The deep bedrock colour shared by the world's outer edges and the arena scene beyond them (flipRev 11–13). */
+export const FLIP_DEEP = "#121216";
+/** How far in from the world's edges the rock fades to FLIP_DEEP (px). */
+export const FLIP_EDGE_FADE = 48;
+/** How far in from the world's left and right edges everything fades to FLIP_DEEP (px), meeting the side scene. */
+export const FLIP_SIDE_FADE = 14;
+/** The arena scene keeps this far clear of the world's sides (world px) before its veins start. */
+const SCENE_EDGE_CLEAR = 16;
+
+/** The world's left and right edges fade to the bedrock, so a wide screen's side scene continues it with no seam. */
+function drawSideFade(ctx: CanvasRenderingContext2D): void {
+  for (const [x0, x1] of [[0, FLIP_SIDE_FADE], [FLIP_WORLD_W, FLIP_WORLD_W - FLIP_SIDE_FADE]] as const) {
+    const g = ctx.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, FLIP_DEEP);
+    g.addColorStop(0.4, "rgba(18,18,22,0.72)");
+    g.addColorStop(1, "rgba(18,18,22,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(Math.min(x0, x1), 0, FLIP_SIDE_FADE, worldH);
+  }
+}
+
+/**
+ * The surface the Captain runs on (flipRev 11–13): a solid stone lip 8 px deep along every open stretch of the rail,
+ * crisp lit top edge, dark joints every few blocks, and the lava seam glowing in the rock just under it. `rail` traces
+ * the rail (gaps and broken crumbles left open); drawn clipped to the rock, so the lip never reaches into the tunnel.
+ */
+function drawStoneLip(ctx: CanvasRenderingContext2D, state: FlipState, side: number, at: Surface, rail: () => void): void {
+  const heat = flipCaveHeat(state);
+  const lite = arcadeReducedEffects();
+  ctx.save();
+  rockPath(ctx, side, at);
+  ctx.clip();
+  rail();
+  if (!lite) {
+    ctx.strokeStyle = lavaRgb(heat, 0, 0.12 + heat * 0.1);
+    ctx.lineWidth = 34;
+    ctx.stroke();
+  }
+  ctx.strokeStyle = lavaRgb(heat, 0.6, 1);
+  ctx.lineWidth = 21;
+  ctx.stroke();
+  ctx.strokeStyle = "#2A2630";
+  ctx.lineWidth = 17;
+  ctx.stroke();
+  ctx.strokeStyle = "#4A4452";
+  ctx.lineWidth = 11;
+  ctx.stroke();
+  ctx.strokeStyle = "#5C5564";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  // Block joints across the lip, scrolling with the world.
+  ctx.setLineDash([1.4, 25]);
+  ctx.lineDashOffset = (state.x / FP) % 26.4;
+  ctx.strokeStyle = "rgba(10,8,12,0.9)";
+  ctx.lineWidth = 17;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  // The crisp top edge the runner stands on.
+  rail();
+  ctx.strokeStyle = "rgba(250,236,220,0.9)";
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+}
+
+/**
+ * A spike row on flipRev 11–13: sharp single blades of obsidian heating to a bright orange edge and a white-hot tip,
+ * outlined dark so they read at speed. Inside the hazard's exact x-span (the sim's), standing `maxH` off the surface.
+ */
+function drawSpikeBlades(ctx: CanvasRenderingContext2D, a: number, b: number, inward: number, at: Surface,
+  maxH: number, seed: number, pulse: number, heat: number): void {
+  if (b - a <= 1) return;
+  const count = Math.max(2, Math.round((b - a) / 13));
+  const slot = (b - a) / count;
+  if (!arcadeReducedEffects()) {
+    const mid = (a + b) / 2;
+    const gy = at(mid) + inward * maxH * 0.4;
+    const reach = Math.max(maxH, (b - a) * 0.55);
+    const glow = ctx.createRadialGradient(mid, gy, 2, mid, gy, reach);
+    glow.addColorStop(0, lavaRgb(heat, 0, 0.16 + pulse * 0.06));
+    glow.addColorStop(1, lavaRgb(heat, 0, 0));
+    ctx.fillStyle = glow;
+    ctx.fillRect(mid - reach, gy - reach, reach * 2, reach * 2);
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(a, -10, b - a, worldH + 20);
+  ctx.clip();
+  for (let k = 0; k < count; k++) {
+    const h = artHash(seed, k);
+    const x0 = a + slot * k;
+    const x1 = x0 + slot;
+    const tipX = x0 + slot * (0.42 + (h % 16) / 100);
+    const height = maxH * (0.86 + ((h >>> 6) % 15) / 100);
+    const base0 = at(x0) - inward * 3;
+    const base1 = at(x1) - inward * 3;
+    const tipY = at(tipX) + inward * height;
+    const body = ctx.createLinearGradient(0, at(tipX), 0, tipY);
+    body.addColorStop(0, "#1A0907");
+    body.addColorStop(0.18, "#B3241A");
+    body.addColorStop(0.55, lavaRgb(heat, 0.2, 1));
+    body.addColorStop(1, lavaRgb(heat, 1, 1));
+    ctx.beginPath();
+    ctx.moveTo(x0, base0);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineTo(x1, base1);
+    ctx.closePath();
+    ctx.fillStyle = body;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(12,4,3,0.95)";
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+    // The far face in shadow, a lit edge on the near face.
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = "#120504";
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(x1, base1);
+    ctx.lineTo(tipX + (x1 - tipX) * 0.35, base1 + (tipY - base1) * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = "rgba(255,226,180,0.9)";
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(x0 + (tipX - x0) * 0.25, base0 + (tipY - base0) * 0.25);
+    ctx.lineTo(tipX, tipY);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#FFF6E0";
+    ctx.beginPath();
+    ctx.arc(tipX, tipY - inward * 0.6, 1.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number, at: Surface, still: boolean): void {
+  if (state.flow) {
+    ctx.save();
+    rockPath(ctx, side, at);
+    ctx.clip();
+    drawRichRock(ctx, state, side, at, still);
+    ctx.restore();
+    return;
+  }
   const cam = state.x / FP;
   const time = still ? 0 : state.tick / 60;
   const outward = side === 0 ? 1 : -1;
@@ -778,11 +1061,14 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     ? ctx.createLinearGradient(0, ceilAt(RUNNER_X) - 30, 0, floorAt(RUNNER_X) + 30)
     : ctx.createLinearGradient(0, ceilBase(RUNNER_X) - 30, 0, floorBase(RUNNER_X) + 30);
   // Darker and colder since 27 Oct 2026 (the eerie cave), with only a hint of the lava's warmth at the rails.
-  air.addColorStop(0, "#1E1412");
-  air.addColorStop(0.16, "#0E1113");
+  // The Action overhaul (flipRev 11–13): the rails' warmth reaches further into the air as the run goes deeper.
+  const heat = state.flow ? flipCaveHeat(state) : 0;
+  const rim = state.flow ? lavaRgb(heat, 0, 0.14 + heat * 0.1) : "#1E1412";
+  air.addColorStop(0, rim);
+  air.addColorStop(0.16 + heat * 0.04, state.flow ? `rgb(${Math.round(lerp(16, 30, heat))},${Math.round(lerp(16, 16, heat))},${Math.round(lerp(20, 16, heat))})` : "#0E1113");
   air.addColorStop(0.5, "#080A0C");
-  air.addColorStop(0.84, "#0E1113");
-  air.addColorStop(1, "#1E1412");
+  air.addColorStop(0.84 - heat * 0.04, state.flow ? `rgb(${Math.round(lerp(16, 30, heat))},${Math.round(lerp(16, 16, heat))},${Math.round(lerp(20, 16, heat))})` : "#0E1113");
+  air.addColorStop(1, rim);
   ctx.fillStyle = air;
   ctx.fill();
   // Display only: the cave's depths (stalactites, stalagmites, cold crystals, mist; until 27 Oct 2026 a far city)
@@ -815,6 +1101,11 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
       }
       flipSurfaceLine(ctx, at, from, FLIP_WORLD_W);
     };
+    // The Action overhaul (flipRev 11–13): a solid stone lip the Captain runs on, the lava seam under it.
+    if (state.flow) {
+      drawStoneLip(ctx, state, side, at, rail);
+      continue;
+    }
     // Reduced effects: the soft glow strokes into the rock are skipped (the rail lines stay).
     if (!arcadeReducedEffects()) {
       ctx.save();
@@ -897,11 +1188,13 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
       // Rev 8 moving spike: its groove (the stretch it slides along) under the rock, then the spike where the sim has it.
       const shift = flipSegShift(seg, state.tick) / FP;
       drawSlideGroove(ctx, a - seg.amp / FP, b + seg.amp / FP, inward, at, pulse);
-      drawRockObstacle(ctx, a + shift, b + shift, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse);
+      if (state.flow) drawSpikeBlades(ctx, a + shift, b + shift, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse, heat);
+      else drawRockObstacle(ctx, a + shift, b + shift, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse);
       continue;
     }
     if (seg.kind === FLIP_CRUMBLE) drawCrumble(ctx, state, i, seg, a, b, inward, at, still);
     else if (seg.kind === FLIP_GAP) drawFlipPool(ctx, a, b, inward, at, still ? 0 : state.tick / 60, seg.x0);
+    else if (state.flow && seg.kind === FLIP_SPIKE) drawSpikeBlades(ctx, a, b, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse, heat);
     else drawRockObstacle(ctx, a, b, inward, at, seg.kind === FLIP_SPIKE ? spikeH : overH, seg.x0 ^ state.warpFloor, pulse);
   }
   // Rev 2 stars not yet taken, at the runner's standing height on their surface.
@@ -917,12 +1210,15 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   }
   // Rev 8: checkpoint gates and the star trails (light and pickups only; nothing here collides).
   if (state.exp) {
-    drawCheckpoints(ctx, state, toScreen, ceilAt, floorAt, pulse, still);
+    // flipRev 13 (grace): every crash is caught, so no checkpoint gates or save badge are drawn.
+    if (!state.grace) drawCheckpoints(ctx, state, toScreen, ceilAt, floorAt, pulse, still);
     drawTrails(ctx, state, toScreen, ceilAt, floorAt, still);
     // The save a checkpoint gives, while it is ready: a small gold shield at the tunnel's left edge, mid-height
     // (hazards stand on the surfaces, so the middle of the tunnel is always clear there).
-    drawSaveBadge(ctx, state, 8, (ceilAt(15) + floorAt(15)) / 2 - 8);
+    if (!state.grace) drawSaveBadge(ctx, state, 8, (ceilAt(15) + floorAt(15)) / 2 - 8);
   }
+  // Edge to edge (flipRev 11–13): the sides fade to the bedrock the side scene paints.
+  if (state.flow) drawSideFade(ctx);
   // flipRev 11: the flow streak in the rock above the cave (no star counts on this revision).
   if (state.flow) drawFlowHud(ctx, state);
   ctx.save();
@@ -940,7 +1236,11 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     ctx.arc(RUNNER_X, y, 34, 0, Math.PI * 2);
     ctx.fill();
   }
+  // flipRev 13 (grace): after a crash the runner blinks while its second of shield lasts (held steady under reduced motion).
+  const blink = state.grace && (state.inv ?? 0) > 0 && state.ended === 0 && !still && Math.floor(state.tick / 4) % 2 === 0;
+  if (blink) ctx.globalAlpha = 0.35;
   drawRunnerHero(ctx, state, y, still, sink);
+  ctx.globalAlpha = 1;
   if (state.exp && (state.inv ?? 0) > 0 && state.ended === 0) drawShield(ctx, state, y, still);
   successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-((state.exp?state.arcN||FLIP_ARC_TICKS:FLIP_ARC_TICKS)-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-1:1)*runnerBox(state).h/2,shape:'pixel'}});
   ctx.restore();
@@ -1360,7 +1660,95 @@ export function flipArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
 export function flipArenaSceneTall(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   flipArenaScene(ctx, view, FLIP_V8_WORLD_H);
 }
+
+/**
+ * flipRev 11–13's cave (the Action overhaul, edge to edge): the bedrock beyond the world is FLIP_DEEP, the colour the
+ * world's rock fades to at its edges, with faint basalt joints and specks, so the world continues into it seamlessly;
+ * painted once per size (never per frame), its lava streaks are the ambient layer's.
+ */
+export function flipArenaSceneRich(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const H = FLIP_V8_WORLD_H;
+  const paint = (r: { x: number; y: number; w: number; h: number }, seed: number, from: number, joints: boolean) => {
+    ctx.save();
+    ctx.fillStyle = FLIP_DEEP;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+    // Joints and specks start a little way out from the world, so its edge meets plain bedrock.
+    if (joints) for (let x = r.x - 20, k = 0; x < r.x + r.w; k++) {
+      const h = artHash(k, seed);
+      const w = 26 + (h % 20);
+      const lean = ((h >>> 5) % 9) - 4;
+      ctx.strokeStyle = "rgba(0,0,0,0.28)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, r.y + from);
+      ctx.lineTo(x + lean * (r.h / 260), r.y + r.h);
+      ctx.stroke();
+      x += w;
+    }
+    const specks = Math.round((r.w * r.h) / 340);
+    for (let k = 0; k < specks; k++) {
+      const h = artHash(k, seed + 1);
+      const y = r.y + from + (((h >>> 15) % 9973) / 9973) * Math.max(0, r.h - from);
+      ctx.fillStyle = h % 5 === 0 ? "rgba(255,170,120,0.05)" : "rgba(0,0,0,0.25)";
+      ctx.fillRect(r.x + (((h >>> 3) % 10007) / 10007) * r.w, y, 1 + ((h >>> 28) & 1), 1);
+    }
+    ctx.restore();
+  };
+  // Beside the world only specks (a joint there could run along its edge) and faint lava veins running off into the
+  // rock, kept 16 px clear of the world so its edge meets plain bedrock; below it joints and specks.
+  for (const side of sceneSides(view)) {
+    paint(side, 911, 0, false);
+    const awayLeft = side.x < 0;
+    const near = awayLeft ? side.x + side.w - SCENE_EDGE_CLEAR : side.x + SCENE_EDGE_CLEAR;
+    const far = awayLeft ? side.x : side.x + side.w;
+    if (Math.abs(far - near) < 20) continue;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(Math.min(near, far), side.y, Math.abs(far - near), side.h);
+    ctx.clip();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (let v = 0; v < 7; v++) {
+      const h = artHash(v, awayLeft ? 1931 : 1933);
+      const y0 = side.y + 40 + (((h >>> 6) % 1000) / 1000) * Math.max(10, side.h - 80);
+      const amp = 10 + (h % 22);
+      const wave = 40 + ((h >>> 12) % 40);
+      ctx.beginPath();
+      const steps = Math.max(24, Math.ceil(Math.abs(far - near) / 6));
+      for (let k = 0; k <= steps; k++) {
+        const x = near + ((far - near) * k) / steps;
+        const u = k / steps;
+        const y = y0 + Math.sin((u * Math.abs(far - near)) / wave + v) * amp * u + ((h >>> 20) % 2 ? 1 : -1) * u * 50;
+        if (k === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      // Fading out as the vein runs away from the world (alpha by stroke, the near end brightest).
+      const g = ctx.createLinearGradient(near, 0, far, 0);
+      g.addColorStop(0, "rgba(255,96,36,0)");
+      g.addColorStop(0.12, "rgba(255,96,36,0.16)");
+      g.addColorStop(1, "rgba(255,96,36,0)");
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 2.4 + (h % 3) * 0.6;
+      ctx.stroke();
+      const c = ctx.createLinearGradient(near, 0, far, 0);
+      c.addColorStop(0, "rgba(255,206,130,0)");
+      c.addColorStop(0.12, "rgba(255,206,130,0.22)");
+      c.addColorStop(1, "rgba(255,206,130,0)");
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const below = sceneBelow(view);
+  if (below) paint(below, 907, 24, true);
+}
 /** The arena scene for a stored puzzle.flipRev (one function per world height, so the stage keeps its identity). */
 export function flipArenaSceneFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  // flipRev 11–13 (the Action overhaul, edge to edge): the plain bedrock their world fades to.
+  if (rev === 11 || rev === 12 || rev === 13) return flipArenaSceneRich;
   return flipWorldHFor(rev) === FLIP_V8_WORLD_H ? flipArenaSceneTall : flipArenaScene;
 }

@@ -536,6 +536,14 @@ export interface FlipState extends BandFields {
   bestStreak?: number;
   /** flipRev 11: 1 once a crash is saved, until the next take-off (the flip in the air then is not a clean jump). */
   slip?: number;
+  /**
+   * flipRev 13 only (15 Nov 2026, the Action overhaul; absent on every earlier round): 1 = grace, no crash ends the run.
+   * A crash with no checkpoint save in hand respawns the runner on the spot (a second of shield, the same clean-time cost
+   * as a saved crash) and the run goes on to the clock. Folded into the checkpoint checksum last, with `respawns`.
+   */
+  grace?: number;
+  /** flipRev 13: crashes the automatic respawn took (each also counts in `saves`, which carries the cost). */
+  respawns?: number;
 }
 
 export function flipWarpAmp(tick: number, rev?: number | null, early?: number): number {
@@ -743,6 +751,8 @@ export function flipCheckpoint(state: FlipState): FlipCheckpoint {
     state.saves ?? 0, state.inv ?? 0, state.cpPassed ?? 0, state.cleanCps ?? 0, state.zonesOk ?? 0, state.pause ?? 0, state.lost ?? 0, ...(state.trailGot ?? []), state.sweetGot ?? 0);
   // flipRev 11: its marker and the flow counters after that, so every flipRev 8–10 checksum is unchanged.
   if (state.flow) extra.push(state.flow, state.streak ?? 0, state.bestStreak ?? 0, state.slip ?? 0);
+  // flipRev 13: its marker and the respawn count last, so every flipRev 1–12 checksum is unchanged.
+  if (state.grace) extra.push(state.grace, state.respawns ?? 0);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -842,6 +852,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
   // flipRev 12 plays flipRev 11 exactly; only its deal differs (the proved courses, src/lib/duel/flipDeal.server.ts).
   if (rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL) return flipFlowGame;
+  if (rev === FLIP_REV_GRACE) return flipGraceGame;
   if (rev === FLIP_REV_STD) return flipStdGame;
   if (rev === FLIP_REV_LIFT) return flipLiftGame;
   if (rev === FLIP_REV_EXPAND) return flipExpandGame;
@@ -1672,7 +1683,10 @@ function stepV8(state: FlipState, input: ArcadeInputEvent | null): FlipState {
     if (now !== was) s.trailGot = s.trailGot!.map((v, k) => (k === i ? now : v));
   });
   if (hit) {
-    if (s.save) {
+    // flipRev 13 (grace): a crash with no save in hand respawns the runner instead of ending the run (same cost).
+    const respawn = !s.save && !!s.grace;
+    if (respawn) s.respawns = (s.respawns ?? 0) + 1;
+    if (s.save || respawn) {
       // A checkpoint's save: a second of shield where it happened, the survival count paused for FLIP_V8_SAVE_PAUSE (10 s), the combo lost.
       s.save = 0;
       s.saves = (s.saves ?? 0) + 1;
@@ -1765,6 +1779,7 @@ export function flipV8Units(state: FlipState): number {
 }
 
 function flipV8Parts(state: FlipState): BandParts {
+  if (state.grace) return flipGraceParts(state);
   if (state.flow) return flipFlowParts(state);
   if (state.std) return flipStdParts(state);
   const units = flipV8Units(state);
@@ -1789,6 +1804,7 @@ function flipV8Parts(state: FlipState): BandParts {
 const FLIP_V8_MAX = 200;
 
 function flipV8Score(state: FlipState): number {
+  if (state.grace) return stdTotal(flipGraceScore(state), Boolean(state.acted));
   if (state.flow) return stdTotal(flipFlowScore(state), Boolean(state.acted));
   if (state.std) return stdTotal(flipStdScore(state), Boolean(state.acted));
   return bandTotal(flipV8Parts(state), Boolean(state.acted), FLIP_V8_MAX);
@@ -2012,4 +2028,73 @@ function flipFlowParts(state: FlipState): BandParts {
 export const flipFlowGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
   ...flipExpandGame,
   init: (seed) => ({ ...initV8(seed), std: 1, flow: 1, stars: [], streak: 0, bestStreak: 0, slip: 0 }),
+};
+
+/* ================= flipRev 13 (15 Nov 2026): grace, the Action overhaul ================= */
+
+/**
+ * flipRev 13 (15 Nov 2026, the Action overhaul; docs/arcade-standard/flip.md "flipRev 13"): flipRev 12's courses, deal
+ * rule, hazards, sweet spots, double flips and flow streak exactly, with grace: no crash ends the run. A crash with a
+ * checkpoint's save in hand is saved as before; a crash with none respawns the runner on the spot (a second of shield,
+ * the flow streak broken) and the run goes on to the clock. Every crash costs FLIP_V13_CRASH_COST half seconds of clean
+ * time (10 s). Retuned so a strong player reaches the targets (Joe, 15 Nov 2026: flipRev 12 scored too hard): clean
+ * time 100 (full at 55 s), perfect landings 60 (full at 5 of the 8 sweet spots), double flips 20, flow streak 20 (200).
+ * States add `grace: 1` (with `flow: 1` and `std: 1`).
+ */
+export const FLIP_REV_GRACE = 13;
+/** Half seconds of clean time a crash (saved or respawned) costs on flipRev 13: 10 s (flipRev 11/12: 20 s a save). */
+export const FLIP_V13_CRASH_COST = 20;
+/** The core is full at this many clean half seconds: 55 s of the minute (flipRev 11/12: the whole minute). */
+export const FLIP_V13_CORE_FULL = 110;
+/** Perfect landings are full at this many of the course's eight sweet spots (12 points each; flipRev 11/12: all eight). */
+export const FLIP_V13_SWEETS_FULL = 5;
+export const FLIP_V13: StdSpec = {
+  field: "flipRev",
+  rev: FLIP_REV_GRACE,
+  parts: [
+    { key: "core", label: "Clean time", max: 100, of: FLIP_V13_CORE_FULL, item: "half second" },
+    { key: "sweets", label: "Perfect landings", max: 60, of: FLIP_V13_SWEETS_FULL, item: "perfect landing" },
+    { key: "doubles", label: "Double flips", max: 20, of: FLIP_V11_DOUBLES, item: "double flip" },
+    { key: "flow", label: "Flow streak", max: 20, of: FLIP_V11_STREAK_FULL, item: "clean jump in a row", items: "clean jumps in a row" },
+  ],
+};
+/** The core's straight line on flipRev 13. */
+export const FLIP_V13_BAND_CURVE = bandCurve([0, FLIP_V13_CORE_FULL], [0, stdCore(FLIP_V13).max]);
+
+/** Clean time on flipRev 13: half seconds lived (the whole minute on a finished run) less the crashes' cost. */
+export function flipGraceUnits(state: Pick<FlipState, "ended" | "tick" | "saves">): number {
+  const alive = state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS);
+  return Math.max(0, Math.floor(alive / 30) - FLIP_V13_CRASH_COST * (state.saves ?? 0));
+}
+
+/** A flipRev 13 run's parts. */
+export function flipGraceScore(state: FlipState): StdBreakdown {
+  const [sweets, doubles, flow] = stdFeatures(FLIP_V13);
+  return {
+    core: stdPartLine(stdCore(FLIP_V13), flipGraceUnits(state)),
+    features: {
+      sweets: stdPartLine(sweets!, flipSweetsTaken(state)),
+      doubles: stdPartLine(doubles!, state.combos ?? 0),
+      flow: stdPartLine(flow!, state.bestStreak ?? 0),
+    },
+    penalty: 0,
+  };
+}
+
+/** The features' points on a flipRev 13 run. */
+export function flipGraceFeatures(state: FlipState): number {
+  return Object.values(flipGraceScore(state).features).reduce((a, p) => a + p, 0);
+}
+
+function flipGraceParts(state: FlipState): BandParts {
+  const finished = state.ended === 1;
+  const secs = ((finished ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1);
+  const n = state.saves ?? 0;
+  const crashes = n ? ` · ${n} crash${n === 1 ? "" : "es"} (−${(FLIP_V13_CRASH_COST / 2) * n} s)` : "";
+  return stdBandParts(FLIP_V13, flipGraceScore(state), flipGraceUnits(state), `${secs} s survived${crashes} · best streak ${state.bestStreak ?? 0}`, finished);
+}
+
+export const flipGraceGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
+  ...flipFlowGame,
+  init: (seed) => ({ ...flipFlowGame.init(seed), grace: 1, respawns: 0 }),
 };

@@ -4,38 +4,40 @@ import {
   flipCheckpoint,
   FLIP_BG,
   FLIP_CHECKPOINT_INTERVAL,
-  FLIP_GOLD,
   FLIP_INPUT_TAP,
-  FLIP_RED,
+  FLIP_REV_GRACE,
   FLIP_WORLD_W,
   flipWorldHFor,
 } from "@/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { FLIP_TIME_MS, type FlipPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { flipArenaSceneFor, flipArtGameFor } from "@/lib/arcade/flipArt.renderer";
 import { flipSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: floor spikes ahead, the runner arcing to the ceiling. */
+/**
+ * The intro still (the Action overhaul, 15 Nov 2026; was a flat drawing that looked nothing like the cave): the live
+ * stamp's own art (flipRev 13, the lava cave) on a fixed course 1.5 s in, drawn by the game's renderer (ArtStill).
+ */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: FLIP_BG, borderRadius: 10 }}>
-        <line x1={0} y1={24} x2={168} y2={24} stroke={FLIP_GOLD} strokeWidth={2} />
-        <line x1={0} y1={106} x2={168} y2={106} stroke={FLIP_GOLD} strokeWidth={2} />
-        <polygon points="96,106 104,92 112,106 120,92 128,106" fill={FLIP_RED} />
-        <path d="M40 96 Q60 64 80 34" fill="none" stroke={FLIP_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
-        <rect x={18} y={106} width={34} height={6} fill="#7C726A" />
-        <path d="M26 106 l2 4 M38 106 l-1 5 M46 106 l2 3" stroke="#FF8C3C" strokeWidth={1.2} />
-        <polygon points="132,34 134.4,39 140,39.6 135.8,43.2 137,48.6 132,46 127,48.6 128.2,43.2 124,39.6 129.6,39" fill="#FFE84A" />
-        <rect x={72} y={26} width={18} height={22} rx={8} fill={FLIP_GOLD} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Spikes below? Flip up. Grab the stars; cracked tiles give way.</p>
-    </div>
+    <ArtStill
+      game={flipArtGameFor(FLIP_REV_GRACE)}
+      worldW={FLIP_WORLD_W}
+      worldH={flipWorldHFor(FLIP_REV_GRACE)}
+      seed={FLIP_STILL_SEED}
+      ticks={90}
+      input={null}
+      caption="Tap to flip between floor and roof; dodge the spikes and run clean."
+    />
   );
 }
+
+/** A dealt course whose first seconds show a spike row ahead of the runner. */
+const FLIP_STILL_SEED = 301794028;
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: FlipPuzzleData | null = puzzle.type === "flip" ? puzzle : null;

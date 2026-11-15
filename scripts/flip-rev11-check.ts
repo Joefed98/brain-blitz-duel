@@ -43,6 +43,7 @@ import { digest, type FlipLegacyRecord } from "./flip-rev11-legacy";
 import { encodeFlipLog } from "./flip-x200-record";
 import { flipTap } from "./flip-x200-plan";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
+import { pinFlipPreGrace } from "../src/lib/duel/arcade.server";
 import { ROUND_MAX } from "../src/lib/duel/roundMax";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -61,7 +62,9 @@ import {
   flipTrailStars,
   flipWorldHFor,
   FLIP_REV_FLOW,
+  FLIP_REV_GRACE,
   FLIP_REV_STD,
+  FLIP_V13_BAND_CURVE,
   FLIP_V11,
   FLIP_V11_BAND_CURVE,
   FLIP_V11_DOUBLES,
@@ -110,8 +113,14 @@ const moves = (s: FlipState) =>
 /* 1. Wiring. */
 // Rooms deal flipRev 12 since 3 Nov 2026 (the Action polish): flipRev 11's game exactly, dealt from its proved courses
 // (flip-deal-check proves the two play and score identically), so flipRev 11's rules here hold for what rooms deal.
-ok((generatePuzzle("flip") as any).flipRev === FLIP_REV_FLOW + 1 && flipGameFor(FLIP_REV_FLOW + 1) === flipGameFor(FLIP_REV_FLOW) && FLIP_REV_FLOW === FLIP_REV_STD + 1, "rooms deal flipRev 12, flipRev 11's game (flipRev 10 before 3 Nov 2026)");
-ok(LIVE_BANDS.flip.rev === FLIP_REV_FLOW + 1 && LIVE_BANDS.flip.curve === FLIP_V11_BAND_CURVE, "the help reads flipRev 11's core line (dealt as flipRev 12)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal flipRev 13 (grace;
+// flip-overhaul-check), so the flipRev 12 deal is read with its pin, and the help reads flipRev 13's core line.
+{
+  const was = pinFlipPreGrace(true);
+  ok((generatePuzzle("flip") as any).flipRev === FLIP_REV_FLOW + 1 && flipGameFor(FLIP_REV_FLOW + 1) === flipGameFor(FLIP_REV_FLOW) && FLIP_REV_FLOW === FLIP_REV_STD + 1, "rooms deal flipRev 12, flipRev 11's game (flipRev 10 before 3 Nov 2026; flipRev 13 since 15 Nov 2026)");
+  pinFlipPreGrace(was);
+}
+ok(LIVE_BANDS.flip.rev === FLIP_REV_GRACE && LIVE_BANDS.flip.curve === FLIP_V13_BAND_CURVE, "the help reads flipRev 13's core line (flipRev 11's, dealt as flipRev 12, until 15 Nov 2026)");
 ok(JSON.stringify(FLIP_V11_BAND_CURVE.units) === JSON.stringify([0, 120]) && JSON.stringify(FLIP_V11_BAND_CURVE.points) === JSON.stringify([0, 100]), "the help's curve is the straight line 0 → 0, 120 → 100");
 ok(ROUND_MAX.flip === 200, "ROUND_MAX: Roofbound is 200");
 ok(flipWorldHFor(FLIP_REV_FLOW) === FLIP_V8_WORLD_H, "flipRev 11 plays in flipRev 8's 730 px world");
@@ -128,18 +137,20 @@ ok(FLIP_V11.parts.reduce((a, p) => a + p.max, 0) === 200 && FLIP_V11_SAVE_COST =
   const score = help.score;
   // Text pass (4 Nov 2026): the help is a list, one line a part, then the total ("A good run (100 points)", "Core 100 and the
   // features 100" and the history word "now" were internal or dated wording); the intro names the bonuses.
-  ok(score.includes("Clean time: every half second you last counts, less 20 s for each crash a checkpoint saves; the whole minute with no crash for all of it, up to 100."), `the help states clean time and its line: ${score}`);
-  ok(hasScorePart(score, "Perfect landings", 60) && score.includes("7.5 for each landing") && hasScorePart(score, "Double flips", 20) && hasScorePart(score, "Flow streak", 20) && score.endsWith("Total 200."), `the help states every feature and the 200: ${score}`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the help, intro and demo rule
+  // describe the live stamp, flipRev 13 (grace: every crash costs 10 s; clean time full at 55 s, perfect landings at 5).
+  ok(score.includes("Clean time: every half second you run counts, less 10 s for each crash; 55 s clean for all of it, up to 100."), `the help states clean time and its line: ${score}`);
+  ok(hasScorePart(score, "Perfect landings", 60) && score.includes("12 for each landing") && hasScorePart(score, "Double flips", 20) && hasScorePart(score, "Flow streak", 20) && score.endsWith("Total 200."), `the help states every feature and the 200: ${score}`);
   ok(!/gold star|Star trails up to|Time survived/.test(score), "the help no longer pays stars, trails or time survived");
   const all = help.how.map((l) => `${l.action} ${l.detail}`).join(" ");
-  ok(/PERFECT/.test(all) && /flow streak/i.test(all) && /clean jump is a flip that lands with no crash saved/.test(all) && /only a guide, a good line/.test(all) && /20 s/.test(all), "the help explains the PERFECT landing, the flow streak, clean jumps, the faint trails and the 20 s");
+  ok(/PERFECT/.test(all) && /flow streak/i.test(all) && /clean jump is a flip that lands with no crash on the way/.test(all) && /only a guide, a good line/.test(all) && /10 s/.test(all), "the help explains the PERFECT landing, the flow streak, clean jumps, the faint trails and the 10 s");
   const intro = help.how.filter((l) => !l.helpOnly);
   ok(intro.length === 3 && intro.every((l) => `${l.action} ${l.detail}`.length <= 110), "the intro HOW in three short lines");
   ok(!/Grab gold stars/.test(all), "the intro no longer asks for gold stars");
   const line = INTRO_SCORE.flip;
-  ok(line.length <= 90 && /without crashing/.test(line) && line.includes("sweet spots") && line.includes("flow") && line.endsWith("Up to 200."), `the intro states the parts and the top in ≤ 90 characters: ${line}`);
+  ok(line.length <= 90 && /crashes cost time/.test(line) && line.includes("sweet spots") && line.includes("flow") && line.endsWith("Up to 200."), `the intro states the parts and the top in ≤ 90 characters: ${line}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(demo.includes("demo.puzzle.flipRev !== FLIP_REV_FLOW && demo.puzzle.flipRev !== FLIP_REV_DEAL) return null;"), "the intro demo plays only when recorded on flipRev 11 (or 12, the same game)");
+  ok(demo.includes("demo.puzzle.flipRev !== FLIP_REV_FLOW && demo.puzzle.flipRev !== FLIP_REV_DEAL && demo.puzzle.flipRev !== FLIP_REV_GRACE) return null;"), "the intro demo plays only when recorded on flipRev 11, 12 or 13 (the same look)");
   const art = readFileSync("src/lib/arcade/flipArt.renderer.ts", "utf8");
   // The Action HUD (3 Nov 2026): the flow streak as a chip.
   ok(art.includes("if (state.flow) drawFlowHud(ctx, state);") && art.includes('{ label: "FLOW", value: String(streak)'), "the HUD shows the flow streak on flipRev 11");
@@ -149,7 +160,8 @@ ok(FLIP_V11.parts.reduce((a, p) => a + p.max, 0) === 200 && FLIP_V11_SAVE_COST =
 {
   const perfect = (entry.perfect() as StdRun[]).filter((r) => r.score !== 200);
   // Since 3 Nov 2026 the standard module names flipRev 12 (flipRev 11's game, its proved deal), one above flipRev 11.
-  ok(entry.type === "flip" && entry.field === "flipRev" && entry.rev === FLIP_REV_FLOW + 1 && entry.before === FLIP_REV_FLOW && FLIP_REV_FLOW === FLIP_REV_STD + 1, "the standard module names flipRev 12 (flipRev 11's game), one above flipRev 11");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): flipRev 13 since 15 Nov 2026.
+  ok(entry.type === "flip" && entry.field === "flipRev" && entry.rev === FLIP_REV_GRACE && entry.before === FLIP_REV_FLOW + 1 && FLIP_REV_FLOW === FLIP_REV_STD + 1, "the standard module names flipRev 13, after flipRev 12 (flipRev 11's game)");
   ok(perfect.length === 0, `every perfect witness scores 200 (${perfect.map((r) => `${r.label} ${r.score}`).join(", ")})`);
 }
 
@@ -233,10 +245,11 @@ ok(saved >= 2 && sweetRuns >= 6, `the bot runs include saved crashes (${saved}) 
   // The checksum folds in the flow counters.
   const mid = { ...base, ended: 0, tick: 600, streak: 7, bestStreak: 9 };
   ok(flipCheckpoint(mid).checksum !== flipCheckpoint({ ...mid, streak: 8 }).checksum && flipCheckpoint(mid).checksum !== flipCheckpoint({ ...mid, bestStreak: 10 }).checksum && flipCheckpoint(mid).checksum !== flipCheckpoint({ ...mid, slip: 1 }).checksum, "the checkpoint checksum folds in the streak, the best streak and the slip");
-  // The reveal: one line per part.
+  // The reveal: one line per part. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul,
+  // a screen deliberately redesigned): the "Bonuses" tile repeated the parts and is gone.
   const st = { ...at(3600, 1, 1), sweetGot: 7, combos: 2, bestStreak: 25 };
   const r = buildArcadeReveal("flip", { state: st, survived: true, survivedSeconds: 60, saves: 1, sweets: 3, sweetsTotal: 8, streak: 25, skill: 37, flow: true, std: true, starsTotal: 0 }, v11.score(st));
-  ok(Boolean(r && r.lines.join(" | ") === "Clean time: 40 s clean · 1 crash saved → 66 of 100 | Perfect landings: 3 of 8 perfect landings → 22 of 60 | Double flips: 2 double flips → 5 of 20 | Flow streak: 25 clean jumps in a row → 10 of 20 | Total → 103 of 200" && r.tiles.some((t) => t.label === "Best streak" && t.value === "25") && r.tiles.some((t) => t.label === "Perfect landings" && t.value === "3 / 8") && r.tiles.some((t) => t.label === "Bonuses" && t.value === "+37")), `the reveal states clean time and each feature, and the best streak: ${JSON.stringify(r?.lines)} ${JSON.stringify(r?.tiles)}`);
+  ok(Boolean(r && r.lines.join(" | ") === "Clean time: 40 s clean · 1 crash saved → 66 of 100 | Perfect landings: 3 of 8 perfect landings → 22 of 60 | Double flips: 2 double flips → 5 of 20 | Flow streak: 25 clean jumps in a row → 10 of 20 | Total → 103 of 200" && r.tiles.some((t) => t.label === "Best streak" && t.value === "25") && r.tiles.some((t) => t.label === "Perfect landings" && t.value === "3 / 8") && !r.tiles.some((t) => t.label === "Bonuses")), `the reveal states clean time and each feature, and the best streak: ${JSON.stringify(r?.lines)} ${JSON.stringify(r?.tiles)}`);
   ok(v11.score(st) === 66 + 22 + 5 + 10, `one save, 3 perfect landings, 2 double flips, a streak of 25: 66 + 22 + 5 + 10 = 103 (got ${v11.score(st)})`);
 }
 {

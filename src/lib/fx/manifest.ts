@@ -763,6 +763,15 @@ const ENTRIES = {
   "rally.hit": { channel: "effects", frequency: 0, ms: 50, url: null },
   "flip.crash": { channel: "effects", frequency: 0, ms: 200, url: null },
   "flip.flip": { channel: "effects", frequency: 0, ms: 330, url: null },
+  // Roofbound, the Action overhaul (15 Nov 2026; docs/sound-cues/action-elevenlabs.md): Joe's ElevenLabs files to come.
+  // The two flip whooshes play the library flip until set; the rest are silent until their file (effectCue).
+  "flip.flipUp": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "flip.flipDown": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "flip.respawn": { channel: "effects", frequency: 0, ms: 450, url: null },
+  "flip.land": { channel: "effects", frequency: 0, ms: 180, url: null },
+  "flip.flowTick": { channel: "effects", frequency: 0, ms: 160, url: null },
+  "flip.flowTen": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "flip.flowBreak": { channel: "effects", frequency: 0, ms: 350, url: null },
   "ricochet.leap": { channel: "effects", frequency: 0, ms: 416, url: "/sounds/ricochet.leap.mp3" },
   "ricochet.doubleJump": { channel: "effects", frequency: 0, ms: 473, url: "/sounds/ricochet.doubleJump.mp3" },
   "ricochet.hit": { channel: "effects", frequency: 0, ms: 476, url: "/sounds/ricochet.hit.mp3" },

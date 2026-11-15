@@ -70,6 +70,8 @@ export const DEAL_PINS = {
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
+  /** arcade.server.ts: Roofbound flipRev 12, before the Action overhaul's grace (15 Nov 2026). */
+  flipPreGrace: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

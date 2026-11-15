@@ -139,7 +139,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     slice: "Slice food; bonuses for combos, gold fruit, bread and dodges; chillies cost. Up to {max}.",
     beat: "Hit notes on the beat; bonuses for fevers, golden notes, double taps, streaks. Up to {max}.",
     wavefront: "Shoot ships, clear waves; bonuses for a fast boss kill, saucers and cannons. Up to {max}.",
-    flip: "Last without crashing; bonuses for landing on sweet spots, double flips, flow. Up to {max}.",
+    flip: "Run clean: crashes cost time. Bonuses for sweet spots, double flips, flow. Up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: "Pot every level; bonuses for little ink, trick shots, clovers and speed. Up to {max}.",
     burst: "Pop atoms; fast wave clears and golden atoms pay; lives cost, wasted shots too. Up to {max}.",

@@ -1,5 +1,69 @@
 # Roofbound on the arcade scoring standard
 
+## flipRev 13 (15 Nov 2026, the Action overhaul): grace, a richer cave
+
+Rooms deal **flipRev 13** (`FLIP_REV_GRACE`): flipRev 12's courses, hazards, sweet spots, double flips and flow streak
+exactly, with two changes Joe asked for in the Action review (`docs/design/game-reviews/action.md`):
+
+- **Grace: no crash ends the run.** A crash with a checkpoint's save in hand is saved as before; a crash with none
+  respawns the runner on the spot (a second of shield, the runner blinking; the flow streak broken) and the run goes on to
+  the clock. Every crash costs `FLIP_V13_CRASH_COST` (20 half seconds, 10 s) of clean time. Checkpoints are no longer
+  drawn on flipRev 13 (every crash is caught, so they would mean nothing); the sim still passes them (its state and
+  checksum keep flipRev 12's counters). States add `grace: 1` and `respawns`, folded into the checkpoint checksum last.
+- **Normal retuned** (Joe found flipRev 12 too hard): clean time 100 is full at 55 s (`FLIP_V13_CORE_FULL` 110 half
+  seconds; was the whole minute), perfect landings 60 are full at 5 of the 8 sweet spots (12 each, `FLIP_V13_SWEETS_FULL`;
+  was all 8, 7.5 each); double flips 20 (full at 8) and the flow streak 20 (full at 50) are unchanged. The sweet spots
+  stay (Joe: the scoring structure is reviewed with him after the overhauls).
+
+Dealt from its own proved deal (`src/lib/duel/flipDealV13.server.ts`, `bun scripts/flip-deal.ts --rev=13 [--check]`):
+all 260 stored witness routes take every flipRev 13 part's maximum and score exactly 200 through the server replay
+(flipRev 12 left four out: they land 7 of the 8 sweet spots, which now is past the 5 needed). flipRev 1–12 replay and
+score exactly as before; checks written for flipRev 12 pin it with `pinFlipPreGrace(true)` (deal pin `flipPreGrace`).
+
+Medians (p10–p90) and means, paired on the first 40 dealt courses, server replay (`bun scripts/flip-rev13-bands.ts
+--seeds=40`; the skill-band bots, whose elite level reacts in 145 ms, faster than the brief's 0.25 s human limit: the
+difficulty framework's human-limited bot re-measures these in stage 3):
+
+| Level | flipRev 12 median, mean | flipRev 13 median, mean | Crashes (13) |
+|---|---|---|---|
+| weak | 43.5, 39 | 60, 59.6 | 3.5 |
+| average | 85.5, 86.4 | 110, 110.1 | 1 |
+| good | 139.5, 130.1 | 140, 140.8 | 0 |
+| great | 153, 139.6 | 163, 162.4 | 0 |
+| near | 164, 166.2 | 180, 180.8 | 0 |
+| elite | 185, 182.1 | 200, 198.1 | 0 |
+| perfect | 200, 198.9 | 200, 199.8 | 0 |
+
+**Display (flipRev 11–13, no stamp; the sim is untouched and collision stays along x):** the rock is basalt columns lit
+from the tunnel over one seamless gradient, with three rivers of lava flowing through it (a dark crust, a molten body, a
+hot core and bright beads running along each channel); the surface the Captain runs on is a solid stone lip (8 px deep,
+a crisp lit top edge, block joints, the lava seam glowing in the rock under it); spikes are sharp single blades of
+obsidian heating to a bright edge and a white-hot tip, outlined dark, drawn 38 px tall inside the sim's exact x-span. The
+setting evolves with the run (`flipCaveHeat`, from the tick, the same for everyone): deeper in, the rock warms, the lava
+runs hotter, wider and brighter and the tunnel air takes more of its glow. Edge to edge (Joe, 15 Nov 2026): the rock
+fades to the bedrock colour `FLIP_DEEP` at the world's top and bottom (48 px) and everything at its sides (14 px), and
+the arena scene for flipRev 11–13 (`flipArenaSceneRich`, painted once per size) is that bedrock with faint joints and
+specks, so the world meets the fill with no step or line. The intro still is the game's own art (ArtStill on flipRev 13).
+The reveal no longer shows a "Bonuses" tile (the parts above it add up already); on flipRev 13 its first tile counts the
+crashes.
+
+### Levels (stage 3, documented now; levels arrive with the difficulty framework)
+
+Normal is flipRev 13 above. Levers, from Joe's table (Grace holds at every level: a crash never ends the run):
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Speed cap (`V8_SPEED_CAP`) | lower (2048) | today (2560) | a little faster (2816) | fastest (3072) |
+| Speed step | every 4 s | every 3 s | every 3 s | every 2.5 s |
+| Moving spikes from | none | 12 s | 8 s | 5 s |
+| Sweet spot width | 2 ticks (wider) | 1 tick | 1 tick | 1 tick, 10 spots |
+| Crash cost (respawn) | 5 s (see note) | 10 s | 20 s | more than Hard (respawn only) |
+
+Joe's table gives Easy's checkpoint cost as 10 s and Normal's as 20 s; flipRev 13's Normal charges 10 s a crash (its
+retune), so Easy should charge less (5 s) to stay kinder. Each level that changes play gets its own proved deal
+(`scripts/flip-deal.ts`), tuned so the elite bot under human limits averages about 198 / 160 / 140 on Normal / Hard /
+Expert and Easy gives an average player a real shot at a star (175).
+
 ## flipRev 12 (3 Nov 2026, the Action polish): the proved deal, a taller cave
 
 Rooms deal **flipRev 12** (`FLIP_REV_DEAL`): flipRev 11's game exactly (the same sim, states, scoring and checksum;
