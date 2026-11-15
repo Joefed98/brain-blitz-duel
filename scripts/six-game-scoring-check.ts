@@ -199,7 +199,9 @@ eq(demoGuard.includes('data.type === "bullseye" && demo?.puzzle.type === "bullse
 // Expansion E4 (25 Oct 2026, docs/expansions/e4.md) stops High Rise's intro demo the same way: only a skylineRev 7 demo
 // plays (the taller view, special blocks and the preview). It flips back once the demo is re-recorded on skylineRev 7.
 // The arcade scoring standard (29 Oct 2026): only a skylineRev 9 demo plays (five gold blocks at new places, the standard's score).
-eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_STD) return null'), true, "skyline demo stopped until re-recorded on skylineRev 9");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of Joe's scope update: the intro-demo stop rule accepts the
+// dealt stamp and the stamp whose play it keeps, SAME_PLAY_DEMO_REVS; arcade-review-fixes-check proves older demos stay stopped).
+eq(demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_STD) return null') || demoGuard.includes('data.type === "skyline" && demo?.puzzle.type === "skyline" && !demoRevAccepted("skyline", demo.puzzle.skylineRev)) return null'), true, "skyline demo stopped until re-recorded on skylineRev 9");
 // Taller worlds batch 1 (16 Oct 2026) deliberately stops Rally's intro demo: a demo recorded before rallyRev 6 shows the
 // 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
 // guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.

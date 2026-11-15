@@ -6,12 +6,11 @@ import { LW_FREE_MISSES, LW_JAR_DROPS, lwDecode, lwDecodeLog, lwEncodeLog, lwGra
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
 import { prefersReducedMotion } from "@/lib/motion";
-import { playTick } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 import { Shuffle, X } from "lucide-react";
 import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
-import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { fx } from "@/lib/fx";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-letterwheel.css";
@@ -289,7 +288,25 @@ function IntroExample() {
   );
 }
 
+/**
+ * The one sound a Roundabout trace's verdict plays (game review fix, 15 Nov 2026): a slot word or a new bonus word
+ * (a real word not in the crossword, wheelRev 2's jar) is `correct`; a harmless repeat (a slot word already written, a
+ * word already in the jar) plays nothing; a miss (not a word, or wheelRev 1's real word not in this puzzle) is `wrong`.
+ */
+export function letterWheelVerdictSound(
+  verdict: { valid: boolean; reason?: string },
+  usesJar: boolean,
+  inJar: boolean,
+): "correct" | "wrong" | null {
+  if (verdict.valid) return "correct";
+  if (verdict.reason === "Already found") return null;
+  if (verdict.reason === "Not in this puzzle") return usesJar ? (inJar ? null : "correct") : "wrong";
+  return "wrong";
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }: PuzzleStageProps) {
+  const lockedNow = useRef(locked);
+  lockedNow.current = locked;
   const data: LetterWheelPuzzleData | null = puzzle.type === "letterwheel" ? puzzle : null;
   const key = stateKey ?? "letterwheel";
   const [filled, setFilled] = useStageState<(string | undefined)[]>(key, "lwFilled", () => []);
@@ -400,6 +417,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       return;
     }
     void checkWord(word, words).then((v) => {
+      // Game review fix (15 Nov 2026): the checks are silent in FeedbackStage (silentWordChecks); each trace plays its
+      // one sound here (letterWheelVerdictSound): a bonus word is a positive sound, never `wrong`.
+      const sound = letterWheelVerdictSound(v, usesJar, bonus.includes(v.word.toUpperCase()));
+      if (!lockedNow.current) {
+        if (sound === "correct") fx.onCorrect();
+        else if (sound === "wrong") fx.onWrong();
+      }
       if (v.valid && v.reason?.startsWith("slot:")) {
         const i = Number(v.reason.slice(5));
         setAccepted(previous => ({ word: v.word, points: data.slots.length === 8 ? 15 : 13, serial: (previous?.serial ?? 0) + 1 }));
@@ -415,12 +439,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         // wheelRev 2: a real word not in the crossword drops into the bonus jar.
         const word = v.word.toUpperCase();
         setBonus((b) => (b.includes(word) ? b : [...b, word]));
-        playTick();
         setFlash(`Bonus · ${word}`);
         setTimeout(() => setFlash(null), 900);
         jarPulse(jarRef.current);
       } else if (v.reason === "Not in this puzzle") {
-        puzzleReject();
+        // Game review fix (15 Nov 2026): a word already in the jar is a harmless repeat: the wheel's own silent shake,
+        // never the reject sound (wheelRev 1's word not in the puzzle plays its one `wrong` above).
+        setShake(true);
+        setTimeout(() => setShake(false), 350);
         setFlash(usesJar ? "Already in the jar" : "Not in this puzzle");
         setTimeout(() => setFlash(null), 900);
       } else {
@@ -565,3 +591,5 @@ export const letterWheelPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
+// Game review fix (15 Nov 2026): the stage plays each check's one sound itself (letterWheelVerdictSound).
+(Stage as { silentWordChecks?: boolean }).silentWordChecks = true;

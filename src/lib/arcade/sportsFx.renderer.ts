@@ -145,11 +145,11 @@ function curlingFx(rev: 1 | 2 | 4): ArcadeFxSpec<CurlingState> {
   };
 }
 
-/** Curling: a stone on the button, a takeout and the shot stone at the end; a stone that stops outside the house is a miss (the dealt curlRev 2's view). */
+/** Curling: a stone on the button, a takeout and the shot stone at the end; a stone that stops outside the house is a miss (curlRev 2 and 3's view; rooms deal curlRev 4, CURLING_FX_V4). */
 export const CURLING_FX: ArcadeFxSpec<CurlingState> = curlingFx(2);
 /** curlRev 1's success layer (its taller world). */
 export const CURLING_FX_V1: ArcadeFxSpec<CurlingState> = curlingFx(1);
-/** The success layer for a stored curlRev. */
-/** curlRev 4's view (3 Nov 2026, display only): the same events on its taller world. */
+/** curlRev 4's view (3 Nov 2026, display only; the stamp rooms deal): the same events on its taller world. */
 export const CURLING_FX_V4: ArcadeFxSpec<CurlingState> = curlingFx(4);
+/** The success layer for a stored curlRev. */
 export const curlingFxFor = (rev: number | null | undefined): ArcadeFxSpec<CurlingState> => ((rev ?? 1) >= 4 ? CURLING_FX_V4 : (rev ?? 1) >= 2 ? CURLING_FX : CURLING_FX_V1);

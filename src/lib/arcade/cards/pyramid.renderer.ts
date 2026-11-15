@@ -11,7 +11,7 @@ import { rankOf } from "./cards";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import { drawCardButton, inButton, type CardButtonBox } from "./cardButtons.renderer";
 import {
-  PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyFree, pyramidGameFor, pyRowOf, pyWasteTop, type PyState,
+  PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyDeadEnd, pyFree, pyramidGameFor, pyRowOf, pyWasteTop, type PyState,
 } from "./pyramid";
 
 export const PY_WORLD_W = 414;
@@ -154,6 +154,16 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
     ctx.textBaseline = "middle";
     ctx.fillText(`Need ${PY_RANK_NAMES[13 - rankOf(selCard)]}`, W / 2, PY_PILE_Y + PY_PILE_H / 2);
   }
+  // A dead end (15 Nov 2026, display only): on pyramidRev 3 it waits for Undo or Reset; a run that ended stuck says so.
+  const deadEnd = pyDeadEndLines(state);
+  if (deadEnd) {
+    ctx.font = `800 14px ${CARD_FONT}`;
+    ctx.fillStyle = "rgba(246,235,208,0.92)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(deadEnd[0], W / 2, PY_PILE_Y + PY_PILE_H / 2 - 10);
+    ctx.fillText(deadEnd[1], W / 2, PY_PILE_Y + PY_PILE_H / 2 + 10);
+  }
 
   for (const b of PY_BUTTONS) {
     const isUndo = b.kind === PY_INPUT_UNDO;
@@ -161,6 +171,12 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
     drawCardButton(ctx, b.box, isUndo ? "undo" : "reset", isUndo ? "UNDO" : "RESET", { live: liveBtn, held: view?.button === b.kind });
   }
   ctx.restore();
+}
+
+/** The dead-end note between the piles (display only), two short lines, or null. */
+export function pyDeadEndLines(state: PyState): readonly [string, string] | null {
+  const d = pyDeadEnd(state);
+  return d === "wait" ? ["NO MOVES", "UNDO OR RESET"] : d === "over" ? ["NO MOVES", "LEFT"] : null;
 }
 
 /** The partner rank as the cards show it (1 is an Ace, 11–12 Jack and Queen). */

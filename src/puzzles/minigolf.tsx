@@ -135,7 +135,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         inputKind={MG_INPUT_PUTT}
         pointer={(kind, x, y) => pointer(kind, x, y)}
         keys={(kind, key, send, state) => {
-          // Desktop: arrows turn the aim (Shift for finer), W/S the power, Space putts.
+          // Desktop: Left / Right turn the aim, Up / Down set the power, Space putts.
           if (state.phase !== MG_AIM) return false;
           const cur = aim.current ?? { dx: 0, dy: -1, power: 0.4 };
           if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(key);

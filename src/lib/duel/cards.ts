@@ -52,6 +52,8 @@ const fhRun3 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fi
 const pyRun = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(1), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
 /** pyramidRev 2 (more of the 200 on the cards): the same play and wire format. */
 const pyRun2 = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(2), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
+/** pyramidRev 3 (a dead end waits for Undo): the same wire format. */
+const pyRun3 = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(3), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
 const gsRun = makeArcadeRun<GsState, GsCheckpoint>({ tag: "golfsol", game: golfSolGameFor(1), checkpoint: gsCheckpoint, keys: GS_CHECKPOINT_KEYS, interval: GS_CHECKPOINT_INTERVAL });
 const mgRun = makeArcadeRun<MgState, MgCheckpoint>({ tag: "muggins", game: mugginsGameFor(1), checkpoint: mgCheckpoint, keys: MG_CHECKPOINT_KEYS, interval: MG_CHECKPOINT_INTERVAL });
 
@@ -175,7 +177,7 @@ export interface PyramidResult extends FlatReplay<PyState, PyCheckpoint> {
 
 /** The single place a Pyramid score is worked out. */
 export function replayPyramidRun(seed: number, raw: string, rev?: number | null): PyramidResult {
-  const r = ((rev ?? 1) >= 2 ? pyRun2 : pyRun).replay(seed, raw);
+  const r = ((rev ?? 1) >= 3 ? pyRun3 : (rev ?? 1) >= 2 ? pyRun2 : pyRun).replay(seed, raw);
   const s = r.state;
   return { ...r, removed: s.removed, ppPairs: s.ppPairs, kings: s.kings, finished: s.ended === 1, finishSeconds: s.finishTick / 60, undos: s.undos, resets: s.resets };
 }

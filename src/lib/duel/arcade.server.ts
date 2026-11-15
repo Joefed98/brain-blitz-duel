@@ -52,7 +52,7 @@ import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
 import { FH_REV } from "@/lib/arcade/cards/fiveHands";
-import { PY_REV } from "@/lib/arcade/cards/pyramid";
+import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
 import { MG_REV } from "@/lib/arcade/cards/muggins";
@@ -140,7 +140,9 @@ export function generateFiveHands(): FiveHandsPuzzleData {
 /** Pyramid: any seed; the sim builds the deal with a witness line (ten pyramid pairs) and proves it. */
 export function generatePyramid(): PyramidPuzzleData {
   // pyramidRev 2 (7 Nov 2026): the same deals, half the speed moved onto the cards.
-  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: dealPinned("cardsPreShare") ? 1 : PY_REV };
+  // pyramidRev 3 (15 Nov 2026): the same deals and parts; a dead end waits for Undo or Reset. Checks written before it pin
+  // the game reviews' era (preGameReviewNov15) and get pyramidRev 2.
+  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: dealPinned("cardsPreShare") ? 1 : dealPinned("preGameReviewNov15") ? PY_REV_SHARE : PY_REV };
 }
 
 /** Golf Solitaire: a bank deal (its index), cleared by a strong human line and proved with five runs of four. */

@@ -13,7 +13,7 @@ advances. No shared tap hook plays a sound.
 
 | Game | Cue | What plays at that moment |
 |---|---|---|
-| Ballpark | `numline.place` | `tick` + `place` + `move` |
+| Ballpark | `numline.place` | `move` (one sound a place since the game review fixes, 15 Nov 2026; the cue adds the pop) |
 | Ballpark | `numline.line` | `stage_complete` with the tap's `tick` / `place` / `move` |
 | Brimful | `measure.pour`, `measure.fill`, `measure.empty`, `measure.reset` | `move` |
 | Brimful | `measure.reject` | `wrong` |
@@ -23,7 +23,7 @@ advances. No shared tap hook plays a sound.
 | Integer Pyramid | `numpyramid.place` | `move` |
 | Operator | `equation.drop` | `move` |
 | Operator | `equation.advance` | `stage_complete` |
-| Tenfall | `tendrop.refused` | `tick` |
+| Tenfall | `tendrop.refused` | the quiet `wrong` (`playRejectWrong`, every wrong-move shake's sound since 15 Nov 2026; it was `tick`) |
 | Trail | `trail.step` | `move` |
 | Pull! | `clayshoot.shatter`, `clayshoot.goldShatter` | `pz_clay_hit` (+ the shot's `tick`) |
 | Double Take | `spotdiff.found` | `correct` |

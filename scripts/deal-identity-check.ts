@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 
-import { FIXTURE, PIN_VARIANTS, SEEDS, TYPES, dealDigest, roomDigests, variantDigests, type DealIdentity } from "./deal-identity-lib";
+import { FIXTURE, PIN_VARIANTS, POST_RECORDING_PINS, SEEDS, TYPES, dealDigest, roomDigests, variantDigests, type DealIdentity } from "./deal-identity-lib";
 import { DEAL_PIN_NAMES, activeDealPins, setDealPin, withDealOptions, type DealOptions, type DealPin } from "../src/lib/duel/dealEra";
 import { LIVE_DEAL, dealtSignature, parseSignature, stampSignature } from "../src/lib/duel/dealSignature";
 import { currentPracticeStamp } from "../src/lib/duel/practiceStamps";
@@ -74,7 +74,9 @@ tasks.push({
 // 2. Explicit options deal exactly what the old pins did.
 // Changed with Joe's approval, 13 Nov 2026: minesPreLogic is newer than main's recording and every deal here already
 // pins it (deal-identity-lib.ts dealDigest), so it has no recorded variant of its own.
-const optionNames = Object.keys(OPTIONS_FOR).filter((name) => name !== "minesPreLogic");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game review fixes' Brimful measureRev 4): the
+// same for preGameReviewNov15 (POST_RECORDING_PINS).
+const optionNames = Object.keys(OPTIONS_FOR).filter((name) => !(POST_RECORDING_PINS as readonly string[]).includes(name));
 for (let half = 0; half < 2; half++) {
   tasks.push({
     name: `options ${half + 1}/2`,
@@ -109,10 +111,14 @@ tasks.push({
     }
     ok(activeDealPins().length === 0, "nothing left pinned after a throw");
     ok(withDealOptions(undefined, () => 7) === 7 && withDealOptions({}, () => 8) === 8, "no options run as they are");
-    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7", "the layers in their order");
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 layers: notesFree and the game
+    // review fixes' gameReviewNov15).
+    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15", "the layers in their order");
     const names = new Set<DealPin>(DEAL_PIN_NAMES);
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesPreLogic is the 24th era switch.
-    ok(names.size === 24, `24 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
+    // preGameReviewNov15): 26.
+    ok(names.size === 26, `26 era switches (${names.size})`);
   },
 });
 

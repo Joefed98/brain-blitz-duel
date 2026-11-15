@@ -1,4 +1,7 @@
 /** Swap URLs here when the final files arrive; null music is intentionally silent. */
+import { NEW_GAME_SOUNDS } from "../../config/soundConfig";
+import { applyNewGameSounds } from "./newGameSounds";
+
 interface SoundEntry {
   channel: "effects" | "voice" | "music";
   /** Placeholder beep (Hz) when the file is missing; 0 = silent. */
@@ -545,7 +548,8 @@ const ENTRIES = {
   "tubes.pour": { channel: "effects", frequency: 0, ms: 240, url: null },
   "tubes.cork": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/tubes.cork.mp3", volume: 0.78 },
   "tubes.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.corks.mp3" },
-  "safe.click": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/safe.dialClick.mp3" },
+  // Logic review (15 Nov 2026): a held arrow steps a dial every frame or so; the half-second click layered. One a 60 ms.
+  "safe.click": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/safe.dialClick.mp3", gapMs: 60 },
   "safe.solve": { channel: "effects", frequency: 0, ms: 1200, url: null },
   "shikaku.place": { channel: "effects", frequency: 0, ms: 180, url: null },
   "shikaku.remove": { channel: "effects", frequency: 0, ms: 200, url: null },
@@ -553,6 +557,8 @@ const ENTRIES = {
   // New grid puzzles (1 Nov 2026): existing recordings only (docs/sound-cues/logic.md, number.md).
   "fences.draw": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.55, gapMs: 60 },
   "fences.cross": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3", volume: 0.45, gapMs: 60 },
+  // Logic review (15 Nov 2026): clearing a ✕ or erasing lines by drag had played "fences.cross"; it plays its own cue.
+  "fences.clear": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3", volume: 0.45, gapMs: 60 },
   "fences.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "fillomino.place": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/block.place.mp3", volume: 0.6, gapMs: 60 },
   "fillomino.region": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3", volume: 0.6 },
@@ -587,7 +593,7 @@ const ENTRIES = {
   "bastion.droneDown": { channel: "effects", frequency: 0, ms: 800, url: "/sounds/bastion.droneDown.mp3" },
   "music_dual": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_hotfloor": { channel: "music", frequency: 0, ms: 0, url: null },
-  // Moon Climb's bed: Grappler's track until Joe's own file is set.
+  // Moon Climb's own bed (Joe's sounds-nov-2026 file, docs/sound-cues/mapping-nov-2026.csv).
   "music_ricochet": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_ricochet.mp3" },
   "music_rooftop": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_steady": { channel: "music", frequency: 0, ms: 0, url: null },
@@ -1148,6 +1154,7 @@ const ENTRIES = {
   "blockfall.clear": { channel: "effects", frequency: 0, ms: 599, url: "/sounds/blockfall.clear.mp3" },
   "blockfall.bigClear": { channel: "effects", frequency: 0, ms: 1194, url: "/sounds/blockfall.bigClear.mp3" },
   "blockfall.speedUp": { channel: "effects", frequency: 0, ms: 90, url: null },
+  "blockfall.start": { channel: "effects", frequency: 0, ms: 120, url: null },
   "blockfall.topOut": { channel: "effects", frequency: 0, ms: 1200, url: "/sounds/blockfall.topOut.mp3" },
   "alleyroll.roll": { channel: "effects", frequency: 0, ms: 456, url: "/sounds/alleyroll.roll.mp3" },
   "alleyroll.rolling": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/alleyroll.rolling.mp3", loop: true },
@@ -1178,4 +1185,7 @@ const ENTRIES = {
   "bullseye.ambience": { channel: "effects", frequency: 0, ms: 8000, url: "/sounds/bullseye.ambience.mp3", loop: true },
 } satisfies Record<string, SoundEntry>;
 export type SoundId = keyof typeof ENTRIES;
+// The new game sounds (the November game reviews, src/lib/fx/newGameSounds.ts): their files reach the slots above only
+// with NEW_GAME_SOUNDS on (src/config/soundConfig.ts); off, every entry stays exactly as written here.
+if (NEW_GAME_SOUNDS) applyNewGameSounds(ENTRIES);
 export const SOUND_MANIFEST: Record<SoundId, SoundEntry> = ENTRIES;

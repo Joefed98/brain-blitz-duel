@@ -64,7 +64,9 @@ for (const g of AUDIT_GAMES) {
   ok(playRevOf(g.type, g.rev) === playRevOf(g.type, g.old), `${g.type}: ${g.field} ${g.rev} keeps ${g.field} ${g.old}'s play (playRevOf ${String(playRevOf(g.type, g.rev))})`);
   // The intro demo's gate names the stamp the demo was recorded on (the old one): the same play, so it still plays.
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(new RegExp(`demo\\.puzzle\\.${g.field} !== \\w+\\) return null`).test(demos), `${g.type}: an intro demo recorded on ${g.field} ${g.old} still plays on ${g.rev} (the same play)`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of Joe's scope update: the gate accepts both the old stamp and
+  // the dealt one through demoRevAccepted, SAME_PLAY_DEMO_REVS; arcade-review-fixes-check proves the pair).
+  ok(new RegExp(`(demo\\.puzzle\\.${g.field} !== \\w+|!demoRevAccepted\\("\\w+", demo\\.puzzle\\.${g.field}\\))\\) return null`).test(demos), `${g.type}: an intro demo recorded on ${g.field} ${g.old} still plays on ${g.rev} (the same play)`);
 }
 ok(crossGameFor(CROSS_REV_KEEP).init(5).keep === 1 && crossGameFor(CROSS_REV_FLOW).init(5).keep === undefined, "Spacewalk: only crossRev 12 states carry keep");
 ok(wavefrontGameFor(WAV_REV_KEEP).init(5).keep === 1 && wavefrontGameFor(WAV_REV_STD).init(5).keep === undefined, "Wavefront: only wavRev 13 states carry keep");

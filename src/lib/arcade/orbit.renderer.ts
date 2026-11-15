@@ -777,7 +777,7 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
   if (rocket) ctx.drawImage(rocket, -rocket.width / 2, -rocket.height / 2);
   ctx.restore();
 
-  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   // Action's pill HUD (3 Nov 2026, Orbit moved to Action): the planets, then the checkpoint, on one row.
   successHud(ctx, "orbit", state.tick, 14, 12, () =>
     drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, ORBIT_WORLD_W - 12),
@@ -1150,7 +1150,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 
   // The end of the play layers: the HUD and the success layer's HUD burst are top left.
   ctx.restore();
-  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   // Action's pill HUD (3 Nov 2026, Orbit moved to Action): at most two rows, top left, clear of SET CHECKPOINT's
   // corner (ORBIT_XP_ZONE, orbitRev 12+): the planets and the checkpoint, then what the run has taken of the features.
   const hudRight = state.xp ? ORBIT_CAM_VIEW_W - ORBIT_XP_ZONE.w - 8 : ORBIT_CAM_VIEW_W - 12;
@@ -1282,6 +1282,19 @@ const XP_SPARK_MS = 380;
 const XP_TRAIL_MS = 650;
 const XP_TRAIL_SPECKS = 10;
 
+/**
+ * The pops' points (display only, 15 Nov 2026): orbitRev 12 paid 4 a slingshot and 1 per three perfect orbits; on the
+ * standard (orbitRev 13+, the state's `std`) a slingshot is 3 and a perfect orbit 11/21 of a point, so that pop shows
+ * no number (it is never a whole one).
+ */
+export function orbitSlingPopText(s: Pick<OrbitRev3State, "std">): string {
+  return s.std ? "SLINGSHOT! +3" : "SLINGSHOT! +4";
+}
+export function orbitPerfectPopText(s: Pick<OrbitRev3State, "std">, n: number): string {
+  if (s.std) return `PERFECT ORBIT ×${n}`;
+  return n % 3 === 0 ? `PERFECT ORBIT ×${n} +1` : `PERFECT ORBIT ×${n}`;
+}
+
 function observeXp(ctx: object, s: OrbitRev3State): XpMemory {
   let m = xpMemories.get(ctx);
   if (!m || s.tick < m.tick) {
@@ -1296,12 +1309,12 @@ function observeXp(ctx: object, s: OrbitRev3State): XpMemory {
   (s.dust ?? []).forEach((d, i) => {
     if (got & (1 << i)) m!.sparks.push({ x: d.x / FP, y: d.y / FP, at: now, vx: s.vx / FP, vy: s.vy / FP, i });
   });
-  if ((s.slung ?? 0) !== m.slung) m.pops.push({ text: "SLINGSHOT! +4", x: rx, y: ry - 26, at: now, colour: XP_TEAL });
+  if ((s.slung ?? 0) !== m.slung) m.pops.push({ text: orbitSlingPopText(s), x: rx, y: ry - 26, at: now, colour: XP_TEAL });
   if ((s.threaded ?? 0) !== m.threaded) m.pops.push({ text: "THREADED! +4", x: rx, y: ry - 26, at: now, colour: ORBIT_GOLD });
   if ((s.perfect ?? 0) > m.perfect) {
     const n = s.perfect ?? 0;
     const p = s.planets[s.cur];
-    m.pops.push({ text: n % 3 === 0 ? `PERFECT ORBIT ×${n} +1` : `PERFECT ORBIT ×${n}`, x: p ? p.x / FP : rx, y: p ? (p.y - p.ring) / FP - 14 : ry - 30, at: now, colour: "#FFF3C4" });
+    m.pops.push({ text: orbitPerfectPopText(s, n), x: p ? p.x / FP : rx, y: p ? (p.y - p.ring) / FP - 14 : ry - 30, at: now, colour: "#FFF3C4" });
   }
   m.tick = s.tick;
   m.dustGot = s.dustGot ?? 0;

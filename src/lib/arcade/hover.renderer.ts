@@ -289,7 +289,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
     HOVER_WORLD_W,
     { text: `BARRIERS ${state.gates}/${state.totalGates}` },
     [
-      (state.totalStars ?? 0) > 0 ? { text: `STARS ${state.stars ?? 0}/${state.totalStars}`, colour: STAR_GOLD } : null,
+      // The gold stars taken of the course's (10), named as the reveal names the part ("Gold stars"; its figure is points).
+      (state.totalStars ?? 0) > 0 ? { text: hoverGoldHudText(state), colour: STAR_GOLD } : null,
       totals ? { text: `CHAINS ${state.chainsDone ?? 0}/${totals.chains}`, colour: STAR_GOLD } : null,
     ],
     { wrapMain: (draw) => successHud(ctx, "hover", state.tick, 12, 8, draw) },
@@ -310,6 +311,11 @@ const STAR_GOLD = "#FFD84A";
  */
 const STAR_DRAW_SCALE = 1.2;
 const CHAIN_STAR_DRAW_SCALE = 1;
+
+/** The HUD's gold-star count (display only): taken of the course's gold stars. */
+export function hoverGoldHudText(state: Pick<HoverState, "stars" | "totalStars">): string {
+  return `GOLD STARS ${state.stars ?? 0}/${state.totalStars ?? 0}`;
+}
 
 /** A gold star (hoverRev 2) drawn in 2 px blocks inside its collection circle; gone once taken. */
 export function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pillar: HoverState["pillars"][number], index: number, cx: number): void {

@@ -365,10 +365,14 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
     if (log.length >= TAP_LOG_MAX) return;
     // Whole ms on the round clock, never earlier than the tap before.
     const stamp = Math.max(0, Math.round(serverNow() - phaseStartedAt), log[log.length - 1]?.t ?? 0);
-    taps.current = [...log, { n: spot.n, t: stamp }];
-    setLogLength(taps.current.length);
-    const after = replayAscend(puzzle, taps.current);
+    const candidate = [...log, { n: spot.n, t: stamp }];
+    const after = replayAscend(puzzle, candidate);
     const outcome = after.outcomes[after.outcomes.length - 1];
+    // Speed review fixes (15 Nov 2026): a tap on a disc already done is one the server ignores, so it is not logged
+    // (the same score) and makes no draft change, so it no longer ticks.
+    if (ascendTapSilent(outcome)) return;
+    taps.current = candidate;
+    setLogLength(taps.current.length);
     if (outcome === "wrong") {
       setFlash(index);
       ascendWrongTap(disc);
@@ -395,6 +399,16 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       run={ascendStandard(puzzle) ? currentRun(replay.outcomes) : null}
     />
   );
+}
+
+/** A tap the server's replay ignores (a disc already done): the phone neither logs nor sounds it. */
+export function ascendTapSilent(outcome: string | undefined): boolean {
+  return outcome === "ignored";
+}
+
+/** The reveal draws the discs reached (the first `reached` in rising order) gold, the rest grey. */
+export function ascendRevealDone(index: number, reached: number): boolean {
+  return index < reached;
 }
 
 function Stage(props: PuzzleStageProps) {
@@ -427,7 +441,8 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
-            <Circle n={spot.n} done size={38} />
+            {/* Speed review fixes (15 Nov 2026): only the discs reached are gold; the rest stay grey. */}
+            <Circle n={spot.n} done={ascendRevealDone(index, reached)} size={38} />
           </span>
         ))}
       </div>

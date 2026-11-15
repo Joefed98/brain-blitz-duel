@@ -117,6 +117,17 @@ export function checkoutDartLabel(stage: CheckoutStageData, dart: CheckoutDart):
   return `${prefix}${stage.wedges[dart.wedge] ?? "?"}`;
 }
 
+/**
+ * Display only (game review fix, 15 Nov 2026): one dart as a term of the running sum, with ONE sign. A dart on a
+ * negative wedge adds its size back ("120 + D7", was "120 − D-7").
+ */
+export function checkoutDartTerm(stage: CheckoutStageData, dart: CheckoutDart): string {
+  const value = dart.wedge === CHECKOUT_BULL ? 1 : stage.wedges[dart.wedge] ?? 0;
+  if (value >= 0) return `− ${checkoutDartLabel(stage, dart)}`;
+  const prefix = ["", "S", "D", "T", "Q"][dart.ring] ?? "";
+  return `+ ${prefix}${-value}`;
+}
+
 export interface CheckoutSearch {
   /** Fewest darts in any valid route; null when there is none. */
   minDarts: number | null;
