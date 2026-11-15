@@ -55,10 +55,10 @@ def wall():
 
 
 def bench():
-    studio(390, 64, scale=2)
-    top = walnut("benchtop", "#6a4426", "#3a2311", 2.0)
+    studio(390, 64, scale=2, key=0.6)
+    top = walnut("benchtop", "#6b3a16", "#2e1606", 1.2)
     box(-4, 6, 398, 16, 12, top, r=3)          # the top's front edge
-    box(-4, 20, 398, 44, 6, walnut("benchfront", "#4a2d17", "#24140a", 2.0), r=2)
+    box(-4, 20, 398, 44, 6, walnut("benchfront", "#4a240c", "#1e0e04", 1.2), r=2)
     write(G, "bench")
 
 
@@ -90,7 +90,7 @@ def column():
 
 def foot():
     studio(160, 34, scale=3)
-    box(6, 14, 148, 18, 10, walnut("plinth", "#55341a", "#2a180b", 2.2), r=3)
+    box(6, 14, 148, 18, 10, walnut("plinth", "#5a3012", "#241105", 1.2), r=3)
     box(28, 4, 104, 12, 10, brass("footbrass"), r=3, z=6)
     write(G, "foot")
 
@@ -109,7 +109,7 @@ def bell(name, handle_mat, face_mat):
     body = iron("bellbody")
     torus(30, 20, 13, 4.6, handle_mat)          # the handle loop
     ellipsoid(30, 46, 23, 22, 14, body)         # the cast body
-    cyl(30, 47, 13.5, 16, face_mat, bevel=2.2)  # the face plate the number sits on
+    cyl(30, 47, 13.5, 8, face_mat, z=22, bevel=2.2)  # the face plate the number sits on, proud of the body
     write(G, name)
 
 
@@ -124,7 +124,7 @@ def bell_fixed():
 def tray():
     studio(380, 100, scale=2)
     box(2, 6, 376, 92, 8, brass("lip"), r=10)
-    box(10, 14, 360, 76, 10, walnut("trayin", "#3a2312", "#1c1007", 1.6), r=7, z=2)
+    box(10, 14, 360, 76, 10, walnut("trayin", "#3e200b", "#170a03", 1.0), r=7, z=2)
     write(G, "tray")
 
 

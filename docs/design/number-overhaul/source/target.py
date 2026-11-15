@@ -32,6 +32,7 @@ def slate(name, color):
 
 def tile_base(name, face, edge=None):
     studio(120, 72, scale=3)
+    face, edge = face(), (edge() if edge else None)
     if edge is not None:
         box(2, 2, 116, 68, 8, edge, r=12)
         box(5, 5, 110, 62, 10, face, r=10)
@@ -41,15 +42,15 @@ def tile_base(name, face, edge=None):
 
 
 def tile():
-    tile_base("tile", slate("tileface", "#1d2436"))
+    tile_base("tile", lambda: slate("tileface", "#1d2436"))
 
 
 def tile_large():
-    tile_base("tile-large", slate("tilelg", "#232435"), edge=gold("tileedge", 0.45))
+    tile_base("tile-large", lambda: slate("tilelg", "#232435"), edge=lambda: gold("tileedge", 0.45))
 
 
 def tile_picked():
-    tile_base("tile-picked", gold("tilegold", 0.45))
+    tile_base("tile-picked", lambda: gold("tilegold", 0.45))
 
 
 def op():

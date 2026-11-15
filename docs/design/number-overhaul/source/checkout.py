@@ -33,20 +33,20 @@ def sector(r0, r1, w, m, depth=2.0, z=0.0, steps=10):
 def sisal(name, color):
     """Pressed bristle: matte, with the fibre ends as a fine, deep grain."""
     m = mat(name, color, 0.92, sheen=0.25)
-    return add_bump(m, 900, 0.35, detail=4, distance=0.004)
+    return add_bump(m, 700, 0.6, detail=6, distance=0.006)
 
 
 def board(quad):
-    setup(200, 200, scale=5, samples=96)
-    # The wooden surround: turned walnut, satin, its grain running round the ring.
+    setup(200, 200, scale=4.5, samples=48).view_settings.exposure = -0.6
+    # The wooden surround: turned walnut, satin, its grain running round the ring (below the bristle's face).
     walnut = wood("walnut", "#5a3519", "#2a160a", rough=0.5, coat=0.15, scale=6, stretch=(1, 1, 1))
-    cyl(C, C, R_NUM - 0.4, 6, walnut, z=-4, bevel=1.6, verts=180)
+    cyl(C, C, R_NUM - 0.4, 6, walnut, z=-6.5, bevel=1.6, verts=180)
     # A dark iron band where the bristle meets the wood.
-    cyl(C, C, R_DO + 1.2, 4.2, mat("band", "#1a1a1c", 0.45, metal=1.0), z=-2.2, bevel=0.4, verts=180)
-    black = sisal("sisal_black", "#1b1a19")
-    cream = sisal("sisal_cream", "#e6dcc4")
-    red = sisal("sisal_red", "#a3242a")
-    green = sisal("sisal_green", "#1d6a3a")
+    cyl(C, C, R_DO + 1.2, 1.0, mat("band", "#1a1a1c", 0.45, metal=1.0), z=-1.2, bevel=0.3, verts=180)
+    black = sisal("sisal_black", "#141312")
+    cream = sisal("sisal_cream", "#d6c8a6")
+    red = sisal("sisal_red", "#8a141c")
+    green = sisal("sisal_green", "#0f4a28")
     brass = add_bump(mat("x4brass", "#b9944c", 0.5, metal=1.0), 300, 0.05)
     for w in range(20):
         even = w % 2 == 0
@@ -89,11 +89,11 @@ def dart():
         return (12 + d * math.cos(a) * 0.62, 108 + d * math.sin(a))
     tube([(*along(0), 6), (*along(16), 6)], 1.1, steel, round_caps=False)
     sphere(*along(0), 1.1, steel, z=6)
-    tube([(*along(16), 6), (*along(46), 6)], 3.6, barrel, round_caps=True)
+    tube([(*along(16), 6), (*along(46), 6)], 4.4, barrel, round_caps=True)
     tube([(*along(46), 6), (*along(70), 6)], 1.4, shaft, round_caps=False)
     fx, fy = along(70)
     gx, gy = along(98)
-    slab([(fx, fy), (gx + 9, gy + 2), (gx, gy), (gx - 7, gy + 6)], 0.8, flight, z=5.6, bevel=0.2)
+    slab([(fx, fy), (gx + 13, gy + 4), (gx + 2, gy - 3), (gx - 10, gy + 8)], 0.8, flight, z=5.6, bevel=0.2)
     write("checkout", "dart")
 
 

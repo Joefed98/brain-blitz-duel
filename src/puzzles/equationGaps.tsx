@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { useGameKeys } from "@/lib/desktop";
-import { GoalLineContext } from "@/components/duel/GameFrame";
+import { GoalLineContext, useGoalProgress } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { FitLine, useFitOneLine } from "@/components/puzzles/useFitOneLine";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
-import { playSound } from "@/lib/sound";
-import { StageProgress } from "@/components/puzzles/StageProgress";
-import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
+import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
+import { NumberStage } from "@/components/puzzles/number/overhaul";
+import { operatorFairTries } from "@/lib/duel/numberOverhaul";
+import { countTry, nextOpenStage, targetGap } from "@/lib/duel/operatorFairTries";
 import { useStageState } from "@/lib/duel/stageState";
 import { equationTryLimit, joinCountSuffix, limitText, splitCountSuffix } from "@/lib/duel/moveLimits";
 import { joinStages, splitStages } from "@/lib/duel/stagedRounds";
@@ -18,6 +19,7 @@ import { gapSlots, gapStageCorrect, gapStageFull, joinGapSegment, splitGapSegmen
 import type { EquationPuzzleData, EquationStage, Operator } from "@/lib/duel/types";
 import type { PuzzleRevealProps, PuzzleStageProps } from "./types";
 import "@/polish-layout/operator-gaps.css";
+import "@/polish-number/equation.css";
 
 /**
  * Operator's gaps (puzzle polish, 3 Nov 2026; rules in src/lib/duel/operatorGaps.ts): equation 1 takes signs, 2 takes
@@ -48,11 +50,13 @@ function usedChips(tray: readonly number[], slots: readonly GapSlot[], fills: re
 }
 
 /** One equation drawn left to right: given numbers and signs as text, gaps as their marked shapes. */
-function GapLine({ stage, fills, onGap, nextGap, fresh, mark }: {
+function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark }: {
   stage: EquationStage;
   fills: readonly (string | null)[];
   onGap?: ((k: number) => void) | undefined;
   nextGap?: number;
+  /** gapsRev 2: the empty gap the player chose for the next tile. */
+  chosen?: number | null;
   fresh?: number | null;
   /** Reveal: colour the filled gaps as right ("ok") or wrong ("bad"). */
   mark?: "ok" | "bad";
@@ -70,10 +74,11 @@ function GapLine({ stage, fills, onGap, nextGap, fresh, mark }: {
         data-kind={slot.kind}
         data-filled={value ? "true" : undefined}
         data-next={nextGap === k ? "true" : undefined}
+        data-chosen={chosen === k ? "true" : undefined}
         data-mark={mark}
         disabled={!onGap}
         onClick={onGap ? () => onGap(k) : undefined}
-        aria-label={value ? `${slot.kind === "sign" ? "Sign" : "Number"} ${signText(value)}, tap to clear` : slot.kind === "sign" ? "Empty sign gap" : "Empty number gap"}
+        aria-label={value ? `${slot.kind === "sign" ? "Sign" : "Number"} ${signText(value)}, tap to clear` : slot.kind === "sign" ? "Empty sign gap, tap to fill it next" : "Empty number gap, tap to fill it next"}
       >
         {value ? <span className="opg-fill" data-drop={fresh === k ? "true" : undefined}>{signText(value)}</span> : <span className="opg-hint" aria-hidden="true">{slot.kind === "sign" ? "±" : "#"}</span>}
       </button>
@@ -101,14 +106,19 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   const inFrame = useContext(GoalLineContext) !== null;
   const data = puzzle.type === "equation" ? (puzzle as EquationPuzzleData) : null;
   const total = data?.stages.length ?? 4;
+  // gapsRev 2 (the Number overhaul, numberOverhaul.ts): tries only for a new fill, any open equation can be gone back to.
+  const fair = operatorFairTries(data);
   const [stage, setStage] = useStageState<number>(stateKey, "gapStage", () => 0);
   const [answers, setAnswers] = useStageState<string[]>(stateKey, "gapAnswers", () => Array.from({ length: total }, () => ""));
   const [fills, setFills] = useStageState<(string | null)[]>(stateKey, "gapFills", () => Array(data?.stages[0] ? gapSlots(data.stages[0]).length : 0).fill(null));
   const tryLimit = data ? equationTryLimit(data) : null;
   const [tries, setTries] = useStageState<number[]>(stateKey, "gapTries", () => Array.from({ length: total }, () => 0));
+  const [tried, setTried] = useStageState<string[][]>(stateKey, "gapTried", () => Array.from({ length: total }, () => []));
+  const [chosen, setChosen] = useState<number | null>(null);
   const done = useRef(false);
   const [fresh, setFresh] = useState<number | null>(null);
   const [entered, setEntered] = useState(false);
+  const [cracked, setCracked] = useState<number | null>(null);
   const [finale, setFinale] = useState<string[] | null>(null);
   const finaleOn = useSolveFx(finale !== null, "equation.solve", 1200);
 
@@ -120,9 +130,14 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   const complete = !!current && gapStageCorrect(current, segment);
   const triesUsed = tries[stage] ?? 0;
   const outOfTries = tryLimit !== null && !complete && triesUsed >= tryLimit;
+  const solvedAt = (i: number) => !!data?.stages[i] && gapStageCorrect(data.stages[i]!, liveAnswers[i] ?? "");
+  const outAt = (i: number) => tryLimit !== null && !solvedAt(i) && (tries[i] ?? 0) >= tryLimit;
+  const openAt = (i: number) => !solvedAt(i) && !outAt(i);
+  const nextOpen = fair ? nextOpenStage(stage, total, openAt) : stage >= total - 1 ? null : stage + 1;
+  const solvedCount = data ? data.stages.filter((_, i) => solvedAt(i)).length : 0;
   const holding = useStageCorrectHold({
     complete,
-    finalStage: stage >= total - 1,
+    finalStage: nextOpen === null,
     locked: locked || done.current,
     stateKey,
     onAdvance: () => advance(segment),
@@ -130,9 +145,9 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   useEffect(() => {
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
-  useEffect(() => {
-    if (holding) soundCue("equation.correct");
-  }, [holding]);
+
+  // The frame's goal line: one pip a solved equation (the shared stage moment fills it), "Stage n of N".
+  const framed = useGoalProgress({ done: solvedCount, total, text: `Stage ${Math.min(stage + 1, total)} of ${total}` });
 
   const box = useRef<HTMLDivElement>(null);
   const line = useRef<HTMLSpanElement>(null);
@@ -149,11 +164,12 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   const keysFrozen = frozen || outOfTries;
   const tray = current?.tray ?? [];
   const used = usedChips(tray, slots, fills);
-  const emptySign = slots.findIndex((s, k) => s.kind === "sign" && !fills[k]);
-  const emptyNumber = slots.findIndex((s, k) => s.kind === "number" && !fills[k]);
+  const kinds = slots.map((s) => s.kind);
+  const emptySign = targetGap(kinds, fills, "sign", chosen);
+  const emptyNumber = targetGap(kinds, fills, "number", chosen);
   const hasSigns = slots.some((s) => s.kind === "sign");
   const hasNumbers = slots.some((s) => s.kind === "number");
-  const nextGap = keysFrozen ? -1 : fills.findIndex((f) => !f);
+  const nextGap = keysFrozen ? -1 : chosen !== null && !fills[chosen] ? chosen : fills.findIndex((f) => !f);
 
   const place = (k: number, value: string) => {
     if (keysFrozen || k < 0 || !current) return;
@@ -161,11 +177,22 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
     next[k] = value;
     setFills(next);
     setFresh(k);
+    setChosen(null);
     soundCue("equation.drop");
     const seg = joinGapSegment(next);
     if (tryLimit !== null && gapStageFull(current, seg)) {
-      setTries(tries.map((n, i) => (i === stage ? n + 1 : n)));
-      if (!gapStageCorrect(current, seg)) wrongMoveFlash(box.current);
+      const counted = countTry(fair, tried[stage] ?? [], seg);
+      setTried(tried.map((t, i) => (i === stage ? counted.tried : t)));
+      const usedNow = triesUsed + (counted.uses ? 1 : 0);
+      if (counted.uses) setTries(tries.map((n, i) => (i === stage ? usedNow : n)));
+      if (!gapStageCorrect(current, seg)) {
+        wrongMoveFlash(box.current);
+        if (counted.uses) {
+          setCracked(usedNow - 1);
+          soundCue("equation.tryCracked");
+          if (usedNow >= tryLimit) soundCue("equation.fail");
+        } else soundCue("equation.triedBefore");
+      }
     }
   };
   const tapSign = (op: Operator) => place(emptySign, op);
@@ -173,35 +200,51 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
     if (used[t]) return;
     place(emptyNumber, String(tray[t]));
   };
-  const clearGap = (k: number) => {
-    if (keysFrozen || !fills[k]) return;
+  const tapGap = (k: number) => {
+    if (keysFrozen) return;
+    if (!fills[k]) {
+      // An empty gap: choose it as where the next tile of its kind goes (a second tap lets go).
+      setChosen(chosen === k ? null : k);
+      soundCue("equation.chooseGap");
+      return;
+    }
     const next = [...fills];
     next[k] = null;
     setFills(next);
     setFresh(null);
+    soundCue("equation.clearGap");
   };
 
-  const advance = (seg: string) => {
+  /** Moves to stage `to` (null: the round ends), keeping this stage's fills in its answer. */
+  const goTo = (seg: string, to: number | null) => {
     if (!data) return;
     const next = [...answers];
     next[stage] = seg;
     setAnswers(next);
-    if (stage >= total - 1) {
+    setChosen(null);
+    setCracked(null);
+    if (to === null) {
       done.current = true;
       onSubmit(tryLimit !== null ? joinCountSuffix(joinStages(next, total), tries) : joinStages(next, total));
       if (data.stages.every((st, i) => gapStageCorrect(st, next[i] ?? ""))) setFinale(next);
       return;
     }
-    const nextStage = stage + 1;
-    setStage(nextStage);
+    setStage(to);
     setEntered(true);
     setFresh(null);
-    soundCue("equation.advance");
-    // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) gets the neutral move tick, never a
-    // solve's sound; StageProgress stays quiet for it.
-    if (!gapStageCorrect(data.stages[stage]!, seg)) playSound("move");
-    const st = data.stages[nextStage];
-    if (st) setFills(Array(gapSlots(st).length).fill(null));
+    const st = data.stages[to];
+    if (st) setFills(splitGapSegment(next[to] ?? "", gapSlots(st).length).map((f) => f || null));
+  };
+  const advance = (seg: string) => {
+    if (!data) return;
+    // Skip (Next on an equation not solved and with tries left): its own flat swish, never a solve's sound.
+    if (!gapStageCorrect(data.stages[stage]!, seg) && !outOfTries && nextOpen !== null) soundCue("equation.skip");
+    goTo(seg, nextOpen);
+  };
+  const goBack = (to: number) => {
+    if (!fair || frozen || to === stage || !openAt(to)) return;
+    soundCue("equation.goBack");
+    goTo(segment, to);
   };
 
   useGameKeys((kind, key, event) => {
@@ -230,7 +273,7 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
     } else if (key === "Backspace") {
       let k = fills.length - 1;
       while (k >= 0 && !fills[k]) k--;
-      if (k >= 0) clearGap(k);
+      if (k >= 0) tapGap(k);
     } else if (!event.repeat && !frozen) advance(segment);
     return true;
   });
@@ -240,25 +283,74 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
   }
 
   if (!data || !current) return null;
-  const last = stage >= total - 1;
-  const rightSoFar = data.stages.filter((st, i) => i < stage && gapStageCorrect(st, answers[i] ?? "")).length + (complete ? 1 : 0);
   const caption = hasSigns && hasNumbers ? "Signs in the circles, numbers in the squares" : hasNumbers ? "Fill the squares from the numbers below" : "Fill the circles with signs";
+  const finishing = nextOpen === null;
 
   return (
-    <div data-polish="equation" data-operator-gaps="" data-stage-column="3" className={`flex min-h-0 flex-1 flex-col gap-3 ${column ? "" : "justify-between"}`}>
+    <div data-polish="equation" data-operator-gaps="" data-number-overhaul="" data-stage-column="3" className="opg-stage flex min-h-0 flex-1 flex-col gap-3">
+      {!framed ? (
+        <div className="flex h-3 w-full shrink-0 gap-1.5" aria-label={`Stage ${stage + 1} of ${total}`}>
+          {Array.from({ length: total }, (_, i) => (
+            <span key={i} className={`h-3 flex-1 rounded-full ${solvedAt(i) ? "bg-category-accent" : i === stage ? "bg-category-accent/35" : "bg-border"}`} />
+          ))}
+        </div>
+      ) : null}
+      {column ? <div className="opg-spacer" aria-hidden /> : null}
       <div data-game-arena="fixed" className="op-board opg-board">
-        <StageProgress stage={stage} total={total} quiet={stage > 0 && !gapStageCorrect(data.stages[stage - 1]!, answers[stage - 1] ?? "")} />
-        <p className="opg-caption">{caption} · left to right</p>
-        <div
-          key={stage}
-          ref={box}
-          data-enter={entered ? "true" : undefined}
-          data-correct={holding || finale ? "true" : undefined}
-          className="opg-equation"
-        >
-          <span ref={line} className="opg-line">
-            <GapLine stage={current} fills={fills} onGap={keysFrozen ? undefined : clearGap} nextGap={nextGap} fresh={fresh} />
-          </span>
+        {fair ? (
+          <div className="opg-stages" role="group" aria-label="Equations">
+            {data.stages.map((_, i) => {
+              const state = i === stage ? "current" : solvedAt(i) ? "solved" : outAt(i) ? "out" : liveAnswers[i] ? "started" : "open";
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className="opg-stage-chip"
+                  data-stage-chip={i}
+                  data-state={state}
+                  disabled={frozen || i === stage || !openAt(i)}
+                  onClick={() => goBack(i)}
+                  aria-label={`Equation ${i + 1}${state === "solved" ? ", solved" : state === "out" ? ", out of tries" : i === stage ? ", showing" : ", go to it"}`}
+                >
+                  {state === "solved" ? "✓" : i + 1}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        <NumberStage type="equation" index={stage} exit={holding ? "clear" : null}>
+          <p className="opg-caption">{caption} · left to right</p>
+          <div
+            key={stage}
+            ref={box}
+            data-enter={entered ? "true" : undefined}
+            data-correct={holding || finale ? "true" : undefined}
+            className="opg-equation"
+          >
+            <span ref={line} className="opg-line">
+              <GapLine stage={current} fills={fills} onGap={keysFrozen ? undefined : tapGap} nextGap={nextGap} chosen={chosen} fresh={fresh} />
+            </span>
+          </div>
+        </NumberStage>
+        <div data-game-controls="operators" data-equation-pad className="opg-pad">
+          {hasSigns ? (
+            <div className="opg-row" data-row="signs">
+              {SIGN_KEYS.map((op) => (
+                <Button key={op} variant="ghost" type="button" disabled={keysFrozen || emptySign < 0} onClick={() => tapSign(op)} aria-label={`Sign ${signText(op)}`} className="press opg-key" data-kind="sign">
+                  {signText(op)}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          {hasNumbers ? (
+            <div className="opg-row" data-row="tray" style={{ "--chips": Math.max(1, tray.length) } as CSSProperties}>
+              {tray.map((v, t) => (
+                <Button key={t} variant="ghost" type="button" disabled={keysFrozen || used[t] || emptyNumber < 0} data-used={used[t] ? "true" : undefined} onClick={() => tapChip(t)} aria-label={`Number ${v}`} className="press opg-key" data-kind="number">
+                  {v}
+                </Button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <HudPills
           testId="equation"
@@ -266,13 +358,12 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
             tryLimit !== null
               ? outOfTries
                 ? { id: "tries", value: "No tries left", tone: "warn", limit: tryLimit }
-                : { id: "tries", label: "Tries", value: limitText(triesUsed, tryLimit), limit: tryLimit }
+                : { id: "tries", label: "Tries", value: <TryPips used={triesUsed} limit={tryLimit} cracked={cracked} />, limit: tryLimit }
               : null,
             { id: "gaps", label: "Gaps", value: `${fills.filter(Boolean).length}/${slots.length}` },
-            { id: "right", label: "Right", value: `${rightSoFar}/${total}`, tone: rightSoFar > 0 ? "good" : undefined },
+            { id: "right", label: "Right", value: `${solvedCount}/${total}`, tone: solvedCount > 0 ? "good" : undefined },
           ]}
         />
-        <StageCorrect visible={holding} />
         {finaleOn && finale && (
           <div className="op-finale" aria-hidden="true">
             {data.stages.map((st, i) => (
@@ -284,31 +375,7 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
           </div>
         )}
       </div>
-
-      <div data-game-controls="operators" data-equation-pad className="opg-pad">
-        <div className="opg-row" data-row="signs" data-absent={hasSigns ? undefined : "true"}>
-          {hasSigns ? (
-            SIGN_KEYS.map((op) => (
-              <Button key={op} variant="ghost" type="button" disabled={keysFrozen || emptySign < 0} onClick={() => tapSign(op)} aria-label={`Sign ${signText(op)}`} className="press opg-key" data-kind="sign">
-                {signText(op)}
-              </Button>
-            ))
-          ) : (
-            <p className="opg-absent">The signs are given</p>
-          )}
-        </div>
-        <div className="opg-row" data-row="tray" data-absent={hasNumbers ? undefined : "true"} style={{ "--chips": Math.max(1, tray.length) } as CSSProperties}>
-          {hasNumbers ? (
-            tray.map((v, t) => (
-              <Button key={t} variant="ghost" type="button" disabled={keysFrozen || used[t] || emptyNumber < 0} data-used={used[t] ? "true" : undefined} onClick={() => tapChip(t)} aria-label={`Number ${v}`} className="press opg-key" data-kind="number">
-                {v}
-              </Button>
-            ))
-          ) : (
-            <p className="opg-absent">No number gaps</p>
-          )}
-        </div>
-      </div>
+      {column ? <div className="opg-spacer" aria-hidden /> : null}
 
       <Button
         data-game-controls="submit"
@@ -316,11 +383,22 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
         type="button"
         onClick={() => !frozen && advance(segment)}
         disabled={frozen}
-        className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
+        className="opg-next tap-target w-full"
       >
-        {last ? "Submit" : "Next"}
+        {fair ? (finishing ? "Finish" : "Next") : stage >= total - 1 ? "Submit" : "Next"}
       </Button>
     </div>
+  );
+}
+
+/** The try pips: one per try, a used try cracked (the one just used cracks as it is drawn). */
+function TryPips({ used, limit, cracked }: { used: number; limit: number; cracked: number | null }) {
+  return (
+    <span className="opg-tries" aria-label={limitText(used, limit)}>
+      {Array.from({ length: limit }, (_, i) => (
+        <span key={i} className="opg-try" data-used={i < used ? "true" : undefined} data-cracking={cracked === i ? "true" : undefined} />
+      ))}
+    </span>
   );
 }
 
@@ -328,7 +406,7 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
 export function GapsIntroExample() {
   const stage: EquationStage = { numbers: [7, 0, 2], target: 20, signs: [null, "×"], tray: [3, 5] };
   return (
-    <div className="flex flex-col items-center gap-3" data-operator-gaps="">
+    <div className="flex flex-col items-center gap-3" data-operator-gaps="" data-number-overhaul="">
       <div className="opg-equation opg-intro">
         <span className="opg-line"><GapLine stage={stage} fills={[null, null]} /></span>
       </div>
@@ -361,7 +439,7 @@ export function GapsReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(myAnswer) : { body: myAnswer ?? "", counts: [] as number[] };
   const parts = splitStages(body, puzzle.stages.length);
   return (
-    <div className="op-reveal" data-operator-gaps="">
+    <div className="op-reveal" data-operator-gaps="" data-number-overhaul="">
       <PolishStyle id="equation-gaps-reveal" css={GAPS_REVEAL_CSS} />
       {puzzle.stages.map((stage, i) => {
         const n = gapSlots(stage).length;

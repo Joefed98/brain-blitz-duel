@@ -226,9 +226,11 @@ function TargetStage({
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
 
-  const send = (list: TargetStep[]) => {
+  /** `byHand`: the player's Lock (Enter or the button), which plays the lock (the exact hit and the time-out don't). */
+  const send = (list: TargetStep[], byHand = true) => {
     if (submitted.current) return;
     submitted.current = true;
+    if (byHand) soundCue("target.lock");
     setLockedHere(true);
     onSubmit(encodeSteps(list));
   };
@@ -245,6 +247,7 @@ function TargetStage({
 
   const reset = () => {
     if (locked || lockedHere) return;
+    soundCue("target.reset");
     setPool(startTiles.map((value, id) => ({ id, value, active: true })));
     setHistory([]);
     setSelectedId(null);
@@ -256,6 +259,7 @@ function TargetStage({
     if (locked || lockedHere) return;
     const last = history[history.length - 1];
     if (!last) return;
+    soundCue("target.undo");
     setPool(last.before);
     setHistory((current) => current.slice(0, -1));
     setSelectedId(null);
@@ -303,7 +307,7 @@ function TargetStage({
 
     // Hitting the target locks the answer at once.
     if (result === target) {
-      send(nextHistory.map((h) => h.step));
+      send(nextHistory.map((h) => h.step), false);
       // Display only, measured after the submit: the result tile's flight into the target.
       const root = rootRef.current?.getBoundingClientRect();
       const goal = targetRef.current?.getBoundingClientRect();
@@ -320,7 +324,7 @@ function TargetStage({
   useEffect(() => {
     if (locked || lockedHere || submitted.current) return;
     if (now < phaseStartedAt + TARGET_TIME_MS - 400) return;
-    send(steps);
+    send(steps, false);
   });
 
   // Keep the newest step in view.
@@ -357,7 +361,7 @@ function TargetStage({
       return true;
     }
     if (event.repeat || isLockedNow) return true;
-    if (op) setOperator(op);
+    if (op) { soundCue("target.operator"); setOperator(toggleOperator(operator, op)); }
     else if (slot !== null) {
       const tile = pool[slot];
       if (tile?.active) tapTile(tile);
@@ -458,7 +462,7 @@ function TargetStage({
             type="button"
             disabled={isLockedNow}
             // The Number overhaul (15 Nov 2026): tapping the picked operator again deselects it.
-            onClick={() => setOperator(toggleOperator(operator, op))}
+            onClick={() => { soundCue("target.operator"); setOperator(toggleOperator(operator, op)); }}
             data-on={operator === op ? "true" : undefined}
             aria-pressed={operator === op}
             className="press exact-op"

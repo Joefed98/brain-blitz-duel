@@ -67,8 +67,8 @@ def jug_front():
     inner = [(0.01, bot - 11), (R - t - 6, bot - 12.5), (R - t - 1, bot - 18), (R - t, bot - 26), (R - t, top + 3)]
     lathe(prof + inner, glass_m)
     # Tall panels well past the jug's ends, so the walls are lit evenly top to bottom (the app stretches the middle).
-    area(-60, JH / 2, 60, 40, 420, "#ffffff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
-    area(JW + 70, JH / 2, 60, 40, 190, "#dfe8ff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
+    area(-60, JH / 2, 60, 40, 230, "#ffffff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
+    area(JW + 70, JH / 2, 60, 40, 130, "#dfe8ff", target=(JW / 2, JH / 2, 0), sx=30, sy=JH * 5)
     area(JW / 2, -80, 40, 80, 90, "#ffffff", target=(JW / 2, 0, 0))
     write(GAME, "jug-front")
 

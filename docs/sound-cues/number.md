@@ -51,7 +51,7 @@ belongs to Rotation and shared screens.
 | balance.select | a weight is selected | 140 ms |
 | balance.drop | a weight is hung on a notch | 230 ms |
 | balance.lift | double-tap returns a weight to the tray | 260 ms |
-| balance.level | a non-final scale balances | 760 ms |
+| balance.level | a non-final scale balances (until 15 Nov 2026; the Number overhaul plays balance.stageClear instead, older rounds included) | 760 ms |
 | balance.solve | the final scale balances | 1100 ms |
 | tendrop.apply | a tap applies a tile without hitting the target | 200 ms pop |
 | tendrop.clear | a target is cleared | 360 ms ring, plus the 0.5 s hold glow |
@@ -86,3 +86,45 @@ takes the slot's name.
 | numline.stageClear | a line of five is placed (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
 | numline.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
 | numline.fail | kept for a failed stage this game may get: the stage slides away | 90 ms dull thunk |
+
+### Counterweight (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| balance.pickup | balanceRev 4: one tap picks a hung kettlebell up off its notch | 150 ms |
+| balance.nudge | a free notch tapped with no weight picked: the tray nudges, "Pick a weight first" | 300 ms nudge |
+
+### Exact (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| target.operator | an operator key picked, or the picked one tapped again to drop it | 120 ms |
+| target.undo | Undo takes the last step back | 200 ms |
+| target.reset | Reset puts every number back | 300 ms |
+| target.lock | Lock pressed with a step made (not the exact hit, which plays target.solve) | 400 ms stamp |
+
+### Ballpark (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| numline.edge | a touch or drag past an end of the line: a short stop shows at that end (the marker clamps there) | 320 ms bump |
+
+### Checkout (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| checkout.bust | a dart busts the board (checkoutRev 3): "Bust", the darts drop out | 250 ms |
+| checkout.undo | Undo pulls the last dart: a light tug | 528 ms |
+| checkout.nudge | a ring is tapped before a wedge is picked: "Pick a wedge first" | 486 ms |
+| checkout.switch | another board's tab is chosen | 486 ms |
+| checkout.bigFinish | a board checks out on a big finish that pays: the crowd's "oh!" | 600 ms |
+
+### Kakuro (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| kakuro.select | another square is tapped | 486 ms |
+| kakuro.pencil | a pencil mark is set or taken off | 486 ms |
+| kakuro.clear | Clear empties a square that held a digit or marks | 528 ms |
+| kakuro.broken | a run newly breaks a rule (a repeat, past its clue, out of reach): its clue turns red | 250 ms low tick |
+| kakuro.combo | one digit completes two runs at once (in place of kakuro.run) | 600 ms |

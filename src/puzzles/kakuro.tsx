@@ -3,7 +3,9 @@ import { solutionProgress } from "@/lib/duel/progressFigures";
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 
 import { useStageState } from "@/lib/duel/stageState";
-import { decodeKakuro, encodeKakuro, kakuroRuns, kakuroRunState, kakuroSolvedGrid, type KakuroRun } from "@/lib/duel/kakuro";
+import { decodeKakuro, encodeKakuro, kakuroNextEmpty, kakuroRunBroken, kakuroRuns, kakuroRunState, kakuroSolvedGrid, type KakuroRun } from "@/lib/duel/kakuro";
+import { numberArt } from "@/components/puzzles/number/overhaul";
+import "@/polish-layout/number-kakuro.css";
 import { KAKURO_SIZE, KAKURO_TIME_MS, type KakuroPuzzleData } from "@/lib/duel/types";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playCorrect } from "@/lib/sound";
@@ -55,7 +57,9 @@ export function KakuroBoard({
   const byCell = useMemo(() => runsByCell(runs), [runs]);
   const white = useMemo(() => new Set(board.white), [board.white]);
   const clueAt = useMemo(() => new Map(board.clues.map((c) => [c.cell, c])), [board.clues]);
-  const states = runs.map((run) => kakuroRunState(run, values));
+  // The Number overhaul (display, every stamp): a run reads broken the moment it breaks a rule, including blanks that
+  // can no longer reach its clue (kakuroRunBroken); a full right run is done.
+  const states = runs.map((run) => (kakuroRunBroken(run, values) ? "bad" : kakuroRunState(run, values)));
   const lit = new Set<number>(selected !== null && selected !== undefined ? (byCell.get(selected) ?? []) : []);
   // A clue's state: its across run (top-right) and down run (bottom-left).
   const runOf = new Map<string, number>();
@@ -66,7 +70,11 @@ export function KakuroBoard({
   return (
     <div
       className={`kakuro-board logic-glass grid w-full shrink-0 select-none ${small ? "kakuro-small" : ""}`}
+      data-number-kakuro=""
       style={{
+        "--kakuro-cell-art": `url(${numberArt("kakuro", "cell")})`,
+        "--kakuro-clue-art": `url(${numberArt("kakuro", "clue")})`,
+        "--kakuro-block-art": `url(${numberArt("kakuro", "block")})`,
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,
         aspectRatio: "1",
@@ -197,16 +205,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const inFrame = useFrameProgress(filled, board.white.length, "filled");
   const doneRuns = runs.filter((run) => kakuroRunState(run, values) === "done").length;
   const prevDone = useRef(doneRuns);
+  const brokenRuns = runs.filter((run) => kakuroRunBroken(run, values)).length;
+  const prevBroken = useRef(brokenRuns);
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
 
   // A run completed right (not the last move, which plays the solve): a quiet chime.
+  // Two runs completed by one digit: the combo in place of the run chime.
   useEffect(() => {
-    if (doneRuns > prevDone.current && !solved) soundCue("kakuro.run");
+    if (doneRuns > prevDone.current && !solved) soundCue(doneRuns - prevDone.current >= 2 ? "kakuro.combo" : "kakuro.run");
     prevDone.current = doneRuns;
   }, [doneRuns, solved]);
+
+  // A run newly broken (a repeat, past its clue, or out of reach): a low tick, once.
+  useEffect(() => {
+    if (brokenRuns > prevBroken.current) soundCue("kakuro.broken");
+    prevBroken.current = brokenRuns;
+  }, [brokenRuns]);
 
   useEffect(() => {
     if (!data || locked || submitted.current || !solved) return;
@@ -221,6 +238,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const tapDigit = (digit: number) => {
     if (!active || submitted.current || selected === null || !white.has(selected)) return;
     if (pencilMode) {
+      soundCue("kakuro.pencil");
       setPencil((current) =>
         current.map((marks, cell) =>
           cell === selected ? (marks.includes(digit) ? marks.filter((d) => d !== digit) : [...marks, digit].sort((a, b) => a - b)) : marks,
@@ -228,15 +246,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       );
       return;
     }
+    const next = values.map((v, cell) => (cell === selected ? (v === digit ? 0 : digit) : v));
     if (values[selected] !== digit) {
       setPlaced(selected);
       soundCue("kakuro.place");
+      // The Number overhaul: on to the next empty square of the run (across first, then down).
+      const following = kakuroNextEmpty(board, next, selected);
+      if (following !== null) setSelected(following);
     }
-    setValues((current) => current.map((v, cell) => (cell === selected ? (v === digit ? 0 : digit) : v)));
+    setValues(next);
   };
 
   const clearCell = () => {
     if (!active || submitted.current || selected === null) return;
+    if (values[selected] || pencil[selected]?.length) soundCue("kakuro.clear");
     setValues((current) => current.map((v, cell) => (cell === selected ? 0 : v)));
     setPencil((current) => current.map((marks, cell) => (cell === selected ? [] : marks)));
   };
@@ -276,7 +299,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             pencil={pencil}
             selected={selected}
             placed={placed}
-            onSelect={active ? (cell) => setSelected(cell) : undefined}
+            onSelect={active ? (cell) => {
+              if (cell !== selected) soundCue("kakuro.select");
+              setSelected(cell);
+            } : undefined}
           />
         </div>
         <LiveSummary inArena className="logic-status" items={[<SummaryItem key="runs" label="Runs" value={`${doneRuns} / ${runs.length}`} />]} />

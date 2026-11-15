@@ -2,19 +2,16 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
-import { StageCorrect } from "@/components/puzzles/StageCorrect";
+import { NumberStage, numberArt } from "@/components/puzzles/number/overhaul";
+import { checkoutBust } from "@/lib/duel/numberOverhaul";
 import {
-  FAIR_BULB,
   FAIR_CHALK,
   FAIR_HORIZON,
-  FAIR_SILHOUETTE,
   FAIR_SKY_MID,
   FAIR_SKY_TOP,
-  FAIR_WOOD,
-  FAIR_WOOD_DARK,
-  FAIR_WOOD_LIGHT,
 } from "@/lib/arcade/fairground.renderer";
 import {
+  checkoutBustsAt,
   checkoutDartAllowed,
   checkoutDartLabel,
   checkoutDartValue,
@@ -57,10 +54,14 @@ const ROOT_STYLE: CSSProperties = {
 
 /* Flightpath's original fairground palette: gold, burgundy, blue, pink, charcoal, cream (kept here when Flightpath's
  * own board moved to lighter golds and pinks, 27 Oct 2026, so Checkout's board is unchanged). */
-const [GOLD, BURGUNDY, BLUE, PINK, CHARCOAL, CREAM] = ["#F5B82E", "#9B2335", "#2471B5", "#E8A7DC", "#30343B", "#F7F7F8"] as const;
+// The Number overhaul (15 Nov 2026): the interface gold is the champagne (--jz-gold); the board's own colours are the
+// rendered bristle's. BURGUNDY, BLUE, PINK, CHARCOAL and CREAM are no longer drawn.
+const GOLD = "var(--jz-gold)";
 const NEGATIVE_INK = "#FF8FA3";
-/** The beat between a board's right throw and the next board. */
-const CHECKOUT_ADVANCE_MS = 900;
+/** The beat between a board's right throw and the next board (the shared stage moment's length). */
+const CHECKOUT_ADVANCE_MS = 1000;
+/** checkoutRev 3: how long a bust shows its darts and "Bust" before they drop out. */
+const CHECKOUT_BUST_MS = 750;
 const WIRE = "#D5D9E0";
 
 /* Board geometry in a 200-unit viewBox. */
@@ -74,8 +75,6 @@ const R_QUAD_OUT = 26;
 const R_QUAD_IN = 21;
 const R_BULL = 14;
 const R_INNER_BULL = 6.5;
-/** Fairground bulbs on the wooden rim, between the wedge numbers (art only). */
-const R_BULBS = 92.5;
 
 const angleOf = (wedge: number) => ((-90 + wedge * 18) * Math.PI) / 180;
 const point = (r: number, a: number) =>
@@ -115,160 +114,41 @@ function dartSpot(dart: CheckoutDart, quad: boolean, nth: number): { x: number; 
 
 /* ------------------------------------------------------------------ art -- */
 
-/** Shared gradients and textures; identical in every board, so duplicate ids are harmless. */
-export const BOARD_DEFS = (
-  <defs>
-    <radialGradient id="co-wood" cx="50%" cy="50%" r="50%">
-      <stop offset="0.78" stopColor={FAIR_WOOD_DARK} />
-      <stop offset="0.83" stopColor={FAIR_WOOD_LIGHT} />
-      <stop offset="0.93" stopColor={FAIR_WOOD} />
-      <stop offset="1" stopColor={FAIR_WOOD_DARK} />
-    </radialGradient>
-    <radialGradient id="co-lamp" cx="36%" cy="30%" r="72%">
-      <stop offset="0" stopColor="#FFF8E1" stopOpacity="0.22" />
-      <stop offset="0.5" stopColor="#FFF8E1" stopOpacity="0" />
-      <stop offset="0.86" stopColor="#140A04" stopOpacity="0" />
-      <stop offset="1" stopColor="#140A04" stopOpacity="0.34" />
-    </radialGradient>
-    <radialGradient id="co-bull" cx="40%" cy="38%" r="65%">
-      <stop offset="0" stopColor="#4A93D6" />
-      <stop offset="1" stopColor={BLUE} />
-    </radialGradient>
-    <radialGradient id="co-inner" cx="40%" cy="38%" r="65%">
-      <stop offset="0" stopColor="#C23A4E" />
-      <stop offset="1" stopColor={BURGUNDY} />
-    </radialGradient>
-    <linearGradient id="co-barrel" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stopColor="#9AA1AC" />
-      <stop offset="0.45" stopColor="#3C424C" />
-      <stop offset="1" stopColor="#15171B" />
-    </linearGradient>
-    <radialGradient id="co-glow">
-      <stop offset="0" stopColor={FAIR_BULB} stopOpacity="0.9" />
-      <stop offset="1" stopColor={FAIR_BULB} stopOpacity="0" />
-    </radialGradient>
-    {/* Sisal fibre: a fine dot weave over the painted rings. */}
-    <pattern id="co-sisal" width="2.4" height="2.4" patternUnits="userSpaceOnUse">
-      <circle cx="0.6" cy="0.6" r="0.32" fill="#000" fillOpacity="0.16" />
-      <circle cx="1.8" cy="1.7" r="0.28" fill="#FFF" fillOpacity="0.07" />
-    </pattern>
-  </defs>
-);
+/** Shared defs (none since the Number overhaul's rendered board; kept for callers that draw it). */
+export const BOARD_DEFS = null;
 
-/** The painted board (rim, rings, wires, numbers, bulbs): rebuilt only when the board changes. */
+/**
+ * The board (the Number overhaul, 15 Nov 2026): a Blender-rendered bristle board with its wire spider and wooden
+ * surround (public/number/checkout/, docs/design/number-overhaul/source/checkout.py), drawn in this viewBox's own
+ * geometry so every wedge and ring of the picture sits exactly on the hit wedges; the app draws the wedge numbers over
+ * the wooden ring in bold Archivo, since they change with every board. Rebuilt only when the board changes.
+ */
 export function BoardArt({ wedges, quad, bare }: { wedges: readonly number[]; quad: boolean; bare: boolean }) {
-  const fontSize = wedges.some((v) => Math.abs(v) >= 10) ? 13 : 14;
-  const wires = quad
-    ? [R_DOUBLE_OUT, R_DOUBLE_IN, R_TREBLE_OUT, R_TREBLE_IN, R_QUAD_OUT, R_QUAD_IN, R_BULL]
-    : [R_DOUBLE_OUT, R_DOUBLE_IN, R_TREBLE_OUT, R_TREBLE_IN, R_BULL];
+  const fontSize = wedges.some((v) => Math.abs(v) >= 10) ? 14 : 15.5;
   return (
     <g pointerEvents="none">
-      <circle cx={C} cy={C} r={R_NUMBERS} fill="url(#co-wood)" />
-      {/* Turned-wood grain round the rim. */}
-      {[81.5, 84, 88.5, 95.5].map((r) => (
-        <circle
-          key={r}
-          cx={C}
-          cy={C}
-          r={r}
-          fill="none"
-          stroke={FAIR_WOOD_DARK}
-          strokeOpacity={0.28}
-          strokeWidth={0.5}
-        />
-      ))}
-      <circle
-        cx={C}
-        cy={C}
-        r={R_NUMBERS - 0.6}
-        fill="none"
-        stroke="#2A190C"
-        strokeWidth={1.2}
-      />
-      {wedges.map((_, wedge) => {
-        const even = wedge % 2 === 0;
-        const single = even ? CHARCOAL : CREAM;
-        const ring = even ? BURGUNDY : BLUE;
-        return (
-          <g key={wedge}>
-            <path d={sector(R_DOUBLE_IN, R_DOUBLE_OUT, wedge)} fill={ring} />
-            <path d={sector(R_TREBLE_OUT, R_DOUBLE_IN, wedge)} fill={single} />
-            <path d={sector(R_TREBLE_IN, R_TREBLE_OUT, wedge)} fill={ring} />
-            {quad ? (
-              <>
-                <path d={sector(R_QUAD_OUT, R_TREBLE_IN, wedge)} fill={single} />
-                <path d={sector(R_QUAD_IN, R_QUAD_OUT, wedge)} fill={GOLD} />
-                <path d={sector(R_BULL, R_QUAD_IN, wedge)} fill={single} />
-              </>
-            ) : (
-              <path d={sector(R_BULL, R_TREBLE_IN, wedge)} fill={single} />
-            )}
-          </g>
-        );
-      })}
-      <circle cx={C} cy={C} r={R_DOUBLE_OUT} fill="url(#co-sisal)" />
-      <circle cx={C} cy={C} r={R_BULL} fill="url(#co-bull)" />
-      <circle cx={C} cy={C} r={R_INNER_BULL} fill="url(#co-inner)" />
-      {/* Spider wire, exactly on the segment edges. */}
-      <g stroke={WIRE} strokeOpacity={0.6} strokeWidth={0.45} fill="none">
-        {wires.map((r) => (
-          <circle key={r} cx={C} cy={C} r={r} />
-        ))}
-        <circle cx={C} cy={C} r={R_INNER_BULL} />
-        <path
-          d={wedges
-            .map((_, w) => {
-              const a = angleOf(w) - (9 * Math.PI) / 180;
-              return `M ${point(R_BULL, a)} L ${point(R_DOUBLE_OUT, a)}`;
-            })
-            .join(" ")}
-        />
-      </g>
-      <circle cx={C} cy={C} r={R_NUMBERS} fill="url(#co-lamp)" />
+      <image href={numberArt("checkout", quad ? "board-quad" : "board")} x={0} y={0} width={200} height={200} preserveAspectRatio="none" />
       {bare
         ? null
         : wedges.map((value, wedge) => {
             const x = C + 89 * Math.cos(angleOf(wedge));
             const y = C + 89 * Math.sin(angleOf(wedge));
             const label = value < 0 ? `−${-value}` : String(value);
-            const b = angleOf(wedge) + (9 * Math.PI) / 180;
             return (
-              <g key={wedge}>
-                <circle
-                  cx={C + R_BULBS * Math.cos(b)}
-                  cy={C + R_BULBS * Math.sin(b)}
-                  r={1.7}
-                  fill="#8A6A3A"
-                  stroke="#2A190C"
-                  strokeWidth={0.4}
-                />
-                <text
-                  x={x + 0.6}
-                  y={y + 0.8}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={fontSize}
-                  fontWeight={800}
-                  fontFamily="'JetBrains Mono', ui-monospace, monospace"
-                  fill="#1A0E06"
-                  fillOpacity={0.55}
-                  aria-hidden="true"
-                >
-                  {label}
-                </text>
-                <text
-                  x={x}
-                  y={y}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={fontSize}
-                  fontWeight={800}
-                  fontFamily="'JetBrains Mono', ui-monospace, monospace"
-                  fill={value < 0 ? NEGATIVE_INK : FAIR_CHALK}
-                >
-                  {label}
-                </text>
-              </g>
+              <text
+                key={wedge}
+                x={x}
+                y={y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={value < 0 ? fontSize - 1.5 : fontSize}
+                fontWeight={800}
+                fontFamily="var(--jz-font)"
+                fill={value < 0 ? NEGATIVE_INK : FAIR_CHALK}
+                data-checkout-wedge-number={wedge}
+              >
+                {label}
+              </text>
             );
           })}
     </g>
@@ -279,33 +159,24 @@ export function BoardArt({ wedges, quad, bare }: { wedges: readonly number[]; qu
 export function Dart({ x, y, n, fresh, final }: { x: number; y: number; n: number; fresh: boolean; final: boolean }) {
   const dx = Math.cos((-55 * Math.PI) / 180) * 20.5;
   const dy = Math.sin((-55 * Math.PI) / 180) * 20.5;
+  // The sprite is 64 × 120 points with its tip at (12, 108) (checkout.py `dart`), drawn 0.19 units a point.
+  const k = 0.19;
   return (
     <g transform={`translate(${x.toFixed(2)} ${y.toFixed(2)})`} pointerEvents="none">
-      {fresh ? <circle r={4} className="co-impact" fill="none" stroke={FAIR_BULB} strokeWidth={1} /> : null}
+      {fresh ? <circle r={4} className="co-impact" fill="none" stroke={FAIR_CHALK} strokeWidth={0.8} /> : null}
       <g className={fresh ? "co-dart" : final ? "co-final-dart" : undefined}>
         <ellipse cx={0} cy={0.4} rx={2.2} ry={1.1} fill="#000" fillOpacity={0.35} />
-        <g transform="rotate(-145)">
-          <path d="M 0 0 L 0.75 4.2 L -0.75 4.2 Z" fill="#C9CED6" />
-          <rect x={-1.3} y={4.2} width={2.6} height={6} rx={0.6} fill="url(#co-barrel)" />
-          <path d="M -1.3 6 H 1.3 M -1.3 7.5 H 1.3 M -1.3 9 H 1.3" stroke="#8C939E" strokeWidth={0.35} />
-          <rect x={-0.45} y={10.2} width={0.9} height={4.5} fill="#1A1C20" />
-          <path
-            d="M 0 12.2 L 3.7 15 L 3.3 19 L 0 17.6 L -3.3 19 L -3.7 15 Z"
-            fill={PINK}
-            stroke="#0B0B0F"
-            strokeOpacity={0.55}
-            strokeWidth={0.45}
-          />
-        </g>
-        <circle cx={dx} cy={dy} r={4.4} fill={GOLD} stroke="#0B0B0F" strokeWidth={1} />
+        <image href={numberArt("checkout", "dart")} x={-12 * k} y={-108 * k} width={64 * k} height={120 * k} />
+        <circle cx={dx} cy={dy} r={4.6} fill="var(--jz-gold)" stroke="var(--jz-on-gold)" strokeWidth={0.8} />
         <text
           x={dx}
           y={dy}
           textAnchor="middle"
           dominantBaseline="central"
-          fontSize={6}
+          fontSize={6.2}
           fontWeight={800}
-          fill="#0B0B0F"
+          fontFamily="var(--jz-font)"
+          fill="var(--jz-on-gold)"
         >
           {n}
         </text>
@@ -330,6 +201,7 @@ export function Board({
   lit = null,
   finish = 2,
   bare = false,
+  busted = false,
 }: {
   stage: Pick<CheckoutStageData, "wedges" | "quad">;
   selected?: number | null;
@@ -342,6 +214,8 @@ export function Board({
   lit?: "stage" | "final" | null;
   finish?: number;
   bare?: boolean;
+  /** checkoutRev 3: the board just bust; its darts drop out. */
+  busted?: boolean;
 }) {
   const quad = stage.quad === true;
   const wedgeKey = stage.wedges.join(",");
@@ -388,16 +262,9 @@ export function Board({
         <g className={`co-lit co-lit-${lit}`} pointerEvents="none" data-checkout-lit={lit}>
           {stage.wedges.map((_, w) => {
             const order = (w - fromWedge + 20) % 20;
-            const b = angleOf(w) + (9 * Math.PI) / 180;
             return (
               <g key={w} style={{ "--i": order } as CSSProperties}>
-                <path d={sector(band0, band1, w)} fill={FAIR_BULB} stroke="#FFFFFF" strokeOpacity={0.7} strokeWidth={0.5} />
-                {bare ? null : (
-                  <>
-                    <circle cx={C + R_BULBS * Math.cos(b)} cy={C + R_BULBS * Math.sin(b)} r={5} fill="url(#co-glow)" />
-                    <circle cx={C + R_BULBS * Math.cos(b)} cy={C + R_BULBS * Math.sin(b)} r={1.7} fill={FAIR_BULB} />
-                  </>
-                )}
+                <path d={sector(band0, band1, w)} fill={GOLD} stroke="#FFFFFF" strokeOpacity={0.5} strokeWidth={0.4} />
               </g>
             );
           })}
@@ -410,14 +277,15 @@ export function Board({
             <circle key={i} cx={spot.x} cy={spot.y} r={11} fill={GOLD} stroke="#0B0B0F" strokeWidth={3} pointerEvents="none" />
           );
         return (
+          <g key={i} className={busted ? "co-dart-bust" : undefined} data-checkout-dart={i}>
           <Dart
-            key={i}
             x={spot.x}
             y={spot.y}
             n={i + 1}
             fresh={i === fresh}
             final={lit === "final" && i === list.length - 1}
           />
+          </g>
         );
       })}
       {onWedge ? (
@@ -452,37 +320,53 @@ export function Board({
 /* Checkout's own stylesheet: the stall backdrop, chalk scoreboard and move animations. */
 const CHECKOUT_CSS = `
 [data-checkout-root] .co-arena {
-  background:
-    radial-gradient(closest-side, rgba(255,214,140,0.2), rgba(255,214,140,0) 100%) center / 100% 100% no-repeat,
-    radial-gradient(circle at 50% 50%, ${FAIR_BULB} 0 1.6px, rgba(255,210,122,0.35) 2.4px, transparent 4px) 0 5px / 22px 10px repeat-x,
-    linear-gradient(to bottom, rgba(20,12,8,0.6), rgba(20,12,8,0.6)) 0 9.5px / 100% 1px no-repeat,
-    linear-gradient(${FAIR_SKY_TOP}, ${FAIR_SKY_MID} 72%, color-mix(in srgb, ${FAIR_HORIZON} 38%, ${FAIR_SKY_MID}));
+  background: linear-gradient(${FAIR_SKY_TOP}, ${FAIR_SKY_MID} 72%, color-mix(in srgb, ${FAIR_HORIZON} 38%, ${FAIR_SKY_MID}));
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 -18px 30px -18px rgba(0,0,0,0.5);
 }
 [data-checkout-root] .co-tabs > button {
-  background: linear-gradient(${FAIR_SILHOUETTE}, #120D22);
-  border-color: color-mix(in srgb, ${FAIR_WOOD_LIGHT} 55%, transparent);
-  color: ${FAIR_CHALK};
+  background: var(--jz-surface-2);
+  border-color: transparent;
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  font-weight: 800;
+  font-size: 15px;
 }
 [data-checkout-root] .co-tabs > button[aria-selected="true"] {
-  border-color: ${GOLD};
-  color: ${GOLD};
-  box-shadow: inset 0 0 0 1px ${GOLD}, 0 0 10px -2px color-mix(in srgb, ${GOLD} 60%, transparent);
+  border-color: var(--jz-gold);
+  color: var(--jz-gold);
+  box-shadow: inset 0 0 0 1px var(--jz-gold);
 }
 [data-checkout-root] .co-tabs > button[data-solved="true"] {
-  background: linear-gradient(${GOLD}, #D99A1C);
-  color: #0B0B0F;
+  background: var(--jz-surface);
+  color: var(--jz-gold);
 }
 [data-checkout-root] .co-rule { color: color-mix(in srgb, ${FAIR_CHALK} 72%, transparent); }
 [data-checkout-root] .co-big { color: ${GOLD}; font-weight: 700; }
 [data-checkout-root] .co-score {
-  background: radial-gradient(120% 140% at 30% 0%, #2B3A33, #18221E);
-  border: 2px solid ${FAIR_WOOD};
-  box-shadow: inset 0 0 0 1px ${FAIR_WOOD_DARK}, inset 0 1px 0 1px rgba(255,255,255,0.05);
-  color: ${FAIR_CHALK};
+  background: var(--jz-surface);
+  border: 1px solid var(--jz-surface-2);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
 }
+[data-checkout-root] .co-score .co-left { font-family: var(--jz-font); font-weight: 800; font-size: 22px; }
+[data-checkout-root] .co-bust-word { color: var(--jz-loss); font-weight: 800; letter-spacing: 0.04em; }
+[data-checkout-root] .co-hint { color: var(--jz-text-2); }
+[data-checkout-root] .co-dart-bust { animation: co-drop 520ms cubic-bezier(.5,0,.75,0) 260ms both; }
+@keyframes co-drop { from { transform: none; opacity: 1; } to { transform: translateY(18px); opacity: 0; } }
 [data-checkout-root] .co-score .co-from { color: color-mix(in srgb, ${FAIR_CHALK} 70%, transparent); }
-[data-checkout-root] .co-ring { border-width: 1px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 0 rgba(0,0,0,0.25); }
+[data-checkout-root] .co-ring {
+  border-width: 1px;
+  background: var(--jz-surface-2);
+  border-color: transparent;
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+[data-checkout-root] .co-ring[aria-disabled="true"] { opacity: 0.55; }
+[data-checkout-root] .co-throw { background: var(--jz-gold); border-color: var(--jz-gold); color: var(--jz-on-gold); font-family: var(--jz-font); font-weight: 800; }
+[data-checkout-root] .co-undo { background: var(--jz-surface-2); border-color: transparent; color: var(--jz-text-2); font-family: var(--jz-font); font-weight: 700; }
 .co-tick, .co-term { display: inline-block; animation: co-tick 220ms cubic-bezier(.2,.8,.3,1) both; }
 .co-term { animation-name: co-term; }
 @keyframes co-tick { from { transform: translateY(-55%) scale(1.15); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -505,7 +389,7 @@ const CHECKOUT_CSS = `
 .co-lit-stage > g { animation-duration: 560ms; animation-delay: calc(var(--i) * 12ms); }
 @keyframes co-lit { 0% { opacity: 0; } 14% { opacity: 1; } 55% { opacity: 0.8; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .co-tick, .co-term, .co-sel, .co-dart, .co-final-dart { animation: none; }
+  .co-tick, .co-term, .co-sel, .co-dart, .co-final-dart, .co-dart-bust { animation: none; }
   .co-impact { display: none; }
   .co-lit > g { animation: none; opacity: 0.6; }
 }
@@ -570,18 +454,6 @@ function IntroExample() {
   );
 }
 
-/** Ring buttons wear their ring's paint: singles charcoal, doubles burgundy, trebles blue, x4 gold. */
-function ringPaint(ring: number, bull: boolean): CSSProperties {
-  if (bull)
-    return ring === 2
-      ? { background: BURGUNDY, color: "#FFFFFF", borderColor: GOLD }
-      : { background: BLUE, color: "#FFFFFF", borderColor: GOLD };
-  if (ring === 2) return { background: BURGUNDY, color: "#FFFFFF", borderColor: GOLD };
-  if (ring === 3) return { background: BLUE, color: "#FFFFFF", borderColor: GOLD };
-  if (ring === 4) return { background: GOLD, color: "#0B0B0F", borderColor: GOLD };
-  return { background: CHARCOAL, color: CREAM, borderColor: GOLD };
-}
-
 function Stage({
   puzzle,
   locked,
@@ -604,9 +476,15 @@ function Stage({
   );
   const [shake, setShake] = useState(false);
   const [correct, setCorrect] = useState(false);
+  /** checkoutRev 3: the board that just bust, while its darts show before they drop out. */
+  const [busted, setBusted] = useState<number | null>(null);
+  /** A ring tapped with no wedge picked: the hint shows for a moment. */
+  const [nudge, setNudge] = useState(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bustTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
-    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    for (const t of [advanceTimer, bustTimer, nudgeTimer]) if (t.current) clearTimeout(t.current);
   }, []);
   /** "stage:count" of the dart that just landed, so only that dart thuds. */
   const [landed, setLanded] = useState<string | null>(null);
@@ -645,6 +523,7 @@ function Stage({
 
   if (!data) return null;
   const current = data.stages[stage]!;
+  const bustRule = checkoutBust(data);
   // The scoring standard: the big finish pays only on a board of 100 or more a big finish can end (number.ts).
   const bigPays = !usesStandard(data) || checkoutBigBoards(data.stages)[stage] === true;
   const isSolved = (index: number) => Boolean(solved[index]);
@@ -652,26 +531,57 @@ function Stage({
     ? decodeCheckoutDarts(solved[stage]!, current.maxDarts)
     : (inPlay[stage] ?? []);
   const left = checkoutRemaining(current, darts);
-  const busy = locked || submitted.current;
+  const bustShowing = busted === stage;
+  const busy = locked || submitted.current || bustShowing;
   const done = isSolved(stage);
   const full = darts.length >= current.maxDarts;
 
-  const setDarts = (next: CheckoutDart[]) => {
+  const setDarts = (next: CheckoutDart[], at = stage) => {
     const all = [...inPlay];
-    all[stage] = next;
+    all[at] = next;
     setInPlay(all);
   };
+  const showNudge = () => {
+    soundCue("checkout.nudge");
+    setNudge(true);
+    if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+    nudgeTimer.current = setTimeout(() => {
+      nudgeTimer.current = null;
+      setNudge(false);
+    }, 1400);
+  };
   const addDart = (ring: number) => {
-    if (busy || done || selected === null || full) return;
+    if (busy || done || full) return;
+    if (selected === null) {
+      showNudge();
+      return;
+    }
     const dart = { wedge: selected, ring };
     if (!checkoutDartAllowed(current, dart)) return;
-    setLanded(`${stage}:${darts.length + 1}`);
+    const next = [...darts, dart];
+    setLanded(`${stage}:${next.length}`);
     soundCue("checkout.thud");
+    setDarts(next);
+    // checkoutRev 3: a bust, as in real darts. The darts show with "Bust" for a moment, then drop out and the board
+    // starts again (the answer only ever holds the darts thrown since the last bust; the server re-checks every one).
+    if (bustRule && checkoutBustsAt(current, checkoutRemaining(current, next), dart, next.length)) {
+      const at = stage;
+      setBusted(at);
+      setSelected(null);
+      soundCue("checkout.bust");
+      if (bustTimer.current) clearTimeout(bustTimer.current);
+      bustTimer.current = setTimeout(() => {
+        bustTimer.current = null;
+        setBusted(null);
+        setInPlay((all) => all.map((list, i) => (i === at ? [] : list)));
+      }, CHECKOUT_BUST_MS);
+      return;
+    }
     soundCue("checkout.tick");
-    setDarts([...darts, dart]);
   };
   const undo = () => {
-    soundCue("checkout.tick");
+    if (busy || done || !darts.length) return;
+    soundCue("checkout.undo");
     setDarts(darts.slice(0, -1));
   };
   const reject = () => {
@@ -681,7 +591,7 @@ function Stage({
   };
   const throwDarts = () => {
     if (busy || done || !darts.length) return;
-    if (!checkoutValid(current, darts)) {
+    if (!checkoutValid(current, darts, bustRule)) {
       reject();
       return;
     }
@@ -689,13 +599,14 @@ function Stage({
     next[stage] = encodeCheckoutDarts(darts);
     setSolved(next);
     setSelected(null);
-    playCorrect();
     if (next.every(Boolean)) {
+      playCorrect();
       submitted.current = true;
       onSubmit(joinCheckoutRound(next));
       return;
     }
-    soundCue("checkout.stage");
+    // A big finish on a board that pays: the crowd's "oh!" (the stage moment's chime plays with it).
+    if (bigPays && checkoutBigFinish(current, darts[darts.length - 1])) soundCue("checkout.bigFinish");
     setCorrect(true);
     const following = [1, 2, 3, 4, 5]
       .map((k) => (stage + k) % CHECKOUT_STAGES)
@@ -712,9 +623,9 @@ function Stage({
   const boardSize = Math.max(180, Math.min(size.width - 8, size.height - 4));
   const rings = selected === CHECKOUT_BULL ? [1, 2] : current.quad ? [1, 2, 3, 4] : [1, 2, 3];
   const ringLabel = (ring: number) =>
-    selected === CHECKOUT_BULL ? (ring === 2 ? "Bull 50" : "25") : `x${ring}`;
+    selected === CHECKOUT_BULL ? (ring === 2 ? "Bull 50" : "25") : ["", "Single", "Double", "Treble", "×4"][ring] ?? `×${ring}`;
   const control =
-    "h-11 flex-1 rounded-xl border font-mono text-sm font-bold uppercase tracking-wider disabled:opacity-40";
+    "h-11 flex-1 rounded-xl border text-sm disabled:opacity-40";
   const fresh = landed === `${stage}:${darts.length}` && !done ? darts.length - 1 : -1;
   const lit = finale && done ? "final" : correct && done ? "stage" : null;
 
@@ -737,10 +648,11 @@ function Stage({
             data-solved={isSolved(i) ? "true" : undefined}
             disabled={busy}
             onClick={() => {
+              if (i !== stage) soundCue("checkout.switch");
               setStage(i);
               setSelected(null);
             }}
-            className="flex-1 rounded-lg border font-mono text-sm font-bold"
+            className="flex-1 rounded-lg border"
           >
             {isSolved(i) ? (endedBig(s, solved[i]) ? "★" : "✓") : s.target}
           </button>
@@ -770,51 +682,62 @@ function Stage({
           }
         />
       </div>
-      <StageCorrect visible={correct} />
       <div
         ref={box}
         data-game-arena="board"
         className="co-arena flex min-h-0 w-full flex-1 items-center justify-center rounded-xl"
       >
-        <Board
-          stage={current}
-          selected={done ? null : selected}
-          darts={darts}
-          fresh={fresh}
-          lit={lit}
-          finish={current.finish}
-          onWedge={
-            busy || done
-              ? undefined
-              : (w) => {
-                  if (selected !== w) soundCue("checkout.aim");
-                  setSelected(selected === w ? null : w);
-                }
-          }
-          size={boardSize}
-        />
+        {/* The Number overhaul's shared stage moment: a board that checks out lifts and slides away. */}
+        <NumberStage type="checkout" index={stage} exit={correct && done ? "clear" : null} className="items-center justify-center">
+          <Board
+            stage={current}
+            selected={done ? null : selected}
+            darts={darts}
+            fresh={fresh}
+            lit={lit}
+            busted={bustShowing}
+            finish={current.finish}
+            onWedge={
+              busy || done
+                ? undefined
+                : (w) => {
+                    if (selected !== w) soundCue("checkout.aim");
+                    setNudge(false);
+                    setSelected(selected === w ? null : w);
+                  }
+            }
+            size={boardSize}
+          />
+        </NumberStage>
       </div>
       <div
-        className={`co-score flex h-10 w-full shrink-0 items-center justify-between gap-2 rounded-lg px-2.5 font-mono ${shake ? "animate-shake" : ""}`}
+        className={`co-score flex h-11 w-full shrink-0 items-center justify-between gap-2 rounded-lg px-2.5 ${shake ? "animate-shake" : ""}`}
         data-checkout-darts
+        data-checkout-bust={bustShowing ? "" : undefined}
       >
         <span className="co-from min-w-0 truncate text-sm">
-          {current.target}
-          {darts.map((d, i) => (
-            <span key={`${stage}-${i}`} className={i === fresh ? "co-term" : undefined} style={{ color: FAIR_CHALK }}>
-              {" "}{checkoutDartTerm(current, d)}
-            </span>
-          ))}
+          {nudge && !bustShowing ? (
+            <span className="co-hint" data-checkout-nudge>Pick a wedge first</span>
+          ) : (
+            <>
+              {current.target}
+              {darts.map((d, i) => (
+                <span key={`${stage}-${i}`} className={i === fresh ? "co-term" : undefined}>
+                  {" "}{checkoutDartTerm(current, d)}
+                </span>
+              ))}
+            </>
+          )}
         </span>
         {/* Batch W: the live summary's dart count, beside what is left (display only). */}
         <span className="co-darts ml-auto shrink-0 whitespace-nowrap text-xs" data-checkout-dart-count>
           {darts.length}/{current.maxDarts} darts
         </span>
         <span
-          key={`${stage}:${left}:${done}`}
-          className={`co-tick text-xl font-bold ${left === 0 ? "text-primary" : left < 0 ? "text-warn" : ""}`}
+          key={`${stage}:${left}:${done}:${bustShowing}`}
+          className={`co-tick co-left ${bustShowing ? "co-bust-word" : left === 0 ? "text-primary" : left < 0 ? "text-warn" : ""}`}
         >
-          {done ? "✓ 0" : left}
+          {bustShowing ? "Bust" : done ? "✓ 0" : left}
         </span>
       </div>
       <div data-game-controls="rings" className="flex w-full shrink-0 gap-1.5">
@@ -823,8 +746,9 @@ function Stage({
             key={ring}
             type="button"
             className={`${control} co-ring`}
-            style={ringPaint(ring, selected === CHECKOUT_BULL)}
-            disabled={busy || done || selected === null || full}
+            aria-disabled={selected === null ? true : undefined}
+            aria-label={selected === null ? `${ringLabel(ring)}: pick a wedge first` : undefined}
+            disabled={busy || done || full}
             onClick={() => addDart(ring)}
           >
             {ringLabel(ring)}
@@ -834,7 +758,7 @@ function Stage({
       <div data-game-controls="actions" className="flex w-full shrink-0 gap-1.5">
         <button
           type="button"
-          className={`${control} border-border text-muted-foreground`}
+          className={`${control} co-undo`}
           disabled={busy || done || !darts.length}
           onClick={undo}
         >
@@ -842,7 +766,7 @@ function Stage({
         </button>
         <button
           type="button"
-          className={`${control} border-primary bg-primary text-primary-foreground`}
+          className={`${control} co-throw`}
           disabled={busy || done || !darts.length}
           onClick={throwDarts}
         >
@@ -864,7 +788,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <PolishStyle id="checkout" css={CHECKOUT_CSS} />
       {puzzle.stages.map((stage, index) => {
         const mine = decodeCheckoutDarts(parts[index] ?? "", stage.maxDarts);
-        const ok = checkoutValid(stage, mine);
+        const ok = checkoutValid(stage, mine, checkoutBust(puzzle));
         const best = decodeCheckoutDarts(puzzle.routes?.[index] ?? "", stage.maxDarts);
         return (
           <div
@@ -922,7 +846,7 @@ export const checkoutPuzzle: PuzzleDefinition = {
     if (puzzle.type !== "checkout") return false;
     const parts = splitCheckoutRound(answer);
     return puzzle.stages.every((stage, i) =>
-      checkoutValid(stage, decodeCheckoutDarts(parts[i] ?? "", stage.maxDarts)),
+      checkoutValid(stage, decodeCheckoutDarts(parts[i] ?? "", stage.maxDarts), checkoutBust(puzzle)),
     );
   },
   revealHeading: "Your darts and the fewest",

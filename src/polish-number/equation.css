@@ -1,0 +1,245 @@
+/*
+ * Operator, the Number overhaul (15 Nov 2026; src/puzzles/equationGaps.tsx): display only.
+ * Blender pieces from docs/design/number-overhaul/source/equation.py (public/number/equation/): number tiles in a dark
+ * polished stone, sign gaps champagne-gold rings, number gaps navy wells, sign keys champagne discs. The numbers are
+ * drawn over the pieces in Archivo, bold. The equation and its keys sit together in the middle of the screen; no glows.
+ */
+[data-number-overhaul][data-operator-gaps] {
+  --opg-sign: var(--jz-gold);
+  --opg-number: var(--jz-surface-3);
+}
+[data-number-overhaul].opg-stage > .opg-spacer {
+  flex: 1 1 0;
+  min-height: 0;
+}
+[data-number-overhaul] .op-board.opg-board,
+[data-puzzle-play] [data-number-overhaul][data-polish="equation"][data-stage-column] .op-board {
+  flex: none;
+  gap: 12px;
+  padding: 16px 10px 12px;
+  border-radius: 18px;
+  overflow: visible;
+  background: url("/number/equation/panel.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-caption {
+  font-family: var(--jz-font, var(--font-display));
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+
+/* The equation: bold, big numbers straight on the shelf (no inner strip, no glow). */
+[data-number-overhaul] .opg-equation,
+[data-puzzle-play] [data-number-overhaul] .opg-equation {
+  padding: 10px 6px;
+  font-family: var(--jz-font, var(--font-display));
+  font-weight: 800;
+  color: var(--jz-text);
+  background: none;
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-equation[data-correct="true"] {
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-goal {
+  color: var(--jz-gold);
+  text-shadow: none;
+}
+[data-number-overhaul] .opg-sign {
+  color: var(--jz-text-2);
+}
+
+/* Gaps: a champagne ring round a navy well (sign), a navy well (number); a filled gap holds its piece. */
+[data-number-overhaul] .opg-gap {
+  border: 0;
+  background: url("/number/equation/gap-number.webp") center / 100% 100% no-repeat;
+}
+[data-number-overhaul] .opg-gap[data-kind="sign"] {
+  width: 1.4em;
+  height: 1.4em;
+  border: 0;
+  background-image: url("/number/equation/gap-sign.webp");
+}
+[data-number-overhaul] .opg-gap[data-kind="number"] {
+  min-width: 1.55em;
+  height: 1.55em;
+  border: 0;
+}
+[data-number-overhaul] .opg-hint {
+  display: none;
+}
+[data-number-overhaul] .opg-gap[data-next="true"] {
+  box-shadow: none;
+}
+/* The gap the next tile goes into (the leftmost, or the one chosen): a quiet champagne outline. */
+[data-number-overhaul] .opg-gap[data-next="true"]::after,
+[data-number-overhaul] .opg-gap[data-chosen="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -0.12em;
+  border-radius: 0.3em;
+  border: 0.06em solid color-mix(in srgb, var(--jz-gold) 55%, transparent);
+  pointer-events: none;
+}
+[data-number-overhaul] .opg-gap[data-kind="sign"][data-next="true"]::after,
+[data-number-overhaul] .opg-gap[data-kind="sign"][data-chosen="true"]::after {
+  border-radius: 999px;
+}
+[data-number-overhaul] .opg-gap[data-chosen="true"]::after {
+  border-width: 0.09em;
+  border-color: var(--jz-gold);
+}
+[data-number-overhaul] .opg-fill,
+[data-number-overhaul] .opg-gap[data-kind="number"] .opg-fill,
+[data-number-overhaul] .opg-gap[data-kind="sign"] .opg-fill,
+[data-number-overhaul] .opg-equation[data-correct="true"] .opg-fill {
+  inset: 0;
+  font-size: 0.82em;
+  font-weight: 800;
+  color: var(--jz-text);
+  background: url("/number/equation/num.webp") center / 100% 100% no-repeat;
+}
+[data-number-overhaul] .opg-gap[data-kind="sign"] .opg-fill {
+  color: var(--jz-on-gold);
+  background-image: url("/number/equation/sign.webp");
+}
+[data-number-overhaul] .opg-equation[data-correct="true"] .opg-gap[data-kind="number"] .opg-fill {
+  color: var(--jz-gold);
+}
+
+[data-number-overhaul] .opg-gap[data-mark="bad"] .opg-fill {
+  color: var(--jz-loss);
+}
+
+/* The keys right under the equation: number keys the same stone tiles, sign keys champagne discs, 56 px tall. */
+[data-number-overhaul] .opg-pad {
+  width: 100%;
+  gap: 10px;
+}
+[data-number-overhaul] .opg-row {
+  height: 56px;
+  gap: 10px;
+}
+[data-number-overhaul] .opg-key,
+[data-puzzle-play] [data-number-overhaul] .opg-key {
+  height: 56px;
+  border-radius: 12px;
+  font-family: var(--jz-font, var(--font-display));
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--jz-text);
+  background: url("/number/equation/num.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-key[data-kind="sign"],
+[data-puzzle-play] [data-number-overhaul] .opg-key[data-kind="sign"] {
+  justify-self: center;
+  width: 56px;
+  border-radius: 999px;
+  color: var(--jz-on-gold);
+  background-image: url("/number/equation/sign.webp");
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-key[data-kind="number"] {
+  color: var(--jz-text);
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-key[data-used="true"] {
+  opacity: 0.2;
+}
+
+/* gapsRev 2: the four equations as chips; an open one goes back to it. */
+.opg-stages {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.opg-stage-chip {
+  display: inline-flex;
+  width: 44px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-family: var(--jz-font, var(--font-display));
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--jz-text-2);
+  background: var(--jz-surface-2);
+}
+.opg-stage-chip[data-state="current"] {
+  color: var(--jz-on-gold);
+  background: var(--jz-gold);
+}
+.opg-stage-chip[data-state="solved"] {
+  color: var(--jz-gold);
+  background: var(--jz-surface);
+}
+.opg-stage-chip[data-state="out"] {
+  color: var(--jz-text-3);
+  background: var(--jz-surface);
+  text-decoration: line-through;
+}
+.opg-stage-chip[data-state="started"] {
+  box-shadow: inset 0 0 0 2px var(--jz-surface-3);
+}
+.opg-stage-chip:disabled {
+  cursor: default;
+}
+
+/* The try pips: a used try cracks (a diagonal break through the pip). */
+.opg-tries {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.opg-try {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--jz-gold);
+}
+.opg-try[data-used="true"] {
+  background: var(--jz-surface-3);
+}
+.opg-try[data-used="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -1px;
+  width: 2px;
+  height: 13px;
+  border-radius: 1px;
+  background: var(--jz-loss);
+  transform: translateX(-50%) rotate(28deg);
+}
+.opg-try[data-cracking="true"] {
+  animation: opg-crack 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+@keyframes opg-crack {
+  0% { transform: scale(1.35); }
+  100% { transform: none; }
+}
+
+/* Next / Finish: the screen's one gold action, flat champagne. */
+[data-number-overhaul] .opg-next {
+  height: 52px;
+  border-radius: 12px;
+  font-family: var(--jz-font, var(--font-display));
+  font-size: 17px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--jz-on-gold);
+  background: var(--jz-gold);
+}
+[data-number-overhaul] .opg-next:disabled {
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opg-try[data-cracking="true"] {
+    animation: none;
+  }
+}

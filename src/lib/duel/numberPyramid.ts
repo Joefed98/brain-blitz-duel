@@ -52,6 +52,44 @@ export function npBrokenCells(givens: readonly (number | null)[], values: readon
   return [...out].sort((x, y) => x - y);
 }
 
+/** Display only (the Number overhaul, 15 Nov 2026): one sum's state, the stone over the two under it. */
+export type NpSumState = "right" | "wrong" | "unknown";
+
+/** A stone and the two under it: "unknown" until all three hold a number, then right or wrong. Never graded. */
+export function npSumState(values: readonly (number | null)[], top: number, left: number, right: number): NpSumState {
+  const a = values[top], b = values[left], c = values[right];
+  if (a == null || b == null || c == null) return "unknown";
+  return a === b + c ? "right" : "wrong";
+}
+
+/** One judged sum on the board: the top stone's row and column, and its state. */
+export interface NpSeam {
+  row: number;
+  col: number;
+  state: "right" | "wrong";
+}
+
+/**
+ * Display only (the Number overhaul): every sum the player has had a hand in (at least one of its three stones
+ * placed, not given) whose three stones are all filled: a faint gold seam if right, a red crack if wrong.
+ */
+export function npSeams(givens: readonly (number | null)[], values: readonly (number | null)[], rows: number): NpSeam[] {
+  const out: NpSeam[] = [];
+  for (let r = 0; r < rows - 1; r++)
+    for (let c = 0; c <= r; c++) {
+      const top = npIndex(r, c), left = npIndex(r + 1, c), right = npIndex(r + 1, c + 1);
+      if (givens[top] != null && givens[left] != null && givens[right] != null) continue;
+      const state = npSumState(values, top, left, right);
+      if (state !== "unknown") out.push({ row: r, col: c, state });
+    }
+  return out;
+}
+
+/** The tray's tiles a row: the tray in two even rows on a phone (at most `max` a row). */
+export function npTrayPerRow(count: number, max = 8): number {
+  return Math.max(1, Math.min(max, Math.ceil(count / 2)));
+}
+
 export function npCountSolutions(givens: readonly (number | null)[], tray: readonly number[], rows: number, cap = 2): number {
   const empties: number[] = [];
   for (let r = rows - 1; r >= 0; r--) for (let c = 0; c <= r; c++) if (givens[npIndex(r, c)] == null) empties.push(npIndex(r, c));

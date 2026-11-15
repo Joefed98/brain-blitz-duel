@@ -40,6 +40,8 @@ import { ballparkStreak, isBullseye, usesNumberDepth } from "@/lib/duel/numberDe
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import { BALLPARK_STD_FULL, isStdBullseye } from "@/lib/duel/standard/number";
 import "@/polish-layout/batch-w-numline.css";
+import { NumberStage, numberArt } from "@/components/puzzles/number/overhaul";
+import { Button } from "@/design/components";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -52,6 +54,23 @@ const SIDE = 22;
 const ZOOM = 4;
 const LENS = 84;
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
+/** The Number overhaul (15 Nov 2026): labels and numbers in the app's one font, bold. */
+const ARCHIVO = "var(--jz-font)";
+/** The overhaul's beat for a finished line to lift and slide away before the next one comes in (display only). */
+const LINE_CLEAR_MS = 950;
+/** How long an edge bump shows after a touch past an end of the line. */
+const EDGE_BUMP_MS = 320;
+
+/**
+ * The Number overhaul's edge bump (15 Nov 2026, display only): which end a touch at `clientX` lies beyond, given the
+ * line box's left edge and the tape's span (the marker still clamps to that end exactly as before).
+ */
+export function numlineEdgeOf(clientX: number, left: number, span: number): "lo" | "hi" | null {
+  const raw = (clientX - left - SIDE) / Math.max(1, span);
+  if (raw < 0) return "lo";
+  if (raw > 1) return "hi";
+  return null;
+}
 /** Completion sweep: the glint crosses the whole tape in this time; each marker ticks as it passes. */
 const SWEEP_MS = 720;
 
@@ -81,8 +100,14 @@ const NUMLINE_CSS = `
 @keyframes numline-tick { from { opacity: 0; transform: scaleY(0.2); } 60% { opacity: 1; transform: scaleY(1.25); } to { opacity: 1; transform: scaleY(1); } }
 .numline-ring { transform-box: fill-box; transform-origin: 50% 50%; animation: numline-ring 380ms ease-out both; }
 @keyframes numline-ring { from { opacity: 0.95; transform: scale(0.6); } to { opacity: 0; transform: scale(1.9); } }
+/* The overhaul's edge bump: a touch past an end shows a short stop at that end (the marker clamps there). */
+.numline-edge { position: absolute; width: 6px; height: 44px; border-radius: 3px; background: var(--jz-gold); pointer-events: none;
+  animation: numline-edge ${EDGE_BUMP_MS}ms ease-out both; }
+.numline-edge[data-numline-edge="lo"] { --numline-bump: -5px; }
+.numline-edge[data-numline-edge="hi"] { --numline-bump: 5px; }
+@keyframes numline-edge { 0% { transform: translateX(0); opacity: 1; } 35% { transform: translateX(var(--numline-bump)); opacity: 1; } 100% { transform: translateX(0); opacity: 0.6; } }
 @media (prefers-reduced-motion: reduce) {
-  .numline-line-in, .numline-item-in, .numline-drop, .numline-tick, .numline-ring { animation: none; }
+  .numline-line-in, .numline-item-in, .numline-drop, .numline-tick, .numline-ring, .numline-edge { animation: none; }
   .numline-glint { display: none; }
 }
 `;
@@ -225,49 +250,15 @@ export function Line({
       style={{ display: "block", overflow: "visible", ...svgStyle }}
     >
       <TapeDefs id={id} />
-      {/* Drop shadow, body, sheen and edges of the tape. */}
-      <rect
-        x={left + 1}
-        y={y - t / 2 + 3}
-        width={right - left}
-        height={t}
-        rx={t / 3}
-        fill="#000"
-        opacity={0.4}
-      />
-      <rect
+      {/* The Number overhaul: the rendered satin-steel rule (docs/design/number-overhaul/source/numline.py), stretched
+          to the tape; the sprite is 360 x 36 points with the rule's body 6–30 down, so the image runs t / 24 · 36 tall. */}
+      <image
+        href={numberArt("numline", "ruler")}
         x={left}
-        y={y - t / 2}
+        y={y - t / 2 - (6 * t) / 24}
         width={right - left}
-        height={t}
-        rx={t / 3}
-        fill={`url(#${id}-steel)`}
-      />
-      <rect
-        x={left}
-        y={y - t / 2}
-        width={right - left}
-        height={t}
-        rx={t / 3}
-        fill={`url(#${id}-sheen)`}
-      />
-      <line
-        x1={left + 3}
-        y1={y - t / 2 + 1}
-        x2={right - 3}
-        y2={y - t / 2 + 1}
-        stroke="#ffffff"
-        strokeOpacity={0.75}
-        strokeWidth={1}
-      />
-      <line
-        x1={left + 3}
-        y1={y + t / 2 - 0.5}
-        x2={right - 3}
-        y2={y + t / 2 - 0.5}
-        stroke="#30323b"
-        strokeOpacity={0.7}
-        strokeWidth={1}
+        height={(36 * t) / 24}
+        preserveAspectRatio="none"
       />
       {tickLabels(stage).map((tick) => (
         <g key={tick.share}>
@@ -290,13 +281,13 @@ export function Line({
             strokeWidth={2}
           />
           <text
-            x={labelX(x(tick.share), tick.label.length * label * 0.6, width)}
+            x={labelX(x(tick.share), tick.label.length * label * 0.62, width)}
             y={y + t / 2 + 8 + label}
             textAnchor="middle"
             fontSize={label}
-            fontWeight={700}
+            fontWeight={800}
             fill="var(--foreground)"
-            fontFamily={MONO}
+            fontFamily={ARCHIVO}
           >
             {tick.label}
           </text>
@@ -336,8 +327,16 @@ export function Pin({
         strokeWidth={r > 8 ? 3 : 2}
         strokeLinecap="round"
       />
-      <circle cx={cx + 1.5} cy={head + 2.5} r={r} fill="#000" opacity={0.35} />
-      <circle cx={cx} cy={head} r={r} fill={fill} stroke="#1a1b21" strokeWidth={1.5} />
+      <circle cx={cx + 1.5} cy={head + 2.5} r={r} fill="var(--jz-bg)" opacity={0.35} />
+      {/* The Number overhaul: the rendered head (champagne for the live marker, pewter once placed); `fill` keeps
+          the drawn gradient's role as which head to use. */}
+      <image
+        href={numberArt("numline", fill.endsWith("-placed)") ? "pin-placed" : "pin")}
+        x={cx - (r * 16) / 14}
+        y={head - (r * 16) / 14}
+        width={(r * 32) / 14}
+        height={(r * 32) / 14}
+      />
     </>
   );
 }
@@ -447,12 +446,24 @@ function Stage({
     [placements, stageIndex],
   );
 
-  /* A new line slides in: one cue per line after the first. */
-  const lastStage = useRef(stageIndex);
+  /*
+   * The Number overhaul's stage moment (15 Nov 2026, display only): when a line's fifth number is placed (not the last
+   * line's), that line stays on screen for LINE_CLEAR_MS, lifting and sliding away with the rising two-note
+   * (`numline.stageClear`, NumberStage), and only then does the next line come in. Answers and the clock never wait.
+   */
+  const [clearing, setClearing] = useState<number | null>(null);
   useEffect(() => {
-    if (stageIndex > lastStage.current) soundCue("numline.line");
-    lastStage.current = stageIndex;
-  }, [stageIndex]);
+    if (clearing === null) return;
+    const timer = window.setTimeout(() => setClearing(null), LINE_CLEAR_MS);
+    return () => window.clearTimeout(timer);
+  }, [clearing]);
+  /* A touch past an end of the line: a small bump at that edge (the marker still clamps there). */
+  const [edge, setEdge] = useState<{ side: "lo" | "hi"; id: number } | null>(null);
+  useEffect(() => {
+    if (!edge) return;
+    const timer = window.setTimeout(() => setEdge(null), EDGE_BUMP_MS);
+    return () => window.clearTimeout(timer);
+  }, [edge]);
 
   /* The sweep ticks each of the last line's markers as the glint passes it. */
   useEffect(() => {
@@ -480,15 +491,24 @@ function Stage({
   });
 
   if (!data) return null;
-  const stage = data.stages[stageIndex]!;
-  const item = stage.items[index % NUMLINE_ITEMS] ?? "";
-  const busy = locked || submitted.current || placements.length >= NUMLINE_TOTAL;
+  // While a finished line clears, it is the one drawn (with its five markers); nothing takes input meanwhile.
+  const shownStage = clearing ?? stageIndex;
+  const stage = data.stages[shownStage]!;
+  const item = clearing !== null ? (stage.items[NUMLINE_ITEMS - 1] ?? "") : (stage.items[index % NUMLINE_ITEMS] ?? "");
+  const busy = locked || submitted.current || placements.length >= NUMLINE_TOTAL || clearing !== null;
   const span = size.width - 2 * SIDE;
 
   const shareAt = (clientX: number) => {
     const rect = box.current?.getBoundingClientRect();
     const left = rect?.left ?? size.left;
     return Math.max(0, Math.min(1, (clientX - left - SIDE) / Math.max(1, span)));
+  };
+  const bumpAt = (clientX: number) => {
+    const side = numlineEdgeOf(clientX, box.current?.getBoundingClientRect().left ?? size.left, span);
+    if (side && side !== edge?.side) {
+      setEdge({ side, id: Date.now() });
+      soundCue("numline.edge");
+    }
   };
   const down = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (busy) return;
@@ -498,11 +518,13 @@ function Stage({
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setMarker(Math.round(shareAt(event.clientX) * NUMLINE_SCALE));
+    bumpAt(event.clientX);
     setDragging({ x: event.clientX, y: event.clientY });
   };
   const move = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (busy || !dragging) return;
     setMarker(Math.round(shareAt(event.clientX) * NUMLINE_SCALE));
+    bumpAt(event.clientX);
     setDragging({ x: event.clientX, y: event.clientY });
   };
   const up = () => setDragging(null);
@@ -514,6 +536,7 @@ function Stage({
     // Game review fix (15 Nov 2026): one sound a place (was tick + place + the game's cue): the game's own cue once it
     // has a file, else the shared place sound.
     numlinePlaceSound();
+    if (next.length < NUMLINE_TOTAL && next.length % NUMLINE_ITEMS === 0) setClearing(stageIndex);
     if (next.length >= NUMLINE_TOTAL) {
       submitted.current = true;
       setJustSolved(true);
@@ -522,10 +545,12 @@ function Stage({
   };
 
   const placedHere = placements.slice(
-    stageIndex * NUMLINE_ITEMS,
-    stageIndex * NUMLINE_ITEMS + NUMLINE_ITEMS,
+    shownStage * NUMLINE_ITEMS,
+    shownStage * NUMLINE_ITEMS + NUMLINE_ITEMS,
   );
-  const lineH = 140;
+  // The overhaul: in a live round the line gets the space (taller box, a thicker rule, bigger end labels); intros
+  // and demos keep 140.
+  const lineH = framed ? 176 : 140;
   /* The tape sits low in its box: markers and labels above, end labels just below. */
   const lineY = (lineH - 40) / lineH;
   const levels = labelLevels(
@@ -559,25 +584,27 @@ function Stage({
       >
         <div className="flex w-full flex-col items-center gap-1.5">
           <StageProgress stage={stageIndex} total={NUMLINE_STAGES} />
+          <NumberStage type="numline" index={shownStage} exit={clearing !== null ? "clear" : null} className="gap-1.5">
           <p className="h-5 w-full shrink-0 text-center font-mono text-xs uppercase text-muted-foreground">
             {/* Batch W: in a live round the goal line already shows the line ("Stage n of 3"). */}
-            {framed ? "" : `Line ${stageIndex + 1} of ${NUMLINE_STAGES} · `}
-            {framed ? "Number" : "number"} {(index % NUMLINE_ITEMS) + 1} of {NUMLINE_ITEMS}
+            {framed ? "" : `Line ${shownStage + 1} of ${NUMLINE_STAGES} · `}
+            {framed ? "Number" : "number"} {clearing !== null ? NUMLINE_ITEMS : (index % NUMLINE_ITEMS) + 1} of {NUMLINE_ITEMS}
           </p>
           <div
             className="numline-card flex w-full shrink-0 items-center justify-center rounded-xl border border-border"
             data-numline-item
           >
             <span
-              key={`${stageIndex}-${index}`}
+              key={`${shownStage}-${clearing !== null ? "done" : index}`}
               className="numline-item-in font-display font-bold text-foreground"
             >
               {item}
             </span>
           </div>
-          <div ref={lineBox} key={stageIndex} className="numline-line-in w-full">
-            {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged. */}
-            <Line stage={stage} width={size.width} height={lineH} t={24} label={18} yShare={lineY}>
+          <div ref={lineBox} key={shownStage} className="numline-line-in relative w-full" data-edge-bump={edge?.side}>
+            {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged.
+                The overhaul: 32 and bold 22 px end labels in a live round. */}
+            <Line stage={stage} width={size.width} height={lineH} t={framed ? 32 : 24} label={framed ? 22 : 18} yShare={lineY}>
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (
@@ -600,14 +627,14 @@ function Stage({
                       x={x(p / NUMLINE_SCALE)}
                       y={y - geom.t / 2 - 12 - levels[i]! * 28 - 12}
                       textAnchor="middle"
-                      fontSize={13}
-                      fontWeight={600}
-                      fill="var(--muted-foreground)"
+                      fontSize={14}
+                      fontWeight={700}
+                      fill="var(--jz-text-2)"
                       stroke="var(--background)"
                       strokeWidth={4}
                       strokeLinejoin="round"
                       paintOrder="stroke"
-                      fontFamily={MONO}
+                      fontFamily={ARCHIVO}
                     >
                       {stage.items[i]}
                     </text>
@@ -693,7 +720,11 @@ function Stage({
                 </>
               )}
             </Line>
+            {edge ? (
+              <span key={edge.id} aria-hidden="true" data-numline-edge={edge.side} className="numline-edge" style={{ top: Math.round(lineH * lineY) - 22, [edge.side === "lo" ? "left" : "right"]: SIDE - 16 }} />
+            ) : null}
           </div>
+          </NumberStage>
         </div>
       </div>
       {dragging && share !== null ? (
@@ -770,14 +801,16 @@ function Stage({
       ) : null}
       {/* Place stands 16 px clear of the bottom of the screen (in a live round the frame's dock gives that 16 px). */}
       <div data-game-controls="actions" className="flex w-full shrink-0 justify-center pb-4">
-        <button
-          type="button"
+        <Button
+          variant="gold"
+          size={48}
+          small
           disabled={busy || marker === null}
           onClick={place}
-          className="h-12 w-full max-w-[280px] rounded-xl border border-primary bg-primary font-mono text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+          className="w-full max-w-[280px]"
         >
           Place
-        </button>
+        </Button>
       </div>
     </div>
   );

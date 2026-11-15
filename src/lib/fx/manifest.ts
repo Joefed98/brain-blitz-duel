@@ -428,6 +428,8 @@ const ENTRIES = {
   "numline.line": { channel: "effects", frequency: 0, ms: 220, url: null },
   "numline.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "numline.sweepTick": { channel: "effects", frequency: 0, ms: 55, url: "/sounds/tick.mp3" },
+  // The Number overhaul (15 Nov 2026): a touch past an end of the line (a library stand-in until Joe's file).
+  "numline.edge": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.5, gapMs: 250 },
   "measure.select": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "measure.pour": { channel: "effects", frequency: 0, ms: 320, url: null },
   "measure.fill": { channel: "effects", frequency: 0, ms: 320, url: null },
@@ -440,11 +442,21 @@ const ENTRIES = {
   "checkout.tick": { channel: "effects", frequency: 0, ms: 220, url: null },
   "checkout.stage": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.counterLock.mp3", volume: 0.79 },
   "checkout.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.goldPulse.mp3" },
+  // The Number overhaul (15 Nov 2026): library stand-ins until Joe's ElevenLabs files (docs/sound-cues/number-elevenlabs.md).
+  "checkout.bust": { channel: "effects", frequency: 0, ms: 250, url: "/sounds/pz_clash_wrong.mp3" },
+  "checkout.undo": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3", volume: 0.55 },
+  "checkout.nudge": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.55 },
+  "checkout.switch": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.45 },
+  "checkout.bigFinish": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/sfx_spark_chime.mp3", volume: 0.8 },
   "balance.select": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "balance.drop": { channel: "effects", frequency: 0, ms: 230, url: null },
   "balance.lift": { channel: "effects", frequency: 0, ms: 260, url: null },
   "balance.level": { channel: "effects", frequency: 0, ms: 806, url: "/sounds/balance.level.mp3" },
   "balance.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.rising.mp3" },
+  // The Number overhaul (15 Nov 2026): Counterweight's pick-up of a hung weight and the "Pick a weight first" nudge;
+  // library stand-ins until Joe's files (docs/sound-cues/number-elevenlabs.md).
+  "balance.pickup": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
+  "balance.nudge": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.55 },
   // The Number overhaul's shared stage moments (15 Nov 2026, src/components/puzzles/number/overhaul.tsx): library
   // stand-ins until Joe's ElevenLabs files (docs/sound-cues/number-elevenlabs.md) take their slot names.
   "balance.stageClear": { channel: "effects", frequency: 0, ms: 160, url: "/sounds/stage_complete.mp3" },
@@ -468,6 +480,11 @@ const ENTRIES = {
   "target.select": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "target.combine": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.combine.mp3" },
   "target.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.goldPulse.mp3" },
+  // The Number overhaul (15 Nov 2026): Exact's operator key, Undo, Reset and Lock (each silent or generic before).
+  "target.operator": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.55 },
+  "target.undo": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3", volume: 0.6 },
+  "target.reset": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3" },
+  "target.lock": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.counterLock.mp3", volume: 0.79 },
   "numpyramid.place": { channel: "effects", frequency: 0, ms: 210, url: null },
   "numpyramid.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "equation.drop": { channel: "effects", frequency: 0, ms: 200, url: null },
@@ -590,6 +607,12 @@ const ENTRIES = {
   "kakuro.place": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3", volume: 0.6 },
   "kakuro.run": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.tileFlip.mp3", volume: 0.5 },
   "kakuro.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.chimeSweep.mp3" },
+  // The Number overhaul (15 Nov 2026): library stand-ins until Joe's ElevenLabs files (docs/sound-cues/number-elevenlabs.md).
+  "kakuro.select": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.35, gapMs: 60 },
+  "kakuro.pencil": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.tap.small.mp3", volume: 0.4 },
+  "kakuro.clear": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3", volume: 0.5 },
+  "kakuro.broken": { channel: "effects", frequency: 0, ms: 250, url: "/sounds/pz_clash_wrong.mp3", volume: 0.6 },
+  "kakuro.combo": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/sfx_spark_chime.mp3", volume: 0.7 },
   "tents.pitch": { channel: "effects", frequency: 0, ms: 240, url: null },
   "tents.grass": { channel: "effects", frequency: 0, ms: 200, url: null },
   "tents.clear": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3" },

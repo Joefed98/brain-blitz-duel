@@ -185,4 +185,58 @@ export const BALANCE_CSS = `
 }
 .game-column [data-polish="balance"] { justify-content: flex-start; }
 .game-column [data-polish="balance"] > [data-game-arena="balance"] { flex: 1 1 0; max-height: none; }
+
+/* ---- The Number overhaul (15 Nov 2026): the Blender-rendered pieces (public/number/balance), bold Archivo numbers,
+   champagne gold and navy, no glows. Display only: every notch, weight and button keeps its place and size. */
+[data-polish="balance"] .bal-panel {
+  border: 1px solid color-mix(in srgb, var(--jz-gold) 18%, transparent);
+  background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.42)), url("/number/balance/wall.webp") center / cover no-repeat, var(--jz-bg);
+  box-shadow: inset 0 0 40px rgba(0,0,0,.55);
+}
+[data-polish="balance"] .bal-table {
+  background: url("/number/balance/bench.webp") center top / 100% 100% no-repeat;
+  box-shadow: 0 -8px 16px rgba(0,0,0,.4);
+}
+[data-polish="balance"] .bal-notch-label {
+  font-family: var(--jz-font); font-weight: 800; font-size: 16px; color: var(--jz-on-gold); text-shadow: none;
+  background: url("/number/balance/tag.webp") center / 100% 100% no-repeat; background-color: transparent;
+  border: 0; box-shadow: 0 2px 3px rgba(0,0,0,.45);
+}
+[data-polish="balance"] .bal-big .bal-notch-label { height: 30px; margin-top: 17px; font-size: 20px; }
+[data-polish="balance"] .bal-notch-active {
+  color: var(--jz-on-gold);
+  background: url("/number/balance/tag.webp") center / 100% 100% no-repeat;
+  box-shadow: 0 0 0 2px var(--jz-white), 0 3px 4px rgba(0,0,0,.5);
+}
+[data-polish="balance"] .bal-bell { position: relative; display: inline-block; flex: none; filter: drop-shadow(0 4px 3px rgba(0,0,0,.55)); }
+[data-polish="balance"] .bal-bell-art { position: absolute; left: 50%; bottom: 0; width: var(--bell-w); height: var(--bell-h); translate: -50% 0; pointer-events: none; user-select: none; }
+[data-polish="balance"] .bal-bell-num {
+  position: absolute; left: 0; right: 0; bottom: calc(var(--bell-h) * 0.347); translate: 0 50%; text-align: center;
+  font-family: var(--jz-font); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--jz-on-gold); pointer-events: none;
+}
+[data-polish="balance"] .bal-bell-lock { position: absolute; right: 0; top: calc(100% - var(--bell-h)); width: 10px; height: 12px; color: var(--jz-silver); }
+[data-polish="balance"] .bal-tray-cup { background: transparent !important; box-shadow: none !important; }
+[data-polish="balance"] .bal-tray-cup[data-selected="true"] { transform: translateY(-6px); box-shadow: 0 0 0 2px var(--jz-gold) !important; }
+[data-polish="balance"] .balance-instrument .ring-primary { --tw-ring-color: var(--jz-gold); border-radius: 12px; box-shadow: 0 0 0 2px var(--jz-gold) !important; }
+[data-polish="balance"] .bal-rack {
+  border: 0; background: url("/number/balance/tray.webp") center / 100% 100% no-repeat !important;
+  box-shadow: 0 6px 14px rgba(0,0,0,.45) !important;
+}
+[data-polish="balance"] .bal-torque {
+  position: absolute; translate: -50% 0; display: flex; align-items: center; gap: 8px; padding: 3px 12px; border-radius: 10px; white-space: nowrap;
+  font-family: var(--jz-font); font-weight: 800; font-size: 18px; line-height: 24px; font-variant-numeric: tabular-nums; color: var(--jz-white);
+  background: var(--jz-surface-2); border: 1px solid color-mix(in srgb, var(--jz-gold) 55%, transparent); box-shadow: 0 3px 6px rgba(0,0,0,.5); pointer-events: none;
+}
+[data-polish="balance"] .bal-torque i { font-style: normal; color: var(--jz-gold); }
+[data-polish="balance"] .bal-nudge {
+  position: absolute; left: 50%; top: -14px; translate: -50% -100%; padding: 4px 12px; border-radius: 10px; white-space: nowrap; pointer-events: none;
+  font-family: var(--jz-font); font-weight: 700; font-size: 14px; color: var(--jz-white); background: var(--jz-surface-2); border: 1px solid var(--jz-gold);
+}
+[data-polish="balance"] .bal-rack[data-nudge] { animation: bal-nudge 300ms ease-out both; }
+@keyframes bal-nudge { 0%, 100% { translate: 0 0; } 25% { translate: -5px 0; } 60% { translate: 4px 0; } }
+[data-polish="balance"] .bal-failing { filter: grayscale(1) brightness(.7); transition: filter 200ms; animation: nov-stage-leave 420ms cubic-bezier(.5,0,.75,0) 380ms both; }
+[data-polish="balance"] .bal-solving .bal-beam-rect { filter: none; }
+@media (prefers-reduced-motion: reduce) {
+  [data-polish="balance"] .bal-rack[data-nudge], [data-polish="balance"] .bal-failing { animation: none; }
+}
 `;

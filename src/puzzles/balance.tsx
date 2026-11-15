@@ -74,6 +74,8 @@ function visibleTilt(scale: BalanceScale, placement: Placement): number {
 /** Render-only beam tilt and peg offsets: a quick ease with a small settle past level. */
 /** The Number overhaul: how long an out-of-hangs scale takes to grey and slide away before the next one. */
 const FAIL_SLIDE_MS = 850;
+/** How long the "Pick a weight first" nudge shows. */
+const NUDGE_MS = 1400;
 
 const TILT_EASE = "transform 260ms cubic-bezier(.34,1.4,.55,1)";
 
@@ -83,7 +85,7 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, onEmptyN
   /** A free notch tapped with no weight picked (the Number overhaul's "Pick a weight first" nudge). */
   onEmptyNotch?: () => void;
   /** balanceRev 4: the balance shown under the beam ("18 | 15"). */
-  torque?: string;
+  torque?: string | undefined;
   selected?: number | null; showControls?: boolean;
   /** Total drawing height; the beam sits a little above the middle. */
   height?: number;
@@ -238,6 +240,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const freeMoves = balanceFreeMoves(data);
   // Display only: a notch tapped with nothing picked nudges the tray ("Pick a weight first").
   const [nudge, setNudge] = useState(0);
+  const [nudgeShown, setNudgeShown] = useState(false);
+  useEffect(() => {
+    if (nudge === 0) return;
+    setNudgeShown(true);
+    const timer = setTimeout(() => setNudgeShown(false), NUDGE_MS);
+    return () => clearTimeout(timer);
+  }, [nudge]);
   // Display only: an out-of-hangs scale greys and slides away before the next one (the shared fail moment).
   const [failing, setFailing] = useState<number | null>(null);
   const [hangs, setHangs] = useStageState<number[]>(stateKey, "balanceHangs", () => scales.map(() => 0));
@@ -471,7 +480,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             <div key={`nudge-${nudge}`} onClick={tapRack} data-nudge={nudge > 0 ? "" : undefined}
               className="bal-rack relative flex min-h-[80px] w-full flex-wrap items-center justify-center gap-3 px-2 py-1.5">
               {trayButtons}
-              {nudge > 0 && <span className="bal-nudge" role="status">Pick a weight first</span>}
+              {nudgeShown && <span className="bal-nudge" role="status">Pick a weight first</span>}
             </div>
           </div>
         </>

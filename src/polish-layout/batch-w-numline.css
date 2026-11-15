@@ -1,59 +1,32 @@
-/* Polish batch W (25 Oct 2026, display only): Ballpark. Imported only from src/puzzles/numline.tsx. */
+/* Polish batch W (25 Oct 2026, display only): Ballpark. Imported only from src/puzzles/numline.tsx.
+   The Number overhaul (15 Nov 2026): the line gets the space, the number card is smaller, clean and matte, and
+   nothing glows. Live round only ([data-puzzle-play]); intros and demos keep their layout, so recorded touches land. */
 
 /* In a live round the frame's dock already ends 16px above the home-bar inset (pad-game-safe), so
-   Place's own 16px pad doubled it; the live summary takes that space instead. Intros and demos
-   (no [data-puzzle-play]) keep the pad, so recorded touches still land. */
+   Place's own 16px pad doubled it; the live summary takes that space instead. */
 [data-puzzle-play] [data-polish="numline"] > [data-game-controls="actions"] {
   padding-bottom: 0;
 }
 
-/* The number card: taller with a bigger number in a live round (the line is width-limited and the card
-   used to leave the height empty), lit from above in its own colours with a soft category glow behind
-   the number. Input maps only x across the whole arena, so nothing about touches changes. */
+/* The number card: a matte navy card, the number big and bold but the card no taller than it needs. */
 [data-puzzle-play] [data-polish="numline"] .numline-card {
-  /* 3 Nov 2026: a size up again on tall phones, so the spare height above goes to the number, not to air. */
-  height: clamp(104px, 24cqh, 190px);
-  font-size: clamp(52px, 12cqh, 96px);
-  border-color: color-mix(in srgb, var(--category-accent) 28%, rgba(255, 255, 255, 0.12));
-  background-image:
-    radial-gradient(60% 70% at 50% 55%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 75%),
-    linear-gradient(180deg, color-mix(in oklab, var(--card) 78%, white 14%), color-mix(in oklab, var(--card) 92%, black 8%));
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -3px 0 rgb(0 0 0 / 0.3),
-    0 12px 24px -8px rgb(0 0 0 / 0.8);
+  height: clamp(76px, 15cqh, 120px);
+  font-size: clamp(42px, 9cqh, 68px);
+  border-color: var(--jz-line);
+  background-image: none;
+  background-color: var(--jz-surface);
+  box-shadow: none;
 }
 [data-puzzle-play] [data-polish="numline"] .numline-card > span {
-  text-shadow: 0 0 18px color-mix(in srgb, var(--category-accent) 55%, transparent), 0 2px 0 rgba(0, 0, 0, 0.5);
-}
-/* The line sits close under the card (3 Nov 2026: was 22px of air; the tape's own box already holds the pins' room). */
-[data-puzzle-play] [data-polish="numline"] .numline-line-in {
-  margin-top: 4px;
+  font-family: var(--jz-font);
+  font-weight: 800;
+  text-shadow: none;
 }
 
-/* Place: a light top edge and a soft glow in the category colour while a marker is ready. */
-[data-puzzle-play] [data-polish="numline"] > [data-game-controls="actions"] > button:not(:disabled) {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 4px 10px rgba(0, 0, 0, 0.45),
-    0 0 14px 4px color-mix(in srgb, var(--category-accent) 50%, transparent);
-}
-
-/* Dark glass pass (27 Oct 2026, display only): the line sits in a sunk well (the toolkit's .gf-well values)
-   with a faint category light along it, and placed pins and the live marker glow. Live round only; the
-   line's geometry and the whole-arena x mapping are unchanged. */
+/* The line sits in a plain, slightly sunk well under the card; it is what the player aims at. */
 [data-puzzle-play] [data-polish="numline"] .numline-line-in {
+  margin-top: 8px;
   border-radius: 16px;
-  background:
-    radial-gradient(80% 60% at 50% 60%, color-mix(in srgb, var(--category-accent) 12%, transparent), transparent 80%),
-    rgba(0, 0, 0, 0.35);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 2px 6px rgba(0, 0, 0, 0.6);
-}
-[data-puzzle-play] [data-polish="numline"] .numline-line-in g.numline-drop {
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--category-accent) 55%, transparent));
-}
-[data-puzzle-play] [data-polish="numline"] .numline-line-in [data-numline-marker] {
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--primary) 70%, transparent)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+  background: color-mix(in srgb, var(--jz-bg) 45%, transparent);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
 }
