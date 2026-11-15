@@ -120,12 +120,14 @@ const { setBatterySaver } = await import("../src/lib/battery");
   for (const part of [...M.PREPARE_SPEC.parts, ...M.FINAL_SPEC.parts, ...M.ROUND_BACKDROPS.flat()].filter((p) => p.rich))
     check(css.includes(`[data-part="${part.part}"]`), `${part.part} has its CSS`);
   const fx = read("src/components/duel/RoomMomentFx.tsx");
-  check(/const rich = useCelebrationsOn\(\) && !arcadeReducedEffects\(\);/.test(fx) && /\(rich \|\| !p\.rich\)/.test(fx), "RoomMomentFx draws rich parts only with the celebrations on and full effects");
+  const hookSrc = read("src/components/fx/useMomentEnter.ts");
+  check(/export function useRichMoments\(\): boolean \{\s*const on = useCelebrationsOn\(\);\s*return on && !arcadeReducedEffects\(\);/.test(hookSrc), "the rich moments' one switch: celebrations on and full effects");
+  check(/const rich = useRichMoments\(\);/.test(fx) && /\(rich \|\| !p\.rich\)/.test(fx), "RoomMomentFx draws rich parts only with the rich moments on");
   const start = read("src/components/duel/DuelStart.tsx");
-  check(/const on = useCelebrationsOn\(\);\s*const elapsed = useMomentElapsed\(startedAt\);\s*if \(!on \|\| players\.length < 2\) return null;/.test(start), "the lineup only with the celebrations on and two or more players");
+  check(/const on = useRichMoments\(\);\s*const elapsed = useMomentElapsed\(startedAt\);\s*if \(!on \|\| players\.length < 2\) return null;/.test(start), "the lineup only with the celebrations on and two or more players");
   check(/players=\{players\s*\.filter\(\(p\) => p\.status !== "left"\)/.test(read("src/routes/duel.$code.tsx")), "the room passes its players (left ones out)");
   const title = read("src/components/duel/RoundTitle.tsx");
-  check(/const rich = useCelebrationsOn\(\) && !arcadeReducedEffects\(\);/.test(title) && /\{rich \? \(\s*<span\s*className="round-title-ghost"/.test(title), "the round numeral only with the celebrations on and full effects");
+  check(/const rich = useRichMoments\(\);/.test(title) && /\{rich \? \(\s*<span\s*className="round-title-ghost"/.test(title), "the round numeral only with the celebrations on and full effects");
   const moments = read("src/polish-layout/moments.css");
   for (const name of ["lineup-rise", "lineup-from-left", "lineup-from-right", "lineup-vs", "round-ghost-in", "round-ghost-final", "moment-rise", "moment-fade"]) {
     const body = moments.match(new RegExp(`@keyframes ${name} \\{([\\s\\S]*?)\\n\\}`))?.[1] ?? "";

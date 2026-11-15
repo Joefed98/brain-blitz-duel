@@ -17,6 +17,16 @@ export function useMomentEnter(kind: "rise" | "fade" = "rise"): { "data-moment-e
 }
 
 /**
+ * The room moments' richer layer (15 Nov 2026, the effects pass): Prepare to Duel's lineup and build-up, the round
+ * titles' backdrops and numeral, the final round's sparks. On only with the celebrations on and full effects (reduced
+ * effects and the battery saver keep the moments as they were). One switch for every part, so they come and go together.
+ */
+export function useRichMoments(): boolean {
+  const on = useCelebrationsOn();
+  return on && !arcadeReducedEffects();
+}
+
+/**
  * An app moment (15 Nov 2026, the effects pass): the kit's effect on the element `selector` finds, once each time `key`
  * changes to a new non-null value (a badge earned, a level reached, a reward claimed…). The same kit and look as the
  * games' and results' moments; nothing with the celebrations off; never a haptic (outside a live board, the kit's rule).

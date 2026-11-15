@@ -11,7 +11,7 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { LOGO_HAIRLINE_PX } from "@/components/brand/logoGeometry";
 import { PrepareLightning } from "./PrepareLightning";
 import { RoomMiniCard } from "./RoomPlayer";
-import { useCelebrationsOn } from "@/components/fx/useCelebration";
+import { useRichMoments } from "@/components/fx/useMomentEnter";
 import { useMomentElapsed } from "@/lib/fx/useRoomMoments";
 import type { CSSProperties } from "react";
 import type { PlayerLook } from "@/lib/duel/playerLook";
@@ -107,10 +107,10 @@ export function DuelStart({
  * The players' cards arriving (15 Nov 2026, the effects pass; display only): two players face each other across a VS,
  * a bigger room's cards rise into rows, one after another, all inside Prepare to Duel's six seconds on the shared clock
  * (a late arrival sees the same frame). Entrance only: every card ends in place and visible, so reduced motion simply
- * shows them. Not drawn with the celebrations off (that screen exactly as before).
+ * shows them. Not drawn without the rich moments (the switch off: that screen exactly as before; reduced effects).
  */
 function DuelLineup({ players, startedAt }: { players: readonly LineupPlayer[]; startedAt: number }) {
-  const on = useCelebrationsOn();
+  const on = useRichMoments();
   const elapsed = useMomentElapsed(startedAt);
   if (!on || players.length < 2) return null;
   const duel = players.length === 2;

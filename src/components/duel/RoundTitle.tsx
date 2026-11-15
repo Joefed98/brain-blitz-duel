@@ -13,8 +13,7 @@ import { roundMusicFor } from "@/lib/fx/theme";
 import { playVoice, prepareBeatTrack, prepareRoundMusic, stopMusicExcept, type VoiceId } from "@/lib/sound";
 import { useMomentElapsed } from "@/lib/fx/useRoomMoments";
 import { RoomMomentFx } from "./RoomMomentFx";
-import { useCelebrationsOn } from "@/components/fx/useCelebration";
-import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { useRichMoments } from "@/components/fx/useMomentEnter";
 
 /** Room-only, shell-free title; presentation and cues use the shared clock. */
 export function RoundTitle({
@@ -36,7 +35,7 @@ export function RoundTitle({
   const moment = useMemo(() => roundMomentSpec(round, totalRounds), [round, totalRounds]);
   const elapsed = useMomentElapsed(startedAt);
   // The effects pass (15 Nov 2026): the round's numeral, large and faint behind the title (decorative; the title says it).
-  const rich = useCelebrationsOn() && !arcadeReducedEffects();
+  const rich = useRichMoments();
 
   useEffect(() => {
     stopMusicExcept("music_round_title", 0);

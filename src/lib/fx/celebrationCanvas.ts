@@ -223,12 +223,12 @@ export class CelebrationScene {
 
   /**
    * A strike: one to three branching bolts from near the top to the lower part of the screen (`small`: the countdown's,
-   * one or two shorter bolts). Every strike is drawn fresh from a new seed (the clock, a counter and Math.random,
+   * one or two shorter bolts). Every strike is drawn fresh from a new seed (the clock to the microsecond, a counter and the last seed,
    * presentation only), so no two share their bolts, forks, origin or timing.
    */
   strike(width: number, height: number, now: number, small = false): void {
     this.strikes++;
-    this.seed = ((Math.random() * 4294967296) ^ Math.imul(this.strikes, 2654435761) ^ (now | 0)) >>> 0;
+    this.seed = (Math.imul(this.seed ^ Math.imul(this.strikes + 1, 2654435761), 1597334677) ^ ((now * 1000) | 0)) >>> 0;
     this.strikeAt = now;
     this.strikeSmall = small;
     const r = this.rand();
