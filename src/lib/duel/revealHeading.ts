@@ -71,6 +71,8 @@ const BOTH = new Set([
   "target",
   "countup",
   "symscan",
+  // The Attention overhaul's step track: the right action beside the player's on every row.
+  "bomb",
 ]);
 
 /** What the reveal's board draws for this round. */

@@ -559,6 +559,7 @@ export function ArrowPad({
   directions = ["L", "U", "D", "R"],
   expanded = false,
   modeSwitch = true,
+  menuSwitch = false,
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;
@@ -570,7 +571,11 @@ export function ArrowPad({
    * choice is the game menu's and Settings → Game controls' (lib/arrowControl.ts), and the pad takes the full row.
    */
   modeSwitch?: boolean;
+  /** The switch lives in the game menu and Settings (directionControls.ts MENU_DIRECTION_GAMES): none beside the pad. */
+  menuSwitch?: boolean;
 }) {
+  // Either flag moves the switch off the pad (Pattern's modeSwitch={false}, Attention's menuSwitch; puzzle train combine).
+  const padSwitch = modeSwitch && !menuSwitch;
   const press = useRef(onPress);
   press.current = onPress;
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -589,9 +594,10 @@ export function ArrowPad({
       return;
     }
     setJoystick(readArrowControl() === "joystick");
-    // The game menu and Settings change it while a round is open (lib/arrowControl.ts).
-    return onArrowControlChange((value) => setJoystick(value === "joystick"));
-  }, [forcedJoystick]);
+    // The game menu and Settings change it while a round is open (lib/arrowControl.ts; directionControls.ts is the
+    // same store).
+    return onArrowControlChange((value) => setMode(value === "joystick", false));
+  }, [forcedJoystick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stop = useCallback(() => {
     if (timer.current !== null) {
@@ -602,13 +608,14 @@ export function ArrowPad({
 
   useEffect(() => stop, [stop]);
 
-  const setMode = useCallback((next: boolean) => {
+  const setMode = useCallback((next: boolean, store = true) => {
     stop();
     stickOrigin.current = null;
     stickLatched.current = false;
     stickDirection.current = null;
     setKnob({ x: 0, y: 0 });
     setJoystick(next);
+    if (!store) return;
     setArrowControl(next ? "joystick" : "arrows");
   }, [stop]);
 
@@ -693,7 +700,7 @@ export function ArrowPad({
   }, [stop]);
 
   return (
-    <div data-game-controls="arrows" data-arrow-mode={joystick ? "joystick" : "arrows"} className={`grid w-full shrink-0 ${modeSwitch ? "grid-cols-[minmax(0,1fr)_44px]" : "grid-cols-1"} items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[60px]"}`}>
+    <div data-game-controls="arrows" data-arrow-mode={joystick ? "joystick" : "arrows"} className={`grid w-full shrink-0 ${padSwitch ? "grid-cols-[minmax(0,1fr)_44px]" : "grid-cols-1"} items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[60px]"}`}>
       {joystick ? (
         <div
           ref={stickElement}
@@ -726,7 +733,7 @@ export function ArrowPad({
           {directions.includes("R") ? button("R", "▶", "Right") : null}
         </div>
       )}
-      {modeSwitch ? <Button
+      {padSwitch ? <Button
         type="button"
         variant="ghost"
         role="switch"

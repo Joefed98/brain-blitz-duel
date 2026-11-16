@@ -3,6 +3,7 @@ import { flowCellCount, flowGrid } from "./flow";
 import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
 import { pipesDims } from "./logic";
+import { pairsOf } from "./attentionLevels";
 import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
@@ -944,7 +945,7 @@ const pairMatchSummary: SummaryBuilder = (result, puzzle) => {
   const pairs = Number(result.extra?.["pairs"] ?? 0);
   const flips = Number(result.extra?.["flips"] ?? 0);
   return {
-    summary: `${pairs} / ${PAIR_PAIRS}, ${flips} flips, ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${pairs} / ${pairsOf(puzzle)}, ${flips} flips, ${seconds(elapsedMs(result, puzzle))}`,
     detail: [result.is_correct ? "Every pair found" : "Board unfinished"],
   };
 };
@@ -2016,7 +2017,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   gravity: (p) => (p.type === "gravity" && p.minMoves ? `${p.minMoves} tilts` : null),
   chain: () => null,
   nonogram: () => "The picture",
-  pairmatch: (p) => (p.type === "pairmatch" ? `${PAIR_PAIRS} pairs` : null),
+  pairmatch: (p) => (p.type === "pairmatch" ? `${pairsOf(p)} pairs` : null),
   flood: (p) => (p.type === "flood" ? `par ${p.par}` : null),
   tiles: (p) => (p.type === "tiles" && p.minMoves ? `${p.minMoves} moves` : null),
   hover: () => null,

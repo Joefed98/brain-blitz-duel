@@ -18,6 +18,11 @@ import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
 import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
+import { preAttentionOverhaulPinned } from "./attentionOverhaul";
+import { ATTENTION_LEVEL_HELP } from "./attentionLevels";
+
+/** The Attention overhaul's help (15 Nov 2026, attentionOverhaul.ts) while its stamps are dealt. */
+const attentionOverhaulDealt = () => !preAttentionOverhaulPinned();
 import { operatorGapsDealt } from "./operatorGaps";
 import { preNumberOverhaulPinned } from "./numberOverhaul";
 import { prePatternNov15Pinned } from "./patternNov15";
@@ -523,8 +528,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap each eagle", detail: "facing the target’s way." },
         { action: "Press Submit", detail: "to lock the grid." },
-        { action: "Three grids,", detail: "each bigger, in 30 seconds." },
+        // The Attention overhaul's levels (scanRev 5): a 60 s clock at every level.
+        { action: "Three grids,", detail: attentionOverhaulDealt() ? "each bigger, in 60 seconds." : "each bigger, in 30 seconds." },
         { action: "Grid 3 has two targets:", detail: "tap every eagle facing either one.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.symscan, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.symscan(),
     },
@@ -534,8 +541,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Compare", detail: "the two panels." },
         { action: "Tap a difference", detail: "in either panel." },
         { action: "Sweet shop first,", detail: "then the rock pool; 60 seconds for both." },
-        { action: "One picture hides a 7th:", detail: "a shape drawn smaller. Find it before the 6th for a bonus." },
-        { action: "Next picture", detail: "moves on early; you can’t go back.", helpOnly: true },
+        // The Attention overhaul (spotRev 4): the picture stays until Next, so the 7th can be found after the six.
+        attentionOverhaulDealt()
+          ? { action: "One picture hides a 7th:", detail: "a shape drawn smaller, for a bonus. Tap Next when you’re ready." }
+          : { action: "One picture hides a 7th:", detail: "a shape drawn smaller. Find it before the 6th for a bonus." },
+        attentionOverhaulDealt()
+          ? { action: "Next picture", detail: "moves on (Done on the last); you can’t go back.", helpOnly: true }
+          : { action: "Next picture", detail: "moves on early; you can’t go back.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "5 misses allowed", detail: "for the finish bonus.", helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.spotdiff, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.spotdiff(),
     },
@@ -561,8 +575,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Read the question:", detail: puzzleNotesDealt() ? "a shape, a colour, or both." : "a shape and a colour." },
         { action: "Type the total;", detail: "ENTER goes to the next." },
         { action: "Tray 4 compares:", detail: "how many more of one colour than another?" },
+        // The Attention overhaul (countRev 7): tap a shape to mark it as counted.
+        ...(attentionOverhaulDealt() ? [{ action: "Tap a shape", detail: "to mark it as counted (a dot stays on it)." }] : []),
         { action: "Four trays", detail: "share 60 seconds.", helpOnly: true },
         { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.countup, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.countup(),
     },
@@ -774,6 +791,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "No wasted steps", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Stars", detail: "anywhere in the maze add points, finished or not." },
         { action: "The path", detail: "moves one neighbouring cell at a time.", helpOnly: true },
+        // The Attention overhaul (15 Nov 2026): backtracking and the controls, said plainly.
+        { action: "Backtracking", detail: "counts against par: every step walked counts, back ones too.", helpOnly: true },
+        { action: "Arrows or joystick:", detail: "choose in the game menu or in Settings.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.maze, helpOnly: true }] : []),
       ],
       // The scoring standard (mazeRev 3): standard/attentionTexts.ts.
       score: parMovesDealt() ? PAR_MOVES_MAZE_HELP() : STANDARD_ATTENTION_HELP.maze(),
@@ -813,10 +834,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Do the six steps,", detail: "then tap DEFUSE." },
         // Attention review fixes (15 Nov 2026): nothing happens live; Reset clears the steps, and the order is
         // judged when DEFUSE is pressed.
-        { action: "Reset", detail: "clears your steps; a wrong order explodes at DEFUSE." },
+        // The Attention overhaul (15 Nov 2026): a reasoning test; the bomb never reacts while you work.
+        attentionOverhaulDealt()
+          ? { action: "Nothing reacts live:", detail: "the order is checked only at DEFUSE. Reset clears your steps." }
+          : { action: "Reset", detail: "clears your steps; a wrong order explodes at DEFUSE." },
         { action: "Clues say", detail: "which step an action is, what comes before or straight after what, and what not to do. “Before” means any time earlier.", helpOnly: true },
         { action: "Only one order fits:", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
-        { action: "Wires", detail: "are numbered 1–7 from the left.", helpOnly: true },
+        { action: "Wires", detail: attentionOverhaulDealt() ? "are numbered from 1 on the left (Normal has 7)." : "are numbered 1–7 from the left.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.bomb, helpOnly: true }] : []),
       ],
       score: logicStandardHelp("bomb"),
     },
@@ -871,10 +896,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Find all fifteen pairs.",
       how: [
         { action: "Tap two cards", detail: "to turn them over." },
-        { action: "A match stays up;", detail: "a miss flips back." },
+        attentionOverhaulDealt()
+          ? { action: "A match stays up;", detail: "a miss flips back (tap another card to skip the wait)." }
+          : { action: "A match stays up;", detail: "a miss flips back." },
         { action: "Remember", detail: "where each card was." },
         // The streak and the gold pair, one short line.
         { action: "Bonus:", detail: "match in a row for a streak; find the gold pair in 30 s." },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.pairmatch, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.pairmatch(),
     },

@@ -89,6 +89,8 @@ export const DEAL_PINS = {
   prePatternNov15: { texts: true },
   /** wordOverhaul.ts: Nucleus, Slider, Lookout, Roundabout and Cryptogrid before the Word overhaul (15 Nov 2026). */
   preWordOverhaul: { texts: true },
+  /** attentionOverhaul.ts: Double Take spotRev 3, Tally countRev 6, Matchmaker pairRev 3, before the Attention overhaul. */
+  preAttentionOverhaul: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

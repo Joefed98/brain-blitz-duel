@@ -18,7 +18,7 @@ import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { LOGIC_SOLVE_FX_MS } from "../src/puzzles/logicFx";
-import { LOGIC_POLISH_DEMOS, LOGIC2_DEMOS, OCT14_BATCH_DEMOS, puzzleInputDemoCompatible, puzzlePresentation, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
+import { ATTENTION_OVERHAUL_DEMOS, LOGIC_POLISH_DEMOS, LOGIC2_DEMOS, OCT14_BATCH_DEMOS, puzzleInputDemoCompatible, puzzlePresentation, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
 
 const GAMES: { type: PuzzleType; file: string }[] = [
   { type: "lightsout", file: "lightsOut" },
@@ -64,7 +64,10 @@ for (const { type } of GAMES) {
     // Polypotions and Colour Flood moved again on 14 Oct 2026 (OCT14_BATCH_DEMOS): logic-polish demos are rejected too.
     // Tents and Trees, Shikaku and Lamplighter moved again in the Logic overhaul (15 Nov 2026, LOGIC2_DEMOS). Changed with
     // Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
-    assert.equal(puzzleInputDemoCompatible(type, { presentation: LOGIC_POLISH_PRESENTATION }), !OCT14_BATCH_DEMOS.has(type) && !LOGIC2_DEMOS.has(type));
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): Bomb Defusal's board moved,
+    // so its logic-polish demos are rejected too (ATTENTION_OVERHAUL_DEMOS).
+    // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
+    assert.equal(puzzleInputDemoCompatible(type, { presentation: LOGIC_POLISH_PRESENTATION }), !OCT14_BATCH_DEMOS.has(type) && !LOGIC2_DEMOS.has(type) && !ATTENTION_OVERHAUL_DEMOS.has(type));
     assert.equal(puzzleInputDemoCompatible(type, { presentation: puzzlePresentation(type) }), true);
   });
 }
@@ -112,7 +115,10 @@ check("docs/sound-cues/logic.md matches the code", () => {
   assert.deepEqual([...fired].sort(), [...listed].sort());
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): the overhaul's new cues for
   // Tents and Trees, Shikaku and Lamplighter (camelCase ones such as tents.signMet are outside this pattern) make 40.
-  assert.equal(fired.size, 40);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): bomb.step's pip click,
+  // and Expert's bomb.instant.
+  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): 42 with both.
+  assert.equal(fired.size, 42);
 });
 
 if (failures) {

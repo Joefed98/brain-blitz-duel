@@ -22,6 +22,7 @@ import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { dealPatternNov15 } from "./patternNov15";
 import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
+import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -147,6 +148,7 @@ import { saltSeed } from "./seededRng";
 import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
 import { gameLevelSettings, resolveLevel } from "@/lib/levels/gameLevels";
 import { dealWordLevel } from "./wordLevels.server";
+import { dealAttentionLevel } from "./attentionLevels.server";
 
 /** Room-level context a generator may need beyond its own randomness. */
 export interface GenerateContext {
@@ -208,6 +210,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "patternNov15", deal: (p) => dealPatternNov15(p, (q) => (q.type === "pipes" ? withPipesTwoWayPar(withPipesOneLayout(q)) : q.type === "gravity" ? withTopsyV8Limits(q) : q)) },
   // The Word overhaul (15 Nov 2026, wordOverhaul.ts): Nucleus, Slider, Lookout, Roundabout and Cryptogrid one stamp up.
   { name: "wordOverhaul", deal: dealWordOverhaul },
+  // The Attention overhaul (15 Nov 2026, attentionOverhaul.ts): Double Take, Tally and Matchmaker one stamp up.
+  { name: "attentionOverhaul", deal: dealAttentionOverhaul },
 ];
 
 /**
@@ -244,7 +248,10 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
   if (puzzleScoreRevOf(stamped) !== PUZZLE_SCORE_REV_DEALT) return stamped;
   const layered = DEAL_LAYERS.reduce((puzzle, layer) => layer.deal(puzzle), stamped);
   // Brimful's level boards (measureLevels.server.ts): measureRev 5 and the level's move limits, after today's layers.
-  return type === "measure" ? stampMeasureLevel(layered, context.level) : layered;
+  const measured = type === "measure" ? stampMeasureLevel(layered, context.level) : layered;
+  // The Attention games' levels (stage 3 of the overhaul) re-deal their board on the level's levers, after every layer;
+  // a context without a level (Normal) is never touched.
+  return context.level && context.level !== NORMAL ? dealAttentionLevel(measured, context.level) : measured;
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {

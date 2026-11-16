@@ -22,9 +22,13 @@ import { countUpSceneValid, countUpStageQuestion, countUpVisibleShare, TALLY_ASK
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import type { CountUpPuzzleData, CountUpStage, PuzzleData, WordSlidePuzzleData } from "../src/lib/duel/types";
 import { pinPreWordNov7 } from "../src/lib/duel/wordNov7";
+import { pinPreAttentionOverhaul } from "../src/lib/duel/attentionOverhaul";
 
 // Written for the notes' stamps: the Word scoring fix (7 Nov 2026, wordNov7.ts) deals Slider one above (word-nov7-check).
 pinPreWordNov7(true);
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): Tally's countRev 7 is one
+// above the notes' (attention-overhaul-check proves it), so new deals here keep countRev 6.
+pinPreAttentionOverhaul(true);
 
 let fails = 0;
 let passes = 0;

@@ -19,26 +19,19 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 98 | 0 | 488 | 586 |
+| game event | 50 | 0 | 488 | 538 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
-| fail sting | 7 | 0 | 37 | 44 |
-| success sting | 19 | 0 | 75 | 94 |
-| UI tap | 11 | 0 | 30 | 41 |
+| UI tap | 12 | 0 | 30 | 42 |
+| fail sting | 8 | 0 | 37 | 45 |
+| success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 146 | 1 | 984 | 1131 |
+| **all** | 82 | 1 | 984 | 1067 |
 
 ## Silent and placeholder cues
 
 Grouped by game or screen. These are the cues still missing a sound.
-
-### Shared screens and effects
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `shared.wordDrop` | A Word game's round end (stage 2, 15 Nov 2026): each found word drops into the reveal's list, one every 90 ms (up to 12); the shared tick until Joe's recording. [shared.md] |  | 5–40 (per move) | silent | none | 60 | game event | `shared.wordDrop` |
-| `shared.wordLongest` | A Word game's round end: the longest word lands on its gold chip; the shared tick until Joe's recording. [shared.md] |  | 5–40 (per move) | silent | none | 300 | game event | `shared.wordLongest` |
 
 ### App-wide sounds
 
@@ -61,134 +54,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `music.reveal` | Answer reveal (rooms and practice): none (stopped as the score lands) |  | loop | silent | none | 8000 | music | `music_reveal` |
 | `music.winner` | Winner reveal: none (drum roll and voice) |  | loop | silent | none | 6300 | music | `music_winner` |
 | `music.tension` | Tension bed (not placed): registered, no file, never started (startMusic refuses it) |  | loop | silent | none | loop | music | `tension_loop` |
-
-### Cryptogrid
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `codeword.key` | Cryptogrid: Any key on the keyboard, as Strikeout's. [word.md] |  | 5–40 (per move) | silent | none | 50 | game event | `codeword.key` |
-| `codeword.ripple` | Cryptogrid: A letter ripples into every matching square, ticks rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 450 | game event | `codeword.ripple` |
-| `codeword.word` | Cryptogrid: A word completed by the letter glints (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 360 | game event | `codeword.word` |
-| `codeword.wrong` | Cryptogrid: Full and wrong: the letters that can't make words flash (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 190 | fail sting | `codeword.wrong` |
-| `codeword.jump` | Cryptogrid: The selection jumps to the next unsolved number (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 90 | game event | `codeword.jump` |
-
-### Forage
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wordhunt.trace1` | Forage: Tracing, letter 1: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 160 | success sting | `wordhunt.trace1` |
-| `wordhunt.trace2` | Forage: Tracing, letter 2: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 160 | success sting | `wordhunt.trace2` |
-| `wordhunt.trace3` | Forage: Tracing, letter 3: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `wordhunt.trace3` |
-| `wordhunt.trace4` | Forage: Tracing, letter 4: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace4` |
-| `wordhunt.trace5` | Forage: Tracing, letter 5: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace5` |
-| `wordhunt.trace6` | Forage: Tracing, letter 6: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace6` |
-| `wordhunt.trace7` | Forage: Tracing, letter 7: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace7` |
-| `wordhunt.trace8` | Forage: Tracing, letter 8: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace8` |
-| `wordhunt.trace9` | Forage: Tracing, letter 9: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 160 | success sting | `wordhunt.trace9` |
-| `wordhunt.golden` | Forage: The trace crosses the golden tile: a sparkle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 330 | game event | `wordhunt.golden` |
-| `wordhunt.word` | Forage: A valid word: the path flashes and it flies to the list (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 520 | game event | `wordhunt.word` |
-| `wordhunt.long` | Forage: A word of 7 or more letters: a bigger chord (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 580 | game event | `wordhunt.long` |
-| `wordhunt.points` | Forage: The word's points pop beside it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `wordhunt.points` |
-
-### Interlock
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tilegrid.pick` | Interlock: A tile lifted from the tray (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 70 | game event | `tilegrid.pick` |
-| `tilegrid.place` | Interlock: A wooden tile clacked onto its square (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | UI tap | `tilegrid.place` |
-| `tilegrid.back` | Interlock: A tile slid back to the tray (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `tilegrid.back` |
-| `tilegrid.word3` | Interlock: A 3-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 480 | game event | `tilegrid.word3` |
-| `tilegrid.word4` | Interlock: A 4-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 550 | game event | `tilegrid.word4` |
-| `tilegrid.word5` | Interlock: A 5-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 570 | game event | `tilegrid.word5` |
-| `tilegrid.word6` | Interlock: A 6-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 590 | game event | `tilegrid.word6` |
-| `tilegrid.word7` | Interlock: A 7-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 630 | game event | `tilegrid.word7` |
-| `tilegrid.combo` | Interlock: Two words form at once (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 480 | game event | `tilegrid.combo` |
-| `tilegrid.notword` | Interlock: A run that is no word turns faint red (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 190 | game event | `tilegrid.notword` |
-| `tilegrid.bonus` | Interlock: The big-word bonus counting up (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 510 | game event | `tilegrid.bonus` |
-
-### Lookout
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wordsearch.drag` | Lookout: A marker squeak as the loop grows a letter (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `wordsearch.drag` |
-| `wordsearch.found4` | Lookout: A 4-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 340 | game event | `wordsearch.found4` |
-| `wordsearch.found5` | Lookout: A 5-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 350 | game event | `wordsearch.found5` |
-| `wordsearch.found6` | Lookout: A 6-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 360 | game event | `wordsearch.found6` |
-| `wordsearch.found7` | Lookout: A 7-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 350 | game event | `wordsearch.found7` |
-| `wordsearch.found8` | Lookout: A 8-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 350 | game event | `wordsearch.found8` |
-| `wordsearch.found9` | Lookout: A 9-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 360 | game event | `wordsearch.found9` |
-| `wordsearch.bonus` | Lookout: The bonus word: a sparkle and a brighter chime (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 330 | game event | `wordsearch.bonus` |
-| `wordsearch.already` | Lookout: Re-dragging a found word: a gentle bump (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 70 | game event | `wordsearch.already` |
-| `wordsearch.redraw` | Lookout: The last word: every loop redrawn in order (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 700 | game event | `wordsearch.redraw` |
-
-### Nucleus
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wordsmith.letter` | Nucleus: A soft key click as a letter rises out of the ring (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 70 | game event | `wordsmith.letter` |
-| `wordsmith.shuffle` | Nucleus: The letters sliding round the ring (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 250 | game event | `wordsmith.shuffle` |
-| `wordsmith.word4` | Nucleus: A valid 4-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 260 | game event | `wordsmith.word4` |
-| `wordsmith.word5` | Nucleus: A valid 5-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 260 | game event | `wordsmith.word5` |
-| `wordsmith.word6` | Nucleus: A valid 6-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 260 | game event | `wordsmith.word6` |
-| `wordsmith.word7` | Nucleus: A valid 7-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 270 | game event | `wordsmith.word7` |
-| `wordsmith.word8` | Nucleus: A valid 8-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 250 | game event | `wordsmith.word8` |
-| `wordsmith.word9` | Nucleus: A valid 9-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 270 | game event | `wordsmith.word9` |
-| `wordsmith.combo` | Nucleus: Three words inside 10 s: a quick bright run (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 510 | game event | `wordsmith.combo` |
-| `wordsmith.pangram` | Nucleus: The pangram: the ring spins once in gold, a big rolled chord (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 620 | game event | `wordsmith.pangram` |
-| `wordsmith.invalid` | Nucleus: Not a word: a soft buzz as the letters shake back (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 190 | game event | `wordsmith.invalid` |
-
-### Roundabout
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `letterwheel.trace1` | Roundabout: Tracing, letter 1: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 130 | success sting | `letterwheel.trace1` |
-| `letterwheel.trace2` | Roundabout: Tracing, letter 2: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `letterwheel.trace2` |
-| `letterwheel.trace3` | Roundabout: Tracing, letter 3: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 130 | success sting | `letterwheel.trace3` |
-| `letterwheel.trace4` | Roundabout: Tracing, letter 4: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `letterwheel.trace4` |
-| `letterwheel.trace5` | Roundabout: Tracing, letter 5: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 130 | success sting | `letterwheel.trace5` |
-| `letterwheel.trace6` | Roundabout: Tracing, letter 6: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `letterwheel.trace6` |
-| `letterwheel.trace7` | Roundabout: Tracing, letter 7: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `letterwheel.trace7` |
-| `letterwheel.trace8` | Roundabout: Tracing, letter 8: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 130 | success sting | `letterwheel.trace8` |
-| `letterwheel.fly` | Roundabout: A slot word's letters fly into their squares one by one (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 510 | game event | `letterwheel.fly` |
-| `letterwheel.jar` | Roundabout: A bonus word drops into the jar: a coin plink on glass (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 290 | game event | `letterwheel.jar` |
-| `letterwheel.repeat` | Roundabout: A harmless repeat: a gentle bump (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `letterwheel.repeat` |
-| `letterwheel.miss` | Roundabout: A miss: not a word (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 190 | fail sting | `letterwheel.miss` |
-| `letterwheel.spin` | Roundabout: Grid done: the wheel spins and the grid lights (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 650 | game event | `letterwheel.spin` |
-
-### Slider
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wordslide.slide` | Slider: A row or column slid: a short tile rattle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 150 | game event | `wordslide.slide` |
-| `wordslide.word` | Slider: A row becomes a word: a bright two-note (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 360 | game event | `wordslide.word` |
-| `wordslide.lock` | Slider: A padlock snapping shut (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 120 | game event | `wordslide.lock` |
-| `wordslide.unlock` | Slider: A padlock opened again (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 120 | game event | `wordslide.unlock` |
-| `wordslide.swap` | Slider: Two tiles of the last row swap (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `wordslide.swap` |
-| `wordslide.nudge` | Slider: At par with three rows done: a small nudge (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 90 | game event | `wordslide.nudge` |
-| `wordslide.resetArm` | Slider: Reset armed: a soft cautious tick (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 280 | fail sting | `wordslide.resetArm` |
-
-### Strikeout
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `strikeout.key` | Strikeout: Any key on the keyboard (the Word overhaul, 15 Nov 2026): a soft typewriter click; word.key.mp3 behind NEW_GAME_SOUNDS until Joe's recording (word-elevenlabs.md). [word.md] |  | 5–40 (per move) | silent | none | 50 | game event | `strikeout.key` |
-| `strikeout.flip` | Strikeout: A hit: matching tiles flip with a clack, one after another (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 160 | game event | `strikeout.flip` |
-| `strikeout.strike` | Strikeout: A strike slammed onto the strike row (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 170 | game event | `strikeout.strike` |
-| `strikeout.combo` | Strikeout: An early solve with 3+ letters hidden: they all flip at once (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 450 | game event | `strikeout.combo` |
-| `strikeout.lastStrike` | Strikeout: One strike left: the strike row pulses (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 270 | game event | `strikeout.lastStrike` |
-| `strikeout.solve` | Strikeout: A word solved (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 550 | success sting | `strikeout.solve` |
-
-### Swapword
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `swapword.swap` | Swapword: Two tiles pass each other in a short arc: a wooden clack (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 90 | game event | `swapword.swap` |
-| `swapword.gold` | Swapword: A tile turns gold: a bright plink (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 270 | game event | `swapword.gold` |
-| `swapword.combo` | Swapword: Two tiles turn gold in one swap (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 430 | game event | `swapword.combo` |
-| `swapword.locked` | Swapword: A locked gold tile tapped: a small wiggle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 70 | game event | `swapword.locked` |
-| `swapword.low` | Swapword: Three swaps left: the counter pulses (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 280 | game event | `swapword.low` |
-| `swapword.out` | Swapword: Out of swaps: a closing clunk as the board greys (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 170 | game event | `swapword.out` |
-| `swapword.scale` | Swapword: Solved: a wave round the figure-eight, a rising scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 720 | game event | `swapword.scale` |
 
 ### Ballpark
 
@@ -252,11 +117,15 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `bomb.press` | Button A or B is pressed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `bomb.press` |
+| `bomb.step` | Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) [logic.md] |  | 5–40 (per move) | silent | none | 50 | game event | `bomb.step` |
+| `bomb.instant` | Expert: a wrong step sets the bomb off at once (the Attention overhaul's levels) [logic.md] |  | 5–40 (per move) | silent | none | 800 | game event | `bomb.instant` |
 
 ### Double Take
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `spotdiff.hidden` | Double Take: The hidden seventh found [speed-attention.md] |  | 5–40 (per move) | silent | none | 600 | game event | `spotdiff.hidden` |
+| `spotdiff.pictureOut` | Double Take: A picture done: it slides out as the next comes in [speed-attention.md] |  | 5–40 (per move) | silent | none | 350 | game event | `spotdiff.pictureOut` |
 | `spotdiff.found` | Double Take: A difference found (ring draws in) [speed-attention.md] |  | 5–40 (per move) | silent | none | 260 | game event | `spotdiff.found` |
 | `spotdiff.miss` | Double Take: A wrong tap (the existing shake) [speed-attention.md] |  | 5–40 (per move) | silent | none | 250 | fail sting | `spotdiff.miss` |
 
@@ -264,14 +133,46 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `symscan.gridClear` | Eagle Eye: A grid submitted: its matching eagles fly off [speed-attention.md] |  | 5–40 (per move) | silent | none | 600 | game event | `symscan.gridClear` |
+| `symscan.cleanGrid` | Eagle Eye: A grid submitted with no wrong marks: a quiet sparkle [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `symscan.cleanGrid` |
+| `symscan.missed` | Eagle Eye: The reveal pulses the eagles that were missed [speed-attention.md] |  | 5–40 (per move) | silent | none | 200 | fail sting | `symscan.missed` |
 | `symscan.mark` | Eagle Eye: A cell is marked (pop) [speed-attention.md] |  | 5–40 (per move) | silent | none | 200 | UI tap | `symscan.mark` |
 | `symscan.unmark` | Eagle Eye: A cell is unmarked [speed-attention.md] |  | 5–40 (per move) | silent | none | 150 | UI tap | `symscan.unmark` |
+
+### Labyrinth
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `maze.step` | Labyrinth: Each step of the trail (a little higher past each junction) [speed-attention.md] |  | 5–40 (per move) | silent | none | 50 | game event | `maze.step` |
+| `maze.bump` | Labyrinth: A step into a wall: the trail end flashes [speed-attention.md] |  | 5–40 (per move) | silent | none | 120 | fail sting | `maze.bump` |
+| `maze.back` | Labyrinth: A step back along the trail (it retracts) [speed-attention.md] |  | 5–40 (per move) | silent | none | 40 | game event | `maze.back` |
+| `maze.deadEnd` | Labyrinth: The trail reaches the tip of a dead end [speed-attention.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `maze.deadEnd` |
+
+### Matchmaker
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pairmatch.flip` | Matchmaker: A card turned over [speed-attention.md] |  | 5–40 (per move) | silent | none | 100 | game event | `pairmatch.flip` |
+| `pairmatch.match` | Matchmaker: A match: both cards lift and lock face up (from a streak of two, the kit's rising combo tone instead) [speed-attention.md] |  | 5–40 (per move) | silent | none | 350 | game event | `pairmatch.match` |
+| `pairmatch.miss` | Matchmaker: A miss: the cards flip back [speed-attention.md] |  | 5–40 (per move) | silent | none | 150 | fail sting | `pairmatch.miss` |
+| `pairmatch.gold` | Matchmaker: The gold pair matched: its own shimmer [speed-attention.md] |  | 5–40 (per move) | silent | none | 700 | game event | `pairmatch.gold` |
 
 ### Mixed Signals
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `stroop.gatePulse` | Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md] |  | 5–40 (per move) | silent | none | 300 | game event | `stroop.gatePulse` |
+
+### Tally
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `countup.mark` | Tally: countRev 7: a shape tapped to mark it as counted (the Attention overhaul, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | silent | none | 120 | UI tap | `countup.mark` |
+| `countup.unmark` | Tally: countRev 7: a mark taken off a shape [speed-attention.md] |  | 5–40 (per move) | silent | none | 100 | UI tap | `countup.unmark` |
+| `countup.key` | Tally: A keypad key pressed (the Attention overhaul's stage 2, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | silent | none | 60 | game event | `countup.key` |
+| `countup.trayOut` | Tally: ENTER: the tray slides away and the next comes in [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `countup.trayOut` |
+| `countup.revealTick` | Tally: The reveal lights each counted shape in turn (pitched up a little each time) [speed-attention.md] |  | 5–40 (per move) | silent | none | 40 | game event | `countup.revealTick` |
+| `countup.soClose` | Tally: The reveal: a tray one off ("So close") [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `countup.soClose` |
 
 ### Gradient
 

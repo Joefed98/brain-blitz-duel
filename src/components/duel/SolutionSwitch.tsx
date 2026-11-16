@@ -18,7 +18,7 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "unblock",
   // 4 Nov 2026 (Joe's review): the three that still drew "Solution" / "Yours" headings without the switch. Integer
   // Pyramid left on 15 Nov 2026: its reveal draws its own Yours / Solution switch (the Number overhaul, RevealParts.tsx).
-  "bomb",
+  // Bomb Defusal left 15 Nov 2026 (the Attention overhaul): its reveal draws the right order and yours on one step track.
   // The Logic overhaul, session 1 (15 Nov 2026): Box Six's solution and your grid, one at a time.
   "sudoku",
   // Skid (15 Nov 2026, the Pattern overhaul, slideRev 5): the shortest route, and the player's own final board.

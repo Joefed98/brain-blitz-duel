@@ -132,11 +132,19 @@ export const BLOCKPARTY_NOV15_PRESENTATION = "nov15-tessellate-overhaul";
  */
 export const WORD_OVERHAUL_DEMOS = new Set(["wordsmith", "tilegrid", "wordslide", "wordhunt", "wordsearch", "letterwheel", "strikeout", "codeword", "swapword"]);
 export const WORD_OVERHAUL_PRESENTATION = "nov15-word-overhaul";
+/**
+ * The Attention overhaul (15 Nov 2026, docs/design/attention-overhaul.md): all six Attention games have a new board
+ * layout (rendered pieces, moved controls, Double Take's Next, Tally's marks, Matchmaker's clear faces), so every older
+ * coordinate demo is stopped (the intro shows its still) until one is recorded on this presentation.
+ */
+export const ATTENTION_OVERHAUL_DEMOS = new Set(["symscan", "spotdiff", "countup", "maze", "bomb", "pairmatch"]);
+export const ATTENTION_OVERHAUL_PRESENTATION = "nov15-attention-overhaul";
 export function puzzlePresentation(type: string): string {
   if (LOGIC_OVERHAUL1_DEMOS.has(type)) return LOGIC_OVERHAUL1_PRESENTATION;
   if (LOGIC2_DEMOS.has(type)) return LOGIC2_PRESENTATION;
   if (type === "blockparty") return BLOCKPARTY_NOV15_PRESENTATION; // tessellate (Pattern overhaul)
   if (WORD_OVERHAUL_DEMOS.has(type)) return WORD_OVERHAUL_PRESENTATION;
+  if (ATTENTION_OVERHAUL_DEMOS.has(type)) return ATTENTION_OVERHAUL_PRESENTATION;
   if (ROUNDABOUT_DEPTH_DEMOS.has(type)) return ROUNDABOUT_DEPTH_PRESENTATION;
   if (FORAGE_DEPTH_DEMOS.has(type)) return FORAGE_DEPTH_PRESENTATION;
   if (LOOKOUT_DEPTH_DEMOS.has(type)) return LOOKOUT_DEPTH_PRESENTATION;
@@ -156,7 +164,7 @@ export function puzzlePresentation(type: string): string {
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...LOGIC_OVERHAUL1_DEMOS, ...LOGIC2_DEMOS, ...NUMBER_DEPTH_DEMOS, ...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, ...WORD_OVERHAUL_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...ATTENTION_OVERHAUL_DEMOS, ...LOGIC_OVERHAUL1_DEMOS, ...LOGIC2_DEMOS, ...NUMBER_DEPTH_DEMOS, ...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, ...WORD_OVERHAUL_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {

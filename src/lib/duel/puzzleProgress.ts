@@ -31,6 +31,7 @@
  * budget cannot settle counts as no closer. Server-only (imported by generate.server.ts and checks).
  */
 import { equationVerdict, usesOperatorGaps } from "./operatorGaps";
+import { pairCardsOf, pairsOf } from "./attentionLevels";
 import { judgeTileGrid } from "./tileGrid.server";
 import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns } from "./tileGrid";
 import { decodeSlideTokens, WS_MARKED_ROWS } from "./wordSlide";
@@ -168,7 +169,7 @@ export function rev3Progress(input: ProgressInput): number | null {
     case "laser":
       return laserProgress(puzzle, answer, input.latestMs);
     case "pairmatch": {
-      const replay = replayPairs(puzzle.cards, decodePairFlips(answer));
+      const replay = replayPairs(puzzle.cards, decodePairFlips(answer, pairCardsOf(puzzle)), pairsOf(puzzle));
       const total = Math.max(1, puzzle.cards.length / 2);
       const misses = Math.max(0, replay.tries - replay.pairs);
       // A little more for the first pairs (found with nothing known), and wild flipping costs.

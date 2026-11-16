@@ -43,6 +43,8 @@ export const PAGE_CHECK_SPLITS: Record<string, { parts: number; jobs: number; pr
   // reveal screens (1,442 draws, about 34 a part).
   // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 36 → 42 parts (the Word overhaul's level
   // screens took every part to 41 draws; 42 parts give about 35 a part), jobs unchanged.
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 36 → 38 parts for the Attention levels' Expert pages.
+  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): 42, the larger.
   "no-wrap-check.tsx": { parts: 42, jobs: 6, prefix: "play-nowrap", ceiling: 40 },
 };
 

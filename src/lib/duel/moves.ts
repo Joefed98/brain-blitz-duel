@@ -12,7 +12,12 @@ import type { SwView } from "./swapword";
 export type MovesView =
   | ({ type: "strikeout" } & SoView)
   | ({ type: "codeword" } & CwView)
-  | ({ type: "swapword" } & SwView);
+  | ({ type: "swapword" } & SwView)
+  /**
+   * Bomb Defusal Expert (`bombInstant`, the Attention overhaul's levels): whether the steps so far are all right, and
+   * how many of them. Never the answer: only that the bomb is still live after the steps the player made.
+   */
+  | { type: "bomb"; live: boolean; steps: number };
 
 export const MOVES_TYPES = ["strikeout", "codeword", "swapword"] as const;
 

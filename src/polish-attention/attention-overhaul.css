@@ -1,0 +1,518 @@
+/*
+ * The Attention overhaul (15 Nov 2026, phase 2 step 4; docs/design/attention-overhaul.md): display only.
+ * Blender-rendered pieces and surfaces (public/attention/), the category's pink kept in the background only,
+ * controls in champagne gold and navy, no glowing edges, no glare. Specificity is raised with `html body` so these
+ * rules sit over the earlier polish layers without editing them.
+ */
+
+/* ------------------------------------------------------------------ controls: champagne gold and navy */
+html body .attn-action:not(:disabled) {
+  background: var(--jz-gold) !important;
+  color: var(--jz-navy) !important;
+  border: 1px solid var(--jz-gold-ledge);
+  box-shadow: 0 2px 0 var(--jz-gold-ledge);
+  text-shadow: none;
+}
+html body .attn-action[data-attn-action="secondary"]:not(:disabled) {
+  background: var(--jz-navy) !important;
+  color: var(--jz-gold) !important;
+  border-color: var(--jz-navy-edge);
+  box-shadow: 0 2px 0 var(--jz-bg);
+}
+html body .attn-action:disabled {
+  background: var(--jz-navy);
+  color: var(--jz-text-3, currentColor);
+  border-color: var(--jz-navy-edge);
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------------ Eagle Eye */
+html body .eye-grid {
+  background: none;
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state] {
+  background: url("/attention/symscan/tile.webp") center / 100% 100% no-repeat;
+  border-color: transparent;
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.45);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="selected"],
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="target"] {
+  background-image: url("/attention/symscan/tile-marked.webp");
+  border-color: transparent;
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="wrong"] {
+  border: 2px solid var(--warn);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="missed"] {
+  border: 2px dashed var(--warn);
+}
+.eye-sprite {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  pointer-events: none;
+}
+html body .eye-target,
+html body .eye-target.eye-target {
+  background: url("/attention/symscan/tile.webp") center / 100% 100% no-repeat;
+  border-color: var(--jz-gold);
+  box-shadow: none;
+}
+.eye-target-lg {
+  width: 56px;
+  height: 56px;
+}
+
+/* ------------------------------------------------------------------ Tally (countRev 7) */
+html body .tally-tray.tally-spread {
+  background: url("/attention/countup/felt.webp") center / cover no-repeat;
+  border: 1px solid var(--jz-navy-edge);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.45);
+}
+.tally-spot {
+  display: block;
+  border: 0;
+  background: none;
+  touch-action: manipulation;
+}
+.tally-token {
+  display: block;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.5));
+}
+/* A counted mark: a small champagne dot with a dark edge, at the token's centre, staying put. */
+.tally-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(6px, 26%);
+  height: max(6px, 26%);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: var(--jz-gold);
+  box-shadow: 0 0 0 1.5px var(--jz-navy);
+  pointer-events: none;
+}
+/* The reveal's counted shapes: a thin gold ring (no glow). */
+.tally-lit {
+  position: absolute;
+  inset: -2px;
+  border-radius: 999px;
+  border: 1.5px solid var(--jz-gold);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ Matchmaker */
+/* The rendered card back (plum lacquer, a champagne-gold border and studs) on every board, no glow. */
+html body .pairmatch-face.pairmatch-face.pairmatch-card-back {
+  background: url("/attention/pairmatch/back.webp") center / 100% 100% no-repeat;
+  border-color: transparent;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.5);
+}
+html body .pairmatch-face-front.pairmatch-face-front.pairmatch-face-front {
+  background: url("/attention/pairmatch/face.webp") center / 100% 100% no-repeat;
+  border-color: transparent;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.5);
+}
+html body .pairmatch-face-front.pairmatch-face-front.pairmatch-face-front.is-matched {
+  border-color: var(--jz-gold);
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.5);
+}
+/* pairRev 4: five columns across the play area's full width (each card a third bigger than on six). */
+.pairmatch-board-clear {
+  max-width: min(100%, 380px);
+}
+/* A level's board (stage 3): narrowed so its rows fit the space under the header and pills on any phone. */
+.pairmatch-board-clear[data-pair-cols] {
+  max-width: min(100%, 380px, calc((100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 230px) * var(--pair-shape)));
+}
+.pairmatch-symbol {
+  width: 72%;
+  height: auto;
+}
+
+/* ------------------------------------------------------------------ Bomb Defusal */
+html body .bomb-plate.bomb-plate {
+  background: url("/attention/bomb/casing.webp") center / cover no-repeat;
+  border-color: var(--jz-navy-edge);
+}
+html body .bomb-plate .bomb-screw {
+  background: url("/attention/bomb/screw.webp") center / contain no-repeat;
+  box-shadow: none;
+}
+html body .bomb-plate .logic-terminal {
+  width: 10px;
+  height: 14px;
+  background: url("/attention/bomb/terminal.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+/* The whole wire row is the target: at least 36 px tall. */
+.bomb-wire-row {
+  min-height: 36px;
+}
+html body .bomb-plate .logic-bomb-cap {
+  background-color: transparent;
+}
+/* The clue card: matte, no glow, each clue on its own numbered pip. */
+html body .bomb-clues.bomb-clues {
+  list-style: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--jz-navy);
+  border: 1px solid var(--jz-navy-edge);
+  box-shadow: none;
+}
+.bomb-clue {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.bomb-clue-pip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--jz-gold);
+  color: var(--jz-navy);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bomb-chip {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 2px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35);
+}
+
+/* ------------------------------------------------------------------ the reveals (RevealParts.tsx) */
+.attn-rv {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.attn-rv-tabs.attn-rv-tabs {
+  width: 100%;
+}
+.attn-rv-tabs [data-tone="good"]::after,
+.attn-rv-tabs [data-tone="bad"]::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  vertical-align: middle;
+  background: var(--jz-gold);
+}
+.attn-rv-tabs [data-tone="bad"]::after {
+  background: var(--warn);
+}
+/* The numbers that explain the score: big, plain, tabular. */
+.attn-rv-stats {
+  display: grid;
+  width: 100%;
+  gap: 6px;
+}
+.attn-rv-stat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: var(--jz-navy);
+  border: 1px solid var(--jz-navy-edge);
+}
+.attn-rv-stat-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.attn-rv-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-white, #fff);
+  white-space: nowrap;
+}
+.attn-rv-stat[data-tone="good"] .attn-rv-stat-value {
+  color: var(--jz-gold);
+}
+.attn-rv-stat[data-tone="bad"] .attn-rv-stat-value {
+  color: var(--warn);
+}
+/* The key: one swatch per mark on the board. */
+.attn-rv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.attn-rv-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.attn-rv-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+[data-attn-mark="found"] .attn-rv-swatch { border: 2.5px solid var(--jz-gold); }
+[data-attn-mark="wrong"] .attn-rv-swatch { border: 2.5px solid var(--warn); }
+[data-attn-mark="missed"] .attn-rv-swatch { border: 2.5px dashed var(--warn); }
+[data-attn-mark="trail"] .attn-rv-swatch { height: 5px; border-radius: 3px; background: var(--jz-gold); }
+[data-attn-mark="route"] .attn-rv-swatch { height: 0; border-top: 3px dashed var(--jz-cyan); border-radius: 0; }
+[data-attn-mark="dim"] .attn-rv-swatch { background: var(--jz-surface-2); opacity: 0.6; }
+
+/* Eagle Eye's reveal: the grid as wide as the screen allows (up to 360 px), found / wrong / missed rings. */
+html body .eye-reveal .eye-reveal-grid {
+  width: min(100%, 360px);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="target"] {
+  box-shadow: inset 0 0 0 2.5px var(--jz-gold), 0 2px 3px rgb(0 0 0 / 0.45);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="wrong"] {
+  border: 0;
+  box-shadow: inset 0 0 0 2.5px var(--warn), 0 2px 3px rgb(0 0 0 / 0.45);
+}
+html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="missed"] {
+  border: 2.5px dashed var(--warn);
+}
+
+/* Double Take's reveal: the differences as small before → after pictures, three a row. */
+.dt-rv-diffs {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dt-rv-diff {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--jz-navy);
+  border: 2.5px dashed var(--warn);
+}
+.dt-rv-diff[data-got] {
+  border: 2.5px solid var(--jz-gold);
+}
+.dt-rv-piece {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+.dt-rv-arrow {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--jz-text-2);
+}
+.dt-rv-star {
+  position: absolute;
+  top: 1px;
+  right: 5px;
+  font-size: 12px;
+  color: var(--jz-gold);
+}
+
+/* Matchmaker's reveal: pairs you matched bright with a gold edge, the rest dimmed. */
+[data-pair-reveal-board] .pairmatch-face-front:not(.is-matched) {
+  opacity: 0.6;
+}
+
+/* Labyrinth's reveal: the maze as wide as the screen allows; the key's route in the ghost route's own colour. */
+[data-attn-reveal="maze"] .maze-reveal-board {
+  width: min(100%, 360px);
+}
+[data-attn-reveal="maze"] [data-attn-mark="route"] .attn-rv-swatch {
+  border-top-color: var(--maze-start);
+}
+
+/* Bomb Defusal's reveal: one step track, the right action beside yours. */
+.bomb-rv-steps {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bomb-rv-head,
+.bomb-rv-step {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.bomb-rv-head {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--jz-text-2);
+  text-align: center;
+}
+.bomb-rv-step {
+  min-height: 40px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 10px;
+  background: var(--jz-navy);
+  border: 1.5px solid var(--jz-navy-edge);
+}
+.bomb-rv-step[data-step-state="right"] {
+  border-color: color-mix(in srgb, var(--jz-gold) 70%, transparent);
+}
+.bomb-rv-step[data-step-state="wrong"] {
+  border: 2.5px solid var(--warn);
+}
+.bomb-rv-step[data-step-state="after"] {
+  opacity: 0.5;
+}
+.bomb-rv-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--jz-gold);
+  color: var(--jz-navy);
+  font-size: 12px;
+  font-weight: 800;
+}
+.bomb-rv-pic {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.bomb-rv-none {
+  justify-content: center;
+  color: var(--jz-text-3);
+}
+.bomb-rv-wire {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 10px;
+  border-radius: 999px;
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+}
+/* The cut: a small gap across the wire's middle. */
+.bomb-rv-wire > i {
+  position: absolute;
+  left: 18px;
+  top: -2px;
+  width: 4px;
+  height: 14px;
+  background: var(--jz-navy);
+  transform: skewX(-18deg);
+}
+.bomb-rv-cap {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background-size: 100% 100%;
+  font-size: 12px;
+  font-weight: 800;
+}
+.bomb-rv-word {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Labyrinth (concept A): satin-metal walls over the dark flagstone. */
+[data-polish="maze"],
+.maze-reveal-board,
+.maze-board {
+  --maze-wall: #5f6672;
+  --maze-wall-sheen: #9aa3b1;
+  --maze-wall-top: #e3e8ef;
+  --maze-wall-shadow: rgb(0 0 0 / 0.7);
+}
+
+/* Double Take (stage 2): a find draws its pen circle round the piece, on both pictures, in 320 ms (it ends drawn). */
+html body .dt-ring-found.dt-ring-found {
+  stroke-dasharray: 1 1;
+  animation: attn-pen-circle 320ms cubic-bezier(.3, .7, .3, 1) both;
+  filter: none;
+}
+@keyframes attn-pen-circle {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .dt-ring-found.dt-ring-found { animation: none; stroke-dashoffset: 0; }
+}
+
+/* Tally's reveal (stage 2): each counted shape's ring pulses in turn as the count ticks up (the ring is drawn from the
+   start, so screenshots and reduced motion show the end state). */
+[data-lit-on] > .tally-lit {
+  animation: attn-tally-lit 280ms cubic-bezier(.2, .8, .3, 1) both;
+}
+@keyframes attn-tally-lit {
+  from { transform: scale(1.6); opacity: 0.25; }
+  to { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-lit-on] > .tally-lit { animation: none; }
+}
+
+/* Stage 2: in every Attention game the frame's step pips fill in champagne gold as each step or grid is done, without
+   a glow (Bomb Defusal's steps, Eagle Eye's grids, Tally's trays, Double Take's pictures). */
+[data-category="attention"] .game-goal-bar > span[data-done] {
+  background: var(--jz-gold);
+  box-shadow: none;
+  animation: attn-pip-fill 320ms cubic-bezier(.2, .8, .2, 1) both;
+  transform-origin: left center;
+}
+@keyframes attn-pip-fill {
+  from { transform: scaleX(0.15); }
+  to { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-category="attention"] .game-goal-bar > span[data-done] { animation: none; }
+}

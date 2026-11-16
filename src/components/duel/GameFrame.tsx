@@ -100,11 +100,36 @@ export function useStageGoal(type: PuzzleType, goal: string | null): void {
   }, [type, goal]);
 }
 
-/** The goal line to draw for a type: the live stage's own when it set one, else the game's. */
+/**
+ * A level's own goal (the Attention overhaul's levels: "Find all 21 pairs" on Expert), published by the stage while it is
+ * up and read by the goal line and the computer's side panel in place of the game's fixed goal. Display only.
+ */
+let levelGoal: { type: PuzzleType; text: string } | null = null;
+export function publishLevelGoal(type: PuzzleType, text: string | null): void {
+  const next = text ? { type, text } : null;
+  if (levelGoal?.type === next?.type && levelGoal?.text === next?.text) return;
+  levelGoal = next;
+  // One change event for both kinds of stage goal (puzzle train combine, 16 Nov 2026).
+  goalChanged();
+}
+
+/** A stage's level goal, published while it is mounted (null: the game's own goal). */
+export function useLevelGoal(type: PuzzleType, text: string | null): void {
+  useEffect(() => {
+    publishLevelGoal(type, text);
+    return () => publishLevelGoal(type, null);
+  }, [type, text]);
+}
+
+/** The goal line to draw for a type: the live stage's own when it set one, else a level's own goal, else the game's. */
 export function useFrameGoal(type: PuzzleType): string;
 export function useFrameGoal(type: PuzzleType | undefined): string | null;
 export function useFrameGoal(type: PuzzleType | undefined): string | null {
-  const own = useSyncExternalStore(subscribeGoal, () => (type ? (goalOverrides.get(type) ?? null) : null), () => null);
+  const own = useSyncExternalStore(
+    subscribeGoal,
+    () => (type ? (goalOverrides.get(type) ?? (levelGoal && levelGoal.type === type ? levelGoal.text : null)) : null),
+    () => null,
+  );
   return type ? (own ?? frameGoal(type)) : null;
 }
 
