@@ -22,6 +22,8 @@ import {
   GRAVITY_REV_NOV15,
   replayTopsy,
   topsyTiltLimitV8,
+  topsyLevelSettings,
+  topsySpare,
   starCount,
   topsyCleared,
   topsyStart,
@@ -32,6 +34,11 @@ import {
 } from "./topsy";
 import { dealtNotesRev } from "./phoneNotes";
 import type { GravityDir, GravityPuzzleData } from "./types";
+import { saltSeed, seededRng } from "./seededRng";
+import { TOPSY_LEVEL_BANK } from "./topsyLevelsBank.server";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import { NORMAL, puzzleLevel, type Level } from "@/lib/levels/levels";
+import type { TopsyLevelSettings } from "@/lib/levels/pattern/gravity.levels";
 
 const DIRS: GravityDir[] = ["U", "D", "L", "R"];
 /** Fewest tilts home a board may need. */
@@ -214,8 +221,13 @@ export function generateTopsyBoard(maxTries = Number.POSITIVE_INFINITY, homeBloc
  * A gravityRev 3 round: three boards, the minimums and routes kept server-side. gravityRev 4 (Joe's phone notes,
  * 27 Oct 2026): boards generated and solved with a ball home blocking, and 2× the tilts.
  */
-export function generateTopsy(maxTries = Number.POSITIVE_INFINITY): GravityPuzzleData {
+export function generateTopsy(maxTries = Number.POSITIVE_INFINITY, level?: Level, bankSeed?: number): GravityPuzzleData {
   const rev = dealtNotesRev(GRAVITY_REV_TOPSY_NOTES, GRAVITY_REV_TOPSY);
+  // The difficulty levels (16 Nov 2026): a level beyond Normal deals from its proved bank; Normal is today's deal.
+  if (level && level !== NORMAL) {
+    const leveled = generateTopsyLevel(level, rev, bankSeed);
+    if (leveled) return leveled;
+  }
   const homeBlocks = rev >= GRAVITY_REV_TOPSY_NOTES;
   const made = Array.from({ length: TOPSY_BOARDS }, () => generateTopsyBoard(maxTries, homeBlocks));
   const first = made[0]!.board;
@@ -236,6 +248,50 @@ export function generateTopsy(maxTries = Number.POSITIVE_INFINITY): GravityPuzzl
   };
 }
 
+/** One bank line ("blocks|starts|cups|fewest|route", scripts/topsy-levels-bank.ts) as a board, its fewest and route. */
+export function parseTopsyBankEntry(line: string): { board: TopsyBoard; min: number; route: string } {
+  const [walls, starts, holes, min, route] = line.split("|");
+  const cells = (s: string | undefined) => (s ? s.split(".").map(Number) : []);
+  return { board: { walls: cells(walls), starts: cells(starts), holes: cells(holes), stars: [], homeBlocks: true }, min: Number(min), route: route ?? "" };
+}
+
+/**
+ * A round at a level beyond Normal (the difficulty levels, 16 Nov 2026; src/lib/levels/pattern/gravity.levels.ts): the
+ * level's number of boards, distinct entries of its proved bank (topsyLevelsBank.server.ts), picked by the deal's bank
+ * seed (rooms: the room seed, so every player gets the same boards; practice: a fresh one) or, with none, the deal's
+ * own draw. Stored as today's rounds are (the boards, each one's fewest tilts and one shortest route), plus `level`, so
+ * the deal's later layers (the par, gravityRev 8's limits at the level's spare) read it. Null for a level with no bank.
+ */
+export function generateTopsyLevel(level: Level, rev: number, bankSeed?: number): GravityPuzzleData | null {
+  const settings = gameLevelSettings<TopsyLevelSettings>("gravity", level);
+  const bank = TOPSY_LEVEL_BANK[level as keyof typeof TOPSY_LEVEL_BANK];
+  if (!settings || !bank) return null;
+  const rng = bankSeed === undefined ? null : seededRng(saltSeed(bankSeed, `gravity:${level}`));
+  const picked: number[] = [];
+  while (picked.length < Math.min(settings.boards, bank.length)) {
+    const i = rng ? rng.below(bank.length) : randInt(0, bank.length - 1);
+    if (!picked.includes(i)) picked.push(i);
+  }
+  const made = picked.map((i) => parseTopsyBankEntry(bank[i]!));
+  const first = made[0]!.board;
+  return {
+    type: "gravity",
+    gravityRev: rev,
+    timeLimitMs: settings.timeLimitMs,
+    walls: [...first.walls],
+    starts: [...first.starts],
+    targets: [...first.holes],
+    boards: made.map((m) => m.board),
+    minMoves: made.reduce((n, m) => n + m.min, 0),
+    solution: made.map((m) => m.route).join(""),
+    tiltLimits: made.map((m) => topsyTiltLimit(m.min, rev)),
+    boardMins: made.map((m) => m.min),
+    boardStarMins: made.map((m) => m.min),
+    boardSolutions: made.map((m) => m.route),
+    level,
+  } as GravityPuzzleData;
+}
+
 /**
  * Re-checks a stored gravityRev 3 round as the generator accepts one: three boards of distinct in-range
  * squares, no drop on the first tilt, exact minimums in the band (fresh searches agree with the stored
@@ -251,18 +307,23 @@ export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
   // gravityRev 7 (puzzle polish, 3 Nov 2026, parMoves.ts): gravityRev 6's boards and routes, the par stored.
   // gravityRev 8 (the Pattern overhaul, 15 Nov 2026): gravityRev 7's boards, each tilt limit its fewest tilts + 8.
   if (puzzle.type !== "gravity" || rev < GRAVITY_REV_TOPSY || rev > GRAVITY_REV_NOV15 || !puzzle.boards) return "not gravityRev 3 to 8";
-  if (rev >= GRAVITY_REV_NOV15 && (puzzle.tiltLimits?.length !== TOPSY_BOARDS || puzzle.tiltLimits.some((l, i) => l !== topsyTiltLimitV8(puzzle.boardMins?.[i] ?? -99)))) return "gravityRev 8 tilt limits";
+  // The difficulty levels (16 Nov 2026): a level's round has its own boards, balls and band of fewest tilts.
+  const level = topsyLevelSettings(puzzle);
+  const boardCount = level?.boards ?? TOPSY_BOARDS;
+  const balls = level?.balls ?? TOPSY_BALLS;
+  const [minTilts, maxTilts] = level?.minTilts ?? [TOPSY_MIN_TILTS, TOPSY_MAX_TILTS];
+  if (rev >= GRAVITY_REV_NOV15 && (puzzle.tiltLimits?.length !== boardCount || puzzle.tiltLimits.some((l, i) => l !== topsyTiltLimitV8(puzzle.boardMins?.[i] ?? -99, topsySpare(puzzle))))) return "gravityRev 8 tilt limits";
   if (rev >= GRAVITY_REV_TOPSY_NOTES + 3 && puzzle.par !== (puzzle.boardMins ?? []).reduce((n, m) => n + m, 0)) return "stored par";
-  if (puzzle.boards.length !== TOPSY_BOARDS) return "board count";
+  if (puzzle.boards.length !== boardCount) return "board count";
   for (const [i, board] of puzzle.boards.entries()) {
     if (Boolean(board.homeBlocks) !== (rev >= GRAVITY_REV_TOPSY_NOTES)) return `board ${i}: home-blocks rule does not match gravityRev ${rev}`;
-    if (board.starts.length !== TOPSY_BALLS || board.holes.length !== TOPSY_BALLS || board.stars.length !== (noStars ? 0 : TOPSY_STARS)) return `board ${i}: counts`;
+    if (board.starts.length !== balls || board.holes.length !== balls || board.stars.length !== (noStars ? 0 : TOPSY_STARS)) return `board ${i}: counts`;
     const all = [...board.walls, ...board.starts, ...board.holes, ...board.stars];
     if (new Set(all).size !== all.length || all.some((c) => !Number.isInteger(c) || c < 0 || c >= TOPSY_CELLS)) return `board ${i}: squares`;
     const walls = new Set(board.walls);
     for (const dir of DIRS) if (topsyTilt(board, walls, topsyStart(board), dir).dropped.length) return `board ${i}: drops on the first tilt`;
-    const plain = topsySearch(board, false, TOPSY_MAX_TILTS);
-    if (!plain || plain.min < TOPSY_MIN_TILTS) return `board ${i}: minimum outside the band`;
+    const plain = topsySearch(board, false, maxTilts, level ? 400_000 : undefined);
+    if (!plain || plain.min < minTilts) return `board ${i}: minimum outside the band`;
     if (plain.min !== puzzle.boardMins?.[i]) return `board ${i}: stored minimum`;
     if (noStars) {
       if ((puzzle.boardSolutions?.[i] ?? "").length !== plain.min) return `board ${i}: stored route is not a shortest one`;
@@ -274,12 +335,12 @@ export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
   const route = (puzzle.boardSolutions ?? []).join("").split("") as GravityDir[];
   if (noStars) {
     // The tilt limits are gravityRev 5's (from the star minimums, which the deal no longer stores): at least the fewest.
-    if (puzzle.tiltLimits?.length !== TOPSY_BOARDS || puzzle.tiltLimits.some((l, i) => l < puzzle.boardMins![i]!)) return "tilt limits";
+    if (puzzle.tiltLimits?.length !== boardCount || puzzle.tiltLimits.some((l, i) => l < puzzle.boardMins![i]!)) return "tilt limits";
     return replayTopsy(puzzle.boards, route, puzzle.tiltLimits).solved ? null : "stored routes do not clear every board";
   }
-  if (puzzle.tiltLimits?.length !== TOPSY_BOARDS || puzzle.tiltLimits.some((l, i) => l !== topsyTiltLimit(puzzle.boardStarMins![i]!, rev))) return "tilt limits";
+  if (puzzle.tiltLimits?.length !== boardCount || puzzle.tiltLimits.some((l, i) => l !== topsyTiltLimit(puzzle.boardStarMins![i]!, rev))) return "tilt limits";
   const replay = replayTopsy(puzzle.boards, route, puzzle.tiltLimits);
-  if (!replay.solved || replay.stars !== TOPSY_BOARDS * TOPSY_STARS) return "stored routes do not clear every board with every star";
+  if (!replay.solved || replay.stars !== boardCount * TOPSY_STARS) return "stored routes do not clear every board with every star";
   return null;
 }
 
@@ -289,6 +350,9 @@ export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
  */
 export function topsyPlainRoutes(puzzle: GravityPuzzleData): GravityPuzzleData {
   if (!puzzle.boards) return puzzle;
+  // A level's boards (the difficulty levels) carry no stars from the start: their bank routes are already each
+  // board's shortest (proved by the same search), so they are kept as dealt.
+  if (puzzleLevel(puzzle) !== NORMAL) return puzzle;
   const routes = puzzle.boards.map((board, i) => {
     const found = topsySearch({ ...board, stars: [] }, false, Math.max(TOPSY_MAX_TILTS, puzzle.boardMins?.[i] ?? 0));
     return found ? found.solution.join("") : (puzzle.boardSolutions?.[i] ?? "");

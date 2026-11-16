@@ -332,7 +332,9 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
     check(stage.includes(`"${cue}"`), `the stage never fires ${cue}`);
   check(/data-quiet-shake=\{quietShake \? "" : undefined\}/.test(stage), "a blocked drag's shake isn't marked quiet (it would play wrong with the knock)");
   check(/if \(blocked\) soundCue\("unblock\.blocked"\)/.test(stage), "the knock fires on a tap that tried to go nowhere");
-  check(/!isSolved\(next\) && goldLaneClear\(next\) && !goldLaneClear\(vehicles\)/.test(stage), "the glint isn't limited to a move that opens the lane short of the solve");
+  // The lot's size rides along since the difficulty levels (stage 3: `, N`). Changed with Joe's approval, 15 Nov 2026
+  // (routine consequence of the Pattern overhaul).
+  check(/!isSolved\(next, N\) && goldLaneClear\(next, N\) && !goldLaneClear\(vehicles, N\)/.test(stage), "the glint isn't limited to a move that opens the lane short of the solve");
   const blocked: UnblockVehicle[] = [
     { id: 0, axis: "h", len: 2, row: 2, col: 0 },
     { id: 1, axis: "v", len: 2, row: 1, col: 4 },

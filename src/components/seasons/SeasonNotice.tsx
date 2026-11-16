@@ -1,3 +1,4 @@
+import { useAppMoment } from "@/components/fx/useMomentEnter";
 /**
  * The season reward notice (wave 4, session W4d; docs/seasons/README.md): after a season's end, "Season 1 is over"
  * with the peak tier and what it earned (the emblem, the frame, the card art and the title). Drawn only by PhoneShell on the tab
@@ -51,6 +52,8 @@ export function SeasonNotice() {
     void markSeasonRewardShown(h.season);
   };
 
+  // A season's rewards earned (15 Nov 2026, the effects pass): the kit's win payoff on the notice.
+  useAppMoment("win", "[data-season-notice]", shown?.season ?? null);
   if (!shown) return null;
   const lines = seasonNoticeLines(shown);
   return (

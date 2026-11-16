@@ -12,6 +12,7 @@ import {
   encodeLaserAnswer,
   flipMirror,
   isSplitter,
+  laserShotsOf,
   traceBeam,
   verifyLaser,
   type BeamTrace,
@@ -20,7 +21,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { appendAction, decodeActionLog, encodeActionLog, usesActionLog, type LoggedAction } from "@/lib/duel/actionLog";
 import { laserAction, replayLaserActions, replayLaserLog } from "@/lib/duel/laserLog";
-import { HudPills } from "@/components/puzzles/HudPills";
+import { HudPills, type HudPillItem } from "@/components/puzzles/HudPills";
 import { serverNow } from "@/lib/duel/clock";
 import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import { usesStandard } from "@/lib/duel/standard/stamps";
@@ -30,7 +31,6 @@ import {
   LASER_CELLS,
   LASER_COLS,
   LASER_FADE_MS,
-  LASER_MAX_FIRES,
   LASER_TIME_MS,
   type BeamDir,
   type LaserPuzzleData,
@@ -71,6 +71,26 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 const GOLD = "var(--primary)";
 
 export { directionalChevronPoints };
+
+/**
+ * The Gems pill (Joe, 15 Nov 2026: Lightbender's near miss in the Gems pill). Its content is the count ("Gems 5/6") or,
+ * for the near miss's 2.2 s, "1 gem dark" in the category accent, in the pill's own place: both are laid in one grid
+ * cell and only one is visible, so the pill keeps the width of the wider and the pills row never shifts.
+ */
+export function laserGemsPill(label: string, count: string, dark: boolean): HudPillItem {
+  return {
+    id: "gems",
+    ...(dark ? { tone: "gold" as const } : {}),
+    value: (
+      <span className="laser-gems-swap" data-laser-gems={dark ? "dark" : "count"}>
+        <span className="laser-gems-count" aria-hidden={dark ? true : undefined}>
+          <span className="jz-status-label hud-pill-label">{label}</span> {count}
+        </span>
+        <span className="laser-gems-dark" aria-hidden={dark ? undefined : true}>1 gem dark</span>
+      </span>
+    ),
+  };
+}
 
 /** The Gems pill's count: the best shot so far, or the beam on screen if it lights more. */
 export function laserGemsShown(best: number, onScreen: number): number {
@@ -361,6 +381,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const directionalGems = isLaser ? puzzle.directionalGems ?? [] : [];
   const total = isLaser ? puzzle.mirrors : 0;
   const splitterTotal = isLaser ? puzzle.splitterPieces ?? 0 : 0;
+  // The round's shots: 3, or a level's own (laser.levels.ts: Easy 5, Expert 2).
+  const shotsGiven = laserShotsOf(isLaser ? puzzle : null);
   const [selected, setSelected] = useState<MirrorKind>("/");
 
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
@@ -399,7 +421,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const dragRef = useRef<{ kind: "tray" | "move"; from: number | null; piece?: MirrorKind } | null>(null);
   const busyRef = useRef(false);
   // laserRev 4: once the last shot has faded without a solve the board locks (nothing left to fire it with).
-  const outOfShots = overhaul && fires >= LASER_MAX_FIRES && !submitted.current && !shot;
+  const outOfShots = overhaul && fires >= shotsGiven && !submitted.current && !shot;
   busyRef.current = Boolean(locked || submitted.current || shot || outOfShots);
 
   const clearTimers = () => {
@@ -426,12 +448,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const gemsShown = laserGemsShown(bestLit, litGems.length);
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
   const solved = submitted.current;
-  const firesLeft = Math.max(0, LASER_MAX_FIRES - fires);
+  const firesLeft = Math.max(0, shotsGiven - fires);
   const inFrame = useInFrame();
   // The near miss's moment: two soft pulses on the dark gem (a piece, so allowed over the board) and on the pill.
   useEffect(() => {
     if (!nearMiss) return;
-    const pill = typeof document === "undefined" ? null : document.querySelector('[data-hud-pills="laser"] [data-hud-pill="nearMiss"]');
+    const pill = typeof document === "undefined" ? null : document.querySelector('[data-hud-pills="laser"] [data-hud-pill="gems"]');
     laserNearMissFx(laserCellArt(gridRef.current?.parentElement, nearMiss.gem), pill);
   }, [nearMiss]);
 
@@ -614,7 +636,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
           timers.current.push(
             window.setTimeout(() => {
               setShot(null);
-              if (overhaul && attempt >= LASER_MAX_FIRES) soundCue("laser.outOfShots");
+              if (overhaul && attempt >= shotsGiven) soundCue("laser.outOfShots");
             }, LASER_FADE_MS),
           );
         },
@@ -624,6 +646,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   }, [
     locked,
     firesLeft,
+    shotsGiven,
     shot,
     source,
     dir,
@@ -764,14 +787,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
               // laserRev 1 (depth batch 4): the elegant beam's par mirrors.
               ...parPills("Mirrors", mirrorsPlaced, elegantPar, "mirrors"),
               splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced}/${splitterTotal}` } : null,
-              { id: "gems", label: "Gems", value: `${gemsShown}/${gems.length}` },
-              nearMiss ? { id: "nearMiss", value: "1 gem dark", tone: "gold" as const } : null,
+              laserGemsPill("Gems", `${gemsShown}/${gems.length}`, Boolean(nearMiss)),
             ]
           : [
               { id: "mirrors", label: "Mirrors", value: `${mirrorsPlaced} / ${total}` },
               splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced} / ${splitterTotal}` } : null,
-              { id: "gems", label: "Gems lit", value: `${gemsShown} / ${gems.length}` },
-              nearMiss ? { id: "nearMiss", value: "1 gem dark", tone: "gold" as const } : null,
+              laserGemsPill("Gems lit", `${gemsShown} / ${gems.length}`, Boolean(nearMiss)),
             ]}
       />
       <div data-game-controls="pieces" className="flex shrink-0 items-center justify-center gap-2">
@@ -943,7 +964,7 @@ export function laserRevealView(
   const finalGems = numberOf(extra, "gemsLit") ?? replay.gemsLit;
   const finalHitBomb = extra?.["hitBomb"] === true || replay.hitBomb;
   // The grader also counts the layout at the buzzer when a shot was left (laserBestGems).
-  if (used < LASER_MAX_FIRES && !finalHitBomb && finalGems > bestGems) return finish(replay.layout, null, finalGems, used, storedShots);
+  if (used < laserShotsOf(puzzle) && !finalHitBomb && finalGems > bestGems) return finish(replay.layout, null, finalGems, used, storedShots);
   if (best >= 0) return finish(layoutAtShot(best + 1), best + 1, bestGems, used, storedShots);
   // Every shot hit a bomb, or none was fired: the last shot's board (else the board at the buzzer).
   return finish(used ? layoutAtShot(used) : replay.layout, used || null, 0, used, storedShots);
@@ -1031,14 +1052,16 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   );
   // The player's line: the shot drawn and what it lit ("You: …", shown only under Yours).
   const result = view.solved
-    ? `You: all ${total} gems · ${ORDINAL[(view.shot ?? 1) - 1] ?? ""} shot`
+    ? `You: ${total} of ${total} gems · ${ORDINAL[(view.shot ?? 1) - 1] ?? ""} shot`
     : view.shot === null
       ? view.gems > 0
         ? `You: ${view.gems} of ${total} gems at the buzzer`
-        : "You: no shot fired"
+        : "You: Missed, no shot fired"
       : view.trace.hitBomb
-        ? `You: ${ORDINAL[view.shot - 1]} shot hit a bomb`
-        : `You: best shot ${ORDINAL[view.shot - 1]}, ${view.gems} of ${total} gems`;
+        ? `You: Missed, ${ORDINAL[view.shot - 1]} shot hit a bomb`
+        : view.gems > 0
+          ? `You: best shot ${ORDINAL[view.shot - 1]}, ${view.gems} of ${total} gems`
+          : `You: Missed, no gems lit`;
 
   return (
     <div ref={winRef} className="laser-reveal flex w-full min-h-0 flex-col items-center gap-2" data-laser-reveal="">
@@ -1060,7 +1083,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
             className="laser-reveal-pills"
             items={[
               { id: "gems", label: "Gems", value: `${view.gems}/${total}`, tone: view.solved ? "good" : undefined },
-              { id: "shots", label: "Shots", value: `${view.shotsUsed}/${LASER_MAX_FIRES}` },
+              { id: "shots", label: "Shots", value: `${view.shotsUsed}/${laserShotsOf(puzzle)}` },
               view.mirrors !== null ? { id: "mirrors", label: "Mirrors", value: view.mirrors, tone: view.par > 0 && view.mirrors > view.par ? "warn" : undefined } : null,
               view.par > 0 ? { id: "par", label: "Par", value: view.par, tone: "gold" } : null,
               timeLeft !== null ? { id: "time", label: "Time left", value: `${timeLeft} s` } : null,

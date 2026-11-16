@@ -11,7 +11,7 @@ import type { TimedDraft } from "./timeline";
 import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, patternFullByS, type PatternStdType } from "./patternRules";
 import type { PuzzleData, UnblockVehicle, PuzzleType } from "../types";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
-import { UNBLOCK_COLS } from "../types";
+import { UNBLOCK_COLS, unblockCols } from "../types";
 import { applyMove, decodeMoves, isSolved as unblockSolved, vehicleCells } from "../unblock";
 import { blockGeometry, blockIllegalDrops, decodePlacements, verifyPlacements } from "../blockParty";
 import { usesPatternNov15 } from "../patternNov15";
@@ -19,7 +19,7 @@ import { blockPartyCounts, flowRouteCounts } from "../progressFigures";
 import { decodeSlideMoves, replaySlide, slideBoard, slideDistance, type SlideBoard, type SlideState } from "../slide";
 import { replayGems } from "../depth4/iceGems";
 import { decodeGravityTilts } from "../gravity";
-import { isTopsy, replayTopsyPuzzle } from "../topsy";
+import { isTopsy, replayTopsyPuzzle, topsyLevelSettings } from "../topsy";
 import { JUMBLED_MOVABLE, jumbledInPlace, replayGradientAnswer } from "../jumbled";
 import { decodeRingTaps, freshOffsets, replayRings, ringColour, ringsApply } from "../rings";
 import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "../flow";
@@ -28,7 +28,8 @@ import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
 import { decodePipesTurns, pipesAfterTurns } from "../depth4/pipesTaps";
 import { cratesOnTargets, decodePushMoves, replayPush } from "../push";
-import { FLOW_PAIRS, LASER_MAX_FIRES, RINGS_SEGMENTS } from "../types";
+import { FLOW_PAIRS, RINGS_SEGMENTS } from "../types";
+import { laserShotsOf } from "../laser";
 import { GRADIENT_WASTE_WEIGHT, PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
 import { rev3Progress, solverShare } from "../puzzleProgress";
 import { decodeGradient, gradientMinimum, gradientSwapLimit, replayGradient } from "../jumbled";
@@ -49,6 +50,10 @@ function speed(type: PatternStdType, input: StandardInput): number {
 /** Speed points on the par-moves stamps (parMoves.ts): up to 30, full by the game's own "full by" time. */
 function parMovesSpeed(type: PatternStdType, input: StandardInput): number {
   // slideRev 4 / gravityRev 7 (puzzle polish, 3 Nov 2026): full a little earlier.
+  // Topsy-Turvy's difficulty levels (16 Nov 2026): a round dealt at a level is full speed by its level's time
+  // (gravity.levels.ts `speedFullByS`); Normal and every round dealt before levels keep the stamp's.
+  const level = type === "gravity" ? topsyLevelSettings(input.puzzle) : null;
+  if (level && usesParStrict(input.puzzle)) return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, level.speedFullByS * 1000);
   const fullByS = usesParStrict(input.puzzle) && (type === "iceslide" || type === "gravity") ? PAR_STRICT_FULL_BY_S[type] : patternFullByS(type, input.puzzle as { tilesRev?: number });
   return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, fullByS * 1000);
 }
@@ -117,12 +122,11 @@ function memo<K extends object, V>(store: WeakMap<K, V>, key: K, make: () => V):
  * cars standing where it has to go to leave the cells it must free, taking its way out (up or down, left or right)
  * with the fewest cars in it. Counted once each; the gold car itself is never counted.
  */
-export function gridlockChain(vehicles: readonly UnblockVehicle[]): number {
-  const N = UNBLOCK_COLS;
+export function gridlockChain(vehicles: readonly UnblockVehicle[], N: number = UNBLOCK_COLS): number {
   const gold = vehicles.find((v) => v.id === 0);
   if (!gold) return 0;
   const at = new Map<number, UnblockVehicle>();
-  for (const v of vehicles) for (const c of vehicleCells(v)) at.set(c, v);
+  for (const v of vehicles) for (const c of vehicleCells(v, N)) at.set(c, v);
   const chain = new Set<number>();
   const queue: { v: UnblockVehicle; free: number[] }[] = [];
   const need = (cells: readonly number[]) => {
@@ -169,7 +173,9 @@ export function gridlockChain(vehicles: readonly UnblockVehicle[]): number {
  * back). A solve clears the whole chain.
  */
 function gridlockCleared(puzzle: Of<"unblock">, answer: string): { cleared: number; total: number } {
-  const total = gridlockChain(puzzle.vehicles);
+  // The lot's size (the difficulty levels: Easy's 6×6; absent = 7).
+  const N = unblockCols(puzzle);
+  const total = gridlockChain(puzzle.vehicles, N);
   let state = puzzle.vehicles.map((v) => ({ ...v }));
   const history = [state];
   let best = total;
@@ -184,12 +190,12 @@ function gridlockCleared(puzzle: Of<"unblock">, answer: string): { cleared: numb
       state = history[0]!;
       continue;
     }
-    const next = applyMove(state, move);
+    const next = applyMove(state, move, N);
     if (!next) continue;
     state = next;
     history.push(state);
-    if (unblockSolved(state)) return { cleared: total, total };
-    best = Math.min(best, gridlockChain(state));
+    if (unblockSolved(state, N)) return { cleared: total, total };
+    best = Math.min(best, gridlockChain(state, N));
   }
   return { cleared: Math.max(0, total - best), total };
 }
@@ -283,6 +289,19 @@ const tessellate: StandardGame = {
 // The Pattern overhaul (15 Nov 2026): Skid's slideRev 5 (imported here, beside its game, so per-game work stays apart).
 import { countedSlides } from "../slide";
 import { usesPatternNov15 as usesSkidOverhaul } from "../patternNov15";
+import { gameLevelSettings as skidLevelSettings } from "@/lib/levels/gameLevels";
+import { puzzleLevel as skidPuzzleLevel } from "@/lib/levels/levels";
+import type { IceSlideLevelSettings } from "@/lib/levels/pattern/iceslide.levels";
+
+/**
+ * Skid's speed points: a level board (difficulty levels, 16 Nov 2026) is full by its level's own time (Easy 20 s, Hard
+ * 40 s, Expert 55 s, read from the stored puzzle's level); Normal and every older board as before.
+ */
+function skidSpeed(input: StandardInput): number {
+  const s = skidLevelSettings<IceSlideLevelSettings>("iceslide", skidPuzzleLevel(input.puzzle));
+  if (!s) return parMovesSpeed("iceslide", input);
+  return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, s.fullByS * 1000);
+}
 
 const SLIDE_BOARDS = new WeakMap<object, SlideBoard>();
 const SLIDE_DIST = new WeakMap<object, Map<number, number | null>>();
@@ -319,7 +338,7 @@ const skid: StandardGame = {
       const overhaul = usesSkidOverhaul(p, "iceslide");
       if (input.graded.isCorrect) {
         const slides = countedSlides(replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)), overhaul);
-        return { finished: true, speed: parMovesSpeed("iceslide", input), bonus: parMovesPar(p, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
+        return { finished: true, speed: skidSpeed(input), bonus: parMovesPar(p, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
       }
       const { closed, total } = skidClosed(p, input.answer);
       const w = waste(num(input.graded.extra, overhaul ? "slidesPlayed" : "moves"), p.minMoves);
@@ -478,7 +497,7 @@ const lightbender: StandardGame = {
       const first = num(extra, "fires") === 1 ? LASER_STD.firstShot : 0;
       return { finished: true, speed: speed("laser", input), bonus: fewer + first, measure: "elegant beam" };
     }
-    const { gems, times } = laserBestGems(extra, input.limitMs, LASER_MAX_FIRES);
+    const { gems, times } = laserBestGems(extra, input.limitMs, laserShotsOf(p));
     const early = times.reduce<number>((sum, t) => sum + (t === null ? 0 : LASER_STD.earlyPerGem * (1 - Math.max(0, Math.min(input.limitMs, t)) / input.limitMs)), 0);
     return { finished: false, credit: LASER_STD.perGem * gems + early, facts: { bestGems: gems } };
   },

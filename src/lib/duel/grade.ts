@@ -165,7 +165,7 @@ import { scanCorrections, usesScanDepth } from "./depth/eagleEye";
 import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./catalogue";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
-import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
+import { isTopsy, replayTopsyPuzzle, scoreTopsy, topsyTotalBalls } from "./topsy";
 import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
@@ -245,6 +245,7 @@ import {
   FLOW_PAIRS,
   CHAIN_TIME_MS,
   CHAIN_TIME_REV,
+  unblockCols,
   type PuzzleData,
 } from "./types";
 
@@ -653,7 +654,9 @@ function gradeUnderRev(
     case "unblock": {
       // The phone sends its slides; every one is replayed on the stored layout.
       const played = decodeMoves(answer);
-      const replay = replayUnblock(puzzle.vehicles, played);
+      // The lot's size (the difficulty levels: Easy's 6×6; absent = 7, every older deal).
+      const lot = unblockCols(puzzle);
+      const replay = replayUnblock(puzzle.vehicles, played, lot);
       const min = puzzle.minMoves ?? 0;
       isCorrect = replay.solved;
       let progress = 0;
@@ -661,8 +664,8 @@ function gradeUnderRev(
       if (!replay.solved) {
         // Progress is the share of the gold car's blockers cleared from its
         // lane — a cheap count, so no solver ever runs during a room.
-        const before = blockingCars(puzzle.vehicles);
-        const after = blockingCars(replay.vehicles);
+        const before = blockingCars(puzzle.vehicles, lot);
+        const after = blockingCars(replay.vehicles, lot);
         if (before > 0) progress = Math.max(0, (before - after) / before) * (scoreRev1() ? 1 : 0.9);
         fewerBlockers = after < before;
       }
@@ -1024,7 +1027,7 @@ function gradeUnderRev(
       if (isTopsy(puzzle)) {
         const replay = replayTopsyPuzzle(puzzle, decodeGravityTilts(answer));
         // The elite stretch's efficiency: the boards' all-stars minimums ÷ the tilts made (server-only minimums).
-        const graded = scoreTopsy(replay, ms, timeLimitMs, undefined, (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
+        const graded = scoreTopsy(replay, ms, timeLimitMs, topsyTotalBalls(puzzle), (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
         isCorrect = replay.solved;
         correctCount = replay.home;
         score = graded.score;

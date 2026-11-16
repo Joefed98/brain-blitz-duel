@@ -226,7 +226,9 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
   // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
   // for the previous versions pin the old deal, d5Remodels.ts).
-  if (type === "gravity" && dealsD5Remodels()) return generateTopsy();
+  // Topsy-Turvy's difficulty levels (16 Nov 2026, topsy.server.ts generateTopsyLevel): a level beyond Normal deals from
+  // its proved bank by the bank seed; Normal (no level) is today's deal.
+  if (type === "gravity" && dealsD5Remodels()) return context.level ? generateTopsy(undefined, context.level, context.bankSeed) : generateTopsy();
   if (type === "tiles" && dealsD5Remodels()) return generateJumbledDealt();
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
   const depth = dealDepth4(type, context);
@@ -240,7 +242,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: dealtDepthRev(dealtTopupRev(WORDSMITH_REV_TOPUP, WORDSMITH_REV_DEPTH), WORDSMITH_REV_TARGET) };
   // Forage wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): the 6×6 board with its golden tile.
   if (type === "wordhunt") return dealtDepthRev(WORDHUNT_REV_DEPTH, WORDHUNT_REV_TARGET) >= WORDHUNT_REV_DEPTH ? generateWordHuntDepth() : { ...generateWordHunt(), wordHuntRev: WORDHUNT_REV_TARGET };
-  if (type === "unblock") return generateUnblock(context.unblockRow);
+  if (type === "unblock") return generateUnblock(context.unblockRow, context.level, context.bankSeed);
   if (type === "blockparty") return generateBlockParty();
   // Word depth (25 Oct 2026): Interlock tileGridRev 1 scores to 200 (depth/tilegrid.server.ts); the board is unchanged.
   if (type === "tilegrid") return stampTileGridRev(generateTileGrid());

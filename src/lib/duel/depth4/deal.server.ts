@@ -25,9 +25,14 @@ import { generatePipes, generatePipesLevel } from "../logic.server";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { NORMAL, type Level } from "@/lib/levels/levels";
 import type { PipesLevelSettings } from "@/lib/levels/pattern/pipes.levels";
-import { generateLaser } from "../laser.server";
+import type { IceSlideLevelSettings } from "@/lib/levels/pattern/iceslide.levels";
+import { drawIceSlideLevel, type IceSlideLevel } from "../iceSlideLevels.server";
+import { SLIDE_TIME_MS } from "../types";
+import { generateLaser, generateLaserLevel } from "../laser.server";
+import { drawLaserLevel } from "../laserLevels.server";
+import type { LaserLevelSettings } from "@/lib/levels/pattern/laser.levels";
 import { isSplitter } from "../laser";
-import type { PuzzleData, PuzzleType } from "../types";
+import { LASER_TIME_MS, type PuzzleData, type PuzzleType } from "../types";
 import { pipesParTurns } from "./pipesTaps";
 import { D4_REV, dealtD4Rev, isD4Type } from "./stamps";
 import { addIceGems } from "./gems.server";
@@ -47,8 +52,8 @@ export interface D4DealContext {
   unblockRow?: UnblockBankRow | null;
   bankSeed?: number;
   recentBankKeys?: ReadonlySet<string> | undefined;
-  /** The level the deal is made at (generate.server.ts; absent at Normal). Pipeline, Tessellate and Chroma Lines
-   * deal their level boards from it. */
+  /** The level the deal is made at (generate.server.ts; absent at Normal). Gridlock, Pipeline, Tessellate, Chroma
+   * Lines and Lightbender deal their level boards from it. */
   level?: Level | undefined;
 }
 
@@ -61,7 +66,7 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
   if (dealPinned("depth4Off") || !isD4Type(type) || dealtPuzzleScoreRev() < PUZZLE_SCORE_REV_HELPER) return null;
   switch (type) {
     case "unblock": {
-      const p = generateUnblock(context.unblockRow);
+      const p = generateUnblock(context.unblockRow, context.level, context.bankSeed);
       return { ...p, unblockRev: dealtD4Rev("unblock"), par: p.minMoves ?? 0 };
     }
     case "rings": {
@@ -75,9 +80,16 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...p, pipesRev: dealtD4Rev("pipes"), par: pipesParTurns(p.tiles, p.solution ?? []) };
     }
     case "laser": {
-      const p = generateLaser();
+      // Levels (16 Nov 2026, laser.levels.ts): a level's board, spare mirrors, shots and clock; Normal exactly as before.
+      // Hard and Expert draw from their proved banks by the deal's seed (laserLevels.server.ts); Easy is generated live.
+      const settings = context.level && context.level !== NORMAL ? gameLevelSettings<LaserLevelSettings>("laser", context.level) : null;
+      const p = !settings ? generateLaser()
+        : context.level === "hard" || context.level === "expert" ? drawLaserLevel(context.level, context.bankSeed, context.recentBankKeys)
+        : generateLaserLevel(settings);
       const par = (p.solution ?? []).filter((piece) => !isSplitter(piece.kind)).length;
-      return { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + LASER_SPARE_MIRRORS };
+      const dealt = { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + (settings ? settings.spare : LASER_SPARE_MIRRORS) };
+      if (!settings) return dealt;
+      return { ...dealt, shots: settings.shots, ...(settings.timeLimitMs !== LASER_TIME_MS ? { timeLimitMs: settings.timeLimitMs } : {}) };
     }
     case "flow": {
       // Levels (16 Nov 2026): Easy, Hard and Expert deal from their own banks (live without a seed); Normal as before.
@@ -87,6 +99,17 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...(p as Extract<PuzzleData, { type: "flow" }>), flowRev: D4_REV };
     }
     case "iceslide": {
+      // Difficulty levels (16 Nov 2026): a level's board from its own proved bank (iceslide.levels.ts,
+      // iceSlideLevels.server.ts), with the level's clock where it isn't the game's 90 s; no gems (the par-moves layer
+      // takes them off every board anyway). Normal (no level) is today's deal exactly.
+      const level = (context as { level?: Level }).level ?? NORMAL;
+      if (level !== NORMAL) {
+        const settings = gameLevelSettings<IceSlideLevelSettings>("iceslide", level);
+        if (settings) {
+          const p = drawIceSlideLevel(level as IceSlideLevel, context.bankSeed, context.recentBankKeys);
+          return { ...p, ...(settings.timeLimitMs !== SLIDE_TIME_MS ? { timeLimitMs: settings.timeLimitMs } : {}), slideRev: D4_REV };
+        }
+      }
       if (context.bankSeed === undefined) return null;
       const p = drawBankedPuzzle("iceslide", context.bankSeed, context.recentBankKeys) as Extract<PuzzleData, { type: "iceslide" }>;
       // The gems' picks come from the bank seed, so the room seed alone reproduces the round (puzzle-bank-check).

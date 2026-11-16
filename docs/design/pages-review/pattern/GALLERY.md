@@ -69,6 +69,21 @@ an unfinished third of the line):
 - Every effect is on a car's art or the lot (never a car's box, which the drag reads), transform and opacity only, and
   the next drag is taken at once. Reduced motion: no glide; the settle and the shake are the kit's 120–160 ms
   crossfades, the glint a still glow along the lane fading in and out (240 ms).
+**Stage 3: the levels** (390 × 844, a practice deal at each level, before the first move):
+
+| Easy | Normal | Hard | Expert |
+|---|---|---|---|
+| <img src="unblock-level-easy.webp" width="180"> | <img src="unblock-level-normal.webp" width="180"> | <img src="unblock-level-hard.webp" width="180"> | <img src="unblock-level-expert.webp" width="180"> |
+
+- **Easy:** a 6 × 6 lot (its own render, `lot-6.webp`; bays about 53 px on a 375 px phone), 8–10 cars, 6–12 moves at
+  the minimum, 60 s, full speed by 40 s. **Normal:** today's game exactly (7 × 7, 15–22 moves, 60 s). **Hard:** 7 × 7,
+  12–14 cars, 22–30 moves, 60 s, full speed by 28 s. **Expert:** 7 × 7, 13–15 cars, 30–40 moves, 75 s, full speed by
+  30 s. The lot is the same square at every level; the cars, the ghost, the glint and the drive-out size from the lot.
+- Each level deals from its own seeded bank of 120 boards (`scripts/unblock-levels-bank.ts`, rebuilt byte for byte),
+  every board's minimum (the par) proved by breadth-first search over its whole lot
+  (`pattern-overhaul-unblock-levels-check`). Any route out counts.
+- Elite bots (level-tune, 40 deals): near-perfect 199.9 / 199.8 / 195.9 / 192.1, great 199.2 / 198.5 / 178.7 / 176.0
+  (Easy / Normal / Hard / Expert).
 <!-- gridlock:end -->
 
 <!-- tessellate:start -->
@@ -455,6 +470,25 @@ stops:
 - **Reduced motion:** each is a 120 ms crossfade to the new state (no movement); the kit's own variants for the settle
   and the near miss.
 - The old CSS effects that animated `filter` (the portal flare, the pulsing exit, the fall's darkening) are gone.
+
+### Stage 3: levels (16 Nov 2026)
+
+Practice rounds at 390 × 844, each level chosen on the device (the framework's selector), at the start of play.
+
+| Easy | Normal | Hard | Expert |
+|---|---|---|---|
+| <img src="iceslide-level-easy.webp" width="160"> | <img src="iceslide-level-normal.webp" width="160"> | <img src="iceslide-level-hard.webp" width="160"> | <img src="iceslide-level-expert.webp" width="160"> |
+
+- **Easy**: 8 × 8 (44 px squares at 390, 42 px at 375), 8–12 slides, no holes or thin ice, at most one chevron and one
+  portal pair, 90 s, speed full by 20 s.
+- **Normal**: today's game exactly (12 × 12, 18–26 slides, every hazard, 90 s, slideRev 5).
+- **Hard**: 12 × 12, 24–30 slides, 5–8 holes (Normal 2–4), the route through a portal and over thin ice; **100 s**
+  (Joe's spec said 90: at 90 s every bot scored Hard below Expert), speed full by 40 s.
+- **Expert**: 12 across × 14 down, 28–36 slides, every hazard, 120 s, speed full by 45 s. The rink grows downwards and
+  keeps square squares: 28.7 px at 390 × 844 (as Normal), 25.9 px at 375 × 667 (Normal 27.4), the pad and buttons
+  unchanged, nothing scrolls.
+- Each level deals from its own seeded bank of 300 boards (`bun scripts/iceslide-levels-bank.ts [--check]`), every
+  board's fewest slides proved by breadth-first search; the par is that minimum. Any route to the exit counts.
 <!-- skid:end -->
 
 <!-- heave:start -->
@@ -593,12 +627,39 @@ sparks, then the solve flare.
   and gold sparks; the splitter pulses as it forks the beam (`pz_laser_split`).
 - **Bomb** (`laser.bomb`): the hit bomb jolts (the kit's wrong, silent) under its red-hot blast.
 - **Near miss** (`laser.nearMiss`, Joe's approval): a shot lighting all but one gem pulses the dark gem twice and shows
-  a gold "1 gem dark" pill beside the Gems pill for 2.2 s (never over the board; the next press is taken meanwhile).
+  "1 gem dark" in gold in the Gems pill's own place for 2.2 s (stage 3, Joe: the pill's content swaps, the count and
+  the words sharing one grid cell so the pill keeps its width and the row never shifts; never over the board; the
+  next press is taken meanwhile).
 - **Out of shots** (`laser.outOfShots`): a dark veil fades over the board and the badge eases up into place (no bounce).
 - **Solve** (`laser.solve`): the flare and gem bursts as before, then the kit's win on the reveal's result card.
 - **Refused drop**: the kit's shake on that square's own art, in place of the whole-board shake.
 - Transform and opacity only (the beam's colour animation and the filter transitions are gone); reduced motion is the
   kit's 120 ms crossfade on every piece.
+### Stage 3: levels (16 Nov 2026)
+
+**The four levels at the start of a round** (390 × 844, practice, each level chosen on the device)
+
+| Easy | Normal | Hard | Expert |
+|---|---|---|---|
+| <img src="laser-level-easy.webp" width="160" alt="Lightbender Easy: par 5, 1 bomb, 5 shots"> | <img src="laser-level-normal.webp" width="160" alt="Lightbender Normal: par 7, 3 bombs, 3 shots"> | <img src="laser-level-hard.webp" width="160" alt="Lightbender Hard: par 8, 5 bombs, 3 shots"> | <img src="laser-level-expert.webp" width="160" alt="Lightbender Expert: par 9, 6 bombs, 2 shots"> |
+
+| | Mirrors (par) | Spare | Bombs | Shots | Clock | Full speed by |
+|---|---|---|---|---|---|---|
+| Easy | 4–5 | 3 | 1–2 | 5 | 60 s | 20 s |
+| Normal | 7–8 | 2 | 3–4 | 3 | 60 s | 30 s (laserRev 4; 15 s before) |
+| Hard | 8–9 | 1 | 4–5 | 3 | 75 s | 35 s |
+| Expert | 9–10 | 1 | 5–6 | 2 | 90 s | 30 s |
+
+- The same 10 × 10 board, six gems and one splitter at every level; the tray is the par plus the level's spare, the
+  "Shots left" figure and the lock after the last shot follow the level's shots (stamped `shots`, absent = 3).
+- Lightbender takes any layout that lights every gem, so its levels are open by design (a second layout with only the
+  par's mirrors exists on most boards). Every level board is still proved when dealt: the stored layout lights every
+  gem and needs every piece, and a person-like solver (`laserSolve.server.ts`: aims at the gems it can see, two turns
+  ahead, never into a bomb, backing up one decision at a time) lights it from the level's own tray, needing at least
+  100 tries on Hard and 750 on Expert and at most 1,000 (Normal's boards: 155 at the median, three quarters within
+  about 770). Hard and Expert deal from their own seeded banks (300 and 200 boards, `bun scripts/laser-bank.ts
+  --level=<level> [--check]`); Easy is generated live.
+- Twelve Expert boards to play, with their solutions: [levels/laser-expert-boards.md](levels/laser-expert-boards.md).
 <!-- lightbender:end -->
 
 <!-- topsy:start -->
@@ -656,6 +717,24 @@ sparks, then the solve flare.
   result (the board line and pills).
 - Every effect is transform and opacity only, at most 900 ms, and the next tilt is taken at once. Reduced motion: a
   120 ms crossfade for the tilt, the drop and the next board; no lean, nod or flip.
+
+### Stage 3: levels (16 Nov 2026)
+
+Practice rounds at 390 × 844, one per level (each after its first tilt), and the Expert reveal at 375 × 667 with the
+Round row on one line (Joe's stage-2 answer).
+
+| Easy | Normal | Hard | Expert | Expert reveal, 375 px |
+|---|---|---|---|---|
+| <img src="gravity-level-easy.webp" width="150"> | <img src="gravity-level-normal.webp" width="150"> | <img src="gravity-level-hard.webp" width="150"> | <img src="gravity-level-expert.webp" width="150"> | <img src="gravity-reveal-round-375.webp" width="150"> |
+
+- **Easy:** two boards of three balls, 2–4 tilts at the fewest, a limit of the fewest + 12, full speed by 20 s.
+- **Normal:** today's game exactly (three boards of six, 4–7 tilts, the fewest + 8, full speed by 32 s).
+- **Hard:** three boards of six, 6–9 tilts, the fewest + 6, full speed by 45 s.
+- **Expert:** three boards of eight (lime green with a heart, pearl white with a crescent, rendered in Blender beside
+  the six), 7–10 tilts, the fewest + 5, full speed by 50 s; every board one the person-like solver clears.
+- **Round row:** "ROUND" sits on the divider and the pills ("Boards 3/3", "Home 24/24", "Tilts", "Par", "Left 94 s")
+  stay on one line at 375 and 390 px (labels 11 px, figures 12 px); long par routes (8–10 tilts) use smaller chips so
+  they stay on one line too. Boards to play: `levels/gravity-expert-boards.tsv`.
 <!-- topsy:end -->
 
 <!-- intro-demos:start -->

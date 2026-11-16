@@ -113,7 +113,7 @@ function ExitPlate({ pulse }: { pulse: string | null }) {
 }
 
 /** The ball falling into a hole: it spins down and is gone (iceFall), drawn over the cell it fell in. */
-export function IceFallingBall({ cell, cols }: { cell: number; cols: number }) {
+export function IceFallingBall({ cell, cols, rows = cols }: { cell: number; cols: number; rows?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     iceFall(ref.current);
@@ -124,8 +124,12 @@ export function IceFallingBall({ cell, cols }: { cell: number; cols: number }) {
       className="ice-fall"
       aria-hidden="true"
       style={{
-        left: `calc((100% - 22px) * ${((cell % cols) + 0.5) / cols} + ${(cell % cols) * 2}px)`,
-        top: `calc((100% - 22px) * ${(Math.floor(cell / cols) + 0.5) / cols} + ${Math.floor(cell / cols) * 2}px)`,
+        left: `calc((100% - ${2 * (cols - 1)}px) * ${((cell % cols) + 0.5) / cols} + ${(cell % cols) * 2}px)`,
+        top: `calc((100% - ${2 * (rows - 1)}px) * ${(Math.floor(cell / cols) + 0.5) / rows} + ${Math.floor(cell / cols) * 2}px)`,
+        // A level board (difficulty levels, 16 Nov 2026) sizes the falling ball to its own square (12 × 12: the CSS's).
+        ...(cols !== 12 || rows !== 12
+          ? { width: `calc((100% - ${2 * (cols - 1)}px) / ${cols})`, height: `calc((100% - ${2 * (rows - 1)}px) / ${rows})` }
+          : {}),
       }}
     >
       <IceArt name="ball" />
@@ -217,8 +221,8 @@ export function IceBoard({
 
   return (
     <div
-      className={`ice-board ice-rink relative mx-auto aspect-square h-full max-h-full w-full max-w-full${solving ? " is-solving" : ""}`}
-      style={{ ["--ice-cols" as string]: cols }}
+      className={`ice-board ice-rink relative mx-auto${rows === cols ? " aspect-square" : ""} h-full max-h-full w-full max-w-full${solving ? " is-solving" : ""}`}
+      style={rows === cols ? { ["--ice-cols" as string]: cols } : { ["--ice-cols" as string]: cols, aspectRatio: `${cols} / ${rows}` }}
     >
       <IceArt name="rink" className="ice-sheet-art" />
       <div
