@@ -1074,7 +1074,7 @@ const ENTRIES = {
   "minigolf.bush": { channel: "effects", frequency: 0, ms: 439, url: "/sounds/minigolf_bush.mp3" },
   // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): library stand-ins until the recordings listed in
   // docs/sound-cues/crazy-golf-elevenlabs.md are made.
-  "minigolf.chip": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/pool_ball_click.mp3" },
+  "minigolf.chip": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/arc_wood_knock.mp3" },
   "minigolf.land": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/move.softFall.mp3", volume: 0.7 },
   "minigolf.rattle": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/arc_marble_clink.mp3", volume: 0.7 },
   "minigolf.plip": { channel: "effects", frequency: 0, ms: 80, url: "/sounds/arc_sea_pop.mp3" },

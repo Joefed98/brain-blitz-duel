@@ -8,7 +8,7 @@ Each row is the one-line description to give ElevenLabs' sound effects generator
 | One-line description | Slot | Length | Stand-in today |
 |---|---|---|---|
 | A short, clean "tock" of a putter's face striking a golf ball on short grass, close-up, dry, no reverb. | `minigolf.putt` | 0.3 s | its existing recording |
-| A crisp, bright "click" of a wedge clipping a golf ball cleanly off tight turf, a tiny whoosh after it. | `minigolf.chip` | 0.35 s | `pool_ball_click.mp3` |
+| A crisp, bright "click" of a wedge clipping a golf ball cleanly off tight turf, a tiny whoosh after it. | `minigolf.chip` | 0.35 s | `arc_wood_knock.mp3` |
 | A soft, muffled thump of a golf ball landing on a mown green and checking up, outdoors, quiet. | `minigolf.land` | 0.25 s | `move.softFall.mp3` |
 | A golf ball rattling round the metal rim of a putting cup and spinning out, quick light clinks. | `minigolf.rattle` | 0.4 s | `arc_marble_clink.mp3` |
 | A small "plip" of a golf ball dropping into a garden pond, a single droplet splash, close. | `minigolf.plip` | 0.3 s | `arc_sea_pop.mp3` |

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 
-import { Segmented } from "@/design/components";
+import { Segmented } from "@/design/components/Segmented";
 import { playTone } from "@/lib/sound";
 
 import { useGameLookRef } from "@/lib/skins/equipped";
