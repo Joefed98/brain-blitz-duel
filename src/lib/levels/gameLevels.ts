@@ -44,8 +44,7 @@ export interface GameLevels<S = Record<string, unknown>> {
 }
 
 /**
- * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
- * Normal only.
+ * Every game's levels beyond Normal (a game with no entry offers Normal only).
  */
 export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // The Retro overhaul, stage 3 (16 Nov 2026): the Retro games' levels, plain data from retroLevels.ts.
@@ -202,6 +201,27 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // in the sim (MG_LEVELS: par, the stroke limit, the sails, the extra hazards, the slopes, the Speed time) and every
   // level's pars are proven on the hole bank; the deal reads `context.level` (sports.server.ts generateMinigolf).
   minigolf: { levels: { easy: { settings: {} }, hard: { settings: {} }, expert: { settings: {} } } },
+  // Home Run (homerunRev 5, the Home Run and Top Bins overhaul, 15 Nov 2026): the innings' pitch speeds, balls in the
+  // first 24 pitches, the Contact / Power windows, the PERFECT window, the curveball's bend and the fielders' reach.
+  // A mirror of HR_LEVEL_SETTINGS in src/lib/arcade/homerunInnings.ts (the sim reads its own; homerun-innings-check
+  // proves the two match). Each level deals from its own proved deal (homerunDealV5.server.ts).
+  homerun: {
+    levels: {
+      easy: { settings: { flight: { 0: [42, 47], 1: [54, 60], 3: [66, 74] }, balls: 6, winContact: 7, winPower: 5, perfect: 2, bend: 450, reach: 800, ballOff: [14, 34] } },
+      hard: { settings: { flight: { 0: [28, 31], 1: [40, 44], 3: [54, 59] }, balls: 8, winContact: 4, winPower: 3, perfect: 0, bend: 1300, reach: 1100, ballOff: [8, 24] } },
+      expert: { settings: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 0, bend: 1600, reach: 1200, ballOff: [5, 17] } },
+    },
+  },
+  // Top Bins (freekickRev 6 since 16 Nov 2026; rev 5 kept its own table): the power bar's gold zone, the keeper's reaction and speed, the wall, the wind, the corner
+  // hoop's last size and the jumping-wall kicks. A mirror of FK_LEVEL_SETTINGS_V6 in src/lib/arcade/freekick.ts
+  // (freekick-layered-check proves the two match). Each level deals from its own proved deal (freekickDealV5.server.ts).
+  freekick: {
+    levels: {
+      easy: { settings: { zoneLo: 680, zoneHi: 820, react: 14, speed: 850, wall: [3, 3], wind: 1, hoopLast: 850, jumps: 3 } },
+      hard: { settings: { zoneLo: 735, zoneHi: 790, react: 6, speed: 1300, wall: [4, 5], wind: 6, hoopLast: 600, jumps: 5 } },
+      expert: { settings: { zoneLo: 745, zoneHi: 780, react: 5, speed: 1400, wall: [5, 5], wind: 7, hoopLast: 500, jumps: 6 } },
+    },
+  },
 };
 
 /** A Retro game's entry: its table's three levels as settings (arcade games give no one-solution proof). */

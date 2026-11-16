@@ -18,6 +18,7 @@ import {
   FREEKICK_REV_DEALT,
   FREEKICK_REV_3,
   FREEKICK_REV_4,
+  FREEKICK_REV_5,
   FREEKICK_INPUT_SHOT,
   FREEKICK_INPUT_AIM,
   FREEKICK_INPUT_CURL,
@@ -47,9 +48,11 @@ import {
   freekickViewOn,
   freekickViewToWorld,
 } from "@/lib/arcade/freekick.renderer";
-import { encodeFreekickRun, replayFreekickRun } from "@/lib/duel/freekick";
+import { encodeFreekickRun, freekickKickSummaries, replayFreekickRun, type FreekickKickSummary } from "@/lib/duel/freekick";
+import { strikeFromStroke, STRIKE_LABEL } from "@/lib/arcade/freekickStroke";
 import { FREEKICK_TIME_MS, type FreekickPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
+import { LAND_SVG_STYLE, RevealStats, useLandInTurn } from "@/components/puzzles/SportsRevealParts";
 import { freekickSounds } from "@/lib/fx/freekickSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -91,8 +94,18 @@ function IntroExample() {
         <path d="M96 122 Q78 84 120 44" fill="none" stroke="#FFECBE" strokeOpacity={0.55} strokeWidth={2} strokeDasharray="3 3" />
         <path d="M92 128 Q86 112 104 100" fill="none" stroke="#FFFFFF" strokeOpacity={0.8} strokeWidth={3} strokeLinecap="round" />
         <circle cx={96} cy={118} r={5.5} fill="#F4F6F8" />
+        {/* Captain Joulz on the ball's left, kicking leg drawn back; the wind flag over the goal. */}
+        <g stroke="#F2C75C" strokeWidth={0.8} strokeLinecap="round">
+          <circle cx={72} cy={96} r={3.6} fill="#121218" />
+          <path d="M72 100 L71 112" stroke="#121218" strokeWidth={4} />
+          <path d="M71 112 L68 124 M71 112 L80 120" stroke="#121218" strokeWidth={2.6} />
+          <path d="M72 102 L64 108 M72 102 L80 106" stroke="#121218" strokeWidth={2} />
+        </g>
+        <path d="M66 100 L60 114 L68 110 Z" fill="#E7C46A" opacity={0.9} />
+        <line x1={160} y1={6} x2={160} y2={22} stroke="#D9DDE6" strokeWidth={1.2} />
+        <path d="M160 6 L174 9 L171 12 L174 15 L160 13 Z" fill="#FF8A3D" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Draw the shot from the ball (bend it to curl), then hold the bar and release in the gold.</p>
+      <p className="text-center text-xs text-muted-foreground">Draw the shot from the ball (bend to curl, straight to drive, flick to dip), read the wind, then hold the bar and release in the gold.</p>
     </div>
   );
 }
@@ -263,6 +276,8 @@ function v4Pointer(
   const shot = freekickDrawnShot(state, pts);
   if (!shot) return null;
   freekickV4Ui.line = { k: state.k, pts: pts.slice() };
+  // freekickRev 5: the stroke's shape picks the strike (a flick at the end dips, a straight line drives, a bend curls).
+  if (state.freekickRev >= FREEKICK_REV_5) return { k: FREEKICK_INPUT_SHOT, a: shot.x, b: shot.y, c: shot.b, d: strikeFromStroke(pts, shot.b) };
   return { k: FREEKICK_INPUT_SHOT, a: shot.x, b: shot.y, c: shot.b };
 }
 
@@ -273,9 +288,15 @@ function v4Pointer(
  */
 function v4Key(kind: "down" | "up", key: string, send: (p: PointerPayload) => void, state: FreekickState, event: KeyboardEvent): boolean {
   const k = key.length === 1 ? key.toLowerCase() : key;
-  const handled = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "a", "d", " "].includes(k);
+  const v5 = state.freekickRev >= FREEKICK_REV_5;
+  const handled = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "a", "d", " ", ...(v5 ? ["s"] : [])].includes(k);
   if (!handled) return false;
   if (state.phase !== FK_AIM) return true;
+  // freekickRev 5: S steps through the strike (curler, driven, dipping) on the shot drawn.
+  if (v5 && k === "s") {
+    if (kind === "down" && (state.meterAt ?? -1) < 0 && state.aimed === 1) send({ k: FREEKICK_INPUT_SHOT, a: state.aimX ?? 0, b: state.aimY ?? 120, c: state.curl ?? 0, d: ((state.strike ?? 0) + 1) % 3 });
+    return true;
+  }
   const metering = (state.meterAt ?? -1) >= 0;
   if (k === " ") {
     if (kind === "down" && !event.repeat && !metering && state.aimed === 1) send({ k: FREEKICK_INPUT_POWER, a: 0, b: 0, c: 0 });
@@ -294,7 +315,7 @@ function v4Key(kind: "down" | "up", key: string, send: (p: PointerPayload) => vo
     y += k === "ArrowUp" ? step : k === "ArrowDown" ? -step : 0;
   }
   freekickV4Ui.line = null;
-  send({ k: FREEKICK_INPUT_SHOT, a: Math.max(-372, Math.min(372, x)), b: Math.max(11, Math.min(250, y)), c: b });
+  send({ k: FREEKICK_INPUT_SHOT, a: Math.max(-372, Math.min(372, x)), b: Math.max(11, Math.min(250, y)), c: b, ...(v5 ? { d: state.strike ?? 0 } : {}) });
   return true;
 }
 
@@ -334,10 +355,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // The player's own equipped football (wave 2; display only, src/lib/skins/equipped.ts).
   const [, lookRef] = useGameLookRef("freekick");
   const game = useMemo(() => {
-    const art = freekickArtGameFor(data?.freekickRev);
+    const art = freekickArtGameFor(data?.freekickRev, undefined, data?.level);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, s: FreekickState, size: CanvasSize) => withFreekickLook(lookRef.current, () => art.draw(ctx, s, size)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.freekickRev]);
+  }, [data?.freekickRev, data?.level]);
   const stroke = useRef<StrokePoint[]>([]);
   const gesture = useRef<{ x: number; y: number; power: boolean; drag: boolean } | null>(null);
   const v3 = (data?.freekickRev ?? 1) >= FREEKICK_REV_3;
@@ -396,9 +417,118 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+const KICK_WORD: Record<number, string> = { 1: "Goal", 2: "Saved", 3: "Wall", 4: "Missed", 5: "Short", 6: "No kick" };
+
+/** Each crossing as a dot on the picture, nudged apart (a few relaxation passes) so no number hides another. */
+function spread(kicks: readonly FreekickKickSummary[]) {
+  const K = 44;
+  const pts = kicks
+    .map((k, i) => (k.at ? { k, i, x: Math.max(10, Math.min(370, 190 + k.at.x * K)), y: Math.max(10, Math.min(150, 140 - k.at.y * K)) } : null))
+    .filter((p): p is { k: FreekickKickSummary; i: number; x: number; y: number } => p !== null);
+  for (let pass = 0; pass < 30; pass++)
+    for (const a of pts)
+      for (const b of pts) {
+        if (a === b) continue;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d = Math.hypot(dx, dy);
+        if (d >= 19) continue;
+        const push = (19 - d) / 2;
+        const ux = d > 0.01 ? dx / d : b.i > a.i ? 1 : -1;
+        const uy = d > 0.01 ? dy / d : 0.3;
+        a.x = Math.max(10, Math.min(370, a.x - ux * push));
+        a.y = Math.max(10, Math.min(150, a.y - uy * push));
+        b.x = Math.max(10, Math.min(370, b.x + ux * push));
+        b.y = Math.max(10, Math.min(150, b.y + uy * push));
+      }
+  return pts;
+}
+
+/** freekickRev 5's reveal picture: the goal frame with every kick where it crossed the line, numbered. */
+function KicksOnGoal({ kicks }: { kicks: readonly FreekickKickSummary[] }) {
+  const land = useLandInTurn();
+  const K = 44;
+  const W = 380;
+  const H = 170;
+  const gx = (x: number) => W / 2 + x * K;
+  const gy = (y: number) => 140 - y * K;
+  const half = 3.66;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxWidth: 440, maxHeight: "24vh" }} role="img" aria-label="Where each kick crossed the goal line">
+      <rect x={0} y={140} width={W} height={30} fill="var(--jz-surface-2)" />
+      <rect x={gx(-half)} y={gy(2.44)} width={2 * half * K} height={2.44 * K} fill="var(--jz-surface)" />
+      {/* The net: a fine mesh behind the frame. */}
+      {Array.from({ length: 23 }, (_, i) => (
+        <line key={`v${i}`} x1={gx(-half) + (i + 1) * 14} y1={gy(2.44)} x2={gx(-half) + (i + 1) * 14} y2={140} stroke="var(--jz-line)" strokeWidth={1} />
+      ))}
+      {Array.from({ length: 7 }, (_, i) => (
+        <line key={`h${i}`} x1={gx(-half)} y1={gy(2.44) + (i + 1) * 13.4} x2={gx(half)} y2={gy(2.44) + (i + 1) * 13.4} stroke="var(--jz-line)" strokeWidth={1} />
+      ))}
+      <path d={`M${gx(-half)},140 L${gx(-half)},${gy(2.44)} L${gx(half)},${gy(2.44)} L${gx(half)},140`} fill="none" stroke="var(--jz-white)" strokeWidth={5} />
+      {spread(kicks).map(({ k, i, x, y }) => {
+        const goal = k.out === 1;
+        return (
+          <g key={i} ref={land(i)} data-reveal-mark="" style={LAND_SVG_STYLE}>
+            <circle cx={x} cy={y} r={9} fill={goal ? "var(--jz-gold)" : "var(--jz-bg)"} stroke={goal ? "var(--jz-on-gold)" : "var(--jz-red)"} strokeWidth={2} />
+            <text x={x} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={900} fill={goal ? "var(--jz-on-gold)" : "var(--jz-text)"}>
+              {i + 1}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function LayeredReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "freekick") return null;
-  const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev);
+  const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
+  const kicks = freekickKickSummaries(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
+  const skill = kicks.filter((k) => k.out === 1 && k.skill).length;
+  return (
+    <div className="flex w-full flex-col items-center justify-start gap-2" data-freekick-reveal>
+      <KicksOnGoal kicks={kicks} />
+      <RevealStats
+        stats={[
+          { label: "Goals", value: result.goals, gold: true },
+          { label: "Best run", value: result.best },
+          { label: "Skill shots", value: skill },
+        ]}
+      />
+      <div className="grid w-full grid-cols-5 gap-1.5" data-kick-strip>
+        {Array.from({ length: 10 }, (_, i) => {
+          const k = kicks[i];
+          const goal = k?.out === 1;
+          return (
+            <div
+              key={i}
+              className="flex flex-col items-center py-1"
+              style={{ borderRadius: "var(--jz-radius-sm)", background: "var(--jz-surface)", border: `2px solid ${goal ? "var(--jz-gold)" : "transparent"}` }}
+            >
+              <span className="font-black" style={{ fontSize: 15, color: goal ? "var(--jz-gold)" : "var(--jz-text)" }}>
+                {i + 1}
+              </span>
+              <span className="font-bold" style={{ fontSize: 11, color: "var(--jz-text-2)" }}>
+                {k ? KICK_WORD[k.out] ?? "" : "—"}
+              </span>
+              {k && goal ? (
+                <span className="font-semibold" style={{ fontSize: 10, color: "var(--jz-text-3)" }}>
+                  {STRIKE_LABEL[k.strike]}
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  const { puzzle, myAnswer } = props;
+  if (puzzle.type !== "freekick") return null;
+  if ((puzzle.freekickRev ?? 1) >= FREEKICK_REV_5) return <LayeredReveal {...props} />;
+  const result = replayFreekickRun(puzzle.seed, myAnswer ?? "", puzzle.freekickRev, puzzle.level);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   return (

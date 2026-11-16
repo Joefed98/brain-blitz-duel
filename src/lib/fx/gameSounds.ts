@@ -35,7 +35,9 @@ import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_
 import type { TiltState } from "@/lib/arcade/tilt";
 import { tiltPitLip } from "@/lib/arcade/tiltLip";
 import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
-import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
+import { HR5_BALL, HR5_CHOICE, HR5_FOUL, HR5_HOMER, HR5_OUT_CAUGHT, HR5_SINGLE, HR5_STRIKE_CALLED, HR5_WHIFF } from "@/lib/arcade/homerunInnings";
+import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, FK_LEVEL_SETTINGS, FK_V5_JUMP_FROM, fkKickOf, fkLevelOf, fkV3Meter, FREEKICK_REV_5, type FreekickState } from "@/lib/arcade/freekick";
+import { freekickV4Ui } from "@/lib/arcade/freekick.renderer";
 import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, btMovesOf, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
@@ -1603,15 +1605,75 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
   };
 }
 
+/**
+ * homerunRev 5's innings (15 Nov 2026): the pitch, the swing, the crack, the umpire's calls (strike, ball, out, strike
+ * three), the batted ball's landing, the runners' footsteps and slides, a run scoring, a catch and the groan, a home
+ * run's organ and roar, the perfect streak climbing a note, the innings' end. Haptics on a home run (success), a
+ * strikeout (impact) and a run scoring (tick).
+ */
+function inningsSound(prev: HomerunState, state: HomerunState, catchAt: { t: number }): void {
+  const was = prev.inn!;
+  const inn = state.inn!;
+  if (inn.endAt === 0 && prev.tick < inn.release && state.tick >= inn.release) effectCue("homerun.pitch");
+  if (inn.st >= 0 && was.st < 0) {
+    sfx("homerun.swing", "arc_hover_tap", 0.5, 1.4);
+    // The aim line drops onto the field with the swipe.
+    effectCue("homerun.aimThunk");
+  }
+  if (catchAt.t > 0 && prev.tick < catchAt.t && state.tick >= catchAt.t) {
+    catchAt.t = -1;
+    sfx("homerun.catch", "arc_fair_thud", 0.8);
+    effectCue("homerun.groan");
+    sfx("homerun.umpOut", "arc_fair_thud", 0.4, 0.8);
+  }
+  if (inn.hits.length > was.hits.length) {
+    const hit = inn.hits[inn.hits.length - 1]!;
+    const swung = hit.st >= 0 && hit.out !== HR5_WHIFF;
+    if (swung && hit.out !== HR5_FOUL) sfx("homerun.crack", "arc_wood_knock", hit.q >= 600 ? 1 : 0.6, hit.q >= 900 ? 1.15 : 1);
+    if (hit.out === HR5_FOUL) sfx("homerun.foul", "arc_bounce", 0.7);
+    if (hit.out === HR5_WHIFF) effectCue("homerun.whiff");
+    const strikeOut = inn.outs > was.outs && (hit.out === HR5_WHIFF || hit.out === HR5_STRIKE_CALLED);
+    if (strikeOut) {
+      sfx("homerun.strikeout", "arc_fair_thud", 0.9, 0.7);
+      feel("impact");
+    } else if (hit.out === HR5_WHIFF || hit.out === HR5_STRIKE_CALLED) {
+      sfx("homerun.strike", "arc_fair_thud", 0.6);
+      effectCue("homerun.umpStrike");
+    }
+    if (hit.out === HR5_BALL) {
+      if (inn.balls === 0 && was.balls === 3) sfx("homerun.walk", "arc_hover_tap", 0.5);
+      else effectCue("homerun.umpBall");
+    }
+    if (hit.out === HR5_OUT_CAUGHT) catchAt.t = state.tick + Math.max(30, 40 + Math.round(hit.feet / 9) - 3);
+    if (hit.out === HR5_HOMER) {
+      sfx("homerun.homer", "arc_fair_sting", 0.9);
+      feel("success");
+      effectCue("homerun.roar");
+    }
+    if (hit.out >= HR5_SINGLE && hit.out <= HR5_CHOICE && hit.out !== HR5_HOMER) effectCue("homerun.footsteps");
+    if (hit.perfect) sfx("homerun.perfect", "arc_fair_bell", 0.55, Math.min(1.6, 1 + 0.06 * (inn.streak - 1)));
+  }
+  // The runners reach their bases (the art's 70-tick run): the slide, and each run home.
+  const last = inn.hits[inn.hits.length - 1];
+  if (last && prev.tick < last.at + 62 && state.tick >= last.at + 62 && last.out >= HR5_SINGLE && last.out !== HR5_HOMER) sfx("homerun.slide", "arc_bounce", 0.4, 0.7);
+  if (inn.runs > was.runs) {
+    sfx("homerun.runScores", "arc_fair_bell", 0.7);
+    feel("tick");
+  }
+  if (inn.endAt > 0 && was.endAt === 0) effectCue("homerun.inningsEnd");
+}
+
 export function homerunSounds(): GameSounds<HomerunState> {
   let prev: HomerunState | null = null;
+  const inningsCatch = { t: -1 };
   /** homerunRev 4: the tick a caught ball reaches the glove (the art's flight), when the catch sounds. */
   let catchAt = -1;
   return {
     frame(state, running) {
       beginFrame("homerun", state);
       loopCue("homerun.crowd", running, CROWD_VOLUME);
-      if (prev && state.tick > prev.tick) {
+      if (prev && state.tick > prev.tick && state.inn && prev.inn) inningsSound(prev, state, inningsCatch);
+      else if (prev && state.tick > prev.tick) {
         const pitch = homerunPlan(state.seed, state.rev).pitches[state.pitch];
         if (pitch && prev.tick < pitch.release && state.tick >= pitch.release) effectCue("homerun.pitch");
         if (state.swingTick >= 0 && prev.swingTick < 0) sfx("homerun.swing", "arc_hover_tap", 0.5, 1.4);
@@ -1647,6 +1709,7 @@ export function homerunSounds(): GameSounds<HomerunState> {
       loopCue("homerun.crowd", false);
       prev = null;
       catchAt = -1;
+      inningsCatch.t = -1;
     },
   };
 }
@@ -1656,12 +1719,61 @@ const HOMERUN_WEAK_Q = 400;
 const HOMERUN_NEAR_FT = 30;
 
 /** Free Kick: the crowd, the whistle, the strike, woodwork, the wall, saves, goals (the net and a roar), near misses and targets. */
+/**
+ * freekickRev 5's layers (15 Nov 2026): the flag's wind loop while a kick is set (louder with the wind), the bend's
+ * whistle rising with the drawn curve, the power tone rising with the bar and a tick through the gold, the wall's jump,
+ * the keeper's dive and a save's spill, the crowd's chant on five in a row, the hoop shrinking for the next kick.
+ */
+function layeredSound(prev: FreekickState, state: FreekickState, running: boolean): void {
+  const aiming = running && state.phase === FK_AIM;
+  const k = fkKickOf(state);
+  loopCue("freekick.windFlag", aiming && k.wind !== 0, 0.12 + 0.04 * Math.abs(k.wind));
+  const live = freekickV4Ui.live;
+  const bend = live && live.length > 2 ? Math.min(1, Math.abs(strokeBow(live)) / 0.25) : 0;
+  loopCue("freekick.bendWhistle", aiming && bend > 0.12, 0.25);
+  if (bend > 0.12) setCueLoopRate("freekick.bendWhistle", 0.8 + 0.6 * bend);
+  const metering = aiming && (state.meterAt ?? -1) >= 0;
+  loopCue("freekick.powerTone", metering, 0.3);
+  if (metering) {
+    const L = FK_LEVEL_SETTINGS[fkLevelOf(state.level)];
+    const v = fkV3Meter(state.tick - (state.meterAt ?? 0));
+    const was = fkV3Meter(prev.tick - (prev.meterAt ?? 0));
+    setCueLoopRate("freekick.powerTone", 0.75 + 0.6 * (v / 1000));
+    if ((prev.meterAt ?? -1) >= 0 && (v >= L.zoneLo) !== (was >= L.zoneLo)) sfx("freekick.goldTick", "arc_hover_tap", 0.45, 1.6);
+  }
+  const f = state.fl;
+  const was = prev.fl;
+  if (f && was && state.kickTick === prev.kickTick) {
+    if (k.v5?.jump && was.t < FK_V5_JUMP_FROM && f.t >= FK_V5_JUMP_FROM) effectCue("freekick.wallJump");
+    if (f.react >= 0 && was.t < f.react && f.t >= f.react) effectCue("freekick.dive");
+    if (f.out === FK_OUT_SAVED && was.out !== FK_OUT_SAVED) effectCue("freekick.spill");
+  }
+  if (state.best >= 5 && prev.best < 5) effectCue("freekick.chant");
+  if (state.k > prev.k && state.k < 10 && fkKickOf(state).target !== 0 && fkKickOf(state).target !== 3) effectCue("freekick.hoopShrink");
+}
+
+/** A drawn stroke's bow (its widest sideways gap from its chord, a share of the chord). */
+function strokeBow(pts: readonly { x: number; y: number }[]): number {
+  const s = pts[0]!;
+  const e = pts[pts.length - 1]!;
+  const cx = e.x - s.x;
+  const cy = e.y - s.y;
+  const len = Math.hypot(cx, cy) || 1;
+  let bow = 0;
+  for (const p of pts) {
+    const c = (cx * (p.y - s.y) - cy * (p.x - s.x)) / len;
+    if (Math.abs(c) > Math.abs(bow)) bow = c;
+  }
+  return bow / len;
+}
+
 export function freekickSounds(): GameSounds<FreekickState> {
   let prev: FreekickState | null = null;
   return {
     frame(state, running) {
       beginFrame("freekick", state);
       loopCue("freekick.crowd", running, CROWD_VOLUME);
+      if (prev && state.tick > prev.tick && state.freekickRev >= FREEKICK_REV_5) layeredSound(prev, state, running);
       if (prev && state.tick > prev.tick) {
         const f = state.fl;
         const was = prev.fl;
@@ -1691,6 +1803,7 @@ export function freekickSounds(): GameSounds<FreekickState> {
     },
     stop() {
       loopCue("freekick.crowd", false);
+      for (const c of ["freekick.windFlag", "freekick.bendWhistle", "freekick.powerTone"]) loopCue(c, false);
       prev = null;
     },
   };

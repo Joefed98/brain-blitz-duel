@@ -1,6 +1,6 @@
 import { GameReveal } from "@/components/duel/GameParts";
 import { RUN_SUMMARY_TYPES } from "@/lib/duel/runSummary";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/design/components";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
 import { queueVoice } from "@/lib/sound";
@@ -37,6 +37,8 @@ export interface RevealPlayer {
 }
 
 interface ArcadeRevealProps {
+  /** The game's own visual summary of the run (PuzzleDefinition.arcadeSummary), under the breakdown. */
+  summaryVisual?: ReactNode;
   puzzle: PuzzleData;
   myAnswer: string | null;
   /** round_results.score for this player; null until the server has stored it. */
@@ -286,7 +288,7 @@ function useCelebration(puzzle: PuzzleData, myAnswer: string | null, myScore: nu
   return full && best ? "both" : full ? "full" : best ? "best" : null;
 }
 
-export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal, players, nearMissLine, personalBest, round, costRows = [], practice = false, best = null }: ArcadeRevealProps) {
+export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal, players, nearMissLine, personalBest, round, costRows = [], practice = false, best = null, summaryVisual }: ArcadeRevealProps) {
   // The band-lined standard games read as the standard's part lines (arcadeBandStd.ts); display only.
   const myReveal = useMemo(() => {
     if (!storedReveal) return null;
@@ -395,6 +397,12 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           </div>
         ) : null}
 
+        {/* The game's own picture of the run (15 Nov 2026): in practice always, in a room with the breakdown, above it. */}
+        {summaryVisual && myScore !== null ? (
+          <div data-reveal-summary-visual="" hidden={!practice && !open} className="flex w-full shrink-0 flex-col items-center animate-fade-in">
+            {summaryVisual}
+          </div>
+        ) : null}
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
         {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}

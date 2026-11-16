@@ -13,7 +13,8 @@ import { POOL_H, POOL_SPOTS, POOL_W, type PoolState } from "./pool";
 import { curlShotTeam, curlTakeouts, CURL_STONE_PTS, CURLING_H, CURLING_H_V2, CURLING_H_V4, CURLING_STONES, CURLING_W, TEAM_MINE, type CurlingState } from "./curling";
 import { curlProject, CURL_VIEW_V1, CURL_VIEW_V2, CURL_VIEW_V4 } from "./curling.renderer";
 
-const homerunMisses = (s: HomerunState) => s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL || h.out === OUT_CAUGHT).length;
+// homerunRev 5: an out is a miss moment, a perfect streak's growth a streak burst (the innings keeps its own counters).
+const homerunMisses = (s: HomerunState) => (s.inn ? s.inn.outs : 0) + s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL || h.out === OUT_CAUGHT).length;
 
 /**
  * Home Run's success layer over the dealt stage view (homerunRev 4: the 720-row world again; homerunRev 3's view runs
@@ -30,7 +31,7 @@ export const HOMERUN_FX: ArcadeFxSpec<HomerunState> = {
     // The renderer writes the call ("HOME RUN", the distance); the layer adds the burst over the stands (31 Oct 2026:
     // the stands sit higher with the camera behind the batter).
     { kind: "perfect", count: (s) => s.homers, at: () => ({ x: HOMERUN_WORLD_W / 2, y: 120 }), label: () => null, lights: ["#F2C75C", "#FFF1C2", "#FFFFFF"] },
-    { kind: "streak", count: (s) => (s.rev >= HOMERUN_REV_4 ? (s.bonus ?? 0) : homerunSignCount(s)), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 140 }), label: () => null, neon: true },
+    { kind: "streak", count: (s) => (s.inn ? s.inn.best : s.rev >= HOMERUN_REV_4 ? (s.bonus ?? 0) : homerunSignCount(s)), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 140 }), label: () => null, neon: true },
   ],
   misses: [{ count: homerunMisses }],
 };

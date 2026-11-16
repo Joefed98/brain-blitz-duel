@@ -272,8 +272,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "pinball") return generatePinball();
   if (type === "minesweeper") return generateMinesweeper();
   if (type === "mahjong") return generateMahjong(context.level);
-  if (type === "homerun") return generateHomerun();
-  if (type === "freekick") return generateFreekick();
+  if (type === "homerun") return generateHomerun(context.level);
+  if (type === "freekick") return generateFreekick(context.level);
   if (type === "racing") return generateRacing();
   if (type === "freecell") return generateFreecell(context.level);
   if (type === "tripeaks") return generateTripeaks(context.level);

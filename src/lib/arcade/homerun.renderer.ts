@@ -28,6 +28,7 @@
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, deviceLayer } from "./cache.renderer";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
+import { glassPill, glossSpot } from "./sportsGlass.renderer";
 import { HOMERUN_FX, HOMERUN_FX_V2 } from "./sportsFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
@@ -74,7 +75,30 @@ import {
   type HomerunPlan,
   type HomerunSign,
   type HomerunState,
+  HOMERUN_REV_5,
 } from "./homerun";
+import {
+  hr5Fence,
+  homerunInningsPlan,
+  hr5BasesBefore,
+  hr5Moves,
+  HR_LEVEL_SETTINGS,
+  HR5_CHOICE,
+  HR5_BALL,
+  HR5_FOUL,
+  HR5_GROUND_Q,
+  HR5_HOMER,
+  HR5_MODE_POWER,
+  HR5_OUT_CAUGHT,
+  HR5_OUTCOME_NAMES,
+  HR5_PLAN_PITCHES,
+  HR5_SINGLE,
+  HR5_STRIKE_CALLED,
+  HR5_WHIFF,
+  type Hr5Hit,
+  type Hr5Inn,
+  type Hr5Pitch,
+} from "./homerunInnings";
 
 export const HOMERUN_ART_BG = "#04060D";
 
@@ -1220,13 +1244,16 @@ function paintBat3(ctx: CanvasRenderingContext2D, knob: V3, dir: V3, alpha: numb
   ctx.restore();
 }
 
-const NAVY = "#17244A";
-const NAVY_LIT = "#2C4282";
-const PANTS = "#E7E9EF";
-const PANTS_SHADE = "#A9AFBE";
+/** The batter's kit: the plain navy one (every revision before 5), Captain Joulz's on homerunRev 5 (set for the frame). */
+const PLAIN_KIT = { navy: "#17244A", navyLit: "#2C4282", pants: "#E7E9EF", pantsShade: "#A9AFBE", trim: "#F2C75C" } as const;
+let KIT: { navy: string; navyLit: string; pants: string; pantsShade: string; trim: string } = PLAIN_KIT;
 
 /** The batter (a right-hander in the left box, seen from behind his right shoulder) in `pose`, at full or `ghost` alpha. */
 function paintBatter(ctx: CanvasRenderingContext2D, pose: Pose, blur: Pose[] = []): void {
+  const NAVY = KIT.navy;
+  const NAVY_LIT = KIT.navyLit;
+  const PANTS = KIT.pants;
+  const PANTS_SHADE = KIT.pantsShade;
   const base: V3 = [-2.95, 0, 0.15];
   const sink = pose.sink;
   const rot = (r: number, v: V3): V3 => [v[0] * Math.cos(r) - v[2] * Math.sin(r), v[1], v[0] * Math.sin(r) + v[2] * Math.cos(r)];
@@ -1765,9 +1792,10 @@ function homerunFxFor(viewH: number): typeof HOMERUN_FX {
 }
 
 function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: number = H): void {
-  hvOn = state.rev >= HOMERUN_REV_4 && viewH <= H;
+  hvOn = (state.rev >= HOMERUN_REV_4 && viewH <= H) || state.rev >= HOMERUN_REV_5;
   try {
-    drawHomerunFrame(ctx, state, viewH);
+    if (state.rev >= HOMERUN_REV_5) drawInnings(ctx, state, viewH);
+    else drawHomerunFrame(ctx, state, viewH);
   } finally {
     hvOn = false;
   }
@@ -2017,4 +2045,558 @@ export function paintHomerunTile(ctx: CanvasRenderingContext2D, size: number, se
   ctx.restore();
   paintBall(ctx, 236, 328, 7, 0.4);
   ctx.restore();
+}
+
+/* ============================================================ homerunRev 5: the innings */
+
+/** The UI's live swipe (the stage sets it while a finger drags, display only): the aim it would send, or null. */
+export const homerunV5Ui: { aim: number | null; at: number } = { aim: null, at: 0 };
+
+/** One font for every word on homerunRev 5's screen (Archivo, the app's), sized to be read at a glance. */
+const UI = ARCADE_FX_DISPLAY_FONT;
+/** Captain Joulz's kit on the batter (homerunRev 5; the hero's black suit, gold trim, gold gloves). */
+const CAPTAIN_KIT = { navy: "#121218", navyLit: "#3C3C4C", pants: "#1E1E26", pantsShade: "#08080C", trim: "#F2C75C" } as const;
+
+/** Base path points (field feet, x toward first, z out): home, first, second, third, home. */
+const BASE_FEET: readonly [number, number][] = [
+  [0, 0],
+  [63.6, 63.6],
+  [0, 127.3],
+  [-63.6, 63.6],
+  [0, 0],
+];
+/** A point on the base path at `s` (0 home … 4 home again), through the frame's view. */
+function basePathAt(s: number): { x: number; y: number; k: number } {
+  const i = Math.max(0, Math.min(3, Math.floor(s)));
+  const t = Math.max(0, Math.min(1, s - i));
+  const a = BASE_FEET[i]!;
+  const b = BASE_FEET[i + 1]!;
+  const q = proj(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t);
+  const v = hvPt(q.x, q.y);
+  return { x: v.x, y: v.y, k: q.s };
+}
+
+/** The four bags on the infield (white squares through the view). */
+function paintBags(ctx: CanvasRenderingContext2D, bases: number): void {
+  for (let b = 1; b <= 3; b++) {
+    const p = basePathAt(b);
+    const r = Math.max(2.5, p.k * 1.1);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.scale(1, 0.5);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = bases & (1 << (b - 1)) ? "#FFE7A3" : "#F4F3EE";
+    ctx.fillRect(-r, -r, 2 * r, 2 * r);
+    ctx.restore();
+  }
+}
+
+/** A runner (the batting side's black and gold kit), sprinting with a lean, or sliding flat at `slide` 0…1. */
+function paintRunner(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, phase: number, slide: number, out: boolean): void {
+  const h = Math.max(10, Math.min(26, k * 4.2));
+  const u = h / 16;
+  ctx.save();
+  ctx.globalAlpha = out ? 0.45 : 1;
+  ctx.translate(x, y);
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 3.6 * u, 1.1 * u, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.rotate(-slide * 1.1);
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#121218";
+  ctx.lineWidth = 1.9 * u;
+  const step = Math.sin(phase) * 3 * u * (1 - slide);
+  ctx.beginPath();
+  ctx.moveTo(0, -6 * u);
+  ctx.lineTo(-2 * u + step, 0);
+  ctx.moveTo(0, -6 * u);
+  ctx.lineTo(2 * u - step, 0);
+  ctx.stroke();
+  ctx.fillStyle = "#121218";
+  ctx.beginPath();
+  ctx.roundRect(-2.6 * u, -12.5 * u, 5.2 * u, 7 * u, 1.4 * u);
+  ctx.fill();
+  ctx.fillStyle = CAPTAIN_KIT.trim;
+  ctx.fillRect(-0.6 * u, -11.5 * u, 1.2 * u, 4.4 * u);
+  ctx.beginPath();
+  ctx.arc(0, -14.6 * u, 2.1 * u, 0, Math.PI * 2);
+  ctx.fillStyle = "#121218";
+  ctx.fill();
+  ctx.strokeStyle = CAPTAIN_KIT.trim;
+  ctx.lineWidth = 0.7 * u;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** homerunRev 5's ball: the stitched leather ball with a crisp specular spot (glossy, lit by the towers). */
+function paintBall5(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number): void {
+  paintBall(ctx, x, y, r, spin);
+  glossSpot(ctx, x, y, r);
+}
+
+/**
+ * homerunRev 5's turf (display only, painted once a size): the outfield mown in a checkerboard (bands by spray angle
+ * and by depth, alternately a shade lighter, as a groundskeeper's mower leaves it) and soft pools of floodlight on it,
+ * so the grass reads as real turf under the towers rather than one flat green.
+ */
+function paintTurf(ctx: CanvasRenderingContext2D): void {
+  ctx.save();
+  const quad = (s0: number, s1: number, f0: number, f1: number) => {
+    const pts = [
+      [s0, f0],
+      [s1, f0],
+      [s1, f1],
+      [s0, f1],
+    ].map(([sp, ft]) => hvPt(homerunV4XOf(sp!), homerunGroundY(ft!)));
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.closePath();
+  };
+  for (let sp = -450, i = 0; sp < 450; sp += 75, i++) {
+    for (let ft = 160, j = 0; ft < 400; ft += 40, j++) {
+      const top = Math.min(ft + 40, hr5Fence(sp) - 4, hr5Fence(sp + 75) - 4);
+      if (top <= ft) continue;
+      quad(sp, sp + 75, ft, top);
+      ctx.fillStyle = (i + j) % 2 ? "rgba(214,255,200,0.07)" : "rgba(0,22,6,0.07)";
+      ctx.fill();
+    }
+  }
+  // Light pools from the towers (left and right field), the turf brighter under them.
+  for (const [sp, ft] of [
+    [300, 300],
+    [-300, 300],
+    [0, 230],
+  ] as const) {
+    const c = hvPt(homerunV4XOf(sp), homerunGroundY(ft));
+    const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 120);
+    g.addColorStop(0, "rgba(255,250,225,0.09)");
+    g.addColorStop(1, "rgba(255,250,225,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(c.x - 120, c.y - 120, 240, 240);
+  }
+  ctx.restore();
+}
+
+/** The pitch being faced, as rev 4's pitch shape (for homerunBallAt). */
+function v5Pitch(p: Hr5Pitch, release: number): HomerunPitch {
+  return { kind: p.kind, release, arrive: release + p.flight, plateX: p.plateX, plateY: p.plateY, breakX: p.breakX, breakY: p.breakY, mph: p.mph };
+}
+
+/** A batted ball's landing in the view's world px (stands for a home run, grass otherwise, the foul side for a foul). */
+function v5Landing(hit: Hr5Hit): { x: number; y: number } {
+  const x = homerunV4XOf(hit.out === HR5_FOUL ? (hit.spray < 0 ? -560 : 560) : hit.spray);
+  if (hit.out === HR5_HOMER) return { x, y: Math.max(30, homerunStandY(hit.spray, hit.feet)) };
+  return { x, y: homerunGroundY(Math.max(20, hit.feet)) };
+}
+
+/** A batted ball's flight (k ticks after contact): from the plate to its landing, its arc by distance. */
+function v5Flight(hit: Hr5Hit, from: { x: number; y: number }, k: number): { x: number; y: number; r: number; u: number } {
+  const dur = hit.out === HR5_FOUL ? 46 : 40 + Math.round(hit.feet / 9);
+  const u = Math.min(1, k / dur);
+  const land = v5Landing(hit);
+  const ground = hit.q < HR5_GROUND_Q;
+  const peak = ground ? 6 : 30 + Math.min(200, hit.feet * 0.42);
+  const e = 1 - (1 - u) * (1 - u);
+  const x = from.x + (land.x - from.x) * e;
+  const y = from.y + (land.y - from.y) * e - peak * Math.sin(Math.PI * u);
+  return { x, y, r: Math.max(1.2, 6.5 * (1 - e) + 1.3 * e), u };
+}
+
+/** The call for a decided pitch: the big word, a small line, gold for a hit. */
+function v5Call(inn: Hr5Inn, hit: Hr5Hit): { big: string; small: string; gold: boolean; ump: boolean } {
+  const after = inn.hits.indexOf(hit);
+  const later = inn.hits.slice(0, after + 1);
+  // The count after this pitch (for the call's small line).
+  let balls = 0;
+  let strikes = 0;
+  let outs = 0;
+  for (const h of later) {
+    if (h.out === HR5_BALL) balls += 1;
+    else if (h.out === HR5_STRIKE_CALLED || h.out === HR5_WHIFF) strikes += 1;
+    else if (h.out === HR5_FOUL) strikes = Math.min(2, strikes + 1);
+    if (h.out === HR5_OUT_CAUGHT || h.out === HR5_CHOICE || ((h.out === HR5_STRIKE_CALLED || h.out === HR5_WHIFF) && strikes >= 3)) outs += 1;
+    if (h.out >= HR5_OUT_CAUGHT || balls >= 4 || strikes >= 3) {
+      if (h !== hit) {
+        balls = 0;
+        strikes = 0;
+      }
+    }
+  }
+  const runs = hit.runs > 0 ? (hit.runs === 1 ? " · 1 RUN SCORES" : ` · ${hit.runs} RUNS SCORE`) : "";
+  switch (hit.out) {
+    case HR5_BALL:
+      return balls >= 4 ? { big: "WALK", small: `TAKE YOUR BASE${runs}`, gold: false, ump: false } : { big: `BALL ${balls}`, small: "GOOD EYE", gold: false, ump: false };
+    case HR5_STRIKE_CALLED:
+      return strikes >= 3 ? { big: "STRIKE THREE!", small: "CAUGHT LOOKING", gold: false, ump: true } : { big: `STRIKE ${strikes}`, small: "LOOKING", gold: false, ump: true };
+    case HR5_WHIFF:
+      return strikes >= 3 ? { big: "STRIKE THREE!", small: "SWING AND MISS", gold: false, ump: true } : { big: `STRIKE ${strikes}`, small: "SWING AND MISS", gold: false, ump: true };
+    case HR5_FOUL:
+      return { big: "FOUL", small: "", gold: false, ump: false };
+    case HR5_OUT_CAUGHT:
+      return { big: "OUT", small: `CAUGHT · ${hit.feet} FT`, gold: false, ump: true };
+    case HR5_CHOICE:
+      return { big: "FIELDER’S CHOICE", small: `OUT AT SECOND${runs}`, gold: false, ump: false };
+    case HR5_HOMER:
+      return { big: "HOME RUN!", small: `${hit.feet} FT${runs}`, gold: true, ump: false };
+    default:
+      return { big: HR5_OUTCOME_NAMES[hit.out]!.toUpperCase(), small: `${hit.feet} FT${runs}`, gold: true, ump: false };
+  }
+}
+
+/** A pill (Archivo, legible at a glance). */
+function pill(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, opts: { gold?: boolean; align?: "left" | "right" | "center"; size?: number; h?: number } = {}): number {
+  const size = opts.size ?? 13;
+  const h = opts.h ?? 26;
+  ctx.save();
+  ctx.font = `800 ${size}px ${UI}`;
+  const w = Math.ceil(ctx.measureText(text).width) + 20;
+  const x0 = opts.align === "right" ? x - w : opts.align === "center" ? x - w / 2 : x;
+  glassPill(ctx, x0, y, w, h, opts.gold);
+  ctx.fillStyle = opts.gold ? "#1A1206" : "#F3F1EC";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x0 + w / 2, y + h / 2 + 0.5);
+  ctx.restore();
+  return w;
+}
+
+/** The scorebug, top left: runs, the base diamond, the outs as three dots, the count. */
+function paintScorebug(ctx: CanvasRenderingContext2D, inn: Hr5Inn): void {
+  const x = 8;
+  const y = 8;
+  const w = 168;
+  const h = 46;
+  ctx.save();
+  glassPill(ctx, x, y, w, h);
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#F2C75C";
+  ctx.font = `900 24px ${UI}`;
+  ctx.fillText(String(inn.runs), x + 12, y + h / 2 + 1);
+  ctx.fillStyle = "rgba(243,241,236,0.8)";
+  ctx.font = `800 10px ${UI}`;
+  ctx.fillText("RUNS", x + 12 + ctx.measureText(String(inn.runs)).width * 2.4 + 4, y + h / 2 + 1);
+  // The diamond.
+  const dx = x + 92;
+  const dy = y + h / 2;
+  const d = 7;
+  for (const [b, ox, oy] of [
+    [0, d, 0],
+    [1, 0, -d],
+    [2, -d, 0],
+  ] as const) {
+    ctx.save();
+    ctx.translate(dx + ox, dy + oy + 2);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = inn.bases & (1 << b) ? "#F2C75C" : "rgba(255,255,255,0.12)";
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.fillRect(-4.2, -4.2, 8.4, 8.4);
+    ctx.strokeRect(-4.2, -4.2, 8.4, 8.4);
+    ctx.restore();
+  }
+  // Outs and the count.
+  const cx = x + 114;
+  ctx.font = `800 13px ${UI}`;
+  ctx.fillStyle = "#F3F1EC";
+  ctx.fillText(`${inn.balls}–${inn.strikes}`, cx, y + 15);
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = i < inn.outs ? "#FF6A5C" : "rgba(255,255,255,0.2)";
+    ctx.beginPath();
+    ctx.arc(cx + 5 + i * 13, y + 33, 4.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** The innings summary on the field once it is over: every hit's landing spot, coloured by what it was. */
+function paintInningsSummary(ctx: CanvasRenderingContext2D, inn: Hr5Inn, k: number): void {
+  const a = Math.min(1, k / 20);
+  ctx.save();
+  ctx.globalAlpha = a;
+  for (const [n, hit] of inn.hits.entries()) {
+    if (hit.st < 0 || hit.out === HR5_WHIFF) continue;
+    const show = Math.min(1, Math.max(0, (k - n * 3) / 10));
+    if (show <= 0) continue;
+    const l = v5Landing(hit);
+    const p = hvPt(l.x, l.y);
+    const col = hit.out === HR5_HOMER ? "#F2C75C" : hit.out >= HR5_SINGLE ? "#FFFFFF" : hit.out === HR5_FOUL ? "rgba(255,255,255,0.35)" : "#FF6A5C";
+    ctx.fillStyle = col;
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5 * show, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fill();
+  }
+  // Runs counting up, big, over the outfield.
+  const shown = Math.min(inn.runs, Math.floor(k / 6));
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `900 44px ${UI}`;
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = "rgba(4,6,12,0.85)";
+  ctx.strokeText(`${shown} RUN${shown === 1 ? "" : "S"}`, W / 2, 228);
+  ctx.fillStyle = "#F2C75C";
+  ctx.fillText(`${shown} RUN${shown === 1 ? "" : "S"}`, W / 2, 228);
+  ctx.font = `800 14px ${UI}`;
+  ctx.lineWidth = 4;
+  const homers = inn.hits.filter((h) => h.out === HR5_HOMER).length;
+  const line = `${inn.hits.filter((h) => h.out >= HR5_SINGLE && h.out <= HR5_HOMER).length} HITS · ${homers} HOME RUN${homers === 1 ? "" : "S"} · BEST ${inn.best} PERFECT`;
+  ctx.strokeText(line, W / 2, 262);
+  ctx.fillStyle = "#F3F1EC";
+  ctx.fillText(line, W / 2, 262);
+  ctx.restore();
+}
+
+/** homerunRev 5's frame: the park through the view, the fielders, the bags and runners, the pitcher, the batter, the pitch, the play, the scorebug. */
+function drawInnings(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: number): void {
+  const inn = state.inn!;
+  const plan = homerunInningsPlan(state.seed, inn.level);
+  const still = reducedMotion();
+  deviceLayer(ctx, `homerun-park5:${viewH}`, (c) => {
+    paintWarpedPark(c, null, { ...WORLD_EXTENT, y1: viewH + 8 });
+    const on = hvOn;
+    hvOn = true;
+    try {
+      paintTurf(c);
+    } finally {
+      hvOn = on;
+    }
+  });
+  const last = inn.hits[inn.hits.length - 1];
+  const since = last ? state.tick - last.at : 1e9;
+  const over = inn.endAt > 0;
+  const idx = Math.min(inn.i, HR5_PLAN_PITCHES - 1);
+  const cur = !over ? plan.pitches[inn.i] : undefined;
+
+  // Fielders: last pitch's places while its ball is out, then they shift to this pitch's places.
+  const now = plan.fielders[idx]!;
+  const before = last ? plan.fielders[last.i]! : now;
+  const walk = !last ? 1 : Math.max(0, Math.min(1, (since - 70) / 50));
+  const shown = now.map((f, i) => {
+    const b = before[i]!;
+    return { ...f, spray: b.spray + (f.spray - b.spray) * walk, feet: b.feet + (f.feet - b.feet) * walk } as HomerunFielder;
+  });
+  const order = shown.map((f, i) => ({ f, i })).sort((a, b) => b.f.feet - a.f.feet);
+  if (!over) for (const { f } of order) paintCatchArea(ctx, f, 0.8);
+  const catcher = last && (last.out === HR5_OUT_CAUGHT || last.out === HR5_CHOICE) && since < 120 ? last.c : -1;
+  for (const { f, i } of order) {
+    let at = fielderAt(f);
+    if (i === catcher && last && last.out === HR5_OUT_CAUGHT) {
+      const land = v5Landing(last);
+      const u = Math.min(1, since / (40 + last.feet / 9));
+      at = { ...at, x: at.x + (land.x - at.x) * u, y: at.y + (land.y - at.y) * u };
+    }
+    hvAt(ctx, at.x, at.y, () => paintFielder(ctx, at.x, at.y, at.s, i === catcher && since > 30 ? 1 : 0));
+  }
+
+  // The bags and the runners: on a decided hit they run from where they were to where it sent them (a slide into the bag).
+  const runT = last ? Math.min(1, since / 70) : 1;
+  const prevBases = last ? hr5BasesBefore(inn, inn.hits.length - 1) : 0;
+  paintBags(ctx, runT >= 1 ? inn.bases : prevBases);
+  if (last && runT < 1 && !over) {
+    for (const m of hr5Moves(prevBases, last)) {
+      const s = m.from + (m.to - m.from) * (1 - (1 - runT) * (1 - runT));
+      const p = basePathAt(s);
+      const slide = m.to > m.from && runT > 0.82 && m.to < 4 ? (runT - 0.82) / 0.18 : 0;
+      if (m.to >= 4 && runT > 0.95) continue;
+      paintRunner(ctx, p.x, p.y, p.k, state.tick * 0.6, still ? 0 : slide, m.out && runT > 0.6);
+    }
+  } else {
+    for (let b = 0; b < 3; b++) if (inn.bases & (1 << b)) {
+      const p = basePathAt(b + 1);
+      paintRunner(ctx, p.x - 4, p.y, p.k, 0, 0, false);
+    }
+  }
+
+  // The pitcher: wind-up and delivery, with the pitch's tell (arm slot and glove colour) in the last 0.4 s.
+  if (cur) {
+    const rel = inn.release;
+    const since0 = state.tick - (rel - HOMERUN_WINDUP_TICKS);
+    const phase = since0 < 0 ? 0 : state.tick < rel ? since0 / HOMERUN_WINDUP_TICKS : Math.min(2, 1 + (state.tick - rel) / 40);
+    const t0 = rel - HOMERUN_TELL_TICKS;
+    const tellK = state.tick < t0 ? 0 : state.tick < t0 + 4 ? (state.tick - t0) / 4 : state.tick <= rel ? 1 : Math.max(0, 1 - (state.tick - rel) / 8);
+    hvAt(ctx, PITCHER_FEET.x, PITCHER_FEET.y, () => paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, phase, tellK > 0 ? { kind: cur.kind, k: tellK } : undefined));
+    // Easy shows the grip bubble too (a reading aid); every level shows the arm slot and glove.
+    if (inn.level === "easy" && tellK > 0) paintTellBubble(ctx, cur.kind, tellK);
+  } else hvAt(ctx, PITCHER_FEET.x, PITCHER_FEET.y, () => paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, 2));
+
+  // The strike zone: a clear frame (the call is about it), brighter while a pitch comes in.
+  const live = cur && state.tick >= inn.release - 12;
+  ctx.save();
+  hvNear(ctx);
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = live ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.3)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(HOMERUN_ZONE_X0 + 0.5, HOMERUN_ZONE_Y0 + 0.5, HOMERUN_ZONE_X1 - HOMERUN_ZONE_X0, HOMERUN_ZONE_Y1 - HOMERUN_ZONE_Y0);
+  ctx.restore();
+
+  // The batter (Captain Joulz's kit) and his swing.
+  const swingOf = (): { st: number; a: number; b: number; px: number } | null => {
+    if (inn.st >= 0 && cur) return { st: inn.st, a: cur.plateY, b: Math.round((inn.aim * 16) / 9), px: cur.plateX };
+    if (last && last.st >= 0 && state.tick - last.st < 90) {
+      const p = plan.pitches[last.i]!;
+      return { st: last.st, a: p.plateY, b: Math.round((last.aim * 16) / 9), px: p.plateX };
+    }
+    return null;
+  };
+  const sw = swingOf();
+  KIT = CAPTAIN_KIT;
+  try {
+    ctx.save();
+    hvNear(ctx);
+    if (sw) {
+      const k = state.tick - sw.st;
+      // The bat trail: three frames behind the bat through the swing.
+      const blur = !still && k > 0 && k <= HOMERUN_SWING_TICKS + 3 ? [swingPose(k - 1, sw.a, sw.b, sw.px), swingPose(k - 0.66, sw.a, sw.b, sw.px), swingPose(k - 0.33, sw.a, sw.b, sw.px)] : [];
+      paintBatter(ctx, swingPose(k, sw.a, sw.b, sw.px), blur);
+    } else paintBatter(ctx, STANCE);
+    ctx.restore();
+  } finally {
+    KIT = PLAIN_KIT;
+  }
+
+  // The live swipe's aim (while the finger drags): a faint line out to where it would go.
+  if (homerunV5Ui.aim !== null && cur && !still) {
+    const a = homerunV5Ui.aim;
+    const fair = Math.abs(a) <= 450;
+    const far = hvPt(homerunV4XOf(a), homerunGroundY(260));
+    const home = hvPt(CX, homerunGroundY(30));
+    ctx.save();
+    ctx.strokeStyle = fair ? "rgba(255,255,255,0.4)" : "rgba(255,106,92,0.5)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 6]);
+    ctx.beginPath();
+    ctx.moveTo(home.x, home.y);
+    ctx.lineTo(far.x, far.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // The pitch coming in.
+  if (cur) {
+    const p = v5Pitch(cur, inn.release);
+    const raw = homerunBallAt(p, state.tick, HOMERUN_REV_4);
+    if (raw) {
+      const b = { ...raw, ...hvPt(raw.x, raw.y) };
+      const r = pitchR(b.u) * hvItemK(raw.y);
+      const rawPrev = homerunBallAt(p, Math.max(p.release, state.tick - 2), HOMERUN_REV_4);
+      if (rawPrev && b.u > 0.3 && !still) {
+        const prev = hvPt(rawPrev.x, rawPrev.y);
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.lineWidth = r * 1.4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      paintBall5(ctx, b.x, b.y, r, state.tick * 0.9);
+    }
+  }
+
+  // The last decided pitch: the batted ball and its flight trail to where it lands; the contact flash sized by timing.
+  if (last && !over) {
+    const p = plan.pitches[last.i]!;
+    const from = hvPt(p.plateX, p.plateY);
+    const swung = last.st >= 0 && last.out !== HR5_WHIFF;
+    if (swung) {
+      if (since < 7 && !still) {
+        const big = 14 + 34 * (last.q / 1000);
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        const g = ctx.createRadialGradient(from.x, from.y, 0, from.x, from.y, big);
+        g.addColorStop(0, `rgba(255,255,255,${(0.85 - since * 0.11).toFixed(3)})`);
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(from.x - big, from.y - big, big * 2, big * 2);
+        ctx.restore();
+      }
+      const f = v5Flight(last, from, since);
+      // The trail: the whole arc so far, fading toward the plate.
+      ctx.save();
+      ctx.lineCap = "round";
+      const steps = 18;
+      for (let i = 1; i <= steps; i++) {
+        const a = v5Flight(last, from, (since * (i - 1)) / steps);
+        const b = v5Flight(last, from, (since * i) / steps);
+        const pa = hvPt(a.x, a.y);
+        const pb = hvPt(b.x, b.y);
+        ctx.strokeStyle = `rgba(255,236,190,${(0.08 + 0.45 * (i / steps)) * (since < 150 ? 1 : 0)})`;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+      if (f.u < 1) {
+        const q = hvPt(f.x, f.y);
+        paintBall5(ctx, q.x, q.y, f.r * hvItemK(f.y), since * 0.6);
+      } else if (since < 150 && last.out !== HR5_OUT_CAUGHT) {
+        // The landing spot: a small ring on the grass (or in the seats).
+        const l = v5Landing(last);
+        const q = hvPt(l.x, l.y);
+        ctx.save();
+        ctx.strokeStyle = last.out === HR5_HOMER ? "rgba(242,199,92,0.95)" : "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else if (since < 20) {
+      const u = since / 20;
+      ctx.save();
+      hvNear(ctx);
+      paintBall5(ctx, p.plateX + p.breakX * 0.3 * u, p.plateY + 140 * u + 60 * u * u, pitchR(1) * (1 + 0.8 * u), state.tick * 0.9);
+      ctx.restore();
+    }
+    // The call: one banner under the field, the timing pill on its right.
+    if (since < 110) {
+      const c = v5Call(inn, last);
+      const alpha = since < 90 ? Math.min(1, since / 4 + 0.3) : (110 - since) / 20;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `900 ${c.ump ? 34 : 30}px ${UI}`;
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "rgba(4,6,12,0.85)";
+      ctx.strokeText(c.big, W / 2, 300);
+      ctx.fillStyle = c.gold ? "#F2C75C" : c.ump ? "#FF8A6B" : "#F3F1EC";
+      ctx.fillText(c.big, W / 2, 300);
+      if (c.small) {
+        ctx.font = `800 14px ${UI}`;
+        ctx.lineWidth = 4;
+        ctx.strokeText(c.small, W / 2, 330);
+        ctx.fillStyle = "#F3F1EC";
+        ctx.fillText(c.small, W / 2, 330);
+      }
+      if (last.st >= 0) {
+        const L = HR_LEVEL_SETTINGS[inn.level];
+        const off = Math.abs(last.dt);
+        const label = last.perfect ? "PERFECT" : off <= L.perfect ? "ON TIME" : `${last.dt < 0 ? "EARLY" : "LATE"} · ${Math.round((off * 1000) / 60)} MS`;
+        pill(ctx, W / 2, 348, label, { gold: last.perfect, align: "center" });
+      }
+      ctx.restore();
+    }
+  }
+
+  // HUD: the scorebug, the swing chip and the perfect streak, the pitch type name once it is in the air.
+  paintScorebug(ctx, inn);
+  const locked = cur && state.tick >= inn.release;
+  const m = locked ? inn.pmode : inn.mode;
+  pill(ctx, W - 8, 8, m === HR5_MODE_POWER ? "POWER" : "CONTACT", { gold: m === HR5_MODE_POWER, align: "right" });
+  if (inn.streak > 0) pill(ctx, 8, 60, `PERFECT ×${inn.streak}`, { gold: inn.streak >= 3, size: 12, h: 22 });
+  // The radar board reads out the last pitch once it is decided.
+  if (last) paintRadarReading(ctx, v5Pitch(plan.pitches[last.i]!, last.rel), since);
+  if (cur && state.tick >= inn.release && state.tick < inn.release + cur.flight) {
+    const name = cur.kind === 0 ? "FASTBALL" : cur.kind === PITCH_CURVE ? "CURVEBALL" : "CHANGEUP";
+    pill(ctx, W / 2, 64, `${name} · ${cur.mph} MPH`, { align: "center", size: 12, h: 22 });
+  }
+  if (over) paintInningsSummary(ctx, inn, state.tick - inn.endAt);
 }

@@ -2039,8 +2039,8 @@ export interface MahjongPuzzleData {
 
 /* =========================== Sports (Oct 2026) =========================== */
 
-/** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
-export const HOMERUN_TIME_MS = 63_000;
+/** homerunRev 5's 117-second innings plus three of slack (15 Nov 2026); older 60-second runs still end at their own 60 s. */
+export const HOMERUN_TIME_MS = 120_000;
 /** Top Bins' 90-second, ten-kick run (freekickRev 3 and 4; rev 1 and 2 runs end at 75 s), plus three of slack. */
 export const FREEKICK_TIME_MS = 93_000;
 /**
@@ -2055,6 +2055,11 @@ export interface HomerunPuzzleData {
   seed: number;
   /** Rules revision (1 = the first run, on the arcade scoring standard). */
   homerunRev?: number;
+  /**
+   * The difficulty level it was dealt at (15 Nov 2026, homerunRev 5): absent for Normal (the rated level and every round
+   * before levels), else "easy" | "hard" | "expert" (the difficulty framework's stored form).
+   */
+  level?: string;
 }
 
 export interface FreekickPuzzleData {
@@ -2063,6 +2068,11 @@ export interface FreekickPuzzleData {
   seed: number;
   /** Rules revision (1 = the first run, on the arcade scoring standard). */
   freekickRev?: number;
+  /**
+   * The difficulty level it was dealt at (15 Nov 2026, freekickRev 5): absent for Normal (the rated level and every round
+   * before levels), else "easy" | "hard" | "expert" (the difficulty framework's stored form).
+   */
+  level?: string;
 }
 
 export interface RacingPuzzleData {

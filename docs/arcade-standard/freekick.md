@@ -1,4 +1,112 @@
-# Top Bins (`freekick`) on the arcade scoring standard (freekickRev 1, 30 Oct 2026; freekickRev 2, 31 Oct 2026; freekickRev 3, 1 Nov 2026; freekickRev 4, 3 Nov 2026)
+# Top Bins (`freekick`) on the arcade scoring standard (freekickRev 1, 30 Oct 2026; freekickRev 2, 31 Oct 2026; freekickRev 3, 1 Nov 2026; freekickRev 4, 3 Nov 2026; freekickRev 5, 15 Nov 2026; freekickRev 6, 16 Nov 2026)
+
+## freekickRev 6: Normal eased, Hard and Expert a real step (16 Nov 2026)
+
+**Rooms deal freekickRev 6** (`FREEKICK_REV_6`; rev 5 below replays and scores exactly as before, on its own table,
+hoop, skill line and deal). Joe (16 Nov 2026): a clear step up from Easy to Expert, Normal comfortable for a strong
+player, Expert proven humanly possible to score well on, measured on the shared tool's elite bot under human limits
+(about 0.25 s to react, 0.15 s to move; `HUMAN_LIMITS` in `scripts/arcade-skill-bands/human.ts`, `bun
+scripts/level-tune.ts freekick --human-limits`).
+
+- **Easy and Normal scoring ease** (`FK_V6_EASE`): the corner hoop counted (and drawn: the renderer reads the same
+  `fkHoopRFor`) 1.35× its rev-5 size, shrinking by the same share kick by kick, and the keeper's open side counting as
+  a skill shot from 0.6 m off the middle (rev 5: 1.2 m). Easy has it too, so Easy never scores below Normal. Normal
+  keeps Easy's keeper (reaction 14 ticks, speed 85 %).
+- **Hard and Expert harder** (`FK_LEVEL_SETTINGS_V6`, read through `fkLevelSettings(rev, level)`): the keeper quicker
+  (Hard reaction 6 ticks, speed 130 %; Expert 5 / 140 %; rev 5: 8 / 112 %, 7 / 120 %) and more wind (Hard 6, Expert 7;
+  rev 5: 4, 5); and Goals full at better-placed goals (`FK_V6_CORE_FULL`: Hard 1,200 units, Expert 1,250; Easy and Normal
+  800, as rev 5; ten perfectly placed goals are 1,300).
+- **Parts** (`FREEKICK_V6_STD_SPEC`): rev 5's exactly, Goals 120 + Targets 40 + Skill shots 30 + Five in a row 10.
+- **Deal**: its own proved deal, `freekickDealV6.server.ts` (60 a level, every seed the oracle's 200 through the server
+  replay; `bun scripts/freekick-layered-deal.ts --rev=6 [--check]`, ~2 min; dropped easy 0, normal 2, hard 24, expert 52).
+- **The bot** (measurement only): the oracle and the bots plan on the stamp they play (the rev-6 hoop and skill line), and
+  near-perfect and elite players aim with a margin (`fkRobustFullV5`: of every full shot, the one that still scores under
+  small mistakes, 25 cm across, 20 cm up or down, 12 of curl), as a strong player does, instead of the first found, which
+  often hangs on the post. Top Bins' bot reacts to nothing in flight (the power bar is anticipated), so its numbers are the
+  same with and without the human limits.
+
+**Measured, every bot under human limits** (`bun scripts/freekick-layered-bands.ts --seeds=30 --human-limits`, medians,
+average in brackets):
+
+| | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| Easy | 77 (81) | 131 (125) | 159 (156) | 168 (167) | 184 (183) | 190 (191) | 200 |
+| Normal | 67 (69) | 108 (102) | 146 (139) | 161 (152) | 190 (189) | 197 (192) | 200 |
+| Hard | 1 (13) | 31 (33) | 48 (51) | 93 (83) | 157 (144) | 168 (162) | 200 |
+| Expert | 1 (8) | 15 (20) | 30 (34) | 56 (52) | 112 (113) | 128 (137) | 200 |
+
+**The Expert proof** (`bun scripts/home-run-top-bins-expert-proof.ts --game=freekick`): the first ten Expert seeds, each
+run scored through the server replay. A practice round at Expert deals one of these 60 seeds at random
+(`FREEKICK_DEAL_V6.expert`); a room at Expert deals `room seed % 60`.
+
+| Seed | Near-perfect | Elite | The elite run |
+|---|---|---|---|
+| 1889868361 | 138 | 128 | 7 of 10 goals, 2 targets, best 4 in a row |
+| 2140485722 | 138 | 112 | 6 of 10 goals, 2 targets, best 2 in a row |
+| 1200536643 | 118 | 159 | 9 of 10 goals, 1 targets, best 8 in a row |
+| 1184107813 | 61 | 128 | 7 of 10 goals, 1 targets, best 6 in a row |
+| 2076974042 | 148 | 169 | 9 of 10 goals, 2 targets, best 9 in a row |
+| 448486709 | 73 | 77 | 5 of 10 goals, 0 targets, best 2 in a row |
+| 584028232 | 91 | 186 | 9 of 10 goals, 4 targets, best 8 in a row |
+| 1476251205 | 97 | 153 | 8 of 10 goals, 2 targets, best 7 in a row |
+| 517770055 | 81 | 189 | 9 of 10 goals, 4 targets, best 7 in a row |
+| 459326194 | 169 | 153 | 8 of 10 goals, 2 targets, best 6 in a row |
+| Average | 111 | 145 | |
+
+Checks: freekick-layered-check (the rev-6 section: rev 5 untouched, the ease, the Goals line, the deal's oracle, the level
+steps), arcade-standard-check (the dealt stamp's entry), self-replay `freekick/v6`, `freekick/v6-expert`.
+
+## freekickRev 5: the layered kick (15 Nov 2026)
+
+Rooms dealt freekickRev 5 from 15 to 16 Nov 2026 (`FREEKICK_REV_5`; only in this branch, never live; the sections below
+describe rev 1–4, which replay and score exactly as before). Rev 4's drawn shot and power bar (90 s, ten kicks) with four new layers, each read before the kick:
+
+- **Wind**: each kick its own (`k.wind`, the level's strength either way), shown by the flag under the distance chip.
+  The drawn target is solved in still air (`fkCalm`), so the player aims off or bends against it.
+- **Strike type** from the stroke's shape (`src/lib/arcade/freekickStroke.ts`; the SHOT's `d`): a bent stroke curls
+  (rev 4's curl), a straight one drives (30 % of the curl, 18 % faster, leaving the foot low on a flat line that drops at
+  40 % of gravity), a flick at the end dips (no curl, an extra 65 % of gravity past the wall's line and a small wobble;
+  the keeper reads it 6 ticks later). On a computer S steps through them.
+- **The keeper's lean**: he starts 0.3 m toward one side (seeded), 20 % quicker that way and 20 % slower the other.
+- **The jumping wall**: on a fixed count of kicks (Easy 3, Normal 4, Hard 5, Expert 6) the wall leaps 0.8 m, peaking
+  22 ticks after the strike as a driven ball arrives; a ball under its feet goes under. Other kicks' walls stand.
+
+**Score** (`FREEKICK_V5_STD_SPEC`): Goals 120 (100 a goal plus up to 30 for placement, full at 800), Targets 40 (10
+each), Skill shots 30 (3 for each goal under a jumping wall, dipped over it, curled round it, or into the keeper's open
+side, beyond 1.2 m from the centre), Five in a row 10. The oracle (`oracleRunV5`) scores 200 on every seed of the proved
+deal (`freekickDealV5.server.ts`, 60 a level, `bun scripts/freekick-layered-deal.ts [--check]`, ~1 min).
+
+**Levels** (`FK_LEVEL_SETTINGS`; Normal is the rated level):
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Gold zone | 680–820 | 720–800 | 735–790 | 745–780 |
+| Keeper reaction / speed | 14 ticks / 85 % | 14 / 85 % | 8 / 112 % | 7 / 120 % |
+| Wall | 3 | 3–5 | 4–5 | 5 |
+| Wind (at most) | 1 | 2 | 4 | 5 |
+| Hoop shrinks to | 85 % | 80 % | 60 % | 50 % |
+| Jumping walls | 3 | 4 | 5 | 6 |
+
+Normal's hoop ends at 80 % (the review proposed 70 %): at 70 % near-perfect players lost most of the gap to their target
+on the bar, so it was eased one step; a decision for Joe.
+
+Normal's keeper is Easy's (16 Nov 2026, Joe: ease Normal one step so near-perfect averages about 198): reaction 10 → 14
+ticks, speed 100 → 85 %. The near-perfect average rose 171 → 177; a wider gold zone gave 174, the full-size hoop 175, the keeper and the
+full-size hoop together 179. What holds near-perfect play below 198 is aim, not the keeper or the bar: of the 23 points it still
+drops, 13 are targets (the corner hoop) and 8 skill shots. Reaching about 198 needs a scoring change to those parts (for
+example targets counted on a larger hoop on Normal), which is Joe's call.
+
+**Measured** (`bun scripts/freekick-layered-bands.ts --seeds=30`, 16 Nov 2026 with Normal's eased keeper, medians, average in brackets):
+
+| | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| Easy | 77 (72) | 129 (120) | 152 (151) | 174 (167) | 174 (172) | 184 (183) | 200 |
+| Normal | 67 (72) | 108 (101) | 142 (134) | 158 (150) | 181 (177) | 184 (183) | 200 |
+| Hard | 22 (25) | 42 (38) | 99 (91) | 132 (129) | 171 (165) | 184 (173) | 200 |
+| Expert | 1 (11) | 43 (45) | 64 (63) | 97 (95) | 151 (143) | 161 (161) | 200 |
+
+Checks: freekick-layered-check (the deal, the levels, wind, strikes, the wall, the lean, the stroke's shape, the bands),
+arcade-standard-check's entry, freekick-check (rev 1–4 unchanged).
 
 Shown as **Top Bins** since 31 Oct 2026 (was Free Kick; the id `freekick` is unchanged). Rooms deal **freekickRev 4**
 (the drawn shot: one stroke from the ball for the target and the curl, then the power bar; the last section,

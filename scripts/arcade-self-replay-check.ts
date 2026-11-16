@@ -22,7 +22,9 @@ import { BT_HARD_DEAL } from "../src/lib/duel/ballTrackDealHard.server";
 import { BT_EXPERT_DEAL } from "../src/lib/duel/ballTrackDealExpert.server";
 import { MINIGOLF_HOLES_BANK } from "../src/lib/duel/minigolfHolesBank.server";
 import { MG_LEVEL_NAMES } from "../src/lib/arcade/minigolf";
-import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { homerunDealSeedV5 } from "../src/lib/duel/homerunDealV5.server";
+import { freekickDealSeedV5 } from "../src/lib/duel/freekickDealV5.server";
+import { freekickDealSeedV6 } from "../src/lib/duel/freekickDealV6.server";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
@@ -1230,6 +1232,14 @@ const GAMES: Game[] = [
     encode: encodeMinigolfRun,
     replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, ...mgV3(seed)),
   },
+  // Home Run homerunRev 5 (the innings) and Top Bins freekickRev 5 (the layered kick), 15 Nov 2026, at Normal on their
+  // proved deals; appended so every earlier entry keeps its stream.
+  { key: "homerun/v5", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(5), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, 5), seedFor: (n: number) => homerunDealSeedV5(n) },
+  { key: "freekick/v5", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(5), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 5), seedFor: (n: number) => freekickDealSeedV5(n) },
+  // freekickRev 6 (16 Nov 2026: Easy and Normal eased, Hard and Expert harder) and both games' Expert (appended, never mid-list).
+  { key: "freekick/v6", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(6), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 6), seedFor: (n: number) => freekickDealSeedV6(n) },
+  { key: "freekick/v6-expert", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(6, "expert"), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 6, "expert"), seedFor: (n: number) => freekickDealSeedV6(n, "expert") },
+  { key: "homerun/v5-expert", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(5, "expert"), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, 5, "expert"), seedFor: (n: number) => homerunDealSeedV5(n, "expert") },
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */

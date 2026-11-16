@@ -49,7 +49,7 @@ export const CATALOGUE_DATA: Record<PuzzleType, CatalogueEntry> = {
   pinball: { name: "Pinball", category: "arcade", timeLimitMs: 93000, revealMs: 6000, revealHeading: "Your run", goal: "Keep the ball in play and rack up table points." },
   minesweeper: { name: "Minefield", category: "logic", timeLimitMs: 93000, revealMs: 6000, arcadeRun: true, revealHeading: "Your run", goal: "Reveal every safe square without hitting a mine." },
   mahjong: { name: "Mahjong Solitaire", category: "arcade", timeLimitMs: 123000, revealMs: 6000, revealHeading: "Your run", goal: "Clear the stack in matching pairs." },
-  homerun: { name: "Home Run", category: "arcade", timeLimitMs: 63000, revealMs: 6000, revealHeading: "Your run", goal: "Hit ten pitches into the gaps, over the fence and onto the lit sign." },
+  homerun: { name: "Home Run", category: "arcade", timeLimitMs: 120000, revealMs: 6000, revealHeading: "Your run", goal: "Bat through one innings: score as many runs as you can before three outs." },
   freekick: { name: "Top Bins", category: "arcade", timeLimitMs: 93000, revealMs: 6000, revealHeading: "Your run", goal: "Score ten free kicks past the wall and the keeper." },
   racing: { name: "Apex", category: "arcade", timeLimitMs: 99000, revealMs: 6000, revealHeading: "Your run", goal: "Drive two laps as fast and as cleanly as you can." },
   freecell: { name: "Free Cell", category: "arcade", timeLimitMs: 123000, revealMs: 6000, revealHeading: "Your run", goal: "Get all 40 cards home, fast, in two minutes." },

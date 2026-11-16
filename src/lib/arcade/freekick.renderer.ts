@@ -23,8 +23,21 @@ import { NO_LOOK, type GameLook } from "./skins/look";
 import { paintBallArt } from "./skins/ballArt";
 import { freekickBallArt } from "./skins/freekick.skins";
 import type { CanvasSize } from "./engine";
+import { strikeFromStroke, STRIKE_LABEL } from "./freekickStroke";
+import { reducedMotion } from "./art.renderer";
+import { paintKicker } from "./sportsCaptain.renderer";
+import { glassPill } from "./sportsGlass.renderer";
 import {
   FK_AIM,
+  FK_LEVEL_SETTINGS,
+  FK_OVER,
+  FK_SETUP,
+  fkV5WallLift,
+  FREEKICK_REV_5,
+  FREEKICK_SETUP_TICKS,
+  fkLevelOf,
+  fkV5MeterError,
+  fkLevelSettings,
   FK_BALL_R,
   FK_FLIGHT,
   FK_GOAL_H,
@@ -562,8 +575,8 @@ function paintPitch(scale: number, k: FkKick, cam: FkCamera): Canvas | null {
   return c;
 }
 
-function pitchFor(scale: number, seed: number, rev: number, index: number, k: FkKick, cam: FkCamera): Canvas | null {
-  const key = `${seed}:${rev}:${index}:${scale}`;
+function pitchFor(scale: number, seed: number, rev: number, index: number, k: FkKick, cam: FkCamera, level = ""): Canvas | null {
+  const key = `${seed}:${rev}:${index}:${scale}${level ? `:${level}` : ""}`;
   const hit = pitchCache.get(key);
   if (hit) return hit.canvas;
   const canvas = paintPitch(scale, k, cam);
@@ -1043,7 +1056,8 @@ function paintV4Line(ctx: Ctx, state: FreekickState): void {
 
 /** The step the player is on (rev 3): what the prompt says. */
 function v3Prompt(state: FreekickState): string {
-  if ((state.meterAt ?? -1) >= 0) return "RELEASE IN THE GOLD";
+  if ((state.meterAt ?? -1) >= 0) return state.freekickRev >= FREEKICK_REV_5 ? "Release in the gold" : "RELEASE IN THE GOLD";
+  if (state.freekickRev >= FREEKICK_REV_5) return state.aimed !== 1 ? "Draw the shot from the ball" : "Hold the bar";
   if (state.freekickRev >= FREEKICK_REV_4) return state.aimed !== 1 ? "1  DRAW THE SHOT FROM THE BALL" : "2  HOLD THE BAR";
   if (state.aimed !== 1) return "1  TAP THE GOAL TO AIM";
   return "2  DRAG TO CURL   3  HOLD THE BAR";
@@ -1103,13 +1117,13 @@ function paintV3Bar(ctx: Ctx, state: FreekickState): void {
   const value = struck ? (state.strikeM ?? 0) : metering ? fkV3Meter(state.tick - (state.meterAt ?? 0)) : 0;
   ctx.save();
   // The prompt (or the verdict) above the bar.
-  ctx.font = `700 12px ${MONO}`;
+  ctx.font = state.freekickRev >= FREEKICK_REV_5 ? `800 14px ${ARCADE_FX_DISPLAY_FONT}` : `700 12px ${MONO}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   let label = aiming ? v3Prompt(state) : "";
   let gold = false;
   if (struck && !aiming) {
-    const e = fkV3MeterError(state.strikeM ?? 0);
+    const e = state.freekickRev >= FREEKICK_REV_5 ? fkV5MeterError(state.strikeM ?? 0, state.level, state.freekickRev) : fkV3MeterError(state.strikeM ?? 0);
     label = e === 0 ? "CLEAN STRIKE" : e > 0 ? "TOO MUCH" : "TOO LITTLE";
     gold = e === 0;
   }
@@ -1121,24 +1135,28 @@ function paintV3Bar(ctx: Ctx, state: FreekickState): void {
   ctx.fillText(label, W / 2, y - 13);
   // The bar: dark well, a fill to the needle, the gold zone.
   ctx.globalAlpha = aiming && state.aimed !== 1 ? 0.45 : 1;
-  ctx.fillStyle = "rgba(6,9,18,0.72)";
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, h / 2);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.22)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  if (state.freekickRev >= FREEKICK_REV_5) glassPill(ctx, x, y, w, h);
+  else {
+    ctx.fillStyle = "rgba(6,9,18,0.72)";
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, h / 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
   const at = (v: number) => x + 4 + ((w - 8) * v) / 1000;
   ctx.fillStyle = "rgba(255,255,255,0.2)";
   ctx.fillRect(x + 4, y + 5, at(value) - x - 4, h - 10);
   ctx.fillStyle = "rgba(242,199,92,0.85)";
-  ctx.fillRect(at(FK_V3_ZONE_LO), y + 3, at(FK_V3_ZONE_HI) - at(FK_V3_ZONE_LO), h - 6);
+  const zone = state.freekickRev >= FREEKICK_REV_5 ? fkLevelSettings(state.freekickRev, state.level) : { zoneLo: FK_V3_ZONE_LO, zoneHi: FK_V3_ZONE_HI };
+  ctx.fillRect(at(zone.zoneLo), y + 3, at(zone.zoneHi) - at(zone.zoneLo), h - 6);
   if (metering || struck) {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(at(value) - 1.5, y - 3, 3, h + 6);
   }
   if (aiming && !metering) {
-    ctx.font = `700 11px ${MONO}`;
+    ctx.font = state.freekickRev >= FREEKICK_REV_5 ? `800 12px ${ARCADE_FX_DISPLAY_FONT}` : `700 11px ${MONO}`;
     ctx.fillStyle = "#F3F1EC";
     ctx.fillText("HOLD", x + 34, y + h / 2 + 0.5);
   }
@@ -1273,12 +1291,15 @@ export function drawFreekickArt(ctx: CanvasRenderingContext2D, state: FreekickSt
 
 function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize, zoomed = false): void {
   void size;
-  const plan = fkSeedPlan(state.seed, state.freekickRev);
+  const plan = fkSeedPlan(state.seed, state.freekickRev, state.level);
   const index = Math.min(state.k, FREEKICK_KICKS - 1);
   const k = plan.kicks[index]!;
   const cam = fkCamera(k);
+  const v5 = state.freekickRev >= FREEKICK_REV_5;
+  const still = reducedMotion();
   const scale = Math.max(1, Math.min(4, Math.abs(ctx.getTransform().a) || 1));
-  const pitch = pitchFor(Math.round(scale * 4) / 4, state.seed, state.freekickRev, index, k, cam);
+  const pitch = pitchFor(Math.round(scale * 4) / 4, state.seed, state.freekickRev, index, k, cam, v5 ? (state.level ?? "normal") : "");
+  if (v5) noteCross(state);
   if (pitch) ctx.drawImage(pitch as CanvasImageSource, 0, 0, W, H);
   else {
     ctx.fillStyle = FREEKICK_ART_BG;
@@ -1296,7 +1317,7 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   const targetDone = (hitFlags & 1) === 1;
   if (k.target !== FK_TARGET_NONE && k.target !== FK_TARGET_BAR) {
     // freekickRev 4: the hoop shrinks kick by kick (fkHoopRFor), tucked in its corner; rev 1–3's hoop is FK_HOOP_R.
-    const hoopR = fkHoopRFor(state.freekickRev, index);
+    const hoopR = fkHoopRFor(state.freekickRev, index, state.level);
     const hx = (k.target === FK_TARGET_LEFT ? -(FK_GOAL_HALF_W - hoopR) : FK_GOAL_HALF_W - hoopR) / M;
     const c = fkProject(cam, hx, (FK_GOAL_H - hoopR) / M, 0);
     if (c) {
@@ -1312,11 +1333,35 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
       ctx.shadowBlur = 6 + 4 * pulse;
       ctx.stroke();
       ctx.restore();
+      // freekickRev 5: a new kick's hoop flashes gold and shrinks from the last kick's size into its own.
+      if (v5 && index > 0 && state.phase !== FK_FLIGHT && state.phase !== FK_SETTLE && !still) {
+        const age = state.tick - (state.phase === FK_SETUP ? state.phaseTick : state.phaseTick - FREEKICK_SETUP_TICKS);
+        if (age >= 0 && age < 36) {
+          const was = (fkHoopRFor(state.freekickRev, index - 1, state.level) / M) * c.s;
+          const u = age / 36;
+          ctx.save();
+          ctx.strokeStyle = `rgba(255,213,75,${(0.9 * (1 - u)).toFixed(3)})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(c.x, c.y, was + (r - was) * Math.min(1, u * 1.6), 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
     }
   }
   const ballBehindLine = f !== null && f.z > FK_POST_R * 2;
   const barGlow = k.target === FK_TARGET_BAR ? (targetDone ? 1 : 0.55 + 0.45 * pulse) : 0;
-  if (!ballBehindLine) paintFrame(ctx, cam, barGlow);
+  // freekickRev 5: off the woodwork the frame shakes for a moment.
+  const shake = v5 && !still ? woodworkShake(state) : 0;
+  const frameAt = () => {
+    if (!shake) return paintFrame(ctx, cam, barGlow);
+    ctx.save();
+    ctx.translate(shake, 0);
+    paintFrame(ctx, cam, barGlow);
+    ctx.restore();
+  };
+  if (!ballBehindLine) frameAt();
 
   // Depth-sorted dynamic objects: the ball (and its trail), the keeper, the wall.
   type Item = { w: number; draw: () => void; ball?: boolean };
@@ -1325,8 +1370,11 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   // Hands down until the kick; up within 12 ticks of it (the ball reaches his line no sooner than the wall's line plus
   // the keeper's reaction delay, so they are always up by then).
   const raise = !f ? 0 : Math.min(1, f.t / 12);
-  items.push({ w: fkCamSpace(cam, kx, 0, FK_KEEPER_Z / M).w, draw: () => paintKeeper(ctx, cam, kx, f?.kv ?? 0, f?.out === FK_OUT_SAVED, raise) });
-  const lift = f ? fkWallJump(t) : 0;
+  // freekickRev 5: before the kick the keeper leans toward the side he favours (his quicker side).
+  const leanKv = v5 && !f && k.v5 ? k.v5.lean * Math.trunc(FK_KEEPER_VMAX / 6) : 0;
+  items.push({ w: fkCamSpace(cam, kx, 0, FK_KEEPER_Z / M).w, draw: () => paintKeeper(ctx, cam, kx, f?.kv ?? leanKv, f?.out === FK_OUT_SAVED, raise) });
+  // freekickRev 5: only a jumping wall jumps, and higher (fkFlightStep's rule).
+  const lift = f ? (k.v5 ? (k.v5.jump ? fkV5WallLift(t) : 0) : fkWallJump(t)) : 0;
   const players = wallPlayers(k);
   const wallW = players.length ? fkCamSpace(cam, players[0]!.x, 0, players[0]!.z).w : 0;
   items.push({
@@ -1355,9 +1403,24 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   // A ball inside the goal sits behind the frame.
   if (ballBehindLine) {
     items.find((i) => i.ball)?.draw();
-    paintFrame(ctx, cam, barGlow);
+    frameAt();
     for (const it of items) if (!it.ball) it.draw();
   } else for (const it of items) it.draw();
+
+  // freekickRev 5: Captain Joulz takes the kick, from the ball's left (clear of the ball, the line and the goal).
+  if (v5) {
+    const q = fkProject(cam, k.bx / M, 0, k.bz / M);
+    if (q) {
+      const h = 0.95 * q.s;
+      let phase = 0;
+      if (state.phase === FK_AIM && (state.meterAt ?? -1) >= 0) phase = Math.min(1, (state.tick - (state.meterAt ?? 0)) / 40);
+      else if (state.phase === FK_FLIGHT || state.phase === FK_SETTLE) phase = 1 + Math.min(2, (state.tick - state.kickTick) / 16);
+      paintKicker(ctx, q.x - 0.5 * q.s, q.y + 2, h, phase, still);
+    }
+  }
+
+  // freekickRev 5: a goal bulges the net where the ball went in.
+  if (v5 && f && state.phase === FK_SETTLE && state.outs[index] === FK_OUT_GOAL) paintNetBulge(ctx, cam, f, state.tick - state.phaseTick, still);
 
   // Aim: a soft ring round the ball while the kick can be taken, a countdown in the last two seconds.
   if (state.phase === FK_AIM) {
@@ -1414,10 +1477,20 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
 
   // HUD: kick, wind, score; the kicks' results under the kick chip.
   const shown = Math.min(state.k + 1, FREEKICK_KICKS);
-  chip(ctx, 10, 10, `KICK ${shown}/${FREEKICK_KICKS}`, false, "left", 92);
-  if (state.freekickRev >= FREEKICK_REV_2) chip(ctx, W / 2, 10, `${k.yards ?? 0} YDS`, false, "center", 74);
+  (v5 ? chipUi : chip)(ctx, 10, 10, `KICK ${shown}/${FREEKICK_KICKS}`, false, "left", 92);
+  if (v5) {
+    chipUi(ctx, W / 2, 10, `${k.yards ?? 0} YDS`, false, "center", 74);
+    paintWindFlag(ctx, W / 2, 38, k.wind, state.tick, still);
+  } else if (state.freekickRev >= FREEKICK_REV_2) chip(ctx, W / 2, 10, `${k.yards ?? 0} YDS`, false, "center", 74);
   else windChip(ctx, k.wind);
-  chip(ctx, W - 10, 10, String(freekickGameFor(state.freekickRev).score(state)), true, "right", 52);
+  (v5 ? chipUi : chip)(ctx, W - 10, 10, String(freekickGameFor(state.freekickRev, state.level).score(state)), true, "right", 52);
+  // freekickRev 5: the strike the stroke reads as (live while drawing, then the drawn one) above the power bar.
+  if (v5 && state.phase === FK_AIM && (state.strikeM ?? -1) < 0) {
+    const live = freekickV4Ui.live;
+    const type = live && live.length > 2 ? strikeFromStroke(live, liveCurl(live)) : state.aimed === 1 ? (state.strike ?? 0) : -1;
+    if (type >= 0) chipUi(ctx, FK_V3_BAR.x + FK_V3_BAR.w, FK_V3_BAR.y - 56, STRIKE_LABEL[type]!.toUpperCase(), type !== 0, "right", 96);
+  }
+  if (v5 && state.phase === FK_OVER) paintKickDots(ctx, cam, state);
   for (let i = 0; i < FREEKICK_KICKS; i++) {
     const o = state.outs[i]!;
     ctx.fillStyle = o === FK_OUT_GOAL ? GOLD : o >= 0 ? "rgba(255,110,96,0.85)" : i === state.k ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.22)";
@@ -1444,7 +1517,7 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
       ctx.fillStyle = r.gold ? GOLD : "#F3F1EC";
       ctx.fillText(r.big, W / 2, 132);
       if (r.small) {
-        ctx.font = `700 13px ${MONO}`;
+        ctx.font = v5 ? `800 15px ${ARCADE_FX_DISPLAY_FONT}` : `700 13px ${MONO}`;
         ctx.lineWidth = 4;
         ctx.strokeText(r.small, W / 2, 162);
         ctx.fillStyle = "#F3F1EC";
@@ -1519,10 +1592,10 @@ export function withFreekickLook<T>(look: GameLook, fn: () => T): T {
 }
 
 /** The play and reveal art for a stamp (the sim's game with the art's draw). */
-export function freekickArtGameFor(rev?: number | null, look: GameLook = NO_LOOK) {
-  if (!look.skin && !look.world) return { ...freekickGameFor(rev), draw: drawFreekickArt };
+export function freekickArtGameFor(rev?: number | null, look: GameLook = NO_LOOK, level?: string | null) {
+  if (!look.skin && !look.world) return { ...freekickGameFor(rev, level), draw: drawFreekickArt };
   const draw = (ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize) => withFreekickLook(look, () => drawFreekickArt(ctx, state, size));
-  return { ...freekickGameFor(rev), draw };
+  return { ...freekickGameFor(rev, level), draw };
 }
 /** The art game on freekickRev 1 (its draw follows each state's own stamp, so it draws any revision). */
 export const freekickArtGame = freekickArtGameFor(1);
@@ -1657,3 +1730,152 @@ export function paintFreekickBackdrop(ctx: CanvasRenderingContext2D, w: number, 
 
 export { FREEKICK_WORLD_W, FREEKICK_WORLD_H };
 void FK_GOAL_Z;
+
+
+/* ============================================================ freekickRev 5: the layered kick */
+
+/** A chip in Archivo (freekickRev 5's HUD: the app's one font, legible at a glance). */
+function chipUi(ctx: Ctx, x: number, y: number, text: string, accent = false, align: "left" | "right" | "center" = "left", minW = 0): number {
+  ctx.save();
+  ctx.font = `800 13px ${ARCADE_FX_DISPLAY_FONT}`;
+  const w = Math.max(minW, Math.ceil(ctx.measureText(text).width) + 20);
+  const x0 = align === "left" ? x : align === "right" ? x - w : x - w / 2;
+  glassPill(ctx, x0, y, w, 24, accent);
+  ctx.fillStyle = accent ? "#2A1A04" : "#F3F1EC";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  ctx.fillText(text, x0 + w / 2, y + 12.5);
+  ctx.restore();
+  return w;
+}
+
+/** The wind: a small flag on a pole, its cloth streaming the wind's way and rippling (more with the strength), and the strength. */
+function paintWindFlag(ctx: Ctx, cx: number, y: number, wind: number, tick: number, still: boolean): void {
+  const w = 96;
+  const x0 = cx - w / 2;
+  ctx.save();
+  glassPill(ctx, x0, y, w, 26);
+  const dir = Math.sign(wind) || 1;
+  const pole = cx - dir * 30;
+  ctx.strokeStyle = "#D9DDE6";
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(pole, y + 5);
+  ctx.lineTo(pole, y + 22);
+  ctx.stroke();
+  const len = wind === 0 ? 7 : 10 + Math.abs(wind) * 3.5;
+  const amp = still ? 0 : 0.6 + Math.abs(wind) * 0.35;
+  ctx.fillStyle = wind === 0 ? "rgba(255,255,255,0.5)" : "#FF8A3D";
+  ctx.beginPath();
+  ctx.moveTo(pole, y + 5.5);
+  const n = 6;
+  for (let i = 1; i <= n; i++) {
+    const u = i / n;
+    ctx.lineTo(pole + dir * len * u, y + 5.5 + 3.5 * u + Math.sin(tick * 0.35 - u * 5) * amp * u);
+  }
+  for (let i = n; i >= 0; i--) {
+    const u = i / n;
+    ctx.lineTo(pole + dir * len * u, y + 13.5 - 3.5 * u + Math.sin(tick * 0.35 - u * 5) * amp * u);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.font = `800 13px ${ARCADE_FX_DISPLAY_FONT}`;
+  ctx.fillStyle = "#F3F1EC";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(wind === 0 ? "CALM" : `WIND ${Math.abs(wind)}`, cx + dir * 14, y + 13.5);
+  ctx.restore();
+}
+
+/** A live stroke's curl (the drawn-shot rule). */
+function liveCurl(pts: readonly { x: number; y: number }[]): number {
+  const s = pts[0]!;
+  const e = pts[pts.length - 1]!;
+  const cx = e.x - s.x;
+  const cy = e.y - s.y;
+  const len = Math.hypot(cx, cy) || 1;
+  let bow = 0;
+  for (const p of pts) {
+    const c = (cx * (p.y - s.y) - cy * (p.x - s.x)) / len;
+    if (Math.abs(c) > Math.abs(bow)) bow = c;
+  }
+  return Math.max(-100, Math.min(100, Math.round((-bow / len / FK_V4_BOW_FULL) * 100)));
+}
+
+/** Off the woodwork: a short horizontal shake of the frame (px), from the first tick the flight touched it. */
+const woodTicks = new Map<string, number>();
+function woodworkShake(state: FreekickState): number {
+  const f = state.fl;
+  if (!f || !(f.post || f.bar)) return 0;
+  const key = `${state.seed}:${state.k}:${state.kickTick}`;
+  let at = woodTicks.get(key);
+  if (at === undefined) {
+    if (woodTicks.size > 40) woodTicks.clear();
+    woodTicks.set(key, (at = state.tick));
+  }
+  const age = state.tick - at;
+  return age < 24 ? Math.sin(age * 1.9) * 3 * (1 - age / 24) : 0;
+}
+
+/** The net bulging where the ball went in: rings of net pushed back round the spot, settling over 40 ticks. */
+function paintNetBulge(ctx: Ctx, cam: FkCamera, f: { crossX: number; crossY: number }, age: number, still: boolean): void {
+  const c = fkProject(cam, f.crossX / M, f.crossY / M, FK_NET_Z / M);
+  if (!c) return;
+  const k = still ? 0.4 : Math.max(0, 1 - age / 40);
+  if (k <= 0) return;
+  ctx.save();
+  ctx.strokeStyle = `rgba(235,240,248,${(0.55 * k).toFixed(3)})`;
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 4; i++) {
+    const r = (0.12 + 0.11 * i) * c.s * (0.8 + 0.4 * k);
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, r, r * 0.85, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = `rgba(255,255,255,${(0.18 * k).toFixed(3)})`;
+  ctx.beginPath();
+  ctx.ellipse(c.x, c.y, 0.2 * c.s, 0.17 * c.s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Each kick's crossing of the goal line as the frames go by (display memory, keyed by the run). */
+const crosses = new Map<string, ({ x: number; y: number; goal: boolean } | null)[]>();
+function noteCross(state: FreekickState): void {
+  const key = `${state.seed}:${state.level ?? ""}`;
+  let row = crosses.get(key);
+  if (!row || state.tick < 5) {
+    if (crosses.size > 8) crosses.clear();
+    crosses.set(key, (row = new Array(FREEKICK_KICKS).fill(null)));
+  }
+  const f = state.fl;
+  if (f && f.out !== 0 && (f.crossX !== 0 || f.crossY !== 0) && !row[state.k]) row[state.k] = { x: f.crossX / M, y: f.crossY / M, goal: f.out === FK_OUT_GOAL };
+}
+
+/** The run's end: the ten kicks as dots on the goal frame (gold goals, red misses), with the tally. */
+function paintKickDots(ctx: Ctx, cam: FkCamera, state: FreekickState): void {
+  const row = crosses.get(`${state.seed}:${state.level ?? ""}`) ?? [];
+  ctx.save();
+  for (const c of row) {
+    if (!c) continue;
+    const p = fkProject(cam, Math.max(-FK_GOAL_HALF_W - 0.6, Math.min(FK_GOAL_HALF_W + 0.6, c.x)), Math.min(FK_GOAL_H + 0.6, c.y), 0);
+    if (!p) continue;
+    ctx.fillStyle = c.goal ? GOLD : "#FF6A5C";
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fill();
+  }
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `900 30px ${ARCADE_FX_DISPLAY_FONT}`;
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(4,6,12,0.85)";
+  const t = `${state.goals} OF ${FREEKICK_KICKS} SCORED`;
+  ctx.strokeText(t, W / 2, 132);
+  ctx.fillStyle = GOLD;
+  ctx.fillText(t, W / 2, 132);
+  ctx.restore();
+}

@@ -1578,9 +1578,9 @@ function gradeUnderRev(
       const rev = (puzzle as { homerunRev?: number; freekickRev?: number; racingRev?: number })[field] ?? 1;
       const run: { score: number; flagged: boolean; clientLag: boolean; clientTick: number; desyncTick: number | null; endedSeconds: number; reason?: string; parts: StdPart[]; state: { acted?: number } } =
         puzzle.type === "homerun"
-          ? replayHomerunRun(puzzle.seed, answer, rev)
+          ? replayHomerunRun(puzzle.seed, answer, rev, puzzle.level)
           : puzzle.type === "freekick"
-            ? replayFreekickRun(puzzle.seed, answer, rev)
+            ? replayFreekickRun(puzzle.seed, answer, rev, puzzle.level)
             : replayRacingRun(puzzle.seed, answer, rev);
       const decoded = puzzle.type === "homerun" ? decodeHomerunRun(answer) : puzzle.type === "freekick" ? decodeFreekickRun(answer) : decodeRacingRun(answer);
       revealRun = run as unknown as typeof revealRun;

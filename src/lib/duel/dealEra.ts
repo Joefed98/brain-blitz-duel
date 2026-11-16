@@ -94,6 +94,8 @@ export const DEAL_PINS = {
   matchupPreIce2: { texts: false },
   /** sports.server.ts: Crazy Golf golfRev 2's bank courses, before the overhaul's hole bank (15 Nov 2026). */
   minigolfPreCourse: { texts: false },
+  /** sports.server.ts: Home Run homerunRev 4 and Top Bins freekickRev 4, before their overhaul (15 Nov 2026). */
+  sportsPreOverhaul: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

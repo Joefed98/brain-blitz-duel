@@ -542,9 +542,11 @@ const CALL_SITES: Record<string, Record<string, number>> = {
  * Tilt's cup, a Gemstone cascade, Coral Pop's reef cleared, Rainbow Bridge's coin in the pot, a Ball Tracker marble home).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul: haptics on putts, chips,
  * holes and water, the brief's list): tick 0 → 1 (the strike), success 7 → 8 (holed), impact 20 → 21 (water).
- * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): success 13, impact 22 and tick 2 together.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: haptics on the
+ * key moments): homerunRev 5's home run (success 7 → 8), strikeout (impact 20 → 21) and a run scoring (tick, new).
+ * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): success 14, impact 23 and tick 3 together.
  */
-const FEEL = { success: 13, error: 1, impact: 22, tick: 2 };
+const FEEL = { success: 14, error: 1, impact: 23, tick: 3 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);

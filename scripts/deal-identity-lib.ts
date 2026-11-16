@@ -119,7 +119,10 @@ export function digest(value: unknown): string {
  * minigolfPreCourse.
  * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse"];
+// sportsPreOverhaul added 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: their live deal moved
+// to rev 5, so the recorded deals are compared on rev 4 exactly as before; homerun-innings-check and
+// freekick-layered-check prove the rev-5 deals).
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse", "sportsPreOverhaul"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -189,7 +192,10 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy
   // Golf overhaul): rooms deal Crazy Golf's hole bank, so minigolfPreCourse is pinned for the rooms too.
   // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine).
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "minigolfPreCourse"]);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul, stage 1
+  // approved at 72b7b38f): sportsPreOverhaul reaches a room's Home Run and Top Bins deals, so rooms pin it too and
+  // compare on rev 4 exactly as recorded; homerun-innings-check and freekick-layered-check prove the new deals.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "minigolfPreCourse", "sportsPreOverhaul"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

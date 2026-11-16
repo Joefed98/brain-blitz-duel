@@ -137,7 +137,9 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
   } else if (game === "freekick") {
     const R = await import("../../src/lib/arcade/freekick.renderer");
     const F = await import("../../src/lib/arcade/freekick");
-    for (const rev of [1, F.FREEKICK_REV_DEALT]) {
+    // Pinned to rev 4 (15 Nov 2026, routine consequence of the Home Run and Top Bins overhaul): the fixture was drawn
+    // when rooms dealt freekickRev 4, so its frames stay those; rev 5's looks are drawn by skins-check.
+    for (const rev of [1, F.FREEKICK_REV_4]) {
       const art = has ? R.freekickArtGameFor(rev, look) : R.freekickArtGameFor(rev);
       for (const [seed, ticks] of [[1, 0], [7, 240]] as const) {
         const s = run<Parameters<typeof art.draw>[1]>(F.freekickGameFor(rev) as unknown as Idle, seed, ticks);

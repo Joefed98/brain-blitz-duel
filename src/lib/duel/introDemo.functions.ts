@@ -3,6 +3,7 @@ import { record, text } from "@/lib/validate";
 import { SHORT_MAX } from "./inputLimits";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { cardsDemoPlays } from "./cardsDemoRules";
+import { sportsDemoPlays } from "./sportsDemoRules";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_BIG } from "@/lib/arcade/swing";
 import { INK_REV_HILLS } from "@/lib/arcade/inkBridge";
@@ -140,6 +141,9 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   if (STRATEGY_DEMO_GAMES.has(data.type) && demo && puzzleLevel(demo.puzzle) !== NORMAL) return null;
   // Crazy Golf golfRev 3 (the overhaul, 15 Nov 2026): only a demo recorded on golfRev 3, on Normal, plays.
   if (demo && !minigolfDemoPlays(data.type, demo.puzzle)) return null;
+  // The Home Run and Top Bins overhaul (15 Nov 2026): homerunRev 5 and freekickRev 5 are new games, so only a demo
+  // recorded on them, on Normal, plays (sportsDemoRules.ts); an older demo stays stopped and the still shows.
+  if (demo && !sportsDemoPlays(data.type, demo.puzzle)) return null;
   if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
   // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
   if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL && demo.puzzle.orbitRev !== ORBIT_REV_BIG) return null;

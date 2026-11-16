@@ -57,7 +57,9 @@ import {
   type HomerunFielder,
 } from "../../../src/lib/arcade/homerun";
 import { recordInput, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
-import { oracleRun, homerunAngleFor } from "../../homerun-oracle";
+import { homerunGameLevel } from "../../../src/lib/arcade/homerun";
+import { oracleRun, oracleRunV5, homerunAngleFor } from "../../homerun-oracle";
+import { homerunInningsPlan, hrLevelOf, HOMERUN_REV_5, HR5_INPUT_MODE, HR5_INPUT_SWING, HR5_MODE_CONTACT, HR5_MODE_POWER } from "../../../src/lib/arcade/homerunInnings";
 import type { SkillBot } from "../bot";
 
 const READ: Record<number, number> = { 0: 1.5, [PITCH_CURVE]: 2, [PITCH_DROP]: 1.8, [PITCH_CHANGEUP]: 2.2 };
@@ -68,6 +70,7 @@ const V3_TELL = { weak: 0.55, average: 0.7, good: 0.85, great: 0.93, near: 0.97,
 const V3_POWER = { weak: 0, average: 0.1, good: 0.3, great: 0.85, near: 1, elite: 1, perfect: 1 } as const;
 
 export const bot: SkillBot = ({ game, seed, rev, human }) => {
+  if ((rev ?? 1) >= HOMERUN_REV_5) return botV5({ game, seed, rev, human });
   if ((rev ?? 1) >= HOMERUN_REV_4) return botV4({ game, seed, rev, human });
   const v2 = (rev ?? 1) >= HOMERUN_REV_2;
   if ((rev ?? 1) >= HOMERUN_REV_3) return botV3({ game, seed, rev, human });
@@ -107,6 +110,7 @@ export const bot: SkillBot = ({ game, seed, rev, human }) => {
 
 /** Swipes at random moments with random heights and angles (no aim; rev 3: the swing left at Contact). */
 export const randomBot: SkillBot = ({ game, seed, rev, human }) => {
+  if ((rev ?? 1) >= HOMERUN_REV_5) return randomBotV5({ game, seed, rev, human });
   const events: ArcadeInputEvent[] = [];
   if ((rev ?? 1) >= HOMERUN_REV_4) {
     // Taps at random: a spot anywhere on the screen now and then, and a tap somewhere in each pitch's flight.
@@ -230,5 +234,104 @@ const botV4: SkillBot = ({ game, seed, human }) => {
     t = Math.max(t, p.release + human.reactTicks() - 6);
     recordInput(events, { t, k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }, ranges);
   });
+  return { events };
+};
+
+/* ------------------------------------------------------------ homerunRev 5 */
+
+/** homerunRev 5: how often a level misreads a pitch's zone (a ball near the edge counts double, a curveball 1.5×). */
+const V5_MISREAD = { weak: 0.34, average: 0.24, good: 0.15, great: 0.08, near: 0.035, elite: 0.022, perfect: 0 } as const;
+/** homerunRev 5: the timing spread by kind (the wind-up shows the kind; the changeup's slow float is the hardest to time). */
+const V5_READ: Record<number, number> = { 0: 1, [PITCH_CURVE]: 1.15, [PITCH_CHANGEUP]: 1.25 };
+/** homerunRev 5: the chance of picking Power for a pitch (never on two strikes below great). */
+const V5_POWER = { weak: 0.1, average: 0.25, good: 0.5, great: 0.8, near: 0.95, elite: 1, perfect: 1 } as const;
+
+/**
+ * homerunRev 5's batter, played live (each release follows the last pitch). Reads the pitch's zone with the level's
+ * misread chance (V5_MISREAD) and takes what it reads as a ball; picks Contact or Power (V5_POWER; protecting with
+ * Contact on two strikes unless great or better); aims into the widest gap between the outfielders shown (judged with
+ * the level's blur, then the swipe angle's pointing error, about 0.9° a pixel); times the arrival from the wind-up with
+ * the level's timing spread (V5_READ by kind) and slips by 6–10 ticks now and then.
+ */
+export const botV5: SkillBot = ({ game, seed, human }) => {
+  const level = homerunGameLevel(game);
+  if (human.level === "perfect") return { events: oracleRunV5(seed, level) };
+  const plan = homerunInningsPlan(seed, hrLevelOf(level));
+  const events: ArcadeInputEvent[] = [];
+  const ranges = game.inputRanges ?? [];
+  const lv = human.level as keyof typeof V5_MISREAD;
+  let s = game.init(seed);
+  let planned: { i: number; t: number; aim: number } | null = null;
+  let mode = HR5_MODE_CONTACT;
+  let modeFor = -1;
+  while (!game.isOver(s)) {
+    const t = s.tick + 1;
+    const inn = s.inn!;
+    let e: ArcadeInputEvent | null = null;
+    const p = plan.pitches[inn.i];
+    if (p && modeFor !== inn.i && t >= inn.release - 80) {
+      modeFor = inn.i;
+      const protect = inn.strikes >= 2 && !(lv === "great" || lv === "near" || lv === "elite");
+      const want = !protect && human.chance(V5_POWER[lv]) ? HR5_MODE_POWER : HR5_MODE_CONTACT;
+      if (want !== mode) {
+        e = { t, k: HR5_INPUT_MODE, a: want, b: 0, c: 0, d: 0 };
+        mode = want;
+      }
+      // Decide on the pitch as it comes: swing or take, the aim and the moment.
+      const edge = p.zone ? Math.min(p.plateX - 212, 304 - p.plateX, p.plateY - 446, 566 - p.plateY) : 0;
+      const near = p.zone ? edge < 14 : true;
+      // A pitch that moves more is harder to read (the level's bend, 16 Nov 2026): Normal's curve reads as before.
+      const moves = Math.abs(p.breakX) + Math.abs(p.breakY);
+      const bendRead = human.limits ? Math.max(1, moves / 45) : 1;
+      const misread = human.chance(V5_MISREAD[lv] * (near ? 2 : 1) * (p.kind === PITCH_CURVE ? 1.5 : 1) * bendRead);
+      const readZone = misread ? !p.zone : p.zone;
+      // On two strikes a hitter swings at anything close (protecting the plate).
+      const swing = readZone || (inn.strikes >= 2 && human.chance(0.5));
+      if (swing) {
+        const f = plan.fielders[inn.i]!.filter((x) => x.out);
+        let best = 0;
+        let bestV = -1;
+        for (let a = -380; a <= 380; a += 20) {
+          const gap = Math.min(...f.map((x) => Math.abs(a - x.spray))) + human.normal() * human.p.judgement * 120;
+          if (gap > bestV) {
+            bestV = gap;
+            best = a;
+          }
+        }
+        let st = inn.release + p.flight - HOMERUN_SWING_TICKS + human.timingTicks(V5_READ[p.kind] ?? 1);
+        if (human.slip()) st += (human.chance(0.5) ? -1 : 1) * human.int(6, 10);
+        // Under human limits (Joe, 16 Nov 2026) the read needs the ball in flight: the swipe lands no sooner than the
+        // release plus a reaction (0.25 s at least) plus the swipe's own movement (0.15 s). Without limits, as before.
+        st = human.limits ? Math.max(st, inn.release + human.reactTicks() + human.moveTicks(), t + 1) : Math.max(st, inn.release + human.reactTicks() - 8, t + 1);
+        planned = { i: inn.i, t: st, aim: Math.round(best + human.aim(9, 1)) };
+      } else planned = null;
+    }
+    if (!e && planned && planned.i === inn.i && t === planned.t && inn.st < 0) e = { t, k: HR5_INPUT_SWING, a: Math.max(-900, Math.min(900, planned.aim)), b: 0, c: 0, d: 0 };
+    if (e) recordInput(events, e, ranges);
+    s = game.step(s, e);
+  }
+  return { events };
+};
+
+/** homerunRev 5's random batter: the mode flipped now and then, a swipe at a random moment and angle on most pitches. */
+export const randomBotV5: SkillBot = ({ game, seed, human }) => {
+  const events: ArcadeInputEvent[] = [];
+  const ranges = game.inputRanges ?? [];
+  let s = game.init(seed);
+  let at = -1;
+  let forI = -1;
+  while (!game.isOver(s)) {
+    const t = s.tick + 1;
+    const inn = s.inn!;
+    let e: ArcadeInputEvent | null = null;
+    if (forI !== inn.i && t >= inn.release - 20) {
+      forI = inn.i;
+      at = human.chance(0.8) ? inn.release + human.int(0, 70) : -1;
+      if (human.chance(0.2)) e = { t, k: HR5_INPUT_MODE, a: human.int(0, 1), b: 0, c: 0, d: 0 };
+    }
+    if (!e && t === at) e = { t, k: HR5_INPUT_SWING, a: human.int(-900, 900), b: 0, c: 0, d: 0 };
+    if (e) recordInput(events, e, ranges);
+    s = game.step(s, e);
+  }
   return { events };
 };

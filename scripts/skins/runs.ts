@@ -96,7 +96,9 @@ export async function runSpecs(): Promise<RunSpec[]> {
       draw: (ctx, s, look) => RaR.drawRacingPlay(ctx, s, { width: Ra.RACING_WORLD_W, height: Ra.RACING_WORLD_H }, look),
     });
   }
-  for (const rev of [1, Fk.FREEKICK_REV_DEALT]) {
+  // Pinned to rev 4 (15 Nov 2026, routine consequence of the Home Run and Top Bins overhaul): the runs were recorded
+  // when rooms dealt freekickRev 4.
+  for (const rev of [1, Fk.FREEKICK_REV_4]) {
     const deal = rev >= 4 ? FREEKICK_DEAL_V4 : FREEKICK_DEAL;
     const art = FkR.freekickArtGameFor(rev);
     specs.push({
