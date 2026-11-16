@@ -16,6 +16,7 @@
 import { seededRng, type SeededRng } from "./seededRng";
 import { FENCES_SIZE, type FencesPuzzleData } from "./types";
 import { cellEdges, dotEdges, edgeDots, fencesEdgeCount, isSingleLoop } from "./fences";
+import type { FencesLevel } from "./logicLevels";
 
 /** Difficulty band: solver branch points (0 = deduction alone). */
 export const FENCES_GRADE_BAND: readonly [number, number] = [0, 6];
@@ -259,6 +260,19 @@ function solve(size: number, clues: readonly number[], limit: number, nodeCap = 
   return out;
 }
 
+/**
+ * The solver's deductions as a person-style model (logicHuman.server.ts): edge states (−1 unknown, 0 no line, 1 line),
+ * the same propagation the solver uses (clues, dot degrees, the loop rule) and no branching.
+ */
+export function fencesDeductions(size: number, clues: readonly number[]) {
+  const g = geometry(size);
+  return {
+    init: (): Int8Array => new Int8Array(g.edges).fill(UNK),
+    propagate: (st: Int8Array): boolean => propagate(g, st, clues) && !hasClosedSubLoop(g, st),
+    solved: (st: Int8Array): boolean => !st.includes(UNK) && leafValid(g, st, clues),
+  };
+}
+
 /** Counts loops meeting the clues, up to `limit` (2 proves uniqueness). */
 export function countFencesSolutions(size: number, clues: readonly number[], limit = 2): number {
   return solve(size, clues, limit).solutions;
@@ -305,7 +319,9 @@ function outline(g: Geometry, inside: Uint8Array): number[] {
 /** A random region whose outline is one loop. */
 function randomRegion(rng: SeededRng, g: Geometry): Uint8Array {
   const n = g.size * g.size;
-  const target = rng.int(REGION_MIN, REGION_MAX);
+  // Normal's 6 × 6 draws 11–22 cells inside; a level's board scales the band to its area.
+  const scale = n / (FENCES_SIZE * FENCES_SIZE);
+  const target = g.size === FENCES_SIZE ? rng.int(REGION_MIN, REGION_MAX) : rng.int(Math.round(REGION_MIN * scale), Math.round(REGION_MAX * scale));
   const inside = new Uint8Array(n);
   inside[rng.below(n)] = 1;
   let count = 1;
@@ -322,26 +338,30 @@ function randomRegion(rng: SeededRng, g: Geometry): Uint8Array {
 }
 
 /** A board from a seed: deterministic, unique, graded. */
-export function generateFences(seed: number): FencesPuzzleData {
-  const size = FENCES_SIZE;
+export function generateFences(seed: number, level: FencesLevel | null = null): FencesPuzzleData {
+  const size = level?.size ?? FENCES_SIZE;
+  const minClues = level?.minClues ?? FENCES_MIN_CLUES;
+  const band = level?.grade ?? FENCES_GRADE_BAND;
+  const tries = level ? MAX_TRIES * 4 : MAX_TRIES;
+  const clock = level ? { timeLimitMs: level.timeLimitMs } : {};
   const g = geometry(size);
   const rng = seededRng(seed);
   let fallback: FencesPuzzleData | null = null;
-  for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+  for (let attempt = 0; attempt < tries; attempt++) {
     const inside = randomRegion(rng, g);
     const loop = outline(g, inside);
     const on = new Set(loop);
     const full = Array.from({ length: size * size }, (_, c) => g.cellEdges[c]!.filter((e) => on.has(e)).length);
     const clues = [...full];
     for (const c of rng.shuffle(Array.from({ length: size * size }, (_, i) => i))) {
-      if (clues.filter((v) => v >= 0).length <= FENCES_MIN_CLUES) break;
+      if (clues.filter((v) => v >= 0).length <= minClues) break;
       const keep = clues[c]!;
       clues[c] = -1;
       if (countFencesSolutions(size, clues, 2) !== 1) clues[c] = keep;
     }
     const grade = gradeFences(size, clues);
-    const board: FencesPuzzleData = { type: "fences", fencesRev: 1, size, clues, grade, solution: [...loop].sort((a, b) => a - b) };
-    if (grade >= FENCES_GRADE_BAND[0] && grade <= FENCES_GRADE_BAND[1]) return board;
+    const board: FencesPuzzleData = { type: "fences", fencesRev: 1, size, clues, grade, solution: [...loop].sort((a, b) => a - b), ...clock };
+    if (grade >= band[0] && grade <= band[1]) return board;
     fallback ??= board;
   }
   // Never reached in practice (fences-check measures it); a unique board is still returned.

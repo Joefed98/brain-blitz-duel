@@ -14,6 +14,7 @@ import { npComplete, npCorrectCells, npDecode, npDecodeRound } from "../numberPy
 import { decodeNumline, gradeNumlineItems } from "../numline";
 import { equationStageCorrect, splitStages } from "../stagedRounds";
 import { decodeSteps, hasSolutionWithAtMostFourTiles, replayTargetSteps, solveTarget } from "../target";
+import { TRAIL_UNDO_COST, trailUndoEach } from "../logicOverhaul2";
 import { trCorrectPrefix, trCorrectTiles, trDecode } from "../trail";
 import type {
   BalancePuzzleData,
@@ -291,6 +292,27 @@ function trailEverUndone(puzzle: TrailPuzzleData, drafts: readonly { draft: stri
   return false;
 }
 
+/**
+ * Trail depthRev 3 (the Logic overhaul, 15 Nov 2026): how many changes took a placed tile back (an Undo, a step back,
+ * a drag back over several tiles in one change, a Reset: each one undo).
+ */
+function trailUndos(puzzle: TrailPuzzleData, drafts: readonly { draft: string }[]): number {
+  let prev: number[] = [];
+  let undos = 0;
+  for (const { draft } of drafts) {
+    const path = trailPath(puzzle, draft);
+    for (let i = 0; i < prev.length; i++) {
+      const cell = prev[i]!;
+      if (cell >= 0 && puzzle.givens[cell] === null && path[i] !== cell) {
+        undos++;
+        break;
+      }
+    }
+    prev = path;
+  }
+  return undos;
+}
+
 const trail: StandardGame = {
   parts: (puzzle, draft) => {
     const p = puzzle as TrailPuzzleData;
@@ -301,6 +323,12 @@ const trail: StandardGame = {
     const path = trailPath(p, answer);
     const solution = p.solution ?? [];
     const right = trCorrectTiles(p.givens, path, solution);
+    if (graded.isCorrect && trailUndoEach(p)) {
+      // depthRev 3: 2.5 off the clean bonus an undo (no timeline, no clean bonus, as before).
+      const undos = drafts ? trailUndos(p, drafts) : null;
+      const bonus = undos === null ? 0 : cleanPoints(NUMBER_STANDARD.trail!.bonus, TRAIL_UNDO_COST, undos);
+      return { finished: true, speed: speedFor("trail", msLeft, limitMs), bonus, measure: "clean", facts: { cleanPath: undos === 0, undos } };
+    }
     if (graded.isCorrect) {
       const undone = drafts ? trailEverUndone(p, drafts) : true;
       return { finished: true, speed: speedFor("trail", msLeft, limitMs), bonus: undone ? 0 : NUMBER_STANDARD.trail!.bonus, measure: "clean", facts: { cleanPath: !undone } };

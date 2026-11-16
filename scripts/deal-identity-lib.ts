@@ -106,8 +106,11 @@ export function digest(value: unknown): string {
  * preGameReviewNov15.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul, logicOverhaul1.ts): preLogicOverhaul1.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul, logicOverhaul2.ts: Trail
+ * depthRev 3 and Regions fillominoRev 2): preLogic2.
+ * Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -168,7 +171,8 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
   // arcade deal, unpinned here as before).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): preLogicOverhaul1 too.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1"]);
+  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): preLogic2 too.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

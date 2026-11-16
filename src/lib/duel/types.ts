@@ -2280,6 +2280,8 @@ export interface WhackPuzzleData {
 }
 
 export interface TentsPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
   depthRev?: number;
   /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
@@ -2534,6 +2536,8 @@ export interface NumberPyramidPuzzleData {
 export const TRAIL_TIME_MS = 120_000;
 
 export interface TrailPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   type: "trail";
   /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
   depthRev?: number;
@@ -2791,6 +2795,8 @@ export interface WordSearchPuzzleData {
 }
 
 export interface ShikakuPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
   depthRev?: number;
   /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
@@ -2803,6 +2809,8 @@ export interface ShikakuPuzzleData {
 }
 
 export interface LightUpPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
   depthRev?: number;
   /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
@@ -2870,6 +2878,8 @@ export const FENCES_TIME_MS = 90_000;
 export const FENCES_SIZE = 6;
 
 export interface FencesPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   type: "fences";
   /** 1: the first rules, on the scoring standard. */
   fencesRev?: number;
@@ -2887,6 +2897,8 @@ export const FILLOMINO_TIME_MS = 90_000;
 export const FILLOMINO_SIZE = 7;
 
 export interface FillominoPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   type: "fillomino";
   /** 1: the first rules, on the scoring standard. */
   fillominoRev?: number;
@@ -2908,6 +2920,8 @@ export interface BridgesIsland {
 }
 
 export interface BridgesPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   type: "bridges";
   /** 1: the first rules, on the scoring standard. */
   bridgesRev?: number;

@@ -24,6 +24,7 @@
  */
 import { checkOverride } from "@/lib/checkOverride";
 import type { PuzzleType } from "@/lib/duel/types";
+import { LOGIC_GAME_LEVELS } from "@/lib/duel/logicOverhaul2Levels";
 
 import { LEVELS, NORMAL, type Level } from "./levels";
 
@@ -119,6 +120,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { cols: 12, rows: 18, mines: 34, opening: [8, 16], seconds: 120 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
+  // Logic overhaul 2 (15–16 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link.
+  ...(LOGIC_GAME_LEVELS as unknown as Partial<Record<PuzzleType, GameLevels>>),
 };
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */

@@ -83,3 +83,10 @@ export function towerSettingsFor(level: Level | undefined): TowerLevel | undefin
 export function puzzleLevelSettings<S>(puzzle: { type: string } & object): S | null {
   return levelSettings<S>(puzzle.type, puzzleLevel(puzzle));
 }
+
+/*
+ * Logic overhaul 2's seven games (Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link) keep
+ * their level data in logicOverhaul2Levels.ts, re-exported here, so the registry (gameLevels.ts) can read it without an
+ * import cycle through this file (puzzle train combine, 16 Nov 2026).
+ */
+export * from "./logicOverhaul2Levels";

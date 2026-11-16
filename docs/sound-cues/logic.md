@@ -46,13 +46,22 @@ shared screens.
 | `tents.grass` | A cell is marked as grass | — |
 | `tents.clear` | A cell is cleared | — |
 | `tents.solve` | The layout is valid | ~1.15 s: tents bounce in turn (55 ms apart), lanterns glow and fade |
+| `tents.touch` | A tent is pitched touching another (15 Nov 2026, the Logic overhaul) | Both tents wobble (the kit's wrong) |
+| `tents.lonely` | A tent is pitched with no tree beside it | A red ring on the square |
+| `tents.signMet` | A row's or column's count is met | The sign turns gold and pops (the kit's tap) |
 | `shikaku.place` | A rectangle is accepted | 180 ms pane set |
 | `shikaku.remove` | A rectangle is tapped away | — |
 | `shikaku.solve` | Every square is covered by a valid rectangle | ≤1.2 s: panes flash stained-glass colours (28 ms apart, 700 ms each) |
+| `shikaku.dragStart` | A drag starts on the board (15 Nov 2026, the Logic overhaul) | The outline appears |
+| `shikaku.snap` | The drag's outline grows or shrinks by a square | The outline snaps; green when its area matches |
+| `shikaku.invalid` | A rectangle is refused | The outline flashes red and shakes alone (420 ms) |
 | `lightup.lamp` | A lamp is placed | Light spreads along its beams, 40 ms per square, 320 ms each |
 | `lightup.dot` | A square is marked with a dot | — |
 | `lightup.clear` | A square is cleared | — |
 | `lightup.solve` | Every square is lit with no clash and every number met | ~1.17 s: warm wave from the top-left, lamps swell |
+| `lightup.clash` | A lamp is placed where it sees another (15 Nov 2026, the Logic overhaul) | Both lamps ring red and wobble |
+| `lightup.wallMet` | A wall's number is newly satisfied | The gold ✓ appears and the wall pops |
+| `lightup.dark` | Six or fewer squares are left dark, the first time | The "N squares dark" line shows |
 
 ## Logic overhaul, session 1 (15 Nov 2026)
 

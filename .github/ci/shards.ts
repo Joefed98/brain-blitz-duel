@@ -160,6 +160,7 @@ export const SHARDS: Record<string, string[]> = {
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.
   a: [
+    "logic-levels-check.ts@1/4",
     // From g's catch-all (7 Nov 2026 rebalance, docs/audit-nov-2026/build-health.md item 10; ~188 s on Checks run
     // 42372376743): g ran 805 s of checks, a 298.
     "sound-retheme-check.ts",
@@ -253,6 +254,7 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
+    "logic-levels-check.ts@2/4",
     // seat-key-check (14 Nov 2026, Security C1b, ~2 s, happy-dom): room-mates told apart by public id (me, host, chat,
     // muting, reactions, absent rivals) and stand-in rows by account id.
     "seat-key-check.tsx",
@@ -509,6 +511,7 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [
+    "logic-levels-check.ts@3/4",
     // From g's catch-all (7 Nov 2026 rebalance; ~10 s on run 42372376743).
     "pool-check.ts",
     // From g's catch-all (3 Nov 2026 rebalance; ~336 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
@@ -548,6 +551,7 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   g: [
+    "logic-levels-check.ts@4/4",
     // arcade-fx-check in thirds (3 Nov 2026: Curl Champ's, Apex's and Cue Ball's runs took the whole check past 5 min locally).
     "arcade-fx-check.ts@3/3",
     "arcade-check.ts",

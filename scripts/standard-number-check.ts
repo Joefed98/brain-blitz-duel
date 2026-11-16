@@ -52,10 +52,14 @@ import { SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
 import { kitBands, median, sentAnswer } from "./standard-lib";
 import { playTenDropPerfect } from "./tendrop-depth-player";
 import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
+import { pinPreLogic2 } from "../src/lib/duel/logicOverhaul2";
 
 // Written for the standard's stamps: the partial-credit fixes of 7 Nov 2026 (partialCredit.ts) deal
 // Exact one stamp above, so new deals here keep the standard's (partial-credit-check proves the new stamps).
 pinPrePartialCredit(true);
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): written for Trail depthRev 2,
+// so new deals keep it (logic-overhaul-2-check proves depthRev 3).
+pinPreLogic2(true);
 
 let checks = 0;
 const failures: string[] = [];

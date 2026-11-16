@@ -3,6 +3,7 @@ import { record, text } from "@/lib/validate";
 import { SHORT_MAX } from "./inputLimits";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
+import { fillominoStrokes, trailUndoEach } from "./logicOverhaul2";
 import { SWING_REV_SLIDE } from "@/lib/arcade/swing";
 import { INK_REV_BIG } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
@@ -257,6 +258,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Blackout, Hanoi, Polypotions and Safe Cracker show their par line or clean crack: an older demo would show the old
     // board or no feature, so these stay stopped (the intro shows its still) until one is recorded on depthRev 1.
     if (DEPTH_DEMO_STOPS.has(data.type) && depthRevOf(demo?.puzzle) < DEPTH_REV) return null;
+    // Logic overhaul 2 (15 Nov 2026): Trail's depthRev 3 (2.5 a undo) and Regions' fillominoRev 2 (a stroke a mistake) score
+    // differently, so only a demo recorded on those stamps plays (their presentation, LOGIC2_PRESENTATION, stops the rest).
+    if (data.type === "trail" && demo && !trailUndoEach(demo.puzzle)) return null;
+    if (data.type === "fillomino" && demo && !fillominoStrokes(demo.puzzle)) return null;
     // Depth batch 4 (25 Oct 2026, docs/depth/d4-pattern.md): Gridlock, Tessellate, Pipeline, Chroma Lines, Skid, Heave,
     // Lightbender and Turntable deal new stamps (par, gems, the gold crate, spare mirrors, the 7×7 board). A demo recorded
     // on an older puzzle would show the old rules, so each intro shows its still until a demo is recorded on the new stamp.

@@ -258,7 +258,9 @@ choice.resetLevelChoiceCache();
 check(choice.levelChoiceNow().catalogue === "normal" && choice.chosenLevel("tents") === "normal", "with nothing stored, every game is Normal");
 choice.setCatalogueLevel("hard");
 check(choice.chosenLevel("tents") === "hard" && choice.chosenLevel("tilt") === "hard", "the catalogue's switch sets the level for every game");
-check(choice.playLevel("tents") === "normal", "a game without that level plays Normal");
+// Tents and Trees has levels since the Logic overhaul (16 Nov 2026), so a game with none stands in. Changed with Joe's
+// approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
+check(choice.playLevel("tubes") === "normal", "a game without that level plays Normal");
 choice.setGameLevel("tents", "easy");
 check(choice.chosenLevel("tents") === "easy" && choice.chosenLevel("tilt") === "hard", "a game page's choice is that game's own");
 choice.resetLevelChoiceCache();

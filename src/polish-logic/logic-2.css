@@ -1,0 +1,863 @@
+/*
+ * The Logic overhaul, session 2 (15 Nov 2026; docs/design/game-reviews/logic.md, concepts A on a darker ground):
+ * Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions and Island Link. Imported from styles.css after the
+ * older Logic sheets, so it wins where they meet. Display only: every piece is drawn inside its own cell's box (the
+ * Blender sprites of scripts/logic-art.ts, set on each board's root as --la-<name> variables), so no hit area moves.
+ *
+ * Numbers are flat, bold and large on every board (no reflection or glow runs across a digit). Controls take the
+ * style guide's champagne gold (one active choice) and navy surfaces; no teal or bright yellow.
+ */
+
+/* ------------------------------------------------------------------ shared */
+/* Minimal glow (Joe, 15 Nov 2026): the seven boards drop the ambient glow behind the board. */
+[data-logic-stage="tents"] > .logic-calm-glow,
+[data-logic-stage="shikaku"] > .logic-calm-glow,
+[data-logic-stage="lightup"] > .logic-calm-glow,
+[data-logic-stage="fillomino"] > .logic-calm-glow,
+[data-logic-stage="bridges"] > .logic-calm-glow,
+[data-logic-stage="fences"] > .logic-calm-glow {
+  display: none;
+}
+.logic2-piece {
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.logic2-num {
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--jz-text, #eef2ff);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.75);
+}
+.logic2-warn {
+  margin: 6px auto 0;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--jz-text, #eef2ff);
+  background: color-mix(in oklab, var(--jz-loss, #ff5a6e) 26%, var(--jz-surface, #0f1424));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--jz-loss, #ff5a6e) 70%, transparent);
+}
+/* Undo / Reset and other actions on the seven boards: navy surfaces with a champagne label (not teal). */
+[data-logic2-actions] button,
+[data-puzzle-surface] [data-logic2-actions] button[data-puzzle-action] {
+  background: var(--jz-surface-2, #1e2640) !important;
+  border-color: color-mix(in oklab, var(--jz-gold, #e2c07a) 30%, transparent) !important;
+  color: var(--jz-gold, #e2c07a) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--jz-gold, #e2c07a) 30%, transparent);
+}
+
+/* ------------------------------------------------------------------ Tents and Trees */
+.logic-camp-frame.logic-camp-frame {
+  background: linear-gradient(180deg, #0c130e, #070b08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 24px rgba(0, 0, 0, 0.55);
+}
+.logic2-camp.logic-camp > .logic2-cell,
+[data-puzzle-play][data-puzzle-play] .logic2-camp.logic-camp > .logic2-cell {
+  position: relative;
+  border: 0;
+  background: var(--la-tents-turf) center / 100% 100% no-repeat;
+  background-color: transparent;
+  box-shadow: none;
+}
+.logic2-camp > .logic2-cell > .logic2-tree {
+  width: 92%;
+  height: 92%;
+}
+.logic2-camp > .logic2-cell > .logic2-tent {
+  width: 94%;
+  height: 94%;
+}
+.logic2-camp > .logic2-cell > .logic2-tuft {
+  width: 46%;
+  height: 46%;
+  opacity: 0.85;
+}
+.logic2-camp > .logic2-cell[data-lonely]::after,
+.logic2-camp > .logic2-cell[data-wrong]::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 6px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--jz-loss, #ff5a6e);
+}
+.logic2-camp.logic-camp > .logic2-sign,
+[data-logic-stage="tents"] .logic2-camp.logic-camp > .logic2-sign {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: auto;
+  min-height: 22px;
+  border-radius: 5px;
+  background: var(--la-tents-sign) center / 100% 100% no-repeat;
+  box-shadow: none;
+  font-family: var(--jz-font, inherit);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff8ec;
+  text-shadow: 0 1px 0 rgba(40, 20, 6, 0.85);
+  opacity: 1;
+  transition: color 160ms ease-out;
+}
+.logic2-camp.logic-camp > .logic2-sign[data-met] {
+  background-image: var(--la-tents-sign-met);
+  color: #241706;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.45);
+}
+/* No glow anywhere (Joe, 15 Nov 2026): the lit tent's lantern is in the render itself. */
+.logic2-camp .logic2-tent {
+  filter: none;
+}
+
+/* ------------------------------------------------------------------ Shikaku */
+.logic2-shikaku > .logic-glass-cell,
+[data-puzzle-play] .logic2-shikaku > .logic-glass-cell {
+  border: 0;
+  background: var(--la-logic-cell) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+/* The panes: the Blender glass in four jewels, 9-sliced so the gold rim keeps its width on any rectangle. */
+.logic2-shikaku > .logic2-pane {
+  border: 7px solid transparent;
+  border-image-slice: 18 fill;
+  border-image-width: 7px;
+  border-image-repeat: stretch;
+  background: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+.logic2-shikaku > .logic2-pane[data-jewel="sapphire"] { border-image-source: var(--la-shikaku-pane-sapphire); }
+.logic2-shikaku > .logic2-pane[data-jewel="emerald"] { border-image-source: var(--la-shikaku-pane-emerald); }
+.logic2-shikaku > .logic2-pane[data-jewel="amber"] { border-image-source: var(--la-shikaku-pane-amber); }
+.logic2-shikaku > .logic2-pane[data-jewel="ruby"] { border-image-source: var(--la-shikaku-pane-ruby); }
+.logic2-shikaku[data-small] > .logic2-pane {
+  border-width: 4px;
+  border-image-width: 4px;
+}
+.logic2-shikaku > .logic2-preview {
+  border-color: var(--jz-text-2, #b5c6dd);
+  background: rgba(255, 255, 255, 0.06);
+}
+.logic2-shikaku > .logic2-preview[data-fits] {
+  border-color: var(--jz-win, #16c35b);
+  background: color-mix(in oklab, var(--jz-win, #16c35b) 14%, transparent);
+}
+.logic2-shikaku:not([data-small]) > .shikaku-clue.logic2-num {
+  font-size: clamp(14px, calc(100cqw / 10 * 0.56), 24px);
+}
+.logic2-shikaku:not([data-small]) > .shikaku-clue.logic2-num > span {
+  font-size: inherit;
+}
+
+/* ------------------------------------------------------------------ Lamplighter */
+.logic2-lamps > .logic2-lamp-cell,
+[data-puzzle-play] .logic2-lamps > .logic2-lamp-cell {
+  border: 0;
+  background: var(--la-logic-cell) center / 100% 100% no-repeat;
+  box-shadow: none;
+  transition: background-image 160ms ease-out;
+}
+/* A lit square fills with warm light, so lit and dark read at a glance (the thin beams stay, quieter). */
+.logic2-lamps > .logic2-lamp-cell[data-lit],
+[data-puzzle-play] .logic2-lamps > .logic2-lamp-cell[data-lit] {
+  background-image: var(--la-lightup-cell-lit);
+}
+.logic2-lamps > .logic2-lamp-cell .lightup-beam {
+  opacity: 0.16;
+}
+.logic2-lamps > .logic2-wall,
+[data-puzzle-play] .logic2-lamps > .logic2-wall {
+  border: 0;
+  background: var(--la-lightup-wall) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.logic2-lamps > .logic2-wall[data-over] {
+  box-shadow: inset 0 0 0 2px var(--jz-loss, #ff5a6e);
+  border-radius: 4px;
+}
+.logic2-lamps > .logic2-wall[data-over] .logic2-num {
+  color: var(--jz-loss, #ff5a6e);
+}
+.logic2-lamps .logic2-wall-num {
+  font-size: clamp(15px, 5.2cqw, 22px);
+}
+.logic2-lamps .logic2-tick {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--jz-gold, #e2c07a);
+}
+.logic2-lamps .logic2-bulb {
+  width: 88%;
+  height: 88%;
+  border-radius: 50%;
+}
+/* A clash: a crisp red ring round both lamps (no glow). */
+.logic2-lamps .logic2-bulb[data-clash] {
+  box-shadow: 0 0 0 2px var(--jz-loss, #ff5a6e);
+}
+.logic2-hint[data-hint-hidden] { visibility: hidden; }
+.logic2-hint {
+  margin: 6px auto 0;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--jz-text, #eef2ff);
+  background: var(--jz-surface-2, #1e2640);
+}
+
+/* ------------------------------------------------------------------ Trail */
+.logic2-trail .tr-ground {
+  background: none;
+  border-image: var(--la-trail-cell) 22 fill / 8px stretch;
+  box-shadow: none;
+}
+/* Fixed numbers: gold-edged stone tiles that stand out from the path. */
+.logic2-trail .tr-cell.tr-milestone {
+  /* 9-sliced, so the gold edge keeps its width on a cell taller than wide. */
+  background: none;
+  border: 9px solid transparent;
+  border-image: var(--la-trail-given) 22 fill / 9px stretch;
+  box-shadow: none;
+  color: #fffaf0;
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+}
+.logic2-trail .tr-cell.tr-milestone.tr-end {
+  box-shadow: inset 0 0 0 2px var(--jz-gold, #e2c07a);
+}
+/* Path stones: glazed ceramic discs, the numbers dark and bold. */
+.logic2-trail .tr-step {
+  background: var(--la-trail-stone) center / 100% 100% no-repeat;
+  border-radius: 50%;
+  box-shadow: none;
+  color: #1c1712;
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+}
+.logic2-trail .tr-step.tr-wrong {
+  background-image: var(--la-trail-stone);
+  box-shadow: inset 0 0 0 3px var(--jz-loss, #ff5a6e);
+  color: #5a0c12;
+}
+.logic2-trail .tr-step.tr-end {
+  box-shadow: 0 0 0 2px #0b0f0d, 0 0 0 4px var(--jz-gold, #e2c07a);
+}
+
+/* ------------------------------------------------------------------ Loopline */
+.fences-frame:has(.logic2-fences) {
+  background: #0b0d0f;
+}
+.logic2-fences .fences-cell {
+  fill: rgba(255, 255, 255, 0.025);
+  stroke: none;
+}
+.logic2-fences .fences-guide {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+.logic2-fences .fences-line {
+  stroke: var(--jz-gold, #e2c07a);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+}
+.logic2-fences .fences-clue {
+  fill: var(--jz-text, #eef2ff);
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+  stroke: rgba(0, 0, 0, 0.75);
+  stroke-width: 5;
+}
+/* A met number turns gold (it dimmed before); over turns red. */
+.logic2-fences .fences-clue[data-tone="met"] {
+  opacity: 1;
+  fill: var(--jz-gold, #e2c07a);
+}
+.logic2-fences .fences-clue[data-tone="over"] {
+  fill: var(--jz-loss, #ff5a6e);
+}
+
+/* ------------------------------------------------------------------ Regions (fillomino) */
+.logic2-fillomino.fillomino-board > .fillomino-cell,
+[data-puzzle-play][data-puzzle-play] .logic2-fillomino.fillomino-board > .fillomino-cell:not([data-size]):not(.fillomino-over) {
+  background: var(--la-fillomino-tile-0) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+/* Every filled tile takes the enamel of its number (Joe, 15 Nov 2026); a finished region is edged in gold. */
+.logic2-fillomino.fillomino-board > .fillomino-cell[data-size],
+[data-puzzle-play][data-puzzle-play] .logic2-fillomino.fillomino-board > .fillomino-cell[data-size]:not(.fillomino-over) {
+  background-image: var(--logic2-enamel);
+  background-color: transparent;
+  box-shadow: none;
+}
+.logic2-fillomino > .fillomino-cell[data-size="1"] { --logic2-enamel: var(--la-fillomino-tile-1); }
+.logic2-fillomino > .fillomino-cell[data-size="2"] { --logic2-enamel: var(--la-fillomino-tile-2); }
+.logic2-fillomino > .fillomino-cell[data-size="3"] { --logic2-enamel: var(--la-fillomino-tile-3); }
+.logic2-fillomino > .fillomino-cell[data-size="4"] { --logic2-enamel: var(--la-fillomino-tile-4); }
+.logic2-fillomino > .fillomino-cell[data-size="5"] { --logic2-enamel: var(--la-fillomino-tile-5); }
+.logic2-fillomino > .fillomino-cell[data-size="6"] { --logic2-enamel: var(--la-fillomino-tile-6); }
+.logic2-fillomino > .fillomino-cell[data-size="7"] { --logic2-enamel: var(--la-fillomino-tile-7); }
+.logic2-fillomino > .fillomino-cell[data-size="8"] { --logic2-enamel: var(--la-fillomino-tile-8); }
+.logic2-fillomino > .fillomino-cell[data-size="9"] { --logic2-enamel: var(--la-fillomino-tile-9); }
+.logic2-fillomino.fillomino-board > .fillomino-cell.fillomino-over,
+[data-puzzle-play][data-puzzle-play] .logic2-fillomino.fillomino-board > .fillomino-cell.fillomino-over {
+  background-image: var(--la-fillomino-tile-clash);
+}
+/* Region edges: clear lines; a finished region's sides thicker and champagne. */
+.logic2-fillomino.fillomino-board > .fillomino-cell[data-edge-r] { border-right-color: rgba(236, 232, 222, 0.85); }
+.logic2-fillomino.fillomino-board > .fillomino-cell[data-edge-b] { border-bottom-color: rgba(236, 232, 222, 0.85); }
+.logic2-fillomino.fillomino-board > .fillomino-cell.fillomino-done[data-edge-r] { border-right-width: 4px !important; border-right-color: var(--jz-gold, #e2c07a); }
+.logic2-fillomino.fillomino-board > .fillomino-cell.fillomino-done[data-edge-b] { border-bottom-width: 4px !important; border-bottom-color: var(--jz-gold, #e2c07a); }
+.logic2-fillomino .fillomino-entry {
+  color: var(--jz-gold, #e2c07a);
+}
+.logic2-fillomino .fillomino-done .fillomino-entry,
+.logic2-fillomino .fillomino-given {
+  color: var(--jz-text, #eef2ff);
+}
+.logic2-fillomino .fillomino-over .fillomino-entry {
+  color: #ffd2d8;
+}
+.logic2-fillomino.fillomino-board > .fillomino-cell.fillomino-selected {
+  outline-color: var(--jz-gold, #e2c07a);
+}
+/* The pad: navy keys, the picked one navy-raised with a champagne ring and label (no teal). */
+[data-logic-stage="fillomino"] .fillomino-key,
+[data-puzzle-surface] [data-logic-stage="fillomino"] .fillomino-key[data-puzzle-state] {
+  background: var(--jz-surface-2, #1e2640) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--jz-text, #eef2ff) !important;
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+  font-size: 20px;
+}
+[data-logic-stage="fillomino"] .fillomino-key.fillomino-key-on,
+[data-puzzle-surface] [data-logic-stage="fillomino"] .fillomino-key.fillomino-key-on[data-puzzle-state] {
+  background: var(--jz-surface-3, #28335a) !important;
+  border-color: var(--jz-gold, #e2c07a) !important;
+  color: var(--jz-gold, #e2c07a) !important;
+  box-shadow: inset 0 0 0 1px var(--jz-gold, #e2c07a);
+}
+
+/* ------------------------------------------------------------------ Island Link (bridges) */
+/* Today's blue and dark navy ground stays; the coins and rods are the Blender pieces. */
+.bridges-frame:has(.logic2-bridges) {
+  background: #0a1224;
+}
+.logic2-bridges .bridges-dots circle {
+  fill: rgba(190, 210, 255, 0.12);
+}
+.logic2-bridges .bridges-line {
+  stroke: var(--jz-gold, #e2c07a);
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.7));
+}
+.logic2-bridges .bridges-preview {
+  stroke: color-mix(in oklab, var(--jz-gold, #e2c07a) 45%, transparent);
+}
+/* The coin image draws the island; the circle stays only for the over-ring. */
+.logic2-bridges .bridges-island circle {
+  fill: none;
+  stroke: none;
+}
+.logic2-bridges .bridges-island-over circle {
+  stroke: var(--jz-loss, #ff5a6e);
+  stroke-width: 6;
+}
+/* Numbers flat and bold, never under a reflection: white on the black coin, near-black on the gold one. */
+.logic2-bridges .bridges-island text {
+  fill: #ffffff;
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+  font-size: 48px;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 2;
+}
+.logic2-bridges .bridges-island-done text {
+  fill: #1a1206;
+  stroke: none;
+}
+.logic2-bridges .bridges-island-over text {
+  fill: #ffd2d8;
+}
+
+/* ------------------------------------------------------------------ live play: no glow, no glare */
+/*
+ * The batch P live-play sheets (src/polish-batch-p) give pieces gold glows and glass highlights; on the seven
+ * overhauled boards the Blender pieces carry their own light, so those are turned off (Joe, 15 Nov 2026: minimal glow,
+ * no reflections across panels, tiles or numbers). Triple attribute selectors to sit above batch P's doubled ones.
+ */
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-camp .logic-tent {
+  filter: none;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-camp > .logic-camp-cell,
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-camp > .logic-sign {
+  box-shadow: none;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-camp > .logic2-sign {
+  color: #fff8ec;
+  font-size: 17px;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-camp > .logic2-sign[data-met] {
+  color: #241706;
+  text-shadow: none;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic-camp-frame,
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic-glass-frame,
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic-lamp-frame {
+  background: linear-gradient(180deg, #0d1210, #080b0a);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 24px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-shikaku > .logic2-pane {
+  background-image: none !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-shikaku > .logic-glass-cell {
+  background: var(--la-logic-cell) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell {
+  filter: none;
+  background: var(--la-logic-cell) center / 100% 100% no-repeat !important;
+  box-shadow: none;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell[data-lit] {
+  background-image: var(--la-lightup-cell-lit) !important;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-wall {
+  background: var(--la-lightup-wall) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps .logic-lamp {
+  box-shadow: none !important;
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps .logic-lamp[data-clash] {
+  box-shadow: 0 0 0 2px var(--jz-loss, #ff5a6e) !important;
+}
+
+/* The shared puzzle surface's cell edge and the old beam glow stay off the overhauled boards. */
+[data-puzzle-surface] .logic2-lamps > [data-puzzle-cell],
+[data-puzzle-surface] .logic2-camp > [data-puzzle-cell],
+[data-puzzle-surface] .logic2-shikaku > [data-puzzle-cell],
+[data-puzzle-surface] .logic2-fillomino > [data-puzzle-cell] {
+  box-shadow: none !important;
+}
+.logic2-lamps .lightup-beam {
+  box-shadow: none !important;
+  background: rgba(255, 214, 140, 0.5) !important;
+}
+
+/* Trail: batch W's bevels, highlights and the teal glow on the head are replaced (no glare, no glowing edges). */
+[data-polish="trail"] [data-game-arena] > .relative.logic2-trail {
+  background: linear-gradient(180deg, #111813, #0a0e0b);
+  box-shadow: 0 0 0 4px #0b100d, 0 10px 24px rgba(0, 0, 0, 0.5);
+}
+[data-polish="trail"] [data-game-arena] .logic2-trail .tr-ground {
+  box-shadow: none;
+  filter: none;
+}
+[data-polish="trail"] [data-game-arena] .logic2-trail .tr-milestone {
+  box-shadow: none;
+}
+[data-polish="trail"] [data-game-arena] .logic2-trail .tr-milestone::before {
+  content: none;
+}
+[data-polish="trail"] [data-game-arena] .logic2-trail .tr-step:not(.tr-wrong):not(.tr-end) {
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
+}
+[data-polish="trail"] .logic2-trail .tr-step.tr-end {
+  box-shadow: 0 0 0 2px #0b0f0d, 0 0 0 4px var(--jz-gold, #e2c07a);
+}
+[data-polish="trail"] .logic2-trail .tr-cell.tr-end {
+  box-shadow: inset 0 0 0 2px var(--jz-gold, #e2c07a);
+}
+
+/* ------------------------------------------------------------------ the answer reveal (logic2Reveal.tsx) */
+.logic2-reveal {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.logic2-reveal-switch {
+  display: flex;
+  align-self: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 3px;
+  background: var(--jz-surface, #0f1424);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.logic2-reveal-switch > button {
+  min-height: 36px;
+  min-width: 112px;
+  border-radius: 999px;
+  padding: 0 14px;
+  font-family: var(--jz-font, inherit);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--jz-text-2, #b5c6dd);
+}
+.logic2-reveal-switch > button[data-on] {
+  background: var(--jz-surface-3, #28335a);
+  color: var(--jz-gold, #e2c07a);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--jz-gold, #e2c07a) 55%, transparent);
+}
+.logic2-reveal-title {
+  align-self: center;
+  font-family: var(--jz-font, inherit);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--jz-text-2, #b5c6dd);
+}
+.logic2-reveal-board {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+}
+.logic2-reveal-board > * {
+  width: 100%;
+  max-width: 100%;
+}
+.logic2-reveal-tally {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.logic2-reveal-bar {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--jz-surface-2, #1e2640);
+}
+.logic2-reveal-bar > span[data-part="right"] { background: var(--jz-win, #16c35b); }
+.logic2-reveal-bar > span[data-part="wrong"] { background: var(--jz-loss, #ff5a6e); }
+.logic2-reveal-bar > span[data-part="missed"] {
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0 4px, transparent 4px 8px);
+}
+.logic2-reveal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--jz-text-2, #b5c6dd);
+}
+.logic2-reveal-legend b {
+  font-weight: 800;
+  color: var(--jz-text, #eef2ff);
+}
+.logic2-reveal-legend > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.logic2-reveal-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.logic2-reveal-legend > li[data-part="right"] i { background: var(--jz-win, #16c35b); }
+.logic2-reveal-legend > li[data-part="wrong"] i { box-shadow: inset 0 0 0 2px var(--jz-loss, #ff5a6e); }
+.logic2-reveal-legend > li[data-part="missed"] i { border: 2px dashed rgba(255, 255, 255, 0.6); }
+.logic2-reveal-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.logic2-reveal-facts > li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 12px;
+  background: var(--jz-surface-2, #1e2640);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--jz-text-2, #b5c6dd);
+  white-space: nowrap;
+}
+.logic2-reveal-facts b {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--jz-text, #eef2ff);
+}
+
+/* Missed pieces: a faint ghost with a dashed ring (shown only on "Your answer"). */
+.logic2-ghost {
+  opacity: 0.38;
+}
+.logic2-reveal [data-missed]::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 6px;
+  pointer-events: none;
+  border: 2px dashed rgba(255, 255, 255, 0.6);
+}
+.logic2-shikaku > .logic2-pane[data-wrong] {
+  outline: 3px solid var(--jz-loss, #ff5a6e);
+  outline-offset: -3px;
+}
+.logic2-shikaku > .logic2-rect-ghost {
+  border: 2px dashed rgba(255, 255, 255, 0.65);
+  margin: 3px;
+}
+.logic2-trail .logic2-trail-ghost {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: rgba(239, 230, 208, 0.55);
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+}
+.logic2-reveal .logic2-trail .logic2-trail-ghost[data-missed]::after {
+  border-radius: 50%;
+  inset: 0;
+}
+.logic2-fences .fences-line[data-wrong] {
+  stroke: var(--jz-loss, #ff5a6e);
+}
+.logic2-fences .logic2-fences-missed line {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-dasharray: 12 10;
+  stroke-linecap: round;
+}
+.logic2-fillomino .logic2-fill-ghost {
+  color: rgba(238, 242, 255, 0.4);
+}
+.logic2-fillomino > .fillomino-cell.fillomino-over .fillomino-entry {
+  text-decoration: none;
+}
+.logic2-bridges .bridges-line.logic2-bridge-wrong {
+  stroke: var(--jz-loss, #ff5a6e);
+}
+.logic2-bridges .logic2-bridge-missed {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 7;
+  stroke-dasharray: 14 12;
+  stroke-linecap: round;
+}
+.logic2-reveal-bridges {
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+/* Gold wire and rods: a darker body and a narrow pale highlight along the top edge (light on a curve, not a glow). */
+.logic2-fences .fences-line:not([data-wrong]) {
+  stroke: #b8954f;
+}
+.logic2-fences .logic2-wire-hl line {
+  stroke: #f6e3b4;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.logic2-bridges .bridges-line:not(.logic2-bridge-wrong) {
+  stroke: #b8954f;
+}
+.logic2-bridges .logic2-rod-hl line {
+  stroke: #f6e3b4;
+  stroke-width: 3;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* Lamplighter: light falling across the floor (Joe, 15 Nov 2026: a soft glow that blends across squares, no hard
+   edge between lit squares, lit not painted). The light is one blurred warm layer under the squares (.logic2-glow, a
+   pool on each lit square at its --logic2-light falloff); a lit square is see-through over it, keeping only a faint
+   trace of its lacquer tile, while walls and dark squares stay opaque. */
+.logic2-lamps > .logic2-glow {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  pointer-events: none;
+  filter: blur(6px);
+}
+.logic2-lamps-small.logic2-lamps > .logic2-glow,
+.logic2-lamps.logic-lamps-small > .logic2-glow {
+  filter: blur(3px);
+}
+.logic2-lamps > .logic2-glow > i {
+  margin: -2px;
+  border-radius: 30%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 196, 110, 0.95) 0%, rgba(240, 150, 52, 0.85) 55%, rgba(200, 104, 24, 0.6) 100%);
+  opacity: calc(0.3 + 0.7 * var(--logic2-light, 1));
+}
+.logic2-lamps > .logic2-lamp-cell[data-lit],
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell[data-lit] {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--la-logic-cell) center / 100% 100% no-repeat;
+  opacity: 0.12;
+}
+.logic2-lamps {
+  overflow: hidden;
+}
+/* Dark squares let a faint halo of a neighbour's light show at their edges (their lacquer drawn at 0.9), and the thin
+   beam lines go: the glow says where the light reaches (a clash's red beams stay). */
+.logic2-lamps > .logic2-lamp-cell:not([data-lit]),
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell:not([data-lit]) {
+  background: transparent !important;
+}
+.logic2-lamps > .logic2-lamp-cell:not([data-lit])::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--la-logic-cell) center / 100% 100% no-repeat;
+  opacity: 0.9;
+}
+.logic2-lamps .lightup-beam {
+  display: none;
+}
+.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
+  opacity: 0.06;
+}
+.logic2-lamps.logic2-lamps .lightup-beam {
+  display: none !important;
+}
+.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
+  content: none;
+}
+
+/* ------------------------------------------------------------------ stage 2: effects */
+/* Tents and Trees: a faint line joins each tent to its tree (half in each square, meeting across the gap). */
+.logic2-camp > .logic2-cell > .logic2-pair-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(50% + 1px);
+  height: 2px;
+  margin-top: -1px;
+  transform-origin: 0 50%;
+  transform: rotate(var(--logic2-pair, 0deg));
+  background: rgba(240, 226, 190, 0.35);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.logic2-camp > .logic2-cell > .logic2-piece {
+  position: relative;
+}
+/* Shikaku: a refused rectangle's outline in red (the kit's short shake on it alone, never the board). */
+.logic2-shikaku > .logic2-bad-rect {
+  border: 3px solid var(--jz-loss, #ff5a6e);
+  background: color-mix(in oklab, var(--jz-loss, #ff5a6e) 14%, transparent);
+}
+/* The solve: the panes ripple from the top-left corner to the bottom-right (≤ 1.2 s, from useSolveFx). */
+[data-logic-solved] .logic2-shikaku > .logic2-pane {
+  animation: logic2-pane-ripple 420ms ease-out calc(var(--logic2-diag, 0) * 40ms) 1 both;
+}
+@keyframes logic2-pane-ripple {
+  0%, 100% { transform: none; filter: none; }
+  45% { transform: scale(1.04); filter: brightness(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-solved] .logic2-shikaku > .logic2-pane { animation: none; }
+}
+/* Lamplighter's solve: every lamp and the light it throws brighten together, once (≤ 1.2 s). */
+[data-logic-solved] .logic2-lamps > .logic2-glow {
+  animation: logic2-lights-up 900ms ease-out 1 both;
+}
+[data-logic-solved] .logic2-lamps .logic2-bulb {
+  animation: logic2-bulb-up 900ms ease-out 1 both;
+}
+@keyframes logic2-lights-up {
+  0%, 100% { opacity: 1; }
+  40% { opacity: 1; filter: blur(6px) brightness(1.45); }
+}
+@keyframes logic2-bulb-up {
+  0%, 100% { transform: none; }
+  40% { transform: scale(1.12); filter: brightness(1.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-solved] .logic2-lamps > .logic2-glow,
+  [data-logic-solved] .logic2-lamps .logic2-bulb { animation: none; }
+}
+/* Trail: a fixed number reached on its own step glows gold for a moment. */
+.logic2-trail .tr-cell.tr-milestone[data-reached] {
+  box-shadow: inset 0 0 0 3px var(--jz-gold, #e2c07a);
+  color: var(--jz-gold, #e2c07a);
+}
+/* Loopline: clue numbers pop about their own centre; a loop that closes but isn't the answer flashes once and its
+   failing numbers glow (met numbers stay gold). */
+.logic2-fences .fences-clue {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-loop-wrong] .logic2-fences .fences-line {
+  animation: logic2-loop-flash 650ms ease-out 1;
+}
+[data-loop-wrong] .logic2-fences .fences-clue:not([data-tone="met"]) {
+  fill: var(--jz-loss, #ff5a6e);
+}
+@keyframes logic2-loop-flash {
+  0%, 100% { stroke: #b8954f; }
+  35% { stroke: #fff4d8; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-loop-wrong] .logic2-fences .fences-line { animation: none; }
+}
+/* Regions' solve: the regions light in size order, the 1s first (≤ 1.2 s). */
+[data-logic-solved] .logic2-fillomino.fillomino-board > .fillomino-cell {
+  animation: logic2-region-fill 420ms ease-out calc(var(--fm-size, 0) * 80ms) 1 both;
+}
+@keyframes logic2-region-fill {
+  0%, 100% { filter: none; }
+  45% { filter: brightness(1.45) saturate(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-solved] .logic2-fillomino.fillomino-board > .fillomino-cell { animation: none; }
+}
+/* Island Link: a bridge just built lays its planks from one island to the other (200 ms); islands pop about their own
+   centre; the solve runs a light across every bridge in turn. */
+.logic2-bridges .bridges-line.logic2-lay {
+  stroke-dasharray: 1;
+  animation: logic2-lay 200ms ease-out 1 both;
+}
+@keyframes logic2-lay {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.logic2-bridges .bridges-island {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-logic-solved] .logic2-bridges .bridges-line {
+  animation: logic2-rod-run 520ms ease-out calc(var(--logic-i, 0) * 30ms) 1 both;
+}
+@keyframes logic2-rod-run {
+  0%, 100% { stroke: #b8954f; }
+  45% { stroke: #fff2cf; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logic2-bridges .bridges-line.logic2-lay,
+  [data-logic-solved] .logic2-bridges .bridges-line { animation: none; }
+}

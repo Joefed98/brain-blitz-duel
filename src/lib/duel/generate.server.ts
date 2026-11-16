@@ -16,6 +16,7 @@ import { dealPuzzleNotes } from "./puzzleNotes";
 import { dealParMoves } from "./parMoves";
 import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps } from "./operatorGaps.server";
+import { dealLogic2 } from "./logicOverhaul2";
 import { dealWordNov7 } from "./wordNov7";
 import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { withDealOptions, type DealOptions } from "./dealEra";
@@ -129,6 +130,7 @@ import { generateNumline } from "./numline.server";
 import { generateFences } from "./fences.server";
 import { generateFillomino } from "./fillomino.server";
 import { generateBridges } from "./bridges.server";
+import { dealLogicLevel } from "./logicLevelDeal.server";
 import { generateKakuro } from "./kakuro.server";
 import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
@@ -184,6 +186,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "gameReviewNov15", deal: dealGameReviewNov15 },
   // The Logic overhaul, session 1 (15 Nov 2026, logicOverhaul1.ts): Polypotions tubesRev 3 (Undo gives the pour back).
   { name: "logicOverhaul1", deal: dealLogicOverhaul1 },
+  // The Logic overhaul, session 2 (15 Nov 2026, logicOverhaul2.ts): Trail's per-undo cost and Regions' stroke rule.
+  { name: "logic2", deal: dealLogic2 },
 ];
 
 /**
@@ -234,6 +238,9 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
     const lv = levelSettings<TubesLevel>("tubes", context.level);
     if (lv) return dealTubesLevel(lv, context.level!, context.bankSeed);
   }
+  // The Logic overhaul's levels (logicLevels.ts): built live, kept only when a person could solve them (logicLevelDeal).
+  const logicBoard = dealLogicLevel(type, context.level, () => gameSeed(type, context));
+  if (logicBoard) return logicBoard;
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();

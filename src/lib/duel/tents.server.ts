@@ -14,6 +14,7 @@ import {
   TENTS_SIZE,
 } from "./tents";
 import type { TentsPuzzleData } from "./types";
+import type { TentsLevel } from "./logicLevels";
 
 function tryLayout(pairs: number, height = TENTS_SIZE): { trees: number[]; tents: number[] } | null {
   const size = TENTS_SIZE;
@@ -43,7 +44,13 @@ function tryLayout(pairs: number, height = TENTS_SIZE): { trees: number[]; tents
  * The depth revision's larger field (depthRev 1, 25 Oct 2026): 8 wide and 9 tall, 12–13 pairs (one more than the
  * 8 × 8 board, so the round's clock still fits a good solve), a third of the 17 line counts hidden, kept only when the solver finds exactly one layout.
  */
-export function generateTents(): TentsPuzzleData {
+export function generateTents(level: TentsLevel | null = null): TentsPuzzleData {
+  if (level) {
+    // A level (logicLevels.ts): 8 wide, its own height, pairs and share of hidden line counts, still exactly one layout.
+    const board = buildTents(level.height, level.pairs[0], level.pairs[1], level.hidden);
+    if (!board) throw new Error("Tents generation failed");
+    return { ...board, timeLimitMs: level.timeLimitMs };
+  }
   return buildTents(TENTS_DEPTH_HEIGHT, 12, 13) ?? generateLegacyTents();
 }
 
@@ -54,7 +61,7 @@ export function generateLegacyTents(): TentsPuzzleData {
   return board;
 }
 
-function buildTents(height: number, minPairs: number, maxPairs: number): TentsPuzzleData | null {
+function buildTents(height: number, minPairs: number, maxPairs: number, hiddenShare?: number): TentsPuzzleData | null {
   const size = TENTS_SIZE;
   const tall = height !== size;
   const lineTotal = size + height;
@@ -65,7 +72,8 @@ function buildTents(height: number, minPairs: number, maxPairs: number): TentsPu
     const { rows, cols } = lineCounts(layout.tents, size, height);
     const rowCounts = [...rows];
     const colCounts = [...cols];
-    const lines = shuffled([...Array(lineTotal).keys()]).slice(0, Math.round(tall ? lineTotal / 3 : (size * 2) / 3));
+    const hide = hiddenShare === undefined ? Math.round(tall ? lineTotal / 3 : (size * 2) / 3) : Math.round(lineTotal * hiddenShare);
+    const lines = shuffled([...Array(lineTotal).keys()]).slice(0, hide);
     for (const line of lines) {
       if (line < height) rowCounts[line] = -1;
       else colCounts[line - height] = -1;

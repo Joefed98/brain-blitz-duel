@@ -2614,6 +2614,22 @@ outside the repo.
   phone-gap-check), the room's finished strip below the timer bar, the reveal heading from `revealHeading.ts` ("Your
   answer" / "The solution" / "Answer and solution") and compact shared reveal rows on short phones (`SHORT_REVEAL_QUERY`).
   app-moments-check (~1 s).
+- **Logic overhaul 2** (15–16 Nov 2026, phase 2 step 4; gallery `docs/design/pages-review/logic-2/GALLERY.md`): Tents
+  and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link. *Look*: Blender-rendered pieces
+  (`scripts/logic-art/render2.py`, cut by `bun scripts/logic-art.ts [--check]` to `public/logic-art/`,
+  `src/puzzles/logicArt.data.ts`), styles `src/polish-logic/logic-2.css`. *Game changes* (`logicOverhaul2.ts`, pin
+  `preLogic2`): Trail `depthRev 3` (2.5 a undo), Regions `fillominoRev 2` (a stroke one mistake). *Reveals*
+  `src/puzzles/logic2Reveal.tsx`. *Effects* on #422's kit, sound slots in `docs/sound-cues/logic-elevenlabs-2.md`
+  (library stand-ins). *Intro demos*: `scripts/fixtures/logic2-demos.json` (`bun scripts/logic2-demos-record.ts`, which
+  plays each intro example on the practice screen for the server's grade and measures every touch in the intro's own
+  demo player), logic2-demos-check, `scripts/logic2-demos-save.ts` for the Save intro demos workflow; older demos stop
+  (`LOGIC2_PRESENTATION`, and Trail / Regions before their stamps). *Levels* (stage 3; `src/lib/duel/logicOverhaul2Levels.ts`, re-exported by `logicLevels.ts`,
+  spread into GAME_LEVELS): every level keeps Normal's width and grows downwards; each Easy / Hard / Expert board must
+  be finished by a person-style solver (`logicHuman.server.ts`: deduction plus one-step trials, never guessing) inside
+  the level's band of trials (`logicLevelDeal.server.ts`); Trail Hard / Expert and Regions Expert come from banks
+  (`logicLevelBank.server.ts`, `bun scripts/logic-level-bank.ts [--part=k/n | --merge=n | --check]`). The kits'
+  thinking time per move scales by level (`LEVEL_THINK`, `LEVEL_THINK_GAME` in `scripts/puzzle-fairness/kit.ts`).
+  Checks: logic-overhaul-2-check, logic2-demos-check, logic-levels-check (quarters on shards a, c, f and g, `--part=k/4`, by game; `CHECKS_FULL=1`: every bank entry).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
