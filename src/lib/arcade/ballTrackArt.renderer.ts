@@ -14,7 +14,7 @@ import { balltrackFxFor } from "./arcadeFxGames.renderer";
 import {
   BT_BALLS, BT_COLS, BT_H as BT_BASE_H, BT_HOPPER_COL, BT_HOPPER_H, BT_PALETTE,
   BT_REV, BT_ROWS as BT_BASE_ROWS, BT_SHUFFLE_TICKS, BT_TILE, BT_TRAY_H, BT_TURN_TICKS, BT_W, E, N, S, W,
-  btBallPoint, btEventCountdown, btLayout, btRotatable, btSwitchedOn, btTraysAt, rowDir, btIsGold, btRowsOf, BT_V7_COMBO_FROM,
+  btBallPoint, btEventCountdown, btLatestMove, btMovesOf, btLayout, btRotatable, btSwitchedOn, btTraysAt, rowDir, btIsGold, btRowsOf, BT_V7_COMBO_FROM,
   type BtBall, type BtCourse, type BtState,
 } from "./ballTrack";
 import {
@@ -711,7 +711,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
 
   // Wooden cups, each carved with its symbol; same slide/flash timing as before.
   const trayY = gridY + BT_ROWS * BT_TILE + 6;
-  const event = s.tick >= course.shuffle.tick ? course.shuffle : s.tick >= course.relay.tick ? course.relay : null;
+  const event = btLatestMove(course, s.tick);
   const prior = event ? btTraysAt(course, event.tick - 1) : course.trays;
   const since = event ? s.tick - event.tick : -1;
   const k = since < 0 ? 0 : Math.min(1, since / BT_SHUFFLE_TICKS);
@@ -799,7 +799,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
       ctx.strokeRect(x - 2, trayY - 2, w + 4, h + 4);
       ctx.globalAlpha = 1;
     }
-    const ahead = [course.relay, course.shuffle].find((e) => e && e.tick > s.tick && e.tick - s.tick <= 60);
+    const ahead = btMovesOf(course).find((e) => e && e.tick > s.tick && e.tick - s.tick <= 60);
     if (ahead && !reduced) {
       const left = ahead.tick - s.tick;
       ctx.globalAlpha = 0.35 * (0.5 + 0.5 * Math.cos(((60 - left) / 15) * Math.PI));

@@ -43,7 +43,7 @@ import {
 } from "./matchup";
 import { inkClover, inkStdSpecFor, inkV13Score, INK_CLOUD_LEVELS, INK_LEVELS, INK_RUN_TICKS, INK_V13_CLOVERS, type InkState } from "./inkBridge";
 import { tiltParParts, TILT_P_CLEAN_POINTS, TILT_P_CORE_MAX, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_RUN_TICKS, TILT_S_MAZES, TILT_S_PROGRESS_SCALE, type TiltState } from "./tilt";
-import { btStdScore, BT_STD, BT_V7_BALLS, BT_V7_GOLDS, type BtState } from "./ballTrack";
+import { btStateBalls, btStdScore, btStdSpecOf, BT_V7_GOLDS, type BtState } from "./ballTrack";
 import { orbitStdScore, orbitXpCounts, ORBIT_REV3_RUN_TICKS, ORBIT_STD, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_TRAILS, type OrbitRev3State } from "./orbitRev3";
 import { ORBIT_TOTAL } from "./orbit";
 
@@ -191,11 +191,13 @@ function tiltParts(s: TiltState): StdPart[] | null {
 function btParts(s: BtState): StdPart[] | null {
   if (!s.std) return null;
   const b = btStdScore(s);
+  // A level course's own marble and gold counts (BT_STD's 36 and 6 on Normal).
+  const spec = btStdSpecOf(s);
   return [
-    stdPart(BT_STD, "core", b.core, of(s.home, BT_V7_BALLS, "marbles")),
-    stdPart(BT_STD, "gold", b.features["gold"] ?? 0, of(s.golds ?? 0, BT_V7_GOLDS, "gold marbles")),
-    stdPart(BT_STD, "combo", b.features["combo"] ?? 0, n(s.combos ?? 0, "combo landing")),
-    stdPart(BT_STD, "boost", b.features["boost"] ?? 0, n(s.boosts ?? 0, "boosted marble")),
+    stdPart(spec, "core", b.core, of(s.home, btStateBalls(s), "marbles")),
+    stdPart(spec, "gold", b.features["gold"] ?? 0, of(s.golds ?? 0, s.ng ?? BT_V7_GOLDS, "gold marbles")),
+    stdPart(spec, "combo", b.features["combo"] ?? 0, n(s.combos ?? 0, "combo landing")),
+    stdPart(spec, "boost", b.features["boost"] ?? 0, n(s.boosts ?? 0, "boosted marble")),
   ];
 }
 

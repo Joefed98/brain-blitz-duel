@@ -8,7 +8,7 @@
  * marbles, 34 combo landings and 36 boosted marbles; its log goes through the server's encode + replay on btRev 8. Plus
  * one built final state with every item taken. balltrack-deal-check runs the same oracle on every course btRev 8 deals.
  */
-import { btCheckpoint, btNext, btLayout, btRotatable, btTraysAt, makeBallTrackGame, BT_CHECKPOINT_INTERVAL, BT_HOPPER_COL, BT_K_ROTATE, BT_REV_RUSH, BT_REV_STD, BT_STD, BT_V7_BALLS, BT_V7_GOLDS, type BtCourse, type BtState } from "../../src/lib/arcade/ballTrack";
+import { btBallsOf, btCheckpoint, btMovesOf, btNext, btLayout, btRotatable, btTraysAt, makeBallTrackGame, BT_CHECKPOINT_INTERVAL, BT_HOPPER_COL, BT_K_ROTATE, BT_REV_RUSH, BT_REV_STD, BT_STD, BT_V7_BALLS, BT_V7_GOLDS, type BtCourse, type BtState } from "../../src/lib/arcade/ballTrack";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { encodeBallTrackRun, replayBallTrackRun } from "../../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK_V7 } from "../../src/lib/duel/ballTrackBankV7.server";
@@ -143,7 +143,7 @@ export function boostedOracle(course: BtCourse): ArcadeInputEvent[] {
   };
   const plan = () => target.map((_, id) => routeOf(id));
   let run = playJudged(course, plan());
-  for (let pass = 0; pass < 10 && run.state.home !== BT_V7_BALLS; pass++) {
+  for (let pass = 0; pass < 10 && run.state.home !== btBallsOf(course); pass++) {
     let changed = false;
     course.balls.forEach((c, id) => {
       const t = run.landed[id] ?? 0;
@@ -158,15 +158,25 @@ export function boostedOracle(course: BtCourse): ArcadeInputEvent[] {
     run = playJudged(course, plan());
   }
   // Then each marble that misses: it and the two before it try aiming for their colour's cup in each of the course's
-  // three tray layouts (start, relay, shuffle), on each of their boosted routes, keeping only improvements.
-  const phases = [0, course.relay.tick, course.shuffle.tick];
+  // three tray layouts (start, relay, shuffle; a level course: the start and after each of its cup moves), on each of
+  // their boosted routes, keeping only improvements.
+  const phases = [0, ...btMovesOf(course).map((m) => m.tick)];
+  // A level course (its own `moves`, up to a dozen of them): only the layouts next to the one live when the marble
+  // landed (the one before, it, the one after), so the search stays quick. btRev 8's bank courses try all three.
+  const phasesNear = (j: number): number[] => {
+    if (!course.moves) return phases;
+    const t = run.landed[j] ?? when[j]!;
+    let k = 0;
+    while (k + 1 < phases.length && t >= phases[k + 1]!) k++;
+    return phases.slice(Math.max(0, k - 1), k + 2);
+  };
   for (let round = 0; round < 6 && run.good.some((g) => !g); round++) {
     let improved = false;
     for (let id = 0; id < run.good.length; id++) {
       if (run.good[id]) continue;
       for (const j of [id, id - 1, id - 2]) {
         if (j < 0 || run.good[id]) continue;
-        for (const at of phases) {
+        for (const at of phasesNear(j)) {
           const col = btTraysAt(course, at).indexOf(course.balls[j]!);
           if (col < 0) continue;
           const count = routesFor(col, at).length;

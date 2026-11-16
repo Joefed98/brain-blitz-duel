@@ -16,6 +16,9 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
+import { BT_EASY_DEAL } from "../src/lib/duel/ballTrackDealEasy.server";
+import { BT_HARD_DEAL } from "../src/lib/duel/ballTrackDealHard.server";
+import { BT_EXPERT_DEAL } from "../src/lib/duel/ballTrackDealExpert.server";
 import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
@@ -1027,6 +1030,38 @@ const GAMES: Game[] = [
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
   // Coral Pop bubbleRev 12 (the Strategy overhaul, 15 Nov 2026: the fast shot), appended so every earlier entry keeps its stream.
   { key: "bubble/fast", game: bubbleGameFor(BUB_REV_FAST), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_FAST) },
+  // Ball Tracker's levels (the Strategy overhaul stage 3, 15 Nov 2026: Easy, Hard and Expert courses from their own proved
+  // lists, btRev 8), appended so every earlier entry keeps its stream.
+  {
+    key: "balltrack/easy",
+    game: makeBallTrackGame(BT_EASY_DEAL[0]!, BT_REV_STD),
+    gameFor: (seed: number) => makeBallTrackGame(BT_EASY_DEAL[seed % BT_EASY_DEAL.length]!, BT_REV_STD),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BT_EASY_DEAL[run.seed % BT_EASY_DEAL.length]!, run, BT_REV_STD),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BT_EASY_DEAL[seed % BT_EASY_DEAL.length]!, seed, raw, BT_REV_STD),
+  },
+  {
+    key: "balltrack/hard",
+    game: makeBallTrackGame(BT_HARD_DEAL[0]!, BT_REV_STD),
+    gameFor: (seed: number) => makeBallTrackGame(BT_HARD_DEAL[seed % BT_HARD_DEAL.length]!, BT_REV_STD),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BT_HARD_DEAL[run.seed % BT_HARD_DEAL.length]!, run, BT_REV_STD),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BT_HARD_DEAL[seed % BT_HARD_DEAL.length]!, seed, raw, BT_REV_STD),
+  },
+  {
+    key: "balltrack/expert",
+    game: makeBallTrackGame(BT_EXPERT_DEAL[0]!, BT_REV_STD),
+    gameFor: (seed: number) => makeBallTrackGame(BT_EXPERT_DEAL[seed % BT_EXPERT_DEAL.length]!, BT_REV_STD),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BT_EXPERT_DEAL[run.seed % BT_EXPERT_DEAL.length]!, run, BT_REV_STD),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BT_EXPERT_DEAL[seed % BT_EXPERT_DEAL.length]!, seed, raw, BT_REV_STD),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

@@ -2,6 +2,7 @@
 
 import {
   btCheckpoint,
+  btStateBalls,
   makeBallTrackGame,
   BT_BALLS,
   BT_V7_BALLS,
@@ -52,7 +53,7 @@ export function replayBallTrackRun(course: BtCourse, seed: number, raw: string, 
     lost: s.lost,
     released: s.next,
     actions: s.actions,
-    perfect: s.home === (s.r7 ? BT_V7_BALLS : BT_BALLS),
+    perfect: s.home === btStateBalls(s),
     speed: btSpeedBonus(s.home, s.lastLand, s.rev),
   };
 }
