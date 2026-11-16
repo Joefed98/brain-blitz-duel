@@ -2503,7 +2503,7 @@ function gradeUnderRev(
     }
     case "orbit": {
       const replayStart = performance.now();
-      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
+      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras, undefined, puzzle.level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

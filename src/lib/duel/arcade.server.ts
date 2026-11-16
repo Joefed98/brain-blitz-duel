@@ -1,3 +1,4 @@
+import type { Level } from "@/lib/levels/levels";
 import { checkOverride } from "@/lib/checkOverride";
 import { dealPinned, setDealPin } from "./dealEra";
 import { MOON_BIG_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
@@ -430,8 +431,16 @@ export function pinOrbitPreBig(on: boolean): boolean {
   return setDealPin("orbitPreBig", on);
 }
 
-export function generateOrbit(): OrbitPuzzleData {
+export function generateOrbit(level?: Level): OrbitPuzzleData {
   const seed = arcadeSeed();
+  // Levels (docs/arcade-standard/orbit.md "Levels"): Easy, Hard and Expert deal orbitRev 16 on a course from the
+  // level's own proved bank, picked by the seed as Normal's; the deal stamps `level` and the sim reads its rules.
+  // Normal (no level) deals exactly as before.
+  const levelName = level === "easy" || level === "hard" || level === "expert" ? level : null;
+  if (levelName && !dealPinned("orbitPreFuel") && !dealPinned("orbitPreGrace") && !dealPinned("orbitPreBig")) {
+    const course = orbitFuelCourseForSeed(seed, levelName);
+    if (course) return { type: "orbit", seed, orbitRev: ORBIT_REV_BIG, planets: course.planets, holes: course.holes, extras: course.extras };
+  }
   // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (zigzag,
   // proved on rev 14's rules: scripts/orbit-fuel-bank.ts), picked by the seed, with its holes and features.
   const fuel = dealPinned("orbitPreFuel") ? null : orbitFuelCourseForSeed(seed);

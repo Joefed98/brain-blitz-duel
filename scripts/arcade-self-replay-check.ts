@@ -196,9 +196,12 @@ import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom } from "@/lib/arcade/orbitRev3";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom, initLevelFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
+import { ORBIT_FUEL_BANK_EASY } from "@/lib/duel/orbitFuelBankEasy.server";
+import { ORBIT_FUEL_BANK_HARD } from "@/lib/duel/orbitFuelBankHard.server";
+import { ORBIT_FUEL_BANK_EXPERT } from "@/lib/duel/orbitFuelBankExpert.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
@@ -1073,6 +1076,63 @@ const GAMES: Game[] = [
     replay: (seed: number, raw: string) => {
       const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
       return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras);
+    },
+  },
+  // Orbit's easy level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the easy bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/easy",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_EASY.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "easy") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_EASY[n % ORBIT_FUEL_BANK_EASY.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_EASY.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "easy");
+    },
+  },
+  // Orbit's hard level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the hard bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/hard",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_HARD.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "hard") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_HARD[n % ORBIT_FUEL_BANK_HARD.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_HARD.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "hard");
+    },
+  },
+  // Orbit's expert level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the expert bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/expert",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_EXPERT.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "expert") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_EXPERT[n % ORBIT_FUEL_BANK_EXPERT.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_EXPERT.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "expert");
     },
   },
 ];

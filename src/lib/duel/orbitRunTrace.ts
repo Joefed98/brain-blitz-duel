@@ -70,7 +70,7 @@ export function traceOrbitRun(puzzle: OrbitPuzzleData, answer: string): OrbitRun
       flight = null;
     }
   };
-  const result = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras, observe);
+  const result = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras, observe, puzzle.level);
   const end = result.state as OrbitRev3State;
   if (!("xp" in result) || !result.xp || !end.planets) return null;
   const dustBits = end.dustGot ?? 0;

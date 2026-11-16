@@ -38,6 +38,7 @@ import {
 } from "../src/lib/arcade/orbit";
 import {
   initFuelFrom,
+  initLevelFrom,
   orbitCaptureAny,
   orbitRev3Game,
   orbitXpCounts,
@@ -48,10 +49,11 @@ import {
   ORBIT_REV3_WORLD_W,
   type OrbitExtras,
   type OrbitHole,
+  type OrbitLevelName,
   type OrbitRev3State,
 } from "../src/lib/arcade/orbitRev3";
-import { buildHoles, holeFailure } from "./orbit-hole-lib";
-import { buildXp, xpFailure } from "./orbit-xp-lib";
+import { buildHoles, holeFailure, HOLE_FROM, windowHopDelay, type HoleWalk } from "./orbit-hole-lib";
+import { buildXp, setXpHopWindow, xpFailure } from "./orbit-xp-lib";
 
 /**
  * The layout's knobs: the sideways step between planets (px, at least `latMin`, at most `latMax`), the sideways
@@ -61,6 +63,49 @@ import { buildXp, xpFailure } from "./orbit-xp-lib";
  * Average / Good / Great at 39 / 71 / 118; 60–220 brings them to about 57 / 90 / 151 with the top levels unchanged.
  */
 export const ZIG = { latMin: 60, latMax: 220, turnMin: 1, turnSpan: 2, retries: 10, farBack: 6 };
+
+/**
+ * A level's course (docs/arcade-standard/orbit.md "Levels"; the Action overhaul, stage 3, 16 Nov 2026): the zigzag's
+ * sideways step (`latMin`–`latMax` px) and lift (`liftMin` + 0–`liftSpan` px, times 1.15), the planets the black holes
+ * sit beside (0-based, as HOLE_FROM), the first belted planet (`beltsFrom`, as ORBIT_HAZARD_FROM), the tank the
+ * flights are proved on (`tank`), the longest proved hop (`hopMax`, a quarter of the tank or more to spare) and the
+ * narrowest release window a hop may be placed with (`window` ticks in a row, two laps running).
+ * NORMAL_COURSE is the fuel bank's, exactly (the defaults every function here keeps when no level is set).
+ */
+export interface FuelCourseSpec {
+  latMin: number;
+  latMax: number;
+  liftMin: number;
+  liftSpan: number;
+  holeFrom: readonly number[];
+  beltsFrom: number;
+  tank: number;
+  hopMax: number;
+  /** Release ticks in a row that must land on the next planet, two laps running, for a hop to be placed (Normal 4). */
+  window: number;
+}
+export const NORMAL_COURSE: FuelCourseSpec = { latMin: ZIG.latMin, latMax: ZIG.latMax, liftMin: 150, liftSpan: 80, holeFrom: HOLE_FROM, beltsFrom: ORBIT_HAZARD_FROM, tank: ORBIT_FUEL_MAX, hopMax: ORBIT_FUEL_HOP_MAX, window: 4 };
+/** The course in force for the builders below (setFuelCourse); NORMAL_COURSE unless a level bank is being built. */
+let COURSE: FuelCourseSpec = NORMAL_COURSE;
+/** The level a course is proved on (its start, initLevelFrom); null = Normal (initFuelFrom, as the fuel bank). */
+let COURSE_LEVEL: OrbitLevelName | null = null;
+export function setFuelCourse(spec: FuelCourseSpec, level: OrbitLevelName | null): void {
+  COURSE = spec;
+  COURSE_LEVEL = level;
+  setXpHopWindow(spec.window);
+}
+export function fuelCourse(): FuelCourseSpec {
+  return COURSE;
+}
+/** A level's hole walk: orbitRev 14's fuel rules with the level's tank (no grace: a miss ends the walk's flight). */
+const LEVEL_WALK: HoleWalk = {
+  init: (planets, holes) => ({ ...initFuelFrom(planets, ORBIT_REV3_WORLD_W, holes, { dust: [], moons: [], fields: [] }), fuel: COURSE.tank, tank: COURSE.tank }),
+  hopDelay: (state) => windowHopDelay(state, COURSE.window),
+};
+/** The witness's start on the course in force: orbitRev 14's (Normal), or orbitRev 16 with the level's rules. */
+function witnessInit(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
+  return COURSE_LEVEL ? initLevelFrom(planets, worldW, holes, extras, COURSE_LEVEL) : initFuelFrom(planets, worldW, holes, extras);
+}
 const MAX_RETRIES = 20;
 /** Fallback sideways steps, px, tried in turn (a hop that proves none of them rejects the build). */
 const ZIG_FALLBACK_LATERAL = [180, 140, 110, 80];
@@ -77,7 +122,7 @@ function hopOkFuel(planets: readonly Planet[], i: number, angle: number, release
   if (innerLobe(from, angle)) return false;
   let { x, y } = orbitPos(from, angle);
   const { vx, vy } = releaseVel(from, angle);
-  for (let t = 1; t <= ORBIT_FUEL_HOP_MAX; t++) {
+  for (let t = 1; t <= COURSE.hopMax; t++) {
     const px = x, py = y;
     x += vx;
     y += vy;
@@ -101,9 +146,9 @@ export function fuelHopWindow(planets: readonly Planet[], i: number): boolean {
     for (let start = 0; start < lap; start++) {
       let len = 0;
       while (len < lap && ok[(start + len) % lap]) len++;
-      if (len < 4) continue;
+      if (len < COURSE.window) continue;
       let again = true;
-      for (let off = 0; off < 4 && again; off++) {
+      for (let off = 0; off < COURSE.window && again; off++) {
         const k = (start + off) % lap;
         again = hopOkFuel(planets, i, phases[k]!, epoch + lap + k);
       }
@@ -128,7 +173,7 @@ export function noFarCatch(planets: readonly Planet[], i: number): boolean {
       if (innerLobe(from, phase)) continue;
       let { x, y } = orbitPos(from, phase);
       const { vx, vy } = releaseVel(from, phase);
-      for (let t = 1; t < ORBIT_FUEL_MAX; t++) {
+      for (let t = 1; t < COURSE.tank; t++) {
         x += vx;
         y += vy;
         const j = orbitCaptureAny(planets, k, x, y);
@@ -165,7 +210,7 @@ export function buildFuelCourseRaw(seed: number, worldW = ORBIT_REV3_WORLD_W): P
       const lo = extent + 8 * FP;
       const hi = worldW * FP - extent - 8 * FP;
       if (zig.streak >= zig.turnLen) zig = { dir: -zig.dir, streak: 0, turnLen: ZIG.turnMin + draw(ZIG.turnSpan) };
-      const lateral = (ZIG.latMin + draw(ZIG.latMax - ZIG.latMin + 1)) * FP;
+      const lateral = (COURSE.latMin + draw(COURSE.latMax - COURSE.latMin + 1)) * FP;
       let x = prev.x + zig.dir * lateral;
       // Short of room on this side: turn now (the step keeps its full sideways length).
       if (x < lo || x > hi) {
@@ -173,12 +218,12 @@ export function buildFuelCourseRaw(seed: number, worldW = ORBIT_REV3_WORLD_W): P
         x = clampInt(prev.x + zig.dir * lateral, lo, hi);
       }
       zig.streak += 1;
-      const y = prev.y - Math.trunc(((150 + draw(81)) * 115) / 100) * FP;
+      const y = prev.y - Math.trunc(((COURSE.liftMin + draw(COURSE.liftSpan + 1)) * 115) / 100) * FP;
       const dx = x - prev.x;
       const dy = y - prev.y;
       const min = orbitExtent(prev) + extent + 24 * FP;
       if (dx * dx + dy * dy < min * min) continue;
-      const hazard = i >= ORBIT_HAZARD_FROM && i < ORBIT_TOTAL && draw(2) === 1 ? draw(64) * 1024 : -1;
+      const hazard = i >= COURSE.beltsFrom && i < ORBIT_TOTAL && draw(2) === 1 ? draw(64) * 1024 : -1;
       const spin = draw(2) ? 1 : -1;
       planets.push({ x, y, ...shape, dir: kind === ORBIT_EIGHT ? -1 : spin, hazard, colour: i % 4, kind, rot });
       if (fuelHopWindow(planets, i - 1) && (attempt >= ZIG.retries || noFarCatch(planets, i))) placed = true;
@@ -228,10 +273,10 @@ export let fuelFailure = "";
 
 /** Replays a witness on orbitRev 14: the final state and the least fuel any flight landed with. */
 export function fuelWitnessRun(planets: Planet[], holes: OrbitHole[], extras: OrbitExtras, taps: readonly number[]): { state: OrbitRev3State; minFuel: number } {
-  let s = initFuelFrom(planets, ORBIT_REV3_WORLD_W, holes, extras);
+  let s = witnessInit(planets, ORBIT_REV3_WORLD_W, holes, extras);
   const set = new Set(taps);
-  let minFuel = ORBIT_FUEL_MAX;
-  let lastFuel = ORBIT_FUEL_MAX;
+  let minFuel = COURSE.tank;
+  let lastFuel = COURSE.tank;
   while (s.ended === 0 && s.tick < ORBIT_REV3_RUN_TICKS) {
     const flying = s.flying > 0;
     s = step(s, set.has(s.tick + 1) ? tapAt(s.tick + 1) : null);
@@ -253,23 +298,29 @@ export function buildFuelCourse(seed: number): FuelCourse | null {
       fails.push(`salt ${salt}: ${(e as Error).message}`);
       continue;
     }
-    const bot = runRev3BotWithTaps(planets, ORBIT_REV3_WORLD_W);
-    if (!bot.proof.ok) {
-      fails.push(`salt ${salt}: old-rule bot ${bot.proof.reason}`);
-      continue;
+    // A level's course is proved on its own rules only (the old-rule walk asks for release windows of four ticks and
+    // flights the old rules end; a level's witness, below, is its proof); Normal keeps the old-rule bot and hole walk.
+    let holes: ReturnType<typeof buildHoles>;
+    if (COURSE_LEVEL) holes = buildHoles(planets, null, build, COURSE.holeFrom, LEVEL_WALK);
+    else {
+      const bot = runRev3BotWithTaps(planets, ORBIT_REV3_WORLD_W);
+      if (!bot.proof.ok) {
+        fails.push(`salt ${salt}: old-rule bot ${bot.proof.reason}`);
+        continue;
+      }
+      holes = buildHoles(planets, bot.taps, build, COURSE.holeFrom);
     }
-    const holes = buildHoles(planets, bot.taps, build);
     if (!holes) {
       fails.push(`salt ${salt}: holes ${holeFailure}`);
       continue;
     }
-    const xp = buildXp(planets, holes.holes, build, initFuelFrom);
+    const xp = buildXp(planets, holes.holes, build, witnessInit);
     if (!xp) {
       fails.push(`salt ${salt}: features ${xpFailure}`);
       continue;
     }
     const w = fuelWitnessRun(planets, holes.holes, xp.extras, xp.taps);
-    if (w.minFuel < ORBIT_FUEL_MAX - ORBIT_FUEL_HOP_MAX) {
+    if (w.minFuel < COURSE.tank - COURSE.hopMax) {
       fails.push(`salt ${salt}: a witness flight landed with ${w.minFuel} fuel`);
       continue;
     }

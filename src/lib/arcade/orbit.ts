@@ -623,6 +623,9 @@ function isOver(state: OrbitState): boolean {
 export function orbitCanSetCheckpoint(state: OrbitState): boolean {
   // orbitRev 6: not while flying in from a black hole (rev-3 states only; older states have no warp).
   const warp = (state as { warp?: number }).warp ?? 0;
+  // Levels: Easy sets its checkpoints itself and Expert has none (orbitRev3.ts orbitLevelFields): no SET CHECKPOINT.
+  const lv = state as { cpAuto?: number; cpNone?: number };
+  if (lv.cpAuto || lv.cpNone) return false;
   return state.ended === 0 && state.flying === 0 && warp === 0 && state.checkpoint < 0 && state.respawns > 0;
 }
 
@@ -805,6 +808,9 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
   // orbitRev 15 (grace): the fuel, the respawn hold and the automatic respawns, last (earlier states never carry `grace`).
   const grace = state as { grace?: number; fuel?: number; hold?: number; autoRespawns?: number };
   if (grace.grace) values.push(grace.grace, grace.fuel ?? 0, grace.hold ?? 0, grace.autoRespawns ?? 0);
+  // Levels (Easy, Hard, Expert on orbitRev 16): the tank and the checkpoint rule, last (Normal states never carry them).
+  const lv = state as { tank?: number; cpAuto?: number; cpNone?: number; cpUsed?: number };
+  if (lv.tank !== undefined) values.push(lv.tank, lv.cpAuto ?? 0, lv.cpNone ?? 0, lv.cpUsed ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;

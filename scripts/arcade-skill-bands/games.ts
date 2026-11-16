@@ -47,7 +47,7 @@ import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } 
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
 import { tiltBankSeedFor } from "../../src/lib/duel/tiltBank.server";
 import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, orbitXpRev } from "../../src/lib/arcade/orbit";
-import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, orbitStartForPuzzle, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "../../src/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "../../src/lib/duel/orbitFuelBank.server";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
@@ -271,6 +271,12 @@ export const GAMES: GameSpec[] = [
       }
       const start = orbitRev3StartFor(rev, orbitXpRev(rev) ? decodeOrbitExtras(orbitXpExtras(seed)) : null) ?? initRev4From;
       return { ...orbitRev3Game, init: () => start(orbitPlanets(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitEntry(seed).holes)) };
+    },
+    // Levels (docs/arcade-standard/orbit.md "Levels"): the dealt puzzle's own course and level rules (the level's bank
+    // course, its tank and checkpoints), as the stage plays it; a puzzle without a level is the stamp's world.
+    gameForPuzzle: (puzzle) => {
+      const start = orbitStartForPuzzle(puzzle);
+      return start ? { ...orbitRev3Game, init: start } : orbitRev3Game;
     },
     checkpoint: orbitCheckpoint,
     encode: (run) => encodeOrbitRun(run),

@@ -303,7 +303,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "junction") return generateJunction();
   if (type === "inkbridge") return generateInkBridge();
   if (type === "burst") return generateBurst();
-  if (type === "orbit") return generateOrbit();
+  if (type === "orbit") return generateOrbit(context.level);
   if (type === "swing") return generateSwing();
   if (type === "snip") return generateSnip();
   if (type === "tilt") return generateTilt();
