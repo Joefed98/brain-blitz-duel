@@ -149,6 +149,11 @@ export interface BtCourse {
    * `relay` and `shuffle` (which then hold the first and last move, or BT_NEVER_TICK on Easy, where the cups never move).
    */
   moves?: { tick: number; trays: number[] }[];
+  /**
+   * Level courses only, Easy's (16 Nov 2026): the combo landings that fill the combos part (its 16 marbles hold at most
+   * 14). Absent on every other course, which keeps BT_V8_COMBOS_FULL (20).
+   */
+  combo?: number;
 }
 
 /** A tick no run reaches: Easy's stand-in `relay` / `shuffle` (its cups never move). */
@@ -288,6 +293,8 @@ export interface BtState extends BandFields {
    */
   nb?: number;
   ng?: number;
+  /** Level courses that carry `combo` only (Easy): the combo landings that fill the combos part; absent = 20. */
+  nc?: number;
 }
 
 export function btInit(course: BtCourse): BtState {
@@ -672,7 +679,7 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
       // btRev 7 (expansion E6): the rev-2 rules on the 13-row board with the expansion's features.
       // A level course (Easy, Hard, Expert; dealt only on btRev 8, but the proving tools also play it on btRev 7's rules)
       // carries its own marble and gold counts (outside the checksum).
-      const counts = course.drop !== undefined ? { nb: course.balls.length, ng: course.gold?.length ?? 0 } : {};
+      const counts = course.drop !== undefined ? { nb: course.balls.length, ng: course.gold?.length ?? 0, ...(course.combo !== undefined ? { nc: course.combo } : {}) } : {};
       if (rev === BT_REV_RUSH) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), ...counts };
       // btRev 8 (the arcade scoring standard): btRev 7's play exactly, scored on BT_STD (`std` stays out of the checksum).
       if (rev === BT_REV_STD) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), std: 1, ...counts };
@@ -906,18 +913,19 @@ export function btIsV7Play(rev?: number | null): boolean {
 /**
  * The standard's parts a btRev 8 state is scored on: BT_STD, or on a level course (the state's `nb` / `ng`) the same
  * parts and maximums shared over that course's marbles and gold marbles (the core and the boosted part over its `nb`
- * marbles, the gold part over its `ng` gold marbles; combos still full at 20).
+ * marbles, the gold part over its `ng` gold marbles; combos full at 20, or at the course's own `combo` on Easy, `nc`).
  */
-export function btStdSpecOf(state: { nb?: number; ng?: number }): StdSpec {
+export function btStdSpecOf(state: { nb?: number; ng?: number; nc?: number }): StdSpec {
   if (state.nb === undefined) return BT_STD;
-  const nb = state.nb, ng = state.ng ?? BT_V7_GOLDS;
-  const cached = specCache.get(`${nb}|${ng}`);
+  const nb = state.nb, ng = state.ng ?? BT_V7_GOLDS, nc = state.nc ?? BT_V8_COMBOS_FULL;
+  const key = `${nb}|${ng}|${nc}`;
+  const cached = specCache.get(key);
   if (cached) return cached;
   const spec: StdSpec = {
     ...BT_STD,
-    parts: BT_STD.parts.map((p) => (p.key === "core" || p.key === "boost" ? { ...p, of: nb } : p.key === "gold" ? { ...p, of: ng } : p)),
+    parts: BT_STD.parts.map((p) => (p.key === "core" || p.key === "boost" ? { ...p, of: nb } : p.key === "gold" ? { ...p, of: ng } : p.key === "combo" ? { ...p, of: nc } : p)),
   };
-  specCache.set(`${nb}|${ng}`, spec);
+  specCache.set(key, spec);
   return spec;
 }
 const specCache = new Map<string, StdSpec>();

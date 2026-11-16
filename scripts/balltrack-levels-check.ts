@@ -67,7 +67,8 @@ function dealWith(r: number, level?: string): BallTrackPuzzleData {
 /* 1. The registry. */
 ok(JSON.stringify(levelsOf("balltrack")) === JSON.stringify(["easy", "normal", "hard", "expert"]), `Ball Tracker offers all four levels (${levelsOf("balltrack").join(", ")})`);
 const easy = btLevelSettings("easy"), hard = btLevelSettings("hard"), expert = btLevelSettings("expert");
-ok(easy.balls === 28 && easy.dropTicks === 108 && easy.moves === 0, "Easy: 28 marbles every 1.8 s, the cups never move");
+ok(easy.balls === 16 && easy.dropTicks === 190 && easy.moves === 0, "Easy: 16 marbles every 3.2 s, the cups never move");
+ok(easy.comboFull === 10 && hard.comboFull === undefined && expert.comboFull === undefined, "Easy alone fills the combos part at 10 combo landings (Hard and Expert at Normal's 20)");
 ok(easy.golds > 6 && easy.boosts > 3, "Easy: more gold marbles and boosters than Normal (6 and 3)");
 ok(hard.balls === 42 && hard.dropTicks === 72 && hard.moves > 2, "Hard: 42 marbles every 1.2 s, the cups move more often than Normal's 2");
 ok(expert.balls === 42 && expert.dropTicks === 66 && expert.moves > hard.moves && expert.boosts < 3, "Expert: 42 every 1.1 s, the cups move most often, fewer boosters");
@@ -94,7 +95,7 @@ for (const e of BALL_TRACK_BANK_V7) {
 }
 {
   const s = makeBallTrackGame(BALL_TRACK_BANK_V7[0]!.course, BT_REV_STD).init(1);
-  ok(!("nb" in s) && !("ng" in s), "a Normal state carries no level counts");
+  ok(!("nb" in s) && !("ng" in s) && !("nc" in s), "a Normal state carries no level counts");
   ok(btStdSpecOf(s).parts[0]!.of === 36 && btStdSpecOf(s).parts[1]!.of === 6, "a Normal state is scored on BT_STD (36 marbles, 6 gold)");
 }
 
@@ -118,7 +119,7 @@ for (const level of BT_LEVELS) {
     const moves = c.moves ?? [];
     const shape =
       c.rows === BT_V7_ROWS && c.balls.length === s.balls && c.drop === s.dropTicks && moves.length === s.moves &&
-      (c.gold?.length ?? 0) === s.golds && (c.boost?.length ?? 0) === s.boosts && (c.cross?.length ?? 0) === 2 &&
+      (c.gold?.length ?? 0) === s.golds && (c.boost?.length ?? 0) === s.boosts && (c.cross?.length ?? 0) === 2 && c.combo === s.comboFull &&
       c.balls.every((b) => b >= 0 && b < 4) && [0, 1, 2, 3].every((k) => Math.abs(c.balls.filter((b) => b === k).length - s.balls / 4) <= 1);
     ok(shape, `${level} course ${i}: ${s.balls} marbles every ${s.dropTicks} ticks, ${s.moves} cup moves, ${s.golds} gold, ${s.boosts} boosters, 2 crossovers`);
     ok(moves.every((m, k) => m.tick > (moves[k - 1]?.tick ?? 0) && m.tick < 2900), `${level} course ${i}: the cup moves in order, all before 48 s`);
@@ -162,6 +163,9 @@ for (const level of BT_LEVELS) {
   const s0 = game.init(1);
   const spec = btStdSpecOf(s0);
   ok(stdSpecMax(spec) === 200 && spec.parts[0]!.of === s.balls && spec.parts[1]!.of === s.golds && spec.parts.find((q) => q.key === "boost")!.of === s.balls, `${level}: the parts total 200, shared over ${s.balls} marbles and ${s.golds} gold`);
+  const comboOf = s.comboFull ?? 20;
+  ok(spec.parts.find((q) => q.key === "combo")!.of === comboOf && comboOf <= s.balls - 2, `${level}: the combos part fills at ${comboOf} combo landings, within the ${s.balls - 2} a run can make`);
+  ok(game.score({ ...s0, acted: 1, home: s.balls, golds: s.golds, combos: comboOf - 1, boosts: s.balls }) < 200, `${level}: one combo landing short is under 200`);
   ok(game.score({ ...s0, acted: 1, home: s.balls, golds: s.golds, combos: 20, boosts: s.balls }) === 200, `${level}: a full state scores 200`);
   ok(game.score({ ...s0, acted: 1, home: s.balls - 1, golds: s.golds, combos: 20, boosts: s.balls - 1 }) < 200, `${level}: one marble short is under 200`);
   const reveal = buildArcadeReveal("balltrack", { home: 10, wrong: 0, lost: 0, state: { ...s0, home: 10 } }, 100);
