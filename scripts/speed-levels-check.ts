@@ -10,8 +10,9 @@
  *   5. Each level grades from the stored puzzle: the engine games' runs replay to the phone's own claim, unflagged; the
  *      puzzles' finished runs are correct; a level deal graded with its level stamp removed scores differently or
  *      plays a different board (the stamp is what the grader reads).
- *   6. The human-limits tuning (Joe's rule: about 0.25 s to react, 0.15 s to move): Expert is never easier than Normal,
- *      and reaches about 140 under those limits wherever Normal itself does; the measured averages pinned loosely.
+ *   6. The human-limits tuning (Joe's rule: about 0.25 s to react, 0.15 s to move; 16 Nov 2026: a clear step up from
+ *      level to level, Expert humanly possible to score well on): Normal → Hard → Expert each at least 3 lower, Easy no
+ *      harder than Normal, and Expert's best tenth at 140 or more (Normal's own average where that is lower).
  *   7. The level lines: one plain line a level on the round intro (Normal none) and a "Levels:" line in each help.
  *
  *   bun scripts/speed-levels-check.ts
@@ -205,19 +206,18 @@ for (const type of ["reaction", "numhunt", "chain"] as const) {
   }
 }
 
-section("6. The human-limits tuning");
-const human = (type: (typeof SPEED_LEVEL_GAMES)[number], level: Level) => tuneSpeed(type, level, 12, 0, [["human", HUMAN_LIMITS]])[0]!;
+section("6. The human-limits tuning (Joe, 16 Nov 2026: a clear step up, Expert humanly possible to score well on)");
+const human = (type: (typeof SPEED_LEVEL_GAMES)[number], level: Level) => tuneSpeed(type, level, 100, 0, [["human", HUMAN_LIMITS]])[0]!;
 for (const type of SPEED_LEVEL_GAMES) {
-  const normal = human(type, "normal");
-  const expert = human(type, "expert");
-  const easy = human(type, "easy");
-  console.log(`  ${type}: human limits Easy ${easy.average}, Normal ${normal.average}, Expert ${expert.average} (12 deals)`);
-  ok(expert.average <= normal.average + 5, `${type}: Expert (${expert.average}) is never easier than Normal (${normal.average})`);
-  // Within 2 points: Ascend sits at the 200 ceiling at every level under these limits (reported for Joe).
-  ok(easy.average >= expert.average - 2, `${type}: Easy (${easy.average}) is no harder than Expert (${expert.average})`);
-  // Joe's "humanly possible" rule: about 140 under human limits, wherever Normal itself reaches it (Flash's curve is
-  // reaction-bound: Normal scores about 123 at a 250 ms reaction, so its Expert is held within 15 of Normal).
-  ok(expert.average >= Math.min(130, normal.average - 15), `${type}: Expert under human limits averages ${expert.average} (at least ${Math.min(130, normal.average - 15)})`);
+  const [easy, normal, hard, expert] = (["easy", "normal", "hard", "expert"] as const).map((level) => human(type, level));
+  console.log(`  ${type}: human limits Easy ${easy!.average}, Normal ${normal!.average}, Hard ${hard!.average}, Expert ${expert!.average} (best tenth ${expert!.top10}; 100 deals)`);
+  // Easy is never harder than Normal (within 3: Bonk and Ascend sit at a strong player's ceiling on both).
+  ok(easy!.average >= normal!.average - 3, `${type}: Easy (${easy!.average}) is no harder than Normal (${normal!.average})`);
+  ok(hard!.average <= normal!.average - 3, `${type}: Hard (${hard!.average}) is clearly harder than Normal (${normal!.average})`);
+  ok(expert!.average <= hard!.average - 3, `${type}: Expert (${expert!.average}) is clearly harder than Hard (${hard!.average})`);
+  // Humanly possible to score well on: the best tenth under human limits reaches 140, or Normal's own average where
+  // that is lower (Flash's curve is reaction-bound: a 250 ms reaction scores about 115 a flash).
+  ok(expert!.top10 >= Math.min(140, normal!.average), `${type}: Expert's best tenth under human limits scores ${expert!.top10} (at least ${Math.min(140, normal!.average)})`);
 }
 
 section("7. The level lines");

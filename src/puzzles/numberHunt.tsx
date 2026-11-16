@@ -722,6 +722,7 @@ export function buildNumberHunt(level?: AscendLevel): NumberHuntPuzzleData {
     tapRev: dealtTapRev("numhunt"),
     moveMs: level.moveMs,
     timeLimitMs: level.timeLimitMs,
+    ...(level.fullByS !== 40 ? { fullByS: level.fullByS } : {}),
     ...(level.descending ? { descending: true } : {}),
   };
 }

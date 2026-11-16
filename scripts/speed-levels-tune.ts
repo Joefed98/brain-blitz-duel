@@ -21,7 +21,8 @@ import { levelsOf } from "../src/lib/levels/gameLevels";
 import { puzzleLevel, type Level } from "../src/lib/levels/levels";
 import type { ChainPuzzleData, NumberHuntPuzzleData, PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import type { Play, Rng, Step } from "./puzzle-fairness/kit";
-import { ascendLayoutAt, encodeNumberTaps, type NumberTap } from "../src/lib/duel/tapLog";
+import { ascendLayoutAt, encodeNumberTaps, encodeTapTimes, replayFlash, TAP_LOG_MAX, type NumberTap } from "../src/lib/duel/tapLog";
+import { flashWindowMs, type ReactionPuzzleData } from "../src/lib/duel/types";
 import { chainBoardIndex, chainCycleAt, chainReversedAt, chainRequiredAt, chainRules, chainTimeLimitMs, chainWindowMs, encodeChainAnswer, type ChainTap } from "../src/lib/duel/chain";
 import { CHAIN_BLOCK, type ChainBreak } from "../src/lib/duel/types";
 
@@ -123,8 +124,39 @@ export function playChain(c: ChainPuzzleData, rng: Rng, skill: Skill): Play {
   return { timed: true, steps };
 }
 
+/**
+ * Flash under human limits: the kit's flash timing, but lures tapped at a human rate (go/no-go findings for skilled
+ * adults under time pressure: a few per cent on a plain colour, more on a look-alike), 2 % on a plain decoy and 8 % on
+ * a gold-like one scaled by how close it looks (the kit's pulls: amber and half-gold most). The kit's own rate (its
+ * slip rate × the pull) is under 2 % even on a look-alike, better than people manage; the elite bot keeps it.
+ */
+const LURE_PCT: Record<string, number> = { teal: 2, red: 2, blue: 2, amber: 10, half: 9, border: 7, word: 6 };
+export function playFlashHuman(r: ReactionPuzzleData, rng: Rng, skill: Skill, limitMs: number): Play {
+  const taps: number[] = [];
+  let segment = 0;
+  for (const f of r.flashes) {
+    for (const d of r.decoys.filter((d) => d.at >= segment && d.at < f)) {
+      if (rng.chance((LURE_PCT[d.color] ?? 2) / 100)) taps.push(d.at + Math.max(120, rng.normal(skill.reactionMs, skill.reactionSd)));
+    }
+    if (rng.chance(skill.err * 0.25)) {
+      if (rng.chance(0.5)) taps.push(f + rng.int(600, 1_300));
+    } else {
+      taps.push(f + Math.max(115, rng.normal(skill.reactionMs, skill.reactionSd)));
+    }
+    segment = f + flashWindowMs(r);
+  }
+  const log: number[] = [];
+  for (const t of [...new Set(taps.map(Math.round))].sort((a, b) => a - b)) {
+    if (t > limitMs || log.length >= TAP_LOG_MAX) break;
+    if (replayFlash(r, log, t).done) break;
+    log.push(t);
+  }
+  return { timed: true, steps: [{ answer: encodeTapTimes(log), atMs: log[log.length - 1] ?? 0 }] };
+}
+
 /** The player for a game: the level-aware ones above, else the game's kit (the engine games' sims carry their level). */
 function play(puzzle: PuzzleData, rng: Rng, skill: Skill, limit: number): Play {
+  if (puzzle.type === "reaction" && skill === HUMAN_LIMITS) return playFlashHuman(puzzle, rng, skill, limit);
   if (puzzle.type === "numhunt") return playAscend(puzzle, rng, skill, limit);
   if (puzzle.type === "chain") return playChain(puzzle, rng, skill);
   return KITS[puzzle.type]!.play(puzzle, rng, skill, limit);

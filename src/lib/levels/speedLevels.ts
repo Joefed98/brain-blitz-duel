@@ -30,6 +30,8 @@ export interface AscendLevel {
   moveMs: number;
   timeLimitMs: number;
   descending: boolean;
+  /** The finish earns its full speed points by this many seconds (Normal: 40). */
+  fullByS: number;
 }
 
 /** Don't Break the Chain (chain). */
@@ -84,29 +86,35 @@ export interface PullLevel {
 export const FLASH_LEVELS = {
   easy: { flashes: [5, 5], decoys: [0, 1], goldLike: 0, flashMs: 1_500 },
   hard: { flashes: [6, 8], decoys: [2, 3], goldLike: 0.75, flashMs: 1_500 },
-  expert: { flashes: [8, 8], decoys: [2, 4], goldLike: 0.5, flashMs: 1_000 },
+  // Expert: 3–5 decoys, ¾ gold-like (the brief's 2–4 of all kinds stepped too little from Hard; Joe, 16 Nov 2026).
+  expert: { flashes: [8, 8], decoys: [3, 5], goldLike: 0.75, flashMs: 1_000 },
 } as const satisfies Record<string, FlashLevel>;
 
 export const ASCEND_LEVELS = {
-  easy: { count: 16, min: 1, max: 30, moveMs: 0, timeLimitMs: 60_000, descending: false },
-  hard: { count: 30, min: 10, max: 99, moveMs: 10_000, timeLimitMs: 75_000, descending: false },
-  expert: { count: 30, min: 10, max: 99, moveMs: 8_000, timeLimitMs: 90_000, descending: true },
+  easy: { count: 16, min: 1, max: 30, moveMs: 0, timeLimitMs: 60_000, descending: false, fullByS: 40 },
+  // Hard and Expert: the brief's 75 s and 90 s clocks let a strong player finish 30 numbers in about half the time for
+  // full points, so no step up (Joe, 16 Nov 2026: a clear step up matters most): a shorter clock and an earlier
+  // full-speed time.
+  hard: { count: 30, min: 10, max: 99, moveMs: 10_000, timeLimitMs: 50_000, descending: false, fullByS: 25 },
+  expert: { count: 30, min: 10, max: 99, moveMs: 8_000, timeLimitMs: 45_000, descending: true, fullByS: 20 },
 } as const satisfies Record<string, AscendLevel>;
 
 /** Normal (today): 40 links, windows 3 / 2.5 / 2 s (to links 13, 26, 40), links 21–25 reversed, five charms, 45 s. */
 export const CHAIN_LEVELS = {
   easy: { links: 30, bands: [{ upTo: 10, ms: 3_500 }, { upTo: 20, ms: 3_000 }, { upTo: 30, ms: 2_500 }], reverse: [], cycle: 5, timeLimitMs: 45_000 },
   hard: { links: 40, bands: [{ upTo: 13, ms: 2_500 }, { upTo: 26, ms: 2_000 }, { upTo: 40, ms: 1_600 }], reverse: [[21, 25], [31, 35]], cycle: 5, timeLimitMs: 45_000 },
-  // Expert eased from the brief's 50 links at 2 / 1.6 / 1.3 s (the human-limits player averaged 108; at 45 links and
-  // 2.3 / 1.9 / 1.6 s it averages about 140, speed-levels-tune.ts).
-  expert: { links: 45, bands: [{ upTo: 15, ms: 2_300 }, { upTo: 30, ms: 1_900 }, { upTo: 45, ms: 1_600 }], reverse: [[21, 25], [36, 40]], cycle: 6, timeLimitMs: 60_000 },
+  // Expert as the brief, the last window 1.4 s (1.3 s: only 28 % of runs under human limits finished): about 119 on
+  // average, a clear step below Hard, its best runs about 180 (Joe, 16 Nov 2026: humanly possible to score well on).
+  expert: { links: 50, bands: [{ upTo: 16, ms: 2_000 }, { upTo: 33, ms: 1_600 }, { upTo: 50, ms: 1_400 }], reverse: [[21, 25], [36, 40]], cycle: 6, timeLimitMs: 60_000 },
 } as const satisfies Record<string, ChainLevel>;
 
 /** Normal (today): up 0.9 → 0.6 s (54 → 36 ticks), 3 up at once, 3–5 flips, 10 % hedgehogs. */
 export const BONK_LEVELS = {
   easy: { lifeStart: 66, lifeEnd: 48, maxUp: 2, flips: [2, 2], hedgehogPct: 5, gapPct: 115 },
-  hard: { lifeStart: 51, lifeEnd: 36, maxUp: 3, flips: [5, 7], hedgehogPct: 15, gapPct: 80 },
-  expert: { lifeStart: 48, lifeEnd: 33, maxUp: 4, flips: [7, 9], hedgehogPct: 20, gapPct: 65 },
+  // Hard and Expert shorter and busier than the brief's (0.85 → 0.6 s and 0.8 → 0.55 s): a 0.25 s player still reached
+  // those in time, so neither stepped down from Normal (Joe, 16 Nov 2026: a clear step up matters most).
+  hard: { lifeStart: 43, lifeEnd: 30, maxUp: 3, flips: [5, 7], hedgehogPct: 15, gapPct: 50 },
+  expert: { lifeStart: 40, lifeEnd: 27, maxUp: 4, flips: [7, 9], hedgehogPct: 20, gapPct: 50 },
 } as const satisfies Record<string, BonkLevel>;
 
 /** Normal (today): ten targets up to 140, today's operator mix and speeds. Easy is 80 % speed with no operator needed. */
@@ -124,10 +132,10 @@ export const TENFALL_LEVELS = {
  */
 export const PULL_LEVELS = {
   easy: { clays: 20, pairs: 3, triples: 0, birds: 6, speedPct: 80 },
-  // Hard and Expert faster than the brief's +10 % / +15 % (the human-limits player averaged about 170 and 163 there):
-  // +25 % and +40 % average about 167 and 157 (speed-levels-tune.ts); a precise shooter barely feels the clays' speed.
-  hard: { clays: 28, pairs: 10, triples: 0, birds: 20, speedPct: 125 },
-  expert: { clays: 30, pairs: 12, triples: 3, birds: 26, speedPct: 140 },
+  // Hard and Expert faster and with more birds than the brief's (+10 % / +15 %, 20 / 26 birds: Hard scored as Normal
+  // under human limits): +45 % with 24 birds and +60 % with 32 step down clearly (speed-levels-tune.ts).
+  hard: { clays: 28, pairs: 10, triples: 0, birds: 24, speedPct: 145 },
+  expert: { clays: 30, pairs: 12, triples: 3, birds: 32, speedPct: 160 },
 } as const satisfies Record<string, PullLevel>;
 
 /** A Pull! level's clays as the sim stores them (clayShoot.ts ClayLevel): the groups in order, triples spread through. */
@@ -156,17 +164,17 @@ export const SPEED_LEVEL_LINES: Readonly<Record<string, Readonly<Partial<Record<
   reaction: {
     easy: "Easy: 5 flashes, at most one decoy before each, and no gold-like decoys.",
     hard: "Hard: 6 to 8 flashes, 2 or 3 decoys before each, most of them gold-like.",
-    expert: "Expert: 8 flashes, up to 4 decoys before each, and the gold shows for 1 second only.",
+    expert: "Expert: 8 flashes, 3 to 5 decoys before each, and the gold shows for 1 second only.",
   },
   numhunt: {
     easy: "Easy: 16 numbers from 1 to 30, and the discs never move.",
-    hard: "Hard: 30 numbers in 75 seconds, and the discs move every 10 seconds.",
-    expert: "Expert: 30 numbers from highest to lowest in 90 seconds, and the discs move every 8 seconds.",
+    hard: "Hard: 30 numbers in 50 seconds, and the discs move every 10 seconds.",
+    expert: "Expert: 30 numbers from highest to lowest in 45 seconds, and the discs move every 8 seconds.",
   },
   chain: {
     easy: "Easy: 30 links with longer windows, and no reversed run.",
     hard: "Hard: 40 links with shorter windows, reversed at links 21 to 25 and 31 to 35.",
-    expert: "Expert: 45 links in 60 seconds, six charms to a cycle and two reversed runs.",
+    expert: "Expert: 50 links in 60 seconds, six charms to a cycle and two reversed runs.",
   },
   whack: {
     easy: "Easy: two up at once, they stay up longer, two rule flips and fewer hedgehogs.",
@@ -180,8 +188,8 @@ export const SPEED_LEVEL_LINES: Readonly<Record<string, Readonly<Partial<Record<
   },
   clayshoot: {
     easy: "Easy: 20 slower clays, 3 doubles and 6 birds.",
-    hard: "Hard: 28 faster clays, 10 doubles and 20 birds, some flying together.",
-    expert: "Expert: 30 of the fastest clays, doubles and triples, and 26 birds.",
+    hard: "Hard: 28 faster clays, 10 doubles and 24 birds, some flying together.",
+    expert: "Expert: 30 of the fastest clays, doubles and triples, and 32 birds.",
   },
 };
 
@@ -227,13 +235,13 @@ const SPEED_LEVEL_EDITS: Record<string, Partial<Record<"easy" | "hard" | "expert
   reaction: {
     easy: { how: { "Wait for gold;": { detail: "it comes 5 times." }, "Only a full gold screen": { detail: "counts: the other colours are traps." } } },
     hard: { how: { "Wait for gold;": { detail: "it comes 6 to 8 times." } } },
-    expert: { how: { "Wait for gold;": { detail: "it comes 8 times and stays for 1 second." } } },
+    expert: { how: { "Wait for gold;": { detail: "it comes 8 times and stays for 1 second." }, "Only a full gold screen": { detail: "counts: 3 to 5 traps come before each." } } },
   },
   numhunt: {
     easy: { goal: "Tap all 16 numbers from smallest to largest.", how: { "All the numbers": null, "The timer above the board": null } },
-    hard: { goal: "Tap all 30 numbers from smallest to largest.", how: { "All the numbers": { detail: "move every 10 seconds." }, "The timer above the board": { detail: "counts up to 10 s, then the numbers move and it starts again from 0." } } },
+    hard: { goal: "Tap all 30 numbers from smallest to largest in 50 s.", how: { "All the numbers": { detail: "move every 10 seconds." }, "The timer above the board": { detail: "counts up to 10 s, then the numbers move and it starts again from 0." } } },
     expert: {
-      goal: "Tap all 30 numbers from largest to smallest.",
+      goal: "Tap all 30 numbers from largest to smallest in 45 s.",
       frameGoal: "Tap the numbers highest to lowest",
       how: {
         "Find the smallest": { action: "Find the largest" },
@@ -252,11 +260,11 @@ const SPEED_LEVEL_EDITS: Record<string, Partial<Record<"easy" | "hard" | "expert
       },
     },
     expert: {
-      goal: "Tap 45 charms, following the cycle.",
+      goal: "Tap 50 charms, following the cycle.",
       how: {
         "Tap the five charms": { action: "Tap the six charms" },
         "After link 20,": { action: "After links 20 and 35,", detail: "go backwards for 5 links." },
-        "Keep momentum": { detail: "– 2.3 s for links 1–15, 1.9 s for 16–30, 1.6 s for 31–45. The first tap is untimed." },
+        "Keep momentum": { detail: "– 2 s for links 1–16, 1.6 s for 17–33, 1.4 s for 34–50. The first tap is untimed." },
         "Every 5 links": { detail: "the board reshuffles with six new charms." },
         "Reverse:": { detail: "a banner warns before each; links 21–25 and 36–40 run last to first." },
       },
@@ -272,7 +280,7 @@ const SPEED_LEVEL_EDITS: Record<string, Partial<Record<"easy" | "hard" | "expert
   },
   clayshoot: {
     easy: { goal: "Shoot all 20 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 6 white birds." } } },
-    hard: { goal: "Shoot all 28 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 20 white birds." } } },
-    expert: { goal: "Shoot all 30 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 26 white birds." }, "Later on, two fly at once": { action: "Later on, two or three fly at once" } } },
+    hard: { goal: "Shoot all 28 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 24 white birds." } } },
+    expert: { goal: "Shoot all 30 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 32 white birds." }, "Later on, two fly at once": { action: "Later on, two or three fly at once" } } },
   },
 };

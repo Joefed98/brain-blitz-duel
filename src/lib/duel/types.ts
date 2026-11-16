@@ -356,6 +356,8 @@ export interface NumberHuntPuzzleData {
   moveMs?: number;
   timeLimitMs?: number;
   descending?: boolean;
+  /** A level's full-speed time in seconds (absent: the standard's 40 s). */
+  fullByS?: number;
 }
 
 export type PuzzleData =
