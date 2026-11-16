@@ -50,7 +50,9 @@ import { pinPreRetro } from "../src/lib/duel/arcade.server";
 // preRetro.
 pinPreRetro(true);
 /** The Retro overhaul's live stamps for the audit games it moved on (the help reads these exactly). */
-const RETRO_LIVE_STAMPS: Record<string, number> = { wavefront: WAV_REV_CHARGE, burst: BURST_REV_BIG };
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): stage 3 deals Wavefront wavRev 15
+// and Spacewalk crossRev 13 (one above the stamps named here).
+const RETRO_LIVE_STAMPS: Record<string, number> = { wavefront: WAV_REV_CHARGE + 1, burst: BURST_REV_BIG, cross: CROSS_REV_KEEP + 1 };
 
 let checks = 0;
 const failures: string[] = [];
