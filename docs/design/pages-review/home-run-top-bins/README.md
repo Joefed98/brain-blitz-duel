@@ -39,6 +39,14 @@ The intro: today's, and the new one (the three strikes, the wind flag, Captain J
 
 ![Top Bins intro: today, new](freekick-intro.webp)
 
+## Expert (16 Nov 2026)
+
+An elite player under human limits (about 0.25 s to react, 0.15 s to move) on Expert: a home run off a 27–29-tick
+fastball (Home Run Expert innings seed 2190600: 17 runs, 11 home runs, no outs, 166), and a goal on Top Bins' freekickRev 6
+Expert (seed 517770055: 9 of 10 goals, all four hoops, 189) against the quicker keeper and stronger wind.
+
+![Home Run Expert: a home run](clip-homerun-expert.webp) ![Top Bins Expert: a goal](clip-freekick-expert.webp)
+
 ## What differs from concept A
 
 - The pictures are still drawn 2D in the canvas (the park, stadium and figures are today's painted art with a

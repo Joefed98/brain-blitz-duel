@@ -48,7 +48,7 @@ import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { HOMERUN_DEAL_V5 } from "../src/lib/duel/homerunDealV5.server";
 import { oracleRunV5, playLogV5 } from "./homerun-oracle";
 import { storedScoreV5 } from "./homerun-innings-deal";
-import { Human, type SkillLevel } from "./arcade-skill-bands/human";
+import { Human, HUMAN_LIMITS, type SkillLevel } from "./arcade-skill-bands/human";
 import { botV5, randomBotV5 } from "./arcade-skill-bands/bots/homerun";
 
 const FULL = process.env["CHECKS_FULL"] === "1";
@@ -242,6 +242,25 @@ function script(seed: number, level: HrLevel, act: (t: number, inn: NonNullable<
   ok(normal.every((v, i) => i === 0 || v > normal[i - 1]!), `Normal rises with skill: ${normal.join(" < ")}`);
   ok(normal[4]! >= 185 && normal[3]! >= 150 && normal[3]! <= 185 && normal[2]! >= 110 && normal[2]! <= 150, `Normal sits near its targets (near-perfect ${normal[4]}, great ${normal[3]}, good ${normal[2]})`);
   for (const skill of ["good", "great", "near"] as SkillLevel[]) ok(band("expert", skill) < band("easy", skill), `${skill}: Expert is harder than Easy`);
+}
+
+/* Hard and Expert retuned (16 Nov 2026, Joe: a clear step up, measured on the elite bot under human limits, 0.25 s to
+   react and 0.15 s to move): the fastball near a person's limit, balls nearer the zone's edge; Easy and Normal as
+   before (their deals unchanged, proved by the deal's byte-for-byte rebuild above). */
+{
+  ok(HR_LEVEL_SETTINGS.hard.flight[0]![1] < HR_LEVEL_SETTINGS.normal.flight[0]![0] && HR_LEVEL_SETTINGS.expert.flight[0]![1] <= HR_LEVEL_SETTINGS.hard.flight[0]![1], "the fastball gets quicker level by level");
+  ok(HR_LEVEL_SETTINGS.expert.ballOff[1] < HR_LEVEL_SETTINGS.hard.ballOff[1] && HR_LEVEL_SETTINGS.hard.ballOff[1] < HR_LEVEL_SETTINGS.normal.ballOff[1], "balls finish nearer the edge level by level");
+  ok(JSON.stringify(HR_LEVEL_SETTINGS.normal.ballOff) === "[14,34]", "Normal's balls finish where they always did");
+  const n = FULL ? 30 : 10;
+  const avg = (level: HrLevel) => {
+    const game = homerunGameFor(HOMERUN_REV_5, level);
+    const xs = HOMERUN_DEAL_V5[level].slice(0, n).map((seed) => storedScoreV5(seed, botV5({ game, seed, rev: 5, human: new Human("homerun", seed, "elite", HUMAN_LIMITS) }).events, level));
+    return xs.reduce((a, b) => a + b, 0) / xs.length;
+  };
+  const [e, nm, h, x] = (["easy", "normal", "hard", "expert"] as HrLevel[]).map(avg) as [number, number, number, number];
+  ok(nm >= 190 && e >= nm - 4, `Normal is comfortable for a strong player (elite under limits: Easy ${e.toFixed(0)}, Normal ${nm.toFixed(0)})`);
+  ok(h <= nm - 15 && x <= h - 15, `the levels step down: Normal ${nm.toFixed(0)}, Hard ${h.toFixed(0)}, Expert ${x.toFixed(0)}`);
+  ok(x >= 120, `Expert scores well for a person-like player (elite under limits ${x.toFixed(0)})`);
 }
 
 /* The difficulty framework's registry (stage 3, 15 Nov 2026): Home Run offers all four levels, and the registry's

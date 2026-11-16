@@ -42,14 +42,55 @@ seed of the proved deal (`homerunDealV5.server.ts`, 120 a level, `bun scripts/ho
 | Balls finish outside the zone by (px) | 14–34 | 14–34 | 8–24 | 5–17 |
 | Curveball / changeup flight (ticks) | 54–60 / 66–74 | 48–54 / 62–70 | 40–44 / 54–59 | 37–40 / 51–55 |
 
-**Measured** (`bun scripts/homerun-innings-bands.ts --seeds=30`, 16 Nov 2026 on the difficulty framework, medians, average in brackets):
+**Hard and Expert retuned** (16 Nov 2026, Joe: a clear step up from Easy to Expert, Normal comfortable for a strong
+player, Expert proven humanly possible to score well on, measured on the elite bot under human limits: about 0.25 s to
+react and 0.15 s to move, `HUMAN_LIMITS`, `bun scripts/level-tune.ts homerun --human-limits`). The fastball now runs
+close to a person's limit (no swing lands before about 30 ticks: the reaction, the swipe, then the 6-tick swing), the
+curveball and changeup are quicker, and balls finish nearer the zone's edge (`ballOff`), so the take is a closer call.
+Changed in place on homerunRev 5: rev 5 has never been dealt outside this branch (it isn't on main), so no stored round
+holds the old Hard or Expert; Easy and Normal are unchanged (their deal seeds rebuild byte for byte). Hard and Expert
+re-proved (`homerunDealV5.server.ts`, 120 a level; dropped hard 2, expert 15).
+
+The bot under human limits (measurement only): the swipe lands no sooner than the release plus a reaction plus the
+swipe's own movement (without limits it could start 8 ticks before its reaction, reading the pitch before it was
+thrown), and a pitch that moves more is harder to read (the level's bend). Without limits every bot plays as before.
+
+**Measured, every bot under human limits** (`bun scripts/homerun-innings-bands.ts --seeds=30 --human-limits`, medians,
+average in brackets):
+
+| | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| Easy | 52 (50) | 89 (86) | 143 (141) | 184 (184) | 200 (195) | 200 (199) | 200 |
+| Normal | 21 (28) | 63 (60) | 127 (121) | 170 (169) | 192 (191) | 200 (198) | 200 |
+| Hard | 5 (6) | 26 (28) | 84 (78) | 136 (132) | 162 (156) | 172 (172) | 200 |
+| Expert | 4 (6) | 16 (18) | 67 (59) | 102 (102) | 139 (136) | 149 (143) | 200 |
+
+The same without limits (`--seeds=30`, the bots as before: they can read the pitch before it is thrown):
 
 | | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
 |---|---|---|---|---|---|---|---|
 | Easy | 63 (51) | 93 (89) | 150 (143) | 184 (184) | 200 (195) | 200 (199) | 200 |
 | Normal | 19 (28) | 63 (60) | 134 (126) | 172 (173) | 200 (193) | 200 (198) | 200 |
-| Hard | 9 (18) | 31 (38) | 80 (77) | 140 (140) | 168 (167) | 180 (179) | 200 |
-| Expert | 5 (12) | 38 (34) | 80 (78) | 132 (128) | 168 (167) | 176 (175) | 200 |
+| Hard | 15 (18) | 31 (38) | 85 (78) | 146 (142) | 172 (169) | 180 (180) | 200 |
+| Expert | 9 (11) | 38 (34) | 78 (78) | 131 (128) | 168 (168) | 176 (175) | 200 |
+
+**The Expert proof** (`bun scripts/home-run-top-bins-expert-proof.ts --game=homerun`): the first ten Expert innings,
+each scored through the server replay. A practice round at Expert deals one of these 120 seeds at random
+(`HOMERUN_DEAL_V5.expert`); a room at Expert deals `room seed % 120`.
+
+| Seed | Near-perfect | Elite | The elite run |
+|---|---|---|---|
+| 2009206361 | 137 | 149 | 14 runs, 10 home runs, 1 outs |
+| 1889868361 | 125 | 148 | 16 runs, 8 home runs, 0 outs |
+| 2190600 | 150 | 166 | 17 runs, 11 home runs, 0 outs |
+| 1235787910 | 136 | 136 | 13 runs, 9 home runs, 2 outs |
+| 1200536643 | 160 | 137 | 14 runs, 8 home runs, 2 outs |
+| 1184107813 | 117 | 133 | 14 runs, 7 home runs, 0 outs |
+| 2076974042 | 140 | 156 | 18 runs, 8 home runs, 1 outs |
+| 736148341 | 143 | 103 | 10 runs, 5 home runs, 2 outs |
+| 448486709 | 143 | 137 | 14 runs, 8 home runs, 0 outs |
+| 584028232 | 139 | 160 | 16 runs, 14 home runs, 0 outs |
+| Average | 139 | 143 | |
 
 Checks: homerun-innings-check (the deal, the count, the runners, contact, the plan, the replay, the bands),
 arcade-standard-check's entry, homerun-check (rev 1–4 unchanged).

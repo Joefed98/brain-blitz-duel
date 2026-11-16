@@ -35,6 +35,8 @@ import {
   FK_LEVELS,
   FK_LEVEL_SETTINGS,
   FK_LEVEL_SETTINGS_V6,
+  FK_OUT_GOAL,
+  freekickStdParts,
   FK_V6_EASE,
   FK_V6_CORE_FULL,
   FK_V5_OPEN_CM,
@@ -60,9 +62,10 @@ import {
 } from "../src/lib/arcade/freekick";
 import { strikeFromStroke, STRIKE_CURL, STRIKE_DIP, STRIKE_DRIVE } from "../src/lib/arcade/freekickStroke";
 import { FREEKICK_DEAL_V5 } from "../src/lib/duel/freekickDealV5.server";
+import { FREEKICK_DEAL_V6 } from "../src/lib/duel/freekickDealV6.server";
 import { oracleRunV5 } from "./freekick-oracle";
 import { storedScoreFkV5 } from "./freekick-layered-deal";
-import { Human, type SkillLevel } from "./arcade-skill-bands/human";
+import { Human, HUMAN_LIMITS, type SkillLevel } from "./arcade-skill-bands/human";
 import { botV5, randomBotV5 } from "./arcade-skill-bands/bots/freekick";
 
 const FULL = process.env["CHECKS_FULL"] === "1";
@@ -253,6 +256,47 @@ const fly = (k: FkKick, shot: { x: number; y: number; b: number; st: number }, g
   // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): rooms deal freekickRev 6.
   ok(puzzleLevel(dealt) === "expert" && (dealt as { freekickRev?: number }).freekickRev === FREEKICK_REV_6, "the deal at Expert is stamped expert on rev 6");
   ok(!("level" in (generatePuzzle("freekick", { bankSeed: 7 }) as object)), "the deal at Normal carries no level");
+}
+
+/* freekickRev 6 (16 Nov 2026, Joe: Top Bins Normal eased; Hard and Expert a clear step up). Rev 5 keeps its own table,
+   hoop and skill line exactly; rev 6 eases Easy's and Normal's scoring (a larger hoop, a wider open side), makes Hard
+   and Expert harder (a quicker keeper, more wind, a Goals line asking for better-placed goals), deals from its own
+   proved deal, and steps down level by level for the elite bot under human limits (0.25 s to react, 0.15 s to move). */
+{
+  for (const level of FK_LEVELS) ok(fkLevelSettings(FREEKICK_REV_5, level) === FK_LEVEL_SETTINGS[level], `rev 5 ${level} reads rev 5's own table`);
+  ok(FK_LEVEL_SETTINGS.hard.react === 8 && FK_LEVEL_SETTINGS.hard.speed === 1120 && FK_LEVEL_SETTINGS.expert.wind === 5, "rev 5's Hard and Expert are as they were");
+  ok(fkLevelSettings(FREEKICK_REV_6, "normal") === FK_LEVEL_SETTINGS.normal && fkLevelSettings(FREEKICK_REV_6, "easy") === FK_LEVEL_SETTINGS.easy, "rev 6's Easy and Normal play as rev 5's");
+  ok(FK_LEVEL_SETTINGS_V6.hard.speed > FK_LEVEL_SETTINGS.hard.speed && FK_LEVEL_SETTINGS_V6.expert.wind > FK_LEVEL_SETTINGS.expert.wind, "rev 6's Hard and Expert are harder than rev 5's");
+  for (const level of FK_LEVELS) {
+    const ease = FK_V6_EASE[level];
+    const want = ease ? Math.trunc((FK_HOOP_R * ease.hoopPermille) / 1000) : FK_HOOP_R;
+    ok(fkHoopRFor(FREEKICK_REV_6, 0, level) === want && fkHoopRFor(FREEKICK_REV_5, 0, level) === FK_HOOP_R, `${level}: rev 6's first hoop ${want} (rev 5's ${FK_HOOP_R})`);
+  }
+  // The open side: a goal crossing 0.9 m from the middle on the side the keeper leans away from.
+  const kick = fkSeedPlan(FREEKICK_DEAL_V6.normal[0]!, FREEKICK_REV_6, "normal").kicks[0]!;
+  const lean = kick.v5!.lean;
+  const flight = { out: FK_OUT_GOAL, crossX: Math.round(-lean * 0.9 * FK_M), crossY: 100, under: 0, st: FK_STRIKE_CURL, wallSide: 0 } as unknown as Parameters<typeof fkV5Skill>[1];
+  ok(!fkV5Skill(kick, flight, false, FREEKICK_REV_5, "normal"), `rev 5: 0.9 m is inside the ${FK_V5_OPEN_CM} cm line`);
+  ok(fkV5Skill(kick, flight, false, FREEKICK_REV_6, "normal"), "rev 6 Normal: 0.9 m counts as the open side");
+  ok(!fkV5Skill(kick, flight, false, FREEKICK_REV_6, "hard"), "rev 6 Hard: the open side is rev 5's");
+  // The Goals line by level.
+  const g6 = (level: FkLevel, units: number) => freekickStdParts({ ...freekickGameFor(FREEKICK_REV_6, level).init(FREEKICK_DEAL_V6[level][0]!), units })!.find((x) => x.key === "core")!.points;
+  for (const level of FK_LEVELS) ok(g6(level, FK_V6_CORE_FULL[level]) === 120 && g6(level, FK_V6_CORE_FULL[level] - 50) < 120, `${level}: Goals full at ${FK_V6_CORE_FULL[level]} units`);
+  // The deal: the oracle at 200 on rev 6 at every level.
+  for (const level of FK_LEVELS)
+    for (const seed of FREEKICK_DEAL_V6[level].slice(0, FULL ? 60 : 4)) ok(storedScoreFkV5(seed, oracleRunV5(seed, level, FREEKICK_REV_6), level, FREEKICK_REV_6) === 200, `rev 6 ${level} seed ${seed}: the oracle's 200`);
+  // The steps, elite under human limits (averages; the measured table is in docs/arcade-standard/freekick.md).
+  const n = FULL ? 30 : 10;
+  const avg = (level: FkLevel) => {
+    const game = freekickGameFor(FREEKICK_REV_6, level);
+    const xs = FREEKICK_DEAL_V6[level].slice(0, n).map((seed) => storedScoreFkV5(seed, botV5({ game, seed, rev: FREEKICK_REV_6, human: new Human("freekick", seed, "elite", HUMAN_LIMITS) }).events, level, FREEKICK_REV_6));
+    return xs.reduce((a, b) => a + b, 0) / xs.length;
+  };
+  const [e, nm, h, x] = (["easy", "normal", "hard", "expert"] as FkLevel[]).map(avg) as [number, number, number, number];
+  ok(nm >= 180, `rev 6 Normal is comfortable for a strong player (elite ${nm.toFixed(0)})`);
+  ok(e >= nm - 6, `rev 6 Easy is no harder than Normal for the elite (${e.toFixed(0)} against ${nm.toFixed(0)})`);
+  ok(h <= nm - 15 && x <= h - 10, `rev 6 steps down: Normal ${nm.toFixed(0)}, Hard ${h.toFixed(0)}, Expert ${x.toFixed(0)}`);
+  ok(x >= 110, `rev 6 Expert scores well for a person-like player (elite under limits ${x.toFixed(0)})`);
 }
 
 if (failures) {
