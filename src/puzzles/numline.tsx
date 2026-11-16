@@ -15,6 +15,9 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { visualFx } from "@/lib/fx";
+import { gameFx } from "@/lib/fx/kit";
+import { FxCountUp } from "@/components/fx/GameFx";
+import { numlinePayoffPlan, numlineTenthsCrossed } from "@/lib/duel/numlineFx";
 import {
   decodeNumline,
   encodeNumline,
@@ -23,6 +26,7 @@ import {
   numlineTicks,
   numlineFullError,
   NUMLINE_ITEMS,
+  numlineHiddenEnd,
   NUMLINE_SCALE,
   NUMLINE_STAGES,
   NUMLINE_TOTAL,
@@ -36,10 +40,15 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { horizontalOf, useGameKeys } from "@/lib/desktop";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
-import { ballparkStreak, isBullseye, usesNumberDepth } from "@/lib/duel/numberDepth";
+import { isBullseye, usesNumberDepth } from "@/lib/duel/numberDepth";
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import { BALLPARK_STD_FULL, isStdBullseye } from "@/lib/duel/standard/number";
 import "@/polish-layout/batch-w-numline.css";
+import { NumberStage, numberArt } from "@/components/puzzles/number/overhaul";
+import { RevealBoards, RevealFacts, useRevealBoard, type BoardMark } from "@/components/puzzles/number/RevealParts";
+import { Button } from "@/design/components/Button";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -51,7 +60,23 @@ const ROOT_STYLE: CSSProperties = {
 const SIDE = 22;
 const ZOOM = 4;
 const LENS = 84;
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
+/** The Number overhaul (15 Nov 2026): labels and numbers in the app's one font, bold. */
+const ARCHIVO = "var(--jz-font)";
+/** The overhaul's beat for a finished line to lift and slide away before the next one comes in (display only). */
+const LINE_CLEAR_MS = 950;
+/** How long an edge bump shows after a touch past an end of the line. */
+const EDGE_BUMP_MS = 320;
+
+/**
+ * The Number overhaul's edge bump (15 Nov 2026, display only): which end a touch at `clientX` lies beyond, given the
+ * line box's left edge and the tape's span (the marker still clamps to that end exactly as before).
+ */
+export function numlineEdgeOf(clientX: number, left: number, span: number): "lo" | "hi" | null {
+  const raw = (clientX - left - SIDE) / Math.max(1, span);
+  if (raw < 0) return "lo";
+  if (raw > 1) return "hi";
+  return null;
+}
 /** Completion sweep: the glint crosses the whole tape in this time; each marker ticks as it passes. */
 const SWEEP_MS = 720;
 
@@ -81,10 +106,30 @@ const NUMLINE_CSS = `
 @keyframes numline-tick { from { opacity: 0; transform: scaleY(0.2); } 60% { opacity: 1; transform: scaleY(1.25); } to { opacity: 1; transform: scaleY(1); } }
 .numline-ring { transform-box: fill-box; transform-origin: 50% 50%; animation: numline-ring 380ms ease-out both; }
 @keyframes numline-ring { from { opacity: 0.95; transform: scale(0.6); } to { opacity: 0; transform: scale(1.9); } }
+/* The overhaul's edge bump: a touch past an end shows a short stop at that end (the marker clamps there). */
+.numline-edge { position: absolute; width: 6px; height: 44px; border-radius: 3px; background: var(--jz-gold); pointer-events: none;
+  animation: numline-edge ${EDGE_BUMP_MS}ms ease-out both; }
+.numline-edge[data-numline-edge="lo"] { --numline-bump: -5px; }
+.numline-edge[data-numline-edge="hi"] { --numline-bump: 5px; }
+@keyframes numline-edge { 0% { transform: translateX(0); opacity: 1; } 35% { transform: translateX(var(--numline-bump)); opacity: 1; } 100% { transform: translateX(0); opacity: 0.6; } }
 @media (prefers-reduced-motion: reduce) {
-  .numline-line-in, .numline-item-in, .numline-drop, .numline-tick, .numline-ring { animation: none; }
+  .numline-line-in, .numline-item-in, .numline-drop, .numline-tick, .numline-ring, .numline-edge { animation: none; }
   .numline-glint { display: none; }
 }
+/* The reveal (the Number overhaul): the line large, then the five numbers with how far off each was. */
+.nl-reveal-key { font-family: var(--jz-font); font-size: 13px; font-weight: 600; color: var(--jz-text-2); }
+.nl-reveal-key .nl-key-true { color: var(--jz-gold); }
+.nl-reveal-key .nl-key-yours { color: var(--jz-text); margin-left: 10px; }
+.nl-reveal-rows { display: flex; width: 100%; max-width: 420px; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.nl-reveal-row { display: flex; min-height: 34px; align-items: center; gap: 10px; padding: 2px 12px; border-radius: 12px; background: var(--jz-surface-2); }
+.nl-reveal-n { display: inline-flex; width: 26px; height: 26px; flex: none; align-items: center; justify-content: center; border-radius: 50%; background: var(--jz-gold); color: var(--jz-on-gold); font-family: var(--jz-font); font-size: 14px; font-weight: 800; }
+.nl-reveal-item { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--jz-font); font-size: 19px; font-weight: 800; color: var(--jz-text); }
+.nl-reveal-off { flex: none; font-family: var(--jz-font); font-size: 16px; font-weight: 700; color: var(--jz-red); font-variant-numeric: tabular-nums; }
+.nl-reveal-row[data-close] .nl-reveal-off { color: var(--jz-text); }
+.nl-reveal-off[data-bull] { color: var(--jz-gold); }
+.nl-reveal-row:not([data-placed]) .nl-reveal-off { color: var(--jz-text-3); }
+/* A short screen (375 x 667 under the shared reveal layout's stars row): tighter rows and no key, so nothing is shrunk. */
+@media (max-height: 700px) { .nl-reveal-key { display: none; } .nl-reveal-row { min-height: 28px; } .nl-reveal-rows { gap: 2px; } }
 `;
 
 const fmt = (n: number) =>
@@ -111,10 +156,12 @@ export function numlinePlaceSound(): void {
 
 function tickLabels(
   stage: Pick<NumlineStageData, "lo" | "hi">,
+  /** Expert's hidden end (numlineLevels.ts): the share whose label shows "?". */
+  hidden: number | null = null,
 ): { share: number; label: string }[] {
   const ticks = numlineTicks(stage);
   return ticks
-    .map((share) => ({ share, label: fmt(Math.round(stage.lo + share * (stage.hi - stage.lo))) }))
+    .map((share) => ({ share, label: share === hidden ? "?" : fmt(Math.round(stage.lo + share * (stage.hi - stage.lo))) }))
     .sort((a, b) => a.share - b.share);
 }
 
@@ -193,6 +240,41 @@ interface TapeGeom {
  * A horizontal steel tape with its labelled notches; children draw markers in 0–1 shares
  * via `x`. `t` is the tape thickness; `label` the end-label size.
  */
+/**
+ * A live round's sizes (the Number overhaul's layout pass, Joe 15 Nov 2026): the line is the big element, a tall,
+ * clear ruler with bold end labels and a big pin, and the number card above it small and compact. `arenaH` is the
+ * arena's height; the card, the caption over it and the gaps take `NUMLINE_CARD_H` + 56 of it, the line box the rest (within
+ * 250–520, so the card and line fill the arena; the group is centred). Intros and demos keep their older sizes (140 high, a 24 px tape), so recorded touches still land.
+ */
+export const NUMLINE_CARD_H = 56;
+export function numlineLiveSizes(arenaH: number) {
+  const lineH = Math.max(250, Math.min(520, Math.round(arenaH - NUMLINE_CARD_H - 56)));
+  // The tape thickens with the room it has (72 to 92 px), the end labels with it.
+  const t = Math.max(72, Math.min(92, Math.round(lineH * 0.24)));
+  const label = t >= 84 ? 40 : 36;
+  return {
+    lineH,
+    t,
+    label,
+    /**
+     * The tape's centre, a share of the box: above it the pins and their labels (the live pin's head and three levels
+     * of placed labels), under it the end labels; the three together sit centred in the box, so any spare height is
+     * shared above the pins and below the labels.
+     */
+    yShare: (() => {
+      const above = 88 + 2 * 24 + 24;
+      const below = t / 2 + 8 + label + 12;
+      const margin = Math.max(0, (lineH - (above + t / 2 + below)) / 2);
+      return (lineH - below - margin) / lineH;
+    })(),
+    pinR: 24,
+    pinRise: 88,
+    placedR: 13,
+    cardH: NUMLINE_CARD_H,
+    cardFont: 36,
+  };
+}
+
 export function Line({
   stage,
   width,
@@ -200,15 +282,21 @@ export function Line({
   t = 14,
   label = 16,
   yShare = 0.55,
+  minor = 0,
+  hidden = null,
   svgStyle,
   children,
 }: {
   stage: Pick<NumlineStageData, "lo" | "hi">;
+  /** Expert's hidden end label (a share of the line, shown as "?"); null shows every label. */
+  hidden?: number | null;
   width: number;
   height: number;
   t?: number;
   label?: number;
   yShare?: number;
+  /** Unlabelled ticks across the tape at each 1/minor of the line (a live round's tenths); 0 for none. */
+  minor?: number;
   svgStyle?: CSSProperties;
   children?: (x: (share: number) => number, y: number, geom: TapeGeom) => ReactNode;
 }) {
@@ -225,59 +313,44 @@ export function Line({
       style={{ display: "block", overflow: "visible", ...svgStyle }}
     >
       <TapeDefs id={id} />
-      {/* Drop shadow, body, sheen and edges of the tape. */}
-      <rect
-        x={left + 1}
-        y={y - t / 2 + 3}
-        width={right - left}
-        height={t}
-        rx={t / 3}
-        fill="#000"
-        opacity={0.4}
-      />
-      <rect
-        x={left}
-        y={y - t / 2}
-        width={right - left}
-        height={t}
-        rx={t / 3}
-        fill={`url(#${id}-steel)`}
-      />
-      <rect
-        x={left}
-        y={y - t / 2}
-        width={right - left}
-        height={t}
-        rx={t / 3}
-        fill={`url(#${id}-sheen)`}
-      />
-      <line
-        x1={left + 3}
-        y1={y - t / 2 + 1}
-        x2={right - 3}
-        y2={y - t / 2 + 1}
-        stroke="#ffffff"
-        strokeOpacity={0.75}
-        strokeWidth={1}
-      />
-      <line
-        x1={left + 3}
-        y1={y + t / 2 - 0.5}
-        x2={right - 3}
-        y2={y + t / 2 - 0.5}
-        stroke="#30323b"
-        strokeOpacity={0.7}
-        strokeWidth={1}
-      />
-      {tickLabels(stage).map((tick) => (
+      {/* The Number overhaul: the rendered ruler (docs/design/number-overhaul/source/numline.py), a flat bar the tape's
+          thickness tall: a dark enamel face between polished chrome edges and end caps. Drawn in three slices so only
+          the plain middle stretches, sideways; the caps keep their shape (24 x 80 points scaled to the tape). */}
+      {(() => {
+        const cap = (24 * t) / 80;
+        const top = y - t / 2;
+        return (
+          <g data-numline-ruler>
+            <image href={numberArt("numline", "ruler-m")} x={left + cap - 0.5} y={top} width={Math.max(0, right - left - 2 * cap + 1)} height={t} preserveAspectRatio="none" />
+            <image href={numberArt("numline", "ruler-l")} x={left} y={top} width={cap} height={t} preserveAspectRatio="none" />
+            <image href={numberArt("numline", "ruler-r")} x={right - cap} y={top} width={cap} height={t} preserveAspectRatio="none" />
+          </g>
+        );
+      })()}
+      {minor > 0
+        ? Array.from({ length: minor - 1 }, (_, i) => (i + 1) / minor).map((share) => (
+            <line
+              key={`m${share}`}
+              data-numline-minor
+              x1={x(share)}
+              y1={y - t / 2 + t * 0.14}
+              x2={x(share)}
+              y2={y - t / 2 + t * (share === 0.5 ? 0.6 : 0.4)}
+              stroke={share === 0.5 ? "var(--jz-gold)" : "var(--jz-white)"}
+              strokeWidth={share === 0.5 ? 4 : 3}
+              strokeLinecap="square"
+            />
+          ))
+        : null}
+      {tickLabels(stage, hidden).map((tick) => (
         <g key={tick.share}>
-          {/* A crisp notch across the tape, continued below it to the label. */}
+          {/* A crisp notch down the ruler's face (white, so it reads on the enamel), continued below it to the label. */}
           <line
             x1={x(tick.share)}
-            y1={y - t / 2 - 3}
+            y1={y - t / 2 + t * 0.14}
             x2={x(tick.share)}
             y2={y + t / 2 + 6}
-            stroke="#14151a"
+            stroke="var(--jz-white)"
             strokeWidth={3}
             strokeLinecap="square"
           />
@@ -290,13 +363,13 @@ export function Line({
             strokeWidth={2}
           />
           <text
-            x={labelX(x(tick.share), tick.label.length * label * 0.6, width)}
+            x={labelX(x(tick.share), tick.label.length * label * 0.62, width)}
             y={y + t / 2 + 8 + label}
             textAnchor="middle"
             fontSize={label}
-            fontWeight={700}
+            fontWeight={800}
             fill="var(--foreground)"
-            fontFamily={MONO}
+            fontFamily={ARCHIVO}
           >
             {tick.label}
           </text>
@@ -336,8 +409,16 @@ export function Pin({
         strokeWidth={r > 8 ? 3 : 2}
         strokeLinecap="round"
       />
-      <circle cx={cx + 1.5} cy={head + 2.5} r={r} fill="#000" opacity={0.35} />
-      <circle cx={cx} cy={head} r={r} fill={fill} stroke="#1a1b21" strokeWidth={1.5} />
+      <circle cx={cx + 1.5} cy={head + 2.5} r={r} fill="var(--jz-bg)" opacity={0.35} />
+      {/* The Number overhaul: the rendered head (champagne for the live marker, pewter once placed); `fill` keeps
+          the drawn gradient's role as which head to use. */}
+      <image
+        href={numberArt("numline", fill.endsWith("-placed)") ? "pin-placed" : "pin")}
+        x={cx - (r * 16) / 14}
+        y={head - (r * 16) / 14}
+        width={(r * 32) / 14}
+        height={(r * 32) / 14}
+      />
     </>
   );
 }
@@ -447,12 +528,24 @@ function Stage({
     [placements, stageIndex],
   );
 
-  /* A new line slides in: one cue per line after the first. */
-  const lastStage = useRef(stageIndex);
+  /*
+   * The Number overhaul's stage moment (15 Nov 2026, display only): when a line's fifth number is placed (not the last
+   * line's), that line stays on screen for LINE_CLEAR_MS, lifting and sliding away with the rising two-note
+   * (`numline.stageClear`, NumberStage), and only then does the next line come in. Answers and the clock never wait.
+   */
+  const [clearing, setClearing] = useState<number | null>(null);
   useEffect(() => {
-    if (stageIndex > lastStage.current) soundCue("numline.line");
-    lastStage.current = stageIndex;
-  }, [stageIndex]);
+    if (clearing === null) return;
+    const timer = window.setTimeout(() => setClearing(null), LINE_CLEAR_MS);
+    return () => window.clearTimeout(timer);
+  }, [clearing]);
+  /* A touch past an end of the line: a small bump at that edge (the marker still clamps there). */
+  const [edge, setEdge] = useState<{ side: "lo" | "hi"; id: number } | null>(null);
+  useEffect(() => {
+    if (!edge) return;
+    const timer = window.setTimeout(() => setEdge(null), EDGE_BUMP_MS);
+    return () => window.clearTimeout(timer);
+  }, [edge]);
 
   /* The sweep ticks each of the last line's markers as the glint passes it. */
   useEffect(() => {
@@ -480,15 +573,29 @@ function Stage({
   });
 
   if (!data) return null;
-  const stage = data.stages[stageIndex]!;
-  const item = stage.items[index % NUMLINE_ITEMS] ?? "";
-  const busy = locked || submitted.current || placements.length >= NUMLINE_TOTAL;
+  // While a finished line clears, it is the one drawn (with its five markers); nothing takes input meanwhile.
+  const shownStage = clearing ?? stageIndex;
+  const stage = data.stages[shownStage]!;
+  const item = clearing !== null ? (stage.items[NUMLINE_ITEMS - 1] ?? "") : (stage.items[index % NUMLINE_ITEMS] ?? "");
+  const busy = locked || submitted.current || placements.length >= NUMLINE_TOTAL || clearing !== null;
   const span = size.width - 2 * SIDE;
 
-  const shareAt = (clientX: number) => {
+  // A touch in layout px from the line box's left edge. Drawn scaled (the intro's demo box shrinks the stage by a
+  // transform), the screen box is smaller than the layout width, so the touch is mapped back; unscaled (every real
+  // round) the rect matches the layout width and the touch is used exactly as before. Input mapping only, no stamp.
+  const localX = (clientX: number) => {
     const rect = box.current?.getBoundingClientRect();
     const left = rect?.left ?? size.left;
-    return Math.max(0, Math.min(1, (clientX - left - SIDE) / Math.max(1, span)));
+    const scaled = rect && rect.width > 0 && Math.abs(rect.width - size.width) > 1;
+    return scaled ? ((clientX - left) * size.width) / rect.width : clientX - left;
+  };
+  const shareAt = (clientX: number) => Math.max(0, Math.min(1, (localX(clientX) - SIDE) / Math.max(1, span)));
+  const bumpAt = (clientX: number) => {
+    const side = numlineEdgeOf(clientX, clientX - localX(clientX), span);
+    if (side && side !== edge?.side) {
+      setEdge({ side, id: Date.now() });
+      soundCue("numline.edge");
+    }
   };
   const down = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (busy) return;
@@ -498,11 +605,16 @@ function Stage({
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setMarker(Math.round(shareAt(event.clientX) * NUMLINE_SCALE));
+    bumpAt(event.clientX);
     setDragging({ x: event.clientX, y: event.clientY });
   };
   const move = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (busy || !dragging) return;
-    setMarker(Math.round(shareAt(event.clientX) * NUMLINE_SCALE));
+    const nextShare = shareAt(event.clientX);
+    // Stage 2 (the effects kit's rules; the game's own faint tick): a tick each time the marker crosses a tenth.
+    if (marker !== null && numlineTenthsCrossed(marker / NUMLINE_SCALE, nextShare) > 0) soundCue("numline.dragTick");
+    setMarker(Math.round(nextShare * NUMLINE_SCALE));
+    bumpAt(event.clientX);
     setDragging({ x: event.clientX, y: event.clientY });
   };
   const up = () => setDragging(null);
@@ -511,9 +623,15 @@ function Stage({
     const next = [...placements, marker];
     setPlacements(next);
     setMarker(null);
+    // Stage 2: the pin stamps in (the kit's drop, silent: the place cue below is the sound), once it is drawn.
+    const placedAt = (next.length - 1) % NUMLINE_ITEMS;
+    requestAnimationFrame(() =>
+      gameFx("drop", lineBox.current?.querySelector(`[data-numline-placed="${placedAt}"]`) ?? null, { silent: true }),
+    );
     // Game review fix (15 Nov 2026): one sound a place (was tick + place + the game's cue): the game's own cue once it
     // has a file, else the shared place sound.
     numlinePlaceSound();
+    if (next.length < NUMLINE_TOTAL && next.length % NUMLINE_ITEMS === 0) setClearing(stageIndex);
     if (next.length >= NUMLINE_TOTAL) {
       submitted.current = true;
       setJustSolved(true);
@@ -522,12 +640,17 @@ function Stage({
   };
 
   const placedHere = placements.slice(
-    stageIndex * NUMLINE_ITEMS,
-    stageIndex * NUMLINE_ITEMS + NUMLINE_ITEMS,
+    shownStage * NUMLINE_ITEMS,
+    shownStage * NUMLINE_ITEMS + NUMLINE_ITEMS,
   );
-  const lineH = 140;
-  /* The tape sits low in its box: markers and labels above, end labels just below. */
-  const lineY = (lineH - 40) / lineH;
+  // The overhaul: in a live round the line gets the space (taller box, a thicker rule, bigger end labels); intros
+  // and demos keep 140.
+  // The layout pass (Joe, 15 Nov 2026): a live round's line is the big element (numlineLiveSizes).
+  const live = framed ? numlineLiveSizes(size.height) : null;
+  const lineH = live ? live.lineH : 140;
+  /* The tape sits low in its box: markers and labels above, end labels just below (the live round's bigger labels
+     take more room under it). */
+  const lineY = live ? live.yShare : (lineH - 40) / lineH;
   const levels = labelLevels(
     placedHere.map((p) => SIDE + (p / NUMLINE_SCALE) * span),
     stage.items,
@@ -559,34 +682,36 @@ function Stage({
       >
         <div className="flex w-full flex-col items-center gap-1.5">
           <StageProgress stage={stageIndex} total={NUMLINE_STAGES} />
+          <NumberStage type="numline" index={shownStage} exit={clearing !== null ? "clear" : null} className="gap-1.5">
           <p className="h-5 w-full shrink-0 text-center font-mono text-xs uppercase text-muted-foreground">
             {/* Batch W: in a live round the goal line already shows the line ("Stage n of 3"). */}
-            {framed ? "" : `Line ${stageIndex + 1} of ${NUMLINE_STAGES} · `}
-            {framed ? "Number" : "number"} {(index % NUMLINE_ITEMS) + 1} of {NUMLINE_ITEMS}
+            {framed ? "" : `Line ${shownStage + 1} of ${NUMLINE_STAGES} · `}
+            {framed ? "Number" : "number"} {clearing !== null ? NUMLINE_ITEMS : (index % NUMLINE_ITEMS) + 1} of {NUMLINE_ITEMS}
           </p>
           <div
             className="numline-card flex w-full shrink-0 items-center justify-center rounded-xl border border-border"
             data-numline-item
           >
             <span
-              key={`${stageIndex}-${index}`}
+              key={`${shownStage}-${clearing !== null ? "done" : index}`}
               className="numline-item-in font-display font-bold text-foreground"
             >
               {item}
             </span>
           </div>
-          <div ref={lineBox} key={stageIndex} className="numline-line-in w-full">
-            {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged. */}
-            <Line stage={stage} width={size.width} height={lineH} t={24} label={18} yShare={lineY}>
+          <div ref={lineBox} key={shownStage} className="numline-line-in relative w-full" data-edge-bump={edge?.side}>
+            {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged.
+                The overhaul: 32 and bold 22 px end labels in a live round. */}
+            <Line stage={stage} width={size.width} height={lineH} t={live ? live.t : 24} label={live ? live.label : 18} yShare={lineY} minor={live ? 10 : 0} hidden={numlineHiddenEnd(stage, placedHere.length)}>
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (
-                    <g key={i} data-puzzle-cell={i} className="numline-drop">
+                    <g key={i} data-puzzle-cell={i} data-numline-placed={i} style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}>
                       <Pin
                         cx={x(p / NUMLINE_SCALE)}
                         geom={geom}
-                        r={7.5}
-                        rise={12 + levels[i]! * 28}
+                        r={live ? live.placedR : 7.5}
+                        rise={(live ? 16 : 12) + levels[i]! * 28}
                         fill={`url(#${geom.id}-placed)`}
                         needle="#c9cbd6"
                       />
@@ -600,14 +725,14 @@ function Stage({
                       x={x(p / NUMLINE_SCALE)}
                       y={y - geom.t / 2 - 12 - levels[i]! * 28 - 12}
                       textAnchor="middle"
-                      fontSize={13}
-                      fontWeight={600}
-                      fill="var(--muted-foreground)"
+                      fontSize={14}
+                      fontWeight={700}
+                      fill="var(--jz-text-2)"
                       stroke="var(--background)"
                       strokeWidth={4}
                       strokeLinejoin="round"
                       paintOrder="stroke"
-                      fontFamily={MONO}
+                      fontFamily={ARCHIVO}
                     >
                       {stage.items[i]}
                     </text>
@@ -617,10 +742,10 @@ function Stage({
                       <Pin
                         cx={x(share)}
                         geom={geom}
-                        r={14}
-                        rise={40}
+                        r={live ? live.pinR : 14}
+                        rise={live ? live.pinRise : 40}
                         fill={`url(#${geom.id}-pin)`}
-                        needle="var(--primary)"
+                        needle="var(--jz-gold)"
                       />
                     </g>
                   ) : busy ? null : (
@@ -693,14 +818,18 @@ function Stage({
                 </>
               )}
             </Line>
+            {edge ? (
+              <span key={edge.id} aria-hidden="true" data-numline-edge={edge.side} className="numline-edge" style={{ top: Math.round(lineH * lineY) - 22, [edge.side === "lo" ? "left" : "right"]: SIDE - 16 }} />
+            ) : null}
           </div>
+          </NumberStage>
         </div>
       </div>
       {dragging && share !== null ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed z-50 overflow-hidden rounded-full border-2 border-primary bg-background shadow-lg"
-          style={{ width: LENS, height: LENS, left: dragging.x - LENS / 2, top: lensTop }}
+          className="pointer-events-none fixed z-50 overflow-hidden rounded-full border-2 bg-background shadow-lg"
+          style={{ width: LENS, height: LENS, left: dragging.x - LENS / 2, top: lensTop, borderColor: "var(--jz-gold)" }}
         >
           <svg width={LENS} height={LENS} viewBox={`0 0 ${LENS} ${LENS}`}>
             {/* The tape around the marker at four times scale; the needle stays centred. */}
@@ -747,7 +876,7 @@ function Stage({
               y1={LENS / 2 - 22}
               x2={LENS / 2}
               y2={LENS / 2 + 10}
-              stroke="var(--primary)"
+              stroke="var(--jz-gold)"
               strokeWidth={2.5}
             />
           </svg>
@@ -770,14 +899,16 @@ function Stage({
       ) : null}
       {/* Place stands 16 px clear of the bottom of the screen (in a live round the frame's dock gives that 16 px). */}
       <div data-game-controls="actions" className="flex w-full shrink-0 justify-center pb-4">
-        <button
-          type="button"
+        <Button
+          variant="gold"
+          size={48}
+          small
           disabled={busy || marker === null}
           onClick={place}
-          className="h-12 w-full max-w-[280px] rounded-xl border border-primary bg-primary font-mono text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+          className="w-full max-w-[280px]"
         >
           Place
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -787,129 +918,176 @@ const REVEAL_W = 340;
 /** The tape's end inset (Line's SIDE) and a reveal number label's width with its gap, in drawing px. */
 const REVEAL_SIDE = SIDE;
 const REVEAL_LABEL_W = 8;
+const REVEAL_H = 128;
+/** The rule's height in the reveal's drawing, and where it sits (its centre, as a share of the height). */
+const REVEAL_T = 14;
+const REVEAL_Y = 0.42;
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "numline") return null;
-  const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], myAnswer, puzzle.numlineRev);
-  // The scoring standard: full accuracy within 2 % (green), bullseyes within 1 %, no streak.
+/** One number on a line, for the reveal (display only; the server grades). */
+export interface NumlineRevealRow {
+  item: string;
+  truth: number;
+  placement: number | null;
+  error: number | null;
+  /** Within the bullseye distance the round's stamp scores (none on stamps without bullseyes). */
+  bull: boolean;
+  /** Within the full-accuracy distance. */
+  close: boolean;
+}
+
+/**
+ * Each line's numbers and verdict: right when all five are placed within the full-accuracy distance, not reached
+ * when none is placed, else not right. Works on every stamp (numlineRev 1–2, before and after the standard).
+ */
+export function numlineRevealLines(puzzle: NumlinePuzzleData, answer: string | null): { stage: NumlineStageData; rows: NumlineRevealRow[]; mark: BoardMark }[] {
+  const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], answer, puzzle.numlineRev);
   const standard = usesStandard(puzzle);
   const full = standard ? BALLPARK_STD_FULL : numlineFullError(puzzle.numlineRev);
-  const placed = decodeNumline(myAnswer).length;
-  // depthRev 1: bullseyes (within a hair of exact) and the best run of them.
   const depth = usesNumberDepth(puzzle);
-  const streak = depth && !standard ? ballparkStreak(results.map((r) => r.error)) : null;
-  const bulls = standard ? results.filter((r) => isStdBullseye(r.error)).length : 0;
+  const placements = decodeNumline(answer);
+  return puzzle.stages.map((stage, s) => {
+    const rows = stage.items.map((item, i) => {
+      const r = results[s * NUMLINE_ITEMS + i]!;
+      const placement = placements[s * NUMLINE_ITEMS + i] ?? null;
+      return {
+        item,
+        truth: r.truth,
+        placement,
+        error: r.error,
+        bull: standard ? isStdBullseye(r.error) : depth && isBullseye(r.error),
+        close: r.error !== null && r.error <= full,
+      };
+    });
+    const placed = rows.filter((r) => r.placement !== null).length;
+    const mark: BoardMark = placed === 0 ? "open" : rows.every((r) => r.close) ? "right" : "wrong";
+    return { stage, rows, mark };
+  });
+}
+
+/** How far off a number was, in plain words. */
+export function numlineOffText(row: Pick<NumlineRevealRow, "placement" | "error" | "bull">): string {
+  if (row.placement === null) return "Not placed";
+  if (row.error === null) return "Placed";
+  if (row.bull) return "Bullseye";
+  return `${(row.error * 100).toFixed(1)}% off`;
+}
+
+/**
+ * The reveal (the Number overhaul, 15 Nov 2026): one line at a time with numbered tabs (each marked all close, not
+ * all close or not reached), opening on the first not all close; the line drawn large, each true spot a numbered gold
+ * tick above the rule and each of your markers a numbered pin below it, joined by a line (gold when close, red when
+ * not), bullseyes ringed; under it the five numbers with how far off each was; above, the numbers behind the score.
+ */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+  const lines = puzzle.type === "numline" ? numlineRevealLines(puzzle, myAnswer) : [];
+  const marks = lines.map((l) => l.mark);
+  const [index, setIndex] = useRevealBoard(marks);
+  const drawing = useRef<HTMLDivElement | null>(null);
+  const played = useRef<Set<number>>(new Set());
+  /*
+   * Stage 2's round-end payoff (the effects kit; display only, after the round, never over a live board): the first
+   * time a line is shown, each true spot flies in from your marker in the numbers' order (slide), and a bullseye's
+   * ring sparkles as it lands (stars, with the game's own bullseye chime).
+   */
+  useEffect(() => {
+    const line = lines[index];
+    const root = drawing.current;
+    if (!line || !root || played.current.has(index)) return undefined;
+    played.current.add(index);
+    const timers: number[] = [];
+    for (const step of numlinePayoffPlan(line.rows)) {
+      const el = root.querySelector(`[data-reveal-true="${step.index}"]`);
+      const from = el?.getAttribute("data-from")?.split(",").map(Number);
+      if (el && from && from.length === 2) gameFx("slide", el, { from: { x: from[0]!, y: from[1]! }, delayMs: step.delayMs, silent: true, inGame: false });
+      if (step.bull) {
+        const ring = root.querySelector(`[data-reveal-ring="${step.index}"]`);
+        gameFx("stars", ring, { delayMs: step.delayMs + 180, silent: true, inGame: false });
+        timers.push(window.setTimeout(() => soundCue("numline.bullseye"), step.delayMs + 180));
+      }
+    }
+    return () => timers.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+  if (puzzle.type !== "numline") return null;
+  const all = lines.flatMap((l) => l.rows);
+  const placed = all.filter((r) => r.error !== null);
+  const avg = placed.length ? placed.reduce((sum, r) => sum + r.error!, 0) / placed.length : null;
+  const worst = placed.reduce<NumlineRevealRow | null>((w, r) => (!w || r.error! > w.error! ? r : w), null);
+  const bullseyes = usesStandard(puzzle) || usesNumberDepth(puzzle);
+  const line = lines[index]!;
+  const truthLevels = labelLevels(
+    line.rows.map((r) => REVEAL_SIDE + (r.truth / NUMLINE_SCALE) * (REVEAL_W - 2 * REVEAL_SIDE)),
+    line.rows.map(() => "0"),
+    REVEAL_LABEL_W + 10,
+  );
+  const pinLevels = labelLevels(
+    line.rows.map((r) => REVEAL_SIDE + ((r.placement ?? 0) / NUMLINE_SCALE) * (REVEAL_W - 2 * REVEAL_SIDE)),
+    line.rows.map(() => "0"),
+    REVEAL_LABEL_W + 10,
+  );
   return (
-    <div className="flex w-full flex-col items-stretch gap-1.5 px-1">
+    <div className="nl-reveal flex w-full flex-col items-center gap-3 px-1" data-number-reveal="numline">
       <PolishStyle id="numline" css={NUMLINE_CSS} />
-      {puzzle.stages.map((stage, s) => {
-        const rows = results.slice(s * NUMLINE_ITEMS, s * NUMLINE_ITEMS + NUMLINE_ITEMS);
-        // Close true spots: their number labels step up a level so they never print over each other.
-        const levels = labelLevels(
-          rows.map((r) => REVEAL_SIDE + (r.truth / NUMLINE_SCALE) * (REVEAL_W - 2 * REVEAL_SIDE)),
-          rows.map((_, i) => `${i + 1}`),
-          REVEAL_LABEL_W,
-        );
-        return (
-          <div key={s} className="flex flex-col items-center gap-1">
-            <Line
-              stage={stage}
-              width={REVEAL_W}
-              height={60}
-              t={10}
-              label={12}
-              yShare={0.6}
-              svgStyle={{ width: "100%", maxWidth: 400, height: "auto" }}
-            >
-              {(x, y) => (
-                <>
-                  {rows.map((r, i) => (
-                    <g key={i}>
-                      {r.placement !== null ? (
-                        <line
-                          x1={x(r.placement / NUMLINE_SCALE)}
-                          y1={y}
-                          x2={x(r.truth / NUMLINE_SCALE)}
-                          y2={y}
-                          stroke="var(--warn)"
-                          strokeWidth={4}
-                          strokeOpacity={0.85}
-                        />
-                      ) : null}
-                      <line
-                        x1={x(r.truth / NUMLINE_SCALE)}
-                        y1={y - 9}
-                        x2={x(r.truth / NUMLINE_SCALE)}
-                        y2={y + 9}
-                        stroke="var(--ok, #3DDC84)"
-                        strokeWidth={3}
-                      />
-                      {r.placement !== null ? (
-                        <circle
-                          cx={x(r.placement / NUMLINE_SCALE)}
-                          cy={y}
-                          r={5}
-                          fill="var(--primary)"
-                          stroke="#1a1b21"
-                          strokeWidth={1.25}
-                        />
-                      ) : null}
-                      <text
-                        x={x(r.truth / NUMLINE_SCALE)}
-                        y={y - 12 - levels[i]! * 13}
-                        textAnchor="middle"
-                        fontSize={12}
-                        fontWeight={700}
-                        fill="var(--foreground)"
-                        fontFamily={MONO}
-                      >
-                        {i + 1}
-                      </text>
+      <RevealFacts
+        facts={[
+          { label: "Average off", value: avg === null ? "–" : `${(avg * 100).toFixed(1)}%` },
+          bullseyes && { label: "Bullseyes", value: <FxCountUp value={all.filter((r) => r.bull).length} /> },
+          worst && worst.error !== null && !worst.bull && { label: "Worst miss", value: `${worst.item}, ${(worst.error * 100).toFixed(1)}%`, tone: worst.close ? undefined : "miss" },
+        ]}
+      />
+      <RevealBoards noun="Line" marks={marks} index={index} onIndex={setIndex}>
+        <div ref={drawing} className="w-full" key={index}>
+        <Line
+          stage={line.stage}
+          width={REVEAL_W}
+          height={REVEAL_H}
+          t={REVEAL_T}
+          label={18}
+          yShare={REVEAL_Y}
+          svgStyle={{ width: "100%", maxWidth: 420, height: "auto" }}
+        >
+          {(x, y) => (
+            <>
+              {line.rows.map((r, i) => {
+                const tx = x(r.truth / NUMLINE_SCALE);
+                const ty = y - REVEAL_T / 2 - 18 - truthLevels[i]! * 22;
+                const px = r.placement === null ? null : x(r.placement / NUMLINE_SCALE);
+                const py = y + REVEAL_T / 2 + 30 + pinLevels[i]! * 22;
+                const tone = r.close ? "var(--jz-gold)" : "var(--jz-red)";
+                return (
+                  <g key={i} data-reveal-pair={i} data-close={r.close ? "" : undefined} data-bull={r.bull ? "" : undefined}>
+                    {px !== null ? <line x1={px} y1={py - 9} x2={tx} y2={y} stroke={tone} strokeWidth={2.5} strokeOpacity={0.9} /> : null}
+                    <line x1={tx} y1={y - REVEAL_T / 2 - 4} x2={tx} y2={y + REVEAL_T / 2 + 2} stroke="var(--jz-gold)" strokeWidth={3} />
+                    {r.bull ? <circle data-reveal-ring={i} cx={tx} cy={y} r={11} fill="none" stroke="var(--jz-gold)" strokeWidth={2.5} style={{ transformBox: "fill-box", transformOrigin: "50% 50%" }} /> : null}
+                    {/* The true spot's disc: the payoff flies it in from your marker (data-from, in drawing units). */}
+                    <g data-reveal-true={i} data-from={px === null ? undefined : `${px - tx},${py - ty}`}>
+                      <circle cx={tx} cy={ty} r={10} fill="var(--jz-gold)" />
+                      <text x={tx} y={ty + 4.5} textAnchor="middle" fontSize={13} fontWeight={800} fill="var(--jz-on-gold)" fontFamily="var(--jz-font)">{i + 1}</text>
                     </g>
-                  ))}
-                </>
-              )}
-            </Line>
-            <div className="grid w-full grid-cols-5 gap-1">
-              {rows.map((r, i) => (
-                <div
-                  key={i}
-                  data-puzzle-cell={s * NUMLINE_ITEMS + i}
-                  className="flex flex-col items-center justify-between rounded-md border border-border bg-card px-0.5 py-0.5 leading-tight"
-                >
-                  <span className="max-w-full break-words text-center text-[12px] leading-tight text-foreground">
-                    {`${i + 1}. ${stage.items[i]}`}
-                  </span>
-                  <span
-                    className={`font-mono text-[14px] font-bold ${r.error === null ? "text-muted-foreground" : r.error <= full ? "text-primary" : "text-warn"}`}
-                    style={
-                      r.error !== null && r.error > full
-                        ? { color: "color-mix(in oklab, var(--warn) 80%, white)" }
-                        : undefined
-                    }
-                  >
-                    {(standard ? isStdBullseye(r.error) : depth && isBullseye(r.error)) ? <span style={{ color: "#F5B82E" }}>◎ </span> : null}
-                    {numlineErrorLabel(r.error)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      <p className="text-center font-mono text-[13px] text-muted-foreground">
-        {placed} / {NUMLINE_TOTAL} placed · tick = true spot, dot = yours
-      </p>
-      {streak ? (
-        <p className="text-center font-mono text-[13px]" style={{ color: "#F5B82E" }} data-bullseye-streak={streak.best}>
-          ◎ {streak.runs.filter((r) => r > 0).length} bullseye{streak.runs.filter((r) => r > 0).length === 1 ? "" : "s"} · best streak {streak.best}
-        </p>
-      ) : null}
-      {standard ? (
-        <p className="text-center font-mono text-[13px]" style={{ color: "#F5B82E" }} data-bullseyes={bulls}>
-          ◎ {bulls} bullseye{bulls === 1 ? "" : "s"} (within 1%)
-        </p>
-      ) : null}
+                    {px !== null ? (
+                      <>
+                        <circle cx={px} cy={py} r={10} fill="var(--jz-surface-2)" stroke={tone} strokeWidth={2} />
+                        <text x={px} y={py + 4.5} textAnchor="middle" fontSize={13} fontWeight={800} fill="var(--jz-text)" fontFamily="var(--jz-font)">{i + 1}</text>
+                      </>
+                    ) : null}
+                  </g>
+                );
+              })}
+            </>
+          )}
+        </Line>
+        </div>
+        <p className="nl-reveal-key"><span className="nl-key-true">●</span> true spot <span className="nl-key-yours">●</span> your marker</p>
+        <ol className="nl-reveal-rows">
+          {line.rows.map((r, i) => (
+            <li key={i} data-puzzle-cell={index * NUMLINE_ITEMS + i} data-close={r.close ? "" : undefined} data-placed={r.placement !== null ? "" : undefined} className="nl-reveal-row">
+              <span className="nl-reveal-n">{i + 1}</span>
+              <span className="nl-reveal-item">{r.item}</span>
+              <span className="nl-reveal-off" data-bull={r.bull ? "" : undefined}>{numlineOffText(r)}</span>
+            </li>
+          ))}
+        </ol>
+      </RevealBoards>
     </div>
   );
 }

@@ -9,28 +9,37 @@ import { GameIntroExample } from "@/components/duel/GameParts";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
-import type { PuzzleType } from "@/lib/duel/types";
+import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
 import { CARD_LEVEL_TEXT } from "@/lib/levels/cardLevelText.data";
-
-const LEVEL_NAME = { easy: "Easy", hard: "Hard", expert: "Expert" } as const;
+import { levelAbout, levelAbouts } from "@/lib/levels/levelAbout";
+import { speedLevelInstructions } from "@/lib/levels/speedLevels";
+import { LEVEL_LABEL, NORMAL, puzzleLevel, type Level } from "@/lib/levels/levels";
 
 interface PuzzleInstructionsProps {
   type: PuzzleType;
-  /** The round's level (the Cards & Board levels): its own goal, lines and score in place of Normal's. */
-  level?: "easy" | "hard" | "expert" | null;
+  /** The round's puzzle: a Speed level's own goal and lines (the Speed overhaul's levels; absent or Normal: the game's). */
+  puzzle?: PuzzleData | null;
   overlay?: boolean;
   /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
+  /** The round's level (the intro): a level beyond Normal adds its one line under HOW. */
+  level?: Level;
 }
 
-export function PuzzleInstructions({ type, overlay = false, beforeScore, level = null }: PuzzleInstructionsProps) {
-  const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
-  const levelText = level ? (CARD_LEVEL_TEXT[type]?.[level] ?? null) : null;
+export function PuzzleInstructions({ type, overlay = false, beforeScore, level = NORMAL, puzzle = null }: PuzzleInstructionsProps) {
+  const base = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+  // A Speed level's own goal and lines (the Speed overhaul), from the round's puzzle.
+  const instructions = puzzle ? speedLevelInstructions(type, puzzleLevel(puzzle), base) : base;
+  // The Cards & Board levels: a level's own goal, lines and score in place of Normal's (cardLevelText.data.ts).
+  const levelText = level !== NORMAL ? (CARD_LEVEL_TEXT[type]?.[level as Exclude<Level, "normal">] ?? null) : null;
   // A level's own lines first (marked), then Normal's lines that hold at every level; the intro keeps at most four.
   const how = [
-    ...(levelText ? levelText.how.map((detail, i) => ({ action: i === 0 ? `${LEVEL_NAME[level!]}:` : "", detail, level: true })) : []),
+    ...(levelText ? levelText.how.map((detail, i) => ({ action: i === 0 ? `${LEVEL_LABEL[level]}:` : "", detail, level: true })) : []),
     ...instructions.how.filter((line) => (overlay || !line.helpOnly) && !(levelText && line.normalOnly)),
   ].slice(0, overlay ? undefined : 4);
+  // Levels (stage 3): the intro states this round's level; the help lists every level the game has.
+  const about = overlay ? "" : levelAbout(type, level);
+  const abouts = overlay ? levelAbouts(type) : [];
 
   return (
     <section
@@ -64,6 +73,24 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore, level =
           ))}
         </div>
       </div>
+      {about ? (
+        <p data-intro-level={level} className="intro-how-text shrink-0 leading-snug">
+          <strong className="intro-how-action">{LEVEL_LABEL[level]}:</strong> {about}
+        </p>
+      ) : null}
+      {abouts.length > 0 ? (
+        <div data-help-levels="" className="intro-how shrink-0">
+          <p className="intro-label">Levels</p>
+          <div className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
+            <p><strong className="intro-how-action">Normal:</strong> the game as above.</p>
+            {abouts.map((row) => (
+              <p key={row.level}>
+                <strong className="intro-how-action">{row.label}:</strong> {row.about}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="intro-score shrink-0">
         <p className="intro-label">Score</p>
         {overlay ? (
@@ -162,7 +189,7 @@ export function PuzzleHelp({ type, open, onClose, level = null }: PuzzleHelpProp
           </button>
         </div>
         <div data-help-scroll data-scrollable className="help-sheet-scroll min-h-0 flex-1 px-4 pb-4 pt-3">
-          <PuzzleInstructions type={type} overlay level={level} />
+          <PuzzleInstructions type={type} overlay level={level ?? NORMAL} />
           {type === "lightup" && <HelpExample type={type} />}
           <p className="mt-4 text-center font-mono text-xs uppercase text-muted-foreground">
             Tap outside or × to close

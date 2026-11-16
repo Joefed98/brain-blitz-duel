@@ -31,6 +31,7 @@
  * budget cannot settle counts as no closer. Server-only (imported by generate.server.ts and checks).
  */
 import { equationVerdict, usesOperatorGaps } from "./operatorGaps";
+import { pairCardsOf, pairsOf } from "./attentionLevels";
 import { judgeTileGrid } from "./tileGrid.server";
 import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns } from "./tileGrid";
 import { decodeSlideTokens, WS_MARKED_ROWS } from "./wordSlide";
@@ -43,7 +44,7 @@ import { balancePlaceLimits, equationTryLimit, measureMoveLimits, splitCountSuff
 import { equationStageCorrect, parseOperators, splitStages } from "./stagedRounds";
 import { decodeMeasureActions, measureActions, measureApply, measureSolved, splitMeasureRound } from "./measure";
 import { measureBoardOut } from "./gameReviewNov15";
-import { decodeStrikeout2, replayStrikeout2, so2Rules, so2Tally, STRIKEOUT_REV2, strikeoutRevOf } from "./strikeout";
+import { decodeStrikeout2, replayStrikeout2, so2Rules, so2Tally, STRIKEOUT_REV2, strikeoutRevOf, so2RulesFor } from "./strikeout";
 import { isCommonPrefix, isWord } from "./dictionary.server";
 import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
 import { decodeRingTaps, freshOffsets, RING_RESET, RING_TAPS, RING_UNDO, ringPatternIndex, ringsApply, ringsSolved } from "./rings";
@@ -56,12 +57,12 @@ import { decodeActionLog } from "./actionLog";
 import { replayLaserActions } from "./laserLog";
 import { verifyLaser } from "./laser";
 import { decodePairFlips, replayPairs } from "./pairmatch";
-import { clueHolds, decodeSafePending, decodeSafeTries, dialsCorrect } from "./safe";
+import { clueHolds, decodeSafePending, decodeSafeTries, dialsCorrect, safeShapeOf } from "./safe";
 import { decodeFloodMoves, replayFlood } from "./flood";
 import { floodMoveLimit } from "./moveLimits";
 import { DEPTH_REV_TOPUP, depthRevOf } from "./logicDepth";
 import { D4_REV_TOPUP, d4RevOf } from "./depth4/stamps";
-import { LIGHTS_CELLS, PUSH_COLS, RINGS_COUNT, UNBLOCK_COLS, UNBLOCK_EXIT_ROW, RINGS_SEGMENTS, type PuzzleData, type SlideDir, type UnblockVehicle } from "./types";
+import { LIGHTS_CELLS, PUSH_COLS, RINGS_COUNT, UNBLOCK_EXIT_ROW, RINGS_SEGMENTS, unblockCols, type PuzzleData, type SlideDir, type UnblockVehicle } from "./types";
 
 /** What the progress measures read from the rev-1 grade. */
 export interface ProgressInput {
@@ -154,7 +155,7 @@ export function rev3Progress(input: ProgressInput): number | null {
     case "rings":
       return ringsProgress(puzzle.segments, puzzle.pattern, decodeRingTaps(answer), puzzle.minMoves ?? 0, d4RevOf(puzzle) >= D4_REV_TOPUP ? RINGS_TOPUP_WASTE : MOVE_WASTE_WEIGHT.rings);
     case "unblock":
-      return unblockProgress(puzzle.vehicles, decodeMoves(answer), puzzle.minMoves ?? 0);
+      return unblockProgress(puzzle.vehicles, decodeMoves(answer), puzzle.minMoves ?? 0, unblockCols(puzzle));
     case "push":
       return pushProgress(puzzle, decodePushMoves(answer));
     case "tiles": {
@@ -168,7 +169,7 @@ export function rev3Progress(input: ProgressInput): number | null {
     case "laser":
       return laserProgress(puzzle, answer, input.latestMs);
     case "pairmatch": {
-      const replay = replayPairs(puzzle.cards, decodePairFlips(answer));
+      const replay = replayPairs(puzzle.cards, decodePairFlips(answer, pairCardsOf(puzzle)), pairsOf(puzzle));
       const total = Math.max(1, puzzle.cards.length / 2);
       const misses = Math.max(0, replay.tries - replay.pairs);
       // A little more for the first pairs (found with nothing known), and wild flipping costs.
@@ -178,8 +179,9 @@ export function rev3Progress(input: ProgressInput): number | null {
     case "safe": {
       const combination = puzzle.combination ?? [];
       if (!combination.length) return 0;
-      const tries = decodeSafeTries(answer);
-      const pending = tries.length >= SAFE_TRIES ? [] : [decodeSafePending(answer) ?? []];
+      const shape = safeShapeOf(puzzle);
+      const tries = decodeSafeTries(answer, shape);
+      const pending = tries.length >= shape.tries ? [] : [decodeSafePending(answer, shape) ?? []];
       const right = Math.max(0, ...[...tries, ...pending].map((t) => dialsCorrect(t, combination)));
       const share = Math.max(0, right - SAFE_FREE_DIALS) / Math.max(1, combination.length - SAFE_FREE_DIALS);
       const dials = Math.pow(share, SAFE_CURVE);
@@ -215,7 +217,7 @@ export function rev3Progress(input: ProgressInput): number | null {
  */
 export function rev3EfficiencyOverride(puzzle: PuzzleData, extra: Record<string, unknown> | null | undefined): number | null {
   if (puzzle.type === "strikeout" && strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
-    const max = so2Rules(strikeoutRevOf(puzzle)).maxStrikes;
+    const max = so2RulesFor(puzzle).maxStrikes;
     const strikes = typeof extra?.["strikes"] === "number" ? (extra["strikes"] as number) : 0;
     const span = Math.max(1, max - STRIKEOUT_FREE_STRIKES);
     return Math.max(0, Math.min(1, (max - strikes) / span));
@@ -232,7 +234,6 @@ export const PAIR_FREE_MISSES = 14;
 export const PAIR_MISSES_PER_PAIR = 3;
 /** Progress = share ^ PAIR_CURVE (below 1: the first pairs count a little more). */
 export const PAIR_CURVE = 0.75;
-const SAFE_TRIES = 3;
 /** Progress = share ^ SAFE_CURVE (below 1: the second dial right counts a little more than an even share). */
 export const SAFE_CURVE = 0.85;
 /** Progress = share ^ LASER_CURVE (above 1: the last gems, the hard ones, count a little more). */
@@ -408,7 +409,7 @@ function strikeoutProgress(puzzle: Extract<PuzzleData, { type: "strikeout" }>, a
   if (strikeoutRevOf(puzzle) < STRIKEOUT_REV2) return null;
   const words = puzzle.words ?? [];
   if (!words.length) return 0;
-  const state = replayStrikeout2(words, puzzle.givens ?? [], decodeStrikeout2(answer), isWord, so2Rules(strikeoutRevOf(puzzle)));
+  const state = replayStrikeout2(words, puzzle.givens ?? [], decodeStrikeout2(answer), isWord, so2RulesFor(puzzle));
   const tally = so2Tally(state);
   const w = tally.solvedWords;
   let within = 0;
@@ -606,11 +607,11 @@ const UNBLOCK_STATE_CAP = 200_000;
  * Layouts are base-8 numbers (one digit a block) and the edges flat typed arrays, so a board of 140,000 layouts
  * builds in well under a second once per server isolate (gridlock-table timings in scoring-rev3-check).
  */
-function unblockDistances(start: UnblockVehicle[]): (layout: number) => number | undefined {
-  const id = start.map((v) => `${v.id}${v.axis}${v.len}${v.row}${v.col}`).join(",");
+function unblockDistances(start: UnblockVehicle[], N: number): (layout: number) => number | undefined {
+  // The lot's size is part of the key (the difficulty levels: Easy's 6×6 lot reads the same layout text as a 7×7 one).
+  const id = `${N}/${start.map((v) => `${v.id}${v.axis}${v.len}${v.row}${v.col}`).join(",")}`;
   const found = UNBLOCK_TABLES.get(id);
   if (found) return found;
-  const N = UNBLOCK_COLS;
   const V = start.length;
   const horiz = start.map((v) => v.axis === "h");
   const lens = start.map((v) => v.len);
@@ -711,7 +712,7 @@ function unblockDistances(start: UnblockVehicle[]): (layout: number) => number |
 }
 
 /** Gridlock: each layout's fewest moves from a table of the whole board (a move slides one block any distance). */
-function unblockProgress(start: UnblockVehicle[], played: { id: number; to: number }[], minMoves: number): number {
+function unblockProgress(start: UnblockVehicle[], played: { id: number; to: number }[], minMoves: number, N: number): number {
   let state = start.map((v) => ({ ...v }));
   const history = [state];
   const boards = [state];
@@ -719,15 +720,15 @@ function unblockProgress(start: UnblockVehicle[], played: { id: number; to: numb
   for (const move of played) {
     if (move.id === -1 && move.to === 0) { if (history.length > 1) history.pop(); state = history[history.length - 1]!; boards.push(state); continue; }
     if (move.id === -2 && move.to === 0) { history.length = 1; state = history[0]!; boards.push(state); continue; }
-    const next = applyMove(state, move);
+    const next = applyMove(state, move, N);
     if (!next) continue;
     state = next;
     history.push(state);
     boards.push(state);
     moves++;
-    if (unblockSolved(state)) break;
+    if (unblockSolved(state, N)) break;
   }
-  const dist = unblockDistances(start);
+  const dist = unblockDistances(start, N);
   let closer = 0;
   for (const b of boards) {
     const d = dist(unblockKey(b));
@@ -941,6 +942,29 @@ function towerTable(pegs: number, target: number, discs: number): Uint8Array {
   }
   TOWER_TABLES.set(id, dist);
   return dist;
+}
+
+/**
+ * Hanoi's moves still needed from where a played move list leaves the board (the Logic overhaul's levels: the
+ * timed-out reveal's "N moves from done"); null on a board no server dealt.
+ */
+export function towerMovesLeft(start: number[][], targetPeg: number, discs: number, moves: { from: number; to: number }[]): number | null {
+  let pegs: TowerPegs = towerPegsFrom(start);
+  const n = pegs.length;
+  if (!towerBoardLegal(n, targetPeg, discs)) return null;
+  const table = towerTable(n, targetPeg, discs);
+  for (const m of moves) {
+    if (!towerCanMove(pegs, m.from, m.to)) break;
+    pegs = pegs.map((peg) => [...peg]);
+    pegs[m.to]!.push(pegs[m.from]!.pop()!);
+    if ((pegs[targetPeg] ?? []).length === discs) break;
+  }
+  const at = new Array<number>(discs + 1).fill(0);
+  pegs.forEach((peg, i) => peg.forEach((d) => { at[d] = i; }));
+  let c = 0;
+  for (let d = discs; d >= 1; d--) c = c * n + at[d]!;
+  const d = table[c]!;
+  return d === 255 ? null : d;
 }
 
 function towerProgress(start: number[][], targetPeg: number, discs: number, moves: { from: number; to: number }[], minMoves: number): number {

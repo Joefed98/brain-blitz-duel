@@ -3,12 +3,14 @@
  * word.md): the fixes that needed no design decision, each with the assertion that would have caught it.
  *
  * NUMBER
- *   1. Counterweight: out of hangs plays the fail sound (`wrong`), never the balanced one; help says notches.
+ *   1. Counterweight: out of hangs plays its own dull thunk (`balance.fail`, Joe's approval of 15 Nov 2026; `wrong`
+ *      before), never the balanced one; help says notches.
  *   2. Exact: no Lock before the first step (button and Enter).
  *   3. Operator / Integer Pyramid / Brimful: a skip never plays the stage-complete moment (StageProgress `quiet`,
- *      rendered in happy-dom); Operator's skip plays the neutral move tick.
- *   4. Integer Pyramid: a full but wrong pyramid marks the stones that break a sum and shakes; Skip reads Finish on
- *      the last board.
+ *      rendered in happy-dom); Operator's skip plays its flat swish (`equation.skip`; the move tick before) and its
+ *      bar counts equations solved (Joe's approval of 15 Nov 2026).
+ *   4. Integer Pyramid: a full but wrong pyramid shows its broken sums as cracks (no red fill since Joe's approval of
+ *      15 Nov 2026) and shakes; Skip reads Finish on the last board.
  *   5. Brimful measureRev 4 (gameReviewNov15.ts): out of moves ends only that puzzle; the server grades the later
  *      boards; measureRev 3 (pinned) grades exactly as before (later boards after the first unsolved one ignored);
  *      help says Reset is free and what running out does.
@@ -71,7 +73,8 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   const s = src("src/puzzles/balance.tsx");
   const outOfHangs = between(s, "if (!outOfHangs || current >= total - 1", "}, [outOfHangs");
   ok(outOfHangs.length > 0, "Counterweight: the out-of-hangs effect is found");
-  ok(/playWrong\(\)/.test(outOfHangs), "Counterweight: out of hangs plays the fail sound (playWrong)");
+// Changed with Joe's approval, 15 Nov 2026 (Number overhaul brief): out of hangs plays its own dull thunk (balance.fail).
+  ok(/soundCue\(stageFailCue\("balance"\)\)/.test(outOfHangs) && !/playWrong\(\)/.test(outOfHangs), "Counterweight: out of hangs plays its own dull thunk (balance.fail)");
   ok(!/balance\.level|playCorrect|stage_complete/.test(outOfHangs), "Counterweight: out of hangs never plays the balanced / success sound");
   const help = helpText("balance");
   ok(!/\bpegs?\b/i.test(help), `Counterweight: the help says notches, not peg (${help.match(/.*\bpeg.*/i)?.[0] ?? ""})`);
@@ -120,13 +123,15 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
 
   for (const [path, test] of [
     ["src/puzzles/equation.tsx", /<StageProgress stage=\{stage\} total=\{total\} quiet=\{stage > 0 && !equationStageCorrect\(/],
-    ["src/puzzles/equationGaps.tsx", /<StageProgress stage=\{stage\} total=\{total\} quiet=\{stage > 0 && !gapStageCorrect\(/],
+    // Changed with Joe's approval, 15 Nov 2026 (Number overhaul brief): Operator's bar counts equations solved (`done`).
+    ["src/puzzles/equationGaps.tsx", /<StageProgress stage=\{stage\} total=\{total\} done=\{fair \? solvedCount : undefined\} quiet=\{stage > 0 && !gapStageCorrect\(/],
     ["src/puzzles/numberPyramid.tsx", /<StageProgress stage=\{stage\} total=\{NP_SET_SIZE\} quiet=\{stage > 0 && [^\n]*!npComplete\(/],
     ["src/puzzles/measure.tsx", /<StageProgress stage=\{stage\} total=\{MEASURE_BOARDS\} quiet=\{[^\n]*\.solved\} \/>/],
   ] as const) ok(test.test(src(path)), `${path}: an unsolved stage moves on quietly`);
   for (const path of ["src/puzzles/equation.tsx", "src/puzzles/equationGaps.tsx"]) {
     const adv = between(src(path), 'soundCue("equation.advance");', "};");
-    ok(/playSound\("move"\)/.test(adv), `${path}: Operator's skip plays the neutral move tick`);
+// Changed with Joe's approval, 15 Nov 2026 (Number overhaul brief): Operator's skip plays its own flat swish (equation.skip).
+    ok(/soundCue\(stageSkipCue\("equation"\)\)/.test(adv) && !/playSound\("move"\)/.test(adv), `${path}: Operator's skip plays its flat swish (equation.skip)`);
     ok(!/correct|stage_complete|playCorrect/.test(adv.replace(/StageCorrect|equationStageCorrect|gapStageCorrect/g, "")), `${path}: Operator's skip plays no solve sound`);
   }
 }
@@ -149,7 +154,8 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   const s = src("src/puzzles/numberPyramid.tsx");
   ok(/const fullWrong = !!board && !complete && fullValues\.every\(\(v\) => v != null\);/.test(s), "Integer Pyramid: a full, incomplete pyramid is detected");
   ok(/wrongMoveFlash\(/.test(between(s, "useEffect(() => {\n    if (fullWrongKey", "}, [fullWrongKey")), "Integer Pyramid: a full wrong pyramid gets the wrong-move shake and its quiet sound");
-  ok(/marks: Object\.fromEntries\(broken\.map/.test(s), "Integer Pyramid: the broken stones are drawn red (marks)");
+// Changed with Joe's approval, 15 Nov 2026 (Number overhaul brief): a full wrong pyramid shows its cracks only, no red fill.
+  ok(!/marks: Object\.fromEntries\(broken\.map/.test(s) && /seams=\{drag \? undefined : seams\}/.test(s), "Integer Pyramid: a full wrong pyramid shows its cracks (seams), with no red fill on the stones");
   ok(/\{stage >= NP_SET_SIZE - 1 \? "Finish" : "Skip"\}/.test(s), "Integer Pyramid: Skip reads Finish on the last board");
 }
 
@@ -158,7 +164,11 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   const deal = (seed: number, pinned: boolean) => {
     const before = pinPreGameReviewNov15(pinned);
     try {
-      return withSeededRandom(seed, () => generatePuzzle("measure", { bankSeed: seed })) as MeasurePuzzleData;
+      // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the measureRev 4 game is dealt
+      // at Hard (measureLevels.ts); Normal is the new measureRev 5 game. The pinned era still deals rev 3 at Normal.
+      const made = withSeededRandom(seed, () => generatePuzzle("measure", pinned ? { bankSeed: seed } : { bankSeed: seed, level: "hard" }));
+      const { level: _level, ...rest } = made as unknown as Record<string, unknown>;
+      return rest as unknown as MeasurePuzzleData;
     } finally {
       pinPreGameReviewNov15(before);
     }
@@ -170,7 +180,9 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   const { measureRev: _a, ...liveRest } = live as unknown as Record<string, unknown>;
   const { measureRev: _b, ...oldRest } = old as unknown as Record<string, unknown>;
   ok(JSON.stringify(liveRest) === JSON.stringify(oldRest), "Brimful: measureRev is the only difference from the older deal");
-  ok(PRACTICE_STAMPS.measure.includes("measureRev=4"), `Brimful: practice stamps carry measureRev 4 (${PRACTICE_STAMPS.measure})`);
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): practice's Normal is the new
+  // measureRev 5 game (measureLevels.ts), today's measureRev 4 is Hard.
+  ok(PRACTICE_STAMPS.measure.includes("measureRev=5"), `Brimful: practice stamps carry Normal's measureRev 5 (${PRACTICE_STAMPS.measure})`);
 
   /** Legal moves on `board` that never solve it, until its limit is used up. */
   const exhaust = (p: MeasurePuzzleData, i: number): MeasureAction[] => {
@@ -223,7 +235,8 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   const s = src("src/puzzles/measure.tsx");
   const effect = between(s, "if (!outOfMoves || locked || submitted.current) return undefined;", "}, [outOfMoves");
   ok(/if \(boardOut && stage < MEASURE_BOARDS - 1\)/.test(effect) && /setStage\(stage \+ 1\)/.test(effect), "Brimful: the phone moves on to the next puzzle when one runs out (measureRev 4)");
-  ok(/playWrong\(\)/.test(effect), "Brimful: running out plays the fail sound");
+// Changed with Joe's approval, 15 Nov 2026 (Number overhaul brief): running out plays its own dull thunk (measure.fail).
+  ok(/soundCue\(stageFailCue\("measure"\)\)/.test(effect) && !/playWrong\(\)/.test(effect), "Brimful: running out plays its own dull thunk (measure.fail)");
   const help = helpText("measure");
   ok(!/Every action\b/.test(help) && /Reset[^\n]*costs no move/.test(help), "Brimful: the help says Reset is not a move");
   ok(/that puzzle ends and the next one starts/.test(help), "Brimful: the help says running out ends only that puzzle");

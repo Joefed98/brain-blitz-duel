@@ -1,0 +1,405 @@
+/*
+ * Operator, the Number overhaul (15 Nov 2026; src/puzzles/equationGaps.tsx): display only.
+ * Blender pieces from docs/design/number-overhaul/source/equation.py (public/number/equation/): number tiles in a dark
+ * polished stone, sign gaps champagne-gold rings, number gaps navy wells, sign keys champagne discs. The numbers are
+ * drawn over the pieces in Archivo, bold. The equation and its keys sit together in the middle of the screen; no glows.
+ */
+[data-number-overhaul][data-operator-gaps] {
+  --opg-sign: var(--jz-gold);
+  --opg-number: var(--jz-surface-3);
+}
+[data-number-overhaul].opg-stage > .opg-spacer {
+  flex: 1 1 0;
+  min-height: 0;
+}
+[data-number-overhaul] .op-board.opg-board,
+[data-puzzle-play] [data-number-overhaul][data-polish="equation"][data-stage-column] .op-board {
+  flex: none;
+  gap: 12px;
+  padding: 16px 10px 12px;
+  border-radius: 18px;
+  overflow: visible;
+  /* The material pass: the board is concept A's dark lacquered panel (public/number/equation/panel.webp, 9-slice). */
+  border: 12px solid transparent;
+  border-image: url("/number/equation/panel.webp") 72 fill / 24px stretch;
+  padding: 4px 0 0;
+  background: none;
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-caption {
+  font-family: var(--jz-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+
+/* The equation: bold, big numbers straight on the shelf (no inner strip, no glow). */
+[data-number-overhaul] .opg-equation,
+[data-puzzle-play] [data-number-overhaul] .opg-equation {
+  padding: 10px 6px;
+  font-family: var(--jz-font);
+  font-weight: 800;
+  color: var(--jz-text);
+  background: none;
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-equation[data-correct="true"] {
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-goal {
+  color: var(--jz-gold);
+  text-shadow: none;
+}
+[data-number-overhaul] .opg-sign {
+  color: var(--jz-text-2);
+}
+
+/* Gaps: a champagne ring round a navy well (sign), a navy well (number); a filled gap holds its piece. */
+[data-number-overhaul] .opg-gap {
+  border: 0;
+  background: url("/number/equation/gap-number.webp") center / 100% 100% no-repeat;
+}
+[data-number-overhaul] .opg-gap[data-kind="sign"] {
+  width: 1.4em;
+  height: 1.4em;
+  border: 0;
+  background-image: url("/number/equation/gap-sign.webp");
+}
+[data-number-overhaul] .opg-gap[data-kind="number"] {
+  min-width: 1.55em;
+  height: 1.55em;
+  border: 0;
+}
+[data-number-overhaul] .opg-hint {
+  display: none;
+}
+[data-number-overhaul] .opg-gap[data-next="true"] {
+  box-shadow: none;
+}
+/* The gap the next tile goes into (the leftmost, or the one chosen): a quiet champagne outline. */
+[data-number-overhaul] .opg-gap[data-next="true"]::after,
+[data-number-overhaul] .opg-gap[data-chosen="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -0.12em;
+  border-radius: 0.3em;
+  border: 0.06em solid color-mix(in srgb, var(--jz-gold) 55%, transparent);
+  pointer-events: none;
+}
+[data-number-overhaul] .opg-gap[data-kind="sign"][data-next="true"]::after,
+[data-number-overhaul] .opg-gap[data-kind="sign"][data-chosen="true"]::after {
+  border-radius: 999px;
+}
+[data-number-overhaul] .opg-gap[data-chosen="true"]::after {
+  border-width: 0.09em;
+  border-color: var(--jz-gold);
+}
+[data-number-overhaul] .opg-fill,
+[data-number-overhaul] .opg-gap[data-kind="number"] .opg-fill,
+[data-number-overhaul] .opg-gap[data-kind="sign"] .opg-fill,
+[data-number-overhaul] .opg-equation[data-correct="true"] .opg-fill {
+  inset: 0;
+  font-size: 0.82em;
+  font-weight: 800;
+  color: var(--jz-text);
+  background: url("/number/equation/num.webp") center / 100% 100% no-repeat;
+}
+[data-number-overhaul] .opg-gap[data-kind="sign"] .opg-fill {
+  color: var(--jz-on-gold);
+  background-image: url("/number/equation/sign.webp");
+}
+[data-number-overhaul] .opg-equation[data-correct="true"] .opg-gap[data-kind="number"] .opg-fill {
+  color: var(--jz-gold);
+}
+
+[data-number-overhaul] .opg-gap[data-mark="bad"] .opg-fill {
+  color: var(--jz-loss);
+}
+
+/* The keys right under the equation: number keys the same stone tiles, sign keys champagne discs, 56 px tall. */
+[data-number-overhaul] .opg-pad {
+  width: 100%;
+  gap: 10px;
+}
+[data-number-overhaul] .opg-row {
+  height: 56px;
+  gap: 10px;
+}
+[data-number-overhaul] .opg-key,
+[data-puzzle-play] [data-number-overhaul] .opg-key {
+  height: 56px;
+  border-radius: 12px;
+  font-family: var(--jz-font);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--jz-text);
+  background: url("/number/equation/num.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-key[data-kind="sign"],
+[data-puzzle-play] [data-number-overhaul] .opg-key[data-kind="sign"] {
+  justify-self: center;
+  width: 56px;
+  border-radius: 999px;
+  color: var(--jz-on-gold);
+  background-image: url("/number/equation/sign.webp");
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-key[data-kind="number"] {
+  color: var(--jz-text);
+  box-shadow: none;
+}
+[data-number-overhaul] .opg-key[data-used="true"] {
+  opacity: 0.2;
+}
+
+/* gapsRev 2: the four equations as chips; an open one goes back to it. */
+.opg-stages {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.opg-stage-chip {
+  display: inline-flex;
+  width: 44px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--jz-text-2);
+  background: var(--jz-surface-2);
+}
+.opg-stage-chip[data-state="current"] {
+  color: var(--jz-on-gold);
+  background: var(--jz-gold);
+}
+.opg-stage-chip[data-state="solved"] {
+  color: var(--jz-gold);
+  background: var(--jz-surface);
+}
+.opg-stage-chip[data-state="out"] {
+  color: var(--jz-text-3);
+  background: var(--jz-surface);
+  text-decoration: line-through;
+}
+.opg-stage-chip[data-state="started"] {
+  box-shadow: inset 0 0 0 2px var(--jz-surface-3);
+}
+.opg-stage-chip:disabled {
+  cursor: default;
+}
+
+/* The try pips: a used try cracks (a diagonal break through the pip). */
+.opg-tries {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.opg-try {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--jz-gold);
+}
+.opg-try[data-used="true"] {
+  background: var(--jz-surface-3);
+}
+.opg-try[data-used="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -1px;
+  width: 2px;
+  height: 13px;
+  border-radius: 1px;
+  background: var(--jz-loss);
+  transform: translateX(-50%) rotate(28deg);
+}
+.opg-try[data-cracking="true"] {
+  animation: opg-crack 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+@keyframes opg-crack {
+  0% { transform: scale(1.35); }
+  100% { transform: none; }
+}
+
+/* Next / Finish: the screen's one gold action, flat champagne. */
+[data-number-overhaul] .opg-next {
+  height: 52px;
+  border-radius: 12px;
+  font-family: var(--jz-font);
+  font-size: 17px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--jz-on-gold);
+  background: var(--jz-gold);
+}
+[data-number-overhaul] .opg-next:disabled {
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opg-try[data-cracking="true"] {
+    animation: none;
+  }
+}
+
+/*
+ * Operator's answer reveal (the Number overhaul, 15 Nov 2026; GapsReveal): one equation at a time, big, with the
+ * shared switcher (RevealParts.tsx). A wrong piece is outlined in the loss red, an empty gap gets a dashed red
+ * outline, and on the solution the pieces the player didn't have are outlined in champagne.
+ */
+.opr-reveal {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.opr-kind {
+  font-family: var(--jz-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+/* The fitted line's inner run: the numbers, signs and gap pieces on one centre line. */
+[data-operator-reveal] .op-fit-line {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.opr-line {
+  display: flex;
+  align-self: stretch;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: var(--fit-fs, var(--fit-base)) !important;
+}
+.opr-note {
+  font-family: var(--jz-font);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--jz-text);
+}
+.opr-note[data-mark="right"] {
+  color: var(--jz-gold);
+}
+.opr-note[data-mark="wrong"] {
+  color: var(--jz-loss);
+}
+.opr-note[data-mark="open"] {
+  color: var(--jz-text-2);
+}
+.opr-tries {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.opr-tries-label {
+  font-family: var(--jz-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+[data-operator-reveal] .opg-gap[data-mark] {
+  position: relative;
+}
+[data-operator-reveal] .opg-gap[data-mark="bad"]::after,
+[data-operator-reveal] .opg-gap[data-mark="miss"]::after,
+[data-operator-reveal] .opg-gap[data-mark="fix"]::after {
+  content: "";
+  position: absolute;
+  inset: -0.1em;
+  border-radius: 0.3em;
+  pointer-events: none;
+}
+[data-operator-reveal] .opg-gap[data-kind="sign"][data-mark]::after {
+  border-radius: 999px;
+}
+[data-operator-reveal] .opg-gap[data-mark="bad"]::after {
+  border: 0.08em solid var(--jz-loss);
+}
+[data-operator-reveal] .opg-gap[data-mark="miss"]::after {
+  border: 0.07em dashed var(--jz-loss);
+}
+[data-operator-reveal] .opg-gap[data-mark="fix"]::after {
+  border: 0.08em solid var(--jz-gold);
+}
+
+/*
+ * The live round fills its space (Joe, 15 Nov 2026): the board spans from the goal line to NEXT, its parts spread
+ * evenly, and everything is a size up (the equation starts at 56 px and still shrinks to fit one line; keys 72 px;
+ * the equation chips 48 px, every target at least 44 px). Intros and demos keep their sizes.
+ */
+[data-puzzle-play] [data-number-overhaul].opg-stage > .opg-spacer {
+  flex: 0 0 0;
+}
+[data-puzzle-play] [data-number-overhaul][data-polish="equation"][data-stage-column] .op-board.opg-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: space-evenly;
+  gap: 14px;
+}
+/* Phones (game-fx.css "2d. phones: no dead band"): the panel still spans the space, but its parts sit together at its
+   foot, so the equation stays just above its keys in thumb reach and the spare height is above them. */
+@media (max-width: 699px) {
+  [data-puzzle-play] [data-number-overhaul][data-polish="equation"][data-stage-column] .op-board.opg-board {
+    justify-content: flex-end;
+  }
+  /* Intro demos keep the layout they were recorded on (as game-fx.css 2d): their parts spread as before. */
+  .intro-demo [data-puzzle-play] [data-number-overhaul][data-polish="equation"][data-stage-column] .op-board.opg-board {
+    justify-content: space-evenly;
+  }
+}
+[data-puzzle-play] [data-number-overhaul] .opg-board > .nov-stage {
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-board > .nov-stage > .opg-equation {
+  align-self: stretch;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-stage-chip {
+  width: 56px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 18px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-pad {
+  gap: 14px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-row {
+  height: 72px;
+  gap: 12px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-key {
+  height: 72px;
+  border-radius: 14px;
+  font-size: 34px;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-key[data-kind="sign"] {
+  width: 72px;
+}
+
+/* The running total under the line (stage 2, display only): the equation worked left to right as far as it is filled. */
+[data-number-overhaul] .opg-running {
+  min-height: 20px;
+  margin: 2px 0 0;
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+[data-number-overhaul] .opg-running b {
+  font-weight: 800;
+  color: var(--jz-text);
+}

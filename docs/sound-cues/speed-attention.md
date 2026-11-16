@@ -22,6 +22,25 @@ Completion effects last at most 1.2 s. Most of the motion is done by about 0.9 s
 | `countup.countersTick` | Tally | Final answer submitted: tray counters start ticking up | 1.1 s (effect) |
 | `countup.countersLock` | Tally | The last counter locks (about 790 ms into the effect) | instant |
 | `countup.trayIn` | Tally | Stage 2 or 3 tray slides in (2, 3 or 4 on countRev 2) | 280 ms |
+| `countup.mark` | Tally | countRev 7: a shape tapped to mark it as counted (the Attention overhaul, 15 Nov 2026) | 120 ms |
+| `countup.unmark` | Tally | countRev 7: a mark taken off a shape | 100 ms |
+| `countup.key` | Tally | A keypad key pressed (the Attention overhaul's stage 2, 15 Nov 2026) | 60 ms |
+| `countup.trayOut` | Tally | ENTER: the tray slides away and the next comes in | 400 ms |
+| `countup.revealTick` | Tally | The reveal lights each counted shape in turn (pitched up a little each time) | 40 ms |
+| `countup.soClose` | Tally | The reveal: a tray one off ("So close") | 400 ms |
+| `symscan.gridClear` | Eagle Eye | A grid submitted: its matching eagles fly off | 600 ms |
+| `symscan.cleanGrid` | Eagle Eye | A grid submitted with no wrong marks: a quiet sparkle | 400 ms |
+| `symscan.missed` | Eagle Eye | The reveal pulses the eagles that were missed | 200 ms |
+| `spotdiff.hidden` | Double Take | The hidden seventh found | 600 ms |
+| `spotdiff.pictureOut` | Double Take | A picture done: it slides out as the next comes in | 350 ms |
+| `maze.step` | Labyrinth | Each step of the trail (a little higher past each junction) | 50 ms |
+| `maze.bump` | Labyrinth | A step into a wall: the trail end flashes | 120 ms |
+| `maze.back` | Labyrinth | A step back along the trail (it retracts) | 40 ms |
+| `maze.deadEnd` | Labyrinth | The trail reaches the tip of a dead end | 300 ms |
+| `pairmatch.flip` | Matchmaker | A card turned over | 100 ms |
+| `pairmatch.match` | Matchmaker | A match: both cards lift and lock face up (from a streak of two, the kit's rising combo tone instead) | 350 ms |
+| `pairmatch.miss` | Matchmaker | A miss: the cards flip back | 150 ms |
+| `pairmatch.gold` | Matchmaker | The gold pair matched: its own shimmer | 700 ms |
 | `pairmatch.cardWave` | Matchmaker | Last pair matched: the cards flip in a wave | 1.1 s |
 | `whack.finale` | Bonk | End of run, local `whackGame.score` ≥ 120: hard hats fly up as gophers pop out together | 1.1 s |
 | `clayshoot.finalBurst` | Pull! | End of run, local clay score ≥ 120: final burst of clay fragments | 1.1 s (effect) |

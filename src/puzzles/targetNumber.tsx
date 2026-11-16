@@ -29,7 +29,12 @@ import { HudPills } from "@/components/puzzles/HudPills";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-target.css";
 import { EXACT_ELEGANT_TILES, usesNumberDepth } from "@/lib/duel/numberDepth";
+import { exactCombineRate, exactLockReady, exactNear, toggleOperator } from "@/lib/duel/numberOverhaulInput";
+import { gameFx } from "@/lib/fx/kit";
+import { RevealFacts, RevealView, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 /* -------------------------------------------------------------------------- */
 /*  Target Number — reach a three-digit target from six tiles.                 */
@@ -45,6 +50,21 @@ function isLarge(value: number): boolean {
 type TileState = "idle" | "selected" | "consumed";
 
 /* Exact polish (13 Oct 2026): drawing, animation and sound cues only; steps and submit untouched. */
+/** The combine's pop, pitched by the result's size (the Number overhaul's effects; the slot's own file, not a kit sound). */
+function combineCue(result: number): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("duelz-sound", { detail: { cue: "target.combine", rate: exactCombineRate(result) } }));
+}
+
+/**
+ * The Number overhaul's effects (stage 2, 15 Nov 2026; the effects kit, src/lib/fx/kit.ts): display only, run after
+ * the move's render so they read the new layout. Each animates a piece's own face (never a button or the board), with
+ * `silent` where the game plays its own cue.
+ */
+function afterPaint(fn: () => void): void {
+  if (typeof window !== "undefined") requestAnimationFrame(() => requestAnimationFrame(fn));
+}
+
 export const EXACT_CSS = `
 [data-polish="target"] .exact-board { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 10px 8px; border-radius: 16px; overflow: hidden;
   background: radial-gradient(120% 70% at 50% 0%, rgba(245,184,46,.10), transparent 60%), repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 22px), linear-gradient(180deg, #17171f, #101016);
@@ -77,7 +97,7 @@ export const EXACT_CSS = `
 [data-polish="target"] .exact-tile[data-hit="true"] { color: #1a1406; background: linear-gradient(180deg, #ffd56a, #F5B82E 60%, #d99a14); box-shadow: inset 0 0 0 1px #ffe69a, inset 0 -4px 0 rgba(120,80,0,.35), 0 0 18px rgba(245,184,46,.55); }
 [data-polish="target"][data-locked="true"] .exact-tile:not([data-hit="true"]):not([data-state="consumed"]) { opacity: .5; }
 [data-polish="target"] .exact-face { position: relative; display: inline-block; }
-[data-polish="target"] .exact-elegant { color: #F5B82E; }
+[data-polish="target"] .exact-elegant { color: var(--jz-gold); }
 [data-polish="target"] .exact-face[data-pop="true"] { animation: exact-pop 240ms cubic-bezier(.2,1.5,.4,1) both; }
 [data-polish="target"] .exact-ring { position: absolute; inset: 3px; border-radius: 13px; box-shadow: inset 0 0 0 2px #F5B82E; pointer-events: none; animation: exact-ring 260ms ease-out both; }
 @keyframes exact-pop { 0% { scale: .7; opacity: .4; } 60% { scale: 1.14; opacity: 1; } 100% { scale: 1; } }
@@ -109,6 +129,35 @@ export const EXACT_CSS = `
 .game-column [data-polish="target"] .exact-history { flex: 1 1 0; height: auto; min-height: 0; max-height: 148px; }
 @container (min-height: 330px) { .game-column [data-polish="target"] .exact-line { font-size: 20px; line-height: 30px; } .game-column [data-polish="target"] .exact-history { max-height: 168px; } }
 
+/* ---- The Number overhaul (15 Nov 2026): Blender-rendered tiles, keys and the gold target plate (public/number/target),
+   bold Archivo numbers, champagne gold and navy, no glows or glare. Display only: every control keeps its place. */
+[data-polish="target"] .exact-board { background: linear-gradient(180deg, var(--jz-surface), var(--jz-bg)); box-shadow: inset 0 0 0 1px var(--jz-line), 0 8px 18px rgba(0,0,0,.4); }
+[data-polish="target"] .exact-rings { display: none; }
+[data-polish="target"] .exact-plaque { padding: 8px 34px 10px; min-width: 62%; background: url("/number/target/target.webp") center / 100% 100% no-repeat; filter: drop-shadow(0 6px 8px rgba(0,0,0,.45)); }
+[data-polish="target"] .exact-label { color: var(--jz-on-gold); opacity: .72; font-family: var(--jz-font); font-weight: 800; }
+[data-polish="target"] .exact-number, [data-puzzle-play] .game-column [data-polish="target"] .exact-number { font-family: var(--jz-font); font-weight: 900; color: var(--jz-on-gold); text-shadow: none; }
+[data-polish="target"] .exact-history-card { background: var(--jz-well); box-shadow: inset 0 0 0 1px var(--jz-line); }
+[data-polish="target"] .exact-line { font-family: var(--jz-font); font-weight: 700; color: var(--jz-text); }
+[data-polish="target"] .exact-line b { color: var(--jz-gold); font-weight: 800; }
+[data-polish="target"] .exact-tile, [data-polish="target"] .exact-tile[data-large="true"] {
+  font-family: var(--jz-font); font-weight: 800; font-size: 30px; color: var(--jz-white); box-shadow: 0 4px 8px rgba(0,0,0,.45);
+  background: url("/number/target/tile.webp") center / 100% 100% no-repeat; }
+[data-polish="target"] .exact-tile[data-large="true"] { color: var(--jz-gold); background-image: url("/number/target/tile-large.webp"); }
+[data-polish="target"] .exact-tile[data-state="selected"], [data-polish="target"] .exact-tile[data-hit="true"] {
+  translate: 0 -3px; color: var(--jz-on-gold); background: url("/number/target/tile-picked.webp") center / 100% 100% no-repeat; box-shadow: 0 6px 10px rgba(0,0,0,.5); }
+[data-polish="target"] .exact-tile[data-state="consumed"] { opacity: .4; color: var(--jz-text-3); background: var(--jz-well); box-shadow: inset 0 2px 6px rgba(0,0,0,.6); }
+[data-polish="target"] .exact-ring { box-shadow: inset 0 0 0 2px var(--jz-gold); }
+[data-polish="target"] .exact-op { font-family: var(--jz-font); font-weight: 800; font-size: 26px; color: var(--jz-white); box-shadow: 0 3px 6px rgba(0,0,0,.4);
+  background: url("/number/target/op.webp") center / 100% 100% no-repeat; }
+[data-polish="target"] .exact-op[data-on="true"] { color: var(--jz-gold); background: url("/number/target/op.webp") center / 100% 100% no-repeat; box-shadow: inset 0 0 0 2px var(--jz-gold), 0 3px 6px rgba(0,0,0,.4); }
+[data-polish="target"] .puzzle-secondary-control { color: var(--jz-text) !important; border-color: var(--jz-line) !important; background: var(--jz-surface-2) !important; }
+[data-polish="target"] .exact-lock { min-height: 48px; padding: 0 20px; border-radius: 12px; font-family: var(--jz-font); font-size: 15px; font-weight: 800;
+  color: var(--jz-text-2); background: var(--jz-surface-2); box-shadow: 0 4px 0 var(--jz-bg); }
+[data-polish="target"] .exact-lock[data-ready] { color: var(--jz-on-gold); background: var(--jz-gold); box-shadow: 0 4px 0 var(--jz-gold-ledge); }
+[data-polish="target"] .exact-lock:disabled { opacity: .6; }
+[data-polish="target"] .exact-ghost { font-family: var(--jz-font); font-weight: 900; color: var(--jz-on-gold); background: url("/number/target/tile-picked.webp") center / 100% 100% no-repeat; box-shadow: none; }
+[data-polish="target"] .exact-burst { box-shadow: 0 0 0 3px var(--jz-gold); }
+@keyframes exact-target-pulse { 0% { scale: 1; } 30% { scale: 1.12; } 100% { scale: 1; } }
 @media (prefers-reduced-motion: reduce) {
   [data-polish="target"] :is(.exact-line, .exact-face, .exact-ring, .exact-tile .exact-face) { animation: none !important; }
   [data-polish="target"] .exact-ghost, [data-polish="target"] .exact-burst { display: none; }
@@ -131,28 +180,22 @@ export const EXACT_RINGS = (
 
 function IntroExample() {
   const tiles = [75, 4, 6, 2, 10, 3];
+  // The Number overhaul (15 Nov 2026): the intro's still shows the round's own rendered plate and tiles.
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      <p className="text-center text-sm text-muted-foreground">
-        Use the six numbers to reach the target. Each number once; every step must be a whole
-        number.
-      </p>
-      <p className="font-mono text-5xl font-bold text-primary">462</p>
-      <div className="grid w-full max-w-[260px] grid-cols-3 gap-2">
+    <div data-polish="target" className="flex w-full flex-col items-center gap-3">
+      <PolishStyle id="target" css={EXACT_CSS} />
+      <div className="exact-plaque">
+        <p className="exact-label">Target</p>
+        <p className="exact-number" style={{ fontSize: 48 }}>462</p>
+      </div>
+      <div className="grid w-full max-w-[280px] grid-cols-3 gap-2">
         {tiles.map((tile, index) => (
-          <div
-            key={`${tile}-${index}`}
-            className={`flex h-12 items-center justify-center rounded-xl border border-border bg-card font-mono text-lg font-bold tabular-nums ${
-              isLarge(tile) ? "text-primary" : "text-foreground"
-            }`}
-          >
+          <div key={`${tile}-${index}`} className="exact-tile" data-large={isLarge(tile) ? "true" : undefined} style={{ height: 52, fontSize: 24 }}>
             {tile}
           </div>
         ))}
       </div>
-      <p className="text-center font-mono text-xs text-muted-foreground">
-        75 × 6 = 450 · 450 + 10 = 460 · 460 + 2 = 462
-      </p>
+      <p className="text-center text-sm font-semibold text-foreground">75 × 6 = 450 · 450 + 10 = 460 · 460 + 2 = 462</p>
       <p className="text-center text-xs text-muted-foreground">
         Hitting it scores 150, with more for speed and for using fewer numbers. Not exact: what you built towards it, or about 120 one away.
       </p>
@@ -224,9 +267,11 @@ function TargetStage({
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
 
-  const send = (list: TargetStep[]) => {
+  /** `byHand`: the player's Lock (Enter or the button), which plays the lock (the exact hit and the time-out don't). */
+  const send = (list: TargetStep[], byHand = true) => {
     if (submitted.current) return;
     submitted.current = true;
+    if (byHand) soundCue("target.lock");
     setLockedHere(true);
     onSubmit(encodeSteps(list));
   };
@@ -243,6 +288,7 @@ function TargetStage({
 
   const reset = () => {
     if (locked || lockedHere) return;
+    soundCue("target.reset");
     setPool(startTiles.map((value, id) => ({ id, value, active: true })));
     setHistory([]);
     setSelectedId(null);
@@ -254,6 +300,16 @@ function TargetStage({
     if (locked || lockedHere) return;
     const last = history[history.length - 1];
     if (!last) return;
+    soundCue("target.undo");
+    // The merge played backwards: the number given back slides out of the result's place to its own.
+    const back = last.before.find((b) => !pool.find((t) => t.id === b.id)?.active && b.active);
+    const resultFace = pool.find((t) => t.active && last.before.find((b) => b.id === t.id)?.value !== t.value);
+    const fromBox = resultFace ? rootRef.current?.querySelector(`[data-tile-id="${resultFace.id}"] .exact-face`)?.getBoundingClientRect() : undefined;
+    if (back && fromBox) afterPaint(() => {
+      const el = rootRef.current?.querySelector(`[data-tile-id="${back.id}"] .exact-face`);
+      const to = el?.getBoundingClientRect();
+      if (el && to) gameFx("slide", el, { from: { x: fromBox.left - to.left, y: fromBox.top - to.top }, silent: true });
+    });
     setPool(last.before);
     setHistory((current) => current.slice(0, -1));
     setSelectedId(null);
@@ -297,11 +353,26 @@ function TargetStage({
     setSelectedId(first.id);
     setOperator(null);
     setCombine((c) => ({ id: first.id, consumed: tile.id, n: (c?.n ?? 0) + 1 }));
-    soundCue("target.combine");
+    combineCue(result);
+    // The two numbers slide together into the result (FLIP from the second number's place), then, within 10 of the
+    // target, the target plate pulses softly (the hit has its own flight and gold flip below).
+    const fromBox = rootRef.current?.querySelector(`[data-tile-id="${tile.id}"] .exact-face`)?.getBoundingClientRect();
+    const nextClosest = Math.min(
+      Math.abs(result - target),
+      ...pool.filter((t) => t.active && t.id !== first.id && t.id !== tile.id).map((t) => Math.abs(t.value - target)),
+    );
+    afterPaint(() => {
+      const el = rootRef.current?.querySelector(`[data-tile-id="${first.id}"] .exact-face`);
+      const to = el?.getBoundingClientRect();
+      if (el && to && fromBox) gameFx("slide", el, { from: { x: fromBox.left - to.left, y: fromBox.top - to.top }, silent: true });
+      const plaque = rootRef.current?.querySelector(".exact-plaque");
+      if (result === target) gameFx("win", plaque, { silent: true });
+      else if (exactNear(nextClosest)) gameFx("nearMiss", plaque);
+    });
 
     // Hitting the target locks the answer at once.
     if (result === target) {
-      send(nextHistory.map((h) => h.step));
+      send(nextHistory.map((h) => h.step), false);
       // Display only, measured after the submit: the result tile's flight into the target.
       const root = rootRef.current?.getBoundingClientRect();
       const goal = targetRef.current?.getBoundingClientRect();
@@ -318,7 +389,7 @@ function TargetStage({
   useEffect(() => {
     if (locked || lockedHere || submitted.current) return;
     if (now < phaseStartedAt + TARGET_TIME_MS - 400) return;
-    send(steps);
+    send(steps, false);
   });
 
   // Keep the newest step in view.
@@ -355,7 +426,7 @@ function TargetStage({
       return true;
     }
     if (event.repeat || isLockedNow) return true;
-    if (op) setOperator(op);
+    if (op) { soundCue("target.operator"); setOperator(toggleOperator(operator, op)); }
     else if (slot !== null) {
       const tile = pool[slot];
       if (tile?.active) tapTile(tile);
@@ -455,12 +526,17 @@ function TargetStage({
             key={op}
             type="button"
             disabled={isLockedNow}
-            onClick={() => setOperator(op)}
+            // The Number overhaul (15 Nov 2026): tapping the picked operator again deselects it.
+            onClick={(event) => {
+              soundCue("target.operator");
+              gameFx("tap", event.currentTarget.firstElementChild, { silent: true });
+              setOperator(toggleOperator(operator, op));
+            }}
             data-on={operator === op ? "true" : undefined}
             aria-pressed={operator === op}
             className="press exact-op"
           >
-            {op === "-" ? "−" : op}
+            <span className="exact-op-face">{op === "-" ? "−" : op}</span>
           </button>
         ))}
       </div>
@@ -483,7 +559,9 @@ function TargetStage({
           // the time-out still sends whatever stands.
           disabled={isLockedNow || steps.length === 0}
           data-exact-lock=""
-          className="press tap-target rounded-xl bg-primary px-5 font-display text-sm font-bold tracking-wide text-primary-foreground disabled:opacity-40"
+          // The Number overhaul (15 Nov 2026): navy until there's a step to lock, champagne gold once there is.
+          data-ready={exactLockReady(steps.length) ? "" : undefined}
+          className="press tap-target exact-lock"
         >
           {/* Puzzle polish (3 Nov 2026): "Lock in 150 (564 away)": the number that would be locked and its distance. */}
           {steps.length > 0 && closest !== null && away !== null
@@ -519,18 +597,61 @@ function Reveal(props: PuzzleRevealProps) {
 }
 
 const EXACT_REVEAL_CSS = `
-.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-family: var(--font-mono); font-size: 16px; }
-.exact-reveal-card { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 4px; padding: 12px 12px 14px; border-radius: 16px; overflow: hidden;
-  background: radial-gradient(120% 80% at 50% 0%, rgba(245,184,46,.12), transparent 62%), linear-gradient(180deg, #17171f, #101016); box-shadow: inset 0 0 0 1px rgba(245,184,46,.18), 0 6px 18px rgba(0,0,0,.3); }
-.exact-reveal-card .exact-rings { position: absolute; left: 50%; top: 52%; width: 180px; height: 180px; translate: -50% -50%; pointer-events: none; opacity: .5; }
-.exact-reveal-target { position: relative; font-size: 15px; color: #b4b4be; }
-.exact-reveal-value { position: relative; font-size: 48px; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; color: #F5B82E; text-shadow: 0 0 18px rgba(245,184,46,.28); }
-.exact-reveal-verdict { position: relative; font-weight: 700; color: #f4f4f7; }
-.exact-reveal-way { display: flex; width: 100%; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px; background: #15151c; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); color: #d4d4dc; }
-.exact-reveal-way > p:first-child { font-size: 14px; color: #b4b4be; }
-.exact-reveal-way > p + p { font-size: 17px; line-height: 24px; font-variant-numeric: tabular-nums; }
+.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-family: var(--jz-font); }
+.exact-rv-head { display: grid; width: 100%; grid-template-columns: 1fr 1fr; gap: 10px; }
+.exact-rv-plate { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 96px; padding: 8px 6px; border-radius: 16px; }
+.exact-rv-plate[data-plate="target"] { background: url("/number/target/target.webp") center / 100% 100% no-repeat; color: var(--jz-on-gold); }
+.exact-rv-plate[data-plate="yours"] { background: var(--jz-surface-2); color: var(--jz-text); }
+.exact-rv-plate-label { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.exact-rv-plate-value { font-size: 42px; line-height: 1.05; font-weight: 900; font-variant-numeric: tabular-nums; }
+.exact-rv-plate-note { font-size: 15px; font-weight: 700; color: var(--jz-text-2); }
+.exact-rv-plate[data-hit] .exact-rv-plate-note { color: var(--jz-gold); }
+.exact-rv-route { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; }
+.exact-rv-caption { font-size: 14px; font-weight: 600; color: var(--jz-text-2); }
+.exact-rv-step { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.exact-rv-tile { display: inline-flex; min-width: 54px; height: 42px; align-items: center; justify-content: center; padding: 0 8px; border-radius: 10px;
+  background: url("/number/target/tile.webp") center / 100% 100% no-repeat; color: #fff; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.exact-rv-tile[data-made] { background-image: url("/number/target/tile-large.webp"); }
+.exact-rv-tile[data-hit] { background-image: url("/number/target/tile-picked.webp"); color: var(--jz-on-gold); }
+.exact-rv-op { min-width: 18px; font-size: 22px; font-weight: 800; color: var(--jz-text); }
+.exact-rv-empty { font-size: 16px; font-weight: 600; color: var(--jz-text-2); }
+/* A short screen (the shared reveal layout's payoff row above, #422): smaller plates and route tiles, so a four-step
+   route and the facts fit at 375 × 667. */
+@media (max-height: 760px) {
+  .exact-rv-plate { min-height: 72px; padding: 4px 6px; }
+  .exact-rv-plate-value { font-size: 32px; }
+  .exact-rv-plate-note { font-size: 13px; }
+  .exact-rv-route { gap: 4px; }
+  .exact-rv-step { gap: 4px; }
+  .exact-rv-tile { min-width: 46px; height: 34px; font-size: 18px; }
+  .exact-rv-op { font-size: 18px; }
+}
 `;
 
+/** One step of a route as tiles: a op b = result (the result gold when it is the target). */
+function RouteStep({ step, target, made }: { step: TargetStep; target: number; made: ReadonlySet<number> }) {
+  const symbol = step.operator === "-" ? "\u2212" : step.operator;
+  return (
+    <div className="exact-rv-step" data-route-step aria-label={formatStep(step)}>
+      <span className="exact-rv-tile" data-made={made.has(step.a) ? "" : undefined}>{step.a}</span>
+      <span className="exact-rv-op" aria-hidden="true">{symbol}</span>
+      <span className="exact-rv-tile" data-made={made.has(step.b) ? "" : undefined}>{step.b}</span>
+      <span className="exact-rv-op" aria-hidden="true">=</span>
+      <span className="exact-rv-tile" data-made="" data-hit={step.result === target ? "" : undefined}>{step.result}</span>
+    </div>
+  );
+}
+
+/** A route's tiles: each step's result is a number made, drawn on the made tile where a later step uses it. */
+function Route({ steps, target }: { steps: readonly TargetStep[]; target: number }) {
+  const made = new Set(steps.map((s) => s.result));
+  return <div className="exact-rv-route">{steps.map((step, i) => <RouteStep key={i} step={step} target={target} made={made} />)}</div>;
+}
+
+/**
+ * The answer reveal (the Number overhaul, 15 Nov 2026): the target plate beside your closest number (how far off),
+ * then your route against a way to the target, each drawn as tiles (a step a row), and the numbers behind the score.
+ */
 function TargetReveal({
   puzzle,
   myAnswer,
@@ -541,26 +662,46 @@ function TargetReveal({
     [puzzle.tiles, puzzle.target, myAnswer],
   );
   const away = replay.distance;
-  // depthRev 1: the hit's numbers, for the elegance line.
+  const hit = myCorrect || away === 0;
+  // depthRev 1: the hit's numbers, for the elegance fact.
   const depth = usesNumberDepth(puzzle);
   const used = depth && away === 0 ? exactTilesUsedPhone(puzzle.tiles, puzzle.target, myAnswer ?? "") : null;
+  const way = puzzle.solution ?? [];
+  const canSwitch = way.length > 0;
+  const [side, setSide] = useState<RevealSide>(hit ? "yours" : "solution");
+  const showing: RevealSide = canSwitch ? side : "yours";
+  const madeSteps = replay.steps.length;
   return (
-    <div className="exact-reveal">
+    <div className="exact-reveal" data-exact-reveal>
       <PolishStyle id="target-reveal" css={EXACT_REVEAL_CSS} />
-      <div className="exact-reveal-card">
-        {EXACT_RINGS}
-        <p className="exact-reveal-target">Target {puzzle.target}</p>
-        <p className="exact-reveal-value">{replay.value ?? "—"}</p>
-        <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Spot on" : away === null ? "No number locked" : `${away} away from the target`}</p>
-        {used !== null && (
-          <p className="exact-reveal-target" style={used <= EXACT_ELEGANT_TILES ? { color: "#F5B82E" } : undefined}>
-            {used <= EXACT_ELEGANT_TILES ? `✦ Elegant: ${used} numbers` : `${used} numbers used (${EXACT_ELEGANT_TILES} is elegant)`}
-          </p>
+      <div className="exact-rv-head">
+        <div className="exact-rv-plate" data-plate="target">
+          <span className="exact-rv-plate-label">Target</span>
+          <span className="exact-rv-plate-value">{puzzle.target}</span>
+        </div>
+        <div className="exact-rv-plate" data-plate="yours" data-hit={hit ? "" : undefined}>
+          <span className="exact-rv-plate-label">Yours</span>
+          <span className="exact-rv-plate-value">{madeSteps > 0 && replay.value !== null ? replay.value : "–"}</span>
+          <span className="exact-rv-plate-note">{hit ? "Spot on" : madeSteps === 0 ? "No steps made" : `${away} away`}</span>
+        </div>
+      </div>
+      {canSwitch ? <RevealView value={showing} onChange={setSide} yoursLabel="Your route" /> : null}
+      <div data-reveal-side={showing} className="exact-rv-route">
+        {showing === "solution" ? (
+          <>
+            <p className="exact-rv-caption">{depth ? `A way with ${EXACT_ELEGANT_TILES} numbers` : "A way to the target"}</p>
+            <Route steps={way} target={puzzle.target} />
+          </>
+        ) : madeSteps > 0 ? (
+          <Route steps={replay.steps} target={puzzle.target} />
+        ) : (
+          <p className="exact-rv-empty">No steps made</p>
         )}
       </div>
-      {(puzzle.solution ?? []).length > 0 && (
-        <div className="exact-reveal-way"><p>{depth ? `An elegant way (${EXACT_ELEGANT_TILES} numbers):` : "One way:"}</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>
-      )}
+      <RevealFacts facts={[
+        { label: "Your steps", value: madeSteps },
+        used !== null ? { label: "Numbers used", value: used, ...(used <= EXACT_ELEGANT_TILES ? { tone: "good" as const } : {}) } : null,
+      ]} />
     </div>
   );
 }

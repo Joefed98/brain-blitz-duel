@@ -40,6 +40,11 @@ import { LEVELS, SKILLS, hashText, makeRng, type Skill } from "./puzzle-fairness
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { gradeSteps, median, quantile, sentAnswer } from "./standard-lib";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
+import { pinPreWordOverhaul } from "../src/lib/duel/wordOverhaul";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul): written for the stamps before it,
+// so new deals here keep them (wordOverhaul.ts; word-overhaul-check proves the new stamps).
+pinPreWordOverhaul(true);
 
 let fails = 0;
 let passes = 0;

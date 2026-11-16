@@ -1,20 +1,22 @@
 /**
  * Minefield on the arcade scoring standard (docs/arcade-standard/minesweeper.md). Changed with Joe's approval, 13 Nov 2026:
- * this entry is for the live stamp, minesRev 2 (a Logic game with 20 mines); minesRev 1's proofs stay in
- * cards-board-check and minefield-logic-check.
+ * this entry is for the live stamp; minesRev 1's proofs stay in cards-board-check and minefield-logic-check. Changed with
+ * Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the live (Normal) stamp is minesRev 3, 16 mines,
+ * full speed by 29 s; minesRev 2 (20 mines, 37 s) is the Hard level, proved in minefield-logic-check and
+ * logic-1-levels-check.
  * Safe squares 150 (a straight line on the safe squares revealed beyond the opening), No mines hit 20 (the same line,
- * only while no mine has been hit), Speed 30 (cleared only: full by 37 s, 0 at the buzzer); −5 a mine hit. Total 200.
+ * only while no mine has been hit), Speed 30 (cleared only: full by 29 s on minesRev 3, 0 at the buzzer); −5 a mine hit. Total 200.
  *
  * perfect(): the oracle (the deal's own logic-solver order, scripts/cards-board-oracles.ts) on room seeds 0–39, each
  * replayed through the server's replayMinesweeperRun and split into parts by minesStdParts (what the reveal reads).
  */
-import { minesParts, minesSafeFor, minesStdParts, minesweeperGameFor, MINES_CLEAN_MAX, MINES_HIT_COST, MINES_INPUT_TAP, MINES_MODE_FLAG, MINES_REV_LOGIC, MINES_SPEED_FULL_TICKS_V2, MINES_SPEED_MAX, MINES_STD_SPEC_V2, MINES_HIDDEN, type MinesState } from "../../src/lib/arcade/minesweeper";
+import { minesGeoFor, minesParts, minesSafeFor, minesStdParts, minesweeperGameFor, MINES_CLEAN_MAX, MINES_HIT_COST, MINES_INPUT_TAP, MINES_MODE_FLAG, MINES_REV_NORMAL, MINES_SPEED_MAX, MINES_STD_SPEC_V3, MINES_HIDDEN, type MinesState } from "../../src/lib/arcade/minesweeper";
 
-const REV = MINES_REV_LOGIC;
+const REV = MINES_REV_NORMAL;
 const MINES_REV_STD = REV;
 const MINES_SAFE = minesSafeFor(REV);
-const MINES_SPEED_FULL_TICKS = MINES_SPEED_FULL_TICKS_V2;
-const MINES_STD_SPEC = MINES_STD_SPEC_V2;
+const MINES_SPEED_FULL_TICKS = minesGeoFor(REV).speedFullTicks;
+const MINES_STD_SPEC = MINES_STD_SPEC_V3;
 const minesweeperGame = minesweeperGameFor(REV);
 import { LIVE_BANDS } from "../../src/lib/arcade/liveBands";
 import { replayMinesweeperRun } from "../../src/lib/duel/minesweeper";
@@ -68,11 +70,13 @@ export const entry: StdEntry = {
     }
     // Speed only on a cleared board: full by the full-by time, 0 at the buzzer, a straight line between.
     const cleared = (tick: number) => minesParts({ ...base, acted: 1, revealed: MINES_SAFE, clearedTick: tick }).speed;
-    ok(cleared(MINES_SPEED_FULL_TICKS) === MINES_SPEED_MAX && cleared(60) === MINES_SPEED_MAX && cleared(minesweeperGame.runTicks) === 0, "minesweeper: speed full by 37 s, 0 at the buzzer");
+    // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the speed and help lines read
+    // the live stamp's own full-by time (29 s on minesRev 3; 37 s on minesRev 2, now Hard).
+    ok(cleared(MINES_SPEED_FULL_TICKS) === MINES_SPEED_MAX && cleared(60) === MINES_SPEED_MAX && cleared(minesweeperGame.runTicks) === 0, `minesweeper: speed full by ${minesGeoFor(REV).speedFullTicks / 60} s, 0 at the buzzer`);
     ok(minesParts({ ...base, acted: 1, revealed: MINES_SAFE - 1, clearedTick: 0 }).speed === 0, "minesweeper: no speed without a clear");
     // The help names every part, its maximum and "Total 200."
     const help = PUZZLE_INSTRUCTIONS.minesweeper.score;
-    ok(help.includes("Total 200.") && MINES_STD_SPEC.parts.every((p) => help.includes(p.label) && help.includes(String(p.max))) && help.includes("37 s"), `minesweeper: the help states every part and "Total 200.": ${help}`);
+    ok(help.includes("Total 200.") && MINES_STD_SPEC.parts.every((p) => help.includes(p.label) && help.includes(String(p.max))) && help.includes(`${minesGeoFor(REV).speedFullTicks / 60} s`), `minesweeper: the help states every part and "Total 200.": ${help}`);
     ok((LIVE_BANDS.minesweeper as { std?: unknown }).std === MINES_STD_SPEC, "minesweeper: LIVE_BANDS carries the spec");
   },
 };

@@ -24,7 +24,11 @@ import { scanRev1StageResult, scanStageMatches, usesScanRev1 } from "@/lib/duel/
 import { SCAN_DEPTH_REV, SCAN_TOPUP_REV, scanCorrections, usesScanDepth } from "@/lib/duel/depth/eagleEye";
 import { dealtTopupRev } from "@/lib/duel/depthTopup";
 import { scanStandard } from "@/lib/duel/standard/attention";
-import { EagleArt as EagleIcon, playEagleTakeoff } from "./eagleEyeArt";
+import { playEagleTakeoff } from "./eagleEyeArt";
+import { eagleSprite } from "@/components/puzzles/attention/attentionArt";
+import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
@@ -72,8 +76,27 @@ export function CellBox({
       data-eye-state={state}
       style={{ ...(size ? { width: size, height: size } : {}), ...cloudStyle(index) }}
     >
-      <EagleIcon dir={dir} size={size ? Math.round(size * 0.66) : 32} />
+      <EagleIcon dir={dir} gold={state === "selected" || state === "target"} size={size ? Math.round(size * 0.78) : undefined} />
     </Tag>
+  );
+}
+
+/**
+ * The Attention overhaul (15 Nov 2026): the eagle is a Blender render of the app's own outline (pewter, or gold once
+ * marked), with the bald eagle's white head and tail and a gold beak, so its facing reads at grid size. `size` unset:
+ * it fills its cell (78 %).
+ */
+function EagleIcon({ dir, gold = false, size }: { dir: ArrowDir; gold?: boolean; size?: number | undefined }) {
+  return (
+    <img
+      src={eagleSprite(dir, gold)}
+      alt=""
+      draggable={false}
+      aria-hidden="true"
+      data-eye-dir={dir}
+      className="eye-eagle eye-sprite shrink-0 select-none"
+      style={size ? { width: size, height: size } : undefined}
+    />
   );
 }
 
@@ -94,7 +117,7 @@ function IntroExample() {
       <div className="flex flex-col items-center gap-1">
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <div className="eye-target flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
-          <EagleIcon dir={EXAMPLE_TARGET} size={30} />
+          <EagleIcon dir={EXAMPLE_TARGET} gold size={30} />
         </div>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
@@ -119,11 +142,12 @@ function matchesOf(stage: SymbolScanStage): number[] {
 }
 
 /** The target eagle(s) for a grid: one, or two side by side with "or" on scanRev 1's grid 3. */
-function TargetBadge({ stage, size = 30 }: { stage: SymbolScanStage; size?: number }) {
-  const box = size >= 30 ? "h-12 w-12" : "h-9 w-9";
+function TargetBadge({ stage, size = 46 }: { stage: SymbolScanStage; size?: number }) {
+  // The Attention overhaul: the target chips are larger (56 px) so the facing reads before the grid does.
+  const box = size >= 40 ? "eye-target-lg" : size >= 30 ? "h-12 w-12" : "h-9 w-9";
   const badge = (dir: ArrowDir) => (
     <div className={`eye-target flex ${box} items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary`}>
-      <EagleIcon dir={dir} size={size} />
+      <EagleIcon dir={dir} gold size={size} />
     </div>
   );
   if (!stage.alsoTarget) return badge(stage.target);
@@ -163,6 +187,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   const goalLine = useContext(GoalLineContext);
   const takeoff = useRef<() => void>(() => undefined);
   useEffect(() => registerFxPreview("symscan", () => takeoff.current()), []);
+  // The Attention overhaul: all sixteen eagle sprites are fetched when the round starts, so a new grid never shows a
+  // blank tile while a facing it hasn't drawn yet loads.
+  useEffect(() => {
+    for (const dir of DIRECTIONS) for (const gold of [false, true]) new Image().src = eagleSprite(dir, gold);
+  }, []);
 
   useBeforePaint(() => {
     const el = stageRef.current;
@@ -171,7 +200,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (!el || !top || !submit) return;
     const read = () => {
       const availableHeight = el.clientHeight - top.offsetHeight - submit.offsetHeight - 20;
-      setGridSide(Math.max(0, Math.floor(Math.min(Math.max(availableHeight, 332), el.clientWidth))));
+      // The Attention overhaul: no height floor, so the grid fits short phones without being cut off.
+      setGridSide(Math.max(0, Math.floor(Math.min(availableHeight, el.clientWidth))));
     };
     read();
     const observer = new ResizeObserver(read);
@@ -228,7 +258,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (!prefersReducedMotion()) setFlown(true);
   };
 
+  /** The Attention overhaul: a grid submitted mid-round: its marked matching eagles fly off; a clean grid sparkles. */
+  const gridCleared = (marked: number[]) => {
+    const grid = gridRef.current;
+    const area = stageRef.current;
+    if (!grid || !area) return;
+    const kids = Array.from(grid.children);
+    const facing = matchesOf(current);
+    const birds = current.cells.flatMap((dir, i) => (facing.includes(i) && marked.includes(i) && kids[i] ? [{ cell: kids[i]!, dir }] : []));
+    if (birds.length > 0) {
+      playEagleTakeoff(area, birds, true);
+      attnSound("symscan.gridClear");
+    }
+    if (marked.length > 0 && marked.every((i) => facing.includes(i))) {
+      attnSound("symscan.cleanGrid", { volume: 0.55 });
+      gameFx("combo", area.querySelector("[data-eye-targets], .eye-target"), { count: 1, silent: true });
+    }
+  };
+
   const advance = (all: number[][]) => {
+    if (stage < STAGE_COUNT - 1) gridCleared(all[stage] ?? []);
     if (stage >= STAGE_COUNT - 1) {
       done.current = true;
       takeoff.current();
@@ -242,6 +291,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (frozen) return;
     const nextSel = selected.includes(index) ? selected.filter((i) => i !== index) : [...selected, index];
     soundCue(selected.includes(index) ? "symscan.unmark" : "symscan.mark");
+    // The Attention overhaul: the tapped eagle alone answers (a soft press; the gold ring is its marked state).
+    gameFx("tap", gridRef.current?.children[index], { silent: true });
     if (selected.includes(index)) setCorrections(corrections + 1);
     const all = selections.map((sel, i) => (i === stage ? nextSel : sel));
     setSelections(all);
@@ -290,7 +341,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
         type="button"
         onClick={() => scanSubmitAllowed(frozen, selected.length, holding) && advance(selections)}
         disabled={!scanSubmitAllowed(frozen, selected.length, holding)}
-        data-game-controls="actions" className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
+        data-game-controls="actions" data-attn-action="primary" className="attn-action tap-target mt-3 w-full shrink-0 rounded-xl font-display text-base font-bold uppercase tracking-wide transition-opacity disabled:opacity-40"
       >
         Submit
       </Button>
@@ -300,18 +351,62 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const [shown, setShown] = useState<number | null>(null);
-  if (puzzle.type !== "symscan") return null;
+  const revealRef = useRef<HTMLDivElement>(null);
+  return puzzle.type === "symscan" ? <EagleReveal puzzle={puzzle} myAnswer={myAnswer} shown={shown} setShown={setShown} revealRef={revealRef} /> : null;
+}
+
+function EagleReveal({
+  puzzle,
+  myAnswer,
+  shown,
+  setShown,
+  revealRef,
+}: {
+  puzzle: SymbolScanPuzzleData;
+  myAnswer: string | null | undefined;
+  shown: number | null;
+  setShown: (s: number) => void;
+  revealRef: { current: HTMLDivElement | null };
+}) {
   const parts = splitStages(myAnswer);
   const grids = puzzle.stages.map((stage, s) => {
     const targets = usesScanRev1(puzzle) ? matchesOf(stage) : (puzzle.targets?.[s] ?? matchesOf(stage));
     const selected = parseSelection(parts[s] ?? "");
     return { stage, targets, selected, result: gridResult(puzzle, s, selected, targets) };
   });
-  // One grid at a time, large enough to read; the first grid with a slip opens first.
+  // The Attention overhaul's reveal (15 Nov 2026): one grid at a time, large, a tab for each; the eagles you found ringed
+  // gold, wrong taps red, the ones you missed dashed; the grid's numbers as tiles. The first grid with a slip opens first.
   const open = shown ?? Math.max(0, grids.findIndex((g) => !g.result.perfect));
   const grid = grids[open]!;
+  const missed = Math.max(0, grid.result.targets - grid.result.found);
+  // The Attention overhaul: the eagles you missed pulse once when their grid opens (never in the round itself).
+  useEffect(() => {
+    const cells = Array.from(revealRef.current?.querySelectorAll('[data-eye-state="missed"]') ?? []);
+    if (cells.length === 0) return;
+    attnSound("symscan.missed", { volume: 0.5 });
+    cells.forEach((cell, i) => gameFx("nearMiss", cell, { inGame: false, silent: true, noHaptic: true, delayMs: Math.min(i, 8) * 40 }));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className="eye-reveal flex w-full flex-col items-center gap-2">
+    <div ref={revealRef} className="eye-reveal attn-rv" data-attn-reveal="symscan">
+      <RevealTabs
+        label="Grids"
+        value={open}
+        onChange={(s) => {
+          soundCue("symscan.revealGrid");
+          setShown(s);
+        }}
+        options={grids.map((g, s) => ({ value: s, label: `Grid ${s + 1}`, tone: g.result.perfect ? "good" : "bad" }))}
+      />
+      <div className="flex items-center gap-2" data-eye-reveal-target="">
+        <span className="text-sm font-semibold text-muted-foreground">{grid.stage.alsoTarget ? "Targets" : "Target"}</span>
+        <EagleIcon dir={grid.stage.target} gold size={36} />
+        {grid.stage.alsoTarget ? (
+          <>
+            <span className="text-sm font-semibold text-muted-foreground">or</span>
+            <EagleIcon dir={grid.stage.alsoTarget} gold size={36} />
+          </>
+        ) : null}
+      </div>
       <div
         className="eye-reveal-grid grid gap-1"
         style={{ gridTemplateColumns: `repeat(${grid.stage.cols}, minmax(0, 1fr))` }}
@@ -324,33 +419,22 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           return <CellBox key={`${open}-${index}`} index={index} dir={dir} state={state} />;
         })}
       </div>
-      <div className="flex w-full flex-col gap-1" role="tablist" aria-label="Grids">
-        {grids.map(({ stage, result }, s) => (
-          <button
-            key={s}
-            type="button"
-            role="tab"
-            aria-selected={s === open}
-            onClick={() => {
-              soundCue("symscan.revealGrid");
-              setShown(s);
-            }}
-            className={`eye-reveal-row flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 text-left ${
-              s === open ? "border-primary/70 bg-card" : "border-transparent bg-card/60"
-            }`}
-          >
-            <span className="flex shrink-0 items-center gap-1.5 text-primary">
-              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Grid {s + 1}</span>
-              <EagleIcon dir={stage.target} size={20} />
-              {stage.alsoTarget ? <><span className="text-[10px] font-bold uppercase">or</span><EagleIcon dir={stage.alsoTarget} size={20} /></> : null}
-            </span>
-            <span className={`ml-auto font-mono text-base font-bold ${result.perfect ? "text-primary" : "text-warn"}`}>
-              {/* A grid with none to find says so (4 Nov 2026: it read "0 / 0 found"). */}
-              {result.targets > 0 ? `${result.found} / ${result.targets} found` : "None to find"}{result.wrong ? ` · ${result.wrong} wrong` : ""} {result.perfect ? "✓" : "✗"}
-            </span>
-          </button>
-        ))}
-      </div>
+      <RevealLegend
+        items={[
+          { mark: "found", label: "Found" },
+          { mark: "wrong", label: "Wrong tap" },
+          { mark: "missed", label: "Missed" },
+        ]}
+      />
+      <RevealStats
+        game="symscan"
+        items={[
+          // A grid with none to find says so (4 Nov 2026: it read "0 / 0 found").
+          { id: "found", label: "Found", value: grid.result.targets > 0 ? `${grid.result.found} of ${grid.result.targets}` : "None to find", tone: grid.result.perfect ? "good" : undefined },
+          { id: "wrong", label: "Wrong taps", value: grid.result.wrong, tone: grid.result.wrong ? "bad" : undefined },
+          { id: "missed", label: "Missed", value: missed, tone: missed ? "bad" : undefined },
+        ]}
+      />
       {/* The scoring standard (scanRev 4) scores clean grids from the round's history instead, so the count is not shown. */}
       {usesScanDepth(puzzle) && !scanStandard(puzzle) && scanCorrections(myAnswer) > 0 ? (
         <p data-eye-undone="" className="text-center font-mono text-xs text-muted-foreground">
@@ -374,17 +458,17 @@ function nonAdjacentDirs(target: ArrowDir): ArrowDir[] {
   return DIRECTIONS.filter((d) => d !== target && !adjacent.includes(d));
 }
 
-function buildStage(cols: number): { stage: SymbolScanStage; targets: number[] } {
+function buildStage(cols: number, range: readonly [number, number] = [SYMSCAN_MIN_TARGETS, SYMSCAN_MAX_TARGETS], share = ADJACENT_SHARE): { stage: SymbolScanStage; targets: number[] } {
   const cellCount = cols * cols;
   const target = pick(DIRECTIONS);
-  const count = randInt(SYMSCAN_MIN_TARGETS, SYMSCAN_MAX_TARGETS);
+  const count = randInt(range[0], range[1]);
   const targets = shuffled(Array.from({ length: cellCount }, (_, i) => i))
     .slice(0, count)
     .sort((a, b) => a - b);
   const near = adjacentDirs(target);
   const far = nonAdjacentDirs(target);
   const cells = Array.from({ length: cellCount }, (_, i) =>
-    targets.includes(i) ? target : Math.random() < ADJACENT_SHARE ? pick(near) : pick(far),
+    targets.includes(i) ? target : Math.random() < share ? pick(near) : pick(far),
   );
   return { stage: { target, cols, cells }, targets };
 }
@@ -392,14 +476,14 @@ function buildStage(cols: number): { stage: SymbolScanStage; targets: number[] }
 /** scanRev 1 grid 3: eagles facing either of two directions at least 90° apart, SCAN_TWO_EACH of each. */
 export const SCAN_TWO_EACH: [number, number] = [4, 6];
 
-function buildTwoTargetStage(cols: number): { stage: SymbolScanStage; targets: number[] } {
+function buildTwoTargetStage(cols: number, each: readonly [number, number] = SCAN_TWO_EACH, share = ADJACENT_SHARE): { stage: SymbolScanStage; targets: number[] } {
   const cellCount = cols * cols;
   const target = pick(DIRECTIONS);
   const ti = DIRECTIONS.indexOf(target);
   // Never a neighbour: the two targets must read as clearly different facings.
   const alsoTarget = pick(DIRECTIONS.filter((_, i) => Math.min((i - ti + 8) % 8, (ti - i + 8) % 8) >= 2));
-  const first = randInt(SCAN_TWO_EACH[0], SCAN_TWO_EACH[1]);
-  const second = randInt(SCAN_TWO_EACH[0], SCAN_TWO_EACH[1]);
+  const first = randInt(each[0], each[1]);
+  const second = randInt(each[0], each[1]);
   const order = shuffled(Array.from({ length: cellCount }, (_, i) => i));
   const firstCells = order.slice(0, first);
   const secondCells = order.slice(first, first + second);
@@ -408,9 +492,24 @@ function buildTwoTargetStage(cols: number): { stage: SymbolScanStage; targets: n
   const near = others.filter((d) => adjacentDirs(target).includes(d) || adjacentDirs(alsoTarget).includes(d));
   const far = others.filter((d) => !near.includes(d));
   const cells = Array.from({ length: cellCount }, (_, i) =>
-    firstCells.includes(i) ? target : secondCells.includes(i) ? alsoTarget : far.length === 0 || Math.random() < ADJACENT_SHARE ? pick(near) : pick(far),
+    firstCells.includes(i) ? target : secondCells.includes(i) ? alsoTarget : far.length === 0 || Math.random() < share ? pick(near) : pick(far),
   );
   return { stage: { target, alsoTarget, cols, cells }, targets };
+}
+
+/** The levers a level's grids are built to (attentionLevels.data.ts ScanLevel). */
+export interface ScanLevers {
+  grids: readonly number[];
+  targets: readonly [number, number];
+  twoFrom: number;
+  twoEach: readonly [number, number];
+  lookalikes: number;
+}
+
+/** A level's three grids (stage 3 of the Attention overhaul): today's builders on the level's levers. */
+export function buildScanGridsAt(l: ScanLevers): { stages: SymbolScanStage[]; targets: number[][] } {
+  const built = l.grids.map((cols, i) => (i >= l.twoFrom ? buildTwoTargetStage(cols, l.twoEach, l.lookalikes) : buildStage(cols, l.targets, l.lookalikes)));
+  return { stages: built.map((b) => b.stage), targets: built.map((b) => b.targets) };
 }
 
 export function buildSymbolScan(): SymbolScanPuzzleData {

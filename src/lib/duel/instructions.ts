@@ -1,24 +1,36 @@
+import { clayQuickWindowText } from "./speedOverhaul";
 import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
 import { gridStandardHelp } from "./standard/gridText";
 import { FLOOD_STANDARD_SPARE_MOVES } from "./standard/logicRules";
+import { flowCutsDealt } from "./flow";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
 import { parBonusHelp } from "./parBonusText";
 import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
-import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
+import { CODEWORD_OVERHAUL_HELP, LOOKOUT_OVERHAUL_HELP, STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
+import { wordOverhaulDealt } from "./wordOverhaul";
 import { wordNov7Dealt } from "./wordNov7";
 import { preStandardPinned } from "./standard/stamps";
-import { MINES_COUNT_V2, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
+import { MINES_HIT_COST } from "@/lib/arcade/minesweeper";
 import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
 import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
+import { preAttentionOverhaulPinned } from "./attentionOverhaul";
+import { ATTENTION_LEVEL_HELP } from "./attentionLevels";
+
+/** The Attention overhaul's help (15 Nov 2026, attentionOverhaul.ts) while its stamps are dealt. */
+const attentionOverhaulDealt = () => !preAttentionOverhaulPinned();
 import { operatorGapsDealt } from "./operatorGaps";
-import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
+import { preNumberOverhaulPinned } from "./numberOverhaul";
+import { prePatternNov15Pinned } from "./patternNov15";
+import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, flowRev3Help, laserRev4Help, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
+import { logicOverhaul1Dealt } from "./logicOverhaul1";
+import { blockPatternHelp } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -374,6 +386,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a selected letter again", detail: "to remove it. Clear empties the word; Enter checks it.", helpOnly: true },
         { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
+        ...(wordOverhaulDealt("wordsmith")
+          ? [{ action: "The word counter", detail: "counts the board’s everyday words; a rarer dictionary word still scores, as a bonus word.", helpOnly: true }]
+          : []),
       ],
       score: scoreList([
         { label: "Words", how: "longer words score more (4 letters 1 word point, 5 letters 2, 6 letters 4, 7 letters 7, 8 letters 11, 9 or more 15, shown on the counter)", max: WORDSMITH_V3_CAP },
@@ -386,8 +401,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a tile,", detail: "then a cell to place it." },
         { action: "Every run", detail: "must be a real word of 3+ letters." },
         { action: "Tap Done", detail: "to check. All tiles must connect." },
-        { action: "Double-tap a placed tile", detail: "to take it back. Clear empties the grid.", helpOnly: true },
-        { action: "After Done,", detail: "runs that are not words flash red for a moment: fix them and tap Done again.", helpOnly: true },
+        { action: "Drag a placed tile", detail: "back to the tray, or double-tap it, to take it back. Clear empties the grid.", helpOnly: true },
+        { action: "A run that is not a word", detail: "shows red while it stands. After Done, any left flash red for a moment: fix them and tap Done again.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
       score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : wordNov7Dealt("tilegrid") ? WORD_NOV7_HELP.tilegrid : WORD_STANDARD_HELP.tilegrid,
@@ -397,11 +412,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a kettlebell,", detail: "then a notch on the beam." },
         { action: "Further out", detail: "counts for more." },
-        { action: "Double-tap a kettlebell", detail: "to put it back." },
+        { action: "Tap a hung kettlebell", detail: "to pick it up: moving it to another notch is free; tap it again to put it back." },
         { action: "A 2 on notch 3", detail: "equals a 3 on notch 2.", helpOnly: true },
         { action: "Dark iron weights", detail: "with a lock are fixed.", helpOnly: true },
-        { action: "The fourth scale", detail: "is wider: 10 notches, 5 each side, and five weights to hang.", helpOnly: true },
-        { action: "Hangs are limited:", detail: "9 / 12 / 15 / 18 hangs on the four scales (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
+        { action: "Hangs are limited:", detail: "the counter shows each scale's; only a kettlebell hung from the tray counts. Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
+        { action: "Under the beam,", detail: "the turning force on each side: left | right. Equal is balanced.", helpOnly: true },
+        { action: "Levels:", detail: "Easy has three short scales; Hard is four scales up to five weights, the last 10 notches wide; Expert has up to six weights on 10 notches, fewer hangs and no numbers under the beam.", helpOnly: true },
       ],
       score: standardNumberHelp("balance"),
     },
@@ -415,7 +431,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? [{ action: "Four words locked?", detail: "Tap two tiles in the last row to swap them; each swap is a move." }]
           : []),
         { action: "Finish within par", detail: "moves for a bonus; Undo and Reset count." },
-        { action: "Par", detail: "is the number of slides that scrambled the board, shown beside your moves (gold while you are within it).", helpOnly: true },
+        wordOverhaulDealt("wordslide")
+          ? { action: "Par", detail: "is the fewest moves that solve the board, shown beside your moves (gold while you are within it).", helpOnly: true }
+          : { action: "Par", detail: "is the number of slides that scrambled the board, shown beside your moves (gold while you are within it).", helpOnly: true },
+        ...(wordOverhaulDealt("wordslide") ? [{ action: "Reset", detail: "asks first: tap it twice.", helpOnly: true }] : []),
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
@@ -428,13 +447,28 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Use each number", detail: "once at most." },
         { action: "Every step", detail: "must be a whole number." },
         { action: "Elegance bonus:", detail: "hit the target with 5 numbers, not all 6." },
+        { action: "Levels:", detail: "Easy targets to 300 with 3 or 4 numbers; Hard has one large number and needs all six; Expert small numbers only, a target of 500 or more, all six needed.", helpOnly: true },
+        { action: "Tap the chosen sign again", detail: "to drop it. Undo takes a step back; Reset starts again.", helpOnly: true },
+        { action: "Lock in", detail: "your closest number once you have made a step; it turns gold when it can be used.", helpOnly: true },
       ],
       score: standardNumberHelp("target"),
     },
     equation: {
       goal: "Fill the gaps so each equation is true.",
       // Operator's gaps (puzzle polish, 3 Nov 2026, operatorGaps.ts): sign gaps, number gaps, then both.
-      how: operatorGapsDealt()
+      how: operatorGapsDealt() && !preNumberOverhaulPinned()
+        ? [
+              // gapsRev 2 (the Number overhaul, 15 Nov 2026): a try only for a new fill; any open equation can be gone back to.
+              { action: "Gold circles", detail: "take a sign; navy squares take a number from the tray." },
+              { action: "Work left to right,", detail: "in the order shown. Any answer that’s true counts." },
+              { action: "Four equations:", detail: "signs, then numbers, then both. Next skips; tap an equation’s number to go back." },
+              { action: "Each tray number", detail: "can be used once; some are decoys. Tap an empty gap to fill it next, a filled one to empty it.", helpOnly: true },
+              { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
+              { action: "The last one", detail: "uses division in a harder mix; every step must stay a whole number, never below 0. 90 seconds for all four.", helpOnly: true },
+              { action: "3 tries each:", detail: "each new full fill is a try; the same fill again is free. After the third wrong one the equation locks.", helpOnly: true },
+              { action: "Levels:", detail: "Easy uses 2 to 9 with one or two gaps a line and no ÷; Hard numbers to 25, one more gap a line, ÷ from line 3; Expert numbers to 30, every line mixed with 2 decoys, and 2 tries each. Hard runs 85 s and Expert 78 s.", helpOnly: true },
+            ]
+        : operatorGapsDealt()
         ? [
               { action: "Gold circles", detail: "take a sign; teal squares take a number from the tray." },
               { action: "Work left to right,", detail: "in the order shown. Any answer that’s true counts." },
@@ -463,6 +497,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Steady hand:", detail: "every reaction close together scores extra." },
         { action: "Traps:", detail: "teal, red or blue; light orange; a gold border only; the word GOLD on a dark screen; half the screen gold.", helpOnly: true },
         { action: "False starts:", detail: "a tap on a trap or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
+        { action: "Levels:", detail: "Easy has fewer flashes and plain decoys; Hard more gold-like decoys; Expert up to 5 decoys and the gold shows for 1 second only.", helpOnly: true },
       ],
       // Depth to 200 (tapRev 5): the stretched curve and the steady hand (depth/speedTexts.ts).
       score: flashDepthHelp(),
@@ -476,6 +511,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "All the numbers", detail: "move every 15 seconds." },
         { action: "Flow:", detail: "right taps in a row, with no wrong tap, build a bonus." },
         { action: "The timer above the board", detail: "counts up to 15 s, then the numbers move and it starts again from 0.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 16 numbers that never move; Hard 30 in 50 s, moving every 10 s; Expert 30 from highest to lowest in 45 s, moving every 8 s.", helpOnly: true },
       ],
       // The scoring standard (tapRev 6): standard/attentionTexts.ts.
       score: STANDARD_ATTENTION_HELP.numhunt(),
@@ -500,8 +536,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap each eagle", detail: "facing the target’s way." },
         { action: "Press Submit", detail: "to lock the grid." },
-        { action: "Three grids,", detail: "each bigger, in 30 seconds." },
+        // The Attention overhaul's levels (scanRev 5): a 60 s clock at every level.
+        { action: "Three grids,", detail: attentionOverhaulDealt() ? "each bigger, in 60 seconds." : "each bigger, in 30 seconds." },
         { action: "Grid 3 has two targets:", detail: "tap every eagle facing either one.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.symscan, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.symscan(),
     },
@@ -511,8 +549,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Compare", detail: "the two panels." },
         { action: "Tap a difference", detail: "in either panel." },
         { action: "Sweet shop first,", detail: "then the rock pool; 60 seconds for both." },
-        { action: "One picture hides a 7th:", detail: "a shape drawn smaller. Find it before the 6th for a bonus." },
-        { action: "Next picture", detail: "moves on early; you can’t go back.", helpOnly: true },
+        // The Attention overhaul (spotRev 4): the picture stays until Next, so the 7th can be found after the six.
+        attentionOverhaulDealt()
+          ? { action: "One picture hides a 7th:", detail: "a shape drawn smaller, for a bonus. Tap Next when you’re ready." }
+          : { action: "One picture hides a 7th:", detail: "a shape drawn smaller. Find it before the 6th for a bonus." },
+        attentionOverhaulDealt()
+          ? { action: "Next picture", detail: "moves on (Done on the last); you can’t go back.", helpOnly: true }
+          : { action: "Next picture", detail: "moves on early; you can’t go back.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "5 misses allowed", detail: "for the finish bonus.", helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.spotdiff, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.spotdiff(),
     },
@@ -538,8 +583,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Read the question:", detail: puzzleNotesDealt() ? "a shape, a colour, or both." : "a shape and a colour." },
         { action: "Type the total;", detail: "ENTER goes to the next." },
         { action: "Tray 4 compares:", detail: "how many more of one colour than another?" },
+        // The Attention overhaul (countRev 7): tap a shape to mark it as counted.
+        ...(attentionOverhaulDealt() ? [{ action: "Tap a shape", detail: "to mark it as counted (a dot stays on it)." }] : []),
         { action: "Four trays", detail: "share 60 seconds.", helpOnly: true },
         { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.countup, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.countup(),
     },
@@ -553,6 +601,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Long words:", detail: "6 letters ×1.5, 7 or more ×2. A word through the glowing gold tile scores double (both can stack).", helpOnly: true },
         { action: "Diagonals count.", detail: "Don’t reuse a tile in one word.", helpOnly: true },
         { action: "Tapping the last letter again", detail: "takes it off the word.", helpOnly: true },
+        { action: "The Misses pill", detail: "counts traces that were not words against your free ones; it turns red once they cost points.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
       // wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): base points on their curve, the features' extras on theirs.
@@ -562,13 +611,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ], { penalties: [`Tracing non-words: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} for each word found are free, then each takes ${WORDHUNT_MISS_COST_PCT} % off`], total: "{max}" as unknown as number }),
     },
     unblock: {
-      goal: "Slide the gold block out through the exit.",
+      goal: "Slide the gold car out through the exit.",
       how: [
-        { action: "Drag a block", detail: "along its own direction." },
-        { action: "Clear a path", detail: "for the gold block." },
+        { action: "Drag a car", detail: "along its own direction." },
+        { action: "Clear a path", detail: "for the gold car." },
         // Pattern review fixes (15 Nov 2026): the screen shows Moves and Par pills, and Undo keeps the move counted.
         { action: "Par", detail: "is the fewest moves, shown beside your moves." },
-        { action: "Undo and Reset", detail: "don’t give a move back: every slide counts.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, unblockRev 4): Undo and Reset give the move back.
+        prePatternNov15Pinned()
+          ? { action: "Undo and Reset", detail: "don’t give a move back: every slide counts.", helpOnly: true }
+          : { action: "Undo and Reset", detail: "give the move back: only the slides left on the board count.", helpOnly: true },
       ],
       // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
       score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.unblock : PATTERN_STD_HELP.unblock,
@@ -576,14 +628,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     blockparty: {
       goal: "Fit every piece into the free squares.",
       how: [
-        { action: "Tap a piece", detail: "to rotate it." },
+        // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026: a double tap only flips; Undo and Reset)
+        { action: "Tap a piece", detail: "to turn it." },
         // Pattern review fixes (15 Nov 2026): the double tap's flip was never in the help.
-        { action: "Double-tap it", detail: "to flip it over." },
-        { action: "Drag it", detail: "onto the board." },
+        { action: "Double-tap it", detail: "to flip it over (it doesn’t turn first)." },
+        { action: "Drag it", detail: "onto the board to place or move it." },
         { action: "Fit every piece", detail: "around the fixed pegs." },
-        { action: "Drag a piece’s anchor", detail: "onto a free board square.", helpOnly: true },
+        { action: "Hold any square of a piece:", detail: "the piece lands with that square under your finger.", helpOnly: true },
+        ...(prePatternNov15Pinned()
+          ? []
+          : [{ action: "Undo", detail: "gives your last move back; Reset sends every piece back to the tray.", helpOnly: true }]),
+        // ---- tessellate:end
       ],
-      score: PATTERN_STD_HELP.blockparty,
+      score: blockPatternHelp(),
     },
     lightsout: {
       goal: "Turn every light off.",
@@ -597,12 +654,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     pipes: {
       goal: "Connect every pipe to the source.",
-      how: [
-        { action: "Tap a tile", detail: "to rotate its pipe." },
-        { action: "Join every opening", detail: "to another pipe." },
-        { action: "No leaks", detail: "at the edges." },
-        { action: "Par", detail: "is the fewest taps, shown beside your taps." },
-      ],
+      // pipesRev 5 (the Pattern overhaul, patternNov15.ts): turns both ways, leaks shown live.
+      how: prePatternNov15Pinned()
+        ? [
+            { action: "Tap a tile", detail: "to rotate its pipe." },
+            { action: "Join every opening", detail: "to another pipe." },
+            { action: "No leaks", detail: "at the edges." },
+            { action: "Par", detail: "is the fewest taps, shown beside your taps." },
+          ]
+        : [
+            { action: "Tap a tile", detail: "to turn it clockwise." },
+            { action: "Hold or swipe a tile", detail: "to turn it anticlockwise (right click on a computer)." },
+            { action: "Water spills", detail: "from every open end it reaches: join every opening, no leaks." },
+            { action: "Par", detail: "is the fewest turns either way, shown under the board beside your turns." },
+            // Difficulty levels (15 Nov 2026, pipes.levels.ts): Expert hides the live spills.
+            { action: "On Expert", detail: "no spills show while you play: find the open ends yourself.", helpOnly: true },
+          ],
       // pipesRev 4 (7 Nov 2026, speedPipesNov7.ts): the tiles turned to fit.
       score: pipesPatternHelp(),
     },
@@ -612,31 +679,59 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a cell,", detail: "then a number." },
         { action: "Use 1–6 once", detail: "in each row, column and box." },
         { action: "Pencil marks", detail: "are for notes." },
+        { action: "A clash turns red:", detail: "a number repeated in its row, column or box." },
         { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
+        { action: "Levels:", detail: "Easy has more digits given and hides a digit once all six are placed; Hard gives fewer and needs a pair or pointing step; Expert gives 9 or 10 and needs two, and its clashes show only when you press Check.", helpOnly: true },
       ],
       score: logicStandardHelp("sudoku"),
     },
     flow: {
       goal: "Join every colour pair and fill every square.",
-      how: [
-        { action: "Drag from a dot", detail: "to its partner." },
-        { action: "Paths can’t cross", detail: "or enter dark walls." },
-        { action: "Fill every square", detail: "with a path." },
-        { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
-      ],
-      score: PATTERN_STD_HELP.flow,
+      // The Pattern overhaul (flowRev 3, flow.ts flowCutsLines): drawing over a line cuts it back; a tap on a dot
+      // leaves its line alone.
+      how: flowCutsDealt()
+        ? [
+            { action: "Drag from a dot", detail: "to its partner." },
+            { action: "Draw over a line", detail: "to cut it back; walls block." },
+            { action: "Fill every square", detail: "with a path." },
+            { action: "Drag from a loose end", detail: "to carry on; drag from a dot to start its line again (a tap leaves it as it is).", helpOnly: true },
+            { action: "Each bead", detail: "has its own symbol, so close colours are easy to tell apart.", helpOnly: true },
+          ]
+        : [
+            { action: "Drag from a dot", detail: "to its partner." },
+            { action: "Paths can’t cross", detail: "or enter dark walls." },
+            { action: "Fill every square", detail: "with a path." },
+            { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
+          ],
+      // flowRev 3 (the Pattern overhaul): its own speed time and the levels’ times; older stamps keep the standard’s.
+      score: prePatternNov15Pinned() ? PATTERN_STD_HELP.flow : flowRev3Help(),
     },
     iceslide: {
       goal: "Slide the ball to the gold exit.",
       how: [
-        { action: "Swipe", detail: "to slide until something stops you." },
-        { action: "Arrows turn you;", detail: "avoid the holes." },
+        // The Pattern overhaul (15 Nov 2026): the pad's arrows are named apart from the chevron tiles on the ice.
+        prePatternNov15Pinned()
+          ? { action: "Swipe", detail: "to slide until something stops you." }
+          : { action: "Swipe or tap an arrow", detail: "to slide until something stops you." },
+        prePatternNov15Pinned()
+          ? { action: "Arrows turn you;", detail: "avoid the holes." }
+          : { action: "Chevron tiles turn you;", detail: "holes send you back to the start." },
         { action: "Portals", detail: "carry you across." },
         // The puzzle batch of 3 Nov 2026 (slideRev 3, parMoves.ts): no ice gems; the fewest slides score a bonus.
         parMovesDealt()
           ? { action: "Fewest slides", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, slideRev 5): Undo and Reset give the slide back; the arrow pad or swipe is
+        // chosen in the game menu (the pinned era keeps the lines before).
+        ...(prePatternNov15Pinned()
+          ? []
+          : [
+              { action: "Undo and Reset", detail: "give the slide back: only the slides left standing count.", helpOnly: true },
+              { action: "Arrow pad or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+              // Difficulty levels (16 Nov 2026, iceslide.levels.ts): the speed bonus's time differs by level.
+              { action: "Speed by level:", detail: "full within 20 s on Easy, 40 s on Hard (100 s clock) and 45 s on Expert (120 s clock).", helpOnly: true },
+            ]),
       ],
       score: parMovesDealt() ? parMovesPatternHelp("iceslide") : PATTERN_STD_HELP.iceslide,
     },
@@ -648,6 +743,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Crates can’t be pulled,", detail: "so plan ahead." },
         { action: "The gold crate", detail: "on the gold mark scores a bonus." },
         { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, display only): Pushes and Par shown in play; Undo was always a real undo.
+        { action: "Par", detail: "is the fewest pushes, shown beside your pushes.", helpOnly: true },
+        { action: "A green tick", detail: "marks a crate on a mark; the gold crate goes on the gold mark.", helpOnly: true },
+        { action: "Undo and Reset", detail: "give the push back: only the pushes left on the board count.", helpOnly: true },
+        // Difficulty levels (16 Nov 2026, push.levels.ts): the stuck hint on Easy and Normal only (display only).
+        { action: "On Easy and Normal", detail: "a crate pushed where it can never reach a mark turns red: undo it.", helpOnly: true },
+        { action: "Arrows or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
       ],
       score: PATTERN_STD_HELP.push,
     },
@@ -660,8 +762,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Two spare mirrors:", detail: "use fewer for an elegant beam." },
         { action: "The splitter", detail: "forks the beam across its input axis.", helpOnly: true },
         { action: "Gem arrows:", detail: "marked gems only light from that direction.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, laserRev 4): Undo takes back any change, free; out of shots locks the board.
+        ...(prePatternNov15Pinned()
+          ? []
+          : [
+              { action: "Undo is free:", detail: "it takes back your last change (a place, turn, move or Reset) and costs nothing; a shot isn’t given back.", helpOnly: true },
+              { action: "Out of shots:", detail: "after your last shot the board locks.", helpOnly: true },
+              // Difficulty levels (16 Nov 2026, laser.levels.ts): the shots and spare mirrors differ by level.
+              { action: "Levels:", detail: "Easy gives five shots and three spare mirrors; Hard one spare; Expert one spare and two shots.", helpOnly: true },
+            ]),
       ],
-      score: PATTERN_STD_HELP.laser,
+      // laserRev 4 (the Pattern overhaul): its own speed time and the levels’ times; older stamps keep the standard’s.
+      score: prePatternNov15Pinned() ? PATTERN_STD_HELP.laser : laserRev4Help(),
     },
     tower: {
       goal: "Move the whole tower onto the gold post.",
@@ -671,6 +783,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Never put a ring", detail: "on a smaller one." },
         { action: "Perfect solve:", detail: "the fewest moves (par) scores a bonus." },
         { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
+        { action: "A wrong post", detail: "bounces the ring back; it stays lifted for another try.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 7 rings on 4 posts; Hard 9 rings on 3 posts, 90 seconds; Expert 10 rings on 3 posts, 105 seconds; Normal 3 or 4 posts. Run out of time and the reveal says how many moves you were from done.", helpOnly: true },
       ],
       score: logicStandardHelp("tower"),
     },
@@ -685,6 +799,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "No wasted steps", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Stars", detail: "anywhere in the maze add points, finished or not." },
         { action: "The path", detail: "moves one neighbouring cell at a time.", helpOnly: true },
+        // The Attention overhaul (15 Nov 2026): backtracking and the controls, said plainly.
+        { action: "Backtracking", detail: "counts against par: every step walked counts, back ones too.", helpOnly: true },
+        { action: "Arrows or joystick:", detail: "choose in the game menu or in Settings.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.maze, helpOnly: true }] : []),
       ],
       // The scoring standard (mazeRev 3): standard/attentionTexts.ts.
       score: parMovesDealt() ? PAR_MOVES_MAZE_HELP() : STANDARD_ATTENTION_HELP.maze(),
@@ -698,7 +816,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Par:", detail: "sort in the fewest pours for a bonus." },
         { action: "Pour", detail: "onto the same colour or an empty flask; as many layers move as fit (5 per flask).", helpOnly: true },
         { action: "A full one-colour flask", detail: "gets a cork.", helpOnly: true },
-        { action: "Pours are limited", detail: "(the counter). Undo and Reset don’t give a pour back; out of pours, the board ends.", helpOnly: true },
+        logicOverhaul1Dealt()
+          ? { action: "Pours are limited", detail: "(the counter). Undo gives its pour back; out of pours, the board ends.", helpOnly: true }
+          : { action: "Pours are limited", detail: "(the counter). Undo and Reset don’t give a pour back; out of pours, the board ends.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 6 flasks of 4 colours; Hard 10 taller flasks of 7 layers on 120 seconds; Expert 12 flasks of 10 colours with two empty, and only each flask\u2019s top colour shows: the layers below are grey with a ? until you uncover them.", helpOnly: true },
       ],
       score: logicStandardHelp("tubes"),
     },
@@ -709,6 +830,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap TRY", detail: "to test it: three tries." },
         { action: "Only one code", detail: "fits every clue." },
         { action: "Clean crack:", detail: "open it on the first try for the full bonus." },
+        { action: "A wrong try", detail: "marks the clues its code broke.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 3 dials of 0\u20139 with simple clues; Hard 4 dials of 0\u201315, six clues with primes, squares and differences, 75 seconds; Expert 5 dials of 0\u201320, seven clues and only two tries.", helpOnly: true },
       ],
       score: logicStandardHelp("safe"),
     },
@@ -719,10 +842,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Do the six steps,", detail: "then tap DEFUSE." },
         // Attention review fixes (15 Nov 2026): nothing happens live; Reset clears the steps, and the order is
         // judged when DEFUSE is pressed.
-        { action: "Reset", detail: "clears your steps; a wrong order explodes at DEFUSE." },
+        // The Attention overhaul (15 Nov 2026): a reasoning test; the bomb never reacts while you work.
+        attentionOverhaulDealt()
+          ? { action: "Nothing reacts live:", detail: "the order is checked only at DEFUSE. Reset clears your steps." }
+          : { action: "Reset", detail: "clears your steps; a wrong order explodes at DEFUSE." },
         { action: "Clues say", detail: "which step an action is, what comes before or straight after what, and what not to do. “Before” means any time earlier.", helpOnly: true },
         { action: "Only one order fits:", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
-        { action: "Wires", detail: "are numbered 1–7 from the left.", helpOnly: true },
+        { action: "Wires", detail: attentionOverhaulDealt() ? "are numbered from 1 on the left (Normal has 7)." : "are numbered 1–7 from the left.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.bomb, helpOnly: true }] : []),
       ],
       score: logicStandardHelp("bomb"),
     },
@@ -739,7 +866,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "Fewest tilts", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Roll through a star", detail: "for bonus points." },
         { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
-        { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don’t give a tilt back; out of tilts, the next board comes.", helpOnly: true },
+        // ---- topsy:start (the Pattern overhaul, 15 Nov 2026, gravityRev 8): limits from the fewest tilts; Undo gives back.
+        prePatternNov15Pinned()
+          ? { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don’t give a tilt back; out of tilts, the next board comes.", helpOnly: true }
+          : { action: "Tilts are limited", detail: "on each board: its par plus 8. Undo and Reset give the tilt back; out of tilts, the next board comes.", helpOnly: true },
+        { action: "Arrows or a joystick:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+        // ---- topsy:end
       ],
       score: parMovesDealt() ? parMovesPatternHelp("gravity") : PATTERN_STD_HELP.gravity,
     },
@@ -754,6 +886,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every 5 links", detail: "the board reshuffles with five new charms.", helpOnly: true },
         { action: "Reverse:", detail: "a banner warns from link 17; links 21–25 run last to first (the arrows point back).", helpOnly: true },
         { action: "Watch for look-alikes:", detail: "right shape, wrong colour.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 30 links with longer windows and no reverse; Hard 40 with shorter windows and two reversed runs; Expert 50 in 60 s with six charms to a cycle.", helpOnly: true },
       ],
       // The scoring standard (chainDepthRev 3): no milestones; standard/attentionTexts.ts.
       score: STANDARD_ATTENTION_HELP.chain(),
@@ -761,9 +894,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     nonogram: {
       goal: "Fill cells so every line matches its numbers.",
       how: [
-        { action: "Tap a cell", detail: "to fill it; again to mark it empty." },
+        { action: "Tap or drag", detail: "to fill; tap again to mark empty. A drag paints like its first square." },
         { action: "The numbers", detail: "are the filled runs, in order." },
         { action: "A line dims", detail: "once it matches." },
+        { action: "Levels:", detail: "Easy is 6 \u00d7 6 and a line that matches its numbers fills its gaps with \u00d7; Hard 9 \u00d7 11; Expert 9 \u00d7 14, where some squares need two lines read together.", helpOnly: true },
       ],
       score: logicStandardHelp("nonogram"),
     },
@@ -771,10 +905,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Find all fifteen pairs.",
       how: [
         { action: "Tap two cards", detail: "to turn them over." },
-        { action: "A match stays up;", detail: "a miss flips back." },
+        attentionOverhaulDealt()
+          ? { action: "A match stays up;", detail: "a miss flips back (tap another card to skip the wait)." }
+          : { action: "A match stays up;", detail: "a miss flips back." },
         { action: "Remember", detail: "where each card was." },
         // The streak and the gold pair, one short line.
         { action: "Bonus:", detail: "match in a row for a streak; find the gold pair in 30 s." },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.pairmatch, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.pairmatch(),
     },
@@ -785,6 +922,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Your region grows", detail: "into touching cells of it." },
         { action: "You start", detail: "from the top-left corner." },
         { action: "Moves are limited:", detail: `par + ${FLOOD_STANDARD_SPARE_MOVES} (the counter). Out of moves, the board ends and scores 0.`, helpOnly: true },
+        { action: "Levels:", detail: "Easy is 10 \u00d7 10 in four colours with par + 8 moves; Hard 12 \u00d7 17 in six, par + 4, 60 seconds; Expert 14 \u00d7 24 in six with stones the paint never covers, par + 3, 75 seconds.", helpOnly: true },
       ],
       score: logicStandardHelp("flood"),
     },
@@ -1077,7 +1215,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a number", detail: "whose flags are all placed to reveal the rest round it." },
         { action: "The opening is revealed for you:", detail: "every board can be solved by logic alone, no guessing.", helpOnly: true },
         { action: "A mine costs 5", detail: "and stays marked; play goes on.", helpOnly: true },
-        { action: "One board for everyone,", detail: `${MINES_COUNT_V2} mines on 10 × 16, 90 seconds.`, helpOnly: true },
+        { action: "One board for everyone,", detail: "on Normal 16 mines on 10 × 16, 90 seconds.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 8 × 12 with 9 mines; Hard today\u2019s 20 mines; Expert 12 × 18 with 34 mines and a small opening, 120 seconds. Never a guess on any level.", helpOnly: true },
       ],
       score: liveStdHelp("minesweeper", `Each mine hit costs ${MINES_HIT_COST}.`),
     },
@@ -1486,6 +1625,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold tiles:", detail: "hit a target with one for bonus points." },
         { action: "Tiles apply", detail: "in the order you tap them.", helpOnly: true },
         { action: "A ÷ that doesn’t divide exactly", detail: "is refused.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 8 targets up to 60 with plus and minus only; Hard 10 up to 200, faster; Expert 11 up to 240 with every operator.", helpOnly: true },
       ],
       // tenRev 5 (the scoring standard, the dealt stamp): standard/numberText.ts.
       score: standardNumberHelp("tendrop"),
@@ -1502,10 +1642,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Aim, don’t spray:", detail: "30 shots that hit nothing are free, then every 20 more cost 1.", helpOnly: true },
         { action: "Doubles and streaks:", detail: "hit both clays of a pair, and clays in a row, for bonuses." },
         { action: "The hit streak", detail: "grows ×2 from the 5th clay in a row, ×3 from the 10th, ×4 from the 15th; a clay that gets away or a bird ends it.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 20 slower clays and 6 birds; Hard 28 faster clays and 24 birds; Expert 30 of the fastest, with triples, and 32 birds.", helpOnly: true },
       ],
       score: scoreList([
         { label: "Clays", how: "more for each clay hit, a gold one worth double, and a bonus for all 25 with no bird hit", max: bandMapTotal(CLAY_QUICK_HIT_MAP, 150) },
-        { label: "Quick hits", how: "hit each clay within a quarter of a second of its launch (none after about 0.37 s)", max: CLAY_QUICK_POINTS },
+        // clayRev 10 (the Speed overhaul): the wider window; the pinned clayRev 9 keeps its words.
+        { label: "Quick hits", how: `hit each clay within ${clayQuickWindowText().full} of its launch (none after ${clayQuickWindowText().none})`, max: CLAY_QUICK_POINTS },
         { label: "Doubles", how: `hit both clays of each of the ${CLAY_DOUBLES} doubles, more for quick hits`, max: CLAY_DOUBLE_POINTS * CLAY_DOUBLES },
         { label: "Streak", how: "hit all 25 in one unbroken streak, more for quick hits", max: CLAY_STREAK_POINTS },
       ], { penalties: ["Each bird hit costs 10", "After 30 shots, every 20 that hit nothing cost 1"], total: "{max}" as unknown as number }),
@@ -1518,6 +1660,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Never tap", detail: "a hedgehog." },
         { action: "Gophers pop up briefly", detail: "– the window shrinks as the run goes on.", helpOnly: true },
         { action: "Hedgehogs cost 5;", detail: "a wrong-colour hat or an empty burrow costs 3.", helpOnly: true },
+        { action: "Levels:", detail: "Easy keeps two up at once and two flips; Hard pops more and shorter, with 5–7 flips; Expert four up at once, the shortest, 7–9 flips and more hedgehogs.", helpOnly: true },
         { action: "Combo and diamonds:", detail: "right hits in a row multiply; tap the rare diamond fast." },
         { action: "The gold combo", detail: "grows ×2 from the 6th right hit in a row, ×3 from the 11th, ×4 from the 16th; a wrong hat, a hedgehog or an empty burrow ends it (a gopher left to sink does not).", helpOnly: true },
       ],
@@ -1786,6 +1929,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each number", detail: "is its rectangle’s size." },
         { action: "Cover", detail: "every square." },
         { action: "Tap a rectangle", detail: "to remove it.", helpOnly: true },
+        { action: "The outline turns green", detail: "while you drag once its size matches the one number inside.", helpOnly: true },
+        { action: "Each rectangle", detail: "is a coloured glass pane; touching panes are never the same colour.", helpOnly: true },
       ],
       score: logicStandardHelp("shikaku"),
     },
@@ -1795,6 +1940,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap an edge", detail: "to draw a line; again for ✕, again to clear." },
         { action: "Drag along edges", detail: "to draw several at once." },
         { action: "Each number", detail: "is how many of its four sides the loop uses." },
+        { action: "A number turns gold", detail: "when the loop uses exactly that many of its sides, and red when it uses more.", helpOnly: true },
         { action: "Undo", detail: "takes back your last move; Reset clears the board.", helpOnly: true },
       ],
       score: gridStandardHelp("fences"),
@@ -1807,7 +1953,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap it again", detail: "to clear a square, or use the eraser." },
         { action: "Each region of N", detail: "is N squares, all numbered N." },
         { action: "Same-size regions", detail: "never touch side by side." },
-        { action: "Right-size regions are tinted", detail: "(touching ones in different shades). The tint means the size is right, not that the region is correct.", helpOnly: true },
+        { action: "Every number has its own colour;", detail: "a region of the right size is edged in gold. Gold means the size is right, not that the region is correct.", helpOnly: true },
+        { action: "A region past its number", detail: "turns red.", helpOnly: true },
         { action: "Undo", detail: "takes back a whole stroke; Reset clears the board.", helpOnly: true },
       ],
       score: gridStandardHelp("fillomino"),
@@ -1817,6 +1964,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         // Logic review (15 Nov 2026): a bridge builds once the drag passes halfway, so the player drags towards an island.
         { action: "Drag towards an island", detail: "to build a bridge; again for two, again to remove." },
+        { action: "Tap a bridge", detail: "to cycle it: one, two, none.", helpOnly: true },
+        { action: "An island turns gold", detail: "when it has exactly its number of bridges.", helpOnly: true },
         { action: "Bridges run straight,", detail: "never cross, and at most two join a pair." },
         { action: "Every island", detail: "must end up connected." },
         { action: "Undo", detail: "takes back your last move; Reset clears the board.", helpOnly: true },
@@ -1839,8 +1988,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap next to the path’s end", detail: "to add a number." },
         { action: "Diagonals count;", detail: "dragging works too." },
         { action: "Pass each fixed number", detail: "at its own step." },
-        { action: "Ten dark numbers are fixed", detail: "– the path must reach each one at exactly that step. You fill the other 26.", helpOnly: true },
-        { action: "Undo removes your last square; Reset clears your path.", detail: "Tapping your last square or dragging back along the path also undoes.", helpOnly: true },
+        { action: "Ten gold-edged numbers are fixed", detail: "– the path must reach each one at exactly that step. You fill the other 26.", helpOnly: true },
+        { action: "Undo removes your last square; Reset clears your path.", detail: "Tapping your last square or dragging back along the path also undoes. Each undo costs a little of the clean bonus.", helpOnly: true },
       ],
       score: standardNumberHelp("trail"),
     },
@@ -1852,23 +2001,28 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every pour, Fill or Empty", detail: "is a move." },
         { action: "Par pours:", detail: "solve the puzzles in their fewest moves for a bonus." },
         { action: "A pour", detail: "stops when the first jug is empty or the second is full.", helpOnly: true },
-        { action: "Puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
+        { action: "On Hard and Expert, puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
         { action: "Reset", detail: "starts the puzzle again; it costs no move, and the moves so far still count.", helpOnly: true },
-        { action: "Moves are limited", detail: "to about 4½× the fewest (the counter). Out of moves, that puzzle ends and the next one starts.", helpOnly: true },
+        { action: "The gold line", detail: "on a jug marks the target amount.", helpOnly: true },
+        { action: "Moves are limited", detail: "to about 4½× the fewest (the counter; 1½× on Expert). Out of moves, that puzzle ends and the next one starts.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is three short two-jug puzzles; Normal four gentler ones with a tap throughout; Hard is the classic set; Expert has longer puzzles, three jugs from puzzle 2 and no tap from puzzle 3.", helpOnly: true },
       ],
       score: standardNumberHelp("measure"),
     },
     checkout: {
       goal: "Score exactly the target with your darts.",
       how: [
-        { action: "Tap a number,", detail: "then x1, x2 or x3." },
-        { action: "Hit zero exactly", detail: "and finish in the ring shown." },
+        { action: "Tap a number,", detail: "then Single, Double or Treble." },
+        { action: "Hit zero exactly", detail: "and finish in the ring shown. Go past it and it's bust: the board starts again." },
         { action: "Tap Throw", detail: "to check." },
         { action: "Big finish:", detail: "end a board of 100+ on the Bull or a treble for a bonus." },
         { action: "Outer bull = 25,", detail: "inner bull = 50 (a double).", helpOnly: true },
         { action: "The ring shown", detail: "is a double or a treble.", helpOnly: true },
-        { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
-        { action: "Board 4", detail: "has a gold x4 ring. Board 5 has two minus numbers and must finish in exactly 4 darts.", helpOnly: true },
+        { action: "Every board is different.", detail: "Solve them in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
+        { action: "Pick a number first;", detail: "Single, Double and Treble wait for it.", helpOnly: true },
+        { action: "Board 4", detail: "has a gold x4 ring. Board 5 has two minus numbers and must finish in exactly 4 darts (Hard).", helpOnly: true },
+        { action: "Bust:", detail: "below zero, zero off the finishing ring, or 1 left when the finish is a double. The darts drop out and that board starts again.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is three standard boards that finish on any dart; Normal three standard and two shuffled; Hard the classic five; Expert five odd boards (uneven and minus numbers, x4) with an exact dart count.", helpOnly: true },
       ],
       score: standardNumberHelp("checkout"),
     },
@@ -1878,6 +2032,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a square", detail: "then a number from 1 to 9." },
         { action: "Each run", detail: "adds to the clue before it; no digit twice in a run." },
         { action: "Pencil", detail: "keeps notes; they never count." },
+        { action: "After a digit,", detail: "the next empty square in its run is chosen for you.", helpOnly: true },
+        { action: "A broken run", detail: "shows its clue in red with a thin red outline.", helpOnly: true },
+        { action: "A mistake", detail: "is only a digit that breaks a rule: a repeat in a run, or a run that can no longer make its clue.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is a small 5 × 5 board; Normal a gentler 6 × 6; Hard the classic 6 × 6; Expert a 7 × 7 board with longer chains of reasoning.", helpOnly: true },
       ],
       score: gridStandardHelp("kakuro"),
     },
@@ -1889,8 +2047,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Estimate:", detail: "no calculator needed." },
         { action: "Bullseyes:", detail: "land within 1% of exact for a bonus." },
         { action: "A magnifier", detail: "shows where your finger is.", helpOnly: true },
+        { action: "Past an end,", detail: "the marker stops at that end.", helpOnly: true },
         { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines.", helpOnly: true },
         { action: "Numbers include", detail: "fractions, percentages, powers and roots.", helpOnly: true },
+        { action: "Levels:", detail: "Easy uses 0 to 10, 0 to 100 and 0 to 1 with whole numbers and simple fractions; Hard harder fractions, −100 to 100 and 0 to 1,000; Expert ends on 0 to 10,000, and each line’s top label shows only once three of its numbers are placed.", helpOnly: true },
       ],
       score: standardNumberHelp("numline"),
     },
@@ -1898,10 +2058,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Each cell is the sum of the two below it.",
       how: [
         { action: "Drag a tile", detail: "into an empty cell." },
-        { action: "Two tiles", detail: "are decoys." },
+        { action: "Some tiles", detail: "are decoys." },
         { action: "Skip", detail: "moves to the next pyramid." },
         { action: "Four pyramids", detail: "to complete, one after another.", helpOnly: true },
         { action: "Double-tap a placed tile", detail: "to return it to the tray; drag it onto another cell to swap.", helpOnly: true },
+        { action: "Once both stones below are filled,", detail: "a gold seam shows the sum is right; a red crack shows it's wrong.", helpOnly: true },
+        { action: "On the last pyramid,", detail: "Skip reads Finish and ends the round.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is four 4-row pyramids with 1 decoy; Normal 5 rows with 2; Hard 5 rows, more empty stones, bigger numbers and 3 decoys; Expert 6-row pyramids with 3 decoys.", helpOnly: true },
       ],
       score: standardNumberHelp("numpyramid"),
     },
@@ -1931,16 +2094,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       }),
     },
     wordsearch: {
-      goal: "Find the six hidden words in the category.",
+      goal: "Find the hidden words in the category (six on Normal).",
       how: [
         { action: "Drag in a straight line", detail: "through the letters." },
-        { action: "Words run", detail: "any way, backwards too." },
+        { action: "Words run", detail: "any way, backwards too (Easy: across and down only)." },
         { action: "A seventh theme word hides unlisted:", detail: "find it for a bonus." },
         { action: "A found word", detail: "turns gold on the grid, with a line along it.", helpOnly: true },
         { action: "Each chip shows", detail: "a hidden word’s letter count until you find it; the word then fills it.", helpOnly: true },
-        { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
+        wordOverhaulDealt("wordsearch")
+          ? { action: "The bonus word", detail: "fills the gold star chip. After the last listed word the round goes on: find the bonus, or tap Done.", helpOnly: true }
+          : { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
-      score: preStandardPinned() ? wordSearchBonusHelp() : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
+      score: preStandardPinned() ? wordSearchBonusHelp() : wordOverhaulDealt("wordsearch") ? LOOKOUT_OVERHAUL_HELP : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
     },
     letterwheel: {
       goal: "Fill the crossword from the letter wheel.",
@@ -1953,18 +2118,24 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The bonus jar", detail: preStandardPinned() ? "fills by word length; a full jar adds the top 50 points. Misses after the first 5 spill a drop each." : `fills by word length; the fuller it is, the more it adds (up to ${STD_ROUNDABOUT.jar}). Misses after the first 5 spill a drop each.`, helpOnly: true },
         { action: "A trace that is not a word", detail: "is a miss: the first 5 are free, then each costs 3.", helpOnly: true },
         { action: "Shuffle", detail: "rearranges the wheel without changing the crossword.", helpOnly: true },
+        ...(wordOverhaulDealt("letterwheel")
+          ? [
+              { action: "A word you already have", detail: "is a repeat: the wheel shakes quietly and it costs nothing. A miss tints the letters red.", helpOnly: true },
+              { action: "Crossword answers", detail: "are everyday words, with few three-letter ones.", helpOnly: true },
+            ]
+          : []),
       ],
       score: preStandardPinned() ? letterWheelJarHelp() : WORD_STANDARD_HELP.letterwheel,
     },
     strikeout: {
-      goal: "Reveal five long words, one at a time, before twelve strikes.",
+      goal: "Reveal five long words, one at a time, before you run out of strikes (twelve on Normal).",
       how: [
         { action: "Tap a letter", detail: "to fill every matching tile in the word." },
-        { action: "Three vowel guesses", detail: "per word (the dots)." },
+        { action: "Vowel guesses", detail: "are limited per word (the dots; three on Normal)." },
         { action: "Vowels are A E I O U;", detail: "the keypad resets for each word.", helpOnly: true },
         { action: "Tap Solve", detail: "to guess the word; early earns more, wrong is a strike." },
         { action: "Early solves:", detail: preStandardPinned() ? "the more letters still hidden when you Solve a word, the bigger its bonus." : `Solve a word with ${STD_STRIKEOUT.earlyHidden}+ letters still hidden for ${STD_STRIKEOUT.earlySolve} more points (up to ${STD_STRIKEOUT.earlySolveMax}).`, helpOnly: true },
-        { action: "Starting letters", detail: "show from the start (every copy; one more on words 1–3) and earn nothing.", helpOnly: true },
+        { action: "Starting letters", detail: "show from the start (every copy; on Normal one more on words 1–3) and earn nothing.", helpOnly: true },
         { action: "Solve:", detail: "type the missing letters, then Solve. It must be a real word (others are refused for free).", helpOnly: true },
         { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
         { action: "Twelve strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
@@ -1976,12 +2147,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a square,", detail: "then a letter." },
         { action: "Every square", detail: "with that number fills." },
-        { action: "Six numbers", detail: "start decoded." },
+        { action: "Six numbers", detail: "start decoded (on Normal)." },
         { action: "Each letter has one number.", detail: "Using a letter again moves it from its old number; Clear empties the selected number.", helpOnly: true },
         { action: "The strip above the keys", detail: "shows what you have decoded.", helpOnly: true },
+        { action: "After each letter", detail: "the next number still to decode is picked for you.", helpOnly: true },
         { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
+        { action: "A full grid that isn’t cracked", detail: "flashes the words on it that aren’t real words.", helpOnly: true },
       ],
-      score: preStandardPinned() ? stretchHelp("codeword", CODEWORD_STRETCH) : WORD_STANDARD_HELP.codeword,
+      score: preStandardPinned() ? stretchHelp("codeword", CODEWORD_STRETCH) : wordOverhaulDealt("codeword") ? CODEWORD_OVERHAUL_HELP : WORD_STANDARD_HELP.codeword,
     },
     swapword: {
       goal: "Swap tiles until all six words read correctly.",
@@ -1990,7 +2163,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold", detail: "is in place; teal belongs elsewhere." },
         { action: "Finish in par swaps", detail: "for a bonus. Swaps are limited." },
         { action: "Par", detail: "is the fewest swaps that solve the board, shown beside your swaps (gold while you are within it).", helpOnly: true },
-        { action: "The budget", detail: `is ${SW6_SPARE_SWAPS} more than par; running out ends the round.`, helpOnly: true },
+        { action: "The budget", detail: `is ${SW6_SPARE_SWAPS} more than par on Normal (the level says); running out ends the round.`, helpOnly: true },
         { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
         { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
       ],
@@ -2004,6 +2177,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A wall’s number", detail: "is how many bulbs touch it." },
         { action: "Tap a square", detail: "for a bulb; again for a dot, again to clear." },
         { action: "Dots", detail: "are your notes; they never score.", helpOnly: true },
+        { action: "Lit squares glow warm;", detail: "near the end the board counts the squares still dark.", helpOnly: true },
+        { action: "A wall’s number gets a gold tick", detail: "once it has its bulbs (a 0 once every square beside it is lit or dotted).", helpOnly: true },
       ],
       score: logicStandardHelp("lightup"),
     },
@@ -2013,7 +2188,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a cell", detail: "for a tent; again for grass." },
         { action: "Tents never touch,", detail: "even diagonally." },
         { action: "Signposts", detail: "give each row’s and column’s tents." },
+        { action: "A tent with no tree beside it", detail: "shows a red ring; every tent needs its own tree next to it (not diagonally).", helpOnly: true },
         { action: "Tap a third time", detail: "to clear the cell.", helpOnly: true },
+        { action: "A signpost turns gold", detail: "when its row or column has all its tents.", helpOnly: true },
         { action: "A ? sign", detail: "hides that row’s or column’s count; work it out from the rest.", helpOnly: true },
       ],
       score: logicStandardHelp("tents"),

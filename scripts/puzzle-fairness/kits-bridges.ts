@@ -5,7 +5,7 @@
  */
 import { bridgePairs, crossingTable, encodeBridges } from "../../src/lib/duel/bridges";
 import type { BridgesPuzzleData } from "../../src/lib/duel/types";
-import { thinkMs, type Play, type PuzzleKit, type SpamPlay, type Step } from "./kit";
+import { atLevel, thinkMs, type Play, type PuzzleKit, type SpamPlay, type Step } from "./kit";
 
 /** Seconds per bridge for a good player (spot the deduction, drag it). */
 const BRIDGES_BASE = 3.4;
@@ -35,6 +35,7 @@ export const bridgesKit: PuzzleKit = {
     return out;
   },
   play(p, rng, skill): Play {
+    skill = atLevel(skill, p);
     const pz = p as BridgesPuzzleData;
     const pairs = bridgePairs(pz.islands, pz.size);
     const crosses = crossingTable(pairs);

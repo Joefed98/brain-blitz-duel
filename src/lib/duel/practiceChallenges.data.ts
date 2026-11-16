@@ -178,11 +178,12 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
 
   /* ================================================================ Pattern */
   // Gridlock (unblock): 150 + speed 30 (40 s) + moves 20 (par).
-  ch("unblock", "Clear road", "Free the gold block in par moves.", "C", "par", false, bonus(20), "unblock.par"),
-  ch("unblock", "Rush hour", "Free the gold block within 40 s.", "C", "speed", false, speed(30, 40), "unblock.speed"),
+  ch("unblock", "Clear road", "Free the gold car in par moves.", "C", "par", false, bonus(20), "unblock.par"),
+  ch("unblock", "Rush hour", "Free the gold car within 40 s.", "C", "speed", false, speed(30, 40), "unblock.speed"),
   ch("unblock", "Green wave", "Score 200 on an Expert jam.", "E", "perfect", true, score(200)),
-  // Tessellate (blockparty): 150 + speed 40 (40 s) + first time 10.
-  ch("blockparty", "No second thoughts", "Fill the board without moving a piece twice.", "C", "clean", false, all(FIN, eff(10))),
+  // Tessellate (blockparty): 150 + speed 40 (40 s) + clean drops 10 (blockRev 4, the Pattern overhaul: moving a
+  // placed piece is free, each drop where a piece won't fit costs a share; 10 needs no illegal drop).
+  ch("blockparty", "No second thoughts", "Fill the board without dropping a piece where it won’t fit.", "C", "clean", false, all(FIN, eff(10))),
   ch("blockparty", "Snap fit", "Fill the board within 40 s.", "C", "speed", false, speed(40, 40)),
   // Skid (iceslide): 150 + speed 30 (30 s) + slides 20 (par).
   ch("iceslide", "Ice cool", "Reach the exit in par slides.", "C", "par", false, all(FIN, f("slides", "lte", "@parSlides"))),
@@ -197,13 +198,15 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Turntable (rings): 150 + speed 35 (40 s) + turns 15 (par).
   ch("rings", "Full circle", "Match every spoke.", "C", "finish", false, all(FIN)),
   ch("rings", "Spin doctor", "Match every spoke in par turns.", "C", "par", false, bonus(15)),
-  // Lightbender (laser): 150 + speed 40 (15 s) + mirrors 5 + first shot 5.
+  // Lightbender (laser): 150 + speed 40 (30 s on laserRev 4, 15 s before) + mirrors 5 + first shot 5.
   ch("laser", "One shot", "Light all six gems with your first FIRE.", "C", "clean", false, all(FIN, f("fires", "eq", 1))),
   ch("laser", "Hall of mirrors", "Light all six on the first shot with par mirrors.", "C", "par", false, all(FIN, eff(10))),
-  ch("laser", "Speed of light", "Light all six within 15 s.", "C", "speed", true, speed(40, 15)),
-  // Chroma Lines (flow): 150 + speed 40 (20 s) + clean lines 10.
+  // 15 s → 30 s (16 Nov 2026): laserRev 4 gives full speed by 30 s on Normal (patternRules.ts LASER_REV4_FULL_BY_S). Changed with Joe's approval, 16 Nov 2026 (Normal eased on new stamp).
+  ch("laser", "Speed of light", "Light all six within 30 s.", "C", "speed", true, speed(40, 30)),
+  // Chroma Lines (flow): 150 + speed 40 (30 s on flowRev 3, 20 s before) + clean lines 10.
   ch("flow", "No redraws", "Join every pair without redrawing a line.", "C", "clean", false, all(FIN, f("redraws", "eq", 0))),
-  ch("flow", "Paint stripper", "Join every pair within 20 s.", "C", "speed", false, speed(40, 20)),
+  // 20 s → 30 s (16 Nov 2026): flowRev 3 gives full speed by 30 s on Normal (patternRules.ts FLOW_REV3_FULL_BY_S). Changed with Joe's approval, 16 Nov 2026 (Normal eased on new stamp).
+  ch("flow", "Paint stripper", "Join every pair within 30 s.", "C", "speed", false, speed(40, 30)),
   ch("flow", "Spaghetti junction", "Fill a Hard board.", "H", "finish", false, all(FIN)),
   // Pipeline (pipes): 150 + speed 40 (60 s) + taps 10 (par).
   ch("pipes", "No leaks", "Connect every pipe.", "C", "finish", false, all(FIN)),
@@ -236,10 +239,11 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("whack", "Hedgehog friendly", "Bonk 30 or more without a wrong hat or a hedgehog.", "C", "clean", false, all(f("hits", "gte", 30), f("wrong", "eq", 0), f("bombs", "eq", 0))),
   ch("whack", "Diamond geezer", "Bonk every diamond.", "C", "fullset", false, all(f("depth.diamondHits", "gte", "@depth.diamondTotal"), f("depth.diamondTotal", "gte", 1))),
   ch("whack", "Combo king", "Bonk 47 in a row, each within 150 ms of rising.", "C", "combo", true, all(f("depth.combo", "gte", 44))),
-  // Pull! (clayshoot): clays 110 + quick hits 40 + doubles 14 + streak 36.
+  // Pull! (clayshoot): clays 110 + quick hits 40 + doubles 14 + streak 36. clayRev 10 (the Speed overhaul, 15 Nov 2026): a
+  // quick hit is full within 0.4 s (was a quarter second), so Dead eye says 400 ms; its condition is unchanged.
   ch("clayshoot", "Bird lover", "Hit 15 clays without hitting a bird.", "C", "clean", false, all(f("hits", "gte", 15), f("birdHits", "eq", 0))),
   ch("clayshoot", "Double trouble", "Hit both clays of every double.", "C", "fullset", false, all(f("depth.doublesHit", "gte", "@depth.doublesTotal"), f("depth.doublesTotal", "gte", 1))),
-  ch("clayshoot", "Dead eye", "Hit all 25 clays in a row, each within a quarter second.", "C", "streak", true, all(f("depth.streak", "gte", 36))),
+  ch("clayshoot", "Dead eye", "Hit all 25 clays in a row, each within 400 ms.", "C", "streak", true, all(f("depth.streak", "gte", 36))),
 
   /* ================================================================ Attention */
   // Mixed Signals (stroop): finish 150 + speed 15 + streak 20 + gold words 15.
@@ -277,7 +281,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("wordhunt", "Gold digger", "Find a word through the gold tile.", "C", "target", false, all(len("goldWords", "gte", 1))),
   ch("wordhunt", "Long haul", "Find three words of six letters or more.", "C", "target", false, all(f("longWords", "gte", 3))),
   ch("wordhunt", "Clean forage", "Find 10 words without a single miss.", "C", "clean", false, all(len("words", "gte", 10), f("misses", "eq", 0))),
-  ch("wordhunt", "Forager supreme", "Score 170 or more on Hard.", "H", "bigscore", true, score(170)),
+  // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): 170 → 160.
+  ch("wordhunt", "Forager supreme", "Score 160 or more on Hard.", "H", "bigscore", true, score(160)),
   // Interlock (tilegrid): 150 + speed 20 (33 s) + big words 30.
   ch("tilegrid", "Locked in", "Place all 15 tiles.", "C", "finish", false, all(FIN)),
   ch("tilegrid", "Big words", "Finish with 5+ letter words scoring at least the solution’s.", "C", "maxout", false, all(FIN, f("bigWordPoints", "gte", 30))),
@@ -287,7 +292,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Lookout (wordsearch): 150 + speed 20 (40 s) + bonus word 30.
   ch("wordsearch", "Hidden gem", "Find the unlisted seventh word.", "C", "fullset", false, bonus(30)),
   ch("wordsearch", "Eagle-eyed", "Find all six within 40 s.", "C", "speed", false, speed(20, 40)),
-  ch("wordsearch", "Crow’s nest", "Score 200 on Hard.", "H", "perfect", true, score(200)),
+  // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): 200 → 195.
+  ch("wordsearch", "Crow’s nest", "Score 195 or more on Hard.", "H", "bigscore", true, score(195)),
   // Roundabout (letterwheel): 150 + speed 20 (40 s) + bonus jar 30.
   ch("letterwheel", "Jar of five", "Drop five bonus words in the jar.", "C", "target", false, all(f("bonusWords", "gte", 5))),
   ch("letterwheel", "Jar full", "Finish with the jar full; a bonus word adds 1 to 4 drops.", "C", "maxout", false, all(FIN, f("jarPoints", "gte", 30))),
@@ -317,7 +323,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("balance", "Heavyweight", "Balance all four within 60 s.", "C", "speed", false, speed(35, 60)),
   // Integer Pyramid (numpyramid): 150 + speed 40 (75 s) + clean pyramids 10.
   ch("numpyramid", "Solid base", "Build all four pyramids clean.", "C", "clean", false, all(FIN, f("cleanPyramids", "gte", 4))),
-  ch("numpyramid", "Pharaoh", "Score 200 on Expert.", "E", "perfect", true, score(200)),
+  // Changed with Joe's approval, 16 Nov 2026 (gentler Normal).
+  ch("numpyramid", "Pharaoh", "Score 180 on Expert.", "E", "perfect", true, score(180)),
   // Brimful (measure): 150 + speed 35 (60 s) + pours 15 (par).
   ch("measure", "Fill her up", "Measure all four targets.", "C", "finish", false, all(FIN)),
   ch("measure", "Not a drop spilt", "Measure all four in par pours.", "C", "par", false, all(FIN, f("pours", "lte", "@parPours"))),
@@ -335,7 +342,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("tendrop", "No overshoot", "Hit all ten without a reset.", "C", "clean", false, all(f("cleared", "gte", 10), f("resets", "eq", 0))),
   ch("tendrop", "Gold tens", "Hit all ten targets with a gold tile.", "C", "maxout", false, all(f("cleared", "gte", 10), f("goldTens", "gte", 10))),
   // Kakuro (kakuro): 150 + speed 40 (60 s) + clean grid 10.
-  ch("kakuro", "Sum total", "Fill the grid with no wrong digits.", "C", "clean", false, all(FIN, f("mistakes", "eq", 0))),
+  ch("kakuro", "Sum total", "Fill the grid without breaking a rule.", "C", "clean", false, all(FIN, f("mistakes", "eq", 0))),
   ch("kakuro", "Mental arithmetic", "Fill a Hard grid.", "H", "finish", false, all(FIN)),
   ch("kakuro", "Human calculator", "Fill the grid within 60 s.", "C", "speed", false, speed(40, 60)),
 
@@ -466,7 +473,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("mahjong", "No shuffle", "Clear the stack without a Shuffle.", "C", "clean", false, all(full("Pairs", 150), full("No shuffles", 20))),
   // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): the text matches Hard's speed rule (65 s → 25 s).
   ch("mahjong", "Tile rush", "Clear a Hard stack within 25 s.", "H", "speed", false, part("Speed", 30)),
-  // Minefield (minesweeper): safe squares 150 + no mines hit 20 + speed 30 (37 s on minesRev 2, 13 Nov 2026; 50 s on rev 1).
+  // Minefield (minesweeper): safe squares 150 + no mines hit 20 + speed 30 (37 s on minesRev 3, today's Normal, as on
+  // minesRev 2, now Hard; 50 s on rev 1). Joe, 16 Nov 2026: Normal keeps 37 s so it stays a clear step below Hard.
   ch("minesweeper", "Light feet", "Clear the board without hitting a mine.", "C", "clean", false, all(full("Safe squares", 150), full("No mines hit", 20))),
   ch("minesweeper", "Sweep", "Clear the board within 37 s.", "C", "speed", false, part("Speed", 30)),
   ch("minesweeper", "Bomb disposal", "Clear an Expert field.", "E", "finish", true, part("Safe squares", 150)),

@@ -15,7 +15,6 @@ import {
   shikakuCovered,
   shikakuHeightOf,
   shikakuSolved,
-  SHIKAKU_DEPTH_HEIGHT,
   SHIKAKU_SIZE,
   type ShikakuClue,
   type ShikakuRect,
@@ -24,9 +23,24 @@ import {
 import { SHIKAKU_TIME_MS, type ShikakuPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
-import { soundCue, useSolveFx } from "./logicFx";
+import { useSolveFx } from "./logicFx";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
+import { logicArtVars } from "./logicArt";
+import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
+
+/** The four jewel panes, by main's fill index (the Logic overhaul, 15 Nov 2026). */
+export const SHIKAKU_JEWELS = ["sapphire", "emerald", "amber", "ruby"] as const;
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+
+const SHIKAKU_ART = logicArtVars(["logic-cell", "shikaku-pane-sapphire", "shikaku-pane-emerald", "shikaku-pane-amber", "shikaku-pane-ruby"]);
+
+/** The area matches the one number inside (the drag outline turns green). */
+function previewFits(rect: ShikakuRect, clues: readonly ShikakuClue[], size: number): boolean {
+  const inside = clues.filter((clue) => rectHas(rect, clue.cell, size));
+  return inside.length === 1 && inside[0]!.n === (rect.r1 - rect.r0 + 1) * (rect.c1 - rect.c0 + 1);
+}
 
 /**
  * Four gold-family fills (Logic review, 15 Nov 2026; display only). Two fills by placement order let touching
@@ -87,6 +101,9 @@ export function Board({
   preview,
   small = false,
   pointer,
+  wrong,
+  ghosts,
+  bad,
 }: {
   size: number;
   rows?: number;
@@ -95,8 +112,15 @@ export function Board({
   preview?: ShikakuRect | null;
   small?: boolean;
   pointer?: ReturnType<typeof useGridPointer>;
+  /** Reveal: indices into `rects` that are not in the solution (ringed red). */
+  wrong?: ReadonlySet<number> | undefined;
+  /** Reveal: the solution's rectangles the player didn't draw (dashed outlines). */
+  ghosts?: readonly ShikakuRect[] | undefined;
+  /** Live play: a refused rectangle, outlined red for a moment. */
+  bad?: ShikakuRect | null | undefined;
 }) {
   const clueAt = new Map(clues.map((clue) => [clue.cell, clue.n]));
+  // The Logic overhaul (15 Nov 2026): main's fills (touching rectangles never alike) drawn as four jewel panes.
   const fills = shikakuFills(rects);
   const place = (r: ShikakuRect) => ({
     gridRow: `${r.r0 + 1} / ${r.r1 + 2}`,
@@ -106,8 +130,11 @@ export function Board({
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
-      className="shikaku-board logic-glass grid w-full shrink-0 select-none overflow-hidden"
+      className="shikaku-board logic-glass logic2-shikaku grid w-full shrink-0 select-none overflow-hidden"
+      data-logic2="shikaku"
+      data-small={small ? "" : undefined}
       style={{
+        ...SHIKAKU_ART,
         ...(pointer?.handlers.style ?? {}),
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
@@ -126,28 +153,40 @@ export function Board({
       {rects.map((r, i) => (
         <div
           key={`r${r.r0}-${r.c0}-${r.r1}-${r.c1}`}
-          className="logic-pane pointer-events-none rounded-md"
+          className="logic-pane logic2-pane pointer-events-none rounded-md"
           data-fill={fills[i]}
+          data-jewel={SHIKAKU_JEWELS[fills[i] ?? 0]}
+          data-wrong={wrong?.has(i) ? "" : undefined}
+          data-rect={`${r.r0},${r.c0},${r.r1},${r.c1}`}
           style={{
             ...place(r),
             zIndex: 1,
-            border: `2px solid ${FILLS[fills[i]!]}`,
-            background: `color-mix(in oklab, ${FILLS[fills[i]!]} 35%, transparent)`,
             "--logic-i": Math.min(i, 17),
+            "--logic2-diag": r.r0 + r.c0,
             "--logic-hue": Math.round((i * 137.5 + 20) % 360),
           } as CSSProperties}
         />
       ))}
+      {bad ? <div data-bad-rect="" className="logic2-bad-rect pointer-events-none rounded-md" style={{ ...place(bad), zIndex: 2 }} /> : null}
+      {ghosts?.map((r) => (
+        <div
+          key={`g${r.r0}-${r.c0}-${r.r1}-${r.c1}`}
+          className="logic2-rect-ghost pointer-events-none rounded-md"
+          data-missed-rect=""
+          style={{ ...place(r), zIndex: 2 }}
+        />
+      ))}
       {preview && (
         <div
-          className="logic-pane-preview pointer-events-none rounded-md border-2 border-primary"
+          className="logic-pane-preview logic2-preview pointer-events-none rounded-md border-2"
+          data-fits={previewFits(preview, clues, size) ? "" : undefined}
           style={{ ...place(preview), zIndex: 2 }}
         />
       )}
       {[...clueAt].map(([cell, n]) => (
         <span
           key={`n${cell}`}
-          className="shikaku-clue logic-glass-clue pointer-events-none flex h-full w-full min-h-0 min-w-0 items-center justify-center overflow-hidden text-center font-mono font-bold leading-none text-foreground"
+          className="shikaku-clue logic-glass-clue logic2-num pointer-events-none flex h-full w-full min-h-0 min-w-0 items-center justify-center overflow-hidden text-center leading-none"
           style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1, zIndex: 3,
             fontSize: small ? `clamp(${n >= 10 ? 12 : 13}px, calc((100cqw - ${size - 1}px) / ${size} * ${n >= 10 ? 0.62 : 0.88}), 22px)` : undefined,
           }}
@@ -159,13 +198,22 @@ export function Board({
   );
 }
 
+/**
+ * The intro's worked board (the Logic overhaul, 15 Nov 2026): a real 6 × 6 puzzle with one solution, most of it cut
+ * into rectangles and two left to draw (never a dealt board: the live game is 10 × 11).
+ */
+export const SHIKAKU_EXAMPLE = {
+  size: 6,
+  clues: [{ cell: 4, n: 3 }, { cell: 7, n: 4 }, { cell: 8, n: 5 }, { cell: 9, n: 5 }, { cell: 18, n: 2 }, { cell: 19, n: 2 }, { cell: 29, n: 6 }, { cell: 30, n: 4 }, { cell: 33, n: 2 }, { cell: 34, n: 3 }] as ShikakuClue[],
+  rects: [{ r0: 0, c0: 0, r1: 1, c1: 1 }, { r0: 0, c0: 2, r1: 4, c1: 2 }, { r0: 0, c0: 3, r1: 4, c1: 3 }, { r0: 0, c0: 4, r1: 2, c1: 4 }, { r0: 0, c0: 5, r1: 5, c1: 5 }, { r0: 2, c0: 0, r1: 3, c1: 0 }, { r0: 2, c0: 1, r1: 3, c1: 1 }, { r0: 3, c0: 4, r1: 5, c1: 4 }, { r0: 4, c0: 0, r1: 5, c1: 1 }, { r0: 5, c0: 2, r1: 5, c1: 3 }] as ShikakuRect[],
+};
+
 function IntroExample() {
-  // The real board size (10 × 11 since the depth revision), shown with one valid rectangle per row.
-  const clues = Array.from({ length: SHIKAKU_DEPTH_HEIGHT }, (_, row) => ({ cell: row * SHIKAKU_SIZE + (row % 2 ? 2 : 6), n: SHIKAKU_SIZE }));
-  const rects = Array.from({ length: SHIKAKU_DEPTH_HEIGHT }, (_, row) => ({ r0: row, c0: 0, r1: row, c1: SHIKAKU_SIZE - 1 }));
+  // Eight of the ten rectangles drawn; two still to go.
+  const drawn = SHIKAKU_EXAMPLE.rects.filter((_, i) => i !== 7 && i !== 9);
   return (
-    <div style={{ width: 164 }}>
-      <Board size={SHIKAKU_SIZE} rows={SHIKAKU_DEPTH_HEIGHT} clues={clues} rects={rects} small />
+    <div style={{ width: 150 }}>
+      <Board size={SHIKAKU_EXAMPLE.size} clues={SHIKAKU_EXAMPLE.clues} rects={drawn} small />
     </div>
   );
 }
@@ -178,7 +226,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const clues = data?.clues ?? [];
   const [rects, setRects] = useStageState<ShikakuRect[]>(stateKey ?? "shikaku", "shikakuRects", () => []);
   const [preview, setPreview] = useState<ShikakuRect | null>(null);
-  const [shake, setShake] = useState(0);
+  const [bad, setBad] = useState<{ rect: ShikakuRect; key: number } | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const placedFx = useRef<ShikakuRect | null>(null);
+  // The Logic overhaul's effects (15 Nov 2026, the effects kit): a placed pane drops in; a refused outline flashes red.
+  useEffect(() => {
+    const r = placedFx.current;
+    placedFx.current = null;
+    if (!r) return;
+    gameFx("drop", boardRef.current?.querySelector(`[data-rect="${r.r0},${r.c0},${r.r1},${r.c1}"]`), { silent: true });
+  }, [rects]);
+  useEffect(() => {
+    if (!bad) return;
+    gameFx("wrong", boardRef.current?.querySelector("[data-bad-rect]"), { silent: true, noHaptic: true });
+    const timer = window.setTimeout(() => setBad(null), 420);
+    return () => window.clearTimeout(timer);
+  }, [bad]);
   const start = useRef<number | null>(null);
   const last = useRef<number | null>(null);
   const submitted = useRef(false);
@@ -205,7 +268,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     onCell: active
       ? (cell) => {
           if (submitted.current) return;
-          if (start.current === null) start.current = cell;
+          if (start.current === null) {
+            start.current = cell;
+            soundCue("shikaku.dragStart");
+          } else if (cell !== last.current) soundCue("shikaku.snap");
           last.current = cell;
           setPreview(rectFrom(start.current, cell, size));
         }
@@ -225,10 +291,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       }
       const rect = rectFrom(a, b, size);
       if (rects.some((r) => rectsOverlap(r, rect)) || !rectValid(rect, clues, size)) {
-        setShake((n) => n + 1);
+        soundCue("shikaku.invalid");
+        setBad((b) => ({ rect, key: (b?.key ?? 0) + 1 }));
         return;
       }
       soundCue("shikaku.place");
+      placedFx.current = rect;
       setRects((current) => [...current, rect]);
     },
   });
@@ -246,11 +314,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           </p>
         )}
         <div
-          key={shake}
-          className={`${height === size ? "logic-square" : "logic-board-tall"} logic-glass-frame ${shake ? "animate-shake" : ""}`}
+          ref={boardRef}
+          className={`${height === size ? "logic-square" : "logic-board-tall"} logic-glass-frame`}
           style={height === size ? undefined : ({ "--board-aspect": height / size } as CSSProperties)}
         >
-          <Board size={size} rows={height} clues={clues} rects={rects} preview={preview} pointer={pointer} />
+          <Board size={size} rows={height} clues={clues} rects={rects} preview={preview} pointer={pointer} bad={bad?.rect ?? null} />
         </div>
         <LiveSummary
           inArena
@@ -264,33 +332,38 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "shikaku") return null;
   const height = shikakuHeightOf(puzzle);
   const mine = acceptedRects(decodeShikaku(myAnswer ?? "", puzzle.size, height), puzzle.clues, puzzle.size);
+  const solution = puzzle.solution ?? [];
+  const hasSolution = solution.length > 0;
+  const keyOf = (r: ShikakuRect) => `${r.r0},${r.c0},${r.r1},${r.c1}`;
+  const solKeys = new Set(solution.map(keyOf));
+  const myKeys = new Set(mine.map(keyOf));
+  const wrong = new Set(hasSolution ? mine.flatMap((r, i) => (solKeys.has(keyOf(r)) ? [] : [i])) : []);
+  const ghosts = hasSolution ? solution.filter((r) => !myKeys.has(keyOf(r))) : [];
   const covered = mine.reduce((sum, r) => sum + (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1), 0);
-  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
-  return (
-    <div className="logic-reveal">
-      <div className="logic-reveal-board">
-        <div className="logic-pair">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-            <Board size={puzzle.size} rows={height} clues={puzzle.clues} rects={puzzle.solution ?? []} small />
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-            <Board size={puzzle.size} rows={height} clues={puzzle.clues} rects={mine} small />
-          </div>
-        </div>
-      </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026: no repeated "Solved · 1.6s"). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text text-center font-mono text-primary">
-          {(solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${puzzle.size * height} covered`)}
-        </p>
-      )}
+  const cells = puzzle.size * height;
+  const board = (rects: readonly ShikakuRect[], compare: boolean) => (
+    <div className="logic-glass-frame logic2-reveal-glass">
+      <Board size={puzzle.size} rows={height} clues={puzzle.clues} rects={rects} wrong={compare ? wrong : undefined} ghosts={compare ? ghosts : undefined} />
     </div>
+  );
+  const mistakes = extraCount(myExtra, "mistakes");
+  return (
+    <LogicReveal
+      game="shikaku"
+      solved={myCorrect}
+      hasSolution={hasSolution}
+      yours={board(mine, true)}
+      solution={board(solution, false)}
+      tally={tallySets(mine.map(keyOf), solution.map(keyOf), "rectangles")}
+      facts={[
+        ...(myCorrect ? [] : [{ label: "Squares covered", value: `${covered} of ${cells}` }]),
+        ...(mistakes !== null ? [{ label: "Mistakes", value: String(mistakes) }] : []),
+      ]}
+    />
   );
 }
 

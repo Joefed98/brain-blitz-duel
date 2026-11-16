@@ -47,8 +47,26 @@ export function chainLongCycles(puzzle: ChainPuzzleData | undefined): boolean {
 
 /** chainCycleRev 1: this link (0-based, the links already made) is on the reversed board. */
 export function chainReversedAt(puzzle: ChainPuzzleData | undefined, links: number): boolean {
-  return chainLongCycles(puzzle) && links >= CHAIN_REVERSE_AT && links < CHAIN_REVERSE_AT + CHAIN_REVERSE_LINKS;
+  if (!chainLongCycles(puzzle)) return false;
+  // The levels (the Speed overhaul): the level's own reversed runs, 1-based and inclusive; 0-based `links` + 1 is the link.
+  if (puzzle?.chainLevel) return puzzle.chainLevel.reverse.some(([from, to]) => links + 1 >= from && links + 1 <= to);
+  return links >= CHAIN_REVERSE_AT && links < CHAIN_REVERSE_AT + CHAIN_REVERSE_LINKS;
 }
+
+/** The links made (0-based) at which a reversed run starts: today's link 20, or each of a level's runs. */
+export function chainReverseStarts(puzzle: ChainPuzzleData | undefined): number[] {
+  if (!chainLongCycles(puzzle)) return [];
+  if (puzzle?.chainLevel) return puzzle.chainLevel.reverse.map(([from]) => from - 1);
+  return [CHAIN_REVERSE_AT];
+}
+
+/** A chain's clock: its level's own (`timeLimitMs`), else today's 45 s. */
+export function chainTimeLimitMs(puzzle: ChainPuzzleData | undefined): number {
+  return typeof puzzle?.timeLimitMs === "number" && puzzle.timeLimitMs > 0 ? puzzle.timeLimitMs : CHAIN_TIME_MS;
+}
+
+/** The most links any chain holds (Expert's 50): the decoder keeps one tap past it. */
+export const CHAIN_MAX_LINKS = 60;
 
 /** Which preview item the next tap needs: its index in the board's cycle. */
 export function chainCycleIndex(puzzle: ChainPuzzleData, links: number): number {
@@ -75,6 +93,12 @@ export function chainRules(puzzle?: ChainPuzzleData) {
       bands: [{ upTo: 10, ms: 3000 }, { upTo: 18, ms: 2500 }, { upTo: legacyLength, ms: 2000 }],
       fasterAt: [10, 18, 26] as readonly number[],
     };
+  }
+  // The levels (the Speed overhaul): the level's length and windows, stamped on the puzzle.
+  if (puzzle?.chainLevel) {
+    const bands = puzzle.chainLevel.bands;
+    return { length: puzzle.chainLevel.links, points: CHAIN_LINK_POINTS, bonus: CHAIN_FINISH_BONUS,
+      bands, fasterAt: bands.slice(0, -1).map((band) => band.upTo) as readonly number[] };
   }
   return { length: CHAIN_LENGTH, points: CHAIN_LINK_POINTS, bonus: CHAIN_FINISH_BONUS,
     bands: CHAIN_MOMENTUM_MS, fasterAt: CHAIN_FASTER_AT as readonly number[] };
@@ -157,7 +181,8 @@ export function decodeChainAnswer(raw: string): ChainAnswer {
     const t = Number.parseInt(timeRaw ?? "", 10);
     if (!Number.isInteger(node) || !Number.isInteger(t) || node < 0 || t < 0) continue;
     taps.push({ node, t });
-    if (taps.length >= CHAIN_LENGTH + 1) break;
+    // A tap past the longest chain is never needed (the replay stops at its last link); every older chain is 40 or less.
+    if (taps.length >= CHAIN_MAX_LINKS + 1) break;
   }
   const reason = REASONS.includes(reasonRaw as ChainBreak) ? (reasonRaw as ChainBreak) : "timer";
   return { taps, reason };
@@ -200,7 +225,7 @@ export function replayChain(puzzle: ChainPuzzleData, answer: ChainAnswer): Chain
   for (const tap of answer.taps) {
     if (replay.over) break;
     // Times must run forwards and stay inside the round.
-    if (tap.t < previousT || tap.t > CHAIN_TIME_MS) break;
+    if (tap.t < previousT || tap.t > chainTimeLimitMs(puzzle)) break;
     previousT = tap.t;
     const verdict = chainTapVerdict(puzzle, replay, tap);
     if (verdict !== "ok") {

@@ -95,8 +95,10 @@
    with the word and keypad pushed to the bottom. The arena now holds the tiles (at most 80 px tall) and a short
    solved-words band above them; the column's slack falls below the keypad. The arena keeps a definite height (it
    is a size container: the tiles size from it). */
+/* The Word overhaul (15 Nov 2026, Joe): the keyboard goes back to the bottom, in thumb reach, and the tiles grow into
+   the room it leaves (up to 72 × 96 px); the solved words sit centred in the band above them. */
 .game-column [data-word-polish="strikeout"][data-word-polish] > [data-game-arena="strikeout"][data-game-arena]:has([data-so-solved-space]) {
-  max-height: 176px;
+  max-height: none;
 }
 [data-word-polish="strikeout"] [data-so-solved-space] {
   min-height: 34px;

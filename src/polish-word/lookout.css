@@ -1,0 +1,58 @@
+/*
+ * Lookout's look (the Word overhaul, 15 Nov 2026): concept A. A grid of small glazed tiles (word-look.css); a found
+ * word keeps its tiles and is circled by a gold capsule loop, like a pen ring round it (Joe, 15 Nov 2026: never filled
+ * gold tiles), its letters in gold inside; the line being dragged in sapphire glaze. Word chips show whole words (they wrap rather than cut). Display only.
+ */
+[data-polish="wordsearch"] [data-game-arena] [data-play-area] { border-radius: 10px; }
+.lookout-loop {
+  fill: none;
+  stroke: var(--jz-gold);
+  stroke-width: 0.1;
+  stroke-linejoin: round;
+}
+/* A found word's letters inside its loop: gold on the glazed tile, so the word reads as found with no filled tiles. */
+[data-ws-found][data-wa][data-wa][data-wa][data-wa] { color: var(--jz-gold-ink) !important; }
+
+/* Chips: found ones champagne gold with the whole word; open ones a recessed well with the letter count. */
+.lookout-word-chip, .lookout-word-placeholder {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  height: auto;
+  min-height: 28px;
+  border-radius: 8px;
+}
+[data-polish="wordsearch"] .lookout-word-chip {
+  border: 0;
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+  font-family: var(--jz-font);
+  font-weight: 800;
+}
+[data-polish="wordsearch"] .lookout-word-placeholder {
+  border: 0;
+  background: url(/word-art/well.webp) center / 100% 100% no-repeat;
+}
+
+/* The hidden bonus word's chip: open, a fixed 68 × 28 px well with a dashed gold rim and a star; found, the whole word
+   on gold (it grows to fit the word: the chip row wraps). */
+.lookout-bonus-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 68px;
+  min-height: 28px;
+  padding-inline: 6px;
+  border: 1px dashed color-mix(in srgb, var(--jz-gold) 70%, transparent);
+  border-radius: 8px;
+  font-family: var(--jz-font);
+  color: var(--jz-gold);
+  background: color-mix(in srgb, var(--jz-bg) 70%, transparent);
+}
+.lookout-bonus-star { font-size: 13px; line-height: 1; opacity: 0.75; }
+.lookout-bonus-text { font-size: 13px; font-weight: 800; line-height: 1; white-space: nowrap; }
+.lookout-bonus-chip[data-found] { border: 0; color: var(--jz-on-gold); background: var(--jz-gold); }
+.lookout-bonus-chip[data-found] .lookout-bonus-star { opacity: 1; }
+/* The reveal's loops round the words not found. */
+.lookout-loop.lookout-loop-missed { stroke: color-mix(in srgb, var(--jz-red) 80%, white); stroke-dasharray: 0.18 0.12; }

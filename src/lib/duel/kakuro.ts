@@ -96,3 +96,60 @@ export function kakuroWrongKeys(puzzle: KakuroPuzzleData, answer: string): strin
   const sol = puzzle.solution ?? [];
   return puzzle.white.filter((c) => values[c] && values[c] !== sol[c]).map((c) => `${c}:${values[c]}`);
 }
+
+/**
+ * True when a run breaks a rule as it stands (kakuroRev 2, the Number overhaul): a repeated digit, its digits already
+ * past its clue, a full run off its clue, or blanks that can no longer reach the clue with digits it hasn't used.
+ */
+export function kakuroRunBroken(run: KakuroRun, values: readonly number[]): boolean {
+  const digits = run.cells.map((c) => values[c] ?? 0);
+  const filled = digits.filter(Boolean);
+  if (new Set(filled).size !== filled.length) return true;
+  const sum = filled.reduce((a, b) => a + b, 0);
+  const blanks = digits.length - filled.length;
+  if (blanks === 0) return sum !== run.sum;
+  const unused = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) => !filled.includes(d));
+  if (unused.length < blanks) return true;
+  const least = unused.slice(0, blanks).reduce((a, b) => a + b, 0);
+  const most = unused.slice(-blanks).reduce((a, b) => a + b, 0);
+  return sum + least > run.sum || sum + most < run.sum;
+}
+
+/**
+ * kakuroRev 2: the mistakes a run of drafts holds, as stable keys ("cell:digit"): each digit set in a square that, the
+ * moment it went in, left one of that square's runs breaking a rule (kakuroRunBroken). A digit merely different from the
+ * stored solution is never a mistake on its own. `drafts` are the answers in order (the timeline's drafts).
+ */
+export function kakuroRuleMistakeKeys(puzzle: Pick<KakuroPuzzleData, "size" | "white" | "clues">, drafts: readonly string[]): string[] {
+  const runs = kakuroRuns(puzzle);
+  const runsOf = new Map<number, KakuroRun[]>();
+  for (const run of runs) for (const c of run.cells) runsOf.set(c, [...(runsOf.get(c) ?? []), run]);
+  const seen = new Set<string>();
+  let prev = new Array<number>(puzzle.size * puzzle.size).fill(0);
+  for (const draft of drafts) {
+    const values = decodeKakuro(draft, puzzle);
+    for (const c of puzzle.white) {
+      const d = values[c] ?? 0;
+      if (!d || d === prev[c]) continue;
+      if ((runsOf.get(c) ?? []).some((run) => kakuroRunBroken(run, values))) seen.add(`${c}:${d}`);
+    }
+    prev = values;
+  }
+  return [...seen];
+}
+
+/**
+ * After a digit goes in `cell`: the next empty square of its across run (after it, then wrapping to the run's start),
+ * else of its down run; null when both runs are full.
+ */
+export function kakuroNextEmpty(puzzle: Pick<KakuroPuzzleData, "size" | "white" | "clues">, values: readonly number[], cell: number): number | null {
+  const runs = kakuroRuns(puzzle).filter((run) => run.cells.includes(cell));
+  const ordered = [...runs.filter((r) => r.across), ...runs.filter((r) => !r.across)];
+  for (const run of ordered) {
+    const at = run.cells.indexOf(cell);
+    const order = [...run.cells.slice(at + 1), ...run.cells.slice(0, at)];
+    const next = order.find((c) => !values[c]);
+    if (next !== undefined) return next;
+  }
+  return null;
+}

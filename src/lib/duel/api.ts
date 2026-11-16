@@ -248,7 +248,7 @@ export async function checkWord(
   word: string,
   found: string[],
   path?: number[],
-): Promise<{ valid: boolean; points: number; word: string; reason?: string }> {
+): Promise<{ valid: boolean; points: number; word: string; reason?: string; bonus?: boolean }> {
   return checkWordFn({
     data: { roomId: duelId, roundNumber, word, found, path: path ?? [] },
     fetch: fetchFor(POLICIES.read),

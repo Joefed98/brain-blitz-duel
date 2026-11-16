@@ -25,6 +25,7 @@ import { gunzipSync } from "node:zlib";
 import {
   puzzleInputDemoCompatible,
   ATTENTION_REWORK_PRESENTATION,
+  ATTENTION_OVERHAUL_PRESENTATION,
   SPEED_POLISH_PRESENTATION,
 } from "../src/components/puzzles/wordInput";
 import {
@@ -374,9 +375,15 @@ for (const type of ["symscan", "spotdiff", "countup"]) {
     `${type}: a pre-rework demo still plays`,
   );
   // Depth to 200 (25 Oct 2026): Double Take's rework demos are stopped too (its hidden difference), until re-recorded.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): the overhaul moved every
+  // Attention board's controls, so rework demos stop too and only a demo on the overhaul's presentation plays.
   ok(
-    puzzleInputDemoCompatible(type, { presentation: ATTENTION_REWORK_PRESENTATION }) === (type !== "spotdiff"),
-    `${type}: a rework demo is rejected`,
+    !puzzleInputDemoCompatible(type, { presentation: ATTENTION_REWORK_PRESENTATION }),
+    `${type}: a rework demo still plays`,
+  );
+  ok(
+    puzzleInputDemoCompatible(type, { presentation: ATTENTION_OVERHAUL_PRESENTATION }),
+    `${type}: an overhaul demo is rejected`,
   );
 }
 

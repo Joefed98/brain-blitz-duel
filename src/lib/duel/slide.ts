@@ -8,7 +8,6 @@
  */
 
 import {
-  SLIDE_CELLS,
   SLIDE_COLS as N,
   type SlideArrow,
   type SlideDir,
@@ -17,14 +16,25 @@ import {
 
 export const SLIDE_DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
-export function slideStep(cell: number, dir: SlideDir): number | null {
+/**
+ * One square on in `dir`, or null at the edge. A board is 12 × 12 unless a level gives it its own `cols` × `rows`
+ * (difficulty levels, 16 Nov 2026: Easy 8 × 8, Expert 11 × 13); the defaults are today's board exactly.
+ */
+export function slideStep(cell: number, dir: SlideDir, cols = N, rows = N): number | null {
   if (dir === "X" || dir === "Y") return null;
-  const row = Math.floor(cell / N);
-  const col = cell % N;
-  if (dir === "U") return row > 0 ? cell - N : null;
-  if (dir === "D") return row < N - 1 ? cell + N : null;
+  const row = Math.floor(cell / cols);
+  const col = cell % cols;
+  if (dir === "U") return row > 0 ? cell - cols : null;
+  if (dir === "D") return row < rows - 1 ? cell + cols : null;
   if (dir === "L") return col > 0 ? cell - 1 : null;
-  return col < N - 1 ? cell + 1 : null;
+  return col < cols - 1 ? cell + 1 : null;
+}
+
+/** A stored board's size: its own `cols` × `rows` (a level board), else today's 12 × 12. */
+export function slideDims(puzzle: { cols?: number | undefined; rows?: number | undefined } | null | undefined): { cols: number; rows: number; cells: number } {
+  const cols = puzzle?.cols ?? N;
+  const rows = puzzle?.rows ?? N;
+  return { cols, rows, cells: cols * rows };
 }
 
 export interface SlideBoard {
@@ -36,10 +46,13 @@ export interface SlideBoard {
   thin: Map<number, number>;
   start: number;
   exit: number;
+  /** The board's size (absent: 12 × 12). */
+  cols?: number;
+  rows?: number;
 }
 
 export function slideBoard(
-  puzzle: Pick<SlidePuzzleData, "walls" | "holes" | "arrows" | "portals" | "thin" | "start" | "exit">,
+  puzzle: Pick<SlidePuzzleData, "walls" | "holes" | "arrows" | "portals" | "thin" | "start" | "exit"> & { cols?: number | undefined; rows?: number | undefined },
 ): SlideBoard {
   const portals = new Map<number, number>();
   for (const [a, b] of puzzle.portals ?? []) {
@@ -54,7 +67,12 @@ export function slideBoard(
     thin: new Map((puzzle.thin ?? []).map((cell, bit) => [cell, bit])),
     start: puzzle.start,
     exit: puzzle.exit,
+    ...(puzzle.cols !== undefined || puzzle.rows !== undefined ? { cols: puzzle.cols ?? N, rows: puzzle.rows ?? N } : {}),
   };
+}
+
+function boardCells(board: Pick<SlideBoard, "cols" | "rows">): number {
+  return (board.cols ?? N) * (board.rows ?? N);
 }
 
 export interface SlideOutcome {
@@ -78,8 +96,10 @@ export function slideOutcome(board: SlideBoard, from: number, mask: number, dir:
   let heading = dir;
   let broke = 0;
   let portal = false;
-  for (let guard = 0; guard < SLIDE_CELLS * 4; guard++) {
-    const next = slideStep(cell, heading);
+  const cols = board.cols ?? N;
+  const rows = board.rows ?? N;
+  for (let guard = 0; guard < cols * rows * 4; guard++) {
+    const next = slideStep(cell, heading, cols, rows);
     if (next === null || board.walls.has(next)) break;
     cell = next;
     path.push(cell);
@@ -143,6 +163,22 @@ export interface SlideReplay {
   visited: SlideState[];
   /** Cells crossed by each slide, for drawing. */
   paths: number[][];
+  /**
+   * The slides still standing: every slide played less those Undo or Reset took back (slideRev 5, the Pattern
+   * overhaul: Undo gives the slide back). Older stamps count `moves`.
+   */
+  net: number;
+  /** Cells crossed by each standing slide, in order (the route the player's board shows). */
+  standing: number[][];
+  /** The direction of each standing slide, in order (the reveal's arrow chips). */
+  standingDirs: SlideDir[];
+  /** The cell where each fall happened, in play order (undone falls included: the reveal marks where the ball fell). */
+  fellAt: number[];
+}
+
+/** The slides a stamp counts: slideRev 5 (the Pattern overhaul) the standing slides, older stamps every slide played. */
+export function countedSlides(replay: Pick<SlideReplay, "moves" | "net">, undoGivesBack: boolean): number {
+  return undoGivesBack ? replay.net : replay.moves;
 }
 
 /** Replays a move list from the stored start. X = undo, Y = reset; no-op slides are dropped. */
@@ -153,14 +189,23 @@ export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
   const visited: SlideState[] = [state];
   const history: SlideState[] = [state];
   const paths: number[][] = [];
+  const standing: number[][] = [];
+  const standingDirs: SlideDir[] = [];
+  const fellAt: number[] = [];
   for (const dir of moves) {
     if (dir === "X") {
-      if (history.length > 1) history.pop();
+      if (history.length > 1) {
+        history.pop();
+        standing.pop();
+        standingDirs.pop();
+      }
       state = history[history.length - 1]!;
       continue;
     }
     if (dir === "Y") {
       history.length = 1;
+      standing.length = 0;
+      standingDirs.length = 0;
       state = history[0]!;
       continue;
     }
@@ -171,21 +216,27 @@ export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
     history.push(state);
     visited.push(state);
     paths.push(out.path);
+    standing.push(out.path);
+    standingDirs.push(dir);
     count += 1;
-    if (out.fell) falls += 1;
+    if (out.fell) {
+      falls += 1;
+      fellAt.push(out.path[out.path.length - 1]!);
+    }
     if (state.cell === board.exit) break;
   }
-  return { ...state, moves: count, solved: state.cell === board.exit, falls, visited, paths };
+  return { ...state, moves: count, solved: state.cell === board.exit, falls, visited, paths, net: history.length - 1, standing, standingDirs, fellAt };
 }
 
 /** Breadth-first search over (cell, broken mask): fewest slides and one shortest route. */
 export function slideSearch(
   board: SlideBoard,
   from: SlideState = { cell: board.start, mask: 0 },
-  maxDepth = SLIDE_CELLS * 4,
+  maxDepth = boardCells(board) * 4,
 ): { min: number; route: SlideDir[] } | null {
   if (from.cell === board.exit) return { min: 0, route: [] };
-  const key = (s: SlideState) => s.mask * SLIDE_CELLS + s.cell;
+  const cells = boardCells(board);
+  const key = (s: SlideState) => s.mask * cells + s.cell;
   const states: SlideState[] = [from];
   const parent: number[] = [-1];
   const via: SlideDir[] = ["X"];
@@ -213,6 +264,15 @@ export function slideSearch(
     }
   }
   return null;
+}
+
+/** True when one slide from this resting state reaches the exit (display and sound only: the exit's near-miss glow). */
+export function oneSlideFromExit(board: SlideBoard, from: SlideState): boolean {
+  if (from.cell === board.exit) return false;
+  return SLIDE_DIRS.some((dir) => {
+    const out = slideOutcome(board, from.cell, from.mask, dir);
+    return !out.fell && out.cell === board.exit;
+  });
 }
 
 export function slideDistance(board: SlideBoard, from: SlideState): number | null {

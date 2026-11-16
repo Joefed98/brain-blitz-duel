@@ -26,6 +26,7 @@ import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { depthHelp, depthIntro } from "../src/lib/duel/numberDepthText";
 import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+import { pinPreNumberOverhaul } from "../src/lib/duel/numberOverhaul";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { CHECKOUT_BULL, CHECKOUT_REV_BIG_FINISH, checkoutValid, encodeCheckoutDarts, joinCheckoutRound, searchCheckout } from "../src/lib/duel/checkout";
 import { encodeMeasureRound, measureActions, measureApply, measureSolved, type MeasureAction } from "../src/lib/duel/measure";
@@ -58,6 +59,9 @@ import { gradeRev1Entry, NUMBER_DEPTH_REV1_FIXTURE, type Rev1Game } from "./numb
 // Written for the depth stamps (depthRev 1, the feature games' 2): new deals keep them, not the scoring standard's
 // (standard/stamps.ts; scripts/standard-number-check.ts proves those).
 pinPreStandard(true);
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): its stamps (numberOverhaul.ts,
+// e.g. Checkout checkoutRev 3) are proved by the number-overhaul checks; this check deals the depth stamps before them.
+pinPreNumberOverhaul(true);
 
 const failures: string[] = [];
 let passes = 0;

@@ -19,7 +19,7 @@ import { usesStandard } from "./standard/stamps";
 import { gridProgressText } from "./gridPuzzles";
 import { swapwordBlindSwaps } from "./standard/word";
 import { blockGeometry, decodePlacements, verifyPlacements } from "./blockParty";
-import { decodeFlowPaths, verifyFlow } from "./flow";
+import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "./flow";
 import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs } from "./lightUp";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
@@ -126,8 +126,9 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
       return gridProgressText(puzzle, answer);
     case "flow": {
       if (!puzzle.solution?.length) return null;
-      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
-      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
+      const grid = flowGrid(puzzle);
+      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS, flowCellCount(grid));
+      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], grid);
       const { onRoute, joined } = flowRouteCounts(puzzle.solution, paths, verdict.joined);
       const off = joined - onRoute;
       return { text: `${onRoute}/${puzzle.pairs.length} pairs on route`, cost: off > 0 ? `${plural(off, "pair")} joined off route` : null };

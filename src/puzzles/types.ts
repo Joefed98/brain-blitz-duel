@@ -33,7 +33,7 @@ export type CheckWord = (
   found: string[],
   /** Word Hunt only: the traced path, re-walked on the server. */
   path?: number[],
-) => Promise<{ valid: boolean; points: number; word: string; reason?: string }>;
+) => Promise<{ valid: boolean; points: number; word: string; reason?: string; bonus?: boolean }>;
 
 /** Strikeout, Cryptogrid and Swapword: the server replays every move so far (null = no answer, e.g. round over). */
 export type CheckMoves = (moves: string) => Promise<MovesView | null>;

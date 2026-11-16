@@ -3,6 +3,8 @@
 import { ACTION_LOG_REV } from "./actionLog";
 import { laserCol, laserRow, laserStep, verifyLaser } from "./laser";
 import { shuffled } from "./random";
+import { solveLaserLikeAPerson, type LaserBoardForSolve } from "./laserSolve.server";
+import type { LaserLevelSettings } from "@/lib/levels/pattern/laser.levels";
 import {
   LASER_MAX_BOMBS,
   LASER_CELLS,
@@ -114,17 +116,37 @@ function randomRoute(source: number, dir: BeamDir, bends: number): Route | null 
   return { cells, bends: placements, segments };
 }
 
+/**
+ * The generator's ranges (Normal: today's constants; a level's from laser.levels.ts) and, for a level, the extra test a
+ * board must pass after the generator's own proofs (the person-like solver; laser.server.ts `generateLaserLevel`).
+ */
+export interface LaserRules {
+  minMirrors: number;
+  maxMirrors: number;
+  minBombs: number;
+  maxBombs: number;
+  accept?: (puzzle: LaserPuzzleData) => boolean;
+}
+
+const NORMAL_RULES: LaserRules = {
+  minMirrors: LASER_MIN_MIRRORS,
+  maxMirrors: LASER_MAX_MIRRORS,
+  minBombs: LASER_MIN_BOMBS,
+  maxBombs: LASER_MAX_BOMBS,
+};
+
 /** Build an exact-piece witness, then verify it with the shared server tracer.
  * Two outward-facing edge gems terminate the two branches: a non-branching
  * beam cannot light both, regardless of where mirrors are placed.
+ * With no rules (every Normal deal) the draws are exactly today's.
  */
-export function generateLaser(): LaserPuzzleData {
+export function generateLaser(rules: LaserRules = NORMAL_RULES): LaserPuzzleData {
   const started = performance.now();
   for (let attempt = 1; attempt <= 100_000; attempt++) {
     const entry = shuffled(sources())[0];
     if (!entry) continue;
     const { cell: source, dir } = entry;
-    const mirrorCount = LASER_MIN_MIRRORS + randomInt(LASER_MAX_MIRRORS - LASER_MIN_MIRRORS + 1);
+    const mirrorCount = rules.minMirrors + randomInt(rules.maxMirrors - rules.minMirrors + 1);
     const route = randomRoute(source, dir, mirrorCount + 1);
     if (!route) continue;
     // Continue the final leg to its edge; a terminal gem consumes the beam.
@@ -168,7 +190,7 @@ export function generateLaser(): LaserPuzzleData {
     if (central.length < LASER_MIN_CENTRAL_BLOCKS) continue;
     const blockCount = LASER_MIN_BLOCKS + randomInt(LASER_MAX_BLOCKS - LASER_MIN_BLOCKS + 1);
     const blocks = [...central, ...shuffled(offRoute.filter((cell) => !central.includes(cell))).slice(0, blockCount - central.length)];
-    const bombCount = LASER_MIN_BOMBS + randomInt(LASER_MAX_BOMBS - LASER_MIN_BOMBS + 1);
+    const bombCount = rules.minBombs + randomInt(rules.maxBombs - rules.minBombs + 1);
     const bombs = shuffled(offRoute.filter((cell) => !blocks.includes(cell))).slice(0, bombCount);
     if (bombs.length !== bombCount) continue;
     const puzzle: LaserPuzzleData = { type: "laser", source, dir, gems, directionalGems,
@@ -183,6 +205,7 @@ export function generateLaser(): LaserPuzzleData {
       if (verifyLaser(puzzle, subset, 1).solved) { redundant = true; break; }
     }
     if (redundant) continue;
+    if (rules.accept && !rules.accept(puzzle)) continue;
     puzzle.stats = { blocks: blocks.length, mirrors: mirrorCount, bends: mirrorCount,
       gems: gems.length, bombs: bombs.length, necessityPass: true, subsetsTested: tested,
       attempts: attempt, splitters: 1, directionalGems: 2, splitRequired: true,
@@ -192,4 +215,26 @@ export function generateLaser(): LaserPuzzleData {
     return puzzle;
   }
   throw new Error("Laser generator could not build a verified exact-piece layout");
+}
+
+/**
+ * A board at one of Lightbender's levels (the Pattern overhaul, levels, 16 Nov 2026; laser.levels.ts): the generator
+ * on the level's mirror and bomb ranges, kept only when the person-like solver (laserSolve.server.ts) lights it from
+ * the level's tray within the level's `humanTurns` and needing at least its `humanMinTurns`. The deal (depth4/deal.server.ts) adds the spare mirrors, par,
+ * shots and clock.
+ */
+export function generateLaserLevel(settings: LaserLevelSettings): LaserPuzzleData {
+  return generateLaser({
+    minMirrors: settings.minMirrors,
+    maxMirrors: settings.maxMirrors,
+    minBombs: settings.minBombs,
+    maxBombs: settings.maxBombs,
+    accept: (puzzle) => laserHumanPasses({ ...puzzle, mirrors: puzzle.mirrors + settings.spare }, settings),
+  });
+}
+
+/** Whether the person-like solver lights the board (its tray as dealt) within the level's ceiling and past its floor. */
+export function laserHumanPasses(board: LaserBoardForSolve, settings: Pick<LaserLevelSettings, "humanTurns" | "humanMinTurns">): boolean {
+  const r = solveLaserLikeAPerson(board, settings.humanTurns);
+  return r.solved && r.turns >= settings.humanMinTurns;
 }

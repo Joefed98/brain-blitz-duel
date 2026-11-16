@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { WORD_FINISH_MAX_MS, playFinish, goldFlip, goldPulse } from "../src/components/puzzles/wordFinish";
-import { LOOKOUT_DEPTH_PRESENTATION, ROUNDABOUT_DEPTH_PRESENTATION, WORD_BATCH_DEMOS, WORD_BATCH_PRESENTATION, WORD_POLISH_DEMOS, WORD_POLISH_PRESENTATION, puzzleInputDemoCompatible, puzzlePresentation } from "../src/components/puzzles/wordInput";
+import { LOOKOUT_DEPTH_PRESENTATION, ROUNDABOUT_DEPTH_PRESENTATION, WORD_BATCH_DEMOS, WORD_BATCH_PRESENTATION, WORD_POLISH_DEMOS, WORD_POLISH_PRESENTATION, WORD_OVERHAUL_DEMOS, WORD_OVERHAUL_PRESENTATION, puzzleInputDemoCompatible, puzzlePresentation } from "../src/components/puzzles/wordInput";
 import { wordfallGame, WF_PAR, WF_RUN_TICKS, type WordfallState } from "../src/lib/arcade/wordfall";
 import { wordfallEarnsShimmer } from "../src/lib/arcade/wordfall.renderer";
 
@@ -35,16 +35,23 @@ const FILES = [
   "src/puzzles/wordfall.tsx",
 ];
 const used = new Set<string>();
+const dispatched = new Set<string>();
 for (const file of FILES) {
   const src = readFileSync(file, "utf8");
   const cues = [...src.matchAll(/wordCue\("([a-z]+\.[a-z]+)"\)/g)].map((m) => m[1]!);
   ok(cues.length > 0, `${file}: dispatches a completion cue`);
   cues.forEach((cue) => used.add(cue));
+  // The Word overhaul's effects (15 Nov 2026) also dispatch a cue through wordFx(kind, el, "cue"), effectCue (an effect moment's own cue) and the keypad's keyCue
+  // (each ends in wordCue, src/components/puzzles/wordFx.ts and LetterKeypad.tsx), so those count as dispatched too.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul).
+  for (const line of src.split("\n").filter((l) => /\b(wordFx|effectCue|wordCue)\(/.test(l))) for (const m of line.matchAll(/"([a-z]+\.[a-z]+)"/g)) dispatched.add(m[1]!);
+  for (const m of src.matchAll(/keyCue="([a-z]+\.[a-z]+)"/g)) dispatched.add(m[1]!);
 }
 const doc = readFileSync("docs/sound-cues/word.md", "utf8");
 const documented = new Set([...doc.matchAll(/^\| `([a-z]+\.[a-z]+)` \|/gm)].map((m) => m[1]!));
 for (const cue of used) ok(documented.has(cue), `${cue} is listed in docs/sound-cues/word.md`);
-for (const cue of documented) ok(used.has(cue), `${cue} in the doc is dispatched somewhere`);
+for (const cue of documented) ok(used.has(cue) || dispatched.has(cue), `${cue} in the doc is dispatched somewhere`);
+for (const cue of dispatched) ok(documented.has(cue), `${cue} (an effect cue) is listed in docs/sound-cues/word.md`);
 ok(used.size === 10, `one completion cue per word game (got ${used.size})`);
 const finishSrc = readFileSync("src/components/puzzles/wordFinish.ts", "utf8");
 ok(/from "@\/lib\/fx\/soundCues"/.test(finishSrc) && /if \(demoHushed\(\)\) return;\s*dispatchSoundCue\(cue\)/.test(finishSrc), "cues go through the shared soundCue helper, silent in hushed intro demos");
@@ -93,7 +100,11 @@ const DEPTH_PRESENTATION: Record<string, string> = { letterwheel: ROUNDABOUT_DEP
 // The word batch (14 Oct 2026) moved some of these boards again; those take its newer revision.
 for (const type of new Set([...WORD_POLISH_DEMOS, ...WORD_BATCH_DEMOS])) {
   // Word depth (25 Oct 2026): a game whose depth stamp moved its board keeps a newer revision of its own.
-  const current = DEPTH_PRESENTATION[type] ?? (WORD_BATCH_DEMOS.has(type) ? WORD_BATCH_PRESENTATION : WORD_POLISH_PRESENTATION);
+  const older = DEPTH_PRESENTATION[type] ?? (WORD_BATCH_DEMOS.has(type) ? WORD_BATCH_PRESENTATION : WORD_POLISH_PRESENTATION);
+  // The Word overhaul (15 Nov 2026) moved every Word board again, so all nine take its newer revision and the older ones
+  // are rejected. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul).
+  const current = WORD_OVERHAUL_DEMOS.has(type) ? WORD_OVERHAUL_PRESENTATION : older;
+  if (current !== older) ok(!puzzleInputDemoCompatible(type, { presentation: older }), `${type}: demos from before the Word overhaul are rejected`);
   ok(puzzlePresentation(type) === current, `${type}: current word presentation`);
   ok(!puzzleInputDemoCompatible(type, {}), `${type}: unstamped coordinate demos are rejected`);
   ok(!puzzleInputDemoCompatible(type, { presentation: "oct10-polish-a" }), `${type}: older demos are rejected`);

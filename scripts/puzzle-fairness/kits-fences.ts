@@ -6,7 +6,7 @@
  */
 import type { FencesPuzzleData } from "../../src/lib/duel/types";
 import { FENCES_EMPTY, FENCES_LINE, dotEdges, edgeDots, encodeFences, fencesEdgeCount } from "../../src/lib/duel/fences";
-import { thinkMs, type PuzzleKit, type Step } from "./kit";
+import { atLevel, thinkMs, type PuzzleKit, type Step } from "./kit";
 
 const BASE = 2.3;
 
@@ -33,6 +33,7 @@ export const fencesKit: PuzzleKit = {
     ];
   },
   play(p, rng, skill) {
+    skill = atLevel(skill, p);
     const pz = p as FencesPuzzleData;
     const size = pz.size;
     const sol = new Set(pz.solution ?? []);

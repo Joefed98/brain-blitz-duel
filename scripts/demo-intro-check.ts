@@ -42,6 +42,7 @@ import { puzzlePresentation } from "../src/components/puzzles/wordInput";
 import { ACTIVE_PUZZLE_TYPES } from "../src/lib/duel/registry";
 import { ARCADE_REVEAL_RENDERERS } from "../src/lib/arcade/revealRenderers";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { bundledIntroDemo } from "../src/lib/duel/bundledDemos";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 
 const args = process.argv.slice(2);
@@ -84,6 +85,10 @@ function demoRow(type: PuzzleType): unknown {
     const seed = "seed" in puzzle ? Number((puzzle as { seed: number }).seed) : 1;
     return { game_type: type, seed, puzzle, input_log: { run: `${seed}|0||0|` }, start_tick: 0, length_ticks: 480 };
   }
+  // A game with a demo bundled with the app (15 Nov 2026, src/lib/duel/bundledDemos/) plays that one: the real touches,
+  // drawn in the game frame's layout.
+  const bundled = bundledIntroDemo(type);
+  if (bundled) return bundled;
   const example = bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type));
   const t = (ms: number, x: number, y: number) => ({ t: ms, action: "tap", args: { at: { x, y } } });
   return {
