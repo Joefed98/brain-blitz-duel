@@ -290,7 +290,10 @@ function Stage({
         const cells = key[0] === "r" ? across.map((col) => n * W + col) : down.map((row) => row * W + n);
         for (const c of cells) if ((marks[c] ?? 0) === 0) cross.add(c);
       }
-      if (cross.size) setMarks((current) => current.map((m, at) => (cross.has(at) ? 2 : m)) as NonoMarks);
+      if (cross.size) {
+        setMarks((current) => current.map((m, at) => (cross.has(at) ? 2 : m)) as NonoMarks);
+        soundCue("nonogram.autoCross");
+      }
     }
     lightCells(fresh.map((key) => boardRef.current?.querySelector<HTMLElement>(`[data-clue="${key}"]`)), 0);
     soundCue("nonogram.line", 1 + (fresh.length - 1) * 0.12);
@@ -343,7 +346,12 @@ function Stage({
     <div data-logic-stage="nonogram" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
-        <div ref={boardRef} className="logic-nono-fit logic-nono-frame">
+        <div
+          ref={boardRef}
+          className="logic-nono-fit logic-nono-frame"
+          data-nono-tall={W !== H ? "" : undefined}
+          style={W !== H ? ({ "--nono-w": W, "--nono-h": H } as CSSProperties) : undefined}
+        >
           <Board rows={data.rows} cols={data.cols} marks={marks} size={SIZE} onCell={tap} onPaint={paint} fluid tapped={tapped} />
         </div>
       </div>

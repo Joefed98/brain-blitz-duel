@@ -442,11 +442,11 @@ const press = (el: Element | null | undefined) =>
 }
 
 /* ------------------------------------------------------------------ 5. The art */
-const POTIONS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow"];
+const POTIONS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow", "teal", "pearl"];
 const SPRITES = ["box-tile", "box-tile-given", "flask-glass", "potion-meniscus", "cork",
   ...POTIONS.flatMap((c) => [`potion-${c}`, `potion-${c}-bottom`]),
   "hanoi-post", "hanoi-plate", "hanoi-plate-gold", ...Array.from({ length: 9 }, (_, i) => `hanoi-ring-${i + 1}`),
-  "safe-door", "safe-drum", "mosaic-tile", "mosaic-well", "flood-enamel", ...Array.from({ length: 5 }, (_, i) => `flood-pot-${i + 1}`),
+  "safe-door", "safe-drum", "mosaic-tile", "mosaic-well", "flood-enamel", ...Array.from({ length: 6 }, (_, i) => `flood-pot-${i + 1}`),
   "mine-raised", "mine-open", "mine-mine", "mine-flag"];
 // Joe's budget (15 Nov 2026): about 400 KB of images a game at most.
 {

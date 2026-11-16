@@ -368,6 +368,29 @@ def _(r):
     return struck(STONE, 520, 0, 0.06, n, r) * 0.6 + thump(200, 140, 0.04, n) * 0.5
 
 
+@sound("sudoku.check", ["sudoku.check"], "placeholder: Box Six Expert's Check with no clash, a dry wooden double tick")
+def _(r):
+    n = n_of(0.2)
+    a = struck(WOOD, 900, 0, 0.04, n, r) * 0.55
+    b = struck(WOOD, 1200, 0, 0.04, n, r) * 0.45
+    d = int(0.07 * 44100)
+    out = a.copy()
+    out[d:] += b[: n - d]
+    return room(out, r, 0.06, 0.06)
+
+
+@sound("tubes.uncover", ["tubes.uncover"], "placeholder: Polypotions Expert, a hidden layer uncovered, a soft glassy shimmer")
+def _(r):
+    n = n_of(0.3)
+    return room(struck(GLASS, 1980, 0, 0.18, n, r) * 0.32 + struck(GLASS, 2970, 0, 0.12, n, r) * 0.18, r, 0.1, 0.12)
+
+
+@sound("nonogram.autoCross", ["nonogram.autoCross"], "placeholder: Mosaic Easy, a matched line's gaps crossed, a quick soft pencil flick")
+def _(r):
+    n = n_of(0.14)
+    return svf(noise(n, r), 3800, 1.2) * env(n, 0.004, 0.06) * 0.55
+
+
 @sound("nonogram.paint", ["nonogram.paint"], "placeholder: a tiny dry ceramic tick for each square a drag paints")
 def _(r):
     n = n_of(0.07)

@@ -79,17 +79,23 @@ export function pour(state: TubeState, from: number, to: number, capacity?: numb
 }
 
 /** A finished tube: full and all one colour. */
-export function tubeSorted(tube: number[], capacity: number = TUBE_CAPACITY): boolean {
+export function tubeSorted(tube: number[]): boolean {
+  return tube.length === TUBE_CAPACITY && tube.every((colour) => colour === tube[0]);
+}
+
+/** A finished flask on a board of `capacity`-layer flasks (the levels; tubeSorted is today's five, and stays usable as
+ *  a callback). */
+export function tubeSortedCap(tube: number[], capacity: number): boolean {
   return tube.length === capacity && tube.every((colour) => colour === tube[0]);
 }
 
 export function sortedTubeCount(state: TubeState, capacity: number = tubesCapacity(state)): number {
-  return state.filter((tube) => tubeSorted(tube, capacity)).length;
+  return state.filter((tube) => tubeSortedCap(tube, capacity)).length;
 }
 
 /** Solved when every tube is either empty or a full single-colour tube. */
 export function tubesSolved(state: TubeState, capacity: number = tubesCapacity(state)): boolean {
-  return state.every((tube) => tube.length === 0 || tubeSorted(tube, capacity));
+  return state.every((tube) => tube.length === 0 || tubeSortedCap(tube, capacity));
 }
 
 /** True when a colour already sits entirely in one tube. */

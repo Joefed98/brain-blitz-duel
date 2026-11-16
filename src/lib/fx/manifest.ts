@@ -556,6 +556,10 @@ const ENTRIES = {
   // (docs/sound-cues/logic-elevenlabs.md); each drops in by its slot name.
   "sudoku.clash": { channel: "effects", frequency: 0, ms: 220, url: null },
   "sudoku.pencil": { channel: "effects", frequency: 0, ms: 120, url: null },
+  // The levels (stage 3): Box Six Expert's Check with no clash, Polypotions Expert's uncovered layer, Mosaic Easy's crossed gaps.
+  "sudoku.check": { channel: "effects", frequency: 0, ms: 200, url: null },
+  "tubes.uncover": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "nonogram.autoCross": { channel: "effects", frequency: 0, ms: 140, url: null },
   "tubes.undo": { channel: "effects", frequency: 0, ms: 200, url: null },
   "tubes.outOfPours": { channel: "effects", frequency: 0, ms: 700, url: null },
   "safe.wrongTry": { channel: "effects", frequency: 0, ms: 400, url: null },

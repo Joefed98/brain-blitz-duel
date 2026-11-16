@@ -16,6 +16,7 @@ import {
   replayTubes,
   topGroup,
   tubeSorted,
+  tubeSortedCap,
   tubesCapacity,
   tubesColourCount,
   type TubeMove,
@@ -109,7 +110,7 @@ export function Tubes({
         const isLifted = lifted === index;
         const group = topGroup(tube);
         const liftCount = isLifted && group ? group.count : 0;
-        const sorted = tubeSorted(tube, capacity);
+        const sorted = tubeSortedCap(tube, capacity);
         const order = sorted ? corkOrder++ : 0;
         return (
           <Button
@@ -262,6 +263,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTubes, start, moves, replay]);
+  // A layer uncovered (Expert): a soft glassy shimmer as the veil lifts.
+  const veiledCount = hiddenLayers?.size ?? 0;
+  const lastVeiled = useRef(veiledCount);
+  useEffect(() => {
+    if (veiledCount < lastVeiled.current) soundCue("tubes.uncover");
+    lastVeiled.current = veiledCount;
+  }, [veiledCount]);
 
   useEffect(() => {
     onDraftAnswer?.(encode(moves));
@@ -310,7 +318,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     // the level the liquid reaches.
     const total = animatePour(boardRef.current, lifted, tube, colour, count);
     soundCue("tubes.pour", 0.85 + after.length * 0.07);
-    if (tubeSorted(after, tubesCapacity(start))) {
+    if (tubeSortedCap(after, tubesCapacity(start))) {
       // The cork pops in as the pour settles; two within a few seconds are a combo.
       const now = Date.now();
       const combo = now - lastCork.current < CORK_COMBO_MS;

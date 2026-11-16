@@ -344,8 +344,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               onClick={() => {
                 if (locked) return;
                 setCheckedAt(Date.now());
-                // The clash sound plays as the clashes appear (the clash count's effect above).
+                // The clash sound plays as the clashes appear (the clash count's effect above); a clean grid ticks.
                 if (liveClashes.size) gameFx("wrong", gridRef.current, { silent: true });
+                else soundCue("sudoku.check");
               }}
               disabled={locked}
               className="press tap-target rounded-lg border border-border bg-card py-2 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"

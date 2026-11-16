@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 43 | 0 | 488 | 531 |
+| game event | 46 | 0 | 488 | 534 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 11 | 0 | 30 | 41 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 2 | 0 | 75 | 77 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 72 | 1 | 984 | 1057 |
+| **all** | 75 | 1 | 984 | 1060 |
 
 ## Silent and placeholder cues
 
@@ -198,6 +198,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `sudoku.clash` | A digit makes a row, column or box repeat (the clashing digits turn red) [logic.md] |  | 5–40 (per move) | silent | none | 360 | game event | `sudoku.clash` |
 | `sudoku.pencil` | A pencil mark is added or removed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `sudoku.pencil` |
 | `sudoku.line` | A digit completes a row, column or box (pitched up when it completes several) [logic.md] |  | 1–5 | silent | none | 420 | game event | `sudoku.line` |
+| `sudoku.check` | Box Six Expert: Check pressed with no clash (a clash plays sudoku.clash as it shows) [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `sudoku.check` |
 
 ### Colour Flood
 
@@ -234,6 +235,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `nonogram.mark` | A cell is marked empty (×) [logic.md] |  | 5–40 (per move) | silent | none | 140 | UI tap | `nonogram.mark` |
 | `nonogram.paint` | A drag paints one more square (fill) [logic.md] |  | 5–40 (per move) | silent | none | 90 | game event | `nonogram.paint` |
 | `nonogram.line` | A line now matches its numbers (pitched up for several at once) [logic.md] |  | 1–5 | silent | none | 420 | game event | `nonogram.line` |
+| `nonogram.autoCross` | Mosaic Easy: a line matching its numbers crosses its empty squares [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `nonogram.autoCross` |
 
 ### Polypotions
 
@@ -242,6 +244,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `tubes.pour` | A pour lands [logic.md] |  | 5–40 (per move) | silent | none | 240 | game event | `tubes.pour` |
 | `tubes.undo` | Undo is tapped (tubesRev 3 gives the pour back) [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tubes.undo` |
 | `tubes.outOfPours` | The last allowed pour leaves the board unsorted [logic.md] |  | 5–40 (per move) | silent | none | 1100 | game event | `tubes.outOfPours` |
+| `tubes.uncover` | Polypotions Expert: a hidden layer uncovered [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tubes.uncover` |
 
 ### Safe Cracker
 

@@ -1,6 +1,19 @@
 # Minefield (minesweeper) on the arcade scoring standard
 
-Live: **minesRev 2**, a **Logic** game with **20 mines** (13 Nov 2026, the next section). Everything from "Arcade, Cards &
+## Levels (15 Nov 2026, the Logic overhaul; Joe: "too-hard games: today's becomes Hard")
+
+Normal now deals **minesRev 3**: 10 × 16, **16 mines**, opening 20–60, 90 s, Speed full by **29 s** (the near-perfect
+bots' median clear on minesRev 3). Today's minesRev 2 (20 mines, full by 37 s) is the **Hard** level, dealt with
+`level: "hard"` and played exactly as before. Easy is **minesRev 4** (8 × 12, 9 mines, opening 25–40, 90 s, full by 18 s)
+and Expert **minesRev 5** (12 × 18, 30 mines, opening 10–20, **120 s**, full by 61 s; twelve columns rather than 10 × 22,
+since the board is height-bound on a phone, so the squares stay larger). Each revision's board, clock and speed line
+come from `minesGeoFor(rev)`; the parts and their 200 are rev 1's; every board is dealt by the same rule (the logic
+solver clears it from the opening, never a guess). Rev 1 and 2 rounds replay and score exactly as before
+(minefield-logic-check, cards-board-check); logic-1-levels-check proves every level's boards. Near-perfect / elite
+bots (`bun scripts/level-tune.ts minesweeper --level=all`): Easy 200 / 200, Normal 200 / 200, Hard 197.5 / 199.8,
+Expert 197.0 / 200.0.
+
+Live before the levels: **minesRev 2**, a **Logic** game with **20 mines** (13 Nov 2026, the next section). Everything from "Arcade, Cards &
 Board group" down describes **minesRev 1** (30 Oct 2026, 25 mines, an Arcade game), which older rounds still replay and
 score as; its parts and inputs are rev 2's unless the next section says otherwise.
 

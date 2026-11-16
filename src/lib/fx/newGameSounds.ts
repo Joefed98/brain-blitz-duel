@@ -38,6 +38,9 @@ export const NEW_GAME_SOUND_REPLACES: Readonly<Record<string, readonly string[]>
   // The Logic overhaul, session 1 (15 Nov 2026): its new slots and the shared sound each plays with today.
   "sudoku.clash": MOVE,
   "sudoku.pencil": MOVE,
+  "sudoku.check": MOVE,
+  "tubes.uncover": MOVE,
+  "nonogram.autoCross": MOVE,
   "tubes.undo": MOVE,
   "tubes.outOfPours": ["wrong"],
   "safe.wrongTry": ["wrong"],

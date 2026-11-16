@@ -42,6 +42,9 @@ today's file; every other line needs a new or better recording.
 - `minesweeper.hit`: A heavy muffled thud under stone, no explosion crackle, 0.45 s
 - `minesweeper.defuse`: A soft mechanical click, like a spring-loaded pin locking, 0.15 s (each remaining mine defused at the clear)
 - `minesweeper.tapNumber`: A tiny dull knock on stone, 0.1 s (an unsatisfied number tapped)
+- `sudoku.check`: Two dry wooden ticks close together, like a pencil tapping a board twice, 0.2 s (Expert's Check with no clash; stage 3)
+- `tubes.uncover`: A soft glassy shimmer, a veil lifting off coloured liquid, 0.3 s (a hidden layer uncovered on Expert; stage 3)
+- `nonogram.autoCross`: A quick soft pencil flick across paper, 0.14 s (Easy crosses a matched line's gaps; stage 3)
 
 ### Every action, checked
 

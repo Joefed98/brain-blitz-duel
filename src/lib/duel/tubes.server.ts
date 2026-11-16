@@ -16,6 +16,7 @@ import {
   pour,
   topGroup,
   tubeSorted,
+  tubeSortedCap,
   tubesKey,
   tubesSolved,
   pourAmount,
@@ -266,7 +267,7 @@ export function generateTubesLevel(level: import("./logicLevels").TubesLevel): T
       if (!options.length) break;
       state = applyReverse(state, options[randomBelow(options.length)]!);
     }
-    if (state.some((tube) => tubeSorted(tube, level.capacity))) continue;
+    if (state.some((tube) => tubeSortedCap(tube, level.capacity))) continue;
     if (colourAlreadyHome(state)) continue;
     const found = tubesLevelMinimum(state);
     if (!found || found.minMoves < lo || found.minMoves > hi) continue;

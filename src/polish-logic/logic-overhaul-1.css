@@ -667,3 +667,10 @@
 :is(#logic-overhaul-1, html) [data-logic-stage="tubes"] .logic-potions[data-flasks]:not([data-flasks="10"]) .tubes-play-layer {
   height: calc(min(calc((min(calc(100cqh - 28px), 620px) / var(--tube-rows) - 36px) / (var(--tube-cap) + 1)), calc((100cqw - 32px) / var(--tube-across) - 16px)) + 4px);
 }
+
+/* Levels (stage 3): Mosaic's tall boards (9 × 11, 9 × 14) fit the height by their own shape (columns plus the clue
+   column across, rows plus about three clue rows down), never wider than the column. */
+:is(#logic-overhaul-1, html) [data-puzzle-play] .logic-nono-fit[data-nono-tall],
+:is(#logic-overhaul-1, html) .logic-nono-fit[data-nono-tall] {
+  width: min(100cqw, calc((100cqh - 80px) * (var(--nono-w) + 1.15) / (var(--nono-h) + 3))) !important;
+}
