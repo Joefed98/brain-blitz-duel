@@ -7,12 +7,14 @@
  * tool, not a check.
  *
  *   bun scripts/shots/action-expert-clip.ts <game> <seed> [--from=<s>] [--secs=<n>] [--out=<path>]
- *       [--width=180] [--fps=5] [--q=30] [--max=80000] [--hold=1.2] [--frames=<dir>]
+ *       [--width=180] [--fps=5] [--q=30] [--max=80000] [--hold=1.2] [--frames=<dir>] [--encoder=ffmpeg|pillow]
  *
  * The world is scaled to --width; the quality steps down from --q by 5 until the file fits --max bytes (the gallery's
  * budget); a stretch reaching the run's end holds the last state --hold seconds for the end card. --frames keeps the PNGs.
+ * --encoder=pillow writes every frame whole through Pillow (python3) instead of ffmpeg's changed-rectangle frames, for a
+ * scene that changes all over every frame (Iron Wall).
  * <seed> is what each game's "Levels" section lists (docs/arcade-standard/<game>.md): Roofbound a room seed n
- * (`dealAt` n, scripts/flip-skyline-levels-bands.ts), Moon Climb a dealt tower seed (found among the first 64 Expert
+ * (`dealAt` n, scripts/flip-skyline-levels-bands.ts), High Rise the same, Moon Climb a dealt tower seed (found among the first 64 Expert
  * deals), Grappler a dealt course seed (SWING_LEVEL_DEAL.expert), Orbit an Expert bank entry (the first deal whose seed picks that entry, `seed mod bank length`). One row per
  * game in GAMES below: other games add their own row.
  */
@@ -109,6 +111,18 @@ const GAMES: Record<string, (seed: number) => Promise<Clip>> = {
     const h = flipWorldH(r.states[0]);
     return { states: r.states, score: r.score, label: `room seed ${n}`, w: FLIP_WORLD_W, h, draw: (ctx, s) => art.draw(ctx, s, { width: FLIP_WORLD_W, height: h }) };
   },
+  /** High Rise: room seed n (flip-skyline-levels-bands.ts `dealAt`), the limited elite (humanLimits.ts). */
+  skyline: async (n) => {
+    await loadBot("skyline");
+    const { limitedElite } = await import("../arcade-skill-bands/humanLimits");
+    const { drawSkylineArt } = await import("../../src/lib/arcade/skyline.renderer");
+    const { SKYLINE_WORLD_W, skylineWorldH } = await import("../../src/lib/arcade/skyline");
+    const puzzle = dealAt("skyline" as never, "expert", n) as any;
+    const r = playAndGrade("skyline", puzzle, puzzle.skylineRev, limitedElite("skyline", puzzle.seed));
+    if (r.flagged) throw new Error("flagged");
+    const h = skylineWorldH(r.states[0]);
+    return { states: r.states, score: r.score, label: `room seed ${n}`, w: SKYLINE_WORLD_W, h, draw: (ctx, s) => drawSkylineArt(ctx, s, { width: SKYLINE_WORLD_W, height: h }) };
+  },
   /** Moon Climb: the dealt tower seed (action-levels-bands.ts --each), the elite under human limits. */
   ricochet: async (towerSeed) => {
     await loadBot("ricochet");
@@ -172,6 +186,21 @@ const GAMES: Record<string, (seed: number) => Promise<Clip>> = {
     const H = art.orbitDrawHFor(puzzle.orbitRev);
     return { states: r.states, score: r.score, label: `bank entry ${entry} (bank seed ${bank[entry]!.seed}; room seed n=${n})`, w: W, h: H, draw: (ctx, s) => art.orbitRev3ArtGame.draw(ctx, s, { width: W, height: H }) };
   },
+  /**
+   * Iron Wall: the game seed (bastion.md "Levels"; any seed deals its waves, so an Expert deal, bastionRev 3 stamped
+   * "expert", takes it as is), the elite under BASTION_HUMAN_LIMITS (the bot's `fixes`).
+   */
+  bastion: async (seed) => {
+    await loadBot("bastion");
+    const { Human } = await import("../arcade-skill-bands/human");
+    const { bastionTankArtGameFor } = await import("../../src/lib/arcade/bastionTank.renderer");
+    const { BT2_WORLD_W, BT2_WORLD_H } = await import("../../src/lib/arcade/bastionTank");
+    const puzzle = { ...(dealAt("bastion" as never, "expert", 0) as any), seed };
+    const r = playAndGrade("bastion", puzzle, puzzle.bastionRev, new Human("bastion", seed, "elite"));
+    if (r.flagged) throw new Error("flagged");
+    const art = bastionTankArtGameFor(puzzle.bastionRev, puzzle.level);
+    return { states: r.states, score: r.score, label: `seed ${seed} (bastionRev ${puzzle.bastionRev})`, w: BT2_WORLD_W, h: BT2_WORLD_H, draw: (ctx, s) => art.draw(ctx, s, { width: BT2_WORLD_W, height: BT2_WORLD_H }) };
+  },
 };
 
 const args = process.argv.slice(2);
@@ -224,7 +253,18 @@ for (let t = Math.max(0, fromT - 60); t <= toT + holdT; t++) {
 mkdirSync(join(out, ".."), { recursive: true });
 let q = q0;
 for (;;) {
-  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(fps), "-i", join(frames, "f%04d.png"), "-c:v", "libwebp_anim", "-lossless", "0", "-q:v", String(q), "-compression_level", "6", "-loop", "0", out]);
+  if (opt("encoder") === "pillow") {
+    // Every frame whole (ffmpeg's libwebp_anim encodes only each frame's changed rectangle, lossy, which turns a scene
+    // whose light shifts every frame, Iron Wall's smoke and sky, into visible blocks).
+    const py = [
+      "import sys, glob",
+      "from PIL import Image",
+      "d, out, ms, q = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])",
+      "fs = [Image.open(f).convert('RGB') for f in sorted(glob.glob(d + '/f*.png'))]",
+      "fs[0].save(out, save_all=True, append_images=fs[1:], duration=ms, loop=0, quality=q, method=6)",
+    ].join("\n");
+    execFileSync("python3", ["-I", "-c", py, frames, out, String(Math.round(1000 / fps)), String(q)]);
+  } else execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(fps), "-i", join(frames, "f%04d.png"), "-c:v", "libwebp_anim", "-lossless", "0", "-q:v", String(q), "-compression_level", "6", "-loop", "0", out]);
   if (statSync(out).size <= maxBytes || q <= 5) break;
   q = Math.max(5, q - 5);
 }

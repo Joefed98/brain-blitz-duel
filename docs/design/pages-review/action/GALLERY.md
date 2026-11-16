@@ -91,7 +91,7 @@ practice at 390 × 844, a Weak run and the flawless one:
 An Expert run (flipRev 13, `level: "expert"`), room seed n=10 (course 1208933397), played by the human-limited elite bot
 the level tuning used and graded by the server replay: **173**. The last 4 s, the steepest zigzags with spikes riding the
 rails at speed, then SURVIVED! with the HUD at the final 173 (the game's own renderer, 5 frames a second;
-`bun scripts/shots/action-expert-clip.ts flip 10 --from=56 --secs=4 --width=170 --q=15 --max=78000`):
+`bun scripts/shots/action-expert-clip.ts flip 10 --from=56 --secs=4 --width=170 --q=40 --max=78000 --encoder=pillow`):
 
 <img src="flip/expert-clip.webp" width="170">
 
@@ -389,6 +389,21 @@ match the reveal's CSS (their markup is proved by bastion-overhaul-check section
 
 Frames: `bun scripts/shots/bastion-fx-shots.ts --out=<dir>`.
 
+### Stage 3: levels (16 Nov 2026)
+
+Expert (bastionRev 3, Iron Wall as rooms dealt it before the levels) played by the Elite bot under human limits on seed
+30710843, server score **172**; 5 s from 40.6 s (wave 5) at 5 frames a second, the game's own art
+(`bun scripts/shots/action-expert-clip.ts bastion 30710843 --from=40.6 --secs=5 --q=40 --encoder=pillow
+--out=docs/design/pages-review/action/bastion/expert-clip.webp`, 59 KB; Pillow writes every frame whole, since ffmpeg's
+changed-rectangle frames break Iron Wall's shifting smoke and sky into blocks):
+
+<img src="bastion/expert-clip.webp" width="180">
+
+The bigger weak spots of Easy, Normal and Hard drawn inside the tank (Joe, 16 Nov 2026; the hit area, blue, unchanged;
+each pair before | after, Expert's unchanged):
+
+<img src="bastion/weak-spots-before-after.webp" width="640">
+
 
 ## High Rise
 
@@ -458,6 +473,15 @@ for Roofbound, Grappler, Moon Climb, Iron Wall and Orbit, and no change for game
 154-point run, before (stage 2) | after (`bun scripts/shots/skyline-stage2-shots.ts <dir>`, reveal-s3.png):
 
 <img src="skyline/reveal-s3.webp" width="640">
+
+### Stage 3: Expert, 3 lives (16 Nov 2026)
+
+Hard and Expert keep 3 lives; Expert stays harder by its slide, its 2 px perfect drop and wind from block 10
+(docs/arcade-standard/skyline.md "Levels"). The human-limited elite's Expert run on room seed n=29 (course 1530145177),
+**146** by the server replay, 30–35 s, from block 36, a perfect drop in the wind (the game's own renderer, 5 frames a second;
+`bun scripts/shots/action-expert-clip.ts skyline 29 --from=30 --secs=5`, 54 KB):
+
+<img src="skyline/expert-clip.webp" width="180">
 
 ## Orbit
 

@@ -2652,7 +2652,7 @@ outside the repo.
   bastion-levels-check. **Roofbound** (`FLIP_LEVEL_RULES`: speed, moving spikes from none / 8 s / 5 s, sweet spots,
   perfect landings full at 5 / 7 / 9, 5 / 20 / 25 s a crash; per-level proved deals `flipLevelDeals.server.ts`,
   `bun scripts/flip-level-deal.ts`; the course is built during the intro, `prepareFlipCourse`) and **High Rise**
-  (`SKYLINE_LEVEL_RULES`: slide, 5 / 3 / 2 px, wind from 30 / 15 / 10, lives 3 / 2 / 2; oracle `scripts/skyline-oracle.ts`,
+  (`SKYLINE_LEVEL_RULES`: slide, 5 / 3 / 2 px, wind from 30 / 15 / 10, 3 lives at every level, Hard and Expert from 16 Nov 2026; oracle `scripts/skyline-oracle.ts`,
   Skyscraper possible): flip-levels-check, skyline-levels-check, bands `bun scripts/flip-skyline-levels-bands.ts`.
   **Grappler** (`SWING_LEVELS`, `withLevel`: reach, sliding vines, stall limit, pterodactyl, dark runs; per-level proved
   deals `swingLevelDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18 --level=…`) and **Moon Climb**
