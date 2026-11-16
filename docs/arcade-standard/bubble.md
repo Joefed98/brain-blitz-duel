@@ -38,12 +38,12 @@ clear with 45 s left.
 
 | | Easy | Normal (today) | Hard | Expert |
 | --- | --- | --- | --- | --- |
-| Colours | 4 | 5 | 5 | 6 (the sixth: orange, a seahorse, a cross) |
+| Colours | 3 (the first three) | 5 | 5 | 6 (the sixth: orange, a seahorse, a cross) |
 | Reef bubbles (chests included) | 75 | 86 | 110 | 110 |
 | Shots per descent | 10 | 8 | 5 | 7 |
 | Aim trail (display only) | two bounces | to the top | one bounce | short (120 px) |
-| Core full at (bubbles cleared) | 60 | the reef | the reef | the reef |
-| Bank shots full at | 10 | 30 | 20 | 10 |
+| Core full at (bubbles cleared) | 50 | the reef | the reef | the reef |
+| Bank shots full at | 8 | 30 | 20 | 10 |
 | Speed full at (left at the clear) | 30 s | 45 s | 30 s | 30 s |
 | Clock | 90 s | 90 s | 90 s | 90 s |
 
@@ -64,21 +64,38 @@ figures), the clock, the server replay reading the stored level (a level's log r
 144 recorded witness runs (`scripts/fixtures/bubble-levels-witness.json.gz`, `bun scripts/bubble-levels-record.ts`: the
 skill-band bot under human limits at Average, Elite and Flawless on each level's first 12 room seeds) replaying through
 the server to their recorded scores. Every level is cleared by Elite and by Flawless, and 200 is reached through the
-server replay on every new level (Easy: Elite 1, Flawless 3 of 12; Hard: Elite 2, Flawless 5; Expert: Elite 1).
+server replay on every new level (Easy: Elite 2 of 12; Hard: Elite 2, Flawless 5; Expert: Elite 1).
 
 **Measured** (the witness runs, 12 room seeds a level; averages, with the median in brackets):
 
 | | Easy | Normal | Hard | Expert |
 | --- | --- | --- | --- | --- |
-| Average | 116 (114) | 64 (67) | 53 (54) | 26 (22) |
-| Elite (human limits) | 193 (194) | 176 (178) | 174 (171) | 159 (171) |
-| Flawless | 194 (195) | 184 (183) | 183 (197) | 171 (175) |
-| Elite clears | 11 of 12 | 8 of 12 | 4 of 12 | 1 of 12 |
+| Average | 157 (172) | 64 (67) | 53 (54) | 26 (22) |
+| Elite (human limits) | 195 (197) | 176 (178) | 174 (171) | 159 (171) |
+| Flawless | 196 (196) | 184 (183) | 183 (197) | 171 (175) |
+| Elite clears | 12 of 12 | 8 of 12 | 4 of 12 | 1 of 12 |
 
-Easy's star (175+) for the Average bot: 1 of 12 seeds (the best 177). Expert seeds for Joe to try (Elite's score):
+Easy's star (175+) for the Average bot: 5 of 12 witness seeds. Expert seeds for Joe to try (Elite's score):
 428011710 (200), 1583049006 (178), 992653281 (174), 855957879 (173), 375698285 (173). The Elite level's reaction is
 145 ms, but with its think time each shot is about 0.5 s after the last lands (above 0.25 s to react plus 0.15 s to
 move). `bun scripts/level-tune.ts bubble --level=all` reports the same game's Near-perfect and Elite on dealt puzzles.
+
+**Easy retuned** (16 Nov 2026, Joe: an average player should have a real shot at a star; Easy had never been dealt
+live, so no new stamp, and only this branch's Easy witness runs were re-recorded). Easy went from 4 colours, core full
+at 60 and bank shots full at 10 to **3 colours, core full at 50 and bank shots full at 8** (the reef of 75, a descent
+every 10 shots, the two-bounce trail and speed full at 30 s left unchanged; Normal, Hard and Expert untouched). Measured
+with the skill-band bot under human limits on room seeds 0–79 (`roomSeed(n)`, the witness runs' seeds):
+
+| Easy | Before (seeds 0–39) | After (seeds 0–79) |
+| --- | --- | --- |
+| Average: mean (median) | 115 (114) | 164 (170) |
+| Average: runs at 175+ (a star) | 2 of 40 (5 %) | 29 of 80 (36 %) |
+| Elite: mean (median) | 192 (194) | 195 (197) |
+| Elite: runs at 175+ | 40 of 40 | 80 of 80 |
+
+Easy stays clearly below Normal (Average 64, Elite 176 there). Fewer colours was the lever that moved the Average
+player (3 colours alone: 27 % stars over 80 seeds); with 4 colours, a smaller reef (64 bubbles) or descents every 16 shots left it at
+5 % or below. The lower full-at figures add the rest without touching Elite's ceiling.
 
 ## Coral Pop on the arcade scoring standard (`bubbleRev 11`, 29 Oct 2026)
 

@@ -223,7 +223,7 @@ export interface BubState extends BandFields {
   fast?: number;
   /**
    * bubbleRev 12's levels only (stage 3; absent at Normal, which is today's game exactly): the level's code
-   * (BUB_LEVEL_CODE), the shots between descents, the colour count (4–6), and the aim trail's reach (display only,
+   * (BUB_LEVEL_CODE), the shots between descents, the colour count (3–6), and the aim trail's reach (display only,
    * outside the checksum: 2 two bounces, 1 one bounce, 0 a short trail).
    */
   lv?: number;
@@ -1615,7 +1615,7 @@ export const bubbleFastGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
  * Coral Pop's levels (docs/arcade-standard/bubble.md "Levels (stage 3)", docs/design/difficulty/README.md): played on
  * the live stamp, bubbleRev 12, with the level read from the stored puzzle (`level`, puzzleLevel). Normal has no entry
  * and is today's game exactly (no field on the puzzle or the state). Each level sets, from the seed alone:
- *  - `colours`: the reef's and the queue's colour count (4, or 6 with the sixth colour BUB_SIXTH);
+ *  - `colours`: the reef's and the queue's colour count (3 on Easy, 4, or 6 with the sixth colour BUB_SIXTH);
  *  - `reef`: the reef's exact bubble count, chests included (the last row part-filled and centred);
  *  - `every`: the shots between descents (Normal 8);
  *  - `trail`: the aim trail's reach, display only (2 two bounces, 1 one bounce, 0 a short trail);
@@ -1639,7 +1639,7 @@ export interface BubLevelSettings {
   speedFullLeft: number;
 }
 export const BUB_LEVELS: Readonly<Record<BubLevel, BubLevelSettings>> = {
-  easy: { colours: 4, reef: 75, every: 10, trail: 2, banksFull: 10, coreFull: 60, speedFullLeft: 1800 },
+  easy: { colours: 3, reef: 75, every: 10, trail: 2, banksFull: 8, coreFull: 50, speedFullLeft: 1800 },
   hard: { colours: 5, reef: 110, every: 5, trail: 1, banksFull: 20, coreFull: 110, speedFullLeft: 1800 },
   expert: { colours: 6, reef: 110, every: 7, trail: 0, banksFull: 10, coreFull: 110, speedFullLeft: 1800 },
 };

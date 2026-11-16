@@ -8,7 +8,7 @@
  *
  *   tents: {
  *     levels: {
- *       easy: { settings: { colours: 4, reef: 75, every: 10, trail: 2, banksFull: 10, coreFull: 60, speedFullLeft: 1800 } },
+ *       easy: { settings: { colours: 3, reef: 75, every: 10, trail: 2, banksFull: 8, coreFull: 50, speedFullLeft: 1800 } },
  *       hard: { settings: { colours: 5, reef: 110, every: 5, trail: 1, banksFull: 20, coreFull: 110, speedFullLeft: 1800 } },
  *     },
  *   },
@@ -52,7 +52,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // numbers frozen with the stamp (BUB_LEVELS in src/lib/arcade/bubble.ts; bubble-levels-check proves they agree).
   bubble: {
     levels: {
-      easy: { settings: { colours: 4, reef: 75, every: 10, trail: 2, banksFull: 10, coreFull: 60, speedFullLeft: 1800 } },
+      easy: { settings: { colours: 3, reef: 75, every: 10, trail: 2, banksFull: 8, coreFull: 50, speedFullLeft: 1800 } },
       hard: { settings: { colours: 5, reef: 110, every: 5, trail: 1, banksFull: 20, coreFull: 110, speedFullLeft: 1800 } },
       expert: { settings: { colours: 6, reef: 110, every: 7, trail: 0, banksFull: 10, coreFull: 110, speedFullLeft: 1800 } },
     },
