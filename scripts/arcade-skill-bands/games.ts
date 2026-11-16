@@ -322,8 +322,8 @@ export const GAMES: GameSpec[] = [
   // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
   // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
   // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
-  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV5(roomSeed(n)), seedForRev: (n, rev) => (rev === 4 ? homerunDealSeedV4(roomSeed(n)) : rev === 3 ? homerunDealSeedV3(roomSeed(n)) : undefined) },
-  { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeedV5(roomSeed(n)), seedForRev: (n, rev) => (rev !== null && rev < 5 ? freekickDealSeedV2(roomSeed(n)) : undefined) },
+  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), gameForPuzzle: (p) => homerunGameFor(p.homerunRev ?? null, p.level), seedFor: (n) => homerunDealSeedV5(roomSeed(n)), seedForRev: (n, rev) => (rev === 4 ? homerunDealSeedV4(roomSeed(n)) : rev === 3 ? homerunDealSeedV3(roomSeed(n)) : undefined) },
+  { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), gameForPuzzle: (p) => freekickGameFor(p.freekickRev ?? null, p.level), seedFor: (n) => freekickDealSeedV5(roomSeed(n)), seedForRev: (n, rev) => (rev !== null && rev < 5 ? freekickDealSeedV2(roomSeed(n)) : undefined) },
   // Apex (racing) deals racingRev 3 from its own proved deal since 3 Nov 2026 (racingRev 2 from 31 Oct 2026).
   { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV3(roomSeed(n)) },
   // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank

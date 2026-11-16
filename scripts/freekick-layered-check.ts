@@ -16,6 +16,9 @@
  *  8. the bands: on Normal, weak < average < good < great < near-perfect (medians) near their targets; Expert harder
  *     than Easy from good up; random strokes score little.
  */
+import { gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
+import { puzzleLevel } from "../src/lib/levels/levels";
+import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   fkCalm,
@@ -226,6 +229,21 @@ const fly = (k: FkKick, shot: { x: number; y: number; b: number; st: number }, g
   recordInput(one, { t: 41, k: FREEKICK_INPUT_POWER, a: 0, b: 0, c: 0, d: 0 }, FREEKICK_INPUT_RANGES_V5);
   recordInput(one, { t: 42, k: FREEKICK_INPUT_STRIKE, a: 0, b: 0, c: 0, d: 0 }, FREEKICK_INPUT_RANGES_V5);
   ok(storedScoreFkV5(seed, one, "normal") >= 1, "a played run scores at least 1");
+}
+
+/* The difficulty framework's registry (stage 3, 15 Nov 2026): Top Bins offers all four levels, and the registry's
+   settings are exactly the sim's own (FK_LEVEL_SETTINGS); Normal's keeper is Easy's (Joe's one-step ease). */
+{
+  ok(JSON.stringify(levelsOf("freekick")) === JSON.stringify(["easy", "normal", "hard", "expert"]), `freekick offers every level (${levelsOf("freekick").join(", ")})`);
+  for (const level of ["easy", "hard", "expert"] as const) {
+    const mirror = gameLevelSettings<Record<string, unknown>>("freekick", level)!;
+    const own = FK_LEVEL_SETTINGS[level] as unknown as Record<string, unknown>;
+    for (const key of Object.keys(mirror)) ok(JSON.stringify(mirror[key]) === JSON.stringify(own[key]), `freekick ${level}: the registry's ${key} matches the sim's`);
+  }
+  ok(FK_LEVEL_SETTINGS.normal.speed === FK_LEVEL_SETTINGS.easy.speed && FK_LEVEL_SETTINGS.normal.react === FK_LEVEL_SETTINGS.easy.react, "Normal's keeper is Easy's (the one-step ease)");
+  const dealt = generatePuzzle("freekick", { bankSeed: 7, level: "expert" });
+  ok(puzzleLevel(dealt) === "expert" && (dealt as { freekickRev?: number }).freekickRev === FREEKICK_REV_5, "the deal at Expert is stamped expert on rev 5");
+  ok(!("level" in (generatePuzzle("freekick", { bankSeed: 7 }) as object)), "the deal at Normal carries no level");
 }
 
 if (failures) {

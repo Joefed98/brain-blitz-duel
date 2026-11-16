@@ -43,10 +43,31 @@ export interface GameLevels<S = Record<string, unknown>> {
 }
 
 /**
- * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
- * Normal only.
+ * Every game's levels beyond Normal (a game with no entry offers Normal only).
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // Home Run (homerunRev 5, the Home Run and Top Bins overhaul, 15 Nov 2026): the innings' pitch speeds, balls in the
+  // first 24 pitches, the Contact / Power windows, the PERFECT window, the curveball's bend and the fielders' reach.
+  // A mirror of HR_LEVEL_SETTINGS in src/lib/arcade/homerunInnings.ts (the sim reads its own; homerun-innings-check
+  // proves the two match). Each level deals from its own proved deal (homerunDealV5.server.ts).
+  homerun: {
+    levels: {
+      easy: { settings: { balls: 6, winContact: 7, winPower: 5, perfect: 2, bend: 450, reach: 800 } },
+      hard: { settings: { balls: 8, winContact: 4, winPower: 3, perfect: 0, bend: 1300, reach: 1100 } },
+      expert: { settings: { balls: 9, winContact: 4, winPower: 2, perfect: 0, bend: 1600, reach: 1200 } },
+    },
+  },
+  // Top Bins (freekickRev 5): the power bar's gold zone, the keeper's reaction and speed, the wall, the wind, the corner
+  // hoop's last size and the jumping-wall kicks. A mirror of FK_LEVEL_SETTINGS in src/lib/arcade/freekick.ts
+  // (freekick-layered-check proves the two match). Each level deals from its own proved deal (freekickDealV5.server.ts).
+  freekick: {
+    levels: {
+      easy: { settings: { zoneLo: 680, zoneHi: 820, react: 14, speed: 850, wall: [3, 3], wind: 1, hoopLast: 850, jumps: 3 } },
+      hard: { settings: { zoneLo: 735, zoneHi: 790, react: 8, speed: 1120, wall: [4, 5], wind: 4, hoopLast: 600, jumps: 5 } },
+      expert: { settings: { zoneLo: 745, zoneHi: 780, react: 7, speed: 1200, wall: [5, 5], wind: 5, hoopLast: 500, jumps: 6 } },
+    },
+  },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

@@ -89,7 +89,8 @@ export interface FkLevelSettings {
 }
 export const FK_LEVEL_SETTINGS: Readonly<Record<FkLevel, FkLevelSettings>> = {
   easy: { zoneLo: 680, zoneHi: 820, react: 14, speed: 850, wall: [3, 3], wind: 1, hoopLast: 850, jumps: 3 },
-  normal: { zoneLo: 720, zoneHi: 800, react: 10, speed: 1000, wall: [3, 5], wind: 2, hoopLast: 800, jumps: 4 },
+  // Normal eased one step (Joe, 15 Nov 2026): the keeper as Easy's (react 10 → 14 ticks, speed 1000 → 850 per mille).
+  normal: { zoneLo: 720, zoneHi: 800, react: 14, speed: 850, wall: [3, 5], wind: 2, hoopLast: 800, jumps: 4 },
   hard: { zoneLo: 735, zoneHi: 790, react: 8, speed: 1120, wall: [4, 5], wind: 4, hoopLast: 600, jumps: 5 },
   expert: { zoneLo: 745, zoneHi: 780, react: 7, speed: 1200, wall: [5, 5], wind: 5, hoopLast: 500, jumps: 6 },
 };

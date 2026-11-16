@@ -17,6 +17,9 @@
  *  7. the bands: on Normal, weak < average < good < great < near-perfect ≤ elite ≤ 200 (medians), Expert harder than
  *     Easy at every skill from good up.
  */
+import { gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
+import { puzzleLevel } from "../src/lib/levels/levels";
+import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { readFileSync } from "node:fs";
 import { homerunGameFor, homerunScore, HOMERUN_INPUT_RANGES_V5, HOMERUN_REV_5 } from "../src/lib/arcade/homerun";
 import {
@@ -239,6 +242,21 @@ function script(seed: number, level: HrLevel, act: (t: number, inn: NonNullable<
   ok(normal.every((v, i) => i === 0 || v > normal[i - 1]!), `Normal rises with skill: ${normal.join(" < ")}`);
   ok(normal[4]! >= 185 && normal[3]! >= 150 && normal[3]! <= 185 && normal[2]! >= 110 && normal[2]! <= 150, `Normal sits near its targets (near-perfect ${normal[4]}, great ${normal[3]}, good ${normal[2]})`);
   for (const skill of ["good", "great", "near"] as SkillLevel[]) ok(band("expert", skill) < band("easy", skill), `${skill}: Expert is harder than Easy`);
+}
+
+/* The difficulty framework's registry (stage 3, 15 Nov 2026): Home Run offers all four levels, and the registry's
+   settings are exactly the sim's own (HR_LEVEL_SETTINGS), so the level selector and the sim never disagree. */
+{
+  ok(JSON.stringify(levelsOf("homerun")) === JSON.stringify(["easy", "normal", "hard", "expert"]), `homerun offers every level (${levelsOf("homerun").join(", ")})`);
+  for (const level of ["easy", "hard", "expert"] as const) {
+    const mirror = gameLevelSettings<Record<string, unknown>>("homerun", level)!;
+    const own = HR_LEVEL_SETTINGS[level] as unknown as Record<string, unknown>;
+    for (const key of Object.keys(mirror)) ok(JSON.stringify(mirror[key]) === JSON.stringify(own[key]), `homerun ${level}: the registry's ${key} matches the sim's`);
+  }
+  ok(gameLevelSettings("homerun", "normal") === null, "homerun Normal has no registry settings (today's game)");
+  const dealt = generatePuzzle("homerun", { bankSeed: 7, level: "hard" });
+  ok(puzzleLevel(dealt) === "hard" && (dealt as { homerunRev?: number }).homerunRev === HOMERUN_REV_5, "the deal at Hard is stamped hard on rev 5");
+  ok(!("level" in (generatePuzzle("homerun", { bankSeed: 7 }) as object)), "the deal at Normal carries no level");
 }
 
 if (failures) {
