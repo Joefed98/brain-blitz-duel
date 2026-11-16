@@ -672,6 +672,24 @@ sparks, then the solve flare.
   result (the board line and pills).
 - Every effect is transform and opacity only, at most 900 ms, and the next tilt is taken at once. Reduced motion: a
   120 ms crossfade for the tilt, the drop and the next board; no lean, nod or flip.
+
+### Stage 3: levels (16 Nov 2026)
+
+Practice rounds at 390 × 844, one per level (each after its first tilt), and the Expert reveal at 375 × 667 with the
+Round row on one line (Joe's stage-2 answer).
+
+| Easy | Normal | Hard | Expert | Expert reveal, 375 px |
+|---|---|---|---|---|
+| <img src="gravity-level-easy.webp" width="150"> | <img src="gravity-level-normal.webp" width="150"> | <img src="gravity-level-hard.webp" width="150"> | <img src="gravity-level-expert.webp" width="150"> | <img src="gravity-reveal-round-375.webp" width="150"> |
+
+- **Easy:** two boards of three balls, 2–4 tilts at the fewest, a limit of the fewest + 12, full speed by 20 s.
+- **Normal:** today's game exactly (three boards of six, 4–7 tilts, the fewest + 8, full speed by 32 s).
+- **Hard:** three boards of six, 6–9 tilts, the fewest + 6, full speed by 45 s.
+- **Expert:** three boards of eight (lime green with a heart, pearl white with a crescent, rendered in Blender beside
+  the six), 7–10 tilts, the fewest + 5, full speed by 50 s; every board one the person-like solver clears.
+- **Round row:** "ROUND" sits on the divider and the pills ("Boards 3/3", "Home 24/24", "Tilts", "Par", "Left 94 s")
+  stay on one line at 375 and 390 px (labels 11 px, figures 12 px); long par routes (8–10 tilts) use smaller chips so
+  they stay on one line too. Boards to play: `levels/gravity-expert-boards.tsv`.
 <!-- topsy:end -->
 
 <!-- intro-demos:start -->

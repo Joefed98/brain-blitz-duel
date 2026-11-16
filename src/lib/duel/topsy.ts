@@ -17,6 +17,11 @@
  * its fewest tilts + TOPSY_V8_SPARE (the limits were about twice what anyone needs, worked out from an old all-stars
  * route), and Undo and Reset give the tilts back: a board's count is the tilts still on it.
  *
+ * The difficulty levels (16 Nov 2026, src/lib/levels/pattern/gravity.levels.ts): a round dealt at Easy, Hard or Expert
+ * carries `level` and gravityRev 8's rules; its boards come from a proved bank (topsy.server.ts generateTopsyLevel), it may
+ * have two boards (Easy) or eight balls a board (Expert), and its limits are each board's fewest + the level's spare
+ * (`topsySpare`). Everything here reads the round's own boards; Normal (no `level`) is unchanged.
+ *
  * Stored rounds (gravityRev absent, 1 or 2) keep the old four-ball, locking-target rules (gravity.ts).
  */
 import { eliteStretchPoints } from "./d5Remodels";

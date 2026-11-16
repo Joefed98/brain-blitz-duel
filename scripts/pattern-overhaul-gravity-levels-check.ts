@@ -26,7 +26,7 @@
  *     answer 0; the level's spare limits a board (a board played to its limit without clearing is out of tilts there,
  *     and its par shown is the fewest); a level's tilts read the board's own balls (Easy's six balls in all).
  *  8. The stage and the reveal draw the round's own boards and balls: Easy two boards and six balls in all, Expert
- *     eight rings a board, its two extra cups and "Home 0 / 24"; the reveal's switcher has a tab a board.
+ *     eight rings a board and its two extra cups; the reveal's switcher has a tab a board.
  *  9. Joe's stage-2 answer (the Round row on one line at 375 and 390 px, never under 11 px): the CSS keeps the pills on
  *     one line at the sizes measured, and the widest possible row, measured with Archivo and calibrated on the
  *     Chromium measurement of 16 Nov 2026, fits the reveal's width at both sizes.
