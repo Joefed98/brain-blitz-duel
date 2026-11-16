@@ -149,3 +149,18 @@ Every bank deal reaches 200: cards-check replays all 300 lines through the serve
 - The brief's "24-card stock" counts the card that starts the discard (23 left to turn).
 - The bank holds only clearable deals, so the core pays well even for weak play; the 60 s run, the features and speed
   separate the levels.
+
+## Levels (the Cards & Board overhaul, stage 3, 15 Nov 2026)
+
+Normal is tripeaksRev 3 exactly. A level deal carries `level` and tripeaksRev 3; its game is `tripeaksLevelGame(level)`
+(`TP_LEVEL_RULES`). All 60 s.
+
+| Level | Deals | Glow | Ace–King wrap | Undo | Hints | Speed full by |
+|---|---|---|---|---|---|---|
+| Easy | the bank's deals with a stock par of 12 or less (`TP_EASY_DEALS`) | on | yes | 3 | free; the glow shows by itself after 8 s idle | 25 s |
+| Normal | today | on | yes | none | none | 20 s |
+| Hard | the bank | off | yes | none | −5 each | 20 s |
+| Expert | its own bank: 100 fresh shuffles the solver clears without the wrap with a run of ten, each with its no-wrap stock par (`tripeaksExpert.data.ts`, `bun scripts/tripeaks-expert-bank.ts`) | off | no | none | one | 16 s |
+
+On Easy a dead end waits while an undo is left. The glow is display only; the skill-band bots model its absence as
+1.6 × the search time (human limits; `NO_GLOW_SCAN` in the bot).

@@ -28,7 +28,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore, level =
   const levelText = level ? (CARD_LEVEL_TEXT[type]?.[level] ?? null) : null;
   // A level's own lines first (marked), then Normal's lines that hold at every level; the intro keeps at most four.
   const how = [
-    ...(levelText ? levelText.how.map((detail) => ({ action: `${LEVEL_NAME[level!]}:`, detail, level: true })) : []),
+    ...(levelText ? levelText.how.map((detail, i) => ({ action: i === 0 ? `${LEVEL_NAME[level!]}:` : "", detail, level: true })) : []),
     ...instructions.how.filter((line) => (overlay || !line.helpOnly) && !(levelText && line.normalOnly)),
   ].slice(0, overlay ? undefined : 4);
 
@@ -59,7 +59,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore, level =
         >
           {how.map((line) => (
             <p key={`${line.action}-${line.detail}`} {...("level" in line ? { "data-level-line": "" } : {})}>
-              <strong className="intro-how-action">{line.action}</strong> {line.detail}
+              {line.action ? <><strong className="intro-how-action">{line.action}</strong> {line.detail}</> : line.detail}
             </p>
           ))}
         </div>

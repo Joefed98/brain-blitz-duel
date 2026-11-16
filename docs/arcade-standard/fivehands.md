@@ -172,3 +172,18 @@ even-filling rule). Flawless taps the witness.
 - The weak level (3.1 s a card) runs out of time on most seeds; its rows score as they stand.
 - The made-hands part pays 8 a row (40 for five), so a run that makes five pairs and little else still scores well
   (about 120); the spread is in the core.
+
+## Levels (the Cards & Board overhaul, stage 3, 15 Nov 2026)
+
+Normal is fiveHandsRev 3 exactly. A level deal carries `level`, fiveHandsRev 3 and its own `timeLimitMs` (the run plus
+the arcade phase's 3 s); its game is `fiveHandsLevelGame(level)` (`FH_LEVEL_RULES`), the same deck from the seed.
+
+| Level | Multiplier | Clock | Shown | Hints |
+|---|---|---|---|---|
+| Easy | × 1.6 | 75 s | the next two cards; each column's value while picking | free; the glow shows by itself after 8 s idle |
+| Normal | × 1.4 | 60 s | today | none |
+| Hard | × 1.4 | 50 s | — | −5 each |
+| Expert | × 1.3 | 45 s | — | one |
+
+Score: floor(hand points × the multiplier) less the hints' cost, capped at 200. Still the standard's named exception:
+not every deck reaches 200.

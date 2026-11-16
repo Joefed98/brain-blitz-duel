@@ -2610,6 +2610,26 @@ outside the repo.
   the sound that played there before until then; listed in `docs/sound-cues/cards-board-elevenlabs.md`); Free Cell's
   home chime climbs a major scale per rank (`fcHomeRate`). Clips: `bun scripts/shots/cards-board-fx-clips.ts` (the
   flawless lines through the real renderers on a virtual clock; `CardMotion.clock`). cards-board-overhaul-check section 9.
+- **Cards & Board overhaul, stage 3** (16 Nov 2026; the levels, `docs/design/pages-review/cards-board/GALLERY.md`
+  "Stage 3", each game's page in `docs/arcade-standard/` "Levels"): Easy, Hard and Expert for Free Cell, Mahjong, Summit,
+  Five Hands and Thirteen in `GAME_LEVELS`; Normal is today's game exactly (a Normal deal carries no `level` and never
+  reaches the level code). Each sim holds its rules (`FC_LEVEL_RULES`, `MAHJONG_LEVEL_RULES`, `TP_LEVEL_RULES`,
+  `FH_LEVEL_RULES`, `PY_LEVEL_RULES`) and a level game (`<game>LevelGame`, `<game>GameAt(rev, level)`, read by the stage,
+  the replay `replay<Game>Run(seed, raw, rev, level)`, grade.ts, the reveals and the replay steppers). Deals: Free Cell's
+  level banks (`freecellDealsLevels.data.ts`, `bun scripts/freecell-level-bank.ts`), Summit's Easy subset (`TP_EASY_DEALS`)
+  and Expert bank (`tripeaksExpert.data.ts`, `bun scripts/tripeaks-expert-bank.ts`), Mahjong's 56/88 layouts
+  (`mahjongLayoutOf`: a board's layout is told by its length) and Thirteen's level deals (`pyBuildLevelDeal`), all built or
+  proved. Hints: an input the sim counts (free on Easy, 5 points on Hard, one on Expert; none on Normal), the move shown
+  display only (`fcHintMove`, `mahjongHintPair`, `tpHintMove`, `fhHintRow`, `pyHintMove`; the solvers moved into
+  `src/lib/arcade/cards/`), Easy's glow by itself after 8 s idle. Five Hands' levels carry their own `timeLimitMs`
+  (`puzzleRunMs` honours it). The intro and "?" help take the level (`PuzzleInstructions` / `PuzzleHelp` `level`, words in
+  `src/lib/levels/cardLevelText.data.ts` from `bun scripts/cards-level-text.ts`; Normal lines that state today's numbers
+  carry `normalOnly`); a level's intro shows the still, not Normal's demo. Sounds `cards.hint`, `cards.hintIdle`,
+  `cards.deadEnd` (silent until set). Tuning: `bun scripts/cards-levels-tune.ts` (each part's average per level); the
+  Summit and Thirteen bots model the missing glow as longer search (`NO_GLOW_SCAN`). Intro demos:
+  `scripts/fixtures/cards-demos.json` (elite runs on each example deal, `bun scripts/cards-demos-record.ts`), saved by
+  `scripts/cards-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY), played only on today's stamps (`cardsDemoRules.ts`).
+  cards-levels-check (~50 s) and cards-demos-check (~2 s).
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

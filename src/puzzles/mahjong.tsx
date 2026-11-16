@@ -204,7 +204,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 className="h-[44px] rounded-xl border-2 border-foreground/30 bg-background/40 px-3 text-[14px] font-bold text-foreground hover:bg-background/40 active:bg-foreground/15"
                 onPressStart={() => send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_HINT, b: 0, c: 0 })}
               >
-                {rules.hintCost ? `✦ Hint −${rules.hintCost}` : "✦ Hint"}
+                ✦ Hint
               </ArcadeControlButton>
             ) : null}
             {undo ? (
@@ -240,10 +240,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               data-home-bar-fill=""
               aria-label={`Shuffle (−${shuffleCost})`}
               disabled={locked}
-              className="h-[52px] rounded-xl border-2 border-primary/70 bg-background/40 px-5 text-[15px] font-extrabold text-primary hover:bg-background/40 shadow-[0_0_12px_rgba(245,184,46,0.22)] active:bg-primary/25"
+              className={`h-[52px] rounded-xl border-2 border-primary/70 bg-background/40 ${rules ? "px-3.5" : "px-5"} text-[15px] font-extrabold text-primary hover:bg-background/40 shadow-[0_0_12px_rgba(245,184,46,0.22)] active:bg-primary/25`}
               onPressStart={() => send({ k: MAHJONG_INPUT_SHUFFLE, a: MAHJONG_BUTTON_SHUFFLE, b: 0, c: 0 })}
             >
-              {`⟳ Shuffle −${shuffleCost}`}
+              {/* A level's row holds Hint too, so its Shuffle says the cost alone (the full words are its label). */}
+              {rules ? `⟳ −${shuffleCost}` : `⟳ Shuffle −${shuffleCost}`}
             </ArcadeControlButton>
           </div>
           )

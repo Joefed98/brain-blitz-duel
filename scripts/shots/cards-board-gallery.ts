@@ -4,7 +4,10 @@
  * a short clip of a move (frames every ~60 ms for 1.2 s, packed into an animated WebP by cards-board-gallery.py) and
  * the answer reveal once the clock runs out. Run it against main (`--tag=before`) and the branch (`--tag=after`).
  *
- *   bun scripts/shots/cards-board-gallery.ts --url=<origin> --tag=before|after --out=<dir> [games…] [--no-reveal]
+ *   bun scripts/shots/cards-board-gallery.ts --url=<origin> --tag=before|after --out=<dir> [games…] [--no-reveal] [--level=easy|hard|expert]
+ *
+ * `--level` (stage 3, the levels): the device's level choice set before the page loads (levelChoice.ts), so the round
+ * is dealt at that level; on Easy a frame after 9 s untouched shows the hint's own glow (`-hint.png`).
  *
  * The origin needs practice deals (a dev server on the server-fn harness, as account-flow-check starts one).
  */
@@ -19,6 +22,7 @@ const tag = opt("tag") ?? "after";
 const out = opt("out") ?? ".shots/cards-board";
 const reveal = !args.includes("--no-reveal");
 const games = args.filter((a) => !a.startsWith("--"));
+const level = opt("level");
 mkdirSync(out, { recursive: true });
 
 /** Taps as fractions of the game canvas: [x, y, wait ms]; the clip records after the tap marked `clip`. */
@@ -33,6 +37,7 @@ const TAPS: Record<string, { taps: [number, number, number][]; clip: number }> =
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium" });
 for (const game of games.length ? games : Object.keys(TAPS)) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  if (level) await page.addInitScript((lv) => localStorage.setItem("duelz-levels:v1", JSON.stringify({ catalogue: lv, games: {} })), level);
   const base = join(out, `${game}-${tag}`);
   try {
     await page.goto(`${url}/practice?game=${game}`, { waitUntil: "domcontentloaded" });
@@ -43,6 +48,10 @@ for (const game of games.length ? games : Object.keys(TAPS)) {
     await ready.click();
     await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
     await page.waitForTimeout(4200);
+    if (level === "easy") {
+      await page.waitForTimeout(9000);
+      await page.screenshot({ path: `${base}-hint.png` });
+    }
     const box = (await page.locator("[data-game-stage] canvas").first().boundingBox())!;
     const plan = TAPS[game]!;
     for (let i = 0; i < plan.taps.length; i++) {

@@ -112,7 +112,9 @@ export function RoundIntro({
   // Engine games play their demo once a recorded one is there; until then, and for good when it is
   // stopped or missing, the same box shows the game's still (IntroStage), so the intro never moves.
   const savedArcadeDemo = useArcadeIntroDemo(type);
-  const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" ? savedArcadeDemo : null;
+  // A level other than Normal (the Cards & Board levels): the saved demo shows Normal's game, so the still shows instead.
+  const atLevel = puzzle ? levelOfPuzzle(puzzle) !== null : false;
+  const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" && !atLevel ? savedArcadeDemo : null;
   const reducedMotion = useReducedMotion();
   const loadedDef = useGameDef(type);
   const introLine = puzzle ? (loadedDef?.introLine?.(puzzle) ?? null) : null;

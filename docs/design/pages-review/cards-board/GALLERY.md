@@ -113,3 +113,28 @@ virtual clock with the Blender art, at 15 frames a second, half size. Each game 
 - **Thirteen:** a pair slides together, overlaps and flies off with "13" between them, rising in pitch through a quick
   chain; a King spins off alone; a wrong pair shakes both cards; a card whose last cover goes brightens out of its dim;
   the clear lights the pyramid's empty outline from the bottom row up.
+
+# Stage 3: the levels (16 Nov 2026)
+
+Easy, Hard and Expert for every game on the difficulty framework (`GAME_LEVELS`); Normal is today's game, and rated play
+and the Daily stay on it. Each image shows **Easy · Hard · Expert** a few moves in, then **Easy untouched for 9 s**: the
+hint lighting one good move by itself (a gold outline on the card or tile and where it goes). Hard and Expert have a
+Hint button too (Hard: 5 points a hint; Expert: one a round). Below each, Easy's and Expert's intros with the level's own
+lines and score. Frames from a practice round at 390 × 844 with the device's level set (`bun scripts/shots/cards-board-gallery.ts --level=…`).
+
+| Game | Easy · Hard · Expert · Easy's hint | Intros: Easy · Expert |
+|---|---|---|
+| Free Cell | <img src="img/freecell-levels.webp" width="520"> | <img src="img/freecell-level-intros.webp" width="260"> |
+| Mahjong Solitaire | <img src="img/mahjong-levels.webp" width="520"> | <img src="img/mahjong-level-intros.webp" width="260"> |
+| Summit | <img src="img/tripeaks-levels.webp" width="520"> | <img src="img/tripeaks-level-intros.webp" width="260"> |
+| Five Hands | <img src="img/fivehands-levels.webp" width="520"> | <img src="img/fivehands-level-intros.webp" width="260"> |
+| Thirteen | <img src="img/pyramid-levels.webp" width="520"> | <img src="img/pyramid-level-intros.webp" width="260"> |
+
+- **Free Cell:** Easy 32 cards and five free cells (the top row spreads to nine places); Hard 52 cards from the shortest
+  solved deals; Expert 52 with three cells and three undos (the Undo button counts them down).
+- **Mahjong Solitaire:** Easy 56 tiles in three layers; Hard the 72 with ten look-alike faces; Expert 88 tiles in five
+  layers. On a level the thumb row holds Hint, Undo, Reset and the Shuffle's cost.
+- **Summit:** Hard and Expert lose the playable glow; Expert also loses the Ace–King wrap. Easy has three undos.
+- **Five Hands:** Easy shows the next two cards ("Coming up") and each column's value while picking.
+- **Thirteen:** Easy has three passes through the stock; Hard and Expert lose the partner glow and deal fewer Kings.
+- Intros on a level show the game's still, not Normal's saved demo.
