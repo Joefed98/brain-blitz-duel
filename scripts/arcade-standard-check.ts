@@ -78,7 +78,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "swing", field: "swingRev", rev: 17, batch: "D" }, // swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   // Changed with Joe's approval, 13 Nov 2026: Minefield deals minesRev 2 (a Logic game with 20 mines).
-  { type: "minesweeper", field: "minesRev", rev: 2, batch: "Cards & Board" },
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the live stamp is minesRev 3.
+  { type: "minesweeper", field: "minesRev", rev: 3, batch: "Cards & Board" },
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },
   // The Sports group (30 Oct 2026): new games born on the standard (rev 1).
   // Home Run deals homerunRev 4 since 3 Nov 2026 (pick your spot: a spot, a tap, fielders; four parts).

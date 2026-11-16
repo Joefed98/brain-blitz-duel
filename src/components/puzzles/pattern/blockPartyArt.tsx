@@ -1,8 +1,10 @@
 /**
- * Tessellate (blockparty) art, pattern polish 13 Oct 2026. Presentation only:
- * the pegboard, the bevelled pieces, the placement snap and the completion
- * shine. Every piece is drawn inside its own cells (a small inset), and the
- * board's cell boxes are unchanged, so what you see is what the drop counts.
+ * Tessellate (blockparty) art, pattern polish 13 Oct 2026; the Pattern overhaul's look A (15 Nov 2026): Blender
+ * sprites (public/pattern-art/blockparty/, docs/design/game-art/pattern/source/blockparty.py), one image per board
+ * cell: brass studs for the pegs, satin recesses for the free squares and a glossy lacquered block per piece square.
+ * Presentation only: every image is exactly its cell's box, so what you see is what the drop counts. Stage 2 (the
+ * effects): the drop's flash on the covered squares and the completion shine across the board; the pieces' own
+ * movement (pick-up, drop, a refused move) goes through the effects kit (src/lib/fx/kit.ts) in BlockPartyPuzzle.
  */
 import { createContext, memo, useContext, useId, useMemo } from "react";
 
@@ -10,7 +12,6 @@ import { BLOCK_COLS as N, type BlockPlacement } from "@/lib/duel/types";
 
 const U = 100; // one cell in art units
 const GAP = 5; // inset from the cell edge
-const BEVEL = 9; // rim width
 const RADIUS = 11;
 
 interface ArtIds {
@@ -113,35 +114,50 @@ export function BlockArtDefs({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** One bevelled piece: a lit rim, a raised face and faint seams between its squares. */
+/** The Blender sprites (docs/design/game-art/pattern/source/blockparty.py): one image per board cell. */
+export const BLOCK_ART_DIR = "/pattern-art/blockparty";
+/**
+ * The sprites' version, appended to every sprite URL (Joe, 16 Nov 2026): the URLs never changed when stage 2 re-rendered
+ * the studs and the tray blocks, so a phone that had loaded stage 1 could keep drawing the old engraved studs and flat
+ * tray blocks from its cache. The first 8 hex of the SHA-256 of every sprite file, in name order;
+ * pattern-overhaul-blockparty-levels-check fails until it matches the files (re-run it after re-rendering).
+ */
+export const BLOCK_ART_HASH = "cdb697b1";
+const sprite = (file: string) => `${BLOCK_ART_DIR}/${file}.webp?v=${BLOCK_ART_HASH}`;
+/** Each piece's sprite colour, index for index the piece colours (BlockPartyPuzzle PIECE_COLOURS; cyan and slate are Expert's U and P, stage 3). */
+export const BLOCK_SPRITE_COLOURS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow", "white", "cyan", "slate"] as const;
+export const blockSprite = (piece: number) =>
+  sprite(`block-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}`);
+/**
+ * The tray's own render of the same lacquered block (stage 2, Joe: the tray read flatter than the board): a rounder,
+ * deeper bevel so the gloss and its highlight still read at the tray's third-size cells.
+ */
+export const trayBlockSprite = (piece: number) =>
+  sprite(`tray-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}`);
+export const BLOCK_WELL_SPRITE = sprite("well");
+export const BLOCK_PEG_SPRITE = sprite("peg");
+
+/**
+ * One piece (the Pattern overhaul, 15 Nov 2026; look A): a glossy lacquered block in each of its squares, drawn
+ * exactly inside that square's box (the sprite is the cell; its block and shadow sit within it).
+ */
 export const PieceArt = memo(function PieceArt({
   cells,
-  colour,
+  piece,
+  tray,
 }: {
   cells: Pt[];
-  colour: string;
+  /** The piece's index (its colour). */
+  piece: number;
+  /** Drawn in the tray: the tray's render of the same block (stage 2). */
+  tray?: boolean | undefined;
 }) {
-  const ids = useContext(IdsContext);
-  const outer = useMemo(() => pieceOutline(cells, GAP), [cells]);
-  const face = useMemo(() => pieceOutline(cells, GAP + BEVEL, RADIUS - 3), [cells]);
-  const seams = useMemo(() => {
-    const has = new Set(cells.map(([r, c]) => `${r},${c}`));
-    const out: string[] = [];
-    for (const [r, c] of cells) {
-      if (has.has(`${r},${c + 1}`)) out.push(`M${(c + 1) * U} ${r * U + GAP + BEVEL + 4}V${(r + 1) * U - GAP - BEVEL - 4}`);
-      if (has.has(`${r + 1},${c}`)) out.push(`M${c * U + GAP + BEVEL + 4} ${(r + 1) * U}H${(c + 1) * U - GAP - BEVEL - 4}`);
-    }
-    return out.join("");
-  }, [cells]);
+  const href = tray ? trayBlockSprite(piece) : blockSprite(piece);
   return (
     <>
-      <path d={outer} fill="#000" opacity="0.4" transform="translate(2 5)" className="bp-drop" />
-      <path d={outer} style={{ fill: colour }} />
-      {ids && <path d={outer} fill={`url(#${ids.rim})`} />}
-      <path d={face} style={{ fill: colour }} />
-      {ids && <path d={face} fill={`url(#${ids.face})`} />}
-      <path d={face} fill="none" stroke="#fff" strokeOpacity="0.22" strokeWidth="2" />
-      {seams && <path d={seams} stroke="#000" strokeOpacity="0.2" strokeWidth="3" strokeLinecap="round" />}
+      {cells.map(([r, c]) => (
+        <image key={`${r},${c}`} className="bp-block" href={href} x={c * U} y={r * U} width={U} height={U} preserveAspectRatio="none" />
+      ))}
     </>
   );
 });
@@ -152,66 +168,42 @@ export const BlockColsContext = createContext(N);
 /** Cells of a placement as [row, col]. */
 const rowCol = (cell: number, n: number = N): Pt => [Math.floor(cell / n), cell % n];
 
-/** The static pegboard: slab, recessed wells and brass pegs. */
+/** The static pegboard (look A): the dark slab, a satin recess in every square and a brass stud on each peg. */
 export const BlockBoardArt = memo(function BlockBoardArt({ blockers }: { blockers: number[] }) {
-  const base = cleanId(useId());
   const n = useContext(BlockColsContext);
   const pegs = new Set(blockers);
   const S = n * U;
   return (
     <svg className="bp-board-art" viewBox={`0 0 ${S} ${S}`} aria-hidden="true">
-      <defs>
-        <linearGradient id={`${base}-slab`} x1="0" y1="0" x2="0.4" y2="1">
-          <stop offset="0" stopColor="#2b2d3a" />
-          <stop offset="1" stopColor="#181921" />
-        </linearGradient>
-        <linearGradient id={`${base}-well`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#000" stopOpacity="0.55" />
-          <stop offset="0.3" stopColor="#000" stopOpacity="0.1" />
-          <stop offset="1" stopColor="#fff" stopOpacity="0.06" />
-        </linearGradient>
-        <radialGradient id={`${base}-brass`} cx="0.36" cy="0.32" r="0.75">
-          <stop offset="0" stopColor="#fff2c4" />
-          <stop offset="0.35" stopColor="var(--primary)" />
-          <stop offset="1" stopColor="#7a510c" />
-        </radialGradient>
-      </defs>
-      <rect x="0" y="0" width={S} height={S} rx="22" fill={`url(#${base}-slab)`} />
-      <rect x="1.5" y="1.5" width={S - 3} height={S - 3} rx="21" fill="none" stroke="#fff" strokeOpacity="0.07" strokeWidth="3" />
+      <rect className="bp-slab" x="0" y="0" width={S} height={S} rx="22" />
       {Array.from({ length: n * n }, (_, cell) => {
         const [r, c] = rowCol(cell, n);
-        const x = c * U;
-        const y = r * U;
         return (
-          <g key={cell}>
-            <rect x={x + 6} y={y + 6} width={U - 12} height={U - 12} rx="13" fill={pegs.has(cell) ? "#14151b" : "#111219"} />
-            <rect x={x + 6} y={y + 6} width={U - 12} height={U - 12} rx="13" fill={`url(#${base}-well)`} />
-            {pegs.has(cell) && (
-              <>
-                <circle cx={x + 50} cy={y + 50} r="31" fill="#2a2416" stroke="#000" strokeOpacity="0.4" strokeWidth="2" />
-                <circle cx={x + 52} cy={y + 55} r="25" fill="#000" opacity="0.5" />
-                <circle className="bp-peg" cx={x + 50} cy={y + 50} r="25" fill={`url(#${base}-brass)`} />
-                <ellipse cx={x + 42} cy={y + 40} rx="9" ry="5" fill="#fff" opacity="0.55" transform={`rotate(-30 ${x + 42} ${y + 40})`} />
-              </>
-            )}
-          </g>
+          <image
+            key={cell}
+            className={pegs.has(cell) ? "bp-peg" : "bp-well"}
+            href={pegs.has(cell) ? BLOCK_PEG_SPRITE : BLOCK_WELL_SPRITE}
+            x={c * U}
+            y={r * U}
+            width={U}
+            height={U}
+            preserveAspectRatio="none"
+          />
         );
       })}
     </svg>
   );
 });
 
-/** Placed pieces on the board, with an optional click-in on each new placement. */
+/** Placed pieces on the board, with the lock-tight pulse on each piece when the board is solved. */
 export function BlockPiecesArt({
   placements,
   colourFor,
-  snap,
   wave,
 }: {
   placements: BlockPlacement[];
   colourFor: (piece: number) => string;
-  snap?: boolean | undefined;
-  /** Completion: delay (ms) per piece for the lock-tight pulse. */
+  /** Completion: delay (ms) per piece for the lock-tight pulse, timed to the shine passing over it. */
   wave?: Map<number, number> | null | undefined;
 }) {
   const n = useContext(BlockColsContext);
@@ -222,7 +214,6 @@ export function BlockPiecesArt({
           key={`${placement.piece}:${placement.cells.join("-")}`}
           placement={placement}
           colour={colourFor(placement.piece)}
-          snap={snap}
           delay={wave?.get(placement.piece)}
         />
       ))}
@@ -232,76 +223,81 @@ export function BlockPiecesArt({
 
 function PlacedPiece({
   placement,
-  colour,
-  snap,
   delay,
 }: {
   placement: BlockPlacement;
-  colour: string;
-  snap?: boolean | undefined;
+  /** The piece's colour (the sprite carries it; kept for callers). */
+  colour?: string | undefined;
   delay?: number | undefined;
 }) {
   const n = useContext(BlockColsContext);
   const cells = useMemo(() => placement.cells.map((cell) => rowCol(cell, n)), [placement.cells, n]);
-  const outline = useMemo(() => pieceOutline(cells, GAP), [cells]);
+  // The outer group is the piece's own element for the effects kit (pick-up, drop, a refused move: stage 2); the
+  // inner one carries the completion pulse, so the two never fight over one transform.
   return (
-    <g className={snap ? "bp-piece bp-piece--snap" : "bp-piece"}>
+    <g className="bp-piece" data-bp-piece={placement.piece}>
       <g
         className={delay !== undefined ? "bp-piece-lock" : undefined}
         style={delay !== undefined ? { animationDelay: `${delay}ms` } : undefined}
       >
-        <PieceArt cells={cells} colour={colour} />
-        {snap && <path className="bp-snap-ring" d={outline} fill="none" stroke="#fff" strokeWidth="5" />}
+        <PieceArt cells={cells} piece={placement.piece} />
       </g>
     </g>
   );
 }
 
-/** Steps (Chebyshev) from each cell to its nearest peg. */
-export function pegDistances(blockers: number[], n: number = N): number[] {
-  return Array.from({ length: n * n }, (_, cell) => {
-    const [r, c] = rowCol(cell, n);
-    let best = n;
-    for (const peg of blockers) {
-      const [pr, pc] = rowCol(peg, n);
-      best = Math.min(best, Math.max(Math.abs(pr - r), Math.abs(pc - c)));
-    }
-    return best;
-  });
+/**
+ * The drop's flash (stage 2): the squares the piece just covered light once, as one shape inside the piece's outline,
+ * so it sits on the piece itself and nowhere else. Opacity only; keyed by the drop, so each drop flashes once.
+ */
+export function BlockDropFlash({ cells }: { cells: number[] }) {
+  const n = useContext(BlockColsContext);
+  const outline = useMemo(() => pieceOutline(cells.map((cell) => rowCol(cell, n)), GAP), [cells, n]);
+  return (
+    <svg className="bp-drop-flash" viewBox={`0 0 ${n * U} ${n * U}`} aria-hidden="true" data-bp-flash={cells.join(",")}>
+      <path d={outline} />
+    </svg>
+  );
 }
 
-/** Ms per step of the shine as it travels out from the pegs. */
-export const SHINE_STEP_MS = 120;
+/** How long the completion shine takes to cross the board (ms): quick, since practice can open its reveal within a
+ * quarter of a second of the solving drop (the stage locks in 200 ms after it; the shine never delays that). */
+export const SWEEP_MS = 480;
+/** The shine's start after the solve moment (ms). */
+export const SWEEP_DELAY_MS = 0;
 
-/** The completion shine: rings leave every peg, then the cells light up outwards. */
-export function BlockSolveFx({ blockers }: { blockers: number[] }) {
-  const ids = useContext(IdsContext);
+/** When the shine passes a piece: its leftmost column's share of the crossing, so the pulse rides the light. */
+export function sweepDelay(cells: readonly number[], n: number = N): number {
+  const left = Math.min(...cells.map((cell) => cell % n));
+  return Math.round(SWEEP_DELAY_MS + (left / n) * SWEEP_MS * 0.8);
+}
+
+/**
+ * The completion shine (stage 2, Joe's spec: "last gap filled: a shine across the board"): one soft diagonal band
+ * of light sweeping left to right across the board, clipped to it. Transform and opacity only; drawn only for the
+ * solve moment (useSolveMoment), when the stage has stopped taking moves.
+ */
+export function BlockSweepFx({ blockers }: { blockers: number[] }) {
   const n = useContext(BlockColsContext);
-  const distance = useMemo(() => pegDistances(blockers, n), [blockers, n]);
-  const pegs = new Set(blockers);
+  const step = 100 / n;
   return (
-    <svg className="bp-solve-fx" viewBox={`0 0 ${n * U} ${n * U}`} aria-hidden="true">
-      {blockers.map((peg) => {
-        const [r, c] = rowCol(peg, n);
-        return <circle key={`ring-${peg}`} className="bp-peg-ring" cx={c * U + 50} cy={r * U + 50} r="28" />;
-      })}
-      {distance.map((steps, cell) => {
-        if (pegs.has(cell)) return null;
-        const [r, c] = rowCol(cell, n);
-        return (
-          <rect
-            key={cell}
-            className="bp-shine-cell"
-            x={c * U + GAP}
-            y={r * U + GAP}
-            width={U - 2 * GAP}
-            height={U - 2 * GAP}
-            rx={RADIUS}
-            fill={ids ? `url(#${ids.shine})` : "var(--primary)"}
-            style={{ animationDelay: `${60 + (steps - 1) * SHINE_STEP_MS}ms` }}
-          />
-        );
-      })}
-    </svg>
+    <div className="bp-sweep" aria-hidden="true" data-bp-sweep="">
+      <span className="bp-sweep-band" />
+      {/* Each stud glints as the light reaches it (its column's share of the crossing, as the pieces' pulse). */}
+      {blockers.map((peg) => (
+        <span
+          key={peg}
+          className="bp-peg-glint"
+          data-bp-glint={peg}
+          style={{
+            left: `${(peg % n) * step + step * 0.2}%`,
+            top: `${Math.floor(peg / n) * step + step * 0.2}%`,
+            width: `${step * 0.6}%`,
+            height: `${step * 0.6}%`,
+            animationDelay: `${sweepDelay([peg], n)}ms`,
+          }}
+        />
+      ))}
+    </div>
   );
 }

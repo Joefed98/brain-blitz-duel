@@ -1,5 +1,12 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { capSprite, wireSprite } from "@/components/puzzles/attention/attentionArt";
+import { RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { useMoveSync } from "@/components/puzzles/useMoveSync";
+import { useLevelGoal } from "@/components/duel/GameFrame";
+import { leveled } from "@/lib/duel/attentionLevels";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -121,8 +128,12 @@ export function Panel({
               key={`${end ?? "whole"}-${justCut ? lastAction?.key : 0}`}
               className={`logic-wire rounded-full ${end ? `logic-wire-cut logic-wire-${end}` : ""} ${justCut ? "logic-wire-snap" : ""}`}
               style={{
-                height: compact ? 4 : 8,
+                height: compact ? 4 : 10,
                 backgroundColor: WIRE_HEX[colour],
+                // The Attention overhaul: a braided, insulated sleeve rendered in Blender, repeated along the wire.
+                backgroundImage: `url(${wireSprite(colour)})`,
+                backgroundSize: "auto 100%",
+                backgroundRepeat: "repeat-x",
                 boxShadow: colour === "BLACK" ? "0 0 0 1px #6A6A74" : undefined,
                 ...style,
               }}
@@ -136,7 +147,8 @@ export function Panel({
               onClick={() => onWire?.(index)}
               // 7 Nov 2026 (accessibility audit #16): the rules name colours, so the label does too.
               aria-label={`Wire ${index + 1}, ${colour.toLowerCase()}${isCutWire ? ", cut" : ""}`}
-              className="flex w-full items-center gap-1"
+              className="bomb-wire-row flex w-full items-center gap-1"
+              data-bomb-wire-row={index + 1}
             >
               <span className="bomb-wire-index font-mono text-sm font-bold text-muted-foreground">{index + 1}</span>
               <span className="relative flex flex-1 items-center">
@@ -166,10 +178,13 @@ export function Panel({
               style={{
                 width: compact ? 24 : 44,
                 height: compact ? 24 : 44,
-                backgroundColor: WIRE_HEX[button.colour],
-                borderColor: isDown ? "#F5B82E" : button.colour === "BLACK" ? "#6A6A74" : "transparent",
+                backgroundColor: compact ? WIRE_HEX[button.colour] : "transparent",
+                // The Attention overhaul: a domed cap in a steel bezel, rendered in Blender; pressed, a gold ring.
+                backgroundImage: compact ? undefined : `url(${capSprite(button.colour)})`,
+                backgroundSize: "100% 100%",
+                borderColor: isDown ? "#E2C07A" : "transparent",
                 color: button.colour === "BLACK" ? "#F2F2F2" : "#111",
-                boxShadow: isDown ? "0 0 8px rgba(245,184,46,0.8)" : "none",
+                boxShadow: "none",
               }}
             >
               {button.label}
@@ -182,7 +197,7 @@ export function Panel({
 }
 
 
-const TOKEN_RE = /(wires \d and \d|wire \d|button [AB]|press [AB]|\b(?:Red|Blue|Green|Yellow|White|Black)\b)/gi;
+const TOKEN_RE = /(wires \d and \d\b|wire \d\b|button [AB]\b|press [AB]\b|\b(?:Red|Blue|Green|Yellow|White|Black)\b)/gi;
 
 function Swatch({ colour }: { colour: WireColour }) {
   return (
@@ -195,6 +210,18 @@ function Swatch({ colour }: { colour: WireColour }) {
     />
   );
 }
+
+/** The Attention overhaul: a wire or button named in a clue as a chip in its own colour, bold, easy to find. */
+function Chip({ colour, children }: { colour: WireColour; children: ReactNode }) {
+  return (
+    <span className="bomb-chip" data-bomb-chip={colour.toLowerCase()} style={{ backgroundColor: WIRE_HEX[colour], color: CHIP_INK[colour] }}>
+      {children}
+    </span>
+  );
+}
+
+/** Ink on each chip colour (dark on the light wires, light on the dark ones). */
+const CHIP_INK: Record<WireColour, string> = { RED: "#140A0A", BLUE: "#06101F", GREEN: "#04140B", YELLOW: "#191400", WHITE: "#121216", BLACK: "#F2F2F2" };
 
 function RuleText({
   text,
@@ -218,12 +245,9 @@ function RuleText({
           const c2 = wires[(b ?? 1) - 1] ?? "WHITE";
           return (
             <span key={index} className="inline-flex items-center font-bold text-foreground/90">
-              wires&nbsp;
-              <Swatch colour={c1} />
-              <span>{a}</span>
+              <Chip colour={c1}>wire {a}</Chip>
               &nbsp;and&nbsp;
-              <Swatch colour={c2} />
-              <span>{b}</span>
+              <Chip colour={c2}>wire {b}</Chip>
             </span>
           );
         }
@@ -232,10 +256,7 @@ function RuleText({
           const n = Number(part.slice(5));
           const colour = wires[n - 1] ?? "WHITE";
           return (
-            <span key={index} className="inline-flex items-center font-bold text-foreground/90">
-              <Swatch colour={colour} />
-              {part}
-            </span>
+            <Chip key={index} colour={colour}>{part}</Chip>
           );
         }
         
@@ -243,19 +264,13 @@ function RuleText({
           const label = part.slice(-1) as "A" | "B";
           const colour = buttons.find((b) => b.label === label)?.colour ?? "WHITE";
           return (
-            <span key={index} className="inline-flex items-center font-bold text-foreground/90">
-              <Swatch colour={colour} />
-              {part}
-            </span>
+            <Chip key={index} colour={colour}>{part}</Chip>
           );
         }
         
         const colour = part.toUpperCase() as WireColour;
         return (
-          <span key={index} className="inline-flex items-center font-bold uppercase tracking-tight text-foreground/90">
-            <Swatch colour={colour} />
-            {part}
-          </span>
+          <Chip key={index} colour={colour}>{part.toLowerCase()}</Chip>
         );
       })}
     </>
@@ -278,7 +293,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Clue: “Step 1: cut wire 2.” So wire 2 is cut first. Read every clue, work out the six steps and their order, then do them.
+        Clue: “Step 1: cut wire 2.” So wire 2 is cut first. Work out the six steps and their order, then tap DEFUSE: nothing reacts before that.
       </p>
     </div>
   );
@@ -291,6 +306,7 @@ function Stage({
   locked,
   onSubmit,
   onDraftAnswer,
+  checkMoves,
   stateKey = "bomb",
 }: PuzzleStageProps) {
   const isBomb = puzzle.type === "bomb";
@@ -298,7 +314,22 @@ function Stage({
   const [frozenAt, setFrozenAt] = useState<number | null>(null);
   const submitted = useRef(false);
   const stepTotal = (isBomb ? puzzle.stepCount || BOMB_MAX_SEQUENCE : BOMB_MAX_SEQUENCE);
+  // Expert (the Attention overhaul's levels): every step is checked live on the server; the first wrong one sets the
+  // bomb off at once and sends the steps made (the server grades the same list). No Reset.
+  const instant = isBomb && !!puzzle.bombInstant;
+  const [blown, setBlown] = useState(false);
+  const live = useMoveSync(checkMoves, "bomb", (view) => {
+    if (view.live || submitted.current) return;
+    submitted.current = true;
+    setBlown(true);
+    attnSound("bomb.instant", { volume: 0.8 });
+    setFrozenAt(Date.now());
+    onSubmit(encodeBombActions(latestActions.current));
+  });
+  const latestActions = useRef<BombAction[]>([]);
   const inFrame = useFrameProgress(Math.min(actions.length, stepTotal), stepTotal, "steps");
+  // A level's panel (stage 3): the goal line says its own number of steps.
+  useLevelGoal("bomb", isBomb && leveled(puzzle) ? `Defuse the bomb in ${stepTotal} steps` : null);
 
   useEffect(() => {
     onDraftAnswer?.(encodeBombActions(actions));
@@ -306,9 +337,21 @@ function Stage({
 
   const act = (action: BombAction) => {
     if (locked || submitted.current) return;
-    soundCue(isCut(action) ? "bomb.cut" : "bomb.press");
+    // The Attention overhaul (15 Nov 2026, input only): no more steps than the bomb needs, and a button presses once.
+    if (!bombActionAllowed(actions, action, stepTotal)) return;
+    // The Attention overhaul (stage 2): a cut snips (its recording, with the sparks); a press is a heavy click on the
+    // cap itself; each step fills the next pip of the frame's step bar with a small relay tick. Nothing reacts beyond
+    // that: the order is judged at DEFUSE.
+    if (isCut(action)) soundCue("bomb.cut");
+    else {
+      attnSound("bomb.press", { volume: 0.75 });
+      gameFx("tap", document.querySelector(`[aria-label^="Button ${action.slice(1)},"]`), { silent: true });
+    }
+    window.setTimeout(() => attnSound("bomb.step", { volume: 0.35, rate: 1 + actions.length * 0.04 }), 90);
     const next = [...actions, action];
     setActions(next);
+    latestActions.current = next;
+    if (instant) live(encodeBombActions(next));
   };
 
   useEffect(() => {
@@ -340,7 +383,7 @@ function Stage({
     } else if (button) act(pressAction(button.label));
     else if (key === "Enter") {
       if (!(locked || !actions.length)) defuse();
-    } else if (!(locked || !actions.length || submitted.current)) setActions([]);
+    } else if (!instant && !(locked || !actions.length || submitted.current)) setActions([]);
     return true;
   });
 
@@ -355,16 +398,19 @@ function Stage({
   const last = actions.at(-1);
 
   return (
-    <div data-stage-column="2" data-logic-stage="bomb" className="relative flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" data-logic-stage="bomb" data-bomb-blown={blown ? "" : undefined} data-bomb-instant={instant ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2">
       <div data-game-arena="logic">
-        <div className="logic-bomb-rules w-full shrink-0 rounded-xl border border-border bg-card p-2">
+        {/* The Attention overhaul: a clean matte card, each clue numbered on its own pip, names as coloured chips. */}
+        <ol className="logic-bomb-rules bomb-clues w-full shrink-0 rounded-xl p-2" data-bomb-clues="">
           {puzzle.rules.map((rule, index) => (
-            <p key={rule.id} className="text-[14px] leading-[1.5]">
-              <span className="font-mono text-primary">{index + 1}.</span>{" "}
-              <RuleText text={rule.text} wires={puzzle.wires} buttons={puzzle.buttons} />
-            </p>
+            <li key={rule.id} className="bomb-clue">
+              <span className="bomb-clue-pip" aria-hidden="true">{index + 1}</span>
+              <span className="bomb-clue-text">
+                <RuleText text={rule.text} wires={puzzle.wires} buttons={puzzle.buttons} />
+              </span>
+            </li>
           ))}
-        </div>
+        </ol>
 
         <div className="logic-bomb-board flex w-full">
           <Panel
@@ -395,23 +441,71 @@ function Stage({
           type="button"
           disabled={locked || !actions.length}
           onClick={defuse}
-          className="h-11 w-3/4 rounded-lg px-4 font-display text-[10.5px] font-bold uppercase tracking-widest disabled:opacity-40"
+          data-attn-action="primary"
+          className="attn-action h-11 w-3/4 rounded-lg px-4 font-display text-sm font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Defuse
         </Button>
         </div>
-        <button
+        {instant ? null : <button
           type="button"
           disabled={locked || !actions.length || submitted.current}
           onClick={() => {
             setActions([]);
           }}
-          className="h-11 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+          data-attn-action="secondary"
+          className="attn-action h-11 rounded-xl px-4 font-display text-xs font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Reset
-        </button>
+        </button>}
       </div>
     </div>
+  );
+}
+
+/**
+ * The Attention overhaul (input only): a step is taken only while fewer than the bomb's steps are made, a wire is cut
+ * once and a button pressed once. No bank plan ever repeats an action or runs past its steps
+ * (attention-overhaul-check), so this never blocks a defusing order.
+ */
+export function bombActionAllowed(actions: readonly BombAction[], action: BombAction, steps: number): boolean {
+  return actions.length < steps && !actions.includes(action);
+}
+
+/** One step as a small picture: a wire's braided sleeve with its number, or a button's cap with its letter; "—" for none. */
+function StepPicture({
+  action,
+  wires,
+  buttons,
+  mine = false,
+}: {
+  action: BombAction | undefined;
+  wires: WireColour[];
+  buttons: { label: "A" | "B"; colour: WireColour }[];
+  mine?: boolean;
+}) {
+  if (!action) return <span className="bomb-rv-pic bomb-rv-none">{mine ? "—" : ""}</span>;
+  if (isCut(action)) {
+    const index = Number.parseInt(action.slice(1), 10);
+    const colour = wires[index] ?? "WHITE";
+    return (
+      <span className="bomb-rv-pic" aria-label={actionLabel(action, wires)}>
+        <span className="bomb-rv-wire" style={{ backgroundImage: `url(${wireSprite(colour)})`, backgroundColor: WIRE_HEX[colour] }} aria-hidden="true">
+          <i />
+        </span>
+        <span className="bomb-rv-word">Cut {index + 1}</span>
+      </span>
+    );
+  }
+  const label = action.slice(1) as "A" | "B";
+  const colour = buttons.find((b) => b.label === label)?.colour ?? "WHITE";
+  return (
+    <span className="bomb-rv-pic" aria-label={actionLabel(action, wires)}>
+      <span className="bomb-rv-cap" style={{ backgroundImage: `url(${capSprite(colour)})`, color: colour === "BLACK" ? "#F2F2F2" : "#111" }} aria-hidden="true">
+        {label}
+      </span>
+      <span className="bomb-rv-word">Press {label}</span>
+    </span>
   );
 }
 
@@ -443,46 +537,48 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
+  const rows = Math.max(shown.length, mine.length);
+  const right = replay.correctPrefix;
+  // The Attention overhaul's reveal (15 Nov 2026): one step track, the right action beside yours on each row, each a
+  // small picture of the wire (its braided colour and number) or the button (its cap and letter); the first wrong step
+  // ringed red and the steps after it dimmed. No "Solution" / "Yours" columns side by side, so no switch is needed.
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <div className="grid w-full grid-cols-2 gap-3 text-base">
-        <div>
-          <p className="mb-1 text-center font-mono uppercase text-primary">One valid plan</p>
-          {shown.map((action, index) => (
-            <p key={`${action}-${index}`} className="break-words">
-              <span className="font-mono text-primary">{index + 1}.</span>{" "}
-              {actionLabel(action, puzzle.wires)}
-            </p>
-          ))}
-        </div>
-        <div>
-          <p className="mb-1 text-center font-mono uppercase text-muted-foreground">Yours</p>
-          {mine.map((action, index) => (
-            <p
-              key={`${action}-${index}`}
-              className={index === replay.firstWrong ? "break-words text-warn" : "break-words"}
-            >
-              <span className="font-mono">{index + 1}.</span> {actionLabel(action, puzzle.wires)}
-              {index === replay.firstWrong ? " ✗" : ""}
-            </p>
-          ))}
-        </div>
-      </div>
-      <p className="flex items-center justify-center gap-2 font-display text-xl font-bold">
+    <div className="attn-rv" data-attn-reveal="bomb">
+      <p className="flex items-center justify-center gap-2 font-display text-xl font-bold" data-bomb-outcome="">
         <BombLamp defused={myCorrect && replay.defused} />
         <span className={myCorrect ? "text-ok" : "text-warn"}>
           {replay.exploded
             ? `Exploded at step ${replay.correctPrefix + 1}`
             : replay.defused
-              ? "DEFUSED"
-              : `${replay.correctPrefix} / ${required.length} steps`}
+              ? "Defused"
+              : `${replay.correctPrefix} of ${required.length} steps right`}
         </span>
-        {myCorrect && elapsed !== null && (
-          <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-            {elapsed.toFixed(1)}s
-          </span>
-        )}
       </p>
+      <ol className="bomb-rv-steps" aria-label="The steps" data-bomb-steps="">
+        <li className="bomb-rv-head" aria-hidden="true">
+          <span />
+          <span>Right order</span>
+          <span>Your steps</span>
+        </li>
+        {Array.from({ length: rows }, (_, index) => {
+          const state = replay.firstWrong === index ? "wrong" : replay.firstWrong !== null && index > replay.firstWrong ? "after" : index < right ? "right" : "open";
+          return (
+            <li key={index} className="bomb-rv-step" data-step-state={state}>
+              <span className="bomb-rv-num">{index + 1}</span>
+              <StepPicture action={shown[index]} wires={puzzle.wires} buttons={puzzle.buttons} />
+              <StepPicture action={mine[index]} wires={puzzle.wires} buttons={puzzle.buttons} mine />
+            </li>
+          );
+        })}
+      </ol>
+      <RevealStats
+        game="bomb"
+        items={[
+          { id: "right", label: "Steps right", value: `${right} of ${required.length}`, tone: replay.defused ? "good" : right < required.length ? "bad" : undefined },
+          { id: "made", label: "Steps made", value: mine.length },
+          myCorrect && elapsed !== null ? { id: "time", label: "Time", value: `${elapsed.toFixed(1)} s` } : null,
+        ]}
+      />
     </div>
   );
 }

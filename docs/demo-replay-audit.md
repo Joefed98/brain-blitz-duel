@@ -109,15 +109,15 @@ Replay columns describe the room's results-screen highlight and the podium's pla
 | Matchmaker (`pairmatch`) | Attention | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct10-polish-b`. Flips are stored in order, but the reveal ignores a part-played list (needs `replay.matched` drawn). |
 | Mixed Signals (`stroop`) | Attention | No (stopped) | n/a: still | Arcade highlight | Yes: the stored run | Demo stopped until recorded on `clashRev 5`+ (tall). |
 | Tally (`countup`) | Attention | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct14-attention-rework`. Per-tray counts (quiz-style). |
-| Chroma Lines (`flow`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct10-polish-b`. Stores final paths only; needs an action log. |
+| Chroma Lines (`flow`) | Pattern | Yes (bundled, `flowRev 3`) | Yes | Final board | No: final board only | Demo needs `flowRev 3` and `oct10-polish-b`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/flow.json`, until a live row on today's stamp replaces it: all ten lines drawn, Green drawn through Brown's squares and cut back as Brown is drawn, then redrawn. Stores final paths only; needs an action log. |
 | Gridlock (`unblock`) | Pattern | Not confirmed | Yes | Time-lapse (solved rounds) | Yes (fixed): moves in order, evenly spaced | Demo needs `oct13-pattern-polish`. Its reveal draws the player's board only for a correct answer. |
 | Heave (`push`) | Pattern | Not confirmed | Yes | Time-lapse (solved rounds) | Yes (fixed): steps in order, evenly spaced | Demo needs `oct13-pattern-polish`. As Gridlock. |
 | Gradient (`tiles`; Jumbled until 27 Oct 2026) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct14-pattern-logic-batch`. Moves are stored in order, but the reveal ignores a part-played list (needs `replay.frame` drawn). |
 | Lightbender (`laser`) | Pattern | No (stopped unless `splitterPieces 1`) | Yes | Time-lapse (action-log rounds) | Yes (new): every piece and FIRE at its recorded time, scaled | Demo needs `oct10-polish-b` and a movable-piece example. Older answers (no action log) show the final board. |
-| Pipeline (`pipes`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct13-pattern-polish`. Stores final tiles only; needs an action log. |
-| Skid (`iceslide`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct13-pattern-polish`. Moves are stored in order, but the reveal ignores a part-played list (needs the ball and paths drawn per prefix). |
-| Tessellate (`blockparty`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct10-polish-b`. Placements stored, removals lost; needs an action log. |
-| Topsy-Turvy (`gravity`) | Pattern | Not confirmed | Yes | Time-lapse | Yes (fixed): tilts in order, evenly spaced | Demo needs `oct10-polish-b`. No times stored. |
+| Pipeline (`pipes`) | Pattern | Yes (bundled, `pipesRev 5`) | Yes | Final board | No: final board only | Demo needs `pipesRev 5` and `oct13-pattern-polish`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/pipes.json`, until a live row on today's stamp replaces it: every tile turned the short way, taps clockwise and long presses anticlockwise, the water running through as the network grows and the solve rush at the end. Stores final tiles only; needs an action log. |
+| Skid (`iceslide`) | Pattern | Yes (bundled, `slideRev 5`) | Yes | Final board | No: final board only | Demo needs `slideRev 5` and `oct13-pattern-polish`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/iceslide.json`, until a live row on today's stamp replaces it: the 19-slide route with one slide off it (Left at step 8) taken back by Undo. Moves are stored in order, but the reveal ignores a part-played list (needs the ball and paths drawn per prefix). |
+| Tessellate (`blockparty`) | Pattern | Yes (bundled, `blockRev 4`) | Yes | Final board | No: final board only | Demo needs `blockRev 4` and `nov15-tessellate-overhaul`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/blockparty.json`, until a live row on today's stamp replaces it: the nine pieces turned with taps, one flipped with a double tap, each dropped cleanly onto its place. Placements stored, removals lost; needs an action log. |
+| Topsy-Turvy (`gravity`) | Pattern | Yes (bundled, `gravityRev 8`) | Yes | Time-lapse | Yes (fixed): tilts in order, evenly spaced | Demo needs `gravityRev 8` and `oct10-polish-b`. Bundled (15 Nov 2026): plays the app's own demo, `src/lib/duel/bundledDemos/gravity.json`, until a live row on today's stamp replaces it: the three boards' shortest routes (13 tilts), every ball home. No times stored. |
 | Turntable (`rings`) | Pattern | Not confirmed | Yes | Time-lapse | Yes (fixed): turns in order, evenly spaced | Demo needs `oct13-pattern-polish`. No times stored. |
 | Blackout (`lightsout`) | Logic | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct13-logic-polish`. Presses are stored in order, but the reveal ignores a part-played list (needs `replayLights` drawn per prefix). |
 | Bomb Defusal (`bomb`) | Logic | No (stopped unless `bombVersion 3`) | Yes | Final board | No: final board only | Demo needs `oct13-logic-polish` on a v3 card. Steps stored; needs a board view per step. |
@@ -173,6 +173,76 @@ demo; a stopped demo's intro shows its still (also proved there, as the no-demo 
 - **Quiz-style picks**: Operator, Tally, Eagle Eye, Double Take (a per-pick view with times).
 - **Word games**: Nucleus and Forage (a timed word log; Forage's traced paths).
 
+## Bundled demos (15 Nov 2026, the Pattern overhaul)
+
+The Pattern overhaul's stamps stopped five live demos (Tessellate `blockRev 4`, Pipeline `pipesRev 5`, Chroma Lines
+`flowRev 3`, Skid `slideRev 5`, Topsy-Turvy `gravityRev 8`). This container cannot reach the live database, and stored
+demos are never rewritten by a migration, so each new demo ships with the app: `src/lib/duel/bundledDemos/<id>.json`, one
+`intro_demos` row each (2–5 KB). Each was recorded by real play of the fixed intro example in dev practice (Intro
+examples on, the dev demo key) in headless Chromium at 390 × 844, and is the exact payload the reveal's "Save as intro
+demo" button sent (the example's public half, the touch log with its presentation and layout), captured from the request.
+`getIntroDemoFn` returns the live row when it plays on today's stamp and presentation (`acceptIntroDemo`, then
+`pickIntroDemo`), else the bundled demo; so a demo recorded live through the Save button replaces a bundled one with no
+code change. Gridlock (`unblockRev 4`) and Lightbender (`laserRev 4`) were added the same day (next section).
+`pattern-overhaul-demos-check` proves each demo is today's example and stamp, is chosen over a refused or older live row
+and loses to a current one, and replays through the game's own rules to a solved board; demo-intro-check plays them in
+the intro. Stills of each playing in its intro (mid-demo and the solved end, the dev server's practice intro at 390 × 844):
+`docs/design/pages-review/pattern/intro-demos/<id>.webp`.
+
+Same day, two recorder and player fixes any puzzle demo saved from now on gets:
+- The recorder (`DemoRecorder.finish`) keeps a press still down when the round ends. Topsy-Turvy's last tilt (and a
+  Pipeline long press that finishes the board) submits before the finger lifts, so a Save made before this stopped one
+  move short of the solve.
+- Since the game frame (Polish 2, 24 Oct 2026) a puzzle round is drawn under the play shell's attributes
+  (`[data-puzzle-play] …` rules size boards and buttons) with the frame's goal line holding the stage's progress, while
+  the intro's demo player drew the stage bare (its own progress line on top, other sizes), so touches recorded in a
+  round landed off target in the intro. The recorder now keeps the frame (`PuzzleDemoLog.frame`: the shell's data
+  attributes) and the player draws such a demo under the same attributes (on its demo box) with a goal line, so it
+  lays out as it was played. Demos without `frame` (every older one) draw exactly as before. Rules scoped to
+  `[data-game-stage]` are left out on purpose (that attribute marks a live round for haptics and checks); none of them
+  moved these five games' touches.
+
+## Packaged for the live save (15 Nov 2026)
+
+Joe's instruction (relayed by the merge captain): the overhaul's demos also travel as one fixture, saved to the live
+database by a manual "Save intro demos" workflow after the final merge. Nothing here writes to the live database.
+
+- **`scripts/fixtures/pattern-demos.json`**: one entry a game whose demo plays on the overhaul's stamp: Tessellate
+  `blockRev 4`, Pipeline `pipesRev 5`, Chroma Lines `flowRev 3`, Skid `slideRev 5`, Topsy-Turvy `gravityRev 8` (the
+  five bundled demos, their exact rows), Gridlock `unblockRev 4` and Lightbender `laserRev 4` (recorded now). Each holds
+  the `intro_demos` row (byte for byte the bundled file) and the run: the answer those touches sent to practice's grader
+  in the real practice stage, its time left and the score the dev server's grader gave (200 for all seven). Heave keeps
+  its live demo (no stamp change).
+- **Gridlock and Lightbender** were recorded by real play in headless Chromium (390 × 844) of the fixed intro example in
+  dev practice, Intro examples on, the dev key (`scripts/pattern-demos-record.ts record <game>`): Gridlock the bank
+  row's shortest route with one car first slid the wrong way and Undo giving it back (17 moves, par 17, 200); Lightbender
+  the nine pieces placed, one mirror turned the wrong way and one moved off its square, each taken back by Undo, then
+  Fire (200). The Save button's request was captured (not sent on), its touch log kept on the deal's public half with the
+  3-2-1's idle trimmed to a first touch at 0.6 s, as the five before. The five's runs come from their own touches played
+  back into the real stage (`replay <game>`). `assemble` rebuilds the fixture byte for byte from the captures.
+- **Gridlock's example is the live `unblock_bank` table's first row.** practiceGenerateFn reads it (by id); this
+  container can't reach the live database, so the fixture assumes row 1 is the fallback bank's first entry (the order the
+  table was loaded in, `docs/supabase-move/runbook.md` 3.6: 400 rows, ids 1–400). The save script refuses Gridlock if it
+  isn't, and the bundled demo keeps playing.
+- **Version rules** (`introDemo.functions.ts`): a Gridlock row below `unblockRev 4` and a Lightbender row below
+  `laserRev 4` are refused (so the bundled demo plays) until a live one is saved on the new stamp.
+- **`scripts/pattern-demos-save.ts`** never prompts. `DEMOS_URL` (a dev server's origin: production builds name their
+  server functions by hash), `INTRO_DEMO_KEY`, optional `DEMOS_GAMES=a,b` and `DEMOS_DRY=1`; flags `--url=`, `--key=`,
+  `--games=`, `--dry` win. It checks the key once, then for each game asks the server for the intro example and refuses
+  (FAIL, nothing saved) unless the deal's public half is exactly the fixture's (Lightbender's `stats.generationMs`, the
+  deal's own build time, aside), saves the touch log on that sealed deal through `savePuzzleDemoFn` exactly as the Save
+  button does, and reads it back through `getIntroDemoFn`. One OK or FAIL line a game; exit 0 all saved, 1 any failed, 2
+  URL or key missing; the key is never printed. Tested against a dev server on a local database
+  (`scripts/pattern-demos-serve.ts`: the server-function harness's PostgreSQL with every migration, `unblock_bank`
+  loaded in the fallback bank's order, `INTRO_DEMO_KEY` local): a dry run (7 OK, nothing stored), a real save (7 OK,
+  every row stored and served back), a wrong key, an unknown game and an unreachable server (each FAIL, exit 1).
+- **pattern-demos-check** (~5 s, shard `e`) proves each row is the bundled file and today's intro example (worked out
+  as practiceGenerateFn does, and asked of the real function on PostgreSQL), the stop rules, the run graded by practice's
+  grading (gradeAnswer behind practiceTrustedMs, and the real practiceGradeFn on the sealed deal at the run's receipt) to
+  its stored score, Gridlock's drags and Lightbender's taps tied to their answers move for move, and the save script on
+  the real functions (wrong key, a mismatched deal, dry run, real save, read-back, exit codes, the key never printed).
+  pattern-overhaul-demos-check keeps proving the five's touches solve their boards.
+
 ## Re-record list (3 Nov 2026)
 
 One list of every game whose intro demo is stopped, never recorded, or out of date after the October and November
@@ -185,8 +255,10 @@ yet" means the game has never had a demo (its intro shows the still).
 | Game (id) | Record on | Why |
 |---|---|---|
 | Labyrinth (`maze`) | `mazeRev 4` | Out of date: the par-moves batch (3 Nov) took the stars and gems away; no stop rule for `mazeRev` |
-| Topsy-Turvy (`gravity`) | `gravityRev 6` | Out of date: the rule lets `gravityRev 4`/`5` demos play, which still collect stars |
-| Skid (`iceslide`) | `slideRev 3` | Out of date: the depth-4 rule lets a `slideRev 2` demo play, which still shows gems |
+| Topsy-Turvy (`gravity`) | `gravityRev 8` | Done (15 Nov 2026): a bundled demo on `gravityRev 8` (the stop rule refuses rows under 8) |
+| Skid (`iceslide`) | `slideRev 5` | Done (15 Nov 2026): a bundled demo on `slideRev 5` |
+| Pipeline, Chroma Lines, Tessellate (`pipes`, `flow`, `blockparty`) | `pipesRev 5`, `flowRev 3`, `blockRev 4` | Done (15 Nov 2026): bundled demos on those stamps |
+| Gridlock, Lightbender (`unblock`, `laser`) | `unblockRev 4`, `laserRev 4` | Done (15 Nov 2026): bundled demos on those stamps, with stop rules for older rows |
 | Apex (`racing`) | `racingRev 3` | None yet (start lights since rev 2, corner signs and gravel since rev 3) |
 | Home Run (`homerun`) | `homerunRev 4` | None yet ("pick your spot" since 3 Nov) |
 | Cue Ball (`pool`) | `poolRev 4` | None yet (spots or stripes, 90 s since 3 Nov) |
@@ -220,7 +292,7 @@ yet" means the game has never had a demo (its intro shows the still).
 | Pull! (`clayshoot`) | `clayRev 9` | Stopped (`CLAY_REV_DEPTH`) |
 | Bonk (`whack`) | `whackRev 4` | Stopped (`WHACK_REV_NOTES`) |
 | Mixed Signals (`stroop`) | `clashRev 10` | Stopped, and the rule needs updating: it plays only `clashRev 8` (`CLASH_REV_DEPTH`), but rooms deal the standard's `clashRev 10`, so a demo recorded today would never play |
-| Strikeout (`strikeout`) | `strikeoutRev 7` | Stopped, and the rule needs updating: it plays only `strikeoutRev 4` (`STRIKEOUT_REV4`), but rooms deal the standard's `strikeoutRev 7` |
+| The nine Word games (`wordsmith`, `tilegrid`, `wordslide`, `wordhunt`, `wordsearch`, `letterwheel`, `strikeout`, `codeword`, `swapword`) | presentation `nov15-word-overhaul` and today's own stamp: `wordsmithRev 5`, `tileGridRev 4`, `wordSlideRev 6`, `wordHuntRev 4`, `wordSearchRev 6`, `wheelRev 5`, `strikeoutRev 7`, `codewordRev 6`, `swapwordRev 7` | Stopped (the Word overhaul, 15 Nov 2026: `WORD_OVERHAUL_PRESENTATION` in `wordInput.ts`, `wordDemoStampOk` in `wordDemoStamps.ts`, which reads each game's own stamp from the dealt signature). The runs to record are `scripts/fixtures/word-demos.json` (word-demos-check); the manual "Save intro demos" workflow saves them after the final merge. Strikeout's old rev-4-only rule is gone (it stopped every demo on the `strikeoutRev 7` rooms deal) |
 | Gradient (`tiles`) | `tilesRev 6` | Out of date: the rule lets `tilesRev 4`/`5` demos play (`tilesRev 6` changed only the speed part, so a 4/5 demo plays the same board; re-record only if its score line matters) |
 | Loopline, Regions, Island Link, Kakuro (`fences`, `fillomino`, `bridges`, `kakuro`) | `fencesRev` / `fillominoRev` / `bridgesRev` / `kakuroRev` 1 | None yet |
 | Five Hands (`fivehands`) | `fiveHandsRev 3` | None yet |

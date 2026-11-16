@@ -105,10 +105,26 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game review fixes' Brimful measureRev 4):
  * preGameReviewNov15.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul, logicOverhaul1.ts): preLogicOverhaul1.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul, logicOverhaul2.ts: Trail
+ * depthRev 3 and Regions fillominoRev 2): preLogic2.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul, numberOverhaul.ts):
+ * preNumberOverhaul.
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preCheckoutLevels and
+ * preKakuroLevels (Checkout's and Kakuro's new Normal, numberLevels.ts).
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preMeasureLevels (Brimful's new
+ * Normal, measureLevels.ts; whole rooms need no entry: any pinned era deals Brimful's old Normal).
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preBalanceLevels (Counterweight's
+ * new Normal, balanceLevels.ts; any pinned era deals its old Normal too).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, patternNov15.ts): prePatternNov15.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul, wordOverhaul.ts): preWordOverhaul.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): preAttentionOverhaul.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul, speedOverhaul.ts): preSpeedOverhaul.
+ * Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
  */
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): bubblePreFast and inkPreHills,
 // and matchupPreIce2 (Gemstone matchupRev 13).
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "bubblePreFast", "inkPreHills", "matchupPreIce2"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "bubblePreFast", "inkPreHills", "matchupPreIce2"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -167,9 +183,14 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
  */
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
-  // arcade deal, unpinned here as before). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy
-  // overhaul): Coral Pop's bubbleRev 12 and Rainbow Bridge's inkRev 15 stamp the room's puzzles, so their pins join.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "bubblePreFast", "inkPreHills"]);
+  // arcade deal, unpinned here as before).
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): preLogicOverhaul1 too.
+  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): preLogic2 and prePatternNov15 too.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul): preWordOverhaul too.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): preAttentionOverhaul.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): Coral Pop's bubbleRev 12
+  // and Rainbow Bridge's inkRev 15 stamp the room's puzzles, so their pins join.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "bubblePreFast", "inkPreHills"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

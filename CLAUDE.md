@@ -2659,6 +2659,65 @@ outside the repo.
   `combo` full at 10); Gemstone's cyan heart (`gem-heart`) and Coral Pop's orange bubble (`bubble-orange`) are rendered
   (`strategy_art.py gem7 bubble6`); each game's "?" help has a help-only "Levels:" line (strategy-overhaul-check).
   Tilt's Normal (elite ~144 under human limits) is noted for Joe's scoring review in docs/arcade-standard/tilt.md.
+- **The Word overhaul, stage 1** (phase 2 step 4, 15 Nov 2026; `docs/design/game-reviews/word.md`, gallery
+  `docs/design/pages-review/word/GALLERY.md`). *Look* (display only): every Word piece is a Blender render
+  (`scripts/word-art/word_art.py`, bpy from PyPI, run from a venv outside the repo; deterministic) in
+  `public/word-art/` (`manifest.json`), laid under live letters through attributes: `data-wa` = tile / tile-sm / disc /
+  well / key / pip with `data-wa-tone` (gold, teal, grey, red, dim, sapphire), `data-wa-btn` = gold / navy (nine-sliced),
+  in `src/polish-word/word-look.css` (four attributes deep: it outranks the older tile rules) and one file a game in
+  `src/polish-word/`. No glows. **Re-run word_art.py after changing a piece's material and keep its sizes under 20 KB.**
+  Reveals whose markup a legacy check compares keep it: Strikeout's reveal is styled by its existing attributes, and
+  Roundabout's crossword takes the art only live and on wheelRev 5 (`Crossword art`). The keyboards (`LetterKeypad`)
+  are 52 px keys with a pop-up letter preview and a key cue (`strikeout.key` / `codeword.key`, `word.key.mp3` behind
+  NEW_GAME_SOUNDS) and sit at the bottom. The round-end list is `WordDropList` (words drop in, the longest gold).
+  *Game changes* (`src/lib/duel/wordOverhaul.ts`, layer `dealWordOverhaul` in `wordOverhaul.server.ts`, last in
+  DEAL_LAYERS; `pinPreWordOverhaul(true)` deals the stamps before): Nucleus `wordsmithRev 5` (counted words and the
+  missed list everyday only; obscure words score as bonus words, the verdict's `bonus`), Slider `wordSlideRev 6` (par =
+  the proven fewest slides; Reset asks first), Lookout `wordSearchRev 6` (the round goes on after the sixth word, Done;
+  speed measured at the sixth word), Roundabout `wheelRev 5` (`letterWheelBankRev5.server.ts`,
+  `bun scripts/letter-wheel-bank.ts --rev5 [--check]`: common-answer slot words, at most two of three letters),
+  Cryptogrid `codewordRev 6` (only letters shown wrong cost the clean crack; the selection jumps on). Display: Interlock
+  live red runs and drag back to the tray, Forage's miss pill, Roundabout's miss vs repeat, Swapword's intro swap.
+  ElevenLabs list: `docs/sound-cues/word-elevenlabs.md`. Checks: word-overhaul-check; screens `scripts/screens/word.ts`.
+  Reveals (Joe's reveal brief): on the new stamps only (`overhaulReveal(puzzle)`, `REVEAL_FROM` in wordOverhaul.ts; older
+  stamps draw their reveal exactly as before) each game's reveal is built from `src/components/puzzles/WordReveal.tsx`
+  (the score's numbers as tiles, the board large, Solution / Yours through the shared switch, words as chips; styles
+  `src/polish-word/word-reveal.css`).
+  *Stage 2, the effects* (15 Nov 2026, on #422's kit): every moment through `wordFx` (`src/components/puzzles/wordFx.ts`:
+  the kit's effect on the piece's own element plus the game's cue), 81 cues named in `word-elevenlabs.md`, each with a
+  placeholder in `scripts/sound-review-nov-2026/make.py` behind NEW_GAME_SOUNDS and a NEW_GAME_SOUND_REPLACES entry (the
+  kit or game sound it stands in for); the round end in each reveal (`RevealChips drop`: words drop in with
+  `shared.wordDrop` ticks, the longest `shared.wordLongest`; `RevealNumbers countAfterMs` counts the numbers up after).
+  Clips in the gallery; `bun scripts/shots/capture.ts … --video=<dir>` records a run. Stage 3 (levels) follows.
+  *Intro demos* (15 Nov 2026, the merge captain's plan): every older Word demo is stopped (`WORD_OVERHAUL_PRESENTATION`
+  in wordInput.ts, and `wordDemoStampOk` in `src/lib/duel/wordDemoStamps.ts`: a demo plays only on the game's own stamp as
+  rooms deal it, read from the dealt signature; Strikeout's rev-4-only rule is gone); the runs to record are
+  `scripts/fixtures/word-demos.json` (`bun scripts/word-demos-record.ts`: the near-perfect kit on today's intro example),
+  proved by word-demos-check (each run scores exactly the server's grade). Nothing saves a demo; the manual "Save intro
+  demos" workflow does after the final merge. Effect moments' own cues go through `effectCue` (wordFx.ts), the finish
+  cues through `wordCue`. The workflow runs `scripts/word-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY, DEMOS_GAMES,
+  DEMOS_DRY / `--dry`; flags win; exit 0 / 1 / 2): headless Chromium plays each fixture run on the real stage in
+  practice's dev mode (one step player a game, `scripts/word-demos-players.ts`), refuses unless the served deal's public
+  half and the sent answer are the fixture's, then presses Save as intro demo.
+  *Stage 3, levels* (15–16 Nov 2026, on #432's framework): each Word game's entry is its own file
+  (`src/lib/levels/word/<game>.ts`: settings and one plain `ABOUT` line a level, read by `levelAbout` for the round
+  intro, the "?" help's Levels block and the game page) and its level deal `src/lib/duel/levels/<game>.server.ts`
+  (`dealWordLevel` in wordLevels.server.ts, hooked in generateUnstamped, never reached at Normal); the table of every
+  game's levels is in `docs/design/game-reviews/word.md` "Stage 3". A level's clock is the puzzle's own `timeLimitMs`;
+  boards that grow do so in rows (Lookout 10 × 11 / 10 × 12, Roundabout up to 9 × 12). Proofs: Strikeout, Lookout,
+  Cryptogrid and Swapword prove one answer (Strikeout's and Cryptogrid's Expert by a person-like solver,
+  `strikeoutSolver.server.ts`, `codewordHuman.server.ts`); Nucleus, Forage, Interlock, Slider and Roundabout are open
+  by design. Banks: Roundabout `letterWheelBank{Easy,Hard,Expert}.server.ts` (`scripts/letter-wheel-bank.ts`), Lookout
+  `wordSearchLevelBank.server.ts` (`scripts/word-search-level-bank.ts`), Cryptogrid's Expert list
+  `codewordExpert.data.ts` (`bun scripts/codeword-expert-bank.ts [--check]`), each rebuilt byte for byte with `--check`.
+  One check a game, `scripts/<game>-levels-check.ts` (helpers `word-levels-lib.ts` / `word-levels-shared.ts`): clocks,
+  Normal byte for byte, the same deal for all, the rules, the proof or open reason, tuning bands and the step up.
+  Cryptogrid: Easy 8 starting letters / 120 s, Hard 5 / 75 s, Expert 4 / 70 s on the 666 bank boards the person-like
+  solver cracks from four letters alone. Slider: Hard 7 slides / 60 s, Expert 8 / 50 s, its step measured by a person-like
+  solver that searches for the slides itself (`scripts/slider-human.ts`, runs in `scripts/fixtures/slider-human-levels.json`
+  by `bun scripts/slider-human-record.ts`; the kit reads the stored line, so it scores ~200 everywhere). Shots `bun scripts/shots/word-levels-shots.ts --url=<origin> [games…]`. Cryptogrid `codewordRev 7`
+  (`CODEWORD_REV_NAMES`): a full grid that isn't cracked is answered with the words on it that aren't real words
+  (`CwView.nonWords`), which flash red on the live board.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
@@ -2686,6 +2745,31 @@ outside the repo.
   phone-gap-check), the room's finished strip below the timer bar, the reveal heading from `revealHeading.ts` ("Your
   answer" / "The solution" / "Answer and solution") and compact shared reveal rows on short phones (`SHORT_REVEAL_QUERY`).
   app-moments-check (~1 s).
+- **Logic overhaul 2** (15–16 Nov 2026, phase 2 step 4; gallery `docs/design/pages-review/logic-2/GALLERY.md`): Tents
+  and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link. *Look*: Blender-rendered pieces
+  (`scripts/logic-art/render2.py`, cut by `bun scripts/logic-art.ts [--check]` to `public/logic-art/`,
+  `src/puzzles/logicArt.data.ts`), styles `src/polish-logic/logic-2.css`. *Game changes* (`logicOverhaul2.ts`, pin
+  `preLogic2`): Trail `depthRev 3` (2.5 a undo), Regions `fillominoRev 2` (a stroke one mistake). *Reveals*
+  `src/puzzles/logic2Reveal.tsx`. *Effects* on #422's kit, sound slots in `docs/sound-cues/logic-elevenlabs-2.md`
+  (library stand-ins). *Intro demos*: `scripts/fixtures/logic2-demos.json` (`bun scripts/logic2-demos-record.ts`, which
+  plays each intro example on the practice screen for the server's grade and measures every touch in the intro's own
+  demo player), logic2-demos-check, `scripts/logic2-demos-save.ts` for the Save intro demos workflow; older demos stop
+  (`LOGIC2_PRESENTATION`, and Trail / Regions before their stamps). *Levels* (stage 3; `src/lib/duel/logicOverhaul2Levels.ts`, re-exported by `logicLevels.ts`,
+  spread into GAME_LEVELS): every level keeps Normal's width and grows downwards; each Easy / Hard / Expert board must
+  be finished by a person-style solver (`logicHuman.server.ts`: deduction plus one-step trials, never guessing) inside
+  the level's band of trials (`logicLevelDeal.server.ts`); Trail Hard / Expert and Regions Expert come from banks
+  (`logicLevelBank.server.ts`, `bun scripts/logic-level-bank.ts [--part=k/n | --merge=n | --check]`). The kits'
+  thinking time per move scales by level (`LEVEL_THINK`, `LEVEL_THINK_GAME` in `scripts/puzzle-fairness/kit.ts`).
+  Checks: logic-overhaul-2-check, logic2-demos-check, logic-levels-check (quarters on shards a, c, f and g, `--part=k/4`, by game; `CHECKS_FULL=1`: every bank entry).
+- **The Speed levels** (the Speed overhaul, stage 3, 15–16 Nov 2026; `docs/design/speed-art/README.md` "Levels"): Flash,
+  Ascend, Don't Break the Chain, Bonk, Tenfall and Pull! offer Easy, Hard and Expert, each level's settings in ONE place,
+  `src/lib/levels/speedLevels.ts` (listed in `GAME_LEVELS`; dealt by `src/lib/duel/speedLevels.server.ts`), each deal
+  stamping what its grader reads (`flashMs`; `moveMs` / `timeLimitMs` / `descending`; `chainLevel`; `bonkLevel`; `tenLevel`
+  with its stages; `pullLevel`), so a retune never changes a stored round and Normal is byte for byte today's. Level lines,
+  goals and how-to lines follow the level (`speedLevelLine`, `speedLevelInstructions`, `speedLevelGoal` through
+  `useGoalText`). Tuning `bun scripts/speed-levels-tune.ts` (the elite player under Joe's human limits, and the 140 ms elite);
+  speed-levels-check (~13 s). Intro demos: `scripts/fixtures/speed-demos.json` (Normal), speed-demos-check,
+  `scripts/speed-demos-save.ts` for the Save intro demos workflow.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

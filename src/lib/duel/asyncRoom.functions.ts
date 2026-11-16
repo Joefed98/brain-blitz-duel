@@ -172,7 +172,7 @@ export const asyncCheckMovesFn = createServerFn({ method: "POST" })
     );
     if (!live) return null;
     const pub = live.pub as PuzzleData;
-    if (pub.type !== "strikeout" && pub.type !== "codeword" && pub.type !== "swapword") return null;
+    if (pub.type !== "strikeout" && pub.type !== "codeword" && pub.type !== "swapword" && !(pub.type === "bomb" && pub.bombInstant)) return null;
     const { mergePuzzle } = await import("./secrets");
     const { checkPuzzleMoves } = await import("./moves.server");
     return checkPuzzleMoves(mergePuzzle(pub, await live.priv()), data.moves);

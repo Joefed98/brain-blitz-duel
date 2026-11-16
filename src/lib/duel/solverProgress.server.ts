@@ -25,7 +25,7 @@
  * Topsy-Turvy and 0.2 in Polypotions; random input's 90th percentile is 0 in both games.
  */
 import { GRAVITY_DIRS, gravityKey, gravitySolved, type GravityBalls } from "./gravity";
-import { pour, pourAmount, tubesSolved, type TubeState } from "./tubes";
+import { pour, pourAmount, tubesCapacity, tubesSolved, type TubeState } from "./tubes";
 import { GRAV_COLS, TUBES_COLOURS, type GravityDir, type GravityPuzzleData, type TubesPuzzleData } from "./types";
 
 /** Each tilt that did not bring the board nearer cancels this many that did. */
@@ -184,7 +184,8 @@ export function gravitySolverProgress(puzzle: GravityPuzzleData, boards: Gravity
  */
 export function tubesLowerBound(state: TubeState): number {
   let bound = 0;
-  const bottoms = new Array<number>(TUBES_COLOURS).fill(0);
+  // Sized for the levels' boards too (up to 10 colours; today's 8 read exactly as before).
+  const bottoms = new Array<number>(Math.max(TUBES_COLOURS, 16)).fill(0);
   for (const tube of state) {
     if (!tube.length) continue;
     bottoms[tube[0]!] = (bottoms[tube[0]!] ?? 0) + 1;
@@ -196,9 +197,13 @@ export function tubesLowerBound(state: TubeState): number {
 
 /** A set of flasks as one key, flask order ignored (as tubesKey in tubes.ts, cheaper: a number per flask). */
 export function flasksKey(state: TubeState): string {
+  // Base 9 holds today's eight colours; a level's board with more takes base 17 (up to 16 colours, 7 layers).
+  let wide = false;
+  for (const tube of state) for (const ball of tube) if (ball >= 8) wide = true;
+  const base = wide ? 17 : 9;
   const codes = state.map((tube) => {
     let code = 0;
-    for (const ball of tube) code = code * 9 + ball + 1;
+    for (const ball of tube) code = code * base + ball + 1;
     return code;
   });
   return codes.sort((a, b) => a - b).join(",");
@@ -206,7 +211,8 @@ export function flasksKey(state: TubeState): string {
 
 /** Fewest pours from `start` to sorted, by A* within the budget (the same minimum breadth-first search finds). */
 export function tubesDistance(start: TubeState, budget: Budget, maxDepth = Infinity): Distance {
-  if (tubesSolved(start)) return 0;
+  const cap = tubesCapacity(start);
+  if (tubesSolved(start, cap)) return 0;
   // Binary heap on (g + h, then deeper first).
   const heap: { f: number; g: number; s: TubeState }[] = [];
   const push = (n: (typeof heap)[number]) => {
@@ -239,16 +245,16 @@ export function tubesDistance(start: TubeState, budget: Budget, maxDepth = Infin
   push({ f: tubesLowerBound(start), g: 0, s: start });
   while (heap.length) {
     const node = pop();
-    if (tubesSolved(node.s)) return node.g;
+    if (tubesSolved(node.s, cap)) return node.g;
     // The lower bound (f) only rises, so nothing within maxDepth is left.
     if (node.f > maxDepth) return "unknown";
     if ((best.get(flasksKey(node.s)) ?? Infinity) < node.g) continue;
     for (let from = 0; from < node.s.length; from++) {
       for (let to = 0; to < node.s.length; to++) {
-        if (pourAmount(node.s, from, to) <= 0) continue;
+        if (pourAmount(node.s, from, to, cap) <= 0) continue;
         // Each board made costs a node (a set of flasks has up to 90 pours, so counting expansions would not bound it).
         if (budget.left-- <= 0) return "unknown";
-        const next = pour(node.s, from, to);
+        const next = pour(node.s, from, to, cap);
         const k = flasksKey(next);
         const g = node.g + 1;
         if ((best.get(k) ?? Infinity) <= g || budget.dead.has(k)) continue;

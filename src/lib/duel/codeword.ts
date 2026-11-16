@@ -168,4 +168,9 @@ export interface CwView {
   complete: boolean;
   solved: boolean;
   count: number;
+  /**
+   * codewordRev 7: on a full grid that isn't cracked, the runs (codewordRuns order) that read as no real word. Absent
+   * otherwise and on older stamps.
+   */
+  nonWords?: number[];
 }

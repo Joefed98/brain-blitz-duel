@@ -1,0 +1,22 @@
+/*
+ * The Word keyboards (Strikeout, Cryptogrid; the Word overhaul, 15 Nov 2026): rendered navy keycaps, a hit in enamel
+ * gold, a miss in red glaze, a spent vowel dimmed; the pop-up preview of the pressed letter above its key. Display
+ * only: every key keeps its own button and hit box.
+ */
+[data-wa="key"][data-wa-tone="gold"] { --wa-img: url(/word-art/tile-gold.webp); }
+[data-wa="key"][data-wa-tone="red"] { --wa-img: url(/word-art/tile-red.webp); }
+[data-word-keypad] [data-wa="key"] { border-radius: 9px; }
+.key-preview {
+  display: flex;
+  height: 60px;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, calc(-100% - 6px));
+  border-radius: 12px;
+  background: url(/word-art/key.webp) center / 100% 100% no-repeat;
+  box-shadow: 0 8px 16px rgb(0 0 0 / 0.5);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  font-size: 30px;
+  font-weight: 800;
+}

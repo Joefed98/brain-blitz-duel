@@ -130,7 +130,12 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
     root.innerHTML = phase === "intro" ? renderToStaticMarkup(<miniSudokuPuzzle.IntroExample />)
       : phase === "live" ? renderToStaticMarkup(<miniSudokuPuzzle.Stage puzzle={sudoku} phaseStartedAt={0} now={0} locked={false} onSubmit={() => undefined} />)
       : renderToStaticMarkup(<miniSudokuPuzzle.Reveal puzzle={sudoku} myAnswer={null} myCorrect={false} myReactionAvgMs={null} timeLimitMs={90000} />);
-    const cells = [...root.querySelectorAll(".sudoku-grid > button")];
+    // The reveal shows two boards, Solution and Yours (the Logic overhaul's reveal, 15 Nov 2026); each is checked.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
+    const grids = [...root.querySelectorAll(".sudoku-grid")];
+    assert.equal(grids.length, phase === "reveal" ? 2 : 1);
+    for (const grid of grids) {
+    const cells = [...grid.querySelectorAll(":scope > button")];
     assert.equal(cells.length, 36);
     cells.forEach((cell, i) => {
       const r = Math.floor(i / 6), c = i % 6;
@@ -139,19 +144,38 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
       assert.equal(cell.classList.contains("sudoku-box-bottom"), r === 5);
       assert.equal(cell.classList.contains("sudoku-box-right"), c === 5);
     });
+    }
     assert.equal(root.querySelectorAll(".sudoku-grid > svg").length, 0);
     checks++;
   }
   const puzzle = { type: "shikaku" as const, size: 10, clues: [{cell: 0, n: 10}, {cell: 9, n: 20}, {cell: 99, n: 1}], solution: [] };
   root.innerHTML = renderToStaticMarkup(<shikakuPuzzle.Reveal puzzle={puzzle} myAnswer={null} myCorrect={false} myReactionAvgMs={null} timeLimitMs={90000} />);
   const grids = [...root.querySelectorAll<HTMLElement>(".shikaku-board")];
-  assert.equal(grids.length, 2);
-  // Test each individual grid as well as the pair: clipping belongs to the board, not its parent.
+  // Changed with Joe's approval, 16 Nov 2026 (routine: the check follows Shikaku's approved one-board reveal): the
+  // reveal draws one large board at a time (logic2Reveal.tsx) in place of two half-width boards, so one grid, its
+  // clues in the full-size type, and the fit worked out for the single board's width; the small-board 100cqw clamp
+  // is checked on the intro's mini board below, where it still applies.
+  assert.equal(grids.length, 1);
+  // Test the grid itself: clipping belongs to the board, not its parent.
   for (const grid of grids) {
     assert.ok(grid.classList.contains("overflow-hidden"));
     assert.equal(grid.style.gridTemplateRows, "repeat(10, minmax(0, 1fr))");
     assert.equal(grid.style.aspectRatio, "10 / 10");
     for (const label of grid.querySelectorAll<HTMLElement>(".shikaku-clue")) {
+      assert.ok(label.classList.contains("min-h-0") && label.classList.contains("overflow-hidden"));
+      assert.ok(label.querySelector(".leading-none"));
+      assert.ok(label.querySelector(".text-xl"), "the full-size board's 20 px clue type");
+    }
+    checks++;
+  }
+  // The small-board clue type still applies where the small board is drawn: the intro's mini board (Joe, 16 Nov 2026).
+  root.innerHTML = renderToStaticMarkup(<shikakuPuzzle.IntroExample />);
+  const miniGrids = [...root.querySelectorAll<HTMLElement>(".shikaku-board")];
+  assert.equal(miniGrids.length, 1);
+  for (const grid of miniGrids) {
+    const labels = [...grid.querySelectorAll<HTMLElement>(".shikaku-clue")];
+    assert.ok(labels.length > 0, "the intro's mini board has clues");
+    for (const label of labels) {
       assert.ok(label.classList.contains("min-h-0") && label.classList.contains("overflow-hidden"));
       // Happy DOM does not parse container-query units in clamp; inspect the emitted declaration.
       assert.ok(label.getAttribute("style")?.includes("100cqw"));
@@ -159,15 +183,15 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
     }
     checks++;
   }
-  const pairedWidth = Math.min(170, (width - 8 - 12) / 2);
-  const cell = (pairedWidth - 9) / 10;
-  const font = Math.max(12, Math.min(20, cell * .8));
+  const boardWidth = width - 8 - 12;
+  const cell = (boardWidth - 9) / 10;
+  const font = 20; // text-xl
   assert.ok(font <= cell);
   assert.ok(font * 1.2 <= cell); // two mono digits, each approximately .6em
   rows.push(`| ArcadeReveal | ${width}x${height} | PASS source: crash marker absent; finish circles/fallback unchanged |`);
   rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: circular nucleus, faint 37%-radius orbit and round controls; all 7–10 outer layouts fit without overlap; 50.4px targets at conservative 280px board; fixed chip/action slots unchanged |`);
   rows.push(`| Mini Sudoku | ${width}x${height} | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |`);
-  rows.push(`| Shikaku | ${width}x${height} | PASS both individual grids and pair: clipped board/labels, equal tracks; ${pairedWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
+  rows.push(`| Shikaku | ${width}x${height} | PASS the single board and the intro's mini board (100cqw clues): clipped board/labels, equal tracks; ${boardWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
 }
 // Arcade play screens (15 Oct 2026, display only; polish-layout/bottom.css "Arcade play screen"), CSS
 // arithmetic. The live round of every arcade game and every engine game on the arcade stage has one

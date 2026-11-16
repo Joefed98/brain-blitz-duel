@@ -1,5 +1,9 @@
+import { floodPlayable } from "./flood";
+import { flowCellCount, flowGrid } from "./flow";
 import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
+import { pipesDims } from "./logic";
+import { pairsOf } from "./attentionLevels";
 import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
@@ -22,7 +26,7 @@ import {
 } from "./attentionRev";
 import { chainRules } from "./chain";
 import { tilesLayout } from "./tiles";
-import { isTopsy, TOPSY_BALLS, TOPSY_BOARDS, TOPSY_STARS } from "./topsy";
+import { isTopsy, topsyTotalBalls, TOPSY_STARS } from "./topsy";
 import { isJumbledGradient, JUMBLED_MOVABLE } from "./jumbled";
 import { equationTryLimit, splitCountSuffix } from "./moveLimits";
 import { WORDHUNT_REV_CURVE, WORDSMITH_REV_CURVE } from "./scoring";
@@ -48,7 +52,6 @@ import {
   wordsmithPoints,
   LIGHTS_TIME_MS,
   PIPES_CELLS,
-  FLOW_CELLS,
   PIPES_TIME_MS,
   SUDOKU_TIME_MS,
   FLOW_TIME_MS,
@@ -438,11 +441,13 @@ function numberHuntSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
   if (typeof result.extra?.["reached"] === "number") {
     const reached = result.extra["reached"] as number;
     const at = result.extra["finishedAtMs"];
-    if (result.is_correct || reached >= NUMHUNT_COUNT) {
+    // The board's own count (the Speed overhaul's levels deal 16 or 30; every older round 24).
+    const total = puzzle.type === "numhunt" && puzzle.spots.length ? puzzle.spots.length : NUMHUNT_COUNT;
+    if (result.is_correct || reached >= total) {
       const time = typeof at === "number" ? at : elapsedMs(result, puzzle);
       return { summary: `Finished, ${result.errors ?? 0} errors, ${seconds(time)}`, detail: [] };
     }
-    return { summary: `Reached ${reached} of ${NUMHUNT_COUNT}`, detail: [] };
+    return { summary: `Reached ${reached} of ${total}`, detail: [] };
   }
   const [rawReached, , rawElapsed] = (result.answer ?? "").split(",");
   const reached = Math.max(0, Number.parseInt(rawReached ?? "0", 10) || 0);
@@ -623,9 +628,11 @@ const pipesSummary: SummaryBuilder = (result, puzzle) => {
       detail: ["Every pipe connected, no leaks"],
     };
   }
+  // Difficulty levels: a level board's own tile count (pipesDims); every board before levels counts 49.
+  const cells = pipesDims(puzzle).cells;
   return {
-    summary: `${connected} / ${PIPES_CELLS} connected`,
-    detail: [`${PIPES_CELLS - connected} tiles left off the network`],
+    summary: `${connected} / ${cells} connected`,
+    detail: [`${cells - connected} tiles left off the network`],
   };
 };
 
@@ -659,7 +666,7 @@ const flowSummary: SummaryBuilder = (result, puzzle) => {
   if (progress) return progress;
   return {
     summary: `${joined} / ${puzzle.pairs.length || FLOW_PAIRS} pairs`,
-    detail: [`${filled} / ${FLOW_CELLS - (puzzle.walls?.length ?? 0)} squares filled`],
+    detail: [`${filled} / ${flowCellCount(flowGrid(puzzle)) - (puzzle.walls?.length ?? 0)} squares filled`],
   };
 };
 
@@ -805,7 +812,7 @@ const tubesSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `${sorted} / ${TUBES_COLOURS} tubes`,
+    summary: `${sorted} / ${puzzle.type === "tubes" ? new Set(puzzle.tubes.flat()).size || TUBES_COLOURS : TUBES_COLOURS} tubes`,
     detail: [`${moves} pour${moves === 1 ? "" : "s"} made`],
   };
 };
@@ -821,7 +828,7 @@ const safeSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `Locked, ${right} / ${SAFE_DIALS} dials`,
+    summary: `Locked, ${right} / ${puzzle.dialCount ?? SAFE_DIALS} dials`,
     detail: [`${Number(result.extra?.["tries"] ?? 0)} tries used`],
   };
 };
@@ -866,6 +873,8 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     const home = Number(result.extra?.["home"] ?? 0);
     const stars = Number(result.extra?.["stars"] ?? 0);
     const out = Number(result.extra?.["outOfTilts"] ?? 0);
+    // The round's own board count (the difficulty levels: Easy deals two).
+    const boards = puzzle.boards.length;
     // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish shows its tilts against par.
     if (usesParMoves(puzzle) && result.is_correct) {
       const par = Number(result.extra?.["parTilts"] ?? 0);
@@ -876,8 +885,8 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     }
     return {
       summary: result.is_correct
-        ? `Cleared, ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars, ${seconds(elapsedMs(result, puzzle))}`
-        : `${cleared} / ${TOPSY_BOARDS} boards, ${home} / ${TOPSY_BOARDS * TOPSY_BALLS} home`,
+        ? `Cleared, ${stars} / ${boards * TOPSY_STARS} stars, ${seconds(elapsedMs(result, puzzle))}`
+        : `${cleared} / ${boards} boards, ${home} / ${topsyTotalBalls(puzzle)} home`,
       detail: [`${tilts} tilts made${out ? `, out of tilts on ${out} board${out === 1 ? "" : "s"}` : ""}`],
     };
   }
@@ -938,7 +947,7 @@ const pairMatchSummary: SummaryBuilder = (result, puzzle) => {
   const pairs = Number(result.extra?.["pairs"] ?? 0);
   const flips = Number(result.extra?.["flips"] ?? 0);
   return {
-    summary: `${pairs} / ${PAIR_PAIRS}, ${flips} flips, ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${pairs} / ${pairsOf(puzzle)}, ${flips} flips, ${seconds(elapsedMs(result, puzzle))}`,
     detail: [result.is_correct ? "Every pair found" : "Board unfinished"],
   };
 };
@@ -951,7 +960,7 @@ const floodSummary: SummaryBuilder = (result, puzzle) => {
   return {
     summary: result.is_correct
       ? `Solved, ${moves} moves (par ${par}), ${seconds(elapsedMs(result, puzzle))}`
-      : `${region} / ${FLOOD_CELLS} cells`,
+      : `${region} / ${floodPlayable(puzzle.grid) || FLOOD_CELLS} cells`,
     detail: [result.is_correct && moves <= par ? "Flooded in par" : `${moves} moves made`],
   };
 };
@@ -2011,7 +2020,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   gravity: (p) => (p.type === "gravity" && p.minMoves ? `${p.minMoves} tilts` : null),
   chain: () => null,
   nonogram: () => "The picture",
-  pairmatch: (p) => (p.type === "pairmatch" ? `${PAIR_PAIRS} pairs` : null),
+  pairmatch: (p) => (p.type === "pairmatch" ? `${pairsOf(p)} pairs` : null),
   flood: (p) => (p.type === "flood" ? `par ${p.par}` : null),
   tiles: (p) => (p.type === "tiles" && p.minMoves ? `${p.minMoves} moves` : null),
   hover: () => null,

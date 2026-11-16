@@ -14,14 +14,15 @@ import { inkLevelDealSeed } from "./inkLevelDeals.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
-import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
+import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, MINES_REV_LOGIC, MINES_REV_NORMAL, MINES_REV_STD, MINES_RUN_TICKS } from "@/lib/arcade/minesweeper";
+import type { Level } from "@/lib/levels/levels";
+import { logicOverhaul1Dealt } from "./logicOverhaul1";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
 import { TILT_REV_BIG, isTiltLevel } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
-import type { Level } from "@/lib/levels/levels";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
@@ -243,14 +244,31 @@ export function generatePinball(): PinballPuzzleData {
  * from its opening; a seed whose tries all failed (it would fall back to MINES_FALLBACK_SEED's board) is dropped here,
  * so every dealt seed is proved by its own solve (minesweeper-check plays each proof to 200).
  */
-export function generateMinesweeper(): MinesweeperPuzzleData {
+export function generateMinesweeper(level?: Level): MinesweeperPuzzleData {
   // minesRev 2 (13 Nov 2026): Minefield as a Logic game with 20 mines. Checks written for rev 1 pin minesPreLogic, a
   // check-only switch read through checkOverride: a production build never deals rev 1.
-  const rev = checkOverride<boolean>("__DUELZ_MINES_PRE_LOGIC__") === true ? MINES_REV_STD : MINES_REV_LOGIC;
+  // The Logic overhaul's levels (15 Nov 2026; Joe, "too-hard games: today's becomes Hard"): rev 2 is Hard; Normal deals
+  // the gentler minesRev 3 (unless a check pins the world before, pinPreLogicOverhaul1); Easy and Expert their own.
+  const pre = checkOverride<boolean>("__DUELZ_MINES_PRE_LOGIC__") === true;
+  const rev = pre
+    ? MINES_REV_STD
+    : level === "hard"
+      ? MINES_REV_LOGIC
+      : level === "easy"
+        ? MINES_REV_EASY
+        : level === "expert"
+          ? MINES_REV_EXPERT
+          : logicOverhaul1Dealt()
+            ? MINES_REV_NORMAL
+            : MINES_REV_LOGIC;
+  const g = minesGeoFor(rev);
   for (;;) {
     const seed = arcadeSeed();
     const board = minesBoard(seed, rev);
-    if (board.tries >= 0 && minesSolve(board.mines, board.start, minesCountFor(rev)).solved) return { type: "minesweeper", seed, minesRev: rev };
+    if (board.tries >= 0 && minesSolve(board.mines, board.start, g.count, g).solved) {
+      const own = g.runTicks !== MINES_RUN_TICKS ? { timeLimitMs: (g.runTicks / 60) * 1000 + 3000 } : {};
+      return { type: "minesweeper", seed, minesRev: rev, ...own };
+    }
   }
 }
 

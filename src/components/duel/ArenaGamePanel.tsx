@@ -14,7 +14,7 @@ import { puzzleDef, puzzleGoal } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 import { SCHEME_LABEL, SCHEME_NOTE, schemesFor, setSchemeFor, useControlScheme, type ControlScheme } from "@/lib/gameControls";
 
-import { frameGoal } from "./GameFrame";
+import { useFrameGoal } from "./GameFrame";
 
 /** This player's avatar in the frame: their card's avatar (an account) or their colour and initial (a guest). */
 export function FrameMe({ size = 36 }: { size?: number }) {
@@ -54,7 +54,8 @@ export function ArenaGamePanel({
   /** Practice: the score block is the best already, and this game's challenges are shown. */
   practice: boolean;
 }) {
-  const goal = type ? (arcade ? puzzleGoal(type).replace(/\.$/, "") : frameGoal(type)) : null;
+  const puzzleFrameGoal = useFrameGoal(arcade ? undefined : type);
+  const goal = type ? (arcade ? puzzleGoal(type).replace(/\.$/, "") : puzzleFrameGoal) : null;
   return (
     <div data-arena-game data-in-room={inRoom ? "" : undefined} className="arena-game">
       <div className="arena-game-head">
@@ -263,6 +264,7 @@ function NextChallenges({ type }: { type: PuzzleType }) {
  */
 export const PHONE_STATUS_MIN_PX = 72;
 export function PhoneStatus({ type, tray }: { type: PuzzleType; tray: { current: HTMLElement | null } }) {
+  const statusGoal = useFrameGoal(type);
   const [room, setRoom] = useState(0);
   // The status pills are mirrored (and hidden on the board) only when they sit above the board; pills under it stay put.
   const [mirrored, setMirrored] = useState(false);
@@ -320,7 +322,7 @@ export function PhoneStatus({ type, tray }: { type: PuzzleType; tray: { current:
   if (!shown) return null;
   return (
     <div data-phone-status-panel className="phone-status" style={{ height: room }}>
-      <p className="phone-status-goal">{frameGoal(type)}</p>
+      <p className="phone-status-goal">{statusGoal}</p>
       <BoardStatus className="phone-status-figures" pills={mirrored} />
     </div>
   );

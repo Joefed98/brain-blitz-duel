@@ -1,7 +1,11 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { speedArtCss, speedArtUrl, type SpeedArtName } from "@/lib/fx/speedArt";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
+import { RevealCaption, RevealNumbers, RevealPanel, RevealPips } from "@/components/puzzles/SpeedRevealKit";
 import { fireChainFinish } from "@/components/puzzles/chainFx";
 import { pointerElementIndex } from "@/components/puzzles/GridDrag";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -14,6 +18,7 @@ import {
   chainLongCycles,
   chainRequiredAt,
   chainReversedAt,
+  chainReverseStarts,
   chainTapVerdict,
   chainWindowMs,
   chainWindowShrinksAfter,
@@ -65,6 +70,19 @@ const CHARM_GLYPH = 50;
 const BREAK_HOLD_MS = 1_000;
 const CYCLE_HIGHLIGHT_MS = 650;
 
+/** The colours with a rendered gem charm (speedArt.ts), by the drawn colour. */
+const CHARM_ART: Record<string, string> = {
+  [GLYPH_COLOURS.RED]: "red",
+  [GLYPH_COLOURS.BLUE]: "blue",
+  [GLYPH_COLOURS.GREEN]: "green",
+  [GLYPH_COLOURS.YELLOW]: "yellow",
+  [GLYPH_COLOURS.PURPLE]: "purple",
+  [GLYPH_COLOURS.ORANGE]: "orange",
+};
+
+/** The chain board's Blender art as a CSS variable (speed-overhaul.css). */
+const CHAIN_ART_STYLE = { "--chain-board-art": speedArtCss("chain-board") } as CSSProperties;
+
 /**
  * Shared gradients for the charms and links (Polish, 13 Oct 2026; display only). Rendered
  * once per screen; every charm and link references them by id.
@@ -100,8 +118,16 @@ export function ChainDefs() {
  * Enamel charm in a silver bezel: same shape, colour and footprint as before, with
  * depth shading (needs <ChainDefs /> on the screen; without it only the shading drops).
  */
-export function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; colour?: string }) {
+export function NodeGlyph({ shape, size, colour, grow = 1 }: { shape: ChainShape; size: number; colour?: string; grow?: number }) {
   const inner = Math.round(size * 0.74);
+  // The Speed overhaul (15 Nov 2026): the Blender gem charm in its champagne bezel, the same footprint as the drawn
+  // charm (the sprite's bezel is 112 of its 128 px; the drawn shape 20 of 24). Unknown colours keep the drawn charm.
+  const art = colour ? CHARM_ART[colour] : undefined;
+  if (art) {
+    // `grow`: the board draws its charms 1.25× (the concept's size), exactly filling their tap button (NODE + 10).
+    const px = Math.round((grow * inner * 20 * 128) / (24 * 112));
+    return <img src={speedArtUrl(`chain-${shape}-${art}` as SpeedArtName)} width={px} height={px} alt="" aria-hidden="true" draggable={false} data-charm-art={`${shape}-${art}`} className="chain-charm chain-charm-art" />;
+  }
   const bezel = { fill: "none", stroke: "url(#chainz-bezel)", strokeWidth: 1.3, strokeLinejoin: "round" as const };
   return (
     <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden="true" className="chain-charm" style={colour ? { color: colour } : undefined}>
@@ -374,6 +400,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const path = replay.used[boardIndex] ?? [];
   const broken = ended === "wrong" || ended === "momentum";
   const over = Boolean(ended) || locked;
+  // The Speed overhaul (15 Nov 2026; sound only): a soft whoosh as the board reshuffles every 5 links, and a heartbeat
+  // under the link tones for the last 5 links, quickening as the end nears.
+  const shownBoard = useRef(boardIndex);
+  useEffect(() => {
+    if (boardIndex !== shownBoard.current && !over) playCueSlot("chain.reshuffle");
+    shownBoard.current = boardIndex;
+  }, [boardIndex, over]);
+  const lastFive = !over && links >= rules.length - 5 && links < rules.length;
+  useEffect(() => {
+    if (!lastFive) return undefined;
+    const ms = 700 - 60 * (links - (rules.length - 5));
+    playCueSlot("chain.heartbeat", 0.8);
+    const id = window.setInterval(() => playCueSlot("chain.heartbeat", 0.8), ms);
+    return () => window.clearInterval(id);
+  }, [lastFive, links, rules.length]);
   // The ring sits on the last linked node; after a reshuffle it follows that slot.
   const lastSlot = replay.used[chainBoardIndex(Math.max(0, links - 1), data)]?.at(-1) ?? null;
   const windowMs = chainWindowMs(links + 1, data);
@@ -406,7 +447,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     setPulse(nodeId);
     setTimeout(() => setPulse((current) => (current === nodeId ? null : current)), 180);
     const made = links + 1;
-    const reverseNow = chainLongCycles(data ?? undefined) && made === CHAIN_REVERSE_AT;
+    const reverseNow = chainReverseStarts(data ?? undefined).includes(made);
     // Speed review fixes (15 Nov 2026, display only): FASTER shows when the next link's window actually shrinks
     // (links 13 and 26 on today's bands), and a milestone's line shows at its own link (10, 20, 30).
     if (chainWindowShrinksAfter(made, data)) {
@@ -437,7 +478,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
    const need = chainRequiredAt(data, links);
    const reversed = chainReversedAt(data, links) && !over;
    // chainCycleRev 1: the warning banner before the reversed board, then a reverse flash as it starts.
-   const reverseSoon = chainLongCycles(data) && !over && links >= CHAIN_REVERSE_WARN_AT && links < CHAIN_REVERSE_AT;
+   // The levels (the Speed overhaul): the next reversed run's start (today's link 20, or each of a level's runs).
+   const reverseNext = chainReverseStarts(data).find((at) => links < at) ?? null;
+   const reverseSoon = !over && reverseNext !== null && links >= reverseNext - (CHAIN_REVERSE_AT - CHAIN_REVERSE_WARN_AT) && links < reverseNext;
    const changedAt = taps[boardIndex * CHAIN_BLOCK - 1]?.t;
    const cycleHighlight = boardIndex > 0 && changedAt !== undefined && clock - changedAt < CYCLE_HIGHLIGHT_MS && !over;
 
@@ -445,6 +488,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     <div
       ref={rootRef}
       data-polish="chain"
+      data-chain-art=""
+      style={CHAIN_ART_STYLE}
       data-stage-column="1.5" className={`relative flex min-h-0 flex-1 flex-col gap-1.5 rounded-xl pt-3 transition-colors duration-500 ${
         tier === 2 ? "bg-warn/10" : tier === 1 ? "bg-primary/10" : ""
       }`}
@@ -453,7 +498,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       <RuleStrip cycle={cycle} active={chainCycleIndex(data, links)} highlight={cycleHighlight && !reversed} reversed={reversed} />
       {(reverseSoon || reversed) && (
         <p data-chain-reverse-banner={reversed ? "on" : "soon"} role="status" className={`chain-reverse-banner mx-auto shrink-0 rounded-full px-3 py-0.5 text-center font-display text-sm font-black uppercase tracking-widest ${reversed ? "bg-warn text-background" : "bg-warn/20 text-warn"}`}>
-          {reversed ? "← Reversed: last to first" : `Reverse after link ${CHAIN_REVERSE_AT}!`}
+          {reversed ? "← Reversed: last to first" : `Reverse after link ${reverseNext ?? CHAIN_REVERSE_AT}!`}
         </p>
       )}
       <p className="relative shrink-0 text-center font-mono text-3xl font-bold leading-none tabular-nums">
@@ -467,7 +512,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
           </span>
         ) : null}
       </p>
-      <ChainLinks links={links} total={rules.length} broken={broken} />
+      {/* The Speed overhaul (15 Nov 2026): "Chain broken" sits on the chain strip at the top, never over the board
+          while the round still runs. Display only. */}
+      <div data-chain-strip="" className="relative shrink-0">
+        <ChainLinks links={links} total={rules.length} broken={broken} />
+        {broken && (
+          <div data-chain-broken="" className="pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center">
+            <p className="chain-broken-strip flex h-6 items-center gap-2 whitespace-nowrap rounded-full border-2 border-warn bg-background px-3 text-xs animate-scale-in">
+              <span className="font-display font-black uppercase tracking-wider text-warn">Chain broken</span>
+              <span className="font-mono text-foreground">
+                at link {links + 1} · {ended === "momentum" ? "too slow" : "wrong tap"}
+              </span>
+            </p>
+          </div>
+        )}
+      </div>
       <div ref={arenaRef} data-play-area data-game-arena="tall" className={`relative min-h-0 w-full flex-1 ${broken ? "animate-shake" : ""}`}>
         <ChainLine nodes={board} path={path} broken={broken} />
         {board.map((node, index) => {
@@ -499,7 +558,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
               }}
             >
               {ringed && <MomentumRing left={left} size={box} warn={left * windowMs <= CHAIN_WARN_MS} />}
-              <NodeGlyph shape={node.shape} colour={GLYPH_COLOURS[node.colour]} size={glyph} />
+              <NodeGlyph shape={node.shape} colour={GLYPH_COLOURS[node.colour]} size={glyph} grow={1.25} />
             </button>
           );
         })}
@@ -521,16 +580,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
                 {milestoneFlash.points > 0 ? `${milestoneFlash.at} in a row · +${milestoneFlash.points}` : `${milestoneFlash.at} in a row`}
               </span>
             ) : null}
-          </div>
-        )}
-        {broken && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="rounded-xl border-2 border-warn bg-background/90 px-4 py-3 text-center animate-scale-in">
-              <p className="font-display text-2xl font-black uppercase tracking-wider text-warn">Chain broken</p>
-              <p className="font-mono text-sm text-foreground">
-                at link {links + 1} · {ended === "momentum" ? "too slow" : "wrong tap"}
-              </p>
-            </div>
           </div>
         )}
       </div>
@@ -565,19 +614,55 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: Puzzl
           ? `Broken at link ${replay.links + 1}: too slow`
           : "Time ran out";
   const milestones = chainUsesDepth(puzzle) ? chainMilestones(answer.taps, replay.links, chainDepthRevOf(puzzle)) : null;
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): the chain as pips (made gold, the break red), what the
+  // chain needed beside what was tapped, and the figures that explain the score.
+  const needed = broken ? chainRequiredAt(puzzle, replay.links) : undefined;
+  const wrongTap = replay.reason === "wrong" ? answer.taps[replay.links] : undefined;
+  const tapped = wrongTap ? puzzle.boards[chainBoardIndex(replay.links, puzzle)]?.[wrongTap.node] : undefined;
   return (
     <div data-polish-reveal="chain" className="flex w-full flex-col items-center gap-3 pt-1">
       <ChainDefs />
-      <div className="w-full max-w-[320px]">
-        <ChainLinks links={replay.links} total={total} broken={broken} />
-      </div>
-      <p data-chain-reveal-links="" className="text-center text-[17px] font-bold tabular-nums text-foreground">
-        {replay.links} of {total} links
-      </p>
-      <p className={`whitespace-normal break-words text-center text-[14px] font-semibold ${broken ? "text-warn" : "text-[#D4D4DC]"}`}>
-        {ending}
-        {elapsed !== null && replay.reason !== "complete" ? ` · ${elapsed.toFixed(1)} s` : ""}
-      </p>
+      <RevealPanel title="Your chain" testId="chain">
+        <RevealPips
+          testId="chain"
+          label={`${replay.links} of ${total} links`}
+          pips={Array.from({ length: total }, (_, i) => (i < replay.links ? "gold" : i === replay.links && broken ? "break" : "empty"))}
+        />
+        <p data-chain-reveal-links="" className="sr-caption">
+          {replay.links} of {total} links
+        </p>
+      </RevealPanel>
+      {needed ? (
+        <RevealPanel title={replay.reason === "wrong" ? "Wrong charm" : "Too slow"} testId="chain-break">
+          <div data-chain-reveal-break="" className="flex items-center justify-center gap-6">
+            <span className="flex flex-col items-center gap-1">
+              <span className="rounded-full ring-4 ring-primary ring-offset-2 ring-offset-black">
+                <NodeGlyph shape={needed.shape} colour={GLYPH_COLOURS[needed.colour]} size={64} />
+              </span>
+              <span className="sr-caption">Needed</span>
+            </span>
+            {tapped ? (
+              <span className="flex flex-col items-center gap-1">
+                <span className="rounded-full ring-4 ring-warn ring-offset-2 ring-offset-black">
+                  <NodeGlyph shape={tapped.shape} colour={GLYPH_COLOURS[tapped.colour]} size={64} />
+                </span>
+                <span className="sr-caption" data-tone="warn">You tapped</span>
+              </span>
+            ) : null}
+          </div>
+          <RevealCaption tone="warn">{ending}</RevealCaption>
+        </RevealPanel>
+      ) : (
+        <RevealCaption tone={replay.reason === "complete" ? "good" : undefined}>{ending}</RevealCaption>
+      )}
+      <RevealNumbers
+        testId="chain"
+        items={[
+          { id: "links", label: "Links", value: `${replay.links}/${total}`, tone: "gold" },
+          elapsed !== null ? { id: "time", label: "Time", value: `${elapsed.toFixed(1)} s` } : null,
+          milestones ? { id: "streaks", label: "Milestones", value: milestones.length } : null,
+        ]}
+      />
       {milestones ? (
         <div data-chain-reveal-milestones="" className="flex flex-col items-center gap-1">
           <MilestonePips reached={milestones} compact />
@@ -596,6 +681,8 @@ function revealDepthLine(milestones: readonly ChainMilestone[], extra: Record<st
 }
 
 export const chainTapPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "chain",
   name: gameDisplayName("chain"),
   category: "speed",

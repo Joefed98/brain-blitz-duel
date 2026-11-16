@@ -24,7 +24,7 @@ online only. No game's rules, scoring, grading or stamps changed.
   Unblock's deals come from the database's bank, as online.
 - **Online only** (the stage asks the server during play: a word checked against the server's dictionary or a move
   replayed against the sealed answer): Nucleus, Forage, Interlock, Slider, Roundabout, Lookout, Strikeout,
-  Cryptogrid, Swapword. They get no pack. offline-check proves this list is exactly the stages that ask.
+  Cryptogrid, Swapword, and Bomb Defusal (each step checked live on Expert, since 15 Nov 2026). They get no pack. offline-check proves this list is exactly the stages that ask.
 
 ## Storage
 

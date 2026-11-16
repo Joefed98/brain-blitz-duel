@@ -7,11 +7,12 @@
  * Flash and Bang On grade every log as "correct" (the score comes from the
  * reactions), so their plays return one step: the whole tap log at the last tap.
  */
-import { chainLongCycles, chainRequiredAt, chainReversedAt, chainBoardIndex, chainWindowMs, encodeChainAnswer, type ChainTap } from "../../src/lib/duel/chain";
+import { chainLongCycles, chainRequiredAt, chainReversedAt, chainBoardIndex, chainRules, chainTimeLimitMs, chainWindowMs, encodeChainAnswer, type ChainTap } from "../../src/lib/duel/chain";
 import { encodeMazePath, mazeColsOf, mazeCorridorNeighbours } from "../../src/lib/duel/maze";
 import { encodeMazeTrail, usesMazeDepth } from "../../src/lib/duel/depth/labyrinth";
 import { joinPairGoldTime, pairGoldTimed } from "../../src/lib/duel/depth/matchmaker";
 import { encodePairFlips, sameCard } from "../../src/lib/duel/pairmatch";
+import { leveled, mazeLevel, pairLevel, scanLevel, spotLevel, tallyLevel } from "../../src/lib/duel/attentionLevels";
 import { joinStages } from "../../src/lib/duel/stagedRounds";
 import { markerState, targetCentre, watchLifeMs } from "../../src/lib/duel/stopWatch";
 import {
@@ -313,14 +314,18 @@ const chain: PuzzleKit = {
     let t = thinkMs(rng, 1.5, skill); // first look at the board and the rule
     let lastT: number | null = null;
     const finish = (reason: ChainBreak, at: number) => steps.push({ answer: encodeChainAnswer({ taps, reason }), atMs: at });
-    for (let links = 0; links < CHAIN_LENGTH; ) {
+    // The chain's own length and clock (a level's; every other chain: 40 links in 45 s, as before).
+    const length = chainRules(c).length;
+    const limit = chainTimeLimitMs(c);
+    for (let links = 0; links < length; ) {
       const reversed = chainReversedAt(c, links);
       const factor = (long ? 1.06 : 1) * (reversed ? 1.25 : 1);
       let gap = links === 0 ? 0 : thinkMs(rng, (links % CHAIN_BLOCK === 0 ? 1.1 : 0.85) * factor, skill);
       const mistake = links > 0 && rng.chance(skill.err * (reversed ? 1.5 : 1));
       // Most mistakes are a hesitation (lost the rule for a moment); some are a wrong tap. The first
       // reversed link catches out some players who keep going forwards.
-      const forgot = long && links === CHAIN_REVERSE_AT && rng.chance(Math.min(0.5, skill.err * 1.5));
+      // The first link of each reversed run (today's link 21 only).
+      const forgot = long && reversed && !chainReversedAt(c, links - 1) && rng.chance(Math.min(0.5, skill.err * 1.5));
       const wrongTap = forgot || (mistake && rng.chance(0.2));
       if (mistake && !wrongTap) gap += thinkMs(rng, 0.8, skill);
       const at: number = (lastT ?? t) + gap;
@@ -328,7 +333,7 @@ const chain: PuzzleKit = {
         finish("momentum", lastT + chainWindowMs(links + 1, c));
         return { timed: true, steps };
       }
-      if (at > CHAIN_TIME_MS) break;
+      if (at > limit) break;
       const pool = chainNodes(c, links, used, !wrongTap);
       const node = pool.length ? rng.pick(pool) : 0;
       taps.push({ node, t: Math.round(at) });
@@ -339,7 +344,7 @@ const chain: PuzzleKit = {
       (used[chainBoardIndex(links, c)] ??= []).push(node);
       links += 1;
       lastT = at;
-      if (links >= CHAIN_LENGTH) finish("complete", at);
+      if (links >= length) finish("complete", at);
       else steps.push({ answer: encodeChainAnswer({ taps, reason: "timer" }), atMs: at });
     }
     return { timed: true, steps };
@@ -376,8 +381,14 @@ const eagleEye: PuzzleKit = {
       // scanRev 1 grid 3: two target facings to hold in mind, so reading and each find take longer.
       const two = stage.alsoTarget !== undefined;
       t += thinkMs(rng, two ? 1.2 : 0.8, skill); // read the target arrow(s)
+      // Levels (the Attention overhaul, stage 3): every eagle on the grid has to be looked at, longer with more
+      // look-alikes, and look-alikes cause more slips. Normal grids keep today's figures exactly.
+      const lv = leveled(s) ? scanLevel(s) : null;
+      if (lv) t += thinkMs(rng, stage.cells.length * 0.09 * (1 + lv.lookalikes), skill);
+      // Two facings at once (Hard's later grids, every Expert grid) are easier to slip on than one.
+      const slip = lv ? Math.min(0.5, skill.err * (1 + 3 * lv.lookalikes) * (two ? 1.5 : 1)) : skill.err;
       for (const target of targets) {
-        if (rng.chance(skill.err) && others.length) {
+        if (rng.chance(slip) && others.length) {
           // Mis-tap a similar arrow; nearly always noticed and untapped before Submit.
           const wrong = rng.pick(others);
           t += thinkMs(rng, 0.6, skill);
@@ -413,7 +424,11 @@ function doubleTakeTwo(d: SpotPuzzleData, rng: Rng, skill: Skill): Play {
   scenes.forEach((scene, si) => {
     // BASE 3 s per difference in the sweet shop (as before); 3.5 s in the rock pool, whose
     // fish and seahorses turn as often as they change colour (subtler changes).
-    const base = scene.theme === "reef" ? 3.5 : 3;
+    // Levels (the Attention overhaul, stage 3): a bigger grid takes longer to search, and Hard's subtler colour changes
+    // longer again; Normal pictures keep today's figures exactly.
+    const lv = leveled(d) ? spotLevel(d) : null;
+    const cellsScale = lv ? (lv.cols * lv.rows) / 48 : 1;
+    const base = (scene.theme === "reef" ? 3.5 : 3) * cellsScale;
     if (si > 0) t += thinkMs(rng, 1.2, skill); // the next picture slides in
     const diffs = rng.shuffle((d.differences ?? []).filter((x) => (x.scene ?? 0) === si));
     const cells = new Set(diffs.flatMap((x) => x.cells));
@@ -421,7 +436,7 @@ function doubleTakeTwo(d: SpotPuzzleData, rng: Rng, skill: Skill): Play {
     // spotRev 2: the hidden seventh difference, if it is in this picture, is spotted with a chance that grows with
     // skill (none for a careless player), at 4 s more search, and only counts if tapped before the sixth.
     const bonus = d.bonus && (d.bonus.scene ?? 0) === si ? d.bonus : null;
-    const spotHidden = bonus !== null && rng.chance(Math.max(0, Math.min(0.8, 0.85 - 6 * skill.err - 0.6 * skill.pace)));
+    const spotHidden = bonus !== null && rng.chance(Math.max(0, Math.min(0.8, 0.85 - 6 * skill.err - 0.6 * skill.pace)) / cellsScale);
     const hiddenAt = spotHidden ? rng.below(Math.max(1, diffs.length - 1)) : -1;
     diffs.forEach((diff, di) => {
       if (rng.chance(skill.err) && others.length) {
@@ -430,7 +445,8 @@ function doubleTakeTwo(d: SpotPuzzleData, rng: Rng, skill: Skill): Play {
         if (!taps[si]!.includes(wrong)) taps[si]!.push(wrong);
         steps.push({ answer: enc(), atMs: t });
       }
-      t += thinkMs(rng, base, skill);
+      // A level's harder changes take longer to spot: Hard's subtler colours, and a turned piece (Expert deals more).
+      t += thinkMs(rng, base * (lv?.subtleColours && diff.kind === "colour" ? 1.4 : 1) * (lv && diff.kind === "turn" ? 1.5 : 1), skill);
       taps[si]!.push(rng.pick(diff.cells));
       steps.push({ answer: enc(), atMs: t });
       if (di === hiddenAt && bonus) {
@@ -532,9 +548,13 @@ const tally: PuzzleKit = {
       // BASE 2 s to read the question and scan, plus 0.55 s per matching shape counted, plus 1.2 s to type and submit.
       // A comparison tray counts both colours and takes 1 s more to subtract.
       const counted = stage.shapes.filter((x) => countUpCounts(stage, x)).length;
-      t += thinkMs(rng, 2 + 0.55 * counted + 1.2 + (stage.compare ? 1 : 0), skill, 0.25);
+      // Levels (the Attention overhaul, stage 3): more near-miss groups and Expert's two colours slow the count and
+      // cause more slips; with no marks (Expert) a shape is easier to count twice or skip. Normal keeps today's figures.
+      const lv = leveled(c) ? tallyLevel(c) : null;
+      const hardness = lv ? (1 + 0.6 * Math.max(0, lv.nearGroups - 2)) * (lv.marks ? 1 : 1.4) * (stage.alsoColour ? 1.4 : 1) : 1;
+      t += thinkMs(rng, (2 + 0.55 * counted + 1.2 + (stage.compare ? 1 : 0)) * (lv ? 0.6 + 0.4 * hardness : 1), skill, 0.25);
       // Miscount: ±1 mostly, ±2 sometimes; bigger fields are harder.
-      const off = rng.chance(Math.min(0.85, skill.err * (1.5 + 0.5 * i))) ? (rng.chance(0.7) ? 1 : 2) * (rng.chance(0.5) ? 1 : -1) : 0;
+      const off = rng.chance(Math.min(0.85, skill.err * (1.5 + 0.5 * i) * hardness)) ? (rng.chance(0.7) ? 1 : 2) * (rng.chance(0.5) ? 1 : -1) : 0;
       answers[i] = String(Math.max(0, truth + off));
       steps.push({ answer: joinStages(answers, n), atMs: t });
     });
@@ -551,7 +571,7 @@ function branchWalk(m: MazePuzzleData, from: number, parent: number, max: number
   let prev = parent;
   while (walk.length < max) {
     walk.push(cell);
-    const next = mazeCorridorNeighbours(m.cells, cell).filter((n) => n !== prev);
+    const next = mazeCorridorNeighbours(m.cells, cell, mazeColsOf(m)).filter((n) => n !== prev);
     if (next.length === 0) break;
     prev = cell;
     cell = rng.pick(next);
@@ -597,9 +617,17 @@ function mazeStarBranch(m: MazePuzzleData, star: number): { root: number; cells:
       }
       return { root: cell, cells };
     }
-    for (const n of mazeCorridorNeighbours(m.cells, cell)) if (!from.has(n)) (from.set(n, cell), queue.push(n));
+    for (const n of mazeCorridorNeighbours(m.cells, cell, mazeColsOf(m))) if (!from.has(n)) (from.set(n, cell), queue.push(n));
   }
   return { root: -1, cells: [] };
+}
+
+/** How lost a player gets in a level's maze: wrong turns × `turns`, a wrong branch followed up to `depth` cells (Normal: 1, 12). */
+function mazeKitLost(m: MazePuzzleData): { turns: number; depth: number } {
+  if (!leveled(m)) return { turns: 1, depth: 12 };
+  const lv = mazeLevel(m);
+  const scale = (lv.cols * lv.rows) / (19 * 23);
+  return { turns: Math.max(0.6, scale * scale) * (lv.exitHidden ? 3 : 1.5), depth: lv.exitHidden ? 24 : 16 };
 }
 
 /** mazeRev 1+: the chance a player detours to each star off the route (depth-labyrinth-check's levels). */
@@ -619,7 +647,7 @@ const labyrinth: PuzzleKit = {
       for (let i = 0; i < moves; i++) {
         const last = path[path.length - 1]!;
         if (last === m.exit) break;
-        const options = mazeCorridorNeighbours(m.cells, last);
+        const options = mazeCorridorNeighbours(m.cells, last, mazeColsOf(m));
         const fresh = options.filter((n) => n !== path[path.length - 2]);
         // Biased: keeps going forward until a dead end, then backs up (a blind depth-first scribble).
         const cell = bias && fresh.length ? rng.pick(fresh) : rng.pick(options);
@@ -635,7 +663,7 @@ const labyrinth: PuzzleKit = {
       for (let i = 0; i < moves; i++) {
         const last = path[path.length - 1]!;
         if (last === m.exit) break;
-        const fresh = mazeCorridorNeighbours(m.cells, last).filter((n) => !seen.has(n));
+        const fresh = mazeCorridorNeighbours(m.cells, last, mazeColsOf(m)).filter((n) => !seen.has(n));
         if (fresh.length) {
           const cell = rng.pick(fresh);
           seen.add(cell);
@@ -679,10 +707,14 @@ const labyrinth: PuzzleKit = {
           steps.push({ answer: track.answer(), atMs: t });
         }
       }
-      const side = mazeCorridorNeighbours(m.cells, here).filter((n) => n !== route[i] && n !== route[i - 2]);
-      if (side.length && rng.chance(skill.err)) {
+      const side = mazeCorridorNeighbours(m.cells, here, mazeColsOf(m)).filter((n) => n !== route[i] && n !== route[i - 2]);
+      // Levels (the Attention overhaul, stage 3): a bigger maze is harder to read ahead in, so wrong turns come more
+      // often; on Expert the exit can't be seen until near, so a wrong branch is followed further before it is given
+      // up. Normal mazes keep today's figures exactly.
+      const lost = mazeKitLost(m);
+      if (side.length && rng.chance(Math.min(0.9, skill.err * lost.turns))) {
         // Wrong turn at a junction: follows it until it is clearly a dead end, then retraces.
-        const walk = branchWalk(m, rng.pick(side), here, rng.int(3, 12), rng);
+        const walk = branchWalk(m, rng.pick(side), here, rng.int(3, lost.depth), rng);
         for (const cell of walk) {
           t += thinkMs(rng, 0.25, skill);
           track.push(cell);
@@ -752,7 +784,13 @@ const matchmaker: PuzzleKit = {
   play(p, rng, skill) {
     const cards = (p as PairPuzzleData).cards;
     // Chance of remembering a card once seen: 50 % average, 75 % good, 88 % great, 96 % near.
-    const memory = Math.max(0.3, 1 - 2.5 * skill.err);
+    // Levels (the Attention overhaul, stage 3): a bigger board and a quicker flip-back make each card harder to keep in
+    // mind (more to hold, less time to see it), and cards sharing a shape are easier to mix up. Normal boards keep
+    // today's figure exactly.
+    const pd = p as PairPuzzleData;
+    const lv = leveled(pd) ? pairLevel(pd) : null;
+    const recallCost = lv ? 0.006 * Math.max(0, pd.cards.length - 30) + 0.0003 * Math.max(0, 600 - lv.flipBackMs) + 0.02 * Math.max(0, 6 - lv.shapes) : 0;
+    const memory = Math.max(0.3, 1 - 2.5 * skill.err - recallCost);
     const known = new Set<number>();
     const matched = new Set<number>();
     const flips: number[] = [];
@@ -814,7 +852,7 @@ const matchmaker: PuzzleKit = {
       } else {
         see(a);
         see(b);
-        t += PAIR_FLIP_BACK_MS;
+        t += lv ? lv.flipBackMs : PAIR_FLIP_BACK_MS;
       }
     }
     return { steps };

@@ -1,4 +1,6 @@
-/* Pattern polish: push (Heave). Warehouse board, sliding crates and worker, solve lights; presentation only. */
+/* Pattern polish: push (Heave). Warehouse board, sliding crates and worker, solve lights; presentation only.
+   The Pattern overhaul (15 Nov 2026): every piece is a rendered sprite (pushArt PUSH_SPRITES), drawn inside its cell;
+   no glow on any piece. */
 
 /* Arena: the board fills the space between the counter and the arrow pad, centred,
    with the arrows and Undo/Reset kept below it. */
@@ -10,7 +12,7 @@
 .game-column [data-polish="push"] .push-board { width: min(100cqw, 100cqh); height: auto; max-height: none; }
 
 .push-board {
-  background: #24201c;
+  background: #3a2a22;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
 }
 .push-floor { display: block; }
@@ -23,6 +25,9 @@
   transition: transform 120ms cubic-bezier(0.25, 0.8, 0.3, 1);
   will-change: transform;
 }
+/* Stage 2: a pushed crate starts its glide a beat (PUSH_CRATE_LAG_MS, 60 ms) behind the worker, so the worker is seen
+   to lean in and heave it (transform only; the cell the rules put it in is unchanged). */
+.push-piece[data-push-crate] { transition-delay: 60ms; }
 .push-piece-inner {
   position: relative;
   display: flex;
@@ -31,26 +36,44 @@
   align-items: center;
   justify-content: center;
 }
-.push-worker-turn { transition: transform 120ms ease-out; }
-.push-crate { overflow: visible; }
-.push-crate-body { fill: var(--crate); }
-.push-crate[aria-label="Crate home"] .push-crate-body { fill: color-mix(in oklab, var(--crate) 88%, var(--home-light)); }
-.push-nail { fill: #d9d2c4; stroke: #4a3220; stroke-width: 0.35; }
+/* Sprites fill their cell exactly (each render is one cell, its shadow inside it). */
+.push-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* A crate on a mark: a bold green tick in its top-right corner, inside the cell. */
+.push-home-tick {
+  position: absolute;
+  right: 3%;
+  top: 3%;
+  width: 34%;
+  height: 34%;
+  pointer-events: none;
+}
 
-/* Lamp bulbs along the top wall: dark until the solve. */
+/* Lamp bulbs along the top wall: dark until the solve, when each lit bulb over it flickers on in turn and stays on
+   (stage 2: its opacity only). */
 .push-lamp-bulb { fill: #5d6168; }
-.push-board[data-solve-fx] .push-lamp-bulb {
+.push-lamp-lit { fill: #fff3c4; opacity: 0; }
+.push-board[data-lit] .push-lamp-lit { opacity: 1; }
+.push-board[data-solve-fx] .push-lamp-lit {
   animation: push-bulb 720ms linear both;
   animation-delay: calc(80ms + var(--lamp) * 110ms);
 }
 @keyframes push-bulb {
-  0% { fill: #5d6168; }
-  6%, 75% { fill: #fff3c4; }
-  100% { fill: #5d6168; }
+  0% { opacity: 0; }
+  6% { opacity: 1; }
+  11% { opacity: 0.3; }
+  17%, 100% { opacity: 1; }
 }
 
-/* Light pools switching on along the row, faded by 1.2 s from the solve. The floor
-   first drops into shade, then each lamp's beam pops on in turn. */
+/* The warehouse lights come on (stage 2): a wash of light over the floor, under the pieces. The floor first drops
+   into shade, then each lamp's pool flickers on in turn and stays on while the board is solved. */
 .push-lights::before {
   content: "";
   position: absolute;
@@ -79,11 +102,27 @@
 }
 @keyframes push-light {
   0% { opacity: 0; }
-  6% { opacity: 1; }
-  11% { opacity: 0.45; }
-  17%, 58% { opacity: 1; }
-  100% { opacity: 0; }
+  6% { opacity: 0.85; }
+  11% { opacity: 0.3; }
+  17%, 100% { opacity: 0.5; }
 }
+/* Once on, the pools stay at a warm half strength (full strength bleaches the brick and the floor). */
+.push-board[data-lit]:not([data-solve-fx]) .push-light-pool { opacity: 0.5; }
+
+/* A crate home: the mark lights up round the crate and fades back (pushMarkGlow, its opacity and scale; drawn over the
+   crate's edges, which cover the mark itself, and inside the cell). */
+.push-mark-glow-cell { display: grid; place-items: center; pointer-events: none; }
+.push-mark-glow {
+  width: 100%;
+  height: 100%;
+  border-radius: 12%;
+  box-shadow: inset 0 0 0 2px rgba(255, 232, 160, 0.95), inset 0 0 10px 3px rgba(255, 210, 110, 0.75);
+  opacity: 0;
+}
+.push-mark-glow.is-gold { box-shadow: inset 0 0 0 2px rgba(255, 226, 140, 1), inset 0 0 12px 4px rgba(242, 199, 92, 0.85); }
+/* The gold crate pushed off its gold mark: a shade dims the mark for a moment (pushGoldDim, its opacity only). */
+.push-gold-dim-cell { display: grid; place-items: center; pointer-events: none; }
+.push-gold-dim { width: 90%; height: 90%; border-radius: 14%; background: rgba(8, 6, 4, 0.75); opacity: 0; }
 
 /* Dust: a few motes kicked out from under a crate as it lands. */
 .push-dust-mote {
@@ -105,14 +144,113 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .push-piece, .push-worker-turn { transition: none; }
+  .push-piece { transition: none; }
   .push-dust { display: none; }
-  /* Lights: a plain glow for the moment, no switching sequence. */
-  .push-light-pool { animation: none; opacity: 0.8; }
+  /* Lights: on at once, no switching sequence. */
+  .push-light-pool { animation: none; opacity: 0.5; }
   .push-lights::before { animation: none; opacity: 0; }
-  .push-board[data-solve-fx] .push-lamp-bulb { animation: none; fill: #fff3c4; }
+  .push-board[data-solve-fx] .push-lamp-lit { animation: none; opacity: 1; }
 }
 
-/* Reveal: the board takes the room left above the two result lines. */
-.push-reveal-space { container-type: size; }
-.push-reveal-board { width: min(100cqw, calc(100cqh - 84px), 380px); aspect-ratio: 1; flex-shrink: 0; }
+
+/* ---- The Pattern overhaul (15 Nov 2026): Undo and Reset in champagne gold on navy ------------------------ */
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  box-shadow: inset 0 0 0 1px var(--jz-gold);
+}
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-gold-ink);
+}
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-action]:disabled {
+  box-shadow: inset 0 0 0 1px var(--jz-surface-3);
+}
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-action]:disabled [data-puzzle-icon]::before,
+[data-puzzle-surface] [data-polish="push"] > [data-game-controls] [data-puzzle-action][data-puzzle-icon]:disabled::before {
+  -webkit-text-fill-color: var(--jz-text-3);
+}
+
+/* ---- The answer reveal (the Pattern overhaul, 15 Nov 2026): one board at a time, as large as the space allows ---- */
+.answer-reveal-content .reveal-card > .push-reveal { flex: 1 1 0; min-height: 0; }
+.push-reveal-space {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 160px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+.push-reveal-board { width: min(100cqw, 100cqh, 400px); aspect-ratio: 1; flex-shrink: 0; }
+.answer-reveal-content .reveal-card .push-reveal-pair { flex: 1 1 0; min-height: 0; align-items: stretch; }
+.answer-reveal-content .reveal-card .push-reveal-pair > div { min-height: 0; }
+.push-reveal-label { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--jz-text-2); }
+.push-reveal-note { flex-shrink: 0; font-size: 14px; line-height: 1.35; color: var(--jz-text-2); text-align: center; }
+/* The player's warehouse: a crate not home outlined red, an empty mark ringed red (inside its cell). */
+.push-piece[data-push-missed] .push-piece-inner::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border-radius: 8%;
+  box-shadow: inset 0 0 0 3px var(--destructive), 0 0 0 1px var(--jz-bg);
+  pointer-events: none;
+}
+.push-missed-mark {
+  z-index: 1;
+  pointer-events: none;
+}
+.push-missed-mark::after {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  border-radius: 10%;
+  border: 3px dashed var(--destructive);
+}
+/* The minimum route: one arrow chip a push, the push just played in gold. */
+.push-route {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 400px;
+  width: 100%;
+  flex-shrink: 0;
+}
+.push-route-chip {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--jz-surface-2);
+  box-shadow: inset 0 0 0 1px var(--jz-surface-3);
+  color: var(--jz-text-3);
+  font-size: 14px;
+  font-weight: 800;
+}
+.push-route-chip[data-done] { color: var(--foreground); }
+.push-route-chip[data-active] { box-shadow: inset 0 0 0 2px var(--jz-gold); color: var(--jz-gold-ink); }
+/* The key numbers: pills, the value bold. */
+.push-reveal-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; flex-shrink: 0; }
+.push-key {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--jz-surface-2);
+  font-size: 14px;
+  color: var(--jz-text-2);
+}
+.push-key-value { font-weight: 800; color: var(--foreground); font-variant-numeric: tabular-nums; }
+
+/* Stage 3, the stuck hint (Easy and Normal; display only): a crate pushed where it can never reach a mark takes a red
+   wash and a red edge, inside its cell; Undo takes it back off. */
+.push-piece[data-push-stuck] .push-piece-inner::before {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: 10%;
+  background: rgba(214, 48, 49, 0.38); /* design-lint-ignore: game art, the stuck crate's wash */
+  box-shadow: inset 0 0 0 2px rgba(255, 92, 92, 0.95); /* design-lint-ignore: game art, the stuck crate's edge */
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
+}

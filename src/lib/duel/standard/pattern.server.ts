@@ -11,23 +11,25 @@ import type { TimedDraft } from "./timeline";
 import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, patternFullByS, type PatternStdType } from "./patternRules";
 import type { PuzzleData, UnblockVehicle, PuzzleType } from "../types";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
-import { UNBLOCK_COLS } from "../types";
+import { UNBLOCK_COLS, unblockCols } from "../types";
 import { applyMove, decodeMoves, isSolved as unblockSolved, vehicleCells } from "../unblock";
-import { blockGeometry, decodePlacements, verifyPlacements } from "../blockParty";
+import { blockGeometry, blockIllegalDrops, decodePlacements, verifyPlacements } from "../blockParty";
+import { usesPatternNov15 } from "../patternNov15";
 import { blockPartyCounts, flowRouteCounts } from "../progressFigures";
 import { decodeSlideMoves, replaySlide, slideBoard, slideDistance, type SlideBoard, type SlideState } from "../slide";
 import { replayGems } from "../depth4/iceGems";
 import { decodeGravityTilts } from "../gravity";
-import { isTopsy, replayTopsyPuzzle } from "../topsy";
+import { isTopsy, replayTopsyPuzzle, topsyLevelSettings } from "../topsy";
 import { JUMBLED_MOVABLE, jumbledInPlace, replayGradientAnswer } from "../jumbled";
 import { decodeRingTaps, freshOffsets, replayRings, ringColour, ringsApply } from "../rings";
-import { decodeFlowPaths, verifyFlow } from "../flow";
-import { decodeSides, rotateMask, tileOpenings } from "../logic";
+import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "../flow";
+import { decodeSides, pipesDims, rotateMask, tileOpenings } from "../logic";
 import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
-import { decodePipesTaps, pipesAfterTaps } from "../depth4/pipesTaps";
+import { decodePipesTurns, pipesAfterTurns } from "../depth4/pipesTaps";
 import { cratesOnTargets, decodePushMoves, replayPush } from "../push";
-import { FLOW_PAIRS, LASER_MAX_FIRES, RINGS_SEGMENTS } from "../types";
+import { FLOW_PAIRS, RINGS_SEGMENTS } from "../types";
+import { laserShotsOf } from "../laser";
 import { GRADIENT_WASTE_WEIGHT, PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
 import { rev3Progress, solverShare } from "../puzzleProgress";
 import { decodeGradient, gradientMinimum, gradientSwapLimit, replayGradient } from "../jumbled";
@@ -48,6 +50,10 @@ function speed(type: PatternStdType, input: StandardInput): number {
 /** Speed points on the par-moves stamps (parMoves.ts): up to 30, full by the game's own "full by" time. */
 function parMovesSpeed(type: PatternStdType, input: StandardInput): number {
   // slideRev 4 / gravityRev 7 (puzzle polish, 3 Nov 2026): full a little earlier.
+  // Topsy-Turvy's difficulty levels (16 Nov 2026): a round dealt at a level is full speed by its level's time
+  // (gravity.levels.ts `speedFullByS`); Normal and every round dealt before levels keep the stamp's.
+  const level = type === "gravity" ? topsyLevelSettings(input.puzzle) : null;
+  if (level && usesParStrict(input.puzzle)) return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, level.speedFullByS * 1000);
   const fullByS = usesParStrict(input.puzzle) && (type === "iceslide" || type === "gravity") ? PAR_STRICT_FULL_BY_S[type] : patternFullByS(type, input.puzzle as { tilesRev?: number });
   return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, fullByS * 1000);
 }
@@ -116,12 +122,11 @@ function memo<K extends object, V>(store: WeakMap<K, V>, key: K, make: () => V):
  * cars standing where it has to go to leave the cells it must free, taking its way out (up or down, left or right)
  * with the fewest cars in it. Counted once each; the gold car itself is never counted.
  */
-export function gridlockChain(vehicles: readonly UnblockVehicle[]): number {
-  const N = UNBLOCK_COLS;
+export function gridlockChain(vehicles: readonly UnblockVehicle[], N: number = UNBLOCK_COLS): number {
   const gold = vehicles.find((v) => v.id === 0);
   if (!gold) return 0;
   const at = new Map<number, UnblockVehicle>();
-  for (const v of vehicles) for (const c of vehicleCells(v)) at.set(c, v);
+  for (const v of vehicles) for (const c of vehicleCells(v, N)) at.set(c, v);
   const chain = new Set<number>();
   const queue: { v: UnblockVehicle; free: number[] }[] = [];
   const need = (cells: readonly number[]) => {
@@ -168,7 +173,9 @@ export function gridlockChain(vehicles: readonly UnblockVehicle[]): number {
  * back). A solve clears the whole chain.
  */
 function gridlockCleared(puzzle: Of<"unblock">, answer: string): { cleared: number; total: number } {
-  const total = gridlockChain(puzzle.vehicles);
+  // The lot's size (the difficulty levels: Easy's 6×6; absent = 7).
+  const N = unblockCols(puzzle);
+  const total = gridlockChain(puzzle.vehicles, N);
   let state = puzzle.vehicles.map((v) => ({ ...v }));
   const history = [state];
   let best = total;
@@ -183,12 +190,12 @@ function gridlockCleared(puzzle: Of<"unblock">, answer: string): { cleared: numb
       state = history[0]!;
       continue;
     }
-    const next = applyMove(state, move);
+    const next = applyMove(state, move, N);
     if (!next) continue;
     state = next;
     history.push(state);
-    if (unblockSolved(state)) return { cleared: total, total };
-    best = Math.min(best, gridlockChain(state));
+    if (unblockSolved(state, N)) return { cleared: total, total };
+    best = Math.min(best, gridlockChain(state, N));
   }
   return { cleared: Math.max(0, total - best), total };
 }
@@ -244,10 +251,29 @@ export function blockRightFirstTime(puzzle: Of<"blockparty">, answer: string, dr
   return n;
 }
 
+/**
+ * blockRev 4 (the Pattern overhaul, 15 Nov 2026): the bonus counts clean drops, not first placements. Moving a placed
+ * piece costs nothing; each illegal drop the answer reports (its `!n` entry, blockIllegalDrops) takes one piece's
+ * share. On a finish every piece counts, unfinished the pieces on their solution spot. Needs no timeline.
+ */
+export function blockCleanDrops(puzzle: Of<"blockparty">, answer: string, finished: boolean): number {
+  const legal = blockLegal(puzzle, answer);
+  const counted = finished ? legal.length : blockPartyCounts(puzzle.solution ?? [], legal).inSpot;
+  return Math.max(0, counted - blockIllegalDrops(answer));
+}
+
 const tessellate: StandardGame = {
   grade(input, ctx) {
     const p = input.puzzle as Of<"blockparty">;
     const pieces = blockGeometry(p).pieces.length;
+    if (usesPatternNov15(p, "blockparty")) {
+      const clean = blockCleanDrops(p, input.answer, input.graded.isCorrect);
+      const bonus = pieces > 0 ? (BLOCK_STD.firstTime * clean) / pieces : 0;
+      const facts = { cleanDrops: clean, illegalDrops: blockIllegalDrops(input.answer) };
+      if (input.graded.isCorrect) return { finished: true, speed: speed("blockparty", input), bonus, measure: "clean drops", facts };
+      const net = blockNet(p, input.answer);
+      return { finished: false, credit: BLOCK_STD.perPiece * net + ctx.early(BLOCK_STD.earlyPerPiece, net) + bonus, facts: { ...facts, piecesRight: net } };
+    }
     const right = blockRightFirstTime(p, input.answer, input.drafts, input.graded.isCorrect);
     const firstTime = pieces > 0 ? (BLOCK_STD.firstTime * (right ?? 0)) / pieces : 0;
     const facts = { rightFirstTime: right };
@@ -259,6 +285,23 @@ const tessellate: StandardGame = {
 };
 
 /* ------------------------------------------------------------------ Skid (iceslide) */
+
+// The Pattern overhaul (15 Nov 2026): Skid's slideRev 5 (imported here, beside its game, so per-game work stays apart).
+import { countedSlides } from "../slide";
+import { usesPatternNov15 as usesSkidOverhaul } from "../patternNov15";
+import { gameLevelSettings as skidLevelSettings } from "@/lib/levels/gameLevels";
+import { puzzleLevel as skidPuzzleLevel } from "@/lib/levels/levels";
+import type { IceSlideLevelSettings } from "@/lib/levels/pattern/iceslide.levels";
+
+/**
+ * Skid's speed points: a level board (difficulty levels, 16 Nov 2026) is full by its level's own time (Easy 20 s, Hard
+ * 40 s, Expert 55 s, read from the stored puzzle's level); Normal and every older board as before.
+ */
+function skidSpeed(input: StandardInput): number {
+  const s = skidLevelSettings<IceSlideLevelSettings>("iceslide", skidPuzzleLevel(input.puzzle));
+  if (!s) return parMovesSpeed("iceslide", input);
+  return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, s.fullByS * 1000);
+}
 
 const SLIDE_BOARDS = new WeakMap<object, SlideBoard>();
 const SLIDE_DIST = new WeakMap<object, Map<number, number | null>>();
@@ -290,12 +333,15 @@ const skid: StandardGame = {
     const p = input.puzzle as Of<"iceslide">;
     // slideRev 3 (the puzzle batch of 3 Nov 2026, parMoves.ts): no gems; a finish is 150 + speed + par slides.
     if (usesParMoves(p)) {
+      // slideRev 5 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the slide back, so the par counts the
+      // slides still standing; the unfinished waste rule still counts every slide played (undoing never earns credit).
+      const overhaul = usesSkidOverhaul(p, "iceslide");
       if (input.graded.isCorrect) {
-        const slides = replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)).moves;
-        return { finished: true, speed: parMovesSpeed("iceslide", input), bonus: parMovesPar(p, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
+        const slides = countedSlides(replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)), overhaul);
+        return { finished: true, speed: skidSpeed(input), bonus: parMovesPar(p, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
       }
       const { closed, total } = skidClosed(p, input.answer);
-      const w = waste(num(input.graded.extra, "moves"), p.minMoves);
+      const w = waste(num(input.graded.extra, overhaul ? "slidesPlayed" : "moves"), p.minMoves);
       return { finished: false, credit: shareCredit(ctx, closed, total) * w, facts: { routeClosed: closed, route: total, waste: w } };
     }
     const gems = p.gems ?? [];
@@ -451,7 +497,7 @@ const lightbender: StandardGame = {
       const first = num(extra, "fires") === 1 ? LASER_STD.firstShot : 0;
       return { finished: true, speed: speed("laser", input), bonus: fewer + first, measure: "elegant beam" };
     }
-    const { gems, times } = laserBestGems(extra, input.limitMs, LASER_MAX_FIRES);
+    const { gems, times } = laserBestGems(extra, input.limitMs, laserShotsOf(p));
     const early = times.reduce<number>((sum, t) => sum + (t === null ? 0 : LASER_STD.earlyPerGem * (1 - Math.max(0, Math.min(input.limitMs, t)) / input.limitMs)), 0);
     return { finished: false, credit: LASER_STD.perGem * gems + early, facts: { bestGems: gems } };
   },
@@ -460,13 +506,13 @@ const lightbender: StandardGame = {
 /* ------------------------------------------------------------------ Chroma Lines (flow) */
 
 function flowPaths(puzzle: Of<"flow">, answer: string): number[][] {
-  return decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
+  return decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS, flowCellCount(flowGrid(puzzle)));
 }
 
 /** Pairs joined along their solution route, less pairs joined off it (today's rule: random lines earn about 0). */
 function flowNet(puzzle: Of<"flow">, answer: string): number {
   const paths = flowPaths(puzzle, answer);
-  const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
+  const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], flowGrid(puzzle));
   const { onRoute } = flowRouteCounts(puzzle.solution, paths, verdict.joined);
   return Math.max(0, 2 * onRoute - verdict.pairsJoined);
 }
@@ -481,7 +527,7 @@ export function flowRedraws(puzzle: Of<"flow">, drafts: readonly TimedDraft[] | 
   let redraws = 0;
   for (const d of drafts) {
     const paths = flowPaths(puzzle, d.draft);
-    const joined = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []).joined;
+    const joined = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], flowGrid(puzzle)).joined;
     puzzle.pairs.forEach((_, i) => {
       const key = (paths[i] ?? []).join(",");
       if (done[i] !== null && key !== done[i]) {
@@ -541,11 +587,13 @@ function pipesPlaced(puzzle: Of<"pipes">, board: readonly { sides: number }[]): 
 
 /** Tiles connected to the source beyond those connected at the start, out of those that weren't. */
 function pipesConnected(puzzle: Of<"pipes">, answer: string): { done: number; total: number } {
-  const taps = (puzzle.pipesRev ?? 0) >= 1 ? decodePipesTaps(answer, puzzle.tiles.length) : null;
-  const board = taps ? pipesAfterTaps(puzzle.tiles, taps) : decodeSides(puzzle.tiles, answer);
+  // pipesRev 5 (patternNov15.ts): "-cell" in the log is an anticlockwise turn.
+  const taps = (puzzle.pipesRev ?? 0) >= 1 ? decodePipesTurns(answer, puzzle.tiles.length, usesPatternNov15(puzzle, "pipes")) : null;
+  const board = taps ? pipesAfterTurns(puzzle.tiles, taps) : decodeSides(puzzle.tiles, answer);
   if (usesPipesPlaced(puzzle) && puzzle.solution?.length === puzzle.tiles.length) return pipesPlaced(puzzle, board);
-  const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected;
-  const now = gradePipesBoard(puzzle.source, board).connected;
+  const cols = pipesDims(puzzle).cols;
+  const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, ""), cols).connected;
+  const now = gradePipesBoard(puzzle.source, board, cols).connected;
   return { done: Math.max(0, now - start), total: puzzle.tiles.length - start };
 }
 
