@@ -316,7 +316,9 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
   // dim beside the sound, so the condition now opens a block.
   check(/if \(gold && goldHome && result\.state\.crates\[gold\.crate\] !== gold\.target\) \{\s*soundCue\("push\.goldOff"\);\s*setGoldOff\(/.test(stage), "the stage doesn't fire push.goldOff when the gold crate leaves its mark");
   check(stage.includes('soundCue(result.pushed ? "push.push" : "push.step")'), "steps and pushes no longer fire their own slots");
-  check(!stage.includes('"push.stuck"'), "push.stuck fires before the deadlock hint exists");
+  // Stage 3 (16 Nov 2026, the levels): the deadlock hint exists now, so push.stuck fires, and only behind it (the level's
+  // stuck hint, pattern-overhaul-push-levels-check section 7); flipped from "never fires" as the assertion itself foresaw.
+  check(/if \(dead && result\.pushed && [^\n]*soundCue\("push\.stuck"\)/.test(stage), "push.stuck fires outside the deadlock hint");
   const doc = src("docs/sound-cues/pattern-elevenlabs.md");
   const section = doc.slice(doc.indexOf("<!-- heave:start -->"), doc.indexOf("<!-- heave:end -->"));
   for (const slot of ["push.step", "push.push", "push.home", "push.goldOff", "push.stuck", "push.solve"])
@@ -495,7 +497,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
     const props = [...body!.matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]);
     check(props.every((p) => p === "transform" || p === "opacity"), `fx: keyframes ${name} animate ${props.join(", ")}`);
   }
-  check(!src("src/puzzles/push.tsx").includes('"push.stuck"'), "fx: push.stuck fires before the levels");
+  // Stage 3: push.stuck fires once, from the deadlock hint (flipped from "never" now the levels exist).
+  check((src("src/puzzles/push.tsx").match(/"push\.stuck"/g) ?? []).length === 1, "fx: push.stuck fires other than once, from the hint");
 }
 
 void statSync;

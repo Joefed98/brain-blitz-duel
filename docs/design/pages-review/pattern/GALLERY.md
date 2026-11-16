@@ -516,12 +516,30 @@ at once, as before:
 - **A crate home:** the thump (`push.home`), the kit's drop on the crate (a small squash), the dust as before, and the
   mark lighting up warm round the crate and fading back. Never when Undo or Reset puts a crate back on a mark.
 - **The gold crate pushed off its gold mark:** its sound (`push.goldOff`) and the gold mark dimming for a moment; no shake.
-- **A crate stuck where it can't leave:** not yet (it comes with the levels; `push.stuck` stays unfired).
+- **A crate stuck where it can't leave:** from the levels (stage 3): on Easy and Normal the crate tints red and `push.stuck` plays (see Levels below).
 - **The solve:** the warehouse lights come on along the top wall (`push.solve`), each lamp's pool flickering on in turn
   as a warm wash over the floor under the pieces, and they stay on; the reveal's result card plays the kit's win
   (silent).
 - **Reduced motion:** each is a 120 ms crossfade (no movement, no dust); the lights are simply on.
 - The bulbs' old `fill` animation is gone: each lit bulb is its own layer, its opacity only.
+### Levels (stage 3)
+
+**Easy · Normal · Hard · Expert** (390 × 844, practice, the live round; all 120 s, the same 9 × 9 warehouse)
+
+| Easy 3 crates | Normal 5 crates | Hard 5 crates | Expert 6 crates |
+|---|---|---|---|
+| <img src="push-level-easy.webp" width="160" alt="Heave Easy"> | <img src="push-level-normal.webp" width="160" alt="Heave Normal"> | <img src="push-level-hard.webp" width="160" alt="Heave Hard"> | <img src="push-level-expert.webp" width="160" alt="Heave Expert"> |
+
+- **Easy**: three crates, 8–14 pushes (the minimum), an open warehouse, speed full by 30 s, the stuck hint on.
+- **Normal**: today's game, byte for byte (five crates, 18–27 pushes, full by 45 s), now with the stuck hint.
+- **Hard**: five crates, 25–32 pushes, the detour rule, no stuck hint.
+- **Expert**: six crates, 30–40 pushes, the detour rule, no stuck hint.
+- **The stuck hint** (Easy and Normal, display only, no stamp): a crate pushed onto a square from which it can never
+  reach a mark (a corner without a mark, a run along a wall with no mark, any square no mark can be pulled back to)
+  takes a red wash and edge and plays `push.stuck`; Undo takes it off. Nothing graded reads it.
+- Every level board comes from its own seeded bank (`scripts/push-levels-bank.ts`): grown backwards from the solved
+  warehouse, so its depth is the exact minimum, and re-proved forwards by an independent optimal solver in
+  pattern-overhaul-push-levels-check. Every level fits 375 × 667 and 390 × 844 exactly as Normal (same board box).
 <!-- heave:end -->
 
 <!-- lightbender:start -->

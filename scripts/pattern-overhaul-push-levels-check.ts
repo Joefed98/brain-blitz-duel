@@ -5,7 +5,7 @@
  * No browser (happy-dom for the stage).
  *
  *   1. Settings dealt: every level deals its crates (3 / 5 / 6), a minimum in its push range (8–14 / 25–32 / 30–40),
- *      a gold crate on one of its marks, the level stamp, today's stamps (pushRev 2) and Heave's 120 s clock; each
+ *      a gold crate on one of its marks, the level stamp, today's stamps (pushRev 3, as Normal) and Heave's 120 s clock; each
  *      deal is a board of its own level's bank, the same for a seed every time.
  *   2. The bank (src/lib/duel/pushLevelBank.server.ts, scripts/push-levels-bank.ts): every board's stored minimum
  *      solution replays on the shared rules (the worker walking to each push) to a solve in exactly `minPushes` pushes
@@ -85,7 +85,7 @@ const WANT: Record<L, { crates: number; min: number; max: number; perCrate: numb
   hard: { crates: 5, min: 25, max: 32, perCrate: 3, detour: true, hint: false, fullBy: 45 },
   expert: { crates: 6, min: 30, max: 40, perCrate: 3, detour: true, hint: false, fullBy: 45 },
 };
-const OPP: Record<SlideDir, SlideDir> = { U: "D", D: "U", L: "R", R: "L" };
+const OPP = { U: "D", D: "U", L: "R", R: "L" } as Record<SlideDir, SlideDir>;
 const deal = (seed: number, level?: string) =>
   withSeededRandom(seed, () => generatePuzzle("push", { bankSeed: seed, ...(level ? { level: level as never } : {}) })) as PushPuzzleData;
 const layoutKey = (e: { walls: readonly number[]; targets: readonly number[]; crates: readonly number[]; pusher: number }) =>
@@ -141,6 +141,9 @@ function solutionMoves(e: { walls: number[]; crates: number[]; pusher: number; s
 /* ------------------------------------------------------------------ 1. settings dealt */
 check(JSON.stringify(levelsOf("push")) === JSON.stringify(["easy", "normal", "hard", "expert"]), `levels: push offers ${levelsOf("push").join(", ")}`);
 const dealt: Record<L, PushPuzzleData[]> = { easy: [], hard: [], expert: [] };
+/** Today's Normal stamp (pushRev 3: depth batch 4, then the scoring standard): every level deals the same. */
+const NORMAL_REV = deal(162_000).pushRev;
+check(NORMAL_REV === 3, `normal: pushRev ${NORMAL_REV}`);
 for (const level of LEVELS) {
   const s = gameLevelSettings<PushLevelSettings>("push", level)!;
   const w = WANT[level];
@@ -156,7 +159,7 @@ for (const level of LEVELS) {
     const p = deal(seed, level);
     dealt[level].push(p);
     check(puzzleLevel(p) === level, `${level} ${seed}: stamped ${puzzleLevel(p)}`);
-    check(p.pushRev === dealtD4Rev("push") && p.pushRev === 2, `${level} ${seed}: pushRev ${p.pushRev}`);
+    check(p.pushRev === NORMAL_REV && (p.pushRev ?? 0) >= dealtD4Rev("push"), `${level} ${seed}: pushRev ${p.pushRev} (Normal ${NORMAL_REV})`);
     check(p.crates.length === w.crates && p.targets.length === w.crates, `${level} ${seed}: ${p.crates.length} crates`);
     check((p.minPushes ?? 0) >= w.min && (p.minPushes ?? 0) <= w.max, `${level} ${seed}: minimum ${p.minPushes}`);
     check(!!p.gold && p.gold.crate >= 0 && p.gold.crate < p.crates.length && p.targets.includes(p.gold.target), `${level} ${seed}: gold ${JSON.stringify(p.gold)}`);

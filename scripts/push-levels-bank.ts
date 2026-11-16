@@ -37,7 +37,7 @@ function rand(): number {
 }
 
 const DIRS: SlideDir[] = ["U", "D", "L", "R"];
-const OPPOSITE: Record<SlideDir, SlideDir> = { U: "D", D: "U", L: "R", R: "L" };
+const OPPOSITE = { U: "D", D: "U", L: "R", R: "L" } as Record<SlideDir, SlideDir>;
 
 export interface PushLevelEntry {
   walls: number[];

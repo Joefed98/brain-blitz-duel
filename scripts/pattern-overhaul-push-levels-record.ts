@@ -1,7 +1,7 @@
 /**
  * Records the Normal fixture for pattern-overhaul-push-levels-check (difficulty levels, 16 Nov 2026): Heave's Normal
- * deal on the tree before its levels (recorded with Normal's deal path untouched: no level in the context reaches
- * drawPushD4 exactly as before), so the check proves Normal stays byte for byte that deal.
+ * deal on the tree before its levels (recorded on a `git archive` of f09e31446, the branch before Heave's levels), so
+ * the check proves Normal stays byte for byte that deal.
  *
  *   bun scripts/pattern-overhaul-push-levels-record.ts [--out=<path>]
  *
