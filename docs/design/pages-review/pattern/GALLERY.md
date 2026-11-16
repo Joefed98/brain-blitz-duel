@@ -238,6 +238,22 @@ and the source's bubbles).
 - **Solve**: the rush fills the network (now a scale, transform only), the source valve bubbles (`pipes.bubble`), and
   the reveal's result card gets the kit's win.
 - **Reduced motion**: every change a 120 ms crossfade (the kit's for the turn), no bubbles; the rush a still glow.
+### Levels (stage 3)
+
+**Easy · Normal · Hard · Expert** (390 × 844, practice, the live round; all 120 s)
+
+| Easy 5 × 5 | Normal 7 × 7 | Hard 8 × 8 | Expert 8 × 11 |
+|---|---|---|---|
+| <img src="pipes-level-easy.webp" width="160" alt="Pipeline Easy"> | <img src="pipes-level-normal.webp" width="160" alt="Pipeline Normal"> | <img src="pipes-level-hard.webp" width="160" alt="Pipeline Hard"> | <img src="pipes-level-expert.webp" width="160" alt="Pipeline Expert"> |
+
+- **Easy**: 5 × 5, exactly 60 % of the tiles dealt turned (the rest already right), spills shown.
+- **Normal**: today's game, byte for byte (7 × 7, at least 80 % turned, spills shown, pipesRev 5).
+- **Hard**: 8 × 8 (about 44 px a tile on a 375 px phone), at least 90 % turned, spills shown.
+- **Expert**: 8 across × 11 down (88 tiles; 9 across would be 39 px tiles), at least 95 % turned, **no spills during
+  play** (the reveal still shows them). Fits 375 × 667 with the Turns / Par pills (39 px tiles).
+- Every level board is proved one-solution when dealt by a solver that reasons like a person (matching sides, no loops,
+  never seal off a group, no guessing), and re-proved in the check by a searching solver. Par is the fewest turns
+  either way at every level.
 <!-- pipeline:end -->
 
 <!-- chroma:start -->

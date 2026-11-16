@@ -21,7 +21,10 @@ import { PUZZLE_SCORE_REV_HELPER } from "../puzzleScoreRev3";
 import { drawBankedPuzzle } from "../puzzleBank.server";
 import { generateUnblock, type UnblockBankRow } from "../unblock.server";
 import { generateRings, RINGS_TWO_RULE_PATTERNS } from "../rings.server";
-import { generatePipes } from "../logic.server";
+import { generatePipes, generatePipesLevel } from "../logic.server";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import { NORMAL, type Level } from "@/lib/levels/levels";
+import type { PipesLevelSettings } from "@/lib/levels/pattern/pipes.levels";
 import { generateLaser } from "../laser.server";
 import { isSplitter } from "../laser";
 import type { PuzzleData, PuzzleType } from "../types";
@@ -59,7 +62,9 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...p, ringsRev: dealtD4Rev("rings"), par: p.minMoves ?? 0 };
     }
     case "pipes": {
-      const p = generatePipes();
+      // Difficulty levels (15 Nov 2026): a level's board (pipes.levels.ts); Normal (no level) is today's deal.
+      const settings = gameLevelSettings<PipesLevelSettings>("pipes", (context as { level?: Level }).level ?? NORMAL);
+      const p = settings ? generatePipesLevel(settings) : generatePipes();
       return { ...p, pipesRev: dealtD4Rev("pipes"), par: pipesParTurns(p.tiles, p.solution ?? []) };
     }
     case "laser": {

@@ -23,7 +23,7 @@ import { isTopsy, replayTopsyPuzzle } from "../topsy";
 import { JUMBLED_MOVABLE, jumbledInPlace, replayGradientAnswer } from "../jumbled";
 import { decodeRingTaps, freshOffsets, replayRings, ringColour, ringsApply } from "../rings";
 import { decodeFlowPaths, verifyFlow } from "../flow";
-import { decodeSides, rotateMask, tileOpenings } from "../logic";
+import { decodeSides, pipesDims, rotateMask, tileOpenings } from "../logic";
 import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
 import { decodePipesTurns, pipesAfterTurns } from "../depth4/pipesTaps";
@@ -572,8 +572,9 @@ function pipesConnected(puzzle: Of<"pipes">, answer: string): { done: number; to
   const taps = (puzzle.pipesRev ?? 0) >= 1 ? decodePipesTurns(answer, puzzle.tiles.length, usesPatternNov15(puzzle, "pipes")) : null;
   const board = taps ? pipesAfterTurns(puzzle.tiles, taps) : decodeSides(puzzle.tiles, answer);
   if (usesPipesPlaced(puzzle) && puzzle.solution?.length === puzzle.tiles.length) return pipesPlaced(puzzle, board);
-  const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected;
-  const now = gradePipesBoard(puzzle.source, board).connected;
+  const cols = pipesDims(puzzle).cols;
+  const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, ""), cols).connected;
+  const now = gradePipesBoard(puzzle.source, board, cols).connected;
   return { done: Math.max(0, now - start), total: puzzle.tiles.length - start };
 }
 

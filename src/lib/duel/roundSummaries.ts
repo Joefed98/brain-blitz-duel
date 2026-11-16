@@ -1,5 +1,6 @@
 import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
+import { pipesDims } from "./logic";
 import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
@@ -623,9 +624,11 @@ const pipesSummary: SummaryBuilder = (result, puzzle) => {
       detail: ["Every pipe connected, no leaks"],
     };
   }
+  // Difficulty levels: a level board's own tile count (pipesDims); every board before levels counts 49.
+  const cells = pipesDims(puzzle).cells;
   return {
-    summary: `${connected} / ${PIPES_CELLS} connected`,
-    detail: [`${PIPES_CELLS - connected} tiles left off the network`],
+    summary: `${connected} / ${cells} connected`,
+    detail: [`${cells - connected} tiles left off the network`],
   };
 };
 

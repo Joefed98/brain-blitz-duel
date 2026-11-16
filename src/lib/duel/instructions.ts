@@ -616,6 +616,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
             { action: "Hold or swipe a tile", detail: "to turn it anticlockwise (right click on a computer)." },
             { action: "Water spills", detail: "from every open end it reaches: join every opening, no leaks." },
             { action: "Par", detail: "is the fewest turns either way, shown under the board beside your turns." },
+            // Difficulty levels (15 Nov 2026, pipes.levels.ts): Expert hides the live spills.
+            { action: "On Expert", detail: "no spills show while you play: find the open ends yourself.", helpOnly: true },
           ],
       // pipesRev 4 (7 Nov 2026, speedPipesNov7.ts): the tiles turned to fit.
       score: pipesPatternHelp(),
