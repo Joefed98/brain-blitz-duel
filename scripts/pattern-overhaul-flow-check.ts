@@ -135,13 +135,26 @@ const start = [red, [18, 19, 20, 11]];
   const stamps = new Set(fixture.puzzles.map((p) => (p as Flow).flowRev));
   check(stamps.has(2) && stamps.has(3), "the fixture holds flowRev 2 and flowRev 3 boards");
   let same = 0;
+  let later = 0;
   for (const c of fixture.cases) {
-    const g = gradeAnswer(fixture.puzzles[c.p]!, c.answer, c.msLeft);
+    const puzzle = fixture.puzzles[c.p] as Flow;
+    // Changed with Joe's approval, 16 Nov 2026 (the coordinator's instruction for stage 3: flowRev 3, never dealt
+    // live, takes the new full-speed time, 30 s on Normal, in place of 20 s). flowRev 2 answers must grade exactly as
+    // recorded; a flowRev 3 answer must grade exactly as recorded on flowRev 2's timing (nothing else moved), and on
+    // its own stamp the same but for a solve's speed points, which can only rise.
+    const g = gradeAnswer(puzzle.flowRev === 3 ? ({ ...puzzle, flowRev: 2 } as Flow) : puzzle, c.answer, c.msLeft);
     const ok = g.score === c.score && g.isCorrect === c.correct && JSON.stringify(g.extra ?? null) === JSON.stringify(c.extra);
     if (ok) same++;
-    else check(false, `legacy case ${fixture.cases.indexOf(c)} (flowRev ${(fixture.puzzles[c.p] as Flow).flowRev}): ${c.score} recorded, ${g.score} now`);
+    else check(false, `legacy case ${fixture.cases.indexOf(c)} (flowRev ${puzzle.flowRev}): ${c.score} recorded, ${g.score} now`);
+    if (puzzle.flowRev === 3) {
+      const own = gradeAnswer(puzzle, c.answer, c.msLeft);
+      const fine = own.isCorrect === c.correct && (c.correct ? own.score >= c.score : own.score === c.score);
+      if (fine) later++;
+      else check(false, `legacy case ${fixture.cases.indexOf(c)} on flowRev 3's own timing: ${c.score} recorded, ${own.score} now`);
+    }
   }
   check(same === fixture.cases.length && fixture.cases.length >= 100, `all ${fixture.cases.length} recorded answers grade as recorded (${same})`);
+  check(later > 0, `flowRev 3's answers keep their grade but for a solve's speed (${later})`);
 }
 
 /* ------------------------------------------------------------------ 5. help */
@@ -165,7 +178,8 @@ const start = [red, [18, 19, 20, 11]];
 }
 
 /* ------------------------------------------------------------------ 6. the art */
-const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN", "YELLOW", "TEAL", "WHITE", "LIME", "SILVER"];
+// Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Pattern overhaul): Expert's two extra colours.
+const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN", "YELLOW", "TEAL", "WHITE", "LIME", "SILVER", "CYAN", "TAN"];
 {
   let total = 0;
   const sprites = [...COLOURS.map((c) => `bead-${c.toLowerCase()}`), "wall", "cell"];
@@ -194,7 +208,7 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
   const { flowPuzzle, FlowBoard } = await import("../src/puzzles/flow");
   const board = renderToStaticMarkup(
     createElement(FlowBoard, {
-      pairs: COLOURS.map((colour, i) => ({ colour, a: i * 2, b: i * 2 + 1 })).slice(0, 12),
+      pairs: COLOURS.map((colour, i) => ({ colour, a: i * 2, b: i * 2 + 1 })), // all fourteen colours (was the first 12; routine consequence, 16 Nov 2026)
       paths: COLOURS.map(() => []),
       walls: [40, 50],
     }),
@@ -202,7 +216,7 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
   for (const c of COLOURS) check(board.includes(`/pattern-art/flow/bead-${c.toLowerCase()}.webp`), `the board draws the ${c.toLowerCase()} bead`);
   check(board.includes("/pattern-art/flow/wall.webp"), "the board draws the wall tile");
   check(board.includes("/pattern-art/flow/cell.webp"), "the board draws the cell tile");
-  check((board.match(/class="flow-symbol"/g) ?? []).length === 24, "every bead carries its symbol");
+  check((board.match(/class="flow-symbol"/g) ?? []).length === COLOURS.length * 2, "every bead carries its symbol"); // 24 before Expert's two extra colours (routine, 16 Nov 2026)
   check(!/feGaussianBlur|flow-halo/.test(board), "no glow filter on the board");
   const tubes = renderToStaticMarkup(
     createElement(FlowBoard, { pairs: pairs, paths: [red, []], walls: [] }),

@@ -1062,7 +1062,10 @@ export type FlowColour =
   | "TEAL"
   | "WHITE"
   | "LIME"
-  | "SILVER";
+  | "SILVER"
+  // Levels (15 Nov 2026): Expert deals up to 14 pairs, so two more colours (only Expert deals them).
+  | "CYAN"
+  | "TAN";
 
 export interface FlowPair {
   colour: FlowColour;
@@ -1081,6 +1084,14 @@ export interface FlowPuzzleData {
   walls?: number[];
   /** Depth batch 4: 1 = scored to 200 (the stretch); absent = scored to 150. The board is unchanged. */
   flowRev?: number;
+  /**
+   * Levels (15 Nov 2026, flow.levels.ts): the grid's columns and rows when it isn't 9 × 9 (Easy 6 × 6, Expert 9 × 12).
+   * Absent = 9 × 9, every Normal and Hard deal and every round before levels (`flowGrid`).
+   */
+  cols?: number;
+  rows?: number;
+  /** The level's own clock (Expert 90 s); absent = the game's 75 s. */
+  timeLimitMs?: number;
   /** Server-side only: the cell path of each pair, in pair order. */
   solution?: number[][];
 }

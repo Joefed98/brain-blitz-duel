@@ -22,7 +22,7 @@ import { decodeGravityTilts } from "../gravity";
 import { isTopsy, replayTopsyPuzzle } from "../topsy";
 import { JUMBLED_MOVABLE, jumbledInPlace, replayGradientAnswer } from "../jumbled";
 import { decodeRingTaps, freshOffsets, replayRings, ringColour, ringsApply } from "../rings";
-import { decodeFlowPaths, verifyFlow } from "../flow";
+import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "../flow";
 import { decodeSides, pipesDims, rotateMask, tileOpenings } from "../logic";
 import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
@@ -487,13 +487,13 @@ const lightbender: StandardGame = {
 /* ------------------------------------------------------------------ Chroma Lines (flow) */
 
 function flowPaths(puzzle: Of<"flow">, answer: string): number[][] {
-  return decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
+  return decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS, flowCellCount(flowGrid(puzzle)));
 }
 
 /** Pairs joined along their solution route, less pairs joined off it (today's rule: random lines earn about 0). */
 function flowNet(puzzle: Of<"flow">, answer: string): number {
   const paths = flowPaths(puzzle, answer);
-  const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
+  const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], flowGrid(puzzle));
   const { onRoute } = flowRouteCounts(puzzle.solution, paths, verdict.joined);
   return Math.max(0, 2 * onRoute - verdict.pairsJoined);
 }
@@ -508,7 +508,7 @@ export function flowRedraws(puzzle: Of<"flow">, drafts: readonly TimedDraft[] | 
   let redraws = 0;
   for (const d of drafts) {
     const paths = flowPaths(puzzle, d.draft);
-    const joined = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []).joined;
+    const joined = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], flowGrid(puzzle)).joined;
     puzzle.pairs.forEach((_, i) => {
       const key = (paths[i] ?? []).join(",");
       if (done[i] !== null && key !== done[i]) {

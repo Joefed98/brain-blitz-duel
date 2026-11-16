@@ -17,7 +17,9 @@ import { solveBlockBoard } from "../../src/lib/duel/blockPartyLevels.server";
 import { encodeLaserAnswer } from "../../src/lib/duel/laser";
 import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "../../src/lib/duel/actionLog";
 import { laserAction } from "../../src/lib/duel/laserLog";
-import { encodeFlowPaths, flowNeighbours } from "../../src/lib/duel/flow";
+import { encodeFlowPaths, flowGrid, flowNeighbours } from "../../src/lib/duel/flow";
+import { solveFlowLikeAPerson } from "../../src/lib/duel/flowHuman.server";
+import { puzzleLevel } from "../../src/lib/levels/levels";
 import { PIPE_BITS, pipeNeighbour, pipesDims, rotateMask, tileOpenings } from "../../src/lib/duel/logic";
 import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
 
@@ -703,7 +705,7 @@ function flowRoute(q: Of<"flow">, pair: number, blocked: Set<number>, rng: Rng):
   for (let i = 0; i < queue.length; i++) {
     const cell = queue[i]!;
     if (cell === b) break;
-    for (const n of rng.shuffle(flowNeighbours(cell))) {
+    for (const n of rng.shuffle(flowNeighbours(cell, flowGrid(q)))) {
       if (prev.has(n) || (blocked.has(n) && n !== b)) continue;
       prev.set(n, cell);
       queue.push(n);
@@ -731,6 +733,20 @@ function flowBlocked(q: Of<"flow">, paths: number[][], pair: number): Set<number
 
 // BASE 5 s per pair: find the route, then drag it out cell by cell.
 const FLOW_BASE = 5;
+/**
+ * Levels (16 Nov 2026): a level's board is timed by what it asks of a player, not a flat 5 s a pair: FLOW_PER_CELL a
+ * square of the line dragged out, plus FLOW_PER_WHAT_IF for each one-step "what if" the human-style solver needs
+ * (flowHuman.server.ts), shared over the pairs. Calibrated so a typical Normal board (11 pairs of about 7.1 squares,
+ * 2.5 "what ifs") costs the same 55 s as the flat rate; Normal itself keeps the flat 5 s, so its plays are unchanged.
+ */
+const FLOW_PER_CELL = 0.577;
+const FLOW_PER_WHAT_IF = 4;
+function flowPairBase(q: Of<"flow">): (pair: number) => number {
+  if (puzzleLevel(q) === "normal") return () => FLOW_BASE;
+  const whatIfs = solveFlowLikeAPerson(q.pairs, q.walls ?? [], flowGrid(q)).whatIfs;
+  const share = (FLOW_PER_WHAT_IF * whatIfs) / Math.max(1, q.pairs.length);
+  return (pair) => FLOW_PER_CELL * (q.solution?.[pair]?.length ?? 7) + share;
+}
 const flowKit: PuzzleKit = {
   type: "flow",
   nothing: (p) => encodeFlowPaths((p as Of<"flow">).pairs.map(() => [])),
@@ -752,7 +768,7 @@ const flowKit: PuzzleKit = {
       for (let s = 0; s < 8 && used < budget; s++, used++) {
         const here = path[path.length - 1]!;
         if (here === q.pairs[i]!.b) break;
-        const options = flowNeighbours(here).filter((n) => !path.includes(n) && (!blocked.has(n) || n === q.pairs[i]!.b));
+        const options = flowNeighbours(here, flowGrid(q)).filter((n) => !path.includes(n) && (!blocked.has(n) || n === q.pairs[i]!.b));
         if (!options.length) break;
         path.push(rng.pick(options));
       }
@@ -771,6 +787,7 @@ const flowKit: PuzzleKit = {
     const wrong = new Set<number>();
     const steps: Step[] = [];
     let at = 0;
+    const base = flowPairBase(q);
     const draw = (i: number, path: number[]) => {
       // Drawing over another line cuts it away; that pair must be drawn again.
       const cells = new Set(path);
@@ -787,13 +804,13 @@ const flowKit: PuzzleKit = {
     for (let guard = 0; guard < 200 && (order.length || wrong.size); guard++) {
       if (wrong.size && (!order.length || rng.chance(0.4))) {
         const w = [...wrong][0]!;
-        at += thinkMs(rng, FLOW_BASE * 0.8, skill);
+        at += thinkMs(rng, base(w) * 0.8, skill);
         wrong.delete(w);
         draw(w, solution[w]!);
         continue;
       }
       const i = order.shift()!;
-      at += thinkMs(rng, FLOW_BASE, skill);
+      at += thinkMs(rng, base(i), skill);
       if (rng.chance(skill.err)) {
         const route = flowRoute(q, i, flowBlocked(q, paths, i), rng);
         if (route && route.join() !== solution[i]!.join() && route.reverse().join() !== solution[i]!.join()) {
