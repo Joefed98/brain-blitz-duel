@@ -1758,6 +1758,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup, which always starts well away from it. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
         { action: "Par:", detail: "every maze has a par time, the same for everyone, set by how long its route is. The seconds left to it show top right; finish the maze (every marble home) before it runs out.", helpOnly: true },
         { action: "Clean run:", detail: "keep both marbles out of the black holes. “Clean” shows top right until the first fall.", helpOnly: true },
+        { action: "Levels:", detail: "Easy deals three smaller mazes with at most one black hole, no ice, two marbles only in the last and a generous par; Normal the four mazes above; Hard three or four holes and ice in every maze, two marbles in two of mazes 2–4 and a stricter par; Expert larger mazes, four holes and the most ice in each, two marbles in up to three mazes and the strictest par. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
       ],
       // tiltRev 11 (3 Nov 2026): no gold stars; mazes on a straight line, then par, a clean run, all four and speed, 200 in all.
       score: scoreList([

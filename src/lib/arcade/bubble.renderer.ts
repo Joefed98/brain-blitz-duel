@@ -68,7 +68,7 @@ export type BubCreature = "crab" | "starfish" | "fish" | "jellyfish" | "shell" |
 /** Colour value 1…5 → creature, one-to-one. */
 export const BUB_CREATURES: readonly BubCreature[] = ["crab", "starfish", "fish", "jellyfish", "shell"];
 export function bubCreature(value: number): BubCreature {
-  // The sixth colour (Expert only): a seahorse, a shape no other creature shares (drawn in code; no sprite yet).
+  // The sixth colour (Expert only): a seahorse, a shape no other creature shares (drawn in code, as all five are).
   if (value === BUB_SIXTH) return "seahorse";
   return BUB_CREATURES[(value - 1) % BUB_CREATURES.length] ?? "fish";
 }
@@ -508,9 +508,11 @@ export function paintBubble(value: number) {
     const r = size / 2;
     // The Strategy overhaul (stage 2, display only): the rendered candy-glass bubble (strategy_art.py) at the bubble's
     // own radius, its creature printed in it, then the rendered gloss over the top; the code bubble until both load.
-    const body = strategyImage(BUBBLE_ART[value - 1] ?? "bubble-red");
+    // Expert's sixth colour (BUB_SIXTH) has its own rendered orange bubble (16 Nov 2026), the seahorse printed in it.
+    const sixth = value === BUB_SIXTH;
+    const body = strategyImage(sixth ? "bubble-orange" : (BUBBLE_ART[value - 1] ?? "bubble-red"));
     const gloss = strategyImage("bubble-gloss");
-    if (body && gloss && value >= 1 && value <= BUBBLE_ART.length) {
+    if (body && gloss && (sixth || (value >= 1 && value <= BUBBLE_ART.length))) {
       c.drawImage(body, 0, 0, size, size);
       c.save();
       c.globalAlpha = 0.92;

@@ -80,6 +80,12 @@ The step is clear at every skill below elite and under human limits; the elite b
 Expert about level (its pace, not falls, decides the score: the bots never fall into a hole, so Hard's and Expert's
 extra holes and ice cost a human far more than they cost the bot). Expert's oracle reaches 200 on every dealt seed.
 
+**For Joe's scoring review (16 Nov 2026): Tilt's Normal.** Normal is `tiltRev 12` exactly, the game rooms, rated play
+and the Daily deal, and its elite score sits well under the other Strategy games': the elite bot under human limits
+averages **144** on Normal (1 of 40 runs at 200; 166 without limits, 7/40 at 200), against about 158–196 for the other
+four games' Normal. Normal was left unchanged by stage 3 (no retuning for bot numbers, Joe, 16 Nov 2026); if the review
+wants it higher, it needs a new tiltRev with its own proved deal, not a change to the levels.
+
 Expert seeds to try (list entry, seed: elite bot / elite under human limits): 15, 1087867488: 200 / 187; 19, 1788458060:
 188 / 188; 2, 1834169993: 198 / 174; 1, 506952113: 188 / 180; 28, 1042155555: 184 / 182.
 

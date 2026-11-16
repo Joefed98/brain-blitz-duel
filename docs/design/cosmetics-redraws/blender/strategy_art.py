@@ -76,6 +76,14 @@ def cut_points(shape, r=1.0):
         pts += [(0, -r), (r, 0), (0, r), (-r, 0)]
     elif shape == "star":
         ring(10, -math.pi / 2, lambda k: r if k % 2 == 0 else r * 0.45)
+    elif shape == "heart":
+        # matchupRev 13 Expert's seventh gem: the classic parametric heart, the same 20 points the code-cut gem uses
+        # (matchup.renderer's gemPoints), so the render fills exactly the outline the code art draws.
+        for k in range(20):
+            t = k / 20 * math.pi * 2
+            hx = 16 * math.sin(t) ** 3
+            hy = -(13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t))
+            pts.append((hx * 0.95 / 16 * r, (hy - 2.5) * 0.95 / 16 * r))
     else:
         ring(6, -math.pi / 2, lambda k: r)
     # Screen y grows down; Blender's y grows up.
@@ -157,8 +165,12 @@ def gem_material(colour, shade=1.0):
     return m
 
 
-def gems():
-    for colour, shape in zip(GEM_COLOURS, GEM_SHAPES):
+# Expert's seventh colour (matchupRev 13, 16 Nov 2026): the cyan heart, MATCHUP_COLOUR7.
+GEM7 = ("#2FE3E6", "heart")
+
+
+def gems(only=None):
+    for colour, shape in only or zip(GEM_COLOURS, GEM_SHAPES):
         s = lib.reset(256, 256, samples=128, transparent=True)
         s.view_settings.view_transform = "Standard"
         s.view_settings.look = "Medium High Contrast"
@@ -279,6 +291,8 @@ def sphere_render(name, colour, kind, gloss_only=False):
 TILT_MARBLES = {"tilt-marble-blue": "#3E7BFA", "tilt-marble-amber": "#F29A1F"}
 BT_MARBLES = {"bt-marble-red": "#FF4D4D", "bt-marble-blue": "#4D8CFF", "bt-marble-green": "#3DDC84", "bt-marble-yellow": "#FFE600"}
 BUBBLES = {"bubble-red": "#FF4D4D", "bubble-yellow": "#FFE600", "bubble-green": "#3DDC84", "bubble-blue": "#4D8CFF", "bubble-purple": "#B26BFF"}
+# Expert's sixth colour (BUB_SIXTH, 16 Nov 2026): the warm orange the seahorse lives in, BUB_SIXTH_COLOUR.
+BUBBLE6 = {"bubble-orange": "#FF9A3C"}
 
 
 def marbles():
@@ -287,10 +301,11 @@ def marbles():
     sphere_render("marble-gloss", "#000000", "marble", gloss_only=True)
 
 
-def bubbles():
-    for name, colour in BUBBLES.items():
+def bubbles(only=None):
+    for name, colour in (only or BUBBLES).items():
         sphere_render(name, colour, "bubble")
-    sphere_render("bubble-gloss", "#000000", "bubble", gloss_only=True)
+    if only is None:
+        sphere_render("bubble-gloss", "#000000", "bubble", gloss_only=True)
 
 
 # ------------------------------------------------------------------ Tilt's lacquered disc
@@ -579,6 +594,6 @@ def bt_wood():
     wood_tile("bt-walnut", (0x3A, 0x1E, 0x0C), (0x6E, 0x3E, 0x1E), 12, 0.35, 12)
 
 
-JOBS = {"gems": gems, "marbles": marbles, "bubbles": bubbles, "disc": disc, "captain": captain_art, "coin": reveal_coin, "chest": reveal_chest, "btwood": bt_wood}
+JOBS = {"gem7": lambda: gems([GEM7]), "bubble6": lambda: bubbles(BUBBLE6), "gems": gems, "marbles": marbles, "bubbles": bubbles, "disc": disc, "captain": captain_art, "coin": reveal_coin, "chest": reveal_chest, "btwood": bt_wood}
 for job in sys.argv[1:] or list(JOBS):
     JOBS[job]()

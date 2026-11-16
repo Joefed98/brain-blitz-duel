@@ -289,6 +289,11 @@ section("Rendered materials: present, hashed, within budget, code art without th
   ok(/c\.drawImage\(body, 0, 0, size, size\)/.test(sources[1]!) && /drawCreature\(c, bubCreature\(value\)/.test(sources[1]!), "Coral Pop: the rendered bubble at its own size with its creature printed in it");
   ok(/ctx\.drawImage\(body, x - r, y - r, r \* 2, r \* 2\)/.test(sources[2]!) && /toyMarble\(ctx, x, y, r, colour, 0, seed\)/.test(sources[2]!), "Ball Tracker: the rendered marble at the marble's radius, the code marble otherwise");
   ok(/ctx\.drawImage\(body, -r, -r, r \* 2, r \* 2\)/.test(sources[3]!) && /strategyImage\("tilt-disc"\)/.test(sources[3]!), "Tilt: rendered marbles at the marble's radius and the lacquered disc");
+  // Expert's extra colours are rendered as the others are (Joe, 16 Nov 2026: no code-drawn pieces): Gemstone's cyan heart
+  // and Coral Pop's orange bubble, each its own render, the renderer asking for it with no exception for that colour.
+  ok("gem-heart" in STRATEGY_ART && "bubble-orange" in STRATEGY_ART, "Gemstone's seventh gem (the cyan heart) and Coral Pop's sixth bubble (orange) are rendered images");
+  ok(!/shape === "heart" \? null/.test(sources[0]!) && /strategyImage\(`gem-\$\{shape\}`/.test(sources[0]!), "Gemstone: the heart draws its rendered stone like every other gem");
+  ok(/sixth \? "bubble-orange"/.test(sources[1]!), "Coral Pop: the sixth colour draws its rendered orange bubble with the seahorse in it");
   ok(/inkbridge-captain-win/.test(sources[4]!) && /INK_CAPTAIN_CHEER_TICKS/.test(sources[4]!), "Rainbow Bridge: Captain Joulz waits by the pot and cheers when the coin lands");
 }
 

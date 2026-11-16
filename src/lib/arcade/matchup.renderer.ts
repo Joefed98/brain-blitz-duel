@@ -473,8 +473,8 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
     const colour = matchupGemColour(kind) ?? MATCHUP_GOLD;
     // The Strategy overhaul (stage 2, display only): the rendered cut stone (strategy_art.py), the same outline at the
     // same radius; the code-cut gem until it has loaded (and in checks, where there is no Image).
-    // The seventh colour's heart (matchupRev 13 Expert) has no rendered stone: always the code-cut gem.
-    const rendered = shape === "heart" ? null : strategyImage(`gem-${shape}` as StrategyArtName);
+    // The seventh colour's heart (matchupRev 13 Expert) is rendered too (gem-heart, 16 Nov 2026).
+    const rendered = strategyImage(`gem-${shape}` as StrategyArtName);
     if (rendered) ctx.drawImage(rendered, cx - radius, cy - radius, radius * 2, radius * 2);
     else flatGem(ctx, shape, cx, cy, radius, colour);
   }
