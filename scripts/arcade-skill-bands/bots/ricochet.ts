@@ -137,11 +137,18 @@ const RIDE_V = 70;
 const MOON_SCROLL_V = 90;
 const FLOW_V = 30;
 const RIDE_WAITS = [0, 6, 14, 24, 36, 50, 66, 84, 104];
+/** Human limits (when the Human carries `limits`): the least time a move takes, in ticks (0.15 s). */
+export const MOVE_TICKS = 9;
 
 const moonBot: SkillBot = ({ game, seed, human, rev }) => {
   const level = human.level as SkillLevel;
   // Flawless plays the witness of the stamp's own tower (ricoRev 4's is dealt and proved with the bigger body).
-  if (level === "perfect") return { events: moonDeal(seed, rev ?? MOON_REV).witness.map((e) => ({ t: e.t, k: NINJA_INPUT_TAP, a: e.a, b: 0, c: 0, d: 0 })) };
+  // (The difficulty levels: the level's own tower, read from the game's state.)
+  const lvl = (game.init(seed) as MoonState).lvl ?? null;
+  if (level === "perfect") return { events: moonDeal(seed, rev ?? MOON_REV, lvl).witness.map((e) => ({ t: e.t, k: NINJA_INPUT_TAP, a: e.a, b: 0, c: 0, d: 0 })) };
+  // Human limits (the levels' tuning, scripts/action-levels-bands.ts; off unless the Human carries `limits`): a double
+  // jump comes no sooner than MOVE_TICKS (0.15 s) into its leap (the reaction floor is the Human's own, raised there).
+  const limited = Boolean((human as { limits?: boolean }).limits);
   const itemTry = ITEM_TRY[level] ?? 0.5;
   const weight = ITEM_WEIGHT[level] ?? 1;
   let leapAt = -1;
@@ -227,6 +234,7 @@ const moonBot: SkillBot = ({ game, seed, human, rev }) => {
         leapA = o.a;
         djAt = o.d < 0 ? -1 : leapAt + o.d + human.timingTicks(1.2);
         if (djAt >= 0 && djAt <= leapAt) djAt = leapAt + 1;
+        if (limited && djAt >= 0 && djAt < leapAt + MOVE_TICKS) djAt = leapAt + MOVE_TICKS;
         if (djAt < 0 && human.slip(0.5)) djAt = leapAt + human.int(3, 20);
       }
       if (t === leapAt && resting) return { ...TAP, a: leapA };

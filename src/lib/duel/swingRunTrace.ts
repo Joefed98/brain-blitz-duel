@@ -36,7 +36,7 @@ export interface SwingRunTrace {
 }
 
 /** The summary of a stored jungle run (swingRev 17+), or null for an older stamp. */
-export function traceSwingRun(seed: number, answer: string, rev?: number): SwingRunTrace | null {
+export function traceSwingRun(seed: number, answer: string, rev?: number, level?: unknown): SwingRunTrace | null {
   let prev: SwingState | null = null;
   let falls: number[] = [];
   let caught: number[] = [];
@@ -55,7 +55,7 @@ export function traceSwingRun(seed: number, answer: string, rev?: number): Swing
     }
     prev = s;
   };
-  const result = replaySwingRun(seed, answer, rev, observe);
+  const result = replaySwingRun(seed, answer, rev, observe, level);
   const end = result.state;
   if (!end.slide || !end.sections) return null;
   const c = swingAssaultCounts(end);

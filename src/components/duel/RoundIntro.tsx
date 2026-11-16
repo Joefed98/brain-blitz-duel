@@ -32,7 +32,8 @@ import { useReducedMotion } from "@/lib/motion";
 
 /* Game code arrives with the game (speed fix 1, Nov 2026): these build a deal or load a game's art while the intro
    is up, fetching that game's sim or art chunk on first use, never with the room screen. */
-const prepareSwingCourse = (seed: number, rev?: number) => void import("@/lib/arcade/swing").then((m) => m.prepareSwingCourse(seed, rev)).catch(() => undefined);
+const prepareSwingCourse = (seed: number, rev?: number, level?: unknown) => void import("@/lib/arcade/swing").then((m) => m.prepareSwingCourse(seed, rev, level)).catch(() => undefined);
+const prepareMoonTower = (seed: number, rev: number | undefined, level: unknown) => void import("@/lib/arcade/ricochetNinja").then((m) => m.moonGameFor(rev, level).init(seed)).catch(() => undefined);
 const prepareInkLevels = (seed: number, rev?: number | null) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev)).catch(() => undefined);
 const mgDeal = (seed: number) => void import("@/lib/arcade/cards/muggins").then((m) => m.mgDeal(seed)).catch(() => undefined);
 const pyDeal = (seed: number) => void import("@/lib/arcade/cards/pyramid").then((m) => m.pyDeal(seed)).catch(() => undefined);
@@ -198,7 +199,19 @@ export function RoundIntro({
   useEffect(() => {
     if (puzzle?.type !== "swing") return;
     const { seed, swingRev } = puzzle;
-    const timer = window.setTimeout(() => prepareSwingCourse(seed, swingRev), 120);
+    // (swingRev 18's levels: the stored level's course.)
+    const level = (puzzle as { level?: unknown }).level;
+    const timer = window.setTimeout(() => prepareSwingCourse(seed, swingRev, level), 120);
+    return () => window.clearTimeout(timer);
+  }, [puzzle]);
+
+  // Moon Climb at a level (ricoRev 4): the level's tower is built and proved from the seed (cached), while the intro is up.
+  useEffect(() => {
+    if (puzzle?.type !== "ricochet") return;
+    const level = (puzzle as { level?: unknown }).level;
+    if (!level) return;
+    const { seed, ricoRev } = puzzle;
+    const timer = window.setTimeout(() => prepareMoonTower(seed, ricoRev, level), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
 

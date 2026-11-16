@@ -533,14 +533,18 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 18");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
-  ok(/setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev\)/.test(introSrc), "the round's intro builds the course ahead");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the call also passes the
+  // puzzle's level (swingRev 18's difficulty levels).
+  ok(/setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev(, level)?\)/.test(introSrc), "the round's intro builds the course ahead");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/const a = state\.slide \? swingAnchorAt\(state, i, state\.tick\) : home;/.test(art) && /if \(state\.slide\) drawRails\(/.test(art) && /STREAK ×\$\{streak\}/.test(art), "the renderer draws each sliding hook where the sim has it, its rail, and the streak in the HUD");
   // swingRev 17 draws the jungle canopy (3 Nov 2026): the same rules in its own file, and the streak as an Action HUD chip.
   const jungle = readFileSync("src/lib/arcade/swingJungle.renderer.ts", "utf8");
   ok(/if \(state\.slide\) \{\n    drawSwingJungleWorld\(/.test(art) && /const a = state\.slide \? swingAnchorAt\(state, i, state\.tick\) : home;/.test(jungle) && /state\.dark && !swingHookLit\(state, i\)/.test(jungle) && /if \(state\.slide\) drawJungleVinePaths\(/.test(art) && /label: "STREAK", value: `×\$\{streak\}`/.test(art), "the jungle draws each swinging vine where the sim has it (none in the shade), its path, and the streak chip");
   const sim = readFileSync("src/lib/arcade/swing.ts", "utf8");
-  ok(/s\.slide \? rangeTargetAt\(s, lo, hi, s\.x, s\.y, state\.tick, lim\)/.test(sim) && /if \(s\.slide\) return rangeTargetAt\(s, lo, hi, x, y, tick, s\.dark \? swingDarkFrom\(s\) : SWING_NO_DARK\)/.test(sim), "the step and the bots' look-ahead read the same sliding hooks");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the look-ahead may run under
+  // a swingRev 18 level's reach (withLevel), the same as the step.
+  ok(/s\.slide \? rangeTargetAt\(s, lo, hi, s\.x, s\.y, state\.tick, lim\)/.test(sim) && /if \(s\.slide\) return (withLevel\(swingLevelOf\(s\), "play", \(\) => )?rangeTargetAt\(s, lo, hi, x, y, tick, s\.dark \? swingDarkFrom\(s\) : SWING_NO_DARK\)/.test(sim), "the step and the bots' look-ahead read the same sliding hooks");
 }
 
 /* 10. Building a course stays quick. */

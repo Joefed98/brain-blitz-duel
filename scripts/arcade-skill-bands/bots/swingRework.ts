@@ -36,8 +36,13 @@ const CFG: Record<SkillLevel, Cfg> = {
   perfect: { pickup: 0.6, speed: 0.004, reel: true, ahead: true, wait: 120 },
 };
 
+/** Human limits (when the Human carries `limits`, scripts/action-levels-bands.ts): the least reaction and the least time between a release and the grab after it, in ticks (0.25 s, 0.15 s). */
+export const LIMIT_REACT_TICKS = 15;
+export const LIMIT_MOVE_TICKS = 9;
+
 export function reworkBot({ game, seed, human }: BotCtx): BotResult {
   const cfg = CFG[human.level];
+  const limited = Boolean((human as { limits?: boolean }).limits);
   // swingRev 17: the flawless player plans as if a tick either way could happen (lines that still work a tick early or
   // late, as the other levels' spread makes them), and then plays each moment exactly. Without it the flawless bot picked
   // knife-edge lines past the sliding hooks and the gates, and fell or missed gates the elite bot took.
@@ -230,7 +235,8 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
       const { values, land } = flight(s, k, f, b.rope, got, offset + j, 50, s.tick + j);
       // The grab is timed too: its value is what the player's spread makes of the table.
       let best = land;
-      for (let g = 1; g < values.length; g++) if (values[g]! > 0) best = Math.max(best, smooth((t) => values[t] ?? 0, g));
+      // (Human limits: the grab no sooner than LIMIT_MOVE_TICKS after the release.)
+      for (let g = limited ? LIMIT_MOVE_TICKS : 1; g < values.length; g++) if (values[g]! > 0) best = Math.max(best, smooth((t) => values[t] ?? 0, g));
       out.push(best);
     }
     return out;
@@ -257,7 +263,7 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
       // Looking at the section, then the press.
       if (waitKey !== key) {
         waitKey = key;
-        pressAt = t + human.reactTicks() + human.thinkTicks(cfg.wait);
+        pressAt = t + Math.max(limited ? LIMIT_REACT_TICKS : 0, human.reactTicks()) + human.thinkTicks(cfg.wait);
         plan.clear();
       }
       if (t >= pressAt) {
@@ -299,7 +305,7 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
     } else if (s.grabTick > 0 || s.tick > 0) {
       // In the air: the moment to grab.
       const { values } = flight(s, k, body, lastRope, new Set(), 0, 50, s.tick);
-      const g = choose(values, 1);
+      const g = choose(values, limited ? LIMIT_MOVE_TICKS : 1);
       // values[g] is the target after g ticks of flight: a press on the tick after that.
       if (g !== null) plan.at(t + Math.max(0, g + Math.round(err() * 1.3)), hold(1));
     }

@@ -442,17 +442,18 @@ function below(r: Rng, n: number): number {
   return b.value;
 }
 
-function buildPatches(r: Rng): NinjaPatch[] {
+function buildPatches(r: Rng, lv: MoonLevelCfg | null = null): NinjaPatch[] {
   const out: NinjaPatch[] = [];
   for (let wall = 0; wall < 2; wall++) {
     let y = 520 + below(r, 300);
     while (y < TOWER_TOP + 400) {
       const len = 70 + below(r, 90);
-      const kind = below(r, 10) < 6 ? SURF_MOSS : SURF_ICE;
+      // (A level other than Normal: its own share of ice, ricoRev 4 levels.)
+      const kind = lv ? (below(r, 1000) < lv.ice ? SURF_ICE : SURF_MOSS) : below(r, 10) < 6 ? SURF_MOSS : SURF_ICE;
       out.push({ wall, kind, lo: y, hi: y + len });
       // Patches come closer together higher up.
       const gap = Math.max(260, 760 - Math.trunc(y / 40)) + below(r, 320);
-      y += len + gap;
+      y += len + (lv ? Math.trunc((gap * lv.patchGap) / 1000) : gap);
     }
   }
   return out.sort((a, b) => a.lo - b.lo || a.wall - b.wall);
@@ -842,6 +843,77 @@ export const MOON_V4_BAND_CURVE = MOON_V3_BAND_CURVE;
 export function ninjaBodyFor(rev: number | null | undefined): NinjaBody {
   return (rev ?? 0) >= MOON_BIG_REV ? MOON_BIG_BODY : NINJA_BODY;
 }
+/*
+ * Levels (ricoRev 4, the Action overhaul's difficulty levels, 15 Nov 2026; docs/arcade-standard/ricochet.md "Levels";
+ * Joe: "Easy about half the blades, less moss and ice, 6 slower lanterns, 2 m knock-down, full at 200 m; Normal today;
+ * Hard about 1.3× blades, more ice, 3 m, 245 m; Expert 1.6× with faster shurikens, mostly ice, 4 faster lanterns, 4 m,
+ * 260 m"). The deal stamps the puzzle's `level` (generate.server.ts); the sim reads it from the state's `lvl` (set only
+ * at a level other than Normal, so a Normal state is exactly today's). Each level's tower is built from the seed with
+ * its own settings below and proved as Normal's is: the witness through the real step of that level takes every part
+ * in full with no hit and reaches the level's full height, so 200 is reachable on every tower at every level. Hit
+ * scoring is Normal's (a hit costs the knock-down and the stun; no points). A change to a value here needs a new stamp.
+ */
+export type MoonLevel = "easy" | "hard" | "expert";
+export interface MoonLevelCfg {
+  /** Hazard density, per mille of Normal's (katanas and shurikens). */
+  blades: number;
+  /** Shuriken crossing time, per mille of Normal's (below 1000: faster). */
+  pace: number;
+  /** The gap between moss and ice patches, per mille of Normal's (above 1000: fewer patches). */
+  patchGap: number;
+  /** Per mille of patches that are ice (Normal 400; the rest moss). */
+  ice: number;
+  /** Sky lanterns a tower carries, and their float speed (1/256 px a tick; Normal MOON_SKY_VY). */
+  sky: number;
+  skyVy: number;
+  /** The knock-down a hit costs (px; Normal NINJA_KNOCK, 3 m). */
+  knock: number;
+  /** The height part: its maximum and the metres it is full at; the lantern rides' points each. */
+  coreMax: number;
+  fullM: number;
+  rideEach: number;
+  /** Salt on the deal's attempt stream (each level's towers its own). */
+  salt: number;
+}
+export const MOON_LEVELS: Readonly<Record<MoonLevel, MoonLevelCfg>> = {
+  easy: { blades: 500, pace: 1000, patchGap: 1800, ice: 300, sky: 6, skyVy: 144, knock: 80, coreMax: 125, fullM: 200, rideEach: 5, salt: 0x1e7a51 },
+  hard: { blades: 1300, pace: 1000, patchGap: 1000, ice: 650, sky: 6, skyVy: MOON_SKY_VY, knock: 120, coreMax: 125, fullM: 245, rideEach: 5, salt: 0x2b8d63 },
+  expert: { blades: 1600, pace: 750, patchGap: 800, ice: 880, sky: 4, skyVy: 256, knock: 160, coreMax: 135, fullM: 260, rideEach: 5, salt: 0x3c9e75 },
+};
+/** The level a stored level names on a stamp that has levels (ricoRev 4), else null (Normal). */
+export function moonLevelOf(rev: number | null | undefined, level: unknown): MoonLevel | null {
+  if ((rev ?? 0) < MOON_BIG_REV) return null;
+  return level === "easy" || level === "hard" || level === "expert" ? level : null;
+}
+/** A state's level settings (null: Normal). */
+export function moonLevelCfg(s: { lvl?: MoonLevel | null }): MoonLevelCfg | null {
+  return s.lvl ? MOON_LEVELS[s.lvl] : null;
+}
+/** A state's full height (metres), sky lanterns, knock-down (px) and height part's maximum. */
+export function moonFullM(s: { lvl?: MoonLevel | null }): number {
+  return moonLevelCfg(s)?.fullM ?? MOON_CORE_FULL_M;
+}
+export function moonSkyCount(s: { lvl?: MoonLevel | null }): number {
+  return moonLevelCfg(s)?.sky ?? MOON_SKY;
+}
+export function moonKnockPx(s: { lvl?: MoonLevel | null }): number {
+  return moonLevelCfg(s)?.knock ?? NINJA_KNOCK;
+}
+/** The parts at a level (rev 4): Normal's MOON_BIG_STD_SPEC, or the level's maxima and full height. */
+export function moonStdSpecFor(rev: number | null | undefined, level: MoonLevel | null): StdSpec {
+  const base = (rev ?? 0) >= MOON_BIG_REV ? MOON_BIG_STD_SPEC : MOON_STD_SPEC;
+  if (!level || (rev ?? 0) < MOON_BIG_REV) return base;
+  const c = MOON_LEVELS[level];
+  return {
+    ...base,
+    parts: [
+      { key: "core", label: "Height", max: c.coreMax, of: c.fullM, item: "metre", how: `every metre climbed counts the same, all of it at ${c.fullM} m` },
+      base.parts[1]!,
+      { key: "rides", label: "Lantern rides", max: c.rideEach * c.sky, of: c.sky, item: "ride", how: `${c.rideEach} for each of the ${c.sky} sky lanterns you ride` },
+      base.parts[3]!,
+    ],
+  };
+}
 /** How far (px) below a ridden lantern's centre the ninja hangs on this stamp (display; MOON_RIDE_HANG on rev 3). */
 export function moonRideHang(rev: number | null | undefined): number {
   return MOON_SKY_R + ninjaBodyFor(rev).hh - 4;
@@ -858,13 +930,15 @@ export interface MoonSky {
   x: number;
   y0: number;
   t0: number;
+  /** A level's float speed (1/256 px a tick; ricoRev 4 Easy and Expert); absent: MOON_SKY_VY. */
+  vy?: number;
 }
 
 /** Where a sky lantern is on a tick (px), or null while it is not in the sky. */
 export function moonSkyAt(l: MoonSky, tick: number): NinjaPoint | null {
   const dt = tick - l.t0;
   if (dt < 0 || dt >= MOON_SKY_LIFE) return null;
-  return { x: l.x, y: l.y0 + ((dt * MOON_SKY_VY) >> 8) };
+  return { x: l.x, y: l.y0 + ((dt * (l.vy ?? MOON_SKY_VY)) >> 8) };
 }
 
 /** The x the ninja clings at on a ledge's side: side 0 its left face (heading right), 1 its right face. */
@@ -897,13 +971,16 @@ export interface MoonFields {
   /** Display only: the tick of the last Flow step and of the last grab. */
   flowTick: number;
   grabTick: number;
+  /** ricoRev 4's level (absent: Normal, so every Normal state is exactly today's). */
+  lvl?: MoonLevel;
 }
 export type MoonState = NinjaState & MoonFields & { tower: NinjaTower & { ledges: MoonLedge[]; sky: MoonSky[] } };
 
-function freshMoon(tower: MoonState["tower"], rev = MOON_REV): MoonState {
+function freshMoon(tower: MoonState["tower"], rev = MOON_REV, level: MoonLevel | null = null): MoonState {
   const b = ninjaBodyFor(rev);
   const base = freshState(tower);
   return {
+    ...(level ? { lvl: level } : {}),
     ...base,
     tower,
     rev,
@@ -944,7 +1021,7 @@ function moveMoon(s: MoonState, tapped: boolean, dir: number): void {
   const b = ninjaBodyFor(s.rev);
   if (s.mode === MODE_STUN) {
     s.stun -= 1;
-    if (s.y > s.knockTo) s.y = Math.max(s.knockTo, s.y - Math.trunc((NINJA_KNOCK * 256) / NINJA_FALL_TICKS));
+    if (s.y > s.knockTo) s.y = Math.max(s.knockTo, s.y - Math.trunc((moonKnockPx(s) * 256) / NINJA_FALL_TICKS));
     if (s.stun <= 0) {
       s.mode = MODE_CLING;
       s.vy = 0;
@@ -1069,7 +1146,7 @@ function stepMoon(state: MoonState, input: ArcadeInputEvent | null): MoonState {
     s.ledge = -1;
     s.stun = NINJA_STUN;
     s.safe = NINJA_STUN + NINJA_GRACE;
-    s.knockTo = Math.max(b.start, s.y - NINJA_KNOCK * 256);
+    s.knockTo = Math.max(b.start, s.y - moonKnockPx(s) * 256);
     s.hits += 1;
     s.hitTick = s.tick;
     s.streak = 0;
@@ -1122,8 +1199,10 @@ function routeClearOfRect(plan: { xs: Int16Array; ys: Int32Array }, to: number, 
  * double jump; MOON_SKY leaps grab a lantern placed to meet them (and leap off after a seeded part of the ride, to a
  * seeded wall); several leaps meet a ledge placed in their way (and hop back).
  */
-function planMoon(r: Rng, tower: MoonState["tower"], rev: number): MoonPlan {
-  const s = freshMoon(tower, rev);
+function planMoon(r: Rng, tower: MoonState["tower"], rev: number, level: MoonLevel | null = null): MoonPlan {
+  const s = freshMoon(tower, rev, level);
+  const lv = level ? MOON_LEVELS[level] : null;
+  const skyCount = lv ? lv.sky : MOON_SKY;
   const events: MoonEvent[] = [];
   const xs = new Int16Array(NINJA_RUN_TICKS + 1);
   const ys = new Int32Array(NINJA_RUN_TICKS + 1);
@@ -1133,7 +1212,8 @@ function planMoon(r: Rng, tower: MoonState["tower"], rev: number): MoonPlan {
   xs[0] = s.x;
   ys[0] = s.y >> 8;
   const skyAt: number[] = [];
-  for (let k = 0; k < MOON_SKY; k++) skyAt.push(240 + k * 500 + below(r, 140));
+  // (A level: its own count of lanterns, spread over the same stretch of the run as Normal's six.)
+  for (let k = 0; k < skyCount; k++) skyAt.push(240 + k * (lv ? Math.trunc(3000 / lv.sky) : 500) + below(r, 140));
   const ledgeAt: number[] = [];
   for (let t = 120 + below(r, 200); t < NINJA_RUN_TICKS - 300; t += 330 + below(r, 220)) ledgeAt.push(t);
   let nextSky = 0;
@@ -1155,7 +1235,7 @@ function planMoon(r: Rng, tower: MoonState["tower"], rev: number): MoonPlan {
       djAt = -1;
       const onWall = s.ledge < 0;
       let feature = false;
-      if (onWall && nextSky < MOON_SKY && t >= skyAt[nextSky]!) feature = placeSky(r, s, t, xs, ys, tower) && (nextSky++, true);
+      if (onWall && nextSky < skyCount && t >= skyAt[nextSky]!) feature = placeSky(r, s, t, xs, ys, tower, lv) && (nextSky++, true);
       if (!feature && onWall && nextLedge < ledgeAt.length && t >= ledgeAt[nextLedge]!) feature = placeLedge(r, s, t, xs, ys, tower) && (nextLedge++, true);
       // This leap: a double jump on about one in three, somewhere in its first two thirds.
       if (!feature && below(r, 100) < 34) {
@@ -1196,7 +1276,8 @@ function planMoon(r: Rng, tower: MoonState["tower"], rev: number): MoonPlan {
 }
 
 /** Places a sky lantern where this leap (taken at tick t) will be in mid-gap; false when it can't. */
-function placeSky(r: Rng, s: MoonState, t: number, xs: Int16Array, ys: Int32Array, tower: MoonState["tower"]): boolean {
+function placeSky(r: Rng, s: MoonState, t: number, xs: Int16Array, ys: Int32Array, tower: MoonState["tower"], lv: MoonLevelCfg | null = null): boolean {
+  const vy = lv ? lv.skyVy : MOON_SKY_VY;
   const m = 9 + below(r, 6);
   const lead = 120 + below(r, 180);
   const c = cloneMoon(s);
@@ -1211,7 +1292,7 @@ function placeSky(r: Rng, s: MoonState, t: number, xs: Int16Array, ys: Int32Arra
   const lx = c.x;
   const ly = (c.y >> 8) + b.hh + MOON_SKY_R - 4;
   if (lx < 130 || lx > NINJA_WORLD_W - 130) return false;
-  const sky: MoonSky = { x: lx, y0: ly - ((lead * MOON_SKY_VY) >> 8), t0: t + m - 1 - lead };
+  const sky: MoonSky = { x: lx, y0: ly - ((lead * vy) >> 8), t0: t + m - 1 - lead, ...(lv ? { vy } : {}) };
   if (sky.t0 < 1) return false;
   // The route so far never comes near it while it floats.
   for (let k = sky.t0; k < t; k++) {
@@ -1220,7 +1301,7 @@ function placeSky(r: Rng, s: MoonState, t: number, xs: Int16Array, ys: Int32Arra
   }
   // Clear of the ledges (by 40 px over its whole float).
   for (const l of tower.ledges) {
-    if (Math.abs(l.x - lx) < 60 && sky.y0 - 40 < l.hi && sky.y0 + ((MOON_SKY_LIFE * MOON_SKY_VY) >> 8) + 40 > l.lo) return false;
+    if (Math.abs(l.x - lx) < 60 && sky.y0 - 40 < l.hi && sky.y0 + ((MOON_SKY_LIFE * vy) >> 8) + 40 > l.lo) return false;
   }
   tower.sky.push(sky);
   s.gotSky = s.gotSky.concat(0);
@@ -1253,7 +1334,7 @@ function placeLedge(r: Rng, s: MoonState, t: number, xs: Int16Array, ys: Int32Ar
   const last = tower.ledges[tower.ledges.length - 1];
   if (last && lo < last.hi + 120) return false;
   for (const sk of tower.sky) {
-    if (Math.abs(sk.x - lx) < 60 && sk.y0 - 40 < hi && sk.y0 + ((MOON_SKY_LIFE * MOON_SKY_VY) >> 8) + 40 > lo) return false;
+    if (Math.abs(sk.x - lx) < 60 && sk.y0 - 40 < hi && sk.y0 + ((MOON_SKY_LIFE * (sk.vy ?? MOON_SKY_VY)) >> 8) + 40 > lo) return false;
   }
   tower.ledges.push({ x: lx, lo, hi });
   return true;
@@ -1266,10 +1347,16 @@ function shurikenClearOfLedges(sh: NinjaShuriken, ledges: readonly MoonLedge[]):
   return ledges.every((l) => l.hi < y0 || l.lo > y1);
 }
 
-function buildMoon(r: Rng, patches: NinjaPatch[], rev: number): { tower: MoonState["tower"]; plan: MoonPlan } {
+function buildMoon(r: Rng, patches: NinjaPatch[], rev: number, level: MoonLevel | null = null): { tower: MoonState["tower"]; plan: MoonPlan } {
   const b = ninjaBodyFor(rev);
+  const lv = level ? MOON_LEVELS[level] : null;
+  /** A level's hazard spacing (Normal's ÷ its density) and shuriken period (× its pace); Normal's exactly at Normal. */
+  const spaced = (gap: number) => (lv ? Math.trunc((gap * 1000) / lv.blades) : gap);
+  const paced = (period: number) => (lv ? Math.max(30, Math.trunc((period * lv.pace) / 1000)) : period);
+  /** A level with fewer blades than Normal leaves out a share of the placed-on-purpose ones (true: keep). */
+  const keep = () => !lv || lv.blades >= 1000 || below(r, 1000) < lv.blades;
   const tower: MoonState["tower"] = { katanas: [], shurikens: [], patches, coins: [], lanterns: [], scrolls: [], ledges: [], sky: [] };
-  const plan = planMoon(r, tower, rev);
+  const plan = planMoon(r, tower, rev, level);
   const topPx = plan.ys[NINJA_RUN_TICKS]!;
   const lastUseful = NINJA_RUN_TICKS - 180;
   const asPlan = plan as unknown as Plan;
@@ -1285,7 +1372,7 @@ function buildMoon(r: Rng, patches: NinjaPatch[], rev: number): { tower: MoonSta
     if (!leap.dj || !leap.wall || leap.tick < 90) continue;
     const p = plainLeapPoint(asPlan, leap.tick, NINJA_LEAP_TICKS, b);
     const k: NinjaKatana = { wall: p.x < NINJA_WORLD_W / 2 ? 0 : 1, y: p.y };
-    if (katanaClear(k, asPlan, b)) tower.katanas.push(k);
+    if (katanaClear(k, asPlan, b) && keep()) tower.katanas.push(k);
   }
   // Katanas up each wall, closer together higher up, each clear of the route.
   for (let wall = 0; wall < 2; wall++) {
@@ -1298,7 +1385,7 @@ function buildMoon(r: Rng, patches: NinjaPatch[], rev: number): { tower: MoonSta
           break;
         }
       }
-      y += Math.max(110, 300 - Math.trunc(y / 60)) + below(r, 140);
+      y += spaced(Math.max(110, 300 - Math.trunc(y / 60)) + below(r, 140));
     }
   }
   // Shurikens where a leap-at-once would be on the witness's waited wall landings (so waiting is the way past).
@@ -1307,7 +1394,7 @@ function buildMoon(r: Rng, patches: NinjaPatch[], rev: number): { tower: MoonSta
     const leapTick = land.tick + 1;
     const m = 8 + below(r, 10);
     const p = plainLeapPoint(asPlan, leapTick, m, b);
-    const period = 80 + below(r, 60);
+    const period = paced(80 + below(r, 60));
     const dy = below(r, 81) - 40;
     const u = clampInt(Math.trunc(((p.x - SHURIKEN_X0) * period) / (SHURIKEN_X1 - SHURIKEN_X0)), 0, period);
     const y0 = p.y - Math.trunc((dy * u) / period);
@@ -1317,20 +1404,20 @@ function buildMoon(r: Rng, patches: NinjaPatch[], rev: number): { tower: MoonSta
     const pos = goingRight ? u : cyc - u;
     const phase = (((pos - at) % cyc) + cyc) % cyc;
     const sh = { y0, dy, period, phase };
-    if (shurikenClear(sh, asPlan, b) && shurikenClearOfLedges(sh, tower.ledges)) tower.shurikens.push(sh);
+    if (shurikenClear(sh, asPlan, b) && shurikenClearOfLedges(sh, tower.ledges) && keep()) tower.shurikens.push(sh);
   }
   // Shurikens through the tower, closer together higher up, each clear of the route and the ledges.
   let y = 700 + below(r, 200);
   while (y < TOWER_TOP) {
     for (let tries = 0; tries < 6; tries++) {
-      const period = 70 + below(r, 70);
+      const period = paced(70 + below(r, 70));
       const sh = { y0: y + tries * 18, dy: below(r, 121) - 60, period, phase: below(r, 2 * period) };
       if ((y > topPx + 200 || shurikenClear(sh, asPlan, b)) && shurikenClearOfLedges(sh, tower.ledges)) {
         tower.shurikens.push(sh);
         break;
       }
     }
-    y += Math.max(170, 420 - Math.trunc(y / 50)) + below(r, 160);
+    y += spaced(Math.max(170, 420 - Math.trunc(y / 50)) + below(r, 160));
   }
   tower.katanas.sort((a, b) => a.y - b.y || a.wall - b.wall);
   tower.shurikens.sort((a, b) => Math.min(a.y0, a.y0 + a.dy) - Math.min(b.y0, b.y0 + b.dy));
@@ -1338,8 +1425,8 @@ function buildMoon(r: Rng, patches: NinjaPatch[], rev: number): { tower: MoonSta
 }
 
 /** Plays a tap list (tick and direction) through the real rev-3 (or rev-4) run (the deal's proof and the oracle's). */
-export function moonPlayEvents(seed: number, events: readonly MoonEvent[], rev = MOON_REV): MoonState {
-  let s = moonInit(seed, rev);
+export function moonPlayEvents(seed: number, events: readonly MoonEvent[], rev = MOON_REV, level: MoonLevel | null = null): MoonState {
+  let s = moonInit(seed, rev, level);
   const at = new Map(events.map((e) => [e.t, e.a]));
   while (!s.ended) {
     const a = at.get(s.tick + 1);
@@ -1350,7 +1437,7 @@ export function moonPlayEvents(seed: number, events: readonly MoonEvent[], rev =
 
 /** True when a rev-3 or rev-4 state earned every part in full (the deal's proof). */
 function moonPerfect(s: MoonState): boolean {
-  return s.hits === 0 && s.scrolls === MOON_SCROLLS && s.rides === MOON_SKY && s.flow * MOON_FLOW_EACH >= MOON_FLOW_MAX && ninjaMetres(s) >= MOON_CORE_FULL_M;
+  return s.hits === 0 && s.scrolls === MOON_SCROLLS && s.rides === moonSkyCount(s) && s.flow * MOON_FLOW_EACH >= MOON_FLOW_MAX && ninjaMetres(s) >= moonFullM(s);
 }
 
 /**
@@ -1358,17 +1445,20 @@ function moonPerfect(s: MoonState): boolean {
  * same stamp. Rev 4 draws its attempts from the same seeded stream as rev 3, so its towers are rev 3's plans re-made
  * with the bigger body (the hazards and ledges then placed, and the whole proved, for that body).
  */
-export function moonBuildDeal(seed: number, rev = MOON_REV): MoonDeal {
+export function moonBuildDeal(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonDeal {
+  // A level (ricoRev 4 only): its own settings and its own attempt stream; Normal exactly as before.
+  const lvl = moonLevelOf(rev, level);
+  const lv = lvl ? MOON_LEVELS[lvl] : null;
   let fallback: MoonDeal | null = null;
   for (let attempt = 0; ; attempt++) {
-    const r: Rng = { s: (seed ^ Math.imul(attempt + 1, 0x7f4a7c15)) | 0 };
-    const patches = buildPatches(r);
-    const { tower, plan } = buildMoon(r, patches, rev);
-    if (tower.sky.length !== MOON_SKY || tower.scrolls.length !== MOON_SCROLLS) {
+    const r: Rng = { s: (seed ^ Math.imul(attempt + 1, 0x7f4a7c15) ^ (lv ? lv.salt : 0)) | 0 };
+    const patches = buildPatches(r, lv);
+    const { tower, plan } = buildMoon(r, patches, rev, lvl);
+    if (tower.sky.length !== (lv ? lv.sky : MOON_SKY) || tower.scrolls.length !== MOON_SCROLLS) {
       if (attempt >= 60) return fallback ?? { tower, witness: plan.events, witnessMetres: 0 };
       continue;
     }
-    let s = freshMoon(tower, rev);
+    let s = freshMoon(tower, rev, lvl);
     const at = new Map(plan.events.map((e) => [e.t, e.a]));
     while (!s.ended) {
       const a = at.get(s.tick + 1);
@@ -1382,20 +1472,22 @@ export function moonBuildDeal(seed: number, rev = MOON_REV): MoonDeal {
 }
 
 const MOON_CACHE = new Map<string, MoonDeal>();
-export function moonDeal(seed: number, rev = MOON_REV): MoonDeal {
-  const key = `${rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV}:${seed}`;
+export function moonDeal(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonDeal {
+  const lvl = moonLevelOf(rev, level);
+  const key = `${rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV}:${seed}${lvl ? `:${lvl}` : ""}`;
   let d = MOON_CACHE.get(key);
   if (!d) {
-    d = moonBuildDeal(seed, rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV);
+    d = moonBuildDeal(seed, rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV, lvl);
     if (MOON_CACHE.size >= 8) MOON_CACHE.delete(MOON_CACHE.keys().next().value!);
     MOON_CACHE.set(key, d);
   }
   return d;
 }
 
-export function moonInit(seed: number, rev = MOON_REV): MoonState {
+export function moonInit(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonState {
   const r = rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV;
-  return freshMoon(moonDeal(seed | 0, r).tower, r);
+  const lvl = moonLevelOf(r, level);
+  return freshMoon(moonDeal(seed | 0, r, lvl).tower, r, lvl);
 }
 
 /* ------------------------------- Scoring ------------------------------- */
@@ -1409,6 +1501,17 @@ export function moonStdParts(state: MoonState): StdPart[] | null {
   if (!state || !isMoonState(state) || !state.std) return null;
   const spec = state.rev === MOON_BIG_REV ? MOON_BIG_STD_SPEC : MOON_STD_SPEC;
   const m = ninjaMetres(state);
+  // A level (ricoRev 4): its own height maximum and full height, its own count of lanterns.
+  const lv = moonLevelCfg(state);
+  if (lv) {
+    const lspec = moonStdSpecFor(state.rev, state.lvl!);
+    return [
+      stdPart(lspec, "core", stdLine(lv.coreMax, m, lv.fullM), `${m} m`),
+      stdPart(lspec, "flow", Math.min(MOON_FLOW_MAX, state.flow * MOON_FLOW_EACH), `best Flow ×${state.bestStreak}`),
+      stdPart(lspec, "rides", Math.min(lv.rideEach * lv.sky, state.rides * lv.rideEach), `${state.rides} / ${lv.sky}`),
+      stdPart(lspec, "scrolls", Math.min(MOON_SCROLLS_MAX, state.scrolls * MOON_SCROLL_EACH), `${state.scrolls} / ${MOON_SCROLLS}`),
+    ];
+  }
   return [
     stdPart(spec, "core", stdLine(MOON_CORE_MAX, m, MOON_CORE_FULL_M), `${m} m`),
     stdPart(spec, "flow", Math.min(MOON_FLOW_MAX, state.flow * MOON_FLOW_EACH), `best Flow ×${state.bestStreak}`),
@@ -1483,12 +1586,17 @@ export const moonBigGame: ArcadeGame<MoonState, ArcadeInputEvent | null> = {
   init: (seed: number) => moonInit(seed, MOON_BIG_REV),
 };
 
-/** Moon Climb's game for a stamp (rev 3 or 4). */
-export function moonGameFor(rev: number | null | undefined): ArcadeGame<MoonState, ArcadeInputEvent | null> {
-  return (rev ?? 0) >= MOON_BIG_REV ? moonBigGame : moonGame;
+const MOON_LEVEL_GAMES = new Map<MoonLevel, ArcadeGame<MoonState, ArcadeInputEvent | null>>();
+/** Moon Climb's game for a stamp (rev 3 or 4) and, on rev 4, a stored level (absent or Normal: today's game). */
+export function moonGameFor(rev: number | null | undefined, level?: unknown): ArcadeGame<MoonState, ArcadeInputEvent | null> {
+  const lvl = moonLevelOf(rev, level);
+  if (!lvl) return (rev ?? 0) >= MOON_BIG_REV ? moonBigGame : moonGame;
+  let g = MOON_LEVEL_GAMES.get(lvl);
+  if (!g) MOON_LEVEL_GAMES.set(lvl, (g = { ...moonBigGame, init: (seed: number) => moonInit(seed, MOON_BIG_REV, lvl) }));
+  return g;
 }
 
-/** The ninja climb's game for a stamp (rev 2, 3 or 4). */
-export function ninjaGameFor(rev: number | null | undefined): ArcadeGame<NinjaState, ArcadeInputEvent | null> {
-  return ((rev ?? 0) >= MOON_REV ? moonGameFor(rev) : ninjaGame) as ArcadeGame<NinjaState, ArcadeInputEvent | null>;
+/** The ninja climb's game for a stamp (rev 2, 3 or 4) and its stored level (rev 4). */
+export function ninjaGameFor(rev: number | null | undefined, level?: unknown): ArcadeGame<NinjaState, ArcadeInputEvent | null> {
+  return ((rev ?? 0) >= MOON_REV ? moonGameFor(rev, level) : ninjaGame) as ArcadeGame<NinjaState, ArcadeInputEvent | null>;
 }

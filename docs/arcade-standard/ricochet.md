@@ -142,19 +142,66 @@ recorded before it and the 12 ricoRev 2 runs recorded on main to the same scores
   broken by a slide) and the loop `ricochet.scuff` (sliding on moss or ice); briefs in
   `docs/sound-cues/action-elevenlabs.md`. Every earlier slot keeps Joe's recording.
 
-## Levels (stage 3, documented now; Normal is today's game)
+## Levels (ricoRev 4, 15 Nov 2026; Normal is today's game)
 
-| Lever | Easy | Normal | Hard | Expert |
+Joe's levels: "Easy about half the blades, less moss and ice, 6 slower lanterns, 2 m knock-down, full at 200 m; Normal
+today; Hard about 1.3× blades, more ice, 3 m, 245 m; Expert 1.6× with faster shurikens, mostly ice, 4 faster lanterns,
+4 m, 260 m." The deal stamps the puzzle's `level` (ricoRev 4 only; the generator is unchanged, so a level's puzzle is
+Normal's plus `level`); the sim reads it into the state's `lvl` (absent at Normal, so a Normal state, tower and score are
+exactly today's: ricochet-levels-check 1 against 24 towers and 24 runs recorded on de3bec96,
+`scripts/fixtures/action-levels-legacy.json.gz`). Settings: `MOON_LEVELS` in `ricochetNinja.ts` (the registry's
+`GAME_LEVELS.ricochet` repeats them for display); a change to one needs a new stamp.
+
+| Lever (`MOON_LEVELS`) | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
-| Katanas and shurikens | about half | today | about 1.3× | 1.6×, faster shurikens |
-| Moss / ice share of the walls | 30 / 10 % | 60 / 40 % | more ice | mostly ice |
-| Sky lanterns | 6, slower | 6 | 6 | 4, faster |
-| Knock-down on a hit (`NINJA_KNOCK`) | 2 m | 3 m | 3 m | 4 m |
-| Height full at (`MOON_CORE_FULL_M`) | 200 m | 245 m | 245 m | 260 m |
+| Katanas and shurikens (`blades`, density) | ×0.5 (and half the placed-on-purpose ones) | today | ×1.3 | ×1.6 |
+| Shuriken crossing (`pace`) | today | today | today | ×0.75 the time (faster) |
+| Moss / ice patches (`patchGap`, `ice`) | gaps ×1.8, 30 % ice | 40 % ice | 65 % ice | gaps ×0.8, 88 % ice |
+| Sky lanterns (`sky`, `skyVy`) | 6, 144/256 px a tick | 6, 192 | 6, 192 | 4, 256 |
+| Knock-down on a hit (`knock`) | 2 m | 3 m | 3 m | 4 m |
+| Height part: max, full at | 125, 200 m | 125, 245 m | 125, 245 m | 135, 260 m |
+| Lantern rides | 6 × 5 | 6 × 5 | 6 × 5 | 4 × 5 |
 
-The tower is dealt in the sim with its witness, so each level needs only its own witness-proved build (no bank). Every
-level keeps the grace (no game over: a hit knocks you down and stuns you), the minute's run, and 200 for the witness.
-"Moonwalker" (245 m on Hard) must stay possible. Hit scoring is unchanged until Joe's scoring review.
+Parts sum to 200 at every level (Expert's 10 points from its two missing lanterns go to the height part); flow 30 and
+scrolls 15 unchanged; hit scoring unchanged (Joe). Measured over 12 sampled towers (ricochet-levels-check 2h–2j):
+blades 81 / 160 / 208 / 247 a tower, patches 24 / 40 / 40 / 48, ice 38 → 68 → 84 %, Expert's shurikens 80 ticks a
+crossing against 105.
+
+- **The proof.** Each level's tower is built from the seed with its own settings on its own attempt stream
+  (`moonBuildDeal(seed, 4, level)`, salt `MOON_LEVELS[level].salt`) and kept only when its witness, played through the
+  real step at that level, takes every part in full with no hit and reaches the level's full height; so 200 is reachable
+  on every tower at every level (ricochet-levels-check 5: every sampled witness exactly 200 through `gradeAnswer`). The
+  same seed and level always build the same tower (6). Builds ~20 / 27 / 136 / 27 ms (Easy / Normal / Hard / Expert, a
+  desktop core); a level's tower is built while the round's intro is up (`RoundIntro`, `prepareMoonTower`).
+- **120 s and grace.** The run is 60 s at every level; no hit ends it (3, 4).
+- **"Moonwalker"** ("Climb 245 m on Hard") is met by every sampled Hard tower's witness (7b); Hard's height part is
+  Normal's (125, full at 245 m), so its goal reads as before. Challenges complete only on Normal until Hard is live.
+- **Plumbing.** `replayMoonRun(seed, raw, rev, level)`, `moonGameFor(rev, level)`, `moonArtGameFor(rev, level)`,
+  `moonRunSummary(…, level)`, the steppers and playback renderer read the puzzle's `level`; the graded extra adds
+  `rideTotal` and `fullM` at a level only (display; the reveal's rides tile and full-height line read them).
+
+### Measured (15 Nov 2026)
+
+`bun scripts/action-levels-bands.ts ricochet --seeds=12 --each`: real deals, graded by the server, the skill-band bots
+under human limits (a double jump no sooner than 0.15 s into its leap; the leap as the ninja lands is a timed moment,
+not a reaction, and keeps the level's own timing error; Flawless plays the witness). Averages:
+
+| Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Weak | 122.7 | 54.7 | 46.8 | 21.9 |
+| Average | 161.7 (3 of 12 at 175+) | 85.8 | 74.8 | 41.3 |
+| Good | 178.8 | 129.5 | 115.8 | 82.3 |
+| Great | 190.8 | 164.8 | 142.2 | 105.9 |
+| Near-perfect | 190.5 | 173.6 | 157.6 | 124.9 |
+| Elite | 190.2 | 172.8 | 158.6 | 134.8 |
+| Flawless | 200 | 200 | 200 | 200 |
+
+Without the limits the elite bot averages 190 on Normal; the shared tool (`bun scripts/level-tune.ts ricochet
+--level=all --seeds=12`, no limits) gives near-perfect / elite 190.3 / 194.3 Easy, 178.8 / 188.9 Normal, 157.8 / 161.9
+Hard, 120.3 / 127.3 Expert. Every level steps down from the one before at every bot
+level. **Expert played well**: the elite bot scores 113–161 (average 135, every run past 110) on the 12 Expert towers;
+the best boards to try (dealt seeds, elite score): 1636024891 (161), 1579423756 (153), 1650178925 (150), 623742088
+(145), 355978649 (143).
 
 # Moon Climb: ricoRev 3 (3 Nov 2026)
 

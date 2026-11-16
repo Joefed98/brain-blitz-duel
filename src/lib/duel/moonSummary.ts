@@ -9,10 +9,10 @@
 import { checkInputEvents, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import {
   moonGameFor,
-  MOON_CORE_FULL_M,
+  moonFullM,
   MOON_REV,
   MOON_SCROLLS,
-  MOON_SKY,
+  moonSkyCount,
   ninjaBodyFor,
   ninjaMetres,
   NINJA_PX_PER_M,
@@ -46,8 +46,9 @@ export interface MoonSummary {
   fullM: number;
 }
 
-export function moonRunSummary(seed: number, raw: string, rev?: number | null): MoonSummary {
-  const game = moonGameFor(rev ?? MOON_REV);
+export function moonRunSummary(seed: number, raw: string, rev?: number | null, level?: unknown): MoonSummary {
+  // (ricoRev 4's levels: the stored level's tower and rules, as replayMoonRun.)
+  const game = moonGameFor(rev ?? MOON_REV, level);
   const run = decodeMoonRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, NINJA_RUN_TICKS) : 0;
   const lastTick = endTick > 0 && endTick < NINJA_RUN_TICKS ? endTick : NINJA_RUN_TICKS;
@@ -96,8 +97,8 @@ export function moonRunSummary(seed: number, raw: string, rev?: number | null): 
     rideCount: state.rides,
     scrollCount: state.scrolls,
     hitCount: state.hits,
-    rideTotal: MOON_SKY,
+    rideTotal: moonSkyCount(state),
     scrollTotal: MOON_SCROLLS,
-    fullM: MOON_CORE_FULL_M,
+    fullM: moonFullM(state),
   };
 }
