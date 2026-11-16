@@ -3,6 +3,90 @@
 Rooms and practice deal `tiltRev 12` since 3 Nov 2026 (the next section); the tiltRev 11 and tiltRev 10 sections below
 describe the stamps before it, which still replay and score exactly as written.
 
+## Levels (stage 3)
+
+The Strategy overhaul, stage 3 (15–16 Nov 2026; the framework is `docs/design/difficulty/README.md`). Tilt offers Easy,
+Normal, Hard and Expert. **Normal is tiltRev 12 exactly**: the deal carries no `level`, deals from `TILT_DEAL_V12`, plays
+`tiltBigGame`, and scores as before (tilt-levels-check and deal-identity-check prove it). Easy, Hard and Expert deal
+tiltRev 12 with `level` stamped on the puzzle (no new stamp); the server replay, the stage, the reveal and replays read
+it (`tiltGameForLevel(rev, level)`, `replayTiltRun(seed, raw, rev, level)`, `tiltArtGameFor(rev, level)`), and a level on
+any older stamp is ignored. A level's state carries `lvl` (folded into the checkpoint checksum last, so every Normal
+checksum is unchanged).
+
+### Settings (`TILT_LEVELS` in `src/lib/arcade/tilt.ts`, mirrored as plain data in `GAME_LEVELS.tilt`)
+
+| Level | Mazes (cells across, 30 px cells) | Holes per maze | Ice patches per maze | Two marbles | Par scale | Speed full by |
+| --- | --- | --- | --- | --- | --- | --- |
+| Easy | 3: 11, 13, 13 | 0, 1, 1 | none (no icy side passages either) | maze 3 only | 240 % (generous) | 60 s |
+| Normal | 4: 13, 15, 17, then 19 at 16 px (tiltRev 12) | 2, 3, 3, 0 | 2, 3, 3, 0 (+ 2 icy side passages) | maze 3 | 150 % (today's) | 60 s |
+| Hard | 4: 15, 15, 17, 19 | 3, 4, 4, 4 | 3, 3, 4, 4 (+ 2 icy side passages) | 2 of mazes 2–4 (seeded) | 135 % (stricter) | 58 s |
+| Expert | 4: 15, 17, 19, 19 (larger) | 4 each | 5 each (+ 2 icy side passages) | 2 or 3 of mazes 2–4 (seeded) | 115 % (strictest) | 70 s |
+
+Every level keeps the 90 s run (the round's clock stays 93 s, under the 120 s rule), keys and gates (one a maze), the
+blue route's cup placement (`routes` in the table) and tiltRev 12's pieces (marbles 41 % of a cell, keys 45 %). Each
+level's mazes are carved and decorated from the seed on the level's own streams (`LEVEL_SALT`), with tiltRev 8's carve
+(`buildMazeX`) and decoration (`decorateV4`, `decorateX`), each given the level's size, route, holes, ice and amber
+marble (their Normal calls pass nothing and are unchanged); the two-marble mazes are a seeded pick from their own
+stream (`tiltLevelTwoMazes`), the same for every player. Par is tiltRev 11's walk rule at the level's scale
+(`tiltParT(m, scale)`).
+
+### Score (200 in all at every level)
+
+The same four parts as tiltRev 11 and 12, each split over the level's maze count N (`tiltLevelParts`; at N = 4 and 60 s
+it is tiltParParts' arithmetic exactly): mazes 140 (140 × (35 a maze, 20 of it progress) ÷ 35N), par 24 (24 × mazes within
+par ÷ N), clean run 12 (a straight line over N mazes), speed 24 once every maze is done (full by the level's time, to 0 at
+the buzzer). No input 0, any input at least 1. The "?" help still states Normal's numbers (35 a maze, 6 a par, 3 a clean
+maze, 60 s; it has no level to read): the reveal, the round summary and the HUD count the level's own mazes.
+
+### Deals
+
+`src/lib/duel/tiltDealLevels.server.ts` (`TILT_DEAL_LEVELS`), built by `bun scripts/tilt-deal.ts --level=<l>` (4 workers,
+~9 min for Easy, ~15 for Hard and Expert) from the first 150 seeds of a fixed sequence (`tiltLevelCandidate`) that the
+level deals fully (`tiltLevelDealable`: every hole and key, the amber marble where the pick put it, every key and cup
+reachable, the pars leaving 5 s of the run). A candidate is kept when the oracle (`scripts/tilt-oracle.ts`, now
+`oracleRun(seed, 12, level)`) plays every maze within the level's par with no fall and its log replays through the server
+at that level to exactly 200 with every part full. Easy keeps 149 of 150, Hard 119, Expert 111; witnesses in
+`scripts/fixtures/tilt-deal-<level>-witness.json.gz`; `--level=<l> --check [--full]` replays them and rebuilds the file.
+
+### Measured (16 Nov 2026)
+
+Main's `bun scripts/level-tune.ts tilt --level=all --seeds=40` (real deals through `generatePuzzle`, graded by
+`gradeAnswer`; checkpoints every 300 ticks, Tilt's own interval):
+
+| Level | Near-perfect avg (median) | Elite avg (median) | Elite finished |
+| --- | --- | --- | --- |
+| Easy | 189.5 (200) | 197.1 (200) | 98 % |
+| Normal | 166.1 (180) | 173.1 (185) | 80 % |
+| Hard | 152.3 (168) | 154.1 (168) | 57 % |
+| Expert | 138.2 (139) | 157.9 (170) | 60 % |
+
+`bun scripts/tilt-levels-bands.ts --level=all --seeds=40` (every skill on the first 40 entries of each level's list,
+replayed by the server): average score, with the median, the runs at 200 and the share reaching a star (175+):
+
+| Level | Weak | Average | Good | Great | Near | Elite | Flawless bot | Oracle |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Easy | 81 (67) | 150 (176), 53 % 175+ | 179 (192) | 190 (200) | 196 (200) | 199 (200), 35/40 at 200 | 196 (200) | 200 on all 149 |
+| Normal | 49 (44) | 83 (90) | 118 (129) | 122 (130) | 157 (177) | 166 (183), 7/40 at 200 | 184 (194) | 200 on all 347 |
+| Hard | 44 (48) | 77 (85) | 104 (109) | 121 (130) | 154 (168) | 149 (167), 1/40 at 200 | 162 (183) | 200 on all 119 |
+| Expert | 37 (44) | 61 (53) | 79 (80) | 105 (119) | 130 (131) | 142 (139), 1/40 at 200 | 165 (168) | 200 on all 111 |
+
+Under human limits (`TILT_HUMAN_LIMITS=1`: at least 0.25 s from what the eye saw to the hand, less the share of the
+player's own tilt they anticipate, and at most a new decision every 0.15 s; the skill-band elite profile alone reacts
+in 145 ms with a 45 ms tracking lag, faster than that): elite averages Easy 193 (32/40 at 200), Normal 144 (1/40 at 200),
+Hard 141 (median 163, 40 % 175+), Expert 121 (median 131, 18 % at 175+). Near-perfect under limits:
+193 / 140 / 125 / 106.
+
+The step is clear at every skill below elite and under human limits; the elite bot without limits plays Hard and
+Expert about level (its pace, not falls, decides the score: the bots never fall into a hole, so Hard's and Expert's
+extra holes and ice cost a human far more than they cost the bot). Expert's oracle reaches 200 on every dealt seed.
+
+Expert seeds to try (list entry, seed: elite bot / elite under human limits): 15, 1087867488: 200 / 187; 19, 1788458060:
+188 / 188; 2, 1834169993: 198 / 174; 1, 506952113: 188 / 180; 28, 1042155555: 184 / 182.
+
+Checks: tilt-levels-check (the registry mirror, Normal's deal, each level's deal, the lists proved with every witness at
+full depth and a sample at quick depth, the level rules on every entry, the clock, rated and the Daily at Normal, older
+stamps, this table), and the self-replay entry `tilt/expert` (appended).
+
 ## tiltRev 12 (3 Nov 2026): bigger marbles, cups and keys; walnut and brass
 
 Joe's audit of Tilt (iPhone 11): the marbles, cups and keys read small; Tilt looked like Ball Tracker's light wood; the
