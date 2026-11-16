@@ -115,7 +115,23 @@ export const MATCHUP_V3_SWAP_MS = 150;
 
 /** True for a Jackpot gem (matchupRev 2) of any colour. */
 export function matchupIsJackpot(kind: number): boolean {
-  return kind >= MATCHUP_JACKPOT && kind < MATCHUP_JACKPOT + MATCHUP_KINDS;
+  // matchupRev 13 Expert's seventh colour (MATCHUP_KIND7) has its Jackpot at MATCHUP_JACKPOT + 6; no earlier board holds it.
+  return kind >= MATCHUP_JACKPOT && kind < MATCHUP_JACKPOT + MATCHUP_KINDS + 1;
+}
+
+/**
+ * matchupRev 13 Expert's seventh gem colour. Kinds 6–8 are the specials, so the seventh colour is kind 9 (never on an
+ * earlier board), colour index 6 in the goals and counts. Every other colour's kind is its colour index.
+ */
+export const MATCHUP_KIND7 = 9;
+/** A plain gem's colour index (0–5, the seventh colour 6), or -1 for anything else. */
+export function matchupColourIndex(kind: number): number {
+  if (kind >= 0 && kind < MATCHUP_KINDS) return kind;
+  return kind === MATCHUP_KIND7 ? MATCHUP_KINDS : -1;
+}
+/** The plain gem kind of a colour index (6 is MATCHUP_KIND7). */
+export function matchupKindOfColour(colour: number): number {
+  return colour === MATCHUP_KINDS ? MATCHUP_KIND7 : colour;
 }
 
 /** Cells are 50 px; symbols are drawn at 70% of the cell. */
@@ -166,7 +182,7 @@ export const MATCHUP_SHAPES = [
 export type MatchupShape = (typeof MATCHUP_SHAPES)[number];
 
 function isNormal(kind: number): boolean {
-  return kind >= 0 && kind < MATCHUP_KINDS;
+  return (kind >= 0 && kind < MATCHUP_KINDS) || kind === MATCHUP_KIND7;
 }
 
 function isSpecial(kind: number): boolean {
@@ -183,6 +199,21 @@ export const MATCHUP_COLOURS = [
   "#B26BFF",
   "#FF6BD6",
 ] as const;
+
+/**
+ * matchupRev 13 Expert's seventh gem: a cyan heart (a shape no other gem has, so it reads without its colour). Kept
+ * apart from MATCHUP_COLOURS / MATCHUP_SHAPES, whose six entries other art cycles through.
+ */
+export const MATCHUP_COLOUR7 = "#2FE3E6";
+export const MATCHUP_SHAPE7 = "heart";
+/** A plain gem's colour by kind (the seventh colour included). */
+export function matchupGemColour(kind: number): string | undefined {
+  return kind === MATCHUP_KIND7 ? MATCHUP_COLOUR7 : MATCHUP_COLOURS[kind];
+}
+/** A plain gem's shape by kind (the seventh colour's heart included). */
+export function matchupGemShape(kind: number): string | undefined {
+  return kind === MATCHUP_KIND7 ? MATCHUP_SHAPE7 : MATCHUP_SHAPES[kind];
+}
 
 /* ============================ Board helpers ============================ */
 
@@ -404,6 +435,16 @@ export interface MatchupState extends BandFields {
    */
   six?: number;
   goalNeed?: number[];
+  /**
+   * matchupRev 13 only (two-hit ice and levels, absent on every earlier round): the mark (ice values are 2 whole,
+   * 1 cracked, 0 gone), the level (MATCHUP_V13_LEVEL_ORDER index), the gem colours dealt (5, 6 or 7), the hint delay in
+   * ticks (0 = no hint) and the hits that cracked ice without breaking it.
+   */
+  ice2?: number;
+  lv?: number;
+  colours?: number;
+  hintTicks?: number;
+  iceCracked?: number;
 }
 
 /** matchupRev 9: the run's seeded levels (goal colours and counts, ice cells) and treasure columns, drawn at init. */
@@ -414,24 +455,28 @@ export interface MatchupV9Plan {
   treasureCols: number[];
 }
 
-function drawSymbol(rng: number): { state: number; value: number } {
-  return rngBelow(rng, MATCHUP_KINDS);
+/** One gem drawn from `colours` colours (6 on every revision but matchupRev 13 Easy (5) and Expert (7)). */
+function drawSymbol(rng: number, colours = MATCHUP_KINDS): { state: number; value: number } {
+  const drawn = rngBelow(rng, colours);
+  return { state: drawn.state, value: matchupKindOfColour(drawn.value) };
 }
 
 /** A board with no line already on it and at least one valid swap. */
-function rollBoard(rng: number, count = MATCHUP_CELLS): { state: number; cells: number[] } {
+function rollBoard(rng: number, count = MATCHUP_CELLS, colours = MATCHUP_KINDS): { state: number; cells: number[] } {
   let state = rng;
-  for (let attempt = 0; attempt < 400; attempt++) {
+  // matchupRev 13 Easy's five colours line up far more often: more tries (six colours keep 400, so every board is as before).
+  const attempts = colours === MATCHUP_KINDS ? 400 : 4000;
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const cells: number[] = [];
     for (let index = 0; index < count; index++) {
-      const drawn = drawSymbol(state);
+      const drawn = drawSymbol(state, colours);
       state = drawn.state;
       cells.push(drawn.value);
     }
     if (!matchupHasLine(cells) && matchupFindSwap(cells)) return { state, cells };
   }
   // Unreachable in practice; a fixed fallback keeps the sim total.
-  const cells = Array.from({ length: count }, (_, index) => index % MATCHUP_KINDS);
+  const cells = Array.from({ length: count }, (_, index) => matchupKindOfColour(index % colours));
   return { state, cells };
 }
 
@@ -508,7 +553,7 @@ function addBlast(index: number, kind: number, gone: Set<number>, cells: readonl
     for (let r = 0; r < rows; r++) add(matchupIndex(r, col));
   } else if (matchupIsJackpot(kind)) {
     // Every gem of its colour, then its whole row and column.
-    const colour = kind - MATCHUP_JACKPOT;
+    const colour = matchupKindOfColour(kind - MATCHUP_JACKPOT);
     for (let target = 0; target < rows * MATCHUP_SIZE; target++) if (cells[target] === colour) add(target);
     for (let c = 0; c < MATCHUP_SIZE; c++) add(matchupIndex(row, c));
     for (let r = 0; r < rows; r++) add(matchupIndex(r, col));
@@ -646,7 +691,7 @@ function resolveBoard(
         starRuns.add(vertical);
         // matchupRev 2: the swap's own L/T with a line of 5+ makes a Jackpot in that colour.
         const jackpot = v2?.jackpot && steps === 0 && (horizontal.length >= 5 || vertical.length >= 5);
-        created.set(cell, jackpot ? MATCHUP_JACKPOT + (cells[cell] ?? 0) : MATCHUP_STAR);
+        created.set(cell, jackpot ? MATCHUP_JACKPOT + Math.max(0, matchupColourIndex(cells[cell] ?? 0)) : MATCHUP_STAR);
         if (jackpot) jackpots += 1;
       }
     }
@@ -953,7 +998,13 @@ function score(state: MatchupState): number {
 
 /** True once the hint should be shown. Derived from the sim, so it is shared. */
 export function matchupShowHint(state: MatchupState): boolean {
-  return state.tick - state.lastScoreTick >= MATCHUP_HINT_TICKS;
+  const wait = matchupHintTicksOf(state);
+  return wait > 0 && state.tick - state.lastScoreTick >= wait;
+}
+
+/** Ticks without a scoring swap before the hint shows: matchupRev 13's level (0 = never, Expert), else five seconds. */
+export function matchupHintTicksOf(state: Pick<MatchupState, "ice2" | "hintTicks">): number {
+  return state.ice2 ? (state.hintTicks ?? 0) : MATCHUP_HINT_TICKS;
 }
 
 /* =========================== Integrity checks ========================== */
@@ -1009,6 +1060,8 @@ export function matchupCheckpoint(state: MatchupState): MatchupCheckpoint {
   if (state.std) extra.push(state.std, state.gemsCleared ?? 0, state.bigLines ?? 0);
   // matchupRev 12 (six): its mark and the six goals' targets, last.
   if (state.six) extra.push(state.six, fnv(state.goalNeed ?? []));
+  // matchupRev 13 (ice2): its mark, level, colours, hint delay and cracks, last.
+  if (state.ice2) extra.push(state.ice2, state.lv ?? 0, state.colours ?? 0, state.hintTicks ?? 0, state.iceCracked ?? 0);
   return { ...snapshot, checksum: fnv([...Object.values(snapshot), ...extra]) };
 }
 
@@ -1463,7 +1516,9 @@ export const matchupRev2Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> 
 export const matchupRev3Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> = { ...matchupGame, init: initRev3 };
 
 /** The game for a stored round: its matchupRev picks the rules (absent = original). */
-export function matchupGameFor(rev?: number | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+export function matchupGameFor(rev?: number | null, level?: string | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  // matchupRev 13: the stored puzzle's level (levels.ts puzzleLevel; anything else is Normal).
+  if (rev === MATCHUP_REV_ICE2) return matchupIce2GameFor(level);
   if (rev === MATCHUP_REV_SIX) return matchupSixGame;
   if (rev === MATCHUP_REV_STD) return matchupStdGame;
   if (rev === MATCHUP_REV_ICE) return matchupIceGame;
@@ -1716,11 +1771,11 @@ export function matchupWorldH(state: { goals?: number }): number {
 }
 /** The world height (px) a stored round's matchupRev plays in. */
 export function matchupWorldHFor(rev?: number | null): number {
-  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD || rev === MATCHUP_REV_SIX ? MATCHUP_V9_WORLD_H : MATCHUP_WORLD_H;
+  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD || rev === MATCHUP_REV_SIX || rev === MATCHUP_REV_ICE2 ? MATCHUP_V9_WORLD_H : MATCHUP_WORLD_H;
 }
 /** The board rows a stored round's matchupRev plays on. */
 export function matchupRowsFor(rev?: number | null): number {
-  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD || rev === MATCHUP_REV_SIX ? MATCHUP_V9_ROWS : MATCHUP_ROWS;
+  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD || rev === MATCHUP_REV_SIX || rev === MATCHUP_REV_ICE2 ? MATCHUP_V9_ROWS : MATCHUP_ROWS;
 }
 
 /** matchupRev 9: the treasure gems in the bottom row (collected this step). */
@@ -1856,10 +1911,10 @@ export function matchupHintSwap(state: MatchupState): MatchupSwap | null {
 }
 
 /** matchupRev 9: shuffles the gems among the cells that hold no treasure until no line stands and a swap is open. */
-function reshuffleV9(cells: number[], ice: readonly number[], rng: number, find = matchupFindSwapV9): { state: number; cells: number[] } {
+function reshuffleV9(cells: number[], ice: readonly number[], rng: number, find = matchupFindSwapV9, attempts = 200): { state: number; cells: number[] } {
   let state = rng;
   const free = cells.flatMap((kind, index) => (kind === MATCHUP_TREASURE ? [] : [index]));
-  for (let attempt = 0; attempt < 200; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const next = [...cells];
     for (let i = free.length - 1; i > 0; i--) {
       const drawn = rngBelow(state, i + 1);
@@ -1935,14 +1990,16 @@ function placeTreasure(state: MatchupState, cells: number[]): number {
   return placed + 1;
 }
 
-function initGoals(seed: number, iceSwap = false, std = false, six = false): MatchupState {
-  const rolled = rollBoard(seed | 0, MATCHUP_V9_CELLS);
+function initGoals(seed: number, iceSwap = false, std = false, six = false, lv: MatchupV13Rules | null = null): MatchupState {
+  // matchupRev 13: the level's colours (Normal and Hard 6, so their board and queues are matchupRev 12's).
+  const colours = lv?.colours ?? MATCHUP_KINDS;
+  const rolled = rollBoard(seed | 0, MATCHUP_V9_CELLS, colours);
   let rng = rolled.state;
   const queues: number[][] = [];
   for (let col = 0; col < MATCHUP_SIZE; col++) {
     const queue: number[] = [];
     for (let slot = 0; slot < MATCHUP_QUEUE_LEN; slot++) {
-      const drawn = drawSymbol(rng);
+      const drawn = drawSymbol(rng, colours);
       rng = drawn.state;
       queue.push(drawn.value);
     }
@@ -1982,7 +2039,7 @@ function initGoals(seed: number, iceSwap = false, std = false, six = false): Mat
   // board, queues, plan, treasure columns and ice equal matchupRev 11's for the same seed).
   if (six) {
     state.six = 1;
-    state.goalNeed = matchupV12GoalNeed(seed);
+    state.goalNeed = lv ? matchupV13GoalNeed(seed, lv.ladder) : matchupV12GoalNeed(seed);
     state.goalLeft = [...state.goalNeed];
   }
   const find = findSwapFor(state);
@@ -2000,9 +2057,18 @@ function initGoals(seed: number, iceSwap = false, std = false, six = false): Mat
         count += 1;
       }
   }
+  // matchupRev 13: two-hit ice (2 = whole, 1 = cracked), the level's ice count (its own seeded stream, so Normal's ten
+  // cells are matchupRev 12's), colours and hint delay.
+  if (lv) {
+    state.ice = matchupV13Ice(seed, state.ice, cells, lv.ice).map((v) => (v ? 2 : 0));
+    state.ice2 = 1;
+    state.lv = lv.index;
+    state.colours = colours;
+    state.hintTicks = lv.hintS * TICKS_PER_SECOND;
+  }
   state.cells = cells;
   if (!find(cells, state.ice) || matchupHasLine(cells)) {
-    const shuffled = reshuffleV9(cells, state.ice, state.rng, find);
+    const shuffled = reshuffleV9(cells, state.ice, state.rng, find, colours === MATCHUP_KINDS ? 200 : 2000);
     state.rng = shuffled.state;
     state.cells = shuffled.cells;
   }
@@ -2060,16 +2126,20 @@ function stepGoals(state: MatchupState, input: ArcadeInputEvent | null): Matchup
       const heads = [...state.heads];
       const resolved = resolveBoard(cells, state.queues, heads, b, specialSeeds, a, { maxSteps: Number.MAX_SAFE_INTEGER, jackpot: true, treasure: true });
       // Gems collected per colour, and the ice under every cleared cell.
-      const counts = [0, 0, 0, 0, 0, 0];
+      // matchupRev 13: the seventh colour counts as colour 6; two-hit ice: each clear of the gem on an iced cell is a
+      // hit (2 → 1 cracks it, 1 → 0 breaks it), so a cell cleared twice in one cascade breaks in one swap.
+      const counts = [0, 0, 0, 0, 0, 0, 0];
       let iceNow = [...ice];
       let broken = 0;
+      let cracked = 0;
       for (const anim of resolved.animation)
         for (const index of anim.cleared) {
-          const kind = anim.before[index] ?? -1;
-          if (kind >= 0 && kind < MATCHUP_KINDS) counts[kind] = (counts[kind] ?? 0) + 1;
+          const colour = matchupColourIndex(anim.before[index] ?? -1);
+          if (colour >= 0) counts[colour] = (counts[colour] ?? 0) + 1;
           if (iceNow[index]) {
-            iceNow[index] = 0;
-            broken += 1;
+            iceNow[index] = state.ice2 ? iceNow[index]! - 1 : 0;
+            if (iceNow[index]) cracked += 1;
+            else broken += 1;
           }
         }
       let extra = 0;
@@ -2102,7 +2172,7 @@ function stepGoals(state: MatchupState, input: ArcadeInputEvent | null): Matchup
       let reshuffles = state.reshuffles;
       const find = findSwapFor(state);
       if (!find(board, iceNow) || matchupHasLine(board)) {
-        const shuffled = reshuffleV9(board, iceNow, rng, find);
+        const shuffled = reshuffleV9(board, iceNow, rng, find, (state.colours ?? MATCHUP_KINDS) === MATCHUP_KINDS ? 200 : 2000);
         rng = shuffled.state;
         board = shuffled.cells;
         reshuffles += 1;
@@ -2140,6 +2210,7 @@ function stepGoals(state: MatchupState, input: ArcadeInputEvent | null): Matchup
         cascadeExtra: (state.cascadeExtra ?? 0) + extra,
         lastMult: resolved.steps,
         ...(state.std ? { gemsCleared: (state.gemsCleared ?? 0) + gemsNow, bigLines: (state.bigLines ?? 0) + bigNow } : {}),
+        ...(state.ice2 ? { iceCracked: (state.iceCracked ?? 0) + cracked } : {}),
       });
     }
   }
@@ -2273,7 +2344,7 @@ export const MATCHUP_V11_BAND_CURVE = bandCurve([0, MATCHUP_V11_CORE_GEMS], [0, 
 /** matchupRev 11: colour goals met (every goal of a finished level, and this level's colours already collected). */
 export function matchupGoalsMet(state: MatchupState): number {
   // matchupRev 12: one goal a colour, all shown at once; a goal is met once its colour has none left to clear.
-  if (state.six) return Math.min(MATCHUP_V12_GOALS, (state.goalLeft ?? []).reduce((n, left) => n + (left === 0 ? 1 : 0), 0));
+  if (state.six) return Math.min(matchupGoalsOf(state), (state.goalLeft ?? []).reduce((n, left) => n + (left === 0 ? 1 : 0), 0));
   const plan = state.plan;
   if (!plan) return 0;
   const level = state.level ?? 0;
@@ -2385,17 +2456,21 @@ export function matchupV12GoalNeed(seed: number): number[] {
 }
 
 /** The colour goals a standard run holds: 10 on matchupRev 11 (over four levels), 6 on matchupRev 12 (all at once). */
-export function matchupGoalsOf(state: Pick<MatchupState, "six">): number {
+export function matchupGoalsOf(state: Pick<MatchupState, "six" | "ice2" | "goalNeed">): number {
+  // matchupRev 13: one goal a colour dealt (5 on Easy, 7 on Expert).
+  if (state.ice2) return state.goalNeed?.length ?? MATCHUP_V12_GOALS;
   return state.six ? MATCHUP_V12_GOALS : MATCHUP_V11_GOALS;
 }
 
 /** The gems cleared that fill a standard run's core. */
-export function matchupCoreGemsOf(state: Pick<MatchupState, "six">): number {
+export function matchupCoreGemsOf(state: Pick<MatchupState, "six" | "ice2" | "lv">): number {
+  if (state.ice2) return matchupV13RulesOf(state).full.gems;
   return state.six ? MATCHUP_V12_CORE_GEMS : MATCHUP_V11_CORE_GEMS;
 }
 
-/** matchupRev 12's parts (each capped at its maximum; they total at most 200). */
+/** matchupRev 12's parts (each capped at its maximum; they total at most 200). matchupRev 13 has its level's. */
 export function matchupSixParts(state: MatchupState): MatchupStdParts {
+  if (state.ice2) return matchupIce2Parts(state);
   return {
     core: bandPoints(MATCHUP_V12_BAND_CURVE, state.gemsCleared ?? 0),
     treasure: Math.min(MATCHUP_V12_TREASURE_MAX, (state.treasures ?? 0) * MATCHUP_V12_TREASURE_PTS),
@@ -2410,3 +2485,149 @@ export const matchupSixGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> =
   init: (seed) => initGoals(seed, true, true, true),
   score: (state) => (state.six ? matchupStdScore(state) : matchupStdGame.score(state)),
 };
+
+/* ======== Two-hit ice and levels (matchupRev 13, the Strategy overhaul stage 3, docs/arcade-standard/matchup.md) ======== */
+
+/**
+ * matchupRev 13 (15 Nov 2026, Joe: two-hit ice on a new stamp, and difficulty levels): matchupRev 12's game (90 s, the
+ * 7 × 10 board, six treasures, every colour's goal at once, ice swaps that make a line, the treasure swap) with
+ *  - two-hit ice at every level: an iced cell is hit each time the gem on it is cleared (a line, a cascade or a blast,
+ *    exactly what broke ice before). The first hit cracks it (it stays ice, swapped only by a line as before), the
+ *    second breaks it; a cell cleared twice in one cascade breaks in one swap. Only a break counts for the ice part.
+ *  - the level (stored on the puzzle as `level`, levels.ts; none = Normal), read once at init:
+ *      Easy   5 colours, lower goals,   5 ice cells, the hint after 3 s idle;
+ *      Normal 6 colours, matchupRev 12's goals, 10 ice cells, the hint after 5 s (matchupRev 12's deal exactly);
+ *      Hard   6 colours, higher goals, 14 ice cells, the hint after 8 s;
+ *      Expert 7 colours (MATCHUP_KIND7), the highest goals, 18 ice cells, no hint.
+ *    Normal and Hard deal matchupRev 12's board and queues (six colours); a level's extra or fewer ice cells and its
+ *    goals' order come from their own seeded streams, so every player in a room has the same deal.
+ * Score (the arcade standard; parts total 200, as matchupRev 12: core 108, treasure 36, goals 36, ice 10, big lines
+ * 10), each part a straight line full at the level's own figure (`full`): the core at `gems` cleared, treasure at
+ * `treasure` brought down, goals at `goals` met, ice at `ice` cells broken, big lines at `big`. Any played run scores
+ * at least 1; nothing costs points.
+ */
+export const MATCHUP_REV_ICE2 = 13;
+/** The levels in order; the state's `lv` is an index into it. */
+export const MATCHUP_V13_LEVEL_ORDER = ["easy", "normal", "hard", "expert"] as const;
+export type MatchupLevelName = (typeof MATCHUP_V13_LEVEL_ORDER)[number];
+
+export interface MatchupV13Rules {
+  index: number;
+  /** Gem colours dealt (5, 6 or 7); one goal a colour. */
+  colours: number;
+  /** The goals' sizes, dealt to the colours in a seeded order (one a colour). */
+  ladder: readonly number[];
+  /** Frozen cells laid at the start (each takes two hits). */
+  ice: number;
+  /** Seconds without a scoring swap before the hint shows (0 = no hint). */
+  hintS: number;
+  /** Where each part is full (straight lines from 0). */
+  full: { gems: number; treasure: number; goals: number; ice: number; big: number };
+}
+
+/**
+ * The levels (Joe's settings, 15 Nov 2026) and where each part is full, tuned with the skill-band bots
+ * (scripts/gemstone-levels-bands.ts, 60 room seeds, the elite level under Joe's human limits) for a clear step
+ * Easy -> Normal -> Hard -> Expert (elite averages about 197, 158, 146, 136): Normal's figures are matchupRev 12's (only
+ * the two-hit ice changed); Easy's are lenient so an average player has a real shot at a star (about a third of runs
+ * at 175+); Hard's core needs 380 gems; Expert's parts are full well short of every goal, cell and treasure, so a
+ * strong player can score well on it (docs/arcade-standard/matchup.md, "matchupRev 13").
+ */
+export const MATCHUP_V13_LEVELS: Readonly<Record<MatchupLevelName, MatchupV13Rules>> = {
+  easy: { index: 0, colours: 5, ladder: [12, 18, 24, 30, 36], ice: 5, hintS: 3, full: { gems: 320, treasure: 2, goals: 5, ice: 4, big: 2 } },
+  normal: { index: 1, colours: 6, ladder: MATCHUP_V12_GOAL_LADDER, ice: 10, hintS: 5, full: { gems: 360, treasure: 6, goals: 6, ice: 10, big: 5 } },
+  hard: { index: 2, colours: 6, ladder: [28, 38, 48, 58, 68, 78], ice: 14, hintS: 8, full: { gems: 380, treasure: 6, goals: 6, ice: 14, big: 5 } },
+  expert: { index: 3, colours: 7, ladder: [30, 40, 50, 60, 70, 80, 90], ice: 18, hintS: 0, full: { gems: 320, treasure: 2, goals: 3, ice: 12, big: 3 } },
+};
+
+/** A level name read loosely (levels.ts's names; anything else is Normal). */
+export function matchupLevelName(level?: string | null): MatchupLevelName {
+  return level === "easy" || level === "hard" || level === "expert" ? level : "normal";
+}
+
+/** A matchupRev 13 state's level rules (Normal when it carries none). */
+export function matchupV13RulesOf(state: Pick<MatchupState, "lv">): MatchupV13Rules {
+  return MATCHUP_V13_LEVELS[MATCHUP_V13_LEVEL_ORDER[state.lv ?? 1] ?? "normal"];
+}
+
+/** matchupRev 13: each colour's goal, the level's ladder in a seeded order (matchupV12GoalNeed's stream and shuffle). */
+export function matchupV13GoalNeed(seed: number, ladder: readonly number[]): number[] {
+  let rng = (seed ^ 0x6e57a11d) | 0;
+  const need = [...ladder];
+  for (let i = need.length - 1; i > 0; i--) {
+    const drawn = rngBelow(rng, i + 1);
+    rng = drawn.state;
+    const j = drawn.value;
+    const v = need[i]!;
+    need[i] = need[j]!;
+    need[j] = v;
+  }
+  return need;
+}
+
+/**
+ * matchupRev 13: the level's frozen cells from matchupRev 12's ten (1 = iced): fewer drop seeded cells, more add seeded
+ * free cells from row MATCHUP_V9_ICE_FROM_ROW on (never a treasure), from a stream of their own, so the board, queues
+ * and plan are untouched and ten cells are matchupRev 12's exactly.
+ */
+export function matchupV13Ice(seed: number, ice: readonly number[], cells: readonly number[], want: number): number[] {
+  const out = ice.map((v) => (v ? 1 : 0));
+  const laid = out.flatMap((v, i) => (v ? [i] : []));
+  if (laid.length === want) return out;
+  let rng = (seed ^ 0x1ce2b10c) | 0;
+  if (laid.length > want) {
+    while (laid.length > want) {
+      const drawn = rngBelow(rng, laid.length);
+      rng = drawn.state;
+      out[laid[drawn.value]!] = 0;
+      laid.splice(drawn.value, 1);
+    }
+    return out;
+  }
+  const free: number[] = [];
+  for (let i = MATCHUP_V9_ICE_FROM_ROW * MATCHUP_SIZE; i < MATCHUP_V9_CELLS; i++) if (!out[i] && cells[i] !== MATCHUP_TREASURE) free.push(i);
+  for (let n = laid.length; n < want && free.length; n++) {
+    const drawn = rngBelow(rng, free.length);
+    rng = drawn.state;
+    out[free[drawn.value]!] = 1;
+    free.splice(drawn.value, 1);
+  }
+  return out;
+}
+
+/** A straight-line share: `max` × min(v, full) ÷ full, floored. */
+function share(max: number, v: number, full: number): number {
+  return full > 0 ? Math.floor((max * Math.min(Math.max(0, v), full)) / full) : 0;
+}
+
+/** matchupRev 13's core line at a level (0 → 108 at the level's full gems; the help reads Normal's). */
+export function matchupV13BandCurve(level?: string | null): BandCurve {
+  return bandCurve([0, MATCHUP_V13_LEVELS[matchupLevelName(level)].full.gems], [0, MATCHUP_V12_CORE_MAX]);
+}
+/** Normal's core line (LIVE_BANDS, the "?" help). */
+export const MATCHUP_V13_BAND_CURVE = matchupV13BandCurve("normal");
+
+/** matchupRev 13's parts at the state's level (each capped at its maximum; they total at most 200). */
+export function matchupIce2Parts(state: MatchupState): MatchupStdParts {
+  const full = matchupV13RulesOf(state).full;
+  return {
+    core: share(MATCHUP_V12_CORE_MAX, state.gemsCleared ?? 0, full.gems),
+    treasure: share(MATCHUP_V12_TREASURE_MAX, state.treasures ?? 0, full.treasure),
+    goals: share(MATCHUP_V12_GOALS_MAX, matchupGoalsMet(state), full.goals),
+    ice: share(MATCHUP_V12_ICE_MAX, state.iceBroken ?? 0, full.ice),
+    big: share(MATCHUP_V12_BIG_MAX, state.bigLines ?? 0, full.big),
+  };
+}
+
+const ice2Games = new Map<MatchupLevelName, ArcadeGame<MatchupState, ArcadeInputEvent | null>>();
+/** matchupRev 13's game at a level (the stored puzzle's `level`; anything else is Normal). */
+export function matchupIce2GameFor(level?: string | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  const name = matchupLevelName(level);
+  let game = ice2Games.get(name);
+  if (!game) {
+    const rules = MATCHUP_V13_LEVELS[name];
+    game = { ...matchupSixGame, init: (seed) => initGoals(seed, true, true, true, rules) };
+    ice2Games.set(name, game);
+  }
+  return game;
+}

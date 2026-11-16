@@ -31,10 +31,10 @@ import {
 } from "./swing";
 import {
   matchupGoalsMet,
+  matchupGoalsOf,
   matchupSixParts,
   MATCHUP_V12_BIG_MAX,
   MATCHUP_V12_CORE_MAX,
-  MATCHUP_V12_GOALS,
   MATCHUP_V12_GOALS_MAX,
   MATCHUP_V12_ICE_MAX,
   MATCHUP_V12_TREASURES,
@@ -135,7 +135,7 @@ function matchupParts(s: MatchupState): StdPart[] | null {
   return [
     stdPart(MATCHUP_V12_SPEC, "core", p.core, `${gems.toLocaleString("en-GB")} ${gems === 1 ? "gem" : "gems"}`),
     stdPart(MATCHUP_V12_SPEC, "treasure", p.treasure, `${of(s.treasures ?? 0, MATCHUP_V12_TREASURES, "treasures")} brought down`),
-    stdPart(MATCHUP_V12_SPEC, "goals", p.goals, of(matchupGoalsMet(s), MATCHUP_V12_GOALS, "colours done")),
+    stdPart(MATCHUP_V12_SPEC, "goals", p.goals, of(matchupGoalsMet(s), matchupGoalsOf(s), "colours done")),
     stdPart(MATCHUP_V12_SPEC, "ice", p.ice, `${n(s.iceBroken ?? 0, "frozen cell")} broken`),
     stdPart(MATCHUP_V12_SPEC, "big", p.big, `${n(s.bigLines ?? 0, "line")} of 4 or 5`),
   ];

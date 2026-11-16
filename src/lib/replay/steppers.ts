@@ -19,6 +19,7 @@ import {
   type ArcadeInputEvent,
 } from "@/lib/arcade/engine";
 import type { PuzzleData } from "@/lib/duel/types";
+import { puzzleLevel } from "@/lib/levels/levels";
 
 import { hoverGameFor } from "@/lib/arcade/hover";
 import { skylineGameFor } from "@/lib/arcade/skyline";
@@ -201,7 +202,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
         rev(p, "bullRev"),
       ),
   }),
-  matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev")) as AnyGame }),
+  matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev"), puzzleLevel(p)) as AnyGame }),
   breaker: (p) => ({ game: breakerGameFor(rev(p, "brkRev")) as AnyGame }),
   pinball: (p) => ({ game: pinballGameForAny(rev(p, "pinRev")) as AnyGame }),
   minesweeper: (p) => ({ game: minesweeperGameFor(rev(p, "minesRev")) as AnyGame }),

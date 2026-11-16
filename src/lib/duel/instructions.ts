@@ -955,7 +955,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Bring chests down:", detail: "clear below, or swap." },
         { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
         { action: "Six goals,", detail: `one for each colour, are shown under the board from the start: clear that many gems of the colour to meet it. Every gem of the colour counts, in a line, a cascade or a blast.`, helpOnly: true },
-        { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Clear the gem in the ice (in a line, a cascade or a blast) and the ice breaks; it never comes back.", helpOnly: true },
+        { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Ice takes two hits: clear the gem in it (in a line, a cascade or a blast) and the ice cracks; clear the gem there again and it breaks. It never comes back.", helpOnly: true },
+        { action: "Levels:", detail: "Easy deals five colours, smaller goals, 5 frozen cells and the hint after 3 s; Normal six colours, 10 frozen cells, the hint after 5 s; Hard bigger goals, 14 frozen cells, the hint after 8 s; Expert seven colours (the cyan heart is the seventh), the biggest goals, 18 frozen cells and no hint. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
         { action: "The treasure chest", detail: `(a gold-banded chest, not a gem) can’t be matched or blasted. Two ways bring it down: clear gems in its column below it, so it drops into the gap, or swap it with a neighbour: it swaps with a gem that then makes a line of three. It is collected when it reaches the bottom row; ${MATCHUP_V12_TREASURES} come a round, one at a time.`, helpOnly: true },
         { action: "Tip:", detail: "work low in the chest’s column. A line under the chest drops it one row for each gem cleared below it, and a glowing trail shows the column it falls down.", helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
@@ -965,7 +966,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ninety seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
       ],
       // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core on its straight line, then fixed
-      // amounts, to 200.
+      // amounts, to 200. matchupRev 13 (two-hit ice and levels): Normal's figures, the same as matchupRev 12's.
       score: scoreList([
         { label: "Gems", how: "every gem cleared counts the same, in a line, a cascade or a blast", max: MATCHUP_V12_CORE_MAX },
         { label: "Treasure", how: `${MATCHUP_V12_TREASURE_PTS} for each treasure brought down`, max: MATCHUP_V12_TREASURE_MAX },

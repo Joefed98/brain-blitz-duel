@@ -21,6 +21,7 @@ import {
   MATCHUP_NEXT_H, MATCHUP_NEXT_Y, MATCHUP_QUEUE_LEN, MATCHUP_ROWS, MATCHUP_SHAPES, MATCHUP_SIZE, MATCHUP_STAR,
   MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, MATCHUP_JACKPOT, MATCHUP_WORLD_H, MATCHUP_WORLD_W, matchupIsJackpot, matchupPending, matchupStepTiming,
   matchupHintSwap, matchupRowsOf, matchupWorldH, MATCHUP_TREASURE, MATCHUP_V9_PANEL_Y, matchupTreasuresOf, MATCHUP_V11_GOAL_LEVELS, matchupGoalsMet, MATCHUP_V12_GOALS,
+  matchupGemColour, matchupGemShape, matchupKindOfColour, matchupGoalsOf,
   type MatchupAnimStep, type MatchupState,
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
@@ -171,7 +172,15 @@ function cutPoints(shape: string, cx: number, cy: number, r: number): Array<[num
   } else if (shape === "triangle") pts.push([cx, cy - r], [cx + r, cy + r * 0.8], [cx - r, cy + r * 0.8]);
   else if (shape === "diamond") pts.push([cx, cy - r], [cx + r, cy], [cx, cy + r], [cx - r, cy]);
   else if (shape === "star") ring(10, -Math.PI / 2, (k) => (k % 2 === 0 ? r : r * 0.45));
-  else ring(6, -Math.PI / 2, () => r);
+  else if (shape === "heart") {
+    // matchupRev 13 Expert's seventh gem: a heart (the classic parametric curve), inside the symbol's square.
+    for (let k = 0; k < 20; k++) {
+      const t = (k / 20) * Math.PI * 2;
+      const hx = 16 * Math.sin(t) ** 3;
+      const hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+      pts.push([cx + ((hx * 0.95) / 16) * r, cy + (((hy - 2.5) * 0.95) / 16) * r]);
+    }
+  } else ring(6, -Math.PI / 2, () => r);
   return pts;
 }
 
@@ -366,7 +375,7 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
     ctx.fillRect(cx - w / 2, cy - radius * 0.85, w, radius * 1.7);
   } else if (matchupIsJackpot(kind)) {
     // Jackpot (matchupRev 2): a round brilliant in its colour inside a rainbow rim, a white star at its heart.
-    const colour = MATCHUP_COLOURS[kind - MATCHUP_JACKPOT] ?? MATCHUP_GOLD;
+    const colour = matchupGemColour(matchupKindOfColour(kind - MATCHUP_JACKPOT)) ?? MATCHUP_GOLD;
     MATCHUP_COLOURS.forEach((rim, i) => {
       const a0 = -Math.PI / 2 + (i * Math.PI * 2) / MATCHUP_COLOURS.length;
       ctx.fillStyle = rim;
@@ -460,11 +469,12 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
     ctx.lineWidth = 1.6;
     ctx.stroke();
   } else {
-    const shape = MATCHUP_SHAPES[kind] ?? "circle";
-    const colour = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
+    const shape = matchupGemShape(kind) ?? "circle";
+    const colour = matchupGemColour(kind) ?? MATCHUP_GOLD;
     // The Strategy overhaul (stage 2, display only): the rendered cut stone (strategy_art.py), the same outline at the
     // same radius; the code-cut gem until it has loaded (and in checks, where there is no Image).
-    const rendered = strategyImage(`gem-${shape}` as StrategyArtName);
+    // The seventh colour's heart (matchupRev 13 Expert) has no rendered stone: always the code-cut gem.
+    const rendered = shape === "heart" ? null : strategyImage(`gem-${shape}` as StrategyArtName);
     if (rendered) ctx.drawImage(rendered, cx - radius, cy - radius, radius * 2, radius * 2);
     else flatGem(ctx, shape, cx, cy, radius, colour);
   }
@@ -791,7 +801,7 @@ function shatter(ctx: CanvasRenderingContext2D, kind: number, index: number, p: 
     ctx.globalAlpha = 1;
     return;
   }
-  const colour = kind < MATCHUP_COLOURS.length ? (MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD) : MATCHUP_GOLD;
+  const colour = matchupGemColour(kind) ?? MATCHUP_GOLD;
   ctx.globalAlpha = Math.max(0, 1 - p * 2.2);
   drawMatchupGem(ctx, kind, x, y, RADIUS);
   ctx.globalAlpha = 1;
@@ -828,14 +838,14 @@ function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, p
     ctx.lineWidth = 2;
     if (matchupIsJackpot(kind)) {
       // Jackpot: a white cross sweep plus a ring on every gem of its colour.
-      const colour = MATCHUP_COLOURS[kind - MATCHUP_JACKPOT] ?? MATCHUP_GOLD;
+      const colour = matchupGemColour(matchupKindOfColour(kind - MATCHUP_JACKPOT)) ?? MATCHUP_GOLD;
       ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.fillRect(MATCHUP_BOARD_X, y - 5, MATCHUP_BOARD_W, 10);
       ctx.fillRect(x - 5, MATCHUP_BOARD_Y, 10, L.boardH);
       ctx.strokeStyle = colour;
       ctx.lineWidth = 3;
       for (let target = 0; target < step.before.length; target++) {
-        if (step.before[target] !== kind - MATCHUP_JACKPOT) continue;
+        if (step.before[target] !== matchupKindOfColour(kind - MATCHUP_JACKPOT)) continue;
         const c = centre(target);
         ctx.beginPath();
         ctx.arc(c.x, c.y, RADIUS * (0.6 + progress * 0.9), 0, Math.PI * 2);
@@ -974,7 +984,31 @@ function paintIce(c: CanvasRenderingContext2D, s: number): void {
 }
 
 let iceSprite: ArtCanvas | null = null;
-function drawIce(ctx: CanvasRenderingContext2D, ice: readonly number[] | undefined): void {
+/**
+ * matchupRev 13's cracked ice (one hit taken): bold white fault lines from the centre over the ice, and a dark seam
+ * under them, so a cracked cell reads apart from a whole one at a glance. Inside the cell.
+ */
+function paintIceCrack(c: CanvasRenderingContext2D, x: number, y: number, s: number): void {
+  const lines: readonly (readonly [number, number])[][] = [
+    [[0.5, 0.5], [0.3, 0.36], [0.12, 0.3]],
+    [[0.5, 0.5], [0.66, 0.3], [0.8, 0.12]],
+    [[0.5, 0.5], [0.72, 0.62], [0.9, 0.7]],
+    [[0.5, 0.5], [0.44, 0.74], [0.3, 0.9]],
+  ];
+  c.save();
+  c.lineCap = "round";
+  c.lineJoin = "round";
+  for (const [colour, width] of [["rgba(20,50,80,0.55)", 3], ["rgba(255,255,255,0.95)", 1.6]] as const) {
+    c.strokeStyle = colour;
+    c.lineWidth = width;
+    c.beginPath();
+    for (const line of lines) line.forEach(([px, py], i) => (i === 0 ? c.moveTo(x + px * s, y + py * s) : c.lineTo(x + px * s, y + py * s)));
+    c.stroke();
+  }
+  c.restore();
+}
+
+function drawIce(ctx: CanvasRenderingContext2D, ice: readonly number[] | undefined, twoHit = false): void {
   if (!ice) return;
   if (!iceSprite) {
     const canvas = artCanvas(MATCHUP_CELL_PX * 2, MATCHUP_CELL_PX * 2);
@@ -996,6 +1030,8 @@ function drawIce(ctx: CanvasRenderingContext2D, ice: readonly number[] | undefin
       paintIce(ctx, MATCHUP_CELL_PX);
       ctx.restore();
     }
+    // matchupRev 13: 2 = whole, 1 = cracked (one more hit breaks it).
+    if (twoHit && ice[index] === 1) paintIceCrack(ctx, x, y, MATCHUP_CELL_PX);
   }
 }
 
@@ -1088,25 +1124,31 @@ function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, t
   // The six goals, one a colour, in colour order.
   const need = state.goalNeed ?? [];
   const left = state.goalLeft ?? [];
-  const cellW = (w - 16) / MATCHUP_V12_GOALS;
-  for (let kind = 0; kind < MATCHUP_V12_GOALS; kind++) {
-    const cx = x + 8 + cellW * kind + cellW / 2;
-    const n = need[kind] ?? 0;
-    const l = left[kind] ?? 0;
+  // matchupRev 13: the level's goals (5 on Easy, 7 on Expert), one a colour.
+  const goals = matchupGoalsOf(state);
+  const cellW = (w - 16) / goals;
+  const drawGoal = (colour: number) => {
+    const kind = matchupKindOfColour(colour);
+    const cx = x + 8 + cellW * colour + cellW / 2;
+    const n = need[colour] ?? 0;
+    const l = left[colour] ?? 0;
     const done = n > 0 && l === 0;
     ctx.globalAlpha = done ? 0.55 : 1;
-    drawMatchupGem(ctx, kind, cx - 12, y + 47, 11, time);
+    drawMatchupGem(ctx, kind, cx - (goals > 6 ? 10 : 12), y + 47, goals > 6 ? 10 : 11, time);
     ctx.globalAlpha = 1;
     ctx.textAlign = "left";
     ctx.font = `800 15px ${HUD_PILL_FONT}`;
     ctx.fillStyle = done ? "#7CF5A4" : MATCHUP_TEXT;
-    ctx.fillText(done ? "✓" : `${l}`, cx + 1, y + 48);
+    ctx.fillText(done ? "✓" : `${l}`, cx + (goals > 6 ? 2 : 1), y + 48);
     const bw = cellW - 12;
     ctx.fillStyle = "rgba(0,0,0,0.45)";
     ctx.fillRect(cx - bw / 2, y + 63, bw, 3);
-    ctx.fillStyle = done ? "#7CF5A4" : (MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD);
+    ctx.fillStyle = done ? "#7CF5A4" : (matchupGemColour(kind) ?? MATCHUP_GOLD);
     ctx.fillRect(cx - bw / 2, y + 63, n > 0 ? (bw * (n - l)) / n : 0, 3);
-  }
+  };
+  // matchupRev 13 draws its level's goals (5 on Easy, 7 on Expert); matchupRev 12 its six.
+  if (state.ice2) for (let colour = 0; colour < goals; colour++) drawGoal(colour);
+  else for (let kind = 0; kind < MATCHUP_V12_GOALS; kind++) drawGoal(kind);
   ctx.restore();
 }
 
@@ -1231,15 +1273,24 @@ function drawClearBursts(ctx: CanvasRenderingContext2D, state: MatchupState): vo
  */
 function drawStrategyGemFx(ctx: CanvasRenderingContext2D, state: MatchupState): void {
   if (!state.six) return;
-  const m = fxMemory(ctx, "gem-strategy", state.tick, () => ({ tick: -1, cells: [] as number[], ice: [] as number[], sparks: [] as { tick: number; from: number; kind: number }[], cracks: [] as { tick: number; cell: number }[] }));
+  const m = fxMemory(ctx, "gem-strategy", state.tick, () => ({ tick: -1, cells: [] as number[], ice: [] as number[], sparks: [] as { tick: number; from: number; kind: number }[], cracks: [] as { tick: number; cell: number; step?: "crack" | "shatter" }[] }));
   if (state.tick !== m.tick) {
     if (m.cells.length && m.tick >= 0) {
       for (const cell of state.lastCleared) {
         const kind = m.cells[cell] ?? -1;
-        if (kind >= 0 && kind < MATCHUP_V12_GOALS && state.cells[cell] !== kind && m.sparks.length < 18) m.sparks.push({ tick: state.tick, from: cell, kind });
+        // `kind` here is the goal's colour index (the seventh colour, kind 9, is goal 6).
+        const colour = kind === matchupKindOfColour(6) ? 6 : kind;
+        if (colour >= 0 && colour < matchupGoalsOf(state) && state.cells[cell] !== kind && m.sparks.length < 18) m.sparks.push({ tick: state.tick, from: cell, kind: colour });
       }
       (state.ice ?? []).forEach((v, cell) => {
-        if (!v && m.ice[cell]) m.cracks.push({ tick: state.tick, cell });
+        const was = m.ice[cell] ?? 0;
+        if (!state.ice2) {
+          if (!v && was) m.cracks.push({ tick: state.tick, cell });
+        } else if (v < was) {
+          // matchupRev 13's two-hit ice: the first hit cracks (fault lines only; the cell stays cracked), the second
+          // shatters (shards only); both hits in one swap crack, then shatter.
+          m.cracks.push({ tick: state.tick, cell, ...(v ? { step: "crack" as const } : was === 1 ? { step: "shatter" as const } : {}) });
+        }
       });
     }
     m.cells = state.cells.slice();
@@ -1253,7 +1304,7 @@ function drawStrategyGemFx(ctx: CanvasRenderingContext2D, state: MatchupState): 
   m.sparks = m.sparks.filter((sp) => state.tick - sp.tick < SPARK_T);
   m.cracks = m.cracks.filter((c) => state.tick - c.tick < CRACK_T);
   if (sparkFx !== "reduced") {
-    const px = MATCHUP_BOARD_X - 5, pw = MATCHUP_BOARD_W + 10, cellW = (pw - 16) / MATCHUP_V12_GOALS;
+    const px = MATCHUP_BOARD_X - 5, pw = MATCHUP_BOARD_W + 10, cellW = (pw - 16) / matchupGoalsOf(state);
     for (const sp of m.sparks) {
       const u = (state.tick - sp.tick) / SPARK_T;
       const a = centre(sp.from);
@@ -1262,7 +1313,7 @@ function drawStrategyGemFx(ctx: CanvasRenderingContext2D, state: MatchupState): 
       const x = a.x + (b.x - a.x) * e;
       const y = a.y + (b.y - a.y) * e - Math.sin(e * Math.PI) * 30;
       ctx.globalAlpha = u < 0.85 ? 1 : (1 - u) / 0.15;
-      ctx.fillStyle = MATCHUP_COLOURS[sp.kind] ?? MATCHUP_GOLD;
+      ctx.fillStyle = matchupGemColour(matchupKindOfColour(sp.kind)) ?? MATCHUP_GOLD;
       ctx.beginPath();
       ctx.arc(x, y, sparkFx === "full" ? 3.2 : 2.4, 0, Math.PI * 2);
       ctx.fill();
@@ -1279,7 +1330,14 @@ function drawStrategyGemFx(ctx: CanvasRenderingContext2D, state: MatchupState): 
     const y = MATCHUP_BOARD_Y + Math.floor(c.cell / MATCHUP_SIZE) * MATCHUP_CELL_PX;
     const s = MATCHUP_CELL_PX;
     ctx.save();
-    if (crackFx === "reduced" || age < 8) {
+    // matchupRev 13: a crack-only hit stays in the crack's look; a shatter-only hit skips it.
+    const crackOnly = c.step === "crack";
+    if (c.step !== "shatter" && (crackFx === "reduced" || age < 8 || crackOnly)) {
+      if (crackOnly && age >= 8 && crackFx !== "reduced") {
+        // The crack's flash fades into the cracked ice the board now draws.
+        ctx.restore();
+        continue;
+      }
       // First the crack: the ice still there, faulted with white lines from its centre.
       ctx.globalAlpha = crackFx === "reduced" ? 1 - age / CRACK_T : 0.85;
       ctx.fillStyle = "rgba(200,236,255,0.35)";
@@ -1295,7 +1353,7 @@ function drawStrategyGemFx(ctx: CanvasRenderingContext2D, state: MatchupState): 
       ctx.stroke();
     } else {
       // Then the shards: four slivers falling away and fading, inside the cell's own square.
-      const u = (age - 8) / (CRACK_T - 8);
+      const u = c.step === "shatter" ? age / CRACK_T : (age - 8) / (CRACK_T - 8);
       ctx.globalAlpha = 1 - u;
       ctx.fillStyle = "rgba(214,242,255,0.9)";
       const drop = fxAmount(crackFx) * u * u * s * 0.4;
@@ -1354,7 +1412,7 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
   if (!animating && !options.cells) drawTreasureTrail(ctx, state, time);
   // matchupRev 9: frozen cells over the gems, and the goals panel under the board.
   if (state.goals) {
-    drawIce(ctx, state.ice);
+    drawIce(ctx, state.ice, Boolean(state.ice2));
     drawGoalsPanel(ctx, state, time);
   }
 

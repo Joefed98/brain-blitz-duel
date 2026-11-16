@@ -68,6 +68,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { balls: 42, dropTicks: 66, moves: 12, golds: 7, boosts: 2 } },
     },
   },
+  // Gemstone, matchupRev 13 (the Strategy overhaul stage 3): a copy of the sim's MATCHUP_V13_LEVELS (arcade/matchup.ts,
+  // which the sim reads; gemstone-levels-check proves the two agree). Normal: 6 colours, 10 ice cells, the hint at 5 s.
+  matchup: {
+    levels: {
+      easy: { settings: { colours: 5, goals: [12, 18, 24, 30, 36], ice: 5, hintS: 3 } },
+      hard: { settings: { colours: 6, goals: [28, 38, 48, 58, 68, 78], ice: 14, hintS: 8 } },
+      expert: { settings: { colours: 7, goals: [30, 40, 50, 60, 70, 80, 90], ice: 18, hintS: 0 } },
+    },
+  },
 };
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */

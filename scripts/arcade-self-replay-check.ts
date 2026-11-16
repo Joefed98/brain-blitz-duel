@@ -141,7 +141,7 @@ import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_FLOW, FLIP_REV_LIFT, FLIP_REV_
 import { WAV_REV_BAND, WAV_REV_PHONE, WAV_REV_SHAPES, WAV_REV_STD, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
-import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_SIX, MATCHUP_REV_STD, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_BAND, MATCHUP_REV_ICE2, MATCHUP_REV_PAR, MATCHUP_REV_SIX, MATCHUP_REV_STD, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_FLOW, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
@@ -1062,6 +1062,11 @@ const GAMES: Game[] = [
     encode: (run: any) => encodeBallTrackRun(BT_EXPERT_DEAL[run.seed % BT_EXPERT_DEAL.length]!, run, BT_REV_STD),
     replay: (seed: number, raw: string) => replayBallTrackRun(BT_EXPERT_DEAL[seed % BT_EXPERT_DEAL.length]!, seed, raw, BT_REV_STD),
   },
+  // Gemstone matchupRev 13 (the Strategy overhaul stage 3, 15 Nov 2026: two-hit ice and levels), appended so every
+  // earlier entry keeps its stream: Normal, Easy (five colours) and Expert (seven, the heart).
+  { key: "matchup/ice2", game: matchupGameFor(MATCHUP_REV_ICE2), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2) },
+  { key: "matchup/ice2-easy", game: matchupGameFor(MATCHUP_REV_ICE2, "easy"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2, "easy") },
+  { key: "matchup/ice2-expert", game: matchupGameFor(MATCHUP_REV_ICE2, "expert"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2, "expert") },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

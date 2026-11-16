@@ -106,8 +106,9 @@ export function digest(value: unknown): string {
  * preGameReviewNov15.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
  */
-// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): bubblePreFast and inkPreHills.
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "bubblePreFast", "inkPreHills"];
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): bubblePreFast and inkPreHills,
+// and matchupPreIce2 (Gemstone matchupRev 13).
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "bubblePreFast", "inkPreHills", "matchupPreIce2"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {

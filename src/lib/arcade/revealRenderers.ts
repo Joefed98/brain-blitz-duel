@@ -4,6 +4,7 @@
  * with the game's own renderer, and (where known) where the run ended. This is
  * visual only — the score, lines, tiles and axis come from round_results.
  */
+import { puzzleLevel } from "@/lib/levels/levels";
 import { bastionGame, BAS_WORLD_H, BAS_WORLD_W } from "./bastion";
 import { BT2_WORLD_H, BT2_WORLD_W } from "./bastionTank";
 import { bastionTankArtGame } from "./bastionTank.renderer";
@@ -265,7 +266,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     // bullRev 8 (expansion E9) and 9 (the scoring standard): the taller range.
     undefined, undefined, (p) => (p.type === "bullseye" && bullseyeTallRev(p.bullRev) ? BULLSEYE_V8_WORLD_H : 560),
   ),
-  matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined), undefined, undefined, (p) => matchupWorldHFor(p.type === "matchup" ? p.matchupRev : undefined)),
+  matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined, puzzleLevel(p)), undefined, undefined, (p) => matchupWorldHFor(p.type === "matchup" ? p.matchupRev : undefined)),
   breaker: {
     accent: GOLD,
     worldW: 390,

@@ -68,6 +68,7 @@ import {
   matchupRowsOf,
   MATCHUP_REV_GOALS,
   MATCHUP_REV_SIX,
+  MATCHUP_REV_ICE2,
   MATCHUP_SIZE,
   MATCHUP_TREASURE,
   MATCHUP_V9_BAND_CURVE,
@@ -149,7 +150,9 @@ ok(dealt("bubble").bubbleRev === BUB_REV_FAST, "Coral Pop: rooms deal bubbleRev 
 // Gemstone moved on to matchupRev 10 (27 Oct 2026, phone-test notes; gemstone-rev10-check); matchupRev 9 replays here as before.
 // The arcade scoring standard then moved it on to matchupRev 11 (gemstone-standard-check), and six goals and six treasures to
 // matchupRev 12 (gemstone-rev12-check).
-ok(dealt("matchup").matchupRev === MATCHUP_REV_SIX, "Gemstone: rooms deal matchupRev 12 (a successor of matchupRev 9)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): matchupRev 13 (two-hit ice
+// and levels) is the dealt stamp's successor; the help, demo gate and standard entry follow it.
+ok(dealt("matchup").matchupRev === MATCHUP_REV_ICE2 && MATCHUP_REV_ICE2 === MATCHUP_REV_SIX + 1, "Gemstone: rooms deal matchupRev 12 (a successor of matchupRev 9)");
 {
   const bt = dealt("balltrack");
   // The arcade scoring standard (29 Oct 2026) deals btRev 8: btRev 7's play and bank, re-scored (arcade-standard-check).
@@ -160,7 +163,7 @@ for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/bubbleRev !== BUB_REV_FAST\) return null/.test(demo), "Coral Pop's demo stays stopped until recorded on bubbleRev 12 (the Strategy overhaul's stamp)");
-  ok(/matchupRev !== MATCHUP_REV_SIX\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 12 (a successor of 9)");
+  ok(/matchupRev !== MATCHUP_REV_ICE2\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 12 (a successor of 9)");
   // btRev 8 (the arcade scoring standard) keeps btRev 7's play: a demo recorded on either plays.
   ok(/!btIsV7Play\(demo\.puzzle\.btRev\)\) return null/.test(demo), "Ball Tracker's demo stays stopped until recorded on btRev 7 (or 8, the same play)");
 }
