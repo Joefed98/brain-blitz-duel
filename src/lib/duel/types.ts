@@ -240,6 +240,14 @@ export interface ReactionPuzzleData {
   decoys: { at: number; color: ReactionDecoyColour }[];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep per-flash summaries. */
   tapRev?: number;
+  /** Expert (the Speed overhaul's levels, 15 Nov 2026): how long each gold flash stays up, in ms; absent = REACTION_FLASH_MS. */
+  flashMs?: number;
+}
+
+/** How long a puzzle's gold flashes stay up: its own `flashMs` (Expert), else the 1.5 s every older round used. */
+export function flashWindowMs(puzzle: unknown): number {
+  const own = puzzle && typeof puzzle === "object" ? (puzzle as { flashMs?: unknown }).flashMs : undefined;
+  return typeof own === "number" && own > 0 ? own : REACTION_FLASH_MS;
 }
 
 export type Operator = "+" | "-" | "×" | "÷";
@@ -348,6 +356,16 @@ export interface NumberHuntPuzzleData {
   layouts: HuntSpot[][];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep "reached,errors" summaries. */
   tapRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the board reshuffles every `moveMs` (0 = never; absent = every 15 s
+   * over four layouts, every older round), on the level's own clock (`timeLimitMs`). On Expert the spots are stored
+   * highest first (`descending`), so "next" is still the next spot in the list.
+   */
+  moveMs?: number;
+  timeLimitMs?: number;
+  descending?: boolean;
+  /** A level's full-speed time in seconds (absent: the standard's 40 s). */
+  fullByS?: number;
 }
 
 export type PuzzleData =
@@ -1774,6 +1792,13 @@ export interface ChainPuzzleData {
   rulesVersion?: number;
   /** CHAIN_TIME_REV: the finish bonus is capped by the replayed last tap; absent = the claimed time. */
   chainTimeRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the level's chain length, windows (`upTo` 1-based links) and reversed
+   * runs (1-based, inclusive), on its own clock (`timeLimitMs`); the cycles stored on the boards carry its cycle length.
+   * Absent: today's 40 links, windows and the one reversed board (every round dealt before the levels, and Normal).
+   */
+  chainLevel?: { links: number; bands: { upTo: number; ms: number }[]; reverse: [number, number][] };
+  timeLimitMs?: number;
   /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
   chainCycleRev?: number;
   /** Depth to 200 (25 Oct 2026, depth/chain.ts CHAIN_DEPTH_REV): milestones at 10 / 20 / 30 links and the stretched finish, up to 200; absent = 150. */
@@ -2321,6 +2346,29 @@ export interface TenDropPuzzleData {
    * tiles and a finish to 200, docs/depth/d2-number-tenfall.md). Absent = 13 per target.
    */
   tenRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the level's stages as dealt (tenDrop.ts `tdLevelStages`; stored whole, so
+   * a later change to the level never changes a stored round). Absent: today's ten targets.
+   */
+  tenLevel?: { stages: TenDropLevelStage[] };
+}
+
+/** One Tenfall stage as a level stores it (tenDrop.ts TenDropStage). */
+export interface TenDropLevelStage {
+  lo: number;
+  hi: number;
+  speed: number;
+  gap: number;
+  len: number;
+  digitLo: number;
+  digitHi: number;
+  mul2: number;
+  div2: number;
+  div3: number;
+  minus: number;
+  minusLo: number;
+  minusHi: number;
+  needOp: boolean;
 }
 
 /** Letterfall: a fixed 90-second run on the arcade engine, plus clock slack. */
@@ -2337,6 +2385,8 @@ export interface WordfallPuzzleData {
 }
 
 export interface ClayShootPuzzleData {
+  /** The Speed overhaul's levels (15 Nov 2026): the level's clays (clayShoot.ts ClayLevel); absent = today's 25. */
+  pullLevel?: { clays: number; singles: number; groups: number[]; golds: number; birds: number; speedPct: number; overlap: boolean };
   type: "clayshoot";
   /** Draws the whole launch schedule — identical for everyone. */
   seed: number;
@@ -2350,6 +2400,8 @@ export interface WhackPuzzleData {
   seed: number;
   /** Scoring targets (18 Oct 2026): 1 = the score lifted through WHACK_TARGET_LIFT; 2 score bands; 3 depth to 200 (the gold combo and diamonds); absent = the original score. */
   whackRev?: number;
+  /** The Speed overhaul's levels (15 Nov 2026): the level's schedule (whack.ts WhackLevel); absent = today's schedule. */
+  bonkLevel?: { lifeStart: number; lifeEnd: number; maxUp: number; flips: [number, number]; hedgehogPct: number; gapPct?: number };
 }
 
 export interface TentsPuzzleData {

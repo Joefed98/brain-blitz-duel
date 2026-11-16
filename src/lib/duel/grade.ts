@@ -38,7 +38,7 @@ import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn, safeSha
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
-import { decodeChainAnswer, replayChain } from "./chain";
+import { chainTimeLimitMs, decodeChainAnswer, replayChain } from "./chain";
 import { decodeNonoCells, nonoCellsOf, nonoSizeOf, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
 import { decodeFloodMoves, floodColoursOf, floodColsOf, replayFlood } from "./flood";
@@ -598,16 +598,18 @@ function gradeUnderRev(
         // count reached, the wrong taps and the finish time all come from the log.
         const { taps, diag } = decodeNumberTaps(answer, latestTapMs(timeLimitMs, receivedMsRemaining), puzzle);
         const replay = replayAscend(puzzle, taps);
-        const reached = clamp(replay.reached, 0, NUMHUNT_COUNT);
+        // The board's own count (24 on every round before the levels; 16 or 30 at Easy, Hard and Expert).
+        const total = puzzle.spots.length || NUMHUNT_COUNT;
+        const reached = clamp(replay.reached, 0, total);
         errors = clamp(replay.errors, 0, 99);
-        const finished = reached >= NUMHUNT_COUNT && replay.finishedAt !== null;
+        const finished = reached >= total && replay.finishedAt !== null;
         // Time left is the phone's claim (already held to the receipt check), but
         // never more than the log's own finishing tap allows. An unfinished run
         // has no time left.
         storedMs = finished ? Math.min(ms, clamp(timeLimitMs - replay.finishedAt!, 0, timeLimitMs)) : 0;
         isCorrect = finished;
         correctCount = reached;
-        score = scoreNumberHunt(finished, storedMs, errors, reached, NUMHUNT_COUNT, timeLimitMs);
+        score = scoreNumberHunt(finished, storedMs, errors, reached, total, timeLimitMs);
         extraDetail = {
           reached,
           finishedAtMs: finished ? replay.finishedAt : null,
@@ -1069,7 +1071,7 @@ function gradeUnderRev(
       // chainTimeRev 1: time left is the claim (already held to the receipt
       // check), but never more than the replayed last tap allows.
       if (puzzle.chainTimeRev === CHAIN_TIME_REV && isCorrect && replay.lastT !== null)
-        storedMs = Math.min(ms, clamp(CHAIN_TIME_MS - replay.lastT, 0, CHAIN_TIME_MS));
+        storedMs = Math.min(ms, clamp(chainTimeLimitMs(puzzle) - replay.lastT, 0, chainTimeLimitMs(puzzle)));
       score = scoreChain(replay.links, storedMs, puzzle);
       extraDetail = {
         links: replay.links,
@@ -2130,7 +2132,7 @@ function gradeUnderRev(
     }
     case "whack": {
       const replayStart = performance.now();
-      const run = replayWhackRun(puzzle.seed, answer, puzzle.whackRev);
+      const run = replayWhackRun(puzzle.seed, answer, puzzle.whackRev, puzzle.bonkLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2163,7 +2165,7 @@ function gradeUnderRev(
     }
     case "tendrop": {
       const replayStart = performance.now();
-      const run = replayTenDropRun(puzzle.seed, answer, puzzle.tenRev);
+      const run = replayTenDropRun(puzzle.seed, answer, puzzle.tenRev, puzzle.tenLevel?.stages);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2232,7 +2234,7 @@ function gradeUnderRev(
     }
     case "clayshoot": {
       const replayStart = performance.now();
-      const run = replayClayRun(puzzle.seed, answer, puzzle.clayRev);
+      const run = replayClayRun(puzzle.seed, answer, puzzle.clayRev, puzzle.pullLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

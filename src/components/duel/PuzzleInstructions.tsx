@@ -9,12 +9,15 @@ import { GameIntroExample } from "@/components/duel/GameParts";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
-import type { PuzzleType } from "@/lib/duel/types";
+import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
 import { levelAbout, levelAbouts } from "@/lib/levels/levelAbout";
-import { LEVEL_LABEL, NORMAL, type Level } from "@/lib/levels/levels";
+import { speedLevelInstructions } from "@/lib/levels/speedLevels";
+import { LEVEL_LABEL, NORMAL, puzzleLevel, type Level } from "@/lib/levels/levels";
 
 interface PuzzleInstructionsProps {
   type: PuzzleType;
+  /** The round's puzzle: a Speed level's own goal and lines (the Speed overhaul's levels; absent or Normal: the game's). */
+  puzzle?: PuzzleData | null;
   overlay?: boolean;
   /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
@@ -22,8 +25,10 @@ interface PuzzleInstructionsProps {
   level?: Level;
 }
 
-export function PuzzleInstructions({ type, overlay = false, beforeScore, level = NORMAL }: PuzzleInstructionsProps) {
-  const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+export function PuzzleInstructions({ type, overlay = false, beforeScore, level = NORMAL, puzzle = null }: PuzzleInstructionsProps) {
+  const base = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+  // A Speed level's own goal and lines (the Speed overhaul), from the round's puzzle.
+  const instructions = puzzle ? speedLevelInstructions(type, puzzleLevel(puzzle), base) : base;
   // Levels (stage 3): the intro states this round's level; the help lists every level the game has.
   const about = overlay ? "" : levelAbout(type, level);
   const abouts = overlay ? levelAbouts(type) : [];

@@ -256,7 +256,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Bird lover | Hit 15 clays without hitting a bird. | Classic | Clean | `hits` ≥ 15, `birdHits` = 0 |  | `clayshoot.bird-lover` |
 | Double trouble | Hit both clays of every double. | Classic | Full set | `depth.doublesHit` ≥ `depth.doublesTotal`, `depth.doublesTotal` ≥ 1 |  | `clayshoot.double-trouble` |
-| Dead eye | Hit all 25 clays in a row, each within a quarter second. | Classic | Streak | `depth.streak` ≥ 36 | ● | `clayshoot.dead-eye` |
+| Dead eye | Hit all 25 clays in a row, each within 400 ms. | Classic | Streak | `depth.streak` ≥ 36 | ● | `clayshoot.dead-eye` |
 
 #### Mixed Signals (`stroop`)
 

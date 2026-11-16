@@ -23,6 +23,7 @@ import { dealPatternNov15 } from "./patternNov15";
 import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
+import { dealSpeedOverhaul } from "./speedOverhaul";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -70,6 +71,7 @@ import { dealsD5Remodels } from "./d5Remodels";
 import { generateTopsy } from "./topsy.server";
 import { generateJumbledDealt } from "./jumbled.server";
 import { generateChain } from "./chain.server";
+import { dealSpeedLevel } from "./speedLevels.server";
 import { generateNonogram, generateNonogramLevel } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
@@ -212,6 +214,9 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "wordOverhaul", deal: dealWordOverhaul },
   // The Attention overhaul (15 Nov 2026, attentionOverhaul.ts): Double Take, Tally and Matchmaker one stamp up.
   { name: "attentionOverhaul", deal: dealAttentionOverhaul },
+  // The Speed overhaul (15 Nov 2026, speedOverhaul.ts): Tenfall tenRev 6 (resets cost on a finish), Pull! clayRev 10
+  // (a wider quick-hit window).
+  { name: "speedOverhaul", deal: dealSpeedOverhaul },
 ];
 
 /**
@@ -255,6 +260,10 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
+  // The Speed overhaul's levels (stage 3, 15 Nov 2026): Easy, Hard and Expert deals of the six Speed games; Normal
+  // (no level) falls through to today's deal.
+  const speedLevel = dealSpeedLevel(type, context.level);
+  if (speedLevel) return speedLevel;
   // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
   // for the previous versions pin the old deal, d5Remodels.ts).
   // Topsy-Turvy's difficulty levels (16 Nov 2026, topsy.server.ts generateTopsyLevel): a level beyond Normal deals from

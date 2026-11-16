@@ -1,3 +1,7 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { RevealCaption, RevealNumbers, RevealPanel, RevealPips } from "@/components/puzzles/SpeedRevealKit";
+import { HudPills } from "@/components/puzzles/HudPills";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { clayArtGameFor } from '@/lib/arcade/clayShoot.renderer';
@@ -37,12 +41,13 @@ import {
   clayStreakMultiplier,
   CLAY_DOUBLES,
   CLAY_REV_DEPTH,
+  CLAY_REV_WIDE,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
 import { CLAY_WAITING, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV } from "@/lib/arcade/clayShoot";
 import { clayDepthDetail, encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
-import { playSound, playTick } from "@/lib/sound";
+import { playCueSlot, playSound, playTick } from "@/lib/sound";
 import { momentFrame } from "@/lib/fx/momentCues";
 import { soundCue as dispatchPitched } from "@/lib/fx/soundCues";
 import { demoHushed } from "@/lib/sound";
@@ -56,6 +61,10 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { preloadSpeedArt, speedArtFor } from "@/lib/fx/speedArt";
+
+// The Speed overhaul's Blender sprites start loading with the game's chunk (during the round intro).
+preloadSpeedArt(speedArtFor("pull"));
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
@@ -175,7 +184,9 @@ function Pips({ status, kind }: { status: number[]; kind: number[] }) {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: ClayShootPuzzleData | null = puzzle.type === "clayshoot" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const game = clayArtGameFor(data?.clayRev);
+  // The Speed overhaul's levels: the level's clays ride on the puzzle (absent: today's 25).
+  const game = clayArtGameFor(data?.clayRev, data?.pullLevel);
+  const clayTotal = data?.pullLevel?.clays ?? CLAY_COUNT;
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
@@ -186,7 +197,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof clayCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, birdHits: 0, status: new Array<number>(CLAY_COUNT).fill(0), streak: 1, doubles: 0 });
+  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, birdHits: 0, status: new Array<number>(clayTotal).fill(0), streak: 1, doubles: 0 });
   const [dev, setDev] = useState<string | null>(null);
   useNoTouchScroll(wrap);
 
@@ -277,11 +288,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if ((s.birdNext ?? 0) > seenBirdsIn && !game.isOver(s)) soundCue("clayshoot.birdIn");
       seenBirdsIn = s.birdNext ?? 0;
       // A shot that hits nothing leaves a smoke puff.
+      // A shot that hits nothing leaves a smoke puff.
       if (s.shotTick > seenShot && !s.shotHit) soundCue("clayshoot.missPuff");
       seenShot = s.shotTick;
       if (s.hits > seenHits) {
-        for (let n = seenHits; n < s.hits; n++) playSound("pz_clay_hit", 1, 1, true);
-        if (s.goldHits > seenGold) soundCue("clayshoot.goldShatter");
+        // The Speed overhaul (15 Nov 2026): the shot and the shatter in one (its own file); a gold clay its brighter
+        // shatter and a chime. Played on the tick the shot lands, so within a frame of the tap.
+        for (let n = seenHits; n < s.hits; n++) if (!playCueSlot("clayshoot.shot")) playSound("pz_clay_hit", 1, 1, true);
+        if (s.goldHits > seenGold) {
+          soundCue("clayshoot.goldShatter");
+          soundCue("clayshoot.goldChime");
+        }
         else if (!quiet.has("clayshoot.shatter")) soundCue("clayshoot.shatter");
         seenHits = s.hits;
         seenGold = s.goldHits;
@@ -289,6 +306,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if ((s.birdHits ?? 0) > seenBirds) {
         seenBirds = s.birdHits ?? 0;
         soundCue("clayshoot.birdStartle");
+        soundCue("clayshoot.birdWrong");
       }
       const doubles = s.dp ? clayDoublesHit(s) : 0;
       const multiplier = s.dp ? clayStreakMultiplier(s.dp.streak) : 1;
@@ -318,7 +336,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             return `${i + 1}:${Math.round((100 * f.coverage) / CLAY_W)}%/${(f.ticks / 60).toFixed(1)}s`;
           })
           .join(" ");
-        setDev(`tick ${s.tick} · queue ${s.next}/${CLAY_COUNT} · shots ${s.shots} · ${log}\n${paths}`);
+        setDev(`tick ${s.tick} · queue ${s.next}/${clayTotal} · shots ${s.shots} · ${log}\n${paths}`);
       }
 
       reportArcadeTick(s.tick, game.isOver(s));
@@ -366,16 +384,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} data-stage-column="1" data-polish="clayshoot" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
-      {data.clayRev === CLAY_REV_DEPTH ? (
-        // clayRev 9: the same one line, with the hit streak's multiplier and the doubles made.
-        <p data-clay-depth className="shrink-0 whitespace-nowrap text-center font-mono text-xs font-semibold leading-none text-foreground">
-          <span className="text-primary">{hud.hits}</span>/{CLAY_COUNT} · {hud.goldHits} gold · {hud.birdHits} birds · Streak{" "}
-          <span data-clay-streak={hud.streak} className={hud.streak > 1 ? "text-primary" : undefined}>×{hud.streak}</span> · Doubles{" "}
-          <span data-clay-doubles className={hud.doubles > 0 ? "text-primary" : undefined}>{hud.doubles}/{CLAY_DOUBLES}</span>
-        </p>
+      {data.clayRev === CLAY_REV_DEPTH || data.clayRev === CLAY_REV_WIDE ? (
+        // The Speed overhaul (15 Nov 2026): the two numbers that matter mid-shot as pills (clays hit, the hit
+        // streak); gold, birds and doubles are on the reveal. clayRev 9 and 10 alike (display only).
+        <HudPills
+          testId="clayshoot"
+          className="clay-hud-pills"
+          items={[
+            { id: "clays", label: "Clays", value: `${hud.hits}/${clayTotal}`, tone: "gold" },
+            { id: "streak", label: "Streak", value: `×${hud.streak}`, ...(hud.streak > 1 ? { tone: "gold" as const } : {}) },
+          ]}
+        />
       ) : (
         <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
-          <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
+          <span className="text-primary">{hud.hits}</span> / {clayTotal} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
         </p>
       )}
       <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
@@ -408,18 +430,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 /** One short summary (4 Nov 2026): the shots, the costs and the depth points are the breakdown's rows. */
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "clayshoot") return null;
-  const result = replayClayRun(puzzle.seed, myAnswer ?? "", puzzle.clayRev);
+  const result = replayClayRun(puzzle.seed, myAnswer ?? "", puzzle.clayRev, puzzle.pullLevel);
+  const groupCount = puzzle.pullLevel?.groups.length ?? CLAY_DOUBLES;
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): every clay in launch order (orange or gold filled when
+  // hit, hollow when it got away), then the figures that explain the score.
+  const s = result.state;
+  const pips = s.status.map((st, i) => (st === CLAY_HIT ? (s.schedule.kind[i] === CLAY_KIND_GOLD ? ("gold" as const) : ("hit" as const)) : ("miss" as const)));
+  const doubles = s.dp ? clayDoublesHit(s) : null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold · {result.birdHits} birds hit
-      </p>
+      <RevealPanel title="Every clay" testId="clayshoot">
+        <RevealPips testId="clayshoot" label={`${result.hits} of ${result.total} clays hit`} pips={pips} groups={groupCount} />
+        <RevealCaption>Filled: hit · hollow: got away · the last 14 fly in pairs</RevealCaption>
+      </RevealPanel>
+      <RevealNumbers
+        testId="clayshoot"
+        items={[
+          // Only what the stored breakdown above doesn't already say.
+          s.dp ? { id: "streak", label: "Best streak", value: s.dp.best, tone: "gold" as const } : null,
+          doubles !== null ? { id: "doubles", label: "Doubles", value: `${doubles}/${groupCount}` } : null,
+          { id: "birds", label: "Birds hit", value: result.birdHits, ...(result.birdHits ? { tone: "warn" as const } : { tone: "good" as const }) },
+        ]}
+      />
     </div>
   );
 }
 
 /** The launch schedule comes from the round's seed; the run is replayed on the server. */
 export const clayShootPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "clayshoot",
   name: gameDisplayName("clayshoot"),
   category: "speed",

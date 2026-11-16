@@ -128,7 +128,8 @@ const EXEMPT: Record<string, string> = {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): gravity.tilt now has a
   // file of its own (the library's marble roll, looped while the balls move), so it no longer needs an exemption.
   "clayshoot.shatter": "Pull!'s clay plays its own pz_clay_hit recording",
-  "clayshoot.goldShatter": "Pull!'s gold clay plays its own pz_clay_hit recording",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): clayshoot.goldShatter has its
+  // own file now (docs/sound-cues/speed-overhaul.md), so it is no longer a played slot without one.
   "clayshoot.goldSparkle": "the tail of clayshoot.finalBurst is still sounding (silent by design)",
   "checkout.tick": "Checkout's dart already lands on its own checkout.thud recording",
   "spotdiff.miss": "a wrong-move shake: the quiet wrong (job 2's rule)",

@@ -8,6 +8,8 @@ import {
   tenDropCheckpoint,
   tenDropGame,
   tenDropInit,
+  tdTargetsOf,
+  type TenDropStage,
   TD_CHECKPOINT_FIELDS,
   TD_CHECKPOINT_INTERVAL,
   TD_INPUT_RANGES,
@@ -89,7 +91,7 @@ export interface TenDropResult {
 }
 
 /** The single place a Ten Drop score is worked out. */
-export function replayTenDropRun(seed: number, raw: string, scoreRev?: number): TenDropResult {
+export function replayTenDropRun(seed: number, raw: string, scoreRev?: number, stages?: readonly TenDropStage[] | null): TenDropResult {
   const run = decodeTenDropRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, TD_RUN_TICKS) : 0;
   const check = checkInputEvents(run.events, TD_RUN_TICKS, TD_INPUT_RANGES);
@@ -97,7 +99,7 @@ export function replayTenDropRun(seed: number, raw: string, scoreRev?: number): 
   for (const event of check.events) events.set(event.t, event);
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
-  let state = tenDropInit(seed, scoreRev);
+  let state = tenDropInit(seed, scoreRev, stages);
   // The run can end early (all ten cleared), so a short endTick is only lag
   // when the replay itself is not over by then.
   const lastTick = endTick > 0 ? endTick : TD_RUN_TICKS;
@@ -127,7 +129,7 @@ export function replayTenDropRun(seed: number, raw: string, scoreRev?: number): 
     resets: state.resets,
     refused: state.refused,
     taps: state.taps,
-    perfect: state.cleared >= TD_TARGETS,
+    perfect: state.cleared >= tdTargetsOf(state),
     finished: tenDropGame.isOver(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

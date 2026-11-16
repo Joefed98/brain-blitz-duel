@@ -91,6 +91,8 @@ export const DEAL_PINS = {
   preWordOverhaul: { texts: true },
   /** attentionOverhaul.ts: Double Take spotRev 3, Tally countRev 6, Matchmaker pairRev 3, before the Attention overhaul. */
   preAttentionOverhaul: { texts: true },
+  /** speedOverhaul.ts: Tenfall tenRev 5 and Pull! clayRev 9, before the Speed overhaul (15 Nov 2026). */
+  preSpeedOverhaul: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

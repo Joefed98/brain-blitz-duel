@@ -534,6 +534,11 @@ export const PUZZLE_REVEAL_ENGINE_TYPES: ReadonlySet<string> = new Set(["tendrop
  * the Reveal's). Display only.
  */
 export const ENGINE_OWN_REVEAL_TYPES: ReadonlySet<string> = new Set(["minesweeper"]);
+/**
+ * The Speed overhaul (Joe, 15 Nov 2026): Tenfall, Bonk and Pull!'s own reveal is a picture of the run (the targets,
+ * the burrows, every clay) with its key figures, so it shows beside the stored breakdown, not only while it is folded.
+ */
+export const SPEED_VISUAL_REVEAL_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "clayshoot"]);
 
 /**
  * Puzzles whose own Reveal writes the stored score parts: none since 4 Nov 2026 (Blackout, Turntable and Colour Flood
@@ -995,7 +1000,7 @@ function LiveAnswerReveal({
           {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}
           {answersReady && solutionLock ? (
             <SolutionLocked text={solutionLock} />
-          ) : answersReady && (ENGINE_OWN_REVEAL_TYPES.has(puzzle.type) || !(PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) && myScore !== null && (practice || engineOpen))) ? (
+          ) : answersReady && (ENGINE_OWN_REVEAL_TYPES.has(puzzle.type) || !(PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) && !SPEED_VISUAL_REVEAL_TYPES.has(puzzle.type) && myScore !== null && (practice || engineOpen))) ? (
             <Reveal
               puzzle={puzzle}
               myAnswer={myAnswer}

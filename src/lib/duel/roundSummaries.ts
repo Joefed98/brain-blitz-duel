@@ -441,11 +441,13 @@ function numberHuntSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
   if (typeof result.extra?.["reached"] === "number") {
     const reached = result.extra["reached"] as number;
     const at = result.extra["finishedAtMs"];
-    if (result.is_correct || reached >= NUMHUNT_COUNT) {
+    // The board's own count (the Speed overhaul's levels deal 16 or 30; every older round 24).
+    const total = puzzle.type === "numhunt" && puzzle.spots.length ? puzzle.spots.length : NUMHUNT_COUNT;
+    if (result.is_correct || reached >= total) {
       const time = typeof at === "number" ? at : elapsedMs(result, puzzle);
       return { summary: `Finished, ${result.errors ?? 0} errors, ${seconds(time)}`, detail: [] };
     }
-    return { summary: `Reached ${reached} of ${NUMHUNT_COUNT}`, detail: [] };
+    return { summary: `Reached ${reached} of ${total}`, detail: [] };
   }
   const [rawReached, , rawElapsed] = (result.answer ?? "").split(",");
   const reached = Math.max(0, Number.parseInt(rawReached ?? "0", 10) || 0);

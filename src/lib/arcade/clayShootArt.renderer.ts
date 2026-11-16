@@ -26,6 +26,7 @@ import {
   CLAY_W,
   clayGravity,
   clayPairOf,
+  clayGroupsOf,
   clayStreakMultiplier,
   clayWorldH,
   CLAY_DOUBLES,
@@ -35,6 +36,7 @@ import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import type { CanvasSize } from "./engine";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { reducedMotion } from "./art.renderer";
+import { speedArtImage } from "@/lib/fx/speedArt";
 import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 
 type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
@@ -303,13 +305,17 @@ const sceneryCache = new Map<string, ArtCanvas | null>();
 function scenery(kx: number, ky: number, worldH: number): ArtCanvas | null {
   const pw = Math.max(1, Math.min(2048, Math.round(W * kx)));
   const ph = Math.max(1, Math.min(2048, Math.round(worldH * ky)));
-  const key = `${pw}x${ph}:${worldH}`;
+  // The Speed overhaul (15 Nov 2026; display only): the taller sky (clayRev 6 and later) is the Blender range in late
+  // afternoon, the sun toned right down (no glare across the sky); the original 400 px sky keeps its drawn scenery.
+  const sky = worldH > H ? speedArtImage("pull-sky") : null;
+  const key = `${pw}x${ph}:${worldH}${sky ? ":art" : ""}`;
   if (sceneryCache.has(key)) return sceneryCache.get(key) ?? null;
   const surface = artCanvas(pw, ph);
   const c = surface ? artContext(surface) : null;
   if (surface && c) {
     c.scale(pw / W, ph / worldH);
-    paintScenery(c, worldH);
+    if (sky) c.drawImage(sky, 0, 0, W, worldH);
+    else paintScenery(c, worldH);
   }
   if (sceneryCache.size > 4) sceneryCache.delete(sceneryCache.keys().next().value as string);
   sceneryCache.set(key, c ? surface : null);
@@ -449,8 +455,12 @@ function star(c: CanvasRenderingContext2D, x: number, y: number, s: number): voi
 }
 
 export function drawClay(c: CanvasRenderingContext2D, x: number, y: number, gold: boolean, i: number, tick: number, k: number, still: boolean): void {
-  const body = clayBodySprite(gold, k);
-  if (body) c.drawImage(body.canvas as CanvasImageSource, x - R, y - RY, R * 2, RY * 2);
+  // The Speed overhaul (15 Nov 2026; display only): the Blender clay, satin orange or brushed gold, filling exactly
+  // the same footprint box (2R × 1.1R) as the drawn one.
+  const art = speedArtImage(gold ? "pull-clay-gold" : "pull-clay-orange");
+  const body = art ? null : clayBodySprite(gold, k);
+  if (art) c.drawImage(art, x - R, y - RY, R * 2, RY * 2);
+  else if (body) c.drawImage(body.canvas as CanvasImageSource, x - R, y - RY, R * 2, RY * 2);
   else {
     c.fillStyle = gold ? "#F5B82E" : "#E8762C";
     c.beginPath();
@@ -579,6 +589,13 @@ function drawMissPuff(c: CanvasRenderingContext2D, state: ClayState, age: number
 
 /** Bird facing +x, centred on its collision ellipse (±15 × ±9; art within ±17 × ±11). */
 export function drawBird(c: CanvasRenderingContext2D, flap: number): void {
+  // The Speed overhaul (15 Nov 2026; display only): the Blender gull, one of three wing frames by the flap, drawn in
+  // the bird's hit box plus 2 px (34 × 22, the frame's own size).
+  const frame = speedArtImage(flap > 0.33 ? "pull-bird-0" : flap < -0.33 ? "pull-bird-2" : "pull-bird-1");
+  if (frame) {
+    c.drawImage(frame, -(CLAY_BIRD_RX + 2), -(CLAY_BIRD_RY + 2), (CLAY_BIRD_RX + 2) * 2, (CLAY_BIRD_RY + 2) * 2);
+    return;
+  }
   const outline = "rgba(14,20,32,0.82)";
   const wing = (f: number, fill: string, tipFill: string) => {
     const r1x = 3;
@@ -758,8 +775,10 @@ export function drawClayArt(ctx: CanvasRenderingContext2D, state: ClayState, siz
     ctx.fillRect(0, 0, W, worldH);
   }
 
-  // Drifting clouds (pre-rendered sprites, position from the sim tick).
-  for (const lane of CLOUD_LANES) {
+  // Drifting clouds (pre-rendered sprites, position from the sim tick). The Speed overhaul's rendered sky carries its
+  // own high cloud and haze, so the drawn clouds stay off over it (15 Nov 2026; display only).
+  const artSky = worldH > H && speedArtImage("pull-sky") !== null;
+  for (const lane of artSky ? [] : CLOUD_LANES) {
     const s = cloudSprite(lane.s, k);
     if (!s) continue;
     const span = W + s.w;
@@ -811,6 +830,11 @@ function clayDrawnAt(state: ClayState, i: number, ahead: number): { x: number; y
 }
 
 function drawDoubleTethers(c: CanvasRenderingContext2D, state: ClayState, ahead: number, still: boolean): void {
+  // A level's groups (doubles and triples): each pair of clays launched one after the other in a group, as below.
+  if (state.lv) {
+    for (const group of clayGroupsOf(state)) for (let k = 0; k + 1 < group.length; k++) drawTether(c, state, group[k]!, group[k + 1]!, ahead, still);
+    return;
+  }
   for (let p = 0; p < CLAY_DOUBLES; p++) {
     const a = CLAY_CONFIG.singles + 2 * p;
     const b = a + 1;
@@ -843,6 +867,34 @@ function drawDoubleTethers(c: CanvasRenderingContext2D, state: ClayState, ahead:
   }
 }
 
+function drawTether(c: CanvasRenderingContext2D, state: ClayState, a: number, b: number, ahead: number, still: boolean): void {
+  const fa = state.status[a] === CLAY_FLYING, fb = state.status[b] === CLAY_FLYING;
+  if (fa !== fb && (state.status[a] === CLAY_HIT || state.status[b] === CLAY_HIT)) {
+    const at = clayDrawnAt(state, fa ? a : b, ahead);
+    const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(state.tick * 0.35);
+    c.save();
+    c.strokeStyle = `rgba(255,214,106,${0.55 + 0.35 * pulse})`;
+    c.lineWidth = 1.6;
+    c.beginPath();
+    c.ellipse(at.x, at.y, R + 3, RY + 3, 0, 0, TAU);
+    c.stroke();
+    c.restore();
+    return;
+  }
+  if (!fa || !fb) return;
+  const pa = clayDrawnAt(state, a, ahead), pb = clayDrawnAt(state, b, ahead);
+  c.save();
+  c.strokeStyle = "rgba(255,214,106,0.38)";
+  c.lineWidth = 1.2;
+  c.setLineDash([3, 5]);
+  c.lineDashOffset = still ? 0 : -state.tick * 0.6;
+  c.beginPath();
+  c.moveTo(pa.x, pa.y);
+  c.lineTo(pb.x, pb.y);
+  c.stroke();
+  c.restore();
+}
+
 /** A short gold word over a world point, rising a little (still under reduced motion or effects). */
 function tag(c: CanvasRenderingContext2D, text: string, x: number, y: number, age: number, calm: boolean, size: number): void {
   c.save();
@@ -873,7 +925,13 @@ function drawDepthTags(c: CanvasRenderingContext2D, state: ClayState, calm: bool
   const age = state.tick - state.doneTick[last]!;
   if (age < 0 || age >= TAG_TICKS) return;
   const x = state.x[last]! / 256, y = state.y[last]! / 256;
-  const pair = clayPairOf(last);
+  // A level's group: the word when its last clay completes it ("TRIPLE!" for three).
+  const levelGroup = state.lv ? clayGroupsOf(state).find((g) => g.includes(last)) ?? null : null;
+  if (levelGroup && levelGroup.every((i) => state.status[i] === CLAY_HIT)) {
+    tag(c, levelGroup.length >= 3 ? "TRIPLE!" : "DOUBLE!", x, y, age, calm, 17);
+    return;
+  }
+  const pair = state.lv ? -1 : clayPairOf(last);
   const partner = pair < 0 ? -1 : last % 2 === CLAY_CONFIG.singles % 2 ? last + 1 : last - 1;
   if (partner >= 0 && state.status[partner] === CLAY_HIT) {
     tag(c, "DOUBLE!", x, y, age, calm, 17);

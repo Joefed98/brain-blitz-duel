@@ -41,7 +41,9 @@ const ascend: StandardGame = {
     if (graded.isCorrect) {
       // Today's finish: each wrong tap took 5 off the 30 speed points; the same share comes off the standard's 40.
       const efficiency = Math.max(0, 1 - (ASCEND_STD.wrongCost * replay.errors) / ASCEND_STD.wrongSpeedOf);
-      return { finished: true, speed: speedFor(ASCEND_STD.speed, ASCEND_STD.fullByS, msLeft, limitMs) * efficiency, bonus: flow, measure: "flow", facts };
+      // A level's own full-speed time (the Speed overhaul's levels: Hard and Expert ask for a faster finish).
+      const fullByS = typeof puzzle.fullByS === "number" && puzzle.fullByS > 0 ? puzzle.fullByS : ASCEND_STD.fullByS;
+      return { finished: true, speed: speedFor(ASCEND_STD.speed, fullByS, msLeft, limitMs) * efficiency, bonus: flow, measure: "flow", facts };
     }
     // Each number's own tap time (the log's), not a draft timeline.
     const times = taps.filter((_, i) => replay.outcomes[i] === "correct").map((t) => t.t);

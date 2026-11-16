@@ -7,7 +7,7 @@
  * Flash and Bang On grade every log as "correct" (the score comes from the
  * reactions), so their plays return one step: the whole tap log at the last tap.
  */
-import { chainLongCycles, chainRequiredAt, chainReversedAt, chainBoardIndex, chainWindowMs, encodeChainAnswer, type ChainTap } from "../../src/lib/duel/chain";
+import { chainLongCycles, chainRequiredAt, chainReversedAt, chainBoardIndex, chainRules, chainTimeLimitMs, chainWindowMs, encodeChainAnswer, type ChainTap } from "../../src/lib/duel/chain";
 import { encodeMazePath, mazeColsOf, mazeCorridorNeighbours } from "../../src/lib/duel/maze";
 import { encodeMazeTrail, usesMazeDepth } from "../../src/lib/duel/depth/labyrinth";
 import { joinPairGoldTime, pairGoldTimed } from "../../src/lib/duel/depth/matchmaker";
@@ -314,14 +314,18 @@ const chain: PuzzleKit = {
     let t = thinkMs(rng, 1.5, skill); // first look at the board and the rule
     let lastT: number | null = null;
     const finish = (reason: ChainBreak, at: number) => steps.push({ answer: encodeChainAnswer({ taps, reason }), atMs: at });
-    for (let links = 0; links < CHAIN_LENGTH; ) {
+    // The chain's own length and clock (a level's; every other chain: 40 links in 45 s, as before).
+    const length = chainRules(c).length;
+    const limit = chainTimeLimitMs(c);
+    for (let links = 0; links < length; ) {
       const reversed = chainReversedAt(c, links);
       const factor = (long ? 1.06 : 1) * (reversed ? 1.25 : 1);
       let gap = links === 0 ? 0 : thinkMs(rng, (links % CHAIN_BLOCK === 0 ? 1.1 : 0.85) * factor, skill);
       const mistake = links > 0 && rng.chance(skill.err * (reversed ? 1.5 : 1));
       // Most mistakes are a hesitation (lost the rule for a moment); some are a wrong tap. The first
       // reversed link catches out some players who keep going forwards.
-      const forgot = long && links === CHAIN_REVERSE_AT && rng.chance(Math.min(0.5, skill.err * 1.5));
+      // The first link of each reversed run (today's link 21 only).
+      const forgot = long && reversed && !chainReversedAt(c, links - 1) && rng.chance(Math.min(0.5, skill.err * 1.5));
       const wrongTap = forgot || (mistake && rng.chance(0.2));
       if (mistake && !wrongTap) gap += thinkMs(rng, 0.8, skill);
       const at: number = (lastT ?? t) + gap;
@@ -329,7 +333,7 @@ const chain: PuzzleKit = {
         finish("momentum", lastT + chainWindowMs(links + 1, c));
         return { timed: true, steps };
       }
-      if (at > CHAIN_TIME_MS) break;
+      if (at > limit) break;
       const pool = chainNodes(c, links, used, !wrongTap);
       const node = pool.length ? rng.pick(pool) : 0;
       taps.push({ node, t: Math.round(at) });
@@ -340,7 +344,7 @@ const chain: PuzzleKit = {
       (used[chainBoardIndex(links, c)] ??= []).push(node);
       links += 1;
       lastT = at;
-      if (links >= CHAIN_LENGTH) finish("complete", at);
+      if (links >= length) finish("complete", at);
       else steps.push({ answer: encodeChainAnswer({ taps, reason: "timer" }), atMs: at });
     }
     return { timed: true, steps };

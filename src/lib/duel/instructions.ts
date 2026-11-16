@@ -1,3 +1,4 @@
+import { clayQuickWindowText } from "./speedOverhaul";
 import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
 import { gridStandardHelp } from "./standard/gridText";
@@ -491,6 +492,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Steady hand:", detail: "every reaction close together scores extra." },
         { action: "Traps:", detail: "teal, red or blue; light orange; a gold border only; the word GOLD on a dark screen; half the screen gold.", helpOnly: true },
         { action: "False starts:", detail: "a tap on a trap or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
+        { action: "Levels:", detail: "Easy has fewer flashes and plain decoys; Hard more gold-like decoys; Expert up to 5 decoys and the gold shows for 1 second only.", helpOnly: true },
       ],
       // Depth to 200 (tapRev 5): the stretched curve and the steady hand (depth/speedTexts.ts).
       score: flashDepthHelp(),
@@ -504,6 +506,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "All the numbers", detail: "move every 15 seconds." },
         { action: "Flow:", detail: "right taps in a row, with no wrong tap, build a bonus." },
         { action: "The timer above the board", detail: "counts up to 15 s, then the numbers move and it starts again from 0.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 16 numbers that never move; Hard 30 in 50 s, moving every 10 s; Expert 30 from highest to lowest in 45 s, moving every 8 s.", helpOnly: true },
       ],
       // The scoring standard (tapRev 6): standard/attentionTexts.ts.
       score: STANDARD_ATTENTION_HELP.numhunt(),
@@ -878,6 +881,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every 5 links", detail: "the board reshuffles with five new charms.", helpOnly: true },
         { action: "Reverse:", detail: "a banner warns from link 17; links 21–25 run last to first (the arrows point back).", helpOnly: true },
         { action: "Watch for look-alikes:", detail: "right shape, wrong colour.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 30 links with longer windows and no reverse; Hard 40 with shorter windows and two reversed runs; Expert 50 in 60 s with six charms to a cycle.", helpOnly: true },
       ],
       // The scoring standard (chainDepthRev 3): no milestones; standard/attentionTexts.ts.
       score: STANDARD_ATTENTION_HELP.chain(),
@@ -1613,6 +1617,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold tiles:", detail: "hit a target with one for bonus points." },
         { action: "Tiles apply", detail: "in the order you tap them.", helpOnly: true },
         { action: "A ÷ that doesn’t divide exactly", detail: "is refused.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 8 targets up to 60 with plus and minus only; Hard 10 up to 200, faster; Expert 11 up to 240 with every operator.", helpOnly: true },
       ],
       // tenRev 5 (the scoring standard, the dealt stamp): standard/numberText.ts.
       score: standardNumberHelp("tendrop"),
@@ -1629,10 +1634,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Aim, don’t spray:", detail: "30 shots that hit nothing are free, then every 20 more cost 1.", helpOnly: true },
         { action: "Doubles and streaks:", detail: "hit both clays of a pair, and clays in a row, for bonuses." },
         { action: "The hit streak", detail: "grows ×2 from the 5th clay in a row, ×3 from the 10th, ×4 from the 15th; a clay that gets away or a bird ends it.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 20 slower clays and 6 birds; Hard 28 faster clays and 24 birds; Expert 30 of the fastest, with triples, and 32 birds.", helpOnly: true },
       ],
       score: scoreList([
         { label: "Clays", how: "more for each clay hit, a gold one worth double, and a bonus for all 25 with no bird hit", max: bandMapTotal(CLAY_QUICK_HIT_MAP, 150) },
-        { label: "Quick hits", how: "hit each clay within a quarter of a second of its launch (none after about 0.37 s)", max: CLAY_QUICK_POINTS },
+        // clayRev 10 (the Speed overhaul): the wider window; the pinned clayRev 9 keeps its words.
+        { label: "Quick hits", how: `hit each clay within ${clayQuickWindowText().full} of its launch (none after ${clayQuickWindowText().none})`, max: CLAY_QUICK_POINTS },
         { label: "Doubles", how: `hit both clays of each of the ${CLAY_DOUBLES} doubles, more for quick hits`, max: CLAY_DOUBLE_POINTS * CLAY_DOUBLES },
         { label: "Streak", how: "hit all 25 in one unbroken streak, more for quick hits", max: CLAY_STREAK_POINTS },
       ], { penalties: ["Each bird hit costs 10", "After 30 shots, every 20 that hit nothing cost 1"], total: "{max}" as unknown as number }),
@@ -1645,6 +1652,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Never tap", detail: "a hedgehog." },
         { action: "Gophers pop up briefly", detail: "– the window shrinks as the run goes on.", helpOnly: true },
         { action: "Hedgehogs cost 5;", detail: "a wrong-colour hat or an empty burrow costs 3.", helpOnly: true },
+        { action: "Levels:", detail: "Easy keeps two up at once and two flips; Hard pops more and shorter, with 5–7 flips; Expert four up at once, the shortest, 7–9 flips and more hedgehogs.", helpOnly: true },
         { action: "Combo and diamonds:", detail: "right hits in a row multiply; tap the rare diamond fast." },
         { action: "The gold combo", detail: "grows ×2 from the 6th right hit in a row, ×3 from the 11th, ×4 from the 16th; a wrong hat, a hedgehog or an empty burrow ends it (a gopher left to sink does not).", helpOnly: true },
       ],

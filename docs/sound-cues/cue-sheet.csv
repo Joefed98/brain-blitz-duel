@@ -106,7 +106,6 @@ equation.drop,Operator,an operator drops into a slot [number.md],,5–40 (per mo
 equation.advance,Operator,the next stage slides in [number.md],,1–5,silent,,240,game event,equation.advance,
 clayshoot.goldSparkle,Pull!,Pull!: 380 ms into the final burst: the fragments turn into gold sparkle across the sky [speed-attention.md],,0–1,silent,,700,success sting,clayshoot.goldSparkle,
 clayshoot.shatter,Pull!,Pull!: An orange clay is hit (new shard shatter) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.shatter,
-clayshoot.goldShatter,Pull!,Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.goldShatter,
 tendrop.refused,Tenfall,a ÷ or − tile is refused [number.md],,5–40 (per move),silent,,300,fail sting,tendrop.refused,
 bomb.press,Bomb Defusal,Button A or B is pressed [logic.md],,5–40 (per move),silent,,200,game event,bomb.press,
 bomb.step,Bomb Defusal,"Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) [logic.md]",,5–40 (per move),silent,,50,game event,bomb.step,
@@ -565,6 +564,13 @@ equation.clearGap,Operator,a filled gap is tapped and empties [number.md],,5–4
 equation.goBack,Operator,gapsRev 2: an earlier equation's chip is tapped to go back to it [number.md],,5–40 (per move),recorded sound,equation.goBack,300,game event,equation.goBack,
 music.equation,Operator,Operator round bed: music_number_1 (number bed shared with other games),,loop,recorded sound,music_number_1 (shared),60000,music,music_number_equation,
 numhunt.discsPop,Ascend,Ascend: Finish (last disc tapped): discs pop upwards in order [speed-attention.md],,0–1,recorded sound,numhunt.discsPop,1100,success sting,numhunt.discsPop,public/sounds/numhunt.discsPop.mp3 (from done.pops.mp3)
+numhunt.note-low,Ascend,"Ascend: A right tap, taps 1–8: one marimba note, a step higher each tap [speed-overhaul.md]",,5–40 (per move),recorded sound,numhunt.note-low,300,game event,numhunt.note-low,
+numhunt.note-mid,Ascend,"Ascend: A right tap, taps 9–16 [speed-overhaul.md]",,5–40 (per move),recorded sound,numhunt.note-mid,300,game event,numhunt.note-mid,
+numhunt.note-high,Ascend,"Ascend: A right tap, taps 17–24 [speed-overhaul.md]",,5–40 (per move),recorded sound,numhunt.note-high,300,game event,numhunt.note-high,
+numhunt.combo,Ascend,Ascend: Five fast right taps in a row [speed-overhaul.md],,5–40 (per move),recorded sound,numhunt.combo,400,game event,numhunt.combo,
+numhunt.wrong,Ascend,Ascend: A wrong tap: a dull knock on that disc [speed-overhaul.md],,5–40 (per move),recorded sound,numhunt.wrong,150,fail sting,numhunt.wrong,
+numhunt.warn,Ascend,Ascend: One second before the discs move: a small brass bell [speed-overhaul.md],,5–40 (per move),recorded sound,numhunt.warn,900,game event,numhunt.warn,
+numhunt.shuffle,Ascend,Ascend: The discs gliding to their new places: a whoosh [speed-overhaul.md],,5–40 (per move),recorded sound,numhunt.shuffle,320,game event,numhunt.shuffle,
 music.numhunt,Ascend,Ascend round bed: music_speed_2 (speed bed shared with other games),,loop,recorded sound,music_speed_2 (shared),60000,music,music_speed_numhunt,
 stopwatch.goldFaces,Bang On,"Bang On: End of run (""All ten done""), local scoreStopWatch ≥ 120: the watch faces flash gold in turn [speed-attention.md]",,0–1,recorded sound,stopwatch.goldFaces,1100,success sting,stopwatch.goldFaces,public/sounds/stopwatch.goldFaces.mp3 (from done.goldPulse.mp3)
 music.stopwatch,Bang On,"Bang On round bed (retired, practice): music_speed_1 (speed bed shared with other games)",,loop,recorded sound,music_speed_1 (shared),60000,music,music_speed_stopwatch,
@@ -576,14 +582,27 @@ whack.sink,Bonk,A gopher sinks away unbonked (at most one per 200 ms) [arcade-ef
 whack.hedgehogUp,Bonk,A hedgehog pops up (in place of whack.popUp) [arcade-effects.md],The hedgehog rises from its burrow,10–15,recorded sound,whack.hedgehogUp,200,game event,whack.hedgehogUp,
 whack.emptyTap,Bonk,A tap on an empty hole (−3 points) [arcade-effects.md],Nothing is drawn yet (the score drops by 3),0–10,recorded sound,whack.emptyTap,200,game event,whack.emptyTap,
 whack.finale,Bonk,"Bonk: End of run, local whackGame.score ≥ 120: hard hats fly up as gophers pop out together [speed-attention.md]",,0–1,recorded sound,whack.finale,1100,success sting,whack.finale,public/sounds/whack.finale.mp3 (from done.pops.mp3)
+whack.bonk,Bonk,"Bonk: A right hit (gold or red hat): a cartoon bonk, pitched up for streaks [speed-overhaul.md]",,5–40 (per move),recorded sound,whack.bonk,180,game event,whack.bonk,
+whack.whistle,Bonk,Bonk: The rule flip: a short double whistle [speed-overhaul.md],,5–40 (per move),recorded sound,whack.whistle,450,game event,whack.whistle,
+whack.slam,Bonk,Bonk: The rule flip: the banner slamming in [speed-overhaul.md],,5–40 (per move),recorded sound,whack.slam,260,game event,whack.slam,
+whack.hedgehog,Bonk,Bonk: A hedgehog bonked: a heavy wrong [speed-overhaul.md],,5–40 (per move),recorded sound,whack.hedgehog,320,game event,whack.hedgehog,
+whack.wrongHat,Bonk,Bonk: A wrong-colour hat: a dull clonk [speed-overhaul.md],,5–40 (per move),recorded sound,whack.wrongHat,150,fail sting,whack.wrongHat,
+whack.diamond,Bonk,Bonk: A diamond: a crystalline sparkle [speed-overhaul.md],,5–40 (per move),recorded sound,whack.diamond,420,game event,whack.diamond,
 music.whack,Bonk,Bonk round bed: music_speed_3 (speed bed shared with other games),,loop,recorded sound,music_speed_3 (shared),60000,music,music_speed_whack,
 chain.linkTone,Don’t Break the Chain,Don't Break the Chain: A link is tapped: a synthesised tone a semitone higher per link [core.md],,10–40,recorded sound,chain.linkTone,110,game event,chain.linkTone,public/sounds/chain.linkTone.mp3 (from chain.linkTone.mp3)
 chain.breakTone,Don’t Break the Chain,Don't Break the Chain: The chain breaks: a falling synthesised sawtooth [core.md],,0–1,recorded sound,chain.breakTone,380,fail sting,chain.breakTone,public/sounds/chain.breakTone.mp3 (from chain.breakTone.mp3)
 chain.finishShine,Don’t Break the Chain,"Don't Break the Chain: Chain completed: gold chain glows, shine runs along every link [speed-attention.md]",,0–1,recorded sound,chain.finishShine,1100,success sting,chain.finishShine,public/sounds/chain.finishShine.mp3 (from done.goldPulse.mp3)
 chain.faster,Don’t Break the Chain,Don't Break the Chain: The FASTER banner (a speed-up link; not when the REVERSE flash takes the same link) [speed-attention.md],,5–40 (per move),recorded sound,chain.faster,350,game event,chain.faster,
 chain.reverse,Don’t Break the Chain,Don't Break the Chain: chainCycleRev 1: the ← REVERSE flash as the reversed board starts [speed-attention.md],,5–40 (per move),recorded sound,chain.reverse,500,game event,chain.reverse,
+chain.reshuffle,Don’t Break the Chain,Don't Break the Chain: The board reshuffling every 5 links: a soft whoosh [speed-overhaul.md],,5–40 (per move),recorded sound,chain.reshuffle,300,game event,chain.reshuffle,
+chain.heartbeat,Don’t Break the Chain,Don't Break the Chain: Under the tones for the last 5 links: a low heartbeat [speed-overhaul.md],,5–40 (per move),recorded sound,chain.heartbeat,500,game event,chain.heartbeat,
 music.chain,Don’t Break the Chain,Don’t Break the Chain round bed: music_speed_2 (speed bed shared with other games),,loop,recorded sound,music_speed_2 (shared),60000,music,music_speed_chain,
 reaction.goldPulse,Flash,"Flash: End of run (every flash settled), local scoreReaction ≥ 120: gold pulse from the centre [speed-attention.md]",,0–1,recorded sound,reaction.goldPulse,1100,UI tap,reaction.goldPulse,public/sounds/reaction.goldPulse.mp3 (from done.goldPulse.mp3)
+reaction.hit,Flash,Flash: A hit on the gold: a crisp snap [speed-overhaul.md],,5–40 (per move),recorded sound,reaction.hit,90,UI tap,reaction.hit,
+reaction.combo,Flash,"Flash: Three fast hits in a row: a rising chime, a step higher each hit [speed-overhaul.md]",,5–40 (per move),recorded sound,reaction.combo,250,UI tap,reaction.combo,
+reaction.wrong,Flash,Flash: A tap on a decoy or the dark screen: a short muted buzz [speed-overhaul.md],,5–40 (per move),recorded sound,reaction.wrong,140,UI tap,reaction.wrong,
+reaction.done,Flash,Flash: Done: every flash settled [speed-overhaul.md],,5–40 (per move),recorded sound,reaction.done,600,UI tap,reaction.done,
+reaction.bar,Flash,"Flash: Reveal: each flash's bar dropping in, pitched up bar by bar [speed-overhaul.md]",,5–40 (per move),recorded sound,reaction.bar,70,UI tap,reaction.bar,
 music.reaction,Flash,Flash round bed: music_speed_1 (speed bed shared with other games),,loop,recorded sound,music_speed_1 (shared),60000,music,music_speed_reaction,
 clayshoot.claysStreak,Pull!,Every 10th clay [arcade-effects.md],n CLAYS banner,1–3,recorded sound,clayshoot.claysStreak,400,game event,clayshoot.claysStreak,
 clayshoot.doubleHit,Pull!,Two or more clays with one shot [arcade-effects.md],DOUBLE! / TRIPLE! banner,0–5,recorded sound,clayshoot.doubleHit,500,game event,clayshoot.doubleHit,
@@ -593,13 +612,22 @@ clayshoot.birdIn,Pull!,A bird flies in (don't shoot) [arcade-effects.md],The bir
 clayshoot.escape,Pull!,A clay escapes unshot [arcade-effects.md],Its HUD pip turns red,0–25,recorded sound,clayshoot.escape,300,game event,clayshoot.escape,
 pz_clay_hit,Pull!,Pull!: A clay is hit [core.md],,10–25,recorded sound,pz_clay_hit,780,game event,pz_clay_hit,
 clayshoot.finalBurst,Pull!,"Pull!: End of run, local clay score ≥ 120: final burst of clay fragments [speed-attention.md]",,0–1,recorded sound,clayshoot.finalBurst,1100,success sting,clayshoot.finalBurst,public/sounds/clayshoot.finalBurst.mp3 (from done.clayBurst.mp3)
+clayshoot.goldShatter,Pull!,Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md],,5–40 (per move),recorded sound,clayshoot.goldShatter,433,game event,clayshoot.goldShatter,
 clayshoot.birdStartle,Pull!,Pull!: A bird is shot (feathers drift) [speed-attention.md],,5–40 (per move),recorded sound,clayshoot.birdStartle,600,game event,clayshoot.birdStartle,public/sounds/clayshoot.birdStartle.mp3 (from clayshoot.birdStartle.mp3)
+clayshoot.shot,Pull!,Pull!: An orange clay hit: shot and shatter in one [speed-overhaul.md],,5–40 (per move),recorded sound,clayshoot.shot,450,game event,clayshoot.shot,
+clayshoot.goldChime,Pull!,Pull!: A gold clay hit: a bright chime with the shatter [speed-overhaul.md],,5–40 (per move),recorded sound,clayshoot.goldChime,500,game event,clayshoot.goldChime,
+clayshoot.birdWrong,Pull!,"Pull!: A bird hit: a short dull wrong, with the feathers [speed-overhaul.md]",,5–40 (per move),recorded sound,clayshoot.birdWrong,250,game event,clayshoot.birdWrong,
 music.clayshoot,Pull!,Pull! round bed: music_speed_3 (speed bed shared with other games),,loop,recorded sound,music_speed_3 (shared),60000,music,music_speed_clayshoot,
 tendrop.nextTarget,Tenfall,The next target starts [arcade-effects.md],The old lane's tiles fade out,5–8,recorded sound,tendrop.nextTarget,300,game event,tendrop.nextTarget,
-tendrop.apply,Tenfall,a tap applies a tile without hitting the target [number.md],,5–40 (per move),recorded sound,place (shared),200,game event,tendrop.apply,
+tendrop.apply,Tenfall,a tap applies a tile without hitting the target [number.md],,5–40 (per move),recorded sound,tendrop.apply,200,game event,tendrop.apply,
 tendrop.clear,Tenfall,a target is cleared [number.md],,5–40 (per move),recorded sound,tendrop.clear,360,game event,tendrop.clear,public/sounds/tendrop.clear.mp3 (from tendrop.clear.mp3)
 tendrop.reset,Tenfall,the total overshoots and resets [number.md],,5–40 (per move),recorded sound,tendrop.reset,360,fail sting,tendrop.reset,public/sounds/tendrop.reset.mp3 (from tendrop.reset.mp3)
 tendrop.solve,Tenfall,"all ten targets cleared: last target bursts, remaining tiles shimmer [number.md]",,0–1,recorded sound,tendrop.solve,1200,success sting,tendrop.solve,public/sounds/tendrop.solve.mp3 (from done.goldPulse.mp3)
+tendrop.count,Tenfall,Tenfall: The total counting to its new value: one soft tick a step [speed-overhaul.md],,5–40 (per move),recorded sound,tendrop.count,30,game event,tendrop.count,
+tendrop.near,Tenfall,Tenfall: The total within 5 of the target: a faint rising shimmer [speed-overhaul.md],,5–40 (per move),recorded sound,tendrop.near,300,game event,tendrop.near,
+tendrop.tenBurst,Tenfall,Tenfall: A target hit: tiles clacking and a bright burst [speed-overhaul.md],,5–40 (per move),recorded sound,tendrop.tenBurst,500,game event,tendrop.tenBurst,
+tendrop.shatter,Tenfall,Tenfall: An overshoot: the total shatters to 0 [speed-overhaul.md],,5–40 (per move),recorded sound,tendrop.shatter,420,game event,tendrop.shatter,
+tendrop.tap,Tenfall,Tenfall: A tap on empty board: a soft tap [speed-overhaul.md],,5–40 (per move),recorded sound,tendrop.tap,50,UI tap,tendrop.tap,
 music.tendrop,Tenfall,Tenfall round bed: music_number_3 (speed bed shared with other games),,loop,recorded sound,music_number_3 (shared),60000,music,music_speed_tendrop,
 pz_bomb_explode,Bomb Defusal,reveal (Bomb Defusal): The bomb explodes on a wrong answer [core.md],,0–1,recorded sound,pz_bomb_explode,1770,fail sting,pz_bomb_explode,
 bomb.cut,Bomb Defusal,A wire is cut [logic.md],,5–40 (per move),recorded sound,bomb.cut,220,game event,bomb.cut,public/sounds/bomb.cut.mp3 (from bomb.cut.mp3)

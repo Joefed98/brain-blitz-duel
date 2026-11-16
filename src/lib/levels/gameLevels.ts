@@ -36,6 +36,7 @@ import { BOMB_LEVELS, MAZE_LEVELS, PAIR_LEVELS, SCAN_LEVELS, SPOT_LEVELS, TALLY_
 
 /** The check proving every Attention level (one answer, legibility, clocks, the human-like Expert solver). */
 const ATTENTION_PROOF = "scripts/attention-levels-check.ts";
+import { ASCEND_LEVELS, BONK_LEVELS, CHAIN_LEVELS, FLASH_LEVELS, PULL_LEVELS, TENFALL_LEVELS } from "./speedLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -436,6 +437,56 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       easy: { settings: { ...MAZE_LEVELS.easy }, oneSolution: { proof: ATTENTION_PROOF } },
       hard: { settings: { ...MAZE_LEVELS.hard }, oneSolution: { proof: ATTENTION_PROOF } },
       expert: { settings: { ...MAZE_LEVELS.expert }, oneSolution: { proof: ATTENTION_PROOF } },
+    },
+  },
+  // The Speed overhaul (stage 3, 15 Nov 2026; speedLevels.ts has each lever). Answers are timed taps, not a board with
+  // one solution, so each level's uniqueness rule is open by design.
+  // Flash: flashes, decoys a flash, the gold-like share of decoys, how long the gold stays up (Expert 1 s); 60 s.
+  reaction: {
+    levels: {
+      easy: { settings: { ...FLASH_LEVELS.easy }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+      hard: { settings: { ...FLASH_LEVELS.hard }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+      expert: { settings: { ...FLASH_LEVELS.expert }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+    },
+  },
+  // Ascend: how many numbers and their range, the reshuffle interval, the clock and the order (Expert highest first).
+  numhunt: {
+    levels: {
+      easy: { settings: { ...ASCEND_LEVELS.easy }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+      hard: { settings: { ...ASCEND_LEVELS.hard }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+      expert: { settings: { ...ASCEND_LEVELS.expert }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+    },
+  },
+  // Don't Break the Chain: the chain's length, the tap windows, the reversed runs, the cycle's length and the clock.
+  chain: {
+    levels: {
+      easy: { settings: { ...CHAIN_LEVELS.easy }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+      hard: { settings: { ...CHAIN_LEVELS.hard }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+      expert: { settings: { ...CHAIN_LEVELS.expert }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+    },
+  },
+  // Bonk: how long a target stays up (start and end of the run), the most up at once, the rule flips, the hedgehogs.
+  whack: {
+    levels: {
+      easy: { settings: { ...BONK_LEVELS.easy }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+      hard: { settings: { ...BONK_LEVELS.hard }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+      expert: { settings: { ...BONK_LEVELS.expert }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+    },
+  },
+  // Tenfall: how many targets and the biggest, the operators dealt and the tiles' speed.
+  tendrop: {
+    levels: {
+      easy: { settings: { ...TENFALL_LEVELS.easy }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+      hard: { settings: { ...TENFALL_LEVELS.hard }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+      expert: { settings: { ...TENFALL_LEVELS.expert }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+    },
+  },
+  // Pull!: how many clays, how many fly as pairs (and triples), how many birds and the clays' speed.
+  clayshoot: {
+    levels: {
+      easy: { settings: { ...PULL_LEVELS.easy }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
+      hard: { settings: { ...PULL_LEVELS.hard }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
+      expert: { settings: { ...PULL_LEVELS.expert }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
     },
   },
 };
