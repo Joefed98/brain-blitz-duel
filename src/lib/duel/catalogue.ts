@@ -241,7 +241,7 @@ export function typeTimeLimitMs(type: PuzzleType): number {
 export const DEALT_CLOCK_MS: Partial<Record<PuzzleType, number>> = {
   balance: 120_000,
   numline: 90_000,
-  // Topsy-Turvy: the definition says its dealt 120 s since the Pattern overhaul (STORED_CLOCK_MS keeps older rounds').
+  gravity: 120_000,
   spotdiff: 60_000,
   countup: 60_000,
   bomb: 90_000,
@@ -260,17 +260,9 @@ export function puzzleTimeLimitMs(puzzle: PuzzleData | undefined): number {
   if (!puzzle) return ROUND_MS;
   const own = (puzzle as { timeLimitMs?: number }).timeLimitMs;
   if (typeof own === "number" && own > 0) return own;
-  return STORED_CLOCK_MS[puzzle.type] ?? typeTimeLimitMs(puzzle.type);
+  return typeTimeLimitMs(puzzle.type);
 }
 
-/**
- * The clock of older stored puzzles that carry none of their own, where the definition has since moved to the clock
- * every live deal carries. Topsy-Turvy (the Pattern overhaul, 15 Nov 2026): the definition says 120 s, the clock
- * every deal since the remodel stores; its stored four-ball rounds (gravityRev 0–2, no `timeLimitMs`) keep 90 s.
- */
-export const STORED_CLOCK_MS: Partial<Record<PuzzleType, number>> = {
-  gravity: 90_000,
-};
 
 export function puzzleRevealMs(puzzle: PuzzleData | undefined): number {
   if (!puzzle) return REVEAL_MS;

@@ -21,7 +21,7 @@
  *     and cups; topsy.css draws the block, floor and frame; no glow on a ball.
  *  8. Sound: gravity.tilt (looped rumble), gravity.stop, gravity.combo, gravity.boardClear and gravity.outOfTilts are
  *     manifest slots with a file, fired by a tilt's sounds at the right moments; listed in the ElevenLabs doc.
- *  9. Clock: the catalogue says the dealt 120 s; stored four-ball rounds without a clock keep 90 s.
+ *  9. Clock: the Games page shows the dealt 120 s; the definition and stored four-ball rounds without a clock keep 90 s.
  * 10. Intro and demos (GOAL; demos before gravityRev 8 stopped); both practice challenges and the 175 star still met
  *     by the par routes on gravityRev 8; an undone tilt keeps par, a wasted one kept misses it.
  *
@@ -350,7 +350,9 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
 
 /* ---------------------------------------------------------------- 9. clock */
 {
-  check(CATALOGUE_DATA.gravity.timeLimitMs === 120_000 && typeTimeLimitMs("gravity") === 120_000 && shownTimeLimitMs("gravity") === 120_000, "the catalogue doesn't say the dealt 120 s");
+  // The definition keeps the 90 s older stored rounds fall back to; screens before a deal show the dealt 120 s
+  // (DEALT_CLOCK_MS, main's pattern for games whose dealt clock differs; tie-break-check reads the definition).
+  check(CATALOGUE_DATA.gravity.timeLimitMs === 90_000 && typeTimeLimitMs("gravity") === 90_000 && shownTimeLimitMs("gravity") === 120_000, "the Games page doesn't show the dealt 120 s, or the definition left 90 s");
   const live = withSeededRandom(5, () => generatePuzzle("gravity", { bankSeed: 5 })) as GravityPuzzleData;
   check(puzzleTimeLimitMs(live) === 120_000, "a live deal isn't 120 s");
   const classic = { type: "gravity", walls: [], starts: [0, 8, 72, 80], targets: [40, 41, 39, 31], minMoves: 5, solution: "UDLRU" } as unknown as GravityPuzzleData;
