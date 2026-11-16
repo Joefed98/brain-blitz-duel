@@ -421,6 +421,8 @@ const balanceKit: PuzzleKit = {
     // scale takes 10 s a weight: five weights over seven free notches at distances to 5 is a search, not a sum.
     const BASE_8 = 5;
     const BASE_10 = 10;
+    const BASE_6 = 4;
+    const HIDDEN_FACTOR = 1.1;
     const puzzle = p as BalancePuzzleData;
     const limits = balancePlaceLimits(puzzle);
     const rec = recorder();
@@ -431,7 +433,10 @@ const balanceKit: PuzzleKit = {
       const scale = puzzle.scales[s]!;
       const sol = puzzle.solutions?.[s] ?? [];
       const pl = placements[s]!;
-      const BASE = scalePegs(scale) > 8 ? BASE_10 : BASE_8;
+      // Counterweight's levels (balanceRev 5, balanceLevels.ts): Easy's 6-notch scales are shorter sums (4 s a
+      // weight); Expert hides the readout, so every weight is a torque sum in the head (HIDDEN_FACTOR longer).
+      const pegsHere = scalePegs(scale);
+      const BASE = (pegsHere > 8 ? BASE_10 : pegsHere < 8 ? BASE_6 : BASE_8) * (puzzle.hideBalance ? HIDDEN_FACTOR : 1);
       // balanceRev 1: each hang counts; the phone refuses hangs past the scale's limit.
       const canHang = () => !limits || hangs[s]! < limits[s]!;
       const hang = (i: number, peg: number) => { pl[i] = peg; hangs[s]!++; rec.push(answer()); };
@@ -897,14 +902,21 @@ const numlineKit: PuzzleKit = {
     const puzzle = p as NumlinePuzzleData;
     const rec = recorder();
     // Estimation spread (share of the line): near ≈ 0.8 %, great 1.5 %, good 2.5 %, average 4.5 %.
-    const sd = 0.005 + 0.2 * skill.err;
+    // Ballpark's levels (numlineLevels.server.ts, 15 Nov 2026): Easy's whole numbers and simple fractions are quicker
+    // and closer, Hard's and Expert's harder items slower and wider; Expert's numbers placed before the hidden end
+    // label shows are guessed against a remembered scale (twice the spread). Normal (no level) exactly as before.
+    const level = puzzleLevel(puzzle);
+    const LEVEL_SPREAD = { easy: 0.6, normal: 1, hard: 1.5, expert: 1.6 } as const;
+    const LEVEL_TIME = { easy: 0.7, normal: 1, hard: 1.3, expert: 1.4 } as const;
+    const sd = (0.005 + 0.2 * skill.err) * LEVEL_SPREAD[level];
     const placements: number[] = [];
     puzzle.stages.forEach((stage, s) => {
       for (let i = 0; i < NUMLINE_ITEMS; i++) {
         const value = puzzle.values?.[s]?.[i];
         const truth = value ? numlineShare(stage, numlineValue(value)) : 0.5;
-        rec.wait(thinkMs(rng, BASE, skill));
-        const miss = rng.chance(skill.err) ? rng.normal(0, 0.12) : rng.normal(0, sd);
+        rec.wait(thinkMs(rng, BASE * LEVEL_TIME[level], skill));
+        const blind = numlineHiddenEnd(stage, i) !== null ? 2 : 1;
+        const miss = rng.chance(skill.err) ? rng.normal(0, 0.12) : rng.normal(0, sd * blind);
         const share = Math.max(0, Math.min(1, truth + miss));
         placements.push(Math.round(share * NUMLINE_SCALE));
         rec.push(encodeNumline(placements));

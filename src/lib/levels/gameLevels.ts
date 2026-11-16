@@ -154,14 +154,14 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
         settings: {
           scales: [
             { loose: 3, fixed: 1, pegs: 10, unique: true },
-            { loose: 4, fixed: 2, pegs: 10, unique: true },
-            { loose: 5, fixed: 2, pegs: 10, unique: true },
-            { loose: 6, fixed: 2, pegs: 10, unique: true },
+            { loose: 4, fixed: 2, pegs: 10, unique: false },
+            { loose: 5, fixed: 2, pegs: 10, unique: false },
+            { loose: 6, fixed: 2, pegs: 10, unique: false },
           ],
           spare: [5, 6, 6, 7],
           hide: true,
         },
-        oneSolution: { proof: "scripts/number-levels-balance-target-check.ts" },
+        oneSolution: { open: "any balanced arrangement counts; every board is proved solvable, and solved by a person-like solver, by scripts/number-levels-balance-target-check.ts" },
       },
     },
   },
@@ -267,6 +267,23 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: {
         settings: { size: 7, whiteMin: 26, whiteMax: 30, gradeMin: 4, gradeMax: 12, maxBlocks: 12, person: true },
         oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
+      },
+    },
+  },
+  // Ballpark (numlineLevels.server.ts): Normal is today's game; three lines of five numbers at every level.
+  numline: {
+    levels: {
+      easy: {
+        settings: { lines: ["easy-10", "easy-100", "easy-1"] },
+        oneSolution: { open: "estimation: every placement scores by distance" },
+      },
+      hard: {
+        settings: { lines: ["hard-1", "hard-sym-100", "hard-1000"] },
+        oneSolution: { open: "estimation: every placement scores by distance" },
+      },
+      expert: {
+        settings: { lines: ["today-100", "today-third", "expert-10000"], hideEnd: true },
+        oneSolution: { open: "estimation: every placement scores by distance" },
       },
     },
   },

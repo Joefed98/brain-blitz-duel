@@ -131,8 +131,10 @@ function thousandthsDecimal(rng: SeededRng): Item {
 
 function fractionOfFraction(rng: SeededRng): Item {
   const a = rng.pick([2, 3, 4, 5] as const);
-  const b = rng.pick([3, 4, 5, 6, 7, 8] as const);
-  return { text: `1/${a} of 1/${b === a ? b + 1 : b}`.replace(/of 1\/(\d+)/, (_, d) => `of 1/${d}`), value: rational(1, a * (b === a ? b + 1 : b)) };
+  const pick = rng.pick([3, 4, 5, 6, 7, 8] as const);
+  const b = pick === a ? pick + 1 : pick;
+  const top = rng.int(1, a - 1) || 1;
+  return { text: `${top}/${a} of 1/${b}`, value: rational(top, a * b) };
 }
 
 function hardNegative(rng: SeededRng): Item {

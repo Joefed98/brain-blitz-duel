@@ -125,6 +125,7 @@ import { generateCodeword } from "./codeword.server";
 import { generateSwapword } from "./swapword.server";
 import { wordGameSeed } from "./wordSeed.server";
 import { dealMeasure, stampMeasureLevel } from "./measureLevels.server";
+import { generateNumlineLevel, type NumlineLevelSettings } from "./numlineLevels.server";
 import { generateCheckout, generateCheckoutLevel } from "./checkout.server";
 import { generateNumline } from "./numline.server";
 import { generateFences } from "./fences.server";
@@ -342,7 +343,11 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "measure") return dealMeasure(gameSeed(type, context), context.level);
   // Checkout's and Kakuro's levels (numberLevels.ts, 15 Nov 2026): today's game is Hard; Normal, Easy and Expert new.
   if (type === "checkout") return dealCheckoutLevel(gameSeed(type, context), context.level);
-  if (type === "numline") return generateNumline(gameSeed(type, context));
+  // Ballpark's levels (numlineLevels.server.ts, 15 Nov 2026): Normal is today's game; Easy, Hard and Expert their own lines.
+  if (type === "numline") {
+    const lines = context.level ? gameLevelSettings<NumlineLevelSettings>("numline", context.level) : null;
+    return lines ? generateNumlineLevel(gameSeed(type, context), lines) : generateNumline(gameSeed(type, context));
+  }
   // New grid puzzles (1 Nov 2026): built from the room seed (salted by type), each proved unique by its solver.
   if (type === "fences") return generateFences(gameSeed(type, context));
   if (type === "fillomino") return generateFillomino(gameSeed(type, context));

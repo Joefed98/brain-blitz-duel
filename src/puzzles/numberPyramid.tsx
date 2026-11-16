@@ -274,7 +274,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const submitted = useRef(false);
   const lastPlacedTap = useRef<{ cell: number; at: number } | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ width: 340, height: 500 });
+  const [size, setSize] = useState({ width: 340, height: 500, free: 0 });
   // The board area's own height (stage 2 fix): the pyramid is sized to it, so it never spills over the status line.
   const arenaRef = useRef<HTMLDivElement | null>(null);
   const [arenaH, setArenaH] = useState(0);
@@ -294,7 +294,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   useBeforePaint(() => {
     const node = box.current;
     if (!node) return;
-    const measure = () => setSize({ width: node.clientWidth, height: node.clientHeight });
+    const measure = () => {
+      // Stage 3 (Joe, 15 Nov 2026): the height the pyramid may take on a phone's column layout is the box less its
+      // fixed rows (the stage pips, the status row and the tray), so the stones grow into the band above the board.
+      let fixed = 0;
+      let count = 0;
+      for (const child of Array.from(node.children) as HTMLElement[]) {
+        if (child.classList.contains("np-spacer") || child.hasAttribute("data-game-arena") || child.classList.contains("np-ghost")) continue;
+        fixed += child.offsetHeight;
+        count++;
+      }
+      setSize({ width: node.clientWidth, height: node.clientHeight, free: Math.max(0, node.clientHeight - fixed - 4 * (count + 2) - 4) });
+    };
     const ro = new ResizeObserver(measure);
     ro.observe(node); measure();
     return () => ro.disconnect();
@@ -407,8 +418,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const trayPer = Math.max(1, looseRows[0] ?? 1);
   const trayW = Math.max(NP_TRAY_MIN_W, Math.min(64, Math.floor((trayWidth - (trayPer - 1) * NP_TRAY_GAP) / trayPer)));
   // From the board area's measured height (less the plinth and a margin) once known; the old estimate before that.
-  const heightFit = arenaH > 0
-    ? Math.floor((arenaH - 20 - (board.rows - 1) * 4) / board.rows)
+  // On the column layout the pyramid takes the whole free band (the board area is sized to it, the spacers keep the rest).
+  const bandH = column && size.free > 0 ? size.free : arenaH;
+  const heightFit = bandH > 0
+    ? Math.floor((bandH - 20 - (board.rows - 1) * 4) / board.rows)
     : Math.floor((size.height - 132 - trayRows * 50 - (board.rows - 1) * 4) / board.rows);
   // Batch W: in a live round the width-limited bricks grow into the spare height (up to 1.15 × their width), never shorter than main's.
   const mainH = Math.max(44, Math.min(Math.round(cellW * 0.82), heightFit));
@@ -497,7 +510,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         )}
         <Button type="button" variant="ghost" size="sm" className="np-skip h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip"}</Button>
       </div>
-      <div ref={arenaRef} data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
+      <div ref={arenaRef} data-game-arena="board" className={`flex min-h-0 w-full items-center justify-center ${column ? "shrink-0" : "flex-1"}`} style={column ? { height: board.rows * (cellH + 4) + 16 } : undefined}>
         <NumberStage type="numpyramid" index={stage} exit={holding ? "clear" : null} className="justify-center">
         <div className="relative" style={NO_TOUCH}>
           <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth animate={false} />
