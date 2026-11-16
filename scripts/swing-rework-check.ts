@@ -540,7 +540,7 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(demo), "Grappler's intro demo stays stopped (a swingRev 15 one too) until one is recorded on swingRev 18");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
-  // Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Action overhaul): the intro also passes the stored level.
+  // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): the intro also passes the stored level.
   ok(/puzzle\?\.type !== "swing"\) return;[\s\S]{0,200}setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev(?:, level)?\)/.test(introSrc), "the round's intro builds the course ahead (the round's own init is a cache hit)");
   {
     const seed = roomSeed(9) ^ 0x2468ace;

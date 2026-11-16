@@ -577,7 +577,7 @@ console.log(`witness: ${playSeeds.length} courses cleared through the dark by th
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 18 (after 16)");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
-  // Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Action overhaul): the intro also passes the stored level.
+  // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): the intro also passes the stored level.
   ok(/setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev(?:, level)?\)/.test(introSrc), "the round's intro builds the course ahead");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/if \(state\.dark\) drawDark\(/.test(art) && /state\.dark && !swingHookLit\(state, i\)/.test(art) && /const from = swingDarkFrom\(state\)/.test(art), "the renderer draws the dark from the sim's own rule and skips the hooks in it");
