@@ -4,7 +4,7 @@
  * home counts) and names this check as the proof of each board's minimum.
  *
  *  1. The registry: Easy, Normal, Hard and Expert; each level's settings as Joe's spec (Easy 3 balls, 2 boards, 2–4
- *     tilts, a generous limit; Hard 6 balls, 3 boards, 6–9, the fewest + 6; Expert 8 balls, 3 boards, 7–10, the fewest
+ *     tilts, a generous limit; Hard 6 balls, 3 boards, 6–9, the fewest + 6, full speed by 30 s, under Normal's 32; Expert 8 balls, 3 boards, 7–10, the fewest
  *     + 5); every clock 120 s; `oneSolution` open.
  *  2. The banks (src/lib/duel/topsyLevelsBank.server.ts), every board every run: the level's ball count, distinct
  *     squares on the 10 × 10 board, a ball home blocking, no stars, no ball dropping on the first tilt, no board twice;
@@ -21,7 +21,7 @@
  *     grades match the ones recorded before the levels (scripts/fixtures/pattern-overhaul-gravity-levels-normal.json.gz).
  *  6. The board and the art: every level keeps the 10 × 10 board (squares as Normal's); eight ball colours, each with
  *     its own mark (eight distinct drawings), marble and cup sprites as WebP with alpha, each within 25 KB.
- *  7. Grading reads the stored puzzle: each level's full-speed time (Easy 20 s, Hard 45 s, Expert 50 s; Normal and every
+ *  7. Grading reads the stored puzzle: each level's full-speed time (Easy 20 s, Hard 30 s since 16 Nov 2026 (was 45), Expert 50 s; Normal and every
  *     puzzle without a level 32 s); a flawless solve inside it scores 200 at every level, a later one less; an empty
  *     answer 0; the level's spare limits a board (a board played to its limit without clearing is out of tilts there,
  *     and its par shown is the fewest); a level's tilts read the board's own balls (Easy's six balls in all).
@@ -87,7 +87,7 @@ const DIRS: GravityDir[] = ["U", "D", "L", "R"];
   check(same(levelsOf("gravity"), ["easy", "normal", "hard", "expert"]), `gravity offers ${levelsOf("gravity").join(", ")}`);
   const spec: Record<Banked, TopsyLevelSettings> = {
     easy: { balls: 3, boards: 2, minTilts: [2, 4], walls: [14, 22], spare: 12, timeLimitMs: 120_000, speedFullByS: 20 },
-    hard: { balls: 6, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 45 },
+    hard: { balls: 6, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 30 },
     expert: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 50, personSolvable: true },
   };
   for (const level of BANKED) {
@@ -98,6 +98,12 @@ const DIRS: GravityDir[] = ["U", "D", "L", "R"];
   }
   // Easy's limit is generous (more spare than Normal's 8), Hard's and Expert's tighter.
   check(settingsOf("easy").spare > TOPSY_V8_SPARE && settingsOf("hard").spare === 6 && settingsOf("expert").spare === 5, "the spare tilts don't step down Easy → Expert");
+  // Joe, 16 Nov 2026: Hard is clearly harder than Normal by design: more tilts (6–9 over Normal's 4–7), a tighter limit
+  // (+6 over +8) and full speed asked for sooner than Normal's 32 s (30 s), so its speed points want quicker play per tilt.
+  const { PAR_STRICT_FULL_BY_S } = await import("../src/lib/duel/parMoves");
+  const normalFullBy = (PAR_STRICT_FULL_BY_S as Record<string, number>)["gravity"]!;
+  check(normalFullBy === 32 && settingsOf("hard").speedFullByS < normalFullBy, `Hard's full-speed time ${settingsOf("hard").speedFullByS} s isn't under Normal's ${normalFullBy} s`);
+  check(settingsOf("hard").minTilts[0] > 4 && settingsOf("hard").spare < TOPSY_V8_SPARE, "Hard isn't more tilts and a tighter limit than Normal");
   check(/pattern-overhaul-gravity-levels-check/.test(src("src/lib/levels/pattern/gravity.levels.ts")), "the levels file doesn't name this check as the minimum's proof");
   check(LEVELS_GRAVITY.levels.normal === undefined, "Normal has a registry entry (it must be today's game)");
 }
