@@ -7,6 +7,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ArcadeGame } from "../../src/lib/arcade/engine";
 import type { PuzzleType } from "../../src/lib/duel/types";
+import { puzzleLevel } from "../../src/lib/levels/levels";
 import { btCheckpoint, btIsV7Play, makeBallTrackGame, BT_REV, BT_REV_BAND, BT_REV_TALL, BT_REV_TARGET, BT_REV_STRICT, BT_REV_STD } from "../../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "../../src/lib/duel/ballTrackBank.server";
@@ -229,7 +230,8 @@ export const GAMES: GameSpec[] = [
     replay: (seed, raw, rev) => replayBallTrackRun(btCourseFor(rev, seed), seed, raw, rev),
   },
   { ...simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun), tuned: WAV_REV_SHAPES, tunec: WAV_REV_TUNEC, tuneg: WAV_REV_TALL },
-  { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC },
+  // Levels (15 Nov 2026): the dealt puzzle's level picks the level's course and crash cost.
+  { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC, gameForPuzzle: (p) => flipGameFor(p.flipRev, puzzleLevel(p)) },
   { ...simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun), tunec: INK_REV_TUNEC },
   { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR },
   { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL },
@@ -239,7 +241,8 @@ export const GAMES: GameSpec[] = [
   simple("bintoss", BINTOSS_REV3, BINTOSS_REV_BAND, binTossGameFor, binTossCheckpoint, encodeBinTossRun, replayBinTossRun),
   { ...simple("snip", SNIP_REV3, SNIP_REV_BAND, snipGameFor, snipCheckpoint, encodeSnipRun, replaySnipRun), tunee: SNIP_REV_TALL, bank: SNIP_REV_BANK6, tunef: SNIP_REV_PROVEN },
   { ...simple("hover", HOVER_REV, HOVER_REV_BAND, hoverGameFor, hoverCheckpoint, encodeHoverRun, replayHoverRun, true), tunec: HOVER_REV_TUNEC, tunee: HOVER_REV_TALL },
-  { ...simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true), tunee: SKYLINE_REV_TALL },
+  // Levels (15 Nov 2026): the dealt puzzle's level picks the level's slide, tolerance, wind and lives.
+  { ...simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true), tunee: SKYLINE_REV_TALL, gameForPuzzle: (p) => skylineGameFor(p.skylineRev, puzzleLevel(p)) },
   simple("junction", JUNC_REV, JUNC_REV_BAND, junctionGameFor, juncCheckpoint, encodeJunctionRun, replayJunctionRun),
   { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED, tunef: BRK_REV_TUNEF, tuneg: BRK_REV_TALL },
   // Rooms deal tiltRev 8's bank (seeds the oracle played to 200), so every revision is measured on those (paired). The

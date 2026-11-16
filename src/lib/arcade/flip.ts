@@ -544,6 +544,12 @@ export interface FlipState extends BandFields {
   grace?: number;
   /** flipRev 13: crashes the automatic respawn took (each also counts in `saves`, which carries the cost). */
   respawns?: number;
+  /**
+   * Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"; absent at Normal and on every older round): the level the
+   * course was dealt at (FLIP_LEVEL_CODE: 1 Easy, 3 Hard, 4 Expert). Its course is built on the level's rules and each
+   * crash costs the level's FLIP_LEVEL_RULES crashCost. Folded into the checkpoint checksum last.
+   */
+  lvl?: number;
 }
 
 export function flipWarpAmp(tick: number, rev?: number | null, early?: number): number {
@@ -753,6 +759,8 @@ export function flipCheckpoint(state: FlipState): FlipCheckpoint {
   if (state.flow) extra.push(state.flow, state.streak ?? 0, state.bestStreak ?? 0, state.slip ?? 0);
   // flipRev 13: its marker and the respawn count last, so every flipRev 1–12 checksum is unchanged.
   if (state.grace) extra.push(state.grace, state.respawns ?? 0);
+  // Levels (15 Nov 2026): a level's code last (absent at Normal), so every Normal checksum is unchanged.
+  if (state.lvl) extra.push(state.lvl);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -849,7 +857,9 @@ export const flipGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
 const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGame, init: initV2 };
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
-export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+export function flipGameFor(rev?: number | null, level?: string | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  // Levels (15 Nov 2026): flipRev 13 at Easy, Hard or Expert (the puzzle's `level`); Normal and every older stamp as before.
+  if (rev === FLIP_REV_GRACE && isFlipLevel(level)) return flipGraceGameAt(level);
   // flipRev 12 plays flipRev 11 exactly; only its deal differs (the proved courses, src/lib/duel/flipDeal.server.ts).
   if (rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL) return flipFlowGame;
   if (rev === FLIP_REV_GRACE) return flipGraceGame;
@@ -1084,7 +1094,9 @@ export function flipV8InZone(course: Pick<FlipV8Course, "zones">, tick: number):
   return false;
 }
 
-function v8Speed(tick: number): number {
+function v8Speed(tick: number, r?: FlipCourseRules): number {
+  // Levels (15 Nov 2026): a level's own start, step, step interval and cap; Normal (no rules) exactly as before.
+  if (r) return Math.min(r.speedCap, r.speedStart + r.speedStep * Math.trunc(tick / r.stepTicks));
   return Math.min(V8_SPEED_CAP, SPEED_START + SPEED_STEP * Math.trunc(tick / SPEED_STEP_TICKS));
 }
 
@@ -1093,11 +1105,11 @@ export function flipV8BaseSpeed(tick: number): number {
   return v8Speed(tick);
 }
 
-function v8Xs(zones: number[]): number[] {
+function v8Xs(zones: number[], r?: FlipCourseRules): number[] {
   const out = [0];
   let x = 0;
   for (let t = 1; t <= FLIP_RUN_TICKS; t++) {
-    const v = v8Speed(t);
+    const v = v8Speed(t, r);
     x += flipV8InZone({ zones }, t) ? Math.trunc((v * FLIP_V8_ZONE_NUM) / FLIP_V8_ZONE_DEN) : v;
     out.push(x);
   }
@@ -1222,7 +1234,7 @@ interface V8Built {
   course: FlipV8Course;
 }
 
-function buildCourseV8(seed: number): V8Built {
+function buildCourseV8(seed: number, r?: FlipCourseRules): V8Built {
   let rng = seed | 0;
   const draw = (bound: number) => {
     const r = rngBelow(rng, bound);
@@ -1234,7 +1246,7 @@ function buildCourseV8(seed: number): V8Built {
   const z1 = (17 + draw(4)) * TICKS_PER_SECOND;
   const z2 = (37 + draw(4)) * TICKS_PER_SECOND;
   const zones = [z1, z1 + FLIP_V8_ZONE_TICKS, z2, z2 + FLIP_V8_ZONE_TICKS];
-  const xs = v8Xs(zones);
+  const xs = v8Xs(zones, r);
   const hts = [0, FLIP_V8_H_NORMAL];
   {
     let prev = 1;
@@ -1324,7 +1336,9 @@ function buildCourseV8(seed: number): V8Built {
     const afterTen = start >= X[10 * TICKS_PER_SECOND]!;
     const requireDecision = afterTen && decisionsAfterTen * 100 < (groupsAfterTen + 1) * 75;
     const crumbleOk = start >= X[FLIP_CRUMBLE_FROM]! && !lastWasCrumble && start - lastEnd >= 2 * half + 8 * speed;
-    const moverOk = start >= X[V8_MOVERS_FROM]!;
+    // Levels: a level's own start for moving spikes (null: none at all, Easy).
+    const moversFrom = r ? r.moversFrom : V8_MOVERS_FROM;
+    const moverOk = moversFrom !== null && start >= X[moversFrom]!;
     for (let attempt = 0; attempt < 48 && !result; attempt++) {
       // Rev 8: moving spikes count as decisions too (the safe moment moves with them).
       const decide = draw(4);
@@ -1404,7 +1418,10 @@ function buildCourseV8(seed: number): V8Built {
  * minute (each nudged forward until a route takes it, in the order they come; stars and sweet spots clear of
  * hazards, trails and the stretches a moving spike sweeps). Null if a placement fails (the course is re-rolled).
  */
-function placeStarsV8(built: V8Built): { stars: FlipStar[]; sweets: FlipSweet[]; rng: number } | null {
+function placeStarsV8(built: V8Built, r?: FlipCourseRules): { stars: FlipStar[]; sweets: FlipSweet[]; rng: number } | null {
+  // Levels: a level's own sweet-spot seconds and width (ticks of travel); Normal exactly as before.
+  const sweetSeconds: readonly number[] = r ? r.sweetSeconds : V8_SWEET_SECONDS;
+  const sweetTicks = r ? r.sweetTicks : FLIP_V8_SWEET_TICKS;
   const { segs, course } = built;
   const X = course.xs;
   let state = built.rng;
@@ -1443,7 +1460,7 @@ function placeStarsV8(built: V8Built): { stars: FlipStar[]; sweets: FlipSweet[];
   };
   const targets = [
     ...STAR_SECONDS.map((sec) => ({ sec, sweet: false })),
-    ...V8_SWEET_SECONDS.map((sec) => ({ sec, sweet: true })),
+    ...sweetSeconds.map((sec) => ({ sec, sweet: true })),
   ].sort((a, b) => a.sec - b.sec);
   let set = [pack8(0, 0, 0, SOLVER_LANDED)];
   let t = 0;
@@ -1456,8 +1473,8 @@ function placeStarsV8(built: V8Built): { stars: FlipStar[]; sweets: FlipSweet[];
     for (let j = 0; j < 24 && !placed; j++) {
       const x = at + j * 24 * FP;
       // A sweet spot is FLIP_V8_SWEET_TICKS ticks of travel long where it lies.
-      const t0 = Math.min(FLIP_RUN_TICKS - FLIP_V8_SWEET_TICKS, tickAt(x));
-      const span = target.sweet ? { x0: x, x1: x + X[t0 + FLIP_V8_SWEET_TICKS]! - X[t0]! } : { x0: x, x1: x };
+      const t0 = Math.min(FLIP_RUN_TICKS - sweetTicks, tickAt(x));
+      const span = target.sweet ? { x0: x, x1: x + X[t0 + sweetTicks]! - X[t0]! } : { x0: x, x1: x };
       if (span.x1 + reach >= X[FLIP_RUN_TICKS - 60]!) break;
       for (const side of [firstSide, firstSide ^ 1]) {
         if (!clearSpan(span.x0 - reach, span.x1 + reach, side)) continue;
@@ -1532,9 +1549,13 @@ export interface FlipCourseV8 {
   rng: number;
   stars: FlipStar[];
   course: FlipV8Course;
+  /** Levels only (a diagnostic, never in a state): the builds the course took (1 = the seed's first; the level deals keep only those). */
+  attempts?: number;
 }
 
 const cacheV8 = new Map<number, FlipCourseV8>();
+/** Levels (15 Nov 2026): each level's courses cached apart from Normal's. */
+const cacheV8Level = new Map<string, FlipCourseV8>();
 /** Re-rolls a course may take before the full set of stars, trails and sweet spots fits (none needed one in 2,000 seeds tried). */
 const V8_ATTEMPTS = 40;
 
@@ -1543,7 +1564,8 @@ const V8_ATTEMPTS = 40;
  * on one route the builder proved lasts the minute; re-rolled from the seed until all of them fit, so every course
  * offers exactly the same opportunities (flipV8Opportunities).
  */
-export function flipCourseV8(seed: number): FlipCourseV8 {
+export function flipCourseV8(seed: number, level?: FlipLevel | null): FlipCourseV8 {
+  if (level) return flipCourseV8Level(seed, level);
   const hit = cacheV8.get(seed | 0);
   if (hit) return hit;
   let out: FlipCourseV8 | null = null;
@@ -1563,11 +1585,36 @@ export function flipCourseV8(seed: number): FlipCourseV8 {
   return out;
 }
 
+/**
+ * A level's course (Easy, Hard, Expert; 15 Nov 2026): flipCourseV8's build and placement exactly, on the level's own
+ * speed table, moving-spike start and sweet spots (FLIP_LEVEL_RULES). Normal never comes here.
+ */
+function flipCourseV8Level(seed: number, level: FlipLevel): FlipCourseV8 {
+  const key = `${level}:${seed | 0}`;
+  const hit = cacheV8Level.get(key);
+  if (hit) return hit;
+  const r = FLIP_LEVEL_RULES[level];
+  let out: FlipCourseV8 | null = null;
+  for (let attempt = 0; attempt < V8_ATTEMPTS && !out; attempt++) {
+    const built = buildCourseV8(attempt === 0 ? seed : (Math.imul(seed | 0, 0x9e3779b1) + attempt) | 0, r);
+    if (built.course.trails.length !== FLIP_V8_TRAILS) continue;
+    const placed = placeStarsV8(built, r);
+    if (placed) out = { segs: built.segs, rng: placed.rng, stars: placed.stars, course: { ...built.course, sweets: placed.sweets }, attempts: attempt + 1 };
+  }
+  if (!out) {
+    const built = buildCourseV8(seed, r);
+    out = { segs: built.segs, rng: built.rng, stars: [], course: { ...built.course, trails: [], sweets: [] } };
+  }
+  if (cacheV8Level.size > 16) cacheV8Level.clear();
+  cacheV8Level.set(key, out);
+  return out;
+}
+
 /** Rev 8 states carry the strict band mark for `acted` tracking; their score is flipV8Score's own. */
 const BAND_MARK_V8 = 3;
 
-function initV8(seed: number): FlipState {
-  const c = flipCourseV8(seed);
+function initV8(seed: number, level?: FlipLevel | null): FlipState {
+  const c = flipCourseV8(seed, level);
   return {
     ...initFrom(c),
     rev: FLIP_REV,
@@ -2064,16 +2111,18 @@ export const FLIP_V13: StdSpec = {
 export const FLIP_V13_BAND_CURVE = bandCurve([0, FLIP_V13_CORE_FULL], [0, stdCore(FLIP_V13).max]);
 
 /** Clean time on flipRev 13: half seconds lived (the whole minute on a finished run) less the crashes' cost. */
-export function flipGraceUnits(state: Pick<FlipState, "ended" | "tick" | "saves">): number {
+export function flipGraceUnits(state: Pick<FlipState, "ended" | "tick" | "saves" | "lvl">): number {
   const alive = state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS);
-  return Math.max(0, Math.floor(alive / 30) - FLIP_V13_CRASH_COST * (state.saves ?? 0));
+  return Math.max(0, Math.floor(alive / 30) - flipCrashCost(state) * (state.saves ?? 0));
 }
 
 /** A flipRev 13 run's parts. */
 export function flipGraceScore(state: FlipState): StdBreakdown {
-  const [sweets, doubles, flow] = stdFeatures(FLIP_V13);
+  // Levels (15 Nov 2026): a level's spec (its perfect landings full at the level's count); Normal FLIP_V13.
+  const spec = flipGraceSpecOf(state);
+  const [sweets, doubles, flow] = stdFeatures(spec);
   return {
-    core: stdPartLine(stdCore(FLIP_V13), flipGraceUnits(state)),
+    core: stdPartLine(stdCore(spec), flipGraceUnits(state)),
     features: {
       sweets: stdPartLine(sweets!, flipSweetsTaken(state)),
       doubles: stdPartLine(doubles!, state.combos ?? 0),
@@ -2092,11 +2141,113 @@ function flipGraceParts(state: FlipState): BandParts {
   const finished = state.ended === 1;
   const secs = ((finished ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1);
   const n = state.saves ?? 0;
-  const crashes = n ? ` · ${n} crash${n === 1 ? "" : "es"} (−${(FLIP_V13_CRASH_COST / 2) * n} s)` : "";
-  return stdBandParts(FLIP_V13, flipGraceScore(state), flipGraceUnits(state), `${secs} s survived${crashes} · best streak ${state.bestStreak ?? 0}`, finished);
+  const crashes = n ? ` · ${n} crash${n === 1 ? "" : "es"} (−${(flipCrashCost(state) / 2) * n} s)` : "";
+  return stdBandParts(flipGraceSpecOf(state), flipGraceScore(state), flipGraceUnits(state), `${secs} s survived${crashes} · best streak ${state.bestStreak ?? 0}`, finished);
 }
 
 export const flipGraceGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
   ...flipFlowGame,
   init: (seed) => ({ ...flipFlowGame.init(seed), grace: 1, respawns: 0 }),
 };
+
+/* ================= Levels (15 Nov 2026, the difficulty framework) ================= */
+
+/**
+ * Roofbound's levels (docs/arcade-standard/flip.md "Levels", docs/design/difficulty/README.md): flipRev 13 with the
+ * puzzle's `level` ("easy" | "hard" | "expert"; Normal has no field and is flipRev 13 exactly). Each level builds its
+ * courses on its own speed table, moving-spike start and sweet spots, and charges its own clean time a crash; grace
+ * holds at every level (no crash ends the run) and the parts are flipRev 13's (200). Frozen here, with the sim (a stored
+ * round replays on these numbers forever); gameLevels.ts carries the same figures for the phone (flip-levels-check).
+ */
+export type FlipLevel = "easy" | "hard" | "expert";
+export interface FlipCourseRules {
+  /** The speed table (1/256 px a tick): the start, the step, how many ticks between steps, and the cap. */
+  speedStart: number;
+  speedStep: number;
+  stepTicks: number;
+  speedCap: number;
+  /** The tick moving spikes may join from (null: none at all). */
+  moversFrom: number | null;
+  /** Sweet spots: ticks of travel long, and the seconds the seed places them near. */
+  sweetTicks: number;
+  sweetSeconds: readonly number[];
+  /** Half seconds of clean time a crash costs. */
+  crashCost: number;
+  /** Perfect landings are full at this many (flipRev 13: FLIP_V13_SWEETS_FULL, 5). */
+  sweetsFull: number;
+}
+
+export const FLIP_LEVEL_RULES: Readonly<Record<FlipLevel, FlipCourseRules>> = {
+  easy: { speedStart: 1024, speedStep: 90, stepTicks: 240, speedCap: 2048, moversFrom: null, sweetTicks: 6, sweetSeconds: [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52], crashCost: 10, sweetsFull: 5 },
+  hard: { speedStart: 1280, speedStep: 90, stepTicks: 180, speedCap: 3072, moversFrom: 8 * TICKS_PER_SECOND, sweetTicks: 1, sweetSeconds: [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52], crashCost: 40, sweetsFull: 7 },
+  // Expert's ten sweet spots sit midway between the (undealt) gold stars' seconds, so placement never fights them.
+  expert: { speedStart: 1408, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 5 * TICKS_PER_SECOND, sweetTicks: 1, sweetSeconds: [6.75, 12.25, 17.75, 23.25, 28.75, 34.25, 39.75, 45.25, 50.75, 56.25], crashCost: 50, sweetsFull: 9 },
+};
+
+/** The level's code in a state (`lvl`). */
+export const FLIP_LEVEL_CODE: Readonly<Record<FlipLevel, number>> = { easy: 1, hard: 3, expert: 4 };
+
+export function isFlipLevel(level: unknown): level is FlipLevel {
+  return level === "easy" || level === "hard" || level === "expert";
+}
+
+/** A state's level (null at Normal and on every older round). */
+export function flipStateLevel(state: Pick<FlipState, "lvl">): FlipLevel | null {
+  return state.lvl === 1 ? "easy" : state.lvl === 3 ? "hard" : state.lvl === 4 ? "expert" : null;
+}
+
+/** Half seconds of clean time a crash costs on this state: its level's, else flipRev 13's FLIP_V13_CRASH_COST. */
+export function flipCrashCost(state: Pick<FlipState, "lvl">): number {
+  const level = flipStateLevel(state);
+  return level ? FLIP_LEVEL_RULES[level].crashCost : FLIP_V13_CRASH_COST;
+}
+
+const flipLevelGames = new Map<FlipLevel, ArcadeGame<FlipState, ArcadeInputEvent | null>>();
+const flipLevelSpecs = new Map<FlipLevel, StdSpec>();
+/** The parts a flipRev 13 state scores on: its level's (perfect landings full at the level's count), else FLIP_V13. */
+export function flipGraceSpecOf(state: Pick<FlipState, "lvl">): StdSpec {
+  const level = flipStateLevel(state);
+  if (!level) return FLIP_V13;
+  let spec = flipLevelSpecs.get(level);
+  if (!spec) {
+    const full = FLIP_LEVEL_RULES[level].sweetsFull;
+    spec = { ...FLIP_V13, parts: FLIP_V13.parts.map((p) => (p.key === "sweets" ? { ...p, of: full } : p)) };
+    flipLevelSpecs.set(level, spec);
+  }
+  return spec;
+}
+
+/** flipRev 13 at a level: its init builds the level's course and stamps `lvl`; step, score and end are flipRev 13's. */
+export function flipGraceGameAt(level: FlipLevel): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  let game = flipLevelGames.get(level);
+  if (!game) {
+    game = {
+      ...flipGraceGame,
+      init: (seed) => ({ ...initV8(seed, level), std: 1, flow: 1, stars: [], streak: 0, bestStreak: 0, slip: 0, grace: 1, respawns: 0, lvl: FLIP_LEVEL_CODE[level] }),
+    };
+    flipLevelGames.set(level, game);
+  }
+  return game;
+}
+
+/**
+ * Builds a flipRev 13 course ahead of its round (RoundIntro calls it while the intro is up, rooms and practice; an async
+ * round's seed only arrives at its start, so it builds then): the build proves the course in the sim (about 100 ms at
+ * Normal, 300–450 ms at Expert and a few seconds where the builder re-rolls, more on a slow phone), and its cache makes
+ * the round's own init at the start a cache hit. Display timing only: the course is the seed's and level's whatever
+ * builds it, and when (flip-levels-check proves a cached course equals a fresh build).
+ */
+export function prepareFlipCourse(seed: number, rev?: number | null, level?: unknown): void {
+  if (rev === FLIP_REV_GRACE) flipCourseV8(seed, isFlipLevel(level) ? level : null);
+}
+
+/** Checks only: whether a course for this seed and level is in the cache (a prepared round's init is a hit). */
+export function flipCourseCached(seed: number, level?: FlipLevel | null): boolean {
+  return level ? cacheV8Level.has(`${level}:${seed | 0}`) : cacheV8.has(seed | 0);
+}
+
+/** Checks only: empties the course caches (Normal's and the levels'), so the next build is a fresh one. */
+export function flipClearCourseCache(): void {
+  cacheV8.clear();
+  cacheV8Level.clear();
+}

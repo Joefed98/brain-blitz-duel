@@ -10,7 +10,7 @@ import type { ArcadeFxSpec } from "./arcadeFx.renderer";
  * is the same render-only eased zoom/scroll as skyline.ts.
  */
 import { px, type CanvasSize } from "./engine";
-import { skylineFlagAt, skylineGustAt, skylineWorldH, SKYLINE_RUN_TICKS, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
+import { skylineFlagAt, skylineGustAt, skylineStartLives, skylineWindFrom, skylineWorldH, SKYLINE_RUN_TICKS, SKYLINE_STREAK_FROM } from "./skyline";
 import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import {
   skylineKindAt,
@@ -773,7 +773,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
 
   const hangTop = floorH - state.blocks.length * blockH - blockH;
   // skylineRev 2: the flag flies from the top block once the wind can blow.
-  if (state.rev && state.placed >= SKYLINE_WIND_FROM && !state.missed) {
+  if (state.rev && state.placed >= skylineWindFrom(state) && !state.missed) {
     const top = state.blocks[state.blocks.length - 1]!;
     drawFlag(ctx, px(top.x + top.w / 2), hangTop + blockH, skylineFlagAt(state, state.tick), state.tick, zoom);
   }
@@ -1419,7 +1419,7 @@ function drawSkylineActionHud(ctx: CanvasRenderingContext2D, state: SkylineState
   const livesChip =
     lives === null
       ? []
-      : [{ label: "LIVES", value: `${lives} / ${SKYLINE_V11_LIVES}`, tone: (lives <= 1 ? "bad" : "plain") as "bad" | "plain", icon: heartIcon(lives <= 1 ? "#FF5D6A" : "#FF8A93"), flash: lostAge >= 0 && lostAge < 60 ? 1 - lostAge / 60 : 0 }];
+      : [{ label: "LIVES", value: `${lives} / ${skylineStartLives(state)}`, tone: (lives <= 1 ? "bad" : "plain") as "bad" | "plain", icon: heartIcon(lives <= 1 ? "#FF5D6A" : "#FF8A93"), flash: lostAge >= 0 && lostAge < 60 ? 1 - lostAge / 60 : 0 }];
   drawActionHud(ctx, SKYLINE_WORLD_W, [
     {
       left: [{ label: "BLOCKS", value: String(state.placed), pulse: { id: "skyline", tick: state.tick } }, ...livesChip],

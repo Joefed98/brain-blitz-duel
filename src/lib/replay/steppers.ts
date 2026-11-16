@@ -11,6 +11,7 @@
  * `inputs` is a tap-tick list for tap games (Hover, High Rise) and t:k:a:b:c:d
  * events for the rest.
  */
+import { puzzleLevel } from "@/lib/levels/levels";
 import {
   checkInputEvents,
   decodeInputEvents,
@@ -86,7 +87,6 @@ import {
   ORBIT_REV3_WORLD_W,
 } from "@/lib/arcade/orbitRev3";
 import { swingGameFor } from "@/lib/arcade/swing";
-import { puzzleLevel } from "@/lib/levels/levels";
 import { snipGameFor } from "@/lib/arcade/snip";
 import { tiltGameFor } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
@@ -191,7 +191,7 @@ function orbitSource(p: PuzzleData): GameSource {
 /** One entry per replayable type: the arcade games plus Letterfall, Tenfall, Bonk, Pull! and Mixed Signals. */
 const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   hover: (p) => ({ game: hoverGameFor(rev(p, "hoverRev")) as AnyGame, taps: true }),
-  skyline: (p) => ({ game: skylineGameFor(rev(p, "skylineRev")) as AnyGame, taps: true }),
+  skyline: (p) => ({ game: skylineGameFor(rev(p, "skylineRev"), puzzleLevel(p)) as AnyGame, taps: true }),
   bintoss: (p) => ({ game: binTossGameFor(rev(p, "binRev")) as AnyGame }),
   bullseye: (p) => ({
     game: bullseyeGame as AnyGame,
@@ -233,7 +233,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   snake: (p) => ({ game: snakeGameFor(rev(p, "snakeRev")) as AnyGame }),
   cross: (p) => ({ game: crossGameFor(rev(p, "crossRev")) as AnyGame }),
   wavefront: (p) => ({ game: wavefrontGameFor(rev(p, "wavRev")) as AnyGame }),
-  flip: (p) => ({ game: flipGameFor(rev(p, "flipRev")) as AnyGame }),
+  flip: (p) => ({ game: flipGameFor(rev(p, "flipRev"), puzzleLevel(p)) as AnyGame }),
   junction: (p) => ({ game: junctionGameFor(rev(p, "junctionRev")) as AnyGame }),
   inkbridge: (p) => ({ game: inkBridgeGameFor(rev(p, "inkRev")) as AnyGame }),
   burst: (p) => ({ game: burstGameFor(rev(p, "burstRev")) as AnyGame }),

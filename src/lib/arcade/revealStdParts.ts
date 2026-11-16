@@ -10,7 +10,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { stdPart, type StdPart, type StdSpec } from "./arcadeStandard";
-import { flipFlowScore, flipFlowUnits, flipGraceScore, flipGraceUnits, flipSweetsTaken, FLIP_V11, FLIP_V13, FLIP_V8_SWEETS, type FlipState } from "./flip";
+import { flipFlowScore, flipFlowUnits, flipGraceScore, flipGraceSpecOf, flipGraceUnits, flipSweetsTaken, FLIP_V11, FLIP_V8_SWEETS, type FlipState } from "./flip";
 import {
   swingAssaultCounts,
   swingReworkParts,
@@ -59,14 +59,15 @@ const secs = (ticks: number) => `${(Math.max(0, ticks) / 60).toFixed(1)} s`;
 function flipParts(s: FlipState): StdPart[] | null {
   if (!s.flow) return null;
   // flipRev 13 (grace): every crash costs 10 s of clean time and none ends the run.
-  const spec = s.grace ? FLIP_V13 : FLIP_V11;
+  // Levels (15 Nov 2026): a level's spec (perfect landings full at its count) and its own number of sweet spots.
+  const spec = s.grace ? flipGraceSpecOf(s) : FLIP_V11;
   const b = s.grace ? flipGraceScore(s) : flipFlowScore(s);
   const clean = (s.grace ? flipGraceUnits(s) : flipFlowUnits(s)) / 2;
   const saves = s.saves ?? 0;
   const sweets = flipSweetsTaken(s);
   return [
     stdPart(spec, "core", b.core, `${clean % 1 ? clean.toFixed(1) : clean} s clean${saves ? ` · ${n(saves, "crash", "crashes")}${s.grace ? "" : " saved"}` : ""}`),
-    stdPart(spec, "sweets", b.features["sweets"] ?? 0, of(sweets, FLIP_V8_SWEETS, "perfect landings")),
+    stdPart(spec, "sweets", b.features["sweets"] ?? 0, of(sweets, s.v8?.sweets.length ?? FLIP_V8_SWEETS, "perfect landings")),
     stdPart(spec, "doubles", b.features["doubles"] ?? 0, n(s.combos ?? 0, "double flip")),
     stdPart(spec, "flow", b.features["flow"] ?? 0, n(s.bestStreak ?? 0, "clean jump", "clean jumps") + " in a row"),
   ];

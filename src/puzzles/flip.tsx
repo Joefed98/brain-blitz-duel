@@ -20,6 +20,7 @@ import { flipEndHoldMs } from "@/lib/arcade/flipFx";
 import { flipRunTimeline } from "@/lib/duel/flipTimeline";
 import { FlipRunPicture } from "@/components/puzzles/FlipRunPicture";
 import { useMemo } from "react";
+import { puzzleLevel } from "@/lib/levels/levels";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 
@@ -46,7 +47,8 @@ const FLIP_STILL_SEED = 301794028;
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: FlipPuzzleData | null = puzzle.type === "flip" ? puzzle : null;
-  const game = flipArtGameFor(data?.flipRev);
+  // Levels (15 Nov 2026): the stored puzzle's level picks the level's course (Normal: none, as before).
+  const game = flipArtGameFor(data?.flipRev, puzzleLevel(data));
   return (
     <ArcadeCanvasStage
       diagKey="flip"
@@ -91,7 +93,7 @@ export function flipLine(r: { survived: boolean; survivedSeconds: number }): str
  */
 function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
   const flip = puzzle.type === "flip" ? puzzle : null;
-  const timeline = useMemo(() => (flip ? flipRunTimeline(flip.seed, myAnswer, flip.flipRev) : null), [flip, myAnswer]);
+  const timeline = useMemo(() => (flip ? flipRunTimeline(flip.seed, myAnswer, flip.flipRev, puzzleLevel(flip)) : null), [flip, myAnswer]);
   if (!timeline) return null;
   return (
     <div data-run-picture="flip" className="flex w-full shrink-0 justify-center animate-fade-in">
@@ -105,12 +107,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   // Stage 2 of the Action overhaul (15 Nov 2026): the flow revisions (flipRev 11–13) draw the run as a picture, replayed
   // from the stored log with the real sim; earlier revisions keep their lines.
   const timeline = useMemo(
-    () => (flip && myAnswer ? flipRunTimeline(flip.seed, myAnswer, flip.flipRev) : null),
+    () => (flip && myAnswer ? flipRunTimeline(flip.seed, myAnswer, flip.flipRev, puzzleLevel(flip)) : null),
     [flip, myAnswer],
   );
   if (!flip) return null;
   if (timeline) return <FlipRunPicture timeline={timeline} />;
-  const result = replayFlipRun(flip.seed, myAnswer ?? "", flip.flipRev);
+  const result = replayFlipRun(flip.seed, myAnswer ?? "", flip.flipRev, puzzleLevel(flip));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">

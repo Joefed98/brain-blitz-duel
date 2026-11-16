@@ -45,6 +45,7 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_LIVES, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
@@ -122,7 +123,6 @@ import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
 import { moonFullM, moonSkyCount, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
-import { puzzleLevel } from "@/lib/levels/levels";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -1230,7 +1230,7 @@ function gradeUnderRev(
     }
     case "skyline": {
       const replayStart = performance.now();
-      const run = replaySkylineRun(puzzle.seed, answer, puzzle.skylineRev);
+      const run = replaySkylineRun(puzzle.seed, answer, puzzle.skylineRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2385,7 +2385,7 @@ function gradeUnderRev(
     }
     case "flip": {
       const replayStart = performance.now();
-      const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev);
+      const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

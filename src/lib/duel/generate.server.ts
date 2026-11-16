@@ -260,7 +260,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "rings") return generateRings();
   if (type === "hover") return generateHover();
   if (type === "swerve") return generateSwerve();
-  if (type === "skyline") return generateSkyline();
+  if (type === "skyline") return generateSkyline(context.level);
   if (type === "bintoss") return generateBinToss();
   if (type === "bullseye") return generateBullseye();
   if (type === "matchup") return generateMatchup();
@@ -299,7 +299,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "wavefront") return generateWavefront();
   if (type === "bastion") return generateBastion(context.level);
   if (type === "rooftop") return generateRooftop();
-  if (type === "flip") return generateFlip();
+  if (type === "flip") return generateFlip(context.level);
   if (type === "junction") return generateJunction();
   if (type === "inkbridge") return generateInkBridge();
   if (type === "burst") return generateBurst();
