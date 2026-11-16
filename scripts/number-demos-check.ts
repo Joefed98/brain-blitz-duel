@@ -2,7 +2,9 @@
  * number-demos-check (the Number overhaul's intro demos, 15 Nov 2026): proves scripts/fixtures/number-demos.json, the
  * demos number-demos-record.ts recorded for the eight Number games and number-demos-save.ts saves.
  *
- *   bun scripts/number-demos-check.ts [game ...] [--no-browser] [--verbose]
+ *   bun scripts/number-demos-check.ts [game ...] [--no-browser] [--part=k/n] [--verbose]
+ *
+ * A whole run takes about 3 minutes (the replays play in real time); --part=k/n replays every n-th demo.
  *
  *   1. Each demo's puzzle is, byte for byte, the public half of the intro example this tree deals (exampleFor: the code
  *      practiceGenerateFn runs with example: true, Normal).
@@ -13,9 +15,10 @@
  *      NUMBER_DEMO_REV, or an example below the game's minimum stamp, is stopped; other games are untouched; and every
  *      minimum stamp is the stamp the example deal carries today (a new Normal stamp fails here until its demo is
  *      re-recorded and the table moved on).
- *   5. In headless Chromium on its own Vite server, the log played over the game's real Stage the way the intro plays it
- *      (scripts/number-demos-mount.tsx) submits the stored answer (its draft timeline aside), and that answer grades
- *      to the stored score with the stored clock.
+ *   5. In headless Chromium on its own Vite server, the real practice route (the safe-area harness, its server functions
+ *      stood in) at the recording's size: the log fired into the stage's region the way the intro's PuzzleDemoPlayer
+ *      fires it submits the stored answer (its draft timeline aside), and that answer grades to the stored score with
+ *      the stored clock.
  *
  * A Number game with no demo in the fixture is printed as PENDING (its demo waits for its new Normal stamp), not failed.
  */
@@ -29,6 +32,7 @@ import { splitPuzzle } from "../src/lib/duel/secrets";
 import { splitTimeline } from "../src/lib/duel/standard/timeline";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { readFixture, type NumberDemo } from "./number-demos-record";
+import { PLAY } from "./number-demos-play";
 import { canonical } from "./number-demos-save";
 import { exampleFor } from "./shots/examples";
 
@@ -36,6 +40,8 @@ const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
 const BROWSER = !args.includes("--no-browser");
 const named = args.filter((a) => !a.startsWith("--"));
+/** --part=k/n: the browser replays of every n-th demo from the k-th (the fast parts run whole in every part). */
+const PART = args.find((a) => a.startsWith("--part="))?.slice(7).split("/").map(Number) as [number, number] | undefined;
 const games = (named.length ? named : [...NUMBER_DEMO_GAMES]) as string[];
 
 const failures: string[] = [];
@@ -97,7 +103,9 @@ for (const [game, [field, min]] of Object.entries(required)) {
 const anyGame = { puzzle: { type: "maze" }, input_log: { actions: [] } };
 if (!numberDemoPlays("maze", anyGame)) fail("stop rule", "a game outside the Number overhaul is stopped");
 
-// 5. The replay in a browser.
+// 5. The replay in a browser: the real practice route (scripts/safe-area-harness.tsx, its server functions stood in) at
+// the size the demos were recorded at, the log fired into the stage's region the way PuzzleDemoPlayer fires it.
+
 if (BROWSER && present.length) {
   const CHROMIUM = [process.env["PLAYWRIGHT_CHROMIUM"], "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find((p): p is string => Boolean(p && existsSync(p)));
   if (!CHROMIUM) fail("environment", "no Chromium (set PLAYWRIGHT_CHROMIUM)");
@@ -107,39 +115,48 @@ if (BROWSER && present.length) {
     const { chromium } = await import("playwright");
     const browser = await chromium.launch({ executablePath: CHROMIUM });
     try {
-      for (const game of present) {
+      for (const game of present.filter((_, i) => !PART || i % PART[1] === PART[0] - 1)) {
         const demo: NumberDemo = demos[game]!;
-        const context = await browser.newContext({ viewport: { width: demo.log.w + 20, height: demo.log.h + 20 }, hasTouch: true });
-        // The harness page reads its stand-in state from window.__harness (as demo-intro-check sets it).
-        await context.addInitScript(() => {
-          (window as unknown as { __harness: unknown }).__harness = { puzzles: {}, verdict: { isCorrect: true, score: 0 }, latencyMs: 0, submissions: [], verdictAt: null, room: null };
-        });
+        // The size the recorder ran at (scripts/number-demos-record.ts).
+        const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+        const harness = { puzzles: { [game]: demo.puzzle }, verdict: { isCorrect: true, score: demo.score }, latencyMs: 0, submissions: [], verdictAt: null, room: null, search: { game }, demos: {} };
+        await context.addInitScript((h) => {
+          (window as unknown as { __harness: unknown }).__harness = JSON.parse(h);
+          // The app links src/styles.css in the page head before any component style; the harness's Vite injects it by
+          // script, after React has hoisted the games' own <style precedence> sheets, which then lose ties they win in
+          // the app (Counterweight's arena). Keep styles.css first, as in the app.
+          new MutationObserver(() => {
+            const sheet = document.head?.querySelector('style[data-vite-dev-id$="/src/styles.css"]');
+            if (sheet && document.head.firstElementChild !== sheet) document.head.prepend(sheet);
+          }).observe(document, { childList: true, subtree: true });
+        }, JSON.stringify(harness));
         const page = await context.newPage();
         const errors: string[] = [];
         page.on("pageerror", (e) => errors.push(String(e.message).split("\n")[0]!));
         try {
-          await page.goto(`${server.origin}/safe-area.html?mode=home`, { timeout: 180_000 });
-          await page.waitForSelector("#root *", { timeout: 180_000 }).catch(() => undefined);
-          const last = Math.max(...demo.log.actions.map((a) => a.t));
-          const played = (await page.evaluate(
-            async ({ puzzle, log, timeoutMs }) => {
-              const mount = (await import(/* @vite-ignore */ "/scripts/number-demos-mount.tsx")) as {
-                playDemo: (p: unknown, l: unknown, t: number) => Promise<{ answer: string | null; ms: number }>;
-              };
-              return mount.playDemo(puzzle, log, timeoutMs);
-            },
-            { puzzle: demo.puzzle, log: demo.log, timeoutMs: last + 15_000 },
-          )) as { answer: string | null; ms: number };
-          if (played.answer === null) {
-            fail(game, "the demo played over the real Stage never submitted");
+          await page.goto(`${server.origin}/safe-area.html?mode=practice`, { timeout: 180_000 });
+          const go = page.getByRole("button", { name: /^(Ready|Play)$/ }).first();
+          await go.waitFor({ timeout: 120_000 });
+          await page.waitForTimeout(800);
+          await go.click();
+          await page.locator("[data-game-region]").first().waitFor({ timeout: 60_000 });
+          // The recorder was attached 1.2 s after the stage appeared.
+          await page.waitForTimeout(1200);
+          const size = (await page.evaluate(`(${PLAY})(${JSON.stringify({ log: demo.log })})`)) as { w: number; h: number };
+          if (Math.abs(size.w - demo.log.w) > 2 || Math.abs(size.h - demo.log.h) > 0.04 * demo.log.h) fail(game, `the play area is ${size.w} × ${size.h}, recorded ${demo.log.w} × ${demo.log.h}`);
+          const answer = await page
+            .waitForFunction(() => (window as unknown as { __harness: { submissions: { answer: string }[] } }).__harness.submissions[0]?.answer ?? null, null, { timeout: 15_000, polling: 100 })
+            .then((h) => h.jsonValue() as Promise<string>)
+            .catch(() => null);
+          if (answer === null) {
+            fail(game, "the demo played on the practice screen never submitted");
             if (VERBOSE) await page.screenshot({ path: `/tmp/number-demos-check-${game}.png` });
-          }
-          else {
-            const body = splitTimeline(played.answer).body;
+          } else {
+            const body = splitTimeline(answer).body;
             if (body !== splitTimeline(demo.answer).body) fail(game, `the demo submits ${JSON.stringify(body)}, the fixture ${JSON.stringify(splitTimeline(demo.answer).body)}`);
-            const regraded = gradeAnswer(fullOf.get(game), played.answer, demo.msRemaining, demo.extra as never);
+            const regraded = gradeAnswer(fullOf.get(game), answer, demo.msRemaining, demo.extra as never);
             if (regraded.score !== demo.score) fail(game, `the replayed answer grades ${regraded.score}, the fixture ${demo.score}`);
-            if (VERBOSE) console.log(`${game}: replay submitted after ${(played.ms / 1000).toFixed(1)} s, score ${regraded.score}`);
+            if (VERBOSE) console.log(`${game}: replayed on ${size.w} × ${size.h}, score ${regraded.score}`);
           }
           for (const e of errors) fail(game, `page error: ${e}`);
         } finally {

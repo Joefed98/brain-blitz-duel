@@ -11,8 +11,9 @@
  * refuses to record unless the page was dealt exactly the example this tree deals (exampleFor, the code
  * practiceGenerateFn runs). It then attaches the app's own DemoRecorder (src/lib/duel/puzzleDemo.ts, the module the
  * practice route records with) to the stage's region, as the route does, and a bot plays the example to the finish with
- * real pointer input on the live board, at a natural pace. The run's answer comes from the practice grade request the
- * page sends; the score is the server's own gradeAnswer on the example (the grade response is checked against it).
+ * real pointer input on the live board, at a natural pace. The log is then replayed into a fresh round the way the
+ * intro plays it (number-demos-play.ts), and that round's practice grade request gives the stored answer; the score is
+ * gradeAnswer on the example (the server's grade response must agree).
  *
  * The saved log carries what the app's Save demo button adds (the presentation for the games in REVISED_PUZZLE_DEMOS)
  * and NUMBER_DEMO_REV, which the server's stop rules require for these eight games (introDemo.functions.ts).
@@ -29,6 +30,7 @@ import { numlineShare, numlineValue } from "../src/lib/duel/numline";
 import type { PuzzleDemoLog } from "../src/lib/duel/puzzleDemo";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleData } from "../src/lib/duel/types";
+import { PLAY } from "./number-demos-play";
 import { exampleFor } from "./shots/examples";
 
 export const FIXTURE = "scripts/fixtures/number-demos.json";
@@ -380,17 +382,28 @@ async function recordGame(page: Page, origin: string, game: string, verbose: boo
   });
   // A game's page (?page=<id>, where ?game= lands today) deals on Play and opens the round in its 3-2-1; an older
   // build's ?game= link opens the full intro with Ready. Either way the deal is the example (the request above).
-  await page.goto(`${origin}/practice?game=${encodeURIComponent(game)}`, { waitUntil: "domcontentloaded" });
-  const start = page.getByRole("button", { name: /^(Ready|Play)$/ }).first();
-  await start.waitFor({ timeout: 240_000 });
-  await pause(page, 1500);
-  await start.click();
-  await page.locator("[data-game-stage]").first().waitFor({ timeout: 60_000 });
-  if (JSON.stringify(dealt) !== JSON.stringify(pub)) throw new Error(`the page was not dealt this tree's example:\n page ${JSON.stringify(dealt)}\n tree ${JSON.stringify(pub)}`);
+  const openRound = async () => {
+    dealt = null;
+    graded = null;
+    await page.goto(`${origin}/practice?game=${encodeURIComponent(game)}`, { waitUntil: "domcontentloaded" });
+    const start = page.getByRole("button", { name: /^(Ready|Play)$/ }).first();
+    await start.waitFor({ timeout: 240_000 });
+    await pause(page, 1500);
+    await start.click();
+    await page.locator("[data-game-stage]").first().waitFor({ timeout: 60_000 });
+    if (JSON.stringify(dealt) !== JSON.stringify(pub)) throw new Error(`the page was not dealt this tree's example:\n page ${JSON.stringify(dealt)}\n tree ${JSON.stringify(pub)}`);
+  };
+  const answerSent = async () => {
+    for (let i = 0; i < 150 && !graded; i++) await pause(page, 100);
+    if (!graded) throw new Error("the run never sent its answer");
+    return graded as { data: Record<string, unknown>; result: Record<string, unknown> };
+  };
+  await openRound();
   // The stage is live once the round clock runs: attach the app's recorder to the region, as the practice route does.
   await pause(page, 1200);
   await page.evaluate(async () => {
-    const mod = (await import(/* @vite-ignore */ "/src/lib/duel/puzzleDemo.ts")) as typeof import("../src/lib/duel/puzzleDemo");
+    const url = "/src/lib/duel/puzzleDemo.ts";
+    const mod = (await import(/* @vite-ignore */ url)) as typeof import("../src/lib/duel/puzzleDemo");
     const region = document.querySelector("[data-game-region]") as HTMLElement;
     const rec = new mod.DemoRecorder(Date.now());
     rec.attach(region);
@@ -399,10 +412,14 @@ async function recordGame(page: Page, origin: string, game: string, verbose: boo
   await pause(page, 600);
   await bot(page, full);
   if (verbose) await page.screenshot({ path: `/tmp/number-demo-${game}-end.png` });
-  for (let i = 0; i < 100 && !graded; i++) await pause(page, 100);
-  if (!graded) throw new Error("the run never sent its answer");
+  await answerSent();
   const log = (await page.evaluate(() => (window as unknown as { __rec: { finish: () => unknown } }).__rec.finish())) as PuzzleDemoLog;
-  const g = graded as { data: Record<string, unknown>; result: Record<string, unknown> };
+  // The demo's own answer: the log replayed into a fresh round the way the intro plays it (the recorder keeps touches
+  // to 1/1000 of the play area, so a drag can land a hair from the bot's; this is the answer the demo really makes).
+  await openRound();
+  await pause(page, 1200);
+  await page.evaluate(`(${PLAY})(${JSON.stringify({ log })})`);
+  const g = await answerSent();
   const answer = String(g.data["answer"]);
   const msRemaining = Number(g.data["msRemaining"]);
   const extra = g.data["extra"];
@@ -419,13 +436,14 @@ async function recordGame(page: Page, origin: string, game: string, verbose: boo
 
 if (import.meta.main) {
   const args = process.argv.slice(2);
-  const origin = (args.find((a) => a.startsWith("--url="))?.slice(6) ?? process.env.DEMOS_URL ?? "http://127.0.0.1:5190").replace(/\/$/, "");
+  const origin = (args.find((a) => a.startsWith("--url="))?.slice(6) ?? process.env["DEMOS_URL"] ?? "http://127.0.0.1:5190").replace(/\/$/, "");
   const verbose = args.includes("--verbose");
   const named = args.filter((a) => !a.startsWith("--"));
   const games = named.length ? named : Object.keys(BOTS);
   for (const g of games) if (!(NUMBER_DEMO_GAMES as readonly string[]).includes(g)) throw new Error(`${g} is not a Number game`);
   const { chromium } = await import("playwright");
-  const browser = await chromium.launch({ executablePath: [process.env.PLAYWRIGHT_CHROMIUM, "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find((p) => p && existsSync(p)) });
+  const executablePath = [process.env["PLAYWRIGHT_CHROMIUM"], "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find((p): p is string => Boolean(p && existsSync(p)));
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const demos = readFixture();
   let failed = 0;
   try {

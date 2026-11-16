@@ -8,7 +8,7 @@
  * build also needs INTRO_DEMO_SAVES=1). A dev server used for saves needs more memory than the default:
  * NODE_OPTIONS=--max-old-space-size=6144 bun run dev. INTRO_DEMO_KEY: the demo key (never printed). DEMOS_GAMES or
  * --games: only these games (flags win over the environment). DEMOS_DRY=1 or --dry: everything but the save (the
- * deal is fetched and compared, the key is checked with checkDemoKeyFn).
+ * deal is fetched and compared, the key is checked with checkDemoKeyFn; a refused key fails the dry run).
  *
  * For each game it opens DEMOS_URL in headless Chromium, asks the server for the fixed intro example exactly as the app
  * does (practiceGenerateFn with example: true, no level: Normal) and refuses to save unless the deal is exactly the
@@ -18,6 +18,8 @@
 import { existsSync, readFileSync } from "node:fs";
 
 const FIXTURE = "scripts/fixtures/number-demos.json";
+/** The app's practice server functions, imported in the page from the running app's own dev server. */
+const FUNCTIONS = "/src/lib/duel/practice.functions.ts";
 
 /** Key-order-free JSON, so a deal from the server compares with the fixture's whatever order its keys came in. */
 export function canonical(value: unknown): string {
@@ -71,11 +73,15 @@ if (import.meta.main) {
     const page = await (await browser.newContext()).newPage();
     await page.goto(`${opts.url}/terms`, { waitUntil: "domcontentloaded", timeout: 180_000 });
     if (opts.dry) {
-      const ok = await page.evaluate(async (k) => {
-        const fns = (await import(/* @vite-ignore */ "/src/lib/duel/practice.functions.ts")) as { checkDemoKeyFn: (a: { data: { key: string } }) => Promise<{ ok: boolean }> };
+      const ok = await page.evaluate(async ({ k, FNS }) => {
+        const fns = (await import(/* @vite-ignore */ FNS)) as { checkDemoKeyFn: (a: { data: { key: string } }) => Promise<{ ok: boolean }> };
         return (await fns.checkDemoKeyFn({ data: { key: k } })).ok;
-      }, key).catch(() => null);
-      console.log(`key: ${ok === null ? "could not be checked" : ok ? "accepted" : "refused"} (dry run: nothing is saved)`);
+      }, { k: key, FNS: FUNCTIONS }).catch(() => null);
+      if (ok) console.log("OK key: accepted (dry run: nothing is saved)");
+      else {
+        failed++;
+        console.log(`FAIL key: ${ok === null ? "could not be checked" : "refused"} (dry run: nothing is saved)`);
+      }
     }
     for (const game of games) {
       const demo = demos[game];
@@ -85,12 +91,12 @@ if (import.meta.main) {
         continue;
       }
       try {
-        const dealt = await page.evaluate(async (type) => {
-          const fns = (await import(/* @vite-ignore */ "/src/lib/duel/practice.functions.ts")) as {
+        const dealt = await page.evaluate(async ({ type, FNS }) => {
+          const fns = (await import(/* @vite-ignore */ FNS)) as {
             practiceGenerateFn: (a: { data: { type: string; example: boolean } }) => Promise<{ puzzle: unknown; sealed: string }>;
           };
           return fns.practiceGenerateFn({ data: { type, example: true } });
-        }, game);
+        }, { type: game, FNS: FUNCTIONS });
         if (canonical(dealt.puzzle) !== canonical(demo.puzzle)) {
           failed++;
           console.log(`FAIL ${game}: the server's intro example is not the board the demo was recorded on (re-record with number-demos-record.ts)`);
@@ -101,13 +107,13 @@ if (import.meta.main) {
           continue;
         }
         await page.evaluate(
-          async ({ puzzle, sealed, log, k }) => {
-            const fns = (await import(/* @vite-ignore */ "/src/lib/duel/practice.functions.ts")) as {
+          async ({ puzzle, sealed, log, k, FNS }) => {
+            const fns = (await import(/* @vite-ignore */ FNS)) as {
               savePuzzleDemoFn: (a: { data: { puzzle: unknown; sealed: string; log: unknown; dev: boolean; key: string } }) => Promise<unknown>;
             };
             await fns.savePuzzleDemoFn({ data: { puzzle, sealed, log, dev: true, key: k } });
           },
-          { puzzle: dealt.puzzle, sealed: dealt.sealed, log: demo.log, k: key },
+          { puzzle: dealt.puzzle, sealed: dealt.sealed, log: demo.log, k: key, FNS: FUNCTIONS },
         );
         console.log(`OK ${game}: saved`);
       } catch (error) {
