@@ -2641,6 +2641,27 @@ outside the repo.
   picture. Intro demos for the six Action games: `scripts/fixtures/action-demos.json` (`action-demos-record.ts`, proved by
   action-demos-check, saved by `bun scripts/action-demos-save.ts [--dry]` from `DEMOS_URL` / `INTRO_DEMO_KEY` against a dev
   server, never from a session), stop rules `ACTION_DEMO_REVS` in introDemo.functions.ts.
+- **The Action overhaul, stage 3: levels** (15–16 Nov 2026; each game's `docs/arcade-standard/<game>.md` "Levels", with
+  its levers, measured tables and Expert seeds for Joe; the levels framework `docs/design/difficulty/README.md`). All six
+  Action games offer Easy, Normal, Hard and Expert (`GAME_LEVELS`), max 120 s and grace at every level, 200 proved at
+  every level. Normal is today's game for five of them (the deal stamps `level` only off Normal; the sims read it into a
+  state field folded into the checksum only when present). **Iron Wall** is Joe's approved exception (too-hard games:
+  today's becomes Expert): rooms, rated and the Daily deal `bastionRev 4` Normal; Easy / Normal / Hard are rev 4
+  (`BT4_LEVELS`: slower waves, wider green zone, longer and bigger weak spots, 5 / 4 / 3 base hits, fewer heavies, slower
+  and bigger drones), Expert deals `bastionRev 3` stamped `level: "expert"`; `pinBastionPreLevels(true)` deals rev 3;
+  bastion-levels-check. **Roofbound** (`FLIP_LEVEL_RULES`: speed, moving spikes from none / 8 s / 5 s, sweet spots,
+  perfect landings full at 5 / 7 / 9, 5 / 20 / 25 s a crash; per-level proved deals `flipLevelDeals.server.ts`,
+  `bun scripts/flip-level-deal.ts`; the course is built during the intro, `prepareFlipCourse`) and **High Rise**
+  (`SKYLINE_LEVEL_RULES`: slide, 5 / 3 / 2 px, wind from 30 / 15 / 10, lives 3 / 2 / 2; oracle `scripts/skyline-oracle.ts`,
+  Skyscraper possible): flip-levels-check, skyline-levels-check, bands `bun scripts/flip-skyline-levels-bands.ts`.
+  **Grappler** (`SWING_LEVELS`, `withLevel`: reach, sliding vines, stall limit, pterodactyl, dark runs; per-level proved
+  deals `swingLevelDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18 --level=…`) and **Moon Climb**
+  (`MOON_LEVELS`: blades, shurikens, ice, lanterns, knock-down, full height 200 / 245 / 260 m; towers proved in the sim):
+  swing-levels-check, ricochet-levels-check, bands `bun scripts/action-levels-bands.ts`. **Orbit** (`ORBIT_LEVEL_RULES`:
+  tank 240 / 140 / 120, Easy's armed auto checkpoints, Expert respawn only; per-level proved banks
+  `orbitFuelBank{Easy,Hard,Expert}.server.ts`, `bun scripts/orbit-fuel-bank.ts --level=…`): orbit-levels-check, bands
+  `bun scripts/orbit-level-bands.ts`. Human limits in the tuning are each game's own bot constraint (documented per
+  game), measured with main's `scripts/level-tune.ts` (checkpoints every 300 ticks), not #444's.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

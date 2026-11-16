@@ -272,6 +272,8 @@ export const SHARDS: Record<string, string[]> = {
     "ink-v13-check.ts",
     "burst-standard-check.ts",
     "bastion-check.ts",
+    "orbit-levels-check.ts",
+    "flip-levels-check.ts",
     "d5-remodels-check.ts",
     "ink-v11-check.ts",
     "hover-standard-check.ts",
