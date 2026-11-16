@@ -22,8 +22,8 @@ import { decodeGravityTilts } from "../gravity";
 import { isTopsy, replayTopsyPuzzle } from "../topsy";
 import { JUMBLED_MOVABLE, jumbledInPlace, replayGradientAnswer } from "../jumbled";
 import { decodeRingTaps, freshOffsets, replayRings, ringColour, ringsApply } from "../rings";
-import { decodeFlowPaths, verifyFlow } from "../flow";
-import { decodeSides, rotateMask, tileOpenings } from "../logic";
+import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "../flow";
+import { decodeSides, pipesDims, rotateMask, tileOpenings } from "../logic";
 import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
 import { decodePipesTurns, pipesAfterTurns } from "../depth4/pipesTaps";
@@ -488,13 +488,13 @@ const lightbender: StandardGame = {
 /* ------------------------------------------------------------------ Chroma Lines (flow) */
 
 function flowPaths(puzzle: Of<"flow">, answer: string): number[][] {
-  return decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
+  return decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS, flowCellCount(flowGrid(puzzle)));
 }
 
 /** Pairs joined along their solution route, less pairs joined off it (today's rule: random lines earn about 0). */
 function flowNet(puzzle: Of<"flow">, answer: string): number {
   const paths = flowPaths(puzzle, answer);
-  const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
+  const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], flowGrid(puzzle));
   const { onRoute } = flowRouteCounts(puzzle.solution, paths, verdict.joined);
   return Math.max(0, 2 * onRoute - verdict.pairsJoined);
 }
@@ -509,7 +509,7 @@ export function flowRedraws(puzzle: Of<"flow">, drafts: readonly TimedDraft[] | 
   let redraws = 0;
   for (const d of drafts) {
     const paths = flowPaths(puzzle, d.draft);
-    const joined = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []).joined;
+    const joined = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], flowGrid(puzzle)).joined;
     puzzle.pairs.forEach((_, i) => {
       const key = (paths[i] ?? []).join(",");
       if (done[i] !== null && key !== done[i]) {
@@ -573,8 +573,9 @@ function pipesConnected(puzzle: Of<"pipes">, answer: string): { done: number; to
   const taps = (puzzle.pipesRev ?? 0) >= 1 ? decodePipesTurns(answer, puzzle.tiles.length, usesPatternNov15(puzzle, "pipes")) : null;
   const board = taps ? pipesAfterTurns(puzzle.tiles, taps) : decodeSides(puzzle.tiles, answer);
   if (usesPipesPlaced(puzzle) && puzzle.solution?.length === puzzle.tiles.length) return pipesPlaced(puzzle, board);
-  const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected;
-  const now = gradePipesBoard(puzzle.source, board).connected;
+  const cols = pipesDims(puzzle).cols;
+  const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, ""), cols).connected;
+  const now = gradePipesBoard(puzzle.source, board, cols).connected;
   return { done: Math.max(0, now - start), total: puzzle.tiles.length - start };
 }
 

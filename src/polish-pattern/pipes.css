@@ -130,3 +130,10 @@
 .pipes-turns-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--jz-text-2); }
 .pipes-turns-fill[data-over] { background: var(--destructive); }
 .pipes-turns-par { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--jz-gold); }
+
+/* Difficulty levels (15 Nov 2026): Expert's 8 × 11 board grows downwards (8 across keeps ~44 px tiles on a 375 px
+   phone); `--pipes-ar` is its width over its height. Square levels (5 × 5, 8 × 8) use the rules above unchanged. */
+.game-column [data-polish="pipes"] .pipes-play-board[data-pipes-tall] { aspect-ratio: var(--pipes-ar); width: min(100cqw, calc(100cqh * var(--pipes-ar))); }
+.game-column [data-polish="pipes"] .pipes-play-board[data-pipes-tall][data-with-pills] { width: min(100cqw, calc((100cqh - 34px) * var(--pipes-ar))); }
+.pipes-reveal-board[data-pipes-tall] { aspect-ratio: var(--pipes-ar); width: min(100%, calc((100cqh - 132px) * var(--pipes-ar))); }
+.pipes-reveal-board[data-pipes-tall] > .pipes-board { aspect-ratio: var(--pipes-ar); }

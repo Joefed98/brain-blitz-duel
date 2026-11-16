@@ -74,11 +74,17 @@ an unfinished third of the line):
 <!-- tessellate:start -->
 ## Tessellate
 
-**The look: today | concept A | new** (mid-play, same scale)
+**The look: today | concept A | stage 1 | now** (play, same scale)
 
-| Today | Concept A | New |
-|---|---|---|
-| <img src="../../game-reviews/img/pattern/blockparty-2-mid.webp" width="180"> | <img src="blockparty-concept-A.webp" width="180"> | <img src="blockparty-after-play.webp" width="180"> |
+| Today | Concept A | Stage 1 (engraved studs, flat tray) | Now (16 Nov 2026, current code) |
+|---|---|---|---|
+| <img src="../../game-reviews/img/pattern/blockparty-2-mid.webp" width="160"> | <img src="blockparty-concept-A.webp" width="160"> | <img src="blockparty-after-play.webp" width="160"> | <img src="blockparty-level-normal.webp" width="160"> |
+
+"Now" is a fresh 390 × 844 frame of a real Normal practice round on this branch's dev server: plain brass domes on
+the pegs and the tray's own glossy blocks. The sprite files were already right; what could still show the old art was
+the cache: the URLs (`/pattern-art/blockparty/peg.webp` …) never changed when stage 2 re-rendered them, so a phone
+that had loaded stage 1 could keep the engraved studs and flat tray blocks. Every sprite URL now carries the files'
+hash (`?v=cdb697b1`, `BLOCK_ART_HASH`; the levels check fails if a re-render doesn't update it).
 
 The richness pass (sprite.py's rich studio): polished brass studs with a mirror highlight on the dome, lacquered
 blocks with a hard clear coat (one crisp highlight on the bevel, depth down the sides, today's saturated colours: the
@@ -164,6 +170,26 @@ block, now.
   shine is a still glow that fades.
 - Never in the way: the next move is taken during any effect (no input waits on one); effects animate only the piece's
   own elements, never the board, arena or tray holding the hit areas.
+
+### Stage 3: levels
+
+Practice rounds at 390 × 844 on the current code, each level chosen on the device (the framework's selector).
+
+| Easy | Normal | Hard | Expert |
+|---|---|---|---|
+| <img src="blockparty-level-easy.webp" width="160"> | <img src="blockparty-level-normal.webp" width="160"> | <img src="blockparty-level-hard.webp" width="160"> | <img src="blockparty-level-expert.webp" width="160"> |
+
+- **Easy**: 6 × 6, six small pieces (Dot, Two, Three, Corner, Square, L; 17 squares), the pieces grown into one patch,
+  20+ ways to finish (20–626 in the bank), 60 s.
+- **Normal**: today's game exactly (7 × 7, nine pieces, 5–60 ways, 60 s).
+- **Hard**: Normal's board and pieces with only 2–5 ways to finish, and every board needs at least two held guesses
+  of a person-like solver but no more than three; full speed by 32 s.
+- **Expert**: 8 × 8 (44 px squares on a 375 px phone), eleven pieces (Normal's nine plus a U in cyan and a P in slate,
+  new Blender renders), 1–2 ways, 70 s, full speed by 36 s; every board needs exactly three held guesses of the
+  person-like solver, which finishes every one. (Joe's spec said 1–3 ways and 90 s; at 90 s or 75 s the tuning bots
+  scored Expert as high as Hard, so Expert was tightened for a clear step. The frame above was taken before that
+  change; the board and tray look the same.) The tray goes four to a row, so its eleven pieces take three rows and the board keeps its
+  full width (351 px at 375 × 667, the same box as Normal's).
 <!-- tessellate:end -->
 
 <!-- pipeline:start -->
@@ -238,6 +264,22 @@ and the source's bubbles).
 - **Solve**: the rush fills the network (now a scale, transform only), the source valve bubbles (`pipes.bubble`), and
   the reveal's result card gets the kit's win.
 - **Reduced motion**: every change a 120 ms crossfade (the kit's for the turn), no bubbles; the rush a still glow.
+### Levels (stage 3)
+
+**Easy · Normal · Hard · Expert** (390 × 844, practice, the live round; all 120 s)
+
+| Easy 5 × 5 | Normal 7 × 7 | Hard 8 × 8 | Expert 8 × 11 |
+|---|---|---|---|
+| <img src="pipes-level-easy.webp" width="160" alt="Pipeline Easy"> | <img src="pipes-level-normal.webp" width="160" alt="Pipeline Normal"> | <img src="pipes-level-hard.webp" width="160" alt="Pipeline Hard"> | <img src="pipes-level-expert.webp" width="160" alt="Pipeline Expert"> |
+
+- **Easy**: 5 × 5, exactly 60 % of the tiles dealt turned (the rest already right), spills shown.
+- **Normal**: today's game, byte for byte (7 × 7, at least 80 % turned, spills shown, pipesRev 5).
+- **Hard**: 8 × 8 (about 44 px a tile on a 375 px phone), at least 90 % turned, spills shown.
+- **Expert**: 8 across × 11 down (88 tiles; 9 across would be 39 px tiles), at least 95 % turned, **no spills during
+  play** (the reveal still shows them). Fits 375 × 667 with the Turns / Par pills (39 px tiles).
+- Every level board is proved one-solution when dealt by a solver that reasons like a person (matching sides, no loops,
+  never seal off a group, no guessing), and re-proved in the check by a searching solver. Par is the fewest turns
+  either way at every level.
 <!-- pipeline:end -->
 
 <!-- chroma:start -->
@@ -302,6 +344,33 @@ and the solve.
   silent) under `flow.solve`.
 - **Reduced motion:** each change shows as a 120 ms crossfade (the head, the joined tube, the cut part, the solve), no
   light runs and no particles.
+
+### Stage 3: levels (16 Nov 2026)
+
+**Lines today, for Joe's brightness check: a fresh Normal round mid-play from the current code | concept A** (390 × 844,
+colours unchanged)
+
+| Normal now (mid-play) | Concept A |
+|---|---|
+| <img src="flow-level-normal.webp" width="180" alt="Chroma Lines Normal, mid-play, current code"> | <img src="flow-concept-A.webp" width="180" alt="Chroma Lines concept A"> |
+
+**The four levels, mid-play** (390 × 844, practice, about half the pairs joined)
+
+| Easy | Normal | Hard | Expert |
+|---|---|---|---|
+| <img src="flow-level-easy.webp" width="160" alt="Chroma Lines Easy: 6 by 6"> | <img src="flow-level-normal.webp" width="160" alt="Chroma Lines Normal: 9 by 9"> | <img src="flow-level-hard.webp" width="160" alt="Chroma Lines Hard: 9 by 9, fewer longer lines"> | <img src="flow-level-expert.webp" width="160" alt="Chroma Lines Expert: 9 wide by 12 tall"> |
+
+**Expert's answer reveal** (the 9 × 12 board at its own aspect, all 14 pairs): <img src="flow-level-expert-reveal.webp" width="180" alt="Chroma Lines Expert reveal">
+
+- **Easy:** 6 × 6, 5–6 pairs, no walls, 75 s; full speed by 15 s.
+- **Normal:** today's game (9 × 9, 10–12 pairs, 2–4 walls, 75 s), the same bank and deal; full speed by 30 s on
+  flowRev 3 (was 20 s, which no strong player reached).
+- **Hard:** 9 × 9, 8–9 pairs with longer lines (8+ squares on average), 4–6 walls, 75 s; full speed by 35 s.
+- **Expert:** 9 wide × 12 tall (squares stay about 39 px on a 375 px phone; the board grows downwards), 12–14 pairs,
+  4–6 walls, 90 s; full speed by 45 s. Two new colours for the 13th and 14th pairs: cyan (a hexagon) and tan (two
+  bars), each a Blender bead like the twelve.
+- Every level's boards come from their own seeded bank of 500, each proved to have exactly one solution and finished by
+  a solver that reasons like a person (no guessing).
 <!-- chroma:end -->
 
 <!-- skid:start -->

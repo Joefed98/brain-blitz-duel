@@ -2,11 +2,11 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills } from "@/components/puzzles/pattern/framePills";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
 import { HudPills } from "@/components/puzzles/HudPills";
-import { FLOW_COLOUR_HEX as GLYPH_COLOURS, decodeFlowPaths, encodeFlowPaths, flowCutsLines, flowDrawStep, flowTapClears, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
+import { FLOW_COLOUR_HEX as GLYPH_COLOURS, decodeFlowPaths, encodeFlowPaths, flowCellCount, flowCutsLines, flowDrawStep, flowGrid, flowTapClears, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   FLOW_CELLS,
@@ -58,6 +58,8 @@ export function FlowBoard({
 }) {
   const rows = Math.ceil(cells / cols) || cols;
   const total = cols * rows;
+  // Levels (16 Nov 2026): Expert's 9 × 12 board is taller than wide; every square board keeps its class as before.
+  const square = rows === cols;
   const pointer = useGridPointer({ cols, rows, onCell, onRelease });
   const metrics = useGridMetrics(pointer.ref, cols, rows);
 
@@ -74,7 +76,11 @@ export function FlowBoard({
   const solveFx = useSolveMoment(live && solved, "flow.solve");
 
   return (
-    <div className="flow-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none">
+    <div
+      className={`flow-board relative mx-auto ${square ? "aspect-square " : ""}h-full max-h-full w-full max-w-full select-none`}
+      style={square ? undefined : { aspectRatio: `${cols} / ${rows}` }}
+      data-flow-grid={square ? undefined : `${cols}x${rows}`}
+    >
       <div
         ref={pointer.ref}
         className="puzzle-board grid h-full w-full touch-none"
@@ -175,8 +181,10 @@ export type FlowPairState = "route" | "other" | "open";
  */
 export function flowRevealView(puzzle: FlowPuzzleData, answer: string, extra: Record<string, unknown> | null | undefined) {
   const walls = puzzle.walls ?? [];
-  const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_MAX_PAIRS);
-  const verdict = verifyFlow(puzzle.pairs, paths, walls);
+  const grid = flowGrid(puzzle);
+  const cellCount = flowCellCount(grid);
+  const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_MAX_PAIRS, cellCount);
+  const verdict = verifyFlow(puzzle.pairs, paths, walls, grid);
   const solution = puzzle.solution ?? [];
   const key = (cells: readonly number[]) => [...cells].sort((a, b) => a - b).join(",");
   const states: FlowPairState[] = puzzle.pairs.map((_, i) =>
@@ -196,7 +204,7 @@ export function flowRevealView(puzzle: FlowPuzzleData, answer: string, extra: Re
     }
   });
   const empty = new Set<number>();
-  for (let c = 0; c < FLOW_CELLS; c++) if (!covered.has(c) && !dots.has(c) && !wallSet.has(c)) empty.add(c);
+  for (let c = 0; c < cellCount; c++) if (!covered.has(c) && !dots.has(c) && !wallSet.has(c)) empty.add(c);
   const num = (k: string): number | null => {
     const v = extra?.[k];
     return typeof v === "number" && Number.isFinite(v) ? v : null;
@@ -208,7 +216,7 @@ export function flowRevealView(puzzle: FlowPuzzleData, answer: string, extra: Re
     pairsJoined: num("pairsJoined") ?? verdict.pairsJoined,
     filled: num("filled") ?? verdict.filled,
     redraws: num("redraws"),
-    squares: FLOW_CELLS - walls.length,
+    squares: cellCount - walls.length,
   };
 }
 
@@ -268,10 +276,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   const submitted = useRef(false);
 
   const walls = puzzle.type === "flow" ? (puzzle.walls ?? []) : [];
+  const grid = useMemo(() => flowGrid(puzzle.type === "flow" ? puzzle : null), [puzzle]);
+  const cellCount = flowCellCount(grid);
   /** flowRev 3: drawing over another line cuts it back, and a still tap on a dot leaves its line alone. */
   const cuts = flowCutsLines(puzzle);
   const tapClears = flowTapClears(puzzle);
-  const verdict = useMemo(() => verifyFlow(pairs, paths, walls), [pairs, paths, walls]);
+  const verdict = useMemo(() => verifyFlow(pairs, paths, walls, grid), [pairs, paths, walls, grid]);
   const filled = flowFilledCells(paths);
   const inFrame = useFrameProgress(verdict.pairsJoined, pairs.length, "pairs");
 
@@ -288,7 +298,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
 
   // A near miss (presentation only): the first time the board is one pair short, or every pair is joined with
   // squares still empty, a soft hint sounds; it sounds again only after the board has left that state.
-  const nearMiss = !verdict.solved && pairs.length > 1 && (verdict.pairsJoined === pairs.length - 1 || (verdict.pairsJoined === pairs.length && filled < FLOW_CELLS - walls.length));
+  const nearMiss = !verdict.solved && pairs.length > 1 && (verdict.pairsJoined === pairs.length - 1 || (verdict.pairsJoined === pairs.length && filled < cellCount - walls.length));
   const wasNear = useRef(false);
   const arena = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -344,7 +354,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
       let grewTo = 0;
       let cutLine = false;
       setPaths((current) => {
-        const step = flowDrawStep(current, active, cell, pairs, walls, from, cuts);
+        const step = flowDrawStep(current, active, cell, pairs, walls, from, cuts, grid);
         if (step.rejected) puzzleReject();
         if (!step.moved) return current;
         moved.current = true;
@@ -362,7 +372,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
       if (grewTo) soundCue("flow.draw", 1 + 0.5 * (1 - Math.exp(-(grewTo - 2) / 12)));
       if (cutLine) soundCue("flow.cut");
     },
-    [cuts, dotPair, locked, pairs, paths, setPaths, walls],
+    [cuts, dotPair, grid, locked, pairs, paths, setPaths, walls],
   );
 
   /**
@@ -383,10 +393,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   if (puzzle.type !== "flow") return null;
 
   return (
-    <div data-polish="flow" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
+    <div
+      data-polish="flow"
+      data-stage-column="3"
+      className="flex min-h-0 flex-1 flex-col gap-3"
+      // Levels (16 Nov 2026): a board taller than wide (Expert's 9 × 12) sizes its arena by its own aspect (flow.css).
+      data-flow-grid={grid.cols === grid.rows ? undefined : `${grid.cols}x${grid.rows}`}
+      style={grid.cols === grid.rows ? undefined : ({ ["--flow-tall" as string]: String(grid.rows / grid.cols) } as CSSProperties)}
+    >
       {inFrame ? null : (
         <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          cells filled <span className="text-primary">{filled}</span> / {FLOW_CELLS - walls.length} ·{" "}
+          cells filled <span className="text-primary">{filled}</span> / {cellCount - walls.length} ·{" "}
           {verdict.pairsJoined} / {pairs.length} pairs
         </p>
       )}
@@ -395,6 +412,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           pairs={pairs}
           paths={paths}
           walls={walls}
+          cols={grid.cols}
+          cells={cellCount}
           onCell={locked ? undefined : touch}
           onRelease={release}
           live
@@ -405,7 +424,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
         testId="flow"
         items={[
           { id: "pairs", label: "Pairs", value: `${verdict.pairsJoined} / ${pairs.length}` },
-          { id: "filled", label: "Filled", value: `${filled} / ${FLOW_CELLS - walls.length}` },
+          { id: "filled", label: "Filled", value: `${filled} / ${cellCount - walls.length}` },
         ]}
       />
     </div>
@@ -416,6 +435,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   if (puzzle.type !== "flow") return null;
   const solution = puzzle.solution ?? puzzle.pairs.map(() => []);
   const walls = puzzle.walls ?? [];
+  const grid = flowGrid(puzzle);
+  const square = grid.cols === grid.rows;
+  const boardBox = square ? "aspect-square" : "";
+  const boardStyle = square ? undefined : { aspectRatio: `${grid.cols} / ${grid.rows}` };
   const view = flowRevealView(puzzle, myAnswer ?? "", myExtra);
   const total = puzzle.pairs.length;
   const timeLeft = myCorrect && myMsRemaining !== undefined ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
@@ -432,15 +455,15 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
     <div className="flow-reveal flex w-full min-h-0 flex-col items-center gap-2" data-flow-reveal="">
       <div className="flow-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
         <div className="flow-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-flow-solution="">
-          <div className="flow-reveal-board aspect-square">
-            <FlowBoard pairs={puzzle.pairs} paths={solution} walls={walls} />
+          <div className={`flow-reveal-board ${boardBox}`.trim()} style={boardStyle}>
+            <FlowBoard pairs={puzzle.pairs} paths={solution} walls={walls} cols={grid.cols} cells={grid.cols * grid.rows} />
           </div>
           <span className="flow-reveal-label">Solution</span>
           <span className="flow-reveal-caption">The one way to join all {total} pairs and fill every square</span>
         </div>
         <div className="flow-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-flow-yours="">
-          <div className="flow-reveal-board flow-reveal-board-yours aspect-square">
-            <FlowBoard pairs={puzzle.pairs} paths={view.paths} walls={walls} marks={myCorrect ? null : view.marks} />
+          <div className={`flow-reveal-board flow-reveal-board-yours ${boardBox}`.trim()} style={boardStyle}>
+            <FlowBoard pairs={puzzle.pairs} paths={view.paths} walls={walls} cols={grid.cols} cells={grid.cols * grid.rows} marks={myCorrect ? null : view.marks} />
           </div>
           <span className="flow-reveal-label">Yours</span>
           <span className="flow-reveal-caption" data-flow-result="">{result}</span>

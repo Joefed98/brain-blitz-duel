@@ -23,6 +23,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import {
   decodeSides,
   encodeSides,
+  pipesDims,
   pipesState,
   rotateMask,
   tileOpenings,
@@ -33,7 +34,6 @@ import {
 } from "@/lib/duel/logic";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  PIPES_CELLS,
   PIPES_COLS,
   PIPES_TIME_MS,
   type PipeTile,
@@ -255,6 +255,8 @@ export const PipesBoard = memo(function PipesBoard({
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${Math.ceil(tiles.length / cols)}, minmax(0, 1fr))`,
+        // Expert's taller board (difficulty levels): its own shape; square boards keep the class's 1 : 1.
+        ...(Math.ceil(tiles.length / cols) !== cols ? { aspectRatio: `${cols} / ${Math.ceil(tiles.length / cols)}` } : {}),
         gap,
         // The pipe sprites run into half the gap each side, so tubes join across it (presentation only).
         "--pipe-gap": `${gap}px`,
@@ -365,9 +367,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
     () => startTiles.map((tile, index) => ({ sides: sides[index] ?? tileOpenings(tile) })),
     [startTiles, sides],
   );
-  const state = useMemo(() => pipesState(tiles, source), [tiles, source]);
+  // Difficulty levels (pipes.levels.ts): a level board's size and whether its leaks show; every board before levels is
+  // 7 × 7 with leaks shown on pipesRev 5.
+  const dims = pipesDims(puzzle.type === "pipes" ? puzzle : null);
+  const hideLeaks = puzzle.type === "pipes" && puzzle.hideLeaks === true;
+  const state = useMemo(() => pipesState(tiles, source, dims.cols), [tiles, source, dims.cols]);
   const solveFx = useSolveMoment(state.solved && tiles.length > 0, "pipes.solve");
-  const inFrame = useFrameProgress(state.connected.size, PIPES_CELLS, "connected");
+  const inFrame = useFrameProgress(state.connected.size, dims.cells, "connected");
   const wetCount = useRef(state.connected.size);
   const lastTurned = useRef<number | null>(null);
   useEffect(() => {
@@ -437,7 +443,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
     <div data-stage-column="3" data-polish="pipes" className="flex min-h-0 flex-1 flex-col gap-3">
       {inFrame ? null : (
         <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          connected <span className="text-primary">{state.connected.size}</span> / {PIPES_CELLS}
+          connected <span className="text-primary">{state.connected.size}</span> / {dims.cells}
         </p>
       )}
       <div data-game-arena="board" className="puzzle-square-space pipes-arena flex min-h-0 flex-1 flex-col items-center justify-center">
@@ -445,12 +451,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
           className="pipes-play-board aspect-square"
           data-solve-fx={solveFx ? "true" : undefined}
           data-with-pills={parTurns > 0 && inFrame ? "true" : undefined}
+          data-pipes-tall={dims.rows !== dims.cols ? "true" : undefined}
+          style={dims.rows !== dims.cols ? ({ "--pipes-ar": `${dims.cols / dims.rows}` } as CSSProperties) : undefined}
         >
           <PipesBoard
             tiles={tiles}
             source={source}
+            cols={dims.cols}
             connected={state.connected}
-            showLeaks={twoWay}
+            showLeaks={twoWay && !hideLeaks}
             solvedFlow={solveFx}
             animateWater
             twoWay={twoWay}
@@ -503,7 +512,8 @@ export function pipesRevealView(
     mine = decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
     turned = new Set(mine.flatMap((tile, cell) => (tileOpenings(tile) !== tileOpenings(puzzle.tiles[cell]!) ? [cell] : [])));
   }
-  const state = pipesState(mine, puzzle.source);
+  const dims = pipesDims(puzzle);
+  const state = pipesState(mine, puzzle.source, dims.cols);
   const wrong = new Set<number>();
   const untouched = new Set<number>();
   if (!state.solved && puzzle.solution?.length === puzzle.tiles.length) {
@@ -513,7 +523,7 @@ export function pipesRevealView(
       else untouched.add(cell);
     });
   }
-  const leaks = networkLeakArms(mine, state.connected, PIPES_COLS).reduce((sum, arms) => sum + PIPE_ARMS.filter((a) => arms & a.bit).length, 0);
+  const leaks = networkLeakArms(mine, state.connected, dims.cols).reduce((sum, arms) => sum + PIPE_ARMS.filter((a) => arms & a.bit).length, 0);
   return { mine, connected: state.connected, solved: state.solved, wrong, untouched, leaks, turns };
 }
 
@@ -554,25 +564,30 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   const par = (puzzle.pipesRev ?? 0) >= 1 ? (puzzle.par ?? 0) : 0;
   const timeLeft = myCorrect && myMsRemaining !== undefined ? Math.round(myMsRemaining / 1000) : null;
   const twoWay = usesPatternNov15(puzzle, "pipes");
+  // Difficulty levels: the board's own size (7 × 7 on every board before levels).
+  const { cols: revealCols, rows: revealRows } = pipesDims(puzzle);
+  const revealTall = revealRows !== revealCols;
+  const revealShape = revealTall ? ({ "--pipes-ar": `${revealCols / revealRows}` } as CSSProperties) : undefined;
   const result = myCorrect
     ? `You: every pipe joined${timeLeft === null ? "" : `, ${timeLeft} s left`}`
     : myAnswer === null || myAnswer === ""
       ? "You: no turns"
-      : `You: ${connected} of ${PIPES_CELLS} joined to the source`;
+      : `You: ${connected} of ${pipesDims(puzzle).cells} joined to the source`;
 
   return (
     <div ref={winRef} className="pipes-reveal flex w-full min-h-0 flex-col items-center gap-2" data-pipes-reveal="">
       <div className="pipes-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
         <div className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-solution="">
-          <div className="pipes-reveal-board aspect-square">
-            <PipesBoard tiles={solved} source={puzzle.source} connected={all} solvedFlow gap={4} />
+          <div className="pipes-reveal-board aspect-square" data-pipes-tall={revealTall ? "true" : undefined} style={revealShape}>
+            <PipesBoard tiles={solved} source={puzzle.source} cols={revealCols} connected={all} solvedFlow gap={4} />
           </div>
           <span className="pipes-reveal-label">Solution</span>
           <span className="pipes-reveal-caption">Every pipe joined to the source, no leaks</span>
         </div>
         <div className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-yours="">
-          <div className="pipes-reveal-board aspect-square">
+          <div className="pipes-reveal-board aspect-square" data-pipes-tall={revealTall ? "true" : undefined} style={revealShape}>
             <PipesBoard
+              cols={revealCols}
               tiles={view.mine}
               source={puzzle.source}
               connected={view.connected}
@@ -592,7 +607,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
             items={[
               view.turns !== null ? { id: "turns", label: twoWay ? "Turns" : "Taps", value: view.turns, tone: myCorrect && par > 0 && view.turns > par ? "warn" : undefined } : null,
               par > 0 ? { id: "par", label: "Par", value: par, tone: "gold" } : null,
-              { id: "connected", label: "Joined", value: `${connected}/${PIPES_CELLS}`, tone: myCorrect ? "good" : undefined },
+              { id: "connected", label: "Joined", value: `${connected}/${pipesDims(puzzle).cells}`, tone: myCorrect ? "good" : undefined },
               timeLeft !== null ? { id: "time", label: "Time left", value: `${timeLeft} s` } : null,
             ]}
           />
