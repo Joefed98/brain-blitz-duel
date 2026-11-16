@@ -12,7 +12,8 @@ import { RING_TAPS, RING_UNDO, freshOffsets, ringsApply, ringsSolved } from "../
 import { SLIDE_DIRS, slideBoard, slideOutcome, slideSearch, type SlideState } from "../../src/lib/duel/slide";
 import { GRAVITY_DIRS, gravitySolved, tilt } from "../../src/lib/duel/gravity";
 import { gravityMinimum } from "../../src/lib/duel/gravity.server";
-import { BLOCK_ORIENTATIONS, BLOCK_PIECES, absoluteCells, encodePlacements, fitsOn } from "../../src/lib/duel/blockParty";
+import { BLOCK_ORIENTATIONS, BLOCK_PIECES, absoluteCells, blockGeometry, encodePlacements, fitsOn, orientationsFor, type BlockGeometry } from "../../src/lib/duel/blockParty";
+import { solveBlockBoard } from "../../src/lib/duel/blockPartyLevels.server";
 import { encodeLaserAnswer } from "../../src/lib/duel/laser";
 import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "../../src/lib/duel/actionLog";
 import { laserAction } from "../../src/lib/duel/laserLog";
@@ -320,7 +321,7 @@ const sameCells = (a: number[], b: number[]) => a.length === b.length && [...a].
 
 // BASE 5.5 s per piece: pick it, turn it (taps) and drag it into place.
 const BLOCK_BASE = 5.5;
-const blockpartyKit: PuzzleKit = {
+const blockpartyNormalKit: PuzzleKit = {
   type: "blockparty",
   nothing: () => "",
   spam: (p, rng, limitMs) => {
@@ -410,6 +411,153 @@ const blockpartyKit: PuzzleKit = {
     }
     return { steps };
   },
+};
+
+/*
+ * Tessellate's levels (the Pattern overhaul, stage 3, 16 Nov 2026). A puzzle dealt at a level (it carries `level`)
+ * plays on its level's board (blockGeometry) and the player takes longer over a piece the fewer of its legal places
+ * still lead to a full board: per piece BLOCK_BASE × (1 + BLOCK_NEEDLE × log2(legal places ÷ working places)), the
+ * working places being that piece's spots in every packing still open. The kit knows a solution, so without this it
+ * would fill a 2-solution board as fast as a 60-solution one. Normal puzzles (no `level`) keep the kit above exactly
+ * (`__levelModel` asks for the model on a Normal board, for the level report only).
+ */
+const BLOCK_NEEDLE = 0.2;
+
+function levelled(p: PuzzleData): boolean {
+  return (p as { level?: unknown }).level !== undefined || (p as { __levelModel?: unknown }).__levelModel === true;
+}
+
+function geoPlacements(geo: BlockGeometry, piece: number, taken: Set<number>): number[][] {
+  const out: number[][] = [];
+  for (const offsets of orientationsFor(geo)[piece]!)
+    for (let r = 0; r < geo.cols; r++)
+      for (let c = 0; c < geo.cols; c++) {
+        const cells = absoluteCells(offsets, r, c, geo.cols);
+        if (cells && fitsOn(cells, taken, geo.cells)) out.push(cells);
+      }
+  return out;
+}
+
+const SOLUTIONS = new WeakMap<object, BlockPlacement[][]>();
+function allSolutions(q: Of<"blockparty">, geo: BlockGeometry): BlockPlacement[][] {
+  let known = SOLUTIONS.get(q);
+  if (!known) {
+    known = [];
+    solveBlockBoard(geo, q.blockers, 5000, 50_000_000, known);
+    SOLUTIONS.set(q, known);
+  }
+  return known;
+}
+
+/** The think-time factor for placing `piece` next, with `right` the pieces already on their solution spots. */
+export function blockNeedle(q: Of<"blockparty">, piece: number, right: readonly BlockPlacement[]): number {
+  const geo = blockGeometry(q);
+  const legal = geoPlacements(geo, piece, takenBy(q.blockers, [...right])).length;
+  const working = new Set<string>();
+  for (const s of allSolutions(q, geo)) {
+    if (!right.every((r) => s.some((x) => x.piece === r.piece && sameCells(x.cells, r.cells)))) continue;
+    const mine = s.find((x) => x.piece === piece);
+    if (mine) working.add([...mine.cells].sort((a, b) => a - b).join());
+  }
+  return 1 + BLOCK_NEEDLE * Math.log2(Math.max(1, legal) / Math.max(1, working.size));
+}
+
+const blockpartyLevelKit: PuzzleKit = {
+  type: "blockparty",
+  nothing: () => "",
+  spam: (p, rng, limitMs) => {
+    const q = p as Of<"blockparty">;
+    const geo = blockGeometry(q);
+    const ids = geo.pieces.map((_, i) => i);
+    const once: BlockPlacement[] = [];
+    for (const piece of rng.shuffle(ids)) {
+      const options = geoPlacements(geo, piece, takenBy(q.blockers, once));
+      if (options.length) once.push({ piece, cells: rng.pick(options) });
+    }
+    const mash: BlockPlacement[] = [];
+    for (let i = 0; i < Math.floor(limitMs / 1000); i++) {
+      if (mash.reduce((s, e) => s + e.cells.length, 0) >= geo.free) break;
+      const fits = ids
+        .filter((k) => !mash.some((e) => e.piece === k))
+        .map((piece) => ({ piece, options: geoPlacements(geo, piece, takenBy(q.blockers, mash)) }))
+        .filter((x) => x.options.length);
+      if (fits.length && rng.chance(0.85)) {
+        const pick = rng.pick(fits);
+        mash.push({ piece: pick.piece, cells: rng.pick(pick.options) });
+      } else if (mash.length) {
+        mash.splice(rng.below(mash.length), 1);
+      }
+    }
+    const scan: BlockPlacement[] = [];
+    for (const piece of ids) {
+      const options = geoPlacements(geo, piece, takenBy(q.blockers, scan));
+      if (options.length) scan.push({ piece, cells: options.sort((a, b) => Math.min(...a) - Math.min(...b))[0]! });
+    }
+    return [
+      { label: "drop-all-random", answer: encodePlacements(once) },
+      { label: "mash-1/s", answer: encodePlacements(mash) },
+      { label: "first-fit", answer: encodePlacements(scan) },
+    ];
+  },
+  // The Normal kit's play (the same order, mistakes and fixes) on the level's board, each piece's time by blockNeedle.
+  play: (p, rng, skill) => {
+    const q = p as Of<"blockparty">;
+    const geo = blockGeometry(q);
+    const solution = q.solution ?? [];
+    const target = new Map(solution.map((s) => [s.piece, s.cells]));
+    let placed: BlockPlacement[] = [];
+    const todo = solution.map((s) => s.piece);
+    const wrong = new Set<number>();
+    const steps: Step[] = [];
+    let at = 0;
+    const put = (piece: number, cells: number[]) => {
+      placed = [...placed.filter((e) => e.piece !== piece), { piece, cells }];
+    };
+    const right = () => placed.filter((e) => !wrong.has(e.piece));
+    const blocking = (cells: number[]) => placed.find((e) => wrong.has(e.piece) && e.cells.some((c) => cells.includes(c)));
+    for (let guard = 0; guard < 200 && (todo.length || wrong.size); guard++) {
+      const next = todo[0];
+      const nextBlock = next !== undefined ? blocking(target.get(next)!) : undefined;
+      if (wrong.size && (next === undefined || nextBlock || rng.chance(0.4))) {
+        const w = nextBlock?.piece ?? [...wrong][0]!;
+        at += thinkMs(rng, BLOCK_BASE * 0.6, skill);
+        const goal = target.get(w)!;
+        const other = placed.find((e) => e.piece !== w && wrong.has(e.piece) && e.cells.some((c) => goal.includes(c)));
+        if (other) {
+          placed = placed.filter((e) => e.piece !== other.piece);
+          wrong.delete(other.piece);
+          todo.push(other.piece);
+        } else {
+          put(w, goal);
+          wrong.delete(w);
+        }
+        steps.push({ answer: encodePlacements(placed), atMs: at });
+        continue;
+      }
+      todo.shift();
+      at += thinkMs(rng, BLOCK_BASE * blockNeedle(q, next!, right()), skill);
+      const goal = target.get(next!)!;
+      if (rng.chance(skill.err)) {
+        const options = geoPlacements(geo, next!, takenBy(q.blockers, placed, next)).filter((c) => !sameCells(c, goal));
+        if (options.length) {
+          put(next!, rng.pick(options));
+          wrong.add(next!);
+          steps.push({ answer: encodePlacements(placed), atMs: at });
+          continue;
+        }
+      }
+      put(next!, goal);
+      steps.push({ answer: encodePlacements(placed), atMs: at });
+    }
+    return { steps };
+  },
+};
+
+const blockpartyKit: PuzzleKit = {
+  type: "blockparty",
+  nothing: () => "",
+  spam: (p, rng, limitMs) => (levelled(p) ? blockpartyLevelKit : blockpartyNormalKit).spam(p, rng, limitMs),
+  play: (p, rng, skill, limitMs) => (levelled(p) ? blockpartyLevelKit : blockpartyNormalKit).play(p, rng, skill, limitMs),
 };
 
 /* ------------------------------------------------------------------------ */

@@ -927,10 +927,14 @@ export interface BlockPartyPuzzleData {
   solution?: BlockPlacement[];
   /** Server-side only: how many solutions the layout has (capped). */
   solutions?: number;
+  /** Levels (the Pattern overhaul, stage 3): the level dealt at (none = Normal); its board is the level's (blockParty.ts blockLevelGeometry). */
+  level?: "easy" | "hard" | "expert";
+  /** Levels: the level's own clock where it isn't 60 s (Expert's 90 s). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Lights Out                                                                 */
+/*  Lights Out                                                               */
 /* -------------------------------------------------------------------------- */
 
 export const LIGHTS_COLS = 6;

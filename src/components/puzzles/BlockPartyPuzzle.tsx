@@ -54,6 +54,9 @@ const PIECE_COLOURS = [
   GLYPH_COLOURS.BROWN,
   GLYPH_COLOURS.YELLOW,
   "var(--color-foreground)",
+  // Stage 3 (levels): Expert's U and P, as their sprites (blockparty.py cyan, slate).
+  "#2FD3EE",
+  "#7F8AA3",
 ];
 
 const pct = (value: number, n: number = N) => `${(value * 100) / n}%`;
@@ -287,9 +290,10 @@ export function BlockPartyPuzzle({
 
   useEffect(() => {
     if (locked) return;
-    const remaining = phaseStartedAt + BLOCK_TIME_MS - now;
+    // A level's own clock (stage 3: Expert's 90 s), else the game's 60 s.
+    const remaining = phaseStartedAt + (puzzle.timeLimitMs ?? BLOCK_TIME_MS) - now;
     if (remaining <= 600) lockIn(placedRef.current);
-  }, [locked, now, phaseStartedAt, lockIn]);
+  }, [locked, now, phaseStartedAt, lockIn, puzzle.timeLimitMs]);
 
   /** A new board: Undo can give it back (blockRev 4). */
   const commit = useCallback((next: BlockPlacement[]) => {
@@ -561,12 +565,15 @@ export function BlockPartyPuzzle({
 
   // The centred board uses 85% of the stage width; the tray receives all
   // remaining height and uses the largest piece scale that keeps every piece visible.
+  // Stage 3 (levels): Expert's eleven pieces sit four to a row, so the tray needs three rows, not four, and leaves the
+  // board its height on a phone; every other board keeps three to a row.
+  const trayCols = geo.pieces.length > 9 ? 4 : 3;
   const trayRows = useMemo(() => {
     const rows: number[][] = [];
-    for (let index = 0; index < inTray.length; index += 3)
-      rows.push(inTray.slice(index, index + 3));
+    for (let index = 0; index < inTray.length; index += trayCols)
+      rows.push(inTray.slice(index, index + trayCols));
     return rows;
-  }, [inTray]);
+  }, [inTray, trayCols]);
   const trayHeightUnits = trayRows.reduce(
     (sum, row) => Math.max(...row.map((piece) => offsetsSize(shownOffsetsFor(piece)).rows), 1) + sum,
     0,
@@ -584,7 +591,7 @@ export function BlockPartyPuzzle({
       (traySize.width - 20 - 8) / trayWidthUnits,
       // The tray's three columns are equal: the widest piece fits its own column, never over a neighbour
       // (Pattern overhaul; display only).
-      (traySize.width - 20 - 8) / 3 / Math.max(1, ...inTray.map((piece) => offsetsSize(shownOffsetsFor(piece)).cols)),
+      (traySize.width - 20 - 8) / trayCols / Math.max(1, ...inTray.map((piece) => offsetsSize(shownOffsetsFor(piece)).cols)),
     ),
   );
   // The board and the tray settle against each other (see useBeforePaint above); in the frame the HUD
@@ -667,10 +674,10 @@ export function BlockPartyPuzzle({
         ref={trayRef}
         data-game-controls="tray"
         data-bp-carrying={trayCarrying ? "" : undefined}
-        className={`block-party-tray grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 ${trayCarrying ? "overflow-visible" : "overflow-hidden"} rounded-xl px-2.5 py-2.5`}
+        className={`block-party-tray grid min-h-0 flex-1 ${trayCols === 4 ? "grid-cols-4" : "grid-cols-3"} content-center items-center gap-x-1 gap-y-1 ${trayCarrying ? "overflow-visible" : "overflow-hidden"} rounded-xl px-2.5 py-2.5`}
       >
         {inTray.length === 0 ? (
-          <p className="col-span-3 text-center font-mono text-xs uppercase tracking-widest text-primary">
+          <p className={`${trayCols === 4 ? "col-span-4" : "col-span-3"} text-center font-mono text-xs uppercase tracking-widest text-primary`}>
             board full
           </p>
         ) : (

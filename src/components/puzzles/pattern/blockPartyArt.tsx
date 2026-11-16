@@ -116,18 +116,26 @@ export function BlockArtDefs({ children }: { children: React.ReactNode }) {
 
 /** The Blender sprites (docs/design/game-art/pattern/source/blockparty.py): one image per board cell. */
 export const BLOCK_ART_DIR = "/pattern-art/blockparty";
-/** Each piece's sprite colour, index for index today's piece colours (BlockPartyPuzzle PIECE_COLOURS). */
-export const BLOCK_SPRITE_COLOURS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow", "white"] as const;
+/**
+ * The sprites' version, appended to every sprite URL (Joe, 16 Nov 2026): the URLs never changed when stage 2 re-rendered
+ * the studs and the tray blocks, so a phone that had loaded stage 1 could keep drawing the old engraved studs and flat
+ * tray blocks from its cache. The first 8 hex of the SHA-256 of every sprite file, in name order;
+ * pattern-overhaul-blockparty-levels-check fails until it matches the files (re-run it after re-rendering).
+ */
+export const BLOCK_ART_HASH = "cdb697b1";
+const sprite = (file: string) => `${BLOCK_ART_DIR}/${file}.webp?v=${BLOCK_ART_HASH}`;
+/** Each piece's sprite colour, index for index the piece colours (BlockPartyPuzzle PIECE_COLOURS; cyan and slate are Expert's U and P, stage 3). */
+export const BLOCK_SPRITE_COLOURS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow", "white", "cyan", "slate"] as const;
 export const blockSprite = (piece: number) =>
-  `${BLOCK_ART_DIR}/block-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}.webp`;
+  sprite(`block-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}`);
 /**
  * The tray's own render of the same lacquered block (stage 2, Joe: the tray read flatter than the board): a rounder,
  * deeper bevel so the gloss and its highlight still read at the tray's third-size cells.
  */
 export const trayBlockSprite = (piece: number) =>
-  `${BLOCK_ART_DIR}/tray-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}.webp`;
-export const BLOCK_WELL_SPRITE = `${BLOCK_ART_DIR}/well.webp`;
-export const BLOCK_PEG_SPRITE = `${BLOCK_ART_DIR}/peg.webp`;
+  sprite(`tray-${BLOCK_SPRITE_COLOURS[piece] ?? BLOCK_SPRITE_COLOURS[BLOCK_SPRITE_COLOURS.length - 1]}`);
+export const BLOCK_WELL_SPRITE = sprite("well");
+export const BLOCK_PEG_SPRITE = sprite("peg");
 
 /**
  * One piece (the Pattern overhaul, 15 Nov 2026; look A): a glossy lacquered block in each of its squares, drawn
