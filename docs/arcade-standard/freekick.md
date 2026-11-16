@@ -25,7 +25,7 @@ deal (`freekickDealV5.server.ts`, 60 a level, `bun scripts/freekick-layered-deal
 | | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
 | Gold zone | 680–820 | 720–800 | 735–790 | 745–780 |
-| Keeper reaction / speed | 14 ticks / 85 % | 10 / 100 % | 8 / 112 % | 7 / 120 % |
+| Keeper reaction / speed | 14 ticks / 85 % | 14 / 85 % | 8 / 112 % | 7 / 120 % |
 | Wall | 3 | 3–5 | 4–5 | 5 |
 | Wind (at most) | 1 | 2 | 4 | 5 |
 | Hoop shrinks to | 85 % | 80 % | 60 % | 50 % |
@@ -34,12 +34,18 @@ deal (`freekickDealV5.server.ts`, 60 a level, `bun scripts/freekick-layered-deal
 Normal's hoop ends at 80 % (the review proposed 70 %): at 70 % near-perfect players lost most of the gap to their target
 on the bar, so it was eased one step; a decision for Joe.
 
-**Measured** (`bun scripts/freekick-layered-bands.ts --seeds=30`, medians, average in brackets):
+Normal's keeper is Easy's (16 Nov 2026, Joe: ease Normal one step so near-perfect averages about 198): reaction 10 → 14
+ticks, speed 100 → 85 %. The near-perfect average rose 171 → 177; a wider gold zone gave 174, the full-size hoop 175, the keeper and the
+full-size hoop together 179. What holds near-perfect play below 198 is aim, not the keeper or the bar: of the 23 points it still
+drops, 13 are targets (the corner hoop) and 8 skill shots. Reaching about 198 needs a scoring change to those parts (for
+example targets counted on a larger hoop on Normal), which is Joe's call.
+
+**Measured** (`bun scripts/freekick-layered-bands.ts --seeds=30`, 16 Nov 2026 with Normal's eased keeper, medians, average in brackets):
 
 | | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
 |---|---|---|---|---|---|---|---|
 | Easy | 77 (72) | 129 (120) | 152 (151) | 174 (167) | 174 (172) | 184 (183) | 200 |
-| Normal | 54 (56) | 84 (85) | 122 (120) | 154 (145) | 174 (171) | 184 (180) | 200 |
+| Normal | 67 (72) | 108 (101) | 142 (134) | 158 (150) | 181 (177) | 184 (183) | 200 |
 | Hard | 22 (25) | 42 (38) | 99 (91) | 132 (129) | 171 (165) | 184 (173) | 200 |
 | Expert | 1 (11) | 43 (45) | 64 (63) | 97 (95) | 151 (143) | 161 (161) | 200 |
 

@@ -40,14 +40,14 @@ seed of the proved deal (`homerunDealV5.server.ts`, 120 a level, `bun scripts/ho
 | Movement | 45 % | 100 % | 130 % | 160 % |
 | Catch areas | 80 % | 100 % | 110 % | 120 % |
 
-**Measured** (`bun scripts/homerun-innings-bands.ts --seeds=40`, medians, average in brackets):
+**Measured** (`bun scripts/homerun-innings-bands.ts --seeds=30`, 16 Nov 2026 on the difficulty framework, medians, average in brackets):
 
 | | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
 |---|---|---|---|---|---|---|---|
-| Easy | 59 (48) | 90 (89) | 149 (144) | 184 (183) | 200 (195) | 200 (199) | 200 |
-| Normal | 16 (27) | 63 (60) | 132 (126) | 171 (173) | 200 (194) | 200 (199) | 200 |
-| Hard | 11 (18) | 32 (40) | 85 (78) | 140 (140) | 168 (168) | 176 (177) | 200 |
-| Expert | 5 (10) | 38 (34) | 80 (79) | 135 (130) | 168 (168) | 176 (175) | 200 |
+| Easy | 63 (51) | 93 (89) | 150 (143) | 184 (184) | 200 (195) | 200 (199) | 200 |
+| Normal | 19 (28) | 63 (60) | 134 (126) | 172 (173) | 200 (193) | 200 (198) | 200 |
+| Hard | 9 (18) | 31 (38) | 80 (77) | 140 (140) | 168 (167) | 180 (179) | 200 |
+| Expert | 5 (12) | 38 (34) | 80 (78) | 132 (128) | 168 (167) | 176 (175) | 200 |
 
 Checks: homerun-innings-check (the deal, the count, the runners, contact, the plan, the replay, the bands),
 arcade-standard-check's entry, homerun-check (rev 1–4 unchanged).
