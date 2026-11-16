@@ -35,6 +35,20 @@ export function preloadSpeedArt(names: readonly SpeedArtName[]): void {
   for (const name of names) speedArtImage(name);
 }
 
+/** Calls `done` once the sprite has loaded (at once if it already has); returns a cancel. For a layer painted once
+ *  per size, never per frame (an arena scene), so it can repaint when its sprite arrives. */
+export function onSpeedArtLoad(name: SpeedArtName, done: () => void): () => void {
+  if (speedArtImage(name)) {
+    done();
+    return () => {};
+  }
+  const img = images.get(name);
+  if (!img) return () => {};
+  const loaded = () => done();
+  img.addEventListener("load", loaded, { once: true });
+  return () => img.removeEventListener("load", loaded);
+}
+
 /** True once every named sprite has loaded: a cached layer built from them keys on it, so it is rebuilt once. */
 export function speedArtReady(names: readonly SpeedArtName[]): boolean {
   return names.every((name) => speedArtImage(name) !== null);

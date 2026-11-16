@@ -1035,7 +1035,18 @@ export function clayArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   // clayRev 6's taller sky: the horizon sits as far above the world's bottom as in the original sky.
   const H = view.worldH;
   const GRASS_TOP = H - (CLAY_H - GRASS_TOP_ORIGINAL);
+  // The Speed overhaul's rendered sky (clayRev 6 and later, once loaded; display only): the sides carry the sky's own
+  // edge column on outwards, so the world's edge shows no seam (the drawn gradients matched the drawn scenery).
+  const sky = H > CLAY_H ? speedArtImage("pull-sky") : null;
   for (const side of sceneSides(view)) {
+    if (sky) {
+      const right = side.x > 0;
+      const sx = right ? sky.naturalWidth - 1 : 0;
+      const sy = (side.y / H) * sky.naturalHeight;
+      const sh = (Math.min(side.h, H - side.y) / H) * sky.naturalHeight;
+      if (sh > 0) ctx.drawImage(sky, sx, sy, 1, sh, side.x, side.y, side.w, Math.min(side.h, H - side.y));
+      continue;
+    }
     sceneFill(ctx, side, 0, GRASS_TOP, [[0, "#1C4774"], [0.42, "#3A78AE"], [0.78, "#79AFD8"], [0.92, "#B4D3E7"], [1, "#CFE2EC"]]);
     const field = { x: side.x, y: GRASS_TOP, w: side.w, h: side.y + side.h - GRASS_TOP };
     if (field.h > 0) {
