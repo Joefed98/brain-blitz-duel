@@ -20,7 +20,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { appendAction, decodeActionLog, encodeActionLog, usesActionLog, type LoggedAction } from "@/lib/duel/actionLog";
 import { laserAction, replayLaserActions, replayLaserLog } from "@/lib/duel/laserLog";
-import { HudPills } from "@/components/puzzles/HudPills";
+import { HudPills, type HudPillItem } from "@/components/puzzles/HudPills";
 import { serverNow } from "@/lib/duel/clock";
 import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import { usesStandard } from "@/lib/duel/standard/stamps";
@@ -71,6 +71,26 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 const GOLD = "var(--primary)";
 
 export { directionalChevronPoints };
+
+/**
+ * The Gems pill (Joe, 15 Nov 2026: Lightbender's near miss in the Gems pill). Its content is the count ("Gems 5/6") or,
+ * for the near miss's 2.2 s, "1 gem dark" in the category accent, in the pill's own place: both are laid in one grid
+ * cell and only one is visible, so the pill keeps the width of the wider and the pills row never shifts.
+ */
+export function laserGemsPill(label: string, count: string, dark: boolean): HudPillItem {
+  return {
+    id: "gems",
+    ...(dark ? { tone: "gold" as const } : {}),
+    value: (
+      <span className="laser-gems-swap" data-laser-gems={dark ? "dark" : "count"}>
+        <span className="laser-gems-count" aria-hidden={dark ? true : undefined}>
+          <span className="jz-status-label hud-pill-label">{label}</span> {count}
+        </span>
+        <span className="laser-gems-dark" aria-hidden={dark ? undefined : true}>1 gem dark</span>
+      </span>
+    ),
+  };
+}
 
 /** The Gems pill's count: the best shot so far, or the beam on screen if it lights more. */
 export function laserGemsShown(best: number, onScreen: number): number {
@@ -431,7 +451,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   // The near miss's moment: two soft pulses on the dark gem (a piece, so allowed over the board) and on the pill.
   useEffect(() => {
     if (!nearMiss) return;
-    const pill = typeof document === "undefined" ? null : document.querySelector('[data-hud-pills="laser"] [data-hud-pill="nearMiss"]');
+    const pill = typeof document === "undefined" ? null : document.querySelector('[data-hud-pills="laser"] [data-hud-pill="gems"]');
     laserNearMissFx(laserCellArt(gridRef.current?.parentElement, nearMiss.gem), pill);
   }, [nearMiss]);
 
@@ -764,14 +784,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
               // laserRev 1 (depth batch 4): the elegant beam's par mirrors.
               ...parPills("Mirrors", mirrorsPlaced, elegantPar, "mirrors"),
               splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced}/${splitterTotal}` } : null,
-              { id: "gems", label: "Gems", value: `${gemsShown}/${gems.length}` },
-              nearMiss ? { id: "nearMiss", value: "1 gem dark", tone: "gold" as const } : null,
+              laserGemsPill("Gems", `${gemsShown}/${gems.length}`, Boolean(nearMiss)),
             ]
           : [
               { id: "mirrors", label: "Mirrors", value: `${mirrorsPlaced} / ${total}` },
               splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced} / ${splitterTotal}` } : null,
-              { id: "gems", label: "Gems lit", value: `${gemsShown} / ${gems.length}` },
-              nearMiss ? { id: "nearMiss", value: "1 gem dark", tone: "gold" as const } : null,
+              laserGemsPill("Gems lit", `${gemsShown} / ${gems.length}`, Boolean(nearMiss)),
             ]}
       />
       <div data-game-controls="pieces" className="flex shrink-0 items-center justify-center gap-2">

@@ -24,7 +24,7 @@
  *  10. The effects (stage 2, laserFx.ts on the kit): place = the kit's drop on the mirror's art, turn = a two-click
  *      ratchet, a refused square shaken on its own art (never the board), Fire pulses the emitter and the beam draws
  *      with a leading point, gems light in turn, the splitter pulses when reached, a bomb hit jolts the bomb, the near
- *      miss pulses the dark gem and shows "1 gem dark" beside the Gems pill (not over the board) for its moment, out
+ *      miss pulses the dark gem and shows "1 gem dark" in the Gems pill's place (not over the board) for its moment, out
  *      of shots sounds and settles, the solve's win on the reveal's result card; each on its own moment only, the next
  *      press taken during an effect, reduced motion the kit's crossfade, transform and opacity only.
  */
@@ -636,9 +636,18 @@ const p4 = live[0]!;
     clear();
     held.length = 0;
     await s.click(s.button(/^Fire$/));
-    const pill = s.host.querySelector('[data-hud-pill="nearMiss"]');
+    // Changed with Joe's approval, 15 Nov 2026 (Lightbender's near miss in the Gems pill): "1 gem dark" shows in the
+    // Gems pill's own place (its content swapped, the count hidden in the same grid cell), never as a pill of its own.
+    const pill = s.host.querySelector('[data-hud-pills="laser"] [data-hud-pill="gems"]');
+    const pillIds = () => Array.from(s.host.querySelectorAll('[data-hud-pills="laser"] [data-hud-pill]')).map((el) => el.getAttribute("data-hud-pill"));
+    const swapped = () => s.host.querySelector('[data-hud-pill="gems"] [data-laser-gems]')?.getAttribute("data-laser-gems");
+    const darkShown = () => {
+      const dark = s.host.querySelector('[data-hud-pill="gems"] .laser-gems-dark');
+      return swapped() === "dark" && dark?.getAttribute("aria-hidden") !== "true" && /1 gem dark/.test(dark?.textContent ?? "");
+    };
     check(cues.includes("laser.nearMiss") && !cues.includes("laser.bomb"), `fx: the near miss's sound (${cues})`);
-    check(!!pill && /1 gem dark/.test(pill.textContent ?? ""), "fx: no \"1 gem dark\" beside the Gems pill");
+    check(!!pill && darkShown() && pill.getAttribute("data-tone") === "accent", "fx: no \"1 gem dark\" in the Gems pill's place");
+    check(!pillIds().includes("nearMiss") && pillIds().filter((id) => id === "gems").length === 1, `fx: the near miss adds a pill (${pillIds()})`);
     check(!s.host.querySelector(".laser-board")?.textContent?.includes("1 gem dark"), "fx: \"1 gem dark\" sits over the board");
     const pulses = recs.filter((r) => kit.some((k) => k.kind === "nearMiss"));
     check(kit.filter((k) => k.kind === "nearMiss").length === 2 && kit.filter((k) => k.kind === "nearMiss").every((k) => k.silent) && pulses.some((r) => r.el.closest?.('[data-laser-cell="15"]')) && recs.some((r) => r.el === pill), `fx: the dark gem and the pill don't pulse (${kinds()})`);
@@ -646,16 +655,16 @@ const p4 = live[0]!;
     const fixed = new Set([0, 3, 15]);
     const cell = Array.from({ length: 100 }, (_, i) => i).find((c) => !fixed.has(c))!;
     await s.down(cell);
-    check(s.host.querySelectorAll("[data-mirror]").length === 1 && !!s.host.querySelector('[data-hud-pill="nearMiss"]'), "fx: a press during the near miss wasn't taken");
+    check(s.host.querySelectorAll("[data-mirror]").length === 1 && darkShown(), "fx: a press during the near miss wasn't taken");
     for (const fn of held.splice(0)) await act(async () => fn());
-    check(!s.host.querySelector('[data-hud-pill="nearMiss"]'), "fx: \"1 gem dark\" stays after its moment");
+    check(swapped() === "count" && !darkShown() && /Gems/.test(s.host.querySelector('[data-hud-pill="gems"] .laser-gems-count')?.textContent ?? ""), "fx: \"1 gem dark\" stays after its moment");
     // A shot that lights none of the two isn't a near miss.
     await act(async () => s.root.unmount());
     const far = { ...near, gems: [15, 25] } as unknown as LaserPuzzleData;
     const f = await stageIn(far, "fx-far");
     clear();
     await f.click(f.button(/^Fire$/));
-    check(!cues.includes("laser.nearMiss") && !kit.some((k) => k.kind === "nearMiss") && !f.host.querySelector('[data-hud-pill="nearMiss"]'), "fx: a plain miss shows a near miss");
+    check(!cues.includes("laser.nearMiss") && !kit.some((k) => k.kind === "nearMiss") && f.host.querySelector('[data-hud-pill="gems"] [data-laser-gems]')?.getAttribute("data-laser-gems") === "count", "fx: a plain miss shows a near miss");
     // Out of shots after the third: laser.outOfShots and the calm settle (no extra effect on the board).
     await f.click(f.button(/^Fire$/));
     clear();
