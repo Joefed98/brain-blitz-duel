@@ -1620,8 +1620,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       // flipRev 13 (15 Nov 2026, the Action overhaul): grace; every crash costs 10 s, clean time full at 55 s, perfect
       // landings full at 5 of the 8 sweet spots.
       score: listFromSpec(FLIP_V13, {
-        core: `every half second you run counts, less ${FLIP_V13_CRASH_COST / 2} s for each crash on Normal (more on Hard and Expert); ${FLIP_V13_CORE_FULL / 2} s clean for all of it`,
-        sweets: `${60 / FLIP_V13_SWEETS_FULL} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots (${FLIP_V13_SWEETS_FULL} for all of it; more on Hard and Expert)`,
+        // Levels (15 Nov 2026): these are Normal's figures; the "Levels:" line above says what Easy, Hard and Expert change.
+        core: `every half second you run counts, less ${FLIP_V13_CRASH_COST / 2} s for each crash; ${FLIP_V13_CORE_FULL / 2} s clean for all of it`,
+        sweets: `${60 / FLIP_V13_SWEETS_FULL} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots (${FLIP_V13_SWEETS_FULL} for all of it)`,
         doubles: "2.5 for each double flip",
         flow: `your longest run of clean jumps (${FLIP_V11_STREAK_FULL} in a row for all of it)`,
       }),
