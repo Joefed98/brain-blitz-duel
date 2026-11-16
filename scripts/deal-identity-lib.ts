@@ -166,8 +166,9 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
  */
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
-  // arcade deal, unpinned here as before).
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree"]);
+  // arcade deal, unpinned here as before). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy
+  // overhaul): Coral Pop's bubbleRev 12 and Rainbow Bridge's inkRev 15 stamp the room's puzzles, so their pins join.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "bubblePreFast", "inkPreHills"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {
