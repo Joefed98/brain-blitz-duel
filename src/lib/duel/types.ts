@@ -2292,6 +2292,8 @@ export interface TileGridPuzzleData {
   solution?: string[];
   /** Word depth (25 Oct 2026): 1 = scored to 200 by the stretch curve (depth/tilegrid.server.ts). Absent on older rounds. */
   tileGridRev?: number;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /* ============================== Word Slide ============================== */
@@ -2306,6 +2308,8 @@ export interface WordSlidePuzzleData {
   words?: string[];
   /** Par moves (25 Oct 2026, word depth d1): 1 = a finish within par adds the par bonus, up to 200. Absent on older rounds. */
   wordSlideRev?: number;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /* ================================ Balance =============================== */
@@ -2731,6 +2735,8 @@ export interface SwapwordPuzzleData {
   maxSwaps: number;
   /** Solved letters in tile order — private until the reveal. */
   solution?: string;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 120 s. */
+  timeLimitMs?: number;
 }
 
 export interface WordSearchPlacement {

@@ -6,7 +6,7 @@ import { dealtTopupRev } from "./depthTopup";
 import { applyShift, markedRowWord, replayWordSlide, slideSwapsOn, WORD_SLIDE_REV_PAR, WORD_SLIDE_REV_TOPUP, WS_MARKED_ROWS, WS_SIZE, type SlideShift } from "./wordSlide";
 
 let pool: string[] | null = null;
-function fiveLetterWords(): string[] {
+export function fiveLetterWords(): string[] {
   if (pool) return pool;
   pool = [...new Set(commonWords().filter((w) => w.length === 5 && /^[a-z]+$/.test(w) && isWord(w)))];
   return pool;
@@ -18,7 +18,11 @@ export function markedRowsSolved(grid: string[]): number {
 
 /** New boards carry the par-moves stamp (word depth d1); a check pinning the pre-depth stamps gets none. */
 export function generateWordSlide(): WordSlidePuzzleData {
-  const made = generateWordSlideBoard();
+  return stampWordSlideRev(generateWordSlideBoard());
+}
+
+/** The stamp a new board is generated on before the deal's layers (the levels build on the same one). */
+export function stampWordSlideRev(made: WordSlidePuzzleData): WordSlidePuzzleData {
   const rev = dealtDepthRev<number | null>(dealtTopupRev(WORD_SLIDE_REV_TOPUP, WORD_SLIDE_REV_PAR), null);
   return rev === null ? made : { ...made, wordSlideRev: rev };
 }
