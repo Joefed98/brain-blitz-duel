@@ -180,6 +180,10 @@ export interface InkLevelSet {
   swayBirds: number;
   /** Every pot stands still (Easy: "no moving levels" read as nothing moves; Normal's pot moves from level 5). */
   stillPot?: boolean;
+  /** The pot's width (rim cap to rim cap, px; today's INK_BUCKET_W 64): its collision opening and its art. */
+  potW?: number;
+  /** The speed part is full with this many seconds left (today's INK_V13_SPEED_FULL, 50 s). */
+  speedFullLeftS?: number;
 }
 
 /** Today's Normal figures (what INK_LEVEL_SETS departs from; nothing reads this to build a Normal run). */
@@ -187,9 +191,9 @@ export const INK_LEVEL_NORMAL: InkLevelSet = { inkPct: 125, birdsPct: 100, extra
 
 /** The three other levels' rules (mirrored as plain data in src/lib/levels/gameLevels.ts; ink-levels-check proves it). */
 export const INK_LEVEL_SETS: Readonly<Record<InkDiff, InkLevelSet>> = {
-  easy: { inkPct: 150, birdsPct: 50, extraBirds: [], liveFrom: INK_LEVELS, parMarginPct: 25, swayLevels: [], swayBirds: 0, stillPot: true },
-  hard: { inkPct: 110, birdsPct: 100, extraBirds: [0, 2, 2, 2, 2, 2, 2, 2, 2, 2], liveFrom: 7, parMarginPct: 10, swayLevels: [], swayBirds: 0 },
-  expert: { inkPct: 100, birdsPct: 100, extraBirds: [0, 2, 3, 3, 3, 3, 3, 3, 3, 3], liveFrom: 6, parMarginPct: 5, swayLevels: [4, 5], swayBirds: 3 },
+  easy: { inkPct: 150, birdsPct: 50, extraBirds: [], liveFrom: INK_LEVELS, parMarginPct: 25, swayLevels: [], swayBirds: 0, stillPot: true, potW: 80 },
+  hard: { inkPct: 110, birdsPct: 100, extraBirds: [0, 2, 2, 2, 2, 2, 2, 2, 2, 2], liveFrom: 7, parMarginPct: 10, swayLevels: [], swayBirds: 0, potW: 48, speedFullLeftS: 70 },
+  expert: { inkPct: 100, birdsPct: 100, extraBirds: [0, 2, 3, 3, 3, 3, 3, 3, 3, 3], liveFrom: 6, parMarginPct: 0, swayLevels: [4, 5], swayBirds: 3, potW: 42, speedFullLeftS: 85 },
 };
 
 export function isInkDiff(v: unknown): v is InkDiff {
@@ -219,6 +223,11 @@ export function inkBirdDx(lvl: Pick<InkLevel, "slidePeriod">, b: InkBlock, tick:
   const P = Math.max(1, lvl.slidePeriod);
   const a = (b.sway.phase + Math.trunc((((tick % P) + P) % P) * 65536 / P)) & 65535;
   return Math.trunc((b.sway.amp * isin(a)) / TRIG_ONE);
+}
+
+/** Half the pot's width on a level (stage 3's own width, else today's INK_BUCKET_W). */
+export function inkPotHalf(lvl: Pick<InkLevel, "potW">): number {
+  return (lvl.potW ?? INK_BUCKET_W) / 2;
 }
 
 /** Does any bird on the level sway? */
@@ -412,6 +421,8 @@ export interface InkLevel {
   liveHand?: { start: number; pts: number[] }[];
   /** inkRev 13 only: the level's ink par, px (potting the level with at most this much ink pays the ink-par part in full). */
   inkPar?: number;
+  /** Stage 3: the pot's width on this level, px (absent = INK_BUCKET_W). */
+  potW?: number;
   /** inkRev 14 only: the coin's radius and the clover's pickup radius on this level, px (absent = INK_BALL_R, INK_SHAMROCK_R). */
   ballR?: number;
   cloverR?: number;
@@ -640,9 +651,9 @@ export function inkBucketX(lvl: InkLevel, tick: number): number {
 }
 
 /** Bounce the ball off the two rim caps; returns true if it struck one. */
-function rimBounce(ball: InkBall, bx: number, by: number): boolean {
+function rimBounce(ball: InkBall, bx: number, by: number, half = INK_BUCKET_W / 2): boolean {
   let struck = false;
-  for (const cx of [bx - INK_BUCKET_W / 2, bx + INK_BUCKET_W / 2]) {
+  for (const cx of [bx - half, bx + half]) {
     const dx = ball.x - cx * FP;
     const dy = ball.y - by * FP;
     const reach = (BALL_R + RIM_R) * FP;
@@ -834,11 +845,11 @@ function moveBall(
   const crossing = py < lvl.bucketY * FP && ball.y >= lvl.bucketY * FP;
   if (nearRim || crossing) {
     const bucketX = inkBucketX(lvl, tick);
-    if (nearRim && rimBounce(ball, bucketX, lvl.bucketY)) return 0;
+    if (nearRim && rimBounce(ball, bucketX, lvl.bucketY, inkPotHalf(lvl))) return 0;
     // Into the bucket between its rim caps, or past the bottom.
     if (crossing) {
       const x = Math.trunc(ball.x / FP);
-      if (Math.abs(x - bucketX) <= INK_BUCKET_W / 2 - BALL_R) return 1;
+      if (Math.abs(x - bucketX) <= inkPotHalf(lvl) - BALL_R) return 1;
     }
   }
   if (ball.y > ((lvl.worldH ?? INK_WORLD_H) + BALL_R) * FP) return 2;
@@ -996,12 +1007,13 @@ function layout(
   if (forceSlide || level >= SLIDE_FROM) {
     bucketX = clampInt(bucketX, 72, INK_WORLD_W - 72);
     // Keep the whole slide (bucket plus rim) on screen.
-    const room = Math.min(bucketX, INK_WORLD_W - bucketX) - INK_BUCKET_W / 2 - RIM_R - 4;
+    const room = Math.min(bucketX, INK_WORLD_W - bucketX) - (levelSetNow()?.potW ?? INK_BUCKET_W) / 2 - RIM_R - 4;
     slideAmp = Math.max(0, Math.min(SLIDE_AMP_MIN + draw(SLIDE_AMP_SPAN), room));
     slidePeriod = SLIDE_PERIOD_MIN + draw(SLIDE_PERIOD_SPAN);
     slidePhase = draw(65536);
   }
-  const mouth = INK_BUCKET_W / 2 + 10 + slideAmp;
+  const potW = levelSetNow()?.potW;
+  const mouth = (potW ?? INK_BUCKET_W) / 2 + 10 + slideAmp;
   const blocks: InkBlock[] = [];
   // Block 0 sits right under the spout, so a straight fall never works.
   const len0 = 60 + draw(81);
@@ -1020,7 +1032,7 @@ function layout(
     blocks.push(b);
     k++;
   }
-  return { ...(drop ? { worldH: INK_WORLD_H + drop } : {}), spoutX, bucketX, bucketY, blocks, slideAmp, slidePeriod, slidePhase, ref: [], refT0: 0 };
+  return { ...(drop ? { worldH: INK_WORLD_H + drop } : {}), ...(potW ? { potW } : {}), spoutX, bucketX, bucketY, blocks, slideAmp, slidePeriod, slidePhase, ref: [], refT0: 0 };
 }
 
 /** Stage 3 (Expert): how far a swaying bird moves either way, px (INK_SWAY_MIN + up to INK_SWAY_SPAN more, seeded). */
@@ -1034,7 +1046,7 @@ export const INK_SWAY_SPAN = 17;
  */
 function withSway(lvl: InkLevel, n: number, draw: Draw): InkLevel {
   const blocks = lvl.blocks.map((b) => ({ ...b }));
-  const mouth = INK_BUCKET_W / 2 + 10 + lvl.slideAmp;
+  const mouth = inkPotHalf(lvl) + 10 + lvl.slideAmp;
   let made = 0;
   for (let k = 1; k < blocks.length && made < n; k++) {
     const b = blocks[k]!;
@@ -1918,7 +1930,7 @@ function placeCloud(lvl: InkLevel, level: number, draw: Draw): CloudFind | null 
     const { x, y } = cloud;
     if (lvl.blocks.some((b) => b.x0 - gap < x + INK_CLOUD_HW && x - INK_CLOUD_HW < b.x1 + gap && b.y - gap - INK_CLOUD_R < y && y < b.y + inkBlockH(b) + gap + INK_CLOUD_R)) continue;
     // Clear of the pot and its slide (a cloud never sits over the pot's mouth).
-    if (Math.abs(x - lvl.bucketX) < INK_BUCKET_W / 2 + lvl.slideAmp + INK_CLOUD_HW + INK_CLOUD_R + BALL_R && y > lvl.bucketY - 90) continue;
+    if (Math.abs(x - lvl.bucketX) < inkPotHalf(lvl) + lvl.slideAmp + INK_CLOUD_HW + INK_CLOUD_R + BALL_R && y > lvl.bucketY - 90) continue;
     if (refPts.some(([rx, ry]) => cloudDistance2(cloud, rx, ry) < clearRef * clearRef)) continue;
     const withCloud: InkLevel = { ...lvl, clouds: [cloud] };
     if (landsUnaided(withCloud)) continue;
@@ -3692,17 +3704,18 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
   const bx = inkBucketX(lvl, tick);
   const by = lvl.bucketY;
   ctx.globalAlpha = 0.3;
-  ctx.fillRect(bx - INK_BUCKET_W / 2, by, INK_BUCKET_W, INK_BUCKET_H);
+  const potHalf = inkPotHalf(lvl);
+  ctx.fillRect(bx - potHalf, by, 2 * potHalf, INK_BUCKET_H);
   ctx.globalAlpha = 1;
-  ctx.fillRect(bx - INK_BUCKET_W / 2 + 2, by - 2, INK_BUCKET_W - 4, 3);
+  ctx.fillRect(bx - potHalf + 2, by - 2, 2 * potHalf - 4, 3);
   // Rim caps: the two collision circles on the lip.
-  for (const cx of [bx - INK_BUCKET_W / 2, bx + INK_BUCKET_W / 2]) {
+  for (const cx of [bx - potHalf, bx + potHalf]) {
     ctx.beginPath();
     ctx.arc(cx, by, RIM_R, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillRect(bx - INK_BUCKET_W / 2, by, 3, INK_BUCKET_H);
-  ctx.fillRect(bx + INK_BUCKET_W / 2 - 3, by, 3, INK_BUCKET_H);
+  ctx.fillRect(bx - potHalf, by, 3, INK_BUCKET_H);
+  ctx.fillRect(bx + potHalf - 3, by, 3, INK_BUCKET_H);
 
   // Lines, straight from the sim's list.
   ctx.lineCap = "round";
@@ -4074,6 +4087,12 @@ export const INK_V13_STD: StdSpec = {
 /** inkRev 13's core curve for the bands and help: one unit a level potted, a straight line to 120 at all ten. */
 export const INK_V13_BAND_CURVE = bandCurve([0, INK_LEVELS], [0, INK_V13_CORE_MAX]);
 
+/** The ticks left at which the speed part is full: a level's own (stage 3), else INK_V13_SPEED_FULL. */
+export function inkSpeedFullTicks(diff?: InkDiff | null): number {
+  const s = diff ? INK_LEVEL_SETS[diff].speedFullLeftS : undefined;
+  return s ? s * TICKS_PER_SECOND : INK_V13_SPEED_FULL;
+}
+
 /** inkRev 13: a run's standard breakdown (the core and each feature; nothing is taken off). */
 export function inkV13Score(state: InkState): StdBreakdown {
   const levels = clampInt(state.levels, 0, INK_LEVELS);
@@ -4085,7 +4104,8 @@ export function inkV13Score(state: InkState): StdBreakdown {
       par: stdLine(INK_V13_PAR_MAX, clampInt(state.inkPar ?? 0, 0, 1000 * INK_LEVELS), 1000 * INK_LEVELS),
       tricks: stdPartLine(part("tricks"), state.tricks ?? 0),
       clovers: stdPartLine(part("clovers"), state.shamrocks ?? 0),
-      speed: levels >= INK_LEVELS ? stdSpeed(INK_V13_SPEED_MAX, left, INK_V13_SPEED_FULL, 0) : 0,
+      // Stage 3: a level's own "full with N s left" (Hard 70 s, Expert 85 s; Normal and Easy keep 50 s).
+      speed: levels >= INK_LEVELS ? stdSpeed(INK_V13_SPEED_MAX, left, inkSpeedFullTicks(state.diff), 0) : 0,
     },
     penalty: 0,
   };

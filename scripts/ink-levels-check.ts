@@ -19,6 +19,8 @@
  *   bun scripts/ink-levels-check.ts            (~1–2 min)
  */
 import { createHash } from "node:crypto";
+import { createCanvas } from "@napi-rs/canvas";
+import { drawPot } from "../src/lib/arcade/inkBridge.renderer";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import {
@@ -37,6 +39,9 @@ import {
   INK_REV_HILLS,
   INK_RUN_TICKS,
   INK_V13_PAR_MARGIN_PCT,
+  INK_V13_SPEED_FULL,
+  INK_BUCKET_W,
+  inkSpeedFullTicks,
   INK_WORLD_W,
   type InkDiff,
   type InkState,
@@ -73,7 +78,8 @@ section("1. the registry and Normal's figures");
   ok(!inkIsLive(7, INK_REV_HILLS) && inkIsLive(8, INK_REV_HILLS), "today's live levels start at level 9");
   ok(INK_LEVEL_SETS.easy.inkPct === 150 && INK_LEVEL_SETS.hard.inkPct === 110 && INK_LEVEL_SETS.expert.inkPct === 100, "ink: Easy 1.5×, Hard 1.1×, Expert 1.0×");
   ok(INK_LEVEL_SETS.easy.liveFrom === INK_LEVELS && INK_LEVEL_SETS.hard.liveFrom === 7 && INK_LEVEL_SETS.expert.liveFrom === 6, "live levels: none on Easy, from level 8 on Hard, from level 7 on Expert");
-  ok(INK_LEVEL_SETS.easy.parMarginPct === 25 && INK_LEVEL_SETS.hard.parMarginPct === 10 && INK_LEVEL_SETS.expert.parMarginPct === 5, "par margins 25 / 10 / 5 %");
+  // Expert's par margin is 0 % (the coordinator's lever of 16 Nov 2026 for a clear step; Joe's brief said 5 %).
+  ok(INK_LEVEL_SETS.easy.parMarginPct === 25 && INK_LEVEL_SETS.hard.parMarginPct === 10 && INK_LEVEL_SETS.expert.parMarginPct === 0, "par margins 25 / 10 / 0 %");
   ok(INK_LEVEL_SETS.easy.birdsPct === 50 && INK_LEVEL_SETS.hard.extraBirds.some((x) => x > 0) && INK_LEVEL_SETS.expert.extraBirds.every((x, i) => x >= (INK_LEVEL_SETS.hard.extraBirds[i] ?? 0)) && INK_LEVEL_SETS.expert.swayBirds > 0, "birds: half on Easy, more on Hard, at least as many on Expert, some swaying");
 }
 
@@ -204,6 +210,31 @@ section("5. swaying birds");
   const w = (JSON.parse(gunzipSync(readFileSync(inkLevelWitnessFile("expert"))).toString()).witnesses as InkWitness[])[0]!;
   const raw = inkBigSubmission(w.seed, w.events, INK_REV_HILLS, "expert");
   ok(JSON.stringify(replayInkBridgeRun(w.seed, raw, INK_REV_HILLS, "expert").state) === JSON.stringify(replayInkBridgeRun(w.seed, raw, INK_REV_HILLS, "expert").state), "the server replay of an Expert log is identical twice");
+}
+
+section("5b. the pot's width and the speed part");
+{
+  // Every level of a dealt run carries its level's pot width (Normal's carry none: INK_BUCKET_W).
+  for (const d of DIFFS) {
+    const w = INK_LEVEL_SETS[d].potW;
+    for (const s of states.get(d)!) ok(s.list.every((l) => (l.potW ?? INK_BUCKET_W) === (w ?? INK_BUCKET_W)), `${d}: every level's pot is ${w ?? INK_BUCKET_W} px`);
+  }
+  ok((INK_LEVEL_SETS.easy.potW ?? 64) > INK_BUCKET_W && (INK_LEVEL_SETS.hard.potW ?? 64) < INK_BUCKET_W && (INK_LEVEL_SETS.expert.potW ?? 64) < (INK_LEVEL_SETS.hard.potW ?? 64), "pots: wider on Easy, narrower on Hard, narrower again on Expert");
+  ok((inkBridgeGameFor(INK_REV_HILLS).init(INK_HILLS_DEAL[0]!) as InkState).list.every((l) => l.potW === undefined), "Normal levels carry no pot width");
+  // The art is drawn to the collision: the pot's painted pixels lie within 2 px of its rim caps' span (the bounds rule).
+  for (const w of [INK_BUCKET_W, INK_LEVEL_SETS.easy.potW!, INK_LEVEL_SETS.hard.potW!, INK_LEVEL_SETS.expert.potW!]) {
+    const cv = createCanvas(200, 120);
+    const c = cv.getContext("2d") as unknown as CanvasRenderingContext2D;
+    drawPot(c, 100, 40, false, w);
+    const px = cv.getContext("2d").getImageData(0, 0, 200, 120).data;
+    let lo = 200, hi = -1;
+    for (let y = 0; y < 120; y++) for (let x = 0; x < 200; x++) if (px[(y * 200 + x) * 4 + 3]! > 40) { lo = Math.min(lo, x); hi = Math.max(hi, x); }
+    // The gold glow behind the mouth is light, not the pot: judge the solid pixels only (alpha > 40) and allow the rim caps (4 px).
+    ok(hi >= 0 && lo >= 100 - w / 2 - 4 - 2 - 1 && hi <= 100 + w / 2 + 4 + 2, `a ${w} px pot is drawn within 2 px of its rim caps (${lo}–${hi})`);
+    ok(hi - lo >= w - 2, `a ${w} px pot fills its width (${hi - lo + 1} px)`);
+  }
+  ok(inkSpeedFullTicks() === INK_V13_SPEED_FULL && inkSpeedFullTicks("easy") === INK_V13_SPEED_FULL, "speed full with 50 s left on Normal and Easy");
+  ok(inkSpeedFullTicks("hard") === 70 * 60 && inkSpeedFullTicks("expert") === 85 * 60, "speed full with 70 s left on Hard, 85 s on Expert");
 }
 
 section("6. the clock; rated and the Daily");

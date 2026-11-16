@@ -182,14 +182,15 @@ function drawGlow(c: CanvasRenderingContext2D, key: string, rgb: string, x: numb
   if (!g) return;
   c.globalAlpha = alpha; c.drawImage(g, x - rx, y - ry, rx * 2, ry * 2); c.globalAlpha = 1;
 }
-export function drawPot(c: CanvasRenderingContext2D, x: number, y: number, flash: boolean): void {
+export function drawPot(c: CanvasRenderingContext2D, x: number, y: number, flash: boolean, w: number = INK_BUCKET_W): void {
   // Polish A2: the gold glowing out of the pot's mouth (behind the pot, above its rim).
   const t = countryClock();
   drawGlow(c, 'gold', '255,214,80', x, y + 2, 46, 24, 0.75 + 0.15 * Math.sin(t * 2.2));
-  stamp(c,'pot',INK_BUCKET_W,INK_BUCKET_H,x-INK_BUCKET_W/2,y,pot);
+  // Stage 3: a level's own pot width, the same art drawn to its rim caps (its own sprite key; today's 64 px unchanged).
+  stamp(c,w===INK_BUCKET_W?'pot':`pot-${w}`,w,INK_BUCKET_H,x-w/2,y,(m)=>{ if(w===INK_BUCKET_W)pot(m); else { m.save(); m.scale(w/INK_BUCKET_W,1); pot(m); m.restore(); } });
   c.fillStyle = POT;
-  for (const rx of [x-INK_BUCKET_W/2,x+INK_BUCKET_W/2]) { c.beginPath(); c.arc(rx,y,RIM_R,0,Math.PI*2); c.fill(); }
-  if (flash) { c.fillStyle = SHINE; c.globalAlpha=0.6; c.fillRect(x-28,y+2,56,5); c.globalAlpha=1; }
+  for (const rx of [x-w/2,x+w/2]) { c.beginPath(); c.arc(rx,y,RIM_R,0,Math.PI*2); c.fill(); }
+  if (flash) { c.fillStyle = SHINE; c.globalAlpha=0.6; c.fillRect(x-w/2+4,y+2,w-8,5); c.globalAlpha=1; }
 }
 /** Failure classification reads the recorded failed position, never changes physics. */
 export function inkFailedOnBlock(state: InkState): boolean {
@@ -549,8 +550,8 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   const lx=Math.min(INK_WORLD_W-24,Math.max(2,bx+40));
   // Captain Joulz stands just clear of the pot (Joe, 15 Nov: about 70 px tall), on its right, or on its left where the
   // pot is near the right edge; the old figure keeps its place.
-  const capW=INK_CAPTAIN_H*0.5,capRight=bx+INK_BUCKET_W/2+6+capW/2<=INK_WORLD_W-capW/2-2;
-  const capX=capRight?bx+INK_BUCKET_W/2+6+capW/2:bx-INK_BUCKET_W/2-6-capW/2;
+  const potHalfW=(lvl.potW??INK_BUCKET_W)/2,capW=INK_CAPTAIN_H*0.5,capRight=bx+potHalfW+6+capW/2<=INK_WORLD_W-capW/2-2;
+  const capX=capRight?bx+potHalfW+6+capW/2:bx-potHalfW-6-capW/2;
   // Polish A2: his soft shadow on the grass.
   const shadowX=strategyImage("inkbridge-captain-ready")?capX:lx+11,shadowR=strategyImage("inkbridge-captain-ready")?17:11;
   c.fillStyle='rgba(20,60,25,0.28)';c.beginPath();c.ellipse(shadowX,base+2.5,shadowR,3,0,0,Math.PI*2);c.fill();
@@ -587,7 +588,7 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   // inkRev 10: this level's wind zone (behind everything it pushes) and bounce clouds (drawn to their capsules).
   if(lvl.wind)drawWind(c,lvl.wind,state.tick);
   if(lvl.clouds)drawBounceClouds(c,lvl.clouds,state);
-  drawPot(c,inkBucketX(lvl,state.tick),lvl.bucketY,state.flashKind===1&&state.tick-state.flashTick<20);
+  drawPot(c,inkBucketX(lvl,state.tick),lvl.bucketY,state.flashKind===1&&state.tick-state.flashTick<20,lvl.potW??INK_BUCKET_W);
   // The Strategy overhaul, stage 2 (display only): a potted coin sends a small burst of rainbow coins up out of the pot
   // for half a second (fixed arcs, the same every time), then they fall back in.
   if(state.flashKind===1&&state.tick-state.flashTick>=0&&state.tick-state.flashTick<30&&!reducedMotion()&&!arcadeReducedEffects()){

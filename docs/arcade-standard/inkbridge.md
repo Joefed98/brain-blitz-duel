@@ -10,7 +10,7 @@ ink par 30 + trick shots 20 + clovers 10 + speed 20 = 200) at every level; the 1
 
 Joe's levels: "Easy 1.5× ink, about half the birds, no moving levels, 25 % par margin; Normal 1.25×, today's birds,
 moving from level 9, 10 %; Hard 1.1×, more birds, from level 8, 10 %; Expert 1.0×, more birds some moving, from level 7,
-5 %." "Moving levels" are read as the **live levels** (the coin falls while you draw): today's Normal is exactly that
+5 %." (Expert's margin is now 0 %: the second pass below.) "Moving levels" are read as the **live levels** (the coin falls while you draw): today's Normal is exactly that
 (live from level 9). Today's pot also slides from level 5 on Normal; Easy's "no moving levels" is read as nothing moves,
 so Easy's pot stands still on every level as well (a decision for Joe).
 
@@ -21,7 +21,15 @@ so Easy's pot stands still on every level as well (a decision for Joe).
 | Swaying birds | none | none | none | up to 3 on levels 5–6 (moving-pot levels) |
 | Live levels | none | 9–10 | 8–10 | 7–10 |
 | Moving pot | none | 5–10 | 5–10 | 5–10 |
-| Ink par margin | 25 % | 10 % | 10 % | 5 % |
+| Ink par margin | 25 % | 10 % | 10 % | 0 % |
+| Pot width (rim cap to rim cap) | 80 px | 64 px | 48 px | 42 px |
+| Speed part full with | 50 s left | 50 s left | 70 s left | 85 s left |
+
+**Second pass (16 Nov 2026, for a clear step up):** the first pass (Joe's figures alone) left Hard and Expert scoring like
+Normal for the bots, so three levers that cost a planning player were added on the harder levels: a narrower pot (its
+collision opening, `InkLevel.potW` / `inkPotHalf`, the rim caps and the crossing test; the pot art drawn to the same
+width, `drawPot(…, w)`), Expert's par margin at 0 %, and a stricter speed part (`inkSpeedFullTicks(diff)`). Easy's pot is
+wider (80 px). The help's "50 s left" line is the game's, not the level's (a decision for Joe).
 
 Code: `INK_LEVEL_SETS` / `InkLevelSet` / `INK_LEVEL_NORMAL` in `src/lib/arcade/inkBridge.ts` (the rules; mirrored as plain
 data in `GAME_LEVELS.inkbridge`, `src/lib/levels/gameLevels.ts`), `inkBridgeGameFor(rev, level)`,
