@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { useEffect, useRef, type CSSProperties } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
@@ -113,6 +114,7 @@ interface StandingsProps {
 
 /** The ranked table between rounds in a room of three or more. */
 export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySlot, autoSeconds, continueState, extras }: StandingsProps) {
+  const enter = useMomentEnter("fade");
   // The broadcast reveal (7 Nov 2026, src/lib/duel/standingsReveal.ts), with celebrations on: the rows
   // start in the previous order and land from last place up to 2nd, one at a time, each counting up and
   // sliding to its place, then 1st with a gold sweep; a tap anywhere skips to the final state; reduced
@@ -148,7 +150,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
   const compact = isCompactRoom(rows.length);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in" {...enter}>
       <header className="flex shrink-0 flex-col gap-0.5">
         <div className="rs-head">
           <h1 className="rs-title">Standings</h1>

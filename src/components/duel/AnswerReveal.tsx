@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { JoulesLine } from "@/components/pass/JoulesLine";
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
 import { partialProgressNote } from "@/lib/duel/partialCredit";
@@ -6,6 +7,7 @@ import { levelOf } from "@/lib/practice/progressRules";
 import { practiceProgressNow } from "@/lib/practice/useProgress";
 import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
 import { SolutionSwitch } from "@/components/duel/SolutionSwitch";
+import { revealHeading, type SwitchState } from "@/lib/duel/revealHeading";
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -633,6 +635,21 @@ export function StoredScore({ score, type }: { score: number | null; type: Puzzl
  * unsolved round shows an empty ring so the mark never flips from ✗ to partial. Each mark is an image named in
  * words (7 Nov 2026, accessibility audit #7): its glyphs were hidden and its wrapper unnamed, so it was silent.
  */
+/** Short screens (the 375 × 667 class): the shared reveal rows go compact so a game's own reveal keeps its size. */
+export const SHORT_REVEAL_QUERY = "(max-height: 720px)";
+function useShortReveal(): boolean {
+  const [short, setShort] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(SHORT_REVEAL_QUERY).matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(SHORT_REVEAL_QUERY);
+    const update = () => setShort(query.matches);
+    update();
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
+  return short;
+}
+
 /**
  * The reveal's payoff row (phase 2 step 4 pass 2, the shared reveal layout): in practice, this game's mastery stars
  * (Easy, Classic, Hard) landing with the kit's "stars" (the one just earned among them: "Star earned"), and the
@@ -775,6 +792,7 @@ function LiveAnswerReveal({
   onPlayAgain,
   onBack,
 }: AnswerRevealProps) {
+  const enter = useMomentEnter("fade");
   const practiceActions = practice && (onPlayAgain || onBack);
   const [engineOpen, setEngineOpen] = useState(false);
   const secondsLeft = Math.max(
@@ -792,6 +810,10 @@ function LiveAnswerReveal({
   const scoreCue = useRef<number | undefined>(undefined);
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
+  const [switchState, setSwitchState] = useState<SwitchState | null>(null);
+  // Short phones (15 Nov 2026, Joe): practice's stars join the score lines on a puzzle reveal (see revealLines).
+  const shortReveal = useShortReveal();
+  const payoffInline = practice && shortReveal && !(ARCADE_REVEAL_RENDERERS[puzzle.type] && !PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type));
   useRevealLabels(solvedBoard);
   const revealCard = useRef<HTMLDivElement>(null);
   const trayRef = useRef<HTMLDivElement>(null);
@@ -864,8 +886,26 @@ function LiveAnswerReveal({
     };
   }, [celebrate, myScore, round, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The score line and practice's best (one block with the stars on short phones, below).
+  const revealLines = (
+    <>
+      {/* One score line on every puzzle reveal (3 Nov 2026): the stored parts, "150 + 20 par + 30 speed". */}
+      {myScore !== null && storedScoreParts(myExtra) && !REVEAL_SHOWS_PARTS.has(puzzle.type) && !(FINISH_ONLY_TYPES.has(puzzle.type) && storedScoreParts(myExtra)!.kind === "partial") ? (
+        <p data-reveal-score-line="" className="reveal-score-line shrink-0 text-center">
+          {scorePartsText(storedScoreParts(myExtra)!)}
+          {/* Partial-credit fixes (7 Nov 2026): what an unfinished round's credit counted, "45 % of the way". */}
+          {storedScoreParts(myExtra)!.kind === "partial" && partialProgressNote(puzzle, myExtra) ? ` · ${partialProgressNote(puzzle, myExtra)}` : null}
+        </p>
+      ) : null}
+      {practice && myScore !== null ? (
+        <p data-reveal-best="" className="reveal-meta shrink-0 text-center">
+          {best === null ? "First go at this one" : `Your best: ${best}`}
+        </p>
+      ) : null}
+    </>
+  );
   return (
-    <div ref={revealRoot} data-skin="room" data-answer-reveal data-hero-earned={heroSpot ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
+    <div ref={revealRoot} data-skin="room" data-answer-reveal {...enter} data-hero-earned={heroSpot ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
       {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
       {practice && (personalBest || starLine) && myScore !== null ? <NewBestMoment starLine={starLine} /> : null}
       {/* Its own screen (3 Nov 2026): this row is the screen's header (no app top bar), so the sound button sits here. */}
@@ -881,7 +921,7 @@ function LiveAnswerReveal({
       </div>
 
       {/* The shared reveal layout (phase 2 step 4 pass 2): practice's stars and new best, for puzzles and arcade alike. */}
-      {practice && myScore !== null && answersReady ? (
+      {practice && myScore !== null && answersReady && !payoffInline ? (
         <RevealPayoff type={puzzle.type} level={(puzzle as { level?: unknown }).level} personalBest={Boolean(personalBest)} starLine={starLine} />
       ) : null}
 
@@ -914,27 +954,27 @@ function LiveAnswerReveal({
             <span className="reveal-verdict truncate">
               {verdictLine(myCorrect, myScore, myMsRemaining, puzzleTimeLimitMs(puzzle), puzzle.type)}
             </span>
-            {!puzzleOwnsRevealLayout ? (
+            {/* The heading follows the board shown (15 Nov 2026, Joe): "Your answer", "The solution", or both. */}
+            {!puzzleOwnsRevealLayout && !solutionLock ? (
               <span data-reveal-heading className="reveal-meta truncate">
-                {def.revealHeading ?? "The answer was"}
+                {revealHeading(puzzle, myCorrect, switchState)}
               </span>
             ) : null}
           </span>
           <StoredScore score={myScore} type={puzzle.type} />
         </div>
-        {/* One score line on every puzzle reveal (3 Nov 2026): the stored parts, "150 + 20 par + 30 speed". */}
-        {myScore !== null && storedScoreParts(myExtra) && !REVEAL_SHOWS_PARTS.has(puzzle.type) && !(FINISH_ONLY_TYPES.has(puzzle.type) && storedScoreParts(myExtra)!.kind === "partial") ? (
-          <p data-reveal-score-line="" className="reveal-score-line shrink-0 text-center">
-            {scorePartsText(storedScoreParts(myExtra)!)}
-            {/* Partial-credit fixes (7 Nov 2026): what an unfinished round's credit counted, "45 % of the way". */}
-            {storedScoreParts(myExtra)!.kind === "partial" && partialProgressNote(puzzle, myExtra) ? ` · ${partialProgressNote(puzzle, myExtra)}` : null}
-          </p>
-        ) : null}
-        {practice && myScore !== null ? (
-          <p data-reveal-best="" className="reveal-meta shrink-0 text-center">
-            {best === null ? "First go at this one" : `Your best: ${best}`}
-          </p>
-        ) : null}
+        {/* Short phones (15 Nov 2026, Joe): practice's stars, the score line and the best share one compact block under
+         * the verdict, so the game's own reveal keeps its full size (the stars' own row pushed it to about 85 %). */}
+        {payoffInline ? (
+          <div data-reveal-lines="" className="reveal-lines shrink-0">
+            {myScore !== null && answersReady ? (
+              <RevealPayoff type={puzzle.type} level={(puzzle as { level?: unknown }).level} personalBest={Boolean(personalBest)} starLine={starLine} />
+            ) : null}
+            {revealLines}
+          </div>
+        ) : (
+          revealLines
+        )}
         {/* Engine games on the puzzle reveal: their stored breakdown, open (practice) or one tap away (rooms). */}
         {PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
           <EngineBreakdown type={puzzle.type} rev={puzzle.type === "clayshoot" ? puzzle.clayRev : undefined} open={engineOpen} setOpen={setEngineOpen} extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} />
@@ -946,7 +986,7 @@ function LiveAnswerReveal({
         {/* The board keeps its box (flex-1, as before); the tray behind its card hugs what the card draws (useRevealFit). */}
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
-          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} /> : null}
+          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} /> : null}
           {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
           <div ref={revealCard} data-reveal-card="" className="reveal-card">
           {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}

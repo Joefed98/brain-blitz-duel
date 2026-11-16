@@ -14,7 +14,10 @@ import {
   HERO_RUN_MS,
   HERO_STILL_MS,
   PODIUM_HERO_BOB_MS,
+  COUNT_STRIKE_MS,
+  STRIKE_IN_MIN_MS,
   STRIKE_IN_MS,
+  STRIKE_MIN_MS,
   STRIKE_MS,
 } from "./celebrations";
 import { batterySaverOn } from "@/lib/battery";
@@ -28,7 +31,11 @@ const GRAVITY = 420;
 
 const BOLT_MAIN = 33;
 const BOLT_BRANCH = 9;
-const BRANCHES = 2;
+/** Each bolt's forks: one to MAX_BRANCHES, drawn fresh per strike. */
+const MAX_BRANCHES = 4;
+/** A GO strike draws one to three bolts, a countdown strike one or two. */
+const MAX_BOLTS = 3;
+const BOLT_FLOATS = (BOLT_MAIN + MAX_BRANCHES * BOLT_BRANCH) * 2;
 
 /** The 200 lap's fireworks: when each bursts (ms into the lap) and where (fractions of the screen's width and height). */
 export const FIREWORK_AT = new Float32Array([150, 600, 1050, 1500, 1950, 2400]);
@@ -100,7 +107,22 @@ export class CelebrationScene {
   show: { scope: number; at: number; kind: "dance" | "grand"; calm: boolean; fired: number } | null = null;
   /** Fireworks burst so far, across every lap (the layer plays a crackle for each new one). */
   fireworks = 0;
-  private readonly bolt = new Float32Array((BOLT_MAIN + BRANCHES * BOLT_BRANCH) * 2);
+  /**
+   * The strike's bolts (15 Nov 2026, Joe: never the same twice): up to MAX_BOLTS, each its main line and its forks;
+   * how many of each, the strike's length and its in-time, and one re-strike flicker, all drawn fresh per strike.
+   */
+  private readonly bolt = new Float32Array(MAX_BOLTS * BOLT_FLOATS);
+  private readonly branches = new Uint8Array(MAX_BOLTS);
+  private bolts = 0;
+  private strikeLen = STRIKE_MS;
+  private strikeIn = STRIKE_IN_MS;
+  /** A re-strike: at this share of the fade the bolt flares back (0: none), to this alpha. */
+  private flickerAt = 0;
+  private flickerTo = 0;
+  /** The countdown's smaller strike (thinner, shorter, dimmer, no screen brightening). */
+  private strikeSmall = false;
+  /** Strikes so far: each one's seed mixes it in with the clock, so no two strikes share a shape. */
+  private strikes = 0;
 
   /** A seeded stream for spark spread and the bolt's shape (presentation only). */
   private seed = 0x51f3;
@@ -199,44 +221,73 @@ export class CelebrationScene {
     return canvas;
   }
 
-  /** One branching bolt from near the top to the lower part of the screen. */
-  strike(width: number, height: number, now: number): void {
+  /**
+   * A strike: one to three branching bolts from near the top to the lower part of the screen (`small`: the countdown's,
+   * one or two shorter bolts). Every strike is drawn fresh from a new seed (the clock to the microsecond, a counter and the last seed,
+   * presentation only), so no two share their bolts, forks, origin or timing.
+   */
+  strike(width: number, height: number, now: number, small = false): void {
+    this.strikes++;
+    this.seed = (Math.imul(this.seed ^ Math.imul(this.strikes + 1, 2654435761), 1597334677) ^ ((now * 1000) | 0)) >>> 0;
     this.strikeAt = now;
+    this.strikeSmall = small;
+    const r = this.rand();
+    this.bolts = small ? (r < 0.3 ? 2 : 1) : r < 0.55 ? 1 : r < 0.88 ? 2 : 3;
+    this.strikeLen = small
+      ? Math.round(COUNT_STRIKE_MS * (0.75 + this.rand() * 0.25))
+      : Math.round(STRIKE_MIN_MS + this.rand() * (STRIKE_MS - STRIKE_MIN_MS));
+    this.strikeIn = Math.round(STRIKE_IN_MIN_MS + this.rand() * (STRIKE_IN_MS - STRIKE_IN_MIN_MS));
+    this.flickerAt = this.rand() < 0.6 ? 0.15 + this.rand() * 0.35 : 0;
+    this.flickerTo = 0.55 + this.rand() * 0.4;
+    const centre = 0.2 + this.rand() * 0.6;
+    for (let n = 0; n < this.bolts; n++) {
+      const spread = n === 0 ? 0 : (this.rand() - 0.5) * 0.5;
+      const top = Math.min(0.92, Math.max(0.08, centre + spread));
+      const x0 = width * top;
+      const lean = (this.rand() - 0.5) * (small ? 0.3 : 0.5);
+      const x1 = width * Math.min(0.95, Math.max(0.05, top + lean));
+      const y0 = small ? height * (0.12 + this.rand() * 0.12) : -4;
+      const y1 = small ? y0 + height * (0.28 + this.rand() * 0.14) : height * ((n === 0 ? 0.6 : 0.36) + this.rand() * 0.16);
+      this.boltShape(n, x0, y0, x1, y1, width * (small ? 0.09 : 0.16), small);
+    }
+  }
+
+  /** One bolt's points: midpoint displacement from (x0, y0) to (x1, y1), then its forks, angled away and down. */
+  private boltShape(n: number, x0: number, y0: number, x1: number, y1: number, jitter0: number, small: boolean): void {
     const b = this.bolt;
-    const x0 = width * (0.3 + this.rand() * 0.4);
-    const x1 = width * (0.25 + this.rand() * 0.5);
-    const y0 = -4;
-    const y1 = height * (0.62 + this.rand() * 0.12);
-    // Midpoint displacement into BOLT_MAIN points.
-    b[0] = x0;
-    b[1] = y0;
-    b[(BOLT_MAIN - 1) * 2] = x1;
-    b[(BOLT_MAIN - 1) * 2 + 1] = y1;
+    const o = n * BOLT_FLOATS;
+    b[o] = x0;
+    b[o + 1] = y0;
+    b[o + (BOLT_MAIN - 1) * 2] = x1;
+    b[o + (BOLT_MAIN - 1) * 2 + 1] = y1;
     let step = BOLT_MAIN - 1;
-    let jitter = width * 0.16;
+    let jitter = jitter0;
     while (step > 1) {
       const half = step / 2;
       for (let i = half; i < BOLT_MAIN; i += step) {
-        const a = (i - half) * 2;
-        const c = (i + half) * 2;
-        b[i * 2] = (b[a]! + b[c]!) / 2 + (this.rand() - 0.5) * jitter;
-        b[i * 2 + 1] = (b[a + 1]! + b[c + 1]!) / 2 + (this.rand() - 0.5) * jitter * 0.25;
+        const a = o + (i - half) * 2;
+        const c = o + (i + half) * 2;
+        b[o + i * 2] = (b[a]! + b[c]!) / 2 + (this.rand() - 0.5) * jitter;
+        b[o + i * 2 + 1] = (b[a + 1]! + b[c + 1]!) / 2 + (this.rand() - 0.5) * jitter * 0.25;
       }
       step = half;
-      jitter *= 0.55;
+      jitter *= 0.5 + this.rand() * 0.12;
     }
-    // Two short forks off the main bolt, angled away and down.
-    for (let k = 0; k < BRANCHES; k++) {
-      const from = 9 + k * 10 + Math.floor(this.rand() * 4);
-      const base = (BOLT_MAIN + k * BOLT_BRANCH) * 2;
-      let x = b[from * 2]!;
-      let y = b[from * 2 + 1]!;
-      const dir = k === 0 ? -1 : 1;
+    const forks = 1 + Math.floor(this.rand() * (small ? 2 : MAX_BRANCHES));
+    this.branches[n] = forks;
+    const reach = small ? 0.55 : 1;
+    for (let k = 0; k < forks; k++) {
+      const from = 4 + Math.floor(this.rand() * (BOLT_MAIN - 10));
+      const base = o + (BOLT_MAIN + k * BOLT_BRANCH) * 2;
+      let x = b[o + from * 2]!;
+      let y = b[o + from * 2 + 1]!;
+      const dir = this.rand() < 0.5 ? -1 : 1;
+      const len = 0.5 + this.rand() * 0.7;
       for (let i = 0; i < BOLT_BRANCH; i++) {
         b[base + i * 2] = x;
         b[base + i * 2 + 1] = y;
-        x += dir * (8 + this.rand() * 12);
-        y += 10 + this.rand() * 14;
+        x += dir * (6 + this.rand() * 14) * len * reach;
+        y += (8 + this.rand() * 14) * len * reach;
       }
     }
   }
@@ -278,7 +329,7 @@ export class CelebrationScene {
     if (this.live > 0) return true;
     if (this.run && now - this.run.at < HERO_RUN_MS) return true;
     if (this.show && now - this.show.at < this.showMs(this.show)) return true;
-    if (this.strikeAt >= 0 && now - this.strikeAt < STRIKE_MS) return true;
+    if (this.strikeAt >= 0 && now - this.strikeAt < this.strikeLen) return true;
     if (this.podium && !this.podium.calm && now - this.podium.at < PODIUM_HERO_BOB_MS) return true;
     return false;
   }
@@ -532,36 +583,53 @@ export class CelebrationScene {
   private drawStrike(ctx: CanvasRenderingContext2D, width: number, height: number, now: number): void {
     if (this.strikeAt < 0) return;
     const age = now - this.strikeAt;
-    if (age >= STRIKE_MS || age < 0) {
-      if (age >= STRIKE_MS) this.strikeAt = -1;
+    const len = this.strikeLen;
+    if (age >= len || age < 0) {
+      if (age >= len) this.strikeAt = -1;
       return;
     }
-    const alpha = age < STRIKE_IN_MS ? age / STRIKE_IN_MS : Math.max(0, 1 - (age - STRIKE_IN_MS) / (STRIKE_MS - STRIKE_IN_MS)) ** 1.6;
+    const inMs = this.strikeIn;
+    let alpha = age < inMs ? age / inMs : Math.max(0, 1 - (age - inMs) / (len - inMs)) ** 1.6;
+    // The re-strike: a short flare back up partway through the fade.
+    if (this.flickerAt > 0 && age >= inMs) {
+      const t = (age - inMs) / (len - inMs);
+      const d = Math.abs(t - this.flickerAt);
+      if (d < 0.06) alpha = Math.max(alpha, this.flickerTo * (1 - d / 0.06));
+    }
+    const small = this.strikeSmall;
     const b = this.bolt;
     ctx.save();
-    // A soft warm brightening of the whole screen, never white and never strong.
-    ctx.globalAlpha = alpha * 0.1;
-    ctx.fillStyle = "#FFE08A";
-    ctx.fillRect(0, 0, width, height);
-    this.mark(0, 0, width, height);
+    if (!small) {
+      // A soft warm brightening of the whole screen, never white and never strong.
+      ctx.globalAlpha = alpha * 0.1;
+      ctx.fillStyle = "#FFE08A";
+      ctx.fillRect(0, 0, width, height);
+      this.mark(0, 0, width, height);
+    } else this.mark(0, 0, width, height);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    const fade = small ? 0.7 : 1;
     for (let pass = 0; pass < 2; pass++) {
-      ctx.globalAlpha = alpha * (pass === 0 ? 0.4 : 1);
       ctx.strokeStyle = pass === 0 ? "#F7BF2F" : "#FFFBEA";
-      ctx.lineWidth = pass === 0 ? 7 : 2;
-      ctx.beginPath();
-      ctx.moveTo(b[0]!, b[1]!);
-      for (let i = 1; i < BOLT_MAIN; i++) ctx.lineTo(b[i * 2]!, b[i * 2 + 1]!);
-      ctx.stroke();
-      ctx.lineWidth = pass === 0 ? 4 : 1.2;
-      ctx.beginPath();
-      for (let k = 0; k < BRANCHES; k++) {
-        const base = (BOLT_MAIN + k * BOLT_BRANCH) * 2;
-        ctx.moveTo(b[base]!, b[base + 1]!);
-        for (let i = 1; i < BOLT_BRANCH; i++) ctx.lineTo(b[base + i * 2]!, b[base + i * 2 + 1]!);
+      for (let n = 0; n < this.bolts; n++) {
+        const o = n * BOLT_FLOATS;
+        // Side bolts a little fainter and thinner than the first.
+        const side = n === 0 ? 1 : 0.7;
+        ctx.globalAlpha = alpha * fade * side * (pass === 0 ? 0.4 : 1);
+        ctx.lineWidth = (pass === 0 ? 7 : 2) * side * (small ? 0.6 : 1);
+        ctx.beginPath();
+        ctx.moveTo(b[o]!, b[o + 1]!);
+        for (let i = 1; i < BOLT_MAIN; i++) ctx.lineTo(b[o + i * 2]!, b[o + i * 2 + 1]!);
+        ctx.stroke();
+        ctx.lineWidth = (pass === 0 ? 4 : 1.2) * side * (small ? 0.6 : 1);
+        ctx.beginPath();
+        for (let k = 0; k < this.branches[n]!; k++) {
+          const base = o + (BOLT_MAIN + k * BOLT_BRANCH) * 2;
+          ctx.moveTo(b[base]!, b[base + 1]!);
+          for (let i = 1; i < BOLT_BRANCH; i++) ctx.lineTo(b[base + i * 2]!, b[base + i * 2 + 1]!);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
     }
     ctx.restore();
   }
