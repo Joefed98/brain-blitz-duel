@@ -69,6 +69,8 @@ export function checkoutRemaining(
 
 /** True when this dart may end the stage: the finishing ring, or (checkoutRev 2) a big finish. */
 export function checkoutFinisher(stage: CheckoutStageData, dart: CheckoutDart): boolean {
+  // checkoutRev 4's Easy boards (anyRing): any dart may end the stage.
+  if (stage.anyRing === true) return true;
   return dart.ring === stage.finish || (stage.bigFinish === true && isBigFinishDart(stage.finish, dart, CHECKOUT_BULL));
 }
 
@@ -86,7 +88,7 @@ export function checkoutBigFinish(stage: CheckoutStageData, dart: CheckoutDart |
 export function checkoutBustsAt(stage: CheckoutStageData, remaining: number, dart: CheckoutDart, count: number): boolean {
   if (remaining < 0) return true;
   if (remaining === 0) return !(checkoutFinisher(stage, dart) && (!stage.exactDarts || count === stage.maxDarts));
-  return remaining === 1 && stage.finish === 2;
+  return remaining === 1 && stage.finish === 2 && stage.anyRing !== true;
 }
 
 /** The index of the first dart in this list that busts (checkoutRev 3), or -1. */

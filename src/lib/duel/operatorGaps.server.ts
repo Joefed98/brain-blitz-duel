@@ -131,8 +131,133 @@ export function buildOperatorGaps(): Pick<EquationPuzzleData, "stages" | "gapAns
  */
 export function dealOperatorGaps<T extends PuzzleData>(puzzle: T): T {
   if (!operatorGapsDealt() || puzzle.type !== "equation") return puzzle;
+  // A level's deal (generateOperatorLevel) comes with its gaps already built: leave them.
+  if ((puzzle as EquationPuzzleData).gapsRev !== undefined) return puzzle;
   const std = STANDARD_STAMPS.equation;
   if (!std || (puzzle as EquationPuzzleData).depthRev !== (std.dealt ?? std.rev)) return puzzle;
   const { operators: _ops, ...rest } = puzzle as EquationPuzzleData;
   return { ...rest, ...buildOperatorGaps() } as T;
+}
+
+/* ------------------------------------------------------------------ levels (stage 3, 15 Nov 2026) */
+
+/** One equation of a level, as plain data in the level registry (src/lib/levels/gameLevels.ts). */
+export interface OperatorLevelLine {
+  count: number;
+  lo: number;
+  hi: number;
+  numberGaps: number;
+  signGaps: number;
+  decoys: number;
+  /** The signs the answer may use ("+-×÷" order) and the ones it must use. */
+  signs: string;
+  need?: string;
+  /** The fewest different signs in the answer. */
+  distinct?: number;
+  maxAnswers: number;
+}
+
+export interface OperatorLevelSettings {
+  /** Full fills allowed per equation (stamped as the puzzle's tryLimit, graded from it). */
+  tries: number;
+  lines: readonly OperatorLevelLine[];
+}
+
+function recipeOf(line: OperatorLevelLine): Recipe {
+  const signs = [...line.signs] as Operator[];
+  const need = [...(line.need ?? "")] as Operator[];
+  return {
+    count: line.count,
+    lo: line.lo,
+    hi: line.hi,
+    numberGaps: line.numberGaps,
+    decoys: line.decoys,
+    signGaps: line.signGaps,
+    allowed: (ops) => ops.every((o) => signs.includes(o)) && need.every((o) => ops.includes(o)) && new Set(ops).size >= (line.distinct ?? 1),
+    maxAnswers: line.maxAnswers,
+  };
+}
+
+/**
+ * The person-like search (Joe's rule for Expert, 15 Nov 2026): a person works an equation left to right, trying a sign
+ * (+ − × ÷) or a tray number in each gap in turn and dropping any line whose running total stops being a whole number
+ * of 0 or more. Returns the partial lines tried before the first true fill (Infinity when there is none within `budget`).
+ */
+export function operatorPersonSearch(stage: EquationStage, budget = 100_000): number {
+  const slots = gapSlots(stage);
+  const tray = stage.tray ?? [];
+  const used = tray.map(() => false);
+  const numbers = [...stage.numbers];
+  const ops: (Operator | null)[] = stage.signs ? [...stage.signs] : Array(stage.numbers.length - 1).fill(null);
+  const isNumberGap = new Set(slots.filter((s) => s.kind === "number").map((s) => s.index));
+  const isSignGap = new Set(slots.filter((s) => s.kind === "sign").map((s) => s.index));
+  let nodes = 0;
+  // Position p: the number at p (and, for p > 0, the sign before it), running total `value` after it.
+  const step = (value: number, op: Operator, next: number): number | null => {
+    if (op === "+") return value + next;
+    if (op === "-") return value - next >= 0 ? value - next : null;
+    if (op === "×") return value * next;
+    if (next === 0 || value % next !== 0) return null;
+    return value / next;
+  };
+  const numberChoices = (p: number): number[] => {
+    if (!isNumberGap.has(p)) return [numbers[p]!];
+    const seen = new Set<number>();
+    const out: number[] = [];
+    tray.forEach((t, i) => { if (!used[i] && !seen.has(t)) { seen.add(t); out.push(t); } });
+    return out;
+  };
+  const useTile = (value: number): number => {
+    const i = tray.findIndex((t, k) => !used[k] && t === value);
+    if (i >= 0) used[i] = true;
+    return i;
+  };
+  const walk = (p: number, value: number): boolean => {
+    if (nodes > budget) return false;
+    if (p === numbers.length) return value === stage.target;
+    const signChoices: Operator[] = isSignGap.has(p - 1) ? SIGNS.slice() : [ops[p - 1]!];
+    for (const n of numberChoices(p)) {
+      const tile = isNumberGap.has(p) ? useTile(n) : -1;
+      for (const op of signChoices) {
+        nodes++;
+        const v = step(value, op, n);
+        if (v !== null && walk(p + 1, v)) { if (tile >= 0) used[tile] = false; return true; }
+      }
+      if (tile >= 0) used[tile] = false;
+    }
+    return false;
+  };
+  for (const n of numberChoices(0)) {
+    const tile = isNumberGap.has(0) ? useTile(n) : -1;
+    nodes++;
+    if (walk(1, n)) return nodes;
+    if (tile >= 0) used[tile] = false;
+  }
+  return Infinity;
+}
+
+/** The most partial lines the person-like search may need on a level's line: today's Normal deals lines up to about 780 (the hardest in 150 room seeds needed 776), so no level line asks more search than Normal already does. */
+export const OPERATOR_PERSON_BUDGET = 800;
+
+/**
+ * Operator at a level (Easy, Hard, Expert): four equations from the level's lines on the room seed's stream, each with
+ * between one and `maxAnswers` true fills and found by the person-like search within OPERATOR_PERSON_BUDGET; the level's
+ * tries stamped as the puzzle's tryLimit (stampMoveLimits keeps it). Normal never comes here.
+ */
+export function generateOperatorLevel(settings: OperatorLevelSettings): EquationPuzzleData {
+  const built = settings.lines.map((line, i) => {
+    const recipe = recipeOf(line);
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const b = buildGapStage(recipe);
+      if (b && operatorPersonSearch(b.stage, OPERATOR_PERSON_BUDGET) <= OPERATOR_PERSON_BUDGET) return b;
+    }
+    return FALLBACKS[Math.min(i, FALLBACKS.length - 1)]!;
+  });
+  return {
+    type: "equation",
+    stages: built.map((b) => b.stage),
+    gapAnswers: built.map((b) => b.answer),
+    gapsRev: OPERATOR_GAPS_REV,
+    tryLimit: settings.tries,
+  } as EquationPuzzleData;
 }

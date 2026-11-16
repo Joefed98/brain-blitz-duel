@@ -15,10 +15,10 @@ import { dealStandard } from "./standard/stamps";
 import { dealPuzzleNotes } from "./puzzleNotes";
 import { dealParMoves } from "./parMoves";
 import { dealPipesPlaced } from "./speedPipesNov7";
-import { dealOperatorGaps } from "./operatorGaps.server";
+import { dealOperatorGaps, generateOperatorLevel, type OperatorLevelSettings } from "./operatorGaps.server";
 import { dealWordNov7 } from "./wordNov7";
 import { dealGameReviewNov15 } from "./gameReviewNov15";
-import { withDealOptions, type DealOptions } from "./dealEra";
+import { dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
 import { dealNumberOverhaul } from "./numberOverhaul";
@@ -42,6 +42,9 @@ import { generateWordsmith } from "./wordsmith.server";
 import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
 import { generateBalance } from "./numberRounds.server";
+import { generateBalanceLevel } from "./balanceLevels.server";
+import { generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
+import type { BalanceLevelSettings } from "./balanceLevels";
 import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
 import { generateFlow } from "./flow.server";
 import { generateIceSlide } from "./slide.server";
@@ -121,17 +124,18 @@ import { generateStrikeout } from "./strikeout.server";
 import { generateCodeword } from "./codeword.server";
 import { generateSwapword } from "./swapword.server";
 import { wordGameSeed } from "./wordSeed.server";
-import { generateMeasure } from "./measure.server";
-import { generateCheckout } from "./checkout.server";
+import { dealMeasure, stampMeasureLevel } from "./measureLevels.server";
+import { generateCheckout, generateCheckoutLevel } from "./checkout.server";
 import { generateNumline } from "./numline.server";
 import { generateFences } from "./fences.server";
 import { generateFillomino } from "./fillomino.server";
 import { generateBridges } from "./bridges.server";
-import { generateKakuro } from "./kakuro.server";
+import { generateKakuro, generateKakuroLevel } from "./kakuro.server";
+import { CHECKOUT_NORMAL, CHECKOUT_REV_LEVELS, KAKURO_NORMAL, KAKURO_REV_LEVELS, checkoutLevelsPinned, kakuroLevelsPinned, type CheckoutLevelSettings, type KakuroLevelSettings } from "./numberLevels";
 import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
-import { resolveLevel } from "@/lib/levels/gameLevels";
+import { gameLevelSettings, resolveLevel } from "@/lib/levels/gameLevels";
 
 /** Room-level context a generator may need beyond its own randomness. */
 export interface GenerateContext {
@@ -216,7 +220,9 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
   const stamped = stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
   // The layers move stamps up on today's score revision only.
   if (puzzleScoreRevOf(stamped) !== PUZZLE_SCORE_REV_DEALT) return stamped;
-  return DEAL_LAYERS.reduce((puzzle, layer) => layer.deal(puzzle), stamped);
+  const layered = DEAL_LAYERS.reduce((puzzle, layer) => layer.deal(puzzle), stamped);
+  // Brimful's level boards (measureLevels.server.ts): measureRev 5 and the level's move limits, after today's layers.
+  return type === "measure" ? stampMeasureLevel(layered, context.level) : layered;
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
@@ -241,7 +247,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // Word depth (25 Oct 2026): Interlock tileGridRev 1 scores to 200 (depth/tilegrid.server.ts); the board is unchanged.
   if (type === "tilegrid") return stampTileGridRev(generateTileGrid());
   if (type === "wordslide") return generateWordSlide();
-  if (type === "balance") return generateBalance();
+  // Counterweight's levels (balanceLevels.ts, 15 Nov 2026): today's game is Hard; Normal, Easy and Expert balanceRev 5.
+  if (type === "balance") return dealBalanceLevel(context.level);
   if (type === "lightsout") return generateLightsOut();
   if (type === "pipes") return generatePipes();
   if (type === "sudoku") return generateSudoku();
@@ -315,7 +322,12 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "shikaku") return generateShikaku();
   if (type === "lightup") return generateLightUp();
   if (type === "balltrack") return generateBallTrack();
-  if (type === "numpyramid") return generateNumberPyramid();
+  // Levels (stage 3 of the Number overhaul): Integer Pyramid's level banks, Operator's level equations; Normal as before.
+  if (type === "numpyramid") return generateNumberPyramid(context.level);
+  if (type === "equation" && context.level) {
+    const settings = gameLevelSettings<OperatorLevelSettings>("equation", context.level);
+    if (settings) return generateOperatorLevel(settings);
+  }
   if (type === "trail") return generateTrail();
   if (type === "dig") return generateDig();
   if (type === "wordsearch") return generateWordSearch();
@@ -326,16 +338,50 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed), dealtDepthRev(dealtTopupRev(STRIKEOUT_REV_TOPUP, STRIKEOUT_REV5), STRIKEOUT_REV4));
   if (type === "codeword") return generateCodeword(wordGameSeed(type, context.bankSeed));
   if (type === "swapword") return generateSwapword(wordGameSeed(type, context.bankSeed));
-  if (type === "measure") return generateMeasure(gameSeed(type, context));
-  if (type === "checkout") return generateCheckout(gameSeed(type, context));
+  // Brimful's levels (measureLevels.ts, 15 Nov 2026): today's game is Hard; Normal, Easy and Expert measureRev 5.
+  if (type === "measure") return dealMeasure(gameSeed(type, context), context.level);
+  // Checkout's and Kakuro's levels (numberLevels.ts, 15 Nov 2026): today's game is Hard; Normal, Easy and Expert new.
+  if (type === "checkout") return dealCheckoutLevel(gameSeed(type, context), context.level);
   if (type === "numline") return generateNumline(gameSeed(type, context));
   // New grid puzzles (1 Nov 2026): built from the room seed (salted by type), each proved unique by its solver.
   if (type === "fences") return generateFences(gameSeed(type, context));
   if (type === "fillomino") return generateFillomino(gameSeed(type, context));
   if (type === "bridges") return generateBridges(gameSeed(type, context));
-  if (type === "kakuro") return generateKakuro(gameSeed(type, context));
+  if (type === "kakuro") return dealKakuroLevel(gameSeed(type, context), context.level);
+  // Exact's levels (targetLevels.server.ts, 15 Nov 2026): Normal is today's deal below.
+  if (type === "target" && context.level) {
+    const settings = gameLevelSettings<TargetLevelSettings>("target", context.level);
+    if (settings) return generateTargetLevel(settings);
+  }
 
   return puzzleDef(type).generate();
+}
+
+/**
+ * Counterweight (balanceLevels.ts): Hard is today's deal exactly; Normal, Easy and Expert the balanceRev 5 deals. The
+ * check-only pin `preBalanceLevels` deals today's game at Normal, as rooms did before levels.
+ */
+function dealBalanceLevel(level: Level | undefined): PuzzleData {
+  if (!level && dealPinned("preBalanceLevels")) return generateBalance();
+  return generateBalanceLevel(level ? (gameLevelSettings("balance", level) as BalanceLevelSettings | null) : null);
+}
+
+/**
+ * Checkout and Kakuro (numberLevels.ts): Hard is today's deal exactly; Normal, Easy and Expert the levels' deals
+ * (checkoutRev 4, kakuroRev 3). The check-only pins (or any older era pinned) deal today's game at Normal.
+ */
+function dealCheckoutLevel(seed: number, level: Level | undefined): PuzzleData {
+  if (!level && checkoutLevelsPinned()) return generateCheckout(seed);
+  const settings = level ? gameLevelSettings<CheckoutLevelSettings>("checkout", level) : CHECKOUT_NORMAL;
+  if (!settings || settings.today) return generateCheckout(seed);
+  return generateCheckoutLevel(seed, settings, CHECKOUT_REV_LEVELS);
+}
+
+function dealKakuroLevel(seed: number, level: Level | undefined): PuzzleData {
+  if (!level && kakuroLevelsPinned()) return generateKakuro(seed);
+  const settings = level ? gameLevelSettings<KakuroLevelSettings>("kakuro", level) : KAKURO_NORMAL;
+  if (!settings || settings.today) return generateKakuro(seed);
+  return generateKakuroLevel(seed, settings, KAKURO_REV_LEVELS);
 }
 
 /**

@@ -73,6 +73,14 @@ export const DEAL_PINS = {
   /** numberOverhaul.ts: Counterweight balanceRev 3, Operator gapsRev 1, Checkout checkoutRev 2 and Kakuro kakuroRev 1,
    * before the Number overhaul (15 Nov 2026). */
   preNumberOverhaul: { texts: true },
+  /** balanceLevels.ts: Counterweight's Normal as today's game (balanceRev 4), before its levels (15 Nov 2026). */
+  preBalanceLevels: { texts: false },
+  /** measureLevels.ts: Brimful's Normal as today's game (measureRev 4), before its levels (15 Nov 2026). */
+  preMeasureLevels: { texts: false },
+  /** numberLevels.ts: Checkout's Normal as today's game (checkoutRev 3), before its levels (15 Nov 2026). */
+  preCheckoutLevels: { texts: false },
+  /** numberLevels.ts: Kakuro's Normal as today's game (kakuroRev 2), before its levels (15 Nov 2026). */
+  preKakuroLevels: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

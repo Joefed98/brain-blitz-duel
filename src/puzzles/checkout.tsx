@@ -475,6 +475,8 @@ function finishWord(stage: CheckoutStageData): string {
 
 /** checkoutRev 2's rule line: the finishing ring and the big finish, short enough for one line at 375 px. */
 function bigFinishRule(stage: CheckoutStageData): string {
+  // checkoutRev 4's Easy boards (anyRing): any dart checks out; a treble or the Bull is still the big finish.
+  if (stage.anyRing === true) return "Any dart · ★ Bull/treble";
   return stage.finish === 3 ? "Treble · ★ Bull" : "Double · ★ Bull/treble";
 }
 
@@ -536,12 +538,14 @@ function Stage({
   stateKey = "checkout",
 }: PuzzleStageProps) {
   const data: CheckoutPuzzleData | null = puzzle.type === "checkout" ? puzzle : null;
+  // checkoutRev 4 (levels): the round's own number of boards (Easy deals three); five on every earlier stamp.
+  const boardCount = data?.stages.length || CHECKOUT_STAGES;
   const [stage, setStage] = useStageState<number>(stateKey, "checkoutStage", () => 0);
   const [solved, setSolved] = useStageState<string[]>(stateKey, "checkoutSolved", () =>
-    Array.from({ length: CHECKOUT_STAGES }, () => ""),
+    Array.from({ length: boardCount }, () => ""),
   );
   const [inPlay, setInPlay] = useStageState<CheckoutDart[][]>(stateKey, "checkoutDarts", () =>
-    Array.from({ length: CHECKOUT_STAGES }, () => []),
+    Array.from({ length: boardCount }, () => []),
   );
   const [selected, setSelected] = useStageState<number | null>(
     stateKey,
@@ -724,8 +728,8 @@ function Stage({
     setCorrect(true);
     // Stage 2: the finishing ring lights and rings (the kit's match on the lit ring; the stage moment's chime plays).
     requestAnimationFrame(() => gameFx("match", box.current?.querySelector("[data-checkout-lit]"), { silent: true }));
-    const following = [1, 2, 3, 4, 5]
-      .map((k) => (stage + k) % CHECKOUT_STAGES)
+    const following = Array.from({ length: boardCount }, (_, k) => k + 1)
+      .map((k) => (stage + k) % boardCount)
       .find((i) => !next[i]);
     // Game review fix (15 Nov 2026): the auto-advance is cleared if the screen leaves first.
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
@@ -785,7 +789,7 @@ function Stage({
                   {
                     id: "finish",
                     label: "Finish",
-                    value: current.bigFinish ? bigFinishRule(current).split(" · ")[0]! : finishWord(current) === "treble" ? "Treble" : "Double",
+                    value: current.bigFinish ? bigFinishRule(current).split(" · ")[0]! : current.anyRing ? "Any dart" : finishWord(current) === "treble" ? "Treble" : "Double",
                     tone: "gold" as const,
                   },
                   current.bigFinish && {
@@ -931,7 +935,7 @@ export function checkoutRevealBoards(puzzle: CheckoutPuzzleData, answer: string 
 
 /** The board's finishing rule in plain words: the ring, and the big finish where the board has one. */
 function revealRule(stage: CheckoutStageData): string {
-  const ring = `Finish on a ${finishWord(stage)}`;
+  const ring = stage.anyRing === true ? "Finish on any dart" : `Finish on a ${finishWord(stage)}`;
   if (stage.bigFinish !== true) return ring;
   return stage.finish === 3 ? `${ring} or the Bull` : `${ring}, a treble or the Bull`;
 }

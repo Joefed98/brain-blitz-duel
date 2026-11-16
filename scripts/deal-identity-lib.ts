@@ -107,8 +107,10 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul, numberOverhaul.ts):
  * preNumberOverhaul.
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preCheckoutLevels and
+ * preKakuroLevels (Checkout's and Kakuro's new Normal, numberLevels.ts).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preNumberOverhaul"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {

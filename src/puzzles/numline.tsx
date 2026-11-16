@@ -26,6 +26,7 @@ import {
   numlineTicks,
   numlineFullError,
   NUMLINE_ITEMS,
+  numlineHiddenEnd,
   NUMLINE_SCALE,
   NUMLINE_STAGES,
   NUMLINE_TOTAL,
@@ -155,10 +156,12 @@ export function numlinePlaceSound(): void {
 
 function tickLabels(
   stage: Pick<NumlineStageData, "lo" | "hi">,
+  /** Expert's hidden end (numlineLevels.ts): the share whose label shows "?". */
+  hidden: number | null = null,
 ): { share: number; label: string }[] {
   const ticks = numlineTicks(stage);
   return ticks
-    .map((share) => ({ share, label: fmt(Math.round(stage.lo + share * (stage.hi - stage.lo))) }))
+    .map((share) => ({ share, label: share === hidden ? "?" : fmt(Math.round(stage.lo + share * (stage.hi - stage.lo))) }))
     .sort((a, b) => a.share - b.share);
 }
 
@@ -280,10 +283,13 @@ export function Line({
   label = 16,
   yShare = 0.55,
   minor = 0,
+  hidden = null,
   svgStyle,
   children,
 }: {
   stage: Pick<NumlineStageData, "lo" | "hi">;
+  /** Expert's hidden end label (a share of the line, shown as "?"); null shows every label. */
+  hidden?: number | null;
   width: number;
   height: number;
   t?: number;
@@ -336,7 +342,7 @@ export function Line({
             />
           ))
         : null}
-      {tickLabels(stage).map((tick) => (
+      {tickLabels(stage, hidden).map((tick) => (
         <g key={tick.share}>
           {/* A crisp notch down the ruler's face (white, so it reads on the enamel), continued below it to the label. */}
           <line
@@ -691,7 +697,7 @@ function Stage({
           <div ref={lineBox} key={shownStage} className="numline-line-in relative w-full" data-edge-bump={edge?.side}>
             {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged.
                 The overhaul: 32 and bold 22 px end labels in a live round. */}
-            <Line stage={stage} width={size.width} height={lineH} t={live ? live.t : 24} label={live ? live.label : 18} yShare={lineY} minor={live ? 10 : 0}>
+            <Line stage={stage} width={size.width} height={lineH} t={live ? live.t : 24} label={live ? live.label : 18} yShare={lineY} minor={live ? 10 : 0} hidden={numlineHiddenEnd(stage, placedHere.length)}>
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (

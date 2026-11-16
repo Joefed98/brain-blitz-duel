@@ -22,7 +22,7 @@ import {
   measureApply,
   replayMeasure,
   splitMeasureRound,
-  MEASURE_BOARDS,
+  MEASURE_BOARDS as MEASURE_BOARDS_TODAY,
   type MeasureAction,
 } from "@/lib/duel/measure";
 import { useGameKeys } from "@/lib/desktop";
@@ -509,6 +509,9 @@ function Stage({
   stateKey = "measure",
 }: PuzzleStageProps) {
   const data: MeasurePuzzleData | null = puzzle.type === "measure" ? puzzle : null;
+  // Brimful's levels (measureLevels.ts, 15 Nov 2026): Easy deals three boards, every other puzzle four, so the stage
+  // counts the dealt boards (four on every older stamp, exactly as before).
+  const MEASURE_BOARDS = data?.boards.length || MEASURE_BOARDS_TODAY;
   // Batch W: in a live round the goal line shows "Stage n of 3", so the row drops its "Puzzle n of 3".
   const framed = Boolean(useContext(GoalLineContext));
   const [stage, setStage] = useStageState<number>(stateKey, "measureStage", () => 0);
