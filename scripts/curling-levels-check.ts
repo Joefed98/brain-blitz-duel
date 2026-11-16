@@ -2,8 +2,9 @@
  * curling-levels-check (~1 min): Curl Champ's four levels (the Sports overhaul, 16 Nov 2026;
  * docs/arcade-standard/curling.md "Levels").
  *
- *   1. The level registry (GAME_LEVELS.curling) agrees with the sim's CURL_LEVEL_REDS and CURL_LEVEL_AIDS, every level
- *      has its LEVEL line, and no level's clock is over 120 s (each plays curlRev 4's 120 s).
+ *   1. The level registry (GAME_LEVELS.curling) agrees with the sim's CURL_LEVEL_REDS, CURL_LEVEL_AIDS and Easy's core
+ *      figure (curlCoreFullFor), every level has its line (levelNotes.ts) on the intro and the help, and no level's
+ *      clock is over 120 s (each plays curlRev 4's 120 s).
  *   2. Normal is byte for byte as before: 60 room deals and their starting states, and curlRev 1–4's starting states,
  *      hash to the digest recorded on the session head before the levels (scripts/curling-levels-digest.ts); a Normal
  *      deal carries no `level`, and curlingGameFor(4) with no level, "normal" or junk starts identically.
@@ -24,6 +25,8 @@ import {
   CU,
   CURLING_REV,
   curlAidsFor,
+  curlCoreFullFor,
+  CURL_V4_CORE_FULL,
   curlingGameFor,
   type CurlLevel,
 } from "../src/lib/arcade/curling";
@@ -31,12 +34,15 @@ import { replayCurlingRun } from "../src/lib/duel/curling";
 import { CURLING_LEVEL_BANKS } from "../src/lib/duel/curlingLevelBanks.server";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
-import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
-import { GAME_LEVELS, gameLevelSettings, levelAbout, levelsOf } from "../src/lib/levels/gameLevels";
+import { puzzleTimeLimitMs } from "../src/lib/duel/catalogue";
+import { GAME_LEVELS, gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
+import { levelNote } from "../src/lib/levels/levelNotes";
 import { MAX_ROUND_CLOCK_MS } from "../src/lib/levels/levels";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { witnessRaw, type WitnessV2 } from "./curling-bank";
 import { normalDigest } from "./curling-levels-digest";
+
+const { curlingPuzzle } = await import("../src/puzzles/curling");
 
 /** Recorded on 58396e49 (the session head before the levels) by scripts/curling-levels-digest.ts. */
 const NORMAL_DIGEST = "bf2e181c915f650edcbccf438becd7cdd092c2eb7afdd7d4e98d0c37ec7913ec";
@@ -58,12 +64,19 @@ for (const lv of LEVELS) {
   ok(!!s && s.reds === reds.reds && s.minCm === reds.minCm && s.maxCm === reds.maxCm, `${lv}: registry reds match the sim`);
   const line = aids.aimPart === 1 ? "full" : aids.aimPart === 3 ? "third" : "none";
   ok(!!s && s.houseZone === aids.houseZone && s.aimLine === line, `${lv}: registry aids match the sim`);
-  ok((levelAbout("curling", lv) ?? "").length > 20, `${lv}: has a LEVEL line`);
+  const note = levelNote("curling", lv) ?? "";
+  ok(note.startsWith(lv[0]!.toUpperCase() + lv.slice(1) + ":") && note.includes(["", "", "two", "", "four", "five"][reds.reds]!), `${lv}: its level line names the level and its reds`);
+  ok(curlingPuzzle.introLine?.({ type: "curling", seed: 1, curlRev: CURLING_REV, level: lv } as never) === note, `${lv}: the intro shows the level line`);
+  ok(curlCoreFullFor(lv) === ((s?.coreFull as number | undefined) ?? CURL_V4_CORE_FULL), `${lv}: the registry's core full figure matches the sim (${curlCoreFullFor(lv)})`);
   ok(GAME_LEVELS.curling?.levels[lv]?.oneSolution === undefined, `${lv}: an arcade level needs no uniqueness proof`);
 }
-ok(levelAbout("curling", "normal") === null, "Normal has no LEVEL line");
+ok(levelNote("curling", "normal") === null && curlingPuzzle.introLine?.({ type: "curling", seed: 1, curlRev: CURLING_REV } as never) === null, "Normal has no level line");
+ok(curlCoreFullFor(undefined) === CURL_V4_CORE_FULL && curlCoreFullFor("normal") === CURL_V4_CORE_FULL, "Normal's core is full at 95, as before");
 // An arcade run's clock is its run length (the definition's 3 s after the buzzer is not play), as difficulty-check reads it.
-ok(puzzleTimeLimitMs("curling") - 3000 === MAX_ROUND_CLOCK_MS, "Normal's clock is 120 s, the cap");
+for (const lv of [undefined, ...LEVELS]) {
+  const p = withSeededRandom(roomSeed(0), () => generatePuzzle("curling", { bankSeed: roomSeed(0), ...(lv ? { level: lv } : {}) }));
+  ok(puzzleTimeLimitMs(p) - 3000 === MAX_ROUND_CLOCK_MS, `${lv ?? "normal"}: the round's clock is 120 s, the cap`);
+}
 for (const lv of LEVELS) ok(Math.round((curlingGameFor(4, lv).runTicks * 1000) / 60) === MAX_ROUND_CLOCK_MS, `${lv}: plays curlRev 4's 120 s run`);
 
 // 2. Normal byte for byte.
@@ -111,7 +124,11 @@ for (const lv of LEVELS) {
   }
   // A level's run is its own sheet: the first witness graded as Normal is not a clean 200.
   const w0 = witnesses[lv][0]!;
+  // (the replay logs the desync it finds; quiet for this one call)
+  const quiet = console.error;
+  console.error = () => {};
   const asNormal = replayCurlingRun(w0.seed, witnessRaw(w0, 4, lv), 4);
+  console.error = quiet;
   ok(asNormal.flagged || asNormal.score !== 200 || JSON.stringify(curlingGameFor(4).init(w0.seed)) === JSON.stringify(curlingGameFor(4, lv).init(w0.seed)), `${lv}: a level's run graded without its level does not pass as the same run`);
 }
 

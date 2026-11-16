@@ -104,17 +104,17 @@ export const BAR_W_PER_PX = 3.1;
 /** curlRev 4: reading the weight a shot needs, weights per unit of the level's judgement (a draw a third of it). */
 export const WEIGHT_READ = 280;
 /** The levels: no HOUSE zone (Expert) reads every weight this much harder than a takeout's. */
-export const NO_ZONE_READ = Number(process.env.CL_NZR ?? 1.35);
+export const NO_ZONE_READ = 1.35;
 /** The levels: no HOUSE zone, the weight feel's floor (weights sd) for any player. */
-export const NO_ZONE_W = Number(process.env.CL_NZW ?? 30);
+export const NO_ZONE_W = 30;
 /** The levels: no aim line, the line's floor (cm sd) for any player. */
-export const NO_LINE_CM = Number(process.env.CL_NLC ?? 10);
+export const NO_LINE_CM = 10;
 /** The levels: no aim line (Expert) reads the line at this × LINE_CM. */
-export const NO_LINE = Number(process.env.CL_NL ?? 1.6);
+export const NO_LINE = 1.6;
 /** The levels: the whole path shown (Easy) reads the line at this × LINE_CM. */
-export const FULL_PATH = Number(process.env.CL_FP ?? 0.6);
+export const FULL_PATH = 0.6;
 /** The levels: the whole path shown (Easy) reads every weight at this share of a takeout's read. */
-export const FULL_PATH_READ = Number(process.env.CL_FR ?? 1 / 3);
+export const FULL_PATH_READ = 1 / 3;
 
 /** curlRev 4's weight through the power bar: the ideal weight, off by the tap and the read. */
 function barWeight(ideal: number, draw: boolean, human: { aim: (k?: number, s?: number) => number; normal: () => number; p: { judgement: number } }, aids: CurlAids | null = null): number {
