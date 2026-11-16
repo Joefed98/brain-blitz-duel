@@ -433,6 +433,14 @@ for Roofbound, Grappler, Moon Climb, Iron Wall and Orbit, and no change for game
 
 <img src="skyline/reveal-s3.webp" width="640">
 
+### Stage 3: Expert, 3 lives (16 Nov 2026)
+
+Hard and Expert keep 3 lives; Expert stays harder by its slide, its 2 px perfect drop and wind from block 10
+(docs/arcade-standard/skyline.md "Levels"). The human-limited elite's Expert run on room seed n=29 (course 1530145177),
+146 by the server replay, 30–35 s (`bun scripts/shots/action-expert-clip.ts skyline 29 --from=30 --secs=5 --width=195 --q=28`):
+
+<img src="skyline/expert-clip.webp" width="195">
+
 ## Orbit
 
 <!-- orbit -->

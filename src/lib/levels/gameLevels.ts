@@ -59,8 +59,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   skyline: {
     levels: {
       easy: { settings: { speedStart: 448, speedStep: 12, speedMax: 896, tol: 1280, windFrom: 30, lives: 3 } },
-      hard: { settings: { speedStart: 896, speedStep: 30, speedMax: 1792, tol: 768, windFrom: 15, lives: 2 } },
-      expert: { settings: { speedStart: 960, speedStep: 32, speedMax: 1920, tol: 512, windFrom: 10, lives: 2 } },
+      hard: { settings: { speedStart: 896, speedStep: 30, speedMax: 1792, tol: 768, windFrom: 15, lives: 3 } },
+      expert: { settings: { speedStart: 960, speedStep: 32, speedMax: 1920, tol: 512, windFrom: 10, lives: 3 } },
     },
   },
   // Iron Wall (15 Nov 2026, docs/arcade-standard/bastion.md "bastionRev 4: levels"; Joe's approved exception: today's game

@@ -188,41 +188,57 @@ skylineRev 11's at every level.
 | Slide (1/256 px a tick: start + a floor, top) | 448 + 12, 896 | 768 + 26, 1,536 | 896 + 30, 1,792 | 960 + 32, 1,920 |
 | Perfect tolerance | 5 px | 3 px | 3 px | 2 px |
 | Wind from block | 30 | 20 | 15 | 10 |
-| Lives (grace: never fewer than 2) | 3 | 3 | 2 | 2 |
+| Lives (grace: never fewer than 2) | 3 | 3 | 3 | 3 |
 
 Code: `skylineGameFor(rev, level)`, `skylineLivesGameAt`, `skylineSpeedOf` / `skylineTolOf` / `skylineWindFrom` /
-`skylineStartLives` (the HUD's "LIVES n / 2", the flag and the success layer's wind pop read them); every replay site
+`skylineStartLives` (the HUD's "LIVES n / 3", the flag and the success layer's wind pop read them); every replay site
 passes `puzzleLevel(puzzle)` (grade.ts, the stage, the reveal, the run picture, round replays). Help: one "Levels:" line
 and the lives and wind lines say what changes (instructions.ts).
 
-**Measured** (`bun scripts/flip-skyline-levels-bands.ts skyline --seeds=40 --bots=weak,…,limited`; real deals graded by the
-server replay; mean / median, finish = the run not ended by the last life). `limited` is the elite held to Joe's human
-limits (`scripts/arcade-skill-bands/humanLimits.ts`: 250 ± 30 ms reactions, 150 ms finger lag, 15 ms timing, 2.5 px aim):
+**Hard and Expert at 3 lives** (16 Nov 2026, Joe: "Hard keeps 3 lives. Retune Expert so it stays clearly harder than
+Hard but its best runs score well"; were 2 each). Every level now starts with 3 lives, so a run on Hard or Expert is not
+lost to two early slips. Expert stays harder than Hard by design on the three other levers, unchanged: the fastest slide
+(960 + 32 a floor up to 1,920 against Hard's 896 + 30 up to 1,792), the tightest perfect drop (2 px against 3) and the
+earliest wind (from block 10 against 15). Hard's other levers are unchanged; Normal is unchanged (skylineRev 11 exactly).
+Hard and Expert had never been dealt on main, so no new stamp. Joe (16 Nov 2026): one design change, measured once for
+information; his playtest decides (the bots play differently from people).
 
-| Bot | Easy | Normal | Hard | Expert |
+**Measured once** (`bun scripts/flip-skyline-levels-bands.ts skyline --seeds=40 --bots=weak,average,good,great,near,elite,limited`;
+real deals graded by the server replay; mean / median, p10–p90, finish = the run not ended by the last life). `limited` is
+the elite held to Joe's human limits (`scripts/arcade-skill-bands/humanLimits.ts`: 250 ± 30 ms reactions, 150 ms finger
+lag, 15 ms timing, 2.5 px aim):
+
+| Bot | Easy | Normal | Hard (3 lives) | Expert (3 lives) |
 | --- | --- | --- | --- | --- |
-| weak | 86 / 85 | 43 / 44 | 34 / 35 | 30 / 30 |
-| average | 116 / 113 (p90 144) | 53 / 52 | 44 / 44 | 41 / 39 |
-| good | 166 / 168 (p90 187) | 72 / 70 | 60 / 57 | 53 / 51 |
-| great | 183 / 188 | 105 / 101 | 84 / 83 | 71 / 70 |
-| near-perfect | 194 / 196 | 156 / 164 | 137 / 129 | 111 / 111 |
-| elite (145 ms) | 196 / 200, 100 % | 176 / 178, 80 % | 167 / 172, 38 % | 141 / 153, 13 % |
-| **limited elite** | 167 / 168, 100 % | 123 / 122, 73 % | 112 / 106, 33 % | 96 / 94, 5 % (p90 131) |
+| weak | 86 / 85 | 43 / 44 | 36 / 36 | 31 / 32 |
+| average | 116 / 113 (p90 144) | 53 / 52 | 46 / 46 | 41 / 39 |
+| good | 166 / 168 (p90 187) | 72 / 70 | 61 / 58 | 54 / 51 |
+| great | 183 / 188, 100 % | 105 / 101, 3 % | 86 / 83, 0 % | 72 / 72, 0 % |
+| near-perfect | 194 / 196, 100 % | 156 / 164, 20 % | 138 / 133 (p90 168), 10 % | 113 / 112 (p90 148), 0 % |
+| elite (145 ms) | 196 / 200, 100 % | 176 / 178, 80 % | 168 / 173 (p90 180), 43 % | 142 / 153 (p90 165), 13 % |
+| **limited elite** | 167 / 168, 100 % | 123 / 122 (p90 151), 73 % | 114 / 112 (p90 144), 38 % | 98 / 95 (p90 133), 5 % |
 | oracle (`scripts/skyline-oracle.ts`) | 200 | 200 | 200 | 200 |
 
-`bun scripts/level-tune.ts skyline --level=all --seeds=40` (the shared tool, near-perfect / elite averages): Easy 193.5 /
-196.1, Normal 155.8 / 176.3, Hard 136.8 / 167.1, Expert 110.7 / 140.9.
+Before (2 lives each): Hard limited elite 112 / 106, 33 %; Expert 96 / 94, 5 % (p90 131); elite Hard 167, 38 %, Expert
+141, 13 %. The third life adds about 2 points a run for the bots: they lose their lives to the fast slide's trims,
+which narrow the block until it misses, and the third life mostly buys a few more floors before the end. The bots stay
+well short of the brief's figures on Expert (best tenth about 150+, most strong runs reaching the clock); per Joe's
+update these figures are for information only, and his playtest decides. Every step is still a clear step down for
+every bot.
 
-Every step is a clear step down for every bot. Normal under human limits is 123, well short of Joe's ~198 guide (the
-limited bot, reacting in a quarter second, often lets a fast pass go and takes the return pass, so it builds fewer floors
-in the minute: none of its 40 runs reaches 61); Normal is not changed here (a decision for Joe). Expert, scored well
-under human limits: the limited elite's best Expert boards (room seed n → course seed): n=29 (1530145177) 146, n=39
-(1523294388) 139, n=34 (989469536) 136, n=14 (30710843) 132, n=25 (870299109) 131 (the 145 ms elite scores 155, 162,
-166, 156, 156 on them). "Well" on Expert here means 130+ (the Floors part nearly full and most of the perfect drops).
-Easy gives a good player a star most runs (median 168, p90 187) and an average one a run in the 140s at best.
+Expert boards for Joe to play (the limited elite's best of the first 40 Expert deals, room seed n → course seed; the
+145 ms elite in brackets): n=29 (1530145177) 146 (155), n=39 (1523294388) 139 (162), n=34 (989469536) 136 (166), n=14
+(30710843) 134 (156), n=25 (870299109) 133 (156), n=38 (495834591) 128 (167). The clip
+(`docs/design/pages-review/action/skyline/expert-clip.webp`, `bun scripts/shots/action-expert-clip.ts skyline 29
+--from=30 --secs=5 --width=195 --q=28`) is the limited elite's n=29 run, 146 by the server.
+
+**For Joe's scoring review** (16 Nov 2026): High Rise's Normal under human limits (the limited elite) is 123 mean, 122
+median, short of the ~198 guide (the limited bot, reacting in a quarter second, often lets a fast pass go and takes the
+return pass, so it builds fewer floors in the minute: none of its 40 runs reaches 61). Roofbound's is 183 mean, 188
+median (flip.md). Normal is unchanged.
 
 Skyscraper ("Build 61 floors on Expert", switched off until levels go live for challenges): the oracle builds 61+ floors
-on Expert on every seed checked (fewest 103 floors; skyline-levels-check), the 145 ms elite on 19 of 40.
+on Expert on every seed checked (fewest 103 floors; skyline-levels-check), the 145 ms elite on 20 of 40 (3 lives).
 skyline-levels-check (~10 s) proves Normal's deals byte for byte and skylineRev 9–11 runs recorded on de3bec96
 (`scripts/fixtures/levels-action-legacy.json.gz`), each level's rules, the 120 s rule, grace, the oracle at 200 through the
 server replay on every level (tuning 0–29 and fresh 10000–10019; `CHECKS_FULL=1` 0–59 and 10000–10199), identical worlds
