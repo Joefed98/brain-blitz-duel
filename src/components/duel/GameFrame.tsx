@@ -279,15 +279,31 @@ export function useGoalProgress(progress: GoalProgress): boolean {
   return Boolean(publish);
 }
 
+/**
+ * A stage's own goal for the goal line (the Speed overhaul's levels: Ascend's Expert counts down), published as stages
+ * publish their progress; null keeps the game's goal. Display only.
+ */
+const GoalTextContext = createContext<((goal: string | null) => void) | null>(null);
+export function useGoalText(goal: string | null): void {
+  const publish = useContext(GoalTextContext);
+  useIsoLayoutEffect(() => {
+    if (!publish) return;
+    publish(goal);
+    return () => publish(null);
+  }, [publish, goal]);
+}
+
 /** The puzzles' goal line: the goal left, the progress right, a stage bar under both where the game has stages. */
 export function GoalLine({ type, children }: { type: PuzzleType; children: ReactNode }) {
   const [progress, setProgress] = useState<GoalProgress | null>(null);
+  const [goal, setGoal] = useState<string | null>(null);
   const bar = GOAL_BAR_GAMES.has(type);
   return (
+    <GoalTextContext.Provider value={setGoal}>
     <GoalLineContext.Provider value={setProgress}>
       <div data-goal-line data-goal-bar={bar ? "" : undefined} className="game-goal-line">
         <div className="game-goal-row">
-          <span data-goal-text className="game-goal-text">{frameGoal(type)}</span>
+          <span data-goal-text className="game-goal-text">{goal ?? frameGoal(type)}</span>
           {progress ? <span data-goal-progress className="game-goal-progress">{progress.text}</span> : null}
         </div>
         {bar ? (
@@ -302,6 +318,7 @@ export function GoalLine({ type, children }: { type: PuzzleType; children: React
       </div>
       {children}
     </GoalLineContext.Provider>
+    </GoalTextContext.Provider>
   );
 }
 

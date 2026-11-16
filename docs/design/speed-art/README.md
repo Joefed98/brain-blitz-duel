@@ -76,3 +76,50 @@ shows) until the saved run arrives. Flash, Ascend and Don't Break the Chain use 
 server-replayed runs, so they are not in the file. To get these runs the shared bot kit
 (`scripts/puzzle-fairness/kits-engine.ts`) now plays Bonk's whackRev 4 and Tenfall's tenRev 6 on their own boards. Before,
 it drove the older board and its runs desynced.
+
+## Levels (stage 3, 15–16 Nov 2026)
+
+Every Speed game offers Easy, Normal, Hard and Expert on the difficulty framework (#432). The settings are in one place,
+`src/lib/levels/speedLevels.ts` (listed in `GAME_LEVELS`). Each deal stamps what its grader and stage need on the puzzle
+(`flashMs`, `moveMs` / `timeLimitMs` / `descending`, `chainLevel`, `bonkLevel`, `tenLevel` with its stages,
+`pullLevel`), so a later retune never changes a stored round, and a Normal deal is byte for byte today's.
+`speedLevels.server.ts` deals them. Each level has one plain line on the round intro and the game page, the goal and
+how-to lines follow the level, and the "?" help has a "Levels:" line.
+
+| Game | Easy | Hard | Expert |
+|---|---|---|---|
+| Flash (60 s) | 5 flashes, 0–1 plain decoys each | 6–8 flashes, 2–3 decoys, ¾ gold-like | 8 flashes, 2–4 decoys, gold up 1 s |
+| Ascend | 16 numbers 1–30, no moves, 60 s | 30 numbers, move every 10 s, 75 s | 30, highest first, move every 8 s, 90 s |
+| Don't Break the Chain | 30 links, 3.5 / 3 / 2.5 s, no reverse, 45 s | 40 links, 2.5 / 2 / 1.6 s, reversed 21–25 and 31–35, 45 s | **45** links, **2.3 / 1.9 / 1.6 s**, reversed 21–25 and 36–40, 6 charms, 60 s |
+| Bonk (60 s) | up 1.1 → 0.8 s, 2 up, 2 flips, 5 % hedgehogs, pops 115 % apart | 0.85 → 0.6 s, 3 up, 5–7 flips, 15 %, pops **80 %** apart | 0.8 → 0.55 s, 4 up, 7–9 flips, 20 %, pops **65 %** apart |
+| Tenfall (90 s) | 8 targets to 60, + and − only, 80 % speed | 10 to 200, ÷3 doubled, 115 % | **11 to 240**, every operator, **115 %** |
+| Pull! (60 s) | 20 clays, 3 doubles, 6 birds, 80 % speed | 28 clays, 10 doubles, 20 birds (some together), **125 %** | 30 clays, 12 groups with 3 triples, 26 birds, **140 %** |
+
+Bold values differ from the brief: they were tuned to Joe's rule (below); the comment beside each in `speedLevels.ts`
+gives the brief's value and why.
+
+**Tuning** (`bun scripts/speed-levels-tune.ts [game…] [--seeds=100]`): the deal and grade are the server's own (level-tune's).
+The bot Joe's targets name is the elite player held to his human limits (about 0.25 s to react and 0.15 s to move, slips at
+the arcade humans' best rate, 0.8 %); the faster elite bot (140 ms reactions) is reported beside it. Ascend and Don't Break the
+Chain use level-aware players in the tool (search time grows with the discs left; reshuffles and reversed runs cost a moment;
+a link slower than its window breaks the chain); the kits model only today's board. Averages on 100 deals:
+
+| Game | Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|---|
+| Flash | human limits | 123 | 122 | 118 | 118 |
+| | elite (140 ms) | 188 | 186 | 187 | 185 |
+| Ascend | human limits | 199 | 199 | 198 | 198 |
+| | elite | 200 | 199 | 199 | 199 |
+| Don't Break the Chain | human limits | 174 | 160 | 141 | 139 |
+| | elite | 180 | 175 | 174 | 169 |
+| Bonk | human limits | 148 | 146 | 145 | 144 |
+| | elite | 194 | 194 | 193 | 192 |
+| Tenfall | human limits | 182 | 175 | 168 | 143 |
+| | elite | 183 | 181 | 181 | 166 |
+| Pull! | human limits | 181 | 170 | 170 | 154 |
+| | elite | 199 | 199 | 197 | 198 |
+
+What this shows: Expert reaches about 140 under human limits wherever Normal itself is above it (Chain 139, Bonk 144, Tenfall
+143, Pull! 154). Flash is reaction-bound: at a 250 ms reaction each flash scores about 115 on its curve, so Normal itself is
+122. Ascend's levels don't bite a player under these limits: 30 numbers still finish well inside the 40 s full-speed time.
+speed-levels-check pins these relations on 12 deals.

@@ -2603,6 +2603,15 @@ outside the repo.
   `src/lib/gameControls.ts` (schemes per game, chosen from the game menu, the Controls tab and Settings; input mapping
   only; game-controls-check). The reveal's verdict row is the shared result card (`reveal-result`) with practice's
   stars and new best (`RevealPayoff`).
+- **The Speed levels** (the Speed overhaul, stage 3, 15–16 Nov 2026; `docs/design/speed-art/README.md` "Levels"): Flash,
+  Ascend, Don't Break the Chain, Bonk, Tenfall and Pull! offer Easy, Hard and Expert, each level's settings in ONE place,
+  `src/lib/levels/speedLevels.ts` (listed in `GAME_LEVELS`; dealt by `src/lib/duel/speedLevels.server.ts`), each deal
+  stamping what its grader reads (`flashMs`; `moveMs` / `timeLimitMs` / `descending`; `chainLevel`; `bonkLevel`; `tenLevel`
+  with its stages; `pullLevel`), so a retune never changes a stored round and Normal is byte for byte today's. Level lines,
+  goals and how-to lines follow the level (`speedLevelLine`, `speedLevelInstructions`, `speedLevelGoal` through
+  `useGoalText`). Tuning `bun scripts/speed-levels-tune.ts` (the elite player under Joe's human limits, and the 140 ms elite);
+  speed-levels-check (~13 s). Intro demos: `scripts/fixtures/speed-demos.json` (Normal), speed-demos-check,
+  `scripts/speed-demos-save.ts` for the Save intro demos workflow.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

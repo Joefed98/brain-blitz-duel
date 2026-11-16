@@ -323,6 +323,7 @@ export function RoundIntro({
           >
             <PuzzleInstructions
               type={type}
+              puzzle={puzzle}
               beforeScore={
                 <IntroStage
                   key={type}

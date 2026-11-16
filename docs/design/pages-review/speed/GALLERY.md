@@ -147,3 +147,43 @@ The total counts quickly to its new value; within 5 of the target the target glo
 <video src="clip-clayshoot.mp4" width="240" controls muted loop></video> [clip-clayshoot.mp4](clip-clayshoot.mp4)
 
 Shot and shatter in one with shards in the clay's colour; a gold clay a brighter shatter and a chime; a double the combo; a bird feathers and a short wrong; an escaping clay a soft whistle.
+
+## Stage 3: the levels (Expert shown)
+
+Each game's page with Expert chosen (its goal, how-to lines and clock follow the level; the level line sits under the switch), the round intro at Expert (the level line on top, the goal and how-to lines in the level's numbers), and a frame of Expert play. Measured scores per level: docs/design/speed-art/README.md "Levels".
+
+### Flash
+
+| Game page | Intro | Play |
+|---|---|---|
+| <img src="level-reaction-page-expert.webp" width="200"> | <img src="level-reaction-intro-expert.webp" width="200"> | <img src="level-reaction-play-expert.webp" width="200"> |
+
+### Ascend
+
+| Game page | Intro | Play |
+|---|---|---|
+| <img src="level-numhunt-page-expert.webp" width="200"> | <img src="level-numhunt-intro-expert.webp" width="200"> | <img src="level-numhunt-play-expert.webp" width="200"> |
+
+### Don't Break the Chain
+
+| Game page | Intro | Play |
+|---|---|---|
+| <img src="level-chain-page-expert.webp" width="200"> | <img src="level-chain-intro-expert.webp" width="200"> | <img src="level-chain-play-expert.webp" width="200"> |
+
+### Bonk
+
+| Game page | Intro | Play |
+|---|---|---|
+| <img src="level-whack-page-expert.webp" width="200"> | <img src="level-whack-intro-expert.webp" width="200"> | <img src="level-whack-play-expert.webp" width="200"> |
+
+### Tenfall
+
+| Game page | Intro | Play |
+|---|---|---|
+| <img src="level-tendrop-page-expert.webp" width="200"> | <img src="level-tendrop-intro-expert.webp" width="200"> | <img src="level-tendrop-play-expert.webp" width="200"> |
+
+### Pull!
+
+| Game page | Intro | Play |
+|---|---|---|
+| <img src="level-clayshoot-page-expert.webp" width="200"> | <img src="level-clayshoot-intro-expert.webp" width="200"> | <img src="level-clayshoot-play-expert.webp" width="200"> |

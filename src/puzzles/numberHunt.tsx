@@ -1,4 +1,5 @@
-import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { speedLevelGoal, speedLevelLine } from "@/lib/levels/speedLevels";
+import { useGoalText } from "@/components/duel/GameFrame";
 import { puzzleLevel } from "@/lib/levels/levels";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
@@ -561,6 +562,8 @@ export function ascendRevealDone(index: number, reached: number): boolean {
 }
 
 function Stage(props: PuzzleStageProps) {
+  // The Speed overhaul's levels: Expert counts down, so the goal line says so (every other level: the game's goal).
+  useGoalText(speedLevelGoal("numhunt", puzzleLevel(props.puzzle)));
   return usesTapLog(props.puzzle) ? <LoggedStage {...props} /> : <LegacyStage {...props} />;
 }
 
@@ -604,8 +607,10 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
           </span>
         ))}
       </div>
+      {/* The result in one plain line for a screen reader (the board and big figures carry it on screen). */}
+      <p className="sr-only" data-ascend-reveal-summary="">{finished ? `Finished with ${errors} ${errors === 1 ? "error" : "errors"}.` : `You reached ${reached} of ${puzzle.spots.length}.`}</p>
       <RevealCaption tone={finished ? "good" : undefined}>
-        {finished ? "All 24 in order" : `Next was ${puzzle.spots[nextIndex]?.n ?? "—"} (ringed)`}
+        {finished ? `All ${puzzle.spots.length} in order` : `Next was ${puzzle.spots[nextIndex]?.n ?? "—"} (ringed)`}
       </RevealCaption>
       <RevealNumbers
         testId="numhunt"
@@ -635,7 +640,7 @@ function pickValues(level?: AscendLevel): number[] {
  * Positions are stored as percentages, so both phones lay the circles out
  * identically. No two circles touch, and consecutive numbers are never close.
  */
-function buildLayout(values: number[]): HuntSpot[] {
+function buildLayout(values: number[], gapPx = MIN_GAP_PX, consecutivePx = CONSECUTIVE_GAP_PX): HuntSpot[] {
   for (let attempt = 0; attempt < 400; attempt++) {
     const spots: HuntSpot[] = [];
     let ok = true;
@@ -647,9 +652,9 @@ function buildLayout(values: number[]): HuntSpot[] {
           y: randInt(9, 91),
           n: values[i]!,
         };
-        if (spots.some((s) => distancePx(s, spot) < MIN_GAP_PX)) continue;
+        if (spots.some((s) => distancePx(s, spot) < gapPx)) continue;
         const previous = spots[i - 1];
-        if (previous && distancePx(previous, spot) < CONSECUTIVE_GAP_PX) continue;
+        if (previous && distancePx(previous, spot) < consecutivePx) continue;
         spots.push(spot);
         placed = true;
         break;
@@ -670,6 +675,35 @@ function buildLayout(values: number[]): HuntSpot[] {
 }
 
 /**
+ * A level's scatter (30 discs on Hard and Expert, 16 on Easy): today's rules with the gaps scaled to the count, so 30
+ * discs fit the board as 24 do; if the scatter can't be drawn, a 5-column grid with the numbers shuffled into it (never
+ * in order). The discs are sized to the closest pair on the phone (ascendDiscSize), so none ever touch.
+ */
+function buildLevelLayout(values: number[]): HuntSpot[] {
+  const scale = Math.min(1, Math.sqrt(NUMHUNT_COUNT / values.length));
+  const spots = buildLayout(values, Math.floor(MIN_GAP_PX * scale), Math.floor(CONSECUTIVE_GAP_PX * scale));
+  const inside = spots.every((s) => s.x >= 9 && s.x <= 91 && s.y >= 8 && s.y <= 92);
+  if (inside) return spots;
+  const cols = values.length > NUMHUNT_COUNT ? 5 : 4;
+  const rows = Math.ceil(values.length / cols);
+  const cells = shuffledCells(values.length);
+  return values.map((n, i) => {
+    const cell = cells[i]!;
+    return { x: 10 + (cell % cols) * Math.floor(80 / (cols - 1)), y: 8 + Math.floor(cell / cols) * Math.floor(84 / Math.max(1, rows - 1)), n };
+  });
+}
+
+/** The cells 0…n−1 in a random order (the deal's own Math.random, seeded by the room). */
+function shuffledCells(n: number): number[] {
+  const cells = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = randInt(0, i);
+    [cells[i], cells[j]] = [cells[j]!, cells[i]!];
+  }
+  return cells;
+}
+
+/**
  * At a level other than Normal (the Speed overhaul, stage 3; levels/speedLevels.ts) the level's count, range, order,
  * reshuffles and clock, stamped as `moveMs`, `timeLimitMs` and `descending`. Normal (no level) deals exactly as before.
  */
@@ -680,7 +714,7 @@ export function buildNumberHunt(level?: AscendLevel): NumberHuntPuzzleData {
     return { type: "numhunt", spots: layouts[0]!, layouts, tapRev: dealtTapRev("numhunt") };
   }
   const count = level.moveMs > 0 ? Math.max(1, Math.ceil(level.timeLimitMs / level.moveMs)) : 1;
-  const layouts = Array.from({ length: count }, () => buildLayout(values));
+  const layouts = Array.from({ length: count }, () => buildLevelLayout(values));
   return {
     type: "numhunt",
     spots: layouts[0]!,

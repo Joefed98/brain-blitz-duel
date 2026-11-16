@@ -9,17 +9,22 @@ import { GameIntroExample } from "@/components/duel/GameParts";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
-import type { PuzzleType } from "@/lib/duel/types";
+import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
+import { speedLevelInstructions } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 
 interface PuzzleInstructionsProps {
   type: PuzzleType;
+  /** The round's puzzle: a Speed level's own goal and lines (the Speed overhaul's levels; absent or Normal: the game's). */
+  puzzle?: PuzzleData | null;
   overlay?: boolean;
   /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
 }
 
-export function PuzzleInstructions({ type, overlay = false, beforeScore }: PuzzleInstructionsProps) {
-  const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+export function PuzzleInstructions({ type, overlay = false, beforeScore, puzzle = null }: PuzzleInstructionsProps) {
+  const base = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+  const instructions = puzzle ? speedLevelInstructions(type, puzzleLevel(puzzle), base) : base;
 
   return (
     <section

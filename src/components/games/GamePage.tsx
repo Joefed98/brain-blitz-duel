@@ -71,7 +71,7 @@ export function GamePage({
   // The account's best (Normal's: the page shows Normal's best until the bests checks follow levels, see "For Joe").
   const best = bestOf(progress, type);
   const stars = levelStarsOf(progress, type);
-  const guide = gameGuide(type);
+  const guide = gameGuide(type, level);
   const challenges = useChallengeStates(server, type);
   const joules = useChallengeJoules();
   const done = challenges.filter((c) => c.status === "done").length;
@@ -101,8 +101,8 @@ export function GamePage({
           <li data-cat={tag.id} data-game-tag={tag.id} className="gm-tag gm-tag-cat">
             {tag.label}
           </li>
-          <li data-game-seconds={gameSeconds(type)} className="gm-tag">
-            {gameSeconds(type)} s
+          <li data-game-seconds={gameSeconds(type, level)} className="gm-tag">
+            {gameSeconds(type, level)} s
           </li>
           {/* The account's best; none yet shows a quiet "–". */}
           <li data-game-best={best ?? undefined} data-none={best === null || undefined} className="gm-tag">

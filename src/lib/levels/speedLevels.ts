@@ -190,3 +190,89 @@ export function speedLevelLine(type: string, level: string): string | null {
   if (level !== "easy" && level !== "hard" && level !== "expert") return null;
   return SPEED_LEVEL_LINES[type]?.[level] ?? null;
 }
+
+interface HowLine {
+  action: string;
+  detail: string;
+  helpOnly?: boolean;
+}
+
+/**
+ * A Speed level's goal and how-to lines: Normal's (the game's instructions) with the lines a level changes rewritten in
+ * the same words (counts, order, flips, birds…). Normal, and every other game, gets `base` back unchanged.
+ */
+export function speedLevelInstructions<T extends { goal: string; how: readonly HowLine[] }>(type: string, level: string, base: T): T {
+  if (level !== "easy" && level !== "hard" && level !== "expert") return base;
+  const edit = SPEED_LEVEL_EDITS[type]?.[level];
+  if (!edit) return base;
+  const how: HowLine[] = [];
+  for (const line of base.how) {
+    const swap = edit.how?.[line.action];
+    if (swap === null) continue;
+    how.push(swap ? { ...line, ...swap } : line);
+  }
+  return { ...base, goal: edit.goal ?? base.goal, how };
+}
+
+/** A Speed level's goal for the game screen's goal line (null: the game's own). */
+export function speedLevelGoal(type: string, level: string): string | null {
+  if (level !== "easy" && level !== "hard" && level !== "expert") return null;
+  return SPEED_LEVEL_EDITS[type]?.[level]?.frameGoal ?? null;
+}
+
+type LevelEdit = { goal?: string; frameGoal?: string; how?: Record<string, Partial<HowLine> | null> };
+
+/** Keyed by Normal's how-line action; null drops the line (a rule the level doesn't have). */
+const SPEED_LEVEL_EDITS: Record<string, Partial<Record<"easy" | "hard" | "expert", LevelEdit>>> = {
+  reaction: {
+    easy: { how: { "Wait for gold;": { detail: "it comes 5 times." }, "Only a full gold screen": { detail: "counts: the other colours are traps." } } },
+    hard: { how: { "Wait for gold;": { detail: "it comes 6 to 8 times." } } },
+    expert: { how: { "Wait for gold;": { detail: "it comes 8 times and stays for 1 second." } } },
+  },
+  numhunt: {
+    easy: { goal: "Tap all 16 numbers from smallest to largest.", how: { "All the numbers": null, "The timer above the board": null } },
+    hard: { goal: "Tap all 30 numbers from smallest to largest.", how: { "All the numbers": { detail: "move every 10 seconds." }, "The timer above the board": { detail: "counts up to 10 s, then the numbers move and it starts again from 0." } } },
+    expert: {
+      goal: "Tap all 30 numbers from largest to smallest.",
+      frameGoal: "Tap the numbers highest to lowest",
+      how: {
+        "Find the smallest": { action: "Find the largest" },
+        "All the numbers": { detail: "move every 8 seconds." },
+        "The timer above the board": { detail: "counts up to 8 s, then the numbers move and it starts again from 0." },
+      },
+    },
+  },
+  chain: {
+    easy: { goal: "Tap 30 charms, following the cycle.", how: { "After link 20,": null, "Reverse:": null, "Keep momentum": { detail: "– 3.5 s for links 1–10, 3 s for 11–20, 2.5 s for 21–30. The first tap is untimed." } } },
+    hard: {
+      how: {
+        "After link 20,": { action: "After links 20 and 30,", detail: "go backwards for 5 links." },
+        "Keep momentum": { detail: "– 2.5 s for links 1–13, 2 s for 14–26, 1.6 s for 27–40. The first tap is untimed." },
+        "Reverse:": { detail: "a banner warns before each; links 21–25 and 31–35 run last to first." },
+      },
+    },
+    expert: {
+      goal: "Tap 45 charms, following the cycle.",
+      how: {
+        "Tap the five charms": { action: "Tap the six charms" },
+        "After link 20,": { action: "After links 20 and 35,", detail: "go backwards for 5 links." },
+        "Keep momentum": { detail: "– 2.3 s for links 1–15, 1.9 s for 16–30, 1.6 s for 31–45. The first tap is untimed." },
+        "Every 5 links": { detail: "the board reshuffles with six new charms." },
+        "Reverse:": { detail: "a banner warns before each; links 21–25 and 36–40 run last to first." },
+      },
+    },
+  },
+  whack: {
+    easy: { how: { "The rule flips": { detail: "twice: watch the banner." } } },
+    hard: { how: { "The rule flips": { detail: "5–7 times: watch the banner." } } },
+    expert: { how: { "The rule flips": { detail: "7–9 times: watch the banner." } } },
+  },
+  tendrop: {
+    easy: { how: { "×2, ÷2, ÷3 and −N": { action: "−N", detail: "takes away from the total." }, "A ÷ that doesn’t divide exactly": null } },
+  },
+  clayshoot: {
+    easy: { goal: "Shoot all 20 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 6 white birds." } } },
+    hard: { goal: "Shoot all 28 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 20 white birds." } } },
+    expert: { goal: "Shoot all 30 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 26 white birds." }, "Later on, two fly at once": { action: "Later on, two or three fly at once" } } },
+  },
+};

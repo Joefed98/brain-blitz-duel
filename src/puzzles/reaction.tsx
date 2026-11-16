@@ -605,6 +605,8 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
       <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-3">
         <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg !== null ? <FxCountUp value={avg} /> : "—"} ms</p>
+        {/* The figures in one plain line for a screen reader (the big number counts up in its own span). */}
+        <p className="sr-only" data-flash-reveal-summary="">{`${avg !== null ? `Average ${avg} ms. ` : ""}False starts: ${falseStarts}.`}</p>
       </div>
       {times.length === 0 ? (
         <p className="font-display text-2xl font-bold text-warn">No attempts</p>
