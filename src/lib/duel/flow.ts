@@ -40,30 +40,56 @@ export const FLOW_COLOUR_HEX: Record<FlowColour, string> = {
   WHITE: "#F2F2F2",
   LIME: "#A8F03A",
   SILVER: "#8E98AE",
+  // Levels (15 Nov 2026): Expert's two extra colours, in the hue gaps the twelve leave (a sky cyan, a light tan).
+  CYAN: "#5ED3FF", // design-lint-ignore: game art, a line colour like the twelve above
+  TAN: "#D8B784", // design-lint-ignore: game art, a line colour like the twelve above
 };
 
-export function flowRow(cell: number): number {
-  return Math.floor(cell / N);
+/**
+ * The grid a board is drawn and graded on (levels, 15 Nov 2026): 9 × 9 for every Normal and Hard deal and every round
+ * before levels; a level's own size when the puzzle carries `cols` / `rows` (Easy 6 × 6, Expert 9 × 12).
+ */
+export interface FlowGrid {
+  cols: number;
+  rows: number;
 }
 
-export function flowCol(cell: number): number {
-  return cell % N;
+export const FLOW_GRID_NORMAL: FlowGrid = { cols: N, rows: N };
+
+export function flowGrid(puzzle: { cols?: number; rows?: number } | null | undefined): FlowGrid {
+  const cols = puzzle?.cols;
+  const rows = puzzle?.rows;
+  if (!cols && !rows) return FLOW_GRID_NORMAL;
+  return { cols: cols ?? N, rows: rows ?? cols ?? N };
+}
+
+export function flowCellCount(grid: FlowGrid = FLOW_GRID_NORMAL): number {
+  return grid.cols * grid.rows;
+}
+
+export function flowRow(cell: number, cols: number = N): number {
+  return Math.floor(cell / cols);
+}
+
+export function flowCol(cell: number, cols: number = N): number {
+  return cell % cols;
 }
 
 /** The orthogonal neighbours of a cell, inside the grid. */
-export function flowNeighbours(cell: number): number[] {
+export function flowNeighbours(cell: number, grid: FlowGrid = FLOW_GRID_NORMAL): number[] {
+  const { cols, rows } = grid;
   const out: number[] = [];
-  const row = flowRow(cell);
-  const col = flowCol(cell);
-  if (row > 0) out.push(cell - N);
-  if (row < N - 1) out.push(cell + N);
+  const row = flowRow(cell, cols);
+  const col = flowCol(cell, cols);
+  if (row > 0) out.push(cell - cols);
+  if (row < rows - 1) out.push(cell + cols);
   if (col > 0) out.push(cell - 1);
-  if (col < N - 1) out.push(cell + 1);
+  if (col < cols - 1) out.push(cell + 1);
   return out;
 }
 
-export function flowAdjacent(a: number, b: number): boolean {
-  return flowNeighbours(a).includes(b);
+export function flowAdjacent(a: number, b: number, grid: FlowGrid = FLOW_GRID_NORMAL): boolean {
+  return flowNeighbours(a, grid).includes(b);
 }
 
 /** "0,1,2|7,8,9" — one cell list per pair, in pair order. */
@@ -71,7 +97,7 @@ export function encodeFlowPaths(paths: number[][]): string {
   return paths.map((path) => path.join(",")).join("|");
 }
 
-export function decodeFlowPaths(raw: string, pairs: number): number[][] {
+export function decodeFlowPaths(raw: string, pairs: number, cells: number = FLOW_CELLS): number[][] {
   const parts = String(raw ?? "")
     .split("|")
     .slice(0, pairs);
@@ -81,8 +107,8 @@ export function decodeFlowPaths(raw: string, pairs: number): number[][] {
       (parts[index] ?? "")
         .split(",")
         .map((value) => Number.parseInt(value, 10))
-        .filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < FLOW_CELLS)
-        .slice(0, FLOW_CELLS),
+        .filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < cells)
+        .slice(0, cells),
     );
   }
   return out;
@@ -107,6 +133,7 @@ export function verifyFlow(
   pairs: FlowPair[],
   paths: number[][],
   walls: readonly number[] = [],
+  grid: FlowGrid = FLOW_GRID_NORMAL,
 ): FlowVerdict {
   const wallSet = new Set(walls);
   const used = new Set<number>();
@@ -120,7 +147,8 @@ export function verifyFlow(
       const cell = path[i]!;
       if (seen.has(cell) || wallSet.has(cell)) return null;
       seen.add(cell);
-      if (i > 0 && !flowAdjacent(path[i - 1]!, cell)) return null;
+      if (cell < 0 || cell >= flowCellCount(grid)) return null;
+      if (i > 0 && !flowAdjacent(path[i - 1]!, cell, grid)) return null;
     }
     const first = path[0]!;
     const last = path[path.length - 1]!;
@@ -152,7 +180,7 @@ export function verifyFlow(
     joined,
     pairsJoined,
     filled: used.size,
-    solved: pairsJoined === pairs.length && used.size === FLOW_CELLS - wallSet.size,
+    solved: pairsJoined === pairs.length && used.size === flowCellCount(grid) - wallSet.size,
   };
 }
 
@@ -199,6 +227,7 @@ export function flowDrawStep(
   walls: number[],
   restartFrom: number | null = null,
   cut = false,
+  grid: FlowGrid = FLOW_GRID_NORMAL,
 ): FlowDrawStep {
   const same = { paths: current, moved: false, completed: false, rejected: false, cut: null };
   const path = restartFrom !== null ? [restartFrom] : (current[active] ?? []);
@@ -209,7 +238,7 @@ export function flowDrawStep(
     return { ...same, paths: current.map((value, index) => (index === active ? path.slice(0, -1) : value)), moved: true };
   }
   const reject = { ...same, rejected: true };
-  if (!flowAdjacent(last, cell)) return reject;
+  if (!flowAdjacent(last, cell, grid)) return reject;
   if (path.includes(cell) || walls.includes(cell)) return reject;
   const pair = pairs[active]!;
   // Its own partner dot is welcome; any other colour's dot is refused.

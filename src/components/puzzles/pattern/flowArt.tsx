@@ -38,6 +38,9 @@ export const FLOW_SYMBOL_PATH: Record<FlowColour, string> = {
   WHITE: "M5 3 L10 8 L15 3 L17 5 L12 10 L17 15 L15 17 L10 12 L5 17 L3 15 L8 10 L3 5 Z",
   LIME: "M3 4 H17 L10 16.5 Z",
   SILVER: "M10 3 A7 7 0 1 1 9.99 3 Z M10 6.6 A3.4 3.4 0 1 0 10.01 6.6 Z",
+  // Levels (16 Nov 2026): Expert's two extra colours, a hexagon and two bars.
+  CYAN: "M6.2 3.4 H13.8 L17.6 10 L13.8 16.6 H6.2 L2.4 10 Z",
+  TAN: "M4.5 3.5 H8.5 V16.5 H4.5 Z M11.5 3.5 H15.5 V16.5 H11.5 Z",
 };
 
 /** One bead: the rendered marble, its symbol on top; it fills its box (the dot, 72 % of a cell). */

@@ -36,6 +36,9 @@ import { D4_REV, dealtD4Rev, isD4Type } from "./stamps";
 import { addIceGems } from "./gems.server";
 import { drawPushD4 } from "./pushD4.server";
 import { drawBlockD4 } from "./blockD4.server";
+import { drawBlockLevel } from "../blockPartyLevels.server";
+import { BLOCK_LEVEL_BANK } from "../blockPartyLevelBank.server";
+import { drawFlowLevel } from "../flowLevels.server";
 
 /** Lightbender's spare mirrors on laserRev 1. */
 export const LASER_SPARE_MIRRORS = 2;
@@ -46,6 +49,9 @@ export interface D4DealContext {
   unblockRow?: UnblockBankRow | null;
   bankSeed?: number;
   recentBankKeys?: ReadonlySet<string> | undefined;
+  /** The level the deal is made at (generate.server.ts; absent at Normal). Pipeline, Tessellate and Chroma Lines
+   * deal their level boards from it. */
+  level?: Level | undefined;
 }
 
 /** Checks that prove the old rules switch the new deal off (scripts/depth4-check.ts). Never called by app code. */
@@ -76,6 +82,8 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + LASER_SPARE_MIRRORS };
     }
     case "flow": {
+      // Levels (16 Nov 2026): Easy, Hard and Expert deal from their own banks (live without a seed); Normal as before.
+      if (context.level && context.level !== "normal") return { ...drawFlowLevel(context.level, context.bankSeed, context.recentBankKeys), flowRev: D4_REV };
       if (context.bankSeed === undefined) return null;
       const p = drawBankedPuzzle("flow", context.bankSeed, context.recentBankKeys);
       return { ...(p as Extract<PuzzleData, { type: "flow" }>), flowRev: D4_REV };
@@ -100,6 +108,10 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
     case "push":
       return { ...drawPushD4(context.bankSeed), pushRev: dealtD4Rev("push") };
     case "blockparty": {
+      // Levels (the Pattern overhaul, stage 3): Easy, Hard and Expert deal from their own proved banks by the room seed
+      // (blockPartyLevels.server.ts); Normal below, exactly as before.
+      if (context.level === "easy" || context.level === "hard" || context.level === "expert")
+        return { ...drawBlockLevel(context.level, BLOCK_LEVEL_BANK[context.level], context.bankSeed), blockRev: dealtD4Rev("blockparty") };
       if (context.bankSeed === undefined) return null;
       return { ...drawBlockD4(context.bankSeed), blockRev: dealtD4Rev("blockparty") };
     }

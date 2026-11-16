@@ -3,6 +3,9 @@
  * drop is legal) and by the server (to verify what a phone sends).
  */
 
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import { NORMAL, puzzleLevel, type Level } from "@/lib/levels/levels";
+
 import { BLOCK_CELLS, BLOCK_COLS as N, BLOCK_FREE_CELLS, type BlockPlacement } from "./types";
 
 export interface BlockPieceDef {
@@ -130,8 +133,101 @@ export const BLOCK_GEOMETRY_0: BlockGeometry = { cols: N, cells: BLOCK_CELLS, bl
 /** blockRev 1: 7×7, sixteen pegs, nine pieces (a Plus for the Dot). */
 export const BLOCK_GEOMETRY_D4: BlockGeometry = { cols: 7, cells: 49, blockers: 16, free: 33, pieces: BLOCK_D4_PIECES };
 
-/** The board a stored puzzle plays on. */
-export function blockGeometry(puzzle: { blockRev?: number } | null | undefined): BlockGeometry {
+/**
+ * Every piece shape a Tessellate level may name (the Pattern overhaul, stage 3, 16 Nov 2026), by name: the 6×6 and
+ * 7×7 boards' pieces plus two pentominoes for Expert (U and P). A level's settings
+ * (src/lib/levels/pattern/blockparty.levels.ts) list its pieces by these names, in tray order; the index in that list
+ * is the piece's number and its colour.
+ */
+export const BLOCK_SHAPES: Readonly<Record<string, [number, number][]>> = {
+  ...Object.fromEntries([...BLOCK_PIECES, BLOCK_D4_PIECES[0]!].map((p) => [p.name, p.cells])),
+  U: [
+    [0, 0],
+    [0, 2],
+    [1, 0],
+    [1, 1],
+    [1, 2],
+  ],
+  P: [
+    [0, 0],
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [2, 0],
+  ],
+};
+
+/** The board settings a Tessellate level carries (the levels file; plain data). */
+export interface BlockLevelSettings {
+  /** The board's width and height in squares. */
+  cols: number;
+  /** The tray's pieces by name (BLOCK_SHAPES), in tray order. */
+  pieces: readonly string[];
+  /** Pegs: every square the pieces don't cover (cols² less the pieces' squares). */
+  pegs: number;
+  /** The board's solution count, proved by an exhaustive count in the bank build (max null: no upper bound). */
+  solutions: { min: number; max: number | null };
+  /** How the bank lays the pegs: "scatter" (random pegs, as Normal) or "grow" (the pieces grown into one patch). */
+  layout: "scatter" | "grow";
+  /**
+   * Only boards the human-like solver (blockPartyLevels.server.ts humanSolveBlock, at most 4 placements a guess)
+   * finishes holding at most `max` guesses at once, and needs at least `min` of them (not a board of forced moves
+   * only); null: no such rule (Easy).
+   */
+  humanDepth: { min: number; max: number } | null;
+  /** The round's clock. */
+  timeLimitMs: number;
+  /** Speed points are full when the board is filled within this many seconds of play. */
+  speedFullByS: number;
+}
+
+const LEVEL_GEOMETRY = new Map<string, BlockGeometry>();
+
+/**
+ * A level's board (stage 3) from its settings' size and pieces, or null at Normal. Hard keeps the 7×7 board's own
+ * geometry object (the same pieces), so everything keyed on it is shared.
+ */
+export function blockLevelGeometry(level: Level): BlockGeometry | null {
+  if (level === NORMAL) return null;
+  const settings = gameLevelSettings<BlockLevelSettings>("blockparty", level);
+  if (!settings) return null;
+  const id = `${settings.cols}:${settings.pieces.join(",")}`;
+  const known = LEVEL_GEOMETRY.get(id);
+  if (known) return known;
+  let geo: BlockGeometry;
+  if (settings.cols === BLOCK_GEOMETRY_D4.cols && settings.pieces.join(",") === BLOCK_D4_PIECES.map((p) => p.name).join(",")) {
+    geo = BLOCK_GEOMETRY_D4;
+  } else {
+    const pieces: BlockPieceDef[] = settings.pieces.map((name, colour) => {
+      const cells = BLOCK_SHAPES[name];
+      if (!cells) throw new Error(`Tessellate: no piece shape "${name}"`);
+      return { name, cells, colour };
+    });
+    const cells = settings.cols * settings.cols;
+    const free = pieces.reduce((sum, p) => sum + p.cells.length, 0);
+    geo = { cols: settings.cols, cells, blockers: cells - free, free, pieces };
+  }
+  LEVEL_GEOMETRY.set(id, geo);
+  return geo;
+}
+
+/** A level board's full-speed time (its settings' speedFullByS), or null for every puzzle not dealt at a level. */
+export function blockLevelFullByS(puzzle: { blockRev?: number; level?: unknown } | null | undefined): number | null {
+  if ((puzzle?.blockRev ?? 0) < 1 || puzzle?.level === undefined) return null;
+  const level = puzzleLevel(puzzle);
+  if (level === NORMAL) return null;
+  return gameLevelSettings<BlockLevelSettings>("blockparty", level)?.speedFullByS ?? null;
+}
+
+/**
+ * The board a stored puzzle plays on. A puzzle dealt at a level (stage 3: `level` is only ever stamped on deals made
+ * since levels, all on the 7×7 era's stamps) plays its level's board; every other puzzle exactly as before.
+ */
+export function blockGeometry(puzzle: { blockRev?: number; level?: unknown } | null | undefined): BlockGeometry {
+  if ((puzzle?.blockRev ?? 0) >= 1 && puzzle?.level !== undefined) {
+    const geo = blockLevelGeometry(puzzleLevel(puzzle));
+    if (geo) return geo;
+  }
   return (puzzle?.blockRev ?? 0) >= 1 ? BLOCK_GEOMETRY_D4 : BLOCK_GEOMETRY_0;
 }
 
@@ -174,8 +270,18 @@ export const BLOCK_ORIENTATIONS: Offsets[][] = BLOCK_PIECES.map((_, i) => orient
 /** Orientations of every piece of the 7×7 board. */
 export const BLOCK_D4_ORIENTATIONS: Offsets[][] = BLOCK_D4_PIECES.map((_, i) => orientations(i, BLOCK_D4_PIECES));
 
+const LEVEL_ORIENTATIONS = new WeakMap<BlockPieceDef[], Offsets[][]>();
+
 export function orientationsFor(geo: BlockGeometry): Offsets[][] {
-  return geo === BLOCK_GEOMETRY_D4 || geo.pieces === BLOCK_D4_PIECES ? BLOCK_D4_ORIENTATIONS : BLOCK_ORIENTATIONS;
+  if (geo === BLOCK_GEOMETRY_D4 || geo.pieces === BLOCK_D4_PIECES) return BLOCK_D4_ORIENTATIONS;
+  if (geo === BLOCK_GEOMETRY_0 || geo.pieces === BLOCK_PIECES) return BLOCK_ORIENTATIONS;
+  // A level's own pieces (stage 3).
+  let known = LEVEL_ORIENTATIONS.get(geo.pieces);
+  if (!known) {
+    known = geo.pieces.map((_, i) => orientations(i, geo.pieces));
+    LEVEL_ORIENTATIONS.set(geo.pieces, known);
+  }
+  return known;
 }
 
 /** Absolute cells for an orientation anchored at a top-left row and column. */
