@@ -1,8 +1,8 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PICK, FH_INPUT_PLACE, fhPicking, FH_REV, FH_REV_FLAT, FH_REV_STEEP, fhCoreFullFor, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState } from "@/lib/arcade/cards/fiveHands";
-import { drawFiveHands, fhHitColumn, fhHitRow, fhNewView, fhOnNext, fiveHandsArtGame, FH_BG, FH_WORLD_H, FH_WORLD_W } from "@/lib/arcade/cards/fiveHands.renderer";
+import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PICK, FH_INPUT_PLACE, fhPicking, FH_REV, FH_REV_FLAT, FH_REV_STEEP, fhCoreFullFor, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState, FH_INPUT_HINT } from "@/lib/arcade/cards/fiveHands";
+import { drawFiveHands, fhHitColumn, fhHitRow, fhNewView, fhOnHint, fhOnNext, fiveHandsArtGame, FH_BG, FH_WORLD_H, FH_WORLD_W } from "@/lib/arcade/cards/fiveHands.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
 import { useGameLookRef } from "@/lib/skins/equipped";
@@ -12,6 +12,7 @@ import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/Arc
 import { CardStill } from "@/components/puzzles/CardStill";
 import { fiveHandsSounds } from "@/lib/fx/cardSounds";
 
+import { levelOfPuzzle } from "@/lib/levels/levels";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
 
@@ -38,16 +39,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const rev = data?.fiveHandsRev ?? 1;
   // The account's card back on the face-down cards only (13 Nov 2026, Joe; display only, src/lib/skins/equipped.ts).
   const [, lookRef] = useGameLookRef("fivehands");
+  const level = data ? levelOfPuzzle(data) : null;
   const game = useMemo(() => {
-    const art = fiveHandsArtGame(view, rev);
+    const art = fiveHandsArtGame(view, rev, level);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FhState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
-  }, [view, rev, lookRef]);
+  }, [view, rev, level, lookRef]);
 
   // A tap on a row places your card there; dragging the card onto a row does too. Rev 3: once the rows are complete, a
   // tap on a column picks it (down and up on the same column).
   const pickStart = useRef(-1);
+  const hintPress = useRef(false);
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     if (!latest.current) return null;
+    // The difficulty levels' Hint button: a press and release on it.
+    if (hintPress.current || (kind === "down" && fhOnHint(latest.current, x, y))) {
+      if (kind === "down") {
+        hintPress.current = true;
+        view.hintHeld = true;
+        return null;
+      }
+      if (kind === "move") return null;
+      hintPress.current = false;
+      view.hintHeld = false;
+      return fhOnHint(latest.current, x, y) ? { k: FH_INPUT_HINT, a: 0, b: 0, c: 0 } : null;
+    }
     if (fhPicking(latest.current) || pickStart.current >= 0) {
       const col = fhHitColumn(x, y);
       if (kind === "down") {
@@ -123,7 +138,7 @@ export function fiveHandsLine(r: { total: number; made: number; column?: number;
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "fivehands") return null;
-  const result = replayFiveHandsRun(puzzle.seed, myAnswer ?? "", puzzle.fiveHandsRev);
+  const result = replayFiveHandsRun(puzzle.seed, myAnswer ?? "", puzzle.fiveHandsRev, levelOfPuzzle(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{fiveHandsLine(result, puzzle.fiveHandsRev)}</p>

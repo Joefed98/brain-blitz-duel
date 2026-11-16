@@ -21,15 +21,19 @@ import {
   mahjongBlockers,
   mahjongCleared,
   mahjongFree,
+  mahjongGameAt,
   mahjongGameFor,
+  mahjongHintPair,
+  mahjongLayoutOf,
+  MAHJONG_LAYOUT,
+  MAHJONG_LV_EASY,
+  type MahjongLayout,
   mahjongMoves,
   mahjongSlotRect,
   MAHJONG_BOARD_H,
   MAHJONG_BOARD_W,
   MAHJONG_BOARD_X,
   MAHJONG_BOARD_Y,
-  MAHJONG_PAIRS,
-  MAHJONG_SLOTS,
   MAHJONG_TILES,
   MAHJONG_TILE_H,
   MAHJONG_TILE_W,
@@ -331,11 +335,24 @@ export function paintMahjongWood(ctx: CanvasRenderingContext2D, x: number, y: nu
 /* ================================ The board ================================ */
 
 /** Draw order: bottom layer first; within a layer top to bottom, left to right (sides covered by later tiles). */
-const ORDER: readonly number[] = MAHJONG_SLOTS.map((_, i) => i).sort((a, b) => {
-  const sa = MAHJONG_SLOTS[a]!;
-  const sb = MAHJONG_SLOTS[b]!;
-  return sa.z - sb.z || sa.y2 - sb.y2 || sa.x2 - sb.x2;
-});
+function orderOf(lay: MahjongLayout): readonly number[] {
+  return lay.slots.map((_, i) => i).sort((a, b) => {
+    const sa = lay.slots[a]!;
+    const sb = lay.slots[b]!;
+    return sa.z - sb.z || sa.y2 - sb.y2 || sa.x2 - sb.x2;
+  });
+}
+const ORDERS = new Map<MahjongLayout, readonly number[]>();
+/** The layout being drawn (set at the top of each frame from the board's length; the difficulty levels' 56 and 88). */
+let LAY: MahjongLayout = MAHJONG_LAYOUT;
+function rect(slot: number): { x: number; y: number; w: number; h: number } {
+  return mahjongSlotRect(slot, LAY);
+}
+function order(): readonly number[] {
+  let o = ORDERS.get(LAY);
+  if (!o) ORDERS.set(LAY, (o = orderOf(LAY)));
+  return o;
+}
 
 /**
  * The live stage's view (the overhaul's stage 2; display only): the effects' timeline, the board as it was last frame
@@ -366,10 +383,10 @@ function paintBoard(ctx: CanvasRenderingContext2D, s: MahjongState, skip: Readon
   const table = mahjongTableImage();
   if (table) ctx.drawImage(table, 0, 0, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
   else paintMahjongTable(ctx, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
-  for (const slot of ORDER) {
+  for (const slot of order()) {
     const face = s.face[slot]!;
     if (face < 0 || skip.has(slot)) continue;
-    const r = mahjongSlotRect(slot);
+    const r = rect(slot);
     // The tile's shadow on the layer (or mat) below, then the rendered tile, or the code tile until it loads.
     ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
     roundRect(ctx, r.x + 8, r.y + 10, r.w, r.h, Math.max(3, r.w * 0.1));
@@ -402,7 +419,7 @@ function paintHud(ctx: CanvasRenderingContext2D, s: MahjongState): void {
   const moves = mahjongMovesShown(s.face);
   // Pill chips (3 Nov 2026): the main count top left; "Shuffles" spelled out (it read "SHUF" until then).
   drawHudPillRow(ctx, 12, 8, [
-    { label: "Pairs", value: `${s.pairs}/${MAHJONG_PAIRS}`, opts: { gold: mahjongCleared(s) } },
+    { label: "Pairs", value: `${s.pairs}/${s.face.length / 2}`, opts: { gold: mahjongCleared(s) } },
     { label: "Free pairs", value: String(moves), opts: { gold: moves === 0 && !mahjongCleared(s) } },
     { label: "Shuffles", value: String(s.shuffles), opts: { alert: s.shuffles > 0 } },
   ]);
@@ -410,6 +427,7 @@ function paintHud(ctx: CanvasRenderingContext2D, s: MahjongState): void {
 
 /** The board, the HUD and the moving effects, under the shared success layer (MAHJONG_FX). */
 export function drawMahjong(ctx: CanvasRenderingContext2D, s: MahjongState, size: CanvasSize, view?: MahjongView): void {
+  LAY = mahjongLayoutOf(s.face);
   arcadeFx(ctx, MAHJONG_FX, s, () => drawMahjongWorld(ctx, s, view), size);
 }
 
@@ -431,14 +449,14 @@ function noticeMahjong(s: MahjongState, view: MahjongView): void {
   if (s.blocked > seen.blocked && s.lastBlocked >= 0) fx.start("blockers", 520, mahjongBlockers(s.face, s.lastBlocked));
   if (s.shuffles > seen.shuffles) fx.start("spin", 620);
   if (mahjongCleared(s) && !seen.cleared) fx.start("shower", 1400);
-  const left = (MAHJONG_PAIRS - s.pairs) * 2;
-  const leftBefore = (MAHJONG_PAIRS - seen.pairs) * 2;
+  const left = (s.face.length / 2 - s.pairs) * 2;
+  const leftBefore = (s.face.length / 2 - seen.pairs) * 2;
   if (left <= 6 && leftBefore > 6) fx.start("brighten", 700);
 }
 
 /** The mat's soft light once six tiles or fewer are left (held; fading in over the "brighten" run). */
 function drawNearEnd(ctx: CanvasRenderingContext2D, s: MahjongState, view?: MahjongView): void {
-  const left = (MAHJONG_PAIRS - s.pairs) * 2;
+  const left = (s.face.length / 2 - s.pairs) * 2;
   if (left > 6 || left === 0) return;
   const b = view?.fx.at("brighten");
   const a = 0.16 * (b ? b.k : 1);
@@ -466,10 +484,10 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState, view?:
     if (table) ctx.drawImage(table, 0, 0, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
     else paintMahjongTable(ctx, MAHJONG_WORLD_W, MAHJONG_WORLD_H);
     // The Shuffle: every tile turns on its centre and lands again, face by face.
-    for (const slot of ORDER) {
+    for (const slot of order()) {
       const face = s.face[slot]!;
       if (face < 0) continue;
-      const r = mahjongSlotRect(slot);
+      const r = rect(slot);
       const turn = Math.abs(Math.cos(Math.PI * easeInOut(spin.k)));
       ctx.save();
       ctx.translate(r.x + r.w / 2, r.y + r.h / 2);
@@ -479,10 +497,11 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState, view?:
     }
   } else deviceLayer(ctx, `mahjong|${art}|${s.seed}|${s.face.join(",")}|${[...own].join(".")}`, (c) => paintBoard(c, s, own));
   drawNearEnd(ctx, s, view);
+  drawHint(ctx, s, view);
   // The tiles drawn on their own: the selected one lifted, a wrong pair shaking.
   if (!spin) {
     for (const t of own) {
-      const r = mahjongSlotRect(t);
+      const r = rect(t);
       const lifted = t === s.sel ? 3 : 0;
       const sx = wrong && wrong.data.includes(t) ? shakeX(wrong.k, 4) : 0;
       paintOneTile(ctx, s.face[t]!, r.x + sx - lifted * 0.6, r.y - lifted, r.w, r.h, 1.3);
@@ -497,7 +516,7 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState, view?:
   const still = reducedMotion();
   // The selected tile glows gold.
   if (s.sel >= 0 && s.face[s.sel]! >= 0) {
-    const r = mahjongSlotRect(s.sel);
+    const r = rect(s.sel);
     const pulse = still ? 0.8 : 0.65 + 0.35 * Math.sin((s.tick / TICKS_PER_SECOND) * Math.PI * 2.4);
     ctx.save();
     ctx.shadowColor = MAHJONG_ART.gold;
@@ -517,7 +536,7 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState, view?:
   if (!view && s.lastA >= 0 && age >= 0 && age < life && s.lastPairTick > 0) {
     const k = age / life;
     for (const slot of [s.lastA, s.lastB]) {
-      const r = mahjongSlotRect(slot);
+      const r = rect(slot);
       const lift = still ? 0 : -10 * k;
       ctx.save();
       ctx.globalAlpha = 1 - k;
@@ -532,7 +551,7 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState, view?:
   // A tap on a blocked tile: a brief red edge.
   const bAge = s.tick - s.lastBlockedTick;
   if (s.lastBlocked >= 0 && s.face[s.lastBlocked]! >= 0 && bAge >= 0 && bAge < TICKS_PER_SECOND * 0.3 && s.lastBlockedTick > 0) {
-    const r = mahjongSlotRect(s.lastBlocked);
+    const r = rect(s.lastBlocked);
     ctx.save();
     ctx.globalAlpha = 1 - bAge / (TICKS_PER_SECOND * 0.3);
     ctx.strokeStyle = "#FF5A4A";
@@ -557,8 +576,8 @@ function drawMahjongWorld(ctx: CanvasRenderingContext2D, s: MahjongState, view?:
 function drawMahjongFx(ctx: CanvasRenderingContext2D, fx: FxTimeline): void {
   const pair = fx.at<{ a: number; b: number; fa: number; fb: number }>("pair");
   if (pair) {
-    const ra = mahjongSlotRect(pair.data.a);
-    const rb = mahjongSlotRect(pair.data.b);
+    const ra = rect(pair.data.a);
+    const rb = rect(pair.data.b);
     const mx = (ra.x + rb.x) / 2;
     const my = (ra.y + rb.y) / 2;
     const meet = easeInOut(Math.min(1, pair.k / 0.4));
@@ -577,7 +596,7 @@ function drawMahjongFx(ctx: CanvasRenderingContext2D, fx: FxTimeline): void {
   if (blockers) {
     const a = Math.abs(Math.sin(Math.PI * 2 * blockers.k)) * (1 - blockers.k * 0.5);
     for (const t of blockers.data) {
-      const r = mahjongSlotRect(t);
+      const r = rect(t);
       drawOutline(ctx, r.x, r.y, r.w, r.h, a, 6, "255,140,100");
     }
   }
@@ -602,9 +621,54 @@ function drawMahjongFx(ctx: CanvasRenderingContext2D, fx: FxTimeline): void {
 /** One object per revision (a stage resets its run when its game object changes). */
 const MAHJONG_ART_GAME: ArcadeGame<MahjongState, ArcadeInputEvent | null> = { ...mahjongGameFor(1), draw: drawMahjong };
 const MAHJONG_ART_GAME_V2: ArcadeGame<MahjongState, ArcadeInputEvent | null> = { ...mahjongGameFor(2), draw: drawMahjong };
-export function mahjongArtGameFor(rev?: number | null, view?: MahjongView): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
-  const base = (rev ?? 1) >= 2 ? MAHJONG_ART_GAME_V2 : MAHJONG_ART_GAME;
+export function mahjongArtGameFor(rev?: number | null, view?: MahjongView, level?: string | null): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
+  const base = level ? levelArtGame(rev, level) : (rev ?? 1) >= 2 ? MAHJONG_ART_GAME_V2 : MAHJONG_ART_GAME;
   return view ? { ...base, draw: (ctx, s, size) => drawMahjong(ctx, s, size, view) } : base;
 }
 
 export { MAHJONG_TILES, MAHJONG_TILE_W, MAHJONG_TILE_H };
+
+/** One art game per level (a stage resets its run when its game object changes). */
+const LEVEL_ART = new Map<string, ArcadeGame<MahjongState, ArcadeInputEvent | null>>();
+function levelArtGame(rev: number | null | undefined, level: string): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
+  let g = LEVEL_ART.get(level);
+  if (!g) LEVEL_ART.set(level, (g = { ...mahjongGameAt(rev, level), draw: drawMahjong }));
+  return g;
+}
+
+/* ---- The difficulty levels' hints (display only; the sim only counts them) ---- */
+
+const HINT_TICKS = 150;
+const IDLE_HINT_TICKS = 8 * 60;
+let hintMemo: { face: readonly number[]; pair: [number, number] | null } | null = null;
+
+/**
+ * The hint showing now (live stage only): for HINT_TICKS after a hint was asked for, or on Easy after 8 s with no pair
+ * taken; a soft pulsing gold outline round the pair (mahjongHintPair, worked out once per board).
+ */
+export function mahjongHintShown(s: MahjongState, view?: MahjongView): { pair: [number, number]; glow: number } | null {
+  if (!view || !s.lv || s.tick >= MAHJONG_RUN_TICKS_SHOWN || mahjongCleared(s)) return null;
+  const asked = (s.hints ?? 0) > 0 ? s.tick - (s.hintTick ?? 0) : Infinity;
+  const quiet = Math.max(s.lastPairTick, s.lastShuffleTick, s.lastUndoTick ?? 0, s.lastResetTick ?? 0, s.hintTick ?? 0);
+  const idle = s.lv === MAHJONG_LV_EASY && s.tick - quiet >= IDLE_HINT_TICKS;
+  if (!(asked < HINT_TICKS) && !idle) return null;
+  if (hintMemo?.face !== s.face) hintMemo = { face: s.face, pair: mahjongHintPair(s.face) };
+  if (!hintMemo.pair) return null;
+  const pulse = 0.55 + 0.35 * Math.sin((s.tick / 60) * Math.PI * 1.4);
+  return { pair: hintMemo.pair, glow: asked < HINT_TICKS ? Math.min(1, (HINT_TICKS - asked) / 30) * pulse : pulse };
+}
+const MAHJONG_RUN_TICKS_SHOWN = 120 * 60;
+
+function drawHint(ctx: CanvasRenderingContext2D, s: MahjongState, view?: MahjongView): void {
+  const hint = mahjongHintShown(s, view);
+  if (!hint) return;
+  ctx.save();
+  for (const slot of hint.pair) {
+    const r = rect(slot);
+    roundRect(ctx, r.x - 2, r.y - 2, r.w + 4, r.h + 4, Math.max(4, r.w * 0.12));
+    ctx.strokeStyle = `rgba(242,199,92,${(0.95 * hint.glow).toFixed(3)})`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  ctx.restore();
+}

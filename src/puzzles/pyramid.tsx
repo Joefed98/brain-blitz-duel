@@ -13,6 +13,7 @@ import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/Arc
 import { CardStill } from "@/components/puzzles/CardStill";
 import { cardConfirmCue, pyramidSounds } from "@/lib/fx/gameSounds";
 
+import { levelOfPuzzle } from "@/lib/levels/levels";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
 
@@ -37,12 +38,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<PyState | null>(null);
   const start = useRef<number>(-1);
   const rev = data?.pyramidRev ?? 1;
+  const level = data ? levelOfPuzzle(data) : null;
   // The account's card back on the face-down cards only (13 Nov 2026, Joe; display only, src/lib/skins/equipped.ts).
   const [, lookRef] = useGameLookRef("pyramid");
   const game = useMemo(() => {
-    const art = pyramidArtGame(view, rev);
+    const art = pyramidArtGame(view, rev, level);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PyState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
-  }, [view, rev, lookRef]);
+  }, [view, rev, level, lookRef]);
 
   // A tap on a card or pile; Undo and Reset are a press and release on the same button.
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
@@ -63,7 +65,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       return null;
     }
     if (kind === "down") {
-      const button = pyButtonHit(x, y);
+      const button = pyButtonHit(x, y, state);
       view.button = button;
       start.current = button ? -1 : pyHit(state, x, y);
       view.pressed = start.current;
@@ -76,7 +78,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     view.pressed = -1;
     start.current = -1;
     if (held) {
-      if (pyButtonHit(x, y) !== held) return null;
+      if (pyButtonHit(x, y, state) !== held) return null;
       if (held === PY_INPUT_RESET) {
         view.confirm = true;
           cardConfirmCue();
@@ -122,7 +124,7 @@ export function pyramidLine(r: { removed: number; finished: boolean; finishSecon
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "pyramid") return null;
-  const result = replayPyramidRun(puzzle.seed, myAnswer ?? "", puzzle.pyramidRev);
+  const result = replayPyramidRun(puzzle.seed, myAnswer ?? "", puzzle.pyramidRev, levelOfPuzzle(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{pyramidLine(result)}</p>

@@ -16,6 +16,7 @@ import { cardConfirmCue } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+import { levelOfPuzzle } from "@/lib/levels/levels";
 
 // The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
 if (typeof window !== "undefined") preloadRealArt(["cards", "felt"]);
@@ -34,10 +35,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<FcState | null>(null);
   const start = useRef<{ x: number; y: number; pile: number; index: number; moved: boolean } | null>(null);
   const rev = data?.freecellRev ?? 1;
+  const level = data ? levelOfPuzzle(data) : null;
   const game = useMemo(() => {
-    const art = freecellArtGame(view, rev);
+    const art = freecellArtGame(view, rev, level);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FcState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view, rev]);
+  }, [view, rev, level]);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const state = latest.current;
@@ -58,7 +60,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     // freecellRev 2's Undo and Reset: a press and release on the same button (Reset then asks first).
     if (state.hist && (view.button || kind === "down")) {
-      const button = fcButtonHit(x, y);
+      const button = fcButtonHit(x, y, state);
       if (kind === "down" && button) {
         view.button = button;
         start.current = null;
@@ -104,7 +106,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // The move sent (stage 2: a refused one wobbles back from here; display only).
     view.lastTry = { pile: s.pile, index: s.index };
     if (!s.moved) return { k: FC_INPUT_TAP, a: s.pile, b: s.index, c: 0 };
-    const dest = fcDropPile(x, y);
+    const dest = fcDropPile(x, y, state.cells.length);
     if (dest < 0 || dest === s.pile) return null;
     return { k: FC_INPUT_MOVE, a: s.pile, b: s.index, c: dest };
   };
@@ -142,7 +144,7 @@ export function freecellLine(r: { home: number; finished: boolean; moves: number
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "freecell") return null;
-  const result = replayFreecellRun(puzzle.seed, myAnswer ?? "", puzzle.freecellRev);
+  const result = replayFreecellRun(puzzle.seed, myAnswer ?? "", puzzle.freecellRev, levelOfPuzzle(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{freecellLine(result, puzzle.freecellRev)}</p>

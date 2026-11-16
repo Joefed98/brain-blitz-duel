@@ -440,7 +440,7 @@ check(FC.FC_REV === 5 && TP.TP_REV === 3 && PY.PY_REV === 3 && FH.FH_REV === 3 &
     check(!!view.fx.at("shower"), "Mahjong: the clear rains tiles");
     check(MJ.mahjongBlockers(g.init(3).face, MJ.mahjongMoves(g.init(3).face)[0]![0]).length === 0, "Mahjong: a free tile has no blockers");
     const mj = read("src/puzzles/mahjong.tsx");
-    check(/useMemo\(\(\) => mahjongArtGameFor\(data\?\.mahjongRev, view\)/.test(mj), "Mahjong: one game object per revision and view (the run never restarts)");
+    check(/useMemo\(\(\) => mahjongArtGameFor\(data\?\.mahjongRev, view, level\), \[data\?\.mahjongRev, view, level\]\)/.test(mj), "Mahjong: one game object per revision, view and level (the run never restarts)");
   }
 
   // The reveal and replays draw no effect: without a view nothing is tracked.

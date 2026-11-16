@@ -7,7 +7,7 @@
 import {
   mahjongCheckpoint,
   mahjongCleared,
-  mahjongGameFor,
+  mahjongGameAt,
   MAHJONG_CHECKPOINT_INTERVAL,
   mahjongInputRanges,
   MAHJONG_RUN_TICKS,
@@ -69,12 +69,13 @@ export interface MahjongResult {
 }
 
 /** The single place a Mahjong Solitaire score is worked out. */
-export function replayMahjongRun(seed: number, raw: string, rev?: number | null): MahjongResult {
-  const game = mahjongGameFor(rev);
+export function replayMahjongRun(seed: number, raw: string, rev?: number | null, level?: string | null): MahjongResult {
+  // The difficulty levels (15 Nov 2026): a level deal replays on its level's game (its layout, faces and hints).
+  const game = mahjongGameAt(rev, level);
   const run = decodeMahjongRun(raw);
   const runTicks = game.runTicks;
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, runTicks) : 0;
-  const check = checkInputEvents(run.events, runTicks, mahjongInputRanges(rev));
+  const check = checkInputEvents(run.events, runTicks, level ? (game.inputRanges ?? []) : mahjongInputRanges(rev));
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   let state = game.init(seed);

@@ -16,7 +16,9 @@ import { drawCardButton, drawResetConfirm, inButton, type CardButtonBox } from "
 import { CardLayer, CardMotion, drawRealFelt, drawRealCard } from "./realArt.renderer";
 import { drawStamp, FxTimeline, shakeX } from "./cardsFx.renderer";
 import {
-  FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcCardsFor, fcHomeCount, fcNoMovesText, fcNoteText, freecellGameFor, type FcState } from "./freecell";
+  FC_CELLS, FC_COLS, FC_INPUT_HINT, FC_PILE_CELL, FC_INPUT_RESET, FC_INPUT_UNDO, FC_LV_EASY, FC_PILE_HOME, fcCardsOf, fcCellIndex, fcCellPile, fcHintsLeft, fcHomeCount, fcNoMovesText, fcNoteText, fcPack,
+  fcUndosLeft, freecellGameAt, type FcState } from "./freecell";
+import { fcHintMove } from "./freecellSolver";
 import { cardOf, rankOf, suitOf } from "./cards";
 
 export const FC_WORLD_W = 414;
@@ -54,6 +56,34 @@ export function fcHomeX(s: number): number {
   return fcColX(FC_CELLS + s);
 }
 
+/**
+ * The top row for `n` free cells (the difficulty levels, 15 Nov 2026): four cells keep the columns' grid exactly as
+ * before; Easy's five and Expert's three spread the cells and the four home piles evenly across the table, the places
+ * as large as nine (or seven) allow.
+ */
+export interface FcTopRow {
+  w: number;
+  h: number;
+  cellX: (i: number) => number;
+  homeX: (s: number) => number;
+}
+const TOP_ROWS = new Map<number, FcTopRow>();
+export function fcTopRow(n: number): FcTopRow {
+  let row = TOP_ROWS.get(n);
+  if (!row) {
+    if (n === FC_CELLS) row = { w: FC_BIG_W, h: FC_BIG_H, cellX: fcBigX, homeX: fcHomeX };
+    else {
+      const slots = n + 4;
+      const w = Math.min(FC_BIG_W, Math.floor((FC_WORLD_W - (slots + 1) * 4) / slots));
+      const gap = (FC_WORLD_W - slots * w) / (slots + 1);
+      const x = (k: number) => gap + k * (w + gap);
+      row = { w, h: Math.round((w * FC_BIG_H) / FC_BIG_W), cellX: (i) => x(i), homeX: (s) => x(n + s) };
+    }
+    TOP_ROWS.set(n, row);
+  }
+  return row;
+}
+
 export function fcColX(c: number): number {
   return COL_GAP + c * (FC_COL_W + COL_GAP);
 }
@@ -66,9 +96,10 @@ export function fcColStep(n: number): number {
 
 /** The card under a point: its pile and index (cells index 0), or null. */
 export function fcHit(state: FcState, x: number, y: number): { pile: number; index: number } | null {
-  for (let i = 0; i < FC_CELLS; i++) {
-    const cx = fcBigX(i);
-    if (x >= cx && x <= cx + FC_BIG_W && y >= FC_CELL_Y && y <= FC_CELL_Y + FC_BIG_H && state.cells[i] !== NO_CARD) return { pile: FC_PILE_CELL + i, index: 0 };
+  const row = fcTopRow(state.cells.length);
+  for (let i = 0; i < state.cells.length; i++) {
+    const cx = row.cellX(i);
+    if (x >= cx && x <= cx + row.w && y >= FC_CELL_Y && y <= FC_CELL_Y + row.h && state.cells[i] !== NO_CARD) return { pile: fcCellPile(i), index: 0 };
   }
   for (let c = 0; c < FC_COLS; c++) {
     const cx = fcColX(c);
@@ -84,8 +115,15 @@ export function fcHit(state: FcState, x: number, y: number): { pile: number; ind
 }
 
 /** The pile under a drop point (the top row's places, free cells left and home right; columns by their whole strip), or -1. */
-export function fcDropPile(x: number, y: number): number {
+export function fcDropPile(x: number, y: number, cells = FC_CELLS): number {
   if (y >= FC_CELL_Y - 10 && y < FC_COL_Y - 6) {
+    if (cells !== FC_CELLS) {
+      const row = fcTopRow(cells);
+      const half = (row.homeX(0) - row.cellX(cells - 1) - row.w) / 2;
+      for (let i = 0; i < cells; i++) if (x >= row.cellX(i) - half && x <= row.cellX(i) + row.w + half) return fcCellPile(i);
+      for (let k = 0; k < 4; k++) if (x >= row.homeX(k) - half && x <= row.homeX(k) + row.w + half) return FC_PILE_HOME;
+      return -1;
+    }
     for (let k = 0; k < FC_COLS; k++) {
       const cx = fcColX(k);
       if (x >= cx - COL_GAP / 2 && x <= cx + FC_COL_W + COL_GAP / 2) return k < FC_CELLS ? FC_PILE_CELL + k : FC_PILE_HOME;
@@ -107,12 +145,21 @@ export const FC_BUTTONS: readonly { kind: number; box: CardButtonBox }[] = [
   { kind: FC_INPUT_UNDO, box: { x: 16, y: FC_BTN_ROW_Y, w: 150, h: FC_BTN_ROW_H } },
   { kind: FC_INPUT_RESET, box: { x: FC_WORLD_W - 16 - 150, y: FC_BTN_ROW_Y, w: 150, h: FC_BTN_ROW_H } },
 ];
+/** A level's thumb row (the difficulty levels): Undo, Hint in the middle, Reset. */
+export const FC_LEVEL_BUTTONS: readonly { kind: number; box: CardButtonBox }[] = [
+  { kind: FC_INPUT_UNDO, box: { x: 16, y: FC_BTN_ROW_Y, w: 118, h: FC_BTN_ROW_H } },
+  { kind: FC_INPUT_HINT, box: { x: FC_WORLD_W / 2 - 55, y: FC_BTN_ROW_Y, w: 110, h: FC_BTN_ROW_H } },
+  { kind: FC_INPUT_RESET, box: { x: FC_WORLD_W - 16 - 118, y: FC_BTN_ROW_Y, w: 118, h: FC_BTN_ROW_H } },
+];
+export function fcButtonsOf(state: Pick<FcState, "lv">): readonly { kind: number; box: CardButtonBox }[] {
+  return state.lv ? FC_LEVEL_BUTTONS : FC_BUTTONS;
+}
 /** How long a refused move's toast shows, ticks. */
 const NOTE_TICKS = 96;
 
 /** The button under a point (its input kind), with a few world units of slop round each; 0 for none. */
-export function fcButtonHit(x: number, y: number): number {
-  for (const b of FC_BUTTONS) if (inButton(b.box, x, y)) return b.kind;
+export function fcButtonHit(x: number, y: number, state?: Pick<FcState, "lv">): number {
+  for (const b of state ? fcButtonsOf(state) : FC_BUTTONS) if (inButton(b.box, x, y)) return b.kind;
   return 0;
 }
 
@@ -138,10 +185,17 @@ export function fcNewView(): FcView {
 }
 
 function drawButtons(ctx: CanvasRenderingContext2D, state: FcState, view?: FcView): void {
-  for (const b of FC_BUTTONS) {
+  for (const b of fcButtonsOf(state)) {
+    if (b.kind === FC_INPUT_HINT) {
+      const left = fcHintsLeft(state);
+      drawCardButton(ctx, b.box, "hint", left === Infinity || left > 1 ? "Hint" : left === 1 ? "Hint (1)" : "No hints", { live: state.ended === 0 && left > 0, held: view?.button === b.kind });
+      continue;
+    }
     const isUndo = b.kind === FC_INPUT_UNDO;
-    const live = state.ended === 0 && (isUndo ? (state.hist?.length ?? 0) > 0 : state.moves > 0);
-    drawCardButton(ctx, b.box, isUndo ? "undo" : "reset", isUndo ? "Undo" : "Reset", { live, held: view?.button === b.kind });
+    const undos = fcUndosLeft(state);
+    const live = state.ended === 0 && (isUndo ? (state.hist?.length ?? 0) > 0 && undos > 0 : state.moves > 0);
+    const label = isUndo ? (undos === Infinity ? "Undo" : `Undo (${undos})`) : "Reset";
+    drawCardButton(ctx, b.box, isUndo ? "undo" : "reset", label, { live, held: view?.button === b.kind });
   }
 }
 
@@ -196,8 +250,8 @@ function drawNote(ctx: CanvasRenderingContext2D, state: FcState): void {
 
 /** A top-row place's outline (drawn under its card or empty slot): free cells a light frame, home piles gold, so an
  *  empty one still reads as a place to put a card. */
-function placeOutline(ctx: CanvasRenderingContext2D, x: number, y: number, kind: "cell" | "home"): void {
-  roundRect(ctx, x - 1.5, y - 1.5, FC_BIG_W + 3, FC_BIG_H + 3, Math.max(4, FC_BIG_W * 0.11));
+function placeOutline(ctx: CanvasRenderingContext2D, x: number, y: number, kind: "cell" | "home", row: FcTopRow = fcTopRow(FC_CELLS)): void {
+  roundRect(ctx, x - 1.5, y - 1.5, row.w + 3, row.h + 3, Math.max(4, row.w * 0.11));
   ctx.strokeStyle = kind === "home" ? "rgba(233,196,106,0.85)" : "rgba(214,226,255,0.7)";
   ctx.lineWidth = 1.5;
   ctx.stroke();
@@ -205,7 +259,11 @@ function placeOutline(ctx: CanvasRenderingContext2D, x: number, y: number, kind:
 
 /** Where a pile's card sits now (for the drag's offset and the move glow). */
 export function fcCardBox(state: FcState, pile: number, index: number): { x: number; y: number; w: number; h: number } {
-  if (pile >= FC_PILE_CELL && pile < FC_PILE_CELL + FC_CELLS) return { x: fcBigX(pile - FC_PILE_CELL), y: FC_CELL_Y, w: FC_BIG_W, h: FC_BIG_H };
+  const cell = fcCellIndex(pile, state.cells.length);
+  if (cell >= 0) {
+    const row = fcTopRow(state.cells.length);
+    return { x: row.cellX(cell), y: FC_CELL_Y, w: row.w, h: row.h };
+  }
   const col = state.cols[pile] ?? [];
   return { x: fcColX(pile), y: FC_COL_Y + index * fcColStep(col.length), w: FC_COL_W, h: FC_COL_H };
 }
@@ -243,8 +301,10 @@ export function fcFlights(state: FcState): { flights: FcFlight[]; homeShown: num
     if (t >= 1) continue;
     const s = suitOf(card);
     homeShown[s] = Math.min(homeShown[s]!, rankOf(card) - 1);
-    const from = pile >= FC_PILE_CELL ? { x: fcBigX(pile - FC_PILE_CELL), y: FC_CELL_Y } : { x: fcColX(pile), y: FC_COL_Y + index * fcColStep(index + 1) };
-    const to = { x: fcHomeX(s), y: FC_HOME_Y };
+    const row = fcTopRow(state.cells.length);
+    const cell = fcCellIndex(pile, state.cells.length);
+    const from = cell >= 0 ? { x: row.cellX(cell), y: FC_CELL_Y } : { x: fcColX(pile), y: FC_COL_Y + index * fcColStep(index + 1) };
+    const to = { x: row.homeX(s), y: FC_HOME_Y };
     const e = t <= 0 ? 0 : 1 - (1 - t) * (1 - t);
     flights.push({ card, x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e });
   }
@@ -285,7 +345,8 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   // HUD chips.
   const home = fcHomeCount(state);
   drawChip(ctx, 10, 9, "MOVES", `${state.moves}`);
-  const all = fcCardsFor(state.rev);
+  const all = fcCardsOf(state);
+  const row = fcTopRow(state.cells.length);
   drawChip(ctx, W / 2, 9, "HOME", `${home}/${all}`, { align: "center", gold: home === all });
   drawChip(ctx, W - 10, 9, "PAR", `${state.par}`, { align: "right", gold: state.ended === 1 && state.moves <= state.par });
   if (state.hist) drawButtons(ctx, state, view);
@@ -295,33 +356,36 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   const pressed = view?.pressed ?? null;
   const held = (pile: number, index: number) => (pressed && pressed.pile === pile && index >= pressed.index) || (dragging && dragging.pile === pile && index >= dragging.index);
   const fresh = state.lastTick > 0 && state.tick - state.lastTick < 18 ? 1 - (state.tick - state.lastTick) / 18 : 0;
-  for (let i = 0; i < FC_CELLS; i++) {
-    const x = fcBigX(i);
-    placeOutline(ctx, x, FC_CELL_Y, "cell");
+  for (let i = 0; i < state.cells.length; i++) {
+    const x = row.cellX(i);
+    placeOutline(ctx, x, FC_CELL_Y, "cell", row);
     const card = state.cells[i]!;
-    if (card === NO_CARD || (dragging && dragging.pile === FC_PILE_CELL + i)) drawSlot(ctx, x, FC_CELL_Y, FC_BIG_W, FC_BIG_H, -1, "FREE");
+    if (card === NO_CARD || (dragging && dragging.pile === fcCellPile(i))) drawSlot(ctx, x, FC_CELL_Y, row.w, row.h, -1, "FREE");
   }
   // Home piles with faint suit symbols (rev 3: the top as drawn waits for the cards still flying there). The whole pile
   // is drawn, bottom up, so a card arriving or undone out of it has a place to slide from.
   const { flights, homeShown } = fcFlights(state);
   for (let s = 0; s < 4; s++) {
-    const x = fcHomeX(s);
-    placeOutline(ctx, x, FC_HOME_Y, "home");
-    if (homeShown[s]! === 0) drawSlot(ctx, x, FC_HOME_Y, FC_BIG_W, FC_BIG_H, s);
+    const x = row.homeX(s);
+    placeOutline(ctx, x, FC_HOME_Y, "home", row);
+    if (homeShown[s]! === 0) drawSlot(ctx, x, FC_HOME_Y, row.w, row.h, s);
   }
   for (let s = 0; s < 4; s++) {
     const top = homeShown[s]!;
     for (let r = 1; r <= top; r++) {
       const card = cardOf(s, r);
-      cards.card(card, card, fcHomeX(s), FC_HOME_Y, FC_BIG_W, FC_BIG_H, { glow: r === top && state.lastTo === FC_PILE_HOME && fresh > 0 ? fresh * 0.6 : 0 });
+      cards.card(card, card, row.homeX(s), FC_HOME_Y, row.w, row.h, { glow: r === top && state.lastTo === FC_PILE_HOME && fresh > 0 ? fresh * 0.6 : 0 });
     }
   }
-  for (let i = 0; i < FC_CELLS; i++) {
+  const hint = fcHintShown(state, view);
+  const hintGlow = (pile: number, index: number) => (hint && hint.move[0] === pile && index >= hint.move[1] ? hint.glow : 0);
+  for (let i = 0; i < state.cells.length; i++) {
     const card = state.cells[i]!;
-    if (card === NO_CARD || (dragging && dragging.pile === FC_PILE_CELL + i)) continue;
-    const up = held(FC_PILE_CELL + i, 0);
-    const wx = wobbleX(FC_PILE_CELL + i, 0);
-    cards.card(card, card, fcBigX(i) + wx, FC_CELL_Y - (up ? 3 : 0), FC_BIG_W, FC_BIG_H, { lift: up ? 1 : 0, glow: up ? 0.8 : state.lastTo === FC_PILE_CELL + i ? fresh * 0.8 : 0 }, wx !== 0);
+    const pile = fcCellPile(i);
+    if (card === NO_CARD || (dragging && dragging.pile === pile)) continue;
+    const up = held(pile, 0);
+    const wx = wobbleX(pile, 0);
+    cards.card(card, card, row.cellX(i) + wx, FC_CELL_Y - (up ? 3 : 0), row.w, row.h, { lift: up ? 1 : 0, glow: up ? 0.8 : Math.max(hintGlow(pile, 0), state.lastTo === pile ? fresh * 0.8 : 0) }, wx !== 0);
   }
 
   // The columns.
@@ -333,7 +397,7 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     for (let i = 0; i < col.length; i++) {
       if (dragging && dragging.pile === c && i >= dragging.index) break;
       const up = held(c, i);
-      const glow = up ? 0.8 : state.lastTo === c && i >= col.length - state.lastCount ? fresh * 0.8 : 0;
+      const glow = up ? 0.8 : Math.max(hintGlow(c, i), state.lastTo === c && i >= col.length - state.lastCount ? fresh * 0.8 : 0);
       const wx = wobbleX(c, i);
       cards.card(col[i]!, col[i]!, x + wx, FC_COL_Y + i * step - (up ? 3 : 0), FC_COL_W, FC_COL_H, { glow, lift: up ? 1 : 0 }, wx !== 0);
     }
@@ -342,23 +406,25 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   // Auto moves on their way home (the first to land drawn last, on top), placed exactly where the flight has them.
   for (let k = flights.length - 1; k >= 0; k--) {
     const f = flights[k]!;
-    cards.card(f.card, f.card, f.x, f.y, FC_BIG_W, FC_BIG_H, { glow: 0.5, lift: 0.6 }, true);
+    cards.card(f.card, f.card, f.x, f.y, row.w, row.h, { glow: 0.5, lift: 0.6 }, true);
   }
   cards.flush();
+  // The hint's destination: a soft gold outline where the move would go (display only).
+  if (hint) drawHintTarget(ctx, state, hint.move[2], hint.glow, row);
 
   // Two or more cards home in one go: "×n" stamped over the home row.
   const combo = view?.fx?.at<number>("combo");
-  if (combo) drawStamp(ctx, `×${combo.data}`, fcHomeX(2) - COL_GAP / 2, FC_HOME_Y + FC_BIG_H + 18, combo.k, 24);
+  if (combo) drawStamp(ctx, `×${combo.data}`, row.homeX(2) - COL_GAP / 2, FC_HOME_Y + row.h + 18, combo.k, 24);
   // The finish: the home piles' cards bounce down the table (900 ms) as "ALL HOME!" arrives.
   const cascade = view?.fx?.at("cascade");
-  if (cascade) drawCascade(ctx, cascade.k);
+  if (cascade) drawCascade(ctx, cascade.k, row, Math.min(10, all / 4));
 
   // The dragged run follows the finger, lifted off the table.
   if (dragging) {
-    const run = dragging.pile < FC_COLS ? state.cols[dragging.pile]!.slice(dragging.index) : [state.cells[dragging.pile - FC_PILE_CELL]!];
-    const big = dragging.pile >= FC_PILE_CELL;
-    const w = big ? FC_BIG_W : FC_COL_W;
-    const h = big ? FC_BIG_H : FC_COL_H;
+    const run = dragging.pile < FC_COLS ? state.cols[dragging.pile]!.slice(dragging.index) : [state.cells[fcCellIndex(dragging.pile, state.cells.length)]!];
+    const big = dragging.pile >= FC_COLS;
+    const w = big ? row.w : FC_COL_W;
+    const h = big ? row.h : FC_COL_H;
     const lifted = new CardLayer(ctx, view?.motion ?? null);
     run.forEach((card, k) => {
       if (card === NO_CARD) return;
@@ -392,15 +458,15 @@ function noticeFreecell(state: FcState, view?: FcView): void {
 }
 
 /** The bouncing cards: each suit's top cards leave its home pile in turn and bounce down the felt, fading out. */
-function drawCascade(ctx: CanvasRenderingContext2D, k: number): void {
-  const floor = FC_BTN_ROW_Y - 8 - FC_BIG_H;
+function drawCascade(ctx: CanvasRenderingContext2D, k: number, row: FcTopRow = fcTopRow(FC_CELLS), top = 10): void {
+  const floor = FC_BTN_ROW_Y - 8 - row.h;
   for (let s = 0; s < 4; s++) {
     for (let j = 0; j < 3; j++) {
       const delay = (s * 3 + j) * 0.045;
       const t = (k - delay) / (1 - delay);
       if (t <= 0) continue;
       const ms = t * 900;
-      const x0 = fcHomeX(s);
+      const x0 = row.homeX(s);
       const vx = (s < 2 ? -1 : 1) * (0.06 + 0.02 * j) - (s === 1 ? 0.05 : 0) + (s === 2 ? 0.05 : 0);
       // A falling card bouncing off the floor with half its speed each time.
       let y = FC_HOME_Y;
@@ -420,15 +486,63 @@ function drawCascade(ctx: CanvasRenderingContext2D, k: number): void {
       }
       ctx.save();
       ctx.globalAlpha = Math.max(0, 1 - Math.max(0, t - 0.6) / 0.4);
-      drawRealCard(ctx, cardOf(s, 10 - j), x0 + vx * ms, y, FC_BIG_W, FC_BIG_H);
+      drawRealCard(ctx, cardOf(s, top - j), x0 + vx * ms, y, row.w, row.h);
       ctx.restore();
     }
   }
 }
 
 /** The art game for a stage: the revision's sim with this draw (the view, when given, is the phone's press and drag). */
-export function freecellArtGame(view?: FcView, rev?: number | null): ArcadeGame<FcState, ArcadeInputEvent | null> {
-  return { ...freecellGameFor(rev), draw: (ctx, state, size) => drawFreecell(ctx, state, size, view) };
+export function freecellArtGame(view?: FcView, rev?: number | null, level?: string | null): ArcadeGame<FcState, ArcadeInputEvent | null> {
+  return { ...freecellGameAt(rev, level), draw: (ctx, state, size) => drawFreecell(ctx, state, size, view) };
+}
+
+/* ---- The difficulty levels' hints (display only; the sim only counts them) ---- */
+
+/** How long a hint's glow shows (ticks), and Easy's idle glow: after this many ticks with no move. */
+const HINT_TICKS = 150;
+const IDLE_HINT_TICKS = 8 * 60;
+/** The hint's move for a position, worked out once per position (the solver's short search). */
+let hintMemo: { key: string; move: readonly [number, number, number] | null } | null = null;
+function hintFor(state: FcState): readonly [number, number, number] | null {
+  const key = fcPackKey(state);
+  if (hintMemo?.key !== key) hintMemo = { key, move: fcHintMove(state) };
+  return hintMemo.move;
+}
+function fcPackKey(state: FcState): string {
+  return `${state.lv}:${fcPack(state).join(",")}`;
+}
+
+/**
+ * The hint showing now (live stage only: a view is given): for HINT_TICKS after a hint was asked for, or on Easy once
+ * the player has made no move for 8 s. The glow fades in and out softly.
+ */
+export function fcHintShown(state: FcState, view?: FcView): { move: readonly [number, number, number]; glow: number } | null {
+  if (!view || !state.lv || state.ended !== 0) return null;
+  const asked = (state.hints ?? 0) > 0 ? state.tick - (state.hintTick ?? 0) : Infinity;
+  const quietSince = Math.max(state.lastTick, state.hintTick ?? 0, state.noteTick ?? 0);
+  const idle = state.lv === FC_LV_EASY && state.tick - quietSince >= IDLE_HINT_TICKS;
+  if (!(asked < HINT_TICKS) && !idle) return null;
+  const move = hintFor(state);
+  if (!move) return null;
+  const pulse = 0.55 + 0.35 * Math.sin((state.tick / 60) * Math.PI * 1.4);
+  return { move, glow: asked < HINT_TICKS ? Math.min(1, (HINT_TICKS - asked) / 30) * pulse : pulse };
+}
+
+function drawHintTarget(ctx: CanvasRenderingContext2D, state: FcState, to: number, glow: number, row: FcTopRow): void {
+  let box: { x: number; y: number; w: number; h: number };
+  if (to === FC_PILE_HOME) box = { x: row.homeX(0), y: FC_HOME_Y, w: row.homeX(3) + row.w - row.homeX(0), h: row.h };
+  else if (to < FC_COLS) {
+    const col = state.cols[to]!;
+    box = { x: fcColX(to), y: FC_COL_Y + Math.max(0, col.length - 1) * fcColStep(col.length), w: FC_COL_W, h: FC_COL_H };
+  } else box = fcCardBox(state, to, 0);
+  ctx.save();
+  roundRect(ctx, box.x - 3, box.y - 3, box.w + 6, box.h + 6, 7);
+  ctx.strokeStyle = `rgba(233,196,106,${(0.9 * glow).toFixed(3)})`;
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([6, 4]);
+  ctx.stroke();
+  ctx.restore();
 }
 
 export const freecellArt = freecellArtGame();

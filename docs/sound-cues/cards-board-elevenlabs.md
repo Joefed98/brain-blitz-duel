@@ -64,8 +64,10 @@ These moments play an existing sound that already fits; a file of their own is o
 - A tile lifting off the stack when picked (Mahjong Solitaire; planned slot name: mahjong · lift). Prompt: "An ivory game tile lifted off a stack, tiny smooth click, 0.15 seconds, close-up"
 - A selected card lifting with a shadow (Thirteen; planned slot name: pyramid · lift). Prompt: "A playing card lifted off felt, light paper whisper, 0.15 seconds"
 
-## To wire with the levels (stage 3)
+## Wired in stage 3 (the levels)
 
-- The hint button: one good move glows softly (all five; planned slot name: cards · hint). Prompt: "A gentle magical sparkle with a soft rising chime, 0.5 seconds, light and friendly"
-- The free glow after 8 s idle (all five (Easy); planned slot name: cards · hintIdle). Prompt: "A very quiet soft glimmer, 0.3 seconds"
-- "No moves: Undo or Reset" appears (Free Cell, Thirteen; planned slot name: cards · deadEnd). Prompt: "A soft low two-note descending tone, calm, 0.6 seconds"
+| Slot | Games | Moment | Plays today | Prompt for ElevenLabs |
+|---|---|---|---|---|
+| `cards.hint` | All five (Easy, Hard, Expert) | The Hint button: one good move glows softly | silent | "A gentle magical sparkle with a soft rising chime, 0.5 seconds, light and friendly" |
+| `cards.hintIdle` | All five (Easy) | The hint's glow arriving by itself after 8 s without a move | silent | "A very quiet soft glimmer, 0.3 seconds" |
+| `cards.deadEnd` | Free Cell, Summit, Thirteen (every level) | The dead end's words appear ("No moves: Undo or Reset", "No plays left") | silent | "A soft low two-note descending tone, calm, 0.6 seconds" |

@@ -14,12 +14,13 @@ import { replayFiveHandsRun, replayFreecellRun, replayPyramidRun, replayTripeaks
 import { replayMahjongRun } from "@/lib/duel/mahjong";
 import type { PuzzleData } from "@/lib/duel/types";
 import { drawFreecell, fcColStep, FC_BTN_ROW_Y, FC_COL_H, FC_COL_Y, FC_WORLD_W } from "@/lib/arcade/cards/freecell.renderer";
-import { fcCardsFor } from "@/lib/arcade/cards/freecell";
+import { fcCardsOf } from "@/lib/arcade/cards/freecell";
+import { levelOfPuzzle } from "@/lib/levels/levels";
 import { drawTripeaks, TP_PILE_H, TP_PILE_Y, TP_WORLD_W } from "@/lib/arcade/cards/tripeaks.renderer";
 import { drawPyramid, PY_PILE_H, PY_PILE_Y, PY_WORLD_W } from "@/lib/arcade/cards/pyramid.renderer";
 import { PY_CARDS, PY_PAIR_FULL } from "@/lib/arcade/cards/pyramid";
 import { drawFiveHands, FH_DISCARD_H, FH_DISCARD_Y, FH_WORLD_W, fhPointsShown } from "@/lib/arcade/cards/fiveHands.renderer";
-import { fhPickedHand, fhTotals } from "@/lib/arcade/cards/fiveHands";
+import { fhLevelRulesOf, fhMultText, fhPickedHand, fhTotals } from "@/lib/arcade/cards/fiveHands";
 import { drawMahjong } from "@/lib/arcade/mahjong.renderer";
 import { MAHJONG_HUD_H, MAHJONG_PAIRS, MAHJONG_WORLD_H, MAHJONG_WORLD_W } from "@/lib/arcade/mahjong";
 
@@ -55,9 +56,9 @@ export function cardsRevealPicture(puzzle: PuzzleData, answer: string): Picture 
   const seed = seedOf(puzzle);
   switch (puzzle.type) {
     case "freecell": {
-      const r = replayFreecellRun(seed, answer, puzzle.freecellRev);
+      const r = replayFreecellRun(seed, answer, puzzle.freecellRev, levelOfPuzzle(puzzle));
       const s = r.state;
-      const all = fcCardsFor(puzzle.freecellRev);
+      const all = fcCardsOf(s);
       const longest = Math.max(1, ...s.cols.map((c) => c.length));
       const bottom = Math.min(FC_BTN_ROW_Y - 4, FC_COL_Y + (longest - 1) * fcColStep(longest) + FC_COL_H + 10);
       return {
@@ -74,7 +75,7 @@ export function cardsRevealPicture(puzzle: PuzzleData, answer: string): Picture 
       };
     }
     case "tripeaks": {
-      const r = replayTripeaksRun(seed, answer, puzzle.tripeaksRev);
+      const r = replayTripeaksRun(seed, answer, puzzle.tripeaksRev, levelOfPuzzle(puzzle));
       const s = r.state;
       return {
         worldW: TP_WORLD_W,
@@ -90,7 +91,7 @@ export function cardsRevealPicture(puzzle: PuzzleData, answer: string): Picture 
       };
     }
     case "pyramid": {
-      const r = replayPyramidRun(seed, answer, puzzle.pyramidRev);
+      const r = replayPyramidRun(seed, answer, puzzle.pyramidRev, levelOfPuzzle(puzzle));
       const s = r.state;
       return {
         worldW: PY_WORLD_W,
@@ -106,7 +107,7 @@ export function cardsRevealPicture(puzzle: PuzzleData, answer: string): Picture 
       };
     }
     case "fivehands": {
-      const r = replayFiveHandsRun(seed, answer, puzzle.fiveHandsRev);
+      const r = replayFiveHandsRun(seed, answer, puzzle.fiveHandsRev, levelOfPuzzle(puzzle));
       const s = r.state;
       const rows = fhTotals(s.rows, s.rev);
       const picked = fhPickedHand(s);
@@ -121,23 +122,23 @@ export function cardsRevealPicture(puzzle: PuzzleData, answer: string): Picture 
           { label: "Rows", value: `${rows.total}` },
           v3 ? { label: "Column", value: picked.column >= 0 ? `+${picked.points}` : "not picked" } : { label: "Points", value: `${rows.total}` },
         ],
-        sum: v3 ? `(${rows.total}${picked.column >= 0 ? ` + ${picked.points}` : ""}) × 1.4 = ${fhPointsShown(s)}` : undefined,
+        sum: v3 ? `(${rows.total}${picked.column >= 0 ? ` + ${picked.points}` : ""}) × ${fhMultText(s)}${(s.hints ?? 0) && fhLevelRulesOf(s)?.hintCost ? ` − ${(s.hints ?? 0) * fhLevelRulesOf(s)!.hintCost}` : ""} = ${fhPointsShown(s)}` : undefined,
         sumTo: v3 ? fhPointsShown(s) : undefined,
       };
     }
     case "mahjong": {
-      const r = replayMahjongRun(seed, answer, puzzle.mahjongRev);
+      const r = replayMahjongRun(seed, answer, puzzle.mahjongRev, levelOfPuzzle(puzzle));
       return {
         worldW: MAHJONG_WORLD_W,
         top: MAHJONG_HUD_H,
         bottom: MAHJONG_WORLD_H,
         draw: (ctx) => drawMahjong(ctx, r.state, { width: MAHJONG_WORLD_W, height: MAHJONG_WORLD_H }),
         facts: [
-          { label: "Pairs", value: `${r.pairs}/${MAHJONG_PAIRS}`, best: r.cleared },
+          { label: "Pairs", value: `${r.pairs}/${r.state.face.length / 2}`, best: r.cleared },
           { label: "Shuffles", value: `${r.shuffles}`, best: r.cleared && r.shuffles === 0 },
-          r.cleared ? { label: "Time", value: secs(r.clearedSeconds) } : { label: "Tiles left", value: `${(MAHJONG_PAIRS - r.pairs) * 2}` },
+          r.cleared ? { label: "Time", value: secs(r.clearedSeconds) } : { label: "Tiles left", value: `${r.state.face.length - r.pairs * 2}` },
         ],
-        marks: { label: "Pairs taken", filled: r.pairs, of: MAHJONG_PAIRS },
+        marks: { label: "Pairs taken", filled: r.pairs, of: r.state.face.length / 2 },
       };
     }
     default:

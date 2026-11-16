@@ -1142,6 +1142,9 @@ const ENTRIES = {
   "pyramid.reset": { channel: "effects", frequency: 0, ms: 600, url: null },
   "tripeaks.flip": { channel: "effects", frequency: 0, ms: 200, url: null },
   "cards.confirm": { channel: "effects", frequency: 0, ms: 250, url: null },
+  "cards.hint": { channel: "effects", frequency: 0, ms: 500, url: null },
+  "cards.hintIdle": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "cards.deadEnd": { channel: "effects", frequency: 0, ms: 600, url: null },
   // Stage 2's moments (the effects): each falls back to the sound that played there before until Joe's file is set.
   "freecell.wobble": { channel: "effects", frequency: 0, ms: 300, url: null },
   "freecell.combo": { channel: "effects", frequency: 0, ms: 350, url: null },

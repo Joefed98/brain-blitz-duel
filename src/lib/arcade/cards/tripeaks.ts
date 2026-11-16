@@ -30,6 +30,7 @@ import { bandCurve, type BandParts } from "../scoreBands";
 import { hashInts, rankOf, shuffledDeck } from "./cards";
 import { TP_DEALS } from "./tripeaksDeals.data";
 import { TP_STOCK_PARS } from "./tripeaksStockPar.data";
+import { TP_EXPERT_DEALS } from "./tripeaksExpert.data";
 
 /** The dealt revision (rev 3: more of the 200 on the cards); rev 2 runs replay on tripeaksGameV2, rev 1 on V1. */
 export const TP_REV = 3;
@@ -152,6 +153,17 @@ export interface TpState {
   std: number;
   /** tripeaksRev 2 only: the deal's stock par (the fewest stock turns on a clearing line with a run of ten). */
   stockPar?: number;
+  /**
+   * The difficulty levels (15 Nov 2026; level deals only): the level (TP_LV_*), no Ace–King wrap (Expert), the
+   * positions before each action still to undo (Easy, packed by tpPack) and the undos made, hints asked for and the
+   * last one's tick.
+   */
+  lv?: number;
+  noWrap?: number;
+  hist?: number[][];
+  undos?: number;
+  hints?: number;
+  hintTick?: number;
 }
 
 /** The cards that cover peak card `i` (it is face up and free once they are cleared). */
@@ -182,7 +194,10 @@ export function tpNext(card: number, top: number): boolean {
 }
 
 export function tpPlayable(state: TpState, i: number): boolean {
-  return i >= 0 && i < TP_CARDS && tpFree(state, i) && tpNext(state.tab[i]!, state.top);
+  if (!(i >= 0 && i < TP_CARDS && tpFree(state, i))) return false;
+  // Expert (the difficulty levels): one higher or lower only, no Ace–King wrap.
+  if (state.noWrap) return Math.abs(rankOf(state.tab[i]!) - rankOf(state.top)) === 1;
+  return tpNext(state.tab[i]!, state.top);
 }
 
 export function tpAnyPlay(state: TpState): boolean {
@@ -250,6 +265,7 @@ export function tpStockParPoints(turns: number, par: number, rev = TP_REV_PAR): 
 
 export function tripeaksStdParts(state: TpState): StdPart[] | null {
   if (!state || !state.std) return null;
+  if (state.lv) return tpLevelParts(state);
   const done = state.ended === 1;
   if ((state.rev ?? 1) >= TP_REV_SHARE) {
     const par = state.stockPar ?? TP_STOCK_TURNS;
@@ -307,7 +323,9 @@ export interface TpCheckpoint {
 export function tpCheckpoint(state: TpState): TpCheckpoint {
   return {
     tick: state.tick, cleared: state.clearedCount, stockPos: state.stockPos, ended: state.ended,
-    checksum: hashInts([state.tick, state.top, state.run, state.bestRun, state.peaks, state.ended, ...state.cleared]),
+    checksum: hashInts(state.lv
+      ? [state.tick, state.top, state.run, state.bestRun, state.peaks, state.ended, ...state.cleared, 300 + (state.hints ?? 0), 400 + (state.hist?.length ?? 0)]
+      : [state.tick, state.top, state.run, state.bestRun, state.peaks, state.ended, ...state.cleared]),
   };
 }
 
@@ -349,4 +367,187 @@ export const tripeaksGameV3: ArcadeGame<TpState, ArcadeInputEvent | null> = {
 export function tripeaksGameFor(rev?: number | null): ArcadeGame<TpState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
   return r >= TP_REV_SHARE ? tripeaksGameV3 : r >= TP_REV_PAR ? tripeaksGameV2 : tripeaksGame;
+}
+
+/* ================================ Difficulty levels (15 Nov 2026) ================================ */
+
+/*
+ * The levels (docs/design/difficulty/README.md; docs/arcade-standard/tripeaks.md "Levels"): Normal is tripeaksRev 3
+ * exactly (no `level` on the puzzle, none of this code runs). A level deal carries `level` and tripeaksRev 3; its game is
+ * rev 3's play and parts with:
+ *
+ *   Easy    playable cards glow, Ace and King wrap, 3 undos (TP_INPUT_UNDO), speed full by 25 s, hints free (and the
+ *           hint's glow shows by itself after 8 s without a play).
+ *   Hard    no glow (display), wrap, speed full by 20 s, a hint costs TP_HINT_COST from the cards part.
+ *   Expert  no glow, no wrap, speed full by 16 s, one hint; dealt only from the bank deals the solver clears without
+ *           the wrap with a run of ten, each with its own stock par (tripeaksExpert.data.ts, scripts/tripeaks-expert-bank.ts).
+ *
+ * Easy and Hard deal the Normal bank (every deal proved clearable with a run of ten, with the wrap) and its stock pars.
+ * A hint (TP_INPUT_HINT) is counted by the sim; its move (tpHintMove, tripeaksSolver.ts) is display only.
+ */
+export const TP_INPUT_HINT = 2;
+export const TP_INPUT_UNDO = 3;
+export const TP_LV_EASY = 1;
+export const TP_LV_HARD = 3;
+export const TP_LV_EXPERT = 4;
+export const TP_HINT_COST = 5;
+export type TpLevelName = "easy" | "hard" | "expert";
+
+export interface TpLevelRules {
+  lv: number;
+  glow: boolean;
+  wrap: boolean;
+  undoLimit: number;
+  speedFullS: number;
+  hintCost: number;
+  hintLimit: number;
+}
+
+export const TP_LEVEL_RULES: Readonly<Record<TpLevelName, TpLevelRules>> = {
+  easy: { lv: TP_LV_EASY, glow: true, wrap: true, undoLimit: 3, speedFullS: 25, hintCost: 0, hintLimit: -1 },
+  hard: { lv: TP_LV_HARD, glow: false, wrap: true, undoLimit: 0, speedFullS: 20, hintCost: TP_HINT_COST, hintLimit: -1 },
+  expert: { lv: TP_LV_EXPERT, glow: false, wrap: false, undoLimit: 0, speedFullS: 16, hintCost: 0, hintLimit: 1 },
+};
+
+function tpLevelName(lv: number | undefined): TpLevelName | null {
+  return lv === TP_LV_EASY ? "easy" : lv === TP_LV_HARD ? "hard" : lv === TP_LV_EXPERT ? "expert" : null;
+}
+export function tpLevelRulesOf(state: Pick<TpState, "lv">): TpLevelRules | null {
+  const n = tpLevelName(state.lv);
+  return n ? TP_LEVEL_RULES[n] : null;
+}
+
+/** Whether playable cards glow (Normal and Easy; display only). */
+export function tpGlows(state: Pick<TpState, "lv">): boolean {
+  return tpLevelRulesOf(state)?.glow ?? true;
+}
+
+export function tpHintsLeft(state: TpState): number {
+  const r = tpLevelRulesOf(state);
+  if (!r) return 0;
+  return r.hintLimit < 0 ? Infinity : Math.max(0, r.hintLimit - (state.hints ?? 0));
+}
+export function tpUndosLeft(state: TpState): number {
+  const r = tpLevelRulesOf(state);
+  return r ? Math.max(0, r.undoLimit - (state.undos ?? 0)) : 0;
+}
+
+/**
+ * Easy's deals: the Normal bank's deals with a stock par of TP_EASY_MAX_PAR or less (the ones that clear turning the
+ * fewest stock cards), in bank order; an Easy puzzle's seed indexes this list.
+ */
+export const TP_EASY_MAX_PAR = 12;
+export const TP_EASY_DEALS: readonly number[] = TP_STOCK_PARS.flatMap((par, i) => (par <= TP_EASY_MAX_PAR ? [i] : []));
+
+/** A level deal: the bank entry its seed names (Easy: the easiest deals; Expert: the no-wrap bank, its own pars). */
+export function tpLevelDealOf(seed: number, level: TpLevelName): { index: number; dealSeed: number; stockPar: number } {
+  if (level === "easy") {
+    const n = TP_EASY_DEALS.length;
+    const index = TP_EASY_DEALS[((Math.trunc(seed) % n) + n) % n]!;
+    return { index, dealSeed: TP_DEALS[index]!, stockPar: TP_STOCK_PARS[index]! };
+  }
+  if (level === "expert") {
+    const n = TP_EXPERT_DEALS.length;
+    const index = ((Math.trunc(seed) % n) + n) % n;
+    const [dealSeed, stockPar] = TP_EXPERT_DEALS[index]!;
+    return { index, dealSeed, stockPar };
+  }
+  const d = tpDealOf(seed);
+  return { index: d.index, dealSeed: d.dealSeed, stockPar: TP_STOCK_PARS[d.index]! };
+}
+
+export function tpLevelInitFrom(level: TpLevelName, dealSeed: number, deal: number, stockPar: number): TpState {
+  const r = TP_LEVEL_RULES[level];
+  return {
+    ...tpInitFrom(dealSeed, deal, TP_REV_SHARE, stockPar),
+    lv: r.lv, ...(r.wrap ? {} : { noWrap: 1 }), ...(r.undoLimit > 0 ? { hist: [], undos: 0 } : {}), hints: 0, hintTick: 0,
+  };
+}
+
+/** A position packed as integers (Undo): the cleared flags, then the counters a play or stock turn moves. */
+export function tpPack(s: TpState): number[] {
+  return [...s.cleared, s.stockPos, s.top, s.run, s.bestRun, s.peaks, s.clearedCount, s.plays, s.turns];
+}
+function tpUnpack(s: TpState, p: readonly number[]): TpState {
+  const c = p.slice(TP_CARDS);
+  return {
+    ...s, cleared: p.slice(0, TP_CARDS), stockPos: c[0]!, top: c[1]!, run: c[2]!, bestRun: c[3]!, peaks: c[4]!, clearedCount: c[5]!, plays: c[6]!, turns: c[7]!,
+    lastPlay: -1, lastTick: s.tick,
+  };
+}
+
+function stepLevel(state: TpState, input: ArcadeInputEvent | null): TpState {
+  if (state.ended) return state;
+  if (input && input.k === TP_INPUT_HINT) {
+    const next = step(state, null);
+    if (next.ended || tpHintsLeft(state) <= 0) return { ...next, acted: 1 };
+    return { ...next, acted: 1, hints: (state.hints ?? 0) + 1, hintTick: next.tick };
+  }
+  if (input && input.k === TP_INPUT_UNDO) {
+    const next = step(state, null);
+    const hist = state.hist ?? [];
+    if (next.ended || tpUndosLeft(state) <= 0 || hist.length === 0) return { ...next, acted: 1 };
+    return { ...tpUnpack(next, hist[hist.length - 1]!), acted: 1, hist: hist.slice(0, -1), undos: (state.undos ?? 0) + 1 };
+  }
+  let next = step(state, input);
+  // Easy: each play or stock turn goes on the undo history.
+  if (state.hist && input && input.k === TP_INPUT_TAP && (next.plays !== state.plays || next.turns !== state.turns)) next = { ...next, hist: [...state.hist, tpPack(state)] };
+  // Easy: a dead end waits while an undo can leave it (the run ends on it only with none left).
+  if (next.ended === 3 && (next.hist?.length ?? 0) > 0 && tpUndosLeft(next) > 0) next = { ...next, ended: 0 };
+  return next;
+}
+
+/** A level's spec (the help and the reveal). */
+export function tpLevelSpec(level: TpLevelName): StdSpec {
+  const r = TP_LEVEL_RULES[level];
+  return {
+    ...TP_STD_SPEC,
+    parts: TP_STD_SPEC.parts.map((p) =>
+      p.key === "speed"
+        ? { ...p, how: `clear all 28 within ${r.speedFullS} s for all of it, falling to 0 at the buzzer` }
+        : p.key === "core" && r.hintCost
+          ? { ...p, how: `${p.how}; each hint costs ${r.hintCost}` }
+          : p,
+    ),
+  };
+}
+
+function tpLevelParts(state: TpState): StdPart[] {
+  const r = tpLevelRulesOf(state)!;
+  const spec = tpLevelSpec(tpLevelName(state.lv)!);
+  const done = state.ended === 1;
+  const par = state.stockPar ?? TP_STOCK_TURNS;
+  const hints = state.hints ?? 0;
+  const cost = r.hintCost * hints;
+  const core = Math.max(0, stdLine(TP_V3_CORE_MAX, state.clearedCount, TP_CARDS) - cost);
+  return [
+    stdPart(spec, "core", core, `${state.clearedCount} / ${TP_CARDS} cleared${cost ? ` · ${hints} ${hints === 1 ? "hint" : "hints"} (−${cost})` : ""}`),
+    stdPart(spec, "peaks", stdEach(state.peaks, TP_V2_PEAK_EACH, TP_V2_PEAK_MAX), `${state.peaks} / 3 tops`),
+    stdPart(spec, "run", stdEach(state.bestRun, TP_V2_RUN_EACH, TP_V2_RUN_MAX), `best run ${state.bestRun}`),
+    stdPart(spec, "clear", done ? TP_V2_CLEAR_MAX : 0, done ? "all cleared" : "not cleared"),
+    stdPart(spec, "par", done ? tpStockParPoints(state.turns, par, TP_REV_SHARE) : 0, done ? `${state.turns} stock cards, par ${par}` : "not cleared"),
+    stdPart(spec, "speed", done ? stdSpeedInt(TP_V3_SPEED_MAX, state.finishTick, r.speedFullS * 60, TP_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+  ];
+}
+
+const TP_LEVEL_GAMES = new Map<TpLevelName, ArcadeGame<TpState, ArcadeInputEvent | null>>();
+export function tripeaksLevelGame(level: TpLevelName): ArcadeGame<TpState, ArcadeInputEvent | null> {
+  let g = TP_LEVEL_GAMES.get(level);
+  if (!g) {
+    g = {
+      ...tripeaksGameV3,
+      init: (seed) => {
+        const d = tpLevelDealOf(seed, level);
+        return tpLevelInitFrom(level, d.dealSeed, d.index, d.stockPar);
+      },
+      step: stepLevel,
+      inputRanges: [inputRange(TP_INPUT_TAP, [0, TP_STOCK_PILE]), inputRange(TP_INPUT_HINT), inputRange(TP_INPUT_UNDO)],
+    };
+    TP_LEVEL_GAMES.set(level, g);
+  }
+  return g;
+}
+
+export function tripeaksGameAt(rev: number | null | undefined, level: string | null | undefined): ArcadeGame<TpState, ArcadeInputEvent | null> {
+  return level === "easy" || level === "hard" || level === "expert" ? tripeaksLevelGame(level) : tripeaksGameFor(rev);
 }

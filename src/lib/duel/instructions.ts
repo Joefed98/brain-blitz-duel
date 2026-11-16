@@ -349,6 +349,11 @@ export interface PuzzleInstructionLine {
   detail: string;
   /** Shown only in the "?" help, not on the round intro (keeps the intro to three lines). */
   helpOnly?: boolean;
+  /**
+   * States Normal's own numbers (the Cards & Board levels, 15 Nov 2026): hidden at another level, whose own lines
+   * (src/lib/levels/cardLevelText.data.ts) say it instead.
+   */
+  normalOnly?: boolean;
 }
 
 export interface PuzzleInstructions {
@@ -1081,13 +1086,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap two matching tiles", detail: "to take them away." },
         { action: "Only free tiles:", detail: "nothing on top, and open on the left or right." },
-        { action: "Stuck? Shuffle", detail: `re-deals the tiles that are left (−${MAHJONG_SHUFFLE_COST}).` },
+        { action: "Stuck? Shuffle", detail: `re-deals the tiles that are left (−${MAHJONG_SHUFFLE_COST}).`, normalOnly: true },
         { action: "Undo", detail: "takes back the last pair or Shuffle, free and as often as you like; the clock keeps running." },
         { action: "Reset", detail: "puts back the original stack (it asks first); the clock keeps running and Shuffles already used still count.", helpOnly: true },
         { action: "Free pairs", detail: "at the top counts the matching pairs you can take right now; at 0 only a Shuffle helps.", helpOnly: true },
         { action: "Every stack can be cleared:", detail: "it is built backwards from an empty board, and a Shuffle keeps it clearable.", helpOnly: true },
         { action: "Faces:", detail: "dots, bamboo and characters 1–9, the four winds and three dragons; a face matches only itself.", helpOnly: true },
-        { action: "One stack for everyone,", detail: "72 tiles in four layers, 2 minutes.", helpOnly: true },
+        { action: "One stack for everyone,", detail: "72 tiles in four layers, 2 minutes.", helpOnly: true, normalOnly: true },
       ],
       score: liveStdHelp("mahjong", `Each Shuffle costs ${MAHJONG_SHUFFLE_COST}.`),
     },
@@ -1220,12 +1225,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     freecell: {
       goal: "Get all 40 cards home, fast, in two minutes.",
       how: [
-        { action: "Ace to 10", detail: "in each suit: 40 cards, eight columns of five." },
+        { action: "Ace to 10", detail: "in each suit: 40 cards, eight columns of five.", normalOnly: true },
         { action: "Tap a card", detail: "to move it (and the run on it) to its best spot." },
         { action: "Drag a card", detail: "to put it on a particular pile.", helpOnly: true },
         { action: "Build down", detail: "in alternating colours; home piles build up by suit from the Ace." },
-        { action: "Undo and Reset", detail: "are the buttons under the columns: Undo takes back the last move (as often as you like), Reset deals the cards back out (it asks first). Each counts as a move; the clock runs on." },
-        { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true },
+        { action: "Undo and Reset", detail: "are the buttons under the columns: Undo takes back the last move (as often as you like), Reset deals the cards back out (it asks first). Each counts as a move; the clock runs on.", normalOnly: true },
+        { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true, normalOnly: true },
         { action: "Safe cards fly home by themselves:", detail: "aces and twos, and a card whose lower cards of the other colour are home. They are not counted as moves.", helpOnly: true },
         { action: "Par", detail: "is the fewest moves our solver found for this deal.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always solvable.", helpOnly: true },
@@ -1235,7 +1240,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     tripeaks: {
       goal: "Clear the three peaks.",
       how: [
-        { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap." },
+        { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap.", normalOnly: true },
         { action: "Tap the stock", detail: "when you are stuck: it turns a new discard and ends your run of cards." },
         { action: "Uncover the tops", detail: "of all three peaks for the bonus." },
         { action: "Stock · par", detail: "at the top counts the stock cards you’ve turned against the fewest this deal can be cleared with: clear it within par for the full bonus." },
@@ -1269,7 +1274,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hands:", detail: "high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
-        { action: "POINTS", detail: "at the top is your score so far: your hand points × 1.4.", helpOnly: true },
+        { action: "POINTS", detail: "at the top is your score so far: your hand points × 1.4.", helpOnly: true, normalOnly: true },
         { action: "Some decks", detail: "can’t reach 200 even placed perfectly: everyone in a room has the same deck, so it’s fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
@@ -1308,7 +1313,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap two uncovered cards", detail: "that add to 13 to remove them: Q+A, J+2, 10+3, 9+4, 8+5, 7+6." },
         { action: "A King", detail: "is 13 on its own: one tap removes it." },
         { action: "Tap the stock", detail: "to turn a card onto the waste; the waste’s top card pairs too." },
-        { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time." },
+        { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time.", normalOnly: true },
         { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal (Reset asks first); the clock runs on.", helpOnly: true },
         { action: "Stuck?", detail: "With no move left, Undo or Reset to try another order; the run carries on to the buzzer.", helpOnly: true },
         { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },

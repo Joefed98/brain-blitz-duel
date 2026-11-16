@@ -6,7 +6,9 @@ import { mahjongFill } from "@/lib/arcade/arenaFills.renderer";
 import {
   mahjongCheckpoint,
   mahjongSlotAt,
+  MAHJONG_BUTTON_HINT,
   MAHJONG_BUTTON_RESET,
+  MAHJONG_LEVEL_RULES,
   MAHJONG_BUTTON_SHUFFLE,
   MAHJONG_BUTTON_UNDO,
   MAHJONG_CHECKPOINT_INTERVAL,
@@ -32,6 +34,7 @@ import { cardConfirmCue } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+import { levelOfPuzzle } from "@/lib/levels/levels";
 
 // The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
 if (typeof window !== "undefined") preloadRealArt(["tiles", "mahjongTable"]);
@@ -88,7 +91,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MahjongPuzzleData | null = puzzle.type === "mahjong" ? puzzle : null;
   // The live stage's view (stage 2's effects); one game object per revision and view, so the run never restarts.
   const view = useMemo(() => mahjongNewView(), []);
-  const game = useMemo(() => mahjongArtGameFor(data?.mahjongRev, view), [data?.mahjongRev, view]);
+  const level = data ? levelOfPuzzle(data) : null;
+  const rules = level ? MAHJONG_LEVEL_RULES[level] : null;
+  const shuffleCost = rules ? rules.shuffleCost : MAHJONG_SHUFFLE_COST;
+  const game = useMemo(() => mahjongArtGameFor(data?.mahjongRev, view, level), [data?.mahjongRev, view, level]);
   /** mahjongRev 2: Undo and Reset beside Shuffle. */
   const undo = (data?.mahjongRev ?? 1) >= MAHJONG_REV_UNDO;
   /** The board the player is looking at (the last drawn frame), so a tap picks the tile they saw on top. */
@@ -130,6 +136,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // S shuffles; on rev 2, Z (or U) undoes and R resets.
           if (key === "s" || key === "S") {
             if (kind === "down") send({ k: MAHJONG_INPUT_SHUFFLE, a: MAHJONG_BUTTON_SHUFFLE, b: 0, c: 0 });
+            return true;
+          }
+          if (rules && (key === "h" || key === "H")) {
+            if (kind === "down") send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_HINT, b: 0, c: 0 });
             return true;
           }
           if (undo && (key === "z" || key === "Z" || key === "u" || key === "U")) {
@@ -185,6 +195,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // The Shuffle button in the bottom corner, within thumb reach (rev 2: Undo and Reset, smaller, beside it); its row
           // ends 16 px above the bottom like every arcade control row.
           <div data-home-bar-clear="8" data-game-controls="shuffle" className="flex h-[52px] shrink-0 items-center justify-end gap-2">
+            {rules ? (
+              <ArcadeControlButton
+                type="button"
+                aria-label={rules.hintLimit === 1 ? "Hint (one this round)" : rules.hintCost ? `Hint (−${rules.hintCost})` : "Hint"}
+                disabled={locked}
+                data-mahjong-hint=""
+                className="h-[44px] rounded-xl border-2 border-foreground/30 bg-background/40 px-3 text-[14px] font-bold text-foreground hover:bg-background/40 active:bg-foreground/15"
+                onPressStart={() => send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_HINT, b: 0, c: 0 })}
+              >
+                {rules.hintCost ? `✦ Hint −${rules.hintCost}` : "✦ Hint"}
+              </ArcadeControlButton>
+            ) : null}
             {undo ? (
               <>
                 <ArcadeControlButton
@@ -216,12 +238,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             <ArcadeControlButton
               type="button"
               data-home-bar-fill=""
-              aria-label={`Shuffle (−${MAHJONG_SHUFFLE_COST})`}
+              aria-label={`Shuffle (−${shuffleCost})`}
               disabled={locked}
               className="h-[52px] rounded-xl border-2 border-primary/70 bg-background/40 px-5 text-[15px] font-extrabold text-primary hover:bg-background/40 shadow-[0_0_12px_rgba(245,184,46,0.22)] active:bg-primary/25"
               onPressStart={() => send({ k: MAHJONG_INPUT_SHUFFLE, a: MAHJONG_BUTTON_SHUFFLE, b: 0, c: 0 })}
             >
-              {`⟳ Shuffle −${MAHJONG_SHUFFLE_COST}`}
+              {`⟳ Shuffle −${shuffleCost}`}
             </ArcadeControlButton>
           </div>
           )
@@ -240,15 +262,15 @@ export function mahjongReleaseInside(event: { type: string; clientX: number; cli
   return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
 }
 
-export function mahjongLine(r: { pairs: number; shuffles: number; cleared: boolean; clearedSeconds: number }): string {
-  const head = `${r.pairs} of ${MAHJONG_PAIRS} pairs`;
+export function mahjongLine(r: { pairs: number; shuffles: number; cleared: boolean; clearedSeconds: number; state?: { face: readonly number[] } }): string {
+  const head = `${r.pairs} of ${r.state ? r.state.face.length / 2 : MAHJONG_PAIRS} pairs`;
   const shuffles = r.shuffles === 0 ? "no shuffle" : `${r.shuffles} ${r.shuffles === 1 ? "shuffle" : "shuffles"}`;
   return r.cleared ? `${head} · cleared in ${r.clearedSeconds.toFixed(1)}s · ${shuffles}` : `${head} · ${shuffles}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "mahjong") return null;
-  const result = replayMahjongRun(puzzle.seed, myAnswer ?? "", puzzle.mahjongRev);
+  const result = replayMahjongRun(puzzle.seed, myAnswer ?? "", puzzle.mahjongRev, levelOfPuzzle(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{mahjongLine(result)}</p>

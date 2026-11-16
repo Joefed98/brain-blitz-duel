@@ -15,11 +15,12 @@
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { CARD_FONT, drawChip, drawSlot, roundRect } from "./cards.renderer";
+import { drawCardButton, inButton } from "./cardButtons.renderer";
 import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
 import { drawOutline, drawStamp, easeOut, FxTimeline } from "./cardsFx.renderer";
 import {
   fhScoreV3,
-  fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhPickedHand, fhPicking, fhTotalV3, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
+  FH_LV_EASY, fhColumn, fhHintRow, fhHintsLeft, fhLevelRulesOf, fhLevelScore, fiveHandsGameAt, fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhPickedHand, fhPicking, fhTotalV3, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
 } from "./fiveHands";
 
 export const FH_WORLD_W = 414;
@@ -91,6 +92,8 @@ export interface FhView {
   /** Stage 2's effects (the overhaul): the timeline and the state seen last frame. */
   fx?: FxTimeline;
   seen?: { made: number; pick: number; points: number; tick: number };
+  /** The difficulty levels' Hint button held. */
+  hintHeld?: boolean;
 }
 
 export function fhNewView(): FhView {
@@ -99,7 +102,28 @@ export function fhNewView(): FhView {
 
 /** The POINTS chip's figure: rev 3's score (hand points × 1.4, capped at 200), earlier revisions' hand points. */
 export function fhPointsShown(state: FhState): number {
+  if (state.lv) return fhLevelScore(state, fhTotalV3(state));
   return (state.rev ?? 1) >= 3 ? fhScoreV3(fhTotalV3(state)) : fhTotals(state.rows, state.rev).total;
+}
+
+/* ---- The difficulty levels: the Hint button, Easy's preview and column values, the hint's glow (display only) ---- */
+export const FH_HINT_BOX = { x: FH_WORLD_W / 2 + FH_NEXT_W / 2 + 24, y: FH_NEXT_Y + 62, w: 110, h: 44 };
+/** Whether a point is on the Hint button (level deals only). */
+export function fhOnHint(state: Pick<FhState, "lv">, x: number, y: number): boolean {
+  return Boolean(state.lv) && inButton(FH_HINT_BOX, x, y);
+}
+const HINT_TICKS = 150;
+const IDLE_HINT_TICKS = 8 * 60;
+/** The hint showing now (live stage only): after a hint for 2.5 s, or on Easy after 8 s without a move. */
+export function fhHintShown(state: FhState, view?: FhView): { kind: "row" | "column"; index: number; glow: number } | null {
+  if (!view || !state.lv || state.ended !== 0) return null;
+  const asked = (state.hints ?? 0) > 0 ? state.tick - (state.hintTick ?? 0) : Infinity;
+  const idle = state.lv === FH_LV_EASY && state.tick - Math.max(state.lastTick, state.hintTick ?? 0) >= IDLE_HINT_TICKS;
+  if (!(asked < HINT_TICKS) && !idle) return null;
+  const hint = fhHintRow(state);
+  if (!hint) return null;
+  const pulse = 0.55 + 0.35 * Math.sin((state.tick / 60) * Math.PI * 1.4);
+  return { ...hint, glow: asked < HINT_TICKS ? Math.min(1, (HINT_TICKS - asked) / 30) * pulse : pulse };
 }
 
 const SHORT: Record<string, string> = {
@@ -191,6 +215,7 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   const open = running ? fhOpenRows(state.rows) : [];
   const dragRow = view?.drag ? fhHitRow(view.drag.x, view.drag.y) : -1;
   const fresh = state.lastTick > 0 ? Math.max(0, 1 - (state.tick - state.lastTick) / 16) : 0;
+  const hint = fhHintShown(state, view);
   for (let r = 0; r < FH_ROWS; r++) {
     const row = state.rows[r]!;
     const isOpen = open.includes(r);
@@ -201,7 +226,7 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
         drawSlot(ctx, b.x, b.y, FH_CELL_W, FH_CELL_H);
         // The open row's next slot: a faint gold outline, bright under the finger.
         if (isOpen && k === row.length) {
-          const hot = view?.pressed === r || dragRow === r;
+          const hot = view?.pressed === r || dragRow === r || (hint?.kind === "row" && hint.index === r && hint.glow > 0.4);
           roundRect(ctx, b.x, b.y, FH_CELL_W, FH_CELL_H, 6);
           ctx.strokeStyle = hot ? "rgba(255,214,110,0.95)" : "rgba(255,214,110,0.38)";
           ctx.lineWidth = hot ? 2.5 : 1.5;
@@ -258,7 +283,40 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
     drawSlot(ctx, nx, FH_NEXT_Y, FH_NEXT_W, FH_NEXT_H);
     drawChip(ctx, nx + FH_NEXT_W + 24, FH_NEXT_Y + FH_NEXT_H / 2 - 13, "DECK", `${deckLeft}`);
   }
-  if (picking || picked.column >= 0) columnFrames(ctx, picking ? -1 : picked.column, picking ? (view?.pressedCol ?? -1) : -1, state.tick);
+  if (picking || picked.column >= 0) columnFrames(ctx, picking ? -1 : picked.column, picking ? ((view?.pressedCol ?? -1) >= 0 ? view!.pressedCol! : hint?.kind === "column" ? hint.index : -1) : -1, state.tick);
+  const rules = fhLevelRulesOf(state);
+  if (rules) {
+    // Easy: the next two of your cards, small, to the left of this turn's.
+    if (running && rules.preview > 0) {
+      ctx.fillStyle = "rgba(246,235,208,0.75)";
+      ctx.font = `700 12px ${CARD_FONT}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("COMING UP", 24 + 50, FH_NEXT_Y + 10);
+      for (let j = 1; j <= rules.preview; j++) {
+        if (state.turn + j >= FH_TURNS) break;
+        const c = fhYours(state.deck, state.turn + j);
+        cards.card(c, c, 24 + (j - 1) * 52, FH_NEXT_Y + 24, 46, 68);
+      }
+    }
+    // Easy: each column's hand value while picking.
+    if (picking && rules.columnValues) {
+      ctx.font = `800 13px ${CARD_FONT}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (let k = 0; k < FH_SLOTS; k++) {
+        const b = fhSlotBox(FH_ROWS - 1, k);
+        const v = fhRowHand(fhColumn(state.rows, k), state.rev).points;
+        ctx.fillStyle = "rgba(6,10,24,0.85)";
+        roundRect(ctx, b.x + 6, b.y + FH_CELL_H + 4, FH_CELL_W - 12, 20, 10);
+        ctx.fill();
+        ctx.fillStyle = "#FFE7A3";
+        ctx.fillText(`+${v}`, b.x + FH_CELL_W / 2, b.y + FH_CELL_H + 14.5);
+      }
+    }
+    const left = fhHintsLeft(state);
+    drawCardButton(ctx, FH_HINT_BOX, "hint", left === Infinity ? "Hint" : left > 0 ? `Hint (${left})` : "No hints", { live: state.ended === 0 && left > 0, held: view?.hintHeld === true });
+  }
 
   // The discards, taken by the opponents: oldest top left, each newer one over the last's right side.
   const shown = fhDiscardsShown(state);
@@ -384,7 +442,8 @@ function columnPanel(ctx: CanvasRenderingContext2D, W: number, picked: { points:
 }
 
 /** The art game for a stage: the revision's sim with this draw (no stamp: fiveHandsRev 1). */
-export function fiveHandsArtGame(view?: FhView, rev?: number | null): ArcadeGame<FhState, ArcadeInputEvent | null> {
+export function fiveHandsArtGame(view?: FhView, rev?: number | null, level?: string | null): ArcadeGame<FhState, ArcadeInputEvent | null> {
+  if (level) return { ...fiveHandsGameAt(rev, level), draw: (ctx, state, size) => drawFiveHands(ctx, state, size, view) };
   return { ...fiveHandsGameFor(rev), draw: (ctx, state, size) => drawFiveHands(ctx, state, size, view) };
 }
 

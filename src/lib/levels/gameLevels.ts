@@ -46,7 +46,47 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // The Cards & Board overhaul, stage 3 (15 Nov 2026; docs/arcade-standard/<game>.md "Levels"). Each game's sim holds the
+  // authoritative rules per level (FC_LEVEL_RULES, MAHJONG_LEVEL_RULES, TP_LEVEL_RULES, FH_LEVEL_RULES, PY_LEVEL_RULES);
+  // these settings mirror them for the phone's selectors and the docs (cards-levels-check proves they match). Every
+  // level's deals are proved clearable by cards-levels-check (banks re-solved, built deals proved by their witnesses).
+  freecell: {
+    levels: {
+      easy: { settings: { cards: 32, cells: 5, undo: "free", hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      hard: { settings: { cards: 52, cells: 4, undo: "a move", hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      expert: { settings: { cards: 52, cells: 3, undo: "3", hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+    },
+  },
+  mahjong: {
+    levels: {
+      easy: { settings: { tiles: 56, layers: 3, quads: 2, shuffleCost: 2, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      hard: { settings: { tiles: 72, layers: 4, quads: 10, shuffleCost: 8, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      expert: { settings: { tiles: 88, layers: 5, quads: 12, shuffleCost: 10, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+    },
+  },
+  tripeaks: {
+    levels: {
+      easy: { settings: { glow: true, wrap: true, undos: 3, speedFullS: 25, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      hard: { settings: { glow: false, wrap: true, undos: 0, speedFullS: 20, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      expert: { settings: { glow: false, wrap: false, undos: 0, speedFullS: 16, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+    },
+  },
+  fivehands: {
+    levels: {
+      easy: { settings: { multiplier: 1.6, seconds: 75, preview: 2, columnValues: true, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      hard: { settings: { multiplier: 1.4, seconds: 50, preview: 0, columnValues: false, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      expert: { settings: { multiplier: 1.3, seconds: 45, preview: 0, columnValues: false, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+    },
+  },
+  pyramid: {
+    levels: {
+      easy: { settings: { passes: 3, glow: true, kings: "3–4", hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      hard: { settings: { passes: 1, glow: false, kings: "2–3", deals: "harder", hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      expert: { settings: { passes: 1, glow: false, kings: "2", deals: "hardest", hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+    },
+  },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

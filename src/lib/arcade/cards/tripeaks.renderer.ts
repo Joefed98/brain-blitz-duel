@@ -13,7 +13,9 @@ import { CARD_FONT, drawChip, drawSlot } from "./cards.renderer";
 import { CardLayer, CardMotion, drawRealCard, drawRealFelt } from "./realArt.renderer";
 import { arcPoint, drawOutline, drawSparks, FxTimeline } from "./cardsFx.renderer";
 import { roundRect } from "./cards.renderer";
-import { TP_CARDS, TP_STOCK, TP_STOCK_PILE, tpFree, tpPlayable, tripeaksGameFor, type TpState } from "./tripeaks";
+import { TP_CARDS, TP_INPUT_HINT, TP_INPUT_UNDO, TP_LV_EASY, TP_STOCK, TP_STOCK_PILE, tpFree, tpGlows, tpHintsLeft, tpPack, tpPlayable, tpUndosLeft, tripeaksGameAt, type TpState } from "./tripeaks";
+import { tpHintMove } from "./tripeaksSolver";
+import { drawCardButton, inButton, type CardButtonBox } from "./cardButtons.renderer";
 
 export const TP_WORLD_W = 414;
 export const TP_WORLD_H = 772;
@@ -85,6 +87,8 @@ export interface TpView {
   /** Stage 2's effects (the overhaul): the timeline, the card the phone last tried and the state seen last frame. */
   fx?: FxTimeline;
   lastTry?: number;
+  /** The difficulty levels: the level button held (its input kind), 0 for none. */
+  button?: number;
   seen?: { run: number; turns: number; peaks: number; rejects: number; ended: number; tick: number; top: number };
 }
 
@@ -158,11 +162,13 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
   const fresh = state.lastTick > 0 ? Math.max(0, 1 - (state.tick - state.lastTick) / 16) : 0;
 
   const drag = view?.drag ?? null;
+  const hint = tpHintShown(state, view);
+  if (hint && hint.move === TP_STOCK_PILE) drawHintRing(ctx, TP_STOCK_X - 4, TP_PILE_Y - 10, TP_PILE_W + 14, TP_PILE_H + 14, hint.glow);
   for (let i = 0; i < TP_CARDS; i++) {
     if (state.cleared[i] || (drag && drag.index === i)) continue;
     const b = tpCardBox(i);
     const free = tpFree(state, i);
-    const playable = state.ended === 0 && tpPlayable(state, i);
+    const playable = state.ended === 0 && tpPlayable(state, i) && tpGlows(state);
     const up = view?.pressed === i;
     // A refused card leans towards the discard and springs back.
     let nx = 0;
@@ -177,7 +183,7 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
     }
     cards.card(state.tab[i]!, state.tab[i]!, b.x + nx, b.y - (up ? 3 : 0) + ny, TP_CARD_W, TP_CARD_H, {
       down: !free,
-      glow: up ? 1 : playable ? 0.7 : 0,
+      glow: up ? 1 : Math.max(playable ? 0.7 : 0, hint && hint.move === i ? hint.glow : 0),
       lift: up ? 1 : 0,
     }, nx !== 0 || ny !== 0);
   }
@@ -197,6 +203,8 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
     ctx.textBaseline = "middle";
     ctx.fillText(`${stuck[0]} ${stuck[1]}`, W / 2, TP_PILE_Y + TP_PILE_H + 26);
   }
+
+  if (state.lv) drawLevelButtons(ctx, state, view);
 
   if (drag) {
     const lifted = new CardLayer(ctx, view?.motion ?? null);
@@ -295,8 +303,66 @@ export function tpStuckLines(state: Pick<TpState, "ended">): readonly [string, s
 }
 
 /** The art game for a stage: the revision's sim with this draw (no stamp: tripeaksRev 1). */
-export function tripeaksArtGame(view?: TpView, rev?: number | null): ArcadeGame<TpState, ArcadeInputEvent | null> {
-  return { ...tripeaksGameFor(rev), draw: (ctx, state, size) => drawTripeaks(ctx, state, size, view) };
+export function tripeaksArtGame(view?: TpView, rev?: number | null, level?: string | null): ArcadeGame<TpState, ArcadeInputEvent | null> {
+  return { ...tripeaksGameAt(rev, level), draw: (ctx, state, size) => drawTripeaks(ctx, state, size, view) };
+}
+
+/* ---- The difficulty levels: Undo (Easy) and Hint under the pair, the hint's glow (display only) ---- */
+
+const BTN_Y = TP_PILE_Y + TP_PILE_H + 52;
+/** The level buttons: Undo (Easy only) and Hint. */
+export function tpLevelButtons(state: Pick<TpState, "lv">): readonly { kind: number; box: CardButtonBox }[] {
+  if (!state.lv) return [];
+  return state.lv === TP_LV_EASY
+    ? [
+        { kind: TP_INPUT_UNDO, box: { x: 24, y: BTN_Y, w: 150, h: 46 } },
+        { kind: TP_INPUT_HINT, box: { x: TP_WORLD_W - 24 - 150, y: BTN_Y, w: 150, h: 46 } },
+      ]
+    : [{ kind: TP_INPUT_HINT, box: { x: TP_WORLD_W / 2 - 75, y: BTN_Y, w: 150, h: 46 } }];
+}
+/** The level button under a point (its input kind), 0 for none. */
+export function tpButtonHit(state: Pick<TpState, "lv">, x: number, y: number): number {
+  for (const b of tpLevelButtons(state)) if (inButton(b.box, x, y)) return b.kind;
+  return 0;
+}
+
+function drawLevelButtons(ctx: CanvasRenderingContext2D, state: TpState, view?: TpView): void {
+  for (const b of tpLevelButtons(state)) {
+    if (b.kind === TP_INPUT_UNDO) {
+      const left = tpUndosLeft(state);
+      drawCardButton(ctx, b.box, "undo", `Undo (${left})`, { live: state.ended === 0 && left > 0 && (state.hist?.length ?? 0) > 0, held: view?.button === b.kind });
+    } else {
+      const left = tpHintsLeft(state);
+      drawCardButton(ctx, b.box, "hint", left === Infinity ? "Hint" : left > 0 ? `Hint (${left})` : "No hints", { live: state.ended === 0 && left > 0, held: view?.button === b.kind });
+    }
+  }
+}
+
+const HINT_TICKS = 150;
+const IDLE_HINT_TICKS = 8 * 60;
+let hintMemo: { key: string; move: number } | null = null;
+
+/** The hint showing now (live stage only): after a hint for 2.5 s, or on Easy after 8 s with no play. */
+export function tpHintShown(state: TpState, view?: TpView): { move: number; glow: number } | null {
+  if (!view || !state.lv || state.ended !== 0) return null;
+  const asked = (state.hints ?? 0) > 0 ? state.tick - (state.hintTick ?? 0) : Infinity;
+  const idle = state.lv === TP_LV_EASY && state.tick - Math.max(state.lastTick, state.hintTick ?? 0) >= IDLE_HINT_TICKS;
+  if (!(asked < HINT_TICKS) && !idle) return null;
+  const key = `${state.lv}:${state.noWrap ?? 0}:${tpPack(state).join(",")}`;
+  if (hintMemo?.key !== key) hintMemo = { key, move: tpHintMove(state) };
+  if (hintMemo.move < 0) return null;
+  const pulse = 0.55 + 0.35 * Math.sin((state.tick / 60) * Math.PI * 1.4);
+  return { move: hintMemo.move, glow: asked < HINT_TICKS ? Math.min(1, (HINT_TICKS - asked) / 30) * pulse : pulse };
+}
+
+function drawHintRing(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, glow: number): void {
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 9);
+  ctx.strokeStyle = `rgba(242,199,92,${(0.95 * glow).toFixed(3)})`;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 4]);
+  ctx.stroke();
+  ctx.restore();
 }
 
 export const tripeaksArt = tripeaksArtGame();

@@ -72,7 +72,7 @@ import { pinballGameForAny, pinCheckpointAny } from "../../src/lib/arcade/pinbal
 import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
 import { minesCheckpoint, minesweeperGameFor, MINES_REV_LOGIC } from "../../src/lib/arcade/minesweeper";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "../../src/lib/duel/minesweeper";
-import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "../../src/lib/arcade/mahjong";
+import { mahjongCheckpoint, mahjongGameAt, mahjongGameFor, MAHJONG_REV_STD } from "../../src/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_DEALT } from "../../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
@@ -84,13 +84,14 @@ import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
 import { racingCheckpoint, racingGameFor, RACING_REV_DEALT } from "../../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
 import { racingDealSeedV3 } from "../../src/lib/duel/racingDealV3.server";
-import { fcCheckpoint, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
+import { fcCheckpoint, freecellGameAt, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
+import { levelOfPuzzle } from "../../src/lib/levels/levels";
 import { FC_DEALS_V4 } from "../../src/lib/arcade/cards/freecellDealsV4.data";
-import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
+import { tpCheckpoint, tripeaksGameAt, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
 import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
-import { fhCheckpoint, fiveHandsGameFor, FH_REV } from "../../src/lib/arcade/cards/fiveHands";
-import { pyCheckpoint, pyramidGameFor, PY_REV } from "../../src/lib/arcade/cards/pyramid";
+import { fhCheckpoint, fiveHandsGameAt, fiveHandsGameFor, FH_REV } from "../../src/lib/arcade/cards/fiveHands";
+import { pyCheckpoint, pyramidGameAt, pyramidGameFor, PY_REV } from "../../src/lib/arcade/cards/pyramid";
 import { gsCheckpoint, golfSolGameFor, GS_REV } from "../../src/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "../../src/lib/arcade/cards/golfSolDeals.data";
 import { mgCheckpoint, mugginsGameFor, MG_REV } from "../../src/lib/arcade/cards/muggins";
@@ -316,7 +317,7 @@ export const GAMES: GameSpec[] = [
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard (one revision each, measured with --rev=now).
   // minesRev 2 (13 Nov 2026): Minefield in Logic with 20 mines.
   simple("minesweeper", MINES_REV_LOGIC, MINES_REV_LOGIC, minesweeperGameFor, minesCheckpoint, encodeMinesweeperRun, replayMinesweeperRun),
-  simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun),
+  { ...simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun), gameForPuzzle: (p) => mahjongGameAt(p.mahjongRev, levelOfPuzzle(p)) },
   // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
   // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
   // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
@@ -326,13 +327,14 @@ export const GAMES: GameSpec[] = [
   { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV3(roomSeed(n)) },
   // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
   // index (the room seed modulo the bank); Poker Squares any seed.
-  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS_V4.length },
-  { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length },
+  // The difficulty levels (15 Nov 2026): a level deal plays its level's game (level-tune.ts reads gameForPuzzle).
+  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS_V4.length, gameForPuzzle: (p) => freecellGameAt(p.freecellRev, levelOfPuzzle(p)) },
+  { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length, gameForPuzzle: (p) => tripeaksGameAt(p.tripeaksRev, levelOfPuzzle(p)) },
   simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
   // Five Hands (31 Oct 2026): born on the arcade standard; any seed (the sim deals the deck and proves its witness).
-  simple("fivehands", FH_REV, FH_REV, fiveHandsGameFor, fhCheckpoint, encodeFiveHandsRun, replayFiveHandsRun),
+  { ...simple("fivehands", FH_REV, FH_REV, fiveHandsGameFor, fhCheckpoint, encodeFiveHandsRun, replayFiveHandsRun), gameForPuzzle: (p) => fiveHandsGameAt(p.fiveHandsRev, levelOfPuzzle(p)) },
   // Pyramid and Muggins (1 Nov 2026): any seed (the sim builds and proves the deal); Golf Solitaire a bank index.
-  simple("pyramid", PY_REV, PY_REV, pyramidGameFor, pyCheckpoint, encodePyramidRun, replayPyramidRun),
+  { ...simple("pyramid", PY_REV, PY_REV, pyramidGameFor, pyCheckpoint, encodePyramidRun, replayPyramidRun), gameForPuzzle: (p) => pyramidGameAt(p.pyramidRev, levelOfPuzzle(p)) },
   { ...simple("golfsol", GS_REV, GS_REV, golfSolGameFor, gsCheckpoint, encodeGolfSolRun, replayGolfSolRun), seedFor: (n) => roomSeed(n) % GS_DEALS.length },
   simple("muggins", MG_REV, MG_REV, mugginsGameFor, mgCheckpoint, encodeMugginsRun, replayMugginsRun),
   // Blockfall (Retro, 1 Nov 2026): born on the arcade standard; rooms deal a seed from its proved deal. Blockzone

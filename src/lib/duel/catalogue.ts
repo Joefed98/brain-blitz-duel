@@ -291,6 +291,9 @@ export function puzzleRunMs(puzzle: PuzzleData | undefined): number | null {
   if (!puzzle) return null;
   const info = puzzleInfo(puzzle.type);
   if (!usesArcadeClock(puzzle.type)) return null;
+  // A dealt clock of its own (the difficulty levels' Five Hands, 15 Nov 2026; no other arcade deal carries one).
+  const own = (puzzle as { timeLimitMs?: number }).timeLimitMs;
+  if (typeof own === "number" && own > 0) return own - ARCADE_PHASE_SLACK_MS;
   return info.timeLimitMs - ARCADE_PHASE_SLACK_MS;
 }
 

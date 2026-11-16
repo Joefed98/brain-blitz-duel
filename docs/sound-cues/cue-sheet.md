@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 62 | 0 | 488 | 550 |
+| game event | 64 | 0 | 488 | 552 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 9 | 0 | 37 | 46 |
+| fail sting | 10 | 0 | 37 | 47 |
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 93 | 1 | 984 | 1078 |
+| **all** | 96 | 1 | 984 | 1081 |
 
 ## Silent and placeholder cues
 
@@ -351,6 +351,9 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `cards.confirm` | Free Cell, Mahjong, Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `cards.confirm` |
+| `cards.hint` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `cards.hint` |
+| `cards.hintIdle` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `cards.hintIdle` |
+| `cards.deadEnd` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `cards.deadEnd` |
 
 ## Music by screen and game
 

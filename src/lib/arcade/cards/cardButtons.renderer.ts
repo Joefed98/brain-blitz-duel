@@ -5,7 +5,7 @@
  */
 import { CARD_FONT, roundRect } from "./cards.renderer";
 
-export type CardButtonIcon = "undo" | "reset" | "draw" | "play" | "none";
+export type CardButtonIcon = "undo" | "reset" | "draw" | "play" | "hint" | "none";
 
 export interface CardButtonBox {
   x: number;
@@ -26,7 +26,18 @@ function icon(ctx: CanvasRenderingContext2D, kind: CardButtonIcon, x: number, y:
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.beginPath();
-  if (kind === "undo") {
+  if (kind === "hint") {
+    // A light bulb (the difficulty levels' hint).
+    ctx.arc(x, y - 2, 5.5, Math.PI * 0.8, Math.PI * 2.2, false);
+    ctx.lineTo(x + 2.5, y + 5);
+    ctx.lineTo(x - 2.5, y + 5);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 2.5, y + 7.5);
+    ctx.lineTo(x + 2.5, y + 7.5);
+    ctx.stroke();
+  } else if (kind === "undo") {
     ctx.arc(x + 1, y + 2, 6.5, Math.PI * 1.05, Math.PI * 2.35, false);
     ctx.stroke();
     ctx.beginPath();

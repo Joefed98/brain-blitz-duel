@@ -44,13 +44,13 @@ import { MG_AIM, MG_BALL_R, MG_ROLL, MG_STOP_V, type MinigolfState } from "@/lib
 import { POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, type PoolState } from "@/lib/arcade/pool";
 import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
 import type { MinesState } from "@/lib/arcade/minesweeper";
-import { MAHJONG_PAIRS, type MahjongState } from "@/lib/arcade/mahjong";
-import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
+import { type MahjongState } from "@/lib/arcade/mahjong";
+import { fcHomeCount, fcNoMoves, type FcState } from "@/lib/arcade/cards/freecell";
 import { tpFree, type TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
 import { MODE_CLING, MODE_FLIGHT, MODE_RIDE, MOON_REV, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
-import type { PyState } from "@/lib/arcade/cards/pyramid";
+import { pyDeadEnd, type PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
 import { bfLevelFor, type BfState } from "@/lib/arcade/blockfall";
@@ -1451,6 +1451,19 @@ export function minesweeperSounds(): GameSounds<MinesState> {
 const MINES_CASCADE_AT = 6;
 
 /** Mahjong: a tile selected, a pair taken, no match or a tile that can't move, Undo and Reset, the Shuffle and the clear. */
+/**
+ * The difficulty levels' shared moments (the Cards & Board overhaul's stage 3; silent until Joe's files are set): a hint
+ * asked for, Easy's hint glow arriving by itself after 8 s without a move, and a dead end's words appearing. `quiet` is
+ * the tick of the game's last move (the idle glow counts from it, or from the last hint).
+ */
+const IDLE_HINT_TICKS = 8 * 60;
+function levelCues(state: { tick: number; lv?: number; hints?: number; hintTick?: number }, prev: { lv?: number; hints?: number }, quiet: number, dead: boolean, wasDead: boolean): void {
+  if (dead && !wasDead) liveCue("cards.deadEnd", 400);
+  if (!state.lv) return;
+  if ((state.hints ?? 0) > (prev.hints ?? 0)) liveCue("cards.hint", 150);
+  if (state.lv === 1 && state.tick - Math.max(quiet, state.hintTick ?? 0) === IDLE_HINT_TICKS) liveCue("cards.hintIdle", 400);
+}
+
 export function mahjongSounds(): GameSounds<MahjongState> {
   let prev: MahjongState | null = null;
   let chain = 0;
@@ -1459,6 +1472,7 @@ export function mahjongSounds(): GameSounds<MahjongState> {
     frame(state) {
       beginFrame("mahjong", state);
       if (prev && state.tick > prev.tick) {
+        levelCues(state, prev, Math.max(state.lastPairTick, state.lastShuffleTick, state.lastUndoTick ?? 0, state.lastResetTick ?? 0), false, false);
         if (state.pairs > prev.pairs) {
           // The pair flies off (stage 2), a step higher for each pair taken quickly after the last.
           const now = typeof performance !== "undefined" ? performance.now() : 0;
@@ -1471,7 +1485,8 @@ export function mahjongSounds(): GameSounds<MahjongState> {
         else if (state.sel >= 0 && state.sel !== prev.sel) { effectCue("mahjong.select"); cardFeel(); }
         if (state.blocked > prev.blocked) overCue("mahjong.blockers", () => sfx("mahjong.blocked", "tick", 0.4));
         if (state.shuffles > prev.shuffles) overCue("mahjong.spin", () => ownCue("mahjong.shuffle", "shared.celebrate.zap"));
-        if ((MAHJONG_PAIRS - state.pairs) * 2 <= 6 && (MAHJONG_PAIRS - prev.pairs) * 2 > 6 && state.pairs < MAHJONG_PAIRS) effectCue("mahjong.nearEnd");
+        const all = state.face.length / 2;
+        if ((all - state.pairs) * 2 <= 6 && (all - prev.pairs) * 2 > 6 && state.pairs < all) effectCue("mahjong.nearEnd");
         // mahjongRev 2's Undo and Reset: their own slots (the overhaul), the sounds they had (tick and zap) until set.
         if ((state.undos ?? 0) > (prev.undos ?? 0)) ownCue("mahjong.undo", "tick", 0.6);
         if ((state.resets ?? 0) > (prev.resets ?? 0)) ownCue("mahjong.reset", "shared.celebrate.zap", 0.6);
@@ -1493,6 +1508,7 @@ export function freecellSounds(): GameSounds<FcState> {
     frame(state) {
       beginFrame("freecell", state);
       if (prev && state.tick > prev.tick) {
+        levelCues(state, prev, Math.max(state.lastTick, state.noteTick ?? 0), fcNoMoves(state), fcNoMoves(prev));
         if (prev.tick === 0) effectCue("freecell.shuffle");
         // Undo and Reset count as moves; each has its own slot (the overhaul), the place sound until set.
         const undid = (state.undos ?? 0) > (prev.undos ?? 0);
@@ -1560,6 +1576,7 @@ export function tripeaksSounds(): GameSounds<TpState> {
     frame(state) {
       beginFrame("tripeaks", state);
       if (prev && state.tick > prev.tick) {
+        levelCues(state, prev, state.lastTick, state.ended === 3, prev.ended === 3);
         if (prev.tick === 0) effectCue("tripeaks.shuffle");
         if (state.plays > prev.plays) {
           cardFeel();
@@ -1627,6 +1644,7 @@ export function fiveHandsSounds(): GameSounds<FhState> {
     frame(state) {
       beginFrame("fivehands", state);
       if (prev && state.tick > prev.tick) {
+        levelCues(state, prev, state.lastTick, false, false);
         if (prev.tick === 0) effectCue("fivehands.shuffle");
         if (state.turn > prev.turn) {
           cardFeel();
@@ -1780,6 +1798,7 @@ export function pyramidSounds(): GameSounds<PyState> {
     frame(state) {
       beginFrame("pyramid", state);
       if (prev && state.tick > prev.tick) {
+        levelCues(state, prev, state.lastTick, pyDeadEnd(state) !== null, pyDeadEnd(prev) !== null);
         if (prev.tick === 0) effectCue("pyramid.shuffle");
         if (state.pairs > prev.pairs) {
           // The pair flies off (stage 2), a step higher for each pair in a quick chain.

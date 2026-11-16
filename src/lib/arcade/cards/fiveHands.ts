@@ -315,6 +315,11 @@ export interface FhState {
   /** fiveHandsRev 3 only: the bonus column picked (−1 until the pick) and its tick. */
   pick?: number;
   pickTick?: number;
+  /** The difficulty levels (level deals only): the level (FH_LV_*), its run length, hints asked for and the last one's tick. */
+  lv?: number;
+  runTicks?: number;
+  hints?: number;
+  hintTick?: number;
 }
 
 export function fhInit(seed: number, rev = 1): FhState {
@@ -373,7 +378,7 @@ function step(state: FhState, input: ArcadeInputEvent | null): FhState {
     if ((next.pick ?? -1) >= 0) {
       next.ended = 1;
       next.finishTick = next.tick;
-    } else if (next.tick >= FH_RUN_TICKS) next.ended = 2;
+    } else if (next.tick >= (next.runTicks ?? FH_RUN_TICKS)) next.ended = 2;
     return next;
   }
   if (next.turn >= FH_TURNS) {
@@ -392,6 +397,7 @@ export function fhTotalV3(state: FhState): number {
 
 export function fiveHandsStdParts(state: FhState): StdPart[] | null {
   if (!state || !state.std) return null;
+  if (state.lv) return fhLevelParts(state);
   if ((state.rev ?? 1) >= FH_REV_FLAT) {
     const total = fhTotalV3(state);
     const col = fhPickedHand(state);
@@ -436,6 +442,8 @@ export function fhCheckpoint(state: FhState): FhCheckpoint {
   for (const row of state.rows) flat.push(100 + row.length, ...row);
   // Rev 3: the bonus column's pick (rev 1–2 states have none, so their checksums are as before).
   if (state.pick !== undefined) flat.push(300 + state.pick);
+  // The levels: the hints asked for (level states only).
+  if (state.lv) flat.push(400 + (state.hints ?? 0));
   return { tick: state.tick, turn: state.turn, ended: state.ended, checksum: hashInts(flat) };
 }
 
@@ -466,4 +474,175 @@ export const fiveHandsGameV3: ArcadeGame<FhState, ArcadeInputEvent | null> = {
 export function fiveHandsGameFor(rev?: number | null): ArcadeGame<FhState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
   return r >= FH_REV_FLAT ? fiveHandsGameV3 : r >= FH_REV_STEEP ? fiveHandsGameV2 : fiveHandsGame;
+}
+
+/* ================================ Difficulty levels (15 Nov 2026) ================================ */
+
+/*
+ * The levels (docs/design/difficulty/README.md; docs/arcade-standard/fivehands.md "Levels"): Normal is fiveHandsRev 3
+ * exactly (no `level` on the puzzle, none of this code runs). A level deal carries `level` and fiveHandsRev 3 (the same
+ * deck from the seed, the same flat table and bonus column) with its own multiplier, clock and hints:
+ *
+ *   Easy    ×1.6, 75 s; the next two cards are shown and the columns' values while picking (display), hints free.
+ *   Hard    ×1.4, 50 s; a hint costs FH_HINT_COST.
+ *   Expert  ×1.3, 45 s; one hint.
+ *
+ * Score: floor(hand points × the multiplier), less the hints' cost, capped at 200 (at least 1 for a played run). A hint
+ * (FH_INPUT_HINT) is counted by the sim; the row it shows (fhHintRow) is display only.
+ */
+export const FH_INPUT_HINT = 3;
+export const FH_LV_EASY = 1;
+export const FH_LV_HARD = 3;
+export const FH_LV_EXPERT = 4;
+export const FH_HINT_COST = 5;
+export type FhLevelName = "easy" | "hard" | "expert";
+
+export interface FhLevelRules {
+  lv: number;
+  /** The multiplier as an integer ratio. */
+  num: number;
+  den: number;
+  seconds: number;
+  /** Display: the next cards shown, and the columns' values while picking. */
+  preview: number;
+  columnValues: boolean;
+  hintCost: number;
+  hintLimit: number;
+}
+
+export const FH_LEVEL_RULES: Readonly<Record<FhLevelName, FhLevelRules>> = {
+  easy: { lv: FH_LV_EASY, num: 8, den: 5, seconds: 75, preview: 2, columnValues: true, hintCost: 0, hintLimit: -1 },
+  hard: { lv: FH_LV_HARD, num: 7, den: 5, seconds: 50, preview: 0, columnValues: false, hintCost: FH_HINT_COST, hintLimit: -1 },
+  expert: { lv: FH_LV_EXPERT, num: 13, den: 10, seconds: 45, preview: 0, columnValues: false, hintCost: 0, hintLimit: 1 },
+};
+
+function fhLevelName(lv: number | undefined): FhLevelName | null {
+  return lv === FH_LV_EASY ? "easy" : lv === FH_LV_HARD ? "hard" : lv === FH_LV_EXPERT ? "expert" : null;
+}
+export function fhLevelRulesOf(state: Pick<FhState, "lv">): FhLevelRules | null {
+  const n = fhLevelName(state.lv);
+  return n ? FH_LEVEL_RULES[n] : null;
+}
+/** The multiplier as the screen writes it ("1.6"). */
+export function fhMultText(state: Pick<FhState, "lv">): string {
+  const r = fhLevelRulesOf(state);
+  return r ? String(r.num / r.den) : "1.4";
+}
+export function fhHintsLeft(state: FhState): number {
+  const r = fhLevelRulesOf(state);
+  if (!r) return 0;
+  return r.hintLimit < 0 ? Infinity : Math.max(0, r.hintLimit - (state.hints ?? 0));
+}
+
+/** A level's score for hand points: floor(points × the multiplier) less the hints' cost, capped at 200. */
+export function fhLevelScore(state: FhState, total: number): number {
+  const r = fhLevelRulesOf(state)!;
+  return Math.min(FH_CORE_MAX_V3, Math.max(0, Math.floor((Math.max(0, total) * r.num) / r.den) - r.hintCost * (state.hints ?? 0)));
+}
+
+/** A level's spec (the help and the reveal). */
+export function fhLevelSpec(level: FhLevelName): StdSpec {
+  const r = FH_LEVEL_RULES[level];
+  return {
+    field: "fiveHandsRev",
+    rev: FH_REV_FLAT,
+    parts: [
+      {
+        key: "core", label: "Hand points", max: FH_CORE_MAX_V3,
+        how: `your five rows’ hands plus the column you pick, times ${r.num / r.den} (${FH_V3_TABLE_TEXT})${r.hintCost ? `; each hint costs ${r.hintCost}` : ""}`,
+      },
+    ],
+  };
+}
+
+function fhLevelParts(state: FhState): StdPart[] {
+  const r = fhLevelRulesOf(state)!;
+  const spec = fhLevelSpec(fhLevelName(state.lv)!);
+  const total = fhTotalV3(state);
+  const col = fhPickedHand(state);
+  const rows = total - col.points;
+  const hints = state.hints ?? 0;
+  const cost = r.hintCost * hints;
+  const mult = r.num / r.den;
+  const detail = col.column >= 0 ? `(${rows} from the rows + ${col.points} from column ${col.column + 1}) × ${mult}` : `${rows} hand points × ${mult} (no column picked)`;
+  return [stdPart(spec, "core", fhLevelScore(state, total), cost ? `${detail} · ${hints} ${hints === 1 ? "hint" : "hints"} (−${cost})` : detail)];
+}
+
+function stepLevel(state: FhState, input: ArcadeInputEvent | null): FhState {
+  if (state.ended) return state;
+  if (input && input.k === FH_INPUT_HINT) {
+    const next = step(state, null);
+    if (next.ended || fhHintsLeft(state) <= 0) return { ...next, acted: 1 };
+    return { ...next, acted: 1, hints: (state.hints ?? 0) + 1, hintTick: next.tick };
+  }
+  return step(state, input);
+}
+
+/** A row's promise for the hint (display only): pairs and trips, a suit held, ranks close enough for a straight. */
+function rowPromise(row: readonly number[]): number {
+  const ranks = row.map((c) => (c % 13) + 1);
+  const suits = row.map((c) => Math.floor(c / 13));
+  let v = 0;
+  const count = new Map<number, number>();
+  for (const r of ranks) count.set(r, (count.get(r) ?? 0) + 1);
+  for (const n of count.values()) if (n >= 2) v += n === 2 ? 15 : n === 3 ? 25 : 45;
+  if (suits.every((s) => s === suits[0])) v += 6 * row.length;
+  const distinct = [...count.keys()].sort((a, b) => a - b);
+  if (distinct.length === row.length && distinct[distinct.length - 1]! - distinct[0]! <= 4) v += 4 * row.length;
+  return v;
+}
+
+/**
+ * The hint (display only, never read by the sim): while placing, the open row the card improves most; while picking,
+ * the column worth most. -1 for none.
+ */
+export function fhHintRow(state: FhState): { kind: "row" | "column"; index: number } | null {
+  if (state.ended !== 0) return null;
+  if (fhPicking(state)) {
+    let best = -1;
+    let bestV = -1;
+    for (let k = 0; k < FH_SLOTS; k++) {
+      const v = fhRowHand(fhColumn(state.rows, k), state.rev).points;
+      if (v > bestV) {
+        bestV = v;
+        best = k;
+      }
+    }
+    return best >= 0 ? { kind: "column", index: best } : null;
+  }
+  if (state.turn >= FH_TURNS) return null;
+  const card = fhYours(state.deck, state.turn);
+  let best = -1;
+  let bestV = -Infinity;
+  for (const r of fhOpenRows(state.rows)) {
+    const row = state.rows[r]!;
+    const v = rowPromise([...row, card]) - rowPromise(row);
+    if (v > bestV) {
+      bestV = v;
+      best = r;
+    }
+  }
+  return best >= 0 ? { kind: "row", index: best } : null;
+}
+
+const FH_LEVEL_GAMES = new Map<FhLevelName, ArcadeGame<FhState, ArcadeInputEvent | null>>();
+export function fiveHandsLevelGame(level: FhLevelName): ArcadeGame<FhState, ArcadeInputEvent | null> {
+  let g = FH_LEVEL_GAMES.get(level);
+  if (!g) {
+    const r = FH_LEVEL_RULES[level];
+    const runTicks = r.seconds * 60;
+    g = {
+      ...fiveHandsGameV3,
+      runTicks,
+      init: (seed) => ({ ...fhInit(seed, FH_REV_FLAT), lv: r.lv, runTicks, hints: 0, hintTick: 0 }),
+      step: stepLevel,
+      inputRanges: [inputRange(FH_INPUT_PLACE, [0, FH_ROWS - 1]), inputRange(FH_INPUT_PICK, [0, FH_SLOTS - 1]), inputRange(FH_INPUT_HINT)],
+    };
+    FH_LEVEL_GAMES.set(level, g);
+  }
+  return g;
+}
+
+export function fiveHandsGameAt(rev: number | null | undefined, level: string | null | undefined): ArcadeGame<FhState, ArcadeInputEvent | null> {
+  return level === "easy" || level === "hard" || level === "expert" ? fiveHandsLevelGame(level) : fiveHandsGameFor(rev);
 }

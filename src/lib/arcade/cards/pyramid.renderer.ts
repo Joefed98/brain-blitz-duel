@@ -16,7 +16,8 @@ import { drawCardButton, drawResetConfirm, inButton, type CardButtonBox } from "
 import { CardLayer, CardMotion, drawRealCard, drawRealFelt } from "./realArt.renderer";
 import { drawOutline, drawSparks, drawStamp, easeInOut, FxTimeline, shakeX } from "./cardsFx.renderer";
 import {
-  PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyDeadEnd, pyFree, pyramidGameFor, pyRowOf, pyWasteTop, type PyState,
+  PY_CARDS, PY_INPUT_HINT, PY_INPUT_RESET, PY_INPUT_UNDO, PY_LV_EASY, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyDeadEnd, pyFree, pyGlows, pyHintMove, pyHintsLeft, pyPack,
+  pyramidGameAt, pyRowOf, pyWasteTop, type PyState,
 } from "./pyramid";
 
 export const PY_WORLD_W = 414;
@@ -62,10 +63,37 @@ export function pyHit(state: PyState, x: number, y: number): number {
   return -1;
 }
 
-/** The Undo or Reset button under a point (its input kind), 0 for none. */
-export function pyButtonHit(x: number, y: number): number {
-  for (const b of PY_BUTTONS) if (inButton(b.box, x, y)) return b.kind;
+/** A level's buttons (the difficulty levels): Undo, Hint, Reset. */
+export const PY_LEVEL_BUTTONS: readonly { kind: number; box: CardButtonBox }[] = [
+  { kind: PY_INPUT_UNDO, box: { x: 20, y: PY_BTN_Y, w: 120, h: PY_BTN_H } },
+  { kind: PY_INPUT_HINT, box: { x: PY_WORLD_W / 2 - 60, y: PY_BTN_Y, w: 120, h: PY_BTN_H } },
+  { kind: PY_INPUT_RESET, box: { x: PY_WORLD_W - 20 - 120, y: PY_BTN_Y, w: 120, h: PY_BTN_H } },
+];
+export function pyButtonsOf(state?: Pick<PyState, "lv">): readonly { kind: number; box: CardButtonBox }[] {
+  return state?.lv ? PY_LEVEL_BUTTONS : PY_BUTTONS;
+}
+
+/** The Undo, Reset (or a level's Hint) button under a point (its input kind), 0 for none. */
+export function pyButtonHit(x: number, y: number, state?: Pick<PyState, "lv">): number {
+  for (const b of pyButtonsOf(state)) if (inButton(b.box, x, y)) return b.kind;
   return 0;
+}
+
+/* ---- The difficulty levels' hint (display only) ---- */
+const HINT_TICKS = 150;
+const IDLE_HINT_TICKS = 8 * 60;
+let hintMemo: { key: string; move: number[] | null } | null = null;
+/** The hint showing now (live stage only): after a hint for 2.5 s, or on Easy after 8 s without a move. */
+export function pyHintShown(state: PyState, view?: PyView): { move: number[]; glow: number } | null {
+  if (!view || !state.lv || state.ended !== 0) return null;
+  const asked = (state.hints ?? 0) > 0 ? state.tick - (state.hintTick ?? 0) : Infinity;
+  const idle = state.lv === PY_LV_EASY && state.tick - Math.max(state.lastTick, state.hintTick ?? 0) >= IDLE_HINT_TICKS;
+  if (!(asked < HINT_TICKS) && !idle) return null;
+  const key = `${state.lv}:${pyPack(state).join(",")}`;
+  if (hintMemo?.key !== key) hintMemo = { key, move: pyHintMove(state) };
+  if (!hintMemo.move) return null;
+  const pulse = 0.55 + 0.35 * Math.sin((state.tick / 60) * Math.PI * 1.4);
+  return { move: hintMemo.move, glow: asked < HINT_TICKS ? Math.min(1, (HINT_TICKS - asked) / 30) * pulse : pulse };
 }
 
 export interface PyView {
@@ -140,14 +168,18 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
 
   const live = state.ended === 0;
   const selCard = state.sel >= 0 ? pyCardAt(state, state.sel) : -1;
-  const partner = (card: number) => live && selCard >= 0 && rankOf(card) + rankOf(selCard) === 13;
+  // Hard and Expert (the difficulty levels): no partner or King glow; the hint's cards glow instead when asked for.
+  const helps = pyGlows(state);
+  const hint = pyHintShown(state, view);
+  const hinted = (a: number) => (hint && hint.move.includes(a) ? hint.glow : 0);
+  const partner = (card: number) => helps && live && selCard >= 0 && rankOf(card) + rankOf(selCard) === 13;
   for (let i = 0; i < PY_CARDS; i++) {
     if (state.gone[i]) continue;
     const b = pyCardBox(i);
     const free = pyFree(state, i);
     const card = state.tab[i]!;
     const up = state.sel === i || view?.pressed === i;
-    const glow = up ? 1 : free && (partner(card) || (live && rankOf(card) === 13)) ? 0.55 : 0;
+    const glow = up ? 1 : Math.max(free && (partner(card) || (helps && live && rankOf(card) === 13)) ? 0.55 : 0, hinted(i));
     // A card whose last cover just went brightens from its dimmed look (stage 2).
     const uncover = fx?.at(`uncover${i}`);
     const dim = free ? (uncover ? 0.36 * (1 - uncover.k) : 0) : 0.36;
@@ -170,7 +202,7 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   ctx.fillText(`STOCK ${left}`, PY_STOCK_X + PY_PILE_W / 2, PY_PANEL_Y + 18);
   ctx.fillText(`WASTE ${state.pos}`, PY_WASTE_X + PY_PILE_W / 2, PY_PANEL_Y + 18);
   if (left > 0) {
-    for (let k = Math.min(3, left) - 1; k >= 0; k--) cards.card(-100 - k, -1, PY_STOCK_X + k * 3, PY_PILE_Y - k * 3, PY_PILE_W, PY_PILE_H, { down: true, glow: k === 0 && view?.pressed === PY_STOCK_PILE ? 1 : 0 });
+    for (let k = Math.min(3, left) - 1; k >= 0; k--) cards.card(-100 - k, -1, PY_STOCK_X + k * 3, PY_PILE_Y - k * 3, PY_PILE_W, PY_PILE_H, { down: true, glow: k === 0 && view?.pressed === PY_STOCK_PILE ? 1 : k === 0 ? hinted(PY_STOCK_PILE) : 0 });
     // The next stock card is noted at the stock, so a turn slides it from there and flips it.
     view?.motion?.seed(state.pile[state.pos]!, PY_STOCK_X, PY_PILE_Y, true);
   } else drawSlot(ctx, PY_STOCK_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, -1, "EMPTY");
@@ -178,7 +210,7 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   if (top >= 0) {
     if (state.pos > 1) cards.card(state.pile[state.pos - 2]!, state.pile[state.pos - 2]!, PY_WASTE_X - 4, PY_PILE_Y + 3, PY_PILE_W, PY_PILE_H, { dim: 0.4 });
     const up = state.sel === PY_WASTE_PILE || view?.pressed === PY_WASTE_PILE;
-    const glow = up ? 1 : partner(top) || (live && rankOf(top) === 13) ? 0.55 : 0;
+    const glow = up ? 1 : Math.max(partner(top) || (helps && live && rankOf(top) === 13) ? 0.55 : 0, hinted(PY_WASTE_PILE));
     const sx = shake(PY_WASTE_PILE);
     cards.card(top, top, PY_WASTE_X + sx, PY_PILE_Y - (up ? 3 : 0), PY_PILE_W, PY_PILE_H, { glow, lift: up ? 1 : 0 }, sx !== 0);
   } else drawSlot(ctx, PY_WASTE_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, -1, "WASTE");
@@ -206,7 +238,12 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
     ctx.fillText(deadEnd[1], W / 2, PY_PILE_Y + PY_PILE_H / 2 + 10);
   }
 
-  for (const b of PY_BUTTONS) {
+  for (const b of pyButtonsOf(state)) {
+    if (b.kind === PY_INPUT_HINT) {
+      const left = pyHintsLeft(state);
+      drawCardButton(ctx, b.box, "hint", left === Infinity ? "Hint" : left > 0 ? `Hint (${left})` : "No hints", { live: live && left > 0, held: view?.button === b.kind });
+      continue;
+    }
     const isUndo = b.kind === PY_INPUT_UNDO;
     const liveBtn = live && (isUndo ? state.hist.length > 0 : state.hist.length > 0 || state.resets > 0);
     drawCardButton(ctx, b.box, isUndo ? "undo" : "reset", isUndo ? "Undo" : "Reset", { live: liveBtn, held: view?.button === b.kind });
@@ -304,8 +341,8 @@ export function pyDeadEndLines(state: PyState): readonly [string, string] | null
 const PY_RANK_NAMES = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"] as const;
 
 /** The art game for a stage: the revision's sim with this draw (no stamp: pyramidRev 1). */
-export function pyramidArtGame(view?: PyView, rev?: number | null): ArcadeGame<PyState, ArcadeInputEvent | null> {
-  return { ...pyramidGameFor(rev), draw: (ctx, state, size) => drawPyramid(ctx, state, size, view) };
+export function pyramidArtGame(view?: PyView, rev?: number | null, level?: string | null): ArcadeGame<PyState, ArcadeInputEvent | null> {
+  return { ...pyramidGameAt(rev, level), draw: (ctx, state, size) => drawPyramid(ctx, state, size, view) };
 }
 
 export const pyramidArt = pyramidArtGame();

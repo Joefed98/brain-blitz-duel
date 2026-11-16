@@ -46,12 +46,16 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
-import { FC_REV, FC_REV_SHORT } from "@/lib/arcade/cards/freecell";
+import { FC_REV, FC_REV_SHORT, fcLevelBank } from "@/lib/arcade/cards/freecell";
+import type { Level } from "@/lib/levels/levels";
+import { TP_EXPERT_DEALS } from "@/lib/arcade/cards/tripeaksExpert.data";
+import { TP_EASY_DEALS } from "@/lib/arcade/cards/tripeaks";
 import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import { FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_RULES, FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { ARCADE_PHASE_SLACK_MS } from "./catalogue";
 import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
@@ -115,14 +119,20 @@ export function pinCardsPreShare(on: boolean): boolean {
   return setDealPin("cardsPreShare", on);
 }
 
-/** FreeCell: a bank deal (its index), proved solvable with a known par. */
-export function generateFreecell(): FreecellPuzzleData {
+/** FreeCell: a bank deal (its index), proved solvable with a known par; a level deal from its level's own bank. */
+export function generateFreecell(level?: Level): FreecellPuzzleData {
+  // The difficulty levels (15 Nov 2026): the seed indexes the level's bank (the deal stamps `level` itself).
+  if (level === "easy" || level === "hard" || level === "expert") return { type: "freecell", seed: randomBelow(fcLevelBank(level).length), freecellRev: FC_REV };
   // freecellRev 5 (7 Nov 2026): rev 4's deal and bank, the core rising to all 40 home.
   return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: dealPinned("cardsPreShare") ? FC_REV_SHORT : FC_REV };
 }
 
 /** TriPeaks: a bank deal (its index), proved clearable with a run of ten. */
-export function generateTripeaks(): TripeaksPuzzleData {
+export function generateTripeaks(level?: Level): TripeaksPuzzleData {
+  // The difficulty levels (15 Nov 2026): Expert deals from its own no-wrap bank; Easy and Hard the Normal bank.
+  if (level === "expert") return { type: "tripeaks", seed: randomBelow(TP_EXPERT_DEALS.length), tripeaksRev: TP_REV };
+  if (level === "easy") return { type: "tripeaks", seed: randomBelow(TP_EASY_DEALS.length), tripeaksRev: TP_REV };
+  if (level === "hard") return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: TP_REV };
   // tripeaksRev 3 (7 Nov 2026): rev 2's deals and pars, half the speed moved onto the cards.
   return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: dealPinned("cardsPreShare") ? TP_REV_PAR : TP_REV };
 }
@@ -133,7 +143,9 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
 }
 
 /** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
-export function generateFiveHands(): FiveHandsPuzzleData {
+export function generateFiveHands(level?: Level): FiveHandsPuzzleData {
+  // The difficulty levels (15 Nov 2026): a level's own clock (its run plus the arcade phase's slack) on the puzzle.
+  if (level === "easy" || level === "hard" || level === "expert") return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV, timeLimitMs: FH_LEVEL_RULES[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
   return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
 }
 
@@ -251,10 +263,12 @@ export function pinMinesPreLogic(on: boolean): boolean {
  * Mahjong Solitaire deals its faces in the sim by building the stack backwards; the build's own order is the proof it
  * clears, checked here before the seed is dealt (mahjong-check plays it to 200).
  */
-export function generateMahjong(): MahjongPuzzleData {
+export function generateMahjong(level?: Level): MahjongPuzzleData {
+  // The difficulty levels (15 Nov 2026): a level deal is built and proved on the level's layout and faces.
+  const lv = level === "easy" || level === "hard" || level === "expert" ? level : null;
   for (;;) {
     const seed = arcadeSeed();
-    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
+    if (mahjongBuildClears(seed, lv)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
   }
 }
 
