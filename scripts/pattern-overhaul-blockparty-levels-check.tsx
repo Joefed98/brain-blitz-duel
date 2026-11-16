@@ -6,12 +6,12 @@
  * 1. The registry: Easy, Normal, Hard, Expert; each level's settings (size, pieces, pegs = cols² less the pieces'
  *    squares, solution band, clock ≤ 120 s, full-speed time) and its open oneSolution.
  * 2. Every level's deal: the level stamped, today's blockRev, the level's board (size, pieces, pegs), a board from that
- *    level's bank by the room seed, Expert's own 90 s clock; a seedless (practice) deal too.
+ *    level's bank by the room seed, Expert's own 70 s clock; a seedless (practice) deal too.
  * 3. Normal is the deal before levels: a deal asked for at Normal is byte for byte a deal asked for with no level, and
  *    carries no `level`; its board and pieces are the 7×7 board's.
  * 4. The banks: every board (CHECKS_FULL=1; a sample of 60 a level otherwise) re-counted exhaustively and in its
  *    level's band, its stored solution the solver's first and a real packing, Hard's and Expert's finished by the
- *    human-like solver within 3 held guesses and needing at least 2; no board twice; sampled entries (all with
+ *    human-like solver within 3 held guesses and needing at least 2 (Expert 3); no board twice; sampled entries (all with
  *    CHECKS_FULL=1, through the bank script) rebuild byte for byte from their seeds.
  * 5. Grading reads the level: a flawless solve scores 200 at every level; Expert's packing is correct on its own board
  *    and not on the 7×7 (a puzzle without the level); speed is full by the level's own time, Normal's 40 s unchanged.
@@ -77,12 +77,12 @@ const deal = (level: string | undefined, seed: number | undefined) =>
   const want: Record<BlockLevel, [number, number, number, number | null, number]> = {
     easy: [6, 6, 20, null, 60_000],
     hard: [7, 9, 2, 5, 60_000],
-    expert: [8, 11, 1, 3, 90_000],
+    expert: [8, 11, 1, 2, 70_000], // Joe's spec: 1–3 ways, 90 s; tightened for a clear step above Hard (16 Nov)
   };
   for (const level of BLOCK_LEVELS) {
     const s = blockLevelSettings(level);
     const [cols, pieces, min, max, clock] = want[level];
-    check(s.cols === cols && s.pieces.length === pieces && s.solutions.min === min && s.solutions.max === max && s.timeLimitMs === clock, `registry ${level}: not Joe's spec`);
+    check(s.cols === cols && s.pieces.length === pieces && s.solutions.min === min && s.solutions.max === max && s.timeLimitMs === clock, `registry ${level}: not the agreed settings`);
   }
   check(blockLevelGeo("hard") === BLOCK_GEOMETRY_D4, "registry: Hard is not Normal's board and pieces");
 }
@@ -203,10 +203,11 @@ if (FULL) {
   check(HUMAN_LIMITS.width === 4 && HUMAN_LIMITS.depth === 3, "human: limits moved");
   for (const level of ["hard", "expert"] as const) {
     const s = blockLevelSettings(level);
-    check(s.humanDepth?.max === 3 && s.humanDepth.min === 2, `human ${level}: band`);
+    const least = level === "expert" ? 3 : 2;
+    check(s.humanDepth?.max === 3 && s.humanDepth.min === least, `human ${level}: band`);
     for (let i = 0; i < 300; i += FULL ? 1 : 25) {
       const d = humanDepthOf(blockLevelGeo(level), BLOCK_LEVEL_BANK[level][i]!.blockers, 3);
-      check(d !== null && d >= 2 && d <= 3, `human ${level}[${i}]: depth ${d}`);
+      check(d !== null && d >= least && d <= 3, `human ${level}[${i}]: depth ${d}`);
     }
   }
   const kit = KITS.blockparty!;

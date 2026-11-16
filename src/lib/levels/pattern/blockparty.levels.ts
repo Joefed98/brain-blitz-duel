@@ -65,11 +65,14 @@ export const LEVELS_BLOCKPARTY: GameLevels = {
         // Normal's nine and two pentominoes (U, P): 43 squares.
         pieces: ["Plus", "Two", "Three", "Four", "Square", "Corner", "L", "T", "S", "U", "P"],
         pegs: 21,
-        solutions: { min: 1, max: 3 },
+        // Joe's spec said 1–3 ways and 90 s; at 90 s (or 75 s) the tuning bots scored Expert as high as Hard, so for a
+        // clear step (16 Nov 2026): 1–2 ways, boards that need three held guesses, 70 s, and full speed by 36 s
+        // (0.84 s a square against Hard's 0.97; the fastest near-perfect kit run finishes in about 39 s).
+        solutions: { min: 1, max: 2 },
         layout: "scatter",
-        humanDepth: { min: 2, max: 3 },
-        timeLimitMs: 90_000,
-        speedFullByS: 35,
+        humanDepth: { min: 3, max: 3 },
+        timeLimitMs: 70_000,
+        speedFullByS: 36,
       },
       oneSolution: OPEN,
     },

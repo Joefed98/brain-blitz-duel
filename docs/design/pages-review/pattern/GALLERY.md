@@ -185,8 +185,10 @@ Practice rounds at 390 × 844 on the current code, each level chosen on the devi
 - **Hard**: Normal's board and pieces with only 2–5 ways to finish, and every board needs at least two held guesses
   of a person-like solver but no more than three; full speed by 32 s.
 - **Expert**: 8 × 8 (44 px squares on a 375 px phone), eleven pieces (Normal's nine plus a U in cyan and a P in slate,
-  new Blender renders), 1–3 ways, 90 s, full speed by 35 s; every board finished by the person-like solver with at
-  most three held guesses. The tray goes four to a row, so its eleven pieces take three rows and the board keeps its
+  new Blender renders), 1–2 ways, 70 s, full speed by 36 s; every board needs exactly three held guesses of the
+  person-like solver, which finishes every one. (Joe's spec said 1–3 ways and 90 s; at 90 s or 75 s the tuning bots
+  scored Expert as high as Hard, so Expert was tightened for a clear step. The frame above was taken before that
+  change; the board and tray look the same.) The tray goes four to a row, so its eleven pieces take three rows and the board keeps its
   full width (351 px at 375 × 667, the same box as Normal's).
 <!-- tessellate:end -->
 
