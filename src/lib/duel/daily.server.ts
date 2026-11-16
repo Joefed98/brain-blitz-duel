@@ -10,6 +10,7 @@
  *   Letterfall included. Yesterday's games are the draw's "previous room", so none repeats when its
  *   category has others left (EXCLUDE_MIN_ALTERNATIVES), and yesterday's banked boards are skipped.
  */
+import { modeLevel } from "@/lib/levels/modes";
 import {
   DAILY_COUNT_MIN,
   DAILY_BOARD_TOP,
@@ -75,6 +76,8 @@ export function dealDaily(
       seed: input.seed,
       unblockRow: input.unblockRow ?? null,
       recentBankKeys: input.recentBankKeys,
+      // The Daily is always Normal (src/lib/levels/modes.ts): one board for everyone, never a level.
+      level: modeLevel("daily", null),
     }),
   };
 }
