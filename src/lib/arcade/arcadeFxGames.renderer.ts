@@ -1441,7 +1441,8 @@ export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
   events: [
     { kind: "streak", count: (s) => s.home, every: 5, label: (_s, n) => `${n} HOME` },
     // btRev 7 drops 36 marbles (every earlier course 30).
-    { kind: "final", count: (s) => (s.home >= btStateBalls(s) ? 1 : 0), label: (s) => `ALL ${btStateBalls(s)} HOME!` },
+    // A level's course (stage 3) carries its own count (`nb`); every Normal and older state the revision's own.
+    { kind: "final", count: (s) => ((s.nb !== undefined ? s.home >= s.nb : s.home >= (s.r7 ? BT_V7_BALLS : BT_BALLS)) ? 1 : 0), label: (s) => `ALL ${btStateBalls(s)} HOME!` },
     // btRev 2 only: a marble home after riding a turned tube, or after passing a switch point.
     { kind: "pop", count: (s) => s.rideHomes ?? 0, label: () => "TURNED HOME!" },
     { kind: "pop", count: (s) => s.switchHomes ?? 0, label: () => "SWITCHED HOME!" },
