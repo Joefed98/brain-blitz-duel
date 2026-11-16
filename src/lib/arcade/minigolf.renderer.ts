@@ -1657,7 +1657,27 @@ export function drawMinigolfPlay(
   ctx.scale(cam.k, cam.k);
   drawWorld();
   ctx.restore();
+  if (s.rev >= 3) paintViewSideFade(ctx, viewH);
   drawMinigolfHud(ctx, s);
+}
+
+/** How far in from the view's sides golfRev 3's fade reaches (px), and its darkness at the very edge. */
+const SIDE_FADE_W = 24;
+const SIDE_FADE_A = 0.38;
+
+/**
+ * golfRev 3's holes fill the view's width (the camera stays at 1×), so the paving at its sides would meet the darker
+ * terrace beyond as a seam and the course's kerb would read as a frame line: a soft fade to the terrace's shade over
+ * the outer 24 px of either side (display only).
+ */
+function paintViewSideFade(ctx: CanvasRenderingContext2D, viewH: number): void {
+  for (const [x0, x1] of [[0, SIDE_FADE_W], [MINIGOLF_W, MINIGOLF_W - SIDE_FADE_W]] as const) {
+    const g = ctx.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, `rgba(14,9,5,${SIDE_FADE_A})`);
+    g.addColorStop(1, "rgba(14,9,5,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(Math.min(x0, x1), 0, SIDE_FADE_W, viewH);
+  }
 }
 
 /** The hole, flag, ball, sails and aim in world px (no HUD). */

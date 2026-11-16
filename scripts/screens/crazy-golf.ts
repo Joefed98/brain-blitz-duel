@@ -1,6 +1,6 @@
 /**
  * Crazy Golf's screens (the Crazy Golf overhaul, phase 2 step 4, 15 Nov 2026; docs/design/pages-review/crazy-golf/)
- * for theme-check and no-wrap-check: the round intro (its new goal, how-to and score lines) and the redesigned answer
+ * for theme-check and no-wrap-check: the redesigned answer
  * reveal in a room (the scorecard that switches holes, the hole map, the key numbers), after a played golfRev 3 run
  * (a composed course's witness, every hole under par) and after an empty one, at every size.
  */
@@ -41,8 +41,9 @@ const pickHole3 = async (page: Page) => {
 };
 
 export default function crazyGolfScreens(): ThemeScreen[] {
+  // Changed with Joe's approval, 16 Nov 2026 (round intros aren't page-skinned): the round intro is no longer drawn
+  // here (these checks judge page-skinned screens only); crazy-golf-v3-check proves its text, demo-intro-check its layout.
   return [
-    { name: "crazy golf: round intro", mode: "practice", search: { game: "minigolf" }, plain: true, waitMs: 1200, sizes: ALL_SIZES },
     { name: "crazy golf: reveal after a played run", mode: "room", room: golfRoom(true), plain: true, waitMs: 1200, sizes: ALL_SIZES },
     { name: "crazy golf: reveal, hole 3 chosen", mode: "room", room: golfRoom(true), plain: true, waitMs: 1200, sizes: ALL_SIZES, go: pickHole3 },
     { name: "crazy golf: reveal after an empty run", mode: "room", room: golfRoom(false), plain: true, waitMs: 1200, sizes: ALL_SIZES },
