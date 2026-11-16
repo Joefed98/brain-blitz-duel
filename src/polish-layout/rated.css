@@ -1149,3 +1149,18 @@
   font-weight: var(--jz-weight-medium);
   color: var(--jz-text);
 }
+
+/* The result's rating counting up (the effects pass, 15 Nov 2026): the real figure keeps its place and its text; a
+ * decorative copy over it counts, then leaves. */
+.rt-rating-count {
+  position: relative;
+  display: inline-block;
+}
+.rt-rating-count > [data-counting] {
+  opacity: 0;
+}
+.rt-rating-ghost {
+  position: absolute;
+  inset: 0;
+  white-space: nowrap;
+}

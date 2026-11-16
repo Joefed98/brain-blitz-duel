@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { LeftTag } from "./LeftTag";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
@@ -36,11 +37,12 @@ export function DuelOverall({
   continueState,
   extras,
 }: DuelOverallProps) {
+  const enter = useMomentEnter("rise");
   const ordered = [...rows].sort((a, b) => a.position - b.position || a.slot - b.slot);
   const marks = tieMarks(ordered.map(placedOf));
   const placings = rows.some((row) => row.points !== undefined);
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in" {...enter}>
       <header className="flex shrink-0 flex-col gap-0.5">
         <div className="rs-head">
           <h1 className="rs-title">Standings</h1>
