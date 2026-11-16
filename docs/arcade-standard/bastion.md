@@ -37,6 +37,15 @@ Hard are new, gentler games", an exception to the framework's "Normal stays toda
 - **Proof**: the oracle scores exactly 200 on every tuning (0–59) and fresh (10000–10199) seed at every level through
   `gradeAnswer` on the dealt puzzle (bastion-levels-check); arcade-standard-check's entry is Normal's, with Easy and Hard
   in its extra section. Checks written for rev 3 pin `bastionPreLevels` (`pinBastionPreLevels(true)`).
+- **Weak spots drawn inside the tank** (16 Nov 2026, Joe: "draw the bigger weak spots inside the tank's outline on
+  every level, keeping the bigger hit area"; display only, no stamp): the hit square is unchanged (120 / 240 / 260 % of
+  14 × 14); the vent drawn for it is the biggest whole disc inside both the hit square and the tank's silhouette
+  (`bastionVent`, the fits kept in `BT_VENT_FITS` and recomputed by bastion-levels-check), its glow clipped to the
+  silhouette (`paintWeakSpot`, `bastionTankSilhouette`). Hard's 120 % vent fits on its square on every tank; on Normal
+  and Easy the scout's fills its hull, the medium's and heavy's (radius 11.4 to 12.25 px at the wall) are smaller than their
+  33 to 36 px hit squares (half-side 16.5 to 18) and sit a few px inward, the rest of the square still hitting round them. This is an exception to
+  the arcade bounds rule (art within 2 px of the collision bounds) asked for by Joe. Expert (rev 3) and rev 2 draw pixel
+  for pixel as before. Before / after sheet: `docs/design/pages-review/action/bastion/weak-spots-before-after.png`.
 
 ### Measured (15 Nov 2026; 60 room seeds a level, the skill-band bots under human limits)
 
