@@ -75,7 +75,9 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   check(/your moves: <span[^>]*>2<\/span>/.test(html), `Gridlock: the reveal line doesn't say 2 moves: ${html.match(/your moves:[^·]*/)?.[0]}`);
   const help = helpText("unblock");
   check(!/gold mark/i.test(help.how), "Gridlock: the help still names the bar's gold mark");
-  check(/Undo/.test(help.how) && /don’t give a move back/.test(help.how), "Gridlock: the help doesn't say Undo keeps the move counted");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): unblockRev 4 gives the move
+  // back on Undo, so the live help says so (pattern-overhaul-unblock-check holds the old line under the pin).
+  check(/Undo/.test(help.how) && /give the move back/.test(help.how), "Gridlock: the help doesn't say Undo gives the move back");
   check(help.intro.length <= 4, "Gridlock: more than four intro HOW lines");
 }
 
@@ -115,8 +117,11 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   check(!stage.includes("value: `${litGems.length}/${gems.length}`") && !stage.includes("value: `${litGems.length} / ${gems.length}`"), "Lightbender: a Gems pill still counts only the beam on screen");
 }
 
-// Heave: no par is shown during play, so the help names none.
-check(!/\bpar\b/i.test(PATTERN_STD_HELP.push), "Heave: the help still mentions par, which the screen never shows");
+// Heave: the help names par only while the screen shows it.
+// Changed with Joe's approval, 15 Nov 2026 (Heave shows par): Heave now shows Pushes and
+// Par during play (pushPar.ts), so the help names par again; the assertion keeps the rule "par in the help only when
+// the stage shows it" (pattern-overhaul-push-check proves the pill).
+check(/\bpar\b/i.test(PATTERN_STD_HELP.push) === src("src/puzzles/push.tsx").includes(`parPills("Pushes"`), "Heave: the help names par but the screen doesn't show it (or the other way round)");
 
 // The ✓ / ✗ between a count and its unit ("17 ✗ moves · par 34") read as a typo, app-wide.
 {

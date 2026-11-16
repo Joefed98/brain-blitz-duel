@@ -116,9 +116,10 @@ export function digest(value: unknown): string {
  * Normal, measureLevels.ts; whole rooms need no entry: any pinned era deals Brimful's old Normal).
  * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preBalanceLevels (Counterweight's
  * new Normal, balanceLevels.ts; any pinned era deals its old Normal too).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, patternNov15.ts): prePatternNov15.
  * Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -179,8 +180,8 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
   // arcade deal, unpinned here as before).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): preLogicOverhaul1 too.
-  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): preLogic2 too.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2"]);
+  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): preLogic2 and prePatternNov15 too.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

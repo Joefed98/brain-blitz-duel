@@ -137,15 +137,15 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Clear road | Free the gold block in par moves. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `unblock.par` |
-| Rush hour | Free the gold block within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `unblock.speed` |
+| Clear road | Free the gold car in par moves. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `unblock.par` |
+| Rush hour | Free the gold car within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `unblock.speed` |
 | Green wave | Score 200 on an Expert jam. | Expert | Perfect | `score` ≥ 200 | ● | `unblock.green-wave` |
 
 #### Tessellate (`blockparty`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| No second thoughts | Fill the board without moving a piece twice. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `blockparty.no-second-thoughts` |
+| No second thoughts | Fill the board without dropping a piece where it won’t fit. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `blockparty.no-second-thoughts` |
 | Snap fit | Fill the board within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 40 s) |  | `blockparty.snap-fit` |
 
 #### Skid (`iceslide`)
@@ -183,14 +183,14 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | One shot | Light all six gems with your first FIRE. | Classic | Clean | finish, `fires` = 1 |  | `laser.one-shot` |
 | Hall of mirrors | Light all six on the first shot with par mirrors. | Classic | Par | finish, `parts.efficiency` ≥ 10 |  | `laser.hall-of-mirrors` |
-| Speed of light | Light all six within 15 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 15 s) | ● | `laser.speed-of-light` |
+| Speed of light | Light all six within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 30 s) | ● | `laser.speed-of-light` |
 
 #### Chroma Lines (`flow`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | No redraws | Join every pair without redrawing a line. | Classic | Clean | finish, `redraws` = 0 |  | `flow.no-redraws` |
-| Paint stripper | Join every pair within 20 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 20 s) |  | `flow.paint-stripper` |
+| Paint stripper | Join every pair within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 30 s) |  | `flow.paint-stripper` |
 | Spaghetti junction | Fill a Hard board. | Hard | Finish | finish |  | `flow.spaghetti-junction` |
 
 #### Pipeline (`pipes`)

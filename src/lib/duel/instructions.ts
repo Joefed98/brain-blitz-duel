@@ -2,6 +2,7 @@ import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
 import { gridStandardHelp } from "./standard/gridText";
 import { FLOOD_STANDARD_SPARE_MOVES } from "./standard/logicRules";
+import { flowCutsDealt } from "./flow";
 import { wordSearchBonusHelp } from "./wordSearchText";
 import { letterWheelJarHelp } from "./letterWheelText";
 import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
@@ -18,9 +19,11 @@ import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attenti
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
 import { preNumberOverhaulPinned } from "./numberOverhaul";
-import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
+import { prePatternNov15Pinned } from "./patternNov15";
+import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, flowRev3Help, laserRev4Help, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
 import { logicOverhaul1Dealt } from "./logicOverhaul1";
+import { blockPatternHelp } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -575,13 +578,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ], { penalties: [`Tracing non-words: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} for each word found are free, then each takes ${WORDHUNT_MISS_COST_PCT} % off`], total: "{max}" as unknown as number }),
     },
     unblock: {
-      goal: "Slide the gold block out through the exit.",
+      goal: "Slide the gold car out through the exit.",
       how: [
-        { action: "Drag a block", detail: "along its own direction." },
-        { action: "Clear a path", detail: "for the gold block." },
+        { action: "Drag a car", detail: "along its own direction." },
+        { action: "Clear a path", detail: "for the gold car." },
         // Pattern review fixes (15 Nov 2026): the screen shows Moves and Par pills, and Undo keeps the move counted.
         { action: "Par", detail: "is the fewest moves, shown beside your moves." },
-        { action: "Undo and Reset", detail: "don’t give a move back: every slide counts.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, unblockRev 4): Undo and Reset give the move back.
+        prePatternNov15Pinned()
+          ? { action: "Undo and Reset", detail: "don’t give a move back: every slide counts.", helpOnly: true }
+          : { action: "Undo and Reset", detail: "give the move back: only the slides left on the board count.", helpOnly: true },
       ],
       // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
       score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.unblock : PATTERN_STD_HELP.unblock,
@@ -589,14 +595,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     blockparty: {
       goal: "Fit every piece into the free squares.",
       how: [
-        { action: "Tap a piece", detail: "to rotate it." },
+        // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026: a double tap only flips; Undo and Reset)
+        { action: "Tap a piece", detail: "to turn it." },
         // Pattern review fixes (15 Nov 2026): the double tap's flip was never in the help.
-        { action: "Double-tap it", detail: "to flip it over." },
-        { action: "Drag it", detail: "onto the board." },
+        { action: "Double-tap it", detail: "to flip it over (it doesn’t turn first)." },
+        { action: "Drag it", detail: "onto the board to place or move it." },
         { action: "Fit every piece", detail: "around the fixed pegs." },
-        { action: "Drag a piece’s anchor", detail: "onto a free board square.", helpOnly: true },
+        { action: "Hold any square of a piece:", detail: "the piece lands with that square under your finger.", helpOnly: true },
+        ...(prePatternNov15Pinned()
+          ? []
+          : [{ action: "Undo", detail: "gives your last move back; Reset sends every piece back to the tray.", helpOnly: true }]),
+        // ---- tessellate:end
       ],
-      score: PATTERN_STD_HELP.blockparty,
+      score: blockPatternHelp(),
     },
     lightsout: {
       goal: "Turn every light off.",
@@ -610,12 +621,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     pipes: {
       goal: "Connect every pipe to the source.",
-      how: [
-        { action: "Tap a tile", detail: "to rotate its pipe." },
-        { action: "Join every opening", detail: "to another pipe." },
-        { action: "No leaks", detail: "at the edges." },
-        { action: "Par", detail: "is the fewest taps, shown beside your taps." },
-      ],
+      // pipesRev 5 (the Pattern overhaul, patternNov15.ts): turns both ways, leaks shown live.
+      how: prePatternNov15Pinned()
+        ? [
+            { action: "Tap a tile", detail: "to rotate its pipe." },
+            { action: "Join every opening", detail: "to another pipe." },
+            { action: "No leaks", detail: "at the edges." },
+            { action: "Par", detail: "is the fewest taps, shown beside your taps." },
+          ]
+        : [
+            { action: "Tap a tile", detail: "to turn it clockwise." },
+            { action: "Hold or swipe a tile", detail: "to turn it anticlockwise (right click on a computer)." },
+            { action: "Water spills", detail: "from every open end it reaches: join every opening, no leaks." },
+            { action: "Par", detail: "is the fewest turns either way, shown under the board beside your turns." },
+            // Difficulty levels (15 Nov 2026, pipes.levels.ts): Expert hides the live spills.
+            { action: "On Expert", detail: "no spills show while you play: find the open ends yourself.", helpOnly: true },
+          ],
       // pipesRev 4 (7 Nov 2026, speedPipesNov7.ts): the tiles turned to fit.
       score: pipesPatternHelp(),
     },
@@ -633,25 +654,51 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     flow: {
       goal: "Join every colour pair and fill every square.",
-      how: [
-        { action: "Drag from a dot", detail: "to its partner." },
-        { action: "Paths can’t cross", detail: "or enter dark walls." },
-        { action: "Fill every square", detail: "with a path." },
-        { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
-      ],
-      score: PATTERN_STD_HELP.flow,
+      // The Pattern overhaul (flowRev 3, flow.ts flowCutsLines): drawing over a line cuts it back; a tap on a dot
+      // leaves its line alone.
+      how: flowCutsDealt()
+        ? [
+            { action: "Drag from a dot", detail: "to its partner." },
+            { action: "Draw over a line", detail: "to cut it back; walls block." },
+            { action: "Fill every square", detail: "with a path." },
+            { action: "Drag from a loose end", detail: "to carry on; drag from a dot to start its line again (a tap leaves it as it is).", helpOnly: true },
+            { action: "Each bead", detail: "has its own symbol, so close colours are easy to tell apart.", helpOnly: true },
+          ]
+        : [
+            { action: "Drag from a dot", detail: "to its partner." },
+            { action: "Paths can’t cross", detail: "or enter dark walls." },
+            { action: "Fill every square", detail: "with a path." },
+            { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
+          ],
+      // flowRev 3 (the Pattern overhaul): its own speed time and the levels’ times; older stamps keep the standard’s.
+      score: prePatternNov15Pinned() ? PATTERN_STD_HELP.flow : flowRev3Help(),
     },
     iceslide: {
       goal: "Slide the ball to the gold exit.",
       how: [
-        { action: "Swipe", detail: "to slide until something stops you." },
-        { action: "Arrows turn you;", detail: "avoid the holes." },
+        // The Pattern overhaul (15 Nov 2026): the pad's arrows are named apart from the chevron tiles on the ice.
+        prePatternNov15Pinned()
+          ? { action: "Swipe", detail: "to slide until something stops you." }
+          : { action: "Swipe or tap an arrow", detail: "to slide until something stops you." },
+        prePatternNov15Pinned()
+          ? { action: "Arrows turn you;", detail: "avoid the holes." }
+          : { action: "Chevron tiles turn you;", detail: "holes send you back to the start." },
         { action: "Portals", detail: "carry you across." },
         // The puzzle batch of 3 Nov 2026 (slideRev 3, parMoves.ts): no ice gems; the fewest slides score a bonus.
         parMovesDealt()
           ? { action: "Fewest slides", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, slideRev 5): Undo and Reset give the slide back; the arrow pad or swipe is
+        // chosen in the game menu (the pinned era keeps the lines before).
+        ...(prePatternNov15Pinned()
+          ? []
+          : [
+              { action: "Undo and Reset", detail: "give the slide back: only the slides left standing count.", helpOnly: true },
+              { action: "Arrow pad or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+              // Difficulty levels (16 Nov 2026, iceslide.levels.ts): the speed bonus's time differs by level.
+              { action: "Speed by level:", detail: "full within 20 s on Easy, 40 s on Hard (100 s clock) and 45 s on Expert (120 s clock).", helpOnly: true },
+            ]),
       ],
       score: parMovesDealt() ? parMovesPatternHelp("iceslide") : PATTERN_STD_HELP.iceslide,
     },
@@ -663,6 +710,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Crates can’t be pulled,", detail: "so plan ahead." },
         { action: "The gold crate", detail: "on the gold mark scores a bonus." },
         { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, display only): Pushes and Par shown in play; Undo was always a real undo.
+        { action: "Par", detail: "is the fewest pushes, shown beside your pushes.", helpOnly: true },
+        { action: "A green tick", detail: "marks a crate on a mark; the gold crate goes on the gold mark.", helpOnly: true },
+        { action: "Undo and Reset", detail: "give the push back: only the pushes left on the board count.", helpOnly: true },
+        // Difficulty levels (16 Nov 2026, push.levels.ts): the stuck hint on Easy and Normal only (display only).
+        { action: "On Easy and Normal", detail: "a crate pushed where it can never reach a mark turns red: undo it.", helpOnly: true },
+        { action: "Arrows or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
       ],
       score: PATTERN_STD_HELP.push,
     },
@@ -675,8 +729,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Two spare mirrors:", detail: "use fewer for an elegant beam." },
         { action: "The splitter", detail: "forks the beam across its input axis.", helpOnly: true },
         { action: "Gem arrows:", detail: "marked gems only light from that direction.", helpOnly: true },
+        // The Pattern overhaul (15 Nov 2026, laserRev 4): Undo takes back any change, free; out of shots locks the board.
+        ...(prePatternNov15Pinned()
+          ? []
+          : [
+              { action: "Undo is free:", detail: "it takes back your last change (a place, turn, move or Reset) and costs nothing; a shot isn’t given back.", helpOnly: true },
+              { action: "Out of shots:", detail: "after your last shot the board locks.", helpOnly: true },
+              // Difficulty levels (16 Nov 2026, laser.levels.ts): the shots and spare mirrors differ by level.
+              { action: "Levels:", detail: "Easy gives five shots and three spare mirrors; Hard one spare; Expert one spare and two shots.", helpOnly: true },
+            ]),
       ],
-      score: PATTERN_STD_HELP.laser,
+      // laserRev 4 (the Pattern overhaul): its own speed time and the levels’ times; older stamps keep the standard’s.
+      score: prePatternNov15Pinned() ? PATTERN_STD_HELP.laser : laserRev4Help(),
     },
     tower: {
       goal: "Move the whole tower onto the gold post.",
@@ -761,7 +825,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "Fewest tilts", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Roll through a star", detail: "for bonus points." },
         { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
-        { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don’t give a tilt back; out of tilts, the next board comes.", helpOnly: true },
+        // ---- topsy:start (the Pattern overhaul, 15 Nov 2026, gravityRev 8): limits from the fewest tilts; Undo gives back.
+        prePatternNov15Pinned()
+          ? { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don’t give a tilt back; out of tilts, the next board comes.", helpOnly: true }
+          : { action: "Tilts are limited", detail: "on each board: its par plus 8. Undo and Reset give the tilt back; out of tilts, the next board comes.", helpOnly: true },
+        { action: "Arrows or a joystick:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+        // ---- topsy:end
       ],
       score: parMovesDealt() ? parMovesPatternHelp("gravity") : PATTERN_STD_HELP.gravity,
     },

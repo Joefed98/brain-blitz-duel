@@ -53,7 +53,7 @@ const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const flag = (name: string) => args.includes(`--${name}`);
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
-const PORT = 5190;
+const PORT = Number(process.env.CAPTURE_PORT ?? 5190);
 /** Default output: the repo-root .shots/ folder, which .gitignore keeps out of commits. */
 const OUT = opt("out") ?? ".shots";
 const TAG = opt("tag") ?? "after";
@@ -354,13 +354,11 @@ async function newRun(
     }
     return route.continue();
   });
-  // Current practice routing (the Games pages, 14 Nov 2026): `/practice?game=<id>` opens the game's full intro with
-  // Ready (practiceGameUrl); the catalogue's tiles open the game's page instead, whose Play skips to the 3-2-1.
-  await page.goto(practiceGameUrl(origin, game), { waitUntil: "domcontentloaded" });
-  const readyButton = page.getByRole("button", { name: /^Ready/ }).first();
-  await readyButton.waitFor({ timeout: 90_000 });
-  await page.waitForTimeout(1200); // hydration
+  // The Games pages (14 Nov 2026) have no Puzzles | Arcade switch: a game's full intro opens from its ?game= link
+  // (practiceGameUrl, scripts/practice-side-lib.ts). Seeded stage state is written on /practice first.
   if (opts.seed) {
+    await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1500); // hydration
     await page.evaluate(async (values) => {
       const seed = (await import(/* @vite-ignore */ "/scripts/shots/seed.tsx")) as {
         seedStageState: (k: string[], v: Record<string, unknown>) => void;
@@ -368,6 +366,11 @@ async function newRun(
       seed.seedStageState(["practice-1", "practice-2", "practice-3"], values);
     }, opts.seed);
   }
+  await page.goto(practiceGameUrl(origin, game), { waitUntil: "domcontentloaded" });
+  await page
+    .getByRole("button", { name: /^Ready/ })
+    .first()
+    .waitFor({ timeout: 90_000 });
   return run;
 }
 

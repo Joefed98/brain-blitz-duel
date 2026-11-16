@@ -896,6 +896,19 @@ export interface UnblockPuzzleData {
   minMoves?: number;
   /** Server-side only: one minimum-length solution, as encoded moves. */
   solution?: string;
+  /**
+   * The lot's size, columns and rows (the difficulty levels, 15 Nov 2026: Easy's 6×6 lot). Absent = UNBLOCK_COLS (7),
+   * every deal before levels and every Normal, Hard and Expert deal. Public.
+   */
+  cols?: number;
+  /** The level's own clock (Expert's 75 s); absent = UNBLOCK_TIME_MS. */
+  timeLimitMs?: number;
+}
+
+/** A Gridlock puzzle's lot size: its own `cols`, else 7 (every deal before levels). */
+export function unblockCols(puzzle: { cols?: number } | null | undefined): number {
+  const n = puzzle?.cols;
+  return typeof n === "number" && Number.isInteger(n) && n >= 5 && n <= 8 ? n : UNBLOCK_COLS;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -931,10 +944,14 @@ export interface BlockPartyPuzzleData {
   solution?: BlockPlacement[];
   /** Server-side only: how many solutions the layout has (capped). */
   solutions?: number;
+  /** Levels (the Pattern overhaul, stage 3): the level dealt at (none = Normal); its board is the level's (blockParty.ts blockLevelGeometry). */
+  level?: "easy" | "hard" | "expert";
+  /** Levels: the level's own clock where it isn't 60 s (Expert's 90 s). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Lights Out                                                                 */
+/*  Lights Out                                                               */
 /* -------------------------------------------------------------------------- */
 
 export const LIGHTS_COLS = 6;
@@ -996,6 +1013,11 @@ export interface PipesPuzzleData {
   par?: number;
   /** Server-side only: the solved open sides of every tile. */
   solution?: number[];
+  /** Difficulty levels (15 Nov 2026): a level board's width and height; absent = today's 7 × 7 (Normal, older rounds). */
+  cols?: number;
+  rows?: number;
+  /** Expert: no live spill marks at the network's open ends during play (the reveal still shows them). */
+  hideLeaks?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1063,7 +1085,10 @@ export type FlowColour =
   | "TEAL"
   | "WHITE"
   | "LIME"
-  | "SILVER";
+  | "SILVER"
+  // Levels (15 Nov 2026): Expert deals up to 14 pairs, so two more colours (only Expert deals them).
+  | "CYAN"
+  | "TAN";
 
 export interface FlowPair {
   colour: FlowColour;
@@ -1082,6 +1107,14 @@ export interface FlowPuzzleData {
   walls?: number[];
   /** Depth batch 4: 1 = scored to 200 (the stretch); absent = scored to 150. The board is unchanged. */
   flowRev?: number;
+  /**
+   * Levels (15 Nov 2026, flow.levels.ts): the grid's columns and rows when it isn't 9 × 9 (Easy 6 × 6, Expert 9 × 12).
+   * Absent = 9 × 9, every Normal and Hard deal and every round before levels (`flowGrid`).
+   */
+  cols?: number;
+  rows?: number;
+  /** The level's own clock (Expert 90 s); absent = the game's 75 s. */
+  timeLimitMs?: number;
   /** Server-side only: the cell path of each pair, in pair order. */
   solution?: number[][];
 }
@@ -1146,6 +1179,14 @@ export interface SlidePuzzleData {
   /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
   puzzleScoreRev?: number;
   type: "iceslide";
+  /**
+   * Difficulty levels (16 Nov 2026, src/lib/levels/pattern/iceslide.levels.ts): a level board's own width and height in
+   * squares (Easy 8 × 8, Expert 11 × 13). Absent on every 12 × 12 board (Normal and Hard).
+   */
+  cols?: number;
+  rows?: number;
+  /** A level's own clock (Expert 120 s); absent: the game's 90 s. */
+  timeLimitMs?: number;
   /** Wall cells the ball stops against. */
   walls: number[];
   /** Holes: sliding over one drops the ball back on the start. */
@@ -1220,6 +1261,8 @@ export interface PushPuzzleData {
   minPushes?: number;
   /** Server-side only: one minimum solution, as "cell:dir" pushes. */
   solution?: string;
+  /** Levels (the Pattern overhaul, stage 3): the level dealt at (none = Normal); its board comes from the level bank. */
+  level?: "easy" | "hard" | "expert";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1326,6 +1369,13 @@ export interface LaserPuzzleData {
   laserRev?: number;
   /** laserRev 1: the mirrors the stored solution uses (an elegant beam lights every gem with no more). */
   par?: number;
+  /**
+   * The shots the round gives (the Pattern overhaul's levels, 16 Nov 2026: Easy 5, Expert 2; laser.levels.ts).
+   * Absent = LASER_MAX_FIRES (3), every Normal and every older round. Read through `laserShotsOf`.
+   */
+  shots?: number;
+  /** The round's clock when it isn't LASER_TIME_MS (Hard 75 s, Expert 90 s). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */

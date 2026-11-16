@@ -59,6 +59,8 @@ for (const type of ["sudoku", "tubes", "tower", "safe", "nonogram", "flood"]) {
 // The six puzzle demos bundled with the app (Joe, 16 Nov 2026: recorded by real play on Normal, a live row still wins).
 {
   const { LOGIC_1_BUNDLED_DEMOS, pickLogicDemo } = await import("../src/lib/duel/bundledDemos/logic1");
+  const { bundledIntroDemo } = await import("../src/lib/duel/bundledDemos");
+  const { pickIntroDemo } = await import("../src/lib/duel/introDemo.functions");
   const { exampleFor } = await import("./shots/examples");
   const { splitPuzzle } = await import("../src/lib/duel/secrets");
   const { GAME_COLUMN_LAYOUT, INTRO_EXAMPLE_ID, isPuzzleDemoLog } = await import("../src/lib/duel/puzzleDemo");
@@ -77,6 +79,7 @@ for (const type of ["sudoku", "tubes", "tower", "safe", "nonogram", "flood"]) {
     ok(actions.length >= 5 && (actions[0]?.t ?? 0) <= 1000 && row.length_ticks === Math.max(...actions.map((a) => a.t)), `${type}: real touches from the start (${actions.length}, first at ${actions[0]?.t} ms)`);
     ok(logicDemoPlays(type, row.puzzle), `${type}: the bundled demo is on Normal`);
     ok(pickLogicDemo(type, null) === row, `${type}: with no live row the bundled demo plays`);
+    ok(bundledIntroDemo(type) === row && pickIntroDemo(type, null, bundledIntroDemo(type)) === row, `${type}: the one bundled registry serves it`);
     const old = { ...row, input_log: { ...row.input_log, presentation: "oct13-logic-polish" } };
     ok(pickLogicDemo(type, old as never) === row, `${type}: a live row on an older presentation gives way to the bundled demo`);
     const fresh = { ...row, length_ticks: row.length_ticks + 1 };
@@ -85,7 +88,9 @@ for (const type of ["sudoku", "tubes", "tower", "safe", "nonogram", "flood"]) {
 }
 const src = readFileSync(new URL("../src/lib/duel/introDemo.functions.ts", import.meta.url), "utf8");
 ok(/!logicDemoPlays\(data\.type, demo\.puzzle\)\) return null/.test(src), "introDemo.functions.ts asks the demo rule before serving a demo");
-ok(/if \(bundledLogicDemo\(data\.type\)\) return pickLogicDemo\(data\.type, demo\);/.test(src), "introDemo.functions.ts serves the bundled demo when the live row would not play");
+// Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): the six are served through the one bundled
+// registry (bundledDemos/index.ts) and pickIntroDemo, so the check reads that path.
+ok(/return pickIntroDemo\(data\.type, live, bundledIntroDemo\(data\.type\)\);/.test(src), "introDemo.functions.ts serves the bundled demo when the live row would not play");
 
 if (failures.length) {
   for (const f of failures) console.log(`FAIL ${f}`);

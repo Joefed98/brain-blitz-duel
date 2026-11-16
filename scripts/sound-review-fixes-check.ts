@@ -124,7 +124,8 @@ const played = (id: string) => text.includes(`"${id}"`) || text.includes(`'${id}
 /** Played keys with no file of their own that keep it so, and why. */
 const EXEMPT: Record<string, string> = {
   "laser.gem": "Lightbender's gem plays its own pz_laser_gem recording on the same beam step",
-  "gravity.tilt": "Topsy-Turvy's tilt plays its own pz_gravity_pull recording",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): gravity.tilt now has a
+  // file of its own (the library's marble roll, looped while the balls move), so it no longer needs an exemption.
   "clayshoot.shatter": "Pull!'s clay plays its own pz_clay_hit recording",
   "clayshoot.goldShatter": "Pull!'s gold clay plays its own pz_clay_hit recording",
   "clayshoot.goldSparkle": "the tail of clayshoot.finalBurst is still sounding (silent by design)",

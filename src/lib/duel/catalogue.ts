@@ -263,6 +263,7 @@ export function puzzleTimeLimitMs(puzzle: PuzzleData | undefined): number {
   return typeTimeLimitMs(puzzle.type);
 }
 
+
 export function puzzleRevealMs(puzzle: PuzzleData | undefined): number {
   if (!puzzle) return REVEAL_MS;
   return puzzleInfo(puzzle.type).revealMs ?? REVEAL_MS;

@@ -85,6 +85,8 @@ export const DEAL_PINS = {
   preCheckoutLevels: { texts: false },
   /** numberLevels.ts: Kakuro's Normal as today's game (kakuroRev 2), before its levels (15 Nov 2026). */
   preKakuroLevels: { texts: false },
+  /** patternNov15.ts: the eight Pattern games before the Pattern overhaul (15 Nov 2026). */
+  prePatternNov15: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

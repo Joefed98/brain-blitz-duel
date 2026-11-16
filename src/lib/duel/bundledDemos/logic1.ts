@@ -6,7 +6,7 @@
  * plays one when the live row is missing or would not play; a live row recorded on today's presentation still wins, so a
  * re-record through the Save button replaces a bundled demo without a code change. Stored rows are never touched.
  *
- * Kept apart from the Pattern overhaul's index (bundledDemos/index.ts, #433) so the two trains merge without a clash.
+ * Registered in the one registry, bundledDemos/index.ts (BUNDLED_INTRO_DEMOS, puzzle train combine, 16 Nov 2026).
  * logic-demos-check proves each against today's intro example deal and rules.
  */
 import { puzzleInputDemoCompatible } from "@/components/puzzles/wordInput";

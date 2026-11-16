@@ -19,13 +19,14 @@ import {
 } from "./stagedRounds";
 import { blockGeometry, decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { isDepth4 } from "./depth4/stamps";
-import { decodePipesTaps, pipesAfterTaps } from "./depth4/pipesTaps";
+import { decodePipesTurns, pipesAfterTurns } from "./depth4/pipesTaps";
+import { usesPatternNov15 } from "./patternNov15";
 import { replayGems } from "./depth4/iceGems";
 import { gemMinMoves } from "./depth4/gems.server";
-import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
+import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, pipesDims, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
-import { decodeFlowPaths, verifyFlow } from "./flow";
-import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
+import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "./flow";
+import { countedSlides, decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
@@ -145,7 +146,7 @@ import {
   tapRevOf,
   type TapLogDiag,
 } from "./tapLog";
-import { decodeMoves, replayUnblock } from "./unblock";
+import { countedMoves, decodeMoves, replayUnblock } from "./unblock";
 import {
   COUNT_REV2_TRAYS,
   countUpStageTruth,
@@ -165,7 +166,7 @@ import { scanCorrections, usesScanDepth } from "./depth/eagleEye";
 import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./catalogue";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
-import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
+import { isTopsy, replayTopsyPuzzle, scoreTopsy, topsyTotalBalls } from "./topsy";
 import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
@@ -246,6 +247,7 @@ import {
   FLOW_PAIRS,
   CHAIN_TIME_MS,
   CHAIN_TIME_REV,
+  unblockCols,
   type PuzzleData,
 } from "./types";
 
@@ -654,7 +656,9 @@ function gradeUnderRev(
     case "unblock": {
       // The phone sends its slides; every one is replayed on the stored layout.
       const played = decodeMoves(answer);
-      const replay = replayUnblock(puzzle.vehicles, played);
+      // The lot's size (the difficulty levels: Easy's 6×6; absent = 7, every older deal).
+      const lot = unblockCols(puzzle);
+      const replay = replayUnblock(puzzle.vehicles, played, lot);
       const min = puzzle.minMoves ?? 0;
       isCorrect = replay.solved;
       let progress = 0;
@@ -662,13 +666,16 @@ function gradeUnderRev(
       if (!replay.solved) {
         // Progress is the share of the gold car's blockers cleared from its
         // lane — a cheap count, so no solver ever runs during a room.
-        const before = blockingCars(puzzle.vehicles);
-        const after = blockingCars(replay.vehicles);
+        const before = blockingCars(puzzle.vehicles, lot);
+        const after = blockingCars(replay.vehicles, lot);
         if (before > 0) progress = Math.max(0, (before - after) / before) * (scoreRev1() ? 1 : 0.9);
         fewerBlockers = after < before;
       }
-      score = scoreUnblock(replay.solved, ms, replay.moves, min, progress, fewerBlockers, timeLimitMs);
-      extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min, ...(isDepth4(puzzle) ? { par: puzzle.par ?? min } : {}) };
+      // unblockRev 4 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the move back, so the moves counted
+      // (the par bonus, the stored figure) are the slides still on the board; older stamps count every slide played.
+      const counted = countedMoves(replay, usesPatternNov15(puzzle, "unblock"));
+      score = scoreUnblock(replay.solved, ms, counted, min, progress, fewerBlockers, timeLimitMs);
+      extraDetail = { solved: replay.solved, moves: counted, minMoves: min, ...(isDepth4(puzzle) ? { par: puzzle.par ?? min } : {}) };
       break;
     }
     case "blockparty": {
@@ -723,19 +730,22 @@ function gradeUnderRev(
     case "pipes": {
       // Connectivity and leaks are worked out here, so any valid layout counts.
       // pipesRev 1 (depth batch 4): the board comes from the tap log alone; the taps up to the solve are counted.
-      const taps = isDepth4(puzzle) ? decodePipesTaps(answer, puzzle.tiles.length) : null;
+      // pipesRev 5 (the Pattern overhaul, patternNov15.ts): "-cell" in the log is an anticlockwise turn.
+      // Difficulty levels: a level board's width from the stored puzzle (pipesDims; 7 on every board before levels).
+      const cols = pipesDims(puzzle).cols;
+      const taps = isDepth4(puzzle) ? decodePipesTurns(answer, puzzle.tiles.length, usesPatternNov15(puzzle, "pipes")) : null;
       let turns = 0;
       if (taps) {
         for (let k = 0; k <= taps.length; k++) {
           turns = k;
-          if (gradePipesBoard(puzzle.source, pipesAfterTaps(puzzle.tiles, taps.slice(0, k))).solved) break;
+          if (gradePipesBoard(puzzle.source, pipesAfterTurns(puzzle.tiles, taps.slice(0, k)), cols).solved) break;
         }
       }
-      const board = taps ? pipesAfterTaps(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
-      const verdict = gradePipesBoard(puzzle.source, board);
+      const board = taps ? pipesAfterTurns(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
+      const verdict = gradePipesBoard(puzzle.source, board, cols);
       isCorrect = verdict.solved;
       correctCount = verdict.connected;
-      const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected : 0;
+      const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, ""), cols).connected : 0;
       score = scorePipes(verdict.solved, verdict.connected, ms, timeLimitMs, startConnected);
       extraDetail = { solved: verdict.solved, connected: verdict.connected, ...(taps ? { turns, par: puzzle.par ?? 0 } : {}) };
       break;
@@ -753,8 +763,10 @@ function gradeUnderRev(
     case "flow": {
       // Every path the phone sends is re-walked here: contiguous, ending on the
       // right dots, and sharing no cell with another colour.
-      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
-      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
+      // Levels (16 Nov 2026): the board's own grid (9 × 9 for every puzzle without `cols` / `rows`).
+      const grid = flowGrid(puzzle);
+      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS, flowCellCount(grid));
+      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], grid);
       isCorrect = verdict.solved;
       correctCount = verdict.pairsJoined;
       // Rev 1: an unfinished board earns only pairs joined along their (unique) solution route.
@@ -791,16 +803,22 @@ function gradeUnderRev(
         }
       }
       isCorrect = replay.solved;
-      correctCount = replay.moves;
+      // slideRev 5 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the slide back, so the slides counted
+      // (the par bonus, the stored figure) are the slides still standing; older stamps count every slide played.
+      const overhaul = usesPatternNov15(puzzle, "iceslide");
+      const counted = countedSlides(replay, overhaul);
+      correctCount = counted;
       // slideRev 1 (depth batch 4): the gems collected; the slides they need are not wasted moves, so a finish is
       // measured against the fewest slides that collect those gems (gemRouteLength), not the bare minimum.
       const gems = isDepth4(puzzle) ? (puzzle.gems ?? []) : [];
       const gemReplay = gems.length ? replayGems(board, gems, decodeSlideMoves(answer)) : null;
       const gemMin = gemReplay && replay.solved && gemReplay.collected > 0 ? gemMinMoves(puzzle, gems.filter((_g, i) => gemReplay.mask & (1 << i))) : null;
-      score = scoreIceSlide(replay.solved, replay.moves, gemMin ?? min, ms, progress, timeLimitMs);
+      score = scoreIceSlide(replay.solved, counted, gemMin ?? min, ms, progress, timeLimitMs);
       extraDetail = {
         solved: replay.solved,
-        moves: replay.moves,
+        moves: counted,
+        // slideRev 5: every slide played (undone ones included) stays on record for the unfinished waste rule.
+        ...(overhaul ? { slidesPlayed: replay.moves } : {}),
         minMoves: min,
         movesFromExit: away,
         falls: replay.falls,
@@ -1015,7 +1033,7 @@ function gradeUnderRev(
       if (isTopsy(puzzle)) {
         const replay = replayTopsyPuzzle(puzzle, decodeGravityTilts(answer));
         // The elite stretch's efficiency: the boards' all-stars minimums ÷ the tilts made (server-only minimums).
-        const graded = scoreTopsy(replay, ms, timeLimitMs, undefined, (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
+        const graded = scoreTopsy(replay, ms, timeLimitMs, topsyTotalBalls(puzzle), (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
         isCorrect = replay.solved;
         correctCount = replay.home;
         score = graded.score;

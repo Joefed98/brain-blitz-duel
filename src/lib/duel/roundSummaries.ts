@@ -1,6 +1,8 @@
 import { floodPlayable } from "./flood";
+import { flowCellCount, flowGrid } from "./flow";
 import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
+import { pipesDims } from "./logic";
 import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
@@ -23,7 +25,7 @@ import {
 } from "./attentionRev";
 import { chainRules } from "./chain";
 import { tilesLayout } from "./tiles";
-import { isTopsy, TOPSY_BALLS, TOPSY_BOARDS, TOPSY_STARS } from "./topsy";
+import { isTopsy, topsyTotalBalls, TOPSY_STARS } from "./topsy";
 import { isJumbledGradient, JUMBLED_MOVABLE } from "./jumbled";
 import { equationTryLimit, splitCountSuffix } from "./moveLimits";
 import { WORDHUNT_REV_CURVE, WORDSMITH_REV_CURVE } from "./scoring";
@@ -49,7 +51,6 @@ import {
   wordsmithPoints,
   LIGHTS_TIME_MS,
   PIPES_CELLS,
-  FLOW_CELLS,
   PIPES_TIME_MS,
   SUDOKU_TIME_MS,
   FLOW_TIME_MS,
@@ -624,9 +625,11 @@ const pipesSummary: SummaryBuilder = (result, puzzle) => {
       detail: ["Every pipe connected, no leaks"],
     };
   }
+  // Difficulty levels: a level board's own tile count (pipesDims); every board before levels counts 49.
+  const cells = pipesDims(puzzle).cells;
   return {
-    summary: `${connected} / ${PIPES_CELLS} connected`,
-    detail: [`${PIPES_CELLS - connected} tiles left off the network`],
+    summary: `${connected} / ${cells} connected`,
+    detail: [`${cells - connected} tiles left off the network`],
   };
 };
 
@@ -660,7 +663,7 @@ const flowSummary: SummaryBuilder = (result, puzzle) => {
   if (progress) return progress;
   return {
     summary: `${joined} / ${puzzle.pairs.length || FLOW_PAIRS} pairs`,
-    detail: [`${filled} / ${FLOW_CELLS - (puzzle.walls?.length ?? 0)} squares filled`],
+    detail: [`${filled} / ${flowCellCount(flowGrid(puzzle)) - (puzzle.walls?.length ?? 0)} squares filled`],
   };
 };
 
@@ -867,6 +870,8 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     const home = Number(result.extra?.["home"] ?? 0);
     const stars = Number(result.extra?.["stars"] ?? 0);
     const out = Number(result.extra?.["outOfTilts"] ?? 0);
+    // The round's own board count (the difficulty levels: Easy deals two).
+    const boards = puzzle.boards.length;
     // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish shows its tilts against par.
     if (usesParMoves(puzzle) && result.is_correct) {
       const par = Number(result.extra?.["parTilts"] ?? 0);
@@ -877,8 +882,8 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     }
     return {
       summary: result.is_correct
-        ? `Cleared, ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars, ${seconds(elapsedMs(result, puzzle))}`
-        : `${cleared} / ${TOPSY_BOARDS} boards, ${home} / ${TOPSY_BOARDS * TOPSY_BALLS} home`,
+        ? `Cleared, ${stars} / ${boards * TOPSY_STARS} stars, ${seconds(elapsedMs(result, puzzle))}`
+        : `${cleared} / ${boards} boards, ${home} / ${topsyTotalBalls(puzzle)} home`,
       detail: [`${tilts} tilts made${out ? `, out of tilts on ${out} board${out === 1 ? "" : "s"}` : ""}`],
     };
   }

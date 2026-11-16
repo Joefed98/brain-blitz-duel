@@ -27,6 +27,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 import { LOGIC_GAME_LEVELS } from "@/lib/duel/logicOverhaul2Levels";
 
 import { LEVELS, NORMAL, type Level } from "./levels";
+import { PATTERN_LEVELS } from "./pattern";
 
 /** The Logic overhaul's level proof (session 1): every level board of its seven games. */
 const LOGIC1_PROOF = "scripts/logic-1-levels-check.tsx";
@@ -367,6 +368,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       },
     },
   },
+  // The Pattern overhaul (15 Nov 2026): one data file per game in ./pattern/.
+  ...PATTERN_LEVELS,
 };
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */

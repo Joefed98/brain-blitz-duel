@@ -358,6 +358,9 @@ export const SHARDS: Record<string, string[]> = {
     // server-functions-check (7 Nov 2026, ~5 s): the room, chat, daily, async-room and challenge server functions
     // run against every migration on a local PostgreSQL (scripts/server-fn-harness.ts), beside the other SQL checks.
     "server-functions-check.ts",
+    // pattern-demos-check (15 Nov 2026, ~5 s): the Pattern overhaul's intro demos (scripts/fixtures/pattern-demos.json),
+    // the real example deal, grade and save functions and the save script on a local PostgreSQL, beside the SQL checks.
+    "pattern-demos-check.ts",
     // round-engine-parity-check (9 Nov 2026, B6, ~35 s locally): the round engine against main da93f5d's own code
     // (scripts/round-engine/legacy.ts, temporary until wave 3): deals, receipts, grades, stored rows, windows, rankings.
     "round-engine-parity-check.ts",

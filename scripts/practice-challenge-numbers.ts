@@ -161,7 +161,9 @@ function expectations(): Record<string, Expect> {
     "laser.one-shot": { say: [[6, helpCount("laser", "gems")]], th: [[1, 1]] },
     "laser.hall-of-mirrors": { say: [[6, helpCount("laser", "gems")]], th: [[10, Number(/Mirrors:[^.]*up to (\d+)/.exec(help("laser"))?.[1]) + Number(/First shot:[^.]*up to (\d+)/.exec(help("laser"))?.[1])]] },
     "laser.speed-of-light": { say: [[6, helpCount("laser", "gems")]] },
-    "blockparty.no-second-thoughts": { say: [[2, 2]], th: [[10, Number(/First time:[^.]*up to (\d+)/.exec(help("blockparty"))?.[1] ?? 10)]] },
+    // Changed with Joe's approval, 15 Nov 2026 (the Pattern overhaul's challenge re-check): blockRev 4's bonus is clean
+    // drops, so the text has no number ("twice" is gone) and the threshold is the help's Clean drops maximum.
+    "blockparty.no-second-thoughts": { th: [[10, Number(/Clean drops:[^.]*up to (\d+)/.exec(help("blockparty"))?.[1])]] },
     "push.heavy-lifting": { th: [[25, Number(/Gold crate:[^.]*up to (\d+)/.exec(help("push"))?.[1]) + (PATTERN_STD.push.par ?? NaN)]] },
     "gravity.right-way-up": { th: [[20, PAR_MOVES_STD.par]] },
     "wordsmith.every-last-letter": { th: [[0, 0]] },

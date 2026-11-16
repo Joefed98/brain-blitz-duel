@@ -21,6 +21,8 @@ import {
 import { pick, shuffled } from "./random";
 import type { SudokuLevel } from "./logicLevels";
 import { sudokuLogicGrade, sudokuLogicSolve } from "./sudokuLogic";
+import { countPipesSolutions, deducePipes } from "./pipesSolve.server";
+import type { PipesLevelSettings } from "@/lib/levels/pattern/pipes.levels";
 import {
   LIGHTS_CELLS,
   LIGHTS_MAX_BUILD,
@@ -158,22 +160,24 @@ export function generateLightsOut(): LightsOutPuzzleData {
  * join orthogonal neighbours, so a cell's open sides are exactly the tree edges
  * touching it — the board is solvable by construction.
  */
-function spanningTree(): { masks: number[]; root: number } {
-  const masks = new Array<number>(PIPES_CELLS).fill(0);
-  const visited = new Array<boolean>(PIPES_CELLS).fill(false);
-  const root = randomInt(PIPES_CELLS);
+function spanningTree(cols: number = PIPES_COLS, rows: number = cols): { masks: number[]; root: number } {
+  // Today's 7 × 7 when called with no size (Normal: the same random draws in the same order as before levels).
+  const cells = cols === PIPES_COLS && rows === PIPES_COLS ? PIPES_CELLS : cols * rows;
+  const masks = new Array<number>(cells).fill(0);
+  const visited = new Array<boolean>(cells).fill(false);
+  const root = randomInt(cells);
   visited[root] = true;
 
   let frontier: { from: number; bit: number }[] = PIPE_BITS.map((bit) => ({ from: root, bit }));
 
   while (frontier.length) {
     frontier = frontier.filter(({ from, bit }) => {
-      const to = pipeNeighbour(from, bit);
+      const to = pipeNeighbour(from, bit, cols, rows);
       return to !== null && !visited[to];
     });
     if (!frontier.length) break;
     const choice = frontier[randomInt(frontier.length)]!;
-    const to = pipeNeighbour(choice.from, choice.bit)!;
+    const to = pipeNeighbour(choice.from, choice.bit, cols, rows)!;
     masks[choice.from]! |= choice.bit;
     masks[to]! |= rotateMask(choice.bit, 2);
     visited[to] = true;
@@ -212,6 +216,72 @@ export function generatePipes(): PipesPuzzleData {
     return { type: "pipes", tiles, source: root, solution: masks };
   }
   throw new Error(`${gameDisplayName("pipes")} generator could not build a proven-solvable board`);
+}
+
+/**
+ * pipesRev 5's Normal board has exactly one solution (Joe, 16 Nov 2026): about 4 % of today's 7 × 7 deals have two
+ * layouts that both join every pipe (the grader accepts either, so the board has no single answer). On pipesRev 5
+ * (the patternNov15 layer, generate.server.ts) such a board is dealt again from the same seeded stream, the next
+ * draw in line, until the searching solver (`countPipesSolutions`, stopping at 2) finds exactly one layout. A board
+ * that already has one is returned untouched (the same object), so 96 % of Normal deals are byte for byte the board
+ * before. Level boards (`cols` set) are proved one-solution when built (`generatePipesLevel`) and pass through.
+ * pipesRev 4 and below never reach this (the layer only moves a pipesRev 4 deal up).
+ */
+export function withPipesOneLayout<T extends { type: string }>(puzzle: T): T {
+  const q = puzzle as unknown as PipesPuzzleData;
+  if (q.type !== "pipes" || q.cols !== undefined || q.rows !== undefined) return puzzle;
+  const oneLayout = (p: PipesPuzzleData) => countPipesSolutions(p.tiles.map(tileOpenings), PIPES_COLS, PIPES_COLS, 2) === 1;
+  if (oneLayout(q)) return puzzle;
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const next = generatePipes();
+    if (oneLayout(next)) return { ...puzzle, tiles: next.tiles, source: next.source, solution: next.solution } as T;
+  }
+  throw new Error(`${gameDisplayName("pipes")} generator could not build a one-solution board`);
+}
+
+/**
+ * A level's board (difficulty levels, 15 Nov 2026; src/lib/levels/pattern/pipes.levels.ts): the same spanning-tree
+ * build on the level's size, kept only when the person-like solver (`deducePipes`) fixes every tile from the dealt
+ * shapes alone, which proves the board has exactly one solution and that a person can reason it out without
+ * guessing. Then turned: exactly the level's share of tiles (`exact`, Easy; the rest dealt right) or every tile with
+ * at least that share of them looking wrong (as Normal). The board carries its size (`cols`, `rows`) and, where the
+ * level hides them, `hideLeaks`.
+ */
+export function generatePipesLevel(settings: PipesLevelSettings): PipesPuzzleData {
+  const { cols, rows } = settings;
+  const cells = cols * rows;
+  for (let attempt = 0; attempt < 500; attempt++) {
+    const { masks, root } = spanningTree(cols, rows);
+    if (!pipesState(masks.map((sides) => ({ sides })), root, cols).solved) continue;
+    const proved = deducePipes(masks, cols, rows);
+    if (!proved || proved.some((m, i) => m !== masks[i])) continue;
+    let tiles: PipeTile[];
+    if (settings.exact) {
+      const want = Math.round(settings.scrambled * cells);
+      const turnable = masks.flatMap((m, i) => (rotateMask(m, 1) !== m ? [i] : []));
+      if (turnable.length < want) continue;
+      const turned = new Set(shuffled(turnable).slice(0, want));
+      tiles = masks.map((solved, i) => {
+        if (!turned.has(i)) return { sides: solved };
+        const options = [1, 2, 3].map((t) => rotateMask(solved, t)).filter((m) => m !== solved);
+        return { sides: pick(options) };
+      });
+    } else {
+      const { tiles: dealt, wrong } = scramble(masks);
+      if (wrong / cells < settings.scrambled) continue;
+      tiles = dealt;
+    }
+    return {
+      type: "pipes",
+      tiles,
+      source: root,
+      solution: masks,
+      cols,
+      rows,
+      ...(settings.leaks ? {} : { hideLeaks: true }),
+    };
+  }
+  throw new Error(`${gameDisplayName("pipes")} generator could not build a proven one-solution board at ${cols} × ${rows}`);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -421,7 +491,9 @@ export function gradeSudokuGrid(
 export function gradePipesBoard(
   source: number,
   board: PipeTile[],
+  cols: number = PIPES_COLS,
 ): { solved: boolean; connected: number } {
-  const state = pipesState(board, source);
+  // `cols`: a level board's width (pipesDims); left out, today's 7 × 7.
+  const state = pipesState(board, source, cols);
   return { solved: state.solved, connected: state.connected.size };
 }

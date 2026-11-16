@@ -543,15 +543,31 @@ const ENTRIES = {
   "countup.countersTick": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/countup.countersTick.mp3" },
   "countup.countersLock": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.counterLock.mp3" },
   "countup.trayIn": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/countup.trayIn.mp3", volume: 0.86 },
+  // The Pattern overhaul (15 Nov 2026): Chroma Lines' drawing tone (played a little higher each square), the cut and
+  // the near-miss hint, empty until Joe's recordings (docs/sound-cues/pattern-elevenlabs.md); until then the draw keeps
+  // FeedbackStage's `move` tick.
+  "flow.draw": { channel: "effects", frequency: 0, ms: 140, url: "/sounds/arc_sea_bubble.mp3", volume: 0.45, gapMs: 40 },
+  "flow.cut": { channel: "effects", frequency: 0, ms: 180, url: "/sounds/arc_sea_pop.mp3", volume: 0.5 },
+  "flow.nearMiss": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/arc_retro_blip.mp3", volume: 0.5 },
   "flow.connect": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/flow.connect.mp3", volume: 0.79 },
   "flow.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "unblock.slide": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3" },
+  // The Pattern overhaul (15 Nov 2026, docs/sound-cues/pattern-elevenlabs.md): library stand-ins until Joe's
+  // recordings (unblock.slideLong.mp3, unblock.blocked.mp3, unblock.laneClear.mp3) replace them.
+  "unblock.slideLong": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3" },
+  "unblock.blocked": { channel: "effects", frequency: 0, ms: 90, url: "/sounds/arc_wood_knock.mp3", volume: 0.7 },
+  "unblock.laneClear": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/gem.glint.mp3", volume: 0.6 },
   // 15 Nov 2026: the drive-out's recording through the cue (one sound); NEW_GAME_SOUNDS on swaps in unblock.solve.mp3.
   "unblock.solve": { channel: "effects", frequency: 0, ms: 2470, url: "/sounds/pz_car_escape.mp3" },
   "push.step": { channel: "effects", frequency: 0, ms: 120, url: null },
   "push.push": { channel: "effects", frequency: 0, ms: 120, url: null },
   "push.home": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/push.home.mp3", volume: 0.88 },
   "push.solve": { channel: "effects", frequency: 0, ms: 1147, url: "/sounds/push.solve.mp3" },
+  // The Pattern overhaul (15 Nov 2026, docs/sound-cues/pattern-elevenlabs.md): library stand-ins until Joe's
+  // recordings (push.goldOff.mp3, push.stuck.mp3) replace them. push.stuck is fired by the deadlock hint (Easy and
+  // Normal, push.levels.ts, 16 Nov 2026).
+  "push.goldOff": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/retro.powerDown.mp3", volume: 0.5 },
+  "push.stuck": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/swing.vineCreak.mp3", volume: 0.6 },
   "tiles.slide": { channel: "effects", frequency: 0, ms: 160, url: null },
   "tiles.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
   "laser.place": { channel: "effects", frequency: 0, ms: 180, url: null },
@@ -559,20 +575,49 @@ const ENTRIES = {
   "laser.fire": { channel: "effects", frequency: 0, ms: 2000, url: null },
   "laser.gem": { channel: "effects", frequency: 0, ms: 260, url: null },
   "laser.bomb": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/laser.bomb.mp3", volume: 0.82 },
+  // The Pattern overhaul (15 Nov 2026): library placeholders until Joe's files (docs/sound-cues/pattern-elevenlabs.md):
+  // a shot that lights every gem but one, and the laser powering down after the last shot (laserRev 4).
+  "laser.nearMiss": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/arc_retro_blip.mp3", volume: 0.5 },
+  "laser.outOfShots": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/retro.powerDown.mp3", volume: 0.7 },
   "laser.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/laser.solve.mp3" },
   "pipes.rotate": { channel: "effects", frequency: 0, ms: 170, url: null },
   "pipes.flow": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pipes.flow.mp3", volume: 0.78 },
   "pipes.solve": { channel: "effects", frequency: 0, ms: 1200, url: "/sounds/pipes.solve.mp3" },
+  // The Pattern overhaul (15 Nov 2026): library placeholders until Joe's files (docs/sound-cues/pattern-elevenlabs.md).
+  "pipes.combo": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/combo.mp3" },
+  "pipes.drain": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/combo.lost.mp3" },
+  "pipes.bubble": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/arc_sea_bubble.mp3" },
   "iceslide.slide": { channel: "effects", frequency: 0, ms: 100, url: null },
   "iceslide.portal": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.portal.mp3", volume: 0.79 },
   "iceslide.crack": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.crack.mp3" },
   "iceslide.fall": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/iceslide.fall.mp3", volume: 0.78 },
   "iceslide.solve": { channel: "effects", frequency: 0, ms: 1200, url: "/sounds/iceslide.solve.mp3" },
+  // The Pattern overhaul (15 Nov 2026, docs/sound-cues/pattern-elevenlabs.md): library stand-ins until Joe's
+  // recordings (iceslide.slideLong.mp3, iceslide.stop.mp3, iceslide.bump.mp3, iceslide.nearExit.mp3) replace them.
+  "iceslide.slideLong": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3", volume: 0.5 },
+  "iceslide.stop": { channel: "effects", frequency: 0, ms: 160, url: "/sounds/arc_fair_thud.mp3", volume: 0.55 },
+  "iceslide.bump": { channel: "effects", frequency: 0, ms: 90, url: "/sounds/arc_wood_knock.mp3", volume: 0.45 },
+  "iceslide.nearExit": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/gem.glint.mp3", volume: 0.5 },
   "blockparty.place": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/block.place.mp3" },
   "blockparty.turn": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "blockparty.flip": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.select.mp3" },
   "blockparty.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.pops.mp3" },
-  "gravity.tilt": { channel: "effects", frequency: 0, ms: 200, url: null },
+  // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026): library placeholders until Joe's files
+  // (docs/sound-cues/pattern-elevenlabs.md); each url becomes /sounds/<slot>.mp3 when its file lands.
+  "blockparty.pickup": { channel: "effects", frequency: 0, ms: 182, url: "/sounds/balance.lift.mp3", volume: 0.7 },
+  "blockparty.illegal": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/checkout.thud.mp3", volume: 0.8 },
+  "blockparty.undo": { channel: "effects", frequency: 0, ms: 182, url: "/sounds/balance.lift.mp3", volume: 0.6 },
+  "blockparty.reset": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3", volume: 0.8 },
+  // ---- tessellate:end
+  // ---- topsy:start (the Pattern overhaul, 15 Nov 2026): library stand-ins until Joe's files
+  // (docs/sound-cues/pattern-elevenlabs.md); each url becomes /sounds/<slot>.mp3 when its file lands. gravity.tilt is
+  // the roll's rumble, looped for exactly as long as the balls move (topsyBoard.tsx topsyTiltSounds).
+  "gravity.tilt": { channel: "effects", frequency: 0, ms: 3000, url: "/sounds/arc_marble_roll.mp3", loop: true, volume: 0.7 },
+  "gravity.stop": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/arc_marble_clink.mp3", volume: 0.45, gapMs: 30 },
+  "gravity.combo": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/combo.mp3" },
+  "gravity.boardClear": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/ui.counterLock.mp3", volume: 0.79 },
+  "gravity.outOfTilts": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/checkout.thud.mp3", volume: 0.8 },
+  // ---- topsy:end
   "gravity.lock": { channel: "effects", frequency: 0, ms: 201, url: "/sounds/gravity.lock.mp3" },
   "gravity.solve": { channel: "effects", frequency: 0, ms: 1080, url: "/sounds/done.rising.mp3" },
   "rings.turn": { channel: "effects", frequency: 0, ms: 210, url: null },

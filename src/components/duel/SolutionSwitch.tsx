@@ -21,6 +21,10 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "bomb",
   // The Logic overhaul, session 1 (15 Nov 2026): Box Six's solution and your grid, one at a time.
   "sudoku",
+  // Skid (15 Nov 2026, the Pattern overhaul, slideRev 5): the shortest route, and the player's own final board.
+  "iceslide",
+  // Heave (15 Nov 2026, the Pattern overhaul): the minimum solution playing back, and the player's own final warehouse.
+  "push",
 ]);
 // The Logic overhaul (15 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions and Island Link draw
 // their own switch (src/puzzles/logic2Reveal.tsx: your answer marked against the solution), so they left this list.
@@ -87,6 +91,10 @@ export function SolutionSwitch({
       // In a two-column grid (Bomb Defusal) the column shown takes the whole row.
       show.style.gridColumn = "1 / -1";
       show.dataset["solutionView"] = view;
+      // Pattern overhaul (15 Nov 2026): a line about the player's own board (their count, "You: 0 / 9") is marked
+      // `data-yours-only` and shown only under Yours, so nothing below the Solution reads as the solution's.
+      for (const line of Array.from(node.querySelectorAll<HTMLElement>("[data-yours-only]")))
+        line.style.display = view === "solution" ? "none" : "";
     };
     apply();
     const watch = new MutationObserver(() => {

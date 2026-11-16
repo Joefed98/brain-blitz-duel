@@ -178,11 +178,12 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
 
   /* ================================================================ Pattern */
   // Gridlock (unblock): 150 + speed 30 (40 s) + moves 20 (par).
-  ch("unblock", "Clear road", "Free the gold block in par moves.", "C", "par", false, bonus(20), "unblock.par"),
-  ch("unblock", "Rush hour", "Free the gold block within 40 s.", "C", "speed", false, speed(30, 40), "unblock.speed"),
+  ch("unblock", "Clear road", "Free the gold car in par moves.", "C", "par", false, bonus(20), "unblock.par"),
+  ch("unblock", "Rush hour", "Free the gold car within 40 s.", "C", "speed", false, speed(30, 40), "unblock.speed"),
   ch("unblock", "Green wave", "Score 200 on an Expert jam.", "E", "perfect", true, score(200)),
-  // Tessellate (blockparty): 150 + speed 40 (40 s) + first time 10.
-  ch("blockparty", "No second thoughts", "Fill the board without moving a piece twice.", "C", "clean", false, all(FIN, eff(10))),
+  // Tessellate (blockparty): 150 + speed 40 (40 s) + clean drops 10 (blockRev 4, the Pattern overhaul: moving a
+  // placed piece is free, each drop where a piece won't fit costs a share; 10 needs no illegal drop).
+  ch("blockparty", "No second thoughts", "Fill the board without dropping a piece where it won’t fit.", "C", "clean", false, all(FIN, eff(10))),
   ch("blockparty", "Snap fit", "Fill the board within 40 s.", "C", "speed", false, speed(40, 40)),
   // Skid (iceslide): 150 + speed 30 (30 s) + slides 20 (par).
   ch("iceslide", "Ice cool", "Reach the exit in par slides.", "C", "par", false, all(FIN, f("slides", "lte", "@parSlides"))),
@@ -197,13 +198,15 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Turntable (rings): 150 + speed 35 (40 s) + turns 15 (par).
   ch("rings", "Full circle", "Match every spoke.", "C", "finish", false, all(FIN)),
   ch("rings", "Spin doctor", "Match every spoke in par turns.", "C", "par", false, bonus(15)),
-  // Lightbender (laser): 150 + speed 40 (15 s) + mirrors 5 + first shot 5.
+  // Lightbender (laser): 150 + speed 40 (30 s on laserRev 4, 15 s before) + mirrors 5 + first shot 5.
   ch("laser", "One shot", "Light all six gems with your first FIRE.", "C", "clean", false, all(FIN, f("fires", "eq", 1))),
   ch("laser", "Hall of mirrors", "Light all six on the first shot with par mirrors.", "C", "par", false, all(FIN, eff(10))),
-  ch("laser", "Speed of light", "Light all six within 15 s.", "C", "speed", true, speed(40, 15)),
-  // Chroma Lines (flow): 150 + speed 40 (20 s) + clean lines 10.
+  // 15 s → 30 s (16 Nov 2026): laserRev 4 gives full speed by 30 s on Normal (patternRules.ts LASER_REV4_FULL_BY_S). Changed with Joe's approval, 16 Nov 2026 (Normal eased on new stamp).
+  ch("laser", "Speed of light", "Light all six within 30 s.", "C", "speed", true, speed(40, 30)),
+  // Chroma Lines (flow): 150 + speed 40 (30 s on flowRev 3, 20 s before) + clean lines 10.
   ch("flow", "No redraws", "Join every pair without redrawing a line.", "C", "clean", false, all(FIN, f("redraws", "eq", 0))),
-  ch("flow", "Paint stripper", "Join every pair within 20 s.", "C", "speed", false, speed(40, 20)),
+  // 20 s → 30 s (16 Nov 2026): flowRev 3 gives full speed by 30 s on Normal (patternRules.ts FLOW_REV3_FULL_BY_S). Changed with Joe's approval, 16 Nov 2026 (Normal eased on new stamp).
+  ch("flow", "Paint stripper", "Join every pair within 30 s.", "C", "speed", false, speed(40, 30)),
   ch("flow", "Spaghetti junction", "Fill a Hard board.", "H", "finish", false, all(FIN)),
   // Pipeline (pipes): 150 + speed 40 (60 s) + taps 10 (par).
   ch("pipes", "No leaks", "Connect every pipe.", "C", "finish", false, all(FIN)),
