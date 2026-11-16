@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { LeftTag } from "./LeftTag";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -157,6 +158,7 @@ export function Podium({
   actions,
   celebrations,
 }: PodiumProps) {
+  const enter = useMomentEnter("fade");
   const [open, setOpen] = useState<number | null>(null);
   const plateOf = useRoomNameplate();
   const openCard = useOpenRoomCard();
@@ -226,7 +228,7 @@ export function Podium({
   const sharedAt = (place: number) => rows.filter((r) => r.position === place).length > 1;
 
   return (
-    <div ref={root} className="relative flex flex-1 flex-col gap-2.5 text-left animate-phase-in">
+    <div ref={root} className="relative flex flex-1 flex-col gap-2.5 text-left animate-phase-in" {...enter}>
       {won ? (
         <h1 className="text-center text-[30px] font-extrabold leading-tight text-foreground animate-word-scale-in">
           {sharedFirst ? "Joint winner!" : "You win!"}

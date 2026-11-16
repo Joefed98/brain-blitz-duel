@@ -13,6 +13,7 @@ import { roundMusicFor } from "@/lib/fx/theme";
 import { playVoice, prepareBeatTrack, prepareRoundMusic, stopMusicExcept, type VoiceId } from "@/lib/sound";
 import { useMomentElapsed } from "@/lib/fx/useRoomMoments";
 import { RoomMomentFx } from "./RoomMomentFx";
+import { useRichMoments } from "@/components/fx/useMomentEnter";
 
 /** Room-only, shell-free title; presentation and cues use the shared clock. */
 export function RoundTitle({
@@ -33,6 +34,8 @@ export function RoundTitle({
   const final = round >= totalRounds;
   const moment = useMemo(() => roundMomentSpec(round, totalRounds), [round, totalRounds]);
   const elapsed = useMomentElapsed(startedAt);
+  // The effects pass (15 Nov 2026): the round's numeral, large and faint behind the title (decorative; the title says it).
+  const rich = useRichMoments();
 
   useEffect(() => {
     stopMusicExcept("music_round_title", 0);
@@ -87,6 +90,16 @@ export function RoundTitle({
   return (
     <div className="duel-start-screen" data-category={category} aria-label="Round title">
       <RoomMomentFx spec={moment} startedAt={startedAt} />
+      {rich ? (
+        <span
+          className="round-title-ghost"
+          data-final={final ? "" : undefined}
+          aria-hidden="true"
+          style={{ animationDelay: `${-elapsed}ms` }}
+        >
+          {final ? "★" : round}
+        </span>
+      ) : null}
       <div
         className="round-title-lines"
         data-final={final ? "" : undefined}

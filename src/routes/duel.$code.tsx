@@ -943,7 +943,15 @@ function DuelScreen() {
     phaseStart !== null &&
     now < phaseStart + DUEL_START_MS
   ) {
-    return <DuelStart startedAt={phaseStart} type={roundType} />;
+    return (
+      <DuelStart
+        startedAt={phaseStart}
+        type={roundType}
+        players={players
+          .filter((p) => p.status !== "left")
+          .map((p) => ({ slot: p.player_slot, name: p.display_name, look: looks.get(p.player_slot) }))}
+      />
+    );
   }
 
   // While the guarded server write catches up, render the next shared frame,

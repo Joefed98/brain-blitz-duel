@@ -26,7 +26,7 @@ import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
 import { IntroStage } from "./IntroStage";
 import { useDesktop } from "@/lib/desktop";
 import { screenKeys } from "@/lib/desktopKeys";
-import { goStrike } from "@/lib/fx/celebrations";
+import { countdownStrike, goStrike } from "@/lib/fx/celebrations";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
 import { haptic } from "@/lib/haptics";
 import { useReducedMotion } from "@/lib/motion";
@@ -161,10 +161,17 @@ export function RoundIntro({
     };
   }, [counting, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const celebrate = useCelebrationsOn();
+  // The countdown's lightning (15 Nov 2026, Joe: it varies every time): a smaller strike behind 3, 2 and 1, each a new
+  // bolt (celebrationCanvas.ts draws every strike fresh). Display only: the count, its sounds and GO are unchanged.
+  useEffect(() => {
+    if (!counting || !celebrate) return;
+    countdownStrike(secondsLeft);
+  }, [counting, secondsLeft, startedAt, celebrate]);
+
   // Celebrations (src/lib/fx/celebrations.ts): GO (the countdown's end) gets one lightning strike
   // and the zap. The round's own start is untouched: the intro hands over on time and the strike
   // plays over the first moment of play.
-  const celebrate = useCelebrationsOn();
   useEffect(() => {
     if (!counting || !celebrate) return;
     const delay = Math.max(0, INTRO_MS - Math.max(0, now - startedAt));
