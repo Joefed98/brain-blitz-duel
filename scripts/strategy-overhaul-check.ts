@@ -256,6 +256,16 @@ section("Intro stills: real frames, light, hashed");
   }
 }
 
+/* ------------------------------------------------------------------ 5b2. The help's Levels line (stage 3) */
+section("Help: every Strategy game's “?” describes each level");
+{
+  for (const type of ["tilt", "matchup", "bubble", "inkbridge", "balltrack"] as const) {
+    const line = PUZZLE_INSTRUCTIONS[type].how.find((h) => h.action === "Levels:");
+    ok(!!line && line.helpOnly === true, `${type}: a help-only “Levels:” line`);
+    ok(!!line && ["Easy", "Normal", "Hard", "Expert"].every((l) => line.detail.includes(l)), `${type}: it names Easy, Normal, Hard and Expert`);
+  }
+}
+
 /* ------------------------------------------------------------------ 5c. Rendered materials (stage 2) */
 section("Rendered materials: present, hashed, within budget, code art without them");
 {
