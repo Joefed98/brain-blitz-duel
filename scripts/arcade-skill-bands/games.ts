@@ -360,7 +360,11 @@ export const GAMES: GameSpec[] = [
   },
   // Iron Wall (id bastion): the tank-defence shooter, born on the arcade scoring standard at bastionRev 2 (1 Nov 2026);
   // bastionRev 3 (3 Nov 2026) eases waves 4–5 and adds the drones; any seed. "live" is rev 2, "next" rev 3.
-  simple("bastion", BASTION_REV_TANK, BASTION_REV_IRON, (rev) => bastionTankGameFor(rev), bastionTankCheckpoint, encodeBastionTankRun, (seed, raw, rev) => replayBastionTankRun(seed, raw, rev)),
+  // bastionRev 4 (15 Nov 2026, the levels): the level tuning plays each level's own game from the dealt puzzle.
+  {
+    ...simple("bastion", BASTION_REV_TANK, BASTION_REV_IRON, (rev) => bastionTankGameFor(rev), bastionTankCheckpoint, encodeBastionTankRun, (seed, raw, rev) => replayBastionTankRun(seed, raw, rev)),
+    gameForPuzzle: (puzzle: { bastionRev?: number; level?: unknown }) => bastionTankGameFor(puzzle.bastionRev, puzzle.level),
+  },
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {

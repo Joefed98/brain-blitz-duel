@@ -9,8 +9,8 @@ import { bastionLedgerStart, bastionLedgerStep, type BtLedger } from "@/lib/arca
 import { bastionTankGameFor, BT2_TANKS, BT3_DRONES, type BastionTankState } from "@/lib/arcade/bastionTank";
 import { decodeBastionTankRun } from "./bastion";
 
-export function bastionTankLedger(seed: number, raw: string, rev?: number | null): { ledger: BtLedger; state: BastionTankState } {
-  const game = bastionTankGameFor(rev ?? 2);
+export function bastionTankLedger(seed: number, raw: string, rev?: number | null, level?: unknown): { ledger: BtLedger; state: BastionTankState } {
+  const game = bastionTankGameFor(rev ?? 2, level);
   const run = decodeBastionTankRun(raw);
   const runTicks = game.runTicks;
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, runTicks) : 0;

@@ -16,7 +16,7 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
-import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, bastionTankGameFor, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
@@ -1075,6 +1075,9 @@ const GAMES: Game[] = [
       return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras);
     },
   },
+  // Iron Wall bastionRev 4 (15 Nov 2026, the levels: Normal, Easy and Hard; Expert is bastionRev 3's entry), appended so
+  // every earlier entry keeps its stream.
+  ...(["normal", "easy", "hard"] as const).map((level) => ({ key: `bastion/v4-${level}`, interval: BT2_CHECKPOINT_INTERVAL, game: bastionTankGameFor(4, level), checkpoint: bastionTankCheckpoint, mode: "events" as const, rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 4, level) })),
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
